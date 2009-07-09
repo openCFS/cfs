@@ -628,14 +628,11 @@ namespace CoupledField
  
     // todo: works only for aligned elements!
     
-    for (UInt i=0; i<4; i++ )
+    for (UInt i=0; i<2; ++i)
     {
-      // add two times a value and two times 0
-      UInt other = i < 3 ? i+1 : 0; // wrap around for last edge
-      Double dx = ptCoord[0][i] - ptCoord[0][other];
-      Double dy = ptCoord[1][i] - ptCoord[1][other];
-      edges_out[0] += abs(dx) * 0.5; // do the averaging now, from 4, 2 are zero
-      edges_out[1] += abs(dy) * 0.5; 
+      // for all dimensions, add offset; only in one direction this is not 0
+      edges_out[i]  = abs(ptCoord[i][0] - ptCoord[i][1]);
+      edges_out[i] += abs(ptCoord[i][0] - ptCoord[i][3]);
     }
   }
   

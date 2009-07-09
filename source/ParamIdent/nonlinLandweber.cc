@@ -88,7 +88,7 @@ void piezoParamIdent::nonlinLandweber() {
     for (UInt i=0; i<nrMeasuredData_; i++)
       for (UInt j=0; j<nrMeasuredData_; j++)
         if (i==j)
-        {
+				{
           if (whichNormCriteria_=="logAmplitude")
             ImgSpaceScaling_Mat[i][j] = 1.0/std::log(std::abs(Complex(real_[i],
                 imag_[i])));
@@ -115,7 +115,7 @@ void piezoParamIdent::nonlinLandweber() {
             ImgSpaceScaling_Mat[i][j]=1.0/(180.0/PI * std::atan2(realMech_[i], imagMech_[i]));
           else
             std::cerr<<"Your choice of the fitting quantity seems to be invalid" <<std::endl;
-        }
+				}
 
     createAdjointJacobiMatrix();
 

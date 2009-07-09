@@ -57,6 +57,13 @@ namespace CoupledField {
     //! does the reordering that is done in calculation of the B matrix, this is needed by Shape Derivative
     void ReorderBLikeMatrix( Matrix<Double>& in, Matrix<Double>& out, UInt ip, BaseFE* elem, Matrix<Double> &ptCoord );
 
+    /** Compute B-Mat at a given integration point (needed for shape gradients)
+     * @param bMat returns matrix, is resized (3x8 in 2D plain)
+     * @param intPoint where to calculate B for
+     * @param elem which element
+     * @param ptCoord corner coordinates of the element? */
+    void calcBMatOnly( Matrix<double> &bMat, Vector<double>& intPoint, 
+           BaseFE* elem, Matrix<double> &ptCoord );
 
     //! Query material type for \f$D\f$ tensor
     MaterialType getDMaterialType() { return MECH_STIFFNESS_TENSOR; }
@@ -74,13 +81,13 @@ namespace CoupledField {
      * @param direction if !=  DesignElement::NO_DERIVATIVE calculate derivative instead*/ 
     virtual void calcDMat( Matrix<Double> &dMat, const Elem* elem, const DesignElement::Type direction);
 
-  protected:
-    
     /** see calcDMat(Matrix<Double>, const Elem*, const DesignElement::Type) */
     virtual void calcDMat( Matrix<Double> &dMat, const Elem* elem){
       calcDMat( dMat, elem, DesignElement::NO_DERIVATIVE);
     }
 
+  protected:
+    
     /** see calcDMat(Matrix<Double>, const Elem*) */
     virtual void calcDMat( Matrix<Complex> &dMat, const Elem* elem);
 

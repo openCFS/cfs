@@ -44,11 +44,10 @@ namespace CoupledField {
   BiLinFormContext::~BiLinFormContext() {
     
     // delete bilinearform
-    // TODO: this crashes fro the preisach2d testcase. check the problem or use smart pointers
-    // if( integrator_ != NULL ) {
-    //  delete integrator_;
-    //  integrator_ = NULL;
-    // }
+    if( integrator_ != NULL ) {
+      delete integrator_;
+      integrator_ = NULL;
+    }
   }
   
   void BiLinFormContext::MapEqns( EntityIterator& it1, 
@@ -146,11 +145,10 @@ namespace CoupledField {
   LinearFormContext::~LinearFormContext() {
 
     // delete linearform
-    // TODO: this crashes fro the preisach2d testcase. check the problem or use smart pointers
-    // if( integrator_ != NULL ) {
-    //  delete integrator_;
-    //  integrator_ = NULL;
-    // }
+    if( integrator_ != NULL ) {
+      delete integrator_;
+      integrator_ = NULL;
+    }
   }
 
 

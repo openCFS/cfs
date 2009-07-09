@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Detects which OS and if it is Linux then it will detect which Linux Distribution.
 
 

@@ -42,7 +42,8 @@ piezoParamIdent::piezoParamIdent(UInt sequenceStep, bool isPartOfSequence) :
   voltage_=1.0;
   maxNumberInnerLoops_=45;
 
-
+  driverNode = driverNode->Get("piezoParamIdent");
+  driverNode->Get("sequenceStep")->SetValue(sequenceStep);
 }
 
 void piezoParamIdent::Init() {

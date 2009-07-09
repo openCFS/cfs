@@ -136,25 +136,21 @@ void StdMatrix::HarwellBoeing<T>::Export(const std::string& file, const BaseVect
            const CRS_Matrix<T>* crs = dynamic_cast<const CRS_Matrix<T>*>(matrix_);  
            // from compresses row storage transform to column storage (HB)
 
-           UInt* col_ptr;
-           UInt* row_ptr;
-           T*   val_ptr;
+           elements = crs->GetNnz();
+           
+           unsigned int* col_ptr = new unsigned int[crs->GetNumCols() + 1];
+           unsigned int* row_ptr = new unsigned int[elements];
+           T*            val_ptr = new T[elements];
               
-           elements = crs->GetNnz();   
-              
-           NEWARRAY(col_ptr, UInt, crs->GetNumCols() + 1);
-           NEWARRAY(row_ptr, UInt, elements);
-           NEWARRAY(val_ptr, T, elements);
-
            crs->Transpose(col_ptr, row_ptr, val_ptr);
  
-           Fill(NULL, col_ptr, crs->GetNumCols(), cols);  // include tail
+           Fill(NULL, col_ptr, crs->GetNumCols() + 1, cols);  // include tail
            Fill(NULL, row_ptr, elements, rows);
            Fill(val_ptr, NULL , elements, mat_data);
-           
-           DELETEARRAY(col_ptr);
-           DELETEARRAY(row_ptr);
-           DELETEARRAY(val_ptr);
+
+           delete[] col_ptr;
+           delete[] row_ptr;
+           delete[] val_ptr;
 
            break;
         }

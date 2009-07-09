@@ -108,11 +108,10 @@ void piezoParamIdent::nuMethods() {
         else if (whichNormCriteria_=="phaseMech")
           ImgSpaceScaling_Mat[i][j]=1.0/(180.0/PI * std::atan2(realMech_[i],
               imagMech_[i]));
-
         else
           std::cerr<<"Your choice of the fitting quantity seems to be invalid"
               <<std::endl;
-      }
+			}
 
   createAdjointJacobiMatrix();
   Matrix<Complex> adjJacobiTemp;

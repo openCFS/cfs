@@ -40,9 +40,6 @@ namespace CoupledField {
     //! Initialize PDEs
     void InitializePDEs();
 
-    /** our report node */ 
-    InfoNode* infoNode_; 
-
     //! pointer to basePDE 
     BasePDE * ptPDE_;
 

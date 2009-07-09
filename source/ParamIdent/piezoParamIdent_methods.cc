@@ -136,7 +136,7 @@ namespace CoupledField {
     // obviously calcImpedanceCurve() is called multiple times. We use the number of childs within
     // the info node as counter as I have no idea about Tom's counters
     // This is similar to HarmonicDriver as PiezoParamIdent is similar to this.
-    InfoNode* base = info->Get("analysis")->Get(InfoNode::PROCESS);
+    InfoNode* base = driverNode->Get(InfoNode::PROCESS);
 
     for (UInt fstep = 0; fstep < freqs_.GetSize(); fstep++) {
 
@@ -309,7 +309,7 @@ namespace CoupledField {
     ResultHandler * resHandler = domain->GetResultHandler();
 
     // see comment within calcImpedanceCurve()
-    InfoNode* base = info->Get("analysis")->Get(InfoNode::PROCESS);
+    InfoNode* base = driverNode->Get(InfoNode::PROCESS);
 
     for (UInt fstep = 0; fstep < nrMeasuredData_; fstep++) {
 
@@ -463,7 +463,7 @@ namespace CoupledField {
       Double frequency) {
     
     // see comments in calcImpedance()
-    InfoNode* base = info->Get("analysis")->Get(InfoNode::PROCESS);
+    InfoNode* base = driverNode->Get(InfoNode::PROCESS);
     InfoNode* analysis_id = base->Get("step", InfoNode::APPEND);
     std::stringstream ss;
     ss << base->GetChildren().GetSize() << ":" << "createFVec:f:" << frequency;

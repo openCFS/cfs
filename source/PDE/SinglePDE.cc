@@ -436,8 +436,10 @@ namespace CoupledField {
 
     SETPROFILE("Before Resizing StoreSol");
     if(!isDirectCoupled_ ) {
-      solVec_->Resize( eqnMap_->GetNumEqns(), true );
-      rhsVec_->Resize( eqnMap_->GetNumEqns(), true );
+      solVec_->Resize(eqnMap_->GetNumEqns());
+      solVec_->Init();
+      rhsVec_->Resize(eqnMap_->GetNumEqns());
+      rhsVec_->Init();
 
       SETPROFILE("After Resizing StoreSol");
       if ( analysistype_ == HARMONIC ) {

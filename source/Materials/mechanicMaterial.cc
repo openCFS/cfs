@@ -39,6 +39,8 @@ namespace CoupledField
     isAllowed_.insert( MECH_GMODULUS_YZ );
     isAllowed_.insert( MECH_GMODULUS_ZX );
     isAllowed_.insert( MECH_GMODULUS_XY );
+    isAllowed_.insert( MECH_LAME_LAMBDA );
+    isAllowed_.insert( MECH_LAME_MU );
     isAllowed_.insert( RAYLEIGH_ALPHA );
     isAllowed_.insert( RAYLEIGH_BETA );
     isAllowed_.insert( RAYLEIGH_FREQUENCY);
@@ -502,7 +504,7 @@ namespace CoupledField
       GetScalar( EModul, MECH_EMODULUS, Global::COMPLEX ); 
       GetScalar( poisson, MECH_POISSON, Global::COMPLEX ); 
   
-      // calculate isothropic case        
+      // calculate isotropic case        
       Complex LameLambda, LameMu;
       elasticityTensor.Resize(6,6);
       elasticityTensor.Init();
@@ -526,7 +528,9 @@ namespace CoupledField
       elasticityTensor[4][4]=LameMu;
       elasticityTensor[5][5]=LameMu;
 
-      SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, Global::COMPLEX ); 
+      SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, Global::COMPLEX );
+      SetScalar(LameLambda, MECH_LAME_LAMBDA, Global::COMPLEX);
+      SetScalar(LameMu, MECH_LAME_MU, Global::COMPLEX);
 
 
 

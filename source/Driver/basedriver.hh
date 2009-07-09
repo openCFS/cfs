@@ -76,6 +76,12 @@ namespace CoupledField
      * @return the child element */
     static InfoNode* CreateAnalysisIdChild(InfoNode* base, const std::string& child_name, int child_id = -1,
         const std::string& child_2_name = "", int child_2_id = -1);
+
+    /** Adds a new analysis id for this driver.
+     * @see CreateAnalysisIdChild() */
+    InfoNode* CreateAnalysisId(const std::string& child_name, int child_id = -1,
+                               const std::string& child_2_name = "", int child_2_id = -1);
+
     
     /** This is an factory pattern implementation. The result is the
      * proper driver based on the analysis type and adaptiviy setting.
@@ -96,6 +102,10 @@ namespace CoupledField
     /** @see GetActAnalysisId() */
     InfoNode* analysis_id_;
     
+    /** our report node */ 
+    InfoNode* driverNode; 
+
+    
     //! --------------------- stuff for computation with adaptivity
     //! for printing a sequence of files in dir meshes in gmv-format
 
@@ -115,6 +125,10 @@ namespace CoupledField
      *  printing sequence of refined meshes with error map */ 
     bool printMeshesOrNot();
     
+  private:
+    /** helper function. Items are separated via ':' to be replaces when using as filename! */
+    std::string ConcatAnalysisId(InfoNode* analysis_id, const std::string& child_name, int child_id, 
+                                 const std::string& child_2_name, int child_2_id);
   };
 
 }

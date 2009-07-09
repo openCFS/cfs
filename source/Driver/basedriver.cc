@@ -24,6 +24,7 @@ BaseDriver::BaseDriver( )
   analysis_id_ = NULL;
   nummeshes_=0;
   handler_ = domain->GetResultHandler();
+  driverNode = info->Get("analysis"); // analysis step set in singleDriver
 }
 
 BaseDriver::~BaseDriver()
@@ -51,30 +52,37 @@ void BaseDriver::PrintSeqMeshes()
   Warning( "Not implemented anymore", __FILE__, __LINE__ );
 }
 
+InfoNode* BaseDriver::CreateAnalysisId(const std::string& child_name, int child_id, 
+                                       const std::string& child_2_name, int child_2_id)
+{
+  InfoNode* child = driverNode->Get(InfoNode::PROCESS)->Get("step", InfoNode::APPEND);
+  child->Get("analysis_id")->SetValue(ConcatAnalysisId(child, child_name, child_id, child_2_name, child_2_id));
+  return child;
+}
 
 InfoNode* BaseDriver::CreateAnalysisIdChild(InfoNode* base, const std::string& child_name, int child_id, 
     const std::string& child_2_name, int child_2_id)
 {
+  // create a child
+  InfoNode* child = base->Get(child_name);
+  std::string val = domain->GetDriver()->ConcatAnalysisId(base, child_name, child_id, child_2_name, child_2_id);
+  child->Get("analysis_id")->SetValue(val);
+  return child;
+}
+
+
+std::string BaseDriver::ConcatAnalysisId(InfoNode* analysis_id, const std::string& child_name, int child_id, 
+                                    const std::string& child_2_name, int child_2_id)
+{
+  assert(!(child_name == "" && child_id != -1));
+  assert(!(child_name == "" && child_2_name != ""));
   assert(!(child_2_name != "" && child_id == -1));
   
-  // create a child
-  // aquire current analysis id
-  InfoNode* child;
   std::stringstream ss;
-  
-  if(base == NULL)
-  {
-    child = info->Get("analysis")->Get(InfoNode::PROCESS)->Get("step", InfoNode::APPEND); 
-  }
-  else
-  {
-    child = base->Get(child_name);
-    ss << base->Get("analysis_id")->AsString();
-    ss << ":";
-          
-  }
+  ss << analysis_id->Has("analysis_id") ? analysis_id->Get("analysis_id")->AsString() : ""; 
 
-  ss << child_name;
+  if(child_name != "")
+  ss << ":" << child_name;
 
   if(child_id != -1) 
     ss << ":" << child_id;
@@ -84,10 +92,8 @@ InfoNode* BaseDriver::CreateAnalysisIdChild(InfoNode* base, const std::string& c
   
   if(child_2_id != -1) 
       ss << ":" << child_2_id;
-  
-  child->Get("analysis_id")->SetValue(ss.str());
-  
-  return child;
+
+  return ss.str();
 }
 
 // static stuff

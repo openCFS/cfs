@@ -56,11 +56,14 @@ namespace CoupledField
                         ABS_DYN_OUTPUT_SQUARED,    /*!< |<u,l>|^2 = | sum u_l |^2 harmonic */
                         CONJUGATE_COMPLIANCE,      /*!< (u, F conj(u)) as DYNAMIC_OUTPUT with trace of L is f */
                         GLOBAL_DYNAMIC_COMPLIANCE, /*!< (u, I conj(u)) as DYNAMIC_OUTPUT with L is I (everywhere) */
-                        ELEC_ENERGY,                /*!< p^T K_pp p or p^T K_pp p^* */ 
-                        VOLUME, TRACKING } ObjectiveType;
+                        ELEC_ENERGY,               /*!< p^T K_pp p or p^T K_pp p^* */ 
+                        VOLUME, TRACKING,
+                        HOMOGENIZATION             /*!< currently not a real cost function, has to be extended */
+                        } ObjectiveType;
 
          /** Not the optimization problem but the solver! */
-         typedef enum { OPTIMALITY_CONDITION, IPOPT_SOLVER, SCPIP_SOLVER, LEVEL_SET, EVALUATE_INITIAL_DESIGN, GRADIENT_CHECK } Optimizer;
+         typedef enum { OPTIMALITY_CONDITION, IPOPT_SOLVER, SCPIP_SOLVER, SHAPE_SOLVER, 
+												EVALUATE_INITIAL_DESIGN, GRADIENT_CHECK } Optimizer;
 
          /** to convert string/enum for this type */
          static Enum<ObjectiveType> objectiveType;
@@ -232,14 +235,14 @@ namespace CoupledField
           /** The stride for adjust weights: 1 = every iteration, 2 = every second ... */
           int stride;
 
-          /** the maximal span between the largest (1) and smalles weight as factor */
+          /** the maximal span between the largest (1) and smallest weight as factor */
           double max_gain;
 
           /** The exponent d in w_k^p J_k = const */
           double damping;
-          
+
         private:
-          /** do we do multuple excitation at all? */
+          /** do we do multiple excitation at all? */
           bool multiple_excitation_;
           bool meta_objective_;
         };
@@ -247,13 +250,13 @@ namespace CoupledField
         /** The current multiple excitation state -> check with IsEnabled() */
         MultipleExcitation* GetMultipleExcitation() const { return multiple_excitation; }
 
-        /** The constraits we have */
+        /** The constraints we have */
         StdVector<Condition> constraints;
 
-        /** The "inactive" constraits with output_only mode in xml */
+        /** The "inactive" constraints with output_only mode in xml */
         StdVector<Condition> outputs;
 
-        /** Searches in active and output only constrints!
+        /** Searches in active and output only constraints!
          * TODO: make name default for only one constraint
          *  @param design NO_TYPE ignores this criteria. DEFAULT would be problematic for
          *                this purpose as it is a valid value
@@ -268,11 +271,11 @@ namespace CoupledField
 
       protected:
         /** Set up the optimization system e.g. prepare the domain for optimization. called
-         * excusively by CreateInstance() -> don't forget to call PostInit() afterwards! */
+         * exclusively by CreateInstance() -> don't forget to call PostInit() afterwards! */
         Optimization();
 
         /** Appends to the current analysis_id of the driver a child and
-         * sets analysis_id and excite acordingly */
+         * sets analysis_id and excite accordingly */
         InfoNode* CreateAdjointAnalysisIdNode();
         
         /** This tells the driver to store the last solved problem (gid, ...). Called in
@@ -451,6 +454,10 @@ namespace CoupledField
 
     /** Here we might store the "original" (@see objective) gradient for analysis/output */
     StdVector<double> cost_gradient;
+    
+    /** for the calculation of a homogenized material tensor, one can specify test strains in
+     *  xml file. */
+    Vector<Double> test_strain;
   };
 
 } // namespace

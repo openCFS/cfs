@@ -22,7 +22,6 @@ namespace CoupledField{
     sequenceStep_ = sequenceStep;
     isPartOfSequence_ = isPartOfSequence;
     ptPDE_ = NULL;
-    infoNode_ = info->Get("analysis");
   }
   
   SingleDriver::~SingleDriver()

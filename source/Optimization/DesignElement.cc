@@ -9,9 +9,16 @@
 #include "DataInOut/ParamHandling/InfoNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "boost/lexical_cast.hpp"
+#include "boost/date_time/posix_time/posix_time.hpp"
+#include "Optimization/LevelSet.hh"
+#include "Optimization/ShapeOptimizer.hh"
 
 using namespace std;
 using namespace CoupledField;
+
+using boost::posix_time::ptime;
+using boost::posix_time::second_clock;
+using boost::posix_time::microsec_clock;
 
 DECLARE_LOG(del)
 DEFINE_LOG(del, "designElement")
@@ -87,100 +94,20 @@ DesignElement::DesignElement(ParamNode* pn, Elem* elem) : BaseDesignElement()
 
 DesignElement::~DesignElement()
 {
-  if(simp != NULL)     { delete simp; simp = NULL; }
-  if(lsn != NULL)      { delete lsn; lsn = NULL; }
-  if(vicinity != NULL) { delete vicinity; vicinity = NULL; }
+  if(simp != NULL)      { delete simp; simp = NULL; }
+  if(vicinity_ != NULL) { delete vicinity_; vicinity_ = NULL; }
   if(location_ != NULL) { delete location_; location_ = NULL; }
 }
 
 void DesignElement::Init()
 {
   simp            = NULL;
-  vicinity        = NULL;
-  lsn             = NULL;
+  vicinity_       = NULL;
+  lse_            = 0;
   location_       = NULL;
   elem            = NULL;
   type_           = NO_TYPE;
 }
-
-void DesignElement::SetLocation(DesignElement* ref, VicinityElement::Neighbour pos1, VicinityElement::Neighbour pos2)
-{
-  this->location_ = new Point(*(ref->GetLocation()));
-  
-  // find dimension of reference
-  Matrix<double>  coords; 
-  StdVector<double> edges;
-  // assume uniform grid!!
-  domain->GetGrid()->GetElemNodesCoord(coords, ref->elem->connect, false );
-  ref->elem->ptElem->GetEdgeLength(coords, edges);
-  
-  // a small switch is easier to read than a formula
-  switch(pos1)
-  {
-    case VicinityElement::X_P: 
-      location_->data[0] += edges[0];
-      break;
-      
-    case VicinityElement::X_N:
-      location_->data[0] -= edges[0];
-      break;
-
-    case VicinityElement::Y_P: 
-      location_->data[1] += edges[1];
-      break;
-      
-    case VicinityElement::Y_N:
-      location_->data[1] -= edges[1];
-      break;
-      
-    case VicinityElement::Z_P: 
-      location_->data[2] += edges[2];
-      break;
-      
-    case VicinityElement::Z_N:
-      location_->data[2] -= edges[2];
-      break;
-      
-    default: assert(false);
-  }
-
-  // todo: clean up dirty copy & pase
-  switch(pos2)
-  {
-    case VicinityElement::NONE:
-      break; // do nothinh
-  
-    case VicinityElement::X_P: 
-      location_->data[0] += edges[0];
-      break;
-      
-    case VicinityElement::X_N:
-      location_->data[0] -= edges[0];
-      break;
-
-    case VicinityElement::Y_P: 
-      location_->data[1] += edges[1];
-      break;
-      
-    case VicinityElement::Y_N:
-      location_->data[1] -= edges[1];
-      break;
-      
-    case VicinityElement::Z_P: 
-      location_->data[2] += edges[2];
-      break;
-      
-    case VicinityElement::Z_N:
-      location_->data[2] -= edges[2];
-      break;
-      
-    default: assert(false);
-  }
-
-  
-  LOG_DBG3(del) << "DesignElement::SetLocation " << ref->GetLocation()->ToString() << " pos1=" << pos1 << " pos2=" << pos2 << " -> " << location_->ToString();
-}  
-
 
 Point* DesignElement::GetLocation()
 {
@@ -245,8 +172,7 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       out[0] = GetValue(rd.value, rd.access);
     else
     {
-      if(rd.access != PLAIN) throw Exception("non-scalar result '" + valueSpecifier.ToString(rd.value) + "' requicess access='plain'");
-      GetValue(rd.value, out);
+      throw Exception("we only have one dof, only scalar values");
     }
   }
   return;
@@ -267,29 +193,9 @@ double DesignElement::GetValue(ValueSpecifier vs, Access access) const
 }
 
 
-
-void DesignElement::GetValue(ValueSpecifier sp, StdVector<double>& out) const
-{
-  if(sp == LEVEL_SET_NORMAL)
-    if(lsn == NULL) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to Level-Set");
-  
-  switch(sp)
-  {
-  case LEVEL_SET_NORMAL:
-    out.Import(lsn->normal.GetPointer(), lsn->normal.GetSize());
-    break;
-    
-  default: 
-    assert(false);
-  }
-}
-
-
 double DesignElement::GetValue(ValueSpecifier sp) const
 {
   // validate first:
-  if(sp == LEVEL_SET_VALUE)
-    if(lsn == NULL) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to Level-Set");
   switch(sp)
   {
   case DESIGN:               return design;
@@ -303,9 +209,13 @@ double DesignElement::GetValue(ValueSpecifier sp) const
     return simp->neighbourhood.GetSize();
   case CONSTRAINT_GRADIENT:  
     throw Exception("for constraint gradient we need an index!");
-  case LEVEL_SET_VALUE:
-    return lsn->GetValue();
-  default: throw Exception(valueSpecifier.ToString(sp) + " is no scalar value"); 
+  case TOPGRAD_VALUE:
+    if(lse_ == 0) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to Levelset");
+    return lse_->topGradValue;
+  case SHAPEGRAD_VALUE:
+    if(lse_ == 0) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to Levelset");
+    return lse_->shapeGradValue;
+  default: throw Exception(valueSpecifier.ToString(sp) + " is no scalar value");
   }
 }
 
@@ -348,7 +258,7 @@ std::string DesignElement::ToString(DesignElement* de)
   if(de->elem == NULL)
   {
     ss << "ghost";
-    if(de->vicinity != NULL) ss << de->vicinity->ToString();
+    if(de->vicinity_ != NULL) ss << de->vicinity_->ToString();
   }
   else ss << boost::lexical_cast<std::string>(de->elem->elemNum);
   
@@ -362,15 +272,15 @@ void DesignElement::SetEnums()
   filter.Add(VOLUME_RADIUS, "volumeRadius");
   filter.Add(MAX_EDGE, "maxEdge");
 
-   type.SetName("DesignElement::Type");
-   type.Add(TENSOR_TRACE, "tensor_trace");
-   type.Add(DEFAULT, "default");
-   type.Add(DENSITY, "density");
-   type.Add(POLARIZATION, "polarization");
-   type.Add(EMODUL, "emodul");
-   type.Add(POISSON, "poisson");
-   type.Add(LAMELAMBDA, "lamelambda");
-   type.Add(LAMEMU, "lamemu");
+  type.SetName("DesignElement::Type");
+  type.Add(TENSOR_TRACE, "tensor_trace");
+  type.Add(DEFAULT, "default");
+  type.Add(DENSITY, "density");
+  type.Add(POLARIZATION, "polarization");
+  type.Add(EMODUL, "emodul");
+  type.Add(POISSON, "poisson");
+  type.Add(LAMELAMBDA, "lamelambda");
+  type.Add(LAMEMU, "lamemu");
   type.Add(EMODULISO, "emodul-iso");
   type.Add(POISSONISO, "poisson-iso");
   type.Add(GMODUL, "gmodul");
@@ -389,7 +299,16 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(OBJECTIVE, "objective");
   valueSpecifier.Add(NUM_NEIGHBOURS, "neighbours");
   valueSpecifier.Add(LEVEL_SET_VALUE, "levelSetValue");
-  valueSpecifier.Add(LEVEL_SET_NORMAL, "levelSetNormal");
+  valueSpecifier.Add(LEVEL_SET_STATE, "levelSetState");
+  valueSpecifier.Add(TOPGRAD_VALUE, "topGradValue");
+  valueSpecifier.Add(SHAPEGRAD_VALUE, "shapeGradValue");
+  valueSpecifier.Add(SHAPEGRAD_NODE_VALUE, "shapeGradNodeValue");
+  valueSpecifier.Add(LEVEL_SET_GRAD_XP, "levelSetGradXP");
+  valueSpecifier.Add(LEVEL_SET_GRAD_XN, "levelSetGradXN");
+  valueSpecifier.Add(LEVEL_SET_GRAD_YP, "levelSetGradYP");
+  valueSpecifier.Add(LEVEL_SET_GRAD_YN, "levelSetGradYN");
+  valueSpecifier.Add(LEVEL_SET_GRAD_ZP, "levelSetGradZP");
+  valueSpecifier.Add(LEVEL_SET_GRAD_ZN, "levelSetGradZN");
 
   detail.SetName("DesignElement::Detail");
   detail.Add(NONE, "none");
@@ -557,79 +476,90 @@ void SIMPElement::Dump()
   std::cout << "\nelement: " << de_->elem->elemNum << " location " << de_->GetLocation()->ToString() 
             << " weight sum " << weight_sum << " this weight " << weight <<" distance avg " << distance_avg << std::endl;
   for(unsigned int i = 0; i < neighbourhood.GetSize(); i++)
-    std::cout << "  n[" << i << "]: elem " << neighbourhood[i].neighbour->elem->elemNum << " location " 
-              << neighbourhood[i].neighbour->GetLocation()->ToString() << " dist=" << neighbourhood[i].distance << " w=" << neighbourhood[i].weight << std::endl; 
+    std::cout << "  n[" << i << "]: elem " << neighbourhood[i].neighbour->elem->elemNum << " location "
+              << neighbourhood[i].neighbour->GetLocation()->ToString() 
+              << " dist=" << neighbourhood[i].distance << " w=" << neighbourhood[i].weight << std::endl;
 }
 
 
 VicinityElement::VicinityElement()
 {
-  design.Resize(domain->GetGrid()->GetDim() == 2 ? 4 : 6);
-  design.Init(NULL);
+  design.Resize(domain->GetGrid()->GetDim() == 2 ? 4 : 6, 0);
 }
 
 
 void VicinityElement::Init(DesignSpace* design)
 {
-  Grid* grid = domain->GetGrid();
-  StdVector<DesignElement>& data = design->data;
+  ptime before_time = second_clock::local_time();
   
+  cout << "Vicinities " << flush;
+  Grid* grid = domain->GetGrid();
+  StdVector<DesignElement> &data = design->data;
+
   // Our design region(s)
   StdVector<RegionIdType> regions;
   regions.Push_back(design->GetRegionId());
-  
+
   // result of GetElemsNextToNodes()
   StdVector<Elem*> elems;
-  
+
   // coordinatates of "this" element
   Matrix<double> reference;
   // coordinates of compare element
   Matrix<double> other;
-  
-  for(unsigned int element = 0; element < data.GetSize(); element++)
+
+  unsigned int factor(1);
+  for(unsigned int element = 0, data_size = data.GetSize(); element < data_size; ++element)
   {
+    if(10*element == factor*data_size) //draw a dot every 1/10 elements to cout
+    {
+      cout << "." << flush;
+      ++factor;
+    }
     DesignElement& de = data[element];
-    de.vicinity = new VicinityElement();
-    
+    de.vicinity_ = new VicinityElement();
+
     // all nodes of this element
-    StdVector<unsigned int>& nodes = de.elem->connect;
+    StdVector<unsigned int> &nodes = de.elem->connect;
 
     // coordinates of current element, not updated lagrangian
     grid->GetElemNodesCoord(reference, nodes, false );
-    
+
     // all elements that share "our" nodes, includes diagonal and "this" elements
     elems.Resize(0);
-    grid->GetElemsNextToNodes(elems, nodes, regions);  
-    
+    grid->GetElemsNextToNodes(elems, nodes, regions);
+
     // check the neighbour elements
-    for(unsigned int n = 0; n < elems.GetSize(); n++)
+    for(unsigned int n = 0, elems_size = elems.GetSize(); n < elems_size; ++n)
     {
       Elem* other_elem = elems[n];
       // ignore "this" element
       if(de.elem->elemNum == other_elem->elemNum) continue;
-      
+
       grid->GetElemNodesCoord(other, other_elem->connect, false );
-      
+
       int orientation; // 0..2 = x..z neighbour
       bool positive;    // +/- x..z neighbour
       bool valid = VicinityElement::IdentifyNeighbor(reference, other, orientation, positive);
-      int  idx   = orientation * 2 + (positive ? 0 : 1);
-      LOG_DBG3(del) << "VicinityElement::Init: reference=" << de.elem->elemNum << " other=" << other_elem->elemNum 
-                    << " vicinity=" << valid << " orientation=" << orientation << " postivie=" << positive << " idx=" << idx;
       
       // set the vicinity element
       if(!valid) continue;
-      DesignElement* other_de = design->Find(other_elem->elemNum, DesignElement::DENSITY); // quick and dirty! 
       
-      de.vicinity->design[idx] = other_de;
-      
+      int  idx   = orientation * 2 + (positive ? 0 : 1);
+      LOG_DBG3(del) << "VicinityElement::Init: reference=" << de.elem->elemNum << " other=" << other_elem->elemNum 
+                    << " vicinity=" << valid << " orientation=" << orientation << " positive=" << positive << " idx=" << idx;
+
+      DesignElement* other_de = design->Find(other_elem->elemNum, DesignElement::DENSITY); // quick and dirty!
+
+      de.vicinity_->design[idx] = other_de;
     }
   }
+  cout << "done (" << ShapeOptimizer::GetTimeString(second_clock::local_time() - before_time) << ") " << flush;
 }
-  
+
 
 /** Compares the node coordinates of two elements and decides which orientation we have. only face/line (3D/2D) neighbours.
- * "diagonal" elments and identical elements are "false".
+ * "diagonal" elements and identical elements are "false".
  * @param dimension 0, 1, 2 for x, y, z
  * @param positive if other is reference + dimension, false if reference - other
  * @return true if other is a true closest neighbour */
@@ -651,85 +581,63 @@ bool VicinityElement::IdentifyNeighbor(Matrix<double>& reference, Matrix<double>
   // 
   // From the example above, for reference element 0, we return 1,3,5,7
   
-  
   // the structure of the matrices is 
   // [x][i]
   // [y][i]
   // [z][i]
-  unsigned int dim = reference.GetNumRows();
-  unsigned int size  = reference.GetNumCols();
+  // and i \in {0, ..., number_of_elem_nodes} (4 in 2D, 8 in 3D)
+  const unsigned int dim(reference.GetNumRows());
+  const unsigned int size(reference.GetNumCols());
 
   assert(other.GetNumRows() == dim);
   assert(other.GetNumCols() == size);
   assert(dim == domain->GetGrid()->GetDim());
-  if(dim != 2) EXCEPTION("no implementation for 3D yet")
   
-  // defaults to make loggin in the false case easier
+  // defaults to make logging in the false case easier
   dimension = -1;
   positive = false;
   
   // we first test for x, then for y and then for z
-  for(unsigned int d = 0; d < dim; d++)
+  for(unsigned int d = 0; d < dim; ++d)
   {
     // assume 2D and d = 0 (=x), then all y-coordinates of 3 and 7 match 0
-    
+    bool good(true); // for above, only true for 0,3,7
     // probe for the other dimensions
-    for(unsigned int p = 0; p < dim; p++)
+    for(unsigned int p = 0; p < dim; ++p)
     {
       if(d == p) continue;
-
-      bool good = true; // for above, only true for 0,3,7
-      
-      // check all elements
-      for(unsigned int elem = 0; elem < size && good; elem++)
+      // check all element nodes (size == 4 in 2D, size == 8 in 3D)
+      for(unsigned int node = 0; node < size && good; ++node)
       {
-        if(reference[p][elem] != other[p][elem]) good = false;
+        // for the neighbour in direction d, all coordinates of all points
+        // in the other directions have to match
+        // if we find a difference, we have no candidate!
+        if(std::abs(reference[p][node] - other[p][node]) > 1e-6) good = false;
       }
-      
-      if(!good) continue;
-      
-      // this element is in the other dimension than equal to the reference element
-      // check for positive or negative
-      if(reference[d][0] == other[d][0]) return false; // identical version
-      dimension = d;
-      positive = other[d][0] > reference[d][0];
-      return true;
     }
+
+    if(!good) continue;
+
+    // this element and the reference element differ only in direction d
+    // check if we are comparing to self
+    if(std::abs(reference[d][0] - other[d][0]) < 1e-6) return false;
+    dimension = d;
+    // check for positive or negative
+    positive = (other[d][0] > reference[d][0]);
+    return true;
   }
   // nothing found
   return false;
 }
-    
-    
-int VicinityElement::GetNumberOfEntries()
+
+
+int VicinityElement::GetNumberOfEntries() const
 {
-  int count = 0;
-  for(unsigned int i = 0; i < design.GetSize(); i++)
-    if(design[i] != NULL) count++;
-  
+  int count(0);
+  for(unsigned int i = 0; i < design.GetSize(); ++i)
+    if(design[i] != NULL) ++count;
+
   return count;
-}
-
-DesignElement* VicinityElement::GetNeighbour(Neighbour first, Neighbour second)
-{
-  DesignElement* de = GetNeighbour(first);
-  if(de == NULL) return NULL;
-          return de->vicinity->GetNeighbour(second); 
-}
-
-void VicinityElement::GetFullNeighbourhood(StdVector<DesignElement*>& out)
-{
-  assert(domain->GetGrid()->GetDim() == 2);
-  
-  out.Resize(8);
-  out[0] = GetNeighbour(X_P);
-  out[1] = GetNeighbour(X_P, Y_N);
-  out[2] = GetNeighbour(Y_N);
-  out[3] = GetNeighbour(X_N, Y_N);
-  out[4] = GetNeighbour(X_N);
-  out[5] = GetNeighbour(X_N, Y_P);
-  out[6] = GetNeighbour(Y_P);
-  out[7] = GetNeighbour(X_P, Y_P);
 }
 
 string VicinityElement::ToString()
@@ -749,277 +657,6 @@ string VicinityElement::ToString()
   }
   ss << ")";
   return ss.str();
-}
-
-
-LevelSetNode::LevelSetNode(DesignElement* de, double value)
-{
-  assert(de != NULL);  
-  int dim = domain->GetGrid()->GetDim();
-  this->de_     = de;
-  this->value_   = value;
-  this->domain_boundary = de->vicinity->GetNumberOfEntries() != (dim == 2 ? 4 : 6);
-  this->normal.Resize(domain->GetGrid()->GetDim());
-  this->first_order_grad.Resize(dim);
-  this->second_order_grad.Resize(dim);
-
-  UpdateDesign();
-  LOG_DBG3(del) << "LevelSetNode::LevelSetNode: de=" << (de->elem != NULL ? (int) de->elem->elemNum : -1)<< " vicinity=" << de->vicinity->GetNumberOfEntries() 
-                << " value=" << value << " design=" << de->GetDesign(DesignElement::PLAIN);
-}
-
-LevelSetNode::~LevelSetNode()
-{
-  // it is our duty to delete ghost-elements, the vicinity has just references.
-  for(unsigned int i = 0; i < ghosts_.GetSize(); i++)
-  {
-    delete ghosts_[i]; ghosts_[i] = NULL; 
-  }
-}
-
-
-int LevelSetNode::CreateGhostElements(double value)
-{
-  int dim = domain->GetGrid()->GetDim();
-  // check if, and how many ghost elements we need!
-  assert(dim == 2); // 3D not implemented yet
-  // only domain boundary elements "contain" ghost elements
-  if(!domain_boundary) return ghosts_.GetSize(); 
-  // do we have an "edge" (2D: vicinity has 2 instead of 4 elements), then we have to set the edge element
-  // as vicinity has only side neighbours
-  VicinityElement& vicinity = *(de_->vicinity);
-  
-  LOG_DBG3(del) << "LevelSetNode::CreateGhostElements: elem: " << de_->ToString() << " vicinity: " << vicinity.ToString();
-  
-  // check for an corner element
-  bool corner = false;
-  if(de_->vicinity->GetNumberOfEntries() == 2) // 2D!
-  {
-    ghosts_.Push_back(new DesignElement());
-    ghosts_.Last()->vicinity = new VicinityElement();
-    ghosts_.Last()->lsn = new LevelSetNode(ghosts_.Last(), value);
-    corner = true;
-  }
-  
-  // check for regualar ghost elements
-  for(int d = 0; d < dim; d++)
-  {
-    for(int p = 0; p <= 1; p++) // positive and negative component
-    {
-      unsigned int idx = 2 * d + p;
-      if(vicinity.design[idx] == NULL)
-      {
-        DesignElement* de =  new DesignElement(); // is by default a ghost element
-        de->vicinity = new VicinityElement();
-        vicinity.design[idx] = de; // link to the other/new node
-        de->vicinity->design[2 * d + (p == 0 ? 1 : 0)] = de_; // link the other node with "this"
-        de->lsn = new LevelSetNode(de, value);
-        de->SetLocation(de_, (VicinityElement::Neighbour) idx);
-        ghosts_.Push_back(de);
-      }
-    }
-  }
-
-  // do we have a corner, then do the linking and set the corner
-  if(corner)
-  {
-    assert(ghosts_.GetSize() == 3);
-    assert(ghosts_[0]->vicinity->GetNumberOfEntries() == 0); // the corner has no entries yet
-    // the corner is the first element!
-    // in 2D we have a second and third ghost element
-    
-    // check lower left corner, order is X_P, X_N, Y_P, Y_N
-    assert(ghosts_[1]->vicinity->GetNumberOfEntries() == 1); // the one reference to the design element
-    if(IsGhost(vicinity.GetNeighbour(VicinityElement::X_N)) && IsGhost(vicinity.GetNeighbour(VicinityElement::Y_N)))
-    {
-      ghosts_[0]->SetLocation(de_, VicinityElement::X_N, VicinityElement::Y_N);
-      ghosts_[1]->vicinity->design[VicinityElement::Y_N] = ghosts_[0];
-      ghosts_[0]->vicinity->design[VicinityElement::Y_P] = ghosts_[1]; 
-      ghosts_[2]->vicinity->design[VicinityElement::X_N] = ghosts_[0];
-      ghosts_[0]->vicinity->design[VicinityElement::X_P] = ghosts_[2]; 
-    }
-    // check lower right corner
-    if(IsGhost(vicinity.GetNeighbour(VicinityElement::X_P)) && IsGhost(vicinity.GetNeighbour(VicinityElement::Y_N)))
-    {
-      ghosts_[0]->SetLocation(de_, VicinityElement::X_P, VicinityElement::Y_N);      
-      ghosts_[1]->vicinity->design[VicinityElement::Y_N] = ghosts_[0];
-      ghosts_[0]->vicinity->design[VicinityElement::Y_P] = ghosts_[1]; 
-      ghosts_[2]->vicinity->design[VicinityElement::X_P] = ghosts_[0];
-      ghosts_[0]->vicinity->design[VicinityElement::X_N] = ghosts_[2]; 
-    }
-    // check upper right corner
-    if(IsGhost(vicinity.GetNeighbour(VicinityElement::X_P)) && IsGhost(vicinity.GetNeighbour(VicinityElement::Y_P)))
-    {
-      ghosts_[0]->SetLocation(de_, VicinityElement::X_P, VicinityElement::Y_P);      
-      ghosts_[1]->vicinity->design[VicinityElement::Y_P] = ghosts_[0];
-      ghosts_[0]->vicinity->design[VicinityElement::Y_N] = ghosts_[1]; 
-      ghosts_[2]->vicinity->design[VicinityElement::X_P] = ghosts_[0];
-      ghosts_[0]->vicinity->design[VicinityElement::X_N] = ghosts_[2]; 
-    }
-    // check upper left corner
-    if(IsGhost(vicinity.GetNeighbour(VicinityElement::X_N)) && IsGhost(vicinity.GetNeighbour(VicinityElement::Y_P)))
-    {
-      ghosts_[0]->SetLocation(de_, VicinityElement::X_N, VicinityElement::Y_P);      
-      ghosts_[1]->vicinity->design[VicinityElement::Y_P] = ghosts_[0];
-      ghosts_[0]->vicinity->design[VicinityElement::Y_N] = ghosts_[1]; 
-      ghosts_[2]->vicinity->design[VicinityElement::X_N] = ghosts_[0];
-      ghosts_[0]->vicinity->design[VicinityElement::X_P] = ghosts_[2]; 
-    }
-    // the corner shall have now 2 entries
-    assert(ghosts_[0]->vicinity->GetNumberOfEntries() == 2);
-    LOG_DBG2(del) << "CreateGhostElements: corner: " << ghosts_[0]->ToString() << " 1:" << ghosts_[1]->ToString() << " 2:" << ghosts_[2]->ToString();  
-  }
-  
-  assert(de_->vicinity->GetNumberOfEntries() == (dim == 2 ? 4 : 6));
-  return ghosts_.GetSize();
-}
-
-DesignElement* LevelSetNode::GetNeighbour(Neighbour idx)
-{
-  return de_->vicinity->design[idx];
-}
-
-DesignElement* LevelSetNode::GetNeighbour(Neighbour first, Neighbour second)
-{
-  DesignElement* de = de_->vicinity->design[first];
-  if(de == NULL) return NULL;
-  de = de->vicinity->design[second];
-  if(de == NULL) return NULL;
-  // else: found
-  return de;
-}
-
-
-void LevelSetNode::SetGhostVicinity()
-{
-  // this method is only to be called on real elements, not on ghost elements itself
-  assert(!IsGhost());
-  
-  assert(domain->GetGrid()->GetDim() == 2); // 3D not implemented yet
-
-  // from SetGhostElement() every ghost element already links to its "parent" element
-  // and the corners are set and linked!
-  if(IsGhost(GetNeighbour(X_P)))
-  {
-    StdVector<DesignElement*>& design = GetNeighbour(X_P)->vicinity->design;
-    if(design[Y_P] == NULL) design[Y_P] = GetNeighbour(Y_P, X_P);
-    if(design[Y_N] == NULL) design[Y_N] = GetNeighbour(Y_N, X_P);
-  }
-  if(IsGhost(GetNeighbour(X_N)))
-  {
-    StdVector<DesignElement*>& design = GetNeighbour(X_N)->vicinity->design;
-    if(design[Y_P] == NULL) design[Y_P] = GetNeighbour(Y_P, X_N);
-    if(design[Y_N] == NULL) design[Y_N] = GetNeighbour(Y_N, X_N);
-  }
-  if(IsGhost(GetNeighbour(Y_P)))
-  {
-    StdVector<DesignElement*>& design = GetNeighbour(Y_P)->vicinity->design;
-    if(design[X_P] == NULL) design[X_P] = GetNeighbour(X_P, Y_P);
-    if(design[X_N] == NULL) design[X_N] = GetNeighbour(X_N, Y_P);
-  }
-  if(IsGhost(GetNeighbour(Y_N)))
-  {
-    StdVector<DesignElement*>& design = GetNeighbour(Y_N)->vicinity->design;
-    if(design[X_P] == NULL) design[X_P] = GetNeighbour(X_P, Y_N);
-    if(design[X_N] == NULL) design[X_N] = GetNeighbour(X_N, Y_N);
-  }
-}
-
-void LevelSetNode::SetValue(double value, bool mirror_to_ghosts)
-{
-  value_ = value;
-  
-  // mirror to the ghosts, is kind of homogenoeous neumann
-  for(unsigned int i = 0; mirror_to_ghosts == true && i < ghosts_.GetSize(); i++)
-    ghosts_[i]->lsn->value_ = value;
-}
-
-bool LevelSetNode::IsGhost(DesignElement* de) 
-{ 
-  if(de == NULL) return false;
-  if(de->lsn == NULL) return false; //  not all elements might be initialized!
-  return de->lsn->IsGhost(); 
-}
-
-
-
-
-void LevelSetNode::CalcGradients()
-{
-  VicinityElement* vicinity = de_->vicinity;
-  
-  // dont' call this on ghost nodes itself, otherwise we have no neighbourhood!
-  for(unsigned int d = 0; d < normal.GetSize(); d++)
-  {
-    double left  = vicinity->GetNeighbour((VicinityElement::Neighbour) (d * 2 + 1))->lsn->GetValue(); 
-    double right = vicinity->GetNeighbour((VicinityElement::Neighbour) (d * 2 + 0))->lsn->GetValue();
-    double own   = value_;
-    
-    // we ignore h and assume a constant h = 1
-    first_order_grad[d]  = 0.5 * (right - left);
-    second_order_grad[d] = right - 2 * own + left; 
-  }
-  
-  LOG_DBG3(del) << "LevelSetNode::CalcGradients: " << de_->ToString() << " first_order_grad=" 
-                << first_order_grad.ToString() << " second_order_grad=" << second_order_grad.ToString();
-}
-
-
-
-void LevelSetNode::UpdateNormal()
-{
-  // CalcGradients() has to be executed!
-  double length = first_order_grad.NormL2();
-
-  for(unsigned int d = 0; d < normal.GetSize(); d++)
-    normal[d] = first_order_grad[d] / length;
-}
-
-void LevelSetNode::UpdateCurvature()
-{
-   assert(domain->GetGrid()->GetDim() == 2);
-   
-   // source: http://en.wikipedia.org/wiki/Curvature
-   // 
-   // curvature = |(x' y'' - y' x'') / (x'^2 + y'^2)^(3/2)|
-   double numerator = first_order_grad[0] * second_order_grad[1] - first_order_grad[1] * second_order_grad[0];
-   double tmp       = square(first_order_grad[0]) + square(first_order_grad[1]);
-   double denominator = powl(tmp, 3.0/2.0);
-   curvature = abs(numerator / denominator);
-}
-
-void LevelSetNode::CalcNextFirstOrderHamiltonJacobiStep(double delta_t)
-{
-  assert(domain->GetGrid()->GetDim() == 2);
-  // this is based on forward and backward differences
-  VicinityElement* vicinity = de_->vicinity;
-  double own = value_;
-  // again we assume h=1 it is possible to do it exact with GetEdgeLength() as in DesignElement::SetLocation()
-  double d_p_x = vicinity->GetNeighbour(VicinityElement::X_P)->lsn->GetValue() - own;
-  double d_n_x = own - vicinity->GetNeighbour(VicinityElement::X_N)->lsn->GetValue();
-  double d_p_y = vicinity->GetNeighbour(VicinityElement::Y_P)->lsn->GetValue() - own;
-  double d_n_y = own - vicinity->GetNeighbour(VicinityElement::Y_N)->lsn->GetValue();
-  
-  // the forward differences
-  double forward  = square(max(d_n_x, 0.0)) + square(min(d_p_x, 0.0)) 
-                  + square(max(d_n_y, 0.0)) + square(min(d_p_y, 0.0));
-  forward = sqrt(forward);
-  
-  double backward = square(max(d_p_x, 0.0)) + square(min(d_n_x, 0.0))
-                  + square(max(d_p_y, 0.0)) + square(min(d_n_y, 0.0));
-  backward = sqrt(backward);
-                  
-  double velocity = de_->GetObjectiveGradient(DesignElement::SMART);                
-  // it would be faster to evaluate only forward or backward depeneding on the sign of the velocity
-  double next = own - delta_t * (max(velocity, 0.0) * forward + min(velocity, 0.0) * backward);       
-  // we propagate this value to the ghosts!
-  SetValue(next, true);
-}
-
-
-void LevelSetNode::UpdateDesign()
-{
-  de_->SetDesign(IsSolid() ? de_->GetUpperBound() : de_->GetLowerBound());
 }
 
 ResultDescription::ResultDescription()

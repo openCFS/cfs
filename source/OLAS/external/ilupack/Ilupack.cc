@@ -23,6 +23,7 @@ DEFINE_LOG(ilupack, "ilupack")
 
 using namespace CoupledField;
 
+
 template<typename T>
 Ilupack<T>::Ilupack(ParamNode* xml, InfoNode* olasInfo, BaseMatrix::EntryType type)
 {
@@ -36,19 +37,9 @@ Ilupack<T>::Ilupack(ParamNode* xml, InfoNode* olasInfo, BaseMatrix::EntryType ty
   LOG_TRACE(ilupack) <<  "Ilupack(): isComplex=" << isComplex_;
 
   // set this to zero to signal the destructor if Setup() was called
-  mat_.a = NULL;
-  mat_.ia = NULL;
-  mat_.ja = NULL;
-
-  // set the convenience pointers for the D* instances of ilupack structs.
-  dmat_ptr_ = &mat_;
-  zmat_ptr_ = reinterpret_cast<Zmat*>(&mat_);
-
-  dparam_ptr_ = &param;
-  zparam_ptr_ = reinterpret_cast<ZILUPACKparam*>(&param);
-
-  dprecond_ptr_ = &precond_;
-  zprecond_ptr_ = reinterpret_cast<ZAMGlevelmat*>(&precond_);
+  mat.a = NULL;
+  mat.ia = NULL;
+  mat.ja = NULL;
 
   // init the enums
   SetEnums();
@@ -67,15 +58,15 @@ void Ilupack<T>::SetMatrix(const BaseMatrix &base_mat)
   const SparseOLASMatrix<T>& som =  dynamic_cast<const SparseOLASMatrix<T>&> (base_mat);
 
   LOG_TRACE2(ilupack) <<  "SetMatrix: SPARSE_SYM="  << (som.GetStorageType() == BaseMatrix::SPARSE_SYM)
-                      << " mat_.a=" << mat_.a << " .ia=" << mat_.ia << ".ja=" << mat_.ja;
+                      << " mat_.a=" << mat.a << " .ia=" << mat.ia << ".ja=" << mat.ja;
 
   // delete the old values before we allocate the new space - if could be faster! 
-  if(mat_.a != NULL)
-  { delete[] mat_.a; mat_.a = NULL;}
-  if(mat_.ia != NULL)
-  { delete[] mat_.ia; mat_.ia = NULL;}
-  if(mat_.ja != NULL)
-  { delete[] mat_.ja; mat_.ja = NULL;}
+  if(mat.a != NULL)
+  { delete[] mat.a; mat.a = NULL;}
+  if(mat.ia != NULL)
+  { delete[] mat.ia; mat.ia = NULL;}
+  if(mat.ja != NULL)
+  { delete[] mat.ja; mat.ja = NULL;}
 
   unsigned int elements = 0;
 
@@ -109,33 +100,33 @@ void Ilupack<T>::SetMatrix(const BaseMatrix &base_mat)
   // but 1-based in Ilupack!
 
   // rows are simple but we have to handle the tailing element
-  mat_.ia = new int[som.GetNumRows() + 1]; // one plus due to CRS tail
-  std::copy(row_ptr, row_ptr + som.GetNumRows() + 1, mat_.ia);
+  mat.ia = new int[som.GetNumRows() + 1]; // one plus due to CRS tail
+  std::copy(row_ptr, row_ptr + som.GetNumRows() + 1, mat.ia);
 
-  mat_.ja = new int[elements];
-  std::copy(col_ptr, col_ptr + elements, mat_.ja);
+  mat.ja = new int[elements];
+  std::copy(col_ptr, col_ptr + elements, mat.ja);
 
   // values is brutal stuff, because binary the std::complex<double>* IS a double*!
-  mat_.a = reinterpret_cast<double*>(new T[elements]);
-  T* val_src = reinterpret_cast<T*>(mat_.a);
+  mat.a = reinterpret_cast<double*>(new T[elements]);
+  T* val_src = reinterpret_cast<T*>(mat.a);
   std::copy(val_ptr, val_ptr + elements, val_src);
 
   // no adjust to 1-based!
   for(unsigned int i = 0, numRows = som.GetNumRows(); i < numRows+1; i++)
-    mat_.ia[i] += 1;
+    mat.ia[i] += 1;
 
   for(unsigned int i = 0; i < elements; i++)
-    mat_.ja[i] += 1;
+    mat.ja[i] += 1;
 
-  mat_.nr = som.GetNumRows();
-  mat_.nc = som.GetNumCols();
-  mat_.nnz = elements;
+  mat.nr = som.GetNumRows();
+  mat.nc = som.GetNumCols();
+  mat.nnz = elements;
 
   LOG_TRACE2(ilupack) << "SetMatrix: allocate: mat_.a<T>=" << elements << " .ia=" << (som.GetNumRows() + 1)
-                      << ".ia=" << elements << "; .nr=" << mat_.nr << " .nc=" << mat_.nc;
-  LOG_DBG2(ilupack) << "mat_.ia: " << StdVector<int>::ToString(mat_.nr + 1, mat_.ia);
-  LOG_DBG2(ilupack) << "mat_.ja: " << StdVector<int>::ToString(elements, mat_.ja);
-  LOG_DBG2(ilupack) << "mat_.a: " << StdVector<double>::ToString(elements, mat_.a);
+                      << ".ia=" << elements << "; .nr=" << mat.nr << " .nc=" << mat.nc;
+  LOG_DBG2(ilupack) << "mat_.ia: " << StdVector<int>::ToString(mat.nr + 1, mat.ia);
+  LOG_DBG2(ilupack) << "mat_.ja: " << StdVector<int>::ToString(elements, mat.ja);
+  LOG_DBG2(ilupack) << "mat_.a: " << StdVector<double>::ToString(elements, mat.a);
 }
 
 template<typename T>
@@ -155,10 +146,10 @@ void Ilupack<T>::Setup(BaseMatrix &sysMat, InfoNode* analysis_id)
   // in case we already run release memory - it's save if first run
   IlupackAMGDelete();
 
-  // set the ilupack matrix mat_ from the olas matrix - complex can be casted to double
+  // set the ilupack matrix mat from the olas matrix - complex can be casted to double
   SetMatrix(sysMat);
 
-  // gain and modify the default settings, does logging uses mat_ and sets param 
+  // gain and modify the default settings, does logging uses mat and sets param 
   InitParameters();
 
   // factorize the iLU preconditioner
@@ -174,39 +165,39 @@ void Ilupack<T>::Setup(BaseMatrix &sysMat, InfoNode* analysis_id)
     break;
 
     case -1: 
-    ss << "Input matrix may be wrong at level " << precond_.nlev;
+    ss << "Input matrix may be wrong at level " << precond.nlev;
     break;
 
     case -2:
-    ss << "Out of memory. The matrix L overflows the array alu at level " << precond_.nlev;
+    ss << "Out of memory. The matrix L overflows the array alu at level " << precond.nlev;
     break;
 
     case -3:
-    ss << "Out of memory. The matrix U overflows the array alu at level " << precond_.nlev;
+    ss << "Out of memory. The matrix U overflows the array alu at level " << precond.nlev;
     break;
 
     case -4:
-    ss << "Illegal value for lfil at level " << precond_.nlev;
+    ss << "Illegal value for lfil at level " << precond.nlev;
     break;
 
     case -5:
-    ss << "Zero row encountered at level " <<  precond_.nlev;
+    ss << "Zero row encountered at level " <<  precond.nlev;
     break;
 
     case -6:
-    ss << "Zero column encountered at level " <<  precond_.nlev;
+    ss << "Zero column encountered at level " <<  precond.nlev;
     break;
 
     case -7:
     ss << "Buffers are too small";
 
     default:
-      ss << "Zero pivot encountered at step number " << ierr << " of level " << precond_.nlev;
+      ss << "Zero pivot encountered at step number " << ierr << " of level " << precond.nlev;
   }
   
   if(ierr != 0) throw Exception(ss.str());
  
-  out->Get("levels")->SetValue(precond_.nlev);
+  out->Get("levels")->SetValue(precond.nlev);
   CalcFillIn(out);
   InfoNode* timing = out->Get("timing");
   timing->Get("total_time")->SetValue(ILUPACK_secnds[7]);
@@ -223,7 +214,7 @@ void Ilupack<T>::Solve(const BaseMatrix &base_mat, const BasePrecond &base_preco
   out->Get("analysis_id")->SetValue(analysis_id->Get("analysis_id"));
   
   // the preconditioner sets the ilupack matrix
-  if (mat_.a == NULL)
+  if (mat.a == NULL)
     throw Exception("Setup() not called before Solve()");
 
   // we gain the solution pointer
@@ -400,22 +391,22 @@ void Ilupack<T>::IlupackAMGInit()
   switch(matrix_)
   {
   case GNL:
-    if(isComplex_) ZGNLAMGinit(zmat_ptr_, zparam_ptr_);
-    else DGNLAMGinit(dmat_ptr_, dparam_ptr_);
+    if(isComplex_) ZGNLAMGinit(reinterpret_cast<Zmat*>(&mat), reinterpret_cast<ZILUPACKparam*>(&param));
+              else DGNLAMGinit(&mat, reinterpret_cast<DILUPACKparam*>(&param));
     break;
 
   case SYM:
-    if(isComplex_) ZSYMAMGinit(zmat_ptr_, zparam_ptr_);
-    else DSYMAMGinit(dmat_ptr_, dparam_ptr_);
+    if(isComplex_) ZSYMAMGinit(reinterpret_cast<Zmat*>(&mat), reinterpret_cast<ZILUPACKparam*>(&param));
+              else DSYMAMGinit(&mat, reinterpret_cast<DILUPACKparam*>(&param));
     break;
 
   case PD:
-    if(isComplex_) ZHPDAMGinit(zmat_ptr_, zparam_ptr_);
-    else DSPDAMGinit(dmat_ptr_, dparam_ptr_);
+    if(isComplex_) ZHPDAMGinit(reinterpret_cast<Zmat*>(&mat), reinterpret_cast<ZILUPACKparam*>(&param));
+              else DSPDAMGinit(&mat, reinterpret_cast<DILUPACKparam*>(&param));
     break;
 
   case HER:
-    if(isComplex_) ZHERAMGinit(zmat_ptr_, zparam_ptr_);
+    if(isComplex_) ZHERAMGinit(reinterpret_cast<Zmat*>(&mat), reinterpret_cast<ZILUPACKparam*>(&param));
     else throw Exception("ilupack matrix is set to hermitian but not complex");
     break;
   }
@@ -427,19 +418,27 @@ int Ilupack<T>::IlupackAMGFactor()
   switch(matrix_)
   {
   case GNL:
-    if(isComplex_) return ZGNLAMGfactor(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
-    else return DGNLAMGfactor(dmat_ptr_, dprecond_ptr_, dparam_ptr_);
+    if(isComplex_) return ZGNLAMGfactor(reinterpret_cast<Zmat*>(&mat), 
+                                        reinterpret_cast<ZAMGlevelmat*>(&precond), 
+                                        reinterpret_cast<ZILUPACKparam*>(&param));
+              else return DGNLAMGfactor(&mat, &precond, reinterpret_cast<DILUPACKparam*>(&param));
 
   case SYM:
-    if(isComplex_) return ZSYMAMGfactor(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
-    else return DSYMAMGfactor(dmat_ptr_, dprecond_ptr_, dparam_ptr_);
+    if(isComplex_) return ZSYMAMGfactor(reinterpret_cast<Zmat*>(&mat),
+                                        reinterpret_cast<ZAMGlevelmat*>(&precond), 
+                                        reinterpret_cast<ZILUPACKparam*>(&param));
+              else return DSYMAMGfactor(&mat, &precond,  reinterpret_cast<DILUPACKparam*>(&param));
 
   case PD :
-    if(isComplex_) return ZHPDAMGfactor(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
-    else return DSPDAMGfactor(dmat_ptr_, dprecond_ptr_, dparam_ptr_);
+    if(isComplex_) return ZHPDAMGfactor(reinterpret_cast<Zmat*>(&mat), 
+                                        reinterpret_cast<ZAMGlevelmat*>(&precond), 
+                                        reinterpret_cast<ZILUPACKparam*>(&param));
+              else return DSPDAMGfactor(&mat, &precond, reinterpret_cast<DILUPACKparam*>(&param));
 
   case HER:
-    if(isComplex_) return ZHERAMGfactor(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
+    if(isComplex_) return ZHERAMGfactor(reinterpret_cast<Zmat*>(&mat), 
+                                        reinterpret_cast<ZAMGlevelmat*>(&precond),
+                                        reinterpret_cast<ZILUPACKparam*>(&param));
     else throw Exception("ilupack matrix is set to hermitian but not complex");
   }
   
@@ -449,33 +448,41 @@ int Ilupack<T>::IlupackAMGFactor()
 template<typename T>
 int Ilupack<T>::IlupackAMGSolver(T* sol_ptr, T* rhs_ptr)
 {
-  double *d_sol, *d_rhs;
-  // is a ilupack type
-  doublecomplex *z_sol, *z_rhs;
-
-  d_sol = isComplex_ ? NULL : reinterpret_cast<double*>(sol_ptr);
-  d_rhs = isComplex_ ? NULL : reinterpret_cast<double*>(rhs_ptr);
-  z_sol = isComplex_ ? reinterpret_cast<doublecomplex*>(sol_ptr) : NULL;
-  z_rhs = isComplex_ ? reinterpret_cast<doublecomplex*>(rhs_ptr) : NULL;
-  
-
   switch(matrix_)
   {
     case GNL:
-      if(isComplex_) return ZGNLAMGsolver(zmat_ptr_, zprecond_ptr_, zparam_ptr_, z_rhs, z_sol);
-                else return DGNLAMGsolver(dmat_ptr_, dprecond_ptr_, dparam_ptr_, d_rhs, d_sol);
-
+      if(isComplex_) return ZGNLAMGsolver(reinterpret_cast<Zmat*>(&mat),
+                                          reinterpret_cast<ZAMGlevelmat*>(&precond), 
+                                          reinterpret_cast<ZILUPACKparam*>(&param), 
+                                          reinterpret_cast<doublecomplex*>(rhs_ptr),
+                                          reinterpret_cast<doublecomplex*>(sol_ptr));
+                else return DGNLAMGsolver(&mat, &precond, reinterpret_cast<DILUPACKparam*>(&param), 
+                                          reinterpret_cast<double*>(rhs_ptr),
+                                          reinterpret_cast<double*>(sol_ptr));
     case SYM:
-      if(isComplex_) return ZSYMAMGsolver(zmat_ptr_, zprecond_ptr_, zparam_ptr_, z_rhs, z_sol);
-                else return DSYMAMGsolver(dmat_ptr_, dprecond_ptr_, dparam_ptr_, d_rhs, d_sol);
-
+      if(isComplex_) return ZSYMAMGsolver(reinterpret_cast<Zmat*>(&mat),
+                                          reinterpret_cast<ZAMGlevelmat*>(&precond), 
+                                          reinterpret_cast<ZILUPACKparam*>(&param), 
+                                          reinterpret_cast<doublecomplex*>(rhs_ptr),
+                                          reinterpret_cast<doublecomplex*>(sol_ptr));
+                else return DSYMAMGsolver(&mat, &precond, reinterpret_cast<DILUPACKparam*>(&param), 
+                                          reinterpret_cast<double*>(rhs_ptr),
+                                          reinterpret_cast<double*>(sol_ptr));
     case PD:
-      if(isComplex_) return ZHPDAMGsolver(zmat_ptr_, zprecond_ptr_, zparam_ptr_, z_rhs, z_sol);
-                else return DSPDAMGsolver(dmat_ptr_, dprecond_ptr_, dparam_ptr_, d_rhs, d_sol);
-      break;
-
+      if(isComplex_) return ZHPDAMGsolver(reinterpret_cast<Zmat*>(&mat),
+                                          reinterpret_cast<ZAMGlevelmat*>(&precond), 
+                                          reinterpret_cast<ZILUPACKparam*>(&param), 
+                                          reinterpret_cast<doublecomplex*>(rhs_ptr),
+                                          reinterpret_cast<doublecomplex*>(sol_ptr));
+                else return DSPDAMGsolver(&mat, &precond, reinterpret_cast<DILUPACKparam*>(&param), 
+                                          reinterpret_cast<double*>(rhs_ptr),
+                                          reinterpret_cast<double*>(sol_ptr));
     case HER:
-      if(isComplex_) return ZHERAMGsolver(zmat_ptr_, zprecond_ptr_, zparam_ptr_, z_rhs, z_sol);
+      if(isComplex_) return ZHERAMGsolver(reinterpret_cast<Zmat*>(&mat),
+                                          reinterpret_cast<ZAMGlevelmat*>(&precond), 
+                                          reinterpret_cast<ZILUPACKparam*>(&param), 
+                                          reinterpret_cast<doublecomplex*>(rhs_ptr),
+                                          reinterpret_cast<doublecomplex*>(sol_ptr));
       break;
   }
   throw Exception("not handled");
@@ -484,40 +491,40 @@ int Ilupack<T>::IlupackAMGSolver(T* sol_ptr, T* rhs_ptr)
 template<typename T>
 void Ilupack<T>::IlupackAMGDelete()
 {
-  LOG_TRACE2(ilupack) <<  "ReleaseMemory: mat_.a=" << mat_.a << " .ia=" << mat_.ia << ".ja=" << mat_.ja;
-  // call the ilupack delete method only if Setup() which sets mat_ was called
-  if(mat_.a == NULL) return;
+  LOG_TRACE2(ilupack) <<  "ReleaseMemory: mat_.a=" << mat.a << " .ia=" << mat.ia << ".ja=" << mat.ja;
+  // call the ilupack delete method only if Setup() which sets mat was called
+  if(mat.a == NULL) return;
 
   switch(matrix_)
   {
     case GNL:
-    if(isComplex_) ZGNLAMGdelete(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
-    else DGNLAMGdelete(dmat_ptr_, dprecond_ptr_, dparam_ptr_);
+    if(isComplex_) ZGNLAMGdelete(reinterpret_cast<Zmat*>(&mat), reinterpret_cast<ZAMGlevelmat*>(&precond), reinterpret_cast<ZILUPACKparam*>(&param));
+              else DGNLAMGdelete(&mat, &precond, reinterpret_cast<DILUPACKparam*>(&param));
     break;
 
     case SYM:
-    if(isComplex_) ZSYMAMGdelete(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
-    else DSYMAMGdelete(dmat_ptr_, dprecond_ptr_, dparam_ptr_);
+    if(isComplex_) ZSYMAMGdelete(reinterpret_cast<Zmat*>(&mat), reinterpret_cast<ZAMGlevelmat*>(&precond), reinterpret_cast<ZILUPACKparam*>(&param));
+              else DSYMAMGdelete(&mat, &precond, reinterpret_cast<DILUPACKparam*>(&param));
     break;
 
     case PD:
-    if(isComplex_) ZHPDAMGdelete(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
-    else DSPDAMGdelete(dmat_ptr_, dprecond_ptr_, dparam_ptr_);
+    if(isComplex_) ZHPDAMGdelete(reinterpret_cast<Zmat*>(&mat), reinterpret_cast<ZAMGlevelmat*>(&precond), reinterpret_cast<ZILUPACKparam*>(&param));
+              else DSPDAMGdelete(&mat, &precond, reinterpret_cast<DILUPACKparam*>(&param));
     break;
 
     case HER:
-    if(isComplex_) ZHERAMGdelete(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
+    if(isComplex_) ZHERAMGdelete(reinterpret_cast<Zmat*>(&mat), reinterpret_cast<ZAMGlevelmat*>(&precond), reinterpret_cast<ZILUPACKparam*>(&param));
     break;
 
     default: EXCEPTION("invalid matrix type " << matrix_);
   }
 
-  if(mat_.a != NULL)
-  { delete[] mat_.a; mat_.a = NULL;}
-  if(mat_.ia != NULL)
-  { delete[] mat_.ia; mat_.ia = NULL;}
-  if(mat_.ja != NULL)
-  { delete[] mat_.ja; mat_.ja = NULL;}
+  if(mat.a != NULL)
+  { delete[] mat.a; mat.a = NULL;}
+  if(mat.ia != NULL)
+  { delete[] mat.ia; mat.ia = NULL;}
+  if(mat.ja != NULL)
+  { delete[] mat.ja; mat.ja = NULL;}
 }
 
 
@@ -529,15 +536,15 @@ void Ilupack<T>::CalcFillIn(InfoNode* out)
   // It is reduced to the total fill-in factor
 
   int nnzU = 0, tmp0 = 0; // original names
-  DAMGlevelmat  *next = &precond_;
+  DAMGlevelmat  *next = &precond;
 
   if(param.ind != NULL) EXCEPTION("saddle point is disabled");
   
-  for(int i = 1; i <= precond_.nlev; i++) 
+  for(int i = 1; i <= precond.nlev; i++) 
   {
     if(!(param.flags & DISCARD_MATRIX)) 
     {
-      if(i<precond_.nlev)
+      if(i<precond.nlev)
       {
         tmp0 += next->A.ia[next->n]-1;
       }
@@ -547,11 +554,11 @@ void Ilupack<T>::CalcFillIn(InfoNode* out)
           tmp0 += next->A.ia[next->n]-1;
       }
     }
-    if(i < precond_.nlev || next->LU.ja != NULL) 
+    if(i < precond.nlev || next->LU.ja != NULL) 
     {
       nnzU += next->LU.ja[next->LU.nr-1] - next->LU.ja[0]+2*next->nB;
     }
-    if(i == precond_.nlev) 
+    if(i == precond.nlev) 
     {
       if(next->LU.ja == NULL) 
       {
@@ -559,7 +566,7 @@ void Ilupack<T>::CalcFillIn(InfoNode* out)
         nnzU += (j*(j-1))/2;
       }
     }
-    if(i < precond_.nlev) 
+    if(i < precond.nlev) 
     {
       if(param.flags & COARSE_REDUCE) 
       {
@@ -570,8 +577,8 @@ void Ilupack<T>::CalcFillIn(InfoNode* out)
     next=next->next;
   }
 
-  out->Get("totalFillInSum")->SetValue(nnzU + mat_.nr + tmp0);
-  out->Get("totalFillInFactor")->SetValue((1.0 * nnzU + tmp0) / mat_.nnz);
+  out->Get("totalFillInSum")->SetValue(nnzU + mat.nr + tmp0);
+  out->Get("totalFillInFactor")->SetValue((1.0 * nnzU + tmp0) / mat.nnz);
 }
 
 // Explicit template instantiation

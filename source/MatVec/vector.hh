@@ -133,7 +133,11 @@ template<typename T> class ElemStoreSol;
     //! - Re-size will currently refuse to perform a re-size operation,
     //!   if it is not responsible for the memory management of the data_
     //!   array.
-    void Resize( UInt newSize, bool init = false );
+    void Resize( UInt newSize );
+    
+    
+    //! Resize the vector to new size and initialize entries with val
+    void Resize( UInt newSize, T val );
 
     //! Add functionality of vector class to a data array
 

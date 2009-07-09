@@ -31,7 +31,7 @@ namespace CoupledField {
     virtual UInt GetSize() const = 0;
 
     //! Resize the vector to new size 
-    virtual void Resize( UInt newSize, bool init = false ) = 0;
+    virtual void Resize( UInt newSize ) = 0;
 
     //! Initialize entries with 0
     virtual void Init() = 0;

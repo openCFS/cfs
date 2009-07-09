@@ -34,6 +34,7 @@
 #
 # author Jan Woetzel 2004-2006
 # www.mip.informatik.uni-kiel.de/~jw
+cmake_minimum_required(VERSION 2.6)
 
 IF (DOXYGEN)
 

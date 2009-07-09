@@ -195,9 +195,17 @@ SET(XMLSCHEMA "${CFS_SOURCE_DIR}/share/xml" CACHE STRING
 # Specify path to CFS++ testsuite. If this path exists, CTest compatible
 # test cases will be generated in the current binary directory.
 #-----------------------------------------------------------------------------
-SET(TESTSUITE_DIR "TESTSUITE_DIR_NOT_FOUND" CACHE STRING
+#SET(TESTSUITE_DIR "TESTSUITE_DIR_NOT_FOUND" CACHE STRING
+  #"Path where the CFS++ testsuite is located.")
+SET(TESTSUITE_DIR "/home/fschury/cfs/cfs-test" CACHE STRING
   "Path where the CFS++ testsuite is located.")
+# In order to perform tests we need the CONVERTER and HDF5!
+SET(CFSTOOL ON CACHE BOOL
+  "Build CFS++ converter tool (cfstool)." FORCE)
 
+SET(USE_HDF5 ON CACHE INTERNAL
+  "Use HDF5 for simulation in/output." FORCE)
+    
 IF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
   IF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
     # In order to perform tests we need the CONVERTER and HDF5!

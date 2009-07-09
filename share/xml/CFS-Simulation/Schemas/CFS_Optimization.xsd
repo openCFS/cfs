@@ -75,6 +75,7 @@
                                     <xsd:element name="load"           type="DT_MechLoad"      />
                                     <xsd:element name="pressure"       type="DT_MechPressure"  />
                                     <xsd:element name="regionLoad"     type="DT_MechRegionLoad"/>
+                                    <xsd:element name="testStrain"     type="DT_MechTestStrain"/>
                                   </xsd:choice>
                                 </xsd:complexType>
                               </xsd:element>
@@ -128,6 +129,7 @@
                 <xsd:enumeration value="absDynamicOutputSquared"/>
                 <xsd:enumeration value="tracking"/>
                 <xsd:enumeration value="elecEnergy"/>
+                <xsd:enumeration value="homogenization"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -237,10 +239,31 @@
             <!-- we made scpip the look like ipopt -->
             <xsd:element name="scpip" minOccurs="0" type="DT_ExternalOptimizer"/>
             
-            <xsd:element name="levelSet" minOccurs="0">
+
+            <!-- the parameters of the shape optimizer can be set
+                 <shapeOpt enableTopgrad="true" /> -->
+            <xsd:element name="shapeOpt" minOccurs="0">
               <xsd:complexType>
                 <xsd:all>
-                  <xsd:element name="actionList" minOccurs="1" maxOccurs="1">
+                  <!-- begin topgrad element -->
+                  <xsd:element name="topGrad" minOccurs="0" maxOccurs="1">
+                    <xsd:complexType>
+                      <!-- how many element to remove in one iteration -->
+                      <xsd:attribute name="tg_elemsremove" type="xsd:positiveInteger" default="1" use="optional"/>
+                      <!-- percentage of elements being removed in first iteration -->
+                      <xsd:attribute name="tg_initpercent" type="xsd:float" default="0.3" use="optional"/>
+                      <!-- signals if we should adaptively change the number of removed elements per iteration -->
+                      <xsd:attribute name="tg_enableadaptive" type="xsd:boolean" default="false" use="optional"/>
+                      <!-- signals if more output to std::cout is given -->
+                      <xsd:attribute name="tg_moreoutput" type="xsd:boolean" default="false" use="optional"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                  <!-- end topgrad element -->
+                  <!-- begin levelset element -->
+                  <xsd:element name="levelSet" minOccurs="0" maxOccurs="1">
+                    <xsd:complexType>
+                      <xsd:sequence>
+                  <xsd:element name="actionList" minOccurs="0" maxOccurs="1">
                     <xsd:complexType>
                       <xsd:sequence>
                         <xsd:element name="action" minOccurs="0" maxOccurs="unbounded">
@@ -249,23 +272,47 @@
                               <xsd:simpleType>
                                 <xsd:restriction base="xsd:token">
                                   <xsd:enumeration value="signedDistanceField"/>
-                                  <xsd:enumeration value="firstOrderFiniteDifferences"/>
+                                  <xsd:enumeration value="shapeStep"/>
                                   <xsd:enumeration value="trivialHole"/>
                                 </xsd:restriction>
                               </xsd:simpleType>
                             </xsd:attribute>
                             <!-- how often to exectue -->
                             <xsd:attribute name="modulus" type="xsd:positiveInteger" default="1" use="optional"/>
-                            <!-- ow oftern to perfom this actions -->
-                            <xsd:attribute name="perform" type="xsd:positiveInteger" default="1" use="optional"/>
+                            <!-- how oftern to perfom this actions -->
+                            <xsd:attribute name="perform" type="xsd:nonNegativeInteger" default="1" use="optional"/>
+                            <!-- should we perform the action in the first iteration -->
+                            <xsd:attribute name="first" type="xsd:boolean" default="true" use="optional"/>
                           </xsd:complexType>
                         </xsd:element>
                       </xsd:sequence>
                     </xsd:complexType>
                   </xsd:element>
+									<xsd:element name="nodeList" minOccurs="0" maxOccurs="1">
+											<xsd:complexType>
+												<xsd:sequence>
+													<!-- We can have several node_number childs. Each with one attribute, the node number -->
+													<xsd:element name="node_number" minOccurs="0" maxOccurs="unbounded">
+														<xsd:complexType>
+															<!-- the value attribute is the node number -->
+															<xsd:attribute name="value" use="required" type="xsd:positiveInteger" />
+														</xsd:complexType>
+													</xsd:element>
+												</xsd:sequence>
+											</xsd:complexType>
+									</xsd:element>
+                      </xsd:sequence>
+                      <xsd:attribute name="ls_time_step" type="xsd:float" default="0.005" use="optional"/>
+                      <xsd:attribute name="ls_dump_fast_marching" type="xsd:boolean" default="false" use="optional"/>
+                      <xsd:attribute name="ls_element" type="xsd:positiveInteger" default="1" use="optional"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                  <!-- end levelset element -->
                 </xsd:all>
                 <!-- For the signed distance field is this the element discretization -->
-                <xsd:attribute name="subLevelSpacing" type="xsd:float" default="2"/>
+                <xsd:attribute name="enableTopgrad" type="xsd:boolean" default="false"/>
+								<xsd:attribute name="useLevelSet" type="xsd:boolean" default="false"/>
+								<xsd:attribute name="useShapeOptimization" type="xsd:boolean" default="false"/>
               </xsd:complexType>
             </xsd:element>
             
@@ -337,7 +384,7 @@
                 <xsd:enumeration value="ipopt"/>
                 <xsd:enumeration value="scpip"/>
                 <xsd:enumeration value="evaluateInitialDesign"/>
-                <xsd:enumeration value="levelSet"/>
+                <xsd:enumeration value="shapeOpt"/>
                 <xsd:enumeration value="gradientCheck"/>
               </xsd:restriction>
             </xsd:simpleType>
@@ -461,6 +508,16 @@
                       <xsd:enumeration value="neighbours"/>
                       <xsd:enumeration value="objective"/>
                       <xsd:enumeration value="levelSetValue"/>                                                
+											<xsd:enumeration value="levelSetState"/>
+											<xsd:enumeration value="topGradValue"/>
+											<xsd:enumeration value="shapeGradValue"/>
+											<xsd:enumeration value="shapeGradNodeValue"/>
+                      <xsd:enumeration value="levelSetGradXP"/>
+                      <xsd:enumeration value="levelSetGradXN"/>
+                      <xsd:enumeration value="levelSetGradYP"/>
+                      <xsd:enumeration value="levelSetGradYN"/>
+                      <xsd:enumeration value="levelSetGradZP"/>
+                      <xsd:enumeration value="levelSetGradZN"/>
                       <xsd:enumeration value="levelSetNormal"/>
                     </xsd:restriction>
                   </xsd:simpleType>

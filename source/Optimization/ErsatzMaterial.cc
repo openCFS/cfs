@@ -610,6 +610,9 @@ double ErsatzMaterial::CalcObjective(Excitation& excite)
   case CONJUGATE_COMPLIANCE:
   case ABS_DYN_OUTPUT_SQUARED:
     return CalcOutputObjective<T>(excite);
+    
+  case HOMOGENIZATION:
+    return CalcHomogenization(excite, false);
 
   default: throw Exception("objective no handled");
   }
@@ -639,6 +642,10 @@ void ErsatzMaterial::CalcObjectiveGradient(double* grad_out)
     case VOLUME:
       // does not depend on multiple load cases
       CalcVolume(true, NULL);
+      break;
+      
+    case HOMOGENIZATION:
+      CalcHomogenization(excitations[idx], true);
       break;
 
     default:
@@ -687,14 +694,14 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>&
   assert(u1.GetSize() == u2.GetSize());
 
   double sum = 0.0;
-  // the dimenions of our matrix is determinded by u1_vec and u2_vec.
+  // the dimensions of our matrix is determined by u1_vec and u2_vec.
   // mat will be filled by SetElementK where also the derivative form most cases is built in
   Matrix<T> mat(u1[0]->GetSize(), u2[0]->GetSize());
   Vector<T> mat_vec(u1[0]->GetSize());
 
   TransferFunction* rtf = rhs != NULL && rhs->valid ? design->GetTransferFunction(tf->GetDesign(), rhs->app) : NULL;
 
-  // traverse over our lements
+  // traverse over our elements
   // in ErsatzMaterialTensor case we loop over all elements, else only over the elements belonging to this design
   int elements = design->GetNumberOfElements();
   int base_lower = 0;
@@ -1243,6 +1250,171 @@ double ErsatzMaterial::CalcTracking(Excitation& excite, bool derivative, Conditi
   }
 }
 
+void ErsatzMaterial::SetTestStrainMatrix(Matrix<double> &matrix, const Vector<double> &vec)
+{
+  static const unsigned int dim(domain->GetGrid()->GetDim());
+  matrix.Resize(dim, dim);
+  matrix[0][0] = vec[0];
+  matrix[1][1] = vec[1];
+  matrix[0][1] = vec[5]; // voigt notation!
+  matrix[1][0] = 0.0; // this is 0 because of the symmetry
+  if(3 == dim)
+  {
+    matrix[2][2] = vec[2];
+    matrix[1][2] = vec[3];
+    matrix[2][1] = 0.0; // symmetry again
+
+    matrix[0][2] = vec[4];
+    matrix[2][0] = 0.0; // symmetry again
+  }
+  LOG_DBG(em) << "test strain matrix = " << matrix.ToString();
+}
+
+double ErsatzMaterial::CalcHomogenization(const Excitation &excite, const bool derivative)
+{
+  // this code is based on page 124 of Bendsoe/Sigmund: Topology Optimization
+  if(derivative)
+  {
+    // FIXME
+    //TransferFunction* tf = design->GetTransferFunction(DesignElement::DENSITY, MECH, false);
+    //double val = CalcU1KU2(tf, tracking_->elem[MECH], MECH, forward.data[idx]->elem[MECH], NULL, -1.0*excite.normalized_weight, STANDARD, constraint);
+    //return val;
+    return 0.0;
+  }
+
+  if(excite.index < static_cast<int>(excitations.GetSize() - 1)) return 0.0;
+  
+  // collect solutions from teststrain calculations
+  // sum something up and return
+  const unsigned int dim(domain->GetGrid()->GetDim());
+  const unsigned int ex_size(excitations.GetSize());
+  
+  // if we only sum up the volume of the regions we get an error if 
+  // the surrounding material is missing
+  
+  // get volume of the regions for tensor calculation
+  //StdVector<int> regions;
+  //domain->GetGrid()->GetRegionIds(regions);
+  //double vol(0.0);
+  //for(unsigned int id = 0, s = regions.GetSize(); id < s; ++id)
+    //vol += domain->GetGrid()->CalcVolumeOfRegion(regions[id]);
+  
+  // get the volume of the bounding box of the reference cell
+  double mins[3] = { 100000.0,  100000.0,  100000.0};
+  double maxs[3] = {-100000.0, -100000.0, -100000.0};
+  StdVector<std::string> nodeNames;
+  domain->GetGrid()->GetListNodeNames(nodeNames);
+  Point p;
+  StdVector<UInt> nodes;
+  for(unsigned int n = 0; n < nodeNames.GetSize(); ++n)
+  {
+    domain->GetGrid()->GetNodesByName(nodes, nodeNames[n]);
+    const unsigned int ss(nodes.GetSize());
+    for(unsigned int n = 0; n < ss; ++n)
+    {
+      domain->GetGrid()->GetNodeCoordinate(p , nodes[n], false);
+      for(unsigned int d = 0; d < 3; ++d)
+      {
+        if(mins[d] >  p.data[d]) mins[d] =  p.data[d];
+        if(maxs[d] <  p.data[d]) maxs[d] =  p.data[d];
+      }
+    }
+  }
+  
+  // now calculate the volume, in 2D case do not multiply with 0.0 from 3rd component!
+  double cube_vol(maxs[0] - mins[0]);
+  cube_vol *= maxs[1] - mins[1];
+  if(maxs[2] - mins[2] > 0.00001) cube_vol *= maxs[2] - mins[2];
+  
+  LOG_DBG(em) << "cube_vol = " << cube_vol;
+  
+  // this will be the homogenized tensor
+  Matrix<double> result(ex_size, ex_size);
+  for(unsigned int ij = 0; ij < ex_size; ++ij)
+  {
+    Matrix<double> test_strain_matrix_ij;
+    SetTestStrainMatrix(test_strain_matrix_ij, excitations[ij].test_strain);
+
+    for(unsigned int kl = 0; kl < ex_size; ++kl)
+    {
+      // prepare for calculation
+      StdVector<SingleVector*> &u1 = forward.data[ij]->elem[MECH]; // equal to \chi^{ij}
+      StdVector<SingleVector*> &u2 = forward.data[kl]->elem[MECH]; // equal to \chi^{kl}
+      
+      Matrix<double> test_strain_matrix_kl;
+      SetTestStrainMatrix(test_strain_matrix_kl, excitations[kl].test_strain);
+
+      const int elements(design->GetNumberOfElements());
+      double sum(0.0);
+      for(int e = 0 ; e < elements; ++e)
+      {
+        Vector<double>& u1_vec = dynamic_cast<Vector<double>& >(*u1[e]);
+        Vector<double>& u2_vec = dynamic_cast<Vector<double>& >(*u2[e]);
+        assert(u1_vec.GetSize() == u2_vec.GetSize());
+                
+        // from the coordinates of this element we build a "test displacement" vector
+        // u1(,2)_0. it contains linear strains which are assembled in the following lines
+        // these strains are not unique! an arbitrary constant can be added without change
+        DesignElement* de = &design->data[e];
+        // coordinates of "this" element
+        Matrix<double> coords;
+        // coordinates of current element, not updated lagrangian
+        domain->GetGrid()->GetElemNodesCoord(coords, de->elem->connect, false);
+
+        Matrix<double> u1_tmp; 
+        u1_tmp = test_strain_matrix_ij * coords;
+        Matrix<double> u2_tmp;
+        u2_tmp = test_strain_matrix_kl * coords;
+        assert(u1_tmp.GetNumCols() == u2_tmp.GetNumCols());
+        assert(u1_tmp.GetNumRows() == u2_tmp.GetNumRows());
+        assert(u1_tmp.GetNumRows() == dim);
+        assert(u1_tmp.GetNumRows() * u1_tmp.GetNumCols() == u1_vec.GetSize());
+
+        // u1_tmp, u2_tmp have to be transformed into vectors
+        // 2D: from 2x4 to 8x1 on quad elems, 2x3 to 6x1 on triangles
+        Vector<double> u1_0(u1_vec.GetSize());
+        Vector<double> u2_0(u1_vec.GetSize()); // u1_vec and u2_vec have the same size
+        for(unsigned int out = 0, cols = u1_tmp.GetNumCols(); out < cols; ++out)
+        {
+          for(unsigned int in = 0; in < dim; ++in)
+          {
+            u1_0[out*dim + in] = u1_tmp[in][out]; // equal to \chi^{0(ij)}
+            u2_0[out*dim + in] = u2_tmp[in][out]; // equal to \chi^{0(kl)}
+          }
+        }
+
+        u1_0 -= u1_vec;
+        u2_0 -= u2_vec;
+
+        // this originally was
+        // SetElementK(de, MECH, dynamic_cast<DenseMatrix*>(&Kmat), STANDARD);
+        // however, there only the derivative of the transfer function is taken into account
+        // so we introduce a little code duplication...
+        // find the density factor for this element
+        const double k_factor(design->GetTransferFunction(de->GetType(), MECH)->Transform(de));
+
+        // copy from real mechStiffness to potential complex out and factor the derivative
+        Matrix<double> Kmat;
+        const Matrix<double> mechStiffness = dynamic_cast<OptMechMat*>(material)->MechStiffness(de->elem);
+        Assign(Kmat, mechStiffness, k_factor);
+
+        Vector<double> mat_vec;
+        mat_vec = Kmat * u1_0;
+        sum += mat_vec * u2_0;
+      } // end of loop over elements
+
+      // FIXME introduce a small mistake for logging purposes...
+      const double entry(sum/cube_vol);
+      result[ij][kl] = entry < 0.000000001 ? 0.0 : entry;
+    } // end of kl loop
+  } // end of ij loop
+  
+  // FIXME tensor is dumped here...
+  std::cout << "homogenized tensor = " << result.ToString() << std::endl; // REMOVEME
+  LOG_DBG(em) << "CalcHomogenization: homogenized tensor: " << result.ToString();
+  return 0.0;
+}   
+    
 double ErsatzMaterial::CalcGreyness(bool derivative, Condition* constraint)
 {
   double greyness = 0.0; // element greyness
@@ -1254,11 +1426,11 @@ double ErsatzMaterial::CalcGreyness(bool derivative, Condition* constraint)
   // only used in gauss case
   double h = constraint->parameter;
 
-  // we have to divide the gradients by their relalive volume = fraction
+  // we have to divide the gradients by their relative volume = fraction
   double fraction = constraint->design == DesignElement::DEFAULT ?
                     design->data.GetSize() : design->GetNumberOfElements();
 
-  // go over the complemte design space to set gradients of other types to 0
+  // go over the complete design space to set gradients of other types to 0
   for(unsigned int i = 0; i < design->data.GetSize(); i++)
   {
     DesignElement* de = &design->data[i];
@@ -1360,6 +1532,7 @@ void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_exite)
     {
     case COMPLIANCE:
     case TRACKING:
+    case HOMOGENIZATION:
       break; // already done before switch
 
     case OUTPUT:

@@ -107,11 +107,11 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
     ENDIF(CFS_ARCH STREQUAL "I386")
 
     IF(CFS_ARCH STREQUAL "X86_64")
-      SET(CFS_OPT_FLAGS "-m64 -march=k8")
+      SET(CFS_OPT_FLAGS "-m64 -march=k8 -msse2")
     ENDIF(CFS_ARCH STREQUAL "X86_64")
 
     IF(CFS_ARCH STREQUAL "IA64")
-      SET(CFS_OPT_FLAGS "-m64 -mtune-arch=itanium2")
+      SET(CFS_OPT_FLAGS "-m64 -mtune-arch=itanium2 -msse2")
     ENDIF(CFS_ARCH STREQUAL "IA64")
     
     IF(CFS_CXX_COMPILER_VER EQUAL "4.2" AND
@@ -129,10 +129,15 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
         SET(CFS_OPT_FLAGS "${CFS_OPT_FLAGS} -mveclibabi=acml")
       ENDIF(CFS_BLAS_LAPACK STREQUAL "ACML" AND CFS_ARCH STREQUAL "X86_64")
     ENDIF(CFS_CXX_COMPILER_VER EQUAL "4.3")
+
+    IF(CFS_CXX_COMPILER_VER EQUAL "4.4")
+        SET(CFS_OPT_FLAGS "${CFS_OPT_FLAGS} -mtune=native -march=native")
+    ENDIF(CFS_CXX_COMPILER_VER EQUAL "4.4")
+      
   ENDIF(DEBUG)
   
   IF(NOT USE_OPENMP)
-    SET(CFS_C_FLAGS "-Werror ${CFS_C_FLAGS}")
+    SET(CFS_C_FLAGS "${CFS_C_FLAGS}")
   ENDIF(NOT USE_OPENMP)
 
 ENDIF(CMAKE_COMPILER_IS_GNUCXX)
@@ -199,7 +204,7 @@ IF(CFS_CXX_COMPILER_INFO MATCHES "ICC")
   # Determine compiler/linker flags according to build type
   #-----------------------------------------------------------------------------
   IF(DEBUG)
-    SET(CFS_C_FLAGS "-g -ansi -w1 -Wcheck -Werror ${CFS_C_FLAGS}")
+    SET(CFS_C_FLAGS "-g -ansi -w1 -Wcheck ${CFS_C_FLAGS}")
     SET(CHECK_MEM_ALLOC 1)
     SET(CHECK_TYPE_CASTS 1)
 
@@ -207,7 +212,7 @@ IF(CFS_CXX_COMPILER_INFO MATCHES "ICC")
       SET(CFS_PROF_FLAGS "-pg")
     ENDIF(CFS_PROFILING)
   ELSE(DEBUG)
-    SET(CFS_C_FLAGS "-O3 -ansi -w0 -Werror ${CFS_C_FLAGS}")
+    SET(CFS_C_FLAGS "-O3 -ansi -w1 ${CFS_C_FLAGS}")
 
     IF(CFS_CXX_COMPILER_VER MATCHES "10\\.")
       SET(CFS_OPT_FLAGS "${CFS_INTEL10_OPT_SWITCHES}")

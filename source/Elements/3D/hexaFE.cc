@@ -2954,6 +2954,34 @@ namespace CoupledField
     }
   }
 
+	void HexaFE::GetEdgeLength(Matrix<Double> &ptCoord, StdVector<Double>& edges_out)
+	{
+		edges_out.Resize(3, 0.0);
+
+		// todo: works only for aligned elements!
+		
+		// assume nodes ordered as follows:
+    //    7 +-------+ 6    
+    //     /|      /|      
+    //    / |     / |
+    // 4 +--+----+5 |   
+    //   |  +-- -|- + 2    
+    //   | / 3   | /   
+    //   |/      |/
+    // 0 +-------+ 1
+		
+		// maybe computation is not correct but I do not see where we need a loop?
+		// see RectangleFE::GetEdgeLength()
+		for(int i = 0; i < 3; ++i)
+		{
+		  // for all dimensions, add offset; only in one direction this is not 0
+		  edges_out[i]  = abs(ptCoord[i][0] - ptCoord[i][1]);
+		  edges_out[i] += abs(ptCoord[i][0] - ptCoord[i][3]);
+		  edges_out[i] += abs(ptCoord[i][0] - ptCoord[i][4]);
+		}
+	}
+
+
   void HexaFE::CoordsInsideElem(const Matrix<Double> & localCoords,
                                   const Double tolerance,
                                   StdVector<bool> & coordsInside) const

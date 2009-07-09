@@ -54,6 +54,10 @@ namespace CoupledField {
     ParamNode * myNode = 
       param->Get("sequenceStep", "index", GenStr( sequenceStep ) )
       ->Get("analysis")->Get("transient");
+
+    driverNode = driverNode->Get("transient");
+    driverNode->Get("sequenceStep")->SetValue(sequenceStep);
+    driverNode->Get(InfoNode::HEADER)->Get("unit")->SetValue("s");
     
     // Get time stepping information from parameter object
     myNode->Get( "numSteps", numstep_ );
@@ -166,7 +170,7 @@ namespace CoupledField {
       
       if(given_analysis_id == NULL)
       {
-        analysis_id_ = info->Get("analysis")->Get(InfoNode::PROCESS)->Get("step", InfoNode::APPEND); 
+        analysis_id_ = driverNode->Get(InfoNode::PROCESS)->Get("step", InfoNode::APPEND); 
         analysis_id_->Get("analysis_id")->SetValue(actTimeStep_);
       }
       else

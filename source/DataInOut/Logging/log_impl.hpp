@@ -133,12 +133,12 @@ public:
     const logging_types::log_name_string_type name;
 
 private:
+    // if true, its enabled state can only be set at compile-time.
+    bool m_is_compile_time;
+    
     // if writing a message with this level or a higher level, it's logged
     // otherwise, not
     level_type m_level;
-
-    // if true, its enabled state can only be set at compile-time.
-    bool m_is_compile_time;
 
     logging_types::mutex cs;
 };

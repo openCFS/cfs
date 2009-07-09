@@ -173,6 +173,18 @@ void linElastInt::calcBMatOnly( Matrix<Double> &bMat, UInt ip,
   calcBMat(bMat, ip, ptCoord);
 }
 
+void linElastInt::calcBMatOnly(Matrix<double> &bMat, Vector<double>& intPoint,
+													     BaseFE* elem, Matrix<double> &ptCoord )
+{
+  isSetIntPoint_ = true; // will be set to false in calcBMat
+  Vector<double> oldIntPoint = intPoint_; // remember old intPoint_
+  intPoint_ = intPoint;
+  const unsigned int ip(0); // should not be used in our case...
+  // call the function
+  calcBMat(bMat, ip, ptCoord);
+  intPoint_ = oldIntPoint; // restore old intPoint_
+}
+
 
 void linElastInt::calcDMat(Matrix<Double> & dMat, const Elem* elem, const DesignElement::Type direction)
 {

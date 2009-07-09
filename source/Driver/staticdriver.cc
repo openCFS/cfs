@@ -35,6 +35,8 @@ namespace CoupledField {
     // Get save increment for restart file (optional)
     myNode->Get( "writeRestartInc", restartIncr_, false );
 
+    driverNode = driverNode->Get("static");
+    driverNode->Get("sequenceStep")->SetValue(sequenceStep);
   }
 
   void StaticDriver::Init() {
@@ -67,7 +69,7 @@ namespace CoupledField {
     // store such that special steps can add non-lin stuff and optimization adjoints
     if(given_analysis_id == NULL)
     {
-      analysis_id_ = info->Get("analysis")->Get(InfoNode::PROCESS)->Get("step", InfoNode::APPEND);
+      analysis_id_ = driverNode->Get(InfoNode::PROCESS)->Get("step", InfoNode::APPEND);
       analysis_id_->Get("analysis_id")->SetValue(0);
     }
     else

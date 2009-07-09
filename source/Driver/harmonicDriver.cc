@@ -37,7 +37,9 @@ namespace CoupledField
     analysis_ = BasePDE::HARMONIC;
 
     // replace our info node by a more detailed level
-    infoNode_ = infoNode_->Get("harmonic");
+    driverNode = driverNode->Get("harmonic");
+    driverNode->Get("sequenceStep")->SetValue(sequenceStep);
+    driverNode->Get(InfoNode::HEADER)->Get("unit")->SetValue("Hz");
 
     pn_ = param->Get("sequenceStep", "index", boost::lexical_cast<std::string>(sequenceStep_))
          ->Get("analysis")->Get("harmonic");
@@ -65,7 +67,7 @@ namespace CoupledField
     if(!params && !list)
       EXCEPTION("'analysis/harmonic' contains neither 'numFreq/startFreq/stopFreq' nor 'frequencyList' concurrently");
 
-    InfoNode* in = infoNode_->Get(InfoNode::HEADER);
+    InfoNode* in = driverNode->Get(InfoNode::HEADER);
     in->Get("start", "starting frequency")->SetValue(startFreq_);
     in->Get("end", "stopping frequency")->SetValue(stopFreq_);
     in->Get("numFreq", "number of frequencies")->SetValue(numFreq_);
@@ -83,7 +85,7 @@ namespace CoupledField
     if(freqs.GetSize() == 0)
       EXCEPTION("cannot have empty frequeny list");
 
-    infoNode_->Get(InfoNode::HEADER)->Get("sampling", "sampling strategy")->SetValue("frequency list given");
+    driverNode->Get(InfoNode::HEADER)->Get("sampling", "sampling strategy")->SetValue("frequency list given");
 
     for(int fi = 0; fi < (int) list.GetSize(); fi++)
     {
@@ -125,7 +127,7 @@ namespace CoupledField
     String2Enum( sampling, samplingType_ );
 
     // store only the sampling strategy
-    infoNode_->Get(InfoNode::HEADER)->Get("sampling", "sampling strategy")->SetValue(sampling);
+    driverNode->Get(InfoNode::HEADER)->Get("sampling", "sampling strategy")->SetValue(sampling);
 
     // ---------------------------------
     //  Perform some consistency checks
@@ -170,12 +172,12 @@ namespace CoupledField
     // Check for single frequency computation
     if(startFreq_ == stopFreq_ && numFreq_ > 1)
     {
-      infoNode_->Get(InfoNode::HEADER)->Get(InfoNode::WARNING)->SetValue("Re-setting numFreq to 1, since startFreq = stopFreq");
+      driverNode->Get(InfoNode::HEADER)->Get(InfoNode::WARNING)->SetValue("Re-setting numFreq to 1, since startFreq = stopFreq");
       numFreq_ = 1;
 
       if(samplingType_ != LINEAR_SAMPLING)
       {
-        infoNode_->Get(InfoNode::HEADER)->Get(InfoNode::WARNING)->SetValue("Re-setting sampling type to 'linear', since startFreq = stopFreq");
+        driverNode->Get(InfoNode::HEADER)->Get(InfoNode::WARNING)->SetValue("Re-setting sampling type to 'linear', since startFreq = stopFreq");
         samplingType_ = LINEAR_SAMPLING;
       }
     }
@@ -254,7 +256,7 @@ namespace CoupledField
 
     if(given_analysis_id == NULL)
     {
-      analysis_id_ = info->Get("analysis")->Get(InfoNode::PROCESS)->Get("step", InfoNode::APPEND);
+      analysis_id_ = driverNode->Get(InfoNode::PROCESS)->Get("step", InfoNode::APPEND);
       analysis_id_->Get("analysis_id")->SetValue(actFreqStep);
     }
     else

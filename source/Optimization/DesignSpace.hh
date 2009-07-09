@@ -225,9 +225,8 @@ namespace CoupledField
      int design_id;
 
    private:
-     /** Extracts a nodal values */
+     /** Extracts a nodal value */
      double GetNodalValue(unsigned int nodeNumber, DesignElement::ValueSpecifier vs);
-
 
      template <class T>
      void ExtractResults(shared_ptr<BaseResult> result);
@@ -240,17 +239,17 @@ namespace CoupledField
      void FillNodeResults(Result<T>& result, ResultDescription& descr);
 
      /** Sets a ResultInfo object by a result type optResult_1/2/3 where the detailed
-      * description is in the optimization/SIMP elemenet in the xml file
+      * description is in the optimization/SIMP element in the xml file
       * @param solutionType switch to typedef when environment.hh is gone
       * @return null if this solution type was not given in xml or a filled version.
       *         The deletion of the object is the duty of the caller (or shared pointer) */
      ResultInfo* GetResultInfo(ResultDescription& rd);
 
-     /** finds the index of the desing element in desing.data for the element.
+     /** finds the index of the design element in design.data for the element.
       * to be optimized later if needed. Searches only in the first parameters set! */
      int Find(unsigned int elemNum, bool throw_exception = true);
 
-     /* as regionIds_ does not exist as StdVector anymore, a simple replacement for regionIds_.Find() */
+     /** as regionIds_ does not exist as StdVector anymore, a simple replacement for regionIds_.Find() */
      int FindRegion(RegionIdType regionId);
 
      unsigned int last_find_index_;
@@ -316,7 +315,7 @@ namespace CoupledField
   {
     Vector<T>& result_data = result.GetVector();
 
-    // this is our entitiy result, a scalar or a vector of dim 2/3
+    // this is our entity result, a scalar or a vector of dim 2/3
     unsigned int dofs = result.GetResultInfo()->dofNames.GetSize();
     assert(dofs >= 1 && dofs <= 3);
     StdVector<double> result_value(dofs);

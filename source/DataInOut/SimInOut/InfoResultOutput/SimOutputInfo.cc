@@ -1,6 +1,7 @@
 #include "SimOutputInfo.hh"
 
 #include "DataInOut/ParamHandling/InfoNode.hh"
+#include "Domain/domain.hh"
 
 using namespace CoupledField;
 using std::string;
@@ -73,9 +74,7 @@ void SimOutputInfo::AddResult(shared_ptr<BaseResult> br)
   for(it.Begin(); !it.IsEnd(); it++) 
   {
     InfoNode* in = br->GetInfoNode()->Get("item", InfoNode::APPEND);
-
-    in->Get("step_nr")->SetValue(actStep_);
-    in->Get("step_val")->SetValue(actStepVal_);
+    in->Get("analysis_id")->SetValue(domain->GetDriver()->GetAnalysisId());
 
     // print value(s)
     StdVector<string>& dofs = ri->dofNames; 

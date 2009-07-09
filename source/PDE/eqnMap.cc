@@ -15,7 +15,8 @@
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/ParamHandling/InfoNode.hh"
 
-#include <boost/lexical_cast.hpp> 
+#include <boost/lexical_cast.hpp>
+#include <boost/shared_ptr.hpp>
 
 using std::string; 
 using boost::lexical_cast; 
@@ -1256,7 +1257,13 @@ namespace CoupledField {
 
           for ( UInt i = 0; i < actCsList.GetSize(); i++ ) {
             StdVector<UInt> slaveNodes;
-            GetNodesOfEntities( slaveNodes, actCsList[i]->slaveEntities );
+            // Does not work for periodic boundary conditions
+            // GridCFS::nameTypeMap_ does not contain the name of these nodes
+            // GetNodesOfEntities( slaveNodes, actCsList[i]->slaveEntities );
+            // so we use old code from below
+            boost::shared_ptr<NodeList> nodeList(dynamic_pointer_cast<NodeList, EntityList>(actCsList[i]->slaveEntities));
+            slaveNodes = nodeList->GetNodes();
+           
             UInt slaveDof = actCsList[i]->slaveDof;
 
             // NOTE: at the moment we assume that slave and master nodes
@@ -1450,7 +1457,11 @@ namespace CoupledField {
 
           for ( UInt i = 0; i < actCsList.GetSize(); i++ ) {
             StdVector<UInt> slaveNodes;
-            GetNodesOfEntities( slaveNodes, actCsList[i]->slaveEntities );
+            // Does not work for periodic boundary conditions, see also step 2!
+            // GridCFS::nameTypeMap_ does not contain the name of these nodes
+            // GetNodesOfEntities( slaveNodes, actCsList[i]->slaveEntities );
+            boost::shared_ptr<NodeList> nodeList(dynamic_pointer_cast<NodeList, EntityList>(actCsList[i]->slaveEntities));
+            slaveNodes = nodeList->GetNodes();
             UInt slaveDof = actCsList[i]->slaveDof;
             UInt masterDof = actCsList[i]->masterDof;
             UInt masterNode = slaveNodes[0];

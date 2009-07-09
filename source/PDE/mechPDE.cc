@@ -279,6 +279,9 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
 
     // check for prestressing
     ReadPreStressing();
+    
+    // check for prestraining
+    ReadPreStraining();
 
     // read surface stress information
     ReadSurfStress();
@@ -1007,6 +1010,10 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     //RHS-part
     DefinePressureIntegrators(pressSurf_, pressVals_, pressPhase_);
     
+    // make sure not to call with empty vector!
+    if(preStrainVal_.GetSize() > 0)
+      DefineTestStrainIntegrators(preStrainVal_);
+    
     // Add integrator for surface stresses
     std::map<RegionIdType,SurfStress>::iterator  stressIt;
     for( stressIt = surfStresses_.begin();
@@ -1138,6 +1145,38 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       eqnMap_->AddResult( *results_[0], pressSurf[actSF] );
     }
     
+  }
+  
+  void MechPDE::DefineTestStrainIntegrators(const Vector<Double> &vals, std::set<LinearFormContext*>* linForms)
+  {
+    std::map<RegionIdType, BaseMaterial*>::iterator it;
+    for(it = materials_.begin(); it != materials_.end(); it++)
+    {
+      // Set current region and material
+      RegionIdType actRegion = it->first;
+      BaseMaterial *actSDMat = it->second;
+
+      shared_ptr<ElemList> actSDList(new ElemList(ptgrid_));
+      actSDList->SetRegion( actRegion );
+
+      //transform the type
+      SubTensorType tensorType;
+      String2Enum(subType_,tensorType);
+      LinearForm * rhsStrain = new AddStrainRHSInt(actSDMat, vals, tensorType);
+
+      LinearFormContext *linRhs = new LinearFormContext(rhsStrain);
+      linRhs->SetPtPde(this);
+      linRhs->SetResult(results_[0], actSDList);
+
+      if(linForms != NULL)
+      {
+        linForms->insert(linRhs);
+      }
+      else
+      {
+        assemble_->AddLinearForm(linRhs);
+      }
+    }
   }
   
   void MechPDE::DefineRegionLoadIntegrators(std::map<RegionIdType, RegionLoad>& regionLoads, std::set<LinearFormContext*>* linForms){
@@ -1285,14 +1324,12 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
 	  StdVector<Elem*> * couplingElems = NULL;
 	  SingleVector * temp_values = NULL;
 	  Vector<Double> * values;
-	  // SingleVector * temp_oldValues = NULL; // TODO: unused variable
 	  SingleVector *tempDispValues=NULL;
 	  SingleVector *tempDispOldValues=NULL;
 	  StdVector<BaseMaterial*> * materials = NULL;
 	  StdVector<std::string> outputRegions;
 	  UInt interfaceDispCoupl=0, interfaceVelCoupl=0, interfaceForceCoupl=0;
 	  bool foundDisp=false, foundVel=false, foundForce =false;
-	  //Double omega;  // TODO: unused variable
 
 	  if(useAitken_==false)
 		  Info->PrintF( "RELAXATION", "Relaxation Factor = %e\n",displFac_);
@@ -2350,8 +2387,42 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     }
 
   }
+  
+  // ********************************************************
+  //   Query parameter object for information about prestraining
+  // ********************************************************
+  void MechPDE::ReadPreStrainingFromXML(ParamNode* bcsNode, Vector<Double> &vals)
+  {
+    // Check, if any prestraining boundary condition is present
+    if(!bcsNode) return;
 
-  void MechPDE::ReadPressureLoads() {
+    // Get prestraining parameter nodes
+    StdVector<ParamNode*> strainNodes = bcsNode->GetList("testStrain");
+    if(strainNodes.IsEmpty()) return;
+    if(strainNodes.GetSize() > 1)
+    {
+      Warning("Cannot handle more than one test strain per excitation, ignoring the rest",
+                   __FILE__, __LINE__ );
+    }
+    
+    // fetch data
+    // for every call to this function, we only look at the first test strain
+    vals.Resize(6, 0.0);
+    strainNodes[0]->Get("strain1", vals[0]);
+    strainNodes[0]->Get("strain2", vals[1]);
+    strainNodes[0]->Get("strain3", vals[2]);
+    strainNodes[0]->Get("strain4", vals[3]);
+    strainNodes[0]->Get("strain5", vals[4]);
+    strainNodes[0]->Get("strain6", vals[5]);
+  }
+  
+  void MechPDE::ReadPreStraining()
+  {
+    ReadPreStrainingFromXML(myParam_->Get("bcsAndLoads", false), preStrainVal_);
+  }
+
+  void MechPDE::ReadPressureLoads()
+  {
     ReadPressureLoadsFromXML(myParam_->Get("bcsAndLoads", false), pressSurf_, pressVals_, pressPhase_);
   }
   

@@ -235,7 +235,7 @@ protected:
   
   
   /** Calculate the sum of  \f$ l^T K'u - f'\f$ or \f$ 2 Re{l^T K'u} - f'\f$ or \f$ <K'l,u> - f'\f$.
-   * This is controlled cia CalcMode. 
+   * This is controlled via CalcMode. 
 
    *
    * When adjoint vector u1/l is not calculated with a negative rhs, one
@@ -248,7 +248,7 @@ protected:
    * @param u1 for derivatives the lagrange vector l
    * @param k the application determines the stiffness matrix
    * @param u2 the solution or u in \f$<l,K'u-f'>\f$
-   * @param rhs if one want to do \f$<l,K'u-f'>\f$ this containts the info for \f$-f'\f$.
+   * @param rhs if one want to do \f$<l,K'u-f'>\f$ this contains the info for \f$-f'\f$.
    * @param calcMode how to solve the product.
    * @param factor see above, more complex in radiation case. 
    * @param res_idx store in de->specialResult. use ErsatzMaterial::GetSpecialResultIndex() -1 is no special result*/
@@ -362,10 +362,20 @@ protected:
    * @param solveproblem solve the tracking problem, e.g. shapeopt does solve the same problem already
    * @return invalid in derivative case*/
   virtual double CalcTracking(Excitation& excite, bool derivative, Condition* constraint, bool solveproblem = true);
-
+  
   /** does the substep of solving K z = Proj(u - u0) for z */
   void SolveTrackingProblem(Excitation& excite, bool designelem = true, bool gridelem = false);
 
+  /** converts the teststrain vector in voigt notation to the corresponding matrix
+   * @param matrix output
+   * @param vec input */
+  void SetTestStrainMatrix(Matrix<double> &matrix, const Vector<double> &vec);
+  
+  /** takes the result of the test strain computations and calculates the homogenized 
+   *  material tensor (see Bendsoe/Sigmund: Topology Optimization, p. 122ff
+   *  currently, the result is simply calculated, written to the log file and then dumped */
+  double CalcHomogenization(const Excitation &excite, const bool derivative);
+  
   /** This vector is an alternative access to the mech and elec pointers.
    * mech is guaranteed to be index 0 and elec would be 1.
    * @see ToApp()
@@ -389,7 +399,6 @@ protected:
 
   /** The assemble class for our PDE */
   Assemble* assemble_;
-
 
   /** Here we store the solution of the tracking subproblem. 
    * (This subproblem is solved for gradient calculation.)

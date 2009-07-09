@@ -1104,7 +1104,7 @@ namespace CoupledField {
     // Check if entities with given name exists at all
     if( nameTypeMap_.find( name) == nameTypeMap_.end() ) {
       EXCEPTION( "Entities with name " << name
-                 << " are already defined" );
+                 << " not found in nameTypeMap_" );
     }
 
     // check, which entity type the name belongs to

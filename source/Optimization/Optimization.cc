@@ -1,5 +1,6 @@
 #include <def_use_ipopt.hh>
 #include <def_use_scpip.hh>
+#include <map>
 
 #include "Optimization/Optimization.hh"
 #include "Optimization/SIMP.hh"
@@ -9,6 +10,8 @@
 #include "Optimization/OptimalityCondition.hh"
 #include "Optimization/LevelSet.hh"
 #include "Optimization/EvaluateOnly.hh"
+#include "Optimization/ShapeOptimizer.hh"
+#include "Optimization/ShapeGrad.hh"
 #include "Optimization/GradientCheck.hh"
 #include "Optimization/ParamMat.hh"
 #include "Optimization/OptimizationMaterial.hh"
@@ -143,6 +146,9 @@ Optimization::Optimization()
   this->commitStride = pn->Has("commit") ? pn->Get("commit")->Get("stride")->AsInt() : 1;
   optInfoNode->Get("commit")->Get("mode")->SetValue(cm);
   optInfoNode->Get("commit")->Get("stride")->SetValue(commitStride);
+  
+  // write out the directory where the HALTOPT file will be searched for
+  optInfoNode->Get("haltopt_directory")->SetValue(fs::current_path().directory_string());
 
   // the constraints are optional and might not be real constraints!
   StdVector<ParamNode*> list = pn->GetList("constraint");
@@ -173,10 +179,13 @@ Optimization::Optimization()
     this->logDesign = pn->Get("logdesign")->AsBool();
     this->logDesignGradient = pn->Get("logdesigngradient")->AsBool();
   }
-  
+
   // remove a stop file, if found
-  std::string command = "rm -f ./HALTOPT";
-  std::system( command.c_str() );
+  if(fs::exists("HALTOPT"))
+  {
+    bool good = fs::remove("HALTOPT");
+    if(!good) throw new Exception("Could not remove file 'HALTOPT' after detection");
+  }
 }
 
 Optimization::~Optimization()
@@ -232,8 +241,8 @@ void Optimization::PostInitSecond()
          baseOptimizer_ = new OptimalityCondition(this, opt);
          break;
 
-    case LEVEL_SET:
-         baseOptimizer_ = new LevelSet(this, opt);
+    case SHAPE_SOLVER:
+         baseOptimizer_ = new ShapeOptimizer(this, opt);
          break;
 
     case EVALUATE_INITIAL_DESIGN:
@@ -276,6 +285,7 @@ void Optimization::SetEnums()
   objectiveType.Add(VOLUME, "volume");
   objectiveType.Add(TRACKING, "tracking");
   objectiveType.Add(ELEC_ENERGY, "elecEnergy");
+  objectiveType.Add(HOMOGENIZATION, "homogenization");
 
   Condition::name.SetName("Contraint::Name");
   Condition::name.Add(Condition::VOLUME, "volume");
@@ -294,7 +304,7 @@ void Optimization::SetEnums()
   optimizer.Add(OPTIMALITY_CONDITION, "optimalityCondition");
   optimizer.Add(IPOPT_SOLVER, "ipopt");
   optimizer.Add(SCPIP_SOLVER, "scpip");
-  optimizer.Add(LEVEL_SET, "levelSet");
+  optimizer.Add(SHAPE_SOLVER, "shapeOpt");
   optimizer.Add(EVALUATE_INITIAL_DESIGN, "evaluateInitialDesign");
   optimizer.Add(GRADIENT_CHECK, "gradientCheck");
 
@@ -325,9 +335,8 @@ void Optimization::SetEnums()
 
   LevelSet::Action::type.SetName("LevelSet::Action::Type");
   LevelSet::Action::type.Add(LevelSet::Action::SIGNED_DISTANCE_FIELD, "signedDistanceField");
-  LevelSet::Action::type.Add(LevelSet::Action::TOP_GRAD, "topGrad");
   LevelSet::Action::type.Add(LevelSet::Action::TRIVIAL_HOLE, "trivialHole");
-  LevelSet::Action::type.Add(LevelSet::Action::FIRST_ORDER_FD, "firstOrderFiniteDifferences");
+  LevelSet::Action::type.Add(LevelSet::Action::DO_SHAPE_STEP, "shapeStep");
 }
 
 
@@ -407,12 +416,17 @@ Optimization* Optimization::CreateInstance()
   case ErsatzMaterial::SHAPE_PARAM_MAT:
     opt = new ShapeOpt();
     break;
+  case ErsatzMaterial::SHAPE_GRAD:
+  {
+    opt = new ShapeGrad();
+    break;
+  }
   default: throw Exception("Optimization not implemented");
   }
   
-  // second initialzation phase, constrcuts material
+  // second initialization phase, constructs material
   opt->PostInit();
-  // third initizalization phase, constructs optimizer
+  // third initialization phase, constructs optimizer
   opt->PostInitSecond();
 
   return opt;
@@ -449,9 +463,8 @@ void Optimization::SolveStateProblem(Excitation* excite)
 
   // this is the forward problem. Store the analysis_id in the driver such that
   // we can aquire it for the adjoint problem
-  
-  InfoNode* analysis_id = excite == NULL ? driver->CreateAnalysisIdChild(NULL, "iter", currentIteration)
-                                         : driver->CreateAnalysisIdChild(NULL, "iter", currentIteration, "excite", excite->index);
+  InfoNode* analysis_id = excite == NULL ? driver->CreateAnalysisId("iter", currentIteration)
+                                         : driver->CreateAnalysisId("iter", currentIteration, "excite", excite->index);
                                          
   // Do not store the results. This is to be done in CommitIteration
   if(!harmonic || excite == NULL) 
@@ -478,7 +491,7 @@ double Optimization::CalcSymmetry(DesignElement::Type de, DesignElement::ValueSp
 
   int max = (int) design->data.GetSize();
   double sum = 0;
-  // we assume the first element (1) be in the lower left corner and then a lexicaly
+  // we assume the first element (1) be in the lower left corner and then a lexical
   // ordering to right and then the rows up.
   for(int i = 0; i < edge/2; i++)
   {
@@ -782,7 +795,8 @@ void Excitation::ReadTrackings(ParamNode* ts){
   }
 }
 
-void Excitation::ReadLoads(ParamNode* ls){
+void Excitation::ReadLoads(ParamNode* ls)
+{
   apply_linForms = true;
   
   // loads
@@ -798,6 +812,11 @@ void Excitation::ReadLoads(ParamNode* ls){
   StdVector<std::string> pressPhase;
   mech->ReadPressureLoadsFromXML(ls, pressSurf, pressVals, pressPhase);
   mech->DefinePressureIntegrators(pressSurf, pressVals, pressPhase, &linForms);
+  
+  // teststrains
+  mech->ReadPreStrainingFromXML(ls, test_strain);
+  if(test_strain.GetSize() > 0)
+    mech->DefineTestStrainIntegrators(test_strain, &linForms);
   
   // regionLoads
   std::map<RegionIdType, SinglePDE::RegionLoad> regionLoads;

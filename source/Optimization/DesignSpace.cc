@@ -3,6 +3,7 @@
 #include "Optimization/TransferFunction.hh"
 #include "Optimization/Condition.hh"
 #include "Optimization/BaseOptimizer.hh"
+#include "Optimization/ShapeOptimizer.hh"
 #include "Optimization/LevelSet.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/InfoNode.hh"
@@ -147,6 +148,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& regionIds, StdVector<ParamNode
             case ErsatzMaterial::PARAM_MAT:
             case ErsatzMaterial::NO_METHOD:
             case ErsatzMaterial::SHAPE_PARAM_MAT:
+            case ErsatzMaterial::SHAPE_GRAD:
               break;
             default: assert(false);
             }
@@ -238,18 +240,34 @@ void DesignSpace::AppendOptimizationResults(SinglePDE* pde)
   }
 }
 
-
 double DesignSpace::GetNodalValue(unsigned int nodeNumber, DesignElement::ValueSpecifier vs)
 {
+  ShapeOptimizer* shopt = dynamic_cast<ShapeOptimizer*>(optimizer_);
+  if(shopt == NULL) EXCEPTION("No level set optimizer activated");
+  // FIXME maybe throw an Exception? This should not be called without a levelset
+  if(shopt->ptrLS_ == NULL) return 0.0;
+  assert(shopt->ptrLS_->GetNodePointer(nodeNumber) != NULL);
+  
   switch(vs)
   {
   case DesignElement::LEVEL_SET_VALUE:
-  {
-    LevelSet* ls = dynamic_cast<LevelSet*>(optimizer_);
-    if(ls == NULL) throw Exception("No level set optimizer activated");
-    return ls->Find(nodeNumber)->GetCenterValue();
-  }
-
+    return shopt->ptrLS_->GetNodePointer(nodeNumber)->value;
+  case DesignElement::LEVEL_SET_STATE:
+    return shopt->ptrLS_->GetNodePointer(nodeNumber)->state;
+  case DesignElement::SHAPEGRAD_NODE_VALUE:
+    return shopt->ptrLS_->GetNodePointer(nodeNumber)->shapegrad;
+  case DesignElement::LEVEL_SET_GRAD_XP:
+    return shopt->ptrLS_->GetGradientAtNode(nodeNumber, 0);
+  case DesignElement::LEVEL_SET_GRAD_XN:
+    return shopt->ptrLS_->GetGradientAtNode(nodeNumber, 1);
+  case DesignElement::LEVEL_SET_GRAD_YP:
+    return shopt->ptrLS_->GetGradientAtNode(nodeNumber, 2);
+  case DesignElement::LEVEL_SET_GRAD_YN:
+    return shopt->ptrLS_->GetGradientAtNode(nodeNumber, 3);
+  case DesignElement::LEVEL_SET_GRAD_ZP:
+    return shopt->ptrLS_->GetGradientAtNode(nodeNumber, 4);
+  case DesignElement::LEVEL_SET_GRAD_ZN:
+    return shopt->ptrLS_->GetGradientAtNode(nodeNumber, 5);
   default:
     EXCEPTION("case not implemented")
   }
@@ -270,25 +288,22 @@ ResultInfo* DesignSpace::GetResultInfo(ResultDescription& rd)
 
 
   ri->unit = "";
-  // in most cases we have a scalar result
-  switch(rd.value)
-  {
-  case DesignElement::LEVEL_SET_NORMAL:
-    ri->entryType = ResultInfo::VECTOR;
-    ri->dofNames.Resize(domain->GetGrid()->GetDim());
-    ri->dofNames[0] = "x";
-    ri->dofNames[1] = "y";
-    if(ri->dofNames.GetSize() == 3) ri->dofNames[2] = "z";
-    break;
-  default:
-    ri->entryType = ResultInfo::SCALAR;
-    ri->dofNames = "";
-  }
+
+  ri->entryType = ResultInfo::SCALAR;
+  ri->dofNames = "";
 
   // in most cases we are on elements,
   switch(rd.value)
   {
   case DesignElement::LEVEL_SET_VALUE:
+  case DesignElement::LEVEL_SET_STATE:
+  case DesignElement::SHAPEGRAD_NODE_VALUE:
+  case DesignElement::LEVEL_SET_GRAD_XP:
+  case DesignElement::LEVEL_SET_GRAD_XN:
+  case DesignElement::LEVEL_SET_GRAD_YP:
+  case DesignElement::LEVEL_SET_GRAD_YN:
+  case DesignElement::LEVEL_SET_GRAD_ZP:
+  case DesignElement::LEVEL_SET_GRAD_ZN:
     ri->definedOn = ResultInfo::NODE;
     break;
   default:
@@ -655,11 +670,12 @@ std::string DesignSpace::ToString()
 {
   std::stringstream ss;
   ss << "design[";
-  for(unsigned int i = 0; i < data.GetSize(); i++)
+  const unsigned int data_size(data.GetSize());
+  for(unsigned int i = 0; i < data_size; i++)
   {
     DesignElement* de = &data[i];
     ss << i << ":elem=" << de->elem->elemNum;
-    if(de->vicinity != NULL) ss << " " << de->vicinity->ToString();
+    if(de->vicinity_ != NULL) ss << " " << de->vicinity_->ToString();
     ss << " ";
   }
   ss << "]";

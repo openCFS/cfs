@@ -6,6 +6,7 @@
 #define FILE_NEWBASEMECHPDE
 
 #include <map>
+#include <set>
 
 #include "SinglePDE.hh"
 
@@ -95,6 +96,12 @@ namespace CoupledField
      * @param linForms set to append linear Forms to, if NULL use assemble_ */
     void DefinePressureIntegrators(StdVector<shared_ptr<EntityList> >& pressSurf, StdVector<std::string>& pressVals, StdVector<std::string>& pressPhase, std::set<LinearFormContext*>* linForms = NULL);
     
+    /** add the integrators for the test strains for homogenization to the linear forms, similar as in multiple load case;
+     * called from Excitation::ReadLoads 
+     * @param vals contains the values from the xml test strains
+     * @param linForms set to append linear Forms to, if NULL use assemble_ */
+    void DefineTestStrainIntegrators(const Vector<Double> &vals, std::set<LinearFormContext*> *linForms = NULL);
+    
     /** export of methods to generate Linear Forms used in multiload-cases by optimization 
      * @param regionLoads as returned from ReadRegionLoadsFromXML
      * @param linForms set to append linear Forms to, if NULL use assemble_ */
@@ -106,6 +113,11 @@ namespace CoupledField
      * @param pressVals StdVector containing the information
      * @param pressPhase StdVector containing the information */
     void ReadPressureLoadsFromXML(ParamNode* bcNode, StdVector<shared_ptr<EntityList> >& pressSurf, StdVector<std::string>& pressVals, StdVector<std::string>& pressPhase);
+    
+    /** Does the actual reading of pressure loads, also called from optimization 
+     * @param bcsNode paramnode that has test strain nodes as children
+     * @param vals where the values of the strains are written */
+    void ReadPreStrainingFromXML(ParamNode* bcsNode, Vector<Double> &vals);
 
   protected:
 
@@ -239,6 +251,9 @@ namespace CoupledField
     //! read in surface stress boundary conditions
     void ReadSurfStress();
 
+    //! read in the domains with prestraining
+    void ReadPreStraining();
+    
     //! read pressure loads
     void ReadPressureLoads();
     
@@ -302,6 +317,9 @@ namespace CoupledField
 
     //! prestress-values: numSubdoms x 3
     std::map< RegionIdType, Vector<Double> > preStressVal_;
+    
+    //! prestrain-values: numSubdoms x 3
+    Vector<Double> preStrainVal_;
 
      //@{ \name Attributes related to post-processing
 

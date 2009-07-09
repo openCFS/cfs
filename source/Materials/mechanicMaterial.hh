@@ -88,7 +88,7 @@ namespace CoupledField {
 			  MaterialType matType, 
 			  SubTensorType subTensor) const;
 
-    //! Compute elasticity tensor from giben parameters
+    //! Compute elasticity tensor from given parameters
     void ComputeFullStiffTensor();
 
     Double density_;

@@ -235,16 +235,19 @@ namespace CoupledField
     virtual void MultInner( const SingleVector & mvec, SingleVector & rvec ) const;
     
     //! Perform a matrix-vector multiplication rvec = transpose(this)*mvec
-    virtual void MultT( const SingleVector & mvec, SingleVector & rvec ) const {;};
+    virtual void MultT( const SingleVector & mvec, SingleVector & rvec ) const;
   
     //! Perform a matrix-vector multiplication rvec += this*mvec
-    virtual void MultAdd( const SingleVector & mvec, SingleVector & rvec ) const {;};
+    virtual void MultAdd( const SingleVector & mvec, SingleVector & rvec ) const 
+      { EXCEPTION("!!! Not implemented !!!" ); }
   
     //! Perform a matrix-vector multiplication rvec += transpose(this)*mvec
-    virtual void MultTAdd( const SingleVector & mvec, SingleVector& rvec ) const {;};
+    virtual void MultTAdd( const SingleVector & mvec, SingleVector& rvec ) const 
+      { EXCEPTION("!!! Not implemented !!!" ); }
   
     //! Perform a matrix-vector multiplication rvec -= this*mvec
-    virtual void MultSub( const SingleVector & mvec, SingleVector & rvec ) const {;};
+    virtual void MultSub( const SingleVector & mvec, SingleVector & rvec ) const 
+      { EXCEPTION("!!! Not implemented !!!" ); }
 
     //! Assign the matrix the dyadic product of a vector with itself
     
