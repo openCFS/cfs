@@ -230,8 +230,6 @@ namespace CFSTool {
          StdVector<shared_ptr<ResultInfo> > infos;
          input->GetResultTypes( actMsStep, infos );
 
-         // notify writer
-         output->BeginMultiSequenceStep( actMsStep, types[actMsStep], numSteps[actMsStep] );
          StdVector<shared_ptr<BaseResult> > results;
          std::map<UInt, Double> stepVals;
          std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps;
@@ -270,6 +268,9 @@ namespace CFSTool {
              output->RegisterResult( result, 1, 1, resultSteps[actRes].size(), false ); 
            }
          }
+
+         // notify writer
+         output->BeginMultiSequenceStep( actMsStep, types[actMsStep], numSteps[actMsStep] );
          
          // iterate over all stepvalues of this multisequence step
          for( UInt iStep = 0; iStep < numSteps[actMsStep]; iStep++ ) {
