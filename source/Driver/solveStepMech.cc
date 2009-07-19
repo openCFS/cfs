@@ -56,14 +56,16 @@ namespace CoupledField {
 //  }
 
 
-  void SolveStepMech::StepTransLin() {
+  void SolveStepMech::StepTransLin(InfoNode* analysis_base) {
 
     //account for RHS
     assemble_->AssembleLinRHS();
 
     UInt& iterCoupledCounter = PDE_.GetIterCoupledCounter();
     bool isIterCoupled    = PDE_.IsIterCoupled();
-  
+
+    InfoNode* analysis_id = !isIterCoupled ? analysis_base :
+          BaseDriver::CreateAnalysisIdChild(analysis_base, "iterCoupled", iterCoupledCounter);    
 
     // perform predictor step: if we have an iterative coupled 
     // PDE-system, we should perform the predictor state just 
@@ -87,10 +89,10 @@ namespace CoupledField {
     algsys_->BuildInDirichlet();
 
     if (assemble_->IsMatrixUpdated() ) {
-      algsys_->SetupPrecond( );
-      algsys_->SetupSolver( );
+      algsys_->SetupPrecond();
+      algsys_->SetupSolver(analysis_id);
     }
-    algsys_->Solve();
+    algsys_->Solve(analysis_id);
 
     Vector<Double> solHelp;
     algsys_->GetSolutionVal(solHelp);

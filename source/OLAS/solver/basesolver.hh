@@ -6,18 +6,16 @@
 #define OLAS_BASESOLVER_HH
 
 #include "General/environment.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
-
-using CoupledField::ParamNode;
 
 namespace CoupledField {
-
 
   class BasePrecond;
   class BaseMatrix;
   class BaseVector;
   class OLAS_Params;
   class OLAS_Report;
+  class ParamNode;
+  class InfoNode;
 
   // =========================================================================
   // BASE SOLVER
@@ -31,6 +29,8 @@ namespace CoupledField {
 
     //! Default Constructor
     BaseSolver() {
+      xml_ = NULL;
+      solverInfo_ = NULL;
     }
 
     //! Default Destructor
@@ -39,13 +39,16 @@ namespace CoupledField {
 
     //! General setup routine
   
-    //! For direct solvers this might involve a factorization, for Krylov
-    //! solvers just construction of some vectors etc.
-    virtual void Setup( BaseMatrix &sysmat ) = 0;
+    /** For direct solvers this might involve a factorization, for Krylov
+     * solvers just construction of some vectors etc.
+     * @param analysis_id references to the info/analysis/progress/step(/substep) 
+     *                   element with the "analysis_id" attribute */
+    virtual void Setup( BaseMatrix &sysmat, InfoNode* analysis_id = NULL) = 0;
 
-    //! Solve the linear system sysmat*sol=rhs for sol
+    /** Solve the linear system sysmat*sol=rhs for sol
+     * @param analysis_id @see Setup() */
     virtual void Solve( const BaseMatrix &sysmat, const BasePrecond &precond,
-			const BaseVector &rhs, BaseVector &sol) = 0;
+			const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_id = NULL) = 0;
 
     //! Query type of the solver
 
@@ -70,7 +73,11 @@ namespace CoupledField {
 
     /** This is the description of the solver part in XML - if given!! 
      * Might easily be NULL!! */
-    ParamNode* xml_; 
+    ParamNode* xml_;
+    
+    /** This stores the general solver Information (HEADER, SUMMARY) ->
+     * For the current solve steps the pointer is given */
+    InfoNode* solverInfo_;
 
   };
 

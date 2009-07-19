@@ -141,6 +141,24 @@ typedef std::multimap<int, std::string> EnumMap;
 
           throw Exception("There is no enum key '" + value + "' for '" + name_ + "'"); 
         }
+        
+        /** converts the string representation to the type if possible
+         * if not returns the given default value
+         * checking isvalid before is more expensive
+         */
+        T Parse(const std::string& value, T def){
+          EnumMap::iterator it, end;
+          it = map.begin();
+          end = map.end();
+            
+          for( ; it != end; it++)
+          {
+            // Check comments on Tupel!!
+            if(it->second == value) return static_cast<T>(it->first);
+          }
+          
+          return(def);
+        }
 
         /** Takes the ->ToString() value */
         T Parse(ParamNode* pn)

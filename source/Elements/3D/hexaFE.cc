@@ -1438,7 +1438,8 @@ namespace CoupledField
       { -0.57735026919,   0.57735026919,   0.57735026919,  1.000000000000000 },
     };
       
-    AddIntegrationPoints(CLASSICAL, 1, 8, (Double*) c1_2FE);         
+    AddIntegrationPoints(CLASSICAL, 2, 8, (Double*) c1_2FE);         
+    AddIntegrationPoints(CLASSICAL, 3, 8, (Double*) c1_2FE);
       
     static Double c2[][4] = { 
       { -0.7745966692415,  -0.7745966692415,  -0.7745966692415,  0.171467764060357},
@@ -1469,7 +1470,8 @@ namespace CoupledField
       {  0.7745966692415,   0.7745966692415,   0.0            ,  0.274348422496571},
       {  0.7745966692415,   0.7745966692415,   0.7745966692415,  0.171467764060357},
     };
-    AddIntegrationPoints(CLASSICAL, 2, 27, (Double*) c2);
+    AddIntegrationPoints(CLASSICAL, 4, 27, (Double*) c2);
+    AddIntegrationPoints(CLASSICAL, 5, 27, (Double*) c2);
     
      static Double l1[][4] = {
         {  1,     1,     1,     1},
@@ -2951,6 +2953,34 @@ namespace CoupledField
       }
     }
   }
+
+	void HexaFE::GetEdgeLength(Matrix<Double> &ptCoord, StdVector<Double>& edges_out)
+	{
+		edges_out.Resize(3, 0.0);
+
+		// todo: works only for aligned elements!
+		
+		// assume nodes ordered as follows:
+    //    7 +-------+ 6    
+    //     /|      /|      
+    //    / |     / |
+    // 4 +--+----+5 |   
+    //   |  +-- -|- + 2    
+    //   | / 3   | /   
+    //   |/      |/
+    // 0 +-------+ 1
+		
+		// maybe computation is not correct but I do not see where we need a loop?
+		// see RectangleFE::GetEdgeLength()
+		for(int i = 0; i < 3; ++i)
+		{
+		  // for all dimensions, add offset; only in one direction this is not 0
+		  edges_out[i]  = abs(ptCoord[i][0] - ptCoord[i][1]);
+		  edges_out[i] += abs(ptCoord[i][0] - ptCoord[i][3]);
+		  edges_out[i] += abs(ptCoord[i][0] - ptCoord[i][4]);
+		}
+	}
+
 
   void HexaFE::CoordsInsideElem(const Matrix<Double> & localCoords,
                                   const Double tolerance,

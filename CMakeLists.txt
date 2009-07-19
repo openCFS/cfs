@@ -1,7 +1,7 @@
 #-------------------------------------------------------------------------------
 # Don't build anything unless the version of CMake is high enough.
 #-------------------------------------------------------------------------------
-CMAKE_MINIMUM_REQUIRED(VERSION 2.6.0 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.4.7 FATAL_ERROR)
 
 IF(COMMAND cmake_policy)
   CMAKE_POLICY(SET CMP0003 NEW)
@@ -19,14 +19,14 @@ PROJECT(CFS C CXX Fortran)
 # CFS version number.  An even minor number corresponds to releases.
 #-----------------------------------------------------------------------------
 SET(CFS_VERSION_YEAR "09")
-SET(CFS_VERSION_MONTH "04")
+SET(CFS_VERSION_MONTH "05")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 #-----------------------------------------------------------------------------
 # Version Name. Every major release gets a label/name
 #-----------------------------------------------------------------------------
-SET(CFS_NAME "Maehende Machete")
+SET(CFS_NAME "Rasanter Rechner")
 
 #-----------------------------------------------------------------------------
 # Set hostname of build host
@@ -197,7 +197,13 @@ SET(XMLSCHEMA "${CFS_SOURCE_DIR}/share/xml" CACHE STRING
 #-----------------------------------------------------------------------------
 SET(TESTSUITE_DIR "TESTSUITE_DIR_NOT_FOUND" CACHE STRING
   "Path where the CFS++ testsuite is located.")
+# In order to perform tests we need the CONVERTER and HDF5!
+SET(CFSTOOL ON CACHE BOOL
+  "Build CFS++ converter tool (cfstool)." FORCE)
 
+SET(USE_HDF5 ON CACHE INTERNAL
+  "Use HDF5 for simulation in/output." FORCE)
+    
 IF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
   IF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
     # In order to perform tests we need the CONVERTER and HDF5!
@@ -285,6 +291,32 @@ INCLUDE("cmake_modules/CFS_macros.cmake")
 #-----------------------------------------------------------------------------
 INCLUDE("cmake_modules/FindPrograms.cmake")
 
+#-----------------------------------------------------------------------------
+# Configure Dart testing support.  This should be done before any
+# MESSAGE(FATAL_ERROR ...) commands are invoked (???) and after the languages
+# for the project have been defined since CMake needs to know about the 
+# language-specific build tools.
+#-----------------------------------------------------------------------------
+
+#-----------------------------------------------------------------------------
+# Switch support for testing off by default. It will be switched on by the
+# CTest scripts. These scripts set BUILD_TESTING to ON in the initial CMake
+# cache. Cf. ctest_scripts/*.cmake
+#-----------------------------------------------------------------------------
+OPTION(BUILD_TESTING "Build the testing tree." OFF)
+
+IF(BUILD_TESTING)
+  SET(BUILDNAME
+    "${CFS_ARCH_STR} ${CFS_CXX_COMPILER_NAME} ${CFS_CXX_COMPILER_VER} ${CMAKE_BUILD_TYPE}"
+    CACHE STRING "Name of build on the dashboard")
+  MARK_AS_ADVANCED(BUILDNAME)
+
+  #---------------------------------------------------------------------------
+  # Include CMake module for testing support
+  #---------------------------------------------------------------------------
+  INCLUDE(CTest)
+ENDIF(BUILD_TESTING)
+
 
 #-----------------------------------------------------------------------------
 # Set path where shared/static libraries should go
@@ -359,6 +391,8 @@ IF(RETVAL STREQUAL 0)
     CFS_SUBVERSION_REV "${CFS_SUBVERSION_REV}")
 ELSE(RETVAL STREQUAL 0)
   SET(CFS_SUBVERSION_REV "N/A")
+  MESSAGE("A problem occurred while trying to determine revision of "
+    "CFS++ Subversion repository: ${CFS_SUBVERSION_REV}")
 ENDIF(RETVAL STREQUAL 0)
 
 
@@ -374,9 +408,13 @@ IF(RETVAL STREQUAL 0)
     CFS_SUBVERSION_MODIF "${CFS_SUBVERSION_MODIF}")
   STRING(REGEX REPLACE "WORKING_COPY_MODIFIED " ""
     CFS_SUBVERSION_MODIF "${CFS_SUBVERSION_MODIF}")
-  SET(CFS_SUBVERSION_REV "${CFS_SUBVERSION_REV} ${CFS_SUBVERSION_MODIF}")
+  IF(CFS_SUBVERSION_MODIF MATCHES "modified")
+    SET(CFS_SUBVERSION_REV "${CFS_SUBVERSION_REV} ${CFS_SUBVERSION_MODIF}")
+  ENDIF(CFS_SUBVERSION_MODIF MATCHES "modified")
 ELSE(RETVAL STREQUAL 0)
   SET(CFS_SUBVERSION_REV "N/A")
+  MESSAGE("A problem occurred while trying to check modified state of "
+    "CFS++ Subversion repository: ${CFS_SUBVERSION_MODIFIED}")
 ENDIF(RETVAL STREQUAL 0)
 
 #-----------------------------------------------------------------------------
@@ -522,3 +560,7 @@ SUBDIRS(share/doc/user)
 #-----------------------------------------------------------------------------
 SUBDIRS(share/scripts)
 
+#-----------------------------------------------------------------------------
+# Add targets for XML schemas
+#-----------------------------------------------------------------------------
+SUBDIRS(share/xml)

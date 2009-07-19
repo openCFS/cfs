@@ -77,7 +77,7 @@ namespace CoupledField {
   //   Setup (public version)
   // **************************
   template<typename T>
-  void GMRESSolver<T>::Setup( BaseMatrix &sysMat ) {
+  void GMRESSolver<T>::Setup( BaseMatrix &sysMat, InfoNode* analysis_step ) {
     PrivateSetup( sysMat );
   }
 
@@ -162,7 +162,7 @@ namespace CoupledField {
   template<typename T>
   void GMRESSolver<T>::Solve( const BaseMatrix &sysMat,
                               const BasePrecond &precond,
-                              const BaseVector &rhs, BaseVector &sol ) {
+                              const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_step ) {
 
 
     bool logging = myParams_->GetBoolValue( "GMRES_logging" );

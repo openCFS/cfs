@@ -675,6 +675,39 @@ namespace CoupledField
     private:
 
     };
+    
+    /** add mechanical strain as forces on RHS 
+     *  needed for homogenization
+     *  
+     *  implementation is based on Bendsoe/Sigmund: Topology Optimization, p. 122ff */
+    class  AddStrainRHSInt : public LinearForm
+    {
+    public:
+      /// constructor
+      AddStrainRHSInt(BaseMaterial* matData,
+                      const Vector<double>& addStrainVec,
+                      SubTensorType type);
+      
+      /// destructor
+      virtual ~AddStrainRHSInt();
+      
+      /// Calculation of vector of right hand side 
+      void CalcElemVector(Vector<double> & result, EntityIterator& ent);
+      
+      
+    protected:
+      /// returns nr. of degrees of freedom
+      virtual UInt getNrDofs() { return 3; }
+
+      /// material data
+      BaseMaterial* matData_;
+
+      //! strain vector
+      Vector<Double> addStrain_;
+
+      //! tensor type (plane_strain, full)
+      SubTensorType subTensorType_;
+    };
 
 
 } // end of namespace

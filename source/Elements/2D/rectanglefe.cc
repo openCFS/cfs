@@ -253,6 +253,7 @@ namespace CoupledField
       { -0.57735026919,   0.57735026919,  1 },                        
     };
     AddIntegrationPoints(CLASSICAL, 2, 4, (Double*) c2);
+    AddIntegrationPoints(CLASSICAL, 3, 4, (Double*) c2);
 
     // one integration point more than ECONOMICAL
     static Double c5[][3] = { 
@@ -266,6 +267,7 @@ namespace CoupledField
       {  0.0,                0.774596669241483,   0.493827 },
       {  0.774596669241483,  0.774596669241483,   0.308642 }
     };
+    AddIntegrationPoints(CLASSICAL, 4, 9, (Double*) c5);
     AddIntegrationPoints(CLASSICAL, 5, 9, (Double*) c5);
 
     static Double l1[][3] = { 
@@ -626,14 +628,11 @@ namespace CoupledField
  
     // todo: works only for aligned elements!
     
-    for (UInt i=0; i<4; i++ )
+    for (UInt i=0; i<2; ++i)
     {
-      // add two times a value and two times 0
-      UInt other = i < 3 ? i+1 : 0; // wrap around for last edge
-      Double dx = ptCoord[0][i] - ptCoord[0][other];
-      Double dy = ptCoord[1][i] - ptCoord[1][other];
-      edges_out[0] += abs(dx) * 0.5; // do the averaging now, from 4, 2 are zero
-      edges_out[1] += abs(dy) * 0.5; 
+      // for all dimensions, add offset; only in one direction this is not 0
+      edges_out[i]  = abs(ptCoord[i][0] - ptCoord[i][1]);
+      edges_out[i] += abs(ptCoord[i][0] - ptCoord[i][3]);
     }
   }
   

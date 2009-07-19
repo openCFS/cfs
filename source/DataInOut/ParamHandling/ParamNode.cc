@@ -2,8 +2,11 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <boost/tokenizer.hpp>
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
+using namespace std;
+using namespace boost;
 
 namespace CoupledField
 {
@@ -79,32 +82,39 @@ namespace CoupledField
     EXCEPTION("cannot interpret " << value_ << " as boolean");
   }
      
-  ParamNode* ParamNode::Get(const std::string& name, const bool throwException)
+  ParamNode* ParamNode::Get(const string& name, const bool throwException)
   {
-    for(unsigned int i = 0; i < children_.GetSize(); i++)
-      {
-        if(children_[i]->name_ == name) return children_[i];
-      }
-
-    if( throwException) 
-      {
-        EXCEPTION("None of the " << children_.GetSize() << " childs of element '"
-                  << this->name_ << "'" << " has a child '" << name << "'");   
-      } else {
-      return NULL;
+    ParamNode* result = NULL;
+    
+    if(ContainsTokens(name))
+    {
+       result = TokenizedHasAndGet(name, "", false); // has some overhead   
     }
+    else
+    {
+      for(unsigned int i = 0; i < children_.GetSize() && result == NULL; i++)
+      {
+        if(children_[i]->name_ == name) 
+          result = children_[i];
+      }
+    }
+    
+    if(result == NULL && throwException) 
+      EXCEPTION("None of the " << children_.GetSize() << " childs of element '"
+                << this->name_ << "'" << " has a child '" << name << "'");
+    
+    return result;
   }
 
-  void ParamNode::Get(const std::string&  name, std::string& ret, const bool throwException)
+  void ParamNode::Get(const string&  name, string& ret, const bool throwException)
   {
     ParamNode * actNode = Get(name,  throwException);
-    if( actNode ) {
+    if(actNode)
       ret = actNode->AsString();
-    }
   }
    
 
-  void ParamNode::Get(const std::string&  name, int& ret, const bool throwException)
+  void ParamNode::Get(const string&  name, int& ret, const bool throwException)
   {
     ParamNode * actNode = Get(name, throwException);
     if( actNode ) {
@@ -113,7 +123,7 @@ namespace CoupledField
     
   }
 
-  void ParamNode::Get(const std::string&  name, unsigned int& ret, const bool throwException)
+  void ParamNode::Get(const string&  name, unsigned int& ret, const bool throwException)
   {
     ParamNode * actNode = Get(name, throwException);
     if( actNode ) {
@@ -122,7 +132,7 @@ namespace CoupledField
 
   }
 
-  void ParamNode::Get(const std::string&  name, double& ret, const bool throwException)
+  void ParamNode::Get(const string&  name, double& ret, const bool throwException)
   {
     ParamNode * actNode = Get(name, throwException);
     if( actNode ) {
@@ -130,7 +140,7 @@ namespace CoupledField
     }
   }
 
-  void ParamNode::Get(const std::string&  name, bool& ret, const bool throwException)
+  void ParamNode::Get(const string&  name, bool& ret, const bool throwException)
   {
 
     ParamNode * actNode = Get(name, throwException);
@@ -139,32 +149,88 @@ namespace CoupledField
     }
   }
 
-  bool ParamNode::Has(const std::string& name) const
+  
+  ParamNode* ParamNode::TokenizedHasAndGet(const string& name, const string& value, bool has_bool_value, bool bool_value) const
   {
-    for(unsigned int i = 0; i < children_.GetSize(); i++)
-      if(children_[i]->name_ == name) return true;
-
-    return false;
-  }
-
-  bool ParamNode::Has(const std::string& name, const std::string& value) const
-  {
-    for(unsigned int i = 0; i < children_.GetSize(); i++)
-      if(children_[i]->name_ == name && children_[i]->value_ == value) return true;
-
-    return false;
-  }
-
-  bool ParamNode::Has(const std::string& name, bool value) const
-  {
-    for(unsigned int i = 0; i < children_.GetSize(); i++)
-      if(children_[i]->name_ == name && children_[i]->AsBool() == value) return true;
-
-    return false;
+    StdVector<string> tokens = SplitIntoTokens(name);
+    
+    ParamNode* ptr = const_cast<ParamNode*>(this);
+    for(unsigned int i = 0; i < tokens.GetSize(); i++)
+    {
+      // ptr->Dump();
+      // cout << "token = " << tokens[i] << endl;
+      
+      // consider the value only for the last token!
+      if(i == tokens.GetSize()-1 && (value != "" || has_bool_value))
+      {
+        if(has_bool_value)
+        {
+          if(!ptr->Has(tokens[i], bool_value)) return NULL;
+        }
+        else
+        {
+          if(!ptr->Has(tokens[i], value)) return NULL;
+        }
+      }
+      else
+      {
+        if(!ptr->Has(tokens[i])) return NULL;
+      }
+      ptr = ptr->Get(tokens[i]);
+    }
+    
+    return ptr;
   }
   
   
-  StdVector<ParamNode*> ParamNode::GetList(const std::string& name)
+  bool ParamNode::Has(const string& name) const
+  {
+    // check in a fast way if we have tokens for trivial xpath
+    if(ContainsTokens(name)) 
+    {
+      return TokenizedHasAndGet(name, string(""), false, false) != NULL;
+    }
+    else
+    {
+      for(unsigned int i = 0; i < children_.GetSize(); i++)
+        if(children_[i]->name_ == name) return true;
+
+      return false;
+    }
+  }
+
+  bool ParamNode::Has(const string& name, const string& value) const
+  {
+    if(ContainsTokens(name))
+    {
+      return TokenizedHasAndGet(name, value, false) != NULL;
+    }
+    else
+    {
+      for(unsigned int i = 0; i < children_.GetSize(); i++)
+        if(children_[i]->name_ == name && children_[i]->value_ == value) return true;
+
+      return false;
+    }
+  }
+
+  bool ParamNode::Has(const string& name, bool value) const
+  {
+    if(ContainsTokens(name))
+    {
+      return TokenizedHasAndGet(name, "", true, value) != NULL;
+    }
+    else
+    {
+      for(unsigned int i = 0; i < children_.GetSize(); i++)
+        if(children_[i]->name_ == name && children_[i]->AsBool() == value) return true;
+
+      return false;
+    }
+  }
+
+  
+  StdVector<ParamNode*> ParamNode::GetList(const string& name)
   {
     StdVector<ParamNode*> result;
 
@@ -174,7 +240,7 @@ namespace CoupledField
     return result; // copy-constructor magic stuff!
   }
 
-  unsigned int ParamNode::Count(const std::string& name) const
+  unsigned int ParamNode::Count(const string& name) const
   {
     unsigned int count = 0;
 
@@ -197,7 +263,7 @@ namespace CoupledField
   }
   
   
-  StdVector<ParamNode*> ParamNode::GetList(const std::string& parent, const std::string& child, const std::string& value)
+  StdVector<ParamNode*> ParamNode::GetList(const string& parent, const string& child, const string& value)
   {
     StdVector<ParamNode*> result;
 
@@ -223,8 +289,8 @@ namespace CoupledField
     return result; // copy-constructor magic stuff!
   }
 
-  ParamNode* ParamNode::Get(const std::string& parent, const std::string& child, 
-                            const std::string& value, const bool throwException)
+  ParamNode* ParamNode::Get(const string& parent, const string& child, 
+                            const string& value, const bool throwException)
   {
     StdVector<ParamNode*> result = GetList(parent, child, value);
     
@@ -248,14 +314,14 @@ namespace CoupledField
   }
   
 
-  bool ParamNode::Has(const std::string& parent, const std::string& child, 
-                      const std::string& value ) const
+  bool ParamNode::Has(const string& parent, const string& child, 
+                      const string& value ) const
   {
     return Count(parent, child, value) > 0;
   }
   
 
-  unsigned int ParamNode::Count(const std::string& parent, const std::string& child, const std::string& value) const  
+  unsigned int ParamNode::Count(const string& parent, const string& child, const string& value) const  
   {
     // cannot use GetList() because of const stuff
     unsigned int count = 0;
@@ -271,23 +337,34 @@ namespace CoupledField
   }
 
 
-  std::string ParamNode::ToString() const
+  string ParamNode::ToString() const
   {
-    std::ostringstream os;
+    ostringstream os;
     os << name_ << " = '" << value_ << "'" << " attribute: " << (attribute_ ? "true" : "false");
     return os.str();
   }
        
   void ParamNode::Dump(int level) const
   {
-    for(int i = 0; i < level; i++) std::cout << "   ";
-    std::cout << ToString() << std::endl;
+    for(int i = 0; i < level; i++) cout << "   ";
+    cout << ToString() << endl;
     
     for(unsigned int i = 0; i < children_.GetSize(); i++) 
       children_[i]->Dump(level + 1);
   }
 
-
+  
+  StdVector<string> ParamNode::SplitIntoTokens(const string& input) const
+  {
+    StdVector<string> out;
+    char_separator<char> sep("/");
+    tokenizer<char_separator<char> > tokens(input, sep);
+    
+    for(tokenizer<char_separator<char> >::iterator it = tokens.begin(); it != tokens.end(); ++it)
+      out.Push_back(*it);
+    
+    return out;
+  }
 } // end of namespace
 
 

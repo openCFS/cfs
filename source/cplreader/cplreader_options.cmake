@@ -92,6 +92,13 @@ ADD_OPTION(type
    FASTEST see Sec. \\\\ref{sec:fastest}, OPENFOAM see Sec. \\\\ref{sec:openfoam}."
   )
 
+ADD_OPTION(xmlfile
+  string
+  ""
+  "XML file containing options for cplreader."
+  "The XML file specified here contains informations for the file readers/writers."
+  )
+
 ADD_OPTION(basedir
   string
   .
@@ -285,6 +292,16 @@ ADD_OPTION(deffile
   ""
   "Definition file name. Only for CFX!"
   "Non-standard path to .def file for CFX."
+  )
+
+ADD_OPTION(trntol
+  double
+  0.05
+  "Ratio by which .trn files may differ."
+  "Ratio  by   which  .trn   files  may  differ   before  they   are  regarded
+  corrupt.  E.g.:  Let's  assume the  mean  size  of  .trn  files is  1MB.  By
+  specifying --trntol  0.05 the files may  vary in size from  0.95MB to 1.05MB
+  before an error condition  is assumed."
   )
 
 ADD_OPTION(lhsrc

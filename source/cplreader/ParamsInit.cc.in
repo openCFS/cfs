@@ -16,6 +16,7 @@
 namespace fs = boost::filesystem;
 
 #include "General/exception.hh"
+#include "DataInOut/programOptions.hh"
 #include "ParamsInit.hh"
 #include "Settings.hh"
 
@@ -74,6 +75,7 @@ namespace CoupledField
       po::options_description desc("Allowed options");
       desc.add_options()
         ("help", "Produce help message")
+        ("version", "Print version information")
 @BOOST_OPTIONS@;
 
       po::variables_map vm;
@@ -81,13 +83,12 @@ namespace CoupledField
       po::notify(vm);
 
       if (vm.count("help")) {
-        std::cout << std::endl
-                  << "cplreader (CFS++) - A fluid data reader for CFS++/MpCCI coupling"
-                  << std::endl << std::endl
-                  << "Compiled:" << std::endl << "  "
-                  << __DATE__ << std::endl << std::endl;
-
         std::cout << desc << "\n";
+        exit(0);
+      }
+
+      if (vm.count("version")) {
+        ProgramOptions::GetVersionString(std::cout, false);
         exit(0);
       }
     }
@@ -119,6 +120,10 @@ namespace CoupledField
 @SETTINGS@
     // Other settings
     settings.SetString("baseExeDir", baseDir);
+
+    if(settings.GetString("xmlfile") != "")
+      settings.InitParamNode(settings.GetString("xmlfile"));
+    
   }
 
 

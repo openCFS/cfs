@@ -49,7 +49,8 @@
 using namespace CoupledField;
 
 int main( int argc, const char **argv ) {
-
+  // CFS++ should return an error code, if an exception was caught!
+  int retVal = 0;
 
   // Check if the boost version is >= 1.34, as the boost::filesystem::path
   // interface has changed heavily.
@@ -64,9 +65,7 @@ int main( int argc, const char **argv ) {
   Exception::segfault_ = false;
   try
   {
-
-  BasePDE::SetEnums();
-
+    
   // =========================================================================
   // TIMING
   // =========================================================================
@@ -96,6 +95,10 @@ int main( int argc, const char **argv ) {
   // Get information about exception handling
   Exception::segfault_ = progOpts->GetForceSegFault();
 
+  // Set Enums
+  SetEnvironmentEnums();
+  BasePDE::SetEnums();
+
   // the new xml logging derived from the ParamNode
   info = new InfoNode(progOpts->GetSimName() + ".info.xml", "<?xml version=\"1.0\"?>");
   info->SetName("cfsInfo");
@@ -112,9 +115,10 @@ int main( int argc, const char **argv ) {
   int ret = gethostname( host, 256 );
 
   // our calculation environment
-  info->Get("calculation")->Get("environment")->Get("started")->SetValue(now);
+  InfoNode* env = info->Get(InfoNode::HEADER)->Get("environment");
+  env->Get("started")->SetValue(now);
   if(ret == 0)
-    info->Get("calculation")->Get("environment")->Get("host")->SetValue(host);
+    env->Get("host")->SetValue(host);
   
   if(!progOpts->IsQuiet())
   {
@@ -305,6 +309,8 @@ int main( int argc, const char **argv ) {
 
   // Log command line parameters
   progOpts->ToInfo(info->Get(InfoNode::HEADER)->Get("progOpts"));
+  // log the optinal id/name/token/label from <cfsSimulation id="..">
+  info->Get(InfoNode::HEADER)->Get("id")->SetValue(param->Get("id"));
 
   // Open file for status reports by OLAS
   FileHandler.OpenFile( OLAS_FILE );
@@ -352,8 +358,8 @@ int main( int argc, const char **argv ) {
 
   Double wTime, cTime;
   oClockTotal.GetTime(wTime, cTime);
-  std::cout << std::endl
-            << ">> Total time: wall clock: '" << wTime 
+  if(!progOpts->IsQuiet()) std::cout << std::endl; // conditional empty line
+  std::cout << ">> Total time: wall clock: '" << wTime 
             << "s' CPU time: '" << cTime << "s'\n";
   InfoNode* in = info->Get(InfoNode::SUMMARY)->Get("runTime");
   in->Get("wall")->SetValue(wTime);
@@ -416,6 +422,8 @@ int main( int argc, const char **argv ) {
       info->Get("status")->SetValue("aborted");
       info->ToFile();
     }
+
+    retVal = 1;
   }
 
 
@@ -424,5 +432,5 @@ int main( int argc, const char **argv ) {
   delete Info; // might be used in catch!
 
   // Seems that everything went fine
-  return 0;
+  return retVal;
 }

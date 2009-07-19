@@ -266,8 +266,7 @@ namespace CoupledField
     nodeValuesImag.resize(numNodes*numNodeDOFs_);
     elemValuesReal.resize(numElems*256);
     elemValuesImag.resize(numElems*256);
-    Integer node;
-    Integer elem;
+    UInt elem;
     
     // iterate over all result types
     SimOutput::ResultMapType::iterator it = resultMap_.begin();
@@ -416,8 +415,9 @@ namespace CoupledField
           }
 
           numAnsysElemDofs *=numNodes;
-          reswrestrbegin_(&elem);
-          Integer tmp = ansysDOF;
+          Integer tmp = static_cast<Integer>(elem);
+          reswrestrbegin_(&tmp);
+          tmp = ansysDOF;
           reswrestr_(&tmp, (Integer*)&numAnsysElemDofs,
                      &elemValuesReal[0]);
           reswrestrend_();
@@ -452,9 +452,7 @@ namespace CoupledField
       reswrnodaldata_(&nodeValuesImag[0]);
       
       reswreresbegin_();
-      eResIt, eResEnd;
       eResEnd = internal2AnsysElemDofMap_.end();
-      elemVec;
       ptGrid_->GetElems(elemVec, ALL_REGIONS);
 
       for ( elem = 1; elem <= numElems; elem++ ) {
@@ -477,8 +475,9 @@ namespace CoupledField
             }
 
             numAnsysElemDofs *=numNodes;
-            reswrestrbegin_(&elem);
-            Integer tmp = ansysDOF;
+            Integer tmp = static_cast<Integer>(elem);
+            reswrestrbegin_(&tmp);
+            tmp = ansysDOF;
             reswrestr_(&tmp,
                        (Integer*)&numAnsysElemDofs,
                        &elemValuesReal[0]);
@@ -538,7 +537,6 @@ namespace CoupledField
 
     // variables for element information header
     AnsysElementType ansysElementType[2];
-    Integer num = 1;
     Integer MAXTYPE = 2;
     Integer NumType = 2;
     Integer MAXREAL = 0;
@@ -613,7 +611,7 @@ namespace CoupledField
         // want to output the grid. 
         if(!printGrid_)
         {
-          EXCEPTION("ANSYS RST writer does not support current analyis type.");
+          EXCEPTION("ANSYS RST writer does not support current analsyis type.");
         }
         else
         {
@@ -671,7 +669,7 @@ namespace CoupledField
 
       // *****  element types  *****
       reswrtypebegin_();
-      for(UInt i=0; i<NumType; i++)
+      for(Integer i=0; i<NumType; i++)
       {
         reswrtype_(&ansysElementType[i].elementtypid,
                    ansysElementType[i].ielc);
@@ -714,7 +712,7 @@ namespace CoupledField
     LOG_TRACE(simOutputRST) << "Writing nodes";
     
     // get number of nodes
-    UInt numNodes = ptGrid_->GetNumNodes();
+    Integer numNodes = ptGrid_->GetNumNodes();
     Integer i;
     
     reswrnodebegin_();
@@ -822,7 +820,7 @@ namespace CoupledField
                                     ResultInfo::EntryType entryType)
   {
 
-    UInt numElems = ptGrid_->GetNumElems();
+    Integer numElems = ptGrid_->GetNumElems();
     Integer ansIdx, intIdx;
     AnsysElemDof ansysDof = internal2AnsysElemDofMap_[solType];
     Integer elem;
@@ -877,7 +875,7 @@ namespace CoupledField
                                     ResultInfo::EntryType entryType)
   {
 
-    UInt numElems = ptGrid_->GetNumElems();
+    Integer numElems = ptGrid_->GetNumElems();
     Integer ansIdx, intIdx;
     AnsysElemDof ansysDof = internal2AnsysElemDofMap_[solType];
     Integer elem;
@@ -1309,8 +1307,7 @@ namespace CoupledField
 
   void AnsysBinlibIfaceGeneral::MapInternal2ANSYSNodeDof(SolutionType solType)
   {
-    std::string solName;
-    Enum2String(solType, solName);
+    std::string solName = SolutionTypeEnum.ToString(solType);
     UInt idx = ansysNodeDof2Idx_.size();
 
     // Check if solution type has already been added.
@@ -1403,8 +1400,7 @@ namespace CoupledField
   
   void AnsysBinlibIfaceGeneral::MapInternal2ANSYSElemDof(SolutionType solType)
   {
-    std::string solName;
-    Enum2String(solType, solName);
+    std::string solName = SolutionTypeEnum.ToString(solType);
 
     switch(solType)
     {
@@ -1455,6 +1451,8 @@ namespace CoupledField
                  : 23) == 0) {
         return new AnsysBinlibIfaceGeneral(deleteObject);
       }
+
+      return NULL;
     }
   }
 }

@@ -1018,9 +1018,9 @@ All entities 'name' may also be symbolic links.
 \item[--deffile] You can  specify different '.def' file than  the one given by
 'name'.
 
-\item[--trnthres] Percentage the file size  of transient files may differ from
+\item[--trntol] Percentage the file size  of transient files may differ from
 the average file  size of all transient files. If a  transient file is smaller
-than  average size  *  (1 -  trnthres)  the corresponding  time  step will  be
+than  average size  *  (1 -  trntol)  the corresponding  time  step will  be
 overwritten by the previous one.
 \end{description}
 
@@ -1068,7 +1068,7 @@ data by issuing:
 
 \begin{verbatim}
 cplreader --type CFX --name fluid --numsteps 11 --timestep 1e-4 \
-          --deffile fluid_old.def --trnthres 0.05 --outputfields 'all'
+          --deffile fluid_old.def --trntol 0.05 --outputfields 'all'
 \end{verbatim}
 
 This would  read all transient files  except 6.trn which would  be replaced by
@@ -1220,23 +1220,213 @@ the older mkmesh extension and convert them to \hdf or the the files generated
 by the  NACS GiD/ANSYS  extension. At LSE  a version  of cplreader is  used to
 provide the ANSYS mkhd5 (/home/data/programs/mkhdf5) APDL extension.
 
-\subsection{Mesh Generator for Spherical Shells}
+\subsection{Mesh Generators}
 \label{sec:gengrids}
+
+The syntax for calling cplreader is:
+
+\begin{verbatim}
+cplreader --name test --type GENGRIDS --xmlfile test.xml
+\end{verbatim}
+
+\subsubsection{Spherical Shells}
 
 I (Simon Triebenbacher)  implemented this grid generator to  try out spherical
 shell grids  composed of  all available element  types (including  HEXA27) for
-nomatching grids.  It does  not have  a proper command  line interface  at the
-moment.
+nonmatching grids.   It can be  only used through  a settings XML file  at the
+moment. Here is an example for an XML file for generating spherical shells.
+
+\begin{verbatim}
+<cplreaderOptions>
+  <type name="GENGRIDS" subType="SphericalShellGenerator">
+    <elementType name="HEXA27"/>
+    <numRefinementLevels value="3"/>
+    <outerRadius value="0.95"/>
+    <innerRadius value="0.9"/>
+    <numRadialElements value="3"/>
+    <octantRegions value="off"/>
+  </type>
+</cplreaderOptions>
+\end{verbatim}
+
+\noindent  Figure  \ref{fig:octant_parameter}   shows  the  influence  of  the
+'octantRegions'  parameter  on the  distribution  of  the  regions inside  the
+generated grid.
+
+\begin{figure}[htp]
+  \begin{center}
+   \subfloat[Default setting (octantRegions off)]{ \label{fig:spherical_shell_normal}
+   \includegraphics[scale=0.3]{pics/spherical_shell_normal} }
+   \subfloat[Using octant regions (octantRegions on)]{ \label{fig:spherical_shell_octant}
+   \includegraphics[scale=0.3]{pics/spherical_shell_octant} }
+  \end{center}
+  \caption{Influence of the 'octantRegions' parameter.}
+  \label{fig:octant_parameter}
+\end{figure}
+
+
+\newpage
+\subsubsection{Rectilinear Grids}
+
+Cplreader  has been  extended  with  a mesh  generator  for generating  simple
+rectilinear  meshes consisting  of hexahedra  elements. The  geometry  for the
+setup may  only consist of a  grid of boxes.   The geometry is described  by a
+number of intervals in x-, y-,  and z-directions. In each interval a number of
+subdivisions  may be specified  (similar to  ESIZE,,NDIV in  ANSYS). Cplreader
+treats  each  of the  boxes  as volumes  (in  ANSYS  terminology). The  naming
+convention  is  'volume\_x\_y\_z' as  can  be seen  for  a  simple example  in
+Fig. \ref{fig:gengrids_rectlin_volumes}.
+
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[scale=1]{pics/gengrids_rectlin_volumes}
+\caption{Naming conventions for volumes.}
+\end{center}
+\label{fig:gengrids_rectlin_volumes}
+\end{figure}
+
+\noindent For each volume six surfaces are being automatically generated using
+the naming convention given in Fig. \ref{fig:gengrids_rectlin_surf}.
+
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[scale=1]{pics/gengrids_rectlin_surf}
+\caption{Naming conventions for surfaces.}
+\end{center}
+\label{fig:gengrids_rectlin_surf}
+\end{figure}
+
+\noindent For the bottom layer  surface elements also line segments are create
+following the naming convention 'lines\_[left$|$right$|$front$|$back]'. Due to
+this one can also create 2D  meshes with line elements on the boundaries. Here
+is a sample XML file.
+
+\begin{verbatim}
+<cplreaderOptions>
+  <type name="GENGRIDS">
+    <elementType name="HEXA8"/>
+    <samplingIntervalls>
+      <!-- Define intervals by using either absolute or incremental coordinates -->
+      <coordinates axis="x">
+        <coord type="absolute">  0.0e-0 </coord>
+        <coord type="increment"> 2.0e-1 </coord>
+        <coord type="increment"> 5.0e-2 </coord>
+        <coord type="increment"> 2.0e-1 </coord>
+      </coordinates>
+      <coordinates axis="y">
+        <coord type="absolute">  0.0e-0 </coord>
+        <coord type="increment"> 1.0e-1 </coord>
+        <coord type="increment"> 2.0e-2 </coord>
+        <coord type="increment"> 1.0e-1 </coord>
+      </coordinates>
+      <coordinates axis="z">
+        <coord type="absolute">  0.0e-3 </coord>
+        <coord type="increment"> 5e-3 </coord>
+      </coordinates>
+    </samplingIntervalls>
+    <!-- Assign number of elements to each interval -->
+    <intervallElements>
+      <elements axis="x">
+        <elems>2</elems>
+        <elems>5</elems>
+        <elems>10</elems>
+      </elements>
+      <elements axis="y">
+        <elems>2</elems>
+        <elems>7</elems>
+        <elems>12</elems>
+      </elements>
+      <elements axis="z">
+        <elems>2</elems>
+      </elements>
+    </intervallElements>
+    <regions>
+      <!-- Define regions by selecting volumes, surfaces and lines -->
+      <region name="region1">
+        <prelimRegion> volume_1_1_1 </prelimRegion>
+        <prelimRegion> volume_2_1_1 </prelimRegion>
+        <prelimRegion> volume_3_1_1 </prelimRegion>
+
+        <prelimRegion> volume_1_2_1 </prelimRegion>
+        <prelimRegion> volume_3_2_1 </prelimRegion>
+
+        <prelimRegion> volume_1_3_1 </prelimRegion>
+        <prelimRegion> volume_2_3_1 </prelimRegion>
+        <prelimRegion> volume_3_3_1 </prelimRegion>
+      </region>
+
+      <region name="region2">
+        <prelimRegion> volume_2_2_1 </prelimRegion>
+      </region>
+
+      <region name="surf_region2_bottom">
+        <prelimRegion> surf_bottom_2_2_1 </prelimRegion>
+      </region>
+
+      <region name="left_lines">
+        <prelimRegion> lines_left_1_1_1 </prelimRegion>
+        <prelimRegion> lines_left_1_2_1 </prelimRegion>
+        <prelimRegion> lines_left_1_3_1 </prelimRegion>
+      </region>
+    </regions>
+  </type>
+</cplreaderOptions>
+\end{verbatim}
+
+\noindent Figure \ref{fig:gengrids_rectlin_grid} shows the grid generated from
+the above XML file.
+
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[scale=0.45]{pics/gengrids_rectlin_grid}
+\caption{Rectilinear grid generated from sample XML file.}
+\end{center}
+\label{fig:gengrids_rectlin_grid}
+\end{figure}
+
+
+\newpage
+\subsubsection{Reference Elements}
+
+This generator just outputs a single reference element of specified type using
+the  coordinates and  node  numbering  as used  internally  within CFS++.  The
+following gives an example of generating a wedge element.
+
+\begin{verbatim}
+<cplreaderOptions>
+  <type name="GENGRIDS" subType="ReferenceElementGenerator">
+    <elementType name="WEDGE15"/>
+  </type>
+</cplreaderOptions>
+\end{verbatim}
+
+\noindent Figure \ref{fig:gengrids_refelems} shows the available element types
+file.
+
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[scale=1.4]{pics/refelems}
+\caption{Array of reference elements from CFS++.}
+\end{center}
+\label{fig:gengrids_refelems}
+\end{figure}
+
+
 
 \newpage
 \section{Rebuilding the Documentation}
 
-Edit source/cplreader/Documentation/CMakeLists.txt and set
-
+Switch on  {\tt CPLREADER\_REBUILD\_DOCU} in CMake  GUI. Make sure  you have a
+recent TikZ/PGF distribution installed. Edit the following files:
 \begin{verbatim}
-# If documentation is to be rebuilt set this to 1
-SET(BUILD_CPLREADER_DOCU 1)
+source/cplreader/Documentation/latex/cplreader_docu.tex
+source/cplreader/Documentation/latex/Title.tex
+source/cplreader/cmake_options.cmake
 \end{verbatim}
+Then you may rebuild CFS++ and cplreader. The resulting PDF documentation file
+for   cplreader    will   be   copied    back   to   the    source   directory
+automatically. Therefore you just need to commit the changes to SVN.
+
 
 \newpage
 \section{Copyright}

@@ -33,7 +33,8 @@ namespace CoupledField
 {
 
   OutputWriter_HDF5::OutputWriter_HDF5() {
-
+    actStepNum_ = 0;
+    actStepValue_ = 0;
   }
 
   OutputWriter_HDF5::~OutputWriter_HDF5() {

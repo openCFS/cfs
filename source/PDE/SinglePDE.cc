@@ -187,7 +187,7 @@ namespace CoupledField {
       myParam_->Get("regionList")->GetList("region");
 
     // output to info-file
-    InfoNode* list = infoNode_->Get(InfoNode::HEADER)->Get("regions");
+    InfoNode* list = infoNode_->Get(InfoNode::HEADER);
 
     // output and set subdoms_
     for( UInt i = 0; i < regionNodes.GetSize(); i++ )
@@ -436,8 +436,10 @@ namespace CoupledField {
 
     SETPROFILE("Before Resizing StoreSol");
     if(!isDirectCoupled_ ) {
-      solVec_->Resize( eqnMap_->GetNumEqns(), true );
-      rhsVec_->Resize( eqnMap_->GetNumEqns(), true );
+      solVec_->Resize(eqnMap_->GetNumEqns());
+      solVec_->Init();
+      rhsVec_->Resize(eqnMap_->GetNumEqns());
+      rhsVec_->Init();
 
       SETPROFILE("After Resizing StoreSol");
       if ( analysistype_ == HARMONIC ) {
@@ -628,7 +630,7 @@ namespace CoupledField {
       return false;
 
       // Convert enum
-      Enum2String( candidate->resultType, quantity );
+      quantity = SolutionTypeEnum.ToString(candidate->resultType);
       LOG_DBG(pde) << "Searching for storeResults of quantity '"
                    << quantity << "'";
 
@@ -923,9 +925,8 @@ namespace CoupledField {
       for( UInt i = 0; i < actList.GetSize(); i++ ) {
 
         // get string representation of quantity and entity list
-        std::string quantity, listName;
-        Enum2String( actList[i]->GetResultInfo()->resultType,
-                     quantity);
+        std::string listName;
+        std::string quantity = SolutionTypeEnum.ToString(actList[i]->GetResultInfo()->resultType);
         listName = actList[i]->GetEntityList()->GetName();
 
         // Only calculate result, if needed
@@ -1118,7 +1119,6 @@ namespace CoupledField {
 
     std::string name, resultName, dof, entType, value, phase;
     EntityList::DefineType defineType;
-    SolutionType solType;
     shared_ptr<ResultInfo> actResultInfo;
 
 
@@ -1141,8 +1141,7 @@ namespace CoupledField {
         hdbcNodes[i]->Get( "entityType", entType );
 
         // fetch related resultInfo object
-        String2Enum( resultName, solType );
-        actResultInfo = GetResultInfo( solType );
+        actResultInfo = GetResultInfo( SolutionTypeEnum.Parse(resultName) );
 
         // Create homogeneous boundary condition
         if( entType == "nodeList" ) {
@@ -1195,8 +1194,7 @@ namespace CoupledField {
         idbcNodes[i]->Get( "entityType", entType );
 
         // fetch related resultInfo object
-        String2Enum( resultName, solType );
-        actResultInfo = GetResultInfo( solType );
+        actResultInfo = GetResultInfo( SolutionTypeEnum.Parse(resultName) );
 
         // Create inhomogeneous boundary condition
         shared_ptr<InhomDirichletBc> actBc ( new InhomDirichletBc );
@@ -1249,8 +1247,7 @@ namespace CoupledField {
         inbcNodes[i]->Get( "entityType", entType );
 
         // fetch related resultInfo object
-        String2Enum( resultName, solType );
-        actResultInfo = GetResultInfo( solType );
+        actResultInfo = GetResultInfo( SolutionTypeEnum.Parse(resultName) );
 
         // Create inhomogeneous Neumann boundary condition
         shared_ptr<InhomNeumannBc> actBc ( new InhomNeumannBc );
@@ -1303,8 +1300,7 @@ namespace CoupledField {
         csNodes[i]->Get( "slaveDof", slaveDof );
 
         // fetch related resultInfo object
-        String2Enum( resultName, solType );
-        actResultInfo = GetResultInfo( solType );
+        actResultInfo = GetResultInfo( SolutionTypeEnum.Parse(resultName) );
 
         // Create constraint condition
         shared_ptr<Constraint> actBc ( new Constraint );
@@ -1361,8 +1357,7 @@ namespace CoupledField {
         prNodes[i]->Get( "quantity", resultName );
 
         // fetch related resultInfo object
-        String2Enum( resultName, solType );
-        actResultInfo = GetResultInfo( solType );
+        actResultInfo = GetResultInfo( SolutionTypeEnum.Parse(resultName) );
 
         // get entitylists
         NodeList masterList( ptgrid_ ), slaveList( ptgrid_ );
@@ -1442,7 +1437,6 @@ namespace CoupledField {
 
     std::string name, resultName, dof, entType, value, phase, weight;
     EntityList::DefineType defineType;
-    SolutionType solType;
     shared_ptr<ResultInfo> actResultInfo;
 
 
@@ -1460,8 +1454,7 @@ namespace CoupledField {
 
 
         // fetch related resultInfo object
-        String2Enum( resultName, solType );
-        actResultInfo = GetResultInfo( solType );
+        actResultInfo = GetResultInfo( SolutionTypeEnum.Parse(resultName) );
 
         // Create load condition
         shared_ptr<LoadBc> actLoad( new LoadBc );
@@ -1496,7 +1489,11 @@ namespace CoupledField {
     }
   }
 
-  void SinglePDE::ReadRegionLoads( ) {
+  void SinglePDE::ReadRegionLoads(){
+    ReadRegionLoadsFromXML(myParam_->Get("bcsAndLoads", false), regionLoads_);
+  }
+  
+  void SinglePDE::ReadRegionLoadsFromXML(ParamNode* bcNode, std::map<RegionIdType, RegionLoad>& regloads) {
 
     StdVector<std::string> names, dofs, refCoord, type, phase;
     StdVector<std::string> tempNames, tempDofs,  tempPhase;
@@ -1534,7 +1531,6 @@ namespace CoupledField {
       // when called by an external script)
 
       // try to get bcsAndLoads node
-      ParamNode * bcNode = myParam_->Get("bcsAndLoads", false);
       if( !bcNode )
         return;
       StdVector<ParamNode*> loadNodes = bcNode->GetList("regionLoad");
@@ -1606,13 +1602,13 @@ namespace CoupledField {
       RegionLoad * curLoad;
 
       std::map<RegionIdType, RegionLoad>::iterator it;
-      it = regionLoads_.find( regionIds[i] );
+      it = regloads.find( regionIds[i] );
 
-      if ( it == regionLoads_.end() ) {
-        regionLoads_.insert( std::map<RegionIdType, RegionLoad>::value_type( regionIds[i],
+      if ( it == regloads.end() ) {
+        regloads.insert( std::map<RegionIdType, RegionLoad>::value_type( regionIds[i],
                                                                              RegionLoad( dim_, isaxi_ ) ) );
       }
-      it = regionLoads_.find( regionIds[i] );
+      it = regloads.find( regionIds[i] );
       curLoad = & (*it).second;
 
       // -- Fill in the data we have so far --
@@ -1848,15 +1844,12 @@ namespace CoupledField {
   // ======================================================
   // ALGSYS SECTION (SOLVER, ...)
   // ======================================================
-  void SinglePDE::DefineAlgSys() {
-
-
-
+  void SinglePDE::DefineAlgSys() 
+  {
     // First check if the PDE needs an algebraic system at all
     if( needsAlgsys_ == false ) {
       return;
     }
-
 
     // If PDE is not direct coupled then the PDE has to register
     // at the algebraic system and obtain an Id.
@@ -1870,7 +1863,9 @@ namespace CoupledField {
 
       // Set linear system parameters for OLAS
       ReadOlasParams( pdename_ );
-
+      olasInfo_ = info->Get("OLAS")->Get(pdename_);
+      
+      
       // Initialize the matrix graph object
       algsys_->GraphSetupInit(1);
 

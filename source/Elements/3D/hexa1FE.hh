@@ -83,7 +83,7 @@ namespace CoupledField
     void SetDefaultIntegration()
     {
         IntegMethod = CLASSICAL;
-        IntegOrder  = 1; // 4+5 is same -> avoid warning
+        IntegOrder  = 3; 
         //        IntegMethod = ECONOMICAL;
         //        IntegOrder  = 5; // 4+5 is same -> avoid warning
     }
@@ -91,8 +91,9 @@ namespace CoupledField
     /** Sets the default reduced integration */
     void SetDefaultReducedIntegration()
     {
-        IntegMethod = ECONOMICAL;
-        IntegOrder  = 1;
+      IntegMethod = CLASSICAL;
+      IntegOrder  = 1; // 4+5 is same -> avoid warning
+        
     }
 
 

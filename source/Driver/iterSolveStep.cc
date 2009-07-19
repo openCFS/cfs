@@ -32,14 +32,13 @@ namespace CoupledField
 
   //----------------------- STATIC--------------------------------------------
 
-  void IterSolveStep::SolveStepStatic(const std::string& comment)
+  void IterSolveStep::SolveStepStatic(InfoNode* analysis_id)
   {
   
     SingleVector *val, *oldVal;
     UInt iter = 0;
     UInt counter = 0;
     bool normsReached = false;
-    std::string quantityConv;
 
 
     while (iter < rPDE_.maxiter_ &&  (! normsReached)) {
@@ -65,7 +64,7 @@ namespace CoupledField
         rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
         rPDE_.PDEs_[i]->GetSolveStep()->PreStepStatic();
         rPDE_.PDEs_[i]->CalcInputCoupling();
-        rPDE_.PDEs_[i]->GetSolveStep()->SolveStepStatic();
+        rPDE_.PDEs_[i]->GetSolveStep()->SolveStepStatic(analysis_id);
         rPDE_.PDEs_[i]->GetSolveStep()->PostStepStatic();
         rPDE_.PDEs_[i]->CalcOutputCoupling();
         
@@ -80,10 +79,10 @@ namespace CoupledField
           
           if (rPDE_.nonLinLogging_) {
             
-            Enum2String(rCouplings_[i]->GetOutputQuantity(k), quantityConv);
             Info->PrintF(rPDE_.pdename_, " %s : Norm of %s = %g\n", 
                          (rCouplings_[i]->GetPDE()->GetName()).c_str(),
-                         quantityConv.c_str(), rPDE_.norms_[counter]);
+                         (SolutionTypeEnum.ToString(rCouplings_[i]->GetOutputQuantity(k))).c_str(),
+                         rPDE_.norms_[counter]);
           }
           
           if (rPDE_.norms_[counter] > rCouplings_[i]->GetOutputEpsilon(k) && 
@@ -109,13 +108,12 @@ namespace CoupledField
 
 
   //----------------------- TRANSIENT-----------------------------------------
-  void IterSolveStep::SolveStepTrans()
+  void IterSolveStep::SolveStepTrans(InfoNode* analysis_id)
   {
 
     UInt iter = 0;
 
     bool normsReached = false;
-    std::string quantityConv;
     
     // In the beginning of each time step
     // the coupling data has to be reseted
@@ -180,7 +178,7 @@ namespace CoupledField
         rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
         rPDE_.PDEs_[i]->GetSolveStep()->PreStepTrans();
         rPDE_.PDEs_[i]->CalcInputCoupling();
-        rPDE_.PDEs_[i]->GetSolveStep()->SolveStepTrans();
+        rPDE_.PDEs_[i]->GetSolveStep()->SolveStepTrans(analysis_id);
 
         rPDE_.PDEs_[i]->CalcOutputCoupling();
               
@@ -195,10 +193,10 @@ namespace CoupledField
             
           if (rPDE_.nonLinLogging_) {
               
-            Enum2String(rCouplings_[i]->GetOutputQuantity(k), quantityConv);
             Info->PrintF(rPDE_.pdename_, " %s : Norm of %s = %g\n", 
                          (rCouplings_[i]->GetPDE()->GetName()).c_str(),
-                         quantityConv.c_str(), rPDE_.norms_[counter]);
+                         (SolutionTypeEnum.ToString(rCouplings_[i]->GetOutputQuantity(k))).c_str(), 
+                         rPDE_.norms_[counter]);
 
             Info->PrintF(rPDE_.pdename_, " actStep_ = %d\n", actStep_);
             Info->PrintF(rPDE_.pdename_, " numTimeStep_ = %d\n", numTimeStep_);
@@ -234,7 +232,7 @@ namespace CoupledField
   } 
 
   //----------------------- HARMONIC---------------------------------------
-  void IterSolveStep::SolveStepHarmonic(const std::string& comment)
+  void IterSolveStep::SolveStepHarmonic(InfoNode* analysis_id)
   {
     EXCEPTION("Harmonic iterative coupling is not yet implemented"); 
   }

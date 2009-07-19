@@ -41,10 +41,9 @@ namespace CoupledField {
   }
 
 
-  void MultiSequenceDriver::SolveProblem(bool write_results, const std::string& comment) {
+  void MultiSequenceDriver::SolveProblem(bool write_results, InfoNode* given_analysis_id) {
     // options not implemented
     assert(write_results == true);
-    assert(comment == "");
 
 
     // vector containing pointer to current set of PDEs
@@ -115,7 +114,7 @@ namespace CoupledField {
       domain->InitPDEs( iStep+1 );
     
       // Solve Problem
-      actDriver_->SolveProblem();
+      actDriver_->SolveProblem(write_results, given_analysis_id);
 
       // Get solution for next step and delete
       // all PDEs

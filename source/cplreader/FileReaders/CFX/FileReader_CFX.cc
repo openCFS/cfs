@@ -739,7 +739,7 @@ namespace CoupledField
             fdps.dofNames.push_back("z");
 
           fdps.unit = MapSolTypeToUnit(FLUIDMECH_VELOCITY);
-          Enum2String(FLUIDMECH_VELOCITY, fdps.resultName);
+          fdps.resultName = SolutionTypeEnum.ToString(FLUIDMECH_VELOCITY);
           fdps.entryType = ResultInfo::VECTOR;
         }
         numDOFs = fdps.dofNames.size();
@@ -798,7 +798,7 @@ namespace CoupledField
             fdps.definedOn = ResultInfo::NODE; // nodes
             fdps.dofNames.push_back("-");
             fdps.unit = MapSolTypeToUnit(FLUIDMECH_PRESSURE);
-            Enum2String(FLUIDMECH_PRESSURE, fdps.resultName);
+            fdps.resultName = SolutionTypeEnum.ToString(FLUIDMECH_PRESSURE);
             fdps.entryType = ResultInfo::SCALAR;
           }
           numDOFs = fdps.dofNames.size();
@@ -858,7 +858,7 @@ namespace CoupledField
             fdps.definedOn = ResultInfo::NODE; // nodes
             fdps.dofNames.push_back("-");
             fdps.unit = MapSolTypeToUnit(FLUIDMECH_TKE);
-            Enum2String(FLUIDMECH_TKE, fdps.resultName);
+            fdps.resultName = SolutionTypeEnum.ToString(FLUIDMECH_TKE);
             fdps.entryType = ResultInfo::SCALAR;
           }
           numDOFs = fdps.dofNames.size();
@@ -1405,7 +1405,7 @@ namespace CoupledField
       fsRatio = actFileSize / (double) meanFileSize;
 
       // If the file size diverges by more than 1%
-      if(std::fabs(fsRatio - 1.0) > 0.05) 
+      if(std::fabs(fsRatio - 1.0) > settings.GetDouble("trntol") )
       {
         corruptTRNs.push_back(*it);
         everyThingFine = false;

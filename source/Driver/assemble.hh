@@ -98,11 +98,17 @@ namespace CoupledField {
     /** Overwrites the loads to implmented the adjoint solution for SIMP
      * mechanism optimization */
     void SetLoads(LoadList& new_loads) { loads_ = new_loads; }
+    
+    /** Overwrites the linearForms to implement the multi-load optimization */
+    void SetLinForms(std::set<LinearFormContext*>& linForms) { linForms_ = linForms; }
 
     /** Returns the algebraic system
      * TODO check if really used */
     BaseSystem* GetAlgSys() { return algsys_; }
 
+    /** Returns the bilinear forms list for Shape Optimization does need to loop these as assemble does */
+    std::set<BiLinFormContext*>* GetBiLinForms() { return &biLinForms_; }
+    
 
     /** Returns the linear forms list for external modification */
     std::set<LinearFormContext*>* GetLinForms() { return &linForms_; }

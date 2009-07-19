@@ -616,6 +616,14 @@ namespace CoupledField {
          CalcElectricField<Double>( res );
        }
        break;
+       
+     case ELEC_FLUX_DENSITY:
+       if( isComplex_ ) {
+         CalcElectricFluxDensity<Complex>( res );
+       } else {
+         CalcElectricFluxDensity<Double>( res );
+       }
+       break;
 
      case ELEC_ENERGY:
        if( isComplex_ ) {
@@ -682,6 +690,53 @@ namespace CoupledField {
     delete FieldOp;
     
   }
+  
+  template <class TYPE>
+  void ElecPDE::CalcElectricFluxDensity( shared_ptr<BaseResult> sol )
+  {
+     
+    // first calculate electric field intensity
+    CalcElectricField<TYPE>( sol );
+    
+    // then, run over all elements and multiply by element permittivity
+    Result<TYPE> &  actSol = 
+      dynamic_cast<Result<TYPE>&>(*sol);
+      EntityIterator it = actSol.GetEntityList()->GetIterator();
+
+      Vector<TYPE> & actVal = actSol.GetVector();
+
+      Matrix<Double> permit;
+      BaseMaterial * ptMat = NULL;
+      Vector<TYPE> tempE (dim_), tempD (dim_);
+      SubTensorType tensorType;
+      if( dim_ == 2 ) {
+        tensorType = PLANE;
+      } else {
+        tensorType = FULL;
+      }
+      
+      // loop over elements
+      for ( it.Begin(); !it.IsEnd(); it++ ) {
+        ptMat = materials_[it.GetElem()->regionId];
+        ptMat->GetTensor( permit, ELEC_PERMITTIVITY, Global::REAL, tensorType );
+        
+        // build temporary element vector
+        tempE.Init();
+        for(UInt iDim = 0; iDim < dim_; iDim++ ) {
+          tempE[iDim] = actVal[it.GetPos()*dim_ + iDim];
+        }
+
+        tempD = permit * tempE;
+
+        // loop over dofs
+        for(UInt iDim = 0; iDim < dim_; iDim++ ) {
+          actVal[it.GetPos()*dim_ + iDim] = tempD[iDim];
+        }
+      }
+
+  }
+  
+  
 
 
   void ElecPDE::CalcPolarizationField( shared_ptr<BaseResult> res ) {
@@ -964,7 +1019,6 @@ namespace CoupledField {
     nonLin_ = false;
 
     // Initialization of coupling helper arrays
-    std::string quantity;
     StdVector<UInt> * couplingnodes = NULL;
 
     for (UInt actCoupling=0; actCoupling<numCouplings; actCoupling++) {
@@ -998,8 +1052,7 @@ namespace CoupledField {
         }
 
         else {
-          Enum2String(ptCoupling_->GetOutputQuantity(actCoupling), quantity);
-          EXCEPTION( "Coupling " << quantity <<  " not known! ");
+          EXCEPTION( "Coupling " << SolutionTypeEnum.ToString(ptCoupling_->GetOutputQuantity(actCoupling)) <<  " not known! ");
         }
       
         // Intialize the memory of the coupling values
@@ -1217,6 +1270,15 @@ namespace CoupledField {
     res->definedOn = ResultInfo::ELEMENT;
     res->entryType = ResultInfo::VECTOR;
     availResults_.insert( res );
+    
+    // Electric Flux Density
+    shared_ptr<ResultInfo> flux ( new ResultInfo );
+    flux->resultType = ELEC_FLUX_DENSITY;
+    flux->dofNames = vecDofNames;
+    flux->unit = "C/m^2";
+    flux->definedOn = ResultInfo::ELEMENT;
+    flux->entryType = ResultInfo::VECTOR;
+    availResults_.insert( flux );
     
     // Electric charge
     shared_ptr<ResultInfo> charge( new ResultInfo );

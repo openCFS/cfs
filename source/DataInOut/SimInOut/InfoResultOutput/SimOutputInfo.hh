@@ -36,8 +36,6 @@ namespace CoupledField
     //! Add result to current step
     void AddResult( shared_ptr<BaseResult> sol );
   private:
-    /** to be set via "info" file entry in xml */
-    bool output;
     
     /** root in info.xml */
     InfoNode* info_root;

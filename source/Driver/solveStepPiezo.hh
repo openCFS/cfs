@@ -33,10 +33,10 @@ namespace CoupledField
     void PreStepTrans();
 
     //! base method for solving one transient step 
-    void SolveStepTrans();
+    void SolveStepTrans(InfoNode* analysis_id);
 
     //! solves for one nonlinear transient step (with hysteresis) 
-    void StepTransNonLinEpsDiff();
+    void StepTransNonLinEpsDiff(InfoNode* analysis_id);
 
     //! computes differential permittivity
     void SetPreviousVals4Hyst();

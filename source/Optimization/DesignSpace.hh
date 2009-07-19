@@ -31,10 +31,14 @@ namespace CoupledField
     public:
      /** Constructor for SIMP type Optimization - there we lay on a region which containts also n# elements
       * @param result the result description list  */
-     DesignSpace(StdVector<RegionIdType> regionIds, StdVector<ParamNode*>& design, StdVector<ParamNode*>& transfer, StdVector<ParamNode*>& result,
+     DesignSpace(StdVector<RegionIdType>& regionIds, StdVector<ParamNode*>& design, StdVector<ParamNode*>& transfer, StdVector<ParamNode*>& result,
          ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
 
-     ~DesignSpace();
+     virtual ~DesignSpace();
+    
+     /** creates the corresponding DesignSpace object depending on the method */
+     static DesignSpace* CreateInstance(StdVector<RegionIdType> regionIds, StdVector<ParamNode*>& design, StdVector<ParamNode*>& transfer, StdVector<ParamNode*>& result,
+              ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
 
      /** PostInit as usual when not all can be stuffed into the constructor
       * @param constraints the number of constraints to initialize constraintGradients */
@@ -73,8 +77,9 @@ namespace CoupledField
       * @param subTensor classifies the kind of Tensor needed
       * @param elem Element
       * @param design_index index of designElement
-      * @param direction if !=DEFAULT calculate derivative of Tensor instead of Tensor */
-     void GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction);
+      * @param direction if !=DEFAULT calculate derivative of Tensor instead of Tensor 
+      * @returns whether the given element is subject to optimization and the tensor therefore could be retrieved */
+     bool GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction);
 
      /** This gets back a uniquely defined transfer function.
       * @param throw_exception if false NULL is returned when nothing is found! */
@@ -103,32 +108,31 @@ namespace CoupledField
       * (only doubles) where we have a StdVector of the complex DesignElement.</p>
       * @param space_in the design space (in variable). Size is GetDesignSpaceSize()
       * @return the design_id which is the old one if space_in did not change the design. */
-     int ReadDesignFromExtern(const double* space_in);
+     virtual int ReadDesignFromExtern(const double* space_in);
      int ReadDesignFromExtern(const StdVector<double>& space);
-
-     /** gives the initial guess (for the design space)
+     
+           
+     /** gives the initial guess (for the design space) 
       * @param space_out to this array of GetDesignSpaceSize() the initial guess is wrtitten to.
+      * @param scaling false to return the unscaled design variables (for logging), 
+      * true to return the variables as scaled for the optimizer 
       * @return the internal design_id as calculated by ReadDesignFromExtern()
       * @see SetDesignSpace() */
-     int WriteDesignToExtern(double* space_out) const;
-     int WriteDesignToExtern(StdVector<double>& space_out) const;
+     virtual int WriteDesignToExtern(double* space_out, bool scaling = true) const;
+     int WriteDesignToExtern(StdVector<double>& space_out, bool scaling = true) const;
 
      /** Similar but more general as WriteDesignToExtern() */
-     void WriteGradientToExtern(double* out, DesignElement::ValueSpecifier vs,
-                                DesignElement::Access access, Condition* constraint = NULL) const;
-
-     /** use the temporary element-wise gradient in grad and
-      * provide a correctly ordered / summed-up gradient to the optimizer */
-     void ReorderGradient(double* grad_out);
+     virtual void WriteGradientToExtern(double* out, DesignElement::ValueSpecifier vs,
+                                DesignElement::Access access, Condition* constraint = NULL, bool scaling = true) const;
 
      /** provide the upper and lower bounds on the design variables to the optimizer */
-     void WriteBoundsToExtern(double* x_l, double* x_u);
-
+     virtual void WriteBoundsToExtern(double* x_l, double* x_u) const;
+     
      /** Sets the value of the described design element to 0
       * @param vs what values to set. Not all make sense -> exception
       * @param design with design elements to set, DEFAULT applies dor all design types */
-     void Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design = DesignElement::DEFAULT);
-
+     virtual void Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design = DesignElement::DEFAULT);
+     
      /** This disables the transfer functions -> sets them to NO_TYPE. This is used
       * in SIMP to calculate the original stiffnes matrices.
       * The setting from the XML file is stored -> to be undone with EnableTranferFunctions() */
@@ -156,15 +160,8 @@ namespace CoupledField
      unsigned int GetNumberOfElements() { return elements_; }
 
      /** The number of optimization variables */
-     unsigned int GetNumberOfVariables();
-
-     /** if constant regions are included, we need to reorder gradients before optimization
-      * else gradients are element-wise */
-     bool needsReordering;
-
-     /** this is a temporary storage, for writing the gradients for later reordering */
-     StdVector<double> grad;
-
+     virtual unsigned int GetNumberOfVariables() const;
+     
      /** This is our real design data, a set of DesignElements */
      StdVector<DesignElement> data;
 
@@ -200,11 +197,36 @@ namespace CoupledField
 
      /** Writes summary information about design variables and transfer functions into the node */
      void ToInfo(InfoNode* in);
+     
+     struct DesignRegion{
+       RegionIdType regionId;
+       unsigned int base;
+       unsigned int elements;
+       bool constant;
+     };
+     
+     StdVector<DesignRegion> regions_;
+
+     /** save parameters for scaling the design to [0..1] in the optimizer: 
+      * our design = scaling * optimizer_design + translation 
+      * given for every design, for every region */
+     StdVector<StdVector<double> > scale_design;
+     StdVector<StdVector<double> > translate_design;
+
+     /** for SIMP type constructor we have a number of elments,
+      * data size = num of design * num region elements
+      * -1 is for other constructor */
+     unsigned int elements_;
+
+   protected:
+
+     /** This number indentifies the design space. It is always incremented if ReadDesignFromExtern() reads
+      * a different design */
+     int design_id;
 
    private:
-     /** Extracts a nodal values */
+     /** Extracts a nodal value */
      double GetNodalValue(unsigned int nodeNumber, DesignElement::ValueSpecifier vs);
-
 
      template <class T>
      void ExtractResults(shared_ptr<BaseResult> result);
@@ -217,40 +239,22 @@ namespace CoupledField
      void FillNodeResults(Result<T>& result, ResultDescription& descr);
 
      /** Sets a ResultInfo object by a result type optResult_1/2/3 where the detailed
-      * description is in the optimization/SIMP elemenet in the xml file
+      * description is in the optimization/SIMP element in the xml file
       * @param solutionType switch to typedef when environment.hh is gone
       * @return null if this solution type was not given in xml or a filled version.
       *         The deletion of the object is the duty of the caller (or shared pointer) */
      ResultInfo* GetResultInfo(ResultDescription& rd);
 
-     /** finds the index of the desing element in desing.data for the element.
+     /** finds the index of the design element in design.data for the element.
       * to be optimized later if needed. Searches only in the first parameters set! */
      int Find(unsigned int elemNum, bool throw_exception = true);
 
-     /* as regionIds_ does not exist as StdVector anymore, a simple replacement for regionIds_.Find() */
+     /** as regionIds_ does not exist as StdVector anymore, a simple replacement for regionIds_.Find() */
      int FindRegion(RegionIdType regionId);
-
-     struct DesignRegion{
-       RegionIdType regionId;
-       unsigned int base;
-       unsigned int elements;
-       bool constant;
-     };
-
-     StdVector<DesignRegion> regions_;
-
-     /** for SIMP type constructor we have a number of elments,
-      * data size = num of design * num region elements
-      * -1 is for other constructor */
-     unsigned int elements_;
 
      unsigned int last_find_index_;
 
-     /** This number indentifies the design space. It is always incremented if ReadDesignFromExtern() reads
-      * a different design */
-     int design_id;
-
-     /** This transforms FormName (Integrator) to Application -> so the enum is actually Application
+     /** This transforms FormName (Integrator) to Application -> so the enum is actually Application 
       * but here int because of circular includes :( */
      Enum<int> applicationForm;
 
@@ -311,7 +315,7 @@ namespace CoupledField
   {
     Vector<T>& result_data = result.GetVector();
 
-    // this is our entitiy result, a scalar or a vector of dim 2/3
+    // this is our entity result, a scalar or a vector of dim 2/3
     unsigned int dofs = result.GetResultInfo()->dofNames.GetSize();
     assert(dofs >= 1 && dofs <= 3);
     StdVector<double> result_value(dofs);

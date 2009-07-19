@@ -24,6 +24,8 @@ namespace CoupledField
 
   Line1FE::~Line1FE()
   {
+    if(sDerivAtIp_) delete[] sDerivAtIp_;
+    if(sShFcnAtIp_) delete[] sShFcnAtIp_;
   }
 
   void Line1FE::Init(IntegrationMethod method, int order)

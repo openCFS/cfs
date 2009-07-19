@@ -47,7 +47,6 @@ namespace CoupledField {
   // **************
   DirectCoupledPDE::~DirectCoupledPDE() {
 
-
     // The following cannot easily be deleted by StdPDE from which we inherit
     // them, since SinglePDE also inherits them.
     delete algsys_;
@@ -64,6 +63,8 @@ namespace CoupledField {
     delete rhsVec_;
     if ( needSolPrev_ )
       delete solVecPrev_;
+    
+    if(assemble_) delete assemble_;    
   }
 
 
@@ -71,7 +72,6 @@ namespace CoupledField {
   //   SetSinglePDEs
   // *****************
   void DirectCoupledPDE::SetSinglePDEs( const StdVector<SinglePDE*> &pdes ) {
-
 
     singlePDEs_ = pdes;
 
@@ -450,6 +450,7 @@ namespace CoupledField {
     //       the linear system for a direct coupled PDE problem is always
     //       called "direct", thus there can currently only be one of them.
     ReadOlasParams( "direct" );
+    olasInfo_ = info->Get("OLAS")->Get("direct");
 
     // Begin setup of the matrix graph
     algsys_->GraphSetupInit( singlePDEs_.GetSize() );

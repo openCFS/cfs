@@ -850,6 +850,9 @@ namespace CoupledField {
 
     isInitialized_ = true;
 
+    // Fix problems due to negative Jacobian determinants
+    CorrectElementConnectivities();
+    
     // Select nodes / elements according to the users specification in the
     // parameter file
     CreateUserDefinedNodesElems();
@@ -1101,7 +1104,7 @@ namespace CoupledField {
     // Check if entities with given name exists at all
     if( nameTypeMap_.find( name) == nameTypeMap_.end() ) {
       EXCEPTION( "Entities with name " << name
-                 << " are already defined" );
+                 << " not found in nameTypeMap_" );
     }
 
     // check, which entity type the name belongs to
@@ -1477,7 +1480,8 @@ namespace CoupledField {
 
     } else {
       EXCEPTION( "GridCFS: The surface region with id '" << regionId
-                 << "' was not found in the grid!" );
+                 << "' (" << RegionIdToName(regionId)
+                 << ") was not found in the grid!" );
     }
   }
 
@@ -1650,6 +1654,26 @@ namespace CoupledField {
 
     regionNames = regionNames_;
 
+  }
+
+  void GridCFS::SetNodeOffset( const UInt node, const Point& offset ){
+  
+    // Check if node offsets were already set
+    if( deltCoords_.GetSize() == 0 ) {
+      deltCoords_.Resize( coords_.GetSize() );
+      deltCoords_.Init();
+    }
+
+    deltCoords_[node] = offset;
+
+  }
+
+  void GridCFS::GetNodeOffset(const UInt node, Point& offset){
+    if(deltCoords_.GetSize()==0){
+      offset.SetZero();
+    }else{
+      offset = deltCoords_[node];
+    }
   }
 
 
@@ -2810,5 +2834,30 @@ namespace CoupledField {
     numElems_ = numElems;
   }
 
+  void GridCFS::CorrectElementConnectivities() {
+    Matrix<Double> coordMat;
+    Vector<Double> localCoord;
+    
+    for(UInt i=0; i<numElems_; i++)
+    {
+      Elem* el = orderedElems_[i];
+      GetElemNodesCoord( coordMat, el->connect, true);
+
+      // The local coordinate (0,0,0) is in the reference domain of
+      // every finite element. Therefore we should be able to calculate
+      // the Jacobian determinant there and check if the element is
+      // properly oriented.
+      localCoord.Resize(dim_);
+      localCoord.Init(0);
+      
+      // Let's just calculate the Jacobian determinant at (0,0,0)
+      // to check if it is negative.
+      try { 
+        el->ptElem->CalcJacobianDet(localCoord, coordMat, el);
+      } catch (Exception& ex) {
+        el->CorrectConnectivity();
+      }
+    }    
+  }
 
 } // end namespace

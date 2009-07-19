@@ -6,9 +6,10 @@ using namespace CoupledField;
 
 ParamMat::ParamMat() : ErsatzMaterial()
 {
-  ParamNode* pmpn = pn->Get("paramMat");
-
-  design->SetDesignMaterial(pmpn->Get("designMaterial"));
+  // Note: this constructor is also called from constructor of ShapeOpt even when no ParamMat is used, in this case, nothing may be done
+  if(pn->Has("paramMat")){ 
+    design->SetDesignMaterial(pn->Get("paramMat")->Get("designMaterial"));  
+  }
   
   mech_mat_ = NULL; // set in PostInit()
 }

@@ -21,8 +21,10 @@ using namespace CoupledField;
 BaseDriver::BaseDriver( )
 {
   actSequenceStep_ = 1;
+  analysis_id_ = NULL;
   nummeshes_=0;
   handler_ = domain->GetResultHandler();
+  driverNode = info->Get("analysis"); // analysis step set in singleDriver
 }
 
 BaseDriver::~BaseDriver()
@@ -49,6 +51,51 @@ void BaseDriver::PrintSeqMeshes()
 {
   Warning( "Not implemented anymore", __FILE__, __LINE__ );
 }
+
+InfoNode* BaseDriver::CreateAnalysisId(const std::string& child_name, int child_id, 
+                                       const std::string& child_2_name, int child_2_id)
+{
+  InfoNode* child = driverNode->Get(InfoNode::PROCESS)->Get("step", InfoNode::APPEND);
+  child->Get("analysis_id")->SetValue(ConcatAnalysisId(child, child_name, child_id, child_2_name, child_2_id));
+  return child;
+}
+
+InfoNode* BaseDriver::CreateAnalysisIdChild(InfoNode* base, const std::string& child_name, int child_id, 
+    const std::string& child_2_name, int child_2_id)
+{
+  // create a child
+  InfoNode* child = base->Get(child_name);
+  std::string val = domain->GetDriver()->ConcatAnalysisId(base, child_name, child_id, child_2_name, child_2_id);
+  child->Get("analysis_id")->SetValue(val);
+  return child;
+}
+
+
+std::string BaseDriver::ConcatAnalysisId(InfoNode* analysis_id, const std::string& child_name, int child_id, 
+                                    const std::string& child_2_name, int child_2_id)
+{
+  assert(!(child_name == "" && child_id != -1));
+  assert(!(child_name == "" && child_2_name != ""));
+  assert(!(child_2_name != "" && child_id == -1));
+  
+  std::stringstream ss;
+  ss << analysis_id->Has("analysis_id") ? analysis_id->Get("analysis_id")->AsString() : ""; 
+
+  if(child_name != "")
+  ss << ":" << child_name;
+
+  if(child_id != -1) 
+    ss << ":" << child_id;
+  
+  if(child_2_name != "")
+    ss << ":" << child_2_name; 
+  
+  if(child_2_id != -1) 
+      ss << ":" << child_2_id;
+
+  return ss.str();
+}
+
 // static stuff
 BaseDriver* BaseDriver::CreateInstance()
 {

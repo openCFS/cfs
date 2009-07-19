@@ -64,9 +64,12 @@ namespace CoupledField
 
     //! Get total number of named elements
     virtual UInt GetNumNamedElems();
-
     //@}
   
+    virtual void GetNumMultiSequenceSteps( std::map<UInt, BasePDE::AnalysisType>& analysis,
+                                           std::map<UInt, UInt>& numSteps,
+                                           bool isHistory );
+
     // =========================================================================
     // ENTITY NAME ACCESS
     // =========================================================================

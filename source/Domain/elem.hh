@@ -141,6 +141,9 @@ namespace CoupledField
     Double diameter(const Point * const ptArrayOfNodes);
     //@}
 
+    // Fix problems due to negative Jacobian determinants
+    void CorrectConnectivity();
+
     std::string ToString() const
     {
       std::ostringstream os;

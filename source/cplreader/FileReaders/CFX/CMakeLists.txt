@@ -1,7 +1,11 @@
 #-------------------------------------------------------------------------------
 # CFX specific settings
 #-------------------------------------------------------------------------------
-INCLUDE_DIRECTORIES(${CFX_V110_INCLUDE_DIR})
+INCLUDE_DIRECTORIES(${CFX_INCLUDE_DIR})
+
+IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" LESS 2.6)
+  FILE(WRITE "${CFS_BINARY_DIR}/new.mod.proxy" "dummy")
+ENDIF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" LESS 2.6)
 
 SET(CPLREADER_CFX_SRCS
   FileReader_CFX.cc
@@ -23,6 +27,6 @@ SET_TARGET_PROPERTIES(cplreader_cfx
 )
 
 TARGET_LINK_LIBRARIES(cplreader_cfx
-  ${CFX_V110_LIBIO} # CFX I/O library
+  ${CFX_LIBIO} # CFX I/O library
   ${BOOST_REGEX_LIB}
 )

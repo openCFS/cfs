@@ -172,6 +172,17 @@ void SIMP::AddMassToStiffness(double m_factor, DesignElement* de, Matrix<complex
                  << " omega: " << omega << " K_img: " << (omega * alpha_k) << " damp_mass: " << damp_mass;
 }
 
+double SIMP::CalcObjective(Excitation& excite)
+{
+  // we have no own objectives
+  return ErsatzMaterial::CalcObjective(excite);
+}
+  
+void SIMP::ConstructAdjointRHS(Excitation& excite)
+{
+  ErsatzMaterial::ConstructAdjointRHS(excite);
+}
+
 void SIMP::CalcObjectiveGradient(Excitation& excite)
 {
   TransferFunction* tf = design->GetTransferFunction(DesignElement::DENSITY, MECH, true);
@@ -192,6 +203,7 @@ void SIMP::CalcObjectiveGradient(Excitation& excite)
   case OUTPUT:
   case DYNAMIC_OUTPUT:
   case CONJUGATE_COMPLIANCE:
+  case ABS_DYN_OUTPUT_SQUARED:
     // synthesis of compliant mechanism: As our adjoint PDE
     // c' = l K' u
     CalcU1KU2(tf, adjoint.data[idx]->elem[MECH], MECH, forward.data[idx]->elem[MECH], NULL, weight);
@@ -318,3 +330,8 @@ std::string SurfaceRef::ToString(int level)
   return os.str();
 }
 
+  // Explicit template instantiation
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+template bool SurfaceRef::Init<Double>(DesignSpace* design, Optimization::Application app);
+template bool SurfaceRef::Init<Complex>(DesignSpace* design, Optimization::Application app);
+#endif

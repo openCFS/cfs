@@ -286,12 +286,7 @@ bool BaseOptimizer::EvalGradObjective(int n, const double* x, double* grad_f)
   
   LOG_DBG2(optimizer) << "EvalGradObjective: call CalcObjectiveGradient()";
   // calc our gradient - it is not stored anywhere
-  if(optimization->GetDesign()->needsReordering){ // if we need reordering, we calculate a temporary version and call Reorder
-    optimization->CalcObjectiveGradient(optimization->GetDesign()->grad.GetPointer());
-    optimization->GetDesign()->ReorderGradient(grad_f);
-  }else{
-    optimization->CalcObjectiveGradient(grad_f);    
-  }
+  optimization->CalcObjectiveGradient(grad_f);    
 
   // check the scaling - harmless if not restarted autoscale
   restart_requested = false;
@@ -326,12 +321,7 @@ void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentr
   for(int c = 0; c < m; c++)
   {
     double* ptr = values + (c*n);
-    if(optimization->GetDesign()->needsReordering){
-      optimization->CalcConstraintGradient(&optimization->constraints[c], optimization->GetDesign()->grad.GetPointer());
-      optimization->GetDesign()->ReorderGradient(ptr);
-    }else{
-      optimization->CalcConstraintGradient(&optimization->constraints[c], ptr);
-    }    
+    optimization->CalcConstraintGradient(&optimization->constraints[c], ptr);
   }
 }
 

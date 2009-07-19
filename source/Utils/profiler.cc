@@ -86,7 +86,9 @@ namespace CoupledField {
               << " | grep " << myPid_ 
               << " | gawk '{printf \"% 5d MB\",$6/1024}' >> " << fileName_;
       memOut_->close();
-      std::system( (command.str()).c_str() );
+			int return_value(0);
+      return_value = std::system( (command.str()).c_str() );
+			if(return_value != 0) std::cout << "profiler: system call returned with error " << return_value << std::endl;
       memOut_->open( fileName_.c_str(), std::ofstream::out |
                      std::ofstream::app);
 

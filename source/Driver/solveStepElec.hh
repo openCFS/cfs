@@ -30,10 +30,10 @@ namespace CoupledField
     void PreStepStatic( );
 
     //! base method for solving one static step 
-    void SolveStepStatic( );
+    void SolveStepStatic(InfoNode* analysis_id);
 
     //! solves for one nonlinear static step 
-    void StepStaticNonLinEpsDiff( );
+    void StepStaticNonLinEpsDiff(InfoNode* analysis_id);
 
     //----------------------- TRANSIENT---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
@@ -41,12 +41,12 @@ namespace CoupledField
     {PreStepStatic();};
 
     //! base method for solving one transient step 
-    void SolveStepTrans( )
-    {SolveStepStatic();};
+    void SolveStepTrans(InfoNode* analysis_id)
+    {SolveStepStatic(analysis_id);};
 
     //! solves for one linear transient step 
-    void StepTransLin( )
-    {StepStaticLin();};
+    void StepTransLin(InfoNode* analysis_id)
+    {StepStaticLin(analysis_id);};
 
     //! routine for actions after the SolveStep-method
      void PostStepTrans()

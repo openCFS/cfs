@@ -68,7 +68,7 @@ void StdMatrix::HarwellBoeing<T>::Fill(const T* values, const UInt* ints, UInt l
         int tw = width; 
 
         os.width(width);
-        if(ints != NULL) os << ints[i];
+        if(ints != NULL) os << (ints[i] + 1);
         if(values != NULL && !is_complex_) os << values[i];
         if(values != NULL && is_complex_){
            const Complex* cplx_ptr = reinterpret_cast<const Complex*>(values);
@@ -118,14 +118,14 @@ void StdMatrix::HarwellBoeing<T>::Export(const std::string& file, const BaseVect
            
            // CFS stores the right upper rows, we need the lower columns and we are
            // symmetric -> it's simple babe :)
-           Fill(NULL, scrs->GetRowPointer()+1,scrs->GetNumRows()+1, cols);  // include tail
+           Fill(NULL, scrs->GetRowPointer(),scrs->GetNumRows()+1, cols);  // include tail
            
            // Nnz is the total number = Diagonal + 2 * triagonals. But one is skipped!
            elements= scrs->GetNnz() - ((scrs->GetNnz() - scrs->GetNumRows())/2);
                       
            // Nnz is for complete, due to symmetry only half
-           Fill(NULL, scrs->GetColPointer()+1,elements, rows);    
-           Fill(scrs->GetDataPointer()+1,NULL,elements, mat_data);
+           Fill(NULL, scrs->GetColPointer(),elements, rows);    
+           Fill(scrs->GetDataPointer(),NULL,elements, mat_data);
 
            break;
         }
@@ -136,25 +136,21 @@ void StdMatrix::HarwellBoeing<T>::Export(const std::string& file, const BaseVect
            const CRS_Matrix<T>* crs = dynamic_cast<const CRS_Matrix<T>*>(matrix_);  
            // from compresses row storage transform to column storage (HB)
 
-           UInt* col_ptr;
-           UInt* row_ptr;
-           T*   val_ptr;
+           elements = crs->GetNnz();
+           
+           unsigned int* col_ptr = new unsigned int[crs->GetNumCols() + 1];
+           unsigned int* row_ptr = new unsigned int[elements];
+           T*            val_ptr = new T[elements];
               
-           elements = crs->GetNnz();   
-              
-           NEWARRAY(col_ptr, UInt, crs->GetNumCols() + 1);
-           NEWARRAY(row_ptr, UInt, elements);
-           NEWARRAY(val_ptr, T, elements);
-
            crs->Transpose(col_ptr, row_ptr, val_ptr);
  
-           Fill(NULL, col_ptr+1, crs->GetNumCols()+1, cols);  // include tail
-           Fill(NULL, row_ptr+1, elements, rows);
-           Fill(val_ptr+1, NULL , elements, mat_data);
-           
-           DELETEARRAY(col_ptr);
-           DELETEARRAY(row_ptr);
-           DELETEARRAY(val_ptr);
+           Fill(NULL, col_ptr, crs->GetNumCols() + 1, cols);  // include tail
+           Fill(NULL, row_ptr, elements, rows);
+           Fill(val_ptr, NULL , elements, mat_data);
+
+           delete[] col_ptr;
+           delete[] row_ptr;
+           delete[] val_ptr;
 
            break;
         }
@@ -163,7 +159,7 @@ void StdMatrix::HarwellBoeing<T>::Export(const std::string& file, const BaseVect
 
    // rhs is common 
    const Vector<T>& vector = dynamic_cast<const Vector<T>&>(rhs);
-   Fill(vector.GetPointer()+1,NULL,vector.GetSize(), rhs_data);
+   Fill(vector.GetPointer(),NULL,vector.GetSize(), rhs_data);
 
    // construct the 5 lines 80 columns header
    std::ofstream out(file.c_str());

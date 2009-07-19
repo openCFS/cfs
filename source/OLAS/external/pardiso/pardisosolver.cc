@@ -127,7 +127,7 @@ namespace CoupledField {
   //   Setup
   // *********
   template<typename T>
-  void PardisoSolver<T>::Setup( BaseMatrix &sysMat ) {
+  void PardisoSolver<T>::Setup( BaseMatrix &sysMat, InfoNode* analysis_step ) {
 
     // Flag for check Pardiso's return status
     int errorFlag = 0;
@@ -483,7 +483,7 @@ namespace CoupledField {
   template<typename T>
   void PardisoSolver<T>::Solve( const BaseMatrix &sysmat,
                                 const BasePrecond &precond,
-                                const BaseVector &rhs, BaseVector &sol ) {
+                                const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_step ) {
 
 
     // Determine, whether we are expected to be verbose

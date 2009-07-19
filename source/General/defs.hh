@@ -12,6 +12,8 @@
 #include <complex>
 #include <limits>
 
+#include <boost/cstdint.hpp>
+
 // Include build type options header containing the #defines
 #include <def_build_type_options.hh>
 #include <def_xmlschema.hh>
@@ -31,9 +33,9 @@
 namespace CoupledField{
 
 //! redeclaration of types
-typedef int32_t Integer;
-typedef uint32_t UInt;
-typedef int16_t ShortInt;
+typedef boost::int32_t Integer;
+typedef boost::uint32_t UInt;
+typedef boost::int16_t ShortInt;
 typedef float Float;
 typedef double Double;
 typedef std::complex<Double> Complex;

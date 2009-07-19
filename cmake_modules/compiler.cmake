@@ -82,7 +82,7 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
   # Determine compiler/linker flags according to build type
   #-----------------------------------------------------------------------------
   IF(DEBUG)
-    SET(CFS_C_FLAGS "-std=c++98 -Wall -pedantic -Werror -fmessage-length=0 ${CFS_C_FLAGS}")
+    SET(CFS_C_FLAGS "-std=c++98 -Wall -pedantic -fmessage-length=0 ${CFS_C_FLAGS}")
     # -Wold-style-cast Warnings about old C style casts. Since external libraries
     # make extensive use of it, we switch it off. To filter out the warnings in our own
     # code a command line like the following might be used
@@ -99,7 +99,7 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
   ELSE(DEBUG)
 
     SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment")
-    SET(CFS_C_FLAGS "-std=c++98 -Wall -pedantic -Werror -fmessage-length=0 ${CFS_C_FLAGS}")
+    SET(CFS_C_FLAGS "-std=c++98 -Wall -pedantic -fmessage-length=0 ${CFS_C_FLAGS}")
     SET(CFS_CXX_FLAGS "-ftemplate-depth-55")
 
     IF(CFS_ARCH STREQUAL "I386")
@@ -107,11 +107,11 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
     ENDIF(CFS_ARCH STREQUAL "I386")
 
     IF(CFS_ARCH STREQUAL "X86_64")
-      SET(CFS_OPT_FLAGS "-m64 -march=k8")
+      SET(CFS_OPT_FLAGS "-m64 -march=k8 -msse2")
     ENDIF(CFS_ARCH STREQUAL "X86_64")
 
     IF(CFS_ARCH STREQUAL "IA64")
-      SET(CFS_OPT_FLAGS "-m64 -mtune-arch=itanium2")
+      SET(CFS_OPT_FLAGS "-m64 -mtune-arch=itanium2 -msse2")
     ENDIF(CFS_ARCH STREQUAL "IA64")
     
     IF(CFS_CXX_COMPILER_VER EQUAL "4.2" AND
@@ -129,7 +129,16 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
         SET(CFS_OPT_FLAGS "${CFS_OPT_FLAGS} -mveclibabi=acml")
       ENDIF(CFS_BLAS_LAPACK STREQUAL "ACML" AND CFS_ARCH STREQUAL "X86_64")
     ENDIF(CFS_CXX_COMPILER_VER EQUAL "4.3")
+
+    IF(CFS_CXX_COMPILER_VER EQUAL "4.4")
+        SET(CFS_OPT_FLAGS "${CFS_OPT_FLAGS} -mtune=native -march=native")
+    ENDIF(CFS_CXX_COMPILER_VER EQUAL "4.4")
+      
   ENDIF(DEBUG)
+  
+  IF(NOT USE_OPENMP)
+    SET(CFS_C_FLAGS "-Werror ${CFS_C_FLAGS}")
+  ENDIF(NOT USE_OPENMP)
 
 ENDIF(CMAKE_COMPILER_IS_GNUCXX)
 
@@ -150,6 +159,7 @@ IF(CFS_FORTRAN_COMPILER_INFO MATCHES "GNU")
     "[0-9]+\\.[0-9]+\\.[0-9]+"
     CFS_FORTRAN_COMPILER_VER
     ${CFS_FORTRAN_COMPILER_VER})
+
 ENDIF(CFS_FORTRAN_COMPILER_INFO MATCHES "GNU")
 
 
@@ -163,7 +173,7 @@ IF(CFS_CXX_COMPILER_INFO MATCHES "ICC")
   SET(CFS_CXX_COMPILER_NAME "ICC")
 
   STRING(REGEX MATCH 
-    "[0-9]+\\.[0-9]+"
+    "[0-9]+\\.[0-9]+ [0-9]+"
     CFS_CXX_COMPILER_VER
     ${CFS_CXX_COMPILER_INFO})
 
@@ -174,7 +184,7 @@ IF(CFS_CXX_COMPILER_INFO MATCHES "ICC")
   #-----------------------------------------------------------------------------
   IF(CFS_CXX_COMPILER_GNU_VER EQUAL "4.2" AND
      GNU_CXX_COMPILER_VER EQUAL "4.3")
-    MESSAGE(FATAL_ERROR "Intel C+ + ${CFS_CXX_COMPILER_VER} is known to be broken with g++ ${GNU_CXX_COMPILER_VER}! Intel C++ 11.x should work.")
+    MESSAGE(FATAL_ERROR "Intel C++ ${CFS_CXX_COMPILER_VER} is known to be broken with g++ ${GNU_CXX_COMPILER_VER}! Intel C++ 11.x should work.")
   ELSE(CFS_CXX_COMPILER_GNU_VER EQUAL "4.2" AND
       GNU_CXX_COMPILER_VER  EQUAL "4.3")
     IF(CFS_CXX_COMPILER_GNU_VER LESS GNU_CXX_COMPILER_VER)
@@ -238,7 +248,7 @@ IF(CFS_FORTRAN_COMPILER_INFO MATCHES "IFORT")
   SET(CFS_FORTRAN_COMPILER_NAME "IFORT")
 
   STRING(REGEX MATCH 
-    "[0-9]+\\.[0-9]+"
+    "[0-9]+\\.[0-9]+ [0-9]+"
     CFS_FORTRAN_COMPILER_VER
     ${CFS_FORTRAN_COMPILER_INFO})
 
@@ -271,7 +281,7 @@ IF(CFS_FORTRAN_COMPILER_INFO MATCHES "IFORT")
 
   LINK_DIRECTORIES(${IFORT_LIB_PATH})
     
-  SET(CFS_FORTRAN_DYNRT_LIBS ifcoremt dl)
+  SET(CFS_FORTRAN_DYNRT_LIBS ifcoremt imf dl)
   IF(NOT CFS_ARCH STREQUAL "IA64")
     SET(CFS_FORTRAN_DYNRT_LIBS 
       svml

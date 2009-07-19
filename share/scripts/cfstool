@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # This is the start script for CFSTOOL. It should be placed in
 # CFS_DIST/bin under the name 'cfstool'

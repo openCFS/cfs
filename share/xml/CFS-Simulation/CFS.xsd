@@ -167,8 +167,9 @@
 
         <!-- Optional developer's element -->
         <xsd:element name="devel" type="xsd:anyType" minOccurs="0" maxOccurs="unbounded"/>
-
       </xsd:sequence>
+      <!-- The simulation can be given an id/token/label/name that is written to info.xml if present. -->
+      <xsd:attribute name="id" type="xsd:token" default="" use="optional"/>
     </xsd:complexType>
 
     <!-- ***************************************************************** -->

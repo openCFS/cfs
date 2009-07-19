@@ -45,6 +45,7 @@ namespace CoupledField
     typedef StdVector<shared_ptr<BaseResult> > ResultList;
     typedef std::map<shared_ptr<ResultInfo> , ResultList > ResultMap;
 
+    class RegionLoad;
 
     bool boolComplexMaterialData_;
     
@@ -203,6 +204,11 @@ namespace CoupledField
 
     //@}
 
+    /** do the actual reading of loads, this is also called from optimization 
+     * @param bcNode paramnode that has "regionLoad" nodes as children 
+     * @param pressSurf StdVector containing the RegionLoads */
+    void ReadRegionLoadsFromXML(ParamNode* bcNode, std::map<RegionIdType, RegionLoad>& regionLoads_);
+
   protected:
 
   
@@ -259,7 +265,7 @@ namespace CoupledField
     
     //! read in volume sources
     void ReadRegionLoads();
-
+    
     //! write results in file
     void WriteResultsInFile( const UInt kstep, 
                              const Double actTimeFreq );
@@ -275,6 +281,8 @@ namespace CoupledField
     //! Save load part of RHS to private variable
     void SaveRHS( const Double * ptSol, UInt size );
     void SaveRHS( const Complex * ptSol, UInt size );
+    
+  public:
     
     //! Class defining data needed for region loads
     class RegionLoad {
@@ -320,6 +328,8 @@ namespace CoupledField
       //@}
 
     };
+    
+  protected:
     
     //! List of region loads
      std::map<RegionIdType, RegionLoad> regionLoads_;

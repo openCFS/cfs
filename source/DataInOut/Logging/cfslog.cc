@@ -4,8 +4,6 @@
 
 #include "cfslog.hh"
 
-
-
 namespace CoupledField {
 
   

@@ -42,7 +42,8 @@ piezoParamIdent::piezoParamIdent(UInt sequenceStep, bool isPartOfSequence) :
   voltage_=1.0;
   maxNumberInnerLoops_=45;
 
-
+  driverNode = driverNode->Get("piezoParamIdent");
+  driverNode->Get("sequenceStep")->SetValue(sequenceStep);
 }
 
 void piezoParamIdent::Init() {
@@ -187,9 +188,7 @@ piezoParamIdent::~piezoParamIdent() {
     inMechMess_.close();
 }
 
-void piezoParamIdent::SolveProblem(bool write_results,
-    const std::string& comment) {
-
+void piezoParamIdent::SolveProblem(bool write_results, InfoNode* given_analysis_id) {
 
   ResultHandler * resHandler = domain->GetResultHandler();
   InitializePDEs();

@@ -28,11 +28,10 @@
 #ifdef USE_METIS
 
 // this namespace serves to hide metis names
-namespace CoupledFieldMetis{
-  extern "C"{
+extern "C"{
 #include "metis.h"
-  }
 }
+
 #endif
 
 
@@ -463,8 +462,8 @@ namespace CoupledField {
 
         // Note that what for metis is the inverse permutation vector,
         // for us is the re-ordering vector
-        CoupledFieldMetis::METIS_NodeND( &nNodes, (Integer*) rptr, (Integer*) cidx, &numflag,
-                                         options, iorder, (Integer*) order.GetPointer() );
+        METIS_NodeND( &nNodes, (Integer*) rptr, (Integer*) cidx, &numflag,
+                      options, iorder, (Integer*) order.GetPointer() );
 
         // We don't need the inverse mapping and the auxilliary CRS structure
         // anymore, so free the memory

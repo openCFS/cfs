@@ -1,5 +1,6 @@
 // include general defines
 #include <def_cfs_stats.hh>
+#include <def_cplreader.hh>
 #include <def_use_blas.hh>
 #include <def_use_hdf5.hh>
 #include <def_use_ansysrst.hh>
@@ -28,7 +29,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/exception.hpp>
-
+#include <boost/algorithm/string/trim.hpp>
 
 #ifdef USE_MKL
 #include <mkl_service.h>
@@ -38,13 +39,43 @@
 #include <acml.h>
 #endif
 
+#include <bzlib.h>
+#include <zlib.h>
+
+#ifdef USE_ILUPACK
+#include <amd.h>
+#endif
+
+#ifdef USE_SCRIPTING_PYTHON
+#ifdef _POSIX_C_SOURCE
+#undef _POSIX_C_SOURCE
+#endif
+#include <Python.h>
+#endif
+
+#ifdef USE_SCRIPTING_TCL
+#include <tcl.h>
+#endif
+
+#ifdef USE_ARPACK
+#include <arpack_version.h>
+#endif
+
 #include "DataInOut/ParamHandling/InfoNode.hh"
 #include "General/environment.hh"
 #include "General/exception.hh"
 #include "Utils/tools.hh"
 
+using std::string;
+using std::endl;
+using std::cout;
+
 // Lapack version function interface
 extern "C" void ilaver_(int*, int*, int*);
+
+// CFX IO library version interface
+extern "C" const char* io_get_version();
+
 
 namespace CoupledField {
 
@@ -58,9 +89,10 @@ namespace CoupledField {
     // copy command line into vector
     args_.resize( argc-1 );
     for( Integer i = 1; i < argc; i++ ) {
-      args_[i-1] = std::string( argv[i] );
+      args_[i-1] = string( argv[i] );
     }
 
+    exe_ = argv[0];
   }
 
   ProgramOptions::~ProgramOptions()
@@ -90,13 +122,13 @@ namespace CoupledField {
       ( "history,H",
         "history of revisions" )
 
-      ( "meshFile,m", po::value<std::string>(),
+      ( "meshFile,m", po::value<string>(),
         "name of mesh file for the simulation" )
 
-      ( "paramFile,p", po::value<std::string>(),
+      ( "paramFile,p", po::value<string>(),
         "name of XML parameter file for the simulation" )
 
-      ( "schemaRoot,s", po::value<std::string>(),
+      ( "schemaRoot,s", po::value<string>(),
         "path to XML schema definitions (env CFS_SCHEMA_ROOT)")
 
       ( "restart,r",
@@ -112,7 +144,7 @@ namespace CoupledField {
         "write skeleton of XML file for subsequent simulation" )
 
 #ifdef USE_SCRIPTING
-      ( "scriptFile,e", po::value<std::string>(),
+      ( "scriptFile,e", po::value<string>(),
         "name of script file to be evaluated" )
 #endif
       ( "doProfile,d",
@@ -131,7 +163,7 @@ namespace CoupledField {
 
     // Store help description in variable
     std::stringstream helpStream;
-    helpStream << cmdVisible << std::endl;
+    helpStream << cmdVisible << endl;
     helpMsg_ = helpStream.str();
 
 
@@ -140,9 +172,8 @@ namespace CoupledField {
     po::options_description cmdInvisible( os.str() );
 
     cmdInvisible.add_options()
-      ("simName", po::value<std::string>(),
-       "simulation name")
-      ;
+      ("simName", po::value<string>(),
+       "simulation name");
 
     // make the input file the only allowed positional parameter
     po::positional_options_description p;
@@ -155,7 +186,7 @@ namespace CoupledField {
 //    // -----------------------------------------
 //    po::options_description envOptions("" );
 //    envOptions.add_options()
-//      ("schemaRoot", po::value<std::string>(),
+//      ("schemaRoot", po::value<string>(),
 //       "Path to schema definitions of CFS++ installation")
 //      ;
 
@@ -178,7 +209,7 @@ namespace CoupledField {
       // first, define function pointer, which maps environment variables
       // (e.g. CFS_SCHEMA_ROOT) to local string paramter representation
       // (e.g. schemaRoot)
-      boost::function1<std::string, std::string> name_mapper;
+      boost::function1<string, string> name_mapper;
 
       name_mapper = boost::bind(&ProgramOptions::EnvironmentNameMapper, *this, _1);
 
@@ -199,51 +230,52 @@ namespace CoupledField {
     // Check for version
     if( varMap_.count("version") != 0  ) 
     {
-      GetHeaderString(std::cout);      
-      GetVersionString( std::cout, true );
+      GetHeaderString(cout);      
+      GetVersionString( cout, true );
       exit( EXIT_SUCCESS );
     }
 
     // Check for history
     if( varMap_.count("history") != 0  ) 
     {
-      GetHeaderString(std::cout);      
-      GetHistoryString(std::cout);
+      GetHeaderString(cout);      
+      GetHistoryString(cout);
       exit( EXIT_SUCCESS );
     }
 
     // Check for help
     if( varMap_.count("help") != 0) 
     {
-      GetHeaderString(std::cout);      
-      std::cout << helpMsg_;
+      GetHeaderString(cout);      
+      cout << helpMsg_;
       exit(EXIT_SUCCESS);
     }
 
     // If no argument was given, print additional information
     if( varMap_.count("simName") == 0 )
     {
-      GetHeaderString(std::cout);
-      std::cout << "cfs: no input files. Pleas run with --help for help\n";
+      GetHeaderString(cout);
+      cout << "cfs: no input files. Please run with --help for help\n";
       exit(EXIT_SUCCESS);
     }
   }
 
-  std::string ProgramOptions::EnvironmentNameMapper(const std::string& var )  {
-    std::string ret;
+  string ProgramOptions::EnvironmentNameMapper(const string& var )  {
+    string ret;
 
     if(var == "CFS_SCHEMA_ROOT") ret = "schemaRoot";
+    if(var == "CFS_NO_COLOR")    ret = "noColor";
     if(var == "CFS_QUIET")       ret = "quiet";
     
     return ret;
   }
 
-  std::string ProgramOptions::GetSimName() const
+  string ProgramOptions::GetSimName() const
   {
     if( varMap_.count( "simName") != 0 ) {
 
       // get complete path
-      fs::path simPath = fs::path( varMap_["simName"].as<std::string>(),
+      fs::path simPath = fs::path( varMap_["simName"].as<string>(),
                                   fs::native );
 
       // return only file name without path information
@@ -258,7 +290,7 @@ namespace CoupledField {
      if( varMap_.count( "simName") != 0 ) {
 
        // get complete path
-       fs::path simPath ( varMap_["simName"].as<std::string>(),
+       fs::path simPath ( varMap_["simName"].as<string>(),
                           fs::native );
 
        fs::complete( simPath.branch_path()).native_directory_string();
@@ -270,7 +302,7 @@ namespace CoupledField {
      }
    }
 
-  std::string ProgramOptions::GetSimPathStr() const
+  string ProgramOptions::GetSimPathStr() const
    {
      // get complete path
      fs::path simPath = GetSimPath();
@@ -283,13 +315,13 @@ namespace CoupledField {
     if( varMap_.count( "paramFile" ) == 0 ) {
       return GetSimPath() / fs::path(GetSimName()+".xml" );
     } else {
-      fs::path paramPath( varMap_["paramFile"].as<std::string>(),
+      fs::path paramPath( varMap_["paramFile"].as<string>(),
                           fs::native);
       return fs::system_complete( paramPath );
     }
   }
 
-  std::string ProgramOptions::GetParamFileStr() const
+  string ProgramOptions::GetParamFileStr() const
   {
     fs::path paramPath = GetParamFile();
 
@@ -300,14 +332,14 @@ namespace CoupledField {
   fs::path ProgramOptions::GetScriptFile() const
   {
     if( varMap_.count("scriptFile") > 0 ) {
-      fs::path scriptPath( varMap_["scriptFile"].as<std::string>() );
+      fs::path scriptPath( varMap_["scriptFile"].as<string>() );
       return fs::system_complete( scriptPath);
     } else {
       return fs::path();
     }
   }
 
-  std::string ProgramOptions::GetScriptFileStr() const
+  string ProgramOptions::GetScriptFileStr() const
   {
     fs::path scriptPath = GetScriptFile();
 
@@ -317,20 +349,18 @@ namespace CoupledField {
 
   fs::path ProgramOptions::GetSchemaPath() const
   {
-    std::string schema;
+    string schema;
     fs::path schemaPath;
 
     // If the user specified a path on the command line use it instead.
     if( varMap_.count( "schemaRoot" ) ) {
-      schema = varMap_[ "schemaRoot" ].as<std::string>();
+      schema = varMap_[ "schemaRoot" ].as<string>();
     } else {
       schema = XMLSCHEMA;
     }
 
-    // If none of the above paths exists, raise exception
-    if(!fs::exists(schema)) {
-      EXCEPTION( "Schema path '" << schema << "' does not exist!" );
-    }
+    //      fs::path fn = fs::system_complete(progOpts->exe_);
+    //      fn.normalize();
 
     try
     {
@@ -341,10 +371,15 @@ namespace CoupledField {
       EXCEPTION(ex.what());
     }
 
+    // If none of the above paths exists, raise exception
+    if(!fs::exists(schemaPath)) {
+      EXCEPTION( "Schema path '" << schemaPath << "' does not exist!" );
+    }
+
     return schemaPath;
   }
 
-  std::string ProgramOptions::GetSchemaPathStr() const
+  string ProgramOptions::GetSchemaPathStr() const
   {
     fs::path schemaPath = GetSchemaPath();
 
@@ -355,7 +390,7 @@ namespace CoupledField {
   {
 
     if( varMap_.count( "meshFile") != 0 ) {
-      fs::path meshPath( varMap_["meshFile"].as<std::string>(),
+      fs::path meshPath( varMap_["meshFile"].as<string>(),
                          fs::native );
       return fs::system_complete( meshPath );
     } else {
@@ -363,7 +398,7 @@ namespace CoupledField {
     }
   }
 
-  std::string ProgramOptions::GetMeshFileStr() const
+  string ProgramOptions::GetMeshFileStr() const
   {
     fs::path meshFile = GetMeshFile();
 
@@ -436,87 +471,102 @@ namespace CoupledField {
   {
     bool colTmp = ColoredConsole::colorise;
     ColoredConsole::colorise = colorise;
-
-    std::string build_type = CMAKE_BUILD_TYPE;
-
+    
+    string build_type = CMAKE_BUILD_TYPE;
+    string cxxFlags = CMAKE_CXX_FLAGS;
+    string ldFlags = CMAKE_EXE_LINKER_FLAGS;
+    boost::trim(cxxFlags);
+    boost::trim(ldFlags);    
+    
     outstr << "CFS_VERSION:           "
-           << fg_blue << CFS_VERSION << fg_reset << std::endl
+           << fg_blue << CFS_VERSION << fg_reset << endl
 
            << "CFS_NAME:              "
-           << fg_blue << CFS_NAME << fg_reset << std::endl
+           << fg_blue << CFS_NAME << fg_reset << endl;
 
-           << "CFS_BUILD_HOST:        "
-           << fg_blue << CFS_BUILD_HOST << fg_reset << std::endl
+    if(progOpts) 
+    {      
+      fs::path fn = fs::system_complete(progOpts->exe_);
+      fn.normalize();
+      outstr << "CFS_EXECUTABLE:        "
+             << fg_blue << fn.native_directory_string() << fg_reset << endl;
+    }
+    
+    outstr << "CFS_BUILD_HOST:        "
+           << fg_blue << CFS_BUILD_HOST << fg_reset << endl
 
            << "CFS_BUILD_USER:        "
-           << fg_blue << CFS_BUILD_USER << fg_reset << std::endl
+           << fg_blue << CFS_BUILD_USER << fg_reset << endl
 
            << "CFS_SUBVERSION_REV:    "
-           << fg_blue << CFS_SUBVERSION_REV << fg_reset << std::endl
+           << fg_blue << CFS_SUBVERSION_REV << fg_reset << endl
 
            << "CFS_SUBVERSION_REPOS:  "
            << fg_blue << CFS_SUBVERSION_REPOS
-           << fg_reset << std::endl << std::endl
+           << fg_reset << endl << endl
 
            << "CFS_CXX_COMPILER_NAME: "
-           << fg_blue << CFS_CXX_COMPILER_NAME << fg_reset << std::endl
+           << fg_blue << CFS_CXX_COMPILER_NAME << fg_reset << endl
 
            << "CFS_CXX_COMPILER_VER:  "
            << fg_blue << CFS_CXX_COMPILER_VER << fg_reset
-           << std::endl << std::endl
+           << endl << endl
 
            << "CFS_FORTRAN_COMPILER_NAME: "
-           << fg_blue << CFS_FORTRAN_COMPILER_NAME << fg_reset<< std::endl
+           << fg_blue << CFS_FORTRAN_COMPILER_NAME << fg_reset<< endl
 
            << "CFS_FORTRAN_COMPILER_VER:  "
            << fg_blue << CFS_FORTRAN_COMPILER_VER
-           << fg_reset<< std::endl << std::endl
+           << fg_reset<< endl << endl
 
            << "CFS_DISTRO:            "
-           << fg_blue << CFS_DISTRO << fg_reset << std::endl
+           << fg_blue << CFS_DISTRO << fg_reset << endl
 
            << "CFS_DISTRO_VER:        "
-           << fg_blue << CFS_DISTRO_VER << fg_reset << std::endl
+           << fg_blue << CFS_DISTRO_VER << fg_reset << endl
 
            << "CFS_ARCH:              "
            << fg_blue << CFS_ARCH
-           << fg_reset << std::endl << std::endl
+           << fg_reset << endl << endl
 
            << "CMAKE_BUILD_TYPE:      "
-           << fg_blue  << build_type << fg_reset << std::endl;
+           << fg_blue  << build_type << fg_reset << endl;
 #ifndef NDEBUG
-      outstr << "COMPILE_FLAGS:       "
-             << fg_blue  << CMAKE_CXX_FLAGS
-             << " " << CMAKE_CXX_FLAGS_DEBUG << fg_reset << std::endl;
+    outstr << "COMPILE_FLAGS:         "
+           << fg_blue << cxxFlags << " " << CMAKE_CXX_FLAGS_DEBUG 
+           << fg_reset << endl;
 
-      outstr << "LINK_FLAGS:          "
-             << fg_blue  << CMAKE_EXE_LINKER_FLAGS
-             << " " << CMAKE_EXE_LINKER_FLAGS_DEBUG
-             << fg_reset
-             << std::endl << std::endl;
+    outstr << "LINK_FLAGS:            "
+           << fg_blue  << CMAKE_EXE_LINKER_FLAGS
+           << " " << CMAKE_EXE_LINKER_FLAGS_DEBUG
+           << fg_reset
+           << endl << endl;
 #else
-      outstr << "COMPILE_FLAGS:       "
-             << fg_blue  << CMAKE_CXX_FLAGS
-             << " " << CMAKE_CXX_FLAGS_RELEASE << fg_reset << std::endl;
-
-      outstr << "LINK_FLAGS:          "
-             << fg_blue << CMAKE_EXE_LINKER_FLAGS
-             << " " << CMAKE_EXE_LINKER_FLAGS_RELEASE
-             << fg_reset << std::endl << std::endl;
+    outstr << "COMPILE_FLAGS:         "
+           << fg_blue << cxxFlags
+           << " " << CMAKE_CXX_FLAGS_RELEASE << fg_reset << endl;
+    
+    outstr << "LINK_FLAGS:            "
+           << fg_blue << ldFlags
+           << " " << CMAKE_EXE_LINKER_FLAGS_RELEASE
+           << fg_reset << endl << endl;
 #endif
- #ifdef USE_ARPACK
+ #ifdef USE_ARPACK    
     outstr << "USE_ARPACK:            "
-           << fg_blue  << "YES" << fg_reset << std::endl;
+           << fg_blue  << "YES" << fg_reset << endl;
+    outstr << "ARPACK_VERSION:        "
+           << fg_blue  << ARPACK_VERSION_NUMBER << " "
+           << ARPACK_VERSION_DATE << fg_reset << endl;
  #else
     outstr << "USE_ARPACK:            "
-           << fg_blue  << "NO" << fg_reset << std::endl;
+           << fg_blue  << "NO" << fg_reset << endl;
 #endif
 
  #ifdef USE_BLAS
     outstr << "USE_BLAS:              "
-           << fg_blue  << "YES" << fg_reset << std::endl;
+           << fg_blue  << "YES" << fg_reset << endl;
     outstr << "BLAS_IMPLEMENTATION:   "
-           << fg_blue  << CFS_BLAS_LAPACK << fg_reset << std::endl;
+           << fg_blue  << CFS_BLAS_LAPACK << fg_reset << endl;
  #ifdef USE_MKL
     MKLVersion ver;
 
@@ -526,13 +576,13 @@ namespace CoupledField {
            << ver.MajorVersion << "."
            << ver.MinorVersion << "."
            << ver.BuildNumber << fg_reset
-           << std::endl;
+           << endl;
     outstr << "MKL_PRODSTAT:          " << fg_blue
            << ver.ProductStatus << fg_reset
-           << std::endl;
+           << endl;
     outstr << "MKL_BUILD:             " << fg_blue
            << ver.Build << fg_reset
-           << std::endl;
+           << endl;
 
     MKL_FreeBuffers();
  #endif
@@ -545,189 +595,241 @@ namespace CoupledField {
            << acml_major << "."
            << acml_minor << "."
            << acml_patch << fg_reset
-           << std::endl;
+           << endl;
     acmlinfo();
  #endif
 #else
     outstr << "USE_BLAS:              "
-           << fg_blue  << "NO" << fg_reset << std::endl;
+           << fg_blue  << "NO" << fg_reset << endl;
 #endif
-    outstr << std::endl;
+    outstr << endl;
 
  #ifdef USE_LAPACK
     outstr << "USE_LAPACK:            "
-           << fg_blue << "YES" << fg_reset << std::endl;
+           << fg_blue << "YES" << fg_reset << endl;
     Integer major, minor, rev;
     ilaver_(&major, &minor, &rev);
     outstr << "LAPACK_VERSION:        "
            << fg_blue << major << "." << minor << "." << rev
-           << fg_reset << std::endl;
+           << fg_reset << endl;
 #else
     outstr << "USE_LAPACK:            "
-           << fg_blue << "NO" << fg_reset << std::endl;
+           << fg_blue << "NO" << fg_reset << endl;
 #endif
 
  #ifdef USE_ILUPACK
-    outstr << std::endl;
+    outstr << endl;
     outstr << "USE_ILUPACK:           "
-           << fg_blue << "YES" << fg_reset << std::endl;
+           << fg_blue << "YES" << fg_reset << endl;
+    outstr << "AMD_VERSION:        "
+           << fg_blue << AMD_MAIN_VERSION << "." << AMD_SUB_VERSION << "."
+           << AMD_SUBSUB_VERSION << " " << AMD_DATE
+           << fg_reset << endl;
  #else
     outstr << "USE_ILUPACK:           "
-           << fg_blue  << "NO" << fg_reset << std::endl;
+           << fg_blue  << "NO" << fg_reset << endl;
  #endif
 
  #ifdef USE_PARDISO
-    outstr << std::endl;
+    outstr << endl;
     outstr << "USE_PARDISO:           "
-           << fg_blue << "YES" << fg_reset << std::endl;
+           << fg_blue << "YES" << fg_reset << endl;
     outstr << "PARDISO_IMPL:          "
-           << fg_blue  << CFS_PARDISO << fg_reset << std::endl;
+           << fg_blue  << CFS_PARDISO << fg_reset << endl;
  #else
     outstr << "USE_PARDISO:           "
-           << fg_blue << "NO" << fg_reset << std::endl;
+           << fg_blue << "NO" << fg_reset << endl;
  #endif
 
  #ifdef USE_METIS
-    outstr << std::endl
+    outstr << endl
            << "USE_METIS:             "
-           << fg_blue << "YES" << fg_reset << std::endl;
+           << fg_blue << "YES" << fg_reset << endl;
+    outstr << "CFS_METIS_VERSION:     "
+           << fg_blue << CFS_METIS_VERSION
+           << fg_reset << endl;
 #else
     outstr << "USE_METIS:             "
-           << fg_blue << "NO" << fg_reset<< std::endl;
+           << fg_blue << "NO" << fg_reset<< endl;
 #endif
 
-#ifdef MpCCI
-    outstr << "MpCCI:                 "
-           << fg_blue << "YES" << fg_reset << std::endl;
-    outstr << "MpCCI_RELEASE:         "
-           << fg_blue << MpCCI_RELEASE
-           << fg_reset << std::endl;
-#else
-    outstr << "MpCCI:                 "
-           << fg_blue << "NO" << fg_reset << std::endl;
- #endif
-
-    outstr << std::endl;
+    outstr << endl;
 
  #ifdef USE_SCRIPTING_TCL
     outstr << "USE_SCRIPTING_TCL:     "
-           << fg_blue  << "YES" << fg_reset << std::endl;
+           << fg_blue  << "YES" << fg_reset << endl;
+    Integer tcl_major, tcl_minor, tcl_rev, tcl_patch;
+    Tcl_GetVersion(&tcl_major, &tcl_minor, &tcl_rev, &tcl_patch);
     outstr << "CFS_TCL_VERSION:       "
-           << fg_blue << CFS_TCL_VERSION << fg_reset << std::endl;
+           << fg_blue << tcl_major << "." << tcl_minor << "." << tcl_rev
+           << fg_reset << endl;
  #else
     outstr << "USE_SCRIPTING_TCL:     "
-           << fg_blue << "NO" << fg_reset << std::endl;
+           << fg_blue << "NO" << fg_reset << endl;
  #endif
 
  #ifdef USE_SCRIPTING_PYTHON
     outstr << "USE_SCRIPTING_PYTHON:  "
-           << fg_blue << "YES" << fg_reset << std::endl;
+           << fg_blue << "YES" << fg_reset << endl;
+    string pyVersion = Py_GetVersion();
+    UInt i=0;
+    for(i=0; i < pyVersion.length(); i++) {
+      if(pyVersion[i] == ' ')
+        break;
+    }
+    pyVersion = pyVersion.substr(0, i);
     outstr << "CFS_PYTHON_VERSION:    "
-           << fg_blue << CFS_PYTHON_VERSION << fg_reset << std::endl;
+           << fg_blue << pyVersion << fg_reset << endl;
  #else
     outstr << "USE_SCRIPTING_PYTHON:  "
-           << fg_blue << "NO" << fg_reset << std::endl;
+           << fg_blue << "NO" << fg_reset << endl;
 #endif
 
-    outstr << std::endl;
+    outstr << endl;
 
  #ifdef USE_GIDPOST
     outstr << "USE_GIDPOST:           "
-           << fg_blue << "YES" << fg_reset << std::endl;
+           << fg_blue << "YES" << fg_reset << endl;
     outstr << "CFS_GIDPOST_VERSION:   "
-           << fg_blue << CFS_GIDPOST_VERSION << fg_reset << std::endl;
+           << fg_blue << CFS_GIDPOST_VERSION << fg_reset << endl;
  #else
     outstr << "USE_GIDPOST:           "
-           << fg_blue << "NO" << fg_reset << std::endl;
+           << fg_blue << "NO" << fg_reset << endl;
  #endif
 
  #ifdef USE_GMV_INPUT
     outstr << "USE_GMV_INPUT:         "
-           << fg_blue << "YES" << fg_reset << std::endl;
+           << fg_blue << "YES" << fg_reset << endl;
  #else
     outstr << "USE_GMV_INPUT:         "
-           << fg_blue << "NO" << fg_reset << std::endl;
+           << fg_blue << "NO" << fg_reset << endl;
  #endif
 
  #ifdef USE_GMV_OUTPUT
     outstr << "USE_GMV_OUTPUT:        "
-           << fg_blue << "YES" << fg_reset << std::endl;
+           << fg_blue << "YES" << fg_reset << endl;
  #else
     outstr << "USE_GMV_OUTPUT:        "
-           << fg_blue << "NO" << fg_reset << std::endl;
+           << fg_blue << "NO" << fg_reset << endl;
 #endif
 
  #ifdef USE_HDF5
     outstr << "USE_HDF5:              "
-           << fg_blue << "YES" << fg_reset << std::endl;
+           << fg_blue << "YES" << fg_reset << endl;
     outstr << "CFS_HDF5_VERSION:      "
-           << fg_blue << CFS_HDF5_VERSION << fg_reset << std::endl;
-    outstr << "CFS_ZLIB_VERSION:      "
-           << fg_blue << CFS_ZLIB_VERSION << fg_reset << std::endl;
+           << fg_blue << CFS_HDF5_VERSION << fg_reset << endl;
  #else
     outstr << "USE_HDF5:              "
-           << fg_blue << "NO" << fg_reset << std::endl;
+           << fg_blue << "NO" << fg_reset << endl;
 #endif
 
  #ifdef USE_MESH
     outstr << "USE_MESH:              "
-           << fg_blue << "YES" << fg_reset << std::endl;
+           << fg_blue << "YES" << fg_reset << endl;
  #else
     outstr << "USE_MESH:              "
-           << fg_blue << "NO" << fg_reset << std::endl;
+           << fg_blue << "NO" << fg_reset << endl;
  #endif
 
  #ifdef USE_UNV
     outstr << "USE_UNV:               "
-           << fg_blue << "YES" << fg_reset << std::endl;
+           << fg_blue << "YES" << fg_reset << endl;
  #else
     outstr << "USE_UNV:               "
-           << fg_blue << "NO" << fg_reset << std::endl;
+           << fg_blue << "NO" << fg_reset << endl;
 #endif
 
-    outstr << std::endl;
-    outstr << "CFS_BOOST_VERSION:     "
-           << fg_blue << CFS_BOOST_VERSION << fg_reset << std::endl;
-    outstr << std::endl;
-    outstr << "CFS_METIS_VERSION:     "
-           << fg_blue << CFS_METIS_VERSION << fg_reset << std::endl;
-    outstr << std::endl;
-
+    outstr << endl;
 
 #ifdef USE_XERCES
     outstr << "USE_XERCES:            "
-           << fg_blue << "YES" << fg_reset << std::endl;
+           << fg_blue << "YES" << fg_reset << endl;
     outstr << "CFS_XERCES_VERSION:    "
-           << fg_blue << CFS_XERCES_VERSION << fg_reset << std::endl;
-    outstr << "XMLSCHEMA:             "
-           << fg_blue << XMLSCHEMA << fg_reset << std::endl;
+           << fg_blue << CFS_XERCES_VERSION << fg_reset << endl;
+    outstr << "XMLSCHEMA:             ";
+    if(progOpts) {  
+      outstr << fg_blue << progOpts->GetSchemaPath() << fg_reset << endl;
+    } else {
+      outstr << fg_blue << XMLSCHEMA << fg_reset << endl;
+    }
+    
+    
+#else
     outstr << "USE_XERCES:            "
-           << fg_blue << "NO" << fg_reset << std::endl;
+           << fg_blue << "NO" << fg_reset << endl;
 #endif
 
-    outstr << "USE_ANSYSRST:          "
-           << fg_blue << "YES" << fg_reset << std::endl;
-    outstr << "CFS_ANSYS_VERSION:    "
-           << fg_blue << CFS_ANSYS_VERSION << fg_reset << std::endl;
+    outstr << endl;
 
+#ifdef USE_ANSYSCRT
+    outstr << "USE_ANSYSRST:          "
+           << fg_blue << "YES" << fg_reset << endl;
+    outstr << "CFS_ANSYS_VERSION:    "
+           << fg_blue << CFS_ANSYS_VERSION << fg_reset << endl;
+#else
+    outstr << "USE_ANSYSRST:          "
+           << fg_blue << "NO" << fg_reset << endl;
+#endif
+
+    outstr << endl;
+#ifdef MpCCI
+    outstr << "MpCCI:                 "
+           << fg_blue << "YES" << fg_reset << endl;
+    outstr << "MpCCI_RELEASE:         "
+           << fg_blue << MpCCI_RELEASE
+           << fg_reset << endl;
+#else
+    outstr << "MpCCI:                 "
+           << fg_blue << "NO" << fg_reset << endl;
+#endif
+    
+    outstr << endl;
+    outstr << "CFS_BOOST_VERSION:     "
+           << fg_blue << CFS_BOOST_VERSION << fg_reset << endl;
+    outstr << "CFS_ZLIB_VERSION:      "
+           << fg_blue << zlibVersion() << fg_reset << endl;
+    outstr << "CFS_BZIP2_VERSION:     "
+           << fg_blue << BZ2_bzlibVersion() << fg_reset << endl;
+    outstr << "CFS_MUPARSER_VERSION:  "
+           << fg_blue << CFS_MUPARSER_VERSION << fg_reset << endl;
+
+   
+#ifdef CPLREADER_CFX
+    outstr << "CFX_IO_VERSION:        "
+           << fg_blue << io_get_version() << fg_reset << endl;
+#endif
+
+    outstr << endl;
+    outstr << "sizeof(int)            "  << fg_blue << sizeof(int) << fg_reset << endl;
+    outstr << "sizeof(Integer)        "  << fg_blue << sizeof(Integer) << fg_reset << endl;
+    outstr << "sizeof(size_t)         "  << fg_blue << sizeof(size_t) << fg_reset << endl;
+    outstr << "sizeof(long)           "  << fg_blue << sizeof(long) << fg_reset << endl;    
+    outstr << "sizeof(double)         "  << fg_blue << sizeof(double) << fg_reset << endl;    
+    outstr << "sizeof(double*)        "  << fg_blue << sizeof(double*) << fg_reset << endl;    
+    
+    
   ColoredConsole::colorise = colTmp;
   }
 
   void ProgramOptions::GetHistoryString( std::ostream & out)
   {
-    out << "This is a incomplete revision history. It starts with the new versioning schema:" << std::endl
-        << " * CFS-Version: <yy>.<mm> with two digits for year and month" << std::endl
-        << " * CFS-Name:    Changing name on every major release" << std::endl
-        << std::endl
-        << "08.12, (pre) Kerniger Kaerntner" << std::endl
-        << "  Sneak preview of the 'Kerniger Kaerntner' release which will bring the" << std::endl
-        << "  brand new OLAS from the MACHETE branch. But here only first steps of" << std::endl
-        << "  the info.xml file." << std::endl
-        << std::endl
-        << "09.03, Maehende Machete" << std::endl
-        << "  This finally is the famous MACHETE branch with a 0-based OLAS, unified" << std::endl
-        << "  matrix and vector classes and the brand new CFSDEPS building matching libs." << std::endl
-        << std::endl;
+    out << "This is a incomplete revision history. It starts with the new versioning schema:" << endl
+        << " * CFS-Version: <yy>.<mm> with two digits for year and month" << endl
+        << " * CFS-Name:    Changing name on every major release" << endl
+        << endl
+        << "08.12, (pre) Kerniger Kaerntner" << endl
+        << "  Sneak preview of the 'Kerniger Kaerntner' release which will bring the" << endl
+        << "  brand new OLAS from the MACHETE branch. But here only first steps of" << endl
+        << "  the info.xml file." << endl
+        << endl
+        << "09.03, Maehende Machete" << endl
+        << "  This finally is the famous MACHETE branch with a 0-based OLAS, unified" << endl
+        << "  matrix and vector classes and the brand new CFSDEPS building matching libs." << endl
+        << endl
+        << "09.05, Rasanter Rechner" << endl
+        << "  This brings back ILUPACK by M. Bollhoefer, a very fast iterative preconditioner/" << endl
+        << "  solver package which beats PARDISO for large 3D problems. The OLAS info.xml output" << endl
+        << "  is in the early feet." << endl;    
   }
 
   void ProgramOptions::GetHeaderString(std::ostream & out)
@@ -736,22 +838,22 @@ namespace CoupledField {
     {
       out << ">> CFS++ '" << CFS_VERSION << " " << CFS_NAME << "'"
           << " Compiled: '" << __DATE__ << "'"
-          << " Build: '" << CMAKE_BUILD_TYPE << "'" << std::endl;
+          << " Build: '" << CMAKE_BUILD_TYPE << "'" << endl;
     }
     else
     {
       // CFS_VERSION and CFS_NAME are to be set in source/CMakeLists.txt
-      out << std::endl
+      out << endl
           << "============================================================"
-          << "===========" << std::endl;
-      out << " CFS++ - Coupled Field Simulation" << std::endl << std::endl
+          << "===========" << endl;
+      out << " CFS++ - Coupled Field Simulation" << endl << endl
           << " v. " << CFS_VERSION << " - '" << CFS_NAME << "'"
-          << " (rev " << CFS_SUBVERSION_REV << ")" << std::endl
+          << " (rev " << CFS_SUBVERSION_REV << ")" << endl
           << " compiled " << __DATE__
-          << " as " << CMAKE_BUILD_TYPE << std::endl;
+          << " as " << CMAKE_BUILD_TYPE << endl;
       out << "============================================================"
           << "==========="
-          << std::endl << std::endl;
+          << endl << endl;
     }
   }
 }

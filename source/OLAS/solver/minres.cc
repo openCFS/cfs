@@ -68,7 +68,7 @@ namespace CoupledField {
   //   Setup (public version)
   // **************************
   template<typename T>
-  void MINRESSolver<T>::Setup( BaseMatrix &sysMat ) {
+  void MINRESSolver<T>::Setup( BaseMatrix &sysMat, InfoNode* analysis_step) {
     PrivateSetup( sysMat );
   }
 
@@ -77,7 +77,7 @@ namespace CoupledField {
   //   Setup (private version)
   // ***************************
   template<typename T>
-  void MINRESSolver<T>::PrivateSetup( const BaseMatrix &sysMat ) {
+  void MINRESSolver<T>::PrivateSetup( const BaseMatrix &sysMat) {
 
 
     // Test, whether the problem dimension has changed
@@ -165,7 +165,7 @@ namespace CoupledField {
   template<typename T>
   void MINRESSolver<T>::Solve( const BaseMatrix &sysMat,
                                const BasePrecond &precond,
-                               const BaseVector &rhs, BaseVector &sol ) {
+                               const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_step ) {
 
 
     // ----------------------------------------

@@ -97,14 +97,12 @@ namespace CoupledField {
 
       if(regionList.GetSize() > 0) 
       {
-        InfoNode* list = in->Get("regions");
-        
         for( UInt i = 0; i < regionList.GetSize(); i++ ) 
         {
           std::string regionName = regionList[i]->Get("name")->AsString(); 
           RegionIdType regionId = ptGrid_->RegionNameToId( regionName ); 
 
-          list->Get("region", InfoNode::APPEND)->Get("name")->SetValue(regionName);
+          in->Get("region", InfoNode::APPEND)->Get("name")->SetValue(regionName);
 
           subdoms_.Push_back( regionId );
           entityLists_.Push_back( ptGrid_->
@@ -420,9 +418,9 @@ namespace CoupledField {
     // Iterate over all availabe results
     for (it = availResults_.begin(); it != availResults_.end(); it++ ) {
       
-     
+      
       // Convert enum
-      Enum2String( (*it)->resultType, quantity );
+      quantity = SolutionTypeEnum.ToString((*it)->resultType);
       
       // try to catch possible errors 
       try {
@@ -713,9 +711,8 @@ namespace CoupledField {
       for( UInt i = 0; i < actList.GetSize(); i++ ) {
 
         // get string representation of quantity and entity list
-        std::string quantity, listName;
-        Enum2String( actList[i]->GetResultInfo()->resultType,
-                     quantity);
+        std::string listName;
+        std::string quantity = SolutionTypeEnum.ToString(actList[i]->GetResultInfo()->resultType);
         listName = actList[i]->GetEntityList()->GetName();
 
         // Only calculate result, if needed

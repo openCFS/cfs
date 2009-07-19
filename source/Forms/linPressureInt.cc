@@ -38,31 +38,32 @@ namespace CoupledField {
   PressureLinForm::~PressureLinForm() {
   }
 
-
-
-  void PressureLinForm::CalcElemVector( Vector<Double> & elemVec,
-                                        EntityIterator& ent ) {
-
-    // compute element vector
-    PrepareElemVec( elemVec, ent );
-    
+  double PressureLinForm::GetPressureFactor(const SurfElem* elem){
     // register global coordinates of element midpoint
-    Elem * ptVolElem = actElem_->ptVolElem1;
-    RegisterSurfElemMidPoint( mHandle_, ent.GetSurfElem(), ptVolElem );
+    Elem* ptVolElem = elem->ptVolElem1;
+    RegisterSurfElemMidPoint( mHandle_, elem, ptVolElem );
     
     // evaluate value for current element
     mParser_->SetExpr( mHandle_, value_ );
-    Double factor = mParser_->Eval( mHandle_ );
+    double factor = mParser_->Eval( mHandle_ );
 
     // When we do SIMP of an Piezo we might have pressure and charge density
     // on surface elements. Then scale our element contribution by the corresponding
     // volume element which has the scaling factor.
     double density = GetErsatzMaterialFactor(ptVolElem);
-    factor *= density;
+    return(factor * density);
+  }
     
+  void PressureLinForm::CalcElemVector( Vector<Double> & elemVec,
+                                        EntityIterator& ent ) {
+
+    // compute element vector
+    PrepareElemVec( elemVec, ent );
+
+    double factor = GetPressureFactor(actElem_);
+
     LOG_DBG3(forms) << "PressureLinForm::CalcElemVector<double> elem=" 
-                    << actElem_->elemNum << " peseudo density=" << density
-                    << " factor=" << factor; 
+                    << actElem_->elemNum << " (peseudo density * factor) =" << factor;
     
     // multiply element vector with factor
     elemVec *= factor;

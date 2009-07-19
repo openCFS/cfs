@@ -423,8 +423,10 @@ namespace CoupledField
         }
         for (UInt i = 0; i < masterElems.GetSize(); ++i) {
           for(UInt j = 0; j < slaveElems.GetSize(); ++j) {
-            if((masterElems[i]->ptElem != ptQ1 && masterElems[i]->ptElem != ptQ2) ||
-                (slaveElems[j]->ptElem != ptQ1 && slaveElems[j]->ptElem != ptQ2))
+            BaseFE* m_el = masterElems[i]->ptElem;
+            BaseFE* s_el = slaveElems[j]->ptElem;
+            if ( (m_el != ptQ1 && m_el != ptQ2 && m_el != ptQ9)
+               ||(s_el != ptQ1 && s_el != ptQ2 && s_el != ptQ9))
             {
               EXCEPTION("Only quadrilaterals can be intersected with coaxial "
                         << "rectangle algorithm.");
@@ -446,14 +448,15 @@ namespace CoupledField
             BaseFE* m_el = masterElems[i]->ptElem;
             BaseFE* s_el = slaveElems[j]->ptElem;
             if ( (m_el != ptTr1 && m_el != ptQ1 && m_el != ptQ2 && m_el != ptQ9 && m_el != ptTr2)
-               ||(s_el != ptTr1 && s_el != ptQ1 && s_el != ptQ2 && m_el != ptQ9 && s_el != ptTr2))
+               ||(s_el != ptTr1 && s_el != ptQ1 && s_el != ptQ2 && s_el != ptQ9 && s_el != ptTr2))
             {
               EXCEPTION("Only triangles and quadrilaterals can be intersected"
                         << " with polygon algorithm.");
             }
 
             if (PolygonOnPolygon(masterElems[i], slaveElems[j], ncIf.coplanar,
-                                 ncIf.rotationAngle != 0.0, ncElems))
+                                 ncIf.rotationAngle != 0.0, ncElems,
+                                 ncIf.tolAbs, ncIf.tolRel))
             {
               LOG_DBG3(grid) << "Intersection between "
                 << masterElems[i]->elemNum << " and "
@@ -852,9 +855,11 @@ namespace CoupledField
     Vector<Double> diffS, diffX, diffY, diffX2;
     Vector<Double> s, t;
     StdVector<UInt> connect2;
-    Double distX, distY, facX, facY, r;
+    Double distX, distY, distX2, facX, facY, r;
     UInt nodeNr;
-    const Double tol_r = 1e-5;
+    // Introduce a tolerance to account for roundoff errors during the calculation of
+    // normed new x base vector. 
+    Double tol_r;
 
     s.Resize(4);
     t.Resize(4);
@@ -913,8 +918,15 @@ namespace CoupledField
     s[3] *= facY;
 
     // Determine the orientation of the second rectangle
+    // to make sure that the edges which connect c0 and c1
+    // are parallel to the edges which connect d0 and d1.
     diffX2 = d1 - d0;
+    distX2 = diffX2.NormL2();
     diffX.Inner(diffX2, r);
+
+    // Set the tolerance for determining if the edges 
+    // mentioned in the last comment are parallel.
+    tol_r = distX2 < distX ? distX2 / 10 : distX / 10;
 
     // Bring the x- and y-coordinates of the intersection
     // into an order, where the smaller coordinates come

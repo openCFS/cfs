@@ -37,7 +37,7 @@ namespace CoupledField
     //void PostStepTrans();
 
     //! solves for one nonlinear transient step 
-    void StepTransNonLin();
+    void StepTransNonLin(InfoNode* analysis_id);
 
   private:
   };

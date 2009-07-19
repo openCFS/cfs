@@ -58,7 +58,7 @@ namespace CoupledField {
     };
 
     //! Resize the vector to new size 
-    virtual void Resize( UInt newSize, bool init = false )
+    virtual void Resize( UInt newSize )
     {
       throw Exception("not implemented");
     }

@@ -1,5 +1,6 @@
 #include <def_use_ipopt.hh>
 #include <def_use_scpip.hh>
+#include <map>
 
 #include "Optimization/Optimization.hh"
 #include "Optimization/SIMP.hh"
@@ -9,6 +10,8 @@
 #include "Optimization/OptimalityCondition.hh"
 #include "Optimization/LevelSet.hh"
 #include "Optimization/EvaluateOnly.hh"
+#include "Optimization/ShapeOptimizer.hh"
+#include "Optimization/ShapeGrad.hh"
 #include "Optimization/GradientCheck.hh"
 #include "Optimization/ParamMat.hh"
 #include "Optimization/OptimizationMaterial.hh"
@@ -18,6 +21,8 @@
 #include "Driver/harmonicDriver.hh"
 #include "Driver/singleDriver.hh"
 #include "PDE/StdPDE.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/mechPDE.hh"
 #include "Domain/domain.hh"
 #include "Domain/grid.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -27,6 +32,7 @@
 #include "DataInOut/programOptions.hh"
 #include "General/exception.hh"
 #include <boost/filesystem.hpp>
+#include "Optimization/ShapeOpt.hh"
 
 // IPOPT and SCPIP are not necessarily linked
 #ifdef USE_IPOPT
@@ -62,6 +68,8 @@ Optimization::Objective::Objective(ParamNode* pn, bool harmonic)
   this->omega_omega_ = pn->Has("factor") ? pn->Get("factor")->Get("omega_omega")->AsBool() : false;
   if(!harmonic && omega_omega_)
     throw Exception("It makes no sense to set costFunction/factor/omega_omega in static optimization");
+  
+  this->tychonoff_  = pn->Has("tychonoff") ? pn->Get("tychonoff")->AsDouble() : 0.0;
 
   type = objectiveType.Parse(pn->Get("type"));
 
@@ -81,10 +89,7 @@ void Optimization::Objective::ToInfo(InfoNode* in) const
   in->Get("type")->SetValue(objectiveType.ToString(type));
   in->Get("task")->SetValue(task == MINIMIZE ? "minimize" : "maximize");
   if(harmonic_)
-  {
     in->Get("factor")->Get("omega_omega")->SetValue(omega_omega_);
-    if(omega_omega_) in->Get("factor")->Get("omega_omega")->SetComment("treates displacement^2 as velocity^2");
-  }
 }
 
 double Optimization::Objective::GetValue()
@@ -141,6 +146,9 @@ Optimization::Optimization()
   this->commitStride = pn->Has("commit") ? pn->Get("commit")->Get("stride")->AsInt() : 1;
   optInfoNode->Get("commit")->Get("mode")->SetValue(cm);
   optInfoNode->Get("commit")->Get("stride")->SetValue(commitStride);
+  
+  // write out the directory where the HALTOPT file will be searched for
+  optInfoNode->Get("haltopt_directory")->SetValue(fs::current_path().directory_string());
 
   // the constraints are optional and might not be real constraints!
   StdVector<ParamNode*> list = pn->GetList("constraint");
@@ -168,6 +176,15 @@ Optimization::Optimization()
     logFile_ = new ofstream(log_name.c_str());
     if(logFile_ == NULL)
       throw Exception("cannot open log file " + pn->Get("log")->AsString() + " for writing");
+    this->logDesign = pn->Get("logdesign")->AsBool();
+    this->logDesignGradient = pn->Get("logdesigngradient")->AsBool();
+  }
+
+  // remove a stop file, if found
+  if(fs::exists("HALTOPT"))
+  {
+    bool good = fs::remove("HALTOPT");
+    if(!good) throw new Exception("Could not remove file 'HALTOPT' after detection");
   }
 }
 
@@ -224,8 +241,8 @@ void Optimization::PostInitSecond()
          baseOptimizer_ = new OptimalityCondition(this, opt);
          break;
 
-    case LEVEL_SET:
-         baseOptimizer_ = new LevelSet(this, opt);
+    case SHAPE_SOLVER:
+         baseOptimizer_ = new ShapeOptimizer(this, opt);
          break;
 
     case EVALUATE_INITIAL_DESIGN:
@@ -237,6 +254,18 @@ void Optimization::PostInitSecond()
          break;
 
     default: throw Exception("optimizer not implemented");
+  }
+  if (this->logDesign) {
+    for (unsigned int i = 0; i < design->GetNumberOfVariables(); i++) {
+      this->logFileHeader += "\t";
+      this->logFileHeader += "design";
+    }
+  }
+  if (this->logDesignGradient) {
+    for (unsigned int i = 0; i < design->GetNumberOfVariables(); i++) {
+      this->logFileHeader += "\t";
+      this->logFileHeader += "designGradient";
+    }
   }
   design->SetOptimizer(baseOptimizer_);
   // add plot logging of the optimizer
@@ -250,11 +279,13 @@ void Optimization::SetEnums()
   objectiveType.Add(COMPLIANCE, "compliance");
   objectiveType.Add(OUTPUT, "output");
   objectiveType.Add(DYNAMIC_OUTPUT, "dynamicOutput");
+  objectiveType.Add(ABS_DYN_OUTPUT_SQUARED, "absDynamicOutputSquared");
   objectiveType.Add(GLOBAL_DYNAMIC_COMPLIANCE, "globalDynamicCompliance");
   objectiveType.Add(CONJUGATE_COMPLIANCE, "conjugateCompliance");
   objectiveType.Add(VOLUME, "volume");
   objectiveType.Add(TRACKING, "tracking");
   objectiveType.Add(ELEC_ENERGY, "elecEnergy");
+  objectiveType.Add(HOMOGENIZATION, "homogenization");
 
   Condition::name.SetName("Contraint::Name");
   Condition::name.Add(Condition::VOLUME, "volume");
@@ -262,6 +293,7 @@ void Optimization::SetEnums()
   Condition::name.Add(Condition::GREYNESS, "greyness");
   Condition::name.Add(Condition::GAUSS_GREYNESS, "gaussGreyness");
   Condition::name.Add(Condition::TRACKING, "tracking");
+  Condition::name.Add(Condition::REALVOLUME, "realvolume");
 
   Condition::type.SetName("Contraint::Type");
   Condition::type.Add(Condition::EQUAL, "equal");
@@ -272,7 +304,7 @@ void Optimization::SetEnums()
   optimizer.Add(OPTIMALITY_CONDITION, "optimalityCondition");
   optimizer.Add(IPOPT_SOLVER, "ipopt");
   optimizer.Add(SCPIP_SOLVER, "scpip");
-  optimizer.Add(LEVEL_SET, "levelSet");
+  optimizer.Add(SHAPE_SOLVER, "shapeOpt");
   optimizer.Add(EVALUATE_INITIAL_DESIGN, "evaluateInitialDesign");
   optimizer.Add(GRADIENT_CHECK, "gradientCheck");
 
@@ -280,7 +312,9 @@ void Optimization::SetEnums()
   ErsatzMaterial::method.Add(ErsatzMaterial::SIMP_METHOD, "simp");
   ErsatzMaterial::method.Add(ErsatzMaterial::PARAM_MAT, "paramMat");
   ErsatzMaterial::method.Add(ErsatzMaterial::SHAPE_GRAD, "shapeGrad");
-
+  ErsatzMaterial::method.Add(ErsatzMaterial::SHAPE_OPT, "shapeOpt");
+  ErsatzMaterial::method.Add(ErsatzMaterial::SHAPE_PARAM_MAT, "shapeParamMat");
+  
   ErsatzMaterial::commitMode.SetName("ErsatzMaterial::CommitMode");
   ErsatzMaterial::commitMode.Add(ErsatzMaterial::FORWARD, "forward");
   ErsatzMaterial::commitMode.Add(ErsatzMaterial::ADJOINT, "adjoint");
@@ -301,9 +335,8 @@ void Optimization::SetEnums()
 
   LevelSet::Action::type.SetName("LevelSet::Action::Type");
   LevelSet::Action::type.Add(LevelSet::Action::SIGNED_DISTANCE_FIELD, "signedDistanceField");
-  LevelSet::Action::type.Add(LevelSet::Action::TOP_GRAD, "topGrad");
   LevelSet::Action::type.Add(LevelSet::Action::TRIVIAL_HOLE, "trivialHole");
-  LevelSet::Action::type.Add(LevelSet::Action::FIRST_ORDER_FD, "firstOrderFiniteDifferences");
+  LevelSet::Action::type.Add(LevelSet::Action::DO_SHAPE_STEP, "shapeStep");
 }
 
 
@@ -379,13 +412,21 @@ Optimization* Optimization::CreateInstance()
   case ErsatzMaterial::PARAM_MAT:
     opt = new ParamMat();
     break;
-    
+  case ErsatzMaterial::SHAPE_OPT:
+  case ErsatzMaterial::SHAPE_PARAM_MAT:
+    opt = new ShapeOpt();
+    break;
+  case ErsatzMaterial::SHAPE_GRAD:
+  {
+    opt = new ShapeGrad();
+    break;
+  }
   default: throw Exception("Optimization not implemented");
   }
   
-  // second initialzation phase, constrcuts material
+  // second initialization phase, constructs material
   opt->PostInit();
-  // third initizalization phase, constructs optimizer
+  // third initialization phase, constructs optimizer
   opt->PostInitSecond();
 
   return opt;
@@ -405,30 +446,31 @@ void Optimization::SolveProblem()
   rh->Finalize();
 }
 
-string Optimization::GetSolveComment(Excitation* excite)
+
+InfoNode* Optimization::CreateAdjointAnalysisIdNode()
 {
-  ostringstream os;
-  os << "iter"<< currentIteration;
-  if(excite != NULL)
-  {
-    if(excite->f_link > 0) os << "_f_" << excite->frequency;
-    if(!excite->load)  os << "_f_load_idx" << excite->index;
-  }
-  if(problemWithinIteration > 0) os << "_cnt" << problemWithinIteration;
-  return os.str();
+  BaseDriver* driver = domain->GetDriver();
+  InfoNode* base = driver->GetAnalysisId();
+  InfoNode* in = driver->CreateAnalysisIdChild(base, "adjoint");
+  
+  return in;
 }
+
 
 void Optimization::SolveStateProblem(Excitation* excite)
 {
   BaseDriver* driver = domain->GetDriver();
 
-  // we solve, give a part of the filename in case we use export linear system
-  // but do not store the results. This is to be done in CommitIteration
-  string comment = GetSolveComment(excite);
-  if(!harmonic || excite == NULL)
-    driver->SolveProblem(false, comment);
+  // this is the forward problem. Store the analysis_id in the driver such that
+  // we can aquire it for the adjoint problem
+  InfoNode* analysis_id = excite == NULL ? driver->CreateAnalysisId("iter", currentIteration)
+                                         : driver->CreateAnalysisId("iter", currentIteration, "excite", excite->index);
+                                         
+  // Do not store the results. This is to be done in CommitIteration
+  if(!harmonic || excite == NULL) 
+    driver->SolveProblem(false, analysis_id);
   else
-    dynamic_cast<HarmonicDriver*>(driver)->ComputeFrequencyStep(excite->f_link->step, comment);
+    dynamic_cast<HarmonicDriver*>(driver)->ComputeFrequencyStep(excite->f_link->step, analysis_id);
 
   problemSolvedCounter++;
   problemWithinIteration++;
@@ -449,7 +491,7 @@ double Optimization::CalcSymmetry(DesignElement::Type de, DesignElement::ValueSp
 
   int max = (int) design->data.GetSize();
   double sum = 0;
-  // we assume the first element (1) be in the lower left corner and then a lexicaly
+  // we assume the first element (1) be in the lower left corner and then a lexical
   // ordering to right and then the rows up.
   for(int i = 0; i < edge/2; i++)
   {
@@ -591,6 +633,27 @@ void Optimization::LogFileLine(ofstream* out, InfoNode* iteration)
     iteration->Get(outputs[i].ToString())->SetValue(value);
   }
 
+  for(unsigned int i = 0; i < outputs.GetSize(); i++)    
+    *out << "\t" << CalcConstraint(&outputs[i]);
+  
+  if(logDesign){
+    StdVector<double> d;
+    d.Resize(design->GetNumberOfVariables());
+    design->WriteDesignToExtern(d.GetPointer(), false);
+    for(unsigned int i = 0; i < design->GetNumberOfVariables(); i++){
+      *out << "\t" << d[i];
+    }
+  }
+  
+  if(logDesignGradient){
+    StdVector<double> d;
+    d.Resize(design->GetNumberOfVariables());
+    design->WriteGradientToExtern(d.GetPointer(), DesignElement::COST_GRADIENT, DesignElement::PLAIN, NULL, false);
+    for(unsigned int i = 0; i < design->GetNumberOfVariables(); i++){
+      *out << "\t" << d[i];
+    }
+  }
+
   out->flush();
 }
 
@@ -666,17 +729,18 @@ Excitation::Excitation()
   this->f_link = NULL;
   this->weight = 1.0;
   this->normalized_weight = 1.0;
-
+  this->apply_linForms = false;
 }
 
 
 void Excitation::Apply()
 {
-  if(load)
-  {
-    LoadList ll;
-    ll.Push_back(load);
-    domain->GetBasePDE()->getPDE_assemble()->SetLoads(ll);
+  Assemble* a = domain->GetBasePDE()->getPDE_assemble();
+  if(apply_linForms){
+    a->SetLoads(loads);
+    a->SetLinForms(linForms);
+  }else if(! loads.IsEmpty()){
+    a->SetLoads(loads);
   }
   // a frequency cannot really be applied but has to be used as parameter
   // in the driver call
@@ -705,4 +769,61 @@ double Excitation::GetFactor(Optimization::Objective* cost)
 double Excitation::GetWeightedFactor(Optimization::Objective* cost)
 {
   return normalized_weight * GetFactor(cost);
+}
+
+void Excitation::ReadTrackings(ParamNode* ts){
+  StdPDE* mech = domain->GetStdPDE("mechanic");
+  trackings.Clear();
+  StdVector<ParamNode*> tracking_list = ts->GetChildren();
+  for(unsigned int i = 0; i < tracking_list.GetSize(); i++){
+    std::string name, dof, value;
+    dof = "";
+    tracking_list[i]->Get("name", name);
+    tracking_list[i]->Get("dof", dof, false);
+    tracking_list[i]->Get("value", value);
+    shared_ptr<LoadBc> actLoad( new LoadBc );
+    shared_ptr<EntityList> actList = domain->GetGrid()->GetEntityList( EntityList::NODE_LIST, name, EntityList::NAMED_NODES );
+    actLoad->entities = actList;
+    actLoad->eqnMap = mech->GetEqnMap();
+    if ( dof == "" ) {
+      actLoad->dof = 1;
+    } else {
+      actLoad->dof = mech->GetResultInfo(MECH_DISPLACEMENT)->GetDofIndex(dof);
+    }
+    actLoad->value = value;
+    trackings.Push_back(actLoad);
+  }
+}
+
+void Excitation::ReadLoads(ParamNode* ls)
+{
+  apply_linForms = true;
+  
+  // loads
+  loads.Clear();
+  MechPDE* mech = (MechPDE*)domain->GetSinglePDE("mechanic");
+  mech->ReadLoads(ls->GetList("load"), loads);
+
+  linForms.clear();
+  
+  // pressures
+  StdVector<shared_ptr<EntityList> > pressSurf;
+  StdVector<std::string> pressVals;
+  StdVector<std::string> pressPhase;
+  mech->ReadPressureLoadsFromXML(ls, pressSurf, pressVals, pressPhase);
+  mech->DefinePressureIntegrators(pressSurf, pressVals, pressPhase, &linForms);
+  
+  // teststrains
+  mech->ReadPreStrainingFromXML(ls, test_strain);
+  if(test_strain.GetSize() > 0)
+    mech->DefineTestStrainIntegrators(test_strain, &linForms);
+  
+  // regionLoads
+  std::map<RegionIdType, SinglePDE::RegionLoad> regionLoads;
+  mech->ReadRegionLoadsFromXML(ls, regionLoads);
+  mech->DefineRegionLoadIntegrators(regionLoads, &linForms);
+  
+  // all already set linear Forms
+  std::set<LinearFormContext*>* assLinForms = domain->GetBasePDE()->getPDE_assemble()->GetLinForms();
+  linForms.insert(assLinForms->begin(), assLinForms->end());
 }

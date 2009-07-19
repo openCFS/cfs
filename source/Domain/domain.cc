@@ -934,6 +934,11 @@ namespace CoupledField {
       EXCEPTION("ErsatzMaterialFile has " << elems.GetSize() << " entries, the model has "
                 << ersatzMaterial->data.GetSize() << " entries");
 
+    // check if we ignore the element numbers
+    bool ignore_numbers = pn->Get("ignore_element_numbers")->AsBool();
+    if(ignore_numbers && region_list.GetSize() != 1)
+      EXCEPTION("'ignore_element_numbers' in 'loadErsatzMaterial' only allowed for a single region");
+    
     for(unsigned int e = 0; e < elems.GetSize(); e++)
     {
       unsigned int nr = elems[e]->Get("nr")->AsInt();
@@ -941,7 +946,7 @@ namespace CoupledField {
       double val = elems[e]->Get("design")->AsDouble();
       
       // replace the value of the DesignElement
-      DesignElement* de = ersatzMaterial->Find(nr, dt);
+      DesignElement* de = ignore_numbers ? &(ersatzMaterial->data[e]) : ersatzMaterial->Find(nr, dt);
       // it should be possible to specify less regions then specified during optimization and saving of results 
       // if the element can not be found (e.g. lying in a not specified region) it is not set 
       if(de!=NULL){ 

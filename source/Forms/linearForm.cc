@@ -5,6 +5,7 @@
 #include <iostream>
 #include <fstream>
 #include <math.h>
+#include <memory>
 
 #include "linearForm.hh"
 #include "nLincurlCurlNodeInt.hh"
@@ -15,18 +16,11 @@
 
 namespace CoupledField {
 
-
   LinearForm::LinearForm( BaseMaterial* matData) : BaseForm( matData )
-  {
-  }
-
-
-
+  {}
 
   LinearForm::~LinearForm()
-  {
-  }
-
+  {}
 
   void LinearForm::CalcElemVector( Vector<Double> & result,
                                    EntityIterator& ent ) {
@@ -2324,24 +2318,21 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
 
     subTensorType_ = type;
     if ( type == AXI ) {
-      addStress_.Resize(4);
-      addStress_.Init();
+      addStress_.Resize(4, 0.0);
       addStress_[0] = stressVec[0];
       addStress_[1] = stressVec[1];
       addStress_[2] = stressVec[5];
       addStress_[3] = stressVec[2];
     }
     else if ( type == PLANE_STRAIN ) {
-      addStress_.Resize(3);
-      addStress_.Init();
+      addStress_.Resize(3, 0.0);
       addStress_[0] = stressVec[0];
       addStress_[1] = stressVec[1];
       addStress_[2] = stressVec[5];
 
     }
     else if ( type == FULL ) {
-      addStress_.Resize(6);
-      addStress_.Init();
+      addStress_.Resize(6, 0.0);
       addStress_[0] = stressVec[0];
       addStress_[1] = stressVec[1];
       addStress_[2] = stressVec[2];
@@ -2356,9 +2347,8 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
   }
 
   void AddStressRHSInt::CalcElemVector( Vector<Double> & elemVec,
-					 EntityIterator& ent )
+      EntityIterator& ent )
   {
-
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
 
@@ -2370,44 +2360,117 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Vector<Double> piolaStressVec;    
     Vector<Double> partElemVec;
-  
+
     Matrix<Double> linBMat; 
     Matrix<Double> transpB;    // we need transposed of the b-matrices
-  
-    linElastInt* bilinearStiff = new linElastInt(matData_, subTensorType_);
+
+    // probably need to extract element info for this linElastInt too! 
+    // see AddStrainRHSInt::CalcElemVector
+    // auto_ptr deletes itself
+    const std::auto_ptr<linElastInt> bilinearStiff(new linElastInt(matData_, subTensorType_));
 
     partElemVec.Resize(nrNodes * nrDofs);
     partElemVec.Init();
-  
+
     elemVec.Resize(nrNodes*nrDofs);
     elemVec.Init();
-  
-  
+
+
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
-      {    
-        bilinearStiff->calcBMatOnly(linBMat, actIntPt, ptelem, ptCoord_);
-      
-	linBMat.Transpose(transpB);
-      
-        partElemVec = transpB * addStress_;
-      
-        Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_,
-                                                    ent.GetElem());
-      
-        if (isaxi_) {
-	  Vector<Double> shpFncAtIp;
-	  Vector<Double> coordAtIP;
-	  ptelem->GetShFncAtIp(shpFncAtIp, actIntPt, ent.GetElem() );
-	  coordAtIP = ptCoord_ * shpFncAtIp;
-	  jacDet *= 2 * PI * coordAtIP[0];
-	}
-      
-        partElemVec *= jacDet * intWeights[actIntPt-1];
-	elemVec +=  partElemVec;
+    {    
+      bilinearStiff->calcBMatOnly(linBMat, actIntPt, ptelem, ptCoord_);
+
+      linBMat.Transpose(transpB);
+
+      partElemVec = transpB * addStress_;
+
+      Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_,
+          ent.GetElem());
+
+      if (isaxi_) {
+        Vector<Double> shpFncAtIp;
+        Vector<Double> coordAtIP;
+        ptelem->GetShFncAtIp(shpFncAtIp, actIntPt, ent.GetElem() );
+        coordAtIP = ptCoord_ * shpFncAtIp;
+        jacDet *= 2 * PI * coordAtIP[0];
       }
 
+      partElemVec *= jacDet * intWeights[actIntPt-1];
+      elemVec +=  partElemVec;
+    }
     //    std::cout << "\n  Forcfe:\n" <<  elemVec << std::endl;
-    delete bilinearStiff;
   }
 
+  
+  
+  // ==================================================================
+  // linMech: add mechanical strain as force to RHS
+  // ==================================================================
+
+  AddStrainRHSInt::AddStrainRHSInt(BaseMaterial* matData,
+             const Vector<double>& strainVec, SubTensorType type)
+    : LinearForm(), matData_(matData), subTensorType_(type)
+  {
+    name_ = "AddStrainRHSInt";
+    
+    switch(subTensorType_)
+    {
+    case PLANE_STRAIN:
+      addStrain_.Resize(3, 0.0);
+      addStrain_[0] = strainVec[0];
+      addStrain_[1] = strainVec[1];
+      addStrain_[2] = strainVec[5]; // voigt notation
+      break;
+    case FULL:
+      addStrain_.Resize(6, 0.0);
+      addStrain_[0] = strainVec[0];
+      addStrain_[1] = strainVec[1];
+      addStrain_[2] = strainVec[2];
+      addStrain_[3] = strainVec[3];      
+      addStrain_[4] = strainVec[4];
+      addStrain_[5] = strainVec[5];
+      break;
+    default:
+      EXCEPTION("Subtensortype not implemented");
+    }
+  }
+
+  AddStrainRHSInt::~AddStrainRHSInt()
+  {
+  }
+
+  void AddStrainRHSInt::CalcElemVector(Vector<double> &elemVec, EntityIterator &ent)
+  {
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo(ent);
+    ptelem->SetAnsatzFct(ansatzFct1_);
+    const Vector<double> &intWeights = ptelem->GetIntWeights();
+  
+    // auto_ptr deletes itself
+    const std::auto_ptr<linElastInt> bilinearStiff(new linElastInt(matData_, subTensorType_));
+    // extract pointer and get coords again for the integrator
+    bilinearStiff->ExtractElemInfo(ent);
+    
+    // calc dMat and immediately calculate the element stress
+    Matrix<double> dMat;
+    bilinearStiff->calcDMat(dMat, ent.GetElem());
+    Vector<double> stress;
+    stress = dMat * addStrain_;
+
+    elemVec.Resize(ptelem->GetNumNodes() * ptelem->GetDim(), 0.0);
+    Matrix<double> linBMat;
+    Vector<double> partElemVec;
+        
+    for(unsigned int aIP = 1, nr = ptelem->GetNumIntPoints(); aIP <= nr; ++aIP)
+    {    
+      bilinearStiff->calcBMatOnly(linBMat, aIP, ptelem, ptCoord_);
+      linBMat.MultT(stress, partElemVec);
+
+      const double jacDet(ptelem->CalcJacobianDetAtIp(aIP, ptCoord_, ent.GetElem()));
+
+      partElemVec *= jacDet * intWeights[aIP-1];
+      elemVec += partElemVec;
+    }
+  }
+  
 } // end of namespace

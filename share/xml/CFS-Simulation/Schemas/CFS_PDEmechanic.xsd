@@ -115,6 +115,7 @@
                 <xsd:element name="regionLoad"     type="DT_MechRegionLoad"/>
                 <xsd:element name="surfStress"     type="DT_MechSurfStress"/>
                 <xsd:element name="preStress"      type="DT_MechPreStress"/>
+                <xsd:element name="testStrain"     type="DT_MechTestStrain"/>
                 <xsd:element name="constraint"     type="DT_MechCS"   />
                 <xsd:element name="periodic"       type="DT_MechPeriodic"   />
               </xsd:choice>
@@ -529,12 +530,16 @@
       <xsd:enumeration value="mechVelocity"/>
       <xsd:enumeration value="mechAcceleration"/>
       <xsd:enumeration value="mechRhsLoad"/>
+      <xsd:enumeration value="mechShape"/>
       <xsd:enumeration value="optResult_1"/>      
       <xsd:enumeration value="optResult_2"/>      
       <xsd:enumeration value="optResult_3"/>                  
       <xsd:enumeration value="optResult_4"/>
       <xsd:enumeration value="optResult_5"/>
       <xsd:enumeration value="optResult_6"/>
+      <xsd:enumeration value="optResult_7"/>
+      <xsd:enumeration value="optResult_8"/>
+      <xsd:enumeration value="optResult_9"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -550,6 +555,9 @@
       <xsd:enumeration value="optResult_4"/>
       <xsd:enumeration value="optResult_5"/>
       <xsd:enumeration value="optResult_6"/>
+      <xsd:enumeration value="optResult_7"/>
+      <xsd:enumeration value="optResult_8"/>
+      <xsd:enumeration value="optResult_9"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -660,6 +668,21 @@
     <xsd:attribute name="stress5" type="xsd:token"/>
     <xsd:attribute name="stress6" type="xsd:token"/>
     <!--xsd:attribute name="phase" type="xsd:float" use="optional" default=""/-->
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of data type for prestraining -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_MechTestStrain">
+    <xsd:attribute name="region"  type="xsd:token"/>
+    <xsd:attribute name="type"    type="xsd:token"/>
+    <xsd:attribute name="strain1" type="xsd:token"/>
+    <xsd:attribute name="strain2" type="xsd:token"/>
+    <xsd:attribute name="strain3" type="xsd:token"/>
+    <xsd:attribute name="strain4" type="xsd:token"/>
+    <xsd:attribute name="strain5" type="xsd:token"/>
+    <xsd:attribute name="strain6" type="xsd:token"/>
   </xsd:complexType>
 
 </xsd:schema>

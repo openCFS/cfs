@@ -133,7 +133,11 @@ template<typename T> class ElemStoreSol;
     //! - Re-size will currently refuse to perform a re-size operation,
     //!   if it is not responsible for the memory management of the data_
     //!   array.
-    void Resize( UInt newSize, bool init = false );
+    void Resize( UInt newSize );
+    
+    
+    //! Resize the vector to new size and initialize entries with val
+    void Resize( UInt newSize, T val );
 
     //! Add functionality of vector class to a data array
 
@@ -237,6 +241,8 @@ template<typename T> class ElemStoreSol;
     //! The method computes the value of the inner product between this vector
     //! and the input vector vec. The value is returned in sum.
     void Inner(const SingleVector& vec, T& sum) const;
+    
+    T Inner(const SingleVector& vec) const;
 
     //! Override SingleVector functions
     //    virtual void Inner(const SingleVector& vec,Double& s) const;
@@ -419,7 +425,7 @@ template<typename T> class ElemStoreSol;
     //! Return a reference to i-th entry
     inline T & operator[]( UInt i) {
 #ifdef CHECK_INDEX
-    if (i >= size_ || i < 0)
+    if (i >= size_)
       EXCEPTION("Vector: invalid access to index " << i << " when size is " << size_);
 #endif
       
@@ -429,7 +435,7 @@ template<typename T> class ElemStoreSol;
     //! Return a reference to i-th entry
     inline const T& operator[]( UInt i ) const {
 #ifdef CHECK_INDEX
-    if (i >= size_ || i < 0)
+    if (i >= size_)
       EXCEPTION("Vector: invalid access to index " << i << " when size is " << size_);
 #endif
       

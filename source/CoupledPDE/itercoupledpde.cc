@@ -211,7 +211,7 @@ namespace CoupledField
         epsilon = 0.0;
         normtype.clear();
 
-        String2Enum(quantitiesSorted[iQuant], quantityAux);
+        quantityAux = SolutionTypeEnum.Parse(quantitiesSorted[iQuant]);
 
         Integer index = stopCritQuantities.Find(quantitiesSorted[iQuant]);
 
@@ -294,7 +294,7 @@ namespace CoupledField
     SingleVector *val;
     StdVector<UInt> * nodes;
     StdVector<std::string> couplingRegions;
-    std::string couplingTypeAux, quantityAux, regionTypeAux, normTypeAux;
+    std::string couplingTypeAux, regionTypeAux, normTypeAux;
 
     for (UInt ipde=0; ipde<PDEs_.GetSize(); ipde++)
     {
@@ -310,13 +310,12 @@ namespace CoupledField
 
         // Convert enum-types in strings
         Enum2String(Couplings_[ipde]->GetInputType(i), couplingTypeAux);
-        Enum2String(Couplings_[ipde]->GetInputQuantity(i), quantityAux);
         Enum2String(Couplings_[ipde]->GetInputRegionType(i), regionTypeAux);
         Enum2String(Couplings_[ipde]->GetInputNormType(i), normTypeAux);
 
         c->Get("inputCoupling")->SetValue(i+1);
         c->Get("couplingType")->SetValue(couplingTypeAux);
-        c->Get("inputQuantity")->SetValue(quantityAux);
+        c->Get("inputQuantity")->SetValue(SolutionTypeEnum.ToString(Couplings_[ipde]->GetInputQuantity(i)));
 
         InfoNode* list = c->Get("regions");
         Couplings_[ipde]->GetInputRegions(i, couplingRegions);
@@ -345,13 +344,12 @@ namespace CoupledField
 
         // Convert enum-types in strings
         Enum2String(Couplings_[ipde]->GetOutputType(i), couplingTypeAux);
-        Enum2String(Couplings_[ipde]->GetOutputQuantity(i), quantityAux);
         Enum2String(Couplings_[ipde]->GetOutputRegionType(i), regionTypeAux);
         Enum2String(Couplings_[ipde]->GetOutputNormType(i), normTypeAux);
 
         c->Get("outputCoupling")->SetValue(i+1);
         c->Get("couplingType")->SetValue(couplingTypeAux);
-        c->Get("inputQuantity")->SetValue(quantityAux);
+        c->Get("inputQuantity")->SetValue(SolutionTypeEnum.ToString(Couplings_[ipde]->GetOutputQuantity(i)));
 
         InfoNode* list = c->Get("regions");
         Couplings_[ipde]->GetOutputRegions(i, couplingRegions);

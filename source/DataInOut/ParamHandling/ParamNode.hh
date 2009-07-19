@@ -6,8 +6,9 @@
 #define PARAMNODE_HH_
 
 #include <string>
+#include <boost/tokenizer.hpp>
+
 #include "Utils/StdVector.hh"
-#include "boost/lexical_cast.hpp"
 #include "General/exception.hh"
 
 namespace CoupledField
@@ -71,7 +72,10 @@ namespace CoupledField
     /** returns the only direct child which has the name.<br>
      * Is only valid, if the corresponding GetList() would return one value. Exception if 0 or greater 1.<br>
      * In case check before with Has() and Count().
-     * example: "optimization" is a complex element which is a direct child of the root: param.Get("optimization") 
+     * example: "optimization" is a complex element which is a direct child of the root: param.Get("optimization")
+     * @param name might contain several levels by the '/' seperator. 
+     *             Get("optimization/ersatzMaterial") is eqivalent to Get("optimization")->Get("ersatzMaterial").
+     *             Check with Has() first! 
      * @throws exception if there is not such a direct child, e.g. if this is a leaf node OR if there more than only
      * one of such elements (e.g. simple xml elements). */     
     ParamNode* Get(const std::string&  name, const bool throwException = true ); 
@@ -103,6 +107,7 @@ namespace CoupledField
      * Does not differentiate between one or more than one occurence (then Get() will throw an exception). Note,
      * that there might be only one XML attribute but multiple XML simple elements and we do not differentiate 
      * between this two types. 
+     * @param name might containt several levels by the '/' token.
      * @return true if there is at least one direct child (leaf or "complex") with the given name */
     bool Has(const std::string& name) const;  
 
@@ -191,9 +196,22 @@ namespace CoupledField
      * @param level start with 0, is used for ident */
     virtual void Dump(int level = 0) const;
 
+    /** Helper method that splits a string by slashes '/'. Is trivial xpath stuff
+     * @param input might be empty and containt slashes with strings inbetween
+     * @return an empty list only for an empty parameter */
+    StdVector<std::string> SplitIntoTokens(const std::string& input) const;
 
+    /** Speed up the tokenizer stuff from SplitIntoTokens() by asking if it containts tokens. */
+    bool ContainsTokens(const std::string& input) const
+    {
+      return input.find('/') != std::string::npos;
+    }
+    
   protected:
 
+    /** Helper that implements a Get() as save as Has(). Call this if ContainsTokens() returns true. */
+    ParamNode* TokenizedHasAndGet(const std::string& name, const std::string& value, bool has_bool_value, bool bool_value = false) const;
+    
     /** The real content (attribute or simple type content */
     std::string value_;
     

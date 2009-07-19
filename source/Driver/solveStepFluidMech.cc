@@ -38,7 +38,7 @@ namespace CoupledField {
   // Solve Step Static SECTION  
   // ======================================================
 
-  void SolveStepFluidMech::StepTransNonLin()
+  void SolveStepFluidMech::StepTransNonLin(InfoNode* analysis_base)
   {
 
     assemble_->AssembleLinRHS();
@@ -115,21 +115,17 @@ namespace CoupledField {
           assemble_->AssembleMatrices();
           PDE_.PrintStabParams();
         }
+        
+        InfoNode* analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
+        
         SETPROFILE("After AssembleMatrices");
         algsys_->ConstructEffectiveMatrix(matrix_factor_);
         algsys_->BuildInDirichlet();
 
-        std::string aIter, aStep;
-        
-        aIter=GenStr(iterationCounter);
-        aStep=GenStr(actStep_);
-        aStep+="_";
-        aStep+=aIter;
-        
         SETPROFILE("Before Solve");
         algsys_->SetupPrecond();
-        algsys_->SetupSolver();
-        algsys_->Solve(aStep);   
+        algsys_->SetupSolver(analysis_id);
+        algsys_->Solve(analysis_id);   
         SETPROFILE("After Solve");
 
         // new solution is NOT only an increment of the full solution =============

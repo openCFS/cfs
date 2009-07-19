@@ -114,7 +114,7 @@ namespace CoupledField {
     //! problem matrix. Depending on the type of matrix entry the factorisation
     //! is delegated to the appropriate private method. Note that the
     //! factorisation over-writes the internal copy of the system matrix.
-    void Setup( BaseMatrix &sysmat );
+    void Setup( BaseMatrix &sysmat, InfoNode* analysis_id );
 
     //! Direct solution of the linear system
 
@@ -125,7 +125,7 @@ namespace CoupledField {
     //! Note that the method will neglect the precond input parameter as well
     //! as the sysMat input parameter.
     void Solve( const BaseMatrix &sysmat, const BasePrecond &precond,
-		const BaseVector &rhs, BaseVector &sol );
+		const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_id );
 
     //! Query type of this solver.
 

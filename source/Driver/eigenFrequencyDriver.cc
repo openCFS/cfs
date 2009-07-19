@@ -32,7 +32,7 @@ namespace CoupledField {
     writeModes_ = true;
     isQuadratic_ = false;
     // replace with a concrete element
-    infoNode_ = infoNode_->Get("eigenFrequency");
+    driverNode = driverNode->Get("eigenFrequency");
   }
 
 
@@ -63,10 +63,10 @@ namespace CoupledField {
   // *****************
   //   Solve problem
   // *****************
-  void EigenFrequencyDriver::SolveProblem(bool write_results, const std::string& comment) {
+  void EigenFrequencyDriver::SolveProblem(bool write_results, InfoNode* given_analysis_id) {
     // options not implemented
     assert(write_results == true);
-    assert(comment == "");
+    assert(given_analysis_id == NULL); // not implemented yet
     
     ResultHandler* resHandler = domain->GetResultHandler();
 
@@ -130,7 +130,7 @@ namespace CoupledField {
       std::cout << std::setw(20) << errBounds[i] <<  "\n";
 
       // also log via info node
-      InfoNode* result = infoNode_->Get("result",InfoNode::APPEND);
+      InfoNode* result = driverNode->Get("result",InfoNode::APPEND);
       result->Get("frequency")->SetValue(eigenFreqs[i]);
       result->Get("errorbound")->SetValue(errBounds[i]);
     }

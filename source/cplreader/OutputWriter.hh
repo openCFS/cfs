@@ -67,6 +67,8 @@ namespace CoupledField
     virtual void EndStep();
 
     virtual void EndResults() {};
+
+    virtual void DoneWriting() { doneWriting_ = true; };
     
   protected:
     std::map< std::string, std::vector<UInt> > stepNums_;

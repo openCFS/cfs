@@ -16,6 +16,8 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/exception.hh"
 #include "Utils/result.hh"
+#include "Utils/coordSystem.hh"
+#include "Domain/domain.hh"
 #include "simInputHDF5.hh"
 #include "hdf5io.hh"
 
@@ -44,6 +46,8 @@ namespace CoupledField {
     fileName_ = fileName;
     genRegionNodes_ = false;
     ParamNode *pNode = NULL;
+    coordSysId_ = "default";
+    scaleFac_ = 1.0;
 
     // Change defaults according to XML file
     pNode = myParam_->Get("generateRegionNodes", false);
@@ -85,6 +89,16 @@ namespace CoupledField {
         linearizeEntities_.insert(*it);
     } else {
       linearizeEntities_.insert("none");
+    }
+
+    pNode = myParam_->Get("coordSysId", false);
+    if(pNode) {
+      coordSysId_ = myParam_->Get("coordSysId", false)->AsString();
+    }
+    
+    pNode = myParam_->Get("scaleFac", false);
+    if(pNode) {
+      scaleFac_ = myParam_->Get("scaleFac", false)->AsDouble();
     }
 
     // Do not print HDF5 exceptions by default
@@ -251,6 +265,15 @@ namespace CoupledField {
 
      // read node coordinates
      H5IO::ReadArray( nodeGroup, "Coordinates", nodeCoords_ );
+
+     // If a different coordinate system than the default one was specified
+     // we map the nodal coordinates into this coordinate system.
+     if(coordSysId_ != "default" || scaleFac_ != 1.0) 
+     {  
+       CoordSystem* coordSys = domain->GetCoordSystem(coordSysId_);
+       TransformNodes(*coordSys, scaleFac_);
+     }
+     
 
      // read region, element and named entity informaion
      ReadNodeElemData(mGroup);
@@ -466,13 +489,7 @@ namespace CoupledField {
 
       // create new ResultInfo objects
       shared_ptr<ResultInfo> ptInfo( new ResultInfo() );
-      SolutionType actResultType;
-
-      try{
-        String2Enum( actResultName, actResultType );
-      }  catch (Exception&) {
-        actResultType = NO_SOLUTION_TYPE;
-      }
+      SolutionType actResultType = SolutionTypeEnum.Parse(actResultName, NO_SOLUTION_TYPE);
 
       ptInfo->resultType = actResultType;
       ptInfo->resultName = actResultName;
@@ -1254,10 +1271,12 @@ namespace CoupledField {
       elemTypeMap[Elem::TRIA6]   = Elem::TRIA3;
       elemTypeMap[Elem::QUAD4]   = Elem::QUAD4;
       elemTypeMap[Elem::QUAD8]   = Elem::QUAD4;
+      elemTypeMap[Elem::QUAD9]   = Elem::QUAD4;
       elemTypeMap[Elem::TET4]    = Elem::TET4;
       elemTypeMap[Elem::TET10]   = Elem::TET4;
       elemTypeMap[Elem::HEXA8]   = Elem::HEXA8;
       elemTypeMap[Elem::HEXA20]  = Elem::HEXA8;
+      elemTypeMap[Elem::HEXA27]  = Elem::HEXA8;
       elemTypeMap[Elem::PYRA5]   = Elem::PYRA5;
       elemTypeMap[Elem::PYRA13]  = Elem::PYRA5;
       elemTypeMap[Elem::WEDGE6]  = Elem::WEDGE6;
@@ -1276,6 +1295,27 @@ namespace CoupledField {
 
     readNodes.Resize(readNodeSet.size());
     std::copy(readNodeSet.begin(), readNodeSet.end(), readNodes.Begin());
+  }
+
+  void SimInputHDF5::TransformNodes(CoordSystem& coordSys, double scaleFac)
+  {
+    UInt numNodes = nodeCoords_.GetSize() / 3;
+    Vector<Double> p, globPoint;
+    p.Resize(3);
+    globPoint.Resize(3);
+
+    for(UInt i=0; i<numNodes; i++) 
+    {
+      UInt idx = i*3;
+      p[0] = nodeCoords_[idx + 0];
+      p[1] = nodeCoords_[idx + 1];
+      p[2] = nodeCoords_[idx + 2];
+      coordSys.Global2LocalCoord(globPoint, p);
+      
+      nodeCoords_[idx + 0] = globPoint[0] * scaleFac;
+      nodeCoords_[idx + 1] = globPoint[1] * scaleFac;
+      nodeCoords_[idx + 2] = globPoint[2] * scaleFac;
+    }
   }
 
 }

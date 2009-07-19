@@ -31,9 +31,8 @@ namespace CoupledField {
   // Solve Step Transient SECTION  
   // ======================================================
 
-  void SolveStepAcoustic::StepTransNonLin() {
-
-
+  void SolveStepAcoustic::StepTransNonLin(InfoNode* analysis_base) 
+  {
     UInt job;
     bool performOneMoreStep;
     UInt iterationCounter=0;
@@ -86,13 +85,7 @@ namespace CoupledField {
           std::cout << "  " << iterationCounter;
       }
       
-    /*      
-      *debug << std::endl
-             << "====================================================== "
-             << std::endl
-             <<   "Nonlinear Acoustics: Perform internal loop no. "
-             << iterationCounter << std::endl;
-    */      
+      InfoNode* analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
       
       // set solution of previous iteration
       oldSol = newSol;
@@ -108,11 +101,11 @@ namespace CoupledField {
 
       algsys_->BuildInDirichlet();
       if ( job == 1 ) {
-        algsys_->SetupSolver();
+        algsys_->SetupSolver(analysis_id);
         algsys_->SetupPrecond();
       }
 
-      algsys_->Solve();
+      algsys_->Solve(analysis_id);
 
       // store new solution in newSol
       algsys_->GetSolutionVal( newSol );
@@ -121,11 +114,6 @@ namespace CoupledField {
       //   we need the Corrector step before we store newsol to sol_,
       //   because newsol is second time derivative at first!
       TS_alg_->Corrector(newSol);
-
-      /*
-      *debug << std::endl
-             << "New Solution:" << std::endl << newSol << std::endl;
-      */       
 
       //put new solution to sol_
       sol_->SetAlgSysVector(newSol);  
@@ -238,7 +226,7 @@ namespace CoupledField {
     }
   }
 
-  void SolveStepAcoustic::StepTransLin() {
+  void SolveStepAcoustic::StepTransLin(InfoNode* analysis_id) {
     if(justInterpolate_) {
       //account for RHS
       assemble_->AssembleLinRHS();
@@ -250,7 +238,7 @@ namespace CoupledField {
       PDE_.SaveRHS( rhs.GetPointer(), rhs.GetSize());
     }
     else {
-      StdSolveStep::StepTransLin();
+      StdSolveStep::StepTransLin(analysis_id);
     }
   }
 

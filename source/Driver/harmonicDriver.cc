@@ -15,10 +15,15 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/InfoNode.hh"
 #include "DataInOut/WriteInfo.hh"
+#include "DataInOut/resultHandler.hh"
+#include "DataInOut/programOptions.hh"
+
 #include "PDE/StdPDE.hh"
 #include "Domain/domain.hh"
-#include "DataInOut/resultHandler.hh"
 
+
+using std::cout;
+using std::endl;
 
 namespace CoupledField
 {
@@ -32,7 +37,9 @@ namespace CoupledField
     analysis_ = BasePDE::HARMONIC;
 
     // replace our info node by a more detailed level
-    infoNode_ = infoNode_->Get("harmonic");
+    driverNode = driverNode->Get("harmonic");
+    driverNode->Get("sequenceStep")->SetValue(sequenceStep);
+    driverNode->Get(InfoNode::HEADER)->Get("unit")->SetValue("Hz");
 
     pn_ = param->Get("sequenceStep", "index", boost::lexical_cast<std::string>(sequenceStep_))
          ->Get("analysis")->Get("harmonic");
@@ -60,7 +67,7 @@ namespace CoupledField
     if(!params && !list)
       EXCEPTION("'analysis/harmonic' contains neither 'numFreq/startFreq/stopFreq' nor 'frequencyList' concurrently");
 
-    InfoNode* in = infoNode_->Get(InfoNode::HEADER);
+    InfoNode* in = driverNode->Get(InfoNode::HEADER);
     in->Get("start", "starting frequency")->SetValue(startFreq_);
     in->Get("end", "stopping frequency")->SetValue(stopFreq_);
     in->Get("numFreq", "number of frequencies")->SetValue(numFreq_);
@@ -78,7 +85,7 @@ namespace CoupledField
     if(freqs.GetSize() == 0)
       EXCEPTION("cannot have empty frequeny list");
 
-    infoNode_->Get(InfoNode::HEADER)->Get("sampling", "sampling strategy")->SetValue("frequency list given");
+    driverNode->Get(InfoNode::HEADER)->Get("sampling", "sampling strategy")->SetValue("frequency list given");
 
     for(int fi = 0; fi < (int) list.GetSize(); fi++)
     {
@@ -120,7 +127,7 @@ namespace CoupledField
     String2Enum( sampling, samplingType_ );
 
     // store only the sampling strategy
-    infoNode_->Get(InfoNode::HEADER)->Get("sampling", "sampling strategy")->SetValue(sampling);
+    driverNode->Get(InfoNode::HEADER)->Get("sampling", "sampling strategy")->SetValue(sampling);
 
     // ---------------------------------
     //  Perform some consistency checks
@@ -165,12 +172,12 @@ namespace CoupledField
     // Check for single frequency computation
     if(startFreq_ == stopFreq_ && numFreq_ > 1)
     {
-      infoNode_->Get(InfoNode::HEADER)->Get(InfoNode::WARNING)->SetValue("Re-setting numFreq to 1, since startFreq = stopFreq");
+      driverNode->Get(InfoNode::HEADER)->Get(InfoNode::WARNING)->SetValue("Re-setting numFreq to 1, since startFreq = stopFreq");
       numFreq_ = 1;
 
       if(samplingType_ != LINEAR_SAMPLING)
       {
-        infoNode_->Get(InfoNode::HEADER)->Get(InfoNode::WARNING)->SetValue("Re-setting sampling type to 'linear', since startFreq = stopFreq");
+        driverNode->Get(InfoNode::HEADER)->Get(InfoNode::WARNING)->SetValue("Re-setting sampling type to 'linear', since startFreq = stopFreq");
         samplingType_ = LINEAR_SAMPLING;
       }
     }
@@ -195,7 +202,7 @@ namespace CoupledField
   // ****************
   //   SolveProblem
   // ****************
-  void HarmonicDriver::SolveProblem(bool write_results, const std::string& comment)
+  void HarmonicDriver::SolveProblem(bool write_results, InfoNode* analysis_id)
   {
     // in harmonics one cannot extraxt the result writing to StoreResults() as
     // we have multiple frequencies. (exceptions is optimization)
@@ -212,12 +219,17 @@ namespace CoupledField
     for ( actFreqStep_ = 1; actFreqStep_ <= numFreq_; actFreqStep_++ )
     {
       // Determine next frequency value
-      ComputeFrequencyStep(actFreqStep_);
+      ComputeFrequencyStep(actFreqStep_, analysis_id);
 
       // Write results into output-file(s) if we don't do optimization
       if(write_results) {
         // Log info for this frequency - suppress in Optimization due to search steps
-        Info->WriteHarmonicStep( ptPDE_->GetName(), actFreqStep_, actFreq_ );
+        if(progOpts->IsQuiet())
+          cout << ptPDE_->GetName() << ": Harmonic step " << actFreqStep_ << " frequency " << actFreq_ << endl; 
+        else
+          cout << endl << ptPDE_->GetName() << ": Harmonic step " 
+               << actFreqStep_ <<" ======================= " << endl;
+
         handler_->BeginStep( actFreqStep_, actFreq_ );
         ptPDE_->WriteResultsInFile( actFreqStep_, actFreq_ );
         handler_->FinishStep( );
@@ -231,7 +243,7 @@ namespace CoupledField
     }
   }
 
-  Double HarmonicDriver::ComputeFrequencyStep(UInt actFreqStep, const std::string& comment)
+  Double HarmonicDriver::ComputeFrequencyStep(UInt actFreqStep, InfoNode* given_analysis_id)
   {
     assert(actFreqStep >= 1);
     assert(actFreqStep <= numFreq_);
@@ -242,13 +254,18 @@ namespace CoupledField
     actFreq_ = freqs[actFreqStep-1].freq; // 1 based!
     assert(freqs[actFreqStep-1].step == actFreqStep);
 
-    // log this
-    // in this current step node also the solvers can write their stuff
-    // do it here as ComputeFrequencyStep can be called directly from Optimization!
-    currentStepInfoNode_ = infoNode_->Get(InfoNode::PROCESS)->Get("solveStep", InfoNode::APPEND);
-    currentStepInfoNode_->Get("currentFrequency")->SetValue(actFreq_);
-    currentStepInfoNode_->Get("frequencyStep")->SetValue(actFreqStep_);
-    currentStepInfoNode_->Get("systemName")->SetValue(comment);
+    if(given_analysis_id == NULL)
+    {
+      analysis_id_ = driverNode->Get(InfoNode::PROCESS)->Get("step", InfoNode::APPEND);
+      analysis_id_->Get("analysis_id")->SetValue(actFreqStep);
+    }
+    else
+    {
+      analysis_id_ = given_analysis_id;
+      assert(analysis_id_->Has("analysis_id"));
+    }
+    analysis_id_->Get("step")->SetValue(actFreqStep_);
+    analysis_id_->Get("value")->SetValue(actFreq_);
 
     // Set curent frequency value in the mathParser
     domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", actFreq_ );
@@ -258,7 +275,7 @@ namespace CoupledField
     ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
     ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
     ptPDE_->GetSolveStep()->PreStepHarmonic();
-    ptPDE_->GetSolveStep()->SolveStepHarmonic(comment);
+    ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
     ptPDE_->GetSolveStep()->PostStepHarmonic();
 
     return actFreq_;

@@ -15,6 +15,7 @@ namespace CoupledField
   class Domain;
   class WriteResults;
   class ResultHandler;
+  class InfoNode;
 
   //! Base class for driving classes where we implemented time-stepping
   class BaseDriver
@@ -39,11 +40,9 @@ namespace CoupledField
      * one might skip the writing of the results and call StoreResults()
      * explicitly</p>
      * @param write_results if false nothing is written to the output files
-     * @param comment if ony uses export linear system in the xml file,
-     *        this becomes part of the base filename. E.g. for naming the
-     *        adjoint PDEs in optimization
+     * @param analysis_id if given is *set* as current and used.
      * @see StoreResults(double) */
-    virtual void SolveProblem(bool write_results = true, const std::string& comment = "") = 0;
+    virtual void SolveProblem(bool write_results = true, InfoNode* analysis_id = NULL) = 0;
     
     /** Only of interest for optimization, where one might not want to generate
      * output (gid, hdf5, gmv, ...) for every forward solution. 
@@ -64,7 +63,26 @@ namespace CoupledField
     
     //! Return current time / frequency step of simulation
     virtual UInt GetActStep ( const std::string& pdename ) = 0;
-  
+    
+    
+    InfoNode* GetAnalysisId() { return analysis_id_; }
+    
+    /** Helper function to create a child analysis step
+     * Adds a child-element to base with "analysis_id" = the analysis_id of the base
+     * plus ":" plus the child_name (plus ":" plus child_id)
+     * @param base where to add to or if NULL then a info/analysis/process/step is created
+     * @param child_name e.g. "nonLin", "adjoint" ...
+     * @param child_id will be added after child_name. is optional (-1)
+     * @return the child element */
+    static InfoNode* CreateAnalysisIdChild(InfoNode* base, const std::string& child_name, int child_id = -1,
+        const std::string& child_2_name = "", int child_2_id = -1);
+
+    /** Adds a new analysis id for this driver.
+     * @see CreateAnalysisIdChild() */
+    InfoNode* CreateAnalysisId(const std::string& child_name, int child_id = -1,
+                               const std::string& child_2_name = "", int child_2_id = -1);
+
+    
     /** This is an factory pattern implementation. The result is the
      * proper driver based on the analysis type and adaptiviy setting.
      * set this object in the domain and take care for deletion! */
@@ -81,6 +99,13 @@ namespace CoupledField
     //! type of analysis
     BasePDE::AnalysisType analysis_;
 
+    /** @see GetActAnalysisId() */
+    InfoNode* analysis_id_;
+    
+    /** our report node */ 
+    InfoNode* driverNode; 
+
+    
     //! --------------------- stuff for computation with adaptivity
     //! for printing a sequence of files in dir meshes in gmv-format
 
@@ -100,6 +125,10 @@ namespace CoupledField
      *  printing sequence of refined meshes with error map */ 
     bool printMeshesOrNot();
     
+  private:
+    /** helper function. Items are separated via ':' to be replaces when using as filename! */
+    std::string ConcatAnalysisId(InfoNode* analysis_id, const std::string& child_name, int child_id, 
+                                 const std::string& child_2_name, int child_2_id);
   };
 
 }

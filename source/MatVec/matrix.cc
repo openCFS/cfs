@@ -435,6 +435,28 @@ namespace CoupledField
   
     return true;
   }
+  
+  /** Adds the multiple of another matrix */
+  template<class TYPE>
+  void Matrix<TYPE>::Add(const TYPE factor, const DenseMatrix & mat)
+  {
+    const Matrix<TYPE>& other_mat = dynamic_cast<const Matrix<TYPE> & >(mat);
+#ifdef CHECK_INITIALIZED
+    if (size_row_ == 0 || size_col_ == 0 || other_mat.size_row_ == 0 || other_mat.size_col_ == 0)
+      EXCEPTION("undefined Matrix");
+#endif
+
+#ifdef CHECK_INDEX
+    if (size_row_ != other_mat.size_row_ || size_col_ != other_mat.size_col_)
+      EXCEPTION("matrices do not match");
+#endif
+    
+    for(UInt i = 0; i < size_row_; i++){
+      for(UInt j = 0; j < size_col_; j++){
+        data_[i][j] += factor * other_mat[i][j];
+      }
+    }
+  }
 
   /** Assigns a mutliple of another matrix */
   template<class TYPE>
@@ -476,14 +498,12 @@ namespace CoupledField
 #endif
 
 #endif
-
-   
+    
     UInt k,kk;
     rvec1.Init();
     for ( k = 0; k < size_row_; k++)
       for ( kk = 0; kk < size_col_; kk++)
         rvec1[k] += data_[k][kk]*mvec1[kk];
-
   }
 
   // Perform a matrix-vector multiplication rvec = this*mvec via the inner product
@@ -520,7 +540,38 @@ namespace CoupledField
     for ( k = 0; k < size_row_; k++)
       for ( kk = 0; kk < size_col_; kk++)
         rvec1[k] += OpType<TYPE>::dotProduct(data_[k][kk],mvec1[kk]);
-  }  
+  }
+  
+  // Perform a matrix-vector multiplication rvec = transpose(this)*mvec
+  template<class TYPE>
+  void Matrix<TYPE>::MultT(const SingleVector &mvec, SingleVector &rvec) const
+  {
+    Vector<TYPE> const &mvec1 = dynamic_cast<const Vector<TYPE>& >(mvec);
+    Vector<TYPE> &rvec1 = dynamic_cast<Vector<TYPE>& >(rvec);
+  
+#if defined CHECK_INITIALIZED || defined CHECK_INDEX
+    UInt size_mvec = mvec1.GetSize();
+ 
+#ifdef CHECK_INITIALIZED
+    if (size_row_ == 0 || size_col_ == 0) 
+      EXCEPTION("undefined Matrix");
+    if (size_mvec == 0) 
+      EXCEPTION("undefined input Vector");
+#endif
+
+#ifdef CHECK_INDEX
+    if (size_row_ != size_mvec) 
+      EXCEPTION("incompatible dimension");
+#endif
+
+#endif
+    
+    // overwrite output vector with 0.0s and set correct length
+    rvec1.Resize(size_col_, 0.0);
+    for ( UInt k = 0; k < size_row_; ++k)
+      for ( UInt kk = 0; kk < size_col_; ++kk)
+        rvec1[kk] += data_[k][kk]*mvec1[k];
+  }
   
   // // Perform a matrix-matrix multiplication rMat = this*mMat
   // template<class TYPE>

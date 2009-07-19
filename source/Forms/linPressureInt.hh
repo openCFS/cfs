@@ -33,6 +33,9 @@ namespace CoupledField {
 
     void SetValue(const std::string& value) { value_ = value; }
     
+    //! Calculapressure factor, this is called from shapeopt
+    double GetPressureFactor(const SurfElem* elem);
+
   protected:
     
   private:

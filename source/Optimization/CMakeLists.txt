@@ -1,7 +1,7 @@
 SET(OPTIMIZATION_SRCS DesignElement.cc DesignSpace.cc Optimization.cc PiezoSIMP.cc ErsatzMaterial.cc SIMP.cc 
                       TransferFunction.cc Condition.cc OptimalityCondition.cc EvaluateOnly.cc
-                      BaseOptimizer.cc ShapeGrad.cc LevelSet.cc ParamMat.cc DesignMaterial.cc
-                      OptimizationMaterial.cc GradientCheck.cc)
+                      BaseOptimizer.cc ShapeGrad.cc LevelSet.cc ParamMat.cc DesignMaterial.cc ShapeOptimizer.cc
+                      TopGrad.cc OptimizationMaterial.cc GradientCheck.cc ShapeOpt.cc ShapeDesign.cc)
 
 # Just redefine __builtin_isnan to ::isnan for Intel compiler for
 # OptimalityCondition.cc
@@ -53,6 +53,14 @@ SET(TARGET_LL
   forms
   matvec
 )
+
+IF(USE_XERCES)
+  INCLUDE_DIRECTORIES(${XERCES_INCLUDE_DIR})
+  SET(TARGET_LL
+    ${TARGET_LL}
+    ${XERCES_LIBRARY}
+  )
+ENDIF(USE_XERCES)
 
 TARGET_LINK_LIBRARIES(optimization ${TARGET_LL})
 

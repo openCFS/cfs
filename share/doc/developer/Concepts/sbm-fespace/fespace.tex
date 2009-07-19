@@ -254,7 +254,7 @@ We consider a mixed PDE with pressure $p$ and velocity $v$ as dofs, additionally
 \end{frame}
 
 \begin{frame}[fragile]{Example - Physical View}
-The SBM system has a consecutive numbering of the rows/columns containing the matrices, e.g. the matrix $K_{pp}^{12}$ has the \emph{coordinate} (1,2).
+The SBM system has a consecutive numbering of the rows/columns containing the matrices, e.g. the matrix $K_{pp}^{12}$ has the \emph{coordinate} (1,3).
 \begin{center}
 \includegraphics[width=6cm]{system2.png}
 \end{center}
@@ -273,12 +273,12 @@ This should be the normal view from CFS++, e.g. during matrix / vector assembly 
  Two level grouping  ({\color{blue}mBlockId},{\color{magenta}blockId}) (as requested by the FeSpace):
 \begin{itemize}
 \item Major Block level (mBlockId): Address all unknowns in Region 1 and 2
-\item Block level (blockId): Address different solution unknowns within on region
+\item Block level (blockId): Address different solution unknowns within one region
 \end{itemize}
 \begin{center}
 \includegraphics[width=5cm]{system4.png}
 \end{center}
-This can be used for local time stepping, e.g. request block for region 1 (Sub-SBM vector) and solve locally. Using the blockId, we can access $p^1$ and $v^1$ within one major block.
+This can be used for local time stepping, e.g. request mayjor block for region 1 (Sub-SBM vector) and solve locally. Using the blockId, we can access $p^1$ and $v^1$ within one major block.
 
 \end{frame}
 

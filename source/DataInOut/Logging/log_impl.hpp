@@ -139,7 +139,7 @@ private:
 
     // if true, its enabled state can only be set at compile-time.
     bool m_is_compile_time;
-
+    
     logging_types::mutex cs;
 };
 

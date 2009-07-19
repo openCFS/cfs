@@ -62,11 +62,12 @@ namespace CoupledField {
   nLinPiezoHystCouple::~nLinPiezoHystCouple() {
     delete EfieldOp_;
     delete mechStrainOp_;
-    delete solElec_;
-    delete solMech_;
-    delete matDataCouple_;
-    delete matDataMech_;
-    delete matDataElec_;
+    delete EfieldPrevOp_;
+    //delete solElec_;
+    //delete solMech_;
+    //delete matDataCouple_;
+    //delete matDataMech_;
+    //delete matDataElec_;
   }
 
 
@@ -199,11 +200,12 @@ namespace CoupledField {
   nLinPiezoHystElec::~nLinPiezoHystElec() {
     delete EfieldOp_;
     delete mechStrainOp_;
-    delete solElec_;
-    delete solMech_;
-    delete matDataCouple_;
-    delete matDataMech_;
-    delete matDataElec_;
+    delete EfieldPrevOp_;
+    //delete solElec_;
+    //delete solMech_;
+    //delete matDataCouple_;
+    //delete matDataMech_;
+    //delete matDataElec_;
   }
 
 

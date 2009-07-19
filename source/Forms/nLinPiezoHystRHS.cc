@@ -45,10 +45,11 @@ namespace CoupledField {
 
     delete EfieldOp_;
     delete piezoBilinearForm_;
+    delete EfieldPrevOp_;
     delete mechStrainOp_;
-    delete matDataCouple_;
-    delete matDataMech_;
-    delete matDataElec_;
+    //delete matDataCouple_;
+    //delete matDataMech_;
+    //delete matDataElec_;
   }
 
 
@@ -249,7 +250,7 @@ namespace CoupledField {
 
   PiezoPolarizationMechRhsInt::~PiezoPolarizationMechRhsInt()
   {
-    delete matDataMech_; 
+    //delete matDataMech_; 
   }
 
 

@@ -80,7 +80,7 @@ namespace CoupledField {
   //   Change the size of the vector
   // *********************************
   template<typename T>
-  void Vector<T>::Resize( UInt newSize, bool init ) {
+  void Vector<T>::Resize( UInt newSize ) {
     if ( memBelongsToMe_ == false &&
          newSize != size_ ) {
          EXCEPTION( "Refusing to re-size the data_ array, since "
@@ -107,11 +107,12 @@ namespace CoupledField {
       size_ = newSize;
       capacity_ = newSize;
     }
-
-    // Zero vector entries if desired
-    if ( init == true ) {
-      Init();
-    }
+  }
+  
+  template<typename T>
+  void Vector<T>::Resize( UInt newSize, T val) {
+    Vector<T>::Resize(newSize);
+    Vector<T>::Init(val);
   }
 
 
@@ -233,6 +234,25 @@ namespace CoupledField {
     //    return 0;
   }
 
+  template <typename T>
+  T Vector<T>::Inner(const SingleVector &vec) const 
+  {
+    PROFILE( "Vector::Inner", size_ * 2 * BlockSize<T>::size );
+
+    T sum = 0;
+    
+    TRY_CAST {
+      CONSTREFCAST( vec, Vector<T>, secVec );
+
+      for ( UInt i = 0; i < size_; i++ ) {  
+        sum += OpType<T>::dotProduct( data_[i], secVec[i] );
+      }
+    } CATCH_CAST;
+
+    return sum;
+  }
+  
+  
   /*
   template <typename T>
   void Vector<T>::Inner(const SingleVector& vec,Double& s) const {

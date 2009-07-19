@@ -35,11 +35,37 @@ cmake_modules/configure_def_headers.cmake -text
 cmake_modules/distro.cmake -text
 cmake_modules/platform_defaults.cmake -text
 cmake_modules/platform_defaults_altix.cmake -text
+cmake_modules/platform_defaults_fauam1p.cmake -text
 cmake_modules/platform_defaults_lse.cmake -text
 cmake_modules/platform_defaults_mac.cmake -text
 cmake_modules/platform_defaults_rom.cmake -text
 cmake_modules/platform_defaults_sedici.cmake -text
 cmake_modules/platform_defaults_woody.cmake -text
+ctest_scripts/README.txt svneol=native#text/plain
+ctest_scripts/ctest_mac_gcc_experimental.cmake -text
+ctest_scripts/ctest_mac_icc_experimental.cmake -text
+ctest_scripts/ctest_rom_gcc_experimental.cmake -text
+ctest_scripts/ctest_rom_gcc_nightly.cmake -text
+ctest_scripts/ctest_rom_icc_experimental.cmake -text
+ctest_scripts/ctest_rom_icc_nightly.cmake -text
+ctest_scripts/ctest_sedici_gcc_acml_nightly.cmake -text
+ctest_scripts/ctest_sedici_gcc_gotoblas_nightly.cmake -text
+ctest_scripts/ctest_sedici_gcc_nightly.cmake -text
+ctest_scripts/ctest_sedici_gcc_schenk_nightly.cmake -text
+ctest_scripts/ctest_sedici_icc_nightly.cmake -text
+ctest_scripts/ctest_ubuntu804_gcc34_nightly.cmake -text
+ctest_scripts/ctest_ubuntu804_gcc41_nightly.cmake -text
+ctest_scripts/ctest_ubuntu804_gcc_nightly.cmake -text
+ctest_scripts/ctest_ubuntu804_icc100_nightly.cmake -text
+ctest_scripts/ctest_ubuntu804_icc101_nightly.cmake -text
+ctest_scripts/ctest_ubuntu804_icc110_nightly.cmake -text
+ctest_scripts/ctest_ubuntu804_icc91_nightly.cmake -text
+ctest_scripts/experimental_test_mac.sh svneol=native#text/plain
+ctest_scripts/known_to_fail_gcc34.txt svneol=native#text/plain
+ctest_scripts/nightly_svn_update.sh svneol=native#text/plain
+ctest_scripts/nightly_test_rom.sh -text
+ctest_scripts/nightly_test_sedici.sh -text
+ctest_scripts/nightly_test_ubuntu804.sh -text
 include/def_build_type_options.hh.in -text
 include/def_cfs_stats.hh.in -text
 include/def_cplreader.hh.in -text
@@ -67,9 +93,6 @@ include/def_use_xerces.hh.in -text
 include/def_user_scpip.hh.in -text
 include/def_xmlschema.hh.in -text
 share/MaterialFile/mat.xml svneol=native#text/xml
-share/XSL/extract_eigenvalues_line.xsl -text
-share/XSL/extract_last_design_line.xsl -text
-share/XSL/meta_optimization_subiterations.xsl -text
 share/doc/auxilliaries/LaTeX/lsepaper.sty svneol=native#text/plain
 share/doc/auxilliaries/Pics/lse.eps -text svneol=unset#application/postscript
 share/doc/auxilliaries/Pics/lse.png -text svneol=unset#image/png
@@ -325,6 +348,7 @@ share/xml/CFS-Simulation/Schemas/CFS_ErsatzMaterial.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_FileFormats.xsd -text svneol=unset#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_IntegRules.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_LinearSystem.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_MeshDeformations.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_Misc.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_MpCCI.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_Optimization.xsd -text
@@ -344,7 +368,15 @@ share/xml/CFS-Simulation/Schemas/CFS_ParamIdent.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PostProc.xsd -text svneol=unset#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_Preconds.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_Solvers.xsd svneol=native#text/xml
+share/xml/CMakeLists.txt svneol=native#text/plain
 share/xml/Tools/SchemaViewer2.zip -text svneol=unset#application/zip
+share/xsl/extract_eigenvalues_line.xsl -text
+share/xsl/extract_first_results_harmonic.xsl -text
+share/xsl/extract_last_design_line.xsl -text
+share/xsl/extract_last_results.xsl -text
+share/xsl/extract_last_results_harmonic.xsl -text
+share/xsl/extract_results.xsl -text
+share/xsl/meta_optimization_subiterations.xsl -text
 source/CoupledPDE/AcouMechCoupling.cc svneol=native#text/x-c%2B%2Bsrc
 source/CoupledPDE/AcouMechCoupling.hh svneol=native#text/x-c%2B%2Bhdr
 source/CoupledPDE/BasePairCoupling.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1051,8 +1083,8 @@ source/Optimization/DesignMaterial.cc -text
 source/Optimization/DesignMaterial.hh -text
 source/Optimization/DesignSpace.cc -text
 source/Optimization/DesignSpace.hh -text
-source/Optimization/ErsatzMaterial.cc svneol=native#text/x-c%2B%2Bsrc
-source/Optimization/ErsatzMaterial.hh svneol=native#text/plain
+source/Optimization/ErsatzMaterial.cc -text
+source/Optimization/ErsatzMaterial.hh -text
 source/Optimization/EvaluateOnly.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/EvaluateOnly.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/GradientCheck.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1060,8 +1092,8 @@ source/Optimization/GradientCheck.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/IPOPT.cc -text
 source/Optimization/IPOPT.hh -text
 source/Optimization/IPOPTHolder.hh svneol=native#text/x-c%2B%2Bhdr
-source/Optimization/LevelSet.cc svneol=native#text/x-c%2B%2Bsrc
-source/Optimization/LevelSet.hh svneol=native#text/x-c%2B%2Bhdr
+source/Optimization/LevelSet.cc -text
+source/Optimization/LevelSet.hh -text
 source/Optimization/OptimalityCondition.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/OptimalityCondition.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/Optimization.cc svneol=native#text/plain
@@ -1078,10 +1110,16 @@ source/Optimization/SCPIPBase.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/SCPIPBase.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/SCPIP_HS071.cc -text
 source/Optimization/SCPIP_HS071.hh -text
-source/Optimization/SIMP.cc svneol=native#text/x-c%2B%2Bsrc
-source/Optimization/SIMP.hh svneol=native#text/x-c%2B%2Bhdr
-source/Optimization/ShapeGrad.cc svneol=native#text/x-c%2B%2Bsrc
-source/Optimization/ShapeGrad.hh svneol=native#text/x-c%2B%2Bhdr
+source/Optimization/SIMP.cc svneol=native#text/plain
+source/Optimization/SIMP.hh svneol=native#text/plain
+source/Optimization/ShapeDesign.cc -text
+source/Optimization/ShapeDesign.hh -text
+source/Optimization/ShapeGrad.cc -text
+source/Optimization/ShapeGrad.hh -text
+source/Optimization/ShapeOpt.cc -text
+source/Optimization/ShapeOpt.hh -text
+source/Optimization/ShapeOptimizer.cc -text
+source/Optimization/ShapeOptimizer.hh -text
 source/Optimization/TopGrad.cc -text
 source/Optimization/TopGrad.hh -text
 source/Optimization/TransferFunction.cc -text
@@ -1226,17 +1264,39 @@ source/cplreader/Documentation/latex/cplreader_docu.tex svneol=native#text/plain
 source/cplreader/Documentation/latex/cplreader_options.tex.in -text
 source/cplreader/Documentation/latex/mycommands.tex svneol=native#text/plain
 source/cplreader/Documentation/latex/pics/FASTESTexample.eps -text svneol=unset#application/postscript
+source/cplreader/Documentation/latex/pics/FASTESTexample.pdf -text svneol=unset#application/pdf
 source/cplreader/Documentation/latex/pics/FASTESTexample.svg -text
 source/cplreader/Documentation/latex/pics/acousticfluidregions.eps -text svneol=unset#application/postscript
+source/cplreader/Documentation/latex/pics/acousticfluidregions.pdf -text svneol=unset#application/pdf
 source/cplreader/Documentation/latex/pics/acousticfluidregions.svg -text
 source/cplreader/Documentation/latex/pics/colorbar.png -text svneol=unset#image/png
 source/cplreader/Documentation/latex/pics/cons_interpolation.eps -text svneol=unset#application/postscript
+source/cplreader/Documentation/latex/pics/cons_interpolation.pdf -text svneol=unset#application/pdf
 source/cplreader/Documentation/latex/pics/cons_interpolation.svg -text
 source/cplreader/Documentation/latex/pics/couplingscheme.eps -text svneol=unset#application/postscript
+source/cplreader/Documentation/latex/pics/couplingscheme.pdf -text svneol=unset#application/pdf
 source/cplreader/Documentation/latex/pics/couplingscheme.svg -text
 source/cplreader/Documentation/latex/pics/fastest.png -text svneol=unset#image/png
+source/cplreader/Documentation/latex/pics/gengrids_rectlin_grid.png -text svneol=unset#image/png
+source/cplreader/Documentation/latex/pics/gengrids_rectlin_surf.eps -text svneol=unset#application/postscript
+source/cplreader/Documentation/latex/pics/gengrids_rectlin_surf.pdf -text svneol=unset#application/pdf
+source/cplreader/Documentation/latex/pics/gengrids_rectlin_surf.svg -text
+source/cplreader/Documentation/latex/pics/gengrids_rectlin_volumes.eps -text svneol=unset#application/postscript
+source/cplreader/Documentation/latex/pics/gengrids_rectlin_volumes.pdf -text svneol=unset#application/pdf
+source/cplreader/Documentation/latex/pics/gengrids_rectlin_volumes.svg -text
 source/cplreader/Documentation/latex/pics/klu.eps -text svneol=unset#application/postscript
+source/cplreader/Documentation/latex/pics/klu.pdf -text svneol=unset#application/pdf
+source/cplreader/Documentation/latex/pics/klu.svg -text
 source/cplreader/Documentation/latex/pics/lse.eps -text svneol=unset#application/postscript
+source/cplreader/Documentation/latex/pics/lse.pdf -text svneol=unset#application/pdf
+source/cplreader/Documentation/latex/pics/lse.svg -text
+source/cplreader/Documentation/latex/pics/refelems.eps -text svneol=unset#application/postscript
+source/cplreader/Documentation/latex/pics/refelems.pdf -text svneol=unset#application/pdf
+source/cplreader/Documentation/latex/pics/refelems.svg -text
+source/cplreader/Documentation/latex/pics/refelems_legend.png -text svneol=unset#image/png
+source/cplreader/Documentation/latex/pics/refelems_pic.png -text svneol=unset#image/png
+source/cplreader/Documentation/latex/pics/spherical_shell_normal.png -text svneol=unset#image/png
+source/cplreader/Documentation/latex/pics/spherical_shell_octant.png -text svneol=unset#image/png
 source/cplreader/FileReader.cc svneol=native#text/plain
 source/cplreader/FileReader.hh svneol=native#text/plain
 source/cplreader/FileReaders/ANSYS/CMakeLists.txt svneol=native#text/plain
@@ -1269,6 +1329,10 @@ source/cplreader/FileReaders/FASTEST/FileReader_FASTEST.hh svneol=native#text/pl
 source/cplreader/FileReaders/GENGRIDS/CMakeLists.txt svneol=native#text/plain
 source/cplreader/FileReaders/GENGRIDS/FileReader_GENGRIDS.cc svneol=native#text/plain
 source/cplreader/FileReaders/GENGRIDS/FileReader_GENGRIDS.hh svneol=native#text/plain
+source/cplreader/FileReaders/GENGRIDS/RectilinearUniformGridGenerator.cc svneol=native#text/plain
+source/cplreader/FileReaders/GENGRIDS/RectilinearUniformGridGenerator.hh svneol=native#text/plain
+source/cplreader/FileReaders/GENGRIDS/ReferenceElementGenerator.cc svneol=native#text/plain
+source/cplreader/FileReaders/GENGRIDS/ReferenceElementGenerator.hh svneol=native#text/plain
 source/cplreader/FileReaders/GENGRIDS/SphericalShellGenerator.cc svneol=native#text/plain
 source/cplreader/FileReaders/GENGRIDS/SphericalShellGenerator.hh svneol=native#text/plain
 source/cplreader/FileReaders/OPENFOAM/CMakeLists.txt svneol=native#text/plain

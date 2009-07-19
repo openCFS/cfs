@@ -403,7 +403,7 @@ namespace CoupledField {
 
       // For constraints: Add values of slaves to master
       if ( connect[i] < 0 ) {
-        rhs->AddToEntry( -(connect[i]-1), elemRhs[i] );
+        rhs->AddToEntry( -(connect[i])-1, elemRhs[i] );
       }
 
       // Insert values related to free degrees of freedom

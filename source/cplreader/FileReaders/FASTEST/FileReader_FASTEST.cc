@@ -464,7 +464,7 @@ namespace CoupledField
             FlowDataPartStruct& fdps = fd[solutionTypes_[j]];
             fdps.isActive = true; // all partitions have results
             fdps.definedOn = ResultInfo::NODE; // nodes
-            Enum2String(solutionTypes_[j], fdps.resultName);
+            fdps.resultName = SolutionTypeEnum.ToString(solutionTypes_[j]);
 
             switch(solutionTypes_[j])
             {

@@ -2,7 +2,11 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include "Settings.hh"
+
 #include "SphericalShellGenerator.hh"
+#include "RectilinearUniformGridGenerator.hh"
+#include "ReferenceElementGenerator.hh"
 
 #include "FileReader_GENGRIDS.hh"
 
@@ -15,6 +19,7 @@ namespace CoupledField
                                      const UInt startIndex) :
     FileReader(name, dim, numFiles)
   {
+    numSteps_ = 0;
   }
 
   FileReader_GENGRIDS::~FileReader_GENGRIDS()
@@ -24,13 +29,66 @@ namespace CoupledField
   void FileReader_GENGRIDS::Init()
   {
     SphericalShellGenerator shellGen;
+    RectilinearUniformGridGenerator ugGen;
+    ReferenceElementGenerator refGen;
     
-    shellGen.GenSphericalShell(nodalCoords_,
+    Settings& settings = Settings::Instance();
+
+    ParamNode *param = settings.GetParamNode();
+
+    ParamNode* typeNode = NULL;
+
+    if(param) 
+    {
+      typeNode = param->Get("type");
+      if(typeNode->Get("name")->AsString() == "GENGRIDS") 
+      {
+        std::string subType = "RectilinearUniformGridGenerator";
+        //        ParamNode* subTypeNode = typeNode->Get("subType", false);
+        typeNode->Get("subType", subType, false);
+
+        if(subType == "RectilinearUniformGridGenerator") 
+        {
+          ugGen.GenUniformGrid(nodalCoords_,
                                topology_,
                                elemTypes_,
                                maxNumElemNodes_,
                                regionElems_,
-                               nodeGroups_);
+                               nodeGroups_,
+                               RectilinearUniformGridGenerator::LAGRANGE);
+        }
+
+        if(subType == "ReferenceElementGenerator") 
+        {
+          std::string elemTypeName = "HEXA8";
+          ParamNode* elemTypeNode = typeNode->Get("elementType", false);
+          
+          if(elemTypeNode) {
+            elemTypeNode->Get("name", elemTypeName, false);
+          }
+          
+          refGen.GenGrid(nodalCoords_,
+                         topology_,
+                         elemTypes_,
+                         maxNumElemNodes_,
+                         regionElems_,
+                         nodeGroups_,
+                         Elem::feType.Parse(elemTypeName));
+        }
+
+        if(subType == "SphericalShellGenerator") 
+        {
+          shellGen.GenSphericalShell(nodalCoords_,
+                                     topology_,
+                                     elemTypes_,
+                                     maxNumElemNodes_,
+                                     regionElems_,
+                                     nodeGroups_);
+        }
+      }
+    }
+    
+
     numRegions_ = regionElems_.size();
     dim_ = 3;
     numNodesPerRegion_.resize(numRegions_);

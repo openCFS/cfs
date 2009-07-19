@@ -10,7 +10,12 @@
 #include <sstream>
 #include <memory>
 
+#include <boost/cstdint.hpp>
+
 #include <def_cplreader.hh>
+
+#include "DataInOut/ParamHandling/Xerces.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField
 {
@@ -72,7 +77,7 @@ namespace CoupledField
     //! This method gets the integer with the name
     //! key from the Settings instance.
     //! \return int value belonging to key
-    int32_t GetInt(const std::string& key)
+    boost::int32_t GetInt(const std::string& key)
     {
       if(settingsMap_.find(key) == settingsMap_.end())
       {
@@ -138,7 +143,7 @@ namespace CoupledField
     //! the name key.
     //! \param key (input) key
     //! \param value (input) int value
-    void SetInt(const std::string& key, int32_t value)
+    void SetInt(const std::string& key, boost::int32_t value)
     {
       std::stringstream sstr;
 
@@ -187,6 +192,24 @@ namespace CoupledField
       dump = sstr.str();
     }
 
+    void InitParamNode(const std::string& xmlFile)
+    {
+      // Initialize our xerces dom parser to handle the cfs xml file
+      Xerces* xerces = new Xerces(xmlFile, "");
+      
+      // set the global ParamNode tree pointer
+      param_ = xerces->CreateParamNodeInstance();
+        // save us in the info stuff, with defaults but no comments
+      // todo: info->Get(InfoNode::HEADER)->Get("cfsSimulation")->SetValue(param);
+      // release the xerces ressources, param is not affected
+      delete xerces;
+    }
+
+    ParamNode* GetParamNode()
+    {
+      return param_;
+    }
+
   private:
 
     //! Private constructor.
@@ -194,7 +217,7 @@ namespace CoupledField
     //! This one can never be called from outside.
     //! The only way to instantiate a Settings object is
     //! by using Instance().
-    Settings() {};
+    Settings() {param_ = NULL; };
 
     //! Private copy constructor.
     //!
@@ -205,6 +228,8 @@ namespace CoupledField
 
     //! Here the actual values will be stored
     Map settingsMap_;
+
+    ParamNode* param_;
 
     //! This one holds the only Settings instance
     static std::auto_ptr<Settings> settingsInstance_;

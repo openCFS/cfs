@@ -19,6 +19,7 @@
 namespace CoupledField {
 
   ArpackEigenSolver::ArpackEigenSolver( ParamNode * xml,
+                                        InfoNode* eigenInfo,
                                         OLAS_Params *myParams,
                                         OLAS_Report *myReport )
     : BaseEigenSolver( myParams, myReport ){
@@ -32,6 +33,7 @@ namespace CoupledField {
     precond_      = NULL;
     which_        = NULL;
     xml_          = xml;
+    eigenInfo_    = eigenInfo;
     
     isGeneralized_ = false;
     shiftAndInvert_ = false;
@@ -111,8 +113,8 @@ namespace CoupledField {
     SolverType solver;
     myParams_->GetEnumValue( "Solver", solver );
     // killme! check the ParamNode parameter
-    solver_ = GenerateSolverObject( *matrixA_, solver, xml_, myParams_,
-                                    myReport_ );
+    solver_ = GenerateSolverObject( *matrixA_, solver, xml_, eigenInfo_,
+                                    myParams_, myReport_ );
 
     // Create preconditioner
     PrecondType precond;
@@ -201,7 +203,7 @@ namespace CoupledField {
     SolverType solver;
     myParams_->GetEnumValue( "Solver", solver );
     // killme! check the ParamNode parameter
-    solver_ = GenerateSolverObject( *matrixB_, solver, xml_, myParams_,
+    solver_ = GenerateSolverObject( *matrixB_, solver, xml_, eigenInfo_, myParams_,
                                     myReport_ );
 
     // Create preconditioner
@@ -381,7 +383,7 @@ namespace CoupledField {
     // Create standard solver
     SolverType solver;
     myParams_->GetEnumValue( "Solver", solver );
-    solver_ = GenerateSolverObject( *matrixA_, solver, xml_, myParams_,
+    solver_ = GenerateSolverObject( *matrixA_, solver, xml_, eigenInfo_, myParams_,
                                     myReport_ );
 
     // Create preconditioner

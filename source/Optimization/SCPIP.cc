@@ -120,6 +120,10 @@ void SCPIP::SolveProblem()
       in->Get("converged")->SetValue("no");
       in->Get("reason")->SetValue("SCPIP: subproblem max iter");
       break;
+    case LineSearch_Max_Iter:
+      in->Get("converged")->SetValue("no");
+      in->Get("reason")->SetValue("SCPIP: linesearch max iter");
+      break;
     case Maximum_Iterations_Exceeded:
       in->Get("converged")->SetValue("no"); 
       in->Get("reason")->SetValue("Maximum iterations exceeded");
@@ -127,7 +131,7 @@ void SCPIP::SolveProblem()
     
     case Gradients_Return_False:
       in->Get("converged")->SetValue("no"); 
-      in->Get("reason")->SetValue("Gradients return false and no restart requested");        
+      in->Get("reason")->SetValue("Gradients return false");        
       break;
       
     default:

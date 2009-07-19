@@ -65,7 +65,7 @@ namespace CoupledField {
 
       // PDE formulation either in acoustic potential or pressure
       std::string str = myParam_->Get("formulation")->AsString();
-      String2Enum( str, formulation_ );
+      formulation_ = SolutionTypeEnum.Parse(str);
       str = "Using * " + str + " as state variable in formulation of PDE\n";
       Info->PrintF( pdename_, str.c_str() );
 

@@ -152,6 +152,12 @@ namespace CoupledField
                                     bool updated = false ) = 0;
 
 
+    //! Set offset for a single node, called by shape optimization
+    virtual void SetNodeOffset( const UInt node, const Point& offset ) = 0;
+
+    //! Get offset for a single node, called by shape optimization
+    virtual void GetNodeOffset(const UInt node, Point& offset) = 0;
+
     //! Set offset for coordinates due to updated Lagrangian formulation
     virtual void SetNodeOffset( const StdVector<UInt>& nodes,
                                 const Vector<Double>& offsets ) = 0;

@@ -27,7 +27,7 @@ namespace CoupledField {
     }
     
     //! Resize the vector to new size 
-    virtual void Resize( UInt newSize, bool init = false ) = 0;
+    virtual void Resize( UInt newSize ) = 0;
     
     //! Export vector to file
 

@@ -109,6 +109,12 @@
         <xsd:attribute name="fileName"
 		       type="xsd:token"
 		       default="default"/>
+        <xsd:attribute name="coordSysId"
+           type="xsd:token"
+           default="default"/>
+        <xsd:attribute name="scaleFac"
+           type="xsd:double"
+           default="1.0"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -194,7 +200,6 @@
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_OutputInfo">
     <xsd:attribute name="id" type="xsd:token" default="info"/>
-    <xsd:attribute name="output" type="xsd:boolean" default="true"/>
   </xsd:complexType>  
   
   <!-- ******************************************************************** -->

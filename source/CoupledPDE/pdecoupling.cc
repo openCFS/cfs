@@ -168,7 +168,6 @@ namespace CoupledField
   
     CouplingInterface *myInterface = 0; 
     Integer myNum = -1;
-    std::string quantityConv;
   
     // search matching  Quantity
     for (UInt i=0; i<inputQuantities_.GetSize(); i++)
@@ -179,8 +178,7 @@ namespace CoupledField
   
     if (myNum == -1)
       {
-        Enum2String(quantity, quantityConv);
-        EXCEPTION( "Quantity '" << quantityConv <<  "' not registered for PDE '"
+        EXCEPTION( "Quantity '" << SolutionTypeEnum.ToString(quantity) <<  "' not registered for PDE '"
                    << myPDE_->GetName() << "'" );
       }
   
@@ -198,8 +196,7 @@ namespace CoupledField
     // If no pde has the specified quantity as output
     if (myInterface == NULL)
       {
-        Enum2String(quantity, quantityConv);
-        EXCEPTION( "Qantity \'" << quantityConv 
+        EXCEPTION( "Qantity \'" << SolutionTypeEnum.ToString(quantity) 
                    << "\' can not be calculated with current set of PDEs" );
       }
   
@@ -774,7 +771,7 @@ namespace CoupledField
 
   void PDECoupling::SetMemento(CouplingMemento & memento) {
   
-    std::string errMsg, warnMsg, helper;
+    std::string errMsg, warnMsg;
 
     // if there is no information in the memento just leave
     if (memento.isSet_ == false)
@@ -853,9 +850,8 @@ namespace CoupledField
           } // if statement
       
         if (! couplingFound) {
-          Enum2String(memento.inputQuantities_[iMem], helper);
           warnMsg  = "PDECoupling::SetMemento: The coupling quantitiy '";
-          warnMsg += helper;
+          warnMsg += SolutionTypeEnum.ToString(memento.inputQuantities_[iMem]);
           warnMsg += "' at the interface(s) '";
           for (UInt i=0; i<memento.inputInterfaces_[iMem].regions.GetSize()-1; i++) {
             warnMsg +=  memento.inputInterfaces_[iMem].regions[i];

@@ -61,10 +61,11 @@ void endianSwap (long int addr, int num_el, int size_el)
   }
 
   // read header
-  fread(&record,sizeof(int),1,in);
-  fread(&nNodesIn,sizeof(int),1,in);
-  fread(&nVarsIn,sizeof(int),1,in);
-  fread(&record,sizeof(int),1,in);
+	int return_value(0);
+  return_value = fread(&record,sizeof(int),1,in);
+  return_value = fread(&nNodesIn,sizeof(int),1,in);
+  return_value = fread(&nVarsIn,sizeof(int),1,in);
+  return_value = fread(&record,sizeof(int),1,in);
 
   // swap binary data from little endian to bigendian
 #ifdef LE
@@ -90,9 +91,9 @@ void endianSwap (long int addr, int num_el, int size_el)
   ntmp = (int *)malloc(nNodes*sizeof(int));
   
   // read node indec
-  fread(&record,sizeof(int),1,in);
-  fread(ntmp,sizeof(int),nNodes,in);
-  fread(&record,sizeof(int),1,in);
+  return_value = fread(&record,sizeof(int),1,in);
+  return_value = fread(ntmp,sizeof(int),nNodes,in);
+  return_value = fread(&record,sizeof(int),1,in);
 #ifdef LE
   endianSwap((long int)ntmp,nNodes,sizeof(int));
 #endif
@@ -105,12 +106,12 @@ void endianSwap (long int addr, int num_el, int size_el)
 
   // read data
   for(kk=0; kk<nVars; kk++){
-    fread(&record,sizeof(int),1,in);
-    fread(ftmp,sizeof(double),nNodes,in);
+    return_value = fread(&record,sizeof(int),1,in);
+    return_value = fread(ftmp,sizeof(double),nNodes,in);
 #ifdef LE
       endianSwap((long int)ftmp,nNodes,sizeof(double));
 #endif
-    fread(&record,sizeof(int),1,in);
+    return_value = fread(&record,sizeof(int),1,in);
 
     if(kk == 0){
        //speed of sound

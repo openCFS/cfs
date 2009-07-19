@@ -423,6 +423,12 @@ namespace CoupledField
     virtual void GetRegionNames( StdVector<std::string> & regionNames );
 
     
+    //! Set offset for a single node, called from ShapeDesign
+    void SetNodeOffset( const UInt node, const Point& offset );
+
+    //! Get offset for a single node, called from mechpde
+    void GetNodeOffset(const UInt node, Point& offset);
+
     //! Set offset for coordinates due to updated Lagrangian formulation
     void SetNodeOffset( const StdVector<UInt>& nodes, 
                         const Vector<Double>& offsets );
@@ -550,7 +556,9 @@ namespace CoupledField
     //! find entity with minimum distance
     UInt FindEntityMinDistance( bool isNode, Vector<Double>& coord );
 
-    
+    //! Correct connectivity in case of negative Jacobian determinants
+    void CorrectElementConnectivities();
+
     //@}
 
     // =======================================================================

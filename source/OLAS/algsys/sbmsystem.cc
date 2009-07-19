@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <fstream>
 
+#include <boost/algorithm/string/replace.hpp>
 #include "MatVec/sbmmatrix.hh"
 
 #include "OLAS/algsys/olascomm.hh"
@@ -21,6 +22,7 @@
 #include "OLAS/algsys/baseentrymanipulator.hh"
 #include "OLAS/algsys/generateidbchandler.hh"
 #include "OLAS/algsys/baseidbchandler.hh"
+#include "DataInOut/ParamHandling/InfoNode.hh"
 
 
 namespace CoupledField {
@@ -73,7 +75,7 @@ namespace CoupledField {
   //   SetupPrecond
   // ****************
   void SBM_System::SetupPrecond() {
-    precond_->Setup( *sysMat_[SYSTEM] );
+    precond_->Setup( *sysMat_[SYSTEM]);
   }
 
 
@@ -789,7 +791,7 @@ s    }
   // *********
   //   Solve
   // *********
-  void SBM_System::Solve(const std::string& comment) {
+  void SBM_System::Solve(InfoNode* analysis_id) {
 
 
     // If the penalty formulation is used and we have inhomogeneous
@@ -828,11 +830,14 @@ s    }
      std::string file;
      std::string base;
 
+     // TODO: This is most ugly copy & paste from standardsys.cc -> Generelize common parts!!
      // need it common even when exclusive solution
      if(els) {
        std::ostringstream os;
        os << els->Get("baseName")->AsString();
-       if(comment != "") os << "_" << comment;
+       std::string id = analysis_id->Get("analysis_id")->AsString();
+       boost::replace_all(id, ":", "_");
+       os << "_" << id;
        base = os.str();
      }
 
@@ -1004,11 +1009,11 @@ s    }
   // ****************
   //   CreateSolver
   // ****************
-  void SBM_System::CreateSolver(){
+  void SBM_System::CreateSolver(InfoNode* olasInfo){
 
     // HARD CODED: Create conjugate gradient solver
     Warning( "At the moment we use a hard-coded CG-solver" );
-    solver_ = GenerateSolverObject( *(sysMat_[SYSTEM]), CG, xml,
+    solver_ = GenerateSolverObject( *(sysMat_[SYSTEM]), CG, xml, olasInfo,
                                     &myParams_, &myReport_ );
   }
 
@@ -1026,12 +1031,12 @@ s    }
   // ***************
   //   SetupSolver
   // ***************
-  void SBM_System::SetupSolver() {
-    solver_->Setup( *sysMat_[SYSTEM] );
+  void SBM_System::SetupSolver(InfoNode* analysis_id) {
+    solver_->Setup( *sysMat_[SYSTEM]);
   }
 
 
-  void SBM_System::CreateEigenSolver() {
+  void SBM_System::CreateEigenSolver(InfoNode*) {
     (*warning) << "SBM_System::CreateEigenSolver not yet implemented!";
     Warning( __FILE__, __LINE__ );
   }

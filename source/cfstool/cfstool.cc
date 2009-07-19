@@ -6,6 +6,7 @@
 // of in/output files CFS++ should support
 #include <boost/lexical_cast.hpp>
 
+#include <def_cfs_stats.hh>
 #include <def_use_mesh.hh>
 #include <def_use_gidpost.hh>
 #include <def_use_hdf5.hh>
@@ -19,6 +20,7 @@
 namespace fs = boost::filesystem;
 
 #include "General/environment.hh"
+#include "DataInOut/programOptions.hh"
 #include "DataInOut/simInput.hh"
 #include "DataInOut/simOutput.hh"
 #include "Domain/GridCFS/grid_cfs.hh"
@@ -83,14 +85,22 @@ namespace CFSTool {
 #else  
       EXCEPTION( "No support for HDF5 input file format." );
 #endif
-//    } else if( fileName.find( ".unv") != std::string::npos ||
-//        fileName.find( ".unverg") != std::string::npos ||
-//        fileName.find( ".unvref") != std::string::npos ) {
-//#ifdef USE_UNV
-//      reader = shared_ptr<SimInput>(new SimInputUnv( fileName, NULL ) );
-//#else
-//      EXCEPTION( "No support for UNV input file format." );
-//#endif  
+    } else if( fileName.find( ".gmv") != std::string::npos ) {
+#ifdef USE_GMV_INPUT
+      ParamNode * gmvNode = new ParamNode(false);
+      reader = shared_ptr<SimInput>(new SimInputGMV(fileName, gmvNode) );
+#else  
+      EXCEPTION( "No support for GMV input file format." );
+#endif
+    } else if( fileName.find( ".unv") != std::string::npos ||
+        fileName.find( ".unverg") != std::string::npos ||
+        fileName.find( ".unvref") != std::string::npos ) {
+#ifdef USE_UNV
+      ParamNode * unvNode = new ParamNode(false);
+      reader = shared_ptr<SimInput>(new SimInputUnv( fileName, unvNode ) );
+#else
+      EXCEPTION( "No support for UNV input file format." );
+#endif  
     } else {
       EXCEPTION( "Found not suitable reader for file '" << fileName
           << "'" );
@@ -149,6 +159,22 @@ namespace CFSTool {
 #else
       EXCEPTION( "No support for HDF5 output file format." );
 #endif
+    } else if(fileName.find( ".rst") != std::string::npos) {
+#ifdef USE_ANSYSRST
+      baseName = std::string(fileName, 0, fileName.find(".rst"));
+      ParamNode * rstNode = new ParamNode(false);
+      writer =  shared_ptr<SimOutput>( new SimOutputRST( baseName, rstNode ) );
+#else
+      EXCEPTION( "No support for ANSYS .rst output file format." );
+#endif
+    } else if(fileName.find( ".unv") != std::string::npos) {
+#ifdef USE_UNV
+      baseName = std::string(fileName, 0, fileName.find(".unv"));
+      ParamNode * unvNode = new ParamNode(false);
+      writer =  shared_ptr<SimOutput>( new SimOutputUnv( baseName, unvNode ) );
+#else
+      EXCEPTION( "No support for IDEAS universal output file format." );
+#endif
     } else {
       EXCEPTION( "Output format not supported!" );
     }
@@ -204,8 +230,6 @@ namespace CFSTool {
          StdVector<shared_ptr<ResultInfo> > infos;
          input->GetResultTypes( actMsStep, infos );
 
-         // notify writer
-         output->BeginMultiSequenceStep( actMsStep, types[actMsStep], numSteps[actMsStep] );
          StdVector<shared_ptr<BaseResult> > results;
          std::map<UInt, Double> stepVals;
          std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps;
@@ -244,6 +268,9 @@ namespace CFSTool {
              output->RegisterResult( result, 1, 1, resultSteps[actRes].size(), false ); 
            }
          }
+
+         // notify writer
+         output->BeginMultiSequenceStep( actMsStep, types[actMsStep], numSteps[actMsStep] );
          
          // iterate over all stepvalues of this multisequence step
          for( UInt iStep = 0; iStep < numSteps[actMsStep]; iStep++ ) {
@@ -620,6 +647,7 @@ namespace CFSTool {
    * todo: do better once - Fabian */
   void InitEnums()
   {
+    SetEnvironmentEnums();
     BasePDE::SetEnums();
   }
   
@@ -638,7 +666,19 @@ int main(int argc, char** argv) {
 
   // todo: do better once! - Fabian
   CFSTool::InitEnums(); 
-  
+ 
+  std::cout << std::endl
+            << "============================================================"
+            << "===========" << std::endl;
+  std::cout << " CFSTOOL - File Conversions/Comparisons for CFS++" << std::endl << std::endl
+            << " v. " << CFS_VERSION << " - '" << CFS_NAME << "'"
+            << " (rev " << CFS_SUBVERSION_REV << ")" << std::endl
+            << " compiled " << __DATE__
+            << " as " << CMAKE_BUILD_TYPE << std::endl;
+  std::cout << "============================================================"
+            << "==========="
+            << std::endl << std::endl;
+ 
   try {
     if( argc < 2) {
       std::cout << "CFS TOOL 1.0 \n\n"
@@ -651,10 +691,11 @@ int main(int argc, char** argv) {
                 << "\t\ti.e. out = in_1 -in_2\n"
                 << "\tmeshdiffnormed <reference_file> <compare_file> <outfile>\n"
                 << "\t\ti.e. out = (in_1 - in_2) / max(in_2)\n"
+                << "\tversion"
                 << "\n\n"
                 << "List of supported formats:\n"
-                << "\tinput: .mesh .h5\n"
-                << "\toutput: .h5, .post.res, .post.bin, .gmv\n"
+                << "\tinput: .mesh .h5 .unv[erg|ref] .gmv\n"
+                << "\toutput: .h5, .post.res, .post.bin, .gmv .rst\n"
                 << "\n\n"
                 << "Please note that the input/output format is chosen "
                 << "depending on the file suffix\n\n";
@@ -726,9 +767,11 @@ int main(int argc, char** argv) {
       }
       Double maxDiff = 0.0;
       maxDiff = CFSTool::Diff( argv[2], argv[3], argv[4], true, false );
-
+    } else if( modus == "version" ) {
+      ProgramOptions::GetVersionString(std::cout, false);
+      return EXIT_SUCCESS;
     } else {
-      std::cerr << "modus '" << modus << "' not known\n";
+      std::cerr << "mode '" << modus << "' not known\n";
       return EXIT_FAILURE;
     }
 

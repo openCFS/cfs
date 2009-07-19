@@ -30,6 +30,9 @@
 
 #define PROGRESS_TEXT_WIDTH 62
 
+using std::cout;
+using std::endl;
+
 namespace CoupledField {
 
 
@@ -83,7 +86,7 @@ namespace CoupledField {
   void WriteInfo::PrintMaterial( BaseMaterial* material ) {
 
 
-    *cfsInfo << *material << std::endl;
+    *cfsInfo << *material << endl;
   }
 
 
@@ -100,18 +103,18 @@ namespace CoupledField {
     
     if (cfsInfo) 
       {
-        *cfsInfo << std::endl << pdeNameLong << "NONLINEAR ITERATION "
+        *cfsInfo << endl << pdeNameLong << "NONLINEAR ITERATION "
                  << iterationCounter 
                  << " ==========================================\n"
                  << pdeNameLong << "=== Residual error          "
                  << residualErr
-                 << std::endl
+                 << endl
                  << pdeNameLong << "=== Incremental error       "
-                 << incrementalErr << std::endl;
+                 << incrementalErr << endl;
     
         if (etaLineSearch)
           *cfsInfo << pdeNameLong << "=== eta (line search)       "
-                   << etaLineSearch << std::endl;
+                   << etaLineSearch << endl;
       }
   }
 
@@ -129,20 +132,20 @@ namespace CoupledField {
 
     if (cfsInfo)
       {
-        *cfsInfo << std::endl << pdeNameLong << "NONLINEAR ITERATION "
+        *cfsInfo << endl << pdeNameLong << "NONLINEAR ITERATION "
                  << iterationCounter
                  << " ==========================================\n"
                  << pdeNameLong << "=== Residual error          "
                  << residualErr
-                 << std::endl
+                 << endl
                  << pdeNameLong << "=== Incremental error       "
-                 << incrementalErr << std::endl
+                 << incrementalErr << endl
                  << pdeNameLong << "=== Energy error       "
-                 << energyErr << std::endl;
+                 << energyErr << endl;
 
         if (etaLineSearch)
           *cfsInfo << pdeNameLong << "=== eta (line search)       "
-                   << etaLineSearch << std::endl;
+                   << etaLineSearch << endl;
       }
   }
 
@@ -153,104 +156,32 @@ namespace CoupledField {
 
  
     // write std::out info 
-    std::cout << std::endl 
-              << " ***************************** " << std::endl
-              << " MultiSequenceStep: " << sequenceStep << std::endl
-              << " AnalysisType:      " << analysisString << std::endl
-              << " ***************************** " << std::endl << std::endl;
+    cout << endl 
+              << " ***************************** " << endl
+              << " MultiSequenceStep: " << sequenceStep << endl
+              << " AnalysisType:      " << analysisString << endl
+              << " ***************************** " << endl << endl;
 
 
 
-    *cla <<  std::endl 
-         << " ***************************** " << std::endl
-         << " MultiSequenceStep: " << sequenceStep << std::endl
-         << " AnalysisType:      " << analysisString << std::endl
-         << " ***************************** " << std::endl << std::endl;
+    *cla <<  endl 
+         << " ***************************** " << endl
+         << " MultiSequenceStep: " << sequenceStep << endl
+         << " AnalysisType:      " << analysisString << endl
+         << " ***************************** " << endl << endl;
     
 
 
     
     if (cfsInfo)
-      *cfsInfo << std::endl 
-               << std::endl<< " ***************************** " << std::endl
-               << " MultiSequenceStep: " << sequenceStep << std::endl
-               << " AnalysisType:      " << analysisString << std::endl
-               << " ***************************** " << std::endl << std::endl;
+      *cfsInfo << endl 
+               << endl<< " ***************************** " << endl
+               << " MultiSequenceStep: " << sequenceStep << endl
+               << " AnalysisType:      " << analysisString << endl
+               << " ***************************** " << endl << endl;
   }
   
-
-
-  void WriteInfo::WriteTimeStep(const std::string& pdeName,
-                                const UInt timeStep, const Double time)
-  {
-
-    std::string pdeNameLong(pdeName);
-
-    // write std::out info    
-    std::cout << std::endl << pdeName << ": Time step " 
-              << timeStep <<" ======================= " << std::endl;      
-
-
-    *cla << std::endl << pdeName << ": Time step " 
-         << timeStep <<" ********************************************"
-         << std::endl;
-
-
-    // write to info-file
-    pdeNameLong += "-PDE: ";    
-    
-    if (cfsInfo)
-      *cfsInfo << std::endl << std::endl << std::endl 
-               << "**********************************************************"
-               << "**********************" 
-               << std::endl << pdeNameLong << "TIME STEP " << timeStep 
-               << ", time: " << time << std::endl;
-  }
   
-
-
-  // *********************
-  //   WriteHarmonicStep
-  // *********************
-  void WriteInfo::WriteHarmonicStep( const std::string& pdeName,
-                                     const UInt freqStep,
-                                     const Double frequency ) {
-
-
-    // We do not log something in the case of the paramIdent driver,
-    // since the output will be more disturbing than helpful in this case
-    std::string analysis;
-//     params->Get( "type", analysis, "analysis" );
-//     if( analysis == "paramIdent" ) {
-//       return;
-//     }
-
-    // Compute size of freqStep when written as string
-    UInt fw = (Integer)std::log10( (float)freqStep ) + 1;
-
-    // Report 1: Goes to standard output
-    std::cout << std::endl << pdeName << ": Harmonic step " 
-              << freqStep <<" ======================= " << std::endl;      
-
-    // Report 2: Goes into logfile for algebraic sub-system
-    (*cla) << std::endl << ' '
-           << std::setw( 79 ) << std::setfill( '*' ) << "\n"
-           << " *** " << pdeName
-           << ": Harmonic step " << freqStep << ' '
-           << std::setw( 80 - pdeName.size() - 21 - fw )
-           << std::setfill( '*' ) << "*\n "
-           << std::setw( 78 ) << std::setfill( '*' ) << "*"
-           << std::endl;
-
-    // Report 3: Goes into CFS++ info-file
-    if ( cfsInfo != NULL ) {
-      (*cfsInfo) << "\n\n"
-                 << std::setw( 80 ) << std::setfill( '*' ) << "*\n"
-                 << pdeName << "-PDE: HARMONIC STEP " << freqStep 
-                 << ", frequency: " << frequency << std::endl;
-    }
-  }
-
 
   // ***************
   //   WriteResult
@@ -267,14 +198,14 @@ namespace CoupledField {
       Error("Problem in WriteResults",__FILE__,__LINE__);
  
     if (cfsInfo) {
-      *cfsInfo << std::endl << " PostProcessing Result for PDE " << pdename
-               << ": " << resulttype << " ==========" << std::endl;
+      *cfsInfo << endl << " PostProcessing Result for PDE " << pdename
+               << ": " << resulttype << " ==========" << endl;
 
       for ( UInt i = 0; i < subdoms.GetSize(); i++ ) {
         *cfsInfo << "        === " << analysis << " " << analysisVal 
                  << "; " << subdoms[i] << ": " 
                  << results[i] 
-                 << " "  << unit << std::endl << std::endl;
+                 << " "  << unit << endl << endl;
       }
     }
   }
@@ -291,14 +222,14 @@ namespace CoupledField {
       Error("Problem in WriteResults",__FILE__,__LINE__);
  
     if (cfsInfo) {
-      *cfsInfo << std::endl << " PostProcessing Result for PDE " << pdename
-               << ": " << resulttype << " ==========" << std::endl;
+      *cfsInfo << endl << " PostProcessing Result for PDE " << pdename
+               << ": " << resulttype << " ==========" << endl;
 
       for ( UInt i = 0; i < subdoms.GetSize(); i++ ) {
         *cfsInfo << "        === " << analysis << " " << analysisVal 
                  << "; " << subdoms[i] << ": "
                  << results[i] 
-                 << " "  << unit << std::endl << std::endl;
+                 << " "  << unit << endl << endl;
       }
     }
   }
@@ -311,30 +242,30 @@ namespace CoupledField {
       return;
     
     *cfsInfo << "COIL DESCRIPTION ======================================= "
-             << std::endl;
+             << endl;
 
     // Basic coil info
     *cfsInfo << "Coil domain: "              << coil.coilRegionName_ << '\n'
              << "Coil type: "                << coil.coilTypeS_ << '\n'
              << "Cross-Section of winding: " << coil.windingCrossSection_
-             << std::endl;
+             << endl;
 
     // ID tag for 2D coils
     if ( coil.coilType_ == Coil::MEASUREMENT2D ||
          coil.coilType_ == Coil::VOLTAGE2D ||
          coil.coilType_ == Coil::CURRENT2D ) {
-      *cfsInfo <<  "Coil ID: " << coil.id_ << std::endl;
+      *cfsInfo <<  "Coil ID: " << coil.id_ << endl;
     }
 
     // Special things for voltage coils
     if ( coil.coilType_ == Coil::VOLTAGE2D ||
          coil.coilType_ == Coil::VOLTAGE3D ) {
 
-      *cfsInfo << "Voltage value = " << coil.value_      << std::endl;
-      *cfsInfo << "Resistance    = " << coil.resistance_ << std::endl;
+      *cfsInfo << "Voltage value = " << coil.value_      << endl;
+      *cfsInfo << "Resistance    = " << coil.resistance_ << endl;
 
       if ( analysistype == BasePDE::HARMONIC) {
-        *cfsInfo << "Voltage phase = " << coil.phase_ << std::endl;
+        *cfsInfo << "Voltage phase = " << coil.phase_ << endl;
       }
     }
 
@@ -342,10 +273,10 @@ namespace CoupledField {
     if ( coil.coilType_ == Coil::CURRENT2D ||
          coil.coilType_ == Coil::CURRENT3D ) {
 
-      *cfsInfo << "Current value = " << coil.value_      << std::endl;
+      *cfsInfo << "Current value = " << coil.value_      << endl;
 
       if ( analysistype == BasePDE::HARMONIC) {
-        *cfsInfo << "Current phase = " << coil.phase_ << std::endl;
+        *cfsInfo << "Current phase = " << coil.phase_ << endl;
       }
 
     }
@@ -356,37 +287,37 @@ namespace CoupledField {
 
       if ( coil.saveFileL_ != "none" ) {
         *cfsInfo << " Storing inductivity in file: " << coil.saveFileL_
-                 << std::endl;
+                 << endl;
       }
 
       if ( coil.saveFileU_ != "none" ) {
         *cfsInfo << " Storing current/voltage in file: " << coil.saveFileU_
-                 << std::endl;
+                 << endl;
       }
     }
 
     // Special things for 3D current and voltage coils
     if ( coil.coilType_ == Coil::CURRENT3D ) {
       if ( coil.isRotational_ ) {
-        *cfsInfo << "Rotational current flow specification." << std::endl;
+        *cfsInfo << "Rotational current flow specification." << endl;
         *cfsInfo << "Midpoint = ( "
                  << coil.midX_ << " , "
                  << coil.midY_ << " , "
-                 << coil.midZ_ << " )" << std::endl;
+                 << coil.midZ_ << " )" << endl;
         *cfsInfo << "Axis = ( "
                  << coil.rotAxisX_ << " , "
                  << coil.rotAxisY_ << " , "
-                 << coil.rotAxisZ_ << " )" << std::endl;
+                 << coil.rotAxisZ_ << " )" << endl;
       }
       else {
         *cfsInfo << "Direction of current flow: ";
-        *cfsInfo << coil.locFlowDir_.ToString() << std::endl;
+        *cfsInfo << coil.locFlowDir_.ToString() << endl;
         *cfsInfo << " in coordinate system " 
                  << coil.flowCoordSys_->GetName();
       }
     }
 
-    *cfsInfo << std::endl << std::endl;
+    *cfsInfo << endl << endl;
   }
 
   template <class TYPE>
@@ -396,12 +327,12 @@ namespace CoupledField {
   {
  
     if (cfsInfo) {
-      *cfsInfo << std::endl << " PostProcessing Result for PDE " << pdename
-               << ": " << " ==========" << std::endl;
+      *cfsInfo << endl << " PostProcessing Result for PDE " << pdename
+               << ": " << " ==========" << endl;
       *cfsInfo << "   Acoustic Power: \n";
       for ( UInt i = 0; i < subdoms.GetSize(); i++ ) {
         *cfsInfo << "    Subdomain: " <<  subdoms[i] << " : " <<  power[i] 
-                 << " W" << std::endl;
+                 << " W" << endl;
       }
     }
   }
@@ -410,13 +341,13 @@ namespace CoupledField {
   void WriteInfo::PrintVec(Vector<Complex>& vec)
   {
     if (cfsInfo)
-      *cfsInfo << vec << std::endl;
+      *cfsInfo << vec << endl;
   }
 
   void WriteInfo::PrintVec(Vector<Double>& vec)
   {
     if (cfsInfo)
-      *cfsInfo << vec << std::endl;
+      *cfsInfo << vec << endl;
   }
   
 
@@ -427,47 +358,47 @@ namespace CoupledField {
 
     *cfsInfo << "\nCombustion Noise Info:\n" 
 	     << " Name of file: " << filename  
-	     << "\n Coupling region: " << cplRegion <<  std::endl;
+	     << "\n Coupling region: " << cplRegion <<  endl;
 
     if ( sosIdx > 0 ) {      
-      *cfsInfo << " Use variable speed of sound: yes" << std::endl;
+      *cfsInfo << " Use variable speed of sound: yes" << endl;
     }
     else {
-      *cfsInfo << " Use variable speed of sound: no" << std::endl;
+      *cfsInfo << " Use variable speed of sound: no" << endl;
     }
 
-    *cfsInfo << "\n Use the following source terms" << std::endl;
+    *cfsInfo << "\n Use the following source terms" << endl;
 
     if ( src1 > 0 ) {
-      *cfsInfo << "      Reynolds stress tensor " << std::endl;
+      *cfsInfo << "      Reynolds stress tensor " << endl;
     }
     if ( src2 > 0 ) {
-      *cfsInfo << "      Fluctuation of momentum flux " << std::endl;
+      *cfsInfo << "      Fluctuation of momentum flux " << endl;
     }
     if ( src3 > 0 ) {
-      *cfsInfo << "      Unsteady reaction rates " << std::endl;
+      *cfsInfo << "      Unsteady reaction rates " << endl;
     }
     if ( src4 > 0 ) {
-      *cfsInfo << "      2nd order derivative of density " << std::endl;
+      *cfsInfo << "      2nd order derivative of density " << endl;
     }
     if ( src5 > 0 ) {
-      *cfsInfo << "      Heat release " << std::endl;
+      *cfsInfo << "      Heat release " << endl;
     }    
     if ( src6 > 0 ) {
-      *cfsInfo << "      Gas Const. 2nd time derivative " << std::endl;
+      *cfsInfo << "      Gas Const. 2nd time derivative " << endl;
     }
     if ( src7 > 0 ) {
-      *cfsInfo << "      Shear term " << std::endl;
+      *cfsInfo << "      Shear term " << endl;
     }
 
-    *cfsInfo << std::endl;
+    *cfsInfo << endl;
   }
 
 
   void WriteInfo::PrintVec(StdVector<Integer>& vec)
   {
     if (cfsInfo)
-      *cfsInfo << vec << std::endl;
+      *cfsInfo << vec << endl;
   }
   
 
@@ -475,7 +406,7 @@ namespace CoupledField {
   void WriteInfo::PrintVec(const char * comment, StdVector<Integer>& vec)
   {
     if (cfsInfo)
-      *cfsInfo << comment << std::endl << vec << std::endl << std::endl;
+      *cfsInfo << comment << endl << vec << endl << endl;
   }
 
 
@@ -486,12 +417,12 @@ namespace CoupledField {
 
     if (cfsInfo)
       {
-        *cfsInfo << comment << std::endl;
+        *cfsInfo << comment << endl;
         
         for (UInt i=0; i< vec.GetSize(); i++)
-          *cfsInfo << vec[i] << std::endl;
+          *cfsInfo << vec[i] << endl;
         
-        *cfsInfo << std::endl;
+        *cfsInfo << endl;
       }
   }
 
@@ -499,7 +430,7 @@ namespace CoupledField {
   {
 
     if (cfsInfo)
-      *cfsInfo << comment << std::endl << mat << std::endl << std::endl;
+      *cfsInfo << comment << endl << mat << endl << endl;
   }
 
 #endif //INTEGLIB
@@ -509,7 +440,7 @@ namespace CoupledField {
                            const char* const filename, const UInt numline ) {
 
 #ifdef INTEGLIB
-    std::cerr << "INTEGLIB WARNING: " << Text << std::endl;
+    std::cerr << "INTEGLIB WARNING: " << Text << endl;
 #else
 #ifdef USE_SCRIPTING
     if ( messenger ) {
@@ -520,12 +451,12 @@ namespace CoupledField {
 #endif
 
     if ( progressRunning_ == true ) {
-      std::cout << std::endl;
+      cout << endl;
     }
 
     std::cerr << "\n "
               << fg_yellow << "WARNING:" << fg_reset << "\n "
-              << Text << std::endl;
+              << Text << endl;
 
     warningOccured_ = true;
 
@@ -534,19 +465,19 @@ namespace CoupledField {
       if (numline) {
         std::cerr << numline;
       }
-      std::cerr << ")" << std::endl;
+      std::cerr << ")" << endl;
     }
     else {
-      std::cerr << std::endl;
+      std::cerr << endl;
     }
 
     if (cfsInfo) {
-      *cfsInfo << std::endl << std::endl << std::endl
+      *cfsInfo << endl << endl << endl
                << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-               << "!!!!!!!!!!!!!" << std::endl
-               << "                          WARNING " << std::endl
+               << "!!!!!!!!!!!!!" << endl
+               << "                          WARNING " << endl
                << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-               << "!!!!!!!!!!!!!" << std::endl
+               << "!!!!!!!!!!!!!" << endl
                << "WARNING: " << Text;
         
       if (filename) {
@@ -557,8 +488,8 @@ namespace CoupledField {
       }
     
       *cfsInfo << "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-               << "!!!!!!!!!!!!!!!" << std::endl
-               << std::endl;
+               << "!!!!!!!!!!!!!!!" << endl
+               << endl;
     }
 #endif // INTEGLIB
   }
@@ -572,7 +503,7 @@ namespace CoupledField {
 
 
 #ifdef INTEGLIB
-    std::cerr << "INTEGLIB ERROR: " << Text << std::endl;
+    std::cerr << "INTEGLIB ERROR: " << Text << endl;
 #else
 #ifdef USE_SCRIPTING
     if ( messenger ) {
@@ -589,9 +520,9 @@ namespace CoupledField {
       FinishProgress( false );
     }
 
-    std::cerr << std::endl << " "
+    std::cerr << endl << " "
               << fg_red << "ERROR:"
-              << fg_reset << "\n" << std::endl;
+              << fg_reset << "\n" << endl;
 
     if ( Text != "" ) {
       std::cerr << ' ' << Text;
@@ -607,15 +538,15 @@ namespace CoupledField {
                 << filename << ", line " << numline;
     }
 
-    std::cerr << std::endl << std::endl;
+    std::cerr << endl << endl;
     
     if (cfsInfo) {
-      *cfsInfo << std::endl << std::endl << std::endl
+      *cfsInfo << endl << endl << endl
                << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! "
-               << std::endl
-               << "                          ERROR " << std::endl
+               << endl
+               << "                          ERROR " << endl
                << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! "
-               << std::endl
+               << endl
                << " ERROR: " << Text;
 
       if (filename) {
@@ -624,7 +555,7 @@ namespace CoupledField {
           *cfsInfo << numline;
         *cfsInfo << ")";
       }
-      *cfsInfo << std::endl;  
+      *cfsInfo << endl;  
     }
 #endif // INTEGLIB
 
@@ -659,10 +590,10 @@ namespace CoupledField {
                  <<  listType
                  << "), dof = " 
                  << actBc.result->GetDofName(actBc.dof)
-                 << std::endl;
+                 << endl;
       }
 
-      *cfsInfo << std::endl;
+      *cfsInfo << endl;
     }
   }
 
@@ -690,10 +621,10 @@ namespace CoupledField {
                  << actBc.result->GetDofName(actBc.dof)
                  << ", value = " << actBc.value
                  << ", phase = " << actBc.phase 
-                 << std::endl;
+                 << endl;
       }
 
-      *cfsInfo << std::endl;
+      *cfsInfo << endl;
     }
   }
 
@@ -719,10 +650,10 @@ namespace CoupledField {
                  << actBc.result->GetDofName(actBc.dof)
                  << ", value = " << actBc.value
                  << ", phase = " << actBc.phase 
-                 << std::endl;
+                 << endl;
       }
     }
-    *cfsInfo << std::endl;
+    *cfsInfo << endl;
   }
 
 
@@ -755,10 +686,10 @@ namespace CoupledField {
                  << "), dof = " 
                  << actBc.result->GetDofName(actBc.slaveDof)
           
-                 << std::endl;
+                 << endl;
       }
     }
-    *cfsInfo << std::endl;
+    *cfsInfo << endl;
 
   }
 
@@ -782,10 +713,10 @@ namespace CoupledField {
                  << actBc.result->GetDofName(actBc.dof)
                  << ", value = " << actBc.value
                  << ", phase = " << actBc.phase 
-                 << std::endl;
+                 << endl;
       }
     }
-    *cfsInfo << std::endl;
+    *cfsInfo << endl;
   }
   
 
@@ -882,7 +813,7 @@ namespace CoupledField {
     } while(foundPos != std::string::npos);
 
     if (cfsInfo)
-      //*cfsInfo << formatted << std::endl << std::flush;
+      //*cfsInfo << formatted << endl << std::flush;
     *cfsInfo << formatted << std::flush;
     
     va_end(argList);
@@ -899,7 +830,7 @@ namespace CoupledField {
 
     needAck_ = needAck;
 
-    std::cout << "++ " << std::setw(PROGRESS_TEXT_WIDTH)
+    cout << "++ " << std::setw(PROGRESS_TEXT_WIDTH)
               << std::setfill( '.' ) << std::left
               << modifiedName << std::setfill( ' ' ) << ' '
               << std::flush;
@@ -909,7 +840,7 @@ namespace CoupledField {
       progressRunning_ = true;
     }
     else {
-      std::cout << std::endl;
+      cout << endl;
     }
   }
 
@@ -925,13 +856,13 @@ namespace CoupledField {
     bool okay = ( warningOccured_ == false ) && ( success == true );
 
     if ( okay == true ) {
-      std::cout << std::setw(10) << fg_green << "OK" << fg_reset<< std::endl;
+      cout << std::setw(10) << fg_green << "OK" << fg_reset<< endl;
     }
     else if ( success == false ) {
-      std::cout << std::setw(10) << fg_red << "FAILED" << fg_reset << std::endl;
+      cout << std::setw(10) << fg_red << "FAILED" << fg_reset << endl;
     }
     else {
-      std::cout << std::endl;
+      cout << endl;
     }
 
     // re-set flags

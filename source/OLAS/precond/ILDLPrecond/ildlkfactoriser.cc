@@ -3,6 +3,7 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include <vector>
+#include <cstdio>
 
 #include "MatVec/scrs_matrix.hh"
 #include "OLAS/algsys/olasparams.hh"

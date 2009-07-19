@@ -117,7 +117,7 @@ namespace CoupledField {
     //! After Setup is called the BaseMatrix (expected to be either a CRS
     //! or SCRS-matrix) will be reordered using the Nested Dissection or
     //! the Minimum Degree Algorithm and then it will be LU-factorised.
-    void Setup( BaseMatrix &sysmat);
+    void Setup( BaseMatrix &sysmat, InfoNode* analysis_id);
 
     //! Direct solution of the linear system
 
@@ -126,7 +126,7 @@ namespace CoupledField {
     //! Note that the method will neglect the precond input parameter, since
     //! we perform a direct solution.
     void Solve( const BaseMatrix &sysmat, const BasePrecond &precond,
-                const BaseVector &rhs, BaseVector &sol );
+                const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_id );
 
     //! Query type of this solver.
 

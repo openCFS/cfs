@@ -133,6 +133,11 @@ namespace CoupledField {
     Double maxImpedance=0.0;
     Double minImpedance=1.0e+10;
 
+    // obviously calcImpedanceCurve() is called multiple times. We use the number of childs within
+    // the info node as counter as I have no idea about Tom's counters
+    // This is similar to HarmonicDriver as PiezoParamIdent is similar to this.
+    InfoNode* base = driverNode->Get(InfoNode::PROCESS);
+
     for (UInt fstep = 0; fstep < freqs_.GetSize(); fstep++) {
 
       ////////////////////////////////////////////////////////
@@ -141,6 +146,13 @@ namespace CoupledField {
       
       Double actFreq = ComputeNextFrequency( fstep+1 );
 
+      InfoNode* analysis_id = base->Get("step", InfoNode::APPEND);
+      std::stringstream ss;
+      ss << base->GetChildren().GetSize() << ":" << "impedanceCurve:step:" << fstep;
+      analysis_id->Get("analysis_id")->SetValue(ss.str());
+      analysis_id->Get("step")->SetValue(fstep);
+      analysis_id->Get("value")->SetValue(actFreq);
+      
       // Set curent frequency value in the mathParser
       domain->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "f", actFreq);
       domain->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "step", fstep );
@@ -148,7 +160,7 @@ namespace CoupledField {
       ptPDE_->GetSolveStep()->SetActFreq(actFreq);
       ptPDE_->GetSolveStep()->SetActStep(fstep);
       ptPDE_->GetSolveStep()->PreStepHarmonic();
-      ptPDE_->GetSolveStep()->SolveStepHarmonic();
+      ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id);
 
       if(writeResults_==true){
         resHandler->BeginStep(fstep+1, actFreq );
@@ -296,11 +308,21 @@ namespace CoupledField {
 
     ResultHandler * resHandler = domain->GetResultHandler();
 
+    // see comment within calcImpedanceCurve()
+    InfoNode* base = driverNode->Get(InfoNode::PROCESS);
+
     for (UInt fstep = 0; fstep < nrMeasuredData_; fstep++) {
 
       ////////////////////////////////////////////////////////
       //                   SOLVES PDE                      //
       ///////////////////////////////////////////////////////
+
+      InfoNode* analysis_id = base->Get("step", InfoNode::APPEND);
+      std::stringstream ss;
+      ss << base->GetChildren().GetSize() << ":" << "f_hat:step:" << fstep;
+      analysis_id->Get("analysis_id")->SetValue(ss.str());
+      analysis_id->Get("step")->SetValue(fstep);
+      analysis_id->Get("value")->SetValue(freqs_[fstep]);
 
       domain->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "f", freqs_[fstep]);
       domain->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "step", fstep );
@@ -308,7 +330,7 @@ namespace CoupledField {
       ptPDE_->GetSolveStep()->SetActFreq(freqs_[fstep]);
       ptPDE_->GetSolveStep()->SetActStep(fstep);
       ptPDE_->GetSolveStep()->PreStepHarmonic();
-      ptPDE_->GetSolveStep()->SolveStepHarmonic();
+      ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id);
       resHandler->FinishStep();
 
       //////////////////////////////////////////////////////////
@@ -439,7 +461,15 @@ namespace CoupledField {
 
   void piezoParamIdent::createFVec(Complex & F_hat_, bool typeOut,
       Double frequency) {
-
+    
+    // see comments in calcImpedance()
+    InfoNode* base = driverNode->Get(InfoNode::PROCESS);
+    InfoNode* analysis_id = base->Get("step", InfoNode::APPEND);
+    std::stringstream ss;
+    ss << base->GetChildren().GetSize() << ":" << "createFVec:f:" << frequency;
+    analysis_id->Get("analysis_id")->SetValue(ss.str());
+    analysis_id->Get("value")->SetValue(frequency);
+    
     ResultHandler * resHandler = domain->GetResultHandler();
 
     domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
@@ -452,7 +482,7 @@ namespace CoupledField {
     ptPDE_->GetSolveStep()->SetActFreq(frequency);
     ptPDE_->GetSolveStep()->SetActStep(0);
     ptPDE_->GetSolveStep()->PreStepHarmonic();
-    ptPDE_->GetSolveStep()->SolveStepHarmonic();
+    ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id);
     ptPDE_->GetSolveStep()->PostStepHarmonic();
 
     resHandler->FinishStep();

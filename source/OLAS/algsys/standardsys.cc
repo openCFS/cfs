@@ -5,6 +5,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <boost/algorithm/string/replace.hpp>
 
 #include "MatVec/stdmatrix.hh"
 #include "MatVec/patternpool.hh"
@@ -96,18 +97,18 @@ namespace CoupledField {
   // *****************************************
   //   Trigger setup phase of preconditioner
   // *****************************************
-  void StandardSystem::SetupPrecond( ) 
+  void StandardSystem::SetupPrecond() 
   {
     CoupledField::info->ToFile();
-    precond_->Setup( *sysmat_[SYSTEM] );
+    precond_->Setup( *sysmat_[SYSTEM]);
   }
 
 
   // *********************************
   //   Trigger setup phase of solver
   // *********************************
-  void StandardSystem::SetupSolver( ) {
-    solver_->Setup( *sysmat_[SYSTEM] );
+  void StandardSystem::SetupSolver(InfoNode* analysis_id) {
+    solver_->Setup(*sysmat_[SYSTEM], analysis_id);
   }
 
   // **************************************
@@ -173,9 +174,9 @@ namespace CoupledField {
   // ***********************
   //   Solve linear system
   // ***********************
-  void StandardSystem::Solve(const std::string& comment) 
+  void StandardSystem::Solve(InfoNode* analysis_id) 
   {
-    CoupledField::info->ToFile(); // write current info state
+    info->ToFile(); // write current info state
     
     // Check, if condition number is to be calculated
     bool calcCapa = false;
@@ -185,25 +186,27 @@ namespace CoupledField {
       Vector<Double> ev, err;
       BaseEigenSolver * evs = 
         GenerateEigenSolverObject( *(sysmat_[SYSTEM]), ARPACK,
-                                   xml, &myParams_, &myReport_ );
-      (*cla) << "\n-----------------------------------------------------------------------------\n"
-                   "Calculating condition number of system matrix\n";
+                                  xml, olasInfo->Get("solve_eigen"), &myParams_, &myReport_ );
+      InfoNode* in = systemInfo_->Get(InfoNode::PROCESS)->Get("conditionNumber", InfoNode::APPEND);
+      in->Get("analysis_id")->SetValue(analysis_id);
       try {
         evs->CalcConditionNumber( *(sysmat_[SYSTEM]), condNumber,
                                   ev, err );
       } catch (Exception& ex ) {
-        (*cla) << "\t -> No convergence\n";
+        in->Get(InfoNode::WARNING)->SetValue("condition number did not converge"); 
         Warning( "Calculation of condition number for system matrix did not converge",
                  __FILE__, __LINE__ );
         delete evs;
       }
       
-      (*cla) << "\n\tcondition number = " << condNumber;
-      (*cla) << "\n\n\tList of 5 smallest / largest eigenvalues and tolerances:\n\n";
+      in->Get("value")->SetValue(condNumber);
+      in = in->Get("extremalEigenValues");
+
       for( UInt i = 0; i < ev.GetSize(); i++ )  {
-        (*cla) << "\t" << ev[i] << "\t" << err[i] << "\n";
+        InfoNode* t = in->Get("eigenvalue", InfoNode::APPEND);
+        t->Get("value")->SetValue(ev[i]);
+        t->Get("tolerance")->SetValue(err[i]);
       }
-      (*cla) << "\n-----------------------------------------------------------------------------\n";
       delete evs;
       
       // in the end prevent-relcaulation of evs by re-setting the value for CalcConditionNumber
@@ -220,13 +223,6 @@ namespace CoupledField {
       LOG_DBG(stdSys) << "Solve: rhs with penalty";
     }
 
-    /*
-    (*debug) << "Systemmatrix:" << std::endl;
-    sysmat_[SYSTEM]->Print(*debug);
-    (*debug) << "RHS" << std::endl;
-    rhs_->Print(*debug);
-    */
-
 #ifdef PROFILING
     Double t1 = Profiler::GetRealTime();
 #endif
@@ -236,14 +232,14 @@ namespace CoupledField {
     if ( dynamic_cast<BaseIterativeSolver*>(solver_) != NULL &&
          myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == true ) {
       idbcHandler_->SetDofsToIDBC( sol_ );
-      (*cla) << " Inserted Dirichlet values into initial guess"
-             << std::endl;
+      InfoNode* in = systemInfo_->Get(InfoNode::HEADER)->Get("idbc");
+      in->Get("penalty")->SetValue(true);
+      in->Get(InfoNode::COMMENT)->SetValue("Inserted Dirichlet values into initial guess");
       LOG_DBG(stdSys) << "Solve: Inserted Idbc values into initial guess for iterative solver";
     }
 
     // Perform a simple sanity check
-    if ( sysmat_[SYSTEM] == NULL || precond_ == NULL || rhs_ == NULL ||
-         sol_ == NULL ) {
+    if ( sysmat_[SYSTEM] == NULL || precond_ == NULL || rhs_ == NULL ||sol_ == NULL ) {
       EXCEPTION( "Detected NULL pointer where there should be none!" );
     }
 
@@ -258,13 +254,13 @@ namespace CoupledField {
     ParamNode* els = xml  != NULL && xml->Has("exportLinSys") ? xml->Get("exportLinSys") : NULL;
     std::string file;
     std::string base;
-
+    
     // need it common even when exclusive solution
     if(els) {
-      std::ostringstream os;
-      os << els->Get("baseName")->AsString();
-      if(comment != "") os << "_" << comment;
-      base = os.str();
+      std::string id = analysis_id->Get("analysis_id")->AsString();
+      boost::replace_all(id, ":", "_");
+      base = els->Get("baseName")->AsString() + "_" + id;
+      systemInfo_->Get(InfoNode::PROCESS)->Get("exportLinearSystem", InfoNode::APPEND)->Get("name")->SetValue(base);
     }
 
     // check if we do not only want the solution
@@ -304,7 +300,7 @@ namespace CoupledField {
 
     // ---------------------------
     // This is the expensize part! solve the system
-    solver_->Solve( *sysmat_[SYSTEM], *precond_, *rhs_, *sol_ );
+    solver_->Solve( *sysmat_[SYSTEM], *precond_, *rhs_, *sol_, analysis_id);
 
     LOG_TRACE2(stdSys) << "after solve: euclidian norm of solution = " << sol_->NormL2();
 
@@ -592,11 +588,11 @@ namespace CoupledField {
   // ************************
   //   Create solver object
   // ************************
-  void StandardSystem::CreateSolver()
+  void StandardSystem::CreateSolver(InfoNode* olasInfo)
   {
     SolverType solver;
     myParams_.GetEnumValue( "Solver", solver );
-    solver_ = GenerateSolverObject( *(sysmat_[SYSTEM]), solver, xml, &myParams_, &myReport_ );
+    solver_ = GenerateSolverObject( *(sysmat_[SYSTEM]), solver, xml, olasInfo, &myParams_, &myReport_ );
   }
 
 
@@ -619,13 +615,13 @@ namespace CoupledField {
   //   Create eigensolver object
   // ********************************
 
-  void StandardSystem::CreateEigenSolver() {
+  void StandardSystem::CreateEigenSolver(InfoNode* eigenInfo) {
 
 
     EigenSolverType egSolver;
     myParams_.GetEnumValue("EigenSolver", egSolver);
     eigenSolver_ = GenerateEigenSolverObject( *(sysmat_[SYSTEM]), egSolver,
-                                              xml,
+                                              xml, eigenInfo, 
                                               &myParams_, &myReport_ );
 
   }

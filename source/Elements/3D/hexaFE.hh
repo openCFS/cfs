@@ -52,7 +52,11 @@ namespace CoupledField
                                    Vector<Double> & volIntPoint);
 
     //! compute length of edge with maximal size
-    void GetMaxMinEdgeLength( Matrix<Double> &ptCoord, Double &Lmax, Double &Lmin );
+    void GetMaxMinEdgeLength(Matrix<Double> &ptCoord, Double &Lmax, Double &Lmin );
+
+		/** actual implementation
+		* @see BaseFE::GetEdgeLength() */
+		void GetEdgeLength(Matrix<Double> &ptCoord, StdVector<Double>& edges_out);
 
     /** Set cartesian integration points */                               
     void SetCartesianIntegration(int order1, int order2, int order3)

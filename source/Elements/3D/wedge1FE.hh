@@ -25,12 +25,11 @@ namespace CoupledField
     virtual Elem::FEType feType() {
       return Elem::WEDGE6;
     };
+    
 
   protected:
     //! Define variables of this class
     virtual void Init();
-
-
     //! Set local corner coordinates
     virtual void SetCornerCoords();
 
@@ -62,6 +61,21 @@ namespace CoupledField
                                          const Elem* elem , UInt dof,
                                          AnsatzFct::FctEntityType);
 
+
+
+    //! Sets the default numerical integration - can be overwritten in XML with integRules */ 
+    void SetDefaultIntegration() {
+        // no alternative :)
+        IntegMethod = CLASSICAL;
+        IntegOrder  = 3;
+    }
+
+    //! Sets the default reduced integration  */ 
+    void SetDefaultReducedIntegration() {
+        // no alternative :)
+        IntegMethod = CLASSICAL;
+        IntegOrder  = 1;
+    }
 
 
 

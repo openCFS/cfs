@@ -1,0 +1,13 @@
+/.cproject
+/.project
+/.settings
+/compile
+/debug
+/icc
+/iccomp
+/nomkl
+/openmp
+/release
+share/doc/developer/DoxygenConfig/doxy-config
+share/doc/developer/makedoc.sh
+share/doc/user/makedoc.sh

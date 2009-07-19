@@ -59,27 +59,27 @@ namespace CoupledField {
 
   // time is used for a series of static calculations
   // don't get confused with REAL transient simulations!
-  void SolveStepPiezo::SolveStepTrans() {
+  void SolveStepPiezo::SolveStepTrans(InfoNode* analysis_id) {
 
 
     if (isHyst_) {
-      StepTransNonLinEpsDiff();
+      StepTransNonLinEpsDiff(analysis_id);
     }
     else if (nonLin_){
-      StepTransNonLin();
+      StepTransNonLin(analysis_id);
     }
     else if (nonLinMaterial_){
       EXCEPTION("StepTransNonLinMaterial() not supported in SolveStepPiezo");
     }
 
     else {
-      StepTransLin();
+      StepTransLin(analysis_id);
     }
 
   }
 
 
-  void SolveStepPiezo::StepTransNonLinEpsDiff() {
+  void SolveStepPiezo::StepTransNonLinEpsDiff(InfoNode* analysis_base) {
 
 
     //    std::cout << "\n In :StepTransNonLinEpsDiff  \n " << std::endl;
@@ -118,22 +118,9 @@ namespace CoupledField {
 
     do {
       iterationCounter++;
-      // for every time step write out number of iteration loops to standard out
-//       if (iterationCounter == 1)
-//         std::cout << std::endl << "Time step:   "  << actStep_
-//                   << "  ,Iterations: " << iterationCounter << std::endl;
-//       else 
-//         std::cout << "Iter:  " << iterationCounter << std::endl;
-    
 
-      /*
-      *debug << std::endl
-             << "====================================================== "
-             << std::endl
-             <<   "Nonlinear Elecs: Perform internal loop no. "
-             << iterationCounter << std::endl;      
-      */  
-
+      InfoNode* analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
+      
       // set solution of previous iteration
       if (iterationCounter == 1 ) {
         oldSol = solPrev;
@@ -170,10 +157,10 @@ namespace CoupledField {
       Double residualNorm = PDE_.GetRhsL2Norm( RHS );
       residualNorm = 0.0;
 
-      algsys_->SetupSolver();
+      algsys_->SetupSolver(analysis_id);
       algsys_->SetupPrecond();
     
-      algsys_->Solve();
+      algsys_->Solve(analysis_id);
       algsys_->GetSolutionVal( newSol );
 
       //store solution for (n+1)

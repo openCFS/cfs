@@ -29,8 +29,11 @@ namespace CoupledField{
     GetPoint( yAxisTemp, myParam_->Get( "yAxis" ) );
 
     origin_.Resize(3);
+    std::fill(&origin_[0], &origin_[0]+3, 0);
     xAxis_.Resize(3);
+    std::fill(&xAxis_[0], &xAxis_[0]+3, 0);
     yAxis_.Resize(3);
+    std::fill(&yAxis_[0], &yAxis_[0]+3, 0);
     
     for(UInt i=0; i<originTemp.GetSize(); i++)
     {

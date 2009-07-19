@@ -69,6 +69,20 @@ namespace CoupledField
                                          AnsatzFct::FctEntityType );
 
 
+    /** Sets the default numerical integration - can be overwritten in XML with integRules */ 
+    void SetDefaultIntegration()
+    {
+        IntegMethod = CLASSICAL;
+        IntegOrder  = 2; // Only integration order 2 is implemented
+    }    
+
+    /** Sets the default reduced integration But we don't have more elements! */ 
+    void SetDefaultReducedIntegration()
+    {
+        IntegMethod = CLASSICAL;
+        IntegOrder  = 2; // Only integration order 2 is implemented
+    }    
+
 
 
     // ============================= methods for edge elements =======================

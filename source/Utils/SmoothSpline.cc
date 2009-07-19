@@ -91,7 +91,7 @@ namespace CoupledField
     bool monotone = true;
 
     Double z,fac;
-    Double mu_old;
+    Double mu_old = 0.0;
 
     //coarse tuning of discrepancy parameter mu, so that the computed
     //approximation is monoton 
@@ -584,7 +584,7 @@ namespace CoupledField
   {
 
     Integer i,j;
-    bool monotone;
+    bool monotone = false;
     Double f0,f1,f2,f3;
     Double c1,c2,c3;
     Double x1,x2,x3;
@@ -601,11 +601,11 @@ namespace CoupledField
       c2 = -6*f0+6*f1-4*f2-2*f3;
       c3 = f2;
       
-      if (c2*c2 < 4*c1*c3 ) {
+      if ((c2*c2) < (4*c1*c3) ) {
         // no zero of the quadratic polynomial
         monotone = true;
       }
-      else if (c2*c2 == 4*c1*c3) {
+      else if ((c2*c2) == (4*c1*c3)) {
         // one zero of the quadratic polynomial
         x1 = -c2/(2*c1);
         x2 = -c2/(2*c1);

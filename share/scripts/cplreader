@@ -20,18 +20,10 @@ if [ ! -f $EXECUTABLE ]; then
     exit 1
 fi
 
-PLATFORM=`uname -i`
-
-EXEFORMAT=`file $EXECUTABLE | awk '{print $7}' | sed -e "s/-/_/" | sed -e "s/,//"`
-
-if [ $EXEFORMAT = "80386" ]; then
-    EXEFORMAT=`echo $EXEFORMAT | sed -e "s/8//" | sed -e "s/0/i/"`
-fi
-
 errorExit ()
 {
     echo "Can not run $EXEFORMAT cplreader on $PLATFORM platform!"
     exit 1
 }
 
-$EXECUTABLE $*
+$EXECUTABLE "$@"
