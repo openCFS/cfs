@@ -13,6 +13,7 @@
 #include "Utils/nodestoresol.hh"
 #include "PDE/StdPDE.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Utils/result.hh"
 #include "Driver/singleDriver.hh"
 
 #include "OLAS/algsys/basesystem.hh"
@@ -64,12 +65,16 @@ namespace CoupledField {
     if( nonLin_ || nonLinMaterial_ ) {
       ReadNonLinData();
     }
+
+    mHandle_ = domain->GetMathParser()->GetNewHandle();
+    mParser_ = domain->GetMathParser();
+    mParser_->SetExpr(mHandle_,"step");
   }
 
 
   //! Destructor
   StdSolveStep::~StdSolveStep() {
-
+    mParser_->ReleaseHandle(mHandle_);
   }
 
 
@@ -278,6 +283,10 @@ namespace CoupledField {
     // the coupling forces are assembled to the RHS
     algsys_->InitRHS();
 
+    std::cout << "Parser: " << mParser_->Eval(mHandle_) << std::endl;
+    UInt step = (UInt) mParser_->Eval(mHandle_);
+
+    PDE_.ReadDisplacementAndUpdateGrid( step );
   }
 
 

@@ -279,6 +279,9 @@ namespace CoupledField {
     virtual void SetMaterialNonLinearity(bool nonLin){
       nonLinMaterial_=nonLin;};
 
+    //! reads in the displacement at time step "step" and fills deltCoord-array of
+    //! grid
+    virtual void ReadDisplacementAndUpdateGrid( UInt step);
 
     //@}
 
@@ -437,6 +440,13 @@ namespace CoupledField {
 
     //! map for each id the nonlinearity
     std::map<std::string, NonLinType> nonLinIdType_;
+
+    //! name for input file, which contains grid deformations
+    std::string fileName4GridDisplacements_ ;
+
+    //! regions for ggrid displacements
+    StdVector<std::string> regions4GridDisplacements_;
+
     //@}
 
     // -----------------------------------------------------------------------
@@ -542,6 +552,9 @@ namespace CoupledField {
     //! checks, if we have for the coupling a incremental solution
     bool isIncrFormulation_;    
     
+    //! if yes, PDE is computed on deformed geometry
+    bool updatedLagrangeForm_;
+
     //! flag for knowing if we have to call ComputeRHS() in the harmonic driver
     bool ComputeRHSforHarm_;    
 

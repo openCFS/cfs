@@ -12,6 +12,8 @@
 #include "MatVec/vector.hh"
 #include "Utils/hysteresis.hh"
 #include "Materials/baseMaterial.hh"
+#include "DataInOut/resultHandler.hh"
+#include "Utils/mathParser/mathParser.hh"
 #include "Domain/domain.hh"
 
 namespace CoupledField
@@ -240,6 +242,8 @@ namespace CoupledField
     //! Identification tag for second PDE (coupled case)
     PdeIdType pdeId2_;
 
+    MathParser::HandleType mHandle_;
+    MathParser* mParser_;
   };
 
 } // end of namespace

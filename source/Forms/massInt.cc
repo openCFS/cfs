@@ -28,6 +28,8 @@ namespace CoupledField {
     isaxi_ = axi;
     coordUpdate_ = coordUpdate;
     baseType_ = MASS;
+    if ( coordUpdate ) 
+      isSolDependent_ = true;
   }
 
  

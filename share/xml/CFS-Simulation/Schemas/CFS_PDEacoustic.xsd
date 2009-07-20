@@ -195,6 +195,16 @@
           </xsd:simpleType>
         </xsd:attribute>
 
+        <!-- updated Lagrangian formulation -->
+        <xsd:attribute name="updatedLagrange" use="optional" default="no">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="no"/>
+              <xsd:enumeration value="yes"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+
         <!-- Type of acoustic pde -->
         <xsd:attribute name="subType" use="optional"
           default="standard">

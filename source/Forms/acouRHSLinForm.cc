@@ -653,9 +653,7 @@ namespace CoupledField {
       Vector<Complex> &resVec = result->GetVector();
 
       rhsValuesComplex_.Resize(resVec.GetSize());
-      for(UInt i=0, n=resVec.GetSize();
-          i < n;
-          i++)
+      for(UInt i=0, n=resVec.GetSize(); i < n; i++)
         rhsValuesComplex_[i] = resVec[i];
 
       lastStep_ = step_;

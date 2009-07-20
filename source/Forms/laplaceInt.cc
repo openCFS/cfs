@@ -20,6 +20,8 @@ namespace CoupledField
     name_ = "LaplaceInt";
     isaxi_ = axi;
     coordUpdate_ = coordUpdate;
+    if ( coordUpdate ) 
+      isSolDependent_ = true;
   }
 
 

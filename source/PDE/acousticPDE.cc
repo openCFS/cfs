@@ -69,6 +69,14 @@ namespace CoupledField {
       str = "Using * " + str + " as state variable in formulation of PDE\n";
       Info->PrintF( pdename_, str.c_str() );
 
+      //compute on deformed geometry
+      str = myParam_->Get("updatedLagrange")->AsString();
+      if ( str == "yes" )
+      {
+        str = "Compute acoustic field on defomred geometry\n";
+        Info->PrintF( pdename_, str.c_str() );
+        updatedLagrangeForm_ = true;
+      }
 
       //To check if acoustic is coupled with nrbc and set isNrbcCoupled
       myParam_->Get( "isCoupledNrbc", isNrbcCoupled_, false );
@@ -455,9 +463,9 @@ namespace CoupledField {
       } // end of pml part
 
       else {
-        // stiffness integrator
-        BaseForm * bilinearStiff = new LaplaceInt( density, isaxi_ );
-        BiLinFormContext * stiffContext =
+        // stiffness integrator 
+        BaseForm * bilinearStiff = new LaplaceInt( density, isaxi_, updatedLagrangeForm_ );        
+        BiLinFormContext * stiffContext = 
           new BiLinFormContext( bilinearStiff, STIFFNESS );
 
         stiffContext->SetResults( results_[0], results_[0],
@@ -467,7 +475,7 @@ namespace CoupledField {
         // mass integrator
         coeffmass = density / (c0*c0);
 
-        MassInt* bilinearMass  = new MassInt(coeffmass, 1, isaxi_);
+        MassInt* bilinearMass  = new MassInt(coeffmass, 1, isaxi_, updatedLagrangeForm_ );
         if ( diagMass_ ) {
           // diagonal mass matrix
           bilinearMass->SetDiagMass();
@@ -911,6 +919,11 @@ namespace CoupledField {
       acouRHSContext->SetPtPde( this );
       acouRHSContext->SetResult( results_[0], acouRHSRegionNodeList );
       assemble_->AddLinearForm( acouRHSContext );
+
+      //
+      rhsValuesNode->Get("inputId", fileName4GridDisplacements_ );
+      regions4GridDisplacements_.Push_back(rhsRegion);
+
     }
   }
 
