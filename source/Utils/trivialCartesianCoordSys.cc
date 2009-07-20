@@ -13,8 +13,8 @@
 namespace CoupledField{
 
   TrivialCartesianCoordSystem::TrivialCartesianCoordSystem(const std::string & name,
-                                 Grid * ptGrid,
-                                 ParamNode * myParamNode ) 
+                                                           Grid * ptGrid,
+                                                           ParamNode * myParamNode ) 
     : CoordSystem( name, ptGrid, myParamNode ) {
     Vector<Double> originTemp, xAxisTemp, yAxisTemp;
     std::vector< std::string > axisMapTemp;
@@ -22,19 +22,25 @@ namespace CoupledField{
     axisMapTemp.push_back("y");
     axisMapTemp.push_back("z");
 
-    // get origin point of coordinate system
-    GetPoint( originTemp, myParam_->Get( "origin" ) );
-
-    // get axis map
-    ParamNode* node = myParam_->Get("axisMap", false);
-
-    if(node)
+    originTemp.Resize(3);
+    originTemp.Init();
+    
+    if(myParam_) 
     {
-      node->Get("x", axisMapTemp[0], true);
-      node->Get("y", axisMapTemp[1], true);
-      node->Get("z", axisMapTemp[2], true);
+      // get origin point of coordinate system
+      GetPoint( originTemp, myParam_->Get( "origin" ) );
+      
+      // get axis map
+      ParamNode* node = myParam_->Get("axisMap", false);
+      
+      if(node)
+      {
+        node->Get("x", axisMapTemp[0], true);
+        node->Get("y", axisMapTemp[1], true);
+        node->Get("z", axisMapTemp[2], true);
+      }
     }
-
+    
     origin_.Resize(3);
     axisFactors_.Resize(3);
     axisMap_.Resize(3);
@@ -287,8 +293,11 @@ namespace CoupledField{
         << axisMap_[2] << "\n";
     out << "  angles:\t" << rotationAng_[0]/PI*180 << ","
         << rotationAng_[1]/PI*180 << "," << rotationAng_[2]/PI*180 << "\n\n";
-    Info->PrintF(std::string(), out.str().c_str());
-
+    if(myParam_) 
+    {
+      Info->PrintF(std::string(), out.str().c_str());
+    }
+    
   }
 
 

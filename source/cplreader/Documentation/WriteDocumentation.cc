@@ -52,12 +52,10 @@ namespace CoupledField
       docFile.close();
     }
 
-    std::cout << "Documentation for cplreader has been written to:"
+    std::cout << "Documentation for cplreader has been written to the directory:"
               << std::endl << std::endl
-              << "   " << docDir;
-    if(settings.GetString("docu") == "PDF")
-      std::cout << pathsep<< doc.begin()->first
-                << std::endl << std::endl;
+              << "   " << docDir
+              << std::endl << std::endl;
   }
   
 } // end of namespace

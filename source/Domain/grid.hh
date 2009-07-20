@@ -976,7 +976,7 @@ namespace CoupledField
 
   // callback function object writing results to an output iterator
   struct ConsInterpReportFunctor {
-    //    const ElemList& destElemList_;
+      //    const ElemList& destElemList_;
     //    const NodeList& sourceNodeList_;
     Grid* sourceGrid_;
     Grid* destGrid_;
@@ -994,147 +994,15 @@ namespace CoupledField
                             const NodeList& sourceNodeList,
                             const std::vector< Vector<Double> >& nodeCoords,
                             Double localEpsilon,
-                            std::vector< std::map<UInt, Double> >& consInterpWeights)
-      : //destElemList_(destElemList),
-      //sourceNodeList_(sourceNodeList),
-        nodeCoords_(nodeCoords),
-        localEpsilon_(localEpsilon),
-        consInterpWeights_(consInterpWeights),
-        nodeCounter_(0),
-        percentage_(0),
-        oldPercentage_(9)
-    {
-      numSourceNodes_ = consInterpWeights_.size();
-      connect_.resize(64);
-
-      sourceGrid_ = sourceNodeList.GetGrid();
-      destGrid_ = destElemList.GetGrid();
-
-      StdVector<UInt> destNodeNumbers;
-      NodeList destNodeList(destGrid_);
-      destNodeList.SetNodesOfRegion(destElemList.GetRegion());
-      EntityIterator it = destNodeList.GetIterator();
-      while(!it.IsEnd())
-      {
-        destNodeNumToPosMap_[it.GetNode()] = it.GetPos();
-        it++;
-      }
-
-      destNodeNumbers = destNodeList.GetNodes();
-    } // store iterator in object
+                            std::vector< std::map<UInt, Double> >& consInterpWeights);
 
     // We write the id-number of box a to the output iterator assuming
     // that box b (the query box) is not interesting in the result.
-    void operator()( const HandleBox& a, const HandleBox& b) {
-      UInt destElemNum = *a.handle();
-      UInt sourceNodeIndex = *b.handle();
-      UInt dim = destGrid_->GetDim();
-      UInt localDim;
-      UInt numElemNodes;
-      Elem::FEType type;
-      RegionIdType region;
-      Matrix<Double> coordMat;
-      Matrix<Double> globCoordMat;
-      Matrix<Double> localCoords;
-      Vector<Double> point;
-      StdVector<bool> coordsInside;
-      Vector<Double> locCoords;
-      const Elem* elem = NULL;
-
-   #if 0
-      nodeCounter_++;
-
-      if((nodeCounter_ % 10000) == 0)
-        std::cout << "nodeCounter_ " << nodeCounter_ << " pointer " << (&nodeCounter_) << std::endl;
-
-      return;
-   #endif
-      //      std::cout << "Elem Number " << elemNum << " <- " << sourceNodeNum << std::endl;
-
-      destGrid_->GetElemData(destElemNum, type, region, &connect_[0]);
-      numElemNodes = Elem::GetNumElemNodes(type);
-      coordMat.Resize(dim, numElemNodes);
-      globCoordMat.Resize(dim, 1);
-
-      for(UInt i=0; i<numElemNodes; i++)
-      {
-        destGrid_->GetNodeCoordinate(point, connect_[i], true);
-        // coordMat auffÃ¼llen!
-        for(UInt j=0; j<dim; j++)
-        {
-          coordMat[j][i] = point[j];
-
-          //          std::cout << "Corner " << (i+1) << " Coord "
-          //                    << (j+1) << " " << point[j] << std::endl;
-        }
-      }
-
-      //      sourceGrid_->GetNodeCoordinate(point, sourceNodeNum, true);
-
-      for(UInt j=0; j<dim; j++)
-      {
-        globCoordMat[j][0] = nodeCoords_[sourceNodeIndex][j];
-
-        //        std::cout << "Glob Coord " << (j+1)
-        //                  << " Coord " << b.min_coord(j) << " " << globCoordMat[j][0] <<std::endl;
-
-      }
-
-      elem = destGrid_->GetElem(destElemNum);
-      elem->ptElem->Global2LocalCoords(localCoords, globCoordMat, coordMat);
-
-      elem->ptElem->CoordsInsideElem(localCoords, localEpsilon_, coordsInside);
-
-      if(coordsInside[0])
-      {
-        localDim = localCoords.GetNumRows();
-        locCoords.Resize(localDim);
-
-        for(UInt j=0; j<localDim; j++)
-        {
-          locCoords[j] = localCoords[j][0];
-        }
-
-        Vector<double> S;
-
-        elem->ptElem->GetShFnc(S, locCoords, elem );
-
-        //        std::cout << "Local Coord: " << locCoords << std::endl;
-        //        std::cout << "Shape functions: " << S << std::endl;
-
-        for(UInt i=0; i<numElemNodes; i++)
-        {
-          UInt pos = destNodeNumToPosMap_[connect_[i]];
-
-          if(consInterpWeights_[sourceNodeIndex].find(pos) ==
-             consInterpWeights_[sourceNodeIndex].end())
-          {
-            if(S[i] != 0.0)
-            {
-              consInterpWeights_[sourceNodeIndex][pos] = S[i];
-            }
-            //            std::cout << "Node: " << connect_[i] << ": " << S[i] << std::endl;
-          }
-        }
-
-        nodeCounter_++;
-
-        percentage_ = (UInt)(100*(Double)nodeCounter_ / (Double)numSourceNodes_);
-        if(((percentage_ % 10) == 0) && ((oldPercentage_ % 10) == 9))
-        {
-          //std::cout << percentage_ << "% done... " << std::endl;
-          std::cout << "."; // use a short status display
-        }
-        oldPercentage_ = percentage_;
-      }
-#if 0
-      else
-      {
-        std::cout << sourceNodeNum << ": Local Coord: " << localCoords[0][0] << " " << localCoords[1][0] << std::endl;
-      }
-#endif
-    }
+    void operator()( const HandleBox& a, const HandleBox& b);
   };
+    
+    
+
 
     // helper function to create the function object
     ConsInterpReportFunctor

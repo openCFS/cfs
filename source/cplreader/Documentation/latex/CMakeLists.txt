@@ -4,8 +4,17 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.4)
 
 INCLUDE(UseLATEX.cmake)
 
+SET(CPLREADER_DOCU_SOURCES
+  cplreader_docu.tex
+  cplreader_defs.tex
+  cplreader_options.tex
+  mycommands.tex
+  Title.tex
+  FigElementTypes.tex
+)
+
 ADD_LATEX_DOCUMENT(cplreader_docu.tex
-  INPUTS cplreader_docu.tex cplreader_defs.tex cplreader_options.tex mycommands.tex Title.tex FigElementTypes.tex
+  INPUTS ${CPLREADER_DOCU_SOURCES}
   BIBFILES cplreader_docu.bib
   IMAGE_DIRS pics
 #  USE_INDEX

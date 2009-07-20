@@ -1,0 +1,10 @@
+<cplreaderOptions>
+  <type name="GENGRIDS" subType="SphericalShellGenerator">
+    <elementType name="HEXA27"/>
+    <numRefinementLevels value="3"/>
+    <outerRadius value="0.95"/>
+    <innerRadius value="0.9"/>
+    <numRadialElements value="3"/>
+    <octantRegions value="off"/>
+  </type>
+</cplreaderOptions>

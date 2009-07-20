@@ -1,0 +1,65 @@
+<cplreaderOptions>
+<type name="GENGRIDS">
+<elementType name="HEXA8"/>
+<samplingIntervalls>
+<!-- Define intervals by using either absolute or incremental coordinates -->
+<coordinates axis="x">
+<coord type="absolute"> -1.0e-0 </coord>
+<coord type="increment"> 2.0e-0 </coord>
+</coordinates>
+<coordinates axis="y">
+<coord type="absolute"> -1.0e-0 </coord>
+<coord type="increment"> 2.0e-0 </coord>
+</coordinates>
+<coordinates axis="z">
+<coord type="absolute"> 0.0e-3 </coord>
+<coord type="increment"> 5e-3 </coord>
+</coordinates>
+</samplingIntervalls>
+<!-- Assign number of elements to each interval -->
+<intervallElements>
+<elements axis="x">
+<elems>41</elems>
+</elements>
+<elements axis="y">
+<elems>41</elems>
+</elements>
+<elements axis="z">
+<elems>1</elems>
+</elements>
+</intervallElements>
+<regions>
+<!-- Define regions by selecting volumes, surfaces and lines -->
+<region name="fluid">
+<prelimRegion> surf_bottom_1_1_1 </prelimRegion>
+</region>
+</regions>
+
+    <fields>
+        <field name="acouRhsLoad">
+            <component axis="x">
+                x*if(t lt .005,t/.005,1)
+            </component>
+        </field>
+
+        <field name="fluidMechVelocity">
+            <component axis="x">
+                -y/sqrt(x^2+y^2)*if(t lt .005,t/.005,1)
+		* if( ((x - 0.5)^2 + (y - 0.5)^2) lt 0.1, 0, 1)
+		* if( ((x + 0.5)^2 + (y + 0.5)^2) lt 0.1, 0, 1)
+            </component>
+            <component axis="y">
+                x/sqrt(x^2+y^2)*if(t lt .005,t/.005,1)
+		* if( ((x - 0.5)^2 + (y - 0.5)^2) lt 0.1, 0, 1)
+		* if( ((x + 0.5)^2 + (y + 0.5)^2) lt 0.1, 0, 1)
+            </component>
+            <component axis="z">
+                0
+            </component>
+        
+        </field>
+
+    </fields>
+
+</type>
+</cplreaderOptions>

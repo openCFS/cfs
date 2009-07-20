@@ -1244,6 +1244,7 @@ source/cplreader/Documentation/WriteDocumentation.hh svneol=native#text/plain
 source/cplreader/Documentation/docfilestocpp.pl svneol=native#text/plain
 source/cplreader/Documentation/latex/CMakeLists.txt svneol=native#text/plain
 source/cplreader/Documentation/latex/FigElementTypes.tex svneol=native#text/plain
+source/cplreader/Documentation/latex/Manual_TechnicalReference.pdf -text svneol=unset#application/pdf
 source/cplreader/Documentation/latex/Title.tex svneol=native#text/plain
 source/cplreader/Documentation/latex/UseLATEX.cmake -text
 source/cplreader/Documentation/latex/cplreader_defs.tex svneol=native#text/plain
@@ -1266,6 +1267,7 @@ source/cplreader/Documentation/latex/pics/couplingscheme.eps -text svneol=unset#
 source/cplreader/Documentation/latex/pics/couplingscheme.pdf -text svneol=unset#application/pdf
 source/cplreader/Documentation/latex/pics/couplingscheme.svg -text
 source/cplreader/Documentation/latex/pics/fastest.png -text svneol=unset#image/png
+source/cplreader/Documentation/latex/pics/fields_gengrids.png -text svneol=unset#image/png
 source/cplreader/Documentation/latex/pics/gengrids_rectlin_grid.png -text svneol=unset#image/png
 source/cplreader/Documentation/latex/pics/gengrids_rectlin_surf.eps -text svneol=unset#application/postscript
 source/cplreader/Documentation/latex/pics/gengrids_rectlin_surf.pdf -text svneol=unset#application/pdf
@@ -1273,6 +1275,9 @@ source/cplreader/Documentation/latex/pics/gengrids_rectlin_surf.svg -text
 source/cplreader/Documentation/latex/pics/gengrids_rectlin_volumes.eps -text svneol=unset#application/postscript
 source/cplreader/Documentation/latex/pics/gengrids_rectlin_volumes.pdf -text svneol=unset#application/pdf
 source/cplreader/Documentation/latex/pics/gengrids_rectlin_volumes.svg -text
+source/cplreader/Documentation/latex/pics/interpolation_tolerances.eps -text svneol=unset#application/postscript
+source/cplreader/Documentation/latex/pics/interpolation_tolerances.pdf -text svneol=unset#application/pdf
+source/cplreader/Documentation/latex/pics/interpolation_tolerances.svg -text
 source/cplreader/Documentation/latex/pics/klu.eps -text svneol=unset#application/postscript
 source/cplreader/Documentation/latex/pics/klu.pdf -text svneol=unset#application/pdf
 source/cplreader/Documentation/latex/pics/klu.svg -text
@@ -1286,6 +1291,16 @@ source/cplreader/Documentation/latex/pics/refelems_legend.png -text svneol=unset
 source/cplreader/Documentation/latex/pics/refelems_pic.png -text svneol=unset#image/png
 source/cplreader/Documentation/latex/pics/spherical_shell_normal.png -text svneol=unset#image/png
 source/cplreader/Documentation/latex/pics/spherical_shell_octant.png -text svneol=unset#image/png
+source/cplreader/Documentation/latex/sources/cfs_interpolation.xml svneol=native#text/xml
+source/cplreader/Documentation/latex/sources/check_cons_interp.m -text
+source/cplreader/Documentation/latex/sources/gengrids_fields.xml svneol=native#text/xml
+source/cplreader/Documentation/latex/sources/gengrids_rectlin.xml svneol=native#text/xml
+source/cplreader/Documentation/latex/sources/gengrids_refelems.xml svneol=native#text/xml
+source/cplreader/Documentation/latex/sources/gengrids_spherical_shells.xml svneol=native#text/xml
+source/cplreader/Documentation/latex/sources/gridgen_rectlin.xml svneol=native#text/xml
+source/cplreader/Documentation/latex/sources/gridgen_spherical_shells.xml svneol=native#text/xml
+source/cplreader/Documentation/latex/sources/pygmentize.sh svneol=native#text/plain
+source/cplreader/Documentation/latex/sources/sumup.m -text
 source/cplreader/FileReader.cc svneol=native#text/plain
 source/cplreader/FileReader.hh svneol=native#text/plain
 source/cplreader/FileReaders/ANSYS/CMakeLists.txt svneol=native#text/plain

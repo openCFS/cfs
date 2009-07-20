@@ -18,8 +18,10 @@ namespace CoupledField{
     ptGrid_ = ptGrid;
     myParam_ = myParamNode;
 
-    dim_ = ptGrid_->GetDim();
-    
+    if(ptGrid_)
+      dim_ = ptGrid_->GetDim();
+    else
+      dim_ = 3;
   }
 
   CoordSystem::~CoordSystem(){

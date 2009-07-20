@@ -449,14 +449,18 @@ namespace CoupledField {
             }
           Vector<Double>& resVec = result->GetVector();
 
+          Double sum_orig = 0;            
+          Double sum = 0;            
+          UInt n = consInterpWeights_[i].size();
+          UInt modval = n / 100;
+          
           //Integer pos;
-          for(UInt j=0; j<consInterpWeights_[i].size(); j++)
+          for(UInt j=0; j<n; j++)
           {
             it = consInterpWeights_[i][j].begin();
             end = consInterpWeights_[i][j].end();
 
-            if(!std::distance(it, end))
-              continue;
+            Double sum_weights = 0;            
 
             for(; it != end; ++it)
             {
@@ -467,6 +471,29 @@ namespace CoupledField {
 
               //            pos = regionNodes.Find(it->first);
               rhsValues_[it->first] += it->second * resVec[j];
+
+              sum += it->second * resVec[j];
+              sum_weights += it->second;
+            }
+            sum_orig += resVec[j];
+              
+            // Check for conservitveness every modval source nodes or at least once in the end
+            if(j % modval == 0 || j == n - 1)
+            {
+              Double ratio = (sum - sum_orig) / sum_orig;
+              if( abs(ratio) > 0.01 ) 
+              {
+                // If this condition occurs it means that some source nodes
+                // do not have coservative interpolation weights in consInterpWeights_[i]
+                // so that the for loop above does not do anything.
+                std::stringstream str;
+                str << "Sum of interpolated source terms (" << sum << ") off by "
+                    << (ratio * 100) << "% of sum of original source terms ("
+                    << sum_orig << ") from node index " << j
+                    << " in source region '" << srcRegions_[i] << "'.";
+                
+                Warning(str.str().c_str(), __FILE__, __LINE__);
+              }
             }
           }
           
