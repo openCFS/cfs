@@ -461,39 +461,48 @@ namespace CoupledField {
     return res;
   }
 
- void StdPDE::ReadDisplacementAndUpdateGrid( UInt step) {
+ void StdPDE::ReadDisplacementAndUpdateGrid( UInt step)
+ {
+   /* only update grid if langrange type has been set */
+   if ( !updatedLagrangeForm_ )
+   {
+     return;
+   }
+   /* do not set new grid in the first step */
+   if ( step != 0 )
+   {
+     for ( UInt nreg = 0; nreg < regions4GridDisplacements_.GetSize(); nreg++ )
+     {
+       ResultHandler* resultHandler = domain->GetResultHandler();
+       shared_ptr<BaseResult> gridDisplacement = resultHandler->GetResult( fileName4GridDisplacements_,
+           1,
+           step,
+           MECH_DISPLACEMENT,        
+           regions4GridDisplacements_[nreg] );
 
-    if ( step != 0 ) {
+       Result<Double> *result =
+         dynamic_cast<Result<Double>*>(&(*gridDisplacement));
+       if (result == NULL)
+       {
+         EXCEPTION("Cannot read result 'Grid-Displacements' from input id '"
+             <<  fileName4GridDisplacements_ << "'");
+       }
+       Vector<Double>& resVec = result->GetVector();
+       shared_ptr<EntityList> nodesList = gridDisplacement->GetEntityList();
+       StdVector<UInt> nodes;
 
-      for ( UInt nreg = 0; nreg < regions4GridDisplacements_.GetSize(); nreg++ ) {
-        ResultHandler* resultHandler = domain->GetResultHandler();
-        shared_ptr<BaseResult> gridDisplacement = resultHandler->GetResult( fileName4GridDisplacements_,
-                                                                            1,
-                                                                            step,
-                                                                            MECH_DISPLACEMENT,        
-                                                                            regions4GridDisplacements_[nreg] );
-        
-        Result<Double> *result =
-          dynamic_cast<Result<Double>*>(&(*gridDisplacement));
-        if (result == NULL) {
-          EXCEPTION("Cannot read result 'Grid-Displacements' from input id '"
-                    <<  fileName4GridDisplacements_ << "'");
-        }
-        Vector<Double>& resVec = result->GetVector();
-        shared_ptr<EntityList> nodesList = gridDisplacement->GetEntityList();
-        StdVector<UInt> nodes;
-        
-        EntityIterator it;
-        
-        it = nodesList->GetIterator();
-        for( it.Begin(); !it.IsEnd(); it++ ) {
-          nodes.Push_back(it.GetNode());
-        }
-      
-        ptgrid_->SetNodeOffset(nodes, resVec);
-      }
-    }
-  }
+       EntityIterator it;
+
+       it = nodesList->GetIterator();
+       for( it.Begin(); !it.IsEnd(); it++ )
+       {
+         nodes.Push_back(it.GetNode());
+       }
+
+       ptgrid_->SetNodeOffset(nodes, resVec);
+     }
+   }
+ }
 
 
   // ******************
