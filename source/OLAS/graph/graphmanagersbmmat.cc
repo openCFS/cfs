@@ -120,7 +120,7 @@ namespace CoupledField {
   // ===============
   //   RegisterPDE
   // ===============
-  void GraphManagerSBMMat::RegisterPDE( const PdeIdType identifierPDE,
+  void GraphManagerSBMMat::RegisterPDE( const FeFctIdType identifierPDE,
                                         const UInt numEqns,
                                         const UInt numLastFreeDof,
                                         const ReorderingType reorder ) {
@@ -177,8 +177,8 @@ namespace CoupledField {
   // ================
   //   AssembleInit
   // ================
-  void GraphManagerSBMMat::AssembleInit( const PdeIdType idPDE1,
-                                         const PdeIdType idPDE2,
+  void GraphManagerSBMMat::AssembleInit( const FeFctIdType idPDE1,
+                                         const FeFctIdType idPDE2,
                                          bool assemblingTranspose ) {
 
 
@@ -215,8 +215,8 @@ namespace CoupledField {
   // ================
   //   AssembleDone
   // ================
-  void GraphManagerSBMMat::AssembleDone( const PdeIdType idPDE1,
-                                              const PdeIdType idPDE2,
+  void GraphManagerSBMMat::AssembleDone( const FeFctIdType idPDE1,
+                                              const FeFctIdType idPDE2,
                                               bool assemblingTranspose ) {
 
 
@@ -302,9 +302,9 @@ namespace CoupledField {
   // =================
   //   SetElementPos
   // =================
-  void GraphManagerSBMMat::SetElementPos( const PdeIdType identifierPDE1,
+  void GraphManagerSBMMat::SetElementPos( const FeFctIdType identifierPDE1,
                                           const StdVector<Integer>& eqnNrs1,
-                                          const PdeIdType identifierPDE2,
+                                          const FeFctIdType identifierPDE2,
                                           const StdVector<Integer>& eqnNrs2,
                                           bool setCounterPart ) {
 
@@ -446,7 +446,7 @@ namespace CoupledField {
   // =================
   //   GetReordering
   // =================
-  void GraphManagerSBMMat::GetReordering( const PdeIdType identifier,
+  void GraphManagerSBMMat::GetReordering( const FeFctIdType identifier,
                                           StdVector<UInt>& order) {
 
     // Small consistency check
@@ -473,8 +473,8 @@ namespace CoupledField {
   // ============
   //   GetGraph
   // ============
-  BaseGraph* GraphManagerSBMMat::GetGraph( const PdeIdType identifierPDE1,
-                                           const PdeIdType identifierPDE2 ) {
+  BaseGraph* GraphManagerSBMMat::GetGraph( const FeFctIdType identifierPDE1,
+                                           const FeFctIdType identifierPDE2 ) {
 
 
     // Check consisteny
@@ -503,8 +503,8 @@ namespace CoupledField {
   // ================
   //   GetIDBCGraph
   // ================
-  BaseGraph* GraphManagerSBMMat::GetIDBCGraph( const PdeIdType pdeID1,
-                                               const PdeIdType pdeID2 ) const{
+  BaseGraph* GraphManagerSBMMat::GetIDBCGraph( const FeFctIdType pdeID1,
+                                               const FeFctIdType pdeID2 ) const{
 
 
     // Check consisteny
@@ -529,8 +529,8 @@ namespace CoupledField {
   // ==================
   //   SubGraphExists
   // ==================
-  bool GraphManagerSBMMat::SubGraphExists( const PdeIdType idPDE1,
-                                           const PdeIdType idPDE2 ) const {
+  bool GraphManagerSBMMat::SubGraphExists( const FeFctIdType idPDE1,
+                                           const FeFctIdType idPDE2 ) const {
     return graph_[ ComputeIndex( idPDE1, idPDE2 ) ] != NULL;
   }
 
@@ -538,8 +538,8 @@ namespace CoupledField {
   // ===================
   //   IDBCGraphExists
   // ===================
-  bool GraphManagerSBMMat::IDBCGraphExists( const PdeIdType idPDE1,
-                                            const PdeIdType idPDE2 ) const {
+  bool GraphManagerSBMMat::IDBCGraphExists( const FeFctIdType idPDE1,
+                                            const FeFctIdType idPDE2 ) const {
     return graphIDBC_[ ComputeIndex( idPDE1, idPDE2 ) ] != NULL;
   }
 
@@ -663,8 +663,8 @@ namespace CoupledField {
   // =========================
   //   GenerateCouplingGraph
   // =========================
-  void GraphManagerSBMMat::GenerateCouplingGraph( PdeIdType pdeID1,
-                                                  PdeIdType pdeID2 ) {
+  void GraphManagerSBMMat::GenerateCouplingGraph( FeFctIdType pdeID1,
+                                                  FeFctIdType pdeID2 ) {
 
 
     UInt idx = ComputeIndex( pdeID1, pdeID2 );
@@ -699,8 +699,8 @@ namespace CoupledField {
   // =====================
   //   GenerateIDBCGraph
   // =====================
-  void GraphManagerSBMMat::GenerateIDBCGraph( PdeIdType pdeID1,
-                                              PdeIdType pdeID2 ) {
+  void GraphManagerSBMMat::GenerateIDBCGraph( FeFctIdType pdeID1,
+                                              FeFctIdType pdeID2 ) {
 
 
     UInt idx = ComputeIndex( pdeID1, pdeID2 );

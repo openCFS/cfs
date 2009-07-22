@@ -28,7 +28,7 @@ namespace CoupledField {
   DEFINE_LOG(eqnMap, "eqnMap")
 
 
-    EqnMap::EqnMap(Grid* grid, PdeIdType pdeId, bool usePenalty ) {
+    EqnMap::EqnMap(Grid* grid, FeFctIdType pdeId, bool usePenalty ) {
 
     ptGrid_ = grid;
 

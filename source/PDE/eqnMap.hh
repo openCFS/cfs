@@ -37,7 +37,7 @@ namespace CoupledField {
     typedef std::map<ResultInfo, ConstraintList> ResultConstraintMap;
     
     //! Constructor
-    EqnMap( Grid* ptGrid, PdeIdType, bool usePenalty);
+    EqnMap( Grid* ptGrid, FeFctIdType, bool usePenalty);
     
     //! Destructor
     virtual ~EqnMap();
@@ -130,7 +130,7 @@ namespace CoupledField {
     }
                               
     //! Return id of associated PDE
-    virtual PdeIdType GetPdeId() const {
+    virtual FeFctIdType GetPdeId() const {
       return pdeId_;
     }
     
@@ -297,7 +297,7 @@ namespace CoupledField {
     // ======================================================================
     
     //! Pde Id of associated pde
-    PdeIdType pdeId_;
+    FeFctIdType pdeId_;
 
     //! Number of equations
     UInt numEqns_;

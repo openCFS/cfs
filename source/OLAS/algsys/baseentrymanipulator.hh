@@ -63,8 +63,8 @@ namespace CoupledField {
     //! Insert local element matrix into global finite element matrix
     template<typename T>
     void SetElementMatrix( FEMatrixType matrix_id,
-                           const PdeIdType pdeID1,
-                           const PdeIdType pdeID2,
+                           const FeFctIdType pdeID1,
+                           const FeFctIdType pdeID2,
                            StdMatrix *stdMat,
                            StdMatrix *counterPart,
                            BaseIDBC_Handler *idbcHandler,
@@ -77,8 +77,8 @@ namespace CoupledField {
     //! Only insert counter part of local element matrix into global one
     template<typename T>
     void SetCounterPartOnly( FEMatrixType matrix_id,
-                             const PdeIdType pdeID1,
-                             const PdeIdType pdeID2,
+                             const FeFctIdType pdeID1,
+                             const FeFctIdType pdeID2,
                              StdMatrix *stdMat,
                              StdMatrix *counterPart,
                              BaseIDBC_Handler *idbcHandler,
@@ -119,8 +119,8 @@ namespace CoupledField {
     //! Get an entry of a matrix
     template<typename T>
     void GetMatrixEntry( FEMatrixType matrix_id,
-                         const PdeIdType pdeID1,
-                         const PdeIdType pdeID2,
+                         const FeFctIdType pdeID1,
+                         const FeFctIdType pdeID2,
                          StdMatrix *stdMat,
                          BaseIDBC_Handler *idbcHandler,
                          T & entry,
@@ -131,8 +131,8 @@ namespace CoupledField {
     //! Set directly an entry of a  matrix
     template<typename T>
     void SetMatrixEntry( FEMatrixType matrix_id,
-                         const PdeIdType pdeID1,
-                         const PdeIdType pdeID2,
+                         const FeFctIdType pdeID1,
+                         const FeFctIdType pdeID2,
                          StdMatrix *stdMat,
                          BaseIDBC_Handler *idbcHandler,
                          const T& entry,

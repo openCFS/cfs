@@ -87,13 +87,13 @@ namespace CoupledField {
     //! \param eqnNo equation number for the degree of freedom whose value
     //!              should be set
     //! \param val   inhomogeneous Dirichlet value
-    virtual void SetIDBC( PdeIdType pdeID, UInt eqnNo, const Double &val ) {
+    virtual void SetIDBC( FeFctIdType pdeID, UInt eqnNo, const Double &val ) {
       EXCEPTION("BaseIDBC_Handler::SetIDBC: The derived class does " \
                 << "obviously not support the Double version of this " \
                 << "interface! So it is probably a Complex instance!");
     }
 
-    virtual void SetIDBC( PdeIdType pdeID, UInt eqnNo, const Complex &val )  {
+    virtual void SetIDBC( FeFctIdType pdeID, UInt eqnNo, const Complex &val )  {
       EXCEPTION("BaseIDBC_Handler::SetIDBC: The derived class does " \
                 << "obviously not support the Complex version of this " \
                 << "interface! So it is probably a Double instance!");
@@ -118,8 +118,8 @@ namespace CoupledField {
     //!                 to a one-based index itself.
     //! \param val value of the weight of the coupling
     virtual void AddWeightFixedToFree( FEMatrixType matID,
-                                       PdeIdType pdeID1,
-                                       PdeIdType pdeID2,
+                                       FeFctIdType pdeID1,
+                                       FeFctIdType pdeID2,
                                        UInt rowInd,
                                        UInt colInd,
                                        const Double& val ) {
@@ -129,8 +129,8 @@ namespace CoupledField {
     }
     
     virtual void AddWeightFixedToFree( FEMatrixType matID,
-                                       PdeIdType pdeID1,
-                                       PdeIdType pdeID2,
+                                       FeFctIdType pdeID1,
+                                       FeFctIdType pdeID2,
                                        UInt rowInd,
                                        UInt colInd,
                                        const Complex& val ) {
@@ -158,8 +158,8 @@ namespace CoupledField {
     //!                 to a one-based index itself.
     //! \param val      value of the weight of the coupling
     virtual void SetWeightFixedToFree( FEMatrixType matID,
-                                       PdeIdType pdeID1,
-                                       PdeIdType pdeID2,
+                                       FeFctIdType pdeID1,
+                                       FeFctIdType pdeID2,
                                        UInt rowInd,
                                        UInt colInd,
                                        const Double& val ) {
@@ -168,8 +168,8 @@ namespace CoupledField {
                 << "interface! So it is probably a Complex instance!");
     }
     virtual void SetWeightFixedToFree( FEMatrixType matID,
-                                       PdeIdType pdeID1,
-                                       PdeIdType pdeID2,
+                                       FeFctIdType pdeID1,
+                                       FeFctIdType pdeID2,
                                        UInt rowInd,
                                        UInt colInd,
                                        const Complex& val ) {
@@ -197,8 +197,8 @@ namespace CoupledField {
     //!                 to a one-based index itself.
     //! \param val      value of the weight of the coupling
     virtual void GetWeightFixedToFree( FEMatrixType matID,
-                                       PdeIdType pdeID1,
-                                       PdeIdType pdeID2,
+                                       FeFctIdType pdeID1,
+                                       FeFctIdType pdeID2,
                                        UInt rowInd,
                                        UInt colInd,
                                        Double & val ) {
@@ -208,8 +208,8 @@ namespace CoupledField {
 
     }
     virtual void GetWeightFixedToFree( FEMatrixType matID,
-                                       PdeIdType pdeID1,
-                                       PdeIdType pdeID2,
+                                       FeFctIdType pdeID1,
+                                       FeFctIdType pdeID2,
                                        UInt rowInd,
                                        UInt colInd,
                                        Complex & val ) {

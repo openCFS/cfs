@@ -70,7 +70,7 @@ namespace CoupledField {
     //!                       the penalty approach numLastFreeDof
     //!                       \f$\stackrel{!}{=}\f$ numEqns)
     //! \param reorder        Re-ordering type for this PDE (optional)
-    void RegisterPDE( const PdeIdType identifierPDE,
+    void RegisterPDE( const FeFctIdType identifierPDE,
                       const UInt numEqns,
                       const UInt numLastFreeDof,
                       const ReorderingType reorder 
@@ -99,8 +99,8 @@ namespace CoupledField {
     //! \param assemblingTranspose indicates whether the graph of the
     //!                            transpose coupling object will be assembled
     //!                            together with the coupling object.
-    void AssembleInit( const PdeIdType identifierPDE1,
-		       const PdeIdType identifierPDE2,
+    void AssembleInit( const FeFctIdType identifierPDE1,
+		       const FeFctIdType identifierPDE2,
                        bool assemblingTranspose );
 
     //! Finialise assembly of a sub-graph
@@ -118,8 +118,8 @@ namespace CoupledField {
     //! \param assemblingTranspose indicates whether the graph of the
     //!                            transpose coupling object was assembled
     //!                            together with the coupling object.
-    void AssembleDone( const PdeIdType identifierPDE1,
-		       const PdeIdType identifierPDE2,
+    void AssembleDone( const FeFctIdType identifierPDE1,
+		       const FeFctIdType identifierPDE2,
                        bool assemblingTranspose );
 
     //! Insert connectivity of a finite element into the matrix graph
@@ -147,9 +147,9 @@ namespace CoupledField {
     //!                       the connectivity with the PDE identifiers and
     //!                       equation numbers reversed, should also be
     //!                       inserted into the graph (ignored by this class)
-    virtual void SetElementPos( const PdeIdType identifierPDE1,
+    virtual void SetElementPos( const FeFctIdType identifierPDE1,
                                 const StdVector<Integer>& eqnNrs1,
-                                const PdeIdType identifierPDE2,
+                                const FeFctIdType identifierPDE2,
                                 const StdVector<Integer>& eqnNrs2,
                                 bool setCounterPart );
     //@}
@@ -174,7 +174,7 @@ namespace CoupledField {
     //! \note While memory for the permutation vector is allocated in this
     //!       method, it is the caller's responsibility to dispose of that
     //!       memory once it no longer needs the array.
-    void GetReordering( const PdeIdType identifier, StdVector<UInt>& order ) ;
+    void GetReordering( const FeFctIdType identifier, StdVector<UInt>& order ) ;
 
     //! Get a specified (sub-)graph
 
@@ -186,8 +186,8 @@ namespace CoupledField {
     //! \param identifierPDE2 identifier for second PDE related to sub-graph
     //! \return a BaseGraph object according to the specified identifier
     //! combination
-    BaseGraph* GetGraph( const PdeIdType identifierPDE1 = NO_PDE_ID,
-                         const PdeIdType identifierPDE2 = NO_PDE_ID );
+    BaseGraph* GetGraph( const FeFctIdType identifierPDE1 = NO_PDE_ID,
+                         const FeFctIdType identifierPDE2 = NO_PDE_ID );
 
     //! Get a specified (sub-)graph for inhom. Dirichlet BC
 
@@ -198,8 +198,8 @@ namespace CoupledField {
     //! \param pdeID1 identifier for the first PDE of the pair
     //! \param pdeID2 identifier for the second PDE of the pair
     //! \return a BaseGraph object according to the specified identifier
-    BaseGraph* GetIDBCGraph( const PdeIdType pdeID1 = NO_PDE_ID,
-                             const PdeIdType pdeID2 = NO_PDE_ID ) const;
+    BaseGraph* GetIDBCGraph( const FeFctIdType pdeID1 = NO_PDE_ID,
+                             const FeFctIdType pdeID2 = NO_PDE_ID ) const;
 
     //! Print some statistics on the graph manager
     void PrintStats( std::ostream *log );
@@ -226,7 +226,7 @@ namespace CoupledField {
     //! This attribute stores the identifier of the PDE attached to the
     //! simple graph manager. Since there is only one PDE the identifier can
     //! be used to check for inappropriate use of the class.
-    PdeIdType myPDEIdent_;
+    FeFctIdType myPDEIdent_;
 
     //! Pointer to the graph object for real/un-fixed dofs
 
@@ -267,7 +267,7 @@ namespace CoupledField {
     //! \param  idPDE2  identifier for second PDE related to sub-graph
     //! \param  caller  string identifying the calling method for the
     //!                 generation of a proper error message
-    void CheckConsistency( const PdeIdType idPDE1, const PdeIdType idPDE2,
+    void CheckConsistency( const FeFctIdType idPDE1, const FeFctIdType idPDE2,
                            std::string caller ) const;
 
     //! Total number of dofs (real and fixed by inhom. Dirichlet BC)

@@ -105,13 +105,13 @@ namespace CoupledField {
   // ***************
   //   ObtainPDEId
   // ***************
-  PdeIdType BaseSystem::ObtainPDEId( const std::string &pdeType ) {
+  FeFctIdType BaseSystem::ObtainPDEId( const std::string &pdeType ) {
 
 
    // (*debug) << "\n Obtain PDE Id for pde " << pdeType;
 
     // Check if PDE is already registered
-    std::map<PdeIdType,std::string>::iterator it;
+    std::map<FeFctIdType,std::string>::iterator it;
     for ( it = pdeNames_.begin(); it != pdeNames_.end(); it++ ) {
       if ( (*it).second == pdeType ) {
         EXCEPTION("A PDE with name '" << pdeType 
@@ -120,7 +120,7 @@ namespace CoupledField {
     }
     
     // Create Id
-    PdeIdType id = pdeNames_.size();
+    FeFctIdType id = pdeNames_.size();
     pdeNames_[id] = pdeType;
 
     // (*debug) << "\n --> Id is " << id << std::endl;
@@ -132,7 +132,7 @@ namespace CoupledField {
   // ***************
   //   RegisterPDE
   // ***************
-  void BaseSystem::RegisterPDE( const PdeIdType pdeId,
+  void BaseSystem::RegisterPDE( const FeFctIdType pdeId,
                                 UInt const numEqns,
                                 UInt const numLastFreeDof ) {
     
@@ -182,7 +182,7 @@ namespace CoupledField {
   // **********************
   //   SetNumDirichletBCs
   // **********************
-  void BaseSystem::SetNumDirichletBCs( const PdeIdType pdeID,
+  void BaseSystem::SetNumDirichletBCs( const FeFctIdType pdeID,
                                        const UInt numBCs ) {
 
 
@@ -279,8 +279,8 @@ namespace CoupledField {
   // ****************
   //   AssembleInit
   // ****************
-  void BaseSystem::AssembleInit( const PdeIdType identifierPDE1,
-                                 const PdeIdType identifierPDE2,
+  void BaseSystem::AssembleInit( const FeFctIdType identifierPDE1,
+                                 const FeFctIdType identifierPDE2,
                                  bool assemblingTranspose ) {
     graphManager_->AssembleInit( identifierPDE1, identifierPDE2,
                                  assemblingTranspose );
@@ -290,8 +290,8 @@ namespace CoupledField {
   // ****************
   //   AssembleDone
   // ****************
-  void BaseSystem::AssembleDone( const PdeIdType identifierPDE1,
-                                 const PdeIdType identifierPDE2,
+  void BaseSystem::AssembleDone( const FeFctIdType identifierPDE1,
+                                 const FeFctIdType identifierPDE2,
                                  bool assemblingTranspose ) {
       graphManager_->AssembleDone( identifierPDE1, identifierPDE2,
                                    assemblingTranspose );
@@ -301,9 +301,9 @@ namespace CoupledField {
   // *****************
   //   SetElementPos
   // *****************
-  void BaseSystem::SetElementPos( const PdeIdType identifierPDE1,
+  void BaseSystem::SetElementPos( const FeFctIdType identifierPDE1,
                                   const StdVector<Integer>& eqnNrs1,
-                                  const PdeIdType identifierPDE2,
+                                  const FeFctIdType identifierPDE2,
                                   const StdVector<Integer>& eqnNrs2,
                                   bool setCounterPart ) {
 
@@ -317,7 +317,7 @@ namespace CoupledField {
   // *****************
   //   GetReordering
   // *****************
-  void BaseSystem::GetReordering( const PdeIdType identifier,
+  void BaseSystem::GetReordering( const FeFctIdType identifier,
                                   StdVector<UInt>& newOrder ) {
     graphManager_->GetReordering(identifier, newOrder);
   }
@@ -338,7 +338,7 @@ namespace CoupledField {
     (*log) << "     PDE-name    |  Id  |  Unknowns  | numLastFreeDof \n"
     << " -----------------------------------------------------\n";
 
-    std::map<PdeIdType,std::string>::const_iterator it; 
+    std::map<FeFctIdType,std::string>::const_iterator it; 
 
     for ( it = pdeNames_.begin(); it != pdeNames_.end(); it++ ) {
       (*log) << " "

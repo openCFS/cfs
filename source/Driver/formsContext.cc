@@ -38,7 +38,7 @@ namespace CoupledField {
     ptPde1_ = NULL;
     ptPde2_ = NULL;
 
-    dampingLayer_ = NULL;
+    //dampingLayer_ = NULL;
   }
 
   BiLinFormContext::~BiLinFormContext() {
@@ -54,7 +54,7 @@ namespace CoupledField {
                                   EntityIterator& it2,
                                   StdVector<Integer>& eqnVec1, 
                                   StdVector<Integer>& eqnVec2,
-                                  PdeIdType& id1, PdeIdType& id2 ) {
+                                  FeFctIdType& id1, FeFctIdType& id2 ) {
 
     // Get equation numbers
     map1_->GetEqns( eqnVec1, *result1_, it1 );
@@ -108,19 +108,19 @@ namespace CoupledField {
     }
   }
 
-  void BiLinFormContext::SetDampLayer(std::string& typeFnc, 
-				      Vector<Double>& mPoint, 
-				      Double& dampFactor, 
-				      Double& dampFactorMax, 
-				      Double& startRadius, 
-				      Double& endRadius) {
-
-    dampingLayer_ = new DampLayer(typeFnc);
-    dampingLayer_->SetDampingParams(mPoint, dampFactor, 
-				    dampFactorMax, startRadius, 
-				    endRadius);
-
-  }
+//  void BiLinFormContext::SetDampLayer(std::string& typeFnc, 
+//				      Vector<Double>& mPoint, 
+//				      Double& dampFactor, 
+//				      Double& dampFactorMax, 
+//				      Double& startRadius, 
+//				      Double& endRadius) {
+//
+//    dampingLayer_ = new DampLayer(typeFnc);
+//    dampingLayer_->SetDampingParams(mPoint, dampFactor, 
+//				    dampFactorMax, startRadius, 
+//				    endRadius);
+//
+//  }
   
   std::string BiLinFormContext::ToString()
   {
@@ -154,7 +154,7 @@ namespace CoupledField {
 
   void LinearFormContext::MapEqns( EntityIterator& it,
                                    StdVector<Integer>& eqnVec,
-                                   PdeIdType& id ) {
+                                   FeFctIdType& id ) {
     
     // Get equation numbers
     map_->GetEqns( eqnVec, *result_, it );
@@ -220,7 +220,7 @@ namespace CoupledField {
                                     EntityIterator& it2,
                                     StdVector<Integer>& eqnVec1, 
                                     StdVector<Integer>& eqnVec2,
-                                    PdeIdType& id1, PdeIdType& id2 ) {
+                                    FeFctIdType& id1, FeFctIdType& id2 ) {
 
     const NCElem *elem = dynamic_cast< const NCElem* >(it1.GetElem()); 
 

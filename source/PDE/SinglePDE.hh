@@ -45,7 +45,7 @@ namespace CoupledField
     typedef StdVector<shared_ptr<BaseResult> > ResultList;
     typedef std::map<shared_ptr<ResultInfo> , ResultList > ResultMap;
 
-    class RegionLoad;
+    //class RegionLoad;
 
     bool boolComplexMaterialData_;
     
@@ -112,7 +112,7 @@ namespace CoupledField
     // ======================================================
 
     //! get algsys identification tag of PDE
-    PdeIdType GetPDEId()
+    FeFctIdType GetPDEId()
     { return pdeId_; }
 
     //! return subtype
@@ -204,10 +204,10 @@ namespace CoupledField
 
     //@}
 
-    /** do the actual reading of loads, this is also called from optimization 
-     * @param bcNode paramnode that has "regionLoad" nodes as children 
-     * @param pressSurf StdVector containing the RegionLoads */
-    void ReadRegionLoadsFromXML(ParamNode* bcNode, std::map<RegionIdType, RegionLoad>& regionLoads_);
+//    /** do the actual reading of loads, this is also called from optimization 
+//     * @param bcNode paramnode that has "regionLoad" nodes as children 
+//     * @param pressSurf StdVector containing the RegionLoads */
+//    void ReadRegionLoadsFromXML(ParamNode* bcNode, std::map<RegionIdType, RegionLoad>& regionLoads_);
 
   protected:
 
@@ -283,56 +283,56 @@ namespace CoupledField
     void SaveRHS( const Complex * ptSol, UInt size );
     
   public:
-    
-    //! Class defining data needed for region loads
-    class RegionLoad {
+//    
+//    //! Class defining data needed for region loads
+//    class RegionLoad {
+//
+//    public:
+//
+//      //! Constructor
+//      RegionLoad( UInt dim, bool isaxi );
+//
+//      //! Print region definition to info-file
+//      void Print( bool onlyHeader, std::string pdeName );
+//      
+//      //! Returns the RHS-integrator
+//      VolForceInt *  GetIntegrator();
+//      
+//      // ----------------------------
+//      //   Data members
+//      // ----------------------------
+//
+//      //@{
+//      // \name Data members
+//      
+//      //! Name of region
+//      std::string name;
+//
+//      //! Value of load
+//      StdVector<std::string>  value;
+//
+//      //! Phase value
+//      std::string phase;
+//
+//      //! Name of reference coordinate system
+//      std::string refCoord;
+//
+//      //! Type of load (total/unit)
+//      std::string type;
+//
+//      //! Volume of region
+//      Double volume;
+//
+//      //! Flag for axisymmetry
+//      bool isAxi_;
+//      //@}
 
-    public:
-
-      //! Constructor
-      RegionLoad( UInt dim, bool isaxi );
-
-      //! Print region definition to info-file
-      void Print( bool onlyHeader, std::string pdeName );
-      
-      //! Returns the RHS-integrator
-      VolForceInt *  GetIntegrator();
-      
-      // ----------------------------
-      //   Data members
-      // ----------------------------
-
-      //@{
-      // \name Data members
-      
-      //! Name of region
-      std::string name;
-
-      //! Value of load
-      StdVector<std::string>  value;
-
-      //! Phase value
-      std::string phase;
-
-      //! Name of reference coordinate system
-      std::string refCoord;
-
-      //! Type of load (total/unit)
-      std::string type;
-
-      //! Volume of region
-      Double volume;
-
-      //! Flag for axisymmetry
-      bool isAxi_;
-      //@}
-
-    };
+//    };
     
   protected:
     
     //! List of region loads
-     std::map<RegionIdType, RegionLoad> regionLoads_;
+     //std::map<RegionIdType, RegionLoad> regionLoads_;
      
     //@}
 
@@ -427,7 +427,7 @@ namespace CoupledField
     //! \name Miscellanous paramters
 
     //! Identifier of the PDE which is used in the algebraic system
-    PdeIdType  pdeId_;
+    FeFctIdType  pdeId_;
   
     //! flag for direct coupling
     bool isDirectCoupled_;

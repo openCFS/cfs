@@ -100,7 +100,7 @@ namespace CoupledField {
     //! \param eqnNo equation number for the degree of freedom whose value
     //!              should be set
     //! \param val   inhomogeneous Dirichlet value
-    void SetIDBC( PdeIdType pdeID, UInt eqnNo, const T &val );
+    void SetIDBC( FeFctIdType pdeID, UInt eqnNo, const T &val );
 
     //! Set fixed dofs to specified Dirichlet boundary values
 
@@ -178,8 +178,8 @@ namespace CoupledField {
 
     //! Add weight of coupling between a fixed and a free dof into matrix
     void AddWeightFixedToFree( FEMatrixType matID,
-                               PdeIdType pdeID1,
-                               PdeIdType pdeID2,
+                               FeFctIdType pdeID1,
+                               FeFctIdType pdeID2,
                                UInt rowInd,
                                UInt colInd,
                                const T& value ) {
@@ -187,27 +187,27 @@ namespace CoupledField {
 
     //! Set weight of coupling between a fixed and a free dof into matrix
     void SetWeightFixedToFree( FEMatrixType matID,
-                               PdeIdType pdeID1,
-                               PdeIdType pdeID2,
+                               FeFctIdType pdeID1,
+                               FeFctIdType pdeID2,
                                UInt rowInd,
                                UInt colInd,
                                const T& value ) {
     };
 
     //! Get weight of coupling between a fixed and a free dof from matrix
-    void GetWeightFixedToFree( FEMatrixType matID, PdeIdType pdeID1,
-                               PdeIdType pdeID2, UInt rowInd, UInt colInd,
+    void GetWeightFixedToFree( FEMatrixType matID, FeFctIdType pdeID1,
+                               FeFctIdType pdeID2, UInt rowInd, UInt colInd,
                                T & value ) const {
     };
     
     //! Set the value of all coupling weights of a free dof to its fixed ones
-    void SetRowWeights( FEMatrixType matID, PdeIdType pdeID, UInt rowInd,
+    void SetRowWeights( FEMatrixType matID, FeFctIdType pdeID, UInt rowInd,
                         Double realPart, Double imagPart = 0.0 ) {
     }
     
     
     //! Set the value of all coupling weights of a fixed dof to its free ones
-    void SetColWeights( FEMatrixType matID, PdeIdType pdeID,UInt colInd,
+    void SetColWeights( FEMatrixType matID, FeFctIdType pdeID,UInt colInd,
                         Double realPart, Double imagPart = 0.0 ) {
     };
 
@@ -224,7 +224,7 @@ namespace CoupledField {
     
     void Dump()
     {
-      std::map<PdeIdType, std::map<Integer, UInt> >::iterator i;
+      std::map<FeFctIdType, std::map<Integer, UInt> >::iterator i;
       for(i = bcIndices_.begin(); i != bcIndices_.end(); i++)
       {
         std::cout << " pde_type = " << i->first << std::endl;
@@ -239,7 +239,7 @@ namespace CoupledField {
      * @param equation if invalid we return false
      * @param dirichlet_value because it can be double/complex as paramter. Unset if return false
      * @return true if equation is valid, then dirichlet_value ist set. */
-    bool GetIDBC(PdeIdType pde_type, int equation, T& dirichlet_value) 
+    bool GetIDBC(FeFctIdType pde_type, int equation, T& dirichlet_value) 
     {
       // search for the equation and check 
       std::map<Integer, UInt>::iterator iter = bcIndices_[pde_type].find(equation);
@@ -283,10 +283,10 @@ namespace CoupledField {
     UInt *dirichletEQN_;
 
     //! Next index for dirichlet condition set
-    std::map<PdeIdType, UInt > nextIndex_;
+    std::map<FeFctIdType, UInt > nextIndex_;
 
     //! Map for mapping eqn number to position in dirichletValue_ vector
-    std::map<PdeIdType, std::map<Integer, UInt> > bcIndices_;
+    std::map<FeFctIdType, std::map<Integer, UInt> > bcIndices_;
 
     //! Array for storing inhomogeneous Dirichlet values
     BaseVector *dirichletValue_;

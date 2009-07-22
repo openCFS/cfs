@@ -143,46 +143,46 @@ namespace CoupledField
     CoordSystem * GetCoordSystem( const std::string & name 
                                   = std::string("default") );
 
-    /** For some optimization (SIMP) or normal simulation with external
-     * ersatz material file the forms get the density value by this
-     * function. Any transfer function (e.g. x^3 in SIMP) is applied!
-     * @param elem elemNum and regionId are used. Note that it is checked,
-     *        if for surface elements the neighbour region applies!
-     * @param form the actual bilinearform, this is used to find the power for SIMP
-     * @param result we return the result in the parameter, to indicate clearly if it is valid
-     * @return true if result was set,.false if there is no ersatz materal for the input params */
-    bool GetErsatzMaterial(const Elem* elem, const BaseForm* form, double& result);
-    
-    /** This is set by optimization which holds the data (in a derved form). It
-     * is also reset here by the optimization destructor.
-     * @param ersatzMaterial pointer to a data set. NULL to reset, such that ~Domain() doesn't delete it.
-     * @param regionId the region for the ersatz material */
-     void SetErsatzMaterial(DesignSpace* data)
-     {
-         ersatzMaterial = data;
-     }
-     
-     /** E.g. the MechPDE needs it in CalcResuls() to write pseudo densities. 
-      * @return  NULL but an exception if not set and not silent*/
-     DesignSpace* GetErsatzMaterial(bool throw_exception = true); 
-      
-
-     /** Reads the 'loadErsatzMaterial' node. Check before that it exists.
-      * Is called from optimization if used concurrently. */ 
-     void ReadErsatzMaterial(ParamNode* pn);
-     
-     /** Returns true, if optimization does provide a complete tensor */
-     bool HasErsatzMaterialTensor();
-     
-     /** Gets the Material Tensor for the given element in the current iteration, or its derivative */
-//     void GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction);
-     
-    /** Returns the optimization
-     *  @return null if there is none */
-    Optimization* GetOptimization() { return optimization_; };
-    
-    /** Sets the optimization from outside, like the driver */
-    void SetOptimization(Optimization* optimization) { this->optimization_ = optimization; };  
+//    /** For some optimization (SIMP) or normal simulation with external
+//     * ersatz material file the forms get the density value by this
+//     * function. Any transfer function (e.g. x^3 in SIMP) is applied!
+//     * @param elem elemNum and regionId are used. Note that it is checked,
+//     *        if for surface elements the neighbour region applies!
+//     * @param form the actual bilinearform, this is used to find the power for SIMP
+//     * @param result we return the result in the parameter, to indicate clearly if it is valid
+//     * @return true if result was set,.false if there is no ersatz materal for the input params */
+//    bool GetErsatzMaterial(const Elem* elem, const BaseForm* form, double& result);
+//    
+//    /** This is set by optimization which holds the data (in a derved form). It
+//     * is also reset here by the optimization destructor.
+//     * @param ersatzMaterial pointer to a data set. NULL to reset, such that ~Domain() doesn't delete it.
+//     * @param regionId the region for the ersatz material */
+//     void SetErsatzMaterial(DesignSpace* data)
+//     {
+//         ersatzMaterial = data;
+//     }
+//     
+//     /** E.g. the MechPDE needs it in CalcResuls() to write pseudo densities. 
+//      * @return  NULL but an exception if not set and not silent*/
+//     DesignSpace* GetErsatzMaterial(bool throw_exception = true); 
+//      
+//
+//     /** Reads the 'loadErsatzMaterial' node. Check before that it exists.
+//      * Is called from optimization if used concurrently. */ 
+//     void ReadErsatzMaterial(ParamNode* pn);
+//     
+//     /** Returns true, if optimization does provide a complete tensor */
+//     bool HasErsatzMaterialTensor();
+//     
+//     /** Gets the Material Tensor for the given element in the current iteration, or its derivative */
+////     void GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction);
+//     
+//    /** Returns the optimization
+//     *  @return null if there is none */
+//    Optimization* GetOptimization() { return optimization_; };
+//    
+//    /** Sets the optimization from outside, like the driver */
+//    void SetOptimization(Optimization* optimization) { this->optimization_ = optimization; };  
 
 #ifndef INTEGLIB
     //! Return Math Parser object for evaluating math expressions

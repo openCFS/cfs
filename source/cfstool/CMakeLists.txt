@@ -11,7 +11,7 @@ ADD_EXECUTABLE(cfstoolbin ${CFSTOOL_SRCS})
 
 
 SET(TARGET_LL ${TARGET_LL}
-  optimization
+#  optimization
   driver
   gridcfs
   pde
@@ -19,7 +19,7 @@ SET(TARGET_LL ${TARGET_LL}
   gridcfs
   pde
   domain
-  optimization
+#  optimization
   materials
   mathparser
   coupledpde
@@ -83,7 +83,7 @@ SET(TARGET_LL ${TARGET_LL}
   utils
   matvec
   cfsgeneral
-  paramident
+#  paramident
   logging
   scripting
   simouttext

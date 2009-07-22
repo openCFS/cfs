@@ -1258,67 +1258,67 @@ namespace CoupledField {
     case Elem::LINE2:
       el->ptElem = ptL1;
       break;
-    case Elem::LINE3:
-      el->ptElem = ptL2;
-      isQuadratic_ = true;
-      break;
-    case Elem::TRIA3:
-      el->ptElem = ptTr1;
-      break;
-    case Elem::TRIA6:
-      el->ptElem = ptTr2;
-      isQuadratic_ = true;
-      break;
+//    case Elem::LINE3:
+//      el->ptElem = ptL2;
+//      isQuadratic_ = true;
+//      break;
+//    case Elem::TRIA3:
+//      el->ptElem = ptTr1;
+//      break;
+//    case Elem::TRIA6:
+//      el->ptElem = ptTr2;
+//      isQuadratic_ = true;
+//      break;
     case Elem::QUAD4:
       el->ptElem = ptQ1;
       break;
-    case Elem::QUAD8:
-      el->ptElem = ptQ2;
-      isQuadratic_ = true;
-      break;
-    case Elem::QUAD9:
-      el->ptElem = ptQ9;
-      break;
-    case Elem::TET4:
-      d=3;
-      el->ptElem = ptTet1;
-      break;
-    case Elem::TET10:
-      d=3;
-      el->ptElem = ptTet2;
-      isQuadratic_ = true;
-      break;
+//    case Elem::QUAD8:
+//      el->ptElem = ptQ2;
+//      isQuadratic_ = true;
+//      break;
+//    case Elem::QUAD9:
+//      el->ptElem = ptQ9;
+//      break;
+//    case Elem::TET4:
+//      d=3;
+//      el->ptElem = ptTet1;
+//      break;
+//    case Elem::TET10:
+//      d=3;
+//      el->ptElem = ptTet2;
+//      isQuadratic_ = true;
+//      break;
     case Elem::HEXA8:
       d=3;
       el->ptElem = ptHexa1;
       break;
-    case Elem::HEXA20:
-      d=3;
-      el->ptElem = ptHexa2;
-      isQuadratic_ = true;
-      break;
-    case Elem::HEXA27:
-      d=3;
-      el->ptElem = ptHexa27;
-      break;
-    case Elem::PYRA5:
-      d=3;
-      el->ptElem = ptPyra1;
-      break;
-    case Elem::PYRA13:
-      d=3;
-      el->ptElem = ptPyra2;
-      isQuadratic_ = true;
-      break;
-    case Elem::WEDGE6:
-      d=3;
-      el->ptElem = ptWedge1;
-      break;
-    case Elem::WEDGE15:
-      d=3;
-      el->ptElem = ptWedge2;
-      isQuadratic_ = true;
-      break;
+//    case Elem::HEXA20:
+//      d=3;
+//      el->ptElem = ptHexa2;
+//      isQuadratic_ = true;
+//      break;
+//    case Elem::HEXA27:
+//      d=3;
+//      el->ptElem = ptHexa27;
+//      break;
+//    case Elem::PYRA5:
+//      d=3;
+//      el->ptElem = ptPyra1;
+//      break;
+//    case Elem::PYRA13:
+//      d=3;
+//      el->ptElem = ptPyra2;
+//      isQuadratic_ = true;
+//      break;
+//    case Elem::WEDGE6:
+//      d=3;
+//      el->ptElem = ptWedge1;
+//      break;
+//    case Elem::WEDGE15:
+//      d=3;
+//      el->ptElem = ptWedge2;
+//      isQuadratic_ = true;
+//      break;
     default:
       break;
     }

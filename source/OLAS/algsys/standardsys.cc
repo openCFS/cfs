@@ -637,8 +637,8 @@ namespace CoupledField {
   //   SetFEMatrixType
   // *******************
   void StandardSystem::SetFEMatrixType(const FEMatrixType matType,
-                                       const PdeIdType identifier1,
-                                       const PdeIdType identifier2)
+                                       const FeFctIdType identifier1,
+                                       const FeFctIdType identifier2)
   {
     LOG_DBG2(stdSys) << "SetFEMatrixType matType=" << matType << " pde1="
                      << identifier1 << " pde2=" << identifier2;
@@ -657,7 +657,7 @@ namespace CoupledField {
   //   InitMatrix
   // **************
   void StandardSystem::InitMatrix( FEMatrixType matrixID,
-                                   const PdeIdType identifierPDE )
+                                   const FeFctIdType identifierPDE )
   {
 
     LOG_TRACE2(stdSys) << "InitMatrix matrixID=" << matrixID << " identifierPDE=" << identifierPDE;
@@ -690,7 +690,7 @@ namespace CoupledField {
   // ***********************
   //   InitRHS (Version 1)
   // ***********************
-  void StandardSystem::InitRHS( const PdeIdType identifierPDE ) {
+  void StandardSystem::InitRHS( const FeFctIdType identifierPDE ) {
     rhs_->Init();
   }
 
@@ -711,7 +711,7 @@ namespace CoupledField {
   // **********************
   //   InitSol (Version1)
   // **********************
-  void StandardSystem::InitSol( const PdeIdType identifierPDE ) {
+  void StandardSystem::InitSol( const FeFctIdType identifierPDE ) {
     sol_->Init();
   }
 
@@ -756,9 +756,9 @@ namespace CoupledField {
   // ********************
   void StandardSystem::SetElementMatrix( FEMatrixType matrixID, 
                                          const Matrix<Double>& elemMat,
-                                         PdeIdType idPDE1,
+                                         FeFctIdType idPDE1,
                                          const StdVector<Integer>& eqnNrs1,
-                                         PdeIdType idPDE2,
+                                         FeFctIdType idPDE2,
                                          const StdVector<Integer>& eqnNrs2,
                                          bool setCounterPart) {
 
@@ -781,9 +781,9 @@ namespace CoupledField {
   
   void StandardSystem::SetElementMatrix( FEMatrixType matrixID, 
                                          const Matrix<Complex>& elemMat,
-                                         PdeIdType idPDE1,
+                                         FeFctIdType idPDE1,
                                          const StdVector<Integer>& eqnNrs1,
-                                         PdeIdType idPDE2,
+                                         FeFctIdType idPDE2,
                                          const StdVector<Integer>& eqnNrs2,
                                          bool setCounterPart) {
     // then normal assembly:
@@ -806,12 +806,12 @@ namespace CoupledField {
   //   SetElementRHS
   // *****************
   void StandardSystem::SetElementRHS( const Vector<Double>& elemRHS, 
-                                      const PdeIdType idPDE,
+                                      const FeFctIdType idPDE,
                                       StdVector<Integer>& eqnNrs ) {
     assemble_->SetElementRHS( rhs_, elemRHS, eqnNrs, size_ );
   }
   void StandardSystem::SetElementRHS( const Vector<Complex>& elemRHS, 
-                                      const PdeIdType idPDE,
+                                      const FeFctIdType idPDE,
                                       StdVector<Integer>& eqnNrs ) {
     assemble_->SetElementRHS( rhs_, elemRHS, eqnNrs,  size_ );
    }
@@ -820,7 +820,7 @@ namespace CoupledField {
   // ***********************
   //   SetNodeRHS (Double)
   // ***********************
-  void StandardSystem::SetNodeRHS( Double val, const PdeIdType identifierPDE,
+  void StandardSystem::SetNodeRHS( Double val, const FeFctIdType identifierPDE,
                                    Integer eqnNum ) {
 
 
@@ -842,7 +842,7 @@ namespace CoupledField {
     assemble_->SetNodeRHS( rhs_, val, eqnNum  );
   }
 
-  void StandardSystem::SetNodeRHS( Complex val, const PdeIdType identifierPDE,
+  void StandardSystem::SetNodeRHS( Complex val, const FeFctIdType identifierPDE,
                                    Integer eqnNum  ) {
 
 
@@ -910,7 +910,7 @@ namespace CoupledField {
   // *************************
   //   SetDirichlet (Double)
   // *************************
-  void StandardSystem::SetDirichlet(const PdeIdType pdeID,
+  void StandardSystem::SetDirichlet(const FeFctIdType pdeID,
                                     Integer eqnNum, const Double &val  ) {
 
 
@@ -945,7 +945,7 @@ namespace CoupledField {
   // **************************
   //   SetDirichlet (Complex)
   // **************************
-  void StandardSystem::SetDirichlet( const PdeIdType pdeID,
+  void StandardSystem::SetDirichlet( const FeFctIdType pdeID,
                                      Integer eqnNum, const Complex &val ) {
 
 
@@ -1053,7 +1053,7 @@ namespace CoupledField {
   // ******************************
   void StandardSystem::
   GetSolutionVal( SingleVector& ptSol,
-                  const PdeIdType identifierPDE ) {
+                  const FeFctIdType identifierPDE ) {
     
 
     // Elimination case
@@ -1100,7 +1100,7 @@ namespace CoupledField {
   //   GetRHSVal 
   // ************
   void StandardSystem::GetRHSVal( SingleVector &ptRhs,
-                                  const PdeIdType identifierPDE ) {
+                                  const FeFctIdType identifierPDE ) {
     if ( numDirichletValues_ > 0 &&
         myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == false ) {
       (*warning) << "GetRHSVal does not work for idbcHandling=elimination";
@@ -1135,7 +1135,7 @@ namespace CoupledField {
   //   AddToDiagMatrixEntry
   // ************************
   void StandardSystem::AddToDiagMatrixEntry( FEMatrixType matrixID,
-                                             const PdeIdType pdeID,
+                                             const FeFctIdType pdeID,
                                              Integer eqnNum,
                                              Double val ) {
 
@@ -1145,7 +1145,7 @@ namespace CoupledField {
   }
   
   void StandardSystem::AddToDiagMatrixEntry( FEMatrixType matrixID,
-                                             const PdeIdType pdeID,
+                                             const FeFctIdType pdeID,
                                              Integer eqnNum,
                                              Complex val )  {
                                      
@@ -1155,9 +1155,9 @@ namespace CoupledField {
   //   GetMatrixEntry
   // ******************
   void StandardSystem::GetMatrixEntry( FEMatrixType matrixID,
-                                       const PdeIdType rowPdeID,
+                                       const FeFctIdType rowPdeID,
                                        Integer rowEqnNum,
-                                       const PdeIdType colPdeID,
+                                       const FeFctIdType colPdeID,
                                        Integer colEqnNum,
                                        Double & val ) {
 
@@ -1172,9 +1172,9 @@ namespace CoupledField {
   }
 
   void StandardSystem::GetMatrixEntry( FEMatrixType matrixID,
-                                       const PdeIdType rowPdeID,
+                                       const FeFctIdType rowPdeID,
                                        Integer rowEqnNum,
-                                       const PdeIdType colPdeID,
+                                       const FeFctIdType colPdeID,
                                        Integer colEqnNum,
                                        Complex & val ) {
 
@@ -1192,9 +1192,9 @@ namespace CoupledField {
   // ******************
 
   void StandardSystem::SetMatrixEntry( FEMatrixType matrixID,
-                                       const PdeIdType rowPdeID,
+                                       const FeFctIdType rowPdeID,
                                        Integer rowEqnNum,
-                                       const PdeIdType colPdeID,
+                                       const FeFctIdType colPdeID,
                                        Integer colEqnNum,
                                        Double val, bool setCounterPart ) {
 
@@ -1207,9 +1207,9 @@ namespace CoupledField {
                                numLastFreeDof_[0], setCounterPart );
   }
   void StandardSystem::SetMatrixEntry( FEMatrixType matrixID,
-                                       const PdeIdType rowPdeID,
+                                       const FeFctIdType rowPdeID,
                                        Integer rowEqnNum,
-                                       const PdeIdType colPdeID,
+                                       const FeFctIdType colPdeID,
                                        Integer colEqnNum,
                                        Complex val, bool setCounterPart ) {
 

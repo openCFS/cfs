@@ -24,13 +24,13 @@ SET(DRIVER_SRCS
   singleDriver.cc
   solveStepAcoustic.cc
   solveStepElec.cc
-  solveStepFluidMech.cc
-  solveStepMagHyst.cc
-  solveStepMech.cc
-  solveStepMpCCI.cc
-  solveStepODE.cc
-  solveStepPiezo.cc
-  solveStepSmooth.cc
+#  solveStepFluidMech.cc
+#  solveStepMagHyst.cc
+#  solveStepMech.cc
+#  solveStepMpCCI.cc
+#  solveStepODE.cc
+#  solveStepPiezo.cc
+#  solveStepSmooth.cc
   staticdriver.cc
   stdSolveStep.cc
   transientdriver.cc
@@ -39,7 +39,7 @@ SET(DRIVER_SRCS
 ADD_LIBRARY(driver STATIC ${DRIVER_SRCS})
 
 SET(TARGET_LL
-  paramident
+#  paramident
   utils-olas
   algsys-olas
   graph-olas

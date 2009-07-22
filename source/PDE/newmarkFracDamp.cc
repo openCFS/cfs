@@ -23,7 +23,7 @@
 namespace CoupledField {
 
   NewmarkFracDamp::NewmarkFracDamp( BaseSystem * algebraicsystem,
-                                    const PdeIdType apdeId,
+                                    const FeFctIdType apdeId,
                                     shared_ptr<EqnMap> eqnMap,
                                     Grid * aptgrid,
                                     StdPDE * aptStdPDE,

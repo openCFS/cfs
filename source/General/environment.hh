@@ -19,15 +19,11 @@
 #include "General/defs.hh"
 #include "Enum.hh"
 
+#define REFACTOR Warning("Commented out due to refactoring");
+
 //! \file environment.hh
 //! This file contains some global macro, class and enumeration data type
 //! definitions for CFS++.
-
-
-//! Maximal length of the trailing postfix of an auxilliary name,
-//! i.e. the length of the extension after the basename
-#define MAXPOSTFIX 15
-
 
 //! Namespace for filestreams used by both OLAS and CFS++
 
@@ -342,8 +338,10 @@ namespace CoupledField {
   //! They are used, when we read information about elements from mesh and
   //! create a pointer to the class containing the description of the Finite
   //! Element.
-  extern BaseFE *ptQ1, *ptQ2, *ptQ9, *ptL1, *ptL2, *ptTet1, *ptTet2, *ptTr1, 
-	*ptTr2, *ptHexa1, *ptHexa2, *ptHexa27, *ptPyra1, *ptPyra2, *ptWedge1, *ptWedge2;
+//  extern BaseFE *ptQ1, *ptQ2, *ptQ9, *ptL1, *ptL2, *ptTet1, *ptTet2, *ptTr1, 
+//	*ptTr2, *ptHexa1, *ptHexa2, *ptHexa27, *ptPyra1, *ptPyra2, *ptWedge1, *ptWedge2;
+
+   extern BaseFE *ptQ1,  *ptL1, *ptHexa1;
 
   //! conversion from strings to enum types
   template <class TYPE>
@@ -366,9 +364,9 @@ namespace CoupledField {
   //! Standard type for identifiying a Pde in the algebraic system
   //! \note This type is guaranteed to be of an Integer or
   //! enumeration typem, so it can be used as array index
-  typedef Integer PdeIdType;
+  typedef Integer FeFctIdType;
   //! Standard default identifier
-  static const PdeIdType NO_PDE_ID = -1;
+  static const FeFctIdType NO_PDE_ID = -1;
 
   //! Standard type for identifiying a sparsity pattern of a matrix object
   //! in combination with the PatternPool class.

@@ -42,11 +42,11 @@ namespace CoupledField {
     void RemoveIDBCFromRHS( BaseVector *rhs ) {};
 
     //! Set value for a Dirichlet boundary condition
-    void SetIDBC( PdeIdType pdeID, UInt eqnNo, UInt comp, UInt bcNum,
+    void SetIDBC( FeFctIdType pdeID, UInt eqnNo, UInt comp, UInt bcNum,
                   const Double &val ) {};
 
     //! Set value for a Dirichlet boundary condition
-    void SetIDBC( PdeIdType pdeID, UInt eqnNo, UInt comp, UInt bcNum,
+    void SetIDBC( FeFctIdType pdeID, UInt eqnNo, UInt comp, UInt bcNum,
                   const Complex &val ) {};
 
     //! Re-set specified internal matrix to zero
@@ -60,16 +60,16 @@ namespace CoupledField {
 
     //! Add weight of coupling between a fixed and a free dof into matrix
     void AddWeightFixedToFree( FEMatrixType matID,
-                               PdeIdType pdeID1,
-                               PdeIdType pdeID2,
+                               FeFctIdType pdeID1,
+                               FeFctIdType pdeID2,
                                UInt rowInd,
                                UInt colInd,
                                const Double& val ) {};
 
     //! Add weight of coupling between a fixed and a free dof into matrix
     void AddWeightFixedToFree( FEMatrixType matID,
-                               PdeIdType pdeID1,
-                               PdeIdType pdeID2,
+                               FeFctIdType pdeID1,
+                               FeFctIdType pdeID2,
                                UInt rowInd,
                                UInt colInd,
                                const Complex& val ) {};
@@ -77,37 +77,37 @@ namespace CoupledField {
 
     //! Set weight of coupling between a fixed and a free dof into matrix
     void SetWeightFixedToFree( FEMatrixType matID,
-                               PdeIdType pdeID1,
-                               PdeIdType pdeID2,
+                               FeFctIdType pdeID1,
+                               FeFctIdType pdeID2,
                                UInt rowInd,
                                UInt colInd,
                                const Double& val ) {};
 
     //! Set weight of coupling between a fixed and a free dof into matrix
     void SetWeightFixedToFree( FEMatrixType matID,
-                               PdeIdType pdeID1,
-                               PdeIdType pdeID2,
+                               FeFctIdType pdeID1,
+                               FeFctIdType pdeID2,
                                UInt rowInd,
                                UInt colInd,
                                const Complex& val ) {};
 
      //! Get weight of coupling between a fixed and a free dof from matrix
-    void GetWeightFixedToFree( FEMatrixType matID, PdeIdType pdeID1,
-                               PdeIdType pdeID2, UInt rowInd, UInt colInd,
+    void GetWeightFixedToFree( FEMatrixType matID, FeFctIdType pdeID1,
+                               FeFctIdType pdeID2, UInt rowInd, UInt colInd,
                                Double & val ) const  {};
 
     //! Get weight of coupling between a fixed and a free dof from matrix
-    void GetWeightFixedToFree( FEMatrixType matID, PdeIdType pdeID1,
-                               PdeIdType pdeID2, UInt rowInd, UInt colInd,
+    void GetWeightFixedToFree( FEMatrixType matID, FeFctIdType pdeID1,
+                               FeFctIdType pdeID2, UInt rowInd, UInt colInd,
                                Complex & realPart ) const  {};
 
     //! Set the value of all coupling weights of a free dof to its fixed ones
-    void SetRowWeights( FEMatrixType matID, PdeIdType pdeID, UInt rowInd,
+    void SetRowWeights( FEMatrixType matID, FeFctIdType pdeID, UInt rowInd,
                         Double realPart, Double imagPart = 0.0 ) {};
     
     
     //! Set the value of all coupling weights of a fixed dof to its free ones
-    void SetColWeights( FEMatrixType matID, PdeIdType pdeID,UInt colInd,
+    void SetColWeights( FEMatrixType matID, FeFctIdType pdeID,UInt colInd,
                         Double realPart, Double imagPart = 0.0 ) {};
     
   };

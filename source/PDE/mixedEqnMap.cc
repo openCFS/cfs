@@ -18,7 +18,7 @@ namespace CoupledField {
   DECLARE_LOG(mixedEqnMap)
   DEFINE_LOG(mixedEqnMap, "mixedEqnMap")
 
-  MixedEqnMap::MixedEqnMap ( Grid* ptGrid, PdeIdType pdeId, bool usePenalty):EqnMap(ptGrid,pdeId,usePenalty){
+  MixedEqnMap::MixedEqnMap ( Grid* ptGrid, FeFctIdType pdeId, bool usePenalty):EqnMap(ptGrid,pdeId,usePenalty){
     this->contMap = new EqnMap( ptGrid, pdeId, usePenalty);
     this->disContMap = new DiscontinuousEqnMap( ptGrid, pdeId, usePenalty);
   }

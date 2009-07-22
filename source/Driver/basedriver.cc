@@ -136,7 +136,8 @@ BaseDriver* BaseDriver::CreateInstance()
     case BasePDE::HARMONIC:
       // calls Driver for parameter identification, using harmonic analysis
       if ( analysisString == "paramIdent" ) {
-        ptdriver = new piezoParamIdent(0, 0.0 );
+        Warning( "Commented out due to refactoring");
+//        ptdriver = new piezoParamIdent(0, 0.0 );
       }
       else
         ptdriver = new HarmonicDriver( seqStep );

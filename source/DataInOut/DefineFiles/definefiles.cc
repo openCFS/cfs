@@ -73,10 +73,6 @@
 #include "DataInOut/Scripting/python/py-messenger.hh"
 #endif
 
-// Maximal length of the trailing postfix of an auxilliary name,
-// i.e. the length of the extension after the basename
-#define MAXPOSTFIX 15
-
 namespace CoupledField
 {
 

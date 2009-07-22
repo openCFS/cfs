@@ -155,7 +155,7 @@ namespace CoupledField
     Double AlgsysL2Norm(Double * pt);
 
     //! set the identification tag of the PDE
-    void SetPDEId( const PdeIdType pdeId )
+    void SetPDEId( const FeFctIdType pdeId )
     { pdeId1_ = pdeId;};
 
     //! Write nonlin iteration norms to info-file
@@ -235,10 +235,10 @@ namespace CoupledField
     //! \todo Currently only two pdes can couple. This has to be extended
     //! for the general case
     //! Identification tag for first PDE
-    PdeIdType pdeId1_;
+    FeFctIdType pdeId1_;
 
     //! Identification tag for second PDE (coupled case)
-    PdeIdType pdeId2_;
+    FeFctIdType pdeId2_;
 
   };
 

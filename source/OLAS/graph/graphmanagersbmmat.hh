@@ -70,7 +70,7 @@ namespace CoupledField {
     //!                       the penalty approach numLastFreeDof
     //!                       \f$\stackrel{!}{=}\f$ numEqns)
     //! \param reorder        Re-ordering type for this PDE (optional)
-    void RegisterPDE( const PdeIdType identifierPDE,
+    void RegisterPDE( const FeFctIdType identifierPDE,
                       const UInt numEqns,
                       const UInt numLastFreeDof,
                       const ReorderingType reorder = NOREORDERING );
@@ -97,8 +97,8 @@ namespace CoupledField {
     //! \param assemblingTranspose indicates whether the graph of the
     //!                            transpose coupling object will be assembled
     //!                            together with the coupling object.
-    void AssembleInit( const PdeIdType identifierPDE1,
-                       const PdeIdType identifierPDE2,
+    void AssembleInit( const FeFctIdType identifierPDE1,
+                       const FeFctIdType identifierPDE2,
                        bool assemblingTranspose );
 
     //! Finalise assembly of a sub-graph
@@ -116,8 +116,8 @@ namespace CoupledField {
     //! \param assemblingTranspose indicates whether the graph of the
     //!                            transpose coupling object was assembled
     //!                            together with the coupling object.
-    void AssembleDone( const PdeIdType identifierPDE1,
-                       const PdeIdType identifierPDE2,
+    void AssembleDone( const FeFctIdType identifierPDE1,
+                       const FeFctIdType identifierPDE2,
                        bool assemblingTranspose );
 
     //! Insert connectivity of a finite element into the matrix graph
@@ -145,9 +145,9 @@ namespace CoupledField {
     //!                       the connectivity with the PDE identifiers and
     //!                       equation numbers reversed, should also be
     //!                       inserted into the graph
-    virtual void SetElementPos( const PdeIdType identifierPDE1,
+    virtual void SetElementPos( const FeFctIdType identifierPDE1,
                                 const StdVector<Integer>& eqnNrs1,
-                                const PdeIdType identifierPDE2,
+                                const FeFctIdType identifierPDE2,
                                 const StdVector<Integer>& eqnNrs2,
                                 bool setCounterPart );
     //@}
@@ -170,8 +170,8 @@ namespace CoupledField {
     //! combination
     //! \note The method refuses to return a pointer to a non-existant
     //!       graph and will instead report an error
-    BaseGraph* GetGraph( const PdeIdType identifierPDE1 = NO_PDE_ID,
-                         const PdeIdType identifierPDE2 = NO_PDE_ID );
+    BaseGraph* GetGraph( const FeFctIdType identifierPDE1 = NO_PDE_ID,
+                         const FeFctIdType identifierPDE2 = NO_PDE_ID );
 
     //! Get a specified (sub-)graph for inhom. Dirichlet BC
 
@@ -182,8 +182,8 @@ namespace CoupledField {
     //! \param pdeID1 identifier for first PDE of pair
     //! \param pdeID2 identifier for second PDE of pair
     //! \return a BaseGraph object according to the specified identifier
-    BaseGraph* GetIDBCGraph( const PdeIdType pdeID1,
-                             const PdeIdType pdeID2 ) const;
+    BaseGraph* GetIDBCGraph( const FeFctIdType pdeID1,
+                             const FeFctIdType pdeID2 ) const;
 
     //! Obtain the permutation/re-ordering vector for a graph
 
@@ -198,7 +198,7 @@ namespace CoupledField {
     //! \note While memory for the permutation vector is allocated in this
     //!       method, it is the caller's responsibility to dispose of that
     //!       memory once it no longer needs the array.
-    void GetReordering( const PdeIdType identifier, StdVector<UInt>& order ) ;
+    void GetReordering( const FeFctIdType identifier, StdVector<UInt>& order ) ;
 
     //! Print some statistics on the graph manager
     void PrintStats( std::ostream *log );
@@ -208,16 +208,16 @@ namespace CoupledField {
     //! This method can be used to query whether a sub-graph with the index
     //! pair (idPDE1, idPDE2) was generated in the Setup phase.
     //! \return true if graph exists, false otherwise
-    bool SubGraphExists( const PdeIdType idPDE1,
-                         const PdeIdType idPDE2 ) const;
+    bool SubGraphExists( const FeFctIdType idPDE1,
+                         const FeFctIdType idPDE2 ) const;
 
     //! Query whether a certain IDBC sub-graph exists
 
     //! This method can be used to query whether a sub-graph of IDBC type
     //! was generated for the specified PDE in the Setup phase.
     //! \return true if IDBC graph exists, false otherwise
-    bool IDBCGraphExists( const PdeIdType idPDE1,
-                          const PdeIdType idPDE2 ) const;
+    bool IDBCGraphExists( const FeFctIdType idPDE1,
+                          const FeFctIdType idPDE2 ) const;
 
     //@}
 
@@ -230,8 +230,8 @@ namespace CoupledField {
     //! and the coupling objects in a matrix. This matrix is stored as 1D
     //! array. This auxilliary method computes for a given pair of PDE
     //! identifiers the 1D index of the corresponding matrix entry.
-    inline UInt ComputeIndex( const PdeIdType identifierPDE1,
-                                 const PdeIdType identifierPDE2 ) const {
+    inline UInt ComputeIndex( const FeFctIdType identifierPDE1,
+                                 const FeFctIdType identifierPDE2 ) const {
       UInt i = identifierPDE1;
       UInt j = identifierPDE2 == NO_PDE_ID ? identifierPDE1 : identifierPDE2;
       return numPDEs_*i + j;
@@ -244,14 +244,14 @@ namespace CoupledField {
     //! be the case, if the second PDE of the pair contains degrees of
     //! freedom that are fixed by inhomogeneous Dirichlet boundary
     //! conditions.
-    void GenerateIDBCGraph( PdeIdType pdeID1, PdeIdType pdeID2 );
+    void GenerateIDBCGraph( FeFctIdType pdeID1, FeFctIdType pdeID2 );
 
     //! Auxilliary method for generation of graphs of coupling objects
 
     //! This method can be called to generate the graph of a coupling object
     //! for the coupling between the PDEs in the specified pair
     //! (pdeId1, pdeID2). It is called by AssembleInit().
-    void GenerateCouplingGraph( PdeIdType pdeID1, PdeIdType pdeID2 );
+    void GenerateCouplingGraph( FeFctIdType pdeID1, FeFctIdType pdeID2 );
 
     //! Matrix storing pointers to the graph objects
 

@@ -27,7 +27,7 @@ namespace CoupledField {
   public:
     
     //! Constructor
-    MixedEqnMap( Grid* ptGrid, PdeIdType, bool usePenalty);
+    MixedEqnMap( Grid* ptGrid, FeFctIdType, bool usePenalty);
 
     //! Destructor
     virtual ~MixedEqnMap();

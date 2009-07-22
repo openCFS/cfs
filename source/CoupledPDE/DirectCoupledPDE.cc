@@ -221,7 +221,7 @@ namespace CoupledField {
     // time derivatives. This is why we pass a magic '2' directly
     // as maximum time derivative order to assemble.
     // As soon as we have a more sophisticated way to cope with
-    // this problem (e.g. register each pde with pdeIdType and
+    // this problem (e.g. register each pde with FeFctIdType and
     // maximum time derivative order), we should change this here!
     assemble_ = new Assemble( algsys_, analysistype_, 2 );
 
@@ -441,7 +441,7 @@ namespace CoupledField {
 
 
     std::string pdeName;
-    PdeIdType pdeId;
+    FeFctIdType pdeId;
     shared_ptr<EqnMap> eqn;
 
     // Set linear system parameters for OLAS
@@ -487,7 +487,7 @@ namespace CoupledField {
     // iterate over all singlePDE and setup matrix graph
     // trigger the creation and assembly of the matrix graph
     for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
-      PdeIdType id = singlePDEs_[i]->GetPDEId();
+      FeFctIdType id = singlePDEs_[i]->GetPDEId();
       algsys_->AssembleInit( id, id, false );
       assemble_->SetupMatrixGraph( id, id );
       algsys_->AssembleDone( id, id, false );
@@ -501,8 +501,8 @@ namespace CoupledField {
 
     // Setup matrix graph of coupling objects
     for (UInt i=0; i<couplings_.GetSize(); i++) {
-      PdeIdType id1 = couplings_[i]->GetPdeId1();
-      PdeIdType id2 = couplings_[i]->GetPdeId2();
+      FeFctIdType id1 = couplings_[i]->GetPdeId1();
+      FeFctIdType id2 = couplings_[i]->GetPdeId2();
 
       // setup matrix graph for upper diagonal(s)
       algsys_->AssembleInit( id1, id2, false );
@@ -748,21 +748,21 @@ namespace CoupledField {
 
 
   void DirectCoupledPDE::DefineSolveStep() {
-
-    bool isPiezoHyst = false;
-
-    // activate direct coupling information
-    // and initialize all single pdes
-    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-      // check if single PDE really needs previous solution
-      if ( singlePDEs_[i]->BelongsPDE2PiezoHyst() )
-        isPiezoHyst = true;
-    }
-
-    if ( isPiezoHyst )
-      solveStep_ = new SolveStepPiezo(*this);
-    else
-      solveStep_ = new StdSolveStep(*this);
+    REFACTOR;
+//    bool isPiezoHyst = false;
+//
+//    // activate direct coupling information
+//    // and initialize all single pdes
+//    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+//      // check if single PDE really needs previous solution
+//      if ( singlePDEs_[i]->BelongsPDE2PiezoHyst() )
+//        isPiezoHyst = true;
+//    }
+//
+//    if ( isPiezoHyst )
+//      solveStep_ = new SolveStepPiezo(*this);
+//    else
+//      solveStep_ = new StdSolveStep(*this);
   }
 
   // *************************
@@ -771,7 +771,7 @@ namespace CoupledField {
   void DirectCoupledPDE::IncorporateReordering() {
 
 
-    PdeIdType pdeId   = NO_PDE_ID;
+    FeFctIdType pdeId   = NO_PDE_ID;
     shared_ptr<EqnMap> eqn;
     StdVector<UInt> newOrder;
 

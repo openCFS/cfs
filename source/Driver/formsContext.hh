@@ -72,12 +72,12 @@ namespace CoupledField
       secMatFac_ = aSecMatFac; }
 
     //! initialize object for damping layer
-    void SetDampLayer(std::string& dampingTypeFnc,
-		      Vector<Double>& mPoint,
-		      Double& dampFactor,
-		      Double& dampFactorMax,
-		      Double& startRadius,
-		      Double& endRadius);
+//    void SetDampLayer(std::string& dampingTypeFnc,
+//		      Vector<Double>& mPoint,
+//		      Double& dampFactor,
+//		      Double& dampFactorMax,
+//		      Double& startRadius,
+//		      Double& endRadius);
 
     //! Returns matrix type of the secondary matrix
     FEMatrixType GetSecDestMat() const { return secDestMat_; }
@@ -104,7 +104,7 @@ namespace CoupledField
                           EntityIterator& it2,
                           StdVector<Integer>& eqnVec1,
                           StdVector<Integer>& eqnVec2,
-                          PdeIdType& id1, PdeIdType& id2 );
+                          FeFctIdType& id1, FeFctIdType& id2 );
 
     // ======================================================
     // ENTITIES / RESULTS
@@ -138,8 +138,8 @@ namespace CoupledField
     shared_ptr<ResultInfo> GetSecondResultInfo() { return result2_; }
 
     //get the pointe rto damping layer object!
-    DampLayer* getPtDamplayer() {
-      return dampingLayer_;}
+//    DampLayer* getPtDamplayer() {
+//      return dampingLayer_;}
 
     //! Set function for SetCounterPart
     void SetCounterPart( bool setCounterPart ) {
@@ -183,7 +183,7 @@ namespace CoupledField
     Global::ComplexPart entryType_;
 
     //! for damping layer
-    DampLayer* dampingLayer_;
+//    DampLayer* dampingLayer_;
 
 
     // Flag indicating assembling of the integrator
@@ -252,7 +252,7 @@ namespace CoupledField
     //! Map equations of linearform for a given entitylist
     void MapEqns( EntityIterator& it,
                   StdVector<Integer>& eqnVec,
-                  PdeIdType& id );
+                  FeFctIdType& id );
 
     // ======================================================
     // ENTITIES / RESULTS
@@ -320,7 +320,7 @@ namespace CoupledField
                   EntityIterator& it2,
                   StdVector<Integer>& eqnVec1,
                   StdVector<Integer>& eqnVec2,
-                  PdeIdType& id1, PdeIdType& id2 );
+                  FeFctIdType& id1, FeFctIdType& id2 );
   };
 
 } // end of namespace

@@ -9,7 +9,7 @@
 #include "linElecInt.hh"
 #include "DataInOut/Logging/cfslog.hh"
 
-DECLARE_LOG(forms)
+//DECLARE_LOG(forms)
 
 namespace CoupledField {
 
@@ -79,9 +79,9 @@ namespace CoupledField {
 
     Double density = elem != NULL ? GetErsatzMaterialFactor(elem) : 1.0;
     if(density != 1.0) dMat *= density;  
-    LOG_DBG3(forms) << GetName() << "::calcDMat("
-                    << (elem != NULL ? Integer(elem->elemNum) : -1)
-                    << ") -> density=" << density;
+//    LOG_DBG3(forms) << GetName() << "::calcDMat("
+//                   << (elem != NULL ? Integer(elem->elemNum) : -1)
+//                    << ") -> density=" << density;
   }
 
 

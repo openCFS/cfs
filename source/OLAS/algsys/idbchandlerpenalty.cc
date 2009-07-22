@@ -305,7 +305,7 @@ namespace CoupledField {
   //   SetIDBC
   // ***********
   template <typename T>
-  void IDBC_HandlerPenalty<T>::SetIDBC( PdeIdType pdeID, UInt eqnNo,
+  void IDBC_HandlerPenalty<T>::SetIDBC( FeFctIdType pdeID, UInt eqnNo,
                                         const T &val ) {
 
     // StdMatrix case

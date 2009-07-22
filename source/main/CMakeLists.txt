@@ -34,6 +34,7 @@ SET(TARGET_LL
   utils
   definefiles
   paramh
+  utils
   domain
   ${CFS_FORTRAN_DYNRT_LIBS}
   )

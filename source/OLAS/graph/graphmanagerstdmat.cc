@@ -209,7 +209,7 @@ namespace CoupledField {
   // ===============
   //   RegisterPDE
   // ===============
-  void GraphManagerStdMat::RegisterPDE( const PdeIdType identifierPDE,
+  void GraphManagerStdMat::RegisterPDE( const FeFctIdType identifierPDE,
 					const UInt n,
                                         const UInt numLastFreeDof,
 					const ReorderingType reorder ) {
@@ -287,8 +287,8 @@ namespace CoupledField {
   // ================
   //   AssembleInit
   // ================
-  void GraphManagerStdMat::AssembleInit( const PdeIdType identifierPDE1,
-					 const PdeIdType identifierPDE2,
+  void GraphManagerStdMat::AssembleInit( const FeFctIdType identifierPDE1,
+					 const FeFctIdType identifierPDE2,
                                          bool assemblingTranspose ) {
 
 
@@ -333,9 +333,9 @@ namespace CoupledField {
   // =================
   //   SetElementPos
   // =================
-  void GraphManagerStdMat::SetElementPos( const PdeIdType identifierPDE1,
+  void GraphManagerStdMat::SetElementPos( const FeFctIdType identifierPDE1,
                                           const StdVector<Integer>& eqnNrs1,
-                                          const PdeIdType identifierPDE2,
+                                          const FeFctIdType identifierPDE2,
                                           const StdVector<Integer>& eqnNrs2,
                                           bool setCounterPart ) {  
 
@@ -478,7 +478,7 @@ namespace CoupledField {
   // =================
   //   GetReordering
   // =================
-  void GraphManagerStdMat::GetReordering( const PdeIdType identifier, 
+  void GraphManagerStdMat::GetReordering( const FeFctIdType identifier, 
                                           StdVector<UInt>& order ) {
 
     // Get registration number of PDE
@@ -525,8 +525,8 @@ namespace CoupledField {
   // ============
   //   GetGraph
   // ============
-  BaseGraph* GraphManagerStdMat::GetGraph( const PdeIdType identifierPDE1,
-					   const PdeIdType identifierPDE2){
+  BaseGraph* GraphManagerStdMat::GetGraph( const FeFctIdType identifierPDE1,
+					   const FeFctIdType identifierPDE2){
 
 
     // Check if a graph object was already created
@@ -544,8 +544,8 @@ namespace CoupledField {
   // ================
   //   GetIDBCGraph
   // ================
-  BaseGraph* GraphManagerStdMat::GetIDBCGraph( const PdeIdType pdeID1,
-                                               const PdeIdType pdeID2 ) const{
+  BaseGraph* GraphManagerStdMat::GetIDBCGraph( const FeFctIdType pdeID1,
+                                               const FeFctIdType pdeID2 ) const{
     return graphIDBC_;
   }
 

@@ -97,7 +97,7 @@ namespace CoupledField {
   // ===============
   //   RegisterPDE
   // ===============
-  void GraphManagerSimple::RegisterPDE( const PdeIdType identifierPDE,  
+  void GraphManagerSimple::RegisterPDE( const FeFctIdType identifierPDE,  
                                         const UInt numEqns,
                                         const UInt numLastFreeDof,
 					const ReorderingType reorder ) {
@@ -159,8 +159,8 @@ namespace CoupledField {
   // ================
   //   AssembleInit
   // ================
-  void GraphManagerSimple::AssembleInit( const PdeIdType identifierPDE1,
-					 const PdeIdType identifierPDE2,
+  void GraphManagerSimple::AssembleInit( const FeFctIdType identifierPDE1,
+					 const FeFctIdType identifierPDE2,
                                          bool assemblingTranspose ) {
 
 
@@ -177,8 +177,8 @@ namespace CoupledField {
   // ================
   //   AssembleDone
   // ================
-  void GraphManagerSimple::AssembleDone( const PdeIdType identifierPDE1,
-					 const PdeIdType identifierPDE2,
+  void GraphManagerSimple::AssembleDone( const FeFctIdType identifierPDE1,
+					 const FeFctIdType identifierPDE2,
                                          bool assemblingTranspose ) {
 
 
@@ -192,8 +192,8 @@ namespace CoupledField {
   // ============
   //   GetGraph
   // ============
-  BaseGraph* GraphManagerSimple::GetGraph( const PdeIdType identifierPDE1,
-					   const PdeIdType identifierPDE2 ){
+  BaseGraph* GraphManagerSimple::GetGraph( const FeFctIdType identifierPDE1,
+					   const FeFctIdType identifierPDE2 ){
 
 
     // Avoid trouble (keep defaults in mind)
@@ -212,8 +212,8 @@ namespace CoupledField {
   // ================
   //   GetIDBCGraph
   // ================
-  BaseGraph* GraphManagerSimple::GetIDBCGraph( const PdeIdType pdeID1,
-                                               const PdeIdType pdeID2 ) const{
+  BaseGraph* GraphManagerSimple::GetIDBCGraph( const FeFctIdType pdeID1,
+                                               const FeFctIdType pdeID2 ) const{
 
 
 #ifdef DEBUG_GRAPHMANAGERSIMPLE1
@@ -231,9 +231,9 @@ namespace CoupledField {
   // =================
   //   SetElementPos
   // =================
-  void GraphManagerSimple::SetElementPos( const PdeIdType identifierPDE1,
+  void GraphManagerSimple::SetElementPos( const FeFctIdType identifierPDE1,
                                           const StdVector<Integer>& eqnNrs1,
-                                          const PdeIdType identifierPDE2,
+                                          const FeFctIdType identifierPDE2,
                                           const StdVector<Integer>& eqnNrs2,
                                           bool setCounterPart ) {
 
@@ -353,7 +353,7 @@ namespace CoupledField {
   // =================
   //   GetReordering
   // =================
-  void GraphManagerSimple::GetReordering( const PdeIdType identifier,
+  void GraphManagerSimple::GetReordering( const FeFctIdType identifier,
                                           StdVector<UInt>& order ) {
 
     // Test, whether we can return a re-ordering vector
@@ -379,8 +379,8 @@ namespace CoupledField {
   // ====================
   //   CheckConsistency
   // ====================
-  void GraphManagerSimple::CheckConsistency( const PdeIdType idPDE1,
-                                             const PdeIdType idPDE2,
+  void GraphManagerSimple::CheckConsistency( const FeFctIdType idPDE1,
+                                             const FeFctIdType idPDE2,
                                              std::string caller ) const {
 
 

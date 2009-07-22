@@ -30,21 +30,21 @@ namespace CoupledField
   {
 
     if (!ptQ1)     ptQ1     = new Quad1FE();
-    if (!ptQ2)     ptQ2     = new Quad2FE();
-    if (!ptQ9)     ptQ9     = new Quad9FE();
-    if (!ptTet1)   ptTet1   = new Tetra1FE();
-    if (!ptTet2)   ptTet2   = new Tetra2FE();
+//    if (!ptQ2)     ptQ2     = new Quad2FE();
+//    if (!ptQ9)     ptQ9     = new Quad9FE();
+//    if (!ptTet1)   ptTet1   = new Tetra1FE();
+//    if (!ptTet2)   ptTet2   = new Tetra2FE();
     if (!ptL1)     ptL1     = new Line1FE();
-    if (!ptL2)     ptL2     = new Line2FE();
-    if (!ptTr1)    ptTr1    = new Triangle1FE();
-    if (!ptTr2)    ptTr2    = new Triangle2FE();
+//    if (!ptL2)     ptL2     = new Line2FE();
+//    if (!ptTr1)    ptTr1    = new Triangle1FE();
+//    if (!ptTr2)    ptTr2    = new Triangle2FE();
     if (!ptHexa1)  ptHexa1  = new Hexa1FE();
-    if (!ptHexa2)  ptHexa2  = new Hexa2FE();
-    if (!ptHexa27) ptHexa27 = new Hexa27FE();
-    if (!ptPyra1)  ptPyra1  = new Pyra1FE();
-    if (!ptPyra2)  ptPyra2  = new Pyra2FE();
-    if (!ptWedge1) ptWedge1 = new Wedge1FE();
-    if (!ptWedge2) ptWedge2 = new Wedge2FE();
+//    if (!ptHexa2)  ptHexa2  = new Hexa2FE();
+//    if (!ptHexa27) ptHexa27 = new Hexa27FE();
+//    if (!ptPyra1)  ptPyra1  = new Pyra1FE();
+//    if (!ptPyra2)  ptPyra2  = new Pyra2FE();
+//    if (!ptWedge1) ptWedge1 = new Wedge1FE();
+//    if (!ptWedge2) ptWedge2 = new Wedge2FE();
 
  #ifdef USE_SCRIPTING
     // Register functions
@@ -58,21 +58,21 @@ namespace CoupledField
   Grid::~Grid()
   {
     delete ptQ1;      ptQ1 = NULL;
-    delete ptQ2;      ptQ2 = NULL;
-    delete ptQ9;      ptQ9 = NULL;
-    delete ptTet1;    ptTet1 = NULL;
-    delete ptTet2;    ptTet2 = NULL;
+//    delete ptQ2;      ptQ2 = NULL;
+//    delete ptQ9;      ptQ9 = NULL;
+//    delete ptTet1;    ptTet1 = NULL;
+//    delete ptTet2;    ptTet2 = NULL;
     delete ptL1;      ptL1 = NULL;
-    delete ptL2;      ptL2 = NULL;
-    delete ptTr1;     ptTr1 = NULL;
-    delete ptTr2;     ptTr2 = NULL;
+//    delete ptL2;      ptL2 = NULL;
+//    delete ptTr1;     ptTr1 = NULL;
+//    delete ptTr2;     ptTr2 = NULL;
     delete ptHexa1;   ptHexa1 = NULL;
-    delete ptHexa2;   ptHexa2 = NULL;
-    delete ptHexa27;  ptHexa27 = NULL;
-    delete ptPyra1;   ptPyra1 = NULL;
-    delete ptPyra2;   ptPyra2 = NULL;
-    delete ptWedge1;  ptWedge1 = NULL;
-    delete ptWedge2;  ptWedge2 = NULL;
+//    delete ptHexa2;   ptHexa2 = NULL;
+//    delete ptHexa27;  ptHexa27 = NULL;
+//    delete ptPyra1;   ptPyra1 = NULL;
+//    delete ptPyra2;   ptPyra2 = NULL;
+//    delete ptWedge1;  ptWedge1 = NULL;
+//    delete ptWedge2;  ptWedge2 = NULL;
   }
 
 
@@ -425,8 +425,10 @@ namespace CoupledField
           for(UInt j = 0; j < slaveElems.GetSize(); ++j) {
             BaseFE* m_el = masterElems[i]->ptElem;
             BaseFE* s_el = slaveElems[j]->ptElem;
-            if ( (m_el != ptQ1 && m_el != ptQ2 && m_el != ptQ9)
-               ||(s_el != ptQ1 && s_el != ptQ2 && s_el != ptQ9))
+//            if ( (m_el != ptQ1 && m_el != ptQ2 && m_el != ptQ9)
+//               ||(s_el != ptQ1 && s_el != ptQ2 && s_el != ptQ9))
+              if ( (m_el != ptQ1)
+                 ||(s_el != ptQ1))
             {
               EXCEPTION("Only quadrilaterals can be intersected with coaxial "
                         << "rectangle algorithm.");
@@ -447,8 +449,12 @@ namespace CoupledField
           for (UInt j = 0; j < slaveElems.GetSize(); ++j) {
             BaseFE* m_el = masterElems[i]->ptElem;
             BaseFE* s_el = slaveElems[j]->ptElem;
-            if ( (m_el != ptTr1 && m_el != ptQ1 && m_el != ptQ2 && m_el != ptQ9 && m_el != ptTr2)
-               ||(s_el != ptTr1 && s_el != ptQ1 && s_el != ptQ2 && s_el != ptQ9 && s_el != ptTr2))
+//            if ( (m_el != ptTr1 && m_el != ptQ1 && m_el != ptQ2 && m_el != ptQ9 && m_el != ptTr2)
+//               ||(s_el != ptTr1 && s_el != ptQ1 && s_el != ptQ2 && s_el != ptQ9 && s_el != ptTr2))
+
+            if ( (m_el != ptQ1 )
+                || s_el != ptQ1) 
+
             {
               EXCEPTION("Only triangles and quadrilaterals can be intersected"
                         << " with polygon algorithm.");
@@ -825,25 +831,25 @@ namespace CoupledField
         ncElem->connect[1] = connect2[1];
       }
     }
-
-    if(relativeElemVol < 1e-3) {
-      std::stringstream sstr;
-      sstr << "Rejecting ncElem due to a relative volume of " << relativeElemVol;
-      sstr << std::endl;
-      sstr << "  for intersection of elements " << ifaceElem1->elemNum;
-      sstr << " (" << RegionIdToName(ifaceElem1->regionId) << ") ";
-      sstr << "and " << ifaceElem2->elemNum;
-      sstr << " (" << RegionIdToName(ifaceElem2->regionId) << ") ";
-      Warning(sstr.str().c_str(), __FILE__, __LINE__);
-      delete ncElem;
-      return false;
-    }
-
-    ncElem->ptElem = ptL1;
-    ncElem->ptLagrangeParent = ifaceElem2;
-    ncElem->ptSurfParent = ifaceElem1;
-
-    elemList.Push_back(ncElem);
+    REFACTOR;
+//    if(relativeElemVol < 1e-3) {
+//      std::stringstream sstr;
+//      sstr << "Rejecting ncElem due to a relative volume of " << relativeElemVol;
+//      sstr << std::endl;
+//      sstr << "  for intersection of elements " << ifaceElem1->elemNum;
+//      sstr << " (" << RegionIdToName(ifaceElem1->regionId) << ") ";
+//      sstr << "and " << ifaceElem2->elemNum;
+//      sstr << " (" << RegionIdToName(ifaceElem2->regionId) << ") ";
+//      Warning(sstr.str().c_str(), __FILE__, __LINE__);
+//      delete ncElem;
+//      return false;
+//    }
+//
+//    ncElem->ptElem = ptL1;
+//    ncElem->ptLagrangeParent = ifaceElem2;
+//    ncElem->ptSurfParent = ifaceElem1;
+//
+//    elemList.Push_back(ncElem);
 
     return true;
   }
@@ -1854,18 +1860,19 @@ namespace CoupledField
 
     switch (numPoints) {
       case 3:
-        ncElem = new NCElem;
-        ncElem->ptElem = ptTr1;
-        ncElem->connect.Resize(3);
-
-        AddNode(p[0], nodeNo);
-        ncElem->connect[0] = nodeNo;
-        AddNode(p[1], nodeNo);
-        ncElem->connect[1] = nodeNo;
-        AddNode(p[2], nodeNo);
-        ncElem->connect[2] = nodeNo;
-
-        tri.Push_back(ncElem);
+        REFACTOR;
+//        ncElem = new NCElem;
+//        ncElem->ptElem = ptTr1;
+//        ncElem->connect.Resize(3);
+//
+//        AddNode(p[0], nodeNo);
+//        ncElem->connect[0] = nodeNo;
+//        AddNode(p[1], nodeNo);
+//        ncElem->connect[1] = nodeNo;
+//        AddNode(p[2], nodeNo);
+//        ncElem->connect[2] = nodeNo;
+//
+//        tri.Push_back(ncElem);
         break;
       case 4:
         ncElem = new NCElem;
@@ -1917,37 +1924,38 @@ namespace CoupledField
         tri.Push_back(ncElem2);*/
         break;
       default:
-        UInt i, centerNode, firstNode;
-        Vector<Double> c;
-
-        PolyCentroid(p, c);
-        AddNode(c, centerNode);
-        AddNode(p[0], nodeNo);
-        firstNode = nodeNo;
-
-        for (i = 1; i < p.GetSize(); ++i)
-        {
-          ncElem = new NCElem;
-          ncElem->ptElem = ptTr1;
-          ncElem->connect.Resize(3);
-
-          ncElem->connect[0] = nodeNo;
-          AddNode(p[i], nodeNo);
-          ncElem->connect[1] = nodeNo;
-          ncElem->connect[2] = centerNode;
-
-          tri.Push_back(ncElem);
-        }
-
-        ncElem = new NCElem;
-        ncElem->ptElem = ptTr1;
-        ncElem->connect.Resize(3);
-
-        ncElem->connect[0] = nodeNo;
-        ncElem->connect[1] = firstNode;
-        ncElem->connect[2] = centerNode;
-
-        tri.Push_back(ncElem);
+        REFACTOR;
+//        UInt i, centerNode, firstNode;
+//        Vector<Double> c;
+//
+//        PolyCentroid(p, c);
+//        AddNode(c, centerNode);
+//        AddNode(p[0], nodeNo);
+//        firstNode = nodeNo;
+//
+//        for (i = 1; i < p.GetSize(); ++i)
+//        {
+//          ncElem = new NCElem;
+//          ncElem->ptElem = ptTr1;
+//          ncElem->connect.Resize(3);
+//
+//          ncElem->connect[0] = nodeNo;
+//          AddNode(p[i], nodeNo);
+//          ncElem->connect[1] = nodeNo;
+//          ncElem->connect[2] = centerNode;
+//
+//          tri.Push_back(ncElem);
+//        }
+//
+//        ncElem = new NCElem;
+//        ncElem->ptElem = ptTr1;
+//        ncElem->connect.Resize(3);
+//
+//        ncElem->connect[0] = nodeNo;
+//        ncElem->connect[1] = firstNode;
+//        ncElem->connect[2] = centerNode;
+//
+//        tri.Push_back(ncElem);
     }
     return firstNo;
   }
@@ -2010,8 +2018,9 @@ namespace CoupledField
         case Elem::TRIA6:
         case Elem::QUAD8:
         case Elem::QUAD9:
-          surfEl->connect[2] = el->connect[n+numCorners];
-          surfEl->ptElem = ptL2;
+          REFACTOR;
+//          surfEl->connect[2] = el->connect[n+numCorners];
+//          surfEl->ptElem = ptL2;
           break;
         default:
           break;
@@ -2121,8 +2130,9 @@ namespace CoupledField
         case Elem::TRIA6:
         case Elem::QUAD8:
         case Elem::QUAD9:
-          surfEl->connect[2] = el->connect[n+numEdges];
-          surfEl->ptElem = ptL2;
+          REFACTOR;
+//          surfEl->connect[2] = el->connect[n+numEdges];
+//          surfEl->ptElem = ptL2;
           break;
         default:
           break;

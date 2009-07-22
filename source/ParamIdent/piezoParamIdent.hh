@@ -353,7 +353,7 @@ class DirectCoupledPDE;
         SinglePDE * ptPDE2_;
 
         //! identification tag of PDE for algebraic system
-        PdeIdType pdeId_;
+        FeFctIdType pdeId_;
 
         //! pointer to piezo coupling object
         PiezoCoupling * piezoCpl_;

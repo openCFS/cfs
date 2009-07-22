@@ -24,8 +24,8 @@ namespace CoupledField {
   template<typename T>
   void BaseEntryManipulator::
   SetElementMatrix( FEMatrixType matrixID,
-                    const PdeIdType pdeID1,
-                    const PdeIdType pdeID2,
+                    const FeFctIdType pdeID1,
+                    const FeFctIdType pdeID2,
                     StdMatrix *stdMat,
                     StdMatrix *counterPart,
                     BaseIDBC_Handler *idbcHandler,
@@ -187,8 +187,8 @@ namespace CoupledField {
   // explicit template instantiation
   template void BaseEntryManipulator::
   SetElementMatrix( FEMatrixType matrixID,
-                    const PdeIdType pdeID1,
-                    const PdeIdType pdeID2,
+                    const FeFctIdType pdeID1,
+                    const FeFctIdType pdeID2,
                     StdMatrix *stdMat,
                     StdMatrix *counterPart,
                     BaseIDBC_Handler *idbcHandler,
@@ -199,8 +199,8 @@ namespace CoupledField {
                     bool setCounterPart);
   template  void BaseEntryManipulator::
   SetElementMatrix( FEMatrixType matrixID,
-                    const PdeIdType pdeID1,
-                    const PdeIdType pdeID2,
+                    const FeFctIdType pdeID1,
+                    const FeFctIdType pdeID2,
                     StdMatrix *stdMat,
                     StdMatrix *counterPart,
                     BaseIDBC_Handler *idbcHandler,
@@ -217,8 +217,8 @@ namespace CoupledField {
   template<typename T>
   void BaseEntryManipulator::
   SetCounterPartOnly( FEMatrixType matrixID,
-                      const PdeIdType pdeID1,
-                      const PdeIdType pdeID2,
+                      const FeFctIdType pdeID1,
+                      const FeFctIdType pdeID2,
                       StdMatrix *stdMat,
                       StdMatrix *counterPart,
                       BaseIDBC_Handler *idbcHandler,
@@ -359,8 +359,8 @@ namespace CoupledField {
   template
   void BaseEntryManipulator::
   SetCounterPartOnly( FEMatrixType matrixID,
-                      const PdeIdType pdeID1,
-                      const PdeIdType pdeID2,
+                      const FeFctIdType pdeID1,
+                      const FeFctIdType pdeID2,
                       StdMatrix *stdMat,
                       StdMatrix *counterPart,
                       BaseIDBC_Handler *idbcHandler,
@@ -371,8 +371,8 @@ namespace CoupledField {
   template 
   void BaseEntryManipulator::
   SetCounterPartOnly( FEMatrixType matrixID,
-                      const PdeIdType pdeID1,
-                      const PdeIdType pdeID2,
+                      const FeFctIdType pdeID1,
+                      const FeFctIdType pdeID2,
                       StdMatrix *stdMat,
                       StdMatrix *counterPart,
                       BaseIDBC_Handler *idbcHandler,
@@ -432,8 +432,8 @@ namespace CoupledField {
   template<typename T>
   void BaseEntryManipulator::
   GetMatrixEntry(FEMatrixType matrix_id,
-                 const PdeIdType pdeID1,
-                 const PdeIdType pdeID2,
+                 const FeFctIdType pdeID1,
+                 const FeFctIdType pdeID2,
                  StdMatrix *stdMat,
                  BaseIDBC_Handler *idbcHandler,
                  T & entry,
@@ -461,11 +461,11 @@ namespace CoupledField {
     }
   }
   template void BaseEntryManipulator::
-  GetMatrixEntry<Double>(FEMatrixType matrix_id, const PdeIdType pdeID1,  const PdeIdType pdeID2,
+  GetMatrixEntry<Double>(FEMatrixType matrix_id, const FeFctIdType pdeID1,  const FeFctIdType pdeID2,
                  StdMatrix *stdMat, BaseIDBC_Handler *idbcHandler, Double & entry,
                  Integer eqnNr1, Integer eqnNr2, UInt limit1, UInt limit2 );
   template void BaseEntryManipulator::
-  GetMatrixEntry<Complex>(FEMatrixType matrix_id, const PdeIdType pdeID1,  const PdeIdType pdeID2,
+  GetMatrixEntry<Complex>(FEMatrixType matrix_id, const FeFctIdType pdeID1,  const FeFctIdType pdeID2,
                  StdMatrix *stdMat, BaseIDBC_Handler *idbcHandler, Complex& entry,
                  Integer eqnNr1, Integer eqnNr2, UInt limit1, UInt limit2 );
 
@@ -476,8 +476,8 @@ namespace CoupledField {
   template<typename T>
   void BaseEntryManipulator::
   SetMatrixEntry(FEMatrixType matrix_id,
-                 const PdeIdType pdeID1,
-                 const PdeIdType pdeID2,
+                 const FeFctIdType pdeID1,
+                 const FeFctIdType pdeID2,
                  StdMatrix *stdMat,
                  BaseIDBC_Handler *idbcHandler,
                  const T& entry,
@@ -510,12 +510,12 @@ namespace CoupledField {
   }
   // explicit template instantiaton
   template void BaseEntryManipulator::
-  SetMatrixEntry(FEMatrixType matrix_id, const PdeIdType pdeID1, const PdeIdType pdeID2,
+  SetMatrixEntry(FEMatrixType matrix_id, const FeFctIdType pdeID1, const FeFctIdType pdeID2,
                  StdMatrix *stdMat, BaseIDBC_Handler *idbcHandler,const Double& entry,
                  Integer eqn1, Integer eqnNr2, UInt limit1, UInt limit2,
                  bool setCounterPart ) ;
   template void BaseEntryManipulator::
-  SetMatrixEntry(FEMatrixType matrix_id, const PdeIdType pdeID1, const PdeIdType pdeID2,
+  SetMatrixEntry(FEMatrixType matrix_id, const FeFctIdType pdeID1, const FeFctIdType pdeID2,
                  StdMatrix *stdMat, BaseIDBC_Handler *idbcHandler, const Complex& entry,
                  Integer eqn1, Integer eqnNr2, UInt limit1, UInt limit2,
                  bool setCounterPart ) ;

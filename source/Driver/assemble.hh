@@ -50,7 +50,7 @@ namespace CoupledField {
     // ======================================================
 
     //! Assemble matrix graph of given pair of pdes
-    void SetupMatrixGraph( PdeIdType pdeId1, PdeIdType pdeId2 );
+    void SetupMatrixGraph( FeFctIdType pdeId1, FeFctIdType pdeId2 );
 
     //! Trigger assembly of the matrices
     void AssembleMatrices();
@@ -139,13 +139,13 @@ namespace CoupledField {
     void InsertMatrix( FEMatrixType dest, BiLinFormContext& context,
                        Matrix<Double>& elemMat, StdVector<Integer>& eqnVec1,
                        StdVector<Integer>& eqnVec2,
-                       PdeIdType pdeId1, PdeIdType pdeId2 );
+                       FeFctIdType pdeId1, FeFctIdType pdeId2 );
 
     //! Insert complex matrix into algebraic system and adapt harmonic matrices
     void InsertMatrix( FEMatrixType dest, BiLinFormContext& context,
                        Matrix<Complex>& elemMat, StdVector<Integer>& eqnVec1,
                        StdVector<Integer>& eqnVec2,
-                       PdeIdType pdeId1, PdeIdType pdeId2 );
+                       FeFctIdType pdeId1, FeFctIdType pdeId2 );
 
     //! Check which integrator is non-linear due to solution-dependent
     //! non-linearities or updated lagrangian formulation

@@ -5,9 +5,14 @@
 #LINK_DIRECTORIES()
 
 SET(COUPLED_PDE_SRCS itercoupledpde.cc coupledpdedef.cc pdecoupling.cc
-  couplingmemento.cc DirectCoupledPDE.cc BasePairCoupling.cc
-  PiezoCoupling.cc AcouMechCoupling.cc ThermoMechCoupling.cc
-  ThermoElectricCoupling.cc)
+  couplingmemento.cc 
+  DirectCoupledPDE.cc 
+  BasePairCoupling.cc
+#  PiezoCoupling.cc 
+#  AcouMechCoupling.cc 
+#  ThermoMechCoupling.cc
+#  ThermoElectricCoupling.cc
+)
 
 ADD_LIBRARY(coupledpde STATIC ${COUPLED_PDE_SRCS})
 

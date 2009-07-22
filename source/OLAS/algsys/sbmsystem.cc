@@ -82,7 +82,7 @@ namespace CoupledField {
   // ****************
   //   SetBlockSize
   // ****************
-  void SBM_System::SetBlockSize( const PdeIdType identifier, const UInt bs ) {
+  void SBM_System::SetBlockSize( const FeFctIdType identifier, const UInt bs ) {
 
 
     // Check consistency
@@ -98,7 +98,7 @@ namespace CoupledField {
 
 
   void SBM_System::GetSolutionVal( SingleVector& ptSol,
-                                   const PdeIdType identifierPDE ) {
+                                   const FeFctIdType identifierPDE ) {
 
     //Warning( "SBM_System::GetSolutionVal: At the moment we are not respecting the splitting"
     //    " of the result vecto and return just the complete vector, regardless of the pdeId ");
@@ -130,7 +130,7 @@ namespace CoupledField {
 
 
   void SBM_System::GetRHSVal( SingleVector &ptRhs,
-                              const PdeIdType identifierPDE ) {
+                              const FeFctIdType identifierPDE ) {
 
     //Warning( "SBM_System::GetRHSVal: At the moment we are not respecting the splitting"
     //         " of the result vecto and return just the complete vector, regardless of the pdeId ");
@@ -166,8 +166,8 @@ namespace CoupledField {
   //   SetFEMatrixType
   // *******************
   void SBM_System::SetFEMatrixType( const FEMatrixType matType,
-                                    const PdeIdType pdeID1,
-                                    const PdeIdType pdeID2 ) {
+                                    const FeFctIdType pdeID1,
+                                    const FeFctIdType pdeID2 ) {
 
 
     // Determine row and column index of sub-matrix
@@ -443,8 +443,8 @@ namespace CoupledField {
           sIt != feSubMatrices_[matType].end(); sIt++ ) {
 
       // Determine associated PDE identifiers
-      PdeIdType pde1 = (*sIt).rowInd;
-      PdeIdType pde2 = (*sIt).colInd;
+      FeFctIdType pde1 = (*sIt).rowInd;
+      FeFctIdType pde2 = (*sIt).colInd;
 
       // Determine number of matrix rows and columns
       // graph = graphManager_->GetGraph( pde1, pde1 );
@@ -484,9 +484,9 @@ namespace CoupledField {
   // ********************
   void SBM_System::SetElementMatrix( FEMatrixType matrix_id, 
                                           const Matrix<Double>& elemMat,
-                                          PdeIdType idPDE1,
+                                          FeFctIdType idPDE1,
                                           const StdVector<Integer>& eqnNrs1,
-                                          PdeIdType idPDE2,
+                                          FeFctIdType idPDE2,
                                           const StdVector<Integer>& eqnNrs2,
                                           bool setCounterPart ) {
 
@@ -552,9 +552,9 @@ namespace CoupledField {
   }
   void SBM_System::SetElementMatrix(FEMatrixType matrix_id, 
                                     const Matrix<Complex>& elemmat,
-                                    PdeIdType identifierPDE1,
+                                    FeFctIdType identifierPDE1,
                                     const StdVector<Integer>& eqnNrs1,
-                                    PdeIdType identifierPDE2,
+                                    FeFctIdType identifierPDE2,
                                     const StdVector<Integer>& eqnNrs2,
                                     bool setCounterPar ) {
     Warning( "Adapt me SetElementMatrix(Complex)");
@@ -564,7 +564,7 @@ namespace CoupledField {
   //   InitMatrix
   // **************
   void SBM_System::InitMatrix( FEMatrixType matrixID,
-                               const PdeIdType pdeID ) {
+                               const FeFctIdType pdeID ) {
 
 
     std::set<FEMatrixType>::iterator fIt;
@@ -595,7 +595,7 @@ namespace CoupledField {
   // ***********************
   //   InitRHS (Version 1)
   // ***********************
-  void SBM_System::InitRHS( PdeIdType pdeID ) {
+  void SBM_System::InitRHS( FeFctIdType pdeID ) {
 
 
     if ( pdeID == NO_PDE_ID ) {
@@ -610,7 +610,7 @@ namespace CoupledField {
   // ***********
   //   InitSol
   // ***********
-  void SBM_System::InitSol( PdeIdType pdeID ) {
+  void SBM_System::InitSol( FeFctIdType pdeID ) {
 
 
     if ( pdeID == NO_PDE_ID ) {
@@ -676,7 +676,7 @@ namespace CoupledField {
   //   SetElementRHS
   // *****************
   void SBM_System::SetElementRHS( const Vector<Double>& elemRHS, 
-                                  const PdeIdType idPDE,
+                                  const FeFctIdType idPDE,
                                   StdVector<Integer>& eqnNrs ) {
     Warning( "adapt me SetElementRHS double");
 //
@@ -685,7 +685,7 @@ namespace CoupledField {
 //                              length, numLastFreeDof_[idPDE] );
   }
   void SBM_System::SetElementRHS( const Vector<Complex>& elemRHS, 
-                                  const PdeIdType idPDE,
+                                  const FeFctIdType idPDE,
                                   StdVector<Integer>& eqnNrs ) {
     Warning( "adapt me SetElementRHS complex ");
     //
@@ -706,7 +706,7 @@ namespace CoupledField {
   // *************************
   //   SetDirichlet (Double)
   // *************************
-  void SBM_System::SetDirichlet(const PdeIdType pdeID,
+  void SBM_System::SetDirichlet(const FeFctIdType pdeID,
                                 Integer eqnNum, const Double &val ) {
 
 
@@ -742,7 +742,7 @@ s    }
   // **************************
   //   SetDirichlet (Complex)
   // **************************
-  void SBM_System::SetDirichlet( const PdeIdType pdeID,
+  void SBM_System::SetDirichlet( const FeFctIdType pdeID,
                                  Integer eqnNum, const Complex &val ) {
 
 
@@ -892,7 +892,7 @@ s    }
   //   AddToDiagMatrixEntry
   // ************************
   void SBM_System::AddToDiagMatrixEntry( FEMatrixType matrixID,
-                                         const PdeIdType pdeID,
+                                         const FeFctIdType pdeID,
                                          Integer eqnNum,
                                          Double val  ) {
     Warning( "Adapt me AddToDiagMatrixEntry");
@@ -904,7 +904,7 @@ s    }
   }
   
   void SBM_System::AddToDiagMatrixEntry( FEMatrixType matrixID,
-                                          const PdeIdType pdeID,
+                                          const FeFctIdType pdeID,
                                           Integer eqnNum,
                                           Complex val  ) {
      Warning( "Adapt me AddToDiagMatrixEntry");
@@ -920,9 +920,9 @@ s    }
   //   GetMatrixEntry
   // ******************
   void SBM_System::GetMatrixEntry( FEMatrixType matrixID,
-                                       const PdeIdType rowPdeID,
+                                       const FeFctIdType rowPdeID,
                                        Integer rowEqnNum,
-                                       const PdeIdType colPdeID,
+                                       const FeFctIdType colPdeID,
                                        Integer colEqnNum,
                                        Double & val ) {
 
@@ -932,9 +932,9 @@ s    }
   }
 
   void SBM_System::GetMatrixEntry( FEMatrixType matrixID,
-                                       const PdeIdType rowPdeID,
+                                       const FeFctIdType rowPdeID,
                                        Integer rowEqnNum,
-                                       const PdeIdType colPdeID,
+                                       const FeFctIdType colPdeID,
                                        Integer colEqnNum2,
                                        Complex & val ) {
 
@@ -946,18 +946,18 @@ s    }
   // ******************
 
   void SBM_System::SetMatrixEntry( FEMatrixType matrixID,
-                                   const PdeIdType rowPdeID,
+                                   const FeFctIdType rowPdeID,
                                    Integer rowEqnNum,
-                                   const PdeIdType colPdeID,
+                                   const FeFctIdType colPdeID,
                                    Integer colEqnNum,
                                    Double val, bool setCounterPart ) {
     EXCEPTION( "Not implemented" );
   }
 
   void SBM_System::SetMatrixEntry( FEMatrixType matrixID,
-                                   const PdeIdType rowPdeID,
+                                   const FeFctIdType rowPdeID,
                                    Integer rowEqnNum,
-                                   const PdeIdType colPdeID,
+                                   const FeFctIdType colPdeID,
                                    Integer colEqnNum,
                                    Complex val, bool setCounterPart ) {
     EXCEPTION( "Not implemented" );
@@ -967,13 +967,13 @@ s    }
   //   SetMatrixRowVals
   // ********************
   void SBM_System::SetMatrixRowVals( FEMatrixType matrixID,
-                                         const PdeIdType pdeID,
+                                         const FeFctIdType pdeID,
                                          Integer eqnNum, UInt dof,
                                          Double val ) {
     EXCEPTION( "Not implemented" );
   }
   void SBM_System::SetMatrixRowVals( FEMatrixType matrixID,
-                                         const PdeIdType pdeID,
+                                         const FeFctIdType pdeID,
                                          Integer eqnNum, UInt dof,
                                          Complex val ) {
     EXCEPTION( "Not implemented" );
@@ -983,14 +983,14 @@ s    }
   //   SetMatrixColVals
   // ********************
   void SBM_System::SetMatrixColVals( FEMatrixType matrixID,
-                                         const PdeIdType pdeID,
+                                         const FeFctIdType pdeID,
                                          Integer eqnNum, UInt dof,
                                          Double val ) {
     EXCEPTION( "Not implemented" );
   }
 
   void SBM_System::SetMatrixColVals( FEMatrixType matrixID,
-                                         const PdeIdType pdeID,
+                                         const FeFctIdType pdeID,
                                          Integer eqnNum, UInt dof,
                                          Complex val ) {
     EXCEPTION( "Not implemented" );

@@ -9,8 +9,9 @@
 
 #include "DataInOut/Logging/cfslog.hh"
 
-DECLARE_LOG(forms)
 
+
+DECLARE_LOG(forms)
 
 namespace CoupledField {
 

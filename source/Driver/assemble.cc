@@ -147,8 +147,8 @@ namespace CoupledField
       biLinForms_.insert( biLinContext );
 
       // Pass needed matrix type to algebraic system
-      PdeIdType id1 = biLinContext->GetFirstPde()->GetPDEId();
-      PdeIdType id2 = biLinContext->GetFirstPde()->GetPDEId();
+      FeFctIdType id1 = biLinContext->GetFirstPde()->GetPDEId();
+      FeFctIdType id2 = biLinContext->GetFirstPde()->GetPDEId();
       algsys_->SetFEMatrixType( mappedFEType, id1, id2 );
 
       // Check for secondary matrix type
@@ -186,10 +186,10 @@ namespace CoupledField
     }
   }
 
-  void Assemble::SetupMatrixGraph(PdeIdType pdeId1, PdeIdType pdeId2 ) {
+  void Assemble::SetupMatrixGraph(FeFctIdType pdeId1, FeFctIdType pdeId2 ) {
 
     StdVector<Integer> eqnVec1, eqnVec2;
-    PdeIdType id1, id2;
+    FeFctIdType id1, id2;
 
     // iterate over all descriptors
     std::set<BiLinFormContext*>::iterator formsIt;
@@ -277,7 +277,7 @@ namespace CoupledField
     Matrix<Double> elemMatrix;
     Matrix<Complex> elemMatrixC;
     StdVector<Integer> eqnVec1, eqnVec2;
-    PdeIdType pdeId1, pdeId2;
+    FeFctIdType pdeId1, pdeId2;
 
     // Reset for matrix update
     matrixUpdated_ = false;
@@ -390,10 +390,10 @@ namespace CoupledField
           if (secDestMat != NOTYPE ) {
 
             Double dampFactor = 1.0;
-            if ( actContext.getPtDamplayer() != NULL ) {
-              actContext.getPtDamplayer()->CalcDampFactor(dampFactor, it1);
-              // std::cout << "   dampFactor: " <<  dampFactor << std::endl;
-            }
+//            if ( actContext.getPtDamplayer() != NULL ) {
+//              actContext.getPtDamplayer()->CalcDampFactor(dampFactor, it1);
+//              // std::cout << "   dampFactor: " <<  dampFactor << std::endl;
+//            }
 
             if ( form->IsComplex() ) {
               // Rayleigh damping
@@ -476,7 +476,7 @@ namespace CoupledField
   void Assemble::AssembleRHSLinForms(bool nonLin ) {
 
     StdVector<Integer> eqnVec;
-    PdeIdType pdeId;
+    FeFctIdType pdeId;
     std::set<LinearFormContext*>::iterator formsIt;
 
     // iterate over all descriptors
@@ -932,7 +932,7 @@ namespace CoupledField
                                Matrix<Double>& elemMat,
                                StdVector<Integer>& eqnVec1,
                                StdVector<Integer>& eqnVec2,
-                               PdeIdType pdeId1, PdeIdType pdeId2)
+                               FeFctIdType pdeId1, FeFctIdType pdeId2)
   {
     // map original matrix destination to analysis-dependent one
     FEMatrixType mappedDest = matrixMap_[dest];
@@ -986,7 +986,7 @@ namespace CoupledField
                                Matrix<Complex>& elemMat,
                                StdVector<Integer>& eqnVec1,
                                StdVector<Integer>& eqnVec2,
-                               PdeIdType pdeId1, PdeIdType pdeId2) {
+                               FeFctIdType pdeId1, FeFctIdType pdeId2) {
     Matrix<Complex> harmMat;
 
     // map original matrix destination to analysis-dependent one

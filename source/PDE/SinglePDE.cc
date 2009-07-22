@@ -1490,151 +1490,151 @@ namespace CoupledField {
   }
 
   void SinglePDE::ReadRegionLoads(){
-    ReadRegionLoadsFromXML(myParam_->Get("bcsAndLoads", false), regionLoads_);
+    //ReadRegionLoadsFromXML(myParam_->Get("bcsAndLoads", false), regionLoads_);
   }
   
-  void SinglePDE::ReadRegionLoadsFromXML(ParamNode* bcNode, std::map<RegionIdType, RegionLoad>& regloads) {
-
-    StdVector<std::string> names, dofs, refCoord, type, phase;
-    StdVector<std::string> tempNames, tempDofs,  tempPhase;
-    StdVector<std::string>  tempRefCoord, tempType;
-    StdVector<RegionIdType> regionIds;
-    StdVector<UInt> vecComp;
-    StdVector<std::string> loadVec, tempLoadVec, tempLoad(dim_);
-    UInt locDof = 0;
-    Integer index = -1;
-
-    // Check, if function was called by a scripting command
-#ifdef USE_SCRIPTING
-    if ( messenger->IsEvaluating() == true ) {
-
-      // obtain parameters from messenger object
-      // Note: If scripting is used, only one region load
-      // can be specified per call
-      SCRIPT_GET( std::string,name);
-      SCRIPT_GET( std::string, value );
-      SCRIPT_GET( std::string, dof );
-      SCRIPT_GET( std::string, refCoordSys );
-      SCRIPT_GET( std::string, type );
-
-      // Copy single entries into vectors
-      tempNames.Push_back( name );
-      tempLoadVec.Push_back( value );
-      tempDofs.Push_back( dof );
-      tempRefCoord.Push_back( refCoordSys );
-      tempType.Push_back( type );
-
-    } else {
-#endif
-      // obtain parameters from ParamHandler
-      // Note: Here all region loads are read (in contrast
-      // when called by an external script)
-
-      // try to get bcsAndLoads node
-      if( !bcNode )
-        return;
-      StdVector<ParamNode*> loadNodes = bcNode->GetList("regionLoad");
-
-
-      for( UInt i = 0; i < loadNodes.GetSize(); i++ ) {
-
-        ParamNode * actNode = loadNodes[i];
-
-        tempNames.Push_back( actNode->Get("name")->AsString() );
-        tempLoadVec.Push_back( actNode->Get("value")->AsString() );
-        tempPhase.Push_back( actNode->Get("phase")->AsString() );
-        tempDofs.Push_back( actNode->Get("dof")->AsString() );
-        tempRefCoord.Push_back( actNode->Get("coordSysId")->AsString() );
-        tempType.Push_back( actNode->Get("type")->AsString() );
-      }
-
-#ifdef USE_SCRIPTING
-    }
-#endif
-
-    // --- Common part for scripting and parameter file ---
-
-
-    // Now sort the names and remove double entries
-    for (UInt i = 0; i < tempNames.GetSize(); i++) {
-      index = names.Find(tempNames[i]);
-      if ( index == -1) {
-        names.Push_back(tempNames[i]);
-      }
-    }
-
-    // Convert region names to ID - vector
-    ptgrid_->RegionNameToId(regionIds, names);
-
-
-    // loop over all regions
-    for (UInt i = 0; i < names.GetSize(); i++) {
-
-      // get for each name all related entries for value,
-      // dof, refCoordSys and type
-      loadVec.Clear();
-      phase.Clear();
-      dofs.Clear();
-      refCoord.Clear();
-      type.Clear();
-      for (UInt iEntry = 0; iEntry < tempNames.GetSize(); iEntry++ ) {
-        if ( names[i] == tempNames[iEntry] ) {
-          loadVec.Push_back(tempLoadVec[iEntry]);
-          phase.Push_back(tempPhase[iEntry]);
-          dofs.Push_back(tempDofs[iEntry]);
-          refCoord.Push_back(tempRefCoord[iEntry]);
-          type.Push_back(tempType[iEntry]);
-        }
-      }
-
-      // check if all entries for  refCoord and type
-      // are the same
-      for (UInt k=0; k<refCoord.GetSize(); k++) {
-        if ( refCoord[k] != refCoord[0] ||
-             type[k] != type[0] ) {
-          EXCEPTION( "MechPDE::DefineRegionLoads: The region load on region "
-                     << names[i] << " has not for all dofs the same entry for "
-                     << "refCoord or type (total/unit)!" );
-        }
-      }
-
-      // Check if an entry already exists for this region
-      RegionLoad * curLoad;
-
-      std::map<RegionIdType, RegionLoad>::iterator it;
-      it = regloads.find( regionIds[i] );
-
-      if ( it == regloads.end() ) {
-        regloads.insert( std::map<RegionIdType, RegionLoad>::value_type( regionIds[i],
-                                                                             RegionLoad( dim_, isaxi_ ) ) );
-      }
-      it = regloads.find( regionIds[i] );
-      curLoad = & (*it).second;
-
-      // -- Fill in the data we have so far --
-      curLoad->name = ptgrid_->RegionIdToName( regionIds[i] );
-      curLoad->phase = phase[0];
-
-      if ( curLoad->refCoord != std::string()
-           && curLoad->refCoord != refCoord[0] ) {
-        EXCEPTION( "Inconsistent definition of time data for regionLoads" );
-      } else {
-        curLoad->refCoord = refCoord[0];
-      }
-
-      if ( curLoad->volume < EPS ) {
-        curLoad->volume = ptgrid_->CalcVolumeOfRegion(regionIds[i], isaxi_);
-      }
-
-      // now create local load vector
-      for (UInt iDim=0; iDim < loadVec.GetSize(); iDim++) {
-        locDof = domain->GetCoordSystem(refCoord[iDim])->
-          GetVecComponent(dofs[iDim]);
-        curLoad->value[locDof-1] = loadVec[iDim];
-        curLoad->type = type[iDim];
-      }
-    }
-  }
+//  void SinglePDE::ReadRegionLoadsFromXML(ParamNode* bcNode, std::map<RegionIdType, RegionLoad>& regloads) {
+//
+//    StdVector<std::string> names, dofs, refCoord, type, phase;
+//    StdVector<std::string> tempNames, tempDofs,  tempPhase;
+//    StdVector<std::string>  tempRefCoord, tempType;
+//    StdVector<RegionIdType> regionIds;
+//    StdVector<UInt> vecComp;
+//    StdVector<std::string> loadVec, tempLoadVec, tempLoad(dim_);
+//    UInt locDof = 0;
+//    Integer index = -1;
+//
+//    // Check, if function was called by a scripting command
+//#ifdef USE_SCRIPTING
+//    if ( messenger->IsEvaluating() == true ) {
+//
+//      // obtain parameters from messenger object
+//      // Note: If scripting is used, only one region load
+//      // can be specified per call
+//      SCRIPT_GET( std::string,name);
+//      SCRIPT_GET( std::string, value );
+//      SCRIPT_GET( std::string, dof );
+//      SCRIPT_GET( std::string, refCoordSys );
+//      SCRIPT_GET( std::string, type );
+//
+//      // Copy single entries into vectors
+//      tempNames.Push_back( name );
+//      tempLoadVec.Push_back( value );
+//      tempDofs.Push_back( dof );
+//      tempRefCoord.Push_back( refCoordSys );
+//      tempType.Push_back( type );
+//
+//    } else {
+//#endif
+//      // obtain parameters from ParamHandler
+//      // Note: Here all region loads are read (in contrast
+//      // when called by an external script)
+//
+//      // try to get bcsAndLoads node
+//      if( !bcNode )
+//        return;
+//      StdVector<ParamNode*> loadNodes = bcNode->GetList("regionLoad");
+//
+//
+//      for( UInt i = 0; i < loadNodes.GetSize(); i++ ) {
+//
+//        ParamNode * actNode = loadNodes[i];
+//
+//        tempNames.Push_back( actNode->Get("name")->AsString() );
+//        tempLoadVec.Push_back( actNode->Get("value")->AsString() );
+//        tempPhase.Push_back( actNode->Get("phase")->AsString() );
+//        tempDofs.Push_back( actNode->Get("dof")->AsString() );
+//        tempRefCoord.Push_back( actNode->Get("coordSysId")->AsString() );
+//        tempType.Push_back( actNode->Get("type")->AsString() );
+//      }
+//
+//#ifdef USE_SCRIPTING
+//    }
+//#endif
+//
+//    // --- Common part for scripting and parameter file ---
+//
+//
+//    // Now sort the names and remove double entries
+//    for (UInt i = 0; i < tempNames.GetSize(); i++) {
+//      index = names.Find(tempNames[i]);
+//      if ( index == -1) {
+//        names.Push_back(tempNames[i]);
+//      }
+//    }
+//
+//    // Convert region names to ID - vector
+//    ptgrid_->RegionNameToId(regionIds, names);
+//
+//
+//    // loop over all regions
+//    for (UInt i = 0; i < names.GetSize(); i++) {
+//
+//      // get for each name all related entries for value,
+//      // dof, refCoordSys and type
+//      loadVec.Clear();
+//      phase.Clear();
+//      dofs.Clear();
+//      refCoord.Clear();
+//      type.Clear();
+//      for (UInt iEntry = 0; iEntry < tempNames.GetSize(); iEntry++ ) {
+//        if ( names[i] == tempNames[iEntry] ) {
+//          loadVec.Push_back(tempLoadVec[iEntry]);
+//          phase.Push_back(tempPhase[iEntry]);
+//          dofs.Push_back(tempDofs[iEntry]);
+//          refCoord.Push_back(tempRefCoord[iEntry]);
+//          type.Push_back(tempType[iEntry]);
+//        }
+//      }
+//
+//      // check if all entries for  refCoord and type
+//      // are the same
+//      for (UInt k=0; k<refCoord.GetSize(); k++) {
+//        if ( refCoord[k] != refCoord[0] ||
+//             type[k] != type[0] ) {
+//          EXCEPTION( "MechPDE::DefineRegionLoads: The region load on region "
+//                     << names[i] << " has not for all dofs the same entry for "
+//                     << "refCoord or type (total/unit)!" );
+//        }
+//      }
+//
+//      // Check if an entry already exists for this region
+//      RegionLoad * curLoad;
+//
+//      std::map<RegionIdType, RegionLoad>::iterator it;
+//      it = regloads.find( regionIds[i] );
+//
+//      if ( it == regloads.end() ) {
+//        regloads.insert( std::map<RegionIdType, RegionLoad>::value_type( regionIds[i],
+//                                                                             RegionLoad( dim_, isaxi_ ) ) );
+//      }
+//      it = regloads.find( regionIds[i] );
+//      curLoad = & (*it).second;
+//
+//      // -- Fill in the data we have so far --
+//      curLoad->name = ptgrid_->RegionIdToName( regionIds[i] );
+//      curLoad->phase = phase[0];
+//
+//      if ( curLoad->refCoord != std::string()
+//           && curLoad->refCoord != refCoord[0] ) {
+//        EXCEPTION( "Inconsistent definition of time data for regionLoads" );
+//      } else {
+//        curLoad->refCoord = refCoord[0];
+//      }
+//
+//      if ( curLoad->volume < EPS ) {
+//        curLoad->volume = ptgrid_->CalcVolumeOfRegion(regionIds[i], isaxi_);
+//      }
+//
+//      // now create local load vector
+//      for (UInt iDim=0; iDim < loadVec.GetSize(); iDim++) {
+//        locDof = domain->GetCoordSystem(refCoord[iDim])->
+//          GetVecComponent(dofs[iDim]);
+//        curLoad->value[locDof-1] = loadVec[iDim];
+//        curLoad->type = type[iDim];
+//      }
+//    }
+//  }
 
 
   void SinglePDE::ReadMaterialData() {
@@ -3102,81 +3102,81 @@ namespace CoupledField {
   }
 
 
-  // ========================== RegionLoads ==========================
-   SinglePDE::RegionLoad::RegionLoad( UInt dim, bool isAxi ) {
-
-     value.Resize( dim );
-     value.Init( "0.0");
-
-     isAxi_ = isAxi;
-     volume = 0.0;
-
-   }
-
-
-   VolForceInt * SinglePDE::RegionLoad::GetIntegrator() {
-     VolForceInt * forceInt = new VolForceInt( value.GetSize(),
-    		 																				phase,
-    		 																				isAxi_);
-
-     // Check, if type is "unit"
-     bool isUnit;
-     if ( type == "total" ) {
-       isUnit = false;
-     } else {
-       isUnit = true;
-     }
-     forceInt->SetVolForceVector( value,
-                                  domain->GetCoordSystem( refCoord),
-                                  isUnit, volume );
-
-     return forceInt;
-
-
-   }
-
-   void SinglePDE::RegionLoad::Print( bool onlyHeader, std::string pdeName ) {
-     std::ostringstream out;
-
-     if (onlyHeader) {
-       Info->PrintF(pdeName, "The following regions have a region load:\n\n");
-       out.clear();
-       out << std::setw(15) << "name" << " | "
-           << std::setw(15) << "coordSysId" << " | "
-           << std::setw(11) << "volume" << " | "
-           << std::setw(6) << "type" << " | "
-           << std::setw(11) << "load" <<std::endl;
-       Info->PrintF(pdeName, out.str().c_str());
-       out.str("");
-       out << std::setw(90) << std::setfill('-') << ""
-           << std::setfill(' ') << std::endl;
-       Info->PrintF(pdeName, out.str().c_str());
-       out.str("");
-     } else {
-
-
-       // write logging information into info file
-       for (UInt k = 0; k < value.GetSize(); k++ ) {
-         out.str("");
-         if ( k == 0) {
-           out << std::setw(15) << name << " | "
-               << std::setw(15) << refCoord << " | "
-               << std::setw(11) << volume << " | "
-               << std::setw(6) << type << "|";
-         } else {
-           out << std::setw(15) << "" << " | "
-               << std::setw(15) << "" << " | "
-               << std::setw(15) << "" << " | "
-               << std::setw(11) << "" << " | "
-               << std::setw(6) << "" << " | ";
-
-         }
-
-         out << std::setw(11) << value[k] << std::endl;
-
-         Info->PrintF(pdeName,out.str().c_str());
-       }
-
-     }
-   }
+//  // ========================== RegionLoads ==========================
+//   SinglePDE::RegionLoad::RegionLoad( UInt dim, bool isAxi ) {
+//
+//     value.Resize( dim );
+//     value.Init( "0.0");
+//
+//     isAxi_ = isAxi;
+//     volume = 0.0;
+//
+//   }
+//
+//
+//   VolForceInt * SinglePDE::RegionLoad::GetIntegrator() {
+//     VolForceInt * forceInt = new VolForceInt( value.GetSize(),
+//    		 																				phase,
+//    		 																				isAxi_);
+//
+//     // Check, if type is "unit"
+//     bool isUnit;
+//     if ( type == "total" ) {
+//       isUnit = false;
+//     } else {
+//       isUnit = true;
+//     }
+//     forceInt->SetVolForceVector( value,
+//                                  domain->GetCoordSystem( refCoord),
+//                                  isUnit, volume );
+//
+//     return forceInt;
+//
+//
+//   }
+//
+//   void SinglePDE::RegionLoad::Print( bool onlyHeader, std::string pdeName ) {
+//     std::ostringstream out;
+//
+//     if (onlyHeader) {
+//       Info->PrintF(pdeName, "The following regions have a region load:\n\n");
+//       out.clear();
+//       out << std::setw(15) << "name" << " | "
+//           << std::setw(15) << "coordSysId" << " | "
+//           << std::setw(11) << "volume" << " | "
+//           << std::setw(6) << "type" << " | "
+//           << std::setw(11) << "load" <<std::endl;
+//       Info->PrintF(pdeName, out.str().c_str());
+//       out.str("");
+//       out << std::setw(90) << std::setfill('-') << ""
+//           << std::setfill(' ') << std::endl;
+//       Info->PrintF(pdeName, out.str().c_str());
+//       out.str("");
+//     } else {
+//
+//
+//       // write logging information into info file
+//       for (UInt k = 0; k < value.GetSize(); k++ ) {
+//         out.str("");
+//         if ( k == 0) {
+//           out << std::setw(15) << name << " | "
+//               << std::setw(15) << refCoord << " | "
+//               << std::setw(11) << volume << " | "
+//               << std::setw(6) << type << "|";
+//         } else {
+//           out << std::setw(15) << "" << " | "
+//               << std::setw(15) << "" << " | "
+//               << std::setw(15) << "" << " | "
+//               << std::setw(11) << "" << " | "
+//               << std::setw(6) << "" << " | ";
+//
+//         }
+//
+//         out << std::setw(11) << value[k] << std::endl;
+//
+//         Info->PrintF(pdeName,out.str().c_str());
+//       }
+//
+//     }
+//   }
 } // end of namespace

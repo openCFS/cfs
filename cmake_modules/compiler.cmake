@@ -82,7 +82,8 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
   # Determine compiler/linker flags according to build type
   #-----------------------------------------------------------------------------
   IF(DEBUG)
-    SET(CFS_C_FLAGS "-std=c++98 -Wall -pedantic -fmessage-length=0 ${CFS_C_FLAGS}")
+    #SET(CFS_C_FLAGS "-std=c++98 -Wall -pedantic -fmessage-length=0 ${CFS_C_FLAGS}")
+    SET(CFS_C_FLAGS "-std=c++98  -fmessage-length=0 ${CFS_C_FLAGS}")
     # -Wold-style-cast Warnings about old C style casts. Since external libraries
     # make extensive use of it, we switch it off. To filter out the warnings in our own
     # code a command line like the following might be used
@@ -99,7 +100,8 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
   ELSE(DEBUG)
 
     SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment")
-    SET(CFS_C_FLAGS "-std=c++98 -Wall -pedantic -fmessage-length=0 ${CFS_C_FLAGS}")
+    #SET(CFS_C_FLAGS "-std=c++98 -Wall -pedantic -fmessage-length=0 ${CFS_C_FLAGS}")
+    SET(CFS_C_FLAGS "-std=c++98 -fmessage-length=0 ${CFS_C_FLAGS}")
     SET(CFS_CXX_FLAGS "-ftemplate-depth-55")
 
     IF(CFS_ARCH STREQUAL "I386")

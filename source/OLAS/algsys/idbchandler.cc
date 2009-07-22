@@ -266,7 +266,7 @@ namespace CoupledField {
   //   SetIDBC
   // ***********
   template <typename T>
-  void IDBC_Handler<T>::SetIDBC( PdeIdType pdeID, UInt eqnNo, const T &val ) {
+  void IDBC_Handler<T>::SetIDBC( FeFctIdType pdeID, UInt eqnNo, const T &val ) {
 
 
     // CASE 1: SingleVector
@@ -290,8 +290,8 @@ namespace CoupledField {
   // ************************
   template <typename T>
   void IDBC_Handler<T>::AddWeightFixedToFree( FEMatrixType matID,
-                                              PdeIdType pdeID1,
-                                              PdeIdType pdeID2,
+                                              FeFctIdType pdeID1,
+                                              FeFctIdType pdeID2,
                                               UInt rowInd,
                                               UInt colInd,
                                               const T& val ) {
@@ -335,8 +335,8 @@ namespace CoupledField {
   // ************************
   template <typename T>
   void IDBC_Handler<T>::SetWeightFixedToFree( FEMatrixType matID,
-                                              PdeIdType pdeID1,
-                                              PdeIdType pdeID2,
+                                              FeFctIdType pdeID1,
+                                              FeFctIdType pdeID2,
                                               UInt rowInd,
                                               UInt colInd,
                                               const T& val ) {
@@ -379,8 +379,8 @@ namespace CoupledField {
   // ************************
   template <typename T>
   void IDBC_Handler<T>::GetWeightFixedToFree( FEMatrixType matID, 
-                                              PdeIdType pdeID1,
-                                              PdeIdType pdeID2, 
+                                              FeFctIdType pdeID1,
+                                              FeFctIdType pdeID2, 
                                               UInt rowInd, UInt colInd,
                                               T& val ) const {
 
@@ -424,7 +424,7 @@ namespace CoupledField {
   // *****************
   template <typename T>
   void IDBC_Handler<T>::SetRowWeights( FEMatrixType matID, 
-                                       PdeIdType pdeID, UInt rowInd,
+                                       FeFctIdType pdeID, UInt rowInd,
                                        const T& val ) {
 
 
@@ -436,7 +436,7 @@ namespace CoupledField {
   // *****************
   template <typename T>
   void IDBC_Handler<T>::SetColWeights( FEMatrixType matID, 
-                                       PdeIdType pdeID,UInt colInd,
+                                       FeFctIdType pdeID,UInt colInd,
                                        const T& val ) {
 
   }

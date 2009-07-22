@@ -385,72 +385,73 @@ namespace CoupledField {
 
       // Check for Perfectly matchec layers
       if ( dampingList_[actRegion] == PML ) {
-        if ( analysistype_ != HARMONIC ) {
-          EXCEPTION( "PML just supported for Harmonic-Analysis" );
-        }
-
-        //read data for PML layer
-
-        //type of PML damping
-        std::string dampingTypePML;
-
-        // inner / outer region
-        Matrix<Double> inner;
-        Matrix<Double> outer;
-
-        //damping factor
-        Double dampPML;
-
-        std::string id = actRegionNode->Get("dampingId")->AsString();
-        ParamNode * pmlNode = myParam_->Get("dampingList")->Get("pml", "id", id);
-        ReadDataPML(dampingTypePML, inner, dampPML, pmlNode );
-        dampPML *= c0;
-
-        GetPMLLayerData(inner, outer, actRegion);
-
-        //====================================================================
-        //	 stiffness integrator for PML
-        //====================================================================
-
-        std::string formsType = "laplaceInt";
-
-        //set real part
-        BaseForm * bilinearStiffReal =
-          new PMLInt(formsType, density, dampingTypePML, dampPML, isaxi_);
-
-        bilinearStiffReal->SetPosPML(inner,outer);
-
-        BiLinFormContext * stiffContextReal =
-          new BiLinFormContext( bilinearStiffReal, STIFFNESS );
-
-        stiffContextReal->SetPtPdes(this, this);
-        stiffContextReal->SetResults( results_[0], results_[0],
-                                      actSDList, actSDList );
-        // stiffContextReal->SetEntryType(matType);
-        assemble_->AddBiLinearForm( stiffContextReal);
-
-
-        //====================================================================
-        //	 mass integrator for PML
-        //====================================================================
-
-        formsType = "massInt";
-        Double massFactor = density/(c0*c0);
-
-        //set real part
-        BaseForm * bilinearMassReal =
-          new PMLInt( formsType, massFactor, dampingTypePML, dampPML, isaxi_ );
-
-        bilinearMassReal->SetPosPML(inner,outer);
-
-        BiLinFormContext * massContextReal =
-          new BiLinFormContext( bilinearMassReal, MASS);
-
-        massContextReal->SetPtPdes(this, this);
-        massContextReal->SetResults( results_[0], results_[0],
-                                     actSDList, actSDList );
-        // massContextReal->SetEntryType( matType );
-        assemble_->AddBiLinearForm( massContextReal );
+      REFACTOR;
+//        if ( analysistype_ != HARMONIC ) {
+//          EXCEPTION( "PML just supported for Harmonic-Analysis" );
+//        }
+//
+//        //read data for PML layer
+//
+//        //type of PML damping
+//        std::string dampingTypePML;
+//
+//        // inner / outer region
+//        Matrix<Double> inner;
+//        Matrix<Double> outer;
+//
+//        //damping factor
+//        Double dampPML;
+//
+//        std::string id = actRegionNode->Get("dampingId")->AsString();
+//        ParamNode * pmlNode = myParam_->Get("dampingList")->Get("pml", "id", id);
+//        ReadDataPML(dampingTypePML, inner, dampPML, pmlNode );
+//        dampPML *= c0;
+//
+//        GetPMLLayerData(inner, outer, actRegion);
+//
+//        //====================================================================
+//        //	 stiffness integrator for PML
+//        //====================================================================
+//
+//        std::string formsType = "laplaceInt";
+//
+//        //set real part
+//        BaseForm * bilinearStiffReal =
+//          new PMLInt(formsType, density, dampingTypePML, dampPML, isaxi_);
+//
+//        bilinearStiffReal->SetPosPML(inner,outer);
+//
+//        BiLinFormContext * stiffContextReal =
+//          new BiLinFormContext( bilinearStiffReal, STIFFNESS );
+//
+//        stiffContextReal->SetPtPdes(this, this);
+//        stiffContextReal->SetResults( results_[0], results_[0],
+//                                      actSDList, actSDList );
+//        // stiffContextReal->SetEntryType(matType);
+//        assemble_->AddBiLinearForm( stiffContextReal);
+//
+//
+//        //====================================================================
+//        //	 mass integrator for PML
+//        //====================================================================
+//
+//        formsType = "massInt";
+//        Double massFactor = density/(c0*c0);
+//
+//        //set real part
+//        BaseForm * bilinearMassReal =
+//          new PMLInt( formsType, massFactor, dampingTypePML, dampPML, isaxi_ );
+//
+//        bilinearMassReal->SetPosPML(inner,outer);
+//
+//        BiLinFormContext * massContextReal =
+//          new BiLinFormContext( bilinearMassReal, MASS);
+//
+//        massContextReal->SetPtPdes(this, this);
+//        massContextReal->SetResults( results_[0], results_[0],
+//                                     actSDList, actSDList );
+//        // massContextReal->SetEntryType( matType );
+//        assemble_->AddBiLinearForm( massContextReal );
 
       } // end of pml part
 
@@ -483,36 +484,37 @@ namespace CoupledField {
         // Additional terms for Pierce Equation
         // *******************************************************************
         if ( regionFlowNodes_.count( actRegion) > 0 ) {
-          if ( formulation_ == ACOU_PRESSURE )
-            EXCEPTION("Pierce-Equation just possible in velocity potential formulation" );
-
-          //read flow data
-          ParamNode * flowNode = regionFlowNodes_[actRegion];
-          SimpleFlow* flowData = new SimpleFlow();
-          flowData->ReadFlowData( flowNode, dim_);
-
-          Double coeffPierceStiff = -density / (c0*c0);
-          BaseForm * bilinearPierceStiff  = new PierceStiffInt(coeffPierceStiff,
-                                                               flowData,
-                                                               isaxi_);
-          BiLinFormContext * pierceStiffContext =
-            new BiLinFormContext( bilinearPierceStiff, STIFFNESS );
-          pierceStiffContext->SetResults( results_[0], results_[0],
-                                          actSDList, actSDList );
-          pierceStiffContext->SetPtPdes(this, this);
-          assemble_->AddBiLinearForm( pierceStiffContext );
-
-
-          Double coeffPierceDamp = 2.0 * density / (c0*c0);
-          BaseForm * bilinearPierceDamp  = new PierceDampInt(coeffPierceDamp,
-                                                             flowData,
-                                                             isaxi_);
-          BiLinFormContext * pierceDampContext =
-            new BiLinFormContext( bilinearPierceDamp, DAMPING );
-          pierceDampContext->SetResults( results_[0], results_[0],
-                                         actSDList, actSDList );
-          pierceDampContext->SetPtPdes(this, this);
-          assemble_->AddBiLinearForm( pierceDampContext );
+        REFACTOR;
+//          if ( formulation_ == ACOU_PRESSURE )
+//            EXCEPTION("Pierce-Equation just possible in velocity potential formulation" );
+//
+//          //read flow data
+//          ParamNode * flowNode = regionFlowNodes_[actRegion];
+//          SimpleFlow* flowData = new SimpleFlow();
+//          flowData->ReadFlowData( flowNode, dim_);
+//
+//          Double coeffPierceStiff = -density / (c0*c0);
+//          BaseForm * bilinearPierceStiff  = new PierceStiffInt(coeffPierceStiff,
+//                                                               flowData,
+//                                                               isaxi_);
+//          BiLinFormContext * pierceStiffContext =
+//            new BiLinFormContext( bilinearPierceStiff, STIFFNESS );
+//          pierceStiffContext->SetResults( results_[0], results_[0],
+//                                          actSDList, actSDList );
+//          pierceStiffContext->SetPtPdes(this, this);
+//          assemble_->AddBiLinearForm( pierceStiffContext );
+//
+//
+//          Double coeffPierceDamp = 2.0 * density / (c0*c0);
+//          BaseForm * bilinearPierceDamp  = new PierceDampInt(coeffPierceDamp,
+//                                                             flowData,
+//                                                             isaxi_);
+//          BiLinFormContext * pierceDampContext =
+//            new BiLinFormContext( bilinearPierceDamp, DAMPING );
+//          pierceDampContext->SetResults( results_[0], results_[0],
+//                                         actSDList, actSDList );
+//          pierceDampContext->SetPtPdes(this, this);
+//          assemble_->AddBiLinearForm( pierceDampContext );
         }
 
         // ********************************************************************
@@ -521,47 +523,47 @@ namespace CoupledField {
 
         //check  for damping layer
         if ( dampingList_[actRegion] == DAMPLAYER ) {
-
-          //type of damping fnc
-          std::string dampFnc;
-
-          std::string id = actRegionNode->Get("dampingId")->AsString();
-          ParamNode * dampLayerNode = myParam_->Get("dampingList")->Get("dampLayer", "id", id);
-
-          //damping data
-          Double dampFactor, dampFactorMax, startRadius, stopRadius;
-          Vector<Double> mPoint;
-          ReadDataDampLayer( dampFnc, mPoint, dampFactor, dampFactorMax,
-                             startRadius, stopRadius, dampLayerNode );
-
-          //get the Rayleigh material parameters
-          Double alpha, beta, measFreq;
-          std::string fac;
-          materials_[actRegion]->GetScalar(alpha,RAYLEIGH_ALPHA,Global::REAL);
-          materials_[actRegion]->GetScalar(beta,RAYLEIGH_BETA,Global::REAL);
-          materials_[actRegion]->GetScalar(measFreq,RAYLEIGH_FREQUENCY,Global::REAL);
-
-          // stiffness part
-          if( isComplex_ ) {
-            fac = GenStr( beta * measFreq) + "/ f";
-          } else {
-            fac = GenStr( beta );
-          }
-
-          stiffContext->SetSecDestMat( DAMPING, fac );
-          stiffContext->SetDampLayer(dampFnc, mPoint, dampFactor,
-                                     dampFactorMax, startRadius,
-                                     stopRadius);
-          // mass part
-          if( isComplex_ ) {
-            fac = GenStr( alpha / measFreq) + "* f";
-          } else {
-            fac = GenStr( alpha );
-          }
-          massContext->SetSecDestMat( DAMPING, fac );
-          massContext->SetDampLayer(dampFnc, mPoint, dampFactor,
-                                    dampFactorMax, startRadius,
-                                    stopRadius);
+          REFACTOR;
+//          //type of damping fnc
+//          std::string dampFnc;
+//
+//          std::string id = actRegionNode->Get("dampingId")->AsString();
+//          ParamNode * dampLayerNode = myParam_->Get("dampingList")->Get("dampLayer", "id", id);
+//
+//          //damping data
+//          Double dampFactor, dampFactorMax, startRadius, stopRadius;
+//          Vector<Double> mPoint;
+//          ReadDataDampLayer( dampFnc, mPoint, dampFactor, dampFactorMax,
+//                             startRadius, stopRadius, dampLayerNode );
+//
+//          //get the Rayleigh material parameters
+//          Double alpha, beta, measFreq;
+//          std::string fac;
+//          materials_[actRegion]->GetScalar(alpha,RAYLEIGH_ALPHA,Global::REAL);
+//          materials_[actRegion]->GetScalar(beta,RAYLEIGH_BETA,Global::REAL);
+//          materials_[actRegion]->GetScalar(measFreq,RAYLEIGH_FREQUENCY,Global::REAL);
+//
+//          // stiffness part
+//          if( isComplex_ ) {
+//            fac = GenStr( beta * measFreq) + "/ f";
+//          } else {
+//            fac = GenStr( beta );
+//          }
+//
+//          stiffContext->SetSecDestMat( DAMPING, fac );
+//          stiffContext->SetDampLayer(dampFnc, mPoint, dampFactor,
+//                                     dampFactorMax, startRadius,
+//                                     stopRadius);
+//          // mass part
+//          if( isComplex_ ) {
+//            fac = GenStr( alpha / measFreq) + "* f";
+//          } else {
+//            fac = GenStr( alpha );
+//          }
+//          massContext->SetSecDestMat( DAMPING, fac );
+//          massContext->SetDampLayer(dampFnc, mPoint, dampFactor,
+//                                    dampFactorMax, startRadius,
+//                                    stopRadius);
         }
 
         // ********************************************************************
@@ -795,83 +797,83 @@ namespace CoupledField {
     // =======================================================================
     // Integrators for NonConforming Interfaces
     // =======================================================================
-    ParamNode* ncIfaceListNode
-        = param->Get("domain")->Get("ncInterfaceList", false);
-
-    // Get index of LAGRANGE_MULT result, just in case... who knows...
-    UInt lmResultIdx = 0;
-    for(UInt i=0, n=results_.GetSize(); i<n; i++) {
-      if(results_[i]->resultType == LAGRANGE_MULT) {
-        lmResultIdx = i;
-        break;
-      }
-    }
-    LOG_DBG2(acoupde) << "NonMatching: Index of LAGRANGE_MULT result: "
-                     << lmResultIdx;
-
-    for( UInt i = 0; i < ncIFaces_.GetSize(); i++ ) {
-
-      // get regionId of Lagrangian surface
-      StdVector<std::string> keyVec, attrVec, valVec;
-      std::string slaveSide;
-      std::string ncIfaceName = ptgrid_->RegionIdToName(ncIFaces_[i]);
-
-      if (!ncIfaceListNode) {
-        EXCEPTION("No ncInterfaces defined in domain section.");
-      }
-      ParamNode* curNciNode = ncIfaceListNode->Get("ncInterface", "name",
-                                                   ncIfaceName);
-      slaveSide = curNciNode->Get("slaveSide")->AsString();
-
-      // Part 1: Define integrator M(Psi, Lambda) on
-      //         non-conforming interface
-      LOG_DBG2(acoupde) << "NonMatching: Defining nonconforming integrator"
-                        << " for M on interface '"
-                        << ptgrid_->RegionIdToName(ncIFaces_[i]) << "'.";
-      shared_ptr<ElemList> actNcList( new ElemList(ptgrid_ ) );
-      actNcList->SetRegion( ncIFaces_[i] );
-
-      NonConformingInt * ncInt =
-        new NonConformingInt( 1, isaxi_ );
-
-      NcBiLinFormContext * stiffIntDescr =
-        new NcBiLinFormContext( ncInt , STIFFNESS );
-
-      // Force assembling of M(Psi, Lambda)^T
-      stiffIntDescr->SetCounterPart( true );
-
-      stiffIntDescr->SetPtPdes(this, this);
-      stiffIntDescr->SetResults( results_[0], results_[lmResultIdx],
-                                 actNcList, actNcList );
-
-      assemble_->AddBiLinearForm( stiffIntDescr );
-
-
-      // Part 2: Define integrator D(Psi, Lambda) on
-      //         Lagrangian surface
-      LOG_DBG2(acoupde) << "NonMatching: Defining mass integrator"
-                        << " for D on interface '"
-                        << ptgrid_->RegionIdToName(ncIFaces_[i]) << "'.";
-      shared_ptr<SurfElemList> actSDList( new SurfElemList(ptgrid_ ) );
-      actSDList->SetRegion( ptgrid_->RegionNameToId( slaveSide ) );
-
-      // D(Psi, Lambda) has the form of a standard mass
-      // integrator with factor 1.0
-      MassInt * dMatInt = new MassInt( 1.0, 1, isaxi_ );
-      BiLinFormContext * dMatContext =
-        new BiLinFormContext( dMatInt, STIFFNESS );
-
-      // Force assembling of D(Psi, Lambda)^T
-      dMatContext->SetCounterPart( true );
-      dMatContext->SetPtPdes( this, this );
-      dMatContext->SetResults( results_[0], results_[lmResultIdx],
-                               actSDList, actSDList );
-
-      assemble_->AddBiLinearForm( dMatContext );
-
-      // Give result LAGRANGE_MULT to equation numbering class
-      eqnMap_->AddResult( *results_[lmResultIdx], actSDList );
-    }
+//    ParamNode* ncIfaceListNode
+//        = param->Get("domain")->Get("ncInterfaceList", false);
+//
+//    // Get index of LAGRANGE_MULT result, just in case... who knows...
+//    UInt lmResultIdx = 0;
+//    for(UInt i=0, n=results_.GetSize(); i<n; i++) {
+//      if(results_[i]->resultType == LAGRANGE_MULT) {
+//        lmResultIdx = i;
+//        break;
+//      }
+//    }
+//    LOG_DBG2(acoupde) << "NonMatching: Index of LAGRANGE_MULT result: "
+//                     << lmResultIdx;
+//
+//    for( UInt i = 0; i < ncIFaces_.GetSize(); i++ ) {
+//
+//      // get regionId of Lagrangian surface
+//      StdVector<std::string> keyVec, attrVec, valVec;
+//      std::string slaveSide;
+//      std::string ncIfaceName = ptgrid_->RegionIdToName(ncIFaces_[i]);
+//
+//      if (!ncIfaceListNode) {
+//        EXCEPTION("No ncInterfaces defined in domain section.");
+//      }
+//      ParamNode* curNciNode = ncIfaceListNode->Get("ncInterface", "name",
+//                                                   ncIfaceName);
+//      slaveSide = curNciNode->Get("slaveSide")->AsString();
+//
+//      // Part 1: Define integrator M(Psi, Lambda) on
+//      //         non-conforming interface
+//      LOG_DBG2(acoupde) << "NonMatching: Defining nonconforming integrator"
+//                        << " for M on interface '"
+//                        << ptgrid_->RegionIdToName(ncIFaces_[i]) << "'.";
+//      shared_ptr<ElemList> actNcList( new ElemList(ptgrid_ ) );
+//      actNcList->SetRegion( ncIFaces_[i] );
+//
+//      NonConformingInt * ncInt =
+//        new NonConformingInt( 1, isaxi_ );
+//
+//      NcBiLinFormContext * stiffIntDescr =
+//        new NcBiLinFormContext( ncInt , STIFFNESS );
+//
+//      // Force assembling of M(Psi, Lambda)^T
+//      stiffIntDescr->SetCounterPart( true );
+//
+//      stiffIntDescr->SetPtPdes(this, this);
+//      stiffIntDescr->SetResults( results_[0], results_[lmResultIdx],
+//                                 actNcList, actNcList );
+//
+//      assemble_->AddBiLinearForm( stiffIntDescr );
+//
+//
+//      // Part 2: Define integrator D(Psi, Lambda) on
+//      //         Lagrangian surface
+//      LOG_DBG2(acoupde) << "NonMatching: Defining mass integrator"
+//                        << " for D on interface '"
+//                        << ptgrid_->RegionIdToName(ncIFaces_[i]) << "'.";
+//      shared_ptr<SurfElemList> actSDList( new SurfElemList(ptgrid_ ) );
+//      actSDList->SetRegion( ptgrid_->RegionNameToId( slaveSide ) );
+//
+//      // D(Psi, Lambda) has the form of a standard mass
+//      // integrator with factor 1.0
+//      MassInt * dMatInt = new MassInt( 1.0, 1, isaxi_ );
+//      BiLinFormContext * dMatContext =
+//        new BiLinFormContext( dMatInt, STIFFNESS );
+//
+//      // Force assembling of D(Psi, Lambda)^T
+//      dMatContext->SetCounterPart( true );
+//      dMatContext->SetPtPdes( this, this );
+//      dMatContext->SetResults( results_[0], results_[lmResultIdx],
+//                               actSDList, actSDList );
+//
+//      assemble_->AddBiLinearForm( dMatContext );
+//
+//      // Give result LAGRANGE_MULT to equation numbering class
+//      eqnMap_->AddResult( *results_[lmResultIdx], actSDList );
+//    }
 
     // =======================================================================
     // Integrators for acoustic RHS values (i.e. Lighthill sources)
@@ -1405,52 +1407,52 @@ namespace CoupledField {
                       StdVector<StdVector<UInt> > & elemNodeToCouplingNode,
                       UInt actCoupling,
                       UInt numCouplingNodes) {
-
-    // get the coupling regions
-    StdVector<std::string> couplRegions;
-    ptCoupling_->GetOutputRegions(actCoupling, couplRegions);
-    StdVector<RegionIdType> regionIds;
-    ptgrid_->RegionNameToId( regionIds, couplRegions );
-
-    // Operator for calculating energy density
-    AcouPowerDensityOp<TYPE> *SourceOp =
-      new AcouPowerDensityOp<TYPE>( ptgrid_, this, eqnMap_, isaxi_ );
-
-    // initialize output vector
-    sourceValue.Init();
-
-    Vector<Double> elemPowerDensity;
-
-    UInt offset = 0;
-    for (UInt reg=0; reg<couplRegions.GetSize(); reg++) {
-
-      // find subdomain index
-      Integer SDidx = subdoms_.Find( regionIds[reg] );
-      Double density;
-      materials_[regionIds[reg]]->GetScalar(density,DENSITY,Global::REAL);
-
-      // get elements belonging to subdomain
-      ElemList actSDList(ptgrid_ );
-      actSDList.SetRegion( subdoms_[SDidx] );
-
-      EntityIterator it = actSDList.GetIterator();
-      UInt actEl = 0;
-      for ( it.Begin(); !it.IsEnd(); it++, actEl++) {
-
-        SourceOp->CalcElemPD(elemPowerDensity, it, density);
-
-        // Add the element energy to the according coupling node
-        StdVector<UInt> const & connecth = it.GetElem()->connect;
-        for (UInt elnode=0; elnode<connecth.GetSize(); elnode++) {
-
-          sourceValue[elemNodeToCouplingNode[actEl+offset][elnode]]
-            += elemPowerDensity[elnode];
-        }
-      }
-
-      //in the case, that we have more than one coupling region!
-      offset = actSDList.GetSize();
-    }
+    REFACTOR;
+//    // get the coupling regions
+//    StdVector<std::string> couplRegions;
+//    ptCoupling_->GetOutputRegions(actCoupling, couplRegions);
+//    StdVector<RegionIdType> regionIds;
+//    ptgrid_->RegionNameToId( regionIds, couplRegions );
+//
+//    // Operator for calculating energy density
+//    AcouPowerDensityOp<TYPE> *SourceOp =
+//      new AcouPowerDensityOp<TYPE>( ptgrid_, this, eqnMap_, isaxi_ );
+//
+//    // initialize output vector
+//    sourceValue.Init();
+//
+//    Vector<Double> elemPowerDensity;
+//
+//    UInt offset = 0;
+//    for (UInt reg=0; reg<couplRegions.GetSize(); reg++) {
+//
+//      // find subdomain index
+//      Integer SDidx = subdoms_.Find( regionIds[reg] );
+//      Double density;
+//      materials_[regionIds[reg]]->GetScalar(density,DENSITY,Global::REAL);
+//
+//      // get elements belonging to subdomain
+//      ElemList actSDList(ptgrid_ );
+//      actSDList.SetRegion( subdoms_[SDidx] );
+//
+//      EntityIterator it = actSDList.GetIterator();
+//      UInt actEl = 0;
+//      for ( it.Begin(); !it.IsEnd(); it++, actEl++) {
+//
+//        SourceOp->CalcElemPD(elemPowerDensity, it, density);
+//
+//        // Add the element energy to the according coupling node
+//        StdVector<UInt> const & connecth = it.GetElem()->connect;
+//        for (UInt elnode=0; elnode<connecth.GetSize(); elnode++) {
+//
+//          sourceValue[elemNodeToCouplingNode[actEl+offset][elnode]]
+//            += elemPowerDensity[elnode];
+//        }
+//      }
+//
+//      //in the case, that we have more than one coupling region!
+//      offset = actSDList.GetSize();
+//    }
   }
 
 
@@ -1546,31 +1548,31 @@ namespace CoupledField {
       }
       break;
 
-    case ACOU_SURFINTENSITY:
-      if( isComplex_ ) {
-        CalcAcouSurfIntensity<Complex>( result );
-      } else {
-        EXCEPTION( "Kaltenbacher's intensity only computable for harmonic "
-            << "analysis!" );
-      }
-      break;
-
-    case ACOU_POWER:
-      if( isComplex_ ) {
-        CalcAcouPower<Complex>( result );
-      } else {
-        EXCEPTION( "Acoustic power only computable for harmonic "
-                   << "analysis!" );
-      }
-      break;
-
-    case ACOU_FORCE:
-      if( isComplex_ ) {
-        CalcForce<Complex>( result );
-      } else {
-        CalcForce<Double>( result );
-      }
-      break;
+//    case ACOU_SURFINTENSITY:
+//      if( isComplex_ ) {
+//        CalcAcouSurfIntensity<Complex>( result );
+//      } else {
+//        EXCEPTION( "Kaltenbacher's intensity only computable for harmonic "
+//            << "analysis!" );
+//      }
+//      break;
+//
+//    case ACOU_POWER:
+//      if( isComplex_ ) {
+//        CalcAcouPower<Complex>( result );
+//      } else {
+//        EXCEPTION( "Acoustic power only computable for harmonic "
+//                   << "analysis!" );
+//      }
+//      break;
+//
+//    case ACOU_FORCE:
+//      if( isComplex_ ) {
+//        CalcForce<Complex>( result );
+//      } else {
+//        CalcForce<Double>( result );
+//      }
+//      break;
 
     default:
       Warning( "Resulttype not computable by acoustic PDE",
@@ -1581,103 +1583,103 @@ namespace CoupledField {
 
   template <class TYPE>
   void AcousticPDE::CalcForce( shared_ptr<BaseResult> vals ) {
-
-    Matrix<Double> ptCoord;
-
-    // get data from result object and resize its vector
-    Result<TYPE> &  actRes =
-      dynamic_cast<Result<TYPE>&>(*vals);
-    EntityIterator it = actRes.GetEntityList()->GetIterator();
-
-    Vector<TYPE> & actVal = actRes.GetVector();
-    actVal.Resize( actRes.GetEntityList()->GetSize()  );
-
-    // loop over elements
-    for (it.Begin(); !it.IsEnd(); it++ ) {
-
-      // Perform cast from volume element to surface element,
-      //  since calculation of force makes only sense on a surface
-      const SurfElem * actSaveElem = it.GetSurfElem();
-      BaseFE * ptElem = actSaveElem->ptElem;
-      StdVector<UInt> connect = actSaveElem->connect;
-      ptgrid_->GetElemNodesCoord( ptCoord, connect, false );
-
-      Vector<TYPE> valueElem;
-      if ( formulation_ == ACOU_POTENTIAL ) {
-
-        Integer matIndex = -1;
-        // Try to find according region for first neighbouring volume
-        // element of the surface element
-        matIndex = subdoms_.Find(actSaveElem->ptVolElem1->regionId);
-
-        // If first volume element does not belong to acoustic PDE, try the
-        // second one
-        Elem * ptVolElem = NULL;
-        if ( matIndex == -1 ) {
-          matIndex = subdoms_.Find(actSaveElem->ptVolElem2->regionId);
-          ptVolElem = actSaveElem->ptVolElem2;
-        }
-        else {
-          ptVolElem = actSaveElem->ptVolElem1;
-        }
-
-        if ( matIndex == -1) {
-          EXCEPTION( "AcousticPDE::CalcForce: The two volume element"
-                     << "neighbours of surface element no. "
-                     << actSaveElem->elemNum << " don't belong to my region!" );
-        }
-
-        // Assign correct density
-        Double density;
-        materials_[subdoms_[matIndex]]->GetScalar(density,DENSITY,Global::REAL);
-
-        // retrieve 1st derivative, since F = rho * dpsi/dt * A
-        //ElemList elemList(ptgrid_);
-        //elemList.SetElement( actSaveElem );
-        //EntityIterator it = elemList.GetIterator();
-        GetDerivSolVecOfElement(valueElem,  it, results_[0]);
-        valueElem *= density;
-      }
-      else if ( formulation_ == ACOU_PRESSURE ) {
-
-        // retrieve solution, since F = p * A
-        //ElemList elemList(ptgrid_);
-        //elemList.SetElement( actSaveElem );
-        //EntityIterator it = elemList.GetIterator();
-        GetSolVecOfElement(valueElem,it,results_[0]);
-      }
-
-      const UInt nrIntPts= ptElem->GetNumIntPoints();
-      const Vector<Double> & intWeights = ptElem->GetIntWeights();
-
-      TYPE forceElem = 0.0;
-      Double jacDet;
-      for (UInt actIntPt=1; actIntPt<=nrIntPts;  actIntPt++) {
-
-        jacDet = ptElem->CalcJacobianDetAtIp(actIntPt, ptCoord, actSaveElem);
-        Vector<Double> shapeFnc;
-        ptElem -> GetShFncAtIp(shapeFnc, actIntPt, actSaveElem);
-
-        if (isaxi_) {
-          Vector<Double> coordAtIP;
-          coordAtIP = ptCoord * shapeFnc;
-          forceElem +=  (intWeights[actIntPt-1] * jacDet
-                         * 2 * PI) * coordAtIP[0] * (valueElem * shapeFnc);
-        }
-        else {
-          forceElem +=  intWeights[actIntPt-1] * jacDet
-            * (shapeFnc * valueElem);
-        }
-      }
-
-      actVal[it.GetPos()] = forceElem;
-    }
-
-
-    TYPE sumAcouForce = 0;
-    for(UInt k=0; k<actVal.GetSize(); k++ ) {
-      sumAcouForce += actVal[k];
-    }
+    REFACTOR;
+//    Matrix<Double> ptCoord;
+//
+//    // get data from result object and resize its vector
+//    Result<TYPE> &  actRes =
+//      dynamic_cast<Result<TYPE>&>(*vals);
+//    EntityIterator it = actRes.GetEntityList()->GetIterator();
+//
+//    Vector<TYPE> & actVal = actRes.GetVector();
+//    actVal.Resize( actRes.GetEntityList()->GetSize()  );
+//
+//    // loop over elements
+//    for (it.Begin(); !it.IsEnd(); it++ ) {
+//
+//      // Perform cast from volume element to surface element,
+//      //  since calculation of force makes only sense on a surface
+//      const SurfElem * actSaveElem = it.GetSurfElem();
+//      BaseFE * ptElem = actSaveElem->ptElem;
+//      StdVector<UInt> connect = actSaveElem->connect;
+//      ptgrid_->GetElemNodesCoord( ptCoord, connect, false );
+//
+//      Vector<TYPE> valueElem;
+//      if ( formulation_ == ACOU_POTENTIAL ) {
+//
+//        Integer matIndex = -1;
+//        // Try to find according region for first neighbouring volume
+//        // element of the surface element
+//        matIndex = subdoms_.Find(actSaveElem->ptVolElem1->regionId);
+//
+//        // If first volume element does not belong to acoustic PDE, try the
+//        // second one
+//        Elem * ptVolElem = NULL;
+//        if ( matIndex == -1 ) {
+//          matIndex = subdoms_.Find(actSaveElem->ptVolElem2->regionId);
+//          ptVolElem = actSaveElem->ptVolElem2;
+//        }
+//        else {
+//          ptVolElem = actSaveElem->ptVolElem1;
+//        }
+//
+//        if ( matIndex == -1) {
+//          EXCEPTION( "AcousticPDE::CalcForce: The two volume element"
+//                     << "neighbours of surface element no. "
+//                     << actSaveElem->elemNum << " don't belong to my region!" );
+//        }
+//
+//        // Assign correct density
+//        Double density;
+//        materials_[subdoms_[matIndex]]->GetScalar(density,DENSITY,Global::REAL);
+//
+//        // retrieve 1st derivative, since F = rho * dpsi/dt * A
+//        //ElemList elemList(ptgrid_);
+//        //elemList.SetElement( actSaveElem );
+//        //EntityIterator it = elemList.GetIterator();
+//        GetDerivSolVecOfElement(valueElem,  it, results_[0]);
+//        valueElem *= density;
+//      }
+//      else if ( formulation_ == ACOU_PRESSURE ) {
+//
+//        // retrieve solution, since F = p * A
+//        //ElemList elemList(ptgrid_);
+//        //elemList.SetElement( actSaveElem );
+//        //EntityIterator it = elemList.GetIterator();
+//        GetSolVecOfElement(valueElem,it,results_[0]);
+//      }
+//
+//      const UInt nrIntPts= ptElem->GetNumIntPoints();
+//      const Vector<Double> & intWeights = ptElem->GetIntWeights();
+//
+//      TYPE forceElem = 0.0;
+//      Double jacDet;
+//      for (UInt actIntPt=1; actIntPt<=nrIntPts;  actIntPt++) {
+//
+//        jacDet = ptElem->CalcJacobianDetAtIp(actIntPt, ptCoord, actSaveElem);
+//        Vector<Double> shapeFnc;
+//        ptElem -> GetShFncAtIp(shapeFnc, actIntPt, actSaveElem);
+//
+//        if (isaxi_) {
+//          Vector<Double> coordAtIP;
+//          coordAtIP = ptCoord * shapeFnc;
+//          forceElem +=  (intWeights[actIntPt-1] * jacDet
+//                         * 2 * PI) * coordAtIP[0] * (valueElem * shapeFnc);
+//        }
+//        else {
+//          forceElem +=  intWeights[actIntPt-1] * jacDet
+//            * (shapeFnc * valueElem);
+//        }
+//      }
+//
+//      actVal[it.GetPos()] = forceElem;
+//    }
+//
+//
+//    TYPE sumAcouForce = 0;
+//    for(UInt k=0; k<actVal.GetSize(); k++ ) {
+//      sumAcouForce += actVal[k];
+//    }
   }
 
   template <class TYPE>
@@ -1725,371 +1727,371 @@ namespace CoupledField {
 
   template <class TYPE>
   void AcousticPDE::CalcAcouIntensity( shared_ptr<BaseResult> vals ) {
-
-    //get frequency
-    MathParser * parser = domain->GetMathParser();
-    parser->SetExpr( mHandle_, "f" );
-    Double actFreq = parser->Eval( mHandle_ );
-
-    // factor 0.5 is due to the fact, that the values are peak values
-    Complex multVal = 0;
-    if ( formulation_ == ACOU_PRESSURE ) {
-      multVal = Complex(0.0, -0.5/ (2.0*PI*actFreq) );
-    } else {
-      multVal = Complex(0.0, -0.5*(2.0*PI*actFreq));
-    }
-
-    // Create operator for gradient computation of solution
-    NodeStoreSol<TYPE> * solhelp = dynamic_cast<NodeStoreSol<TYPE>*>(sol_);
-    GradientFieldOp<TYPE> * gradOp =
-      new GradientFieldOp<TYPE>(ptgrid_, this, eqnMap_, *solhelp,
-                                formulation_, results_[0], isaxi_);
-
-    // get data from result object and resize its vector
-    Result<TYPE> & actRes = dynamic_cast<Result<TYPE>&>(*vals);
-    EntityIterator it = actRes.GetEntityList()->GetIterator();
-    Vector<TYPE> & actVal = actRes.GetVector();
-    actVal.Resize( actRes.GetEntityList()->GetSize() * dim_  );
-
-
-    Double density = 0.0;
-    TYPE elemSol = 0.0;
-    Vector<TYPE> gradElemSol(dim_),  elemIntensity(dim_);
-
-    // loop over all volume elements
-    for ( it.Begin(); !it.IsEnd(); it++ ) {
-
-      // density of element
-      BaseFE * ptElem = it.GetElem()->ptElem;
-      RegionIdType actRegion = it.GetElem()->regionId;
-      materials_[actRegion]->GetScalar(density,DENSITY,Global::REAL);
-
-      // get element coordinates
-      StdVector<UInt> const & connect = it.GetElem()->connect;
-      Matrix<Double> ptCoord;
-      ptgrid_->GetElemNodesCoord( ptCoord, connect, false );
-
-      // get shape function at center of the element
-      Vector<Double> shapeFnc;
-      Vector<Double> LCoord;
-      ptElem->GetCoordMidPoint(LCoord);
-      ptElem->GetShFnc(shapeFnc,LCoord,it.GetElem());
-
-      // solution at center of element
-      Vector<TYPE> valueElem;
-      GetSolVecOfElement(valueElem, it, results_[0]);
-      elemSol = valueElem * shapeFnc;
-
-      // get the conjugate complex value
-      elemSol = std::conj(elemSol);
-
-      // calculate gradient at center of element
-      gradOp->CalcElemGradField(gradElemSol, it, LCoord, 1.0);
-
-      TYPE factorI;
-      if ( formulation_ == ACOU_PRESSURE ) {
-        factorI   = multVal * elemSol / density;
-        elemIntensity = gradElemSol * factorI;
-      } else {
-        factorI   = multVal * elemSol * density;
-        elemIntensity = gradElemSol * factorI;
-      }
-
-      // loop over dofs
-      for(UInt iDim = 0; iDim < dim_; iDim++ ) {
-        actVal[it.GetPos()*dim_ + iDim] = elemIntensity[iDim];
-      }
-    }
-
-    delete gradOp;
+    REFACTOR;
+//    //get frequency
+//    MathParser * parser = domain->GetMathParser();
+//    parser->SetExpr( mHandle_, "f" );
+//    Double actFreq = parser->Eval( mHandle_ );
+//
+//    // factor 0.5 is due to the fact, that the values are peak values
+//    Complex multVal = 0;
+//    if ( formulation_ == ACOU_PRESSURE ) {
+//      multVal = Complex(0.0, -0.5/ (2.0*PI*actFreq) );
+//    } else {
+//      multVal = Complex(0.0, -0.5*(2.0*PI*actFreq));
+//    }
+//
+//    // Create operator for gradient computation of solution
+//    NodeStoreSol<TYPE> * solhelp = dynamic_cast<NodeStoreSol<TYPE>*>(sol_);
+//    GradientFieldOp<TYPE> * gradOp =
+//      new GradientFieldOp<TYPE>(ptgrid_, this, eqnMap_, *solhelp,
+//                                formulation_, results_[0], isaxi_);
+//
+//    // get data from result object and resize its vector
+//    Result<TYPE> & actRes = dynamic_cast<Result<TYPE>&>(*vals);
+//    EntityIterator it = actRes.GetEntityList()->GetIterator();
+//    Vector<TYPE> & actVal = actRes.GetVector();
+//    actVal.Resize( actRes.GetEntityList()->GetSize() * dim_  );
+//
+//
+//    Double density = 0.0;
+//    TYPE elemSol = 0.0;
+//    Vector<TYPE> gradElemSol(dim_),  elemIntensity(dim_);
+//
+//    // loop over all volume elements
+//    for ( it.Begin(); !it.IsEnd(); it++ ) {
+//
+//      // density of element
+//      BaseFE * ptElem = it.GetElem()->ptElem;
+//      RegionIdType actRegion = it.GetElem()->regionId;
+//      materials_[actRegion]->GetScalar(density,DENSITY,Global::REAL);
+//
+//      // get element coordinates
+//      StdVector<UInt> const & connect = it.GetElem()->connect;
+//      Matrix<Double> ptCoord;
+//      ptgrid_->GetElemNodesCoord( ptCoord, connect, false );
+//
+//      // get shape function at center of the element
+//      Vector<Double> shapeFnc;
+//      Vector<Double> LCoord;
+//      ptElem->GetCoordMidPoint(LCoord);
+//      ptElem->GetShFnc(shapeFnc,LCoord,it.GetElem());
+//
+//      // solution at center of element
+//      Vector<TYPE> valueElem;
+//      GetSolVecOfElement(valueElem, it, results_[0]);
+//      elemSol = valueElem * shapeFnc;
+//
+//      // get the conjugate complex value
+//      elemSol = std::conj(elemSol);
+//
+//      // calculate gradient at center of element
+//      gradOp->CalcElemGradField(gradElemSol, it, LCoord, 1.0);
+//
+//      TYPE factorI;
+//      if ( formulation_ == ACOU_PRESSURE ) {
+//        factorI   = multVal * elemSol / density;
+//        elemIntensity = gradElemSol * factorI;
+//      } else {
+//        factorI   = multVal * elemSol * density;
+//        elemIntensity = gradElemSol * factorI;
+//      }
+//
+//      // loop over dofs
+//      for(UInt iDim = 0; iDim < dim_; iDim++ ) {
+//        actVal[it.GetPos()*dim_ + iDim] = elemIntensity[iDim];
+//      }
+//    }
+//
+//    delete gradOp;
   }
 
 
   template <class TYPE>
   void AcousticPDE::CalcAcouSurfIntensity( shared_ptr<BaseResult> vals ) {
-
-    // currently we just support harmonic analysis: complex data
-
-    //get frequency
-    MathParser * parser = domain->GetMathParser();
-    parser->SetExpr( mHandle_, "f" );
-    Double actFreq = parser->Eval( mHandle_ );
-
-    //check solution type and compute factor
-    SolutionType solType;
-    Complex multVal = 0;
-
-    // factor 0.5 is due to the fact, that the values are peak values
-    if ( formulation_ == ACOU_PRESSURE ) {
-      solType = ACOU_PRESSURE;
-      multVal = Complex(0.0, -0.5/ (2.0*PI*actFreq) );
-    } else {
-      solType = ACOU_POTENTIAL;
-      multVal = Complex(0.0, -0.5*(2.0*PI*actFreq));
-    }
-
-    //some help variables
-    Vector<Double> lCoordSurf, lCoordVol, normal;
-    Vector<TYPE> gradVal(dim_);
-    Vector<TYPE> elemIntensity(dim_);
-    Elem * ptVolElem;
-    BaseFE * ptSurfElemFE, * ptVolElemFE;
-    Double density  = 0.0;
-
-    // Create vector with interpolation coordinate.
-    // For simplicity we only evaluate the integral
-    // in coordinate origin
-    lCoordSurf.Resize(dim_-1);
-    lCoordSurf.Init(0);
-
-    // Create operator for gradient computation of solution
-    NodeStoreSol<TYPE> * solhelp = dynamic_cast<NodeStoreSol<TYPE>*>(sol_);
-    GradientFieldOp<TYPE> * gradOp =
-      new GradientFieldOp<TYPE>(ptgrid_, this, eqnMap_, *solhelp,
-                                solType, results_[0], isaxi_);
-
-    TYPE factorI;
-    Result<TYPE> & actRes = dynamic_cast<Result<TYPE>&>(*vals);
-    EntityIterator it = actRes.GetEntityList()->GetIterator();
-
-    Vector<TYPE> & actVal = actRes.GetVector();
-    actVal.Resize( actRes.GetEntityList()->GetSize() * dim_ );
-
-    // loop over all surface elements
-    for ( it.Begin(); !it.IsEnd(); it++ ) {
-
-      const SurfElem * actSurfElem = it.GetSurfElem();
-      // Determine, which volume element is the right neighbour for the
-      // calculation;
-      // our normal should point out of the correct neighbor volume element!
-      if ( surfNeighborRegions_[vals] ==
-           actSurfElem->ptVolElem1->regionId ) {
-        ptVolElem = actSurfElem->ptVolElem1;
-      }
-      else {
-        ptVolElem = actSurfElem->ptVolElem2;
-      }
-
-      ptSurfElemFE = actSurfElem->ptElem;
-      ptVolElemFE = ptVolElem->ptElem;
-
-      const StdVector<UInt> & surfConnect = actSurfElem->connect;
-      const StdVector<UInt> & volConnect = ptVolElem->connect;
-
-      // calculate volume integration coordinates from
-      // surface integration coordinat for evalauting the
-      // gradient on the surface of the volume element
-      ptSurfElemFE->GetCoordMidPoint(lCoordSurf);
-      ptVolElemFE->GetLocalIntPoints4Surface(surfConnect, volConnect,
-                                             lCoordSurf, lCoordVol);
-
-      BaseMaterial * myMat = materials_[ptVolElem->regionId];
-      myMat->GetScalar(density,DENSITY,Global::REAL);
-
-      Matrix<Double> CornerCoords;
-      ptgrid_->GetElemNodesCoord( CornerCoords, surfConnect, false );
-
-      // Calc gradient
-      ElemList elList(ptgrid_);
-      elList.SetElement( ptVolElem );
-      EntityIterator it2 = elList.GetIterator();
-      gradOp->CalcElemGradField(gradVal, it2,
-                                lCoordVol,1.0);
-
-      //get average solution
-      TYPE elemSol = 0;
-      TYPE nodeSol;
-      for ( UInt k=0; k<surfConnect.GetSize(); k++) {
-        solhelp->Get(solType, surfConnect[k]-1,0, nodeSol);
-        elemSol += nodeSol;
-      }
-      elemSol /= (Double)surfConnect.GetSize();
-
-      // get the conjugate complex value
-      elemSol = std::conj(elemSol);
-
-      if ( formulation_ == ACOU_PRESSURE ) {
-        factorI   = multVal * elemSol / density;
-        elemIntensity = gradVal * factorI;
-      } else {
-        factorI   = multVal * density * elemSol;
-        elemIntensity = gradVal * factorI;
-      }
-      //std::cerr << "elemIntensity = " << elemIntensity.Serialize();
-      // loop over dofs
-      for(UInt iDim = 0; iDim < dim_; iDim++ ) {
-        actVal[it.GetPos()*dim_ + iDim] = elemIntensity[iDim];
-      }
-    }
-
-    delete gradOp;
+    REFACTOR;
+//    // currently we just support harmonic analysis: complex data
+//
+//    //get frequency
+//    MathParser * parser = domain->GetMathParser();
+//    parser->SetExpr( mHandle_, "f" );
+//    Double actFreq = parser->Eval( mHandle_ );
+//
+//    //check solution type and compute factor
+//    SolutionType solType;
+//    Complex multVal = 0;
+//
+//    // factor 0.5 is due to the fact, that the values are peak values
+//    if ( formulation_ == ACOU_PRESSURE ) {
+//      solType = ACOU_PRESSURE;
+//      multVal = Complex(0.0, -0.5/ (2.0*PI*actFreq) );
+//    } else {
+//      solType = ACOU_POTENTIAL;
+//      multVal = Complex(0.0, -0.5*(2.0*PI*actFreq));
+//    }
+//
+//    //some help variables
+//    Vector<Double> lCoordSurf, lCoordVol, normal;
+//    Vector<TYPE> gradVal(dim_);
+//    Vector<TYPE> elemIntensity(dim_);
+//    Elem * ptVolElem;
+//    BaseFE * ptSurfElemFE, * ptVolElemFE;
+//    Double density  = 0.0;
+//
+//    // Create vector with interpolation coordinate.
+//    // For simplicity we only evaluate the integral
+//    // in coordinate origin
+//    lCoordSurf.Resize(dim_-1);
+//    lCoordSurf.Init(0);
+//
+//    // Create operator for gradient computation of solution
+//    NodeStoreSol<TYPE> * solhelp = dynamic_cast<NodeStoreSol<TYPE>*>(sol_);
+//    GradientFieldOp<TYPE> * gradOp =
+//      new GradientFieldOp<TYPE>(ptgrid_, this, eqnMap_, *solhelp,
+//                                solType, results_[0], isaxi_);
+//
+//    TYPE factorI;
+//    Result<TYPE> & actRes = dynamic_cast<Result<TYPE>&>(*vals);
+//    EntityIterator it = actRes.GetEntityList()->GetIterator();
+//
+//    Vector<TYPE> & actVal = actRes.GetVector();
+//    actVal.Resize( actRes.GetEntityList()->GetSize() * dim_ );
+//
+//    // loop over all surface elements
+//    for ( it.Begin(); !it.IsEnd(); it++ ) {
+//
+//      const SurfElem * actSurfElem = it.GetSurfElem();
+//      // Determine, which volume element is the right neighbour for the
+//      // calculation;
+//      // our normal should point out of the correct neighbor volume element!
+//      if ( surfNeighborRegions_[vals] ==
+//           actSurfElem->ptVolElem1->regionId ) {
+//        ptVolElem = actSurfElem->ptVolElem1;
+//      }
+//      else {
+//        ptVolElem = actSurfElem->ptVolElem2;
+//      }
+//
+//      ptSurfElemFE = actSurfElem->ptElem;
+//      ptVolElemFE = ptVolElem->ptElem;
+//
+//      const StdVector<UInt> & surfConnect = actSurfElem->connect;
+//      const StdVector<UInt> & volConnect = ptVolElem->connect;
+//
+//      // calculate volume integration coordinates from
+//      // surface integration coordinat for evalauting the
+//      // gradient on the surface of the volume element
+//      ptSurfElemFE->GetCoordMidPoint(lCoordSurf);
+//      ptVolElemFE->GetLocalIntPoints4Surface(surfConnect, volConnect,
+//                                             lCoordSurf, lCoordVol);
+//
+//      BaseMaterial * myMat = materials_[ptVolElem->regionId];
+//      myMat->GetScalar(density,DENSITY,Global::REAL);
+//
+//      Matrix<Double> CornerCoords;
+//      ptgrid_->GetElemNodesCoord( CornerCoords, surfConnect, false );
+//
+//      // Calc gradient
+//      ElemList elList(ptgrid_);
+//      elList.SetElement( ptVolElem );
+//      EntityIterator it2 = elList.GetIterator();
+//      gradOp->CalcElemGradField(gradVal, it2,
+//                                lCoordVol,1.0);
+//
+//      //get average solution
+//      TYPE elemSol = 0;
+//      TYPE nodeSol;
+//      for ( UInt k=0; k<surfConnect.GetSize(); k++) {
+//        solhelp->Get(solType, surfConnect[k]-1,0, nodeSol);
+//        elemSol += nodeSol;
+//      }
+//      elemSol /= (Double)surfConnect.GetSize();
+//
+//      // get the conjugate complex value
+//      elemSol = std::conj(elemSol);
+//
+//      if ( formulation_ == ACOU_PRESSURE ) {
+//        factorI   = multVal * elemSol / density;
+//        elemIntensity = gradVal * factorI;
+//      } else {
+//        factorI   = multVal * density * elemSol;
+//        elemIntensity = gradVal * factorI;
+//      }
+//      //std::cerr << "elemIntensity = " << elemIntensity.Serialize();
+//      // loop over dofs
+//      for(UInt iDim = 0; iDim < dim_; iDim++ ) {
+//        actVal[it.GetPos()*dim_ + iDim] = elemIntensity[iDim];
+//      }
+//    }
+//
+//    delete gradOp;
   }
 
   template<class TYPE>
   void AcousticPDE::CalcAcouPower( shared_ptr<BaseResult> vals ) {
-
-    // currently we just support harmonic analysis: complex data
-
-    //get frequency
-    MathParser * parser = domain->GetMathParser();
-    parser->SetExpr( mHandle_, "f" );
-    Double actFreq = parser->Eval( mHandle_ );
-
-    //check solution type and compute factor
-    SolutionType solType;
-    Complex multVal = 0;
-
-    // factor 0.5 is due to the fact, that the values are peak values
-    if ( formulation_ == ACOU_PRESSURE ) {
-      solType = ACOU_PRESSURE;
-      multVal = Complex(0.0, -0.5/ (2.0*PI*actFreq) );
-    }
-    else {
-      solType = ACOU_POTENTIAL;
-      multVal = Complex(0.0, -0.5*(2.0*PI*actFreq));
-    }
-
-    NodeStoreSol<TYPE> * solhelp = dynamic_cast<NodeStoreSol<TYPE>*>(sol_);
-
-
-    //some help variables
-    Vector<Double> lCoordSurf, lCoordVol, normal;
-    Vector<TYPE> gradVal(dim_);
-    Vector<TYPE> elemIntensity(dim_);
-
-
-    Elem * ptVolElem;
-    BaseFE * ptSurfElemFE, * ptVolElemFE;
-
-    TYPE gradNormal = 0.0;
-    TYPE elemPower  = 0.0;
-    Double normSign = 0;
-    Double density  = 0.0;
-
-    // Create vector with interpolation coordinate.
-    // For simplicity we only evaluate the integral
-    // in coordinate origin
-    lCoordSurf.Resize(dim_-1);
-    lCoordSurf.Init(0);
-
-    // Create operator for gradient computation of solution
-    GradientFieldOp<TYPE> * gradOp =
-      new GradientFieldOp<TYPE>(ptgrid_, this, eqnMap_, *solhelp,
-                                solType, results_[0], isaxi_);
-
-    // convert result object
-    Result<TYPE> &  actRes =
-      dynamic_cast<Result<TYPE>&>(*vals);
-    EntityIterator regionIt = actRes.GetEntityList()->GetIterator();
-
-    // resize vector
-    Vector<TYPE> & actVal = actRes.GetVector();
-    actVal.Resize( actRes.GetEntityList()->GetSize() );
-    actVal.Init();
-
-    // Loop over regions
-    for( regionIt.Begin(); !regionIt.IsEnd(); regionIt++ ) {
-      SurfElemList actSDList(ptgrid_ );
-      actSDList.SetRegion( regionIt.GetRegion() );
-      EntityIterator it = actSDList.GetIterator();
-
-      // Loop over all surface elements
-      UInt counterElems = 0;
-      for ( it.Begin(); !it.IsEnd(); it++, counterElems++ ) {
-
-        const SurfElem * actSurfElem = it.GetSurfElem();
-
-        // Determine, which volume element is the right neighbour for the
-        // calculation;
-        // our normal should point out of the correct neighbor volume element!
-        if (   surfNeighborRegions_[vals] ==
-               actSurfElem->ptVolElem1->regionId ) {
-          ptVolElem = actSurfElem->ptVolElem1;
-          normSign = 1.0;
-        }
-        else {
-          ptVolElem = actSurfElem->ptVolElem2;
-          normSign = -1.0;
-        }
-
-        normSign *= (Double) actSurfElem->normalSign;
-
-        ptSurfElemFE = actSurfElem->ptElem;
-        ptVolElemFE = ptVolElem->ptElem;
-
-        const StdVector<UInt> & surfConnect = actSurfElem->connect;
-        const StdVector<UInt> & volConnect = ptVolElem->connect;
-
-        // get material information
-        BaseMaterial * myMat = materials_[ptVolElem->regionId];
-        myMat->GetScalar(density,DENSITY,Global::REAL);
-
-        // Pass ansatz function to surface and volume element
-        ptSurfElemFE->SetAnsatzFct( results_[0]->fctType );
-        ptVolElemFE->SetAnsatzFct(  results_[0]->fctType );
-
-        // Get weights and points of surface element
-        UInt nrIntPts= ptSurfElemFE->GetNumIntPoints();
-        const Vector<Double> & intWeights = ptSurfElemFE->GetIntWeights();
-        const Vector<Double> * intPoints = ptSurfElemFE->GetIntPoints();
-
-        // get global coordintes of surface element
-        Matrix<Double> CornerCoords;
-        ptgrid_->GetElemNodesCoord( CornerCoords, surfConnect, false );
-
-        // Loop over integration points
-        elemPower = 0.0;
-        TYPE helpVal = 0.0;
-        for( UInt iPt = 0; iPt < nrIntPts; iPt++ ) {
-
-          // calculate volume integration coordinates from
-          // surface integration coordinat for evalauting the
-          // gradient on the surface of the volume element
-          ptVolElemFE->GetLocalIntPoints4Surface(surfConnect, volConnect,
-                                                 intPoints[iPt], lCoordVol);
-
-          // Calculate jacobian gradient of surface element
-          Double jacDet = ptSurfElemFE->CalcJacobianDetAtIp(iPt+1,
-                                                            CornerCoords,
-                                                            actSurfElem );
-
-          // Calc gradient
-          ElemList elList(ptgrid_);
-          elList.SetElement( ptVolElem );
-          EntityIterator it2 = elList.GetIterator();
-          gradOp->CalcElemGradField(gradVal, it2,
-                                    lCoordVol,1.0);
-          // Calc global normal
-          ptgrid_->CalcSurfNormal(normal, *actSurfElem);
-
-          normal    *= normSign;
-          gradNormal = normal * gradVal;
-
-          // get solution of element and interpolate into integration point
-          Vector<TYPE> elemSol;
-          Vector<Double> shapeFnc;
-          GetSolVecOfElement( elemSol, it2, results_[0]);
-          ptVolElemFE->GetShFnc( shapeFnc, lCoordVol, ptVolElem );
-          TYPE intPointSol = shapeFnc * elemSol;
-
-          // get the conjugate complex value
-          intPointSol = std::conj(intPointSol);
-
-          if ( formulation_ == ACOU_PRESSURE ) {
-            helpVal =  multVal * gradNormal * intPointSol * (1.0 / density );
-          }
-          else {
-            helpVal = multVal * density  * gradNormal * intPointSol;
-          }
-
-          // integrate value
-          elemPower += intWeights[iPt] * helpVal * jacDet;
-        }
-        actVal[regionIt.GetPos()] += elemPower;
-
-      }
-    }
-    delete gradOp;
+    REFACTOR;
+//    // currently we just support harmonic analysis: complex data
+//
+//    //get frequency
+//    MathParser * parser = domain->GetMathParser();
+//    parser->SetExpr( mHandle_, "f" );
+//    Double actFreq = parser->Eval( mHandle_ );
+//
+//    //check solution type and compute factor
+//    SolutionType solType;
+//    Complex multVal = 0;
+//
+//    // factor 0.5 is due to the fact, that the values are peak values
+//    if ( formulation_ == ACOU_PRESSURE ) {
+//      solType = ACOU_PRESSURE;
+//      multVal = Complex(0.0, -0.5/ (2.0*PI*actFreq) );
+//    }
+//    else {
+//      solType = ACOU_POTENTIAL;
+//      multVal = Complex(0.0, -0.5*(2.0*PI*actFreq));
+//    }
+//
+//    NodeStoreSol<TYPE> * solhelp = dynamic_cast<NodeStoreSol<TYPE>*>(sol_);
+//
+//
+//    //some help variables
+//    Vector<Double> lCoordSurf, lCoordVol, normal;
+//    Vector<TYPE> gradVal(dim_);
+//    Vector<TYPE> elemIntensity(dim_);
+//
+//
+//    Elem * ptVolElem;
+//    BaseFE * ptSurfElemFE, * ptVolElemFE;
+//
+//    TYPE gradNormal = 0.0;
+//    TYPE elemPower  = 0.0;
+//    Double normSign = 0;
+//    Double density  = 0.0;
+//
+//    // Create vector with interpolation coordinate.
+//    // For simplicity we only evaluate the integral
+//    // in coordinate origin
+//    lCoordSurf.Resize(dim_-1);
+//    lCoordSurf.Init(0);
+//
+//    // Create operator for gradient computation of solution
+//    GradientFieldOp<TYPE> * gradOp =
+//      new GradientFieldOp<TYPE>(ptgrid_, this, eqnMap_, *solhelp,
+//                                solType, results_[0], isaxi_);
+//
+//    // convert result object
+//    Result<TYPE> &  actRes =
+//      dynamic_cast<Result<TYPE>&>(*vals);
+//    EntityIterator regionIt = actRes.GetEntityList()->GetIterator();
+//
+//    // resize vector
+//    Vector<TYPE> & actVal = actRes.GetVector();
+//    actVal.Resize( actRes.GetEntityList()->GetSize() );
+//    actVal.Init();
+//
+//    // Loop over regions
+//    for( regionIt.Begin(); !regionIt.IsEnd(); regionIt++ ) {
+//      SurfElemList actSDList(ptgrid_ );
+//      actSDList.SetRegion( regionIt.GetRegion() );
+//      EntityIterator it = actSDList.GetIterator();
+//
+//      // Loop over all surface elements
+//      UInt counterElems = 0;
+//      for ( it.Begin(); !it.IsEnd(); it++, counterElems++ ) {
+//
+//        const SurfElem * actSurfElem = it.GetSurfElem();
+//
+//        // Determine, which volume element is the right neighbour for the
+//        // calculation;
+//        // our normal should point out of the correct neighbor volume element!
+//        if (   surfNeighborRegions_[vals] ==
+//               actSurfElem->ptVolElem1->regionId ) {
+//          ptVolElem = actSurfElem->ptVolElem1;
+//          normSign = 1.0;
+//        }
+//        else {
+//          ptVolElem = actSurfElem->ptVolElem2;
+//          normSign = -1.0;
+//        }
+//
+//        normSign *= (Double) actSurfElem->normalSign;
+//
+//        ptSurfElemFE = actSurfElem->ptElem;
+//        ptVolElemFE = ptVolElem->ptElem;
+//
+//        const StdVector<UInt> & surfConnect = actSurfElem->connect;
+//        const StdVector<UInt> & volConnect = ptVolElem->connect;
+//
+//        // get material information
+//        BaseMaterial * myMat = materials_[ptVolElem->regionId];
+//        myMat->GetScalar(density,DENSITY,Global::REAL);
+//
+//        // Pass ansatz function to surface and volume element
+//        ptSurfElemFE->SetAnsatzFct( results_[0]->fctType );
+//        ptVolElemFE->SetAnsatzFct(  results_[0]->fctType );
+//
+//        // Get weights and points of surface element
+//        UInt nrIntPts= ptSurfElemFE->GetNumIntPoints();
+//        const Vector<Double> & intWeights = ptSurfElemFE->GetIntWeights();
+//        const Vector<Double> * intPoints = ptSurfElemFE->GetIntPoints();
+//
+//        // get global coordintes of surface element
+//        Matrix<Double> CornerCoords;
+//        ptgrid_->GetElemNodesCoord( CornerCoords, surfConnect, false );
+//
+//        // Loop over integration points
+//        elemPower = 0.0;
+//        TYPE helpVal = 0.0;
+//        for( UInt iPt = 0; iPt < nrIntPts; iPt++ ) {
+//
+//          // calculate volume integration coordinates from
+//          // surface integration coordinat for evalauting the
+//          // gradient on the surface of the volume element
+//          ptVolElemFE->GetLocalIntPoints4Surface(surfConnect, volConnect,
+//                                                 intPoints[iPt], lCoordVol);
+//
+//          // Calculate jacobian gradient of surface element
+//          Double jacDet = ptSurfElemFE->CalcJacobianDetAtIp(iPt+1,
+//                                                            CornerCoords,
+//                                                            actSurfElem );
+//
+//          // Calc gradient
+//          ElemList elList(ptgrid_);
+//          elList.SetElement( ptVolElem );
+//          EntityIterator it2 = elList.GetIterator();
+//          gradOp->CalcElemGradField(gradVal, it2,
+//                                    lCoordVol,1.0);
+//          // Calc global normal
+//          ptgrid_->CalcSurfNormal(normal, *actSurfElem);
+//
+//          normal    *= normSign;
+//          gradNormal = normal * gradVal;
+//
+//          // get solution of element and interpolate into integration point
+//          Vector<TYPE> elemSol;
+//          Vector<Double> shapeFnc;
+//          GetSolVecOfElement( elemSol, it2, results_[0]);
+//          ptVolElemFE->GetShFnc( shapeFnc, lCoordVol, ptVolElem );
+//          TYPE intPointSol = shapeFnc * elemSol;
+//
+//          // get the conjugate complex value
+//          intPointSol = std::conj(intPointSol);
+//
+//          if ( formulation_ == ACOU_PRESSURE ) {
+//            helpVal =  multVal * gradNormal * intPointSol * (1.0 / density );
+//          }
+//          else {
+//            helpVal = multVal * density  * gradNormal * intPointSol;
+//          }
+//
+//          // integrate value
+//          elemPower += intWeights[iPt] * helpVal * jacDet;
+//        }
+//        actVal[regionIt.GetPos()] += elemPower;
+//
+//      }
+//    }
+//    delete gradOp;
   }
 
   /**  template <class TYPE>

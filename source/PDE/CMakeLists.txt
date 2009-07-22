@@ -7,28 +7,28 @@ IF(USE_IPOPT)
 ENDIF(USE_IPOPT)
 
 SET(PDE_SRCS
-  acouCombustion.cc
-  acousticMixedPDE.cc
+#  acouCombustion.cc
+# acousticMixedPDE.cc
   acousticPDE.cc
   basePDE.cc
   bdf2.cc
   disContEqnMap.cc
   elecPDE.cc
   eqnMap.cc
-  fluidMechPDE.cc
-  heatCondPDE.cc
-  magEdgePDE.cc
-  magneticPDE.cc
-  mechPDE.cc
+#  fluidMechPDE.cc
+#  heatCondPDE.cc
+#  magEdgePDE.cc
+#  magneticPDE.cc
+#  mechPDE.cc
   mixedEqnMap.cc
-  mpcciPDE.cc
+#  mpcciPDE.cc
   newmark.cc
   newmarkFracDamp.cc
   newmarkFracDampMech.cc
   pdememento.cc
   pseudoTS.cc
   SinglePDE.cc
-  smoothPDE.cc
+#  smoothPDE.cc
   StdPDE.cc
   timestepping.cc
   trapezoidal.cc

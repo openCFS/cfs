@@ -1,68 +1,68 @@
 SET(FORMS_SRCS
   abcInt.cc
-  acouMechInt.cc
-  acouMechNcInt.cc
-  acouPowerDensityOp.cc
+#  acouMechInt.cc
+#  acouMechNcInt.cc
+#  acouPowerDensityOp.cc
   acouRHSLinForm.cc
-  adbInt.cc
-  baseForceOp.cc
+#  adbInt.cc
+# baseForceOp.cc
   baseForm.cc
-  baseoperator.cc
+#  baseoperator.cc
   bdbInt.cc
-  bdInt.cc
-  curlCurlEdgeInt.cc
-  curlCurlNodeInt.cc
+#  bdInt.cc
+#  curlCurlEdgeInt.cc
+#  curlCurlNodeInt.cc
   curlfieldop.cc
-  elecchargeop.cc
-  elecforceop.cc
-  FlatShellElecInt.cc
-  FlatShellInt.cc
-  FlatShellMassInt.cc
-  FlatShellPiezoInt.cc
-  FlatShellStiffInt.cc
-  gradfieldop.cc
+#  elecchargeop.cc
+#  elecforceop.cc
+#  FlatShellElecInt.cc
+#  FlatShellInt.cc
+#  FlatShellMassInt.cc
+#  FlatShellPiezoInt.cc
+#  FlatShellStiffInt.cc
+#  gradfieldop.cc
   laplaceInt.cc
   linearForm.cc
-  linElastInt.cc
+#  linElastInt.cc
   linElecInt.cc
   linNeumannInt.cc
-  linPiezoCoupling.cc
-  linPressureInt.cc
-  linStrainOp.cc
+#  linPiezoCoupling.cc
+#  linPressureInt.cc
+#  linStrainOp.cc
   linSurfForm.cc
-  linSurfStressInt.cc
-  linThermoElectricInt.cc 
-  linThermoMechInt.cc
-  linThermoElecDampInt.cc 
-  linThermoMechDampInt.cc 
-  linHeatCondInt.cc
-  linViscoElastInt.cc
-  magforceop.cc
-  massEdgeInt.cc
+#  linSurfStressInt.cc
+#  linThermoElectricInt.cc 
+#  linThermoMechInt.cc
+#  linThermoElecDampInt.cc 
+#  linThermoMechDampInt.cc 
+#  linHeatCondInt.cc
+#  linViscoElastInt.cc
+#  magforceop.cc
+#  massEdgeInt.cc
   massInt.cc
-  mechStressStrain.cc
-  nLincurlCurlNodeInt.cc
-  nLinElastInt.cc
-  nLinElecHystInt.cc
-  nLinElecMaterial.cc
-  nlinLaplaceInt.cc
-  nLinMassInt.cc
-  nLinPiezoCoupling.cc
-  nLinPiezoHyst.cc
-  nLinPiezoHystRHS.cc
-  nonConformingInt.cc
-  pierceInt.cc
-  pmlBasics.cc
-  PMLInt.cc
-  singleEntryInt.cc
-  smoothInt.cc
-  smoothNLInt.cc
-  nLinMagHystInt2D.cc
-  mixedInt.cc
-  fluidMechInt.cc
-  fluidMechShearStress.cc
-  fluidMechMassInt.cc
-  fluidMechStiffInt.cc
+#  mechStressStrain.cc
+#  nLincurlCurlNodeInt.cc
+#  nLinElastInt.cc
+#  nLinElecHystInt.cc
+#  nLinElecMaterial.cc
+#  nlinLaplaceInt.cc
+#  nLinMassInt.cc
+#  nLinPiezoCoupling.cc
+#  nLinPiezoHyst.cc
+#  nLinPiezoHystRHS.cc
+#  nonConformingInt.cc
+#  pierceInt.cc
+#  pmlBasics.cc
+#  PMLInt.cc
+#  singleEntryInt.cc
+#  smoothInt.cc
+#  smoothNLInt.cc
+#  nLinMagHystInt2D.cc
+#  mixedInt.cc
+#  fluidMechInt.cc
+#  fluidMechShearStress.cc
+#  fluidMechMassInt.cc
+#  fluidMechStiffInt.cc
   )
 
 ADD_LIBRARY(forms STATIC ${FORMS_SRCS})

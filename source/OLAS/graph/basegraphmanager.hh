@@ -153,7 +153,7 @@ namespace CoupledField {
     //!                       the penalty approach numLastFreeDof
     //!                       \f$\stackrel{!}{=}\f$ numEqns)
     //! \param reorder        Re-ordering type for this PDE (optional)
-    virtual void RegisterPDE( const PdeIdType identifierPDE,
+    virtual void RegisterPDE( const FeFctIdType identifierPDE,
                               const UInt numEqns,
                               const UInt numLastFreeDof,
                               const ReorderingType reorder 
@@ -182,8 +182,8 @@ namespace CoupledField {
     //! \param assemblingTranspose indicates whether the graph of the
     //!                            transpose coupling object will be assembled
     //!                            together with the coupling object.
-    virtual void AssembleInit( const PdeIdType identifierPDE1,
-                               const PdeIdType identifierPDE2,
+    virtual void AssembleInit( const FeFctIdType identifierPDE1,
+                               const FeFctIdType identifierPDE2,
                                bool assemblingTranspose ) = 0;
 
     //! Finalise assembly of a sub-graph
@@ -201,8 +201,8 @@ namespace CoupledField {
     //! \param assemblingTranspose indicates whether the graph of the
     //!                            transpose coupling object was assembled
     //!                            together with the coupling object.
-    virtual void AssembleDone( const PdeIdType identifierPDE1,
-                               const PdeIdType identifierPDE2,
+    virtual void AssembleDone( const FeFctIdType identifierPDE1,
+                               const FeFctIdType identifierPDE2,
                                bool assemblingTranspose ) = 0;
 
     //! Insert connectivity of a finite element into the matrix graph
@@ -230,9 +230,9 @@ namespace CoupledField {
     //!                       the connectivity with the PDE identifiers and
     //!                       equation numbers reversed, should also be
     //!                       inserted into the graph
-    virtual void SetElementPos( const PdeIdType identifierPDE1,
+    virtual void SetElementPos( const FeFctIdType identifierPDE1,
                                 const StdVector<Integer>& eqnNrs1,
-                                const PdeIdType identifierPDE2,
+                                const FeFctIdType identifierPDE2,
                                 const StdVector<Integer>& eqnNrs2,
                                 bool setCounterPart ) = 0;
 
@@ -260,7 +260,7 @@ namespace CoupledField {
     //! \note While memory for the permutation vector is allocated in this
     //!       method, it is the caller's responsibility to dispose of that
     //!       memory once it no longer needs the array.
-    virtual void GetReordering( const PdeIdType identifier,
+    virtual void GetReordering( const FeFctIdType identifier,
                                 StdVector<UInt>& order ) = 0;
 
     //! Get a specified (sub-)graph
@@ -273,9 +273,9 @@ namespace CoupledField {
     //! \param identifierPDE2 identifier for second PDE related to sub-graph
     //! \return a BaseGraph object according to the specified identifier
     //! combination
-    virtual BaseGraph* GetGraph( const PdeIdType identifierPDE1 
+    virtual BaseGraph* GetGraph( const FeFctIdType identifierPDE1 
                                  = NO_PDE_ID,
-                                 const PdeIdType identifierPDE2
+                                 const FeFctIdType identifierPDE2
                                  = NO_PDE_ID) = 0;
 
     //! Get a specified (sub-)graph for inhom. Dirichlet BC
@@ -288,8 +288,8 @@ namespace CoupledField {
     //! \param pdeID2 identifier for the second PDE of the pair
     //! \return a BaseGraph object according to the specified identifier
     virtual
-    BaseGraph* GetIDBCGraph( const PdeIdType pdeID1 = NO_PDE_ID,
-                             const PdeIdType pdeID2 = NO_PDE_ID ) const = 0;
+    BaseGraph* GetIDBCGraph( const FeFctIdType pdeID1 = NO_PDE_ID,
+                             const FeFctIdType pdeID2 = NO_PDE_ID ) const = 0;
 
     //! Print some statistics on the graph manager
     virtual void PrintStats( std::ostream *log ) = 0;

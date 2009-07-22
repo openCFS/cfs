@@ -173,7 +173,7 @@ namespace CoupledField {
     //! \note The bcNum parameter is only supported for compatibility with
     //!       the %SetIDBC() method of the IDBC_HandlerPenalty class. It is
     //!       ignored by the current implementation.
-    void SetIDBC( PdeIdType pdeID, UInt eqnNo, const T &val );
+    void SetIDBC( FeFctIdType pdeID, UInt eqnNo, const T &val );
 
     //! Add weight of coupling between a fixed and a free dof into matrix
 
@@ -191,8 +191,8 @@ namespace CoupledField {
     //!                 real equation number, %IDBC_Handler transforms this
     //!                 to a one-based index itself.
     //! \param val      value of the weight of the coupling
-    void AddWeightFixedToFree( FEMatrixType matID, PdeIdType pdeID1,
-                               PdeIdType pdeID2, UInt rowInd, UInt colInd,
+    void AddWeightFixedToFree( FEMatrixType matID, FeFctIdType pdeID1,
+                               FeFctIdType pdeID2, UInt rowInd, UInt colInd,
                                const T& val );
     
     //! Set weight of coupling between a fixed and a free dof into matrix
@@ -211,8 +211,8 @@ namespace CoupledField {
     //!                 real equation number, %IDBC_Handler transforms this
     //!                 to a one-based index itself.
     //! \param val      value of the weight of the coupling
-    void SetWeightFixedToFree( FEMatrixType matID, PdeIdType pdeID1,
-                               PdeIdType pdeID2, UInt rowInd, UInt colInd,
+    void SetWeightFixedToFree( FEMatrixType matID, FeFctIdType pdeID1,
+                               FeFctIdType pdeID2, UInt rowInd, UInt colInd,
                                const T& val );
 
     //! Get weight of coupling between a fixed and a free dof from matrix
@@ -231,8 +231,8 @@ namespace CoupledField {
     //!                 real equation number, %IDBC_Handler transforms this
     //!                 to a one-based index itself.
     //! \param val      value of the weight of the coupling
-    void GetWeightFixedToFree( FEMatrixType matID, PdeIdType pdeID1,
-                               PdeIdType pdeID2, UInt rowInd, UInt colInd,
+    void GetWeightFixedToFree( FEMatrixType matID, FeFctIdType pdeID1,
+                               FeFctIdType pdeID2, UInt rowInd, UInt colInd,
                                T& val ) const;
     
     //! Set the value of all coupling weights of a free dof to its fixed ones
@@ -245,7 +245,7 @@ namespace CoupledField {
     //! \param rowInd   row index of entry to get, i.e. the equation
     //!                 number of the free degree of freedom
     //! \param val      value of the weight of the coupling
-    void SetRowWeights( FEMatrixType matID, PdeIdType pdeID, UInt rowInd,
+    void SetRowWeights( FEMatrixType matID, FeFctIdType pdeID, UInt rowInd,
                         const T& val );
 
     
@@ -259,7 +259,7 @@ namespace CoupledField {
     //! \param colInd   column index of entry to get, i.e. the equation
     //!                 number of the fixed degree of freedom
     //! \param realPart real valued part of the weight of the coupling
-    void SetColWeights( FEMatrixType matID, PdeIdType pdeID,UInt colInd,
+    void SetColWeights( FEMatrixType matID, FeFctIdType pdeID,UInt colInd,
                         const T& val );
 
     //! Set fixed dofs to specified Dirichlet boundary values

@@ -18,12 +18,12 @@ namespace CoupledField {
   DEFINE_LOG(disContEqnMap, "disContEqnMap")
 
 
-  DiscontinuousEqnMap::DiscontinuousEqnMap(Grid* grid, PdeIdType pdeId, bool usePenalty )//
+  DiscontinuousEqnMap::DiscontinuousEqnMap(Grid* grid, FeFctIdType pdeId, bool usePenalty )//
                       :EqnMap(grid,pdeId,usePenalty) {
 
   }
 
-  DiscontinuousEqnMap::DiscontinuousEqnMap(Grid* grid, PdeIdType pdeId, bool usePenalty,EqnMap* startMap) 
+  DiscontinuousEqnMap::DiscontinuousEqnMap(Grid* grid, FeFctIdType pdeId, bool usePenalty,EqnMap* startMap) 
                       :EqnMap(grid,pdeId,usePenalty) {
     ptGrid_ = grid;
 

@@ -32,26 +32,26 @@
 #include "Optimization/DesignSpace.hh"
 #include "PDE/acousticPDE.hh"
 #include "PDE/elecPDE.hh"
-#include "PDE/mechPDE.hh"
-#include "PDE/smoothPDE.hh"
-#include "PDE/magneticPDE.hh"
-#include "PDE/magEdgePDE.hh"
-#include "PDE/mpcciPDE.hh"
-#include "PDE/heatCondPDE.hh"
-#include "PDE/acouCombustion.hh"
-#include "PDE/acousticMixedPDE.hh"
-#include "PDE/fluidMechPDE.hh"
+//#include "PDE/mechPDE.hh"
+//#include "PDE/smoothPDE.hh"
+//#include "PDE/magneticPDE.hh"
+//#include "PDE/magEdgePDE.hh"
+//#include "PDE/mpcciPDE.hh"
+//#include "PDE/heatCondPDE.hh"
+//#include "PDE/acouCombustion.hh"
+//#include "PDE/acousticMixedPDE.hh"
+//#include "PDE/fluidMechPDE.hh"
 #include "Utils/result.hh"
 
 // Coupling of single PDEs
 #include "CoupledPDE/DirectCoupledPDE.hh"
 #include "CoupledPDE/itercoupledpde.hh"
 #include "CoupledPDE/coupledpdedef.hh"
-#include "CoupledPDE/pdecoupling.hh"
-#include "CoupledPDE/PiezoCoupling.hh"
-#include "CoupledPDE/AcouMechCoupling.hh"
-#include "CoupledPDE/ThermoMechCoupling.hh"
-#include "CoupledPDE/ThermoElectricCoupling.hh"
+//#include "CoupledPDE/pdecoupling.hh"
+//#include "CoupledPDE/PiezoCoupling.hh"
+//#include "CoupledPDE/AcouMechCoupling.hh"
+//#include "CoupledPDE/ThermoMechCoupling.hh"
+//#include "CoupledPDE/ThermoElectricCoupling.hh"
 
 // Include driver
 #include "Driver/basedriver.hh"
@@ -204,16 +204,19 @@ namespace CoupledField {
       // check if we have to do optimization
       if(param->Has("optimization"))
       {
-        SetOptimization(Optimization::CreateInstance());
+        Warning("Commented out due to refactoring");
+        //SetOptimization(Optimization::CreateInstance());
       }
       else
       { 
-        SetOptimization(NULL); 
+        // SetOptimization(NULL); 
         // check if we simulate with ersatz material - after driver and only if not used with optimization 
         // if used with optimization loadErsatzMaterial specifies the starting point for optimization 
         // and is loaded from Optimization::PostInit because scaling (and EvalObjectiveGradient) is already done before we reach here 
-        if(param->Has("loadErsatzMaterial")) 
-          ReadErsatzMaterial(param->Get("loadErsatzMaterial")); 
+        if(param->Has("loadErsatzMaterial"))  {
+          Warning("Commented out due to refactoring");
+//          ReadErsatzMaterial(param->Get("loadErsatzMaterial"));
+        }
       }   
 
   }
@@ -277,11 +280,11 @@ namespace CoupledField {
     if(driver == NULL) driver = ptSingleDriver_;
     
     // PostInit needs to be called in advance!
-    if(GetOptimization() != NULL) 
-       GetOptimization()->SolveProblem(); // will call multiple driver-SolveProblem
-    else
+//    if(GetOptimization() != NULL) 
+//       GetOptimization()->SolveProblem(); // will call multiple driver-SolveProblem
+//    else
        driver->SolveProblem();
-  }
+ }
 
 
   // **********************
@@ -476,39 +479,40 @@ namespace CoupledField {
       if (actPdeName == "electrostatic") 
         ptSinglePde_[i]=new ElecPDE(defaultGrid, actPdeNode );
 
-      else if (actPdeName == "mechanic")
-        ptSinglePde_[i]=new MechPDE(defaultGrid, actPdeNode );
+//      else if (actPdeName == "mechanic")
+//        ptSinglePde_[i]=new MechPDE(defaultGrid, actPdeNode );
 
-      else if (actPdeName == "acoustic") {
+      else if (actPdeName == "acoustic") 
+      {
         
         std::string acouSubType = actPdeNode->Get("subType")->AsString();
 
-        if  (acouSubType == "combustionNoise")
-          ptSinglePde_[i]=new AcouCombustionNoise(defaultGrid, actPdeNode);
-        else
+//        if  (acouSubType == "combustionNoise")
+//          ptSinglePde_[i]=new AcouCombustionNoise(defaultGrid, actPdeNode);
+//        else
           ptSinglePde_[i]=new AcousticPDE(defaultGrid, actPdeNode );
       }
       
-      else if (actPdeName == "acousticMixed")
-        ptSinglePde_[i]=new AcousticMixedPDE(defaultGrid, actPdeNode );
-
-      else if (actPdeName == "smooth")
-        ptSinglePde_[i]=new SmoothPDE(defaultGrid, actPdeNode );
-
-      else if (actPdeName == "magnetic") 
-          ptSinglePde_[i]=new MagPDE(defaultGrid, actPdeNode );
-
-      else if ( actPdeName == "magneticEdge")
-        ptSinglePde_[i]=new MagEdgePDE(defaultGrid, actPdeNode );
-      
-      else if (actPdeName == "mpcci")
-        ptSinglePde_[i]=new MpcciPDE(defaultGrid, actPdeNode );
-
-      else if (actPdeName == "heatConduction")
-        ptSinglePde_[i]=new HeatCondPDE(defaultGrid, actPdeNode );
-
-      else if (actPdeName == "fluidMech")
-        ptSinglePde_[i]=new FluidMechPDE(defaultGrid, actPdeNode);
+//      else if (actPdeName == "acousticMixed")
+//        ptSinglePde_[i]=new AcousticMixedPDE(defaultGrid, actPdeNode );
+//
+//      else if (actPdeName == "smooth")
+//        ptSinglePde_[i]=new SmoothPDE(defaultGrid, actPdeNode );
+//
+//      else if (actPdeName == "magnetic") 
+//          ptSinglePde_[i]=new MagPDE(defaultGrid, actPdeNode );
+//
+//      else if ( actPdeName == "magneticEdge")
+//        ptSinglePde_[i]=new MagEdgePDE(defaultGrid, actPdeNode );
+//      
+//      else if (actPdeName == "mpcci")
+//        ptSinglePde_[i]=new MpcciPDE(defaultGrid, actPdeNode );
+//
+//      else if (actPdeName == "heatConduction")
+//        ptSinglePde_[i]=new HeatCondPDE(defaultGrid, actPdeNode );
+//
+//      else if (actPdeName == "fluidMech")
+//        ptSinglePde_[i]=new FluidMechPDE(defaultGrid, actPdeNode);
 
       else {
         EXCEPTION( actPdeName << " - this type of pdes is unknown" );
@@ -625,148 +629,148 @@ namespace CoupledField {
   // ***************************
   void Domain::CreateDirectCoupledPDEs( UInt sequenceStep ) {
 
-
-    numIterCoupledStdPde_ = numSinglePde_;
-
-    // if only one pde exists, there is nothing to do
-    if ( numSinglePde_ <= 1 ) {
-      return;
-    }
-    
-    // get "couplingList" node (must exist)
-    ParamNode * couplingNode = 
-      param->Get( "sequenceStep", "index", GenStr(sequenceStep) )
-      ->Get("couplingList");
-    ParamNode * directNode = couplingNode->Get("direct", false );
-    if( !directNode ) return;
-
-    // get nodes of pairwise direct couplings
-    StdVector<ParamNode*> pairNodes = directNode->GetChildren();
-
-    SinglePDE *pde1 = NULL;
-    SinglePDE *pde2 =  NULL;
-    BasePairCoupling *coupling = NULL;
-      
-
-    // HARD CODED: At the moment we allow only one direct coupled pde
-    // with only on pairwise coupling
-    StdVector<SinglePDE*> singlePdes;
-    StdVector<BasePairCoupling*> DirectCouplingPairs;
-    std::set<std::string> setSinglePDEs;
-    std::string couplingName;
-    
-    for (UInt i=0; i<pairNodes.GetSize(); i++) {
-
-      // get couplingName
-      couplingName = pairNodes[i]->GetName();
-
-      // *** PIEZO Coupling ***
-      if ( couplingName == "piezoDirect" ) {
-
-        pde1 = GetSinglePDE( "mechanic" );
-        pde2 = GetSinglePDE( "electrostatic" );
-
-        // in the case of piezo coupling, the electrotstatic
-        // entries have to be multiplied by -1
-        dynamic_cast<ElecPDE*>(pde2)->SetPiezoCoupling();
-
-        coupling = new PiezoCoupling( pde1, pde2, pairNodes[i] );
-
-      } 
-      // *** ACOU-MECH Coupling ***
-      else if ( couplingName == "acouMechDirect" ) {
-
-        pde1 = GetSinglePDE( "mechanic" );
-        pde2 = GetSinglePDE( "acoustic" );
-
-        // in the case of acou-Mech coupling, the acoustic
-        // entries have to be multiplied by -1
-        dynamic_cast<AcousticPDE*>(pde2)->SetMechanicCoupling();
-
-        coupling = new AcouMechCoupling( pde1, pde2, pairNodes[i] );
-      }
-
-      // ------------------------------------------------------------------------
-      // *** THERMO-MECH Coupling ***
-      else if ( couplingName == "thermoMechDirect" ) {
-
-        pde1 = GetSinglePDE( "mechanic" );
-        pde2 = GetSinglePDE( "heatConduction" );
-
-
-        //turn the coupling on in heat-conduction pde
-        //in order to create the heat-conduction damp matrix
-        dynamic_cast<HeatCondPDE*>(pde2)->SetMechCoupling();
-
-
-        coupling = new ThermoMechCoupling( pde1, pde2, pairNodes[i] );
-      }
-      // *** THERMO-ELECTRIC Coupling ***
-      else if ( couplingName == "thermoElectricDirect" ) {
-
-        pde1 = GetSinglePDE( "electrostatic" );
-        pde2 = GetSinglePDE( "heatConduction" );
-
-        //turn the coupling on in heat-conduction pde
-        //in order to create the heat-conduction damp matrix
-        dynamic_cast<HeatCondPDE*>(pde2)->SetElectroCoupling();
-
-        // in the case of thermo coupling, the electrotstatic
-        // entries have to be multiplied by -1
-        dynamic_cast<ElecPDE*>(pde1)->SetThermoCoupling();
-
-
-        coupling = new ThermoElectricCoupling( pde1, pde2, pairNodes[i] );
-      }
-//------------------------------------------------------------------------
-
-      else {
-        EXCEPTION( "The direct coupling '" << couplingName
-                   << "' is not implemented!" << std::endl );
-      }
-      
-      // set flag for direct coupling
-      isDirectCoupled_[pde1] = true;
-      isDirectCoupled_[pde2] = true;
-
-      // add single PDEs and couplings into collections
-      setSinglePDEs.insert( pde1->GetName() );
-      setSinglePDEs.insert( pde2->GetName() );
-      DirectCouplingPairs.Push_back(coupling);
-    }
-
-    // check if any pair coupling was found
-    if (coupling == NULL)
-      return;
-
-    // Transform set of PDEs into a vector
-    std::set<std::string>::iterator itSet;
-    
-    for (itSet = setSinglePDEs.begin();  itSet != setSinglePDEs.end(); 
-         itSet++ ) {
-      singlePdes.Push_back( GetSinglePDE(*itSet) );
-    }
-    
-    ptDirectCoupledPde_.Push_back(new DirectCoupledPDE(gridMap_["default"], NULL) );
-    ptDirectCoupledPde_[0]->SetSinglePDEs( singlePdes );
-    ptDirectCoupledPde_[0]->SetCouplings( DirectCouplingPairs );
-
-    // At the moment we allow only one direct coupled pde, so we set the
-    // number of direct coupledPDEs to one;
-    numDirectCoupledPde_ = 1;
-
-    // now determine, how many SinglePDEs are coupling directly
-    std::map<SinglePDE*,bool>::iterator it = isDirectCoupled_.begin();
-
-    numIterCoupledStdPde_ = numDirectCoupledPde_;
-
-    while (it != isDirectCoupled_.end() ) {
-      if ( (*it).second == false )
-        numIterCoupledStdPde_++;
-      it++;
-    }
-    
-    
+    Warning( "Domain::CreateDirectCoupledPDEs: commented out temporar");
+//    numIterCoupledStdPde_ = numSinglePde_;
+//
+//    // if only one pde exists, there is nothing to do
+//    if ( numSinglePde_ <= 1 ) {
+//      return;
+//    }
+//    
+//    // get "couplingList" node (must exist)
+//    ParamNode * couplingNode = 
+//      param->Get( "sequenceStep", "index", GenStr(sequenceStep) )
+//      ->Get("couplingList");
+//    ParamNode * directNode = couplingNode->Get("direct", false );
+//    if( !directNode ) return;
+//
+//    // get nodes of pairwise direct couplings
+//    StdVector<ParamNode*> pairNodes = directNode->GetChildren();
+//
+//    SinglePDE *pde1 = NULL;
+//    SinglePDE *pde2 =  NULL;
+//    BasePairCoupling *coupling = NULL;
+//      
+//
+//    // HARD CODED: At the moment we allow only one direct coupled pde
+//    // with only on pairwise coupling
+//    StdVector<SinglePDE*> singlePdes;
+//    StdVector<BasePairCoupling*> DirectCouplingPairs;
+//    std::set<std::string> setSinglePDEs;
+//    std::string couplingName;
+//    
+//    for (UInt i=0; i<pairNodes.GetSize(); i++) {
+//
+//      // get couplingName
+//      couplingName = pairNodes[i]->GetName();
+//
+//      // *** PIEZO Coupling ***
+//      if ( couplingName == "piezoDirect" ) {
+//
+//        pde1 = GetSinglePDE( "mechanic" );
+//        pde2 = GetSinglePDE( "electrostatic" );
+//
+//        // in the case of piezo coupling, the electrotstatic
+//        // entries have to be multiplied by -1
+//        dynamic_cast<ElecPDE*>(pde2)->SetPiezoCoupling();
+//
+//        coupling = new PiezoCoupling( pde1, pde2, pairNodes[i] );
+//
+//      } 
+//      // *** ACOU-MECH Coupling ***
+//      else if ( couplingName == "acouMechDirect" ) {
+//
+//        pde1 = GetSinglePDE( "mechanic" );
+//        pde2 = GetSinglePDE( "acoustic" );
+//
+//        // in the case of acou-Mech coupling, the acoustic
+//        // entries have to be multiplied by -1
+//        dynamic_cast<AcousticPDE*>(pde2)->SetMechanicCoupling();
+//
+//        coupling = new AcouMechCoupling( pde1, pde2, pairNodes[i] );
+//      }
+//
+//      // ------------------------------------------------------------------------
+//      // *** THERMO-MECH Coupling ***
+//      else if ( couplingName == "thermoMechDirect" ) {
+//
+//        pde1 = GetSinglePDE( "mechanic" );
+//        pde2 = GetSinglePDE( "heatConduction" );
+//
+//
+//        //turn the coupling on in heat-conduction pde
+//        //in order to create the heat-conduction damp matrix
+//        dynamic_cast<HeatCondPDE*>(pde2)->SetMechCoupling();
+//
+//
+//        coupling = new ThermoMechCoupling( pde1, pde2, pairNodes[i] );
+//      }
+//      // *** THERMO-ELECTRIC Coupling ***
+//      else if ( couplingName == "thermoElectricDirect" ) {
+//
+//        pde1 = GetSinglePDE( "electrostatic" );
+//        pde2 = GetSinglePDE( "heatConduction" );
+//
+//        //turn the coupling on in heat-conduction pde
+//        //in order to create the heat-conduction damp matrix
+//        dynamic_cast<HeatCondPDE*>(pde2)->SetElectroCoupling();
+//
+//        // in the case of thermo coupling, the electrotstatic
+//        // entries have to be multiplied by -1
+//        dynamic_cast<ElecPDE*>(pde1)->SetThermoCoupling();
+//
+//
+//        coupling = new ThermoElectricCoupling( pde1, pde2, pairNodes[i] );
+//      }
+////------------------------------------------------------------------------
+//
+//      else {
+//        EXCEPTION( "The direct coupling '" << couplingName
+//                   << "' is not implemented!" << std::endl );
+//      }
+//      
+//      // set flag for direct coupling
+//      isDirectCoupled_[pde1] = true;
+//      isDirectCoupled_[pde2] = true;
+//
+//      // add single PDEs and couplings into collections
+//      setSinglePDEs.insert( pde1->GetName() );
+//      setSinglePDEs.insert( pde2->GetName() );
+//      DirectCouplingPairs.Push_back(coupling);
+//    }
+//
+//    // check if any pair coupling was found
+//    if (coupling == NULL)
+//      return;
+//
+//    // Transform set of PDEs into a vector
+//    std::set<std::string>::iterator itSet;
+//    
+//    for (itSet = setSinglePDEs.begin();  itSet != setSinglePDEs.end(); 
+//         itSet++ ) {
+//      singlePdes.Push_back( GetSinglePDE(*itSet) );
+//    }
+//    
+//    ptDirectCoupledPde_.Push_back(new DirectCoupledPDE(gridMap_["default"], NULL) );
+//    ptDirectCoupledPde_[0]->SetSinglePDEs( singlePdes );
+//    ptDirectCoupledPde_[0]->SetCouplings( DirectCouplingPairs );
+//
+//    // At the moment we allow only one direct coupled pde, so we set the
+//    // number of direct coupledPDEs to one;
+//    numDirectCoupledPde_ = 1;
+//
+//    // now determine, how many SinglePDEs are coupling directly
+//    std::map<SinglePDE*,bool>::iterator it = isDirectCoupled_.begin();
+//
+//    numIterCoupledStdPde_ = numDirectCoupledPde_;
+//
+//    while (it != isDirectCoupled_.end() ) {
+//      if ( (*it).second == false )
+//        numIterCoupledStdPde_++;
+//      it++;
+//    }
+//    
+//    
   }
 
   void Domain::CreateCoordinateSystems() {
@@ -871,126 +875,126 @@ namespace CoupledField {
     numIterCoupledStdPde_ = 0;
   }
 
-  void Domain::ReadErsatzMaterial(ParamNode* pn)
-  {
-    // perhaps Optimization has already called the SetEnums 
-    if(DesignElement::filter.map.empty()) DesignElement::SetEnums(); 
-    if(Optimization::objectiveType.map.empty()) Optimization::SetEnums();
-        
-    // we read something like <loadErsatzMaterial region="piezo" file="piezo_density.xml" set="last"/>
-    // Initialize our xerces dom parser to handle the external xml file
-    Xerces* xerces = new Xerces(pn->Get("file")->AsString());
-    // set the global ParamNode tree pointer
-    ParamNode* xml = xerces->CreateParamNodeInstance();
-    // release the xerces ressources, param is not affected
-    delete xerces;
-    // check this file
-    if(xml->Count("set") == 0) 
-      throw Exception("There are no design sets in the ersatz material file");
-
-    StdVector<ParamNode*> region_list = pn->GetList("region"); 
-    StdVector<RegionIdType> regionIds; 
-    for(unsigned int i = 0; i < region_list.GetSize(); i++){ 
-      std::string reg = region_list[i]->Get("name")->AsString(); 
-      if(!GetGrid()->HasRegion(reg)) 
-        throw Exception("region given in loadErsatzMaterial is invalid"); 
-      regionIds.Push_back(GetGrid()->RegionNameToId(reg)); 
-    } 
-
-    if(!ersatzMaterial){ // only if the designspace does not already exist (created by optimization) 
-      // the header is like 
-      // <header> 
-      //   <design name="density" initial="1.0"/> 
-      //   ... 
-      //   <transferFunction type="simp" application="mech" design="density" param="1.0"/> 
-      //   .. 
-      // </header> 
-
-      // the design set consists of entries like 
-      // <element nr="401" type="density" design="0.886466" gradient="-7.56246e-09" filt_grad="-7.56246e-09"/> 
-      // only the combination nr and type is unique. E.g. in piezo we have types density and polarization 
-      StdVector<ParamNode*> des = xml->Get("header")->GetList("design"); 
-      StdVector<ParamNode*> tfs = xml->Get("header")->GetList("transferFunction"); 
-      StdVector<ParamNode*> res(0); // empty 
-
-      // create the design space -> data has initial values! 
-      ersatzMaterial = new DesignSpace(regionIds, des, tfs, res); 
-
-      ersatzMaterial->ToInfo(info->Get("ersatzMaterial")->Get(InfoNode::HEADER)); 
-    } 
-
-    // find the proper design set. This is either 'first', 'last' or the * in <set id="*"> ...
-    ParamNode* set = NULL;
-    std::string key = pn->Get("set")->AsString();
-    if(key == "first") set = xml->GetList("set")[0];
-    if(key == "last")  set = xml->GetList("set").Last(); 
-    if(set == NULL)    set = xml->Get("set", "id", key);
-
-    // read the set and replace the initial values
-    StdVector<ParamNode*> elems = set->GetList("element");
-
-    // check the the dimensions! the number of design variables comes from the regions and desings
-    if(ersatzMaterial->data.GetSize() != elems.GetSize())
-      EXCEPTION("ErsatzMaterialFile has " << elems.GetSize() << " entries, the model has "
-                << ersatzMaterial->data.GetSize() << " entries");
-
-    // check if we ignore the element numbers
-    bool ignore_numbers = pn->Get("ignore_element_numbers")->AsBool();
-    if(ignore_numbers && region_list.GetSize() != 1)
-      EXCEPTION("'ignore_element_numbers' in 'loadErsatzMaterial' only allowed for a single region");
-    
-    for(unsigned int e = 0; e < elems.GetSize(); e++)
-    {
-      unsigned int nr = elems[e]->Get("nr")->AsInt();
-      DesignElement::Type dt = (DesignElement::Type) DesignElement::type.Parse(elems[e]->Get("type")->AsString());
-      double val = elems[e]->Get("design")->AsDouble();
-      
-      // replace the value of the DesignElement
-      DesignElement* de = ignore_numbers ? &(ersatzMaterial->data[e]) : ersatzMaterial->Find(nr, dt);
-      // it should be possible to specify less regions then specified during optimization and saving of results 
-      // if the element can not be found (e.g. lying in a not specified region) it is not set 
-      if(de!=NULL){ 
-        // and the region can be set in optimization, thus exist, but not specified here, we should not set as well 
-        if(regionIds.Find(de->elem->regionId) >= 0){ 
-          de->SetDesign(val); 
-        } 
-      } 
-    }
-  }
-
-  bool Domain::GetErsatzMaterial(const Elem* elem, const BaseForm* form, double& result)
-  {
-    // is the stuff active at all? and don't we use ParamMat 
-    if(ersatzMaterial == NULL || HasErsatzMaterialTensor()) return false;
-
-    // we cannot check for the region here, if form is a linear form (e.g.
-    // pressure) but the design variable comes from elemens one dimension higher.
-    int idx = ersatzMaterial->Find(elem, false);
-    if(idx == -1) return false;
-    
-    // The desing space does the magic stuff. 
-    // In the SIMP case we get density of element power param
-    // all identified by the form and in piezo coupling case it
-    // might even be the product of the transfer funcitons of
-    // density and polarization
-    result = ersatzMaterial->GetErsatzMaterialFactor(idx, form);
-    return true;
-  }
-
-  DesignSpace* Domain::GetErsatzMaterial(bool throw_excpetion)
-  {
-    if(ersatzMaterial == NULL && throw_excpetion) 
-      EXCEPTION("No ersatz material defined either via 'loadErsatzMaterial'"
-                << " or an appropriate optimization");
-
-    return ersatzMaterial;
-  }
-
-  
-  bool Domain::HasErsatzMaterialTensor(){ 
-    return ersatzMaterial == NULL ? false : ersatzMaterial->HasErsatzMaterialTensor(); 
-  } 
-
+//  void Domain::ReadErsatzMaterial(ParamNode* pn)
+//  {
+//    // perhaps Optimization has already called the SetEnums 
+//    if(DesignElement::filter.map.empty()) DesignElement::SetEnums(); 
+//    if(Optimization::objectiveType.map.empty()) Optimization::SetEnums();
+//        
+//    // we read something like <loadErsatzMaterial region="piezo" file="piezo_density.xml" set="last"/>
+//    // Initialize our xerces dom parser to handle the external xml file
+//    Xerces* xerces = new Xerces(pn->Get("file")->AsString());
+//    // set the global ParamNode tree pointer
+//    ParamNode* xml = xerces->CreateParamNodeInstance();
+//    // release the xerces ressources, param is not affected
+//    delete xerces;
+//    // check this file
+//    if(xml->Count("set") == 0) 
+//      throw Exception("There are no design sets in the ersatz material file");
+//
+//    StdVector<ParamNode*> region_list = pn->GetList("region"); 
+//    StdVector<RegionIdType> regionIds; 
+//    for(unsigned int i = 0; i < region_list.GetSize(); i++){ 
+//      std::string reg = region_list[i]->Get("name")->AsString(); 
+//      if(!GetGrid()->HasRegion(reg)) 
+//        throw Exception("region given in loadErsatzMaterial is invalid"); 
+//      regionIds.Push_back(GetGrid()->RegionNameToId(reg)); 
+//    } 
+//
+//    if(!ersatzMaterial){ // only if the designspace does not already exist (created by optimization) 
+//      // the header is like 
+//      // <header> 
+//      //   <design name="density" initial="1.0"/> 
+//      //   ... 
+//      //   <transferFunction type="simp" application="mech" design="density" param="1.0"/> 
+//      //   .. 
+//      // </header> 
+//
+//      // the design set consists of entries like 
+//      // <element nr="401" type="density" design="0.886466" gradient="-7.56246e-09" filt_grad="-7.56246e-09"/> 
+//      // only the combination nr and type is unique. E.g. in piezo we have types density and polarization 
+//      StdVector<ParamNode*> des = xml->Get("header")->GetList("design"); 
+//      StdVector<ParamNode*> tfs = xml->Get("header")->GetList("transferFunction"); 
+//      StdVector<ParamNode*> res(0); // empty 
+//
+//      // create the design space -> data has initial values! 
+//      ersatzMaterial = new DesignSpace(regionIds, des, tfs, res); 
+//
+//      ersatzMaterial->ToInfo(info->Get("ersatzMaterial")->Get(InfoNode::HEADER)); 
+//    } 
+//
+//    // find the proper design set. This is either 'first', 'last' or the * in <set id="*"> ...
+//    ParamNode* set = NULL;
+//    std::string key = pn->Get("set")->AsString();
+//    if(key == "first") set = xml->GetList("set")[0];
+//    if(key == "last")  set = xml->GetList("set").Last(); 
+//    if(set == NULL)    set = xml->Get("set", "id", key);
+//
+//    // read the set and replace the initial values
+//    StdVector<ParamNode*> elems = set->GetList("element");
+//
+//    // check the the dimensions! the number of design variables comes from the regions and desings
+//    if(ersatzMaterial->data.GetSize() != elems.GetSize())
+//      EXCEPTION("ErsatzMaterialFile has " << elems.GetSize() << " entries, the model has "
+//                << ersatzMaterial->data.GetSize() << " entries");
+//
+//    // check if we ignore the element numbers
+//    bool ignore_numbers = pn->Get("ignore_element_numbers")->AsBool();
+//    if(ignore_numbers && region_list.GetSize() != 1)
+//      EXCEPTION("'ignore_element_numbers' in 'loadErsatzMaterial' only allowed for a single region");
+//    
+//    for(unsigned int e = 0; e < elems.GetSize(); e++)
+//    {
+//      unsigned int nr = elems[e]->Get("nr")->AsInt();
+//      DesignElement::Type dt = (DesignElement::Type) DesignElement::type.Parse(elems[e]->Get("type")->AsString());
+//      double val = elems[e]->Get("design")->AsDouble();
+//      
+//      // replace the value of the DesignElement
+//      DesignElement* de = ignore_numbers ? &(ersatzMaterial->data[e]) : ersatzMaterial->Find(nr, dt);
+//      // it should be possible to specify less regions then specified during optimization and saving of results 
+//      // if the element can not be found (e.g. lying in a not specified region) it is not set 
+//      if(de!=NULL){ 
+//        // and the region can be set in optimization, thus exist, but not specified here, we should not set as well 
+//        if(regionIds.Find(de->elem->regionId) >= 0){ 
+//          de->SetDesign(val); 
+//        } 
+//      } 
+//    }
+//  }
+//
+//  bool Domain::GetErsatzMaterial(const Elem* elem, const BaseForm* form, double& result)
+//  {
+//    // is the stuff active at all? and don't we use ParamMat 
+//    if(ersatzMaterial == NULL || HasErsatzMaterialTensor()) return false;
+//
+//    // we cannot check for the region here, if form is a linear form (e.g.
+//    // pressure) but the design variable comes from elemens one dimension higher.
+//    int idx = ersatzMaterial->Find(elem, false);
+//    if(idx == -1) return false;
+//    
+//    // The desing space does the magic stuff. 
+//    // In the SIMP case we get density of element power param
+//    // all identified by the form and in piezo coupling case it
+//    // might even be the product of the transfer funcitons of
+//    // density and polarization
+//    result = ersatzMaterial->GetErsatzMaterialFactor(idx, form);
+//    return true;
+//  }
+//
+//  DesignSpace* Domain::GetErsatzMaterial(bool throw_excpetion)
+//  {
+//    if(ersatzMaterial == NULL && throw_excpetion) 
+//      EXCEPTION("No ersatz material defined either via 'loadErsatzMaterial'"
+//                << " or an appropriate optimization");
+//
+//    return ersatzMaterial;
+//  }
+//
+//  
+//  bool Domain::HasErsatzMaterialTensor(){ 
+//    return ersatzMaterial == NULL ? false : ersatzMaterial->HasErsatzMaterialTensor(); 
+//  } 
+//
   // *************
   //   PrintGrid
   // *************

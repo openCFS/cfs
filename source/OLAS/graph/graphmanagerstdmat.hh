@@ -93,7 +93,7 @@ namespace CoupledField {
     //!                       the penalty approach numLastFreeDof
     //!                       \f$\stackrel{!}{=}\f$ numEqns)
     //! \param reorder        Re-ordering type for this PDE (optional)
-    void RegisterPDE( const PdeIdType identifierPDE,
+    void RegisterPDE( const FeFctIdType identifierPDE,
                       const UInt numEqns,
                       const UInt numLastFreeDof,
 		      const ReorderingType reorder 
@@ -122,8 +122,8 @@ namespace CoupledField {
     //! \param assemblingTranspose indicates whether the graph of the
     //!                            transpose coupling object will be assembled
     //!                            together with the coupling object.
-    void AssembleInit( const PdeIdType identifierPDE1,
-                       const PdeIdType identifierPDE2,
+    void AssembleInit( const FeFctIdType identifierPDE1,
+                       const FeFctIdType identifierPDE2,
                        bool assemblingTranspose );
 
     //! Finalise assembly of a sub-graph
@@ -143,8 +143,8 @@ namespace CoupledField {
     //! \param assemblingTranspose indicates whether the graph of the
     //!                            transpose coupling object was assembled
     //!                            together with the coupling object.
-    void AssembleDone( const PdeIdType identifierPDE1,
-                       const PdeIdType identifierPDE2,
+    void AssembleDone( const FeFctIdType identifierPDE1,
+                       const FeFctIdType identifierPDE2,
                        bool assemblingTranspose ) {
     }
 
@@ -184,9 +184,9 @@ namespace CoupledField {
     //!       a coupling object, it is safe to pass identical identifiers
     //!       and connect arrays to the method. The offset will only be added
     //!       once. 
-    virtual void SetElementPos( const PdeIdType identifierPDE1,
+    virtual void SetElementPos( const FeFctIdType identifierPDE1,
                                 const StdVector<Integer>& eqnNrs1,
-                                const PdeIdType identifierPDE2,
+                                const FeFctIdType identifierPDE2,
                                 const StdVector<Integer>& eqnNrs2,
                                 bool setCounterPart );
     //@}
@@ -207,8 +207,8 @@ namespace CoupledField {
     //! \param identifierPDE2 identifier for second PDE related to sub-graph
     //! \return a BaseGraph object according to the specified identifier
     //! combination
-    BaseGraph* GetGraph( const PdeIdType identifierPDE1 = NO_PDE_ID,
-			 const PdeIdType identifierPDE2 = NO_PDE_ID );
+    BaseGraph* GetGraph( const FeFctIdType identifierPDE1 = NO_PDE_ID,
+			 const FeFctIdType identifierPDE2 = NO_PDE_ID );
 
     //! Get a specified (sub-)graph for inhom. Dirichlet BC
 
@@ -220,8 +220,8 @@ namespace CoupledField {
     //! \param pdeID2 identifier for the second PDE of the pair
     //! \return a BaseGraph object according to the specified identifier or
     //!         NULL, if no IDBC graph was generated
-    BaseGraph* GetIDBCGraph( const PdeIdType pdeID1 = NO_PDE_ID,
-                             const PdeIdType pdeID2 = NO_PDE_ID ) const;
+    BaseGraph* GetIDBCGraph( const FeFctIdType pdeID1 = NO_PDE_ID,
+                             const FeFctIdType pdeID2 = NO_PDE_ID ) const;
 
     //! Obtain the permutation/re-ordering vector for a PDE
 
@@ -236,7 +236,7 @@ namespace CoupledField {
     //! \note While memory for the permutation vector is allocated in this
     //!       method, it is the caller's responsibility to dispose of that
     //!       memory once it no longer needs the array.
-    void GetReordering( const PdeIdType identifier, StdVector<UInt>& order );
+    void GetReordering( const FeFctIdType identifier, StdVector<UInt>& order );
 
     //! Print some statistics on the graph manager
     void PrintStats( std::ostream *log );
@@ -324,7 +324,7 @@ namespace CoupledField {
     //! the PDE or an associated coupling object. We can use this identifier
     //! for performing consistency checks in SetElementPos() when debugging
     //! is enabled.
-    PdeIdType idPDE1_;
+    FeFctIdType idPDE1_;
 
     //! Identifier for second PDE as passed to AssembleInit
 
@@ -333,7 +333,7 @@ namespace CoupledField {
     //! an associated coupling object. We can use this identifier for
     //! performing consistency checks in SetElementPos() when debugging is
     //! enabled.
-    PdeIdType idPDE2_;
+    FeFctIdType idPDE2_;
 
     //! Pointer to the graph object for real/un-fixed dofs
 

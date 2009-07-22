@@ -96,10 +96,10 @@ namespace CoupledField
 
 
     //! Return identifier of first PDE
-    PdeIdType GetPdeId1();
+    FeFctIdType GetPdeId1();
 
     //! Return identifier of second PDE
-    PdeIdType GetPdeId2();
+    FeFctIdType GetPdeId2();
 
     //! Ger ParamNode of coupling object
     ParamNode * GetParamNode() { return myParam_; }

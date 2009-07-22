@@ -25,10 +25,10 @@ namespace CoupledField {
   public:
     
     //! Constructor
-    DiscontinuousEqnMap( Grid* ptGrid, PdeIdType, bool usePenalty);
+    DiscontinuousEqnMap( Grid* ptGrid, FeFctIdType, bool usePenalty);
 
     //! Constructor
-    DiscontinuousEqnMap(Grid* grid, PdeIdType pdeId, bool usePenalty,EqnMap* startMap);
+    DiscontinuousEqnMap(Grid* grid, FeFctIdType pdeId, bool usePenalty,EqnMap* startMap);
     
     //! Destructor
     virtual ~DiscontinuousEqnMap();

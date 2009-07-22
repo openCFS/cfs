@@ -8,11 +8,16 @@
 #include "baseForm.hh"
 #include "Domain/domain.hh"
 #include "Domain/grid.hh"
+#include "DataInOut/Logging/cfslog.hh"
 
+
+DECLARE_LOG(forms)
+DEFINE_LOG(forms, "forms")
 namespace CoupledField
 {
 
- 
+
+
 
 
   BaseForm::BaseForm( BaseMaterial* matData, SubTensorType type, 
@@ -120,9 +125,10 @@ namespace CoupledField
    /** for ersatz material w and w/o SIMP. */
   Double BaseForm::GetErsatzMaterialFactor(const Elem* elem)
   {
-    Double factor;
-    bool ok = domain->GetErsatzMaterial(elem, this, factor);
-    return ok ? factor : 1.0;
+    //Double factor;
+     Warning("BaseForm::GetErsatzMaterialFactor: commented out due to refactoring"); return 0.0;
+//    bool ok = domain->GetErsatzMaterial(elem, this, factor);
+//    return ok ? factor : 1.0;
   }
   
 #ifndef INTEGLIB

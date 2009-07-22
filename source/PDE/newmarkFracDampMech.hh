@@ -29,7 +29,7 @@ namespace CoupledField {
       \param adampingList list damping description for subdomains
     */
     NewmarkFracDampMech( BaseSystem * algebraicsystem,
-                         const PdeIdType apdeId,
+                         const FeFctIdType apdeId,
                          shared_ptr<EqnMap> eqnMap,
                          Grid * aptgrid,
                          StdPDE * aptStdPDE, 
@@ -97,7 +97,7 @@ namespace CoupledField {
     std::string subType_;
 
     //! algsys identifier of the pde
-    PdeIdType pdeId_;
+    FeFctIdType pdeId_;
 
     //@{
     //! integration parameters

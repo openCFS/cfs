@@ -193,7 +193,7 @@ namespace CoupledField
 
     //! Calling this method initialises the Finite-Element matrix designated
     //! by the provided FEMatrixType identifier with zeros. In the case of
-    //! a %StandardSystem the PdeIDType identifier is ignored. After
+    //! a %StandardSystem the FeFctIdType identifier is ignored. After
     //! initialisation all matrix entries in the matrix' sparsity pattern
     //! are zero. If no FEMatrixType identifier is specified all matrices
     //! in the internal set (see #matrixTypes_) will be initialised.
@@ -201,7 +201,7 @@ namespace CoupledField
     //! \param pdeID    identifier for a PDE as assigned by the ObtainPDEId()
     //!                 method
     void InitMatrix( FEMatrixType matrixID = NOTYPE,
-                     const PdeIdType pdeID = NO_PDE_ID );
+                     const FeFctIdType pdeID = NO_PDE_ID );
 
     //! Set right hand side vector to zero
 
@@ -209,7 +209,7 @@ namespace CoupledField
     //! If no PDE identifier is given, the complete rhs vector is zeroed.
     //! \param identifierPDE  identifier for a PDE as assigned by the
     //!                       ObtainPDEId() method
-    void InitRHS( const PdeIdType identifierPDE = NO_PDE_ID );
+    void InitRHS( const FeFctIdType identifierPDE = NO_PDE_ID );
 
     //! Set the global rhs to given values
 
@@ -227,7 +227,7 @@ namespace CoupledField
     //! vector is zeroed.
     //! \param identifierPDE unique identifier for a PDE registered with the
     //!                       graph manager
-    void InitSol( const PdeIdType identifierPDE = NO_PDE_ID );
+    void InitSol( const FeFctIdType identifierPDE = NO_PDE_ID );
     
     //! Set the global solution vector to given initial values
 
@@ -275,17 +275,17 @@ namespace CoupledField
     //!       re-set this to false before passing the flag on to assemble.
     void SetElementMatrix( FEMatrixType matrix_id, 
                            const Matrix<Double>& elemmat,
-                           PdeIdType identifierPDE1,
+                           FeFctIdType identifierPDE1,
                            const StdVector<Integer>& eqnNrs1,
-                           PdeIdType identifierPDE2,
+                           FeFctIdType identifierPDE2,
                            const StdVector<Integer>& eqnNrs2,
                            bool setCounterPart );
                            
     void SetElementMatrix( FEMatrixType matrix_id, 
                            const Matrix<Complex>& elemmat,
-                           PdeIdType identifierPDE1,
+                           FeFctIdType identifierPDE1,
                            const StdVector<Integer>& eqnNrs1,
-                           PdeIdType identifierPDE2,
+                           FeFctIdType identifierPDE2,
                            const StdVector<Integer>& eqnNrs2,
                            bool setCounterPart );
     //@}
@@ -304,11 +304,11 @@ namespace CoupledField
     //!                w.r.t. sub-graph associated with idPDE
     //! \param numEqn  length of eqnNrs array
     void SetElementRHS( const Vector<Double>& elemRHS, 
-                        const PdeIdType idPDE,
+                        const FeFctIdType idPDE,
                         StdVector<Integer>& eqnNrs );
                         
     void SetElementRHS( const Vector<Complex>& elemRHS, 
-                        const PdeIdType idPDE,
+                        const FeFctIdType idPDE,
                         StdVector<Integer>& eqnNrs );
     //@}
                         
@@ -322,10 +322,10 @@ namespace CoupledField
     //! \param val value to be added
     //! \param identifierPDE identifier of the PDE related to sub-graph
     //! \param eqnNr equation number of the node to be set
-    void SetNodeRHS(Double val, PdeIdType identifierPDE,
+    void SetNodeRHS(Double val, FeFctIdType identifierPDE,
                     Integer eqnNr);
     
-    void SetNodeRHS(Complex val, PdeIdType identifierPDE,
+    void SetNodeRHS(Complex val, FeFctIdType identifierPDE,
                     Integer eqnNr);
     //@}
 
@@ -359,12 +359,12 @@ namespace CoupledField
     //!                 case of complex entries the first entry is used as
     //!                 real and the second as imaginary part
     virtual void AddToDiagMatrixEntry( FEMatrixType matrixID,
-                                       const PdeIdType pdeID,
+                                       const FeFctIdType pdeID,
                                        Integer eqnNum,
                                        Double val );
                                        
     virtual void AddToDiagMatrixEntry( FEMatrixType matrixID,
-                                       const PdeIdType pdeID,
+                                       const FeFctIdType pdeID,
                                        Integer eqnNum,
                                        Complex val );
     //@}
@@ -385,16 +385,16 @@ namespace CoupledField
     //!       as the given index pair has to be searched for and may not
     //!       be accessible directly!
     void GetMatrixEntry( FEMatrixType matrixID,
-                         const PdeIdType rowPdeID,
+                         const FeFctIdType rowPdeID,
                          Integer eqnNum1, 
-                         const PdeIdType colPdeID,
+                         const FeFctIdType colPdeID,
                          Integer eqnNum2, 
                          Double & val );
                          
     void GetMatrixEntry( FEMatrixType matrixID,
-                         const PdeIdType rowPdeID,
+                         const FeFctIdType rowPdeID,
                          Integer rowEqnNum, 
-                         const PdeIdType colPdeID,
+                         const FeFctIdType colPdeID,
                          Integer colEqnNum2,
                          Complex & val );
     //@}
@@ -421,16 +421,16 @@ namespace CoupledField
     //!       as the given index pair has to be searched for and may not
     //!       be accessible directly!
     void SetMatrixEntry( FEMatrixType matrixID,
-                         const PdeIdType rowPdeID,
+                         const FeFctIdType rowPdeID,
                          Integer rowEqnNum, 
-                         const PdeIdType colPdeID,
+                         const FeFctIdType colPdeID,
                          Integer colEqnNum, 
                          Double val, bool setCounterPart );
     
     void SetMatrixEntry( FEMatrixType matrixID,
-                         const PdeIdType rowPdeID,
+                         const FeFctIdType rowPdeID,
                          Integer rowEqnNum,
-                         const PdeIdType colPdeID,
+                         const FeFctIdType colPdeID,
                          Integer colEqnNum,
                          Complex val, bool setCounterPart );
     //@}
@@ -460,10 +460,10 @@ namespace CoupledField
     //! \note This method is only used to give the information of the current
     //! values to %OLAS. This method does NOT assemble them into the matrix. 
     //! This is done by the method BuildInDirichlet.
-    void SetDirichlet( const PdeIdType pdeID, Integer eqnNr,
+    void SetDirichlet( const FeFctIdType pdeID, Integer eqnNr,
                        const Double &val );
 
-    void SetDirichlet( const PdeIdType pdeID, Integer eqnNr,
+    void SetDirichlet( const FeFctIdType pdeID, Integer eqnNr,
                        const Complex &val );
     //@}
 
@@ -490,7 +490,7 @@ namespace CoupledField
     //! \note The return buffer is guaranteed to retain the current solution
     //! until the next call of this method (after solving the next step)!
     void GetSolutionVal( SingleVector& ptSol,
-                         const PdeIdType identifierPDE
+                         const FeFctIdType identifierPDE
                          = NO_PDE_ID );
                             
     //! Return the pointer to the current rhs value of a PDE
@@ -505,7 +505,7 @@ namespace CoupledField
     //! \note The return buffer is guaranteed to retain the current rhs
     //! until the next call of this method!
     void GetRHSVal( SingleVector &ptRhs,
-                    const PdeIdType identifierPDE
+                    const FeFctIdType identifierPDE
                     = NO_PDE_ID );
     //@}
 
@@ -527,8 +527,8 @@ namespace CoupledField
     //! \param identifierPDE2 unique identifier for a PDE registered with the
     //!                       graph manager
     void SetFEMatrixType( const FEMatrixType matType,
-                          const PdeIdType identifierPDE1,
-                          const PdeIdType identifierPDE2 = NO_PDE_ID );
+                          const FeFctIdType identifierPDE1,
+                          const FeFctIdType identifierPDE2 = NO_PDE_ID );
 
     //@}
 

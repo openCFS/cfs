@@ -14,7 +14,7 @@
 using namespace CoupledField;
 
 DECLARE_LOG(forms)
-DEFINE_LOG(forms, "forms")
+//DEFINE_LOG(forms, "forms")
 
 
 // =====================
