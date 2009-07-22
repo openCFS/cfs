@@ -2724,7 +2724,8 @@ namespace CoupledField
       destNodeNumbers = destNodeList.GetNodes();
     } // store iterator in object
 
-  void Grid::ConsInterpReportFunctor::operator()( const HandleBox& a, const HandleBox& b) {
+  void Grid::ConsInterpReportFunctor::operator()( const HandleBox& a,
+                                                  const HandleBox& b) {
       UInt destElemNum = *a.handle();
       UInt sourceNodeIndex = *b.handle();
       UInt dim = destGrid_->GetDim();
@@ -2740,16 +2741,11 @@ namespace CoupledField
       Vector<Double> locCoords;
       const Elem* elem = NULL;
 
-   #if 0
-      nodeCounter_++;
-
-      if((nodeCounter_ % 10000) == 0)
-        std::cout << "nodeCounter_ " << nodeCounter_ << " pointer " << (&nodeCounter_) << std::endl;
-
-      return;
-   #endif
       //      std::cout << "Elem Number " << elemNum << " <- " << sourceNodeNum << std::endl;
 
+      // If source to destination node map already contains entries
+      // for the source node, refuse to do any further calculations
+      // because weights already exist for this node.
       if(!consInterpWeights_[sourceNodeIndex].empty())
       {
         //        std::cout << "Rejecting mapping from source node index " << sourceNodeIndex << " to element " << destElemNum << std::endl;
@@ -2757,56 +2753,52 @@ namespace CoupledField
       }
       
 
+      // Fill coordinate matrix with node coords of destination element
       destGrid_->GetElemData(destElemNum, type, region, &connect_[0]);
       numElemNodes = Elem::GetNumElemNodes(type);
       coordMat.Resize(dim, numElemNodes);
-      globCoordMat.Resize(dim, 1);
-
       for(UInt i=0; i<numElemNodes; i++)
       {
         destGrid_->GetNodeCoordinate(point, connect_[i], true);
-        // coordMat auffÃ¼llen!
-        for(UInt j=0; j<dim; j++)
-        {
+        for(UInt j=0; j<dim; j++) {
           coordMat[j][i] = point[j];
-
-        
         }
       }
 
-      //      sourceGrid_->GetNodeCoordinate(point, sourceNodeNum, true);
-
-      for(UInt j=0; j<dim; j++)
-      {
+      // Fill global coordinate matrix for node of source grid
+      globCoordMat.Resize(dim, 1);
+      for(UInt j=0; j<dim; j++) {
         globCoordMat[j][0] = nodeCoords_[sourceNodeIndex][j];
-
-        
       }
 
-
+      // Get local coordinate of source node in respect to potential
+      // destination element
       elem = destGrid_->GetElem(destElemNum);
       elem->ptElem->Global2LocalCoords(localCoords, globCoordMat, coordMat);
-
       elem->ptElem->CoordsInsideElem(localCoords, localEpsilon_, coordsInside);
 
+      // If node is inside potential destination element, calculate
+      // conservative interpolation weights.
       if(coordsInside[0])
       {
         localDim = localCoords.GetNumRows();
         locCoords.Resize(localDim);
 
-        for(UInt j=0; j<localDim; j++)
-        {
+        for(UInt j=0; j<localDim; j++) {
           locCoords[j] = localCoords[j][0];
-
         }
 
+        // The vector S contains the values of the shape functions
+        // at the local coordinate of the source node. These values
+        // serve also as the interpolation weights.
         Vector<double> S;
-
         elem->ptElem->GetShFnc(S, locCoords, elem );
 
         //        std::cout << "Local Coord: " << locCoords << std::endl;
         //        std::cout << "Shape functions: " << S << std::endl;
 
+        // Put weights into correct position of source -> destination
+        // node map.
         for(UInt i=0; i<numElemNodes; i++)
         {
           UInt pos = destNodeNumToPosMap_[connect_[i]];
@@ -2823,7 +2815,6 @@ namespace CoupledField
         }
 
         nodeCounter_++;
-
         percentage_ = (UInt)(100*(Double)nodeCounter_ / (Double)numSourceNodes_);
         if(((percentage_ % 10) == 0) && ((oldPercentage_ % 10) == 9))
         {

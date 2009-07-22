@@ -283,7 +283,6 @@ namespace CoupledField {
     // the coupling forces are assembled to the RHS
     algsys_->InitRHS();
 
-    std::cout << "Parser: " << mParser_->Eval(mHandle_) << std::endl;
     UInt step = (UInt) mParser_->Eval(mHandle_);
 
     PDE_.ReadDisplacementAndUpdateGrid( step );

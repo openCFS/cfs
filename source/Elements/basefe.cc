@@ -110,6 +110,7 @@ namespace CoupledField
 
     Vector<Double> xi_start; // local start point for Newton-Raphson method
     Vector<Double> xi_k; // local point at iteration k
+    Vector<Double> xi_min; // local point with minimal global distance
     Vector<Double> delta_xi; // local search direction
     Vector<Double> f, f1, f2; // global (negative) search direction
     Vector<Double> f_start; // start value for global search direction
@@ -126,6 +127,8 @@ namespace CoupledField
     bool converged; // have we found the local point?
     UInt iter = 0;
     const Double golden_ratio = (3 - sqrt(5)) / 2;
+    Double minDist = 999999;
+
 
     // Initialize variables
     globalPoint.Resize(globDim);
@@ -140,8 +143,7 @@ namespace CoupledField
     for(UInt i = 0; i < numPoints; i++)
     {
       // Copy global point coordinates into a Vector for algebraic ops.
-      for(UInt j = 0; j < globDim; j++)
-      {
+      for(UInt j = 0; j < globDim; j++) {
         globalPoint[j] = globalCoords[j][i];
       }
 
@@ -149,19 +151,18 @@ namespace CoupledField
       f_min = 999e5; // really big value!
       for(UInt k = 0; k < NumNodes_; k++)
       {
-        for(UInt l = 0; l < locDim; l++)
-        {
+        for(UInt l = 0; l < locDim; l++) {
           xi_k[l] = LCornerCoords_[l][k];
         }
 
         Local2GlobalCoord(f, xi_k, coordMat, NULL);
         f = f - globalPoint;
         distance = f.NormL2();
-        if( distance < f_min )
-        {
+        if( distance < f_min ) {
           f_min = distance;
           xi_start = xi_k;
           f_start = f;
+          minDist = distance;
         }
       }
 
@@ -272,23 +273,23 @@ namespace CoupledField
             //  ( f_0  J_01  J_02 )
             //  ( f_1  J_11  J_12 )
             //  ( f_2  J_21  J_22 )
-            delta_xi[0] += + J[0][1]*J[2][2]*f[1] - J[0][2]*J[2][1]*f[1]
-                           - J[1][1]*J[2][2]*f[0] + J[2][1]*J[1][2]*f[0]
-                           - J[0][1]*J[1][2]*f[2] + J[0][2]*J[1][1]*f[2];
-
+            delta_xi[0] = - J[1][1]*J[2][2]*f[0] + J[2][1]*J[1][2]*f[0]
+                          - J[2][1]*J[0][2]*f[1] + J[0][1]*J[2][2]*f[1]
+                          - J[0][1]*J[1][2]*f[2] + J[1][1]*J[0][2]*f[2];
+            
             //  ( J_00  f_0  J_02 )
             //  ( J_10  f_1  J_12 )
             //  ( J_20  f_2  J_22 )
-            delta_xi[1] += - J[0][0]*J[2][2]*f[1] + J[2][0]*J[0][2]*f[1]
-                           - J[1][2]*J[2][0]*f[0] + J[1][0]*J[2][2]*f[0]
-                           + J[0][0]*J[1][2]*f[2] - J[1][0]*J[0][2]*f[2];
-
-            //  ( f_0  J_01  f_0 )
-            //  ( f_1  J_11  f_1 )
-            //  ( f_2  J_21  f_2 )
-            delta_xi[2] = - J[2][1]*J[1][0]*f[0] + J[0][0]*J[2][1]*f[1]
-                          - J[0][0]*J[1][1]*f[2] + J[1][1]*J[2][0]*f[0]
-                          + J[1][0]*J[0][1]*f[2] - J[2][0]*J[0][1]*f[1];
+            delta_xi[1] = - J[1][2]*J[2][0]*f[0] + J[1][0]*J[2][2]*f[0]
+                          - J[0][0]*J[2][2]*f[1] + J[2][0]*J[0][2]*f[1]
+                          - J[1][0]*J[0][2]*f[2] + J[1][2]*J[0][0]*f[2];
+            
+            //  ( J_00  J_01  f_0 )
+            //  ( J_10  J_11  f_1 )
+            //  ( J_20  J_21  f_2 )
+            delta_xi[2] = - J[1][0]*J[2][1]*f[0] + J[2][0]*J[1][1]*f[0]
+                          - J[0][1]*J[2][0]*f[1] + J[2][1]*J[0][0]*f[1]
+                          - J[0][0]*J[1][1]*f[2] + J[1][0]*J[0][1]*f[2];
 
             distNormalizer = std::pow(fabs(jacDet), 1.0 / 3.0);
           }
@@ -337,6 +338,13 @@ namespace CoupledField
           f2 = f2 - globalPoint;
           dist[1] = f2.NormL2();
 
+          distMeasure = distNormalizer < 1 ? dist[1]/distNormalizer : dist[1];
+          if(distMeasure < TOL)
+          {
+            converged = true;
+            break;
+          }
+          
           if(f.Inner(f2) < 0) 
           {
             break;
@@ -345,9 +353,23 @@ namespace CoupledField
             interval[0] = interval[1];
             interval[1] *= 4.0;
             dist[0] = dist[1];
+            f = f2;
+          }
+
+          if(dist[0] < minDist) {
+            minDist = dist[0];
+            xi_min = xi_start + delta_xi * interval[0];
+          }
+        
+          if(dist[1] < minDist) {
+            minDist = dist[1];
+            xi_min = xi_start + delta_xi * interval[1];
           }
         }
-        
+
+        if(converged)
+          break;
+
         // Try to narrow down the extents of the interval by searching points
         // ever closer from below and above the minumum in the current search
         // direction.
@@ -402,7 +424,7 @@ namespace CoupledField
             // point or x4 switched to the side of x3.
             UInt m;
             const UInt n=16;
-            
+
             for(m = 0; m < n && f1.Inner(f2) > 0; m++)
             {
               x3 -= (interval[1] - interval[0]) * (golden_ratio/n);
@@ -459,13 +481,34 @@ namespace CoupledField
             interval[1] = x4;
             dist[1] = distance_l;
           }
+
+          if(dist[0] < minDist) {
+            minDist = dist[0];
+            xi_min = xi_start + delta_xi * interval[0];
+          }
+          
+          if(dist[1] < minDist) {
+            minDist = dist[1];
+            xi_min = xi_start + delta_xi * interval[1];
+          }
         }
-        
+
+        // If distances increase again, break
+        if(dist[0] > minDist && dist[1] > minDist)
+        {
+          xi_k = xi_min;
+          break;
+        }
 
         if(dist[0] < dist[1])
           xi_k = xi_start + delta_xi * interval[0];
         else
           xi_k = xi_start + delta_xi * interval[1];
+        
+        distance = minDist;
+        xi_start = xi_k;
+        Local2GlobalCoord(f, xi_k, coordMat, NULL);
+        f = f - globalPoint;
         
         if(converged)
           break;
@@ -475,8 +518,7 @@ namespace CoupledField
       while(iter < 16);
 
       // Put local coordinate of point into matrix.
-      for(UInt l = 0; l < locDim; l++)
-      {
+      for(UInt l = 0; l < locDim; l++) {
         localCoords[l][i] = xi_k[l];
       }
 
