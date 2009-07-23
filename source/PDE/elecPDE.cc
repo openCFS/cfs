@@ -469,7 +469,7 @@ namespace CoupledField {
 //        real += GenStr(impedances_[i].inductance) + " ))";
 //      }
 //      
-//      // *** Capcitance *** 
+//      // *** Capacitance *** 
 //      if ( impedances_[i].capacitance > EPS ) {
 //        real += "-" + GenStr( impedances_[i].capacitance );
 //      } 

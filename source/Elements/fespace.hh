@@ -6,6 +6,7 @@
 
 #include "General/environment.hh"
 #include "Domain/entityList.hh"
+#include "Domain/elem.hh"
 
 namespace CoupledField {
 
@@ -86,20 +87,49 @@ protected:
 
   //! Type of element space
   Type type_;
+  
+  //! Map for reference elmenets
+  std::map<Elem::FEType, BaseFE*> refElems_;
 };
 
 
 ///////////////////////////////////////////////////////////////////
-// H1 - Lower Order
+// H1 - Lower Order / non hierarchical
 ///////////////////////////////////////////////////////////////////
 
-class FeSpaceH1Lo : public FeSpace {
+class FeSpaceH1 : public FeSpace {
 
 
+public:
+
+  //! Type of basis used
+  typedef enum {LAGRANGE, DUAL} BasisType; 
+
+  //! Constructor
+  FeSpaceH1();
+
+  //! Destructor
+  ~FeSpaceH1();
+
+  //! Set type of basis
+  void SetBasis( BasisType type );
+
+  //! Determine order
+  //! This method determines the order of the generated elements,
+  //! as 
+  void SetOrder( UInt order);
+
+private:
+
+  //! Type of basis
+  BasisType basis_;
+
+  //! Order of functions used
+  UInt order_;
 };
 
 ///////////////////////////////////////////////////////////////////
-// H1 - Higher Order
+// H1 - Higher Order / hierarchical
 ///////////////////////////////////////////////////////////////////
 
 class FeSpaceH1Hi : public FeSpace {
@@ -107,10 +137,10 @@ class FeSpaceH1Hi : public FeSpace {
 };
 
 ///////////////////////////////////////////////////////////////////
-// HCurl - Lower Order (Nedelec)
+// HCurl - Lower Order (Nedelec) / not hierarchical
 ///////////////////////////////////////////////////////////////////
 
-class FeSpaceHCurlLo : public FeSpace {
+class FeSpaceHCur : public FeSpace {
 
 };
 

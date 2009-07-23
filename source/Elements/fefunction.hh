@@ -6,8 +6,16 @@
 
 #include "General/environment.hh"
 #include "MatVec/vector.hh"
+#include "Domain/entityList.hh"
+#include "Domain/bcs.hh"
+#include "Domain/resultInfo.hh"
+#include "MatVec/matrix.hh"
 
 namespace CoupledField {
+
+
+  // forward class declarations
+  class FeSpace;
 
 //!  Base class for a function approximated by Finite Elements 
 /*!
@@ -23,24 +31,93 @@ namespace CoupledField {
   
   The class has methods to
   - Aquire the solution of an element
-  - 
+  - Add Result
 */
 
 class BaseFeFunction {
 public:
-
 
   //! Constructor
   BaseFeFunction();
   
   //! Destructor
   ~BaseFeFunction();
-
   
+  // ========================================================================
+  //  Function Meta Information
+  // ========================================================================
+  //@{ \name Function Meta Information 
+    
+  //! Set result information
+  void SetResultInfo( shared_ptr<ResultInfo> info );
+  
+  //! Get ResultInfo
+  shared_ptr<ResultInfo> GetReusltInfo();
+  
+  //! Set FeSpace
+  void SetFeSpace( shared_ptr<FeSpace> space );
+  
+  //! Get FeSpace
+  shared_ptr<FeSpace> GetFeSpace();
+  
+  //! Add EntityList
+  void AddEntityList( shared_ptr<EntityList> list );
+  
+  //@}
+  
+  
+  // ========================================================================
+  //  Boundary Conditions
+  // ========================================================================
+  //@{ \name Boundary Conditions
+  
+  //! Add hom. Dirichlet boundary condition
+  void AddHomDirichletBc( shared_ptr<HomDirichletBc> bc );
+
+  //! Add inhom. Dirichlet boundary condition
+  void AddInhomDirichletBc( shared_ptr<InhomDirichletBc> bc );
+
+  //! Add constraint boundary condition
+  void AddConstraint( shared_ptr<Constraint> bc );
+          
+  //@}
+  
+  // ========================================================================
+  //  Function Values
+  // ========================================================================
+  //@{ \name Function Values
+  
+  //! Get solution for specific entity
+  void GetEntitySolution( SingleVector& elemSol, 
+                        const EntityIterator& it );
+                        
+  //! Get solution as matrix for specific entity
+  void GetEntitySolutionAsMatrix( DenseMatrix& elemSol,
+                                  const EntityIterator& it );
+  
+  //@}
+  
+
 protected:
 
   //! Identifier for the function
   FeFctIdType fctId_;
+  
+  //! Pointer to finite element function space
+  shared_ptr<FeSpace> feSpace_;
+  
+  //! Entitylists (elements, nodes, etc.) the function is defined on
+  StdVector<shared_ptr<EntityList> > entities_;
+  
+  //! Homogeneous Dirichlet BCs
+  HdBcList hdBcs_;
+  
+  //! Inhomogeneous Dirichlet BCs
+  IdBcList idBcs_;
+  
+  //! Constraints
+  ConstraintList constraints_;
+  
 
 };
 
