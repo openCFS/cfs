@@ -79,14 +79,15 @@ namespace CoupledField
 
     OutputWriterVectorType outputWriters_;
 
-    /** scales the FLUIDMECH_VELOCITY vector by the factor scaleFac.
+    /** scales the physical field (FLUIDMECH_VELOCITY, MECH_DISPLACEMT etc.)
+     * vector by the factor scaleFac.
      * @param nodalFlowData the data in which the reults are stored and which
      * should be scaled
      * @param scaleFac the factor by which it should be scaled
      * @param dof_idx the dof which should be scaled (x=0, y=1, z=2)
      */
-    inline void velScale_(std::vector<FlowDataType>& nodalFlowData,
-                   const Double scaleFac, const UInt dof_idx) const
+    inline void scale_PhysField_(std::vector<FlowDataType>& nodalFlowData,
+        const SolutionType solType, const Double scaleFac, const UInt dof_idx) const
     {
       Settings& settings = Settings::Instance();
       UInt numRegions = nodalFlowData.size();
@@ -97,7 +98,7 @@ namespace CoupledField
       for (UInt actRegion=0; actRegion < numRegions; ++actRegion)
       {
         FlowDataType& fd = nodalFlowData[actRegion];
-        FlowDataPartStruct* fdps = &fd[FLUIDMECH_VELOCITY];
+        FlowDataPartStruct* fdps = &fd[solType];
         const UInt sizeFdps = fdps->data.size();
         const UInt numDofs = fdps->dofNames.size();
         UInt i = dof_idx;

@@ -435,22 +435,28 @@ namespace CoupledField
         {
           ptFileReader_->ReadNodalValues(flowData, activeParts_, counter);
           // scale the nodal values
-          std::stringstream velstr;
-          velstr << settings.GetString("velscale");
-          Double velScaleX, velScaleY, velScaleZ;
-          velstr >> velScaleX >> velScaleY >> velScaleZ;
-          if (velScaleX != 1.0)
+          // following physical fields will be checked for scaling factors
+          const std::string physFieldScale_str[] = {"velscale","geomscale"};
+          const SolutionType solType[] = {FLUIDMECH_VELOCITY,MECH_DISPLACEMENT};
+          Double scaleX, scaleY, scaleZ;
+          for (int i = 0; i < 2; ++i) // 2 physical fields
           {
-            velScale_(flowData, velScaleX, 0);
+            std::stringstream scaleStr;
+            scaleStr << settings.GetString(physFieldScale_str[i]);
+
+            scaleStr >> scaleX;
+            if (!scaleStr.fail() && scaleX != 1.0)
+              scale_PhysField_(flowData, solType[i], scaleX, 0);
+
+            scaleStr >> scaleY;
+            if (!scaleStr.fail() && scaleY != 1.0)
+              scale_PhysField_(flowData, solType[i], scaleY, 1);
+
+            scaleStr >> scaleZ;
+            if (!scaleStr.fail() && scaleZ != 1.0)
+              scale_PhysField_(flowData, solType[i], scaleZ, 2);
           }
-          if (velScaleY != 1.0)
-          {
-            velScale_(flowData, velScaleY, 1);
-          }
-          if (velScaleZ != 1.0)
-          {
-            velScale_(flowData, velScaleZ, 2);
-          }
+
           // <-- end scaling velocity
           
           // Override the setting of --outprec for CFX
