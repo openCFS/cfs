@@ -197,9 +197,6 @@ SET(XMLSCHEMA "${CFS_SOURCE_DIR}/share/xml" CACHE STRING
 #-----------------------------------------------------------------------------
 SET(TESTSUITE_DIR "TESTSUITE_DIR_NOT_FOUND" CACHE STRING
   "Path where the CFS++ testsuite is located.")
-# In order to perform tests we need the CONVERTER and HDF5!
-SET(CFSTOOL ON CACHE BOOL
-  "Build CFS++ converter tool (cfstool)." FORCE)
 
 SET(USE_HDF5 ON CACHE INTERNAL
   "Use HDF5 for simulation in/output." FORCE)
