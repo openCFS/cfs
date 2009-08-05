@@ -100,6 +100,7 @@
               <xsd:enumeration value="lagrange"/>
               <xsd:enumeration value="legendre"/>
               <xsd:enumeration value="spectral"/>
+              <xsd:enumeration value="H1"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>

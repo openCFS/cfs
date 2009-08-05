@@ -5,8 +5,6 @@
 #ifndef OLAS_SCRS_MATRIX_HH
 #define OLAS_SCRS_MATRIX_HH
 
-#define DEBUG_SCRS_MATRIX
-
 #include <iostream>
 
 #include <def_expl_templ_inst.hh>

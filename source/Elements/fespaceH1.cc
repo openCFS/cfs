@@ -138,7 +138,6 @@ namespace CoupledField {
     MapNodalEqns(1);
     MapNodalEqns(2);
     isFinalized_ = true;
-    PrintEqnMap();
   }
 
   //! Map BC Equation 
@@ -313,8 +312,6 @@ namespace CoupledField {
       }
       mapIt++;
     }
-    PrintEqnMap();
-    
   }
 
   void FeSpaceH1::PrintEqnMap(){
