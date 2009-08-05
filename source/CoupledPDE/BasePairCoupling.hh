@@ -10,9 +10,9 @@
 #include "General/environment.hh"
 #include "Utils/StdVector.hh"
 #include "MatVec/vector.hh"
-#include "PDE/eqnMap.hh"
 #include "Utils/result.hh"
 #include "PDE/basePDE.hh"
+#include "Elements/fefunction.hh"
 
 namespace CoupledField
 {
@@ -271,10 +271,10 @@ namespace CoupledField
     BaseSystem * algsys_;
 
     //! Pointer to equation map of first PDE
-    shared_ptr<EqnMap> eqnMap1_;
+    shared_ptr<BaseFeFunction> feFct1_;
 
     //! Pointer to equation map of second PDE
-    shared_ptr<EqnMap> eqnMap2_;
+    shared_ptr<BaseFeFunction> feFct2_;
 
     //! ResultInfos of first PDE
     ResultInfoList results1_;

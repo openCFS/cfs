@@ -695,6 +695,8 @@ source/Elements/fefunction.cc svneol=native#text/x-c%2B%2Bsrc
 source/Elements/fefunction.hh svneol=native#text/x-c%2B%2Bhdr
 source/Elements/fespace.cc svneol=native#text/x-c%2B%2Bsrc
 source/Elements/fespace.hh svneol=native#text/x-c%2B%2Bhdr
+source/Elements/fespaceH1.cc -text
+source/Elements/fespaceH1.hh -text
 source/Elements/jacobian.cc svneol=native#text/x-c%2B%2Bsrc
 source/Elements/jacobian.hh svneol=native#text/x-c%2B%2Bhdr
 source/Estimator/CMakeLists.txt svneol=native#text/plain

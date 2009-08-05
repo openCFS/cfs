@@ -35,8 +35,8 @@ namespace CoupledField {
     negateEntries_ = false;
     
 
-    ptPde1_ = NULL;
-    ptPde2_ = NULL;
+    //ptPde1_ = NULL;
+    //ptPde2_ = NULL;
 
     //dampingLayer_ = NULL;
   }
@@ -57,8 +57,8 @@ namespace CoupledField {
                                   FeFctIdType& id1, FeFctIdType& id2 ) {
 
     // Get equation numbers
-    map1_->GetEqns( eqnVec1, *result1_, it1 );
-    map2_->GetEqns( eqnVec2, *result2_, it2 );
+    feFct1_->GetFeSpace()->GetEqns( eqnVec1, it1 );
+    feFct2_->GetFeSpace()->GetEqns( eqnVec2, it2 );
 
     // Get PDE IDs
     id1 = ptPde1_->GetPDEId();
@@ -66,32 +66,39 @@ namespace CoupledField {
 
   }
   
-  void BiLinFormContext::SetPtPdes(SinglePDE * aPDE1, 
-                                   SinglePDE * aPDE2 ) {
+  void BiLinFormContext::SetPtPdes(shared_ptr<SinglePDE> aPDE1, 
+                                   shared_ptr<SinglePDE> aPDE2 ) {
 
-    ptPde1_ = aPDE1;
-    ptPde2_ = aPDE2;
-
-    map1_ = ptPde1_->GetEqnMap();
-    map2_ = ptPde2_->GetEqnMap();
+    //ptPde1_ = aPDE1;
+    //ptPde2_ = aPDE2;
+    //OBSOLETE
+    //map1_ = ptPde1_->GetEqnMap();
+    //map2_ = ptPde2_->GetEqnMap();
   }
     
   //! Set the result types and entities the bilinearform is working on
-  void BiLinFormContext::SetResults( shared_ptr<ResultInfo> result1, 
-                                     shared_ptr<ResultInfo> result2,
-                                     shared_ptr<EntityList> list1, 
+  void BiLinFormContext::SetEntities( shared_ptr<EntityList> list1, 
                                      shared_ptr<EntityList> list2 ) {
 
-    result1_ = result1;
-    result2_ = result2;
     ent1_ = list1;
     ent2_ = list2;
-
-    assert( integrator_ != NULL);
-    assert( result1->fctType != NULL );
-    integrator_->SetAnsatzFct( result1->fctType, result2->fctType );
   }  
 
+  void BiLinFormContext::SetFeFunctions( shared_ptr<BaseFeFunction> fct1, 
+                                         shared_ptr<BaseFeFunction> fct2) {
+    feFct1_ = fct1;
+    feFct2_ = fct2;  
+    result1_ = feFct1_->GetResultInfo();
+    result2_ = feFct2_->GetResultInfo();
+    ptPde1_ = feFct1_->GetPDE();
+    ptPde2_ = feFct2_->GetPDE();
+
+    assert( integrator_ != NULL);
+    assert( result1_->fctType != NULL );
+    // THIS HAS TO BE REPLACED BY FESPACE
+    integrator_->SetAnsatzFct( result1_->fctType, result1_->fctType);
+  }
+  
   bool BiLinFormContext::IsNonLin() {
 
     // Return true if either
@@ -138,7 +145,7 @@ namespace CoupledField {
 
     integrator_ = linearForm;
 
-    ptPde_ = NULL;
+    //ptPde_ = NULL;
 
   }
 
@@ -157,28 +164,33 @@ namespace CoupledField {
                                    FeFctIdType& id ) {
     
     // Get equation numbers
-    map_->GetEqns( eqnVec, *result_, it );
+    //map_->GetEqns( eqnVec, *result_, it );
+    feFct_->GetFeSpace()->GetEqns(eqnVec,it);
     
     // Get Pde Id
     id = ptPde_->GetPDEId();
     
   }
   
-  void LinearFormContext::SetPtPde(SinglePDE * ptPde ) {
+  void LinearFormContext::SetPtPde(shared_ptr<SinglePDE> ptPde ) {
     
     ptPde_ = ptPde;
-    map_ = ptPde_->GetEqnMap();
+    //map_ = ptPde_->GetEqnMap();
     
 
   }
 
-  void LinearFormContext::SetResult( shared_ptr<ResultInfo> result,
-                                     shared_ptr<EntityList> list ) {
+  void LinearFormContext::SetEntities( shared_ptr<EntityList> list ) {
 
-    result_ = result;
     ent_ = list;
-    integrator_->SetAnsatzFct( result->fctType );
-    }
+  }
+
+  void LinearFormContext::SetFeFunction(shared_ptr<BaseFeFunction>  fct ){
+    feFct_ = fct;
+    result_ = feFct_->GetResultInfo();
+    ptPde_ = feFct_->GetPDE();
+    integrator_->SetAnsatzFct( result_->fctType );
+  }
 
   bool LinearFormContext::IsNonLin() {
    // Return true if linearform is solution-dependent
@@ -235,8 +247,8 @@ namespace CoupledField {
     slaveIt = slaveSide.GetIterator();
 
     if (ptPde1_ == ptPde2_) {
-      map1_->GetEqns( eqnVec1, *result1_, masterIt );
-      map2_->GetEqns( eqnVec2, *result2_, slaveIt );
+      feFct1_->GetFeSpace()->GetEqns( eqnVec1,  masterIt );
+      feFct2_->GetFeSpace()->GetEqns( eqnVec2, slaveIt );
     } else {
       // check which pde is on master side (via materials)
       std::map<RegionIdType, BaseMaterial*> pdeMat = 
@@ -244,11 +256,11 @@ namespace CoupledField {
       std::map<RegionIdType, BaseMaterial*>::iterator itMat =
         pdeMat.find(elem->ptSurfParent->ptVolElem1->regionId);
       if (itMat != pdeMat.end()) { // pde1 is master
-        map1_->GetEqns( eqnVec1, *result1_, masterIt );
-        map2_->GetEqns( eqnVec2, *result2_, slaveIt );
+        feFct1_->GetFeSpace()->GetEqns( eqnVec1, masterIt );
+        feFct2_->GetFeSpace()->GetEqns( eqnVec2, slaveIt );
       } else {
-        map1_->GetEqns( eqnVec1, *result1_, slaveIt );
-        map2_->GetEqns( eqnVec2, *result2_, masterIt );
+        feFct1_->GetFeSpace()->GetEqns( eqnVec1, slaveIt );
+        feFct2_->GetFeSpace()->GetEqns( eqnVec2, masterIt );
       }
     }
     

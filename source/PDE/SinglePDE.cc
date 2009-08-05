@@ -298,7 +298,7 @@ namespace CoupledField {
       usePenalty_ = aux == "penalty" ? true : false;
       infoNode_->Get(InfoNode::HEADER)->Get("idbc", "handling of IDBCs")->SetValue(aux);
     }
-
+/* Due to our FeSpace we will no longer need a equation Map
     //determine which kind of equationmap will be needed
     if(results_.GetSize() == 1){
       if(results_[0]->fctType->IsDiscontinuous()){
@@ -320,7 +320,7 @@ namespace CoupledField {
       eqnMap_ = shared_ptr<EqnMap>(new EqnMap( ptgrid_, pdeId_, usePenalty_ ));
     }
 
-
+*/
 
 
     // Create a new equation map
@@ -390,37 +390,43 @@ namespace CoupledField {
 
     // Finish equation mapping
     LOG_TRACE(pde) << pdename_ << ": Mapping Equations";
-    eqnMap_->SetHomoDirichletBCs ( hdBcs_ );
-    eqnMap_->SetInhomDirichletBCs( idBcs_ );
-    eqnMap_->SetConstraints( constraints_ );
-    eqnMap_->Finalize();
+    //eqnMap_->SetHomoDirichletBCs ( hdBcs_ );
+    //eqnMap_->SetInhomDirichletBCs( idBcs_ );
+    //eqnMap_->SetConstraints( constraints_ );
+    //eqnMap_->Finalize();
+    feFunction_->SetGrid(shared_ptr<Grid>(ptgrid_));
 
-    infoNode_->Get(InfoNode::HEADER)->Get("equations", "number of equations in linear system")->SetValue(eqnMap_->GetNumEqns());
+    feSpace_->Finalize();
 
+    infoNode_->Get(InfoNode::HEADER)->Get("equations", "number of equations in linear system")->SetValue(feSpace_->GetNumEquations());
+
+    //TODO: Add debugging output to FeSpace Class
     // writes numerous lists about mapping -> might be huge!
-    if(progOpts->DoListMapping())
-      eqnMap_->ToInfo(infoNode_->Get(InfoNode::HEADER)->Get("mapping"));
+    if(progOpts->DoListMapping()){
+      //eqnMap_->ToInfo(infoNode_->Get(InfoNode::HEADER)->Get("mapping"));
+    }
 
-    numPDENodes_ = eqnMap_->GetNumLocalNodes();
-    numElems_ = eqnMap_->GetNumLocalElems();
+    numPdeEquations_ = feSpace_->GetNumUnknowns();
+    //TODO ADAPT TO FE FUNCTION:
+    //numElems_ = eqnMap_->GetNumLocalElems();
 
     // Initialize Storesolution class
     sol_->SetNumSolutions(results_.GetSize());
-    sol_->SetNumNodes(numPDENodes_);
+    sol_->SetNumNodes(numPdeEquations_);
     for (UInt iSol=0; iSol<results_.GetSize(); iSol++) {
       sol_->SetSolutionType(results_[iSol]->resultType,iSol);
       sol_->SetNumDofs( results_[iSol]->dofNames.GetSize(),
                         results_[iSol]->resultType );
     }
 
-    // Note: this is only a temporary solution
-    sol_->SetPtrEQNData(eqnMap_.get(), ptgrid_);
+    // TODO: this is only a temporary solution
+    sol_->SetPtrEQNData(feSpace_, ptgrid_);
     sol_->SetRegions( subdoms_ );
     sol_->Init();
 
     if ( solPrev_ != NULL ) {
       solPrev_->SetNumSolutions(results_.GetSize());
-      solPrev_->SetNumNodes(numPDENodes_);
+      solPrev_->SetNumNodes(numPdeEquations_);
       for (UInt iSol=0; iSol<results_.GetSize(); iSol++) {
         solPrev_->SetSolutionType(results_[iSol]->resultType,iSol);
         solPrev_->SetNumDofs( results_[iSol]->dofNames.GetSize(),
@@ -428,7 +434,7 @@ namespace CoupledField {
       }
 
       // Note: this is only a temporary solution
-      solPrev_->SetPtrEQNData(eqnMap_.get(), ptgrid_);
+      solPrev_->SetPtrEQNData(feSpace_, ptgrid_);
       solPrev_->SetRegions( subdoms_ );
       solPrev_->Init();
     }
@@ -436,9 +442,9 @@ namespace CoupledField {
 
     SETPROFILE("Before Resizing StoreSol");
     if(!isDirectCoupled_ ) {
-      solVec_->Resize(eqnMap_->GetNumEqns());
+      solVec_->Resize(feSpace_->GetNumEquations());
       solVec_->Init();
-      rhsVec_->Resize(eqnMap_->GetNumEqns());
+      rhsVec_->Resize(feSpace_->GetNumEquations());
       rhsVec_->Init();
 
       SETPROFILE("After Resizing StoreSol");
@@ -458,7 +464,7 @@ namespace CoupledField {
       Double dt;
       dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
         ->GetDeltaT();
-      TS_alg_->Init( dt, eqnMap_->GetNumEqns() );
+      TS_alg_->Init( dt, feSpace_->GetNumEquations() );
     }
 
 //    // =====================================================================
@@ -976,7 +982,9 @@ namespace CoupledField {
   //   SetBCs
   // **********
   void SinglePDE::SetBCs() {
-
+    //just loop over the available feFunctions and call their BC Method
+    feFunction_->ApplyBC();
+/*
      // Trigger setting of BC from script file
  #ifdef USE_SCRIPTING
      StdVector<std::string> context;
@@ -1103,10 +1111,17 @@ namespace CoupledField {
                              << "' with value '" << actBc.value << "'" );
          }
        }
-     }
+     }*/
   }
 
-
+    //! Transforms a given BoundaryCondition value according to Timestepping (i.e. TransientSim)
+    void SinglePDE::TransformBC(Double& transVal, Double initValue, Integer eqnNumber){
+      ResultCache::SetOutputType(ResultCache::OUT_AMPL);
+      // Transform Dirichlet boundary conditions for effmass-formulation
+      if (effectiveMass_) {
+        transVal = TS_alg_->DirichletBC4EffMassMatrix(initValue,eqnNumber);
+      }
+    }
 
   void SinglePDE::ReadBCs() {
 
@@ -1120,6 +1135,7 @@ namespace CoupledField {
     std::string name, resultName, dof, entType, value, phase;
     EntityList::DefineType defineType;
     shared_ptr<ResultInfo> actResultInfo;
+    shared_ptr<BaseFeFunction> actFeFunction;
 
 
     // =====================================================================
@@ -1141,7 +1157,7 @@ namespace CoupledField {
         hdbcNodes[i]->Get( "entityType", entType );
 
         // fetch related resultInfo object
-        actResultInfo = GetResultInfo( SolutionTypeEnum.Parse(resultName) );
+        actFeFunction = GetFeFunction( SolutionTypeEnum.Parse(resultName) );
 
         // Create homogeneous boundary condition
         if( entType == "nodeList" ) {
@@ -1157,16 +1173,18 @@ namespace CoupledField {
           ptgrid_->GetEntityList( listType,
                                   name, defineType );
         actBc->entities = actList;
-        actBc->result = actResultInfo;
-        actBc->eqnMap = eqnMap_;
+        actBc->result = actFeFunction->GetResultInfo();
+        //actBc->eqnMap = eqnMap_;
         if( dof == "" ) {
-          actBc->dof = 1;
+          actBc->dof = 0;
         } else {
           actBc->dof = actResultInfo->GetDofIndex( dof );
         }
 
-        // add definition
-        hdBcs_.Push_back( actBc );
+        // add definition OBSOLETE
+        //hdBcs_.Push_back( actBc );
+        // Hand the BC over to the feFunction
+        actFeFunction->AddHomDirichletBc(actBc);
       } catch (Exception & ex ) {
         RETHROW_EXCEPTION( ex, "Can not create homogeneous boundary conditions on '"
                            << name << "'" );
@@ -1194,7 +1212,7 @@ namespace CoupledField {
         idbcNodes[i]->Get( "entityType", entType );
 
         // fetch related resultInfo object
-        actResultInfo = GetResultInfo( SolutionTypeEnum.Parse(resultName) );
+        actFeFunction = GetFeFunction( SolutionTypeEnum.Parse(resultName) );
 
         // Create inhomogeneous boundary condition
         shared_ptr<InhomDirichletBc> actBc ( new InhomDirichletBc );
@@ -1209,10 +1227,10 @@ namespace CoupledField {
           ptgrid_->GetEntityList( listType,
                                   name, defineType );
         actBc->entities = actList;
-        actBc->result = actResultInfo;
-        actBc->eqnMap = eqnMap_;
+        //actBc->result = actFeFunction->GetResultInfo();
+        //actBc->eqnMap = eqnMap_;
         if( dof == "" ) {
-          actBc->dof = 1;
+          actBc->dof = 0;
         } else {
           actBc->dof = actResultInfo->GetDofIndex( dof );
         }
@@ -1220,7 +1238,8 @@ namespace CoupledField {
         actBc->phase = phase;
 
         // add definition
-        idBcs_.Push_back( actBc );
+        //idBcs_.Push_back( actBc );
+        actFeFunction->AddInhomDirichletBc(actBc);
       } catch (Exception & ex ) {
         RETHROW_EXCEPTION( ex, "Can not create inhomogeneous boundary conditions on '"
                            << name << "'" );
@@ -1265,9 +1284,9 @@ namespace CoupledField {
 
         actBc->entities = actList;
         actBc->result = actResultInfo;
-        actBc->eqnMap = eqnMap_;
+        //actBc->eqnMap = eqnMap_;
         if( dof == "" ) {
-          actBc->dof = 1;
+          actBc->dof = 0;
         } else {
           actBc->dof = actResultInfo->GetDofIndex( dof );
         }
@@ -1300,7 +1319,7 @@ namespace CoupledField {
         csNodes[i]->Get( "slaveDof", slaveDof );
 
         // fetch related resultInfo object
-        actResultInfo = GetResultInfo( SolutionTypeEnum.Parse(resultName) );
+        actFeFunction = GetFeFunction( SolutionTypeEnum.Parse(resultName) );
 
         // Create constraint condition
         shared_ptr<Constraint> actBc ( new Constraint );
@@ -1312,8 +1331,7 @@ namespace CoupledField {
 
         EntityList::ListType listType;
         EntityList::String2Enum( entType, listType );
-        shared_ptr<EntityList> actList =
-          ptgrid_->GetEntityList( listType,
+        shared_ptr<EntityList> actList = ptgrid_->GetEntityList( listType,
                                   name, defineType );
 
         actBc->masterEntities = actList;
@@ -1321,19 +1339,20 @@ namespace CoupledField {
         if( masterDof == "" ) {
           actBc->masterDof = 1;
         } else {
-          actBc->masterDof = actResultInfo->GetDofIndex( masterDof );
+          actBc->masterDof = actFeFunction->GetResultInfo()->GetDofIndex( masterDof );
         }
         if( slaveDof == "" ) {
           actBc->slaveDof = 1;
         } else {
-          actBc->slaveDof = actResultInfo->GetDofIndex( masterDof );
+          actBc->slaveDof = actFeFunction->GetResultInfo()->GetDofIndex( masterDof );
         }
 
-        actBc->result = actResultInfo;
-        actBc->eqnMap = eqnMap_;
+        //actBc->result = actFeFunction->GetResultInfo();
+        //actBc->eqnMap = eqnMap_;
 
         // add definition
-        constraints_.Push_back( actBc );
+        //constraints_.Push_back( actBc );
+        actFeFunction->AddConstraint(actBc);
       } catch (Exception & ex ) {
         RETHROW_EXCEPTION( ex, "Can not create constraints on '"
                            << name << "'" );
@@ -1357,7 +1376,7 @@ namespace CoupledField {
         prNodes[i]->Get( "quantity", resultName );
 
         // fetch related resultInfo object
-        actResultInfo = GetResultInfo( SolutionTypeEnum.Parse(resultName) );
+        actFeFunction = GetFeFunction( SolutionTypeEnum.Parse(resultName) );
 
         // get entitylists
         NodeList masterList( ptgrid_ ), slaveList( ptgrid_ );
@@ -1410,11 +1429,12 @@ namespace CoupledField {
             actBc->masterDof = actResultInfo->GetDofIndex( dof );
           }
           actBc->slaveDof = actBc->masterDof;
-          actBc->result = actResultInfo;
-          actBc->eqnMap = eqnMap_;
+          //actBc->result = actResultInfo;
+          //actBc->eqnMap = eqnMap_;
 
           // add definition
-          constraints_.Push_back( actBc );
+          //constraints_.Push_back( actBc );
+          actFeFunction->AddConstraint(actBc);
         }
       } catch (Exception & ex ) {
         RETHROW_EXCEPTION( ex, "Can not create periodic boundary on '"
@@ -1472,7 +1492,7 @@ namespace CoupledField {
 
         actLoad->entities = actList;
         actLoad->result = actResultInfo;
-        actLoad->eqnMap = eqnMap_;
+        //actLoad->eqnMap = eqnMap_;
         if ( dof == "" ) {
           actLoad->dof = 1;
         } else {
@@ -1869,8 +1889,8 @@ namespace CoupledField {
       // Initialize the matrix graph object
       algsys_->GraphSetupInit(1);
 
-      algsys_->RegisterPDE( pdeId_, eqnMap_->GetNumEqns(),
-                            eqnMap_->GetNumLastFreeDof() );
+      algsys_->RegisterPDE( pdeId_, feSpace_->GetNumEquations(),
+                            feSpace_->GetNumFreeEquations() );
 
       //assemble_->SetPDEId( pdeId_ );
       solveStep_->SetPDEId( pdeId_ );
@@ -1886,15 +1906,17 @@ namespace CoupledField {
 
       // obtain reordering of the matrix graph and pass it to the EQN-object.
       StdVector<UInt> newOrder;
+      //TODO WARNING!: No reordering supported
+
       algsys_->GetReordering( pdeId_, newOrder );
-      eqnMap_->ReorderMapping( newOrder );
+      feSpace_->ReorderEqnMap( newOrder );
     }
 
     // pass information about dofs, number of dirichlet equations
     // and constraints to the algebraic system
     //algsys_->SetBlockSize( pdeId_, 1 );
 
-    UInt numDir = eqnMap_->GetNumInHomDirichletEqns() +
+    UInt numDir = feSpace_->GetNumInhomDirichletBc() +
       numCouplingBcs_;
     algsys_->SetNumDirichletBCs(pdeId_, numDir );
 
@@ -1917,6 +1939,8 @@ namespace CoupledField {
         IncorporateMemento();
       }
     }
+    //Pass the system to feFunction
+    feFunction_->SetSystem(shared_ptr<BaseSystem>(algsys_));
 
   }
 
@@ -2093,7 +2117,7 @@ namespace CoupledField {
 
         for ( UInt dof = 0; dof < couplingDof; dof++ ) {
           for ( UInt j = 0; j < nodes->GetSize(); j++ ) {
-            eqnNr = eqnMap_->GetNodeEqn( (*nodes)[j], dof+1 );
+            eqnNr = feSpace_->GetNodeEqn( (*nodes)[j], dof+1 );
             if ( eqnNr != 0 && eqnNr <= maxAllowedEqn ) {
               algsys_->SetNodeRHS( help[ dof + couplingDof * j ], pdeId_,
                                    eqnNr );
@@ -2149,7 +2173,7 @@ namespace CoupledField {
           for ( UInt j = 0; j < nodes->GetSize();
                 j++, couplingBCsCounter_++) {
 
-            eqnNr = eqnMap_->GetNodeEqn( (*nodes)[j], dof+1 );
+            eqnNr = feSpace_->GetNodeEqn( (*nodes)[j], dof+1 );
 
             if (eqnNr==0) {
               EXCEPTION( "The specified coupling node has no equation number" );
@@ -2322,7 +2346,7 @@ namespace CoupledField {
         EntityIterator it = actSDList->GetIterator();
         UInt pos = 0;
         for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
-          eqnMap_->GetEqns( eqns, *results_[0], it );
+          feSpace_->GetEqns( eqns, it );
           for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
             if ( eqns[iDof] != 0 ) {
               (*values)[numDofs*pos+iDof] = solReal[abs(eqns[iDof])-1];
@@ -2379,7 +2403,7 @@ namespace CoupledField {
         EntityIterator it = actSDList->GetIterator();
         UInt pos = 0;
         for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
-          eqnMap_->GetEqns( eqns, *results_[0], it );
+          feSpace_->GetEqns( eqns, it );
           for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
             if ( eqns[iDof] != 0 ) {
               (*values)[numDofs*pos+iDof] = solComp[abs(eqns[iDof])-1];
@@ -2493,7 +2517,7 @@ namespace CoupledField {
             StdVector<Integer> eqns;
             UInt pos = 0;
             for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
-              eqnMap_->GetEqns( eqns, *results_[0], it );
+              feSpace_->GetEqns( eqns , it );
               for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
                 UInt actPos = numDofs*pos+iDof;
                 if ( eqns[iDof] != 0
@@ -2545,7 +2569,7 @@ namespace CoupledField {
             StdVector<Integer> eqns;
             UInt pos = 0;
             for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
-              eqnMap_->GetEqns( eqns, *results_[0], it );
+              feSpace_->GetEqns( eqns, it );
               for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
                 if ( eqns[iDof] != 0
                      && (unsigned int) (std::abs(eqns[iDof])-1) < solVec.GetSize() ) {
@@ -2609,8 +2633,8 @@ namespace CoupledField {
 
               actBc->entities = actList;
               actBc->result = results_[0];
-              actBc->eqnMap = eqnMap_;
-              actBc->dof = iDof+1;
+              //actBc->eqnMap = eqnMap_;
+              actBc->dof = iDof;
               actBc->value = GenStr(std::abs( val ) );
               actBc->phase = GenStr(std::atan2( val.imag(), val.real())
                                     *180/PI );
@@ -2646,7 +2670,7 @@ namespace CoupledField {
     for( it.Begin(); !it.IsEnd(); it++ ) {
 
       // get equation numbes
-      eqnMap_->GetEqns( eqnNums, actDof, it );
+      feSpace_->GetEqns( eqnNums, it);
       for( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ) {
         if( eqnNums[iDof] != 0 ) {
           actSol[it.GetPos()*numDofs+iDof] = solHelp[abs(eqnNums[iDof])-1];
@@ -2690,7 +2714,7 @@ namespace CoupledField {
 
       // iterate over all elements
       for( it.Begin(); !it.IsEnd(); it++ ) {
-        eqnMap_->GetEqns( eqnNums, *results_[0], it );
+        feSpace_->GetEqns( eqnNums,  it );
 
         // iterate over all dofs
         for( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ) {
@@ -2727,7 +2751,7 @@ namespace CoupledField {
 
       // iterate over all elements
       for( it.Begin(); !it.IsEnd(); it++ ) {
-        eqnMap_->GetEqns( eqnNums, *results_[0], it );
+        feSpace_->GetEqns( eqnNums,  it );
 
         // iterate over all dofs
         for( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ) {
@@ -2767,7 +2791,7 @@ namespace CoupledField {
     for( it.Begin(); !it.IsEnd(); it++ ) {
 
       // get equation numbes
-      eqnMap_->GetEqns( eqnNums, *eqnResultInfo, it );
+      feSpace_->GetEqns( eqnNums, it );
       for( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ) {
         if( eqnNums[iDof] != 0 ) {
           actSol[it.GetPos()*numDofs+iDof] = solHelp[abs(eqnNums[iDof])-1];

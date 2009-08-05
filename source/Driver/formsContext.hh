@@ -21,6 +21,8 @@ namespace CoupledField
   class EqnMap;
   class EntityIterator;
   class ResultInfo;
+  class FeSpace;
+  class BaseFeFunction;
 
 
 
@@ -111,13 +113,14 @@ namespace CoupledField
     // ======================================================
 
     //! Set pointer to PDE(s) where the form is derived from
-    void SetPtPdes(SinglePDE * aPDE1, SinglePDE * aPDE2 );
+    void SetPtPdes(shared_ptr<SinglePDE> aPDE1, shared_ptr<SinglePDE> aPDE2 );
 
     //! Set the result types and entities the bilinearform is working on
-    void SetResults( shared_ptr<ResultInfo> result1,
-                     shared_ptr<ResultInfo> result2,
-                     shared_ptr<EntityList> list1,
-                     shared_ptr<EntityList> list2 );
+    void SetEntities( shared_ptr<EntityList> list1,
+                      shared_ptr<EntityList> list2 );
+
+    void SetFeFunctions( shared_ptr<BaseFeFunction> fct1, 
+                                      shared_ptr<BaseFeFunction> fct2); 
 
     //! Return first set of current entities
     shared_ptr<EntityList> GetFirstEntities() { return ent1_; }
@@ -126,16 +129,22 @@ namespace CoupledField
     shared_ptr<EntityList> GetSecondEntities() { return ent2_; }
 
     //! Returns pointer to first pde
-    SinglePDE * GetFirstPde ()  { return ptPde1_; }
+    shared_ptr<SinglePDE> GetFirstPde ()  { return ptPde1_; }
 
     //! Returns pointer to second pde
-    SinglePDE * GetSecondPde () { return ptPde2_; }
+    shared_ptr<SinglePDE> GetSecondPde () { return ptPde2_; }
 
     //! Returns information about first result info
     shared_ptr<ResultInfo> GetFirstResultInfo() { return result1_; }
 
     //! Returns information about second result info
     shared_ptr<ResultInfo> GetSecondResultInfo() { return result2_; }
+
+    //! Returns information about first feFunction
+    shared_ptr<BaseFeFunction> GetFirstFeFunction() { return feFct1_; }
+
+    //! Returns information about second feFunction
+    shared_ptr<BaseFeFunction> GetSecondFeFunction() { return feFct2_; }
 
     //get the pointe rto damping layer object!
 //    DampLayer* getPtDamplayer() {
@@ -199,10 +208,10 @@ namespace CoupledField
     // ======================================================
 
     //! Pointer to first pde
-    SinglePDE * ptPde1_;
+    shared_ptr<SinglePDE> ptPde1_;
 
     //! Pointer to second pde
-    SinglePDE * ptPde2_;
+    shared_ptr<SinglePDE> ptPde2_;
 
     //! Pointer to first result type
     shared_ptr<ResultInfo> result1_;
@@ -216,12 +225,18 @@ namespace CoupledField
     //! Pointer to second entity list
     shared_ptr<EntityList> ent2_;
 
-    //! Pointer to first equation map
-    shared_ptr<EqnMap> map1_;
+    //OBSOLETE is replaced by FeSpace
+    ////! Pointer to first equation map
+    //shared_ptr<EqnMap> map1_;
 
-    //! Pointer to second equation map
-    shared_ptr<EqnMap> map2_;
+    ////! Pointer to second equation map
+    //shared_ptr<EqnMap> map2_;
 
+    //! Pointer to first FeFunction
+    shared_ptr<BaseFeFunction> feFct1_;
+
+    //! Pointer to second FeFunction
+    shared_ptr<BaseFeFunction> feFct2_;
 
   };
 
@@ -259,17 +274,19 @@ namespace CoupledField
     // ======================================================
 
     //! Set pointer to pde where the form is defined from
-    void SetPtPde(SinglePDE * ptPde );
+    void SetPtPde(shared_ptr<SinglePDE> ptPde );
+
+    //! Set pointer to pde where the form is defined from
+    void SetFeFunction(shared_ptr<BaseFeFunction>  fct );
 
     //! Set the result types and entities the linearform is defined on
-    void SetResult( shared_ptr<ResultInfo> result,
-                    shared_ptr<EntityList> list );
+    void SetEntities( shared_ptr<EntityList> list );
 
     //! Return first set of current entities
     shared_ptr<EntityList> GetEntities() { return ent_; }
 
     //! returns pointer to first pde
-    SinglePDE * GetPde () { return ptPde_; }
+    shared_ptr<SinglePDE> GetPde () { return ptPde_; }
 
     std::string ToString() const;
 
@@ -283,7 +300,7 @@ namespace CoupledField
     // ======================================================
 
     //! Pointer to pde
-    SinglePDE * ptPde_;
+    shared_ptr<SinglePDE> ptPde_;
 
     //! Pointer to result type
     shared_ptr<ResultInfo> result_;
@@ -292,7 +309,10 @@ namespace CoupledField
     shared_ptr<EntityList> ent_;
 
     //! Pointer to equation map
-    shared_ptr<EqnMap> map_;
+    //shared_ptr<EqnMap> map_;
+
+    //! Pointer to FeFunction
+    shared_ptr<BaseFeFunction> feFct_;
 
   };
 

@@ -461,9 +461,9 @@ namespace CoupledField {
         BiLinFormContext * stiffContext =
           new BiLinFormContext( bilinearStiff, STIFFNESS );
 
-        stiffContext->SetResults( results_[0], results_[0],
-                                  actSDList, actSDList );
-        stiffContext->SetPtPdes( this, this );
+        //stiffContext->SetResults( results_[0], results_[0],
+        //                          actSDList, actSDList );
+        //stiffContext->SetPtPdes( this, this );
 
         // mass integrator
         coeffmass = density / (c0*c0);
@@ -476,9 +476,9 @@ namespace CoupledField {
 
         BiLinFormContext * massContext =
           new BiLinFormContext( bilinearMass, MASS );
-        massContext->SetResults( results_[0], results_[0],
-                                 actSDList, actSDList );
-        massContext->SetPtPdes(this, this);
+        //massContext->SetResults( results_[0], results_[0],
+        //                         actSDList, actSDList );
+        //massContext->SetPtPdes(this, this);
 
         // *******************************************************************
         // Additional terms for Pierce Equation
@@ -614,9 +614,9 @@ namespace CoupledField {
             BaseForm * bilinearStiff  = new LaplaceInt(coeffdamp, isaxi_);
             BiLinFormContext * dampContext =
               new BiLinFormContext(bilinearStiff, DAMPING );
-            dampContext->SetResults( results_[0], results_[0],
-                                     actSDList, actSDList );
-            dampContext->SetPtPdes(this, this);
+            //dampContext->SetResults( results_[0], results_[0],
+            //                         actSDList, actSDList );
+            //dampContext->SetPtPdes(this, this);
             assemble_->AddBiLinearForm( dampContext );
           }
 
@@ -645,9 +645,9 @@ namespace CoupledField {
             //   matrix_factors[STIFFNESS] = 1.0
             BiLinFormContext * dampContext =
               new BiLinFormContext( bilinearDamp, STIFFNESS );
-            dampContext->SetResults( results_[0], results_[0],
-                                     actSDList, actSDList );
-            dampContext->SetPtPdes(this, this);
+            //dampContext->SetResults( results_[0], results_[0],
+            //                         actSDList, actSDList );
+            //dampContext->SetPtPdes(this, this);
             assemble_->AddBiLinearForm( dampContext );
           }
 
@@ -680,9 +680,9 @@ namespace CoupledField {
             //   matrix_factors[STIFFNESS] = 1.0
             BiLinFormContext * dampContext =
               new BiLinFormContext( bilinearDamp, STIFFNESS );
-            dampContext->SetResults( results_[0], results_[0],
-                                     actSDList, actSDList );
-            dampContext->SetPtPdes(this, this);
+            //dampContext->SetResults( results_[0], results_[0],
+            //                         actSDList, actSDList );
+            //dampContext->SetPtPdes(this, this);
             assemble_->AddBiLinearForm( dampContext );
           }
 
@@ -714,15 +714,15 @@ namespace CoupledField {
             //  See method Matrix2Harmonic in assemble.cc
             BiLinFormContext * dampContextReal =
               new BiLinFormContext( bilinearDampReal, STIFFNESS );
-            dampContextReal->SetPtPdes(this, this);
-            dampContextReal->SetResults( results_[0], results_[0],
-                                         actSDList, actSDList );
+            //dampContextReal->SetPtPdes(this, this);
+            //dampContextReal->SetResults( results_[0], results_[0],
+            //                             actSDList, actSDList );
 
             BiLinFormContext * dampContextImag =
               new BiLinFormContext( bilinearDampImag, STIFFNESS );
-            dampContextImag->SetPtPdes(this, this);
-            dampContextImag->SetResults( results_[0], results_[0],
-                                         actSDList, actSDList );
+            //dampContextImag->SetPtPdes(this, this);
+            //dampContextImag->SetResults( results_[0], results_[0],
+            //                             actSDList, actSDList );
             // set imaginary flag of matrix context
             Global::ComplexPart complexType = Global::IMAG;
             dampContextImag->SetEntryType(complexType);
@@ -738,7 +738,7 @@ namespace CoupledField {
       }
 
       // Give result to equation numbering class
-      eqnMap_->AddResult( *results_[0], actSDList );
+      //eqnMap_->AddResult( *results_[0], actSDList );
     }
 
     // **********************************************************************
@@ -755,12 +755,12 @@ namespace CoupledField {
       neumannBC->SetVoluInfo( materials_ );
       LinearFormContext * neumannContext =
         new LinearFormContext( neumannBC );
-      neumannContext->SetPtPde( this );
-      neumannContext->SetResult( actBc.result, actBc.entities );
+      //neumannContext->SetPtPde( this );
+      //neumannContext->SetResult( actBc.result, actBc.entities );
       assemble_->AddLinearForm( neumannContext );
 
       // Give result to equation numbering class
-      eqnMap_->AddResult( *actBc.result, actBc.entities );
+      //eqnMap_->AddResult( *actBc.result, actBc.entities );
     }
 
     // **********************************************************************
@@ -784,13 +784,13 @@ namespace CoupledField {
         }
         BiLinFormContext * abcContext =
           new BiLinFormContext( bilinear_damp, DAMPING );
-        abcContext->SetPtPdes(this, this);
-        abcContext->SetResults( results_[0], results_[0],
-                                absBCs_[actSD], absBCs_[actSD] );
+        //abcContext->SetPtPdes(this, this);
+        //abcContext->SetResults( results_[0], results_[0],
+        //                        absBCs_[actSD], absBCs_[actSD] );
         assemble_->AddBiLinearForm( abcContext );
 
         // Give result to equation numbering class
-        eqnMap_->AddResult( *results_[0], absBCs_[actSD] );
+        //eqnMap_->AddResult( *results_[0], absBCs_[actSD] );
       }
     }
 
@@ -910,8 +910,8 @@ namespace CoupledField {
 
       LinearFormContext * acouRHSContext =
         new LinearFormContext( acouRHSInt );
-      acouRHSContext->SetPtPde( this );
-      acouRHSContext->SetResult( results_[0], acouRHSRegionNodeList );
+      //acouRHSContext->SetPtPde( this );
+      //acouRHSContext->SetResult( results_[0], acouRHSRegionNodeList );
       assemble_->AddLinearForm( acouRHSContext );
     }
   }
@@ -969,18 +969,20 @@ namespace CoupledField {
       }
     }
     else {
-      if ( effectiveMass_ == false )
-        TS_alg_ = new NewmarkFracDamp( algsys_,
-                                       pdeId_, eqnMap_, ptgrid_, this,
-                                       results_[0],
-                                       subdoms_, dampingList_ );
-      else
+      if ( effectiveMass_ == false ){
+        EXCEPTION( "NewmarkFracDamp not adapted" );
+        //TS_alg_ = new NewmarkFracDamp( algsys_,
+        //                               pdeId_, eqnMap_, ptgrid_, this,
+        //                               results_[0],
+        //                               subdoms_, dampingList_ );
+      } else{
         EXCEPTION( "This needs to be implemented!" );
+      }
     }
 
     // Needed for nonlinear wave equation, get memory for linear part of RHS
     if ( nonLin_ ) {
-      RhsLinVal_.Resize(numPDENodes_);
+      RhsLinVal_.Resize(numPdeEquations_);
       RhsLinVal_.Init();
     }
 

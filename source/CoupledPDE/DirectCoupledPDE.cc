@@ -104,7 +104,7 @@ namespace CoupledField {
     aux.Init();
 
     // Construct the initial solution vector
-    shared_ptr<EqnMap> eqn;
+    shared_ptr<FeSpace> feSpace;
     UInt singleUnknowns=0;
     UInt lastIndex=0;
 
@@ -126,14 +126,14 @@ namespace CoupledField {
 
       //------------------------------------------------
       // get the number of unknowns of this pde
-      eqn = singlePDEs_[i]->GetEqnMap();
-      singleUnknowns = eqn->GetNumEqns();
+      feSpace = singlePDEs_[i]->GetFeSpace();
+      singleUnknowns = feSpace->GetNumEquations();
 
       // check setup of linear system
       if(singlePDEs_[i]->usePenalty_==false){
         // uses elimination of Inhomogeneous DBC
         //std::cout << "Num of Inhomogeneous DBC = "<< eqn->GetNumInHomDirichletEqns () << std::endl;
-        singleUnknowns-=eqn->GetNumInHomDirichletEqns ();
+        singleUnknowns-=feSpace->GetNumInhomDirichletBc();
       }
       //------------------------------------------------
 
@@ -251,10 +251,10 @@ namespace CoupledField {
 
     // Iterate over all single PDEs and collect data about
     // included boundary conditions
-    shared_ptr<EqnMap> eqn;
+    shared_ptr<FeSpace> feSpace;
     for ( UInt i=0; i<singlePDEs_.GetSize(); i++ ) {
-      eqn = singlePDEs_[i]->GetEqnMap();
-      totalUnknowns_ += eqn->GetNumEqns();
+      feSpace = singlePDEs_[i]->GetFeSpace();
+      totalUnknowns_ += feSpace->GetNumEquations();
     }
 
     if ( analysistype_ == BasePDE::TRANSIENT ) {
@@ -404,7 +404,7 @@ namespace CoupledField {
   Double DirectCoupledPDE::RhsL2Norm(Vector<Double>& actRHS)
   {
 
-    Integer eqnNr;
+    StdVector<Integer> eqns;
 
     for ( UInt j = 0; j < singlePDEs_.GetSize(); j++ ) {
 
@@ -421,9 +421,11 @@ namespace CoupledField {
 
 
         for ( it.Begin(); !it.IsEnd(); it++ ) {
-          eqnNr = singlePDEs_[j]->GetEqnMap()->GetEqn( *actBc.result, it, actBc.dof );
-          if ( eqnNr != 0 ) {
-            actRHS[(eqnNr-1)] = 0.0;
+          singlePDEs_[j]->GetFeSpace()->GetEqns( eqns, it, actBc.dof );
+          for(UInt iEqn = 0 ; iEqn < eqns.GetSize();iEqn ++){
+            if ( eqns[iEqn] != 0 ) {
+              actRHS[eqns[iEqn]] = 0.0;
+            }
           }
         }
       }
@@ -442,7 +444,7 @@ namespace CoupledField {
 
     std::string pdeName;
     FeFctIdType pdeId;
-    shared_ptr<EqnMap> eqn;
+    shared_ptr<FeSpace> feSpace;
 
     // Set linear system parameters for OLAS
     //
@@ -461,10 +463,10 @@ namespace CoupledField {
       // obtain PDE identification tag from algebraic system
       // and set number of dirichlet and constraint equations
       pdeName= singlePDEs_[i]->GetName();
-      eqn = singlePDEs_[i]->GetEqnMap();
+      feSpace = singlePDEs_[i]->GetFeSpace();
       pdeId = singlePDEs_[i]->GetPDEId();
-      algsys_->RegisterPDE( pdeId, eqn->GetNumEqns(),
-                            eqn->GetNumLastFreeDof() );
+      algsys_->RegisterPDE( pdeId, feSpace->GetNumEquations(),
+                            feSpace->GetNumFreeEquations() );
 
       // Let the PDE set its Dirichlet information and related stuff
       singlePDEs_[i]->DefineAlgSys();
@@ -772,18 +774,19 @@ namespace CoupledField {
 
 
     FeFctIdType pdeId   = NO_PDE_ID;
-    shared_ptr<EqnMap> eqn;
+    shared_ptr<FeSpace> feSpace;
     StdVector<UInt> newOrder;
 
     for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
       pdeId    = singlePDEs_[i]->GetPDEId();
-      eqn      = singlePDEs_[i]->GetEqnMap();
+      feSpace      = singlePDEs_[i]->GetFeSpace();
       algsys_->GetReordering( pdeId, newOrder );
 //       if( newOrder == NULL ) {
 //         std::cerr << "performing no reordering!";
 //       }
 
-      eqn->ReorderMapping( newOrder );
+      EXCEPTION(" DirectCoupledPDE::IncorporateReordering() : Reordering is currently not supported");
+      //eqn->ReorderMapping( newOrder );
     }
   }
 

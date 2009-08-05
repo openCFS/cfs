@@ -17,6 +17,7 @@
 #include "PDE/eqnMap.hh"
 #include "PDE/disContEqnMap.hh"
 #include "PDE/mixedEqnMap.hh"
+#include "Elements/fespace.hh"
 
 
 namespace CoupledField{
@@ -81,7 +82,7 @@ namespace CoupledField{
     virtual BaseNodeStoreSol & operator= (const BaseNodeStoreSol & x) = 0;
 
     //! Set Pointer to nodal equation object
-    virtual void SetPtrEQNData( EqnMap * eqnMap,
+    virtual void SetPtrEQNData( shared_ptr<FeSpace> feSpace,
                                 Grid *ptGrid) = 0;
     
     virtual void SetResult( shared_ptr<ResultInfo>& result ) {
@@ -480,7 +481,7 @@ namespace CoupledField{
     Grid * ptGrid_;
 
     //! Pointer to equation map
-    EqnMap * eqnMap_;
+    shared_ptr<FeSpace> feSpace_;
 
     //! Type of results
     StdVector<shared_ptr<ResultInfo> >results_;   

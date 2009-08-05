@@ -900,7 +900,8 @@ namespace CoupledField {
                               SolutionType solType,
                               StdVector<std::string>& regionNames ) {
     
-    
+    EXCEPTION("ResultHandler::GetStoreSol: Not Adapted Yet");
+   /* 
     // get grid
     Grid * ptGrid = static_pointer_cast<Result<TYPE> >
     (GetResult( readerId, sequenceStep,stepValue, solType, regionNames[0] ) )
@@ -999,7 +1000,7 @@ namespace CoupledField {
     //std::cerr << "solution vector is " << solVec << std::endl;
      
     return sol; 
-    
+   */ 
   }
 
 

@@ -35,6 +35,8 @@
 #include "Utils/hysteresis.hh"
 #include "Utils/preisach.hh"
 #include "Optimization/DesignSpace.hh"
+#include "OLAS/algsys/basesystem.hh"
+#include "Elements/fespaceH1.hh"
 
 #ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh" 
@@ -263,9 +265,11 @@ namespace CoupledField {
           BiLinFormContext * stiffIntDescr = 
             new BiLinFormContext(linElecForm, STIFFNESS );
           
-          stiffIntDescr->SetPtPdes(this, this);
-          stiffIntDescr->SetResults( results_[0], results_[0],
-                                     actSDList, actSDList );
+          feFunction_->AddEntityList( actSDList );
+
+          //stiffIntDescr->SetPtPdes(this, this);
+          stiffIntDescr->SetEntities( actSDList, actSDList );
+          stiffIntDescr->SetFeFunctions( feFunction_, feFunction_);
           
           assemble_->AddBiLinearForm( stiffIntDescr );
           
@@ -273,7 +277,8 @@ namespace CoupledField {
           // --- check for complex valued material parameter ---
           // check for piezo-coupling and 
           if( isPiezoCoupled_ ) {
-            ParamNode * dataTypeNode = 
+            EXCEPTION("Piezo coupling not implemented yet");
+            /*ParamNode * dataTypeNode = 
               param->Get("sequenceStep", "index", GenStr(sequenceStep_) )
               ->Get("couplingList")->Get("direct")->Get("piezoDirect")
               ->Get("materialDataType", false );
@@ -300,13 +305,12 @@ namespace CoupledField {
               stiffIntDescrC->SetResults( results_[0], results_[0],
                                           actSDList, actSDList );
               assemble_->AddBiLinearForm( stiffIntDescrC );
-            }
+            }*/
           }
         }
       }  
       // Give result to equation numbering class
-      eqnMap_->AddResult( *results_[0], actSDList );
-      
+      //eqnMap_->AddResult( *results_[0], actSDList );
     }
 
 //    // Define integrators for composite materials
@@ -346,12 +350,15 @@ namespace CoupledField {
                                                      NO_MATERIAL, isaxi_);
       neumannBC->SetVoluInfo(materials_);
       LinearFormContext* neumannContext = new LinearFormContext(neumannBC);
-      neumannContext->SetPtPde(this);
-      neumannContext->SetResult(actBc.result, actBc.entities);
+      feFunction_->AddEntityList(actBc.entities);
+
+      neumannContext->SetEntities( actBc.entities);
+      neumannContext->SetFeFunction( feFunction_);
+
       assemble_->AddLinearForm(neumannContext);
       
       // Give result to equation numbering class
-      eqnMap_->AddResult(*actBc.result, actBc.entities);
+      //eqnMap_->AddResult(*actBc.result, actBc.entities);
     }
     
     // =======================================================================
@@ -1176,10 +1183,17 @@ namespace CoupledField {
     // check if problem is lagrange or legendre
     std::string approxType = myParam_->Get("type")->AsString();
 
-    if ( approxType == "lagrange" ) {
-      // Create new resultDof object
+    if ( approxType == "H1" ) {
       shared_ptr<ResultInfo> res1( new ResultInfo);
       res1->resultType = ELEC_POTENTIAL;
+      feSpace_.reset( new FeSpaceH1 );
+      if(analysistype_ == HARMONIC){
+        feFunction_.reset( new FeFunction<Complex> );
+      }else{
+        feFunction_.reset( new FeFunction<Double> );
+      }
+
+
 
       // check for special subtype 
       if( subType_  != "flatShell" ) {
@@ -1209,51 +1223,92 @@ namespace CoupledField {
         res1->definedOn = ResultInfo::ELEMENT;
         res1->entryType = ResultInfo::SCALAR;
       }
-        
-      results_.Push_back( res1 );
-      availResults_.insert( res1 );
-      
-    }else if(  approxType == "spectral" ) {
-      shared_ptr<ResultInfo> res1( new ResultInfo);
-      UInt order = myParam_->Get("order")->AsUInt();
-      shared_ptr<SpectralFct> fct(new SpectralFct);
-      res1->definedOn = ResultInfo::PFEM;
-      fct->SetOrder(order);
-      res1->dofNames = "";
-      res1->unit = "V";
-      res1->fctType = fct;
-
-      res1->resultType = ELEC_POTENTIAL;
-    	res1->entryType = ResultInfo::SCALAR;
-      results_.Push_back( res1 );
-      availResults_.insert( res1 );
-
-    } else {
-      // Create new resultDof object
-      shared_ptr<ResultInfo> res1( new ResultInfo);
-      shared_ptr<LegendreFct> fct(new LegendreFct);
-      if( myParam_->Get("isIsotropic")->AsBool() ) {
-        UInt order =  myParam_->Get("order")->AsUInt();
-        fct->SetIsoOrder( order );
-      } else {
-        Matrix<UInt> orderMat;
-        ParamTools::AsTensor<unsigned int>(myParam_->Get("anisotropic"), dim_, 1, orderMat); 
-        fct->SetAnisoOrder( orderMat );
-      }
-      
-      if( subType_ == "flatShell" ) {
-        EXCEPTION( "Subtype 'flatShell' not working with Legendre functions." );
-      }
-
-      res1->resultType = ELEC_POTENTIAL;
-      res1->entryType = ResultInfo::SCALAR;
-      res1->dofNames = "";
-      res1->unit = "V";
-      res1->definedOn = ResultInfo::PFEM;
-      res1->fctType = fct;
+      feFunction_->SetFeSpace(feSpace_);
+      feFunction_->SetResultInfo(res1);
+      feFunction_->SetPDE(shared_ptr<ElecPDE>(this));
+      feSpace_->AddFeFunction(feFunction_);
       results_.Push_back( res1 );
       availResults_.insert( res1 );
     }
+
+    //if ( approxType == "lagrange" ) {
+    //  // Create new resultDof object
+    //  shared_ptr<ResultInfo> res1( new ResultInfo);
+    //  res1->resultType = ELEC_POTENTIAL;
+
+    //  // check for special subtype 
+    //  if( subType_  != "flatShell" ) {
+    //    shared_ptr<AnsatzFct> fct(new LagrangeFct);
+    //    res1->dofNames = "";
+    //    res1->unit = "V";
+    //    res1->definedOn = ResultInfo::NODE;
+    //    res1->entryType = ResultInfo::SCALAR;
+    //    res1->fctType = fct;
+    //  } else {
+    //    // Determine number of laminas for setting number of dofs
+    //    StdVector<ParamNode*>  laminas = param->Get("domain")
+    //      ->GetList("composite");
+    //    
+    //    if (laminas.GetSize() == 0) {
+    //      res1->dofNames.Push_back("ep");
+    //    } else {
+    //      for( UInt i=0; i<laminas[0]->Count("lamina"); i++ ) {
+    //        std::string dofName = "ep";
+    //        dofName += GenStr(i+1);
+    //        res1->dofNames.Push_back( dofName );
+    //      }
+    //    }
+    //    shared_ptr<AnsatzFct> fct(new LagrangeFct);
+    //    res1->unit = "V";
+    //    res1->fctType = fct;
+    //    res1->definedOn = ResultInfo::ELEMENT;
+    //    res1->entryType = ResultInfo::SCALAR;
+    //  }
+    //    
+    //  results_.Push_back( res1 );
+    //  availResults_.insert( res1 );
+    //  
+    //}else if(  approxType == "spectral" ) {
+    //  shared_ptr<ResultInfo> res1( new ResultInfo);
+    //  UInt order = myParam_->Get("order")->AsUInt();
+    //  shared_ptr<SpectralFct> fct(new SpectralFct);
+    //  res1->definedOn = ResultInfo::PFEM;
+    //  fct->SetOrder(order);
+    //  res1->dofNames = "";
+    //  res1->unit = "V";
+    //  res1->fctType = fct;
+
+    //  res1->resultType = ELEC_POTENTIAL;
+    //	res1->entryType = ResultInfo::SCALAR;
+    //  results_.Push_back( res1 );
+    //  availResults_.insert( res1 );
+
+    //} else {
+    //  // Create new resultDof object
+    //  shared_ptr<ResultInfo> res1( new ResultInfo);
+    //  shared_ptr<LegendreFct> fct(new LegendreFct);
+    //  if( myParam_->Get("isIsotropic")->AsBool() ) {
+    //    UInt order =  myParam_->Get("order")->AsUInt();
+    //    fct->SetIsoOrder( order );
+    //  } else {
+    //    Matrix<UInt> orderMat;
+    //    ParamTools::AsTensor<unsigned int>(myParam_->Get("anisotropic"), dim_, 1, orderMat); 
+    //    fct->SetAnisoOrder( orderMat );
+    //  }
+    //  
+    //  if( subType_ == "flatShell" ) {
+    //    EXCEPTION( "Subtype 'flatShell' not working with Legendre functions." );
+    //  }
+
+    //  res1->resultType = ELEC_POTENTIAL;
+    //  res1->entryType = ResultInfo::SCALAR;
+    //  res1->dofNames = "";
+    //  res1->unit = "V";
+    //  res1->definedOn = ResultInfo::PFEM;
+    //  res1->fctType = fct;
+    //  results_.Push_back( res1 );
+    //  availResults_.insert( res1 );
+    //}
     
     // Electric RHS Load
     // create new resultDof object

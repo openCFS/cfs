@@ -32,9 +32,6 @@ namespace CoupledField {
     //! Type of result the boundary condition is assigned with
     shared_ptr<ResultInfo> result;
 
-    //! Equation map
-    shared_ptr<EqnMap> eqnMap;
-
     //! Degree of freedom index
     UInt dof;
 

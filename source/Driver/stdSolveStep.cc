@@ -27,7 +27,7 @@ namespace CoupledField {
 
 
     pdename_      = PDE_.GetName();
-    numPDENodes_  = PDE_.getPDE_numPDENodes();
+    numPDENodes_  = PDE_.GetNumPdeEquations();
     numPDEElems_  = PDE_.getPDE_numElems();
     isaxi_        = PDE_.GetIsaxi();
     subdoms_      = PDE_.getPDE_subdoms();
@@ -42,7 +42,7 @@ namespace CoupledField {
       matrix_factor_ = TS_alg_->GetEffSysMatFactors();
     }
 
-    eqnMap_       = PDE_.GetEqnMap();
+    feSpace_       = PDE_.GetFeSpace();
     results_      = PDE_.GetResultInfos();
     numEqns_      = PDE_.GetSolutionVector()->GetSize();
 

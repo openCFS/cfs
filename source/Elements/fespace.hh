@@ -6,14 +6,24 @@
 
 #include "General/environment.hh"
 #include "Domain/entityList.hh"
+#include "Domain/Composite.hh"
 #include "Domain/elem.hh"
+#include "General/exception.hh"
+#include "Domain/domain.hh"
+#include "Elements/basefe.hh"
+#include "Elements/2D/quad1fe.hh"
+#include "Elements/3D/hexa1FE.hh"
+#include "Elements/1D/line1fe.hh"
+#include "Domain/resultInfo.hh"
+#include "Elements/fefunction.hh"
+#include "MatVec/matrix.hh"
 
 namespace CoupledField {
 
 
 // forward class declarations
 class BaseFe;
-class FeFunction;
+class BaseFeFunction;
 
 //!  Base class for the Finite Element Space (FeSpace) 
 /*!
@@ -47,6 +57,11 @@ public:
   static Enum<Type> TypeEnum;
   //@}
 
+  //! Enumeration type for boundary conditions 
+  //@{
+  typedef enum{NOBC, HDBC = -2, IDBC = -3, CONSTRAINT = -4} BC_Type;
+  //@}
+
   //! Constructor
   FeSpace();
 
@@ -57,7 +72,7 @@ public:
   Type GetType() { return type_;}
   
   //! Generate instance of specific element space type
-  shared_ptr<FeSpace> CreateInstance( Type type );
+  static shared_ptr<FeSpace> CreateInstance( Type type );
   
   // ========================================================================
   //  ELEMENT HANDLING
@@ -65,7 +80,9 @@ public:
   //@{ \name Element Handling
 
   //! Return pointer to reference element
-  virtual shared_ptr<BaseFe> GetFe( const EntityIterator ent ) = 0;
+  virtual shared_ptr<BaseFE> GetFe( const EntityIterator ent ) = 0;
+
+  virtual UInt GetNumFunctions( const EntityIterator ent ) = 0;
   //@}
   
   // ========================================================================
@@ -75,12 +92,55 @@ public:
   
   //! Return equation numbers
   virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent ) = 0; 
-  
+
+  //! Return equation numbers for a specific dof
+  virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent
+                        , UInt dof ) = 0; 
+
+  //! Get a Nodal Equation number
+  virtual UInt GetNodeEqn(UInt nodeNr, UInt dof) = 0;
+
+  //! Reorder the equation Map (just for comptibility)
+  virtual void ReorderEqnMap( StdVector<UInt> newOrder ) = 0;
+
   //! Add result
-  virtual void AddFeFunction( shared_ptr<FeFunction> fct ) = 0;
-  
+  virtual void AddFeFunction( shared_ptr<BaseFeFunction> fct ) = 0;
+
+  //! Get number of equaitons thich are not fixed by BCs this space has assinged
+  virtual UInt GetNumFreeEquations(){
+    // Hardcoded for testing
+    return numEqns_;
+    //return numFreeEquations_;
+  }
+
+  //! Get number of equaitons this space has assinged
+  virtual UInt GetNumEquations(){
+    return numEqns_;
+  }
+
+  //! Get number of (vectorial) unknowns this space has assinged
+  //! Including those, of which one Dof might be fixed by BCs
+  //! Deprecated. Just for compatibility with NodeStoreSolution Class
+  UInt GetNumUnknowns(){
+    return numUnknowns_;
+  }
+
+  UInt GetNumHomDirichletBc(){
+    return bcCounter_[HDBC];
+  }
+
+  UInt GetNumInhomDirichletBc(){
+    return bcCounter_[IDBC];
+  }
+
+  UInt GetNumConstraints(){
+    return bcCounter_[CONSTRAINT];
+  }
+
   //! Map equations i.e. intialize object
   virtual void Finalize() = 0;
+
+  virtual void PrintEqnMap() = 0;
   //@}
   
 protected:
@@ -89,44 +149,29 @@ protected:
   Type type_;
   
   //! Map for reference elmenets
-  std::map<Elem::FEType, BaseFE*> refElems_;
+  std::map<Elem::FEType, BaseFE* > refElems_;
+
+  //! Storing the FeFunctions associated with this space
+  shared_ptr<BaseFeFunction> feFunction_;
+
+  //!flag indicatng if the FeSpace is already initialized
+  bool isFinalized_;
+
+  //! Number of equations administrated by this space
+  UInt numEqns_;
+
+  //! Number of equations administrated by this space not fixed by BCs
+  UInt numFreeEquations_;
+
+  //! Number of (vectorial) unknowns administrated by this space
+  //! Including those, of which one Dof might be fixed by BCs
+  //TODO: Perhaps think of another name. Unknowns is a little misleading
+  UInt numUnknowns_;
+  
+  //! map for storing the number of different boundary conditions
+  std::map< BC_Type, UInt> bcCounter_;
 };
 
-
-///////////////////////////////////////////////////////////////////
-// H1 - Lower Order / non hierarchical
-///////////////////////////////////////////////////////////////////
-
-class FeSpaceH1 : public FeSpace {
-
-
-public:
-
-  //! Type of basis used
-  typedef enum {LAGRANGE, DUAL} BasisType; 
-
-  //! Constructor
-  FeSpaceH1();
-
-  //! Destructor
-  ~FeSpaceH1();
-
-  //! Set type of basis
-  void SetBasis( BasisType type );
-
-  //! Determine order
-  //! This method determines the order of the generated elements,
-  //! as 
-  void SetOrder( UInt order);
-
-private:
-
-  //! Type of basis
-  BasisType basis_;
-
-  //! Order of functions used
-  UInt order_;
-};
 
 ///////////////////////////////////////////////////////////////////
 // H1 - Higher Order / hierarchical

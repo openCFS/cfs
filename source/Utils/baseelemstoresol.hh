@@ -13,7 +13,6 @@
 #include "General/environment.hh"
 #include "Utils/tools.hh"
 #include "MatVec/vector.hh"
-#include "PDE/eqnMap.hh"
 
 
 namespace CoupledField{
@@ -23,6 +22,7 @@ namespace CoupledField{
   class Grid;
   class SingleVector;
   class DenseMatrix;
+  class ElemList;
   template<class TYPE> class Matrix;
   template<class TYPE> class Vector;
 
@@ -86,7 +86,8 @@ namespace CoupledField{
       result_ = result; }
 
     virtual void AddElemList( shared_ptr<ElemList> elems ) {
-      elems_.Push_back( elems ); }
+      elems_.Push_back( elems ); 
+    }
 
     //! Deletes all data and layout information
 

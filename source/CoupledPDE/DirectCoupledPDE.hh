@@ -20,6 +20,9 @@ namespace CoupledField {
   class DirectCoupledPDE : public StdPDE
   {
   public:
+
+    typedef StdVector<shared_ptr<BaseFeFunction> > FeFunctionList;
+    typedef StdVector<shared_ptr<FeSpace> > FeSpaceList;
   
     //! Constructor
     /*!

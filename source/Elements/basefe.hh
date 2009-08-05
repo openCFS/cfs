@@ -431,7 +431,10 @@ namespace CoupledField
     
     
     //! Return FE-Type
-    virtual Elem::FEType feType() = 0;
+    virtual Elem::FEType feType(){
+      EXCEPTION( "Not implemented in baseFE!" );
+    };
+
 
     /// Return weightings of integration points
     Vector<Double> GetIntWeights() const {return IntWeights_;};
@@ -627,7 +630,10 @@ namespace CoupledField
     virtual void CalcShapeFnc(Vector<Double> & Shape,
                               const Vector<Double> & LCoord,
                               const Elem* elem , UInt dof,
-                              AnsatzFct::FctEntityType = AnsatzFct::ALL ) = 0;
+                              AnsatzFct::FctEntityType = AnsatzFct::ALL ){
+      EXCEPTION( "Not implemented in baseFE!" );
+    };
+
 
     //! Calculates the local derivatives of shape functions at an arbitrary local point
     /*!
@@ -640,7 +646,10 @@ namespace CoupledField
     virtual void CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
                                         const Vector<Double> & LCoord,
                                         const Elem* elem, UInt dof,
-                                        AnsatzFct::FctEntityType = AnsatzFct::ALL ) = 0;
+                                        AnsatzFct::FctEntityType = AnsatzFct::ALL ){
+      EXCEPTION( "Not implemented in baseFE!" );
+    };
+
 
     //! Calculates the local 2nd derivatives of shape functions at an arbitrary local point
     /*!
@@ -693,20 +702,29 @@ namespace CoupledField
     virtual void SetShapeFnc2ndDerivAtIp();
 
     //! Set local corner coordinates
-    virtual void SetCornerCoords() = 0;
+    virtual void SetCornerCoords(){
+      EXCEPTION( "Not implemented in baseFE!" );
+    };
+
 
     /** returns the shape name as used for integration type in the XML file based on
      * the abstract feType() */
     const char* GetShapeName();
 
     /** the childs fill here the integration points map via AddIntegrationPoints() */
-    virtual void FillIntegrationPoints() = 0;
+    virtual void FillIntegrationPoints(){
+      EXCEPTION( "Not implemented in baseFE!" );
+    };
 
     /** Every Element has to set the preferred default integration mode */
-    virtual void SetDefaultIntegration() = 0;
+    virtual void SetDefaultIntegration(){
+      EXCEPTION( "Not implemented in baseFE!" );
+    };
 
     /** Every Element has also a default reduced integration set -> see the tex documentation for details */
-    virtual void SetDefaultReducedIntegration() = 0;
+    virtual void SetDefaultReducedIntegration(){
+      EXCEPTION( "Not implemented in baseFE!" );
+    };
 
     /** Expicitly set and load the integration type and order */
     void SetIntPoints(IntegrationMethod method, int order);

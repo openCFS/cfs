@@ -21,11 +21,12 @@ namespace CoupledField
   class BaseNodeStoreSol;
   class TimeStepping;
   class WriteResults;
-  class EqnMap;
+  //class EqnMap;
   class ResultInfo;
   class SingleDriver;
   class IDBC_Handler;
   class BaseIDBC_Handler;
+  class FeSpace;
 
   //  class Domain;
   
@@ -201,7 +202,7 @@ namespace CoupledField
     Grid * ptgrid_;                  //!< pointer to grid object
     BaseSystem* algsys_;             //!< pointer to algsys object
     BaseNodeStoreSol * sol_;         //!< pointer to solution object
-    shared_ptr<EqnMap> eqnMap_;
+    shared_ptr<FeSpace> feSpace_;    //!< pointer to FeSpace
     ResultList results_;
     Assemble * assemble_;            //!< pointer to assemble object  
     //! factors for computingn effective system matrix

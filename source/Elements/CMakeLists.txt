@@ -30,6 +30,7 @@ SET(ELEMENTS_SRCS jacobian.cc basefe.cc
 #  3D/wedgeFE.cc
 fefunction.cc
 fespace.cc
+fespaceH1.cc
 elemshapes.cc
 )
 

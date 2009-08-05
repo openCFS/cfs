@@ -99,7 +99,7 @@ namespace CoupledField{
     void Clear();
  
     //! Set Pointer to nodal equation object
-    void SetPtrEQNData( EqnMap * eqnMap,
+    void SetPtrEQNData( shared_ptr<FeSpace> space,
                         Grid * ptGrid );  
 
     //! Initialization of the StoreSolution-object with 0-element(REQUIRED)

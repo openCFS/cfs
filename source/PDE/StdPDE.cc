@@ -30,7 +30,7 @@ namespace CoupledField {
     // =====================================================================
     // initialize variables
     // =====================================================================
-    numPDENodes_ = 0;
+    numPdeEquations_ = 0;
     numElems_ = 0;
     nonLin_ = false;
     nonLinMaterial_ = false;
@@ -139,7 +139,7 @@ namespace CoupledField {
   Double StdPDE::RhsL2Norm(Vector<Double>& actRHS)
   {
 
-    Integer eqnNr;
+    StdVector<Integer> eqns;
   
     // Eliminate inhom. dirichlet node from RHS (due to penalty formulation)
     for ( UInt i = 0; i < idBcs_.GetSize(); i++ ) {
@@ -151,9 +151,11 @@ namespace CoupledField {
       EntityIterator it = actBc.entities->GetIterator();
       
       for ( it.Begin(); !it.IsEnd(); it++ ) {
-        eqnNr = eqnMap_->GetEqn( *actBc.result, it, actBc.dof );
-        if ( eqnNr != 0 ) {
-          actRHS[(eqnNr-1)] = 0.0;
+        feSpace_->GetEqns( eqns, it, actBc.dof );
+        for(UInt iEqn = 0 ; iEqn < eqns.GetSize();iEqn){
+          if ( eqns[iEqn] != 0 ) {
+            actRHS[eqns[iEqn]] = 0.0;
+          }
         }
       }
     } 
@@ -265,7 +267,7 @@ namespace CoupledField {
 
 
     StdVector<Integer> eqns;
-    eqnMap_->GetEqns( eqns, *res, it );
+    feSpace_->GetEqns( eqns, it );
 
 
     elemSol.Resize( eqns.GetSize() );
@@ -291,7 +293,7 @@ namespace CoupledField {
 
 
     StdVector<Integer> eqns;
-    eqnMap_->GetEqns( eqns, *res, it );
+    feSpace_->GetEqns( eqns, it );
 
 
     elemSol.Resize( eqns.GetSize() );
@@ -316,7 +318,7 @@ namespace CoupledField {
                                        shared_ptr<ResultInfo> res) {
 
     StdVector<Integer> eqns;
-    eqnMap_->GetEqns( eqns, *res, it );
+    feSpace_->GetEqns( eqns, it );
     sol.Resize( eqns.GetSize() );
     sol.Init( 0.0 ); 
     
@@ -342,7 +344,7 @@ namespace CoupledField {
 
 
     StdVector<Integer> eqns;
-    eqnMap_->GetEqns( eqns, *res, it );
+    feSpace_->GetEqns( eqns, it );
     
     sol.Resize( eqns.GetSize() );
     sol.Init( 0.0 );
@@ -375,7 +377,7 @@ namespace CoupledField {
 
 
     StdVector<Integer> eqns;
-    eqnMap_->GetEqns( eqns, *res, it );
+    feSpace_->GetEqns( eqns, it );
     
     sol.Resize( eqns.GetSize() );
     sol.Init( 0.0 );
@@ -400,7 +402,7 @@ namespace CoupledField {
 
 
     StdVector<Integer> eqns;
-    eqnMap_->GetEqns( eqns, *res, it );
+    feSpace_->GetEqns( eqns, it );
     
     sol.Resize( eqns.GetSize() );
     sol.Init( 0.0 );
@@ -428,7 +430,7 @@ namespace CoupledField {
 
 
     //const UInt numElems = numPDENodes_ * dofspernode_;
-    UInt numElems = eqnMap_->GetNumEqns();
+    UInt numElems = feSpace_->GetNumEquations();
 
     vec.Resize(numElems);
     for (UInt i=0; i<numElems; i++) {
@@ -459,6 +461,17 @@ namespace CoupledField {
     return res;
   }
 
+  shared_ptr<BaseFeFunction> StdPDE::GetFeFunction( SolutionType solType ) {
+    
+    shared_ptr<BaseFeFunction> feFct;
+    if( feFunction_->GetResultInfo()->resultType == solType) {
+      feFct = feFunction_;
+    } else {
+      EXCEPTION( "A FeFunction with solutionType '" << SolutionTypeEnum.ToString(solType)
+                 << "' was not found for " << pdename_ );
+    }
+    return feFct;
+  }
 
   // ******************
   //   ReadOlasParams

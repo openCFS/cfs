@@ -27,7 +27,7 @@ namespace CoupledField {
     if( pos < 0  ) {
       EXCEPTION( "Dof with name '" << dof << "' not found!" );
     }
-    return (UInt) pos+1;
+    return (UInt) (pos-1);
     
   }
 

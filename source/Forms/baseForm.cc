@@ -126,7 +126,7 @@ namespace CoupledField
   Double BaseForm::GetErsatzMaterialFactor(const Elem* elem)
   {
     //Double factor;
-     Warning("BaseForm::GetErsatzMaterialFactor: commented out due to refactoring"); return 0.0;
+     Warning("BaseForm::GetErsatzMaterialFactor: commented out due to refactoring. Will return 1.0"); return 1.0;
 //    bool ok = domain->GetErsatzMaterial(elem, this, factor);
 //    return ok ? factor : 1.0;
   }

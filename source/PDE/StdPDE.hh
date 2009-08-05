@@ -11,6 +11,8 @@
 
 #include "PDE/timestepping.hh"
 #include "Domain/Composite.hh"
+#include "Elements/fefunction.hh"
+#include "Elements/fespace.hh"
 
 namespace CoupledField {
 
@@ -22,11 +24,9 @@ namespace CoupledField {
   class BaseNodeStoreSol;
   class StdSolveStep;
   class PDECoupling;
-  class DiscontinuousEqnMap;
-  class MixedEqnMap;
-  class EqnMap;
   class ParamNode;
   class InfoNode;
+  class BaseFeFunction;
   
   //! Base class for all single-field and direct-coupled problems
 
@@ -102,6 +102,9 @@ namespace CoupledField {
     //! Returns the resultInfo related to the specified solutionType
     virtual shared_ptr<ResultInfo> GetResultInfo( SolutionType solType );
 
+    //! Returns the feFunction which holds a result related to the specified solutionType
+    virtual shared_ptr<BaseFeFunction> GetFeFunction( SolutionType solType );
+
     //! return pointer to vector with subdomains, on which we calculate the PDE
     virtual StdVector<RegionIdType> * getSDsPDE()
     { return &subdoms_;}
@@ -156,9 +159,11 @@ namespace CoupledField {
                                    const UInt outType){
       EXCEPTION("VortexAnalytical is only implemented in acouFlowNoisePDE");};
   
-    //! set boundary condition
-    //! \param atimestep         time step of claculation
+    //! set boundary condition OBSOLETE in the future
     virtual  void SetBCs() = 0;
+
+    //! Transforms a given BoundaryCondition value according to Timestepping (i.e. TransientSim)
+    virtual void TransformBC(Double& transVal, Double initValue, Integer eqnNumber) = 0;
 
     virtual  void InitStabParams( ) {
       EXCEPTION("Not Implemented, only needed for fluidMech and smooth");
@@ -233,7 +238,10 @@ namespace CoupledField {
     //!  identification process! Maybe one day a more to CFS++ consistent 
     //!  nomenclature would be nice ...
 
-    shared_ptr<EqnMap> GetEqnMap() { return eqnMap_; }
+    //shared_ptr<EqnMap> GetEqnMap() { return eqnMap_; }
+    shared_ptr<FeSpace> GetFeSpace() { return feSpace_; };
+
+    shared_ptr<BaseFeFunction> GetFeFunction() { return feFunction_;};
 
     std::map<RegionIdType, BaseMaterial*>  getPDEMaterialData()
     {return materials_;};
@@ -246,7 +254,7 @@ namespace CoupledField {
   
     UInt getPDE_numElems(){return numElems_;};
 
-    UInt getPDE_numPDENodes(){return numPDENodes_;};
+    UInt GetNumPdeEquations(){return numPdeEquations_;};
   
     UInt getPDE_spaceDim(){return dim_;};
   
@@ -385,7 +393,7 @@ namespace CoupledField {
   
     //@{
     //! \name Attributes related to geometry and node numbering
-    UInt numPDENodes_;  //!< number of nodes in subdomains
+    UInt numPdeEquations_;  //!< number of nodes in subdomains
     UInt numElems_;     //!< number of elements in subdomains
   
     //! defines subtype of mechanic PDE: plainStrain, 3d, ...
@@ -509,7 +517,10 @@ namespace CoupledField {
     //@{
     //! \name Miscellaneous attributes
     //! Vector containing the results calculated by this PDE
+    //! OBSOLETE
     ResultInfoList results_;
+
+    //!
 
     //! flag indicating if this PDE needs the algebraic system
     bool needsAlgsys_;
@@ -519,7 +530,7 @@ namespace CoupledField {
     UInt dim_;                  //!< space dimension of pde
     bool isaxi_;             //!< true: axisymmetric problem
     bool isComplex_;         //!< true, if some part of PDE is complex (Material, solution)
-    shared_ptr<EqnMap> eqnMap_; //!< new equation handling
+    //shared_ptr<EqnMap> eqnMap_; //!< new equation handling
     bool needSolPrev_;          //! true, if solution at time step n has also to bve stored
 
     BaseNodeStoreSol * sol_;    //!< solution
@@ -528,6 +539,19 @@ namespace CoupledField {
     BaseNodeStoreSol * solPrev_;    //!< solution at time step n
     SingleVector * solVecPrev_;        //! needed in coupled computation 
 
+    // ======================================================
+    // FeSpace and FeFunction
+    // ======================================================
+    // @{
+    // ! \name FeSpace and Function of the Unknown
+
+    //! FeSpace associated with the PDE
+    shared_ptr<FeSpace> feSpace_;
+
+    //! FeFunction of the unknown
+    shared_ptr<BaseFeFunction> feFunction_;
+    //@}
+    
     //! list of damping types for all regions
     std::map<RegionIdType,DampingType> dampingList_;
 

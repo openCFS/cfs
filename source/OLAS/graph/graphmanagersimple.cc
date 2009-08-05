@@ -185,6 +185,7 @@ namespace CoupledField {
 #ifdef DEBUG_GRAPHMANAGERSIMPLE1
     CheckConsistency( identifierPDE1, identifierPDE2, "AssembleDone" );
 #endif
+    graph_->Print();
 
   }
 

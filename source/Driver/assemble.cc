@@ -563,7 +563,7 @@ namespace CoupledField
   }
 
   void Assemble::AssembleRHSLoads() {
-
+    /*
     Vector<Double> globCoord;
     Double phase = 0.0;
     Double val = 0.0;
@@ -578,7 +578,7 @@ namespace CoupledField
 
       // get current load and its equation map
       LoadBc & actLoad = *loads_[iLoad];
-      EqnMap & eqnMap = *(actLoad.eqnMap);
+     // EqnMap & eqnMap = *(actLoad.eqnMap);
 
       // create temporary set, in which we store the equation
       // numbers which are already set, to that we avoid setting multiple
@@ -607,7 +607,7 @@ namespace CoupledField
 
           // Obtain equation number(s)
           StdVector<Integer> eqns;
-          eqnMap.GetEqns( eqns, *(actLoad.result), it, actLoad.dof );
+          feSpace_.GetEqns( eqns, it, actLoad.dof );
 
           for( UInt iEqn = 0; iEqn < eqns.GetSize(); iEqn++ ) {
 
@@ -647,7 +647,7 @@ namespace CoupledField
                           << actLoad.entities->GetName() << "'" );
       }
     } // loads
-
+*/
   }
 
   void Assemble::ToInfo(InfoNode* in)

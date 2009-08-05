@@ -30,6 +30,16 @@ namespace CoupledField {
   }
 
   template<class TYPE>
+  StdVector<TYPE>::StdVector(unsigned int size, TYPE entry)
+  {
+    size_ = size;
+    capacity_ = size;
+    data_ = new TYPE [size];
+  
+    Init(entry);
+  }
+
+  template<class TYPE>
   StdVector<TYPE>::StdVector(const StdVector<TYPE> & vec)
   {
     size_ = vec.size_;

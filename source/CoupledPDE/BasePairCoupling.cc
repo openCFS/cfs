@@ -183,10 +183,10 @@ namespace CoupledField {
     }
 
 
-    eqnMap1_ = pde1_->GetEqnMap();
-    eqnMap2_ = pde2_->GetEqnMap();
-    assert( eqnMap1_ != NULL);
-    assert( eqnMap2_ != NULL);
+    feFct1_ = pde1_->GetFeFunction();
+    feFct2_ = pde2_->GetFeFunction();
+    assert( feFct1_ != NULL);
+    assert( feFct2_ != NULL);
 
 
     // Define available results

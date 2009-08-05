@@ -334,7 +334,7 @@ namespace CoupledField {
 
 #ifdef DEBUG_SCRS_MATRIX
           // Report new index
-          (*debug) << " colInd_[" << actPos-1 << "] = " << index[k]
+          std::cout << " colInd_[" << actPos-1 << "] = " << index[k]
                                                                  << std::endl;
 #endif
         }

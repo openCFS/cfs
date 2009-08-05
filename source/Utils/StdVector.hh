@@ -170,6 +170,10 @@ namespace CoupledField {
     //! All entries are filled with zeroes
     explicit StdVector(unsigned int size);
 
+    //! Constructor with inital size.
+    //! All entries are set to entry
+    StdVector(unsigned int size,TYPE entry);
+
     //! Copy constructor
     StdVector(const StdVector<TYPE> & vec);
 

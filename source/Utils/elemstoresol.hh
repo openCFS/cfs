@@ -8,6 +8,7 @@
 #include "baseelemstoresol.hh"
 #include <MatVec/matrix.hh>
 #include <MatVec/vector.hh>
+#include "PDE/eqnMap.hh"
 
 namespace CoupledField{
 
