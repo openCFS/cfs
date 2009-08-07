@@ -300,6 +300,10 @@ namespace CoupledField
         // comparable to the local element diameter.
         Double len;
 
+        delta_xi[0] /= jacDet;
+        delta_xi[1] /= jacDet;
+        delta_xi[2] /= jacDet;
+
         len = delta_xi.NormL2();
         delta_xi[0] /= len;
         delta_xi[1] /= len;

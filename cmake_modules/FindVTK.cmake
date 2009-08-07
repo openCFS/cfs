@@ -3,7 +3,7 @@ SET(VTK_FOUND 0)
 #-------------------------------------------------------------------------------
 # Look for VTK Customization header.
 #-------------------------------------------------------------------------------
-BUILD_EXTLIB("VTK 5.3"
+BUILD_EXTLIB("VTK 5.5"
   "${CFS_BINARY_DIR}/vtk"
   "${CFS_DEPS_ROOT}/paraview/build_vtk.pl"
   "build_vtk.log")
@@ -15,7 +15,7 @@ SET(VTK_ROOT_DIR
   "${CFS_BINARY_DIR}/vtk"
   CACHE
   PATH
-  "Path to VTK 5.3 directory.")
+  "Path to VTK 5.5 directory.")
   
 MARK_AS_ADVANCED(VTK_ROOT_DIR)
 

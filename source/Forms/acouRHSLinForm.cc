@@ -478,7 +478,8 @@ namespace CoupledField {
             sum_orig += resVec[j];
               
             // Check for conservitveness every modval source nodes or at least once in the end
-            if(j % modval == 0 || j == n - 1)
+            //            if(j % modval == 0 || j == n - 1)
+            if(j == n - 1)
             {
               Double ratio = (sum - sum_orig) / sum_orig;
               if( abs(ratio) > 0.01 ) 
