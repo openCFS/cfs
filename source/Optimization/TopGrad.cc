@@ -108,7 +108,7 @@ void TopGrad::SolveProblemCommon(const unsigned int iter)
     if(adaptive_)
     {
       // we only remove a maximum of elems_removed_per_iteration_ of elements in one iteration
-      elems_removed_per_iteration_ = elements_ * pivot_percent_;
+      elems_removed_per_iteration_ = (unsigned int) ( (double) elements_ * pivot_percent_);
     }
 
     // value for comparison
