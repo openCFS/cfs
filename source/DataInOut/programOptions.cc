@@ -16,6 +16,7 @@
 #include <def_use_gmv.hh>
 #include <def_use_lapack.hh>
 #include <def_use_mpcci.hh>
+#include <def_use_interpolation.hh>
 #include <def_use_tcl.hh>
 #include <def_xmlschema.hh>
 #include <def_use_ansysrst.hh>
@@ -59,6 +60,10 @@
 
 #ifdef USE_ARPACK
 #include <arpack_version.h>
+#endif
+
+#ifdef USE_INTERPOLATION
+#include <CGAL/version.h>
 #endif
 
 #include "DataInOut/ParamHandling/InfoNode.hh"
@@ -780,6 +785,18 @@ namespace CoupledField {
            << fg_reset << endl;
 #else
     outstr << "MpCCI:                 "
+           << fg_blue << "NO" << fg_reset << endl;
+#endif
+#ifdef USE_INTERPOLATION
+    outstr << "USE_INTERPOLATION:     "
+           << fg_blue << "YES" << fg_reset << endl;
+    outstr << "CFS_CGAL_VERSION:      "
+           << fg_blue << CGAL_VERSION
+           << " (" << CGAL_VERSION_NR
+           << ", SVN rev. " << CGAL_SVN_REVISION << ")"
+           << fg_reset << endl;
+#else
+    outstr << "USE_INTERPOLATION:     "
            << fg_blue << "NO" << fg_reset << endl;
 #endif
     

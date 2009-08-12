@@ -1,3 +1,5 @@
 // Define used to check if interpolation is activated
 
 #cmakedefine USE_INTERPOLATION
+
+#define CFS_CGAL_VERSION "@CFS_CGAL_VERSION@"
