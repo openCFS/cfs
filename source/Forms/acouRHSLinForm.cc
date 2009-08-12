@@ -452,7 +452,7 @@ namespace CoupledField {
           Double sum_orig = 0;            
           Double sum = 0;            
           UInt n = consInterpWeights_[i].size();
-          UInt modval = n / 100;
+          //UInt modval = n / 100;
           
           //Integer pos;
           for(UInt j=0; j<n; j++)
