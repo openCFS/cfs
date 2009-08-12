@@ -567,7 +567,8 @@ namespace CoupledField
 #endif
     
     // overwrite output vector with 0.0s and set correct length
-    rvec1.Resize(size_col_, 0.0);
+    rvec1.Resize(size_col_);
+    rvec1.Init();  // we cannot use 0.0 here as the vector is not always of type Double or similar
     for ( UInt k = 0; k < size_row_; ++k)
       for ( UInt kk = 0; kk < size_col_; ++kk)
         rvec1[kk] += data_[k][kk]*mvec1[k];
