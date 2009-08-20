@@ -12,6 +12,7 @@
 #include "Domain/bcs.hh"
 #include "Utils/mathParser/mathParser.hh"
 #include "PDE/basePDE.hh"
+#include "DataInOut/Scripting/scriptable.hh"
 
 namespace CoupledField {
 
@@ -22,7 +23,7 @@ namespace CoupledField {
   class InfoNode;
 
   //! Class for assembling element/entities matrices and RHS vectors
-  class Assemble {
+  class Assemble : public Scriptable {
 
   public:
 
@@ -152,6 +153,26 @@ namespace CoupledField {
     void CheckNonLinearities();
 
     // ======================================================
+    // SCRIPTING SECTION
+    // ======================================================
+    //@{
+    //! \name Scripting Methods
+
+    //! Register scriptable functions
+    virtual void RegisterFunctions();
+    
+    //! Map with element numbers for which element matrix should be written
+    std::set<UInt> printElemNums_;
+    
+    //! Provide list of elements for which matrix / vector is printed
+    void Wrap_AddPrintElemNum( );
+    
+    //! Set all element matrices / vectors to be printed
+    void Wrap_PrintAllElems();
+    //@}
+       
+
+    // ======================================================
     //  DATA MEMBERS
     // ======================================================
 
@@ -176,6 +197,7 @@ namespace CoupledField {
     //! Map with flags if FE matrix has to be reassembled
     std::map<FEMatrixType, bool> matReassemble_;
 
+
     // ======================================================
     //  BOUNDARIES AND LOADS
     // ======================================================
@@ -186,7 +208,7 @@ namespace CoupledField {
     // ======================================================
     //  MISCELLANEOUS DATA
     // ======================================================
-
+    
     //! flag indicating if matrices have changed since
     //! last call of AssembleMatrices
     bool matrixUpdated_;

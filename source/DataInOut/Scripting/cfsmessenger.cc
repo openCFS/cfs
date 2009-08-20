@@ -6,6 +6,7 @@
 
 #include "PDE/SinglePDE.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "Driver/assemble.hh"
 
 namespace CoupledField {
 
@@ -17,7 +18,10 @@ namespace CoupledField {
 
     // Initialize number of parameters for event procedures
     eventNumParams_[CFS_Init] = 1;
+    eventNumParams_[CFS_PdeInit] = 1;
     eventNumParams_[CFS_ReadBCs] = 1;
+    eventNumParams_[CFS_AssembleMat] = 4;
+    eventNumParams_[CFS_AssembleRhs] = 3;
     eventNumParams_[CFS_SetBCs] = 3;
     eventNumParams_[CFS_CalcResults] = 3;
     eventNumParams_[CFS_Finish] = 1;
@@ -92,6 +96,10 @@ namespace CoupledField {
     } else if ( args[1] == "heatConduction" ) {
       success = domain->GetSinglePDE("heatConduction")->
         Script_Eval(args, argOffset, retVal);
+
+      // -- Assemble --
+    } else if ( args[1] == "assemble" ) {
+      success = domain->GetBasePDE()->getPDE_assemble()->Script_Eval(args, argOffset, retVal);
 
       // -- Grid --
     } else if ( args[1] == "grid" ) {

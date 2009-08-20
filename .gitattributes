@@ -308,6 +308,8 @@ share/scripts/hdf5_import_mesh.sh.in svneol=native#text/plain
 share/scripts/log.py -text
 share/scripts/log.tcl svneol=native#text/x-tcl
 share/scripts/macsysinfo.scpt -text
+share/scripts/printElemMatVec.py -text
+share/scripts/printElemMatVec.tcl svneol=native#text/x-tcl
 share/scripts/xmlreplace.py -text
 share/xml/CFS-Material/CFS_Material.xsd -text svneol=unset#text/xml
 share/xml/CFS-Material/Examples/mat.xml svneol=native#text/xml

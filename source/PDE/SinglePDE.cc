@@ -347,6 +347,7 @@ namespace CoupledField {
     StdVector<std::string> args;
     args.Push_back( pdename_ );
     messenger->TriggerEvent( CFSMessenger::CFS_ReadBCs, args );
+    args.Clear();
 #endif
 
     // =====================================================================
@@ -490,6 +491,14 @@ namespace CoupledField {
       LOG_TRACE(pde) << pdename_ << ": Defining solveStep class";
       DefineSolveStep();
     }
+
+    // Call event procedure for scripting
+#ifdef USE_SCRIPTING
+        // Trigger event for scripting
+        args.Clear();
+        args.Push_back( pdename_ );
+        messenger->TriggerEvent( CFSMessenger::CFS_PdeInit, args );
+#endif
 
     // Finally set the initialization flag to true
     isInitialized_ = true;

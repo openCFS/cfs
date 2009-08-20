@@ -23,6 +23,12 @@ procedure & parameters & meaning\\
                 & Name of the problem, i.e. basename
                  of the .xml file. \\
 \noalign{\smallskip}\hline\noalign{\smallskip}
+\verb#CFS_PdeInit# & \verb#pdeName# (string)  
+                   & Name of the PDE (e.g. mechanic,
+                   electrostatic, direct, acoustic, etc.). Corresponds to the
+name
+                   written in .log-file.\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
 \verb#CFS_ReadBCs# & \verb#pdeName# (string)  
                    & Name of the PDE (e.g. mechanic,
                    electrostatic, direct, acoustic, etc.). Corresponds to the name
@@ -36,6 +42,22 @@ procedure & parameters & meaning\\
                   & Current time/frequency step of simulation. \\
                   & \verb#time/frequency# (double)  
                   & Current time/frequency  (dependent on analysis ) \\
+\noalign{\smallskip}\hline
+\verb#CFS_AssembleMat# & \verb#formName# (string)  
+                  & Name of the bilinearform.\\
+                  & \verb#elemNum1# (unsigned int) 
+                  & First element number. \\
+                  & \verb#elemNum2# (unsigned int) 
+                  & Second element number. \\
+                  & \verb#elemMat# (string)  
+                  & Element matrix (pretty printed). \\
+\noalign{\smallskip}\hline
+\verb#CFS_AssembleRhs# & \verb#formName# (string)  
+                  & Name of the linearform.\\
+                  & \verb#elemNum# (unsigned int) 
+                  & Element number. \\
+                  & \verb#elemVec# (string)  
+                  & Element vector (pretty printed). \\
 \noalign{\smallskip}\hline
 \verb#CFS_PostProcess# & \verb#pdeName# (string)  
                        & Name of the PDE (e.g. mechanic,

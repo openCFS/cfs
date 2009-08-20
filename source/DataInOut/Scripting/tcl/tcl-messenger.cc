@@ -5,6 +5,7 @@
 #include "tcl-messenger.hh"
 #include <string.h>
 #include <sstream>
+#include <boost/algorithm/string.hpp>
 
 
 
@@ -98,11 +99,20 @@ namespace CoupledField {
     
     // get name of event
     curEvent_ = eventNames_[event];
-
     std::stringstream procName;
+    
     procName << eventNames_[event];
-    for ( UInt i=0; i<context.GetSize(); i++ ) {
-      procName << " " << context[i];
+    
+    // copy arguments 
+    StdVector<std::string> args = context;
+    for( UInt i = 0; i < args.GetSize(); i++ ) {
+      boost::replace_all(args[i], "[", "\\[");
+      boost::replace_all(args[i], "]", "\\]");
+      args[i] = "\"" + args[i] + "\""; 
+    }
+    
+    for ( UInt i=0; i<args.GetSize(); i++ ) {
+      procName << " " << args[i];
     }
     
     isEvaluating_ = true;
@@ -134,6 +144,10 @@ namespace CoupledField {
     // First of all, generate mapping from event enumerations
     // to string representation
     eventNames_[CFS_Init] = "CFS_Init";
+    eventNames_[CFS_PdeInit] = "CFS_PdeInit";
+    eventNames_[CFS_ReadBCs] = "CFS_ReadBCs";
+    eventNames_[CFS_AssembleMat] = "CFS_AssembleMat";
+    eventNames_[CFS_AssembleRhs] = "CFS_AssembleRhs";
     eventNames_[CFS_ReadBCs] = "CFS_ReadBCs";
     eventNames_[CFS_SetBCs] = "CFS_SetBCs";
     eventNames_[CFS_CalcResults] = "CFS_CalcResults";

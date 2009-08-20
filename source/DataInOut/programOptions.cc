@@ -71,9 +71,15 @@
 #include "General/exception.hh"
 #include "Utils/tools.hh"
 
+#define _QUOTEME(x) #x
+#define QUOTEME(x) _QUOTEME(x)
+
+
 using std::string;
 using std::endl;
 using std::cout;
+
+
 
 // Lapack version function interface
 extern "C" void ilaver_(int*, int*, int*);
@@ -791,7 +797,7 @@ namespace CoupledField {
     outstr << "USE_INTERPOLATION:     "
            << fg_blue << "YES" << fg_reset << endl;
     outstr << "CFS_CGAL_VERSION:      "
-           << fg_blue << CGAL_VERSION
+           << fg_blue <<   QUOTEMACRO(QUOTEMACRO(CGAL_VERSION))  
            << " (" << CGAL_VERSION_NR
            << ", SVN rev. " << CGAL_SVN_REVISION << ")"
            << fg_reset << endl;
