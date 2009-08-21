@@ -102,6 +102,7 @@ namespace CoupledField
       MyCoupledPDE->GetCouplingOptionality(OrderedPDEs[i]->GetName(), inputOptionality);
       Couplings[i] = new PDECoupling(ptGrid_);
       Couplings[i]->SetPDE(OrderedPDEs[i]);
+      std::string pdeName = OrderedPDEs[i]->GetName();
       
       // add all coupling terms of PDE
       for (UInt j=0; j<InputType.GetSize(); j++) {
@@ -110,7 +111,6 @@ namespace CoupledField
         if (inputOptionality[j]) {
    
           // look for correct pde
-          std::string pdeName = OrderedPDEs[i]->GetName();
           ParamNode * pdeNode = NULL;
           for( UInt iNode = 0; iNode < iterCoupledNode->GetChildren().GetSize(); iNode++ ) {
             // check, id node is "nonLinear"
@@ -139,13 +139,13 @@ namespace CoupledField
             couplingTermsConv[k] = SolutionTypeEnum.Parse(couplNodes[k]->Get("quantity"));
           }
           
-          bool found = false;
           for (UInt k=0; k<couplingTermsConv.GetSize(); k++)
+          {
             if (couplingTermsConv[k] == InputQuantity[j])
-              found = true;
-          
-          if (found) {
-            Couplings[i]->RegisterInput(InputType[j], InputQuantity[j]);
+            {
+              Couplings[i]->RegisterInput(InputType[j], InputQuantity[j]);
+              break;
+            }
           }
         }
         else
