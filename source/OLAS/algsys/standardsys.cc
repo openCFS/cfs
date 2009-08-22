@@ -605,7 +605,25 @@ namespace CoupledField {
 
 
     PrecondType precond;
+    SolverType solver;
     myParams_.GetEnumValue("Precond", precond);
+    // check if preconditioning makes sense - direct solvers do not need precond
+    myParams_.GetEnumValue( "Solver", solver );
+    if (precond != NOPRECOND)
+    {
+      switch (solver)
+      {
+        case PARDISO:
+          EXCEPTION( "PARDISO is a direct solver, precondition does not make sense!");
+        case LAPACK_LU:
+          EXCEPTION( "LAPACK_LU is a direct solver, precondition does not make sense!");
+        case LAPACK_LL:
+          EXCEPTION( "LAPACK_LL is a direct solver, precondition does not make sense!");
+        default:
+          // everything ok, just continue
+          break;
+      }
+    }
     precond_ = GenerateStdPrecondObject( *(sysmat_[SYSTEM]), precond,
                                          &myParams_, &myReport_ );
 
