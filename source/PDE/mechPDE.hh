@@ -114,16 +114,13 @@ namespace CoupledField
      * @param pressPhase StdVector containing the information */
     void ReadPressureLoadsFromXML(ParamNode* bcNode, StdVector<shared_ptr<EntityList> >& pressSurf, StdVector<std::string>& pressVals, StdVector<std::string>& pressPhase);
     
-    /** Does the actual reading of pressure loads, also called from optimization 
-     * @param bcsNode paramnode that has test strain nodes as children
-     * @param vals where the values of the strains are written */
-    void ReadPreStrainingFromXML(ParamNode* bcsNode, Vector<Double> &vals);
-
   protected:
 
     // ======================================================
     // POSTPROCESSING METHODS
     // ======================================================
+
+    void CalcHomogenizedTensor(shared_ptr<BaseResult> base_result);
 
     //computes mechanical deformation energy
     template <class TYPE>
@@ -250,9 +247,6 @@ namespace CoupledField
 
     //! read in surface stress boundary conditions
     void ReadSurfStress();
-
-    //! read in the domains with prestraining
-    void ReadPreStraining();
     
     //! read pressure loads
     void ReadPressureLoads();

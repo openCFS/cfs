@@ -40,7 +40,7 @@ namespace CoupledField {
   // **************
   template<class T_storage,typename T>
   JacPrecond<T_storage,T>::~JacPrecond() {
-    DELETEARRAY( diagInv_ );
+    delete [] ( diagInv_ );
   }
 
 
@@ -51,9 +51,6 @@ namespace CoupledField {
   void JacPrecond<T_storage,T>::Apply( const T_storage &sysmat,	
 				       const Vector<T> &r,
 				       Vector<T> &z ) const {
-
-    PROFILE( (char*)"JacPrecond::Apply",
-             size_ * BlockSize<T>::size * BlockSize<T>::size );
 
 #pragma omp parallel for 
     for ( UInt i = 0; i < size_; i++ ) {

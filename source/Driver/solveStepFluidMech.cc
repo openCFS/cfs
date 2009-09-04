@@ -110,7 +110,6 @@ namespace CoupledField {
         LOG_DBG(solvestepfluidmech) << "loop=" << iterationCounter << " newton=" << isNewton_;
 
         // setup and solve new system (rhs is already set) =====================
-        SETPROFILE("Before AssembleMatrices");
         if ( !isInstationary_ || iterationCounter != 1){
           assemble_->AssembleMatrices();
           PDE_.PrintStabParams();
@@ -118,15 +117,12 @@ namespace CoupledField {
         
         InfoNode* analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
         
-        SETPROFILE("After AssembleMatrices");
         algsys_->ConstructEffectiveMatrix(matrix_factor_);
         algsys_->BuildInDirichlet();
 
-        SETPROFILE("Before Solve");
         algsys_->SetupPrecond();
         algsys_->SetupSolver(analysis_id);
         algsys_->Solve(analysis_id);   
-        SETPROFILE("After Solve");
 
         // new solution is NOT only an increment of the full solution =============
         algsys_->GetSolutionVal( newSol );

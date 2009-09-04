@@ -93,76 +93,71 @@ namespace CoupledField {
                << "' format." );
     }
 
-    TRY_CAST {
+    SCRS_Matrix<T>& scrsMat = dynamic_cast<SCRS_Matrix<T>&>(stdMat);
 
-      // Down-cast to SCRS_Matrix
-      REFCAST( stdMat, SCRS_Matrix<T>, scrsMat );
 
-      // Get new problem size and perform consistency check
-      if ( amFactorised_ == false ) {
-        this->sysMatDim_ = scrsMat.GetNumCols();
+    // Get new problem size and perform consistency check
+    if ( amFactorised_ == false ) {
+      this->sysMatDim_ = scrsMat.GetNumCols();
+    }
+    else {
+      if ( this->myParams_->GetBoolValue( "newMatrixPattern" ) == false &&
+          this->sysMatDim_ != scrsMat.GetNumCols() ) {
+        EXCEPTION( "ILDLPrecond::Setup: newMatrixPattern = false, but "
+            << "matrix dimension changed from " << this->sysMatDim_ << " to "
+            << scrsMat.GetNumCols() );
       }
       else {
-        if ( this->myParams_->GetBoolValue( "newMatrixPattern" ) == false &&
-             this->sysMatDim_ != scrsMat.GetNumCols() ) {
-          EXCEPTION( "ILDLPrecond::Setup: newMatrixPattern = false, but "
-                   << "matrix dimension changed from " << this->sysMatDim_ << " to "
-                   << scrsMat.GetNumCols() );
-        }
-        else {
-          this->sysMatDim_ = scrsMat.GetNumCols();
-          amFactorised_ = false;
-        }
+        this->sysMatDim_ = scrsMat.GetNumCols();
+        amFactorised_ = false;
       }
+    }
 
-      // Logging
-      bool logging = this->myParams_->GetIntValue( "ILDLPRECOND_logging" ) > 0;
-      if ( logging ) {
-        (*cla) << " -------------------------------------------------------"
-               << "-----------------------\n"
-               << " ILDLPRECOND::SETUP\n + Factorisation of a "
-               << scrsMat.GetNumRows() << " x " << scrsMat.GetNumCols()
-               << " matrix (nnz = " << scrsMat.GetNnz() << ")"
-               << std::endl;
-      }
+    // Logging
+    bool logging = this->myParams_->GetIntValue( "ILDLPRECOND_logging" ) > 0;
+    if ( logging ) {
+      (*cla) << " -------------------------------------------------------"
+      << "-----------------------\n"
+      << " ILDLPRECOND::SETUP\n + Factorisation of a "
+      << scrsMat.GetNumRows() << " x " << scrsMat.GetNumCols()
+      << " matrix (nnz = " << scrsMat.GetNnz() << ")"
+      << std::endl;
+    }
 
-      // Let factoriser compute the factorisation
-      factoriser_->Factorise( scrsMat, dataD_, rptrU_, cidxU_, dataU_, true );
-      amFactorised_ = true;
+    // Let factoriser compute the factorisation
+    factoriser_->Factorise( scrsMat, dataD_, rptrU_, cidxU_, dataU_, true );
+    amFactorised_ = true;
 
-      // Convert D to D^{-1}
-      for ( UInt i = 1; i <= this->sysMatDim_; i++ ) {
-        dataD_[i] = OpType<T>::invert( dataD_[i] );
-      }
+    // Convert D to D^{-1}
+    for ( UInt i = 1; i <= this->sysMatDim_; i++ ) {
+      dataD_[i] = OpType<T>::invert( dataD_[i] );
+    }
 
-      // If the user desires it, we will export the matrix factor
-      // to a file in Matrix Market format
-      if( this->myParams_->GetBoolValue( "ILDLPRECOND_saveFacToFile" ) == true ) {
-        bool pattern = this->myParams_->GetBoolValue( "ILDLPRECOND_savePatternOnly");
-        std::string filename;
-        filename = this->myParams_->GetStringValue( "ILDLPRECOND_facFileName" );
-        ExportFactorisation( filename.c_str(), pattern );
-      }
+    // If the user desires it, we will export the matrix factor
+    // to a file in Matrix Market format
+    if( this->myParams_->GetBoolValue( "ILDLPRECOND_saveFacToFile" ) == true ) {
+      bool pattern = this->myParams_->GetBoolValue( "ILDLPRECOND_savePatternOnly");
+      std::string filename;
+      filename = this->myParams_->GetStringValue( "ILDLPRECOND_facFileName" );
+      ExportFactorisation( filename.c_str(), pattern );
+    }
 
-      // finish log report
-      if ( logging ) {
+    // finish log report
+    if ( logging ) {
 
-        (*cla) << "\n Change of fill-pattern:"
-               << "\n + nnz in upper triangle of A: "
-               << (scrsMat.GetNnz()+this->sysMatDim_) / 2
-               << "\n + nnz in F = D + L^T:         "
-               << rptrU_[this->sysMatDim_-1] + this->sysMatDim_ << " = "
-               << this->sysMatDim_ << " + " << rptrU_[this->sysMatDim_-1]
-               << "\n Memory requirements:"
-               << "\n + array size (dataU):         " << cidxU_.size()
-               << "\n + array capacity (dataU):     " << cidxU_.capacity()
-               << '\n';
-        (*cla) << " -------------------------------------------------------"
-               << "-----------------------\n" << std::endl;
-      }
-
-    } CATCH_CAST;
-
+      (*cla) << "\n Change of fill-pattern:"
+      << "\n + nnz in upper triangle of A: "
+      << (scrsMat.GetNnz()+this->sysMatDim_) / 2
+      << "\n + nnz in F = D + L^T:         "
+      << rptrU_[this->sysMatDim_-1] + this->sysMatDim_ << " = "
+      << this->sysMatDim_ << " + " << rptrU_[this->sysMatDim_-1]
+                                             << "\n Memory requirements:"
+                                             << "\n + array size (dataU):         " << cidxU_.size()
+                                             << "\n + array capacity (dataU):     " << cidxU_.capacity()
+                                             << '\n';
+      (*cla) << " -------------------------------------------------------"
+      << "-----------------------\n" << std::endl;
+    }
   }
 
 
@@ -183,29 +178,26 @@ namespace CoupledField {
     }
 
     // Solve the problem
-    TRY_CAST {
-      CONSTREFCAST( r, Vector<T>, myR );
-      REFCAST( z, Vector<T>, myZ );
+    const Vector<T>& myR = dynamic_cast<const Vector<T>&>(r);
+    Vector<T>& myZ = dynamic_cast<Vector<T>&>(z);
 
-      // Logging
-      if ( logging ) {
-        (*cla) << " -------------------------------------------------------"
-               << "-----------------------\n"
-               << " ILDLPRECOND::APPLY: Solving linear system with "
-               << stdMat.GetNumCols() << " unknowns" << std::endl;
-      }
+    // Logging
+    if ( logging ) {
+      (*cla) << " -------------------------------------------------------"
+      << "-----------------------\n"
+      << " ILDLPRECOND::APPLY: Solving linear system with "
+      << stdMat.GetNumCols() << " unknowns" << std::endl;
+    }
 
-      SolveLDLSystem( &(cidxU_[0]), &(rptrU_[0]), &(dataU_[0]),
-                      &(dataD_[0]), myZ, myR, this->sysMatDim_ );
+    SolveLDLSystem( &(cidxU_[0]), &(rptrU_[0]), &(dataU_[0]),
+        &(dataD_[0]), myZ, myR, this->sysMatDim_ );
 
-      // Logging
-      if ( logging ) {
-        (*cla) << " -------------------------------------------------------"
-               << "-----------------------\n"
-               << std::endl;
-      }
-
-    } CATCH_CAST;
+    // Logging
+    if ( logging ) {
+      (*cla) << " -------------------------------------------------------"
+      << "-----------------------\n"
+      << std::endl;
+    }
   }
 
 

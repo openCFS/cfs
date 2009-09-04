@@ -696,9 +696,9 @@ namespace CoupledField {
     delete[] activeList_ ;
     delete[] listIDX_    ; 
     delete[] listVAL_    ;
-    DELETEARRAY( firstU_ );
-    DELETEARRAY( xi );
-    DELETEARRAY( nu );
+    delete [] ( firstU_ );  firstU_  = NULL;
+    delete [] ( xi );  xi  = NULL;
+    delete [] ( nu );  nu  = NULL;
 
 #ifdef DEBUG_ILDLCNFACTORISER
     (*debug) << std::endl;

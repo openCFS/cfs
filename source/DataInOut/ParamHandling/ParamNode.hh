@@ -22,8 +22,8 @@ namespace CoupledField
    * of the XML file.
    * <ul>
    *   <li>The whole XML structure is contained in a tree of ParamNode elements</li>
-   *   <li>Schema validation has to be done externaly</li>
-   *   <li>The construction, e.g. from a DOM tree has to be done externaly</li>
+   *   <li>Schema validation has to be done externally</li>
+   *   <li>The construction, e.g. from a DOM tree has to be done externally</li>
    *   <li>An attribute is equal to a simple XML element content (<element type="1"/>
    *       is equal to <element><type>1</type></element>)</li>
    *   <li>We internally store everything as a string but offer conversion methods. 
@@ -53,16 +53,16 @@ namespace CoupledField
     /** set the value */
     void SetValue(const std::string& value) { this->value_ = value; }
 
-    /** @return the integer if this is convertable
-     * @throws an exception if the value is not set or not converible */
+    /** @return the integer if this is convertible
+     * @throws an exception if the value is not set or not convertible */
     int  AsInt() const;
 
-    /** @return the UInteger if this is convertable
+    /** @return the UInteger if this is convertible
      * @throws an exception if the value is not set or not convertible or negative */
     unsigned int AsUInt() const;
 
-    /** @return the Double if this is convertable
-     * @throws an exception if the value is not set or not converible */
+    /** @return the Double if this is convertible
+     * @throws an exception if the value is not set or not convertible */
     double AsDouble() const;
        
     /** @return checks the value for "yes", "true", "on" respectively "no", "false", "off".
@@ -73,8 +73,8 @@ namespace CoupledField
      * Is only valid, if the corresponding GetList() would return one value. Exception if 0 or greater 1.<br>
      * In case check before with Has() and Count().
      * example: "optimization" is a complex element which is a direct child of the root: param.Get("optimization")
-     * @param name might contain several levels by the '/' seperator. 
-     *             Get("optimization/ersatzMaterial") is eqivalent to Get("optimization")->Get("ersatzMaterial").
+     * @param name might contain several levels by the '/' separator. 
+     *             Get("optimization/ersatzMaterial") is equivalent to Get("optimization")->Get("ersatzMaterial").
      *             Check with Has() first! 
      * @throws exception if there is not such a direct child, e.g. if this is a leaf node OR if there more than only
      * one of such elements (e.g. simple xml elements). */     
@@ -104,10 +104,10 @@ namespace CoupledField
     /** Checks if there is at least one direct child with the given name.<br>
      * Note, that even when not specified in the XML file, the value might come from the default value in the
      * XML schema definition.<br>
-     * Does not differentiate between one or more than one occurence (then Get() will throw an exception). Note,
+     * Does not differentiate between one or more than one occurrence (then Get() will throw an exception). Note,
      * that there might be only one XML attribute but multiple XML simple elements and we do not differentiate 
      * between this two types. 
-     * @param name might containt several levels by the '/' token.
+     * @param name might contains several levels by the '/' token.
      * @return true if there is at least one direct child (leaf or "complex") with the given name */
     bool Has(const std::string& name) const;  
 
@@ -122,7 +122,7 @@ namespace CoupledField
     /** Checks if there is at least one direct child with the given name and an attribute with the given value.<br>
      * Note, that even when not specified in the XML file, the value might come from the default value in the
      * XML schema definition.<br>
-     * Does not differentiate between one or more than one occurence (then Get() will throw an exception). Note,
+     * Does not differentiate between one or more than one occurrence (then Get() will throw an exception). Note,
      * that there might be only one XML attribute but multiple XML simple elements and we do not differentiate 
      * between this two types. 
      * @return true if there is at least one direct child (leaf or "complex") with the given name */
@@ -139,7 +139,7 @@ namespace CoupledField
     unsigned int Count(const std::string&  name) const; 
        
     /** Get all direct childs which have an attribute with a given value or in other words:
-     *  Get all direct childs where the grandchildren are es specified.<br>
+     *  Get all direct childs where the grandchildren are specified.<br>
      *  example: param.Get("pdeList").Get("mechanic").Get("bcsAndLoads").GetList("dirichletInHom", "name", "fixed")
      *  @return the direct childs, not the grandchildren */
     StdVector<ParamNode*> GetList(const std::string& parent, const std::string& child, const std::string& value);
@@ -173,12 +173,8 @@ namespace CoupledField
     void Get(const std::string& parent, const std::string& child, const std::string& value, 
              TYPE& ret, const std::string& value_node, bool throwException = true);
 
-    /** Returns the number of entries, the corresponding GetList() would return.
-     * @See GetList(const std::string&, const std::string&, const std::string&) */
-    unsigned int Count( const std::string& name, const std::string& child, const std::string& value ) const; 
-
     /** Returns all children which are attributes and simple xml elements (cannot be differentiated) or in
-     * other words leaf nodes - and without any sorting complex ParamNodes which habe children by themself. 
+     * other words leaf nodes - and without any sorting complex ParamNodes which have children themselves. 
      * If this element is already a leaf node, the list is empty.<br>
      * Be careful when editing this list! */
     StdVector<ParamNode*>& GetChildren() { return children_;}
@@ -224,7 +220,10 @@ namespace CoupledField
     StdVector<ParamNode*> children_;
     
     /** Was this originally an attribute or no ? */
-    bool attribute_;  
+    bool attribute_;
+    
+    /** cache variable for last Get() result */
+    int lastresultidx_;
   }; 
 
   

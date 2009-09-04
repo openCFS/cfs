@@ -75,10 +75,8 @@ namespace CoupledField {
 
     //! Overload assignment operator
     virtual BaseVector& operator= ( const BaseVector &bVec ) {
-      TRY_CAST {
-        CONSTREFCAST( bVec, SBM_Vector, sVec );
-        *this = sVec;
-      } CATCH_CAST;
+      const SBM_Vector& sVec = dynamic_cast<const SBM_Vector&>(bVec);
+      *this = sVec;
       return *this;
     }
 

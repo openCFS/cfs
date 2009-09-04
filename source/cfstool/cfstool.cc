@@ -322,7 +322,8 @@ namespace CFSTool {
                const std::string& inFile2,
                const std::string& outFile,
                bool normedtomax,
-               bool isHistory ) {
+               bool isHistory,
+               std::string& maxDiffResultName) {
        
        // obtain input reader for inFiles
        shared_ptr<SimInput> input1 = GetInputReader( inFile1 );
@@ -391,7 +392,7 @@ namespace CFSTool {
          // iterate over all result types of input1
          for( UInt iRes = 0; iRes < infos.GetSize(); iRes++) {
 
-           std::cout << "\t" << infos[iRes]->resultName << "\n\n"; 
+           std::cout << "\t" << infos[iRes]->resultName << "\n";
 
            // get stepvalues
            shared_ptr<ResultInfo> actRes = infos[iRes];
@@ -421,6 +422,7 @@ namespace CFSTool {
              outResult->SetEntityList( regions[iRegion] );
              
              inResult1->SetResultInfo( infos[iRes] );
+
              inResult2->SetResultInfo( infos[iRes] );
              outResult->SetResultInfo( infos[iRes] );
              
@@ -433,7 +435,7 @@ namespace CFSTool {
                outResult->GetResultInfo()->complexFormat = REAL_IMAG;
                
                // CAUTION: begin, inc, end are hardcoded and noch checked for each result
-               output->RegisterResult( outResult, 1, 1, 
+               output->RegisterResult( outResult, 1, 1,
                                        resultSteps[actRes].size(), 
                                        isHistory );
              }
@@ -535,6 +537,7 @@ namespace CFSTool {
                for( UInt i = 0; i < outVec.GetSize(); i++ ) {
                  if( std::abs(outVec[i]) > maxDiff) {
                    maxDiff = std::abs(outVec[i]) ;
+                   maxDiffResultName = inResults1[iRes]->GetResultInfo()->resultName;
                  }
                }
                              
@@ -679,6 +682,8 @@ int main(int argc, char** argv) {
             << "==========="
             << std::endl << std::endl;
  
+  std::string maxDiffResultName; // that's chaos man!
+
   try {
     if( argc < 2) {
       std::cout << "CFS TOOL 1.0 \n\n"
@@ -739,15 +744,15 @@ int main(int argc, char** argv) {
       Double maxDiffMesh = 0.0, maxDiffHist = 0.0;
       std::cout << "Checking for mesh results:\n"
                 << "==========================";
-      maxDiffMesh = CFSTool::Diff( argv[2], argv[3], "", true, false );
+      maxDiffMesh = CFSTool::Diff( argv[2], argv[3], "", true, false, maxDiffResultName);
       std::cout << "Checking for history results:\n"
                 << "=============================";
-      maxDiffHist = CFSTool::Diff( argv[2], argv[3], "", true, true );
+      maxDiffHist = CFSTool::Diff( argv[2], argv[3], "", true, true, maxDiffResultName );
       Double maxDiff = std::max( maxDiffMesh, maxDiffHist );
       if( maxDiff > tolerance ) {
-        std::cout << "  Files '" << argv[2] << "' and '" << argv[3]
-                  << "' differ with maximum difference of "
-                  << maxDiff << "\n";
+        std::cout << "'" << argv[2] << "' and '" << argv[3]
+                  << "' have maximum difference " << maxDiff
+                  << " at '" << maxDiffResultName << "'\n";
         exit(EXIT_FAILURE);
       } else {
         std::cout << "  No differences larger than tolerance found.\n";
@@ -759,14 +764,14 @@ int main(int argc, char** argv) {
         EXCEPTION( "Please provide <infFile1>, <inFile2> and <outFile>" );
       }
       Double maxDiff = 0.0;
-      maxDiff = CFSTool::Diff( argv[2], argv[3], argv[4], false, false );
+      maxDiff = CFSTool::Diff( argv[2], argv[3], argv[4], false, false, maxDiffResultName);
 
     } else if( modus == "meshdiffnormed" ) {
       if( argc != 5 ) {
         EXCEPTION( "Please provide <infFile1>, <inFile2> and <outFile>" );
       }
       Double maxDiff = 0.0;
-      maxDiff = CFSTool::Diff( argv[2], argv[3], argv[4], true, false );
+      maxDiff = CFSTool::Diff( argv[2], argv[3], argv[4], true, false, maxDiffResultName);
     } else if( modus == "version" ) {
       ProgramOptions::GetVersionString(std::cout, false);
       return EXIT_SUCCESS;

@@ -100,19 +100,19 @@ public:
 protected:
 
   /** overwrite this method for own objectives. */
-  virtual double CalcObjective(Excitation& excite);
+  virtual double CalcObjective(Excitation& excite, Objective* cost);
   
   /** no special case here */
   virtual void ConstructAdjointRHS(Excitation& excite);
   
   /** Does mech DENSITY gradients, COMPLIANCE is done in ErsatzMaterial */
-  virtual void CalcObjectiveGradient(Excitation& excite);
+  virtual void CalcObjectiveGradient(Excitation& excite, Objective* cost);
 
 
   /** This is a helper for CalcU1KU2 to determine the "K" which in most cases includes a
    * derivative. It also includes mechanical damping and mass matrix via AddMassToStiffness().
    * The templated stuff is private, as C++ does not allow virtual templates. */
-  virtual void SetElementK(DesignElement* de, Application app, DenseMatrix* out, CalcMode calcMode);
+  virtual void SetElementK(DesignElement* de, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative = true);
 
   /** the mechanical element rhs, complex or real */
   SurfaceRef mechRHS;
@@ -121,7 +121,7 @@ private:
 
   /** This private, as no virtual templates are possible with C++ */
   template <class T>
-  void SetElementK(DesignElement* de, Application app, DenseMatrix* out, CalcMode);
+  void SetElementK(DesignElement* de, Application app, DenseMatrix* out, CalcMode, bool derivative = true);
 
   /** This is a helper for SetElementK() which adds for MECH in the harmonic case damping and mass */
   void AddMassToStiffness(double m_factor, DesignElement* de, Matrix<std::complex<double> >& K_in_S_out);

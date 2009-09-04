@@ -10,6 +10,7 @@ cmake_modules/FindBzip2.cmake -text
 cmake_modules/FindCFSDEPS.cmake -text
 cmake_modules/FindCFXCust.cmake -text
 cmake_modules/FindCGAL.cmake -text
+cmake_modules/FindCholMod.cmake -text
 cmake_modules/FindFortranLibs.cmake -text
 cmake_modules/FindGiDpost.cmake -text
 cmake_modules/FindGotoBLAS.cmake -text
@@ -35,7 +36,7 @@ cmake_modules/configure_def_headers.cmake -text
 cmake_modules/distro.cmake -text
 cmake_modules/platform_defaults.cmake -text
 cmake_modules/platform_defaults_altix.cmake -text
-cmake_modules/platform_defaults_fauam1p.cmake -text
+cmake_modules/platform_defaults_eamc067.cmake -text
 cmake_modules/platform_defaults_lse.cmake -text
 cmake_modules/platform_defaults_mac.cmake -text
 cmake_modules/platform_defaults_rom.cmake -text
@@ -73,6 +74,7 @@ include/def_expl_templ_inst.hh.in -text
 include/def_use_ansysrst.hh.in -text
 include/def_use_arpack.hh.in -text
 include/def_use_blas.hh.in -text
+include/def_use_cholmod.hh.in -text
 include/def_use_gidpost.hh.in -text
 include/def_use_gmv.hh.in -text
 include/def_use_hdf5.hh.in -text
@@ -288,6 +290,23 @@ share/matlab/README -text
 share/matlab/Time2FreqHDF5.m -text
 share/matlab/TimeFilterHDF5.m -text
 share/matlab/WriteFileInfoHDF5.m -text
+share/matlab/create_densities/README.TXT -text
+share/matlab/create_densities/from_gid_geo/README.TXT -text
+share/matlab/create_densities/from_gid_geo/RelativeCoordinate.m -text
+share/matlab/create_densities/from_gid_geo/computebox.m -text
+share/matlab/create_densities/from_gid_geo/createcylinders.m -text
+share/matlab/create_densities/from_gid_geo/createdens.m -text
+share/matlab/create_densities/from_gid_geo/dns/density.xml -text
+share/matlab/create_densities/from_gid_geo/geo/struct.geo -text svneol=unset#unset
+share/matlab/create_densities/from_gid_geo/geolist.m -text
+share/matlab/create_densities/from_gid_geo/msh/cube.msh -text
+share/matlab/create_densities/from_gid_geo/mshlist.m -text
+share/matlab/create_densities/from_gid_geo/plotsceleton.m -text
+share/matlab/create_densities/from_gid_geo/plotstruct.m -text
+share/matlab/create_densities/from_gid_geo/readgeo.m -text
+share/matlab/create_densities/from_gid_geo/readmesh.m -text
+share/matlab/create_densities/from_gid_geo/writexml.m -text
+share/matlab/create_densities/rect2d.m -text
 share/matlab/exec.m -text
 share/matlab/mminfo.m svneol=native#text/plain
 share/matlab/mmread.m svneol=native#text/plain
@@ -936,6 +955,10 @@ source/OLAS/external/arpack/arpackMatInterface.cc svneol=native#text/x-c%2B%2Bsr
 source/OLAS/external/arpack/arpackMatInterface.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/external/arpack/arpackSolver.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/OLAS/external/arpack/arpackSolver.hh -text svneol=unset#text/x-c%2B%2Bhdr
+source/OLAS/external/cholmod/CMakeLists.txt -text
+source/OLAS/external/cholmod/CholMod.cc -text
+source/OLAS/external/cholmod/CholMod.hh -text
+source/OLAS/external/cholmod/CholModDummy.cc -text
 source/OLAS/external/ilupack/CMakeLists.txt svneol=native#text/plain
 source/OLAS/external/ilupack/Ilupack.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/OLAS/external/ilupack/Ilupack.hh -text svneol=unset#text/x-c%2B%2Bhdr
@@ -1061,8 +1084,6 @@ source/OLAS/utils/math/iterativerefinement.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/utils/math/iterativerefinement.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/utils/math/lanczosmethod.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/utils/math/ldlsystemsolve.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/utils/profiler-olas.cc svneol=native#text/x-c%2B%2Bsrc
-source/OLAS/utils/profiler.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/BaseOptimizer.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/BaseOptimizer.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/CMakeLists.txt -text
@@ -1085,6 +1106,8 @@ source/Optimization/IPOPT.hh -text
 source/Optimization/IPOPTHolder.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/LevelSet.cc -text
 source/Optimization/LevelSet.hh -text
+source/Optimization/Objective.cc -text
+source/Optimization/Objective.hh -text
 source/Optimization/OptimalityCondition.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/OptimalityCondition.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/Optimization.cc svneol=native#text/plain
@@ -1191,6 +1214,8 @@ source/Utils/SmoothSpline.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/StdVector.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/StdVector.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/StdVectorSerialize.hh svneol=native#text/x-c%2B%2Bhdr
+source/Utils/Timer.cc -text
+source/Utils/Timer.hh -text
 source/Utils/baseelemstoresol.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/basenodestoresol.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/boost-serialization.hh svneol=native#text/x-c%2B%2Bhdr
@@ -1217,16 +1242,12 @@ source/Utils/mathParser/mathParser.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/mathParser/mathParser.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/mathfunctions.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/mathfunctions.hh svneol=native#text/x-c%2B%2Bhdr
-source/Utils/myclock.cc svneol=native#text/x-c%2B%2Bsrc
-source/Utils/myclock.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/nodestoresol.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/nodestoresol.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/polCoordSys.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/polCoordSys.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/preisach.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/preisach.hh svneol=native#text/x-c%2B%2Bhdr
-source/Utils/profiler.cc svneol=native#text/x-c%2B%2Bsrc
-source/Utils/profiler.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/readCFDbinary.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/Utils/result.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/result.hh svneol=native#text/x-c%2B%2Bhdr
@@ -1366,4 +1387,5 @@ source/cplreader/integlib/elemIntegr.hh svneol=native#text/plain
 source/cplreader/integlib/integr.cc svneol=native#text/plain
 source/main/CMakeLists.txt svneol=native#text/plain
 source/main/cfs.cc svneol=native#text/x-c%2B%2Bsrc
+source/main/cfs.hh -text
 source/main/cfshyst.cc svneol=native#text/x-c%2B%2Bsrc

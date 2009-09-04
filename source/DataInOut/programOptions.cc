@@ -9,6 +9,7 @@
 #include <def_use_unv.hh>
 #include <def_use_gidpost.hh>
 #include <def_use_ilupack.hh>
+#include <def_use_cholmod.hh>
 #include <def_use_metis.hh>
 #include <def_use_python.hh>
 #include <def_use_xerces.hh>
@@ -25,6 +26,7 @@
 #include "coloredConsole.hh"
 
 #include <sstream>
+#include <cstdlib>
 
 #include <boost/bind.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -45,6 +47,10 @@
 
 #ifdef USE_ILUPACK
 #include <amd.h>
+#endif
+
+#ifdef USE_CHOLMOD
+#include <cholmod.h> 
 #endif
 
 #ifdef USE_SCRIPTING_PYTHON
@@ -158,9 +164,6 @@ namespace CoupledField {
       ( "scriptFile,e", po::value<string>(),
         "name of script file to be evaluated" )
 #endif
-      ( "doProfile,d",
-        "turns on generation of profiling information" )
-
       ( "listMapping,l",
         "add equation and local/global mapping to info.xml")
 
@@ -421,11 +424,6 @@ namespace CoupledField {
     return (varMap_.count( "printGrid") > 0);
   }
 
-  bool ProgramOptions::GetDoProfile() const
-  {
-    return (varMap_.count( "doProfile") > 0);
-  }
-
 
   bool ProgramOptions::GetRestart() const
   {
@@ -468,16 +466,12 @@ namespace CoupledField {
 #ifdef USE_SCRIPTING
     in->Get("scriptFile")->SetValue(GetScriptFileStr());
 #endif
-    in->Get("printGrid")->SetValue(GetPrintGrid());
-    in->Get("doProfile")->SetValue(GetDoProfile());
-    in->Get("restart")->SetValue(GetRestart());
-    in->Get("writeSkeleton")->SetValue(GetWriteSkeleton());
     in->Get("listMapping")->SetValue(DoListMapping());
-    in->Get("forceSegFault")->SetValue(GetForceSegFault());
+    in->Get("MKL_NUM_THREADS")->SetValue(getenv("MKL_NUM_THREADS") != NULL ? getenv("MKL_NUM_THREADS") : "-");
   }
 
   
-  void ProgramOptions::GetVersionString( std::ostream & outstr,
+  void ProgramOptions::GetVersionString( std::ostream & out,
                                          bool colorise)
   {
     bool colTmp = ColoredConsole::colorise;
@@ -489,111 +483,111 @@ namespace CoupledField {
     boost::trim(cxxFlags);
     boost::trim(ldFlags);    
     
-    outstr << "CFS_VERSION:           "
-           << fg_blue << CFS_VERSION << fg_reset << endl
+    out << "CFS_VERSION:           "
+        << fg_blue << CFS_VERSION << fg_reset << endl
 
-           << "CFS_NAME:              "
-           << fg_blue << CFS_NAME << fg_reset << endl;
+        << "CFS_NAME:              "
+        << fg_blue << CFS_NAME << fg_reset << endl;
 
     if(progOpts) 
     {      
       fs::path fn = fs::system_complete(progOpts->exe_);
       fn.normalize();
-      outstr << "CFS_EXECUTABLE:        "
-             << fg_blue << fn.native_directory_string() << fg_reset << endl;
+      out << "CFS_EXECUTABLE:        "
+          << fg_blue << fn.native_directory_string() << fg_reset << endl;
     }
     
-    outstr << "CFS_BUILD_HOST:        "
-           << fg_blue << CFS_BUILD_HOST << fg_reset << endl
+    out << "CFS_BUILD_HOST:        "
+        << fg_blue << CFS_BUILD_HOST << fg_reset << endl
 
-           << "CFS_BUILD_USER:        "
-           << fg_blue << CFS_BUILD_USER << fg_reset << endl
+        << "CFS_BUILD_USER:        "
+        << fg_blue << CFS_BUILD_USER << fg_reset << endl
 
-           << "CFS_SUBVERSION_REV:    "
-           << fg_blue << CFS_SUBVERSION_REV << fg_reset << endl
+        << "CFS_SUBVERSION_REV:    "
+        << fg_blue << CFS_SUBVERSION_REV << fg_reset << endl
 
-           << "CFS_SUBVERSION_REPOS:  "
-           << fg_blue << CFS_SUBVERSION_REPOS
-           << fg_reset << endl << endl
+        << "CFS_SUBVERSION_REPOS:  "
+        << fg_blue << CFS_SUBVERSION_REPOS
+        << fg_reset << endl << endl
 
-           << "CFS_CXX_COMPILER_NAME: "
-           << fg_blue << CFS_CXX_COMPILER_NAME << fg_reset << endl
+        << "CFS_CXX_COMPILER_NAME: "
+        << fg_blue << CFS_CXX_COMPILER_NAME << fg_reset << endl
 
-           << "CFS_CXX_COMPILER_VER:  "
-           << fg_blue << CFS_CXX_COMPILER_VER << fg_reset
-           << endl << endl
+        << "CFS_CXX_COMPILER_VER:  "
+        << fg_blue << CFS_CXX_COMPILER_VER << fg_reset
+        << endl << endl
 
-           << "CFS_FORTRAN_COMPILER_NAME: "
-           << fg_blue << CFS_FORTRAN_COMPILER_NAME << fg_reset<< endl
+        << "CFS_FORTRAN_COMPILER_NAME: "
+        << fg_blue << CFS_FORTRAN_COMPILER_NAME << fg_reset<< endl
 
-           << "CFS_FORTRAN_COMPILER_VER:  "
-           << fg_blue << CFS_FORTRAN_COMPILER_VER
-           << fg_reset<< endl << endl
+        << "CFS_FORTRAN_COMPILER_VER:  "
+        << fg_blue << CFS_FORTRAN_COMPILER_VER
+        << fg_reset<< endl << endl
 
-           << "CFS_DISTRO:            "
-           << fg_blue << CFS_DISTRO << fg_reset << endl
+        << "CFS_DISTRO:            "
+        << fg_blue << CFS_DISTRO << fg_reset << endl
 
-           << "CFS_DISTRO_VER:        "
-           << fg_blue << CFS_DISTRO_VER << fg_reset << endl
+        << "CFS_DISTRO_VER:        "
+        << fg_blue << CFS_DISTRO_VER << fg_reset << endl
 
-           << "CFS_ARCH:              "
-           << fg_blue << CFS_ARCH
-           << fg_reset << endl << endl
+        << "CFS_ARCH:              "
+        << fg_blue << CFS_ARCH
+        << fg_reset << endl << endl
 
-           << "CMAKE_BUILD_TYPE:      "
-           << fg_blue  << build_type << fg_reset << endl;
+        << "CMAKE_BUILD_TYPE:      "
+        << fg_blue  << build_type << fg_reset << endl;
 #ifndef NDEBUG
-    outstr << "COMPILE_FLAGS:         "
-           << fg_blue << cxxFlags << " " << CMAKE_CXX_FLAGS_DEBUG 
-           << fg_reset << endl;
+    out << "COMPILE_FLAGS:         "
+        << fg_blue << cxxFlags << " " << CMAKE_CXX_FLAGS_DEBUG
+        << fg_reset << endl;
 
-    outstr << "LINK_FLAGS:            "
-           << fg_blue  << CMAKE_EXE_LINKER_FLAGS
-           << " " << CMAKE_EXE_LINKER_FLAGS_DEBUG
-           << fg_reset
-           << endl << endl;
+    out << "LINK_FLAGS:            "
+        << fg_blue  << CMAKE_EXE_LINKER_FLAGS
+        << " " << CMAKE_EXE_LINKER_FLAGS_DEBUG
+        << fg_reset
+        << endl << endl;
 #else
-    outstr << "COMPILE_FLAGS:         "
-           << fg_blue << cxxFlags
-           << " " << CMAKE_CXX_FLAGS_RELEASE << fg_reset << endl;
+    out << "COMPILE_FLAGS:         "
+        << fg_blue << cxxFlags
+        << " " << CMAKE_CXX_FLAGS_RELEASE << fg_reset << endl;
     
-    outstr << "LINK_FLAGS:            "
-           << fg_blue << ldFlags
-           << " " << CMAKE_EXE_LINKER_FLAGS_RELEASE
-           << fg_reset << endl << endl;
+    out << "LINK_FLAGS:            "
+        << fg_blue << ldFlags
+        << " " << CMAKE_EXE_LINKER_FLAGS_RELEASE
+        << fg_reset << endl << endl;
 #endif
  #ifdef USE_ARPACK    
-    outstr << "USE_ARPACK:            "
-           << fg_blue  << "YES" << fg_reset << endl;
-    outstr << "ARPACK_VERSION:        "
-           << fg_blue  << ARPACK_VERSION_NUMBER << " "
-           << ARPACK_VERSION_DATE << fg_reset << endl;
+    out << "USE_ARPACK:            "
+        << fg_blue  << "YES" << fg_reset << endl;
+    out << "ARPACK_VERSION:        "
+        << fg_blue  << ARPACK_VERSION_NUMBER << " "
+        << ARPACK_VERSION_DATE << fg_reset << endl;
  #else
-    outstr << "USE_ARPACK:            "
-           << fg_blue  << "NO" << fg_reset << endl;
+    out << "USE_ARPACK:            "
+        << fg_blue  << "NO" << fg_reset << endl;
 #endif
 
  #ifdef USE_BLAS
-    outstr << "USE_BLAS:              "
-           << fg_blue  << "YES" << fg_reset << endl;
-    outstr << "BLAS_IMPLEMENTATION:   "
-           << fg_blue  << CFS_BLAS_LAPACK << fg_reset << endl;
+    out << "USE_BLAS:              "
+        << fg_blue  << "YES" << fg_reset << endl;
+    out << "BLAS_IMPLEMENTATION:   "
+        << fg_blue  << CFS_BLAS_LAPACK << fg_reset << endl;
  #ifdef USE_MKL
     MKLVersion ver;
 
     MKLGetVersion(&ver);
 
-    outstr << "MKL_VERSION:           " << fg_blue
-           << ver.MajorVersion << "."
-           << ver.MinorVersion << "."
-           << ver.BuildNumber << fg_reset
-           << endl;
-    outstr << "MKL_PRODSTAT:          " << fg_blue
-           << ver.ProductStatus << fg_reset
-           << endl;
-    outstr << "MKL_BUILD:             " << fg_blue
-           << ver.Build << fg_reset
-           << endl;
+    out << "MKL_VERSION:           " << fg_blue
+        << ver.MajorVersion << "."
+        << ver.MinorVersion << "."
+        << ver.BuildNumber << fg_reset
+        << endl;
+    out << "MKL_PRODSTAT:          " << fg_blue
+        << ver.ProductStatus << fg_reset
+        << endl;
+    out << "MKL_BUILD:             " << fg_blue
+        << ver.Build << fg_reset
+        << endl;
 
     MKL_FreeBuffers();
  #endif
@@ -602,86 +596,99 @@ namespace CoupledField {
 
     acmlversion(&acml_major, &acml_minor, &acml_patch);
 
-    outstr << "ACML_VERSION:          " << fg_blue
-           << acml_major << "."
-           << acml_minor << "."
-           << acml_patch << fg_reset
-           << endl;
+    out << "ACML_VERSION:          " << fg_blue
+        << acml_major << "."
+        << acml_minor << "."
+        << acml_patch << fg_reset
+        << endl;
     acmlinfo();
  #endif
 #else
-    outstr << "USE_BLAS:              "
-           << fg_blue  << "NO" << fg_reset << endl;
+    out << "USE_BLAS:              "
+        << fg_blue  << "NO" << fg_reset << endl;
 #endif
-    outstr << endl;
+    out << endl;
 
  #ifdef USE_LAPACK
-    outstr << "USE_LAPACK:            "
-           << fg_blue << "YES" << fg_reset << endl;
+    out << "USE_LAPACK:            "
+        << fg_blue << "YES" << fg_reset << endl;
     Integer major, minor, rev;
     ilaver_(&major, &minor, &rev);
-    outstr << "LAPACK_VERSION:        "
-           << fg_blue << major << "." << minor << "." << rev
-           << fg_reset << endl;
+    out << "LAPACK_VERSION:        "
+        << fg_blue << major << "." << minor << "." << rev
+        << fg_reset << endl;
 #else
-    outstr << "USE_LAPACK:            "
-           << fg_blue << "NO" << fg_reset << endl;
+    out << "USE_LAPACK:            "
+        << fg_blue << "NO" << fg_reset << endl;
 #endif
 
  #ifdef USE_ILUPACK
-    outstr << endl;
-    outstr << "USE_ILUPACK:           "
-           << fg_blue << "YES" << fg_reset << endl;
-    outstr << "AMD_VERSION:        "
-           << fg_blue << AMD_MAIN_VERSION << "." << AMD_SUB_VERSION << "."
-           << AMD_SUBSUB_VERSION << " " << AMD_DATE
-           << fg_reset << endl;
+    out << endl;
+    out << "USE_ILUPACK:           "
+        << fg_blue << "YES" << fg_reset << endl;
+    out << "AMD_VERSION:        "
+        << fg_blue << AMD_MAIN_VERSION << "." << AMD_SUB_VERSION << "."
+        << AMD_SUBSUB_VERSION << " " << AMD_DATE
+        << fg_reset << endl;
  #else
-    outstr << "USE_ILUPACK:           "
-           << fg_blue  << "NO" << fg_reset << endl;
+    out << "USE_ILUPACK:           "
+        << fg_blue  << "NO" << fg_reset << endl;
+ #endif
+
+ #ifdef USE_CHOLMOD
+    out << endl;
+    out << "USE_CHOLMOD:           "
+        << fg_blue << "YES" << fg_reset << endl;
+    out << "SUITESPARSE_VERSION:        "
+        << fg_blue << SUITESPARSE_MAIN_VERSION << "." << SUITESPARSE_SUB_VERSION << "."
+        << SUITESPARSE_SUBSUB_VERSION << " " << SUITESPARSE_DATE
+        << fg_reset << endl;
+ #else
+    out << "USE_CHOLMOD:           "
+        << fg_blue  << "NO" << fg_reset << endl;
  #endif
 
  #ifdef USE_PARDISO
-    outstr << endl;
-    outstr << "USE_PARDISO:           "
-           << fg_blue << "YES" << fg_reset << endl;
-    outstr << "PARDISO_IMPL:          "
-           << fg_blue  << CFS_PARDISO << fg_reset << endl;
+    out << endl;
+    out << "USE_PARDISO:           "
+        << fg_blue << "YES" << fg_reset << endl;
+    out << "PARDISO_IMPL:          "
+        << fg_blue  << CFS_PARDISO << fg_reset << endl;
  #else
-    outstr << "USE_PARDISO:           "
+    out << "USE_PARDISO:           "
            << fg_blue << "NO" << fg_reset << endl;
  #endif
 
  #ifdef USE_METIS
-    outstr << endl
-           << "USE_METIS:             "
-           << fg_blue << "YES" << fg_reset << endl;
-    outstr << "CFS_METIS_VERSION:     "
-           << fg_blue << CFS_METIS_VERSION
-           << fg_reset << endl;
+    out << endl
+        << "USE_METIS:             "
+        << fg_blue << "YES" << fg_reset << endl;
+    out << "CFS_METIS_VERSION:     "
+        << fg_blue << CFS_METIS_VERSION
+        << fg_reset << endl;
 #else
-    outstr << "USE_METIS:             "
-           << fg_blue << "NO" << fg_reset<< endl;
+    out << "USE_METIS:             "
+        << fg_blue << "NO" << fg_reset<< endl;
 #endif
 
-    outstr << endl;
+    out << endl;
 
  #ifdef USE_SCRIPTING_TCL
-    outstr << "USE_SCRIPTING_TCL:     "
-           << fg_blue  << "YES" << fg_reset << endl;
+    out << "USE_SCRIPTING_TCL:     "
+        << fg_blue  << "YES" << fg_reset << endl;
     Integer tcl_major, tcl_minor, tcl_rev, tcl_patch;
     Tcl_GetVersion(&tcl_major, &tcl_minor, &tcl_rev, &tcl_patch);
-    outstr << "CFS_TCL_VERSION:       "
-           << fg_blue << tcl_major << "." << tcl_minor << "." << tcl_rev
-           << fg_reset << endl;
+    out << "CFS_TCL_VERSION:       "
+        << fg_blue << tcl_major << "." << tcl_minor << "." << tcl_rev
+        << fg_reset << endl;
  #else
-    outstr << "USE_SCRIPTING_TCL:     "
-           << fg_blue << "NO" << fg_reset << endl;
+    out << "USE_SCRIPTING_TCL:     "
+        << fg_blue << "NO" << fg_reset << endl;
  #endif
 
  #ifdef USE_SCRIPTING_PYTHON
-    outstr << "USE_SCRIPTING_PYTHON:  "
-           << fg_blue << "YES" << fg_reset << endl;
+    out << "USE_SCRIPTING_PYTHON:  "
+        << fg_blue << "YES" << fg_reset << endl;
     string pyVersion = Py_GetVersion();
     UInt i=0;
     for(i=0; i < pyVersion.length(); i++) {
@@ -689,147 +696,150 @@ namespace CoupledField {
         break;
     }
     pyVersion = pyVersion.substr(0, i);
-    outstr << "CFS_PYTHON_VERSION:    "
-           << fg_blue << pyVersion << fg_reset << endl;
+    out << "CFS_PYTHON_VERSION:    "
+        << fg_blue << pyVersion << fg_reset << endl;
  #else
-    outstr << "USE_SCRIPTING_PYTHON:  "
-           << fg_blue << "NO" << fg_reset << endl;
+    out << "USE_SCRIPTING_PYTHON:  "
+        << fg_blue << "NO" << fg_reset << endl;
 #endif
 
-    outstr << endl;
+    out << endl;
 
  #ifdef USE_GIDPOST
-    outstr << "USE_GIDPOST:           "
-           << fg_blue << "YES" << fg_reset << endl;
-    outstr << "CFS_GIDPOST_VERSION:   "
-           << fg_blue << CFS_GIDPOST_VERSION << fg_reset << endl;
+    out << "USE_GIDPOST:           "
+        << fg_blue << "YES" << fg_reset << endl;
+    out << "CFS_GIDPOST_VERSION:   "
+        << fg_blue << CFS_GIDPOST_VERSION << fg_reset << endl;
  #else
-    outstr << "USE_GIDPOST:           "
-           << fg_blue << "NO" << fg_reset << endl;
+    out << "USE_GIDPOST:           "
+        << fg_blue << "NO" << fg_reset << endl;
  #endif
 
  #ifdef USE_GMV_INPUT
-    outstr << "USE_GMV_INPUT:         "
-           << fg_blue << "YES" << fg_reset << endl;
+    out << "USE_GMV_INPUT:         "
+        << fg_blue << "YES" << fg_reset << endl;
  #else
-    outstr << "USE_GMV_INPUT:         "
-           << fg_blue << "NO" << fg_reset << endl;
+    out << "USE_GMV_INPUT:         "
+        << fg_blue << "NO" << fg_reset << endl;
  #endif
 
  #ifdef USE_GMV_OUTPUT
-    outstr << "USE_GMV_OUTPUT:        "
-           << fg_blue << "YES" << fg_reset << endl;
+    out << "USE_GMV_OUTPUT:        "
+        << fg_blue << "YES" << fg_reset << endl;
  #else
-    outstr << "USE_GMV_OUTPUT:        "
-           << fg_blue << "NO" << fg_reset << endl;
+    out << "USE_GMV_OUTPUT:        "
+        << fg_blue << "NO" << fg_reset << endl;
 #endif
 
  #ifdef USE_HDF5
-    outstr << "USE_HDF5:              "
-           << fg_blue << "YES" << fg_reset << endl;
-    outstr << "CFS_HDF5_VERSION:      "
-           << fg_blue << CFS_HDF5_VERSION << fg_reset << endl;
+    out << "USE_HDF5:              "
+        << fg_blue << "YES" << fg_reset << endl;
+    out << "CFS_HDF5_VERSION:      "
+        << fg_blue << CFS_HDF5_VERSION << fg_reset << endl;
  #else
-    outstr << "USE_HDF5:              "
-           << fg_blue << "NO" << fg_reset << endl;
+    out << "USE_HDF5:              "
+        << fg_blue << "NO" << fg_reset << endl;
 #endif
 
  #ifdef USE_MESH
-    outstr << "USE_MESH:              "
-           << fg_blue << "YES" << fg_reset << endl;
+    out << "USE_MESH:              "
+        << fg_blue << "YES" << fg_reset << endl;
  #else
-    outstr << "USE_MESH:              "
-           << fg_blue << "NO" << fg_reset << endl;
+    out << "USE_MESH:              "
+        << fg_blue << "NO" << fg_reset << endl;
  #endif
 
  #ifdef USE_UNV
-    outstr << "USE_UNV:               "
-           << fg_blue << "YES" << fg_reset << endl;
+    out << "USE_UNV:               "
+        << fg_blue << "YES" << fg_reset << endl;
  #else
-    outstr << "USE_UNV:               "
-           << fg_blue << "NO" << fg_reset << endl;
+    out << "USE_UNV:               "
+        << fg_blue << "NO" << fg_reset << endl;
 #endif
 
-    outstr << endl;
+    out << endl;
 
 #ifdef USE_XERCES
-    outstr << "USE_XERCES:            "
-           << fg_blue << "YES" << fg_reset << endl;
-    outstr << "CFS_XERCES_VERSION:    "
-           << fg_blue << CFS_XERCES_VERSION << fg_reset << endl;
-    outstr << "XMLSCHEMA:             ";
-    if(progOpts) {  
-      outstr << fg_blue << progOpts->GetSchemaPath() << fg_reset << endl;
-    } else {
-      outstr << fg_blue << XMLSCHEMA << fg_reset << endl;
-    }
-    
+    out << "USE_XERCES:            "
+        << fg_blue << "YES" << fg_reset << endl;
+    out << "CFS_XERCES_VERSION:    "
+        << fg_blue << CFS_XERCES_VERSION << fg_reset << endl;
+    out << "XMLSCHEMA:             ";
+    if(progOpts)
+      out << fg_blue << progOpts->GetSchemaPath() << fg_reset << endl;
+    else
+      out << fg_blue << XMLSCHEMA << fg_reset << endl;
     
 #else
-    outstr << "USE_XERCES:            "
-           << fg_blue << "NO" << fg_reset << endl;
+    out << "USE_XERCES:            "
+        << fg_blue << "NO" << fg_reset << endl;
 #endif
 
-    outstr << endl;
+    out << endl;
 
 #ifdef USE_ANSYSCRT
-    outstr << "USE_ANSYSRST:          "
-           << fg_blue << "YES" << fg_reset << endl;
-    outstr << "CFS_ANSYS_VERSION:    "
-           << fg_blue << CFS_ANSYS_VERSION << fg_reset << endl;
+    out << "USE_ANSYSRST:          "
+        << fg_blue << "YES" << fg_reset << endl;
+    out << "CFS_ANSYS_VERSION:    "
+        << fg_blue << CFS_ANSYS_VERSION << fg_reset << endl;
 #else
-    outstr << "USE_ANSYSRST:          "
-           << fg_blue << "NO" << fg_reset << endl;
+    out << "USE_ANSYSRST:          "
+        << fg_blue << "NO" << fg_reset << endl;
 #endif
 
-    outstr << endl;
+    out << endl;
 #ifdef MpCCI
-    outstr << "MpCCI:                 "
-           << fg_blue << "YES" << fg_reset << endl;
-    outstr << "MpCCI_RELEASE:         "
-           << fg_blue << MpCCI_RELEASE
-           << fg_reset << endl;
+    out << "MpCCI:                 "
+        << fg_blue << "YES" << fg_reset << endl;
+    out << "MpCCI_RELEASE:         "
+        << fg_blue << MpCCI_RELEASE
+        << fg_reset << endl;
 #else
-    outstr << "MpCCI:                 "
-           << fg_blue << "NO" << fg_reset << endl;
+    out << "MpCCI:                 "
+        << fg_blue << "NO" << fg_reset << endl;
 #endif
 #ifdef USE_INTERPOLATION
-    outstr << "USE_INTERPOLATION:     "
-           << fg_blue << "YES" << fg_reset << endl;
-    outstr << "CFS_CGAL_VERSION:      "
-           << fg_blue <<   QUOTEMACRO(QUOTEMACRO(CGAL_VERSION))  
-           << " (" << CGAL_VERSION_NR
-           << ", SVN rev. " << CGAL_SVN_REVISION << ")"
-           << fg_reset << endl;
+    out << "USE_INTERPOLATION:     "
+        << fg_blue << "YES" << fg_reset << endl;
+    out << "CFS_CGAL_VERSION:      "
+        << fg_blue <<   QUOTEMACRO(QUOTEMACRO(CGAL_VERSION))
+        << " (" << CGAL_VERSION_NR
+        << ", SVN rev. " << CGAL_SVN_REVISION << ")"
+        << fg_reset << endl;
 #else
-    outstr << "USE_INTERPOLATION:     "
-           << fg_blue << "NO" << fg_reset << endl;
+    out << "USE_INTERPOLATION:     "
+        << fg_blue << "NO" << fg_reset << endl;
 #endif
     
-    outstr << endl;
-    outstr << "CFS_BOOST_VERSION:     "
-           << fg_blue << CFS_BOOST_VERSION << fg_reset << endl;
-    outstr << "CFS_ZLIB_VERSION:      "
-           << fg_blue << zlibVersion() << fg_reset << endl;
-    outstr << "CFS_BZIP2_VERSION:     "
-           << fg_blue << BZ2_bzlibVersion() << fg_reset << endl;
-    outstr << "CFS_MUPARSER_VERSION:  "
-           << fg_blue << CFS_MUPARSER_VERSION << fg_reset << endl;
+    out << endl;
+    out << "CFS_BOOST_VERSION:     "
+        << fg_blue << CFS_BOOST_VERSION << fg_reset << endl;
+    out << "CFS_ZLIB_VERSION:      "
+        << fg_blue << zlibVersion() << fg_reset << endl;
+    out << "CFS_BZIP2_VERSION:     "
+        << fg_blue << BZ2_bzlibVersion() << fg_reset << endl;
+    out << "CFS_MUPARSER_VERSION:  "
+        << fg_blue << CFS_MUPARSER_VERSION << fg_reset << endl;
 
    
 #ifdef CPLREADER_CFX
-    outstr << "CFX_IO_VERSION:        "
-           << fg_blue << io_get_version() << fg_reset << endl;
+    out << "CFX_IO_VERSION:        "
+        << fg_blue << io_get_version() << fg_reset << endl;
 #endif
 
-    outstr << endl;
-    outstr << "sizeof(int)            "  << fg_blue << sizeof(int) << fg_reset << endl;
-    outstr << "sizeof(Integer)        "  << fg_blue << sizeof(Integer) << fg_reset << endl;
-    outstr << "sizeof(size_t)         "  << fg_blue << sizeof(size_t) << fg_reset << endl;
-    outstr << "sizeof(long)           "  << fg_blue << sizeof(long) << fg_reset << endl;    
-    outstr << "sizeof(double)         "  << fg_blue << sizeof(double) << fg_reset << endl;    
-    outstr << "sizeof(double*)        "  << fg_blue << sizeof(double*) << fg_reset << endl;    
-    
+    out << endl;
+    out << "MKL_NUM_THREADS:       "
+        << fg_blue << (getenv("MKL_NUM_THREADS") != NULL ? getenv("MKL_NUM_THREADS") : "-")
+        << fg_reset << endl;
+
+    out << endl;
+    out << "sizeof(int)            "  << fg_blue << sizeof(int) << fg_reset << endl;
+    out << "sizeof(Integer)        "  << fg_blue << sizeof(Integer) << fg_reset << endl;
+    out << "sizeof(size_t)         "  << fg_blue << sizeof(size_t) << fg_reset << endl;
+    out << "sizeof(long)           "  << fg_blue << sizeof(long) << fg_reset << endl;    
+    out << "sizeof(double)         "  << fg_blue << sizeof(double) << fg_reset << endl;    
+    out << "sizeof(double*)        "  << fg_blue << sizeof(double*) << fg_reset << endl;    
+    out << "CLOCKS_PER_SEC         "  << fg_blue << CLOCKS_PER_SEC << fg_reset << endl;
     
   ColoredConsole::colorise = colTmp;
   }
@@ -849,10 +859,9 @@ namespace CoupledField {
         << "  This finally is the famous MACHETE branch with a 0-based OLAS, unified" << endl
         << "  matrix and vector classes and the brand new CFSDEPS building matching libs." << endl
         << endl
-        << "09.05, Rasanter Rechner" << endl
-        << "  This brings back ILUPACK by M. Bollhoefer, a very fast iterative preconditioner/" << endl
-        << "  solver package which beats PARDISO for large 3D problems. The OLAS info.xml output" << endl
-        << "  is in the early feet." << endl;    
+        << "09.08, Rasanter Rechner" << endl
+        << "  ILUPACK by M. Bollhoefer works again (iterative preconditioner/ solver package)" << endl
+        << "  CHOLMOD (as in MATLAB) is a s.p.d. direct solver, 20% faster than Pardiso" << endl;
   }
 
   void ProgramOptions::GetHeaderString(std::ostream & out)

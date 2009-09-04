@@ -25,7 +25,6 @@ namespace CoupledField {
   class BaseEntryManipulator;
   class BaseMatrix;
   class StdMatrix;
-  class DenseMatrix;
   class BaseVector;
   class SingleVector;
   class ParamNode;
@@ -58,6 +57,8 @@ namespace CoupledField {
 
     //! Default Destructor
     virtual ~BaseSystem();
+
+
 
     //! Obtain a pointer to the parameter object
     OLAS_Params* GetOLASParams() {

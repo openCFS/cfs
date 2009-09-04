@@ -19,6 +19,7 @@ namespace CoupledField {
 
   // Forward class declarations
   class TimeFunc;
+  class Timer;
   class StdPDE;
   class InfoNode;
 
@@ -218,6 +219,9 @@ namespace CoupledField {
 
     //! Handle for MathParser object
     MathParser::HandleType mHandle_;
+
+    /** The object is within a InfoNode and deleted there! */
+    Timer* timer_;
   };
 }
 #endif

@@ -21,6 +21,9 @@ namespace CoupledField {
   template<class TYPE> class Matrix;
   template<class TYPE> class Vector;
   template<class TYPE> class StdVector;
+  
+  // to prevent using the abs from stdlib.h which is only for int!
+  using std::abs;
 
   // =========================================================================
   //     ERROR / WARNING HANDLING
@@ -118,9 +121,14 @@ namespace CoupledField {
   /** Compared if two complex are close (if both the real and imaginary part are close) */
   bool close(Complex c1, Complex c2);
 
-  //! Absolute value of number
-  template<class T>
-  T abs(T x) { return (x>0 ? x: -x); }
+  /** identifies numerical noise */
+  bool IsNoise(Double val);
+
+  bool IsNoise(Complex val);
+
+  bool IsNoise(int val);
+
+  bool IsNoise(UInt val);
 
   //! power of value
   template<class T>
@@ -143,12 +151,17 @@ namespace CoupledField {
   public:
     //! constructor
     Point() {
-      for(UInt i=0; i<3; i++)
-        data[i]=0.0;
+      SetZero();
+    }
+    
+    Point(const Double x, const Double y, const Double z) {
+        data[0]=x;
+        data[1]=y;
+        data[2]=z;
     }
 
     //!destructor
-    ~Point(){;}
+    ~Point() {}
 
     /** resets the values */
     void SetZero() {
@@ -158,23 +171,26 @@ namespace CoupledField {
 
     //!
     Point & operator=(const Point & t);
+    
     //!
-    Point & operator+=( const Point & t );
+    Point & operator+=(const Point & t);
+    Point operator+(const Point &t);
+    Point operator+(const Point &t) const;
+    
     //!
-    Point  operator+(const Point & t);
-    //!
-    Point  operator-(const Point & t);
+    Point & operator-=(const Point &t);
+    Point operator-(const Point &t);
+    Point operator-(const Point &t) const;
 
-    /** scale the point */ 
-    Point  operator*(double factor); 
+    /** scale the point */
+    Point& operator*=(const Double factor); 
+    Point operator*(const Double factor);
+    Point operator*(const Double factor) const; 
 
-    Point& operator*=(double factor); 
-
-    /** scale the point */ 
-    Point  operator/(double factor); 
-
-    /** scale the point */ 
-    Point&  operator/=(double factor);   
+    /** scale the point */  
+    Point&  operator/=(const Double factor);
+    Point operator/(const Double factor);
+    Point operator/(const Double factor) const;    
 
     //! return coordinate number i
     Double &operator[](UInt i) {
@@ -211,7 +227,7 @@ namespace CoupledField {
 
   //! calculate distance between two points embedded in matrix
 
-  Double dist_Mat(Matrix<Double> a);
+  Double dist_Mat(const Matrix<Double> &a);
 
   // calculation area or volume of element
   struct Elem;
@@ -227,22 +243,22 @@ namespace CoupledField {
     \param normal normal
     \param a,b pointes
   */
-  void calcNormal2Line(Vector<Double> & normal,Point a, Point b);
+  void calcNormal2Line(Vector<Double> & normal, const Point &a, const Point &b);
 
   //! calculate the normal to line with following orientation: a-->b
   /*!
     \param normal normal
     \param a,b points embedded in Matrix
   */
-  void calcNormal2Line_Mat(Vector<Double> & normal, Matrix<Double> a);
+  void calcNormal2Line_Mat(Vector<Double> & normal, const Matrix<Double> &a);
 
   //! calculate normal to surface element
   /*!
     \param normal normal
     \param a,b,c vertices of element
   */
-  void calcNormal2Surface(Vector<Double> & normal,Point a,Point b,
-                          Point c);
+  void calcNormal2Surface(Vector<Double> & normal,
+                          const Point &a, const Point &b, const Point &c);
 
 
   //! calculate normal to surface element using matrix parameter
@@ -250,15 +266,15 @@ namespace CoupledField {
     \param normal normal
     \param ptCoord matrix containing vertices of surface element
   */
-  void calcNormal2Surface_Mat(Vector<Double> & normal,Matrix<Double> ptCoord);
+  void calcNormal2Surface_Mat(Vector<Double> & normal, const Matrix<Double> &ptCoord);
 
   /** Assigns the multiple of a matrix to another matrix. The target is resized.
    * This is silly copy & pase code. And is for the non-mixed variants already
    * in Matrix::Assign(). Anybody knows how to do the mixed variant in Matrix? */
-  void Assign(Matrix<Double>& target,  const Matrix<Double>&  other, Double factor);
-  void Assign(Matrix<Complex>& target, const Matrix<Complex>& other, Complex factor);
-  void Assign(Matrix<Complex>& target, const Matrix<Double>&  other, Complex factor);
-  void Assign(Matrix<Complex>& target, const Matrix<Double>&  other, Double factor);
+  void Assign(Matrix<Double>& target,  const Matrix<Double>&  other, const Double factor);
+  void Assign(Matrix<Complex>& target, const Matrix<Complex>& other, const Complex factor);
+  void Assign(Matrix<Complex>& target, const Matrix<Double>&  other, const Complex factor);
+  void Assign(Matrix<Complex>& target, const Matrix<Double>&  other, const Double factor);
 
 
   /// prints formatted header including name, version, date
@@ -266,7 +282,7 @@ namespace CoupledField {
 
   /** Calculates the L2 norm of a array. This is for cases where we
    * don't use one of our vectors. E.g. with IPOPT */
-  double NormL2(const double* data, unsigned int size);
+  Double NormL2(const Double* data, const UInt size);
 
   /** Calculate the average of an array */
   double Average(const double* data, unsigned int size);
@@ -285,6 +301,11 @@ namespace CoupledField {
   /// prints formatted header including name, version, date
   void PrintCFSHeader(std::ostream & out);
 
+  /** Determines the current memory consumption.
+   * This is done by calling ps and some post processing from a pipe.
+   * Runs clearly only on Unix and is rather expensive
+   * @return the memory in KBytes or 0 if there was a problem */
+  int MemoryUsage();
 
 
 } // end of CoupledField

@@ -52,71 +52,21 @@ DECLARE_LOG(opt)
 DEFINE_LOG(opt, "opt")
 
 // instantiation of the static elements
-Enum<Optimization::ObjectiveType>    Optimization::objectiveType;
 Enum<Optimization::Optimizer>        Optimization::optimizer;
 Enum<Optimization::Application>      Optimization::application;
 Enum<Optimization::CommitMode>       Optimization::commitMode;
 
-Optimization::Objective::Objective(ParamNode* pn, bool harmonic)
-{
-  // multiple excitation is handled in Optimization itself!
-
-  // the current value -> check <Get/Set>Value() when altering the presets!
-  this->value_       = -1.0;
-  this->pn           = pn;
-  this->harmonic_    = harmonic;
-  this->omega_omega_ = pn->Has("factor") ? pn->Get("factor")->Get("omega_omega")->AsBool() : false;
-  if(!harmonic && omega_omega_)
-    throw Exception("It makes no sense to set costFunction/factor/omega_omega in static optimization");
-  
-  this->tychonoff_  = pn->Has("tychonoff") ? pn->Get("tychonoff")->AsDouble() : 0.0;
-
-  type = objectiveType.Parse(pn->Get("type"));
-
-  if(pn->Get("stoppingRule")->AsString() != "relative")
-      throw Exception("stopping rule not implemented yet");
-
-  task = pn->Get("task")->AsString() == "minimize" ? MINIMIZE : MAXIMIZE;
-
-  stop.value = pn->Get("value")->AsDouble();
-
-  stop.queue = pn->Get("queue")->AsUInt();
-  if(stop.queue < 1) throw Exception("minimal queue value for stopping rule is 1");
-}
-
-void Optimization::Objective::ToInfo(InfoNode* in) const
-{
-  in->Get("type")->SetValue(objectiveType.ToString(type));
-  in->Get("task")->SetValue(task == MINIMIZE ? "minimize" : "maximize");
-  if(harmonic_)
-    in->Get("factor")->Get("omega_omega")->SetValue(omega_omega_);
-}
-
-double Optimization::Objective::GetValue()
-{
-  return value_;
-}
-
-void Optimization::Objective::SetValue(double val)
-{
-  value_ = val;
-}
-
-
+Enum<Optimization::MultipleExcitation::Type>  Optimization::MultipleExcitation::type;
 
 Optimization::Optimization()
 {
   this->lastStoredResult_ = -1;
-  this->logFile_ = NULL;
   this->design = NULL;
   this->baseOptimizer_ = NULL;
   this->harmonic = BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType());
   this->currentIteration = 0; // a 1 or 0 can make a lot of difference! 0 is initial design!
   this->problemSolvedCounter = 0;
   this->problemWithinIteration = 0;
-  // constraints to be added later -- it is so much easier with the InfoNodes
-  this->logFileHeader = harmonic ? "#iter\tfreq" : "#iter";
-  this->logFileHeader += "\tcost\tchange\tproblems";
 
   // inject the driver and tell him that we do optimization
   BaseDriver* driver = domain->GetDriver();
@@ -130,9 +80,16 @@ Optimization::Optimization()
   optimizer_ = optimizer.Parse(pn->Get("optimizer")->Get("type"));
   maxIterations = pn->Get("optimizer")->Get("maxIterations")->AsInt();
 
-  // the cost function is mandatory
-  this->cost = new Objective(pn->Get("costFunction"), harmonic);
-  this->cost->ToInfo(optInfoNode->Get(InfoNode::HEADER)->Get("objective", InfoNode::APPEND));
+  // might read a multiObjective problem
+  objectives.Read(pn->Get("costFunction")); //
+  objectives.ToInfo(optInfoNode->Get(InfoNode::HEADER)->Get("objective"));
+
+  // constraints to be added later -- it is so much easier with the InfoNodes
+  this->log.fileHeader = harmonic ? "#iter\tfreq" : "#iter";
+  for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
+    this->log.fileHeader += "\t" + Objective::type.ToString(objectives.data[i]->GetType());
+  this->log.fileHeader += "\tchange\tproblems";
+
 
   // multiple excitations are are toggled via attribute. Only if enabled we read the optional element
   // actually part of costFunction - but we store in Optimization itself!
@@ -155,30 +112,28 @@ Optimization::Optimization()
   InfoNode* in = optInfoNode->Get(InfoNode::HEADER)->Get("constraints");
   for(unsigned int i = 0; i < list.GetSize(); i++)
   {
-     // the index is the current constraints size, it such works also if there are outputs
-     Condition g(list[i], constraints.GetSize());
-     g.ToInfo(in->Get("constraint", InfoNode::APPEND));
-     if(g.active) constraints.Push_back(g);
-             else outputs.Push_back(g);
+    // the constraint is either added to constraints or outputs if mode is observation
+    // homogenization constraints are "super constraints" which might "blow" up to 4 or 9 constraints
+     Condition::AddCondition(list[i], constraints, outputs);
   }
+
+  // if in the 'logging' element deltaConstraints is enabled, we modify the output!
+  string delta = log.deltaConstraints ? "delta_" : "";
+
   // first the constraints then the outputs!
   for(unsigned int i = 0; i < constraints.GetSize(); i++)
-    this->logFileHeader += "\t" + constraints[i].ToString();
-  for(unsigned int i = 0; i < outputs.GetSize(); i++)
-    this->logFileHeader += "\t" + outputs[i].ToString();
-
-
-  // We almost always make a gnuplot log file
-  string log_name = pn->Get("log")->AsString();
-  if(log_name != "false")
   {
-    if(log_name == "[problem]" || log_name == "true") log_name = progOpts->GetSimName() + ".plot.dat";
-    logFile_ = new ofstream(log_name.c_str());
-    if(logFile_ == NULL)
-      throw Exception("cannot open log file " + pn->Get("log")->AsString() + " for writing");
-    this->logDesign = pn->Get("logdesign")->AsBool();
-    this->logDesignGradient = pn->Get("logdesigngradient")->AsBool();
+    this->log.fileHeader += "\t" + delta + constraints[i].ToString();
+    constraints[i].ToInfo(in->Get("constraint", InfoNode::APPEND));
   }
+
+  for(unsigned int i = 0; i < outputs.GetSize(); i++)
+  {
+    this->log.fileHeader += "\t" + delta + outputs[i].ToString();
+    outputs[i].ToInfo(in->Get("observation", InfoNode::APPEND));
+  }
+
+  log.Init(pn->Get("log")->AsString(), pn->Get("logging", false)); // is fail save
 
   // remove a stop file, if found
   if(fs::exists("HALTOPT"))
@@ -190,15 +145,6 @@ Optimization::Optimization()
 
 Optimization::~Optimization()
 {
-  // if write to file close it
-  if(logFile_ != NULL)
-  {
-    logFile_->close();
-    delete logFile_;
-    logFile_ = NULL;
-  }
-
-  delete cost; cost = NULL;
   delete design; design = NULL;
   delete baseOptimizer_; baseOptimizer_ = NULL;
   delete multiple_excitation; multiple_excitation = NULL;
@@ -213,10 +159,6 @@ void Optimization::PostInit()
 
 void Optimization::PostInitSecond()
 {
-  if(param->Has("loadErsatzMaterial")) { // if loadErsatzMaterial is used with optimization specifying a starting point, we have to load it here, before scaling ist done
-    domain->ReadErsatzMaterial(param->Get("loadErsatzMaterial"));
-  }
-
   ParamNode* opt = param->Get("optimization")->Get("optimizer");
 
   switch(optimizer_)
@@ -255,47 +197,53 @@ void Optimization::PostInitSecond()
 
     default: throw Exception("optimizer not implemented");
   }
-  if (this->logDesign) {
+  if (this->log.design) {
     for (unsigned int i = 0; i < design->GetNumberOfVariables(); i++) {
-      this->logFileHeader += "\t";
-      this->logFileHeader += "design";
+      this->log.fileHeader += "\t";
+      this->log.fileHeader += "design";
     }
   }
-  if (this->logDesignGradient) {
+  if (this->log.designGradient) {
     for (unsigned int i = 0; i < design->GetNumberOfVariables(); i++) {
-      this->logFileHeader += "\t";
-      this->logFileHeader += "designGradient";
+      this->log.fileHeader += "\t";
+      this->log.fileHeader += "designGradient";
     }
   }
   design->SetOptimizer(baseOptimizer_);
   // add plot logging of the optimizer
-  this->logFileHeader += baseOptimizer_->LogFileHeader();
+  this->log.fileHeader += baseOptimizer_->LogFileHeader();
 }
 
 
 void Optimization::SetEnums()
 {
-  objectiveType.SetName("Optimization::ObjectiveType");
-  objectiveType.Add(COMPLIANCE, "compliance");
-  objectiveType.Add(OUTPUT, "output");
-  objectiveType.Add(DYNAMIC_OUTPUT, "dynamicOutput");
-  objectiveType.Add(ABS_DYN_OUTPUT_SQUARED, "absDynamicOutputSquared");
-  objectiveType.Add(GLOBAL_DYNAMIC_COMPLIANCE, "globalDynamicCompliance");
-  objectiveType.Add(CONJUGATE_COMPLIANCE, "conjugateCompliance");
-  objectiveType.Add(VOLUME, "volume");
-  objectiveType.Add(TRACKING, "tracking");
-  objectiveType.Add(ELEC_ENERGY, "elecEnergy");
-  objectiveType.Add(HOMOGENIZATION, "homogenization");
+  Objective::type.SetName("Objective::Type");
+  Objective::type.Add(Objective::MULTI_OBJECTIVE, "multiObjective");
+  Objective::type.Add(Objective::COMPLIANCE, "compliance");
+  Objective::type.Add(Objective::OUTPUT, "output");
+  Objective::type.Add(Objective::DYNAMIC_OUTPUT, "dynamicOutput");
+  Objective::type.Add(Objective::ABS_DYN_OUTPUT_SQUARED, "absDynamicOutputSquared");
+  Objective::type.Add(Objective::GLOBAL_DYNAMIC_COMPLIANCE, "globalDynamicCompliance");
+  Objective::type.Add(Objective::CONJUGATE_COMPLIANCE, "conjugateCompliance");
+  Objective::type.Add(Objective::VOLUME, "volume");
+  Objective::type.Add(Objective::TRACKING, "tracking");
+  Objective::type.Add(Objective::ELEC_ENERGY, "elecEnergy");
+  Objective::type.Add(Objective::HOMOGENIZATION_TENSOR, "homogenizationTensor");
+  Objective::type.Add(Objective::HOMOGENIZATION_TRACKING, "homogenizationTracking");
+  Objective::type.Add(Objective::TYCHONOFF, "tychonoff");
+  Objective::type.Add(Objective::TEMPERATURE, "temperature");
 
-  Condition::name.SetName("Contraint::Name");
+  Condition::name.SetName("Constraint::Name");
   Condition::name.Add(Condition::VOLUME, "volume");
   Condition::name.Add(Condition::COMPLIANCE, "compliance");
   Condition::name.Add(Condition::GREYNESS, "greyness");
   Condition::name.Add(Condition::GAUSS_GREYNESS, "gaussGreyness");
   Condition::name.Add(Condition::TRACKING, "tracking");
   Condition::name.Add(Condition::REALVOLUME, "realvolume");
+  Condition::name.Add(Condition::HOMOGENIZATION_TENSOR, "homogenizationTensor");
+  Condition::name.Add(Condition::HOMOGENIZATION_TRACKING, "homogenizationTracking");
 
-  Condition::type.SetName("Contraint::Type");
+  Condition::type.SetName("Constraint::Type");
   Condition::type.Add(Condition::EQUAL, "equal");
   Condition::type.Add(Condition::LOWER_BOUND, "lowerBound");
   Condition::type.Add(Condition::UPPER_BOUND, "upperBound");
@@ -323,6 +271,7 @@ void Optimization::SetEnums()
   OptimizationMaterial::system.SetName("OptimizationMaterial::System");
   OptimizationMaterial::system.Add(OptimizationMaterial::PIEZO, "piezo");
   OptimizationMaterial::system.Add(OptimizationMaterial::MECHANIC, "mechanic");
+  OptimizationMaterial::system.Add(OptimizationMaterial::HEAT, "heat");
 
   application.SetName("Optimization::Application");
   application.Add(NO_APP, "no_app");
@@ -337,8 +286,14 @@ void Optimization::SetEnums()
   LevelSet::Action::type.Add(LevelSet::Action::SIGNED_DISTANCE_FIELD, "signedDistanceField");
   LevelSet::Action::type.Add(LevelSet::Action::TRIVIAL_HOLE, "trivialHole");
   LevelSet::Action::type.Add(LevelSet::Action::DO_SHAPE_STEP, "shapeStep");
-}
 
+  MultipleExcitation::type.SetName("Optimization::MultipleExcitation::Type");
+  MultipleExcitation::type.Add(MultipleExcitation::NO_TYPE, "no_type:q"
+      "");
+  MultipleExcitation::type.Add(MultipleExcitation::FIXED_WEIGHT, "fixed_weights");
+  MultipleExcitation::type.Add(MultipleExcitation::META_OBJECTIVE, "meta_objective");
+  MultipleExcitation::type.Add(MultipleExcitation::HOMOGENIZATION_TEST_STRAINS, "homogenizationTestStrains");
+}
 
 
 bool Optimization::DoStopOptimization()
@@ -355,14 +310,16 @@ bool Optimization::DoStopOptimization()
   }
   
   // this currently only implements relative stopping rule
+  Objective* cost = objectives.data[0];
 
-  // we need a minimum number of itations to be sure we are in a minimum
-  if(cost->history.GetSize() <= cost->stop.queue) return false;
+  // we need a minimum number of iterations to be sure we are in a minimum
+  unsigned int hs = objectives.GetHistorySize();
+  if(hs <= cost->stop.queue) return false;
 
-  for(unsigned int i = cost->history.GetSize()-1; i >= (cost->history.GetSize() - cost->stop.queue); i--)
+  for(unsigned int i = hs-1; i >= (hs - cost->stop.queue); i--)
   {
-    double delta = abs(cost->history[i] - cost->history[i-1]);
-    double rel = abs(delta / cost->history[i]);
+    double delta = objectives.GetHistoryValue(true, i) - objectives.GetHistoryValue(true, i-1);
+    double rel = abs(delta / objectives.GetHistoryValue(true, i));
     if(rel > cost->stop.value) return false;
   }
 
@@ -370,7 +327,7 @@ bool Optimization::DoStopOptimization()
   in->Get("converged")->SetValue("practically");
   in->Get("reason")->SetValue("Too small change in objective function");
   in->Get("reason")->Get("queue")->SetValue(cost->stop.queue);
-  in->Get("reason")->Get("realtive")->SetValue(cost->stop.value);
+  in->Get("reason")->Get("relative")->SetValue(cost->stop.value);
   return true;
 }
 
@@ -385,7 +342,7 @@ Optimization* Optimization::CreateInstance()
   if(!param->Has("optimization")) return NULL;
 
   // we assume ersatz material, currently there is nothing else.
-  // note, we read method again in the ersat material constructor.
+  // note, we read method again in the ersatz material constructor.
   ParamNode* em = param->Get("optimization")->Get("ersatzMaterial");
   ErsatzMaterial::Method method = ErsatzMaterial::method.Parse(em->Get("method"));
   
@@ -439,11 +396,23 @@ void Optimization::SolveProblem()
 
   ResultHandler* rh = domain->GetResultHandler();
   unsigned int mss = domain->GetDriver()->GetActSequenceStep();
-  rh->BeginMultiSequenceStep(mss, BasePDE::TRANSIENT, 9999); // max steps is high
-  baseOptimizer_->SolveProblem();
+  rh->BeginMultiSequenceStep(mss, BasePDE::TRANSIENT, 999); // max steps is high
+
+  Exception* e = NULL;
+  try
+  {
+    baseOptimizer_->SolveOptimizationProblem();
+  }
+  catch(Exception& ex)
+  {
+    e = new Exception(ex);
+  }
+
+  // do the finally - try to write results even if the optimizer broke down
   FinalizeStoreResults(); // when we have strides the results are written
   rh->FinishMultiSequenceStep();
   rh->Finalize();
+  if(e != NULL) throw *e;
 }
 
 
@@ -465,10 +434,16 @@ void Optimization::SolveStateProblem(Excitation* excite)
   // we can aquire it for the adjoint problem
   InfoNode* analysis_id = excite == NULL ? driver->CreateAnalysisId("iter", currentIteration)
                                          : driver->CreateAnalysisId("iter", currentIteration, "excite", excite->index);
+  
+  bool reAssembleMatrices = true;
+  if(excite != NULL && excite->index > 0)
+  {
+    reAssembleMatrices = false;
+  }
                                          
   // Do not store the results. This is to be done in CommitIteration
   if(!harmonic || excite == NULL) 
-    driver->SolveProblem(false, analysis_id);
+    driver->SolveProblem(false, analysis_id, reAssembleMatrices);
   else
     dynamic_cast<HarmonicDriver*>(driver)->ComputeFrequencyStep(excite->f_link->step, analysis_id);
 
@@ -553,14 +528,14 @@ void Optimization::FinalizeStoreResults()
 InfoNode* Optimization::CommitIteration(bool keep_iteration_number)
 {
   // store the real cost -> not a scaled one
-  cost->history.Push_back(cost->GetValue());
+  objectives.PushBackHistory();
 
   // eventually set special result
   EvaluateSpecialResults();
 
   // this writes the most current solved forward problem via the driver to gid or whatever
   bool store = currentIteration == 0 || commitStride == 1 || (commitStride > 0 && currentIteration % commitStride == 0);
-  LOG_TRACE2(opt) << "CommitIteration " << currentIteration << " ojective=" << cost->GetValue() << " store=" << store;
+  LOG_TRACE2(opt) << "CommitIteration " << currentIteration << " ojective=" << objectives.GetHistoryValue() << " store=" << store;
   if(store)
   {
     StoreResults();
@@ -574,13 +549,13 @@ InfoNode* Optimization::CommitIteration(bool keep_iteration_number)
   // also log to info node, append the iteration
   InfoNode* iteration = optInfoNode->Get(InfoNode::PROCESS)->Get("iteration", InfoNode::APPEND);
 
-  if(logFile_)
+  if(log.file)
   {
     // write the header only once - we might keep the iteration number
-    if(cost->history.GetSize() == 1) *logFile_ << logFileHeader << endl;
-    LogFileLine(logFile_, iteration);
-    baseOptimizer_->LogFileLine(logFile_, iteration);
-    *logFile_ << endl;
+    if(objectives.GetHistorySize() == 1) *log.file << log.fileHeader << endl;
+    LogFileLine(log.file, iteration);
+    baseOptimizer_->LogFileLine(log.file, iteration);
+    *log.file << endl;
   }
 
   // IPOPT does own logging -> otherwise show the user we are alive
@@ -589,7 +564,7 @@ InfoNode* Optimization::CommitIteration(bool keep_iteration_number)
   {
     cout << "iteration " << (currentIteration);
     if(f != "") cout << " f = " << f << "Hz";
-    cout << " -> cost = " << cost->history.Last() << endl;
+    cout << " -> cost = " << objectives.GetHistoryValue() << endl;
   }
 
   if(!keep_iteration_number)
@@ -604,24 +579,35 @@ InfoNode* Optimization::CommitIteration(bool keep_iteration_number)
 void Optimization::LogFileLine(ofstream* out, InfoNode* iteration)
 {
   // calculate the relative cost change
-  double change = cost->history.GetSize() < 2 ? 0.0 : (cost->history.Last()
-         - cost->history[cost->history.GetSize() - 2]) / cost->history.Last();
-
+  int hs = objectives.GetHistorySize();
+  double change = 0.0;
+  if(hs >= 2)
+  {
+    double last = objectives.GetHistoryValue(true, hs-1);
+    change = (last - objectives.GetHistoryValue(true, hs-2)) / last;
+  }
 
   *out << currentIteration;
   if(harmonic) *out << "\t" << GetIterationFrequency();
-  *out << "\t" << cost->history.Last() << "\t" << change
-       << "\t" << problemSolvedCounter;
+
+  for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
+    *out << "\t" << objectives.data[i]->GetValue();
+
+  *out << "\t" << change << "\t" << problemSolvedCounter;
 
   iteration->Get("number")->SetValue(currentIteration);
   if(harmonic) iteration->Get("frequency")->SetValue(GetIterationFrequency());
-  iteration->Get("objective")->SetValue(cost->history.Last());
+
+  for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
+    iteration->Get(Objective::type.ToString(objectives.data[i]->GetType()))->SetValue(objectives.data[i]->GetValue());
+
   iteration->Get("change")->SetValue(change);
   iteration->Get("problemsSolved")->SetValue(problemSolvedCounter);
 
   for(unsigned int i = 0; i < constraints.GetSize(); i++)
   {
     double value = CalcConstraint(&constraints[i]);
+    if(log.deltaConstraints) value = value - constraints[i].value;
     *out << "\t" << value;
     iteration->Get(constraints[i].ToString())->SetValue(value);
   }
@@ -629,14 +615,12 @@ void Optimization::LogFileLine(ofstream* out, InfoNode* iteration)
   for(unsigned int i = 0; i < outputs.GetSize(); i++)
   {
     double value = CalcConstraint(&outputs[i]);
+    if(log.deltaConstraints) value = value - outputs[i].value;
     *out << "\t" << value;
     iteration->Get(outputs[i].ToString())->SetValue(value);
   }
 
-  for(unsigned int i = 0; i < outputs.GetSize(); i++)    
-    *out << "\t" << CalcConstraint(&outputs[i]);
-  
-  if(logDesign){
+  if(log.design){
     StdVector<double> d;
     d.Resize(design->GetNumberOfVariables());
     design->WriteDesignToExtern(d.GetPointer(), false);
@@ -645,7 +629,7 @@ void Optimization::LogFileLine(ofstream* out, InfoNode* iteration)
     }
   }
   
-  if(logDesignGradient){
+  if(log.designGradient){
     StdVector<double> d;
     d.Resize(design->GetNumberOfVariables());
     design->WriteGradientToExtern(d.GetPointer(), DesignElement::COST_GRADIENT, DesignElement::PLAIN, NULL, false);
@@ -657,17 +641,20 @@ void Optimization::LogFileLine(ofstream* out, InfoNode* iteration)
   out->flush();
 }
 
+
 Optimization::MultipleExcitation::MultipleExcitation(bool multiple, ParamNode* pn)
 {
   // set defaults
   this->stride = 1;
   this->damping = 1.0;
   this->max_gain = 1e4;
-  this->meta_objective_ = false;
   this->multiple_excitation_ = multiple;
+  this->type_ = NO_TYPE; // to be eventually overwritten soon
 
   // if disabled, we don't read anything
   if(!multiple || pn == NULL) return;
+
+  this->type_ = type.Parse(pn->Get("type"));
 
   // adjust defaults
   if(pn->Has("adjustWeights")) {
@@ -675,23 +662,20 @@ Optimization::MultipleExcitation::MultipleExcitation(bool multiple, ParamNode* p
     this->max_gain = pn->Get("adjustWeights")->Get("max_gain")->AsDouble();
     this->damping  = pn->Get("adjustWeights")->Get("damping")->AsDouble();
   }
-
-  // up to now we don't implement something else
-  this->meta_objective_ = pn->Get("type")->AsString() == "meta_objective";
 }
 
 void Optimization::MultipleExcitation::ToInfo(InfoNode* in) const
 {
   if(!multiple_excitation_) return;
 
-  if(meta_objective_)  {
+  if(type_ == META_OBJECTIVE)  {
     InfoNode* in_ = in->Get("metaObjective");
     in_->Get("type")->SetValue("best_value");
     in_->Get("damping")->SetValue(damping);
     in_->Get("stride")->SetValue(stride);
     in_->Get("max_gain")->SetValue(max_gain);
   } else
-    in->Get("type")->SetValue("fixed_weights");
+    in->Get("type")->SetValue(type.ToString(type_));
 }
 
 Condition& Optimization::GetConstraint(Condition::Name name, DesignElement::Type design)
@@ -753,7 +737,7 @@ double Excitation::GetOmega()
   return 2 * M_PI * frequency;
 }
 
-double Excitation::GetFactor(Optimization::Objective* cost)
+double Excitation::GetFactor(Objective* cost)
 {
   double factor = 1.0; // default
   
@@ -766,7 +750,7 @@ double Excitation::GetFactor(Optimization::Objective* cost)
   return factor;
 }
 
-double Excitation::GetWeightedFactor(Optimization::Objective* cost)
+double Excitation::GetWeightedFactor(Objective* cost)
 {
   return normalized_weight * GetFactor(cost);
 }
@@ -813,11 +797,6 @@ void Excitation::ReadLoads(ParamNode* ls)
   mech->ReadPressureLoadsFromXML(ls, pressSurf, pressVals, pressPhase);
   mech->DefinePressureIntegrators(pressSurf, pressVals, pressPhase, &linForms);
   
-  // teststrains
-  mech->ReadPreStrainingFromXML(ls, test_strain);
-  if(test_strain.GetSize() > 0)
-    mech->DefineTestStrainIntegrators(test_strain, &linForms);
-  
   // regionLoads
   std::map<RegionIdType, SinglePDE::RegionLoad> regionLoads;
   mech->ReadRegionLoadsFromXML(ls, regionLoads);
@@ -827,3 +806,57 @@ void Excitation::ReadLoads(ParamNode* ls)
   std::set<LinearFormContext*>* assLinForms = domain->GetBasePDE()->getPDE_assemble()->GetLinForms();
   linForms.insert(assLinForms->begin(), assLinForms->end());
 }
+
+void Excitation::ReadTestStrain(const Vector<double>& vec)
+{
+  apply_linForms = true;
+
+  this->test_strain = vec;
+
+  loads.Clear();
+  linForms.clear();
+  MechPDE* mech = dynamic_cast<MechPDE*>(domain->GetSinglePDE("mechanic"));
+  mech->DefineTestStrainIntegrators(vec, &linForms);
+
+  // all already set linear Forms
+  std::set<LinearFormContext*>* assLinForms = domain->GetBasePDE()->getPDE_assemble()->GetLinForms();
+  linForms.insert(assLinForms->begin(), assLinForms->end());
+}
+
+Optimization::Log::Log()
+{
+  this->deltaConstraints = false;
+  this->design = false;
+  this->designGradient = false;
+  this->file = NULL;
+  this->fileHeader = "";
+}
+
+void Optimization::Log::Init(const string& log_name, ParamNode* pn_log)
+{
+  if(log_name != "false")
+  {
+    string name = log_name == "[problem]" || log_name == "true" ? (progOpts->GetSimName() + ".plot.dat") : log_name;
+    file = new ofstream(name.c_str());
+    if(file == NULL)
+      throw Exception("cannot open log file " + name + " for writing");
+
+    if(pn_log != NULL)
+    {
+      design = pn_log->Get("design")->AsBool();
+      designGradient = pn_log->Get("designGradient")->AsBool();
+      deltaConstraints = pn_log->Get("deltaConstraints")->AsBool();
+    }
+  }
+}
+
+ Optimization::Log::~Log()
+ {
+   // if write to file close it
+   if(file != NULL)
+   {
+     file->close();
+     delete file;
+     file = NULL;
+   }
+ }

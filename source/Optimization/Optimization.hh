@@ -8,6 +8,7 @@
 #include "Domain/bcs.hh"
 #include "Optimization/DesignElement.hh"
 #include "Optimization/Condition.hh"
+#include "Optimization/Objective.hh"
 
 namespace CoupledField
 {
@@ -43,30 +44,13 @@ namespace CoupledField
           * minimum or max iterations is reached. Overwrite on demand*/
          void SolveProblem();
 
-         /** Where we apply the transformation */
-         typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, NO_APP} Application;
-
-         /** The taks for a cost function either to minimize or maximize */
-         typedef enum { MINIMIZE, MAXIMIZE } ObjectiveTask;
-
-         /** Known types of cost functions */
-         typedef enum { COMPLIANCE,                /*!< (u,f) the opposite of stiffness */
-                        OUTPUT,                    /*!< Re(u,l) maximize solution where vector l is not 0 */
-                        DYNAMIC_OUTPUT,            /*!< (u, L conj(u)) as OUTPUT but complex */
-                        ABS_DYN_OUTPUT_SQUARED,    /*!< |<u,l>|^2 = | sum u_l |^2 harmonic */
-                        CONJUGATE_COMPLIANCE,      /*!< (u, F conj(u)) as DYNAMIC_OUTPUT with trace of L is f */
-                        GLOBAL_DYNAMIC_COMPLIANCE, /*!< (u, I conj(u)) as DYNAMIC_OUTPUT with L is I (everywhere) */
-                        ELEC_ENERGY,               /*!< p^T K_pp p or p^T K_pp p^* */ 
-                        VOLUME, TRACKING,
-                        HOMOGENIZATION             /*!< currently not a real cost function, has to be extended */
-                        } ObjectiveType;
+         /** Where we apply the transformation.
+          * A subset of the values are PDE identifiers for ToPDE() and ToApp(). */
+         typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, HEAT, NO_APP} Application;
 
          /** Not the optimization problem but the solver! */
          typedef enum { OPTIMALITY_CONDITION, IPOPT_SOLVER, SCPIP_SOLVER, SHAPE_SOLVER, 
 												EVALUATE_INITIAL_DESIGN, GRADIENT_CHECK } Optimizer;
-
-         /** to convert string/enum for this type */
-         static Enum<ObjectiveType> objectiveType;
 
          /** to convert string/enum for this type */
          static Enum<Optimizer> optimizer;
@@ -78,73 +62,6 @@ namespace CoupledField
 
          static Enum<CommitMode> commitMode;
          
-         /** We combine the cost function in a set to handle multiple of it.
-          * It contains static const elements (and  working stuff).
-          * MultipleExciation is in the XML file part of the objective but in class part of Optimization*/
-         class Objective
-         {
-           public:
-             /** @param harmonic are we in a harmonic simulation? */
-             Objective(ParamNode* pn, bool harmonic);
-
-             /** The actual kind of cost function. */
-             ObjectiveType type;
-
-             /** The task is the direction of a cost function (MINIMIZE, MAXIMIZE) */
-             ObjectiveTask task;
-
-             /** This vector stores the cost functions of the iterations. Written in GetObjective() */
-             StdVector<double> history;
-
-             /** The objective value */
-             double GetValue();
-
-             /** @param val set an unscaled value here -> it is scaled in the return */
-             void SetValue(double val);
-
-             void ToInfo(InfoNode* in) const;
-
-             /** gathered by some of the costFunction attributes in XML, the defaults are in the XML-Schema */
-             class StoppingRule
-             {
-               public:
-               /** stopping rules value */
-               double value;
-
-               /** stopping rule queue length */
-               unsigned int queue;
-             };
-
-             /** This are our stopping rule parameters */
-             StoppingRule stop;
-
-             /** Here we store out ParamNode such we can more easily access it in ErsatzMaterial */
-             ParamNode* pn;
-
-             /** Shall harmonic optimization multiply with omega^2.
-              * This makes "u L conj(u)" to actually calc "v L conj(v)" with v = du/dt. -> approximatates sound intensity */
-             bool FactorOmegaOmega() {
-               return omega_omega_;
-             }
-             
-             /** Tychonoff regularization parameter */
-             double TychonoffParameter() const { return tychonoff_; }
-
-           private:
-
-             /** The current value */
-             double value_;
-
-             /** @see FactorOmegaOmega() */
-             bool omega_omega_;
-
-             bool harmonic_;
-             
-             double tychonoff_;
-         };
-
-         /** The cost function */
-         Objective* GetObjective() { return cost; }
 
          /** The DesignSpace element is a container for the complex DesignElements.
           * There are service methods in the container to exchange with external
@@ -223,14 +140,16 @@ namespace CoupledField
 
           void ToInfo(InfoNode* in) const;
 
+          typedef enum { NO_TYPE, FIXED_WEIGHT, META_OBJECTIVE, HOMOGENIZATION_TEST_STRAINS } Type;
+
+          static Enum<Type> type;
           /** Do we do multiple excitation at all? */
           bool IsEnabled() const { return multiple_excitation_; }
 
-          /** Do we java a meta_objective */
-          bool DoMetaObjective() const { return meta_objective_; }
-
           /** Dow we do adjust weigts */
-          bool DoAdjustWeights() const { return meta_objective_; }
+          bool DoAdjustWeights() const { return type_ == META_OBJECTIVE; }
+
+          bool DoHomogenization() const { return type_ == HOMOGENIZATION_TEST_STRAINS; }
 
           /** The stride for adjust weights: 1 = every iteration, 2 = every second ... */
           int stride;
@@ -244,7 +163,7 @@ namespace CoupledField
         private:
           /** do we do multiple excitation at all? */
           bool multiple_excitation_;
-          bool meta_objective_;
+          Type type_;
         };
 
         /** The current multiple excitation state -> check with IsEnabled() */
@@ -268,6 +187,11 @@ namespace CoupledField
 
         /** Our base InfoNode pointer, pointing to a plain <optimization> */
         InfoNode* optInfoNode;
+
+        /** This is the list of concurrent objective functions.
+         * It is guaranteed to have at least one entry.
+         * The objectives are almost identical (share most attributes) */
+        ObjectiveContainer objectives;
 
       protected:
         /** Set up the optimization system e.g. prepare the domain for optimization. called
@@ -302,9 +226,6 @@ namespace CoupledField
          * @return an empty string in the non-harmonic case */
         virtual std::string GetIterationFrequency() { return "not implemented"; }
 
-        /** Do header writing of optimization */
-        // virtual void ToInfo(InfoNode* in) const;
-        
         /** The way the date is stored. Forward/ adjoint/ both and stride. 
          * Set in the <commit> element */
         CommitMode commitMode_;
@@ -337,22 +258,9 @@ namespace CoupledField
         /** The actual kind of optimizer.  */
         Optimizer optimizer_;
 
-        /** Up to now we have only one cost function */
-        Objective* cost;
-
         /** Here we contain our design space. The domain gets a reference to it to perform
          * the ersatz material ansatz */
         DesignSpace* design;
-
-         /** The header of the logFile_, to be overwritten if LogFileLine() is overwritten. CommitIteration()
-          * writes this string to logFile_ a the first execution */
-          std::string logFileHeader;
-          
-          /** if set write the design to the logfile */
-          bool logDesign;
-          
-          /** if set write the gradient of the design to logfile */
-          bool logDesignGradient;
 
         /** Here we keep the last iterations design space */
         Vector<double>  last_iteration;
@@ -369,11 +277,46 @@ namespace CoupledField
          * if necessary. Should always be called when finished (in the good and bad sense) */
         void FinalizeStoreResults();
 
+        /** Read the objective functions. Fills the objectives list with almost identical entries.
+         * Handles multiObjectives */
+        void ReadObjectives(ParamNode* obj_node);
+
+        /** Encapsulates Logging information */
+        class Log
+        {
+        public:
+          /** Sets to meaningul defaults (don not much :) ) */
+          Log();
+
+          /** Closes the file */
+          ~Log();
+
+          /** @param log_name is interpreted. If allows a file, the logFile is created.
+           * @param pn_log pointer to the 'log' element. Might be NULL */
+          void Init(const std::string& log_name, ParamNode* pn_log);
+
+          /** The header of the logFile_, to be overwritten if LogFileLine() is overwritten. CommitIteration()
+           * writes this string to logFile_ a the first execution */
+           std::string fileHeader;
+
+           /** if set write the design to the logfile */
+           bool design;
+
+           /** if set write the gradient of the design to logfile */
+           bool designGradient;
+
+           /** if set for constraints the difference to the values is printed instead of the constraint value */
+           bool deltaConstraints;
+
+           /** optional log the iterations and cost value to a file to gnuplot it */
+           std::ofstream* file;
+        };
+
+        /** Keeps all logging relevant stuff */
+        Log log;
+
         /** When did we store the last result via CommitIteration() due to stride */
         int lastStoredResult_;
-        
-        /** optional log the iterations and cost value to a file to gnuplot it */
-        std::ofstream*     logFile_;
 
         /** This holds our optimer instance. */
         BaseOptimizer* baseOptimizer_;
@@ -398,10 +341,10 @@ namespace CoupledField
     void Apply();
 
     /** Find the fixed factor, does ignore weighting and does not apply it. */
-    double GetFactor(Optimization::Objective* cost);
+    double GetFactor(Objective* cost);
 
     /** Returns GetFactor() * normalized_weight */
-    double GetWeightedFactor(Optimization::Objective* cost);
+    double GetWeightedFactor(Objective* cost);
     
     /** Gets the current omege =  2 * pi * f */
     double GetOmega();
@@ -415,6 +358,8 @@ namespace CoupledField
     /** read the loads from XML */
     void ReadLoads(ParamNode* ls);
     
+    void ReadTestStrain(const Vector<double>& vec);
+
     /** return pointer to linForms, used by Shape-Optimization */
     std::set<LinearFormContext*>* GetLinForms() { return &linForms; }
 
@@ -457,7 +402,7 @@ namespace CoupledField
     
     /** for the calculation of a homogenized material tensor, one can specify test strains in
      *  xml file. */
-    Vector<Double> test_strain;
+    Vector<double> test_strain;
   };
 
 } // namespace

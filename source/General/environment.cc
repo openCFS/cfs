@@ -38,10 +38,6 @@ namespace CoupledField {
 
   LogConfigurator * logConf = new LogConfigurator();
 
-#ifdef PROFILING
-  Profiler * profiler = NULL;
-#endif
-
 #ifdef USE_SCRIPTING
   CFSMessenger * messenger = NULL;
 #endif
@@ -1408,6 +1404,9 @@ namespace CoupledField {
     case ILUPACK_SOLVER:
       out = "ilupack";
       break;
+    case CHOLMOD:
+      out = "cholmod";
+      break;
 
 
 
@@ -1709,6 +1708,9 @@ namespace CoupledField {
     else if ( in == "ilupack" ) {
       out = ILUPACK_SOLVER;
     }
+    else if ( in == "cholmod") {
+      out = CHOLMOD;
+    }
     else {
       EXCEPTION( "No enumeration value found in SolverType for '"
            << in << "'\n A missing case implementation?" );
@@ -1953,8 +1955,8 @@ namespace CoupledField {
     // bubble
     SolutionTypeEnum.Add(BUBBLE_RADIUS, "bubbleRadius");
     SolutionTypeEnum.Add(BUBBLE_RADIUS_DERIV_1, "bubbleRadiusD1");
-    SolutionTypeEnum.Add(MAG_FLUX_DENSITY, "bubbleValues", false);
     // optimization
+    SolutionTypeEnum.Add(HOMOGENIZED_TENSOR, "homogenizedTensor");
     // the actual result type is given in result descriptions
     // in the xml file in the optimization element.
     SolutionTypeEnum.Add(OPT_RESULT_1, "optResult_1");

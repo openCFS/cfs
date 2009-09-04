@@ -17,7 +17,7 @@ namespace CoupledField{
 
     virtual ~ShapeDesign() {};
 
-    void Configure(ParamNode* pn, int constraints);
+    void Configure(ParamNode* pn, int objectives, int constraints);
 
     /** Reads design from optimizer, note that first nshapeparams_ entries are the Shape parameters,
      * the rest may be other design parameters */
@@ -46,13 +46,14 @@ namespace CoupledField{
     int GetNumberOfShapeParameters() const {
       return nshapeparams_;
     }
+    
+    /** return whether this element does depend on any deformations at all */
+    bool IsElemDependentAtAll(const StdVector<UInt>& connect);
 
     /** Get the derivative of the CornerCoords of one element in direction of parameter-th shape param */
-    void GetElemNodesCoordDerivative(Matrix<Double> & coordMat, const StdVector<UInt> & connect, const int parameter);
+    bool GetElemNodesCoordDerivative(Matrix<Double> & coordMat, const StdVector<UInt> & connect, const int parameter);
 
-    void SetShapeDerivatives(Condition* constraint, StdVector<double>& d);
-    
-    void AddShapeDerivatives(Condition* constraint, StdVector<double>& d, double weight);
+    void AddShapeDerivatives(Objective* objective, Condition* constraint, StdVector<double>& d, double weight);
 
     /** return whether also material optimization (SIMP, ParamOpt, ...?) is done */
     bool AlsoMatOpt() const {

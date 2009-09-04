@@ -20,6 +20,8 @@ namespace CoupledField
     { 
     }
     
+  protected:
+
     void SolveProblem()
     {
       do

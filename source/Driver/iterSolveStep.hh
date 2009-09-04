@@ -34,7 +34,7 @@ namespace CoupledField
     virtual void PreStepStatic()  {;};
  
     /** base method for solving one static step */
-    virtual void SolveStepStatic(InfoNode* analysis_id);
+    virtual void SolveStepStatic(InfoNode* analysis_id, const bool reAssembleMatrices = true);
 
     //! routine for acttions after the SolveStep-method
     virtual void PostStepStatic() {;}

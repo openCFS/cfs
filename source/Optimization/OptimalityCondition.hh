@@ -20,15 +20,17 @@ namespace CoupledField
       /** This destructor does nothing but Optimizer has a virtual destructor */
       ~OptimalityCondition() { } 
       
+      virtual std::string LogFileHeader();
+
+      virtual void LogFileLine(std::ofstream* out, InfoNode* iteration);
+
+    protected:
+
       /** Solves the problem. All stuff, including evaluations of the state problem is done
        * within this method. 
        * @throws exception when not ok! */ 
       void SolveProblem();
       
-      virtual std::string LogFileHeader();
-      
-      virtual void LogFileLine(std::ofstream* out, InfoNode* iteration);
-    
     private:
       /** This are our both bisection types. Framed is what Sigmund did, Trajectory is own breed but
        * most likely not unique */

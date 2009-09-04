@@ -694,8 +694,8 @@ namespace CoupledField {
     storingFactors_ = true;
 
     // Free dynamically allocated memory
-    DELETEARRAY( listL );
-    DELETEARRAY( listU );
+    delete [] ( listL );  listL  = NULL;
+    delete [] ( listU );  listU  = NULL;
 
   }
 

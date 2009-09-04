@@ -83,7 +83,7 @@ namespace CoupledField {
  
     isComplex_ = BasePDE::IsComplex(analysisType_);
 
-    infoNode_ = info->Get("PDEs")->Get(couplingName_, InfoNode::APPEND); 
+    infoNode_ = info->Get("PDE")->Get(couplingName_, InfoNode::APPEND);
     InfoNode* in = infoNode_->Get(InfoNode::HEADER); 
     in->Get("sequenceStep")->SetValue(sequenceStep); 
     in->Get("pde1")->SetValue(pde1_->GetName()); 

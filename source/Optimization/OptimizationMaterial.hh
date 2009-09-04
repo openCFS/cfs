@@ -10,6 +10,7 @@ namespace CoupledField
 class ErsatzMaterial;
 class ElecPDE;
 class MechPDE;
+class HeatCondPDE;
 class BaseForm;
 
 /** For Optimization problems does this class provide an interface to the actual physics.
@@ -28,7 +29,7 @@ public:
   virtual ~OptimizationMaterial();
   
   /** Id of our material class */
-  typedef enum { PIEZO, MECHANIC } System;
+  typedef enum { PIEZO, MECHANIC, HEAT } System;
 
   /** Here we store the system enum */
   static Enum<System> system;
@@ -124,6 +125,14 @@ private:
   ElecPDE* elec;
 };
 
+class HeatMat : public OptimizationMaterial
+{
+public:
+  HeatMat(ErsatzMaterial* em);
+  
+protected:
+  HeatCondPDE* heat;
+};
 }
 
 

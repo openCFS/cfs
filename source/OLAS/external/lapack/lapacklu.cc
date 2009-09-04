@@ -94,11 +94,7 @@ namespace CoupledField {
     (*cla) << " --------------------------------------\n"
 	   << " LAPACK_LU: Starting factorisation" << std::endl;
 
-    TRY_CAST {
-
-      // Down-cast matrix to standard matrix
-      CONSTREFCAST( sysmat, StdMatrix, stdmat );
-
+    const StdMatrix& stdmat = dynamic_cast<const StdMatrix&>(sysmat);
       // Check that we have the correct matrix type
       BaseMatrix::StorageType mtype = stdmat.GetStorageType();
       if ( mtype != BaseMatrix::LAPACK_GBMATRIX ) {
@@ -129,8 +125,6 @@ namespace CoupledField {
       default:
         EXCEPTION( "Matrix entry type not valid for a LAPACK matrix" );
       }
-
-    } CATCH_CAST;
 
     // now we have a (new) factorisation
     amFactorised_ = true;
@@ -454,7 +448,7 @@ namespace CoupledField {
   //   Solve linear system
   // ***********************
   void Lapack_LU::Solve( const BaseMatrix &sysmat, const BasePrecond &precond,
-			 const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_step ) {
+      const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_step ) {
 
 
     // Are we expected to be verbose?
@@ -463,57 +457,51 @@ namespace CoupledField {
     // Report to logfile
     if ( logging == true ) {
       (*cla) << " --------------------------------------\n"
-	     << " LAPACK_LU: Computing solution" << std::endl;
+      << " LAPACK_LU: Computing solution" << std::endl;
     }
 
     if ( facmat_ == NULL || amFactorised_ == false ) {
 
       // If the two indicators are consistent call Setup()
       if ( facmat_ == NULL && amFactorised_ == false ) {
-	PrivateSetup( sysmat );
+        PrivateSetup( sysmat );
       }
 
       // The two indicators disagree, so complain
       else if ( amFactorised_ == false ) {
         EXCEPTION( "LAPACKLU: Internal error. facmat_ <> NULL but amFactorised_ = "
-	       "false!" );
+            "false!" );
       }
       else {
         EXCEPTION( "LAPACKLU: Internal error. facmat_ = NULL but amFactorised_ = "
-	       "true!" );
+            "true!" );
       }
     }
 
-    TRY_CAST {
+    const StdMatrix& stdmat = dynamic_cast<const StdMatrix&>(sysmat);
+    // Check that we have the correct matrix type
+    BaseMatrix::StorageType mtype = stdmat.GetStorageType();
+    if ( mtype != BaseMatrix::LAPACK_GBMATRIX ) {
+      EXCEPTION( "Expected a LAPACK_GBMATRIX" );
+    }
 
-      // Down-cast matrix to standard matrix
-      CONSTREFCAST( sysmat, StdMatrix, stdmat );
+    // Get the entry type to figure out which Factorization method to call
+    BaseMatrix::EntryType etype = stdmat.GetEntryType();
 
-      // Check that we have the correct matrix type
-      BaseMatrix::StorageType mtype = stdmat.GetStorageType();
-      if ( mtype != BaseMatrix::LAPACK_GBMATRIX ) {
-        EXCEPTION( "Expected a LAPACK_GBMATRIX" );
-      }
+    // Call appropriate solution routine
+    switch( etype ) {
 
-      // Get the entry type to figure out which Factorization method to call
-      BaseMatrix::EntryType etype = stdmat.GetEntryType();
+    case BaseMatrix::F77REAL8:
+      SolveF77REAL8( rhs, sol, &sysmat );
+      break;
 
-      // Call appropriate solution routine
-      switch( etype ) {
+    case BaseMatrix::F77COMPLEX16:
+      SolveF77COMPLEX16( rhs, sol, &sysmat );
+      break;
 
-      case BaseMatrix::F77REAL8:
-	SolveF77REAL8( rhs, sol, &sysmat );
-	break;
-
-      case BaseMatrix::F77COMPLEX16:
-	SolveF77COMPLEX16( rhs, sol, &sysmat );
-	break;
-
-      default:
-        EXCEPTION( "Matrix entry type not valid for a LAPACK matrix" );
-      }
-
-    } CATCH_CAST;
+    default:
+      EXCEPTION( "Matrix entry type not valid for a LAPACK matrix" );
+    }
 
     // Report to logfile
     if ( logging == true ) {
@@ -566,12 +554,11 @@ namespace CoupledField {
     // Downcast vectors and get data pointers
     const F77real8 *lp_rhs;
     F77real8 *lp_sol;
-    TRY_CAST {
-      CONSTREFCAST( rhs, Vector<Double>, myrhs );
-      REFCAST( sol, Vector<Double>, mysol );
-      lp_rhs = myrhs.GetPointer() + 1;
-      lp_sol = mysol.GetPointer() + 1;
-    } CATCH_CAST;
+    const Vector<Double>& myrhs = dynamic_cast<const Vector<Double>&>(rhs);
+    Vector<Double>& mysol = dynamic_cast<Vector<Double>&>(sol);
+
+    lp_rhs = myrhs.GetPointer() + 1;
+    lp_sol = mysol.GetPointer() + 1;
 
     // ====================
     //   Compute solution

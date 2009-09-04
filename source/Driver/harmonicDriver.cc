@@ -202,7 +202,7 @@ namespace CoupledField
   // ****************
   //   SolveProblem
   // ****************
-  void HarmonicDriver::SolveProblem(bool write_results, InfoNode* analysis_id)
+  void HarmonicDriver::SolveProblem(bool write_results, InfoNode* analysis_id, const bool reAssembleMatrices)
   {
     // in harmonics one cannot extraxt the result writing to StoreResults() as
     // we have multiple frequencies. (exceptions is optimization)

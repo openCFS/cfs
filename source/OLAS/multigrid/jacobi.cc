@@ -68,7 +68,7 @@ bool Jacobi<T>::Setup( const CRS_Matrix<T>& matrix )
     // So it is sufficient to check (Size_ != matrix.GetNumRows()),
     // except of calls with an empty matrix.
     if( Size_ != matrix.GetNumRows() ) {
-        DELETEARRAY( DiagonalInverse_ );
+        delete [] ( DiagonalInverse_ );  DiagonalInverse_  = NULL;
         DiagonalInverse_ = NULL;
     }
     // create a new array for the diagonal inverses
@@ -202,14 +202,12 @@ template <typename T>
 void Jacobi<T>::Reset()
 {
     
-    DELETEARRAY( DiagonalInverse_ ); // delete diagonal inverse
-    DiagonalInverse_ = NULL;
-    auxVec_.Resize( 0 );
+    delete [] ( DiagonalInverse_ );  DiagonalInverse_  = NULL; // delete diagonal inverse
+    auxVec_.Clear();
     Size_  =   0; // reset the size of the LES
     Omega_ = 1.0; // reset damping factor
 
-    DELETEARRAY( PenaltyFlags_ );
-    PenaltyFlags_ = NULL;
+    delete [] ( PenaltyFlags_ );  PenaltyFlags_  = NULL;
 
     // call Reset() of base class
     Smoother<T>::Reset();

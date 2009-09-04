@@ -19,8 +19,11 @@ namespace CoupledField
     
     ~GradientCheck() {}
 
+  protected:
+
     /** Solves a lot of problems :) */
     void SolveProblem();
+
   private:
     /** Performs the finite difference evaluation. Does not store. Resets design */
     double PerformFiniteDifferenceEval(DesignElement* de, double current_objective, InfoNode* cg);

@@ -32,7 +32,7 @@ namespace CoupledField
 
   //----------------------- STATIC--------------------------------------------
 
-  void IterSolveStep::SolveStepStatic(InfoNode* analysis_id)
+  void IterSolveStep::SolveStepStatic(InfoNode* analysis_id, const bool reAssembleMatrices)
   {
   
     SingleVector *val, *oldVal;

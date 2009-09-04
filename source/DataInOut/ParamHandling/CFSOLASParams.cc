@@ -375,6 +375,9 @@ namespace CoupledField {
 
     case ILUPACK_SOLVER:
       break;
+      
+    case CHOLMOD:
+      break;
 
        // If this point is reached, it indicates that something is broken.
        // Probably not all solvers that SetParams allows are yet implemented

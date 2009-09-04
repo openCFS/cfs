@@ -147,15 +147,6 @@ namespace CoupledField
     /** This method sets up the "enums", it fills them with the string representations. */
     void SetEnums();
 
-    /** Helper method for InitParameters. Takes the ilupack value, prints it to the InfoNode (via
-     * param_name).
-     * If there is a parameter with param_name in the xml file, it is printed.
-     * @param param_name simple xpath chain via slash */
-    void CheckParameter(InfoNode* out, double* ilupack_val, const char* param_name);
-    void CheckParameter(InfoNode* out, char** ilupack_val, const char* param_name);
-    void CheckParameter(InfoNode* out, int* ilupack_val, const char* param_name);  
-    void CheckParameter(InfoNode* out, bool* ilupack_val, const char* param_name);
-    
     /** The ilupack matrix types */
     Enum<Matrix> matrix; 
                             

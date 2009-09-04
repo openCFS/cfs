@@ -56,10 +56,7 @@ namespace CoupledField {
       EXCEPTION( "LUSolver cannot deal with matrices other than StdMatrix" );
     }
 
-    TRY_CAST {
-
-      // Down-cast to StdMatrix
-      REFCAST( sysMat, StdMatrix, stdMat );
+    StdMatrix& stdMat = dynamic_cast<StdMatrix&>(sysMat);
 
       // Now test the storage layout
       BaseMatrix::StorageType sType = stdMat.GetStorageType();
@@ -71,7 +68,7 @@ namespace CoupledField {
       }
 
       // Down-cast to CRS_Matrix
-      REFCAST( sysMat, CRS_Matrix<T>, crsMat );
+      CRS_Matrix<T>& crsMat = dynamic_cast<CRS_Matrix<T>&>(sysMat);
 
       // Logging
       (*cla) << " -----------------------------------------------\n"
@@ -91,8 +88,6 @@ namespace CoupledField {
       // Logging
       (*cla) << " -----------------------------------------------"
 	     << std::endl;
-
-    } CATCH_CAST;
 
     // If the user wishes, we can export the LU factorisation to a file
     if ( myParams_->GetBoolValue( "CROUT_saveFacToFile" ) ) {
@@ -122,9 +117,8 @@ namespace CoupledField {
     }
 
     // Solve the problem
-    TRY_CAST {
-      CONSTREFCAST( rhs, Vector<T>, myRHS );
-      REFCAST( sol, Vector<T>, mySol );
+    const Vector<T>& myRHS = dynamic_cast<const Vector<T>&>(rhs);
+    Vector<T>& mySol = dynamic_cast<Vector<T>&>(sol);
 
       // Logging
       bool logging = myParams_->GetBoolValue( "LUSOLVER_logging" );
@@ -164,9 +158,6 @@ namespace CoupledField {
         (*cla) << " -----------------------------------------------"
                << std::endl;
       }
-
-    } CATCH_CAST;
-
 
     // Generate Report
 

@@ -2,6 +2,7 @@
 #include "Optimization/DesignElement.hh"
 #include "Optimization/DesignSpace.hh"
 #include "Optimization/Condition.hh"
+#include "Optimization/Objective.hh"
 #include "Domain/domain.hh"
 #include "Domain/grid.hh"
 #include "Elements/basefe.hh"
@@ -12,6 +13,7 @@
 #include "boost/date_time/posix_time/posix_time.hpp"
 #include "Optimization/LevelSet.hh"
 #include "Optimization/ShapeOptimizer.hh"
+#include "Utils/Timer.hh"
 
 using namespace std;
 using namespace CoupledField;
@@ -23,50 +25,80 @@ using boost::posix_time::microsec_clock;
 DECLARE_LOG(del)
 DEFINE_LOG(del, "designElement")
 
-BaseDesignElement::BaseDesignElement() {
-  design          = 0.0;
-  cost_gradient   = -1.0;
-  upper_          = 0.0;
-  lower_          = 0.0;
-}
-
-void BaseDesignElement::SetConstraintGradient(const Condition* condition, double value)
-{
-  if(condition)
-    this->constraintGradient[condition->GetIndex()] = value;
-  else
-    this->cost_gradient = value;
-}
-
-void BaseDesignElement::SetConstraintGradientOrAddObjectiveGradient(const Condition* condition, double value){
-  if(condition){
-    this->constraintGradient[condition->GetIndex()] = value;
-  }else{
-    this->cost_gradient += value;
-  }
-}
-
-double BaseDesignElement::GetConstraintGradient(const Condition* condition) const
-{
-  if(condition)
-    return this->constraintGradient[condition->GetIndex()];
-  else
-    return this->cost_gradient;
-}
-
-void BaseDesignElement::PostInit(int constraints){
-  // resize and init with 0.0 so constraint, which only act on one design variable, do not have to set all others explicitly to zero 
-  constraintGradient.Resize(constraints, 0.0);
-}
-
-
-
 // the static enum
 Enum<DesignElement::Filter>         DesignElement::filter;
 Enum<DesignElement::Type>           DesignElement::type;
 Enum<DesignElement::ValueSpecifier> DesignElement::valueSpecifier;
 Enum<DesignElement::Access>         DesignElement::access;
 Enum<DesignElement::Detail>         DesignElement::detail;
+
+BaseDesignElement::BaseDesignElement() {
+  design          = 0.0;
+  upper_          = 0.0;
+  lower_          = 0.0;
+}
+
+
+void BaseDesignElement::PostInit(int objectives, int constraints)
+{
+  // resize and init with 0.0 so constraint, which only act on one design variable, do not have to set all others explicitly to zero
+  costGradient.Resize(objectives, 0.0);
+  constraintGradient.Resize(constraints, 0.0);
+}
+
+
+/** Get the gradient values for either objective or constraint */
+double BaseDesignElement::GetGradient(const Objective* f, const Condition* g) const
+{
+  assert(!(f != NULL && g != NULL));
+
+  // g != NULL -> Constraint
+  // f != NULL -> explicit objective including penalty
+  // g == NULL && f == NULL -> summed f (including penalty)
+  if(g != NULL) return constraintGradient[g->GetIndex()];
+  if(f != NULL) return costGradient[f->GetIndex()];
+  return SumObjectiveGradient();
+}
+
+/** Sum app the old value (get and set together) */
+void BaseDesignElement::AddGradient(const Objective* f, const Condition* g, double value)
+{
+  assert(!(f != NULL && g != NULL));
+  LOG_DBG3(del) << "AddGradient: f=" << (f == NULL ? "null" : f->type.ToString(f->GetType()))
+                << " g=" << (g == NULL ? "null" : g->ToString()) << " val=" << value
+                << " penalty " << (f != NULL ? boost::lexical_cast<std::string>(f->GetPenalty()) : "-")
+                << "(old = " <<  (f != NULL ? costGradient[f->GetIndex()] : constraintGradient[g->GetIndex()]) << ")";
+  if(f != NULL) costGradient[f->GetIndex()] += value * f->GetPenalty();
+           else constraintGradient[g->GetIndex()] += value;
+}
+
+void BaseDesignElement::Reset(ValueSpecifier vs)
+{
+  if(vs == COST_GRADIENT)
+  {
+    for(unsigned int i = 0; i < costGradient.GetSize(); i++)
+      costGradient[i] = 0.0;
+    return;
+  }
+
+  if(vs == CONSTRAINT_GRADIENT)
+  {
+    for(unsigned int i = 0; i < constraintGradient.GetSize(); i++)
+      constraintGradient[i] = 0.0;
+    return;
+  }
+
+  EXCEPTION("invalid value specifier " << vs);
+}
+
+double BaseDesignElement::SumObjectiveGradient() const
+{
+  double result = 0.0;
+  for(unsigned int i = 0; i < costGradient.GetSize(); i++)
+    result += costGradient[i];
+
+  return result;
+}
 
 /** The default constructor for StdVector and ghost elements*/
 DesignElement::DesignElement() : BaseDesignElement()
@@ -94,16 +126,17 @@ DesignElement::DesignElement(ParamNode* pn, Elem* elem) : BaseDesignElement()
 
 DesignElement::~DesignElement()
 {
-  if(simp != NULL)      { delete simp; simp = NULL; }
-  if(vicinity_ != NULL) { delete vicinity_; vicinity_ = NULL; }
-  if(location_ != NULL) { delete location_; location_ = NULL; }
+  delete simp; simp = NULL;
+  delete vicinity_; vicinity_ = NULL;
+  delete location_; location_ = NULL;
 }
 
 void DesignElement::Init()
 {
   simp            = NULL;
   vicinity_       = NULL;
-  lse_            = 0;
+  lse_            = NULL;
+  tge             = NULL;
   location_       = NULL;
   elem            = NULL;
   type_           = NO_TYPE;
@@ -187,8 +220,8 @@ double DesignElement::GetValue(ValueSpecifier vs, Access access) const
   else
     val = simp->GetFilteredValue(vs, false);
 
-  LOG_DBG2(del) << elem->elemNum << " GetValue(" << valueSpecifier.ToString(vs) << ", " 
-  << access << " -> " << val;
+  //LOG_DBG3(del) << elem->elemNum << " GetValue(" << valueSpecifier.ToString(vs) << ", "
+  //              << access << " -> " << val;
   return val;
 }
 
@@ -199,8 +232,8 @@ double DesignElement::GetValue(ValueSpecifier sp) const
   switch(sp)
   {
   case DESIGN:               return design;
-  case DESIGN_COST_GRADIENT: return design * cost_gradient;
-  case COST_GRADIENT:        return cost_gradient;
+  case DESIGN_COST_GRADIENT: return design * SumObjectiveGradient();
+  case COST_GRADIENT:        return SumObjectiveGradient();
   case WEIGHT:
     if(simp == NULL) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to SIMP");
     return simp->weight;
@@ -210,14 +243,15 @@ double DesignElement::GetValue(ValueSpecifier sp) const
   case CONSTRAINT_GRADIENT:  
     throw Exception("for constraint gradient we need an index!");
   case TOPGRAD_VALUE:
-    if(lse_ == 0) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to Levelset");
-    return lse_->topGradValue;
+    if(tge == 0) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to TopGrad");
+    return tge->value;
   case SHAPEGRAD_VALUE:
     if(lse_ == 0) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to Levelset");
     return lse_->shapeGradValue;
   default: throw Exception(valueSpecifier.ToString(sp) + " is no scalar value");
   }
 }
+
 
 double DesignElement::GetObjectiveGradient(Access access) const
 {
@@ -526,7 +560,7 @@ void VicinityElement::Init(DesignSpace* design)
     grid->GetElemNodesCoord(reference, nodes, false );
 
     // all elements that share "our" nodes, includes diagonal and "this" elements
-    elems.Resize(0);
+    elems.Clear();
     grid->GetElemsNextToNodes(elems, nodes, regions);
 
     // check the neighbour elements
@@ -554,7 +588,7 @@ void VicinityElement::Init(DesignSpace* design)
       de.vicinity_->design[idx] = other_de;
     }
   }
-  cout << "done (" << ShapeOptimizer::GetTimeString(second_clock::local_time() - before_time) << ") " << flush;
+  cout << "done (" << Timer::GetTimeString(second_clock::local_time() - before_time) << ") " << flush;
 }
 
 

@@ -329,62 +329,6 @@ void Ilupack<T>::SetEnums()
   matrix.Add(HER, "her");
 }
 
-
-
-template<typename T>
-void Ilupack<T>::CheckParameter(InfoNode* out, char** ilupack_string,
-    const char* param_name)
-{
-  InfoNode* tmp = out->Get(param_name);
-  tmp->Get("default")->SetValue(*ilupack_string);
-  if (xml_ != NULL && xml_->Has(param_name))
-  {
-    *ilupack_string
-        = const_cast<char*> (xml_->Get(param_name)->AsString().c_str());
-    tmp->Get("set")->SetValue(*ilupack_string);
-  }
-}
-
-template<typename T>
-void Ilupack<T>::CheckParameter(InfoNode* out, double* ilupack_val, const char* param_name)
-{
-  InfoNode* tmp = out->Get(param_name);
-  tmp->Get("default")->SetValue(*ilupack_val);
-  if (xml_ != NULL && xml_->Has(param_name))
-  {
-    *ilupack_val = xml_->Get(param_name)->AsDouble();
-    tmp->Get("set")->SetValue(*ilupack_val);
-  }
-}
-
-template<typename T>
-void Ilupack<T>::CheckParameter(InfoNode* out, int* ilupack_val, const char* param_name)
-{
-  InfoNode* tmp = out->Get(param_name);
-  tmp->Get("default")->SetValue(*ilupack_val);
-  if (xml_ != NULL && xml_->Has(param_name))
-  {
-    *ilupack_val = xml_->Get(param_name)->AsInt();
-    tmp->Get("set")->SetValue(*ilupack_val);
-  }
-}
-
-template<typename T>
-void Ilupack<T>::CheckParameter(InfoNode* out, bool* ilupack_val, const char* param_name)
-{
-  // by convention we interpret this as "integer"
-  integer* int_ptr = reinterpret_cast<integer*>(ilupack_val);
-  
-  InfoNode* tmp = out->Get(param_name);
-  tmp->Get("default")->SetValue(*ilupack_val);
-  if (xml_ != NULL && xml_->Has(param_name))
-  {
-    *int_ptr = xml_->Get(param_name)->AsBool() == false ? 0 : 1;
-    tmp->Get("set")->SetValue(*int_ptr == 0 ? false : true);
-  }
-}
-
-
 template<typename T>
 void Ilupack<T>::IlupackAMGInit()
 {

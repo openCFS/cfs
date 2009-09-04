@@ -9,6 +9,7 @@ namespace CoupledField
   class Optimization;
   class ParamNode;
   class InfoNode;
+  class Timer;
   
   /** This is the base class of the optimizer tools.
    * Note that for SCPIP we have multiple inheritance */
@@ -29,7 +30,7 @@ namespace CoupledField
      * the CalcObjective, CalcConstraint(), ... from the Optimization problem
      * class. Note that there are implementations in the other base
      * classes of some optimizers */
-    virtual void SolveProblem() = 0;
+    void SolveOptimizationProblem();
 
     /** Defines LogFileLine() */
     virtual std::string LogFileHeader();
@@ -37,8 +38,12 @@ namespace CoupledField
     /** called by Optimization::CommitIteration(), to be overwritten to add optimizer
      * specific data. Shall match LogFileHeader().Don't add a new-line here!! */
     virtual void LogFileLine(std::ofstream* out, InfoNode* iteration);
-    
+
   protected:
+
+    /** This is the specific SolveProblem() implementation. */
+    virtual void SolveProblem() = 0;
+    
     /** Call this in the optimizer constructor when you have manual_scaling. */
     void PostInit(double manual_scaling, bool no_autoscale = false);
 
@@ -63,6 +68,7 @@ namespace CoupledField
     /** Combines a design_in with an objective */
     struct DesignMemory
     {
+      explicit DesignMemory(int id, double val) : design_id(id), value(val) {}
       int design_id;
       /** is either the objective or a scaling */
       double value;
@@ -123,17 +129,16 @@ namespace CoupledField
       
       BaseOptimizer* base_;
     };
-
-    /** This flag indicates a scaling error and request for restart */
-    bool restart_requested;
-    
-    
-    Scale* objective;
     
     Optimization* optimization;
 
     /** Info Node base */
     InfoNode* info_;
+    
+    Scale* objective;
+    
+    /** This flag indicates a scaling error and request for restart */
+    bool restart_requested;
     
   private:
     /** Here we store the objective value for a design. */
@@ -141,6 +146,9 @@ namespace CoupledField
     
     ParamNode* optimizer_pn_;
     
+    /** Determine the time spent in the external optimizer.
+     * This is SolveProblem minus all evaluations */
+    Timer* timer_;
   };
 
 } // end of namespace

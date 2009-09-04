@@ -76,8 +76,8 @@ namespace CoupledField {
     for ( UInt i = 1; i <= MAX_NUM_FE_MATRICES; i++ ) {
       delete sysMat_[i];
     }
-    DELETEARRAY( sysMat_ );
-    DELETEARRAY( feSubMatrices_ );
+    delete [] ( sysMat_ );
+    delete [] ( feSubMatrices_ );
   }
 
 
@@ -819,9 +819,6 @@ s    }
       myParams_.SetValue( "RHSwithPenalty", false );
     }
 
-#ifdef PROFILING
-    Double t1 = Profiler::GetRealTime();
-#endif
 
     // Iterative solvers require an initial guess and in the penalty case
     // we should insert the Dirichlet values into it
@@ -895,13 +892,6 @@ s    }
                  << "further diagnostics!";
       Warning( __FILE__, __LINE__ );
     }
-
-#ifdef PROFILING
-    Double t2 = Profiler::GetRealTime();
-    (*cla)  << "solution timee " << t2-t1 << " seconds " << std::endl;
-    Profiler::WriteReport();
-#endif
-
   }
 
 

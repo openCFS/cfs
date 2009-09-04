@@ -360,9 +360,7 @@ void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<RegionIdType> coupledsubdoms)
   //Close the definition phase; contact detection.
   //i take part in the coupling
   MpCCIprocess_ = 1;
-    SETPROFILE("Before CCI_Close_setup()");
   CCI_Close_setup(MpCCIprocess_);
-    SETPROFILE("After CCI_Close_setup()");
 
 if (NODEDATA)  delete [] NODEDATA;
 if (TOPOLOGYDATA)  delete [] TOPOLOGYDATA; 

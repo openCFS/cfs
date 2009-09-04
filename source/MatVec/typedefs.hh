@@ -11,11 +11,8 @@
 #define OLAS_TYPEDEFS_HH
 
 #include <string>
-
 #include <def_expl_templ_inst.hh>
-
 #include "General/defs.hh"
-//#include "General/environment.hh"
 
 namespace CoupledField {
 
@@ -29,29 +26,7 @@ namespace CoupledField {
     static std::string tagM;  // symbolic name for humans (matrix type)
     static std::string tagV;  // symbolic name for humans (vector type)
     static std::string tagS;  // symbolic name for humans (scalar type)
-  };
-
-#define DEFINE_ASSOC(M_TYPE,V_TYPE,S_TYPE)       \
-template<>                                       \
-class AssocType<M_TYPE>{                         \
-public:                                          \
-  typedef M_TYPE T_Mtype;                        \
-  typedef V_TYPE T_Vtype;                        \
-  typedef S_TYPE T_Stype;                        \
-  static std::string tagM;                       \
-  static std::string tagV;                       \
-  static std::string tagS;                       \
-};                                               \
-template<>                                       \
-class AssocType<V_TYPE>{                         \
-public:                                          \
-  typedef M_TYPE T_Mtype;                        \
-  typedef V_TYPE T_Vtype;                        \
-  typedef S_TYPE T_Stype;                        \
-  static std::string tagM;                       \
-  static std::string tagV;                       \
-  static std::string tagS;                       \
-}                                                
+  };                                              
 
   //! Class for determining matrix/vector block size
 
@@ -66,19 +41,5 @@ public:                                          \
     static const Integer size = 1;
   };
 
-#define DEFINE_BLOCK_SIZE(M_TYPE,SIZE) \
-template<>                             \
-class BlockSize<M_TYPE>{               \
-public:                                \
-  static const Integer size = SIZE;    \
-}
-
-
 } // namespace
-
-#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
-//#include "typedefs.cc"
-#endif
-
-
 #endif // OLAS_TYPEDEFS_HH

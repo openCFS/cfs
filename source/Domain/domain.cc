@@ -172,8 +172,6 @@ namespace CoupledField {
       EXCEPTION("There is no grid with ID 'default'.");
     }
       
-    SETPROFILE("After Grid Creation");
-
     Info->FinishProgress();
 
     // Call the nonmatching grid intersection calculation
@@ -334,7 +332,7 @@ namespace CoupledField {
   SinglePDE * Domain::GetSinglePDE(const std::string pdeName, bool throw_exception)
   {
     // check for the pede an return 
-    for(UInt i=0; i<ptSinglePde_.GetSize(); i++)  
+    for(UInt i = 0, s = ptSinglePde_.GetSize(); i < s; ++i) 
     { 
       if(ptSinglePde_[i]->GetName() == pdeName)  
         return ptSinglePde_[i]; 
@@ -875,7 +873,7 @@ namespace CoupledField {
   {
     // perhaps Optimization has already called the SetEnums 
     if(DesignElement::filter.map.empty()) DesignElement::SetEnums(); 
-    if(Optimization::objectiveType.map.empty()) Optimization::SetEnums();
+    if(Objective::type.map.empty()) Optimization::SetEnums();
         
     // we read something like <loadErsatzMaterial region="piezo" file="piezo_density.xml" set="last"/>
     // Initialize our xerces dom parser to handle the external xml file
@@ -929,10 +927,10 @@ namespace CoupledField {
     // read the set and replace the initial values
     StdVector<ParamNode*> elems = set->GetList("element");
 
-    // check the the dimensions! the number of design variables comes from the regions and desings
+    // check the the dimensions! the number of design variables comes from the regions and designs
     if(ersatzMaterial->data.GetSize() != elems.GetSize())
-      EXCEPTION("ErsatzMaterialFile has " << elems.GetSize() << " entries, the model has "
-                << ersatzMaterial->data.GetSize() << " entries");
+      EXCEPTION("ErsatzMaterialFile '" << pn->Get("file")->AsString() << "' has " << elems.GetSize()
+                << " entries, the mesh has "<< ersatzMaterial->data.GetSize() << " design elements");
 
     // check if we ignore the element numbers
     bool ignore_numbers = pn->Get("ignore_element_numbers")->AsBool();
@@ -956,6 +954,8 @@ namespace CoupledField {
         } 
       } 
     }
+
+    delete xml;
   }
 
   bool Domain::GetErsatzMaterial(const Elem* elem, const BaseForm* form, double& result)

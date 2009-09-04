@@ -60,48 +60,19 @@ namespace CoupledField {
   DECLARE_LOG(pde)
   DEFINE_LOG(pde, "pde")
 
-  SinglePDE::SinglePDE( Grid *aptgrid, ParamNode* paramNode )
-    :  StdPDE( aptgrid, paramNode ) {
-
-
-    nonLin_ = false;
-
-    // =====================================================================
-    // set file pointers
-    // =====================================================================
-    assemble_   = NULL;
-    algsys_     = NULL;
-    solVec_     = NULL;
-    rhsVec_     = NULL;
-    solPrev_    = NULL;
-
-    // =====================================================================
-    // set analysis parameters
-    // =====================================================================
-    couplingBCsCounter_ = 0;
-    updateCouplingBCs_ = false;
-    dim_ = ptgrid_->GetDim();
-    iterCoupledCounter_ = 0;
-    effectiveMass_ = false;
-
-
-    // =====================================================================
-    // set miscellaneous parameters
-    // =====================================================================
-    pdeId_ = NO_PDE_ID;
-    isDirectCoupled_  = false;
-    isInitialized_ = false;
-    usePenalty_ = true;
-    numCouplingBcs_ = 0;
-    maxTimeDerivOrder_ = 0;
-
-    // Obtain mathParser handler
-    mHandle_ = domain->GetMathParser()->GetNewHandle();
-
+  SinglePDE::SinglePDE( Grid *aptgrid, ParamNode* paramNode ) :
+    StdPDE( aptgrid, paramNode ),
+    ptError_(NULL),
+    tolSpaceErr_(0.0),
+    pdeId_(NO_PDE_ID),
+    isDirectCoupled_(false),
+    isInitialized_(false),
+    usePenalty_(true),
+    maxTimeDerivOrder_(0),
+    mHandle_(domain->GetMathParser()->GetNewHandle()) // Obtain mathParser handler
+  {
     // Register functions for scripting
     RegisterFunctions();
-
-    infoNode_ = NULL; // to be overwritten in each PDE!
   }
 
 
@@ -148,7 +119,7 @@ namespace CoupledField {
 
     sequenceStep_ = sequenceStep;
 
-    infoNode_ = base == NULL ? info->Get("PDEs")->Get(pdename_) : base->Get(pdename_);
+    infoNode_ = base == NULL ? info->Get("PDE")->Get(pdename_) : base->Get(pdename_);
     infoNode_->Get(InfoNode::HEADER)->Get("sequenceStep")->SetValue(sequenceStep);
 
     StdVector<RegionIdType> allIDs;
@@ -355,15 +326,12 @@ namespace CoupledField {
     // =====================================================================
     if ( analysistype_ == TRANSIENT &&
          isDirectCoupled_ == false) {
-      SETPROFILE("Before Definition of Timestepping");
       InitTimeStepping();
       if ( TS_alg_ != NULL ) {
         Double dt;
         dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
           ->GetDeltaT();
       }
-
-      SETPROFILE("After Definition of TimeStepping");
     }
 
 
@@ -434,15 +402,12 @@ namespace CoupledField {
       solPrev_->Init();
     }
 
-
-    SETPROFILE("Before Resizing StoreSol");
     if(!isDirectCoupled_ ) {
       solVec_->Resize(eqnMap_->GetNumEqns());
       solVec_->Init();
       rhsVec_->Resize(eqnMap_->GetNumEqns());
       rhsVec_->Init();
 
-      SETPROFILE("After Resizing StoreSol");
       if ( analysistype_ == HARMONIC ) {
         sol_->SetAlgSysDataPointer(solVec_->GetSize(),
                                    dynamic_cast<Vector<Complex>&>(*solVec_).GetPointer() );
@@ -615,23 +580,23 @@ namespace CoupledField {
     ResultHandler * resHandler = domain->GetResultHandler();
 
     // initialize map for relating EntityUnknownType and name of xml-element
+    using std::make_pair;
     std::map<ResultInfo::EntityUnknownType, std::string> elemNames;
     std::map<ResultInfo::EntityUnknownType, bool> isHistory;
-    elemNames[ResultInfo::NODE] = "nodeResult";
-    elemNames[ResultInfo::PFEM] = "nodeResult";
-    elemNames[ResultInfo::ELEMENT] = "elemResult";
-    elemNames[ResultInfo::SURF_ELEM] = "surfElemResult";
-    elemNames[ResultInfo::REGION] = "regionResult";
-    elemNames[ResultInfo::SURF_REGION] = "surfRegionResult";
+    elemNames.insert(make_pair(ResultInfo::NODE, "nodeResult"));
+    elemNames.insert(make_pair(ResultInfo::PFEM, "nodeResult"));
+    elemNames.insert(make_pair(ResultInfo::ELEMENT, "elemResult"));
+    elemNames.insert(make_pair(ResultInfo::SURF_ELEM, "surfElemResult"));
+    elemNames.insert(make_pair(ResultInfo::REGION, "regionResult"));
+    elemNames.insert(make_pair(ResultInfo::SURF_REGION, "surfRegionResult"));
 
-    isHistory[ResultInfo::NODE] = false;
-    isHistory[ResultInfo::PFEM] = false;
-    isHistory[ResultInfo::ELEMENT] = false;
-    isHistory[ResultInfo::SURF_ELEM] = false;
-    isHistory[ResultInfo::REGION] = true;
-    isHistory[ResultInfo::SURF_REGION] = true;
-
-
+    isHistory.insert(make_pair(ResultInfo::NODE, false));
+    isHistory.insert(make_pair(ResultInfo::PFEM, false));
+    isHistory.insert(make_pair(ResultInfo::ELEMENT, false));
+    isHistory.insert(make_pair(ResultInfo::SURF_ELEM, false));
+    isHistory.insert(make_pair(ResultInfo::REGION, true));
+    isHistory.insert(make_pair(ResultInfo::SURF_REGION, true));
+    
 
     // fetch result node and leave, if none is present
     ParamNode * resultNode = myParam_->Get("storeResults", false);
@@ -657,19 +622,23 @@ namespace CoupledField {
           resultNode->Get(xmlElemName, "type", quantity, false );
 
         // Check on which entity type the result is defined on
-        if(candidate->definedOn == ResultInfo::NODE ) {
+        switch(candidate->definedOn)
+        {
+        case ResultInfo::NODE:
+        case ResultInfo::PFEM:
           entityType = EntityList::NODE_LIST;
-        } else if(candidate->definedOn == ResultInfo::PFEM ) {
-          entityType = EntityList::NODE_LIST;
-        } else if(candidate->definedOn == ResultInfo::REGION ) {
+          break;
+        case ResultInfo::REGION:
+        case ResultInfo::SURF_REGION:
           entityType = EntityList::REGION_LIST;
-        } else if(candidate->definedOn == ResultInfo::SURF_REGION ) {
-          entityType = EntityList::REGION_LIST;
-        } else if(candidate->definedOn == ResultInfo::SURF_ELEM ) {
+          break;
+        case ResultInfo::SURF_ELEM:
           entityType = EntityList::SURF_ELEM_LIST;
-        } else if(candidate->definedOn == ResultInfo::ELEMENT ) {
+          break;
+        case ResultInfo::ELEMENT:
           entityType = EntityList::ELEM_LIST;
-        } else {
+          break;
+        default:
           EXCEPTION("Type of 'definedOn' was not found");
         }
 
@@ -802,7 +771,7 @@ namespace CoupledField {
             // if neighboring region is present, store related volume
             // neighbor region
             if( neighborRegions.GetSize() > 0 ) {
-              if( neighborRegions[iRegion] != "" ) {
+              if( !neighborRegions[iRegion].empty() ) {
                 surfNeighborRegions_[actSol] =
                   ptgrid_->RegionNameToId( neighborRegions[iRegion] );
               }
@@ -904,7 +873,7 @@ namespace CoupledField {
             // if neighboring region is present, store related volume
             // neighbor region
             if( neighborRegions.GetSize() > 0 ) {
-              if( neighborRegions[i] != "" ) {
+              if( !neighborRegions[i].empty() ) {
                 surfNeighborRegions_[actSol] =
                   ptgrid_->RegionNameToId( neighborRegions[i] );
               }
@@ -1143,7 +1112,7 @@ namespace CoupledField {
 
       try {
         // read parameters
-        dof = "";
+        dof.clear();
         hdbcNodes[i]->Get( "name", name );
         hdbcNodes[i]->Get( "quantity", resultName );
         hdbcNodes[i]->Get( "dof", dof, false );
@@ -1168,7 +1137,7 @@ namespace CoupledField {
         actBc->entities = actList;
         actBc->result = actResultInfo;
         actBc->eqnMap = eqnMap_;
-        if( dof == "" ) {
+        if( dof.empty() ) {
           actBc->dof = 1;
         } else {
           actBc->dof = actResultInfo->GetDofIndex( dof );
@@ -1194,7 +1163,7 @@ namespace CoupledField {
 
       try {
         // read parameters
-        dof = "";
+        dof.clear();
         idbcNodes[i]->Get( "name", name );
         idbcNodes[i]->Get( "quantity", resultName );
         idbcNodes[i]->Get( "dof", dof, false );
@@ -1220,7 +1189,7 @@ namespace CoupledField {
         actBc->entities = actList;
         actBc->result = actResultInfo;
         actBc->eqnMap = eqnMap_;
-        if( dof == "" ) {
+        if( dof.empty() ) {
           actBc->dof = 1;
         } else {
           actBc->dof = actResultInfo->GetDofIndex( dof );
@@ -1247,7 +1216,7 @@ namespace CoupledField {
     // iterate over all parameter nodes
     for( UInt i = 0; i < inbcNodes.GetSize(); i++ ) {
       try {
-        dof = "";
+        dof.clear();
         inbcNodes[i]->Get( "name", name );
         inbcNodes[i]->Get( "quantity", resultName );
         inbcNodes[i]->Get( "dof", dof, false );
@@ -1275,7 +1244,7 @@ namespace CoupledField {
         actBc->entities = actList;
         actBc->result = actResultInfo;
         actBc->eqnMap = eqnMap_;
-        if( dof == "" ) {
+        if( dof.empty() ) {
           actBc->dof = 1;
         } else {
           actBc->dof = actResultInfo->GetDofIndex( dof );
@@ -1327,12 +1296,12 @@ namespace CoupledField {
 
         actBc->masterEntities = actList;
         actBc->slaveEntities = actList;
-        if( masterDof == "" ) {
+        if( masterDof.empty() ) {
           actBc->masterDof = 1;
         } else {
           actBc->masterDof = actResultInfo->GetDofIndex( masterDof );
         }
-        if( slaveDof == "" ) {
+        if( slaveDof.empty() ) {
           actBc->slaveDof = 1;
         } else {
           actBc->slaveDof = actResultInfo->GetDofIndex( masterDof );
@@ -1413,7 +1382,7 @@ namespace CoupledField {
           shared_ptr<Constraint> actBc ( new Constraint );
           actBc->masterEntities = nodePair;
           actBc->slaveEntities = nodePair;
-          if( dof == "" ) {
+          if( dof.empty() ) {
             actBc->masterDof = 1;
           } else {
             actBc->masterDof = actResultInfo->GetDofIndex( dof );
@@ -1452,7 +1421,7 @@ namespace CoupledField {
     // iterate over all parameter nodes
     for( UInt i = 0; i < loadNodes.GetSize(); i++ ) {
       try {
-        dof = "";
+        dof.clear();
         loadNodes[i]->Get( "name", name );
         loadNodes[i]->Get( "quantity", resultName );
         loadNodes[i]->Get( "dof", dof, false );
@@ -1482,7 +1451,7 @@ namespace CoupledField {
         actLoad->entities = actList;
         actLoad->result = actResultInfo;
         actLoad->eqnMap = eqnMap_;
-        if ( dof == "" ) {
+        if ( dof.empty() ) {
           actLoad->dof = 1;
         } else {
           actLoad->dof = actResultInfo->GetDofIndex(dof);
@@ -1682,7 +1651,7 @@ namespace CoupledField {
         RegionIdType actRegionId = ptgrid_->RegionNameToId( region );
 
         // if no material is set, continue with next loop run
-        if( material == "" )
+        if( material.empty() )
           continue;
 
         // if region is not contained for current pde, simply continue
@@ -1699,7 +1668,7 @@ namespace CoupledField {
           LoadMaterial( material, pdematerialclass_ );
 
         // Check for local coordinate system
-        if( refCoordSys != "" ) {
+        if( !refCoordSys.empty() ) {
           CoordSystem * actCoosy =
             domain->GetCoordSystem( refCoordSys);
           materials_[actRegionId]->SetCoordSys( actCoosy );
@@ -1863,7 +1832,6 @@ namespace CoupledField {
     // If PDE is not direct coupled then the PDE has to register
     // at the algebraic system and obtain an Id.
     // Afterwards the matrix-graph has to be set up
-    SETPROFILE("Before GraphSetupInit()");
     if ( isDirectCoupled_ == false ) {
 
       // forward the complete xml description of the linear system

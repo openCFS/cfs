@@ -193,11 +193,11 @@ namespace CoupledField {
           LOG_DBG3(disContEqnMap) << "WARNING: GetDisContEqn Called with nodelist. Its possible that this will return the wrong\
                       equation number! " << std::endl;
           UInt node = it.GetNode();
-          eqns.Resize( 0);
+          eqns.Clear();
           eqns.Init();
           
           Integer localNode = -999;
-          eqns.Resize(0);
+          eqns.Clear();
           for (UInt i = 0 ;i < mesh2DisPdeNode_[ node-1 ].GetSize() ; i++)
           {
             localNode = mesh2DisPdeNode_[ node-1 ][i][1];

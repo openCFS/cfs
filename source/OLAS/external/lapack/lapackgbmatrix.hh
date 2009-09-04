@@ -83,7 +83,7 @@ namespace CoupledField {
     //! This is the default destructor. It needs to be deep, since the
     //! class dynamically allocates memory for the matrix entries.
     ~LapackGBMatrix() {
-      DELETEARRAY(data_);
+      delete [] (data_);
     }
 
     //! Convert a CRS_Matrix into a LapackGBMatrix

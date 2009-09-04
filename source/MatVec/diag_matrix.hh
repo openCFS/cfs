@@ -118,7 +118,7 @@ namespace CoupledField {
     //! The default destructor is deep. It frees all memory dynamically
     //! allocated for attributes of this class.
     ~Diag_Matrix() {
-      DELETEARRAY( data_    );
+      delete [] ( data_ );
     }
 
     //! Setup the sparsity pattern of the matrix (not necessary)

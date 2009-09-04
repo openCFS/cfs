@@ -55,8 +55,8 @@ void MGPrecond<T>::Setup( StdMatrix& sysmatrix )
       }
     }
     // cast the matrix to a serial CRS matrix and call Setup
-    TRY_CAST
-      REFCAST( sysmatrix, CRS_Matrix<T>, crsSysMatrix )
+
+    CRS_Matrix<T>& crsSysMatrix = dynamic_cast<CRS_Matrix<T>&>(sysmatrix);
       // eventually change the layout of the matrix
       if( CRS_Matrix<T>::LEX_DIAG_FIRST != crsSysMatrix.GetCurrentLayout() ) {
 	(*cla)
@@ -72,9 +72,7 @@ void MGPrecond<T>::Setup( StdMatrix& sysmatrix )
       Error( "MGPrecond::Setup: could not set up the AMG "
 	     "preconditioner\n", __FILE__, __LINE__ );
     }
-    this->readyToUse_ = true;
-    CATCH_CAST
-      
+    this->readyToUse_ = true;  
 }
 
 /**********************************************************/
@@ -110,34 +108,33 @@ void MGPrecond<T>::Setup( const StdMatrix& sysmatrix,
 
 template <typename T>
 void MGPrecond<T>::Apply( const StdMatrix& sysmatrix,
-                          const SingleVector& rhs,
-			  SingleVector& sol ) const
-{
+    const SingleVector& rhs,
+    SingleVector& sol ) const
+    {
 
-    if( this->readyToUse_ ) {
-        sol.Init();
-        // We have set up a serial AMG. This might also have
-        // been the decition due to a single process run of
-        // a parallel program. Also in this case the casts to
-        // (const) Vector<T> are OK, because Vector<T> is a
-        // base class of ParVector<T>
-        if( AMG_ ) {
-            TRY_CAST
-            CONSTREFCAST( rhs, Vector<T>, vectorRhs )
-            REFCAST( sol, Vector<T>, vectorSol )
-            // AMG cycle
-            AMG_->Cycle( vectorRhs, vectorSol );
-            CATCH_CAST
-        } else {
-            Error( "AMG preconditioner used in undefined "
-                   "state. It is a bug that you could reach "
-                   "this line.", __FILE__, __LINE__ );
-        }
+  if( this->readyToUse_ ) {
+    sol.Init();
+    // We have set up a serial AMG. This might also have
+    // been the decition due to a single process run of
+    // a parallel program. Also in this case the casts to
+    // (const) Vector<T> are OK, because Vector<T> is a
+    // base class of ParVector<T>
+    if( AMG_ ) {
+      const Vector<T>& vectorRhs = dynamic_cast<const Vector<T>&>(rhs);
+      Vector<T>& vectorSol = dynamic_cast<Vector<T>&>(sol);
+
+      // AMG cycle
+      AMG_->Cycle( vectorRhs, vectorSol );
     } else {
-        Error( "AMG preconditioner used before setup",
-               __FILE__, __LINE__ );
+      Error( "AMG preconditioner used in undefined "
+          "state. It is a bug that you could reach "
+          "this line.", __FILE__, __LINE__ );
     }
-}
+  } else {
+    Error( "AMG preconditioner used before setup",
+        __FILE__, __LINE__ );
+  }
+    }
 
 /**********************************************************/
 } // namespace CoupledField

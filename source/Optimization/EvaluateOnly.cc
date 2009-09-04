@@ -43,8 +43,11 @@ void EvaluateOnly::SolveProblem()
     optimization->CalcObjectiveGradient(NULL);
 
     StdVector<Condition>& cns = optimization->constraints;
-    StdVector<Condition>& ops = optimization->outputs; // The "inactive" constraits with output_only mode in xml
+    StdVector<Condition>& ops = optimization->outputs; // The "inactive" constraints with output_only mode in xml
 
+    for(unsigned int c = 0; c < cns.GetSize(); c++)
+      optimization->CalcConstraint(&cns[c]);
+    
     for(unsigned int c = 0; c < cns.GetSize(); c++)
       optimization->CalcConstraintGradient(&cns[c], NULL);
 

@@ -12,20 +12,20 @@ namespace CoupledField
 {
     
   /** This is our global pointer of the root ParamNode holding the XML file. 
-   *  Filed in cfs.cc. The correpsonding
+   *  Filed in cfs.cc. The corresponding
    * "extern ParamNode* param;" is in ParamNode.hh */
-  ParamNode* param = NULL;     
+  ParamNode* param = NULL;
     
-  ParamNode::ParamNode(bool attribute)
-  {
-    this->attribute_ = attribute;
-  } 
+  ParamNode::ParamNode(bool attribute) :
+    attribute_(attribute),
+    lastresultidx_(-1)
+  {} 
     
     
   ParamNode::~ParamNode()
   {
     // values are no problem, but we have to delete our childs recursively
-    for(unsigned int i = 0; i < children_.GetSize(); i++)
+    for(unsigned int i = 0, chsize = children_.GetSize(); i < chsize; ++i)
       {
         if(children_[i] != NULL) 
           { 
@@ -92,10 +92,28 @@ namespace CoupledField
     }
     else
     {
-      for(unsigned int i = 0; i < children_.GetSize() && result == NULL; i++)
+      const int chsize(children_.GetSize());
+      
+      // check if the last result is close to the currently requested node
+      if(lastresultidx_ > 0 && lastresultidx_ < chsize)
       {
-        if(children_[i]->name_ == name) 
+        if(children_[lastresultidx_]->name_ == name)
+          result = children_[lastresultidx_];
+        else
+          if(lastresultidx_ + 1 < chsize)
+          {
+            if(children_[lastresultidx_ + 1]->name_ == name)
+              result = children_[++lastresultidx_];
+          }   
+      }
+      
+      for(int i = 0; i < chsize && result == NULL; i++)
+      {
+        if(children_[i]->name_ == name)
+        {
+          lastresultidx_ = i;
           result = children_[i];
+        }
       }
     }
     
@@ -117,36 +135,29 @@ namespace CoupledField
   void ParamNode::Get(const string&  name, int& ret, const bool throwException)
   {
     ParamNode * actNode = Get(name, throwException);
-    if( actNode ) {
+    if( actNode )
       ret = actNode->AsInt();
-    }
-    
   }
 
   void ParamNode::Get(const string&  name, unsigned int& ret, const bool throwException)
   {
     ParamNode * actNode = Get(name, throwException);
-    if( actNode ) {
+    if( actNode )
       ret = actNode->AsUInt();
-    }
-
   }
 
   void ParamNode::Get(const string&  name, double& ret, const bool throwException)
   {
     ParamNode * actNode = Get(name, throwException);
-    if( actNode ) {
+    if( actNode )
       ret = actNode->AsDouble();
-    }
   }
 
   void ParamNode::Get(const string&  name, bool& ret, const bool throwException)
   {
-
     ParamNode * actNode = Get(name, throwException);
-    if( actNode ) {
+    if( actNode )
       ret = actNode->AsBool();
-    }
   }
 
   
@@ -161,7 +172,7 @@ namespace CoupledField
       // cout << "token = " << tokens[i] << endl;
       
       // consider the value only for the last token!
-      if(i == tokens.GetSize()-1 && (value != "" || has_bool_value))
+      if(i == tokens.GetSize()-1 && (!value.empty() || has_bool_value))
       {
         if(has_bool_value)
         {
@@ -192,7 +203,7 @@ namespace CoupledField
     }
     else
     {
-      for(unsigned int i = 0; i < children_.GetSize(); i++)
+      for(unsigned int i = 0, chsize = children_.GetSize(); i < chsize; i++)
         if(children_[i]->name_ == name) return true;
 
       return false;
@@ -207,7 +218,7 @@ namespace CoupledField
     }
     else
     {
-      for(unsigned int i = 0; i < children_.GetSize(); i++)
+      for(unsigned int i = 0, chsize = children_.GetSize(); i < chsize; i++)
         if(children_[i]->name_ == name && children_[i]->value_ == value) return true;
 
       return false;
@@ -222,7 +233,7 @@ namespace CoupledField
     }
     else
     {
-      for(unsigned int i = 0; i < children_.GetSize(); i++)
+      for(unsigned int i = 0, chsize = children_.GetSize(); i < chsize; i++)
         if(children_[i]->name_ == name && children_[i]->AsBool() == value) return true;
 
       return false;
@@ -232,10 +243,13 @@ namespace CoupledField
   
   StdVector<ParamNode*> ParamNode::GetList(const string& name)
   {
+    const unsigned int chsize(children_.GetSize());
     StdVector<ParamNode*> result;
+    result.Reserve(chsize);
 
-    for(unsigned int i = 0; i < children_.GetSize(); i++)
-      if(children_[i]->name_ == name) result.Push_back(children_[i]);
+    for(unsigned int i = 0; i < chsize; ++i)
+      if(children_[i]->name_ == name)
+        result.Push_back(children_[i]);
    
     return result; // copy-constructor magic stuff!
   }
@@ -244,21 +258,19 @@ namespace CoupledField
   {
     unsigned int count = 0;
 
-    for(unsigned int i = 0; i < children_.GetSize(); i++)
-      if(children_[i]->name_ == name) count++;
+    for(unsigned int i = 0, chsize = children_.GetSize(); i < chsize; ++i)
+      if(children_[i]->name_ == name) ++count;
    
     return count;
   }
 
-
   ParamNode* ParamNode::GetChild()
   {
-
     // check that only one child is present
     if( children_.GetSize() != 1 )
-      {
-        EXCEPTION( "Element '" << name_ << "' must only have 1 child");
-      }
+    {
+      EXCEPTION( "Element '" << name_ << "' must only have 1 child");
+    }
     return children_[0];
   }
   
@@ -266,26 +278,28 @@ namespace CoupledField
   StdVector<ParamNode*> ParamNode::GetList(const string& parent, const string& child, const string& value)
   {
     StdVector<ParamNode*> result;
-
-    for(unsigned int p = 0; p < children_.GetSize(); p++)
+    
+    for(unsigned int p = 0, chsize = children_.GetSize(); p < chsize; ++p)
+    {
+      ParamNode *ch = children_[p];
+      // do we have parent name? 
+      if(ch->GetName() == parent)
       {
-        // do we have parent name? 
-        if(children_[p]->name_ == parent) 
+        // children_[i] has zero, one or more child matching child elements,
+        // we loop by hand to handle the "more" case
+        const unsigned int chchsize(ch->children_.GetSize());
+        for(unsigned int c = 0; c < chchsize; ++c)
+        {
+          const ParamNode *chch = ch->children_[c];
+          if(chch->GetName() == child && chch->AsString() == value)
           {
-            // children_[i] has zero, one or more child matching child elements, 
-            // we loop by hand to handle the "more" case
-            for(unsigned int c = 0; c < children_[p]->children_.GetSize(); c++)
-              {
-                if(children_[p]->children_[c]->GetName() == child && children_[p]->children_[c]->AsString() == value)
-                  { 
-                    // parent, child and value matches. Take it!
-                    result.Push_back(children_[p]);
-                  }
-              }
+            // parent, child and value matches. Take it!
+            result.Push_back(ch);
           }
+        }
       }
-       
-   
+    }
+
     return result; // copy-constructor magic stuff!
   }
 
@@ -317,25 +331,25 @@ namespace CoupledField
   bool ParamNode::Has(const string& parent, const string& child, 
                       const string& value ) const
   {
-    return Count(parent, child, value) > 0;
-  }
-  
-
-  unsigned int ParamNode::Count(const string& parent, const string& child, const string& value) const  
-  {
-    // cannot use GetList() because of const stuff
-    unsigned int count = 0;
-
     // see GetList() for comments
-    for(unsigned int p = 0; p < children_.GetSize(); p++)
-      if(children_[p]->name_ == parent) 
-        for(unsigned int c = 0; c < children_[p]->children_.GetSize(); c++)
-          if(children_[p]->children_[c]->GetName() == child && children_[p]->children_[c]->AsString() == value)
-            count++;
+    for(unsigned int p = 0, chsize = children_.GetSize(); p < chsize; ++p)
+    {
+      ParamNode *ch = children_[p];
+      if(ch->name_ == parent)
+      {
+        const unsigned int chchsize(ch->children_.GetSize());
+        for(unsigned int c = 0; c < chchsize; ++c)
+        {
+          ParamNode *chch(ch->children_[c]);
+          if(chch->GetName() == child && chch->AsString() == value)
+            return true;
+        }
+      }
+    }
     
-    return count;
+    // nothing found
+    return false;
   }
-
 
   string ParamNode::ToString() const
   {
@@ -349,11 +363,10 @@ namespace CoupledField
     for(int i = 0; i < level; i++) cout << "   ";
     cout << ToString() << endl;
     
-    for(unsigned int i = 0; i < children_.GetSize(); i++) 
+    for(unsigned int i = 0, chsize = children_.GetSize(); i < chsize; i++) 
       children_[i]->Dump(level + 1);
   }
 
-  
   StdVector<string> ParamNode::SplitIntoTokens(const string& input) const
   {
     StdVector<string> out;

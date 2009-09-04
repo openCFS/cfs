@@ -7,36 +7,40 @@
 #include <ctime>
 #include <string>
 #include <iomanip>
+#include <cmath>
 #include <def_build_type_options.hh>
 #include "matrix.hh"
 #include "MatVec/vector.hh"
 #include "MatVec/opdefs.hh"
 
 #include "Utils/boost-serialization.hh"
-
+#include "Utils/tools.hh"
+#include <boost/tokenizer.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/type_traits/is_same.hpp>
 
 namespace CoupledField
 {      
 
   template<class TYPE>
-  Matrix<TYPE>::Matrix ()
-  {
-    size_row_ = 0;
-    size_col_ = 0;
-    data_ = NULL;
-  }
+  Matrix<TYPE>::Matrix () :
+    DenseMatrix(),
+    size_row_(0),
+    size_col_(0),
+    data_(NULL)
+  { }
 
 
   template<class TYPE>
-  Matrix<TYPE>::Matrix (const UInt nRows, const UInt nCols)
+  Matrix<TYPE>::Matrix (const UInt nRows, const UInt nCols) :
+    DenseMatrix(),
+    size_row_(nRows),
+    size_col_(nCols),
+    data_(new TYPE* [size_row_])
   {
 #ifdef CHECK_INDEX 
     if (nRows <= 0 || nCols <= 0) EXCEPTION("invalid dimension");
 #endif
-
-    size_row_ = nRows;
-    size_col_ = nCols;
-    data_ = new TYPE* [size_row_];
 
     data_[0]=new TYPE[size_col_*size_row_];
 
@@ -48,20 +52,16 @@ namespace CoupledField
 
 
   template<class TYPE>
-  Matrix<TYPE>::Matrix (const UInt nRows,const Vector<TYPE> * const x)
+  Matrix<TYPE>::Matrix (const UInt nRows,const Vector<TYPE> * const x) :
+    DenseMatrix(),
+    size_row_(nRows),
+    size_col_(x[0].size_),
+    data_(new TYPE* [size_row_])
   {
 #ifdef CHECK_INDEX
     if (nRows <= 0) EXCEPTION("invalid dimension");
-#endif
-  
-    size_row_ = nRows;
-    size_col_ = x[0].size_;
-
-#ifdef CHECK_INDEX 
     if (size_col_ == 0) EXCEPTION("invalid dimension");
 #endif 
-
-    data_ = new TYPE *[size_row_];
 
     UInt k,kk;
 #ifdef CHECK_INDEX
@@ -78,32 +78,23 @@ namespace CoupledField
   }
 
   template<class TYPE>
-  Matrix<TYPE>::Matrix (const Matrix<TYPE> &x)
+  Matrix<TYPE>::Matrix (const Matrix<TYPE> &x) :
+    DenseMatrix(),
+    size_row_(x.size_row_),
+    size_col_(x.size_col_),
+    data_(NULL)
   {
-
-#ifdef CHECK_INITIALIZED
-//     if (x.size_row_ == 0 || x.size_col_ == 0)  
-//       EXCEPTION("undefined Matrix");
-#endif
-
- 
-    size_row_ = x.size_row_;
-    size_col_ = x.size_col_;
-
-    if (size_row_ > 0 &&
-        size_col_ > 0 ) {
+    // We are able to copy empty matrices!
+    if (size_row_ > 0 && size_col_ > 0 )
+    {
       data_ = new TYPE * [size_row_];
       data_[0]=new TYPE[size_row_ * size_col_];
-    } else {
-      data_ = NULL;
     }
  
- 
-    UInt k;
- 
-    for (k=0; k < size_row_*size_col_; k++)  
+    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
       data_[0][k]=x.data_[0][k];
-    for (k=1; k < size_row_; k++) 
+    
+    for(UInt k = 1; k < size_row_; ++k)
       data_[k]=data_[k-1]+size_col_;        
   }
 
@@ -111,100 +102,190 @@ namespace CoupledField
   Matrix<TYPE>::~Matrix ()
   {
     if (data_ != NULL)
+    {
+      delete[] data_[0];
+      delete[] data_;
+    }
+  }
+
+
+  template<class TYPE>
+  std::string Matrix<TYPE>::ToXML(int n_offset) const
+  {
+    std::string offset(n_offset, ' ');
+
+    std::ostringstream os;
+    os.precision(6);
+
+    bool is_complex = boost::is_same<TYPE, std::complex<double> >::value;
+
+    os << std::endl << offset << "<tensor dim1=\"" << size_row_ << "\" dim2=\"" << size_col_ << "\">";
+    os << std::endl << offset << "  " << (is_complex ? "<complex>" : "<real>");
+
+    for(unsigned int r = 0; r < size_row_; ++r)
+    {
+      os << std::endl << offset << "    ";
+      for(unsigned int c = 0; c < size_col_; ++c)
       {
-        delete[] data_[0];
-        delete[] data_;
+        os << (IsNoise(data_[r][c]) ? 0.0 : data_[r][c]);
+        if(c < size_col_ - 1) os << "  ";
       }
+    }
+    os << std::endl << offset << "  " << (is_complex ? "</complex>" : "</real>");
+    os << std::endl << offset << "</tensor>" << std::endl << offset;
+
+    return os.str();
   }
 
   template<class TYPE>
-  std::string Matrix<TYPE>::ToString(int level)
+  std::string Matrix<TYPE>::ToString(const int level, const bool newline) const
   {
     std::ostringstream os;
 
     switch(level)
     {
-    case 0:
-
-      for(UInt j = 0; j < size_row_; j++) 
-      {
-        os << j << " : [";
-
-        for(UInt i = 0; i < size_col_; i++)
-          os << data_[j][i] << (i < size_col_-1 ? " " : "");
+      case -1:
+        for(UInt j = 0; j < size_row_; j++)
+          for(UInt i = 0; i < size_col_; i++)
+            os << data_[j][i] << (j == size_row_ - 1 && i == size_col_ - 1 ? "" : " "); // space not for last element
 
         os << "]";
-      }
-      break;
-      
-    case 1:
-
-      for(UInt j = 0; j < size_row_; j++) 
-      {
-        //os << j << ":" 
-        os << "[";
-
-        for(UInt i = 0; i < size_col_; i++)
-          os << data_[j][i] << (i < size_col_-1 ? " " : "");
-
-        os << "]\n";
-      }
       break;
 
-    default:
-    
-      os << "size_row=" << size_row_ << " size_col=" << size_col_;
-      if(size_row_ > 0 && size_col_ > 0)
-      {
-        // the min/max for complex is the real part and we cannot compare complex numbers anyway
-        Double min = static_cast<Complex>(data_[0][0]).real();
-        Double max = static_cast<Complex>(data_[0][0]).real();
+      case 0:
+        for(UInt j = 0; j < size_row_; j++)
+        {
+          os << j << " : [";
 
-        for(UInt j = 0; j < size_row_; j++) 
           for(UInt i = 0; i < size_col_; i++)
-          {
-            min = std::min(min, static_cast<Complex>(data_[j][i]).real());
-            max = std::max(max, static_cast<Complex>(data_[j][i]).real());
-          }
-        os << " min=" << min << " max=" << max;
-      }
-      break;
+            os << data_[j][i] << (i < size_col_-1 ? " " : "");
+
+          os << "]";
+
+          if(newline) os << std::endl;
+          else os << " ";
+        }
+        break;
+
+      case 1:
+        for(UInt j = 0; j < size_row_; j++)
+        {
+          //os << j << ":"
+          os << "[";
+
+          for(UInt i = 0; i < size_col_; i++)
+            os << data_[j][i] << (i < size_col_-1 ? " " : "");
+
+          os << "]\n";
+        }
+        break;
+
+
+      default:
+        os << "size_row=" << size_row_ << " size_col=" << size_col_;
+        if(size_row_ > 0 && size_col_ > 0)
+        {
+          // the min/max for complex is the real part and we cannot compare complex numbers anyway
+          Double min = static_cast<Complex>(data_[0][0]).real();
+          Double max = static_cast<Complex>(data_[0][0]).real();
+
+          for(UInt j = 0; j < size_row_; j++)
+            for(UInt i = 0; i < size_col_; i++)
+            {
+              min = std::min(min, static_cast<Complex>(data_[j][i]).real());
+              max = std::max(max, static_cast<Complex>(data_[j][i]).real());
+            }
+          os << " min=" << min << " max=" << max;
+        }
     }
 
     return os.str();
+  }
+
+  template<class TYPE>
+  unsigned int Matrix<TYPE>::ParseLineHelper(const std::string& input, StdVector<TYPE>& out)
+  {
+    // the rows are in the form "1 2 3] : " or "1.2 2.5 3.5] : " or "(1,1) (0,-2)] : "
+
+    // out will be resized in all but the first calls. So Push_back is not that expensive!
+    char_separator<char> sep(" ]:"); // spaces, closing and colon
+    tokenizer<char_separator<char> > tokens(input, sep);
+
+    for(tokenizer<char_separator<char> >::iterator it = tokens.begin(); it != tokens.end(); ++it)
+    {
+      try
+      {
+        out.Push_back(boost::lexical_cast<TYPE>(*it));
+      }
+      catch(boost::bad_lexical_cast &)
+      {
+        EXCEPTION("Cannot cast to value while parsing matrix: '" << *it << "'");
+      }
+    }
+
+    if(out.GetSize() == 0) EXCEPTION("cannot interpret matrix row as data: '" << input << "'");
+
+    return out.GetSize();
+  }
+
+
+  template<class TYPE>
+  void Matrix<TYPE>::Parse(const std::string& input)
+  {
+    // we don't know the number or rows and cols in advance.
+    StdVector<std::string> rows;
+    char_separator<char> sep("["); // ignore the row number and colon
+    tokenizer<char_separator<char> > tokens(input, sep);
+
+    for(tokenizer<char_separator<char> >::iterator it = tokens.begin(); it != tokens.end(); ++it)
+      rows.Push_back(*it);
+
+    // the rows are in the form "1 2 3] : " or "1.2 2.5 3.5] : " or "(1,1) (0,-2)] : "
+    if(rows.GetSize() == 0) EXCEPTION("cannot interpret data as matrix with data: '" << input << "'");
+    StdVector<TYPE> row;
+    // check first row
+    unsigned int n_cols = ParseLineHelper(rows[0], row); // row is now set to the proper size
+
+    // we have the information, store the data!
+    this->Resize(rows.GetSize(), n_cols);
+
+    for(unsigned int r = 0; r < rows.GetSize(); r++)
+    {
+      row.Clear();
+      row.Reserve(n_cols); // I know no Clear() Reserve() combination, but it's not too expensive
+
+      ParseLineHelper(rows[r], row); // row is now set to the proper size
+      if(row.GetSize() != n_cols)
+        EXCEPTION("matrix has inconsistent number or columns within row " << (r+1) << ": '" << input << "'");
+
+      for(unsigned int c = 0; c < row.GetSize(); c++)
+        data_[r][c] = row[c];
+    }
   }
 
 
   template<class TYPE>
   void Matrix<TYPE>::Resize(const UInt nRows, const UInt nCols )
   {
-  
-    UInt k;
-  
-    if (nRows != size_row_ || nCols != size_col_)
+    if(nRows != size_row_ || nCols != size_col_)
+    {
+      // set the size to requested values
+      size_row_ = nRows; 
+      size_col_ = nCols;
+      
+      if (data_ != NULL)
       {
-      
-        if (data_ != NULL) {
-          delete [] data_[0];
-          delete [] data_;
-        }
-      
-        size_row_ = nRows; 
-        size_col_ = nCols;
-      
-        data_ = new TYPE* [size_row_];
-        data_[0]=new TYPE[size_row_*size_col_];
-      
-        for (k=1; k < size_row_; k++) 
-          data_[k]=data_[k-1]+size_col_;
-
+        delete [] data_[0];
+        delete [] data_;
       }
-  
-    // // initialize values to 0
-//     if( init == true ) {
-//       for ( k = 0; k < size_row_ * size_col_; k++) 
-//         data_[0][k]=0;
-    //}
+
+      data_    = new TYPE*[size_row_];
+      data_[0] = new TYPE [size_row_*size_col_];
+
+      for (UInt k = 1; k < size_row_; ++k) 
+        data_[k] = data_[k-1] + size_col_;
+
+    }
   }
 
 
@@ -217,7 +298,7 @@ namespace CoupledField
   template<class TYPE>
   void Matrix<TYPE>::Resize(const Matrix<TYPE>& other)
   {
-    Resize(other.size_row_,other.size_col_);  
+    Resize(other.size_row_, other.size_col_);  
   }
 
 #ifndef EXPR_TEMPLATES
@@ -226,6 +307,7 @@ namespace CoupledField
   Matrix<TYPE> &Matrix<TYPE>::operator=(const Matrix<TYPE> &x)
   {
 
+    // Note! it shall be possible to copy an empty matrix!
 #ifdef CHECK_INITIALIZED
     if (x.size_row_ == 0 || x.size_col_ == 0) 
       EXCEPTION("undefined Matrix");
@@ -235,29 +317,12 @@ namespace CoupledField
       return *this;
     }
   
-    UInt k;
+    // set the size in any case to the size of the assigned matrix
+    Resize(x.size_row_, x.size_col_);
   
-    if (size_row_ != x.size_row_ || size_col_ != x.size_col_ )
-      {
-      
-        if (data_)
-          {
-            delete[] data_[0];
-            delete[] data_;
-          }
-      
-        size_row_ = x.size_row_; 
-        size_col_ = x.size_col_; 
-      
-        data_ = new TYPE* [size_row_];
-        data_[0]=new TYPE[size_row_*size_col_];
-  
-        for (k=1; k < size_row_; k++) 
-          data_[k]=data_[k-1]+size_col_;
-      }
-  
-    for ( k = 0; k < size_row_ * size_col_; k++) 
-      data_[0][k]=x.data_[0][k];
+    // copy the entries
+    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
+      data_[0][k] = x.data_[0][k];
   
     return *this;
   }
@@ -289,10 +354,9 @@ namespace CoupledField
     if (size_row_ != x.size_row_ || size_col_ != x.size_col_)
       EXCEPTION("incompatible dimension for +"); 
 #endif
-    UInt k;
   
-    for ( k = 0; k < size_row_ * size_col_; k++)
-      data_[0][k] += x.data_[0][k];
+    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
+        data_[0][k] += x.data_[0][k];
   
     return *this;
   }
@@ -307,10 +371,9 @@ namespace CoupledField
 
     Matrix<TYPE> z(size_row_,size_col_);
   
-    UInt k;
-    for ( k = 0; k < size_row_*size_col_; k++)
-      z [0][k] = -data_[0][k];
-  
+    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
+        z[0][k] = -data_[0][k];
+    
     return z;
   }
 
@@ -330,31 +393,41 @@ namespace CoupledField
     if (size_row_ != x.size_row_ || size_col_ != x.size_col_)
       EXCEPTION("incompatible dimension for +"); 
 #endif
-    UInt k;
-    for ( k = 0; k < size_row_ * size_col_; k++)
-      data_ [0][k] -= x.data_ [0][k];
-  
+    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
+        data_[0][k] -= x.data_[0][k];
+    
     return *this;
   }
 
 
-
-
   template<class TYPE>
-  Matrix<TYPE> &Matrix<TYPE>::operator*= (const TYPE &x)
+  Matrix<TYPE> &Matrix<TYPE>::operator/= (const TYPE x)
   {
-
 #ifdef CHECK_INITIALIZED
     if (size_row_ == 0 || size_col_ == 0) 
       EXCEPTION("undefined Matrix");
 #endif
   
-    TYPE y=x;
+    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
+      data_[0][k] /= x;
+
+    return *this;
+  }
+
+
+#endif // EXPR_TEMPLATES
   
-    UInt i;
-    for (i = 0; i < size_row_*size_col_; i++)
-      data_ [0][i] *= y;
-  
+  template<class TYPE>
+  Matrix<TYPE> &Matrix<TYPE>::operator*= (const TYPE x)
+  {
+#ifdef CHECK_INITIALIZED
+    if (size_row_ == 0 || size_col_ == 0) 
+      EXCEPTION("undefined Matrix");
+#endif
+
+    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
+      data_[0][k] *= x;
+
     return *this;
   }
 
@@ -388,47 +461,19 @@ namespace CoupledField
   
     *this = z;
     return *this;
-
-
-
-
   }
-
-  template<class TYPE>
-  Matrix<TYPE> &Matrix<TYPE>::operator/= (const TYPE &x)
-  {
-
-#ifdef CHECK_INITIALIZED
-    if (size_row_ == 0 || size_col_ == 0) 
-      EXCEPTION("undefined Matrix");
-#endif
-
-    TYPE y=x;
-  
-    UInt i;
-    for (i = 0; i < size_row_*size_col_; i++)
-      data_ [0][i] /= y;
-  
-    return *this;
-  }
-
-
-#endif // EXPR_TEMPLATES
 
   template<class TYPE>
   bool Matrix<TYPE>::operator== (const Matrix<TYPE> &x) const
   {
-
 #ifdef CHECK_INITIALIZED
     if (size_row_ == 0 || size_col_ == 0 || 
         x.size_row_ == 0 || x.size_col_ == 0)
       EXCEPTION("undefined Matrix");
 #endif
   
-    UInt k;
-  
-    for (k = 0; k < size_row_*size_col_; k++)
-      if (data_ [0][k] != x.data_[0][k]) return false;
+    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
+      if(data_ [0][k] != x.data_[0][k]) return false;
   
     return true;
   }
@@ -436,18 +481,16 @@ namespace CoupledField
   template<class TYPE>
   bool Matrix<TYPE>::operator!= (const Matrix<TYPE> &x) const
   {
-
 #ifdef CHECK_INITIALIZED
     if (size_row_ == 0 || size_col_ == 0 || 
         x.size_row_ == 0 || x.size_col_ == 0)
       EXCEPTION("undefined Matrix");
 #endif 
   
-    UInt k;
-    for (k = 0; k < size_row_*size_col_; k++)
-      if (data_ [0][k] != x.data_[0][k]) return false;
+    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
+      if (data_ [0][k] != x.data_[0][k]) return true;
   
-    return true;
+    return false;
   }
   
   /** Adds the multiple of another matrix */
@@ -465,23 +508,21 @@ namespace CoupledField
       EXCEPTION("matrices do not match");
 #endif
     
-    for(UInt i = 0; i < size_row_; i++){
-      for(UInt j = 0; j < size_col_; j++){
-        data_[i][j] += factor * other_mat[i][j];
-      }
-    }
+    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
+        data_[0][k] += factor * other_mat.data_[0][k];
   }
 
-  /** Assigns a mutliple of another matrix */
+  /** Assigns a multiple of another matrix */
   template<class TYPE>
   void Matrix<TYPE>::Assign(const Matrix<TYPE>& other_mat, TYPE factor)
   {
+#ifdef CHECK_INDEX
     if(size_row_ != other_mat.size_row_ || size_col_ != other_mat.size_col_) 
       EXCEPTION("matrices do not match");
+#endif
     
-    for(UInt r = 0; r < size_row_; r++)
-      for(UInt c = 0; c < size_col_; c++)
-        data_[r][c] = factor * other_mat[r][c];
+    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
+      data_[0][k] = factor * other_mat.data_[0][k];
   }
   
   // Perform a matrix-vector multiplication rvec = this*mvec
@@ -519,6 +560,25 @@ namespace CoupledField
       for ( kk = 0; kk < size_col_; kk++)
         rvec1[k] += data_[k][kk]*mvec1[kk];
   }
+
+  template<class TYPE>
+  TYPE Matrix<TYPE>::ScalarProduct(const Matrix<TYPE>& other_mat) const
+  {
+#ifdef CHECK_INITIALIZED
+    if(size_row_ == 0 || size_col_ == 0)
+      EXCEPTION("undefined Matrix");
+    if(size_row_ != other_mat.size_row_ || size_col_ != other_mat.size_col_)
+      EXCEPTION("incompatible dimension");
+#endif
+
+    TYPE result(0);
+
+    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
+      result += OpType<TYPE>::dotProduct(data_[0][k], other_mat.data_[0][k]);
+
+    return result;
+  }
+
 
   // Perform a matrix-vector multiplication rvec = this*mvec via the inner product
   template<class TYPE>
@@ -581,134 +641,12 @@ namespace CoupledField
 #endif
     
     // overwrite output vector with 0.0s and set correct length
-    rvec1.Resize(size_col_);
-    rvec1.Init();  // we cannot use 0.0 here as the vector is not always of type Double or similar
+    rvec1.Resize(size_col_, 0);
     for ( UInt k = 0; k < size_row_; ++k)
       for ( UInt kk = 0; kk < size_col_; ++kk)
         rvec1[kk] += data_[k][kk]*mvec1[k];
   }
   
-  // // Perform a matrix-matrix multiplication rMat = this*mMat
-  // template<class TYPE>
-  // void Matrix<TYPE>::Mult(DenseMatrix & mMat, DenseMatrix & rMat)
-  // {
-  //   Matrix<TYPE> & mMat1 = dynamic_cast<Matrix<TYPE> & >(mMat);
-  //   Matrix<TYPE> & rMat1 = dynamic_cast<Matrix<TYPE>& >(rMat);
-  //   
-  //   UInt size_mMatRow = mMat1.GetNumRows();
-  //   UInt size_mMatCol = mMat1.GetNumCols();
-  // 
-  //   UInt size_rMatRow = rMat1.GetNumRows();
-  //   UInt size_rMatCol = rMat1.GetNumCols();
-  //  
-  // #ifdef CHECK_INITIALIZED
-  //   if (size_row_ == 0 || size_col_ == 0) 
-  //     EXCEPTION("undefined Matrix");
-  //   if (size_mMatRow == 0 || size_mMatCol==0) 
-  //     EXCEPTION("undefined Matrix");
-  //   if (size_rMatRow == 0||size_rMatCol==0) 
-  //     EXCEPTION("undefined Matrix");
-  // #endif
-  // 
-  // #ifdef CHECK_INDEX
-  //   if (size_col_ != size_mMatRow) EXCEPTION("incompatible dimension while matrix-matrix multiplication");
-  //   if (size_row_ != size_rMatRow) EXCEPTION("incompatible dimension while matrix-matrix multiplication",__FILE__,__LINE__);
-  //   if (size_mMatCol != size_rMatCol) EXCEPTION("incompatibel dimension while matrix-matrix multiplication",__FILE__,__LINE__);
-  // #endif
-  //    
-  // //  Vector<TYPE> temp(1);
-  // //  for (UInt i = 0; i < size_row_; i++)
-  // //    for (UInt j = 0; j < size_mMatCol; j++)
-  // //      {       
-  // //   temp = data_[i][0] * mMat1[0][j];
-  // //   for (UInt k = 1; k <size_mMatRow; k++)
-  // //     temp[0] += data_[i][k] * mMat1[k][j];
-  // //   rMat1[i][j] = temp[0];
-  // //      }  
-  // 
-  //   for (UInt i = 0; i < size_row_; i++ ) {
-  //     for (UInt j = 0; j < size_mMatCol; j++ ) {
-  // 
-  //       rMat1[i][j] = data_[i][0] * mMat1[0][j];
-  // 
-  //       for ( UInt k = 1; k < size_mMatRow; k++ ) {
-  //         rMat1[i][j] += data_[i][k] * mMat1[k][j];
-  //       }
-  //     }
-  //   }
-  // } 
-
-
-  template<class TYPE>
-  void Matrix<TYPE>::AddRow (const Vector<TYPE> &x, const UInt pos)
-  {
-
-#ifdef CHECK_INITIALIZED
-    if (size_row_ == 0 || size_col_ == 0) 
-      EXCEPTION("undefined Matrix" );
-#endif
-
-
-    TYPE ** help=new TYPE*[size_row_+1];
-    help[0]=new TYPE[size_col_ * (size_row_+1)];
-
-    UInt k;
-    for (k=1; k < size_row_+1; k++) 
-      help[k]=help[k-1]+size_col_; 
-  
-    UInt i,ii;
-    for (i=0; i < size_col_; i++)
-      {
-        for (ii=0; ii < pos; ii++) 
-          help[ii][i]=data_[ii][i];
-        help[pos][i]=x[i];
-        for (ii=pos+1; ii < size_row_+1; ii++) 
-          help[ii][i]=data_[ii-1][i];
-      }
-    size_row_++;
-  
-    // Inefficient?
-    (*this).Resize(size_row_,size_col_);
-  
-    data_=help;
-    data_[0]=help[0];
-  }
-
-
-  template<class TYPE>
-  void Matrix<TYPE>::AddColumn (const Vector<TYPE> &x, const UInt pos)
-  {
-
-#ifdef CHECK_INITIALIZED
-    if (size_row_ == 0 || size_col_ == 0) 
-      EXCEPTION("undefined Matrix" );
-#endif
-
-    TYPE ** help=new TYPE*[size_row_];
-    help[0]=new TYPE[(size_col_+1)*size_row_];
-    UInt k;
-    for (k=1; k < size_row_; k++) 
-      help[k]=help[k-1]+size_col_+1;
-  
-    UInt i,ii;
-    for (i=0; i < size_row_; i++)
-      {
-        for (ii=0; ii < pos; ii++) 
-          help[i][ii]=data_[i][ii];
-        help[i][pos]=x[i];
-        for (ii=pos+1; ii < size_col_+1; ii++) 
-          help[i][ii]=data_[i][ii-1];
-      }
-  
-    size_col_++;
-  
-    (*this).Resize(size_row_,size_col_);
-  
-    data_=help;
-    data_[0]=help[0]; 
-  }
-
-
   // **************
   //   operator<<
   // **************
@@ -718,12 +656,15 @@ namespace CoupledField
 
     // Set output format
     out.setf( std::ios::scientific );
-    UInt oldPrec = out.precision();
-    UInt newPrec = 4;
+    const UInt oldPrec = out.precision();
+    const UInt newPrec = 4;
     out.precision( newPrec );
 
-    for ( UInt i = 0; i < mat.GetNumRows(); i++ ) {
-      for ( UInt j = 0; j < mat.GetNumCols(); j++ ) {
+    const unsigned int mrows(mat.GetNumRows());
+    const unsigned int mcols(mat.GetNumCols());
+    
+    for ( UInt i = 0; i < mrows; ++i ) {
+      for ( UInt j = 0; j < mcols; ++j ) {
         out << std::setw( newPrec + 7 ) << mat[i][j] << " ";
       }
       out << std::endl;
@@ -769,25 +710,25 @@ namespace CoupledField
     Integer i, j, k, k1;
     
     //  the Gauss elimination 
-    for (k=0; k<=nmat-1; ++k)
+    for(k = 0; k < nmat; ++k)
+    {
+      k1 = k + 1;
+      for(i = k1; i <= nmat; ++i)
       {
-        k1 = k + 1;
-        for (i=k1; i<=nmat; ++i)
-          {
-            if (data_[k][k] != 0.0)
-              {
-                data_[i][k] /= data_[k][k];
-                for (j=k1; j<=nmat; ++j)
-                  data_[i][j] -= data_[i][k] * data_[k][j];
-              }
-            else
-              {
-                std::cerr<<"\n Matrix::DirectSolve Step " << k <<std::endl;
-                std::cerr<<"\n The element at position ("<< k << "," << k << ") of the matrix is zero. "<<std::endl;
-                //                std::exit(0);
-              }
-          }
+        if (data_[k][k] != 0.0)
+        {
+          data_[i][k] /= data_[k][k];
+          for (j=k1; j<=nmat; ++j)
+            data_[i][j] -= data_[i][k] * data_[k][j];
+        }
+        else
+        {
+          std::cerr<<"\n Matrix::DirectSolve Step " << k <<std::endl;
+          std::cerr<<"\n The element at position ("<< k << "," << k << ") of the matrix is zero. "<<std::endl;
+          //                std::exit(0);
+        }
       }
+    }
 
     // solve Ly = b by forward substitution 
 
@@ -797,19 +738,19 @@ namespace CoupledField
     for (i=0; i<=nmat; ++i)
       { 
         y[i] = b[i];
-        for (j=0; j<=i-1; ++j)
+        for(j = 0; j < i; ++j)
           y[i] -= data_[i][j] * y[j];
       }
 
     // solve Ux = y backward substitution
     
-    for (i=nmat; i>=0; --i)
-      {
-        x[i] = y[i];
-        for (j=nmat; j>=i+1; --j)
-          x[i] -= data_[i][j] * x[j];
-        x[i] /= data_[i][i];
-      }
+    for(i = nmat; i >= 0; --i)
+    {
+      x[i] = y[i];
+      for(j = nmat; j > i; --j)
+        x[i] -= data_[i][j] * x[j];
+      x[i] /= data_[i][i];
+    }
   }
 
 
@@ -828,7 +769,8 @@ namespace CoupledField
     
     Integer lp_nrRHS, lp_info, lp_lwork,lp_dim;
     Integer lp_lda, lp_ldb;
-    lp_nrRHS=b1.GetNumCols();
+    const unsigned int bcols(b1.GetNumCols());
+    lp_nrRHS=bcols;
     lp_dim=size_row_;
     lp_lda=size_row_;
     lp_ldb=size_row_;
@@ -844,17 +786,19 @@ namespace CoupledField
     lp_sysVec.Resize(size_row_*size_row_);
     
       // copy values from system and RHS - Matrix into vector
-    for (UInt i=0;i<size_row_;i++)
-      for (UInt j=0;j<size_row_;j++){
+    for (UInt i=0;i<size_row_;++i)
+      for (UInt j=0;j<size_row_;++j){
         lp_sysVec[i+j*size_row_]=data_[i][j];
       }
     
     Vector<Complex> lp_rhsVec;
-    lp_rhsVec.Resize(b1.GetNumRows()*b1.GetNumCols());
+    const unsigned int brows(b1.GetNumRows());
+    
+    lp_rhsVec.Resize(brows*bcols);
  
-    for (UInt i=0;i<b1.GetNumRows();i++)
-      for (UInt j=0;j<b1.GetNumCols();j++){
-        lp_rhsVec[i+j*b1.GetNumRows()]=b1[i][j];
+    for (UInt i=0;i<brows;++i)
+      for (UInt j=0;j<bcols;++j){
+        lp_rhsVec[i+j*brows]=b1[i][j];
       }
     
     lp_rhsVecf77 = new F77complex16[size_row_*lp_nrRHS];
@@ -864,17 +808,17 @@ namespace CoupledField
    
 
     // Convert CFS++ Vector<Complex> to Vector<F77complex16>
-    for ( UInt count = 0; count < size_row_*b1.GetNumCols(); count++ ) {
+    for ( UInt count = 0; count < size_row_*bcols; ++count ) {
       CC2F77( lp_rhsVec[count], auxVal2 );
       lp_rhsVecf77[count] = auxVal2;
       }
     
-    for (UInt count = 0; count < size_row_*size_row_; count++ ) {
+    for (UInt count = 0; count < size_row_*size_row_; ++count ) {
       CC2F77( lp_sysVec[count], auxVal2 );
       lp_sysVecf77[count] = auxVal2;
     }
     
-    for (UInt count=0; count < lp_work.GetSize();count++){
+    for (UInt count=0, ss = lp_work.GetSize(); count < ss; ++count ) {
       CC2F77(lp_work[count], auxVal2);
       lp_workf77[count] = auxVal2;
     }
@@ -923,19 +867,19 @@ namespace CoupledField
       
           
      //reconvert Fortran77 -> CFS ++ datatypes
-    for ( UInt count = 0; count < size_row_*b1.GetNumCols(); count++ ) 
+    for ( UInt count = 0; count < size_row_*bcols; ++count ) 
       F772CC( lp_rhsVecf77[count], lp_rhsVec[count] );
           
-    for ( UInt count = 0; count < size_row_*size_row_; count++ ) 
+    for ( UInt count = 0, ss = size_row_*size_row_; count < ss; ++count ) 
       F772CC( lp_sysVecf77[count], lp_sysVec[count]);
           
-    for (UInt count=0; count < lp_work.GetSize();count++)
+    for (UInt count=0, ss = lp_work.GetSize(); count < ss; ++count )
       F772CC(lp_workf77[count], lp_work[count]);
       
     // Writes result into b1
-    for (UInt i=0;i<size_row_;i++)
-      for (UInt j=0;j<b1.GetNumCols();j++)
-        b1[i][j]=lp_rhsVec[i+j*b1.GetNumRows()];
+    for (UInt i=0;i<size_row_;++i)
+      for (UInt j=0;j<bcols;++j)
+        b1[i][j]=lp_rhsVec[i+j*brows];
   
     delete[] (lp_rhsVecf77);
     delete[] (lp_interchanges);
@@ -1017,27 +961,17 @@ namespace CoupledField
   }
 
 #endif
-  
-
-  template<class TYPE>
-  void Matrix<TYPE>::DyadicMult(const SingleVector & v1)
-  {
-    DyadicMult(v1, v1);
-  }
-
-
 
   template<class TYPE>
   void Matrix<TYPE>::DyadicMult(const SingleVector & v1, const SingleVector & v2)
   {
-  
     Vector<TYPE> const & vec1 = dynamic_cast<const Vector<TYPE>& >(v1);
     Vector<TYPE> const & vec2 = dynamic_cast<const Vector<TYPE>& >(v2);
   
-    UInt row = vec1.GetSize();
-    UInt col = vec2.GetSize();
+    const UInt row = vec1.GetSize();
+    const UInt col = vec2.GetSize();
   
-    this->Resize(row,col);
+    Resize(row, col);
 
     for(UInt actRow=0; actRow<row; actRow++)
       for(UInt actCol=0; actCol < col; actCol++)
@@ -1101,48 +1035,46 @@ namespace CoupledField
         break;
       
       default: 
-	Double eps = 1e-20;
-	TYPE pivot;
-	TYPE pinv;
+        Double eps = 1e-20;
+        TYPE pivot;
+        TYPE pinv;
 
-	//just copy the matrix
-	inv.Resize(size_row_);
-	for ( UInt k=0; k < size_row_*size_col_; k++ )  
-	  inv.data_[0][k] = data_[0][k];
-	for ( UInt k=1; k < size_row_; k++ ) 
-	  inv.data_[k] = inv.data_[k-1]+size_col_;       
+        //just copy the matrix
+        inv.Resize(size_row_);
+        for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
+          inv.data_[0][k] = data_[0][k];
 
-	//compute the invers
+        //compute the inverse
         for ( UInt k=0; k<size_row_; k++) {
-	  pivot = inv[k][k];
-	  pinv  = 1/pivot;
-	  if ( abs(pivot) > eps ) {
-	    for (UInt j=0; j<size_row_; j++) {
-	      if ( j != k ) {
-		inv[k][j] = -inv[k][j] * pinv;
-		for ( UInt i=0; i<size_row_; i++ ) {
-		  if ( i != k ) {
-		    inv[i][j] = inv[i][j] + inv[i][k] * inv[k][j];
-		  }
-		}
-	      }
-	    }
-	    for ( UInt i=0;  i<size_row_; i++ ) {
-	      inv[i][k] = inv[i][k] * pinv;
-	    }
-	    inv[k][k] = pinv;
-	    //	    std::cout << "inv current:\n" << inv << std::endl;
-	  }
-	  else {
-	    EXCEPTION("Get divison by zero in matrix inversion" );
-	  }
-	}
+          pivot = inv[k][k];
+          pinv  = 1/pivot;
+          // std::abs not possible for uint
+          if ( ( pivot >  0 ? pivot : -pivot) > eps ) {
+            for (UInt j=0; j<size_row_; j++) {
+              if ( j != k ) {
+                inv[k][j] = -inv[k][j] * pinv;
+                for ( UInt i=0; i<size_row_; i++ ) {
+                  if ( i != k ) {
+                    inv[i][j] = inv[i][j] + inv[i][k] * inv[k][j];
+                  }
+                }
+              }
+            }
+            for ( UInt i=0;  i<size_row_; i++ ) {
+              inv[i][k] = inv[i][k] * pinv;
+            }
+            inv[k][k] = pinv;
+            //	    std::cout << "inv current:\n" << inv << std::endl;
+          }
+          else {
+            EXCEPTION("Get divison by zero in matrix inversion" );
+          }
+        }
       }  
   }
 
   template<> void Matrix<Complex>::Invert (Matrix <Complex> & inv) const
   {
-
     EXCEPTION("Matrix<Complex>::Invert: Not implemented!" );
   }
 
@@ -1160,7 +1092,7 @@ namespace CoupledField
       EXCEPTION("No quadratic matrix!" );
 #endif
      
-    if (size_row_ != 3 ) EXCEPTION("Matrix::Adjunct only implemented for matrix size 3!" );
+    assert(size_row_ == 3);
   
     Vector<Integer> iVec(2);
     Vector<Integer> jVec(2);
@@ -1210,24 +1142,26 @@ namespace CoupledField
   }
 
   template<>
-  Matrix<Double> Matrix<Complex>::GetPart(  Global::ComplexPart part ) const {
-    
-    Matrix<Double> ret;
-    if ( part == Global::REAL ) {
-      ret.Resize( size_row_, size_col_ );
+  Matrix<Double> Matrix<Complex>::GetPart(Global::ComplexPart part) const
+  {  
+    Matrix<Double> ret(size_row_, size_col_);
+    switch(part)
+    {
+    case Global::REAL:
       for ( UInt iRow = 0; iRow < size_row_; iRow++ ) {
         for ( UInt iCol = 0; iCol < size_col_; iCol++ ) {
           ret[iRow][iCol]  = data_[iRow][iCol].real();
         }
       }
-    } else if ( part == Global::IMAG ) {
-      ret.Resize( size_row_, size_col_ );
+      break;
+    case Global::IMAG:
       for ( UInt iRow = 0; iRow < size_row_; iRow++ ) {
         for ( UInt iCol = 0; iCol < size_col_; iCol++ ) {
           ret[iRow][iCol]  = data_[iRow][iCol].imag();
         }
       }
-    } else {
+      break;
+    default:
       EXCEPTION("Matrix<Complex>::GetPart: Only possible for REAL or IMAG part!" );
     }
     
@@ -1241,42 +1175,40 @@ namespace CoupledField
   }
   
   template<>
-  void Matrix<Double>::SetPart( Global::ComplexPart part, const Matrix<Double> & partMatrix ) {
-    
-    if ( size_col_ != partMatrix.GetNumCols() ||
-	 size_row_ != partMatrix.GetNumRows () ) {
-      EXCEPTION( "Matrix<Double>::SetPart: Dimension of matrices do not match!" );
-    }
- 
-    if ( part != Global::REAL ) {
-      EXCEPTION( "Matrix<Double>::SetPart: Only possible for REAL part." );
-    }
+  void Matrix<Double>::SetPart( Global::ComplexPart part, const Matrix<Double> & partMatrix )
+  {
+    assert(size_col_ == partMatrix.GetNumCols());
+    assert(size_row_ == partMatrix.GetNumRows());
+    assert((part == Global::REAL));
+
     *this = partMatrix;
   }
 
   template<>
-  void Matrix<Complex>::SetPart( Global::ComplexPart part, const Matrix<Double> & partMatrix ) {
-
-    if ( size_col_ != partMatrix.GetNumCols() ||
-         size_row_ != partMatrix.GetNumRows () ) {
-      EXCEPTION( "Matrix<Complex>::SetPart: Dimension of matrices do not match!" );
-    }
-        
-    if ( part == Global::REAL ) {
+  void Matrix<Complex>::SetPart( Global::ComplexPart part, const Matrix<Double> & partMatrix )
+  {
+    assert(size_col_ == partMatrix.GetNumCols());
+    assert(size_row_ == partMatrix.GetNumRows());
+    
+    switch(part)
+    {
+    case Global::REAL:
       for ( UInt iRow = 0; iRow < size_row_; iRow++ ) {
         for ( UInt iCol = 0; iCol < size_col_; iCol++ ) {
-          data_[iRow][iCol]  = Complex( partMatrix[iRow][iCol], 
-                                        data_[iRow][iCol].imag() );
+          data_[iRow][iCol]  = Complex( partMatrix[iRow][iCol],
+              data_[iRow][iCol].imag() );
         }
       }
-    } else if ( part == Global::IMAG ) {
+      break;
+    case Global::IMAG:
       for ( UInt iRow = 0; iRow < size_row_; iRow++ ) {
         for ( UInt iCol = 0; iCol < size_col_; iCol++ ) {
           data_[iRow][iCol]  = Complex( data_[iRow][iCol].real(),
-                                        partMatrix[iRow][iCol] );
+              partMatrix[iRow][iCol] );
         }
       }
-    } else {
+      break;
+    default:
       EXCEPTION( "Matrix<Complex>::SetPart: Only possible for REAL or IMAG part!" );
     }
   }
@@ -1353,14 +1285,13 @@ namespace CoupledField
   template<class TYPE>
   void Matrix<TYPE>::ConvertToVec_AppendRows(SingleVector & v) const
   {
-  
     Vector<TYPE> & vec = dynamic_cast<Vector<TYPE>&>(v);
 
     vec.Resize(size_row_ * size_col_);
   
     for( UInt i=0; i < size_row_; i++)
       for( UInt j=0; j < size_col_; j++)
-        vec[i*(size_col_) + j] = (*this)[i][j];
+        vec[i*(size_col_) + j] = data_[i][j];
   }
 
   /// converts a matrix into a vector, by appending successively all colums
@@ -1384,7 +1315,6 @@ namespace CoupledField
   template<class TYPE>
   void Matrix<TYPE>::ScaleDiagElems(TYPE factor) 
   {
-
 #ifdef CHECK_INITIALIZED
     if (size_row_ == 0 || size_col_ == 0) 
       EXCEPTION("Undefined Matrix!" );
@@ -1395,10 +1325,8 @@ namespace CoupledField
       EXCEPTION("No square- matrix!" );
 #endif
 
-    UInt i;
-    for (i = 0; i < size_row_; i++)
+    for (UInt i = 0; i < size_row_; ++i)
       data_[i][i] *= factor;
-  
   }
 
 
@@ -1426,20 +1354,45 @@ namespace CoupledField
 
   }
 
-
-  template<class TYPE> bool Matrix<TYPE>::IsSymmetric() const {
-    bool amSymm = true;
-    for ( UInt i = 1; i < size_row_; i++ ) {
-      for ( UInt j = i+1; j < size_col_; j++ ) {
-        if ( data_[i][j] != data_[j][i] ) {
-          amSymm = false;
-          break;
-        }
-      }
-    }
-    return amSymm;
+  template<class TYPE>
+  bool Matrix<TYPE>::IsSymmetric() const
+  {
+    for(UInt i = 1; i < size_row_; ++i)
+      for(UInt j = i+1; j < size_col_; ++j)
+        if(data_[i][j] != data_[j][i]) return false;
+    
+    return true;
   }
 
+  template<class TYPE>
+  TYPE Matrix<TYPE>::NormL2() const
+  {
+    TYPE result(0);
+    
+    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
+      result += data_[0][k] * data_[0][k];
+
+    return static_cast<TYPE>(std::sqrt(result)); // for compilers
+  }
+
+  template<class TYPE>
+  TYPE Matrix<TYPE>::DiffNormL2(const Matrix<TYPE>& other) const
+  {
+#ifdef CHECK_INITIALIZED
+    if (size_row_ != other.size_row_ || size_col_ != other.size_col_)
+      EXCEPTION("Incompatible matrices");
+#endif
+
+    TYPE result(0);
+    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
+    {
+      TYPE tmp = data_[0][k] - other.data_[0][k];
+      tmp *= tmp;
+      result += tmp;
+    }
+
+    return static_cast<TYPE>(std::sqrt(result)); // for compilers
+  }
 
 
   // Alternate version of symmetry checker, that will report

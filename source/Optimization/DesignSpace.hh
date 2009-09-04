@@ -41,8 +41,9 @@ namespace CoupledField
               ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
 
      /** PostInit as usual when not all can be stuffed into the constructor
+      * @param objectives the number of objectives
       * @param constraints the number of constraints to initialize constraintGradients */
-     void PostInit(int constraints);
+     void PostInit(int objectives, int constraints);
 
      /** Set the DesignMaterial this is only used in parametric material optimization and therefore not in constructor
       * @param dm ParamNode in XML */
@@ -123,18 +124,18 @@ namespace CoupledField
 
      /** Similar but more general as WriteDesignToExtern() */
      virtual void WriteGradientToExtern(double* out, DesignElement::ValueSpecifier vs,
-                                DesignElement::Access access, Condition* constraint = NULL, bool scaling = true) const;
+                                DesignElement::Access access, Condition* g = NULL, bool scaling = true) const;
 
      /** provide the upper and lower bounds on the design variables to the optimizer */
      virtual void WriteBoundsToExtern(double* x_l, double* x_u) const;
      
      /** Sets the value of the described design element to 0
       * @param vs what values to set. Not all make sense -> exception
-      * @param design with design elements to set, DEFAULT applies dor all design types */
+      * @param design with design elements to set, DEFAULT applies for all design types */
      virtual void Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design = DesignElement::DEFAULT);
      
      /** This disables the transfer functions -> sets them to NO_TYPE. This is used
-      * in SIMP to calculate the original stiffnes matrices.
+      * in SIMP to calculate the original stiffness matrices.
       * The setting from the XML file is stored -> to be undone with EnableTranferFunctions() */
      void DisableTransferFunctions();
 

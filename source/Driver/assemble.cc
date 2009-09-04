@@ -19,6 +19,7 @@
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/ParamHandling/InfoNode.hh"
 #include "OLAS/algsys/basesystem.hh"
+#include "Utils/Timer.hh"
 #include "DataInOut/Scripting/cfsmessenger.hh"
 
 namespace CoupledField
@@ -54,7 +55,10 @@ namespace CoupledField
 
     // Obtain a new mathParser handler
     mHandle_ = domain->GetMathParser()->GetNewHandle();
-    
+
+    // the timer object is used in every AssembleMatrices() call
+    timer_ = info->Get("analysis")->Get(InfoNode::SUMMARY)->Get("assemble")->SetValue(new Timer());
+
     // Initialize scripting interface
     RegisterFunctions();
   }
@@ -284,6 +288,8 @@ namespace CoupledField
     StdVector<Integer> eqnVec1, eqnVec2;
     PdeIdType pdeId1, pdeId2;
 
+    timer_->Start();
+
     // Reset for matrix update
     matrixUpdated_ = false;
 
@@ -448,6 +454,8 @@ namespace CoupledField
 
     // Change flag
     isFirstTime_ = false;
+
+    timer_->Stop();
   }
 
   void Assemble::CalcMinMaxStrain() {
@@ -994,11 +1002,12 @@ namespace CoupledField
       return;
 
 #ifndef NDEBUG
-    Double* dat_ptr = NULL;
-    dat_ptr = elemMat.GetDataPointer();
-    for(UInt i=0, n=elemMat.GetNumCols() * elemMat.GetNumRows(); i<n; i++) {
-      if( std::isnan(dat_ptr[i]) || std::isinf(dat_ptr[i]) )
-        EXCEPTION("Trying to assemble nan/inf in InsertMatrix!");
+    for(UInt i=0, m=elemMat.GetNumRows(); i<m; i++) {
+      for(UInt j=0, n=elemMat.GetNumCols(); j<n; j++) {
+        if( std::isnan(elemMat[i][j]) ||
+            std::isinf(elemMat[i][j]) )
+          EXCEPTION("Trying to assemble nan/inf in InsertMatrix!");
+      }
     }
 #endif
 
@@ -1025,7 +1034,7 @@ namespace CoupledField
 
 #ifndef NDEBUG
     LOG_DBG3(assemble) << "InsertMatrix dest=" << dest << " mappedDest=" << mappedDest << " data=["
-                       << StdVector<Double>::ToString(elemMat.GetNumCols() * elemMat.GetNumRows(), dat_ptr, 1)
+                       << elemMat
                        << "]\neqnVec1=" << eqnVec1.ToString() <<
                        "\neqnVec2=" << eqnVec2.ToString() << std::endl;
 #endif

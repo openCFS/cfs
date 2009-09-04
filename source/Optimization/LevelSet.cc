@@ -50,8 +50,9 @@ bool HasIntersection(const lsnodepair &p)
 }
 
 /******** LEVELSETNODE ***************/
-LevelSetNode::LevelSetNode(const double val, const unsigned int cfs_number)
-  : state(NONE), value(val), phi_temp(0.0), intersection_length(0.0), f_ext(0.0), shapegrad(0.0), global_node_number(cfs_number)
+LevelSetNode::LevelSetNode(const double val, const unsigned int cfs_number) :
+  state(NONE), value(val), phi_temp(0.0), intersection_length(0.0),
+  f_ext(0.0), shapegrad(0.0), global_node_number(cfs_number)
 {
   static const unsigned int dim(domain->GetGrid()->GetDim());
   neighbours_.resize((dim == 2 ? 4 : 6), NULL);
@@ -85,7 +86,8 @@ bool LevelSetNode::IsBoundary() const
 
 /******** LEVELSETELEMENT ***************/
 LevelSetElement::LevelSetElement(DesignElement* de, const double val) :
-  de_(de), shapeGradValue(0.0), topGradValue(val)
+  de_(de),
+  shapeGradValue(0.0)
 {
   // it is important here to call resize, not reserve, because we assume the existence
   // of this object at a later point where we acquire a reference to it
@@ -365,13 +367,15 @@ double LevelSetElement::IntegrateIntersectionObject(IntersectionObject &o, linEl
 {
   static const unsigned int dim(domain->GetGrid()->GetDim());
   assert(dim == 2); // FIXME
+
+  Matrix<double> B; // 2D: 3 * 8
+  Matrix<double> C; // = [c] or E_ijkl or dMat in BDBInt or A in shape grad papers
+  Matrix<double> coord;
+  Vector<double> b_u;
+  Vector<double> c_b_u;
   
   for(unsigned int num = 0; num < 2; ++num)
   {
-    Matrix<double> B; // 2D: 3 * 8
-    Matrix<double> C; // = [c] or E_ijkl or dMat in BDBInt or A in shape grad papers
-    Matrix<double> coord;
-
     // set B
     domain->GetGrid()->GetElemNodesCoord(coord, de_->elem->connect);
     bdb_form->calcBMatOnly(B, o.points[num], de_->elem->ptElem, coord);
@@ -386,10 +390,10 @@ double LevelSetElement::IntegrateIntersectionObject(IntersectionObject &o, linEl
     for(unsigned int d = 0; d < dim; ++d)
       full_u[o.indices[num] + d] = (o.displacements[num])[d];
 
-    Vector<double> b_u(C.GetNumCols());
+    b_u.Resize(C.GetNumCols());
     b_u = B*full_u;
     // must multiply with [c] here
-    Vector<double> c_b_u(C.GetNumCols());
+    c_b_u.Resize(C.GetNumCols());
     c_b_u = C * b_u;
     double integrand = b_u * c_b_u;
 

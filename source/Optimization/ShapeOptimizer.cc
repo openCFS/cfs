@@ -3,6 +3,7 @@
 #include "Domain/domain.hh"
 #include "Optimization/TopGrad.hh"
 #include "Optimization/LevelSet.hh"
+#include "Utils/Timer.hh"
 
 namespace CoupledField
 {
@@ -10,13 +11,14 @@ using std::cout;
 using std::endl;
 using std::string;
 
-using boost::posix_time::ptime;
 using boost::posix_time::second_clock;
-using boost::posix_time::microsec_clock;
 using boost::posix_time::time_duration;
 
-ShapeOptimizer::ShapeOptimizer(Optimization* optimization, ParamNode* pn)
-  : BaseOptimizer(optimization, pn), topgrad_(false), levelset_(false), shapeopt_(false)
+ShapeOptimizer::ShapeOptimizer(Optimization* optimization, ParamNode* pn) :
+  BaseOptimizer(optimization, pn),
+  topgrad_(false),
+  levelset_(false),
+  shapeopt_(false)
 {
   start_time = second_clock::local_time();
   /** ParamNode for reading info from XML-file */
@@ -54,7 +56,7 @@ ShapeOptimizer::ShapeOptimizer(Optimization* optimization, ParamNode* pn)
 
 ShapeOptimizer::~ShapeOptimizer()
 {
-  cout << "*** shapeoptimizer finished after " << GetTimeString(second_clock::local_time() - start_time) 
+  cout << "*** shapeoptimizer finished after " << Timer::GetTimeString(second_clock::local_time() - start_time) 
        <<  " ***" << endl;
 }
 
@@ -83,60 +85,40 @@ void ShapeOptimizer::SolveProblem()
 
   while(curr_iter <= max_iter && !optimization->DoStopOptimization())
   {
+    // in every iteration we need to solve the state problem again
     if(curr_iter > 0) optimization->SolveStateProblem();
-    if(topgrad_ && curr_iter > 0)
+    
+    if(dynamic_cast<ErsatzMaterial*>(optimization)->HasApp(Optimization::MECH))
     {
-      if(levelset_)
+      if(topgrad_ && curr_iter > 0)
       {
-        // when using topgrad with levelset we also need a pointer to the levelset_
-        // so that we can put holes in it
-        ptrTG_->SolveProblem(curr_iter, ptrLS_);
+        if(levelset_)
+        {
+          // when using topgrad with levelset we also need a pointer to the levelset_
+          // so that we can put holes in it
+          ptrTG_->SolveProblem(curr_iter, ptrLS_);
+        }
+        else
+        {
+          // now we call the TopGrad optimization
+          ptrTG_->SolveProblem(curr_iter);
+        }
       }
-      else
+      if(shapeopt_ && curr_iter > 0)
       {
-        // now we call the TopGrad optimization
-        ptrTG_->SolveProblem(curr_iter);
+        // now we call the shape optimization
+        ptrLS_->SolveProblem(curr_iter);
       }
     }
-    if(shapeopt_ && curr_iter > 0)
+    else
     {
-      // now we call the shape optimization
-      ptrLS_->SolveProblem(curr_iter);
+      // for now this is only the poisson equation
+      ptrTG_->SolvePoissonProblem(curr_iter);
     }
     optimization->CalcObjective();
     optimization->CommitIteration(false);
     curr_iter = optimization->GetCurrentIteration();
   }
-}
-
-const string ShapeOptimizer::GetTimeString(const time_duration period)
-{ 
-  if(date_time::micro != period.resolution() &&
-     date_time::sec   != period.resolution())
-  {
-    return "NA";
-  }
-  
-  string time_output(to_simple_string(period));
-  string suffix(" h");
-  int max_length(11); // for micro, e. g. 01:02:03.04
-  if(date_time::sec == period.resolution()) max_length -= 3;
-  if(time_output.substr(0, 2) == "00") // remove 0 hours
-  {
-    time_output = time_output.substr(3);
-    max_length -= 3;
-    suffix = " m";
-  }
-  else // we have positive hours, so we need the whole string
-    return time_output.substr(0, max_length) + suffix; // cut off microseconds
-  
-  if(time_output.substr(0, 2) == "00") // remove 0 minutes
-  {
-    time_output = time_output.substr(3);
-    max_length -= 3;
-    suffix = " s";
-  }
-  return time_output.substr(0, max_length) + suffix; // cut off microseconds
 }
 
 } // end namespace

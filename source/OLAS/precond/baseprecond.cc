@@ -14,19 +14,15 @@ namespace CoupledField {
 
   void BaseStdPrecond::Apply( const BaseMatrix &sysmat, const BaseVector &r, 
                            BaseVector &z ) const {
-    TRY_CAST {
-      CONSTREFCAST(sysmat,StdMatrix,stdsysmat);
-      CONSTREFCAST(r,SingleVector,stdr);
-      REFCAST(z,SingleVector,stdz);
-      Apply(stdsysmat,stdr,stdz);
-    } CATCH_CAST;
+    const StdMatrix& stdsysmat = dynamic_cast<const StdMatrix&>(sysmat);
+    const SingleVector& stdr = dynamic_cast<const SingleVector&>(r);
+    SingleVector& stdz = dynamic_cast<SingleVector&>(z);
+
+    Apply(stdsysmat,stdr,stdz);
   }
   
   void BaseStdPrecond::Setup( BaseMatrix &sysMat ) {
-    TRY_CAST {
-      REFCAST( sysMat, StdMatrix, stdMat );
-      Setup( stdMat );
-    } CATCH_CAST;
+    Setup( dynamic_cast<StdMatrix&>(sysMat) );
   }
 
   void BaseSBMPrecond::Apply( const BaseMatrix& sysmat, const BaseVector& r, 

@@ -133,8 +133,8 @@ namespace CoupledField {
     char* buf;
     Double      x, y;
     // initialize vectors xVals,yVals
-    xVals.Resize(0);
-    yVals.Resize(0);
+    xVals.Clear();
+    yVals.Clear();
     
     buf = new char[pos_end+1];
     sampleData.read(buf, pos_end);

@@ -377,6 +377,12 @@ namespace CoupledField
                                        bool isaxi = false,
                                        bool updated = false ) = 0;
 
+    /** Calculate the volume spanned by all named nodes of all regions.
+     * For most proper convex grids this will be faster than CalcVolumeOfRegion() but one needs to
+     * be sure to have named nodes at the exterior points. Will hold for periodic
+     * boundary problems */
+    Double CalcVolumeSpannedByNamedNodes();
+
     //! Returns for a given region identifier the associated name
     virtual std::string RegionIdToName( const RegionIdType regionId );
 

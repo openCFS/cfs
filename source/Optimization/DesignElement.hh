@@ -6,6 +6,7 @@
 #include "Utils/tools.hh"
 #include "MatVec/vector.hh"
 
+
 namespace CoupledField
 {
 class Elem;
@@ -13,11 +14,12 @@ class ParamNode;
 class InfoNode;
 class DesignSpace;
 class DesignElement;
-class Condition;
 class ResultDescription;
 class SIMPElement;
 class VicinityElement;
 class LevelSetElement;
+class Objective;
+class Condition;
 
 /** This DesignElement package provides information about the direct neighbours for uniform cartesian
  * quadrilateral or hexahedral meshes. */
@@ -54,6 +56,18 @@ private:
   static bool IdentifyNeighbor(Matrix<Double>& reference, Matrix<Double>& other, int& dimension, bool& positive);
 };
 
+
+/** holds the value of the topology gradient */
+class TopGradElement
+{
+public:
+  /** standard ctor */
+  explicit TopGradElement(const double val = 0.0) : value(val) {}
+  
+  /** the value of the topgrad on this element */
+  double value;
+};
+
 /** This class is introduced as a lightweight basic subset of the DesignElement
  * it does not yet correspond to a finite element
  * it is merely a class used for an optimizable variable
@@ -62,6 +76,12 @@ private:
 class BaseDesignElement
 {
 public:
+
+  /** types for GetFilteredValue() */
+  typedef enum { DESIGN, DESIGN_COST_GRADIENT, COST_GRADIENT, CONSTRAINT_GRADIENT, WEIGHT, OBJECTIVE, NUM_NEIGHBOURS,
+    LEVEL_SET_VALUE, LEVEL_SET_STATE, TOPGRAD_VALUE, SHAPEGRAD_VALUE, SHAPEGRAD_NODE_VALUE,
+    LEVEL_SET_GRAD_XP, LEVEL_SET_GRAD_XN, LEVEL_SET_GRAD_YP, LEVEL_SET_GRAD_YN, LEVEL_SET_GRAD_ZP, LEVEL_SET_GRAD_ZN } ValueSpecifier;
+
   BaseDesignElement();
 
   /** Allows to set the design element. */
@@ -70,23 +90,24 @@ public:
   /** Return the design value */
   double GetDesign() const { return(this->design); }
 
-  /** Allows to set the gradient of the cost function for this element. */
-  void SetObjectiveGradient(double value) { this->cost_gradient = value; }
+  /** Get the gradient values for either objective or constraint.
+   * @param f if given the the objective inclusive penalty. If NULL and g is NULL then the sum over the objectives
+   * @param g if given the constraint
+   * @param f, g or sum f */
+  double GetGradient(const Objective* f, const Condition* g) const;
 
-  /** Return the gradient value */
-  double GetObjectiveGradient() const { return(this->cost_gradient); }
+  /** Get the gradien values with summed objective gradients
+   * @param objectives if given then the values of all gradiens with the penalties from objective are returned
+   * @param g if given as the other GetGradient() */
+  double GetGradient(const StdVector<Objective*> objectives, const Condition* g) const;
 
-  /** Set the gradient of the constraint (or cost function) for this element.
-   * @param condition contains a unique index! if null fall back to SetObjectiveGradient */
-  void SetConstraintGradient(const Condition* condition, double value);
+  /** Sum app the old value (get and set together) */
+  void AddGradient(const Objective* f, const Condition* g, double value);
 
-  /** @see SetContraintGradient
-   * however if used on the objective function do not set but add the value */
-  void SetConstraintGradientOrAddObjectiveGradient(const Condition* condition, double value);
+  /** Reset either gradients of the class
+   * @param vs either COST_GRADIENT or CONSTRAINT_GRADIENT */
+  void Reset(ValueSpecifier vs);
 
-  /** @see SetConstraintGradient() */
-  double GetConstraintGradient(const Condition* condition) const;
-  
   /**  Gets the lower bound of the desing variable -
    * up to now this are defaults by type */
   double GetLowerBound() const { return lower_; }
@@ -100,21 +121,25 @@ public:
   /** Set the upper bound of the design variable */
   void SetUpperBound(const double v) { upper_ = v; }
 
-  /** adjusts length of the constraintGradientVector possibly not known during creation */
-  void PostInit(int constraints);
+  /** adjusts length of the gradient vectors possibly not known during creation */
+  void PostInit(int objectives, int constraints);
 
 protected:
   /** The scalar value. Public access only via getter to handle filtering. */
   double design;
 
+  /** Sums up the costGradient values (they include penalty) */
+  double SumObjectiveGradient() const;
+
   /** <p>The gradient of the constraint function w.r.t. this element of the design space.
    * Every constraint contains an unique index attribute (which is the order in the xml file)
    * only for the purpose to index this vector.</p>
-   * <p>Therefor this vector has to be initalized on runtime</p> */
+   * <p>Therefore this vector has to be initialized on runtime</p> */
   StdVector<double> constraintGradient;
 
-  /** The gradient of the cost function w.r.t. this element of the design space */
-  double cost_gradient;
+  /** For multiple objective functions. It already includes penalty!
+   * @see constraintGradient */
+  StdVector<double> costGradient;
 
   /** The lower bound of this design variable. Redundant but such faster than look it up */
   double lower_;
@@ -156,10 +181,6 @@ public:
    * By definition the design elements are stored in the ordering of the type!! */
   typedef enum { UNITY = -5, NO_DERIVATIVE = -4, TENSOR_TRACE = -3, DEFAULT = -2, NO_TYPE = -1, DENSITY = 0, POLARIZATION = 1, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO, GMODUL} Type;
 
-  /** types for GetFilteredValue() */
-  typedef enum { DESIGN, DESIGN_COST_GRADIENT, COST_GRADIENT, CONSTRAINT_GRADIENT, WEIGHT, OBJECTIVE, NUM_NEIGHBOURS, 
-    LEVEL_SET_VALUE, LEVEL_SET_STATE, TOPGRAD_VALUE, SHAPEGRAD_VALUE, SHAPEGRAD_NODE_VALUE,
-    LEVEL_SET_GRAD_XP, LEVEL_SET_GRAD_XN, LEVEL_SET_GRAD_YP, LEVEL_SET_GRAD_YN, LEVEL_SET_GRAD_ZP, LEVEL_SET_GRAD_ZN } ValueSpecifier;
 
     /** This specifies result details for various ValueSpecifier/Detail combinations:
      * OBJECTIVE/SYMMETRY (check!)
@@ -187,7 +208,7 @@ public:
 
     /** internal helper to get the value by type */
     double GetValue(ValueSpecifier valueSpecifier) const;
-    
+
     /** Gets the gradient of the cost function w.r.t. the design element.
      * <p>Note, that in the SMART case, the filtering is done with a multiplication by the desing value!
      * In other words, speaking of GetValue():
@@ -238,6 +259,9 @@ public:
 
     /** The level-set element, will be destroyed by LevelSet */
     LevelSetElement* lse_;
+    
+    /** The topgrad element, will be destroyed by TopGrad */
+    TopGradElement *tge;
 
     /** calculates the location on request and stores it */
     Point* GetLocation();
@@ -245,19 +269,6 @@ public:
 private:
   /** Here we share the base initialization for the constructors */
   void Init();
-
-/* FSFSFS merge
-  ** The scalar value. Public access only via getter to handle filtering. *
-  double design;
-
-  ** The gradient of the cost function w.r.t. this element of the design space *
-  double cost_gradient;
-
-  ** The lower bound of this design variable. Redundant but such faster than look it up *
-  double lower_;
-
-  double upper_;
-*/ 
 
   /** returns the non-scalar values */
   void GetValue(ValueSpecifier sp, StdVector<double>& out) const;  
@@ -319,7 +330,6 @@ private:
   /** We need our base design element to do the filtering */
   DesignElement* de_;
 };
-
 
 /** <p>A result description holds the result element in the xml file which describes what data from
  * a DesignElement is to be written to the cfs output. The following parameters have to be given

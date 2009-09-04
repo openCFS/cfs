@@ -185,13 +185,13 @@ namespace CoupledField {
     //  partial derivates of mechanical displacement
     Vector<TYPE> elemElecStress, elemStressStrain, sortedStress;
     elemElecStress.Resize(stressDim);
+    elemElecStress.Init(0);
     elemStressStrain.Resize(stressDim);
+    elemStressStrain.Init(0);
     TempMechStress.Resize(stressDim);
     TempMechStress.Init();
     TempDField.Resize(elecDim);
     TempDField.Init();
-    elemElecStress.Init(0);
-    elemStressStrain.Init(0);
     sortedStress.Resize(6);
 
     Matrix<TYPE> stiffnessMat, sTensor;

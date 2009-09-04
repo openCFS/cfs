@@ -117,7 +117,7 @@ namespace CoupledField {
     }
 
     // Delete identity re-ordering (if exists)
-    DELETEARRAY( idPerm_ );
+    delete [] ( idPerm_ );  idPerm_  = NULL;
     idPermSize_ = 0;
 
   }
@@ -173,9 +173,7 @@ namespace CoupledField {
     // =====================================
     //  Check matrix entry and storage type
     // =====================================
-    TRY_CAST {
-
-      CONSTREFCAST( sysMat, StdMatrix, stdMat );
+    const StdMatrix& stdMat = dynamic_cast<const StdMatrix&>(sysMat);
 
       etype = stdMat.GetEntryType();
       if ( (etype != BaseMatrix::DOUBLE) && (etype != BaseMatrix::COMPLEX) ) {
@@ -193,32 +191,24 @@ namespace CoupledField {
       // Determine problem size
       probDim_ = stdMat.GetNumRows();
 
-    } CATCH_CAST;
-
-
     // ==================================================
     //  Get pointers to arrays containing information on
     //  (S)CRS matrix from the problem matrix object
     // ==================================================
     if ( stype == BaseMatrix::SPARSE_NONSYM ) {
-      CONSTREFCAST( sysMat, CRS_Matrix<T>, crsMat );
+      const CRS_Matrix<T>& crsMat = dynamic_cast<const CRS_Matrix<T>&>(sysMat);
       rowPtr_ = (Integer*)(crsMat.GetRowPointer());
       colPtr_ = (Integer*)(crsMat.GetColPointer());
       datPtr_ = crsMat.GetDataPointer();
       nnz_    = crsMat.GetNnz();
     }
     else {
-      CONSTREFCAST( sysMat, SCRS_Matrix<T>, scrsMat );
+      const SCRS_Matrix<T>& scrsMat = dynamic_cast<const SCRS_Matrix<T>&>(sysMat);
       rowPtr_ = (Integer*)(scrsMat.GetRowPointer());
       colPtr_ = (Integer*)(scrsMat.GetColPointer());
       datPtr_ = scrsMat.GetDataPointer();
       nnz_    = scrsMat.GetNumEntries();
     }
-
-    // Increment pointers to make them 0-based
-//     rowPtr_++;
-//     colPtr_++;
-//     datPtr_++;
 
     // Do C-style casting to fix problem with over-loading vs. extern C
     void *hatred = (void *) datPtr_;
@@ -316,7 +306,7 @@ namespace CoupledField {
       iparm_[2] = 0;
       iparm_[5] = 1;
       if ( idPermSize_ < probDim_ ) {
-        DELETEARRAY( idPerm_ );
+        delete [] ( idPerm_ );  idPerm_  = NULL;
         NEWARRAY( idPerm_, int, probDim_ );
         for ( int i = 0; i < probDim_; i++ ) {
           // (i+1), since fortran needs indices starting with 1!!
@@ -504,12 +494,10 @@ namespace CoupledField {
     // obtain data pointers
     const T *rhsArray;
     T* solArray;
-    TRY_CAST {
-      CONSTREFCAST( rhs, Vector<T>, myRHS );
-      REFCAST( sol, Vector<T>, mySol );
-      rhsArray = myRHS.GetPointer();
-      solArray = mySol.GetPointer();
-    } CATCH_CAST;
+    const Vector<T>& myRHS = dynamic_cast<const Vector<T>&>(rhs);
+    Vector<T>& mySol = dynamic_cast<Vector<T>&>(sol);
+    rhsArray = myRHS.GetPointer();
+    solArray = mySol.GetPointer();
 
     // We must perform a nasty cast in order to be able to interface with
     // a pardiso routine of the same name in both cases, real and complex

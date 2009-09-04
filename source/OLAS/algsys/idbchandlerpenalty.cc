@@ -154,8 +154,8 @@ namespace CoupledField {
 
 
     // Free memory for internal arrays
-    DELETEARRAY( dirichletEQN_       );
-    DELETEARRAY( offset_             );
+    delete [] ( dirichletEQN_ );
+    delete [] ( offset_ );
 
     // Delete vector of Dirichlet values
     delete dirichletValue_;
@@ -182,7 +182,7 @@ namespace CoupledField {
 
 
     // Compute penalty term
-    penaltyTerm_ = sysMat.GetMaxDiag() * PENALTY;
+    penaltyTerm_ = sysMat.GetMaxDiag() * 1e12;
 
     // Check that each IDBC was initialised
 #ifdef DEBUG_IDBCHANDLERPENALTY
@@ -198,23 +198,19 @@ namespace CoupledField {
 
     // StdMatrix case
     if ( sbmCase_ == false ) {
-
-      TRY_CAST {
-        REFCAST( sysMat, StdMatrix, stdMat );
-        assembler_->AdaptSystemMatrix( stdMat, dirichletEQN_,
-                                       numIDBC_,
-                                       penaltyTerm_ );
-      } CATCH_CAST;
+      StdMatrix& stdMat = dynamic_cast<StdMatrix&>(sysMat);
+      assembler_->AdaptSystemMatrix( stdMat, dirichletEQN_,
+          numIDBC_,
+          penaltyTerm_ );
     }
 
     // SBM_Matrix case
     else {
-
-      TRY_CAST {
-        REFCAST( sysMat, SBM_Matrix, sbmMat );
+      SBM_Matrix& sbmMat = dynamic_cast<SBM_Matrix&>(sysMat);
         StdMatrix *stdMat = NULL;
         UInt aux = 0;
-        for ( UInt i = 0; i < (UInt)sbmMat.GetNumRows(); i++ ) {
+        const unsigned int srows(sbmMat.GetNumRows());
+        for ( UInt i = 0; i < srows; i++ ) {
           stdMat = sbmMat.GetPointer(i,i);
           aux = offset_[i+1] - offset_[i];
           if ( aux > 0 && stdMat != NULL ) {
@@ -224,7 +220,6 @@ namespace CoupledField {
                                            penaltyTerm_ );
           }
         }
-      } CATCH_CAST;
     }
 
     // Be verbose
@@ -248,28 +243,24 @@ namespace CoupledField {
     // StdMatrix case
     // --------------
     if ( sbmCase_ == false ) {
-
-      TRY_CAST {
-        PTRCAST( rhs, SingleVector, stdVec );
-        PTRCAST( dirichletValue_, SingleVector, stdVal );
+        SingleVector* stdVec = dynamic_cast<SingleVector*>(rhs);
+        SingleVector* stdVal = dynamic_cast<SingleVector*>(dirichletValue_);
+        if(stdVec == NULL || stdVal == NULL) EXCEPTION("Invalid cast attempt!");
         assembler_->AdaptRHSForIDBC( *stdVec,
-                                     dirichletEQN_,
-                                     *stdVal,
-                                     penaltyTerm_,
-                                     numIDBC_ );
-      } CATCH_CAST;
+            dirichletEQN_,
+            *stdVal,
+            penaltyTerm_,
+            numIDBC_ );
     }
 
     // ---------------
     // SBM_Matrix case
     // ---------------
     else {
-
-      TRY_CAST {
-
         // First down-cast vectors from Base to SBM
-        PTRCAST( rhs, SBM_Vector, sbmVec );
-        PTRCAST( dirichletValue_, SBM_Vector, sbmVal );
+      SBM_Vector* sbmVec = dynamic_cast<SBM_Vector*>(rhs);
+      SBM_Vector* sbmVal = dynamic_cast<SBM_Vector*>(dirichletValue_);
+      if(sbmVec == NULL || sbmVal == NULL) EXCEPTION("Invalid cast attempt!");
 
         // We need pointers to sub-vectors
         SingleVector *stdVec = NULL;
@@ -296,8 +287,7 @@ namespace CoupledField {
                                          aux );
           }
         }
-      } CATCH_CAST;
-    }
+    }// else
   }
 
 
@@ -425,7 +415,8 @@ namespace CoupledField {
          << " # | eqnNo | comp | value\n";
 
       T val;
-      PTRCAST( dirichletValue_, SingleVector, stdVal );
+      SingleVector* stdVal = dynamic_cast<SingleVector*>(dirichletValue_);
+      if(stdVal == NULL) EXCEPTION("Invalid cast attempt!");
 
       for ( UInt i = 0; i < numIDBC_; i++ ) {
         stdVal->GetEntry( i, val );
@@ -446,7 +437,8 @@ namespace CoupledField {
          << " numIDBC_ = " << numIDBC_ << '\n' << std::endl;
 
       SingleVector *stdVal = NULL;
-      PTRCAST( dirichletValue_, SBM_Vector, sbmVec );
+      SBM_Vector* sbmVec = dynamic_cast<SBM_Vector*>(dirichletValue_);
+      if(sbmVec == NULL) EXCEPTION("Invalid cast attempt!");
       UInt aux = 0;
       UInt idx = 0;
       T val;

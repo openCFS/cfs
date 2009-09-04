@@ -6,6 +6,7 @@
 #include "General/exception.hh"
 #include "Utils/StdVector.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "Utils/Timer.hh"
 
 #include <sstream>
 #include <cmath>
@@ -19,21 +20,14 @@ DEFINE_LOG(optimizer, "optimizer")
 
 
 BaseOptimizer::Scale::Scale(BaseOptimizer* base, ParamNode* autoscale, double manual_scale, bool no_autoscale)
+ : target(0.0),
+   tol(0.0),
+   opt_scaling(DesignMemory(-1, 0.0)),
+   scaling(DesignMemory(-1, 0.0)),
+   current(DesignMemory(-1, 0.0)),
+   autoscale_(false),
+   base_(base)
 {
-  this->base_ = base;
-  this->autoscale_ = false;
-  this->target = 0.0;
-  this->tol    = 0.0;
-  
-  this->opt_scaling.design_id = -1;
-  this->opt_scaling.value     = 0.0;
-
-  this->scaling.design_id = -1;
-  this->scaling.value     = 0.0;
-  
-  this->current.design_id = -1;
-  this->current.value     = 0.0;
-
   // the vectors are zero size by default!
   if(autoscale != NULL && !no_autoscale)
   {
@@ -50,7 +44,7 @@ BaseOptimizer::Scale::Scale(BaseOptimizer* base, ParamNode* autoscale, double ma
   else
   {
     this->scaling.value = manual_scale;
-    this->scaling.value *= base_->optimization->GetObjective()->task == Optimization::MAXIMIZE ? -1.0 : 1.0;
+    this->scaling.value *= base_->optimization->objectives.DoMaximize() ? -1.0 : 1.0;
   }
   LOG_TRACE(optimizer) << "Scale::Scale() target=" << target << " tol=" << tol << " manual_scale=" 
                        << manual_scale << " -> PostInit() pending!";
@@ -123,11 +117,11 @@ bool BaseOptimizer::Scale::CheckScaling(int n, double* grad)
     opt_scaling.design_id = base_->design_.design_id;
 
     opt_scaling.value = target / current.value; 
-    opt_scaling.value *= base_->optimization->GetObjective()->task == Optimization::MAXIMIZE ? -1.0 : 1.0;
+    opt_scaling.value *= base_->optimization->objectives.DoMaximize() ? -1.0 : 1.0;
     
     LOG_TRACE(optimizer) << "Scale::check::set opt scaling: design=" << opt_scaling.design_id << " target=" << target 
                          << " opt_scaling=" << opt_scaling.value << " maximize="
-                         << (base_->optimization->GetObjective()->task == Optimization::MAXIMIZE);
+                         << base_->optimization->objectives.DoMaximize();
   }
 
   assert(base_->design_.design_id == current.design_id);
@@ -173,15 +167,15 @@ std::string BaseOptimizer::Scale::ToString()
   return os.str();
 }
 
-BaseOptimizer::BaseOptimizer(Optimization* optimization, ParamNode* pn)
-{ 
-  this->optimization = optimization;
-  this->objective = NULL;
-  this->restart_requested = false;
-  this->design_.design_id = -1;
-  this->design_.value = 0.0;
-  this->optimizer_pn_ = pn;
-  this->info_ = info->Get("optimization")->Get("optimizer");
+BaseOptimizer::BaseOptimizer(Optimization* opt, ParamNode* pn) :
+  optimization(opt),
+  info_(info->Get("optimization")->Get("optimizer")),
+  objective(NULL),
+  restart_requested(false),
+  design_(DesignMemory(-1, 0.0)),
+  optimizer_pn_(pn)
+{
+  this->timer_ = info_->Get(InfoNode::SUMMARY)->SetValue(new Timer());
 }
 
 BaseOptimizer::~BaseOptimizer()
@@ -194,6 +188,13 @@ void BaseOptimizer::PostInit(double manual_scaling, bool no_autoscale)
   ParamNode* as = optimizer_pn_ != NULL ? optimizer_pn_->Get("autoscale", false) : NULL;
   objective = new Scale(this, as, manual_scaling, no_autoscale);
   objective->PostInit();
+}
+
+void BaseOptimizer::SolveOptimizationProblem()
+{
+  timer_->Start();
+  SolveProblem();
+  timer_->Stop();
 }
 
 std::string BaseOptimizer::LogFileHeader()
@@ -222,6 +223,8 @@ double BaseOptimizer::EvalObjective(int n, const double* x)
 {
   assert(optimization->GetDesign()->GetNumberOfVariables() == (unsigned int) n);
 
+  timer_->Stop();
+
   // set the design and see if it is a new one
   int new_design = optimization->GetDesign()->ReadDesignFromExtern(x);
 
@@ -246,6 +249,8 @@ double BaseOptimizer::EvalObjective(int n, const double* x)
     need_eval = false;
   }
 
+  timer_->Start();
+
   LOG_DBG(optimizer) << "EvalObjective: x_avg=" << Average(x, n) 
                      << " std_dev=" << StandardDeviation(x, n) 
                      << " is_new=" << need_eval << " -> " << design_.value;
@@ -256,6 +261,8 @@ double BaseOptimizer::EvalObjective(int n, const double* x)
 bool BaseOptimizer::EvalGradObjective(int n, const double* x, double* grad_f)
 {
   assert(optimization->GetDesign()->GetNumberOfVariables() == (unsigned int) n);
+
+  timer_->Start();
 
   // set the design and see if it is a new one
   int new_design = optimization->GetDesign()->ReadDesignFromExtern(x);
@@ -298,6 +305,8 @@ bool BaseOptimizer::EvalGradObjective(int n, const double* x, double* grad_f)
     restart_requested = true;
   }
   
+  timer_->Stop();
+
   LOG_DBG(optimizer) << "EvalGradObjective: design=" << design_.design_id << " need_eval=" << need_eval 
                      << " -> grad.scale=" << objective->scaling.value << " grad.opt_scaling="
                      << objective->opt_scaling.value;
@@ -305,24 +314,36 @@ bool BaseOptimizer::EvalGradObjective(int n, const double* x, double* grad_f)
   return !restart_requested;
 }
 
-void BaseOptimizer::EvalConstraints(int n, const double* x, int m, double* g){
+void BaseOptimizer::EvalConstraints(int n, const double* x, int m, double* g)
+{
+  timer_->Start();
+
   // we overwrite the design space, but we do this all the time - especially before eval_f
   optimization->GetDesign()->ReadDesignFromExtern(x); 
      
   // iterate over all constraints
   for(int i = 0; i < m; i++) 
      g[i] = optimization->CalcConstraint(&optimization->constraints[i]);
-  
+
+  timer_->Stop();
+
+  LOG_DBG2(optimizer) << "EvalConstraints: val=" << StdVector<double>::ToString(m, g);
 }
 
-void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentries, double* values){
+void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentries, double* values)
+{
+  timer_->Start();
+
   // note, that we have dense gradient pointers!
   // iterate over the gradients
   for(int c = 0; c < m; c++)
   {
     double* ptr = values + (c*n);
     optimization->CalcConstraintGradient(&optimization->constraints[c], ptr);
+    LOG_DBG3(optimizer) << "EvalGradConstraints: co=" << c << " val=" << StdVector<double>::ToString(n, ptr);
   }
+
+  timer_->Stop();
 }
 
 void BaseOptimizer::GetBounds(int n, double* x_l, double* x_u, int m, double* g_l, double* g_u){

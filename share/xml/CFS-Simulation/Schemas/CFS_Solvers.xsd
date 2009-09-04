@@ -400,7 +400,67 @@
     </xsd:complexContent>
   </xsd:complexType> <!-- end of DT_Ilupack -->
   
+  <!-- ******************************************************************* -->
+  <!-- Definition of element for CholMod Solver                            -->
+  <!-- ******************************************************************* -->
   
+  <xsd:element name="cholmod" type="DT_CholMod" substitutionGroup="SolverBasic"/>
+  
+  <xsd:complexType name="DT_CholMod">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SolverBasic">
+        <xsd:sequence>
+          <xsd:element name="factorization" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="method" minOccurs="0" maxOccurs="10">
+                  <xsd:complexType>
+                    <xsd:attribute name="id" use="required" type="xsd:int"/>                    
+                    <xsd:attribute name="prune_dense" type="xsd:float" default="10.0"/>
+                    <xsd:attribute name="prune_dense2" type="xsd:float" default="-1.0"/>
+                    <xsd:attribute name="nd_oksep" type="xsd:float" default="1.0"/>
+                    <xsd:attribute name="nd_small" type="xsd:int" default="200"/>
+                    <xsd:attribute name="aggressive" type="xsd:boolean" default="true"/>
+                    <xsd:attribute name="nd_compress" type="xsd:boolean" default="true"/>
+                    <xsd:attribute name="nd_camd" type="xsd:int" default="1"/>
+                    <xsd:attribute name="nd_components" type="xsd:boolean" default="false"/>
+                    <xsd:attribute name="ordering" type="xsd:float" default="0"/>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+              <xsd:attribute name="nmethods" type="xsd:int" default="0"/>
+              <xsd:attribute name="postorder" type="xsd:boolean" default="false"/>
+              <xsd:attribute name="dbound" type="xsd:float" default="0.0"/>
+            </xsd:complexType>
+            <xsd:unique name="uMethodId">
+              <xsd:selector xpath="cfs:method"/>
+              <xsd:field xpath="@id"/>
+            </xsd:unique>
+          </xsd:element>
+          <xsd:element name="supernodal" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="method">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:token">
+                    <xsd:enumeration value="simplicial"/>
+                    <xsd:enumeration value="auto"/>
+                    <xsd:enumeration value="supernodal"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:attribute>
+              <xsd:attribute name="switch" type="xsd:float" default="40.0"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="output" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="level" type="xsd:int" default="3"/>
+              <xsd:attribute name="precise" type="xsd:boolean" default="false"/>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>  
   
   
   <!-- =================================================================== -->

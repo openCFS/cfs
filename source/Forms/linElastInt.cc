@@ -160,7 +160,11 @@ void linElastInt::calcBMat( Matrix<Double> &bMat, UInt ip,
   else
     ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord, it1_.GetElem() );
   
+  LOG_DBG3(forms) << "calcBMat: xiDx: " << xiDx.ToString() << std::endl;
+  
   ReorderBLikeMatrix(xiDx, bMat, ip, ptelem, ptCoord);
+
+  LOG_DBG2(forms) << "calcBMat: bMat: " << bMat.ToString() << std::endl; 
 
   isSetIntPoint_ = false;
 }

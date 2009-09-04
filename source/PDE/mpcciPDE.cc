@@ -485,7 +485,7 @@ namespace CoupledField {
     numOfNodesInSD_=new UInt[numOfSubdom];
     for (i=0; i<numOfSubdom; i++)
       {
-	globalNodes.Resize(0);
+	globalNodes.Clear();
 // 	ptgrid_->GetVolElems(elemsInSD,subdoms_[i]);
 	ptgrid_->GetElems(elemsInSD,subdoms_[i]);
 	ptgrid_->GetNodesOfElemList(globalNodes, elemsInSD);

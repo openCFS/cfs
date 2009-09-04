@@ -285,12 +285,9 @@ namespace CoupledField {
     // ******************************************************
     // MISCELANEOUS FUNCTIONS
     // ******************************************************
-  
-    //! Sort of vector: v - vec.p, n - vec.size
-    template <class S> void Sort(S* v, unsigned int n);
-  
-    //! Swap 2 elements in vector Ex Swap(v[i],v[j])
-    template<class T2> void Swap(T2& a, T2 & b);
+
+    /** Swap to entries */
+    void Swap(unsigned int idx1, unsigned int idx2);
 
     //! Return vector as separated string
     std::string Serialize( char separator = ',') const;
@@ -316,12 +313,11 @@ namespace CoupledField {
     //! Length of the vector
     unsigned int size_;
     
-    //! Data of the vector
-    TYPE* data_;
-  
     //! Capacity of the vector
     unsigned int capacity_;
-      
+
+    //! Data of the vector
+    TYPE* data_;
   };
 
   // ******************************************************

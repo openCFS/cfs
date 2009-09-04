@@ -12,11 +12,10 @@ SET(UTILS_SRCS
   jiles.cc
   LinInterpolate.cc
   mathfunctions.cc
-  myclock.cc
+  Timer.cc
   nodestoresol.cc
   polCoordSys.cc
   preisach.cc
-  profiler.cc
   readCFDbinary.cc
   result.cc
   SmoothSpline.cc

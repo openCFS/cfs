@@ -22,65 +22,52 @@
 namespace CoupledField {
 
 
-  StdPDE::StdPDE(Grid *aptgrid, ParamNode* paramNode )
-    : BasePDE( paramNode )
-      {
-
-    
-    // =====================================================================
-    // initialize variables
-    // =====================================================================
-    numPDENodes_ = 0;
-    numElems_ = 0;
-    nonLin_ = false;
-    nonLinMaterial_ = false;
-    isHysteresis_ = false;
-    TS_alg_ = NULL;
-    effectiveMass_ = false;
-    diagMass_ = false;
-    firstTimeStepStatic_ = true;
-    isAlwaysStatic_ = false;
-    isaxi_ = false;
-    isComplex_ = false;
-    fracDamping_ = false;
-    sol_ = NULL;     
-    isIncrFormulation_ = false;
-    ComputeRHSforHarm_ = false;
-    solveStep_ = NULL;
-    needSolPrev_ = false;
-    solPrev_ = NULL;
-    isSetInitialCondition_ = false;
-    InitialCondition_=0.0;
-    isInstationary_ = false;
-    updatedLagrangeForm_ = false;
-
-    olasInfo_ = NULL; // set in the child-nodes
-    // =====================================================================
-    // set file pointers
-    // =====================================================================
-    ptgrid_     = aptgrid;
-    assemble_   = NULL;
-    algsys_     = NULL;
-    
-    // =====================================================================
-    // set analysis parameters
-    // =====================================================================
-    couplingBCsCounter_ = 0;
-    isIterCoupled_ = false;
-    updateCouplingBCs_ = false;
-    dim_ = ptgrid_->GetDim();
-    iterCoupledCounter_ = 0;
-    effectiveMass_ = false;
-
-    // =====================================================================
-    // various parameters
-    // =====================================================================
-    needsAlgsys_ = true;
-
-    // check if we have an axi-symmetric setup
-    isaxi_ = param->Get("domain")->Get("geometryType")->AsString() == "axi";
-
-
+  StdPDE::StdPDE(Grid *aptgrid, ParamNode* paramNode ) :
+    BasePDE(paramNode),
+    ptgrid_(aptgrid),
+    infoNode_(NULL),
+    numPDENodes_(0),
+    numElems_(0),
+    subType_(),
+    numCouplingBcs_(0),
+    nonLin_(false),
+    nonLinMaterial_(false),
+    isHysteresis_(false),
+    isIterCoupled_(false),
+    updateCouplingBCs_(false),
+    couplingBCsCounter_(0),
+    ptCoupling_(NULL),
+    iterCoupledCounter_(0),
+    TS_alg_(NULL),
+    effectiveMass_(false),
+    diagMass_(false),
+    firstTimeStepStatic_(true),
+    isInstationary_(false),
+    needsAlgsys_(true),
+    isAlwaysStatic_(false),
+    dim_(ptgrid_->GetDim()), 
+    isaxi_(param->Get("domain")->Get("geometryType")->AsString() == "axi"),
+    isComplex_(false),    
+    needSolPrev_(false),
+    sol_(NULL),  
+    solVec_(NULL),
+    rhsVec_(NULL),
+    solPrev_(NULL),
+    solVecPrev_(NULL),
+    fracDamping_(false),
+    fracMemory_(0),
+    inType_(NOTUSED),
+    isIncrFormulation_(false),
+    ComputeRHSforHarm_(false),
+    assemble_(NULL),
+    solveStep_(NULL),
+    algsys_(NULL),
+    olasParams_(NULL),
+    olasReport_(NULL),
+    olasInfo_(NULL), // set in the child-nodes
+    isSetInitialCondition_(false),
+    InitialCondition_(0.0)
+  {
   }
   
   StdPDE::~StdPDE() 
@@ -88,10 +75,7 @@ namespace CoupledField {
     
   }
 
-
-
   const Vector<Double>& StdPDE::getS1() const {
-  
   
     if ( TS_alg_ != NULL ) {
       return TS_alg_->GetDeriv1();
@@ -173,18 +157,14 @@ namespace CoupledField {
     // ==============================
 
     // create algebraic system and intialize matrices
-    SETPROFILE("Before CreatLinSys()");
     algsys_->CreateLinSys();
-    SETPROFILE("After CreatLinSys()");
     algsys_->InitMatrix();
     
     // Check for analysistype
     if ( analysistype_ != EIGENFREQUENCY ) {
       
       // create solver and preconditioner
-      SETPROFILE("Before CreateSolver()");
       algsys_->CreateSolver(olasInfo_);
-      SETPROFILE("Before CreatePrecond()");
       algsys_->CreatePrecond();
       
     } else {
@@ -195,11 +175,6 @@ namespace CoupledField {
     // now reset AlgebraicSystem 
     algsys_->InitRHS();
   	algsys_->InitSol();
-
-    
-    
-    
-    SETPROFILE("-- Finished CreateMatrices_Solver--");
   }
 
 

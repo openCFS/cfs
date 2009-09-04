@@ -35,7 +35,7 @@ namespace CoupledField
      * @param analysis_id references the "base" analysis step. 
      *        is the the info/OLAS/process/step element and required the attribute
      *        "analysis_id" to be set!. In the non-lin case subelements are created. */
-    virtual void SolveStepStatic(InfoNode* analysis_id) = 0;
+    virtual void SolveStepStatic(InfoNode* analysis_id, const bool reAssembleMatrices = true) = 0;
 
     //! routine for acttions after the SolveStep-method
     virtual void PostStepStatic()  = 0;

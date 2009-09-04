@@ -33,12 +33,15 @@ namespace CoupledField {
     Matrix<Double> bMat;
     Matrix<Double> dMat;
     Matrix<Double> dbMat;
-    Double aux, fac, *ptr1, *ptr2;
+    Double aux, fac, *ptr1, *ptr2, *ptr3;
 
-    elemMat.Resize( nrFncs * nrDofs);
+    const UInt bRows(getDimD());
+    const UInt bCols(nrFncs * nrDofs);
+
+    elemMat.Resize(bCols);
     elemMat.Init();
 
-    dbMat.Resize( getDimD(), nrFncs * nrDofs);
+    dbMat.Resize( bRows, bCols);
 
     //if softening, get maximal/minimal edge lenght
     if ( softeningPart_ == "bendingBK1" ) {
@@ -113,25 +116,24 @@ namespace CoupledField {
         }
 
         // Compute the matrix product D * B and store as intermediate matrix
-        // resize dbMat to handle SurfaceNortmalInt
-        dbMat.Resize(bMat.GetNumRows(), bMat.GetNumCols());
         dMat.Mult( bMat, dbMat );
 
         // We now compute B^T * D * B and scale it by the determinant
         // of the Jacobian and the weight of the current integration
         // point. The result is added to the element matrix.
         fac = jacDet * intWeights[actIntPt-1];
-        for ( UInt k = 0; k < bMat.GetNumRows(); k++ ) {
+        for ( UInt k = 0; k < bRows; ++k ) {
           ptr1 =  bMat[k];
           ptr2 = dbMat[k];
-          for ( UInt i = 0; i < bMat.GetNumCols(); i++ ) {
+          for ( UInt i = 0; i < bCols; ++i ) {
+            ptr3 = elemMat[i];
             aux = fac * ptr1[i];
-            for ( UInt j = 0; j < dbMat.GetNumCols(); j++ ) {
-              elemMat[i][j] += aux * ptr2[j];
+            for ( UInt j = 0; j < bCols; ++j ) {
+              ptr3[j] += aux * ptr2[j];
             }
           }
         }
-      }
+      } // end of loop over integration points
 
     }
 
@@ -141,7 +143,7 @@ namespace CoupledField {
     else {
 
       // Loop over all integration points
-      for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
+      for ( UInt actIntPt = 1; actIntPt <= nrIntPts; ++actIntPt ) {
 
         // Setup material matrix for current integration point
         calcDMat(dMat, actIntPt, ptCoord_);
@@ -169,20 +171,20 @@ namespace CoupledField {
         }
 
         // Compute the matrix product D * B and store as intermediate matrix
-        dbMat.Resize( dMat.GetNumRows(), bMat.GetNumCols() );
         dMat.Mult( bMat, dbMat );
 
         // We now compute B^T * D * B and scale it by the determinant
         // of the Jacobian and the weight of the current integration
         // point. The result is added to the element matrix.
         fac = jacDet * intWeights[actIntPt-1];
-        for ( UInt k = 0; k < bMat.GetNumRows(); k++ ) {
+        for ( UInt k = 0; k < bRows; ++k ) {
           ptr1 =  bMat[k];
           ptr2 = dbMat[k];
-          for ( UInt i = 0; i < bMat.GetNumCols(); i++ ) {
+          for ( UInt i = 0; i < bCols; ++i ) {
+            ptr3 = elemMat[i];
             aux = fac * ptr1[i];
-            for ( UInt j = 0; j < dbMat.GetNumCols(); j++ ) {
-              elemMat[i][j] += aux * ptr2[j];
+            for ( UInt j = 0; j < bCols; ++j ) {
+              ptr3[j] += aux * ptr2[j];
             }
           }
         }
@@ -238,29 +240,39 @@ namespace CoupledField {
       dB.Resize(dMat.GetNumRows(), bMat.GetNumCols());
       Complex a;
 
-      for ( UInt i = 0; i < dMat.GetNumRows(); i++ ) {
-        for ( UInt j = 0; j < bMat.GetNumCols(); j++ ) {
+			{
+      const unsigned int brows(bMat.GetNumRows());
+      const unsigned int drows(dMat.GetNumRows());
+      const unsigned int bcols(bMat.GetNumCols());
+      for ( UInt i = 0; i < drows; i++ ) {
+        for ( UInt j = 0; j < bcols; j++ ) {
           a = dMat[i][0] * bMat[0][j];
-          for ( UInt k = 1; k < bMat.GetNumRows(); k++ ) {
+          for ( UInt k = 1; k < brows; k++ ) {
             a += dMat[i][k] * bMat[k][j];
           }
           dB[i][j] = a;
         }
       }
+			}
 
       bMat.Transpose(bTrans);
 
       // hardcoded: partElemMat = bTrans * dB;
       partElemMat.Resize(bTrans.GetNumRows(), dB.GetNumCols());
-      for ( UInt i = 0; i < bTrans.GetNumRows(); i++ ) {
-        for ( UInt j = 0; j < dB.GetNumCols(); j++ ) {
+			{
+      const unsigned int bTrows(bTrans.GetNumRows());
+      const unsigned int dBcols(dMat.GetNumCols());
+      const unsigned int dBrows(dB.GetNumRows());
+      for ( UInt i = 0; i < bTrows; i++ ) {
+        for ( UInt j = 0; j < dBcols; j++ ) {
           a = bTrans[i][0] *dB[0][j];
-          for ( UInt k = 1; k < dB.GetNumRows(); k++ ) {
+          for ( UInt k = 1; k < dBrows; k++ ) {
             a += bTrans[i][k] * dB[k][j];
           }
           partElemMat[i][j] = a;
         }
       }
+			}
 
       jacDet = ptelem->CalcJacobianDetAtIp(actIntPt,ptCoord_, ent1.GetElem());
 
@@ -279,8 +291,10 @@ namespace CoupledField {
         jacDet *= 2 * PI * CoordAtIP[0];
       }
 
-      for ( UInt i = 0; i < elemMat.GetNumRows(); i++ ) {
-        for ( UInt j = 0; j < elemMat.GetNumCols(); j++ ) {
+      const unsigned int ecols(elemMat.GetNumCols());
+      const unsigned int erows(elemMat.GetNumRows());
+      for ( UInt i = 0; i < erows; i++ ) {
+        for ( UInt j = 0; j < ecols; j++ ) {
           elemMat[i][j] += partElemMat[i][j] * jacDet *
             intWeights[actIntPt-1] ;
         }

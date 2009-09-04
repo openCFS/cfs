@@ -10,6 +10,9 @@ namespace CoupledField
 
 /** Declare the global pointer info created in cfs.cc */
 class InfoNode;
+class DenseMatrix;
+class Timer;
+
 extern InfoNode* info;
 
 class InfoNode : public ParamNode
@@ -21,14 +24,14 @@ public:
   InfoNode(const std::string& filename = "", const std::string& preamble = "");
 
   /** ParamNode handles the destructor stuff */
-  ~InfoNode() {};
+  ~InfoNode();
 
   //typedef enum LogLevel { NOT_SET, DISABLED, BRIEF, DETAILED, VERBOSE, DEBUG, ALL};
-  enum LogLevel { NOT_SET, DISABLED, BRIEF, DETAILED, VERBOSE};
+  enum LogLevel { NOT_SET, DISABLED, BRIEF, DETAILED, VERBOSE };
 
-  enum Cardinality { USE_EXISTING, REPLACE, APPEND, UNIQUE};
+  enum Cardinality { USE_EXISTING, REPLACE, APPEND };
 
-  enum ValueType { BOOL, INTEGER, REAL, COMPLEX, STRING, MATRIX, VECTOR, UNKNOWN };
+  enum ValueType { BOOL, INTEGER, REAL, COMPLEX, STRING, MATRIX, TIMER, UNKNOWN };
 
   /** Gives back The InfoNode, depending on the cardinality this is a old one.
    * @param name a valid xml name
@@ -73,12 +76,14 @@ public:
     else    
       SetValue(std::string(c_str));
   }
-
+  
   void SetValue(bool param);
 
   void SetValue(int param);
 
   void SetValue(unsigned int param);
+  
+  void SetValue(size_t param);
 
   void SetValue(double param);
 
@@ -87,13 +92,34 @@ public:
   /** copies the node with all children. Overwrites the current name */
   void SetValue(ParamNode* node);
   
+  /** Sets a general Matrix, which can also be a vector.
+   * The InfoNode takes the ownership of the data and deletes it!
+   * @param matrix ownership is taken and memory deleted within InfoNode destructor!
+   * @return the pointer to the fresh clone */
+  DenseMatrix* SetValue(DenseMatrix* matrix);
+
+  /** Set a Timer class.
+   * @see SetValue(DenseMatrix*) for memory ownership stuff.
+   * @note Due to own object property it is necessary to use the new Timer via AsTimer() or the return value!
+   * @return the pointer to the fresh clone */
+  Timer* SetValue(Timer* timer);
+
+  /** Returns the internal matrix. Other values cannot be converted! */
+  DenseMatrix* AsMatrix();
+
+  /** Returns a pointer to the internal timer object.
+   * Now you can do AsTimer()->Start() and AsTimer()->Stop().
+   * @note Note that SetValue(Timer*) creates a own object. Hence AsTimer() is mandatory for access! */
+  Timer* AsTimer();
+
   /** Creates a sub-node with the content */
   void SetComment(const std::string& string);
 
   /** Prints this as xml element to the stream. Builds a tree. Shall no be directly
-   * called for an attribute
+   * called for an attribute.
+   * Might change the order as Sort() is called to ensure HEADER < PROCESS < SUMMARY
    * @param depth number of ident steps, will be interpreted as one space */
-  void ToXML(std::ostream& os, int depth = 0) const;
+  void ToXML(std::ostream& os, int depth = 0);
 
   /** Write the current state to the file. Uses existing filename and preabmle if given
    * @param filename if not set the must be one given in the constructor,
@@ -119,11 +145,22 @@ private:
                 const std::string& child, const std::string& value,
                 Cardinality card = USE_EXISTING);
 
+  /** Sort the children.
+   * Such that HEADER, PROCESS and SUMMARY are in this order. */
+  void Sort();
+
+  /** Helper for Sort()
+   * @param idx current position within childred_
+   * @param this_idx  reference to the index of what shall be prior -> is set to what was other_idx
+   * @param other_idx reference of what must not be prior -> is set to idx
+   * @return true if something had to be done - false if everything is ok */
+  bool SortCheck(const int idx, int& this_idx, int& other_idx);
+
   /** Init COMMENT, ... */
   static void InitStatic();
 
   /** limits the siginificant digits of real and complex */
-  std::string GetFormatedValue() const;
+  std::string GetFormatedValue(unsigned int depth = 0) const;
 
   /** Makes a valid XML name, e.g. removes spaces. Used to create
    * automatically an ParamNode::name_ value out of caption_
@@ -157,12 +194,17 @@ private:
 
   ValueType type_;
 
+  /** For the matrix case, we store our data here and not in value!!.
+   * Is a property of this InfoNode! */
+  DenseMatrix* matrix_value_;
+
+  /** We might contain a timer. This is our property and will be deleted in the destructor. */
+  Timer* timer_value_;
+
   // e.g. the root element can be given a filename for (intermedia) saves
   std::string filename_;
   // is written as preamble to files by WriteToFile();
   std::string preamble_;
-
-
 };
 
 

@@ -446,30 +446,30 @@ namespace CoupledField{
     // DECLARATION OF INTERFACES FOR NON-DOUBLE STORESOL-CLASSES
     // ==========================================================
 #ifndef DOXYGEN_SKIP_THIS
-  
-#define DEFINE_BASENODESTORESOL_FCT(TYPE)                                               \
-  virtual void Init(const TYPE val)                                             \
-  {EXCEPTION("BaseNodeStoreSol::Init() not implemented here");} \
-  virtual void Get(const UInt nodeNr,                                        \
-                   TYPE & ret) const                                            \
-  {EXCEPTION("BaseNodeStoreSol::Get() not implemented here");}  \
-  virtual void Get(const SolutionType type,                                     \
-                   const UInt nodeNr,                                        \
-                   const UInt dof,                                           \
-                   TYPE & ret) const                                            \
-  {EXCEPTION("BaseNodeStoreSol::Get not implemented here");}    \
-  virtual void Set(const SolutionType type,                                     \
-                   const UInt nodeNr,                                        \
-                   const UInt dof,                                           \
-                   const TYPE val) const                                        \
-  {EXCEPTION("BaseNodeStoreSol::Set not implemented here");}    \
-  virtual void Add(const SolutionType type,                                     \
-                   const UInt nodeNr,                                        \
-                   const UInt dof,                                           \
-                   const TYPE val) const                                        \
-  {EXCEPTION("BaseNodeStoreSol::Add() not implemented here");}  \
-   
-    DEFINE_BASENODESTORESOL_FCT(Complex);
+    
+    virtual void Init(const Complex val)
+    {
+      EXCEPTION("BaseNodeStoreSol::Init() not implemented here");
+    }
+    virtual void Get(const UInt nodeNr, Complex & ret) const
+    {
+      EXCEPTION("BaseNodeStoreSol::Get() not implemented here");
+    }
+    virtual void Get(const SolutionType type, const UInt nodeNr,
+                     const UInt dof, Complex & ret) const
+    {
+      EXCEPTION("BaseNodeStoreSol::Get not implemented here");
+    }
+    virtual void Set(const SolutionType type, const UInt nodeNr,
+                     const UInt dof, const Complex val) const
+    {
+      EXCEPTION("BaseNodeStoreSol::Set not implemented here");
+    }
+    virtual void Add(const SolutionType type, const UInt nodeNr,
+                     const UInt dof, const Complex val) const
+    {
+      EXCEPTION("BaseNodeStoreSol::Add() not implemented here");
+    } 
 
 #endif //DOXYGEN_SKIP_THIS 
 
@@ -594,20 +594,6 @@ namespace CoupledField{
   {
     return numSolutions_;
   }
-/*
-  void BaseNodeStoreSol::Dump()
-  {
-  	  std::cout << "BaseNodeStoreSol: solutions=" << GetNumSolutions() << " size=" << GetSize() << " nodes=" << GetNumNodes() << " total DOFs=" << GetTotalNumDofs() << std::endl;
-
-      StdVector<SolutionType> solTypes;
-      GetSolutionTypes(solTypes);
-      
-      for(UInt i = 0; i < solTypes.GetSize(); i++) {
-          SolutionType type = solTypes[i];
-          std::cout << i << ": type=" << type << " dof=" << GetDof(type) << std::endl;
-      }  
-  }*/
-
 } //end of namespace
 
 #endif

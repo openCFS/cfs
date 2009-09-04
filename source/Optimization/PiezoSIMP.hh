@@ -22,19 +22,19 @@ public:
 protected:
 
   /** overwrite this method for own objectives. */
-  virtual double CalcObjective(Excitation& excite)
+  virtual double CalcObjective(Excitation& excite, Objective* cost)
   {
-    if(cost->type == ELEC_ENERGY)
+    if(cost->GetType() == Objective::ELEC_ENERGY)
     {
       return harmonic ? CalcElecEnergy<std::complex<double> >(excite) : CalcElecEnergy<double>(excite); 
     }
     else
-      return SIMP::CalcObjective(excite);
+      return SIMP::CalcObjective(excite, cost);
   }
   
   virtual void ConstructAdjointRHS(Excitation& excite)
   {
-    if(cost->type == ELEC_ENERGY)
+    if(objectives.Has(Objective::ELEC_ENERGY))
     {
       if(harmonic) ConstructAdjointRHS<std::complex<double> >(excite);
               else ConstructAdjointRHS<double>(excite);
@@ -44,7 +44,7 @@ protected:
   }
   
   /** Calculates gradients in the form <l, Ku> */
-  void CalcObjectiveGradient(Excitation& excite);
+  void CalcObjectiveGradient(Excitation& excite, Objective* cost);
 
 private:
 
@@ -59,14 +59,14 @@ private:
   
   /** This is our part for CalcU1KU2() -> This set the matrix derivatives form ELEC and
    * PIEZO_COUPLING ( + transposed) */
-  virtual void SetElementK(DesignElement* de, Application app, DenseMatrix* out, CalcMode calcMode)
+  virtual void SetElementK(DesignElement* de, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative = true)
   {
-    if(harmonic) SetElementK<std::complex<double> >(de, app, out, calcMode);
-            else SetElementK<double>(de, app, out, calcMode);
+    if(harmonic) SetElementK<std::complex<double> >(de, app, out, calcMode, derivative);
+            else SetElementK<double>(de, app, out, calcMode, derivative);
   }
 
   template <class T>
-  void SetElementK(DesignElement* de, Application app, DenseMatrix* out, CalcMode calcMode);
+  void SetElementK(DesignElement* de, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative = true);
 
   /** The electric rhs, real or complex */
   SurfaceRef elecRHS;

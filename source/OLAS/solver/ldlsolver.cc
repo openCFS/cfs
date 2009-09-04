@@ -73,14 +73,14 @@ namespace CoupledField {
 
 
     // Free dynamically allocated memory
-    DELETEARRAY( denseVec_ );
-    DELETEARRAY( firstU_ );
-    delete[] scanList_;
-    delete[] activeList_;
-    DELETEARRAY( dataD_ );
-    DELETEARRAY( dataU_ );
-    DELETEARRAY( cidxU_ );
-    DELETEARRAY( rptrU_ );
+    delete [] ( denseVec_ );  denseVec_  = NULL;
+    delete [] ( firstU_ );  firstU_  = NULL;
+    delete [] ( scanList_ ); scanList_ = NULL;
+    delete [] ( activeList_ ); activeList_ = NULL;
+    delete [] ( dataD_ );  dataD_  = NULL;
+    delete [] ( dataU_ );  dataU_  = NULL;
+    delete [] ( cidxU_ );  cidxU_  = NULL;
+    delete [] ( rptrU_ );  rptrU_  = NULL;
 
   }
 
@@ -98,10 +98,7 @@ namespace CoupledField {
                << "SCRS_Matrix/sparseSym" );
     }
 
-    TRY_CAST {
-
-      // Down-cast to StdMatrix
-      REFCAST( sysMat, StdMatrix, stdMat );
+    StdMatrix& stdMat = dynamic_cast<StdMatrix&>(sysMat);
 
       // Now test the storage layout
       BaseMatrix::StorageType sType = stdMat.GetStorageType();
@@ -114,7 +111,7 @@ namespace CoupledField {
       }
 
       // Down-cast to SCRS_Matrix
-      REFCAST( sysMat, SCRS_Matrix<T>, scrsMat );
+      SCRS_Matrix<T>& scrsMat = dynamic_cast<SCRS_Matrix<T>&>(sysMat);
 
       // Get new problem size and perform consistency check
       if ( amFactorised_ == false ) {
@@ -155,10 +152,10 @@ namespace CoupledField {
            myParams_->GetBoolValue( "newMatrixPattern" ) == true ) {
 
         // Clear "old" vectors
-        DELETEARRAY( dataD_ );
-        DELETEARRAY( dataU_ );
-        DELETEARRAY( cidxU_ );
-        DELETEARRAY( rptrU_ );
+        delete [] ( dataD_ );  dataD_  = NULL;
+        delete [] ( dataU_ );  dataU_  = NULL;
+        delete [] ( cidxU_ );  cidxU_  = NULL;
+        delete [] ( rptrU_ );  rptrU_  = NULL;
 
         // Pretty-printing
         if ( logging ) {
@@ -170,15 +167,15 @@ namespace CoupledField {
 
         // If problem size has increased free old dense auxilliary vectors
         if ( auxVecSize_ < scrsMat.GetNumCols() ) {
-          DELETEARRAY( denseVec_ );
-          DELETEARRAY( firstU_ );
-	  delete[] scanList_;
-	  delete[] activeList_;
+          delete [] ( denseVec_ );  denseVec_  = NULL;
+          delete [] ( firstU_ );  firstU_  = NULL;
+	        delete [] ( scanList_ ); scanList_ = NULL;
+	        delete [] ( activeList_ ); activeList_ = NULL;
           denseVec_   = NULL;
           firstU_     = NULL;
-	  scanList_   = NULL;
-	  activeList_ = NULL;
-	  auxVecSize_ = 0;
+	        scanList_   = NULL;
+	        activeList_ = NULL;
+	        auxVecSize_ = 0;
         }
 
         // Allocate memory for dense auxilliary vectors and lists
@@ -187,8 +184,8 @@ namespace CoupledField {
           auxVecSize_ = scrsMat.GetNumCols();
           NEWARRAY( denseVec_, T, auxVecSize_ );
           NEWARRAY( firstU_, UInt, auxVecSize_ );
-	  scanList_   = new Integer[auxVecSize_ + 1];
-	  activeList_ = new Integer[auxVecSize_ + 1];
+	        scanList_   = new Integer[auxVecSize_ + 1];
+	        activeList_ = new Integer[auxVecSize_ + 1];
 
           for ( UInt j = 0; j < auxVecSize_; j++ ) 
             denseVec_[j]   = 0.0;
@@ -197,8 +194,8 @@ namespace CoupledField {
             scanList_[j]   = -1;
             activeList_[j] = -1;
           }
-	  scanList_[0]   = auxVecSize_+1;
-	  activeList_[0] = auxVecSize_+1;
+	        scanList_[0]   = auxVecSize_+1;
+	        activeList_[0] = auxVecSize_+1;
         }
       }
 
@@ -232,9 +229,6 @@ namespace CoupledField {
         (*cla) << " -------------------------------------------------------"
                << "-----------------------\n" << std::endl;
       }
-
-    } CATCH_CAST;
-
   }
 
 
@@ -257,10 +251,9 @@ namespace CoupledField {
     }
 
     // Solve the problem
-    TRY_CAST {
-      CONSTREFCAST( rhs, Vector<T>, myRHS );
-      REFCAST( sol, Vector<T>, mySol );
-
+    const Vector<T>& myRHS = dynamic_cast<const Vector<T>&>(rhs);
+    Vector<T>& mySol = dynamic_cast<Vector<T>&>(sol);
+    
       // Logging
       if ( logging ) {
         (*cla) << " -------------------------------------------------------"
@@ -301,9 +294,6 @@ namespace CoupledField {
                << "-----------------------\n"
                << std::endl;
       }
-
-    } CATCH_CAST;
-
 
     // Generate Report
 
@@ -713,8 +703,10 @@ namespace CoupledField {
 
     // Free auxilliary index array
     delete[] auxVec;
-    for ( k = 0; k < nRows-1; k++ )  DELETEARRAY( cIndex[k] );
-    DELETEARRAY( cIndex );
+    for ( k = 0; k < nRows-1; k++ ) {
+		  delete [] ( cIndex[k] );  cIndex[k] = NULL;
+		}
+    delete [] ( cIndex );  cIndex = NULL;
 
 
 #ifdef DEBUG_LDLSOLVER_ANALYSE

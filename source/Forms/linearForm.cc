@@ -1794,7 +1794,8 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
       solDeriv2AtIp_ = solderiv2_ * ShpFncAtIp_;
         
       totalfactor=0;
-      for (UInt j=0; j<xiDx_.GetNumCols(); j++)
+      const unsigned int xiDxcols(xiDx_.GetNumCols());
+      for (UInt j=0; j<xiDxcols; j++)
         totalfactor += solGradAtIp_[j] * solDeriv1GradAtIp_[j];
       totalfactor *= factorN2_;
         
@@ -1861,22 +1862,22 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
                                                 bool isharmonic,
                                                 const std::string& readerId,
                                                 const std::string& regionName,
-                                                Double density )
-  : LinearForm()
+                                                Double density ) :
+    LinearForm(),
+    readerId_(readerId),
+    isharmonic_(isharmonic),
+    density_(density),
+    actStep_(0),
+    lastStep_(0),
+    sequenceStep_(1) // assume, that acoustic results do not come from multi sequence analysis
   {
     name_ = "linAcouPowerSourceInt";
-    
     isaxi_ = isaxi;
-    isharmonic_ = isharmonic;
-    readerId_ = readerId;
-    regionNames_.Resize(1);
-    regionNames_[0] = regionName;
-    density_ = density;
     
-    // assume, that acoustic results do not come from multi sequence analysis
-    sequenceStep_ = 1;
-     
-    if ( isharmonic_ == true ) {
+    regionNames_.Push_back(regionName);
+
+    if ( isharmonic_ )
+    {
       // in harmonic case, results are from single frequency step
       UInt stepValue = 1;
       

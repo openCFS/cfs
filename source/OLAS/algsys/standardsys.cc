@@ -28,6 +28,7 @@
 #include "OLAS/algsys/baseidbchandler.hh"
 
 #include "General/exception.hh"
+#include "Utils/Timer.hh"
 
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/ParamHandling/InfoNode.hh"
@@ -87,7 +88,7 @@ namespace CoupledField {
     for ( UInt i = 1; i < MAX_NUM_FE_MATRICES; i++ ) {
       delete sysmat_[i];
     }
-    DELETEARRAY( sysmat_ );
+    delete [] ( sysmat_ );
 
     // After matrices we may delete the pattern pool
     delete patternPool_;
@@ -108,7 +109,9 @@ namespace CoupledField {
   //   Trigger setup phase of solver
   // *********************************
   void StandardSystem::SetupSolver(InfoNode* analysis_id) {
+    solver_->GetSetupTimer()->Start();
     solver_->Setup(*sysmat_[SYSTEM], analysis_id);
+    solver_->GetSetupTimer()->Stop();
   }
 
   // **************************************
@@ -177,6 +180,7 @@ namespace CoupledField {
   void StandardSystem::Solve(InfoNode* analysis_id) 
   {
     info->ToFile(); // write current info state
+    solver_->GetSolveTimer()->Start();
     
     // Check, if condition number is to be calculated
     bool calcCapa = false;
@@ -222,10 +226,6 @@ namespace CoupledField {
       myParams_.SetValue( "RHSwithPenalty", true );
       LOG_DBG(stdSys) << "Solve: rhs with penalty";
     }
-
-#ifdef PROFILING
-    Double t1 = Profiler::GetRealTime();
-#endif
 
     // Iterative solvers require an initial guess and in the penalty case
     // we should insert the Dirichlet values into it
@@ -320,12 +320,7 @@ namespace CoupledField {
       Warning( __FILE__, __LINE__ );
     }
 
-#ifdef PROFILING
-    Double t2 = Profiler::GetRealTime();
-    (*cla)  << "solution time: " << t2-t1 << " seconds " << std::endl;
-    Profiler::WriteReport();
-#endif
-
+    solver_->GetSolveTimer()->Stop();
     LOG_DBG(stdSys) << "Solve invalidate flag for solution buffer, why not also fro rhs?";
   }
 
@@ -340,10 +335,10 @@ namespace CoupledField {
     eigenSolver_->CalcEigenFrequencies( *eigenValues_, *eigenValError_ );
 
     // Hard coded cast for double values
-    REFCAST( *eigenValues_, Vector<Double>, valVec );
+    Vector<Double>& valVec = dynamic_cast<Vector<Double>&>(*eigenValues_);
     frequencies = valVec;
 
-    REFCAST( *eigenValError_, Vector<Double>, errVec );
+    Vector<Double>& errVec = dynamic_cast<Vector<Double>&>(*eigenValError_);
     err = errVec;
 
   }
@@ -366,10 +361,10 @@ namespace CoupledField {
     eigenSolver_->CalcEigenFrequencies( *eigenValues_, *eigenValError_ );
 
     // Hard coded cast for double values
-    REFCAST( *eigenValues_, Vector<Complex>, valVec );
+    Vector<Complex>& valVec = dynamic_cast<Vector<Complex>&>(*eigenValues_);
     frequencies = valVec;
 
-    REFCAST( *eigenValError_, Vector<Double>, errVec );
+    Vector<Double>& errVec = dynamic_cast<Vector<Double>&>(*eigenValError_);
     err = errVec;
   }
 
@@ -385,7 +380,7 @@ namespace CoupledField {
     
     // DEBUG: Make check, if mode is really an eigenmode
     // by calculating (A - lambda * I) * u = 0
-    //REFCAST( *eigenValues_, Vector<Double>, valVec );
+    // Vector<Double>& valVec = dynamic_cast<Vector<Double>&>(*eigenValues_);
 //    Double lambda = (2.0*PI*valVec[numMode])*(2.0*PI*valVec[numMode]);
     
 //    StdMatrix * mat = 
@@ -438,7 +433,7 @@ namespace CoupledField {
     // ------------------------
     //  Re-set numLastFreeDof
     // ------------------------
-    DELETEARRAY( numLastFreeDof_ );
+    delete [] ( numLastFreeDof_ );  numLastFreeDof_  = NULL;
     NEWARRAY( numLastFreeDof_, UInt, 1 );
     numLastFreeDof_[0] = graph->GetSize();
 

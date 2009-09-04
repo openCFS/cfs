@@ -18,6 +18,8 @@ namespace CoupledField
     
     ~EvaluateOnly() {}
     
+  protected:
+
     /** Evaluates the objective function and it's gradient. Same for all constraints
      * and their gradients and the outputs functions once with the inital guess..
      * This is e.g. to test hand made designs and is nicer than max_iterations = 1.

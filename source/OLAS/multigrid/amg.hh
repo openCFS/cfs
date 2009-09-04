@@ -184,11 +184,7 @@ namespace CoupledField {
  *        <td>false</td>
  *        <td>Setup phase, solution phase. If set to \c true, AMG will
  *            print some logging output to (*cla) during setup and
- *            solution cycles. Compiling the code with the option
- *            OLAS_PROFILE \b includes automatically activated logging.
- *            If profiling is activated, but \c AMG_logging is still
- *            set to \c false, AMG will reset it to \c true and print
- *            out a warning in the setup process. </td>
+ *            solution cycles.</td>
  *     </tr>
  *  </table>
  *  <br><br>

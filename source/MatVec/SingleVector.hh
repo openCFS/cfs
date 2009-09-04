@@ -47,10 +47,7 @@ namespace CoupledField {
     //! perform this task itself, but only performs a downcast and calls
     //! the method with an SingleVector interface.
     void Add(const BaseVector& vec){
-      TRY_CAST
-      CONSTREFCAST(vec,SingleVector,stdvec);
-      Add(stdvec);
-      CATCH_CAST
+      Add(dynamic_cast<const SingleVector&>(vec));
     }
 
     //! Add vec to this vector object
@@ -69,16 +66,11 @@ namespace CoupledField {
     //! This implementation only performs a downcast and calls the method
     //! with an interface for SingleVectors.
     virtual void Axpy( const Double alpha, const BaseVector &y ) {
-      TRY_CAST
-      CONSTREFCAST(y,SingleVector,std_y);
-      Axpy( alpha, std_y );
-      CATCH_CAST
+      Axpy( alpha, dynamic_cast<const SingleVector&>(y) );
     }
+    
     virtual void Axpy( const Complex alpha, const BaseVector &y ) {
-      TRY_CAST
-      CONSTREFCAST(y,SingleVector,std_y);
-      Axpy( alpha, std_y );
-      CATCH_CAST
+      Axpy( alpha, dynamic_cast<const SingleVector&>(y) );
     }
     //@}
 
@@ -109,10 +101,8 @@ namespace CoupledField {
     //! assignment operator does simply down-cast the base vector and call
     //! the implementation for standard vectors.
     virtual BaseVector &operator= ( const BaseVector &bvec ) {
-      TRY_CAST {
-        CONSTREFCAST( bvec, SingleVector, svec );
-        *this = svec;
-      } CATCH_CAST;
+      const SingleVector& svec = dynamic_cast<const SingleVector&>(bvec);
+      *this = svec;
       return *this;
     }
     
@@ -125,43 +115,75 @@ namespace CoupledField {
       return *this;
     }
 
-#define DECL_SingleVector_FCN(TYPE)\
-	void Add(TYPE a, const BaseVector& vec){\
-	TRY_CAST\
-	CONSTREFCAST(vec,SingleVector,stdvec);\
-	Add(a,stdvec);\
-	CATCH_CAST\
-	}\
-\
-        virtual void Add(TYPE a,const SingleVector &vec)\
-        {EXCEPTION("SingleVector::Add(): Not implemented here");};\
-\
-	void Add(TYPE a, const BaseVector& vec1,\
-		TYPE b,const BaseVector& vec2){\
-	TRY_CAST\
-	CONSTREFCAST(vec1,SingleVector,stdvec1);\
-	CONSTREFCAST(vec2,SingleVector,stdvec2);\
-	Add(a,stdvec1,b,stdvec2);\
-	CATCH_CAST\
-	}\
-\
-	virtual void Add(TYPE a, const SingleVector& vec,\
-                         TYPE b, const SingleVector& vec2)\
-	 {EXCEPTION("SingleVector::Add(): Not implemented here");};\
-\
-	void Inner(const BaseVector& vec,TYPE& s) const {\
-	TRY_CAST\
-	CONSTREFCAST(vec,SingleVector,stdvec);\
-	Inner(stdvec,s);\
-	CATCH_CAST\
-	}\
-\
-	virtual void Inner(const SingleVector& vec,TYPE& s) const\
-	 {EXCEPTION("SingleVector::Inner(): Not implemented here");}
+    void Add(Double a, const BaseVector& vec)
+    {
+      Add(a, dynamic_cast<const SingleVector&>(vec));
+    }
 
-    DECL_SingleVector_FCN(Double);
-    DECL_SingleVector_FCN(Complex);
+    virtual void Add(Double a,const SingleVector &vec)
+    {
+      EXCEPTION("SingleVector::Add(): Not implemented here");
+    }
 
+    void Add(Double a, const BaseVector& vec1,
+             Double b, const BaseVector& vec2)
+    {
+      const SingleVector& stdvec1 = dynamic_cast<const SingleVector&>(vec1);
+      const SingleVector& stdvec2 = dynamic_cast<const SingleVector&>(vec2);
+      Add(a,stdvec1,b,stdvec2);
+    }
+
+    virtual void Add(Double a, const SingleVector& vec,
+        Double b, const SingleVector& vec2)
+    {
+      EXCEPTION("SingleVector::Add(): Not implemented here");
+    }
+
+    void Inner(const BaseVector& vec, Double& s) const
+    {
+      Inner(dynamic_cast<const SingleVector&>(vec), s);
+    }
+
+    virtual void Inner(const SingleVector& vec, Double& s) const
+    {
+      EXCEPTION("SingleVector::Inner(): Not implemented here");
+    }
+    
+    void Add(Complex a, const BaseVector& vec)
+    {
+      Add(a, dynamic_cast<const SingleVector&>(vec));
+    }
+
+    virtual void Add(Complex a,const SingleVector &vec)
+    {
+      EXCEPTION("SingleVector::Add(): Not implemented here");
+    }
+
+    void Add(Complex a, const BaseVector& vec1,
+             Complex b, const BaseVector& vec2)
+    {
+      const SingleVector& stdvec1 = dynamic_cast<const SingleVector&>(vec1);
+      const SingleVector& stdvec2 = dynamic_cast<const SingleVector&>(vec2);
+      Add(a,stdvec1,b,stdvec2);
+    }
+
+    virtual void Add(Complex a, const SingleVector& vec,
+        Complex b, const SingleVector& vec2)
+    {
+      EXCEPTION("SingleVector::Add(): Not implemented here");
+    }
+
+    void Inner(const BaseVector& vec, Complex& s) const
+    {
+      Inner(dynamic_cast<const SingleVector&>(vec), s);
+    }
+
+    virtual void Inner(const SingleVector& vec, Complex& s) const
+    {
+      EXCEPTION("SingleVector::Inner(): Not implemented here");
+    }   
+    
+    
   protected:
 
     //! Length of the vector object

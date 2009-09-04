@@ -24,8 +24,10 @@ public:
   @param forward for the strains of the forward solution
   @param adjoint for the strains of the adjoint solution
   */
-  void GetStrainsOnElement(Vector<double> &forward, Vector<double> &adjoint, 
-      const unsigned int e, const SubTensorType type) const;
+  void GetElementSolution(Vector<double> &vecforward, Vector<double> &vecadjoint, 
+                          const unsigned int e,
+                          const SubTensorType type = PLANE_STRAIN,
+                          Application app = MECH) const;
 
   /** Helper function for TopGrad, where we need the SubTensorType */
   void GetSubTensorType(SubTensorType &stt) const;
@@ -42,6 +44,8 @@ public:
   linElastInt* getBDBForm();
 
   int getMaxVolumeToRemove() const { return max_volume_to_remove_; }
+  
+  void PrepareExteriorPiezoProblem() { std::cout << "ShapeGrad, prepare the problem!!" << std::endl; }
 
   virtual std::string LogFileHeader() { return ""; }
   virtual void LogFileLine(std::ofstream* out) {}

@@ -280,9 +280,6 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     // check for prestressing
     ReadPreStressing();
     
-    // check for prestraining
-    ReadPreStraining();
-
     // read surface stress information
     ReadSurfStress();
 
@@ -1858,19 +1855,18 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       fct->SetOrder(order);
       disp->fctType = fct;
     } else {
-
-       // define Legendre type
-       shared_ptr<LegendreFct> fct(new LegendreFct);
-       if( myParam_->Get("isIsotropic")->AsBool() ) {
-         UInt order = myParam_->Get("order")->AsUInt();
-         fct->SetIsoOrder( order );
-       } else {
-         Matrix<UInt> orderMat;
-         ParamTools::AsTensor<unsigned int>(myParam_->Get("anisotropic"), dim_, dim_, orderMat);
-         fct->SetAnisoOrder( orderMat );
-       }
-       disp->fctType = fct;
-       disp->definedOn = ResultInfo::PFEM;
+      // define Legendre type
+      shared_ptr<LegendreFct> fct(new LegendreFct);
+      if( myParam_->Get("isIsotropic")->AsBool() ) {
+        UInt order = myParam_->Get("order")->AsUInt();
+        fct->SetIsoOrder( order );
+      } else {
+        Matrix<UInt> orderMat;
+        ParamTools::AsTensor<unsigned int>(myParam_->Get("anisotropic"), dim_, dim_, orderMat);
+        fct->SetAnisoOrder( orderMat );
+      }
+      disp->fctType = fct;
+      disp->definedOn = ResultInfo::PFEM;
     }
 
     results_.Push_back( disp );
@@ -1955,6 +1951,18 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     shape->definedOn = disp->definedOn;
     shape->fctType = disp->fctType;
     availResults_.insert( shape );
+
+    // === HOMOGENIZED_TENSOR ===
+    // calculated as a special optimization result
+    shared_ptr<ResultInfo> homogenTensor(new ResultInfo);
+    homogenTensor->resultType = HOMOGENIZED_TENSOR;
+    homogenTensor->dofNames = "";
+    homogenTensor->unit = "";
+    homogenTensor->entryType = ResultInfo::TENSOR;
+    homogenTensor->definedOn = ResultInfo::REGION;
+    homogenTensor->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert(homogenTensor);
+
 
     // === OPT_RESULT_1/2/3 ===
     // this is added via the optimization stuff in DesignSpace.
@@ -2103,6 +2111,10 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
 
     case MECH_SHAPE:
       ExtractNodeOffset(result);
+      break;
+
+    case HOMOGENIZED_TENSOR:
+      CalcHomogenizedTensor(result);
       break;
 
     // the actual case is given in the result info in result
@@ -2387,39 +2399,6 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     }
 
   }
-  
-  // ********************************************************
-  //   Query parameter object for information about prestraining
-  // ********************************************************
-  void MechPDE::ReadPreStrainingFromXML(ParamNode* bcsNode, Vector<Double> &vals)
-  {
-    // Check, if any prestraining boundary condition is present
-    if(!bcsNode) return;
-
-    // Get prestraining parameter nodes
-    StdVector<ParamNode*> strainNodes = bcsNode->GetList("testStrain");
-    if(strainNodes.IsEmpty()) return;
-    if(strainNodes.GetSize() > 1)
-    {
-      Warning("Cannot handle more than one test strain per excitation, ignoring the rest",
-                   __FILE__, __LINE__ );
-    }
-    
-    // fetch data
-    // for every call to this function, we only look at the first test strain
-    vals.Resize(6, 0.0);
-    strainNodes[0]->Get("strain1", vals[0]);
-    strainNodes[0]->Get("strain2", vals[1]);
-    strainNodes[0]->Get("strain3", vals[2]);
-    strainNodes[0]->Get("strain4", vals[3]);
-    strainNodes[0]->Get("strain5", vals[4]);
-    strainNodes[0]->Get("strain6", vals[5]);
-  }
-  
-  void MechPDE::ReadPreStraining()
-  {
-    ReadPreStrainingFromXML(myParam_->Get("bcsAndLoads", false), preStrainVal_);
-  }
 
   void MechPDE::ReadPressureLoads()
   {
@@ -2446,6 +2425,28 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       pressPhase.Push_back( phase );
 
     }
+  }
+
+
+  void MechPDE::CalcHomogenizedTensor(shared_ptr<BaseResult> base_result)
+  {
+    // TODO: Either the calculation moves here ore the data interchange
+    // with ErsatzMaterial is done nice. Now steal the data from InfoNode!!! :((
+
+    ErsatzMaterial* em = domain->GetOptimization() != NULL ? dynamic_cast<ErsatzMaterial*>(domain->GetOptimization()) : NULL;
+    if(em == NULL) EXCEPTION("the result 'homogenizedTensor' requires an appropriate optimization definition.");
+
+    Matrix<double>& tensor = em->homogenizedTensor;
+
+    Result<double>& res = dynamic_cast<Result<double>&>(*base_result);
+    Vector<double>& vals = res.GetVector();
+    const unsigned int trows(tensor.GetNumRows());
+    const unsigned int tcols(tensor.GetNumCols());
+    vals.Resize(trows * tcols);
+
+    for(unsigned int r = 0; r < trows; ++r)
+      for(unsigned int c = 0; c < tcols; ++c)
+        vals[r * trows + c] = tensor[r][c];
   }
 
 

@@ -23,12 +23,6 @@
 //! This file contains some global macro, class and enumeration data type
 //! definitions for CFS++.
 
-
-//! Maximal length of the trailing postfix of an auxilliary name,
-//! i.e. the length of the extension after the basename
-#define MAXPOSTFIX 15
-
-
 //! Namespace for filestreams used by both OLAS and CFS++
 
 //! The %OutInfo namespace contains the various output streams that are used
@@ -79,31 +73,6 @@ namespace CoupledField {
   class CFSMessenger;
   class LogConfigurator;
 
-#if 0 // TODO: Check if this is still needed
-
-//! Define assignment of numerical types to their enum-representation
-//  template<class TYPE>
-//  struct EntryTypeMap {
-    //! Associated enum representation of entry type
-//    static const EntryType::ScalarType S_TYPE = EntryType::NOENTRYTYPE;
-//  };
-
-  // Explicit sepcialization for scalar entry types
-//#define DEFINE_SCALAR_TYPE(TYPE,TYPE_ENUM)                    \
-// template<>                                                   \
-//  struct EntryTypeMap<TYPE> {                                 \
-//    static const EntryType::ScalarType S_TYPE = TYPE_ENUM;    \
-//  }
-//  DEFINE_SCALAR_TYPE( Double   , EntryType::DOUBLE);
-//  DEFINE_SCALAR_TYPE( Float    , EntryType::FLOAT);
-//  DEFINE_SCALAR_TYPE( Complex  , EntryType::COMPLEX);
-//  DEFINE_SCALAR_TYPE( Integer  , EntryType::INTEGER);
-//  DEFINE_SCALAR_TYPE( UInt     , EntryType::UINT);
-//  DEFINE_SCALAR_TYPE( ShortInt , EntryType::SHORTINT);
-//#undef DEFINE_SCALAR_TYPE
-
-#endif
-
   // Type definitions for regions
   typedef Integer RegionIdType;
   static const RegionIdType NO_REGION_ID = -1;
@@ -127,11 +96,6 @@ namespace CoupledField {
   //! logging configurator
 
   extern LogConfigurator * logConf;
-
-#ifdef PROFILING
-  //! Global memtrace pointer
-  extern Profiler * profiler;
-#endif
 
   //! Global pointer to domain object
   extern Domain *domain;
@@ -193,6 +157,7 @@ namespace CoupledField {
                LAMBDA_K, FLUIDMECH_VELOCITY, FLUIDMECH_PRESSURE,
                FLUIDMECH_DENSITY, FLUIDMECH_FORCE, FLUIDMECH_TKE, 
                FLUIDMECH_STRESS, FLUIDMECH_STRAINRATE, FLUIDMECH_ENERGY, FLUIDMECH_STABILPARAM,
+               HOMOGENIZED_TENSOR = 200,
                BUBBLE_RADIUS, BUBBLE_RADIUS_DERIV_1, BUBBLE_VOLUME_FRAC,
                OPT_RESULT_1, OPT_RESULT_2, OPT_RESULT_3,
                OPT_RESULT_4, OPT_RESULT_5, OPT_RESULT_6,
@@ -505,7 +470,7 @@ namespace CoupledField {
   //! - LDL_SOLVER
   //! - LDL_SOLVER2
   typedef enum {NOSOLVER, DIRECT, RICHARDSON, CG, LANCZOS, QMR, GMRES,
-                MINRES, SYMMLQ, LAPACK_LU, LAPACK_LL, PARDISO,  ILUPACK_SOLVER, LU_SOLVER,
+                MINRES, SYMMLQ, LAPACK_LU, LAPACK_LL, PARDISO,  ILUPACK_SOLVER, LU_SOLVER, CHOLMOD, 
                 LDL_SOLVER, LDL_SOLVER2, DIAGSOLVER } SolverType;
 
   //! Type of EigenSolver

@@ -38,7 +38,6 @@ SCPIPBase::SCPIPBase()
 {
   // set enums so Set*Value() works
   SetEnums();
-
   call_scale_parameters_ = false;
   use_obj_scaling = false;
   use_g_scaling = false;
@@ -411,6 +410,12 @@ void SCPIPBase::AllocateDynamic()
   {
     std::cout << "SCPIP: request to change spdwdim from " << spdw.GetSize() << " to " << info[7-1] << std::endl;
     spdw.Resize(info[7-1], 0.0);
+    if(info[7-1] > 1e6)
+    {
+      // this might be a bad case that cost a lot of computational time, so we issue a warning
+      std::cout << "SCPIP: WARNING: this problem might take a very long time to compute" << std::endl;
+      std::cout << "SCPIP: WARNING: insert a trivially fulfilled constraint to gain speed" << std::endl;
+    }
   }
 }
 

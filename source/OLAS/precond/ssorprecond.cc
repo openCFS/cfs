@@ -30,7 +30,7 @@ namespace CoupledField {
   // **************
   template <typename T>
   SSORPrecond<T>::~SSORPrecond() {
-    DELETEARRAY( diagInv_ );
+    delete [] ( diagInv_ );
   }
 
 

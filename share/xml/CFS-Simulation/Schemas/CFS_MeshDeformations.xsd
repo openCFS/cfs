@@ -27,10 +27,10 @@
                         <xsd:attribute name="numberofparameters" use="required" type="xsd:nonNegativeInteger"/>
                     </xsd:complexType>
                     <xsd:unique name="uNodeParamDirection">
-                        <xsd:selector xpath="deformation"/>
-                        <xsd:field xpath="node"/>
-                        <xsd:field xpath="param"/>
-                        <xsd:field xpath="direction"/>
+                        <xsd:selector xpath="cfs:deformation"/>
+                        <xsd:field xpath="@node"/>
+                        <xsd:field xpath="@param"/>
+                        <xsd:field xpath="@direction"/>
                     </xsd:unique>
                 </xsd:element>
             </xsd:sequence>

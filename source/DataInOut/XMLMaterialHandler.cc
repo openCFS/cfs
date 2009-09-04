@@ -45,8 +45,8 @@ namespace CoupledField {
     delete xerces;
   }
   
-  XMLMaterialHandler::~XMLMaterialHandler() {
-      
+  XMLMaterialHandler::~XMLMaterialHandler()
+  {
     delete parser_;
   }
   

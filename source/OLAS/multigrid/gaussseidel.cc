@@ -68,7 +68,7 @@ bool GaussSeidel<T>::Setup( const CRS_Matrix<T>& matrix )
     // So it is sufficient to check (Size_ != matrix.GetNumRows()),
     // except of calls with an empty matrix.
     if( Size_ != matrix.GetNumRows() ) {
-        DELETEARRAY( DiagonalInverse_ );
+        delete [] ( DiagonalInverse_ );  DiagonalInverse_  = NULL;
         DiagonalInverse_ = NULL;
     }
     // create a new array for the diagonal inverses
@@ -243,12 +243,12 @@ template <typename T>
 void GaussSeidel<T>::Reset()
 {
     
-    DELETEARRAY( DiagonalInverse_ ); // delete diagonal inverse
+    delete [] ( DiagonalInverse_ ); // delete diagonal inverse
     DiagonalInverse_ = NULL;
     Size_            =    0;         // reset the size of the LES
     Omega_           =  1.0;         // reset damping factor
 
-    DELETEARRAY( PenaltyFlags_ );
+    delete [] ( PenaltyFlags_ );
     PenaltyFlags_ = NULL;
 
     // call Reset() of base class

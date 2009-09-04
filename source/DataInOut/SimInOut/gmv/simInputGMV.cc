@@ -206,7 +206,7 @@ namespace CoupledField {
 //        MESHIO_DEBUG("MATERIAL");
         if(!ProcessMaterials())
         {
-          mMatNames.Resize(0);
+          mMatNames.Clear();
           mMatNames.Push_back("Material");
           mMatNums.Push_back(0);
           mElementMaterials.resize(gmv_meshdata.ncells);
@@ -632,8 +632,8 @@ namespace CoupledField {
     
     UInt numElems;
     
-    mMatNames.Resize(0);
-    mMatNums.Resize(0);
+    mMatNames.Clear();
+    mMatNums.Clear();
 
     for(Integer i=0; i<gmv_data.num; i++)
     {

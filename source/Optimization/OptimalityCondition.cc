@@ -34,7 +34,7 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, ParamNode* 
   this->lambda_iters_ = 0;
   this->max_lambda_iters_ = 70;
   this->err_eps_    = 1e-3;
-  this->type_       = optimization->GetObjective()->type == Optimization::COMPLIANCE ? FRAMED : FUMBLE;
+  this->type_       = optimization->objectives.Has(Objective::COMPLIANCE) ? FRAMED : FUMBLE;
 
   // framed
   this->upper_ = 0.0;
@@ -415,7 +415,7 @@ double OptimalityCondition::Evaluate(double lambda)
      LOG_DBG(oc) << "Evaluate: adjust " << org_lambda << " to " << lambda;
    }
     
-   Condition& condition = optimization->GetConstraint(Condition::VOLUME);
+   Condition* g = &(optimization->GetConstraint(Condition::VOLUME));
    StdVector<DesignElement>& data = optimization->GetDesign()->data;
 
    // we cannot set the design directly otherwise the filter does not 
@@ -441,7 +441,7 @@ double OptimalityCondition::Evaluate(double lambda)
      // for piezo we might become negative lambdas -> cut the positive!
      b_e = lambda >= 0.0 ? std::max(0.0, b_e) : std::min(0.0, b_e);
      
-     b_e /= (lambda * de->GetConstraintGradient(&condition)); 
+     b_e /= (lambda * de->GetGradient(NULL, g));
      
      // next is density times b_e which is compared with box constraints and move limit
      double next = rho_e * std::pow(b_e, oc_damping_);        
@@ -456,7 +456,7 @@ double OptimalityCondition::Evaluate(double lambda)
      
      LOG_DBG3(oc) << "Evaluate:" << de->elem->elemNum << " obj_grad=" << smart_obj_grad
                   << "(" << de->GetObjectiveGradient(DesignElement::PLAIN) << ")" << " const_grad="
-                  << de->GetConstraintGradient(&condition) << " old= " << rho_e << " next=" << next
+                  << de->GetGradient(NULL, g) << " old= " << rho_e << " next=" << next
                   << " lower=" << lower << " upper=" << upper << " new=" << evaluate_tmp_[i];
    }
    

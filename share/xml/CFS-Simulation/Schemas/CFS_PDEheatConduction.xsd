@@ -175,6 +175,30 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="heatTemperature"/>
       <xsd:enumeration value="heatRhsLoad"/>
+      <xsd:enumeration value="optResult_1"/>      
+      <xsd:enumeration value="optResult_2"/>      
+      <xsd:enumeration value="optResult_3"/>                  
+      <xsd:enumeration value="optResult_4"/>
+      <xsd:enumeration value="optResult_5"/>
+      <xsd:enumeration value="optResult_6"/>
+      <xsd:enumeration value="optResult_7"/>
+      <xsd:enumeration value="optResult_8"/>
+      <xsd:enumeration value="optResult_9"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- Definition of element result types of heatConduction PDE -->
+  <xsd:simpleType name="DT_HeatElemResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="optResult_1"/>      
+      <xsd:enumeration value="optResult_2"/>      
+      <xsd:enumeration value="optResult_3"/>                  
+      <xsd:enumeration value="optResult_4"/>
+      <xsd:enumeration value="optResult_5"/>
+      <xsd:enumeration value="optResult_6"/>
+      <xsd:enumeration value="optResult_7"/>
+      <xsd:enumeration value="optResult_8"/>
+      <xsd:enumeration value="optResult_9"/>
     </xsd:restriction>
   </xsd:simpleType>
   
@@ -184,13 +208,20 @@
       <xsd:choice maxOccurs="unbounded">
 
         <!-- Nodal result definition -->
-        <xsd:element name="nodeResult" minOccurs="0"
-          maxOccurs="unbounded">
-          <xsd:complexType>
+        <xsd:element name="nodeResult" minOccurs="0" maxOccurs="unbounded"> <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_NodeResult">
-                <xsd:attribute name="type" type="DT_HeatNodeResult"
-                  use="required"/>
+                <xsd:attribute name="type" type="DT_HeatNodeResult" use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+
+        <!-- Element result definition -->
+        <xsd:element name="elemResult" minOccurs="0" maxOccurs="unbounded"> <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_ElemResult">
+                <xsd:attribute name="type" type="DT_HeatElemResult" use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>

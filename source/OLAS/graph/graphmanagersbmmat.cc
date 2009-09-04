@@ -48,27 +48,27 @@ namespace CoupledField {
                  << "'! Assuming it's my task to de-allocate the memory!");
       }
       else {
-        newOrdering_[i].Resize(0);
+        newOrdering_[i].Clear();
       }
     }
-    newOrdering_.Resize(0);
+    newOrdering_.Clear();
 
     // Delete the graph objects
     for ( UInt i = 1; i <= numPDEs_ * numPDEs_; i++ ) {
       delete graph_[i];
     }
-    DELETEARRAY( graph_ );
+    delete [] ( graph_ );  graph_  = NULL;
 
     // Delete the IDBC graph objects
     for ( UInt i = 1; i <= numPDEs_ * numPDEs_; i++ ) {
       delete graphIDBC_[i];
     }
-    DELETEARRAY( graphIDBC_ );
+    delete [] ( graphIDBC_ );  graphIDBC_  = NULL;
 
     // Delete remaining arrays
-    DELETEARRAY( numLastFreeDof_ );
-    DELETEARRAY( numEqn_ );
-    DELETEARRAY( isCoupled_ );
+    delete [] ( numLastFreeDof_ );  numLastFreeDof_  = NULL;
+    delete [] ( numEqn_ );  numEqn_  = NULL;
+    delete [] ( isCoupled_ );  isCoupled_  = NULL;
   }
 
 
@@ -105,7 +105,7 @@ namespace CoupledField {
     // of the unknowns of each PDE
     newOrdering_.Resize( numPDEs_ );
     for ( UInt i = 1; i <= numPDEs_; i++ ) {
-      newOrdering_[i].Resize(0);
+      newOrdering_[i].Clear();
     }
 
     // Setup empty array for coupling flags
@@ -478,7 +478,7 @@ namespace CoupledField {
     // By passing the pointer to the array containing the re-ordering
     // information to the caller, this class forgets about the re-ordering
     order = newOrdering_[identifier];
-    newOrdering_[identifier].Resize(0);
+    newOrdering_[identifier].Clear();
   }
 
 

@@ -101,20 +101,21 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::SolveStepStatic(InfoNode* analysis_id) {
+  void StdSolveStep::SolveStepStatic(InfoNode* analysis_id, const bool reAssembleMatrices) {
 
     if (nonLin_) {
       StepStaticNonLin(analysis_id);
     }
     else {
-      StepStaticLin(analysis_id);
+      StepStaticLin(analysis_id, reAssembleMatrices);
     }
   }
 
 
-  void StdSolveStep::StepStaticLin(InfoNode* analysis_id) {
+  void StdSolveStep::StepStaticLin(InfoNode* analysis_id, const bool reAssembleMatrices) {
 
-    assemble_->AssembleMatrices();
+    if(reAssembleMatrices)
+      assemble_->AssembleMatrices();
 
     // The RHS-sources and boundary conditions
     // have to be reassembled each time
@@ -136,19 +137,14 @@ namespace CoupledField {
     // recalc the preconditioner eventually
     algsys_->BuildInDirichlet();
 
-    SETPROFILE("Before SetupPrecond");
-
-    if( assemble_->IsMatrixUpdated() ) {
+    if( assemble_->IsMatrixUpdated() && reAssembleMatrices ) {
       algsys_->SetupPrecond();
-      SETPROFILE("After SetupPrecond / Before SetupSolver");
 
       algsys_->SetupSolver(analysis_id);
-      SETPROFILE("After SetupSolver / Before Solve");
     }
 
     // Solve problem
     algsys_->Solve(analysis_id);
-    SETPROFILE("After Solve");
 
     // Get the solution and store it
     Vector<Double> tmpSol;
@@ -349,15 +345,11 @@ namespace CoupledField {
     algsys_->BuildInDirichlet();
 
     if (assemble_->IsMatrixUpdated() ) {
-      SETPROFILE("Before SetupPrecond");
       algsys_->SetupPrecond( );
-      SETPROFILE("After SetupPrecond / Before SetupSolver");
       algsys_->SetupSolver(analysis_id);
-      SETPROFILE("After SetupSolver / Before Solve");
     }
 
     algsys_->Solve(analysis_id);
-    SETPROFILE("After Solve");
 
     Vector<Double> tmpSol;
     algsys_->GetSolutionVal( tmpSol );

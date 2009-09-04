@@ -40,34 +40,27 @@ namespace CoupledField {
     //! cast the matrix into its full type and perform the Setup 
     //! of the preconditioner as subclass
     virtual void Setup( StdMatrix &A ) {
-      TRY_CAST {
-	REFCAST( A, AssocMatrixType, idA );
-      	SubClass().Setup(idA);
-	readyToUse_ = true;
-      } CATCH_CAST;
+      AssocMatrixType& idA = dynamic_cast<AssocMatrixType&>(A);
+      SubClass().Setup(idA);
+      readyToUse_ = true;
     }
 
     //! cast the Matrix and Vectors into their full types and
     //! apply the preconditioner if Setup has been called in advance
     virtual void Apply( const StdMatrix &A, 
-			const SingleVector &r, SingleVector &z) const {
-    	
-      TRY_CAST {
-	CONSTREFCAST(A,AssocMatrixType,idA);
-	CONSTREFCAST(r,AssocVectorType,idr);
-	REFCAST(z,AssocVectorType,idz);
+        const SingleVector &r, SingleVector &z) const {
+      const AssocMatrixType& idA = dynamic_cast<const AssocMatrixType&>(A);
+      const AssocVectorType& idr = dynamic_cast<const AssocVectorType&>(r);
+      AssocVectorType& idz = dynamic_cast<AssocVectorType&>(z);
 
-	if (readyToUse_) {
-	  SubClass().Apply(idA,idr,idz);
-	}
-	else {
-	  EXCEPTION( "Preconditioner used before Setup!");
-	}
-      } CATCH_CAST;
+      if (readyToUse_) {
+        SubClass().Apply(idA,idr,idz);
+      }
+      else {
+        EXCEPTION( "Preconditioner used before Setup!");
+      }
     }
-
   };
-
 }
 
 #endif

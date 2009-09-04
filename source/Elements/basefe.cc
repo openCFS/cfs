@@ -1097,9 +1097,11 @@ namespace CoupledField
   std::string BaseFE::CoordMatrix2String(const Matrix<Double> & coordMat)
   {
     std::string ret;
-    for (UInt j=0; j<coordMat.GetNumCols(); j++) {
+    const unsigned int cols(coordMat.GetNumCols());
+    const unsigned int rows(coordMat.GetNumRows());
+    for (UInt j=0; j<cols; j++) {
       ret += "(";
-      for (UInt i=0; i<coordMat.GetNumRows()-1; i++) {
+      for (UInt i=0; i<rows-1; i++) {
         ret += GenStr(coordMat[i][j]);
         ret += ", ";
       }

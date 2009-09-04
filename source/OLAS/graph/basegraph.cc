@@ -106,12 +106,12 @@ namespace CoupledField {
   BaseGraph::~BaseGraph() {
 
 
-    DELETEARRAY( csNodes_ );
-    DELETEARRAY( csEdges_ );
+    delete [] ( csNodes_ );  csNodes_  = NULL;
+    delete [] ( csEdges_ );  csEdges_  = NULL;
 
     // Note: element_ should already have been deleted
     // in FinaliseAssembly()
-    DELETEARRAY( element_ );
+    delete [] ( element_ );  element_  = NULL;
 
   }
 
@@ -292,7 +292,7 @@ namespace CoupledField {
     ConvertToCRS();
     
     // The element vector is no longer required
-    DELETEARRAY( element_ );
+    delete [] ( element_ );  element_  = NULL;
     element_ = NULL;
 
     // Now the graph object is fully assembled
@@ -467,9 +467,9 @@ namespace CoupledField {
 
         // We don't need the inverse mapping and the auxilliary CRS structure
         // anymore, so free the memory
-        DELETEARRAY( iorder );
-        DELETEARRAY( rptr );
-        DELETEARRAY( cidx );
+        delete [] ( iorder );  iorder  = NULL;
+        delete [] ( rptr );  rptr  = NULL;
+        delete [] ( cidx );  cidx  = NULL;
 
         // Generate log message
         (*cla) << " Reordering: Re-ordered graph using Metis" << std::endl;

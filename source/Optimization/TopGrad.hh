@@ -3,6 +3,7 @@
 
 #include "Optimization/ShapeGrad.hh"
 #include "Optimization/ShapeOptimizer.hh"
+#include "Optimization/DesignElement.hh"
 #include "General/environment.hh"
 
 #include <boost/shared_ptr.hpp>
@@ -17,13 +18,17 @@ class LevelSet;
  *  @param elem_num the element number
  *  @param gradvalue value of gradient for this element
  * */
-class ElementValues {
+class ElementValues
+{
 public:
-  explicit ElementValues(const unsigned int number = 0, const double val = 0.0) : elem_num_(number), value_(val) { }
+  explicit ElementValues(const unsigned int number = 0, const double val = 0.0) : 
+    elem_num_(number),
+    value_(val)
+    { }
   ~ElementValues() {}
-  double GetValue() const { return value_; }
-  unsigned int GetElemNum() const { return elem_num_; }
-  void SetValue(const double val) { value_ = val; }
+  inline double GetValue() const { return value_; }
+  inline unsigned int GetElemNum() const { return elem_num_; }
+  inline void SetValue(const double val) { value_ = val; }
 
 private:
   unsigned int elem_num_;
@@ -31,20 +36,22 @@ private:
 };
 
 /** \class CompareElementValues 
- *  \brief Function object for sorting */
-struct CompareElementValues
+ *  \brief Function object for sorting ElementValues comparing their values */
+struct CompareElementValues :
+    public std::binary_function<ElementValues, ElementValues, bool>
 {
-  /// use for sorting a vector of ElementValues using std::sort
   bool operator()(const ElementValues &lhs, const ElementValues &rhs) const
   { return (lhs.GetValue() > rhs.GetValue()); }
-  /// non const version for sort
-  bool operator()(ElementValues &lhs, ElementValues &rhs)
-  { return (lhs.GetValue() > rhs.GetValue()); }
-  /// check if element from ElementValues is smaller than 0.0
+};
+
+/** \class CompareElementValuesWithZero 
+ *  \brief Function object for sorting ElementValues comparing their value to 0.0 */
+struct CompareElementValuesWithZero :
+    public std::unary_function<ElementValues, bool>
+{
   bool operator()(ElementValues &lhs) const
   { return (lhs.GetValue() < 0.0); }
 };
-
 
 struct FindElementValuesByNumber :
     public std::binary_function<ElementValues, unsigned int, bool>
@@ -58,7 +65,7 @@ struct FindElementValuesByNumber :
  *
  * This is an implementation of an optimization that uses the topological
  * derivative as means of finding the optimal distribution of material under
- * a given volume contstraint for different cost functions. */
+ * a given volume constraint for different cost functions. */
 class TopGrad
 {
 public:
@@ -95,11 +102,20 @@ public:
   void SolveProblem(const unsigned int iter, boost::shared_ptr<LevelSet> lsptr);
   /** contains the computation that are needed for both of the above methods */
   void SolveProblemCommon(const unsigned int iter);
+  
+  /** for testing the topology gradient with polarization matrix */
+  void SolvePoissonProblem(const unsigned int curr_iter);
 
   /** With given strain vectors, calculate the topgrad for element nr. e */
-  double CalcTopGradOnElement(const Vector<double> &forward_strain, const Vector<double> &adjoint_strain) const;
+  double CalcTopGradOnElement() const;
 
-  double getMaxVolumeToRemove() const { return max_volume_to_remove_; }
+  double CalcPoissonTopGradOnElement(const unsigned int e) const;
+  
+  /** helper function; walks over all elements, calcs the topgrad and adds to topGrads vector */
+  void CalcTopGrads(SubTensorType sub = PLANE_STRAIN,
+                    Optimization::Application app = Optimization::MECH);
+  
+  inline double getMaxVolumeToRemove() const { return max_volume_to_remove_; }
 
 private:
   /** forbid instance from standard ctor */
@@ -140,7 +156,7 @@ private:
 
   /** \var unsigned int elements_
   * \brief number of design elements, taken from designspace */
-  unsigned int elements_;
+  unsigned int numelems_;
 
   /** \var double lambda_
   * \brief Lame material parameter from xml file, read during construction */
@@ -150,7 +166,6 @@ private:
    * \brief Lame material parameter from xml file, read during construction */
   double mu_;
   
-  const double pi;
   double c2;
   double c3;
 
@@ -166,6 +181,14 @@ private:
   /** A list of all topological gradient values on each element;
   * we remove elements from this list in each iteration */
   std::vector<ElementValues> topGrads;
+  
+  std::vector<TopGradElement> elements;
+  
+  /** for convenience */
+  Vector<double> elem_forw;
+  Vector<double> elem_adj;
+  
+  Matrix<double> pol;
 
   /** \var ShapeGrad* optimization
    * \brief Reference to our optimization problem */

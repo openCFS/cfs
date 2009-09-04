@@ -27,9 +27,9 @@ namespace CoupledField {
   template <typename T>
   IC0Precond<T>::~IC0Precond() {
 
-    DELETEARRAY( rptrU_ );
-    DELETEARRAY( cidxU_ );
-    DELETEARRAY( dataU_ );
+    delete [] ( rptrU_ );
+    delete [] ( cidxU_ );
+    delete [] ( dataU_ );
   }
 
 
@@ -39,17 +39,14 @@ namespace CoupledField {
   template<typename T>
   void IC0Precond<T>::Setup( SCRS_Matrix<T> &sysmat ) {
 
-    PROFILE( (char*)"IC0Precond::Setup",
-             size_ * BlockSize<T>::size * BlockSize<T>::size );
-
     UInt nnzA = (size_ + sysmat.GetNnz() ) / 2;
 
     if ( amFactorised_ ) {
       // IC0 has lready beeen performed; now we have to do it again, since
       // the entries of the system matrix have changed )e.g. nonlinear analysis)
-      DELETEARRAY( rptrU_ );
-      DELETEARRAY( cidxU_ );
-      DELETEARRAY( dataU_ );
+      delete [] ( rptrU_ );  rptrU_  = NULL;
+      delete [] ( cidxU_ );  cidxU_  = NULL;
+      delete [] ( dataU_ );  dataU_  = NULL;
     }
 
     // Initialise internal data arrays
@@ -188,7 +185,7 @@ namespace CoupledField {
 
     } // end of while loop (to get postiv definite precond. matrix)
 
-    DELETEARRAY( Rk );
+    delete [] ( Rk );  Rk  = NULL;
     amFactorised_ = true;
   }
 
@@ -359,10 +356,6 @@ namespace CoupledField {
   template <typename T>
   void IC0Precond<T>::Apply( const SCRS_Matrix<T> &sysmat,
                              const Vector<T> &r, Vector<T> &z ) const {
-
-
-    PROFILE( (char*)"IC0Precond::Apply",
-             size_ * BlockSize<T>::size * BlockSize<T>::size );
 
     //set values of solution to RHS
     for (UInt k=0; k<size_; k++) {

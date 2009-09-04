@@ -80,7 +80,7 @@ namespace CoupledField {
     }
 
     // Destroy auxilliary vector
-    DELETEARRAY( auxVec );
+    delete [] ( auxVec );  auxVec  = NULL;
 
     // We do not expect the input matrix to be sorted in anyway
     currentLayout_ = UNSORTED;
@@ -269,11 +269,6 @@ namespace CoupledField {
   template<typename T>
   inline void CRS_Matrix<T>::Mult( const Vector<T> &mvec,
                                    Vector<T> &rvec ) const {
-
-
-    PROFILE( "CRS_Matrix::Mult", 2*this->nnz_*BlockSize<T>::size *
-             BlockSize<T>::size );
-
     UInt i, j, rs, k;
     T sum;
 
@@ -351,11 +346,6 @@ namespace CoupledField {
   template<typename T>
   inline void CRS_Matrix<T>::CompRes( Vector<T> &r, const Vector<T> &x,
                                       const Vector<T> &b ) const {
-
-
-    PROFILE("CRS_Matrix::CompRes",
-            (2*this->nnz_*BlockSize<T>::size + this->nrows_)
-            *BlockSize<T>::size);
 
     UInt i, j, rs, k;
     T sum;
@@ -465,7 +455,7 @@ namespace CoupledField {
      // write the tail
      col_ptr[this->ncols_] = this->nnz_;
 
-     DELETEARRAY(tmpInd);
+     delete [] (tmpInd); tmpInd = NULL;
   }
 
 
@@ -591,11 +581,43 @@ namespace CoupledField {
 
     // Try to determine index for matrix entry at position (i,j)
     // in the data_ array and add value
-    for ( UInt k = rowPtr_[i]; k < rowPtr_[i+1]; k++ ) {
-      if ( colInd_[k] == j ) {
-        found = true;
-        data_[k] += v;
-        break;
+    UInt l = rowPtr_[i];
+    UInt u = rowPtr_[i+1];
+    switch(currentLayout_){
+    case UNSORTED: // we have to search linearly here
+      for ( UInt k = l; k < u; k++ ) {
+        if ( colInd_[k] == j ) {
+          found = true;
+          data_[k] += v;
+          break;
+        }
+      }
+      break;
+    case LEX_DIAG_FIRST:
+      if(colInd_[l] == j){ // the diagonal exists
+        if(i == j){ // we want the diagonal
+          data_[j] += v;
+          found = true;
+          break;
+        }else{
+          l++; // we do not want the diagonal element, search all others
+        }
+      }
+      // Note: no break
+    case LEX:
+      // logarithmic search (this has complexity O(log(n)), n=u-l)
+      u--; //instead of UInt u = rowPtr_[i+1]-1;
+      while(l <= u){
+        UInt k = (l+u) >> 1;
+        if(colInd_[k] > j){
+          u = k-1;
+        }else if(colInd_[k] < j){
+          l = k+1;
+        }else{
+          data_[k] += v;
+          found = true;
+          break;
+        }
       }
     }
 
@@ -619,11 +641,43 @@ namespace CoupledField {
 
     // Try to determine index for matrix entry at position (i,j)
     // in the data_ array and get the entry
-    for ( UInt k = rowPtr_[i]; k < rowPtr_[i+1]; k++ ) {
-      if ( colInd_[k] == j ) {
-        found = true;
-        v = data_[k];
-        break;
+    UInt l = rowPtr_[i];
+    UInt u = rowPtr_[i+1];
+    switch(currentLayout_){
+    case UNSORTED: // we have to search linearly here
+      for ( UInt k = l; k < u; k++ ) {
+        if ( colInd_[k] == j ) {
+          found = true;
+          v = data_[k];
+          break;
+        }
+      }
+      break;
+    case LEX_DIAG_FIRST:
+      if(colInd_[l] == j){ // the diagonal exists
+        if(i == j){ // we want the diagonal
+          v = data_[j];
+          found = true;
+          break;
+        }else{
+          l++; // we do not want the diagonal element, search all others
+        }
+      }
+      // Note: no break
+    case LEX:
+      // logarithmic search (this has complexity O(log(n)), n=u-l)
+      u--; //instead of UInt u = rowPtr_[i+1]-1;
+      while(l <= u){
+        UInt k = (l+u) >> 1;
+        if(colInd_[k] > j){
+          u = k-1;
+        }else if(colInd_[k] < j){
+          l = k+1;
+        }else{
+          v = data_[k];
+          found = true;
+          break;
+        }
       }
     }
 
@@ -646,11 +700,43 @@ namespace CoupledField {
 
     // Try to determine index for matrix entry at position (i,j)
     // in the data_ array and set the value
-    for ( UInt k = rowPtr_[i]; k < rowPtr_[i+1]; k++ ) {
-      if ( colInd_[k] == j ) {
-        found = true;
-        data_[k] = v;
-        break;
+    UInt l = rowPtr_[i];
+    UInt u = rowPtr_[i+1];
+    switch(currentLayout_){
+    case UNSORTED: // we have to search linearly here
+      for ( UInt k = l; k < u; k++ ) {
+        if ( colInd_[k] == j ) {
+          found = true;
+          data_[k] = v;
+          break;
+        }
+      }
+      break;
+    case LEX_DIAG_FIRST:
+      if(colInd_[l] == j){ // the diagonal exists
+        if(i == j){ // we want the diagonal
+          data_[j] = v;
+          found = true;
+          break;
+        }else{
+          l++; // we do not want the diagonal element, search all others
+        }
+      }
+      // Note: no break
+    case LEX:
+      // logarithmic search (this has complexity O(log(n)), n=u-l)
+      u--; //instead of UInt u = rowPtr_[i+1]-1;
+      while(l <= u){
+        UInt k = (l+u) >> 1;
+        if(colInd_[k] > j){
+          u = k-1;
+        }else if(colInd_[k] < j){
+          l = k+1;
+        }else{
+          data_[k] = v;
+          found = true;
+          break;
+        }
       }
     }
 
@@ -665,11 +751,37 @@ namespace CoupledField {
     // position, we do also insert the counterpart
     if ( i != j && setCounterPart == true ) {
       found = false;
-      for ( UInt k = rowPtr_[j]; k < rowPtr_[j+1]; k++ ) {
-        if ( colInd_[k] == i ) {
-          found = true;
-          data_[k] = v;
-          break;
+      UInt l = rowPtr_[j];
+      UInt u = rowPtr_[j+1];
+      switch(currentLayout_){
+      case UNSORTED: // we have to search linearly here
+        for ( UInt k = l; k < u; k++ ) {
+          if ( colInd_[k] == i ) {
+            found = true;
+            data_[k] = v;
+            break;
+          }
+        }
+        break;
+      case LEX_DIAG_FIRST:
+        if(colInd_[l] == i){ // the diagonal exists
+          l++; // we do not want the diagonal element, search all others (i != j from above)
+        }
+        // Note: no break
+      case LEX:
+        // logarithmic search (this has complexity O(log(n)), n=u-l)
+        u--; //instead of UInt u = rowPtr_[i+1]-1;
+        while(l <= u){
+          UInt k = (l+u) >> 1;
+          if(colInd_[k] > i){
+            u = k-1;
+          }else if(colInd_[k] < i){
+            l = k+1;
+          }else{
+            data_[k] = v;
+            found = true;
+            break;
+          }
         }
       }
 
@@ -740,22 +852,14 @@ namespace CoupledField {
   template<typename T>
   void CRS_Matrix<T>::Add( const Double alpha, const StdMatrix& mat ) {
 
-    TRY_CAST {
-
-      // Down-cast input matrix
-      CONSTREFCAST( mat, CRS_Matrix<T>, crsMat );
-
       // Obtain pointer to data array of other matrix
-      const T *data = crsMat.GetDataPointer();
+      const T *data = dynamic_cast<const CRS_Matrix<T>&>(mat).GetDataPointer();
 
       // We now assume that the matrices have matching
       // dimensions and sparsity patterns
       for ( UInt i = 0; i < this->nnz_; i++ ) {
         data_[i] += alpha * data[i];
       }
-
-    } CATCH_CAST;
-
   }
 
   template<>
@@ -764,41 +868,25 @@ namespace CoupledField {
     // Check for entry type of mat
 	BaseMatrix::EntryType eType = mat.GetEntryType();
 
-    if( eType == BaseMatrix::DOUBLE ) {
-      TRY_CAST {
+	if( eType == BaseMatrix::DOUBLE ) {
+	  // Obtain pointer to data array of other matrix
+	  const Double *data = dynamic_cast<const CRS_Matrix<Double>&>(mat).GetDataPointer();
 
-        // Down-cast input matrix
-        CONSTREFCAST( mat, CRS_Matrix<Double>, crsMat );
+	  // We now assume that the matrices have matching
+	  // dimensions and sparsity patterns
+	  for ( UInt i = 0; i < this->nnz_; i++ ) {
+	    data_[i] += alpha * Complex(data[i], 0.0 );
+	  }
+	} else {
+	  // Obtain pointer to data array of other matrix
+	  const Complex * data = dynamic_cast<const CRS_Matrix<Complex>&>(mat).GetDataPointer();
 
-        // Obtain pointer to data array of other matrix
-        const Double *data = crsMat.GetDataPointer();
-
-        // We now assume that the matrices have matching
-        // dimensions and sparsity patterns
-        for ( UInt i = 0; i < this->nnz_; i++ ) {
-          data_[i] += alpha * Complex(data[i], 0.0 );
-        }
-
-      } CATCH_CAST;
-
-    } else {
-      TRY_CAST {
-
-        // Down-cast input matrix
-        CONSTREFCAST( mat, CRS_Matrix<Complex>, crsMat );
-
-        // Obtain pointer to data array of other matrix
-        const Complex * data = crsMat.GetDataPointer();
-
-        // We now assume that the matrices have matching
-        // dimensions and sparsity patterns
-        for ( UInt i = 0; i < this->nnz_; i++ ) {
-          data_[i] += alpha * data[i];
-        }
-
-      } CATCH_CAST;
-    }
-
+	  // We now assume that the matrices have matching
+	  // dimensions and sparsity patterns
+	  for ( UInt i = 0; i < this->nnz_; i++ ) {
+	    data_[i] += alpha * data[i];
+	  }
+	}
   }
 
 
@@ -1004,8 +1092,8 @@ namespace CoupledField {
     this->ncols_ = ncols;
     if ( this->nrows_ != nrows ) {
       this->nrows_ = nrows;
-      DELETEARRAY( rowPtr_  );
-      DELETEARRAY( diagPtr_ );
+      delete [] ( rowPtr_  );  rowPtr_   = NULL;
+      delete [] ( diagPtr_ );  diagPtr_  = NULL;
       NEWARRAY( rowPtr_ , UInt, this->nrows_ + 1 );
       NEWARRAY( diagPtr_, UInt, this->nrows_     );
       rowPtr_[0]  = 0;
@@ -1015,8 +1103,8 @@ namespace CoupledField {
 
     if ( this->nnz_ != nnz ) {
       this->nnz_ = nnz;
-      DELETEARRAY( colInd_ );
-      DELETEARRAY( data_ );
+      delete [] ( colInd_ );  colInd_  = NULL;
+      delete [] ( data_ );  data_  = NULL;
       NEWARRAY( colInd_, UInt, this->nnz_ );
       NEWARRAY( data_, T, this->nnz_ );
     }

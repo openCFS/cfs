@@ -45,8 +45,8 @@ namespace CoupledField {
   //   Deep Constructor
   // ********************
   Lapack_LL::~Lapack_LL() {
-    DELETEARRAY( lapackRHS_ );
-    DELETEARRAY( facMat_ );
+    delete [] ( lapackRHS_ );
+    delete [] ( facMat_ );
   }
 
 
@@ -66,42 +66,33 @@ namespace CoupledField {
       << sysMat.GetNumRows() << " x " << sysMat.GetNumCols()
       << " matrix" << std::endl;
     }
+    
+    StdMatrix& stdMat = dynamic_cast<StdMatrix&>(sysMat);
 
-    TRY_CAST {
+    // Check that we have the correct matrix type
+    BaseMatrix::StorageType mtype = stdMat.GetStorageType();
+    if ( mtype != BaseMatrix::SPARSE_SYM ) {
+      EXCEPTION("Lapack_LL: Expected a sparseSym matrix, but got a "
+          << BaseMatrix::storageType.ToString( mtype ) << " matrix");
+    }
 
-      // Down-cast matrix to standard matrix
-      REFCAST( sysMat, StdMatrix, stdMat );
+    // Get the entry type to figure out which Factorisation method to call
+    BaseMatrix::EntryType etype = stdMat.GetEntryType();
 
-      // Check that we have the correct matrix type
-      BaseMatrix::StorageType mtype = stdMat.GetStorageType();
-      if ( mtype != BaseMatrix::SPARSE_SYM ) {
-        EXCEPTION("Lapack_LL: Expected a sparseSym matrix, but got a "
-            << BaseMatrix::storageType.ToString( mtype ) << " matrix");
-      }
+    // Call appropriate factorisation routine
+    switch( etype ) {
 
-      // Get the entry type to figure out which Factorisation method to call
-      BaseMatrix::EntryType etype = stdMat.GetEntryType();
+    case BaseMatrix::DOUBLE:
+      FactoriseReal( stdMat );
+      break;
 
-      // Call appropriate factorisation routine
-      switch( etype ) {
+    case BaseMatrix::COMPLEX:
+      FactoriseComplex( stdMat );
+      break;
 
-        case BaseMatrix::DOUBLE:
-          TRY_CAST {
-            FactoriseReal( stdMat );
-          } CATCH_CAST;
-          break;
-
-        case BaseMatrix::COMPLEX:
-          TRY_CAST {
-            FactoriseComplex( stdMat );
-          } CATCH_CAST;
-          break;
-
-      default:
-        EXCEPTION("Matrix entry type is neither real nor complex!");
-      }
-
-    } CATCH_CAST;
+    default:
+      EXCEPTION("Matrix entry type is neither real nor complex!");
+    }
 
     // now we have a (new) factorisation
     amFactorised_ = true;
@@ -133,7 +124,7 @@ namespace CoupledField {
     int  lp_info = 0;
 
     // Down-cast matrix to special format
-    REFCAST( stdMat, SCRS_Matrix<Double>, scrsMat );
+    SCRS_Matrix<Double>& scrsMat = dynamic_cast<SCRS_Matrix<Double>&>(stdMat);
 
     // Get hold of column index array
     const UInt *cidx = scrsMat.GetColPointer();
@@ -213,7 +204,7 @@ namespace CoupledField {
       }
       else {
         if ( facMatEntries_ > facMatCapacity_ ) {
-          DELETEARRAY( facMat_ );
+          delete [] ( facMat_ );  facMat_  = NULL;
           NEWARRAY( facMat_, Double, facMatEntries_ );
           facMatCapacity_ = facMatEntries_;
         }
@@ -287,7 +278,7 @@ namespace CoupledField {
     int  lp_info = 0;
 
     // Down-cast matrix to special format
-    REFCAST( stdMat, SCRS_Matrix<Complex>, scrsMat );
+    SCRS_Matrix<Complex>& scrsMat = dynamic_cast<SCRS_Matrix<Complex>&>(stdMat);
 
     // Get hold of column index array
     const UInt *cidx = scrsMat.GetColPointer();
@@ -368,7 +359,7 @@ namespace CoupledField {
       }
       else {
         if ( 2 * facMatEntries_ > facMatCapacity_ ) {
-          DELETEARRAY( facMat_ );
+          delete [] ( facMat_ );  facMat_  = NULL;
           NEWARRAY( facMat_, Double, 2 * facMatEntries_ );
           facMatCapacity_ = 2 * facMatEntries_;
         }
@@ -460,37 +451,32 @@ namespace CoupledField {
       }
     }
 
-    TRY_CAST {
+    const StdMatrix& stdMat = dynamic_cast<const StdMatrix&>(sysMat);
 
-      // Down-cast matrix to standard matrix
-      CONSTREFCAST( sysMat, StdMatrix, stdMat );
+    // Check that we have the correct matrix type
+    BaseMatrix::StorageType mtype = stdMat.GetStorageType();
+    if ( mtype != BaseMatrix::SPARSE_SYM ) {
+      EXCEPTION("Lapack_LL: Expected a sparseSym matrix, but got a "
+          << BaseMatrix::storageType.ToString( mtype ) << " matrix");
+    }
 
-      // Check that we have the correct matrix type
-      BaseMatrix::StorageType mtype = stdMat.GetStorageType();
-      if ( mtype != BaseMatrix::SPARSE_SYM ) {
-        EXCEPTION("Lapack_LL: Expected a sparseSym matrix, but got a "
-            << BaseMatrix::storageType.ToString( mtype ) << " matrix");
-      }
+    // Get the entry type to figure out which Factorization method to call
+    BaseMatrix::EntryType etype = stdMat.GetEntryType();
 
-      // Get the entry type to figure out which Factorization method to call
-      BaseMatrix::EntryType etype = stdMat.GetEntryType();
+    // Call appropriate solution routine
+    switch( etype ) {
 
-      // Call appropriate solution routine
-      switch( etype ) {
+    case BaseMatrix::DOUBLE:
+      SolveReal( rhs, sol );
+      break;
 
-      case BaseMatrix::DOUBLE:
-        SolveReal( rhs, sol );
-        break;
+    case BaseMatrix::COMPLEX:
+      SolveComplex( rhs, sol );
+      break;
 
-      case BaseMatrix::COMPLEX:
-        SolveComplex( rhs, sol );
-        break;
-
-      default:
-        EXCEPTION("Matrix entry type is neither real nor complex!");
-      }
-
-    } CATCH_CAST;
+    default:
+      EXCEPTION("Matrix entry type is neither real nor complex!");
+    }
 
     // Report to logfile
     if ( logging == true ) {
@@ -516,11 +502,8 @@ namespace CoupledField {
     int  lp_ldb  = lp_n;
     int  lp_info = 0;
 
-    TRY_CAST {
-
-      // Down-cast the vectors
-      CONSTREFCAST( rhs, Vector<Double>, myRHS );
-      REFCAST( sol, Vector<Double>, mySol );
+    const Vector<Double>& myRHS = dynamic_cast<const Vector<Double>&>(rhs);
+    Vector<Double>& mySol = dynamic_cast<Vector<Double>&>(sol);
 
       // Get data pointers
       const Double *dataRHS = myRHS.GetPointer();
@@ -529,7 +512,7 @@ namespace CoupledField {
       // See, whether we need to allocate storage for the
       // right-hand side array
       if ( (int) lapackRHSCapacity_ < lp_n ) {
-        DELETEARRAY( lapackRHS_ );
+        delete [] ( lapackRHS_ );  lapackRHS_  = NULL;
         NEWARRAY( lapackRHS_, Double, lp_n );
         lapackRHSCapacity_ = lp_n;
       }
@@ -553,9 +536,6 @@ namespace CoupledField {
       for ( i = 1; i <= lp_n; i++ ) {
         dataSol[i] = lapackRHS_[i];
       }
-
-    } CATCH_CAST;
-
   }
 
 
@@ -576,11 +556,8 @@ namespace CoupledField {
     int  lp_ldb  = lp_n;
     int  lp_info = 0;
 
-    TRY_CAST {
-
-      // Down-cast the vectors
-      CONSTREFCAST( rhs, Vector<Complex>, myRHS );
-      REFCAST( sol, Vector<Complex>, mySol );
+    const Vector<Complex>& myRHS = dynamic_cast<const Vector<Complex>&>(rhs);
+    Vector<Complex>& mySol = dynamic_cast<Vector<Complex>&>(sol);
 
       // Get data pointers
       const Complex *dataRHS = myRHS.GetPointer();
@@ -589,7 +566,7 @@ namespace CoupledField {
       // See, whether we need to allocate storage for the
       // right-hand side array
       if ( (int) lapackRHSCapacity_ < 2 * lp_n ) {
-        DELETEARRAY( lapackRHS_ );
+        delete [] ( lapackRHS_ );  lapackRHS_  = NULL;
         NEWARRAY( lapackRHS_, Double, 2 * lp_n );
         lapackRHSCapacity_ = 2 * lp_n;
       }
@@ -615,9 +592,5 @@ namespace CoupledField {
         Complex aux( lapackRHS_[2*i-1], lapackRHS_[2*i]  );
         dataSol[i] = aux;
       }
-
-    } CATCH_CAST;
-
   }
-
 }

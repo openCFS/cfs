@@ -74,14 +74,14 @@ void SIMP::PostInit()
   assert(mech_mat_ != NULL);
 }
 
-void SIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* out, CalcMode calcMode)
+void SIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative)
 {
-  if(harmonic) SetElementK<std::complex<double> >(de, app, out, calcMode);
-  else SetElementK<double>(de, app, out, calcMode);
+  if(harmonic) SetElementK<std::complex<double> >(de, app, out, calcMode, derivative);
+  else SetElementK<double>(de, app, out, calcMode, derivative);
 }
 
 template <class T>
-void SIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* mat_out, CalcMode calcMode)
+void SIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative)
 {
   Matrix<T>& out = dynamic_cast<Matrix<T>& >(*mat_out);
 
@@ -90,11 +90,10 @@ void SIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* mat_out,
   case MECH:
   {
     const Matrix<double> mechStiffness = mech_mat_->MechStiffness(de->elem);
-    out.Resize(mechStiffness.GetNumRows(), mechStiffness.GetNumCols());
-
+    
     // Find the transferfunction for K (e.g. DENSITY, MECH)
     TransferFunction* tf = design->GetTransferFunction(de->GetType(), app);
-    double k_factor = tf->Derivative(de);
+    double k_factor = derivative ? tf->Derivative(de) : tf->Transform(de);
 
     // copy from real mechStiffness to potential complex out and factor the derivative
     Assign(out, mechStiffness, k_factor);
@@ -130,26 +129,28 @@ void SIMP::AddMassToStiffness(double m_factor, DesignElement* de, Matrix<complex
   assert(S.GetNumRows() == M.GetNumRows() && S.GetNumCols() == M.GetNumCols());
 
   // find alpha, beta and omega
-  double omega = 2.0 * M_PI * mech->GetSolveStep()->GetActFreq() ;  // todo: check with multiple excitation frequencies!
+  double omega = 2.0 * M_PI * pde->GetSolveStep()->GetActFreq() ;  // todo: check with multiple excitation frequencies!
   double alpha_k = 0.0;
   double alpha_m  = 0.0;
 
   // do we have damping (C = alpha*M+beta*K) -> this is pure imaginary!
   RegionIdType regionId = de->elem->regionId;
-  if(mech->GetDampingList().find(regionId) != mech->GetDampingList().end()
-      && mech->GetDampingList().find(regionId)->second == RAYLEIGH)
+  
+  const std::map<RegionIdType,DampingType>& dlist(dynamic_cast<MechPDE*>(pde)->GetDampingList());
+  if(dlist.find(regionId) != dlist.end()
+      && dlist.find(regionId)->second == RAYLEIGH)
   {
     // we need a math parser (is an unsigned int)
     unsigned int handle = domain->GetMathParser()->GetNewHandle();
 
     // the alpha and beta might be calculated and adjusted, get them
     // from the integrators in the form as they are used for the state problem!
-    std::string txt = assemble_->GetBiLinForm(regionId, mech, mech, "linElastInt")->GetSecMatFac();
+    std::string txt = assemble_->GetBiLinForm(regionId, pde, pde, "linElastInt")->GetSecMatFac();
     domain->GetMathParser()->SetExpr(handle, txt);
     alpha_k = domain->GetMathParser()->Eval(handle);
 
     // now alpha_m
-    txt = assemble_->GetBiLinForm(regionId, mech, mech, "MassInt")->GetSecMatFac();
+    txt = assemble_->GetBiLinForm(regionId, pde, pde, "MassInt")->GetSecMatFac();
     domain->GetMathParser()->SetExpr(handle, txt);
     alpha_m = domain->GetMathParser()->Eval(handle);
 
@@ -157,25 +158,27 @@ void SIMP::AddMassToStiffness(double m_factor, DesignElement* de, Matrix<complex
     assert(omega > 0 && alpha_k > 0 && alpha_m > 0);
   }
 
+	const unsigned int srows(S.GetNumRows());
+	const unsigned int scols(S.GetNumCols());
   // we first add the K part of C (= pure imaginary)
-  for(unsigned int r = 0; r < S.GetNumRows(); r++)
-    for(unsigned int c = 0; c < S.GetNumCols(); c++)
+  for(unsigned int r = 0; r < srows; r++)
+    for(unsigned int c = 0; c < scols; c++)
       S[r][c] = complex<double>(S[r][c].real(), omega * alpha_k * S[r][c].real());
 
   // we the add the M part of C and the real mass part
   complex<double> damp_mass = complex<double>(-1.0 *omega*omega*m_factor, omega*alpha_m*m_factor);
-  for(unsigned int r = 0; r < S.GetNumRows(); r++)
-    for(unsigned int c = 0; c < S.GetNumCols(); c++)
+  for(unsigned int r = 0; r < srows; r++)
+    for(unsigned int c = 0; c < scols; c++)
       S[r][c] += damp_mass * M[r][c];
 
   LOG_DBG2(simp) << "AddMassToStiffness: m_factor:" << m_factor << " alpha_k: " << alpha_k << " alpha_m: " << alpha_m
                  << " omega: " << omega << " K_img: " << (omega * alpha_k) << " damp_mass: " << damp_mass;
 }
 
-double SIMP::CalcObjective(Excitation& excite)
+double SIMP::CalcObjective(Excitation& excite, Objective* cost)
 {
   // we have no own objectives
-  return ErsatzMaterial::CalcObjective(excite);
+  return ErsatzMaterial::CalcObjective(excite, cost);
 }
   
 void SIMP::ConstructAdjointRHS(Excitation& excite)
@@ -183,7 +186,7 @@ void SIMP::ConstructAdjointRHS(Excitation& excite)
   ErsatzMaterial::ConstructAdjointRHS(excite);
 }
 
-void SIMP::CalcObjectiveGradient(Excitation& excite)
+void SIMP::CalcObjectiveGradient(Excitation& excite, Objective* cost)
 {
   TransferFunction* tf = design->GetTransferFunction(DesignElement::DENSITY, MECH, true);
 
@@ -192,25 +195,25 @@ void SIMP::CalcObjectiveGradient(Excitation& excite)
   LOG_DBG(simp) << "CalcObjectiveGradient(idx=" << excite.index << ") norm_weight= " <<  excite.normalized_weight
                 << " factor=" << excite.GetFactor(cost) << " weight=" << weight;
 
-  switch(cost->type)
+  switch(cost->GetType())
   {
-  case GLOBAL_DYNAMIC_COMPLIANCE:
+  case Objective::GLOBAL_DYNAMIC_COMPLIANCE:
     // synthesis of compliant mechanism: As our adjoint PDE
     // c' = l K' u
-    CalcU1KU2(tf, adjoint.data[idx]->elem[MECH], MECH, forward.data[idx]->elem[MECH], NULL, weight);
+    CalcU1KU2(tf, adjoint.data[idx]->elem[MECH], MECH, forward.data[idx]->elem[MECH], NULL, weight, STANDARD, cost, NULL);
     break;
 
-  case OUTPUT:
-  case DYNAMIC_OUTPUT:
-  case CONJUGATE_COMPLIANCE:
-  case ABS_DYN_OUTPUT_SQUARED:
+  case Objective::OUTPUT:
+  case Objective::DYNAMIC_OUTPUT:
+  case Objective::CONJUGATE_COMPLIANCE:
+  case Objective::ABS_DYN_OUTPUT_SQUARED:
     // synthesis of compliant mechanism: As our adjoint PDE
     // c' = l K' u
-    CalcU1KU2(tf, adjoint.data[idx]->elem[MECH], MECH, forward.data[idx]->elem[MECH], NULL, weight);
+    CalcU1KU2(tf, adjoint.data[idx]->elem[MECH], MECH, forward.data[idx]->elem[MECH], NULL, weight, STANDARD, cost, NULL);
     break;
 
   default:
-    ErsatzMaterial::CalcObjectiveGradient(excite);
+    ErsatzMaterial::CalcObjectiveGradient(excite, cost);
   }
 }
 

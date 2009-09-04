@@ -23,10 +23,12 @@
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/ansatzFct.hh"
+#include "Domain/domain.hh"
 
 #include "Driver/stdSolveStep.hh"
 #include "Driver/assemble.hh"
 #include "CoupledPDE/pdecoupling.hh"
+#include "Optimization/DesignSpace.hh"
 
 
 namespace CoupledField {
@@ -103,7 +105,7 @@ void HeatCondPDE::ReadSpecialBCs() {
   // iterate over all parameter nodes
   for( UInt i = 0; i < rbcNodes.GetSize(); i++ ) {
     try {
-      myDof = "";
+      myDof.clear();
       rbcNodes[i]->Get( "name", myName );
       rbcNodes[i]->Get( "entityType", myType );
       rbcNodes[i]->Get( "heatTransferCoefficient", myHTC );
@@ -120,7 +122,7 @@ void HeatCondPDE::ReadSpecialBCs() {
       actBc->entities = actList;
       actBc->result = results_[0];
       actBc->eqnMap = eqnMap_;
-      if( myDof  == "" ) {
+      if( myDof.empty() ) {
         actBc->dof = 1;
       } else {
         actBc->dof = results_[0]->GetDofIndex( myDof );
@@ -138,10 +140,9 @@ void HeatCondPDE::ReadSpecialBCs() {
   }
 }
 
-void HeatCondPDE::DefineIntegrators() {
-
-  Double density, heatCapacity, thermalConductivity;
-  Double coeffmass, coeffstiff;
+void HeatCondPDE::DefineIntegrators()
+{
+  Double density, heatCapacity;
   Matrix<Double> thermalConductivityTensor;
 
   //type of geometry
@@ -150,14 +151,14 @@ void HeatCondPDE::DefineIntegrators() {
 
   // convert to tensor type
   SubTensorType tensorType = FULL;
-  if (geometryType == "3d") {
-    tensorType = FULL;
-  } else if (geometryType == "plane") {
+  if (geometryType == "plane") {
     tensorType = PLANE_STRAIN;
   } else if (geometryType == "axi") {
     tensorType = AXI;
     isaxi_ = true;
   }
+  else
+    EXCEPTION("subtensortype not implemented");
 
   // loop over all subdomains
   for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++) {
@@ -176,28 +177,27 @@ void HeatCondPDE::DefineIntegrators() {
     // ====================================================================
 
     BaseForm *bilinearStiff = NULL;
-    if( actMat->IsSet(HEAT_CONDUCTIVITY) ) {
-
+    if( actMat->IsSet(HEAT_CONDUCTIVITY) )
+    {
+      Double coeffstiff(0.0);
       // stiffness integrator for isotropic material
-      actMat->GetScalar(thermalConductivity,HEAT_CONDUCTIVITY,Global::REAL);
+      actMat->GetScalar(coeffstiff,HEAT_CONDUCTIVITY,Global::REAL);
 
-      coeffstiff = thermalConductivity;
-      bilinearStiff = new LaplaceInt(coeffstiff,isaxi_, true );
+      bilinearStiff = new LaplaceInt(coeffstiff, isaxi_, true );
 
-      Info->PrintF( pdename_,
-          "Assemble Laplace integrator with multiplicative factor %6.1f.\n", coeffstiff );
-
-    } else if( actMat->IsSet(HEAT_CONDUCTIVITY_TENSOR) ) {
-
+      Info->PrintF( pdename_, "Assemble Laplace integrator with multiplicative factor %6.1f.\n", coeffstiff );
+    }
+    
+    if( actMat->IsSet(HEAT_CONDUCTIVITY_TENSOR) )
+    {
       bilinearStiff = new linHeatCondInt( actMat, tensorType, true );
     }
+    assert(bilinearStiff != NULL);
 
-    BiLinFormContext * stiffContext =
-      new BiLinFormContext(bilinearStiff, STIFFNESS );
+    BiLinFormContext * stiffContext = new BiLinFormContext(bilinearStiff, STIFFNESS );
 
     stiffContext->SetPtPdes(this, this);
-    stiffContext->SetResults( results_[0], results_[0],
-        actSDList, actSDList );
+    stiffContext->SetResults( results_[0], results_[0], actSDList, actSDList );
 
     // Finally add the standard integrators - stiffness
     assemble_->AddBiLinearForm( stiffContext );
@@ -206,7 +206,7 @@ void HeatCondPDE::DefineIntegrators() {
     // ====================================================================
     // mass integrator
     // ====================================================================
-    coeffmass = density * heatCapacity;
+    Double coeffmass(density * heatCapacity);
 
     if (isElectroCoupled_ == false && isMechCoupled_ == false ) {
 
@@ -328,13 +328,13 @@ void HeatCondPDE::DefineIntegrators() {
     myParam_->Get("bcsAndLoads")->GetList("rhsValues");
 
   bool isharmonic;
-  std::string rhsRegion, rhsFileId = "default";
+  std::string rhsFileId = "default";
 
   try {
     // iterate over all parameter nodes
-    for( UInt i = 0; i < rhsValuesNodes.GetSize(); i++ ) {
-
-      rhsRegion = rhsValuesNodes[i]->Get("region")->AsString();
+    for( UInt i = 0; i < rhsValuesNodes.GetSize(); i++ )
+    {
+      std::string rhsRegion(rhsValuesNodes[i]->Get("region")->AsString());
       rhsValuesNodes[i]->Get("isharmonic", isharmonic, true);
       //rhsFileId = rhsValuesNodes[i]->Get("inputId")->AsString();
 
@@ -364,7 +364,9 @@ void HeatCondPDE::DefineIntegrators() {
       sourceRHSContext->SetResult( results_[0], rhsElemList );
       assemble_->AddLinearForm( sourceRHSContext );
     }
-  } catch(Exception & ex){
+  }
+  catch(Exception & ex)
+  {
     RETHROW_EXCEPTION(ex, "Could not assemble RHS source integrator"
         <<" in HeatCondPDE" );
   }
@@ -411,8 +413,10 @@ void HeatCondPDE::InitCoupling(PDECoupling * Coupling) {
 }
 
 
-void HeatCondPDE::CalcOutputCoupling() {
-
+void HeatCondPDE::CalcOutputCoupling()
+{
+  EXCEPTION("CalcOutputCoupling not implemented!");
+  
   //     UInt dof;
   //     SolutionType quantity;
   //     StdVector<Elem*> * couplingElems = NULL;
@@ -459,6 +463,19 @@ void HeatCondPDE::CalcResults( shared_ptr<BaseResult> result ) {
     } else {
       ExtractRhsResult<Double>( result, results_[0] );
     }
+    break;
+    
+  case OPT_RESULT_1:
+  case OPT_RESULT_2:
+  case OPT_RESULT_3:
+  case OPT_RESULT_4:
+  case OPT_RESULT_5:
+  case OPT_RESULT_6:
+  case OPT_RESULT_7:
+  case OPT_RESULT_8:
+  case OPT_RESULT_9:
+    // design should work, this is checked in AvailabeResults()
+    domain->GetErsatzMaterial()->ExtractResults(result, isComplex_);
     break;
 
   default:

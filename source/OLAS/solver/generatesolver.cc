@@ -5,6 +5,7 @@
 #include <def_use_ilupack.hh>
 #include <def_use_lapack.hh>
 #include <def_use_pardiso.hh>
+#include <def_use_cholmod.hh>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
@@ -22,6 +23,10 @@
 
 #ifdef USE_ILUPACK
 #include "OLAS/external/ilupack/Ilupack.hh"
+#endif
+
+#ifdef USE_CHOLMOD
+#include "OLAS/external/cholmod/CholMod.hh"
 #endif
 
 // include source code for templated solvers
@@ -179,17 +184,7 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
     // Get block size of matrix entries (we need an StdMatrix for this,
     // but, if it's not, an LDL_Solver makes no sense anyhow)
   {
-    // TODO: Check if this is still needed
-    // Integer bSize = 0;
-    // TRY_CAST {
-    //  CONSTREFCAST( mat, StdMatrix, stdMat );
-    // }
-    // CATCH_CAST;
-
-
-
-
-    SOLVER_OBJ( BaseMatrix::DOUBLE,   LDLSolver<Double>      );
+    SOLVER_OBJ( BaseMatrix::DOUBLE,   LDLSolver<Double>  );
     SOLVER_OBJ( BaseMatrix::COMPLEX,  LDLSolver<Complex> );
   }
   break;
@@ -303,6 +298,25 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
   EXCEPTION("Compile with USE_ILUPACK to enable interface to ilupack");
 #endif
   break;
+  
+  case CHOLMOD:
+#ifdef USE_CHOLMOD
+  {
+    if(mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX || dynamic_cast<const StdMatrix &>(mat).GetStorageType() != BaseMatrix::SPARSE_SYM){
+      EXCEPTION("CholMod only works with SCRS_Matrix class!");
+    }
+    if(eType == BaseMatrix::DOUBLE){
+      retSolver = new CholMod<Double>(solver_xml, olasInfo, eType);
+      (*cla) << " GenerateSolver: Generated real CholMod solver" << std::endl;
+    }else if(eType == BaseMatrix::COMPLEX){
+      retSolver = new CholMod<Complex>(solver_xml, olasInfo, eType);
+      (*cla) << " GenerateSolver: Generated complex CholMod solver" << std::endl;
+    }
+  }
+#else
+    EXCEPTION("Compile with USE_CHOLMOD to enable interface to CholMod");
+#endif
+    break;
 
   default:
     EXCEPTION("GenerateSolver: Request for unknown solver type!");
@@ -310,6 +324,8 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
 
   // Check for unsupported matrix entry type
   if (retSolver == NULL ) EXCEPTION("unhandled type " << eType);
+
+  retSolver->PostInit();
 
   return retSolver;
 }

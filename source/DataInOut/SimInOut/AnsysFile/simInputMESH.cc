@@ -181,7 +181,7 @@ namespace CoupledField {
     //    indices.resize(names.GetSize());
     GetNamedNodes( indices, nodeNames );
 
-    names.Resize(0);
+    names.Clear();
     for(UInt i = 0; i<nodeNames.size(); i++)
       names.Push_back(nodeNames[i]);
 
@@ -195,7 +195,7 @@ namespace CoupledField {
     indices.clear();
     GetNamedElems( indices, elemNames );
 
-    names.Resize(0);
+    names.Clear();
     for(UInt i = 0; i<elemNames.size(); i++)
       names.Push_back(elemNames[i]);
 
@@ -276,7 +276,7 @@ namespace CoupledField {
       regionNames.Clear();
 
       for ( UInt iDim=dim_; iDim>0; iDim-- ) {
-        names.Resize(0);
+        names.Clear();
         GetRegionNamesOfDim(names,iDim);
         for ( UInt iName=0; iName<names.GetSize(); iName++ )
           regionNames.Push_back(names[iName]);
@@ -330,7 +330,7 @@ namespace CoupledField {
   void SimInputMESH::GetRegionNamesOfDim( StdVector<std::string> & regionNames,
                                        const UInt dim ) {
     
-    regionNames.Resize(0);
+    regionNames.Clear();
 
     // Check if elements of desired dimension were read in. If not,
     // read them in into dummy variables
@@ -358,7 +358,7 @@ namespace CoupledField {
     std::vector<std::string> sections;
     std::vector<UInt> numNamedNodes;
     
-    nodeNames.Resize(0);
+    nodeNames.Clear();
     sections.push_back("Node BC");
     sections.push_back("Save Nodes");
     numNamedNodes.resize(2);
@@ -390,7 +390,7 @@ namespace CoupledField {
     UInt elemNum, numNamedElems;
     UInt i;
     
-    elemNames.Resize(0);
+    elemNames.Clear();
     numNamedElems = GetInteger("NumSaveElements");
     
     GetPosLine("[Save Elements]", pos);

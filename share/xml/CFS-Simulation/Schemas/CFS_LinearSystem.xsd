@@ -151,6 +151,7 @@
           <xsd:enumeration value="directLDL"/>
           <xsd:enumeration value="pardiso"/>
           <xsd:enumeration value="ilupack"/>
+          <xsd:enumeration value="cholmod"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>

@@ -188,7 +188,7 @@ piezoParamIdent::~piezoParamIdent() {
     inMechMess_.close();
 }
 
-void piezoParamIdent::SolveProblem(bool write_results, InfoNode* given_analysis_id) {
+void piezoParamIdent::SolveProblem(bool write_results, InfoNode* given_analysis_id, const bool reAssembleMatrices) {
 
   ResultHandler * resHandler = domain->GetResultHandler();
   InitializePDEs();
@@ -706,7 +706,8 @@ void piezoParamIdent::SolveProblem(bool write_results, InfoNode* given_analysis_
   if ((CalcImpedanceCurve_ == true || CalcMechDisplCurve_ == true)
       && maxNumberNewtonLoops_!=0) {
     writeResults_=true;
-    Vector<Double> freqsTemp = freqs_;
+    Vector<Double> freqsTemp(freqs_);
+    freqs_.Clear(); // this is necessary to prevent a memory fault in debug mode! ??!
     freqs_.Resize(nrfreq_);
     Double freqincr=(stopfreq_-startfreq_)/nrfreq_;
     for (UInt i=0; i<nrfreq_; i++) {

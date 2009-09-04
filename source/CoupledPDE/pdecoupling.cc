@@ -694,28 +694,16 @@ namespace CoupledField
 
     // resize vector with coupling values
     outputInterfaces_[i]->values->Resize(dof*size);
+    outputInterfaces_[i]->values->Init( );
     outputInterfaces_[i]->oldValues->Resize(dof*size);
+    outputInterfaces_[i]->oldValues->Init( );
     outputInterfaces_[i]->values_tn_1->Resize(dof*size);
+    outputInterfaces_[i]->values_tn_1->Init();
     outputInterfaces_[i]->values_tn_2->Resize(dof*size);
+    outputInterfaces_[i]->values_tn_2->Init();
     outputInterfaces_[i]->values_tn_3->Resize(dof*size);
+    outputInterfaces_[i]->values_tn_3->Init();
 
-
-    if( isComplex ) {
-      outputInterfaces_[i]->values->Init( );
-      outputInterfaces_[i]->oldValues->Init( );
-      outputInterfaces_[i]->values_tn_1->Init();
-      outputInterfaces_[i]->values_tn_2->Init();
-      outputInterfaces_[i]->values_tn_3->Init();
-
-    } 
-    else {
-      outputInterfaces_[i]->values->Init( );
-      outputInterfaces_[i]->oldValues->Init(  );
-      outputInterfaces_[i]->values_tn_1->Init();
-      outputInterfaces_[i]->values_tn_2->Init();
-      outputInterfaces_[i]->values_tn_3->Init();
-    }
-    
   }
 
 

@@ -14,11 +14,12 @@ namespace CoupledField {
   // ***********************
   //   Default Constructor
   // ***********************
-  BasePDE::BasePDE( ParamNode* paramNode ) {
-    
-    
-    myParam_ = paramNode;
-    sequenceStep_ = 0;
+  BasePDE::BasePDE( ParamNode* paramNode ) :
+    converged_(false),
+    sequenceStep_(0),
+    myParam_(paramNode),
+    pdename_()
+  {
   }
 
   // **************

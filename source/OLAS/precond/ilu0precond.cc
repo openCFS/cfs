@@ -38,14 +38,11 @@ namespace CoupledField {
   // ==============
   template <typename T>
   ILU0Precond<T>::~ILU0Precond() {
-
-
     // De-allocate internal data arrays
-    DELETEARRAY( diagPos_  );
-    DELETEARRAY( ilu_rptr_ );
-    DELETEARRAY( ilu_cidx_ );
-    DELETEARRAY( ilu_data_ );
-
+    delete [] ( diagPos_  );
+    delete [] ( ilu_rptr_ );
+    delete [] ( ilu_cidx_ );
+    delete [] ( ilu_data_ );
   }
 
 
@@ -233,7 +230,7 @@ namespace CoupledField {
 
     (*cla) << "\n \n " << std::endl;
     
-    DELETEARRAY(help);
+    delete [] (help); help = NULL;
 
 
   }// Setup for ILU

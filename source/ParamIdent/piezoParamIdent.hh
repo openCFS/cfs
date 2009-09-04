@@ -60,7 +60,7 @@ class DirectCoupledPDE;
     void Init();
 
     //! Starts parameter identification
-    void SolveProblem(bool write_results = true, InfoNode* given_analysis_id = NULL);
+    void SolveProblem(bool write_results = true, InfoNode* given_analysis_id = NULL, const bool reAssembleMatrices = true);
 
   protected:
     //! Calculates the parameter to soution map F(p^k) at Newton iteration step k

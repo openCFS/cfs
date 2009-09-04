@@ -53,6 +53,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& regionIds, StdVector<ParamNode
   applicationForm.Add(Optimization::CHARGE_DENSITY, "LinNeumannInt");
   applicationForm.Add(Optimization::PRESSURE, "PressureLinForm");
   applicationForm.Add(Optimization::MASS, "MassInt");
+  applicationForm.Add(Optimization::HEAT, "LaplaceInt");
 
   // read the elements
   elements_ = domain->GetGrid()->GetNumElems(regionIds);
@@ -69,7 +70,9 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& regionIds, StdVector<ParamNode
   
   if(elements_ == 0 || nd == 0){ // this may happen in shape optimization
 
-    if(method != ErsatzMaterial::SHAPE_OPT && method != ErsatzMaterial::SHAPE_PARAM_MAT){
+    if(method != ErsatzMaterial::SHAPE_OPT && method != ErsatzMaterial::SHAPE_PARAM_MAT
+        && method !=ErsatzMaterial::SHAPE_GRAD)
+    {
       if(elements_ == 0) throw Exception("empty regions");
       if(nd == 0) throw Exception("no designs given");
     }
@@ -206,10 +209,10 @@ DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> regionIds, StdV
   }
 }
 
-void DesignSpace::PostInit(int constraints)
+void DesignSpace::PostInit(int objectives, int constraints)
 {
   for(unsigned int i = 0; i < data.GetSize(); i++)
-    data[i].PostInit(constraints);
+    data[i].PostInit(objectives, constraints);
 }
 
 void DesignSpace::SetDesignMaterial(ParamNode* dm){
@@ -523,10 +526,13 @@ void DesignSpace::WriteBoundsToExtern(double* x_l, double* x_u) const {
   assert(d == DesignSpace::GetNumberOfVariables());
 }
 
-void DesignSpace::WriteGradientToExtern(double* out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Condition* constraint, bool use_scaling) const
+void DesignSpace::WriteGradientToExtern(double* out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Condition* g, bool use_scaling) const
 {
   // this does now do reordering as gradients are reordered in the optimizer
   // must be set in the constructor! might be trivial volume fraction or from file!!
+  bool cost_grad = vs == DesignElement::COST_GRADIENT;
+  assert(!(cost_grad && g != NULL));
+
   unsigned int d = 0;
   for(unsigned int des = 0; des < design.GetSize(); des++){
     const unsigned int base = des * elements_;
@@ -536,12 +542,12 @@ void DesignSpace::WriteGradientToExtern(double* out, DesignElement::ValueSpecifi
       if(regions_[r].constant){
         out[d] = 0;
         for(unsigned int s = base + regions_[r].base; s < u; s++){
-          out[d] += (vs == DesignElement::COST_GRADIENT ? data[s].GetValue(vs, access) : data[s].GetConstraintGradient(constraint)) * scaling;
+          out[d] += (cost_grad ? data[s].GetValue(vs, access) : data[s].GetGradient(NULL, g)) * scaling;
         }
         d++;
       }else{
         for(unsigned int s = base + regions_[r].base; s < u; s++){
-          out[d++] = (vs == DesignElement::COST_GRADIENT ? data[s].GetValue(vs, access) : data[s].GetConstraintGradient(constraint)) * scaling;
+          out[d++] = (cost_grad ? data[s].GetValue(vs, access) : data[s].GetGradient(NULL, g)) * scaling;
         }
       }
     }
@@ -551,8 +557,8 @@ void DesignSpace::WriteGradientToExtern(double* out, DesignElement::ValueSpecifi
 
 void DesignSpace::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design)
 {
-  unsigned int start = design == DesignElement::DEFAULT ? 0 : FindDesign(design) * elements_;
-  unsigned int end   = design == DesignElement::DEFAULT ? data.GetSize() : start + elements_;
+  unsigned int start = design == DesignElement::DEFAULT || DesignElement::TENSOR_TRACE ? 0 : FindDesign(design) * elements_;
+  unsigned int end   = design == DesignElement::DEFAULT || DesignElement::TENSOR_TRACE ? data.GetSize() : start + elements_;
 
   LOG_DBG3(designSpace) << "Reset: vs=" << DesignElement::valueSpecifier.ToString(vs) << " design="
                         << DesignElement::type.ToString(design) << " from " << start << " to " << end;
@@ -567,8 +573,9 @@ void DesignSpace::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type de
            de.SetDesign(0.0);
            break;
 
+      case DesignElement::CONSTRAINT_GRADIENT:
       case DesignElement::COST_GRADIENT:
-           de.SetObjectiveGradient(0.0);
+           de.Reset(vs);
            break;
 
       default: throw Exception("value specifier not handled");

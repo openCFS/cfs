@@ -55,8 +55,8 @@ namespace CoupledField {
     // ---------------
 
     // Givens coefficients
-    DELETEARRAY( c_ );
-    DELETEARRAY( s_ );
+    delete [] ( c_ );  c_  = NULL;
+    delete [] ( s_ );  s_  = NULL;
 
     // Upper Hessenberg matrix
     DeleteHessenbergMatrix();
@@ -118,8 +118,8 @@ namespace CoupledField {
     //   (Re-)allocate Givens coefficients
     // -------------------------------------
     if ( newKrylovDim > maxKrylovDim_ ) {
-      DELETEARRAY( c_ );
-      DELETEARRAY( s_ );
+      delete [] ( c_ );  c_  = NULL;
+      delete [] ( s_ );  s_  = NULL;
       NEWARRAY( c_, Double, newKrylovDim );
       NEWARRAY( s_, T, newKrylovDim );
     }
@@ -487,13 +487,13 @@ namespace CoupledField {
 
 
     if ( hMat_ != NULL ) {
-      delete[] ( hMat_[1]  );
+      delete [] ( hMat_[1]  );
       for ( UInt i = 2; i < hMatNumRows_; i++ ) {
         if ( hMat_[i] != NULL ) {
-          delete[] ( hMat_[i] + i - 1 );
+          delete [] ( hMat_[i] + i - 1 );
         }
       }
-      DELETEARRAY( hMat_ );
+      delete [] ( hMat_ );  hMat_  = NULL;
     }
   }
 

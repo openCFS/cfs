@@ -52,10 +52,10 @@ namespace CoupledField
     virtual void PreStepStatic();
  
     /** base method for solving one static step */
-    virtual void SolveStepStatic(InfoNode* analysis_id);
+    virtual void SolveStepStatic(InfoNode* analysis_id, const bool reAssembleMatrices = true);
 
     /** @see SolveStepStatic() */ 
-    virtual void StepStaticLin(InfoNode* analysis_id);
+    virtual void StepStaticLin(InfoNode* analysis_id, const bool reAssembleMatrices = true);
 
     //! solves for one nonlinear static step 
     virtual void StepStaticNonLin(InfoNode* analysis_id);

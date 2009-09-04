@@ -49,20 +49,20 @@ namespace CoupledField {
     // responsibility to delete then now.
     for ( UInt i = 0; i < numPDEs_; i++ ) {
       if ( newOrdering_[i].GetSize() ) {
-        newOrdering_[i].Resize(0);
+        newOrdering_[i].Clear();
       }
     }
-    newOrdering_.Resize(0);
+    newOrdering_.Clear();
 
     // Delete the graph objects
     delete graph_;
     delete graphIDBC_;
 
     // Delete auxilliary information arrays
-    DELETEARRAY( numLastFreeDof_ );
-    DELETEARRAY( offsetIDBC_ );
-    DELETEARRAY( offset_ );
-    DELETEARRAY( numEqn_ );
+    delete [] ( numLastFreeDof_ );
+    delete [] ( offsetIDBC_ );
+    delete [] ( offset_ );
+    delete [] ( numEqn_ );
 
   }
 
@@ -86,7 +86,7 @@ namespace CoupledField {
     // pointers to NULL for the case that no re-ordering is performed
     newOrdering_.Resize( numPDEs_ );
     for ( UInt i = 0; i < numPDEs; i++ ) {
-      newOrdering_[i].Resize(0);
+      newOrdering_[i].Clear();
     }
 
   }
@@ -159,7 +159,7 @@ namespace CoupledField {
       }
 
       // Large vector is no longer needed
-      permutation.Resize(0);
+      permutation.Clear();
     }
 
     // No "real" re-ordering was performed. However, CFS++ needs the new
@@ -504,7 +504,7 @@ namespace CoupledField {
     // By passing the pointer to the array containing the re-ordering
     // information to the caller, this class forgets about the re-ordering
     order = newOrdering_[identifier];
-    newOrdering_[identifier].Resize(0);
+    newOrdering_[identifier].Clear();
 
 #ifdef DEBUG_GRAPHMANAGERSTDMAT
     (*debug) << "\nGraphManagerStdMat::GetReordering:\n"

@@ -565,6 +565,7 @@
   <xsd:simpleType name="DT_MechRegionResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="mechEnergy"/>
+      <xsd:enumeration value="homogenizedTensor"/>
     </xsd:restriction>
   </xsd:simpleType>
   

@@ -47,12 +47,10 @@ namespace CoupledField {
     //@{
     //! Compute the residual \f$r=b-Ax\f$
     void CompRes( SingleVector &r, const SingleVector &x, const SingleVector& b ) const{
-      TRY_CAST {
-        REFCAST     ( r, Vector<T>, tr );
-        CONSTREFCAST( x, Vector<T>, tx );
-        CONSTREFCAST( b, Vector<T>, tb );
-        CompRes( tr, tx ,tb );
-      } CATCH_CAST;
+      Vector<T>& tr = dynamic_cast<Vector<T>&>(r);
+      const Vector<T>& tx = dynamic_cast<const Vector<T>&>(x);
+      const Vector<T>& tb = dynamic_cast<const Vector<T>&>(b);
+      CompRes( tr, tx ,tb );
     }
 
     virtual void CompRes( Vector<T> &r, const Vector<T> &x,
@@ -63,11 +61,10 @@ namespace CoupledField {
     //! Perform a matrix-vector multiplication rvec = this*mvec
     void Mult( const SingleVector& mvec, SingleVector& rvec ) const 
     {
-      TRY_CAST {
-        CONSTREFCAST( mvec, Vector<T>, tmvec );
-        REFCAST     ( rvec, Vector<T>, trvec );
-        Mult( tmvec, trvec );
-      } CATCH_CAST;
+      const Vector<T>& tmvec = dynamic_cast<const Vector<T>&>(mvec);
+      Vector<T>& trvec = dynamic_cast<Vector<T>&>(rvec);
+
+      Mult( tmvec, trvec );
     }
 
     virtual void Mult( const Vector<T>& mvec, Vector<T>& rvec ) const = 0;
@@ -76,11 +73,10 @@ namespace CoupledField {
     //@{
     //! Perform a matrix-vector multiplication rvec = transpose(this)*mvec
     void MultT( const SingleVector& mvec, SingleVector& rvec ) const {
-      TRY_CAST {
-        CONSTREFCAST( mvec, Vector<T>, tmvec );
-        REFCAST     ( rvec, Vector<T>, trvec );
-        MultT( tmvec, trvec );
-      } CATCH_CAST;
+      const Vector<T>& tmvec = dynamic_cast<const Vector<T>&>(mvec);
+      Vector<T>& trvec = dynamic_cast<Vector<T>&>(rvec);
+      
+      MultT( tmvec, trvec );
     }
 
     virtual void MultT( const Vector<T>& mvec, Vector<T>& rvec ) const = 0;
@@ -89,11 +85,10 @@ namespace CoupledField {
     //@{
     //! Perform a matrix-vector multiplication rvec += this*mvec
     void MultAdd( const SingleVector& mvec, SingleVector& rvec ) const {
-      TRY_CAST {
-        CONSTREFCAST( mvec, Vector<T>, tmvec );
-        REFCAST     ( rvec, Vector<T>, trvec );
-        MultAdd( tmvec, trvec );
-      } CATCH_CAST;
+      const Vector<T>& tmvec = dynamic_cast<const Vector<T>&>(mvec);
+      Vector<T>& trvec = dynamic_cast<Vector<T>&>(rvec);
+
+      MultAdd( tmvec, trvec );
     }
 
     virtual void MultAdd( const Vector<T>& mvec, Vector<T>& rvec ) const = 0;
@@ -102,11 +97,10 @@ namespace CoupledField {
     //@{
     //! Perform a matrix-vector multiplication rvec += transpose(this)*mvec
     void MultTAdd( const SingleVector& mvec, SingleVector& rvec ) const {
-      TRY_CAST {
-        CONSTREFCAST( mvec, Vector<T>, tmvec );
-        REFCAST     ( rvec, Vector<T>, trvec );
-        MultTAdd( tmvec, trvec );
-      } CATCH_CAST;
+      const Vector<T>& tmvec = dynamic_cast<const Vector<T>&>(mvec);
+      Vector<T>& trvec = dynamic_cast<Vector<T>&>(rvec);
+      
+      MultTAdd( tmvec, trvec );
     }
 
     virtual void MultTAdd( const Vector<T>& mvec, Vector<T>& rvec ) const = 0;
@@ -115,11 +109,10 @@ namespace CoupledField {
     //@{
     //! Perform a matrix-vector multiplication rvec -= this*mvec
     void MultSub( const SingleVector& mvec, SingleVector& rvec ) const {
-      TRY_CAST {
-        CONSTREFCAST( mvec, Vector<T>, tmvec );
-        REFCAST     ( rvec, Vector<T>, trvec );
-        MultSub( tmvec, trvec );
-      } CATCH_CAST;
+      const Vector<T>& tmvec = dynamic_cast<const Vector<T>&>(mvec);
+      Vector<T>& trvec = dynamic_cast<Vector<T>&>(rvec);
+
+      MultSub( tmvec, trvec );
     }
 
     virtual void MultSub( const Vector<T>& mvec, Vector<T>& rvec ) const = 0;

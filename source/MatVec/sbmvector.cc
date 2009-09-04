@@ -31,7 +31,7 @@ namespace CoupledField {
       for ( UInt i = 1; i <= size_; i++ ) {
 	delete subVec_[i];
       }
-      DELETEARRAY( subVec_ );
+      delete [] ( subVec_ );  subVec_  = NULL;
     }
   }
 
@@ -44,7 +44,7 @@ namespace CoupledField {
       for ( UInt i = 1; i <= size_; i++ ) {
 	delete subVec_[i];
       }
-      DELETEARRAY( subVec_ );
+      delete [] ( subVec_ );  subVec_  = NULL;
     }
     size_ = (UInt)size;
     NEWARRAY( subVec_, SingleVector*, size );
@@ -63,7 +63,7 @@ namespace CoupledField {
       for ( UInt i = 1; i <= size_; i++ ) {
         delete subVec_[i];
       }
-      DELETEARRAY( subVec_ );
+      delete [] ( subVec_ );  subVec_  = NULL;
     }
     size_ = 0;
 

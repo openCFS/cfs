@@ -68,7 +68,7 @@ namespace CoupledField {
                    << "memory!";
 	Warning( __FILE__, __LINE__ );
       }
-      newOrdering_.Resize(0);
+      newOrdering_.Clear();
     }
 
     // Delete the graph objects
@@ -371,7 +371,7 @@ namespace CoupledField {
     // By passing the pointer to the array containing the re-ordering
     // information to the caller, this class forgets about the re-ordering
     order = newOrdering_;
-    newOrdering_.Resize(0);
+    newOrdering_.Clear();
     newOrderingPassedOn_ = true;
   }
 

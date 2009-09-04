@@ -21,17 +21,16 @@ public:
   explicit ShapeOptimizer(Optimization* optimization, ParamNode* pn);
   virtual ~ShapeOptimizer();
 
-  /** Implements virtual function from BaseOptimizer */
-  void SolveProblem();
   
   /** pointer to topgrad */
   boost::shared_ptr<TopGrad> ptrTG_;
   /** pointer to the level set */
   boost::shared_ptr<LevelSet> ptrLS_;
-  
-  /** static function for use in topgrad and levelset classes; converts a time interval
-   *  to a formatted string suitable for command line output */
-  static const std::string GetTimeString(const boost::posix_time::time_duration period);
+
+protected:
+
+  /** Implements virtual function from BaseOptimizer */
+  void SolveProblem();
   
 private:
   ShapeOptimizer(); // forbid empty standard constructor

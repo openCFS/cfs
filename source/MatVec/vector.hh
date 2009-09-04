@@ -59,13 +59,11 @@ template<typename T> class ElemStoreSol;
     //@{
 
     //! Default Constructor
-    Vector() : SingleVector(), data_(NULL) {
-      size_ = 0;
-      capacity_ = 0;
-      
-      // We set this to true be default, to be able to do a re-size
-      // afterwards. If a Replace() is done, it will adapt it accordingly.
-      memBelongsToMe_ = true;
+    // We set this to true be default, to be able to do a re-size
+    // afterwards. If a Replace() is done, it will adapt it accordingly.
+    // size_ is set to 0 in ctor of SingleVector
+    Vector() : SingleVector(), data_(NULL), capacity_(0), memBelongsToMe_(true)
+    {  
     }
 
     //! Constructor with initial size
@@ -73,10 +71,10 @@ template<typename T> class ElemStoreSol;
     //! Creates an vector with size \a size and gets initialized
     //! with \a entry. If no \a entry is provided, the vector
     //! is initialized with zeroes.
-    explicit Vector<T>( const UInt size, const T entry = 0 );
+    explicit Vector<T>(const UInt size, const T entry = 0);
 
     //! Converting a 3-dimensional point to a vector
-    Vector( const Point & p );
+    Vector(const Point &p);
 
     //! Copy Constructor
 
@@ -85,25 +83,24 @@ template<typename T> class ElemStoreSol;
     //! vector. Consequently it sets the memBelongsToMe_ attribute to true.
     //! This constructor is mainly provided to allow for certain sparse
     //! arithmetic operations of the SBM_Vector class.
-    Vector( const Vector<T> &origVec ) {
-
-
+    Vector(const Vector<T> &origVec)
+    {
       // Obtain size info and allocate memory
       size_     = origVec.size_;
       capacity_ = size_;
       memBelongsToMe_ = true;
-      if ( size_ > 0 ) {
-        data_ = new T[size_];
-      } else {
-        data_ = NULL;
-      }
 
-      for (UInt i = 0; i < size_; i++)
-        data_ [i] =  origVec.data_[i];
+      if(size_ > 0)
+        data_ = new T[size_];
+      else
+        data_ = NULL;
+
+      for(unsigned int i = 0; i < size_; ++i)
+        data_ [i] = origVec.data_[i];
     }
 
     //! Destructor
-
+    
     //! The default destructor must be deep, i.e. it must free all dynamically
     //! allocated memory.
     ~Vector();
@@ -113,7 +110,8 @@ template<typename T> class ElemStoreSol;
     //! The method returns the entry type of the vector (i.e. Double, Complex,
     //! or whatever it is). This is encoded as a value of the enumeration data
     //! type MatrixEntryType.
-    BaseMatrix::EntryType GetEntryType() const {
+    BaseMatrix::EntryType GetEntryType() const
+    {
       return  CoupledField::EntryType<T>::M_EntryType;
     }
 
@@ -133,11 +131,10 @@ template<typename T> class ElemStoreSol;
     //! - Re-size will currently refuse to perform a re-size operation,
     //!   if it is not responsible for the memory management of the data_
     //!   array.
-    void Resize( UInt newSize );
-    
+    void Resize(const unsigned int newSize);
     
     //! Resize the vector to new size and initialize entries with val
-    void Resize( UInt newSize, T val );
+    void Resize(const unsigned int newSize, const T val);
 
     //! Add functionality of vector class to a data array
 
@@ -158,7 +155,7 @@ template<typename T> class ElemStoreSol;
     //!                    the new vector entries
     //! \param transferMem flag signalling transfer of responsibility for
     //!                    memory management
-    void Replace( UInt length, T* entries, bool transferMem );
+    void Replace(UInt length, T* entries, bool transferMem);
 
     //! Withdraw responsibility for memory management from vector object
 
@@ -169,8 +166,10 @@ template<typename T> class ElemStoreSol;
     //!       a unique object. Therefore, DecoupleMem will issue a warning
     //!       when an attempt is made to obtain that responsibilty from the
     //!       vector object and the latter does not own it.
-    T* DecoupleMem() {
-      if ( memBelongsToMe_ == false ) {
+    T* DecoupleMem()
+    {
+      if(memBelongsToMe_ == false)
+      {
         (*warning) << "DecoupleMem was called on a vector object not "
         << "responsible for managing its memory block! Memory "
         << "problems may arise!";
@@ -187,11 +186,9 @@ template<typename T> class ElemStoreSol;
     //! the internal attributes will be re-set to the state we also obtain
     //! from the default constructor.
     void Clear() {
-
-      if ( memBelongsToMe_ == true ) {
+      if(memBelongsToMe_)
         delete[] data_;
-      }
-
+      
       size_     = 0;
       capacity_ = 0;
       data_     = NULL;
@@ -200,6 +197,15 @@ template<typename T> class ElemStoreSol;
       // afterwards. If a Replace() is done, it will adapt it accordingly.
       memBelongsToMe_ = true;
     }
+
+    /** Fills the vector with data.
+     * The data is copied */
+    void Fill(const T* source, unsigned int size);
+
+    /** Fills the whole vector by increments
+     * @param start this value will be at the first position
+     * @param increment second = start + increment, ... */
+    void Fill(const T& start, const T& increment);
 
     //@}
 
@@ -217,7 +223,7 @@ template<typename T> class ElemStoreSol;
 
     //! The method takes this vector object \f$x\f$ and replaces it with
     //! the result of \f$x + \alpha v\f$.
-    void Add( T a, const SingleVector &vec);
+    void Add(T a, const SingleVector &vec);
 
     //! Override SingleVector functions
     //    virtual void Add(Double a,const SingleVector &vec);
@@ -337,7 +343,7 @@ template<typename T> class ElemStoreSol;
     //@{
 
     //! Assignment operator
-    Vector<T>  &operator=( const Vector<T> & y );
+    Vector<T> &operator=(const Vector<T> &x);
 
     //! Unary plus operator (this = +this)
     Vector<T> operator+() const;
@@ -365,7 +371,7 @@ template<typename T> class ElemStoreSol;
     Vector<PROMOTE(T,T2)> operator/( const T2 &y ) const;
 
     //! Divide entries of own vector by y
-    Vector<T> &operator/= ( const T &y );
+    Vector<T> &operator/= (T x);
 
     //! Create new vector by multiplication with scalar (new = this * y)
     //! (type promotion)
@@ -373,7 +379,7 @@ template<typename T> class ElemStoreSol;
     Vector<PROMOTE(T,T2)> operator* ( const T2 &y ) const;
 
     //! Multiply entries of own vector by y
-    Vector<T> &operator*= (const T &y);
+    Vector<T> &operator*= (T x);
     //@}
 
 #endif // EXPR_TEMPLATES
@@ -389,7 +395,7 @@ template<typename T> class ElemStoreSol;
     //@{
     //! Prints the content for Logging
     //! \return seperated list from index 1 to <= size! */
-    std::string ToString( char separator = ',') const;
+    std::string ToString(const char separator = ',') const;
 
     //! Export vector to file
 

@@ -86,7 +86,7 @@ namespace CoupledField {
     InitializePDEs();
   }
     
-  void TransientDriver::SolveProblem(bool write_results, InfoNode* given_analysis_id) 
+  void TransientDriver::SolveProblem(bool write_results, InfoNode* given_analysis_id, const bool reAssembleMatrices) 
   {
     // options not implemented
     assert(write_results == true);
@@ -211,8 +211,6 @@ namespace CoupledField {
       }    
 
       steptime+=dt;        
-
-      SETPROFILE("After Transient Step");
     }
 
     // notify resultHandler about finishing of current sequence step

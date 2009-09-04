@@ -55,7 +55,7 @@ namespace CoupledField {
   // *****************
   //   Solve problem
   // *****************
-  void StaticDriver::SolveProblem(bool write_results, InfoNode* given_analysis_id)
+  void StaticDriver::SolveProblem(bool write_results, InfoNode* given_analysis_id, const bool reAssembleMatrices)
   {
     // Set curent value of timestep and time step size in the mathParser
     domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
@@ -82,7 +82,7 @@ namespace CoupledField {
     ptPDE_->GetSolveStep()->SetActTime(0.0);
     ptPDE_->GetSolveStep()->SetActStep(1);
     ptPDE_->GetSolveStep()->PreStepStatic();
-    ptPDE_->GetSolveStep()->SolveStepStatic(analysis_id_);
+    ptPDE_->GetSolveStep()->SolveStepStatic(analysis_id_, reAssembleMatrices);
     ptPDE_->GetSolveStep()->PostStepStatic();
 
     // in optimization we write the results via StoreResults() because
@@ -101,8 +101,6 @@ namespace CoupledField {
       std::cout << std::endl << " *** Write a restart file *** " << std::endl;      
       ptPDE_->WriteRestart( );
     }
-    
-    SETPROFILE("After Static Step");    
   }
 
   void StaticDriver::StoreResults(double step_val)

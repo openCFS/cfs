@@ -823,7 +823,6 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
               GetVeloSolMatOfElement(flowdata, connecth);
               //in case, that we really use the sorting funtionality, for the results, in CalcElemVector4Quad
               //we have to add one row for the pressure!
-              //elem_data.AddRow(tmp,0);
               //flowdata = elem_data;
               
               //Now we have all the stuff needed to calculate the quadrupole source term,

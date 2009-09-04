@@ -15,8 +15,8 @@ using namespace CoupledField;
 DECLARE_LOG(scpip)
 DEFINE_LOG(scpip, "scpip")
 
-SCPIP::SCPIP(Optimization* optimization, ParamNode* optimizer_pn)
- : BaseOptimizer(optimization, optimizer_pn)
+SCPIP::SCPIP(Optimization* optimization, ParamNode* optimizer_pn) :
+ BaseOptimizer(optimization, optimizer_pn)
 {
   LOG_TRACE(scpip) << "Initialize SCPIP";
 

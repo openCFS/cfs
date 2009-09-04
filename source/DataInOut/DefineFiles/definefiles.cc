@@ -138,7 +138,7 @@ void DefineInOutFiles::CreateSimInputFiles(std::map<std::string, shared_ptr<
   {
     actId = "default";
     actGridId = "default";
-    if (meshFile == "")
+    if (meshFile.empty())
       meshFile = simName + ".mesh";
     inFiles[actId] = shared_ptr<SimInput> (new SimInputMESH(meshFile, NULL ));
     gridInputs[actGridId].Push_back(inFiles[actId]);
@@ -159,7 +159,7 @@ void DefineInOutFiles::CreateSimInputFiles(std::map<std::string, shared_ptr<
 
     if (i == 0)
     {
-      if ((meshFile == "") && (fileName != "default"))
+      if ((meshFile.empty()) && (fileName != "default"))
         meshFile = fileName;
     }
     else
@@ -178,7 +178,7 @@ void DefineInOutFiles::CreateSimInputFiles(std::map<std::string, shared_ptr<
     if (informat == "mesh")
     {
 #ifdef USE_MESH
-      if (meshFile == "")
+      if (meshFile.empty())
         meshFile = simName + ".mesh";
       inFiles[actId] = shared_ptr<SimInput> (
           new SimInputMESH(meshFile, actNode));
@@ -189,7 +189,7 @@ void DefineInOutFiles::CreateSimInputFiles(std::map<std::string, shared_ptr<
     else if (informat == "hdf5")
     {
 #ifdef USE_HDF5
-      if (meshFile == "")
+      if (meshFile.empty())
         meshFile = simName + ".h5";
       inFiles[actId] = shared_ptr<SimInput> (
           new SimInputHDF5(meshFile, actNode));
@@ -200,7 +200,7 @@ void DefineInOutFiles::CreateSimInputFiles(std::map<std::string, shared_ptr<
     else if (informat == "gmv")
     {
 #ifdef USE_GMV_INPUT
-      if(meshFile == "")
+      if(meshFile.empty())
       meshFile = simName + ".gmv";
       inFiles[actId] = shared_ptr<SimInput>(new SimInputGMV(meshFile,
               actNode));
@@ -211,7 +211,7 @@ void DefineInOutFiles::CreateSimInputFiles(std::map<std::string, shared_ptr<
     else if (informat == "unv")
     {
 #ifdef USE_UNV
-      if (meshFile == "")
+      if (meshFile.empty())
         meshFile = simName + ".unv";
       inFiles[actId]
           = shared_ptr<SimInput> (new SimInputUnv(meshFile, actNode));

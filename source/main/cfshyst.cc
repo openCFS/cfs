@@ -11,7 +11,6 @@
 #include <list>
 #include <vector>
 
-#include "Utils/myclock.hh"
 #include "Utils/tracing.hh"
 #include "DataInOut/DefineFiles/definefiles.hh"
 #include "DataInOut/timefunc.hh"

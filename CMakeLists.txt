@@ -19,7 +19,7 @@ PROJECT(CFS C CXX Fortran)
 # CFS version number.  An even minor number corresponds to releases.
 #-----------------------------------------------------------------------------
 SET(CFS_VERSION_YEAR "09")
-SET(CFS_VERSION_MONTH "05")
+SET(CFS_VERSION_MONTH "09")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
@@ -98,10 +98,12 @@ SET(CFS_PARDISO  ${CFS_PARDISO_DEFAULT}
 OPTION(USE_PARDISO "Use Pardiso" ${USE_PARDISO_DEFAULT})
 OPTION(USE_ARPACK "Use the ARPACK eigensolver library." ${USE_ARPACK_DEFAULT})
 OPTION(USE_ILUPACK "Use Preconditioners from ILUPACK." ${USE_ILUPACK_DEFAULT})
+OPTION(USE_CHOLMOD "Use the CholMod solver." ${USE_CHOLMOD_DEFAULT})
 
 IF(USE_PARDISO OR
    USE_ARPACK OR
-   USE_ILUPACK)
+   USE_ILUPACK OR
+   USE_CHOLMOD)
   SET(USE_BLAS ON CACHE BOOL
     "Use the Basic Linear Algebra Subroutines library." FORCE)
   SET(USE_LAPACK ON CACHE BOOL
@@ -117,7 +119,8 @@ ELSE(USE_PARDISO OR
     ${USE_BLAS_DEFAULT})
 ENDIF(USE_PARDISO OR
       USE_ARPACK OR
-      USE_ILUPACK)
+      USE_ILUPACK OR
+      USE_CHOLMOD)
 
 IF(CFS_PARDISO STREQUAL "MKL")
   SET(CFS_BLAS_LAPACK "MKL" CACHE STRING
@@ -165,7 +168,7 @@ OPTION(USE_OPENMP
   "Turn on support for OpenMP. Needs GCC >= 4.2 or Intel C++."
   ${USE_OPENMP_DEFAULT})
 OPTION(DEBUG "Build debug version of the code." ${DEBUG_DEFAULT})
-OPTION(PROFILING "Turn on profiling (DEBUG/RELEASE)." ${PROFILING_DEFAULT})
+OPTION(PROFILING "Turn on compiler profiling (DEBUG/RELEASE)." ${PROFILING_DEFAULT})
 
 OPTION(CFSTOOL "Build CFS++ converter tool (cfstool)." ${CFSTOOL_DEFAULT})
 OPTION(CPLREADER "Build cplreader for fluid/acoustic coupling."
@@ -198,9 +201,6 @@ SET(XMLSCHEMA "${CFS_SOURCE_DIR}/share/xml" CACHE STRING
 SET(TESTSUITE_DIR "TESTSUITE_DIR_NOT_FOUND" CACHE STRING
   "Path where the CFS++ testsuite is located.")
 
-SET(USE_HDF5 ON CACHE INTERNAL
-  "Use HDF5 for simulation in/output." FORCE)
-    
 IF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
   IF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
     # In order to perform tests we need the CONVERTER and HDF5!
@@ -248,7 +248,6 @@ IF(DEBUG)
   SET(CHECK_INITIALIZED 1)
   SET(CHECK_MEM_ALLOC 1)
   SET(CHECK_MEMORY 1)
-  SET(CHECK_TYPE_CASTS 1)
 
 ELSE(DEBUG)
   SET(CMAKE_BUILD_TYPE "RELEASE" CACHE STRING
@@ -458,23 +457,25 @@ IF(USE_PARDISO)
   SUBDIRS(source/OLAS/external/pardiso)
 ENDIF(USE_PARDISO)
 
+IF(USE_CHOLMOD)
+  SUBDIRS(source/OLAS/external/cholmod)
+ENDIF(USE_CHOLMOD)
+
 SUBDIRS(source/CoupledPDE)
 SUBDIRS(source/DataInOut)
 SUBDIRS(source/DataInOut/DefineFiles)
 SUBDIRS(source/DataInOut/Logging)
 SUBDIRS(source/DataInOut/ParamHandling)
 
-IF(USE_SCRIPTING)
-  SUBDIRS(source/DataInOut/Scripting)
+SUBDIRS(source/DataInOut/Scripting)
 
-  IF(USE_SCRIPTING_PYTHON)
-    SUBDIRS(source/DataInOut/Scripting/python)
-  ENDIF(USE_SCRIPTING_PYTHON)
+IF(USE_SCRIPTING_PYTHON)
+  SUBDIRS(source/DataInOut/Scripting/python)
+ENDIF(USE_SCRIPTING_PYTHON)
 
-  IF(USE_SCRIPTING_TCL)
-    SUBDIRS(source/DataInOut/Scripting/tcl)
-  ENDIF(USE_SCRIPTING_TCL)
-ENDIF(USE_SCRIPTING)
+IF(USE_SCRIPTING_TCL)
+  SUBDIRS(source/DataInOut/Scripting/tcl)
+ENDIF(USE_SCRIPTING_TCL)
 
 
 IF(USE_MESH)

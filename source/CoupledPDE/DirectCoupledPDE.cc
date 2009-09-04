@@ -178,7 +178,7 @@ namespace CoupledField {
   {
     sequenceStep_ = sequenceStep;
 
-    infoNode_ = info->Get("PDEs")->Get("directCoupledPDE", InfoNode::APPEND);
+    infoNode_ = info->Get("PDE")->Get("directCoupledPDE", InfoNode::APPEND);
     infoNode_->Get(InfoNode::HEADER)->Get("sequeceStep")->SetValue(sequenceStep);
 
     // Check, whether we shall generate an SBM_System

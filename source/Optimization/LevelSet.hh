@@ -157,9 +157,6 @@ namespace CoupledField
     /** calculate one shape gradient value for the whole element by averaging the
      *  calculations on the intersection objects */
     double shapeGradValue;
-    
-    /** save the topgradvalue here for postprocessing */
-    double topGradValue;
 
   private:
 

@@ -236,7 +236,7 @@ InsertStartArray( const Integer *const startarray,
             if( size != NumNodes_ ) {
                 // cannot change number of nodes, if connections already exist
                 if( NumEdges_ )  return false;
-                DELETEARRAY( StartIndex_ );
+                delete [] ( StartIndex_ );  StartIndex_  = NULL;
                 NEWARRAY( StartIndex_, Integer, size+1 );
             }
         }
@@ -884,11 +884,12 @@ void DependencyGraph<T>::Reset()
 {
     
     // destroy start array only if it is mine
-    if( ownStartIndex_ )  DELETEARRAY( StartIndex_ );
-    StartIndex_ = NULL;
+    if( ownStartIndex_ ) {
+			delete [] ( StartIndex_ );  StartIndex_  = NULL;
+		}
     // destroy other arrays
-    DELETEARRAY( NodeSize_ );  NodeSize_  = NULL;
-    DELETEARRAY( Edges_ );     Edges_     = NULL;
+    delete [] ( NodeSize_ );  NodeSize_  = NULL;
+    delete [] ( Edges_ );  Edges_  = NULL;
 
     NumNodes_      = 0;
     NumEdges_      = 0;
@@ -943,7 +944,7 @@ bool DependencyGraph<T>::CreateArrays( const int  numnodes,
             if( ownStartIndex_ ) {
                 // ... check if we can reuse it.
                 if( numnodes != NumNodes_ ) {
-                    DELETEARRAY( StartIndex_ );  StartIndex_ = NULL;
+                    delete [] ( StartIndex_ );  StartIndex_  = NULL;
                 }
             // if the present start array is not owned by this
             // class remove by simply removing the access
@@ -958,9 +959,10 @@ bool DependencyGraph<T>::CreateArrays( const int  numnodes,
     }
     // delete old arrays, if their sizes do not match
     if( NodeSize_  && numnodes != NumNodes_ ) {
-        DELETEARRAY( NodeSize_ );  NodeSize_ = NULL; }
+        delete [] ( NodeSize_ );  NodeSize_  = NULL;
+		}
     if( Edges_ && numedges != NumEdges_ ) {
-        DELETEARRAY( Edges_ );  Edges_ = NULL;
+        delete [] ( Edges_ );  Edges_  = NULL;
     }
     // create new arrays
     if( NULL == NodeSize_ )  NEWARRAY( NodeSize_, Integer, numnodes );

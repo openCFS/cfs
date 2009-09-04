@@ -149,7 +149,14 @@ Attributes of the \xml{acoustic} element within \xml{output}.
 \end{center}
 
 \subsubsection*{volume}
-??? \ldots Bastian
+Makes sense only for the SIMP case:
+\begin{equation}
+  J = \frac{1}{V_*}\sum_e^{NE} \rho_e V_e.
+\end{equation}
+Here $NE$ ar all design elements, $\rho_e$ is the pseudo density for a single
+design element, $V_e$ is the volume fraction of this design element and $V_*$
+is the total volume of all design elements if all were filled. Hence the
+objective value is normalized with an within $\rho_min \ldots 1$.
 
 \subsubsection{Factor}
 \label{sec:factor}
@@ -170,3 +177,88 @@ omega\_omega & \xml{true}, \xml{false} & control multiplication with $\omega^2$ 
 Attributes of the \xml{factor} element within \xml{costFunction}.
 \end{center}
 
+\subsection{Constraints}
+\label{sec:constraints}
+Some cost functions and constraint functions are interchangeable. Via the
+\xml{mode} attribute a constraint can be set to \xml{observation} mode. Multiple
+\xml{constraint} elements are possible (0 \ldots *). 
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule 
+Attribute & Values & Description \\
+\midrule
+name & \textit{constraint} & see Section \ref{sec:constraints} \\
+type & \xml{equal}, \xml{lowerBound}, \xml{upperBound} & equality or inequality
+constraint \\ 
+value & \textit{real numer} & associated to type \\ 
+mode & \xml{constraint}, \xml{observation} & set constraint to active
+(default)\\
+design & \textit{design variable} & specification on multiple design variable
+case \\
+parameter & \textit{real number} & parameter for special constraints \\
+penalty & \textit{real number} & for the level set method \\
+region & \textit{region}, \xml{all} & specification on multiple regions \\
+scaling & \textit{real number} & scales for the optimizer \\  
+coord & \xml{all}, \xml{11}, \ldots & mandatory for \xml{homogenizationTensor}
+and \xml{homogenizationTracking} \\
+\bottomrule
+\end{tabular} \\[0.5ex]
+Attributes of \xml{constraint} within \xml{optimization}
+\end{center}
+
+\subsubsection{homogenizationTensor}
+The design domain represents a periodic base cell and requires periodic boundary
+conditions. The idea is, that the homogenized tensor $[c]^H$ of the optimized
+base cell matches a given tensor $[c]^*$. This is based on the entries of the
+elasticity tensor. 
+
+Either all relevant entries are to be matched or only selected. This is done
+with multiple \xml{constraint} elements llike the following:
+\begin{verbatim}
+<constraint name="homogenizationTensor" type="equal" value="-0.025  coord="12"/>
+\end{verbatim}
+
+It is also possible to supply a subelement \xml{tensor} of dimensions $3 \times
+3$ for the 2D case and $6 \times 6$ for 3D. Then the \xml{value} attribute
+must not be given. The \xml{coord} value \xml{all} implicitely generates
+4 constraints in 2D with the tensor coordinates \xml{11}, \xml{22}, \xml{112}
+and \xml{33} and 9 constraints for 3D. This can be controlled in the info.xml
+file.
+
+\begin{verbatim}    
+<constraint name="homogenizationTensor" type="equal" coord="all" >
+  <tensor dim1="3" dim2="3">
+    <real>
+      0.05    -0.025  0.0
+     -0.025  0.05    0.0
+      0.0     0.0    0.01
+    </real>
+  </tensor>      
+</constraint>
+\end{verbatim}
+
+It might be intersting to monitor the convergence of the constraints setting
+\xml{deltaConstraints} in \xml{log} to \xml{true}. Also one could
+monitor tensor entries not subject to a constraint via the \xml{mode}
+\xml{observation}.
+
+\subsubsection{homogenizationTracking}
+This is the tracking function 
+\begin{equation}
+ || [c]^H-[c]^*||_2,
+\end{equation}
+which is the root of the sum of the squared tensor entry difference. It is
+mandatory to have \xml{coord} set to \xml{all} and provice the \xml{tensor}
+element.
+\begin{verbatim}
+<constraint name="homogenizationTracking" type="equal" coord="all">
+  <tensor dim1="3" dim2="3">
+    <real>
+      0.05    -0.025  0.0
+     -0.025  0.05    0.0
+      0.0     0.0    0.01
+    </real>
+  </tensor>      
+</constraint>
+\end{verbatim}

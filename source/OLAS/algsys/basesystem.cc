@@ -95,12 +95,11 @@ namespace CoupledField {
     idbcHandler_ = NULL;
 
     // Delete arrays with PDE specific information
-    DELETEARRAY( numLastFreeDof_ );
-    DELETEARRAY( sizePerPDE_     );
-    DELETEARRAY( bcOffsets_      );
+    delete [] ( numLastFreeDof_ );
+    delete [] ( sizePerPDE_     );
+    delete [] ( bcOffsets_      );
 
   }
-
 
   // ***************
   //   ObtainPDEId

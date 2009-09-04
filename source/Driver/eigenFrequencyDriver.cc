@@ -63,7 +63,7 @@ namespace CoupledField {
   // *****************
   //   Solve problem
   // *****************
-  void EigenFrequencyDriver::SolveProblem(bool write_results, InfoNode* given_analysis_id) {
+  void EigenFrequencyDriver::SolveProblem(bool write_results, InfoNode* given_analysis_id, const bool reAssembleMatrices) {
     // options not implemented
     assert(write_results == true);
     assert(given_analysis_id == NULL); // not implemented yet

@@ -21,6 +21,8 @@ class ParamNode;
       
       virtual ~SCPIP();
     
+    protected:
+
       /** Solves the problem. All stuff, including evaluations of the state problem is done
        * within this method. 
        * @throws exception when not ok! */ 

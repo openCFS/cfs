@@ -671,12 +671,12 @@ namespace CoupledField {
   void GridCFS::FinishInit()
   {
 
-    volElemNodes_.Resize(0);
-    volRegionIds_.Resize(0);
-    surfElemNodes_.Resize(0);
-    surfRegionIds_.Resize(0);
-    volElems_.Resize(0);
-    surfElems_.Resize(0);
+    volElemNodes_.Clear();
+    volRegionIds_.Clear();
+    surfElemNodes_.Clear();
+    surfRegionIds_.Clear();
+    volElems_.Clear();
+    surfElems_.Clear();
     maxNumElemNodes_ = 0;
 
 
@@ -2057,10 +2057,11 @@ namespace CoupledField {
     return volume;
   }
 
+
   void GridCFS::GetGlobalElemMidPoint( UInt elemNum, Vector<Double>& coord ) {
 
     if( elemNum > numElems_ ) {
-      EXCEPTION("Eleement number " << elemNum << " is bigger than total "
+      EXCEPTION("Element number " << elemNum << " is bigger than total "
                 << "number of elements within the grid" );
     }
     Vector<Double> locMidPoint;

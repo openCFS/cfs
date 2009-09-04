@@ -14,7 +14,7 @@ ShapeOpt::ShapeOpt() : ParamMat() {
   shapedesign = dynamic_cast<ShapeDesign*>(design);
 
   ParamNode* sopn = pn->Get("shapeOpt");
-  shapedesign->Configure(sopn, constraints.GetSize());
+  shapedesign->Configure(sopn, objectives.data.GetSize(), constraints.GetSize());
   alsomatopt_ = shapedesign->AlsoMatOpt();
 
   // all (bi)linear forms need to use updated coordinates
@@ -31,14 +31,21 @@ ShapeOpt::ShapeOpt() : ParamMat() {
   }
 }
 
-double ShapeOpt::CalcVolume(bool derivative, Condition* constraint, bool normalized){
+double ShapeOpt::CalcVolume(Objective* f, Condition* constraint, bool derivative, bool normalized){
   if(derivative){
     StdVector<double> der; // solution
+    Matrix<double> CornerCoords;
+    Matrix<double> J;
+    Matrix<double> iJ;
+    Matrix<double> dCornerCoords;
+    Matrix<double> dJ;
+    Matrix<double> diJ;
+
     int np = shapedesign->GetNumberOfShapeParameters();
     der.Resize(np, 0);
     if(alsomatopt_){
       // this needs to be done before, we do use fraction
-      ErsatzMaterial::CalcVolume(derivative, constraint, normalized);
+      ErsatzMaterial::CalcVolume(f, constraint, derivative, normalized);
     }
     if(!alsomatopt_ || (constraint && constraint->design == DesignElement::UNITY)){
       if(!normalized){
@@ -53,32 +60,31 @@ double ShapeOpt::CalcVolume(bool derivative, Condition* constraint, bool normali
             grd->GetElems(elems,rid);
             for( UInt i = 0; i < elems.GetSize(); i++ ) {
               const Elem* elem = elems[i];
-              Matrix<double> CornerCoords;
-              BaseFE* ptelem = elem->ptElem;
-              grd->GetElemNodesCoord(CornerCoords, elem->connect, true );
-              const int nip = ptelem->GetNumIntPoints();
-              const Vector<Double> & intWeights = ptelem->GetIntWeights();
+              if(shapedesign->IsElemDependentAtAll(elem->connect)){ // if this element does not depent on any parameters, we can simply skip all the calculations
+                BaseFE* ptelem = elem->ptElem;
+                grd->GetElemNodesCoord(CornerCoords, elem->connect, true );
+                const int nip = ptelem->GetNumIntPoints();
+                const Vector<Double> & intWeights = ptelem->GetIntWeights();
 
-              for(int ip = 1; ip <= nip; ip++){ // loop over all integration points
-                Matrix<double> J;
-                ptelem->CalcJacobianAtIp(J, ip, CornerCoords, elem);
-                Matrix<double> iJ;
-                J.Invert(iJ);
-                double det;
-                J.Determinant(det);
-                double w = det * intWeights[ip-1];
-                for(int p = 0; p < np; p++) { // loop over all parameters
-                  Matrix<double> dCornerCoords;
-                  shapedesign->GetElemNodesCoordDerivative(dCornerCoords, elem->connect, p);
-                  Matrix<double> dJ;
-                  ptelem->CalcJacobianAtIp(dJ, ip, dCornerCoords, elem);
-                  Matrix<double> diJ;
-                  diJ = iJ * dJ;
-                  double tr;
-                  diJ.Trace(tr); // tr = trace(iJ*dJ) = trace(dJ*iJ)
-                  der[p] += w * tr;
-                } // params
-              } // int.points
+                for(int ip = 1; ip <= nip; ip++){ // loop over all integration points
+                  ptelem->CalcJacobianAtIp(J, ip, CornerCoords, elem);
+                  const int dimJ(J.GetNumRows());
+                  J.Invert(iJ);
+                  double det;
+                  J.Determinant(det);
+                  double w = det * intWeights[ip-1];
+                  for(int p = 0; p < np; p++) { // loop over all parameters
+                    if(shapedesign->GetElemNodesCoordDerivative(dCornerCoords, elem->connect, p)){ // returns false if dCornerCoords == 0 
+                      ptelem->CalcJacobianAtIp(dJ, ip, dCornerCoords, elem);
+                      diJ.Resize(dimJ, dimJ);
+                      iJ.Mult(dJ, diJ); // diJ = iJ * dJ;
+                      double tr;
+                      diJ.Trace(tr); // tr = trace(iJ*dJ) = trace(dJ*iJ)
+                      der[p] += w * tr;
+                    } // if dCornerCoords
+                  } // params
+                } // int.points
+              }
             } // elems
           } // if region
         } // region
@@ -90,51 +96,44 @@ double ShapeOpt::CalcVolume(bool derivative, Condition* constraint, bool normali
       double fraction = isObjective ? volume_fraction_ : constraint->volume_fraction_; // this already considers everything
       double volume = 0.0;
       if(!normalized){  // needed for derivative in normalized versions
-        volume = isObjective ? cost->GetValue() : constraint->value;
-        if(volume == 0.0){ // if function was never evaluated before
-          CalcVolume(false, constraint, normalized);
-          volume = isObjective ? cost->GetValue() : constraint->value;
-        }
+        volume = CalcVolume(f, constraint, derivative, normalized);
       }
       bool allDesignsRelevant = constraint == NULL || constraint->design == DesignElement::TENSOR_TRACE || constraint->design == DesignElement::DEFAULT;
       bool ersatzMaterialTensor = domain->HasErsatzMaterialTensor() && allDesignsRelevant;
       unsigned int upper = ersatzMaterialTensor ? design->GetNumberOfElements() : design->data.GetSize();
+      Matrix<double> material;
       for(unsigned int i = 0; i < upper; i++) {
         DesignElement* de = &design->data[i];
         bool relevant = (allDesignsRelevant || constraint->design == de->GetType()) && (isObjective || constraint->IsForRegion(de->elem->regionId));
-        if(relevant){
+        const Elem* elem = de->elem;
+        if(relevant && shapedesign->IsElemDependentAtAll(elem->connect)){
           double des;
           if(ersatzMaterialTensor){ // use the trace of the stiffness Tensor as "volume"
-            Matrix<double> material;
             GetErsatzMaterialTensor(material, de->elem);
             material.Trace(des);
           }else{
             des = de->GetDesign(DesignElement::PLAIN);
           }
-          const Elem* elem = de->elem;
-          Matrix<double> CornerCoords;
           BaseFE* ptelem = elem->ptElem;
           grd->GetElemNodesCoord(CornerCoords, elem->connect, true );
           const int nip = ptelem->GetNumIntPoints();
           const Vector<Double> & intWeights = ptelem->GetIntWeights();
-
           for(int ip = 1; ip <= nip; ip++){ // loop over all integration points
             double intWeight = intWeights[ip-1];
-            Matrix<double> J;
             ptelem->CalcJacobianAtIp(J, ip, CornerCoords, elem);
-            Matrix<double> iJ;
+            const int dimJ(J.GetNumRows());
             J.Invert(iJ);
+            double det;
+            J.Determinant(det);
             for(int p = 0; p < np; p++) { // loop over all parameters
-              Matrix<double> dCornerCoords;
-              shapedesign->GetElemNodesCoordDerivative(dCornerCoords, elem->connect, p);
-              Matrix<double> dJ;
-              ptelem->CalcJacobianAtIp(dJ, ip, dCornerCoords, elem);
-              Matrix<double> diJ;
-              diJ = iJ * dJ;
-              double tr, det;
-              diJ.Trace(tr);
-              J.Determinant(det);
-              der[p] += fraction * intWeight * tr * det * (des - volume); // fraction * intWeight * dArea/dalpha * (d - volume)    ( fraction = 1 und volume = 0 in non-normalized version)
+              if(shapedesign->GetElemNodesCoordDerivative(dCornerCoords, elem->connect, p)){ // returns false if dCornerCoords == 0
+                ptelem->CalcJacobianAtIp(dJ, ip, dCornerCoords, elem);
+                diJ.Resize(dimJ, dimJ);
+                iJ.Mult(dJ, diJ); // diJ = iJ * dJ;
+                double tr;
+                diJ.Trace(tr);
+                der[p] += fraction * intWeight * tr * det * (des - volume); // fraction * intWeight * dArea/dalpha * (d - volume)    ( fraction = 1 und volume = 0 in non-normalized version)
+              }
             } // params
           } // int.points
         }
@@ -143,7 +142,7 @@ double ShapeOpt::CalcVolume(bool derivative, Condition* constraint, bool normali
     // derivative in direction of our parameters is always needed and calculated here
     // derivative in direction of design-element parameters only if on that regions
     // these derivatives are independent of our parameters and can be calculated as before
-    shapedesign->SetShapeDerivatives(constraint, der);
+    shapedesign->AddShapeDerivatives(f, constraint, der, 1.0);
   }else{ // derivative
     if(!alsomatopt_ || (constraint && constraint->design == DesignElement::UNITY)){ // this is the real volume, not multiplied by design, we also use this if no design available
       // if design is unity, we use the grid instead of designspace
@@ -160,133 +159,159 @@ double ShapeOpt::CalcVolume(bool derivative, Condition* constraint, bool normali
       }
       return(s);
     }else{ // working on a design, alsomatopt_ must be true
-      return(ErsatzMaterial::CalcVolume(derivative, constraint, normalized));
+      return(ErsatzMaterial::CalcVolume(f, constraint, derivative, normalized));
     }
   }
   return 0.0;
 }
 
-void ShapeOpt::CalcMinusU1dKU2(StdVector<SingleVector*>& u1, StdVector<SingleVector*>& u2, Condition* constraint, double w){
+void ShapeOpt::CalcMinusU1dKU2(StdVector<SingleVector*>& u1, StdVector<SingleVector*>& u2, Objective* f, Condition* constraint, double w){
   StdVector<double> der; // solution
   int np = shapedesign->GetNumberOfShapeParameters();
   der.Resize(np, 0);
 
   Grid* grd = domain->GetGrid();
 
+  Matrix<double> CornerCoords;
+  Matrix<double> D;
+  Matrix<double> J;
+  Matrix<double> iJ;
+  Matrix<double> dPhi;
+  Matrix<double> B;
+  Matrix<double> BD;
+  Matrix<double> BDB;
+  Matrix<double> dCornerCoords;
+  Matrix<double> dJ;
+  Matrix<double> A1;
+  Matrix<double> A2;
+  Matrix<double> A3;
+  Matrix<double> A4;
+  
   std::set<BiLinFormContext*>* biLinForms = assemble_->GetBiLinForms();
   for(std::set<BiLinFormContext*>::iterator iBiLinForm = biLinForms->begin(); iBiLinForm != biLinForms->end(); iBiLinForm++){ // loop over all linElastInt bilinear forms (as assemble does)
     BiLinFormContext* biLinForm = *iBiLinForm;
-    if(biLinForm->GetFirstPde()->GetName() != mech->GetName()) continue;
-    if(biLinForm->GetSecondPde()->GetName() != mech->GetName()) continue;
+    if(biLinForm->GetFirstPde()->GetName() != pde->GetName()) continue;
+    if(biLinForm->GetSecondPde()->GetName() != pde->GetName()) continue;
     if(biLinForm->GetIntegrator()->GetName() != "linElastInt") continue;
     linElastInt* form = (linElastInt*)(biLinForm->GetIntegrator());
     EntityIterator it = biLinForm->GetFirstEntities()->GetIterator();
     for(it.Begin(); !it.IsEnd(); it++){ // loop over all corresponding elements
       const Elem* elem = it.GetElem();
-      int e = elem->elemNum - 1; // index for u and z which are 0-based
-      Matrix<double> CornerCoords;
-      BaseFE* ptelem = elem->ptElem;
-      grd->GetElemNodesCoord(CornerCoords, elem->connect, true);
+      if(shapedesign->IsElemDependentAtAll(elem->connect)){ // if this element does not depent on any parameters, we can simply skip all the calculations
+        int e = elem->elemNum - 1; // index for u and z which are 0-based
+        BaseFE* ptelem = elem->ptElem;
+        grd->GetElemNodesCoord(CornerCoords, elem->connect, true);
 
-      form->ExtractElemInfo(it); // this is needed before calcBMat
-      
-      Matrix<double> D;
-      form->calcDMat(D, elem, DesignElement::NO_DERIVATIVE);
+        form->ExtractElemInfo(it); // this is needed before calcBMat
 
-      Vector<double>& u1elem = dynamic_cast<Vector<double>& >(*u1[e]);
-      Vector<double>& u2elem = dynamic_cast<Vector<double>& >(*u2[e]);
-      
-      const int nip = ptelem->GetNumIntPoints();
-      const Vector<Double> & intWeights = ptelem->GetIntWeights();
-      for(int ip = 1; ip <= nip; ip++){ // loop over all integration points
+        form->calcDMat(D, elem, DesignElement::NO_DERIVATIVE);
+        const unsigned int dimD(D.GetNumRows());
 
-        double intWeight = intWeights[ip-1], jacdet;
+        Vector<double>& u1elem = dynamic_cast<Vector<double>& >(*u1[e]);
+        Vector<double>& u2elem = dynamic_cast<Vector<double>& >(*u2[e]);
 
-        Matrix<double> J;
-        ptelem->CalcJacobianAtIp(J, ip, CornerCoords, elem);
-        Matrix<double> iJ;
-        J.Invert(iJ);
-        Matrix<double> dPhi;
-        ptelem->GetGlobDerivShFncAtIp(dPhi, ip, CornerCoords, jacdet, elem); // really is already dPhi * J~
+        const int nip = ptelem->GetNumIntPoints();
+        const Vector<Double> & intWeights = ptelem->GetIntWeights();
+        for(int ip = 1; ip <= nip; ip++){ // loop over all integration points
 
-        Matrix<double> B;
-        form->calcBMatOnly(B, ip, ptelem, CornerCoords);
-        Matrix<double> BT;
-        B.Transpose(BT);
+          double intWeight(intWeights[ip-1]), jacdet;
 
-        Matrix<double> BD;
-        BD = BT * D; // B^T D
+          ptelem->CalcJacobianAtIp(J, ip, CornerCoords, elem);
+          const unsigned int dimJ(J.GetNumCols());
 
-        Matrix<double> BDB;
-        BDB = BD * B; // B^T D B
-        
-        for(int p = 0; p < np; p++) { // loop over all parameters
-          Matrix<double> dCornerCoords;
-          shapedesign->GetElemNodesCoordDerivative(dCornerCoords, elem->connect, p);
+          J.Invert(iJ);
+          ptelem->GetGlobDerivShFncAtIp(dPhi, ip, CornerCoords, jacdet, elem); // really is already dPhi * J~
+          const unsigned int rowPhi(dPhi.GetNumRows());
 
-          Matrix<double> dJ;
-          ptelem->CalcJacobianAtIp(dJ, ip, dCornerCoords, elem);
-          
-          Matrix<double> A1;
-          A1 = dJ * iJ;
+          form->calcBMatOnly(B, ip, ptelem, CornerCoords);
 
-          double trA1;
-          A1.Trace(trA1);
+          const unsigned int colB(B.GetNumCols()); 
 
-          Matrix<double> A2;
-          A2 = dPhi * A1;
-          form->ReorderBLikeMatrix(A2, A1, ip, ptelem, CornerCoords);
+          BD.Resize(colB, dimD);
+          B.MultT(D, BD); // BD = B^T D, this is needed later
 
-          A2 = BD * A1;
-          A2.Transpose(A1);
-          A2.Add(1.0, A1);
-          A2.Add(-trA1, BDB);
+          BDB.Resize(colB, colB);
+          BD.Mult(B, BDB); // BDB = B^T D B
 
-          // A2 = ( -tr(J~ dJ) B'DB + reorder(dPhi J~ dJ J~)'DB + B'D reorder(dPhi J~ dJ J~) )
-          Vector<double> A2u;
-          A2u.Resize(u2elem.GetSize());
-          A2.Mult(u2elem, A2u);
-          const double vadd = intWeight * jacdet * (u1elem * A2u); 
-          der[p] += vadd;
+          for(int p = 0; p < np; p++) { // loop over all parameters
+            if(shapedesign->GetElemNodesCoordDerivative(dCornerCoords, elem->connect, p)){ // if dCornerCoords is zero for all nodes, this returns false
 
-        } // parameter loop
-      } // integration point loop
+              ptelem->CalcJacobianAtIp(dJ, ip, dCornerCoords, elem);
+
+              A1.Resize(dimJ, dimJ);
+              dJ.Mult(iJ, A1); // A1 = dJ J~ 
+
+              double trA1;
+              A1.Trace(trA1);
+
+              A2.Resize(rowPhi, dimJ);
+              dPhi.Mult(A1, A2); // A2 = (dPhi J~) dJ J~
+              form->ReorderBLikeMatrix(A2, A3, ip, ptelem, CornerCoords); // A3 = reorder(dPhi J~ dJ J~) 
+
+              A4.Resize(colB, colB);
+              BD.Mult(A3, A4); // A4 = B'D reorder(dPhi J~ dJ J~)
+
+              const unsigned int r = A4.GetNumRows();
+              const unsigned int c = A4.GetNumCols();
+              // A5 = ( -tr(J~ dJ) B'DB + reorder(dPhi J~ dJ J~)'DB + B'D reorder(dPhi J~ dJ J~) ), this is not needed completely
+              double v1 = 0.0; // v1 = u1elem' * (A5 * u2elem)
+              for(unsigned int i = 0; i < r; ++i){
+                double v2 = 0.0; // v2 = component i of (A5 * u2elem)
+                for(unsigned int j = 0; j < c; ++j){
+                  v2 += (A4[i][j] + A4[j][i] -trA1 * BDB[i][j]) * u2elem[j];
+                }
+                v1 += u1elem[i] * v2;
+              }
+              der[p] += intWeight * jacdet * v1;
+
+            } // if GetElemNodesCoordDerivative
+
+          } // parameter loop
+        } // integration point loop
+      } // if element is dependent on parameters at all
     } // element loop
   } // biLinForm loop
   
-  shapedesign->AddShapeDerivatives(constraint, der, w);
+  shapedesign->AddShapeDerivatives(f, constraint, der, w);
 }
 
-void ShapeOpt::CalcUdF(Excitation& excite, StdVector<SingleVector*>& u, Condition* constraint, double w){
+void ShapeOpt::CalcUdF(Excitation& excite, StdVector<SingleVector*>& u, Objective* f, Condition* constraint, double w){
   StdVector<double> der; // solution
   int np = shapedesign->GetNumberOfShapeParameters();
   der.Resize(np, 0);
 
   Grid* grd = domain->GetGrid();
   
+  Matrix<double> CornerCoords;
+  Vector<double> normal;
+  Vector<double> elemVec;
+  Vector<double> delemVec;
+  Matrix<double> J;
+  Vector<double> shapeFnc;
+  Matrix<double> dCornerCoords;
+  Matrix<double> dJ;
+  Vector<double> dnormal;
+  Vector<Double> vec1(3), vec2(3), dvec1(3), dvec2(3);
+  
   unsigned int dim = grd->GetDim();
   std::set<LinearFormContext*>* linForms = excite.GetLinForms();
   for(std::set<LinearFormContext*>::iterator iLinForm = linForms->begin(); iLinForm != linForms->end(); iLinForm++){ // loop over all pressure linear forms (as assemble does)
     LinearFormContext* linForm = *iLinForm;
-    if(linForm->GetPde()->GetName() != mech->GetName()) continue;
+    if(linForm->GetPde()->GetName() != pde->GetName()) continue;
     if(linForm->GetIntegrator()->GetName() != "PressureLinForm") continue;
     PressureLinForm* form = (PressureLinForm*)(linForm->GetIntegrator());
     EntityIterator it = linForm->GetEntities()->GetIterator();
     for(it.Begin(); !it.IsEnd(); it++){ // loop over all corresponding elements
       const SurfElem* elem = it.GetSurfElem();
       int e = elem->elemNum - 1; // index for u and z which are 0-based
-      Matrix<double> CornerCoords;
       BaseFE* ptelem = elem->ptElem;
       grd->GetElemNodesCoord(CornerCoords, elem->connect, true);
 
       Vector<double>& uelem = dynamic_cast<Vector<double>& >(*u[e]);
       double pres = form->GetPressureFactor(elem);
-      Vector<double> normal;
       grd->CalcSurfNormal(normal, *elem, true);
 
-      Vector<double> elemVec;
       elemVec.Resize(uelem.GetSize());
-      Vector<double> delemVec;
       delemVec.Resize(uelem.GetSize());
 
       const int nip = ptelem->GetNumIntPoints();
@@ -294,11 +319,9 @@ void ShapeOpt::CalcUdF(Excitation& excite, StdVector<SingleVector*>& u, Conditio
       for(int ip = 1; ip <= nip; ip++){ // loop over all integration points
         double intWeight = intWeights[ip-1];
 
-        Matrix<double> J;
         ptelem->CalcJacobianAtIp(J, ip, CornerCoords, elem);
         // note that the "Jacobian" is a 2x1 matrix, for calculation of |J| see linefe.cc LineFE::CalcJacobianAtIp
         double detJ = sqrt(J[0][0]*J[0][0] + J[1][0]*J[1][0]);
-        Vector<double> shapeFnc;
         ptelem->GetShFncAtIp(shapeFnc, ip, elem);
         for (UInt i=0; i<dim; i++) { // see linPressureInt
           double n = -normal[i];
@@ -310,14 +333,11 @@ void ShapeOpt::CalcUdF(Excitation& excite, StdVector<SingleVector*>& u, Conditio
         double v = uelem * elemVec;
 
         for(int p = 0; p < np; p++) { // loop over all parameters
-          Matrix<double> dCornerCoords;
           shapedesign->GetElemNodesCoordDerivative(dCornerCoords, elem->connect, p);
-          Matrix<double> dJ;
           ptelem->CalcJacobianAtIp(dJ, ip, dCornerCoords, elem);
           double ddetJ = (dJ[0][0]*J[0][0] + dJ[1][0]*J[1][0]) / detJ;
 
           // calculate derivative of normal ( see grid_cfs.cc CalcSurfNormal )
-          Vector<double> dnormal;
           if (ptelem->GetDim() == 1) {
             double dx  = CornerCoords[0][1] - CornerCoords[0][0]; double ddx = dCornerCoords[0][1] - dCornerCoords[0][0];
             double dy  = CornerCoords[1][1] - CornerCoords[1][0]; double ddy = dCornerCoords[1][1] - dCornerCoords[1][0];
@@ -333,7 +353,6 @@ void ShapeOpt::CalcUdF(Excitation& excite, StdVector<SingleVector*>& u, Conditio
               UInt surfCorners = ptelem->GetNumCorners();
 
             //compute the two vectors in the plane
-            Vector<Double> vec1(3), vec2(3), dvec1(3), dvec2(3);
             for (UInt i=0; i<3; i++) {
               vec1[i] = CornerCoords[i][1]             - CornerCoords[i][0];
               vec2[i] = CornerCoords[i][surfCorners-1] - CornerCoords[i][0];
@@ -374,45 +393,45 @@ void ShapeOpt::CalcUdF(Excitation& excite, StdVector<SingleVector*>& u, Conditio
     } // element loop
   } // linForm loop
 
-  shapedesign->AddShapeDerivatives(constraint, der, w);
+  shapedesign->AddShapeDerivatives(f, constraint, der, w);
 }
 
-double ShapeOpt::CalcCompliance(Excitation& excite, bool derivative, Condition* constraint){
+double ShapeOpt::CalcCompliance(Excitation& excite, Objective* f, Condition* constraint, bool derivative){
   if(derivative){
-    forward.data[excite.index]->Read(Solution::GRIDELEM_VECTORS, mech, MECH);
+    forward.data[excite.index]->Read(Solution::GRIDELEM_VECTORS, pde, MECH);
     StdVector<SingleVector*>& u = forward.data[excite.index]->gridelem[MECH];
     
     // the derivative of tracking w.r.t. shape is: - u' dA/dShape u + 2 u dF/dShape 
-    CalcMinusU1dKU2(u, u, constraint, excite.weight);
-    CalcUdF(excite, u, constraint, 2*excite.weight);
+    CalcMinusU1dKU2(u, u, f, constraint, excite.weight);
+    CalcUdF(excite, u, f, constraint, 2*excite.weight);
     if(alsomatopt_){
-      ErsatzMaterial::CalcCompliance(excite, true, constraint);
+      ErsatzMaterial::CalcCompliance(excite, f, constraint, true);
     }
   }else{
-    return(ErsatzMaterial::CalcCompliance(excite, derivative, constraint));
+    return(ErsatzMaterial::CalcCompliance(excite, f, constraint, derivative));
   }
   return 0.0;
 }
 
-double ShapeOpt::CalcTracking(Excitation& excite, bool derivative, Condition* constraint, bool solveproblem){
+double ShapeOpt::CalcTracking(Excitation& excite, Objective* f, Condition* constraint, bool derivative, bool solveproblem){
   if(derivative){
     if(solveproblem){
       SolveTrackingProblem(excite, alsomatopt_, true);
     }
 
     StdVector<SingleVector*>& z = tracking_->gridelem[MECH];
-    forward.data[excite.index]->Read(Solution::GRIDELEM_VECTORS, mech, MECH);
+    forward.data[excite.index]->Read(Solution::GRIDELEM_VECTORS, pde, MECH);
     StdVector<SingleVector*>& u = forward.data[excite.index]->gridelem[MECH];
     
     // the derivative of tracking w.r.t. shape is: - z' dA/dShape u + z dF/dShape 
-    CalcMinusU1dKU2(z, u, constraint, excite.weight);
-    CalcUdF(excite, u, constraint, excite.weight);
+    CalcMinusU1dKU2(z, u, f, constraint, excite.weight);
+    CalcUdF(excite, u, f, constraint, excite.weight);
     
     if(alsomatopt_){
-      ErsatzMaterial::CalcTracking(excite, true, constraint, false);
+      ErsatzMaterial::CalcTracking(excite, f, constraint, true, false);
     }
   }else{
-    return(ErsatzMaterial::CalcTracking(excite, derivative, constraint));
+    return(ErsatzMaterial::CalcTracking(excite, f, constraint, derivative));
   }
   return 0.0;
 }

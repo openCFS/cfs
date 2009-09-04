@@ -117,18 +117,6 @@ namespace CoupledField
     //! parameter file.
     bool GetPrintGrid() const;
 
-    //! Return doProfile flag
-
-    //! This method can be used to query the status of the doProfile flag.
-    //! By specifying this flag one instructs the executable to generate
-    //! profiling information. By default system calls are used (under Linux)
-    //! to obtain information on things like e.g. memory footprint of the
-    //! simulation run.
-    //! \note The flag is only of use in the case that profiling was enabled
-    //!       during compilation by defining the PROFILING macro.
-    bool GetDoProfile() const;
-
-
     //! Return Restart flag
 
     //! This method can be used to query the status of the restart flag.

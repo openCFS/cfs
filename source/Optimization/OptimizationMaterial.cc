@@ -3,6 +3,7 @@
 #include "Domain/domain.hh"
 #include "PDE/mechPDE.hh"
 #include "PDE/elecPDE.hh"
+#include "PDE/heatCondPDE.hh"
 #include "Optimization/OptimizationMaterial.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/DesignSpace.hh"
@@ -17,9 +18,10 @@ DEFINE_LOG(om, "optimizationMaterial")
 Enum<OptimizationMaterial::System> OptimizationMaterial::system;
 
 
-OptimizationMaterial::OptimizationMaterial(ErsatzMaterial* em) : regionIds(em->regionIds)
+OptimizationMaterial::OptimizationMaterial(ErsatzMaterial* em) :
+  regionIds(em->regionIds),
+  opt(em)
 {
-  this->opt = em;
 }
 
 OptimizationMaterial::~OptimizationMaterial()
@@ -93,7 +95,8 @@ const Matrix<double>& OptMechMat::MechMass(Elem* elem)
 }
 
 
-OptPiezoMat::OptPiezoMat(ErsatzMaterial* em) : OptMechMat(em)
+OptPiezoMat::OptPiezoMat(ErsatzMaterial* em) :
+  OptMechMat(em)
 {
   system_ = PIEZO;
   elec = dynamic_cast<ElecPDE*>(opt->ToPDE(Optimization::ELEC));
@@ -177,3 +180,10 @@ const Matrix<double>& OptPiezoMat::CoupledStiffnessTransposed(Elem* elem)
   return coupledStiffnessTransposed_map[elem->regionId];
 }
 
+HeatMat::HeatMat(ErsatzMaterial* em) :
+  OptimizationMaterial(em)
+{
+  system_ = HEAT;
+  heat = dynamic_cast<HeatCondPDE*>(opt->ToPDE(Optimization::HEAT));
+  assert(heat != NULL);
+}

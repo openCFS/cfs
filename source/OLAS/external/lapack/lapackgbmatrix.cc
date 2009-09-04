@@ -436,9 +436,7 @@ namespace CoupledField {
 
 
     // Down-cast to LapackGBMatrix
-    TRY_CAST {
-      const LapackGBMatrix<entryF,entryC> &lpmat = dynamic_cast<const
-      LapackGBMatrix<entryF,entryC>&>(mat);
+      const LapackGBMatrix<entryF,entryC> &lpmat = dynamic_cast<const LapackGBMatrix<entryF,entryC>&>(mat);
 
 #ifdef DEBUG_LAPACKGBMATRIX
       if ( length_ != lpmat.length_ ) {
@@ -461,8 +459,6 @@ namespace CoupledField {
         data_[i] += factor * lpmat.data_[i];
       }
 
-    } CATCH_CAST;
-
   }
 
 
@@ -472,22 +468,15 @@ namespace CoupledField {
   template <>
   void LapackGBMatrix<F77complex16,std::complex<double> >::
   Add( const Double factor, const StdMatrix& mat ) {
-
-
     // Down-cast to LapackGBMatrix
-    TRY_CAST {
-      const LapackGBMatrix<F77complex16,std::complex<double> > &lpmat =
-        dynamic_cast<const LapackGBMatrix<F77complex16,std::complex<double> >&>
-      (mat);
+    const LapackGBMatrix<F77complex16,std::complex<double> > &lpmat =
+      dynamic_cast<const LapackGBMatrix<F77complex16,std::complex<double> >&>(mat);
 
       // Perform the scaled addition
       for ( UInt i = 1; i <= length_; i++ ) {
         data_[i].real += factor * lpmat.data_[i].real;
         data_[i].imag += factor * lpmat.data_[i].imag;
       }
-
-    } CATCH_CAST;
-
   }
 
 

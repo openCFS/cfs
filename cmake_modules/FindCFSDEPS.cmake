@@ -8,14 +8,6 @@
 #  CFSDEPS_CXX_FLAGS  = Compiler flags for CFSDEPS 
 #  CFSDEPS_INCLUDE_DIR      = where to find "CFSDEPS.h"
 #  CFSDEPS_DEFINITIONS      = extra defines
-# 
-# DEPRECATED
-#
-# OPTIONS 
-# 
-# USAGE 
-# 
-# NOTES
 #
 # AUTHOR
 # Simon Triebenbacher simon.triebenbacher@uni-klu.ac.at (02/2009)
@@ -41,6 +33,11 @@ ELSE(NOT ${CFS_DEPS_CD_DUMMY} STREQUAL "")
     "Directory for CFSDEPS sources and prebuilt binaries.")
 ENDIF(NOT ${CFS_DEPS_CD_DUMMY} STREQUAL "")
 
+SET(CFS_FORCE_DEPS_DUMMY "$ENV{CFS_FORCE_DEPS_CACHE_DIR}")
+IF(NOT ${CFS_FORCE_DEPS_DUMMY} STREQUAL "")
+  SET(CFS_FORCE_DEPS_CACHE_DIR ON CACHE PATH
+    "Force 'CFS_DEPS_CACHE_DIR/precompiled/forced'.")
+ENDIF(NOT ${CFS_FORCE_DEPS_DUMMY} STREQUAL "")
 #-----------------------------------------------------------------------------
 # Check if the proper files are present in the CFSDEPS directory
 #-----------------------------------------------------------------------------
@@ -161,6 +158,13 @@ IF(USE_BLAS OR USE_LAPACK)
     INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindILUPACK.cmake")
   ENDIF(USE_ILUPACK)
 
+  #-----------------------------------------------------------------------------
+  # Find CholMod library
+  #-----------------------------------------------------------------------------
+  IF(USE_CHOLMOD)
+    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindCholMod.cmake")
+  ENDIF(USE_CHOLMOD)
+
 #  MESSAGE("BLAS_LIBRARY ${BLAS_LIBRARY}")
 #  MESSAGE("LAPACK_LIBRARY ${LAPACK_LIBRARY}")
 #  MESSAGE("PARDISO_LIBRARY ${PARDISO_LIBRARY}")
@@ -255,8 +259,11 @@ EXECUTE_PROCESS(COMMAND "${PERL}" "${CFS_DEPS_ROOT}/utils/perl/cfsdepsmodif.pl"
   RESULT_VARIABLE retval
   OUTPUT_VARIABLE CFS_DEPS_MODIFIED)
 
+# the boolean $CFS_FORCE_DEPS_CACHE_DIR is a expert feature for people knowing what they do
 IF(CFS_DEPS_MODIFIED MATCHES "WORKING_COPY_MODIFIED modified")
-  MESSAGE("The Subversion working copy of CFSDEPS in '${CFS_DEPS_ROOT}' has been modified. Precompiled binaries have therefore been put into '${CFS_BINARY_DIR}/tmp' instead of '${CFS_DEPS_CACHE_DIR}/precompiled'!")
+  IF(NOT CFS_FORCE_DEPS_CACHE_DIR)
+    MESSAGE("The Subversion working copy of CFSDEPS in '${CFS_DEPS_ROOT}' has been modified. Precompiled binaries have therefore been put into '${CFS_BINARY_DIR}/tmp' instead of '${CFS_DEPS_CACHE_DIR}/precompiled'!")
+  ENDIF(NOT CFS_FORCE_DEPS_CACHE_DIR)  
 ENDIF(CFS_DEPS_MODIFIED MATCHES "WORKING_COPY_MODIFIED modified")
 
 SET(CFSDEPS_FOUND 1)

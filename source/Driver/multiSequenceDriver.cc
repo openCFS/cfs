@@ -41,7 +41,7 @@ namespace CoupledField {
   }
 
 
-  void MultiSequenceDriver::SolveProblem(bool write_results, InfoNode* given_analysis_id) {
+  void MultiSequenceDriver::SolveProblem(bool write_results, InfoNode* given_analysis_id, const bool reAssembleMatrices) {
     // options not implemented
     assert(write_results == true);
 

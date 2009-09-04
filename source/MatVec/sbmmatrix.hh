@@ -134,7 +134,7 @@ namespace CoupledField {
       for ( UInt k = 1; k <= nrows_ * ncols_; k++ ) {
         delete subMat_[k];
       }
-      DELETEARRAY( subMat_ );
+      delete [] ( subMat_ );
     }
 
     //! Insert a StdMatrix into the SBM_Matrix

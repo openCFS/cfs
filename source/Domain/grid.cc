@@ -19,6 +19,8 @@
 
 #include "grid.hh"
 
+#include <limits>
+
 namespace CoupledField
 {
 
@@ -288,6 +290,41 @@ namespace CoupledField
 
        std::cout << "region: " << region_name << " id=" << region_id << " elements=" << elems.GetSize() <<  std::endl;
      }
+   }
+
+
+   Double Grid::CalcVolumeSpannedByNamedNodes()
+   {
+     Double maximal = std::numeric_limits<Double>::max();
+     Double minimal = std::numeric_limits<Double>::min();
+
+     double mins[3] = { maximal, maximal, maximal};
+     double maxs[3] = { minimal, minimal, minimal};
+     StdVector<std::string> nodeNames;
+     GetListNodeNames(nodeNames);
+     Point p;
+     StdVector<UInt> nodes;
+     for(unsigned int n = 0; n < nodeNames.GetSize(); ++n)
+     {
+       GetNodesByName(nodes, nodeNames[n]);
+       for(unsigned int n = 0, ss = nodes.GetSize(); n < ss; ++n)
+       {
+         GetNodeCoordinate(p , nodes[n], false);
+         for(unsigned int d = 0; d < 3; ++d)
+         {
+           if(mins[d] >  p.data[d]) mins[d] =  p.data[d];
+           if(maxs[d] <  p.data[d]) maxs[d] =  p.data[d];
+         }
+       }
+     }
+
+     // now calculate the volume, in 2D case do not multiply with 0.0 from 3rd component!
+     double cube_vol(maxs[0] - mins[0]);
+     cube_vol *= maxs[1] - mins[1];
+     if(maxs[2] - mins[2] > std::numeric_limits<Double>::epsilon())
+       cube_vol *= maxs[2] - mins[2];
+
+     return cube_vol;
    }
 
 
@@ -2509,7 +2546,7 @@ namespace CoupledField
     // initialize memory for coordinates of source nodes
     nodeCoords.resize(numSourceNodes);
     for (UInt i=0; i<numSourceNodes; ++i) {
-      nodeCoords[i].Resize(0);
+      nodeCoords[i].Clear();
     }
 
     // If we haven't initialized the grid bounding boxes yet, do so now!
