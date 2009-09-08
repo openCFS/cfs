@@ -58,6 +58,7 @@ namespace CoupledField {
     fracMemory_(0),
     inType_(NOTUSED),
     isIncrFormulation_(false),
+    updatedLagrangeForm_(false),
     ComputeRHSforHarm_(false),
     assemble_(NULL),
     solveStep_(NULL),
