@@ -22,7 +22,9 @@ namespace CoupledField {
     size_(size),
     capacity_(size),
     data_(new TYPE [size])
-  { }
+  {
+    Init();
+  }
 
   template<class TYPE>
   StdVector<TYPE>::StdVector(const StdVector<TYPE> & vec) :
