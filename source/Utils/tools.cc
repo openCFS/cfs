@@ -5,7 +5,6 @@
 #include <fstream>
 #include <iostream>
 #include <math.h>
-#include <stdio.h> // MemoryUsage
 #include <boost/tokenizer.hpp>
 
 #include "tools.hh"
@@ -389,41 +388,22 @@ namespace CoupledField {
 
   int MemoryUsage()
   {
-    //! Process id of this program
     pid_t pid_num = getpid();  // get process id
-    std::string pid = lexical_cast<std::string>(pid_num);
+    
+    std::string name = "/proc/" + lexical_cast<std::string>(pid_num) + "/statm";
+    std::ifstream file(name.c_str(), std::ifstream::in);
+    
+    std::string data;
+    file >> data;
 
-    // Get memory consumption
-    std::string cmd = "ps -F " + pid + " | grep " + pid;
-
-    // popen is not ANSI-C but shall be on all unix system in the std lib!
-    // if this makes problem use defines!
-
-    FILE* pipe = popen(cmd.c_str(), "r");
-    if(pipe == NULL) return 0;
-
-    // we have only a single line!
-    char line[128]; // the line buffer
-    if(fgets(line, 128, pipe) == NULL) return 0;
-    pclose(pipe);
-
-    // (ID        PID  PPID  C    SZ   RSS PSR STIME TTY      STAT   TIME CMD)
-    // now extract the size
-    // fwein     6288  6283  2 135425 111908 1 10:22 ?        Sl     1:57 /usr/lib64/firefox/firefox
-    int count = 0;
-    char_separator<char> sep(" \t"); // spaces, closing and colon
-    tokenizer<char_separator<char> > tok(std::string(line), sep);
-    for(tokenizer<char_separator<char> >::iterator beg=tok.begin(); beg!=tok.end(); ++beg)
+    try
     {
-      // we need the 5th element (nice and red haired)
-      // std::cout << "token '" << *beg << "'" << std::endl;
-      if(++count < 5) continue;
-
-      return lexical_cast<int>(*beg);
+      return lexical_cast<int>(data);
     }
-
-    return 0; // token not found
+    catch(bad_lexical_cast &)
+    {
+      return 0;
+    }
   }
-
 
 }// namespace CoupledField
