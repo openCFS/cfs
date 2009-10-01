@@ -530,8 +530,7 @@ namespace CoupledField {
   //since the graph will be 0-based, we substract from the
   //equation number always minus one, when accessing the vector
     if ( node != 0 ) {
-      node -= 1;
-      rhs->AddToEntry( std::abs(node), val );
+      rhs->AddToEntry( std::abs(node)-1, val );
     }
 
     // Set flag for rhsBuffer invaldiation
