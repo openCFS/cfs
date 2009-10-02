@@ -98,6 +98,7 @@ share/MaterialFile/mat.xml svneol=native#text/xml
 share/doc/auxilliaries/LaTeX/lsepaper.sty svneol=native#text/plain
 share/doc/auxilliaries/Pics/lse.eps -text svneol=unset#application/postscript
 share/doc/auxilliaries/Pics/lse.png -text svneol=unset#image/png
+share/doc/auxilliaries/cfs-logo.cdr -text svneol=unset#application/coreldraw
 share/doc/developer/AddDoc/coding-rules/coding_rules.html svneol=native#text/html
 share/doc/developer/AddDoc/coding-rules/coding_rules.tex svneol=native#text/plain
 share/doc/developer/AddDoc/element_types/elementtypes.doc -text
@@ -260,6 +261,10 @@ share/doc/user/xmlFile/Savings.tex svneol=native#text/plain
 share/doc/user/xmlFile/basicCommands.tex svneol=native#text/plain
 share/doc/user/xmlFile/coupledfields.tex svneol=native#text/plain
 share/doc/user/xmlFile/general.tex svneol=native#text/plain
+share/doc/user/xmlFile/html/banner.png -text svneol=unset#image/png
+share/doc/user/xmlFile/html/next.png -text svneol=unset#image/png
+share/doc/user/xmlFile/html/prev.png -text svneol=unset#image/png
+share/doc/user/xmlFile/html/up.png -text svneol=unset#image/png
 share/doc/user/xmlFile/mathExpressions.tex svneol=native#text/plain
 share/doc/user/xmlFile/mycommands.tex svneol=native#text/plain
 share/doc/user/xmlFile/optimization.tex svneol=native#text/plain
@@ -279,6 +284,7 @@ share/doc/user/xmlFile/pics/small_filter.jpg -text svneol=unset#image/jpeg
 share/doc/user/xmlFile/singlefields.tex svneol=native#text/plain
 share/doc/user/xmlFile/solverParams.tex svneol=native#text/plain
 share/doc/user/xmlFile/special.tex svneol=native#text/plain
+share/doc/user/xmlFile/xmlReference.cfg -text
 share/doc/user/xmlFile/xmlReference.tex svneol=native#text/plain
 share/doc/user/xmlFile/xmlcover.tex svneol=native#text/plain
 share/doc/user/xmlFile/xmlintro.tex svneol=native#text/plain

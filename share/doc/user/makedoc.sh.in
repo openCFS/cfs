@@ -83,9 +83,42 @@ function build {
 
 }
 
+function buildhtml {
+
+    echo "============================================="
+    echo " Generating XML-REFERENCE HTML documentation"
+    echo "============================================="
+
+    cd @CMAKE_CURRENT_SOURCE_DIR@/xmlFile
+    DOCUMENT=xmlReference
+
+    htlatex $DOCUMENT "$DOCUMENT.cfg" "-dhtml/" "-dhtml/"
+    cp -r pics/ html/
+    rm *.html
+
+    cd @CMAKE_CURRENT_SOURCE_DIR@
+
+    echo ""
+    echo "================================"
+    echo " HTML documentation generated!"
+    echo "================================"
+    echo ""
+    echo " Documentation has been generated in:"
+    echo ""
+    echo " @CMAKE_CURRENT_SOURCE_DIR@/"
+    echo " |-- xmlFile"
+    echo "     \`-- html"
+    echo "          \`-- xmlReference.html"
+    echo ""
+
+}
+
 case "$MODE" in
     build)
 	build
+        ;;
+    build-html)
+        buildhtml
         ;;
     rebuild)
 	clean
