@@ -3,11 +3,6 @@ SET(ILUPACK_FOUND 0)
 #-------------------------------------------------------------------------------
 # Look for ILUPACK header.
 #-------------------------------------------------------------------------------
-BUILD_EXTLIB("AMD"
-  "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libamd.a"
-  "${CFS_DEPS_ROOT}/amd/build_amd.pl"
-  "build_amd.log")
-
 BUILD_EXTLIB("ILUPACK"
   "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libZilupack.a"
   "${CFS_DEPS_ROOT}/ilupack/build_ilupack.pl"

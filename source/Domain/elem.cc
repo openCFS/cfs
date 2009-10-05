@@ -151,7 +151,7 @@ namespace CoupledField {
     FEType type = ptElem->feType();
 
     // This funtion rearanges the connectivity of the element so
-    // that the orientation is in such a way that the Jacobion determinant
+    // that the orientation is in such a way that the Jacobian determinant
     // will always be positive. 
     switch(type) 
     {
@@ -177,10 +177,16 @@ namespace CoupledField {
       connect[3] = dummy;
       break;
     default:
-      EXCEPTION("Connectivity for " << feType.ToString(type) << " element "
-                << elemNum << " in region "
-                << domain->GetGrid()->RegionIdToName(regionId)
-                << " is not properly oriented!" );
+      // Just throw an exception due to negative Jacobian if a Domain object
+      // has been allocated, which means that we are running within CFS++
+      // and not cfstool!
+      if(domain)
+      {
+        EXCEPTION("Connectivity for " << feType.ToString(type) << " element "
+                  << elemNum << " in region "
+                  << domain->GetGrid()->RegionIdToName(regionId)
+                  << " is not properly oriented!" );
+      }
       break;
     }
   }

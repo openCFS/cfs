@@ -10,11 +10,11 @@ cmake_modules/FindBzip2.cmake -text
 cmake_modules/FindCFSDEPS.cmake -text
 cmake_modules/FindCFXCust.cmake -text
 cmake_modules/FindCGAL.cmake -text
-cmake_modules/FindCholMod.cmake -text
 cmake_modules/FindFortranLibs.cmake -text
 cmake_modules/FindGiDpost.cmake -text
 cmake_modules/FindGotoBLAS.cmake -text
 cmake_modules/FindHDF5.cmake -text
+cmake_modules/FindHDFView.cmake -text
 cmake_modules/FindILUPACK.cmake -text
 cmake_modules/FindIPOPT.cmake -text
 cmake_modules/FindIntelMKL.cmake -text
@@ -27,6 +27,7 @@ cmake_modules/FindPardiso.cmake -text
 cmake_modules/FindPrograms.cmake -text
 cmake_modules/FindPythonForCFS.cmake -text
 cmake_modules/FindSCPIP.cmake -text
+cmake_modules/FindSuiteSparse.cmake -text
 cmake_modules/FindTCLForCFS.cmake -text
 cmake_modules/FindVTK.cmake -text
 cmake_modules/FindXerces.cmake -text

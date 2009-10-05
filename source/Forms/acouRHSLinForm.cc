@@ -37,6 +37,7 @@ namespace CoupledField {
       id_("default"),
       interpolate_(false),
       restartFileMode_("rw"),
+      overwriteOldSrcs_(true),
       coordSysId_("default"),
       globalEpsilon_(1.0e-4, 0.0, 0.0),
       localEpsilon_(1.0e-3, 0.0, 0.0),
@@ -46,7 +47,8 @@ namespace CoupledField {
       ptGrid_(domain->GetGrid()),
       globCoSy_(domain->GetCoordSystem()),
       step_(0), lastStep_(0),
-      destNodeList_(NULL), destElemList_(NULL),
+      destNodeList_(NULL),
+      destElemList_(NULL),
       isFirstStep_(true)
   {
     name_ = "AcouRHSLinForm";
@@ -126,6 +128,9 @@ namespace CoupledField {
             node_warnings_ = (ciWarnFlags) (node_warnings_ | CI_WARN_LIST);
           }
         }
+
+        // overwrite old source terms present on destination mesh?
+        intNode->Get("overwriteOldSrcs", overwriteOldSrcs_, false);
       }
       
       // do we use asynchronous time/frequency steps?
@@ -296,11 +301,105 @@ namespace CoupledField {
 
     if (step_ != lastStep_)
     {
+      // Load data before doing interpolation
+      StdVector<UInt> regionNodes;
+
+        // Get data of previous time step for asynchronous time stepping
+        // with interpolation
+        if (timeInterp) {
+          // only if previous step gives a significant contribution
+          if (fabs(1.0-intFactor) > timeTol) {
+            // are the data still in memory?
+            if (prevStep == lastStep_) {
+              rhsValues2_.Resize(rhsValues_.GetSize());
+              rhsValues2_ = rhsValues_; // just copy it
+            }
+            else { // load data from file
+              Result<Double> *result2 = NULL;
+              try {
+                // Try to read in RHS values from main grid file.
+                acouRHSVal2 = resultHandler->GetResult(id_, 1, prevStep,
+                                                       ACOU_RHS_LOAD, regionName_);
+
+                result2 = dynamic_cast<Result<Double>*>(&(*acouRHSVal2));
+              } catch (Exception& ex) {};
+              
+
+              if (result2 == NULL) {
+                if(!interpolate_)
+                {
+                  EXCEPTION("Cannot read result 'acouRhsLoad' from input id '"
+                            << id_ << "'");
+                }
+                else
+                {
+                  ptGrid_->GetNodesByRegion( regionNodes, ptGrid_->RegionNameToId(regionName_));
+                  rhsValues2_.Resize(regionNodes.GetSize());
+                  std::fill(rhsValues2_.Begin(), rhsValues2_.End(), 0.0);
+                }
+              }
+              else
+              {
+                Vector<Double>& resVec2 = result2->GetVector();
+                UInt numValues = resVec2.GetSize();
+
+                rhsValues2_.Resize(numValues);
+                for (UInt i=0; i < numValues; ++i) {
+                  rhsValues2_[i] = resVec2[i];
+                }
+              }
+            }
+          }
+        } // if (timeInterp)
+
+        // Get reference result
+        Result<Double> *result = NULL;
+        try {
+          // Try to read in RHS values from main grid file.
+          acouRHSVal = resultHandler->GetResult( id_,
+                                                 1,
+                                                 step_,
+                                                 ACOU_RHS_LOAD,
+                                                 regionName_ );
+          
+          result = dynamic_cast<Result<Double>*>(&(*acouRHSVal));
+        } catch (Exception& ex) {};
+        
+        if (result == NULL) {
+          if(!interpolate_)
+          {
+            EXCEPTION("Cannot read result 'acouRhsLoad' from input id '"
+                      << id_ << "'");
+          }
+          else
+          {
+            ptGrid_->GetNodesByRegion( regionNodes, ptGrid_->RegionNameToId(regionName_));
+            rhsValues_.Resize(regionNodes.GetSize());
+            std::fill(rhsValues_.Begin(), rhsValues_.End(), 0.0);
+          }
+          
+        }
+        else 
+        {
+          Vector<Double>& resVec = result->GetVector();
+          
+          rhsValues_.Resize(resVec.GetSize());
+          for(UInt i=0, n=resVec.GetSize();
+              i < n;
+              i++)
+            rhsValues_[i] = resVec[i];
+        }
+        
+        
+
+
+
+
       if (interpolate_)
       {
 #ifdef USE_INTERPOLATION
         UInt numSourceRegions = srcRegions_.GetSize();
-        StdVector<UInt> regionNodes;
+        //        StdVector<UInt> regionNodes;
         StdVector<UInt> unmapped_nodes;
 
         // do we need data of previous time step for interpolation?
@@ -316,13 +415,16 @@ namespace CoupledField {
         }
 
         // initialize vector for current time step
-        ptGrid_->GetNodesByRegion( regionNodes, ptGrid_->RegionNameToId(regionName_));
-        rhsValues_.Resize(regionNodes.GetSize());
-        std::fill(rhsValues_.Begin(), rhsValues_.End(), 0.0);
+        //        ptGrid_->GetNodesByRegion( regionNodes, ptGrid_->RegionNameToId(regionName_));
+        //        rhsValues_.Resize(regionNodes.GetSize());
+        if(overwriteOldSrcs_)
+          std::fill(rhsValues_.Begin(), rhsValues_.End(), 0.0);
+
 
         if (timeInterp) {
-          rhsValues2_.Resize(regionNodes.GetSize());
-          std::fill(rhsValues2_.Begin(), rhsValues2_.End(), 0.0);
+          //          rhsValues2_.Resize(regionNodes.GetSize());
+          if(overwriteOldSrcs_)
+            std::fill(rhsValues2_.Begin(), rhsValues2_.End(), 0.0);
         }
 
         if (isFirstStep_) {
@@ -552,60 +654,9 @@ namespace CoupledField {
 #endif // USE_INTERPOLATION
         
       }
-      else // if (interpolate_)
-      {
-        // Get data of previous time step for asynchronous time stepping
-        // with interpolation
-        if (timeInterp) {
-          // only if previous step gives a significant contribution
-          if (fabs(1.0-intFactor) > timeTol) {
-            // are the data still in memory?
-            if (prevStep == lastStep_) {
-              rhsValues2_.Resize(rhsValues_.GetSize());
-              rhsValues2_ = rhsValues_; // just copy it
-            }
-            else { // load data from file
-              acouRHSVal2 = resultHandler->GetResult(id_, 1, prevStep,
-                  ACOU_RHS_LOAD, regionName_);
-
-              Result<Double> *result2 =
-                dynamic_cast<Result<Double>*>(&(*acouRHSVal2));
-              if (result2 == NULL) {
-                EXCEPTION("Cannot read result 'acouRhsLoad' from input id '"
-                    << id_ << "'");
-              }
-              Vector<Double>& resVec2 = result2->GetVector();
-              UInt numValues = resVec2.GetSize();
-
-              rhsValues2_.Resize(numValues);
-              for (UInt i=0; i < numValues; ++i) {
-                rhsValues2_[i] = resVec2[i];
-              }
-            }
-          }
-        } // if (timeInterp)
-
-        // Get reference result
-        acouRHSVal = resultHandler->GetResult( id_,
-                                               1,
-                                               step_,
-                                               ACOU_RHS_LOAD,
-                                               regionName_ );
-
-        Result<Double> *result =
-          dynamic_cast<Result<Double>*>(&(*acouRHSVal));
-        if (result == NULL) {
-          EXCEPTION("Cannot read result 'acouRhsLoad' from input id '"
-              << id_ << "'");
-        }
-        Vector<Double>& resVec = result->GetVector();
-
-        rhsValues_.Resize(resVec.GetSize());
-        for(UInt i=0, n=resVec.GetSize();
-            i < n;
-            i++)
-          rhsValues_[i] = resVec[i];
-      } // if (interpolate_)
+      //      else // if (interpolate_)
+      //      {
+      //      } // if (interpolate_)
 
       lastStep_ = step_;
     }

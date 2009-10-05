@@ -617,7 +617,9 @@
             </xsd:element>
           </xsd:all>
           <xsd:attribute name="justInterpolate" type="DT_CFSBool"
-            use="optional" default="no"/>
+          use="optional" default="no"/>
+          <xsd:attribute name="overwriteOldSrcs" type="DT_CFSBool"
+            use="optional" default="yes"/>
         </xsd:complexType>
       </xsd:element>
       <xsd:element name="asyncSteps" minOccurs="0" maxOccurs="1"

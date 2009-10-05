@@ -182,6 +182,13 @@ OPTION(BUILD_PARAVIEW
   ${BUILD_PARAVIEW_DEFAULT})
 
 #-----------------------------------------------------------------------------
+# Shall we build HDFView?
+#-----------------------------------------------------------------------------
+OPTION(BUILD_HDFVIEW
+  "Build the HDF 4/5 file viewer?"
+   ${BUILD_HDFVIEW_DEFAULT})
+
+#-----------------------------------------------------------------------------
 # Do we want to use explicit or implicit template instantiation
 #-----------------------------------------------------------------------------
 OPTION(EXPLICIT_TEMPLATE_INSTANTIATION

@@ -16,7 +16,6 @@
 #include <math.h>
 
 #include <General/exception.hh>
-#include <DataInOut/Logging/cfslog.hh>
 #include <DataInOut/simInput.hh>
 
 #undef RDATA_INIT
@@ -24,7 +23,7 @@
 
 namespace CoupledField {
 
-  DECLARE_LOG(gmvread)
+
   DEFINE_LOG(gmvread, "gmvread")
 
   // I defined these macros to get rid of irresponsible memory
@@ -1116,7 +1115,7 @@ namespace CoupledField {
 
       //exit(0);
     }
-    EXCEPTION("GMV reading "<< sav_keyword << " from fromfile " << charptr);
+    LOG_TRACE(gmvread) << "GMV reading "<< sav_keyword << " from fromfile " << charptr;
 
     return;
   }
@@ -2627,6 +2626,7 @@ namespace CoupledField {
     float *tmpfloat;
     char vectname[33];
     char compname[33];
+    gmv_vector_components.clear();
 
     /*  Read a variable name and data type (cells or nodes). */
     if (ftype != ASCII)
@@ -2724,6 +2724,7 @@ namespace CoupledField {
         else
           fscanf(gmvin,"%s", compname);
 
+        gmv_vector_components.push_back(compname);
         LOG_DBG2(gmvread) << "vector component: " << compname;
       }
     }

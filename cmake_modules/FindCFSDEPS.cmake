@@ -155,14 +155,15 @@ IF(USE_BLAS OR USE_LAPACK)
   #-----------------------------------------------------------------------------
   IF(USE_ILUPACK)
     INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindLAPACK.cmake")
+    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindSuiteSparse.cmake")    
     INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindILUPACK.cmake")
   ENDIF(USE_ILUPACK)
 
   #-----------------------------------------------------------------------------
-  # Find CholMod library
+  # Find SuiteSparse/CholMod/AMD library
   #-----------------------------------------------------------------------------
   IF(USE_CHOLMOD)
-    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindCholMod.cmake")
+    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindSuiteSparse.cmake")
   ENDIF(USE_CHOLMOD)
 
 #  MESSAGE("BLAS_LIBRARY ${BLAS_LIBRARY}")
@@ -253,6 +254,14 @@ ENDIF(CPLREADER_OPENFOAM)
 IF(BUILD_PARAVIEW)
   INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindParaView.cmake")
 ENDIF(BUILD_PARAVIEW)
+
+#-----------------------------------------------------------------------------
+# Find HDF file viewer
+#-----------------------------------------------------------------------------
+IF(BUILD_HDFVIEW)
+  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindHDFView.cmake")
+ENDIF(BUILD_HDFVIEW)
+
 
 EXECUTE_PROCESS(COMMAND "${PERL}" "${CFS_DEPS_ROOT}/utils/perl/cfsdepsmodif.pl"
   ${CFS_DEPS_ROOT} ${CFS_BUILD_DIR}/tmp
