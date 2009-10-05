@@ -94,7 +94,7 @@ function buildhtml {
 
     htlatex $DOCUMENT "$DOCUMENT.cfg" "-dhtml/" "-dhtml/"
     cp -r pics/ html/
-    rm *.html
+    rm *.html *.css *.idv *.lg
 
     cd @CMAKE_CURRENT_SOURCE_DIR@
 
