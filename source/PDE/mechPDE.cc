@@ -2166,6 +2166,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     it.Begin();
     BaseMaterial* actSDMat = materials_[it.GetElem()->regionId];
     MechStressStrain<TYPE> *stress = new MechStressStrain<TYPE>(actSDMat,type);
+    stress->SetAnsatzFct( results_[0]->fctType );
 
     // loop over elements
     for ( it.Begin(); !it.IsEnd(); it++ ) {
@@ -2212,7 +2213,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     it.Begin();
     BaseMaterial* actSDMat = materials_[it.GetElem()->regionId];
     MechStressStrain<TYPE> *strain = new MechStressStrain<TYPE>(actSDMat,type);
-
+    strain->SetAnsatzFct( results_[0]->fctType );
     // loop over elements
     for ( it.Begin(); !it.IsEnd(); it++ ) {
       it.GetElem()->ptElem->GetCoordMidPoint(intPoint);

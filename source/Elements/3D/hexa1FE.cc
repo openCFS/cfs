@@ -634,8 +634,8 @@ namespace CoupledField
           }
         }
       }
-      LOG_DBG2(hexa1fe) << "LDeriv = \n" << LDeriv << std::endl;
-      LOG_DBG3(hexa1fe) << "offset after bubbles: " << offset;
+      //LOG_DBG2(hexa1fe) << "LDeriv = \n" << LDeriv << std::endl;
+      //LOG_DBG3(hexa1fe) << "offset after bubbles: " << offset;
     } else {
       EXCEPTION( "Approximation type not known" );
     }

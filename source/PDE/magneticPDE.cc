@@ -879,8 +879,13 @@ DEFINE_LOG(magpde, "magpde")
         ApproxData *nlinFnc = new SmoothSpline(nlfnc);
         nlinFnc->CalcBestParameter();
         nlinFnc->CalcApproximation();
-        bilinear_stiff = new nLinCurlCurlNode2DInt( materials_[regionIt.GetRegion()],
-                                                    isaxi_);
+        if( is3d_ ) {
+          bilinear_stiff = new nLinCurlCurlNode3DInt( materials_[regionIt.GetRegion()],
+                                                      true );
+        } else  {
+          bilinear_stiff = new nLinCurlCurlNode2DInt( materials_[regionIt.GetRegion()],
+                                                      isaxi_, true );
+        }
         
         bilinear_stiff->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
         
@@ -888,7 +893,12 @@ DEFINE_LOG(magpde, "magpde")
         // the Frechet part of the stiffness is calculated!
         bilinear_stiff->SetNonLinMethod( "fixPoint" );
       } else {
-        bilinear_stiff = new CurlCurlNode2DInt( materials_[regionIt.GetRegion()], isaxi_);
+        if (is3d_ ) {
+          bilinear_stiff = new CurlCurlNode3DInt( materials_[regionIt.GetRegion()] );
+        } else {
+          bilinear_stiff = new CurlCurlNode2DInt( materials_[regionIt.GetRegion()], isaxi_);
+        }
+        bilinear_stiff->SetAnsatzFct( results_[0]->fctType, results_[0]->fctType );
       }
       
       ElemList actSDList(ptgrid_ );
@@ -1233,11 +1243,26 @@ DEFINE_LOG(magpde, "magpde")
     else {
       vecComponents = "x", "y";
     }
-    
     // === MAGNETIC VECTOR POTENTIAL ===
     shared_ptr<ResultInfo> res1(new ResultInfo);
-    shared_ptr<AnsatzFct> fct(new LagrangeFct);
     res1->resultType = MAG_POTENTIAL;
+    
+    // check if problem is lagrange or legendre
+    std::string approxType = myParam_->Get("type")->AsString();
+    if ( approxType == "lagrange" ) {
+      shared_ptr<AnsatzFct> fct(new LagrangeFct);
+      res1->fctType = fct;
+      res1->definedOn = ResultInfo::NODE;
+    } else if (approxType == "legendre" ) {
+      shared_ptr<LegendreFct> fct(new LegendreFct);
+      UInt order =  myParam_->Get("order")->AsUInt();
+      fct->SetIsoOrder( order );
+      res1->definedOn = ResultInfo::PFEM;
+      res1->fctType = fct;
+    } else {
+      EXCEPTION("Approximation type' " << approxType << "' not known");
+    }
+    
     if ( is3d_ ) {
       res1->dofNames = vecComponents;
     }
@@ -1245,15 +1270,12 @@ DEFINE_LOG(magpde, "magpde")
       res1->dofNames = "";
     }
     res1->unit = "Vs/m";
-    res1->definedOn = ResultInfo::NODE;
     if ( is3d_ ) {
       res1->entryType = ResultInfo::VECTOR;
     }
     else {
       res1->entryType = ResultInfo::SCALAR;
     }
-    res1->fctType = fct;
-    
     results_.Push_back( res1 );
     availResults_.insert( res1 );
 

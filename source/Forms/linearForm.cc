@@ -327,6 +327,7 @@ namespace CoupledField {
     nrDofs_ = 3;
 
     curlOp_ = new CurlCurlNode3DInt( NULL, coordUpdate );
+    
   }
 
 
@@ -346,6 +347,7 @@ namespace CoupledField {
     curlOp_->ExtractElemInfo( ent );
 
     ptelem->SetAnsatzFct( ansatzFct1_ );
+    curlOp_->SetAnsatzFct( ansatzFct1_ );
 
     const UInt nrIntPts = ptelem->GetNumIntPoints();
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
@@ -371,7 +373,7 @@ namespace CoupledField {
 
       // Perform a safety check
       if ( jacDet < 0.0 ) {
-	EXCEPTION("CurlCurlNode3DInt::CalcElementMatrix: Encountered "
+        EXCEPTION("CurlCurlNode3DInt::CalcElementMatrix: Encountered "
                   << "negative Jacobian determinant!");
       }
 
@@ -383,9 +385,9 @@ namespace CoupledField {
       helpVec *= intWeights[actIntPt-1] * jacDet * reluctivity_;
       elemVec += helpVec;
     }
-//      std::cout << "Mvec:\n" << elemVec << std::endl;
-//      std::cout << "M:\n" << perm_ << std::endl;
-//      std::cout << "rel:\n" << reluctivity_ << std::endl;
+    //      std::cout << "Mvec:\n" << elemVec << std::endl;
+    //      std::cout << "M:\n" << perm_ << std::endl;
+    //      std::cout << "rel:\n" << reluctivity_ << std::endl;
 
   }
 
@@ -442,6 +444,7 @@ namespace CoupledField {
       //set the solution class to the operator
       curlcurl2D->SetSolution( * sol_ );
     }
+    curlcurl2D->SetAnsatzFct( ansatzFct1_ );
 
     Matrix<Double> elemmat;
     curlcurl2D->CalcElementMatrix(elemmat, ent, ent);
@@ -503,6 +506,7 @@ namespace CoupledField {
       //set the solution class to the operator
       curlcurl3D->SetSolution( *sol_ );
     }
+    curlcurl3D->SetAnsatzFct( ansatzFct1_ );
 
     // Get element solution
     Vector<Double> magPot;
@@ -577,6 +581,7 @@ namespace CoupledField {
     else {
       EXCEPTION("Wrong space dimension of elements! ");
     }  
+    stressBiformInt->SetAnsatzFct( ansatzFct1_ );
     
     stressBiformInt->SetActEntities( ent, ent );
 
@@ -2450,6 +2455,7 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
     // auto_ptr deletes itself
     const std::auto_ptr<linElastInt> bilinearStiff(new linElastInt(matData_, subTensorType_));
     // extract pointer and get coords again for the integrator
+    bilinearStiff->SetAnsatzFct( ansatzFct1_ );
     bilinearStiff->ExtractElemInfo(ent);
     
     // calc dMat and immediately calculate the element stress

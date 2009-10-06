@@ -109,6 +109,7 @@ namespace CoupledField {
     const UInt nrIntPts = ptelem->GetNumIntPoints();
     const UInt dim      = ptCoord_.GetNumRows();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();
+    const Vector<Double> * intPoints = ptelem->GetIntPoints();
     Vector<Double> shapeFnc;
   
 
@@ -145,8 +146,9 @@ namespace CoupledField {
 
         if (isaxi_)
           {
-            Vector<Double> CoordAtIP;
-            CoordAtIP = ptCoord_ * shapeFnc;
+          Vector<Double> CoordAtIP;
+          ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+                                     ptCoord_, ent.GetElem() );
             factor *=  2 * PI * CoordAtIP[0];
           }
     

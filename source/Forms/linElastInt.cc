@@ -78,6 +78,7 @@ void linElastInt::ReorderBLikeMatrix(Matrix<Double>& in, Matrix<Double>& out, UI
   const UInt numFncs  = elem->GetNumFncs( ansatzFct1_ );
   const UInt spaceDim = elem->GetDim();  
   const UInt nrDofs   = getNrDofs();  
+  const Vector<Double> * intPoints = elem->GetIntPoints();
 
   UInt actDim, actNode, j, k;
 
@@ -106,12 +107,16 @@ void linElastInt::ReorderBLikeMatrix(Matrix<Double>& in, Matrix<Double>& out, UI
       Vector<Double> ShpFncAtIp;
       Vector<Double> CoordAtIP;
 
-      if (isSetIntPoint_) 
+      if (isSetIntPoint_) {
         elem->GetShFnc(ShpFncAtIp,intPoint_, it1_.GetElem());
-      else
+        elem->Local2GlobalCoord( CoordAtIP, intPoint_,
+                                 ptCoord, it1_.GetElem() );
+      } else {
         elem->GetShFncAtIp(ShpFncAtIp,ip, it1_.GetElem() );
+        elem->Local2GlobalCoord( CoordAtIP, intPoints[ip-1],
+                                 ptCoord, it1_.GetElem() );
+      }
 
-      CoordAtIP = ptCoord * ShpFncAtIp;
 
       for (actNode = 0; actNode < numFncs; actNode++)          
         out[idxtheta-1][actNode * spaceDim] =

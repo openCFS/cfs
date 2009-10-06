@@ -57,6 +57,7 @@ namespace CoupledField {
 
     const UInt nrIntPts = ptelem->GetNumIntPoints();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();
+    const Vector<Double> * intPoints = ptelem->GetIntPoints();
 
     // **************************************************
     //  Material matrix independent of integration point
@@ -107,11 +108,10 @@ namespace CoupledField {
 
         // Special things must be done in the axi-symmetric case
         if ( isaxi_ ) {
-          Vector<Double> ShpFncAtIp;
           Vector<Double> CoordAtIP;
-          ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt, ent1.GetElem() );
-
-          CoordAtIP = ptCoord_ * ShpFncAtIp;
+          ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+                                   ptCoord_, ent1.GetElem() );
+          //ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt, ent1.GetElem() );
           jacDet *= 2 * PI * CoordAtIP[0];
         }
 
@@ -162,14 +162,13 @@ namespace CoupledField {
 
         // Special things must be done in the axi-symmetric case
         if ( isaxi_ ) {
-          Vector<Double> ShpFncAtIp;
           Vector<Double> CoordAtIP;
-          ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt, ent1.GetElem() );
-
-          CoordAtIP = ptCoord_ * ShpFncAtIp;
+          ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+                                     ptCoord_, ent1.GetElem() );
+          //ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt, ent1.GetElem() );
           jacDet *= 2 * PI * CoordAtIP[0];
         }
-
+        
         // Compute the matrix product D * B and store as intermediate matrix
         dMat.Mult( bMat, dbMat );
 
@@ -215,6 +214,7 @@ namespace CoupledField {
     const UInt nrNodes  = ptelem->GetNumNodes();
     const UInt nrDofs   = getNrDofs();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();
+    const Vector<Double> * intPoints = ptelem->GetIntPoints();
     double jacDet;
 
     Matrix<Double> bMat;
@@ -282,15 +282,14 @@ namespace CoupledField {
                  << "negative Jacobian determinant!" );
       }
 
-      if (isaxi_) {
-        Vector<Double> ShpFncAtIp;
+      if ( isaxi_ ) {
         Vector<Double> CoordAtIP;
-        ptelem->GetShFncAtIp(ShpFncAtIp, actIntPt, ent1.GetElem());
-
-        CoordAtIP = ptCoord_ * ShpFncAtIp;
+        ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+                                   ptCoord_, ent1.GetElem() );
+        //ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt, ent1.GetElem() );
         jacDet *= 2 * PI * CoordAtIP[0];
       }
-
+      
       const unsigned int ecols(elemMat.GetNumCols());
       const unsigned int erows(elemMat.GetNumRows());
       for ( UInt i = 0; i < erows; i++ ) {
