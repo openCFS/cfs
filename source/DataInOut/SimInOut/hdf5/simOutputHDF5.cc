@@ -1095,13 +1095,18 @@ namespace CoupledField {
                             &(resInfo->dofNames[0]), dPropList_ );
         H5IO::Write1DArray( actGroup, "EntryType", 1, &entryType, dPropList_ );
         H5IO::Write1DArray( actGroup, "Unit", 1, &unit, dPropList_ );
-//        H5IO::Write1DArray( actGroup, "StepFirst", 1, &saveBegin, dPropList_ );
-//        H5IO::Write1DArray( actGroup, "StepLast", 1, &saveEnd, dPropList_ );
-//        H5IO::Write1DArray( actGroup, "StepInc", 1, &saveInc, dPropList_ );
 
         UInt numRealSteps = (UInt) (saveEnd-saveBegin) / saveInc + 1;
-        H5IO::Reserve1DArray<Double>(actGroup, "StepValues", numRealSteps, dPropList_ );
-        H5IO::Reserve1DArray<UInt>(actGroup, "StepNumbers", numRealSteps, dPropList_ );
+
+        // do not reserve 1D array for StepValues and StepNumbers but initialize with 0
+        // otherwise strange memory bugs occur! :(
+        StdVector<Double> tmp_double;
+        tmp_double.Resize(numRealSteps, 0.0);
+        H5IO::Write1DArray( actGroup, "StepValues", numRealSteps, tmp_double.GetPointer(), dPropList_ );
+
+        StdVector<UInt> tmp_uint;
+        tmp_uint.Resize(numRealSteps, 0);
+        H5IO::Write1DArray( actGroup, "StepNumbers", numRealSteps, tmp_uint.GetPointer(), dPropList_ );
 
         actGroup.close();
 
