@@ -98,6 +98,58 @@ namespace CoupledField
     PMLBasics *pmlFnc_;
 };
 
+
+  // ------------------------ Time domain PML formulations --------------------// 
+
+  /// Class for calculation  element stiffness/mass matrix for PML formulation
+  
+  class PMLTimeInt : public BaseForm
+  {
+  public:
+    
+    //! Constructor
+    PMLTimeInt(std::string type, Double factor, std::string dampingTypePML, 
+           Double damp, bool axi=false);
+    
+    /// 
+    virtual ~PMLTimeInt();
+    
+    //! Calculation of stiffmess matrix
+    void CalcElementMatrix( Matrix<Double>& elemMat,
+                            EntityIterator& ent1, 
+                            EntityIterator& ent2 );
+
+    //! set min/max of x,y,z coordinates form where PML starts and ends
+    void SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer);
+    
+    //! set actual solution
+    void SetActElemSol(Matrix<Double>& disp){};
+
+  private:
+    
+    //! Calculation of damping and stiffmess matrix according to type
+    void CalcElementMatrixPressure(Matrix<Double> & ptCoord, Matrix<Double> & elemMat);
+    
+    //! Calculation of gradient  matrix
+    void CalcElementMatrixPressureGrad(Matrix<Double> & ptCoord, Matrix<Double> & elemMat);
+
+    //! Calculation of stiffmess matrix
+    void CalcElementMatrixAuxillaryStiff(Matrix<Double> & ptCoord, Matrix<Double> & elemMat);
+
+    //! Calculation of gradient  matrix
+    void CalcElementMatrixAuxillaryDiv(Matrix<Double> & ptCoord, Matrix<Double> & elemMat);
+    
+    //! type of bilinear form
+    std::string formsType_;
+
+    //! object containing standard PML methods
+    PMLBasics *pmlFnc_;
+    
+    //! multiplicative factor for forms
+    Double formsFactor_;
+
+};
+
 }
 
 #endif // FILE_PMLINT

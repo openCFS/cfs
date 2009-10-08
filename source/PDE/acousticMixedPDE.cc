@@ -126,6 +126,7 @@ namespace CoupledField
     Double density, bulkModulus,c0;
     Double VelSurfIntFactor = 0;
     Double abcIntFactor = 0;
+    Double MachNumber = 1.0;
 
     for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++) {
 
@@ -194,8 +195,59 @@ namespace CoupledField
       else{
         VelSurfIntFactor = bulkModulus;
         abcIntFactor = c0;
+
+
+	// check for flow data
+
+	// get current region name and get grip of paramNode
+	RegionIdType actRegion = subdoms_[actSD];
+	std::string actRegionName;
+	actRegionName = ptgrid_->RegionIdToName( actRegion );
+	ParamNode * actRegionNode =
+	  myParam_->Get("regionList")->Get( "region", "name", actRegionName );
+
+        std::string id = actRegionNode->Get("flowId")->AsString();
+	if ( id != "" ) {
+	  // add the convective bilinear forms
+
+	  ParamNode * flowNode = myParam_->Get("flowList")->Get("flow", "id", id);
+
+	  Vector<Double> velVec;
+	  Double MachNr;
+	  ReadDataFlow(velVec, MachNr, flowNode );
+	  
+	  MachNumber = MachNr;
+	  VelSurfIntFactor /= MachNumber;
+	  abcIntFactor /= MachNumber;
+
+	  // ==============  add convective PV ======================================
+	  BaseForm *bilinearConv_KPP = new ConvectiveMixedInt_KPP( velVec, 
+								   dim_, isaxi_);
+	  BiLinFormContext * convContext_KPP =
+	    new BiLinFormContext(bilinearConv_KPP, STIFFNESS );
+
+	  convContext_KPP->SetPtPdes(this, this);
+	  convContext_KPP->SetResults( results_[0], results_[0],
+				       actSDList, actSDList );
+
+	  assemble_->AddBiLinearForm( convContext_KPP );
+
+
+	  // ==============  add convective VP ======================================
+	  BaseForm *bilinearConv_KVV = new ConvectiveMixedInt_KVV( velVec, 
+								   dim_, isaxi_);
+	  BiLinFormContext * convContext_KVV =
+	    new BiLinFormContext(bilinearConv_KVV, STIFFNESS );
+
+	  convContext_KVV->SetPtPdes(this, this);
+	  convContext_KVV->SetResults( results_[1], results_[1],
+				       actSDList, actSDList );
+
+	  assemble_->AddBiLinearForm( convContext_KVV );
+	}
+
         // ==============  add stiffness ======================================
-        BaseForm *bilinearStiff_KPV = new StiffMixedInt_KPV( bulkModulus, 
+        BaseForm *bilinearStiff_KPV = new StiffMixedInt_KPV( bulkModulus/MachNumber, 
 			  				   dim_, isaxi_);
         BiLinFormContext * stiffContext_KPV =
           new BiLinFormContext(bilinearStiff_KPV, STIFFNESS );
@@ -207,7 +259,7 @@ namespace CoupledField
         assemble_->AddBiLinearForm( stiffContext_KPV );
 
          // ==============  add KVP ======================================
-        BaseForm *bilinearStiff_KVP = new StiffMixedInt_KVP( 1.0/density, 
+        BaseForm *bilinearStiff_KVP = new StiffMixedInt_KVP( 1.0/(density*MachNumber), 
 			  				   dim_, isaxi_);
         BiLinFormContext * stiffContext_KVP =
           new BiLinFormContext(bilinearStiff_KVP, STIFFNESS );
@@ -296,12 +348,13 @@ namespace CoupledField
         BiLinFormContext * surfContext = 
           new BiLinFormContext( bilinear_surf, STIFFNESS );
         surfContext->SetPtPdes(this, this);     
-        surfContext->SetResults( results_[0], results_[0],
+        surfContext->SetResults( results_[0], results_[1],
          surfVelLHS_[actSD], surfVelLHS_[actSD] );
         assemble_->AddBiLinearForm( surfContext );
 
         // Give result to equation numbering class
         eqnMap_->AddResult( *results_[0], surfVelLHS_[actSD] );
+        eqnMap_->AddResult( *results_[1], surfVelLHS_[actSD] );
       }
     }
 
@@ -320,7 +373,7 @@ namespace CoupledField
       LinearFormContext * forceContext = 
         new LinearFormContext( forceInt );
       forceContext->SetPtPde(this);
-      forceContext->SetResult( results_[0], actSDList );
+      forceContext->SetResult( results_[1], actSDList );
       assemble_->AddLinearForm( forceContext );
 
       (*loadIt).second.Print(false, pdename_);
@@ -373,32 +426,6 @@ namespace CoupledField
       }
     }
 
-    //// ***************************************************************
-    ////   Surface bilinear form for particle velocity in normal direction
-    //// ***************************************************************
-    //ParamNode * bcNodeDirichletVel = myParam_->Get( "bcsAndLoads", false );
-    //if( bcNodeDirichletVel ) {
-    //  StdVector<ParamNode*> velNodes = bcNodeVel->GetList( "dirichletVelCond" );
-    //  for( UInt i = 0; i < velNodes.GetSize(); i++ ) {
-    //    // read parameters
-    //    dof = "";
-    //    velNodes[i]->Get( "name", name );
-    //    velNodes[i]->Get( "dof1", dof1, false );
-    //    velNodes[i]->Get( "dof2", dof2, false );
-    //    velNodes[i]->Get( "dof3", dof3, false );
-    //    velNodes[i]->Get( "val1", val1, false );
-    //    velNodes[i]->Get( "val2", val2, false );
-    //    velNodes[i]->Get( "val3", val3, false );
-    //    velNodes[i]->Get( "entityType", entType );
-
-    //    surfVelLHS_.Push_back( ptgrid_->GetEntityList( EntityList::SURF_ELEM_LIST,
-    //               regionName, EntityList::REGION ) );
-    //    isSurfVelLHS_ = true;
-    //    Info->PrintF( pdename_, 
-    //                  "Apply Surface bilinear form for particle velocity in normal direction '%s'\n",
-    //                  regionName.c_str() );
-    //  }
-    //}
   }
   
   void AcousticMixedPDE::SetSpecialBCs(){
@@ -424,7 +451,7 @@ namespace CoupledField
     }
     else {
       TS_alg_ = new Trapezoidal( algsys_ );
-      TS_alg_->SetTrapezoidalGamma(0.51);
+      TS_alg_->SetTrapezoidalGamma(0.5);
       //      TS_alg_ = new Bdf2( algsys_ );
     }
   }
@@ -575,6 +602,34 @@ namespace CoupledField
                __FILE__, __LINE__ );
     }
   }
+
+
+  //   Obtain information about flow data
+  // ***********************************************************************
+  void AcousticMixedPDE::ReadDataFlow(Vector<Double>& velVec, Double& MachVal,
+				      ParamNode * actNode ) {
+
+
+    velVec.Resize(dim_);
+    // Check, if pml node has a child "propRegion"
+    ParamNode * velDataNode = actNode->Get( "velocityData", false );
+
+    //Vx
+    velDataNode->Get( "Vx", velVec[0] );
+
+    //Vy
+    velDataNode->Get( "Vy", velVec[1] );
+
+    if ( dim_ == 3) {
+      //Vz
+      velDataNode->Get( "Vz", velVec[2] );
+    }
+
+    //get Mach number
+    actNode->Get( "Mach", MachVal );
+
+  }
+
 
   // ************************************************************
   //   PostProcess

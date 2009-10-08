@@ -2161,7 +2161,6 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
     isaxi_ = isaxi;
     numDofs_ = numDof;
     phase_ = phase;
-
   }
     
   VolForceInt::~VolForceInt() {
@@ -2219,6 +2218,8 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
 
     // Calculate vector
     CalcPartVector( elemVec, globVec, ent );
+
+    //    std::cout << "ElemeVec: " << elemVec << std::endl;
   }
 
   void VolForceInt::CalcElemVector( Vector<Complex> & elemVec,

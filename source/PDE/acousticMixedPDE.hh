@@ -70,6 +70,9 @@ namespace CoupledField
     //! Init the time stepping
     void InitTimeStepping();
     
+    void ReadDataFlow(Vector<Double>& velVec, Double& MachVal,
+		      ParamNode * actNode );
+
     //! surface elements with absorbing boundary conditions
     StdVector<shared_ptr<EntityList> > absBCs_; 
 

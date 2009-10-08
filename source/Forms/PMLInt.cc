@@ -359,4 +359,314 @@ namespace CoupledField
   }
 
 
+
+  //---------------------------Time domain PML -----------------------------------//
+
+
+  PMLTimeInt::PMLTimeInt(std::string type, Double factor, std::string dampingTypePML, 
+                         Double damp, bool axi)
+    : BaseForm(NULL), formsFactor_(factor)
+  {
+    name_ = "PMLTimeInt";
+
+    isaxi_     = axi;
+    formsType_ = type;
+    pmlFnc_    = new PMLBasics( dampingTypePML, damp, type);
+
+  }
+
+
+ 
+  PMLTimeInt::~PMLTimeInt()
+  {
+  }
+
+
+
+  void PMLTimeInt::CalcElementMatrix( Matrix<Double>& elemMat,
+                                      EntityIterator& ent1, 
+                                      EntityIterator& ent2 )
+  {
+  
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );
+
+    if ( formsType_ == "pressureStiff" || formsType_ =="pressureDamp" ) {
+      CalcElementMatrixPressure(ptCoord_, elemMat);
+    }
+    else if ( formsType_ == "pressureGrad" ) {
+      CalcElementMatrixPressureGrad(ptCoord_, elemMat);
+    }
+    else if ( formsType_ == "auxillaryDiv" ) {
+      CalcElementMatrixAuxillaryDiv(ptCoord_, elemMat);
+    }
+    else if ( formsType_ == "auxillaryStiff" ) {
+      CalcElementMatrixAuxillaryStiff(ptCoord_, elemMat);
+    }
+  }
+
+
+  void PMLTimeInt::CalcElementMatrixPressure(Matrix<Double>& ptCoord, Matrix<Double>& elemMat)
+  {
+    
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    const UInt nrIntPts= ptelem->GetNumIntPoints();
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+    const Vector<Double> * intPoints = ptelem->GetIntPoints();
+    Double jacDet;  
+
+    // some variables
+    Matrix<Double> partElemMat;
+    Vector<Double> shapeFncAtIp;
+    Vector<Double> CoordAtIP;
+
+    // set matrix to desired size and set all elements to zero
+    elemMat.Resize(numFncs); 
+    elemMat.Init();
+   
+
+    Vector<Double> factorsPML;
+    Double pmlVal;
+
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
+      
+      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, it1_.GetElem() );    
+      ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, it1_.GetElem() );
+      partElemMat.DyadicMult(shapeFncAtIp);
+
+      // compute PML factor 
+      ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+                                 ptCoord, it1_.GetElem() );
+      pmlFnc_->ComputeTimeFactorPML( factorsPML, CoordAtIP );  
+
+      if ( formsType_ == "pressureStiff" ) {
+        pmlVal = 1.0;
+        for ( UInt k=0; k<factorsPML.GetSize(); k++)
+          pmlVal *= factorsPML[k];
+      }
+      else {
+        pmlVal = 0.0;
+        for ( UInt k=0; k<factorsPML.GetSize(); k++)
+          pmlVal += factorsPML[k];
+      }
+
+      if (isaxi_) {
+        partElemMat *= 2 * PI * intWeights[actIntPt-1] * formsFactor_ 
+                       * pmlVal * jacDet * CoordAtIP[0];
+      }
+      else 
+        partElemMat *= intWeights[actIntPt-1] * formsFactor_ * pmlVal * jacDet;
+      
+      elemMat += partElemMat;
+    }
+
+  }
+
+  void PMLTimeInt::CalcElementMatrixPressureGrad(Matrix<Double>& ptCoord, Matrix<Double>& elemMat)
+  {
+
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    const UInt nrIntPts= ptelem->GetNumIntPoints();    
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();
+    const Vector<Double> * intPoints = ptelem->GetIntPoints();
+    const UInt dim = ptCoord.GetNumRows();
+
+    Vector<Double> shapeFncAtIp, ShpFncAtIp;
+    Vector<Double> CoordAtIP;
+    Matrix<Double> xiDx;
+    Matrix<Double> K_x, K_y, K_z;
+    Double jacDet;
+
+    //set matrix to desired size and set all elements to zero
+    xiDx.Init();
+    shapeFncAtIp.Init();
+    K_x.Resize(numFncs);
+    K_y.Resize(numFncs);
+    K_x.Init();
+    K_y.Init();
+    if ( dim == 3 ) {
+      K_z.Resize(numFncs);
+      K_z.Init();
+    }
+
+    Vector<Double> factorsPML;
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet, it1_.GetElem());
+
+      // compute PML factor 
+      ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+                                 ptCoord, it1_.GetElem() );
+      pmlFnc_->ComputeTimeFactorPML( factorsPML, CoordAtIP );  
+
+      if (isaxi_) {
+        jacDet *= 2 * PI * CoordAtIP[0];
+      }
+
+      //Get the shape functions vector
+      ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, it1_.GetElem() );
+    
+      Double val = jacDet * intWeights[actIntPt-1] * formsFactor_;
+      Double pmlX = factorsPML[0] - factorsPML[1];
+      Double pmlY = factorsPML[1] - factorsPML[0];
+ 
+      for(UInt i = 0; i < numFncs; i++ ) {
+        for(UInt j = 0; j < numFncs; j++ ) {
+	  K_x[i][j] += xiDx[j][0]*shapeFncAtIp[i] * val * pmlX;
+          K_y[i][j] += xiDx[j][1]*shapeFncAtIp[i] * val * pmlY;
+	  if ( dim == 3 ) 
+	    K_z[i][j] += xiDx[j][2]*shapeFncAtIp[i] * val;
+        }
+      }
+    }
+
+    elemMat.Resize(numFncs*dim, numFncs);
+    elemMat.Init();
+
+    // Here the solution vector is (U,V,W)-vector, the element matrix is of 
+    // dimension (numFncs*dim X numFncs) 
+    for (UInt i = 0; i < numFncs; i++) {
+      for (UInt j = 0; j < numFncs; j++) {
+        elemMat[i*dim][j] = K_x[i][j] ;
+        elemMat[i*dim+1][j] = K_y[i][j] ;
+	if ( dim == 3 ) 
+	  elemMat[i*dim+2][j] = K_z[i][j] ;
+      }
+    }
+  }
+
+  void PMLTimeInt::CalcElementMatrixAuxillaryStiff(Matrix<Double>& ptCoord, Matrix<Double>& elemMat)
+  {
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    const UInt nrIntPts= ptelem->GetNumIntPoints();
+    const Vector<Double> * intPoints = ptelem->GetIntPoints();
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();
+    const UInt dim = ptCoord.GetNumRows();
+
+    Vector<Double> shapeFncAtIp;
+    Matrix<Double> partElemMat, elemMatX, elemMatY;
+    Vector<Double> CoordAtIP;
+    Double jacDet;
+
+    // set matrix to desired size and set all elements to zero
+    //    partElemMat.Resize(numFncs);
+    elemMatX.Resize(numFncs);
+    elemMatX.Init();
+    elemMatY.Resize(numFncs);
+    elemMatY.Init();
+
+    Vector<Double> factorsPML(dim);
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
+      
+      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, it1_.GetElem() );
+      
+      ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, it1_.GetElem() );
+      
+      partElemMat.DyadicMult(shapeFncAtIp);
+      
+      // compute PML factor 
+      ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+                                 ptCoord, it1_.GetElem() );
+      pmlFnc_->ComputeTimeFactorPML( factorsPML, CoordAtIP );  
+
+      if (isaxi_) {
+        partElemMat *= 2 * PI * intWeights[actIntPt-1] * formsFactor_ * jacDet * CoordAtIP[0];
+      }
+      else 
+        partElemMat *= intWeights[actIntPt-1] * formsFactor_ * jacDet;
+      
+      elemMatX += partElemMat  * factorsPML[0];
+      elemMatY += partElemMat  * factorsPML[1];
+
+    }
+
+    elemMat.Resize(numFncs*dim);
+    elemMat.Init();
+
+    for ( UInt i=0; i < numFncs; i++ )
+      for ( UInt j=0; j < numFncs; j++ ) {
+        elemMat[i*dim][j*dim]         = elemMatX[i][j]; 
+        elemMat[i*dim + 1][j*dim + 1] = elemMatY[i][j]; 
+      }
+
+  }
+
+
+  void PMLTimeInt::CalcElementMatrixAuxillaryDiv(Matrix<Double>& ptCoord, Matrix<Double>& elemMat)
+  {
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    const UInt nrIntPts= ptelem->GetNumIntPoints();    
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();
+    const Vector<Double> * intPoints = ptelem->GetIntPoints();
+    const UInt dim = ptCoord.GetNumRows();
+
+    Vector<Double> shapeFncAtIp, ShpFncAtIp;
+    Vector<Double> CoordAtIP;
+    Matrix<Double> xiDx;
+    Matrix<Double> K_x, K_y, K_z;
+    Double jacDet;
+
+    //set matrix to desired size and set all elements to zero
+    xiDx.Init();
+    shapeFncAtIp.Init();
+    K_x.Resize(numFncs);
+    K_y.Resize(numFncs);
+    K_x.Init();
+    K_y.Init();
+    if ( dim ==3 ) {
+      K_z.Resize(numFncs);
+      K_z.Init();
+    }
+
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
+      //get derivatives
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet, it1_.GetElem());
+
+      if (isaxi_) {
+        ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+                                   ptCoord, it1_.GetElem() );
+        jacDet *= 2 * PI * CoordAtIP[0];
+      }
+
+      //Get the shape functions vector
+      ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, it1_.GetElem() );
+
+      Double val = jacDet * intWeights[actIntPt-1] * formsFactor_;
+      for(UInt i=0; i<numFncs; i++ ) {
+        for(UInt j=0; j<numFncs; j++ ) {
+          K_x[i][j] += xiDx[i][0]*shapeFncAtIp[j] * val;
+          K_y[i][j] += xiDx[i][1]*shapeFncAtIp[j] * val;
+	        if ( dim == 3 ) {
+	          K_z[i][j] += xiDx[i][2]*shapeFncAtIp[j] * val;
+          }
+        }
+      }
+    }
+
+    elemMat.Resize(numFncs, numFncs*dim);
+    elemMat.Init();
+
+    //Here the solution vector is P-vector, the element matrix is of dimension (numFncs1 X dim*numFncs2) 
+    for (UInt i=0; i<numFncs; i++) {
+      for (UInt j=0; j<numFncs; j++) {
+        elemMat[i][j*dim] = K_x[i][j] ;
+        elemMat[i][j*dim+1] = K_y[i][j];
+	if ( dim == 3 )
+	  elemMat[i][j*dim+2] = K_z[i][j];
+      }
+    }
+
+  }
+
+  void PMLTimeInt::SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer)
+  {
+
+    pmlFnc_-> SetPosPML( inner, outer );
+  }
+
 } // end namespace CoupledField

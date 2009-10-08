@@ -78,6 +78,14 @@ namespace CoupledField {
         updatedLagrangeForm_ = true;
       }
 
+      // get geometry type
+      std::string probGeo;
+      param->Get("domain")->Get("geometryType", probGeo );
+
+      // since we have no special subType as in mechanics, 
+      // the subType 9is equal to the geometry type
+      subType_ = probGeo;
+
       //To check if acoustic is coupled with nrbc and set isNrbcCoupled
       myParam_->Get( "isCoupledNrbc", isNrbcCoupled_, false );
 
@@ -359,6 +367,8 @@ namespace CoupledField {
     Double density, compressibility, c0;
     Double coeffmass, coeffdamp;
 
+    bool putSecondResult2EQNclass = false;
+
     for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++) {
 
       // create new entity list
@@ -393,75 +403,203 @@ namespace CoupledField {
 
       // Check for Perfectly matchec layers
       if ( dampingList_[actRegion] == PML ) {
-        if ( analysistype_ != HARMONIC ) {
-          EXCEPTION( "PML just supported for Harmonic-Analysis" );
-        }
-
         //read data for PML layer
 
         //type of PML damping
         std::string dampingTypePML;
-
+        
         // inner / outer region
         Matrix<Double> inner;
         Matrix<Double> outer;
-
+        
         //damping factor
         Double dampPML;
-
+        
         std::string id = actRegionNode->Get("dampingId")->AsString();
         ParamNode * pmlNode = myParam_->Get("dampingList")->Get("pml", "id", id);
         ReadDataPML(dampingTypePML, inner, dampPML, pmlNode );
         dampPML *= c0;
-
+        
         GetPMLLayerData(inner, outer, actRegion);
 
-        //====================================================================
-        //	 stiffness integrator for PML
-        //====================================================================
+        if ( analysistype_ == HARMONIC ) {        
+          //====================================================================
+          //	 stiffness integrator for PML
+          //====================================================================
+          
+          std::string formsType = "laplaceInt";
+          
+          //set real part
+          BaseForm * bilinearStiffReal =
+            new PMLInt(formsType, density, dampingTypePML, dampPML, isaxi_);
+          
+          bilinearStiffReal->SetPosPML(inner,outer);
+          
+          BiLinFormContext * stiffContextReal =
+            new BiLinFormContext( bilinearStiffReal, STIFFNESS );
+          
+          stiffContextReal->SetPtPdes(this, this);
+          stiffContextReal->SetResults( results_[0], results_[0],
+                                        actSDList, actSDList );
+          // stiffContextReal->SetEntryType(matType);
+          assemble_->AddBiLinearForm( stiffContextReal);
+          
+          
+          //====================================================================
+          //	 mass integrator for PML
+          //====================================================================
+          
+          formsType = "massInt";
+          Double massFactor = density/(c0*c0);
+          
+          //set real part
+          BaseForm * bilinearMassReal =
+            new PMLInt( formsType, massFactor, dampingTypePML, dampPML, isaxi_ );
+          
+          bilinearMassReal->SetPosPML(inner,outer);
+          
+          BiLinFormContext * massContextReal =
+            new BiLinFormContext( bilinearMassReal, MASS);
+          
+          massContextReal->SetPtPdes(this, this);
+          massContextReal->SetResults( results_[0], results_[0],
+                                       actSDList, actSDList );
+          // massContextReal->SetEntryType( matType );
+          assemble_->AddBiLinearForm( massContextReal );
+          
+        } // end of pml part
 
-        std::string formsType = "laplaceInt";
+        else if ( analysistype_ == TRANSIENT ) {
+          putSecondResult2EQNclass = true;
 
-        //set real part
-        BaseForm * bilinearStiffReal =
-          new PMLInt(formsType, density, dampingTypePML, dampPML, isaxi_);
+          //====================================================================
+          //	 pressure stiffness integrator for time domain PML
+          //====================================================================
+          Double factorPDE = density/(c0*c0);
+          std::string formsType = "pressureStiff";
+          
+          BaseForm * bilinearPressStiff =
+            new PMLTimeInt(formsType, factorPDE, dampingTypePML, dampPML, isaxi_);
+          
+          bilinearPressStiff->SetPosPML(inner,outer);
+          
+          BiLinFormContext * pressStiffContext =
+            new BiLinFormContext( bilinearPressStiff, STIFFNESS );
+          
+          pressStiffContext->SetPtPdes(this, this);
+          pressStiffContext->SetResults( results_[0], results_[0],
+                                         actSDList, actSDList );
+          assemble_->AddBiLinearForm( pressStiffContext);
+          
+          //====================================================================
+          //	 pressure damping integrator for time domain PML
+          //====================================================================
+          formsType = "pressureDamp";
+          BaseForm * bilinearPressDamp =
+            new PMLTimeInt(formsType, factorPDE, dampingTypePML, dampPML, isaxi_);
+          
+          bilinearPressDamp->SetPosPML(inner,outer);
+          
+          BiLinFormContext * pressDampContext =
+            new BiLinFormContext( bilinearPressDamp, DAMPING );
+          
+          pressDampContext->SetPtPdes(this, this);
+          pressDampContext->SetResults( results_[0], results_[0],
+                                        actSDList, actSDList );
+          assemble_->AddBiLinearForm( pressDampContext);
 
-        bilinearStiffReal->SetPosPML(inner,outer);
+          //====================================================================
+          //	 pressure gradient integrator for time domain PML
+          //====================================================================
+          formsType = "pressureGrad";
+          factorPDE = 1.0;
+          BaseForm * bilinearPressGrad =
+            new PMLTimeInt(formsType, factorPDE, dampingTypePML, dampPML, isaxi_);
+          
+          bilinearPressGrad->SetPosPML(inner,outer);
+          
+          BiLinFormContext * pressGradContext =
+            new BiLinFormContext( bilinearPressGrad, STIFFNESS );
+          
+          pressGradContext->SetPtPdes(this, this);
+          pressGradContext->SetResults( results_[1], results_[0],
+                                        actSDList, actSDList );
+          assemble_->AddBiLinearForm( pressGradContext);
 
-        BiLinFormContext * stiffContextReal =
-          new BiLinFormContext( bilinearStiffReal, STIFFNESS );
+          //====================================================================
+          //	 axuillary mass integrator for time domain PML
+          //====================================================================
+          factorPDE = 1.0;
+          MassInt * bilinearAuxMass  = new MassInt(factorPDE, dim_, isaxi_);
 
-        stiffContextReal->SetPtPdes(this, this);
-        stiffContextReal->SetResults( results_[0], results_[0],
-                                      actSDList, actSDList );
-        // stiffContextReal->SetEntryType(matType);
-        assemble_->AddBiLinearForm( stiffContextReal);
+          BiLinFormContext * auxMassContext =
+            new BiLinFormContext( bilinearAuxMass, DAMPING );
+          auxMassContext->SetPtPdes(this, this);
+          auxMassContext->SetResults( results_[1], results_[1],
+                                   actSDList, actSDList );
+          assemble_->AddBiLinearForm( auxMassContext );
 
+          //====================================================================
+          //	 axuillary div integrator for time domain PML
+          //====================================================================
+          factorPDE = -density;
+          formsType = "auxillaryDiv";
+          factorPDE = 1.0;
+          BaseForm * bilinearAuxDiv =
+            new PMLTimeInt(formsType, factorPDE, dampingTypePML, dampPML, isaxi_);
+          
+          bilinearAuxDiv->SetPosPML(inner,outer);
+          
+          BiLinFormContext * auxDivContext =
+            new BiLinFormContext( bilinearAuxDiv, STIFFNESS );
+          
+          auxDivContext->SetPtPdes(this, this);
+          auxDivContext->SetResults( results_[0], results_[1],
+                                        actSDList, actSDList );
+          assemble_->AddBiLinearForm( auxDivContext);
 
-        //====================================================================
-        //	 mass integrator for PML
-        //====================================================================
+          //====================================================================
+          //	 axuillary stiffness integrator for time domain PML
+          //====================================================================
+          formsType = "auxillaryStiff";
+          factorPDE = 1.0;
+          BaseForm * bilinearAuxStiff =
+            new PMLTimeInt(formsType, factorPDE, dampingTypePML, dampPML, isaxi_);
+          
+          bilinearAuxStiff->SetPosPML(inner,outer);
+          
+          BiLinFormContext * auxStiffContext =
+            new BiLinFormContext( bilinearAuxStiff, STIFFNESS );
+          
+          auxStiffContext->SetPtPdes(this, this);
+          auxStiffContext->SetResults( results_[1], results_[1],
+                                       actSDList, actSDList );
+          assemble_->AddBiLinearForm( auxStiffContext);
 
-        formsType = "massInt";
-        Double massFactor = density/(c0*c0);
+          //====================================================================
+          //	 standard mass and  stiffness integrator 
+          //====================================================================
 
-        //set real part
-        BaseForm * bilinearMassReal =
-          new PMLInt( formsType, massFactor, dampingTypePML, dampPML, isaxi_ );
-
-        bilinearMassReal->SetPosPML(inner,outer);
-
-        BiLinFormContext * massContextReal =
-          new BiLinFormContext( bilinearMassReal, MASS);
-
-        massContextReal->SetPtPdes(this, this);
-        massContextReal->SetResults( results_[0], results_[0],
-                                     actSDList, actSDList );
-        // massContextReal->SetEntryType( matType );
-        assemble_->AddBiLinearForm( massContextReal );
-
-      } // end of pml part
-
+          BaseForm * bilinearStiff = new LaplaceInt( density, isaxi_, updatedLagrangeForm_ );        
+          BiLinFormContext * stiffContext = 
+            new BiLinFormContext( bilinearStiff, STIFFNESS );
+          
+          stiffContext->SetResults( results_[0], results_[0],
+                                    actSDList, actSDList );
+          stiffContext->SetPtPdes( this, this );
+          assemble_->AddBiLinearForm( stiffContext );
+  
+          coeffmass = density / (c0*c0);
+          MassInt* bilinearMass  = new MassInt(coeffmass, 1, isaxi_, updatedLagrangeForm_ );
+          
+          BiLinFormContext * massContext =
+            new BiLinFormContext( bilinearMass, MASS );
+          massContext->SetResults( results_[0], results_[0],
+                                   actSDList, actSDList );
+          massContext->SetPtPdes(this, this);
+          assemble_->AddBiLinearForm( massContext );        
+        }    
+      } // end of PML part
       else {
         // stiffness integrator 
         BaseForm * bilinearStiff = new LaplaceInt( density, isaxi_, updatedLagrangeForm_ );        
@@ -745,6 +883,13 @@ namespace CoupledField {
 
       // Give result to equation numbering class
       eqnMap_->AddResult( *results_[0], actSDList );
+
+      // check if second result type is active (currently just for
+      // time domain PML )
+      if ( putSecondResult2EQNclass ) {
+        eqnMap_->AddResult( *results_[1], actSDList );
+        putSecondResult2EQNclass = false;
+      }
     }
 
     // **********************************************************************
@@ -2307,6 +2452,58 @@ namespace CoupledField {
     res1->entryType = ResultInfo::SCALAR;
     availResults_.insert( res1 );
     results_.Push_back( res1 );
+
+    // for time domain PML we need auxillary variables
+    // check for time domain PML
+    if ( analysistype_ == TRANSIENT ) { 
+      bool isPML = false;
+
+      for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++) {
+        // get current region name and get grip of paramNode
+        RegionIdType actRegion = subdoms_[actSD];
+        // Check for Perfectly matchec layers
+        if ( dampingList_[actRegion] == PML )
+          isPML = true;
+      }
+
+      //      isPML = true;
+      if ( isPML ) {
+        // === take VELOCITY as auxillary variable ===
+        shared_ptr<ResultInfo> res2(new ResultInfo); 
+        res2->resultType = ACOU_VELOCITY;
+        if( subType_ == "3d" ) {
+          res2->dofNames = "x", "y", "z";
+        } 
+        else if ( subType_ == "axi" ) {
+          res2->dofNames = "r", "z";
+        } 
+        else if( subType_ == "plane") {
+          res2->dofNames = "x", "y";
+        } 
+        
+        res2->unit = "m/s";
+        res2->entryType = ResultInfo::VECTOR;
+        
+        std::string approxTypeV = myParam_->Get("type")->AsString();
+        if ( approxTypeV == "lagrange" ) {
+          shared_ptr<AnsatzFct> fctV(new LagrangeFct);
+          res2->fctType = fctV;
+          res2->definedOn = ResultInfo::NODE;
+        } 
+        else {
+          UInt order = myParam_->Get("order")->AsUInt();
+          
+          // Create new resultDof object
+          shared_ptr<LegendreFct> fct(new LegendreFct);
+          fct->SetIsoOrder( order );
+          //fct->order_ = order;
+          res2->definedOn = ResultInfo::PFEM;
+          res2->fctType = fct;
+        }
+        availResults_.insert( res2 );
+        results_.Push_back( res2 );
+      }
+    }
 
     // === PRESSURE / POTENTIAL - 1.DERIVATIVE ===
     shared_ptr<ResultInfo> deriv1(new ResultInfo);

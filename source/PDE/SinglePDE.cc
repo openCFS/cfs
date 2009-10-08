@@ -141,10 +141,6 @@ namespace CoupledField {
 
     isComplex_ = IsComplex(analysistype_);
 
-    // =====================================================================
-    // trigger definition of available results
-    // =====================================================================
-    DefineAvailResults();
 
     // =====================================================================
     // get regions/subdomains for PDE
@@ -169,6 +165,7 @@ namespace CoupledField {
       RegionIdType actRegionId = ptgrid_->RegionNameToId(regionNodes[i]->Get("name")->AsString());
       subdoms_.Push_back( actRegionId );
     }
+
 
     // Generate a fitting algebraic system only if PDE is NOT
     // direct coupled
@@ -240,6 +237,11 @@ namespace CoupledField {
     // =====================================================================
     LOG_TRACE(pde) << pdename_ << ": Initializing non-linearities";
     InitNonLin();
+
+    // =====================================================================
+    // trigger definition of available results
+    // =====================================================================
+    DefineAvailResults();
 
     // =====================================================================
     // initialize EQN-object and Storeresults class
@@ -3036,8 +3038,11 @@ namespace CoupledField {
         return false;
 
       ParamNode* regionNode = NULL;
-      regionNode = couplings[idx]->GetParamNode()->
-        Get("regionList")->Get("region", "name", regionName);
+      if (  couplings[idx]->GetParamNode()->
+            Get("regionList")->Has("region", "name", regionName) ) {
+        regionNode = couplings[idx]->GetParamNode()->
+          Get("regionList")->Get("region", "name", regionName);
+      }
       if( !regionNode)
         return false;
 

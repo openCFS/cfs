@@ -70,6 +70,20 @@
   </xsd:complexType>
 
   <!-- ******************************************************************** -->
+  <!--   Definition of standard type for flow data -->
+  <!-- ******************************************************************** -->
+
+  <!-- Base element type for specifying boundary conditions -->
+  <xsd:complexType name="DT_FlowBasic">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="id" type="xsd:token" use="required"/>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
   <!--   Definition of basic result data type -->
   <!-- ******************************************************************** -->
   

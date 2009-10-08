@@ -1250,6 +1250,11 @@ namespace CoupledField {
       for ( UInt i=0; i<3; i++ )
 	VecSirr[i] = -0.5;
       VecSirr[ dirP ] = 1.0;
+
+//       VecSirr[0] = 1.0;
+//       VecSirr[1] = -1.0;
+//       VecSirr[2] = 0;
+
     }
     else if ( type ==  AXI ) {
       VecSirr.Resize(4);
@@ -1277,6 +1282,7 @@ namespace CoupledField {
       coeff[3] * actP * actP * actP +
       coeff[4] * actP * actP * actP * actP;
 
+    //   std::cout << "actP: " << actP << "  actVal: " << val << "\n Coeff:\n" << coeff << std::endl;
     VecSirr *= val;
   }
 
@@ -1295,28 +1301,32 @@ namespace CoupledField {
     switch(subTensorType)
     {
     case PLANE_STRAIN:
-      if ( abs( diffE[0]) > 1 ) {
-        if ( dirP == X )
-          dMat[dirP][dirP] += diffSirr[0] / diffE[0];
+      if ( abs( diffE[0]) > 1.0 ) {
+        dMat[0][0] += diffSirr[0] / diffE[0];
       }
-      if ( abs(diffE[1]) > 1 ) {
-        if ( dirP == Y )
-          dMat[dirP][dirP] += diffSirr[1] / diffE[1];
+      if ( abs(diffE[1]) > 1.0 ) {
+        dMat[1][1] += diffSirr[1] / diffE[1];
+      }
+      break;
+
+    case AXI:
+      if ( abs( diffE[0]) > 1.0 ) {
+        dMat[0][0] += diffSirr[0] / diffE[0];
+      }
+      if ( abs(diffE[1]) > 1.0 ) {
+        dMat[1][1] += diffSirr[1] / diffE[1];
       }
       break;
 
     case FULL:
-      if ( abs( diffE[0]) > 1 ) {
-        if ( dirP == X )
-          dMat[dirP][dirP] += diffSirr[0] / diffE[0];
+      if ( abs( diffE[0]) > 1.0 ) {
+        dMat[0][0] += diffSirr[0] / diffE[0];
       }
-      if ( abs(diffE[1]) > 1 ) {
-        if ( dirP == Y )
-          dMat[dirP][dirP] += diffSirr[1] / diffE[1];
+      if ( abs(diffE[1]) > 1.0 ) {
+        dMat[1][1] += diffSirr[1] / diffE[1];
       }
-      if ( abs(diffE[2]) > 1 ) {
-        if ( dirP == Z )
-          dMat[dirP][dirP] += diffSirr[2] / diffE[2];
+      if ( abs(diffE[2]) > 1.0 ) {
+        dMat[2][2] += diffSirr[2] / diffE[2];
       }
       break;
 

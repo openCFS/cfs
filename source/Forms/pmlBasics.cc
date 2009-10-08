@@ -20,9 +20,9 @@ namespace CoupledField
     else if ( type == "massInt" ) {
       formsType_ = type;
     }
-    else {
-      EXCEPTION("PMLInt: type must be laplaceInt or massInt");
-    }
+    //    else {
+    //      EXCEPTION("PMLInt: type must be laplaceInt or massInt");
+    //    }
 
     //check correct damping type
     if ( dampingTypePML == "constant" ) {
@@ -177,6 +177,67 @@ namespace CoupledField
 
     }
 
+  }
+
+
+  void PMLBasics::ComputeTimeFactorPML(Vector<Double>& factorsPML, 
+                                       Vector<Double>& pos )
+  {
+
+    UInt numVals = pos.GetSize();
+
+    factorsPML.Resize(numVals);
+    factorsPML.Init();
+
+    if ( pos[0] < minX_ || pos[0] > maxX_ ) {
+      factorsPML[0] = ComputeDampingFactor(pos, X);
+
+      if ( pos[1] < minY_ || pos[1] > maxY_ ) {
+	factorsPML[1] = ComputeDampingFactor(pos, Y);
+
+	//check for 3D
+	if (numVals == 3) {
+	  if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
+	    //compute z-value
+	    factorsPML[2] = ComputeDampingFactor(pos, Z);
+	  }
+	}
+      }
+      
+      else {
+	//check for 3D
+	if (numVals == 3) {
+	  if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
+	    //compute z-value
+	    factorsPML[2]  = ComputeDampingFactor(pos, Z);
+	  }
+	}
+      }
+    }
+
+    else {
+      if ( pos[1] < minY_ || pos[1] > maxY_ ) {
+	//compute y-value
+	factorsPML[1]  = ComputeDampingFactor(pos, Y);
+
+	//check for 3D
+	if (numVals == 3) {
+	  if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
+	    //compute z-value
+	    factorsPML[2]  = ComputeDampingFactor(pos, Z);
+	  }
+	}
+      }
+
+      else {
+	//check for 3D
+	if (numVals == 3) {
+	  if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
+	    factorsPML[2]  = ComputeDampingFactor(pos, Z);
+	  }
+	}
+      }
+    }
   }
 
 

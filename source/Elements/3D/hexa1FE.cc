@@ -1205,7 +1205,7 @@ namespace CoupledField
     Integer swamping2 = 0;
     for ( UInt k = 0; k<= order ; k+=order)
     {
-      for(UInt i = 0; i<= 3 ; i++)
+      for(Integer i = 0; i<= 3 ; i++)
       {
         LDeriv[c][0]=   sDerivAtIp_[0][swamping1] * sShFcnAtIp_[1][swamping2] * sShFcnAtIp_[2][k];
         LDeriv[c][1]=   sShFcnAtIp_[0][swamping1] * sDerivAtIp_[1][swamping2] * sShFcnAtIp_[2][k];

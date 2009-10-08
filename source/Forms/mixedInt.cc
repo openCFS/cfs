@@ -132,10 +132,10 @@ namespace CoupledField {
        partElemMat.DyadicMult(shapeFncAtIp);
 
        if (isaxi_) {
-   ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
-            ptCoord_, it1_.GetElem() );
-   partElemMat *= 2 * PI * intWeights[actIntPt-1] * factor_
-     * jacDet * CoordAtIP[0];
+	 ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+				    ptCoord_, it1_.GetElem() );
+	 partElemMat *= 2 * PI * intWeights[actIntPt-1] * factor_
+	   * jacDet * CoordAtIP[0];
        }
        else {
          partElemMat *= intWeights[actIntPt-1] * factor_ * jacDet;
@@ -740,7 +740,7 @@ namespace CoupledField {
       for ( UInt iCol = 0; iCol<numFncs2; iCol++ ) {
         for ( UInt iDof = 0; iDof<dim_; iDof++ ) {
           elemMat[iRow][iCol*dim_+iDof] = 
-            normal_[iDof] * helpElemMat[iCol][iRow];
+            normal_[iDof] * helpElemMat[iRow][iCol];
         }
       }
     }
@@ -847,6 +847,169 @@ namespace CoupledField {
     Complex factor(realPart, imagPart);
     elemVec = helpVec * factor;
   }
+
+
+
+
+ //=========================== Convective-KPP==========================//
+  ConvectiveMixedInt_KPP::ConvectiveMixedInt_KPP( Vector<Double> valVec, UInt dim, 
+						  bool axi, bool coordUpdate )
+    : BaseForm(NULL)  {
+    
+    name_ = "ConvectiveMixed_KPV_Int";
+    isaxi_ = axi;
+    dim_   = dim;
+    coordUpdate_ = coordUpdate;
+    velVec_ = valVec;
+  }
+
+
+ 
+  ConvectiveMixedInt_KPP::~ConvectiveMixedInt_KPP()
+  {
+  }
+
+
+  void ConvectiveMixedInt_KPP::CalcElementMatrix( Matrix<Double>& elemMat,
+						  EntityIterator& ent1,
+						  EntityIterator& ent2 ) {
+    //Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );
+    
+    // ansatzFct1_ corresponds to functions of pressure P (Taylor Hood: 1st order)
+    UInt numFncs1 = ptelem->GetNumFncs( ansatzFct1_ );
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    const UInt nrIntPts= ptelem->GetNumIntPoints();    
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();
+    const Vector<Double> * intPoints = ptelem->GetIntPoints();
+    Double jacDet;
+
+    Vector<Double> shapeFncAtIp;
+    Vector<Double> CoordAtIP;
+    Matrix<Double> xiDx;
+
+    //set matrix to desired size and set all elements to zero
+    xiDx.Init();
+    shapeFncAtIp.Init();
+    elemMat.Resize(numFncs1);
+    elemMat.Init();
+
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
+      //get derivatives
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet, ent1.GetElem());
+
+      if (isaxi_) {
+        ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+                                   ptCoord_, it1_.GetElem() );
+        jacDet *= 2 * PI * CoordAtIP[0];
+      }
+
+      //Get the shape functions vector
+      ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
+
+      Double val = jacDet * intWeights[actIntPt-1];
+      for(UInt i=0; i<numFncs1; i++ ) {
+        for(UInt j=0; j<numFncs1; j++ ) {
+	  Double velPart;
+	  velPart =  xiDx[j][0] * velVec_[0] +  xiDx[j][1] * velVec_[1];
+	  if ( dim_==3 ) 
+	    velPart += xiDx[j][2] * velVec_[2];
+
+	  elemMat[i][j] += shapeFncAtIp[i] * velPart * val;
+	}
+      }
+    }
+
+    //   std::cout << "ConvectiveElemMat KPV:\n" << elemMat << std::endl;
+
+}
+
+
+ //=========================== Convective-KVP==========================//
+  ConvectiveMixedInt_KVV::ConvectiveMixedInt_KVV( Vector<Double> valVec, UInt dim, 
+						  bool axi, bool coordUpdate )
+    : BaseForm(NULL)  {
+    
+    name_ = "ConvectiveMixed_KVP_Int";
+    isaxi_ = axi;
+    dim_   = dim;
+    coordUpdate_ = coordUpdate;
+    velVec_ = valVec;
+  }
+
+
+ 
+  ConvectiveMixedInt_KVV::~ConvectiveMixedInt_KVV()
+  {
+  }
+
+
+  void ConvectiveMixedInt_KVV::CalcElementMatrix( Matrix<Double>& elemMat,
+						  EntityIterator& ent1,
+						  EntityIterator& ent2 ) {
+    //Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );
+    
+    // ansatzFct1_ corresponds to functions of velocity V (Taylor Hood: 2nd order)
+    UInt numFncs1 = ptelem->GetNumFncs( ansatzFct1_ );
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    const UInt nrIntPts= ptelem->GetNumIntPoints();    
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();
+    const Vector<Double> * intPoints = ptelem->GetIntPoints();
+    Double jacDet;
+
+    Vector<Double> shapeFncAtIp;
+    Vector<Double> CoordAtIP;
+    Matrix<Double> xiDx;
+
+    //set matrix to desired size and set all elements to zero
+    xiDx.Init();
+    shapeFncAtIp.Init();
+    Matrix<Double>  partElemMat;
+    partElemMat.Resize(numFncs1);
+    partElemMat.Init();
+
+     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
+      //get derivatives
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet, ent1.GetElem());
+
+      if (isaxi_) {
+        ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+                                   ptCoord_, it1_.GetElem() );
+        jacDet *= 2 * PI * CoordAtIP[0];
+      }
+
+      //Get the shape functions vector
+      ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
+      
+      Double val = jacDet * intWeights[actIntPt-1];
+      for(UInt i=0; i<numFncs1; i++ ) {
+        for(UInt j=0; j<numFncs1; j++ ) {
+	  Double velPart;
+	  velPart =  xiDx[j][0] * velVec_[0] +  xiDx[j][1] * velVec_[1];
+	  if ( dim_==3 ) 
+	    velPart += xiDx[j][2] * velVec_[2];
+
+	  partElemMat[i][j] += val *  shapeFncAtIp[i] * velPart; 
+	}
+      }
+     }
+
+     elemMat.Resize(numFncs1*dim_);
+     elemMat.Init();
+
+     //Blowing up the element matrix to number of velocity components 
+     for (UInt i=0; i < numFncs1; i++)
+       for (UInt j=0; j < numFncs1; j++)
+	 for (UInt actDof = 0; actDof < dim_ ; actDof++)
+	   elemMat[i*dim_ + actDof][j*dim_ + actDof] = partElemMat[i][j]; 
+     
+
+     //    std::cout << "ConvectiveElemMat KVP:\n" << elemMat << std::endl;
+
+}
 
 
 } // end namespace CoupledField

@@ -25,6 +25,10 @@ namespace CoupledField
     void ComputeFactorPML( Vector<Complex>& factorsPML, Complex& pmlDet,
                            Vector<Double>& coordAtIP, Double omega );
     
+    //! calulates position and values for time domain PML
+    void ComputeTimeFactorPML(Vector<Double>& factorsPML, 
+                              Vector<Double>& pos );
+
     //! calculates the damping factor
     Double ComputeDampingFactor( Vector<Double>& pos, Directions dir );
     
