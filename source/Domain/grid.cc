@@ -1419,6 +1419,10 @@ namespace CoupledField
             return INTERSECT_A_EQ_C;
           if (l_ad < polysectAbsTol_)
             return INTERSECT_IN_D;
+          
+          if ((fabs(l_ac + l_bc)/l1)-1.0 < 1e-2)
+            return INTERSECT_A_AND_C;
+          
           return INTERSECT_IN_A;
         }
         if (fabs(l_bc + l_bd - l2) < polysectAbsTol_) {
@@ -1667,6 +1671,15 @@ namespace CoupledField
               }
             }
             continue; // polygons touch in c only
+          case INTERSECT_A_AND_C:
+            nCuts = 2;
+            cuts[0] = cut;
+            cuts[0].type = INTERSECT_IN_A;
+            cuts[1].index = cuts[0].index;
+            cuts[1].type = INTERSECT_IN_C;
+            cuts[1].swap = true;
+            cuts[1].loc = *pi2;
+            continue;
           default:
             // cases for cuts in b and d are not stored, because
             // they would give duplicate cuts (polygons are closed!)
@@ -1778,6 +1791,7 @@ namespace CoupledField
               swap = true;
               break;
             case INTERSECT_IN_A:
+            case INTERSECT_A_AND_C:
               if (CutLines(*pi1, pi1.Next(), *pi2, pi2.Next(2), e)
                   >= INTERSECT_ON_LINE2)
                 continue;

@@ -775,7 +775,8 @@ namespace CoupledField
       INTERSECT_IN_B,
       INTERSECT_IN_C,
       INTERSECT_IN_D,
-      INTERSECT_A_EQ_C
+      INTERSECT_A_EQ_C,
+      INTERSECT_A_AND_C
     };
 
     //! struct for keeping all information of an ncInterface
@@ -982,7 +983,7 @@ namespace CoupledField
 
   // callback function object writing results to an output iterator
   struct ConsInterpReportFunctor {
-      //    const ElemList& destElemList_;
+    //    const ElemList& destElemList_;
     //    const NodeList& sourceNodeList_;
     Grid* sourceGrid_;
     Grid* destGrid_;
