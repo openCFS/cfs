@@ -82,7 +82,9 @@ namespace CoupledField
       po::store(po::parse_command_line(argc, argv, desc), vm);
       po::notify(vm);
 
-      if (vm.count("help")) {
+      // if no argument is given print help
+      if (vm.count("help") || argc == 1)
+      {
         std::cout << desc << "\n";
         exit(0);
       }

@@ -1263,7 +1263,10 @@ source/Utils/tools.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/trivialCartesianCoordSys.cc svneol=native#text/plain
 source/Utils/trivialCartesianCoordSys.hh svneol=native#text/plain
 source/cfstool/CMakeLists.txt svneol=native#text/plain
+source/cfstool/ParamsInit.cc.in -text
+source/cfstool/ParamsInit.hh -text
 source/cfstool/cfstool.cc svneol=native#text/plain
+source/cfstool/cfstool_options.cmake -text
 source/cplreader/CMakeLists.txt svneol=native#text/plain
 source/cplreader/CouplingHandler.cc svneol=native#text/plain
 source/cplreader/CouplingHandler.hh svneol=native#text/plain
