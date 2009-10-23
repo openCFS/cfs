@@ -413,11 +413,6 @@ namespace CoupledField
     SetValue((int) param);
   }
   
-  void InfoNode::SetValue(size_t param)
-  {
-    SetValue((int) param);
-  }
-  
   void InfoNode::SetValue(int param)
   {
     value_ = boost::lexical_cast<string>(param);
