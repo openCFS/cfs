@@ -83,6 +83,8 @@ public:
 
   void SetValue(unsigned int param);
   
+  void SetValue(long unsigned int param);
+
   void SetValue(double param);
 
   void SetValue(const std::complex<double>& param);
