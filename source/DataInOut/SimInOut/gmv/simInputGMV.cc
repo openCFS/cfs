@@ -1022,7 +1022,7 @@ namespace CoupledField {
       
       for(UInt i=0; i<numNodes; i++)
       {
-        for(UInt n=0; n<gmv_data.num; n++)
+        for(long n=0; n<gmv_data.num; n++)
         {
           glinfo.data_[i*glinfo.dim_+n] = gmv_data.doubledata1[n*gmv_data.ndoubledata1+i];
         }
@@ -1037,7 +1037,7 @@ namespace CoupledField {
       
       for(UInt i=0; i<numElems; i++)
       {
-        for(UInt n=0; n<gmv_data.num; n++)
+        for(long n=0; n<gmv_data.num; n++)
         {
           glinfo.data_[i*glinfo.dim_+n] = gmv_data.doubledata1[n*gmv_data.ndoubledata1+i];
         }

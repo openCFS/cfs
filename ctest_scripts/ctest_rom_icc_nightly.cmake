@@ -99,7 +99,8 @@ SET(CTEST_INITIAL_CACHE
    USE_TCL:BOOL=ON
    USE_INTERPOLATION:BOOL=ON
    CPLREADER:BOOL=ON
-   USE_SCPIP:BOOL=ON")
+   USE_SCPIP:BOOL=ON
+   USE_CHOLMOD:BOOL=ON")
 
 #-----------------------------------------------------------------------------
 # Set the following environment variables for the test run. This can be used
