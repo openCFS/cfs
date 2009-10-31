@@ -359,6 +359,7 @@ share/xml/CFS-Simulation/Examples/thermo-piezoelectric_static.xml -text
 share/xml/CFS-Simulation/Schemas/CFS_Analysis.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_Coupling.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_DirectCoupling.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_Documentation.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_Domain.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_ErsatzMaterial.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_FileFormats.xsd -text svneol=unset#text/xml

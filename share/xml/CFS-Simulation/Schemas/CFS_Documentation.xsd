@@ -1,0 +1,68 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+            targetNamespace="http://www.cfs++.org"
+            xmlns="http://www.cfs++.org"
+            xmlns:cfs="http://www.cfs++.org"
+            elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema description for tags needed to document simulations
+    </xsd:documentation>
+  </xsd:annotation>
+
+  <xsd:complexType name="DT_Documentation">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Data type for incorporating a documentation directly into the XML
+        simulation description.
+      </xsd:documentation>
+    </xsd:annotation>
+
+    <xsd:sequence>
+      <xsd:element name="title" minOccurs="1" maxOccurs="1"/>
+      <xsd:element name="authors" minOccurs="1" maxOccurs="1"/>
+      <xsd:element name="date" minOccurs="1" maxOccurs="1"
+                   type="xsd:date" default="2009-10-31"/>
+      <xsd:element name="keywords" type="DT_DocKeywordList"/>
+      <xsd:element name="references" minOccurs="1" maxOccurs="1"/>
+      <xsd:element name="description" minOccurs="1" maxOccurs="1"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_DocKeywordList">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Type for a list of keywords
+      </xsd:documentation>
+    </xsd:annotation>
+
+    <xsd:sequence>
+      <xsd:element name="keyword" minOccurs="1" maxOccurs="unbounded"
+                   type="DT_DocAllowedKeywords"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  <xsd:simpleType name="DT_DocAllowedKeywords">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Restriction of string type with allowed keywords. This type has to
+        extended as needed.
+      </xsd:documentation>
+    </xsd:annotation>
+
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="abc"/>
+      <xsd:enumeration value="aeroacoustics"/>      
+      <xsd:enumeration value="lagrange multiplier"/>
+      <xsd:enumeration value="magneto-striction"/>
+      <xsd:enumeration value="mixed fem"/>
+      <xsd:enumeration value="mortar fem"/>
+      <xsd:enumeration value="optimization"/>      
+      <xsd:enumeration value="pml"/>
+      <xsd:enumeration value="piezo"/>
+      <xsd:enumeration value="spectral fem"/>      
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+</xsd:schema>
