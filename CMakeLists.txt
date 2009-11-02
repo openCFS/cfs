@@ -566,6 +566,7 @@ SUBDIRS(share/doc/user)
 SUBDIRS(share/scripts)
 
 #-----------------------------------------------------------------------------
-# Add targets for XML schemas
+# Add targets for XML schemata and XSL style sheets
 #-----------------------------------------------------------------------------
 SUBDIRS(share/xml)
+SUBDIRS(share/xsl)
