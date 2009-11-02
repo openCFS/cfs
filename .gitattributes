@@ -386,7 +386,6 @@ share/xml/CFS-Simulation/Schemas/CFS_PostProc.xsd -text svneol=unset#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_Preconds.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_Solvers.xsd svneol=native#text/xml
 share/xml/CMakeLists.txt svneol=native#text/plain
-share/xml/Tools/SchemaViewer2.zip -text svneol=unset#application/zip
 share/xsl/extract_eigenvalues_line.xsl -text
 share/xsl/extract_first_results_harmonic.xsl -text
 share/xsl/extract_last_design_line.xsl -text

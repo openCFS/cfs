@@ -21,7 +21,7 @@
 
     <xsd:sequence>
       <xsd:element name="title" minOccurs="1" maxOccurs="1"/>
-      <xsd:element name="authors" minOccurs="1" maxOccurs="1"/>
+      <xsd:element name="authors" minOccurs="1" maxOccurs="1" type="DT_DocAuthorsList"/>
       <xsd:element name="date" minOccurs="1" maxOccurs="1"
                    type="xsd:date" default="2009-10-31"/>
       <xsd:element name="keywords" type="DT_DocKeywordList"/>
@@ -30,6 +30,18 @@
     </xsd:sequence>
   </xsd:complexType>
 
+  <xsd:complexType name="DT_DocAuthorsList">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Type for a list of authors
+      </xsd:documentation>
+    </xsd:annotation>
+    
+    <xsd:sequence>
+      <xsd:element name="author" minOccurs="1" maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
   <xsd:complexType name="DT_DocKeywordList">
     <xsd:annotation>
       <xsd:documentation xml:lang="en">
