@@ -390,6 +390,7 @@ share/xml/CFS-Simulation/Schemas/CFS_Solvers.xsd svneol=native#text/xml
 share/xml/CMakeLists.txt svneol=native#text/plain
 share/xsl/CMakeLists.txt svneol=native#text/plain
 share/xsl/check_for_docu_tag.xsl -text
+share/xsl/ctest_update_trafo.xsl -text
 share/xsl/extract_eigenvalues_line.xsl -text
 share/xsl/extract_first_results_harmonic.xsl -text
 share/xsl/extract_last_design_line.xsl -text
