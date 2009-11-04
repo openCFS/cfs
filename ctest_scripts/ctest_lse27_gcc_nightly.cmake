@@ -63,7 +63,7 @@ FILE(WRITE "${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake"
 # done by simon on mac before the the test scripts on rom get executed.
 #-----------------------------------------------------------------------------
 SET(CTEST_COMMAND  "\"${CTEST_EXECUTABLE_NAME}\"")
-#SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyUpdate")
+# SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyUpdate")
 SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyStart")
 SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyConfigure")
 SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyBuild")
@@ -95,7 +95,7 @@ SET(CTEST_INITIAL_CACHE
    DEBUG:BOOL=OFF
    TESTSUITE_DIR:STRING=/home/local/lse/strieben/NIGHTLY/CFS_TESTSUITE_NIGHTLY
    CFS_DEPS_ROOT:PATH=/home/local/lse/strieben/NIGHTLY/CFSDEPS_NIGHTLY
-   CFS_DEPS_CACHE_DIR:PATH=/home/local/lse/strieben/NIGHTLY/CFSDEPSCACHE
+   CFS_DEPS_CACHE_DIR:PATH=/home/local/lse/strieben/dev/NIGHTLY/CFSDEPSCACHE
    USE_GMV_INPUT:BOOL=ON
    USE_PYTHON:BOOL=ON
    USE_TCL:BOOL=ON

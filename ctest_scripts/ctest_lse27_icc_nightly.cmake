@@ -30,7 +30,7 @@
 #-----------------------------------------------------------------------------
 
 #-----------------------------------------------------------------------------
-# Set source and binary directories on rom
+# Set source and binary directories on lse35
 #-----------------------------------------------------------------------------
 SET(CTEST_SOURCE_DIRECTORY "/home/local/lse/strieben/NIGHTLY/CFS_TRUNK_NIGHTLY")
 SET(CTEST_BINARY_DIRECTORY "/home/local/lse/strieben/NIGHTLY/CFS_BUILD_NIGHTLY")
@@ -63,14 +63,13 @@ FILE(WRITE "${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake"
 # done by simon on mac before the the test scripts on rom get executed.
 #-----------------------------------------------------------------------------
 SET(CTEST_COMMAND  "\"${CTEST_EXECUTABLE_NAME}\"")
-#SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyUpdate")
+# SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyUpdate")
 SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyStart")
 SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyConfigure")
 SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyBuild")
 SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyTest")
 SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlySubmit")
 #SET(CTEST_COMMAND "${CTEST_COMMAND} -A ${CTEST_BINARY_DIRECTORY}/CMakeCache.txt")
-#SET(CTEST_COMMAND "${CTEST_COMMAND} -A ${CTEST_BINARY_DIRECTORY}/nightly_executables.txt")
 #SET(CTEST_COMMAND "${CTEST_COMMAND} -R torque3d")
 #SET(CTEST_COMMAND "${CTEST_COMMAND} -E cplreader")
 
@@ -104,18 +103,18 @@ SET(CTEST_INITIAL_CACHE
    USE_SCPIP:BOOL=ON
    USE_CHOLMOD:BOOL=ON")
 
-
 #-----------------------------------------------------------------------------
 # Set the following environment variables for the test run. This can be used
 # to specifiy the compilers and that all messages should be output in English
 # language, so that CTest may properly parse them.
 #-----------------------------------------------------------------------------
 SET(CTEST_ENVIRONMENT
-  "CC=/usr/bin/gcc"
-  "CXX=/usr/bin/g++"
-  "FC=/usr/bin/gfortran"
+  "CC=icc"
+  "CXX=icpc"
+  "FC=ifort"
   "LC_MESSAGES=C"
   "LC_ALL=C"
   "LANG=C"
   "LANGUAGE=C"
+#  "CPLREADER_PERF_SUITE=$ENV{HOME}/Documents/strieben/cplreader_performance_suite"
   )

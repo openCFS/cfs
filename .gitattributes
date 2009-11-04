@@ -45,7 +45,10 @@ cmake_modules/platform_defaults_sedici.cmake -text
 cmake_modules/platform_defaults_woody.cmake -text
 ctest_scripts/README.txt svneol=native#text/plain
 ctest_scripts/ctest_lse10_start_update.cmake -text
+ctest_scripts/ctest_lse27_gcc_nightly.cmake -text
+ctest_scripts/ctest_lse27_icc_nightly.cmake -text
 ctest_scripts/ctest_lse35_gcc_nightly.cmake -text
+ctest_scripts/ctest_lse35_icc_nightly.cmake -text
 ctest_scripts/ctest_mac_gcc_experimental.cmake -text
 ctest_scripts/ctest_mac_icc_experimental.cmake -text
 ctest_scripts/ctest_rom_gcc_experimental.cmake -text

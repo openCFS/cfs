@@ -111,9 +111,9 @@ SET(CTEST_INITIAL_CACHE
 # language, so that CTest may properly parse them.
 #-----------------------------------------------------------------------------
 SET(CTEST_ENVIRONMENT
-  "CC=/usr/bin/gcc"
-  "CXX=/usr/bin/g++"
-  "FC=/usr/bin/gfortran"
+  "CC=icc"
+  "CXX=icpc"
+  "FC=ifort"
   "LC_MESSAGES=C"
   "LC_ALL=C"
   "LANG=C"
