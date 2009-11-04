@@ -19,6 +19,8 @@
   <xsl:template match="Site">
     <wh:stylesheet version="1.0">
 
+      <wh:output method="xml" encoding="UTF-8" indent="yes"/> 
+
       <wh:variable name="generator">
 	<xsl:value-of select="@Generator"/>
       </wh:variable>
@@ -31,6 +33,8 @@
       <wh:variable name="buildstamp">
 	<xsl:value-of select="@BuildStamp"/>
       </wh:variable>
+
+      <wh:variable name="wcdir"/>
 
       <wh:template match="*|@*">
 	<wh:copy>
@@ -59,6 +63,39 @@
 	  <wh:value-of select="$buildstamp"/>
 	</BuildStamp>
       </wh:template>
+
+      <wh:template match="Name">
+	<wh:choose>
+	  <wh:when test="parent::Directory">
+	    <Name>
+              <wh:value-of select="$wcdir"/>/<wh:value-of select="node()"/>
+	    </Name>
+	  </wh:when>
+	  <wh:otherwise>
+	    <Name>
+              <wh:value-of select="node()"/>
+	    </Name>
+	  </wh:otherwise>
+	</wh:choose>
+      </wh:template>
+      
+      <wh:template match="Updated/Directory">
+	<Directory>
+	  <wh:value-of select="$wcdir"/>/<wh:value-of select="node()"/>
+	</Directory>
+      </wh:template>
+
+      <wh:template match="Updated/FullName">
+	<FullName>
+	  <wh:value-of select="$wcdir"/>/<wh:value-of select="node()"/>
+	</FullName>
+      </wh:template>
+      
+      <wh:template match="File/@Directory">
+	<wh:attribute name="Directory">
+	  <wh:value-of select="$wcdir"/>/<wh:value-of select="."/>
+	</wh:attribute>
+      </wh:template>      
       
     </wh:stylesheet>
   </xsl:template>
