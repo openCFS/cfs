@@ -330,7 +330,7 @@ namespace CoupledField
     // =======================================================================
     //@{ \name Edge Access Functions
     
-    //! Get number ofe edges
+    //! Get number of edges
     UInt GetNumEdges();
     
     //! Return edge with given number

@@ -105,6 +105,13 @@ calcAverage | convert | scalardiff |meshdiff | meshdiffnormed"
   ""
   )
 
+ADD_OPTION(forceSegFault ""
+  string
+  "false"
+  "force a segmentation fault at exceptions"
+  ""
+  )
+
 
 CONFIGURE_FILE("ParamsInit.cc.in"
   "${CMAKE_CURRENT_BINARY_DIR}/ParamsInit.cc")

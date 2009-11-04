@@ -205,7 +205,7 @@ namespace CoupledField
     
   protected:
 
-    /** Helper that implements a Get() as save as Has(). Call this if ContainsTokens() returns true. */
+    /** Helper that implements a Get() as same as Has(). Call this if ContainsTokens() returns true. */
     ParamNode* TokenizedHasAndGet(const std::string& name, const std::string& value, bool has_bool_value, bool bool_value = false) const;
     
     /** The real content (attribute or simple type content */
