@@ -179,6 +179,7 @@
                   <xsd:element name="geometric" type="DT_PiezoDirectNonLinGeo"/>
                   <xsd:element name="hysteresis" type="DT_PiezoDirectNonLinHyst"/>
                   <xsd:element name="material" type="DT_PiezoDirectNonLinMat"/>
+                  <xsd:element name="piezoMicroHF" type="DT_PiezoDirectNonLinHyst"/> 
                 </xsd:choice>
               </xsd:complexType>
             </xsd:element>
@@ -284,6 +285,7 @@
       <xsd:enumeration value="mechStrain"/>
       <xsd:enumeration value="mechStrainIrr"/>
       <xsd:enumeration value="mechStress"/>
+      <xsd:enumeration value="elecPolarization"/> 
     </xsd:restriction>
   </xsd:simpleType>
 

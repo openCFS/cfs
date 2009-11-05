@@ -107,6 +107,7 @@ namespace CoupledField
     bool nonLin_;             //!< flag for nonlinear calculations
     bool nonLinMaterial_;     //!< flag for nonlinear material calculations
     bool nonLinHysteresis_;   //!< flag for hysteresis calculations
+    bool nonLinPiezoMicroHF_; //!< flag for micro-piezoelectric Huber Fleck model
 
     void SetNonLinearity(bool nonLin){
       nonLin_=nonLin;};

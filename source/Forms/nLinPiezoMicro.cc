@@ -7,25 +7,26 @@
 
 #include "General/environment.hh"
 #include "Utils/nodestoresol.hh"
-#include "Forms/nLinPiezoHyst.hh"
-#include "mechStressStrain.hh"
+//#include "Forms/forms_header.hh"
 #include "CoupledPDE/PiezoCoupling.hh"
+#include "Forms/nLinPiezoMicro.hh"
+#include "Forms/mechStressStrain.hh"
 
 
 namespace CoupledField {
 
 
   // ============
-  //   Constructor of coupling bilinear form in case of piezo with hysteresis
+  //   Constructor of coupling bilinear form in case of micro-piezo-model
   // ============
-  nLinPiezoHystCouple::nLinPiezoHystCouple( BaseMaterial* matDataCouple,
-                                            BaseMaterial* matDataMech,
-                                            BaseMaterial* matDataElec, 
-                                            SubTensorType type,
-                                            bool isMech ) 
+  nLinMicroPiezoCouple::nLinMicroPiezoCouple( BaseMaterial* matDataCouple,
+                                              BaseMaterial* matDataMech,
+                                              BaseMaterial* matDataElec, 
+                                              SubTensorType type,
+                                              bool isMech ) 
     : linPiezoCoupling(matDataCouple, type){
 
-    name_ = "nLinPiezoHystCouple";
+    name_ = "nLinMicroPiezoCouple";
     isSolDependent_ = true;
 
     // true, if coupling part belongs to mechanical equation    
@@ -59,7 +60,7 @@ namespace CoupledField {
   }
 
     //! Destructor
-  nLinPiezoHystCouple::~nLinPiezoHystCouple() {
+  nLinMicroPiezoCouple::~nLinMicroPiezoCouple() {
     delete EfieldOp_;
     delete EfieldPrevOp_;
     delete mechStrainOp_;
@@ -67,7 +68,7 @@ namespace CoupledField {
 
 
 
-  void nLinPiezoHystCouple::Set4NonLinMaterial(Grid* ptGrid, 
+  void nLinMicroPiezoCouple::Set4NonLinMaterial(Grid* ptGrid, 
                                                StdPDE* ptPDE2Elec,
                                                shared_ptr<EqnMap> eqnMapElec,
                                                shared_ptr<ResultInfo> resultElec,
@@ -98,7 +99,7 @@ namespace CoupledField {
   // ====================
   //   calcElementMatrix
   // ====================
-  void nLinPiezoHystCouple::CalcElementMatrix( Matrix<Double>& elemMat,
+  void nLinMicroPiezoCouple::CalcElementMatrix( Matrix<Double>& elemMat,
                                                EntityIterator& ent1, 
                                                EntityIterator& ent2 ) {
     
@@ -123,12 +124,13 @@ namespace CoupledField {
 
     if ( isMech_ )
       elemMat = matCouple;
-    else
+    else {
       matCouple.Transpose( elemMat ); 
+    }
   }
 
 
-  void nLinPiezoHystCouple::calcDMat(Matrix<Double> & dMat ) {
+  void nLinMicroPiezoCouple::calcDMat(Matrix<Double> & dMat ) {
 
     Vector<Double> LCoord, Efield, mechStrain;
     Vector<Double> EfieldPrev, mechStrainPrev, elecD;
@@ -156,29 +158,29 @@ namespace CoupledField {
     else 
       matType = "CouplingTensorElecEQ";
 
-    piezoCoupling_->GetNonlinMaterialTensor( dMat, elecD,
-                                             matType, 
-                                             matDataMech_, 
-                                             matDataElec_,
-                                             matDataCouple_, 
-                                             subTensorType_, 
-                                             Efield, mechStrain, 
-                                             EfieldPrev, mechStrainPrev, 
-                                             ent1_ );
-    //std::cout << matType << "\n" << dMat << std::endl;
+    piezoCoupling_->GetMaterialTensorMicroPiezo( dMat, elecD,
+                                                 matType, 
+                                                 matDataMech_, 
+                                                 matDataElec_,
+                                                 matDataCouple_, 
+                                                 subTensorType_, 
+                                                 Efield, mechStrain, 
+                                                 EfieldPrev, mechStrainPrev, 
+                                                 ent1_ );
+    //    std::cout << matType << "\n" << dMat << std::endl;
   }
  
 
   // ============
-  //   Constructor of electric bilinear form in case of piezo with hysteresis
+  //   Constructor of mechanical bilinear form in case of micro-piezo-model
   // ============
-  nLinPiezoHystElec::nLinPiezoHystElec( BaseMaterial* matDataCouple,
-                                        BaseMaterial* matDataMech,
-                                        BaseMaterial* matDataElec,                                       
-                                        SubTensorType type) 
-    : linElecInt(matDataElec, type){
+  nLinMicroPiezoMech::nLinMicroPiezoMech( BaseMaterial* matDataCouple,
+                                          BaseMaterial* matDataMech,
+                                          BaseMaterial* matDataElec,                                       
+                                          SubTensorType type) 
+    : linElastInt(matDataElec, type){
     
-    name_ = "nLinPiezoHystElec";
+    name_ = "nLinMicroPiezoMech";
     isSolDependent_ = true;
 
     matDataCouple_ = matDataCouple;
@@ -188,19 +190,140 @@ namespace CoupledField {
     subTensorType_ = type;
 
     if ( type == AXI )
-      isaxi_     = true;
+      isaxi_ = true;
   }
 
     // Destructor
-  nLinPiezoHystElec::~nLinPiezoHystElec() {
+  nLinMicroPiezoMech::~nLinMicroPiezoMech() {
     delete EfieldOp_;
-    delete mechStrainOp_;
     delete EfieldPrevOp_;
+    delete mechStrainOp_;
   }
 
 
 
-  void nLinPiezoHystElec::Set4NonLinMaterial(Grid* ptGrid, 
+  void nLinMicroPiezoMech::Set4NonLinMaterial(Grid* ptGrid, 
+                                              StdPDE* ptPDE2Elec,
+                                              shared_ptr<EqnMap> eqnMapElec,
+                                              shared_ptr<ResultInfo> resultElec,
+                                              PiezoCoupling* ptPiezoCoupling) 
+  {
+
+    // pointer to piezo-coupling object
+    piezoCoupling_ =  ptPiezoCoupling;
+
+    // electric field operator
+    EfieldOp_ =  new GradientFieldOp<Double>(ptGrid, ptPDE2Elec, 
+                                             eqnMapElec, *solElec_, 
+                                             ELEC_POTENTIAL, 
+                                             resultElec, isaxi_, 
+                                             coordUpdate_);
+    // electric field operator
+    EfieldPrevOp_ =  new GradientFieldOp<Double>(ptGrid, ptPDE2Elec, 
+                                                 eqnMapElec, *solPrevElec_, 
+                                                 ELEC_POTENTIAL, 
+                                                 resultElec, isaxi_, 
+                                                 coordUpdate_);
+
+    // mechanical strain operator
+    mechStrainOp_ = 
+      new MechStressStrain<Double>( matDataMech_ , subTensorType_);
+  }
+
+  // ====================
+  //   calcElementMatrix
+  // ====================
+  void nLinMicroPiezoMech::CalcElementMatrix( Matrix<Double>& elemMat,
+                                             EntityIterator& ent1, 
+                                             EntityIterator& ent2 ) {
+
+    ent1_ = ent1;
+      
+    // get displacements of element
+    solMech_->GetElemSolutionAsMatrix( elemDispl_, ent1);
+    solPrevMech_->GetElemSolutionAsMatrix( elemDisplPrev_, ent1);
+
+    // get elecPot of element
+    solElec_->GetElemSolution( elemPot_, ent2);
+
+    Vector<Double> LCoord, Efield;
+
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 ); 
+    ExtractElemInfo( ent2 ); 
+
+    BDBInt::CalcElementMatrix( elemMat, ent1, ent2 );
+    //std::cout << "Elec Matrix:\n " << elemMat << std::endl;
+
+  }
+
+
+  void nLinMicroPiezoMech::calcDMat(Matrix<Double> & dMat, const Elem* elem) {
+
+    Vector<Double> LCoord, Efield, mechStrain;
+    Vector<Double> EfieldPrev, mechStrainPrev, elecD;
+
+    //get mid-point of element
+    ptelem->GetCoordMidPoint(LCoord);
+
+    // calc E-Field:
+    EfieldOp_->CalcElemGradField( Efield, ent1_, LCoord, 1);
+    EfieldPrevOp_->CalcElemGradField( EfieldPrev, ent1_, LCoord, 1);
+
+    // calc mechanical strain
+    mechStrainOp_->SetActElemSol(elemDispl_);
+    mechStrainOp_->SetIntPoint(LCoord);
+    mechStrainOp_->CalcStrainVec( mechStrain, 1, ent1_ );
+    mechStrainOp_->SetActElemSol(elemDisplPrev_);
+    mechStrainOp_->SetIntPoint(LCoord);
+    mechStrainOp_->CalcStrainVec( mechStrainPrev, 1, ent1_ );
+
+    // compute the nonlinear coupling tensor
+    std::string matType = "MechTensor";
+    piezoCoupling_->GetMaterialTensorMicroPiezo( dMat, elecD,
+                                                 matType, 
+                                                 matDataMech_, 
+                                                 matDataElec_,
+                                                 matDataCouple_, 
+                                                 subTensorType_, 
+                                                 Efield, mechStrain, 
+                                                 EfieldPrev, mechStrainPrev, 
+                                                 ent1_ );
+
+    //    std::cout << matType << "\n " << dMat << std::endl;
+  }
+
+  // ============
+  //   Constructor of electric form in case of micro-piezo-model
+  // ============
+  nLinMicroPiezoElec::nLinMicroPiezoElec( BaseMaterial* matDataCouple,
+                                          BaseMaterial* matDataMech,
+                                          BaseMaterial* matDataElec,                                       
+                                          SubTensorType type) 
+    : linElecInt(matDataElec, type){
+    
+    name_ = "nLinMicroPiezoElec";
+    isSolDependent_ = true;
+
+    matDataCouple_ = matDataCouple;
+    matDataMech_   = matDataMech;
+    matDataElec_   = matDataElec;
+    
+    subTensorType_ = type;
+
+    if ( type == AXI )
+      isaxi_ = true;
+  }
+
+    // Destructor
+  nLinMicroPiezoElec::~nLinMicroPiezoElec() {
+    delete EfieldOp_;
+    delete mechStrainOp_;
+  }
+
+
+
+  void nLinMicroPiezoElec::Set4NonLinMaterial(Grid* ptGrid, 
                                              StdPDE* ptPDE2Elec,
                                              shared_ptr<EqnMap> eqnMapElec,
                                              shared_ptr<ResultInfo> resultElec,
@@ -231,7 +354,7 @@ namespace CoupledField {
   // ====================
   //   calcElementMatrix
   // ====================
-  void nLinPiezoHystElec::CalcElementMatrix( Matrix<Double>& elemMat,
+  void nLinMicroPiezoElec::CalcElementMatrix( Matrix<Double>& elemMat,
                                              EntityIterator& ent1, 
                                              EntityIterator& ent2 ) {
 
@@ -257,7 +380,7 @@ namespace CoupledField {
   }
 
 
-  void nLinPiezoHystElec::calcDMat(Matrix<Double> & dMat ) {
+  void nLinMicroPiezoElec::calcDMat(Matrix<Double> & dMat ) {
 
     Vector<Double> LCoord, Efield, mechStrain;
     Vector<Double> EfieldPrev, mechStrainPrev, elecD;
@@ -279,16 +402,17 @@ namespace CoupledField {
 
     // compute the nonlinear coupling tensor
     std::string matType = "ElecTensor";
-    piezoCoupling_->GetNonlinMaterialTensor( dMat, elecD,
-                                             matType, 
-                                             matDataMech_, 
-                                             matDataElec_,
-                                             matDataCouple_, 
-                                             subTensorType_, 
-                                             Efield, mechStrain, 
-                                             EfieldPrev, mechStrainPrev, 
-                                             ent1_ );
+    piezoCoupling_->GetMaterialTensorMicroPiezo( dMat, elecD,
+                                                 matType, 
+                                                 matDataMech_, 
+                                                 matDataElec_,
+                                                 matDataCouple_, 
+                                                 subTensorType_, 
+                                                 Efield, mechStrain, 
+                                                 EfieldPrev, mechStrainPrev, 
+                                                 ent1_ );
 
     //    std::cout << matType << "\n " << dMat << std::endl;
   }
 }
+

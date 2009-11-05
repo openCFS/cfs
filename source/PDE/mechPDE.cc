@@ -575,10 +575,13 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       // get current region name and get grip of paramNode
       std::string actRegionName;
       actRegionName = ptgrid_->RegionIdToName( actRegion );
+      // isMicroPiezo = true means, that the bilinear-forms 
+      // will be defined in PiezoCupling.cc!!
+      bool isMicroPiezo = IsRegionMicroPiezo( actRegionName );
 
 
       //================= Check for Perfectly matched layers ====================//
-      if ( dampingList_[actRegion] == PML ) {
+      if ( dampingList_[actRegion] == PML &&  !isMicroPiezo ) {
         if ( analysistype_ != HARMONIC ) {
           EXCEPTION( "PML just supported for Harmonic-Analysis" );
         }
@@ -656,10 +659,8 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       } // end of pml part
 
       else {
-
-        // ==============  add "standard" linear stiffness ===========================
-
-        if ( regionNonLinType_[actRegion] != MATERIAL ) {
+        // ==============  add "standard" linear stiffness ===========================     
+        if ( regionNonLinType_[actRegion] != MATERIAL &&  !isMicroPiezo ) { 
           BaseForm * bilinearStiff = GetStiffIntegrator(actSDMat, actRegion);
 
           //check  for softening!
@@ -750,7 +751,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
 
 
       // ==============  add nonlinear stiffness ============================
-      if (nonLin_ && regionNonLinType_[actRegion] == GEOMETRIC) {
+      if ( (nonLin_ && regionNonLinType_[actRegion] == GEOMETRIC) &&  !isMicroPiezo ) {
 
         BaseForm *nLinPart1 = NULL;
         BaseForm *nLinPart2 = NULL;
@@ -799,7 +800,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
         //      actMatData, elDisp);
       }
 
-      if (nonLin_ && regionNonLinType_[actRegion] == MATERIAL ) {
+      if ( (nonLin_ && regionNonLinType_[actRegion] == MATERIAL ) &&  !isMicroPiezo) {
 
         BaseForm *nLinMaterial = NULL;
 

@@ -770,6 +770,33 @@ namespace CoupledField {
     case PIEZO_TENSOR:
       out = "PiezoTensor";
       break;
+    case SPON_POLARIZATION:
+      out = "sponPolarization";
+      break;
+    case SPON_STRAIN:
+      out = "sponStrain";
+      break;
+    case DRIVING_FORCE_90:
+      out = "drivingForce90";
+      break;
+    case DRIVING_FORCE_180:
+      out = "drivingForce180";
+      break;
+    case RATE_CONSTANT:
+      out = "rateConstant";
+      break;
+    case VISCO_PLASTIC_INDEX:
+      out = "viscoPlasticIndex";
+      break;
+    case SATURATION_INDEX:
+      out = "saturationIndex";
+      break;
+    case VOLUME_FRAC_INIT:
+      out = "volumeFracInit";
+      break;
+    case MEAN_TEMPERATURE:
+      out = "meanTemperature";
+      break;
     case X_SATURATION:
       out = "Xsaturation";
       break;
@@ -975,6 +1002,34 @@ namespace CoupledField {
     else if ( in == "Yremanence" ) {
       out = Y_REMANENCE;
     }
+    else if ( in == "sponPolarization" ) {
+      out = SPON_POLARIZATION;
+    }
+    else if ( in == "sponStrain" ) {
+      out = SPON_STRAIN;
+    }
+    else if ( in == "drivingForce90" ) {
+      out = DRIVING_FORCE_90;
+    }
+    else if ( in == "drivingForce180" ) {
+      out = DRIVING_FORCE_180;
+    }
+    else if ( in == "rateConstant" ) {
+      out = RATE_CONSTANT;
+    }
+    else if ( in == "viscoPlasticIndex" ) {
+      out = VISCO_PLASTIC_INDEX;
+    }
+    else if ( in == "saturationIndex" ) {
+      out = SATURATION_INDEX;
+    }
+    else if ( in == "volumeFracInit" ) {
+      out = VOLUME_FRAC_INIT;
+    }
+    else if ( in == "meanTemperature" ) {
+      out =  MEAN_TEMPERATURE;
+    }
+
     else if ( in == "preisachWeights" ) {
       out = PREISACH_WEIGHTS;
     }
@@ -1229,6 +1284,8 @@ namespace CoupledField {
       out = GEOMETRIC;
     } else if( in == "hysteresis") {
       out = HYSTERESIS;
+    } else if( in == "piezoMicroHF") {
+      out = PIEZO_MICRO_HF;
     } else if( in == "permeability") {
       out = PERMEABILITY;
 
@@ -1269,6 +1326,9 @@ namespace CoupledField {
       break;
     case HYSTERESIS:
       out = "hysteresis";
+      break;
+    case PIEZO_MICRO_HF:
+      out = "piezoMicroHF";
       break;
     case PERMEABILITY:
       out = "permeability";

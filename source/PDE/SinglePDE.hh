@@ -356,6 +356,12 @@ namespace CoupledField
     
     //! check if PDE is a coupled piezo subdomain with hystersis
     bool BelongsPDE2PiezoHyst();    
+
+    //! check if subdomain is a coupled piezo subdomain with micro-piezo-model
+    bool IsRegionMicroPiezo( std::string regionName );
+    
+    //! check if PDE is a coupled piezo subdomain with  micro-piezo-model
+    bool BelongsPDE2MicroPiezo();    
     //@}
     
     // ======================================================

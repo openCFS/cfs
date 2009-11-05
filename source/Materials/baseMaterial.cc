@@ -14,6 +14,8 @@
 #include "Utils/coordSystem.hh"
 #include "Utils/preisach.hh"
 #include "Domain/entityList.hh"
+#include "Utils/piezoMicroModel.hh"
+#include "Utils/piezoMicroModelBK.hh"
 
 #include "baseMaterial.hh"
 
@@ -34,9 +36,13 @@ namespace CoupledField
 
     coosy_ = NULL;
     hyst_  = NULL;
+
     symmetryType_  = GENERAL;
     isHysteresis_  = false;
     isHystInverse_ = false;
+
+    piezoMicroModel_   = NULL;
+    isPiezoMicroModel_ = false;
   }
 
    BaseMaterial::~BaseMaterial() {
@@ -236,7 +242,6 @@ namespace CoupledField
   void BaseMaterial::RotateTensorByRotationAngles( const Vector<Double>& rotAngle, 
                                                    MaterialType matType,
                                                    bool persistent ) {
-
 
 
     using namespace std;
@@ -657,4 +662,55 @@ namespace CoupledField
 
     //Info->PrintF()
   }
+
+
+  void BaseMaterial::InitPiezoMicro( UInt numElemSD, shared_ptr<ElemList> actSDList, 
+                                     BaseMaterial* mechMat, BaseMaterial* elecMat,
+                                     SubTensorType tensorType, Double dt) {
+
+      isPiezoMicroModel_ = true;
+
+      piezoMicroModel_ = new PiezoMicroModelBK( numElemSD, this, 
+                                                mechMat, elecMat, 
+                                                tensorType, dt );
+
+      // set map: global to local element number
+      EntityIterator it = actSDList->GetIterator();
+      UInt iel = 0;
+      UInt globalElNr;
+      for ( it.Begin(); !it.IsEnd(); it++, iel++) {
+	globalElNr = it.GetElem()->elemNum;
+	globalElem2Local_[globalElNr] = iel;
+      }
+  }
+  
+
+  void BaseMaterial::GetEffectiveTensors( Matrix<Double>& matMech,
+                                          Matrix<Double>& matElec,
+                                          Matrix<Double>& matPiezo,
+                                          Vector<Double>& stress, 
+                                          Vector<Double>& elecField,
+                                          UInt elemIdx, 
+                                          bool recompute,
+                                          bool previous ) {
+
+    UInt idx = globalElem2Local_[elemIdx];
+
+    piezoMicroModel_->GetEffectiveTensors( matMech, matElec,
+                                           matPiezo, stress, 
+                                           elecField, idx, 
+                                           recompute, previous );
+  }
+
+  void BaseMaterial::GetEffectiveIrreversibleValues( Vector<Double>& Pirr,
+                                                     Vector<Double>& Sirr,
+                                                     UInt elemIdx,
+                                                     bool recompute,
+                                                     bool previous ) {
+
+    UInt idx = globalElem2Local_[elemIdx];
+
+    piezoMicroModel_->GetEffectiveIrreversibleValues( Pirr, Sirr, idx, recompute, previous );
+  }
+
 }

@@ -38,7 +38,16 @@ namespace CoupledField
     isAllowed_.insert( NONLIN_APPROXIMATION_TYPE );
     isAllowed_.insert( NONLIN_DATA_NAME );
 
-
+    // micro-piezoelectric model
+    isAllowed_.insert( MEAN_TEMPERATURE );
+    isAllowed_.insert( SPON_POLARIZATION );
+    isAllowed_.insert( SPON_STRAIN );
+    isAllowed_.insert( DRIVING_FORCE_90 );
+    isAllowed_.insert( DRIVING_FORCE_180 );
+    isAllowed_.insert( RATE_CONSTANT );
+    isAllowed_.insert( VISCO_PLASTIC_INDEX );
+    isAllowed_.insert( SATURATION_INDEX );
+    isAllowed_.insert( VOLUME_FRAC_INIT );
   }
 
   PiezoMaterial::~PiezoMaterial() {
@@ -364,4 +373,5 @@ namespace CoupledField
     }
   }
   
+
 }

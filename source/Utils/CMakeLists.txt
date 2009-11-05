@@ -21,6 +21,8 @@ SET(UTILS_SRCS
   SmoothSpline.cc
   tools.cc
   trivialCartesianCoordSys.cc
+  piezoMicroModel.cc
+  piezoMicroModelBK.cc
   )
 
 

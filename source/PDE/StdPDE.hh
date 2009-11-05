@@ -17,6 +17,7 @@ namespace CoupledField {
 
   // forward class declarations
   class PDECoupling;
+  class BasePairCoupling;
   class WriteResults;
   class TimeStepping;
   class BaseNodeStoreSol;
@@ -223,6 +224,13 @@ namespace CoupledField {
     virtual void InitTimeStepping()
     {EXCEPTION("InitTimeStepping not implemented");};
     
+
+    //! Get couplings object
+    virtual StdVector<BasePairCoupling*>* GetCouplingsObject() 
+    {
+      return NULL;
+    };
+
     virtual void AcouSourceCalc(){EXCEPTION("AcouSourceCalc not implemented");};
     // ======================================================
     // COMMUNICATION ROUTINES FOR PARAMETER IDENTIFICATION

@@ -10,6 +10,7 @@
 // include solveStep drivers
 #include "Driver/stdSolveStep.hh"
 #include "Driver/solveStepPiezo.hh"
+#include "Driver/solveStepMicroPiezo.hh"
 #include "Driver/assemble.hh"
 
 // include PDE classes
@@ -242,7 +243,8 @@ namespace CoupledField {
       singlePDEs_[i]->Init( sequenceStep, infoNode_);
 
       // check if single PDE really needs previous solution
-      if ( singlePDEs_[i]->BelongsPDE2PiezoHyst() )
+      if ( singlePDEs_[i]->BelongsPDE2PiezoHyst() 
+           || singlePDEs_[i]->BelongsPDE2MicroPiezo() ) 
         needSolPrev_ = true;
     }
 
@@ -749,7 +751,8 @@ namespace CoupledField {
 
   void DirectCoupledPDE::DefineSolveStep() {
 
-    bool isPiezoHyst = false;
+    bool isPiezoHyst  = false;
+    bool isMicroPiezo = false;
 
     // activate direct coupling information
     // and initialize all single pdes
@@ -757,10 +760,16 @@ namespace CoupledField {
       // check if single PDE really needs previous solution
       if ( singlePDEs_[i]->BelongsPDE2PiezoHyst() )
         isPiezoHyst = true;
+
+      //check for micro-piezo-model
+     if ( singlePDEs_[i]->BelongsPDE2MicroPiezo() ) 
+        isMicroPiezo = true;
     }
 
     if ( isPiezoHyst )
       solveStep_ = new SolveStepPiezo(*this);
+    else if ( isMicroPiezo )
+      solveStep_ = new SolveStepMicroPiezo(*this);
     else
       solveStep_ = new StdSolveStep(*this);
   }

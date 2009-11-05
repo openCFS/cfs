@@ -67,6 +67,36 @@ namespace CoupledField
                                   Vector<Double>& mechStrainPrev,
                                   EntityIterator& ent );
 
+//!
+    void GetMaterialTensorMicroPiezo( Matrix<Double>& matTensor, 
+                                      Vector<Double>& resultVec,
+                                      std::string matTensorType,
+                                      BaseMaterial* matMech,
+                                      BaseMaterial* matElec,
+                                      BaseMaterial* matCouple,
+                                      SubTensorType subTensorType,
+                                      Vector<Double>& elecField,
+                                      Vector<Double>& mechStrain,
+                                      Vector<Double>& elecFieldPrev,
+                                      Vector<Double>& mechStrainPrev,
+                                      EntityIterator& ent );
+
+
+    //!
+    void GetMaterialTensorMicroPiezo2( Matrix<Double>& matTensor, 
+                                      Vector<Double>& resultVec,
+                                      std::string matTensorType,
+                                      BaseMaterial* matMech,
+                                      BaseMaterial* matElec,
+                                      BaseMaterial* matCouple,
+                                      SubTensorType subTensorType,
+                                      Vector<Double>& elecField,
+                                      Vector<Double>& mechStrain,
+                                      Vector<Double>& elecFieldPrev,
+                                      Vector<Double>& mechStrainPrev,
+                                      EntityIterator& ent );
+
+    
   protected:
 
     //! Definition of the (bi)linear forms
@@ -100,6 +130,15 @@ namespace CoupledField
                                     Vector<Double>& prevSirr,
                                     Directions dirP,
                                     SubTensorType subTensorType );
+
+    //!
+    void ComputeDiffCouplingTensorMicroPiezo( Matrix<Double>& dMat, 
+                                              Vector<Double>& actE,
+                                              Vector<Double>& prevE,
+                                              Vector<Double>& actSirr,
+                                              Vector<Double>& prevSirr,
+                                              SubTensorType subTensorType );
+
     // Postprocession section
 
     //! computes stresses, strain, i.e. \sigma = cBu + e \grad \phi
@@ -112,6 +151,9 @@ namespace CoupledField
     //! calculate DField
     template <class TYPE>
     void CalcDField( shared_ptr<BaseResult> result );
+
+    //! computes the electric polarization
+    void CalcElecPolarization( shared_ptr<BaseResult> result );
 
     // Data section
 

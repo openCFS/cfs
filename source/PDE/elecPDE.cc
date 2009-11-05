@@ -190,13 +190,16 @@ namespace CoupledField {
       shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
       actSDList->SetRegion( actRegion );
 
-      // isPiezoHyst = true means, that the bilinear-forms will be 
-      // defined in PiezoCupling.cc!!
-      bool isPiezoHyst = false;
-      if ( isPiezoCoupled_ == true )
+      // isPiezoHyst (isMicroPiezo) = true means, that the bilinear-forms 
+      // will be defined in PiezoCupling.cc!!
+      bool isPiezoHyst  = false;
+      bool isMicroPiezo = false;
+      if ( isPiezoCoupled_ == true ) {
         isPiezoHyst = IsRegionPiezoHyst( regionName );
+        isMicroPiezo = IsRegionMicroPiezo( regionName );
+      }
 
-      if ( !isPiezoHyst ) {
+      if ( !isPiezoHyst && !isMicroPiezo ) {
         // check for nonlinearity
         if ( regionNonLinType_[actRegion] == HYSTERESIS) {
           StdVector<Elem*> elemssd;

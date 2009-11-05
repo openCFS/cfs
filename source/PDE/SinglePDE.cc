@@ -3019,11 +3019,11 @@ namespace CoupledField {
     DirectCoupledPDE* ptCoupledPDE = domain->GetDirectCoupledPDE();
 
     //! Get couplings object
-    StdVector<BasePairCoupling*> couplings = ptCoupledPDE->GetCouplingsObject();
+    StdVector<BasePairCoupling*>* couplings = ptCoupledPDE->GetCouplingsObject();
 
     UInt idx = 0;
-    for ( UInt i=0; i<couplings.GetSize(); i++ ) {
-      if ( couplings[i]->GetName() == "piezoDirect" ) {
+    for ( UInt i=0; i<couplings->GetSize(); i++ ) {
+      if ( (*couplings)[i]->GetName() == "piezoDirect" ) {
         isPiezo = true;
         idx = i;
       }
@@ -3033,14 +3033,14 @@ namespace CoupledField {
 
       //      found = true;
       ParamNode * nonLinNode = NULL;
-      nonLinNode = couplings[idx]->GetParamNode()->Get("nonLinList", false);
+      nonLinNode = (*couplings)[idx]->GetParamNode()->Get("nonLinList", false);
       if ( !nonLinNode )
         return false;
 
       ParamNode* regionNode = NULL;
-      if (  couplings[idx]->GetParamNode()->
+      if (  (*couplings)[idx]->GetParamNode()->
             Get("regionList")->Has("region", "name", regionName) ) {
-        regionNode = couplings[idx]->GetParamNode()->
+        regionNode = (*couplings)[idx]->GetParamNode()->
           Get("regionList")->Get("region", "name", regionName);
       }
       if( !regionNode)
@@ -3082,6 +3082,83 @@ namespace CoupledField {
 
     return isHyst;
   }
+  
+
+  bool SinglePDE::IsRegionMicroPiezo( std::string regionName ) {
+
+    bool isPiezo = false;
+    bool isMicroPiezo = false;
+
+    // get direct coupled PDE
+    DirectCoupledPDE* ptCoupledPDE = NULL;
+    
+    ptCoupledPDE = domain->GetDirectCoupledPDE();
+
+    if( !ptCoupledPDE )
+      return false;
+
+    //! Get couplings object
+    StdVector<BasePairCoupling*>* couplings = ptCoupledPDE->GetCouplingsObject();
+
+    UInt idx = 0;
+    for ( UInt i=0; i < couplings->GetSize(); i++ ) {
+      if ( (*couplings)[i]->GetName() == "piezoDirect" ) {
+        isPiezo = true;
+        idx = i;
+      }
+    }
+
+    if ( isPiezo ) {
+
+      // found = true;
+      ParamNode * nonLinNode = NULL;
+      nonLinNode = (*couplings)[idx]->GetParamNode()->Get("nonLinList", false);
+      if ( !nonLinNode )
+        return false;
+
+      ParamNode* regionNode = NULL;
+      regionNode = (*couplings)[idx]->GetParamNode()->
+        Get("regionList")->Get("region", "name", regionName);
+      if( !regionNode)
+        return false;
+
+      // check for nonLin Id
+      std::string nonLinId;
+      regionNode->Get("nonLinId", nonLinId, false);
+
+      if (nonLinId == "" )
+        return false;
+
+      // check for micro-piezo
+       isMicroPiezo = nonLinNode->Has("piezoMicroHF", "id", nonLinId);
+      return isMicroPiezo;
+    }
+
+    return false;
+
+  }
+
+  bool SinglePDE::BelongsPDE2MicroPiezo( ) {
+  	
+    bool isMicroPiezo = false;
+    RegionIdType actRegion;
+  	
+    std::map<RegionIdType, BaseMaterial*>::iterator it;
+    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
+      
+      // Set current region and material
+      actRegion = it->first;
+      
+      // Get current region node
+      std::string regionName = ptgrid_->RegionIdToName( actRegion );
+
+      if ( IsRegionMicroPiezo( regionName ) ) 
+      	isMicroPiezo = true;	
+    }
+    
+    return isMicroPiezo;
+  }
+  
 
 
   // ========================== RegionLoads ==========================

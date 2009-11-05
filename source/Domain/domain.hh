@@ -125,7 +125,11 @@ namespace CoupledField
 
     //! Get pointer to CoupledPDE
     DirectCoupledPDE* GetDirectCoupledPDE()
-    { return ptDirectCoupledPde_[0]; };
+    {  if (ptDirectCoupledPde_.GetSize() > 0)
+      return ptDirectCoupledPde_[0]; 
+    else 
+      return NULL;
+    }
 
     //! Get pointer to input-file
       //    FileType * GetInFile(){ return InFile_;}

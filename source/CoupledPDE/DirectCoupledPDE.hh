@@ -45,8 +45,8 @@ namespace CoupledField {
     void SetCouplings( const StdVector<BasePairCoupling*> &couplings);
 
     //! Get couplings object
-    StdVector<BasePairCoupling*>& GetCouplingsObject() 
-    { return couplings_;};
+    StdVector<BasePairCoupling*>* GetCouplingsObject() 
+    { return &couplings_;};
 
     //! Initialization routine
     void Init(UInt sequenceStep );

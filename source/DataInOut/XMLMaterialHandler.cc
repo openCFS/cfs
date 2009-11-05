@@ -163,6 +163,54 @@ namespace CoupledField {
         material->SetScalar(pcc->Get("dataName")->AsString(), NONLIN_DATA_NAME);
     }
 
+    if ( pn->Has("piezoMicroData"))
+    {
+      if( pn->Get("piezoMicroData")->Has("HuberFleck"))
+      {
+        ParamNode* pcc = pn->Get("piezoMicroData")->Get("HuberFleck");
+        
+        // force name
+        //        material->SetScalar("BelovKreher", PIEZO_MICRO_MODEL);
+
+        // read remanent polarisation
+        if(pcc->Has("sponPolarization"))
+          material->SetScalar(pcc->Get("sponPolarization")->AsDouble(), SPON_POLARIZATION, Global::REAL ); 
+
+        // read remanent strain
+        if(pcc->Has("sponStrain")) 
+          material->SetScalar(pcc->Get("sponStrain")->AsDouble(), SPON_STRAIN, Global::REAL ); 
+
+        // read driving force for 90 degree switching
+        if(pcc->Has("drivingForce90")) 
+          material->SetScalar(pcc->Get("drivingForce90")->AsDouble(), DRIVING_FORCE_90, Global::REAL ); 
+
+        // read driving force for 180 degree switching
+        if(pcc->Has("drivingForce180")) 
+          material->SetScalar(pcc->Get("drivingForce180")->AsDouble(), DRIVING_FORCE_180, Global::REAL ); 
+
+        // read rate constant
+        if(pcc->Has("rateConstant")) 
+          material->SetScalar(pcc->Get("rateConstant")->AsDouble(), RATE_CONSTANT, Global::REAL ); 
+
+        // read visco-plasti index
+        if(pcc->Has("viscoPlasticIndex")) 
+          material->SetScalar(pcc->Get("viscoPlasticIndex")->AsDouble(), VISCO_PLASTIC_INDEX, Global::REAL ); 
+
+        // read saturation index
+        if(pcc->Has("saturationIndex")) 
+          material->SetScalar(pcc->Get("saturationIndex")->AsDouble(), SATURATION_INDEX, Global::REAL ); 
+
+        // read init value for volume fraction
+        if(pcc->Has("volumeFracInit")) 
+          material->SetScalar(pcc->Get("volumeFracInit")->AsDouble(), VOLUME_FRAC_INIT, Global::REAL ); 
+
+        // read mean temperatute
+        if(pcc->Has("Tmean"))
+          material->SetScalar(pcc->Get("Tmean")->AsDouble(), MEAN_TEMPERATURE, Global::REAL ); 
+
+      }
+    }
+
     // Print material information to .info-file
     Info->PrintMaterial(material );
   }

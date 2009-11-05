@@ -29,6 +29,7 @@ SET(DRIVER_SRCS
   solveStepMech.cc
   solveStepMpCCI.cc
   solveStepODE.cc
+  solveStepMicroPiezo.cc
   solveStepPiezo.cc
   solveStepSmooth.cc
   staticdriver.cc

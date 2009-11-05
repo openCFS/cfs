@@ -131,7 +131,7 @@ namespace CoupledField {
   //! Type of nonlinearity for certain pdes
   typedef enum { NO_NONLINEARITY, WESTERVELT, KUZNETSOV, VARIABLE_SOS_CN1,
                  VARIABLE_SOS_CN2, VARIABLE_SOS_CN2Mean,
-                 MATERIAL, GEOMETRIC, HYSTERESIS, PERMEABILITY  } NonLinType;
+                 MATERIAL, GEOMETRIC, HYSTERESIS, PIEZO_MICRO_HF, PERMEABILITY  } NonLinType;
 
 
   //! Describes all possible solution types in a CFS simulation
@@ -186,7 +186,10 @@ namespace CoupledField {
                NONLIN_COEFFICIENT, NONLIN_DEPENDENCY, NONLIN_APPROXIMATION_TYPE,
                NONLIN_DATA_NAME, DYNAMIC_VISCOSITY, KINEMATIC_VISCOSITY,
                DATA_ACCURACY, MAX_APPROX_VAL,
-               THERMAL_EXPANSION_TENSOR, PYROCOEFFICIENT_TENSOR} MaterialType;
+               THERMAL_EXPANSION_TENSOR, PYROCOEFFICIENT_TENSOR,
+               MEAN_TEMPERATURE, SPON_POLARIZATION, SPON_STRAIN, DRIVING_FORCE_90,
+               DRIVING_FORCE_180, RATE_CONSTANT, VISCO_PLASTIC_INDEX, SATURATION_INDEX,
+               VOLUME_FRAC_INIT} MaterialType;
 
   typedef enum{FULL, PLANE_STRAIN, PLANE_STRESS, PLANE, AXI} SubTensorType;
 

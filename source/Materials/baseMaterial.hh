@@ -12,6 +12,8 @@
 #include <MatVec/matrix.hh>
 #include <MatVec/vector.hh>
 #include <Utils/ApproxData.hh>
+//#include "Utils/piezoMicroModel.hh"
+#include "Utils/coordSystem.hh"
 
 namespace CoupledField {
 
@@ -19,6 +21,8 @@ namespace CoupledField {
   class CoordSystem;
   class Hysteresis;
   class ElemList;
+  class PiezoMicroModelHF;
+  class PiezoMicroModelBK;
 
   //! Class for Material Data
   /*! 
@@ -289,6 +293,38 @@ namespace CoupledField {
       EXCEPTION( "GetVectorHystVal not implemented" );
     };
 
+    //========================== micro-piezoelectric-model: start==================
+
+    //Initialize piezoelectric-micro-model
+    virtual void InitPiezoMicro( UInt numElemSD, shared_ptr<ElemList> actSDList, 
+                                 BaseMaterial* mechMat, BaseMaterial* elecMat,
+                                 SubTensorType tensorType, Double dt);
+
+    //! returns the material tensors
+    void GetEffectiveTensors( Matrix<Double>& matMech,
+                              Matrix<Double>& matElec,
+                              Matrix<Double>& matPiezo,
+                              Vector<Double>& stress, 
+                              Vector<Double>& elecField,
+                              UInt elemIdx, 
+                              bool recompute,
+                              bool previous );
+
+    //! returns ireversible strain and polarization
+    void GetEffectiveIrreversibleValues( Vector<Double>& Pirr,
+                                         Vector<Double>& Sirr,
+                                         UInt elemIdx,
+                                         bool recompute,
+                                         bool previous );
+
+    //! get micro-piezo-object
+    PiezoMicroModelBK* GetMicroPiezoModel() {
+      return piezoMicroModel_;
+    };
+
+    //========================== micro-piezoelectric-model:end ===================
+
+
     //! Compute and set damping parameters alpha and beta 
     void ComputeRayleighDamping(Double dampFreq, Double RatioDeltaF);
 
@@ -379,6 +415,12 @@ namespace CoupledField {
     Vector<Double> Yprevious_; //! previous Yval in hysteresis
 
     std::map<UInt, UInt> globalElem2Local_;
+
+    //! yes, ppiezoelectric micro-model is switched on
+    bool isPiezoMicroModel_;	
+
+    //! object for piezo-micor-modeling
+    PiezoMicroModelBK* piezoMicroModel_;
   };
 
   std::ostream& operator << ( std::ostream & , const  BaseMaterial &);

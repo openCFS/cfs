@@ -392,6 +392,7 @@ share/xml/CFS-Simulation/Schemas/CFS_PostProc.xsd -text svneol=unset#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_Preconds.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_Solvers.xsd svneol=native#text/xml
 share/xml/CMakeLists.txt svneol=native#text/plain
+share/xml/Tools/SchemaViewer2.zip -text svneol=unset#application/zip
 share/xsl/CMakeLists.txt svneol=native#text/plain
 share/xsl/check_for_docu_tag.xsl -text
 share/xsl/ctest_update_trafo.xsl -text
@@ -649,6 +650,8 @@ source/Driver/solveStepMagHyst.cc -text
 source/Driver/solveStepMagHyst.hh -text
 source/Driver/solveStepMech.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/solveStepMech.hh svneol=native#text/x-c%2B%2Bhdr
+source/Driver/solveStepMicroPiezo.cc -text
+source/Driver/solveStepMicroPiezo.hh -text
 source/Driver/solveStepMpCCI.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/solveStepMpCCI.hh svneol=native#text/x-c%2B%2Bhdr
 source/Driver/solveStepODE.cc svneol=native#text/plain
@@ -831,6 +834,10 @@ source/Forms/nLinPiezoHyst.cc -text
 source/Forms/nLinPiezoHyst.hh -text
 source/Forms/nLinPiezoHystRHS.cc -text
 source/Forms/nLinPiezoHystRHS.hh -text
+source/Forms/nLinPiezoMicro.cc -text
+source/Forms/nLinPiezoMicro.hh -text
+source/Forms/nLinPiezoMicroRHS.cc -text
+source/Forms/nLinPiezoMicroRHS.hh -text
 source/Forms/nLincurlCurlNodeInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/nLincurlCurlNodeInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/nlinLaplaceInt.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1260,6 +1267,10 @@ source/Utils/mathfunctions.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/mathfunctions.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/nodestoresol.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/nodestoresol.hh svneol=native#text/x-c%2B%2Bhdr
+source/Utils/piezoMicroModel.cc -text
+source/Utils/piezoMicroModel.hh -text
+source/Utils/piezoMicroModelBK.cc -text
+source/Utils/piezoMicroModelBK.hh -text
 source/Utils/polCoordSys.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/polCoordSys.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/preisach.cc svneol=native#text/x-c%2B%2Bsrc

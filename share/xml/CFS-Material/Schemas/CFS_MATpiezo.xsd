@@ -19,8 +19,8 @@
   <xsd:complexType name="DT_MatPiezo">
     <xsd:sequence>
       <xsd:element name="piezoCouplingTensor" type="DT_PiezoCouplTensor"/>
-      <xsd:element name="piezoCouplingCoefficient"
-        type="DT_NonLinPiezoCoeff" minOccurs="0"/>
+      <xsd:element name="piezoCouplingCoefficient" type="DT_NonLinPiezoCoeff" minOccurs="0"/>
+      <xsd:element name="piezoMicroData" type="DT_PiezoMicroData" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
 
@@ -61,4 +61,27 @@
     <xsd:attribute name="nonlinear" type="xsd:string" use="required"/>
   </xsd:complexType>
   
+  <!-- ******************************************************************* -->
+  <!--   Definition of Huber-Fleck micro-piezoelectric model                                     -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_PiezoMicroData">
+    <xsd:choice>
+      <xsd:element name="HuberFleck" type="DT_HuberFleck"/>
+    </xsd:choice>
+  </xsd:complexType>
+  
+  <xsd:complexType name="DT_HuberFleck">
+    <xsd:sequence>
+      <xsd:element name="sponPolarization" type="xsd:double"/>
+      <xsd:element name="sponStrain" type="xsd:double"/>
+      <xsd:element name="drivingForce90" type="xsd:double"/>
+      <xsd:element name="drivingForce180" type="xsd:double"/>
+      <xsd:element name="rateConstant" type="xsd:double"/>
+      <xsd:element name="viscoPlasticIndex" type="xsd:double"/>
+      <xsd:element name="saturationIndex" type="xsd:double"/>
+      <xsd:element name="volumeFracInit" type="xsd:double"/>
+      <xsd:element name="Tmean" type="xsd:double"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
 </xsd:schema>

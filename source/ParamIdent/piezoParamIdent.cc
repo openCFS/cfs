@@ -199,11 +199,10 @@ void piezoParamIdent::SolveProblem(bool write_results, InfoNode* given_analysis_
   // ================================
 
   // obtain pointer to piezo coupling object
-  StdVector<BasePairCoupling*> cpl;
-  cpl = ptCoupledPDE->GetCouplingsObject();
-  for( UInt i = 0; i < cpl.GetSize(); i++ ) {
-    if( cpl[i]->GetName() == "piezoDirect" ) {
-      piezoCpl_ = dynamic_cast<PiezoCoupling*>(cpl[i]);
+  StdVector<BasePairCoupling*>* cpl = ptCoupledPDE->GetCouplingsObject();
+  for( UInt i = 0; i < cpl->GetSize(); i++ ) {
+    if( (*cpl)[i]->GetName() == "piezoDirect" ) {
+      piezoCpl_ = dynamic_cast<PiezoCoupling*>((*cpl)[i]);
       break;
     }
   }
@@ -365,11 +364,11 @@ void piezoParamIdent::SolveProblem(bool write_results, InfoNode* given_analysis_
     }
 
 
-  StdVector<BasePairCoupling*> ptCoupling = ptCoupledPDE->GetCouplingsObject();
+  StdVector<BasePairCoupling*>* ptCoupling = ptCoupledPDE->GetCouplingsObject();
 
   ptMaterialMech_ = ptPDE1_[0].getPDEMaterialData(); // Pointer to mech. MaterialData
   ptMaterialElec_ = ptPDE2_[0].getPDEMaterialData(); // Pointer to elec. MaterialData
-  ptMaterialPiezo_ = ptCoupling[0]->getPDEMaterialData(); // Pointer to piezo MaterialData
+  ptMaterialPiezo_ = (*ptCoupling)[0]->getPDEMaterialData(); // Pointer to piezo MaterialData
 
   if (imagMaterialParam_ ) {
     updateComplexMaterialData(parameterC_);
