@@ -395,6 +395,7 @@ share/xml/CMakeLists.txt svneol=native#text/plain
 share/xml/Tools/SchemaViewer2.zip -text svneol=unset#application/zip
 share/xsl/CMakeLists.txt svneol=native#text/plain
 share/xsl/check_for_docu_tag.xsl -text
+share/xsl/ctest_notes_trafo.xsl -text
 share/xsl/ctest_update_trafo.xsl -text
 share/xsl/extract_eigenvalues_line.xsl -text
 share/xsl/extract_first_results_harmonic.xsl -text
