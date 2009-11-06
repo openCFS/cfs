@@ -31,7 +31,7 @@
       <!-- Export linear system? (optional) -->
       <xsd:element name="exportLinSys" minOccurs="0">
         <xsd:complexType>
-          <xsd:attribute name="baseName" use="required" type="xsd:token"/>
+          <xsd:attribute name="baseName" use="optional" type="xsd:token"/>
           <xsd:attribute name="solution" use="optional" default="no">
             <xsd:simpleType>
               <xsd:restriction base="xsd:token">

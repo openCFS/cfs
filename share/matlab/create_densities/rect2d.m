@@ -13,6 +13,19 @@ function rect2d(sx, sy, ux, uy, filename)
 xml_file = fopen(filename, 'w');
 fprintf(xml_file, '<?xml version="1.0"?>\n  <cfsErsatzMaterial>\n    <header>\n    <design constant="false" initial="0.5" lower="1e-3" name="density" region="mech" scale="false" upper="1"/>\n    <transferFunction application="mech" design="density" param="1" type="simp"/>\n  </header>\n\n');
 
+###############################
+#fprintf(xml_file, '<set id="full">\n');
+#  for x = 1:512000;
+#    # number of current element
+#    fprintf(xml_file, '  <element nr="%d" type="density" design="1.0"/>\n', x);
+#  endfor
+#fprintf(xml_file, '</set>\n\n');
+#
+#fprintf(xml_file, '</cfsErsatzMaterial>\n');
+#fclose(xml_file);
+#
+#exit
+###############################
 # width of element
 w = ux/sx;
 # height of element

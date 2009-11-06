@@ -871,6 +871,7 @@ namespace CFSTool {
   {
     SetEnvironmentEnums();
     BasePDE::SetEnums();
+    EntityList::SetEnums();
   }
 
   void setFreeCoord(std::string coordSysId,

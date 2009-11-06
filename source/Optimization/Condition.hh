@@ -6,6 +6,8 @@
 #include "General/environment.hh"
 #include "MatVec/matrix.hh"
 
+using std::pair;
+
 namespace CoupledField
 {
    class ParamNode;
@@ -21,7 +23,7 @@ namespace CoupledField
      
        /** Call this method to append a Condition. This calls the actual (private) constructor.
         * Index is set with position of the relevant list.
-        * If it is a homogenization constraint there might be a blow up resulting in several
+        * If it is a homogenization constraint there might be a blow up reCoupledField::DesignElement::DEFAULTsulting in several
         * constraints if either multiple entries are given or the entry position is 'all'.
         * @param pn determines active mode
         * @param constraints stuff is added here if the mode is constraint
@@ -29,8 +31,20 @@ namespace CoupledField
        static void AddCondition(ParamNode* pn, StdVector<Condition>& constraints, StdVector<Condition>& observation);
 
        /** Note the difference to the Type! See Name as equivalent of Kind! */
-       typedef enum { VOLUME = 0, GREYNESS = 1, GAUSS_GREYNESS = 2, COMPLIANCE = 3, TRACKING = 4, REALVOLUME = 5,
-                       HOMOGENIZATION_TENSOR = 6, HOMOGENIZATION_TRACKING = 7} Name;
+       typedef enum
+       {
+         VOLUME = 0,
+         GREYNESS = 1,
+         GAUSS_GREYNESS = 2,
+         COMPLIANCE = 3,
+         TRACKING = 4,
+         REALVOLUME = 5,
+         HOMOGENIZATION_TENSOR = 6,   // might blow up to several HOMOGENIZATION_TENSOR if a tensor is given
+         HOMOGENIZATION_TRACKING = 7,
+         POISSONS_RATIO = 8,          // homogenization only
+         YOUNGS_MODULUS = 9,          // homogenization only
+         ISOTROPY = 10                // blows up to several HOMOGENIZATION_TENSOR constraints! No ISOTROPY will be left!
+       } Name;
 
        /** Genertal constraint types */             
        typedef enum { EQUAL, LOWER_BOUND, UPPER_BOUND } Type;
@@ -47,6 +61,9 @@ namespace CoupledField
        /** Check whether condition should be calculated for given region */
        bool IsForRegion(RegionIdType regionId);
        
+       /** Check if this is homogenization constraint */
+       bool IsHomogenization() const;
+
        /** This is a nice statement for output */
        std::string ToString() const; 
 
@@ -84,15 +101,21 @@ namespace CoupledField
         * parameter. Currently this is *only* implemented for the *Level-Set* method! */
        double penalty;
        
+       /** Shall delta constraints be printed? Is only true if a value is given! */
+       bool delta_logging;
+
        /** If condition supports constriction to one region */
        RegionIdType region;
        
        /** Used for caching 1.0 / complete_volume per region */
        double volume_fraction_;
 
-       /** For the homogenization constraint this gives the actual position within the matrix_
-        * Note, that the entries are 1-based!!!*/
-       std::pair<unsigned int, unsigned int> coord;
+       /** For the homogenization tensor constraint this gives the actual position within the matrix_.
+        * The first entry is for homogenization always set.
+        * In the case of a "smart" isotropy constraint also E11-E22 = 0 and
+        * E11-E12-2E33 = E11-E12-E33-E33 = 0 are generated. Then coord is 2 or 4 entries.
+        * Note, that the entries are 1-based!!! */
+       StdVector<pair<unsigned int, unsigned int> > coord;
 
        static Enum<Name> name;              
        static Enum<Type> type;
@@ -104,6 +127,9 @@ namespace CoupledField
       /** Reads the coord attribute and sets the coord pair if value is not 'all'
        * @return false if 'all' and the coord pair is not set */
       bool ReadCoord(ParamNode* pn);
+
+      /** Add a subcondition with only index and value set (to zero) */
+      Condition* AppendSubCondition(StdVector<Condition>& list);
 
       /** Create a new homogenization constraint with the given tensor position
        * @param base the base of cloning. Needs to contain a tensor!
@@ -119,9 +145,12 @@ namespace CoupledField
        int  index_;
        Name name_;
        Type type_;
+
        /** for constraints of type "homogenization" one can give the tensor we want to reach
         * or for multiple constraints the entry sub element 'pos' refers to the constraint value */
        Matrix<double> matrix_;
+
+       bool delta_logging_ignored_;
    };
 
 } // namespace

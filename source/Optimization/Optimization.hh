@@ -49,7 +49,7 @@ namespace CoupledField
          typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, HEAT, NO_APP} Application;
 
          /** Not the optimization problem but the solver! */
-         typedef enum { OPTIMALITY_CONDITION, IPOPT_SOLVER, SCPIP_SOLVER, SHAPE_SOLVER, 
+         typedef enum { OPTIMALITY_CONDITION, IPOPT_SOLVER, SCPIP_SOLVER, SNOPT_SOLVER, SHAPE_SOLVER, 
 												EVALUATE_INITIAL_DESIGN, GRADIENT_CHECK } Optimizer;
 
          /** to convert string/enum for this type */
@@ -304,9 +304,6 @@ namespace CoupledField
 
            /** if set write the gradient of the design to logfile */
            bool designGradient;
-
-           /** if set for constraints the difference to the values is printed instead of the constraint value */
-           bool deltaConstraints;
 
            /** optional log the iterations and cost value to a file to gnuplot it */
            std::ofstream* file;

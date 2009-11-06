@@ -47,7 +47,7 @@ namespace CoupledField
     neighRegions_  = neighRegions;
 
     StdVector<std::string> names;
-    ptGrid_->RegionIdToName(  names,neighRegions );
+    ptGrid_->GetRegion().ToString(neighRegions, names);
 
     //get the interface elements to the coupling nodes
     ptGrid_->GetElemsNextToNodes(interfaceElems_, couplingnodes,

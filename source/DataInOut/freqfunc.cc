@@ -46,7 +46,7 @@ namespace CoupledField {
 
   
       nodalFilename=fnc_names_[i];
-      nodalFilename.append( GenStr( nodeNumber ) );
+      nodalFilename.append( lexical_cast<std::string>( nodeNumber ) );
       pathAndFilename="nodalSrcs/" + nodalFilename;
       freqfile.open( pathAndFilename.c_str() );
       if ( !freqfile ) {

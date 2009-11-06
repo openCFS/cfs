@@ -109,7 +109,7 @@ namespace CoupledField {
       if( actNonLinId == "" )
         continue;
 
-      actRegionId = ptgrid_->RegionNameToId( actRegionName );
+      actRegionId = ptgrid_->GetRegion().Parse(actRegionName);
 
       // Check nonLinId was already registerd
       if( nonLinIdType_.find( actNonLinId) == nonLinIdType_.end() ) {
@@ -184,7 +184,7 @@ namespace CoupledField {
       actSDMat = it->second;
 
       // Get current region node
-      std::string regionName = ptgrid_->RegionIdToName( actRegion );
+      std::string regionName = ptgrid_->GetRegion().ToString(actRegion);
 
       // create new entity list
       shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
@@ -216,7 +216,7 @@ namespace CoupledField {
 
           nlForm->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
           nlForm->Set4Hyst(ptgrid_, this, eqnMap_,  results_[0]);
-          nlForm->SetFactor( GenStr(factor) );
+          nlForm->SetFactor(factor);
           
           BiLinFormContext * stiffIntDescr = 
             new BiLinFormContext(nlForm, STIFFNESS );
@@ -277,9 +277,8 @@ namespace CoupledField {
           // check for piezo-coupling and 
           if( isPiezoCoupled_ ) {
             ParamNode * dataTypeNode = 
-              param->Get("sequenceStep", "index", GenStr(sequenceStep_) )
-              ->Get("couplingList")->Get("direct")->Get("piezoDirect")
-              ->Get("materialDataType", false );
+              param->Get("sequenceStep", "index", sequenceStep_)
+              ->Get("couplingList/direct/piezoDirect/materialDataType", false );
             bool isImag = false;
             
             if( dataTypeNode ) 
@@ -377,7 +376,7 @@ namespace CoupledField {
       // get regionId of Lagrangian surface
       StdVector<std::string> keyVec, attrVec, valVec;
       std::string slaveSide;
-      std::string ncIfaceName = ptgrid_->RegionIdToName(ncIFaces_[i]);
+      std::string ncIfaceName = ptgrid_->GetRegion().ToString(ncIFaces_[i]);
 
       ParamNode* ncIfaceListNode;
       ncIfaceListNode = param->Get("domain")->Get("ncInterfaceList");
@@ -390,7 +389,7 @@ namespace CoupledField {
       //         non-conforming interface
       LOG_DBG2(elecpde) << "NonMatching: Defining nonconforming integrator"
                         << " for M on interface '"
-                        << ptgrid_->RegionIdToName(ncIFaces_[i]) << "'.";
+                        << ptgrid_->GetRegion().ToString(ncIFaces_[i]) << "'.";
       shared_ptr<ElemList> actNcList( new ElemList(ptgrid_ ) );
       actNcList->SetRegion( ncIFaces_[i] );
       
@@ -414,9 +413,9 @@ namespace CoupledField {
       //         Lagrangian surface
       LOG_DBG2(elecpde) << "NonMatching: Defining mass integrator"
                         << " for D on interface '"
-                        << ptgrid_->RegionIdToName(ncIFaces_[i]) << "'.";
+                        << ptgrid_->GetRegion().ToString(ncIFaces_[i]) << "'.";
       shared_ptr<SurfElemList> actSDList( new SurfElemList(ptgrid_ ) );      
-      actSDList->SetRegion( ptgrid_->RegionNameToId( slaveSide ) );
+      actSDList->SetRegion( ptgrid_->GetRegion().Parse(slaveSide));
 
       // D(Psi, Lambda) has the form of a standard mass
       // integrator with factor 1.0
@@ -463,18 +462,18 @@ namespace CoupledField {
       // *** Resistance ***
       if ( impedances_[i].resistance > EPS ) {
         imag = "( 1.0 / ((2*pi*f) * ";
-        imag += GenStr(impedances_[i].resistance)+ " ))";
+        imag += lexical_cast<std::string>(impedances_[i].resistance)+ " ))";
       }
       
       // *** Inductance ***
       if ( impedances_[i].inductance > EPS ) {
         real = "(1.0 / ((2*pi*f) * (2*pi*f) * ";
-        real += GenStr(impedances_[i].inductance) + " ))";
+        real += lexical_cast<std::string>(impedances_[i].inductance) + " ))";
       }
       
       // *** Capcitance *** 
       if ( impedances_[i].capacitance > EPS ) {
-        real += "-" + GenStr( impedances_[i].capacitance );
+        real += "-" + lexical_cast<std::string>( impedances_[i].capacitance );
       } 
       
       // perform consistency check
@@ -546,43 +545,41 @@ namespace CoupledField {
     StdVector<UInt> nodeVec, oneNodeVec(1);
     
     // resize impedances and fill in data
+    InfoNode* list = infoNode_->Get(InfoNode::HEADER)->Get("impedances");
     std::ostringstream out;
     impedances_.Resize( impedNodes.GetSize() );
-    for( UInt i = 0; i < impedNodes.GetSize(); i++ ) {
+    for( UInt i = 0; i < impedNodes.GetSize(); i++ )
+    {
+      ParamNode* node = impedNodes[i];
       
       // get data from node
-      node1 = impedNodes[i]->Get("node1")->AsString();
-      node2 = impedNodes[i]->Get("node2")->AsString();
-      resistance = impedNodes[i]->Get("resistance")->AsDouble();
-      inductance = impedNodes[i]->Get("inductance")->AsDouble();
-      capacitance = impedNodes[i]->Get("capacitance")->AsDouble();
+      node1       = node->Get("node1")->AsString();
+      node2       = node->Get("node2")->AsString();
+      resistance  = node->Get("resistance")->AsDouble();
+      inductance  = node->Get("inductance")->AsDouble();
+      capacitance = node->Get("capacitance")->AsDouble();
+
+      Impedance& imp = impedances_[i];
       
       // fill data for impedance node
-      impedances_[i].node1 = shared_ptr<NodeList>( new NodeList(ptgrid_) );
+      imp.node1 = shared_ptr<NodeList>( new NodeList(ptgrid_) );
       ptgrid_->GetNodesByName( nodeVec, node1);
       oneNodeVec[0] = nodeVec[0];
-      impedances_[i].node1->SetNodes( oneNodeVec );
-      impedances_[i].node2 = shared_ptr<NodeList>( new NodeList(ptgrid_) );
+      imp.node1->SetNodes( oneNodeVec );
+      imp.node2 = shared_ptr<NodeList>( new NodeList(ptgrid_) );
       ptgrid_->GetNodesByName( nodeVec, node2);
       oneNodeVec[0] = nodeVec[0];
-      impedances_[i].node2->SetNodes( oneNodeVec );
-      impedances_[i].resistance = resistance;
-      impedances_[i].capacitance = capacitance;
-      impedances_[i].inductance = inductance;
+      imp.node2->SetNodes( oneNodeVec );
+      imp.resistance = resistance;
+      imp.capacitance = capacitance;
+      imp.inductance = inductance;
 
-      out.clear();
-      out.str("");
-      out << "Impedance defined between node " << node1
-          << " and node " << node2  << " with:\n";
-      Info->PrintF( pdename_, out.str().c_str() );
-      out.clear();
-      out.str("");
-      out << "\tR = " << impedances_[i].resistance 
-          << " Ohm \tL = " << impedances_[i].inductance         
-          << " H \tC = " << impedances_[i].capacitance 
-          << " F" << std::endl;
-      Info->PrintF( pdename_, out.str().c_str() );
-      Info->PrintF( pdename_, "\n" );
+      InfoNode* in = list->Get("impedance", InfoNode::APPEND);
+      in->Get("node1")->SetValue(node1);
+      in->Get("node2")->SetValue(node2);
+      in->Get("resistance")->SetValue(imp.resistance);
+      in->Get("inductance")->SetValue(imp.inductance);
+      in->Get("capacitance")->SetValue(imp.capacitance);
     }
   }
   
@@ -1045,7 +1042,7 @@ namespace CoupledField {
                                       results_[0], isaxi_, true );
 
           ptCoupling_->GetOutputNeighbourRegion(actCoupling, nRegions);
-          ptgrid_->RegionNameToId(nRegionIds,*nRegions);
+          ptgrid_->GetRegion().Parse(*nRegions, nRegionIds);
           ForceOp_->Setup(nRegionIds, *couplingnodes);
         }
       
@@ -1198,7 +1195,7 @@ namespace CoupledField {
         } else {
           for( UInt i=0; i<laminas[0]->Count("lamina"); i++ ) {
             std::string dofName = "ep";
-            dofName += GenStr(i+1);
+            dofName += lexical_cast<std::string>(i+1);
             res1->dofNames.Push_back( dofName );
           }
         }
@@ -1329,8 +1326,8 @@ namespace CoupledField {
                       << "interfaces of PDE exist in domain.";
 
     ParamNode* elecPDENCIfaceListNode;
-    elecPDENCIfaceListNode = param->Get("sequenceStep", "index", GenStr(sequenceStep_) )
-    ->Get("pdeList")->Get("electrostatic")->Get("ncInterfaceList", false);
+    elecPDENCIfaceListNode = param->Get("sequenceStep", "index", sequenceStep_)
+    ->Get("pdeList/electrostatic/ncInterfaceList", false);
     
     if(!elecPDENCIfaceListNode)
       return;
@@ -1364,7 +1361,7 @@ namespace CoupledField {
 
       ncIfaceNamesForPDE.Push_back(pdeIfaceName);
     }
-    ptgrid_->RegionNameToId( ncIfaceIds, ncIfaceNamesForPDE );
+    ptgrid_->GetRegion().Parse(ncIfaceNamesForPDE, ncIfaceIds);
 
     for (UInt i = 0; i < ncIfaceIds.GetSize(); i++) {
       ncIFaces_.Push_back(ncIfaceIds[i]);

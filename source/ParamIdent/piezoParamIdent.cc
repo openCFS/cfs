@@ -224,7 +224,7 @@ void piezoParamIdent::SolveProblem(bool write_results, InfoNode* given_analysis_
                      EntityList::REGION );
 
     chargeNeighborRegion_ =
-      domain->GetGrid()->RegionNameToId( neighborName );
+      domain->GetGrid()->GetRegion().Parse(neighborName);
 
     // obtain result info from piezo-coupling object
 

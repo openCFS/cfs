@@ -65,9 +65,6 @@ namespace CoupledField
 #endif
   }
 
- 
- 
-
 
   // **************
   //   Destructor

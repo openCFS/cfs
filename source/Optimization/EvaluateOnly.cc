@@ -3,6 +3,7 @@
 #include "Optimization/Optimization.hh"
 #include "Driver/harmonicDriver.hh"
 #include "Domain/domain.hh"
+#include "Utils/Timer.hh"
 
 using namespace CoupledField;
 
@@ -19,6 +20,9 @@ void EvaluateOnly::SolveProblem()
 {
   // solve the state problem with the initial guess.
   std::cout << "Evaluate state problem for initial guess ..." << std::endl;
+
+  // there is no time within this optimizer spent
+  timer_->Stop();
 
   // in the harmonic case we sweep over multiple frequencies if we have not "multipleExcitation"
   HarmonicDriver* hd = dynamic_cast<HarmonicDriver*>(domain->GetDriver());

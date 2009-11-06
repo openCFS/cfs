@@ -130,6 +130,9 @@ namespace CoupledField {
 
     //! Equation map
     shared_ptr<EqnMap> eqnMap;
+
+    /** does this constraint originate from periodic bcs */
+    bool periodic;
   };
 
   // -------------------------------------------------------------------------

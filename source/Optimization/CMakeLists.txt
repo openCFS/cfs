@@ -1,7 +1,8 @@
 SET(OPTIMIZATION_SRCS DesignElement.cc DesignSpace.cc Optimization.cc PiezoSIMP.cc ErsatzMaterial.cc SIMP.cc 
                       TransferFunction.cc Condition.cc Objective.cc OptimalityCondition.cc EvaluateOnly.cc
                       BaseOptimizer.cc ShapeGrad.cc LevelSet.cc ParamMat.cc DesignMaterial.cc ShapeOptimizer.cc
-                      TopGrad.cc OptimizationMaterial.cc GradientCheck.cc ShapeOpt.cc ShapeDesign.cc)
+                      TopGrad.cc OptimizationMaterial.cc GradientCheck.cc ShapeOpt.cc ShapeDesign.cc
+                      DesignFilter.cc)
 
 # Just redefine __builtin_isnan to ::isnan for Intel compiler for
 # OptimalityCondition.cc
@@ -44,6 +45,15 @@ IF(USE_SCPIP)
     ${OPTIMIZATION_SRCS}
     SCPIP.cc SCPIPBase.cc)
 ENDIF(USE_SCPIP)
+
+IF(USE_SNOPT)
+   SET(TARGET_LL
+    ${TARGET_LL}
+    ${SNOPT_LIBRARY}
+    ${CFS_FORTRAN_LIBS})
+   
+   SET(OPTIMIZATION_SRCS ${OPTIMIZATION_SRCS} SnOptInterface.cc SnOpt.cc SnOptBase.cc)
+ENDIF(USE_SNOPT)
 
 ADD_LIBRARY(optimization STATIC ${OPTIMIZATION_SRCS})
 

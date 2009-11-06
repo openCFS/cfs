@@ -142,7 +142,8 @@ namespace CoupledField
      * @param either the loads_ of StdPDE or for optimization */
     void ReadLoads(StdVector<ParamNode*> loadNodes, LoadList& out_list);
     
-    //! write general defines (BCs, loads, etc.) to info-file
+    /** Write general defines (BCs, loads, etc.) to info.xml.
+     * Note, that only the current state is (over) written! */
     void WriteGeneralPDEdefines();
 
     //! get the encapsulated state of the PDE

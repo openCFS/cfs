@@ -32,6 +32,8 @@ namespace CoupledField {
     //! Typedef describing the type the list is defined by
     typedef enum {NO_TYPE, REGION, NAMED_NODES, NAMED_ELEMS}  DefineType;
 
+    static Enum<ListType> listType;
+
     //! Constructor
     EntityList( Grid *grid);
 
@@ -63,7 +65,9 @@ namespace CoupledField {
     // =======================================================================
     //  CONVERSION METHODS
     // =======================================================================
-    
+
+    static void SetEnums();
+
     //! Conversion from ListType to string
     static void Enum2String( ListType in, std::string& out );
 
@@ -73,7 +77,7 @@ namespace CoupledField {
     //! Conversion from DefineType to string
     static void Enum2String( DefineType in, std::string& out );
 
-    //! Conversion from string to DefineType 
+    //! Conversion from string to DefineType
     static void String2Enum( const std::string& in, DefineType& out );
 
   protected:

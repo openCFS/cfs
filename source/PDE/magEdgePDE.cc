@@ -126,7 +126,7 @@ namespace CoupledField {
       if( actNonLinId == "" )
         continue;
 
-      actRegionId = ptgrid_->RegionNameToId( actRegionName );
+      actRegionId = ptgrid_->GetRegion().Parse( actRegionName );
 
       // Check nonLinId was already registerd
       if( nonLinIdType_.find( actNonLinId) == nonLinIdType_.end() ) {
@@ -183,7 +183,7 @@ namespace CoupledField {
        actMat    = it->second;
 
       // Get current region node
-      std::string regionName = ptgrid_->RegionIdToName( actRegion );
+      std::string regionName = ptgrid_->GetRegion().ToString(actRegion);
 
       // create new entity list
       shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
@@ -296,16 +296,16 @@ namespace CoupledField {
       for ( UInt coil = 0; coil < coilDef_.GetSize(); coil++ ) {
         if ( actRegion == coilRegionId_[coil] ) {
           std::string factor = coilDef_[coil]->value_ + "/" +
-            GenStr(coilDef_[coil]->windingCrossSection_);
+            lexical_cast<std::string>(coilDef_[coil]->windingCrossSection_);
 
           VolForceInt *coilSource3d =
             new LinearEdgeSrcInt ( 3, coilDef_[coil]->phase_,
                                    isaxi_ );
 
           StdVector<std::string> currDensity(3);
-          currDensity[0] = factor + "*" + GenStr(coilDef_[coil]->locFlowDir_[0]);
-          currDensity[1] = factor + "*" + GenStr(coilDef_[coil]->locFlowDir_[1]);
-          currDensity[2] = factor + "*" + GenStr(coilDef_[coil]->locFlowDir_[2]);
+          currDensity[0] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[0]);
+          currDensity[1] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[1]);
+          currDensity[2] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[2]);
           coilSource3d->SetVolForceVector( currDensity,
                                            coilDef_[coil]->flowCoordSys_,
                                            true, 1.0 );
@@ -544,7 +544,7 @@ namespace CoupledField {
 
         // get region name of actual coil
         std::string regionName = coilNodes[i]->Get("name")->AsString();
-        RegionIdType regionId = ptgrid_->RegionNameToId( regionName );
+        RegionIdType regionId = ptgrid_->GetRegion().Parse( regionName );
 
         coilRegionId_.Push_back( regionId );
         coilDef_.Push_back( shared_ptr<Coil>( new Coil( regionId,
@@ -579,7 +579,7 @@ namespace CoupledField {
 
         // get region name of actual magnet
         std::string regionName = magnetNodes[i]->Get("name")->AsString();
-        RegionIdType regionId = ptgrid_->RegionNameToId( regionName );
+        RegionIdType regionId = ptgrid_->GetRegion().Parse( regionName );
 
         magnetsDomain_.Push_back( regionId );
 
@@ -827,7 +827,7 @@ namespace CoupledField {
         StdVector<std::string> couplRegions;
         StdVector<RegionIdType> regionIds;
         ptCoupling_->GetOutputRegions(actCoupling, couplRegions);
-        ptgrid_->RegionNameToId( regionIds, couplRegions );
+        ptgrid_->GetRegion().Parse( couplRegions , regionIds );
 
         // Check, that every coupling region is part of
         // the magnetic pde itself
@@ -902,7 +902,7 @@ namespace CoupledField {
     StdVector<std::string> couplRegions;
     StdVector<RegionIdType> regionIds;
     ptCoupling_->GetOutputRegions(actCoupling, couplRegions);
-    ptgrid_->RegionNameToId( regionIds, couplRegions );
+    ptgrid_->GetRegion().Parse(couplRegions, regionIds);
 
    
     force.Init();
@@ -915,7 +915,7 @@ namespace CoupledField {
       Integer sdIndex = subdoms_.Find( regionIds[reg] );
       if( sdIndex == -1 ) {
         EXCEPTION( "The region coupling region '" <<
-                   ptgrid_->RegionIdToName( regionIds[reg] )
+                   ptgrid_->GetRegion().ToString( regionIds[reg] )
                    << "' was not found in magneticPDE" );
       }
       
@@ -963,7 +963,7 @@ namespace CoupledField {
            if( coilIndex != -1 ) {
              MathParser * mParser =  domain->GetMathParser();
              std::string factor = coilDef_[coilIndex]->value_ + "/" 
-               + GenStr(coilDef_[coilIndex]->windingCrossSection_ );
+               + lexical_cast<std::string>(coilDef_[coilIndex]->windingCrossSection_ );
              mParser->SetExpr( mHandle_, factor );
              // TODO: Check if this is still needed
              // Double currDens = mParser->Eval(mHandle_);

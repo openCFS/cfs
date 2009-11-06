@@ -142,7 +142,11 @@ namespace CoupledField
     bool GetForceSegFault() const;
     //@}
 
-    /** Shall we list the equation and local <-> global mapping in info.xml */
+    /** Prints large lists to info.xml. These are mostly for debug purpose
+     * but shall work with release code. The lists are:
+     * * equation lists
+     * * local <-> global mapping
+     * * constraints */
     bool DoListMapping() const;
 
     /** Is cfs invoked with the quite flag to compress console output? */

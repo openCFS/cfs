@@ -1165,7 +1165,7 @@ namespace CoupledField {
         domain->GetSingleDriver()->GetActSequenceStep();
       StdVector<ParamNode *> pairCouplings;
       ParamNode * cplList =
-        param->Get("sequenceStep","index", GenStr(actMsStep ) )
+        param->Get("sequenceStep","index", actMsStep)
         ->Get("couplingList", false);
       if( cplList ) {
         StdVector<ParamNode *> pairCouplings =
@@ -1182,7 +1182,7 @@ namespace CoupledField {
         // in this case we iterate over all single PDEs and try to
         // find the related entry
         StdVector<ParamNode*> pdes =
-          param->Get("sequenceStep","index", GenStr(actMsStep ) )
+          param->Get("sequenceStep","index", actMsStep)
           ->Get("pdeList")->GetChildren();
         for (UInt iPde = 0; iPde < pdes.GetSize(); iPde++ ) {
           if( boost::find_first(pdeName, pdes[iPde]->GetName() ) ) {

@@ -199,7 +199,7 @@ namespace CoupledField {
       
       // get current step node
       ParamNode * actStepNode = 
-        param->Get("sequenceStep", "index", GenStr(iStep+1) );
+        param->Get("sequenceStep", "index", iStep+1);
 
       // get current usage type 
       std::string usageString;

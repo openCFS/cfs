@@ -942,8 +942,7 @@ namespace CoupledField {
 
 
       // pass region names to grid and obtain RegionIds
-      RegionIdType actRegionId;
-      mi_->AddRegion(regionName, actRegionId);
+      RegionIdType actRegionId = mi_->AddRegion(regionName);
 
       // Check if entity needs to be linearized
       bool linearizeEntity;

@@ -215,7 +215,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       if( actDampingId == "" )
         continue;
 
-      actRegionId = ptgrid_->RegionNameToId( actRegionName );
+      actRegionId = ptgrid_->GetRegion().Parse( actRegionName );
 
       // Check actDampingId was already registerd
       if( idDampType.count( actDampingId ) == 0 ) {
@@ -335,7 +335,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
           stiffVal *= matStiffness;
         }
         SingleEntryInt * stiffInt =
-          new SingleEntryInt( GenStr(stiffVal),  dof, dim_ );
+          new SingleEntryInt( lexical_cast<std::string>(stiffVal),  dof, dim_ );
         BiLinFormContext * stiffIntContext =
           new BiLinFormContext( stiffInt, STIFFNESS );
         stiffIntContext->SetPtPdes(this, this);
@@ -347,7 +347,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       // mass Value
       if ( massVal > EPS ) {
         SingleEntryInt * massInt =
-          new SingleEntryInt( GenStr(massVal), dof, dim_ );
+          new SingleEntryInt( lexical_cast<std::string>(massVal), dof, dim_ );
         BiLinFormContext * massIntContext =
           new BiLinFormContext( massInt, MASS );
         massIntContext->SetPtPdes(this, this);
@@ -359,7 +359,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       // damping value
       if( dampVal > EPS ) {
         SingleEntryInt * dampInt =
-          new SingleEntryInt( GenStr(dampVal), dof, dim_ );
+          new SingleEntryInt( lexical_cast<std::string>(dampVal), dof, dim_ );
         BiLinFormContext * dampIntContext =
           new BiLinFormContext( dampInt, DAMPING );
         dampIntContext->SetPtPdes(this, this);
@@ -398,7 +398,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
 
       // get region Name
       std::string regionName = regionNodes[i]->Get("name")->AsString();
-      RegionIdType regionId = ptgrid_->RegionNameToId( regionName );
+      RegionIdType regionId = ptgrid_->GetRegion().Parse( regionName );
 
       // get softeningId of current region
       id = "";
@@ -466,7 +466,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       if( actNonLinId == "" )
         continue;
 
-      actRegionId = ptgrid_->RegionNameToId( actRegionName );
+      actRegionId = ptgrid_->GetRegion().Parse( actRegionName );
 
       // Check nonLinId was already registerd
       if( nonLinIdType_.find( actNonLinId) == nonLinIdType_.end() ) {
@@ -544,8 +544,8 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     bool complexMaterial = false;
     if( isDirectCoupled_ ) {
       ParamNode * piezoNode =
-        param->Get( "sequenceStep", "index", GenStr(sequenceStep_) )
-        ->Get("couplingList")->Get("direct")->Get("piezoDirect", false);
+        param->Get( "sequenceStep", "index", sequenceStep_)
+        ->Get("couplingList/direct/piezoDirect", false);
       if( piezoNode ) {
         ParamNode * matNode = NULL;
         if( piezoNode )
@@ -574,7 +574,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
 
       // get current region name and get grip of paramNode
       std::string actRegionName;
-      actRegionName = ptgrid_->RegionIdToName( actRegion );
+      actRegionName = ptgrid_->GetRegion().ToString( actRegion );
       // isMicroPiezo = true means, that the bilinear-forms 
       // will be defined in PiezoCupling.cc!!
       bool isMicroPiezo = IsRegionMicroPiezo( actRegionName );
@@ -683,9 +683,9 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
             actSDMat->GetScalar(measFreq,RAYLEIGH_FREQUENCY,Global::REAL);
             if( isComplex_ ) {
               // assemble string describing adjusted Rayleigh damping
-              fac = GenStr( beta * measFreq) + "/ f";
+              fac = lexical_cast<std::string>( beta * measFreq) + "/ f";
             } else {
-              fac = GenStr( beta );
+              fac = lexical_cast<std::string>( beta );
             }
             actIntDescrStiff->SetSecDestMat(DAMPING, fac );
           }
@@ -876,9 +876,9 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
           actSDMat->GetScalar(measFreq,RAYLEIGH_FREQUENCY,Global::REAL);
           if( isComplex_ ) {
             // assemble string describing adjusted Rayleigh damping
-            fac = GenStr<Double>( alpha / measFreq ) + "* f";
+            fac = lexical_cast<std::string>( alpha / measFreq ) + "* f";
           } else {
-            fac = GenStr( alpha );
+            fac = lexical_cast<std::string>( alpha );
           }
           actIntDescr->SetSecDestMat( DAMPING, fac );
         }
@@ -932,7 +932,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
 
       // get current region name and get grip of paramNode
       std::string actRegionName;
-      actRegionName = ptgrid_->RegionIdToName( actRegion );
+      actRegionName = ptgrid_->GetRegion().ToString( actRegion );
       ParamNode * actRegionNode =
         myParam_->Get("regionList")->Get( "region", "name", actRegionName );
 
@@ -962,9 +962,9 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
         actSDMat->GetScalar(measFreq,RAYLEIGH_FREQUENCY,Global::REAL);
         if( isComplex_ ) {
           // assemble string describing adjusted Rayleigh damping
-          fac = GenStr( beta * measFreq) + "/ f";
+          fac = lexical_cast<std::string>( beta * measFreq) + "/ f";
         } else {
-          fac = GenStr( beta );
+          fac = lexical_cast<std::string>( beta );
         }
         actIntDescrStiff->SetSecDestMat(DAMPING, fac );
       }
@@ -989,9 +989,9 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
         actSDMat->GetScalar(measFreq,RAYLEIGH_FREQUENCY,Global::REAL);
         if( isComplex_ ) {
           // assemble string describing adjusted Rayleigh damping
-          fac = GenStr( alpha / measFreq ) + "* f";
+          fac = lexical_cast<std::string>( alpha / measFreq ) + "* f";
         } else {
-          fac = GenStr( alpha );
+          fac = lexical_cast<std::string>( alpha );
         }
         actIntDescrMass->SetSecDestMat( DAMPING, fac );
       }
@@ -1053,7 +1053,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       // get regionId of Lagrangian surface
       StdVector<std::string> keyVec, attrVec, valVec;
       std::string slaveSide;
-      std::string ncIfaceName = ptgrid_->RegionIdToName(ncIFaces_[i]);
+      std::string ncIfaceName = ptgrid_->GetRegion().ToString(ncIFaces_[i]);
 
       if (!ncIfaceListNode) {
         EXCEPTION("No ncInterfaces defined in domain section.");
@@ -1066,7 +1066,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       //         non-conforming interface (master/slave side)
       LOG_DBG2(mechpde) << "NonMatching: Defining nonconforming integrator"
                         << " for M on interface '"
-                        << ptgrid_->RegionIdToName(ncIFaces_[i]) << "'.";
+                        << ptgrid_->GetRegion().ToString(ncIFaces_[i]) << "'.";
       shared_ptr<ElemList> actNcList( new ElemList(ptgrid_ ) );
       actNcList->SetRegion( ncIFaces_[i] );
 
@@ -1091,9 +1091,9 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       //         Lagrangian surface (slave side)
       LOG_DBG2(mechpde) << "NonMatching: Defining mass integrator"
                         << " for D on interface '"
-                        << ptgrid_->RegionIdToName(ncIFaces_[i]) << "'.";
+                        << ptgrid_->GetRegion().ToString(ncIFaces_[i]) << "'.";
       shared_ptr<SurfElemList> actSDList( new SurfElemList(ptgrid_ ) );
-      actSDList->SetRegion( ptgrid_->RegionNameToId( slaveSide ) );
+      actSDList->SetRegion( ptgrid_->GetRegion().Parse( slaveSide ) );
 
       // D(u, Lambda) has the form of a standard mass
       // integrator with factor 1.0
@@ -1215,7 +1215,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
   {
 
     // Get region name
-    std::string regionName = ptgrid_->RegionIdToName( regionId );
+    std::string regionName = ptgrid_->GetRegion().ToString( regionId );
 
     BaseForm * bilinearStiff = NULL;
 
@@ -1402,7 +1402,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
 				  foundForce=true;
 			  }
 			  else
-				  EXCEPTION("Could not handle coupling quantity: " << GenStr(quantity));
+				  EXCEPTION("Could not handle coupling quantity: " << lexical_cast<std::string>(quantity));
 		  }
 
 		  if(foundDisp){
@@ -1983,8 +1983,8 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     if(domainNCIfaceListNode)
     {
       ParamNode* ncInterfaceListNode =
-        param->Get("sequenceStep", "index", GenStr(sequenceStep_) )
-        ->Get("pdeList")->Get("mechanic")->Get("ncInterfaceList", false);
+        param->Get("sequenceStep", "index", sequenceStep_)
+        ->Get("pdeList/mechanic/ncInterfaceList", false);
       StdVector<ParamNode*> pdeNCIfaceNodes;
 
       if(ncInterfaceListNode)
@@ -2010,7 +2010,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
 
           ncIfaceNamesForPDE.Push_back(pdeIfaceName);
         }
-        ptgrid_->RegionNameToId( ncIfaceIds, ncIfaceNamesForPDE );
+        ptgrid_->GetRegion().Parse( ncIfaceNamesForPDE, ncIfaceIds );
 
         for (UInt i = 0; i < ncIfaceIds.GetSize(); i++) {
           ncIFaces_.Push_back(ncIfaceIds[i]);
@@ -2347,7 +2347,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       }
 
       stressNodes[k]->Get( "region", actRegionName );
-      RegionIdType actRegion = ptgrid_->RegionNameToId( actRegionName );
+      RegionIdType actRegion = ptgrid_->GetRegion().Parse( actRegionName );
 
       // fetch data
       std::string type;
@@ -2390,13 +2390,13 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       // create new surface stress definition
       SurfStress actStress;
 
-      actStress.surface = ptgrid_->RegionNameToId(surf);
-      actStress.region = ptgrid_->RegionNameToId(volume);
+      actStress.surface = ptgrid_->GetRegion().Parse(surf);
+      actStress.region = ptgrid_->GetRegion().Parse(volume);
       actStress.phase = phase[i];
       valMat.ConvertToVec_AppendRows( actStress.stress );
 
       // add surface stress definition
-      RegionIdType regionId =  ptgrid_->RegionNameToId( surf );
+      RegionIdType regionId =  ptgrid_->GetRegion().Parse( surf );
       surfStresses_[regionId] = actStress;
     }
 

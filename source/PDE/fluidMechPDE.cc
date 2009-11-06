@@ -158,7 +158,7 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
 
       // get current region name and get grip on paramNode
       std::string actRegionName;
-      actRegionName = ptgrid_->RegionIdToName( actRegion );
+      actRegionName = ptgrid_->GetRegion().ToString(actRegion);
 
       // ==============  add stiffness matrix ===============
 
@@ -251,7 +251,7 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
                                        RegionIdType regionId,
                                        bool reducedInt) {
         // Get region name
-        std::string regionName = ptgrid_->RegionIdToName( regionId );
+        std::string regionName = ptgrid_->GetRegion().ToString(regionId);
     
         BaseForm * bilinearStiff = NULL;
      

@@ -54,8 +54,8 @@ namespace CoupledField
     // fetch combustion data node
     ParamNode * combNode = myParam_->Get("combustionData");
     combNode->Get("coupledRegion",coupledRegionNames[0]);
-    ptgrid_->RegionNameToId( subdoms_, regionNames );
-    ptgrid_->RegionNameToId( couplSubDomId_, coupledRegionNames );
+    ptgrid_->GetRegion().Parse(regionNames, subdoms_);
+    ptgrid_->GetRegion().Parse(coupledRegionNames, couplSubDomId_);
 
     std::cout << "CplRegion: " << coupledRegionNames[0] << std::endl;
     std::cout << "CplRegionID: " << couplSubDomId_ << std::endl;

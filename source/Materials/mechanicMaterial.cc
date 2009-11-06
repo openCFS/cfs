@@ -414,6 +414,155 @@ namespace CoupledField
     }
   }
   
+  void MechanicMaterial::CalcIsotropicStiffnessTensorFromEAndPoisson(Matrix<Double>& out, Double emod, Double poi, UInt dim)
+  {
+    Complex EModul(emod);
+    Complex poisson(poi); 
+    Complex LameLambda = (poisson*EModul)/
+          ((Complex(1.0,0) + poisson)*(Complex(1.0,0)  - Complex(2.0,0)*poisson));
+    Complex LameMu = (EModul)/(Complex(2.0,0)*(Complex(1.0)+poisson));
+    
+    Matrix<Complex> elasticityTensor;
+    CalcComplexIsotropicStiffnessTensor(elasticityTensor, LameLambda, LameMu, dim);
+    out = elasticityTensor.GetPart(Global::REAL);
+  }
+
+  void MechanicMaterial::CalcIsotropicStiffnessTensorFromLame(Matrix<Double>& out, Double lambda, Double mu, UInt dim)
+  { 
+    Matrix<Complex> elasticityTensor;
+    CalcComplexIsotropicStiffnessTensor(elasticityTensor, static_cast<Complex>(lambda), static_cast<Complex>(mu), dim);
+    
+    out = elasticityTensor.GetPart(Global::REAL);
+  }
+
+  double MechanicMaterial::CalcIsotropyError(const Matrix<double>& E, bool normed)
+  {
+     assert((E.GetNumRows() == 3 && E.GetNumCols() == 3)
+         || (E.GetNumRows() == 6 && E.GetNumCols() == 6));
+
+     bool D3 = E.GetNumRows() == 6;
+
+     double E11 = E[0][0];
+     double E22 = E[1][1];
+     double E33 = E[2][2];
+     double E44 = D3 ? E[3][3] : 0.0;
+     double E55 = D3 ? E[4][4] : 0.0;
+     double E66 = D3 ? E[5][5] : 0.0;
+
+     double E12 = E[0][1];
+     double E13 = E[0][2];
+     double E14 = D3 ? E[0][3] : 0.0;
+     double E15 = D3 ? E[0][4] : 0.0;
+     double E16 = D3 ? E[0][5] : 0.0;
+
+     double E23 = E[1][2];
+     double E24 = D3 ? E[1][3] : 0.0;
+     double E25 = D3 ? E[1][4] : 0.0;
+     double E26 = D3 ? E[1][5] : 0.0;
+
+     double E34 = D3 ? E[2][3] : 0.0;
+     double E35 = D3 ? E[2][4] : 0.0;
+     double E36 = D3 ? E[2][5] : 0.0;
+
+     double E45 = D3 ? E[3][4] : 0.0;
+     double E46 = D3 ? E[3][5] : 0.0;
+
+     double E56 = D3 ? E[4][5] : 0.0;
+
+     double result = 0;
+
+     if(!D3)
+     {
+       result =  abs(E11 - E22);          // non-shear diagonal const
+       result += abs(E11 - E12 - 2.0*E33);// combination
+       result += abs(E13);                // rest is zero
+       result += abs(E23);
+     }
+     else
+     {
+       // non-shear diagonal is constant E11 = E22 = E33
+       result =  abs(E11 - E22);
+       result += abs(E22 - E33);
+
+       // upper non-shear triangle is constant
+       // E12 = E13 = E23 -> E12 - E13 = 0, E13 - E23 = 0
+       result += abs(E12 - E13);
+       result += abs(E13 - E23);
+
+       // shear diagonal is constant
+       result += abs(E44 - E55);
+       result += abs(E55 - E66);
+
+       // relationship of the three unique values
+       // E11 - E12 - 2E66 = E11 - E12 - E66 - E66 = 0
+       result += abs(E11 - E12 - E66 - E66);
+
+       // the rest is zero
+       // E14 = E15 = E16 = E24 = E25 = E26 = E34 = E35 = E36 = E45 = E46 = E56 = 0
+       result += abs(E14);
+       result += abs(E15);
+       result += abs(E16);
+       result += abs(E24);
+       result += abs(E25);
+       result += abs(E26);
+       result += abs(E34);
+       result += abs(E35);
+       result += abs(E36);
+       result += abs(E45);
+       result += abs(E46);
+       result += abs(E56);
+     }
+
+     return normed ? result / E11 : result;
+  }
+
+  double MechanicMaterial::CalcIsotropicPoissonsRatio(const Matrix<double>& tensor)
+  {
+    double E11 = tensor[0][0];
+    double E12 = tensor[0][1];
+
+    return E12 / (E11 + E12);
+  }
+
+
+  double MechanicMaterial::CalcIsotropicYoungsModulus(const Matrix<double>& tensor)
+  {
+    double E11 = tensor[0][0];
+    double v = CalcIsotropicPoissonsRatio(tensor);
+
+    return (E11 * (1.0 + v) * (1.0 - 2.0 * v)) / (1.0 - v);
+  }
+
+  
+
+  void MechanicMaterial::CalcComplexIsotropicStiffnessTensor(Matrix<Complex>& out, 
+      const Complex &LameLambda, const Complex &LameMu, UInt dim)
+  {
+    out.Resize(dim == 2 ? 3 : 6);
+    out.Init();
+        
+    out[0][0] = LameLambda + Complex(2.0,0) * LameMu;
+    out[1][1] = LameLambda + Complex(2.0,0) * LameMu;
+    
+    out[0][1] = LameLambda;
+    out[1][0] = LameLambda;
+    
+    out[2][2] = LameMu;
+    
+    if(dim == 3)
+    {
+      out[0][2] = LameLambda;
+      out[1][2] = LameLambda;
+      out[2][0] = LameLambda;
+      out[2][1] = LameLambda;
+
+      out[2][2] = LameLambda + Complex(2.0,0) * LameMu;
+      out[3][3] = LameMu;
+      out[4][4] = LameMu;
+      out[5][5] = LameMu;
+    }
+  }
+  
 
   void MechanicMaterial::ComputeSubTensor(Matrix<Complex>& matMatrix,
 					  MaterialType matType, 
@@ -491,51 +640,33 @@ namespace CoupledField
 
       Matrix<Complex> elasticityTensor;
 
-    
-    if( symmetryType_ == GENERAL ) {
-
+    switch(symmetryType_)
+    {
+    case GENERAL:
       // check that general stiffness tensor is present
- 
-    } else if( symmetryType_ == ISOTROPIC ) {
-
+      break;
+    case ISOTROPIC:
+    {
       // get complex valued values
       Complex EModul, poisson;
-        
+
       GetScalar( EModul, MECH_EMODULUS, Global::COMPLEX ); 
-      GetScalar( poisson, MECH_POISSON, Global::COMPLEX ); 
-  
-      // calculate isotropic case        
-      Complex LameLambda, LameMu;
-      elasticityTensor.Resize(6,6);
-      elasticityTensor.Init();
-      LameLambda = (poisson*EModul)/
-        ((Complex(1.0,0) + poisson)*
-         (Complex(1.0,0)  - Complex(2.0,0)*poisson));
-      LameMu = (EModul)/(Complex(2.0,0)*(Complex(1.0)+poisson));
-      
-      elasticityTensor[0][0]=LameLambda+Complex(2.0,0)*LameMu;
-      elasticityTensor[1][1]=LameLambda+Complex(2.0,0)*LameMu;
-      elasticityTensor[2][2]=LameLambda+Complex(2.0,0)*LameMu;
-      
-      elasticityTensor[0][1]=LameLambda;
-      elasticityTensor[0][2]=LameLambda;
-      elasticityTensor[1][0]=LameLambda;
-      elasticityTensor[1][2]=LameLambda;
-      elasticityTensor[2][0]=LameLambda;
-      elasticityTensor[2][1]=LameLambda;
-      
-      elasticityTensor[3][3]=LameMu;
-      elasticityTensor[4][4]=LameMu;
-      elasticityTensor[5][5]=LameMu;
+      GetScalar( poisson, MECH_POISSON, Global::COMPLEX );
+
+      Complex LameLambda = (poisson*EModul)/
+          ((Complex(1.0,0) + poisson)*
+              (Complex(1.0,0)  - Complex(2.0,0)*poisson));
+      Complex LameMu = (EModul)/(Complex(2.0,0)*(Complex(1.0)+poisson));
+
+      CalcComplexIsotropicStiffnessTensor(elasticityTensor, LameLambda, LameMu, 3);
 
       SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, Global::COMPLEX );
       SetScalar(LameLambda, MECH_LAME_LAMBDA, Global::COMPLEX);
       SetScalar(LameMu, MECH_LAME_MU, Global::COMPLEX);
-
-
-
-    } else if( symmetryType_ == ORTHOTROPIC ) {
-        
+      break;
+    }
+    case ORTHOTROPIC:
+    {
       Complex EX, EY, EZ, nuXY, nuYZ, nuXZ, GYZ, GZX, GXY;
       GetScalar( EX, MECH_EMODULUS_X, Global::COMPLEX ); 
       GetScalar( EY, MECH_EMODULUS_Y, Global::COMPLEX ); 
@@ -573,10 +704,15 @@ namespace CoupledField
       elasticityTensor[4][4]=GZX;
       elasticityTensor[5][5]=GXY;
       SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, Global::COMPLEX );
-    } else {
+
+      break;
+    }
+    default:
       EXCEPTION( "Calculation of full stiffness matrix for symmetryType '"
-                 << symmetryType_ << "' not implemented!" );
+                       << symmetryType_ << "' not implemented!" );
     }
     
   }
-}
+  
+  
+} // end of namespace

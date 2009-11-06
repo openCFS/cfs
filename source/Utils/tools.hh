@@ -9,12 +9,7 @@
 #include <iostream>
 
 #include "General/environment.hh"
-
-//! \file tools.hh
-//! Defines various methods and classes:
-//! - Error / Warning Handling
-//! - String conversion functions
-//! - Geometric Poin<> class and related helper functions
+#include "Utils/Point.hh"
 
 namespace CoupledField {
 
@@ -76,16 +71,8 @@ namespace CoupledField {
   //     STRING CONVERSION FUNCTIONS
   // =========================================================================
   //@{
-  //! \name String conversion functions
 
-   //! Convert anything to a standard string
-  //! This auxilliary method can convert any data type to a standard string,
-  //! if the << operator has been overloaded for the respective type.
-  template<class T> std::string GenStr( const T &value ) {
-    std::ostringstream mystream;
-    mystream << value;
-    return mystream.str();
-  }
+
 
   //! Function for splitting a string into a vector of single entries
 
@@ -141,89 +128,6 @@ namespace CoupledField {
       p*=x;
     return p;
   }
-
-  //! class for working with points.
-  /*!
-    \param dim dimension of the point. 2.. point in 2D, 3.. point in 3D
-  */
-  class Point {
-
-  public:
-    //! constructor
-    Point() {
-      SetZero();
-    }
-    
-    Point(const Double x, const Double y, const Double z) {
-        data[0]=x;
-        data[1]=y;
-        data[2]=z;
-    }
-
-    //!destructor
-    ~Point() {}
-
-    /** resets the values */
-    void SetZero() {
-      for(UInt i=0; i<3; i++)
-        data[i]=0.0;
-    }
-
-    //!
-    Point & operator=(const Point & t);
-    
-    //!
-    Point & operator+=(const Point & t);
-    Point operator+(const Point &t);
-    Point operator+(const Point &t) const;
-    
-    //!
-    Point & operator-=(const Point &t);
-    Point operator-(const Point &t);
-    Point operator-(const Point &t) const;
-
-    /** scale the point */
-    Point& operator*=(const Double factor); 
-    Point operator*(const Double factor);
-    Point operator*(const Double factor) const; 
-
-    /** scale the point */  
-    Point&  operator/=(const Double factor);
-    Point operator/(const Double factor);
-    Point operator/(const Double factor) const;    
-
-    //! return coordinate number i
-    Double &operator[](UInt i) {
-      assert(i < 3);
-      return data[i];
-    }
-
-    //! return coordinate number i
-    Double operator[](UInt i) const {
-      assert(i < 3);
-      return data[i];
-    }
-
-    //! calculate distance between two points
-    inline static Double dist(const Point& a, const Point& b) { 
-      Double preSqrt = 0.0; 
-      for(UInt i=0; i<3; i++) 
-        preSqrt+= (a.data[i]-b.data[i]) * (a.data[i]-b.data[i]); 
-      return sqrt(preSqrt); 
-    } 
-
-    //! calculate distance to another point
-    Double dist(const Point& other) const {
-      return Point::dist(*this, other);
-    }
-
-    /** Lists the content
-     * @return the form "(0.3;4.3;0.0)" but no digit control */
-    std::string ToString() const;
-
-    Double data[3];
-  };
-
 
   //! calculate distance between two points embedded in matrix
 
@@ -304,9 +208,9 @@ namespace CoupledField {
   /** Determines the current memory consumption.
    * This is done by calling ps and some post processing from a pipe.
    * Runs clearly only on Unix and is rather expensive
+   * @param peak peak memory or current memory
    * @return the memory in KBytes or 0 if there was a problem */
-  int MemoryUsage();
-
+  int MemoryUsage(bool peak);
 
 } // end of CoupledField
 

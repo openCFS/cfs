@@ -21,6 +21,7 @@ Objective::Objective(ParamNode* pn, ParamNode* pn_type, unsigned int idx)
   this->pn           = pn;
   this->harmonic_    = BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType());
   this->omega_omega_ = pn->Has("factor") ? pn->Get("factor")->Get("omega_omega")->AsBool() : false;
+  this->volumePenaltyExponent = 1.0;
   if(!harmonic_ && omega_omega_)
     throw Exception("It makes no sense to set costFunction/factor/omega_omega in static optimization");
 
@@ -38,10 +39,17 @@ Objective::Objective(ParamNode* pn, ParamNode* pn_type, unsigned int idx)
   // set how often to evaluate the objective for multiple excitations
   switch(type_)
   {
+    case VOLUME:
+      if(pn->Has("volumePenaltyExponent"))
+        volumePenaltyExponent = pn->Get("volumePenaltyExponent")->Get("value")->AsDouble();
+      // we do not break here!
+      // because we also need the evaluateOnce_ value to be set!
     case HOMOGENIZATION_TENSOR:
     case HOMOGENIZATION_TRACKING:
+    case HOMOGENIZATION_E11:
+    case POISSONS_RATIO:
+    case YOUNGS_MODULUS:
     case TYCHONOFF:
-    case VOLUME:
       this->evaluateOnce_ = true;
       break;
 
@@ -68,6 +76,22 @@ double Objective::GetValue() const
 void Objective::SetValue(double val)
 {
   value_ = val;
+}
+
+bool Objective::IsHomogenization() const
+{
+  switch(type_)
+  {
+    case HOMOGENIZATION_TENSOR:
+    case HOMOGENIZATION_TRACKING:
+    case HOMOGENIZATION_E11:
+    case POISSONS_RATIO:
+    case YOUNGS_MODULUS:
+      return true;
+
+    default:
+      return false;
+  }
 }
 
 ObjectiveContainer::ObjectiveContainer()

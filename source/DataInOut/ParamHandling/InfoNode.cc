@@ -142,6 +142,17 @@ namespace CoupledField
     return node;
   }
   
+  InfoNode* InfoNode::SetNewChild(const string& name, unsigned int index)
+  {
+    InfoNode* in = new InfoNode();
+    children_[index] = in;
+    in->parent_ = this;
+    in->name_   = name;
+
+    return in;
+  }
+
+
   void InfoNode::ToXML(std::ostream& os, int depth)
   {
     // note, that this is an recursive method!
@@ -194,14 +205,22 @@ namespace CoupledField
         if(in->IsAttribute()) continue; // attributes are already done
         in->ToXML(os, depth + 2);
       }
+      bool endl_written = false;
       // own element
       if(!value_.empty() && !IsGoodAttribute(value_))
       {
-        if(name_ == COMMENT) os << value_;
-        else os << std::endl << string(depth + 2, ' ') << GetFormatedValue(depth+2) << std::endl;
+        if(name_ == COMMENT)
+        {
+          os << value_;
+        }
+        else
+        {
+          os << std::endl << string(depth + 2, ' ') << GetFormatedValue(depth+2) << std::endl;
+          endl_written = true;
+        }
       }
       // do we close in the same line?
-      if(chsize != 0) os << std::endl;
+      if(chsize != 0 && !endl_written) os << std::endl;
       os << string(depth, ' ') << "</" << name_ << ">";
     }
   }

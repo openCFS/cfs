@@ -63,6 +63,9 @@ namespace CoupledField
     //! Destructor
     virtual ~Grid();
 
+    enum RegionType { NOT_SET, VOLUME_REGION, SURFACE_REGION };
+
+
     //! Trigger mapping of elements' faces
 
     //! This method calculates global surface numbers and
@@ -114,7 +117,7 @@ namespace CoupledField
     //! \param updated (in) flag indicating if updated geometry should be used
     virtual void GetNodeCoordinate( Point & rfPoint,
                                     const UInt inode,
-                                    bool updated = false )
+                                    bool updated = false ) const
     { EXCEPTION( "Not implemented" ); }
 
     //! Get coordinates of node with global number inode as vector
@@ -123,7 +126,7 @@ namespace CoupledField
     //! \param updated (in) flag indicating if updated geometry should be used
     virtual void GetNodeCoordinate( Vector<Double> & rfPoint,
                                     const UInt inode,
-                                    bool updated = false ) = 0;
+                                    bool updated = false ) const = 0;
 
     //! Get elements associated with given nodes
 
@@ -258,34 +261,65 @@ namespace CoupledField
     //+++++++++++++++++++++++++++ REGION INFORMATION +++++++++++++++++++++++++
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-    virtual void AddRegion(const std::string regionName, RegionIdType & rId);
-    virtual void AddRegions(const StdVector<std::string> & regionNames,
-                            StdVector<RegionIdType> & rIds);
+    /** Adds a region name.
+     * Is written to region and regionData but the rest of regionData is only set by FinishInit()
+     * @return id the new index within regionData */
+    RegionIdType AddRegion(const std::string& regionName);
 
-    virtual UInt GetNumRegions();
-    virtual UInt GetNumVolRegions();
-    virtual UInt GetNumSurfRegions();
+    //! NC_SIMON: Add a new Surface region to the grid
+    //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
+    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED
+    //! \param name (in) name of the new region
+    //! \param regionid (out) id of the new region
+    RegionIdType AddSurfaceRegion(const std::string& name) {
+      return AddRegion(name, SURFACE_REGION);
+    }
 
-    //! Get vector with all (surface and volume) region identifiers
 
-    //! Return a vector with names of all region identifiers in the
-    //! current mesh (surface and volume)
-    //! \param volRegions (out) vector with region identifiers
-    virtual void GetRegionIds( StdVector<RegionIdType> & regions );
+    //! NC_SIMON: Add a new volume region to the grid
+    //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
+    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED
+    //! \param name (in) name of the new region
+    //! \param regionid (out) id of the new region
+    RegionIdType AddVolumeRegion(const std::string& name) {
+      return AddRegion(name, VOLUME_REGION);
+    }
+
+
+    /** multiple calls of AddRegion().
+     * @see AddRegion() */
+    void AddRegions(const StdVector<std::string>& names, StdVector<RegionIdType> & ids);
+
+    UInt GetNumRegions() { return regionData.GetSize(); }
+    UInt GetNumVolRegions();
+    UInt GetNumSurfRegions();
+
+    /** are all elements within this region of the same type and dimension */
+    bool IsRegionRegular(RegionIdType reg_id) const { return regionData[reg_id].regular; }
+
+    /** are all regions regular? */
+    bool IsRegionRegular(StdVector<RegionIdType>& regions) const;
+
+    //! Get vector containing all region names
+
+    //! Get a vecor which contains all region nodes. The order is in that way,
+    //! that one can access directly the elements of the vector by using a
+    //! RegionId and get the according entry of the vector.
+    void GetRegionNames(StdVector<std::string>& out);
 
     //! Get vector with all volume region identifiers
 
     //! Return a vector with names of all volume region identifiers in the
     //! current mesh.
     //! \param volRegions (out) vector with volume region identifiers
-    virtual void GetVolRegionIds( StdVector<RegionIdType> & volRegions );
+    void GetVolRegionIds( StdVector<RegionIdType> & volRegions );
 
     //! Get vector with all surface region identifiers
 
     //! Return a vector with names of all surface region identifiers in the
     //! current mesh.
     //! \param surfRegions (out) vector with volume region identifiers
-    virtual void GetSurfRegionIds( StdVector<RegionIdType>
+    void GetSurfRegionIds( StdVector<RegionIdType>
                                    & surfRegions );
 
     //! Returns the number of nodes contained in given region
@@ -316,6 +350,17 @@ namespace CoupledField
     virtual void SetElemRegion(UInt ielem, RegionIdType region)
     { EXCEPTION( "Not implemented" ); }
 
+
+    /** Sets the element barycenters for the given region.
+     * Checks the RegionData::barycenters and does nothing if already set.
+     * @param updated handle updated coordinates?
+     * @return the number of actually set barycenters. */
+    UInt SetElementBarycenters(RegionIdType region, bool updated);
+
+    /** Determines the neighborhood of elements and store in within the elements.
+     * It checks if already called and does nothing if called multiple times. */
+    virtual void FindElementNeighorhood()
+      { EXCEPTION( "Not implemented" ); }
 
     //! Get list of elements (surface / volumes)
 
@@ -380,24 +425,10 @@ namespace CoupledField
     /** Calculate the volume spanned by all named nodes of all regions.
      * For most proper convex grids this will be faster than CalcVolumeOfRegion() but one needs to
      * be sure to have named nodes at the exterior points. Will hold for periodic
-     * boundary problems */
-    Double CalcVolumeSpannedByNamedNodes();
-
-    //! Returns for a given region identifier the associated name
-    virtual std::string RegionIdToName( const RegionIdType regionId );
-
-    //! Returns for a list of region identifiers the associated names
-    virtual void RegionIdToName( StdVector<std::string> & regionNames,
-                                 const StdVector<RegionIdType> & regionId );
-
-    //! Returns for a list of region names  the associated identifiers
-    virtual void RegionNameToId( StdVector<RegionIdType> & regionIds,
-                                 const StdVector<std::string> & regionName );
-
-    //! Returns for a given region name the associated identifier
-    virtual RegionIdType RegionNameToId( const std::string & regionName );
-
-
+     * boundary problems
+     * @param diameter_out returns the diameter of the convex domain if given. NULL is allowed*/
+    virtual Double CalcVolumeSpannedByNamedNodes(Point* dim_out = NULL) const
+    { EXCEPTION("not implemented here"); }
 
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     //+++++++++++++++++++++++++ NAMED NODES INFORMATION ++++++++++++++++++++++
@@ -446,12 +477,9 @@ namespace CoupledField
     virtual void GetElemsByName( StdVector<Elem*> & elems,
                                  const std::string & elemsName ) = 0;
 
-
-
-
-
+    /** To be called when all regions are added.
+     * Sets the internal element and region structures. */
     virtual void FinishInit() = 0;
-
 
 
     //@}
@@ -473,15 +501,6 @@ namespace CoupledField
 
 
     //@}
-
-
-    //! Get vector containing all region names
-
-    //! Get a vecor which contains all region nodes. The order is in that way,
-    //! that one can access directly the elements of the vector by using a
-    //! RegionId and get the according entry of the vector.
-    virtual void GetRegionNames( StdVector<std::string>
-                                 & regionNames ) = 0;
 
     // =======================================================================
     // NODE ACCESS FUNCTIONS
@@ -592,14 +611,6 @@ namespace CoupledField
     /** Convenience method for developers, dumps summary information to stdout */
     void Dump();
 
-
-    /** Probes for the existence of a region name
-     * @param name the name to check - case sensitive */
-    bool HasRegion(const std::string & regionName)
-    {
-        return regionNames_.Find(regionName) != -1;
-    }
-
     //! Computes the surface region between two volume regions (2D only)
     virtual void SurfRegionFromVolRegions(
         const std::string& surfRegionName,
@@ -684,19 +695,6 @@ namespace CoupledField
                                   StdVector< UInt > & elemids)
     { EXCEPTION( "Not implemented" ); }
 
-    //! NC_SIMON: Add a new Surface region to the grid
-    //! \param name (in) name of the new region
-    //! \param regionid (out) id of the new region
-    virtual void AddSurfaceRegion( const std::string name,
-                                   RegionIdType& regionid)
-    { EXCEPTION( "Not implemented" ); }
-
-    //! NC_SIMON: Add a new volume region to the grid
-    //! \param name (in) name of the new region
-    //! \param regionid (out) id of the new region
-    virtual void AddVolumeRegion( const std::string name,
-                                  RegionIdType& regionid)
-    { EXCEPTION( "Not implemented" ); }
 
     //! NC_SIMON: Remove all elements from the given region
     //! \param regionid (in) id of the region
@@ -704,6 +702,30 @@ namespace CoupledField
     { EXCEPTION( "Not implemented" ); }
 
     //@}
+
+    /** The enum is only for convenience and redundant to regionData.
+     * With the addition of the mapping ALL_REGIONS <-> "all".
+     * @return note that the size is not correct as ALL_REGIONS is added */
+    const Enum<RegionIdType> GetRegion() const { return region_; }
+
+    /** This stores the Region information.
+     * The region_id is the index within the vector.
+     * @see region */
+    struct RegionData
+    {
+      RegionData();
+
+      RegionIdType id;          // equals the position in the regionData vector
+      std::string  name;
+      RegionType   type;        // VOLUME_REGION or SURFACE_REGION
+      int          type_idx;    // the index within surfRegionIds_ or volRegionIds_
+      bool         regular;     // exclusively regular elements of the same size in the region
+      bool         homogeneous; // everywhere the same material within the region. In topology optimization this is false
+      bool         barycenters; // are the element barycenters calculated?
+    };
+
+    /** To be set from FinishInit() */
+    StdVector<RegionData> regionData;
 
 
   protected:
@@ -730,9 +752,15 @@ namespace CoupledField
     void Wrap_GetNumElemsOfRegion();
     //@}
 
+    /** servive for AddSurfaceRegion() and AddVolumeRegion() */
+    RegionIdType AddRegion(const std::string& name, RegionType type);
 
-    //! List of region identifiers
-    StdVector<std::string> regionNames_;
+    //! Flag for initialization status
+    bool isInitialized_;
+
+    /** This is redundant to regionData but convenient for mapping regionId to region_name.
+     * Note the the region_id is determined by AddRegion() and not an enum! */
+    Enum<RegionIdType> region_;
 
     //! Vector with elements for each volume region
     StdVector<StdVector<Elem*> > volElems_;
@@ -754,7 +782,6 @@ namespace CoupledField
 
     //! Map from name to type of entity
     std::map<std::string, EntityList::DefineType> nameTypeMap_;
-
 
     // =======================================================================
     // Non-matching grid interface calculation

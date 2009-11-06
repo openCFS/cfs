@@ -24,6 +24,10 @@ namespace CoupledField
      * @return the return value for main*/
     int Run();
 
+    /** Initialized global Enum<> objectes.
+     * To be called also from cfstool.cc */
+    static void SetGlobalEnums();
+
     /** delete the "global" objects */
     ~CFS();
   private:

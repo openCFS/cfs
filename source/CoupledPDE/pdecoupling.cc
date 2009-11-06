@@ -434,7 +434,7 @@ namespace CoupledField
       {
       case REGION:
 
-        ptGrid_->RegionNameToId( regionIdVec, regions );
+        ptGrid_->GetRegion().Parse(regions, regionIdVec);
 
         if( outputType == NODE ) {
           numNodes = ptGrid_->GetNumNodes( regionIdVec );
@@ -529,7 +529,7 @@ namespace CoupledField
 
       case SURFACE:
 
-        ptGrid_->RegionNameToId( regionIdVec, regions );
+        ptGrid_->GetRegion().Parse( regions, regionIdVec );
         numNodes = ptGrid_->GetNumNodes( regionIdVec );
         myInterface->nodes.Reserve(numNodes);
 

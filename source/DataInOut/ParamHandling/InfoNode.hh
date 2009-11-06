@@ -38,7 +38,8 @@ public:
    * @param comment if given a child element is created, one can doe by hand
    * @param name either a valid XML name (no spaces, brackets, ...) or "", then caption is used
    *             Multiple levels might be spilt via slashes like in xpath.
-   * @param card applies only on the last level if there are multiple via slashes. */
+   * @param card applies only on the last level if there are multiple via slashes.
+   * @see Set() */
   InfoNode* Get(const std::string& name, const std::string& comment, Cardinality card = USE_EXISTING)
   {
     return Get(name, comment, "", "", card);
@@ -57,6 +58,12 @@ public:
     return Get(name, "", "", "", card);
   }
 
+  /** If you really know what you do, you can set a child manually.
+   * An existing value is overwritten and not deleted!
+   * @param name an element with this name will exist afterwards
+   * @param index the children list must be large enough.
+   * @return the newly created object. */
+  InfoNode* SetNewChild(const std::string& name, unsigned int index);
 
   /** The ParamNode::SetString() shall not be used, This SetValue() methods also set
    * valueType (explicit and implicit)

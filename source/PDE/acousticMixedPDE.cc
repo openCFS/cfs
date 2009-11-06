@@ -202,7 +202,7 @@ namespace CoupledField
 	// get current region name and get grip of paramNode
 	RegionIdType actRegion = subdoms_[actSD];
 	std::string actRegionName;
-	actRegionName = ptgrid_->RegionIdToName( actRegion );
+	actRegionName = ptgrid_->GetRegion().ToString(actRegion);
 	ParamNode * actRegionNode =
 	  myParam_->Get("regionList")->Get( "region", "name", actRegionName );
 

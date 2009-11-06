@@ -1,7 +1,7 @@
 \chapter{Optimization}
 The optimization part allows the shape, topology and material optimization of special problem. It is not a general optimization tool for arbitrary problems.
 
-Optimization is enabled by appending an \xml{optimization} element after the \xml{sequenceStep} element. Generally one has to add additional result types to the \xml{storeResults} of the simulation problem.
+Optimization is enabled by appending an \topelement{optimization} element after the \element{sequenceStep} element. Generally one has to add additional result types to the \element{storeResults} of the simulation problem.
 
 This are the main elements for defining an optimization problem:
 \begin{itemize}
@@ -12,7 +12,7 @@ This are the main elements for defining an optimization problem:
 
 \section{The \xml{optimization} element}
 \label{sec:optimization}
-The main element is \xml{optimization}, it has a single attribute
+The main element is \topelement{optimization}, it has a single attribute
 
 \begin{center}
 \begin{tabular}{lll}
@@ -22,34 +22,34 @@ Attribute & Values & Description \\
 log & \textit{filename} & disable or name gnuplot log file. \\
 \bottomrule
 \end{tabular} \\[0.5ex]
-Attributes of major element \xml{optimization}
+Attributes of major element \topelement{optimization}
 \end{center}
-If the attrribute is not \xml{false}, a gnuplot file with optimization details
+If the attrribute is not \attrivalue{false}, a gnuplot file with optimization details
 is created as ``\textit{filename}.plot.dat''. The special values for \textit{filename} \xml{true} or \xml{[problem]} (default) take the simulation name. 
 
 \subsection{Cost function}
 \label{sec:cost_function}
-It is mandatory to define a \xml{costFunction} element within \xml{optimization}. The attributes trigger the subelements to be read. In other words, if an subelement is not triggered by an attribute it is ignored.
+It is mandatory to define a \element{costFunction} element within \topelement{optimization}. The attributes trigger the subelements to be read. In other words, if an subelement is not triggered by an attribute it is ignored.
 
 \begin{center}
 \begin{tabular}{lll}
 \toprule 
 Attribute & Values & Description \\
 \midrule
-type & \textit{objective} & see Section \ref{sec:optimization_problem} \\
-task & \xml{minimize}, \xml{maximize} & minimization is default. \\
-stoppingRule & \xml{relative} & see Section \ref{sec:stopping_rule}. \\
-value & \textit{real number} & see Section \ref{sec:stopping_rule}. \\
-queue & \textit{integer} & see Section \ref{sec:stopping_rule}. \\
-multiple\_excitation & \xml{true}, \xml{false} & trigger element \xml{multipleExcitation}.\\ 
+\attribute{type} & \attrivalue{objective} & see Section \ref{sec:optimization_problem} \\
+\attribute{task} & \attrivalue{minimize}, \attrivalue{maximize} & minimization is default. \\
+\attribute{stoppingRule} & \attrivalue{relative} & see Section \ref{sec:stopping_rule}. \\
+\attribute{value} & \attrivalue{real number} & see Section \ref{sec:stopping_rule}. \\
+queue & \attrivalue{integer} & see Section \ref{sec:stopping_rule}. \\
+\attribute{multiple\_excitation} & \attrivalue{true}, \attrivalue{false} & trigger element \xml{multipleExcitation}.\\ 
 \bottomrule
 \end{tabular} \\[0.5ex]
-Attributes of \xml{costFunction} within \xml{optimization}
+Attributes of \element{costFunction} within \topelement{optimization}
 \end{center}
 
 \subsubsection{Optimization Problem}
 \label{sec:optimization_problem}
-The type of problem to be optimized is called ``cost function'' or ``objective function''. Here we use the symbol $J$. It is defined as attribute \xml{type} in the element \xml{costFunction}. The following cost functions are defined:
+The type of problem to be optimized is called ``cost function'' or ``objective function''. Here we use the symbol $J$. It is defined as attribute \attribute{type} in the element \element{costFunction}. The following cost functions are defined:
 
 \subsubsection*{compliance}
 Only defined for static mechanics. Makes only sense with minimization, hence we have
@@ -77,7 +77,7 @@ This is a static mechanic objective function. It makes only sense with minimizat
 \begin{equation}
   min = \frac{1}{2} \| {\bf u} - {\bf u}_* \|^2,
 \end{equation}
-where ${\bf u}_*$ is a predefined deformation. The problem is to minimize the least square error of the actual displacement ${\bf u}$ to the predefined one. Common is the notation ${\bf u}^*$ instead of ${\bf u}_*$ but this could create confusion with the conjugate complex. ${\bf u}_*$ is defined within the element \xml{tracking}, a subelement of \xml{ersatzMaterial}.
+where ${\bf u}_*$ is a predefined deformation. The problem is to minimize the least square error of the actual displacement ${\bf u}$ to the predefined one. Common is the notation ${\bf u}^*$ instead of ${\bf u}_*$ but this could create confusion with the conjugate complex. ${\bf u}_*$ is defined within the element \element{tracking}, a subelement of \subelement{ersatzMaterial}.
 
 \begin{center}
 \begin{tabular}{lll}
@@ -85,11 +85,11 @@ where ${\bf u}_*$ is a predefined deformation. The problem is to minimize the le
 Attribute & Values & Description \\
 \midrule
 name & \textit{nodes} & name of nodes \\
-dof & \xml{x}, \xml{y}, \xml{z} & orthogonal direction of nodes \\
+dof & \attrivalue{x}, \attrivalue{y}, \attrivalue{z} & orthogonal direction of nodes \\
 value & \textit{read number} & commonly 1 or -1 \\
 \bottomrule
 \end{tabular} \\[0.5ex]
-Attributes of \xml{tracking} element within \xml{ersatzMaterial}.
+Attributes of \element{tracking} element within \element{ersatzMaterial}.
 \end{center}
 
 \subsubsection*{output}
@@ -98,7 +98,7 @@ of arbitrary parts of the solution (displacement and potential). Typically one m
 \begin{equation}
   J = {\bf \hat{u}}^T {\bf l},
 \end{equation}
-where $\bf l$ is vector multiplies with the global solution vector $\bf \hat{u}$. In the pure mechanical case $\bf \hat{u}$ is the global displacement vector $\bf u$, in the piezoelectric case $\bf \hat{u}$ consists of mechanical displacements and electric potential $\bm \phi$. The relevant nodes are set within the \xml{output} element within the \xml{costFunction} element. There might be multiple elements within \xml{output}.
+where $\bf l$ is vector multiplies with the global solution vector $\bf \hat{u}$. In the pure mechanical case $\bf \hat{u}$ is the global displacement vector $\bf u$, in the piezoelectric case $\bf \hat{u}$ consists of mechanical displacements and electric potential $\bm \phi$. The relevant nodes are set within the \element{output} element within the \element{costFunction} element. There might be multiple elements within \element{output}.
 
 \begin{center}
 \begin{tabular}{lll}
@@ -106,11 +106,11 @@ where $\bf l$ is vector multiplies with the global solution vector $\bf \hat{u}$
 Attribute & Values & Description \\
 \midrule
 name & \textit{nodes} & name of nodes \\
-dof & \xml{x}, \xml{y}, \xml{z} & orthogonal direction of nodes \\
+dof & \attrivalue{x}, \attrivalue{y}, \attrivalue{z} & orthogonal direction of nodes \\
 value & \textit{real number} & commonly 1 or -1 \\
 \bottomrule
 \end{tabular} \\[0.5ex]
-Attributes of the \xml{displacement} element within \xml{output}.
+Attributes of the \element{displacement} element within \element{output}.
 \end{center}
 
 \begin{center}
@@ -122,14 +122,14 @@ name & \textit{nodes} & name of nodes \\
 value & \textit{real number} & commonly 1 or -1 \\
 \bottomrule
 \end{tabular} \\[0.5ex]
-Attributes of the \xml{elecPotential} element within \xml{output}.
+Attributes of the \element{elecPotential} element within \element{output}.
 \end{center}
 
 
-Internally there is an adjoint equation solved within each iteration with $\bf l$ as right hand side (acting as a kind of pseudo load). This can be confirmed by exporting the linear system or commiting the adjoint solution via the \xml{commit} element within \xml{ersatzMaterial}.
+Internally there is an adjoint equation solved within each iteration with $\bf l$ as right hand side (acting as a kind of pseudo load). This can be confirmed by exporting the linear system or commiting the adjoint solution via the \element{commit} element within \element{ersatzMaterial}.
  
 \subsubsection*{dynamicOutput}
-This is the time harmonic variant of \textbf{output}. It is given as
+This is the time harmonic variant of \element{output}. It is given as
 \begin{equation}
   J = {\bf \hat{u}}^T {\bf L} {\bf \hat{u}}^*,
 \end{equation} 
@@ -142,10 +142,10 @@ Attribute & Values & Description \\
 \midrule
 name & \textit{nodes} & name of nodes \\
 value & \textit{real number} & commonly 1 or -1 \\
-quantity= & \xml{acouPotential}, \xml{acouPressure} & has to match simulation \\
+quantity & \attrivalue{acouPotential}, \attrivalue{acouPressure} & has to match simulation \\
 \bottomrule
 \end{tabular} \\[0.5ex]
-Attributes of the \xml{acoustic} element within \xml{output}.
+Attributes of the \element{acoustic} element within \element{output}.
 \end{center}
 
 \subsubsection*{volume}
@@ -171,10 +171,10 @@ where $\omega$ is the frequency in $\textrm{s}^{-1}$. This corresonds to the tim
 \toprule 
 Attribute & Values & Description \\
 \midrule
-omega\_omega & \xml{true}, \xml{false} & control multiplication with $\omega^2$ \\
+omega\_omega & \attrivalue{true}, \attrivalue{false} & control multiplication with $\omega^2$ \\
 \bottomrule
 \end{tabular} \\[0.5ex]
-Attributes of the \xml{factor} element within \xml{costFunction}.
+Attributes of the \element{factor} element within \element{costFunction}.
 \end{center}
 
 \subsection{Constraints}
@@ -206,7 +206,6 @@ and \xml{homogenizationTracking} \\
 \end{tabular} \\[0.5ex]
 Attributes of \xml{constraint} within \xml{optimization}
 \end{center}
-
 \subsubsection{homogenizationTensor}
 The design domain represents a periodic base cell and requires periodic boundary
 conditions. The idea is, that the homogenized tensor $[c]^H$ of the optimized
@@ -219,8 +218,7 @@ with multiple \xml{constraint} elements llike the following:
 <constraint name="homogenizationTensor" type="equal" value="-0.025  coord="12"/>
 \end{verbatim}
 
-It is also possible to supply a subelement \xml{tensor} of dimensions $3 \times
-3$ for the 2D case and $6 \times 6$ for 3D. Then the \xml{value} attribute
+It is also possible to supply a subelement \xml{tensor} of dimensions $3 \times3$ for the 2D case and $6 \times 6$ for 3D. Then the \xml{value} attribute
 must not be given. The \xml{coord} value \xml{all} implicitely generates
 4 constraints in 2D with the tensor coordinates \xml{11}, \xml{22}, \xml{112}
 and \xml{33} and 9 constraints for 3D. This can be controlled in the info.xml

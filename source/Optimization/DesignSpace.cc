@@ -667,7 +667,7 @@ void DesignSpace::ToInfo(InfoNode* in)
   for(unsigned int i = 0; i < regions_.GetSize(); i++)
   {
     InfoNode* r = rs->Get("region", InfoNode::APPEND);
-    r->Get("name")->SetValue(domain->GetGrid()->RegionIdToName(regions_[i].regionId));
+    r->Get("name")->SetValue(domain->GetGrid()->GetRegion().ToString(regions_[i].regionId));
     r->Get("elements")->SetValue(regions_[i].elements);
   }
 }

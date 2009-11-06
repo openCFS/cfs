@@ -2,11 +2,7 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <iostream>
-#include <fstream>
-#include <ctime>
 #include <string>
-#include <iomanip>
 #include <cmath>
 #include <def_build_type_options.hh>
 #include "matrix.hh"
@@ -115,11 +111,10 @@ namespace CoupledField
     std::string offset(n_offset, ' ');
 
     std::ostringstream os;
-    os.precision(6);
 
     bool is_complex = boost::is_same<TYPE, std::complex<double> >::value;
 
-    os << std::endl << offset << "<tensor dim1=\"" << size_row_ << "\" dim2=\"" << size_col_ << "\">";
+    os << "<tensor dim1=\"" << size_row_ << "\" dim2=\"" << size_col_ << "\">";
     os << std::endl << offset << "  " << (is_complex ? "<complex>" : "<real>");
 
     for(unsigned int r = 0; r < size_row_; ++r)
@@ -127,12 +122,15 @@ namespace CoupledField
       os << std::endl << offset << "    ";
       for(unsigned int c = 0; c < size_col_; ++c)
       {
+        os << std::scientific;
+        os.precision(6);
+        os.width(13);
         os << (IsNoise(data_[r][c]) ? 0.0 : data_[r][c]);
-        if(c < size_col_ - 1) os << "  ";
+        if(c < size_col_ - 1) os << " ";
       }
     }
     os << std::endl << offset << "  " << (is_complex ? "</complex>" : "</real>");
-    os << std::endl << offset << "</tensor>" << std::endl << offset;
+    os << std::endl << offset << "</tensor>";
 
     return os.str();
   }

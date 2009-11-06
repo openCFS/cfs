@@ -46,10 +46,6 @@ TransferFunction::TransferFunction(ParamNode* pn, DesignElement::Type default_de
   this->param_ = pn->Has("param") ? pn->Get("param")->AsDouble() : 1.0;
   
   // validate param
-  if(type_ == IDENTITY && pn->Has("param"))
-    throw Exception("it makes no sense to give a parameter for an identity transfer function");  
-  if(type_ == FULL && pn->Has("param"))
-    throw Exception("it makes no sense to give a parameter for the 'full' = 1 transfer function");  
   if(!pn->Has("param") && (type_ != IDENTITY && type_ != FULL))  
     throw Exception("transfer function '" + type.ToString(type_) + "' requires a parameter");
   
@@ -109,7 +105,6 @@ double TransferFunction::Transform(DesignElement* de)
     break;
     
   case FULL:
-    assert(param_ == 0.0);
     result = de->GetUpperBound();
     break;
     

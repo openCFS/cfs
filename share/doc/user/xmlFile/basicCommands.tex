@@ -2,7 +2,9 @@
 \section{Defining the Basic Geometry of Calculation}
 To define the basic geometry type of calculation, the command
 \begin{verbatim} 
-<geometry type="plane">
+<domain geometryType="plane">
+...
+</domain
 \end{verbatim} 
 is used. Allowed parameters for {\bf type} are
 {\bf 
@@ -13,7 +15,7 @@ is used. Allowed parameters for {\bf type} are
 \end{itemize}}
 
 If needed, a more detailed description of the geometry type must be
-provided in the individual PDEs (e.g. in mechanics: {\bf "planeStrain"}).
+provided in the individual PDEs (e.g. in \pde{mechanics}: { "\attrivalue{planeStrain}"}).
 
 
 
@@ -68,26 +70,32 @@ All formats but \xml{text} are for the visualization of node and element values 
 
 All formats have implicitly the \xml{id} attribute set to a string with the format name. 
 
-\subsubsection{\xml{gid}}
+\subsubsection{\element{gid}}
 The following options are available
 \begin{center}
 \begin{tabular}{lll}
 \toprule 
 Attribute & Values & Description \\
 \midrule
-binayFormat & \xml{yes}, \xml{no} & See below, default is \xml{yes} \\
-directory & \textit{directory} & See below, default is ``results\_gid'' \\
+\attribute{binayFormat} & \attrivalue{yes}, \attrivalue{no} & See below, default
+is \attrivalue{yes} \\ 
+\attribute{directory} & \textit{directory} & See below, default is
+``results\_gid'' \\
 \bottomrule
 \end{tabular} \\[0.5ex]
-Attributes of the \xml{gid} element
+Attributes of the \element{gid} element
 \end{center}
 The binary format writes a single file ``\textit{problem}.post.bin''. In the non-binary file two ASCII files
 ``\textit{problem}.post.msh'' and ``\textit{problem}.post.res'' are created. 
 
-If the \xml{directory} attribute is set to ``.'' the current directory is used. 
+If the \attribute{directory} attribute is set to ``.'' the current directory
+is used.
 
-\subsubsection{\xml{hdf5}}
-The Hierarchical Data Format (5) is a standard format for simulation data. There are various tools for conversion and visualization available (e.h hdfview). MATLAB can also read and write HDF5 files. Furthermore can HDF5 files converted into gid files via the cfstool. 
+\subsubsection{\element{hdf5}}
+The Hierarchical Data Format (5) is a standard format for simulation data.
+There are various tools for conversion and visualization available (e.g
+hdfview). MATLAB can also read and write HDF5 files. Furthermore HDF5 files
+can converted into gid files via the cfstool.
 
 Additional information is stored, like the problem XML file and history data.
 
@@ -100,21 +108,22 @@ The mesh within a HDF5 file can be used as input for a CFS simulation.
 \toprule 
 Attribute & Values & Description \\
 \midrule
-directory & \textit{directory} & See \xml{gid}, default is ``results\_hdf5'' \\
-compressionLevel & \textit{1 \ldots 9} & has not much effect \\
-maxChungSize & \textit{number} & ??? \\
-externalFiles &  \xml{yes}, \xml{no} & ??? \\
+\attribute{directory} & \textit{directory} & See \element{gid}, default is
+``results\_hdf5'' \\ 
+\attribute{compressionLevel} & \textit{1 \ldots 9} & has not much effect \\
+\attribute{maxChungSize} & \textit{number} & ??? \\
+\attribute{externalFiles} &  \attrivalue{yes}, \attrivalue{no} & ??? \\
 \bottomrule
 \end{tabular} \\[0.5ex]
-Attributes of the \xml{hdf5} element
+Attributes of the \element{hdf5} element
 \end{center}
 
-\subsubsection{\xml{text}}
-The \xml{text} element writes the following data:
+\subsubsection{\element{text}}
+The \element{text} element writes the following data:
 \begin{itemize}
-  \item nodes named by \xml{nodeList} within \xml{nodeResult}
-  \item elements named by \xml{elementList} within \xml{elementResult}
-  \item integral \xml{regionResult} and \xml{surfRefionResult} results
+  \item nodes named by \element{nodeList} within \element{nodeResult}
+  \item elements named by \element{elementList} within \element{elementResult}
+  \item integral \element{regionResult} and \element{surfRefionResult} results
 \end{itemize}
 
 The same information can also be found in the \textit{info.xml} file.
@@ -124,21 +133,23 @@ The same information can also be found in the \textit{info.xml} file.
 \toprule 
 Attribute & Values & Description \\
 \midrule
-commentChar & \xml{\#}, \xml{\%}, \ldots & gnuplot (\#), matlab (\%), \ldots \\
-fileCollect & \xml{timeFreq}, \xml{entity}, \xml{altogether} & triggers new files \\
-coordSysId & \textit{own-id} & see below \\
+\attribute{commentChar} & \attrivalue{\#}, \attrivalue{\%}, \ldots & gnuplot (\#), matlab
+(\%), \ldots \\ 
+\attribute{fileCollect} & \attrivalue{timeFreq}, \attrivalue{entity},
+\attrivalue{altogether} & triggers new files \\ 
+\attribute{coordSysId} & \attrivalue{own-id} & see below \\
 \bottomrule
 \end{tabular} \\[0.5ex]
-Attributes of the \xml{text} element, only for special cases.
+Attributes of the \element{text} element, only for special cases.
 \end{center}
 
-When \xml{fileCollect} is set to \xml{timeFreq} for evey timestep/frequency step a new result
-file is created. Together with the \xml{coordSysId} does this allow to create acoustic directivity
+When \attribute{fileCollect} is set to \attrivalue{timeFreq} for evey timestep/frequency step a new result
+file is created. Together with the \attribute{coordSysId} does this allow to create acoustic directivity
 patterns. 
 
-\subsubsection{\xml{info}}
-Writes the same node, element and integral data as the \xml{text} writer. The data is written to
-the \textit{info.xml} output file. The xml data can be filtered and converted to xml, text, html, \ldots
+\subsubsection{\element{info}}
+Writes the same node, element and integral data as the \element{text} writer.
+The data is written to the \textit{info.xml} output file. The xml data can be filtered and converted to xml, text, html, \ldots
 via XSLT-stylesheets. Examples can be found within the cfs code.   
 
 % \begin{center}
@@ -156,9 +167,12 @@ via XSLT-stylesheets. Examples can be found within the cfs code.
 \section{Material Data File}
 To specify the name of the material file, the command 
 \begin{verbatim}
-<materialData file="matFileName"/>
+<fileFormats>
+...
+	<materialData file="mat.xml" format="xml"/>
+</fileFormats>
 \end{verbatim}
-must be used. The default name for the material file is {\bf mat.dat}.
+must be used. The default name for the material file is {\bf mat.xml}.
 
 
 
@@ -181,12 +195,12 @@ static analysis:
 \noindent
 The availabel analys types are one of
 \begin{itemize} 
-\item \xml{static} 
-\item \xml{harmonic}
-\item \xml{transient}
-\item \xml{eigenFrequency}
-\item \xml{paramIdent}
-\item \xml{multiSequence}
+\item \analysis{static} 
+\item \analysis{harmonic}
+\item \analysis{transient}
+\item \analysis{eigenFrequency}
+\item \analysis{paramIdent}
+\item \analysis{multiSequence}
 \end{itemize}
 
 
@@ -195,7 +209,7 @@ The availabel analys types are one of
 % ----------------------------------------------------------------------------
 %
 %
-For static analysis, no additional information beside the element
+For \analysis{static} analysis, no additional information beside the element
 {\bf \verb!<static/>!}
 is needed. See also the example above.
 
@@ -203,7 +217,7 @@ is needed. See also the example above.
 \subsection{Transient Analysis}
 % ----------------------------------------------------------------------------
 %
-For a transient analysis the following block is mandatory:
+For a \analysis{transient} analysis the following block is mandatory:
 \begin{verbatim}
 <transient>
   <numSteps>20</numSteps>
@@ -218,16 +232,17 @@ Optional parameters are:
 \noindent
 Herein, the different tags have the following meaning:\\
 \begin{tabular}{lll} 
-$\circ$ & {\bf numSteps}    &  number of time steps\\
-$\circ$ & {\bf deltaT }     &  time step size in seconds\\
-$\circ$ & {\bf timeDataFile}&  file which holds the time values, see below\\
-$\circ$ & {\bf writeRestartInc} & step increment for writing a restart
-file (currently only for mechanic PDE)
+ $\circ$ & {\bf numSteps}    &  number of time steps\\
+ $\circ$ & {\bf deltaT }     &  time step size in seconds\\
+ $\circ$ & {\bf timeDataFile}&  file which holds the time values, see below\\
+ $\circ$ & {\bf writeRestartInc} & step increment for writing a restart
+ file (currently only for mechanic PDE)
 \end{tabular}
+
 \bigskip
 
 \noindent
-For simple excitations (ramps, dirac impulse, sine, \ldots) one might
+For simple excitations (ramps, dirac impulse, sin, \ldots) one might
 consider using a mathematical expression in a boundary condition as
 shown in the following example: A mechanical system is excitated with a rectangle aproximating a dirac impuls.   
 \begin{displaymath}
@@ -237,22 +252,27 @@ z = \left\{ \begin{array}{ll}
 \end{array} \right.
 \end{displaymath}
 \begin{verbatim} 
-<analysis>
+<sequenceStep>
+ <analysis>
   <transient>
     <numSteps>30</numSteps>
     <deltaT>1e-4</deltaT>
   </transient>
-</analysis>
-<pdeList>
+ </analysis>
+ <pdeList>
   <mechanic ..>
-  <bcsAndLoads>
+   <bcsAndLoads>
      ..
      <load name="load" dof="z" value="if(t lt 0.001 or t gt 0.002,0.0,1.0)"/>
      ..
+   </bcsAndLoads>
+  </mechanic>
+ </pdeList>
+</sequenceStep>
 \end{verbatim}
 
 \noindent
-For more complex time signals use \textbf{timeDataFile} with the following column oriented
+For more complex time signals use \element{timeDataFile} with the following column oriented
 structure:
 \begin{verbatim}
 timeVal1          funcVal1
@@ -265,52 +285,53 @@ timeVal3          funcVal3
 \subsection{Harmonic Analysis}
 % ----------------------------------------------------------------------------
 %
-Specification of parameters for a harmonic analysis is done by adding a
-\xml{harmonic} section to the parameter file. When all currently available
+Specification of parameters for a \analysis{harmonic} analysis is done by adding
+a \analysis{harmonic} section to the parameter file. When all currently available
 parameters are set this section takes the following form:
 %
 %
 \begin{verbatim}
   <harmonic>
-    <numFreq>        ...   </numFreq>
-    <startFreq>      ...   </startFreq>
-    <stopFreq>       ...   </stopFreq>
-    <sampling>       ...   </sampling>
-    <adjustDamping>  ...   </adjustDamping>
-    <matDataFreq>    ...   </matDataFreq>
+    <numFreq>    100   </numFreq>
+    <startFreq>  50   </startFreq>
+    <stopFreq>   1000   </stopFreq>
+    <sampling>   log   </sampling>
   </harmonic>
 \end{verbatim}
 %
 %
-The parameters have the following meaning
+The meaning for the parameters are given in the following table
 %
 %
+
 \begin{center}
-\begin{longtable}{llp{0.5\textwidth}}
-\hline\noalign{\smallskip}
+\begin{tabular}{llp{12cm}}
+\toprule
 parameter & values & meaning \\
-\noalign{\smallskip}\hline\noalign{\smallskip}
+\midrule
 numFreq & $\nat$ & specifies the number $N$ of frequencies for which
                    a simulation is to be performed\\
-\noalign{\smallskip}\hline\noalign{\smallskip}
+\midrule
 startFreq & $> 0$ & sets $f_1$, i.e. the smallest frequency for which a
                     simulation is to be performed\\
-\noalign{\smallskip}\hline\noalign{\smallskip}
+\midrule
 stopFreq & $\geqslant$ startFreq & sets $f_N$, i.e. the largest frequency for
                                    which a simulation is to be performed\\
-\noalign{\smallskip}\hline\noalign{\smallskip}
+\midrule
 sampling & linear & in this case a linear sampling of the interval
                     $[f_1,f_N]$ is performed, i.e.
                     \begin{displaymath}
-                    f_k = f_1 + (k-1) \frac{f_N - f_1}{N-1}
-                    \enspace,\mbox{ for } k = 1,\ldots,N
-                    \end{displaymath}\\
+                   f_k = f_1 + (k-1) \frac{f_N - f_1}{N-1}
+                   \enspace,\mbox{ for } k = 1,\ldots,N
+                   \end{displaymath} \\
+               
+ 
          & log    & in this case a logarithmic sampling of the interval
                     $[f_1,f_N]$ is performed, i.e.
                     \begin{displaymath}
                     f_k = f_1 \cdot
                     \left(\frac{f_N}{f_1}\right)^{\frac{k-1}{N-1}}
-                    \enspace,\mbox{ for } k = 1,\ldots,N
+                   \enspace,\mbox{ for } k = 1,\ldots,N
                     \end{displaymath}
                     This leads to a finer sampling at the beginnig of the
                     interval and a coarser sampling at the end, since the
@@ -319,31 +340,31 @@ sampling & linear & in this case a linear sampling of the interval
                     f_{k+1} - f_k = \left[
                     \left(\frac{f_N}{f_1}\right)^{\frac{1}{N-1}}
                     - 1 \right] \cdot f_k
-                    \end{displaymath}
+                   \end{displaymath}
                     and corresponds to a linear sampling of the transformed
                     interval $[\log_{10}(f_1),\log_{10}(f_N)]$.\\[1ex]
          & reverseLog & in this case a reverse logarithmic sampling of the
                         interval $[f_1,f_N]$ is performed, i.e.
-                    \begin{displaymath}
-                    f_k = f_N + f_1\cdot\left[ 1 -
-                    \left(\frac{f_N}{f_1}\right)^{\frac{N-k}{N-1}}\right]
-                    \end{displaymath}
+                   \begin{displaymath}
+                   f_k = f_N + f_1\cdot\left[ 1 -
+                   \left(\frac{f_N}{f_1}\right)^{\frac{N-k}{N-1}}\right]
+                   \end{displaymath}
                     for $k = 1,\ldots,N$.
                     This leads to a coarser sampling at the beginnig of the
                     interval and a finer sampling at the end.\\
-\noalign{\smallskip}\hline\noalign{\smallskip}
-adjustDamping & yes, no & set this to yes, if the damping is depending on the
-                          frequency; in this case CFS++ will
-                          adjust the damping for each frequency (for further
-                          details ask Manfred \verb!;-)!\\
-\noalign{\smallskip}\hline\noalign{\smallskip}
-matDataFreq   & $>0$ & if adjustDamping is set to yes, this parameter
-                       specifies the frequency of the damping parameters
-                       in the material data file; if the parameter is omitted,
-                       we assume that the damping parameters found are those
-                       for startFreq\\
-\noalign{\smallskip}\hline
-\end{longtable}
+% \midrule
+% adjustDamping & yes, no & set this to yes, if the damping is depending on the
+%                           frequency; in this case CFS++ will
+%                           adjust the damping for each frequency (for further
+%                           details ask Manfred \verb!;-)!\\
+% \midrule
+% matDataFreq   & $>0$ & if adjustDamping is set to yes, this parameter
+%                        specifies the frequency of the damping parameters
+%                        in the material data file; if the parameter is omitted,
+%                        we assume that the damping parameters found are those
+%                        for startFreq\\
+\bottomrule
+\end{tabular}
 \end{center}
 %
 % ----------------------------------------------------------------------------
@@ -355,14 +376,14 @@ The following block shows all options for the eigenfrequency analysis:
 <eigenFrequency>
   <isQuadratic>no</isQuadratic>
   <numModes>5</numModes>
-  <freqShift>50</freqShift>
+  <freqShift>0</freqShift>
   <writeModes>yes</writeModes>
 </eigenFrequency>
 \end{verbatim}
 \noindent
-The field {\bf \verb#<nomModes>#} defines the number of (first) eigenfrequencies
+The field \element{nomModes} defines the number of (first) eigenfrequencies
 to be calculated.
-The field {\bf \verb#<writeModes>#} writes the calculated eigenmodes to the
+The field \element{writeModes} writes the calculated eigenmodes to the
 result file. Note, that this is different from performing a harmonic analyis
 for the eigenfrequencies as in the later the applied loads are active.
 
@@ -388,13 +409,13 @@ mechanically clamped piezoelectric material, before starting a transient
 computation, or to perform several static computations one after the other,
 where different aspects, like e.g.~coils are sucessively added to the setup.
 
-In order to perform a multi sequence run the following steps need to be
+In order to perform a multi sequence run, the following steps need to be
 performed:
 %
 %
 \begin{itemize}
-\item The type of analysis in the \xml{analysis} element must be set to
-      \xml{multiSequence}.
+\item The type of analysis in the \element{analysis} element must be set to
+      \element{multiSequence}.
 \item A multiSequence block like e.g.~the following must be inserted into
       the XML parameter file
 \begin{verbatim}
@@ -410,41 +431,45 @@ performed:
 </multiSequence>
 \end{verbatim}
       The multiSequence driver will read this parameter block and perform
-      an analysis for each \xml{step} element in the sequence of their
-      occurence. The \xml{refTag} attribute specified in each \xml{pde}
-      subelement is a symbolic name that should be unique. It is used to
-      locate the appropriate boundary conditions or transient parameters
-      etc.~for this step in the file. Since these parameters are indispensible
-      this attribute and also the \xml{anlysis} attribute must be specified.
+      an analysis for each \element{step} element in the sequence of their
+      occurence. The \attribute{refTag} attribute specified in each
+      \subelement{pde} subelement is a symbolic name that should be unique. It
+      is used to locate the appropriate boundary conditions or transient parameters
+      etc.~ for this step in the file. Since these parameters are indispensible
+      this attribute and also the \attribute{analysis} attribute must be
+      specified.
 \item In order to specify for each step different boundary conditions or
       transient parameters the corresponding elements can be tagged with a
-      \xml{tag} attribute. The parameters for a certain step of the
-      multi-sequence analysis are found by comparing the \xml{tag} attribute
-      with the respective \xml{refTag} attributes of the pdes of that step.
+      \attribute{tag} attribute. The parameters for a certain step of the
+      multi-sequence analysis are found by comparing the \attribute{tag}
+      attribute with the respective \attribute{refTag} attributes of the pdes of
+      that step.
 
       In order to specify different parameters for different steps the element
-      can be given several times and the \xml{tag} must be chosen accordingly.
+      can be given several times and the \attribute{tag} must be chosen
+      accordingly.
 
-      It is also possible to give the \xml{tag} attribute the special value
-      \xml{anyTag}. This is also the default value, since the \xml{tag}
-      attribute is optional. The \xml{anyTag} value indicates that the
-      parameters are valid for all steps of the multi sequence analysis.
+      It is also possible to give the \attribute{tag} attribute the special
+      value
+      \attrivalue{anyTag}. This is also the default value, since the
+      \attribute{tag} attribute is optional. The \attrivalue{anyTag} value indicates
+      that the parameters are valid for all steps of the multi sequence analysis.
 
-      A third possibility is to give the \xml{tag} attribute not a single
+      A third possibility is to give the \attribute{tag} attribute not a single
       value, but a list of different values, like
-      e.g.~\xml{step1, step4, step5}. This can be used to 'turn on' this
+      e.g.~\attrivalue{step1, step4, step5}. This can be used to 'turn on' this
       specific parameter setting for all PDEs in those steps with the
       corresponding tags.
 
       The following list gives an overview of all elements / parameter
       sections that currently can be \emph{tagged} in the way described above
       \begin{itemize}
-      \item \xml{bcsAndLoads}
-      \item \xml{transient}
-      \item \xml{harmonic}
+      \item \element{bcsAndLoads}
+      \item \analysis{transient}
+      \item \analysis{harmonic}
       \item \xml{bubbleDynamic}
       \item \xml{magnet}
-      \item the \xml{bubbles} child element of the \xml{acoustic} PDE
+      \item the \xml{bubbles} child element of the \pde{acoustic} PDE
       \item and all types of coils
       \end{itemize}
  
@@ -454,18 +479,21 @@ performed:
 Inside the config file command
 \begin{verbatim}
 <pdeList>
-   List of PDEs ...
+   <!-- List of PDEs ... -->
 </pdeList>
 \end{verbatim}
 one has to specify the involved PDEs.  Some possible PDE names are
 given in the following table: 
 
 \begin{center}
-  \begin{tabular}{l|l}
-    {\it Type}      & {\it Description}  \\\hline
-    {\bf acoustic}     & Acoustic PDE  \\
-    {\bf electrostatic} & Electrostic PDE \\
-    {\bf mechanic}     & Mechanics PDE\\    
+  \begin{tabular}{ll}
+  \toprule
+    {\it Type}      & {\it Description}  \\
+  \midrule
+    \pde{acoustic}     & Acoustic PDE  \\
+    \pde{electrostatic} & Electrostic PDE \\
+    \pde{mechanic}     & Mechanics PDE\\    
+  \bottomrule  
   \end{tabular}
 \end{center}
 
@@ -488,19 +516,28 @@ defined as
 
 \section{Geometrical Definitions}
 \label{sec:geometricDef}
-In the top level section {\bf $<$domain$>$} one has to define all
+In the top level section {\topelement{$<$domain$>$} } one has to define all
 geometrical entities, such as regions and their materials, boundary
 nodes, save nodes, ...
 \begin{verbatim}
-<domain>
-  <region name="cantilev" material="silizium"/>
-  <region name="gap"      material="air"/>
+<domain geometryType="plane" >
+<!-- List of regions -->
+  <regionList>
+   <region name="cantilev" material="silizium"/>
+   <region name="gap"      material="air"/>
+  </regionList>
 
-  <nodes  name="xDof"/>
-  <nodes  name="yDof"/>
-  <nodes  name="yLoad"/>
+<!-- List of named nodes -->
+  <nodeList>
+   <nodes  name="xDof"/>
+   <nodes  name="yDof"/>
+   <nodes  name="yLoad"/>
+  </nodeList>
 
-  <elements name="mySaveElem"/>
+<!-- List of Elements -->
+  <elemList>
+   <elems name="mySaveElem"/>
+  </elemList>
 
   <coordSys>
      <polar name="mid">
@@ -522,26 +559,26 @@ nodes, save nodes, ...
 </domain>
 \end{verbatim}
 
-The keyword {\bf region} assigns a subdomain called {\bf name} to a material. For further details, refer to section \ref{sec:materialAss}.
-Further on, all in the simulation needed nodes (e.g. nodes which hold
-a boundary condition) must be defined by the keyword {\bf nodes}.
-Needed elements have to be defined by the keyword {\bf elements}.
+The keyword \childelement{region} assigns a subdomain called \attribute{name} to a
+material. For further details, refer to section \ref{sec:materialAss}. Further on, all in the simulation needed nodes (e.g. nodes which hold
+a boundary condition) must be defined by the keyword \childelement{nodes}.
+Needed elements have to be defined by the keyword \childelement{elems}.
 In the next section, local coordinate systems can be defined (see section. \ref{sec:coordSys}.
-Additionally, the optional element {\bf $<$directivityNodes$>$} is available if one wants to define (search) a collection of nodes near specific
+Additionally, the optional element \element{directivityNodes} is available if one wants to define (search) a collection of nodes near specific
 radial distances from a center point (default 0, 0, 0) for later storing of results at
 these nodes (e.g. for producing directivity plots in
 acoustics). Nodes are selected on planes parallel to the principal planes. All 3D parameters are optional. XY plane is the default
 plane for defining the nodes on a 2D simulation. Sweep angle for XY (xyEnd-xyBegin) is by default
 360deg for the other planes it is 0deg. A name can be given to the nodes defined on each plane, otherwise default names will
-also be used (dir\_XY, dir\_XZ, dir\_YZ). Finally, {\bf saveIncr}
+also be used (dir\_XY, dir\_XZ, dir\_YZ). Finally, \childelement{saveIncr}
 represents the interval in degrees for defining the nodes. The arrays following the saving sequence containing the indices of the nodes for each radius can be found in the '.info' file from the simulation. These arrays can then be used (e.g. in Matlab) when creating a polar plot to read the nodal results in the correct order.
 
 \section{Coordinate Systems}
 \label{sec:coordSys}
 CFS allows the definition of different kinds of coordinate systems. They can be used for the definition and rotation of materials, as well as for the definition of boundary- and load-conditions.
-The definition of local coordinate systems is done within the \verb#domain# element in the configuration file:
+The definition of local coordinate systems is done within the \topelement{domain} element in the configuration file:
 \begin{verbatim}
-<domain>
+<domain ..>
   <region ...../>
   <nodes ..../>
   <coordSys>
@@ -579,7 +616,7 @@ The related section in the xml-file looks like
   <rAxis  x="1" y="0"/>
 </polar>
  \end{verbatim}
-Note that the absolute length of the vector $\vec{r}_{(\varphi = 0)}$ defined by \verb#rAxis# does not matter, as it gets normalized to 1.
+Note that the absolute length of the vector $\vec{r}_{(\varphi = 0)}$ defined by \element{rAxis} does not matter, as it gets normalized to 1.
 \begin{figure}[ht]
  \begin{center}
    \includegraphics[width=5cm]{pics/polar.png}
@@ -660,7 +697,7 @@ The previous example would e.g. first rotate the (material-) local $3$-direction
 This is needed, if for example a plane simulation of a piezoelectric material has to be performed, where the polarization is given in local $3$-direction, whereas the geometric model assumes a polarization in $y$-direction. So in the end, the material 23-plane coincides with the geometrical xy-plane.
 \newline
 
-{\bf NOTE:} In a 2D simulation (\verb#<geometry type="plane/axi"/>#) the rotation described above is always performed automatically by CFS++, until the user gives another explicit rotation command. This is done to ensure that a piezoelectric material is always poled in y-direction ( good old CAPA ...)!
+{\bf NOTE:} In a 2D simulation (\myverb#<domain geometryType="plane/axi"/>#) the rotation described above is always performed automatically by CFS++, until the user gives another explicit rotation command. This is done to ensure that a piezoelectric material is always poled in y-direction ( good old CAPA ...)!
 \newline
 
 Please note, that the positive direction of the angles is always defined in counter-clockwise fashion around the corresponding axis (\emph{right-hand-rule}). If the value of one rotation angle is $0$, it may be omitted.
@@ -681,12 +718,16 @@ A material can also be associated with a local coordinate system, as defined in 
 \begin{table}[h!]
 \begin{center}
 % use packages: array
-\begin{tabular}{c|ccc}
- & \multicolumn{3}{c}{Local Coordinate system} \\
- & cartesian & polar & cylindrical \\ \hline
+\begin{tabular}{llll}
+\toprule
+ Material Direction & \multicolumn{3}{c}{Local Coordinate system} \\
+ \cmidrule(r){2-4}
+ & cartesian & polar & cylindrical \\
+\midrule 
 1 & x & r & r \\ 
 2 & y & phi & phi \\ 
-3 & z &  & z 
+3 & z &  & z \\
+\bottomrule 
 \end{tabular}
 \end{center}
 \caption{Association of material directions $(1,2,3)$ with local coordinate system directions}
@@ -698,7 +739,7 @@ In the parameter file, this can be defined by
     <region name="pzt" material="PZT-4" refCoordSys="myPolar1"/>
   </domain>
 \end{verbatim}
-Here the material PZT-4 is associated with a previously defined coordinate system \verb#myPolar1#.
+Here the material PZT-4 is associated with a previously defined coordinate system \attrivalue{myPolar1}.
 
 It is also possible to rotate a material first - as defined in section \ref{sec:materialCoordSys} - and then associate it with a local coordinate system:
 \begin{verbatim}
@@ -778,23 +819,25 @@ The numerical integration of the finite elements is done via Gaussian quadrature
 
 \begin{table}[ht]
 \begin{center}
-\begin{tabular}{r|r|r|r|r|r}
+\begin{tabular}{lcccc}
+\toprule
 element & Ansatz-function & Gauss order & number of points \\
-\hline
+\midrule
 line & 1 & 1 & 1\\
      & 2 & 2=3 & 2 \\
-\hline
+\midrule
 triangle & 1 & 2 & 3 \\
          & 2 & 3 & 4 \\
-\hline
+\midrule
 rectangle & 1 & 2=3 & 4 \\
           & 2 & 4=5 & 8 \\
-\hline
+\midrule
 tetrahedron & 1 & 1 & 1 \\
          & 2 & 2 & 4 \\
-\hline
+\midrule
 hexahedron & 1 & 4=5 & 14 \\
          & 2 & 4=5 & 14 \\
+\bottomrule         
 \end{tabular}
 \caption{This are the default settings for numerical integration of elements via Gaussian quadrature. Note that the integration rules for odd and even orders coincide for line, rectangle and hexahedron elements.}
 \label{tab:default_order}
@@ -812,13 +855,15 @@ One can optionally define a different integration rule in the following way:
 The setting is applied on all element types, even if they are not used in the simulation. If the requested integration rule is not known for an element, CFS uses a default setting and prints a warning message stating all available integration rules for that element. A typical usage is for rectangualar elements with quadratic ansatz functions, here second order integration is in most cases sufficient.
 
 \begin{center}
-\begin{tabular}{l|l}
+\begin{tabular}{ll}
+\toprule
 integration type & description \\
-\hline
+\midrule
 Gauss\_standard & The so called economical Gaussian quadrature rules. \\
 Classic & The legacy implementation, not of general interest. \\
 Lobatto & An alternative integration rule for 1D. \\
 Chebyshev & An alternative integration rule for 1D. \\
+\bottomrule
 \end{tabular}
 \end{center}
 

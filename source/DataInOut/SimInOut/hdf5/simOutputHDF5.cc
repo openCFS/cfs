@@ -558,8 +558,14 @@ namespace CoupledField {
 
   void SimOutputHDF5::FinishStep( )
   {
-    if(externalFiles_) 
+    if(externalFiles_)
+    {
+      InfoNode* in = info->Get("analysis/output/externalFile");
+      in->Get("name")->SetValue(currStepFile_.getFileName());
+      in->Get("size")->SetValue((int) currStepFile_.getFileSize());
       currStepFile_.close();
+      info->ToFile();
+    }
 
     if( currMeshStepGroup_.getId() > 0 )
       currMeshStepGroup_.close();

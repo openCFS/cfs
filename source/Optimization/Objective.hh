@@ -39,8 +39,11 @@ class Objective
       ELEC_ENERGY,               /*!< p^T K_pp p or p^T K_pp p^* */
       VOLUME,
       TRACKING,
-      HOMOGENIZATION_TENSOR,     /*!< match a (partly) given tensor element wise  */
+      HOMOGENIZATION_TENSOR,     /*!< calculate and output the tensor whole, no gradient!  */
+      HOMOGENIZATION_E11,        /*!< only the E11 part of the homogenized tensor */
       HOMOGENIZATION_TRACKING,   /*!< match a given tensor by L2 norm  */
+      POISSONS_RATIO,            /*!< Poisson's Ration (\nu) within homogenization */
+      YOUNGS_MODULUS,            /*!< Young's Modulus (E) within homogenization */
       TYCHONOFF,                 /*!< int(|| design ||^2) is a regularization form material opt. */
       TEMPERATURE                /*!< for optimization of poisson and heat conduction pde */
     } Type;
@@ -75,6 +78,9 @@ class Objective
     /** Shall/must we evaluate this objective only of the last excitation? */
     bool DoEvaluateOnce() const { return evaluateOnce_; }
 
+    /** Requires an objective homogenization */
+    bool IsHomogenization() const;
+
     /** gathered by some of the costFunction attributes in XML, the defaults are in the XML-Schema */
     class StoppingRule
     {
@@ -94,6 +100,13 @@ class Objective
 
     /** for HOMOGENIZATION_TRACKING this is the target tensor. */
     Matrix<double> tensor;
+    
+    /** this puts an exponent on the volume cost function, similar to the SIMP-pseudo-density-penalty
+      * note that this exponent is applied as given, but logically inverse to the SIMP exponent
+      * this means that the SIMP-penalty must be larger than one, but here we need values
+      * in the range of 0.0 to 1.0 (e. g. 1/2, 1/3 etc.)
+      * The default value is 1.0 */
+    double volumePenaltyExponent;
 
   private:
 

@@ -31,7 +31,11 @@ ShapeOpt::ShapeOpt() : ParamMat() {
   }
 }
 
-double ShapeOpt::CalcVolume(Objective* f, Condition* constraint, bool derivative, bool normalized){
+double ShapeOpt::CalcVolume(Objective* f, Condition* constraint, bool derivative, bool normalized, double exponent){
+  // the exponent is used in Ersatzmaterial for the volume cost function
+  // if an exponent != 1.0 at this point makes any sense is unknown
+  assert(exponent == 1.0);
+  
   if(derivative){
     StdVector<double> der; // solution
     Matrix<double> CornerCoords;
@@ -45,7 +49,7 @@ double ShapeOpt::CalcVolume(Objective* f, Condition* constraint, bool derivative
     der.Resize(np, 0);
     if(alsomatopt_){
       // this needs to be done before, we do use fraction
-      ErsatzMaterial::CalcVolume(f, constraint, derivative, normalized);
+      ErsatzMaterial::CalcVolume(f, constraint, derivative, normalized, exponent);
     }
     if(!alsomatopt_ || (constraint && constraint->design == DesignElement::UNITY)){
       if(!normalized){

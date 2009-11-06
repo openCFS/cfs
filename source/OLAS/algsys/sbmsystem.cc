@@ -22,6 +22,8 @@
 #include "OLAS/algsys/baseentrymanipulator.hh"
 #include "OLAS/algsys/generateidbchandler.hh"
 #include "OLAS/algsys/baseidbchandler.hh"
+
+#include "DataInOut/programOptions.hh"
 #include "DataInOut/ParamHandling/InfoNode.hh"
 
 
@@ -844,11 +846,12 @@ s    }
      std::string file;
      std::string base;
 
-     // TODO: This is most ugly copy & paste from standardsys.cc -> Generelize common parts!!
+     // TODO: This is most ugly copy & paste from standardsys.cc -> Generalize common parts!!
      // need it common even when exclusive solution
      if(els) {
        std::ostringstream os;
-       os << els->Get("baseName")->AsString();
+       std::string name = els->Has("baseName") ? els->Get("baseName")->AsString() : progOpts->GetSimName();
+       os << name;
        std::string id = analysis_id->Get("analysis_id")->AsString();
        boost::replace_all(id, ":", "_");
        os << "_" << id;

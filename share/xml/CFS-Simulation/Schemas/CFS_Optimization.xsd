@@ -19,8 +19,6 @@
     <xsd:sequence>
       <xsd:element name="logging" minOccurs="0" maxOccurs="1">
         <xsd:complexType>
-          <!-- when logging constraints one can plot not the constraint value but the error -->
-          <xsd:attribute name="deltaConstraints" type="xsd:boolean" default="false" use="optional"/>
           <xsd:attribute name="design" use="optional" type="xsd:boolean" default="false"/>
           <xsd:attribute name="designGradient" use="optional" type="xsd:boolean" default="false"/>
         </xsd:complexType>
@@ -167,6 +165,14 @@
             
             <!-- this is the tensor for the homogenizationTracking objective -->
             <xsd:element name="tensor" type="DT_MechElastTensor" minOccurs="0" maxOccurs="1"/>
+            <!-- the tensor can optionally be specified by emod and poisson ratio -->
+            <xsd:element name="isotropic" type="DT_MechElastIsotropic" minOccurs="0" maxOccurs="1"/>
+            
+            <xsd:element name="volumePenaltyExponent" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:attribute name="value" type="xsd:float" use="optional"/>
+              </xsd:complexType>
+            </xsd:element>
             
           </xsd:all>
 
@@ -198,6 +204,8 @@
           <xsd:sequence>
             <!-- entry is a special element for performing homogenization -->
             <xsd:element name="tensor" type="DT_MechElastTensor" minOccurs="0" maxOccurs="1"/>
+            <!-- the tensor can optionally be specified by emod and poisson ratio -->
+            <xsd:element name="isotropic" type="DT_MechElastIsotropic" minOccurs="0" maxOccurs="1"/>
           </xsd:sequence>
           <!-- mandatory to give the name -->
           <xsd:attribute name="name" use="required">
@@ -208,8 +216,11 @@
                 <xsd:enumeration value="greyness"/>
                 <xsd:enumeration value="gaussGreyness"/>
                 <xsd:enumeration value="realvolume"/>
-                <xsd:enumeration value="homogenizationTensor"/>
-                <xsd:enumeration value="homogenizationTracking"/>
+                <xsd:enumeration value="homTensor"/>
+                <xsd:enumeration value="homTracking"/>
+                <xsd:enumeration value="poissonsRatio"/>
+                <xsd:enumeration value="youngsModulus"/>
+                <xsd:enumeration value="isotropy"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -261,6 +272,8 @@
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
+          <!-- Shall for logging the value or the difference to value be printed? -->
+          <xsd:attribute name="log_delta" use="optional" default="false" type="xsd:boolean"/>
         </xsd:complexType>
       </xsd:element>
 
@@ -283,6 +296,9 @@
             
             <!-- we made scpip the look like ipopt -->
             <xsd:element name="scpip" minOccurs="0" type="DT_ExternalOptimizer"/>
+
+            <!-- we made snopt the look like ipopt -->
+            <xsd:element name="snopt" minOccurs="0" type="DT_ExternalOptimizer"/>
             
 
             <!-- the parameters of the shape optimizer can be set
@@ -428,6 +444,7 @@
                 <xsd:enumeration value="optimalityCondition"/>
                 <xsd:enumeration value="ipopt"/>
                 <xsd:enumeration value="scpip"/>
+                <xsd:enumeration value="snopt"/>
                 <xsd:enumeration value="evaluateInitialDesign"/>
                 <xsd:enumeration value="shapeOpt"/>
                 <xsd:enumeration value="gradientCheck"/>
@@ -616,6 +633,14 @@
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>
+                <xsd:attribute name="write" use="optional" default="finally">
+                  <xsd:simpleType>
+                    <xsd:restriction base="xsd:token">
+                      <xsd:enumeration value="finally"/>
+                      <xsd:enumeration value="iteration"/>                             
+                    </xsd:restriction>
+                  </xsd:simpleType>
+                </xsd:attribute>
               </xsd:complexType>
             </xsd:element>                       
             
@@ -700,7 +725,6 @@
           </xsd:attribute>         
           
           <xsd:attribute name="region" use="optional" type="xsd:token" />
-          <xsd:attribute name="grid_regular" use="optional" type="xsd:boolean" default="true"/>
           
           <xsd:attribute name="material" use="required">
             <xsd:simpleType>
@@ -837,12 +861,15 @@
       <xsd:enumeration value="absDynamicOutputSquared"/>
       <xsd:enumeration value="tracking"/>
       <xsd:enumeration value="elecEnergy"/>
-      <xsd:enumeration value="homogenizationTensor"/>
-      <xsd:enumeration value="homogenizationTracking"/>
+      <xsd:enumeration value="homTensor"/>
+      <xsd:enumeration value="homE11"/>
+      <xsd:enumeration value="homTracking"/>
+      <xsd:enumeration value="poissonsRatio"/>
+      <xsd:enumeration value="youngsModulus"/>
       <xsd:enumeration value="volume"/>
       <xsd:enumeration value="tychonoff"/>
-      <xsd:enumeration value="multiObjective"/>
       <xsd:enumeration value="temperature"/>
+      <xsd:enumeration value="multiObjective"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -866,7 +893,30 @@
     </xsd:sequence>
     <xsd:attribute name="dim1" type="xsd:nonNegativeInteger" use="required"/>
     <xsd:attribute name="dim2" type="xsd:nonNegativeInteger" use="optional"/>
+    <xsd:attribute name="factor" type="xsd:float" use="optional" default="1.0"/>
   </xsd:complexType>
+  
+
+    <xsd:complexType name="DT_MechElastIsotropic">
+    <xsd:sequence>
+      <xsd:element name="real" type="DT_MechElastIsotrRealImag"/>
+      <xsd:element name="imag" type="DT_MechElastIsotrRealImag" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_MechElastIsotrRealImag">
+    <xsd:choice>
+      <xsd:sequence>
+        <xsd:element name="elasticityModulus" type="DT_NonNegFloat"/>
+        <xsd:element name="poissonNumber" type="xsd:float"/>
+      </xsd:sequence>
+      <xsd:sequence>
+        <xsd:element name="lameParameterMu" type="DT_NonNegFloat"/>
+        <xsd:element name="lameParameterLamda" type="DT_NonNegFloat"/>
+      </xsd:sequence>
+    </xsd:choice>
+  </xsd:complexType>
+
   
 </xsd:schema>
 

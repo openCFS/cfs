@@ -205,14 +205,14 @@ std::string BaseOptimizer::LogFileHeader()
 
 void BaseOptimizer::LogFileLine(std::ofstream* out, InfoNode* iteration)
 {
-  *out << "\t" << objective->current.value;
+  if(out) *out << "\t" << objective->current.value;
   
   iteration->Get("max_f_grad")->SetValue(objective->current.value);
 
   if(objective->target != 0.0)
   {
-    *out << "\t" << objective->scaling.value 
-         << "\t" << objective->opt_scaling.value;
+    if(out) *out << "\t" << objective->scaling.value
+                 << "\t" << objective->opt_scaling.value;
     
     iteration->Get("scale")->SetValue(objective->scaling.value);
     iteration->Get("opt_scale")->SetValue(objective->opt_scaling.value);
@@ -361,8 +361,8 @@ void BaseOptimizer::GetBounds(int n, double* x_l, double* x_u, int m, double* g_
     Condition* g = &optimization->constraints[i];
     // handle as in IPOPT 
     g_l[i] = g_u[i] = g->value;    
-    if(g->GetType() == Condition::LOWER_BOUND) g_u[i] = 1e19;
-    if(g->GetType() == Condition::UPPER_BOUND) g_l[i] = -1e19;
+    if(g->GetType() == Condition::LOWER_BOUND) g_u[i] =  GetInfBound();
+    if(g->GetType() == Condition::UPPER_BOUND) g_l[i] = -GetInfBound();
   }
   
 }

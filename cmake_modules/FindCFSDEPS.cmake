@@ -166,6 +166,13 @@ IF(USE_BLAS OR USE_LAPACK)
     INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindSuiteSparse.cmake")
   ENDIF(USE_CHOLMOD)
 
+  #-----------------------------------------------------------------------------
+  # Find SnOpt library
+  #-----------------------------------------------------------------------------
+  IF(USE_SNOPT)
+    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindSnOpt.cmake")
+  ENDIF(USE_SNOPT)
+
 #  MESSAGE("BLAS_LIBRARY ${BLAS_LIBRARY}")
 #  MESSAGE("LAPACK_LIBRARY ${LAPACK_LIBRARY}")
 #  MESSAGE("PARDISO_LIBRARY ${PARDISO_LIBRARY}")
@@ -226,6 +233,13 @@ ENDIF(USE_IPOPT)
 IF(USE_SCPIP)
   INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindSCPIP.cmake")    
 ENDIF(USE_SCPIP)
+
+#-----------------------------------------------------------------------------
+# Find SnOpt
+#-----------------------------------------------------------------------------
+IF(USE_SNOPT)
+  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindSnOpt.cmake")    
+ENDIF(USE_SNOPT)
 
 #-----------------------------------------------------------------------------
 # Find ANSYS Customizations

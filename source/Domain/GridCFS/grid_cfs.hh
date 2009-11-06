@@ -46,7 +46,7 @@ namespace CoupledField
     //! Constructor 
 
     //! Standard Constructor 
-    GridCFS(UInt dim); 
+    GridCFS(UInt dim);
   
     //! Destructor
     virtual ~GridCFS();
@@ -78,6 +78,9 @@ namespace CoupledField
 
     //! Return if grid uses quadratic elements
     bool IsQuadratic() {return isQuadratic_; }
+
+    /** @see Grid::CalcVolumeSpannedByNamedNodes() */
+    Double CalcVolumeSpannedByNamedNodes(Point* dim_out = NULL) const;
 
     //! Return number of elements of a given type
     //! \param type Type of finite element (LINE, TRIA, ...)
@@ -185,7 +188,7 @@ namespace CoupledField
     //! \param updated (in) flag indicating if updated geometry should be used
     void GetNodeCoordinate( Point & rfPoint,
                             const UInt inode,
-                            bool updated);
+                            bool updated) const;
   
 
     //! Get coordinates of node with global number inode as vector
@@ -194,7 +197,7 @@ namespace CoupledField
     //! \param updated (in) flag indicating if updated geometry should be used
     void GetNodeCoordinate( Vector<Double> & rfPoint,
                             const UInt inode,
-                            bool updated );
+                            bool updated ) const;
     //@}
 
     // =======================================================================
@@ -215,6 +218,8 @@ namespace CoupledField
       
     virtual void SetElemRegion(UInt ielem, RegionIdType region);
 
+    /** @see Grid::FindElementNeighorhood() */
+    void FindElementNeighorhood();
 
     //! Get list of elements (surface / volumes)
     
@@ -418,11 +423,6 @@ namespace CoupledField
 
     //! Returns the names of all regions
 
-    //! This method return the names of all (surface and volume) regions.
-    //! \param regionNames (out) vector containing all region Names
-    virtual void GetRegionNames( StdVector<std::string> & regionNames );
-
-    
     //! Set offset for a single node, called from ShapeDesign
     void SetNodeOffset( const UInt node, const Point& offset );
 
@@ -495,27 +495,16 @@ namespace CoupledField
                                   const StdVector< Elem* > & volelems,
                                   StdVector< UInt > & elemids);
 
-    //! NC_SIMON: Add a new Surface region to the grid
-    //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
-    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
-    //! \param name (in) name of the new region
-    //! \param regionid (out) id of the new region
-    virtual void AddSurfaceRegion( const std::string name,
-                                   RegionIdType& regionid);
-
-    //! NC_SIMON: Add a new volume region to the grid
-    //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
-    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
-    //! \param name (in) name of the new region
-    //! \param regionid (out) id of the new region
-    virtual void AddVolumeRegion( const std::string name,
-                                  RegionIdType& regionid);
-
     //! NC_SIMON: Remove all elements from the given region
     //! \param regionid (in) id of the region
     virtual void ClearRegion( const RegionIdType regionid );
 
   private:
+
+    /** Helper for FinishInit(). Determines if there are only regular elements.
+     * Can be expensive!
+     * @return true means that the region is regular */
+    bool CheckForRegularRegion(RegionIdType reg);
 
     //! helper struct for passing information about nodes
     struct PointSelection{
@@ -565,9 +554,6 @@ namespace CoupledField
     // General attributes
     // =======================================================================
     //@{ \name General Attributes
-
-    //! Flag for initialization status
-    bool isInitialized_;
 
     //! Dimension of grid
     UInt dim_;

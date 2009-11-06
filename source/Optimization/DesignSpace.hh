@@ -321,8 +321,6 @@ namespace CoupledField
     assert(dofs >= 1 && dofs <= 3);
     StdVector<double> result_value(dofs);
 
-    // set the result as we need it
-    result_data.Resize(elements_ * dofs);
 
     // search where in data we are
     int base = FindDesign(descr.design);
@@ -331,6 +329,11 @@ namespace CoupledField
     // of design element and result element is the element(->elemeNum) but we cannot
     // search in the result for an element.
     EntityIterator it = result.GetEntityList()->GetIterator();
+
+    // set the result as we need it
+    result_data.Resize(result.GetEntityList()->GetSize() * dofs);
+
+
     for ( it.Begin(); !it.IsEnd(); it++ )
     {
       // for elements not in the design region we set to one

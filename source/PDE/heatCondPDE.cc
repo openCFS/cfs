@@ -114,8 +114,7 @@ void HeatCondPDE::ReadSpecialBCs() {
       // Create robin boundary condition
       shared_ptr<RobinBc> actBc ( new RobinBc );
 
-      EntityList::ListType listType;
-      EntityList::String2Enum( myType, listType );
+      EntityList::ListType listType = EntityList::listType.Parse(myType);
       shared_ptr<EntityList> actList =
         ptgrid_->GetEntityList( listType, myName, EntityList::REGION );
 
@@ -350,7 +349,7 @@ void HeatCondPDE::DefineIntegrators()
       }
 
       // get material density
-      BaseMaterial * actMat = materials_[ ptgrid_->RegionNameToId(rhsRegion) ];
+      BaseMaterial * actMat = materials_[ ptgrid_->GetRegion().Parse(rhsRegion) ];
       actMat->GetScalar(density,DENSITY,Global::REAL);
 
       linAcouPowerSourceInt* sourceRHSInt = new linAcouPowerSourceInt( isaxi_,
@@ -360,7 +359,7 @@ void HeatCondPDE::DefineIntegrators()
       sourceRHSContext->SetPtPde( this );
 
       shared_ptr<ElemList> rhsElemList( new ElemList(ptgrid_ ) );
-      rhsElemList->SetRegion( ptgrid_->RegionNameToId(rhsRegion) );
+      rhsElemList->SetRegion( ptgrid_->GetRegion().Parse(rhsRegion) );
       sourceRHSContext->SetResult( results_[0], rhsElemList );
       assemble_->AddLinearForm( sourceRHSContext );
     }

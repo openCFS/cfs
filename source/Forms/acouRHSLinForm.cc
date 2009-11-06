@@ -333,7 +333,7 @@ namespace CoupledField {
                 }
                 else
                 {
-                  ptGrid_->GetNodesByRegion( regionNodes, ptGrid_->RegionNameToId(regionName_));
+                  ptGrid_->GetNodesByRegion( regionNodes, ptGrid_->GetRegion().Parse(regionName_));
                   rhsValues2_.Resize(regionNodes.GetSize());
                   std::fill(rhsValues2_.Begin(), rhsValues2_.End(), 0.0);
                 }
@@ -373,7 +373,7 @@ namespace CoupledField {
           }
           else
           {
-            ptGrid_->GetNodesByRegion( regionNodes, ptGrid_->RegionNameToId(regionName_));
+            ptGrid_->GetNodesByRegion( regionNodes, ptGrid_->GetRegion().Parse(regionName_));
             rhsValues_.Resize(regionNodes.GetSize());
             std::fill(rhsValues_.Begin(), rhsValues_.End(), 0.0);
           }
@@ -415,8 +415,9 @@ namespace CoupledField {
         }
 
         // initialize vector for current time step
-        //        ptGrid_->GetNodesByRegion( regionNodes, ptGrid_->RegionNameToId(regionName_));
+        //        ptGrid_->GetNodesByRegion( regionNodes, ptGrid_->GetRegion().Parse(regionName_));
         //        rhsValues_.Resize(regionNodes.GetSize());
+        std::fill(rhsValues_.Begin(), rhsValues_.End(), 0.0);
         if(overwriteOldSrcs_)
           std::fill(rhsValues_.Begin(), rhsValues_.End(), 0.0);
 
@@ -443,14 +444,14 @@ namespace CoupledField {
           if(!destElemList_)
           {
             destElemList_ = new ElemList(ptGrid_);
-            destElemList_->SetRegion(ptGrid_->RegionNameToId(regionName_));
+            destElemList_->SetRegion(ptGrid_->GetRegion().Parse(regionName_));
           }
 
           if(!sourceNodeLists_[i])
           {
             source = acouRHSVal->GetEntityList()->GetGrid();
             sourceNodeLists_[i] = new NodeList(source);
-            RegionIdType srcRegionId = source->RegionNameToId(srcRegions_[i]);
+            RegionIdType srcRegionId = source->GetRegion().Parse(srcRegions_[i]);
             sourceNodeLists_[i]->SetNodesOfRegion(srcRegionId);
           }
           

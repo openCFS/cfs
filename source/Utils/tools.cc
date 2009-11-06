@@ -87,76 +87,6 @@ namespace CoupledField {
 
   }
   
-  Point & Point::operator=(const Point& t) {
-    for (UInt i=0; i<3; i++)
-      data[i]=t.data[i];
-    return *this;
-  }
-
-  Point & Point::operator+=(const Point& t) {
-    UInt i;
-    for (i=0; i<3; i++)
-      data[i]+=t.data[i];
-    return *this;
-  }
-
-  Point Point::operator+(const Point &t) {
-    return Point(data[0]+t.data[0], data[1]+t.data[1], data[2] + t.data[2]);
-  }
-  
-  Point Point::operator+(const Point &t) const {
-    return Point(data[0]+t.data[0], data[1]+t.data[1], data[2] + t.data[2]);
-  }
-
-  Point & Point::operator-=(const Point & t) {
-    for (UInt i=0; i<3; i++)
-      data[i]-=t.data[i];
-    return *this;
-  }
-
-  Point Point::operator-(const Point &t) {
-    return Point(data[0]-t.data[0], data[1]-t.data[1], data[2]-t.data[2]);
-  }
-  
-  Point Point::operator-(const Point &t) const {
-    return Point(data[0]-t.data[0], data[1]-t.data[1], data[2]-t.data[2]);
-  }
-
-  Point& Point::operator*=(const Double factor) {
-    for (UInt i=0; i<3; i++)
-      data[i] *= factor;
-    return *this;
-  }
-  
-  Point Point::operator*(const Double factor) {
-    return Point(data[0]*factor, data[1]*factor, data[2]*factor);
-  }
-  
-  Point Point::operator*(const Double factor) const {
-    return Point(data[0]*factor, data[1]*factor, data[2]*factor);
-  }
-  
-  Point& Point::operator/=(const Double factor) {
-    for (UInt i=0; i<3; i++)
-      data[i] /= factor;
-    return *this;
-  }
-  
-  Point Point::operator/(const Double factor) {
-    return Point(data[0]/factor, data[1]/factor, data[2]/factor);
-  }
-
-  Point Point::operator/(const Double factor) const {
-    return Point(data[0]/factor, data[1]/factor, data[2]/factor);
-  }
-
-  std::string Point::ToString() const
-  {
-     std::ostringstream os;
-     os << "(" << data[0] << ";" << data[1] << ";" << data[2] << ")";
-     return os.str();
-  }
-
   Double dist_Mat(const Matrix<Double> &a) {
     Double preSqrt=0;
     UInt i;
@@ -169,7 +99,7 @@ namespace CoupledField {
 
   /// a-->b
   void calcNormal2Line(Vector<Double> & normal, const Point &a, const Point &b) {
-    Double distance=Point::dist(a,b);
+    Double distance=Point::Dist(a,b);
     normal[0]=(b[1]-a[1])/distance;
     normal[1]=(a[0]-b[0])/distance;
   }
@@ -386,24 +316,30 @@ namespace CoupledField {
         target[r][c] = factor * other[r][c];
   }
 
-  int MemoryUsage()
+  int MemoryUsage(bool peak)
   {
-    pid_t pid_num = getpid();  // get process id
-    
-    std::string name = "/proc/" + lexical_cast<std::string>(pid_num) + "/statm";
-    std::ifstream file(name.c_str(), std::ifstream::in);
-    
-    std::string data;
-    file >> data;
+    // if the file dows not exist we return 0
+    std::ifstream file("/proc/self/status", std::ifstream::in);
 
-    try
+    std::string data;
+    while(file)
     {
-      return lexical_cast<int>(data);
+      file >> data;
+      if(data == (peak ? "VmPeak:" : "VmSize:"))
+      {
+        file >> data; // read next value
+        try
+        {
+          return lexical_cast<int>(data);
+        }
+        catch(bad_lexical_cast &)
+        {
+          return 0;
+        }
+      }
     }
-    catch(bad_lexical_cast &)
-    {
-      return 0;
-    }
+
+    return 0;
   }
 
 }// namespace CoupledField

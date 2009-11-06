@@ -1,5 +1,6 @@
 #include <def_use_ipopt.hh>
 #include <def_use_scpip.hh>
+#include <def_use_snopt.hh>
 #include <map>
 
 #include "Optimization/Optimization.hh"
@@ -34,12 +35,15 @@
 #include <boost/filesystem.hpp>
 #include "Optimization/ShapeOpt.hh"
 
-// IPOPT and SCPIP are not necessarily linked
+// IPOPT, SCPIP and SnOpt are not necessarily linked
 #ifdef USE_IPOPT
   #include "Optimization/IPOPTHolder.hh"
 #endif
 #ifdef USE_SCPIP
   #include "Optimization/SCPIP.hh"
+#endif
+#ifdef USE_SNOPT
+  #include "Optimization/SnOpt.hh"
 #endif
 
 using namespace CoupledField;
@@ -117,18 +121,18 @@ Optimization::Optimization()
      Condition::AddCondition(list[i], constraints, outputs);
   }
 
-  // if in the 'logging' element deltaConstraints is enabled, we modify the output!
-  string delta = log.deltaConstraints ? "delta_" : "";
-
   // first the constraints then the outputs!
   for(unsigned int i = 0; i < constraints.GetSize(); i++)
   {
+    // if in the 'logging' element deltaConstraints is enabled, we modify the output!
+    string delta = constraints[i].delta_logging ? "delta_" : "";
     this->log.fileHeader += "\t" + delta + constraints[i].ToString();
     constraints[i].ToInfo(in->Get("constraint", InfoNode::APPEND));
   }
 
   for(unsigned int i = 0; i < outputs.GetSize(); i++)
   {
+    string delta = outputs[i].delta_logging ? "delta_" : "";
     this->log.fileHeader += "\t" + delta + outputs[i].ToString();
     outputs[i].ToInfo(in->Get("observation", InfoNode::APPEND));
   }
@@ -178,6 +182,14 @@ void Optimization::PostInitSecond()
            throw Exception("CFS++ was compiled w/o SCPIP");
          #endif
          break;
+         
+    case SNOPT_SOLVER:
+         #ifdef USE_SNOPT
+           baseOptimizer_ = new SnOpt(this, opt);
+         #else
+           throw Exception("CFS++ was compiled w/o SnOpt");
+         #endif
+      break;
 
     case OPTIMALITY_CONDITION:
          baseOptimizer_ = new OptimalityCondition(this, opt);
@@ -228,8 +240,11 @@ void Optimization::SetEnums()
   Objective::type.Add(Objective::VOLUME, "volume");
   Objective::type.Add(Objective::TRACKING, "tracking");
   Objective::type.Add(Objective::ELEC_ENERGY, "elecEnergy");
-  Objective::type.Add(Objective::HOMOGENIZATION_TENSOR, "homogenizationTensor");
-  Objective::type.Add(Objective::HOMOGENIZATION_TRACKING, "homogenizationTracking");
+  Objective::type.Add(Objective::HOMOGENIZATION_TENSOR, "homTensor");
+  Objective::type.Add(Objective::HOMOGENIZATION_E11, "homE11");
+  Objective::type.Add(Objective::HOMOGENIZATION_TRACKING, "homTracking");
+  Objective::type.Add(Objective::POISSONS_RATIO, "poissonsRatio");
+  Objective::type.Add(Objective::YOUNGS_MODULUS, "homYoungsModulus");
   Objective::type.Add(Objective::TYCHONOFF, "tychonoff");
   Objective::type.Add(Objective::TEMPERATURE, "temperature");
 
@@ -240,8 +255,9 @@ void Optimization::SetEnums()
   Condition::name.Add(Condition::GAUSS_GREYNESS, "gaussGreyness");
   Condition::name.Add(Condition::TRACKING, "tracking");
   Condition::name.Add(Condition::REALVOLUME, "realvolume");
-  Condition::name.Add(Condition::HOMOGENIZATION_TENSOR, "homogenizationTensor");
-  Condition::name.Add(Condition::HOMOGENIZATION_TRACKING, "homogenizationTracking");
+  Condition::name.Add(Condition::HOMOGENIZATION_TENSOR, "homTensor");
+  Condition::name.Add(Condition::HOMOGENIZATION_TRACKING, "homTracking");
+  Condition::name.Add(Condition::ISOTROPY, "isotropy");
 
   Condition::type.SetName("Constraint::Type");
   Condition::type.Add(Condition::EQUAL, "equal");
@@ -252,6 +268,7 @@ void Optimization::SetEnums()
   optimizer.Add(OPTIMALITY_CONDITION, "optimalityCondition");
   optimizer.Add(IPOPT_SOLVER, "ipopt");
   optimizer.Add(SCPIP_SOLVER, "scpip");
+  optimizer.Add(SNOPT_SOLVER, "snopt");
   optimizer.Add(SHAPE_SOLVER, "shapeOpt");
   optimizer.Add(EVALUATE_INITIAL_DESIGN, "evaluateInitialDesign");
   optimizer.Add(GRADIENT_CHECK, "gradientCheck");
@@ -549,18 +566,15 @@ InfoNode* Optimization::CommitIteration(bool keep_iteration_number)
   // also log to info node, append the iteration
   InfoNode* iteration = optInfoNode->Get(InfoNode::PROCESS)->Get("iteration", InfoNode::APPEND);
 
-  if(log.file)
-  {
-    // write the header only once - we might keep the iteration number
-    if(objectives.GetHistorySize() == 1) *log.file << log.fileHeader << endl;
-    LogFileLine(log.file, iteration);
-    baseOptimizer_->LogFileLine(log.file, iteration);
-    *log.file << endl;
-  }
+  // write the header only once - we might keep the iteration number
+  if(log.file) if(objectives.GetHistorySize() == 1) *log.file << log.fileHeader << endl;
+  LogFileLine(log.file, iteration); // also InfoNode is to be written
+  baseOptimizer_->LogFileLine(log.file, iteration);
+  if(log.file) *log.file << endl;
 
   // IPOPT does own logging -> otherwise show the user we are alive
   std::string f = GetIterationFrequency();
-  if(optimizer_ != IPOPT_SOLVER)
+  if(optimizer_ != IPOPT_SOLVER && optimizer_ != SNOPT_SOLVER)
   {
     cout << "iteration " << (currentIteration);
     if(f != "") cout << " f = " << f << "Hz";
@@ -587,13 +601,16 @@ void Optimization::LogFileLine(ofstream* out, InfoNode* iteration)
     change = (last - objectives.GetHistoryValue(true, hs-2)) / last;
   }
 
-  *out << currentIteration;
-  if(harmonic) *out << "\t" << GetIterationFrequency();
+  if(out)
+  {
+    *out << currentIteration;
+    if(harmonic) *out << "\t" << GetIterationFrequency();
 
-  for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
-    *out << "\t" << objectives.data[i]->GetValue();
+    for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
+      *out << "\t" << objectives.data[i]->GetValue();
 
-  *out << "\t" << change << "\t" << problemSolvedCounter;
+    *out << "\t" << change << "\t" << problemSolvedCounter;
+  }
 
   iteration->Get("number")->SetValue(currentIteration);
   if(harmonic) iteration->Get("frequency")->SetValue(GetIterationFrequency());
@@ -607,20 +624,20 @@ void Optimization::LogFileLine(ofstream* out, InfoNode* iteration)
   for(unsigned int i = 0; i < constraints.GetSize(); i++)
   {
     double value = CalcConstraint(&constraints[i]);
-    if(log.deltaConstraints) value = value - constraints[i].value;
-    *out << "\t" << value;
+    if(constraints[i].delta_logging) value = value - constraints[i].value;
+    if(out) *out << "\t" << value;
     iteration->Get(constraints[i].ToString())->SetValue(value);
   }
 
   for(unsigned int i = 0; i < outputs.GetSize(); i++)
   {
     double value = CalcConstraint(&outputs[i]);
-    if(log.deltaConstraints) value = value - outputs[i].value;
-    *out << "\t" << value;
+    if(outputs[i].delta_logging) value = value - outputs[i].value;
+    if(out) *out << "\t" << value;
     iteration->Get(outputs[i].ToString())->SetValue(value);
   }
 
-  if(log.design){
+  if(out && log.design){
     StdVector<double> d;
     d.Resize(design->GetNumberOfVariables());
     design->WriteDesignToExtern(d.GetPointer(), false);
@@ -629,7 +646,7 @@ void Optimization::LogFileLine(ofstream* out, InfoNode* iteration)
     }
   }
   
-  if(log.designGradient){
+  if(out && log.designGradient){
     StdVector<double> d;
     d.Resize(design->GetNumberOfVariables());
     design->WriteGradientToExtern(d.GetPointer(), DesignElement::COST_GRADIENT, DesignElement::PLAIN, NULL, false);
@@ -638,7 +655,7 @@ void Optimization::LogFileLine(ofstream* out, InfoNode* iteration)
     }
   }
 
-  out->flush();
+  if(out) out->flush();
 }
 
 
@@ -825,7 +842,6 @@ void Excitation::ReadTestStrain(const Vector<double>& vec)
 
 Optimization::Log::Log()
 {
-  this->deltaConstraints = false;
   this->design = false;
   this->designGradient = false;
   this->file = NULL;
@@ -845,7 +861,6 @@ void Optimization::Log::Init(const string& log_name, ParamNode* pn_log)
     {
       design = pn_log->Get("design")->AsBool();
       designGradient = pn_log->Get("designGradient")->AsBool();
-      deltaConstraints = pn_log->Get("deltaConstraints")->AsBool();
     }
   }
 }

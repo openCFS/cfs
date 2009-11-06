@@ -3,32 +3,38 @@
 \section{Node Results}
 By default, the degree of freedom is saved to the universal file. But
 sometimes one needs (additionally) the time derivative (e.g. in
-acoustics, to calculate the pressure from the acoustic velocity
-potential). Herefore, the command
+\analysis{acoustics}, to calculate the pressure from the acoustic velocity
+potential). Herefore, the command is given for \analysis{mechanics}
 
 \begin{verbatim}
 <storeResults>
-   <nodeResults type="mechVelocity"/>
+   <nodeResult type="mechVelocity">
+    <allRegions/>
+   </nodeResult>
 </storeResults>
 \end{verbatim}
 
-may be used. The value of the attribute {\bf type} is PDE dependent,
+may be used. The value of the attribute \attribute{type} is PDE dependent,
 e.g. for mechanics, the following values are allowed:
 \begin{itemize}
-\item {\bf displacement}
-\item {\bf velocity}    
-\item {\bf acceleration}
+\item \attrivalue{mechDisplacement}
+\item \attrivalue{mechVelocity}
+\item \attrivalue{mechAcceleration}
 \end{itemize}
 The allowed types are mentioned at the individual PDE sections.
 
 By default, the values on every node are stored. With the additional
-attribute {\bf region} one can restrict the saved results to one or
+attribute \attribute{region} one can restrict the saved results to one or
 more selected regions.
-To store the results of the regions "bar" and "gap", one has to write
+To store the results of the regions \attrivalue{bar} and \attrivalue{gap}, one has to write
 \begin{verbatim}
 <storeResults>
-   <nodeResults type="mechVelocity" region="bar"/>
-   <nodeResults type="mechVelocity" region="gap"/>
+   <nodeResult type="mechVelocity">
+    <regionList>
+     <region name="bar"/>
+     <region name="gap"/>
+    </regionList>
+   </nodeResult>
 </storeResults>
 \end{verbatim}
 
@@ -39,18 +45,18 @@ In general, saving of element results is, beside the different keyword
 results:
 \begin{verbatim}
 <storeResults>
-   <elemResults type="mechStress"/>
+   <elemResult type="mechStress"/>
 </storeResults>
 \end{verbatim}
-Again, the values of {\bf type} depend on the regarded PDE. 
+Again, the values of \attribute{type} depend on the regarded PDE. 
 
 
 \section{Results at Special Points} 
 In many applications we are only interested in the response of the
 system at a single point. In order to reduce necessary disk space,
 it is possible to store the nodal results only at a discrete
-location. Therefore, the command {\bf nodeHistory} with the
-attribute {\bf saveNodes="nodeName"} is provided. This command
+location. Therefore, the command \element{nodeList} with the
+\subelement{nodes}, with attribute \attribute{name} and attribute value as node name \attrivalue{nodeName} is provided. This command
 reduces the amount of results stored tremendously, because no
 universal-file is written.
 
@@ -58,7 +64,11 @@ In the config-file, the command is as follows
 
 \begin{verbatim}
 <storeResults>
-   <nodeHistory type="mechVelocity" saveNodes="ptName"/>
+   <nodeResult type="mechVelocity">
+    <nodeList>
+     <nodes name="nodeName"/>
+    </nodeList>
+   </nodeResult>
 </storeResults>
 \end{verbatim}
 
@@ -74,18 +84,20 @@ wsavnod,'ptName'
 
 As a special case, for storing nodal results at specific radial distances
 from a center point (e.g for directivity plots), first the nodes at these
-points have to be defined (searched) using the element {\bf
-  directivityNodes} in section {\bf $<$domain$>$}. Then the
+points have to be defined (searched) using the element \element{directivityNodes} in section \topelement{$<$domain$>$}. Then the
 procedure above can be used, using the name given to this set of
 nodes. 
 
 \section{Results at Special Elements} 
 Again, saving results of selected elements is similar to the procedure
-of saving results on selected nodes. The commands name is {\bf
-  elemHistory}, and the necessary keyword {\bf saveElems}:
+of saving results on selected nodes. The commands name is \element{elemList}, and the necessary keyword attribute name \attribute{name} with value \attrivalue{elName}:
 \begin{verbatim}
    <storeResults>
-      <elemHistory type="mechStress" saveElems="elName"/>
+      <elemResult type="mechStress">
+       <elemList>
+        <elem name="elName"/>
+       </elemList>
+      </elemResult>
    </storeResults>
 \end{verbatim}
 

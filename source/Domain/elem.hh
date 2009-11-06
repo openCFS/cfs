@@ -15,6 +15,7 @@
 namespace CoupledField
 {
   class BaseFE;
+  struct Elem;
 
   //! Class for description of a volume finite element
 
@@ -37,28 +38,13 @@ namespace CoupledField
     //! Dummy constructor
     Elem();
 
-    //! Dummy destructor
-    virtual ~Elem() {;}
+    virtual ~Elem()
+    {
+      if(neighborhood) { delete neighborhood; neighborhood = NULL; }
+    }
 
-  public:
 
-    // enumeration with elements types.
-    // enum ElementType{Line1, Triang1, Triang2, Quadrilateral1, Quadrilateral2};
-
-    //! Type of finite element
-    //! The enumeration contains the following values:
-    //! - NOFETYPE
-    //! - LINE
-    //! - TRIA
-    //! - QUAD
-    //! - TET
-    //! - HEX
-    //! - PYR
-    //! - WED
-      //  typedef enum {NOFETYPE, LINE, TRIA, QUAD, TET, HEX, PYR, WED} FEType;
-
-    // Definition of supported element types
-
+    /** Definition of supported element types */
     typedef enum
     {
       UNDEF      = 0,
@@ -81,6 +67,9 @@ namespace CoupledField
       WEDGE15    = 17
     } FEType;
     static Enum<FEType> feType;
+
+    /** Can this feType be a surface element */
+    static bool IsSurfaceElement(FEType type, int dim);
 
     static UInt GetNumElemNodes(FEType type);
     static UInt GetElemDim(FEType type);
@@ -109,6 +98,18 @@ namespace CoupledField
     //! bitset describing the orientation of the faces (3 for each)
     StdVector<std::bitset<3> > faceFlags;
 
+    /** This defines the neighborhood of this element.
+     * The pair entries are: first = neighbor element and second = number
+     * of common nodes with this element. By this one can determine
+     * if it is an face, edge or node neighbor.
+     * The list is completely unsorted. To be generated via grid.
+     * @see Grid::FindElementNeighorhood() */
+    StdVector<std::pair<Elem*, int> >* neighborhood;
+
+    /** The barycenter of the element, Set via Grid::SetElementBarycenters().
+     * The values are by for the uninitialized case zero, be careful! Check via Grid::RegionData */
+    Point barycenter;
+
 #ifdef ADAPTGRID
     //! flag for refinement
     bool refinementFlag;
@@ -136,9 +137,6 @@ namespace CoupledField
 
     //! overloading operator =
     Elem & operator=(const Elem& t);
-
-    //! calculation of diameter of element
-    Double diameter(const Point * const ptArrayOfNodes);
     //@}
 
     // Fix problems due to negative Jacobian determinants
@@ -159,7 +157,6 @@ namespace CoupledField
   };
 
 
-
   inline Elem & Elem::operator=(const Elem& t)
   {
     if (this!=&t) {
@@ -174,17 +171,17 @@ namespace CoupledField
     return *this;
   }
 
-  inline Double Elem::diameter(const Point * const ptArrayOfNodes)
-  {
-    if (connect.GetSize()==1)
-      EXCEPTION("This function is not valid for this dimension");
+  /** Operator to print a StdVector<Elem*> via ToString() */
+  std::ostream & operator<<(std::ostream &out, const Elem*& data);
 
-    Point a=ptArrayOfNodes[connect[1]];
-    Point b=ptArrayOfNodes[connect[2]];
-    Point c=ptArrayOfNodes[connect[3]];
+  std::ostream & operator<<(std::ostream &out, const StdVector<Elem*>& data);
 
-    return std::max(Point::dist(a,b), Point::dist(b,c));
-  }
+  /** Operator such that we can print neighbourhood via StdVector::ToString() */
+  std::ostream & operator<<(std::ostream &out, const std::pair<Elem*, int>& data);
+
+
+
+
 
 } // end of namespace
 #endif

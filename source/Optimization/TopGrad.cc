@@ -178,7 +178,7 @@ void TopGrad::SolveProblem(const unsigned int iter, boost::shared_ptr<LevelSet> 
   unsigned int c(0);
   
   // while(max_it != topGrads.end())
-  for(unsigned int i = 0; i < elems_removed_per_iteration_; ++i)
+  for( ; c < elems_removed_per_iteration_; ++c)
   {
     DesignElement* de = &optimization->GetDesign()->data[topGrads.back().GetElemNum()];
     const unsigned int n_corn(de->lse_->nodes_.size());
@@ -192,7 +192,6 @@ void TopGrad::SolveProblem(const unsigned int iter, boost::shared_ptr<LevelSet> 
     }
     // remove element from list of all elements
     topGrads.pop_back();
-    ++c;
   }
   
   cout << "removed " << c << " elements (in " << 
@@ -225,14 +224,13 @@ void TopGrad::SolveProblem(const unsigned int iter)
   //FSFSFS: have to build in the max_vol_to_remove constraint!!
   
   // while(max_it != topGrads.end()) // for nth_element
-  for(unsigned int i = 0; i < elems_removed_per_iteration_; ++i) // for sort
+  for( ; c < elems_removed_per_iteration_; ++c) // for sort
   {
     DesignElement* de = &optimization->GetDesign()->data[topGrads.back().GetElemNum()];
     // use the simp densities and set design to lower bound
     de->SetDesign(de->GetLowerBound());
     // remove element from list of all elements
     topGrads.pop_back();
-    ++c;
   }
   
   cout << Timer::GetTimeString(microsec_clock::local_time() - before_time) << "; removed " << c << " elements - ";
@@ -280,10 +278,11 @@ double TopGrad::CalcTopGradOnElement() const
   {
     case PLANE_STRAIN: // top-grad 2d *neumann* allaire!
       /*
-       * formular is
+       * formula is
        * c_2 = \pi * (lambda_ + 2mu_)/(2mu_(lambda_ + mu_))
        * tg = c_2(4mu_ * Ae(u)*e(u) + (lambda_ - mu_)tr(Ae(u))tr(e(u)))
-       * entries of e(u) are contained in forward_strain[0 - 2]      */
+       * entries of e(u) are contained in forward_strain[0 - 2]      
+       * */
       assert(elem_forw.GetSize() == 3);
       assert(elem_adj.GetSize() == 3);
    
@@ -347,11 +346,9 @@ double TopGrad::CalcPoissonTopGradOnElement(const unsigned int e) const
   const Vector<double> &intWeights = de->ptElem->GetIntWeights();
   double jacobi(0.0);
   
-  const unsigned int nrIntPts(de->ptElem->GetNumIntPoints());
-  
   domain->GetGrid()->GetElemNodesCoord(ptCoord, de->connect); //, coordUpdate_);
 
-  for(unsigned int ap = 1; ap <= nrIntPts; ++ap)
+  for(unsigned int ap = 1, nr = de->ptElem->GetNumIntPoints(); ap <= nr; ++ap)
   {
     // xiDx is 4x2 matrix
     de->ptElem->GetGlobDerivShFncAtIp(xiDx, ap, ptCoord, jacobi, de);

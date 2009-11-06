@@ -102,7 +102,7 @@ namespace CoupledField {
     Info->PrintF( pdename_, " %s lives on regions:\n", pdename_.c_str());
     for ( UInt k = 0; k < regionNodes.GetSize(); k++ ) {
       std::string actRegionName = regionNodes[k]->Get("name")->AsString();
-      RegionIdType actRegionId = ptgrid_->RegionNameToId( actRegionName );
+      RegionIdType actRegionId = ptgrid_->GetRegion().Parse( actRegionName );
       subdoms_.Push_back( actRegionId );
       Info->PrintF( pdename_, " %s\n", actRegionName.c_str() );
       

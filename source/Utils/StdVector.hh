@@ -196,18 +196,24 @@ namespace CoupledField {
     //! Returns capacity of the vector
     inline unsigned int Capacity() const {return capacity_;}
 
-    //! 
-    void Reserve(unsigned int size);
+    /** Increases the capacity.
+     * If the new capacity is smaller than the current one nothing happens.
+     * Otherwise the old data is copied up to size and the rest is uninitialized! */
+    void Reserve(unsigned int capacity);
 
     //! Get the length of the vector
     inline unsigned int GetSize() const {return size_;}
 
-    /** Set the length of the vector.
-     * @note The vector is NOT initialized, use the Resize with init parameter for this purpose */
+    /** Set the length of the vector but might keep the capacity!
+     * Will keep data.
+     * TODO: check if a data-loosing version is worth the "complexity"
+     * @param size if smaller capacity only the internal size parameter is adjusted.
+     *        If larger than the current capacity the old data is copied!
+     * @note Additional data is NOT initialized, and Resize with init parameter sets ALL data */
     void Resize(const unsigned int size);
 
-    /** Set the length of the vector and initilize
-     * @note init Init() is called with this value */
+    /** Set the length of the vector and initialize
+     * @note Init() is called with this value */
     void Resize(const unsigned int size, TYPE entry);
     
     //! Overloading of operation =
@@ -243,13 +249,6 @@ namespace CoupledField {
      * Any existing data is overwritten. */
     void Import(const TYPE* source, unsigned int size);
     
-    //! Add element of the same type at position pos
-    void Insert(const TYPE & y, unsigned int pos);
-
-    //! Add element of the same type at position pos
-    //! numCopies times
-    void Insert(const TYPE & y, unsigned int pos, unsigned int numCopies);
-
     //! Add element of the same type at the end of the vector
     void Push_back(const TYPE & y = TYPE() );
 

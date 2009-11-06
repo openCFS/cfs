@@ -153,6 +153,12 @@ namespace CoupledField
                     const std::string& value,
                     const bool throwException = true );
 
+    ParamNode* Get( const std::string& parent,
+                    const std::string& child,
+                    const unsigned int value,
+                    const bool throwException = true );
+
+
 
     /** This Get() version overwrites with throwException=false a preset value and does nothing if the
      *  value does not exist. So you do not need to check with Has() first.<br>

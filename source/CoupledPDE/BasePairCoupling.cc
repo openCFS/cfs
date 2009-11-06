@@ -100,7 +100,7 @@ namespace CoupledField {
         for( UInt i = 0; i < regionList.GetSize(); i++ ) 
         {
           std::string regionName = regionList[i]->Get("name")->AsString(); 
-          RegionIdType regionId = ptGrid_->RegionNameToId( regionName ); 
+          RegionIdType regionId = ptGrid_->GetRegion().Parse( regionName );
 
           in->Get("region", InfoNode::APPEND)->Get("name")->SetValue(regionName);
 
@@ -149,7 +149,7 @@ namespace CoupledField {
 
         for (UInt i = 0; i < ncIfList.GetSize(); ++i) {
           std::string ncIfName = ncIfList[i]->Get("name")->AsString(); 
-          RegionIdType ncIfId = ptGrid_->RegionNameToId(ncIfName); 
+          RegionIdType ncIfId = ptGrid_->GetRegion().Parse(ncIfName);
 
           InfoNode* e = list->Get("nc_interface", InfoNode::APPEND); 
           e->Get("name")->SetValue(ncIfName); 
@@ -238,7 +238,7 @@ namespace CoupledField {
         regionNodes[i]->Get( "coordSysId", refCoordSys );
         
         // get regionId
-        RegionIdType actRegionId = ptGrid_->RegionNameToId( region );
+        RegionIdType actRegionId = ptGrid_->GetRegion().Parse( region );
         
         // if no material is set, continue with next loop run
         if( material == "" )
@@ -317,7 +317,7 @@ namespace CoupledField {
         regionNodes[i]->Get( "composite", composite );
 
         // get regionId
-        RegionIdType actRegionId = ptGrid_->RegionNameToId( region );
+        RegionIdType actRegionId = ptGrid_->GetRegion().Parse( region );
         
         // if no composite is set, continue with next loop run
         if( composite == "" )
@@ -470,7 +470,7 @@ namespace CoupledField {
       
       // otherwise check, if result is to be saved on "allRegions"
       if( actResultNode->Has("allRegions" ) ) {
-        ptGrid_->RegionIdToName( regionNames, subdoms_ );
+        ptGrid_->GetRegion().ToString( subdoms_, regionNames );
         
         ParamNode * allRegionsNode = actResultNode->Get("allRegions");
         
@@ -579,7 +579,7 @@ namespace CoupledField {
           if( neighborRegions.GetSize() > 0 ) {
             if( neighborRegions[iRegion] != "" ) {
               surfNeighborRegions_[actSol] = 
-                ptGrid_->RegionNameToId( neighborRegions[iRegion] );
+                ptGrid_->GetRegion().Parse( neighborRegions[iRegion] );
             }
           }
 
@@ -681,7 +681,7 @@ namespace CoupledField {
           if( neighborRegions.GetSize() > 0 ) {
             if( neighborRegions[i] != "" ) {
               surfNeighborRegions_[actSol] = 
-                ptGrid_->RegionNameToId( neighborRegions[i] );
+                ptGrid_->GetRegion().Parse( neighborRegions[i] );
             }
           }
             

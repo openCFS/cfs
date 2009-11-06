@@ -30,10 +30,11 @@
 #include "General/exception.hh"
 #include "Utils/Timer.hh"
 
+#include "DataInOut/programOptions.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/ParamHandling/InfoNode.hh"
 
-using CoupledField::Exception;
+using std::string;
 
 DECLARE_LOG(stdSys)
 DEFINE_LOG(stdSys, "stdSys")
@@ -252,14 +253,15 @@ namespace CoupledField {
 
     // check if we do export stuff
     ParamNode* els = xml  != NULL && xml->Has("exportLinSys") ? xml->Get("exportLinSys") : NULL;
-    std::string file;
-    std::string base;
+    string file;
+    string base;
     
     // need it common even when exclusive solution
     if(els) {
-      std::string id = analysis_id->Get("analysis_id")->AsString();
+      string id = analysis_id->Get("analysis_id")->AsString();
       boost::replace_all(id, ":", "_");
-      base = els->Get("baseName")->AsString() + "_" + id;
+      string name = els->Has("baseName") ? els->Get("baseName")->AsString() : progOpts->GetSimName();
+      base = name + "_" + id;
       systemInfo_->Get(InfoNode::PROCESS)->Get("exportLinearSystem", InfoNode::APPEND)->Get("name")->SetValue(base);
     }
 
@@ -465,15 +467,6 @@ namespace CoupledField {
     // ------------------------
     std::set<FEMatrixType>::iterator it;
 
-    // Print information about matrix types to .las file
-    (*cla) << "\n StandardSystem: The following matrices are created:\n ";
-    for ( it = matrixTypes_.begin(); it != matrixTypes_.end(); it++ ) {
-      std::string tmp;
-      Enum2String( *it, tmp );
-      (*cla) << " " << tmp << '\n';
-    }
-    (*cla) << std::endl;
-
     //check for solver
     SolverType solver;
     myParams_.GetEnumValue( "Solver", solver );
@@ -512,7 +505,7 @@ namespace CoupledField {
 
       assert(sysmat_[*it] != NULL);
 
-      std::string tmp;
+      string tmp;
       Enum2String( *it, tmp );
 
       LOG_DBG(stdSys) << "created matrix " << tmp;
@@ -551,21 +544,24 @@ namespace CoupledField {
       EXCEPTION( WRONG_CAST_MSG );
     }
 
-    /*
-    // Seens to be somehow buggy, as I got an Segemtation fault
-    // when running it with block-matrices
-    //(*debug) << "System Matrix connectivity: " << std::endl;
-    //sysmat_[SYSTEM]->Print(*debug);
-    (*debug) << "rhs: " << std::endl;
-    rhs_->Print(*debug);
-    (*debug) << "sol_: " << std::endl;
-    sol_->Print(*debug);
-    */
-
     // Create the assemble object
     assemble_ =  new BaseEntryManipulator();
     //GenerateEntryManipulatorObject( entryType, blockSize_ );
 
+    // Print information about matrix types
+    InfoNode* inm = info->Get("OLAS")->Get(InfoNode::HEADER)->Get("matrices");
+    for ( it = matrixTypes_.begin(); it != matrixTypes_.end(); it++ )
+    {
+      string tmp;
+      Enum2String( *it, tmp ); // such fucking non-sense :(
+      InfoNode* in = inm->Get(tmp);
+      StdMatrix* mat = sysmat_[*it];
+      in->Get("rows")->SetValue(mat->GetNumRows());
+      in->Get("cols")->SetValue(mat->GetNumCols());
+      in->Get("nnz")->SetValue(mat->GetNnz());
+      in->Get("storageType")->SetValue(BaseMatrix::storageType.ToString(mat->GetStorageType()));
+      in->Get("structueType")->SetValue(BaseMatrix::structureType.ToString(mat->GetStructureType()));
+    }
 
     // -----------------
     //  Memory clean-up
@@ -1047,7 +1043,7 @@ namespace CoupledField {
 
     for ( it = matFactors.begin(); it != matFactors.end(); it++ )
     {
-      std::string tmp;
+      string tmp;
       Enum2String( (*it).first, tmp );
       LOG_DBG(stdSys) << " matFactor: " << tmp << ":" << (*it).second;
       if (sysmat_[(*it).first] != NULL  && (*it).second != 0.0 )

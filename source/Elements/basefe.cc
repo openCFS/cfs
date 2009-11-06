@@ -1102,10 +1102,10 @@ namespace CoupledField
     for (UInt j=0; j<cols; j++) {
       ret += "(";
       for (UInt i=0; i<rows-1; i++) {
-        ret += GenStr(coordMat[i][j]);
+        ret += lexical_cast<std::string>(coordMat[i][j]);
         ret += ", ";
       }
-      ret += GenStr(coordMat[coordMat.GetNumRows()-1][j]);
+      ret += lexical_cast<std::string>(coordMat[coordMat.GetNumRows()-1][j]);
       ret +=")\n";
     }
     return ret;
@@ -1140,18 +1140,15 @@ namespace CoupledField
 
   void BaseFE::CalcBarycenter(const Matrix<Double>& coords, Point& barycenter)
   {
-    UInt n_dims  = coords.GetNumRows();
-    UInt n_elems = coords.GetNumCols();
-
-    // init barycenter for safty reason
+    // init barycenter for safty reason (higher coordinates)
     barycenter.SetZero();
 
-    // std::cout << "calc a new barycenter" << std::endl;
+    UInt n_elems = coords.GetNumCols();
     // a barycenter is simply the average of all coordinates
-    for (UInt dim=0; dim < n_dims; dim++)
+    for (UInt dim = 0, n_dims  = coords.GetNumRows(); dim < n_dims; dim++)
     {
       // std::cout << "dim = " << dim << "  ";
-      for (UInt k=0; k < n_elems; k++)
+      for (UInt k = 0; k < n_elems; k++)
       {
         // the constructor of Point initializes
         barycenter[dim] += coords[dim][k];
@@ -1163,6 +1160,28 @@ namespace CoupledField
     }
   }
 
+  void BaseFE::CalcDiameter(const Matrix<Double>& coords, Point& diameter)
+  {
+    Point mins(std::numeric_limits<double>::max());
+    Point maxs(-1.0 * std::numeric_limits<double>::max());
+
+    diameter[2] = 0.0;
+    assert(coords.GetNumRows() >= 2);
+
+    for (UInt dim = 0, n_dims  = coords.GetNumRows(); dim < n_dims; dim++)
+    {
+      for (UInt k = 0, n_elems = coords.GetNumCols(); k < n_elems; k++)
+      {
+        double test = coords[dim][k];
+        double& min = mins[dim];
+        double& max = maxs[dim];
+        min = std::min(min, test);
+        max = std::max(max, test);
+      }
+
+      diameter[dim] = maxs[dim] - mins[dim];
+    }
+  }
 
   /////////////////////////////////////////////////////////////////////
   /////// For geometrical transformation using direction cosines //////

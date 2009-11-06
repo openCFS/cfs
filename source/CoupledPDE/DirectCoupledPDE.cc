@@ -185,8 +185,7 @@ namespace CoupledField {
     // Check, whether we shall generate an SBM_System
     bool genSBMSys = false;
     ParamNode * linSysNode =
-      param->Get( "sequenceStep", "index", GenStr(sequenceStep) )
-      ->Get("linearSystems", false );
+      param->Get( "sequenceStep", "index", sequenceStep)->Get("linearSystems", false );
     if( linSysNode ) {
       ParamNode * specSysNode = linSysNode
         ->Get("system","name","direct", false);

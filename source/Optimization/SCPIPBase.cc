@@ -56,7 +56,7 @@ SCPIPBase::SCPIPBase()
   // set to defined values so we can check if nothing is forgotten */
   InitVariables();
 
-  // we use the dense cholesky solver
+  // dense cholesky solver = 1, sparse chol solver = 2
   linsys = 1;
 
   // allocate the fixed part tho we can set the default parameters.
@@ -82,7 +82,6 @@ void SCPIPBase::Initialize()
 
   // define dense constraint gradient structure
   SetDenseConstraintGradient();
-
 }
 
 void SCPIPBase::SetDefaultParameters()
@@ -155,8 +154,7 @@ int SCPIPBase::SolveProblem(bool fromWarmstart)
       shift[i].shift *= g_scaling[i];
     }
   }
-
-
+  
   for(;;) // we break out in success and error
   {
     // this might be dynamic!
@@ -382,21 +380,35 @@ void SCPIPBase::AllocateProblem()
   //           2*N+3*IEMAX+2*EQMAX+IELPAR
   i_sub.Resize(2*n+3*iemax+2*eqmax+ielpar, 0);
 
-  // "dynamic" working arrays. We assume linsys=1
-  assert(linsys == 1);
+  // "dynamic" working arrays. We assume linsys=1 or 2
+  assert(linsys == 1 || linsys == 2);
   int spiwdim = 1;
-  spiw.Resize(spiwdim, 0);
-
   int spdwdim = -1;
+  
   switch(spstrat)
   {
-    case 1: spdwdim = std::max((mactiv + meq) * (mactiv + meq), 1);
-            break;
-    case 2: spdwdim = n * n; // big!!
-            break;
-    default: throw Exception("spstrat not handled");
+    case 1:
+      spdwdim = std::max((mactiv + meq) * (mactiv + meq), 1);
+      if(linsys == 2)
+      {
+        spiwdim = 5 * (n * mie + n * meq) + 2 * n + 1;
+        spdwdim = 10 * n * (mie + meq);
+      }
+      break;
+    case 2:
+      // scpip does not support spstrat == 2 && linsys == 2
+      // assert(linsys == 1);
+      spdwdim = n * n; // big!!
+      break;
+    default:
+      throw Exception("spstrat not handled");
   }
+  
+  // set at least to one, or else we cannot call GetPointer() in call to scpip
+  if(spdwdim <= 0) spdwdim = 1;
+  
   spdw.Resize(spdwdim, 0.0);
+  spiw.Resize(spiwdim, 0.0);
 }
 
 void SCPIPBase::AllocateDynamic()
@@ -448,11 +460,11 @@ void SCPIPBase::EvaluateFunctionValues()
     eval_g(n, x.GetPointer(), m, g_unscaled.GetPointer());
 
   // the constraint scaling is done before the normalization shifting
-  // if we do not scale it is set to 1,0
+  // if we do not scale it is set to 1.0
   for(int i = 0; i < m; i++)
   {
     g[i] = g_unscaled[i] * g_scaling[i];
-    LOG_DBG2(scpip_base) << "eval_g[" << i << "]: " << g_unscaled[i] << " * "
+    LOG_DBG3(scpip_base) << "eval_g[" << i << "]: " << g_unscaled[i] << " * "
                          <<  g_scaling[i] << " -> " << g[i];
   }
 
@@ -699,6 +711,11 @@ void SCPIPBase::SetIntegerValue(const std::string& key, int value)
   if(key == "spstrat")
   {
     spstrat = value;
+    return;
+  }
+  if(key == "linsys")
+  {
+    linsys = value;
     return;
   }
 

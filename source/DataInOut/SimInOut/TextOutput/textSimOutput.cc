@@ -450,17 +450,17 @@ namespace CoupledField {
 //        switch( actInfo.definedOn ) {
 //          
 //        case ResultInfo::NODE:
-//          entityString = GenStr(it.GetNode() );
+//          entityString = lexical_cast<std::string>(it.GetNode() );
 //          break;
 //        case ResultInfo::PFEM:
-//          entityString = GenStr(it.GetNode() );
+//          entityString = lexical_cast<std::string>(it.GetNode() );
 //          entTypeString="node";
 //          break;
 //        case ResultInfo::ELEMENT:
-//          entityString = GenStr(it.GetElem()->elemNum );
+//          entityString = lexical_cast<std::string>(it.GetElem()->elemNum );
 //          break;
 //        case ResultInfo::SURF_ELEM:
-//          entityString = GenStr(it.GetSurfElem()->elemNum );
+//          entityString = lexical_cast<std::string>(it.GetSurfElem()->elemNum );
 //          break;
 //        case ResultInfo::REGION:
 //          entityString = ptGrid_->RegionIdToName( it.GetRegion() );
@@ -518,7 +518,7 @@ namespace CoupledField {
       shared_ptr<EntityList> list = res->GetEntityList();
       totalName = namePrefix + "-";
       totalName += list->GetName();
-      totalName += "-" + GenStr(step);
+      totalName += "-" + lexical_cast<std::string>(step);
 //      if( res->GetEntryType() == BaseMatrix::DOUBLE ) {
 //        totalName += "s";
 //      } else {
@@ -690,14 +690,14 @@ namespace CoupledField {
     
     StdVector<std::string> ret;
 
-    ret.Push_back( GenStr( it.GetNode() ) );
+    ret.Push_back( lexical_cast<std::string>( it.GetNode() ) );
 
     Vector<Double> locCoord, globCoord;
     ptGrid_->GetNodeCoordinate( globCoord, it.GetNode() );
     if( coordSys_ != NULL ) {
       coordSys_->Global2LocalCoord( locCoord, globCoord );
       for( UInt iDim = 0; iDim < locCoord.GetSize(); iDim++ ) {
-        ret.Push_back( GenStr( locCoord[iDim] ) );
+        ret.Push_back( lexical_cast<std::string>( locCoord[iDim] ) );
       }
     }
   return ret;
@@ -708,7 +708,7 @@ namespace CoupledField {
 
     StdVector<std::string> ret;
     
-    ret.Push_back( GenStr( it.GetElem()->elemNum ) );
+    ret.Push_back( lexical_cast<std::string>( it.GetElem()->elemNum ) );
     
     Vector<Double> elemLocCoord, locCoord, globCoord;
     Matrix<Double> cornerCoords;
@@ -721,7 +721,7 @@ namespace CoupledField {
     if( coordSys_ != NULL ) {
       coordSys_->Global2LocalCoord( locCoord, globCoord );
       for( UInt iDim = 0; iDim < locCoord.GetSize(); iDim++ ) {
-        ret.Push_back( GenStr( locCoord[iDim] ));
+        ret.Push_back( lexical_cast<std::string>( locCoord[iDim] ));
       }
     }
     return ret;
@@ -732,17 +732,17 @@ namespace CoupledField {
     StdVector<std::string> ret;
     ret.Resize(1);
     
-    ret[0] = GenStr( it.GetRegion() );
+    ret[0] = lexical_cast<std::string>( it.GetRegion() );
     return ret;
   }
   
   std::string SimOutputText::ComplexAsAmplPhase( const Complex& val ) const {
     
-    return GenStr( std::abs(val) ) + delim_ + GenStr( CPhase(val) );
+    return lexical_cast<std::string>( std::abs(val) ) + delim_ + lexical_cast<std::string>( CPhase(val) );
     
   }
 
   std::string SimOutputText::ComplexAsRealImag( const Complex& val ) const {
-    return GenStr( val.real()) + delim_ + GenStr( val.imag() );
+    return lexical_cast<std::string>( val.real()) + delim_ + lexical_cast<std::string>( val.imag() );
   }
 }

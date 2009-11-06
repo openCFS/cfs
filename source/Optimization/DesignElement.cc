@@ -239,7 +239,7 @@ double DesignElement::GetValue(ValueSpecifier sp) const
     return simp->weight;
   case NUM_NEIGHBOURS:       
     if(simp == NULL) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to SIMP");
-    return simp->neighbourhood.GetSize();
+    return simp->neighborhood.GetSize();
   case CONSTRAINT_GRADIENT:  
     throw Exception("for constraint gradient we need an index!");
   case TOPGRAD_VALUE:
@@ -360,104 +360,11 @@ void DesignElement::SetEnums()
 SIMPElement::SIMPElement(DesignElement* base)
 {
   this->de_ = base;
-  this->filter_ = false;
+  this->filter = false;
   this->weight  = 1.0;
 }
 
 
-void SIMPElement::InitFilter(StdVector<DesignElement>& data, ParamNode* pn)
-{
-  DesignElement::Filter filter = DesignElement::filter.Parse(pn->Get("type"));
-  double value  = pn->Get("value")->AsDouble();
-
-  if(value == 0.0) return; // todo: infoParam
-
-  double avg_radius = 0;
-  double avg_neighbours = 0;
-
-  Grid* grid = domain->GetGrid();
-  double dim = (double) grid->GetDim();
-  Matrix<double>  coords; 
-  // assume uniform grid!!
-  grid->GetElemNodesCoord(coords, data[0].elem->connect, false );
-  
-  // look for the neighbours. This is n^2 but Manfred said, that there
-  // will be a smarter structure soon in CFS to do it faster.
-  // for the same reason GridCFS<DIM>::GetElemsNextToNodes() is not used.
-  for(UInt element = 0; element < data.GetSize(); element++)
-  {
-    DesignElement* de = &data[element];
-
-    de->simp->filter_ = value > 0.0;
-    Point& loc = *de->GetLocation();
-
-    double radius, tmp;
-
-    switch(filter)
-    {
-    case DesignElement::RADIUS:
-      radius = value;
-      break;
-
-    case DesignElement::VOLUME_RADIUS:
-      // TODO really check for axis symmetry off
-      tmp = de->elem->ptElem->CalcVolume(coords, false);
-      // The radius is <value> times square/cube edge length where the
-      // square/cube has the volume of the element
-      radius = value * std::pow(tmp, 1.0/dim);
-      LOG_DBG3(del) << "from volume " << tmp << " to radius " << radius;
-      break;
-
-    case DesignElement::MAX_EDGE:
-      de->elem->ptElem->GetMaxMinEdgeLength(coords, radius, tmp);
-      radius = value * radius;
-      LOG_DBG3(del) << "Element " << de->elem->elemNum << " edge max=" << radius << " min=" << tmp;
-      break;
-
-    default:
-      assert(false);
-    }
-
-    for(UInt n = 0; n < data.GetSize(); n++)
-    {
-      // an element is not a neighbour of itself!
-      if(de->elem->elemNum == data[n].elem->elemNum) continue;
-
-      double distance = Point::dist(loc, *(data[n].GetLocation()));
-      if(distance < radius)
-      {
-        // value is here a double radius
-        // this is the implementation from Bendsoe/ Sigmund
-        NeighbourElement ne;
-        ne.neighbour = &data[n];
-        ne.weight    = value - distance;
-        ne.distance  = distance;
-        de->simp->neighbourhood.Push_back(ne); // let the default copy constructor work!
-        // std::cout << "element " << data[element].elem->elemNum << " "
-        //          << data[element].location_.ToString() << " has neighbour "
-        //          << data[n].elem->elemNum << " " <<  data[n].location_.ToString()
-        //          << " distance= " << distance << " weight=" << ne.weight << std::endl;
-      }
-    } // here the element is calculated
-
-    // now normalize the weights. The weight of this element is by definition 1.0
-    double sum = 1.0;
-    for(unsigned int e = 0; e < de->simp->neighbourhood.GetSize(); e++)
-      sum += de->simp->neighbourhood[e].weight;
-
-    // now normalize all
-    de->simp->weight /= sum;
-    for(unsigned int e = 0; e < de->simp->neighbourhood.GetSize(); e++)
-      de->simp->neighbourhood[e].weight /= sum;
-
-    avg_radius += radius;
-    avg_neighbours += de->simp->neighbourhood.GetSize();
-  }
-
-  // for direct debug output: determin neighbourhood statistics
-  std::cout << "Filter: avg radius: " << (avg_radius / data.GetSize())
-  << " avg neighbourhood: " << (avg_neighbours / data.GetSize()) << std::endl;
-}
 
 double SIMPElement::GetFilteredValue(DesignElement::ValueSpecifier sp, bool design_weighted) const
 {
@@ -466,9 +373,9 @@ double SIMPElement::GetFilteredValue(DesignElement::ValueSpecifier sp, bool desi
   double factor_sum = 0.0;
   double weight_sum = 0.0;
 
-  for(UInt i = 0; i < neighbourhood.GetSize(); i++)
+  for(UInt i = 0; i < neighborhood.GetSize(); i++)
   {
-    const NeighbourElement& ne = neighbourhood[i];
+    const NeighbourElement& ne = neighborhood[i];
     double des_weight = design_weighted ?  ne.neighbour->GetDesign(DesignElement::PLAIN) : 1.0;
     double factor = ne.weight * ne.neighbour->GetValue(sp) * des_weight;
     factor_sum += factor;
@@ -500,19 +407,19 @@ void SIMPElement::Dump()
 {
   double weight_sum = weight;
   double distance_avg = 0.0;
-  for(unsigned int i = 0; i < neighbourhood.GetSize(); i++)
+  for(unsigned int i = 0; i < neighborhood.GetSize(); i++)
   {
-    weight_sum   += neighbourhood[i].weight;
-    distance_avg += neighbourhood[i].distance;
+    weight_sum   += neighborhood[i].weight;
+    distance_avg += neighborhood[i].distance;
   }
-  distance_avg /= neighbourhood.GetSize();
+  distance_avg /= neighborhood.GetSize();
 
   std::cout << "\nelement: " << de_->elem->elemNum << " location " << de_->GetLocation()->ToString() 
             << " weight sum " << weight_sum << " this weight " << weight <<" distance avg " << distance_avg << std::endl;
-  for(unsigned int i = 0; i < neighbourhood.GetSize(); i++)
-    std::cout << "  n[" << i << "]: elem " << neighbourhood[i].neighbour->elem->elemNum << " location "
-              << neighbourhood[i].neighbour->GetLocation()->ToString() 
-              << " dist=" << neighbourhood[i].distance << " w=" << neighbourhood[i].weight << std::endl;
+  for(unsigned int i = 0; i < neighborhood.GetSize(); i++)
+    std::cout << "  n[" << i << "]: elem " << neighborhood[i].neighbour->elem->elemNum << " location "
+              << neighborhood[i].neighbour->GetLocation()->ToString()
+              << " dist=" << neighborhood[i].distance << " w=" << neighborhood[i].weight << std::endl;
 }
 
 
@@ -692,6 +599,7 @@ string VicinityElement::ToString()
   ss << ")";
   return ss.str();
 }
+
 
 ResultDescription::ResultDescription()
 {

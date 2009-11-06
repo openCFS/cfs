@@ -162,7 +162,7 @@ namespace CoupledField {
       InfoNode* in_ = list->Get("region");
       in_->Get("name")->SetValue(regionNodes[i]->Get("name")->AsString());
 
-      RegionIdType actRegionId = ptgrid_->RegionNameToId(regionNodes[i]->Get("name")->AsString());
+      RegionIdType actRegionId = ptgrid_->GetRegion().Parse(regionNodes[i]->Get("name")->AsString());
       subdoms_.Push_back( actRegionId );
     }
 
@@ -256,7 +256,7 @@ namespace CoupledField {
     {
       std::string aux = "penalty";
       ParamNode * systemsNode =
-        param->Get("sequenceStep", "index", GenStr(sequenceStep_) )
+        param->Get("sequenceStep", "index", sequenceStep_)
         ->Get("linearSystems",false);
       if( systemsNode ) {
         ParamNode * mySystemNode = systemsNode->
@@ -530,24 +530,93 @@ namespace CoupledField {
    }
 
 
-  void SinglePDE::WriteGeneralPDEdefines() {
+   /** can generally be called multiple times. We overwrite old values! Brute force but keeps data size */
+   void SinglePDE::WriteGeneralPDEdefines()
+   {
+    // loads
+    InfoNode* base = infoNode_->Get(InfoNode::HEADER)->Get("loads");
 
+    for(unsigned int i = 0, in = loads_.GetSize(); i < in; i++)
+    {
+      LoadBc const & actBc = *loads_[i];
+      EntityList const & actList = *actBc.entities;
 
-    // 1.) Homogeneous boundary condition
-    Info-> WriteHomDirBC( pdename_, hdBcs_ );
+      InfoNode* in = base->Get(actList.listType.ToString(actList.GetType()), "name", actList.GetName());
+      in->Get("dof")->SetValue(actBc.result->GetDofName(actBc.dof));
+      in->Get("value")->SetValue(actBc.value);
+      in->Get("phase")->SetValue(actBc.phase);
+    }
 
-    // 2.) Inhomogeneous boundary conditions
-    Info->WriteInhomDirBC( pdename_, idBcs_ );
+    // Homogeneous Dirichlet BC
+    base = infoNode_->Get(InfoNode::HEADER)->Get("homDirichletBC");
 
-    // 3.) Inhom. Neumann boundary conditions
-    Info->WriteInhomNeuBC( pdename_, inBcs_ );
+    for(unsigned int i = 0, in = hdBcs_.GetSize(); i < in; i++)
+    {
+      HomDirichletBc const & actBc = *hdBcs_[i];
+      EntityList const & actList = *actBc.entities;
 
-    // 4.) Constraints
-    Info->WriteConstraints( pdename_, constraints_ );
+      InfoNode* in = base->Get(actList.listType.ToString(actList.GetType()), "name", actList.GetName());
+      in->Get("dof")->SetValue(actBc.result->GetDofName(actBc.dof));
+    }
 
-    // 5.) Loads
-    Info->WriteLoad( pdename_, loads_ );
+    // Inhomogeneous Dirichlet BC
+    base = infoNode_->Get(InfoNode::HEADER)->Get("inhomDirichletBC");
+
+    for(unsigned int i = 0, in = idBcs_.GetSize(); i < in; i++)
+    {
+      InhomDirichletBc const & actBc = *idBcs_[i];
+      EntityList const & actList = *actBc.entities;
+
+      InfoNode* in = base->Get(actList.listType.ToString(actList.GetType()), "name", actList.GetName());
+      in->Get("dof")->SetValue(actBc.result->GetDofName(actBc.dof));
+      in->Get("value")->SetValue(actBc.value);
+      in->Get("phase")->SetValue(actBc.phase);
+    }
+
+    // Inhomogeneous Neumann BC
+    base = infoNode_->Get(InfoNode::HEADER)->Get("inhomNeumannBC");
+
+    for(unsigned int i = 0, in = inBcs_.GetSize(); i < in; i++)
+    {
+      InhomNeumannBc const & actBc = *inBcs_[i];
+      EntityList const & actList = *actBc.entities;
+
+      InfoNode* in = base->Get(actList.listType.ToString(actList.GetType()), "name", actList.GetName());
+      in->Get("dof")->SetValue(actBc.result->GetDofName(actBc.dof));
+      in->Get("value")->SetValue(actBc.value);
+      in->Get("phase")->SetValue(actBc.phase);
+    }
+
+    // constraints
+    base = infoNode_->Get(InfoNode::HEADER)->Get("constraints");
+    // periodic boundary conditions blow this up.
+    if(constraints_.GetSize() <= 5 || progOpts->DoListMapping())
+    {
+      for(unsigned int i = 0, in = constraints_.GetSize(); i < in; i++)
+      {
+        Constraint const & actBc = *constraints_[i];
+        EntityList const & masterList = *actBc.masterEntities;
+        EntityList const & slaveList = *actBc.slaveEntities;
+
+        InfoNode* in = base->Get("pair", "master", masterList.GetName());
+        in->Get("slave")->SetValue(slaveList.GetName());
+        // the names are repeated for the different dofs
+        std::string dof = actBc.result->GetDofName(actBc.masterDof);
+        if(!in->Has("dof", dof))
+          in->Get("dof", InfoNode::APPEND)->SetValue(dof);
+
+        in->Get("periodic")->SetValue(actBc.periodic);
       }
+    }
+    else
+    {
+      if(constraints_.GetSize() > 5)
+      {
+        base->Get("number")->SetValue(constraints_.GetSize());
+        base->Get(InfoNode::COMMENT)->SetValue("run cfs with -l for list");
+      }
+    }
+  }
 
   void SinglePDE::ReadStoreResults() {
 
@@ -666,7 +735,7 @@ namespace CoupledField {
 
         // otherwise check, if result is to be saved on "allRegions"
         if( actResultNode->Has("allRegions" ) ) {
-          ptgrid_->RegionIdToName( regionNames, subdoms_ );
+          ptgrid_->GetRegion().ToString(subdoms_,regionNames);
 
           ParamNode * allRegionsNode = actResultNode->Get("allRegions");
 
@@ -775,7 +844,7 @@ namespace CoupledField {
             if( neighborRegions.GetSize() > 0 ) {
               if( !neighborRegions[iRegion].empty() ) {
                 surfNeighborRegions_[actSol] =
-                  ptgrid_->RegionNameToId( neighborRegions[iRegion] );
+                  ptgrid_->GetRegion().Parse( neighborRegions[iRegion] );
               }
             }
 
@@ -877,7 +946,7 @@ namespace CoupledField {
             if( neighborRegions.GetSize() > 0 ) {
               if( !neighborRegions[i].empty() ) {
                 surfNeighborRegions_[actSol] =
-                  ptgrid_->RegionNameToId( neighborRegions[i] );
+                  ptgrid_->GetRegion().Parse( neighborRegions[i] );
               }
             }
 
@@ -938,13 +1007,13 @@ namespace CoupledField {
 #ifdef USE_SCRIPTING
     StdVector<std::string> context;
     context.Push_back( pdename_ );
-    context.Push_back( GenStr(solveStep_->GetActStep() ) );
+    context.Push_back( lexical_cast<std::string>(solveStep_->GetActStep() ) );
 
     if ( analysistype_ == TRANSIENT ||
          analysistype_ == STATIC ) {
-      context.Push_back( GenStr(solveStep_->GetActTime() ) );
+      context.Push_back( lexical_cast<std::string>(solveStep_->GetActTime() ) );
     } else {
-      context.Push_back( GenStr(solveStep_->GetActFreq() ) );
+      context.Push_back( lexical_cast<std::string>(solveStep_->GetActFreq() ) );
     }
     messenger->TriggerEvent( CFSMessenger::CFS_CalcResults,
                              context );
@@ -961,13 +1030,13 @@ namespace CoupledField {
  #ifdef USE_SCRIPTING
      StdVector<std::string> context;
      context.Push_back( pdename_ );
-     context.Push_back( GenStr(solveStep_->GetActStep() ) );
+     context.Push_back( lexical_cast<std::string>(solveStep_->GetActStep() ) );
 
      if ( analysistype_ == TRANSIENT ||
           analysistype_ == STATIC ) {
-       context.Push_back( GenStr(solveStep_->GetActTime() ) );
+       context.Push_back( lexical_cast<std::string>(solveStep_->GetActTime() ) );
      } else {
-       context.Push_back( GenStr(solveStep_->GetActFreq() ) );
+       context.Push_back( lexical_cast<std::string>(solveStep_->GetActFreq() ) );
      }
      messenger->TriggerEvent( CFSMessenger::CFS_SetBCs, context );
  #endif
@@ -1131,8 +1200,7 @@ namespace CoupledField {
         }
 
         shared_ptr<HomDirichletBc> actBc ( new HomDirichletBc );
-        EntityList::ListType listType;
-        EntityList::String2Enum( entType, listType );
+        EntityList::ListType listType = EntityList::listType.Parse(entType);
         shared_ptr<EntityList> actList =
           ptgrid_->GetEntityList( listType,
                                   name, defineType );
@@ -1183,10 +1251,9 @@ namespace CoupledField {
         } else {
           defineType = EntityList::REGION;
         }
-        EntityList::ListType listType;
-        EntityList::String2Enum( entType, listType );
+
         shared_ptr<EntityList> actList =
-          ptgrid_->GetEntityList( listType,
+          ptgrid_->GetEntityList( EntityList::listType.Parse(entType),
                                   name, defineType );
         actBc->entities = actList;
         actBc->result = actResultInfo;
@@ -1237,10 +1304,8 @@ namespace CoupledField {
           defineType = EntityList::REGION;
         }
 
-        EntityList::ListType listType;
-        EntityList::String2Enum( entType, listType );
         shared_ptr<EntityList> actList =
-          ptgrid_->GetEntityList( listType,
+          ptgrid_->GetEntityList( EntityList::listType.Parse(entType),
                                   name, defineType );
 
         actBc->entities = actList;
@@ -1290,10 +1355,8 @@ namespace CoupledField {
           defineType = EntityList::REGION;
         }
 
-        EntityList::ListType listType;
-        EntityList::String2Enum( entType, listType );
         shared_ptr<EntityList> actList =
-          ptgrid_->GetEntityList( listType,
+          ptgrid_->GetEntityList( EntityList::listType.Parse(entType),
                                   name, defineType );
 
         actBc->masterEntities = actList;
@@ -1392,6 +1455,7 @@ namespace CoupledField {
           actBc->slaveDof = actBc->masterDof;
           actBc->result = actResultInfo;
           actBc->eqnMap = eqnMap_;
+          actBc->periodic = true;
 
           // add definition
           constraints_.Push_back( actBc );
@@ -1444,10 +1508,8 @@ namespace CoupledField {
           defineType = EntityList::REGION;
         }
 
-        EntityList::ListType listType;
-        EntityList::String2Enum( entType, listType );
         shared_ptr<EntityList> actList =
-          ptgrid_->GetEntityList( listType,
+          ptgrid_->GetEntityList( EntityList::listType.Parse(entType),
                                   name, defineType );
 
         actLoad->entities = actList;
@@ -1544,7 +1606,7 @@ namespace CoupledField {
     }
 
     // Convert region names to ID - vector
-    ptgrid_->RegionNameToId(regionIds, names);
+    ptgrid_->GetRegion().Parse(names, regionIds );
 
 
     // loop over all regions
@@ -1592,7 +1654,7 @@ namespace CoupledField {
       curLoad = & (*it).second;
 
       // -- Fill in the data we have so far --
-      curLoad->name = ptgrid_->RegionIdToName( regionIds[i] );
+      curLoad->name = ptgrid_->GetRegion().ToString( regionIds[i] );
       curLoad->phase = phase[0];
 
       if ( curLoad->refCoord != std::string()
@@ -1650,7 +1712,7 @@ namespace CoupledField {
         regionNodes[i]->Get( "coordSysId", refCoordSys );
 
         // get regionId
-        RegionIdType actRegionId = ptgrid_->RegionNameToId( region );
+        RegionIdType actRegionId = ptgrid_->GetRegion().Parse( region );
 
         // if no material is set, continue with next loop run
         if( material.empty() )
@@ -1729,7 +1791,7 @@ namespace CoupledField {
         regionNodes[i]->Get( "composite", composite );
 
         // get regionId
-        RegionIdType actRegionId = ptgrid_->RegionNameToId( region );
+        RegionIdType actRegionId = ptgrid_->GetRegion().Parse( region );
 
         // if no composite is set, continue with next loop run
         if( composite == "" )
@@ -1795,7 +1857,7 @@ namespace CoupledField {
     // a normal material or a composite material
     for( i = 0; i < numRegions; ++i ) {
       regionNodes[i]->Get( "name", region );
-      RegionIdType actRegionId = ptgrid_->RegionNameToId( region );
+      RegionIdType actRegionId = ptgrid_->GetRegion().Parse( region );
       if (subdoms_.Find(actRegionId) < 0)
         continue;
       if ((materials_.find(actRegionId) == materials_.end())
@@ -1945,7 +2007,7 @@ namespace CoupledField {
       if (errorMap_[iem]>tol4Elm) {
         elemssd[iem]->refinementFlag = 1;
 
-        numChilds=elemssd[iem]->ptElem->getNumChilds();
+        numChilds=elemssd[iem]->ptElem->GetNumChilds();
 
         numRefinements = defineRefinements(errorMap_[iem],tol4Elm,numChilds);
 
@@ -2325,7 +2387,7 @@ namespace CoupledField {
         }
 
         // pass vector to memento object
-        std::string regionName = ptgrid_->RegionIdToName( subdoms_[iRegion] );
+        std::string regionName = ptgrid_->GetRegion().ToString( subdoms_[iRegion] );
         myMemento->solution_[regionName] = values;
         if ( analysistype_ == TRANSIENT ) {
           myMemento->solDeriv1_[regionName] = deriv1;
@@ -2369,7 +2431,7 @@ namespace CoupledField {
         }
 
         // pass vector to memento object
-        std::string regionName = ptgrid_->RegionIdToName( subdoms_[iRegion] );
+        std::string regionName = ptgrid_->GetRegion().ToString( subdoms_[iRegion] );
         myMemento->solution_[regionName] = values;
       }
     }
@@ -2456,7 +2518,7 @@ namespace CoupledField {
         for( UInt iRegion = 0; iRegion < subdoms_.GetSize(); iRegion++ ) {
 
           // Check for related region in memento object
-          std::string name = ptgrid_->RegionIdToName( subdoms_[iRegion] );
+          std::string name = ptgrid_->GetRegion().ToString( subdoms_[iRegion] );
           if( memento_->solution_.find( name) != memento_->solution_.end() ) {
 
             // get grip of vector and derivatives of memento
@@ -2505,7 +2567,7 @@ namespace CoupledField {
         for( UInt iRegion = 0; iRegion < subdoms_.GetSize(); iRegion++ ) {
 
           // Check for related region in memento object
-          std::string name = ptgrid_->RegionIdToName( subdoms_[iRegion] );
+          std::string name = ptgrid_->GetRegion().ToString( subdoms_[iRegion] );
           if( memento_->solution_.find( name) != memento_->solution_.end() ) {
 
             // get grip of vector and derivatives of memento
@@ -2558,7 +2620,7 @@ namespace CoupledField {
           // iterate over all regions of pde
       for( UInt i = 0; i < subdoms_.GetSize(); i++ ) {
 
-        std::string regionName = ptgrid_->RegionIdToName( subdoms_[i] );
+        std::string regionName = ptgrid_->GetRegion().ToString( subdoms_[i] );
 
         // try to find related region in memento object
         if( memento_->solution_.find( regionName ) !=
@@ -2590,8 +2652,8 @@ namespace CoupledField {
               actBc->result = results_[0];
               actBc->eqnMap = eqnMap_;
               actBc->dof = iDof+1;
-              actBc->value = GenStr(std::abs( val ) );
-              actBc->phase = GenStr(std::atan2( val.imag(), val.real())
+              actBc->value = lexical_cast<std::string>(std::abs( val ) );
+              actBc->phase = lexical_cast<std::string>(std::atan2( val.imag(), val.real())
                                     *180/PI );
 
               // append idbc at end of list
@@ -2812,7 +2874,7 @@ namespace CoupledField {
     for (UInt i=0; i<nodeNrs.GetSize(); i++) {
       Double val;
       sol_->Get(nodeNrs[i]-1,0,val);
-      SCRIPT_RETVAL.Push_back(GenStr(val));
+      SCRIPT_RETVAL.Push_back(lexical_cast<std::string>(val));
     }
   }
 
@@ -2878,7 +2940,7 @@ namespace CoupledField {
     // outstream for info-File
     std::ostringstream out;
     out.clear();
-    out << "PML for region '" << ptgrid_->RegionIdToName(actRegion) << "':" << std::endl;
+    out << "PML for region '" << ptgrid_->GetRegion().ToString(actRegion) << "':" << std::endl;
 
     if ( inner.GetNumCols() != dim_ ) {
 
@@ -3074,7 +3136,7 @@ namespace CoupledField {
       actRegion = it->first;
 
       // Get current region node
-      std::string regionName = ptgrid_->RegionIdToName( actRegion );
+      std::string regionName = ptgrid_->GetRegion().ToString( actRegion );
 
       if ( IsRegionPiezoHyst( regionName ) )
       	isHyst = true;
@@ -3150,7 +3212,7 @@ namespace CoupledField {
       actRegion = it->first;
       
       // Get current region node
-      std::string regionName = ptgrid_->RegionIdToName( actRegion );
+      std::string regionName = ptgrid_->GetRegion().ToString(actRegion);
 
       if ( IsRegionMicroPiezo( regionName ) ) 
       	isMicroPiezo = true;	

@@ -577,8 +577,6 @@ namespace CoupledField {
       gridFile->write((char*)&numelem,sizeof(UInt));
 
     UInt i;
-    StdVector<RegionIdType> regionIds;
-    ptGrid_->GetRegionIds(regionIds);
     UInt numRegions = ptGrid_->GetNumRegions();
 
     std::vector<UInt> connect;

@@ -191,7 +191,7 @@ void OptimalityCondition::CalcNextFramedIteration()
   lower_ = lower_ == upper_ ? start_lower_ : lambda_ * (always_enlarge_ ? enlarge_lower_ : 1.0);
   upper_ = lower_ == upper_ ? start_upper_ : lambda_ * (always_enlarge_ ? enlarge_upper_ : 1.0);
   
-  // we count lambda iterations to handle the problem of comming too close to a boundary
+  // we count lambda iterations to handle the problem of coming too close to a boundary
   lambda_iters_ = 0;
   int count = 0;
   double err;
@@ -480,20 +480,20 @@ std::string OptimalityCondition::LogFileHeader()
 
 void OptimalityCondition::LogFileLine(std::ofstream* out, InfoNode* iteration)
 {
-  *out << "\t" << lambda_ << "\t" << lambda_iters_;
+  if(out) *out << "\t" << lambda_ << "\t" << lambda_iters_;
 
   iteration->Get("lambda")->SetValue(lambda_);
   iteration->Get("lambda_iters")->SetValue(lambda_iters_);
   
   if(type_ == FRAMED)
   { 
-    *out << "\t" << lower_ << "\t" << upper_;
+    if(out) *out << "\t" << lower_ << "\t" << upper_;
     iteration->Get("lower")->SetValue(lower_);
     iteration->Get("upper")->SetValue(upper_);
   }
   if(type_ == FUMBLE)
   { 
-    *out << "\t" << step_;
+    if(out) *out << "\t" << step_;
     iteration->Get("step")->SetValue(step_);
   }
 }

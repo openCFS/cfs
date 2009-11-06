@@ -332,12 +332,15 @@ namespace CoupledField
                                        const Matrix<Double> & CornerCoords,
                                        const Elem* elem);
 
-    //! Calculation the volume (area, length) of an element
-    /*!
-      \param CornerCoords (input)
-      \param isaxi (true: axisymmetric formulation)
-    */
-    virtual Double CalcVolume(const Matrix<Double> & CornerCoords, const bool isaxi);
+
+    /** Calculation the volume (area, length) of an element */
+    Double CalcVolume(const Matrix<Double>& cornerCoords, const bool isaxi);
+
+    /** Calculate the diameter vector of the element.
+     * Handles the element by itself and no axis-symmetric case.
+     * @param coords matrix with coordinates (input)
+     * @param diameter output vector with only positive entries. */
+    static void CalcDiameter(const Matrix<Double>& coords, Point& diameter);
 
     /** Calculates the barycenter of the element. For 3D and 2D (z=0 then)
      * This is the average of every coordinate.
@@ -437,7 +440,7 @@ namespace CoupledField
     Vector<Double> GetIntWeights() const {return IntWeights_;};
 
     // return number of childs in refinement
-    virtual UInt getNumChilds() const { return numChilds_;}
+    virtual UInt GetNumChilds() const { return numChilds_;}
 
 
     // ========================================================================

@@ -72,32 +72,36 @@ namespace CoupledField {
   template<class TYPE>
   void StdVector<TYPE>::Reserve(unsigned int capacity)
   {
-    if(capacity > capacity_)
-    {
-      capacity_ = capacity;
+    unsigned int old_size = size_;
 
-      TYPE * help = new TYPE[capacity];
+    Resize(capacity);
 
-      for (unsigned int i=0; i<size_; i++)
-        help[i] = data_[i];
-
-      delete[] data_;
-      data_ = help;
-    }
+    size_ = old_size;
   }
 
   template<class TYPE>
   void StdVector<TYPE>::Resize(const unsigned int size)
   {
-    if (size != size_ ||  capacity_ < size)
+#ifdef CHECK_INITIALIZED
+    if(capacity_ < size_)
+      EXCEPTION("capacity " << capacity_ << " smaller size " << size_);
+#endif
+
+    // the cheap case, e.g. Resize(0)
+    if(size <= capacity_)
+    {
+      size_ = size;
+    }
+    else
     {
       TYPE* help = new TYPE[size];
 
-      unsigned int limit = std::min(size, size_);   
-
-      for( unsigned int i = 0; i < limit; i++ ) 
+      for (unsigned int i=0; i<size_; i++)
         help[i] = data_[i];
       
+      // interestingly std::copy(data_, data_ +  sizeof(TYPE) * size_, help)
+      // does not work. Due to copy constructor stuff for complex types??
+
       delete[] data_;
       data_ = help;
       size_ = size;
@@ -183,65 +187,13 @@ namespace CoupledField {
       data_[i] = source[i];
   }
   
-  template<class TYPE>
-  void StdVector<TYPE>::Insert(const TYPE & y, unsigned int pos)
-  {
-#ifdef CHECK_INDEX
-    if (pos >= size_)
-      EXCEPTION( "StdVector::Insert: Index out of bounds" );
-#endif
-
-    TYPE * help = new TYPE[size_+1];
-    size_ = size_+1;
-    capacity_ = size_;
-
-    for (unsigned int i=0; i<pos; i++)
-      help[i] = data_[i];
-
-    help[pos] = y;
-
-    for (unsigned int i=pos+1; i<size_; i++)
-      help[i] = data_[i-1];
-
-    delete[] data_;
-    data_ = help;
-  }
-
-  template<class TYPE>
-  void StdVector<TYPE>::Insert(const TYPE & y, unsigned int pos, unsigned int numCopies)
-  {
-#ifdef CHECK_INDEX
-    if (pos >= size_)
-      EXCEPTION( "StdVector::Insert: Index out of bounds" );
-
-    if (numCopies < 1)
-      EXCEPTION( "StdVector::Insert: NumCopies must be greater 1" );
-#endif
-
-    TYPE * help = new TYPE[size_+numCopies];
-    size_ = size_+numCopies;
-    capacity_ = size_;
-
-    for (unsigned int i=0; i<pos; i++)
-      help[i] = data_[i];
-
-    for (unsigned int i=pos; i<pos+numCopies; i++)   
-      help[i] = y;
-
-    for (unsigned int i=pos+numCopies; i<size_; i++)
-      help[i] = data_[i-1];
-
-    delete[] data_;
-    data_ = help;
-  }
-
 
   // *************
   //   Push_back
   // *************
   template<class TYPE>
-  void StdVector<TYPE>::Push_back( const TYPE &y ) {
-
+  void StdVector<TYPE>::Push_back( const TYPE &y )
+  {
     // Check whether capacity is sufficiently large to perform
     // a push-back operation. If not allocate memory according
     // to the following simply scheme: Each time capacity is
@@ -260,6 +212,7 @@ namespace CoupledField {
       }
 
       // Perform push-back and increase size
+      // note, that y might point to data, so copy before delete
       help[size_] = y;
       size_++;
 
@@ -268,7 +221,6 @@ namespace CoupledField {
       data_ = help;
 
     } else {
-      
       // Perform push-back and increase size
       data_[size_] = y;
       size_++;

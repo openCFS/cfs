@@ -361,7 +361,7 @@ namespace CoupledField {
 
     // fetch current postProcNode
     ParamNode * postProcNode = 
-      param->Get("sequenceStep", "index", GenStr(sequenceStep_) )
+      param->Get("sequenceStep", "index", sequenceStep_)
       ->Get( "postProcList")->Get( "postProc", "id", postProcName );
     
     if( !postProcNode ) {

@@ -88,7 +88,7 @@ double PiezoSIMP::CalcElecEnergy(Excitation& excite)
 
   // calculate the element sum of p^T K_pp p or p^T K_pp p^*
   // here we do <K_pp p, p> which is equivalent as K_pp is self adjoined
-  // (it is real and K_pp = K_pp^T). As the complex scalarproduct is
+  // (it is real and K_pp = K_pp^T). As the complex scalar product is
   // <x, y> = \sum x_i y_i^* we have 
   // <K_pp p, p> =  p^T K_pp p in the real case and p^T K_pp p^* in complex 
   
@@ -109,7 +109,7 @@ double PiezoSIMP::CalcElecEnergy(Excitation& excite)
   
   double sum = 0.0;
   
-  // for ParamMat we need the derivative w.r.t. every designvariable, else the base loop is only run once
+  // for ParamMat we need the derivative w.r.t. every design variable, else the base loop is only run once
   for(int i = 0, n = design->data.GetSize(); i < n; i++) 
   {
     Vector<T>& p_vec = dynamic_cast<Vector<T>& >(*all_p[i]);

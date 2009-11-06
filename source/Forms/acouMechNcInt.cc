@@ -71,7 +71,7 @@ namespace CoupledField {
                             << " with coordinates \n"
                             << ptCoord_
                             << " belonging to region "
-                            << ptGrid->RegionIdToName(actNCElem->regionId);
+                            << ptGrid->GetRegion().ToString(actNCElem->regionId);
 
     // is our interface coplanar?
     isCoplanar = ptGrid->IsNcInterfaceCoplanar(actElem_->regionId);

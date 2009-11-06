@@ -52,7 +52,8 @@ public:
 
 private:
 
-  /** Helper method that identifies the neighbourhood of two elements given by their nodal coordinates. */
+  /** Helper method that identifies the neighborhood of two elements given by their nodal coordinates.
+   * TODO: make use of the element neighbors containing the number of common nodes! */
   static bool IdentifyNeighbor(Matrix<Double>& reference, Matrix<Double>& other, int& dimension, bool& positive);
 };
 
@@ -290,46 +291,42 @@ public:
   /** Base init of element */
   SIMPElement(DesignElement* base);
 
-  /** Initialized filtering. Sets the locations and neighbours and enables the flag
-   * @param data the region, we substitue a seperate container class by this static method
-   * @param pn our parameter section */
-  static void InitFilter(StdVector<DesignElement>& data, ParamNode* pn);
-
   /** does the core for GetDesign(). GetObjectiveGradient(), ... */
   double GetFilteredValue(DesignElement::ValueSpecifier valueSpecifier, bool design_weighted) const;
 
-  /** Neigbourhood is element and precalculated distance */
+  /** Neigborhood is element and precalculated distance */
   struct NeighbourElement
   {
   public:
     /** read the variable */
     DesignElement* neighbour;
 
-    /** precalculated weight by distance - to be multiplid with the density! */
-    double          weight;
+    /** precalculated weight by distance - to be multiplied with the density! */
+    double        weight;
 
     /** the distance in domain dimensions! */
-    double          distance;
+    double        distance;
   };
 
-  /** The weight of THIS element to be summed to 1.0 with all neighbour weights */
+  /** The weight of THIS element to be summed to 1.0 with all neighbor weights */
   double weight;
 
-  /** The neighbours if filter otherwise emtpy. Set by InitFilter().
-   * The element itself is NOT part of the neighbourhood! */
-  StdVector<NeighbourElement> neighbourhood;
+  /** The neighbors if filter otherwise empty. Set by InitFilter().
+   * The element itself is NOT part of the neighborhood! */
+  StdVector<NeighbourElement> neighborhood;
 
-  /** for debugging. Summs the weights of all neighbours, ... */
+  /** for debugging. Sums the weights of all neighbors, ... */
   void Dump();
 
-private:
-
   /** Do filtering? */
-  bool filter_;
+  bool filter;
+
+private:
 
   /** We need our base design element to do the filtering */
   DesignElement* de_;
 };
+
 
 /** <p>A result description holds the result element in the xml file which describes what data from
  * a DesignElement is to be written to the cfs output. The following parameters have to be given

@@ -85,8 +85,7 @@ DEFINE_LOG(magpde, "magpde")
               = nodeRegionList->GetList("region");
             for (UInt iReg=0, nReg=resultRegions.GetSize(); iReg<nReg; ++iReg)
             {
-              RegionIdType curRegId = ptgrid_->RegionNameToId(
-                  resultRegions[iReg]->Get("name")->AsString());
+              RegionIdType curRegId = ptgrid_->GetRegion().Parse(resultRegions[iReg]->Get("name"));
               if (subdoms_.Find(curRegId) >= -1)
                 regionsForceL_.insert(curRegId);
             }
@@ -163,7 +162,7 @@ DEFINE_LOG(magpde, "magpde")
       if( actNonLinId == "" )
         continue;
       
-      actRegionId = ptgrid_->RegionNameToId( actRegionName );
+      actRegionId = ptgrid_->GetRegion().Parse( actRegionName );
       
       // Check nonLinId was already registerd
       if( nonLinIdType_.find( actNonLinId) == nonLinIdType_.end() ) {
@@ -228,7 +227,7 @@ DEFINE_LOG(magpde, "magpde")
        actMat    = it->second;
 
       // Get current region node
-      std::string regionName = ptgrid_->RegionIdToName( actRegion );
+      std::string regionName = ptgrid_->GetRegion().ToString( actRegion );
 
       // create new entity list
       shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
@@ -398,7 +397,7 @@ DEFINE_LOG(magpde, "magpde")
       for ( UInt coil = 0; coil < coilDef_.GetSize(); coil++ ) {
         if ( actRegion == coilRegionId_[coil] ) {
           std::string factor = coilDef_[coil]->value_ + "/" +
-            GenStr(coilDef_[coil]->windingCrossSection_);
+            lexical_cast<std::string>(coilDef_[coil]->windingCrossSection_);
 
           if ( is3d_ ) {
           	VolForceInt *coilSource3d = 
@@ -407,9 +406,9 @@ DEFINE_LOG(magpde, "magpde")
 
 
             StdVector<std::string> currDensity(3);
-            currDensity[0] = factor + "*" + GenStr(coilDef_[coil]->locFlowDir_[0]);
-            currDensity[1] = factor + "*" + GenStr(coilDef_[coil]->locFlowDir_[1]);
-            currDensity[2] = factor + "*" + GenStr(coilDef_[coil]->locFlowDir_[2]);
+            currDensity[0] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[0]);
+            currDensity[1] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[1]);
+            currDensity[2] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[2]);
             coilSource3d->SetVolForceVector( currDensity,
                                              coilDef_[coil]->flowCoordSys_,
                                              true, 1.0 );
@@ -501,7 +500,7 @@ DEFINE_LOG(magpde, "magpde")
       // get regionId of Lagrangian surface
       StdVector<std::string> keyVec, attrVec, valVec;
       std::string slaveSide;
-      std::string ncIfaceName = ptgrid_->RegionIdToName(ncIFaces_[i]);
+      std::string ncIfaceName = ptgrid_->GetRegion().ToString(ncIFaces_[i]);
 
       if (!ncIfaceListNode) {
         EXCEPTION("No ncInterfaces defined in domain section.");
@@ -514,7 +513,7 @@ DEFINE_LOG(magpde, "magpde")
       //         non-conforming interface (master/slave side)
       LOG_DBG2(magpde) << "NonMatching: Defining nonconforming integrator"
                         << " for M on interface '"
-                        << ptgrid_->RegionIdToName(ncIFaces_[i]) << "'.";
+                        << ptgrid_->GetRegion().ToString(ncIFaces_[i]) << "'.";
       shared_ptr<ElemList> actNcList( new ElemList(ptgrid_ ) );
       actNcList->SetRegion( ncIFaces_[i] );
 
@@ -544,9 +543,9 @@ DEFINE_LOG(magpde, "magpde")
       //         Lagrangian surface (slave side)
       LOG_DBG2(magpde) << "NonMatching: Defining mass integrator"
                         << " for D on interface '"
-                        << ptgrid_->RegionIdToName(ncIFaces_[i]) << "'.";
+                        << ptgrid_->GetRegion().ToString(ncIFaces_[i]) << "'.";
       shared_ptr<SurfElemList> actSDList( new SurfElemList(ptgrid_ ) );
-      actSDList->SetRegion( ptgrid_->RegionNameToId( slaveSide ) );
+      actSDList->SetRegion( ptgrid_->GetRegion().Parse( slaveSide ) );
 
       // D(u, Lambda) has the form of a standard mass
       // integrator with factor 1.0
@@ -1172,7 +1171,7 @@ DEFINE_LOG(magpde, "magpde")
         
         // get region name of actual coil
         std::string regionName = coilNodes[i]->Get("name")->AsString();
-        RegionIdType regionId = ptgrid_->RegionNameToId( regionName );
+        RegionIdType regionId = ptgrid_->GetRegion().Parse( regionName );
 
         coilRegionId_.Push_back( regionId );
         coilDef_.Push_back( shared_ptr<Coil>( new Coil( regionId,
@@ -1209,7 +1208,7 @@ DEFINE_LOG(magpde, "magpde")
         
         // get region name of actual magnet
         std::string regionName = magnetNodes[i]->Get("name")->AsString();
-        RegionIdType regionId = ptgrid_->RegionNameToId( regionName );
+        RegionIdType regionId = ptgrid_->GetRegion().Parse( regionName );
         
         magnetsDomain_.Push_back( regionId );
         
@@ -1383,8 +1382,8 @@ DEFINE_LOG(magpde, "magpde")
     if(domainNCIfaceListNode)
     {
       ParamNode* ncInterfaceListNode =
-        param->Get("sequenceStep", "index", GenStr(sequenceStep_) )
-        ->Get("pdeList")->Get("magnetic")->Get("ncInterfaceList", false);
+        param->Get("sequenceStep", "index", sequenceStep_)
+        ->Get("pdeList/magnetic/ncInterfaceList", false);
       StdVector<ParamNode*> pdeNCIfaceNodes;
 
       if(ncInterfaceListNode)
@@ -1410,7 +1409,7 @@ DEFINE_LOG(magpde, "magpde")
 
           ncIfaceNamesForPDE.Push_back(pdeIfaceName);
         }
-        ptgrid_->RegionNameToId( ncIfaceIds, ncIfaceNamesForPDE );
+        ptgrid_->GetRegion().Parse(ncIfaceNamesForPDE, ncIfaceIds);
 
         for (UInt i = 0; i < ncIfaceIds.GetSize(); i++) {
           ncIFaces_.Push_back(ncIfaceIds[i]);
@@ -1541,7 +1540,7 @@ DEFINE_LOG(magpde, "magpde")
 //       ForceOpVWP_ = new  MagForceOp(ptgrid_, this, eqnMap_, *solhelp, dim_, 
 //                                     materials_,  isaxi_, true );
       
-//       ptgrid_->RegionNameToId( forceRegionIds, forceRegions ); 
+//       ptgrid_->GetRegion().Parse( forceRegionIds, forceRegions );
 //       ForceOpVWP_->Setup( forceRegionIds, forceNodes );
 //     }
   }
@@ -1800,7 +1799,7 @@ DEFINE_LOG(magpde, "magpde")
         StdVector<std::string> couplRegions;
         StdVector<RegionIdType> regionIds;
         ptCoupling_->GetOutputRegions(actCoupling, couplRegions);
-        ptgrid_->RegionNameToId( regionIds, couplRegions );
+        ptgrid_->GetRegion().Parse(couplRegions, regionIds);
         
         // Check, that every coupling region is part of
         // the magnetic pde itself
@@ -1859,7 +1858,7 @@ DEFINE_LOG(magpde, "magpde")
           StdVector<std::string> couplRegions;
           StdVector<RegionIdType> regionIds;
           ptCoupling_->GetOutputRegions(actCoupling, couplRegions);
-          ptgrid_->RegionNameToId( regionIds, couplRegions );
+          ptgrid_->GetRegion().Parse( couplRegions, regionIds );
 
           CalcNodeForceLorentz(*temp, regionIds, cplNodeNumPos_[forcesCount]);
           
@@ -1890,7 +1889,7 @@ DEFINE_LOG(magpde, "magpde")
       Integer sdIndex = subdoms_.Find( regionIds[reg] );
       if( sdIndex == -1 ) {
         EXCEPTION( "The region coupling region '" <<
-            ptgrid_->RegionIdToName( regionIds[reg] )
+            ptgrid_->GetRegion().ToString( regionIds[reg] )
             << "' was not found in magneticPDE" );
       }
 
@@ -1928,7 +1927,7 @@ DEFINE_LOG(magpde, "magpde")
           if( coilIndex != -1 ) {
             MathParser * mParser =  domain->GetMathParser();
             std::string factor = coilDef_[coilIndex]->value_ + "/" 
-            + GenStr(coilDef_[coilIndex]->windingCrossSection_ );
+            + lexical_cast<std::string>(coilDef_[coilIndex]->windingCrossSection_ );
             mParser->SetExpr( mHandle_, factor );
             Double currDens = mParser->Eval(mHandle_);
             if( is3d_ ) {

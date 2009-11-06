@@ -3,7 +3,7 @@ function [ list ] = geolist( filter, dirname )
 %   Detailed explanation goes here
 
 if nargin < 2
-    dirname = 'geo\';
+    dirname = 'geo/';
 end
 
 if nargin < 1

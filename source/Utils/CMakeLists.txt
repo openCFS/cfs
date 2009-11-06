@@ -20,6 +20,7 @@ SET(UTILS_SRCS
   result.cc
   SmoothSpline.cc
   tools.cc
+  Point.cc
   trivialCartesianCoordSys.cc
   piezoMicroModel.cc
   piezoMicroModelBK.cc

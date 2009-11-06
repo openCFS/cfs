@@ -16,7 +16,7 @@ syntax is as follows:
 
 The first line gives version information for the XML parser, while the
 second line is the starting tag for the main enclosing element called
-cfsSimulation.  The last line then is the closing tag for this main
+\element{cfsSimulation}.  The last line then is the closing tag for this main
 element. All parameters must appear between the opening and the
 closing tag.
 
@@ -26,13 +26,14 @@ table \ref{tab:leavesLevelOne}.
 %
 %
 \begin{table}
-\caption{Possible elements on the first leave level and their order.}
 \label{tab:leavesLevelOne}
 \begin{center}
-  \begin{longtable}{lll}
-    \hline\noalign{\smallskip}
+\caption{Possible elements on the first leave level and their order.}
+\vspace{0.5cm}
+  \begin{tabular}{lll}
+    \toprule
     leave name & leave type & occurence constraints \\
-    \noalign{\smallskip}\hline\noalign{\smallskip}
+    \midrule
     analysis        & plane   & required\\
     geometry        & plane   & required\\
     input           & plane   & optional\\
@@ -41,25 +42,25 @@ table \ref{tab:leavesLevelOne}.
     domain          & section & required \\
     pdeList         & section & required \\
     couplingList    & section & required for iterative or direct coupling\\
-    \noalign{\smallskip}\hline\noalign{\smallskip}
+    \midrule
     \multicolumn{3}{c}{\emph{elements in the following block can appear in any
     order}}\\
-    \noalign{\smallskip}\hline\noalign{\smallskip}
+    \midrule
     harmonic        & section & required for harmonic analysis \\
     transient       & section & required for transient analysis \\
     multiSequence   & section & required for multi sequence analysis \\
     bubbleDynamic   & section & optional (for simulation of bubbles) \\
     bubbleDriver    & section & optional (for simulation of bubbles) \\
     transient4Slice & section & ??? \\
-    \noalign{\smallskip}\hline\noalign{\smallskip}
+    \midrule
     MpCCI           & section & optional (for coupling via MpCCI)\\
     linearSystems   & section & optional (for specifying properties of
                       linear system solvers) \\
     integRules      & section & optional (do not use)\\
     expert          & plane   & optional (for disabling expert module)\\
     devel           & plane   & optional (for developers only)\\
-    \noalign{\smallskip}\hline
-  \end{longtable}
+    \bottomrule
+  \end{tabular}
 \end{center}
 \end{table}
 %

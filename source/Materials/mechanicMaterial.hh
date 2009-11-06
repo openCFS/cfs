@@ -79,6 +79,35 @@ namespace CoupledField {
     void GetTensor( Matrix<Complex>& param, MaterialType matType,
 		    Global::ComplexPart dataType,
 		    SubTensorType = FULL ) const;	
+    
+    /** Computes the error to an isotropic elasticity tensor.
+     * Considers only the right upper diagonal matrix
+     * 2D: E11-E22 = 0, E11-E12-2E33 = 0, E12 = 0, E23 = 0
+     * @param normed divides every entry by E11
+     * @return always positive as we add only abs(). */
+    static double CalcIsotropyError(const Matrix<double>& tensor, bool normed);
+
+    /** Compute the Young's modulus out of an isotropic tensor.
+     * You might want to check via ComputeIsotropyError() first.
+     * Does not check for isotropy but is brute force! */
+    static double CalcIsotropicYoungsModulus(const Matrix<double>& tensor);
+
+    /** Compute the Poisson's ratio out of an isotropic tensor.
+     * @see ComputeIsotropicYoungsModulus() */
+    static double CalcIsotropicPoissonsRatio(const Matrix<double>& tensor);
+
+    /** static helper function to calculate real stiffness tensor from elasticity modulus and poisson ratio
+      * in 2D we compute the plain strain state */ 
+    static void CalcIsotropicStiffnessTensorFromEAndPoisson(Matrix<Double>& out, Double emod, Double poisson, UInt dim);
+    
+    /** static helper function to calculate real stiffness tensor from lame parameters
+     *  in 2D we compute the plain strain state */
+    static void CalcIsotropicStiffnessTensorFromLame(Matrix<Double>& out, Double lambda, Double mu, UInt dim);
+    
+    /** static helper function to calculate complex stiffness tensor from lame parameters
+      *  in 2D we compute the plain strain state */
+    static void CalcComplexIsotropicStiffnessTensor(Matrix<Complex>& out,
+        const Complex &lambda, const Complex &mu, UInt dim);
 
   private:
 

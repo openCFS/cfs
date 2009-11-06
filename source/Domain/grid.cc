@@ -30,6 +30,7 @@ namespace CoupledField
 
   Grid::Grid()
   {
+    isInitialized_ = false; // set by FinishInit()
 
     if (!ptQ1)     ptQ1     = new Quad1FE();
     if (!ptQ2)     ptQ2     = new Quad2FE();
@@ -53,6 +54,8 @@ namespace CoupledField
     RegisterFunctions();
  #endif
 
+    region_.SetName("Grid::region");
+    region_.Add(ALL_REGIONS, "all");
   }
 
 
@@ -77,44 +80,71 @@ namespace CoupledField
     delete ptWedge2;  ptWedge2 = NULL;
   }
 
+  Grid::RegionData::RegionData()
+  {
+    name = "";
+    id   = -1;
+    type = NOT_SET;
+    type_idx = -1;
+    regular = false;
+    homogeneous = true;
+    barycenters = false;
+  }
 
-  void Grid::AddRegion(const std::string regionName, RegionIdType & rId)
+  RegionIdType Grid::AddRegion(const std::string& name)
+  {
+    RegionData rd;
+    rd.name = name;
+    rd.id   = regionData.GetSize();
+    regionData.Push_back(rd);
+    region_.Add(rd.id, rd.name);
+
+    nameTypeMap_[name] = EntityList::REGION;
+
+    return rd.id;
+  }
+
+  void Grid::AddRegions(const StdVector<std::string> & names, StdVector<RegionIdType> & ids)
+  {
+    ids.Resize(names.GetSize());
+
+    for(unsigned int i = 0; i < names.GetSize(); i++)
+      ids[i] = AddRegion(names[i]);
+  }
+
+  RegionIdType Grid::AddRegion(const std::string& name, RegionType type)
   {
     // Check if entities with given name exist already
-    if( nameTypeMap_.find( regionName) != nameTypeMap_.end() ) {
-      EXCEPTION( "Entities with name " << regionName
-                 << " are already defined" );
-    }
+    if( nameTypeMap_.find( name) != nameTypeMap_.end() )
+      EXCEPTION("Entities with name " << name << " are already defined");
 
-    rId = regionNames_.GetSize();
-    regionNames_.Push_back(regionName);
-    nameTypeMap_[regionName] = EntityList::REGION;
-  }
+    if(!isInitialized_)
+      EXCEPTION("Cannot add a region to an uninitialized grid!");
 
-  void Grid::AddRegions(const StdVector<std::string> & regionNames,
-                        StdVector<RegionIdType> & rIds)
-  {
-    UInt numRegions = regionNames.GetSize();
-    UInt newId = regionNames_.GetSize();
+    RegionIdType id = AddRegion(name);
+    regionData[id].type = type;
 
-    rIds.Resize(numRegions);
-    for(UInt i=0; i<numRegions; i++, newId++)
+    StdVector<Elem*> dummy_elems;
+    std::set<UInt> dummy_nodes;
+
+    if(type == SURFACE_REGION)
     {
-      // Check if entities with given name exist already
-      if( nameTypeMap_.find( regionNames[i]) != nameTypeMap_.end() ) {
-        EXCEPTION( "Entities with name " << regionNames[i]
-                   << " are already defined" );
-      }
-      rIds[i] = newId;
-      regionNames_.Push_back(regionNames[i]);
-      nameTypeMap_[regionNames[i]] = EntityList::REGION;
+      regionData[id].type_idx = surfRegionIds_.GetSize();
+      surfRegionIds_.Push_back(id);
+      surfElems_.Push_back(dummy_elems);
+      surfElemNodes_.Push_back(dummy_nodes);
     }
+    else
+    {
+      regionData[id].type_idx = volRegionIds_.GetSize();
+      volRegionIds_.Push_back(id);
+      volElems_.Push_back(dummy_elems);
+      volElemNodes_.Push_back(dummy_nodes);
+    }
+
+    return id;
   }
 
-  UInt Grid::GetNumRegions()
-  {
-    return regionNames_.GetSize();
-  }
 
   UInt Grid::GetNumVolRegions()
   {
@@ -126,15 +156,25 @@ namespace CoupledField
     return surfRegionIds_.GetSize();
   }
 
-  void Grid::GetRegionIds( StdVector<RegionIdType> & regions ) {
+  bool Grid::IsRegionRegular(StdVector<RegionIdType>& regions) const
+  {
+    bool regular = true;
 
-    UInt numRegions = volRegionIds_.GetSize() + surfRegionIds_.GetSize();
+    for(unsigned int i = 0; i < regions.GetSize(); i++)
+      if(!regionData[regions[i]].regular)
+        regular = false;
 
-    regions.Clear();
-
-    for(UInt i=0; i<numRegions; i++)
-      regions.Push_back(i);
+    return regular;
   }
+
+  void Grid::GetRegionNames( StdVector<std::string>& regionNames )
+  {
+    regionNames.Resize(regionData.GetSize());
+
+    for(UInt i = 0; i < regionData.GetSize(); i++)
+      regionNames[i] = regionData[i].name;
+  }
+
 
   void Grid::GetVolRegionIds( StdVector<RegionIdType> & volRegions ) {
     volRegions = volRegionIds_;
@@ -145,64 +185,34 @@ namespace CoupledField
     surfRegions = surfRegionIds_;
   }
 
-  RegionIdType Grid::RegionNameToId( const std::string & regionName ) {
+  UInt Grid::SetElementBarycenters(RegionIdType reg, bool updated)
+  {
+    RegionData& rd = regionData[reg];
 
-    RegionIdType ret = NO_REGION_ID;
+    if(rd.barycenters) return 0;
 
-    if (regionName == "all" ) {
-      ret= ALL_REGIONS;
-    } else {
-      ret =  regionNames_.Find(regionName);
-      if (ret == -1 ) {
-        EXCEPTION( "The region with name '" << regionName
-                   << "' is not contained in the grid!" );
-      }
+    // common for all elements
+    Matrix<Double>  coords;
+
+    // our operation target
+    StdVector<Elem*>& elems = rd.type == VOLUME_REGION ? volElems_[rd.type_idx] : surfElems_[rd.type_idx];
+    for(UInt i = 0;  i < elems.GetSize(); i++)
+    {
+      Elem* elem = elems[i];
+
+      StdVector<UInt>& connect = elem->connect;
+
+      GetElemNodesCoord(coords, connect, updated);
+
+      // a barycenter is simply the average of all coordinates
+      // TODO: handle axis symmetry!!
+      BaseFE::CalcBarycenter(coords, elem->barycenter);
     }
-    return ret;
+
+    rd.barycenters = true; // don't do it again!
+
+    return elems.GetSize();
   }
-
-  void Grid::RegionIdToName( StdVector<std::string> & regionNames,
-                             const StdVector<RegionIdType> & regionId ) {
-
-    regionNames.Resize( regionId.GetSize() );
-    for (UInt i=0; i<regionId.GetSize(); i++ ) {
-      if ( regionId[i] == ALL_REGIONS )
-        regionNames[i] = "all";
-      else
-        regionNames[i] = regionNames_[regionId[i]];
-    }
-  }
-
-  void Grid::RegionNameToId( StdVector<RegionIdType> & regionIds,
-                             const StdVector<std::string>
-                             & regionNames ) {
-
-    RegionIdType ret = NO_REGION_ID;
-
-    regionIds.Resize( regionNames.GetSize() );
-    for (UInt i=0; i<regionNames.GetSize(); i++ ) {
-
-      if (regionNames[i] == "all" ) {
-        ret = ALL_REGIONS;
-      } else {
-        ret = regionNames_.Find(regionNames[i]);
-        if ( ret == -1 ) {
-          EXCEPTION("The region with name '" << regionNames[i]
-                    << "' is not contained in the grid!" );
-        }
-      }
-      regionIds[i] = ret;
-    }
-  }
-
-  std::string Grid::RegionIdToName( const RegionIdType regionId ) {
-
-    if ( regionId == ALL_REGIONS )
-      return "all";
-    else
-      return regionNames_[regionId];
-  }
-
 
   shared_ptr<EntityList> Grid::GetEntityList( EntityList::ListType listType,
                                               const std::string& name,
@@ -221,7 +231,7 @@ namespace CoupledField
     if( listType == EntityList::ELEM_LIST ) {
       shared_ptr<ElemList> eList  = shared_ptr<ElemList>( new ElemList(this) );
       if( entityType == EntityList::REGION ) {
-        RegionIdType regionId = RegionNameToId( name );
+        RegionIdType regionId = GetRegion().Parse( name );
         eList->SetRegion( regionId);
       } else {
         eList->SetNamedElems( name );
@@ -232,7 +242,7 @@ namespace CoupledField
       shared_ptr<SurfElemList> surfList  =
         shared_ptr<SurfElemList>( new SurfElemList(this) );
       if( entityType == EntityList::REGION ) {
-        RegionIdType regionId = RegionNameToId( name );
+        RegionIdType regionId = GetRegion().Parse( name );
         surfList->SetRegion( regionId);
       } else {
         surfList->SetNamedElems( name );
@@ -249,7 +259,7 @@ namespace CoupledField
       } else if( entityType == EntityList::NAMED_ELEMS ) {
           nodeList->SetNamedNodes( name );
       } else if( entityType == EntityList::REGION ) {
-        RegionIdType regionId = RegionNameToId( name );
+        RegionIdType regionId = GetRegion().Parse( name );
         nodeList->SetNodesOfRegion( regionId );
       } else {
         EXCEPTION("GetEntityList with NODE_LIST works only with regions"
@@ -260,7 +270,7 @@ namespace CoupledField
       shared_ptr<RegionList> regionList =
         shared_ptr<RegionList>( new RegionList(this) );
       if( entityType == EntityList::REGION ) {
-        RegionIdType regionId = RegionNameToId( name );
+        RegionIdType regionId = GetRegion().Parse( name );
         regionList->SetRegionId( regionId );
       } else {
         EXCEPTION( "GetEntityList with REGION_LIST works only with regions!" );
@@ -281,50 +291,12 @@ namespace CoupledField
 
      std::cout << "Grid: elements=" << GetNumElems() << " nodes=" << GetNumNodes() << std::endl;
 
-     for(UInt i = 0; i < regionNames_.GetSize(); i++)
+     for(UInt i = 0; i < regionData.GetSize(); i++)
      {
-       std::string  region_name = regionNames_[i];
-       RegionIdType region_id   = RegionNameToId(region_name);
+       GetElems(elems, i);
 
-       GetElems(elems, region_id);
-
-       std::cout << "region: " << region_name << " id=" << region_id << " elements=" << elems.GetSize() <<  std::endl;
+       std::cout << "region: " << regionData[i].name << " id=" << i << " elements=" << elems.GetSize() <<  std::endl;
      }
-   }
-
-
-   Double Grid::CalcVolumeSpannedByNamedNodes()
-   {
-     Double maximal = std::numeric_limits<Double>::max();
-     Double minimal = std::numeric_limits<Double>::min();
-
-     double mins[3] = { maximal, maximal, maximal};
-     double maxs[3] = { minimal, minimal, minimal};
-     StdVector<std::string> nodeNames;
-     GetListNodeNames(nodeNames);
-     Point p;
-     StdVector<UInt> nodes;
-     for(unsigned int n = 0; n < nodeNames.GetSize(); ++n)
-     {
-       GetNodesByName(nodes, nodeNames[n]);
-       for(unsigned int n = 0, ss = nodes.GetSize(); n < ss; ++n)
-       {
-         GetNodeCoordinate(p , nodes[n], false);
-         for(unsigned int d = 0; d < 3; ++d)
-         {
-           if(mins[d] >  p.data[d]) mins[d] =  p.data[d];
-           if(maxs[d] <  p.data[d]) maxs[d] =  p.data[d];
-         }
-       }
-     }
-
-     // now calculate the volume, in 2D case do not multiply with 0.0 from 3rd component!
-     double cube_vol(maxs[0] - mins[0]);
-     cube_vol *= maxs[1] - mins[1];
-     if(maxs[2] - mins[2] > std::numeric_limits<Double>::epsilon())
-       cube_vol *= maxs[2] - mins[2];
-
-     return cube_vol;
    }
 
 
@@ -359,8 +331,8 @@ namespace CoupledField
 
       ncInterfaces_[i].name = ncIfaceNode->Get("name")->AsString();
 
-      masterId = RegionNameToId(ncIfaceNode->Get("masterSide")->AsString());
-      slaveId = RegionNameToId(ncIfaceNode->Get("slaveSide")->AsString());
+      masterId = GetRegion().Parse(ncIfaceNode->Get("masterSide")->AsString());
+      slaveId = GetRegion().Parse(ncIfaceNode->Get("slaveSide")->AsString());
       if ((masterId == -1) || (slaveId == -1)) {
         EXCEPTION("Cannot find master/slave regions of ncInterface '"
             << ncInterfaces_[i].name << "'.");
@@ -421,7 +393,7 @@ namespace CoupledField
         ifaceElems.Clear();
       }
 
-      AddSurfaceRegion(ncInterfaces_[i].name, ncInterfaces_[i].region);
+      ncInterfaces_[i].region = AddSurfaceRegion(ncInterfaces_[i].name);
 
       //if (ncInterfaces_[i].rotationAngle == 0.0)
       UpdateNcIntersection(ncInterfaces_[i]);
@@ -653,7 +625,7 @@ namespace CoupledField
   }
 
   bool Grid::IsNcInterfaceCoplanar(const std::string &ncIfaceName) {
-    return IsNcInterfaceCoplanar(RegionNameToId(ncIfaceName));
+    return IsNcInterfaceCoplanar(GetRegion().Parse(ncIfaceName));
   }
 
   bool Grid::IsNcInterfaceCoplanar(RegionIdType regionId) {
@@ -664,8 +636,7 @@ namespace CoupledField
         return ncInterfaces_[i].coplanar;
     }
 
-    EXCEPTION("Non-matching grid interface does not exist: "
-              << RegionIdToName(regionId));
+    EXCEPTION("Non-matching grid interface does not exist: " << region_.ToString(regionId));
   }
 
   /****************************************************************************
@@ -868,9 +839,9 @@ namespace CoupledField
       sstr << "Rejecting ncElem due to a relative volume of " << relativeElemVol;
       sstr << std::endl;
       sstr << "  for intersection of elements " << ifaceElem1->elemNum;
-      sstr << " (" << RegionIdToName(ifaceElem1->regionId) << ") ";
+      sstr << " (" << region_.ToString(ifaceElem1->regionId) << ") ";
       sstr << "and " << ifaceElem2->elemNum;
-      sstr << " (" << RegionIdToName(ifaceElem2->regionId) << ") ";
+      sstr << " (" << region_.ToString(ifaceElem2->regionId) << ") ";
       Warning(sstr.str().c_str(), __FILE__, __LINE__);
       delete ncElem;
       return false;
@@ -2026,8 +1997,8 @@ namespace CoupledField
       return;
     }
 
-    region1Id = RegionNameToId(region1);
-    region2Id = RegionNameToId(region2);
+    region1Id = GetRegion().Parse(region1);
+    region2Id = GetRegion().Parse(region2);
 
     this->GetElems(region1Elems, region1Id);
     this->GetNodesByRegion(region2Nodes, region2Id);
@@ -2076,7 +2047,7 @@ namespace CoupledField
 
     if(newSurfaceElems.GetSize() != 0)
     {
-      AddSurfaceRegion(surfRegionName, surfRegionId);
+      surfRegionId = AddSurfaceRegion(surfRegionName);
       AddSurfaceElems( surfRegionId, newSurfaceElems, surfElemIds);
     }
 
@@ -2096,7 +2067,7 @@ namespace CoupledField
     Elem* el;
     SurfElem* surfEl;
 
-    regionId = RegionNameToId(region);
+    regionId = GetRegion().Parse(region);
 
     this->GetElems(regionElems, regionId);
     this->GetNodesByRegion(regionNodes, regionId);
@@ -2187,7 +2158,7 @@ namespace CoupledField
 
     if(newSurfaceElems.GetSize() != 0)
     {
-      AddSurfaceRegion(surfRegionName, surfRegionId);
+      surfRegionId = AddSurfaceRegion(surfRegionName);
       AddSurfaceElems( surfRegionId, newSurfaceElems, surfElemIds);
     }
 
@@ -2214,7 +2185,7 @@ namespace CoupledField
   void Grid::Wrap_GetNodesByRegion() {
     SCRIPT_GET(std::string, name);
     StdVector<UInt> nodeNrs;
-    GetNodesByRegion(nodeNrs, RegionNameToId(name) );
+    GetNodesByRegion(nodeNrs, GetRegion().Parse(name) );
     nodeNrs.ToString(SCRIPT_RETVAL);
   }
 
@@ -2228,41 +2199,42 @@ namespace CoupledField
 
   void Grid::Wrap_GetRegionNames() {
     StdVector<RegionIdType> regionIds;
-    GetRegionIds( regionIds );
-    RegionIdToName( SCRIPT_RETVAL, regionIds );
+    for(UInt i = 0; i < regionData.GetSize(); i++)
+      regionIds[i] = i;
+    region_.ToString( regionIds, SCRIPT_RETVAL );
 
   }
 
   void Grid::Wrap_GetNumNodes() {
-    SCRIPT_RETVAL.Push_back( GenStr( GetNumNodes() ) );
+    SCRIPT_RETVAL.Push_back( lexical_cast<std::string>( GetNumNodes() ) );
   }
 
   void Grid::Wrap_GetNumElems() {
-    SCRIPT_RETVAL.Push_back( GenStr( GetNumElems() ) );
+    SCRIPT_RETVAL.Push_back( lexical_cast<std::string>( GetNumElems() ) );
 
   }
 
   void Grid::Wrap_GetNumSurfElems() {
-    SCRIPT_RETVAL.Push_back( GenStr( GetNumSurfElems() ) );
+    SCRIPT_RETVAL.Push_back( lexical_cast<std::string>( GetNumSurfElems() ) );
 
   }
 
   void Grid::Wrap_GetNumVolElems() {
-    SCRIPT_RETVAL.Push_back( GenStr( GetNumVolElems() ) );
+    SCRIPT_RETVAL.Push_back( lexical_cast<std::string>( GetNumVolElems() ) );
   }
 
   void Grid::Wrap_GetNumNodesOfRegion() {
     SCRIPT_GET(std::string, name);
     StdVector<RegionIdType> ids;
-    ids.Push_back( RegionNameToId (name ) );
-    SCRIPT_RETVAL.Push_back( GenStr( GetNumNodes ( ids ) ) );
+    ids.Push_back( GetRegion().Parse (name ) );
+    SCRIPT_RETVAL.Push_back( lexical_cast<std::string>( GetNumNodes ( ids ) ) );
   }
 
   void Grid::Wrap_GetNumElemsOfRegion() {
     SCRIPT_GET(std::string, name);
     StdVector<RegionIdType> ids;
-    ids.Push_back( RegionNameToId (name ) );
-    SCRIPT_RETVAL.Push_back( GenStr( GetNumElems (ids ) ) );
+    ids.Push_back( GetRegion().Parse (name ) );
+    SCRIPT_RETVAL.Push_back( lexical_cast<std::string>( GetNumElems (ids ) ) );
   }
 
 

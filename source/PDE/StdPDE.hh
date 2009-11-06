@@ -243,6 +243,15 @@ namespace CoupledField {
 
     shared_ptr<EqnMap> GetEqnMap() { return eqnMap_; }
 
+    /** Do we have at least some periodic boundary conditions?
+     * Attention! searches constraints list for an answer */
+    bool HasPeriodicBC();
+
+    /** The constraints are of interest for identifying periodic boundary conditions
+     * for optimization regularization (filtering)
+     * @see DesignElement::InitFilter */
+    ConstraintList& GetConstraints() { return constraints_; }
+
     std::map<RegionIdType, BaseMaterial*>  getPDEMaterialData()
     {return materials_;};
     

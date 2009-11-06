@@ -17,6 +17,7 @@
 #include "DataInOut/MaterialHandler.hh"
 #include "DataInOut/programOptions.hh"
 #include "Domain/domain.hh"
+#include "Domain/entityList.hh"
 #include "General/environment.hh"
 #include "DataInOut/ParamHandling/SkeletonConf.hh"
 #include "DataInOut/ParamHandling/InfoNode.hh"
@@ -95,8 +96,7 @@ CFS::CFS(int argc, const char **argv)
   Exception::segfault_ = progOpts->GetForceSegFault();
 
   // Set global Enums, the rest is set by the classes
-  SetEnvironmentEnums();
-  BasePDE::SetEnums();
+  SetGlobalEnums();
 
   // the new xml logging derived from the ParamNode
   info = new InfoNode(progOpts->GetSimName() + ".info.xml", "<?xml version=\"1.0\"?>");
@@ -134,9 +134,7 @@ CFS::CFS(int argc, const char **argv)
 
   // Check if script file was provided
   if ( scriptFileName != "" ) {
-    stringstream msg;
-    msg << "Script file: '" << scriptFileName << "'";
-    Info->StartProgress( msg.str() );
+    cout << "++ Script file: '" << scriptFileName << "'" << endl;
 
     // Create new central messenger object (up to now only tcl available)
     messenger->ReadScriptFile(scriptFileName );
@@ -145,8 +143,6 @@ CFS::CFS(int argc, const char **argv)
     StdVector<string> context;
     context.Push_back( progOpts->GetSimName() );
     messenger->TriggerEvent(CFSMessenger::CFS_Init, context);
-
-    Info->FinishProgress();
   }
 
 #endif
@@ -156,9 +152,7 @@ CFS::CFS(int argc, const char **argv)
   // =========================================================================
 
 #ifdef MEMTRACE
-  Info->StartProgress( "Opening file for tracing memory allocation" );
   fileHandler.OpenFile( MEMTRACE_FILE );
-  Info->FinishProgress();
 #endif
 
   // =========================================================================
@@ -166,12 +160,10 @@ CFS::CFS(int argc, const char **argv)
   // =========================================================================
 
 #ifdef MpCCI
-  Info->StartProgress( "Setting up MpCCI interface" );
+  cout << "++ Setting up MpCCI interface" << endl;
 
   CCI_Init_with_id_string( &argc, const_cast<char***>(&argv), "simulationcode2" );
   //  CCI_Init( &argc, const_cast<char***>(&argv));
-
-  Info->FinishProgress();
 #endif
 
 }
@@ -194,7 +186,7 @@ CFS::~CFS()
 
   // Delete objects
   delete param;
-  delete domain;
+  delete domain; // might write ersatz material file if <export save="finally"/> in optimization
   delete progOpts;
   delete resultHandler;
 
@@ -236,11 +228,12 @@ int CFS::Run()
     timer->Stop();
     if(!progOpts->IsQuiet()) cout << endl; // conditional empty line
     cout << ">> Total time: wall clock: '" << timer->GetWallTime()
-              << "s' CPU time: '" << timer->GetCPUTime() << "s'\n";
+              << "s' CPU time: '" << timer->GetCPUTime() << "s'" << endl << endl;
 
     // write the info object
     info->Get("status")->SetValue("finished"); // overwrite 'running'
-    info->Get(InfoNode::PROCESS)->Get("memory", InfoNode::APPEND)->Get("final")->SetValue(MemoryUsage());
+    info->Get(InfoNode::SUMMARY)->Get("memory/final")->SetValue(MemoryUsage(false));
+    info->Get(InfoNode::SUMMARY)->Get("memory/peak")->SetValue(MemoryUsage(true));
 
     return 0;
   }
@@ -274,6 +267,13 @@ int CFS::Run()
   }
 }
 
+void CFS::SetGlobalEnums()
+{
+  SetEnvironmentEnums();
+  BasePDE::SetEnums();
+  EntityList::SetEnums();
+}
+
 void CFS::PrintGrid()
 {
   cout << "Printing grid to file " << endl << endl;
@@ -288,8 +288,7 @@ void CFS::SolveProblem()
  // Solves the driver or optimization problem
  domain->SolveProblem();
 
- Info->StartProgress( "Finished solving the problem" );
- Info->FinishProgress();
+ cout << "++ Finished solving the problem" << endl;
 
 #ifdef USE_SCRIPTING
    // Call intialization procedure
@@ -340,7 +339,7 @@ void CFS::ReadXMLFile()
   string xmlFile = progOpts->GetParamFileStr();
 
   // Write information to command line
-  Info->StartProgress("Reading parameter file '" + xmlFile + "'");
+  cout << "++ Reading parameter file '" + xmlFile + "'" << endl;
 
 #ifndef USE_XERCES
   EXCEPTION( "I am sorry to say, but CFS only can be compiled with XERCES-support");
@@ -360,8 +359,6 @@ void CFS::ReadXMLFile()
   // save us in the info stuff, with defaults but no comments
   // release the xerces ressources, param is not affected
   delete xerces;
-
-  Info->FinishProgress();
 }
 
 void CFS::SetupIO()

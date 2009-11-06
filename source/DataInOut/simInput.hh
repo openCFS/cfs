@@ -89,6 +89,9 @@ namespace CoupledField
     //! Get dimension of the mesh
     virtual UInt GetDim() = 0;
 
+    /** @return includes the complete path */
+    const std::string& GetFileName() const { return fileName_; }
+
     //! Get total number of nodes in mesh
     virtual UInt GetNumNodes() = 0;
  

@@ -165,7 +165,7 @@ namespace CoupledField {
         "name of script file to be evaluated" )
 #endif
       ( "listMapping,l",
-        "add equation and local/global mapping to info.xml")
+        "equation/local<>global mapping/constraints to info.xml")
 
       ( "quiet,q",
         "more compressed console output (env CFS_QUIET)")
@@ -837,8 +837,9 @@ namespace CoupledField {
     out << "sizeof(Integer)        "  << fg_blue << sizeof(Integer) << fg_reset << endl;
     out << "sizeof(size_t)         "  << fg_blue << sizeof(size_t) << fg_reset << endl;
     out << "sizeof(long)           "  << fg_blue << sizeof(long) << fg_reset << endl;    
+    out << "sizeof(long int)       "  << fg_blue << sizeof(long int) << fg_reset << endl;
     out << "sizeof(double)         "  << fg_blue << sizeof(double) << fg_reset << endl;    
-    out << "sizeof(double*)        "  << fg_blue << sizeof(double*) << fg_reset << endl;    
+    out << "sizeof(void*)          "  << fg_blue << sizeof(void*) << fg_reset << endl;
     out << "CLOCKS_PER_SEC         "  << fg_blue << CLOCKS_PER_SEC << fg_reset << endl;
     
   ColoredConsole::colorise = colTmp;

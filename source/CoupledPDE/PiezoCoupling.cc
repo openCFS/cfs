@@ -413,7 +413,7 @@ namespace CoupledField {
        regionIndex = subdoms_.Find( ptVolElem->regionId );
        if ( regionIndex == -1 ) {
          EXCEPTION( "PiezoPDE:CalcCharges The region with Name "
-                    << ptGrid_->RegionIdToName(ptVolElem->regionId)
+                    << ptGrid_->GetRegion().ToString(ptVolElem->regionId)
                     << " of surface element Nr. " << ptSurfElem->elemNum
                     << "is not contained in my set of regions!." );
        }
@@ -483,7 +483,7 @@ namespace CoupledField {
      //  Writes result to StdPDE for later retrieval in SinglePDEs
      // (required by piezoParamIdent)
      std::string analysis =
-       param->Get("sequenceStep", "index", GenStr(sequenceStep_) )
+       param->Get("sequenceStep", "index", sequenceStep_)
        ->Get("analysis")->GetChild()->GetName();
      if(analysis == "paramIdent") {
 
@@ -758,7 +758,7 @@ namespace CoupledField {
       if( actNonLinId == "" )
         continue;
 
-      actRegionId = ptGrid_->RegionNameToId( actRegionName );
+      actRegionId = ptGrid_->GetRegion().Parse( actRegionName );
 
       // Check nonLinId was already registerd
       if( nonLinIdType_.find( actNonLinId) == nonLinIdType_.end() ) {

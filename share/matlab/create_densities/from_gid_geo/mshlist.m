@@ -3,7 +3,7 @@ function [ list ] = mshlist( filter, dirname )
 %   Detailed explanation goes here
 
 if nargin < 2
-    dirname = 'msh\';
+    dirname = 'msh/';
 end
 
 if nargin < 1

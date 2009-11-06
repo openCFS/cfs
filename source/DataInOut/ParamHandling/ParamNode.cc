@@ -303,6 +303,12 @@ namespace CoupledField
     return result; // copy-constructor magic stuff!
   }
 
+  ParamNode* ParamNode::Get(const std::string& parent, const std::string& child,
+                             const unsigned int value, const bool throwException)
+  {
+    return Get(parent, child, lexical_cast<std::string>(value), throwException);
+  }
+
   ParamNode* ParamNode::Get(const string& parent, const string& child, 
                             const string& value, const bool throwException)
   {

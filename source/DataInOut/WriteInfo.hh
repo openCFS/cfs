@@ -105,20 +105,6 @@ namespace CoupledField {
     void WriteMultiSequenceStep(const UInt sequenceStep, 
                                 const BasePDE::AnalysisType analysis);
 
-    /// writes definition of homogeneous dirichet boundary conditions
-    void WriteHomDirBC( const std::string& pdeName, HdBcList& list );
-
-    /// writes definition of inhomogeneous dirichet boundary conditions
-    void WriteInhomDirBC( const std::string& pdeName, IdBcList& list );
-
-    /// writes definition of inhomogeneous neumann boundary conditions
-    void WriteInhomNeuBC( const std::string& pdeName, InBcList& list ); 
-
-    /// writes definition of constraints
-    void WriteConstraints( const std::string& pdeName, ConstraintList& list );
-
-    /// writes definition of loads
-    void WriteLoad( const std::string& pdeName, LoadList& list );
     // RHS-Src 
     void PrintSrcRhs( UInt node, UInt eqn, Double val);
     /// writes acoustic power 

@@ -198,7 +198,7 @@ namespace CoupledField {
       if( actDampingId == "" )
         continue;
 
-      actRegionId = ptgrid_->RegionNameToId( actRegionName );
+      actRegionId = ptgrid_->GetRegion().Parse(actRegionName);
 
       // Check actDampingId was already registerd
       if( idDampType.count( actDampingId ) == 0 ) {
@@ -311,7 +311,7 @@ namespace CoupledField {
       if( actNonLinId == "" )
         continue;
 
-      actRegionId = ptgrid_->RegionNameToId( actRegionName );
+      actRegionId = ptgrid_->GetRegion().Parse(actRegionName);
 
       // Check nonLinId was already registerd
       if( nonLinIdType_.find( actNonLinId) == nonLinIdType_.end() ) {
@@ -378,7 +378,7 @@ namespace CoupledField {
       // get current region name and get grip of paramNode
       RegionIdType actRegion = subdoms_[actSD];
       std::string actRegionName;
-      actRegionName = ptgrid_->RegionIdToName( actRegion );
+      actRegionName = ptgrid_->GetRegion().ToString( actRegion );
 
       ParamNode * actRegionNode =
         myParam_->Get("regionList")->Get( "region", "name", actRegionName );
@@ -689,9 +689,9 @@ namespace CoupledField {
 
           // stiffness part
           if( isComplex_ ) {
-            fac = GenStr( beta * measFreq) + "/ f";
+            fac = lexical_cast<std::string>( beta * measFreq) + "/ f";
           } else {
-            fac = GenStr( beta );
+            fac = lexical_cast<std::string>( beta );
           }
 
           stiffContext->SetSecDestMat( DAMPING, fac );
@@ -700,9 +700,9 @@ namespace CoupledField {
                                      stopRadius);
           // mass part
           if( isComplex_ ) {
-            fac = GenStr( alpha / measFreq) + "* f";
+            fac = lexical_cast<std::string>( alpha / measFreq) + "* f";
           } else {
-            fac = GenStr( alpha );
+            fac = lexical_cast<std::string>( alpha );
           }
           massContext->SetSecDestMat( DAMPING, fac );
           massContext->SetDampLayer(dampFnc, mPoint, dampFactor,
@@ -734,17 +734,17 @@ namespace CoupledField {
 
             // stiffness part
             if( isComplex_ ) {
-              fac = GenStr( beta * measFreq) + "/ f";
+              fac = lexical_cast<std::string>( beta * measFreq) + "/ f";
             } else {
-              fac = GenStr( beta );
+              fac = lexical_cast<std::string>( beta );
             }
             stiffContext->SetSecDestMat( DAMPING, fac );
 
             // mass part
             if( isComplex_ ) {
-              fac = GenStr( alpha / measFreq) + "* f";
+              fac = lexical_cast<std::string>( alpha / measFreq) + "* f";
             } else {
-              fac = GenStr( alpha );
+              fac = lexical_cast<std::string>( alpha );
             }
             massContext->SetSecDestMat( DAMPING, fac );
           }
@@ -777,7 +777,7 @@ namespace CoupledField {
             MassInt * bilinearDamp = new MassInt(coeffdamp, 1, isaxi_);
 
             Double fracDampCoeff = GetFracDampMatrixCoeff( actRegion );
-            bilinearDamp->SetSecondFactor( GenStr(fracDampCoeff ) );
+            bilinearDamp->SetSecondFactor( lexical_cast<std::string>(fracDampCoeff ) );
 
             // formulation using DAMPING matrix
             // adapt NewmarkFracDamp::Init and StdPDE::GetFracDampMatrixCoeff
@@ -812,7 +812,7 @@ namespace CoupledField {
             MassInt * bilinearDamp = new MassInt(coeffdamp, 1, isaxi_);
 
             Double fracDampCoeff = GetFracDampMatrixCoeff( actRegion );
-            bilinearDamp->SetSecondFactor( GenStr(fracDampCoeff) );
+            bilinearDamp->SetSecondFactor( lexical_cast<std::string>(fracDampCoeff) );
 
             // formulation using DAMPING matrix
             // adapt NewmarkFracDamp::Init and StdPDE::GetFracDampMatrixCoeff
@@ -849,7 +849,7 @@ namespace CoupledField {
             BaseForm * bilinearDampImag = new MassInt(factorImag, 1, isaxi_);
 
             std::string omegaFac;
-            omegaFac = "exp((" +  GenStr(fracExp) + "+1)*ln(2*pi*f))";
+            omegaFac = "exp((" +  lexical_cast<std::string>(fracExp) + "+1)*ln(2*pi*f))";
             bilinearDampReal->SetSecondFactor( omegaFac );
             bilinearDampImag->SetSecondFactor( omegaFac );
 
@@ -931,7 +931,7 @@ namespace CoupledField {
         // In the case of acou-nrbc coupling we have to multiply the
         // abc-Integrator matrix with C0 and multiply it by nrbcBeta0
         if ( isNrbcCoupled_ == true ) {
-          bilinear_damp->SetFactor(GenStr(sqrt( compressibility / density )));
+          bilinear_damp->SetFactor(lexical_cast<std::string>(sqrt( compressibility / density )));
         }
         BiLinFormContext * abcContext =
           new BiLinFormContext( bilinear_damp, DAMPING );
@@ -967,7 +967,7 @@ namespace CoupledField {
       // get regionId of Lagrangian surface
       StdVector<std::string> keyVec, attrVec, valVec;
       std::string slaveSide;
-      std::string ncIfaceName = ptgrid_->RegionIdToName(ncIFaces_[i]);
+      std::string ncIfaceName = ptgrid_->GetRegion().ToString(ncIFaces_[i]);
 
       if (!ncIfaceListNode) {
         EXCEPTION("No ncInterfaces defined in domain section.");
@@ -980,7 +980,7 @@ namespace CoupledField {
       //         non-conforming interface
       LOG_DBG2(acoupde) << "NonMatching: Defining nonconforming integrator"
                         << " for M on interface '"
-                        << ptgrid_->RegionIdToName(ncIFaces_[i]) << "'.";
+                        << ptgrid_->GetRegion().ToString(ncIFaces_[i]) << "'.";
       shared_ptr<ElemList> actNcList( new ElemList(ptgrid_ ) );
       actNcList->SetRegion( ncIFaces_[i] );
 
@@ -1004,9 +1004,9 @@ namespace CoupledField {
       //         Lagrangian surface
       LOG_DBG2(acoupde) << "NonMatching: Defining mass integrator"
                         << " for D on interface '"
-                        << ptgrid_->RegionIdToName(ncIFaces_[i]) << "'.";
+                        << ptgrid_->GetRegion().ToString(ncIFaces_[i]) << "'.";
       shared_ptr<SurfElemList> actSDList( new SurfElemList(ptgrid_ ) );
-      actSDList->SetRegion( ptgrid_->RegionNameToId( slaveSide ) );
+      actSDList->SetRegion( ptgrid_->GetRegion().Parse(slaveSide));
 
       // D(Psi, Lambda) has the form of a standard mass
       // integrator with factor 1.0
@@ -1055,7 +1055,7 @@ namespace CoupledField {
 
     if(rhsRegion != "")
     {
-      acouRHSRegionNodeList->SetNodesOfRegion( ptgrid_->RegionNameToId(rhsRegion) );
+      acouRHSRegionNodeList->SetNodesOfRegion( ptgrid_->GetRegion().Parse(rhsRegion) );
 
       AcouRHSLinForm* acouRHSInt = new AcouRHSLinForm(rhsValuesNode);
 
@@ -1201,7 +1201,7 @@ namespace CoupledField {
         StdVector<std::string> couplRegions;
         ptCoupling_->GetOutputRegions(i, couplRegions);
         StdVector<RegionIdType> regionIds;
-        ptgrid_->RegionNameToId( regionIds, couplRegions );
+        ptgrid_->GetRegion().Parse( couplRegions, regionIds );
 
         //Get total number of coupling elements
         UInt totalCouplingElems = ptgrid_->GetNumElems( regionIds );
@@ -1568,7 +1568,7 @@ namespace CoupledField {
     StdVector<std::string> couplRegions;
     ptCoupling_->GetOutputRegions(actCoupling, couplRegions);
     StdVector<RegionIdType> regionIds;
-    ptgrid_->RegionNameToId( regionIds, couplRegions );
+    ptgrid_->GetRegion().Parse( couplRegions, regionIds );
 
     // Operator for calculating energy density
     AcouPowerDensityOp<TYPE> *SourceOp =
@@ -2632,7 +2632,7 @@ namespace CoupledField {
     if(domainNCIfaceListNode)
     {
       ParamNode* ncInterfaceListNode =
-        param->Get("sequenceStep", "index", GenStr(sequenceStep_) )
+        param->Get("sequenceStep", "index", sequenceStep_)
         ->Get("pdeList")->Get("acoustic")->Get("ncInterfaceList", false);
       StdVector<ParamNode*> pdeNCIfaceNodes;
 
@@ -2659,7 +2659,7 @@ namespace CoupledField {
 
           ncIfaceNamesForPDE.Push_back(pdeIfaceName);
         }
-        ptgrid_->RegionNameToId( ncIfaceIds, ncIfaceNamesForPDE );
+        ptgrid_->GetRegion().Parse( ncIfaceNamesForPDE, ncIfaceIds );
 
         for (UInt i = 0; i < ncIfaceIds.GetSize(); i++) {
           ncIFaces_.Push_back(ncIfaceIds[i]);
@@ -2693,7 +2693,7 @@ namespace CoupledField {
     StdVector<ParamNode*> flowNodes = bcsNode->GetList("flowData");
     for( UInt i = 0; i < flowNodes.GetSize(); i++ ) {
       std::string regionName = flowNodes[i]->Get("region")->AsString();
-      RegionIdType regionId = ptgrid_->RegionNameToId( regionName );
+      RegionIdType regionId = ptgrid_->GetRegion().Parse(regionName);
 
       // store information about flow
       regionFlowNodes_[regionId] = flowNodes[i];

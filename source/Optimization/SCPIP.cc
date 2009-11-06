@@ -32,8 +32,6 @@ SCPIP::SCPIP(Optimization* optimization, ParamNode* optimizer_pn) :
   PostInit(manual_scaling); // does autoscale    
   std::cout << objective->ToString() << std::endl;
   
-  Initialize();
-
   SetIntegerValue("max_iter", optimization->GetMaxIterations());
   
   // SCPIP has not automated scaling we might disable with 1.0
@@ -60,6 +58,8 @@ SCPIP::SCPIP(Optimization* optimization, ParamNode* optimizer_pn) :
         SetNumericValue(list[i]->Get("name")->AsString(), list[i]->Get("value")->AsDouble());
     }
   }
+  
+  Initialize();
 }
 
 SCPIP::~SCPIP()

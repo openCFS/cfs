@@ -98,6 +98,15 @@ public:
   
   static Enum<Method> method;
 
+  /** This vector is an alternative access to the mech and elec pointers.
+   * mech is guaranteed to be index 0 and elec would be 1.
+   * @see ToApp()
+   * @see ToPDE() */
+  StdVector<SinglePDE*> pdes;
+
+  /** We have always a MechPDE for SIMP. This (and elec) is also in pde! */
+  SinglePDE* pde;
+
   /** Here we have the set of excitations. Only relevant for the multiple excitations
    * case (multiple loads or frequencies) */
   StdVector<Excitation> excitations;
@@ -322,7 +331,8 @@ protected:
    * @param normalized see CalcVolume
    * @param scale calculate the integral over the scaled design variable (<design scale="true">), i.e. the variable as in the optimizer
    * @param square calculate the integral over the square of the DesignVariable */
-  virtual double IntegrateDesignVariable(Objective* f, Condition* g, bool derivative, DesignElement::Type dtype,  bool normalized = true, bool scale = false, bool square = false);
+  virtual double IntegrateDesignVariable(Objective* f, Condition* g, bool derivative, DesignElement::Type dtype,
+      bool normalized = true, bool scale = false, double exponent = 1.0);
   
   /** Handles the Volume constraint. Has a constraint and constraint derivative mode
    * @param derivative if false the return value is calculated. Otherwise the value in
@@ -331,7 +341,7 @@ protected:
    * @param grad_out if derivative is set and grad_out is not null it is set.
    * @param normalized if set use normalized "volume" i.e. sum(design * area) / sum(area) for each element, else only sum(design * area)
    * @return invalid in derivative case*/ 
-  virtual double CalcVolume(Objective* f, Condition* g, bool derivative, bool normalized = true);
+  virtual double CalcVolume(Objective* f, Condition* g, bool derivative, bool normalized = true, double exponent = 1.0);
 
   /** Handles the Compliance constraint/objective. Has a objective, objective derivative,
    * constraint and constraint derivative mode
@@ -389,20 +399,22 @@ protected:
    * @return the E^H tensor entry if !derivative */
   double CalcHomogenizedTensorConstraint(Condition* g, bool derivative);
 
+  /** Calculates a single homogenized tensor entry or it's derivative.
+   * This is a helper for CalcHomogenizedTensorConstraint() but more general.
+   * CalcHomogenizedTensor() could multiple times calls this but this would be slower.
+   * @param entry the 1-based!!!! entry within the tensor
+   * @param derivative this sets d(E^H)/d(rho_e) for the current tensor entry
+   * @param out_grad of derivative it is resized and the gradients are set otherwise it is untouched
+   * @return the E^H tensor entry if !derivative or 0 */
+  double CalcHomogenizedTensorEntry(const std::pair<unsigned int, unsigned int> entry, bool derivative, StdVector<double>& grad_out);
 
-  /** This vector is an alternative access to the mech and elec pointers.
-   * mech is guaranteed to be index 0 and elec would be 1.
-   * @see ToApp()
-   * @see ToPDE() */
-  StdVector<SinglePDE*> pdes;
-  
-  /** We have always a MechPDE for SIMP. This (and elec) is also in pde! */
-  SinglePDE* pde;
-  
+
+
+
   /** Here we store the solution of the problem. Multiple solutions for multiple loadcases */
   Solutions forward;
 
-  /** Here we store the soluton of the adjoint problem. */
+  /** Here we store the solution of the adjoint problem. */
   Solutions adjoint;
 
   /** do we do SIMP or FreeMat or ... */
@@ -414,13 +426,14 @@ protected:
   /** The assemble class for our PDE */
   Assemble* assemble_;
 
-  /** Here we store the solution of the tracking subproblem. 
+  /** Here we store the solution of the tracking subproblem.
    * (This subproblem is solved for gradient calculation.)
    * (It is not saved per excitation but overwritten with every excitation.) */
   Solution* tracking_;
 
   /** whether we can assume a regular grid or not
-   * note, that only volume, compliance and tracking objective/constraints are working with non-regular grids */
+   * note, that only volume, compliance and tracking objective/constraints are working with non-regular grids.
+   * This is not necessary the information from the grid/region as shape optimization always sets to false. */
   bool assume_regular_grid_;
 
   /** true, if assuming regular grid, and only optimizing density, not DesignMaterial */
@@ -431,13 +444,14 @@ protected:
 
   /** This contains our concrete material class */
   OptimizationMaterial* material;
-  
+
 protected:
 
   /** This is just a shortcut for the actual dimensions (2 or 3) */
   const unsigned int dim;
 
 private:
+
 
   /** This is a helper for the calculation of the homogenized tensor or the derivative of it.
    * This is the inner of the sum for the homogenized tensor or the derivative formulation
@@ -484,6 +498,9 @@ private:
   template <class T>
   void SetAndSolveAdjointRHS(Excitation& excite, Objective* cost);
 
+  /** Helper for CommitIteration. Appends or replaces a design line */
+  void SetCurrentExportDesign();
+
   /** Stores the IDBC and sets the to HDBC for calculating the adjoint PDE
    * @return this are the original IDBC values for RestHDBC*/
   StdVector<IdBcList> SetHDBC();
@@ -503,6 +520,12 @@ private:
    * @param grad_out if derivative is set and grad_out is not null it is set.
    * @return invalid in derivative case*/
   double CalcGreyness(Objective* f, Condition* g, bool derivative);
+
+
+  /** Homogenization objective/ constraint.
+   * Is once evaluate only! */
+  double CalcPoissonsRatioAndYoungsModulus(Objective* cost, Condition* g, bool derivative);
+
 
   /** Calculates the product of the (system) surface normal matrix with the solution already in OLAS.
    * Note that we have to use 1 based OLAS vectors as the sparse system matrix is from OLAS .
@@ -525,11 +548,19 @@ private:
 
   /** If not NULL we want to export the pseudo densities */
   InfoNode* exportDesign;
+
   /** shall we write the densities for all iterations or overwrite? */
   bool exportDesignAllIterations;
 
+  /** shall we write the density file each iteration or only in the destructor.
+   * The difference is superfluous file writing .*/
+  bool exportDesignFinallyOnly;
+
   /** When we optimize output we store here the nodes */
   LoadList output_nodes_;
+
+  /** do we perform homogenization induced by any of the objective or constraints? */
+  bool homogenization_;
 };
 
 } // namespace

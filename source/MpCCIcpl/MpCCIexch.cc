@@ -659,7 +659,7 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
               Info->Error( "Number of src file exceeds 9999!",
                            __FILE__, __LINE__ );
             }
-            filename.append( GenStr( filenum ) );
+            filename.append( lexical_cast<std::string>( filenum ) );
             filenum++;
             outsrcfile_ = new std::ofstream(filename.c_str());
           }
@@ -692,7 +692,7 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
                         std::ofstream outsrcnodalfile;
                         filename = "nodalSrcs/timesrcfile";
                         filename.append( ".node" );
-                        filename.append( GenStr( nodeIds_[inode] ) );
+                        filename.append( lexical_cast<std::string>( nodeIds_[inode] ) );
                         //create the file if it doesn't exist yet
                         outsrcnodalfile.open(filename.c_str(), std::ios::out | std::ios::trunc);
 

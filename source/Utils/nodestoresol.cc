@@ -460,7 +460,7 @@ namespace CoupledField {
       {
         EXCEPTION( "NodeStoreSol::GetSolVectorSingleDof: Desired dof "
                    << dof << " is higher than dofs of solution = "
-                   << GenStr(solDof) );
+                   << lexical_cast<std::string>(solDof) );
       }
 #endif
   

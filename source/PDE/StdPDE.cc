@@ -116,7 +116,15 @@ namespace CoupledField {
       return TS_alg_->GetOld1();
     }
   }
-  
+
+  bool StdPDE::HasPeriodicBC()
+  {
+    for(UInt i = 0; i < constraints_.GetSize(); i++)
+      if(constraints_[i]->periodic) return true;
+
+    return false;
+  }
+
   // ======================================================
   // GRID SECTION (Meshing, ...) 
   // ======================================================
@@ -193,7 +201,7 @@ namespace CoupledField {
 
 
     ParamNode* pn = NULL;
-    pn = param->Get("sequenceStep", "index", GenStr(sequenceStep_), false );
+    pn = param->Get("sequenceStep", "index", sequenceStep_, false );
     if(pn != NULL) pn = pn->Get("linearSystems", false);
     if(pn != NULL) pn = pn->Get("system", "name", sysName, false);
     
@@ -496,7 +504,7 @@ namespace CoupledField {
     param->Get( "override", amExpert, false);
 
     ParamNode * linSysNode = NULL;
-    ParamNode * temp = param->Get("sequenceStep", "index", GenStr(sequenceStep_), false );
+    ParamNode * temp = param->Get("sequenceStep", "index", sequenceStep_, false );
     if ( temp )
       temp = temp->Get("linearSystems", false);
     if ( temp ) {

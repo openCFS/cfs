@@ -75,8 +75,10 @@ namespace CoupledField {
   }
 
 
-  Constraint::Constraint() {
-    masterDof = 1;
-    slaveDof = 1;
+  Constraint::Constraint() :
+    masterDof(1),
+    slaveDof(1),
+    periodic(false)
+  {
   }
 }

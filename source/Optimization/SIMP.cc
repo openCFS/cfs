@@ -1,6 +1,7 @@
 #include "Optimization/SIMP.hh"
 #include "Optimization/DesignSpace.hh"
 #include "Optimization/DesignElement.hh"
+#include "Optimization/DesignFilter.hh"
 #include "Optimization/OptimizationMaterial.hh"
 #include "Domain/domain.hh"
 #include "Domain/surfElem.hh"
@@ -38,22 +39,6 @@ DEFINE_LOG(simp, "simp")
 
 SIMP::SIMP() : ErsatzMaterial()
 {
-  ParamNode* simp_pn = pn->Get("SIMP", false);
-
-  // There might be a filter regularization based on the design element.
-  if(simp_pn != NULL && simp_pn->Has("regularization", "type", "filter"))
-  {
-    StdVector<ParamNode*> list = simp_pn->Get("regularization")->GetList("filter");
-    // this is save for design=polarization
-    for(unsigned int i = 0; i < list.GetSize(); i++)
-      SIMPElement::InitFilter(design->data, list[i]);
-  }
-  else
-  {
-    if(simp_pn != NULL && simp_pn->Has("regularization"))
-      throw Exception("regularization not implemented");
-  }
-
   mech_mat_ = NULL; // set in PostInit()
 }
 
@@ -64,6 +49,26 @@ SIMP::~SIMP()
 
 void SIMP::PostInit()
 {
+  ParamNode* simp_pn = pn->Get("SIMP", false);
+
+  // There might be a filter regularization based on the design element.
+  if(simp_pn != NULL && simp_pn->Has("regularization", "type", "filter"))
+  {
+    StdVector<ParamNode*> list = simp_pn->Get("regularization")->GetList("filter");
+    // this is save for design=polarization
+    for(unsigned int i = 0; i < list.GetSize(); i++)
+    {
+      DesignFilter df(this, list[i]);
+      df.SetFilters();
+    }
+  }
+  else
+  {
+    if(simp_pn != NULL && simp_pn->Has("regularization"))
+      throw Exception("regularization not implemented");
+  }
+
+
   if(harmonic) mechRHS.Init<complex<double> >(design, PRESSURE); // in many cases NULL;
           else mechRHS.Init<double>(design, PRESSURE);
 

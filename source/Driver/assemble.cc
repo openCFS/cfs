@@ -85,7 +85,7 @@ namespace CoupledField
   BiLinFormContext* Assemble::GetBiLinForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2,  const std::string& integrator)
   {
      // the EntityList has the region name as name but not the id
-     std::string region = domain->GetGrid()->RegionIdToName(regionId);
+     std::string region = domain->GetGrid()->GetRegion().ToString(regionId);
 
      BiLinFormContext* result = NULL;
 

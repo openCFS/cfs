@@ -259,11 +259,10 @@ namespace CoupledField {
     // =================
     //  REGION ELEMENTS
     // =================
-    ptGrid_->GetRegionIds(regionIds);
-    for ( UInt iReg = 0; iReg < regionIds.GetSize(); iReg++ ) {
+    for ( UInt iReg = 0; iReg < ptGrid_->GetNumRegions(); iReg++ ) {
       // get region name and elements
-      std::string regionName = ptGrid_->RegionIdToName(regionIds[iReg]);
-      ptGrid_->GetElems(elemVec,regionIds[iReg]);
+      std::string regionName = ptGrid_->GetRegion().ToString(iReg);
+      ptGrid_->GetElems(elemVec,iReg);
 
       // write list of elements
       WriteElementMesh( regionName, elemVec );
@@ -666,7 +665,7 @@ namespace CoupledField {
 
     // assemble name for analysis step
     std::string analysisName = "transient";
-    analysisName += "_" + GenStr( actMsStep_ );
+    analysisName += "_" + lexical_cast<std::string>( actMsStep_ );
 
 
     // get number of entities
@@ -779,7 +778,7 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
 
     // assemble name for analysis step
     std::string analysisName = "harmonic";
-    analysisName += "_" + GenStr( actMsStep_ );
+    analysisName += "_" + lexical_cast<std::string>( actMsStep_ );
 
    // get number of entities
     UInt numEnt = 0;

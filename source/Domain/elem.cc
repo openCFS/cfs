@@ -45,6 +45,7 @@ namespace CoupledField {
   Elem::Elem() : 
     elemNum(0),
     regionId( NO_REGION_ID ),
+    neighborhood(NULL),
     ptElem(NULL)
   {
     Initialize();
@@ -112,6 +113,43 @@ namespace CoupledField {
     elemQuadratic_[WEDGE6] =  false;
     elemQuadratic_[WEDGE15] = true;   
   }
+
+
+  bool Elem::IsSurfaceElement(FEType type, int dim)
+  {
+    switch(type)
+    {
+    case Elem::LINE2:
+    case Elem::LINE3:
+      if(dim == 2)
+        return true;
+
+      break;
+    case Elem::TRIA3:
+    case Elem::TRIA6:
+    case Elem::QUAD4:
+    case Elem::QUAD8:
+    case Elem::QUAD9:
+      if(dim == 3)
+        return true;
+
+      break;
+    case Elem::UNDEF:
+    case Elem::POINT:
+    case Elem::TET4:
+    case Elem::TET10:
+    case Elem::HEXA8:
+    case Elem::HEXA20:
+    case Elem::HEXA27:
+    case Elem::PYRA5:
+    case Elem::PYRA13:
+    case Elem::WEDGE6:
+    case Elem::WEDGE15:
+      break;
+    }
+    return false;
+  }
+
 
   UInt Elem::GetNumElemNodes(Elem::FEType type) {
     if(numElemNodes_.empty())
@@ -184,11 +222,33 @@ namespace CoupledField {
       {
         EXCEPTION("Connectivity for " << feType.ToString(type) << " element "
                   << elemNum << " in region "
-                  << domain->GetGrid()->RegionIdToName(regionId)
+                  << domain->GetGrid()->GetRegion().ToString(regionId)
                   << " is not properly oriented!" );
       }
       break;
     }
   }
   
+  std::ostream & operator<<(std::ostream &out, const std::pair<Elem*, int>& data)
+  {
+    out << "(" << (data.first != NULL ? lexical_cast<std::string>(data.first->elemNum) : "NULL")
+        << "," << data.second << ")";
+    return out;
+  }
+
+  std::ostream & operator<<(std::ostream &out, const Elem*& data)
+  {
+     out << (data != NULL ? lexical_cast<std::string>(data->elemNum) : "NULL");
+     return out;
+  }
+
+  std::ostream & operator<<(std::ostream &out, const StdVector<Elem*>& data)
+  {
+     out << "(";
+     for(unsigned int i = 0, ni = data.GetSize(); i < ni; i++)
+       out << (data[i] != NULL ? lexical_cast<std::string>(data[i]->elemNum) : "NULL")
+           << (i < ni-1 ? ", " : "");
+     out << ")";
+     return out;
+  }
 }

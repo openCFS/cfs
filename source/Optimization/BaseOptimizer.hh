@@ -65,6 +65,12 @@ namespace CoupledField
     /** Provide Upper and Lower bounds to the optimizer */
     void GetBounds(int n, double* x_l, double* x_u, int m, double* g_l, double* g_u);
     
+    /** Return the infinty value (here for ipopt) */
+    virtual double GetInfBound() 
+    {
+      return 1e19;
+    }
+    
     /** Combines a design_in with an objective */
     struct DesignMemory
     {
@@ -139,6 +145,10 @@ namespace CoupledField
     
     /** This flag indicates a scaling error and request for restart */
     bool restart_requested;
+
+    /** Determine the time spent in the external optimizer.
+     * This is SolveProblem minus all evaluations */
+    Timer* timer_;
     
   private:
     /** Here we store the objective value for a design. */
@@ -146,9 +156,6 @@ namespace CoupledField
     
     ParamNode* optimizer_pn_;
     
-    /** Determine the time spent in the external optimizer.
-     * This is SolveProblem minus all evaluations */
-    Timer* timer_;
   };
 
 } // end of namespace

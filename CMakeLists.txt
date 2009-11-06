@@ -19,7 +19,7 @@ PROJECT(CFS C CXX Fortran)
 # CFS version number.  An even minor number corresponds to releases.
 #-----------------------------------------------------------------------------
 SET(CFS_VERSION_YEAR "09")
-SET(CFS_VERSION_MONTH "09")
+SET(CFS_VERSION_MONTH "11")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
@@ -98,7 +98,7 @@ SET(CFS_PARDISO  ${CFS_PARDISO_DEFAULT}
 OPTION(USE_PARDISO "Use Pardiso" ${USE_PARDISO_DEFAULT})
 OPTION(USE_ARPACK "Use the ARPACK eigensolver library." ${USE_ARPACK_DEFAULT})
 OPTION(USE_ILUPACK "Use Preconditioners from ILUPACK." ${USE_ILUPACK_DEFAULT})
-OPTION(USE_CHOLMOD "Use the CholMod solver." ${USE_CHOLMOD_DEFAULT})
+OPTION(USE_CHOLMOD "Use the CholMod solver." ON)
 
 IF(USE_PARDISO OR
    USE_ARPACK OR
@@ -147,6 +147,11 @@ OPTION(USE_SCPIP "Use the external SCPIP optimizer." ${USE_SCPIP_DEFAULT})
 # Yet another optimization library.
 #-----------------------------------------------------------------------------
 OPTION(USE_IPOPT "Use the external IPOPT optimizer." ${USE_IPOPT_DEFAULT})
+
+#-----------------------------------------------------------------------------
+# SnOpt optimizer library.
+#-----------------------------------------------------------------------------
+OPTION(USE_SNOPT "Use the external SnOpt optimizer." ${USE_SNOPT_DEFAULT})
 
 #-----------------------------------------------------------------------------
 # Use interpolation toggles the inclusion of the CGAL library.

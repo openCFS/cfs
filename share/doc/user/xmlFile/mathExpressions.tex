@@ -21,9 +21,12 @@ Therefore one can easily
 Currently the following xml-elements allow the prescription of mathematical
 expressions:
 \begin{itemize}
-\item \verb#<dirichletInhom># for the \verb#value# and \verb#phase# attribute
-\item \verb#<load># for the \verb#value# and \verb#phase# attribute
-\item \verb#<regionLoad># in the mechanic PDE for the attribute \verb#value#
+\item \myverb#<dirichletInhom># for the \attribute{value} and
+\attribute{phase} attribute
+\item \myverb#<load># for the \attribute{value} and \attribute{phase}
+attribute
+\item \myverb#<regionLoad># in the mechanic PDE for the attribute
+\attribute{value}
 \end{itemize}
 
 \section{Built-in expressions and operators}
@@ -34,69 +37,77 @@ Note that it is currently not possible to define own variables within
 the parser, as otherwise any occurrence of a not explicitly defined
 variable would create a new one, initialized with zero.
 \begin{table}[ht]
-  \begin{longtable}{c|c|c}
-    \hline\noalign{\smallskip}
+\begin{center}
+ \caption{Built-in functions}
+ \vspace{0.5cm}  
+  \begin{tabular}{lll}
+    \toprule
     name & \# of args. & description \\
-    \noalign{\smallskip}\hline\noalign{\smallskip} 
-    \verb#sin#     & 1 & sine function \\
-    \verb#cos#     & 1 & cosine function \\
-    \verb#tan#     & 1 & tangens function \\
-    \verb#asin#    & 1 & arcus sine function \\
-    \verb#acos#    & 1 & arcus cosine function \\
-    \verb#atan#    & 1 & arcus tangens function \\
-    \verb#sinh#    & 1 & hyperbolic sine function \\
-    \verb#cosh#    & 1 & hyperbolic cosine \\
-    \verb#tanh#    & 1 & hyperbolic tangens function \\
-    \verb#asinh#   & 1 & hyperbolic arcus sine function \\
-    \verb#acosh#   & 1 & hyperbolic arcus tangens function \\
-    \verb#atanh#   & 1 & hyperbolic arcur tangens function \\
-    \verb#log2#    & 1 & logarithm to the base 2 \\
-    \verb#log10#   & 1 & logarithm to the base 10 \\
-    \verb#log#     & 1 & logarithm to the base 10 \\
-    \verb#ln#      & 1 & logarithm to base e (2.71828...) \\
-    \verb#exp#     & 1 & e raised to the power of x \\
-    \verb#sqrt#    & 1 & square root of a value \\
-    \verb#sign#    & 1 & sign function -1 if $x<0$; 1 if $x>0$ \\
-    \verb#rint#    & 1 & round to nearest integer \\
-    \verb#abs#     & 1 & absolute value \\
-    \verb#if#      & 3 & if ... then ... else ... \\
-    \verb#min#     & var. & min of all arguments \\
-    \verb#max#     & var. & max of all arguments \\
-    \verb#sum#     & var. & sum of all arguments \\
-    \verb#avg#     & var. & mean value of all arguments
-  \end{longtable}
- \caption{Built-in functions}  
+    \midrule 
+    \myverb#sin#     & 1 & sine function \\
+    \myverb#cos#     & 1 & cosine function \\
+    \myverb#tan#     & 1 & tangens function \\
+    \myverb#asin#    & 1 & arcus sine function \\
+    \myverb#acos#    & 1 & arcus cosine function \\
+    \myverb#atan#    & 1 & arcus tangens function \\
+    \myverb#sinh#    & 1 & hyperbolic sine function \\
+    \myverb#cosh#    & 1 & hyperbolic cosine \\
+    \myverb#tanh#    & 1 & hyperbolic tangens function \\
+    \myverb#asinh#   & 1 & hyperbolic arcus sine function \\
+    \myverb#acosh#   & 1 & hyperbolic arcus tangens function \\
+    \myverb#atanh#   & 1 & hyperbolic arcur tangens function \\
+    \myverb#log2#    & 1 & logarithm to the base 2 \\
+    \myverb#log10#   & 1 & logarithm to the base 10 \\
+    \myverb#log#     & 1 & logarithm to the base 10 \\
+    \myverb#ln#      & 1 & logarithm to base e (2.71828...) \\
+    \myverb#exp#     & 1 & e raised to the power of x \\
+    \myverb#sqrt#    & 1 & square root of a value \\
+    \myverb#sign#    & 1 & sign function -1 if $x<0$; 1 if $x>0$ \\
+    \myverb#rint#    & 1 & round to nearest integer \\
+    \myverb#abs#     & 1 & absolute value \\
+    \myverb#if#      & 3 & if ... then ... else ... \\
+    \myverb#min#     & var. & min of all arguments \\
+    \myverb#max#     & var. & max of all arguments \\
+    \myverb#sum#     & var. & sum of all arguments \\
+    \myverb#avg#     & var. & mean value of all arguments \\
+    \bottomrule
+  \end{tabular}
+\end{center}
 \end{table}
 
 \begin{table}[ht]
-  \begin{longtable}{c|c|c}
-    \hline\noalign{\smallskip}
+\begin{center}
+ \caption{Built-in operators and constants}
+ \vspace{0.5cm} 
+  \begin{tabular}{lll}
+    \toprule
     operator & \ meaning & priority \\
-    \noalign{\smallskip}\hline\noalign{\smallskip}
-    \verb#=#                  & assignment      & -1 \\
-    \verb#and#                & logical and      & 1 \\
-    \verb#or#                 & logical or       & 1 \\
-    \verb#xor#                & logical xor      & 1 \\
-    \verb#<=# or \verb#le# *  & less or equal    & 2 \\
-    \verb#>=# or \verb#ge# *  & greater or equal & 2 \\
-    \verb#!=#                 & not equal        & 2 \\
-    \verb#==#                 & equal            & 2 \\
-    \verb#># or \verb#gt# *   & greater than     & 2 \\
-    \verb#<# ot \verb#lt# *   & less than        & 2 \\
-    \verb#+#                  & addition         & 3 \\
-    \verb#-#                  & subtraction      & 3 \\
-    \verb#*#                  & multiplication   & 4 \\
-    \verb#/#                  & division         & 4 \\
-    \verb#^#                  & raise x to the power of y & 5 \\
-    \verb#pi#   or \verb#_pi# & $\pi = 3.1415926..$ & \\
-    \verb#_e#                 & Eulerian number $e = 2.7182818..$ 
-  \end{longtable}
+    \midrule
+    \myverb#=#                  & assignment      & -1 \\
+    \myverb#and#                & logical and      & 1 \\
+    \myverb#or#                 & logical or       & 1 \\
+    \myverb#xor#                & logical xor      & 1 \\
+    \myverb#<=# or \verb#le# *  & less or equal    & 2 \\
+    \myverb#>=# or \verb#ge# *  & greater or equal & 2 \\
+    \myverb#!=#                 & not equal        & 2 \\
+    \myverb#==#                 & equal            & 2 \\
+    \myverb#># or \verb#gt# *   & greater than     & 2 \\
+    \myverb#<# ot \verb#lt# *   & less than        & 2 \\
+    \myverb#+#                  & addition         & 3 \\
+    \myverb#-#                  & subtraction      & 3 \\
+    \myverb#*#                  & multiplication   & 4 \\
+    \myverb#/#                  & division         & 4 \\
+    \myverb#^#                  & raise x to the power of y & 5 \\
+    \myverb#pi#   or \verb#_pi# & $\pi = 3.1415926..$ & \\
+    \myverb#_e#                 & Eulerian number $e = 2.7182818..$ \\
+ 	\bottomrule
+  \end{tabular}
+\end{center}
   \vspace*{0.5cm}
   {\footnotesize * Due to the restriction in the xml language definition no '$<$' or
     '$>$' signs are allowed in tokens. Therefore the latter form is the
     only one possible in .xml-files. If scripting is used, both forms are
     possible. }
- \caption{Built-in operators and constants}  
 \end{table}
 \clearpage
 \section{CFS custom functions}
@@ -109,8 +120,8 @@ The notation is as follows:
     phase="sample1D('x_phase.dat',x,2)"/>
 </bcsAndLoads>
 \end{verbatim}
-Sample data (2 columns) is read in from the files x\_amplitude.dat and x\_phase.dat.
-Please note the type of quotes used!!!!
+Sample data (2$^{nd}$ column) is read in from the files x\_amplitude.dat and
+x\_phase.dat. Please note the type of quotes used!!!!
 \newline
 
 \noindent
@@ -119,7 +130,7 @@ x specifies the direction, where the sample data is applied.
 Could also be 0=nearest neighbour, or 1=linear interpolation.
 
 \subsection{\texttt{input}}
-The \texttt{input} function can be used to read in data on a whole region from
+The \element{input} element can be used to read in data on a whole region from
 hdf5 files (of a previous simulation run). It takes as arguments the input ID
 and the number of the multisequence step (which should be 1 in almost any
 case). It is used in the following way:
@@ -142,42 +153,49 @@ case). It is used in the following way:
 \end{verbatim}
 The region name, quantity, and time/frequency step (if applicable) are
 determined automatically and not passed as arguments. Therefore it is required
-to use exactly same the same mesh as for the previous simulation, i.e.\
+to use exactly same mesh as the previous simulation, i.e.\
 interpolation onto a different mesh is not supported.
 
 The \texttt{input} function is currently available only for inhomogeneous
-Dirichlet conditions, but may be supported for other BCs in the future.
+Dirichlet boundary conditions, but may be supported for other BCs in the future.
 
 \begin{table}[htb]
-  \begin{longtable}{c|c|c}
-    \hline\noalign{\smallskip}
+\begin{center}
+\caption{CFS specific functions}
+\vspace{0.5cm}
+  \begin{tabular}{lll}
+    \toprule
     name & \# of args. & description \\
-    \noalign{\smallskip}\hline\noalign{\smallskip}
+    \midrule
     \texttt{input}      & 2 & read data for a whole region from a hdf5 file \\
     \texttt{sample1D}   & 3 & interpolation of boundary condition values
     from sample data files \\
-  \end{longtable}
- \caption{CFS specific functions}
+    \bottomrule
+  \end{tabular}
+\end{center} 
 \end{table}
 
 \section{CFS custom variables}
-In addition to the built-in variables, CFS++ registers additionally
+In addition to the built-in variables, CFS++ registers additionally allow
 some variables, which can be used in the mathematical expression (see
 the following table).
 \begin{table}[ht]
-  \begin{longtable}{c|p{0.4\textwidth}|p{0.4\textwidth}}
-    \hline\noalign{\smallskip}
+\begin{center}
+ \caption{CFS specific variables}
+ \vspace{0.5cm}
+  \begin{tabular}{lll}
+    \toprule
      name & value & occurrence \\
-    \noalign{\smallskip}\hline\noalign{\smallskip}
-    \verb#t#     & Current time value       & transient analysis \\
-    \verb#f#     & Current frequency value  & harmonic analysis \\
-    \verb$x y z$ & Current global coordinate value & boundary
-    conditions \newline load \\
-    \verb#r phi z# & Current local coordinate value & regionLoad
-    with cylindrical coordinate system
-  \end{longtable}
-  \caption{CFS specific variables}
- \end{table}
+    \midrule
+    \myverb#t#     & Current time value       & \analysis{transient} analysis \\
+    \myverb#f#     & Current frequency value  & \analysis{harmonic} analysis \\
+    \myverb$x y z$ & Current global coordinate value & boundary conditions
+    e.g:load \\ \myverb#r phi z# & Current local coordinate value & regionLoad
+    with cylindrical coordinate system \\
+    \bottomrule
+  \end{tabular}
+\end{center}
+\end{table}
 
 \section{Examples}
 If one wants to prescribe a linear space dependent load, the following can be
@@ -187,21 +205,21 @@ written:
   <load name="loadNode" value="10 * x" phase="cos(y)"/>
 <bcsAndLoads>
 \end{verbatim}
-Here \verb#x# is used to denote the x-coordinate of each node
+Here \myverb#x# is used to denote the x-coordinate of each node
 contained in the node list.
 \newline
 
 \noindent
 An even easier way to define a time dependent variable than using the
-\verb#dynamics# keyword is by using directly the
-\verb#sin#-function. To define a variable with a sine of 1 kHz one can
+\myverb#dynamics# keyword is by using directly the
+\myverb#sin#-function. To define a variable with a sine of 1 kHz one can
 simply write:
 \begin{verbatim}
 <bcsAndLoads>
   <dirichletInhom name="bcNode" value="10 * sin(2 * pi * 1e3 * t)"/>
 <bcsAndLoads>
 \end{verbatim}
-The variable \verb#t# reflects the current time value in a transient
+The variable \myverb#t# reflects the current time value in a transient
 simulation.
 Of couse one can also combine space- and time dependency:
 \begin{verbatim}
@@ -209,7 +227,8 @@ Of couse one can also combine space- and time dependency:
   <dirichletInhom name="bcNode" value="10 * x * sin(2 * pi * 1e3 * t)"/>
 <bcsAndLoads>
 \end{verbatim}
-A ramp signal, which goes from $0 \ldots 1 s$ linear from $0 \ldots 1$ and then stays at 1 is written via the \verb#if#-statement as follows:
+A ramp signal, which goes from $0 \ldots 1$ linearly and then
+stays at 1 is written via the \myverb#if#-statement as follows:
 \begin{verbatim}
 <bcsAndLoads>
   <dirichletInhom name="bcNode" value="if(t lt 1,t,1.0)"/>
