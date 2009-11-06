@@ -1,71 +1,60 @@
 #-------------------------------------------------------------------------------
-# Collect output of compiler version command to determine compiler type and
-# version information. 
-#-------------------------------------------------------------------------------
-EXEC_PROGRAM("${CMAKE_CXX_COMPILER} --version | head -1"
-  ARGS
-  OUTPUT_VARIABLE CFS_CXX_COMPILER_INFO
-  RETURN_VALUE RETVAL)
-
-EXEC_PROGRAM("${CMAKE_Fortran_COMPILER} --version | head -1"
-  ARGS
-  OUTPUT_VARIABLE CFS_FORTRAN_COMPILER_INFO
-  RETURN_VALUE RETVAL)
-
-#-------------------------------------------------------------------------------
 # Determine what equivalent GNU version the compiler has, to check if it is
 # compatible with the GNU C++ compiler on the system PATH.
 #-------------------------------------------------------------------------------
-SET(TEST_FILE "${CFS_BINARY_DIR}/include/test_gnu_version.hh")
-FILE(WRITE "${TEST_FILE}" "<CFS_GNU_VER>__GNUC__.__GNUC_MINOR__</CFS_GNU_VER>")
-EXEC_PROGRAM("${CMAKE_CXX_COMPILER} -E ${TEST_FILE}"
+EXEC_PROGRAM("${PERL} ${CFS_SOURCE_DIR}/share/scripts/identify_compiler.pl g++ ${CFS_SOURCE_DIR}/share/scripts/IdentifyCXXCompiler.cpp cmake > ${CFS_BINARY_DIR}/CMakeFiles/out.cmake"
   ARGS
-  OUTPUT_VARIABLE CFS_CXX_COMPILER_GNU_VER
+  OUTPUT_VARIABLE CC_COMPILER_INFO
   RETURN_VALUE RETVAL)
-STRING(REGEX MATCH
-  "<CFS_GNU_VER>.*</CFS_GNU_VER>"
-  CFS_CXX_COMPILER_GNU_VER "${CFS_CXX_COMPILER_GNU_VER}")
-STRING(REPLACE " " "" CFS_CXX_COMPILER_GNU_VER
-  "${CFS_CXX_COMPILER_GNU_VER}")
-STRING(REGEX MATCH "[0-9]+\\.[0-9]"
-  CFS_CXX_COMPILER_GNU_VER "${CFS_CXX_COMPILER_GNU_VER}")
 
-EXEC_PROGRAM("g++ -E ${TEST_FILE}"
+INCLUDE(${CFS_BINARY_DIR}/CMakeFiles/out.cmake)
+
+SET(GNU_CXX_COMPILER_VER "${CXX_VERSION}")
+
+#-------------------------------------------------------------------------------
+# Collect output of compiler version command to determine compiler type and
+# version information. 
+#-------------------------------------------------------------------------------
+# EXEC_PROGRAM("${PERL} ${CFS_DEPS_ROOT}/utils/perl/identify_compiler.pl ${CMAKE_C_COMPILER} ${CFS_DEPS_ROOT}/utils/compiler/IdentifyCCompiler.c cmake > ${CFS_BINARY_DIR}/CMakeFiles/out.cmake"
+#   ARGS
+#   OUTPUT_VARIABLE CC_COMPILER_INFO
+#   RETURN_VALUE RETVAL)
+
+# INCLUDE(${CFS_BINARY_DIR}/CMakeFiles/out.cmake)
+
+
+EXEC_PROGRAM("${PERL} ${CFS_SOURCE_DIR}/share/scripts/identify_compiler.pl ${CMAKE_CXX_COMPILER} ${CFS_SOURCE_DIR}/share/scripts/IdentifyCXXCompiler.cpp cmake > ${CFS_BINARY_DIR}/CMakeFiles/out.cmake"
   ARGS
-  OUTPUT_VARIABLE GNU_CXX_COMPILER_VER
+  OUTPUT_VARIABLE CXX_COMPILER_INFO
   RETURN_VALUE RETVAL)
-STRING(REGEX MATCH
-  "<CFS_GNU_VER>.*</CFS_GNU_VER>"
-  GNU_CXX_COMPILER_VER "${GNU_CXX_COMPILER_VER}")
-STRING(REPLACE " " "" GNU_CXX_COMPILER_VER
-  "${GNU_CXX_COMPILER_VER}")
-STRING(REGEX MATCH "[0-9]+\\.[0-9]"
-  GNU_CXX_COMPILER_VER "${GNU_CXX_COMPILER_VER}")
 
-# MESSAGE("CFS_CXX_COMPILER_GNU_VER: ${CFS_CXX_COMPILER_GNU_VER}")
-# MESSAGE("GNU_CXX_COMPILER_VER: ${GNU_CXX_COMPILER_VER}")
+INCLUDE(${CFS_BINARY_DIR}/CMakeFiles/out.cmake)
+#-------------------------------------------------------------------------------
+# Set the C++ compiler name and compiler version
+#-------------------------------------------------------------------------------
+SET(CFS_CXX_COMPILER_NAME ${CXX_ID})
+SET(CFS_CXX_COMPILER_VER "${CXX_VERSION}")
+SET(CFS_CXX_COMPILER_GNU_VER "${CXX_GCC_VERSION}")
 
+EXEC_PROGRAM("${PERL} ${CFS_SOURCE_DIR}/share/scripts/identify_compiler.pl ${CMAKE_Fortran_COMPILER} ${CFS_SOURCE_DIR}/share/scripts/IdentifyFortranCompiler.F90 cmake > ${CFS_BINARY_DIR}/CMakeFiles/out.cmake"
+  ARGS
+  OUTPUT_VARIABLE FORTRAN_COMPILER_INFO
+  RETURN_VALUE RETVAL)
 
-# MESSAGE("C++ info: ${CFS_CXX_COMPILER_INFO}")
-# MESSAGE("FORTRAN info: ${CFS_FORTRAN_COMPILER_INFO}")
+INCLUDE(${CFS_BINARY_DIR}/CMakeFiles/out.cmake)
+
+#-------------------------------------------------------------------------------
+# Set the Fortran compiler name and compiler version
+#-------------------------------------------------------------------------------
+SET(CFS_FORTRAN_COMPILER_NAME ${FC_ID})
+SET(CFS_FORTRAN_COMPILER_VER "${FC_VERSION}")
 
 #-------------------------------------------------------------------------------
 # Check if we are using the GNU C++ compiler
 #-------------------------------------------------------------------------------
-IF(CMAKE_COMPILER_IS_GNUCXX)
+IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
 
   # MESSAGE("We are using the GNU C++ compiler. ${CMAKE_CXX_COMPILER}")
-
-  #-----------------------------------------------------------------------------
-  # Set the compiler name and compiler version
-  #-----------------------------------------------------------------------------
-  SET(CFS_CXX_COMPILER_NAME "GCC")
-  SET(CFS_CXX_COMPILER_VER "${CFS_CXX_COMPILER_INFO}")
-
-  STRING(REGEX MATCH 
-    "[0-9]+\\.[0-9]+\\.[0-9]+"
-    CFS_CXX_COMPILER_VER
-    ${CFS_CXX_COMPILER_VER})
 
   #-----------------------------------------------------------------------------
   # Check if compiler has OpenMP support. GCC >= 4.2 has.
@@ -146,43 +135,12 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
   ENDIF(NOT USE_INTERPOLATION)
 
 
-ENDIF(CMAKE_COMPILER_IS_GNUCXX)
-
-#-------------------------------------------------------------------------------
-# Check if we are using the GNU Fortran (95) compiler
-#-------------------------------------------------------------------------------
-IF(CFS_FORTRAN_COMPILER_INFO MATCHES "GNU")
-  #-----------------------------------------------------------------------------
-  # Determine name of Fortran compiler
-  #-----------------------------------------------------------------------------
-  SET(CFS_FORTRAN_COMPILER_NAME "GNU")
-
-  #-----------------------------------------------------------------------------
-  # Determine version of Fortran compiler
-  #-----------------------------------------------------------------------------
-  SET(CFS_FORTRAN_COMPILER_VER ${CFS_FORTRAN_COMPILER_INFO})
-  STRING(REGEX MATCH 
-    "[0-9]+\\.[0-9]+\\.[0-9]+"
-    CFS_FORTRAN_COMPILER_VER
-    ${CFS_FORTRAN_COMPILER_VER})
-
-ENDIF(CFS_FORTRAN_COMPILER_INFO MATCHES "GNU")
-
+ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
 
 #-------------------------------------------------------------------------------
 # Check for Intel C++ compiler
 #-------------------------------------------------------------------------------
-IF(CFS_CXX_COMPILER_INFO MATCHES "ICC")
-  #-----------------------------------------------------------------------------
-  # Set the compiler name and compiler version
-  #-----------------------------------------------------------------------------
-  SET(CFS_CXX_COMPILER_NAME "ICC")
-
-  STRING(REGEX MATCH 
-    "[0-9]+\\.[0-9]+ [0-9]+"
-    CFS_CXX_COMPILER_VER
-    ${CFS_CXX_COMPILER_INFO})
-
+IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   #-----------------------------------------------------------------------------
   # Check for the case that Intel compiler is just GCC 4.2 compatible but the
   # system GCC is version 4.3. In this case Intel C++ fails to compile due
@@ -242,22 +200,12 @@ IF(CFS_CXX_COMPILER_INFO MATCHES "ICC")
     SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -fno-builtin-std::max")
   ENDIF(CFS_CXX_COMPILER_VER MATCHES "11\\.")
 
-ENDIF(CFS_CXX_COMPILER_INFO MATCHES "ICC")
+ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
 
 #-------------------------------------------------------------------------------
 # Check for Intel Fortran compiler
 #-------------------------------------------------------------------------------
-IF(CFS_FORTRAN_COMPILER_INFO MATCHES "IFORT")
-  #-----------------------------------------------------------------------------
-  # Set Intel Fortran compiler name and version
-  #-----------------------------------------------------------------------------
-  SET(CFS_FORTRAN_COMPILER_NAME "IFORT")
-
-  STRING(REGEX MATCH 
-    "[0-9]+\\.[0-9]+ [0-9]+"
-    CFS_FORTRAN_COMPILER_VER
-    ${CFS_FORTRAN_COMPILER_INFO})
-
+IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
   #-----------------------------------------------------------------------------
   # Set Intel Fortran library paths in dedicated variables
   #-----------------------------------------------------------------------------
@@ -298,7 +246,7 @@ IF(CFS_FORTRAN_COMPILER_INFO MATCHES "IFORT")
     irc
     )
     
-ENDIF(CFS_FORTRAN_COMPILER_INFO MATCHES "IFORT")
+ENDIF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
 
 
 #-------------------------------------------------------------------------------

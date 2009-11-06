@@ -1,0 +1,197 @@
+#!/usr/bin/perl
+
+use Switch;
+
+$COMPILER=$ARGV[0];
+$SOURCE=$ARGV[1];
+$OUTPUT=$ARGV[2];
+
+# print "CC $CC\nSOURCE $SOURCE\nOUTPUT $OUTPUT\n";
+
+foreach $line (`$COMPILER -E $SOURCE 2>&1`) {
+    if( $line =~ /CC_ID/ ) {
+	$line =~ s/CC_ID //;
+	chomp($line);
+	$CC_ID=$line;
+    }
+
+    if( $line =~ /^CC_VERSION/ ) {
+	$line =~ s/CC_VERSION //;
+	chomp($line);
+	$CC_VERSION=$line;
+    }
+
+    if( $line =~ /^CC_GCC_VERSION/ ) {
+	$line =~ s/CC_GCC_VERSION //;
+	chomp($line);
+	$CC_GCC_VERSION=$line;
+    }
+
+    if( $line =~ /CXX_ID/ ) {
+	$line =~ s/CXX_ID //;
+	chomp($line);
+	$CXX_ID=$line;
+    }
+
+    if( $line =~ /^CXX_VERSION/ ) {
+	$line =~ s/CXX_VERSION //;
+	chomp($line);
+	$CXX_VERSION=$line;
+    }
+
+    if( $line =~ /^CXX_GCC_VERSION/ ) {
+	$line =~ s/CXX_GCC_VERSION //;
+	chomp($line);
+	$CXX_GCC_VERSION=$line;
+    }
+
+
+    if( $line =~ /FC_ID/ ) {
+	$line =~ s/FC_ID //;	
+	chomp($line);
+	$FC_ID=$line;
+    }
+
+    if( $line =~ /^FC_VERSION/ ) {
+	$line =~ s/FC_VERSION //;
+	chomp($line);
+	$FC_VERSION=$line;
+    }
+}   
+
+if ($CC_ID ne "") {
+    switch ($CC_ID) {
+	case "GCC" { 
+	    $CC_VERSION =~ s/ //g;
+	    $CC_GCC_VERSION =~ s/ //g; 
+	}
+	case "ICC" { 
+	    $ICC_VER=$CC_VERSION;
+	    $ICC_VER =~ s/ [0-9].*$//;
+	    {
+		use integer;
+		$MAJOR_VER = $ICC_VER / 100;
+		$MINOR_VER = $ICC_VER % 100;
+		$MINOR_VER = $MINOR_VER / 10;
+	    }
+	    $ICC_DATE=$CC_VERSION;
+	    $ICC_DATE =~ s/^[0-9].* //;
+	    $CC_VERSION = "$MAJOR_VER.$MINOR_VER $ICC_DATE";
+	    $CC_GCC_VERSION =~ s/ //g; 
+	}
+	case "OPEN64" {
+	    $CC_VERSION =~ s/ //g;
+	    $CC_GCC_VERSION =~ s/ //g; 
+	}
+	else {
+	    print "C compiler not supported!\n";
+	    exit 1;
+	}
+    }
+
+    switch ($OUTPUT) {
+	case "cmake" { 
+	    print "SET(CC_ID \"$CC_ID\")\n"; 
+	    print "SET(CC_VERSION \"$CC_VERSION\")\n"; 
+	    print "SET(CC_GCC_VERSION \"$CC_GCC_VERSION\")\n";
+	    exit 0;
+	}
+	case "perl" { 
+	    print "\$CC_ID=\"$CC_ID\";\n"; 
+	    print "\$CC_VERSION=\"$CC_VERSION\";\n"; 
+	    print "\$CC_GCC_VERSION=\"$CC_GCC_VERSION\";\n";
+	    exit 0;
+	}
+    }
+} 
+
+if ($CXX_ID ne "") {
+    switch ($CXX_ID) {
+	case "GCC" { 
+	    $CXX_VERSION =~ s/ //g;
+	    $CXX_GCC_VERSION =~ s/ //g; 
+	}
+	case "ICC" { 
+	    $ICC_VER=$CXX_VERSION;
+	    $ICC_VER =~ s/ [0-9].*$//;
+	    {
+		use integer;
+		$MAJOR_VER = $ICC_VER / 100;
+		$MINOR_VER = $ICC_VER % 100;
+		$MINOR_VER = $MINOR_VER / 10;
+	    }
+	    $ICC_DATE=$CXX_VERSION;
+	    $ICC_DATE =~ s/^[0-9].* //;
+	    $CXX_VERSION = "$MAJOR_VER.$MINOR_VER $ICC_DATE";
+	    $CXX_GCC_VERSION =~ s/ //g; 
+	}
+	case "OPEN64" {
+	    $CXX_VERSION =~ s/ //g;
+	    $CXX_GCC_VERSION =~ s/ //g; 
+	}
+	else {
+	    print "C++ compiler not supported!\n";
+	    exit 1;
+	}
+    }
+
+    switch ($OUTPUT) {
+	case "cmake" { 
+	    print "SET(CXX_ID \"$CXX_ID\")\n"; 
+	    print "SET(CXX_VERSION \"$CXX_VERSION\")\n"; 
+	    print "SET(CXX_GCC_VERSION \"$CXX_GCC_VERSION\")\n";
+	    exit 0;
+	}
+	case "perl" { 
+	    print "\$CXX_ID=\"$CXX_ID\";\n"; 
+	    print "\$CXX_VERSION=\"$CXX_VERSION\";\n"; 
+	    print "\$CXX_GCC_VERSION=\"$CXX_GCC_VERSION\";\n";
+	    exit 0;
+	}
+    }
+}
+
+if ($FC_ID ne "") {
+    switch ($FC_ID) {
+	case "GNU" { 
+	    $FC_VERSION =~ s/ //g;
+	}
+	case "IFORT" { 
+	    $ICC_VER=$FC_VERSION;
+	    $ICC_VER =~ s/ [0-9].*$//;
+	    {
+		use integer;
+		$MAJOR_VER = $ICC_VER / 100;
+		$MINOR_VER = $ICC_VER % 100;
+		$MINOR_VER = $MINOR_VER / 10;
+	    }
+	    $ICC_DATE=$FC_VERSION;
+	    $ICC_DATE =~ s/^[0-9].* //;
+	    $FC_VERSION = "$MAJOR_VER.$MINOR_VER $ICC_DATE";
+	}
+	case "OPEN64" {
+	    $FC_VERSION =~ s/ //g;
+	}
+	else {
+	    print "Fortran compiler not supported!\n";
+	    exit 1;
+	}
+    }
+
+    switch ($OUTPUT) {
+	case "cmake" { 
+	    print "SET(FC_ID \"$FC_ID\")\n"; 
+	    print "SET(FC_VERSION \"$FC_VERSION\")\n"; 
+	    exit 0;
+	}
+	case "perl" { 
+	    print "\$FC_ID=\"$FC_ID\";\n"; 
+	    print "\$FC_VERSION=\"$FC_VERSION\";\n"; 
+	    exit 0;
+	}
+    }
+}
+
+print "Compiler not supported!\n";
+exit 1;
+

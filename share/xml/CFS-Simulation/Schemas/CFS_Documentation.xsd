@@ -14,19 +14,63 @@
   <xsd:complexType name="DT_Documentation">
     <xsd:annotation>
       <xsd:documentation xml:lang="en">
-        Data type for incorporating a documentation directly into the XML
+        Tag for incorporating a documentation directly into the XML
         simulation description.
       </xsd:documentation>
     </xsd:annotation>
 
     <xsd:sequence>
-      <xsd:element name="title" minOccurs="1" maxOccurs="1"/>
-      <xsd:element name="authors" minOccurs="1" maxOccurs="1" type="DT_DocAuthorsList"/>
+      <xsd:element name="title" minOccurs="1" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Title of the simulation.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="authors" minOccurs="1" maxOccurs="1" type="DT_DocAuthorsList">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Authors of this simulation.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
       <xsd:element name="date" minOccurs="1" maxOccurs="1"
-                   type="xsd:date" default="2009-10-31"/>
-      <xsd:element name="keywords" type="DT_DocKeywordList"/>
-      <xsd:element name="references" minOccurs="1" maxOccurs="1"/>
-      <xsd:element name="description" minOccurs="1" maxOccurs="1"/>
+                   type="xsd:date" default="2009-10-31">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Date when this simulation was created.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="keywords" type="DT_DocKeywordList">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Keywords for identifying certain topics.
+            Add more keywords in share/xml/CFS-Simulation/Schemas/CFS_Documentation.xsl
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="references" minOccurs="1" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            What literature has been used to create this simulation?
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="description" minOccurs="1" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Detailed description of the current simulation.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="free" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            More informations the authors want to add.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
     </xsd:sequence>
   </xsd:complexType>
 

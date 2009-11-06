@@ -330,6 +330,9 @@ share/matlab/mmread.m svneol=native#text/plain
 share/matlab/opt_design_change.m -text
 share/matlab/sbmread.m svneol=native#text/plain
 share/scripts/CMakeLists.txt svneol=native#text/plain
+share/scripts/IdentifyCCompiler.c svneol=native#text/plain
+share/scripts/IdentifyCXXCompiler.cpp svneol=native#text/plain
+share/scripts/IdentifyFortranCompiler.F90 -text
 share/scripts/cfs -text
 share/scripts/cfstool -text
 share/scripts/common.sh svneol=native#text/plain
@@ -342,6 +345,7 @@ share/scripts/hdf5_concat.sh.in -text
 share/scripts/hdf5_concat2.sh.in -text
 share/scripts/hdf5_import_dataset.sh.in svneol=native#text/plain
 share/scripts/hdf5_import_mesh.sh.in svneol=native#text/plain
+share/scripts/identify_compiler.pl svneol=native#text/plain
 share/scripts/log.py -text
 share/scripts/log.tcl svneol=native#text/x-tcl
 share/scripts/macsysinfo.scpt -text

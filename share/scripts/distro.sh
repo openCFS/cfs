@@ -139,6 +139,7 @@ elif [ "${OS}" = "Linux" ] ; then
 			    "intrepid") PSEUDONAME="Intrepid Ibex";; # 8.10
 			    "jaunty") PSEUDONAME="Jaunty Jackalope";; # 9.04
 			    "karmic") PSEUDONAME="Karmic Koala";; # 9.10
+                            "lucid") PSEUDONAME="Lucid Lynx";; # 10.04
 	                esac;;
 		    "knoppix")
 			DIST=Knoppix;
@@ -159,8 +160,8 @@ elif [ ${OS} = "Darwin" ]; then
 	if [ $? -eq 0 ]; then
 	    OS="Mac OS X"
             DIST="MACOSX"
-	    REV=$MACOSVER
-            MAJOR_REV=`echo $REV | sed s/\.[0-9]$//`
+	    FULL_REV=$MACOSVER
+            MAJOR_REV=`echo $FULL_REV | sed s/\.[0-9]$//`
 
 	    case "$MAJOR_REV" in
                 "10.0") PSEUDONAME="Cheetah";;
@@ -171,11 +172,13 @@ elif [ ${OS} = "Darwin" ]; then
 		"10.5") PSEUDONAME="Leopard";;
                 "10.6") PSEUDONAME="Snow Leopard";;
 	    esac
+
+            REV=$MAJOR_REV
+            OSSTR="$OS $DIST $MAJOR_REV ($FULL_REV $PSEUDONAME ${MACH})"
 	else
 	    DIST="DARWIN"
+            OSSTR="$OS $DIST $REV ($PSEUDONAME ${MACH})"
 	fi
-
-	OSSTR="$OS $DIST $REV ($PSEUDONAME ${MACH})"
 fi
 
       while :
