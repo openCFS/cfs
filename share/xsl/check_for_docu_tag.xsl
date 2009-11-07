@@ -18,7 +18,7 @@
                 <xsl:apply-templates select="cfs:documentation/cfs:description"/>
             </xsl:when>
             <xsl:otherwise>
-                <xsl:text>FAILURE: Documentation tag is missing!&#10;</xsl:text>
+                <xsl:text>WARNING: Documentation tag is missing!&#10;</xsl:text>
             </xsl:otherwise>
         </xsl:choose>
     </xsl:template>
