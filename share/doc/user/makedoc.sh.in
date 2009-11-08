@@ -31,6 +31,17 @@ function build {
     cd @CMAKE_CURRENT_SOURCE_DIR@/xmlFile
     DOCUMENT=xmlReference
 
+    # make copy of tex files and make syntax coloring
+    texFiles=`ls *.tex`
+    for f in $texFiles;
+    do
+      cp $f ${f%.*}-save.tex
+      ./dopygment.py tex $f
+    done
+
+    # add pygments tex style to own files
+    cat syntax.tex >> mycommands.tex
+
     @PDFLATEX_COMPILER@ $DOCUMENT
     @BIBTEX_COMPILER@   $DOCUMENT
     @PDFLATEX_COMPILER@ $DOCUMENT
@@ -38,6 +49,12 @@ function build {
     @PDFLATEX_COMPILER@ $DOCUMENT
     thumbpdf $DOCUMENT
     @PDFLATEX_COMPILER@ $DOCUMENT
+
+    # move back files
+    for f in $texFiles ;
+    do
+      mv ${f%.*}-save.tex $f
+    done
 
     cd @CMAKE_CURRENT_SOURCE_DIR@
 
@@ -92,8 +109,30 @@ function buildhtml {
     cd @CMAKE_CURRENT_SOURCE_DIR@/xmlFile
     DOCUMENT=xmlReference
 
+    # make copy of tex files and make syntax coloring
+    texFiles=`ls *.tex`
+    for f in $texFiles;
+    do
+      cp $f ${f%.*}-save.tex
+      ./dopygment.py html $f
+    done
+
+    # call tex4ht to create html documentation
     htlatex $DOCUMENT "$DOCUMENT.cfg" "-dhtml/" "-dhtml/"
+
+    # add css-style from pygmetns to the one of tex4ht
+    cat style.css >> html/xmlReference.css
+
+    # copy picture-subdirectory to html directory
     cp -r pics/ html/
+
+    # move back files
+    for f in $texFiles ;
+    do
+      mv ${f%.*}-save.tex $f
+    done
+
+    # remove obselete files in base-directory
     rm *.html *.css *.idv *.lg
 
     cd @CMAKE_CURRENT_SOURCE_DIR@
