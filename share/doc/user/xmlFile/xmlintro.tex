@@ -16,10 +16,9 @@ international standard metalanguage for text markup systems (ISO 8879).
 
 \section{XML: Data Elements}
 In XML a single data item is enclosed by two tags:
-\begin{Verbatim}[commandchars=@\[\]]
-  @PYaZ[<node_name]@PYaZ[>]ground@PYaZ[</node_name>]
-\end{Verbatim}
-
+\begin{xmllisting}
+  <node_name>ground</node_name>
+\end{xmllisting}
 an \emph{opening tag} and a \emph{closing tag}. The whole assembly is called an
 element.
 In XML, an element can have
@@ -33,13 +32,12 @@ In XML, an element can have
     \noalign{\smallskip}\hline\noalign{\smallskip}
     children &  
     \begin{minipage}{10cm}
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<nodelist]@PYaZ[>]
-  @PYaZ[<node1]@PYaZ[>]....@PYaZ[</node1>]
-  @PYaZ[<node2]@PYaZ[>]....@PYaZ[</node2>]
-@PYaZ[</nodelist>]
-\end{Verbatim}
-
+\begin{xmllisting}
+<nodelist>
+  <node1>....</node1>
+  <node2>....</node2>
+</nodelist>
+\end{xmllisting}
     \end{minipage}\\
     \noalign{\smallskip}\hline
   \end{tabular}
@@ -51,19 +49,19 @@ or a combination of the above.
 
 
 \section{XML: Empty Elements}
+%
+%
 The XML specification allows for empty elements, i.e.~elements that contain
 neither a value nor any childred. Empty, however, does not necessarily mean
 that the element does not carry any information, but its name, since an empty
 element may still possess attributes. Indeed many of the elements used in the
 CFS++ parameter file are empty with information encoded as attribute values.
 Note also that, if an element is empty,
-\begin{Verbatim}[commandchars=@\[\]]
-   @PYaZ[<problem] @PYaQ[name=]@PYaB["demo3d"]@PYaZ[>]@PYaZ[</problem>]
-\end{Verbatim}
-
+\begin{xmllisting}
+   <problem name="demo3d"></problem>
+\end{xmllisting}
 then the opening and the closing tag can, for brevity, be combined into one:
-\begin{Verbatim}[commandchars=@\[\]]
-   @PYaZ[<problem] @PYaQ[name=]@PYaB["demo3d"]@PYaZ[/>]
-\end{Verbatim}
-
+\begin{xmllisting}
+   <problem name="demo3d"/>
+\end{xmllisting}
 

@@ -1,4 +1,6 @@
 \chapter{Parameter Identification} \label{paramIdent}
+%
+%
 This chapter explains how to perform a parameter identification in piezoelectricity using CFS++. 
 The \xel{analysis} type in your xml-file to choose is \xel{paramIdent}, see
 example below.\\
@@ -29,29 +31,28 @@ results are reasonable.
 of Sensor Technology, Erlangen-Nuremberg, 2008)\\ \newpage
 
 The following analysis section needs to be included in your xml-file:
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<analysis]@PYaZ[>]
-  @PYaZ[<paramIdent]@PYaZ[>]
-    @PYaZ[<fittingMethod] @PYaQ[type=]@PYaB["method"]@PYaZ[/>]
-    @PYaZ[<fittingQuantity] @PYaQ[type=]@PYaB["physical_quantity"]@PYaZ[/>]
-    @PYaZ[<calcImpedanceCurve]@PYaZ[>] yes/no @PYaZ[</calcImpedanceCurve>]
-    @PYaZ[<calcCharge] @PYaQ[name=]@PYaB["surf"] @PYaQ[neighborRegion=]@PYaB["piezo_axi"]@PYaZ[/>]
-    @PYaZ[<calcMechDisplacementCurve]@PYaZ[>] yes/no @PYaZ[</calcMechDisplacementCurve>]
-    @PYaZ[<computeCurveAfterIterationStep]@PYaZ[>] positive_integer
-@PYaZ[</computeCurveAfterIterationStep>]
-    @PYaZ[<numFreq]@PYaZ[>] positive_integer @PYaZ[</numFreq>]
-    @PYaZ[<startFreq]@PYaZ[>] positive_integer @PYaZ[</startFreq>]
-    @PYaZ[<stopFreq]@PYaZ[>] positive_integer @PYaZ[</stopFreq>]
-    @PYaZ[<maxNrIterations]@PYaZ[>] positive_integer @PYaZ[</maxNrIterations>]
-    @PYaZ[<stopRes]@PYaZ[>] positive_integer @PYaZ[</stopRes>]
-    @PYaZ[<excitationVoltage]@PYaZ[>] positive_integer @PYaZ[</excitationVoltage>]
-    @PYaZ[<artDataNoise]@PYaZ[>] positive_integer @PYaZ[</artDataNoise>]
-    @PYaZ[<mechDisplAtOppositeNode1]@PYaZ[>] positive_integer @PYaZ[</mechDisplAtOppositeNode1>]
-    @PYaZ[<dofOfMechDispl1]@PYaZ[>] positive_integer @PYaZ[</dofOfMechDispl1>]
-  @PYaZ[</paramIdent>]
-@PYaZ[</analysis>]
-\end{Verbatim}
-
+\begin{xmllisting}
+<analysis>
+  <paramIdent>
+    <fittingMethod type="method"/>
+    <fittingQuantity type="physical_quantity"/>
+    <calcImpedanceCurve> yes/no </calcImpedanceCurve>
+    <calcCharge name="surf" neighborRegion="piezo_axi"/>
+    <calcMechDisplacementCurve> yes/no </calcMechDisplacementCurve>
+    <computeCurveAfterIterationStep> positive_integer
+</computeCurveAfterIterationStep>
+    <numFreq> positive_integer </numFreq>
+    <startFreq> positive_integer </startFreq>
+    <stopFreq> positive_integer </stopFreq>
+    <maxNrIterations> positive_integer </maxNrIterations>
+    <stopRes> positive_integer </stopRes>
+    <excitationVoltage> positive_integer </excitationVoltage>
+    <artDataNoise> positive_integer </artDataNoise>
+    <mechDisplAtOppositeNode1> positive_integer </mechDisplAtOppositeNode1>
+    <dofOfMechDispl1> positive_integer </dofOfMechDispl1>
+  </paramIdent>
+</analysis>
+\end{xmllisting}
 
 
 
@@ -126,11 +127,10 @@ phaseMech & ${\rm arg}(u)$ & helps to identify imaginary parts \\
 The best way to check the quality of your parameters is the comparison of your
 simulated impedance curve (or mechanical displacement curve) with your
 measurements. Setting 
-\begin{Verbatim}[commandchars=@\[\]]
-  @PYaZ[<calcImpedanceCurve]@PYaZ[>] yes @PYaZ[</calcImpedanceCurve>]
-  @PYaZ[<calcMechDisplacemetCurve]@PYaZ[>] yes@PYaZ[</calcMechDisplacementCurve>]
-\end{Verbatim}
-
+\begin{xmllisting}
+  <calcImpedanceCurve> yes </calcImpedanceCurve>
+  <calcMechDisplacemetCurve> yes</calcMechDisplacementCurve>
+\end{xmllisting}
  leads to a calculation of such a curve in the interval $[startFreq,stopFreq]$
 with \xel{numFreq} evaluation points. The output will be a file called {\em
 imped.dat} ({\em mechDispl.dat}) which can be evaluated with MATLAB/GNUPlot,.. .
@@ -173,12 +173,11 @@ displacements in one space direction of pairwise facing points) you need to
 select the appropriate nodes in your mesh and the corresponding degree of
 freedom (dof).\\
  E.g.  \\ 
-\begin{Verbatim}[commandchars=@\[\]]
-  @PYaZ[<mechDisplAtNode0]@PYaZ[>] 5 @PYaZ[</mechDisplAtNode0>]
-  @PYaZ[<mechDisplAtOppositeNode0]@PYaZ[>] 15 @PYaZ[</mechDisplAtOppositeNode0>]
-  @PYaZ[<dofOfMechDispl0]@PYaZ[>] 0 @PYaZ[</dofOfMechDispl0>]
-\end{Verbatim}
-
+\begin{xmllisting}
+  <mechDisplAtNode0> 5 </mechDisplAtNode0>
+  <mechDisplAtOppositeNode0> 15 </mechDisplAtOppositeNode0>
+  <dofOfMechDispl0> 0 </dofOfMechDispl0>
+\end{xmllisting}
  evaluates the difference of the mechanical displacement at the nodes 5 and 15
 in $0$ direction (i.e. x- direction). You can select up to three different node
 pairs.
@@ -248,16 +247,15 @@ Do not forget to set the density in you mat.xml file. This is the only quantity 
 
 \section{Parameter Identification with Adaption and Backing Layers}
 It may be of interest how adaption and backing layers influence the behavior of your transducer and which effective material parameters these layers have. E.g. \\
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<domain] @PYaQ[geometryType=]@PYaB["axi"]@PYaZ[>]
-  @PYaZ[<regionList]@PYaZ[>]
-    @PYaZ[<region] @PYaQ[name=]@PYaB["piezo_axi"] @PYaQ[material=]@PYaB["PZ27"]@PYaZ[/>]
-    @PYaZ[<region] @PYaQ[name=]@PYaB["adaption"] @PYaQ[material=]@PYaB["material1"]@PYaZ[/>]
-    @PYaZ[<region] @PYaQ[name=]@PYaB["backing"] @PYaQ[material=]@PYaB["material2"]@PYaZ[/>]
-  @PYaZ[</regionList>]
-@PYaZ[</domain>]
-\end{Verbatim}
-
+\begin{xmllisting}
+<domain geometryType="axi">
+  <regionList>
+    <region name="piezo_axi" material="PZ27"/>
+    <region name="adaption" material="material1"/>
+    <region name="backing" material="material2"/>
+  </regionList>
+</domain>
+\end{xmllisting}
 
 The fitting feature of {\it CFS++} can handle up to two additional isotropic materials which are characterized only by their mechanical stiffness. The stiffness tensor is composed by the Lam\'{e} parameters $\lambda$ and $\mu$ which can be computed from the elasticity modulus $E$ and the Poisson ratio $\nu$ as follows:
 $$\lambda = \frac{\nu E}{(1+\nu)(1-2\nu)},\quad \mu = \frac{E}{2(1+\nu)}.$$

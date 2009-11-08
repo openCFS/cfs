@@ -1,6 +1,9 @@
 \documentclass[12pt]{report}
+%
 \usepackage{ifpdf}
 
+%
+%
 \usepackage{../../auxilliaries/LaTeX/lsepaper}
 \usepackage{ifthen}
 \usepackage[isolatin]{inputenc}
@@ -9,6 +12,11 @@
 \usepackage{array}
 \usepackage{longtable}
 \usepackage{booktabs}
+%
+% =============================================================================
+% PDF STUFF
+% =============================================================================
+%
 \ifpdf
 \typeout{--> PDF: Output mode detected}
 \typeout{--> PDF: Setting general document info}
@@ -29,13 +37,27 @@
 \usepackage{graphicx}
 \graphicspath{{../../auxilliaries/Pics/}}
 \fi
+%
+% =============================================================================
+%
 \include{mycommands}
+%
+% =============================================================================
 \begin{document}
+% =============================================================================
+%
+%
 \LSETITLE{CFS++ --- XML Reference Manual}{cfs--devel}{User's Guide}
+%
+%
 \tableofcontents
+%
+%
 \clearpage
 \pagestyle{headings}
 \pagenumbering{arabic}
+%
+%
 \include{xmlintro}
 \include{general}
 \include{mathExpressions}
@@ -48,4 +70,8 @@
 \include{paramIdent}
 \include{special}
 \include{optimization}
+%
+%
+% =============================================================================
 \end{document}
+% =============================================================================

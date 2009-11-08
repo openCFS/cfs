@@ -1,6 +1,15 @@
+%
+% Specifying solver parameters via XML parameter file
+%
 \chapter{Solver Parameters}
+%
+%
+% =============================================================================
 \section{Interface between CFS++ and OLAS}
+% =============================================================================
 \label{sec:SP_Interface}
+%
+%
 This section deals with specifying solvers and preconditioners for the linear
 systems associated with the solution of the different PDEs. It is important to
 note at this point that (nearly all of) these parameters are of no importance
@@ -15,22 +24,31 @@ Schema definition and the XMLParamHandler class, but are prescribed in the
 SetDefaultParams() methods of the OLAS\_Params class, which constitutes the
 method for shuffling parameters from CFS++ to OLAS. See that file or the
 doxygen documentation of OLAS for the defaults.
+%
+%
+% =============================================================================
 \section{Basic specification}
+% =============================================================================
+%
+%
 The specification of the properties of a linear system and its solver is
 done by inserting into the XML-file a \xel{linearSystems}. Its position can be
 seen in table \ref{tab:leavesLevelOne}. The \xel{linearSystem} section has
 the following structure
-\begin{Verbatim}[commandchars=@\[\]]
-  @PYaZ[<linearSystems]@PYaZ[>]
-    @PYaZ[<system] @PYaQ[name=]@PYaB["..."]@PYaZ[>]
-      @PYaZ[<setup] @PYaI[.]@PYaI[.]@PYaI[.]@PYaZ[/>]
-      @PYaZ[<matrix] @PYaI[.]@PYaI[.]@PYaI[.]@PYaZ[/>]
-      @PYaZ[<exportLinSys] @PYaQ[baseName=]@PYaB["..."]@PYaZ[/>]
-      @PYaZ[<solver] @PYaQ[type=]@PYaB["..."] @PYaQ[precond=]@PYaB["..."] @PYaZ[/>]
-    @PYaZ[</system>]
-  @PYaZ[</linearSystems>]
-\end{Verbatim}
-
+%
+%
+\begin{xmllisting}
+  <linearSystems>
+    <system name="...">
+      <setup .../>
+      <matrix .../>
+      <exportLinSys baseName="..."/>
+      <solver type="..." precond="..." />
+    </system>
+  </linearSystems>
+\end{xmllisting}
+%
+%
 For each linear system for which properties are to be specified a separate
 \xel{system} block must be inserted. The \xat{name} attribute is used to
 relate the linear system with the respective PDE. Thus, the value of \xat{name}
@@ -45,7 +63,13 @@ be
 used to specify matrix properties, like e.g. storage type, trigger the export
 of the linear system to file or specification of a solver/preconditioner for
 the linear system. Details are given in the following sections.
+%
+%
+% =============================================================================
 \section{Specifying Properties of the System Matrix}
+% =============================================================================
+%
+%
 The first two children of the \xel{system} element are the
 \xel{setup} and
 the \xel{matrix} element. Both are used to specify parameters for the
@@ -55,6 +79,11 @@ of the linear system and the resulting matrix.
 The \xel{setup} element possesses the following two optional attributes:
 \xat{eqnNumbering} and \xat{idbcHandling}.
 \begin{xatlist}{}
+%\begin{center}
+%\begin{tabular}{llp{12cm}}
+%\toprule
+%attribute & values & meaning \\
+%\midrule
 \xat{idbcHandling} &
            \xatv{penalty} & the penalty approach is used for th treatment of
                             degrees of freedom that are fixed by inhomogeneous
@@ -91,9 +120,16 @@ The \xel{setup} element possesses the following two optional attributes:
                         per node. The tiny matrices themselves will have scalar
                         double or complex entries.
 \end{xatlist}
+%\bottomrule
+%\end{tabular}
+%\end{center}
+%
+%
 The \xel{matrix} element possesses the following three optional
 attributes:
 \xat{entry}, \xat{storage} and \xat{reordering}.
+%
+%
 \begin{xatlist}{}
 \xat{entry} & \xatv{double}, \xatv{complex} 
                         & specifies the entry type on the scalar level, i.e.
@@ -128,7 +164,11 @@ matrix.
                              assembled, using a fill-reducing ordering from
                              Metis. This will be a sort of nested-discetion
                              reordering. Note that this is untested so far.
+%           & expertsChoice  & CFS++ will choose the re-ordering strategy
+%                              itself.\\
 \end{xatlist}
+%
+%
 Note that not all values of \xat{eqnNumbering}, \xat{entry} and \xat{storage}
 will work together and that some choices, while being possible, will not lead
 to an efficient simulation run in combination with certain solvers. The
@@ -141,6 +181,8 @@ this routine that will determine a storage type for the system matrix, if
 For the re-ordering strategy the Expert() module will enforce the settings
 specified in the following table. If you want another re-ordering, you must
 over-ride the expert, see Chap.~\ref{chap:SpecialElements}.
+%
+%
 \begin{center}
 \begin{tabular}{ll}
 \toprule
@@ -158,7 +200,13 @@ ILUK, ILDLK,    & Sloan                              \\
 \bottomrule
 \end{tabular}
 \end{center}
+%
+%
+% =============================================================================
 \section{Exporting the Linear System}
+% =============================================================================
+%
+%
 In some situations one is interested in obtaining the system matrix of the
 linear system for post-processing. We may e.g.~want to plot the sparsity
 pattern or compute some eigenvalues using matlab. Two ascii output formats are
@@ -211,42 +259,43 @@ Finally some examples:%
 \item A simple but complete description of what to do with the system of a
 direct coupled PDE. The format is by default \xatv{matrix-market}, hence
 the files 'piezo.mm' and 'piezo.vec' with the RHS are written. 
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<sequenceStep]@PYaZ[>]
+\begin{xmllisting}
+<sequenceStep>
  ...
- @PYaZ[<linearSystems]@PYaZ[>]
-   @PYaZ[<system] @PYaQ[name=]@PYaB["direct"]@PYaZ[>]
-      @PYaZ[<exportLinSys] @PYaQ[baseName=]@PYaB["piezo"]@PYaZ[/>]
-      @PYaZ[<solver] @PYaQ[type=]@PYaB["pardiso"]@PYaZ[/>]
-   @PYaZ[</system>]
- @PYaZ[</linearSystems>]
+ <linearSystems>
+   <system name="direct">
+      <exportLinSys baseName="piezo"/>
+      <solver type="pardiso"/>
+   </system>
+ </linearSystems>
  ...
-@PYaZ[</sequenceStep>]
-\end{Verbatim}
-
+</sequenceStep>
+\end{xmllisting}
 \item In this example the file 'piezo.hb' is created which contains the RHS
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<exportLinSys] @PYaQ[baseName=]@PYaB["piezo"] @PYaQ[format=]@PYaB["harwell-boeing"]@PYaZ[/>]
-\end{Verbatim}
-
+\begin{xmllisting}
+<exportLinSys baseName="piezo" format="harwell-boeing"/>
+\end{xmllisting}
 \item Compared to the example above, the solution vector is written to
 'piezo.sol.vec'
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<exportLinSys] @PYaQ[baseName=]@PYaB["piezo"] @PYaQ[solution=]@PYaB["yes"] @PYaQ[format=]@PYaB["harwell-boeing"]@PYaZ[/>]
-\end{Verbatim}
-
+\begin{xmllisting}
+<exportLinSys baseName="piezo" solution="yes" format="harwell-boeing"/>
+\end{xmllisting}
 \item In this example only 'piezo.sol.vec' is created. This might be useful if
 one wants to compare
 the solutions of different solvers (or solver settings). The \xat{format}
 attribute applies only for the system and is therefore ignored. The value
 \xatv{matrix-market} would be default anyway.
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<exportLinSys] @PYaQ[baseName=]@PYaB["piezo"] @PYaQ[solution=]@PYaB["exclusive"] @PYaQ[format=]@PYaB["matrix-market"]@PYaZ[/>]
-\end{Verbatim}
-
+\begin{xmllisting}
+<exportLinSys baseName="piezo" solution="exclusive" format="matrix-market"/>
+\end{xmllisting}
 \end{itemize}
+%
+% =============================================================================
 \section{Specifying Solver Parameters}
 \label{sec:Specifying_Solver_Parameters}
+% =============================================================================
+%
+%
 One can choose a solution algorithm for the linear system associated with a
 single or directly coupled PDE and in the case of iterative solvers also a
 preconditioning method by inserting a \xel{solver} block into the
@@ -257,6 +306,8 @@ The two choices for solver and preconditioner are specified as the \xat{type}
 and \xat{precond} attributes of the \xel{solver} element. The following two
 tables give an overview on the currently available choices for solver and
 preconditioner:
+%
+%
 \begin{center}
 \begin{tabular}{lp{0.65\textwidth}}
 \toprule
@@ -284,6 +335,8 @@ expertsChoice & let the Expert() module decide which solver to use
 \bottomrule
 \end{tabular}
 \end{center}
+%
+%
 \begin{center}
 \begin{tabular}{lp{0.65\textwidth}}
 \toprule
@@ -306,14 +359,20 @@ ILDLK       & incomplete $LDL^T$ decomposition using fill-level based
 \bottomrule
 \end{tabular}
 \end{center}
+%
+%
 The default values for \xat{type} and \xat{precond} are
 \xatv{expertsChoice} and
 \xatv{noPrecond}.
+%
+%
 
 The \xel{solver} element can have several children which can be used to
 specify
 e.g.~properties of the system matrix and parameters for the chosen solver and
 preconditioner. Its general structure is as follows:
+%
+%
  \begin{center}
  \begin{minipage}{0.6\textwidth}
 \begin{tabbing}
@@ -326,14 +385,23 @@ preconditioner. Its general structure is as follows:
 \end{tabbing}
  \end{minipage}
  \end{center}
+%
+%
 \section{Setting the stopping rule}
+%
+%
 OLAS supports three different kinds of stopping rules for iterative solvers.
 One chooses a certain criterion by setting
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<stoppingRule] @PYaQ[type=]@PYaB["value"]@PYaZ[/>]
-\end{Verbatim}
-
+%
+%
+\begin{xmllisting}
+<stoppingRule type="value"/>
+\end{xmllisting}
+%
+%
 where \xatv{value} must be one of the possibilities from the list below:
+%
+%
 \begin{center}
 \begin{tabular}{lc}
 \toprule
@@ -349,6 +417,8 @@ value & stopping test \\
 \bottomrule
 \end{tabular}
 \end{center}
+%
+%
 Here $b$ is the right-hand side of the linear system $Ax=b$ under consideration
 and $r^{(k)}=b - Ax^{(k)}$ is the residual of the approximate solution
 $x^{(k)}$ after $k$ iteration steps.
@@ -359,7 +429,11 @@ case is when $b=0$, another one when the penalty formulation is employed to
 treat inhomogeneous Dirichlet boundary conditions. Both cases will be detected
 by OLAS automatically and \xatv{relNormRes0} will be used instead of
 \xatv{relNormRHS}.
+%
+%
 \section{Parameters for special solvers}
+%
+%
 This section lists for each solver the parameters that can be specified to
 steer its behaviour. These parameters are given in the following fashion.
 In order to specify parameters for solver \xel{xyz} the \xel{solver}
@@ -374,11 +448,17 @@ All the solver parameters are optional as is the \xel{xyz} element. If one
 or
 all parameters are omitted the respective default value defined within OLAS
 will be used, cf.~Sec.~\ref{sec:SP_Interface}.
+%
+%
 \subsection{Pardiso}
 \label{sec:Pardiso}
+%
+%
 Pardiso is a (parallel) sparse direct solver developed mainly at the University
 of Basel. We cite the web-page
 (\url{http://www.computational.unibas.ch/cs/scicomp/software/pardiso}):
+%
+%
 \begin{quote}
 The package PARDISO is a thread-safe, high-performance, robust, memory efficient
 and easy to use software for solving large sparse symmetric and unsymmetric
@@ -397,8 +477,12 @@ successfully tested on the following parallel computers: COMPAQ AlphaServer, AMD
 Opteron, SGI Origin 2000, SUN Enterprise Server, Intel Pentium IV / Itanium(R)
 with RedHat LINUX, NEC SX-5, and Cray J90 and IBM Regatta SMPs.
 \end{quote}
+%
+%
 OLAS offers an interface to use Pardiso as solver for a linear system. The
 interface accepts the following parameters:
+%
+%
 \begin{center}
 \begin{tabular}{llp{0.5\textwidth}}
 \toprule
@@ -431,6 +515,8 @@ stats      & yes, no & Setting this parameter to yes triggers Pardiso to print
 \bottomrule
 \end{tabular}
 \end{center}
+%
+%
 Note:
 \begin{itemize}
 \item The interface is designed for version 1.2.2
@@ -442,16 +528,24 @@ other
       value besides the default of \xatv{noReordering}, unless you use
       \xel{ordering} = \xelv{noReordering} in Pardiso.
 \end{itemize}
+%
+%
 \subsection{lapackLU / lapackLL}
+%
+%
 LAPACK is the standard package in scientific computing for high-level problems
 in (dense) linear algebra. We cite the web-page
 (\url{http://www.netlib.org/lapack}):
+%
+%
 \begin{quote}
 LAPACK is a library of Fortran 77 subroutines for solving the most commonly
 occurring problems in numerical linear algebra. It has been designed to be
 efficient on a wide range of modern high-performance computers. The name LAPACK
 is an acronym for Linear Algebra PACKage.
 \end{quote}
+%
+%
 LAPACK does not support operations on sparse matrices, but offers solution
 routines for problems involving matrices with banded structure. Thus, it is
 an interesting alternative for small sized problems (after a band reducing
@@ -463,6 +557,8 @@ entries. The lapackLU class will compute an LU decomposition and can thus, be
 used for any type of problem. The lapackLL class computes a Cholesky
 decomposition $LL^T$ and is thus limited to symmetric/hermitean positive
 definite problems. The lapackLU solver accepts the following parameters
+%
+%
 \begin{center}
 \begin{tabular}{llp{0.5\textwidth}}
 \toprule
@@ -481,9 +577,13 @@ logging    & yes, no & If set to yes, then the solver will log some information
 \bottomrule
 \end{tabular}
 \end{center}
+%
+%
 The lapackLL solver currently only supports \xel{logging}. Please also
 note
 the following:
+%
+%
 \begin{itemize}
 \item The Lapack\_LU solver class currently makes use of its own LapackGBMatrix
       matrix class. Since the MultAdd() method is not implemented in this class
@@ -492,7 +592,11 @@ the following:
 Dirichlet
       boundary conditions, since it will mess with the penalty approach!
 \end{itemize}
+%
+%
 \subsection{directLU / directLDL}
+%
+%
 The directLDL solver computes in the setup phase a decomposition of the problem
 matrix $A$ in the form $A=LDL^T$, with a lower triangular matrix $L$ and a
 diagonal matrix $D$. For symmetric, positive definite matrices this corresponds
@@ -500,9 +604,13 @@ to a Cholesky decomposition $\hat{L}\hat{L}^T$, but with out the drawing of the
 square root, i.e. $\hat{L} = LD^{-1/2}$. For symmetric indefinite matrices a
 Cholesky decomposition does not exist, and only an $LDL^T$ factorisation can be
 computed. In the complex case the situation is similar.\\[2ex]
+%
+%
 By default the directLDL solver does not need any parameters. \\
 
 Parameters for the directLDL solver are:
+%
+%
 \begin{center}
 \begin{tabular}{llp{0.5\textwidth}}
 \toprule
@@ -540,10 +648,14 @@ verbose,
 \bottomrule
 \end{tabular}
 \end{center}
+%
+%
 \subsection{CG}
 Setting \xat{type} to \xatv{cg} selects the native preconditioned
 conjugate
 gradient method implemented of OLAS.
+%
+%
 \begin{center}
 \begin{tabular}{llp{0.5\textwidth}}
 \toprule
@@ -559,8 +671,12 @@ logging & yes, no & If logging is set to yes, then the solution process will
 \bottomrule
 \end{tabular}
 \end{center}
+%
+%
 \subsection{GMRES}
 \label{sec:gmres}
+%
+%
 Setting \xat{type} to \xatv{gmres} selects the OLAS implementation of the
 (re-started) Generalised Minimal Residual solver. This is a straightforward
 implementation using the modified Gram-Schmidt process for computation of the
@@ -568,6 +684,8 @@ basis of the underlying Krylov subspace and Givens rotations for the solution
 of the related least-squares problem. It can deal with real-valued as well as
 complex-valued matrices. Its behaviour can be steered using the following
 parameters
+%
+%
 \begin{center}
 \begin{tabular}{llp{0.5\textwidth}}
 \toprule
@@ -596,7 +714,12 @@ logging & yes, no & If logging is set to yes, then the solution process will
 \bottomrule
 \end{tabular}
 \end{center}
+%
+%
+%
 \subsection{lapackLU}
+%
+%
 \begin{center}
 \begin{tabular}{llp{0.5\textwidth}}
 \toprule
@@ -617,6 +740,7 @@ logging    & yes, no & if set to yes, LAPACK will be verbose about its solution
 \bottomrule
 \end{tabular}
 \end{center}
+%
 \subsection{ilupack}
 \label{sec:ilupack}
 ILUPACK is a package containting preconditioners and a set of iterative solvers.
@@ -665,54 +789,51 @@ The two golden rules about ILUPACK are:
 \end{itemize}
 
 \item The simplest way is to use the defaults:
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<cfsSimulation] @PYaQ[xmlns=]@PYaB["http://www.cfs++.org"]@PYaZ[>]
+\begin{xmllisting}
+<cfsSimulation xmlns="http://www.cfs++.org">
   ...
- @PYaZ[</sequenceStep>]
+ </sequenceStep>
  ...
-  @PYaZ[<pdeList]@PYaZ[>]
-    @PYaZ[<mechanic] @PYaI[.]@PYaI[.]@PYaI[.]@PYaZ[>]
+  <pdeList>
+    <mechanic ...>
         ...
-    @PYaZ[</mechanic>]
-  @PYaZ[</pdeList>]
+    </mechanic>
+  </pdeList>
   
-  @PYaZ[<linearSystems]@PYaZ[>]
-    @PYaZ[<system] @PYaQ[name=]@PYaB["mechanic"]@PYaZ[>]
-       @PYaZ[<solver] @PYaQ[type=]@PYaB["ilupack"]@PYaZ[/>]
-    @PYaZ[</system>]
-  @PYaZ[</linearSystems>]
- @PYaZ[</sequenceStep>]
-@PYaZ[</cfsSimulation>]
-\end{Verbatim}
-
+  <linearSystems>
+    <system name="mechanic">
+       <solver type="ilupack"/>
+    </system>
+  </linearSystems>
+ </sequenceStep>
+</cfsSimulation>
+\end{xmllisting}
 
 \item If you have a positive definite system (real symmetric or Hermitian), you
 have to give this information explicitly, otherwise an indefinite symmetric
 system is assumed and some performance might be lost. The shortest version of
 \xel{linearSystems} is then like the following:
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<linearSystems]@PYaZ[>]
-  @PYaZ[<system] @PYaQ[name=]@PYaB["mechanic"]@PYaZ[>]
-     @PYaZ[<solver] @PYaQ[type=]@PYaB["ilupack"]@PYaZ[>]
-        @PYaZ[<ilupack] @PYaQ[matrix=]@PYaB["pd"]@PYaZ[/>]
-     @PYaZ[</solver>]
-  @PYaZ[</system>]
-@PYaZ[</linearSystems>]
-\end{Verbatim}
-
+\begin{xmllisting}
+<linearSystems>
+  <system name="mechanic">
+     <solver type="ilupack">
+        <ilupack matrix="pd"/>
+     </solver>
+  </system>
+</linearSystems>
+\end{xmllisting}
 \item If the iterative solver from the ILUPACK package exits too early, give a
 stricter \xat{residualTol}. 
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<solver] @PYaQ[type=]@PYaB["ilupack"]@PYaZ[>]
-   @PYaZ[<ilupack]@PYaZ[>]
-      @PYaZ[<iterativeSolver] @PYaQ[residualTol=]@PYaB["1.0E-8"]@PYaZ[/>]
-   @PYaZ[</ilupack>]
-@PYaZ[</solver>]
-\end{Verbatim}
-
+\begin{xmllisting}
+<solver type="ilupack">
+   <ilupack>
+      <iterativeSolver residualTol="1.0E-8"/>
+   </ilupack>
+</solver>
+\end{xmllisting}
 Check the .las file especially for the following lines. If the current residual
 norm is not as good as the target residual norm the solution is likely wrong.
-\begin{Verbatim}[commandchars=@\[\]]
+\begin{xmllisting}
 ...
 residual tolerance      : 1.49012e-08 -> 1e-10
 ...
@@ -721,18 +842,16 @@ Ilupack solver status:
  initial residual norm   : 3.8147e-06
  target residual norm    : 5.13559e-14
  current residual norm   : 8.47033e-21
-\end{Verbatim}
-
+\end{xmllisting}
 \item The memory consumption of ILUPACK, the fill-in factor, is set via
 \xel{elbowSpace}.
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<solver] @PYaQ[type=]@PYaB["ilupack"]@PYaZ[>]
-   @PYaZ[<ilupack] @PYaQ[matrix=]@PYaB["pd"]@PYaZ[>]
-      @PYaZ[<elbowSpace]@PYaZ[>]10@PYaZ[</elbowSpace>]
-   @PYaZ[</ilupack>]
-@PYaZ[</solver>]
-\end{Verbatim}
-
+\begin{xmllisting}
+<solver type="ilupack">
+   <ilupack matrix="pd">
+      <elbowSpace>10</elbowSpace>
+   </ilupack>
+</solver>
+\end{xmllisting}
 \end{itemize}
 
 \subsubsection*{Matrix}
@@ -768,13 +887,12 @@ The library provides functions (init, factorize, solve, ...) for every matrix
 type individual. Note, that when not exlicit given, only the symmetric and
 unsymmetric (gnl) types are choosen. This also means, that it is not necessary,
 to explicit define a unsymmetric (gnl) or symmetric indefinite system (sym).
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<solver] @PYaQ[type=]@PYaB["ilupack"]@PYaZ[>]
-  @PYaE[<!--]@PYaE[ this is a (symmetric) positive definit system ]@PYaE[-->]
-  @PYaZ[<ilupack] @PYaQ[matrix=]@PYaB["pd"]@PYaZ[/>]
-@PYaZ[</solver>]
-\end{Verbatim}
-
+\begin{xmllisting}
+<solver type="ilupack">
+  <!-- this is a (symmetric) positive definit system -->
+  <ilupack matrix="pd"/>
+</solver>
+\end{xmllisting}
 
 \subsubsection*{Reordering}
 Three orderings have to be prescribed
@@ -876,16 +994,15 @@ samples code:
 \item Symmetric positive system using approximate minimum degree ordering. Note
 that the matrix type is gnl (unsymmetric) and that there is no other positive
 definit ordering than that used in final .
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<solver] @PYaQ[type=]@PYaB["ilupack"]@PYaZ[>]
-  @PYaZ[<ilupack] @PYaQ[matrix=]@PYaB["pd"]@PYaZ[>]
-     @PYaZ[<permutation] @PYaQ[type=]@PYaB["initial"] @PYaQ[matrix=]@PYaB["gnl"] @PYaQ[ordering=]@PYaB["amd"] @PYaQ[matching=]@PYaB["none"]@PYaZ[/>]
-     @PYaZ[<permutation] @PYaQ[type=]@PYaB["regular"] @PYaQ[matrix=]@PYaB["gnl"] @PYaQ[ordering=]@PYaB["amd"] @PYaZ[/>]
-     @PYaZ[<permutation] @PYaQ[type=]@PYaB["final"]   @PYaQ[matrix=]@PYaB["pd"]  @PYaQ[ordering=]@PYaB["pp"] @PYaZ[/>] 
-  @PYaZ[</ilupack>] 
-@PYaZ[</solver>]
-\end{Verbatim}
-
+\begin{xmllisting}
+<solver type="ilupack">
+  <ilupack matrix="pd">
+     <permutation type="initial" matrix="gnl" ordering="amd" matching="none"/>
+     <permutation type="regular" matrix="gnl" ordering="amd" />
+     <permutation type="final"   matrix="pd"  ordering="pp" /> 
+  </ilupack> 
+</solver>
+\end{xmllisting}
 The initial and regular permutations are the same, as none is the default value
 when no matching is given. 
 
@@ -893,20 +1010,18 @@ when no matching is given.
 Assuming the same
 (symmetric) simulation as above, the default is \xatv{sym} for symmetric
 indefinite systems. 
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<solver] @PYaQ[type=]@PYaB["ilupack"]@PYaZ[>]
-  @PYaZ[<ilupack]@PYaZ[>]
-     @PYaZ[<permutation] @PYaQ[type=]@PYaB["regular"] @PYaQ[matrix=]@PYaB["gnl"] @PYaQ[ordering=]@PYaB["amd"] @PYaZ[/>]
-  @PYaZ[</ilupack>] 
-@PYaZ[</solver>]
-\end{Verbatim}
-
+\begin{xmllisting}
+<solver type="ilupack">
+  <ilupack>
+     <permutation type="regular" matrix="gnl" ordering="amd" />
+  </ilupack> 
+</solver>
+\end{xmllisting}
 In the .las file we will find, that default inital permutation will equivalent
 to
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<permutation] @PYaQ[type=]@PYaB["initial"] @PYaQ[matrix=]@PYaB["sym"] @PYaQ[ordering=]@PYaB["amd"] @PYaQ[matching=]@PYaB["mwm"]@PYaZ[/>]
-\end{Verbatim}
-
+\begin{xmllisting}
+<permutation type="initial" matrix="sym" ordering="amd" matching="mwm"/>
+\end{xmllisting}
 as this is standard for a symmetric indefinite system and the maximum weight
 matching from Pardiso is used if available. The default final permutation is the
 same as explicit given in the first example.
@@ -966,6 +1081,7 @@ Furthermode there is a set of flags which can optionally be set, again the .las
 file prints the default setting. This is done by adding one ore more
 \xel{flag} elements to the \xel{ilupack} element. Each element needs a
 \xat{name}, possible value for attribute \xat{name} are given below,
+% and a \xat{state} attribute. The flag states are \xml{on} and \xml{off}. Every
 user is invited to add knowlede about the flags (and all other parameters) to
 this document!
 \begin{center}
@@ -996,20 +1112,19 @@ SymmetricStructure & \\
 \end{center}
 
 The following gives an example parametrization. 
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<solver] @PYaQ[type=]@PYaB["ilupack"]@PYaZ[>]
-  @PYaZ[<ilupack] @PYaQ[matrix=]@PYaB["pd"]@PYaZ[>]
-    @PYaZ[<engine] @PYaQ[type=]@PYaB["pcg"]@PYaZ[/>]
-    @PYaZ[<dropTolLU]@PYaZ[>]1e-5@PYaZ[</dropTolLU>]
-    @PYaZ[<iterativeSolver] @PYaQ[residualTol=]@PYaB["1.0E-8"]@PYaZ[/>]
-    @PYaZ[<elbowSpace]@PYaZ[>]2@PYaZ[</elbowSpace>]
-    @PYaZ[<condest]@PYaZ[>]5@PYaI[<]/condest
-    @PYaZ[<maxIter]@PYaZ[>]2000@PYaZ[</maxIter>]
-    @PYaZ[<flag] @PYaQ[name=]@PYaB["SimpleSC"] @PYaQ[state=]@PYaB["off"]@PYaZ[/>]
-  @PYaZ[</ilupack>] 
-@PYaZ[</solver>]
-\end{Verbatim}
-
+\begin{xmllisting}
+<solver type="ilupack">
+  <ilupack matrix="pd">
+    <engine type="pcg"/>
+    <dropTolLU>1e-5</dropTolLU>
+    <iterativeSolver residualTol="1.0E-8"/>
+    <elbowSpace>2</elbowSpace>
+    <condest>5</condest
+    <maxIter>2000</maxIter>
+    <flag name="SimpleSC" state="off"/>
+  </ilupack> 
+</solver>
+\end{xmllisting}
 \begin{itemize}
 \item We explicit give the information, that the system is positive definite.
 \item The permuations are not given, so default permutations are used. 
@@ -1024,7 +1139,11 @@ matrix, this won't increase stability.
 
 
 \section{Parameters for special preconditioners}
+%
+%
 \subsection{MG}
+%
+%
 \begin{center}
 \begin{tabular}{llp{0.5\textwidth}}
 \toprule
@@ -1038,19 +1157,35 @@ of C-neighbours, that will cause an F-point to be judged as
 \emph{well interpolated}. Thus, a further neighbour will not be made a
 C-point due to its dependency to the named point, but it could still get
 C-point because of other reasons.\\
+%
+%
 \midrule
+%
+%
 minSystemSize & $\mathbb{N}$ &
 The minimal size for the coarsest system. If the coarsening process yields a
 number of C-points for the next coarser system that falls below this limit, the
 coarsening result is rejected and the corresponding hierarchy level is not
 created. The present level gets the coarsest.\\
+%
+%
 \midrule
+%
+%
 numPreSmooth & $\mathbb{N}_0$ &
 Number of pre-smoothing steps in the AMG solution cycle\\
+%
+%
 \midrule
+%
+%
 numPostSmooth & $\mathbb{N}_0$ &
 Number of post-smoothing steps in the AMG solution cycle\\
+%
+%
 \midrule
+%
+%
 cycleParameter & $\mathbb{N}$ &
 Solution phase. The recursion parameter for the solution cycle, which is the
 number of coarse corrections, applied \emph{on each level except the top
@@ -1058,7 +1193,11 @@ and the bottom level}. A value of 1 for example causes a common V-cycle, 2 a
 common W-cycle. Note that excluding the top level from this multiple coarse
 grid corrections causes the parameter value 2 to generate a real W-cycle, not
 a WW-cycle.\\
+%
+%
 \midrule
+%
+%
 alpha & $[0,1]$ &
 The ``alpha'' in the classical Ruge-St\"{u}ben setup phase. It controls the
 decision whether a dependency is strong or weak:
@@ -1066,14 +1205,22 @@ $(i,j) \in S \Leftrightarrow d(i,j) \ge \alpha$, with the dependency strength
 of point $i$ from point $j$
 $\displaystyle d(i,j) := \frac{|a_{ij}|}{\max\{|a_{ik}| : k \ne i\}}$ and
 matrix entries $a_{ij}$.\\
+%
+%
 \midrule
+%
+%
 strongDiagRatio & $[0,1]$ &
 Additional necessary condition for a dependency to be judged as strong. The
 alpha is related to the size of an off-diagonal entry compared to the other
 off-diagonal entries. But it must be also be large in comparison with the
 corresponding diagonal entry. strongDiagRatio represents this ratio:
 $(i,j) \in S \Rightarrow \mbox{strongDiagRatio} \cdot a_{ii}) \le |a_{ij}|$.\\
+%
+%
 \midrule
+%
+%
 forceFineRatio & $> 0$ &
 If a row of the system matrix is strongly diagonal dominant, it can be forced
 to get an F-point. AMG\_\-Force\-Fine\-Ratio is the limit value for the ratio
@@ -1082,7 +1229,11 @@ the point is forced immediately to get an F-point. This is in particular useful
  for example in systems arrising from a PDE discretization in which Dirichlet
 boundary conditions are treated using penalty terms. In this case all Dirichlet
 points are forced to get F-points.\\
+%
+%
 \midrule
+%
+%
 directSolver & noSolver  & in this case solution on the coarsest level is
                            performed by using the smoother (may be very
                            inefficient, e.g.~if coarsest grid problem is
@@ -1095,25 +1246,40 @@ directSolver & noSolver  & in this case solution on the coarsest level is
                            USE\_PARDISO = yes)\\
              & directLDL & solve coarsest grid problem using the directLDL
                            solver of OLAS\\
+%
+%
 \midrule
+%
+%
 logging      & yes, no & if set to \xelv{yes}, the preconditioner will be
                          verbose, i.e. it will write information on its
                          setup and application to the standard logfile.\\
 \bottomrule
 \end{tabular}
 \end{center}
+%
+%
+%
 \subsection{Incomplete LDL preconditioners}
+%
+%
 Incomplete LDL preconditioners work with symmetric matrices and compute a
 decomposition of the problem matrix $A$ in the form
+%
+%
 \begin{displaymath}
 A = LDL^T - R
 \enspace,
 \end{displaymath}
+%
+%
 where $L$ is a lower triangular matrix with ones on the diagonal, $D$ is a
 diagonal matrix and $R$ is a remainder matrix, since the factorisation is
 incomplete and $A\neq LDL^T$. OLAS currently supports three different version
 of ILDL preconditioners: ILDL$(k)$, ILDL$(\tau,p)$ and ILDL$_{cn}$. All three
 preconditioners share the following three parameters:
+%
+%
 \begin{center}
 \begin{tabular}{llp{0.5\textwidth}}
 \toprule
@@ -1133,6 +1299,8 @@ logging         & yes, no & if set to \xelv{yes}, the preconditioners will be
 \bottomrule
 \end{tabular}
 \end{center}
+%
+%
 Besides these common parameters each preconditioner allows to specify its own
 set of steering parameters, which must be speficied in front of the common
 ones. In the case of the ILDL$(\tau,p)$ preconditioner there are two specific
@@ -1153,6 +1321,8 @@ level     & $\mathbb{N}$ & \\
 \bottomrule
 \end{tabular}
 \end{center}
+%
+%
 
 \section{Examples}
 \label{sec:SP_Examples}
@@ -1161,32 +1331,30 @@ When Pardiso is available and you have a (free) license for your user and host
 as a direct solver very stable and gains a high accuray. Countercheck in the
 .las file, if your system name is correct and the given solver is really used.
 The solution vector is written to 'piezo.sol.vec'. 
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<linearSystems]@PYaZ[>]
-  @PYaZ[<system] @PYaQ[name=]@PYaB["direct"]@PYaZ[>]
-    @PYaZ[<exportLinSys] @PYaQ[baseName=]@PYaB["piezo"] @PYaQ[solution=]@PYaB["exclusive"]@PYaZ[/>]
-    @PYaZ[<solver] @PYaQ[type=]@PYaB["pardiso"]@PYaZ[/>]
-  @PYaZ[</system>]
-@PYaZ[</linearSystems>]
-\end{Verbatim}
-
+\begin{xmllisting}
+<linearSystems>
+  <system name="direct">
+    <exportLinSys baseName="piezo" solution="exclusive"/>
+    <solver type="pardiso"/>
+  </system>
+</linearSystems>
+\end{xmllisting}
 Giving more parameters one can try to increase performance. Like in the
 following example, where we explicitly express that the system is positive
 definite and we want logging to find hints for further tuning. Note that the
 pizeo example from above would not be positive definite.
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<linearSystems]@PYaZ[>]
-  @PYaZ[<system] @PYaQ[name=]@PYaB["mechanic"]@PYaZ[>]
-    @PYaZ[<solver] @PYaQ[type=]@PYaB["pardiso"]@PYaZ[>]
-      @PYaZ[<pardiso]@PYaZ[>]
-        @PYaZ[<posDef]@PYaZ[>]yes@PYaZ[</posDef>]
-        @PYaZ[<logging]@PYaZ[>]yes@PYaZ[</logging>]
-      @PYaZ[</pardiso>]
-     @PYaZ[</solver>]
-  @PYaZ[</system>]
-@PYaZ[</linearSystems>]
-\end{Verbatim}
-
+\begin{xmllisting}
+<linearSystems>
+  <system name="mechanic">
+    <solver type="pardiso">
+      <pardiso>
+        <posDef>yes</posDef>
+        <logging>yes</logging>
+      </pardiso>
+     </solver>
+  </system>
+</linearSystems>
+\end{xmllisting}
 
 
 When the problems are large, the ILUPACK package (see \ref{sec:ilupack})
@@ -1195,36 +1363,34 @@ better performance than Pardiso. Note that the results for coupled problems
 should be checked very carefully and best performance is gained if features of
 the Pardiso library can be used. So in this example we again do not solve the
 coupled piezo problem.
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<linearSystems]@PYaZ[>]
-  @PYaZ[<system] @PYaQ[name=]@PYaB["mechanic"]@PYaZ[>]
-    @PYaZ[<solver] @PYaQ[type=]@PYaB["ilupack"]@PYaZ[/>]
-      @PYaZ[<ilupack] @PYaQ[matrix=]@PYaB["pd"]@PYaZ[/>]
-    @PYaZ[</solver>]
-  @PYaZ[</system>]
-@PYaZ[</linearSystems>]
-\end{Verbatim}
-
+\begin{xmllisting}
+<linearSystems>
+  <system name="mechanic">
+    <solver type="ilupack"/>
+      <ilupack matrix="pd"/>
+    </solver>
+  </system>
+</linearSystems>
+\end{xmllisting}
 
 
 Finally we give an example where no external libraries are required and we
 entirely use self implemented code. The preconditioner is an incomplete $LU$
 decomposition with no fill-in (see \ref{sec:Specifying_Solver_Parameters}), the
 solver is GMRES (a stable solver for indefinite problems).
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<linearSystems]@PYaZ[>]
-  @PYaZ[<system] @PYaQ[name=]@PYaB["fluidMech"]@PYaZ[>]
-    @PYaZ[<setup] @PYaQ[idbcHandling=]@PYaB["penalty"]@PYaZ[/>]
-    @PYaZ[<matrix] @PYaQ[storage=]@PYaB["sparseNonSym"]@PYaZ[/>]
-    @PYaZ[<solver] @PYaQ[type=]@PYaB["gmres"] @PYaQ[precond=]@PYaB["ILU0"]@PYaZ[>]
-      @PYaZ[<gmres]@PYaZ[>]
-        @PYaZ[<tol]@PYaZ[>]1e-3@PYaZ[</tol>]
-        @PYaZ[<maxIter]@PYaZ[>]1000@PYaZ[</maxIter>]
-        @PYaZ[<logging]@PYaZ[>]yes@PYaZ[</logging>]
-      @PYaZ[</gmres>]
-    @PYaZ[</solver>]
-  @PYaZ[</system>]
-@PYaZ[</linearSystems>]
-\end{Verbatim}
-
+\begin{xmllisting}
+<linearSystems>
+  <system name="fluidMech">
+    <setup idbcHandling="penalty"/>
+    <matrix storage="sparseNonSym"/>
+    <solver type="gmres" precond="ILU0">
+      <gmres>
+        <tol>1e-3</tol>
+        <maxIter>1000</maxIter>
+        <logging>yes</logging>
+      </gmres>
+    </solver>
+  </system>
+</linearSystems>
+\end{xmllisting}
 

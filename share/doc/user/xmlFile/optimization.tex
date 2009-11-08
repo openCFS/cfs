@@ -37,10 +37,13 @@ other words, if an subelement is not triggered by an attribute it is ignored.
 \begin{xatlist}{Description of \xel{costFunction}}
 \xat{type} & \xatv{objective} & see Section
 \ref{sec:optimization_problem} \\
+%
 \xat{task} & \xatv{minimize}, \xatv{maximize} & minimization
 is default. \\
+%\
 \xat{stoppingRule} & \xatv{relative} & see Section
 \ref{sec:stopping_rule}. \\
+%
 \xat{value} & \xatv{real number} & see Section
 \ref{sec:stopping_rule}. \\
 \xat{queue} & \xatv{integer} & see Section \ref{sec:stopping_rule} \\
@@ -219,11 +222,10 @@ elasticity tensor.
 
 Either all relevant entries are to be matched or only selected. This is done
 with multiple \xml{constraint} elements llike the following:
-\begin{Verbatim}[commandchars=@\[\]]
-  @PYaZ[<constraint] @PYaQ[name=]@PYaB["homogenizationTensor"] @PYaQ[type=]@PYaB["equal"] @PYaQ[value=]@PYaB["-0.025 ]
-@PYaB[coord="]@PYaI[1]@PYaI[2]@PYaI["]@PYaZ[/>]
-\end{Verbatim}
-
+\begin{xmllisting}
+  <constraint name="homogenizationTensor" type="equal" value="-0.025 
+coord="12"/>
+\end{xmllisting}
 
 It is also possible to supply a subelement \xml{tensor} of dimensions $3 \times3$ for the 2D case and $6 \times 6$ for 3D. Then the \xml{value} attribute
 must not be given. The \xml{coord} value \xml{all} implicitely generates
@@ -231,19 +233,17 @@ must not be given. The \xml{coord} value \xml{all} implicitely generates
 and \xml{33} and 9 constraints for 3D. This can be controlled in the info.xml
 file.
 
-\begin{Verbatim}[commandchars=@\[\]]
-    
-@PYaZ[<constraint] @PYaQ[name=]@PYaB["homogenizationTensor"] @PYaQ[type=]@PYaB["equal"] @PYaQ[coord=]@PYaB["all"] @PYaZ[>]
-  @PYaZ[<tensor] @PYaQ[dim1=]@PYaB["3"] @PYaQ[dim2=]@PYaB["3"]@PYaZ[>]
-    @PYaZ[<real]@PYaZ[>]
+\begin{xmllisting}    
+<constraint name="homogenizationTensor" type="equal" coord="all" >
+  <tensor dim1="3" dim2="3">
+    <real>
       0.05    -0.025  0.0
      -0.025  0.05    0.0
       0.0     0.0    0.01
-    @PYaZ[</real>]
-  @PYaZ[</tensor>]      
-@PYaZ[</constraint>]
-\end{Verbatim}
-
+    </real>
+  </tensor>      
+</constraint>
+\end{xmllisting}
 
 It might be intersting to monitor the convergence of the constraints setting
 \xml{deltaConstraints} in \xml{log} to \xml{true}. Also one could
@@ -258,15 +258,14 @@ This is the tracking function
 which is the root of the sum of the squared tensor entry difference. It is
 mandatory to have \xml{coord} set to \xml{all} and provice the \xml{tensor}
 element.
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<constraint] @PYaQ[name=]@PYaB["homogenizationTracking"] @PYaQ[type=]@PYaB["equal"] @PYaQ[coord=]@PYaB["all"]@PYaZ[>]
-  @PYaZ[<tensor] @PYaQ[dim1=]@PYaB["3"] @PYaQ[dim2=]@PYaB["3"]@PYaZ[>]
-    @PYaZ[<real]@PYaZ[>]
+\begin{xmllisting}
+<constraint name="homogenizationTracking" type="equal" coord="all">
+  <tensor dim1="3" dim2="3">
+    <real>
       0.05    -0.025  0.0
      -0.025  0.05    0.0
       0.0     0.0    0.01
-    @PYaZ[</real>]
-  @PYaZ[</tensor>]      
-@PYaZ[</constraint>]
-\end{Verbatim}
-
+    </real>
+  </tensor>      
+</constraint>
+\end{xmllisting}

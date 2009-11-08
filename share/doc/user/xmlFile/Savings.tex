@@ -6,14 +6,13 @@ sometimes one needs (additionally) the time derivative (e.g. in
 \xel{acoustics}, to calculate the pressure from the acoustic velocity
 potential). Herefore, the command is given for \xel{mechanics}
 
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<storeResults]@PYaZ[>]
-   @PYaZ[<nodeResult] @PYaQ[type=]@PYaB["mechVelocity"]@PYaZ[>]
-    @PYaZ[<allRegions]@PYaZ[/>]
-   @PYaZ[</nodeResult>]
-@PYaZ[</storeResults>]
-\end{Verbatim}
-
+\begin{xmllisting}
+<storeResults>
+   <nodeResult type="mechVelocity">
+    <allRegions/>
+   </nodeResult>
+</storeResults>
+\end{xmllisting}
 
 may be used. The value of the attribute \xat{type} is PDE dependent,
 e.g. for mechanics, the following values are allowed:
@@ -29,29 +28,27 @@ attribute \xat{region} one can restrict the saved results to one or
 more selected regions.
 To store the results of the regions \xatv{bar} and \xatv{gap}, one
 has to write
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<storeResults]@PYaZ[>]
-   @PYaZ[<nodeResult] @PYaQ[type=]@PYaB["mechVelocity"]@PYaZ[>]
-    @PYaZ[<regionList]@PYaZ[>]
-     @PYaZ[<region] @PYaQ[name=]@PYaB["bar"]@PYaZ[/>]
-     @PYaZ[<region] @PYaQ[name=]@PYaB["gap"]@PYaZ[/>]
-    @PYaZ[</regionList>]
-   @PYaZ[</nodeResult>]
-@PYaZ[</storeResults>]
-\end{Verbatim}
-
+\begin{xmllisting}
+<storeResults>
+   <nodeResult type="mechVelocity">
+    <regionList>
+     <region name="bar"/>
+     <region name="gap"/>
+    </regionList>
+   </nodeResult>
+</storeResults>
+\end{xmllisting}
 
 
 \section{Element Results}
 In general, saving of element results is, beside the different keyword
 {\bf elemResults} totally similar to the procedure of saving nodal
 results:
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<storeResults]@PYaZ[>]
-   @PYaZ[<elemResult] @PYaQ[type=]@PYaB["mechStress"]@PYaZ[/>]
-@PYaZ[</storeResults>]
-\end{Verbatim}
-
+\begin{xmllisting}
+<storeResults>
+   <elemResult type="mechStress"/>
+</storeResults>
+\end{xmllisting}
 Again, the values of \xat{type} depend on the regarded PDE. 
 
 
@@ -67,16 +64,15 @@ universal-file is written.
 
 In the config-file, the command is as follows
 
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<storeResults]@PYaZ[>]
-   @PYaZ[<nodeResult] @PYaQ[type=]@PYaB["mechVelocity"]@PYaZ[>]
-    @PYaZ[<nodeList]@PYaZ[>]
-     @PYaZ[<nodes] @PYaQ[name=]@PYaB["nodeName"]@PYaZ[/>]
-    @PYaZ[</nodeList>]
-   @PYaZ[</nodeResult>]
-@PYaZ[</storeResults>]
-\end{Verbatim}
-
+\begin{xmllisting}
+<storeResults>
+   <nodeResult type="mechVelocity">
+    <nodeList>
+     <nodes name="nodeName"/>
+    </nodeList>
+   </nodeResult>
+</storeResults>
+\end{xmllisting}
 
 has to be used. The results are stored in the -- if necessary new
 created -- directory {\em history} in a file with the name {\em
@@ -100,14 +96,13 @@ Again, saving results of selected elements is similar to the procedure
 of saving results on selected nodes. The commands name is \xel{elemList},
 and the necessary keyword attribute name \xat{name} with value
 \xatv{elName}:
-\begin{Verbatim}[commandchars=@\[\]]
-   @PYaZ[<storeResults]@PYaZ[>]
-      @PYaZ[<elemResult] @PYaQ[type=]@PYaB["mechStress"]@PYaZ[>]
-       @PYaZ[<elemList]@PYaZ[>]
-        @PYaZ[<elem] @PYaQ[name=]@PYaB["elName"]@PYaZ[/>]
-       @PYaZ[</elemList>]
-      @PYaZ[</elemResult>]
-   @PYaZ[</storeResults>]
-\end{Verbatim}
-
+\begin{xmllisting}
+   <storeResults>
+      <elemResult type="mechStress">
+       <elemList>
+        <elem name="elName"/>
+       </elemList>
+      </elemResult>
+   </storeResults>
+\end{xmllisting}
 

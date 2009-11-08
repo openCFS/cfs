@@ -114,13 +114,12 @@ variable would create a new one, initialized with zero.
 \subsection{\texttt{sample1D}}
 We can subscribe boundary conditions with values read in from sample files.
 The notation is as follows:
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<bcsAndLoads]@PYaZ[>]
-  @PYaZ[<neumannInhom] @PYaQ[name=]@PYaB["transducer"] @PYaQ[value=]@PYaB["sample1D('x_amplitude.dat',x,2)"]
-    @PYaQ[phase=]@PYaB["sample1D('x_phase.dat',x,2)"]@PYaZ[/>]
-@PYaZ[</bcsAndLoads>]
-\end{Verbatim}
-
+\begin{xmllisting}
+<bcsAndLoads>
+  <neumannInhom name="transducer" value="sample1D('x_amplitude.dat',x,2)"
+    phase="sample1D('x_phase.dat',x,2)"/>
+</bcsAndLoads>
+\end{xmllisting}
 Sample data (2$^{nd}$ column) is read in from the files x\_amplitude.dat and
 x\_phase.dat. Please note the type of quotes used!!!!
 \newline
@@ -135,24 +134,23 @@ The \xel{input} element can be used to read in data on a whole region from
 hdf5 files (of a previous simulation run). It takes as arguments the input ID
 and the number of the multisequence step (which should be 1 in almost any
 case). It is used in the following way:
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<fileFormats]@PYaZ[>]
-  @PYaZ[<input]@PYaZ[>]
-    @PYaZ[<hdf5] @PYaQ[fileName=]@PYaB["filename.h5"] @PYaQ[id=]@PYaB["inhom"]@PYaZ[/>]
-  @PYaZ[</input>]
+\begin{xmllisting}
+<fileFormats>
+  <input>
+    <hdf5 fileName="filename.h5" id="inhom"/>
+  </input>
   ...
-@PYaZ[</fileFormats>]
+</fileFormats>
 ...
-@PYaZ[<pdename]@PYaZ[>]
-  @PYaZ[<bcsAndLoads]@PYaZ[>]
-    @PYaZ[<dirichletInhom] @PYaQ[name=]@PYaB["region1"] @PYaQ[dof=]@PYaB["x"] @PYaQ[value=]@PYaB["input('inhom',1)"]
-                    @PYaQ[phase=]@PYaB["input('inhom',1)"]@PYaZ[/>]
-    @PYaZ[<dirichletInhom] @PYaQ[name=]@PYaB["region2"] @PYaQ[dof=]@PYaB["y"] @PYaQ[value=]@PYaB["input('inhom',1)"]
-                    @PYaQ[phase=]@PYaB["input('inhom',1)"]@PYaZ[/>]
-  @PYaZ[</bcsAndLoads>]
-@PYaZ[</pdename>]
-\end{Verbatim}
-
+<pdename>
+  <bcsAndLoads>
+    <dirichletInhom name="region1" dof="x" value="input('inhom',1)"
+                    phase="input('inhom',1)"/>
+    <dirichletInhom name="region2" dof="y" value="input('inhom',1)"
+                    phase="input('inhom',1)"/>
+  </bcsAndLoads>
+</pdename>
+\end{xmllisting}
 The region name, quantity, and time/frequency step (if applicable) are
 determined automatically and not passed as arguments. Therefore it is required
 to use exactly same mesh as the previous simulation, i.e.\
@@ -202,39 +200,35 @@ the following table).
 \section{Examples}
 If one wants to prescribe a linear space dependent load, the following can be
 written:
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<bcsAndLoads]@PYaZ[>]
-  @PYaZ[<load] @PYaQ[name=]@PYaB["loadNode"] @PYaQ[value=]@PYaB["10 * x"] @PYaQ[phase=]@PYaB["cos(y)"]@PYaZ[/>]
-@PYaZ[<bcsAndLoads]@PYaZ[>]
-\end{Verbatim}
-
+\begin{xmllisting}
+<bcsAndLoads>
+  <load name="loadNode" value="10 * x" phase="cos(y)"/>
+<bcsAndLoads>
+\end{xmllisting}
 Here \myverb#x# is used to denote the x-coordinate of each node
 contained in the node list.
 \newline
 
 \noindent
 To define a variable with a sine of 1 kHz one can simply write:
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<bcsAndLoads]@PYaZ[>]
-  @PYaZ[<dirichletInhom] @PYaQ[name=]@PYaB["bcNode"] @PYaQ[value=]@PYaB["10 * sin(2 * pi * 1e3 * t)"]@PYaZ[/>]
-@PYaZ[<bcsAndLoads]@PYaZ[>]
-\end{Verbatim}
-
+\begin{xmllisting}
+<bcsAndLoads>
+  <dirichletInhom name="bcNode" value="10 * sin(2 * pi * 1e3 * t)"/>
+<bcsAndLoads>
+\end{xmllisting}
 The variable \xatv{t} reflects the current time value in a transient
 simulation.
 Of couse one can also combine space- and time dependency:
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<bcsAndLoads]@PYaZ[>]
-  @PYaZ[<dirichletInhom] @PYaQ[name=]@PYaB["bcNode"] @PYaQ[value=]@PYaB["10 * x * sin(2 * pi * 1e3 * t)"]@PYaZ[/>]
-@PYaZ[<bcsAndLoads]@PYaZ[>]
-\end{Verbatim}
-
+\begin{xmllisting}
+<bcsAndLoads>
+  <dirichletInhom name="bcNode" value="10 * x * sin(2 * pi * 1e3 * t)"/>
+<bcsAndLoads>
+\end{xmllisting}
 A ramp signal, which goes from $0 \ldots 1$ linearly and then
 stays at 1 is written via the \xatv{if}-statement as follows:
-\begin{Verbatim}[commandchars=@\[\]]
-@PYaZ[<bcsAndLoads]@PYaZ[>]
-  @PYaZ[<dirichletInhom] @PYaQ[name=]@PYaB["bcNode"] @PYaQ[value=]@PYaB["if(t lt 1,t,1.0)"]@PYaZ[/>]
-@PYaZ[<bcsAndLoads]@PYaZ[>]
-\end{Verbatim}
-
+\begin{xmllisting}
+<bcsAndLoads>
+  <dirichletInhom name="bcNode" value="if(t lt 1,t,1.0)"/>
+<bcsAndLoads>
+\end{xmllisting}
 
