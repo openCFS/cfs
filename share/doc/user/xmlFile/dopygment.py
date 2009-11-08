@@ -105,7 +105,7 @@ elif parserType == "html" :
   formatter = HtmlFormatter(style="default", linenos=False, 
                             cssclass="xmlcode", cssFilefull="False")
   callback = codeReplaceHtml
-  formatFile = "out.css"
+  formatFile = "syntax.css"
 else:
   print "Valid options for 'format' are 'tex' and 'html' "
 
