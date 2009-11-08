@@ -52,7 +52,7 @@
         </wh:attribute>
       </wh:template>
       
-      <wh:template match="BuildName"> 
+      <wh:template match="@BuildName"> 
 	<wh:attribute name="BuildName">
 	  <wh:value-of select="$buildname"/>
 	</wh:attribute>
@@ -61,7 +61,7 @@
       <wh:template match="@BuildStamp">
 	<wh:attribute name="BuildStamp">
 	  <wh:value-of select="$buildstamp"/>
-	</wh:attribute>
+	</wh:attribute> 
       </wh:template>
 
     </wh:stylesheet>
