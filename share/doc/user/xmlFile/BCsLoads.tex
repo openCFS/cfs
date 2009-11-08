@@ -18,7 +18,8 @@ conditions are used, e.g. for grounding an electrode (electric potential
 {\bf Inhomogeneous BCs}  are used for assigning a
   specific value to a boundary. They describe non-zero (maybe
   time-varying) values.  Therefore, you have to select the name of the
-  specific nodes (according to the section \element{nodes} in \topelement{$<$domain$>$}) and a value which has to be assigned to this node.
+  specific nodes (according to the section \xel{nodes} in
+\xel{$<$domain$>$}) and a value which has to be assigned to this node.
   Additionally, a name of a time function file may be provided for
   time varying BCs. In this case, the resulting values applied to the
   selected nodes will be ${dof}(timestep) =
@@ -33,65 +34,77 @@ conditions are used, e.g. for grounding an electrode (electric potential
 
 \bigskip
 
-In the section  \topelement{$<$bcsAndLoads$>$} of the appropriate PDE in the
+In the section  \xel{bcsAndLoads} of the appropriate PDE in the
 config-file (there can be more than one!), the BCs have to be defined
 in the following manner
-\begin{verbatim}
-<bcsAndLoads>
-   <dirichletHom   name="nameBound1"/>
-   <dirichletHom   name="nameBound2"/>
-   <dirichletInHom name="nameBound3" value="-1.0"/>
-</bcsAndLoads>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+  @PYaZ[<bcsAndLoads]@PYaZ[>]
+     @PYaZ[<dirichletHom]   @PYaQ[name=]@PYaB["nameBound1"]@PYaZ[/>]
+     @PYaZ[<dirichletHom]   @PYaQ[name=]@PYaB["nameBound2"]@PYaZ[/>]
+     @PYaZ[<dirichletInHom] @PYaQ[name=]@PYaB["nameBound3"] @PYaQ[value=]@PYaB["-1.0"]@PYaZ[/>]
+  @PYaZ[</bcsAndLoads>]
+\end{Verbatim}
 
-With inhomogeneous BCs, one has additionally to define the \attrivalue{value} by
+
+With inhomogeneous BCs, one has additionally to define the \xatv{value} by
 giving the name of the boundary followed by the boundary value. If a
 time varying signal has to be applied, one has additionally to provide
-the name of the time file in the attribute {\attrivalue{signal.dat} }:
+the name of the time file in the attribute {\xatv{signal.dat} }:
+\begin{Verbatim}[commandchars=@\[\]]
+  @PYaZ[<dirichletInHom] @PYaQ[name=]@PYaB["nameBound3"] @PYaQ[value=]@PYaB["10 * sample1D('signal.dat',t,1)"]@PYaZ[/>]
+\end{Verbatim}
 
-\verb!<dirichletInHom name="nameBound3" value="10 * sample1D('signal.dat',t,1)"/>!
 
 \noindent
 If we want to define a boundary condition for a PDE with more
 than one dof, we have additionally to define the dof, the BC has to
 work on. For the homogenous BC one has to use
-
-\verb!<dirichletHom   name="nameBound1" dof="XXX"/>!
+\begin{Verbatim}[commandchars=@\[\]]
+  @PYaZ[<dirichletHom]   @PYaQ[name=]@PYaB["nameBound1"] @PYaQ[dof=]@PYaB["XXX"]@PYaZ[/>]
+\end{Verbatim}
 
 \noindent
 for the inhomogenous BC the command
 
-\verb!   <dirichletInHom   name="nameBound1"  dof="XXX"/>!
+\begin{Verbatim}[commandchars=@\[\]]
+  @PYaZ[<dirichletInHom]   @PYaQ[name=]@PYaB["nameBound1"]  @PYaQ[dof=]@PYaB["XXX"]@PYaZ[/>]
+\end{Verbatim}
+
 
 \noindent
-has to be called. Herein, {\attrivalue{XXX} } stands for the name degrees of
+has to be called. Herein, \xatv{XXX} stands for the name degrees of
 freedom, e.g. in the mechanical PDE
 
-\begin{verbatim}
-<bcsAndLoads>
-   <dirichletHom   name="leftBound"   dof="x"/>
-   <dirichletHom   name="leftBound"   dof="y"/>
-   <dirichletInHom name="rightBound"  dof="y"  value="2.0"/>
-   <load           name="centerPoint" dof="x"  value="3.0"/>
-</bcsAndLoads>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<bcsAndLoads]@PYaZ[>]
+   @PYaZ[<dirichletHom]   @PYaQ[name=]@PYaB["leftBound"]   @PYaQ[dof=]@PYaB["x"]@PYaZ[/>]
+   @PYaZ[<dirichletHom]   @PYaQ[name=]@PYaB["leftBound"]   @PYaQ[dof=]@PYaB["y"]@PYaZ[/>]
+   @PYaZ[<dirichletInHom] @PYaQ[name=]@PYaB["rightBound"]  @PYaQ[dof=]@PYaB["y"]  @PYaQ[value=]@PYaB["2.0"]@PYaZ[/>]
+   @PYaZ[<load]           @PYaQ[name=]@PYaB["centerPoint"] @PYaQ[dof=]@PYaB["x"]  @PYaQ[value=]@PYaB["3.0"]@PYaZ[/>]
+@PYaZ[</bcsAndLoads>]
+\end{Verbatim}
+
 
 \section{Loads}
 
 {\bf Loads} are used to apply external nodal loads like an electric
-charge.  The syntax of the {\element{load} } command is equal to that of 
+charge.  The syntax of the {\xel{load} } command is equal to that of 
 the {\em inhomogeneous BCs}:
-\begin{verbatim}
-<bcsAndLoads>
-   <load name="loadBound" value="10" dynamics="timeFile"/>
-</bcsAndLoads>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<bcsAndLoads]@PYaZ[>]
+   @PYaZ[<load] @PYaQ[name=]@PYaB["loadBound"] @PYaQ[value=]@PYaB["10"] @PYaQ[dynamics=]@PYaB["timeFile"]@PYaZ[/>]
+@PYaZ[</bcsAndLoads>]
+\end{Verbatim}
+
 
 Similar to the boundary conditions, the degree of freedom (dof) to
 which the load has to be applied, must be defined for PDEs with more
 than one dof per node:
 
-\verb!<load  name="nameBound1"  dof="XXX"/>!
+\begin{Verbatim}[commandchars=@\[\]]
+  @PYaZ[<load]  @PYaQ[name=]@PYaB["nameBound1"]  @PYaQ[dof=]@PYaB["XXX"]@PYaZ[/>]
+\end{Verbatim}
+
 
 
 

@@ -1,26 +1,17 @@
 \chapter{Special Elements}
 \label{chap:SpecialElements}
-%
-%
 The Schema definition of the XML parameter file currently allows for two
 special elements to be specified. These are
-%
-%
 \begin{itemize}
-\item \element{expert}
-\item \element{devel}
+\item \xel{expert}
+\item \xel{devel}
 \end{itemize}
-%
-%
 These are first level elements coming at the end of the parameter file, see
 Sect.~\ref{sec:general}.
-%
-%
-\subsubsection*{\element{expert}}
-%
-%
-The \element{expert} element is an empty element with one attribute called
-\attribute{override}. Specifying \verb+<expert override="yes">+ in the parameter file
+\subsubsection*{\xel{expert}}
+The \xel{expert} element is an empty element with one attribute called
+\xat{override}. Specifying \xml{<expert override="yes">} in the parameter
+file
 turns off the Expert() module of the CFS++ --- OLAS interface. This expert
 module normally tries to set certain
 parameters to sensible values depending on the values of other parameters or
@@ -30,12 +21,8 @@ desired, e.g.~one may want to test the performance of an ILU preconditioner
 without the \xml{Metis} matrix re-ordering the expert would trigger by default.
 Note that turning off the expert module may lead to run-time aborts in OLAS due
 to inconsistent settings. So be sure to really be an expert, if you do this.
-%
-%
-\subsubsection*{\element{devel}}
-%
-%
-The \element{devel} element can have arbitrary content, but no children or
+\subsubsection*{\xel{devel}}
+The \xel{devel} element can have arbitrary content, but no children or
 attributes. It is solely there for the sake of the developer who wants to
 quickly test something, without the need to alter the Schema definition itself.
 For normal users the element is not of interest, since it is never accessed

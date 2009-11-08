@@ -7,87 +7,91 @@ nodal degree of freedom, the electric potential $V$ by applying a
 gradient operator. This element quantity is calculated by applying
 the config-file-commands
 
-\begin{verbatim}
-<storeResults>
-   <elemResult type="elecFieldIntensity" region="elecst2d"/>
-</storeResults>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<storeResults]@PYaZ[>]
+   @PYaZ[<elemResult] @PYaQ[type=]@PYaB["elecFieldIntensity"] @PYaQ[region=]@PYaB["elecst2d"]@PYaZ[/>]
+@PYaZ[</storeResults>]
+\end{Verbatim}
 
-In the command  \attribute{region}, all areas in which the electric field has to
+
+In the command  \xat{region}, all areas in which the electric field has to
 be calculated, must be listed. If no region  is specified, the elecric
 field will be calculated in all regions where the PDE is defined. To
 calculate the electric energy, one has to use the command 
 
-\begin{verbatim}      
-<storeResults>
-   <elemResult type="elecEnergy" region="reg2"/>
-</storeResults>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+      
+@PYaZ[<storeResults]@PYaZ[>]
+   @PYaZ[<elemResult] @PYaQ[type=]@PYaB["elecEnergy"] @PYaQ[region=]@PYaB["reg2"]@PYaZ[/>]
+@PYaZ[</storeResults>]
+\end{Verbatim}
+
 in the config-file. The result is written to the info-file.
 
 
 \subsection{Example}
 
 {\footnotesize
-\begin{verbatim}
-<?xml version="1.0"?>
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaN[<?xml version="1.0"?>]
 
-<cfsSimulation xmlns="http://www.cfs++.org">
+@PYaZ[<cfsSimulation] @PYaQ[xmlns=]@PYaB["http://www.cfs++.org"]@PYaZ[>]
 
-   <fileFormats>
-    <output>
-      <unv/>
-    </output>
-    <materialData file="mat.xml" format="xml"/>
-   </fileFormats>
+   @PYaZ[<fileFormats]@PYaZ[>]
+    @PYaZ[<output]@PYaZ[>]
+      @PYaZ[<unv]@PYaZ[/>]
+    @PYaZ[</output>]
+    @PYaZ[<materialData] @PYaQ[file=]@PYaB["mat.xml"] @PYaQ[format=]@PYaB["xml"]@PYaZ[/>]
+   @PYaZ[</fileFormats>]
 
-  <domain geometryType="axi">
-   <regionList>
-    <region name="gndEl"  material="steel"/>
-    <region name="hotEl"  material="steel"/>
-    <region name="dielEl" material="silicon"/>
-    <region name="airEl"  material="air"/>
-   </regionList>
+  @PYaZ[<domain] @PYaQ[geometryType=]@PYaB["axi"]@PYaZ[>]
+   @PYaZ[<regionList]@PYaZ[>]
+    @PYaZ[<region] @PYaQ[name=]@PYaB["gndEl"]  @PYaQ[material=]@PYaB["steel"]@PYaZ[/>]
+    @PYaZ[<region] @PYaQ[name=]@PYaB["hotEl"]  @PYaQ[material=]@PYaB["steel"]@PYaZ[/>]
+    @PYaZ[<region] @PYaQ[name=]@PYaB["dielEl"] @PYaQ[material=]@PYaB["silicon"]@PYaZ[/>]
+    @PYaZ[<region] @PYaQ[name=]@PYaB["airEl"]  @PYaQ[material=]@PYaB["air"]@PYaZ[/>]
+   @PYaZ[</regionList>]
 
-   <nodeList>
-    <nodes name="hot"/>
-    <nodes name="gnd"/>
-   </nodeList>
-  </domain>
+   @PYaZ[<nodeList]@PYaZ[>]
+    @PYaZ[<nodes] @PYaQ[name=]@PYaB["hot"]@PYaZ[/>]
+    @PYaZ[<nodes] @PYaQ[name=]@PYaB["gnd"]@PYaZ[/>]
+   @PYaZ[</nodeList>]
+  @PYaZ[</domain>]
 
- <sequenceStep>
-  <analysis>
-   <static/>
-  </analysis>
+ @PYaZ[<sequenceStep]@PYaZ[>]
+  @PYaZ[<analysis]@PYaZ[>]
+   @PYaZ[<static]@PYaZ[/>]
+  @PYaZ[</analysis>]
 
-  <pdeList>
-    <electrostatic>
-     <regionList>
-       <region name="gndEl"/>
-       <region name="hotEl"/>
-       <region name="dielEl"/>
-       <region name="airEl"/>
-     </regionList>
+  @PYaZ[<pdeList]@PYaZ[>]
+    @PYaZ[<electrostatic]@PYaZ[>]
+     @PYaZ[<regionList]@PYaZ[>]
+       @PYaZ[<region] @PYaQ[name=]@PYaB["gndEl"]@PYaZ[/>]
+       @PYaZ[<region] @PYaQ[name=]@PYaB["hotEl"]@PYaZ[/>]
+       @PYaZ[<region] @PYaQ[name=]@PYaB["dielEl"]@PYaZ[/>]
+       @PYaZ[<region] @PYaQ[name=]@PYaB["airEl"]@PYaZ[/>]
+     @PYaZ[</regionList>]
 
-      <bcsAndLoads>
-        <dirichletHom name="gnd"/>
-        <dirichletInhom name="hot" value="1.0"/>
-      </bcsAndLoads>
+      @PYaZ[<bcsAndLoads]@PYaZ[>]
+        @PYaZ[<dirichletHom] @PYaQ[name=]@PYaB["gnd"]@PYaZ[/>]
+        @PYaZ[<dirichletInhom] @PYaQ[name=]@PYaB["hot"] @PYaQ[value=]@PYaB["1.0"]@PYaZ[/>]
+      @PYaZ[</bcsAndLoads>]
 
-      <storeResults>
-        <elemResult type="elecFieldIntensity">
-         <allRegions/>
-        </elemResult>
-        <elemResult type="elecEnergy">
-         <allRegions/>
-        </elemResult>
-      </storeResults>
+      @PYaZ[<storeResults]@PYaZ[>]
+        @PYaZ[<elemResult] @PYaQ[type=]@PYaB["elecFieldIntensity"]@PYaZ[>]
+         @PYaZ[<allRegions]@PYaZ[/>]
+        @PYaZ[</elemResult>]
+        @PYaZ[<elemResult] @PYaQ[type=]@PYaB["elecEnergy"]@PYaZ[>]
+         @PYaZ[<allRegions]@PYaZ[/>]
+        @PYaZ[</elemResult>]
+      @PYaZ[</storeResults>]
 
-    </electrostatic>
-  </pdeList>
- </sequenceStep>
-</cfsSimulation>
-\end{verbatim}
+    @PYaZ[</electrostatic>]
+  @PYaZ[</pdeList>]
+ @PYaZ[</sequenceStep>]
+@PYaZ[</cfsSimulation>]
+\end{Verbatim}
+
 }
 
 
@@ -101,12 +105,16 @@ In the 3D case we have {\bf x, y, z} and in the 2D case
 \subsection{Subtypes}
 
 A specification of the geometric type of the problem is done on the top-level
-via the \topelement{domain} attribute \attribute{geometryType}, which allows the values \attrivalue{3d}, \attrivalue{plane}
-and \attrivalue{axi} for its \attribute{geometryType} attribute. For a mechanic PDE this definition
-must be repeated in the \analysis{mechanic} element via its \attribute{subtype} entry.
-\begin{verbatim}
-       <mechanic subType="stype">
-\end{verbatim}
+via the \xel{domain} attribute \xat{geometryType}, which allows the
+values \xatv{3d}, \xatv{plane}
+and \xatv{axi} for its \xat{geometryType} attribute. For a mechanic
+PDE this definition
+must be repeated in the \xel{mechanic} element via its \xat{subtype}
+entry.
+\begin{Verbatim}[commandchars=@\[\]]
+       @PYaZ[<mechanic] @PYaQ[subType=]@PYaB["stype"]@PYaZ[>]
+\end{Verbatim}
+
 \noindent Here stype can currently take one of the following three values
 
 \begin{itemize}
@@ -115,7 +123,8 @@ must be repeated in the \analysis{mechanic} element via its \attribute{subtype} 
 \item axi
 \end{itemize}
 
-\emph{Note:} The \attribute{subType} value must of course match to the \attribute{geometryType}
+\emph{Note:} The \xat{subType} value must of course match to the
+\xat{geometryType}
 value of the geometry specification and a mixture of different subTypes within
 one analysis is thus not possible.
 
@@ -125,113 +134,124 @@ static analysis one can consider a stiffness value and
 in a transient analysis additionally a mass and a damping value.
 With the parameter name an existing selection of nodes must be given
 as it is the case for loads.
-\begin{verbatim}
-<bcsAndLoads>
- <spring name="springNodes" dof="y" massValue="1" dampingValue="1" 
-  stiffnessValue="1"/>
-</bcsAndLoads>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<bcsAndLoads]@PYaZ[>]
+ @PYaZ[<spring] @PYaQ[name=]@PYaB["springNodes"] @PYaQ[dof=]@PYaB["y"] @PYaQ[massValue=]@PYaB["1"] @PYaQ[dampingValue=]@PYaB["1"] 
+  @PYaQ[stiffnessValue=]@PYaB["1"]@PYaZ[/>]
+@PYaZ[</bcsAndLoads>]
+\end{Verbatim}
+
 
 \subsection{Nodal Results}
 Possible nodal results are
 
-\begin{verbatim}
- <nodeResult type="mechDisplacement">
-  <regionList>
-   <region name="bar"/>
-  </regionList>
- </nodeResult>
- <nodeResult type="mechVelocity">
-  <regionList>
-   <region name="bar"/>
-  </regionList>
- </nodeResult>
- <nodeResult type="mechAcceleration">
-  <regionList>
-   <region name="bar"/>
-  </regionLit>
- </nodeResult>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+ @PYaZ[<nodeResult] @PYaQ[type=]@PYaB["mechDisplacement"]@PYaZ[>]
+  @PYaZ[<regionList]@PYaZ[>]
+   @PYaZ[<region] @PYaQ[name=]@PYaB["bar"]@PYaZ[/>]
+  @PYaZ[</regionList>]
+ @PYaZ[</nodeResult>]
+ @PYaZ[<nodeResult] @PYaQ[type=]@PYaB["mechVelocity"]@PYaZ[>]
+  @PYaZ[<regionList]@PYaZ[>]
+   @PYaZ[<region] @PYaQ[name=]@PYaB["bar"]@PYaZ[/>]
+  @PYaZ[</regionList>]
+ @PYaZ[</nodeResult>]
+ @PYaZ[<nodeResult] @PYaQ[type=]@PYaB["mechAcceleration"]@PYaZ[>]
+  @PYaZ[<regionList]@PYaZ[>]
+   @PYaZ[<region] @PYaQ[name=]@PYaB["bar"]@PYaZ[/>]
+  @PYaZ[</regionLit>]
+ @PYaZ[</nodeResult>]
+\end{Verbatim}
+
 
 \subsection{Element Results}
 The command for calculating the mechanical stresses is
-\begin{verbatim}      
-<storeResults>
-   <elemResult type="mechStress">
-    <regionList>
-     <region name="bar"/>
-    </regionList>
-   </elemResult>
-</storeResults>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+      
+@PYaZ[<storeResults]@PYaZ[>]
+   @PYaZ[<elemResult] @PYaQ[type=]@PYaB["mechStress"]@PYaZ[>]
+    @PYaZ[<regionList]@PYaZ[>]
+     @PYaZ[<region] @PYaQ[name=]@PYaB["bar"]@PYaZ[/>]
+    @PYaZ[</regionList>]
+   @PYaZ[</elemResult>]
+@PYaZ[</storeResults>]
+\end{Verbatim}
+
 
 \subsection{Region Results}
-There is one surface region result. The calculated value is of type history and written to the \textit{info.xml} file or the filesystem if \element{text} output is enabled.
+There is one surface region result. The calculated value is of type history and
+written to the \textit{info.xml} file or the filesystem if \xel{text} output
+is enabled.
 
 \subsubsection{Deformed Volume}
 Given by 
-\begin{verbatim}      
-<storeResults>
-  <surfRegionResult type="volumeAboveDefSurf" dof="z">
-    <surfRegionList>
-      <surfRegion name=".."/>
-    </surfRegionList>
- </surfRegionResult>
-</storeResults>
-\end{verbatim}
-the displacements of the given direction are integrated over the given surface. The result is for harmonic analysis a complex value. Of interest is them the norm/length of the calculated vector.
+\begin{Verbatim}[commandchars=@\[\]]
+      
+@PYaZ[<storeResults]@PYaZ[>]
+  @PYaZ[<surfRegionResult] @PYaQ[type=]@PYaB["volumeAboveDefSurf"] @PYaQ[dof=]@PYaB["z"]@PYaZ[>]
+    @PYaZ[<surfRegionList]@PYaZ[>]
+      @PYaZ[<surfRegion] @PYaQ[name=]@PYaB[".."]@PYaZ[/>]
+    @PYaZ[</surfRegionList>]
+ @PYaZ[</surfRegionResult>]
+@PYaZ[</storeResults>]
+\end{Verbatim}
+
+the displacements of the given direction are integrated over the given surface.
+The result is for harmonic analysis a complex value. Of interest is them the
+norm/length of the calculated vector.
 
 \subsection{Example}
 
 {\footnotesize 
-\begin{verbatim}
-<?xml version="1.0"?>
-<cfsSimulation xmlns="http://www.cfs++.org">
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaN[<?xml version="1.0"?>]
+@PYaZ[<cfsSimulation] @PYaQ[xmlns=]@PYaB["http://www.cfs++.org"]@PYaZ[>]
 
- <fileFormats>
-   <output>
-    <unv/>
-   </output>
-   <materialData file="mat.xml" format="xml"/>
- </fileFormats>
+ @PYaZ[<fileFormats]@PYaZ[>]
+   @PYaZ[<output]@PYaZ[>]
+    @PYaZ[<unv]@PYaZ[/>]
+   @PYaZ[</output>]
+   @PYaZ[<materialData] @PYaQ[file=]@PYaB["mat.xml"] @PYaQ[format=]@PYaB["xml"]@PYaZ[/>]
+ @PYaZ[</fileFormats>]
 
- <domain geometryType="plane">
-   <regionList>
-    <region name="cantilev"  material="steel"/>
-   </regionList>
-   <nodeList>
-    <nodes name="leftN"/>
-    <nodes name="rightN"/>
-   </nodeList>
- </domain>
+ @PYaZ[<domain] @PYaQ[geometryType=]@PYaB["plane"]@PYaZ[>]
+   @PYaZ[<regionList]@PYaZ[>]
+    @PYaZ[<region] @PYaQ[name=]@PYaB["cantilev"]  @PYaQ[material=]@PYaB["steel"]@PYaZ[/>]
+   @PYaZ[</regionList>]
+   @PYaZ[<nodeList]@PYaZ[>]
+    @PYaZ[<nodes] @PYaQ[name=]@PYaB["leftN"]@PYaZ[/>]
+    @PYaZ[<nodes] @PYaQ[name=]@PYaB["rightN"]@PYaZ[/>]
+   @PYaZ[</nodeList>]
+ @PYaZ[</domain>]
 
- <sequenceStep>
-   <analysis>
-    <static/>
-   </analysis>
+ @PYaZ[<sequenceStep]@PYaZ[>]
+   @PYaZ[<analysis]@PYaZ[>]
+    @PYaZ[<static]@PYaZ[/>]
+   @PYaZ[</analysis>]
 
-   <pdeList>
-    <mechanic subtype="planeStrain">
-     <regionList>
-      <region name="cantilev"/>
-     </regionList>
-     <bcsAndLoads>
-      <dirichletHom name="leftN" dof="x"/>
-      <dirichletHom name="leftN" dof="y"/>
-      <dirichletHom name="rightN" dof="x"/>
-      <load         name="rightN" dof="y" value="-1.0"/>
-     </bcsAndLoads>
-     <storeResults>
-      <nodeResult type="mechDisplacement">
-       <allRegions/>
-      </nodeResult>
-     </storeResults>
-    </mechanic>
-   </pdeList>
- </sequenceStep>
+   @PYaZ[<pdeList]@PYaZ[>]
+    @PYaZ[<mechanic] @PYaQ[subtype=]@PYaB["planeStrain"]@PYaZ[>]
+     @PYaZ[<regionList]@PYaZ[>]
+      @PYaZ[<region] @PYaQ[name=]@PYaB["cantilev"]@PYaZ[/>]
+     @PYaZ[</regionList>]
+     @PYaZ[<bcsAndLoads]@PYaZ[>]
+      @PYaZ[<dirichletHom] @PYaQ[name=]@PYaB["leftN"] @PYaQ[dof=]@PYaB["x"]@PYaZ[/>]
+      @PYaZ[<dirichletHom] @PYaQ[name=]@PYaB["leftN"] @PYaQ[dof=]@PYaB["y"]@PYaZ[/>]
+      @PYaZ[<dirichletHom] @PYaQ[name=]@PYaB["rightN"] @PYaQ[dof=]@PYaB["x"]@PYaZ[/>]
+      @PYaZ[<load]         @PYaQ[name=]@PYaB["rightN"] @PYaQ[dof=]@PYaB["y"] @PYaQ[value=]@PYaB["-1.0"]@PYaZ[/>]
+     @PYaZ[</bcsAndLoads>]
+     @PYaZ[<storeResults]@PYaZ[>]
+      @PYaZ[<nodeResult] @PYaQ[type=]@PYaB["mechDisplacement"]@PYaZ[>]
+       @PYaZ[<allRegions]@PYaZ[/>]
+      @PYaZ[</nodeResult>]
+     @PYaZ[</storeResults>]
+    @PYaZ[</mechanic>]
+   @PYaZ[</pdeList>]
+ @PYaZ[</sequenceStep>]
 
-</cfsSimulation>
-\end{verbatim}
+@PYaZ[</cfsSimulation>]
+\end{Verbatim}
+
 }
 
 
@@ -239,23 +259,26 @@ the displacements of the given direction are integrated over the given surface. 
 \section{Acoustics}
 
 \subsection{General Setup}
-The \analysis{acoustic} element is appended by the following child elements
+The \xel{acoustic} element is appended by the following child elements
 \begin{itemize}
-\item \element{region}
-\item \element{surface}
-\item \element{timeSteppingFormulation} effective stiffness formulation 
-is default(optional), effective mass matrix formulation can be chosen unless one is not using the fractional damping model
-\item \element{bcsAndLoads} (optional)
-\item \element{nonLinear}\footnote{Other Nonlinearities than nonlinear acoustic
- PDE, which can be chosen by an attribute of \element{region} element. This is
+\item \xel{region}
+\item \xel{surface}
+\item \xel{timeSteppingFormulation} effective stiffness formulation 
+is default(optional), effective mass matrix formulation can be chosen unless one
+is not using the fractional damping model
+\item \xel{bcsAndLoads} (optional)
+\item \xel{nonLinear}\footnote{Other Nonlinearities than nonlinear acoustic
+ PDE, which can be chosen by an attribute of \xel{region} element. This is
  currently not implemented.}
-\item \element{storeResults} (optional)
+\item \xel{storeResults} (optional)
 \end{itemize}
 and the following attributes
 \begin{itemize}
-\item \element{pressFormu} used to choose for an acoustic pressure PDE formulatation \\
-with \attrivalue{acouPressure} as value.
-\item \attribute{subType} for flownoise computations set this to \attrivalue{combustionNoise} or \attrivalue{standard} 
+\item \xel{pressFormu} used to choose for an acoustic pressure PDE
+formulatation \\
+with \xatv{acouPressure} as value.
+\item \xat{subType} for flownoise computations set this to
+\xatv{combustionNoise} or \xatv{standard} 
 \end{itemize}
 
 \subsection{Formulation}
@@ -266,92 +289,110 @@ in pressure, Kuznetsov's nonlinear PDE is in acoustic potential.
 
 \subsection{Damping and nonlinear acoustic simulation}
 Damping and nonlinear acoustic PDE formulations can be chosen for each 
-region individually. Damping is a child element of \element{region},
+region individually. Damping is a child element of \xel{region},
 type is either no damping, rayleigh damping (which is not physical), 
 thermoviscous damping and fractional damping according to a 
 frequency power law.
-\attribute{nonLinear} comes as attribute to region. It can take the value \attrivalue{no},
-\attrivalue{westervelt}, or \attrivalue{kuznetsov}.
+\xat{nonLinear} comes as attribute to region. It can take the value
+\xatv{no},
+\xatv{westervelt}, or \xatv{kuznetsov}.
 
 \subsection{Boundary Conditions}
-Unique to the acoustic PDE is the possibiliy to prescribe inhomogeneous Neumann boundary conditions. In acoustic potential formulation this means a normal velocity on a surface. Remember, that the specified surface elements have to appear in the \topelement{domain} section and in the \element{acoustic} section below the region definitions. The syntax is:
+Unique to the acoustic PDE is the possibiliy to prescribe inhomogeneous Neumann
+boundary conditions. In acoustic potential formulation this means a normal
+velocity on a surface. Remember, that the specified surface elements have to
+appear in the \xel{domain} section and in the \xel{acoustic} section
+below the region definitions. The syntax is:
 
-\begin{verbatim} 
-<bcsAndLoads>
-  <neumannInhom name="transducer" value="1e-6" fileName="sweep5M.dat"/>
-</bcsAndLoads>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+ 
+@PYaZ[<bcsAndLoads]@PYaZ[>]
+  @PYaZ[<neumannInhom] @PYaQ[name=]@PYaB["transducer"] @PYaQ[value=]@PYaB["1e-6"] @PYaQ[fileName=]@PYaB["sweep5M.dat"]@PYaZ[/>]
+@PYaZ[</bcsAndLoads>]
+\end{Verbatim}
+
 
 \subsection{Nodal Results}
 The config-file command for storing e.g. the acoustic potential in the result
 file is
 
-\begin{verbatim}      
-<storeResults>
-   <nodeResult type="acouPotential">
-      <regionList>
-        <region name="fluid1"/>
-      </regionList>
-   </nodeResult> 
-</storeResults>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+      
+@PYaZ[<storeResults]@PYaZ[>]
+   @PYaZ[<nodeResult] @PYaQ[type=]@PYaB["acouPotential"]@PYaZ[>]
+      @PYaZ[<regionList]@PYaZ[>]
+        @PYaZ[<region] @PYaQ[name=]@PYaB["fluid1"]@PYaZ[/>]
+      @PYaZ[</regionList>]
+   @PYaZ[</nodeResult>] 
+@PYaZ[</storeResults>]
+\end{Verbatim}
 
-Analogously one can specify storing of certain node values with the help of the \element{nodeList}, by the sub element \subelement{nodes} and \attribute{name} attribute. 
 
-\begin{verbatim}    
-<storeResults>
-  <nodeResult type="acouPotential">
-    <nodeList>
-     <nodes name="historyPoints"/>
-    </nodeList>
-  </nodeResult> 
-</storeResults>
-\end{verbatim}
+Analogously one can specify storing of certain node values with the help of the
+\xel{nodeList}, by the sub element \xel{nodes} and \xat{name}
+attribute. 
 
-Remember, that the quantity, you want to store as result, depends on the formulation of the PDE. It is straightforward to retrieve the quantity acoustic potential, when the formulation of the PDE is in acoustic potential. But if your formulation is in acoustic pressure, it is nonsense to retrieve the quantity acoustic potential, because this would need integration. A combination, which does work, is formulation in acoustic potential and results in acoustic pressure. This will be discussed in the next section.
+\begin{Verbatim}[commandchars=@\[\]]
+    
+@PYaZ[<storeResults]@PYaZ[>]
+  @PYaZ[<nodeResult] @PYaQ[type=]@PYaB["acouPotential"]@PYaZ[>]
+    @PYaZ[<nodeList]@PYaZ[>]
+     @PYaZ[<nodes] @PYaQ[name=]@PYaB["historyPoints"]@PYaZ[/>]
+    @PYaZ[</nodeList>]
+  @PYaZ[</nodeResult>] 
+@PYaZ[</storeResults>]
+\end{Verbatim}
+
+
+Remember, that the quantity, you want to store as result, depends on the
+formulation of the PDE. It is straightforward to retrieve the quantity acoustic
+potential, when the formulation of the PDE is in acoustic potential. But if your
+formulation is in acoustic pressure, it is nonsense to retrieve the quantity
+acoustic potential, because this would need integration. A combination, which
+does work, is formulation in acoustic potential and results in acoustic
+pressure. This will be discussed in the next section.
 
 \subsection{Element Result}
 
-Because $p = \rho \partial \psi / \partial t$, and we can only assign a certain density to an element in the computational domain, pressure is an element result for acoustic potential formulation. It is specified with
+Because $p = \rho \partial \psi / \partial t$, and we can only assign a certain
+density to an element in the computational domain, pressure is an element result
+for acoustic potential formulation. It is specified with
 
-\begin{verbatim}
-<storeResults>
-  <elemResult type="acouPressure">
-   <elemList>
-    <elems name="receiver"/>
-   </elemList>
-  </elemResult>
-</storeResults>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<storeResults]@PYaZ[>]
+  @PYaZ[<elemResult] @PYaQ[type=]@PYaB["acouPressure"]@PYaZ[>]
+   @PYaZ[<elemList]@PYaZ[>]
+    @PYaZ[<elems] @PYaQ[name=]@PYaB["receiver"]@PYaZ[/>]
+   @PYaZ[</elemList>]
+  @PYaZ[</elemResult>]
+@PYaZ[</storeResults>]
+\end{Verbatim}
 
-%\subsubsection{Element Velocity $\{v\}$}
-%\begin{print}
-%  The velocity can be calculated as an element result by applying an
-%  {\em attgroup} command.
-%\end{print}
-%\begin{verbatim}
-%attgroup,1,calc,calc_gvp
-%\end{verbatim}
+
 
 \subsection{Region Result}
-There are two surface region results. The result is of type history and  written to the \textit{info.xml} file or to the filesystem if \attribute{text} output is enabled.   
+There are two surface region results. The result is of type history and  written
+to the \textit{info.xml} file or to the filesystem if \xat{text} output is
+enabled.   
 
-\begin{verbatim}
-<storeResults>
-  <surfRegionResult type="acouPower|acouForce">
-    <surfRegionList>
-      <surfRegion name=".." />
-    </surfRegionList>
-  </surfRegionResult>
-</storeResults>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<storeResults]@PYaZ[>]
+  @PYaZ[<surfRegionResult] @PYaQ[type=]@PYaB["acouPower|acouForce"]@PYaZ[>]
+    @PYaZ[<surfRegionList]@PYaZ[>]
+      @PYaZ[<surfRegion] @PYaQ[name=]@PYaB[".."] @PYaZ[/>]
+    @PYaZ[</surfRegionList>]
+  @PYaZ[</surfRegionResult>]
+@PYaZ[</storeResults>]
+\end{Verbatim}
+
 
 \subsubsection{Acoustic Power}
 The acoustic power calculates
 \begin{equation}
   P = \frac{1}{2} \int v\, p^*\,d\Gamma \nonumber
 \end{equation}
-with $v$ the complex acoustic particle velocity and $p^*$ the complex conjugate acoustic pressure. Of special interest is the acoustic effective power
+with $v$ the complex acoustic particle velocity and $p^*$ the complex conjugate
+acoustic pressure. Of special interest is the acoustic effective power
 \begin{equation}
   P_{ac} = \frac{1}{2} \int {\rm Re} \lbrace p\, v^* \rbrace \,d\Gamma \nonumber
 \end{equation}
@@ -361,58 +402,64 @@ which coincides with the real part of the calculated $P$.
 \subsection{Absorbing Boundary Conditions (ABC)} 
 In the config file, the command
 
-\begin{verbatim}    
-<bcsAndLoads>  
-   <absorbingBCs name="abc"/>
-</bcsAndLoads>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+    
+@PYaZ[<bcsAndLoads]@PYaZ[>]  
+   @PYaZ[<absorbingBCs] @PYaQ[name=]@PYaB["abc"]@PYaZ[/>]
+@PYaZ[</bcsAndLoads>]
+\end{Verbatim}
+
       
-is needed, which defines the boundaries at which the \attrivalue{abc} are working.
+is needed, which defines the boundaries at which the \xatv{abc} are
+working.
 It should be clear, that the dimension of the boundary elements are
 one order lower compared to the dimension of the "domain" elements.
 Therefore, the boundary elements have to be listed with the config-file
 command
 
-\begin{verbatim}
-<domain>
-  <surfRegionList>
-   <surfRegion name="abc"/>
-  </surfRegionList>
-</domain>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<domain]@PYaZ[>]
+  @PYaZ[<surfRegionList]@PYaZ[>]
+   @PYaZ[<surfRegion] @PYaQ[name=]@PYaB["abc"]@PYaZ[/>]
+  @PYaZ[</surfRegionList>]
+@PYaZ[</domain>]
+\end{Verbatim}
+
 
 \subsection{Aeroacoustics}
 In aeroacoustics, sound sources are computed from a CFD simulation. This is
 done by another tool, called \texttt{cplreader} (see the \texttt{cplreader}
 manual for details). The sound sources are then used as a load on the right
 hand side of the acoustic PDE. Therefore the corresponding XML element is
-called \element{rhsValues}. Here is an example:
+called \xel{rhsValues}. Here is an example:
 
-\begin{verbatim}
-<bcsAndLoads>
- <rhsValues region="fluid" inputId="acouGrid">
-  <factor>1.0</factor>
-  <asyncSteps>nearest</asyncSteps>
-  <interpolation justInterpolate="yes">
-    <srcRegions names="partition1" inputId="sourceGrid" coordSysId="default"/>
-    <xyPlane z="0.0" tol="1.0e-10"/>
-    <tolerances>
-      <global start="1e-4" end="1e-3" inc="9e-4"/>
-      <local start="1e-3" end="5.1e-2" inc="1e-2"/>
-    </tolerances>
-    <restartFileMode>rw</restartFileMode>
-    <nodeWarnings display="verbose" writeNodes="yes"/>
-  </interpolation>
- </rhsValues>
-</bcsAndLoads>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<bcsAndLoads]@PYaZ[>]
+ @PYaZ[<rhsValues] @PYaQ[region=]@PYaB["fluid"] @PYaQ[inputId=]@PYaB["acouGrid"]@PYaZ[>]
+  @PYaZ[<factor]@PYaZ[>]1.0@PYaZ[</factor>]
+  @PYaZ[<asyncSteps]@PYaZ[>]nearest@PYaZ[</asyncSteps>]
+  @PYaZ[<interpolation] @PYaQ[justInterpolate=]@PYaB["yes"]@PYaZ[>]
+    @PYaZ[<srcRegions] @PYaQ[names=]@PYaB["partition1"] @PYaQ[inputId=]@PYaB["sourceGrid"] @PYaQ[coordSysId=]@PYaB["default"]@PYaZ[/>]
+    @PYaZ[<xyPlane] @PYaQ[z=]@PYaB["0.0"] @PYaQ[tol=]@PYaB["1.0e-10"]@PYaZ[/>]
+    @PYaZ[<tolerances]@PYaZ[>]
+      @PYaZ[<global] @PYaQ[start=]@PYaB["1e-4"] @PYaQ[end=]@PYaB["1e-3"] @PYaQ[inc=]@PYaB["9e-4"]@PYaZ[/>]
+      @PYaZ[<local] @PYaQ[start=]@PYaB["1e-3"] @PYaQ[end=]@PYaB["5.1e-2"] @PYaQ[inc=]@PYaB["1e-2"]@PYaZ[/>]
+    @PYaZ[</tolerances>]
+    @PYaZ[<restartFileMode]@PYaZ[>]rw@PYaZ[</restartFileMode>]
+    @PYaZ[<nodeWarnings] @PYaQ[display=]@PYaB["verbose"] @PYaQ[writeNodes=]@PYaB["yes"]@PYaZ[/>]
+  @PYaZ[</interpolation>]
+ @PYaZ[</rhsValues>]
+@PYaZ[</bcsAndLoads>]
+\end{Verbatim}
 
-The attribute \attribute{region} identifies the region on which the source term
+
+The attribute \xat{region} identifies the region on which the source term
 is to be applied; it is always required. If there is no sub-element
-\subelement{interpolation} then source terms are read from the file given through
-the attribute \attribute{inputId} (which defaults to \attrivalue{default}).
+\xel{interpolation} then source terms are read from the file given
+through
+the attribute \xat{inputId} (which defaults to \xatv{default}).
 
-Inside the \element{factor} element one can supply a mathematical expression
+Inside the \xel{factor} element one can supply a mathematical expression
 (see chapter~\ref{chap:MathExpr}) which is multiplied with the source terms.
 The expression may depend on time or frequency, and space. This is especially
 useful in a transient simulation that begins after the flow field has had some
@@ -422,31 +469,36 @@ much better results. A commonly used ramp is
 \verb|if( t lt T; sin(2*pi*t/(4*T))^2; 1)|, where \texttt{T} must be replaced
 with the time duration of the ramp.
 
-The \element{asyncSteps} element tackles that fact that time steps in CFD are
+The \xel{asyncSteps} element tackles that fact that time steps in CFD are
 usually smaller than in computational acoustics. Setting this value to
-\elemvalue{nearest} selects source terms from the time step that is nearest to the
-one that is currently being computed. \element{interpolate} will result in a
+\xelv{nearest} selects source terms from the time step that is nearest to
+the
+one that is currently being computed. \xel{interpolate} will result in a
 linear temporal interpolation of source terms between the two time steps that
 the current time lies in between. In order to use the default behavior of
-CFS++, selecting data by step number, set attribute \attribute{justInterpolate} to attribute value \attrivalue{no} here.
+CFS++, selecting data by step number, set attribute \xat{justInterpolate}
+to attribute value \xatv{no} here.
 
-The \element{interpolation} element tells CFS++ to interpolate source terms from
+The \xel{interpolation} element tells CFS++ to interpolate source terms from
 a different grid. This is required, if a CFD grid is not suitable for
-acoustics. The attribute \attribute{justInterpolate} may be set to \attrivalue{yes} if
+acoustics. The attribute \xat{justInterpolate} may be set to
+\xatv{yes} if
 just the interpolation should be computed, but not the acoustic field. The
-\element{srcRegions} element defines the CFD grid; \attribute{names} is the list
+\xel{srcRegions} element defines the CFD grid; \xat{names} is the list
 of regions (separated by space, \verb|;| or \verb#|#) that contain
-source terms; \attribute{inputId} identifies the input file from which to read the
-CFD grid and source terms; optionally \attribute{coordSysId} may specify the
+source terms; \xat{inputId} identifies the input file from which to read
+the
+CFD grid and source terms; optionally \xat{coordSysId} may specify the
 coordinate system of the CFD grid if it is different from the acoustics grid.
 
-The \element{xyPlane} element is only relevant if the acoustics grid is
+The \xel{xyPlane} element is only relevant if the acoustics grid is
 two-dimensional, but the CFD grid is three-dimensional. Then one may specify
-the \attribute{z} coordinate of the x-y-plane (defaults to 0). Additionally
-\attribute{tol} gives the tolerance of \attribute{z} in meters, so that nodes in the
+the \xat{z} coordinate of the x-y-plane (defaults to 0). Additionally
+\xat{tol} gives the tolerance of \xat{z} in meters, so that nodes in
+the
 CFD grid need not lie exactly on the plane.
 
-Inside the \element{tolerances} element one may specify a range for the global
+Inside the \xel{tolerances} element one may specify a range for the global
 and local tolerances, which are used to determine the interpolation weights.
 The global tolerance (in meters) determines the space around a node in the CFD
 grid, when its surrounding element in the acoustics grid is searched for. The
@@ -457,77 +509,82 @@ boundaries, which are discretized very differently by CFD grid and acoustics
 grid. Tolerance ranges are swept in order to use small tolerances wherever
 possible and large tolerances only in places where it is necessary.
 
-\element{restartFileMode} determines if a restart file containing the
-interpolation weights is to be read (\elemvalue{r}), written (\elemvalue{w}) or both
-(\elemvalue{rw}). In this way the interpolation weights need to be computed only
+\xel{restartFileMode} determines if a restart file containing the
+interpolation weights is to be read (\xelv{r}), written (\xelv{w}) or
+both
+(\xelv{rw}). In this way the interpolation weights need to be computed only
 once and can be reused if a simulation is restarted.
 
-The \element{nodeWarnings} element defines how nodes are handled which could not
+The \xel{nodeWarnings} element defines how nodes are handled which could not
 be mapped during interpolation. Any message is suppressed if the attribute
-\attribute{display} is set to \attrivalue{no}. The total number of missed nodes is
-reported, when set to \attrivalue{yes}. A message for each single node is generated
-by a value of \attrivalue{verbose}. Optionally a text file containing the node
-numbers is written, if the attribute \attribute{writeNodes} is set to \attrivalue{yes}.
+\xat{display} is set to \xatv{no}. The total number of missed nodes
+is
+reported, when set to \xatv{yes}. A message for each single node is
+generated
+by a value of \xatv{verbose}. Optionally a text file containing the node
+numbers is written, if the attribute \xat{writeNodes} is set to
+\xatv{yes}.
 
 \subsection{Example}
 
 {\footnotesize 
-\begin{verbatim}
-<?xml version="1.0"?>
-<cfsSimulation xmlns="http://www.cfs++.org">
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaN[<?xml version="1.0"?>]
+@PYaZ[<cfsSimulation] @PYaQ[xmlns=]@PYaB["http://www.cfs++.org"]@PYaZ[>]
 
-  <fileFormats>
-    <output>
-     <gid/>
-    </output>
-    <materialData file="mat.xml" format="xml"/>
-  </fileFormats>
+  @PYaZ[<fileFormats]@PYaZ[>]
+    @PYaZ[<output]@PYaZ[>]
+     @PYaZ[<gid]@PYaZ[/>]
+    @PYaZ[</output>]
+    @PYaZ[<materialData] @PYaQ[file=]@PYaB["mat.xml"] @PYaQ[format=]@PYaB["xml"]@PYaZ[/>]
+  @PYaZ[</fileFormats>]
 
-  <domain geometryType="plane">
-    <regionList>
-      <region material="softTissue" name="reg1"/>
-      <region material="bone" name="reg2"/>
-    </regionList>
-    <nodeList>
-      <nodes name="vp-restr"/>
-    </nodeList>
-  </domain>
+  @PYaZ[<domain] @PYaQ[geometryType=]@PYaB["plane"]@PYaZ[>]
+    @PYaZ[<regionList]@PYaZ[>]
+      @PYaZ[<region] @PYaQ[material=]@PYaB["softTissue"] @PYaQ[name=]@PYaB["reg1"]@PYaZ[/>]
+      @PYaZ[<region] @PYaQ[material=]@PYaB["bone"] @PYaQ[name=]@PYaB["reg2"]@PYaZ[/>]
+    @PYaZ[</regionList>]
+    @PYaZ[<nodeList]@PYaZ[>]
+      @PYaZ[<nodes] @PYaQ[name=]@PYaB["vp-restr"]@PYaZ[/>]
+    @PYaZ[</nodeList>]
+  @PYaZ[</domain>]
 
- <sequenceStep>
+ @PYaZ[<sequenceStep]@PYaZ[>]
 
-  <analysis>
-    <transient>
-      <numSteps>    600     </numSteps>
-      <firstDt>     2.5e-08 </firstDt>
-      <stepSaveBeg>   1     </stepSaveBeg>
-      <stepSaveEnd> 600     </stepSaveEnd>
-      <stepSaveInc>   1     </stepSaveInc>
-      <timeDataFile name="sin1M40cos.dat"/>
-    </transient> 
-  </analysis>
+  @PYaZ[<analysis]@PYaZ[>]
+    @PYaZ[<transient]@PYaZ[>]
+      @PYaZ[<numSteps]@PYaZ[>]    600     @PYaZ[</numSteps>]
+      @PYaZ[<firstDt]@PYaZ[>]     2.5e-08 @PYaZ[</firstDt>]
+      @PYaZ[<stepSaveBeg]@PYaZ[>]   1     @PYaZ[</stepSaveBeg>]
+      @PYaZ[<stepSaveEnd]@PYaZ[>] 600     @PYaZ[</stepSaveEnd>]
+      @PYaZ[<stepSaveInc]@PYaZ[>]   1     @PYaZ[</stepSaveInc>]
+      @PYaZ[<timeDataFile] @PYaQ[name=]@PYaB["sin1M40cos.dat"]@PYaZ[/>]
+    @PYaZ[</transient>] 
+  @PYaZ[</analysis>]
 
-  <pdeList>
-    <acoustic formulation="acouPotential">
-      <regionList>
-       <region name="reg1"/>
-       <region name="reg2"/>
-      </regionList>
-      <bcsAndLoads>
-        <dirichletInhom fileName="sin1M40cos.dat" name="vp-restr" value="1.0"/>
-      </bcsAndLoads>
-      <storeResults>
-        <nodeResult type="acouPotential">
-          <nodeList>
-            <nodes name="historyPoints"/>
-          </nodeList>
-        </nodeResult>
-      </storeResults>
-    </acoustic>
-  </pdeList>
+  @PYaZ[<pdeList]@PYaZ[>]
+    @PYaZ[<acoustic] @PYaQ[formulation=]@PYaB["acouPotential"]@PYaZ[>]
+      @PYaZ[<regionList]@PYaZ[>]
+       @PYaZ[<region] @PYaQ[name=]@PYaB["reg1"]@PYaZ[/>]
+       @PYaZ[<region] @PYaQ[name=]@PYaB["reg2"]@PYaZ[/>]
+      @PYaZ[</regionList>]
+      @PYaZ[<bcsAndLoads]@PYaZ[>]
+        @PYaZ[<dirichletInhom] @PYaQ[fileName=]@PYaB["sin1M40cos.dat"] @PYaQ[name=]@PYaB["vp-restr"] @PYaQ[value=]@PYaB["1.0"]@PYaZ[/>]
+      @PYaZ[</bcsAndLoads>]
+      @PYaZ[<storeResults]@PYaZ[>]
+        @PYaZ[<nodeResult] @PYaQ[type=]@PYaB["acouPotential"]@PYaZ[>]
+          @PYaZ[<nodeList]@PYaZ[>]
+            @PYaZ[<nodes] @PYaQ[name=]@PYaB["historyPoints"]@PYaZ[/>]
+          @PYaZ[</nodeList>]
+        @PYaZ[</nodeResult>]
+      @PYaZ[</storeResults>]
+    @PYaZ[</acoustic>]
+  @PYaZ[</pdeList>]
 
- </sequenceStep>
-</cfsSimulation>
-\end{verbatim}
+ @PYaZ[</sequenceStep>]
+@PYaZ[</cfsSimulation>]
+\end{Verbatim}
+
 }
 
 
@@ -542,59 +599,63 @@ deduced by a postprocessing step:
     \newline Derived from the magnetic vector potential $\bA$ by
     applying the curl operator.
   
-\begin{verbatim}
-<storeResults>
-   <nodeResult type="magPotential">
-     <regionList>
-      <region name="yoke"/>
-     </regionList>
-   </nodeResult>
-   <elemResult type="magFluxDensity" >
-     <regionList>
-      <region name="yoke"/>
-     </regionList>
-   </elemResult>
-</storeResults>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<storeResults]@PYaZ[>]
+   @PYaZ[<nodeResult] @PYaQ[type=]@PYaB["magPotential"]@PYaZ[>]
+     @PYaZ[<regionList]@PYaZ[>]
+      @PYaZ[<region] @PYaQ[name=]@PYaB["yoke"]@PYaZ[/>]
+     @PYaZ[</regionList>]
+   @PYaZ[</nodeResult>]
+   @PYaZ[<elemResult] @PYaQ[type=]@PYaB["magFluxDensity"] @PYaZ[>]
+     @PYaZ[<regionList]@PYaZ[>]
+      @PYaZ[<region] @PYaQ[name=]@PYaB["yoke"]@PYaZ[/>]
+     @PYaZ[</regionList>]
+   @PYaZ[</elemResult>]
+@PYaZ[</storeResults>]
+\end{Verbatim}
+
   
 \item Eddy current density $\bJ_{\rm e}$ 
     \newline Currents induced by a magnetic field in a conductive
     material. 
 
-\begin{verbatim}
-<storeResults>
-   <elemResult type="magEddyCurrent">
-     <regionList>
-      <region name="yoke"/>
-     </regionList>
-   </elemResult>
-</storeResults>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<storeResults]@PYaZ[>]
+   @PYaZ[<elemResult] @PYaQ[type=]@PYaB["magEddyCurrent"]@PYaZ[>]
+     @PYaZ[<regionList]@PYaZ[>]
+      @PYaZ[<region] @PYaQ[name=]@PYaB["yoke"]@PYaZ[/>]
+     @PYaZ[</regionList>]
+   @PYaZ[</elemResult>]
+@PYaZ[</storeResults>]
+\end{Verbatim}
+
   
   
 \item Magnetic energy $W$ 
     \newline Measure for the energy stored in the magnetic assembly.
   
-\begin{verbatim}
-<storeResults>
-   <regionResult type="magEnergy">
-     <regionList>
-      <region name="yoke"/>
-     </regionList>
-   </regionResult>
-</storeResults>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<storeResults]@PYaZ[>]
+   @PYaZ[<regionResult] @PYaQ[type=]@PYaB["magEnergy"]@PYaZ[>]
+     @PYaZ[<regionList]@PYaZ[>]
+      @PYaZ[<region] @PYaQ[name=]@PYaB["yoke"]@PYaZ[/>]
+     @PYaZ[</regionList>]
+   @PYaZ[</regionResult>]
+@PYaZ[</storeResults>]
+\end{Verbatim}
+
 
 \item  Inductivity $L$ 
 
-\begin{verbatim}
-<coils>
-  <currentCoil2d name="...">
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<coils]@PYaZ[>]
+  @PYaZ[<currentCoil2d] @PYaQ[name=]@PYaB["..."]@PYaZ[>]
      ...
-    <saveFileL> lFile.dat </saveFileL>
-  </currentCoil2d>
-</coils>
-\end{verbatim}
+    @PYaZ[<saveFileL]@PYaZ[>] lFile.dat @PYaZ[</saveFileL>]
+  @PYaZ[</currentCoil2d>]
+@PYaZ[</coils>]
+\end{Verbatim}
+
 
 The inductivity $L$ of the magnetic assembly, as well as
 the magnetic flux $\Phi$ are calculated and stored in a file with
@@ -603,9 +664,6 @@ the name "lFile.dat"  given in column oriented form:
 {\em time inductivity magFlux}.  
   
 
-%\item Magnetic force $F_{\rm V}$, {\em calc\_fv}, $<$emag$>$-file
-%  \newline Used for calculating the magnetic force $F_{\rm V}$, due to
-%  a current loaded coil within a magnetic field (Lorentz force)..
 
 \end{itemize}
 
@@ -613,11 +671,12 @@ the name "lFile.dat"  given in column oriented form:
 
 The list of coils has to be defined inside the tags
 
-\begin{verbatim}
-<coils>
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<coils]@PYaZ[>]
 
-</coils>
-\end{verbatim}
+@PYaZ[</coils>]
+\end{Verbatim}
+
 
 \subsubsection{Coil Types}
 
@@ -641,7 +700,8 @@ In our simulation, we distinguish different coil types:
 \end{itemize}
 
 There are several parameters which must be defined for a coil. Every
-coil needs an attribute {\attribute{name}="\attrivalue{xyz}"}, standing nearby the
+coil needs an attribute {\xat{name}="\xatv{xyz}"}, standing nearby
+the
 definition of the coil:
 
 \verb! <voltageCoil2d name="coil3">!
@@ -672,13 +732,14 @@ are described in the next sections.
 \begin{itemize}
 \item Coil voltage $U$ respectively coil current $I$
 
-\begin{verbatim}
-<measurementCoil2d name="coil1">
-  <windingCrossSection> 1e-6 </windingCrossSection>
-   <saveFileU>  uiFile.dat  </saveFileU> 
-  <id>1</id>
-</measurementCoil2d>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<measurementCoil2d] @PYaQ[name=]@PYaB["coil1"]@PYaZ[>]
+  @PYaZ[<windingCrossSection]@PYaZ[>] 1e-6 @PYaZ[</windingCrossSection>]
+   @PYaZ[<saveFileU]@PYaZ[>]  uiFile.dat  @PYaZ[</saveFileU>] 
+  @PYaZ[<id]@PYaZ[>]1@PYaZ[</id>]
+@PYaZ[</measurementCoil2d>]
+\end{Verbatim}
+
 
    With this tag the voltage respectively the current of a
    special coil element can be calculated. It's stored in a file
@@ -695,22 +756,24 @@ current respectively voltage has to be given:
 
 \begin{itemize}
 \item Transient case
-\begin{verbatim}
-<value>       10           </value>
-<dynamics>    timefile.dat </dynamics>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<value]@PYaZ[>]       10           @PYaZ[</value>]
+@PYaZ[<dynamics]@PYaZ[>]    timefile.dat @PYaZ[</dynamics>]
+\end{Verbatim}
+
 
 \item Harmonic case
-\begin{verbatim}
-<value>       10           </value>
-<phase>       90           </phase>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<value]@PYaZ[>]       10           @PYaZ[</value>]
+@PYaZ[<phase]@PYaZ[>]       90           @PYaZ[</phase>]
+\end{Verbatim}
+
 \end{itemize}
 
 \noindent
 The name of the time function as well as the sepcification of the
 phase is optional. If it's not given, a constant current with an
-amplitude of {\element{value}} is assumed.  
+amplitude of {\xel{value}} is assumed.  
 Voltage driven coils additionally require the total ohmic resistance
 of the coil for solving the network equation:
 
@@ -734,16 +797,15 @@ For 3D current driven coils, the direction of the current has to be
 given explicitly. In case of a straight current flow, three
 possibilities can be given:
 
-\begin{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<flowDirection]@PYaZ[>]
+  @PYaZ[<direction] @PYaQ[dof=]@PYaB["x"] @PYaQ[value=]@PYaB["1"]@PYaZ[/>]
+@PYaZ[</flowDirection>]!
+\end{Verbatim}
 
-<flowDirection>
-  <direction dof="x" value="1"/>
-</flowDirection>!
-
-\end{verbatim}
 
 \noindent
-with {\element direction} standing for one of 
+with {\xel direction} standing for one of 
 \begin{itemize}
 \item x
 \item y
@@ -752,84 +814,42 @@ with {\element direction} standing for one of
 \item r
 \end{itemize}
    
-% For rotational current flow (e.g. in 3D-modeled axisymmetric coils),
-% additionally the midpoint and the direction of the rotational axis
-% must be defined:
-% 
-% \begin{verbatim}
-% <rotational>
-%    <midPointX> 0 </midPointX>
-%    <midPointY> 0 </midPointY>
-%    <midPointZ> 0 </midPointZ>
-%    <rotAxisX>   1 </rotAxisX>
-%    <rotAxisY>   0 </rotAxisY>
-%    <rotAxisZ>   0 </rotAxisZ>
-% </rotational>
-% \end{verbatim}
 
-% In this example, the midpoint lies at the origin, and the coil
-% rotation axis is equal to the x-axis.
 
 \subsubsection{Coil Definition Examples}
 
 The full description of a voltage driven coil in 2D with a winding
 cross section of $10^{-3}\, \rm m^2$, a voltage excitation of 10\,V
-% the dynamic behaviour saved in the file "time.dat", 
 and 10\,$\Omega$ resistance could be given as
-% \begin{verbatim}
-% <voltageCoil2d name="coil1">
-%    <windingCrossSection> 0.001  </windingCrossSection>
-%    <value>                  10  </value>
-%     <dynamics>         time.dat  </dynamics>
-%    <resistance>             10  </resistance>
-%    <id>                      2  </id>
-% </voltageCoil2d>
-% \end{verbatim}
-\begin{verbatim}
-<voltageCoil2d name="coil1">
-   <windingCrossSection> 0.001  </windingCrossSection>
-   <value>                  10  </value>
-   <resistance>             10  </resistance>
-   <id>                      2  </id>
-</voltageCoil2d>
-\end{verbatim}
-% A 3D rotational coil with the rotational axis parallel to the y-axis
-% including the point (2,2,0) should be defined as
-% 
-% \begin{verbatim}
-% <currentCoil3d name="coil2">
-%   <windingCrossSection> 1e-5 </windingCrossSection>
-%   <value>                100 </value>
-%   <dynamics>        time.dat </dynamics>
-%   <rotational>
-%     <midPointX>  2  </midPointX>
-%     <midPointY>  2  </midPointY>
-%     <midPointZ>  0  </midPointZ>
-%     <rotAxisX>    0  </rotAxisX>
-%     <rotAxisY>    1  </rotAxisY>
-%     <rotAxisZ>    0  </rotAxisZ>
-%   </rotational>
-% </currentCoil3d>
-% \end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<voltageCoil2d] @PYaQ[name=]@PYaB["coil1"]@PYaZ[>]
+   @PYaZ[<windingCrossSection]@PYaZ[>] 0.001  @PYaZ[</windingCrossSection>]
+   @PYaZ[<value]@PYaZ[>]                  10  @PYaZ[</value>]
+   @PYaZ[<resistance]@PYaZ[>]             10  @PYaZ[</resistance>]
+   @PYaZ[<id]@PYaZ[>]                      2  @PYaZ[</id>]
+@PYaZ[</voltageCoil2d>]
+\end{Verbatim}
+
 
 
 \subsection{Permanent Magnets}
 The use of permanent magnets in the simulation is very simple. In the
 magnetic section, the command
 
-\begin{verbatim}
-<magnetic>
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<magnetic]@PYaZ[>]
 ...
-  <magnets>
-   <magnet name="perm" orientX="0" orientY="0" orientZ="1" />
-  </magnets>
+  @PYaZ[<magnets]@PYaZ[>]
+   @PYaZ[<magnet] @PYaQ[name=]@PYaB["perm"] @PYaQ[orientX=]@PYaB["0"] @PYaQ[orientY=]@PYaB["0"] @PYaQ[orientZ=]@PYaB["1"] @PYaZ[/>]
+  @PYaZ[</magnets>]
 ...
-</magnetic>
-\end{verbatim}
+@PYaZ[</magnetic>]
+\end{Verbatim}
+
 has to list all domains, which hold a permanent magnet. The
 orientation and strength of the permanent magnetic field is given by
 the magnetization vector $\bM$ given in Tesla described by the three
-values {\attribute{orientX} }, {\attribute{orientY} } and {\attribute{orientZ} }
+values {\xat{orientX} }, {\xat{orientY} } and {\xat{orientZ} }
 
 \begin{equation}
   \label{eq:M}
@@ -844,139 +864,143 @@ values {\attribute{orientX} }, {\attribute{orientY} } and {\attribute{orientZ} }
 
 \subsubsection{Example}
 {\footnotesize
-\begin{verbatim}
-<?xml version="1.0"?>
-<cfsSimulation xmlns="http://www.cfs++.org">
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaN[<?xml version="1.0"?>]
+@PYaZ[<cfsSimulation] @PYaQ[xmlns=]@PYaB["http://www.cfs++.org"]@PYaZ[>]
 
- <fileFormats>
-    <output>
-      <gid/>
-    </output>
-    <materialData file="mat.xml" format="xml"/>
- </fileFormats>
+ @PYaZ[<fileFormats]@PYaZ[>]
+    @PYaZ[<output]@PYaZ[>]
+      @PYaZ[<gid]@PYaZ[/>]
+    @PYaZ[</output>]
+    @PYaZ[<materialData] @PYaQ[file=]@PYaB["mat.xml"] @PYaQ[format=]@PYaB["xml"]@PYaZ[/>]
+ @PYaZ[</fileFormats>]
 
- <domain geometryType="plane">
-    <regionList>
-      <region name="myCoil" material="air"/>
-      <region name="iron"   material="iron"/>
-      <region name="air"    material="air"/>
-    </regionList>
-    <nodeList>
-      <nodes name="bound"/>
-    </nodeList>
- </domain>
+ @PYaZ[<domain] @PYaQ[geometryType=]@PYaB["plane"]@PYaZ[>]
+    @PYaZ[<regionList]@PYaZ[>]
+      @PYaZ[<region] @PYaQ[name=]@PYaB["myCoil"] @PYaQ[material=]@PYaB["air"]@PYaZ[/>]
+      @PYaZ[<region] @PYaQ[name=]@PYaB["iron"]   @PYaQ[material=]@PYaB["iron"]@PYaZ[/>]
+      @PYaZ[<region] @PYaQ[name=]@PYaB["air"]    @PYaQ[material=]@PYaB["air"]@PYaZ[/>]
+    @PYaZ[</regionList>]
+    @PYaZ[<nodeList]@PYaZ[>]
+      @PYaZ[<nodes] @PYaQ[name=]@PYaB["bound"]@PYaZ[/>]
+    @PYaZ[</nodeList>]
+ @PYaZ[</domain>]
 
- <sequenceStep>
-    <analysis>
-      <static/> 
-    </analysis>
-   <pdeList>
-      <magnetic>
-        <regionList>
-          <region name="myCoil" />
-          <region name="iron"   />
-          <region name="air"    />
-        </regionList>
-        <bcsAndLoads>
-          <dirichletHom   name="bound"/>
-        </bcsAndLoads>
+ @PYaZ[<sequenceStep]@PYaZ[>]
+    @PYaZ[<analysis]@PYaZ[>]
+      @PYaZ[<static]@PYaZ[/>] 
+    @PYaZ[</analysis>]
+   @PYaZ[<pdeList]@PYaZ[>]
+      @PYaZ[<magnetic]@PYaZ[>]
+        @PYaZ[<regionList]@PYaZ[>]
+          @PYaZ[<region] @PYaQ[name=]@PYaB["myCoil"] @PYaZ[/>]
+          @PYaZ[<region] @PYaQ[name=]@PYaB["iron"]   @PYaZ[/>]
+          @PYaZ[<region] @PYaQ[name=]@PYaB["air"]    @PYaZ[/>]
+        @PYaZ[</regionList>]
+        @PYaZ[<bcsAndLoads]@PYaZ[>]
+          @PYaZ[<dirichletHom]   @PYaQ[name=]@PYaB["bound"]@PYaZ[/>]
+        @PYaZ[</bcsAndLoads>]
 
-        <coils>
-          <currentCoil2d name="myCoil">
-            <!-- whole coil area: 100*5 mm^2 with 20 windings -->
-            <windingCrossSection>50e-6 </windingCrossSection>
-            <value>       1            </value>
-            <id>          1            </id>
-          </currentCoil2d>
-        </coils>
+        @PYaZ[<coils]@PYaZ[>]
+          @PYaZ[<currentCoil2d] @PYaQ[name=]@PYaB["myCoil"]@PYaZ[>]
+            @PYaE[<!--]@PYaE[ whole coil area: 100*5 mm^2 with 20 windings ]@PYaE[-->]
+            @PYaZ[<windingCrossSection]@PYaZ[>]50e-6 @PYaZ[</windingCrossSection>]
+            @PYaZ[<value]@PYaZ[>]       1            @PYaZ[</value>]
+            @PYaZ[<id]@PYaZ[>]          1            @PYaZ[</id>]
+          @PYaZ[</currentCoil2d>]
+        @PYaZ[</coils>]
 
-        <storeResults>
-          <elemResult type="magFluxDensity">
-            <regionList>
-              <region name="myCoil" />
-            </regionList>
-          </elemResult>
-          <elemResult type="magFluxDensity">
-            <regionList>
-              <region name="iron"/>
-            </regionList>
-          </elemResult>
-          <elemResult type="magFluxDensity">
-            <regionList>
-              <region name="air"/>
-            </regionList>
-          </elemResult>
-         </storeResults>
-      </magnetic>
-   </pdeList>
- <sequenceStep>
-</cfsSimulation>
-\end{verbatim}
+        @PYaZ[<storeResults]@PYaZ[>]
+          @PYaZ[<elemResult] @PYaQ[type=]@PYaB["magFluxDensity"]@PYaZ[>]
+            @PYaZ[<regionList]@PYaZ[>]
+              @PYaZ[<region] @PYaQ[name=]@PYaB["myCoil"] @PYaZ[/>]
+            @PYaZ[</regionList>]
+          @PYaZ[</elemResult>]
+          @PYaZ[<elemResult] @PYaQ[type=]@PYaB["magFluxDensity"]@PYaZ[>]
+            @PYaZ[<regionList]@PYaZ[>]
+              @PYaZ[<region] @PYaQ[name=]@PYaB["iron"]@PYaZ[/>]
+            @PYaZ[</regionList>]
+          @PYaZ[</elemResult>]
+          @PYaZ[<elemResult] @PYaQ[type=]@PYaB["magFluxDensity"]@PYaZ[>]
+            @PYaZ[<regionList]@PYaZ[>]
+              @PYaZ[<region] @PYaQ[name=]@PYaB["air"]@PYaZ[/>]
+            @PYaZ[</regionList>]
+          @PYaZ[</elemResult>]
+         @PYaZ[</storeResults>]
+      @PYaZ[</magnetic>]
+   @PYaZ[</pdeList>]
+ @PYaZ[<sequenceStep]@PYaZ[>]
+@PYaZ[</cfsSimulation>]
+\end{Verbatim}
+
 }
 
 \newpage
 \section{Heat Conduction}
 \subsection{Results}
-Until now, only the temperature, which is a nodal result, can be chosen for output either for the whole domain or at named history nodes.
+Until now, only the temperature, which is a nodal result, can be chosen for
+output either for the whole domain or at named history nodes.
 
-\begin{verbatim}
-<storeResults>
-   <nodeResult type="heatTemperature"/>
-</storeResults>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<storeResults]@PYaZ[>]
+   @PYaZ[<nodeResult] @PYaQ[type=]@PYaB["heatTemperature"]@PYaZ[/>]
+@PYaZ[</storeResults>]
+\end{Verbatim}
+
 
 
 \subsection{Example}
 
 {\footnotesize
-\begin{verbatim}
-<?xml version="1.0"?>
-<cfsSimulation xmlns="http://www.cfs++.org">
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaN[<?xml version="1.0"?>]
+@PYaZ[<cfsSimulation] @PYaQ[xmlns=]@PYaB["http://www.cfs++.org"]@PYaZ[>]
 
- <fileFormats>
-    <output>
-      <gmv fixedGrid="yes" binaryFormat="no"/>
-    </output>
-    <materialData file="mat.xml" format="xml"/>
- </fileFormats>
+ @PYaZ[<fileFormats]@PYaZ[>]
+    @PYaZ[<output]@PYaZ[>]
+      @PYaZ[<gmv] @PYaQ[fixedGrid=]@PYaB["yes"] @PYaQ[binaryFormat=]@PYaB["no"]@PYaZ[/>]
+    @PYaZ[</output>]
+    @PYaZ[<materialData] @PYaQ[file=]@PYaB["mat.xml"] @PYaQ[format=]@PYaB["xml"]@PYaZ[/>]
+ @PYaZ[</fileFormats>]
 
- <domain geometryType="plane">
-    <regionList>
-      <region name="slab" material="steel" />
-    </regionList>
- </domain>
+ @PYaZ[<domain] @PYaQ[geometryType=]@PYaB["plane"]@PYaZ[>]
+    @PYaZ[<regionList]@PYaZ[>]
+      @PYaZ[<region] @PYaQ[name=]@PYaB["slab"] @PYaQ[material=]@PYaB["steel"] @PYaZ[/>]
+    @PYaZ[</regionList>]
+ @PYaZ[</domain>]
 
- <sequenceStep>
-   <analysis>
-     <transient>
-       <numSteps>     400 </numSteps>
-       <firstDt>        2 </firstDt>
-       <stepSaveBeg>    1 </stepSaveBeg>
-       <stepSaveEnd>  400 </stepSaveEnd>
-       <stepSaveInc>    1 </stepSaveInc>
-       <timeDataFile name="sin80no.dat"/>
-     </transient> 
-   </analysis>
+ @PYaZ[<sequenceStep]@PYaZ[>]
+   @PYaZ[<analysis]@PYaZ[>]
+     @PYaZ[<transient]@PYaZ[>]
+       @PYaZ[<numSteps]@PYaZ[>]     400 @PYaZ[</numSteps>]
+       @PYaZ[<firstDt]@PYaZ[>]        2 @PYaZ[</firstDt>]
+       @PYaZ[<stepSaveBeg]@PYaZ[>]    1 @PYaZ[</stepSaveBeg>]
+       @PYaZ[<stepSaveEnd]@PYaZ[>]  400 @PYaZ[</stepSaveEnd>]
+       @PYaZ[<stepSaveInc]@PYaZ[>]    1 @PYaZ[</stepSaveInc>]
+       @PYaZ[<timeDataFile] @PYaQ[name=]@PYaB["sin80no.dat"]@PYaZ[/>]
+     @PYaZ[</transient>] 
+   @PYaZ[</analysis>]
 
-   <pdeList>
-     <heatConduction>
-       <regionList>
-         <region name="slab"/>
-       </regionList>
-       <bcsAndLoads>
-         <dirichletInhom name="bcleft" value="0.0"/>
-         <dirichletInhom name="bcright" value="100.0" dynamics="sin80no.dat"/>
-       </bcsAndLoads>
-       <storeResults>
-         <nodeResult type="heatTemperature">
-           <nodeList>
-             <nodes name="historyNode"/>
-           <nodeList>
-         </nodeResult>
-       </storeResults>
-     </heatConduction>
-   </pdeList> 
- <sequenceStep>
-</cfsSimulation>
-\end{verbatim}
+   @PYaZ[<pdeList]@PYaZ[>]
+     @PYaZ[<heatConduction]@PYaZ[>]
+       @PYaZ[<regionList]@PYaZ[>]
+         @PYaZ[<region] @PYaQ[name=]@PYaB["slab"]@PYaZ[/>]
+       @PYaZ[</regionList>]
+       @PYaZ[<bcsAndLoads]@PYaZ[>]
+         @PYaZ[<dirichletInhom] @PYaQ[name=]@PYaB["bcleft"] @PYaQ[value=]@PYaB["0.0"]@PYaZ[/>]
+         @PYaZ[<dirichletInhom] @PYaQ[name=]@PYaB["bcright"] @PYaQ[value=]@PYaB["100.0"] @PYaQ[dynamics=]@PYaB["sin80no.dat"]@PYaZ[/>]
+       @PYaZ[</bcsAndLoads>]
+       @PYaZ[<storeResults]@PYaZ[>]
+         @PYaZ[<nodeResult] @PYaQ[type=]@PYaB["heatTemperature"]@PYaZ[>]
+           @PYaZ[<nodeList]@PYaZ[>]
+             @PYaZ[<nodes] @PYaQ[name=]@PYaB["historyNode"]@PYaZ[/>]
+           @PYaZ[<nodeList]@PYaZ[>]
+         @PYaZ[</nodeResult>]
+       @PYaZ[</storeResults>]
+     @PYaZ[</heatConduction>]
+   @PYaZ[</pdeList>] 
+ @PYaZ[<sequenceStep]@PYaZ[>]
+@PYaZ[</cfsSimulation>]
+\end{Verbatim}
+
 }

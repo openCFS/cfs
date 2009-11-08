@@ -1,88 +1,86 @@
-%
-% =============================================================================
-%
 \chapter{Coupled Fields}
-%
-% =============================================================================
-%
 \section{General}
-The \element{pdeList} element can be followed by a \element{couplingList} element,
+The \xel{pdeList} element can be followed by a \xel{couplingList} element,
 which can be used to supply information on the coupling between different
 PDEs. Within this block we distinguish between iterative coupling
-(\subelement{iterative}) and direct coupling (\subelement{direct}).
-%
-% =============================================================================
-%
+(\xel{iterative}) and direct coupling (\xel{direct}).
 \section{Iterative Coupling}
  For iterative coupling,
-the method can be \attrivalue{RHS} (for right hand side coupling) and \attrivalue{Matrix} for
+the method can be \xatv{RHS} (for right hand side coupling) and \xatv{Matrix}
+for
 a matrix coupling algorithm.
 Then, for each involved pair of coupling PDEs, we have
 to specify for each PDE the coupling parameters. 
-The coupling is specified by the coupling input \attribute{quantity}, the
-interface \attribute{type} - which can be \attrivalue{node}(Coupling),
-\attrivalue{surface}(Coupling) or \attrivalue{region}(Coupling) -  and the \attribute{name} of
+The coupling is specified by the coupling input \xat{quantity}, the
+interface \xat{type} - which can be \xatv{node}(Coupling),
+\xatv{surface}(Coupling) or \xatv{region}(Coupling) -  and the \xat{name}
+of
 the interface, which has to correspond with the according interface
-\attribute{type}. At the end, we have to define
+\xat{type}. At the end, we have to define
 the stopping criteria and the maximum number of iterations
-within the section \element{nonlLinear}. Therefore, the general structure 
+within the section \xel{nonlLinear}. Therefore, the general structure 
 looks as follows
 
 
-\begin{verbatim}
-<couplingList>
-  <iterative>
-    <Pde1Pde2 method="RHS">
-      <Pde1>
-        <coupling quantity="..." type="..." name="..."/>
-      </Pde1>
-      <Pde2>
-        <coupling quantity="..." type="..." name="..."/>
-        <coupling quantity="..." type="..." name="..."/>
-      </Pde2>
-    </Pde1Pd2>
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<couplingList]@PYaZ[>]
+  @PYaZ[<iterative]@PYaZ[>]
+    @PYaZ[<Pde1Pde2] @PYaQ[method=]@PYaB["RHS"]@PYaZ[>]
+      @PYaZ[<Pde1]@PYaZ[>]
+        @PYaZ[<coupling] @PYaQ[quantity=]@PYaB["..."] @PYaQ[type=]@PYaB["..."] @PYaQ[name=]@PYaB["..."]@PYaZ[/>]
+      @PYaZ[</Pde1>]
+      @PYaZ[<Pde2]@PYaZ[>]
+        @PYaZ[<coupling] @PYaQ[quantity=]@PYaB["..."] @PYaQ[type=]@PYaB["..."] @PYaQ[name=]@PYaB["..."]@PYaZ[/>]
+        @PYaZ[<coupling] @PYaQ[quantity=]@PYaB["..."] @PYaQ[type=]@PYaB["..."] @PYaQ[name=]@PYaB["..."]@PYaZ[/>]
+      @PYaZ[</Pde2>]
+    @PYaZ[</Pde1Pd2>]
 
-    <Pde3Pde4 method="Matrix">
-      <Pde3>
-        <coupling quantity="..." type="..." name="..."/>
-        <coupling quantity="..." type="..." name="..."/>
-      </Pde3>
-      <Pde4>
-        <coupling quantity="..." type="..." name="..."/>
-      </Pde4>
-    </Pde4Pde4>
+    @PYaZ[<Pde3Pde4] @PYaQ[method=]@PYaB["Matrix"]@PYaZ[>]
+      @PYaZ[<Pde3]@PYaZ[>]
+        @PYaZ[<coupling] @PYaQ[quantity=]@PYaB["..."] @PYaQ[type=]@PYaB["..."] @PYaQ[name=]@PYaB["..."]@PYaZ[/>]
+        @PYaZ[<coupling] @PYaQ[quantity=]@PYaB["..."] @PYaQ[type=]@PYaB["..."] @PYaQ[name=]@PYaB["..."]@PYaZ[/>]
+      @PYaZ[</Pde3>]
+      @PYaZ[<Pde4]@PYaZ[>]
+        @PYaZ[<coupling] @PYaQ[quantity=]@PYaB["..."] @PYaQ[type=]@PYaB["..."] @PYaQ[name=]@PYaB["..."]@PYaZ[/>]
+      @PYaZ[</Pde4>]
+    @PYaZ[</Pde4Pde4>]
 
-    <nonLinear logging="no">
-      <stopCrit value="1e-3" quantity="..." l2Norm="..."/>
-      <stopCrit value="1e-2" quantity="..." l2Norm="..."/>
-      <stopCrit value="1e-5" quantity="..." l2Norm="..."/>
-      <maxNumIters> 20 </maxNumIters>
-    </nonLinear>
-  </iterative>
-</couplingList>
-\end{verbatim}
+    @PYaZ[<nonLinear] @PYaQ[logging=]@PYaB["no"]@PYaZ[>]
+      @PYaZ[<stopCrit] @PYaQ[value=]@PYaB["1e-3"] @PYaQ[quantity=]@PYaB["..."] @PYaQ[l2Norm=]@PYaB["..."]@PYaZ[/>]
+      @PYaZ[<stopCrit] @PYaQ[value=]@PYaB["1e-2"] @PYaQ[quantity=]@PYaB["..."] @PYaQ[l2Norm=]@PYaB["..."]@PYaZ[/>]
+      @PYaZ[<stopCrit] @PYaQ[value=]@PYaB["1e-5"] @PYaQ[quantity=]@PYaB["..."] @PYaQ[l2Norm=]@PYaB["..."]@PYaZ[/>]
+      @PYaZ[<maxNumIters]@PYaZ[>] 20 @PYaZ[</maxNumIters>]
+    @PYaZ[</nonLinear>]
+  @PYaZ[</iterative>]
+@PYaZ[</couplingList>]
+\end{Verbatim}
+
 
 \noindent
 For the stopping criteria, we have currently the following names:
 
-\begin{verbatim}
-    <stopCrit value="1e-3" quantity="mechDisplacement" l2Norm="rel"/>
-    <stopCrit value="1e-3" quantity="smoothDisplacement" l2Norm="rel"/>
-    <stopCrit value="1e-3" quantity="elecForceVWP" l2Norm="rel"/>
-    <stopCrit value="1e-3" quantity="magForceLorentz" l2Norm="rel"/>
-    <stopCrit value="1e-2" quantity="mechForce" l2Norm="rel"/>
-    <stopCrit value="1e-2" quantity="acouForce" l2Norm="rel"/>
+\begin{Verbatim}[commandchars=@\[\]]
+    @PYaZ[<stopCrit] @PYaQ[value=]@PYaB["1e-3"] @PYaQ[quantity=]@PYaB["mechDisplacement"] @PYaQ[l2Norm=]@PYaB["rel"]@PYaZ[/>]
+    @PYaZ[<stopCrit] @PYaQ[value=]@PYaB["1e-3"] @PYaQ[quantity=]@PYaB["smoothDisplacement"] @PYaQ[l2Norm=]@PYaB["rel"]@PYaZ[/>]
+    @PYaZ[<stopCrit] @PYaQ[value=]@PYaB["1e-3"] @PYaQ[quantity=]@PYaB["elecForceVWP"] @PYaQ[l2Norm=]@PYaB["rel"]@PYaZ[/>]
+    @PYaZ[<stopCrit] @PYaQ[value=]@PYaB["1e-3"] @PYaQ[quantity=]@PYaB["magForceLorentz"] @PYaQ[l2Norm=]@PYaB["rel"]@PYaZ[/>]
+    @PYaZ[<stopCrit] @PYaQ[value=]@PYaB["1e-2"] @PYaQ[quantity=]@PYaB["mechForce"] @PYaQ[l2Norm=]@PYaB["rel"]@PYaZ[/>]
+    @PYaZ[<stopCrit] @PYaQ[value=]@PYaB["1e-2"] @PYaQ[quantity=]@PYaB["acouForce"] @PYaQ[l2Norm=]@PYaB["rel"]@PYaZ[/>]
+\end{Verbatim}
 
-\end{verbatim}
-Instead of using a relative accuracy $\epsilon^{rel}$, i.e. $\|u_{k+1}-u_k\|_2 < \epsilon^{rel} \|u_{k+1}\|_2$ you can as well
-truncate the iterations by choosing an absolute accuracy $\epsilon^{abs}$, i.e. $\|u_{k+1}-u_k\|_2 < \epsilon^{abs}$ setting {\sf
+Instead of using a relative accuracy $\epsilon^{rel}$, i.e. $\|u_{k+1}-u_k\|_2 <
+\epsilon^{rel} \|u_{k+1}\|_2$ you can as well
+truncate the iterations by choosing an absolute accuracy $\epsilon^{abs}$, i.e.
+$\|u_{k+1}-u_k\|_2 < \epsilon^{abs}$ setting {\sf
 l2Norm="abs"}. Note that the specification of the stopping criterias
-is optional: The coupling is considered as converged if either {\element{maxNumIters} } iterations have been performed or if {\bf all} stopping
+is optional: The coupling is considered as converged if either
+{\xel{maxNumIters} } iterations have been performed or if {\bf all} stopping
 criterias were met.
 
 \newpage
 \subsection{Specifications within the single fields}
-Currently we have definitions for electrostatics, mechanics, magnetics and acoustics.
+Currently we have definitions for electrostatics, mechanics, magnetics and
+acoustics.
 
 \begin{table}[htb]
 \begin{center}
@@ -155,29 +153,30 @@ body problem).
 \noindent
 {\it Example:}
 
-\begin{verbatim}
-<couplingList>
-  <iterative>
-    <elecMech method="RHS">
-      <electrostatic>
-        <coupling quantity="smoothDisplacement" type="region" name="air1"/>
-        <coupling quantity="smoothDisplacement" type="region" name="air2"/>
-      </electrostatic>
-      <mechanic>
-        <coupling quantity="elecForceVWP" type="node" name="electrode1"/>
-      </mechanic>
-      <smooth>
-        <coupling quantity="mechDisplacement" type="node" name="electrode1"/>
-      </smooth>
-    </elecMech>
-    <nonLinear logging="no">
-      <stopCrit value="1e-2" quantity="mechDisplacement" l2Norm="rel"/>
-      <stopCrit value="1e-3" quantity="elecForceVWP" l2Norm="abs"/>
-      <maxNumIters> 20 </maxNumIters>
-    </nonLinear>
-  </iterative>>
-</couplingList>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<couplingList]@PYaZ[>]
+  @PYaZ[<iterative]@PYaZ[>]
+    @PYaZ[<elecMech] @PYaQ[method=]@PYaB["RHS"]@PYaZ[>]
+      @PYaZ[<electrostatic]@PYaZ[>]
+        @PYaZ[<coupling] @PYaQ[quantity=]@PYaB["smoothDisplacement"] @PYaQ[type=]@PYaB["region"] @PYaQ[name=]@PYaB["air1"]@PYaZ[/>]
+        @PYaZ[<coupling] @PYaQ[quantity=]@PYaB["smoothDisplacement"] @PYaQ[type=]@PYaB["region"] @PYaQ[name=]@PYaB["air2"]@PYaZ[/>]
+      @PYaZ[</electrostatic>]
+      @PYaZ[<mechanic]@PYaZ[>]
+        @PYaZ[<coupling] @PYaQ[quantity=]@PYaB["elecForceVWP"] @PYaQ[type=]@PYaB["node"] @PYaQ[name=]@PYaB["electrode1"]@PYaZ[/>]
+      @PYaZ[</mechanic>]
+      @PYaZ[<smooth]@PYaZ[>]
+        @PYaZ[<coupling] @PYaQ[quantity=]@PYaB["mechDisplacement"] @PYaQ[type=]@PYaB["node"] @PYaQ[name=]@PYaB["electrode1"]@PYaZ[/>]
+      @PYaZ[</smooth>]
+    @PYaZ[</elecMech>]
+    @PYaZ[<nonLinear] @PYaQ[logging=]@PYaB["no"]@PYaZ[>]
+      @PYaZ[<stopCrit] @PYaQ[value=]@PYaB["1e-2"] @PYaQ[quantity=]@PYaB["mechDisplacement"] @PYaQ[l2Norm=]@PYaB["rel"]@PYaZ[/>]
+      @PYaZ[<stopCrit] @PYaQ[value=]@PYaB["1e-3"] @PYaQ[quantity=]@PYaB["elecForceVWP"] @PYaQ[l2Norm=]@PYaB["abs"]@PYaZ[/>]
+      @PYaZ[<maxNumIters]@PYaZ[>] 20 @PYaZ[</maxNumIters>]
+    @PYaZ[</nonLinear>]
+  @PYaZ[</iterative>]>
+@PYaZ[</couplingList>]
+\end{Verbatim}
+
 
 \subsection{MagMech}
 The two involved fields are the magnetic and the mechanical field.
@@ -188,28 +187,29 @@ body problem).
 \noindent
 {\it Example:}
 
-\begin{verbatim}
-<couplingList>
-  <iterative>
-    <magMech method="RHS">
-      <magnetic>
-        <coupling quantity="smoothDisplacement" type="region" name="air1"/>
-        <coupling quantity="smoothDisplacement" type="region" name="air2"/>
-      </magnetic>
-      <mechanic>
-        <coupling quantity="magForceLorentz" type="region" name="plate"/>
-      </mechanic>
-      <smooth>
-        <coupling quantity="mechDisplacement" type="node" name="surf1"/>
-      </smooth>
-      <nonLinear logging="no">
-        <stopCrit value="1e-2" quantity="mechDisplacement" l2Norm="rel"/>
-        <stopCrit value="1e-3" quantity="magForceLorentz" l2Norm="abs"/>
-      <maxNumIters> 20 </maxNumIters>
-    </nonLinear>
-  </iterative>
-</couplingList>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<couplingList]@PYaZ[>]
+  @PYaZ[<iterative]@PYaZ[>]
+    @PYaZ[<magMech] @PYaQ[method=]@PYaB["RHS"]@PYaZ[>]
+      @PYaZ[<magnetic]@PYaZ[>]
+        @PYaZ[<coupling] @PYaQ[quantity=]@PYaB["smoothDisplacement"] @PYaQ[type=]@PYaB["region"] @PYaQ[name=]@PYaB["air1"]@PYaZ[/>]
+        @PYaZ[<coupling] @PYaQ[quantity=]@PYaB["smoothDisplacement"] @PYaQ[type=]@PYaB["region"] @PYaQ[name=]@PYaB["air2"]@PYaZ[/>]
+      @PYaZ[</magnetic>]
+      @PYaZ[<mechanic]@PYaZ[>]
+        @PYaZ[<coupling] @PYaQ[quantity=]@PYaB["magForceLorentz"] @PYaQ[type=]@PYaB["region"] @PYaQ[name=]@PYaB["plate"]@PYaZ[/>]
+      @PYaZ[</mechanic>]
+      @PYaZ[<smooth]@PYaZ[>]
+        @PYaZ[<coupling] @PYaQ[quantity=]@PYaB["mechDisplacement"] @PYaQ[type=]@PYaB["node"] @PYaQ[name=]@PYaB["surf1"]@PYaZ[/>]
+      @PYaZ[</smooth>]
+      @PYaZ[<nonLinear] @PYaQ[logging=]@PYaB["no"]@PYaZ[>]
+        @PYaZ[<stopCrit] @PYaQ[value=]@PYaB["1e-2"] @PYaQ[quantity=]@PYaB["mechDisplacement"] @PYaQ[l2Norm=]@PYaB["rel"]@PYaZ[/>]
+        @PYaZ[<stopCrit] @PYaQ[value=]@PYaB["1e-3"] @PYaQ[quantity=]@PYaB["magForceLorentz"] @PYaQ[l2Norm=]@PYaB["abs"]@PYaZ[/>]
+      @PYaZ[<maxNumIters]@PYaZ[>] 20 @PYaZ[</maxNumIters>]
+    @PYaZ[</nonLinear>]
+  @PYaZ[</iterative>]
+@PYaZ[</couplingList>]
+\end{Verbatim}
+
 
 
 \subsection{AcouMech}
@@ -219,27 +219,25 @@ The two involved fields are the Acoustics and the mechanical field.
 \noindent
 {\it Example:}
 
-\begin{verbatim}
-<couplingList>
-  <iterative>
-    <acouMech method="RHS">
-      <acoustic>
-        <coupling quantity="mechForce" type="interface" name="surf1"/>
-      </acoustic>
-      <mechanic>
-        <coupling quantity="acouForce" type="interface" name="surf1"/>
-      </mechanic>
-    </acouMech>
-    <nonLinear logging="no">
-      <stopCrit value="1e-2" quantity="mechDisplacement" l2Norm="rel"/>
-      <maxNumIters> 20 </maxNumIters>
-    </nonLinear>
-  </AcouMech>
-</couplingList>
-\end{verbatim}
-%
-% =============================================================================
-%
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<couplingList]@PYaZ[>]
+  @PYaZ[<iterative]@PYaZ[>]
+    @PYaZ[<acouMech] @PYaQ[method=]@PYaB["RHS"]@PYaZ[>]
+      @PYaZ[<acoustic]@PYaZ[>]
+        @PYaZ[<coupling] @PYaQ[quantity=]@PYaB["mechForce"] @PYaQ[type=]@PYaB["interface"] @PYaQ[name=]@PYaB["surf1"]@PYaZ[/>]
+      @PYaZ[</acoustic>]
+      @PYaZ[<mechanic]@PYaZ[>]
+        @PYaZ[<coupling] @PYaQ[quantity=]@PYaB["acouForce"] @PYaQ[type=]@PYaB["interface"] @PYaQ[name=]@PYaB["surf1"]@PYaZ[/>]
+      @PYaZ[</mechanic>]
+    @PYaZ[</acouMech>]
+    @PYaZ[<nonLinear] @PYaQ[logging=]@PYaB["no"]@PYaZ[>]
+      @PYaZ[<stopCrit] @PYaQ[value=]@PYaB["1e-2"] @PYaQ[quantity=]@PYaB["mechDisplacement"] @PYaQ[l2Norm=]@PYaB["rel"]@PYaZ[/>]
+      @PYaZ[<maxNumIters]@PYaZ[>] 20 @PYaZ[</maxNumIters>]
+    @PYaZ[</nonLinear>]
+  @PYaZ[</AcouMech>]
+@PYaZ[</couplingList>]
+\end{Verbatim}
+
 \section{Direct Coupling}
 Here we differ between an indirect and a direct coupling. Currently we have
 just implemented the iterative coupling. Note that the coupling
@@ -250,36 +248,37 @@ as the element normals are needed for calculating the coupling forces.
 \noindent
 {\it Example:}
 
-\begin{verbatim}
-<couplingList>
-  <direct>
-    <coupledpde>
-      <regionList>
-        <region name="..."/>
-      </regionList>
-      <storeResults>
-        <elemResult>
-          <elemList>
-            <elems name="..."/>
-          </elemList>
-        </elemResult>
-        <surfElemResult>
-          <surfElemList>
-            <surfElems name="..."/>
-          </surfElemList>
-        </surfElemResult>
-      </storeResults>
-      <materialDataType type="..."/>
-      <nonLinear>
-        <lineSearch/>
-        <incStopCrit> ... </incStopCrit>
-        <resStopCrit> ... </resStopCrit>
-        <maxNumIters> ... </maxNumIters>
-      </nonLinear>
-    </coupledpde>
-  </direct>
-</couplingList>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<couplingList]@PYaZ[>]
+  @PYaZ[<direct]@PYaZ[>]
+    @PYaZ[<coupledpde]@PYaZ[>]
+      @PYaZ[<regionList]@PYaZ[>]
+        @PYaZ[<region] @PYaQ[name=]@PYaB["..."]@PYaZ[/>]
+      @PYaZ[</regionList>]
+      @PYaZ[<storeResults]@PYaZ[>]
+        @PYaZ[<elemResult]@PYaZ[>]
+          @PYaZ[<elemList]@PYaZ[>]
+            @PYaZ[<elems] @PYaQ[name=]@PYaB["..."]@PYaZ[/>]
+          @PYaZ[</elemList>]
+        @PYaZ[</elemResult>]
+        @PYaZ[<surfElemResult]@PYaZ[>]
+          @PYaZ[<surfElemList]@PYaZ[>]
+            @PYaZ[<surfElems] @PYaQ[name=]@PYaB["..."]@PYaZ[/>]
+          @PYaZ[</surfElemList>]
+        @PYaZ[</surfElemResult>]
+      @PYaZ[</storeResults>]
+      @PYaZ[<materialDataType] @PYaQ[type=]@PYaB["..."]@PYaZ[/>]
+      @PYaZ[<nonLinear]@PYaZ[>]
+        @PYaZ[<lineSearch]@PYaZ[/>]
+        @PYaZ[<incStopCrit]@PYaZ[>] ... @PYaZ[</incStopCrit>]
+        @PYaZ[<resStopCrit]@PYaZ[>] ... @PYaZ[</resStopCrit>]
+        @PYaZ[<maxNumIters]@PYaZ[>] ... @PYaZ[</maxNumIters>]
+      @PYaZ[</nonLinear>]
+    @PYaZ[</coupledpde>]
+  @PYaZ[</direct>]
+@PYaZ[</couplingList>]
+\end{Verbatim}
+
 
 \subsection{PiezoDirect}
 The two involved fields are the Electrostatic and the mechanical field.
@@ -288,23 +287,24 @@ The two involved fields are the Electrostatic and the mechanical field.
 \noindent
 {\it Example:}
 
-\begin{verbatim}
-<couplingList>
-  <direct>
-    <piezoDirect>
-      <regionList>
-        <region name="..."/>
-        <region name="..."/>
-      </regionList>
-      <storeResults>
-        <elemResult type="mechStress">
-          <allRegions/>
-        </elemResult>
-      </storeResults>
-    </piezoDirect>
-  </direct>
-</couplingList>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<couplingList]@PYaZ[>]
+  @PYaZ[<direct]@PYaZ[>]
+    @PYaZ[<piezoDirect]@PYaZ[>]
+      @PYaZ[<regionList]@PYaZ[>]
+        @PYaZ[<region] @PYaQ[name=]@PYaB["..."]@PYaZ[/>]
+        @PYaZ[<region] @PYaQ[name=]@PYaB["..."]@PYaZ[/>]
+      @PYaZ[</regionList>]
+      @PYaZ[<storeResults]@PYaZ[>]
+        @PYaZ[<elemResult] @PYaQ[type=]@PYaB["mechStress"]@PYaZ[>]
+          @PYaZ[<allRegions]@PYaZ[/>]
+        @PYaZ[</elemResult>]
+      @PYaZ[</storeResults>]
+    @PYaZ[</piezoDirect>]
+  @PYaZ[</direct>]
+@PYaZ[</couplingList>]
+\end{Verbatim}
+
 
 \subsection{AcouMechDirect}
 The two involved fields are the Acoustics and Mechanical Field.
@@ -313,21 +313,22 @@ The two involved fields are the Acoustics and Mechanical Field.
 \noindent
 {\it Example:}
 
-\begin{verbatim}
-<couplingList>
-  <direct>
-    <acouMechDirect>
-      <surfRegionList>
-        <surfRegion name="..."/>
-      </surfRegionList>
-      <ncInterfaceList>
-        <ncInterface name="..."/>
-        <ncInterface name="..."/>
-      </ncInterfaceList>
-    </acouMechDirect>
-  </direct>
-</couplingList>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<couplingList]@PYaZ[>]
+  @PYaZ[<direct]@PYaZ[>]
+    @PYaZ[<acouMechDirect]@PYaZ[>]
+      @PYaZ[<surfRegionList]@PYaZ[>]
+        @PYaZ[<surfRegion] @PYaQ[name=]@PYaB["..."]@PYaZ[/>]
+      @PYaZ[</surfRegionList>]
+      @PYaZ[<ncInterfaceList]@PYaZ[>]
+        @PYaZ[<ncInterface] @PYaQ[name=]@PYaB["..."]@PYaZ[/>]
+        @PYaZ[<ncInterface] @PYaQ[name=]@PYaB["..."]@PYaZ[/>]
+      @PYaZ[</ncInterfaceList>]
+    @PYaZ[</acouMechDirect>]
+  @PYaZ[</direct>]
+@PYaZ[</couplingList>]
+\end{Verbatim}
+
 
 \subsection{ThermoElectricDirect}
 The two involved fields are the heatConduction and Electrostatic Field.
@@ -336,17 +337,18 @@ The two involved fields are the heatConduction and Electrostatic Field.
 \noindent
 {\it Example:}
 
-\begin{verbatim}
-<couplingList>
-  <direct>
-    <thermoElectricDirect>
-      <regionList>
-        <region name="..."/>
-      </regionList>
-    </thermoElectricDirect>
-  </direct>
-</couplingList>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<couplingList]@PYaZ[>]
+  @PYaZ[<direct]@PYaZ[>]
+    @PYaZ[<thermoElectricDirect]@PYaZ[>]
+      @PYaZ[<regionList]@PYaZ[>]
+        @PYaZ[<region] @PYaQ[name=]@PYaB["..."]@PYaZ[/>]
+      @PYaZ[</regionList>]
+    @PYaZ[</thermoElectricDirect>]
+  @PYaZ[</direct>]
+@PYaZ[</couplingList>]
+\end{Verbatim}
+
 
 \subsection{ThermoMechDirect}
 The two involved fields are the heatConduction and Mechanical Field.
@@ -355,17 +357,15 @@ The two involved fields are the heatConduction and Mechanical Field.
 \noindent
 {\it Example:}
 
-\begin{verbatim}
-<couplingList>
-  <direct>
-    <thermoMechDirect>
-      <regionList>
-        <region name="..."/>
-      </regionList>
-    </thermoMechDirect>
-  </direct>
-</couplingList>
-\end{verbatim}
-%
-% =============================================================================
-%
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<couplingList]@PYaZ[>]
+  @PYaZ[<direct]@PYaZ[>]
+    @PYaZ[<thermoMechDirect]@PYaZ[>]
+      @PYaZ[<regionList]@PYaZ[>]
+        @PYaZ[<region] @PYaQ[name=]@PYaB["..."]@PYaZ[/>]
+      @PYaZ[</regionList>]
+    @PYaZ[</thermoMechDirect>]
+  @PYaZ[</direct>]
+@PYaZ[</couplingList>]
+\end{Verbatim}
+

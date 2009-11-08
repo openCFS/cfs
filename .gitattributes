@@ -105,6 +105,8 @@ include/def_user_scpip.hh.in -text
 include/def_xmlschema.hh.in -text
 share/MaterialFile/mat.xml svneol=native#text/xml
 share/doc/auxilliaries/LaTeX/lsepaper.sty svneol=native#text/plain
+share/doc/auxilliaries/Pics/cfs-logo.eps -text svneol=unset#application/postscript
+share/doc/auxilliaries/Pics/cfs-logo.png -text svneol=unset#image/png
 share/doc/auxilliaries/Pics/lse.eps -text svneol=unset#application/postscript
 share/doc/auxilliaries/Pics/lse.png -text svneol=unset#image/png
 share/doc/auxilliaries/cfs-logo.cdr -text svneol=unset#application/coreldraw
@@ -269,6 +271,7 @@ share/doc/user/xmlFile/BCsLoads.tex svneol=native#text/plain
 share/doc/user/xmlFile/Savings.tex svneol=native#text/plain
 share/doc/user/xmlFile/basicCommands.tex svneol=native#text/plain
 share/doc/user/xmlFile/coupledfields.tex svneol=native#text/plain
+share/doc/user/xmlFile/dopygment.py -text
 share/doc/user/xmlFile/general.tex svneol=native#text/plain
 share/doc/user/xmlFile/html/banner.png -text svneol=unset#image/png
 share/doc/user/xmlFile/html/next.png -text svneol=unset#image/png

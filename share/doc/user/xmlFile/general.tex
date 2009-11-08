@@ -1,30 +1,27 @@
 \chapter{Structure of Config-File}
 \label{sec:general}
-%
-%
 The basic structure of the config-file for CFS++ in our XML
 syntax is as follows:
 
-\begin{verbatim}
-<?xml version="1.0"?>
-<cfsSimulation xmlns="http://www.cfs++.org">
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaN[<?xml version="1.0"?>]
+@PYaZ[<cfsSimulation] @PYaQ[xmlns=]@PYaB["http://www.cfs++.org"]@PYaZ[>]
 
  ... Parameters ...
 
-</cfsSimulation>
-\end{verbatim}
+@PYaZ[</cfsSimulation>]
+\end{Verbatim}
+
 
 The first line gives version information for the XML parser, while the
 second line is the starting tag for the main enclosing element called
-\element{cfsSimulation}.  The last line then is the closing tag for this main
+\xel{cfsSimulation}.  The last line then is the closing tag for this main
 element. All parameters must appear between the opening and the
 closing tag.
 
 Only a few tags are allowed in this main body. They will be documented in the
 remaining sections. These top level tags have to be used in the order shown in
 table \ref{tab:leavesLevelOne}.
-%
-%
 \begin{table}
 \label{tab:leavesLevelOne}
 \begin{center}
@@ -63,9 +60,6 @@ table \ref{tab:leavesLevelOne}.
   \end{tabular}
 \end{center}
 \end{table}
-%
-% EOF: general.tex
-%
 
 
 

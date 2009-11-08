@@ -21,12 +21,12 @@ Therefore one can easily
 Currently the following xml-elements allow the prescription of mathematical
 expressions:
 \begin{itemize}
-\item \myverb#<dirichletInhom># for the \attribute{value} and
-\attribute{phase} attribute
-\item \myverb#<load># for the \attribute{value} and \attribute{phase}
+\item \xel{dirichletInhom} for the \xat{value} and
+\xat{phase} attribute
+\item \xel{load} for the \xat{value} and \xat{phase}
 attribute
-\item \myverb#<regionLoad># in the mechanic PDE for the attribute
-\attribute{value}
+\item \xel{regionLoad} in the mechanic PDE for the attribute
+\xat{value}
 \end{itemize}
 
 \section{Built-in expressions and operators}
@@ -114,12 +114,13 @@ variable would create a new one, initialized with zero.
 \subsection{\texttt{sample1D}}
 We can subscribe boundary conditions with values read in from sample files.
 The notation is as follows:
-\begin{verbatim}
-<bcsAndLoads>
-  <neumannInhom name="transducer" value="sample1D('x_amplitude.dat',x,2)"
-    phase="sample1D('x_phase.dat',x,2)"/>
-</bcsAndLoads>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<bcsAndLoads]@PYaZ[>]
+  @PYaZ[<neumannInhom] @PYaQ[name=]@PYaB["transducer"] @PYaQ[value=]@PYaB["sample1D('x_amplitude.dat',x,2)"]
+    @PYaQ[phase=]@PYaB["sample1D('x_phase.dat',x,2)"]@PYaZ[/>]
+@PYaZ[</bcsAndLoads>]
+\end{Verbatim}
+
 Sample data (2$^{nd}$ column) is read in from the files x\_amplitude.dat and
 x\_phase.dat. Please note the type of quotes used!!!!
 \newline
@@ -130,27 +131,28 @@ x specifies the direction, where the sample data is applied.
 Could also be 0=nearest neighbour, or 1=linear interpolation.
 
 \subsection{\texttt{input}}
-The \element{input} element can be used to read in data on a whole region from
+The \xel{input} element can be used to read in data on a whole region from
 hdf5 files (of a previous simulation run). It takes as arguments the input ID
 and the number of the multisequence step (which should be 1 in almost any
 case). It is used in the following way:
-\begin{verbatim}
-<fileFormats>
-  <input>
-    <hdf5 fileName="filename.h5" id="inhom"/>
-  </input>
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<fileFormats]@PYaZ[>]
+  @PYaZ[<input]@PYaZ[>]
+    @PYaZ[<hdf5] @PYaQ[fileName=]@PYaB["filename.h5"] @PYaQ[id=]@PYaB["inhom"]@PYaZ[/>]
+  @PYaZ[</input>]
   ...
-</fileFormats>
+@PYaZ[</fileFormats>]
 ...
-<pdename>
-  <bcsAndLoads>
-    <dirichletInhom name="region1" dof="x" value="input('inhom',1)"
-                    phase="input('inhom',1)"/>
-    <dirichletInhom name="region2" dof="y" value="input('inhom',1)"
-                    phase="input('inhom',1)"/>
-  </bcsAndLoads>
-</pdename>
-\end{verbatim}
+@PYaZ[<pdename]@PYaZ[>]
+  @PYaZ[<bcsAndLoads]@PYaZ[>]
+    @PYaZ[<dirichletInhom] @PYaQ[name=]@PYaB["region1"] @PYaQ[dof=]@PYaB["x"] @PYaQ[value=]@PYaB["input('inhom',1)"]
+                    @PYaQ[phase=]@PYaB["input('inhom',1)"]@PYaZ[/>]
+    @PYaZ[<dirichletInhom] @PYaQ[name=]@PYaB["region2"] @PYaQ[dof=]@PYaB["y"] @PYaQ[value=]@PYaB["input('inhom',1)"]
+                    @PYaQ[phase=]@PYaB["input('inhom',1)"]@PYaZ[/>]
+  @PYaZ[</bcsAndLoads>]
+@PYaZ[</pdename>]
+\end{Verbatim}
+
 The region name, quantity, and time/frequency step (if applicable) are
 determined automatically and not passed as arguments. Therefore it is required
 to use exactly same mesh as the previous simulation, i.e.\
@@ -187,8 +189,8 @@ the following table).
     \toprule
      name & value & occurrence \\
     \midrule
-    \myverb#t#     & Current time value       & \analysis{transient} analysis \\
-    \myverb#f#     & Current frequency value  & \analysis{harmonic} analysis \\
+    \myverb#t#     & Current time value       & \xel{transient} analysis \\
+    \myverb#f#     & Current frequency value  & \xel{harmonic} analysis \\
     \myverb$x y z$ & Current global coordinate value & boundary conditions
     e.g:load \\ \myverb#r phi z# & Current local coordinate value & regionLoad
     with cylindrical coordinate system \\
@@ -200,38 +202,39 @@ the following table).
 \section{Examples}
 If one wants to prescribe a linear space dependent load, the following can be
 written:
-\begin{verbatim}
-<bcsAndLoads>
-  <load name="loadNode" value="10 * x" phase="cos(y)"/>
-<bcsAndLoads>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<bcsAndLoads]@PYaZ[>]
+  @PYaZ[<load] @PYaQ[name=]@PYaB["loadNode"] @PYaQ[value=]@PYaB["10 * x"] @PYaQ[phase=]@PYaB["cos(y)"]@PYaZ[/>]
+@PYaZ[<bcsAndLoads]@PYaZ[>]
+\end{Verbatim}
+
 Here \myverb#x# is used to denote the x-coordinate of each node
 contained in the node list.
 \newline
 
 \noindent
-An even easier way to define a time dependent variable than using the
-\myverb#dynamics# keyword is by using directly the
-\myverb#sin#-function. To define a variable with a sine of 1 kHz one can
-simply write:
-\begin{verbatim}
-<bcsAndLoads>
-  <dirichletInhom name="bcNode" value="10 * sin(2 * pi * 1e3 * t)"/>
-<bcsAndLoads>
-\end{verbatim}
-The variable \myverb#t# reflects the current time value in a transient
+To define a variable with a sine of 1 kHz one can simply write:
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<bcsAndLoads]@PYaZ[>]
+  @PYaZ[<dirichletInhom] @PYaQ[name=]@PYaB["bcNode"] @PYaQ[value=]@PYaB["10 * sin(2 * pi * 1e3 * t)"]@PYaZ[/>]
+@PYaZ[<bcsAndLoads]@PYaZ[>]
+\end{Verbatim}
+
+The variable \xatv{t} reflects the current time value in a transient
 simulation.
 Of couse one can also combine space- and time dependency:
-\begin{verbatim}
-<bcsAndLoads>
-  <dirichletInhom name="bcNode" value="10 * x * sin(2 * pi * 1e3 * t)"/>
-<bcsAndLoads>
-\end{verbatim}
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<bcsAndLoads]@PYaZ[>]
+  @PYaZ[<dirichletInhom] @PYaQ[name=]@PYaB["bcNode"] @PYaQ[value=]@PYaB["10 * x * sin(2 * pi * 1e3 * t)"]@PYaZ[/>]
+@PYaZ[<bcsAndLoads]@PYaZ[>]
+\end{Verbatim}
+
 A ramp signal, which goes from $0 \ldots 1$ linearly and then
-stays at 1 is written via the \myverb#if#-statement as follows:
-\begin{verbatim}
-<bcsAndLoads>
-  <dirichletInhom name="bcNode" value="if(t lt 1,t,1.0)"/>
-<bcsAndLoads>
-\end{verbatim}
+stays at 1 is written via the \xatv{if}-statement as follows:
+\begin{Verbatim}[commandchars=@\[\]]
+@PYaZ[<bcsAndLoads]@PYaZ[>]
+  @PYaZ[<dirichletInhom] @PYaQ[name=]@PYaB["bcNode"] @PYaQ[value=]@PYaB["if(t lt 1,t,1.0)"]@PYaZ[/>]
+@PYaZ[<bcsAndLoads]@PYaZ[>]
+\end{Verbatim}
+
 
