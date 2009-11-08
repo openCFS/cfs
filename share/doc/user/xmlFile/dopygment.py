@@ -100,12 +100,12 @@ formatter = LatexFormatter()
 if parserType == "tex":
   formatter = LatexFormatter()  
   callback = codeReplaceTeX
-  formatFile ="syntax.tex"
+  formatFile ="style.tex"
 elif parserType == "html" :
   formatter = HtmlFormatter(style="default", linenos=False, 
                             cssclass="xmlcode", cssFilefull="False")
   callback = codeReplaceHtml
-  formatFile = "syntax.css"
+  formatFile = "style.css"
 else:
   print "Valid options for 'format' are 'tex' and 'html' "
 

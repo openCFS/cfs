@@ -40,7 +40,7 @@ function build {
     done
 
     # add pygments tex style to own files
-    cat syntax.tex >> mycommands.tex
+    cat style.tex >> mycommands.tex
 
     @PDFLATEX_COMPILER@ $DOCUMENT
     @BIBTEX_COMPILER@   $DOCUMENT
