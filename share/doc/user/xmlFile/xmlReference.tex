@@ -22,7 +22,8 @@
 \typeout{--> PDF: Setting general document info}
 
 \usepackage{graphicx}
-\graphicspath{{../../auxilliaries/Pics/}}
+\graphicspath{{./pics/}}
+\DeclareGraphicsExtensions{.jpg,.pdf,.png}
 \usepackage{thumbpdf}
 \usepackage[pdftex,bookmarks=true]{hyperref}
 \hypersetup{pdfpagemode=UseThumbs}
@@ -35,7 +36,8 @@
 \hypersetup{pdfsubject={User's Guide}}
 \else
 \usepackage{graphicx}
-\graphicspath{{../../auxilliaries/Pics/}}
+\DeclareGraphicsExtensions{.jpg,.pdf,.png}
+\graphicspath{{./pics/}}
 \fi
 %
 % =============================================================================
@@ -47,7 +49,7 @@
 % =============================================================================
 %
 %
-\LSETITLE{CFS++ --- XML Reference Manual}{cfs--devel}{User's Guide}
+\LSETITLE{CFS++ -- XML Reference Manual}{\hspace{1em}}{\hspace{1em}}
 %
 %
 \tableofcontents
