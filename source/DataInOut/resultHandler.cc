@@ -361,7 +361,7 @@ namespace CoupledField {
 
     // fetch current postProcNode
     ParamNode * postProcNode = 
-      param->Get("sequenceStep", "index", sequenceStep_)
+      param->Get("sequenceStep", std::string("index"), sequenceStep_)
       ->Get( "postProcList")->Get( "postProc", "id", postProcName );
     
     if( !postProcNode ) {

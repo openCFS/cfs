@@ -40,7 +40,8 @@ namespace CoupledField {
     
     // get parameter node
     ParamNode * myNode = 
-      param->Get("sequenceStep", "index", sequenceStep_)->Get("analysis")->Get("eigenFrequency");
+      param->Get("sequenceStep", std::string("index"), sequenceStep_)
+        ->Get("analysis")->Get("eigenFrequency");
 
     // read required parameters from parameter node
     myNode->Get( "numModes", numFreq_ );

@@ -52,7 +52,7 @@ namespace CoupledField {
 
     // get parameter node
     ParamNode * myNode = 
-      param->Get("sequenceStep", "index", sequenceStep)
+      param->Get("sequenceStep", std::string("index"), sequenceStep)
       ->Get("analysis")->Get("transient");
 
     driverNode = driverNode->Get("transient");

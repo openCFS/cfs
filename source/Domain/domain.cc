@@ -534,7 +534,8 @@ void Domain::CreateSinglePDEs(UInt sequenceStep)
 
   StdVector<ParamNode*> pdeNodes;
   pdeNodes
-      = param->Get("sequenceStep", "index", sequenceStep) ->Get("pdeList")->GetChildren();
+      = param->Get("sequenceStep", std::string("index"), sequenceStep) 
+      ->Get("pdeList")->GetChildren();
 
   ptSinglePde_.Resize(pdeNodes.GetSize());
   ptSinglePde_.Init();
@@ -623,8 +624,8 @@ void Domain::CreateIterCoupledPDE(UInt sequenceStep)
 
   // check for presence of "couplingList" and "iterative" element
   ParamNode * couplingNode =
-      param->Get("sequenceStep", "index", sequenceStep) ->Get("couplingList",
-          false);
+      param->Get("sequenceStep", std::string("index"), sequenceStep) 
+        ->Get("couplingList", false);
   if (!couplingNode)
     return;
   ParamNode * iterNode = couplingNode->Get("iterative", false);
@@ -721,7 +722,8 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep)
 
   // get "couplingList" node (must exist)
   ParamNode * couplingNode =
-      param->Get("sequenceStep", "index", sequenceStep)->Get("couplingList");
+      param->Get("sequenceStep", std::string("index"), sequenceStep)
+        ->Get("couplingList");
   ParamNode * directNode = couplingNode->Get("direct", false);
   if (!directNode)
     return;

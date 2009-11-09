@@ -277,7 +277,7 @@ namespace CoupledField {
           // check for piezo-coupling and 
           if( isPiezoCoupled_ ) {
             ParamNode * dataTypeNode = 
-              param->Get("sequenceStep", "index", sequenceStep_)
+              param->Get("sequenceStep", std::string("index"), sequenceStep_)
               ->Get("couplingList/direct/piezoDirect/materialDataType", false );
             bool isImag = false;
             
@@ -1326,7 +1326,7 @@ namespace CoupledField {
                       << "interfaces of PDE exist in domain.";
 
     ParamNode* elecPDENCIfaceListNode;
-    elecPDENCIfaceListNode = param->Get("sequenceStep", "index", sequenceStep_)
+    elecPDENCIfaceListNode = param->Get("sequenceStep", std::string("index"), sequenceStep_)
     ->Get("pdeList/electrostatic/ncInterfaceList", false);
     
     if(!elecPDENCIfaceListNode)

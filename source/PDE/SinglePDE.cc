@@ -256,7 +256,7 @@ namespace CoupledField {
     {
       std::string aux = "penalty";
       ParamNode * systemsNode =
-        param->Get("sequenceStep", "index", sequenceStep_)
+        param->Get("sequenceStep", std::string("index"), sequenceStep_)
         ->Get("linearSystems",false);
       if( systemsNode ) {
         ParamNode * mySystemNode = systemsNode->

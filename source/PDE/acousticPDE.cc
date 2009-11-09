@@ -2632,7 +2632,7 @@ namespace CoupledField {
     if(domainNCIfaceListNode)
     {
       ParamNode* ncInterfaceListNode =
-        param->Get("sequenceStep", "index", sequenceStep_)
+        param->Get("sequenceStep", std::string("index"), sequenceStep_)
         ->Get("pdeList")->Get("acoustic")->Get("ncInterfaceList", false);
       StdVector<ParamNode*> pdeNCIfaceNodes;
 

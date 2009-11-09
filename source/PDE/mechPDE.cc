@@ -544,7 +544,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     bool complexMaterial = false;
     if( isDirectCoupled_ ) {
       ParamNode * piezoNode =
-        param->Get( "sequenceStep", "index", sequenceStep_)
+        param->Get( "sequenceStep", std::string("index"), sequenceStep_)
         ->Get("couplingList/direct/piezoDirect", false);
       if( piezoNode ) {
         ParamNode * matNode = NULL;
@@ -1983,7 +1983,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     if(domainNCIfaceListNode)
     {
       ParamNode* ncInterfaceListNode =
-        param->Get("sequenceStep", "index", sequenceStep_)
+        param->Get("sequenceStep", std::string("index"), sequenceStep_)
         ->Get("pdeList/mechanic/ncInterfaceList", false);
       StdVector<ParamNode*> pdeNCIfaceNodes;
 

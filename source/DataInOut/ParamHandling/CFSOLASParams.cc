@@ -886,7 +886,7 @@ namespace CoupledField {
     // Special treatment for parameter identification process
     std::string analysis;
     UInt seqStep = domain->GetSingleDriver()->GetActSequenceStep();
-    param->Get("sequenceStep", "index", seqStep)->Get("analysis")
+    param->Get("sequenceStep", std::string("index"), seqStep)->Get("analysis")
       ->GetChild()->GetName();
 
     if ( analysis == "paramIdent" && eType != BaseMatrix::COMPLEX ) {
