@@ -483,7 +483,7 @@ namespace CoupledField {
      //  Writes result to StdPDE for later retrieval in SinglePDEs
      // (required by piezoParamIdent)
      std::string analysis =
-       param->Get("sequenceStep", std::string("index"), sequenceStep_)
+       param->Get("sequenceStep", std::string("index"), sequenceStep_, true)
        ->Get("analysis")->GetChild()->GetName();
      if(analysis == "paramIdent") {
 
