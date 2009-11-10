@@ -30,10 +30,10 @@
 #-----------------------------------------------------------------------------
 
 #-----------------------------------------------------------------------------
-# Set source and binary directories on rom
+# Set source and binary directories on lse10
 #-----------------------------------------------------------------------------
-SET(CTEST_SOURCE_DIRECTORY "/home/data/programs/cfs/nightly/CFS_TRUNK_NIGHTLY")
-SET(CTEST_BINARY_DIRECTORY "/home/data/programs/cfs/nightly/CFS_BUILD_NIGHTLY")
+SET(CTEST_SOURCE_DIRECTORY "/tmp/nightly/CFS_TRUNK_NIGHTLY")
+SET(CTEST_BINARY_DIRECTORY "/tmp/nightly/CFS_BUILD_NIGHTLY")
 
 #-----------------------------------------------------------------------------
 # Place CTestConfig.cmake file for project CFS on CDash server rom into
