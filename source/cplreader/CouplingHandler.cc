@@ -2,6 +2,17 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+// Some versions of glibc do not provide built in versions of isnan
+// and isinf which causes errors on Intel compilers. We simply redefine
+// the builtin names with names which Intel knows.
+#if !defined _GLIBCXX_HAVE_ISNAN && defined __INTEL_COMPILER
+#define __builtin_isnan isnan
+#endif
+
+#if !defined _GLIBCXX_HAVE_ISINF && defined __INTEL_COMPILER
+#define __builtin_isinf isinf
+#endif
+
 #include <fstream>
 #include <iostream>
 #include <iterator>
