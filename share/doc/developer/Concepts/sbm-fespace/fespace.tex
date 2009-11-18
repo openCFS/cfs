@@ -1,4 +1,6 @@
-\documentclass[10pt]{beamer}
+%\documentclass[10pt]{beamer}
+\documentclass[10pt]{article}
+\usepackage{beamerarticle}
 
 \usetheme[compress]{Berlin}
 \usepackage[utf8]{inputenc}
@@ -39,6 +41,70 @@
 \end{frame}
 
 % =================================
+
+\section{Motivation}
+\begin{frame}[fragile]{Two-Level Solver for Nonlinear Problems}
+\begin{itemize} 
+\item Splitting of unknowns in Nodal, Edge, Face and inner unknowns gives two
+two levels
+\item Nodal unknowns are coarse grid $K_{NN}$
+\item Higher order terms represent fine grid
+\end{itemize}
+\begin{equation}
+{\bf K} = \left(
+\begin{array}{cccc}
+K_{NN} & K_{NE} & K_{NF} & K_{NI} \\
+K_{EN} & K_{EE} & K_{EF} & K_{EI} \\
+K_{FN} & K_{FE} & K_{FF} & K_{FI} \\
+K_{IN} & K_{IE} & K_{IF} & K_{II} \\
+\end{array} \right)
+\end{equation}
+\end{frame}
+
+\begin{frame}[fragile]{Two-Level Solver for Nonlinear Problems (cont.)}
+ \begin{itemize}
+  \item Block Jacobi preconditioner defined by ${\bf C}$
+\[ \displaystyle
+{\bf C} = \left(
+\begin{array}{cccc}
+K_{NN} & 0 & 0 & 0 \\
+0 & K_{EE} & 0 & 0 \\
+0 & 0 & K_{FF} & 0 \\
+0 & 0 & 0 & K_{II} \\
+\end{array} \right)
+\]
+\item Solution using e.g. PCG / Richardson iteration
+\[ \displaystyle
+ u^{k+1} = u^k + {\bf C}^{-1} (f-{\bf K}u^k)
+\]
+ \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Solution strategy}
+ \begin{enumerate}
+  \item Solve nonlinear problem only on coarse grid (unknowns of lowest order)
+until working point is reached 
+\[ \displaystyle
+{\bf K}_{NN}(u_N^k) \Delta u_N = f_N - {\bf K}_{NN}(u_{N}^k) u^k = r(u_N^k)
+\]
+\[ \displaystyle
+u^{k+1}_N = u^k_{N} + \eta \Delta u_N
+\]
+\item Calculate complete stiffness matrix
+\item Use iterative preconditioned CG / Richardson solver for smoothing the
+solution
+ \end{enumerate}
+\begin{block}{Advantages}
+\begin{itemize}
+\item Expensive recalculation of ${\bf K}(u)$ mostly performed on coarse level
+\item Matrix $\bf{C}$ is easy invertible
+\end{itemize}
+\end{block}
+{\bf $\Rightarrow$ Major changes in CFS / OLAS necessary}
+\end{frame}
+
+
+
 
 \section{Drawbacks of Current Concepts}
 \begin{frame}[fragile]{AlgebraicSystem / OLAS}
@@ -299,27 +365,29 @@ This can be used for local time stepping, e.g. request mayjor block for region 1
 
 \section{Who's Doing What / Timetable}
 \begin{frame}{Workplanning - Simon}
- \begin{itemize}
-  \item Concentrate on OLAS
+\begin{itemize}
+ \item Concentrate on OLAS
 \item Implement block mapping concept
 \item Implement simple Schur complement solver
- \end{itemize}
+\end{itemize}
 \end{frame}
 
 \begin{frame}{Workplanning - Andi Hauck / Andi Hüppe}
 \begin{enumerate}
-  \item Comment out all PDEs and Forms except the simple elecPDE and the linElecInt integrator to get a \emph{lightweitht} implementation playground
-  \item Create FeSpace base class and FeSpaceH1Lo, which collects all the pointers to the Lagrangian elements
+ \item Comment out all PDEs and Forms except the simple elecPDE and the
+linElecInt integrator to get a \emph{lightweitht} implementation playground
+ \item Create FeSpace base class and FeSpaceH1Lo, which collects all the
+pointers to the Lagrangian elements
 \item .... (to be discussed on the phone)
- \end{enumerate}
+\end{enumerate}
 \end{frame}
 
 
 
-\section{Open Questions}
-\begin{frame}{Open Questions}
- ???
-\end{frame}
+%\section{Open Questions}
+%\begin{frame}{Open Questions}
+% ???
+%\end{frame}
 
 
 \end{document}

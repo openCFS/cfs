@@ -456,285 +456,285 @@ namespace CoupledField {
       } // end of pml part
 
       else {
-        // stiffness integrator
-        BaseForm * bilinearStiff = new LaplaceInt( density, isaxi_ );
-        BiLinFormContext * stiffContext =
-          new BiLinFormContext( bilinearStiff, STIFFNESS );
-
-        //stiffContext->SetResults( results_[0], results_[0],
-        //                          actSDList, actSDList );
-        //stiffContext->SetPtPdes( this, this );
-
-        // mass integrator
-        coeffmass = density / (c0*c0);
-
-        MassInt* bilinearMass  = new MassInt(coeffmass, 1, isaxi_);
-        if ( diagMass_ ) {
-          // diagonal mass matrix
-          bilinearMass->SetDiagMass();
-        }
-
-        BiLinFormContext * massContext =
-          new BiLinFormContext( bilinearMass, MASS );
-        //massContext->SetResults( results_[0], results_[0],
-        //                         actSDList, actSDList );
-        //massContext->SetPtPdes(this, this);
-
-        // *******************************************************************
-        // Additional terms for Pierce Equation
-        // *******************************************************************
-        if ( regionFlowNodes_.count( actRegion) > 0 ) {
-        REFACTOR;
-//          if ( formulation_ == ACOU_PRESSURE )
-//            EXCEPTION("Pierce-Equation just possible in velocity potential formulation" );
+//        // stiffness integrator
+//        BaseForm * bilinearStiff = new LaplaceInt( density, isaxi_ );
+//        BiLinFormContext * stiffContext =
+//          new BiLinFormContext( bilinearStiff, STIFFNESS );
 //
-//          //read flow data
-//          ParamNode * flowNode = regionFlowNodes_[actRegion];
-//          SimpleFlow* flowData = new SimpleFlow();
-//          flowData->ReadFlowData( flowNode, dim_);
+//        //stiffContext->SetResults( results_[0], results_[0],
+//        //                          actSDList, actSDList );
+//        //stiffContext->SetPtPdes( this, this );
 //
-//          Double coeffPierceStiff = -density / (c0*c0);
-//          BaseForm * bilinearPierceStiff  = new PierceStiffInt(coeffPierceStiff,
-//                                                               flowData,
-//                                                               isaxi_);
-//          BiLinFormContext * pierceStiffContext =
-//            new BiLinFormContext( bilinearPierceStiff, STIFFNESS );
-//          pierceStiffContext->SetResults( results_[0], results_[0],
-//                                          actSDList, actSDList );
-//          pierceStiffContext->SetPtPdes(this, this);
-//          assemble_->AddBiLinearForm( pierceStiffContext );
+//        // mass integrator
+//        coeffmass = density / (c0*c0);
 //
+//        MassInt* bilinearMass  = new MassInt(coeffmass, 1, isaxi_);
+//        if ( diagMass_ ) {
+//          // diagonal mass matrix
+//          bilinearMass->SetDiagMass();
+//        }
 //
-//          Double coeffPierceDamp = 2.0 * density / (c0*c0);
-//          BaseForm * bilinearPierceDamp  = new PierceDampInt(coeffPierceDamp,
-//                                                             flowData,
-//                                                             isaxi_);
-//          BiLinFormContext * pierceDampContext =
-//            new BiLinFormContext( bilinearPierceDamp, DAMPING );
-//          pierceDampContext->SetResults( results_[0], results_[0],
-//                                         actSDList, actSDList );
-//          pierceDampContext->SetPtPdes(this, this);
-//          assemble_->AddBiLinearForm( pierceDampContext );
-        }
-
-        // ********************************************************************
-        //   Damping Layer
-        // ********************************************************************
-
-        //check  for damping layer
-        if ( dampingList_[actRegion] == DAMPLAYER ) {
-          REFACTOR;
-//          //type of damping fnc
-//          std::string dampFnc;
+//        BiLinFormContext * massContext =
+//          new BiLinFormContext( bilinearMass, MASS );
+//        //massContext->SetResults( results_[0], results_[0],
+//        //                         actSDList, actSDList );
+//        //massContext->SetPtPdes(this, this);
 //
-//          std::string id = actRegionNode->Get("dampingId")->AsString();
-//          ParamNode * dampLayerNode = myParam_->Get("dampingList")->Get("dampLayer", "id", id);
+//        // *******************************************************************
+//        // Additional terms for Pierce Equation
+//        // *******************************************************************
+//        if ( regionFlowNodes_.count( actRegion) > 0 ) {
+//        REFACTOR;
+////          if ( formulation_ == ACOU_PRESSURE )
+////            EXCEPTION("Pierce-Equation just possible in velocity potential formulation" );
+////
+////          //read flow data
+////          ParamNode * flowNode = regionFlowNodes_[actRegion];
+////          SimpleFlow* flowData = new SimpleFlow();
+////          flowData->ReadFlowData( flowNode, dim_);
+////
+////          Double coeffPierceStiff = -density / (c0*c0);
+////          BaseForm * bilinearPierceStiff  = new PierceStiffInt(coeffPierceStiff,
+////                                                               flowData,
+////                                                               isaxi_);
+////          BiLinFormContext * pierceStiffContext =
+////            new BiLinFormContext( bilinearPierceStiff, STIFFNESS );
+////          pierceStiffContext->SetResults( results_[0], results_[0],
+////                                          actSDList, actSDList );
+////          pierceStiffContext->SetPtPdes(this, this);
+////          assemble_->AddBiLinearForm( pierceStiffContext );
+////
+////
+////          Double coeffPierceDamp = 2.0 * density / (c0*c0);
+////          BaseForm * bilinearPierceDamp  = new PierceDampInt(coeffPierceDamp,
+////                                                             flowData,
+////                                                             isaxi_);
+////          BiLinFormContext * pierceDampContext =
+////            new BiLinFormContext( bilinearPierceDamp, DAMPING );
+////          pierceDampContext->SetResults( results_[0], results_[0],
+////                                         actSDList, actSDList );
+////          pierceDampContext->SetPtPdes(this, this);
+////          assemble_->AddBiLinearForm( pierceDampContext );
+//        }
 //
-//          //damping data
-//          Double dampFactor, dampFactorMax, startRadius, stopRadius;
-//          Vector<Double> mPoint;
-//          ReadDataDampLayer( dampFnc, mPoint, dampFactor, dampFactorMax,
-//                             startRadius, stopRadius, dampLayerNode );
+//        // ********************************************************************
+//        //   Damping Layer
+//        // ********************************************************************
 //
-//          //get the Rayleigh material parameters
-//          Double alpha, beta, measFreq;
-//          std::string fac;
-//          materials_[actRegion]->GetScalar(alpha,RAYLEIGH_ALPHA,Global::REAL);
-//          materials_[actRegion]->GetScalar(beta,RAYLEIGH_BETA,Global::REAL);
-//          materials_[actRegion]->GetScalar(measFreq,RAYLEIGH_FREQUENCY,Global::REAL);
+//        //check  for damping layer
+//        if ( dampingList_[actRegion] == DAMPLAYER ) {
+//          REFACTOR;
+////          //type of damping fnc
+////          std::string dampFnc;
+////
+////          std::string id = actRegionNode->Get("dampingId")->AsString();
+////          ParamNode * dampLayerNode = myParam_->Get("dampingList")->Get("dampLayer", "id", id);
+////
+////          //damping data
+////          Double dampFactor, dampFactorMax, startRadius, stopRadius;
+////          Vector<Double> mPoint;
+////          ReadDataDampLayer( dampFnc, mPoint, dampFactor, dampFactorMax,
+////                             startRadius, stopRadius, dampLayerNode );
+////
+////          //get the Rayleigh material parameters
+////          Double alpha, beta, measFreq;
+////          std::string fac;
+////          materials_[actRegion]->GetScalar(alpha,RAYLEIGH_ALPHA,Global::REAL);
+////          materials_[actRegion]->GetScalar(beta,RAYLEIGH_BETA,Global::REAL);
+////          materials_[actRegion]->GetScalar(measFreq,RAYLEIGH_FREQUENCY,Global::REAL);
+////
+////          // stiffness part
+////          if( isComplex_ ) {
+////            fac = GenStr( beta * measFreq) + "/ f";
+////          } else {
+////            fac = GenStr( beta );
+////          }
+////
+////          stiffContext->SetSecDestMat( DAMPING, fac );
+////          stiffContext->SetDampLayer(dampFnc, mPoint, dampFactor,
+////                                     dampFactorMax, startRadius,
+////                                     stopRadius);
+////          // mass part
+////          if( isComplex_ ) {
+////            fac = GenStr( alpha / measFreq) + "* f";
+////          } else {
+////            fac = GenStr( alpha );
+////          }
+////          massContext->SetSecDestMat( DAMPING, fac );
+////          massContext->SetDampLayer(dampFnc, mPoint, dampFactor,
+////                                    dampFactorMax, startRadius,
+////                                    stopRadius);
+//        }
 //
-//          // stiffness part
-//          if( isComplex_ ) {
-//            fac = GenStr( beta * measFreq) + "/ f";
-//          } else {
-//            fac = GenStr( beta );
+//        // ********************************************************************
+//        //   Additional terms for damping
+//        // ********************************************************************
+//        if ( dampingList_.size() > 0 ) {
+//
+//          // We check, if damping has been specified for all regions.
+////          if ( dampingList_.size() != subdoms_.GetSize() ) {
+////            (*warning) << "Mismatch between dampingList_ and subdoms_!"
+////                       << "Size(dampingList_): " << dampingList_.size()
+////                       << "Size(subdoms_): " << subdoms_.GetSize();
+////            Warning(__FILE__, __LINE__);
+////}
+//
+//          if (dampingList_[actRegion] == RAYLEIGH) {
+//            // This works even after assemble_->AddIntegrator() is executed
+//            //   because of the pointers...
+//            Double alpha, beta, measFreq;
+//            std::string fac;
+//            materials_[actRegion]->GetScalar(alpha,RAYLEIGH_ALPHA,Global::REAL);
+//            materials_[actRegion]->GetScalar(beta,RAYLEIGH_BETA,Global::REAL);
+//            materials_[actRegion]->GetScalar(measFreq,RAYLEIGH_FREQUENCY,Global::REAL);
+//
+//            // stiffness part
+//            if( isComplex_ ) {
+//              fac = GenStr( beta * measFreq) + "/ f";
+//            } else {
+//              fac = GenStr( beta );
+//            }
+//            stiffContext->SetSecDestMat( DAMPING, fac );
+//
+//            // mass part
+//            if( isComplex_ ) {
+//              fac = GenStr( alpha / measFreq) + "* f";
+//            } else {
+//              fac = GenStr( alpha );
+//            }
+//            massContext->SetSecDestMat( DAMPING, fac );
 //          }
 //
-//          stiffContext->SetSecDestMat( DAMPING, fac );
-//          stiffContext->SetDampLayer(dampFnc, mPoint, dampFactor,
-//                                     dampFactorMax, startRadius,
-//                                     stopRadius);
-//          // mass part
-//          if( isComplex_ ) {
-//            fac = GenStr( alpha / measFreq) + "* f";
-//          } else {
-//            fac = GenStr( alpha );
+//
+//          else if ( dampingList_[actRegion] == THERMOVISCOUS ) {
+//            Double viscousAlpha;
+//            materials_[actRegion]->GetScalar(viscousAlpha, ACOU_ALPHA,Global::REAL);
+//
+//            coeffdamp  =  density * 2.0 * viscousAlpha * c0;
+//            BaseForm * bilinearStiff  = new LaplaceInt(coeffdamp, isaxi_);
+//            BiLinFormContext * dampContext =
+//              new BiLinFormContext(bilinearStiff, DAMPING );
+//            //dampContext->SetResults( results_[0], results_[0],
+//            //                         actSDList, actSDList );
+//            //dampContext->SetPtPdes(this, this);
+//            assemble_->AddBiLinearForm( dampContext );
 //          }
-//          massContext->SetSecDestMat( DAMPING, fac );
-//          massContext->SetDampLayer(dampFnc, mPoint, dampFactor,
-//                                    dampFactorMax, startRadius,
-//                                    stopRadius);
-        }
-
-        // ********************************************************************
-        //   Additional terms for damping
-        // ********************************************************************
-        if ( dampingList_.size() > 0 ) {
-
-          // We check, if damping has been specified for all regions.
-//          if ( dampingList_.size() != subdoms_.GetSize() ) {
-//            (*warning) << "Mismatch between dampingList_ and subdoms_!"
-//                       << "Size(dampingList_): " << dampingList_.size()
-//                       << "Size(subdoms_): " << subdoms_.GetSize();
-//            Warning(__FILE__, __LINE__);
-//}
-
-          if (dampingList_[actRegion] == RAYLEIGH) {
-            // This works even after assemble_->AddIntegrator() is executed
-            //   because of the pointers...
-            Double alpha, beta, measFreq;
-            std::string fac;
-            materials_[actRegion]->GetScalar(alpha,RAYLEIGH_ALPHA,Global::REAL);
-            materials_[actRegion]->GetScalar(beta,RAYLEIGH_BETA,Global::REAL);
-            materials_[actRegion]->GetScalar(measFreq,RAYLEIGH_FREQUENCY,Global::REAL);
-
-            // stiffness part
-            if( isComplex_ ) {
-              fac = GenStr( beta * measFreq) + "/ f";
-            } else {
-              fac = GenStr( beta );
-            }
-            stiffContext->SetSecDestMat( DAMPING, fac );
-
-            // mass part
-            if( isComplex_ ) {
-              fac = GenStr( alpha / measFreq) + "* f";
-            } else {
-              fac = GenStr( alpha );
-            }
-            massContext->SetSecDestMat( DAMPING, fac );
-          }
-
-
-          else if ( dampingList_[actRegion] == THERMOVISCOUS ) {
-            Double viscousAlpha;
-            materials_[actRegion]->GetScalar(viscousAlpha, ACOU_ALPHA,Global::REAL);
-
-            coeffdamp  =  density * 2.0 * viscousAlpha * c0;
-            BaseForm * bilinearStiff  = new LaplaceInt(coeffdamp, isaxi_);
-            BiLinFormContext * dampContext =
-              new BiLinFormContext(bilinearStiff, DAMPING );
-            //dampContext->SetResults( results_[0], results_[0],
-            //                         actSDList, actSDList );
-            //dampContext->SetPtPdes(this, this);
-            assemble_->AddBiLinearForm( dampContext );
-          }
-
-          else if ( (analysistype_ != HARMONIC) &&
-                    (dampingList_[actRegion] == FRACTIONAL_GL ||
-                     dampingList_[actRegion] == FRACTIONAL_GL_INT ) ) {
-
-            Double fracAlpha, fracExp;
-            materials_[actRegion]->GetScalar(fracAlpha,ACOU_ALPHA,Global::REAL);
-            materials_[actRegion]->GetScalar(fracExp,FRACTIONAL_EXPONENT,Global::REAL);
-
-            coeffdamp = - density*2.0*fracAlpha/c0/sin((fracExp-1.0)*PI/2.0);
-
-            MassInt * bilinearDamp = new MassInt(coeffdamp, 1, isaxi_);
-
-            Double fracDampCoeff = GetFracDampMatrixCoeff( actRegion );
-            bilinearDamp->SetSecondFactor( GenStr(fracDampCoeff ) );
-
-            // formulation using DAMPING matrix
-            // adapt NewmarkFracDamp::Init and StdPDE::GetFracDampMatrixCoeff
-            // IntegratorDescriptor * dampIntDescr =
-            //   new IntegratorDescriptor(bilinearDamp, DAMPING);
-
-            // two matrices formulation
-            // added to STIFFNESS matrix because, because
-            //   matrix_factors[STIFFNESS] = 1.0
-            BiLinFormContext * dampContext =
-              new BiLinFormContext( bilinearDamp, STIFFNESS );
-            //dampContext->SetResults( results_[0], results_[0],
-            //                         actSDList, actSDList );
-            //dampContext->SetPtPdes(this, this);
-            assemble_->AddBiLinearForm( dampContext );
-          }
-
-          else if  ( (analysistype_ != HARMONIC) &&
-                     (dampingList_[actRegion] == FRACTIONAL_BLANK ||
-                      dampingList_[actRegion] == FRACTIONAL_BLANK_INT) ) {
-
-            Double fracAlpha, fracExp;
-            materials_[actRegion]->GetScalar(fracAlpha,ACOU_ALPHA,Global::REAL);
-            materials_[actRegion]->GetScalar(fracExp,FRACTIONAL_EXPONENT,Global::REAL);
-
-            coeffdamp =  - density*2.0*fracAlpha/c0/sin((fracExp-1.0)*PI/2.0);
-            // prefactor of blank alg
-            coeffdamp *= exp(-gammaln(1.0- (fracExp- 1.0)) );
-            // weight factor of index 0
-            coeffdamp *= 1.0/(1.0- (fracExp- 1.0));
-
-            MassInt * bilinearDamp = new MassInt(coeffdamp, 1, isaxi_);
-
-            Double fracDampCoeff = GetFracDampMatrixCoeff( actRegion );
-            bilinearDamp->SetSecondFactor( GenStr(fracDampCoeff) );
-
-            // formulation using DAMPING matrix
-            // adapt NewmarkFracDamp::Init and StdPDE::GetFracDampMatrixCoeff
-            // IntegratorDescriptor * dampIntDescr =
-            //   new IntegratorDescriptor(bilinearDamp, DAMPING);
-
-            // two matrices formulation
-            // added to STIFFNEss matrix because, because
-            //   matrix_factors[STIFFNESS] = 1.0
-            BiLinFormContext * dampContext =
-              new BiLinFormContext( bilinearDamp, STIFFNESS );
-            //dampContext->SetResults( results_[0], results_[0],
-            //                         actSDList, actSDList );
-            //dampContext->SetPtPdes(this, this);
-            assemble_->AddBiLinearForm( dampContext );
-          }
-
-          else if ( (analysistype_ == HARMONIC) &&
-                    (dampingList_[subdoms_[actSD]] == FRACTIONAL_GL ||
-                     dampingList_[subdoms_[actSD]] == FRACTIONAL_GL_INT ||
-                     dampingList_[subdoms_[actSD]] == FRACTIONAL_BLANK ||
-                     dampingList_[subdoms_[actSD]] == FRACTIONAL_BLANK_INT) ) {
-
-            Double fracAlpha, fracExp;
-            materials_[subdoms_[actSD]]->GetScalar(fracAlpha,ACOU_ALPHA,Global::REAL);
-            materials_[subdoms_[actSD]]->GetScalar(fracExp,FRACTIONAL_EXPONENT,Global::REAL);
-
-            Double factorReal, factorImag;
-            factorReal = density*2.0*fracAlpha/c0/tan((fracExp-1.0)*PI/2.0);
-            factorImag = density*2.0*fracAlpha/c0;
-
-            // set up real and imaginary part of damping matrix
-            BaseForm * bilinearDampReal = new MassInt(factorReal, 1, isaxi_);
-            BaseForm * bilinearDampImag = new MassInt(factorImag, 1, isaxi_);
-
-            std::string omegaFac;
-            omegaFac = "exp((" +  GenStr(fracExp) + "+1)*ln(2*pi*f))";
-            bilinearDampReal->SetSecondFactor( omegaFac );
-            bilinearDampImag->SetSecondFactor( omegaFac );
-
-            // Choose stiffness matrix, because in HARMONIC calculation mass and
-            //  damping matrix are multiplied by multiples of omega
-            //  See method Matrix2Harmonic in assemble.cc
-            BiLinFormContext * dampContextReal =
-              new BiLinFormContext( bilinearDampReal, STIFFNESS );
-            //dampContextReal->SetPtPdes(this, this);
-            //dampContextReal->SetResults( results_[0], results_[0],
-            //                             actSDList, actSDList );
-
-            BiLinFormContext * dampContextImag =
-              new BiLinFormContext( bilinearDampImag, STIFFNESS );
-            //dampContextImag->SetPtPdes(this, this);
-            //dampContextImag->SetResults( results_[0], results_[0],
-            //                             actSDList, actSDList );
-            // set imaginary flag of matrix context
-            Global::ComplexPart complexType = Global::IMAG;
-            dampContextImag->SetEntryType(complexType);
-
-            assemble_->AddBiLinearForm( dampContextReal );
-            assemble_->AddBiLinearForm( dampContextImag );
-          }
-        }
+//
+//          else if ( (analysistype_ != HARMONIC) &&
+//                    (dampingList_[actRegion] == FRACTIONAL_GL ||
+//                     dampingList_[actRegion] == FRACTIONAL_GL_INT ) ) {
+//
+//            Double fracAlpha, fracExp;
+//            materials_[actRegion]->GetScalar(fracAlpha,ACOU_ALPHA,Global::REAL);
+//            materials_[actRegion]->GetScalar(fracExp,FRACTIONAL_EXPONENT,Global::REAL);
+//
+//            coeffdamp = - density*2.0*fracAlpha/c0/sin((fracExp-1.0)*PI/2.0);
+//
+//            MassInt * bilinearDamp = new MassInt(coeffdamp, 1, isaxi_);
+//
+//            Double fracDampCoeff = GetFracDampMatrixCoeff( actRegion );
+//            bilinearDamp->SetSecondFactor( GenStr(fracDampCoeff ) );
+//
+//            // formulation using DAMPING matrix
+//            // adapt NewmarkFracDamp::Init and StdPDE::GetFracDampMatrixCoeff
+//            // IntegratorDescriptor * dampIntDescr =
+//            //   new IntegratorDescriptor(bilinearDamp, DAMPING);
+//
+//            // two matrices formulation
+//            // added to STIFFNESS matrix because, because
+//            //   matrix_factors[STIFFNESS] = 1.0
+//            BiLinFormContext * dampContext =
+//              new BiLinFormContext( bilinearDamp, STIFFNESS );
+//            //dampContext->SetResults( results_[0], results_[0],
+//            //                         actSDList, actSDList );
+//            //dampContext->SetPtPdes(this, this);
+//            assemble_->AddBiLinearForm( dampContext );
+//          }
+//
+//          else if  ( (analysistype_ != HARMONIC) &&
+//                     (dampingList_[actRegion] == FRACTIONAL_BLANK ||
+//                      dampingList_[actRegion] == FRACTIONAL_BLANK_INT) ) {
+//
+//            Double fracAlpha, fracExp;
+//            materials_[actRegion]->GetScalar(fracAlpha,ACOU_ALPHA,Global::REAL);
+//            materials_[actRegion]->GetScalar(fracExp,FRACTIONAL_EXPONENT,Global::REAL);
+//
+//            coeffdamp =  - density*2.0*fracAlpha/c0/sin((fracExp-1.0)*PI/2.0);
+//            // prefactor of blank alg
+//            coeffdamp *= exp(-gammaln(1.0- (fracExp- 1.0)) );
+//            // weight factor of index 0
+//            coeffdamp *= 1.0/(1.0- (fracExp- 1.0));
+//
+//            MassInt * bilinearDamp = new MassInt(coeffdamp, 1, isaxi_);
+//
+//            Double fracDampCoeff = GetFracDampMatrixCoeff( actRegion );
+//            bilinearDamp->SetSecondFactor( GenStr(fracDampCoeff) );
+//
+//            // formulation using DAMPING matrix
+//            // adapt NewmarkFracDamp::Init and StdPDE::GetFracDampMatrixCoeff
+//            // IntegratorDescriptor * dampIntDescr =
+//            //   new IntegratorDescriptor(bilinearDamp, DAMPING);
+//
+//            // two matrices formulation
+//            // added to STIFFNEss matrix because, because
+//            //   matrix_factors[STIFFNESS] = 1.0
+//            BiLinFormContext * dampContext =
+//              new BiLinFormContext( bilinearDamp, STIFFNESS );
+//            //dampContext->SetResults( results_[0], results_[0],
+//            //                         actSDList, actSDList );
+//            //dampContext->SetPtPdes(this, this);
+//            assemble_->AddBiLinearForm( dampContext );
+//          }
+//
+//          else if ( (analysistype_ == HARMONIC) &&
+//                    (dampingList_[subdoms_[actSD]] == FRACTIONAL_GL ||
+//                     dampingList_[subdoms_[actSD]] == FRACTIONAL_GL_INT ||
+//                     dampingList_[subdoms_[actSD]] == FRACTIONAL_BLANK ||
+//                     dampingList_[subdoms_[actSD]] == FRACTIONAL_BLANK_INT) ) {
+//
+//            Double fracAlpha, fracExp;
+//            materials_[subdoms_[actSD]]->GetScalar(fracAlpha,ACOU_ALPHA,Global::REAL);
+//            materials_[subdoms_[actSD]]->GetScalar(fracExp,FRACTIONAL_EXPONENT,Global::REAL);
+//
+//            Double factorReal, factorImag;
+//            factorReal = density*2.0*fracAlpha/c0/tan((fracExp-1.0)*PI/2.0);
+//            factorImag = density*2.0*fracAlpha/c0;
+//
+//            // set up real and imaginary part of damping matrix
+//            BaseForm * bilinearDampReal = new MassInt(factorReal, 1, isaxi_);
+//            BaseForm * bilinearDampImag = new MassInt(factorImag, 1, isaxi_);
+//
+//            std::string omegaFac;
+//            omegaFac = "exp((" +  GenStr(fracExp) + "+1)*ln(2*pi*f))";
+//            bilinearDampReal->SetSecondFactor( omegaFac );
+//            bilinearDampImag->SetSecondFactor( omegaFac );
+//
+//            // Choose stiffness matrix, because in HARMONIC calculation mass and
+//            //  damping matrix are multiplied by multiples of omega
+//            //  See method Matrix2Harmonic in assemble.cc
+//            BiLinFormContext * dampContextReal =
+//              new BiLinFormContext( bilinearDampReal, STIFFNESS );
+//            //dampContextReal->SetPtPdes(this, this);
+//            //dampContextReal->SetResults( results_[0], results_[0],
+//            //                             actSDList, actSDList );
+//
+//            BiLinFormContext * dampContextImag =
+//              new BiLinFormContext( bilinearDampImag, STIFFNESS );
+//            //dampContextImag->SetPtPdes(this, this);
+//            //dampContextImag->SetResults( results_[0], results_[0],
+//            //                             actSDList, actSDList );
+//            // set imaginary flag of matrix context
+//            Global::ComplexPart complexType = Global::IMAG;
+//            dampContextImag->SetEntryType(complexType);
+//
+//            assemble_->AddBiLinearForm( dampContextReal );
+//            assemble_->AddBiLinearForm( dampContextImag );
+//          }
+//        }
 
         // Finally add the stiffness/mass integrators
-        assemble_->AddBiLinearForm( stiffContext );
-        assemble_->AddBiLinearForm( massContext );
+//        assemble_->AddBiLinearForm( stiffContext );
+//        assemble_->AddBiLinearForm( massContext );
       }
 
       // Give result to equation numbering class
@@ -744,55 +744,55 @@ namespace CoupledField {
     // **********************************************************************
     //   inhom. Neumann boundary condition
     // **********************************************************************
-    for( UInt iBc = 0; iBc < inBcs_.GetSize(); iBc++ ) {
-
-      // get current Bc
-      InhomNeumannBc const & actBc = *inBcs_[iBc];
-
-      //BaseForm *neumannBC = new VolumeSrcInt( amplitude, isaxi_ );
-      LinearSurfForm *neumannBC = new LinNeumannInt( actBc.value, actBc.phase,
-                                                     DENSITY, isaxi_ );
-      neumannBC->SetVoluInfo( materials_ );
-      LinearFormContext * neumannContext =
-        new LinearFormContext( neumannBC );
-      //neumannContext->SetPtPde( this );
-      //neumannContext->SetResult( actBc.result, actBc.entities );
-      assemble_->AddLinearForm( neumannContext );
-
-      // Give result to equation numbering class
-      //eqnMap_->AddResult( *actBc.result, actBc.entities );
-    }
+//    for( UInt iBc = 0; iBc < inBcs_.GetSize(); iBc++ ) {
+//
+//      // get current Bc
+//      InhomNeumannBc const & actBc = *inBcs_[iBc];
+//
+//      //BaseForm *neumannBC = new VolumeSrcInt( amplitude, isaxi_ );
+//      LinearSurfForm *neumannBC = new LinNeumannInt( actBc.value, actBc.phase,
+//                                                     DENSITY, isaxi_ );
+//      neumannBC->SetVoluInfo( materials_ );
+//      LinearFormContext * neumannContext =
+//        new LinearFormContext( neumannBC );
+//      //neumannContext->SetPtPde( this );
+//      //neumannContext->SetResult( actBc.result, actBc.entities );
+//      assemble_->AddLinearForm( neumannContext );
+//
+//      // Give result to equation numbering class
+//      //eqnMap_->AddResult( *actBc.result, actBc.entities );
+//    }
 
     // **********************************************************************
     //   surface-integration: Absorbing boundaries
     // **********************************************************************
-    if ( absorbingBCs_ == true) { // && analysistype_ != HARMONIC ) {
-      for (UInt actSD = 0; actSD < absBCs_.GetSize(); actSD++) {
-
-        AbsorbingBCsInt * bilinear_damp = new AbsorbingBCsInt(isaxi_);
-        bilinear_damp->SetFirstVoluInfo(pdename_, materials_ );
-
-        // In the case of acou-mech coupling we have to multiply the
-        // abc-Integrator matrix with -1
-        if ( isMechCoupled_ == true && formulation_ !=  ACOU_PRESSURE ) {
-          bilinear_damp->SetFactor("-1.0");
-        }
-        // In the case of acou-nrbc coupling we have to multiply the
-        // abc-Integrator matrix with C0 and multiply it by nrbcBeta0
-        if ( isNrbcCoupled_ == true ) {
-          bilinear_damp->SetFactor(GenStr(sqrt( compressibility / density )));
-        }
-        BiLinFormContext * abcContext =
-          new BiLinFormContext( bilinear_damp, DAMPING );
-        //abcContext->SetPtPdes(this, this);
-        //abcContext->SetResults( results_[0], results_[0],
-        //                        absBCs_[actSD], absBCs_[actSD] );
-        assemble_->AddBiLinearForm( abcContext );
-
-        // Give result to equation numbering class
-        //eqnMap_->AddResult( *results_[0], absBCs_[actSD] );
-      }
-    }
+//    if ( absorbingBCs_ == true) { // && analysistype_ != HARMONIC ) {
+//      for (UInt actSD = 0; actSD < absBCs_.GetSize(); actSD++) {
+//
+//        AbsorbingBCsInt * bilinear_damp = new AbsorbingBCsInt(isaxi_);
+//        bilinear_damp->SetFirstVoluInfo(pdename_, materials_ );
+//
+//        // In the case of acou-mech coupling we have to multiply the
+//        // abc-Integrator matrix with -1
+//        if ( isMechCoupled_ == true && formulation_ !=  ACOU_PRESSURE ) {
+//          bilinear_damp->SetFactor("-1.0");
+//        }
+//        // In the case of acou-nrbc coupling we have to multiply the
+//        // abc-Integrator matrix with C0 and multiply it by nrbcBeta0
+//        if ( isNrbcCoupled_ == true ) {
+//          bilinear_damp->SetFactor(GenStr(sqrt( compressibility / density )));
+//        }
+//        BiLinFormContext * abcContext =
+//          new BiLinFormContext( bilinear_damp, DAMPING );
+//        //abcContext->SetPtPdes(this, this);
+//        //abcContext->SetResults( results_[0], results_[0],
+//        //                        absBCs_[actSD], absBCs_[actSD] );
+//        assemble_->AddBiLinearForm( abcContext );
+//
+//        // Give result to equation numbering class
+//        //eqnMap_->AddResult( *results_[0], absBCs_[actSD] );
+//      }
+//    }
 
     // =======================================================================
     // Integrators for NonConforming Interfaces
@@ -902,18 +902,18 @@ namespace CoupledField {
       RETHROW_EXCEPTION(ex, "Error while trying to read parameters for AcouRHSLinForm.");
     }
 
-    if(rhsRegion != "")
-    {
-      acouRHSRegionNodeList->SetNodesOfRegion( ptgrid_->RegionNameToId(rhsRegion) );
-
-      AcouRHSLinForm* acouRHSInt = new AcouRHSLinForm(rhsValuesNode);
-
-      LinearFormContext * acouRHSContext =
-        new LinearFormContext( acouRHSInt );
-      //acouRHSContext->SetPtPde( this );
-      //acouRHSContext->SetResult( results_[0], acouRHSRegionNodeList );
-      assemble_->AddLinearForm( acouRHSContext );
-    }
+//    if(rhsRegion != "")
+//    {
+//      acouRHSRegionNodeList->SetNodesOfRegion( ptgrid_->RegionNameToId(rhsRegion) );
+//
+//      AcouRHSLinForm* acouRHSInt = new AcouRHSLinForm(rhsValuesNode);
+//
+//      LinearFormContext * acouRHSContext =
+//        new LinearFormContext( acouRHSInt );
+//      //acouRHSContext->SetPtPde( this );
+//      //acouRHSContext->SetResult( results_[0], acouRHSRegionNodeList );
+//      assemble_->AddLinearForm( acouRHSContext );
+//    }
   }
 
   void AcousticPDE::DefineSolveStep() {
@@ -1701,7 +1701,7 @@ namespace CoupledField {
 
     // loop over all elements of subdomain
     for (it.Begin(); !it.IsEnd(); it++ ) {
-      BaseFE * ptElem = it.GetElem()->ptElem;
+      BaseFE * ptElem = feSpace_->GetFe(it);
       RegionIdType actRegion = it.GetElem()->regionId;
       materials_[actRegion]->GetScalar(density,DENSITY,Global::REAL);
 
@@ -1712,9 +1712,10 @@ namespace CoupledField {
 
       // get shape function at center of the element
       Vector<Double> shapeFnc;
-      Vector<Double> LCoord;
-      ptElem -> GetCoordMidPoint(LCoord);
-      ptElem -> GetShFnc(shapeFnc,LCoord,it.GetElem());
+      LocPoint locMid;
+      shared_ptr<ElemShapeMap> esm = ptgrid_->GetElemShapeMap( it.GetElem());
+      locMid.coord = (Elem::shapes[it.GetElem()->type]).midPointCoord;
+      ptElem -> GetShFnc(shapeFnc,locMid,it.GetElem());
 
       // retrieve 1st derivative and multiply with density,
       //  since p = rho * dpsi/dt

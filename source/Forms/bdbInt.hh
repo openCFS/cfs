@@ -40,8 +40,23 @@ namespace CoupledField {
                                    EntityIterator& ent2,
                                    Double & beta, Double & omega );
 
+    //! Apply differential operator to vector
+    virtual void ApplyBMat( Vector<Double>& retVec,  
+                            LocPointMapped& lp, BaseFE* ptFE, 
+                            const Vector<Double>& solVec ) {
+      EXCEPTION("Not implemented");
+    }
+    //! Apply differential operator to vector
+        virtual void ApplyBMat( Vector<Complex>& retVec,  
+                                LocPointMapped& lp, BaseFE* ptFE, 
+                                const Vector<Complex>& solVec ) {
+          EXCEPTION("Not implemented");
+        }
+    
 
-
+    virtual void calcBMat(Matrix<Double>& bMat, 
+                             LocPointMapped& lp, BaseFE* ptFE ) {};
+    
     //! Get B-Matrix of element midpoint
     virtual void calcBMat(EntityIterator it, Matrix<Double> & bMat);
 

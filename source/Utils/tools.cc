@@ -222,23 +222,24 @@ namespace CoupledField {
   }
 
   Double CalcArea(Elem * ptE, Grid * ptgrid, const UInt level){
-    Double         area = 0;
-    BaseFE         * ptelem = ptE->ptElem;
-    const StdVector<UInt> & connect = ptE->connect;
-    Matrix<Double> ptCoord;
-    UInt        nrIntPnts = ptelem->GetNumIntPoints();
-    const Vector<Double> & intWeights = ptelem->GetIntWeights();
-    UInt        i;
-    Double         jacDet;
+     EXCEPTION( "Clean up tools: No mor element geometic information");
+//    Double         area = 0;
+//    BaseFE         * ptelem = ptE->ptElem;
+//    const StdVector<UInt> & connect = ptE->connect;
+//    Matrix<Double> ptCoord;
+//    UInt        nrIntPnts = ptelem->GetNumIntPoints();
+//    const Vector<Double> & intWeights = ptelem->GetIntWeights();
+//    UInt        i;
+//    Double         jacDet;
+//
+//    ptgrid->GetElemNodesCoord(ptCoord,connect);
+//
+//    for (i=0; i<nrIntPnts; i++) {
+//      jacDet = ptelem->CalcJacobianDetAtIp(i+1, ptCoord, NULL);
+//      area +=jacDet*intWeights[i];
+//    }
 
-    ptgrid->GetElemNodesCoord(ptCoord,connect);
-
-    for (i=0; i<nrIntPnts; i++) {
-      jacDet = ptelem->CalcJacobianDetAtIp(i+1, ptCoord, NULL);
-      area +=jacDet*intWeights[i];
-    }
-
-    return area;
+    return -1.0;
   }
 
 

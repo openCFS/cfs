@@ -28,7 +28,12 @@
 
 
 namespace CoupledField
+
 {
+
+
+  //! Forward class declaration
+  class ElemShapeMap;
 
   //! Class representing geometrical entities (elements, nodes, ...) of a
   //! FE simulation.
@@ -100,13 +105,19 @@ namespace CoupledField
 
     //! Returns the geometrical dimension of the mesh. Currently only
     //! two- and three-dimensional meshes are supported.
-    virtual UInt GetDim() = 0;
+    virtual UInt GetDim() = 0; 
 
     //! Returns the maximum node number in the finite element grid.
     virtual UInt GetNumNodes() = 0;
 
     //! Return if grid uses quadratic elements
     virtual bool IsQuadratic() = 0;
+    
+    //! Return if grid is axi-symmetric
+    bool IsAxi() {return isAxi_; }
+    
+    //! Set if grid is axisymmetric
+    void SetAxi(bool isAxi ) { isAxi_ = isAxi;}
 
     //! Get coordinates of node with global number inode
     //! \param rfPoint (out) coordinates of point 3D
@@ -169,10 +180,13 @@ namespace CoupledField
     //+++++++++++++++++++++++++++ ELEM INFORMATION +++++++++++++++++++++++++++
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+   virtual shared_ptr<ElemShapeMap> GetElemShapeMap( const Elem* ptElem,
+                                                        bool updated = false );
+    
     virtual void AddElems(UInt nElems) = 0;
 
     virtual void SetElemData(UInt ielem,
-                             Elem::Elem::FEType type,
+                             Elem::FEType type,
                              RegionIdType region,
                              const UInt* connect) = 0;
 
@@ -723,7 +737,9 @@ namespace CoupledField
     void Wrap_GetNumNodesOfRegion();
     void Wrap_GetNumElemsOfRegion();
     //@}
-
+    
+    //! Flag for axi-symmetry
+    bool isAxi_;
 
     //! List of region identifiers
     StdVector<std::string> regionNames_;

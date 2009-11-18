@@ -181,12 +181,13 @@ namespace CoupledField {
     eType = GiD_NoElement;
 
     // determine element type and number of nodes
-    if ( elemVec[0]->ptElem->GetDim() == 1 ) {
+    UInt dim = Elem::shapes[elemVec[0]->type].dim;
+    if ( dim == 1 ) {
 
       eType = GiD_Linear;
       numElemNodes = elemVec[0]->connect.GetSize();
 
-    } else if ( elemVec[0]->ptElem->GetDim() == 2 ) {
+    } else if ( Elem::shapes[elemVec[0]->type].dim == 2 ) {
 
       eType = GiD_Quadrilateral;
       numElemNodes = elemVec[0]->connect.GetSize();
@@ -202,7 +203,7 @@ namespace CoupledField {
         break;
       }
 
-    } else if ( elemVec[0]->ptElem->GetDim() == 3 ) {
+    } else if ( Elem::shapes[elemVec[0]->type].dim == 3 ) {
 
       eType = GiD_Hexahedra;
       numElemNodes = elemVec[0]->connect.GetSize();
@@ -347,7 +348,7 @@ namespace CoupledField {
     Elem::FEType eType;
     Integer region;
 
-    eType = ptEl->ptElem->feType();
+    eType = ptEl->type;
     region = ptEl->regionId+1;
     elemNum = ptEl->elemNum;
     StdVector<UInt> const & connectDummy = ptEl->connect;
@@ -366,14 +367,14 @@ namespace CoupledField {
       //             connectDummy.GetSize()*sizeof(UInt));
       break;
 
-    case Elem::TRIA3:
+    case Elem::ET_TRIA3:
       connect[0]= connectDummy[0];
       connect[1]= connectDummy[1];
       connect[2]= connectDummy[2];
       connect[3]= connectDummy[2];
       break;
 
-    case Elem::TRIA6:
+    case Elem::ET_TRIA6:
       connect[0] = connectDummy[0];
       connect[1] = connectDummy[1];
       connect[2] = connectDummy[2];
@@ -384,7 +385,7 @@ namespace CoupledField {
       connect[7] = connectDummy[5];
       break;
 
-    case Elem::TET4:
+    case Elem::ET_TET4:
       connect[0] = connectDummy[0];
       connect[1] = connectDummy[1];
       connect[2] = connectDummy[2];
@@ -395,7 +396,7 @@ namespace CoupledField {
       connect[7] = connectDummy[3];
       break;
 
-    case Elem::TET10:
+    case Elem::ET_TET10:
       connect[0] = connectDummy[0];
       connect[1] = connectDummy[1];
       connect[2] = connectDummy[2];
@@ -418,7 +419,7 @@ namespace CoupledField {
       connect[19]= connectDummy[3];
       break;
 
-    case Elem::HEXA8:
+    case Elem::ET_HEXA8:
       connect[0] = connectDummy[4];
       connect[1] = connectDummy[5];
       connect[2] = connectDummy[6];
@@ -431,7 +432,7 @@ namespace CoupledField {
 
       // NOTE: The numberings of hexehadras in gid differs for
       // the quadratic case!
-    case Elem::HEXA20:
+    case Elem::ET_HEXA20:
       connect[0]  = connectDummy[0];
       connect[1]  = connectDummy[1];
       connect[2]  = connectDummy[2];
@@ -454,7 +455,7 @@ namespace CoupledField {
       connect[19] = connectDummy[15];
       break;
 
-    case Elem::HEXA27:
+    case Elem::ET_HEXA27:
       connect[0]  = connectDummy[0];
       connect[1]  = connectDummy[1];
       connect[2]  = connectDummy[2];
@@ -485,7 +486,7 @@ namespace CoupledField {
       connect[26]  = connectDummy[26];
       break;
 
-    case Elem::PYRA5:
+    case Elem::ET_PYRA5:
       connect[0] = connectDummy[0];
       connect[1] = connectDummy[1];
       connect[2] = connectDummy[2];
@@ -496,7 +497,7 @@ namespace CoupledField {
       connect[7] = connectDummy[4];
       break;
 
-    case Elem::PYRA13:
+    case Elem::ET_PYRA13:
       connect[0]= connectDummy[0];
       connect[1]= connectDummy[1];
       connect[2]= connectDummy[2];
@@ -519,7 +520,7 @@ namespace CoupledField {
       connect[19]= connectDummy[4];
       break;
 
-    case Elem::WEDGE6:
+    case Elem::ET_WEDGE6:
       connect[0]= connectDummy[0];
       connect[1]= connectDummy[1];
       connect[2]= connectDummy[2];
@@ -530,7 +531,7 @@ namespace CoupledField {
       connect[7]= connectDummy[5];
       break;
 
-    case Elem::WEDGE15:
+    case Elem::ET_WEDGE15:
       connect[0] = connectDummy[0];
       connect[1] = connectDummy[1];
       connect[2] = connectDummy[2];

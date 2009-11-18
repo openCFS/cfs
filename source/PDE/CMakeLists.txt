@@ -12,9 +12,9 @@ SET(PDE_SRCS
   acousticPDE.cc
   basePDE.cc
   bdf2.cc
-  disContEqnMap.cc
+#  disContEqnMap.cc
   elecPDE.cc
-  eqnMap.cc
+#  eqnMap.cc
 #  fluidMechPDE.cc
 #  heatCondPDE.cc
 #  magEdgePDE.cc

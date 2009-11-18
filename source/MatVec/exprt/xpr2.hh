@@ -44,6 +44,17 @@ public:
 
 };
 
+template <class P, class A, class F>
+class Xpr2FuncTrans {
+  A a;
+public:
+  inline Xpr2FuncTrans(const A& a_) : a(a_) {}
+  inline P operator()(unsigned int i, unsigned int j) const { return F::apply( a(j,i) ); }
+  inline unsigned int rows() const {return a.cols();}
+  inline unsigned int cols() const {return a.rows();}
+
+};
+
 
 
 template <class P, class A, class B, class Op>
@@ -291,6 +302,31 @@ XXX(operator- , UnaryMinus)
 //XXX(exp, Exp)
 #undef XXX
 
+// Explicit Transpose of Dim2 (NO TYPE PROMOTION)
+#define XXX(f,ap) \
+template <class P, class A> \
+Xpr2<P, Xpr2FuncTrans<P, ConstRef2<P,Dim2<P,A> >, ap<P  > > > \
+static inline f(const Dim2<P,A>& a) \
+{\
+   typedef Xpr2FuncTrans<P, ConstRef2<P,Dim2<P,A> >, ap<P  > > ExprT;\
+   return Xpr2<P,ExprT>(ExprT(ConstRef2<P,Dim2<P,A> >(a))); \
+}
+XXX(Transpose, Identity)
+//XXX(exp, Exp)
+#undef XXX
+
+// Explicit Transpose of Xpr2 (NO TYPE PROMOTION)
+#define XXX(f,ap) \
+template <class P, class A> \
+Xpr2<P, Xpr2FuncTrans<P, Xpr2<P,Dim2<P,A> >, ap<P  > > > \
+static inline f(const Xpr2<P,Dim2<P,A> >& a) \
+{\
+   typedef Xpr2FuncTrans<P, Xpr2<P,Dim2<P,A> >, ap<P  > > ExprT;\
+   return Xpr2<P,ExprT>(ExprT(ConstRef2<P,Dim2<P,A> >(a))); \
+}
+XXX(Transpose, Identity)
+//XXX(exp, Exp)
+#undef XXX
 
 
 // Functions of Xpr2 (NO TYPE PROMOTION)
@@ -321,6 +357,7 @@ XXX(operator+, OpAdd)
 XXX(operator-, OpSub)
 #undef XXX
 
+ //the following code is too general,as it would allow for nested matrix matrix multiplications!
 // Multiplication with Two Dim2s (type promotion)
 #define XXX(op) \
   template <class P,class A,class B,class P2>                                   \
@@ -334,6 +371,40 @@ static inline op (const Dim2<P,A>& a, const Dim2<P2,B>& b) {\
 }
 XXX(operator*)
 #undef XXX
+
+//// Multiplication with Two Dim2s (type promotion)
+//#define XXX(op) \
+//  template <class P,class A,class B,class F,class P2>                                   \
+//  Xpr2<PROMOTE(P,P2), Xpr2Reduct<PROMOTE(P,P2),  Xpr2<P,Xpr2FuncTrans<P, ConstRef2<P,Dim2<P,A> >, F > >, ConstRef2<P2,Dim2<P2,B> > > > \
+//static inline op (const ConstRef2<P,Dim2<P,A> >& a, const Dim2<P2,B>& b) {\
+//  typedef \
+//    Xpr2Reduct<PROMOTE(P,P2), Xpr2<P, Xpr2FuncTrans<P, ConstRef2<P,Dim2<P,A> >, F > >, ConstRef2<P2,Dim2<P2,B> > > \
+//      ExprT;\
+//  return Xpr2<PROMOTE(P,P2),ExprT>(ExprT(Xpr2<P,Xpr2FuncTrans<P, ConstRef2<P,Dim2<P,A> >, F > >(a),    \
+//            ConstRef2<P2,Dim2<P2,B> >(b)));\
+//}
+//XXX(operator*)
+//#undef XXX
+////class F
+
+//Xpr2FuncTrans<P, ConstRef2<P,Dim2<P,A> >, F > >
+
+//// Multiplication between Xpr2 and Dim2 (type promotion)
+#define XXX(op) \
+  template <class P,class A,class B,class P2>                                   \
+  Xpr2<PROMOTE(P,P2), Xpr2Reduct<PROMOTE(P,P2), Xpr2<P,A>, ConstRef2<P2,Dim2<P2,B> > > > \
+static inline op (const Xpr2<P,A>& a, const Dim2<P2,B>& b) {\
+  typedef \
+    Xpr2Reduct<PROMOTE(P,P2), Xpr2<P,A >, ConstRef2<P2,Dim2<P2,B> > > \
+      ExprT;\
+  return Xpr2<PROMOTE(P,P2),ExprT>(ExprT(Xpr2<P,A>(a),    \
+            ConstRef2<P2,Dim2<P2,B> >(b)));\
+}
+XXX(operator*)
+#undef XXX
+
+
+
 
 //Binary operations between Dim2 and Xpr2 (NO TYPE PROMOTION)
 #define XXX(op,ap) \
@@ -391,6 +462,21 @@ static inline op (const Dim2<P,A>& a, const Dim1<P2,B>& b) {                    
 }
 XXX(operator*)
 #undef XXX
+
+// Multiplication with Xpr2 and Dim1 (type promotion)
+#define XXX(op)                                                         \
+template <class P, class A, class B, class P2 >                       \
+Xpr1<PROMOTE(P,P2), Xpr1Reduct<PROMOTE(P,P2), Xpr2<P,A>, ConstRef1<P2,Dim1<P2,B> > > > \
+static inline op (const Xpr2<P,A>& a, const Dim1<P2,B>& b) {                          \
+  typedef                                                               \
+    Xpr1Reduct<PROMOTE(P,P2), Xpr2<P,A>, ConstRef1<P2,Dim1<P2,B> > > \
+    ExprT;                                                              \
+  return Xpr1<PROMOTE(P,P2),ExprT>(ExprT(Xpr2<P,A>(a),    \
+                                         ConstRef1<P2,Dim1<P2,B> >(b))); \
+}
+XXX(operator*)
+#undef XXX
+
 
 
 // // Multiplication with Dim2 and Dim1

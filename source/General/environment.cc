@@ -47,25 +47,6 @@ namespace CoupledField {
 #endif
 
   Domain * domain = NULL;
-
-
-  BaseFE * ptQ1     = NULL;
-  BaseFE * ptQ2     = NULL;
-  BaseFE * ptQ9     = NULL;
-  BaseFE * ptTet1   = NULL;
-  BaseFE * ptTet2   = NULL;
-  BaseFE * ptL1     = NULL;
-  BaseFE * ptL2     = NULL;
-  BaseFE * ptTr1    = NULL;
-  BaseFE * ptTr2    = NULL;
-  BaseFE * ptHexa1  = NULL;
-  BaseFE * ptHexa2  = NULL;
-  BaseFE * ptHexa27 = NULL;
-  BaseFE * ptPyra1  = NULL;
-  BaseFE * ptPyra2  = NULL;
-  BaseFE * ptWedge1 = NULL;
-  BaseFE * ptWedge2 = NULL;
-
   // Initialisation of some global pointers
   WriteInfo *Info = NULL;
 

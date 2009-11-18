@@ -4,14 +4,12 @@
 
 #include "fespace.hh"
 
+
 namespace CoupledField {
 
   //! Constructor
   FeSpace::FeSpace(){
-    //build up the pointerMap
-    refElems_[Elem::LINE2] = ptL1;
-    refElems_[Elem::QUAD4] = ptQ1;
-    refElems_[Elem::HEXA8] = ptHexa1;
+    
     isFinalized_ = false;
     numEqns_ = 0;
     numUnknowns_ = 0;

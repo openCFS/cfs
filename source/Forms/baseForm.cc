@@ -133,7 +133,7 @@ namespace CoupledField
   
 #ifndef INTEGLIB
   void BaseForm::ExtractElemInfo( EntityIterator& it ) {
-    ptelem = it.GetElem()->ptElem;
+//    ptelem = it.GetElem()->ptElem;
     it1_ = it;
 
     domain->GetGrid()->GetElemNodesCoord( ptCoord_, 
@@ -181,7 +181,7 @@ namespace CoupledField
   
 #ifndef INTEGLIB
   void SurfForm::ExtractElemInfo( EntityIterator& it ) {
-    ptelem = it.GetElem()->ptElem;
+//    ptelem = it.GetElem()->ptElem;
     
     if( it.GetType() == EntityList::SURF_ELEM_LIST ) {
       actElem_ = it.GetSurfElem();

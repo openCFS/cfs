@@ -1,9 +1,10 @@
 #include "fespaceH1.hh"
+#include "H1Elems.hh"
 
 namespace CoupledField {
 
   //! Constructor
-  FeSpaceH1::FeSpaceH1(){
+  FeSpaceH1::FeSpaceH1() : FeSpace() {
     type_ = H1_LO;
   }
   
@@ -17,6 +18,26 @@ namespace CoupledField {
   
   void FeSpaceH1::SetOrder( UInt order){
     order_ = order;
+    
+    //build up the pointerMap
+    
+    // Note: at the moment this is not implemented in a 
+    // clean fashion. The equation mapping currently relies
+    // on the global node numbers of the element.
+    // Instead, it should use the GetNumFncs(AnsatzFct::NODE)
+    // method, which would deliver the correct number of
+    // unknowns for the calculation element instead of the 
+    // geometric element.
+    if( order == 1) {
+      refElems_[Elem::ET_LINE2]  = new FeH1LagrangeLine1();
+      refElems_[Elem::ET_QUAD4]  = new FeH1LagrangeQuad1();
+      refElems_[Elem::ET_HEXA8]  = new FeH1LagrangeHex1();
+      refElems_[Elem::ET_LINE3]  = new FeH1LagrangeLine2();
+      refElems_[Elem::ET_QUAD8]  = new FeH1LagrangeQuad2();
+      refElems_[Elem::ET_HEXA20] = new FeH1LagrangeHex2();
+    } else {
+      EXCEPTION("Order " << order << " not implemented!");
+    }
   }
   
   
@@ -25,21 +46,21 @@ namespace CoupledField {
     return;
   }
   
-  shared_ptr<BaseFE> FeSpaceH1::GetFe( const EntityIterator ent ){
-
-    if(refElems_.find(ent.GetElem()->ptElem->feType()) == refElems_.end()){
+  BaseFE* FeSpaceH1::GetFe( const EntityIterator ent ){
+    if(refElems_.find(ent.GetElem()->type) == refElems_.end()){
       EXCEPTION("fespaceh1::getfe( const entityiterator): requested fetype which is noch supported by space");
     }
-    return shared_ptr<BaseFE>(refElems_[ent.GetElem()->ptElem->feType()]);
+    return refElems_[ent.GetElem()->type];
   }
 
   //! Returns the number of (vectorial) unkowns on the element
   UInt FeSpaceH1::GetNumFunctions( const EntityIterator ent ){
     //just for debugging purpose
-    if(refElems_.find(ent.GetElem()->ptElem->feType()) == refElems_.end()){
+    if(refElems_.find(ent.GetElem()->type) == refElems_.end()){
       EXCEPTION("FeSpaceH1::GetNumFunctions(const EnitityIterator): requested fetype which is noch supported by space");
     }
-    return refElems_[ent.GetElem()->ptElem->feType()]->GetNumFncs(feFunction_->GetResultInfo()->fctType);
+    //return refElems_[ent.GetElem()->ptElem->feType()]->GetNumFncs(feFunction_->GetResultInfo()->fctType);
+    return refElems_[ent.GetElem()->type]->GetNumFncs();
   }
 
   //! Return equation numbers for a all DOFs

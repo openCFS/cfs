@@ -22,6 +22,7 @@ namespace CoupledField
   
   // forward class declaration
   class AnsatzFct;
+  class FeSpace;
 
   //! Base class for calculation of bdb element matrices
   class BaseForm 
@@ -35,6 +36,7 @@ namespace CoupledField
     //! Deconstructor
     virtual ~BaseForm();
 
+    
     //! Return the name of this (bi)linearform
     const std::string& GetName() const { return name_;}
 
@@ -47,6 +49,11 @@ namespace CoupledField
 
     //! Return true if element vector/matrix is complex
     bool IsComplex() { return isComplex_; }
+    
+    //! Set Finite Element Space
+    void SetFeSpace( shared_ptr<FeSpace> feSpace ) {
+      this->ptFeSpace_ = feSpace;
+    }
 
 #ifndef INTEGLIB
     //! Virtual function
@@ -238,6 +245,9 @@ namespace CoupledField
 
     //! matrix with coordinates of current element
     Matrix<Double> ptCoord_;
+    
+    //! pointer to finite element space
+    shared_ptr<FeSpace> ptFeSpace_;
     
     //! pointer to material data
     BaseMaterial* ptMaterial;

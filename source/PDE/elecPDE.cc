@@ -270,8 +270,10 @@ namespace CoupledField {
           //stiffIntDescr->SetPtPdes(this, this);
           stiffIntDescr->SetEntities( actSDList, actSDList );
           stiffIntDescr->SetFeFunctions( feFunction_, feFunction_);
+          linElecForm->SetFeSpace( feFunction_->GetFeSpace());
           
           assemble_->AddBiLinearForm( stiffIntDescr );
+          biLinForms_[actRegion] = linElecForm;
           
           
           // --- check for complex valued material parameter ---
@@ -338,28 +340,28 @@ namespace CoupledField {
 //      
 //    }
 
-    // **********************************************************************
-    //   inhom. Neumann boundary condition
-    // **********************************************************************
-    for( UInt iBc = 0; iBc < inBcs_.GetSize(); iBc++ ) 
-    {
-      InhomNeumannBc const & actBc = *inBcs_[iBc];
-
-      
-      LinearSurfForm *neumannBC = new LinNeumannInt(actBc.value, actBc.phase, 
-                                                     NO_MATERIAL, isaxi_);
-      neumannBC->SetVoluInfo(materials_);
-      LinearFormContext* neumannContext = new LinearFormContext(neumannBC);
-      feFunction_->AddEntityList(actBc.entities);
-
-      neumannContext->SetEntities( actBc.entities);
-      neumannContext->SetFeFunction( feFunction_);
-
-      assemble_->AddLinearForm(neumannContext);
-      
-      // Give result to equation numbering class
-      //eqnMap_->AddResult(*actBc.result, actBc.entities);
-    }
+//    // **********************************************************************
+//    //   inhom. Neumann boundary condition
+//    // **********************************************************************
+//    for( UInt iBc = 0; iBc < inBcs_.GetSize(); iBc++ ) 
+//    {
+//      InhomNeumannBc const & actBc = *inBcs_[iBc];
+//
+//      
+//      LinearSurfForm *neumannBC = new LinNeumannInt(actBc.value, actBc.phase, 
+//                                                     NO_MATERIAL, isaxi_);
+//      neumannBC->SetVoluInfo(materials_);
+//      LinearFormContext* neumannContext = new LinearFormContext(neumannBC);
+//      feFunction_->AddEntityList(actBc.entities);
+//
+//      neumannContext->SetEntities( actBc.entities);
+//      neumannContext->SetFeFunction( feFunction_);
+//
+//      assemble_->AddLinearForm(neumannContext);
+//      
+//      // Give result to equation numbering class
+//      //eqnMap_->AddResult(*actBc.result, actBc.entities);
+//    }
     
     // =======================================================================
     // Integrators for NonConforming Interfaces
@@ -616,13 +618,13 @@ namespace CoupledField {
       }
       break;
        
-//     case ELEC_FIELD_INTENSITY:
-//       if( isComplex_ ) {
-//         CalcElectricField<Complex>( res );
-//       } else {
-//         CalcElectricField<Double>( res );
-//       }
-//       break;
+     case ELEC_FIELD_INTENSITY:
+       if( isComplex_ ) {
+         CalcElectricField<Complex>( res );
+       } else {
+         CalcElectricField<Double>( res );
+       }
+       break;
 //       
 //     case ELEC_FLUX_DENSITY:
 //       if( isComplex_ ) {
@@ -632,13 +634,13 @@ namespace CoupledField {
 //       }
 //       break;
 //
-//     case ELEC_ENERGY:
-//       if( isComplex_ ) {
-//         CalcEnergy<Complex>( res );
-//       } else {
-//         CalcEnergy<Double>( res );
-//       }
-//       break;
+     case ELEC_ENERGY:
+       if( isComplex_ ) {
+         CalcEnergy<Complex>( res );
+       } else {
+         CalcEnergy<Double>( res );
+       }
+       break;
 //
 //     case ELEC_CHARGE:
 //       if( isComplex_ ) {
@@ -669,35 +671,31 @@ namespace CoupledField {
 
 
   template <class TYPE>
-  void ElecPDE::CalcElectricField( shared_ptr<BaseResult> sol )
-  {
-  REFACTOR;
-//    Vector<Double> lCoord;
-//    Vector<TYPE> tempE;
-//    NodeStoreSol<TYPE> & solhelp = dynamic_cast<NodeStoreSol<TYPE>&>(*sol_);
-//    GradientFieldOp<TYPE> * FieldOp = 
-//      new GradientFieldOp<TYPE>(ptgrid_, this, 
-//                                eqnMap_, solhelp, 
-//                                ELEC_POTENTIAL, results_[0],isaxi_);
-//    Result<TYPE> &  actSol = 
-//      dynamic_cast<Result<TYPE>&>(*sol);
-//    EntityIterator it = actSol.GetEntityList()->GetIterator();
-//    
-//    Vector<TYPE> & actVal = actSol.GetVector();
-//    actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
-//    
-//    // loop over elements
-//    for ( it.Begin(); !it.IsEnd(); it++ ) {
-//      it.GetElem()->ptElem->GetCoordMidPoint(lCoord);
-//      FieldOp->CalcElemGradField( tempE, it, lCoord, 1); 
-//      
-//      // loop over dofs
-//      for(UInt iDim = 0; iDim < dim_; iDim++ ) {
-//        actVal[it.GetPos()*dim_ + iDim] = tempE[iDim];
-//      }
-//    }
-//    delete FieldOp;
-//    
+  void ElecPDE::CalcElectricField( shared_ptr<BaseResult> sol ) {
+    Vector<TYPE> tempE, elemSol;
+    NodeStoreSol<TYPE> & solhelp = dynamic_cast<NodeStoreSol<TYPE>&>(*sol_);
+    Result<TYPE> &  actSol = 
+      dynamic_cast<Result<TYPE>&>(*sol);
+    EntityIterator it = actSol.GetEntityList()->GetIterator();
+    Vector<TYPE> & actVal = actSol.GetVector();
+    actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
+
+    
+    // loop over elements
+    LocPointMapped lpm;
+    for ( it.Begin(); !it.IsEnd(); it++ ) {
+      const Elem * el = it.GetElem();
+      linElecInt * li = biLinForms_[el->regionId];
+      shared_ptr<ElemShapeMap> esm = ptgrid_->GetElemShapeMap( el, true );
+      BaseFE*  ptFe = feSpace_->GetFe( it );
+      lpm.Set( Elem::shapes[el->type].midPointCoord, esm );
+      solhelp.GetElemSolution( elemSol, it );
+      li->ApplyBMat( tempE, lpm, ptFe, elemSol);
+      // loop over dofs
+      for(UInt iDim = 0; iDim < dim_; iDim++ ) {
+        actVal[it.GetPos()*dim_ + iDim] = -tempE[iDim];
+      }
+    }
   }
   
   template <class TYPE>
@@ -953,62 +951,63 @@ namespace CoupledField {
   void ElecPDE::CalcEnergy( shared_ptr<BaseResult> vals )
   {
     REFACTOR;
-//    Matrix<Double> elemmat;  
-//    SubTensorType tensorType;
-//
-//    if ( dim_ == 3 ) {
-//      tensorType = FULL;
-//    }
-//    else {
-//      if ( isaxi_ == true ) {
-//        tensorType = AXI;
-//      }
-//      else {
-//        // 2d: plane case
-//        tensorType = PLANE_STRAIN;
-//      }
-//    }
-//   
-//    Vector<TYPE> help;
-//    std::string factor = "1.0";
-//    TYPE energy;
-//
-//    Result<TYPE> &  actSol = 
-//      dynamic_cast<Result<TYPE>&>(*vals);      
-//    EntityIterator regionIt = actSol.GetEntityList()->GetIterator();
-//    
-//    // resize vector
-//    Vector<TYPE> & actVal = actSol.GetVector();
-//    actVal.Resize( actSol.GetEntityList()->GetSize() );
-//    
-//    // Loop over regions
-//    for( regionIt.Begin(); !regionIt.IsEnd(); regionIt++ ) {
-//      ElemList actSDList(ptgrid_ );
-//      actSDList.SetRegion( regionIt.GetRegion() );
-//      EntityIterator elemIt = actSDList.GetIterator();
-//      
+    Matrix<Double> elemmat;  
+    SubTensorType tensorType;
+
+    if ( dim_ == 3 ) {
+      tensorType = FULL;
+    }
+    else {
+      if ( isaxi_ == true ) {
+        tensorType = AXI;
+      }
+      else {
+        // 2d: plane case
+        tensorType = PLANE_STRAIN;
+      }
+    }
+   
+    Vector<TYPE> help;
+    std::string factor = "1.0";
+    TYPE energy;
+
+    Result<TYPE> &  actSol = 
+      dynamic_cast<Result<TYPE>&>(*vals);      
+    EntityIterator regionIt = actSol.GetEntityList()->GetIterator();
+    
+    // resize vector
+    Vector<TYPE> & actVal = actSol.GetVector();
+    actVal.Resize( actSol.GetEntityList()->GetSize() );
+    
+    // Loop over regions
+    for( regionIt.Begin(); !regionIt.IsEnd(); regionIt++ ) {
+      ElemList actSDList(ptgrid_ );
+      actSDList.SetRegion( regionIt.GetRegion() );
+      linElecInt * bilinear_stiff = biLinForms_[regionIt.GetRegion()];
+      
+      EntityIterator elemIt = actSDList.GetIterator();
+      
 //      linElecInt * bilinear_stiff = 
 //        new linElecInt(materials_[regionIt.GetRegion()],tensorType);
-//
-//      // Loop over elements
-//      energy = 0;
-//      Vector<TYPE> elpot;
-//      for( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
-//        
-//        bilinear_stiff->SetFactor(factor);
-//        bilinear_stiff->CalcElementMatrix( elemmat, elemIt, elemIt );
-//        
-//        sol_->GetElemSolution(elpot, elemIt );
-//        help =  elemmat * elpot;
-//        energy += 0.5 * (help * elpot);
-//        
-//        LOG_DBG3(elecpde) << "CalcEnergy: elem=" << elemIt.GetElem()->elemNum << " mat=" << elemmat.ToString();
-//        LOG_DBG3(elecpde) << "CalcEnergy: elemIt=" << elemIt.GetElem()->elemNum << " elpot=" << elpot.ToString();
-//        LOG_DBG3(elecpde) << "CalcEnergy: elemIt=" << elemIt.GetElem()->elemNum << " sum energy -> " << energy;
-//      }  
-//      actVal[regionIt.GetPos()] = energy;
-//      delete bilinear_stiff;
-//    }
+
+      // Loop over elements
+      energy = 0;
+      Vector<TYPE> elpot;
+      for( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
+        
+        bilinear_stiff->SetFactor(factor);
+        bilinear_stiff->CalcElementMatrix( elemmat, elemIt, elemIt );
+        
+        sol_->GetElemSolution(elpot, elemIt );
+        help =  elemmat * elpot;
+        energy += 0.5 * (help * elpot);
+        
+        LOG_DBG3(elecpde) << "CalcEnergy: elem=" << elemIt.GetElem()->elemNum << " mat=" << elemmat.ToString();
+        LOG_DBG3(elecpde) << "CalcEnergy: elemIt=" << elemIt.GetElem()->elemNum << " elpot=" << elpot.ToString();
+        LOG_DBG3(elecpde) << "CalcEnergy: elemIt=" << elemIt.GetElem()->elemNum << " sum energy -> " << energy;
+      }  
+      actVal[regionIt.GetPos()] = energy;
+    }
   }
 
 
@@ -1184,9 +1183,12 @@ namespace CoupledField {
     std::string approxType = myParam_->Get("type")->AsString();
 
     if ( approxType == "H1" ) {
+      UInt order = myParam_->Get("order")->AsUInt();
       shared_ptr<ResultInfo> res1( new ResultInfo);
       res1->resultType = ELEC_POTENTIAL;
-      feSpace_.reset( new FeSpaceH1 );
+      shared_ptr<FeSpaceH1> mySpace( new FeSpaceH1 );
+      mySpace->SetOrder(order);
+      feSpace_ = mySpace;
       if(analysistype_ == HARMONIC){
         feFunction_.reset( new FeFunction<Complex> );
       }else{

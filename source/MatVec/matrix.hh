@@ -648,7 +648,22 @@ namespace CoupledField
   //! Output operator for std::ostream
   template<class TYPE>  std::ostream& operator << ( std::ostream & , 
                                                     const Matrix<TYPE> &);
-
+  
+#ifndef EXPR_TEMPLATES
+  //! Explicit Transpose function
+  template<class TYPE>
+  Matrix<TYPE> Transpose( const Matrix<TYPE>& m ) {
+    UInt numRows = m.GetNumRows();
+    UInt numCols = m.GetNumCols();
+    Matrix<TYPE> trans(numCols, numRows);
+    for( UInt i = 0; i < numCols; i++ ) {
+      for (UInt j = 0; j < numRows; j++ ) {
+        trans[i][j] = m[j][i];
+      }
+    }
+    return trans;
+  }
+#endif
 
 
   // =======================================================================

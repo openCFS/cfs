@@ -763,6 +763,7 @@ namespace CoupledField {
 
     StdVector<Integer> eqns;
     //eqnMap_->GetEqns( eqns, *results_[solIndex], it );
+    feSpace_->GetEqns(eqns, it);
     temp.Resize(eqns.GetSize());
     temp.Init();
 

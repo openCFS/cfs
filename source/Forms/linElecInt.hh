@@ -48,6 +48,17 @@ namespace CoupledField {
     //!                         integration points
     void calcBMat( Matrix<Double> &bMat, UInt ip,
                    Matrix<Double> &ptCoord );
+    void calcBMat(Matrix<Double>& bMat, 
+                  LocPointMapped& lp,  BaseFE* ptFE );
+
+    //! Apply differential operator to vector
+    void ApplyBMat( Vector<Double>& retVec,  
+                    LocPointMapped& lp, BaseFE* ptFE, 
+                    const Vector<Double>& solVec );
+    void ApplyBMat( Vector<Complex>& retVec,  
+                        LocPointMapped& lp, BaseFE* ptFE, 
+                        const Vector<Complex>& solVec );
+    
     
     //! Compute the data-matrix \f$D\f$
     void calcDMat( Matrix<Double> &dMat, const Elem* elem);

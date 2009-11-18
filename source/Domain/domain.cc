@@ -148,6 +148,11 @@ namespace CoupledField {
                    << "'cfsgrid' or 'adaptgrid', but is '" << libmesh << "'" );
       }
       
+      // set flab about axisymmetry
+      if( probGeo == "axi" ) {
+        actGrid->SetAxi( true );
+      }
+         
       // add grid to internal map
       gridMap_[gridId] = actGrid;
 

@@ -709,15 +709,10 @@ namespace CoupledField {
     StdVector<std::string> ret;
     
     ret.Push_back( GenStr( it.GetElem()->elemNum ) );
+    Vector<Double> globCoord, locCoord;
     
-    Vector<Double> elemLocCoord, locCoord, globCoord;
-    Matrix<Double> cornerCoords;
-    ptGrid_->GetElemNodesCoord( cornerCoords, it.GetElem()->connect, false);
-    BaseFE * ptelem = it.GetElem()->ptElem;
+    ptGrid_->GetElemShapeMap(it.GetElem())->GetGlodMidPoint(globCoord);
     
-    ptelem->GetCoordMidPoint( elemLocCoord );
-    ptelem->Local2GlobalCoord(globCoord, elemLocCoord,  
-                              cornerCoords, it.GetElem() );
     if( coordSys_ != NULL ) {
       coordSys_->Global2LocalCoord( locCoord, globCoord );
       for( UInt iDim = 0; iDim < locCoord.GetSize(); iDim++ ) {

@@ -29,23 +29,7 @@ namespace CoupledField
   Grid::Grid()
   {
 
-    if (!ptQ1)     ptQ1     = new Quad1FE();
-//    if (!ptQ2)     ptQ2     = new Quad2FE();
-//    if (!ptQ9)     ptQ9     = new Quad9FE();
-//    if (!ptTet1)   ptTet1   = new Tetra1FE();
-//    if (!ptTet2)   ptTet2   = new Tetra2FE();
-    if (!ptL1)     ptL1     = new Line1FE();
-//    if (!ptL2)     ptL2     = new Line2FE();
-//    if (!ptTr1)    ptTr1    = new Triangle1FE();
-//    if (!ptTr2)    ptTr2    = new Triangle2FE();
-    if (!ptHexa1)  ptHexa1  = new Hexa1FE();
-//    if (!ptHexa2)  ptHexa2  = new Hexa2FE();
-//    if (!ptHexa27) ptHexa27 = new Hexa27FE();
-//    if (!ptPyra1)  ptPyra1  = new Pyra1FE();
-//    if (!ptPyra2)  ptPyra2  = new Pyra2FE();
-//    if (!ptWedge1) ptWedge1 = new Wedge1FE();
-//    if (!ptWedge2) ptWedge2 = new Wedge2FE();
-
+      isAxi_ = false;
  #ifdef USE_SCRIPTING
     // Register functions
     RegisterFunctions();
@@ -56,25 +40,17 @@ namespace CoupledField
 
 
   Grid::~Grid()
-  {
-    delete ptQ1;      ptQ1 = NULL;
-//    delete ptQ2;      ptQ2 = NULL;
-//    delete ptQ9;      ptQ9 = NULL;
-//    delete ptTet1;    ptTet1 = NULL;
-//    delete ptTet2;    ptTet2 = NULL;
-    delete ptL1;      ptL1 = NULL;
-//    delete ptL2;      ptL2 = NULL;
-//    delete ptTr1;     ptTr1 = NULL;
-//    delete ptTr2;     ptTr2 = NULL;
-    delete ptHexa1;   ptHexa1 = NULL;
-//    delete ptHexa2;   ptHexa2 = NULL;
-//    delete ptHexa27;  ptHexa27 = NULL;
-//    delete ptPyra1;   ptPyra1 = NULL;
-//    delete ptPyra2;   ptPyra2 = NULL;
-//    delete ptWedge1;  ptWedge1 = NULL;
-//    delete ptWedge2;  ptWedge2 = NULL;
-  }
+  {  }
 
+  
+  shared_ptr<ElemShapeMap> Grid::GetElemShapeMap(const Elem* ptElem, 
+                                                    bool isUpdated ) {
+    
+    // Currently hardcoded to Lagrangian elements.....
+    shared_ptr<ElemShapeMap> sm(new LagrangeElemShapeMap(this, isUpdated ));
+    sm->SetElem(ptElem);
+    return sm;
+  }
 
   void Grid::AddRegion(const std::string regionName, RegionIdType & rId)
   {
@@ -423,12 +399,12 @@ namespace CoupledField
         }
         for (UInt i = 0; i < masterElems.GetSize(); ++i) {
           for(UInt j = 0; j < slaveElems.GetSize(); ++j) {
-            BaseFE* m_el = masterElems[i]->ptElem;
-            BaseFE* s_el = slaveElems[j]->ptElem;
+            SurfElem* m_el = masterElems[i];
+            SurfElem* s_el = slaveElems[j];
 //            if ( (m_el != ptQ1 && m_el != ptQ2 && m_el != ptQ9)
 //               ||(s_el != ptQ1 && s_el != ptQ2 && s_el != ptQ9))
-              if ( (m_el != ptQ1)
-                 ||(s_el != ptQ1))
+              if ( (m_el->type != Elem::ET_QUAD4)
+                 ||(s_el->type != Elem::ET_QUAD4))
             {
               EXCEPTION("Only quadrilaterals can be intersected with coaxial "
                         << "rectangle algorithm.");
@@ -447,13 +423,13 @@ namespace CoupledField
       case POLYGON_INTERSECT:
         for (UInt i = 0; i < masterElems.GetSize(); ++i) {
           for (UInt j = 0; j < slaveElems.GetSize(); ++j) {
-            BaseFE* m_el = masterElems[i]->ptElem;
-            BaseFE* s_el = slaveElems[j]->ptElem;
+            SurfElem* m_el = masterElems[i];
+            SurfElem* s_el = slaveElems[j];
 //            if ( (m_el != ptTr1 && m_el != ptQ1 && m_el != ptQ2 && m_el != ptQ9 && m_el != ptTr2)
 //               ||(s_el != ptTr1 && s_el != ptQ1 && s_el != ptQ2 && s_el != ptQ9 && s_el != ptTr2))
 
-            if ( (m_el != ptQ1 )
-                || s_el != ptQ1) 
+            if ( (m_el->type != Elem::ET_QUAD4 )
+                || s_el->type != Elem::ET_QUAD4) 
 
             {
               EXCEPTION("Only triangles and quadrilaterals can be intersected"
@@ -1260,7 +1236,7 @@ namespace CoupledField
       }
     }
 
-    ncElem->ptElem = ptQ1;
+    ncElem->type = Elem::ET_QUAD4;
     ncElem->ptLagrangeParent = ifaceElem2;
     ncElem->ptSurfParent = ifaceElem1;
 
@@ -1281,42 +1257,42 @@ namespace CoupledField
     polysectAbsTol_ = absTol;
     polysectRelTol_ = relTol;
 
-    switch(ifElem1->ptElem->feType()) {
-      case Elem::TRIA3:
-      case Elem::TRIA6:
+    switch(ifElem1->type) {
+      case Elem::ET_TRIA3:
+      case Elem::ET_TRIA6:
         p1Size = 3;
         break;
 
-      case Elem::QUAD4:
-      case Elem::QUAD8:
-      case Elem::QUAD9:
+      case Elem::ET_QUAD4:
+      case Elem::ET_QUAD8:
+      case Elem::ET_QUAD9:
         p1Size = 4;
         break;
 
       default:
     	EXCEPTION("First argument to PolygonOnPolygon may not be of type '"
-    			<< Elem::feType.ToString(ifElem1->ptElem->feType()) << "!");
+    			<< Elem::feType.ToString(ifElem1->type) << "!");
     }
 
     p1.Resize(p1Size);
     for (i = 0; i < p1Size; ++i)
       GetNodeCoordinate(p1[i], ifElem1->connect[i], coordUpdate);
 
-    switch(ifElem2->ptElem->feType()) {
-      case Elem::TRIA3:
-      case Elem::TRIA6:
+    switch(ifElem2->type) {
+      case Elem::ET_TRIA3:
+      case Elem::ET_TRIA6:
         p2Size = 3;
         break;
 
-      case Elem::QUAD4:
-      case Elem::QUAD8:
-      case Elem::QUAD9:
+      case Elem::ET_QUAD4:
+      case Elem::ET_QUAD8:
+      case Elem::ET_QUAD9:
         p2Size = 4;
         break;
 
       default:
     	EXCEPTION("Second argument to PolygonOnPolygon may not be of type '"
-    			<< Elem::feType.ToString(ifElem2->ptElem->feType()) << "'!");
+    			<< Elem::feType.ToString(ifElem2->type) << "'!");
     }
 
     p2.Resize(p2Size);
@@ -1876,7 +1852,7 @@ namespace CoupledField
         break;
       case 4:
         ncElem = new NCElem;
-        ncElem->ptElem = ptQ1;
+        ncElem->type = Elem::ET_QUAD4;
         ncElem->connect.Resize(4);
 
         AddNode(p[0], nodeNo);
@@ -1995,7 +1971,7 @@ namespace CoupledField
 
     for(UInt i=0; i<nElemsRegion1; i++) {
       el = region1Elems[i];
-      numCorners = el->ptElem->GetNumCorners();
+      numCorners = Elem::shapes[el->type].numVertices;
       lastCornerInRegion2 = 0;
       for(UInt n=0; n<numCorners; ) {
         if(region2Nodes.Find(el->connect[n]) < 0) {
@@ -2012,15 +1988,15 @@ namespace CoupledField
         surfEl->connect.Resize(3);
         surfEl->connect[0] = el->connect[n];
         surfEl->connect[1] = el->connect[(n+1) % numCorners];
-        surfEl->ptElem = ptL1;
+        surfEl->type = Elem::ET_QUAD4;
 
-        switch(el->ptElem->feType()) {
-        case Elem::TRIA6:
-        case Elem::QUAD8:
-        case Elem::QUAD9:
+        switch(el->type) {
+        case Elem::ET_TRIA6:
+        case Elem::ET_QUAD8:
+        case Elem::ET_QUAD9:
           REFACTOR;
-//          surfEl->connect[2] = el->connect[n+numCorners];
-//          surfEl->ptElem = ptL2;
+          surfEl->connect[2] = el->connect[n+numCorners];
+          surfEl->type = Elem::ET_LINE2;
           break;
         default:
           break;
@@ -2066,7 +2042,7 @@ namespace CoupledField
     for(UInt i=0; i<nElemsRegion; i++) {
       el = regionElems[i];
       // get number of edges
-      numEdges = el->ptElem->GetNumEdges();
+      numEdges = Elem::shapes[el->type].numEdges;
       for(UInt n=0; n<numEdges; n++) {
         UInt edgeNum = el->edges[n] < 0 ? -el->edges[n] : el->edges[n];
         edgeCounts[edgeNum]++;
@@ -2076,7 +2052,7 @@ namespace CoupledField
     for(UInt i=0; i<nElemsRegion; i++) {
       el = regionElems[i];
       // get number of edges
-      numEdges = el->ptElem->GetNumEdges();
+      numEdges = Elem::shapes[el->type].numEdges;
       for(UInt n=0; n<numEdges; n++) {
         UInt edgeNum = el->edges[n] < 0 ? -el->edges[n] : el->edges[n];
         if(edgeCounts[edgeNum] != 1)
@@ -2124,15 +2100,14 @@ namespace CoupledField
         surfEl->connect.Resize(3);
         surfEl->connect[0] = el->connect[n];
         surfEl->connect[1] = el->connect[(n+1) % numEdges];
-        surfEl->ptElem = ptL1;
+        surfEl->type = Elem::ET_LINE2;
 
-        switch(el->ptElem->feType()) {
-        case Elem::TRIA6:
-        case Elem::QUAD8:
-        case Elem::QUAD9:
-          REFACTOR;
-//          surfEl->connect[2] = el->connect[n+numEdges];
-//          surfEl->ptElem = ptL2;
+        switch(el->type) {
+        case Elem::ET_TRIA6:
+        case Elem::ET_QUAD8:
+        case Elem::ET_QUAD9:
+          surfEl->connect[2] = el->connect[n+numEdges];
+          surfEl->type = Elem::ET_LINE2;
           break;
         default:
           break;

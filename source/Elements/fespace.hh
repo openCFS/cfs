@@ -11,9 +11,9 @@
 #include "General/exception.hh"
 #include "Domain/domain.hh"
 #include "Elements/basefe.hh"
-#include "Elements/2D/quad1fe.hh"
-#include "Elements/3D/hexa1FE.hh"
-#include "Elements/1D/line1fe.hh"
+//#include "Elements/2D/quad1fe.hh"
+//#include "Elements/3D/hexa1FE.hh"
+//#include "Elements/1D/line1fe.hh"
 #include "Domain/resultInfo.hh"
 #include "Elements/fefunction.hh"
 #include "MatVec/matrix.hh"
@@ -80,7 +80,7 @@ public:
   //@{ \name Element Handling
 
   //! Return pointer to reference element
-  virtual shared_ptr<BaseFE> GetFe( const EntityIterator ent ) = 0;
+  virtual BaseFE* GetFe( const EntityIterator ent ) = 0;
 
   virtual UInt GetNumFunctions( const EntityIterator ent ) = 0;
   //@}

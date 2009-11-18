@@ -10,28 +10,28 @@
 
 #include "General/Enum.hh"
 #include "Utils/StdVector.hh"
-#include "Utils/tools.hh"
+#include "MatVec/vector.hh"
+//#include "Utils/tools.hh"
 
 namespace CoupledField
 {
-  class BaseFE;
+
+  // forward definition
+class ElemShape;
 
   //! Class for description of a volume finite element
 
   //! This class describes a volume finite element, where volume means the
   //! highest dimensional element entities in the current mesh.
   //! It has to be very lightweight, since this object is created many times.
-  //! It relates the geometric information of an element (node numbers)
-  //! with the mathematical / computational one (reference finite element).
   //! The finite element is described by:
   //! - corner node numbers
-  //! - pointer to reference finite element
   //! - element number
   //! - element subdomain identifier
   //! - refinement flag / number
 
-  struct Elem
-  {
+  struct Elem {
+  
   public:
 
     //! Dummy constructor
@@ -41,92 +41,90 @@ namespace CoupledField
     virtual ~Elem() {;}
 
   public:
-
-    // enumeration with elements types.
-    // enum ElementType{Line1, Triang1, Triang2, Quadrilateral1, Quadrilateral2};
-
-    //! Type of finite element
-    //! The enumeration contains the following values:
-    //! - NOFETYPE
-    //! - LINE
-    //! - TRIA
-    //! - QUAD
-    //! - TET
-    //! - HEX
-    //! - PYR
-    //! - WED
-      //  typedef enum {NOFETYPE, LINE, TRIA, QUAD, TET, HEX, PYR, WED} FEType;
-
-    // Definition of supported element types
-
-    typedef enum
+    // ========================================================================
+    //  Public Enumeration Types
+    // ========================================================================
+    
+    //@{ \name Enumeration types
+    
+    //! Definition of geometric shapes of elements
+    typedef enum 
     {
-      UNDEF      = 0,
-      POINT      = 1,
-      LINE2      = 2,
-      LINE3      = 3,
-      TRIA3      = 4,
-      TRIA6      = 5,
-      QUAD4      = 6,
-      QUAD8      = 7,
-      QUAD9      = 8,
-      TET4       = 9,
-      TET10      = 10,
-      HEXA8      = 11,
-      HEXA20     = 12,
-      HEXA27     = 13,
-      PYRA5      = 14,
-      PYRA13     = 15,
-      WEDGE6     = 16,
-      WEDGE15    = 17
+      ST_UNDEF  = 0, 
+      ST_LINE   = 1,
+      ST_TRIA   = 2,
+      ST_QUAD   = 3,
+      ST_TET    = 4,
+      ST_HEXA   = 5,
+      ST_PYRA   = 6,
+      ST_WEDGE  = 7
+    } ShapeType;
+
+    //! Static Enum for conversion of ElemShapeType
+    static Enum<ShapeType> shapeType;
+
+    //! Definition of supported geometric elements (i.e. Lagrangian elements)
+    typedef enum { 
+      ET_UNDEF   =  0,
+      ET_POINT   =  1,
+      ET_LINE2   =  2,
+      ET_LINE3   =  3,
+      ET_TRIA3   =  4,
+      ET_TRIA6   =  5,
+      ET_QUAD4   =  6,
+      ET_QUAD8   =  7,
+      ET_QUAD9   =  8,
+      ET_TET4    =  9,
+      ET_TET10   = 10,
+      ET_HEXA8   = 11,
+      ET_HEXA20  = 12,
+      ET_HEXA27  = 13,
+      ET_PYRA5   = 14,
+      ET_PYRA13  = 15,
+      ET_WEDGE6  = 16,
+      ET_WEDGE15 = 17
     } FEType;
+
+    //! Static Enum for FEType
     static Enum<FEType> feType;
 
-    static UInt GetNumElemNodes(FEType type);
-    static UInt GetElemDim(FEType type);
-    static bool GetElemQuadratic(FEType type);
-
+    //@}
+    
     // ======================================================
     // GEOMETRICAL INFORMATION
     // ======================================================
 
     //@{ \name Geometrical Information
-    //! global element number
+    
+    //! Global element number
     UInt elemNum;
+    
+    //! Type of element
+    Elem::FEType type;
 
-    //! identifier for region
+    //! Identifier for region
     RegionIdType regionId;
 
-    //! array with node numbers
+    //! Array with node numbers
     StdVector<UInt> connect;
 
-    //! array with edge numbers
+    //! Array with edge numbers
     StdVector<Integer> edges;
 
-    //! array with face numbers
+    //! Array with face numbers
     StdVector<Integer> faces;
 
-    //! bitset describing the orientation of the faces (3 for each)
+    //! Bitset describing the orientation of the faces (3 for each)
     StdVector<std::bitset<3> > faceFlags;
 
 #ifdef ADAPTGRID
-    //! flag for refinement
+    //! Flag for refinement
     bool refinementFlag;
 
-    //! number of refinement for the element
+    //! Number of refinement for the element
     UInt refinementNumber;
 
 #endif
-    //@}
-
-    // ======================================================
-    // COMPUTATIONAl INFORMATION
-    // ======================================================
-
-    //@{ \name Computational Information
-
-    //! pointer to reference element representation
-    BaseFE * ptElem;
     //@}
 
     // ======================================================
@@ -134,57 +132,88 @@ namespace CoupledField
     // ======================================================
     //@{ \name Helper Methods
 
-    //! overloading operator =
+    //! Overloading operator =
     Elem & operator=(const Elem& t);
 
-    //! calculation of diameter of element
-    Double diameter(const Point * const ptArrayOfNodes);
-    //@}
-
     // Fix problems due to negative Jacobian determinants
-    void CorrectConnectivity();
-
-    std::string ToString() const
-    {
-      std::ostringstream os;
-      os << "elemNum=" << elemNum << " region=" << regionId;
-      return os.str();
-    }
-
-  private:
-    static std::map<FEType, UInt> numElemNodes_;
-    static std::map<FEType, UInt> elemDims_;
-    static std::map<FEType, UInt> elemQuadratic_;
-    static void Initialize();
+    void CorrectConnectivity( );
+    
+    //! Obtain string representation
+    std::string ToString() const;
+    
+    //@}
+   
+  public:
+    
+    //! Global collection of reference element shape
+    static std::map<Elem::FEType,ElemShape> shapes;
   };
 
+  
+  
+  //! Description of geometry of reference elements
+  
+  //! This struct contains the geometric information about a reference element.
+  //! i.e. the nodal positions, edge/face indices etc.
+  //! A collection of all element shapes can be found in the variable 
+  //! Elem::shapes.
+  struct ElemShape {
 
+    //! Constructor
+    ElemShape();
+    
+    // ========================================================================
+    //  Public Data Members
+    // ========================================================================
 
-  inline Elem & Elem::operator=(const Elem& t)
-  {
-    if (this!=&t) {
-      ptElem=t.ptElem;
-      connect=t.connect;
-      regionId=t.regionId;
-#ifdef ADAPTGRID
-      refinementFlag=t.refinementFlag;
-      refinementNumber=t.refinementNumber;
-#endif
-    }
-    return *this;
-  }
+    //! Dimension of element
+    UInt dim;
 
-  inline Double Elem::diameter(const Point * const ptArrayOfNodes)
-  {
-    if (connect.GetSize()==1)
-      EXCEPTION("This function is not valid for this dimension");
+    //! Order of geometric element (linear, quadratic, cubic)
+    UInt order;
+    
+    //! Number of vertices (corners)
+    UInt numVertices;
+    
+    //! Number of nodes
+    UInt numNodes;
 
-    Point a=ptArrayOfNodes[connect[1]];
-    Point b=ptArrayOfNodes[connect[2]];
-    Point c=ptArrayOfNodes[connect[3]];
+    //! Number of edges
+    UInt numEdges;
 
-    return std::max(Point::dist(a,b), Point::dist(b,c));
-  }
+    //! Number of faces
+    UInt numFaces;
+
+    //! Coordinate of element midpoint
+    Vector<Double> midPointCoord;
+
+    //! Coordinates of nodes
+    StdVector<StdVector<Double> > nodeCoords; 
+
+    //! Contains for each edge the vertex node numbers
+    StdVector<StdVector<UInt> > edgeVertices;
+    
+    //! Contains for each edge all node numbers
+    StdVector<StdVector<UInt> > edgeNodes;
+    
+    //! Contains for each face the corner node numbers
+    StdVector<StdVector<UInt> > faceVertices;
+
+    //! Contains for each face all node numbers
+    StdVector<StdVector<UInt> > faceNodes;
+
+    // ========================================================================
+    //  PUBLIC METHODS
+    // ========================================================================
+
+    //! Return for given FEtype the corresponding ShapeType 
+    Elem::ShapeType GetShapeType( Elem::FEType type ) const;
+
+    //! Initialize struct (only required once) 
+    static void Initialize();
+  };
+   
 
 } // end of namespace
 #endif
+

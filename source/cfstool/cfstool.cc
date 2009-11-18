@@ -666,7 +666,8 @@ int main(int argc, char** argv) {
 
   // todo: do better once! - Fabian
   CFSTool::InitEnums(); 
- 
+  ElemShape::Initialize();
+  
   std::cout << std::endl
             << "============================================================"
             << "===========" << std::endl;

@@ -1,9 +1,9 @@
 SET(FORMS_SRCS
-  abcInt.cc
+#  abcInt.cc
 #  acouMechInt.cc
 #  acouMechNcInt.cc
 #  acouPowerDensityOp.cc
-  acouRHSLinForm.cc
+#  acouRHSLinForm.cc
 #  adbInt.cc
 # baseForceOp.cc
   baseForm.cc
@@ -12,7 +12,7 @@ SET(FORMS_SRCS
 #  bdInt.cc
 #  curlCurlEdgeInt.cc
 #  curlCurlNodeInt.cc
-  curlfieldop.cc
+ # curlfieldop.cc
 #  elecchargeop.cc
 #  elecforceop.cc
 #  FlatShellElecInt.cc
@@ -21,15 +21,15 @@ SET(FORMS_SRCS
 #  FlatShellPiezoInt.cc
 #  FlatShellStiffInt.cc
 #  gradfieldop.cc
-  laplaceInt.cc
-  linearForm.cc
+#  laplaceInt.cc
+#  linearForm.cc
 #  linElastInt.cc
   linElecInt.cc
-  linNeumannInt.cc
+#  linNeumannInt.cc
 #  linPiezoCoupling.cc
 #  linPressureInt.cc
 #  linStrainOp.cc
-  linSurfForm.cc
+#  linSurfForm.cc
 #  linSurfStressInt.cc
 #  linThermoElectricInt.cc 
 #  linThermoMechInt.cc
@@ -39,7 +39,7 @@ SET(FORMS_SRCS
 #  linViscoElastInt.cc
 #  magforceop.cc
 #  massEdgeInt.cc
-  massInt.cc
+#  massInt.cc
 #  mechStressStrain.cc
 #  nLincurlCurlNodeInt.cc
 #  nLinElastInt.cc

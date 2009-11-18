@@ -1265,28 +1265,28 @@ namespace CoupledField {
     std::set<UInt> readNodeSet;
 
     if(!elemTypeMap.size()) {
-      elemTypeMap[Elem::LINE2]   = Elem::LINE2;
-      elemTypeMap[Elem::LINE3]   = Elem::LINE2;
-      elemTypeMap[Elem::TRIA3]   = Elem::TRIA3;
-      elemTypeMap[Elem::TRIA6]   = Elem::TRIA3;
-      elemTypeMap[Elem::QUAD4]   = Elem::QUAD4;
-      elemTypeMap[Elem::QUAD8]   = Elem::QUAD4;
-      elemTypeMap[Elem::QUAD9]   = Elem::QUAD4;
-      elemTypeMap[Elem::TET4]    = Elem::TET4;
-      elemTypeMap[Elem::TET10]   = Elem::TET4;
-      elemTypeMap[Elem::HEXA8]   = Elem::HEXA8;
-      elemTypeMap[Elem::HEXA20]  = Elem::HEXA8;
-      elemTypeMap[Elem::HEXA27]  = Elem::HEXA8;
-      elemTypeMap[Elem::PYRA5]   = Elem::PYRA5;
-      elemTypeMap[Elem::PYRA13]  = Elem::PYRA5;
-      elemTypeMap[Elem::WEDGE6]  = Elem::WEDGE6;
-      elemTypeMap[Elem::WEDGE15] = Elem::WEDGE6;
+      elemTypeMap[Elem::ET_LINE2]   = Elem::ET_LINE2;
+      elemTypeMap[Elem::ET_LINE3]   = Elem::ET_LINE2;
+      elemTypeMap[Elem::ET_TRIA3]   = Elem::ET_TRIA3;
+      elemTypeMap[Elem::ET_TRIA6]   = Elem::ET_TRIA3;
+      elemTypeMap[Elem::ET_QUAD4]   = Elem::ET_QUAD4;
+      elemTypeMap[Elem::ET_QUAD8]   = Elem::ET_QUAD4;
+      elemTypeMap[Elem::ET_QUAD9]   = Elem::ET_QUAD4;
+      elemTypeMap[Elem::ET_TET4]    = Elem::ET_TET4;
+      elemTypeMap[Elem::ET_TET10]   = Elem::ET_TET4;
+      elemTypeMap[Elem::ET_HEXA8]   = Elem::ET_HEXA8;
+      elemTypeMap[Elem::ET_HEXA20]  = Elem::ET_HEXA8;
+      elemTypeMap[Elem::ET_HEXA27]  = Elem::ET_HEXA8;
+      elemTypeMap[Elem::ET_PYRA5]   = Elem::ET_PYRA5;
+      elemTypeMap[Elem::ET_PYRA13]  = Elem::ET_PYRA5;
+      elemTypeMap[Elem::ET_WEDGE6]  = Elem::ET_WEDGE6;
+      elemTypeMap[Elem::ET_WEDGE15] = Elem::ET_WEDGE6;
     }
 
     for(UInt i=0; i<numElems; i++) {
       UInt elemIdx=readElems[i]-1;
       Elem::FEType newType = elemTypeMap[(Elem::FEType)elemTypes[elemIdx]];
-      UInt numNodes = Elem::GetNumElemNodes(newType);
+      UInt numNodes = Elem::shapes[newType].numNodes;
 
       elemTypes[elemIdx] = newType;
       readNodeSet.insert(&globConnect[elemIdx*elemIncr],

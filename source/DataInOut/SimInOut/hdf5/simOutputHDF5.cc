@@ -756,7 +756,7 @@ namespace CoupledField {
       std::fill(elConnect.begin(), elConnect.end(),
                 0 );
       ptGrid_->GetElemData( i+1, eType, region, &elConnect[0] );
-      numElemsOfDim[Elem::GetElemDim(eType)-1]++;
+      numElemsOfDim[(Elem::shapes[eType].dim)-1]++;
       feTypes[i] = eType;
 
       // insert connectivity into global array
@@ -986,7 +986,7 @@ namespace CoupledField {
 
       for( UInt j = 0; j < elems.GetSize(); j++ ) {
         elemNums[j] = elems[j]->elemNum;
-        dims.insert( elems[j]->ptElem->GetDim() );
+        dims.insert( Elem::shapes[elems[j]->type].dim);
         nodeSet.insert( elems[j]->connect.Begin(),
                         elems[j]->connect.End() );
       }

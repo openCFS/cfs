@@ -598,7 +598,7 @@ namespace CoupledField {
     for ( i = 0; i < numelem; i++ ) {
       elemNum = i+1;
       ptGrid_->GetElemData(elemNum, elemType, elemRegion, &connect[0]);
-      numNodes = Elem::GetNumElemNodes(elemType);
+      numNodes = Elem::shapes[elemType].numNodes;
       
       ElemType2GMVElemId(elemType, gmvElemName);
 
@@ -606,12 +606,12 @@ namespace CoupledField {
 
       switch(elemType)
       {
-      case Elem::LINE3:
+      case Elem::ET_LINE3:
         connect[3] = connect[1];
         connect[1] = connect[2];
         connect[2] = connect[3];          
         break;
-      case Elem::QUAD9:
+      case Elem::ET_QUAD9:
         numNodes = 8;
         break;
       default:
@@ -673,50 +673,50 @@ namespace CoupledField {
   {
     switch(et)
     {
-    case Elem::LINE2:
+    case Elem::ET_LINE2:
       id       = "line    ";
       break;
-    case Elem::LINE3:
+    case Elem::ET_LINE3:
       id       = "3line   ";
       break;
-    case Elem::TRIA3:
+    case Elem::ET_TRIA3:
       id       = "tri     ";
       break;
-    case Elem::TRIA6:
+    case Elem::ET_TRIA6:
       id       = "6tri    ";
       break;
-    case Elem::QUAD4:
+    case Elem::ET_QUAD4:
       id       = "quad    ";
       break;
-    case Elem::QUAD8:
-    case Elem::QUAD9:
+    case Elem::ET_QUAD8:
+    case Elem::ET_QUAD9:
       id       = "8quad   ";
       break;
-    case Elem::TET4:
+    case Elem::ET_TET4:
       id       = "tet     ";
       break;
-    case Elem::TET10:
+    case Elem::ET_TET10:
       id       = "ptet10  ";
       break;
-    case Elem::HEXA8:
+    case Elem::ET_HEXA8:
       id       = "phex8   ";
       break;
-    case Elem::HEXA20:
+    case Elem::ET_HEXA20:
       id       = "phex20  ";
       break;
-    case Elem::HEXA27:
+    case Elem::ET_HEXA27:
       id       = "phex27  ";
       break;
-    case Elem::PYRA5:
+    case Elem::ET_PYRA5:
       id       = "ppyrmd5 ";
       break;
-    case Elem::PYRA13:
+    case Elem::ET_PYRA13:
       id       = "ppyrmd13";
       break;
-    case Elem::WEDGE6:
+    case Elem::ET_WEDGE6:
       id       = "pprism6 ";
       break;
-    case Elem::WEDGE15:
+    case Elem::ET_WEDGE15:
       id       = "pprism15";
       break;
     default:

@@ -332,17 +332,7 @@ namespace CoupledField {
 
   //! Global pointer to class performing logging to info file
   extern WriteInfo *Info;
-
-  class BaseFE;
-  //! Pointers to derived classes of BaseElem. Initialized in grid.hh/grid.cc.
-  //! They are used, when we read information about elements from mesh and
-  //! create a pointer to the class containing the description of the Finite
-  //! Element.
-//  extern BaseFE *ptQ1, *ptQ2, *ptQ9, *ptL1, *ptL2, *ptTet1, *ptTet2, *ptTr1, 
-//	*ptTr2, *ptHexa1, *ptHexa2, *ptHexa27, *ptPyra1, *ptPyra2, *ptWedge1, *ptWedge2;
-
-   extern BaseFE *ptQ1,  *ptL1, *ptHexa1;
-
+  
   //! conversion from strings to enum types
   template <class TYPE>
   void String2Enum(const std::string &in, TYPE &out);

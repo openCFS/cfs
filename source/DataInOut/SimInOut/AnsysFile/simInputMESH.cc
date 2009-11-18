@@ -136,7 +136,7 @@ namespace CoupledField {
       {
         mi_->SetElemData(elemNums[j][i], elemTypes[j][i], 
                          ids[regionId[j]], &elems[j][n]);
-        n += Elem::GetNumElemNodes(elemTypes[j][i]);
+        n += Elem::shapes[elemTypes[j][i]].numNodes;
       }
     }
 
@@ -152,7 +152,7 @@ namespace CoupledField {
       {
         mi_->SetElemData(elemNums[j][i], elemTypes[j][i], 
                          ids[regionId[j]], &elems[j][n]);
-        n += Elem::GetNumElemNodes(elemTypes[j][i]);
+        n += Elem::shapes[elemTypes[j][i]].numNodes;
       }
     }
 
@@ -169,7 +169,7 @@ namespace CoupledField {
       {
         mi_->SetElemData(elemNums[j][i], elemTypes[j][i], 
                          ids[regionId[j]], &elems[j][n]);
-        n += Elem::GetNumElemNodes(elemTypes[j][i]);
+        n += Elem::shapes[elemTypes[j][i]].numNodes;
       }
     }
 
@@ -937,46 +937,46 @@ namespace CoupledField {
     switch( itype ) {
 
     case 101:
-      return Elem::LINE3;
+      return Elem::ET_LINE3;
     case 100:
-      return Elem::LINE2;
+      return Elem::ET_LINE2;
     case 4:
-      return Elem::TRIA3;
+      return Elem::ET_TRIA3;
     case 5:
-      return Elem::TRIA6;
+      return Elem::ET_TRIA6;
     case 6:
-      return Elem::QUAD4;
+      return Elem::ET_QUAD4;
     case 7:
-      return Elem::QUAD8;
+      return Elem::ET_QUAD8;
     case 107:
-      return Elem::QUAD9;
+      return Elem::ET_QUAD9;
     case 8:
-      return Elem::TET4;
+      return Elem::ET_TET4;
     case 9:
-      return Elem::TET10;
+      return Elem::ET_TET10;
     case 10:
-      return Elem::HEXA8;
+      return Elem::ET_HEXA8;
     case 11:
-      return Elem::HEXA20;
+      return Elem::ET_HEXA20;
     case 111:
-      return Elem::HEXA27;
+      return Elem::ET_HEXA27;
     case 12:
-      return Elem::PYRA5;
+      return Elem::ET_PYRA5;
     case 13:
       //    (*warning) << "Pyram. with quadratic shape functions" << 
       //    "do not work well for some cases "<< 
       //    "(i.e. electric field intensity). Please verify your results."; 
-      return Elem::PYRA13;
+      return Elem::ET_PYRA13;
     case 14:
-      return Elem::WEDGE6;
+      return Elem::ET_WEDGE6;
     case 15:
-      return Elem::WEDGE15;
+      return Elem::ET_WEDGE15;
     default:
       break;
     }
     
     // This place should never be reached!
-    return Elem::UNDEF;
+    return Elem::ET_UNDEF;
   }
 
 }

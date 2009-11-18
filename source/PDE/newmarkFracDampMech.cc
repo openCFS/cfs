@@ -238,9 +238,10 @@ namespace CoupledField {
         EntityIterator it = actSDList.GetIterator();
         for ( it.Begin(); !it.IsEnd(); it++ ) {
 
-          ptElem=it.GetElem()->ptElem;
-          const UInt nrNodes  = ptElem->GetNumNodes();
-          dofs_ = ptElem->GetDim();
+          //ptElem=it.GetElem()->ptElem;
+          const UInt nrNodes  = (it.GetElem()->connect).GetSize();
+          dofs_ = Elem::shapes[it.GetElem()->type].dim;
+          //dofs_ = ptElem->GetDim();
           
           resultStressVector.Resize(nrNodes * dofs_);
           rhsvec.Resize(nrNodes * dofs_);
@@ -329,58 +330,58 @@ namespace CoupledField {
 
   void NewmarkFracDampMech::Corrector(Vector<Double>& solnew)
   {
-
-    solderiv2_ = (solnew - solpred_) * a2_;
-    solderiv1_ = solderiv1pred_ + solderiv2_*a3_;
-
-    Integer numEQNs = eqnMap_->GetNumEqns();
-    StdVector<UInt> connecth, connect_PDE;
-    Vector<Double> stressVec, displacementVec;
-    Matrix<Double> ptCoord;
-
-    stressVec.Resize(getDim());
-    stressVec.Init();
-    displacementVec.Resize(numEQNs * dofs_);  
-
-    std::map<RegionIdType, BaseMaterial*> mymaterialData;
-    BaseFE         * ptElem;
-
-    mymaterialData = ptStdPDE_->getPDEMaterialData();
-
-    if( (actStep_ % modulo_) == 0) {
-      for ( Integer i=fracMemory_-1; i>=1; i-- ) {
-        solMemory_[i] = solMemory_[i-1];
-        stressHistoryEl_[i] = stressHistoryEl_[i-1];
-      }
-      solMemory_[0] = solnew; //- solpred_;
-      
-      if ((actStep_ / modulo_)  <=  fracMemory_) {
-        solMemoryVal_.insert( solMemoryVal_.begin(),trueVAL);
-        // when solMemoryVal_ reaches size fracMemory_ , all entries are trueVAL
-        //  and stay the same for all time for
-      }
-      
-      for ( UInt actSD=0; actSD < subdoms_.GetSize(); actSD++ ) {
-        StdVector<Elem*> elemssd;
-        ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
-        //ptgrid_->GetElemSD(elemssd,subdoms_[actSD]);
-          
-        for (UInt el=0; el < elemssd.GetSize(); el++) {
-          ptElem=elemssd[el]->ptElem;
-          connecth=elemssd[el]->connect;
-          ptgrid_->GetElemNodesCoord(ptCoord,connecth);
-          StdVector<Integer> connect_PDE;
-          eqnMap_->GetNodeEqn(connecth, connect_PDE);
-          
-          GetElemSolution(solMemory_[0], displacementVec, connect_PDE);
-          
-          CalcStress( ptElem, mymaterialData[subdoms_[actSD]], connect_PDE, ptCoord,  
-		      stressVec, displacementVec, elemssd[el]->elemNum);
-          Integer localElemNum = eqnMap_->Mesh2PdeNode( elemssd[el]->elemNum );
-          InsertStressVector(stressVec,localElemNum,0);		
-        }
-      }
-    }
+    EXCEPTION("Reimplement after refactoring!")
+//    solderiv2_ = (solnew - solpred_) * a2_;
+//    solderiv1_ = solderiv1pred_ + solderiv2_*a3_;
+//
+//    Integer numEQNs = eqnMap_->GetNumEqns();
+//    StdVector<UInt> connecth, connect_PDE;
+//    Vector<Double> stressVec, displacementVec;
+//    Matrix<Double> ptCoord;
+//
+//    stressVec.Resize(getDim());
+//    stressVec.Init();
+//    displacementVec.Resize(numEQNs * dofs_);  
+//
+//    std::map<RegionIdType, BaseMaterial*> mymaterialData;
+//    BaseFE         * ptElem;
+//
+//    mymaterialData = ptStdPDE_->getPDEMaterialData();
+//
+//    if( (actStep_ % modulo_) == 0) {
+//      for ( Integer i=fracMemory_-1; i>=1; i-- ) {
+//        solMemory_[i] = solMemory_[i-1];
+//        stressHistoryEl_[i] = stressHistoryEl_[i-1];
+//      }
+//      solMemory_[0] = solnew; //- solpred_;
+//      
+//      if ((actStep_ / modulo_)  <=  fracMemory_) {
+//        solMemoryVal_.insert( solMemoryVal_.begin(),trueVAL);
+//        // when solMemoryVal_ reaches size fracMemory_ , all entries are trueVAL
+//        //  and stay the same for all time for
+//      }
+//      
+//      for ( UInt actSD=0; actSD < subdoms_.GetSize(); actSD++ ) {
+//        StdVector<Elem*> elemssd;
+//        ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
+//        //ptgrid_->GetElemSD(elemssd,subdoms_[actSD]);
+//          
+//        for (UInt el=0; el < elemssd.GetSize(); el++) {
+//          ptElem=elemssd[el]->ptElem;
+//          connecth=elemssd[el]->connect;
+//          ptgrid_->GetElemNodesCoord(ptCoord,connecth);
+//          StdVector<Integer> connect_PDE;
+//          eqnMap_->GetNodeEqn(connecth, connect_PDE);
+//          
+//          GetElemSolution(solMemory_[0], displacementVec, connect_PDE);
+//          
+//          CalcStress( ptElem, mymaterialData[subdoms_[actSD]], connect_PDE, ptCoord,  
+//		      stressVec, displacementVec, elemssd[el]->elemNum);
+//          Integer localElemNum = eqnMap_->Mesh2PdeNode( elemssd[el]->elemNum );
+//          InsertStressVector(stressVec,localElemNum,0);		
+//        }
+//      }
+//    }
   }
 
   void NewmarkFracDampMech::CalcParameters(Double dt)

@@ -14,6 +14,7 @@ namespace CoupledField
   // forward class declaration
   class BaseResult;
   class ResultHandler;
+  class linElecInt;
   
   //! Class for electrostatic equation (no adaptivity)
   class ElecPDE : public SinglePDE {
@@ -106,6 +107,8 @@ namespace CoupledField
     //! SubType of electrostatic section
     std::string subType_;
 
+    //! list of bilienar forms
+    std::map<RegionIdType, linElecInt*> biLinForms_;
 
     // *****************
     //  POSTPROCESSING

@@ -89,7 +89,7 @@ public:
   void SetOrder( UInt order);
 
   //! Return pointer to reference element
-  virtual shared_ptr<BaseFE> GetFe( const EntityIterator ent );
+  virtual BaseFE* GetFe( const EntityIterator ent );
 
   //! Returns the number of (vectorial) unkowns on the element
   virtual UInt GetNumFunctions( const EntityIterator ent );
