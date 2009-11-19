@@ -178,6 +178,7 @@ namespace CoupledField {
 
     // now we can delete conf-object already
     delete param;
+    param = NULL;
 
     // Reopen skeleton-conf file
     std::string xmlFile = progOpts->GetSimName() + ".xml";
