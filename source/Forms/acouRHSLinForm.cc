@@ -417,7 +417,6 @@ namespace CoupledField {
         // initialize vector for current time step
         //        ptGrid_->GetNodesByRegion( regionNodes, ptGrid_->GetRegion().Parse(regionName_));
         //        rhsValues_.Resize(regionNodes.GetSize());
-        std::fill(rhsValues_.Begin(), rhsValues_.End(), 0.0);
         if(overwriteOldSrcs_)
           std::fill(rhsValues_.Begin(), rhsValues_.End(), 0.0);
 
