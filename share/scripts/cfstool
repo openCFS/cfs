@@ -191,7 +191,7 @@ CFS_DIST_TYPE="GID"
 
 if [ "$CFS_DIST_TYPE" = "" ]
 then 
-    echo "Cannot determine distribution type of CFS."
+    echo "Cannot determine distribution type of CFSTOOL."
     echo "CFS_DIST_TYPE should be one of GID / ANSYS."
     exit 1
 fi
@@ -226,7 +226,7 @@ esac
 if [ "$BINARY_TREE" = "0" ]; then
     if [ ! -d "$CFS_ROOT_DIR/$LIB/$ARCH_STR" ]
     then 
-        echo "Cannot find CFS library path for architecture $ARCH_STR."
+        echo "Cannot find CFSTOOL library path for architecture $ARCH_STR."
         exit 2
     fi
 fi
@@ -239,7 +239,7 @@ fi
 # Check if we have the necessary executable for the current arch.
 if [ ! -e $CFS_EXE ]
 then 
-    echo "Cannot find CFS executable for architecture $ARCH_STR."
+    echo "Cannot find CFSTOOL executable for architecture $ARCH_STR."
     exit 3
 fi
 
@@ -258,7 +258,7 @@ then
     echo "These were:"
     echo "$CFS_EXE_LDD";
     echo
-    echo "CFS++ depends on the following packages on $DISTRO $DISTRO_VER:"
+    echo "CFSTOOL depends on the following packages on $DISTRO $DISTRO_VER:"
     GivePackageHint $DISTRO $DISTRO_VER
     echo "Please install the required packages."
     exit 4
