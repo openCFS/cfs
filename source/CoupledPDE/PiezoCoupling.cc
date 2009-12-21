@@ -148,6 +148,14 @@ namespace CoupledField {
       }
       break;
 
+    case ELEC_FLUX_DENSITY:
+      if ( isComplex_ ) {
+         CalcElecFluxDensity<Complex>( result );
+      } else {
+        CalcElecFluxDensity<Double>( result );
+      }
+      break;
+
     default: 
       Warning( "Resulttype not computable by piezoelectric coupling",
                __FILE__, __LINE__ );
@@ -622,6 +630,7 @@ namespace CoupledField {
         // get effective irreversible strain and polarization
         matPiezo->GetEffectiveIrreversibleValues( actPirr, actSirr, nrEl,
                                                   false, false );
+        //        std::cout << "ActSirr:\n " << actSirr << std::endl;
         for(UInt iDof = 0; iDof < strainDim; iDof++ ) {
           actVal[it.GetPos()*strainDim + iDof] = actSirr[iDof];
         }
@@ -687,6 +696,177 @@ namespace CoupledField {
       }
      
     }
+  }
+
+
+  template <class TYPE>
+  void PiezoCoupling::CalcElecFluxDensity( shared_ptr<BaseResult> res ){
+
+    //    SolutionType resultType = res->GetResultInfo()->resultType;
+
+    UInt strainDim=0, elecDim=0;
+    Vector<Double> intPoint;
+    Vector<Double> LCoord;
+    Vector<Double> TempE;
+    Vector<Double> TempMechStrain;
+    Vector<Double> TempDField;
+
+    MechStressStrain<Double> * mechStrainOp = NULL;
+    if (subType_ == "planeStrain") {
+      strainDim = 3;
+      elecDim   = 2;
+    }
+
+    else if (subType_ == "axi") {
+      strainDim = 4;
+      elecDim   = 2;
+    }
+
+    else if (subType_ == "3d") {
+      strainDim = 6;
+      elecDim   = 3;
+    }
+
+    else
+      EXCEPTION("StressOp: Unknown subtype in mech PDE!" );
+
+    // Retrieve solution from nodeStoreSolution Class
+    BaseNodeStoreSol * solPDE1 = pde1_->getPDESolution();
+    BaseNodeStoreSol * solPDE2 = pde2_->getPDESolution();
+
+    NodeStoreSol<Double> * solhelp1 =
+      dynamic_cast<NodeStoreSol<Double>*>(solPDE1);
+    NodeStoreSol<Double> * solhelp2 =
+      dynamic_cast<NodeStoreSol<Double>*>(solPDE2);
+
+    // Determines gradient of electric potential, i.e. E=\grad \phi
+    GradientFieldOp<Double> * FieldOp2
+      = new GradientFieldOp<Double>(ptGrid_, pde2_, eqnMap2_,
+                                  *solhelp2, ELEC_POTENTIAL,
+                                  results2_[0],
+                                  isaxi_);
+
+    // Determines linear Strain S=Bu, i.e.
+    //  partial derivates of mechanical displacement
+    Vector<Double> elemElecStress, elemStressStrain, sortedStress;
+    elemElecStress.Resize(strainDim);
+    elemElecStress.Init(0);
+    elemStressStrain.Resize(strainDim);
+    elemStressStrain.Init(0);
+    TempDField.Resize(elecDim);
+    TempDField.Init();
+    sortedStress.Resize(6);
+
+    Matrix<Double> stiffnessMat, sTensor;
+    Matrix<Double> piezoCouplingMat;
+    Matrix<Double> piezoCouplingMatT;
+    Matrix<Double> permittivityMat;
+    Matrix<Double> elemDisp;
+
+    Global::ComplexPart dataType;
+    if ( hasComplexMatParams_ ) {
+      dataType = Global::COMPLEX;
+    }
+    else {
+      dataType = Global::REAL;
+    }
+
+    // get material from mechanics
+    std::map<RegionIdType, BaseMaterial*> mechMat =
+      pde1_->getPDEMaterialData();
+
+
+    // get
+    Result<Double> &  actRes =
+      dynamic_cast<Result<Double>&>(*res);
+    EntityIterator it = actRes.GetEntityList()->GetIterator();
+
+    Vector<Double> & actVal = actRes.GetVector();
+    actVal.Resize( actRes.GetEntityList()->GetSize() * dim_ );
+
+    // Fetch material: As we assume, that all elements belong to
+    // one and the same region, we simply take the subdomain of the first
+    // element
+    it.Begin();
+
+    // get the materials for the subdomain
+    BaseMaterial* matPiezo = materials_[it.GetElem()->regionId];
+    BaseMaterial* mechMatSD = mechMat[it.GetElem()->regionId];
+
+    //transform the type
+    SubTensorType type;
+    String2Enum(subType_,type);
+
+    // get correct mechanical strain operator 
+    mechStrainOp = new MechStressStrain<Double>(mechMatSD, type);
+
+    bool isMicroModel = false;
+    if ( matPiezo->GetMicroPiezoModel() != NULL ) 
+      isMicroModel = true;
+    else
+     EXCEPTION("CalcFluxDensity currently just implemented for PiezoMicroBK" );
+ 
+
+    bool recompute = false;
+    bool previousValues = false;
+    UInt nrEl;
+    Vector<Double> actSirr, actPirr;
+    actSirr.Resize(strainDim);
+    actPirr.Resize(dim_);
+
+    // loop over all elements
+    for ( it.Begin(); !it.IsEnd(); it++ ) {
+
+      // Calc E - field;
+      it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
+
+      FieldOp2->CalcElemGradField( TempE, it, LCoord, 1);
+
+      // Calc linear mechanical stresses
+      // mechMatSD = mechMat[it.GetElem()->regionId];
+      // mechStressOp->SetMaterial( mechMatSD );
+      solhelp1->GetElemSolutionAsMatrix(elemDisp, it);
+      mechStrainOp->SetActElemSol(elemDisp);
+      mechStrainOp->SetIntPoint(LCoord);
+      mechStrainOp->CalcStrainVec(elemStressStrain,1,it);
+      mechStrainOp->UnsetIntPoint();
+
+      // currrent finite element
+      nrEl  = it.GetElem()->elemNum;
+
+      // get effective material tensors (currently just d-Tensor) 
+      Matrix<Double> cTensor, sTensor, dTensor, epsTensor, eTensor;
+      Matrix<Double> dTensorTrans;
+
+      //get current tensors
+      //epsTensor: tensor at constant mechanical stress
+      Vector<Double> stress(elemStressStrain.GetSize());
+      stress.Init();
+      matPiezo->GetEffectiveTensors( cTensor, sTensor, epsTensor, dTensor,   
+                                     stress, TempE, nrEl, 
+                                     recompute, previousValues );
+
+      matPiezo->GetEffectiveIrreversibleValues( actPirr, actSirr, nrEl,
+                                                recompute, previousValues );
+
+      //compute actual stress
+      dTensor.Transpose( dTensorTrans );
+      eTensor = cTensor * dTensorTrans;
+      elemStressStrain -= actSirr;
+      stress  = cTensor * elemStressStrain;
+      stress -= eTensor * TempE;
+
+      // compute flux denbsity
+      TempDField = dTensor * stress + epsTensor * TempE + actPirr;
+
+      for(UInt iDof = 0; iDof < dim_; iDof++ ) {
+        actVal[it.GetPos()*dim_ + iDof] = TempDField[iDof];
+      }
+
+    }
+    // Delete integrator again (Stressabbau ;-)
+    delete mechStrainOp;
+    delete FieldOp2;
   }
 
 
@@ -903,7 +1083,7 @@ namespace CoupledField {
           new BiLinFormContext( bilinearCoupleMech, STIFFNESS  );
         
         // explicit definition of no counter part!!
-        actContextCouplemech->SetCounterPart( false );
+        // actContextCouplemech->SetCounterPart( false );
         
         actContextCouplemech->SetEntryType( matType );
         actContextCouplemech->SetPtPdes( pde1_, pde2_ );
@@ -931,8 +1111,8 @@ namespace CoupledField {
         BiLinFormContext *actContextCoupleElec =
           new BiLinFormContext( bilinearCoupleElec, STIFFNESS  );
         
-        // explicit definition og counter part!!
-        actContextCoupleElec->SetCounterPart( false );
+        // explicit definition of counter part!!
+        //actContextCoupleElec->SetCounterPart( false );
         
         actContextCoupleElec->SetEntryType( matType );
         actContextCoupleElec->SetPtPdes( pde2_, pde1_ );
@@ -1399,6 +1579,15 @@ namespace CoupledField {
     pol->unit = "C/m^2";
     availResults_.insert( pol );
 
+    // === ELECTRIC Flux Density ===
+    shared_ptr<ResultInfo> flux( new ResultInfo );
+    flux->resultType = ELEC_FLUX_DENSITY;
+    flux->definedOn = ResultInfo::ELEMENT;
+    flux->entryType = ResultInfo::VECTOR;
+    flux->dofNames = vecDofNames;
+    flux->unit = "C/m^2";
+    availResults_.insert( flux );
+
     // === ELECTRIC CHARGE ===
     shared_ptr<ResultInfo> charge(new ResultInfo);
     charge->resultType = ELEC_CHARGE;
@@ -1664,30 +1853,12 @@ namespace CoupledField {
                                                   Vector<Double>& mechStrainPrev, 
                                                   EntityIterator& ent ) {
 
-    
-    // linear c-Tensor
-    Matrix<Double> cTensorC;
-    matMech->GetTensor( cTensorC, MECH_STIFFNESS_TENSOR, Global::REAL, subTensorType );
 
-    // lineaer eps-Tensor at constant strain
-    Matrix<Double> epsTensor_cStrainC;
-    matElec->GetTensor( epsTensor_cStrainC, ELEC_PERMITTIVITY, Global::REAL, subTensorType );
-
-    // linear e-Tensor
-    Matrix<Double> eTensorC;
-    matCouple->GetTensor( eTensorC, PIEZO_TENSOR, Global::REAL, subTensorType );
-
-    // compute eps-tensor at constant stress
-    Matrix<Double> sTensorC, dTensorC, epsTensor_cStressC;
-    Matrix<Double> eTensorTransC;
-    cTensorC.Invert(sTensorC);
-    dTensorC = eTensorC*sTensorC;
-    eTensorC.Transpose(eTensorTransC);
-    epsTensor_cStressC = epsTensor_cStrainC + dTensorC*eTensorTransC;
-
+    // currently stress = 0
+    //    std::cout << "Type: " << matTensorType << std::endl;
     //compute effective tensors and irreversible polarization and strain
     //with current electric field
-    bool recompute = true;
+    bool recompute = false;
     bool previousValues = false;
     UInt nrEl;
 
@@ -1695,14 +1866,32 @@ namespace CoupledField {
     nrEl  = ent.GetElem()->elemNum;
 
     // get effective material tensors (currently just d-Tensor) 
-    Matrix<Double> cTensor, dTensor, epsTensor, eTensor;
+    Matrix<Double> cTensor, sTensor, dTensor, epsTensor, eTensor;
     Matrix<Double> dTensorTrans;
-    Vector<Double> stress(cTensorC.GetNumRows());
-    stress.Init();
 
-    matCouple->GetEffectiveTensors( cTensor, epsTensor, dTensor,   
+    //get current tensors
+    //epsTensor: tensor at constant mechanical stress
+    Vector<Double> stress(mechStrain.GetSize());
+    stress.Init();
+    matCouple->GetEffectiveTensors( cTensor, sTensor, epsTensor, dTensor,   
                                     stress, elecField, nrEl, 
                                     recompute, previousValues );
+
+    //computa actual stress
+    dTensor.Transpose( dTensorTrans );
+    eTensor = cTensor * dTensorTrans;
+    stress  = cTensor * mechStrain;
+    stress -= eTensor * elecField;
+    // std::cout << "Stress:\n " << stress << std::endl;
+
+    // recompute the tensors
+    recompute = true;
+    //stress.Init();
+    matCouple->GetEffectiveTensors( cTensor, sTensor, epsTensor, dTensor,   
+                                    stress, elecField, nrEl, 
+                                    recompute, previousValues );
+
+    // std::cout  << dTensor[2][2] << "  " << dTensor[2][0] << "  " << dTensor[0][4] << std::endl;
 
     // get effective irreversible strain and polarization
     Vector<Double> actPirr( elecField.GetSize() );
@@ -1711,12 +1900,14 @@ namespace CoupledField {
                                                recompute, previousValues );
 
 
+    //std::cout << "dTensor:\n" <<  dTensor << std::endl;
     if ( matTensorType == "MechTensor" ) {
-      matTensor = cTensorC;
+      matTensor = cTensor;
+      //      std::cout  << matTensor[0][0] << "  " << matTensor[1][1] << "  " << matTensor[2][2] << std::endl;
     }
     else if ( matTensorType == "CouplingTensorElecEQ" ) {
       Matrix<Double> tmp;
-      tmp = dTensor * cTensorC;
+      tmp = dTensor * cTensor;
       tmp.Transpose( matTensor );
     }
     else if ( matTensorType == "CouplingTensorMechEQ" || 
@@ -1729,19 +1920,34 @@ namespace CoupledField {
                                                  false, previousValues );
 
       // compute differential coupling tensor
-      Matrix<Double> dTensorEff;
-      dTensor.Transpose( dTensorEff );
+      Matrix<Double> effTensor, dTensorEff;
+//       dTensor.Transpose( dTensorEff );
+//       //std::cout << "dTensor:\n" << dTensorEff << std::endl;
 //       ComputeDiffCouplingTensorMicroPiezo( dTensorEff, elecField, 
 //                                            elecFieldPrev, actSirr, 
 //                                            prevSirr, subTensorType);
+
+      matCouple->ComputeEffectiveCouplingTensor(effTensor, 
+                                                elecField, 
+                                                elecFieldPrev,
+                                                nrEl);
+
+      std::cout << "dTensor:\n" << dTensor << std::endl << std::endl;
+      std::cout << "dTensorEff:\n" << effTensor << std::endl << std::endl;
       
-      if ( matTensorType == "CouplingTensorMechEQ" ) 
-        matTensor = cTensorC * dTensorEff;
+      effTensor.Transpose( dTensorEff );
+
+      //  std::cout << dTensorEff[2][0] << "  " << dTensorEff[2][1] << "  " << dTensorEff[2][2] << std::endl;
+
+      if ( matTensorType == "CouplingTensorMechEQ" ) {
+        matTensor = cTensor * dTensorEff;
+        //std::cout  << matTensor[2][0] << "  " << matTensor[2][1] << "  " << matTensor[2][2] << std::endl;
+      }
       else {
         Matrix<Double> eTensorEff;
-        eTensorEff = cTensorC * dTensorEff;
+        eTensorEff = cTensor * dTensorEff;
 
-        matTensor = epsTensor_cStressC;
+        matTensor = epsTensor;
         Double diffE, diffP;
         for ( UInt i=0; i< elecField.GetSize(); i++) {
           diffE = elecField[i] - elecFieldPrev[i];
@@ -1760,7 +1966,7 @@ namespace CoupledField {
     else {
       // compute previous stress
       Vector<Double> stressPrev;
-
+      
       Vector<Double> prevPirr( elecField.GetSize() );
       Vector<Double> prevSirr( mechStrain.GetSize() );
       previousValues = true;
@@ -1768,55 +1974,122 @@ namespace CoupledField {
                                                  false, previousValues );
 
       recompute = false;
-      Matrix<Double> cTensorPrev, epsTensorPrev, dTensorPrev;
-      matCouple->GetEffectiveTensors( cTensorPrev, epsTensorPrev, 
-                                      dTensorPrev, stress, 
-                                      elecField, nrEl, 
+      Matrix<Double> cTensorPrev, sTensorPrev, epsTensorPrev, dTensorPrev;
+      matCouple->GetEffectiveTensors( cTensorPrev, sTensorPrev,
+                                      epsTensorPrev, dTensorPrev, 
+                                      stress, elecField, nrEl, 
                                       recompute, previousValues );
 
       // compute mechanical stress
       Matrix<Double> eTensorPrev, dTensorPrevTrans;
       dTensorPrev.Transpose( dTensorPrevTrans );
-      eTensorPrev = cTensorC * dTensorPrevTrans;
-      stressPrev  = cTensorC * mechStrainPrev;
-      //      stressPrev -= cTensorC * prevSirr;
+      eTensorPrev = cTensorPrev * dTensorPrevTrans;
+      stressPrev  = cTensorPrev * mechStrainPrev;
       stressPrev -= eTensorPrev * elecFieldPrev;
 
-      if ( matTensorType == "MechRHS" ) {
-        Matrix<Double> sTensorDelta, sTensorPrev;
-        Matrix<Double> dTensorDelta, dTensorDeltaTrans, helpMat1;
+      if ( matTensorType == "MechRHS1" ) {
+        Matrix<Double> sTensorDelta; 
+        sTensorDelta = sTensor - sTensorPrev;
+        matTensor = cTensor * sTensorDelta;
+
+        resultVec  = matTensor * stressPrev; 
+      }
+      else if ( matTensorType == "MechRHS2" ) {
+        Matrix<Double> dTensorDelta, dTensorDeltaTrans;
 
         dTensorDelta = dTensor - dTensorPrev;
         dTensorDelta.Transpose ( dTensorDeltaTrans );
 
-        matTensor = cTensorC * dTensorDeltaTrans;
+        matTensor = cTensor * dTensorDeltaTrans;
  
-//         helpMat1  = cTensorC * dTensorDeltaTrans;
-//         helpMat1 *= -1.0;
-//         resultVec = helpMat1 * elecFieldPrev;
       }
       else if ( matTensorType == "ElecRHS1" ) {
         Matrix<Double> dTensorDelta, dTensorDeltaTrans;
+        Matrix<Double> epsTensorDelta;
         Matrix<Double> helpMat;
 
         dTensorDelta   = dTensor - dTensorPrev;
         dTensorDelta.Transpose(dTensorDeltaTrans);
 
-        helpMat   = dTensor * cTensorC;
+        helpMat   = dTensor * cTensor;
         matTensor = helpMat * dTensorDeltaTrans;
 
-//         helpMat1   = -helpMat2;
-//         resultVec  = helpMat1 * elecFieldPrev;
-//         resultVec += dTensorDelta * stressPrev;
+        epsTensorDelta = epsTensor - epsTensorPrev;
+
+        matTensor -= epsTensorDelta;
+
       }
      else if ( matTensorType == "ElecRHS2" ) {
-        Matrix<Double> dTensorDelta;
+       Matrix<Double> dTensorDelta, sTensorDelta;
 
-        dTensorDelta = dTensor - dTensorPrev;
-        resultVec    = dTensorDelta * stressPrev;
+       sTensorDelta = sTensor - sTensorPrev;
+       dTensorDelta = dTensor - dTensorPrev;
+
+       matTensor  = dTensor * cTensor;
+       matTensor *= sTensorDelta;
+
+       matTensor -= dTensorDelta;
+
+       resultVec  = matTensor * stressPrev;
      }
     }
   }
+
+
+
+  void PiezoCoupling::ComputeDiffCouplingTensorMicroPiezo( Matrix<Double>& dMat, 
+                                                           Vector<Double>& actE,
+                                                           Vector<Double>& prevE,
+                                                           Vector<Double>& actSirr,
+                                                           Vector<Double>& prevSirr,
+                                                           SubTensorType subTensorType ) {
+
+    Vector<Double> diffE, diffSirr;
+    Double addVal;
+
+    diffE    = actE - prevE;
+    diffSirr = actSirr - prevSirr;
+
+ //    std::cout << "diffE:\n" << diffE << std::endl;
+//     std::cout << "diffS:\n" << diffSirr << std::endl << std::endl;
+
+    if ( subTensorType == PLANE_STRAIN ) {
+      if ( abs( diffE[0]) > 1.0 ) {
+        dMat[1][0] += diffSirr[0] / diffE[0];
+      }
+      if ( abs(diffE[1]) > 1.0 ) {
+        dMat[1][1] += diffSirr[1] / diffE[1];
+      }
+      
+    }
+    else if ( subTensorType == FULL ) {
+      if ( abs( diffE[2]) > 1e3 ) {
+        addVal = diffSirr[0] / diffE[2];
+//         if ( std::abs(addVal) > dMat[2][0] )
+//           addVal *= 0.1;
+        dMat[2][0] += addVal;
+      }
+      if ( abs(diffE[2]) > 1e3 ) {
+        addVal = diffSirr[1] / diffE[2];
+//         if ( std::abs(addVal) > dMat[2][1] )
+//           addVal *= 0.2;
+        dMat[2][1] += addVal;
+      }
+      if ( abs(diffE[2]) > 1e3 ) {
+        addVal = diffSirr[2] / diffE[2];
+//         if ( std::abs(addVal) > dMat[2][2] )
+//           addVal *= 0.1;
+//        std::cout << "AddVal (3,3): " << addVal << std::endl;
+        dMat[2][2] += addVal;        
+      }
+    }
+    else 
+      EXCEPTION( "Problems in ComputeDiffCouplingTensorMicroPiezo");
+
+    //    std::cout << "dMatEff:\n" << dMat << std::endl;
+
+  }
+
 
 
   void PiezoCoupling::GetMaterialTensorMicroPiezo2(Matrix<Double>& matTensor, 
@@ -1840,10 +2113,10 @@ namespace CoupledField {
     nrEl  = ent.GetElem()->elemNum;
 
     // get effective material tensors 
-    Matrix<Double> cTensor, dTensor, epsTensor, eTensor;
+    Matrix<Double> cTensor, sTensor, dTensor, epsTensor, eTensor;
     Matrix<Double> dTensorTrans;
     Vector<Double> stress;
-    matCouple->GetEffectiveTensors( cTensor, epsTensor, dTensor,   
+    matCouple->GetEffectiveTensors( cTensor, sTensor, epsTensor, dTensor,   
                                     stress, elecField, nrEl, 
                                     recompute, previousValues );
 
@@ -1863,7 +2136,7 @@ namespace CoupledField {
     // compute with new stress the volume factions and the corresponding
     // new material tensors
     recompute = true;
-    matCouple->GetEffectiveTensors( cTensor, epsTensor, dTensor,   
+    matCouple->GetEffectiveTensors( cTensor, sTensor, epsTensor, dTensor,   
                                     stress, elecField, nrEl, 
                                     recompute, previousValues );
 
@@ -1929,9 +2202,9 @@ namespace CoupledField {
                                                  false, previousValues );
 
       recompute = false;
-      Matrix<Double> cTensorPrev, epsTensorPrev, dTensorPrev;
-      matCouple->GetEffectiveTensors( cTensorPrev, epsTensorPrev, 
-                                      dTensorPrev, stress, 
+      Matrix<Double> cTensorPrev, sTensorPrev, epsTensorPrev, dTensorPrev;
+      matCouple->GetEffectiveTensors( cTensorPrev, sTensorPrev,
+                                      epsTensorPrev, dTensorPrev, stress, 
                                       elecField, nrEl, 
                                       recompute, previousValues );
 
@@ -1988,42 +2261,6 @@ namespace CoupledField {
     }
   }
 
-
-  void PiezoCoupling::ComputeDiffCouplingTensorMicroPiezo( Matrix<Double>& dMat, 
-                                                           Vector<Double>& actE,
-                                                           Vector<Double>& prevE,
-                                                           Vector<Double>& actSirr,
-                                                           Vector<Double>& prevSirr,
-                                                           SubTensorType subTensorType ) {
-
-    Vector<Double> diffE, diffSirr;
-    diffE    = actE - prevE;
-    diffSirr = actSirr - prevSirr;
-
-    if ( subTensorType == PLANE_STRAIN ) {
-      if ( abs( diffE[0]) > 1.0 ) {
-        dMat[1][0] += diffSirr[0] / diffE[0];
-      }
-      if ( abs(diffE[1]) > 1.0 ) {
-        dMat[1][1] += diffSirr[1] / diffE[1];
-      }
-      
-    }
-    else if ( subTensorType == FULL ) {
-      if ( abs( diffE[0]) > 1 ) {
-        dMat[2][0] += diffSirr[0] / diffE[0];
-      }
-      if ( abs(diffE[1]) > 1 ) {
-        dMat[2][1] += diffSirr[1] / diffE[1];
-      }
-      if ( abs(diffE[2]) > 1 ) {
-        dMat[2][2] += diffSirr[2] / diffE[2];
-      }
-    }
-    else 
-      EXCEPTION( "Problems in ComputeDiffCouplingTensorMicroPiezo");
-
-    //    std::cout << "dMatEff:\n" << dMat << std::endl;
-
-  }
 }
+
+

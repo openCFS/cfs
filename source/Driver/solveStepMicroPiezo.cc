@@ -18,6 +18,7 @@
 #include "Domain/domain.hh"
 #include "Utils/result.hh"
 #include "CoupledPDE/BasePairCoupling.hh"
+#include "CoupledPDE/DirectCoupledPDE.hh"
 #include "Utils/piezoMicroModel.hh"
 #include "Utils/piezoMicroModelBK.hh"
 
@@ -69,7 +70,7 @@ namespace CoupledField {
   void SolveStepMicroPiezo::StepTransNonLin(InfoNode* analysis_id) {
 
 
-    //std::cout << "\n In :StepTransNonLinEpsDiff  \n " << std::endl;
+    //  std::cout << "\n In :StepTransNonLinEpsDiff  \n " << std::endl;
  
     bool performOneMoreStep;
     UInt iterationCounter=0;
@@ -77,7 +78,8 @@ namespace CoupledField {
     Vector<Double> newSol( numEqns_ ); 
     Vector<Double> oldSol( numEqns_ );
     Vector<Double> solPrev( numEqns_ );
- 
+    //    Vector<Double> oldSolMech, newSolMech;
+
     // get second order derivative of previous time step;
     Vector<Double> solDeriv2Prev = PDE_.getS2();
 
@@ -90,7 +92,21 @@ namespace CoupledField {
     Vector<Double> & solHelp = 
       dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
     solPrev = solHelp;
-    //    std::cout << "Previous Solution:\n" << solPrev << std::endl;
+
+    //get just mechanical solution
+    DirectCoupledPDE& coupledPDE = dynamic_cast<DirectCoupledPDE&>(PDE_);
+    StdVector<SinglePDE*> allSingelPDEs =  coupledPDE.GetSinglePDEs();
+    BaseNodeStoreSol * solPDEMech =allSingelPDEs[1]->getPDESolution();
+    NodeStoreSol<Double> *solhelp1 =
+      dynamic_cast<NodeStoreSol<Double>*>(solPDEMech);
+
+    Vector<Double> oldMech;
+    solhelp1->GetGlobalSolVector(MECH_DISPLACEMENT, oldMech);
+
+    //    StdPDE& mechPDE =  dynamic_cast<StdPDE&>(*allSingelPDEs[0]); 
+    //    Vector<Double>& oldSolMech =  dynamic_cast<Vector<Double>&>(haha); 
+
+    //    std::cout << "Oldmech:\n" << oldMech << "\n\n" << std::endl;
 
     // perform predictor step
     if ( TS_alg_== NULL ) {
@@ -137,12 +153,13 @@ namespace CoupledField {
       // setup RHS to incorporate loads and linear-Forms
       assemble_->AssembleLinRHS(); 
 
-      //Update RHS (mass matrix on right hand side)
-      TS_alg_->UpdateRHS();
-
       //perform new assembly
       assemble_->AssembleMatrices();
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
+
+
+      //Update RHS (mass matrix on right hand side)
+      TS_alg_->UpdateRHS();
 
       // K*(u_n,Ve_n)
       //algsys_->UpdateRHS(STIFFNESS, solPrev.GetPointer());
@@ -170,14 +187,21 @@ namespace CoupledField {
       //store solution for (n+1)
       PDE_.SaveSolution( newSol.GetPointer(), newSol.GetSize() );
 
+      BaseNodeStoreSol * solPDEMechNew =allSingelPDEs[1]->getPDESolution();
+      NodeStoreSol<Double> *solhelpNew =
+        dynamic_cast<NodeStoreSol<Double>*>(solPDEMechNew);
+
+      Vector<Double> newMech;
+      solhelpNew->GetGlobalSolVector(MECH_DISPLACEMENT, newMech);
+
       // compute L2-Norm of error between last incremental solution and
       // actual incremental solution
       Double solIncrL2Norm=0;
-      for (UInt i=0; i<newSol.GetSize(); i++)
-        solIncrL2Norm += (newSol[i]-oldSol[i])*(newSol[i]-oldSol[i]);
+      for (UInt i=0; i<newMech.GetSize(); i++)
+        solIncrL2Norm += (newMech[i]-oldMech[i])*(newMech[i]-oldMech[i]);
     
       solIncrL2Norm = sqrt(solIncrL2Norm);
-      Double actSolL2Norm = newSol.NormL2();
+      Double actSolL2Norm = newMech.NormL2();
     
       Double incrementalErr;
       if (actSolL2Norm > 1)
@@ -196,7 +220,11 @@ namespace CoupledField {
     
       // boolean variable, holds condition if another iteration step is necessary
       performOneMoreStep = (incrementalErr > incStopCrit_) ; //|| (residualErr > residualStopCrit_);      
-      
+//       if ( iterationCounter < nonLinMaxIter_ -1 ) 
+//         performOneMoreStep = true;
+
+      oldMech = newMech;
+
     } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);  
 
 //     if ( iterationCounter >= nonLinMaxIter_ ) {
@@ -238,7 +266,7 @@ namespace CoupledField {
       PiezoMicroModelBK* microPiezo = actSDMat->GetMicroPiezoModel();
       if (  microPiezo!= NULL ) {
         microPiezo->SetPreviousVolFrac();
-        microPiezo-> SetPreviousIrreversibleValues();
+        microPiezo->SetPreviousIrreversibleValues();
       }
     }
   

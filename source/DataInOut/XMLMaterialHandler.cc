@@ -180,13 +180,17 @@ namespace CoupledField {
         if(pcc->Has("sponStrain")) 
           material->SetScalar(pcc->Get("sponStrain")->AsDouble(), SPON_STRAIN, Global::REAL ); 
 
-        // read driving force for 90 degree switching
-        if(pcc->Has("drivingForce90")) 
-          material->SetScalar(pcc->Get("drivingForce90")->AsDouble(), DRIVING_FORCE_90, Global::REAL ); 
+        // 
+        if(pcc->Has("Efield0")) 
+          material->SetScalar(pcc->Get("Efield0")->AsDouble(), EFIELD0, Global::REAL ); 
 
-        // read driving force for 180 degree switching
-        if(pcc->Has("drivingForce180")) 
-          material->SetScalar(pcc->Get("drivingForce180")->AsDouble(), DRIVING_FORCE_180, Global::REAL ); 
+        // 
+        if(pcc->Has("Stress0")) 
+          material->SetScalar(pcc->Get("Stress0")->AsDouble(), STRESS0, Global::REAL ); 
+
+        // 
+        if(pcc->Has("dCouple0")) 
+          material->SetScalar(pcc->Get("dCouple0")->AsDouble(), DCOUPLE0, Global::REAL ); 
 
         // read rate constant
         if(pcc->Has("rateConstant")) 
@@ -203,6 +207,18 @@ namespace CoupledField {
         // read init value for volume fraction
         if(pcc->Has("volumeFracInit")) 
           material->SetScalar(pcc->Get("volumeFracInit")->AsDouble(), VOLUME_FRAC_INIT, Global::REAL ); 
+
+        // 
+        if(pcc->Has("scaleForceElec")) 
+          material->SetScalar(pcc->Get("scaleForceElec")->AsDouble(), SCALE_FORCE_ELEC, Global::REAL ); 
+
+        // 
+        if(pcc->Has("scaleForceMech")) 
+          material->SetScalar(pcc->Get("scaleForceMech")->AsDouble(), SCALE_FORCE_MECH, Global::REAL ); 
+
+        // 
+        if(pcc->Has("scaleForceCouple")) 
+          material->SetScalar(pcc->Get("scaleForceCouple")->AsDouble(), SCALE_FORCE_COUPLE, Global::REAL ); 
 
         // read mean temperatute
         if(pcc->Has("Tmean"))

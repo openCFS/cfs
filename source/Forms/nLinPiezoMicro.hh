@@ -50,7 +50,7 @@ namespace CoupledField {
     //@}
 
    //! Compute the nonlinear data-matrix \f$D\f$
-    void calcDMat(Matrix<Double> & dMat );
+    void calcDMat(Matrix<Double> & dMat, const Elem* elem );
 
    //! set objects for computation of E-field
    void Set4NonLinMaterial( Grid* ptGrid, 
@@ -241,7 +241,7 @@ namespace CoupledField {
     //@}
 
    //! Compute the nonlinear data-matrix \f$D\f$
-    void calcDMat(Matrix<Double> & dMat );
+    void calcDMat(Matrix<Double> & dMat, const Elem* elem );
 
    //! set objects for computation of E-field
    void Set4NonLinMaterial(Grid* ptGrid, 

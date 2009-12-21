@@ -70,8 +70,8 @@ namespace CoupledField
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
 
-    Matrix<Double> dMat;
-    linElastInt::calcDMat(dMat, ent.GetElem());
+//     Matrix<Double> dMat;
+//     linElastInt::calcDMat(dMat, ent.GetElem());
 
     // convert displacement of all elem nodes into one vector:
     // (uNode1X, uNode1Y, uNode2X, uNode2Y, ...)

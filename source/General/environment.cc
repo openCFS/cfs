@@ -421,6 +421,10 @@ namespace CoupledField {
       return "C/m^2";
       break;
 
+    case ELEC_FLUX_DENSITY:
+      return "C/m^2";
+      break;
+
     case ELEC_PSEUDO_POLARIZATION:
       return "";
       break;
@@ -776,11 +780,14 @@ namespace CoupledField {
     case SPON_STRAIN:
       out = "sponStrain";
       break;
-    case DRIVING_FORCE_90:
-      out = "drivingForce90";
+    case EFIELD0:
+      out = "Efield0";
       break;
-    case DRIVING_FORCE_180:
-      out = "drivingForce180";
+    case STRESS0:
+      out = "Stress0";
+      break;
+    case DCOUPLE0:
+      out = "dCouple0";
       break;
     case RATE_CONSTANT:
       out = "rateConstant";
@@ -791,12 +798,22 @@ namespace CoupledField {
     case SATURATION_INDEX:
       out = "saturationIndex";
       break;
+    case  SCALE_FORCE_ELEC:
+      out = "scaleForceElec";
+      break;
+    case  SCALE_FORCE_MECH:
+      out = "scaleForceMech";
+      break;
+    case  SCALE_FORCE_COUPLE:
+      out = "scaleForceCouple";
+      break;
     case VOLUME_FRAC_INIT:
       out = "volumeFracInit";
       break;
     case MEAN_TEMPERATURE:
       out = "meanTemperature";
       break;
+
     case X_SATURATION:
       out = "Xsaturation";
       break;
@@ -1008,11 +1025,14 @@ namespace CoupledField {
     else if ( in == "sponStrain" ) {
       out = SPON_STRAIN;
     }
-    else if ( in == "drivingForce90" ) {
-      out = DRIVING_FORCE_90;
+    else if ( in == "Efield0" ) {
+      out = EFIELD0;
     }
-    else if ( in == "drivingForce180" ) {
-      out = DRIVING_FORCE_180;
+    else if ( in == "Stress0" ) {
+      out = STRESS0;
+    }
+    else if ( in == "dCouple0" ) {
+      out = DCOUPLE0;
     }
     else if ( in == "rateConstant" ) {
       out = RATE_CONSTANT;
@@ -1022,6 +1042,15 @@ namespace CoupledField {
     }
     else if ( in == "saturationIndex" ) {
       out = SATURATION_INDEX;
+    }
+    else if ( in == "scaleForceElec" ) {
+      out =  SCALE_FORCE_ELEC;
+    }
+    else if ( in == "scaleForceMech" ) {
+      out =  SCALE_FORCE_MECH;
+    }
+    else if ( in == "scaleForceCouple" ) {
+      out =  SCALE_FORCE_COUPLE;
     }
     else if ( in == "volumeFracInit" ) {
       out = VOLUME_FRAC_INIT;

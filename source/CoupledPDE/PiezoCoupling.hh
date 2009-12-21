@@ -155,6 +155,10 @@ namespace CoupledField
     //! computes the electric polarization
     void CalcElecPolarization( shared_ptr<BaseResult> result );
 
+    //! computes flux density
+    template <class TYPE>
+    void CalcElecFluxDensity( shared_ptr<BaseResult> res );
+
     // Data section
 
     //! flag indicating use of complex material parameters

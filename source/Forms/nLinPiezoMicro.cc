@@ -122,15 +122,17 @@ namespace CoupledField {
     Matrix<double> matCouple;
     ADBInt::CalcElementMatrix( matCouple, ent1, ent2 );
 
-    if ( isMech_ )
+    if ( isMech_ ) {
       elemMat = matCouple;
+    }
     else {
       matCouple.Transpose( elemMat ); 
     }
+    //std::cout << "CoupleMatrix: \n" <<  matCouple << std::endl;
   }
 
 
-  void nLinMicroPiezoCouple::calcDMat(Matrix<Double> & dMat ) {
+  void nLinMicroPiezoCouple::calcDMat(Matrix<Double> & dMat, const Elem* elem ) {
 
     Vector<Double> LCoord, Efield, mechStrain;
     Vector<Double> EfieldPrev, mechStrainPrev, elecD;
@@ -253,7 +255,7 @@ namespace CoupledField {
     ExtractElemInfo( ent2 ); 
 
     BDBInt::CalcElementMatrix( elemMat, ent1, ent2 );
-    //std::cout << "Elec Matrix:\n " << elemMat << std::endl;
+    //    std::cout << "Mech Matrix:\n " << elemMat << std::endl;
 
   }
 
@@ -290,7 +292,7 @@ namespace CoupledField {
                                                  EfieldPrev, mechStrainPrev, 
                                                  ent1_ );
 
-    //    std::cout << matType << "\n " << dMat << std::endl;
+    //std::cout << matType << "\n " << dMat << std::endl;
   }
 
   // ============
@@ -380,7 +382,7 @@ namespace CoupledField {
   }
 
 
-  void nLinMicroPiezoElec::calcDMat(Matrix<Double> & dMat ) {
+  void nLinMicroPiezoElec::calcDMat(Matrix<Double> & dMat, const Elem* elem ) {
 
     Vector<Double> LCoord, Efield, mechStrain;
     Vector<Double> EfieldPrev, mechStrainPrev, elecD;
@@ -399,6 +401,8 @@ namespace CoupledField {
     mechStrainOp_->SetActElemSol(elemDisplPrev_);
     mechStrainOp_->SetIntPoint(LCoord);
     mechStrainOp_->CalcStrainVec( mechStrainPrev, 1, ent1_ );
+//     std::cout <<"EfieldPrev:\n"  << EfieldPrev << std::endl;
+//     std::cout <<"Efield:\n"  << Efield << std::endl;
 
     // compute the nonlinear coupling tensor
     std::string matType = "ElecTensor";
@@ -412,7 +416,7 @@ namespace CoupledField {
                                                  EfieldPrev, mechStrainPrev, 
                                                  ent1_ );
 
-    //    std::cout << matType << "\n " << dMat << std::endl;
+    // std::cout << matType << "\n " << dMat << std::endl;
   }
 }
 

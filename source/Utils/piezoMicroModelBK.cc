@@ -27,10 +27,14 @@ namespace CoupledField{
 
     deltaT_ = dt;
 
-    if ( tensorType_ == FULL )
-      dim_ = 3;
-    else 
-      dim_ = 2;
+    if ( tensorType_ == FULL ) {
+      dim_  = 3;
+      dimS_ = 6;
+    }
+    else {
+      dim_  = 2;
+      dimS_ = 3;
+    }
 
     InitSwitchingSystem();
   }
@@ -43,162 +47,68 @@ namespace CoupledField{
   void PiezoMicroModelBK::InitSwitchingSystem() {
 
     // set number of domain types
-    numDomain_ = 4;
+    numDomain_ = 14;
 
-    // set number of switching systems
-    numSwitching_ = numDomain_ * (numDomain_ -1);
+    // define the rotation anles
+    rotationAngles_.Resize(dim_,numDomain_);
+    rotationAngles_[0][0] = 0;
+    rotationAngles_[1][0] = -PI/2.0;
+    rotationAngles_[2][0] = 0;
+    rotationAngles_[0][1] = PI/2.0;
+    rotationAngles_[1][1] = 0;
+    rotationAngles_[2][1] = 0;
+    rotationAngles_[0][2] = 0;
+    rotationAngles_[1][2] = 0;
+    rotationAngles_[2][2] = 0;
+    rotationAngles_[0][3] = 0;
+    rotationAngles_[1][3] = PI/2.0;
+    rotationAngles_[2][3] = 0;
+    rotationAngles_[0][4] = -PI/2.0;
+    rotationAngles_[1][4] = 0;
+    rotationAngles_[2][4] = 0;
+    rotationAngles_[0][5] = PI;
+    rotationAngles_[1][5] = 0;
+    rotationAngles_[2][5] = 0;
+    rotationAngles_[0][6] = 0.9557;
+    rotationAngles_[1][6] = 0;
+    rotationAngles_[2][6] = PI/4.0;
+    rotationAngles_[0][7] = 0.9557;
+    rotationAngles_[1][7] = 0;
+    rotationAngles_[2][7] = PI/4.0 + PI/2.0;
+    rotationAngles_[0][8] = 0.9557;
+    rotationAngles_[1][8] = 0;
+    rotationAngles_[2][8] = PI/4.0 + PI;
+    rotationAngles_[0][9] = 0.9557;
+    rotationAngles_[1][9] = 0;
+    rotationAngles_[2][9] = PI/4.0 + 3.0*PI/2.0;
+    rotationAngles_[0][10] = PI - 0.95570;
+    rotationAngles_[1][10] = 0;
+    rotationAngles_[2][10] = PI/4.0;
+    rotationAngles_[0][11] = PI - 0.9557;
+    rotationAngles_[1][11] = 0;
+    rotationAngles_[2][11] = PI/4.0 + PI/2.0;
+    rotationAngles_[0][12] = PI - 0.9557;
+    rotationAngles_[1][12] = 0;
+    rotationAngles_[2][12] = PI/4.0 + PI;
+    rotationAngles_[0][13] = PI - 0.9557;
+    rotationAngles_[1][13] = 0;
+    rotationAngles_[2][13] = PI/4.0 + 3*PI/2.0;
 
-    // define the rotation angles
-    rotationAngles_.Resize(3,numDomain_);
-    rotationAngles_.Init();
-    if ( dim_ == 2) {
-      rotationAngles_[2][0] = -90;
-      rotationAngles_[2][2] = 90;
-      rotationAngles_[2][3] = 180;
-    }
-    else {
-      rotationAngles_[1][1] = 180;
-    }
-
-
-    // allocate for driving forces, transformation rates and volume fractions
-    driveForces_.Resize(numSwitching_, numEl_);
-    transformationRates_.Resize(numSwitching_, numEl_);
-    volFracAct_.Resize(numSwitching_, numEl_);
-    volFracPrev_.Resize(numSwitching_, numEl_);
-
-    Double startVolFrac = 1.0/Double(numDomain_);
-    volFracAct_.InitValue( startVolFrac );
-    volFracPrev_.InitValue( startVolFrac );
-
-    // allocate for electric polarization
-    effElecPolAct_.Resize(dim_,numEl_);
-    effElecPolPrev_.Resize(dim_,numEl_);
-    effElecPolPrev_.Init();
-
-    //allocate for irreversibel strain
-    if (dim_ == 2 ) {
-      effStrainIrrAct_.Resize(3,numEl_);
-      effStrainIrrPrev_.Resize(3,numEl_);
-      effStrainIrrPrev_.Init();
-    }
-    else {
-      effStrainIrrAct_.Resize(6,numEl_);
-      effStrainIrrPrev_.Resize(6,numEl_);
-      effStrainIrrPrev_.Init();
-    }
 
     // get the model parameters
-    piezoMat_->GetScalar( sponP_,  SPON_POLARIZATION, Global::REAL);
-    piezoMat_->GetScalar( sponS_,  SPON_STRAIN, Global::REAL);
-    piezoMat_->GetScalar( driveForce90_,  DRIVING_FORCE_90, Global::REAL);
-    piezoMat_->GetScalar( driveForce180_,  DRIVING_FORCE_180, Global::REAL);
+    piezoMat_->GetScalar( sponP0_,  SPON_POLARIZATION, Global::REAL);
+    piezoMat_->GetScalar( sponS0_,  SPON_STRAIN, Global::REAL);
+    piezoMat_->GetScalar( E0_,  EFIELD0, Global::REAL);
+    piezoMat_->GetScalar( sigma0_,  STRESS0, Global::REAL);
+    piezoMat_->GetScalar( d0Couple_,  DCOUPLE0, Global::REAL);
     piezoMat_->GetScalar( rateConst_,  RATE_CONSTANT, Global::REAL);
     piezoMat_->GetScalar( viscoPlasticIdx_,  VISCO_PLASTIC_INDEX, Global::REAL);
-
     piezoMat_->GetScalar( saturationIdx_,  SATURATION_INDEX, Global::REAL);
     piezoMat_->GetScalar( volFracInit_, VOLUME_FRAC_INIT, Global::REAL);
+    piezoMat_->GetScalar( scaleDriveForceElec_, SCALE_FORCE_ELEC, Global::REAL);
+    piezoMat_->GetScalar( scaleDriveForceMech_, SCALE_FORCE_MECH, Global::REAL);
+    piezoMat_->GetScalar( scaleDriveForceCouple_, SCALE_FORCE_COUPLE, Global::REAL);
     piezoMat_->GetScalar( meanTemp_, MEAN_TEMPERATURE, Global::REAL);
-
-    //! compute value of strain for each switching system
-    switchStrainVal_.Resize(numSwitching_);
-    switchStrainVal_.Init(0);
-
-    // allocate for Schmid tensor
-    SchmidTensor_.Resize(dim_, dim_);
-    if (dim_ == 2 ) 
-      SchmidTensorAsVector_.Resize(3);
-    else
-      SchmidTensorAsVector_.Resize(6);
-
-    // compute switching directions
-    switchingDirection_.Resize(dim_, numDomain_);
-    switchingDirection_.Init();
-    if (dim_ == 2) {
-      switchingDirection_[0][0] = 1;
-      switchingDirection_[1][1] = 1;
-      switchingDirection_[0][2] = -1;
-      switchingDirection_[1][3] = -1;
-    }
-    else {
-      switchingDirection_[2][0] = -1;
-      switchingDirection_[2][1] =  1;
-    }
-
-    //    std::cout << "Switching Directions:\n" << switchingDirection_ << std::endl;
-
-    //! compute value of polarization for each switching system
-    switchPolarizationVal_.Resize(dim_, numSwitching_);
-    switchPolarizationVal_.Init();
-    UInt idx = 0;
-    for (UInt i=0; i<numDomain_;i++) {
-      for (UInt j=0; j<numDomain_;j++) {
-        if ( i != j ) {
-          for (UInt k=0; k<dim_;k++) {
-            switchPolarizationVal_[k][idx] = sponP_ 
-              * (switchingDirection_[k][i] - switchingDirection_[k][j]);
-          }
-          idx +=1;
-        }
-      }
-    }
-
-    //    std::cout << "switchPolarizationVal:\n" << switchPolarizationVal_ << std::endl;
-
-    driveForceCrit_.Resize(numSwitching_);
-    driveForceCrit_[0] = driveForce90_;
-    driveForceCrit_[1] = driveForce180_;
-    driveForceCrit_[2] = driveForce90_;
-    driveForceCrit_[3] = driveForce90_;
-    driveForceCrit_[4] = driveForce90_;
-    driveForceCrit_[5] = driveForce180_;
-    driveForceCrit_[6] = driveForce180_;
-    driveForceCrit_[7] = driveForce90_;
-    driveForceCrit_[8] = driveForce90_;
-    driveForceCrit_[9] = driveForce90_;
-    driveForceCrit_[10] = driveForce180_;
-    driveForceCrit_[11] = driveForce90_;
- 
-    switchForwardIdx_.Resize(numDomain_-1, numDomain_);
-    switchForwardIdx_[0][0] = 0;
-    switchForwardIdx_[1][0] = 1;
-    switchForwardIdx_[2][0] = 2;
-    switchForwardIdx_[0][1] = 3;
-    switchForwardIdx_[1][1] = 4;
-    switchForwardIdx_[2][1] = 5;
-    switchForwardIdx_[0][2] = 6;
-    switchForwardIdx_[1][2] = 7;
-    switchForwardIdx_[2][2] = 8;
-    switchForwardIdx_[0][3] = 9;
-    switchForwardIdx_[1][3] = 10;
-    switchForwardIdx_[2][3] = 11;
-
-    switchBackwardIdx_.Resize(numDomain_-1, numDomain_);
-    switchBackwardIdx_[0][0] = 3;
-    switchBackwardIdx_[1][0] = 6;
-    switchBackwardIdx_[2][0] = 9;
-    switchBackwardIdx_[0][1] = 0;
-    switchBackwardIdx_[1][1] = 7;
-    switchBackwardIdx_[2][1] = 10;
-    switchBackwardIdx_[0][2] = 1;
-    switchBackwardIdx_[1][2] = 4;
-    switchBackwardIdx_[2][2] = 11;
-    switchBackwardIdx_[0][3] = 2;
-    switchBackwardIdx_[1][3] = 5;
-    switchBackwardIdx_[2][3] = 8;
-
-
-//     // compute switching normals
-//     switchingNormal_.Resize(dim_, numSwitching_);
-//     switchingNormal_.Init(0.0);
-//     if (dim_ == 2) {
-//       switchingNormal_[0][0] =  1;
-//       switchingNormal_[0][1] = -1;
-//     }
-//     else {
-//       switchingNormal_[0][0] =  1;
-//       switchingNormal_[0][1] = -1;
-//     }
 
     // get the material tensor
     Matrix<Double> cTensor;
@@ -213,11 +123,10 @@ namespace CoupledField{
     eTensor.Transpose(eTensorTrans);
     epsTensorOrig_ = epsTensor_cStrain + dTensorOrig_*eTensorTrans;
 
-    // init the delta coupling tensor (we just need the correct dimensions)
-    deltaCouplingTensor_ = dTensorOrig_;
+//      std::cout << "sTensorOrig: \n " << sTensorOrig_ << std::endl;
+//    std::cout << "dTensorOrig: \n " << dTensorOrig_ << std::endl;
+//      std::cout << "epsTensorOrig: \n " << epsTensorOrig_ << std::endl;
 
-    // rotate the material tensors
-    RotateMaterialTensors();
 
     // set the effective tensors (just for correct dimensions)
     effMechStiffTensor_      = sTensorOrig_;
@@ -225,9 +134,135 @@ namespace CoupledField{
     effPiezoTensor_          = dTensorOrig_;
     effPermittivityTensor_   = epsTensorOrig_;
 
+    //initialize the properties of the material tensors, spontenous polarization
+    //and strain in the different directions
+    Matrix<Double> baseS(dim_,dim_);
+    baseS.Init();
+    baseS[0][0] = -0.5*sponS0_;
+    baseS[1][1] = -0.5*sponS0_;
+    baseS[2][2] = sponS0_;
+
+    Vector<Double> baseP(dim_);
+    baseP.Init();
+    baseP[2] = sponP0_;
+
+    //define the array dimensions
+    Ps_.resize(extents[numDomain_]);
+    Ss_.resize(extents[numDomain_]);
+    dTensor_.resize(extents[numDomain_]);
+    sTensor_.resize(extents[numDomain_]);
+    epsTensor_.resize(extents[numDomain_]);
+
+    for ( UInt i=0; i<numDomain_; i++ ) {
+      Vector<Double> angle(dim_);
+      Matrix<Double> rotMat(dim_,dim_);
+
+      //get angle for direction
+      for ( UInt j=0; j<dim_; j++ )
+        angle[j] = rotationAngles_[j][i];
+
+      //std::cout << "Angle: \n " << angle << std::endl << std::endl;
+      //get rotation matrix
+      ComputeRotationMatrix( angle, rotMat );
+      //std::cout << "rotMatrix:\n " << rotMat << std::endl;
+
+      //spontenous polarization
+      Ps_[i].Resize(dim_);
+      Ps_[i] = rotMat * baseP;
+      //std::cout << "Ps_: " << i << "\n" << Ps_[i] << "\n" << std::endl;
+
+      //spontenous strain
+      Ss_[i].Resize(dimS_);
+      Matrix<Double> tmpS;
+      RotateMatrix( baseS, tmpS, rotMat );
+      //std::cout << "Ss_: " << i << "\n" << tmpS << std::endl;
+      ConvertToVoigtNotation( tmpS, Ss_[i] );
+      //std::cout << "Ss_: " << i << "\n" << Ss_[i] << "\n" << std::endl;
+
+      //coupling tensor
+      RotateMatrix( dTensorOrig_, dTensor_[i], rotMat );
+      //std::cout << "dTensor_: " << i << "\n" << dTensor_[i] << "\n" << std::endl;
+
+      //complicance tensor
+      RotateMatrix( sTensorOrig_, sTensor_[i], rotMat );
+      //std::cout << "sTensor_: " << i << "\n" << sTensor_[i] << std::endl;
+
+      //dielectric tensor
+      RotateMatrix( epsTensorOrig_, epsTensor_[i], rotMat );
+      // std::cout << "epsTensor_: " << i << "\n" << epsTensor_[i] << std::endl;
+    }
+
+    //compute the delta of the switching system
+    deltaPs_.resize(extents[numDomain_][numDomain_]);
+    deltaSponS_.resize(extents[numDomain_][numDomain_]);; 
+    deltaTensorCoupl_.resize(extents[numDomain_][numDomain_]);; 
+
+    for ( UInt i=0; i<numDomain_; i++ ) {
+      for ( UInt j=0; j<numDomain_; j++ ) {
+        // std::cout << "\n i:" << i << "  j:" << j << std::endl;
+        deltaPs_[i][j] = Ps_[j] - Ps_[i];
+        deltaSponS_[i][j] = Ss_[j] - Ss_[i];
+        //std::cout << "deltaS:\n" << deltaSponS_[i][j] << std::endl << std::endl;
+        deltaTensorCoupl_[i][j] = dTensor_[j] - dTensor_[i];
+        //std::cout << "deltaCoup:\n" << deltaTensorCoupl_[i][j] << std::endl;
+      }
+    }
+
+    //compute the switching values
+    switchingVal_.Resize(numDomain_,numDomain_);
+
+    for ( UInt i=0; i<numDomain_; i++ ) {
+      for ( UInt j=0; j<numDomain_; j++ ) {
+        Double vecInner, val;
+        Ps_[i].Inner( Ps_[j],  vecInner );
+        val = vecInner / ( Ps_[i].NormL2() * Ps_[j].NormL2() );
+        if ( val > 1.0 ) 
+          val = 1.0;
+
+        if ( val < -1.0 ) 
+          val = -1.0;
+             
+        switchingVal_[i][j] = 2.0 * std::acos( val ) / PI;
+      }
+    }
+
+    //std::cout << "switchingVal:\n" << switchingVal_ << std::endl;
+
+    // allocate for driving forces and transformation rates
+    driveForcesElec_.resize(extents[numEl_][numDomain_][numDomain_]); 
+    driveForcesMech_.resize(extents[numEl_][numDomain_][numDomain_]);
+    driveForcesCouple_.resize(extents[numEl_][numDomain_][numDomain_]);
+    transformationRates_.resize(extents[numEl_][numDomain_][numDomain_]);
+
+    // allocate for volume fractions 
+    Double startVolFrac = 1.0/Double(numDomain_);
+    volFracAct_.Resize(numEl_,numDomain_);
+    volFracPrev_.Resize(numEl_,numDomain_);  
+    volFracAct_.InitValue( startVolFrac );
+    volFracPrev_.InitValue( startVolFrac );
+
+    // allocate for electric polarization
+    effElecPolAct_.resize(extents[numEl_]);
+    effElecPolPrev_.resize(extents[numEl_]);
+    for ( UInt i=0; i<numEl_; i++ ) {
+      effElecPolAct_[i].Resize(dim_);
+      effElecPolPrev_[i].Resize(dim_);
+      effElecPolPrev_[i].Init();
+    }
+
+    //allocate for irreversibel strain
+    effStrainIrrAct_.resize(extents[numEl_]);
+    effStrainIrrPrev_.resize(extents[numEl_]);
+    for ( UInt i=0; i<numEl_; i++ ) {
+      effStrainIrrAct_[i].Resize(dimS_);
+      effStrainIrrPrev_[i].Resize(dimS_);
+      effStrainIrrPrev_[i].Init();
+    }
+
   }
 
-  void PiezoMicroModelBK::GetEffectiveTensors( Matrix<Double>& matMech,
+  void PiezoMicroModelBK::GetEffectiveTensors( Matrix<Double>& matMechC,
+                                               Matrix<Double>& matMechS,
                                                Matrix<Double>& matElec,
                                                Matrix<Double>& matPiezo,
                                                Vector<Double>& stress, 
@@ -239,68 +274,23 @@ namespace CoupledField{
     ComputeEffectiveTensors( stress, elecField, elemIdx, 
                              recompute, previous );
 
-    matMech  = effMechStiffTensor_;
-    matElec  = effPermittivityTensor_;
-    matPiezo = effPiezoTensor_;
-  }
+    matMechC = effMechStiffTensor_;
+    matMechS = effMechComplianceTensor_;
+    matElec  = effPermittivityTensor_;  //eps-tensor a constant mechanical stress!!
+    matPiezo = effPiezoTensor_; // d-Tensor
 
-  void PiezoMicroModelBK::GetEffectiveIrreversibleValues( Vector<Double>& effPirr,
-                                                          Vector<Double>& effSirr,
-                                                          UInt elemIdx,
-                                                          bool recompute,
-                                                          bool previous) {
-
-    UInt dimS = effStrainIrrAct_.GetNumRows();
-    Vector<Double> partPirr( effPirr.GetSize() );
-    Vector<Double> partSirr( effSirr.GetSize() );
-
-    if (  previous ) {
-      for ( UInt i=0; i<dim_; i++)
-        effPirr[i] = effElecPolPrev_[i][elemIdx];
-      for ( UInt i=0; i<dimS; i++)
-        effSirr[i] = effStrainIrrPrev_[i][elemIdx];
-    }
-    else {
-      if ( recompute ) {
-        //recompute 
-        ComputeEffectiveIrreversibleValues( elemIdx );
-      }
-
-      for ( UInt i=0; i<dim_; i++)
-        effPirr[i] = effElecPolAct_[i][elemIdx];
-      for ( UInt i=0; i<dimS; i++)
-        effSirr[i] = effStrainIrrAct_[i][elemIdx];
-    }
-
-  }
-
-  void PiezoMicroModelBK::ComputeEffectiveIrreversibleValues( UInt elemIdx ) {
-
-    UInt dimS = effStrainIrrAct_.GetNumRows();
-    Vector<Double> partPirr(dim_);
-    Vector<Double> partSirr(dimS);
-
-    //init to zero
-    for (UInt i=0; i<dim_; i++) {
-      effElecPolAct_[i][elemIdx] = 0.0;
-    }
-
-    for ( UInt sys=0; sys<numDomain_; sys++ ) {
-      for (UInt i=0; i<dim_; i++) {
-        partPirr[i] =  sponP_ * switchingDirection_[i][sys];
-      }
-      //partPirr *= ( volFracAct_[sys][elemIdx] - volFracPrev_[sys][elemIdx] ) / deltaT_;
-      partPirr *= volFracAct_[sys][elemIdx];
-
-      for (UInt i=0; i<dim_; i++) {
-        effElecPolAct_[i][elemIdx] += partPirr[i];
-      }
-      
-    }
-//      std::cout << "\n Computed act. Pol-x: \n" <<  effElecPolAct_[0][elemIdx] << std::endl;
-//      std::cout << "Computed act. Pol-y: \n" <<  effElecPolAct_[1][elemIdx] << std::endl << std::endl;
-//      std::cout << "Computed act. StrainIrr: \n" <<  effElecPolAct_[1][elemIdx] << std::endl << std::endl;
-
+    // sTensorOrig_.Invert(matMechC);
+    //    matMechS = sTensorOrig_;
+//     matPiezo = dTensorOrig_;
+//     if ( previous ) {
+//       Double scale = effElecPolPrev_[elemIdx][2] / sponP0_;
+//       matPiezo *= scale;
+//         }
+//     else {
+//       Double scale = effElecPolAct_[elemIdx][2] / sponP0_;
+//       matPiezo *= scale;
+//     }
+    //matElec   = epsTensorOrig_;
   }
 
 
@@ -310,11 +300,12 @@ namespace CoupledField{
                                                    bool recompute,
                                                    bool previous ) {
 
+    //  std::cout << "Efield:\n" << elecField << "\n" << std::endl;
+
     // just to be sure, that everything goes right
     // programmer may not be aware of this and does quite wrong things!!
     if ( previous )
       recompute = false;
-
 
     if ( recompute ) {
       // 1) compute the volume fractions
@@ -327,29 +318,112 @@ namespace CoupledField{
     effPermittivityTensor_.Init();
 
     for ( UInt i=0; i<numDomain_; i++ ) {
-      Matrix<Double>& matd   = dTensors4SwitchingSystem_[i];
-      Matrix<Double>& mats   = sTensors4SwitchingSystem_[i];
-      Matrix<Double>& mateps = epsTensors4SwitchingSystem_[i];
+      Matrix<Double>& matd   = dTensor_[i];
+      Matrix<Double>& mats   = sTensor_[i];
+      Matrix<Double>& mateps = epsTensor_[i];
 
       if ( previous ) {
-        effMechComplianceTensor_ += mats * volFracPrev_[i][elemIdx];
-        effPiezoTensor_          += matd * volFracPrev_[i][elemIdx];
-        effPermittivityTensor_   += mateps * volFracPrev_[i][elemIdx];
+        effMechComplianceTensor_ += mats * volFracPrev_[elemIdx][i];
+        effPiezoTensor_          += matd * volFracPrev_[elemIdx][i];
+        effPermittivityTensor_   += mateps * volFracPrev_[elemIdx][i];
       }
       else {
-        effMechComplianceTensor_ += mats * volFracAct_[i][elemIdx];
-        effPiezoTensor_          += matd * volFracAct_[i][elemIdx];
-        effPermittivityTensor_   += mateps * volFracAct_[i][elemIdx];
+        effMechComplianceTensor_ += mats * volFracAct_[elemIdx][i];
+        effPiezoTensor_          += matd * volFracAct_[elemIdx][i];
+        effPermittivityTensor_   += mateps * volFracAct_[elemIdx][i];
       }
     }
+
     effMechComplianceTensor_.Invert( effMechStiffTensor_ ); 
   }
+
+
+  void PiezoMicroModelBK::GetEffectiveIrreversibleValues( Vector<Double>& effPirr,
+                                                          Vector<Double>& effSirr,
+                                                          UInt elemIdx,
+                                                          bool recompute,
+                                                          bool previous) {
+
+    if (  previous ) {
+      effPirr = effElecPolPrev_[elemIdx];
+      effSirr = effStrainIrrPrev_[elemIdx];
+    }
+    else {
+      if ( recompute ) {
+        //recompute 
+        ComputeEffectiveIrreversibleValues( elemIdx );
+      }
+
+      effPirr = effElecPolAct_[elemIdx];
+      effSirr = effStrainIrrAct_[elemIdx];
+    }
+    //   effPirr.Init();
+    //      effSirr.Init(); 
+  }
+
+  void PiezoMicroModelBK::ComputeEffectiveIrreversibleValues( UInt elemIdx ) {
+
+    effElecPolAct_[elemIdx].Init();
+    effStrainIrrAct_[elemIdx].Init();
+
+    for ( UInt i=0; i<numDomain_; i++ ) {
+      effElecPolAct_[elemIdx]   += Ps_[i] * volFracAct_[elemIdx][i]; 
+      //      effStrainIrrAct_[elemIdx] += Ss_[i] * volFracAct_[elemIdx][i]; 
+    }
+
+    Double cx, cy, cz, len, lenxy;
+    cx  = effElecPolAct_[elemIdx][0];
+    cy  = effElecPolAct_[elemIdx][1];
+    cz  = effElecPolAct_[elemIdx][2];
+    len = effElecPolAct_[elemIdx].NormL2();
+
+    Double threshold =  sponP0_*1e-6;
+
+    if ( std::abs(cx) < threshold ) 
+      cx = 0;
+    if ( std::abs(cy) < threshold ) 
+      cy = 0;
+    if ( std::abs(cz) < threshold ) 
+      cz = 0;
+
+    Vector<Double> angle(dim_);
+    Matrix<Double> rotMat(dim_,dim_);
+    Matrix<Double> tmpS;
+
+    lenxy = std::sqrt(cx*cx + cy*cy);
+    angle[0] = 0.0;
+    angle[1] = std::atan2(cz,lenxy); //
+    angle[2] = std::atan2(cy, cx); //
+
+    //get rotation matrix
+    ComputeRotationMatrix( angle, rotMat );
+
+    Matrix<Double> baseS(dim_,dim_);
+    baseS.Init();
+    baseS[0][0] = sponS0_;
+    baseS[1][1] = -0.5*sponS0_;
+    baseS[2][2] = -0.5*sponS0_;
+    RotateMatrix( baseS, tmpS, rotMat );
+
+ //    std::cout << "Pirr: \n " << effElecPolAct_[elemIdx]  << std::endl;
+//     std::cout << "Angles: \n " << angle  << std::endl;
+//     std::cout << "Rotmat: \n " << rotMat << std::endl;
+    ConvertToVoigtNotation( tmpS, effStrainIrrAct_[elemIdx] );
+    effStrainIrrAct_[elemIdx] *= len;
+    effStrainIrrAct_[elemIdx] /= sponP0_;
+
+//     std::cout << "Pirr:\n " << effElecPolAct_[elemIdx]  << "\n" << std::endl;
+//     std::cout << "Sirr:\n " << effStrainIrrAct_[elemIdx]  << "\n" << std::endl;
+
+  }
+
 
 
   void PiezoMicroModelBK::ComputeVolumeFractionsExplicit( Vector<Double>& stress, 
                                                           Vector<Double>& elecField, 
                                                           UInt elemIdx ) {
 
+    //    std::cout << "Efield:\n" << elecField << std::endl;
     // 1) Compute the driving forces
     ComputeDrivingForces( stress, elecField, elemIdx);
 
@@ -357,199 +431,349 @@ namespace CoupledField{
     ComputeTransformationRates( elemIdx );
 
     // 3) compute volume fractions
-    UInt idx1, idx2;
-    for ( UInt sys=0; sys<numDomain_; sys++ ) {
-      volFracAct_[sys][elemIdx] = volFracPrev_[sys][elemIdx];
-//       std::cout << "volFracStart:, sys: " << sys << ",  " 
-//                 << volFracAct_[sys][elemIdx] << std::endl; 
-      
-      for ( UInt k=0; k<numDomain_-1; k++ ) {
-        idx1 = switchForwardIdx_[k][sys];
-        idx2 = switchBackwardIdx_[k][sys];
-        volFracAct_[sys][elemIdx] += 
-          deltaT_ * ( transformationRates_[idx2][elemIdx] 
-                      - transformationRates_[idx1][elemIdx]);
+    for ( UInt i=0; i<numDomain_; i++ ) {
+      Double deltaVolFrac = 0.0;
+      for ( UInt j=0; j<numDomain_; j++ ) {
+        deltaVolFrac +=   transformationRates_[elemIdx][j][i] 
+                        - transformationRates_[elemIdx][i][j] ;
       }
-      if ( volFracAct_[sys][elemIdx] < 0.0 ) 
-        volFracAct_[sys][elemIdx] = 0.0;
-
-     if ( volFracAct_[sys][elemIdx] > 1.0 ) 
-        volFracAct_[sys][elemIdx] = 1.0;
-
-
-
-//       std::cout << "volFrac:, sys: " << sys << ",  " 
-//                 << volFracAct_[sys][elemIdx] << std::endl; 
-      
+      volFracAct_[elemIdx][i] =  volFracPrev_[elemIdx][i] +  deltaT_ * deltaVolFrac;
+      //std::cout << "VolFrac: \n" << volFracAct_[elemIdx][i] << std::endl;
     }
+    //  std::cout << std::endl;
+
   }
+  
 
   void PiezoMicroModelBK::ComputeDrivingForces( Vector<Double>& stress, 
                                                 Vector<Double>& elecField,
                                                 UInt elemIdx ) {
 
-    Double partElec; // unsed, partMech, partCouple;
+    Double partElec, partMech, partCouple;
 
-    //    std::cout << "\n ComputeDrivingForces: Ein = " << elecField << std::endl;
+    for ( UInt i=0; i<numDomain_; i++ ) {
+      for ( UInt j=0; j<numDomain_; j++ ) {
+        // electric part
+        Vector<Double>& dPs = deltaPs_[i][j];
+        dPs.Inner( elecField, partElec );
+        driveForcesElec_[elemIdx][i][j] = partElec * scaleDriveForceElec_;
 
-    for ( UInt sys=0; sys< numSwitching_; sys++ ) {
-      // electric part
-      partElec = 0.0;
-      for ( UInt i=0; i<dim_; i++ ) {
-        partElec -= elecField[i] * switchPolarizationVal_[i][sys];
+        //mechanical part
+        Vector<Double>& dSs = deltaSponS_[i][j];
+        dSs.Inner( stress, partMech );
+        driveForcesMech_[elemIdx][i][j] = partMech * scaleDriveForceMech_;
+
+        //coupling part
+        Vector<Double> vecHelp;
+        vecHelp = deltaTensorCoupl_[i][j] * stress;
+        vecHelp.Inner( elecField, partCouple );
+        driveForcesCouple_[elemIdx][i][j] = partCouple * scaleDriveForceCouple_;
+        // std::cout << "eForce: " << driveForcesElec_[elemIdx][i][j] << std::endl;
       }
-
-      // mechanical part
-//       partMech = 0.0;
-//       for ( UInt i=0; i<SchmidTensorAsVector_.GetSize(); i++ ) {
-//         partMech += SchmidTensorAsVector_[i]*stress[i];
-//       }
-//       partMech *= switchStrainVal_[sys];
-
-//       // coupling part
-//       partCouple = 0.0;
-//       ComputeDeltaCouplingTensor( switchingSystems_[sys][0], switchingSystems_[sys][1] );
-//       Vector<Double> help = deltaCouplingTensor_ * elecField;
-//       stress.Inner( help, partCouple);
-
-      driveForces_[sys][elemIdx] = partElec; // + partMech + partCouple;
-
-//       std::cout << "drivingForce, sys:" << sys << ", "
-//                 << driveForces_[sys][elemIdx] << std::endl;
     }
   }
 
 
   void PiezoMicroModelBK::ComputeTransformationRates( UInt elemIdx ) {
  
-    Double exp1, val, volFrac;
-    for ( UInt sys=0; sys< numSwitching_; sys++ ) {
-      exp1 = 1.0 - ( driveForces_[sys][elemIdx] / driveForceCrit_[sys]);
-      val  = std::exp(exp1);
+    Double drivingForceElecStar, drivingForceMechStar, drivingForceCoupleStar;  
+    Double transRateElec, transRateMech, transRateCouple;
+    Double exp1, val;
 
-      if ( sys < 3 )
-        volFrac =  volFracPrev_[0][elemIdx];
-      else if ( sys < 6 )
-        volFrac =  volFracPrev_[1][elemIdx];
-      else if ( sys < 9 )
-        volFrac =  volFracPrev_[2][elemIdx];
-      else
-        volFrac =  volFracPrev_[3][elemIdx];
-
-      transformationRates_[sys][elemIdx] = 
-        rateConst_  
-        * std::pow( val, viscoPlasticIdx_ )
-        * std::pow( volFrac, saturationIdx_);
-
-//       if ( transformationRates_[sys][elemIdx] < 0.0 ) 
-//         transformationRates_[sys][elemIdx] = 0.0;
-
-//       std::cout << "df, sys: " <<  sys << ", "
-//                 << transformationRates_[sys][elemIdx] << std::endl;
-    }
-  }
-
-
-  void PiezoMicroModelBK::RotateMaterialTensors() {
-  
-    // allocate
-    dTensors4SwitchingSystem_   = new Matrix<Double>[numDomain_];
-    sTensors4SwitchingSystem_   = new Matrix<Double>[numDomain_];
-    epsTensors4SwitchingSystem_ = new Matrix<Double>[numDomain_];
-
-
-    // first domain is standard
-    Matrix<Double>& dMat = dTensors4SwitchingSystem_[0];
-    dMat = dTensorOrig_;
-    Matrix<Double>& sMat = sTensors4SwitchingSystem_[0];
-    sMat = sTensorOrig_;
-    Matrix<Double>& epsMat = epsTensors4SwitchingSystem_[0];
-    epsMat = epsTensorOrig_;
-
-
-    // now go to the others
-    Vector<Double> rotAngle(3);  
     for ( UInt i=0; i<numDomain_; i++ ) {
-      // get rotationAngles
-      for ( UInt k=0; k<3; k++)
-        rotAngle[k] = rotationAngles_[k][i];
+      for ( UInt j=0; j<numDomain_; j++ ) {
+        drivingForceElecStar   = switchingVal_[i][j] * E0_ * sponP0_;
+        drivingForceMechStar   = switchingVal_[i][j] * sigma0_ * sponS0_;
+        drivingForceCoupleStar = switchingVal_[i][j] * E0_ * sigma0_ * d0Couple_;
 
-//       std::cout << "Rotationangles:\n" << rotAngle << std::endl;
-      Matrix<Double> eTensorOld, cTensorOld, epsTensorOld;
-      piezoMat_->GetTensor( eTensorOld, PIEZO_TENSOR, Global::REAL, tensorType_ );
-      mechMat_->GetTensor( cTensorOld, MECH_STIFFNESS_TENSOR, Global::REAL, tensorType_ );
-      elecMat_->GetTensor( epsTensorOld, ELEC_PERMITTIVITY, Global::REAL, tensorType_ );
- //      std::cout << "eTensorOld\n" << eTensorOld << std::endl;
-//       std::cout << "cTensorOld\n" << cTensorOld << std::endl;
-//       std::cout << "epsTensorOld\n" << epsTensorOld << std::endl;
+        //limit the driving forces
+        if ( driveForcesElec_[elemIdx][i][j] > 1.1*drivingForceElecStar ) 
+          driveForcesElec_[elemIdx][i][j] = 1.1*drivingForceElecStar;
 
-      // perform rotation of material tensors
-      piezoMat_->RotateTensorByRotationAngles( rotAngle, PIEZO_TENSOR, false );
-      mechMat_->RotateTensorByRotationAngles( rotAngle, MECH_STIFFNESS_TENSOR, false );
-      elecMat_->RotateTensorByRotationAngles( rotAngle, ELEC_PERMITTIVITY, false );
+        //compute transformation rates
+        if ( abs( switchingVal_[i][j] ) < 1e-10 ) {
+           transformationRates_[elemIdx][i][j] = 0; 
+        }
+        else {
+          //electric part
+          exp1 = 1.0 - ( driveForcesElec_[elemIdx][i][j] / drivingForceElecStar );
+          val  = std::exp(exp1);
+          transRateElec = rateConst_ * std::pow( val, viscoPlasticIdx_ )
+                                     * std::pow( volFracPrev_[elemIdx][i], saturationIdx_); 
+          //std::cout << "rateElec:" << transRateElec << std::endl;
 
-      // get the rotated material tensor
-      Matrix<Double> cTensor;
-      mechMat_->GetTensor( cTensor, MECH_STIFFNESS_TENSOR, Global::REAL, tensorType_ );
-      Matrix<Double> eTensor;
-      piezoMat_->GetTensor( eTensor, PIEZO_TENSOR, Global::REAL, tensorType_ );
-       Matrix<Double> epsTensor_cStrain, eTensorTrans;
-      elecMat_->GetTensor( epsTensor_cStrain, ELEC_PERMITTIVITY, Global::REAL, tensorType_ );
+          //mechanical part
+          exp1 = 1.0 - ( driveForcesMech_[elemIdx][i][j] / drivingForceMechStar );
+          val  = std::exp(exp1);
+          transRateMech = rateConst_ * std::pow( val, viscoPlasticIdx_ )
+                                     * std::pow( volFracPrev_[elemIdx][i], saturationIdx_); 
+          //std::cout << "rateMech:" << transRateMech << std::endl;
 
-//       std::cout << "eTensor\n" << eTensor << std::endl;
-//       std::cout << "cTensor\n" << cTensor << std::endl;
-//       std::cout << "epsTensor\n" << epsTensor_cStrain << std::endl;
-
-      Matrix<Double>& matd   = dTensors4SwitchingSystem_[i];
-      Matrix<Double>& mats   = sTensors4SwitchingSystem_[i];
-      Matrix<Double>& mateps = epsTensors4SwitchingSystem_[i];
-
-      cTensor.Invert( mats );
-      matd = eTensor*mats;
-      eTensor.Transpose(eTensorTrans);
-      mateps = epsTensor_cStrain + matd*eTensorTrans;
-    }
-
-    // rotate the tensors back;
-    rotAngle.Init( 0.0 );
-    piezoMat_->RotateTensorByRotationAngles( rotAngle, PIEZO_TENSOR, false );
-    mechMat_->RotateTensorByRotationAngles( rotAngle, MECH_STIFFNESS_TENSOR, false );
-    elecMat_->RotateTensorByRotationAngles( rotAngle, ELEC_PERMITTIVITY, false );
-  }
-
-
-  void PiezoMicroModelBK::ComputeSchmidTensor( UInt system ) {
-
-    UInt idx = system - 1;
-
-    for ( UInt i=0; i<dim_; i++ ) {
-      for ( UInt j=0; j<dim_; j++ ) {
-        SchmidTensor_[i][j] = 0.5 * ( switchingDirection_[i][idx] * switchingNormal_[j][idx]
-                                     + switchingDirection_[j][idx] * switchingNormal_[i][idx] );
+          //coupling part part
+          exp1 = 1.0 - ( driveForcesCouple_[elemIdx][i][j] / drivingForceCoupleStar );
+          val  = std::exp(exp1);
+          transRateCouple = rateConst_ * std::pow( val, viscoPlasticIdx_ )
+                                     * std::pow( volFracPrev_[elemIdx][i], saturationIdx_); 
+          //std::cout << "rateCouple:" << transRateCouple << std::endl;
+          //overall rate
+          transformationRates_[elemIdx][i][j] = transRateElec + transRateMech + transRateCouple;
+//           std::cout << "i:" << i << "  j:" << j << std::endl;
+//           std::cout << "rateElec:" << transRateElec << std::endl;
+        }
       }
     }
-    if ( dim_ == 2 ) {
-      SchmidTensorAsVector_[0] = SchmidTensor_[0][0];
-      SchmidTensorAsVector_[1] = SchmidTensor_[1][1];
-      SchmidTensorAsVector_[2] = 2.0*SchmidTensor_[0][1];
+
+    //limit transformation rates, so that volume fractions are not smaller than 0
+    Double part;
+    for ( UInt i=0; i<numDomain_; i++ ) {
+      Double tmp = 0.0;
+      for ( UInt j=0; j<numDomain_; j++ ) {
+        tmp += transformationRates_[elemIdx][i][j];
+      }
+
+      if ( (volFracPrev_[elemIdx][i] - tmp*deltaT_) < 0 ) {
+        for ( UInt j=0; j<numDomain_; j++ ) {
+          part = volFracPrev_[elemIdx][i] / ( tmp * deltaT_ ); 
+          transformationRates_[elemIdx][i][j] *= part;
+        }
+      } 
     }
-    else if ( dim_ == 3 ) {
-      SchmidTensorAsVector_[0] = SchmidTensor_[0][0];
-      SchmidTensorAsVector_[1] = SchmidTensor_[1][1];
-      SchmidTensorAsVector_[2] = SchmidTensor_[2][2];
-      SchmidTensorAsVector_[3] = 2.0*SchmidTensor_[2][1];
-      SchmidTensorAsVector_[4] = 2.0*SchmidTensor_[0][2];
-      SchmidTensorAsVector_[5] = 2.0*SchmidTensor_[0][1];
-    }
+
   }
 
-  void PiezoMicroModelBK::ComputeDeltaCouplingTensor( UInt system1, UInt system2 ) {
+  void PiezoMicroModelBK::ComputeEffectiveCouplingTensor(Matrix<Double>& dMatEff, 
+                                                         Vector<Double>& elecFieldAct,
+                                                         Vector<Double>& elecFieldPrev,
+                                                         UInt elemIdx) {
+ 
+   dMatEff = dTensor_[0];  //dTensor in x-Direction;
 
-    Matrix<Double>& mat1 = dTensors4SwitchingSystem_[system1-1];
-    Matrix<Double>& mat2 = dTensors4SwitchingSystem_[system2-1];
+   Vector<Double> diffE, diffP, Pact;
+   Double scaleVal, scaleDiffVal, addVal;
+
+   diffP = effElecPolAct_[elemIdx] - effElecPolPrev_[elemIdx];;
+   scaleDiffVal = diffP.NormL2() / sponP0_;
+   scaleVal = effElecPolAct_[elemIdx].NormL2() / sponP0_; 
+   dMatEff *= scaleVal;
+
+   diffE    = elecFieldAct - elecFieldPrev;
+
+   if ( diffE.NormL2() > 1e3 ) {
+     dMatEff[0][0] +=  scaleDiffVal / diffE.NormL2();
+     dMatEff[0][1] -=  0.5*scaleDiffVal / diffE.NormL2();
+     dMatEff[0][2] -=  0.5*scaleDiffVal / diffE.NormL2();
+   }
+
+   //now, we have to rotate the tensor
+   Double cx, cy, cz, len, lenxy;
+    cx  = effElecPolAct_[elemIdx][0];
+    cy  = effElecPolAct_[elemIdx][1];
+    cz  = effElecPolAct_[elemIdx][2];
+    len = effElecPolAct_[elemIdx].NormL2();
+
+    Double threshold =  sponP0_*1e-6;
+
+    if ( std::abs(cx) < threshold ) 
+      cx = 0;
+    if ( std::abs(cy) < threshold ) 
+      cy = 0;
+    if ( std::abs(cz) < threshold ) 
+      cz = 0;
+
+    Vector<Double> angle(dim_);
+    Matrix<Double> rotMat(dim_,dim_);
+    Matrix<Double> tmpS;
+
+    lenxy = std::sqrt(cx*cx + cy*cy);
+    angle[0] = 0.0;
+    angle[1] = std::atan2(cz,lenxy); //
+    angle[2] = std::atan2(cy, cx); //
+
+    //get rotation matrix
+    ComputeRotationMatrix( angle, rotMat );
+
+    RotateMatrix(dMatEff, tmpS, rotMat );
+    dMatEff = tmpS;
+
+ }
+
+
+  void PiezoMicroModelBK::ComputeRotationMatrix( Vector<Double>& angles, 
+                                                 Matrix<Double>& rotMat ) {
+
+    Matrix<Double> rotX(3,3), rotY(3,3), rotZ(3,3);
+    rotX.Init();
+    rotX[0][0] = 1.0;
+    rotX[1][1] = std::cos(angles[0]);
+    rotX[1][2] = -std::sin(angles[0]);
+    rotX[2][1] = std::sin(angles[0]);
+    rotX[2][2] = std::cos(angles[0]);
+
+    rotY.Init();
+    rotY[0][0] = std::cos(angles[1]);
+    rotY[0][2] = -std::sin(angles[1]);
+    rotY[1][1] = 1.0;
+    rotY[2][0] = std::sin(angles[1]);
+    rotY[2][2] = std::cos(angles[1]);
+
+    rotZ.Init();
+    rotZ[0][0] = std::cos(angles[2]);
+    rotZ[0][1] = -std::sin(angles[2]);
+    rotZ[1][0] = std::sin(angles[2]);
+    rotZ[1][1] = std::cos(angles[2]);
+    rotZ[2][2] = 1.0;
+
     Matrix<Double> help;
-    help = mat2 - mat1;
-    help.Transpose(  deltaCouplingTensor_ );
+    help = rotX*rotY;
+    rotMat = rotZ*help;
+  }
+
+  void PiezoMicroModelBK::RotateMatrix( Matrix<Double>& inMat, 
+                                        Matrix<Double>& outMat,
+                                        Matrix<Double>& trans) {
+    
+    UInt row = inMat.GetNumRows();
+    UInt col = inMat.GetNumCols();
+
+    outMat.Resize(row,col);
+
+    if ( row == dim_ && col == dim_ ) {
+      //3x3 Matrix to be rotated
+      for (UInt i=0; i<dim_; i++) {
+        for (UInt j=0; j<dim_; j++) {
+          Double tmp = 0.0;
+          for (UInt m=0; m<dim_; m++ ) {
+            for ( UInt n=0; n<dim_; n++ ) {
+              tmp += trans[i][m] * trans[j][n] * inMat[m][n];
+            }
+          }
+          outMat[i][j] = tmp;
+        }
+      }
+    }
+    else {
+      Matrix<UInt> ten_to_mat(3,3);
+      ten_to_mat[0][0]=0;
+      ten_to_mat[1][1]=1;
+      ten_to_mat[2][2]=2;
+      ten_to_mat[1][2]=3;
+      ten_to_mat[0][2]=4;
+      ten_to_mat[0][1]=5;
+      ten_to_mat[2][1]=3;
+      ten_to_mat[2][0]=4;
+      ten_to_mat[1][0]=5;
+      
+      Vector<UInt> mat_to_ten_first(6); 
+      mat_to_ten_first[0]=0;
+      mat_to_ten_first[1]=1;
+      mat_to_ten_first[2]=2;
+      mat_to_ten_first[3]=1;
+      mat_to_ten_first[4]=0;
+      mat_to_ten_first[5]=0;
+      
+      Vector<UInt> mat_to_ten_sec(6);
+      mat_to_ten_sec[0]=0;
+      mat_to_ten_sec[1]=1;
+      mat_to_ten_sec[2]=2;
+      mat_to_ten_sec[3]=2;
+      mat_to_ten_sec[4]=2;
+      mat_to_ten_sec[5]=1;
+
+      if ( row == 3 ) {
+        //3x6 Matrix to be rotated
+        
+        arrayD3 ten, trans_ten;
+        ten.resize(extents[3][3][3]);
+        trans_ten.resize(extents[3][3][3]);
+        
+        for (UInt i=0; i<dim_; i++) {
+          for (UInt j=0; j<dim_; j++) {
+            for (UInt k=0; k<dim_; k++) {
+              ten[i][j][k] = inMat[i][ten_to_mat[j][k]];
+            }
+          }
+        }
+
+        for (UInt ii=0; ii<dim_; ii++) {
+          for (UInt jj=0; jj<dim_; jj++) {
+            for (UInt kk=0; kk<dim_; kk++) {
+              Double tmp = 0.0;
+              for (UInt mm=0; mm<dim_; mm++) {
+                for (UInt nn=0; nn<dim_; nn++) {
+                  for (UInt oo=0; oo<dim_; oo++) {
+                    tmp += trans[ii][mm]*trans[jj][nn]*trans[kk][oo]*ten[mm][nn][oo];
+                  }
+                }
+              }
+              trans_ten[ii][jj][kk]=tmp;
+            }
+          }
+        }
+
+        for (UInt i=0; i<dim_; i++) {
+          for (UInt j=0; j<6; j++) {
+            outMat[i][j] = trans_ten[i][mat_to_ten_first[j]][mat_to_ten_sec[j]]; 
+          }
+        }
+      }
+      else {
+        //6x6 Matrix to be rotated
+        arrayD4 ten, trans_ten;
+        ten.resize(extents[3][3][3][3]);
+        trans_ten.resize(extents[3][3][3][3]);
+        
+        for (UInt i=0; i<dim_; i++) {
+          for (UInt j=0; j<dim_; j++) {
+            for (UInt k=0; k<dim_; k++) {
+              for (UInt l=0; l<dim_; l++) {
+                ten[i][j][k][l] = inMat[ ten_to_mat[i][j] ][ ten_to_mat[k][l] ]; 
+              }
+            }
+          }
+        }
+        
+        for (UInt i=0; i<dim_; i++) {
+          for (UInt j=0; j<dim_; j++) {
+            for (UInt k=0; k<dim_; k++) {
+              for (UInt l=0; l<dim_; l++) {
+                Double tmp = 0.0;
+                for (UInt m=0; m<dim_; m++) {
+                  for (UInt n=0; n<dim_; n++) {
+                    for (UInt o=0; o<dim_; o++) {
+                      for (UInt p=0; p<dim_; p++) {
+                        tmp += trans[i][m]*trans[j][n]*trans[k][o]*trans[l][p]*ten[m][n][o][p];
+                      }
+                    }
+                  }
+                }
+                trans_ten[i][j][k][l]=tmp;
+              }
+            }
+          }
+        }
+        
+        
+        for (UInt i=0; i<6; i++) {
+          for (UInt j=0; j<6; j++) {
+            outMat[i][j]=trans_ten[ mat_to_ten_first[i] ][mat_to_ten_sec[i] ][mat_to_ten_first[j] ][mat_to_ten_sec[j] ]; 
+          }
+        }
+        
+      }
+    }
+  }
+  
+    //! 
+  void PiezoMicroModelBK::ConvertToVoigtNotation( Matrix<Double>& inMat, 
+                                                  Vector<Double>& outVec ) {
+
+    outVec[0] = inMat[0][0];
+    outVec[1] = inMat[1][1];
+    outVec[2] = inMat[2][2];
+    outVec[3] = 2.0*inMat[1][2];
+    outVec[4] = 2.0*inMat[0][2];
+    outVec[5] = 2.0*inMat[0][1];
+
   }
 
 } // end of namespace

@@ -301,7 +301,8 @@ namespace CoupledField {
                                  SubTensorType tensorType, Double dt);
 
     //! returns the material tensors
-    void GetEffectiveTensors( Matrix<Double>& matMech,
+    void GetEffectiveTensors( Matrix<Double>& matMechC,
+                              Matrix<Double>& matMechS,
                               Matrix<Double>& matElec,
                               Matrix<Double>& matPiezo,
                               Vector<Double>& stress, 
@@ -316,6 +317,12 @@ namespace CoupledField {
                                          UInt elemIdx,
                                          bool recompute,
                                          bool previous );
+    
+    //!
+    void ComputeEffectiveCouplingTensor(Matrix<Double>& dmatEff, 
+                                        Vector<Double>& elecFieldAct,
+                                        Vector<Double>& elecFieldPrev,
+                                        UInt elemIdx);
 
     //! get micro-piezo-object
     PiezoMicroModelBK* GetMicroPiezoModel() {

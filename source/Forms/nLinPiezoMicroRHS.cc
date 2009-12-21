@@ -110,7 +110,7 @@ namespace CoupledField {
    
      // compute the correct material tensor
     Vector<Double> LCoord, Efield, mechStrain;
-    Vector<Double> EfieldPrev, mechStrainPrev, elecD;
+    Vector<Double> EfieldPrev, mechStrainPrev, elecD1, elecD2;
     Matrix<Double> dMat, dMat1, dMat2;
 
     // compute electric field in the midpoint of element
@@ -133,8 +133,9 @@ namespace CoupledField {
     //    std::cout << "EfieldPrev:  \n" << EfieldPrev << std::endl;
     // compute the material tensors
 
+    //get the correct material tensor
     std::string matType = "ElecRHS1";
-    piezoCoupling_->GetMaterialTensorMicroPiezo( dMat1, elecD,
+    piezoCoupling_->GetMaterialTensorMicroPiezo( dMat1, elecD1,
                                                  matType, 
                                                  matDataMech_, 
                                                  matDataElec_,
@@ -144,8 +145,9 @@ namespace CoupledField {
                                                  EfieldPrev, mechStrainPrev, 
                                                  ent );
 
+    //get the vector elecD
     matType = "ElecRHS2";
-    piezoCoupling_->GetMaterialTensorMicroPiezo( dMat2, elecD,
+    piezoCoupling_->GetMaterialTensorMicroPiezo( dMat2, elecD2,
                                                  matType, 
                                                  matDataMech_, 
                                                  matDataElec_,
@@ -190,9 +192,9 @@ namespace CoupledField {
 
       //part 2 of RHS
       bMat.Transpose( bMatTrans);
-      helpVec = bMatTrans * elecD;
+      helpVec = bMatTrans * elecD2;
       helpVec *= jacDet;
-      elemVec -= helpVec;
+      elemVec += helpVec;
   
       // part 1 of RHS
       // Compute the matrix product D * B and store as intermediate matrix
@@ -221,42 +223,6 @@ namespace CoupledField {
     //add part 1 and part 2!
     elemVec -= elemMat * pot; 
 
-
-//     Double jacDet;
-//     Matrix<Double> bMat, bMatTrans;
-//     Vector<Double> helpVec;
-
-//     elemVec.Resize ( numFncs );
-//     elemVec.Init();
-
-//     piezoBilinearForm_->ExtractElemInfo( ent );
-
-//     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {     
-
-//       // Setup the B matrix for current integration point
-//       piezoBilinearForm_->calcBMat( bMat, actIntPt, ptCoord_ );
-
-//       // Compute Jacobian for integration point
-//       jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_,ent.GetElem() );
-
-//       if ( isaxi_ ) {
-//         Vector<Double>  ShpFncAtIp;
-//         Double rad = 0.0;
-
-//         ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt, ent.GetElem() );
-//         for ( UInt i = 0; i < numFncs; i++ ) {
-//           rad += ptCoord_[0][i] * ShpFncAtIp[i];
-//         }
-//         jacDet *= 2.0 * PI * rad;
-//       }
-//       jacDet *= intWeights[actIntPt-1];
-
-//       bMat.Transpose( bMatTrans);
-//       helpVec = bMatTrans * elecD;
-//       helpVec *= jacDet;
-//       elemVec -= helpVec;
-//     }
-    
     //    std::cout << "elecRHS:\n" << elemVec << std::endl;
   }
 
@@ -282,7 +248,7 @@ namespace CoupledField {
 
 
   void MicroPiezoPolarizationMechRhsInt::CalcElemVector( Vector<Double> & elemVec,
-						    EntityIterator& ent ) 
+                                                         EntityIterator& ent ) 
     
   {
     // Extract pointer to reference element and get coordinates
@@ -294,15 +260,16 @@ namespace CoupledField {
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
 
     Double jacDet, aux;
-    Matrix<Double>  bMat, aMat, dMat;
+    Matrix<Double>  bMat, aMatTrans, aMat, dMat1, dMat2;
     Matrix<Double> dbMat, elemMat;
     elemMat.Resize( numFncs * piezoBilinearForm_->getNumDofsA(), 
                     numFncs * piezoBilinearForm_->getNumDofsB() ); 
     elemMat.Init();
 
     // compute the correct material tensor
-    Vector<Double> LCoord, Efield, mechStrain, helpVec;
-    Vector<Double> EfieldPrev, mechStrainPrev, mechStress;
+    Vector<Double> LCoord, Efield, mechStrain;
+    Vector<Double> EfieldPrev, mechStrainPrev, mechStress1, mechStress2;
+    Vector<Double> helpVec;
 
     // compute electric field in the midpoint of element
     ptelem->GetCoordMidPoint(LCoord);
@@ -322,8 +289,9 @@ namespace CoupledField {
     mechStrainOp_->CalcStrainVec( mechStrainPrev, 1, ent);
 
     // compute the nonlinear coupling tensor
-    std::string matType = "MechRHS";
-    piezoCoupling_->GetMaterialTensorMicroPiezo( dMat, mechStress,
+    //get the correspoding stress
+    std::string matType = "MechRHS1";
+    piezoCoupling_->GetMaterialTensorMicroPiezo( dMat1, mechStress1,
                                                  matType, 
                                                  matDataMech_, 
                                                  matDataElec_,
@@ -335,7 +303,21 @@ namespace CoupledField {
 
     //    std::cout << "MECH-RHS: \n " << dMat << std::endl;
 
+    //get the correspoding material tensor
+    matType = "MechRHS2";
+    piezoCoupling_->GetMaterialTensorMicroPiezo( dMat2, mechStress2,
+                                                 matType, 
+                                                 matDataMech_, 
+                                                 matDataElec_,
+                                                 matDataCouple_, 
+                                                 subTensorType_, 
+                                                 Efield, mechStrain, 
+                                                 EfieldPrev, mechStrainPrev, 
+                                                 ent );
+
     piezoBilinearForm_->ExtractElemInfo( ent );
+    elemVec.Resize ( numFncs*piezoBilinearForm_->getNumDofsA() );
+    elemVec.Init();
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {     
 
@@ -361,9 +343,15 @@ namespace CoupledField {
 
       jacDet *= intWeights[actIntPt-1];
 
+      //part 1 of RHS
+      helpVec  = aMat * mechStress1;
+      helpVec *= jacDet;
+      elemVec += helpVec;
+
+      //part 2 of RHS
       // Compute the matrix product D * B and store as intermediate matrix
-      dbMat.Resize( dMat.GetNumRows(), bMat.GetNumCols() );
-      dMat.Mult( bMat, dbMat );
+      dbMat.Resize( dMat2.GetNumRows(), bMat.GetNumCols() );
+      dMat2.Mult( bMat, dbMat );
 
       // We now compute A * D * B and scale it by the determinant
       // of the Jacobian 
@@ -378,7 +366,7 @@ namespace CoupledField {
 
           // Scale result and add to corresponding entry
           // of element matrix
-          elemMat[i][j] -= aux * jacDet;
+          elemMat[i][j] += aux * jacDet;
         }
       }
     }
@@ -386,8 +374,7 @@ namespace CoupledField {
     Vector<Double> pot;
     solPrevElec_->GetElemSolutionAsMatrix( tmp, ent);
     tmp.ConvertToVec_AppendRows( pot );
-    elemVec = elemMat * pot; 
-
+    elemVec -= elemMat * pot; 
 
 //     elemVec.Resize ( numFncs * piezoBilinearForm_->getNumDofsA() );
 //     elemVec.Init();

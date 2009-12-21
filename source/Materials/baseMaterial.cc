@@ -685,7 +685,8 @@ namespace CoupledField
   }
   
 
-  void BaseMaterial::GetEffectiveTensors( Matrix<Double>& matMech,
+  void BaseMaterial::GetEffectiveTensors( Matrix<Double>& matMechC,
+                                          Matrix<Double>& matMechS,
                                           Matrix<Double>& matElec,
                                           Matrix<Double>& matPiezo,
                                           Vector<Double>& stress, 
@@ -696,10 +697,10 @@ namespace CoupledField
 
     UInt idx = globalElem2Local_[elemIdx];
 
-    piezoMicroModel_->GetEffectiveTensors( matMech, matElec,
-                                           matPiezo, stress, 
-                                           elecField, idx, 
-                                           recompute, previous );
+    piezoMicroModel_->GetEffectiveTensors( matMechC, matMechS, 
+                                           matElec,  matPiezo, 
+                                           stress, elecField, 
+                                           idx, recompute, previous );
   }
 
   void BaseMaterial::GetEffectiveIrreversibleValues( Vector<Double>& Pirr,
@@ -712,5 +713,16 @@ namespace CoupledField
 
     piezoMicroModel_->GetEffectiveIrreversibleValues( Pirr, Sirr, idx, recompute, previous );
   }
+
+   void BaseMaterial::ComputeEffectiveCouplingTensor(Matrix<Double>& dMatEff, 
+                                                     Vector<Double>& elecFieldAct,
+                                                     Vector<Double>& elecFieldPrev,
+                                                     UInt elemIdx) {
+
+    UInt idx = globalElem2Local_[elemIdx];
+
+    piezoMicroModel_->ComputeEffectiveCouplingTensor(dMatEff, elecFieldAct,
+                                                     elecFieldPrev, idx);
+   }
 
 }

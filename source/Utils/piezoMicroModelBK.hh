@@ -6,12 +6,20 @@
 #define PIEZO_MICRO_MODELL_BK_HH
 
 #include <string>
+#include <boost/multi_array.hpp>
 
 #include "Domain/grid.hh"
 #include "Utils/tools.hh"
 #include "MatVec/vector.hh"
 #include "General/environment.hh"
 #include "Materials/baseMaterial.hh"
+
+typedef boost::multi_array<Matrix<double>, 1> array1_Matrix;
+typedef boost::multi_array<Matrix<double>, 2> array2_Matrix;
+typedef boost::multi_array<Vector<double>, 1> array1_Vector;
+typedef boost::multi_array<Vector<double>, 2> array2_Vector;
+typedef boost::multi_array<Double, 3> arrayD3;
+typedef boost::multi_array<Double, 4> arrayD4;
 
 namespace CoupledField {
 
@@ -37,7 +45,8 @@ namespace CoupledField {
     void InitSwitchingSystem();
 
     //! get the effective tensor
-    void GetEffectiveTensors( Matrix<Double>& matMech,
+    void GetEffectiveTensors( Matrix<Double>& matMechC,
+                              Matrix<Double>& matMechS,
                               Matrix<Double>& matElec,
                               Matrix<Double>& matPiezo,
                               Vector<Double>& stress, 
@@ -56,6 +65,12 @@ namespace CoupledField {
     //!
     void ComputeEffectiveIrreversibleValues( UInt elemIdx );
  
+    //!
+    void ComputeEffectiveCouplingTensor(Matrix<Double>& dmatEff, 
+                                        Vector<Double>& elecFieldAct,
+                                        Vector<Double>& elecFieldPrev,
+                                        UInt elemIdx);
+
     //!
     void SetPreviousVolFrac() {
       volFracPrev_ =  volFracAct_;
@@ -81,23 +96,27 @@ namespace CoupledField {
     void ComputeDrivingForces( Vector<Double>& stress, Vector<Double>& elecField,
                                UInt elemIdx );
 
-    //! rotate the material tensors towards the domain systems
-    void RotateMaterialTensors();
-
-    //! compute the Schmid tensor
-    void ComputeSchmidTensor( UInt system );
-
-    //! computes difference of two coupling tensors
-    void ComputeDeltaCouplingTensor( UInt system1, UInt system2 );
-
-
     //! 
     void ComputeTransformationRates( UInt elemIdx );
+
+    //! 
+    void ComputeRotationMatrix( Vector<Double>& angles, 
+                                Matrix<Double>& rotMat );
+
+    //!
+    void RotateMatrix( Matrix<Double>& inMat, 
+                       Matrix<Double>& outMat,
+                       Matrix<Double>& rotMat);
+
+    //! 
+    void ConvertToVoigtNotation( Matrix<Double>& inMat, 
+                                 Vector<Double>& outVec );
 
   protected:
 
     SubTensorType tensorType_;  //! type of tensor (FULL, axi, ..)
     UInt dim_;  //! dimension of the problem (2D or 3D)
+    UInt dimS_;  //! dimension of strain vector in Voigt notation
 
     UInt numEl_;  //! number of finite elements 
     UInt numDomain_; //!  number of domain types
@@ -105,8 +124,11 @@ namespace CoupledField {
 
     Double deltaT_;  //! time step
 
-    Double sponP_;           //! spontaneous polarization
-    Double sponS_;           //! spontaneous strain
+    Double sponP0_;           //! spontaneous polarization
+    Double E0_;               //!  charachteristic electric field intensity
+    Double sponS0_;           //! spontaneous strain
+    Double sigma0_;           //!  charachteristic stress
+    Double d0Couple_;         //! charachteristic coupling coefficient
     Double driveForce90_;    //! driving force for 90 degree switching
     Double driveForce180_;   //! driving force for 180 degree switching
     Double rateConst_;       //! rate constant
@@ -115,52 +137,52 @@ namespace CoupledField {
     Double volFracInit_;     //! initial value for volume fraction
     Double meanTemp_;        //! mean temperature
 
-    Matrix<Double> switchPolarizationVal_; //! value of polarization for each switching system
-    Vector<Double> switchStrainVal_;  //! value of strain for each switching system
-    Vector<Double> driveForceCrit_;
+    Double scaleDriveForceElec_;
+    Double scaleDriveForceMech_;
+    Double scaleDriveForceCouple_;
 
-    Matrix<UInt> switchForwardIdx_;
-    Matrix<UInt> switchBackwardIdx_;
+    Matrix<Double> switchingVal_;
 
-    Matrix<Double> switchingDirection_;
-    Matrix<Double> switchingNormal_;
-    Matrix<UInt>   switchingSystems_;
+    array2_Vector deltaPs_;
+    array2_Vector deltaSponS_; 
+    array2_Matrix deltaTensorCoupl_; 
+
+    array1_Vector Ps_;
+    array1_Vector Ss_;
+    array1_Matrix dTensor_;
+    array1_Matrix sTensor_;
+    array1_Matrix epsTensor_;
+
+    Matrix<Double> driveForces_;
+
+    Matrix<Double> volFracAct_;
+    Matrix<Double> volFracPrev_;
+
+    array1_Vector effElecPolAct_;
+    array1_Vector effElecPolPrev_;
+    array1_Vector effStrainIrrAct_;
+    array1_Vector effStrainIrrPrev_;
+
+    arrayD3 driveForcesElec_;
+    arrayD3 driveForcesMech_;
+    arrayD3 driveForcesCouple_;
+    arrayD3 transformationRates_;
 
     Matrix<Double> dTensorOrig_;
     Matrix<Double> sTensorOrig_;
     Matrix<Double> epsTensorOrig_;
-
-    Matrix<Double>* dTensors4SwitchingSystem_;
-    Matrix<Double>* sTensors4SwitchingSystem_;
-    Matrix<Double>* epsTensors4SwitchingSystem_;
-
-    Matrix<Double> rotationAngles_;
-
-    Matrix<Double> SchmidTensor_;
-    Vector<Double> SchmidTensorAsVector_;
-    Matrix<Double> deltaCouplingTensor_;
-    Matrix<Double> connectSystemMatrix_;
-
-    Matrix<Double> driveForces_;
-    Matrix<Double> transformationRates_;
-    Matrix<Double> volFracAct_;
-    Matrix<Double> volFracPrev_;
-
     Matrix<Double> effMechStiffTensor_;
     Matrix<Double> effMechComplianceTensor_;
     Matrix<Double> effPiezoTensor_;
     Matrix<Double> effPermittivityTensor_;
 
-    Matrix<Double> effElecPolAct_;
-    Matrix<Double> effElecPolPrev_;
-    Matrix<Double> effStrainIrrAct_;
-    Matrix<Double> effStrainIrrPrev_;
+    Matrix<Double> rotationAngles_;
 
     //pointers to the material objects
     BaseMaterial* piezoMat_;
     BaseMaterial* mechMat_;
     BaseMaterial* elecMat_;
-    
+
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

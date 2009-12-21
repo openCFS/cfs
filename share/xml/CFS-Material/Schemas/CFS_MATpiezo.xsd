@@ -74,11 +74,15 @@
     <xsd:sequence>
       <xsd:element name="sponPolarization" type="xsd:double"/>
       <xsd:element name="sponStrain" type="xsd:double"/>
-      <xsd:element name="drivingForce90" type="xsd:double"/>
-      <xsd:element name="drivingForce180" type="xsd:double"/>
+      <xsd:element name="Efield0" type="xsd:double"/>
+      <xsd:element name="Stress0" type="xsd:double"/>
+      <xsd:element name="dCouple0" type="xsd:double"/>
       <xsd:element name="rateConstant" type="xsd:double"/>
       <xsd:element name="viscoPlasticIndex" type="xsd:double"/>
       <xsd:element name="saturationIndex" type="xsd:double"/>
+      <xsd:element name="scaleForceElec" type="xsd:double"/>
+      <xsd:element name="scaleForceMech" type="xsd:double"/>
+      <xsd:element name="scaleForceCouple" type="xsd:double"/>
       <xsd:element name="volumeFracInit" type="xsd:double"/>
       <xsd:element name="Tmean" type="xsd:double"/>
     </xsd:sequence>
