@@ -72,18 +72,6 @@ namespace CoupledField {
        }
     }
 
-
-    // check for complex material data
-    hasComplexMatParams_ = false;
-    ParamNode * matNode = myParam_->Get("materialDataType", false);
-    if( matNode )
-      hasComplexMatParams_ =
-        matNode->Get("type")->AsString() == "imagMaterialParameter";
-
-    if( hasComplexMatParams_ ) {
-      isComplex_ = true;
-    }
-
   }
 
 
@@ -229,12 +217,7 @@ namespace CoupledField {
     Matrix<TYPE> elemDisp;
 
     Global::ComplexPart dataType;
-    if ( hasComplexMatParams_ ) {
-      dataType = Global::COMPLEX;
-    }
-    else {
-      dataType = Global::REAL;
-    }
+   
 
     // get material from mechanics
     std::map<RegionIdType, BaseMaterial*> mechMat =
@@ -269,6 +252,14 @@ namespace CoupledField {
     // loop over all elements
     for ( it.Begin(); !it.IsEnd(); it++ ) {
 
+      
+      if ( complexMatData_[it.GetElem()->regionId] ) {
+        dataType = Global::COMPLEX;
+      }
+      else {
+        dataType = Global::REAL;
+      }
+      
       // Calc E - field;
       it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
 
@@ -374,13 +365,7 @@ namespace CoupledField {
        pde1_->getPDEMaterialData();
 
      Global::ComplexPart dataType;
-     if ( hasComplexMatParams_ ) {
-       dataType = Global::COMPLEX;
-     }
-     else {
-       dataType = Global::REAL;
-     }
-
+    
      // get material from electrostatics
      std::map<RegionIdType, BaseMaterial*>elecMat =
        pde2_->getPDEMaterialData();
@@ -429,6 +414,12 @@ namespace CoupledField {
        BaseMaterial* matPiezo  = materials_[ptVolElem->regionId];
        BaseMaterial* mechMatSD = mechMat[ptVolElem->regionId];
        BaseMaterial* elecMatSD = elecMat[ptVolElem->regionId];
+       if ( complexMatData_[ptVolElem->regionId] ) {
+         dataType = Global::COMPLEX;
+       }
+       else {
+         dataType = Global::REAL;
+       }
 
        // 1.) calculate electric field
        ElemList tempList(ptGrid_);
@@ -763,13 +754,7 @@ namespace CoupledField {
     Matrix<Double> permittivityMat;
     Matrix<Double> elemDisp;
 
-    Global::ComplexPart dataType;
-    if ( hasComplexMatParams_ ) {
-      dataType = Global::COMPLEX;
-    }
-    else {
-      dataType = Global::REAL;
-    }
+
 
     // get material from mechanics
     std::map<RegionIdType, BaseMaterial*> mechMat =
@@ -833,6 +818,14 @@ namespace CoupledField {
 
       // currrent finite element
       nrEl  = it.GetElem()->elemNum;
+      
+      Global::ComplexPart dataType;
+      if ( complexMatData_[it.GetElem()->regionId] ) {
+        dataType = Global::COMPLEX;
+      }
+      else {
+        dataType = Global::REAL;
+      }
 
       // get effective material tensors (currently just d-Tensor) 
       Matrix<Double> cTensor, sTensor, dTensor, epsTensor, eTensor;
@@ -1456,7 +1449,7 @@ namespace CoupledField {
         assemble_->AddBiLinearForm( actContextStiff );
 
         // check for complex valued material parameter
-        if( hasComplexMatParams_ ) {
+        if( complexMatData_[actRegion] ) {
           matType = Global::IMAG;
 
           BaseForm * bilinearStiffC =

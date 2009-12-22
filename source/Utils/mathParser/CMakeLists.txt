@@ -12,6 +12,7 @@ ADD_LIBRARY(mathparser STATIC ${MATHPARSER_SRCS})
 SET(TARGET_LL
   datainout
   utils
+  ${BOOST_SIGNALS_LIB}
   ${MUPARSER_LIBRARY}
 )
 

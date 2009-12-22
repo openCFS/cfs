@@ -161,9 +161,6 @@ namespace CoupledField
 
     // Data section
 
-    //! flag indicating use of complex material parameters
-    bool hasComplexMatParams_;
-
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

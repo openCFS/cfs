@@ -53,7 +53,8 @@ namespace CoupledField {
 
     algSysType_     = NOALGSYSTYPE;
     
-    systemInfo_ = info->Get("OLAS")->Get("system");
+    olasInfo = info->Get("OLAS");
+    systemInfo_ = olasInfo->Get("system");
 
 #ifdef MEMTRACE
     if ( memtrace == NULL ) {

@@ -166,6 +166,7 @@
                       <xsd:attribute name="nonLinId" type="xsd:token" 
                         use="optional" default=""/>
                       <xsd:attribute name="name" type="xsd:token" use="required"/>
+                      <xsd:attribute name="complexMaterial" type="DT_CFSBool" use="optional" default="no"/>
                     </xsd:complexType>
                   </xsd:element>            
                 </xsd:sequence>
@@ -186,9 +187,6 @@
             
             <!-- Desired solution values (optional) -->
             <xsd:element name="storeResults" type="DT_PiezoDirectStoreResults"
-              minOccurs="0" maxOccurs="1"/>
-            <!-- Type of materialDataType (real / complex) (optional) -->
-            <xsd:element name="materialDataType" type="DT_MatData"
               minOccurs="0" maxOccurs="1"/>          
             <xsd:element name="nonLinear" type="DT_NonLinParams" minOccurs="0"/>
           </xsd:sequence>

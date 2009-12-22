@@ -41,7 +41,8 @@
                   <xsd:complexType>
                     <xsd:attribute name="name" type="xsd:token" use="required"/>
                     <xsd:attribute name="nonLinId" type="xsd:token" 
-                      use="optional" default=""/>
+                    use="optional" default=""/>
+                    <xsd:attribute name="complexMaterial" type="DT_CFSBool" use="optional" default="no"/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>

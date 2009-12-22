@@ -103,8 +103,11 @@ namespace CoupledField {
           RegionIdType regionId = ptGrid_->GetRegion().Parse( regionName );
 
           in->Get("region", InfoNode::APPEND)->Get("name")->SetValue(regionName);
-
+          
           subdoms_.Push_back( regionId );
+          bool complexMat = false;
+          regionList[i]->Get("complexMaterial",  complexMat, false );
+          complexMatData_[regionId] = complexMat;
           entityLists_.Push_back( ptGrid_->
                                   GetEntityList( EntityList::ELEM_LIST, 
                                                  regionName, EntityList::REGION ) );

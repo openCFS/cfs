@@ -33,9 +33,16 @@ namespace CoupledField {
   
   MathParser::MathParser() {
 
+    // Create new memory pool for global parser
+    pools_[GLOB_HANDLER] = VarPool();
+    
     // Create global math parser and initialize it
-    InitParser( parsers_[GLOB_HANDLER], true );
-
+    InitParser( parsers_[GLOB_HANDLER], pools_[GLOB_HANDLER], 
+                true, false );
+    
+    // Set default expression 0,0
+    SetExpr( GLOB_HANDLER, "0.0 ");
+    
     // Add global handle to activeHandles
     activeHandles_.insert(GLOB_HANDLER);
 
@@ -59,7 +66,7 @@ namespace CoupledField {
     
   }
 
-  MathParser::HandleType MathParser::GetNewHandle() {
+  MathParser::HandleType MathParser::GetNewHandle( bool setDefaults ) {
     
     // Obtain new handle
     HandleType newHandle = GLOB_HANDLER;
@@ -76,12 +83,16 @@ namespace CoupledField {
     // Insert new handle
     activeHandles_.insert( newHandle );
 
-    // Create new parser
-    InitParser( parsers_[newHandle], false );
-
     // Create new entry in variable pool
     pools_[newHandle] = VarPool();
     
+    // Create new parser
+    InitParser( parsers_[newHandle], pools_[newHandle], 
+                false, setDefaults );
+    
+    // Initialize expression to 0.0
+    SetExpr( newHandle, "0.0 ");
+
     // return handle
     return newHandle;
 
@@ -103,6 +114,9 @@ namespace CoupledField {
     // Release variable pool
     pools_.erase( handle );
     parsers_.erase( handle );
+    varsInUse_.erase( handle );
+    exprChangeSignal_.erase( handle );
+    
 
     // Remove handle from set
     activeHandles_.erase( handle );
@@ -130,6 +144,39 @@ namespace CoupledField {
 
       // Simply change value in pool
       varIt->second = val;
+      
+      // if we have global parser instance, notify
+      // the depending instances as well for callback
+      std::set<HandleType> notifyParser;
+      
+      // always insert current handler
+      notifyParser.insert( handler );
+      
+      // if we have the global handler, add depending parser
+      if ( handler == GLOB_HANDLER ) {
+        notifyParser.insert( globVarsInUse_[varName].begin(),
+                             globVarsInUse_[varName].end() );
+      }
+      
+      //Iterate over all parser instances and check, if
+      // variable is in use
+      std::set<HandleType>::const_iterator handleIt = notifyParser.begin();
+      for( ; handleIt != notifyParser.end(); ++handleIt ) {
+        
+        HandleType actHandle = *handleIt;
+        // check, if variable is in use
+        if( varsInUse_[actHandle].find( varName) 
+            != varsInUse_[actHandle].end() ) {
+        
+          // check if signal is defined for this variable 
+          // -> fire signal
+          if(exprChangeSignal_.find(actHandle) != exprChangeSignal_.end() ) {
+            // Fire signal
+            (exprChangeSignal_[actHandle]).operator *()();
+          }
+        }
+      }
+      
     } else {
       // Case: variable was not defined yet
 
@@ -143,11 +190,27 @@ namespace CoupledField {
         // in all other parsers
         if ( handler == GLOB_HANDLER ) {
 
+          
           // iterate over all local handler and define variable
           ParserMap::iterator it = parsers_.begin();
           it++;
           for (; it != parsers_.end(); it++ ) {
-            it->second.DefineVar(  varName,&( poolsIt->second[varName]) );
+            
+            HandleType actHandle = it->first;
+            MATHPARSER_EXEC(
+                it->second.DefineVar(  varName,&( poolsIt->second[varName]) );
+            )
+
+            // We consider the case, that we have in the 
+            // child parsers already a "default" value for this variable,
+            // i.e. the parser instance assumes that the variable is
+            // locally defined. In this case we have to register
+            // the variable also in the globVarsInUse_ map
+            if( varsInUse_[actHandle].find( varName) !=
+                varsInUse_[actHandle].end() ) {
+              globVarsInUse_[varName].insert(actHandle);
+              pools_[actHandle].erase( varName );
+            }
           }
         }
     }
@@ -176,6 +239,19 @@ namespace CoupledField {
     // Get parser related to handler
     mu::Parser & myParser = GetParser( handler );
     
+    // Clear all dependencies on variables of current expression
+    std::set<std::string> & mySet = varsInUse_[handler];
+    std::set<std::string>::iterator varIt;
+    for( varIt = mySet.begin(); varIt != mySet.end(); ++varIt ) {
+      
+     // check if variable is also in use in global handler
+      if( globVarsInUse_.find( *varIt ) != globVarsInUse_.end() ) {
+        globVarsInUse_[*varIt].erase( handler );
+      }
+    }
+    // in the end, clear the set itself
+    mySet.clear();
+    
     // Special handling in case the expression is set in a xml-file:
     // We have to replace all occurences of the single quote '
     // by the related double quote " in order to get muParser
@@ -185,6 +261,24 @@ namespace CoupledField {
     
 
     MATHPARSER_EXEC( myParser.SetExpr(modExpr) );
+    
+    // Now get all depending variables of this expression
+    StdVector<std::string> varNames;
+    GetExprVars( handler, varNames );
+    StdVector<std::string>::iterator it = varNames.Begin();
+    VarPool & actPool = pools_[handler];
+    VarPool & globPool = pools_[GLOB_HANDLER];
+    for( ; it != varNames.End(); it++ ) {
+      varsInUse_[handler].insert(*it);
+
+      // check, if variable is local or defined in GLOBAL_HANDLER
+      if( actPool.find(*it) == actPool.end() ) {
+        if( globPool.find(*it) != globPool.end() ) {
+          globVarsInUse_[*it].insert( handler );
+        }
+      }
+    }
+
   }
 
 
@@ -200,7 +294,8 @@ namespace CoupledField {
     return ret;
   }
 
-  void MathParser::InitParser( mu::Parser &parser, bool isGlobal ) {
+  void MathParser::InitParser( mu::Parser &parser, VarPool& actPool,
+                               bool isGlobal, bool setDefaults ) {
     
     // Register alias functions for >, >=, <=, <
     parser.DefineOprt( "gt", MathParser::Op_gt, 2);
@@ -232,8 +327,89 @@ namespace CoupledField {
         parser.DefineVar(  varIt->first, &(varIt->second) );
         
       } // for
+    
+      
+      // if default variables should be set, we define missing variables
+      if( setDefaults ) {
+        StdVector<std::string> defaults;
+        defaults = "t", "f", "x", "x", "y", "z";
+        StdVector<std::string>::iterator it = defaults.Begin();
+        for( ; it != defaults.End(); ++it ) {
+          if ( globPool.find( *it) == globPool.end() )  {
+            // create new entry in variable pool
+            actPool[*it] = 0.0;
+            parser.DefineVar(  *it, &(actPool[*it] ) );
+          }
+        }
+      }
     } // if
+    
   }
+  
+
+  //! Register callback function for change of value of expression
+  boost::signals::connection MathParser::
+  AddExpChangeCallBack( const MathParserSignal::slot_function_type
+                        &subscriber,
+                        HandleType handle ) {
+    
+    if(  exprChangeSignal_.find( handle ) == exprChangeSignal_.end() ) {
+      exprChangeSignal_[handle] = shared_ptr<MathParserSignal>(new MathParserSignal());
+    }
+    return (exprChangeSignal_[handle])->connect( subscriber );
+  }
+
+  
+  std::string MathParser::GetExpr( HandleType handle ) {
+    // Get the map with the variables
+    mu::Parser & actParser = GetParser( handle );
+    std::string expr;
+    MATHPARSER_EXEC(actParser.GetExpr());
+    return expr;
+  }
+  
+  bool MathParser::IsExprConstant( HandleType handle ) {
+    // Get all depending variables of this expression
+    mu::Parser & actParser = GetParser( handle );
+    
+    mu::varmap_type variables;
+    MATHPARSER_EXEC( variables = actParser.GetUsedVar() ); 
+    bool isConstant = true;
+    if( variables.size() != 0 ) {
+      isConstant = false;
+    }
+    return isConstant;
+  }
+  
+  bool MathParser::IsExprVariable( HandleType handle, const std::string& var ) {
+    StdVector<std::string> usedVars;
+    GetExprVars( handle, usedVars );
+    bool found = false;
+    if( usedVars.Find( var) != -1 ) {
+      found = true;
+    }
+    return found;
+  }
+  
+  
+  void MathParser::GetExprVars( HandleType handle, 
+                                StdVector<std::string>& varNames ) {
+
+    // Get the map with the variables
+    mu::Parser & actParser = GetParser( handle );
+    mu::varmap_type variables;
+    MATHPARSER_EXEC( variables = actParser.GetUsedVar() );
+
+    // Get the number of variables 
+    mu::varmap_type::const_iterator item = variables.begin();
+
+    // Copy variable names
+    varNames.Reserve( variables.size() );
+    for (; item!=variables.end(); ++item) {
+      varNames.Push_back( item->first );
+    }
+  }
+  
   
   Double* MathParser::AddVariable( const char *varName ) {
     
@@ -241,6 +417,90 @@ namespace CoupledField {
     return &dynamicPool_.back();
   }
   
+  
+  void MathParser::Dump( std::ostream& out) {
+    
+    out << "====================\n"
+           " MATH PARSER STATUS \n"
+           "====================\n\n";   
+    
+    // iterate over all active Handles
+    out << " 1) Active Handles\n"
+           " -----------------\n";
+    std::set<HandleType>::const_iterator handleIt = activeHandles_.begin();
+    for( ; handleIt != activeHandles_.end(); ++handleIt ) {
+      out << "\t" << *handleIt << std::endl;
+    }
+   out << std::endl;
+   
+    // iterate over all active parser instances
+   out << " 2) Parser instances\n"
+          " --------------------\n";
+    PoolMap::iterator poolIt = pools_.begin();
+    ParserMap::iterator parseIt = parsers_.begin();
+    
+    
+    for( ; parseIt != parsers_.end(); ++parseIt, ++poolIt ) {
+      
+      mu::Parser & actParser = parseIt->second;
+      // - print handle
+      out << " Handle: " << parseIt->first << std::endl
+          << " ----------" << std::endl
+          << "\tExpression: '" << actParser.GetExpr() << "'\n\n";
+          
+      // Print variables in use
+      std::set<std::string> & mySet = varsInUse_[parseIt->first];
+      std::set<std::string>::iterator setIt = mySet.begin();
+      out << "\tUsed variables: ";
+      for(; setIt != mySet.end(); ++setIt ) {
+        out << *setIt << ", ";
+      }
+      out << std::endl;
+      
+      // Get the map with the variables
+      mu::varmap_type variables = actParser.GetVar();
+      out << "\n\t#Variables registered in parser: "
+          << (int)variables.size() << "\n";
+
+      // Get the number of variables 
+      mu::varmap_type::const_iterator item = variables.begin();
+
+      // Query the variables
+      for (; item!=variables.end(); ++item) {
+        out << "\t\tvar: '" << item->first 
+            << "' Address: [0x" << item->second << "]\n";
+      }
+      
+      // Print pool iunformation
+      out << "\n\tVariables in pool:\n";
+      VarPool & actPool  = poolIt->second;
+      VarPool::const_iterator varIt = actPool.begin();
+      for( ; varIt != actPool.end(); ++varIt ) {
+        out << "\t\tvar: '" << varIt->first << "' \t value: " 
+            << varIt->second << std::endl;
+      }
+      
+      out << std::endl;
+    }
+    out << "\n\n";
+    // print global variables information
+    out << "3) Map: global variables <-> parser instances:\n"
+        << "--------------------------------------------\n";
+    
+    std::map<std::string, std::set<HandleType> >::const_iterator gIt;
+    gIt = globVarsInUse_.begin();
+    for( ; gIt != globVarsInUse_.end(); ++gIt) {
+      out << "\tvar '"  << gIt->first << "' used in Parser handles: ";
+      std::set<HandleType>::const_iterator hIt =  gIt->second.begin();
+      for( ; hIt != gIt->second.end(); ++hIt ) {
+        out << *hIt << ",";
+      }
+      out << std::endl;
+      
+    }
+    
+    
+  }
   
 
   mu::Parser& MathParser::GetParser( HandleType handler ) {

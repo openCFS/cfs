@@ -557,6 +557,9 @@ namespace CoupledField {
 
     //! list of damping types for all regions
     std::map<RegionIdType,DampingType> dampingList_;
+    
+    //! use of complex material data per region
+    std::map<RegionIdType,bool> complexMatData_;
 
     bool fracDamping_; //!< true: fractional damping model
     UInt fracMemory_;     //!< number of old time steps to be saved (for fractional damping)

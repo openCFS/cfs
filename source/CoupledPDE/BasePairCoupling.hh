@@ -232,6 +232,9 @@ namespace CoupledField
 
     //! Maps regions and (simple) materials
     std::map<RegionIdType, BaseMaterial*> materials_;
+    
+    //! use of complex material data per region
+    std::map<RegionIdType,bool> complexMatData_;
 
     //! Maps regions and composite materials
     std::map<RegionIdType, Composite> compositeMaterials_;

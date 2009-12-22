@@ -1759,6 +1759,9 @@ namespace CoupledField
     if( fcnType->GetType() == AnsatzFct::LAGRANGE ) {
       numFcns.Resize( NumNodes_ );
       numFcns.Init(1);
+    } else if( fcnType->GetType() == AnsatzFct::NEDELEC ) {
+      numFcns.Resize( NumEdges_ );
+      numFcns.Init(1);
     } else {
       EXCEPTION("In base class only implemented for Lagrange functions!");
     }
@@ -1770,6 +1773,8 @@ namespace CoupledField
     // Check ansatzFctType
     if( fcnType->GetType() == AnsatzFct::LAGRANGE ) {
       return GetNumNodes();
+    } else if( fcnType->GetType() == AnsatzFct::NEDELEC ) {
+      return GetNumEdges();
     } else {
       EXCEPTION("In base class only implemented for Lagrange functions!");
     }

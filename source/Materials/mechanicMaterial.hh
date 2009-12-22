@@ -37,6 +37,9 @@ namespace CoupledField {
     //! set a scalar complex material parameter
     void SetScalar( Complex param, MaterialType matType, 
 		    Global::ComplexPart dataType );
+    
+    //! set a scalar parameter in string representation (gets later parsed by MathParser
+    void SetScalar(const std::string& param, MaterialType matType, Global::ComplexPart dataType );
 
     //! set a real vector
     virtual void SetVector(const Vector<Double>& param, MaterialType matType,
@@ -120,6 +123,9 @@ namespace CoupledField {
     //! Compute elasticity tensor from given parameters
     void ComputeFullStiffTensor();
 
+    
+    MathParser::HandleType mHandle_;
+    
     Double density_;
     Double PoissonRatio_;
     Double RayleighAlpha_;

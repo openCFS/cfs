@@ -197,23 +197,25 @@ namespace CoupledField {
       try {
         evs->CalcConditionNumber( *(sysmat_[SYSTEM]), condNumber,
                                   ev, err );
+        in->Get("value")->SetValue(condNumber);
+        in = in->Get("extremalEigenValues");
+
+        for( UInt i = 0; i < ev.GetSize(); i++ )  {
+          InfoNode* t = in->Get("eigenvalue", InfoNode::APPEND);
+          t->Get("value")->SetValue(ev[i]);
+          t->Get("tolerance")->SetValue(err[i]);
+        }
+
       } catch (Exception& ex ) {
         in->Get(InfoNode::WARNING)->SetValue("condition number did not converge"); 
+        std::cerr << ex.GetMsg();
         Warning( "Calculation of condition number for system matrix did not converge",
                  __FILE__, __LINE__ );
-        delete evs;
+      
+        in->Get("value")->SetValue(0.0);
       }
       
-      in->Get("value")->SetValue(condNumber);
-      in = in->Get("extremalEigenValues");
-
-      for( UInt i = 0; i < ev.GetSize(); i++ )  {
-        InfoNode* t = in->Get("eigenvalue", InfoNode::APPEND);
-        t->Get("value")->SetValue(ev[i]);
-        t->Get("tolerance")->SetValue(err[i]);
-      }
       delete evs;
-      
       // in the end prevent-relcaulation of evs by re-setting the value for CalcConditionNumber
       myParams_.SetValue( "CalcConditionNumber", false );
     }

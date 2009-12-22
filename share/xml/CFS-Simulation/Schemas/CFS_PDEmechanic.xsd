@@ -48,7 +48,8 @@
                     <xsd:attribute name="reducedInt" type="DT_CFSBool" use="optional" default="no"/>
                     <xsd:attribute name="thickness"  type="DT_NonNegFloat" use="optional" default="0.0"/>
                     <xsd:attribute name="penaltyDof" type="DT_NonNegFloat"
-                      use="optional" default="0.0"/>
+                    use="optional" default="0.0"/>
+                    <xsd:attribute name="complexMaterial" type="DT_CFSBool" use="optional" default="no"/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>

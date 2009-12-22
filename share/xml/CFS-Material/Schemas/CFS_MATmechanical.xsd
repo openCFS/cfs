@@ -100,8 +100,9 @@
   <xsd:complexType name="DT_MechElastIsotrRealImag">
     <xsd:choice>
       <xsd:sequence>
-        <xsd:element name="elasticityModulus" type="DT_NonNegFloat"/>
-        <xsd:element name="poissonNumber" type="DT_FloatPoissonInterval"/>
+        <xsd:element name="elasticityModulus" type="xsd:token"/>
+        <!--<xsd:element name="poissonNumber" type="DT_FloatPoissonInterval"/>-->
+        <xsd:element name="poissonNumber" type="xsd:token"/>
       </xsd:sequence>
 <!--      <xsd:sequence>
         <xsd:element name="elasticityModulus" type="DT_NonNegFloat"/>

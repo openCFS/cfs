@@ -538,25 +538,6 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     RegionIdType actRegion;
     BaseMaterial * actSDMat = NULL;
 
-
-    // check for complex valued material parameter
-    // (defined only in the direct piezo coupling case )
-    bool complexMaterial = false;
-    if( isDirectCoupled_ ) {
-      ParamNode * piezoNode =
-        param->Get( "sequenceStep", std::string("index"), sequenceStep_)
-        ->Get("couplingList/direct/piezoDirect", false);
-      if( piezoNode ) {
-        ParamNode * matNode = NULL;
-        if( piezoNode )
-          matNode = piezoNode->Get("materialDataType", false);
-        if( matNode )
-          complexMaterial =
-            matNode->Get("type")->AsString() == "imagMaterialParameter";
-      }
-    }
-
-
     // volume integrators
 
     std::map<RegionIdType, BaseMaterial*>::iterator it;
@@ -676,7 +657,8 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
                                         actSDList, actSDList );
 
           //check for damping
-          if ( dampingList_[actRegion] == RAYLEIGH && complexMaterial == false ) {
+          if ( dampingList_[actRegion] == RAYLEIGH && 
+              complexMatData_[actRegion] == false ) {
             Double beta, measFreq;
             std::string fac;
             actSDMat->GetScalar(beta,RAYLEIGH_BETA,Global::REAL);
@@ -693,7 +675,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
           assemble_->AddBiLinearForm( actIntDescrStiff );
 
           // check for complex valued material parameter
-          if( complexMaterial ) {
+          if( complexMatData_[actRegion] ) {
             BaseForm * bilinearStiffImag = GetStiffIntegrator(actSDMat,
                                                               actRegion);
 
@@ -955,7 +937,8 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
         new BiLinFormContext( myInt, STIFFNESS);
 
       //check for damping
-      if ( dampingList_[actRegion] == RAYLEIGH && complexMaterial == false ) {
+      if ( dampingList_[actRegion] == RAYLEIGH && 
+          complexMatData_[actRegion] == false ) {
         Double beta, measFreq;
         std::string fac;
         actSDMat->GetScalar(beta,RAYLEIGH_BETA,Global::REAL);
@@ -982,7 +965,8 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       BiLinFormContext * actIntDescrMass = new BiLinFormContext(bilinearMass, MASS);
 
       //check for damping
-      if ( dampingList_[actRegion] == RAYLEIGH && complexMaterial == false ) {
+      if ( dampingList_[actRegion] == RAYLEIGH 
+          && complexMatData_[actRegion] == false ) {
         Double alpha, measFreq;
         std::string fac;
         actSDMat->GetScalar(alpha,RAYLEIGH_ALPHA,Global::REAL);

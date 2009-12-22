@@ -549,7 +549,7 @@ namespace CoupledField{
    dMatEff = dTensor_[0];  //dTensor in x-Direction;
 
    Vector<Double> diffE, diffP, Pact;
-   Double scaleVal, scaleDiffVal, addVal;
+   Double scaleVal, scaleDiffVal; 
 
    diffP = effElecPolAct_[elemIdx] - effElecPolPrev_[elemIdx];;
    scaleDiffVal = diffP.NormL2() / sponP0_;

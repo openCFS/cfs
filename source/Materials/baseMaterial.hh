@@ -14,6 +14,7 @@
 #include <Utils/ApproxData.hh>
 //#include "Utils/piezoMicroModel.hh"
 #include "Utils/coordSystem.hh"
+#include "Utils/mathParser/mathParser.hh"
 
 namespace CoupledField {
 
@@ -37,6 +38,7 @@ namespace CoupledField {
     typedef std::map<MaterialType, Complex > scalarMap;
     typedef std::map<MaterialType, std::string > stringMap;
     typedef std::map<MaterialType, Integer > integerMap;
+    typedef std::map<MaterialType, MathParser::HandleType > handleMap;
 
     typedef enum {GENERAL, ISOTROPIC, ORTHOTROPIC, TRANS_OTHOTROP } SymmetryType;
 
@@ -135,6 +137,12 @@ namespace CoupledField {
 
     //! set a scalar complex material parameter
     virtual void SetScalar(Complex param, MaterialType matType, Global::ComplexPart dataType )
+    {
+      EXCEPTION("not implemented for " << materialDatabaseName_);
+    }
+    
+    //! set a scalar parameter in string representation (gets later parsed by MathParser
+    virtual void SetScalar(const std::string& param, MaterialType matType, Global::ComplexPart dataType )
     {
       EXCEPTION("not implemented for " << materialDatabaseName_);
     }
@@ -388,7 +396,19 @@ namespace CoupledField {
 
     //! map, which knows about the scalar material parameters being set during read in 
     scalarMap scalarParams_;
+    
+    //! map for real part of scalar material data (string representation)
+    stringMap scalarStringParamsReal_;
+    
+    //! map for mathParser Handles of real part of scalar material parameters
+    handleMap scalarStringHandlesReal_;
+    
+    //! map for imagomary part of scalar material data (string representation)
+    stringMap scalarStringParamsImag_;
 
+    //! map for mathParser Handles of real part of scalar material parameters
+    handleMap scalarStringHandlesImag_;
+        
     //! map, which knows about the actual tensorial material parameters 
     vectorMap vectorParams_;
 
@@ -398,6 +418,9 @@ namespace CoupledField {
     //! map, which knows about the original tensorial material parameters before being rotated
     tensorMap tensorParamsOrig_;
 
+    //! Pointer to math parser instance
+    MathParser *  mp_;
+    
     //! Pointer to attaches coordinate system
     CoordSystem * coosy_;
 

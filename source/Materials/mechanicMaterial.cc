@@ -9,8 +9,11 @@
 #include <math.h>
 #include <limits.h>
 #include <string>
+#include <boost/bind.hpp>
 
 #include "mechanicMaterial.hh"
+#include "Domain/domain.hh"
+
 
 
 
@@ -23,6 +26,7 @@ namespace CoupledField
   MechanicMaterial::MechanicMaterial() : BaseMaterial() {
 
     materialDatabaseName_ = "Mechanics";
+    mHandle_ = mp_->GetNewHandle(true);
 
     //set the allowed material parameters
     isAllowed_.insert( DENSITY );
@@ -56,11 +60,10 @@ namespace CoupledField
 
   MechanicMaterial::~MechanicMaterial() {
 
-
+    mp_->ReleaseHandle(mHandle_);
   }
 
   void MechanicMaterial::Finalize() {
-
 
     // Trigger calculation of stiffness tensor
     ComputeFullStiffTensor();
@@ -85,6 +88,47 @@ namespace CoupledField
   }
   
 
+  void MechanicMaterial::SetScalar(const std::string& param, MaterialType matType, 
+                                   Global::ComplexPart dataType ) {
+
+    MathParser::HandleType actHandle;
+    //check, if allowed
+    if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
+      std::string dim = "scalar";
+      matTypeNotAllowed( matType, dim );
+    }
+    else {
+      isSet_.insert( matType );
+
+      if ( dataType == Global::REAL ) {
+        actHandle = mp_->GetNewHandle(true);
+        scalarStringParamsReal_[matType] = param;
+        scalarStringHandlesReal_[matType] = actHandle; 
+        mp_->SetExpr(actHandle, param );        
+        // Register call-back function:
+        // Every time some variable within the expression of the elasticity modulus
+        // changes, we have to recalculate the tensor
+        mp_->AddExpChangeCallBack(boost::bind(&MechanicMaterial::ComputeFullStiffTensor,
+                                              this), actHandle );
+      }
+      else if (dataType == Global::IMAG ) {
+        actHandle = mp_->GetNewHandle(true);
+        scalarStringParamsImag_[matType] = param;
+        scalarStringHandlesImag_[matType] = actHandle;
+        mp_->SetExpr(actHandle, param );
+        // Register call-back function:
+        // Every time some variable within the expression of the elasticity modulus
+        // changes, we have to recalculate the tensor
+        mp_->AddExpChangeCallBack(boost::bind(&MechanicMaterial::ComputeFullStiffTensor,
+                                              this), actHandle );
+      }
+      else {
+        std::string msg = "SetScalar-Double";
+        dataTypeNotAllowed4SetGet ( dataType, msg );
+      }
+    }
+  }
+  
   void MechanicMaterial::SetScalar(Double param, MaterialType matType, 
 				    Global::ComplexPart dataType ) {
 
@@ -97,12 +141,13 @@ namespace CoupledField
     else {
       isSet_.insert( matType );
 
-      Complex val;
+      Complex val, oldVal;
+      oldVal = scalarParams_[matType];
       if ( dataType == Global::REAL ) {
-        val = Complex ( param, 0.0 );
+        val = Complex ( param, oldVal.imag() );
       }
       else if (dataType == Global::IMAG ) {
-        val = Complex ( 0.0, param );
+        val = Complex ( oldVal.real(), param );
         isComplex_.insert( matType );
       }
       else {
@@ -325,8 +370,6 @@ namespace CoupledField
   void MechanicMaterial::GetVector( Vector<Double>& param, 
 				    MaterialType matType, 
 				    Global::ComplexPart dataType ) const {
-    
-
     vectorMap::const_iterator pos;
     pos = vectorParams_.find( matType );
 
@@ -647,19 +690,35 @@ namespace CoupledField
       break;
     case ISOTROPIC:
     {
+
+      // ====================================================================
+      // Hard coded section for isotropic material data with variable 
+      // coefficients
+      // ====================================================================
+      
+      // Loop over real / imag stiffnes parameters, evaluate string
+      // representation and store it in double map
+      handleMap::iterator it = scalarStringHandlesReal_.begin();
+      for ( ; it != scalarStringHandlesReal_.end(); ++it ) {
+        SetScalar( mp_->Eval(it->second),it->first, Global::REAL );
+      }
+      it = scalarStringHandlesImag_.begin();
+      for ( ; it != scalarStringHandlesImag_.end(); ++it ) {
+        SetScalar( mp_->Eval(it->second),it->first, Global::IMAG );
+      }
+      // ====================================================================
+      
       // get complex valued values
       Complex EModul, poisson;
 
       GetScalar( EModul, MECH_EMODULUS, Global::COMPLEX ); 
       GetScalar( poisson, MECH_POISSON, Global::COMPLEX );
-
       Complex LameLambda = (poisson*EModul)/
           ((Complex(1.0,0) + poisson)*
               (Complex(1.0,0)  - Complex(2.0,0)*poisson));
       Complex LameMu = (EModul)/(Complex(2.0,0)*(Complex(1.0)+poisson));
 
       CalcComplexIsotropicStiffnessTensor(elasticityTensor, LameLambda, LameMu, 3);
-
       SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, Global::COMPLEX );
       SetScalar(LameLambda, MECH_LAME_LAMBDA, Global::COMPLEX);
       SetScalar(LameMu, MECH_LAME_MU, Global::COMPLEX);

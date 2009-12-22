@@ -47,8 +47,6 @@ namespace CoupledField
 
     class RegionLoad;
 
-    bool boolComplexMaterialData_;
-    
     /** Initialize PDEs 
      * @param base a coupled PDE case we do not choose our own base */ 
     virtual void Init( UInt sequenceStep, InfoNode* base = NULL ); 

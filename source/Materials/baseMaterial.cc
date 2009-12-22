@@ -16,7 +16,7 @@
 #include "Domain/entityList.hh"
 #include "Utils/piezoMicroModel.hh"
 #include "Utils/piezoMicroModelBK.hh"
-
+#include "Domain/domain.hh"
 #include "baseMaterial.hh"
 
 
@@ -43,6 +43,8 @@ namespace CoupledField
 
     piezoMicroModel_   = NULL;
     isPiezoMicroModel_ = false;
+    
+    mp_ = domain->GetMathParser();
   }
 
    BaseMaterial::~BaseMaterial() {

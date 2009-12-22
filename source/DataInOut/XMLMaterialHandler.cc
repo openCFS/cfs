@@ -296,14 +296,14 @@ namespace CoupledField {
           // read real elasticity modulus
           if(real->Has("elasticityModulus"))
           {
-            material->SetScalar(real->Get("elasticityModulus")->AsDouble(), MECH_EMODULUS, Global::REAL ); 
+            material->SetScalar(real->Get("elasticityModulus")->AsString(), MECH_EMODULUS, Global::REAL ); 
             flagEModulReal = true;
           }
           
           // read real Poisson number
           if(real->Has("poissonNumber"))
           {
-            material->SetScalar(real->Get("poissonNumber")->AsDouble(), MECH_POISSON, Global::REAL ); 
+            material->SetScalar(real->Get("poissonNumber")->AsString(), MECH_POISSON, Global::REAL ); 
             flagPoissonReal = true;
           }
         }
@@ -315,14 +315,14 @@ namespace CoupledField {
           //read imaginary elasticity modulus
           if(imag->Has("elasticityModulus"))
           {
-            material->SetScalar(imag->Get("elasticityModulus")->AsDouble(), MECH_EMODULUS, Global::IMAG ); 
+            material->SetScalar(imag->Get("elasticityModulus")->AsString(), MECH_EMODULUS, Global::IMAG ); 
             flagEModulImag = true;
           }
 
           // read imaginary Poisson number
           if(imag->Has("poissonNumber"))
           {
-            material->SetScalar(imag->Get("poissonNumber")->AsDouble(), MECH_POISSON, Global::IMAG ); 
+            material->SetScalar(imag->Get("poissonNumber")->AsString(), MECH_POISSON, Global::IMAG ); 
             flagPoissonImag = true;
           }
         }

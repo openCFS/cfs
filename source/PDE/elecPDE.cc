@@ -275,34 +275,23 @@ namespace CoupledField {
           
           // --- check for complex valued material parameter ---
           // check for piezo-coupling and 
-          if( isPiezoCoupled_ ) {
-            ParamNode * dataTypeNode = 
-              param->Get("sequenceStep", std::string("index"), sequenceStep_)
-              ->Get("couplingList/direct/piezoDirect/materialDataType", false );
-            bool isImag = false;
-            
-            if( dataTypeNode ) 
-              isImag = dataTypeNode->Get("type")->AsString() 
-                == "imagMaterialParameter";
-            
-            if( isImag ) {
-              Global::ComplexPart matType = Global::IMAG; 
-              
-              linElecInt * linElecFormC  = new 
+          if( complexMatData_[actRegion] == true ) {
+            Global::ComplexPart matType = Global::IMAG; 
+
+            linElecInt * linElecFormC  = new 
                 linElecInt( materials_[actRegion], tensorType,
                             upLagrangeForm);
-              linElecFormC->SetFactor( factor );
-              linElecFormC->SetMatDataType(matType);
-              
-              BiLinFormContext * stiffIntDescrC = 
+            linElecFormC->SetFactor( factor );
+            linElecFormC->SetMatDataType(matType);
+
+            BiLinFormContext * stiffIntDescrC = 
                 new BiLinFormContext(linElecFormC, STIFFNESS);
-              
-              stiffIntDescrC->SetPtPdes(this, this);
-              stiffIntDescrC->SetEntryType(matType);
-              stiffIntDescrC->SetResults( results_[0], results_[0],
-                                          actSDList, actSDList );
-              assemble_->AddBiLinearForm( stiffIntDescrC );
-            }
+
+            stiffIntDescrC->SetPtPdes(this, this);
+            stiffIntDescrC->SetEntryType(matType);
+            stiffIntDescrC->SetResults( results_[0], results_[0],
+                                        actSDList, actSDList );
+            assemble_->AddBiLinearForm( stiffIntDescrC );
           }
         }
       }  

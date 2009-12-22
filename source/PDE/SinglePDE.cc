@@ -161,9 +161,12 @@ namespace CoupledField {
     {
       InfoNode* in_ = list->Get("region");
       in_->Get("name")->SetValue(regionNodes[i]->Get("name")->AsString());
-
+      bool complexMat = false;
+      regionNodes[i]->Get("complexMaterial",  complexMat, false );
+      
       RegionIdType actRegionId = ptgrid_->GetRegion().Parse(regionNodes[i]->Get("name")->AsString());
       subdoms_.Push_back( actRegionId );
+      complexMatData_[actRegionId] = complexMat;
     }
 
 
