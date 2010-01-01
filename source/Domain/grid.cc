@@ -1384,15 +1384,23 @@ namespace CoupledField
         temp = (d - b);
         l_bd = temp.NormL2();
 
+        // does a lie on [c,d]?
         if (fabs(l_ac + l_ad - l2) < polysectAbsTol_) {
           e = a;
-          if (l_ac < polysectAbsTol_)
+          if (l_ac < polysectAbsTol_) // is a=c?
             return INTERSECT_A_EQ_C;
-          if (l_ad < polysectAbsTol_)
+          if (l_ad < polysectAbsTol_) { // is a=d?
+            // usually a cut at d wins over a cut at a,
+            // but c might be an endpoint here, too
+            if (fabs(l_ac + l_bc - l1) < polysectAbsTol_) {
+              e = c;
+              return INTERSECT_IN_C;
+            }
             return INTERSECT_IN_D;
-          
-          if ((fabs(l_ac + l_bc)/l1)-1.0 < 1e-2)
-            return INTERSECT_A_AND_C;
+          }
+          // does c lie on [a,b]?
+          if (fabs(l_ac + l_bc - l1) < polysectAbsTol_)
+            return INTERSECT_A_AND_C; // intersection is [a,c]
           
           return INTERSECT_IN_A;
         }
@@ -1453,8 +1461,10 @@ namespace CoupledField
         && (fabs(denom3) <= polysectAbsTol_))
       return INTERSECT_NONE;
 
-    // This check makes no sense for 3 k's. Maybe add a check based on the
-    // standard deviation of k.
+    /* TODO: jens
+     * This check makes no sense for 3 k's. Maybe add a check based on the
+     * standard deviation of k.
+     */
     /*if ((fabs(denom1) > polysectAbsTol_)
         && (fabs(denom2) > polysectAbsTol_)) {
       if (fabs(k1 - k2) > polysectRelTol_)
@@ -1478,8 +1488,7 @@ namespace CoupledField
       h = (c[2] - a[2] + v2[2] * k) / v1[2];
 
     // compute point of intersection
-    e = c + v2 * k;
-    //e = a + v1 * h; // do not use h, because it was computed from k
+    e = c + v2 * k; // do not use h, because it was computed from k
 
     if (h > -polysectRelTol_) { // we consider only [a,inf)
       if ((k > -polysectRelTol_) && (k < 1.0 + polysectRelTol_)) { // intersection on [c,d]?
@@ -1512,7 +1521,7 @@ namespace CoupledField
   {
     Double r1, r2;
     UInt i, inside = 0, nCuts = 0, start_cur = p1.GetSize();
-    Vector<Double> c1, c2, e/*, last_cut*/;
+    Vector<Double> c1, c2, e;
     Vector<Double> temp1, temp2;
     struct Intersection {
       UInt index;
@@ -1529,8 +1538,6 @@ namespace CoupledField
       return false;
     }
  #endif
-
-    //last_cut.Resize(3);
 
     // compute surrounding circles of both polygons
     r1 = PolyCentroid(p1, c1);
@@ -1696,7 +1703,6 @@ namespace CoupledField
         if (temp1.NormL2() < temp2.NormL2())
         {
           r.Push_back(cuts[0].loc);
-          //last_cut = cuts[1].loc;
           r.Push_back(cuts[1].loc);
 
           pi2.Seek(cuts[0].index);
@@ -1707,7 +1713,6 @@ namespace CoupledField
           pi2.Seek(cuts[1].index);
         } else {
           r.Push_back(cuts[1].loc);
-          //last_cut = cuts[0].loc;
           r.Push_back(cuts[0].loc);
 
           pi2.Seek(cuts[1].index);
@@ -1730,7 +1735,6 @@ namespace CoupledField
       pi2.SetBegin();
 
       // store first point of intersection polygon
-      //last_cut = cuts[0].loc;
       r.Push_back(cuts[0].loc);
 
       // avoid finding the same cut twice
@@ -1739,8 +1743,6 @@ namespace CoupledField
       if (cuts[0].swap) {
         pi1.Swap(pi2);
       } else {// [a,b] cuts into p2, so add b
-        /*r.Push_back(last_cut);
-          last_cut = *pi1;*/
         r.Push_back(*pi1);
       }
     }
@@ -1756,8 +1758,6 @@ namespace CoupledField
           switch (CutLines(*pi1, pi1.Next(), *pi2, pi2.Next(), e)) {
             case INTERSECT_CROSS:
             case INTERSECT_IN_C:
-              /*r.Push_back(last_cut);
-                last_cut = e;*/
               r.Push_back(e);
               swap = true;
               break;
@@ -1786,8 +1786,6 @@ namespace CoupledField
         start_pas = pi2.GetPos();
         swapped = true;
       } else {
-        /*r.Push_back(last_cut);
-          last_cut = *pi1;*/
         r.Push_back(*pi1);
         // Return to the point directly after the last cut (we can do
         // this due to the polygons being convex and having the same
