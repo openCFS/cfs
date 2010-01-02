@@ -52,6 +52,12 @@ namespace CoupledField {
       acouMaterials = &secondMaterials_;
     }
 
+    if ( actElem_->ptVolElem1 == NULL ) {
+      EXCEPTION("Cannot apply absorbing BC on surface element "
+          << actElem_->elemNum
+          << ", because it has no adjacent volume element.\n"
+          << "Go check your mesh file!");
+    }
     it = acouMaterials->find(actElem_->ptVolElem1->regionId);
     if ( it == acouMaterials->end() ) {
       it = acouMaterials->find(actElem_->ptVolElem2->regionId);
