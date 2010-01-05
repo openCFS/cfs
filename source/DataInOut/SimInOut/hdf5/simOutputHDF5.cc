@@ -561,10 +561,12 @@ namespace CoupledField {
     if(externalFiles_)
     {
       InfoNode* in = info->Get("analysis/output/externalFile");
-      in->Get("name")->SetValue(currStepFile_.getFileName());
-      in->Get("size")->SetValue((int) currStepFile_.getFileSize());
+      try {
+        in->Get("name")->SetValue(currStepFile_.getFileName());
+        in->Get("size")->SetValue((int) currStepFile_.getFileSize());
+        info->ToFile();
+      } catch (H5::FileIException &h5ex) {}
       currStepFile_.close();
-      info->ToFile();
     }
 
     if( currMeshStepGroup_.getId() > 0 )
