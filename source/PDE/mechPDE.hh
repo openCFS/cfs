@@ -285,9 +285,6 @@ namespace CoupledField
     /// returns that L2-norm of an algsys vector
     Double AlgsysL2Norm(Double * pt);
 
-    /// flag for reduced Integration for each subdomain
-    StdVector<std::string> reducedIntegration_;
-
     /// returns the solution matrix belonging to all nodes of the actual element
     void GetSolOfElement( Matrix<Double>& elDisp, StdVector<UInt>& connect_PDE);
 
@@ -331,6 +328,9 @@ namespace CoupledField
 
     //! Stores softening for each region
     std::map<RegionIdType, std::string> regionSoftening_;
+    
+    //! Stores Rayleigh damping definition for each rgion
+    std::map<RegionIdType, RaylDampingData > regionRaylDamping_;
 
     //! Flag indicating use of penalty dof for plate formulation
     bool usePlatePenaltyDof_;

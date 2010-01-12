@@ -128,8 +128,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     Integer firstFrac=-1;
 
     std::map<std::string, DampingType> idDampType;
-    std::map<std::string, Double>      idDampFreq;
-    std::map<std::string, Double>      idDampRatioDeltaF;
+    std::map<std::string, shared_ptr<RaylDampingData> > idRaylData;
 
     // try to get dampingList
     ParamNode * dampListNode = myParam_->Get( "dampingList", false );
@@ -181,16 +180,25 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
         }
 
         else if( actType == RAYLEIGH ) {
-          Double rayleighDampingFreq, rayleighDampingRatioDeltaF;
+          // set data for Rayleigh damping
+          shared_ptr<RaylDampingData> actRaylDamp(new RaylDampingData());
+          actRaylDamp->alpha = "0.0";
+          actRaylDamp->beta = "0.0";
+          actRaylDamp->adjustDamping = true;
+          actRaylDamp->ratioDeltaF = 0.01;
+          actRaylDamp->freq = 0.0;
 
           if( dampNodes[i]->Has("freq") ) {
-            dampNodes[i]->Get( "freq", rayleighDampingFreq);
-            idDampFreq[actId] = rayleighDampingFreq;
+            dampNodes[i]->Get( "freq", actRaylDamp->freq);
           }
-          if( dampNodes[i]->Has("RatioDeltaF") ) {
-            dampNodes[i]->Get( "RatioDeltaF", rayleighDampingRatioDeltaF);
-            idDampRatioDeltaF[actId] = rayleighDampingRatioDeltaF;
+          if( dampNodes[i]->Has("ratioDeltaF") ) {
+            dampNodes[i]->Get( "ratioDeltaF", actRaylDamp->ratioDeltaF );
           }
+          if( dampNodes[i]->Has("adjustDamping") ) {
+            actRaylDamp->adjustDamping = 
+                dampNodes[i]->Get( "adjustDamping")->AsBool();
+          }
+          idRaylData[actId] = actRaylDamp;
         }
 
         // store damping type string
@@ -225,20 +233,21 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
 
       dampingList_[actRegionId] = idDampType[actDampingId];
       if ( dampingList_[actRegionId] == RAYLEIGH ){
-        Double dampFreq, ratioDeltaF;
+        RaylDampingData actRayl = *(idRaylData[actDampingId]); 
+        Double dampFreq;
+        
+        if( actRayl.freq == 0.0 ) {
         materials_[actRegionId]->GetScalar(dampFreq,RAYLEIGH_FREQUENCY,Global::REAL);
-        ratioDeltaF = 0.01;
-
-        // check, if deltaF and dampingFreq can be found in map
-        if( idDampFreq.find(actDampingId) != idDampFreq.end() ){
-          dampFreq = idDampFreq[actDampingId];
+        } else { 
+          dampFreq = actRayl.freq;
         }
-
-        if( idDampRatioDeltaF.find(actDampingId) != idDampRatioDeltaF.end() ){
-          ratioDeltaF = idDampRatioDeltaF[actDampingId];
-        }
-
-        materials_[actRegionId]->ComputeRayleighDamping(dampFreq,ratioDeltaF);
+        
+        // Compute Rayleigh damping parameters
+        materials_[actRegionId]->
+         ComputeRayleighDamping( actRayl.alpha, actRayl.beta,
+                                 dampFreq, actRayl.ratioDeltaF, 
+                                 actRayl.adjustDamping, isComplex_ );
+        regionRaylDamping_[actRegionId] = actRayl;
       }
 
       // Log to info file
@@ -257,7 +266,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     }
 
     // Fractional damping can only be enabled, if all regions are damped
-    // this way. Oterhwise an error is thrown.
+    // this way. Otherwise an error is thrown.
     if ( fracDamping_ == true ) {
       if ( identical == true ) {
         fracDamping_ = true;
@@ -659,17 +668,8 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
           //check for damping
           if ( dampingList_[actRegion] == RAYLEIGH && 
               complexMatData_[actRegion] == false ) {
-            Double beta, measFreq;
-            std::string fac;
-            actSDMat->GetScalar(beta,RAYLEIGH_BETA,Global::REAL);
-            actSDMat->GetScalar(measFreq,RAYLEIGH_FREQUENCY,Global::REAL);
-            if( isComplex_ ) {
-              // assemble string describing adjusted Rayleigh damping
-              fac = lexical_cast<std::string>( beta * measFreq) + "/ f";
-            } else {
-              fac = lexical_cast<std::string>( beta );
-            }
-            actIntDescrStiff->SetSecDestMat(DAMPING, fac );
+            RaylDampingData & actDamp = (regionRaylDamping_[actRegion]);
+            actIntDescrStiff->SetSecDestMat(DAMPING, actDamp.beta );
           }
 
           assemble_->AddBiLinearForm( actIntDescrStiff );
@@ -852,17 +852,8 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
 
         // Check for damping (mass part)
         if ( dampingList_[actRegion] == RAYLEIGH ) {
-          Double alpha, measFreq;
-          std::string fac;
-          actSDMat->GetScalar(alpha,RAYLEIGH_ALPHA,Global::REAL);
-          actSDMat->GetScalar(measFreq,RAYLEIGH_FREQUENCY,Global::REAL);
-          if( isComplex_ ) {
-            // assemble string describing adjusted Rayleigh damping
-            fac = lexical_cast<std::string>( alpha / measFreq ) + "* f";
-          } else {
-            fac = lexical_cast<std::string>( alpha );
-          }
-          actIntDescr->SetSecDestMat( DAMPING, fac );
+          RaylDampingData & actDamp = regionRaylDamping_[actRegion];
+          actIntDescr->SetSecDestMat( DAMPING, actDamp.alpha );
         }
 
         assemble_->AddBiLinearForm(actIntDescr);
@@ -939,17 +930,8 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       //check for damping
       if ( dampingList_[actRegion] == RAYLEIGH && 
           complexMatData_[actRegion] == false ) {
-        Double beta, measFreq;
-        std::string fac;
-        actSDMat->GetScalar(beta,RAYLEIGH_BETA,Global::REAL);
-        actSDMat->GetScalar(measFreq,RAYLEIGH_FREQUENCY,Global::REAL);
-        if( isComplex_ ) {
-          // assemble string describing adjusted Rayleigh damping
-          fac = lexical_cast<std::string>( beta * measFreq) + "/ f";
-        } else {
-          fac = lexical_cast<std::string>( beta );
-        }
-        actIntDescrStiff->SetSecDestMat(DAMPING, fac );
+        RaylDampingData & actDamp = regionRaylDamping_[actRegion];
+        actIntDescrStiff->SetSecDestMat(DAMPING, actDamp.beta );
       }
 
       actIntDescrStiff->SetPtPdes(this, this);
@@ -967,17 +949,8 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       //check for damping
       if ( dampingList_[actRegion] == RAYLEIGH 
           && complexMatData_[actRegion] == false ) {
-        Double alpha, measFreq;
-        std::string fac;
-        actSDMat->GetScalar(alpha,RAYLEIGH_ALPHA,Global::REAL);
-        actSDMat->GetScalar(measFreq,RAYLEIGH_FREQUENCY,Global::REAL);
-        if( isComplex_ ) {
-          // assemble string describing adjusted Rayleigh damping
-          fac = lexical_cast<std::string>( alpha / measFreq ) + "* f";
-        } else {
-          fac = lexical_cast<std::string>( alpha );
-        }
-        actIntDescrMass->SetSecDestMat( DAMPING, fac );
+        RaylDampingData & actDamp = regionRaylDamping_[actRegion];
+        actIntDescrMass->SetSecDestMat( DAMPING, actDamp.alpha );
       }
 
       actIntDescrMass->SetPtPdes(this, this);

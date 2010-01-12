@@ -340,8 +340,10 @@ namespace CoupledField {
     //========================== micro-piezoelectric-model:end ===================
 
 
-    //! Compute and set damping parameters alpha and beta 
-    void ComputeRayleighDamping(Double dampFreq, Double RatioDeltaF);
+    //! Compute Rayleigh parameters
+    void ComputeRayleighDamping( std::string& alpha, std::string& beta,
+                                 Double dampFreq, Double RatioDeltaF,
+                                 bool adjustDamping, bool isHarmonic );
 
   protected:
 

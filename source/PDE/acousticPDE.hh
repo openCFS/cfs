@@ -155,7 +155,10 @@ namespace CoupledField {
     //! surface elements with absorbing boundary conditions
     StdVector<shared_ptr<EntityList> > absBCs_; 
 
-    bool absorbingBCs_; //!< switch for absorbing BCs     
+    bool absorbingBCs_; //!< switch for absorbing BCs
+    
+    //! Stores Rayleigh damping definition for each rgion
+    std::map<RegionIdType, RaylDampingData> regionRaylDamping_;
 
     //bool fracDamping_; //!< switch indicating use of fractional damping
     

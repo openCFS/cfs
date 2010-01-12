@@ -111,6 +111,7 @@
       <xsd:enumeration value="abc"/>
       <xsd:enumeration value="aeroacoustics"/>
       <xsd:enumeration value="complex material parameters"/>
+      <xsd:enumeration value="damping"/>
       <xsd:enumeration value="lagrange multiplier"/>
       <xsd:enumeration value="magneto-striction"/>
       <xsd:enumeration value="mixed fem"/>

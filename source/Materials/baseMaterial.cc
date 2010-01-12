@@ -622,47 +622,61 @@ namespace CoupledField
     return Yprevious_[idx];
   }
 
-  void BaseMaterial::ComputeRayleighDamping(Double dampFreq, Double RatioDeltaF) {
+  void BaseMaterial::ComputeRayleighDamping(std::string& alpha, std::string& beta,
+                                            Double dampFreq, Double ratioDeltaF,
+                                            bool adjustDamping, bool isHarmonic ) {
 
+    // First, calculate ALPHA and BETA for the current dampFreq
+    Double alphaOrig, betaOrig, measuredFreq;
+    GetScalar( measuredFreq, RAYLEIGH_FREQUENCY, Global::REAL ); 
+    
     if ( IsSet( RAYLEIGH_ALPHA ) 
          && IsSet( RAYLEIGH_BETA ) 
          && IsSet(RAYLEIGH_FREQUENCY) ) {
-      Double alpha, beta, freq;
+      GetScalar( alphaOrig, RAYLEIGH_ALPHA, Global::REAL ); 
+      GetScalar( betaOrig, RAYLEIGH_BETA, Global::REAL ); 
+      GetScalar( measuredFreq, RAYLEIGH_FREQUENCY, Global::REAL ); 
 
-      GetScalar( alpha, RAYLEIGH_ALPHA, Global::REAL ); 
-      GetScalar( beta, RAYLEIGH_BETA, Global::REAL ); 
-      GetScalar( freq, RAYLEIGH_FREQUENCY, Global::REAL ); 
-
-      if( abs(freq-dampFreq) > 0.001*freq ){
-        alpha*=(dampFreq/freq);
-        beta*=(freq/dampFreq);
-        SetScalar( alpha, RAYLEIGH_ALPHA, Global::REAL ); 
-        SetScalar( beta, RAYLEIGH_BETA, Global::REAL ); 
+      if( abs(measuredFreq-dampFreq) > 0.001*measuredFreq ){
+        alphaOrig*=(dampFreq/measuredFreq);
+        betaOrig*=(measuredFreq/dampFreq);
+//        SetScalar( alpha, RAYLEIGH_ALPHA, Global::REAL ); 
+//        SetScalar( beta, RAYLEIGH_BETA, Global::REAL ); 
       }
     }
     else if ( IsSet(LOSS_TANGENS_DELTA) && IsSet(RAYLEIGH_FREQUENCY) ){
 
-      Double alpha, beta, tanDelta, deltaFreq, omega1, omega2;
+      Double tanDelta, deltaFreq, omega1, omega2;
 
       GetScalar( tanDelta, LOSS_TANGENS_DELTA, Global::REAL ); 
+      deltaFreq=ratioDeltaF*measuredFreq;
 
-      deltaFreq=RatioDeltaF*dampFreq;
-
-      omega1= (dampFreq-deltaFreq)*2.0*PI;
-      omega2= (dampFreq+deltaFreq)*2.0*PI;
+      omega1= (measuredFreq-deltaFreq)*2.0*PI;
+      omega2= (measuredFreq+deltaFreq)*2.0*PI;
 
       //Computation of alpha and beta according to Habil.Kaltenbacher p. 50 ff
       // alpha + beta*omega_i*omega_i = omega_i*tanDelta_i
-      beta=2.0*tanDelta*((omega2-omega1)/(omega2*omega2-omega1*omega1));
-      alpha=(2.0*omega1*tanDelta)-(beta*omega1*omega1);
-
-      SetScalar( alpha, RAYLEIGH_ALPHA, Global::REAL ); 
-      SetScalar( beta, RAYLEIGH_BETA, Global::REAL ); 
+      betaOrig=tanDelta*((omega2-omega1)/(omega2*omega2-omega1*omega1));
+      alphaOrig=(omega1*tanDelta)-(betaOrig*omega1*omega1);
     }
     else
       EXCEPTION("Error in specification of Rayleigh damping!!!" );
 
-    //Info->PrintF()
+    // If adjustDamping is true and we are in the frequency domain,
+    // we can adjust alpha and beta to keep the loss factor (tangens Delta)
+    // constant frequency.
+    if( adjustDamping && isHarmonic ) {
+      
+      // calculate modified alpha' = alpha / measuredFreq * f
+      alpha = lexical_cast<std::string> ( alphaOrig / measuredFreq) +
+              "* f";
+      // calculate modified beta' = beta * measuredFreq / f
+      beta = lexical_cast<std::string> ( betaOrig * measuredFreq) +
+              "/ f";
+    } else {
+      alpha = lexical_cast<std::string>(alphaOrig);
+      beta = lexical_cast<std::string>(betaOrig);
+    }
   }
 
 
