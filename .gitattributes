@@ -338,12 +338,15 @@ share/scripts/CMakeLists.txt svneol=native#text/plain
 share/scripts/IdentifyCCompiler.c svneol=native#text/plain
 share/scripts/IdentifyCXXCompiler.cpp svneol=native#text/plain
 share/scripts/IdentifyFortranCompiler.F90 -text
+share/scripts/README -text
 share/scripts/cfs -text
 share/scripts/cfstool -text
 share/scripts/common.sh svneol=native#text/plain
 share/scripts/cplreader -text
 share/scripts/create_density.py -text
 share/scripts/distro.sh svneol=native#text/plain
+share/scripts/getPointData_hdf5.py -text
+share/scripts/getSliceData_hdf5.py -text
 share/scripts/h5tool -text
 share/scripts/hdf5_aux.sh.in -text
 share/scripts/hdf5_concat.sh.in -text
@@ -357,6 +360,7 @@ share/scripts/macsysinfo.scpt -text
 share/scripts/parameter_study_tools.py -text
 share/scripts/printElemMatVec.py -text
 share/scripts/printElemMatVec.tcl svneol=native#text/x-tcl
+share/scripts/printRegionAndFields.py -text
 share/scripts/xmlreplace.py -text
 share/xml/CFS-Material/CFS_Material.xsd -text svneol=unset#text/xml
 share/xml/CFS-Material/Examples/mat.xml svneol=native#text/xml
