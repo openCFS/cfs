@@ -45,7 +45,7 @@ TARGET_LINK_LIBRARIES(CFSDynLd
 )
 
 IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
-set_source_files_properties(piezoMicroBK.cc
+set_source_files_properties(piezoMicroModelBK.cc
                               PROPERTIES COMPILE_FLAGS
                               -wd279)
 ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
