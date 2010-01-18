@@ -408,7 +408,7 @@ void SCPIPBase::AllocateProblem()
   if(spdwdim <= 0) spdwdim = 1;
   
   spdw.Resize(spdwdim, 0.0);
-  spiw.Resize(spiwdim, 0.0);
+  spiw.Resize(spiwdim, 0);
 }
 
 void SCPIPBase::AllocateDynamic()

@@ -101,6 +101,13 @@ namespace CoupledField
                                   const Matrix<Double> & globalCoords,
                                   const Matrix<Double> & coordMat ) {
 
+#define CHECK_CONVERGED(DISTANCE, NEWDIST)                                 \
+    distMeasure = distNormalizer < 1 ? DISTANCE/distNormalizer : NEWDIST;  \
+    if(distMeasure < TOL)                                                  \
+    {                                                                      \
+      converged = true;                                                    \
+      break;                                                               \
+    }                                                                      \
 
     Vector<Double> globalPoint; // global point coordinates
     UInt globDim = globalCoords.GetNumRows(); // determine global dimension
@@ -115,20 +122,21 @@ namespace CoupledField
     Vector<Double> f, f1, f2; // global (negative) search direction
     Vector<Double> f_start; // start value for global search direction
     Matrix<Double> J; // Jacobian at local point xi_k
-    Double f_min; // minimal distance between global corners and global point
+    Double f_min = 9999e20; // minimal distance between global corners and global point
     Double distance; // global distance!
     Double distance_l; // global distance at iteration l
-    Double distMeasure; // global distance or local distance
-                        // depending on sqrt(|jacDet|)
-    Double TOL = 0.0000001; // tolerance for global distance
     Double jacDet; // denominator for Cramer's rule.
-    Double distNormalizer; // denominator for Cramer's rule.
+    Double distNormalizer; // square root of abs(jacDet) for 2D->2D and 2D mappings,
+                           // cubic root for 3D->3D mappings. Used to normalize distances.
+    Double distMeasure; // global distance or local distance depending on distNormalizer
+    Double TOL = 0.0000001; // tolerance for normalized distance
     bool divergence; // does the Newton-Raphson algorithm diverge?
     bool converged; // have we found the local point?
     UInt iter = 0;
     const Double golden_ratio = (3 - sqrt(5)) / 2;
     Double minDist = 999999;
 
+    bool orthogonal = false;
 
     // Initialize variables
     globalPoint.Resize(globDim);
@@ -148,8 +156,8 @@ namespace CoupledField
       }
 
       // Find good startpoint xi_k among local node coordinates
-      f_min = 999e5; // really big value!
-      for(UInt k = 0; k < NumNodes_; k++)
+      UInt k = 0;
+      do
       {
         for(UInt l = 0; l < locDim; l++) {
           xi_k[l] = LCornerCoords_[l][k];
@@ -158,13 +166,22 @@ namespace CoupledField
         Local2GlobalCoord(f, xi_k, coordMat, NULL);
         f = f - globalPoint;
         distance = f.NormL2();
-        if( distance < f_min ) {
+
+        if(!k) {
+          f_min = distance;
+          xi_start = xi_k;
+          f_start = f;
+          minDist = distance;
+        } else if( distance < f_min ) {
           f_min = distance;
           xi_start = xi_k;
           f_start = f;
           minDist = distance;
         }
+        
+        k++;
       }
+      while(k < NumNodes_);
 
       /*
       std::cout << "Beginning to find local coords..." << std::endl;
@@ -218,6 +235,8 @@ namespace CoupledField
           delta_xi[1] = - J[0][0]*f[1] + J[1][0]*f[0];
 
           distNormalizer = sqrt(fabs(jacDet));
+          
+          orthogonal = ( fabs((J[0][0]*J[0][1] + J[1][0]*J[1][1]) / jacDet) ) < 1e-5;
         }
         else
         {
@@ -229,31 +248,45 @@ namespace CoupledField
 
             // Jacobian Matrix:
             //
-            //      ( J_00  J_01  1 )
-            //  J = ( J_10  J_11  1 )
-            //      ( J_20  J_21  1 )
+            //      ( J_00  J_01  normal[0] )
+            //  J = ( J_10  J_11  normal[1] )
+            //      ( J_20  J_21  normal[2] )
 
-            jacDet = + J[1][0] * J[2][1] - J[2][0] * J[1][1]
-                     - J[0][0] * J[2][1] + J[2][0] * J[0][1]
-                     + J[0][0] * J[1][1] - J[1][0] * J[0][1];
+            Vector<Double> normal, vec0, vec1;
+            normal.Resize(3);
+            vec0.Resize(3);
+            vec1.Resize(3);
 
+            normal[0] = + J[1][0] * J[2][1] - J[2][0] * J[1][1];
+            normal[1] = - J[0][0] * J[2][1] + J[2][0] * J[0][1];
+            normal[2] = + J[0][0] * J[1][1] - J[1][0] * J[0][1];
+
+            jacDet = sqrt(normal[0] * normal[0] +
+                          normal[1] * normal[1] +
+                          normal[2] * normal[2]);
+
+            orthogonal = ( fabs((J[0][0]*J[0][1] + J[1][0]*J[1][1] + J[2][0] * J[2][1]) / jacDet) ) < 1e-5;
+
+            normal = normal/jacDet;
+            
+            jacDet = + J[0][0] * J[1][1] * normal[2] + J[1][0] * J[2][1] * normal[0] + J[2][0] * J[0][1] * normal[1] - J[2][0] * J[1][1] * normal[0] - J[2][1] * J[0][0] * normal[1] - J[1][0] * J[0][1] * normal[2];
+            
             // Calculate negative Jacobian determinants of the following matrices
             // to find the local search direction which has to point in the opposite
             // direction of the backprojected global error vector f.
             //
-            //  ( f_0  J_01  1 )
-            //  ( f_1  J_11  1 )
-            //  ( f_2  J_21  1 )
+            //  ( f_0  J_01  normal[0] )
+            //  ( f_1  J_11  normal[1] )
+            //  ( f_2  J_21  normal[2] )
 
-            delta_xi[0] = - f[0] * J[1][1] - f[1] * J[2][1] - f[2] * J[0][1]
-                          + f[2] * J[1][1] + f[1] * J[0][1] + f[0] * J[2][1];
+            delta_xi[0] = - f[0] * J[1][1] * normal[2] - f[1] * J[2][1] * normal[0] - f[2] * J[0][1] * normal[1]
+                          + f[2] * J[1][1] * normal[0] + f[1] * J[0][1] * normal[2] + f[0] * J[2][1] * normal[1];
+            //  ( J_00  f_0  normal[0] )
+            //  ( J_10  f_1  normal[1] )
+            //  ( J_20  f_2  normal[2] )
 
-            //  ( J_00  f_0  1 )
-            //  ( J_10  f_1  1 )
-            //  ( J_20  f_2  1 )
-
-            delta_xi[1] = - f[0] * J[2][0] - f[1] * J[0][0] - f[2] * J[1][0]
-                          + f[2] * J[0][0] + f[1] * J[2][0] + f[0] * J[1][0];
+            delta_xi[1] = - f[0] * J[2][0] * normal[1]- f[1] * J[0][0] * normal[2]- f[2] * J[1][0] * normal[0]
+                          + f[2] * J[0][0] * normal[1] + f[1] * J[2][0] *normal[0] + f[0] * J[1][0] * normal[2];
             
             distNormalizer = sqrt(fabs(jacDet));
           }
@@ -292,7 +325,29 @@ namespace CoupledField
                           - J[0][0]*J[1][1]*f[2] + J[1][0]*J[0][1]*f[2];
 
             distNormalizer = std::pow(fabs(jacDet), 1.0 / 3.0);
+
+            orthogonal = ( fabs((J[0][0]*J[0][1] + J[1][0]*J[1][1] + J[2][0] * J[2][1]) /          
+                           (distNormalizer*distNormalizer)) < 1e-5 ) &&
+                         ( fabs((J[0][1]*J[0][2] + J[1][1]*J[1][2] + J[2][1] * J[2][2]) /          
+                           (distNormalizer*distNormalizer)) < 1e-5 );
           }
+        }
+
+        
+        if(orthogonal) {
+          // Improve starting point dramatically by making use of the fact
+          // that the global basis is orthogonal. Although there is no guarantee
+          // to hit the right point due to the fact, that the Jacobian vectors
+          // might just be orthogonal by accident, it will hit the right point
+          // if we have rectangle or cuboid in global space.
+          delta_xi[0] /= jacDet;
+          delta_xi[1] /= jacDet;
+          delta_xi[2] /= jacDet;
+
+          xi_k = xi_start + delta_xi;
+          Local2GlobalCoord(f, xi_k, coordMat, NULL);
+          f = f - globalPoint;
+          distance = f.NormL2();
         }
 
         // Here is the new local search direction. We normalize it so we
@@ -300,9 +355,7 @@ namespace CoupledField
         // comparable to the local element diameter.
         Double len;
 
-        delta_xi[0] /= jacDet;
-        delta_xi[1] /= jacDet;
-        delta_xi[2] /= jacDet;
+        delta_xi *= jacDet < 0 ? -1 : 1;
 
         len = delta_xi.NormL2();
         delta_xi[0] /= len;
@@ -311,12 +364,7 @@ namespace CoupledField
 
         // If global element is smaller use local distance as a measure.
         // If global element is bigger use global distance as a measure.
-        distMeasure = distNormalizer < 1 ? distance/distNormalizer : distance;
-        if(distMeasure < TOL)
-        {
-          converged = true;
-          break;
-        }
+        CHECK_CONVERGED(distance, distance);
 
         // Perform damping iterations to find good damping coefficient.
         // That means we search for a factor along the local search direction
@@ -342,13 +390,8 @@ namespace CoupledField
           f2 = f2 - globalPoint;
           dist[1] = f2.NormL2();
 
-          distMeasure = distNormalizer < 1 ? dist[1]/distNormalizer : dist[1];
-          if(distMeasure < TOL)
-          {
-            converged = true;
-            break;
-          }
-          
+          CHECK_CONVERGED(dist[1], dist[1]);
+
           if(f.Inner(f2) < 0) 
           {
             break;
@@ -382,19 +425,8 @@ namespace CoupledField
           Double x3 = interval[0] + (interval[1] - interval[0]) * golden_ratio;
           Double x4 = interval[1] - (interval[1] - interval[0]) * golden_ratio;
 
-          distMeasure = distNormalizer < 1 ? dist[0]/distNormalizer : distance;
-          if(distMeasure < TOL)
-          {
-            converged = true;
-            break;
-          }
-
-          distMeasure = distNormalizer < 1 ? dist[1]/distNormalizer : distance;
-          if(distMeasure < TOL)
-          {
-            converged = true;
-            break;
-          }
+          CHECK_CONVERGED(dist[0], distance);
+          CHECK_CONVERGED(dist[1], distance);
 
           xi_k = xi_start + delta_xi * x3;
           Local2GlobalCoord(f1, xi_k, coordMat, NULL);

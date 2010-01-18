@@ -1,3 +1,18 @@
+# Just redefine __builtin_isnan to ::isnan for Intel compiler for
+# nonConformingInt.cc
+IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+    GET_SOURCE_FILE_PROPERTY(OPTCONDFLAGS abcInt.cc
+        COMPILE_FLAGS)
+    #    MESSAGE("OPTCONDFLAGS ${OPTCONDFLAGS}")
+    IF(OPTCONDFLAGS STREQUAL NOTFOUND)
+      SET(OPTCONDFLAGS "")
+    ENDIF(OPTCONDFLAGS STREQUAL NOTFOUND)
+    
+    SET_SOURCE_FILES_PROPERTIES(nonConformingInt.cc
+      PROPERTIES COMPILE_FLAGS "${OPTCONDFLAGS} -D__builtin_isnan=::isnan -D__builtin_isinf=::isinf")
+ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+
+
 SET(FORMS_SRCS
   abcInt.cc
   acouMechInt.cc
