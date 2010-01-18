@@ -2445,7 +2445,9 @@ namespace CoupledField
       Point p;
 
       GetVolElems(elems, ALL_REGIONS);
-      elemBoxes_.resize(elems.GetSize());
+      UInt size = elems.GetSize();
+      
+      elemBoxes_.reserve( size );
 
       for(UInt i = 0, m=elems.GetSize(); i < m; i++)
       {
@@ -2466,8 +2468,8 @@ namespace CoupledField
           zmax = p[2] > zmax ? p[2] : zmax;
         }
 
-        elemBoxes_[i] = HandleBox(BBox3D(xmin, ymin, zmin, xmax, ymax, zmax),
-                                  &elems[i]->elemNum);
+        elemBoxes_.push_back( HandleBox(BBox3D(xmin, ymin, zmin, xmax, ymax, zmax),
+                                  &elems[i]->elemNum) );
 
         //        std::cout << "element " << elems[i]->elemNum << " BBox3D (" << xmin << ", " << ymin << ", " << zmin << ") (" << xmax <<  ", " << ymax << ", " << zmax << ")" << std::endl;
 
@@ -2535,7 +2537,8 @@ namespace CoupledField
 
     // If we haven't initialized the grid bounding boxes yet, do so now!
     if (elemBoxes_.empty()) {
-      elemBoxes_.resize(destElemList.GetSize());
+      
+      elemBoxes_.reserve( destElemList.GetSize() );
       const Elem* elem = NULL;
 
       for(UInt i = 0, m=destElemList.GetSize(); i < m; ++i)
@@ -2558,8 +2561,8 @@ namespace CoupledField
           zmax = p[2]> zmax ? p[2] : zmax;
         }
 
-        elemBoxes_[i] = HandleBox(BBox3D(xmin, ymin, zmin, xmax, ymax, zmax),
-                                  &elem->elemNum);
+        elemBoxes_.push_back( HandleBox(BBox3D(xmin, ymin, zmin, xmax, ymax, zmax),
+                              &elem->elemNum) );
 
         //std::cout << "element " << elems[i]->elemNum << " BBox3D (" << xmin
         //          << ", " << ymin << ", " << zmin << ") (" << xmax <<  ", "
