@@ -211,8 +211,6 @@ for tStep in range(1,numTimeSteps+1):
       cutData = cutOut.GetCellData()
   resultArray = numpy_support.vtk_to_numpy(cutData.GetArray(arrayNum))
   resultList.append(resultArray)
-  if tStep == 3:
-    break
 
 print "Values of \"", phys_name + " \":" 
 print(resultList)
