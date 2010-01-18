@@ -35,7 +35,7 @@ print hdf5_fn
 # be found at how many degrees of freedom it has. It needs a reference to the
 # reader and which kind of physical field is wanted.
 def getArrayFromReader(Reader, physFieldName):
-  CfsOut = CfsReader.GetOutput()
+  CfsOut = Reader.GetOutput()
   CfsBlock = CfsOut.GetBlock(regionNumber)
   CfsUnstructGrid = CfsBlock.SafeDownCast(CfsBlock)
   ptData = CfsUnstructGrid.GetPointData()
