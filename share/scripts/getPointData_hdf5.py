@@ -177,13 +177,13 @@ for tStep in range(1,numTimeSteps+1):
   ptData, arrayNum, dimension = getArrayFromReader(CfsReader, phys_name)
   resultArray = ptData.GetArray(arrayNum)
   if dimension == 1:
-    ptResults[tStep] = resultArray.GetValue(ptNumber)
+    ptResults[tStep-1] = resultArray.GetValue(ptNumber)
   else:
     if dimension == 2:
-      ptResults[tStep] = resultArray.GetTuple2(ptNumber)
+      ptResults[tStep-1] = resultArray.GetTuple2(ptNumber)
     else:
-      ptResults[tStep] = resultArray.GetTuple3(ptNumber)
-  print ptResults[tStep]
+      ptResults[tStep-1] = resultArray.GetTuple3(ptNumber)
+  print ptResults[tStep-1]
 
 print "Values of \"", phys_name + " \":" 
 print(ptResults)
