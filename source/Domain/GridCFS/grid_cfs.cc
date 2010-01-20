@@ -1446,12 +1446,10 @@ namespace CoupledField {
 
     // check if region Id is ALL_REGIONS
     if ( regionId == ALL_REGIONS ) {
-      elems.Reserve( numElems_ );
+      elems.Resize( numElems_ );
 
-      // iterate over all elements
-      for ( UInt i = 0; i < numElems_; i++) {
-        elems[i] = orderedElems_[i];
-      }
+      std::copy(orderedElems_.Begin(), orderedElems_.End(),
+                elems.Begin());
     } else {
       // look in volume regions
       Integer index = volRegionIds_.Find(regionId);
