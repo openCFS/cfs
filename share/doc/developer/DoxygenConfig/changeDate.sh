@@ -1,3 +1,3 @@
 #!/bin/bash
 ACTDATE=`date '+%B%_e, %G'`
-sed "s/Last.*/Last modified: $ACTDATE/g" $1 >! $2
+sed "s/Last.*/Last modified: $ACTDATE/g" $1 > $2
