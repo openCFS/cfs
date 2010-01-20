@@ -468,11 +468,17 @@ namespace CoupledField {
               // open a character archive for input
               std::ifstream ifs(fNameStr.str().c_str(), std::ios::binary);
               if ( ifs.good() ) {
-                boost::archive::binary_iarchive ia(ifs);
-              
-                // read conservative interpolation weights from archive
-                ia >> consInterpWeights_[i];
-                // archive and stream closed when destructors are called
+                try {
+                  boost::archive::binary_iarchive ia(ifs);
+                  // read conservative interpolation weights from archive
+                  ia >> consInterpWeights_[i];
+                  // archive and stream closed when destructors are called
+                } catch (std::exception &ex) {
+                  EXCEPTION("The following problem occurred while trying to "
+                            << "read conservative interpolation weights from '"
+                            << fNameStr << "': " << ex.what()
+                            << "\nTry to set restartMode to 'w' in XML file.")
+                }
               }
               else {
                 (*warning) << "An error occured while reading the restart file "
@@ -493,13 +499,26 @@ namespace CoupledField {
   
             // save data to archive
             if(restartFileMode_ == "w" || restartFileMode_ == "rw") {
-              // create and open a character archive for output
               std::ofstream ofs(fNameStr.str().c_str(), std::ios::binary);
-              boost::archive::binary_oarchive oa(ofs);
+              if ( ofs.good() ) {
+                try {
+                  // create and open a character archive for output
+                  boost::archive::binary_oarchive oa(ofs);
               
-              // write class instance to archive
-              oa << ((const std::vector< std::map<UInt, Double> >&) consInterpWeights_[i]);
-              // archive and stream closed when destructors are called
+                  // write class instance to archive
+                  oa << ((const std::vector< std::map<UInt, Double> >&) consInterpWeights_[i]);
+                  // archive and stream closed when destructors are called
+                } catch (std::exception &ex) {
+                  EXCEPTION("The following problem occurred while trying to "
+                            << "write conservative interpolation weights to '"
+                            << fNameStr << "': " << ex.what())
+                }
+              }
+              else {
+                (*warning) << "An error occured while writing the restart file "
+                           << "for conservative interpolation weights.";
+                Warning(__FILE__, __LINE__);
+              }
             }
             
             // print a newline for a proper status display
