@@ -60,7 +60,17 @@ namespace CoupledField {
     }
     it = acouMaterials->find(actElem_->ptVolElem1->regionId);
     if ( it == acouMaterials->end() ) {
+      if ( actElem_->ptVolElem2 == NULL ) {
+        EXCEPTION("Cannot apply absorbing BC on surface element "
+            << actElem_->elemNum
+            << ", because it has no adjacent volume element in an acoustic region.\n"
+            << "Go check your mesh file!");
+      }
       it = acouMaterials->find(actElem_->ptVolElem2->regionId);
+      if ( it == acouMaterials->end()) {
+        EXCEPTION("Acoustic parent region of surface element "
+            << actElem_->elemNum << " could not be determined.");
+      }
     }
 
     it->second->GetScalar(density,DENSITY,Global::REAL);
