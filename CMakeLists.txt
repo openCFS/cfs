@@ -379,8 +379,15 @@ EXEC_PROGRAM("date"
 #-----------------------------------------------------------------------------
 # Determine URL of subversion repository
 #-----------------------------------------------------------------------------
-FILE(READ "${CFS_SOURCE_DIR}/.svn/entries" SVNSTR)
-STRING(REGEX MATCH "[a-z+]+://[a-zA-Z0-9_+-/@]+" CFS_SUBVERSION_REPOS "${SVNSTR}")
+IF(EXISTS "${CFS_SOURCE_DIR}/.git")
+  EXEC_PROGRAM("cd ${CFS_SOURCE_DIR} && git svn info | grep URL | cut -d' ' -f2"
+    ARGS 
+    OUTPUT_VARIABLE CFS_SUBVERSION_REPOS
+    RETURN_VALUE RETVAL)
+ELSE(EXISTS "${CFS_SOURCE_DIR}/.git")
+  FILE(READ "${CFS_SOURCE_DIR}/.svn/entries" SVNSTR)
+  STRING(REGEX MATCH "[a-z+]+://[a-zA-Z0-9_+-/@]+" CFS_SUBVERSION_REPOS "${SVNSTR}")
+ENDIF(EXISTS "${CFS_SOURCE_DIR}/.git")
 
 #-----------------------------------------------------------------------------
 # Determine global revision of working copy
@@ -416,9 +423,11 @@ IF(RETVAL STREQUAL 0)
     CFS_SUBVERSION_MODIF "${CFS_SUBVERSION_MODIF}")
   STRING(REGEX REPLACE "WORKING_COPY_MODIFIED " ""
     CFS_SUBVERSION_MODIF "${CFS_SUBVERSION_MODIF}")
-  IF(CFS_SUBVERSION_MODIF MATCHES "modified")
+  IF(CFS_SUBVERSION_MODIF MATCHES "modified" OR
+      CFS_SUBVERSION_MODIF MATCHES "git")
     SET(CFS_SUBVERSION_REV "${CFS_SUBVERSION_REV} ${CFS_SUBVERSION_MODIF}")
-  ENDIF(CFS_SUBVERSION_MODIF MATCHES "modified")
+  ENDIF(CFS_SUBVERSION_MODIF MATCHES "modified" OR
+    CFS_SUBVERSION_MODIF MATCHES "git")
 ELSE(RETVAL STREQUAL 0)
   SET(CFS_SUBVERSION_REV "N/A")
   MESSAGE("A problem occurred while trying to check modified state of "
