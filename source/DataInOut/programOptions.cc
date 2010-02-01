@@ -629,7 +629,7 @@ namespace CoupledField {
     out << endl;
     out << "USE_ILUPACK:           "
         << fg_blue << "YES" << fg_reset << endl;
-    out << "AMD_VERSION:        "
+    out << "AMD_VERSION:           "
         << fg_blue << AMD_MAIN_VERSION << "." << AMD_SUB_VERSION << "."
         << AMD_SUBSUB_VERSION << " " << AMD_DATE
         << fg_reset << endl;
@@ -642,7 +642,7 @@ namespace CoupledField {
     out << endl;
     out << "USE_CHOLMOD:           "
         << fg_blue << "YES" << fg_reset << endl;
-    out << "SUITESPARSE_VERSION:        "
+    out << "SUITESPARSE_VERSION:   "
         << fg_blue << SUITESPARSE_MAIN_VERSION << "." << SUITESPARSE_SUB_VERSION << "."
         << SUITESPARSE_SUBSUB_VERSION << " " << SUITESPARSE_DATE
         << fg_reset << endl;
