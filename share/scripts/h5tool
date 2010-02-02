@@ -129,7 +129,7 @@ SetANSYSParameters()
     # If ANSYS directory does not exist, try to determine it from executable.
     if [ ! -d "$ANSYS_ROOT_DIR" ]
     then
-        PGFLIB=`ldd $CFS_EXE | grep libpgf90.so | cut -d' ' -f3`
+        PGFLIB=`ldd $H5TOOL_EXE | grep libpgf90.so | cut -d' ' -f3`
 
         if [ -f "$PGFLIB" ]
         then
@@ -155,7 +155,7 @@ SetANSYSParameters()
 
 SetGIDParameters()
 {
-    echo "Setting parameters for running cfstool..."
+    echo "Setting parameters for running h5tool..."
 }
 
 # Set XML schema root path
@@ -208,11 +208,11 @@ then
     echo "ARCH_STR: $ARCH_STR"
     echo "DISTRO: $DISTRO"
     echo "DISTRO_VER: $DISTRO_VER"
-    echo "ARCH: $ARCH"
+     echo "ARCH: $ARCH"
 fi
 
 # Set path to CFS executable
-CFS_EXE=$CFS_ROOT_DIR/bin/$ARCH_STR/h5tool
+H5TOOL_EXE=$CFS_ROOT_DIR/bin/$ARCH_STR/h5tool
 
 # Set parameters according to distribution type.
 case "$CFS_DIST_TYPE" in
@@ -221,7 +221,7 @@ case "$CFS_DIST_TYPE" in
     GID)
 	SetGIDParameters ;;
     *)
-	echo "Unknown distribution type $CFS_DIST_TYPE.";
+ 	echo "Unknown distribution type $CFS_DIST_TYPE.";
 	echo "Should be one of GID / ANSYS.";
 	exit 1;;
 esac
@@ -241,7 +241,7 @@ then
 fi
 
 # Check if we have the necessary executable for the current arch.
-if [ ! -e $CFS_EXE ]
+if [ ! -e $H5TOOL_EXE ]
 then 
     echo "Cannot find CFS executable for architecture $ARCH_STR."
     exit 3
@@ -250,13 +250,13 @@ fi
 if [ "$CFS_SCRIPT_DEBUG" = "1" ]
 then
     echo "Libraries:"
-    ldd $CFS_EXE
+    ldd $H5TOOL_EXE
 fi
 
 # Check if some system libraries are missing.
-CFS_EXE_LDD=`ldd $CFS_EXE | grep "not found"`
+H5TOOL_EXE_LDD=`ldd $H5TOOL_EXE | grep "not found"`
 
-if [ "$CFS_EXE_LDD" != "" ]
+if [ "$H5TOOL_EXE_LDD" != "" ]
 then 
     echo "Some dependencies on system libraries could not be resolved."
     echo "CFS depends on the following packages on $DISTRO $DISTRO_VER:"
@@ -268,7 +268,7 @@ fi
 # Execute the CFS exutable with arguments from this script
 if [ $# != 0 ]
 then
- $CFS_EXE "$@";
+ $H5TOOL_EXE "$@";
 else
- $CFS_EXE;
+ $H5TOOL_EXE;
 fi

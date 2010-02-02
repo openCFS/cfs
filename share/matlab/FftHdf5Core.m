@@ -68,8 +68,10 @@ tmpfile = strcat(infile, '.cfg');
 fid = fopen(tmpfile, 'w');
 attr_cfg = fprintf(fid, 'gschmarri\nnix\n%s\n', infile);
 fclose(fid);
-if exec(sprintf('h5tool < %s > /dev/null', tmpfile))
+[status,result] = exec(sprintf('h5tool < %s > /dev/null', tmpfile));
+if (~ status == 0)
   delete(tmpfile);
+  disp(result);
   error('h5tool not found! Make sure h5tool is in PATH.');
 end
 
