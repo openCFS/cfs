@@ -56,6 +56,12 @@ FILE(WRITE "${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake"
   set(CTEST_DROP_SITE_CDASH TRUE)"
 )
 
+
+EXEC_PROGRAM("${CTEST_SOURCE_DIRECTORY}/share/scripts/distro.sh"
+  ARGS -u
+  OUTPUT_VARIABLE CFS_ARCH_STR
+  RETURN_VALUE RETVAL)
+
 #-----------------------------------------------------------------------------
 # Specify that we want to do an experimental build without updating the CFS++
 # working copy. I.e. we leave away the ExperimentalUpdate step between
@@ -89,7 +95,7 @@ SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
 #-----------------------------------------------------------------------------
 SET(CTEST_INITIAL_CACHE
   "BUILD_TESTING:BOOL=ON
-   BUILDNAME:STRING=OPENSUSE_11.1_X86_64 GCC ACML 
+   BUILDNAME:STRING=${CFS_ARCH_STR} GCC ACML 
    DEBUG:BOOL=OFF
    TESTSUITE_DIR:STRING=$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_NIGHTLY
    CFS_DEPS_ROOT:PATH=$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPS_NIGHTLY
