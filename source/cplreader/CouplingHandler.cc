@@ -463,9 +463,11 @@ namespace CoupledField
             if (!scaleStr.fail() && scaleY != 1.0)
               scale_PhysField_(flowData, solType[i], scaleY, 1);
 
-            scaleStr >> scaleZ;
-            if (!scaleStr.fail() && scaleZ != 1.0)
-              scale_PhysField_(flowData, solType[i], scaleZ, 2);
+            if ( dim_ == 3 ) {
+              scaleStr >> scaleZ;
+              if (!scaleStr.fail() && scaleZ != 1.0)
+                scale_PhysField_(flowData, solType[i], scaleZ, 2);
+            }
           }
 
           // <-- end scaling velocity

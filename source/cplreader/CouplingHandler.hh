@@ -98,14 +98,19 @@ namespace CoupledField
       for (UInt actRegion=0; actRegion < numRegions; ++actRegion)
       {
         FlowDataType& fd = nodalFlowData[actRegion];
-        FlowDataPartStruct* fdps = &fd[solType];
-        const UInt sizeFdps = fdps->data.size();
-        const UInt numDofs = fdps->dofNames.size();
-        UInt i = dof_idx;
-        while (i < sizeFdps)
-        {
-          fdps->data[i] *= scaleFac;
-          i += numDofs;
+        if ( fd.find(solType) != fd.end() ) { // only if the solType exists
+          FlowDataPartStruct* fdps = &fd[solType];
+          const UInt sizeFdps = fdps->data.size();
+          const UInt numDofs = fdps->dofNames.size();
+          if ( dof_idx >= numDofs ) {
+            EXCEPTION("You are trying to scale a DoF that does not exist!")
+          }
+          UInt i = dof_idx;
+          while (i < sizeFdps)
+          {
+            fdps->data[i] *= scaleFac;
+            i += numDofs;
+          }
         }
       }
     }
