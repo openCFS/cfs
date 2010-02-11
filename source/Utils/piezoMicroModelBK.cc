@@ -47,7 +47,7 @@ namespace CoupledField{
   void PiezoMicroModelBK::InitSwitchingSystem() {
 
     // set number of domain types
-    numDomain_ = 14;
+    numDomain_ =14;
 
     // define the rotation anles
     rotationAngles_.Resize(dim_,numDomain_);
@@ -279,8 +279,8 @@ namespace CoupledField{
     matElec  = effPermittivityTensor_;  //eps-tensor a constant mechanical stress!!
     matPiezo = effPiezoTensor_; // d-Tensor
 
-    // sTensorOrig_.Invert(matMechC);
-    //    matMechS = sTensorOrig_;
+//     sTensorOrig_.Invert(matMechC);
+//     matMechS = sTensorOrig_;
 //     matPiezo = dTensorOrig_;
 //     if ( previous ) {
 //       Double scale = effElecPolPrev_[elemIdx][2] / sponP0_;
@@ -290,7 +290,8 @@ namespace CoupledField{
 //       Double scale = effElecPolAct_[elemIdx][2] / sponP0_;
 //       matPiezo *= scale;
 //     }
-    //matElec   = epsTensorOrig_;
+
+//    matElec   = epsTensorOrig_;
   }
 
 
@@ -357,8 +358,8 @@ namespace CoupledField{
       effPirr = effElecPolAct_[elemIdx];
       effSirr = effStrainIrrAct_[elemIdx];
     }
-    //   effPirr.Init();
-    //      effSirr.Init(); 
+//     effPirr.Init();
+//     effSirr.Init(); 
   }
 
   void PiezoMicroModelBK::ComputeEffectiveIrreversibleValues( UInt elemIdx ) {
@@ -368,52 +369,52 @@ namespace CoupledField{
 
     for ( UInt i=0; i<numDomain_; i++ ) {
       effElecPolAct_[elemIdx]   += Ps_[i] * volFracAct_[elemIdx][i]; 
-      //      effStrainIrrAct_[elemIdx] += Ss_[i] * volFracAct_[elemIdx][i]; 
+      effStrainIrrAct_[elemIdx] += Ss_[i] * volFracAct_[elemIdx][i]; 
     }
 
-    Double cx, cy, cz, len, lenxy;
-    cx  = effElecPolAct_[elemIdx][0];
-    cy  = effElecPolAct_[elemIdx][1];
-    cz  = effElecPolAct_[elemIdx][2];
-    len = effElecPolAct_[elemIdx].NormL2();
+//     Double cx, cy, cz, len, lenxy;
+//     cx  = effElecPolAct_[elemIdx][0];
+//     cy  = effElecPolAct_[elemIdx][1];
+//     cz  = effElecPolAct_[elemIdx][2];
+//     len = effElecPolAct_[elemIdx].NormL2();
 
-    Double threshold =  sponP0_*1e-6;
+//     Double threshold =  sponP0_*1e-6;
 
-    if ( std::abs(cx) < threshold ) 
-      cx = 0;
-    if ( std::abs(cy) < threshold ) 
-      cy = 0;
-    if ( std::abs(cz) < threshold ) 
-      cz = 0;
+//     if ( std::abs(cx) < threshold ) 
+//       cx = 0;
+//     if ( std::abs(cy) < threshold ) 
+//       cy = 0;
+//     if ( std::abs(cz) < threshold ) 
+//       cz = 0;
 
-    Vector<Double> angle(dim_);
-    Matrix<Double> rotMat(dim_,dim_);
-    Matrix<Double> tmpS;
+//     Vector<Double> angle(dim_);
+//     Matrix<Double> rotMat(dim_,dim_);
+//     Matrix<Double> tmpS;
 
-    lenxy = std::sqrt(cx*cx + cy*cy);
-    angle[0] = 0.0;
-    angle[1] = std::atan2(cz,lenxy); //
-    angle[2] = std::atan2(cy, cx); //
+//     lenxy = std::sqrt(cx*cx + cy*cy);
+//     angle[0] = 0.0;
+//     angle[1] = std::atan2(cz,lenxy); //
+//     angle[2] = std::atan2(cy, cx); //
 
-    //get rotation matrix
-    ComputeRotationMatrix( angle, rotMat );
+//     //get rotation matrix
+//     ComputeRotationMatrix( angle, rotMat );
 
-    Matrix<Double> baseS(dim_,dim_);
-    baseS.Init();
-    baseS[0][0] = sponS0_;
-    baseS[1][1] = -0.5*sponS0_;
-    baseS[2][2] = -0.5*sponS0_;
-    RotateMatrix( baseS, tmpS, rotMat );
+//     Matrix<Double> baseS(dim_,dim_);
+//     baseS.Init();
+//     baseS[0][0] = sponS0_;
+//     baseS[1][1] = -0.5*sponS0_;
+//     baseS[2][2] = -0.5*sponS0_;
+//     RotateMatrix( baseS, tmpS, rotMat );
 
- //    std::cout << "Pirr: \n " << effElecPolAct_[elemIdx]  << std::endl;
-//     std::cout << "Angles: \n " << angle  << std::endl;
-//     std::cout << "Rotmat: \n " << rotMat << std::endl;
-    ConvertToVoigtNotation( tmpS, effStrainIrrAct_[elemIdx] );
-    effStrainIrrAct_[elemIdx] *= len;
-    effStrainIrrAct_[elemIdx] /= sponP0_;
+//  //    std::cout << "Pirr: \n " << effElecPolAct_[elemIdx]  << std::endl;
+// //     std::cout << "Angles: \n " << angle  << std::endl;
+// //     std::cout << "Rotmat: \n " << rotMat << std::endl;
+//     ConvertToVoigtNotation( tmpS, effStrainIrrAct_[elemIdx] );
+//     effStrainIrrAct_[elemIdx] *= len;
+//     effStrainIrrAct_[elemIdx] /= sponP0_;
 
-//     std::cout << "Pirr:\n " << effElecPolAct_[elemIdx]  << "\n" << std::endl;
-//     std::cout << "Sirr:\n " << effStrainIrrAct_[elemIdx]  << "\n" << std::endl;
+// //     std::cout << "Pirr:\n " << effElecPolAct_[elemIdx]  << "\n" << std::endl;
+// //     std::cout << "Sirr:\n " << effStrainIrrAct_[elemIdx]  << "\n" << std::endl;
 
   }
 

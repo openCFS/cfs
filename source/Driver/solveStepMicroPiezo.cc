@@ -74,10 +74,13 @@ namespace CoupledField {
  
     bool performOneMoreStep;
     UInt iterationCounter=0;
-  
+    Double etaLineSearch, residualNorm;
+    Double incrementalErrPrev = 1e20;
+
     Vector<Double> newSol( numEqns_ ); 
     Vector<Double> oldSol( numEqns_ );
     Vector<Double> solPrev( numEqns_ );
+    //    Vector<Double> incrSol( numEqns_ );
     //    Vector<Double> oldSolMech, newSolMech;
 
     // get second order derivative of previous time step;
@@ -87,6 +90,7 @@ namespace CoupledField {
 
     oldSol.Init(0);
     newSol.Init(0);
+    //    incrSol.Init(0);
   
     //save solution of previous time step  
     Vector<Double> & solHelp = 
@@ -162,11 +166,9 @@ namespace CoupledField {
       TS_alg_->UpdateRHS();
 
       // K*(u_n,Ve_n)
-      //algsys_->UpdateRHS(STIFFNESS, solPrev.GetPointer());
       algsys_->UpdateRHS(STIFFNESS, solPrev);
-
+  
       // M*(d2u_n,Ve_n)
-      //algsys_->UpdateRHS(MASS, solDeriv2Prev.GetPointer());
       algsys_->UpdateRHS(MASS, solDeriv2Prev);
 
       // build in the Dirichlet vales in system mmatrix and rhs
@@ -175,14 +177,16 @@ namespace CoupledField {
       //get RHS
       Vector<Double> RHS;
       algsys_->GetRHSVal(RHS);
-      Double residualNorm = PDE_.GetRhsL2Norm( RHS );
-      residualNorm = 0.0;
 
       algsys_->SetupSolver(analysis_id);
       algsys_->SetupPrecond();
     
       algsys_->Solve(analysis_id);
       algsys_->GetSolutionVal(newSol); 
+
+//       //perform a line search
+//       LineSearchPM( newSol, oldSol, solPrev, solDeriv2Prev, etaLineSearch, 
+//                     residualNorm );
 
       //store solution for (n+1)
       PDE_.SaveSolution( newSol.GetPointer(), newSol.GetSize() );
@@ -208,12 +212,37 @@ namespace CoupledField {
         incrementalErr = solIncrL2Norm / actSolL2Norm;
       else
         incrementalErr = solIncrL2Norm;
+ 
+      etaLineSearch = 1.0;
+      //      if (  incrementalErr > incrementalErrPrev ) {
+        //perform a line search
+        LineSearchPM( newSol, oldSol, solPrev, solDeriv2Prev, etaLineSearch, 
+                      residualNorm );
+
+        //store solution for (n+1)
+        PDE_.SaveSolution( newSol.GetPointer(), newSol.GetSize() );
+
+        solIncrL2Norm=0;
+        for (UInt i=0; i<newMech.GetSize(); i++)
+          solIncrL2Norm += (newMech[i]-oldMech[i])*(newMech[i]-oldMech[i]);
     
+        solIncrL2Norm = sqrt(solIncrL2Norm);
+        actSolL2Norm = newMech.NormL2();
+    
+        incrementalErr;
+        if (actSolL2Norm > 1)
+          incrementalErr = solIncrL2Norm / actSolL2Norm;
+        else
+          incrementalErr = solIncrL2Norm;
+        //      }
+
+      incrementalErrPrev = incrementalErr;
+
       // output of norms and data
       nonLinLogging_ = true;
       if ( nonLinLogging_ == true ) {
         Info->WriteNonLinIter(pdename_, iterationCounter, residualNorm,
-                              incrementalErr);
+                              incrementalErr, etaLineSearch);
       }
 
       //      std::cout << "Norm=" << incrementalErr << std::endl << std::endl;
@@ -270,6 +299,77 @@ namespace CoupledField {
       }
     }
   
+  }
+
+
+  void SolveStepMicroPiezo::LineSearchPM( Vector<Double>& newSol, 
+                                          Vector<Double>& oldSol,
+                                          Vector<Double>& solPrev,
+                                          Vector<Double>& solDeriv2Prev,
+                                          Double& etaLineSearch, 
+                                          Double& residualL2NormOpt )
+  {
+
+    Vector<Double> solIncrement = newSol;
+    solIncrement -= oldSol;
+
+    const UInt nrEtas = 4;
+    const Double eta[nrEtas] = {1.0, 0.5, 0.3, 0.1 };
+    //    const Double eta[nrEtas] = {0.1, 0.2, 0.4, 0.5, 0.7, 0.9, 1.0};
+		// initialize etaOpt or receive compiler warning
+    Double etaOpt = 0.0;
+    residualL2NormOpt = 1e15;
+
+    Vector<Double> actSol;
+    for( UInt i=0; i<nrEtas; i++) {
+      actSol = oldSol + solIncrement * eta[i];
+      
+      //store new solution
+      PDE_.SaveSolution( actSol.GetPointer(), actSol.GetSize() );
+
+      // Recalculate residual, f-Cu-Mu-K*u
+      algsys_->InitRHS();
+
+      assemble_->AssembleLinRHS();
+
+      // assemble!
+      assemble_->AssembleMatrices();
+
+      // time step scheme
+      TS_alg_->UpdateRHS(actSol);
+
+      // K*(u_n,Ve_n)
+      algsys_->UpdateRHS(STIFFNESS, solPrev);
+      
+      // M*(d2u_n,Ve_n)
+      algsys_->UpdateRHS(MASS, solDeriv2Prev);
+
+
+      // substract K^* u^k from RHS
+      //      TS_alg_->SubstractStiffnessFromRHS(actSol);
+      Vector<Double> actSolMinus = actSol;
+      actSolMinus *= -1.0;
+      algsys_->UpdateRHS(STIFFNESS, actSolMinus);
+
+      // =====================================================================
+      // calculation of error norms
+      // =====================================================================
+      Vector<Double> actRHS;
+      algsys_->GetRHSVal( actRHS );
+
+      // calculation of residual error =======================================
+      Double residualL2Norm = PDE_.GetRhsL2Norm(actRHS); // L2Norm of  (f-Ku )
+
+      if (residualL2Norm < residualL2NormOpt) {
+        residualL2NormOpt = residualL2Norm;
+        etaOpt = eta[i];
+      }
+    }
+
+    etaLineSearch = etaOpt;
+
+    actSol  = oldSol + solIncrement * etaOpt;
+
   }
 
 

@@ -549,9 +549,8 @@ namespace CoupledField {
           //====================================================================
           //	 axuillary div integrator for time domain PML
           //====================================================================
-          factorPDE = -density;
-          formsType = "auxillaryDiv";
-          factorPDE = 1.0;
+          factorPDE = density;
+          formsType = "vecAuxillaryDiv";
           BaseForm * bilinearAuxDiv =
             new PMLTimeInt(formsType, factorPDE, dampingTypePML, dampPML, isaxi_);
           
@@ -568,7 +567,7 @@ namespace CoupledField {
           //====================================================================
           //	 axuillary stiffness integrator for time domain PML
           //====================================================================
-          formsType = "auxillaryStiff";
+          formsType = "vecAuxillaryStiff";
           factorPDE = 1.0;
           BaseForm * bilinearAuxStiff =
             new PMLTimeInt(formsType, factorPDE, dampingTypePML, dampPML, isaxi_);
@@ -583,11 +582,79 @@ namespace CoupledField {
                                        actSDList, actSDList );
           assemble_->AddBiLinearForm( auxStiffContext);
 
+//           if ( dim_ == 3 ) {
+//             //3D computation: so we need in addition a scalar auxillary variable
+
+//             //====================================================================
+//             //	 scalar axuillary grad integrator for time domain PML
+//             //====================================================================
+//             formsType = "auxGrad";
+//             factorPDE = -1.0;
+//             BaseForm * bilinearAuxGrad =
+//               new PMLTimeInt(formsType, factorPDE, dampingTypePML, dampPML, isaxi_);
+          
+//             bilinearAuxGrad->SetPosPML(inner,outer);
+          
+//             BiLinFormContext * auxGradContext =
+//               new BiLinFormContext( bilinearAuxGrad, STIFFNESS );
+          
+//             auxGradContext->SetPtPdes(this, this);
+//             auxGradContext->SetResults( results_[1], results_[2],
+//                                         actSDList, actSDList );
+//             assemble_->AddBiLinearForm( auxGradContext);
+
+//             //====================================================================
+//             //   	 scalar axuillary stiffness integrator for time domain PML
+//             //====================================================================
+//             factorPDE = density/(c0*c0);
+//             std::string formsType = "scalarAuxStiff";
+          
+//             BaseForm * bilinearScalarAuxStiff =
+//               new PMLTimeInt(formsType, factorPDE, dampingTypePML, dampPML, isaxi_);
+          
+//             bilinearScalarAuxStiff->SetPosPML(inner,outer);
+          
+//             BiLinFormContext * scalarAuxStiffContext =
+//               new BiLinFormContext( bilinearScalarAuxStiff, STIFFNESS );
+          
+//             scalarAuxStiffContext->SetPtPdes(this, this);
+//             scalarAuxStiffContext->SetResults( results_[0], results_[2],
+//                                                actSDList, actSDList );
+//             assemble_->AddBiLinearForm( scalarAuxStiffContext);
+          
+//             //====================================================================
+//             //	 scalar axuillary mass integrator for time domain PML
+//             //====================================================================
+//             coeffmass = 1.0;
+//             MassInt* bilinearMass  = new MassInt(coeffmass, 1, isaxi_ );
+          
+//             BiLinFormContext * massScalarAuxContext =
+//               new BiLinFormContext( bilinearMass, DAMPING );
+//             massScalarAuxContext->SetResults( results_[2], results_[2],
+//                                      actSDList, actSDList );
+//             massScalarAuxContext->SetPtPdes(this, this);
+//             assemble_->AddBiLinearForm( massScalarAuxContext );        
+
+//             //====================================================================
+//             //	 pressure mass integrator for time domain PML
+//             //====================================================================
+//             coeffmass = -1.0;
+//             MassInt* bilinearMassPress  = new MassInt(coeffmass, 1, isaxi_ );
+//             BiLinFormContext * massPressContext =
+//               new BiLinFormContext( bilinearMassPress, STIFFNESS );
+//             massPressContext->SetResults( results_[2], results_[0],
+//                                           actSDList, actSDList );
+//             massPressContext->SetPtPdes(this, this);
+//             assemble_->AddBiLinearForm( massPressContext );   
+//           } 
+          
+         
+
           //====================================================================
           //	 standard mass and  stiffness integrator 
           //====================================================================
 
-          BaseForm * bilinearStiff = new LaplaceInt( density, isaxi_, updatedLagrangeForm_ );        
+          BaseForm * bilinearStiff = new LaplaceInt( density, isaxi_ );        
           BiLinFormContext * stiffContext = 
             new BiLinFormContext( bilinearStiff, STIFFNESS );
           
@@ -597,7 +664,7 @@ namespace CoupledField {
           assemble_->AddBiLinearForm( stiffContext );
   
           coeffmass = density / (c0*c0);
-          MassInt* bilinearMass  = new MassInt(coeffmass, 1, isaxi_, updatedLagrangeForm_ );
+          MassInt* bilinearMass  = new MassInt(coeffmass, 1, isaxi_ );
           
           BiLinFormContext * massContext =
             new BiLinFormContext( bilinearMass, MASS );
@@ -878,11 +945,13 @@ namespace CoupledField {
       // Give result to equation numbering class
       eqnMap_->AddResult( *results_[0], actSDList );
 
-      // check if second result type is active (currently just for
+      // check if second (third) result type is active (currently just for
       // time domain PML )
       if ( putSecondResult2EQNclass ) {
         eqnMap_->AddResult( *results_[1], actSDList );
         putSecondResult2EQNclass = false;
+//         if ( dim_ == 3 ) 
+//           eqnMap_->AddResult( *results_[2], actSDList );
       }
     }
 
@@ -2460,19 +2529,18 @@ namespace CoupledField {
           isPML = true;
       }
 
-      //      isPML = true;
       if ( isPML ) {
-        // === take VELOCITY as auxillary variable ===
+        // === vectorial auxillary variable ===
         shared_ptr<ResultInfo> res2(new ResultInfo); 
-        res2->resultType = ACOU_VELOCITY;
+        res2->resultType = ACOU_PMLAUXVEC;
         if( subType_ == "3d" ) {
-          res2->dofNames = "x", "y", "z";
+          res2->dofNames = "phix", "phiy", "phiz";
         } 
         else if ( subType_ == "axi" ) {
-          res2->dofNames = "r", "z";
+          res2->dofNames = "phir", "phiz";
         } 
         else if( subType_ == "plane") {
-          res2->dofNames = "x", "y";
+          res2->dofNames = "phix", "phiy";
         } 
         
         res2->unit = "m/s";
@@ -2496,6 +2564,31 @@ namespace CoupledField {
         }
         availResults_.insert( res2 );
         results_.Push_back( res2 );
+
+//         if( subType_ == "3d" ) {
+//           // === scalar auxillary variable ===
+//           shared_ptr<ResultInfo> res3(new ResultInfo); 
+//           res3->resultType = ACOU_PMLAUXSCALAR;
+//           res3->dofNames = "psi";
+//           res3->unit = "";
+//           if ( approxType == "lagrange" ) {
+//             shared_ptr<AnsatzFct> fct(new LagrangeFct);
+//             res3->definedOn = ResultInfo::NODE;
+//             res3->fctType = fct;
+//           } else {
+//             UInt order = myParam_->Get("order")->AsUInt();
+            
+//             // Create new resultDof object
+//             shared_ptr<LegendreFct> fct(new LegendreFct);
+//             fct->SetIsoOrder( order );
+//             //fct->order_ = order;
+//             res3->definedOn = ResultInfo::PFEM;
+//             res3->fctType = fct;
+//           }
+//           res3->entryType = ResultInfo::SCALAR;
+//           availResults_.insert( res3 );
+//           results_.Push_back( res3 );  
+//         }
       }
     }
 

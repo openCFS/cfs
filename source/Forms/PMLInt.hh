@@ -127,26 +127,27 @@ namespace CoupledField
 
   private:
     
-    //! Calculation of damping and stiffmess matrix according to type
-    void CalcElementMatrixPressure(Matrix<Double> & ptCoord, Matrix<Double> & elemMat);
-    
-    //! Calculation of gradient  matrix
-    void CalcElementMatrixPressureGrad(Matrix<Double> & ptCoord, Matrix<Double> & elemMat);
-
-    //! Calculation of stiffmess matrix
-    void CalcElementMatrixAuxillaryStiff(Matrix<Double> & ptCoord, Matrix<Double> & elemMat);
-
-    //! Calculation of gradient  matrix
-    void CalcElementMatrixAuxillaryDiv(Matrix<Double> & ptCoord, Matrix<Double> & elemMat);
-    
-    //! type of bilinear form
-    std::string formsType_;
-
-    //! object containing standard PML methods
-    PMLBasics *pmlFnc_;
-    
-    //! multiplicative factor for forms
-    Double formsFactor_;
+  //! Calculation of damping and stiffmess matrix according to type
+  void CalcElementMatrixPressureOrAux(Matrix<Double> & ptCoord, 
+                                          Matrix<Double> & elemMat);
+  
+  //! Calculation of gradient  matrix
+  void CalcElementMatrixPressureOrAuxGrad(Matrix<Double> & ptCoord, Matrix<Double> & elemMat);
+  
+  //! Calculation of stiffmess matrix
+  void CalcElementMatrixVecAuxillaryStiff(Matrix<Double> & ptCoord, Matrix<Double> & elemMat);
+  
+  //! Calculation of gradient  matrix
+  void CalcElementMatrixVecAuxillaryDiv(Matrix<Double> & ptCoord, Matrix<Double> & elemMat);
+  
+  //! type of bilinear form
+  std::string formsType_;
+  
+  //! object containing standard PML methods
+  PMLBasics *pmlFnc_;
+  
+  //! multiplicative factor for forms
+  Double formsFactor_;
 
 };
 

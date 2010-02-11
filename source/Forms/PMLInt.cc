@@ -391,22 +391,24 @@ namespace CoupledField
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
 
-    if ( formsType_ == "pressureStiff" || formsType_ =="pressureDamp" ) {
-      CalcElementMatrixPressure(ptCoord_, elemMat);
+    if ( formsType_ == "pressureStiff" || formsType_ =="pressureDamp" 
+         || formsType_ == "scalarAuxStiff" ) {
+      CalcElementMatrixPressureOrAux(ptCoord_, elemMat);
     }
-    else if ( formsType_ == "pressureGrad" ) {
-      CalcElementMatrixPressureGrad(ptCoord_, elemMat);
+    else if ( formsType_ == "pressureGrad" || formsType_ == "auxGrad") {
+      CalcElementMatrixPressureOrAuxGrad(ptCoord_, elemMat);
     }
-    else if ( formsType_ == "auxillaryDiv" ) {
-      CalcElementMatrixAuxillaryDiv(ptCoord_, elemMat);
+    else if ( formsType_ == "vecAuxillaryDiv" ) {
+      CalcElementMatrixVecAuxillaryDiv(ptCoord_, elemMat);
     }
-    else if ( formsType_ == "auxillaryStiff" ) {
-      CalcElementMatrixAuxillaryStiff(ptCoord_, elemMat);
+    else if ( formsType_ == "vecAuxillaryStiff" ) {
+      CalcElementMatrixVecAuxillaryStiff(ptCoord_, elemMat);
     }
   }
 
 
-  void PMLTimeInt::CalcElementMatrixPressure(Matrix<Double>& ptCoord, Matrix<Double>& elemMat)
+  void PMLTimeInt::CalcElementMatrixPressureOrAux(Matrix<Double>& ptCoord, 
+                                                      Matrix<Double>& elemMat)
   {
     
     ptelem->SetAnsatzFct( ansatzFct1_ );
@@ -414,6 +416,7 @@ namespace CoupledField
     const UInt nrIntPts= ptelem->GetNumIntPoints();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     const Vector<Double> * intPoints = ptelem->GetIntPoints();
+    const UInt dim = ptCoord.GetNumRows();
     Double jacDet;  
 
     // some variables
@@ -441,15 +444,25 @@ namespace CoupledField
       pmlFnc_->ComputeTimeFactorPML( factorsPML, CoordAtIP );  
 
       if ( formsType_ == "pressureStiff" ) {
-        pmlVal = 1.0;
-        for ( UInt k=0; k<factorsPML.GetSize(); k++)
-          pmlVal *= factorsPML[k];
+        pmlVal = factorsPML[0] * factorsPML[1];
+        if ( dim == 3 ) {
+          pmlVal += factorsPML[0] * factorsPML[2];
+          pmlVal += factorsPML[1] * factorsPML[2];
+        }
       }
-      else {
+      else if ( formsType_ == "pressureDamp" ) {
         pmlVal = 0.0;
-        for ( UInt k=0; k<factorsPML.GetSize(); k++)
+        for ( UInt k=0; k<dim; k++)
           pmlVal += factorsPML[k];
       }
+      else {
+        // stiff matrix for scalar auxillary, just in 3D!!
+        pmlVal = 1.0;
+        for ( UInt k=0; k<dim; k++)
+          pmlVal *= factorsPML[k];
+      }
+
+      //std::cout << "Type: " << formsType_ << "  pmlVal: " << pmlVal << std::endl;
 
       if (isaxi_) {
         partElemMat *= 2 * PI * intWeights[actIntPt-1] * formsFactor_ 
@@ -461,9 +474,11 @@ namespace CoupledField
       elemMat += partElemMat;
     }
 
+    //std::cout << "Type: " << formsType_ << "\n" << elemMat << std::endl;
+
   }
 
-  void PMLTimeInt::CalcElementMatrixPressureGrad(Matrix<Double>& ptCoord, Matrix<Double>& elemMat)
+  void PMLTimeInt::CalcElementMatrixPressureOrAuxGrad(Matrix<Double>& ptCoord, Matrix<Double>& elemMat)
   {
 
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
@@ -508,16 +523,34 @@ namespace CoupledField
       //Get the shape functions vector
       ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, it1_.GetElem() );
     
-      Double val = jacDet * intWeights[actIntPt-1] * formsFactor_;
-      Double pmlX = factorsPML[0] - factorsPML[1];
-      Double pmlY = factorsPML[1] - factorsPML[0];
- 
+      Double val, pmlX, pmlY, pmlZ;
+      val = jacDet * intWeights[actIntPt-1] * formsFactor_;
+      if ( formsType_ == "pressureGrad" ) {
+        pmlX = factorsPML[0] - factorsPML[1];
+        pmlY = factorsPML[1] - factorsPML[0];
+        if ( dim == 3 ) {
+          pmlX -= factorsPML[2];
+          pmlY -= factorsPML[2];
+          pmlZ = factorsPML[2] - factorsPML[0] - factorsPML[1];
+        }
+      }
+      else {
+        // aux grad, just in 3D
+        pmlX = factorsPML[1] * factorsPML[2];
+        pmlY = factorsPML[0] * factorsPML[2];
+        pmlZ = factorsPML[0] * factorsPML[1];
+      }
+
+//       std::cout << "Type: " << formsType_ << "  pmlValX: " << pmlX << std::endl;
+//       std::cout << "Type: " << formsType_ << "  pmlValY: " << pmlY << std::endl;
+//       std::cout << "Type: " << formsType_ << "  pmlValZ: " << pmlZ << std::endl;
+
       for(UInt i = 0; i < numFncs; i++ ) {
         for(UInt j = 0; j < numFncs; j++ ) {
 	  K_x[i][j] += xiDx[j][0]*shapeFncAtIp[i] * val * pmlX;
           K_y[i][j] += xiDx[j][1]*shapeFncAtIp[i] * val * pmlY;
 	  if ( dim == 3 ) 
-	    K_z[i][j] += xiDx[j][2]*shapeFncAtIp[i] * val;
+	    K_z[i][j] += xiDx[j][2]*shapeFncAtIp[i] * val * pmlZ;
         }
       }
     }
@@ -535,9 +568,12 @@ namespace CoupledField
 	  elemMat[i*dim+2][j] = K_z[i][j] ;
       }
     }
+
+    //    std::cout << "Type: " << formsType_ << "\n" << elemMat << std::endl;
+
   }
 
-  void PMLTimeInt::CalcElementMatrixAuxillaryStiff(Matrix<Double>& ptCoord, Matrix<Double>& elemMat)
+  void PMLTimeInt::CalcElementMatrixVecAuxillaryStiff(Matrix<Double>& ptCoord, Matrix<Double>& elemMat)
   {
     ptelem->SetAnsatzFct( ansatzFct1_ );
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
@@ -547,7 +583,7 @@ namespace CoupledField
     const UInt dim = ptCoord.GetNumRows();
 
     Vector<Double> shapeFncAtIp;
-    Matrix<Double> partElemMat, elemMatX, elemMatY;
+    Matrix<Double> partElemMat, elemMatX, elemMatY, elemMatZ;
     Vector<Double> CoordAtIP;
     Double jacDet;
 
@@ -557,6 +593,10 @@ namespace CoupledField
     elemMatX.Init();
     elemMatY.Resize(numFncs);
     elemMatY.Init();
+    if ( dim == 3 ) {
+      elemMatZ.Resize(numFncs);
+      elemMatZ.Init();
+    }
 
     Vector<Double> factorsPML(dim);
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
@@ -572,6 +612,10 @@ namespace CoupledField
                                  ptCoord, it1_.GetElem() );
       pmlFnc_->ComputeTimeFactorPML( factorsPML, CoordAtIP );  
 
+//       std::cout << "Type: " << formsType_ << "  pmlValX: " << factorsPML[0] << std::endl;
+//       std::cout << "Type: " << formsType_ << "  pmlValY: " << factorsPML[1] << std::endl;
+//       std::cout << "Type: " << formsType_ << "  pmlValZ: " << factorsPML[2] << std::endl;
+
       if (isaxi_) {
         partElemMat *= 2 * PI * intWeights[actIntPt-1] * formsFactor_ * jacDet * CoordAtIP[0];
       }
@@ -580,7 +624,8 @@ namespace CoupledField
       
       elemMatX += partElemMat  * factorsPML[0];
       elemMatY += partElemMat  * factorsPML[1];
-
+      if ( dim==3 )
+        elemMatZ += partElemMat  * factorsPML[2];
     }
 
     elemMat.Resize(numFncs*dim);
@@ -590,12 +635,16 @@ namespace CoupledField
       for ( UInt j=0; j < numFncs; j++ ) {
         elemMat[i*dim][j*dim]         = elemMatX[i][j]; 
         elemMat[i*dim + 1][j*dim + 1] = elemMatY[i][j]; 
+        if ( dim == 3 ) 
+          elemMat[i*dim + 2][j*dim + 2] = elemMatZ[i][j]; 
       }
+
+    //std::cout << "Type: " << formsType_ << "\n" << elemMat << std::endl;
 
   }
 
 
-  void PMLTimeInt::CalcElementMatrixAuxillaryDiv(Matrix<Double>& ptCoord, Matrix<Double>& elemMat)
+  void PMLTimeInt::CalcElementMatrixVecAuxillaryDiv(Matrix<Double>& ptCoord, Matrix<Double>& elemMat)
   {
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
 
@@ -641,8 +690,8 @@ namespace CoupledField
         for(UInt j=0; j<numFncs; j++ ) {
           K_x[i][j] += xiDx[i][0]*shapeFncAtIp[j] * val;
           K_y[i][j] += xiDx[i][1]*shapeFncAtIp[j] * val;
-	        if ( dim == 3 ) {
-	          K_z[i][j] += xiDx[i][2]*shapeFncAtIp[j] * val;
+          if ( dim == 3 ) {
+            K_z[i][j] += xiDx[i][2]*shapeFncAtIp[j] * val;
           }
         }
       }
@@ -660,6 +709,7 @@ namespace CoupledField
 	  elemMat[i][j*dim+2] = K_z[i][j];
       }
     }
+    //std::cout << "Type: " << formsType_ << "\n" << elemMat << std::endl;
 
   }
 

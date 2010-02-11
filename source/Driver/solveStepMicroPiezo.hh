@@ -26,6 +26,10 @@ namespace CoupledField
     //! Destructor
     virtual ~SolveStepMicroPiezo();
 
+    void LineSearchPM( Vector<Double>& solIncrement, Vector<Double>& actSol,
+                       Vector<Double>& solPrev, Vector<Double>& solPrevderiv2,
+                       Double& etaLineSearch, Double& residualL2NormOpt );
+
 
     //----------------------- TRANSIENT---------------------------------------
 

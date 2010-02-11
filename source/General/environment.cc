@@ -2018,6 +2018,9 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_POWER, "acouPower");
     SolutionTypeEnum.Add(ACOU_INTENSITY, "acouIntensity");
     SolutionTypeEnum.Add(ACOU_SURFINTENSITY, "acouSurfIntensity");
+    SolutionTypeEnum.Add(ACOU_PMLAUXVEC,"acouPmlAuxVec");
+    SolutionTypeEnum.Add(ACOU_PMLAUXSCALAR, "acouPmlAuxScalar");
+
     //magnetics
     SolutionTypeEnum.Add(MAG_POTENTIAL, "magPotential");
     SolutionTypeEnum.Add(MAG_FLUX_DENSITY, "magFluxDensity");

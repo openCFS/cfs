@@ -1914,21 +1914,22 @@ namespace CoupledField {
 
       // compute differential coupling tensor
       Matrix<Double> effTensor, dTensorEff;
-//       dTensor.Transpose( dTensorEff );
-//       //std::cout << "dTensor:\n" << dTensorEff << std::endl;
-//       ComputeDiffCouplingTensorMicroPiezo( dTensorEff, elecField, 
-//                                            elecFieldPrev, actSirr, 
-//                                            prevSirr, subTensorType);
+      dTensor.Transpose( dTensorEff );
+      //std::cout << "dTensor:\n" << dTensorEff << std::endl;
+      ComputeDiffCouplingTensorMicroPiezo( dTensorEff, elecField, 
+                                           elecFieldPrev, actSirr, 
+                                           prevSirr, subTensorType);
 
-      matCouple->ComputeEffectiveCouplingTensor(effTensor, 
-                                                elecField, 
-                                                elecFieldPrev,
-                                                nrEl);
 
-      std::cout << "dTensor:\n" << dTensor << std::endl << std::endl;
-      std::cout << "dTensorEff:\n" << effTensor << std::endl << std::endl;
+//       matCouple->ComputeEffectiveCouplingTensor(effTensor, 
+//                                                 elecField, 
+//                                                 elecFieldPrev,
+//                                                 nrEl);
+
+//       std::cout << "dTensor:\n" << dTensor << std::endl << std::endl;
+//       std::cout << "dTensorEff:\n" << effTensor << std::endl << std::endl;
       
-      effTensor.Transpose( dTensorEff );
+      //      effTensor.Transpose( dTensorEff );
 
       //  std::cout << dTensorEff[2][0] << "  " << dTensorEff[2][1] << "  " << dTensorEff[2][2] << std::endl;
 
@@ -1942,11 +1943,20 @@ namespace CoupledField {
 
         matTensor = epsTensor;
         Double diffE, diffP;
+//         for ( UInt i=0; i< elecField.GetSize(); i++) {
+//           diffE = elecField[i] - elecFieldPrev[i];
+//           diffP = actPirr[i] - prevPirr[i];
+//           if ( abs(diffE) > 1.0 ) {
+//             matTensor[i][i] += diffP/diffE;
+//           }
+//         }
+
         for ( UInt i=0; i< elecField.GetSize(); i++) {
           diffE = elecField[i] - elecFieldPrev[i];
-          diffP = actPirr[i] - prevPirr[i];
-          if ( abs(diffE) > 1.0 ) {
-            matTensor[i][i] += diffP/diffE;
+          if ( abs(diffE) > 1.0e3 ) {
+            for ( UInt j=0; j<elecField.GetSize(); j++) {
+              matTensor[j][i] += (actPirr[j] - prevPirr[j]) / diffE;
+            }
           }
         }
          
@@ -2047,33 +2057,42 @@ namespace CoupledField {
 //     std::cout << "diffS:\n" << diffSirr << std::endl << std::endl;
 
     if ( subTensorType == PLANE_STRAIN ) {
-      if ( abs( diffE[0]) > 1.0 ) {
-        dMat[1][0] += diffSirr[0] / diffE[0];
+      if ( abs( diffE[0]) > 1.0e3 ) {
+        dMat[0][0] += diffSirr[0] / diffE[0];
+        dMat[0][1] += diffSirr[1] / diffE[0];
+        dMat[0][2] += diffSirr[2] / diffE[0];
       }
-      if ( abs(diffE[1]) > 1.0 ) {
+      if ( abs(diffE[1]) > 1.0e3 ) {
+        dMat[1][0] += diffSirr[0] / diffE[1];
         dMat[1][1] += diffSirr[1] / diffE[1];
+        dMat[1][2] += diffSirr[2] / diffE[1];
       }
       
     }
     else if ( subTensorType == FULL ) {
-      if ( abs( diffE[2]) > 1e3 ) {
-        addVal = diffSirr[0] / diffE[2];
-//         if ( std::abs(addVal) > dMat[2][0] )
-//           addVal *= 0.1;
-        dMat[2][0] += addVal;
+      if ( abs( diffE[0]) > 1.0e3 ) {
+        dMat[0][0] += diffSirr[0] / diffE[0];
+        dMat[0][1] += diffSirr[1] / diffE[0];
+        dMat[0][2] += diffSirr[2] / diffE[0];
+        dMat[0][3] += diffSirr[3] / diffE[0];
+        dMat[0][4] += diffSirr[4] / diffE[0];
+        dMat[0][5] += diffSirr[5] / diffE[0];
       }
-      if ( abs(diffE[2]) > 1e3 ) {
-        addVal = diffSirr[1] / diffE[2];
-//         if ( std::abs(addVal) > dMat[2][1] )
-//           addVal *= 0.2;
-        dMat[2][1] += addVal;
+      if ( abs(diffE[1]) > 1.0e3 ) {
+        dMat[1][0] += diffSirr[0] / diffE[1];
+        dMat[1][1] += diffSirr[1] / diffE[1];
+        dMat[1][2] += diffSirr[2] / diffE[1];
+        dMat[1][3] += diffSirr[3] / diffE[1];
+        dMat[1][4] += diffSirr[4] / diffE[1];
+        dMat[1][5] += diffSirr[5] / diffE[1];
       }
-      if ( abs(diffE[2]) > 1e3 ) {
-        addVal = diffSirr[2] / diffE[2];
-//         if ( std::abs(addVal) > dMat[2][2] )
-//           addVal *= 0.1;
-//        std::cout << "AddVal (3,3): " << addVal << std::endl;
-        dMat[2][2] += addVal;        
+      if ( abs(diffE[2]) > 1.0e3 ) {
+        dMat[2][0] += diffSirr[0] / diffE[2];
+        dMat[2][1] += diffSirr[1] / diffE[2];
+        dMat[2][2] += diffSirr[2] / diffE[2];
+        dMat[2][3] += diffSirr[3] / diffE[2];
+        dMat[2][4] += diffSirr[4] / diffE[2];
+        dMat[2][5] += diffSirr[5] / diffE[2];
       }
     }
     else 
