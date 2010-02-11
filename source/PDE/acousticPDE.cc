@@ -519,7 +519,7 @@ namespace CoupledField {
           //	 pressure gradient integrator for time domain PML
           //====================================================================
           formsType = "pressureGrad";
-          factorPDE = 1.0;
+          factorPDE = density;
           BaseForm * bilinearPressGrad =
             new PMLTimeInt(formsType, factorPDE, dampingTypePML, dampPML, isaxi_);
           
@@ -536,7 +536,7 @@ namespace CoupledField {
           //====================================================================
           //	 axuillary mass integrator for time domain PML
           //====================================================================
-          factorPDE = 1.0;
+          factorPDE = density;
           MassInt * bilinearAuxMass  = new MassInt(factorPDE, dim_, isaxi_);
 
           BiLinFormContext * auxMassContext =
@@ -568,7 +568,7 @@ namespace CoupledField {
           //	 axuillary stiffness integrator for time domain PML
           //====================================================================
           formsType = "vecAuxillaryStiff";
-          factorPDE = 1.0;
+          factorPDE = density;
           BaseForm * bilinearAuxStiff =
             new PMLTimeInt(formsType, factorPDE, dampingTypePML, dampPML, isaxi_);
           
