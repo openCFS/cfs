@@ -1942,7 +1942,8 @@ namespace CoupledField {
         eTensorEff = cTensor * dTensorEff;
 
         matTensor = epsTensor;
-        Double diffE, diffP;
+        Double diffE;
+//        Double diffP;
 //         for ( UInt i=0; i< elecField.GetSize(); i++) {
 //           diffE = elecField[i] - elecFieldPrev[i];
 //           diffP = actPirr[i] - prevPirr[i];
@@ -2048,7 +2049,6 @@ namespace CoupledField {
                                                            SubTensorType subTensorType ) {
 
     Vector<Double> diffE, diffSirr;
-    Double addVal;
 
     diffE    = actE - prevE;
     diffSirr = actSirr - prevSirr;

@@ -525,6 +525,7 @@ namespace CoupledField
     
       Double val, pmlX, pmlY, pmlZ;
       val = jacDet * intWeights[actIntPt-1] * formsFactor_;
+      pmlX = pmlY = pmlZ = 0.0;
       if ( formsType_ == "pressureGrad" ) {
         pmlX = factorsPML[0] - factorsPML[1];
         pmlY = factorsPML[1] - factorsPML[0];

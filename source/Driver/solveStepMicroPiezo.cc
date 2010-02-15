@@ -229,7 +229,6 @@ namespace CoupledField {
         solIncrL2Norm = sqrt(solIncrL2Norm);
         actSolL2Norm = newMech.NormL2();
     
-        incrementalErr;
         if (actSolL2Norm > 1)
           incrementalErr = solIncrL2Norm / actSolL2Norm;
         else
