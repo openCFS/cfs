@@ -306,10 +306,10 @@ namespace CoupledField
   {
 
     // Note! it shall be possible to copy an empty matrix!
-#ifdef CHECK_INITIALIZED
-    if (x.size_row_ == 0 || x.size_col_ == 0) 
-      EXCEPTION("undefined Matrix");
-#endif  
+//#ifdef CHECK_INITIALIZED
+//    if (x.size_row_ == 0 || x.size_col_ == 0) 
+//      EXCEPTION("undefined Matrix");
+//#endif  
 
     if (this == &x)  {
       return *this;
