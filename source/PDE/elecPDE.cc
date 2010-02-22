@@ -1362,6 +1362,7 @@ namespace CoupledField {
     rhs->definedOn = results_[0]->definedOn;
     rhs->entryType = ResultInfo::SCALAR;
     availResults_.insert( rhs );
+    postProcResults_[ELEC_RHS_LOAD] = ELEC_POTENTIAL;
 
     // Electric Field Intensity
     // create new resultDof object
@@ -1372,6 +1373,7 @@ namespace CoupledField {
     res->definedOn = ResultInfo::ELEMENT;
     res->entryType = ResultInfo::VECTOR;
     availResults_.insert( res );
+    postProcResults_[ELEC_FIELD_INTENSITY] = ELEC_POTENTIAL;
     
     // Electric Flux Density
     shared_ptr<ResultInfo> flux ( new ResultInfo );
@@ -1381,6 +1383,7 @@ namespace CoupledField {
     flux->definedOn = ResultInfo::ELEMENT;
     flux->entryType = ResultInfo::VECTOR;
     availResults_.insert( flux );
+    postProcResults_[ELEC_FLUX_DENSITY] = ELEC_POTENTIAL;
     
     // Electric charge
     shared_ptr<ResultInfo> charge( new ResultInfo );
@@ -1390,6 +1393,7 @@ namespace CoupledField {
     charge->dofNames = "";
     charge->unit = "C";
     availResults_.insert( charge );
+    postProcResults_[ELEC_CHARGE] = ELEC_POTENTIAL;
 
     // Electric energy
     shared_ptr<ResultInfo> energy( new ResultInfo );
@@ -1399,6 +1403,7 @@ namespace CoupledField {
     energy->dofNames = "";
     energy->unit = "Ws";
     availResults_.insert ( energy );
+    postProcResults_[ELEC_ENERGY] = ELEC_POTENTIAL;
 
     // Electric polarization
     shared_ptr<ResultInfo> pol( new ResultInfo );
@@ -1408,6 +1413,7 @@ namespace CoupledField {
     pol->dofNames = vecDofNames;
     pol->unit = "C/m^2";
     availResults_.insert( pol );
+    postProcResults_[ELEC_POLARIZATION] = ELEC_POTENTIAL;
 
     // pesudo electric polarization for piezo simp
     shared_ptr<ResultInfo> pseudoPol( new ResultInfo );
@@ -1417,6 +1423,7 @@ namespace CoupledField {
     pseudoPol->dofNames = "";
     pseudoPol->unit = "";
     availResults_.insert( pseudoPol );
+    postProcResults_[ELEC_PSEUDO_POLARIZATION] = ELEC_POTENTIAL;
    
     // ===================================
     // Check for non-conforming interfaces

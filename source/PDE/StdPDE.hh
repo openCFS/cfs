@@ -608,6 +608,9 @@ namespace CoupledField {
     //! Map Storing FeFunctions for each unknown of Function Definitions
     std::map<SolutionType, StdVector<FunctionDescription> > functions_;
 
+    //! map which associates a Postprocessing result to its corresponding Primary Result
+    std::map<SolutionType,SolutionType> postProcResults_;
+
   }; // class StdPDE
 
 #ifdef DOXYGEN_DETAILED_DOC

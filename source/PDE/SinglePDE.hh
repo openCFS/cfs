@@ -466,7 +466,6 @@ namespace CoupledField
 
     //! map for storing bilinear forms needed for postprocessing
     std::map< RegionIdType, std::map< std::string, BaseForm* > > pdeBilinearForms_;
-
     //@}
     
   private:

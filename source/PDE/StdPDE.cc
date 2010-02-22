@@ -506,11 +506,19 @@ namespace CoupledField {
     //FeFunction
     shared_ptr<BaseFeFunction> feFct;
     bool found = false;
+    SolutionType mySolType;
     if( functions_.find(solType) == functions_.end()){
-      EXCEPTION( "A FeFunction descriptor with solutionType '" << SolutionTypeEnum.ToString(solType)
-                 << "' was not found for " << pdename_ );
+      //ok so it could be that we are looking for a postProc Result
+      if(postProcResults_.find(solType) != postProcResults_.end()){
+        mySolType = postProcResults_[solType];
+      }else{
+          EXCEPTION( "A FeFunction descriptor with solutionType '" << SolutionTypeEnum.ToString(solType)
+                      << "' was not found for " << pdename_ );
+      }
+    }else{
+      mySolType = solType;
     }
-    StdVector<FunctionDescription> descr = functions_[solType];
+    StdVector<FunctionDescription> descr = functions_[mySolType];
     if(descr.GetSize() == 1){
       feFct = descr[0].feFunction;
       found = true;
@@ -537,12 +545,20 @@ namespace CoupledField {
     //TODO> We need to find a more failsafe way to store the entity names associated with a 
     //FeFunction
     shared_ptr<BaseFeFunction> feFct;
+    SolutionType mySolType;
     bool found = false;
     if( functions_.find(solType) == functions_.end()){
-      EXCEPTION( "A FeFunction descriptor with solutionType '" << SolutionTypeEnum.ToString(solType)
-                 << "' was not found for " << pdename_ );
+      //ok so it could be that we are looking for a postProc Result
+      if(postProcResults_.find(solType) != postProcResults_.end()){
+        mySolType = postProcResults_[solType];
+      }else{
+          EXCEPTION( "A FeFunction descriptor with solutionType '" << SolutionTypeEnum.ToString(solType)
+                      << "' was not found for " << pdename_ );
+      }
+    }else{
+      mySolType = solType;
     }
-    StdVector<FunctionDescription> descr = functions_[solType];
+    StdVector<FunctionDescription> descr = functions_[mySolType];
     if(descr.GetSize() == 1){
       feFct = descr[0].feFunction;
       found = true;
