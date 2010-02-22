@@ -27,7 +27,7 @@
 #include "Utils/nodestoresol.hh"
 #include "Driver/solveStepAcoustic.hh"
 #include "CoupledPDE/pdecoupling.hh"
-#include "Domain/ansatzFct.hh"
+//#include "Domain/ansatzFct.hh"
 #include "Driver/assemble.hh"
 #include "Domain/domain.hh"
 
@@ -1701,7 +1701,7 @@ namespace CoupledField {
 
     // loop over all elements of subdomain
     for (it.Begin(); !it.IsEnd(); it++ ) {
-      BaseFE * ptElem = feSpace_->GetFe(it);
+      BaseFE * ptElem; // = feSpace_->GetFe(it);
       RegionIdType actRegion = it.GetElem()->regionId;
       materials_[actRegion]->GetScalar(density,DENSITY,Global::REAL);
 
@@ -2275,27 +2275,27 @@ namespace CoupledField {
       res1->unit = "m^2/s";
     }
 
-    if ( approxType == "lagrange" ) {
-      shared_ptr<AnsatzFct> fct(new LagrangeFct);
-      res1->definedOn = ResultInfo::NODE;
-      res1->fctType = fct;
-    }else if(  approxType == "spectral" ) {
-      UInt order = myParam_->Get("order")->AsUInt();
-      shared_ptr<SpectralFct> fct(new SpectralFct);
-      res1->definedOn = ResultInfo::PFEM;
-      fct->SetOrder(order);
-      res1->fctType = fct;
+    //if ( approxType == "lagrange" ) {
+    //  shared_ptr<AnsatzFct> fct(new LagrangeFct);
+    //  res1->definedOn = ResultInfo::NODE;
+    //  res1->fctType = fct;
+    //}else if(  approxType == "spectral" ) {
+    //  UInt order = myParam_->Get("order")->AsUInt();
+    //  shared_ptr<SpectralFct> fct(new SpectralFct);
+    //  res1->definedOn = ResultInfo::PFEM;
+    //  fct->SetOrder(order);
+    //  res1->fctType = fct;
 
-    } else {
-      UInt order = myParam_->Get("order")->AsUInt();
+    //} else {
+    //  UInt order = myParam_->Get("order")->AsUInt();
 
-      // Create new resultDof object
-      shared_ptr<LegendreFct> fct(new LegendreFct);
-      fct->SetIsoOrder( order );
-      //fct->order_ = order;
-      res1->definedOn = ResultInfo::PFEM;
-      res1->fctType = fct;
-    }
+    //  // Create new resultDof object
+    //  shared_ptr<LegendreFct> fct(new LegendreFct);
+    //  fct->SetIsoOrder( order );
+    //  //fct->order_ = order;
+    //  res1->definedOn = ResultInfo::PFEM;
+    //  res1->fctType = fct;
+    //}
     res1->entryType = ResultInfo::SCALAR;
     availResults_.insert( res1 );
     results_.Push_back( res1 );
@@ -2313,7 +2313,7 @@ namespace CoupledField {
     }
     deriv1->entryType = res1->entryType;
     deriv1->definedOn = res1->definedOn;
-    deriv1->fctType = res1->fctType;
+   // deriv1->fctType = res1->fctType;
     availResults_.insert( deriv1 );
 
     // === PRESSURE / POTENTIAL - 2.DERIVATIVE ===
@@ -2329,7 +2329,7 @@ namespace CoupledField {
     }
     deriv2->entryType = res1->entryType;
     deriv2->definedOn = res1->definedOn;
-    deriv2->fctType = res1->fctType;
+    //deriv2->fctType = res1->fctType;
     availResults_.insert( deriv2 );
 
     // === PRESSURE (element postprocessing results) ===
@@ -2340,7 +2340,7 @@ namespace CoupledField {
       pres->unit = "Pa";
       pres->entryType = ResultInfo::SCALAR;
       pres->definedOn = ResultInfo::ELEMENT;
-      pres->fctType = shared_ptr<ConstFct>(new ConstFct() );
+      //pres->fctType = shared_ptr<ConstFct>(new ConstFct() );
       availResults_.insert( pres );
     }
 
@@ -2351,7 +2351,7 @@ namespace CoupledField {
     rhs->unit = "";
     rhs->entryType = res1->entryType;
     rhs->definedOn = res1->definedOn;
-    rhs->fctType = res1->fctType;
+    //rhs->fctType = res1->fctType;
     availResults_.insert( rhs );
 
 
@@ -2370,7 +2370,7 @@ namespace CoupledField {
     intens->unit = "W/m^2";
     intens->entryType = ResultInfo::VECTOR;
     intens->definedOn = ResultInfo::SURF_ELEM;
-    intens->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    //intens->fctType = shared_ptr<ConstFct>(new ConstFct() );
     availResults_.insert( intens );
 
     // === ACOU_INTENSITY ===
@@ -2388,7 +2388,7 @@ namespace CoupledField {
     intensity->unit = "W/m^2";
     intensity->entryType = ResultInfo::VECTOR;
     intensity->definedOn = ResultInfo::ELEMENT;
-    intensity->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    //intensity->fctType = shared_ptr<ConstFct>(new ConstFct() );
     availResults_.insert( intensity );
 
 
@@ -2399,7 +2399,7 @@ namespace CoupledField {
     power->unit = "W";
     power->entryType = ResultInfo::SCALAR;
     power->definedOn = ResultInfo::SURF_REGION;
-    power->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    //power->fctType = shared_ptr<ConstFct>(new ConstFct() );
     availResults_.insert( power );
 
     // === ACOU_FORCE ===
@@ -2409,7 +2409,7 @@ namespace CoupledField {
     force->unit = "N";
     force->entryType = ResultInfo::SCALAR;
     force->definedOn = ResultInfo::SURF_ELEM;
-    force->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    //force->fctType = shared_ptr<ConstFct>(new ConstFct() );
     availResults_.insert( force );
 
     // ===================================
@@ -2469,7 +2469,7 @@ namespace CoupledField {
           shared_ptr<ResultInfo> lagr ( new ResultInfo );
           lagr->resultType = LAGRANGE_MULT;
           lagr->dofNames = "l";
-          lagr->fctType = results_[0]->fctType;
+          ///lagr->fctType = results_[0]->fctType;
           lagr->definedOn = results_[0]->definedOn;
           results_.Push_back( lagr );
         }
@@ -2534,4 +2534,26 @@ namespace CoupledField {
     actNode->Get( "dampFactorMax", dampFactorMax );
   }
 
+  void AcousticPDE::DefineDefaultFeFunctions(){
+    //ok default case so we create grid based approximation H1 elements
+    //and ECONOMICAL integration
+    EXCEPTION("not implemented yet");
+    //FunctionDescription fncDescription;
+    //fncDescription.regions = subdoms_;
+    //fncDescription.integScheme = ECONOMICAL;
+    //fncDescription.integOrder = -1;
+    //shared_ptr<FeSpaceH1> mySpace( new FeSpaceH1Lagrange );
+
+    //if(analysistype_ == HARMONIC){
+    //  fncDescription.feFunction.reset( new FeFunction<Complex> );
+    //}else{
+    //  fncDescription.feFunction.reset( new FeFunction<Double> );
+    //}
+    //mySpace->SetMapType(FeSpace::GRID);
+    //mySpace->AddFeFunction(fncDescription.feFunction);
+    //fncDescription.feFunction->SetFeSpace(mySpace);
+    //fncDescription.feFunction->SetPDE(shared_ptr<ElecPDE>(this));
+    //fncDescription.regions = subdoms_;
+    //functions_[ELEC_POTENTIAL].Push_back(fncDescription);
+  }
 } // end of namespace

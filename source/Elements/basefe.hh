@@ -11,7 +11,7 @@
 #include "MatVec/matrix.hh"
 #include "MatVec/vector.hh"
 #include "Utils/StdVector.hh"
-#include "Domain/ansatzFct.hh"
+//#include "Domain/ansatzFct.hh"
 #include "Domain/elem.hh"
 #include "Elements/integrationScheme.hh"
 
@@ -57,12 +57,26 @@ namespace CoupledField
     //! Get total number of dofs for particular dof
     virtual UInt GetNumFncs( ) {return actNumFcns_;}
 
-    //! Get number of shape functions for a given typ
-    void virtual GetNumFncs( StdVector<UInt>& numFcns,
-                             const shared_ptr<AnsatzFct>& fcnType,
-                             AnsatzFct::FctEntityType fctEntityType,
+    //! Get number of shape functions for a given type
+    virtual void GetNumFncs( StdVector<UInt>& numFcns,
+                             ElementEntityType fctEntityType,
                              UInt dof = 1) = 0;
-    
+
+    //! Get the permutation Vector for a given Face or Edge
+    //! e.g. If asked for a face, the element will check the flags
+    //! of this face and return a vector of size NumberOfFncs on the Face
+    //! holding the correct ordering 
+    /*!
+      \param fncPermutation (output) The Permuation Vector 
+      \param ptElem (input) pointer to Grid Element to get grip of flags 
+      \param fctEntityType (input) The Entity type, Node/Edge/Face
+      \param entNumber (input) The local entity number 
+    */
+    virtual void GetFncPermutation( StdVector<UInt>& fncPermutation,
+                                    const Elem* ptElem,
+                                    ElementEntityType fctEntityType,
+                                    UInt entNumber){
+    };
 
     //! Get value of all shape fnc at integration point ip
     /*!
@@ -90,6 +104,18 @@ namespace CoupledField
                                     const Elem * elem, 
                                     UInt comp = 1){}
 
+
+    //! Set the isotropic order of the Element. This methods gets overwritten 
+    //! by the child classes to calculate the number of functions according to
+    //! the given order
+    //! \param order (input) The desired order of the element
+    virtual void SetIsoOrder(UInt order){};
+
+    //! Set the Anisotropic order of the Element. This methods gets overwritten 
+    //! by the child classes to calculate the number of functions according to
+    //! the given order
+    //! \param order (input) vector of element orders for each space direction 
+    virtual void SetAnIsoOrder(StdVector<UInt> order){};
 
     //! Calculates corresponding volume point of neighbouring surfaces
     //! For a given surface element and a neighbouring volume element this
@@ -135,6 +161,9 @@ namespace CoupledField
     //! Actual number of ansatz functions
     UInt actNumFcns_;
     
+    //! Actual Order of the element
+    UInt order_;
+
     Elem::FEType feType_;
   };
 

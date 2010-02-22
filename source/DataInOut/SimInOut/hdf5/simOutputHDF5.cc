@@ -416,7 +416,7 @@ namespace CoupledField {
     std::string entityString;
     switch( resInfo->definedOn ) {
     case ResultInfo::NODE:
-    case ResultInfo::PFEM:
+    //case ResultInfo::PFEM:
       entityString = "Nodes";
       break;
     case ResultInfo::ELEMENT:

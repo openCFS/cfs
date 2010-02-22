@@ -202,7 +202,6 @@ namespace CoupledField
     Grid * ptgrid_;                  //!< pointer to grid object
     BaseSystem* algsys_;             //!< pointer to algsys object
     BaseNodeStoreSol * sol_;         //!< pointer to solution object
-    shared_ptr<FeSpace> feSpace_;    //!< pointer to FeSpace
     ResultList results_;
     Assemble * assemble_;            //!< pointer to assemble object  
     //! factors for computingn effective system matrix

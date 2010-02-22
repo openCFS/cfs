@@ -16,31 +16,6 @@ namespace CoupledField {
     basis_ = type;
   }
   
-  void FeSpaceH1::SetOrder( UInt order){
-    order_ = order;
-    
-    //build up the pointerMap
-    
-    // Note: at the moment this is not implemented in a 
-    // clean fashion. The equation mapping currently relies
-    // on the global node numbers of the element.
-    // Instead, it should use the GetNumFncs(AnsatzFct::NODE)
-    // method, which would deliver the correct number of
-    // unknowns for the calculation element instead of the 
-    // geometric element.
-    if( order == 1) {
-      refElems_[Elem::ET_LINE2]  = new FeH1LagrangeLine1();
-      refElems_[Elem::ET_QUAD4]  = new FeH1LagrangeQuad1();
-      refElems_[Elem::ET_HEXA8]  = new FeH1LagrangeHex1();
-      refElems_[Elem::ET_LINE3]  = new FeH1LagrangeLine2();
-      refElems_[Elem::ET_QUAD8]  = new FeH1LagrangeQuad2();
-      refElems_[Elem::ET_HEXA20] = new FeH1LagrangeHex2();
-    } else {
-      EXCEPTION("Order " << order << " not implemented!");
-    }
-  }
-  
-  
   void FeSpaceH1::AddFeFunction( shared_ptr<BaseFeFunction> fct ){
     feFunction_ = fct;
     return;
@@ -86,7 +61,8 @@ namespace CoupledField {
         }
       } else if( ent.GetType() == EntityList::ELEM_LIST ||
                  ent.GetType() == EntityList::SURF_ELEM_LIST){
-        StdVector<UInt> const & nodes = ent.GetElem()->connect;
+        StdVector<UInt> nodes;
+        GetNodesOfElement(nodes,ent.GetElem());
         eqns.Resize( nodes.GetSize() * dofsPerUnknown );
         eqns.Init();
         for (UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
@@ -114,33 +90,24 @@ namespace CoupledField {
     //Get "dimension" of one Unknown
     UInt dofsPerUnknown = feFctResult->dofNames.GetSize();
 
-    //This if clause should be avoided if the funktionality for higher order entities
-    //is implemented
-    if( feFctResult->definedOn == ResultInfo::NODE ) {
+    //First cover the nodal/grid case
+    if ( ent.GetType() == EntityList::NODE_LIST ) {
+      UInt node = ent.GetNode();
+      eqns.Resize(1);
+      eqns.Init();
+      eqns[0] = nodeMap_[node][dof];
 
-      //First cover the nodal Case
-      if ( ent.GetType() == EntityList::NODE_LIST ) {
-        UInt node = ent.GetNode();
-        eqns.Resize(1);
-        eqns.Init();
-        eqns[0] = nodeMap_[node][dof];
-
-      } else if( ent.GetType() == EntityList::ELEM_LIST ||
-                 ent.GetType() == EntityList::SURF_ELEM_LIST){
-        StdVector<UInt> const & nodes = ent.GetElem()->connect;
-        eqns.Resize( nodes.GetSize() );
-        eqns.Init();
-        for (UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
-          eqns[iNode] = nodeMap_[nodes[iNode]][dof];
-        }
-      } else {
-        EXCEPTION("In FeSpaceH1::GetEqns(StdVector,EntityIterator,UInt):  Supplied an iterator which is not supported by FeSpace");
+    } else if( ent.GetType() == EntityList::ELEM_LIST ||
+               ent.GetType() == EntityList::SURF_ELEM_LIST){
+      StdVector<UInt> nodes;
+      GetNodesOfElement(nodes,ent.GetElem());
+      eqns.Resize( nodes.GetSize() );
+      eqns.Init();
+      for (UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
+        eqns[iNode] = nodeMap_[nodes[iNode]][dof];
       }
-    }else{
-      //+++++++++++++++++++++++++++++++++++++++++++++++++++++++
-      //TODO: Higher order Dofs (Edges, Faces, Interior)
-      //+++++++++++++++++++++++++++++++++++++++++++++++++++++++
-      EXCEPTION("In FeSpaceH1::GetEqns(StdVector,EntityIterator,UInt): This FeSpace currently only supports nodal equation numbering");
+    } else {
+      EXCEPTION("In FeSpaceH1::GetEqns(StdVector,EntityIterator,UInt):  Supplied an iterator which is not supported by FeSpace");
     }
   
   }
@@ -150,10 +117,20 @@ namespace CoupledField {
     return nodeMap_[nodeNr][dof];
   }
 
+  //! Get Equation numbers for a specific element
+  void FeSpaceH1::GetElemEqns(StdVector<Integer>& eqns,const Elem* elem){
+  }
+
+  //! Get Equation numbers for a specific element
+  void FeSpaceH1::GetElemEqns(StdVector<Integer>& eqns,const Elem* elem, UInt dof){
+  }
+
   //! Map equations i.e. intialize object
   void FeSpaceH1::Finalize(){
 
     UInt numEqns_ = 0;
+    UInt numFreeEquations_ = 0;
+    CreateVirtualNodes();
     //Determine boundary Unknowns
     MapBCs();
     MapNodalEqns(1);
@@ -164,81 +141,9 @@ namespace CoupledField {
   //! Map BC Equation 
   void FeSpaceH1::MapBCs(){
 
-    //Get Grip of HdBC List for the fefunction
-    const HdBcList hdbcs = feFunction_->GetHomDirichletBCs();
-    HdBcList::const_iterator actHBC;
-
-    UInt dofsPerUnknown = feFunction_->GetResultInfo()->dofNames.GetSize();
-
-    for(actHBC = hdbcs.Begin(); actHBC != hdbcs.End(); actHBC++) {
-      // Get EntityIterator
-      EntityIterator ent = (*actHBC)->entities->GetIterator();
-      if ( ent.GetType() == EntityList::NODE_LIST ) {
-        for ( ent.Begin(); !ent.IsEnd(); ent++ ) {
-            UInt node = ent.GetNode();
-            //TODO find the source
-            //make it zero based
-            if( nodeMap_.BcKeys.find(node) == nodeMap_.BcKeys.end()){
-              //nodeMap_.BcKeys[node] = StdVector<BaseFeFunction::BC_Type>(dofsPerUnknown,BaseFeFunction::NOBC);
-              nodeMap_.BcKeys[node] = StdVector<BC_Type>(dofsPerUnknown,NOBC);
-            }
-            nodeMap_.BcKeys[node][(*actHBC)->dof] = HDBC;
-            bcCounter_[HDBC]++;
-        }
-      } else {
-        EXCEPTION("In FeSpaceH1::MapBCs(): This FeSpace currently only supports nodal equation numbering");
-      }
-    }
-
-    //Get Grip of IdBC List for the fefunction
-    const IdBcList idbcs = feFunction_->GetInHomDirichletBCs();
-    IdBcList::const_iterator actIBC;
-
-    for(actIBC = idbcs.Begin(); actIBC != idbcs.End(); actIBC++) {
-      // Get EntityIterator
-      EntityIterator ent = (*actIBC)->entities->GetIterator();
-      if ( ent.GetType() == EntityList::NODE_LIST ) {
-        for ( ent.Begin(); !ent.IsEnd(); ent++ ) {
-            UInt node = ent.GetNode();
-            //TODO find the source
-            //make it zero based
-            if( nodeMap_.BcKeys.find(node) == nodeMap_.BcKeys.end()){
-              nodeMap_.BcKeys[node] = StdVector<BC_Type>(dofsPerUnknown,NOBC);
-            }
-            nodeMap_.BcKeys[node][(*actIBC)->dof] = IDBC;
-            bcCounter_[IDBC]++;
-        }
-      } else {
-        EXCEPTION("In FeSpaceH1::MapBCs(): This FeSpace currently only supports nodal equation numbering");
-      }
-    }
-
-    //Get Grip of constraint List for the fefunction
-    const ConstraintList constraints = feFunction_->GetConstraints();
-    ConstraintList::const_iterator actConstr;
-    for(actConstr = constraints.Begin(); actConstr != constraints.End(); actConstr++) {
-      if ( (*actConstr)->slaveEntities->GetType() == EntityList::NODE_LIST ) {
-        StdVector<UInt> slaveNodes;
-        // Get SlaveNodes
-        boost::shared_ptr<NodeList> nodeList(dynamic_pointer_cast<NodeList, EntityList>((*actConstr)->slaveEntities));
-        slaveNodes = nodeList->GetNodes();
-        UInt slaveDof = (*actConstr)->slaveDof;
-        for ( UInt iNode = 1; iNode < slaveNodes.GetSize(); iNode++ ) {
-           if( nodeMap_.BcKeys.find(slaveNodes[iNode]) == nodeMap_.BcKeys.end()){
-             nodeMap_.BcKeys[slaveNodes[iNode]] = StdVector<BC_Type>(dofsPerUnknown,NOBC);
-           }
-           nodeMap_.BcKeys[slaveNodes[iNode]][slaveDof] = CONSTRAINT;
-            bcCounter_[CONSTRAINT]++;
-        }
-      } else {
-        EXCEPTION("In FeSpaceH1::MapBCs(): This FeSpace currently only supports nodal equation numbering");
-      }
-    }
   
   }
   
-
-
   //=======================================================
   //Perform Nodal equation Numbering
   //=======================================================
@@ -253,38 +158,31 @@ namespace CoupledField {
     switch(phase){
       case 1:
         // number the nodal equations if they are not contained in the BcKeys
-        // list
-        fctEntList = feFunction_->GetEntityList();
+        // due to our virtual node array we have a valid structure
 
         //Get result for the feFunction
         feFctResult = feFunction_->GetResultInfo();
         // Get number of dofs
         dofsPerUnknown = feFctResult->dofNames.GetSize();
         
-        for(entIt = fctEntList.Begin(); entIt != fctEntList.End();entIt++){
-          StdVector<UInt> nodes;
-          // Get nodes of current entityList
-          GetNodesOfEntities( nodes, (*entIt) );
+        //now loop over all nodes and assign an equation number
+        for(UInt curNode = 0; curNode < nodes_.GetSize(); curNode++){
+          actNode = nodes_[curNode];
 
-          //now loop over all nodes and assign an equation number
-          for(UInt curNode = 0; curNode < nodes.GetSize(); curNode++){
-            actNode = nodes[curNode];
+          if(nodeMap_.eqns.find(actNode) == nodeMap_.eqns.end()){
+            nodeMap_[actNode] = StdVector<Integer>(dofsPerUnknown,-1);
+          }
+          numUnknowns_++;
 
-            if(nodeMap_.eqns.find(actNode) == nodeMap_.eqns.end()){
-              nodeMap_[actNode] = StdVector<Integer>(dofsPerUnknown,-1);
-            }
-            numUnknowns_++;
-
-            for(UInt iDof = 0; iDof < dofsPerUnknown; iDof ++){
-              if(nodeMap_.BcKeys.find(actNode) != nodeMap_.BcKeys.end()){
-                if(nodeMap_.BcKeys[actNode][iDof] == NOBC){
-                  nodeMap_[actNode][iDof] = ++numEqns_;
-                  numFreeEquations_++;
-                }
-              }else if(nodeMap_[actNode][iDof] == -1){
+          for(UInt iDof = 0; iDof < dofsPerUnknown; iDof ++){
+            if(nodeMap_.BcKeys.find(actNode) != nodeMap_.BcKeys.end()){
+              if(nodeMap_.BcKeys[actNode][iDof] == NOBC){
                 nodeMap_[actNode][iDof] = ++numEqns_;
                 numFreeEquations_++;
               }
+            }else if(nodeMap_[actNode][iDof] == -1){
+              nodeMap_[actNode][iDof] = ++numEqns_;
+              numFreeEquations_++;
             }
           }
         }
@@ -301,13 +199,22 @@ namespace CoupledField {
                 nodeMap_[bcIt->first] = ++numEqns_;
               } else if(bcIt->second[iDof] == HDBC){
                 nodeMap_[bcIt->first] = 0 ;
-              } else if(bcIt->second[iDof] == CONSTRAINT){
-                numEqns_++;
-                nodeMap_[bcIt->first] = -1*numEqns_;
-              }
+              } 
+              //else if(bcIt->second[iDof] == CONSTRAINT){
+              //  Integer masterNode = nodeMap_.slaveMasterNodes[bcIt->first];
+              //  nodeMap_[bcIt->first] = -1*masterNode;
+              //}
             }
           }
           bcIt++;
+        }
+        {
+          std::map<std::pair<Integer,Integer>, std::pair<Integer,Integer>  >::iterator  conNodes = nodeMap_.constraintNodes.begin();
+          for(conNodes; conNodes !=nodeMap_.constraintNodes.end() ; conNodes++){
+            std::pair<Integer,Integer> slaveP = conNodes->first;
+            std::pair<Integer,Integer> masterP = conNodes->second;
+            nodeMap_[slaveP.first][slaveP.second] = -1*nodeMap_[masterP.first][masterP.second];
+          }
         }
         break;
       default:
@@ -365,12 +272,5 @@ namespace CoupledField {
   }
 
   
-  void FeSpaceH1::GetNodesOfEntities( StdVector<UInt>& nodes,
-      shared_ptr<EntityList> ent ) {
-
-    // get name of entitylist
-    std::string name= ent->GetName();
-    feFunction_->GetGrid()->GetNodesByName( nodes, name );
-  }
 
 }

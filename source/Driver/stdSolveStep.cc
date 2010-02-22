@@ -42,7 +42,6 @@ namespace CoupledField {
       matrix_factor_ = TS_alg_->GetEffSysMatFactors();
     }
 
-    feSpace_       = PDE_.GetFeSpace();
     results_      = PDE_.GetResultInfos();
     numEqns_      = PDE_.GetSolutionVector()->GetSize();
 

@@ -20,6 +20,8 @@ namespace CoupledField
   class BaseSolveStep;
   class Assemble;
   class ParamNode;
+  class BaseFeFunction;
+
 
   //! Base class for partial differential equations
 
@@ -27,6 +29,37 @@ namespace CoupledField
   {
 
   public:
+    //! Struct defining a function description
+    //! i.e. RegionIDs, their order of approximation and 
+    //! a pointer to the created FE-Function
+    //! Witing the FeFunction, the associated Space is accessable
+    //! So one can access the correct space by finding the right FunctionDescriptor
+    //! One major disadvantage is the we need to search though every array to find 
+    //! the correct Descriptor... perhaps there are better ideas around...
+    struct FunctionDescription{
+
+      //! Stores all Region Ids the function is definied on
+      StdVector<RegionIdType> regions;
+
+      //! Stores all Entity Names associated to the FeFunction
+      StdVector<std::string> entityNames;
+
+      //! The integration scheme associated
+      IntegrationMethod integScheme;
+
+      //! The integration scheme associated
+      Integer integOrder;
+
+      //! Isotropic order of approximation
+      UInt isoOrder;
+
+      //! AnIsotropic order of approximation
+      StdVector<UInt> anIsoOrder;
+
+      //! The feFunction defined on this space
+      shared_ptr<BaseFeFunction> feFunction;
+    };
+
 
     bool converged_; //!< needed for coupling with MpCCI
 
@@ -92,6 +125,7 @@ namespace CoupledField
     /** Sets up the Enums */
     static void SetEnums();
 
+
   protected:
     
     //! define the SolutionStep-Driver
@@ -116,6 +150,7 @@ namespace CoupledField
 
     //! name of the PDE
     std::string pdename_;
+
 
   };
 

@@ -27,6 +27,7 @@ namespace CoupledField
   class Composite;
   class ParamNode;
   class InfoNode;
+  class FunctionDescription;
 
   //! Base class for pairwise direct coupling of two pdes
   class BasePairCoupling
@@ -270,11 +271,11 @@ namespace CoupledField
     //! Pointer to algebraic system
     BaseSystem * algsys_;
 
-    //! Pointer to equation map of first PDE
-    shared_ptr<BaseFeFunction> feFct1_;
+    ////! Pointer to equation map of first PDE
+    //StdVector<FunctionDescription> feFcts1_;
 
-    //! Pointer to equation map of second PDE
-    shared_ptr<BaseFeFunction> feFct2_;
+    ////! Pointer to equation map of second PDE
+    //StdVector<FunctionDescription> feFcts2_;
 
     //! ResultInfos of first PDE
     ResultInfoList results1_;

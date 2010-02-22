@@ -285,6 +285,11 @@ namespace CoupledField {
     static Enum<ComplexPart> complexPart;
   };
 
+  //! Defines available element entity types
+  //! Flags to distiguish vertex,interior,edge etc. Nodes
+  //! THink of a NEW name!
+  typedef enum { ALL, VERTEX, EDGE, FACE, INTERIOR} ElementEntityType;
+  
   //! Data type for specification of frequency sampling approach
 
   //! This enumeration data type is used for distinguishing the different
@@ -393,6 +398,16 @@ namespace CoupledField {
   //! - AUXILIARY - e.g. for radiation optimization used in SurfaceNormalInt
   typedef enum {NOTYPE, SYSTEM = 1, STIFFNESS, DAMPING, CONVECTION, MASS, AUXILIARY}
   FEMatrixType;
+
+  //! This enum Describes all ansatzTypes (FeSpaces) Available 
+  //! i.e. the type of approximation
+  //! Available are:
+  //! - GRID 
+  //! - SPECTRAL
+  //! - LEGENDRE 
+  typedef enum {GRID, SPECTRAL, LEGENDRE} AnsatzType;
+
+  extern Enum<AnsatzType> AnsatzTypeEnum;
 
   //! Maximal number of different FE matrix types
 

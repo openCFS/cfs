@@ -91,6 +91,18 @@ namespace CoupledField {
     // GET/SET METHODS
     // ======================================================
 
+    //! Returns the feFunction which holds a result related to the specified solutionType
+    //! and a entityList of the specified name 
+    virtual shared_ptr<BaseFeFunction> GetFeFunction( SolutionType solType, std::string name);
+
+    //! Returns the feFunction which holds a result related to the specified solutionType
+    //! and a entityList of the specified name 
+    virtual shared_ptr<BaseFeFunction> GetFeFunction( SolutionType solType, RegionIdType regID);
+
+    //! Returns the feFunction which holds a result related to the specified solutionType
+    //! and a entityList of the specified name 
+    StdVector<FunctionDescription> GetFunctionDescriptors(SolutionType type);
+
     //! Return pointer to the SolveStep object
     BaseSolveStep * GetSolveStep();
 
@@ -101,9 +113,6 @@ namespace CoupledField {
 
     //! Returns the resultInfo related to the specified solutionType
     virtual shared_ptr<ResultInfo> GetResultInfo( SolutionType solType );
-
-    //! Returns the feFunction which holds a result related to the specified solutionType
-    virtual shared_ptr<BaseFeFunction> GetFeFunction( SolutionType solType );
 
     //! return pointer to vector with subdomains, on which we calculate the PDE
     virtual StdVector<RegionIdType> * getSDsPDE()
@@ -229,6 +238,7 @@ namespace CoupledField {
     {EXCEPTION("InitTimeStepping not implemented");};
     
     virtual void AcouSourceCalc(){EXCEPTION("AcouSourceCalc not implemented");};
+
     // ======================================================
     // COMMUNICATION ROUTINES FOR PARAMETER IDENTIFICATION
     // ======================================================
@@ -239,9 +249,8 @@ namespace CoupledField {
     //!  nomenclature would be nice ...
 
     //shared_ptr<EqnMap> GetEqnMap() { return eqnMap_; }
-    shared_ptr<FeSpace> GetFeSpace() { return feSpace_; };
-
-    shared_ptr<BaseFeFunction> GetFeFunction() { return feFunction_;};
+    //
+    
 
     std::map<RegionIdType, BaseMaterial*>  getPDEMaterialData()
     {return materials_;};
@@ -255,6 +264,10 @@ namespace CoupledField {
     UInt getPDE_numElems(){return numElems_;};
 
     UInt GetNumPdeEquations(){return numPdeEquations_;};
+
+    UInt GetNumPdeUnknowns(){return numPdeUnknowns_;};
+
+    UInt GetNumInHomBcs(){return numPdeInHomDirBc_;};
   
     UInt getPDE_spaceDim(){return dim_;};
   
@@ -392,8 +405,10 @@ namespace CoupledField {
     // -----------------------------------------------------------------------
   
     //@{
-    //! \name Attributes related to geometry and node numbering
-    UInt numPdeEquations_;  //!< number of nodes in subdomains
+    //! \name Attributes related to geometry and node numbering 
+    UInt numPdeEquations_;  //!< Overall Number of Equations in this PDE 
+    UInt numPdeUnknowns_;  //!< Overall number of Free(!) equations for this PDE
+    UInt numPdeInHomDirBc_;  //!< overall number of inhomogenious BCs for this PDE
     UInt numElems_;     //!< number of elements in subdomains
   
     //! defines subtype of mechanic PDE: plainStrain, 3d, ...
@@ -545,11 +560,11 @@ namespace CoupledField {
     // @{
     // ! \name FeSpace and Function of the Unknown
 
-    //! FeSpace associated with the PDE
-    shared_ptr<FeSpace> feSpace_;
+    ////! FeSpace Vector associated with the PDE
+    //StdVector<shared_ptr<FeSpace>> feSpaces_;
 
-    //! FeFunction of the unknown
-    shared_ptr<BaseFeFunction> feFunction_;
+    ////! FeFunction of the unknown
+    //shared_ptr<BaseFeFunction> feFunction_;
     //@}
     
     //! list of damping types for all regions
@@ -589,6 +604,9 @@ namespace CoupledField {
     Double InitialCondition_;
     
     //@}
+
+    //! Map Storing FeFunctions for each unknown of Function Definitions
+    std::map<SolutionType, StdVector<FunctionDescription> > functions_;
 
   }; // class StdPDE
 

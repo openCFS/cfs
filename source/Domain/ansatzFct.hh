@@ -19,7 +19,6 @@ namespace CoupledField {
   public:
     typedef enum {CONST, LAGRANGE, LEGENDRE, NEDELEC, SPECTRAL} AnsatzFctType;
 
-    typedef enum {NONE, ALL, NODE, EDGE, FACE, INTERIOR} FctEntityType;
 
     //! Constuctor
     AnsatzFct();

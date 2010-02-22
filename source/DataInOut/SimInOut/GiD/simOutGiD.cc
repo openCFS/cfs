@@ -674,8 +674,7 @@ namespace CoupledField {
     UInt numEnt = 0;
     const char * dummy;
     GiD_ResultLocation loc;
-    if ( entityType == ResultInfo::NODE ||
-         entityType == ResultInfo::PFEM ) {
+    if ( entityType == ResultInfo::NODE ) {
       loc = GiD_OnNodes;
       numEnt = ptGrid_->GetNumNodes();
       dummy = NULL;
@@ -786,8 +785,7 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
     UInt numEnt = 0;
     const char * dummy;
     GiD_ResultLocation loc;
-    if ( entityType == ResultInfo::NODE ||
-         entityType == ResultInfo::PFEM ) {
+    if ( entityType == ResultInfo::NODE ) {
       loc = GiD_OnNodes;
       numEnt = ptGrid_->GetNumNodes();
       dummy = NULL;

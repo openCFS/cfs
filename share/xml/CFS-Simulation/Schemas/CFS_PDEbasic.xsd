@@ -55,6 +55,18 @@
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>
+  
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic ansatz types -->
+  <!-- ******************************************************************** -->
+  <xsd:simpleType name="DT_AnsatzType">
+      <xsd:restriction base="xsd:token">
+        <xsd:enumeration value="Grid"/>
+        <xsd:enumeration value="Spectral"/>
+        <xsd:enumeration value="Legendre"/>
+      </xsd:restriction> 
+  </xsd:simpleType>
 
   <!-- ******************************************************************** -->
   <!--   Definition of standard type for damping -->

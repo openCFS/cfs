@@ -12,7 +12,7 @@ ENDIF(USE_XERCES)
 
 
 SET(DOMAIN_SRCS 
-  ansatzFct.cc
+  #ansatzFct.cc
   bcs.cc
   domain.cc
   edgeFace.cc

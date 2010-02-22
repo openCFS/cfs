@@ -83,6 +83,9 @@ namespace CoupledField {
       return formulation_;
     }
     
+    //! Define Default FeFunctions for this PDE according to the
+    //! needs of the particular PDE
+    virtual void DefineDefaultFeFunctions();
 
   protected:
 

@@ -11,7 +11,7 @@
 namespace CoupledField {
 
   //! Forward class declaration
-  class AnsatzFct;
+  //class AnsatzFct;
   class EntityList;
 
   //! This class describes the resultType
@@ -20,7 +20,7 @@ namespace CoupledField {
   public:
 
     //! Typedef for the unknown entities where the result is defined on
-    typedef enum{ NODE, EDGE, FACE, ELEMENT, SURF_ELEM, PFEM, REGION, 
+    typedef enum{ NODE, EDGE, FACE, ELEMENT, SURF_ELEM, REGION, 
                   SURF_REGION, NODELIST, COIL, FREE } EntityUnknownType;
     
     //! Typedef describing the entryType of the result
@@ -83,8 +83,8 @@ namespace CoupledField {
     //! Type of entity the unkowns are defined on
     EntityUnknownType definedOn;
 
-    //! Type of approximation used for the result
-    shared_ptr<AnsatzFct> fctType;
+    /////! Type of approximation used for the result
+    ///shared_ptr<AnsatzFct> fctType;
 
     /** Gives back a debug summery of the result info */
     std::string ToString() const; 

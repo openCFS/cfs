@@ -48,6 +48,11 @@ public:
   struct SingleEqnMap{
     std::map<Integer, StdVector<Integer> > eqns;
     std::map< Integer,StdVector<FeSpace::BC_Type> > BcKeys;
+    //special treatment of constraints we store for every
+    //slave node, DOF pair the master node,Dof pair
+    //this is very circuitous we need to find an easier way 
+    std::map<std::pair<Integer,Integer>, std::pair<Integer,Integer>  > constraintNodes;
+    
     StdVector<Integer>& operator[](Integer key){
       return eqns[key];
     }
@@ -66,6 +71,9 @@ public:
     //There is an linker error if we use a matrix for this
     //so we use a vector of vectors
     std::map< Integer, StdVector< StdVector<FeSpace::BC_Type> > > BcKeys;
+    //special treatment of constraints we store for every
+    //slave DOF the master Dof
+    std::map< Integer,  Integer> slaveMasterNodes;
     //Optionally store the connectivity information in a map
     //which associates the e.g. edge number to a set of elements
     //std::map< Integer, StdVector<Integer> > elements;
@@ -82,11 +90,6 @@ public:
 
   //! Set type of basis
   void SetBasis( BasisType type );
-
-  //! Determine order
-  //! This method determines the order of the generated elements,
-  //! as 
-  void SetOrder( UInt order);
 
   //! Return pointer to reference element
   virtual BaseFE* GetFe( const EntityIterator ent );
@@ -107,6 +110,13 @@ public:
   //here only for compatibility to nodestoresolution class
   virtual UInt GetNodeEqn(UInt nodeNr, UInt dof);
 
+
+  //! Get Equation numbers for a specific element
+  virtual void GetElemEqns(StdVector<Integer>& eqns,const Elem* elem);
+
+  //! Get Equation numbers for a specific element
+  virtual void GetElemEqns(StdVector<Integer>& eqns,const Elem* elem, UInt dof);
+
   //! Add result
   virtual void AddFeFunction( shared_ptr<BaseFeFunction> fct );
 
@@ -117,7 +127,7 @@ public:
   virtual void ReorderEqnMap( StdVector<UInt> newOrder );
 
   virtual void PrintEqnMap();
-private:
+protected:
 
   //! Map BC Equation NUmbers
   virtual void MapBCs();
@@ -134,26 +144,13 @@ private:
   //! Map Inerior Equation Numbers
   virtual void MapInteriorEquations(UInt phase);
 
-  virtual void GetNodesOfEntities( StdVector<UInt>& nodes,
-                                   shared_ptr<EntityList> ent );
-
   //! Type of basis
   BasisType basis_;
-
-  //! Order of functions used
-  UInt order_;
 
   //! Nodal Equation Map
   SingleEqnMap nodeMap_;
 
-  //! Edge Equation Map
-  MultiEqnMap edgeMap_;
 
-  //! Face Equation Map
-  MultiEqnMap faceMap_;
-
-  //! Interior Equation Map
-  MultiEqnMap interiorMap_;
 };
 
 }

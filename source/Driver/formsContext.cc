@@ -94,9 +94,8 @@ namespace CoupledField {
     ptPde2_ = feFct2_->GetPDE();
 
     assert( integrator_ != NULL);
-    assert( result1_->fctType != NULL );
     // THIS HAS TO BE REPLACED BY FESPACE
-    integrator_->SetAnsatzFct( result1_->fctType, result1_->fctType);
+    integrator_->SetFeSpace( fct1->GetFeSpace(), fct2->GetFeSpace());
   }
   
   bool BiLinFormContext::IsNonLin() {
@@ -189,7 +188,7 @@ namespace CoupledField {
     feFct_ = fct;
     result_ = feFct_->GetResultInfo();
     ptPde_ = feFct_->GetPDE();
-    integrator_->SetAnsatzFct( result_->fctType );
+    integrator_->SetFeSpace( fct->GetFeSpace() );
   }
 
   bool LinearFormContext::IsNonLin() {

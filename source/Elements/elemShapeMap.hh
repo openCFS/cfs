@@ -8,6 +8,7 @@
 #include "MatVec/vector.hh"
 #include "MatVec/matrix.hh"
 
+
 namespace CoupledField {
 
 
@@ -15,6 +16,7 @@ namespace CoupledField {
   class Grid;
   class ElemShapeMap;
   class FeH1LagrangeExpl;
+  class FeH1;
   
   // ===========================================================================
   //  C L A S S   LocPoint
@@ -260,7 +262,7 @@ namespace CoupledField {
     ~LagrangeElemShapeMap();
 
     //! @see ElemShapeMap::SetElem
-    void SetElem( const Elem* ptElem );
+    virtual void SetElem( const Elem* ptElem );
 
     // ---------------------------------------------------
     //   Coordinate Mapping
@@ -311,13 +313,38 @@ namespace CoupledField {
   protected:
 
     //! Pointer to H1 element of lower order
-    FeH1LagrangeExpl* ptFe_;
+    FeH1* ptFe_;
 
     //! Nodal coordinates
     Matrix<Double> coords_;
     
   };
 
-  }
+//  class ExplicitLagrangeElemShapeMap : public LagrangeElemShapeMap {
+//    ExplicitLagrangeElemShapeMap( Grid* ptGrid, bool isUpdated = false ):
+//     LagrangeElemShapeMap( ptGrid, isUpdated ){
+//
+//    }
+//
+//    ~ExplicitLagrangeElemShapeMap(){
+//    }
+//
+//    //! @see ElemShapeMap::SetElem
+//    virtual void SetElem( const Elem* ptElem );
+//  };
+//
+//  class VariableLagrangeElemShapeMap : public LagrangeElemShapeMap {
+//    VariableLagrangeElemShapeMap( Grid* ptGrid, bool isUpdated = false ):
+//     LagrangeElemShapeMap( ptGrid, isUpdated ){
+//    }
+//
+//    ~VariableLagrangeElemShapeMap(){
+//    }
+//
+//    //! @see ElemShapeMap::SetElem
+//    virtual void SetElem( const Elem* ptElem );
+//  };
+
+}
 
 #endif /* ELEMSHAPEMAP_HH_ */

@@ -273,6 +273,7 @@ namespace CoupledField {
     
     // Finalise graph manager setup
     graphManager_->SetupDone();
+
   }
 
 

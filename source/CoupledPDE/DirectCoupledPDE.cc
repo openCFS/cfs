@@ -126,14 +126,13 @@ namespace CoupledField {
 
       //------------------------------------------------
       // get the number of unknowns of this pde
-      feSpace = singlePDEs_[i]->GetFeSpace();
-      singleUnknowns = feSpace->GetNumEquations();
+      singleUnknowns = singlePDEs_[i]->GetNumPdeEquations();
 
       // check setup of linear system
       if(singlePDEs_[i]->usePenalty_==false){
         // uses elimination of Inhomogeneous DBC
         //std::cout << "Num of Inhomogeneous DBC = "<< eqn->GetNumInHomDirichletEqns () << std::endl;
-        singleUnknowns-=feSpace->GetNumInhomDirichletBc();
+        singleUnknowns -= singlePDEs_[i]->GetNumInHomBcs();
       }
       //------------------------------------------------
 
@@ -251,10 +250,8 @@ namespace CoupledField {
 
     // Iterate over all single PDEs and collect data about
     // included boundary conditions
-    shared_ptr<FeSpace> feSpace;
     for ( UInt i=0; i<singlePDEs_.GetSize(); i++ ) {
-      feSpace = singlePDEs_[i]->GetFeSpace();
-      totalUnknowns_ += feSpace->GetNumEquations();
+      totalUnknowns_ += singlePDEs_[i]->GetNumPdeEquations();
     }
 
     if ( analysistype_ == BasePDE::TRANSIENT ) {
@@ -421,7 +418,7 @@ namespace CoupledField {
 
 
         for ( it.Begin(); !it.IsEnd(); it++ ) {
-          singlePDEs_[j]->GetFeSpace()->GetEqns( eqns, it, actBc.dof );
+          singlePDEs_[j]->GetFeFunction(actBc.result->resultType, actBc.entities->GetName())->GetFeSpace()->GetEqns( eqns, it, actBc.dof );
           for(UInt iEqn = 0 ; iEqn < eqns.GetSize();iEqn ++){
             if ( eqns[iEqn] != 0 ) {
               actRHS[eqns[iEqn]] = 0.0;
@@ -463,10 +460,9 @@ namespace CoupledField {
       // obtain PDE identification tag from algebraic system
       // and set number of dirichlet and constraint equations
       pdeName= singlePDEs_[i]->GetName();
-      feSpace = singlePDEs_[i]->GetFeSpace();
       pdeId = singlePDEs_[i]->GetPDEId();
-      algsys_->RegisterPDE( pdeId, feSpace->GetNumEquations(),
-                            feSpace->GetNumFreeEquations() );
+      algsys_->RegisterPDE( pdeId, singlePDEs_[i]->GetNumPdeEquations(),
+                            singlePDEs_[i]->GetNumPdeUnknowns() );
 
       // Let the PDE set its Dirichlet information and related stuff
       singlePDEs_[i]->DefineAlgSys();
@@ -774,12 +770,10 @@ namespace CoupledField {
 
 
     FeFctIdType pdeId   = NO_PDE_ID;
-    shared_ptr<FeSpace> feSpace;
     StdVector<UInt> newOrder;
 
     for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
       pdeId    = singlePDEs_[i]->GetPDEId();
-      feSpace      = singlePDEs_[i]->GetFeSpace();
       algsys_->GetReordering( pdeId, newOrder );
 //       if( newOrder == NULL ) {
 //         std::cerr << "performing no reordering!";

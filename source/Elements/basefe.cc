@@ -34,6 +34,7 @@ namespace CoupledField
 //    shared_ptr<AnsatzFct> fct( new LagrangeFct() );
 //    actFct_ = fct;
     actNumFcns_ = 0;
+    order_ = 0;
 
 //    ICModes_     = false;
 //    CalcICModes_ = false;

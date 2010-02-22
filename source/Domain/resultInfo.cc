@@ -59,7 +59,6 @@ namespace CoupledField {
     complexFormat = data.complexFormat;
     entryType = data.entryType;
     definedOn = data.definedOn;
-    fctType = data.fctType;
     
     EXCEPTION( "In operator ResultInfo::operator=\n" );
   }
@@ -84,9 +83,6 @@ namespace CoupledField {
       break;
     case SURF_ELEM:
       out = "surfElement";
-      break;
-    case PFEM:
-      out = "pfem";
       break;
     case REGION:
       out = "region";
@@ -123,8 +119,6 @@ namespace CoupledField {
         out = ELEMENT; 
       else if( in == "surfElement")
         out = SURF_ELEM;
-      else if( in == "pfem")
-        out = PFEM;
       else if( in == "region")
         out = REGION;
       else if( in == "surfRegion")

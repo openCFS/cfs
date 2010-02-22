@@ -671,8 +671,7 @@ namespace CoupledField {
     
     
     // a) Mesh result (Nodes/Elems/Surfelems by region)
-    if( definedOn == ResultInfo::PFEM || 
-        definedOn == ResultInfo::NODE ||
+    if( definedOn == ResultInfo::NODE ||
         definedOn == ResultInfo::ELEMENT ||
         definedOn == ResultInfo::SURF_ELEM ) {
       if( definedBy == EntityList::REGION ) {

@@ -443,6 +443,7 @@ namespace CoupledField {
 
         // Allocate memory for the ordering
         Integer *iorder = NULL;
+        //iorder = new Integer [numNodes_];
         NEWARRAY( iorder, Integer, numNodes_ );
 
         // Set parameters for Metis

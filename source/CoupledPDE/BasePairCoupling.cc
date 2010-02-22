@@ -183,10 +183,11 @@ namespace CoupledField {
     }
 
 
-    feFct1_ = pde1_->GetFeFunction();
-    feFct2_ = pde2_->GetFeFunction();
-    assert( feFct1_ != NULL);
-    assert( feFct2_ != NULL);
+    //I do not think that this is necessary here!
+    //feFct1_ = pde1_->GetFunctionDesriptors();
+    //feFct2_ = pde2_->GetFunctionDesriptors();
+    //assert( feFct1_ != NULL);
+    //assert( feFct2_ != NULL);
 
 
     // Define available results
@@ -404,7 +405,6 @@ namespace CoupledField {
     elemNames[ResultInfo::SURF_REGION] = "surfRegionResult";
 
     isHistory[ResultInfo::NODE] = false;
-    isHistory[ResultInfo::PFEM] = false;
     isHistory[ResultInfo::ELEMENT] = false;
     isHistory[ResultInfo::SURF_ELEM] = false;
     isHistory[ResultInfo::REGION] = true;

@@ -58,9 +58,6 @@ namespace CoupledField {
     analysisType.Add(HARMONIC, "paramIdent", false); // the value is not unique
     analysisType.Add(EIGENFREQUENCY, "eigenFrequency");
     analysisType.Add(MULTI_SEQUENCE, "multiSequence");
-  }
-  
-  
-  
+  } 
   
 }

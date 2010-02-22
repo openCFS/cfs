@@ -214,7 +214,8 @@ beta and gamma!\n" );
           CompressWeights();
         }
         BaseForm * bilinear_mass = new MassInt(factor, 1, isaxi_);
-        bilinear_mass->SetAnsatzFct( result_->fctType, result_->fctType );
+        //TODO: Replace by FeFunction
+        //bilinear_mass->SetAnsatzFct( result_->fctType, result_->fctType );
 
         ElemList actSDList(ptgrid_ );
         actSDList.SetRegion( subdoms_[actSD] );

@@ -94,31 +94,6 @@ LagrangeElemShapeMap::LagrangeElemShapeMap( Grid* ptGrid, bool isUpdated )
 LagrangeElemShapeMap::~LagrangeElemShapeMap() {
 }
 
-void LagrangeElemShapeMap::SetElem( const Elem* ptElem ) {
-  
-  ptElem_ = ptElem;
-  
-  // get coordinates from grid
-  ptGrid_->GetElemNodesCoord( coords_,ptElem->connect, isUpdated_ );
-  
-  // HARD CODED: Create Lagrange element of according type
-  switch( ptElem->type) {
-    case Elem::ET_LINE2:
-      ptFe_ = new FeH1LagrangeLine1();
-      break;
-    case Elem::ET_QUAD4:
-      ptFe_ = new FeH1LagrangeQuad1();
-      break;
-    case Elem::ET_HEXA8:
-      ptFe_ = new FeH1LagrangeHex1();
-      break;
-    default:
-      EXCEPTION("Lagrangian shape mapping for elements of type '" 
-                << Elem::feType.ToString(ptElem->type) 
-                << "' is not implemented!");
-  }
-}
-
 void LagrangeElemShapeMap::Local2Global( Vector<Double>& globPoint, 
                                               const LocPoint& lp ) {
   
@@ -477,5 +452,54 @@ void LagrangeElemShapeMap::CalcJ( Matrix<Double>& jac,
 }
    
    
+void LagrangeElemShapeMap::SetElem( const Elem* ptElem ) {
+  
+  ptElem_ = ptElem;
+  
+  // get coordinates from grid
+  ptGrid_->GetElemNodesCoord( coords_,ptElem->connect, isUpdated_ );
+  
+  // HARD CODED: Create Lagrange element of according type
+  switch( ptElem->type) {
+    case Elem::ET_LINE2:
+      ptFe_ = new FeH1LagrangeLine1();
+      break;
+    case Elem::ET_QUAD4:
+      ptFe_ = new FeH1LagrangeQuad1();
+      break;
+    case Elem::ET_HEXA8:
+      ptFe_ = new FeH1LagrangeHex1();
+      break;
+    default:
+      EXCEPTION("Explicit Lagrangian shape mapping for elements of type '" 
+                << Elem::feType.ToString(ptElem->type) 
+                << "' is not implemented!");
+  }
+}
+
+//void VariableLagrangeElemShapeMap::SetElem( const Elem* ptElem ) {
+//  
+//  ptElem_ = ptElem;
+//  
+//  // get coordinates from grid
+//  ptGrid_->GetElemNodesCoord( coords_,ptElem->connect, isUpdated_ );
+//  
+//  // HARD CODED: Create Lagrange element of according type
+//  switch( ptElem->type) {
+//    case Elem::ET_LINE2:
+//      ptFe_ = new FeH1LagrangeLineVar();
+//      break;
+//    case Elem::ET_QUAD4:
+//      ptFe_ = new FeH1LagrangeQuadVar();
+//      break;
+//    case Elem::ET_HEXA8:
+//      ptFe_ = new FeH1LagrangeHexVar();
+//      break;
+//    default:
+//      EXCEPTION("Explicit Lagrangian shape mapping for elements of type '" 
+//                << Elem::feType.ToString(ptElem->type) 
+//                << "' is not implemented!");
+//  }
+//}
 
 } // namespace CoupledField

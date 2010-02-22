@@ -18,22 +18,56 @@ namespace CoupledField {
     //! Destructor
     virtual ~FeH1();
 
-    //! Evaluate Lagrange polynomial (to be implemented by
-    //! Andi Hueppe) 
-    void EvaluatePolynomial( Vector<Double> & shape, Double coord );
+    //! Evaluate Lagrange polynomial 
+    void EvaluateLagrangePolynomial( Vector<Double> & shape, Double coord );
 
-    //! Evaluate derivative of Lagrange polynomials (to be implemented by
-    //! Andi Hueppe)
-    void EvaluateDerivPolynomial( Vector<Double> & deriv, Double coord );
+    //! Evaluate derivative of Lagrange polynomials 
+    void EvaluateDerivLagrangePolynomial( Vector<Double> & deriv, Double coord );
 
     //! Return global derivative of shape functions
     void GetGlobDerivShFnc( Matrix<Double>& deriv, LocPointMapped& lp,
                             const Elem* elem, UInt comp = 1 );
 
+    //! Set the isotropic order of the Element. This methods gets overwritten 
+    //! by the child classes to calculate the number of functions according to
+    //! the given order
+    //! \param order (input) The desired order of the element
+    virtual void SetIsoOrder(UInt order){
+      // after debugging phase, this EXCEPTION can become a warning
+      EXCEPTION("Trying to set the ISOTROPIC order of an element which does not support this opeeration.\
+                The element will reamin unchanged!");
+    }
+
+    //! Set the Anisotropic order of the Element. This methods gets overwritten 
+    //! by the child classes to calculate the number of functions according to
+    //! the given order
+    //! \param order (input) vector of element orders for each space direction 
+    virtual void SetAnisoOrder(StdVector<UInt> order){
+      // after debugging phase, this EXCEPTION can become a warning
+      EXCEPTION("Trying to set the ANISOTROPIC order of an element which does not support this opeeration.\
+                The element will reamin unchanged!");
+    }
+
   protected:
 
-    //! Node numbers (to determine orientation)
-    StdVector<UInt> nodeNums;
+    //! Calculate the location of unknowns for a line up to given order
+    //! Righ now the calculation is done here but has to move into the 
+    //! Integration Scheme class!
+    //! This method gets reimplemented in the Spectral classes to ask the 
+    //! Integration scheme to provide the points
+    void CalcAllSupportingPoints(UInt maxOrder);
+
+    //! Calculate the location of unknowns for a given order
+    void CalcSupportingPoints(UInt order);
+
+    //! Calculates the Gauss Lobatto Points for a given order
+    //! Is to be moved into Integration Scheme Class
+    StdVector<Double> CalcGaussLobattoPoints(UInt order);
+
+    //! Stores the Locations of the Element DOFs for a line for every order
+    std::map<UInt,StdVector<Double> > supportingPoints_;
+
+  private:
   };
 
   
@@ -59,11 +93,31 @@ namespace CoupledField {
     //! Pre-calculate values at integration points
     void SetIntPoints( StdVector<LocPoint>& intPoints );
 
+    ////! Get number of shape functions for a given type (NODE/EDGE/FACE/ELEM)
+    //void GetNumFncs( StdVector<UInt>& numFcns,
+    //                 const shared_ptr<AnsatzFct>& fcnType,
+    //                 AnsatzFct::FctEntityType fctEntityType,
+    //                 UInt dof = 1 );
+
     //! Get number of shape functions for a given type (NODE/EDGE/FACE/ELEM)
     void GetNumFncs( StdVector<UInt>& numFcns,
-                     const shared_ptr<AnsatzFct>& fcnType,
-                     AnsatzFct::FctEntityType fctEntityType,
+                     ElementEntityType fctEntityType,
                      UInt dof = 1 );
+
+    //! Get the permutation Vector for a given Face or Edge
+    //! e.g. If asked for a face, the element will check the flags
+    //! of this face and return a vector of size NumberOfFncs on the Face
+    //! holding the correct ordering 
+    /*!
+      \param fncPermutation (output) The Permuation Vector 
+      \param ptElem (input) pointer to Grid Element to get grip of flags 
+      \param fctEntityType (input) The Entity type, Node/Edge/Face
+      \param entNumber (input) The local entity number 
+    */
+    virtual void GetFncPermutation( StdVector<UInt>& fncPermutation,
+                                    const Elem* ptElem,
+                                    ElementEntityType fctEntityType,
+                                    UInt entNumber);
 
     //! Return shape function
     void GetShFnc( Vector<Double> & S, const LocPoint& lp,
@@ -74,6 +128,10 @@ namespace CoupledField {
                         const LocPoint& lp,
                         const Elem * elem, 
                         UInt comp = 1 );
+
+    //! returns the number of functions for a single edge or face
+    UInt GetNumFncsPerEntType( ElementEntityType fctEntityType, UInt dof = 1);
+
   protected:
 
     //! Compute shape function at given position
@@ -83,12 +141,14 @@ namespace CoupledField {
     //! Compute local derivative at of shape function at given position
     virtual void CalcDerivShFnc( Matrix<Double> & deriv, 
                                  const Vector<Double>& point ) = 0;
-
+    
     //! Valued of shape functions at integration points
     StdVector<Vector<Double> > shapeAtIp_;
 
     //! Value of local derivatives of shape functions at integration points
     StdVector<Matrix<Double> > shapeDerivAtIp_;
+
+
   };
 
 

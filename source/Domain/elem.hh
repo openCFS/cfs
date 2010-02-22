@@ -82,7 +82,7 @@ class ElemShape;
       ET_PYRA5   = 14,
       ET_PYRA13  = 15,
       ET_WEDGE6  = 16,
-      ET_WEDGE15 = 17
+      ET_WEDGE15 = 17,
     } FEType;
 
     //! Static Enum for FEType

@@ -621,7 +621,7 @@ namespace CoupledField
     //! Map containing edge number for each edge
     std::map<Edge,UInt> edgeNums_;
 
-    //! Vector containing all edges
+    //! Vector containing all faces 
     StdVector<Face> faces_;
 
     //! Vector containing all edges

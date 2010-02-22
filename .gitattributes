@@ -687,6 +687,8 @@ source/Elements/3D/wedgeFE.hh svneol=native#text/x-c%2B%2Bhdr
 source/Elements/CMakeLists.txt svneol=native#text/plain
 source/Elements/H1Elems.cc svneol=native#text/x-c%2B%2Bsrc
 source/Elements/H1Elems.hh svneol=native#text/x-c%2B%2Bhdr
+source/Elements/H1LagrangeVar.cc -text
+source/Elements/H1LagrangeVar.hh -text
 source/Elements/basefe.cc svneol=native#text/x-c%2B%2Bsrc
 source/Elements/basefe.hh svneol=native#text/x-c%2B%2Bhdr
 source/Elements/elemShapeMap.cc svneol=native#text/x-c%2B%2Bsrc
@@ -698,6 +700,8 @@ source/Elements/fespace.cc svneol=native#text/x-c%2B%2Bsrc
 source/Elements/fespace.hh svneol=native#text/x-c%2B%2Bhdr
 source/Elements/fespaceH1.cc -text
 source/Elements/fespaceH1.hh -text
+source/Elements/fespaceH1Lagrange.cc -text
+source/Elements/fespaceH1Lagrange.hh -text
 source/Elements/integrationScheme.cc svneol=native#text/x-c%2B%2Bsrc
 source/Elements/integrationScheme.hh svneol=native#text/x-c%2B%2Bhdr
 source/Elements/jacobian.cc svneol=native#text/x-c%2B%2Bsrc

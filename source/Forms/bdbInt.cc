@@ -28,7 +28,7 @@ namespace CoupledField {
     Double fac = 0.0;
 
     // Obtain FE element from feSpace
-    BaseFE* ptFe = ptFeSpace_->GetFe( ent1 ); 
+    BaseFE* ptFe = ptFeSpace1_->GetFe( ent1 ); 
     UInt nrFncs = ptFe->GetNumFncs();
 
     // Get shape map from grid
@@ -36,10 +36,9 @@ namespace CoupledField {
 
     // Get integration points (shortcut: from basefe instead of 
     // IntegrationScheme class)
-    IntegrationScheme intScheme;
     StdVector<LocPoint> intPoints;
     StdVector<Double> weights;
-    intScheme.GetIntPoints( ptElem->type, intPoints, weights );
+    intScheme_->GetIntPoints( ptElem->type, intPoints, weights );
     
     const UInt nrDofs   = getNrDofs();
     elemMat.Resize( nrFncs * nrDofs);

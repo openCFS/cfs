@@ -52,6 +52,10 @@
 #include "CoupledPDE/BasePairCoupling.hh"
 #include "Forms/linearForm.hh"
 
+//feSpaces
+#include "Elements/fespaceH1Lagrange.hh"
+#include "Elements/fespaceH1.hh"
+
 using std::string;
 
 namespace CoupledField {
@@ -94,6 +98,9 @@ namespace CoupledField {
     usePenalty_ = true;
     numCouplingBcs_ = 0;
     maxTimeDerivOrder_ = 0;
+    numPdeEquations_  = 0; 
+    numPdeUnknowns_   = 0;
+    numPdeInHomDirBc_ = 0;
 
     // Obtain mathParser handler
     mHandle_ = domain->GetMathParser()->GetNewHandle();
@@ -170,10 +177,7 @@ namespace CoupledField {
 
     isComplex_ = IsComplex(analysistype_);
 
-    // =====================================================================
-    // trigger definition of available results
-    // =====================================================================
-    DefineAvailResults();
+
 
     // =====================================================================
     // get regions/subdomains for PDE
@@ -183,8 +187,7 @@ namespace CoupledField {
 
 
     // Obtain regions the pde is defined on
-    StdVector<ParamNode*> regionNodes =
-      myParam_->Get("regionList")->GetList("region");
+    StdVector<ParamNode*> regionNodes = myParam_->Get("regionList")->GetList("region");
 
     // output to info-file
     InfoNode* list = infoNode_->Get(InfoNode::HEADER);
@@ -198,6 +201,21 @@ namespace CoupledField {
       RegionIdType actRegionId = ptgrid_->RegionNameToId(regionNodes[i]->Get("name")->AsString());
       subdoms_.Push_back( actRegionId );
     }
+
+    ///TODO: the algorithm for filling the FeFunctions need to be more failsafe
+    //right now, the PDE pointers get assigned in the DefineResults Function
+    //this means that the algorithm works only if the two functions are called 
+    //in the correct order!
+    //This is not that good....
+    //======================================================================
+    // trigger the creation of functionDescriptors
+    //======================================================================
+    DefineFeFunctions();
+
+    // =====================================================================
+    // trigger definition of available results
+    // =====================================================================
+    DefineAvailResults();
 
     // Generate a fitting algebraic system only if PDE is NOT
     // direct coupled
@@ -394,11 +412,28 @@ namespace CoupledField {
     //eqnMap_->SetInhomDirichletBCs( idBcs_ );
     //eqnMap_->SetConstraints( constraints_ );
     //eqnMap_->Finalize();
-    feFunction_->SetGrid(shared_ptr<Grid>(ptgrid_));
+    //--------------------------------------------
+    //Gather informations about all spaces for this PDE
+    //--------------------------------------------
+    std::map<SolutionType, StdVector<FunctionDescription> >::iterator descrIt= functions_.begin();
+    while(descrIt != functions_.end()){
+      StdVector< FunctionDescription > descriptors = descrIt->second;
+      for(UInt actFnc = 0 ; actFnc < descriptors.GetSize(); actFnc++){
+        descriptors[actFnc].feFunction->SetGrid(shared_ptr<Grid>(ptgrid_));
+        shared_ptr<FeSpace> actSpace = descriptors[actFnc].feFunction->GetFeSpace();
+        actSpace->Finalize();
+        numPdeEquations_ += actSpace->GetNumEquations();
+        numPdeUnknowns_ += actSpace->GetNumFreeEquations();
+        numPdeInHomDirBc_ += actSpace->GetNumInhomDirichletBc();
+        // Redo it for logging out
+        //std::cerr << numPdeEquations_  <<  std::endl 
+        //          << numPdeUnknowns_   << std::endl 
+        //          << numPdeInHomDirBc_ << "run" << std::endl;
+      }
+      descrIt++;
+    }
 
-    feSpace_->Finalize();
-
-    infoNode_->Get(InfoNode::HEADER)->Get("equations", "number of equations in linear system")->SetValue(feSpace_->GetNumEquations());
+    infoNode_->Get(InfoNode::HEADER)->Get("equations", "number of equations in linear system")->SetValue(numPdeUnknowns_);
 
     //TODO: Add debugging output to FeSpace Class
     // writes numerous lists about mapping -> might be huge!
@@ -406,7 +441,6 @@ namespace CoupledField {
       //eqnMap_->ToInfo(infoNode_->Get(InfoNode::HEADER)->Get("mapping"));
     }
 
-    numPdeEquations_ = feSpace_->GetNumUnknowns();
     //TODO ADAPT TO FE FUNCTION:
     //numElems_ = eqnMap_->GetNumLocalElems();
 
@@ -420,9 +454,15 @@ namespace CoupledField {
     }
 
     // TODO: this is only a temporary solution
-    sol_->SetPtrEQNData(feSpace_, ptgrid_);
-    sol_->SetRegions( subdoms_ );
-    sol_->Init();
+    if(functions_[results_[0]->resultType].GetSize() == 1){
+      sol_->SetPtrEQNData(functions_[results_[0]->resultType][0].feFunction->GetFeSpace(), ptgrid_);
+      sol_->SetRegions( subdoms_ );
+      sol_->Init();
+    }else{
+      EXCEPTION("We still use the nodestore solution class \
+                 so we can still handle only one feFunction per unknown \
+                 this must be changed as soon as possible");
+    }
 
     if ( solPrev_ != NULL ) {
       solPrev_->SetNumSolutions(results_.GetSize());
@@ -433,18 +473,24 @@ namespace CoupledField {
                               results_[iSol]->resultType );
       }
 
-      // Note: this is only a temporary solution
-      solPrev_->SetPtrEQNData(feSpace_, ptgrid_);
-      solPrev_->SetRegions( subdoms_ );
-      solPrev_->Init();
+      // TODO: this is only a temporary solution
+      if(functions_[results_[0]->resultType].GetSize() == 1){
+        solPrev_->SetPtrEQNData(functions_[results_[0]->resultType][0].feFunction->GetFeSpace(), ptgrid_);
+        solPrev_->SetRegions( subdoms_ );
+        solPrev_->Init();
+      }else{
+        EXCEPTION("We still use the nodestore solution class \
+                   so we can still handle only one feFunction per unknown \
+                   this must be changed as soon as possible");
+      }
     }
 
 
     SETPROFILE("Before Resizing StoreSol");
     if(!isDirectCoupled_ ) {
-      solVec_->Resize(feSpace_->GetNumEquations());
+      solVec_->Resize(numPdeUnknowns_);
       solVec_->Init();
-      rhsVec_->Resize(feSpace_->GetNumEquations());
+      rhsVec_->Resize(numPdeUnknowns_);
       rhsVec_->Init();
 
       SETPROFILE("After Resizing StoreSol");
@@ -464,7 +510,7 @@ namespace CoupledField {
       Double dt;
       dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
         ->GetDeltaT();
-      TS_alg_->Init( dt, feSpace_->GetNumEquations() );
+      TS_alg_->Init( dt, numPdeUnknowns_ );
     }
 
 //    // =====================================================================
@@ -615,14 +661,12 @@ namespace CoupledField {
     std::map<ResultInfo::EntityUnknownType, std::string> elemNames;
     std::map<ResultInfo::EntityUnknownType, bool> isHistory;
     elemNames[ResultInfo::NODE] = "nodeResult";
-    elemNames[ResultInfo::PFEM] = "nodeResult";
     elemNames[ResultInfo::ELEMENT] = "elemResult";
     elemNames[ResultInfo::SURF_ELEM] = "surfElemResult";
     elemNames[ResultInfo::REGION] = "regionResult";
     elemNames[ResultInfo::SURF_REGION] = "surfRegionResult";
 
     isHistory[ResultInfo::NODE] = false;
-    isHistory[ResultInfo::PFEM] = false;
     isHistory[ResultInfo::ELEMENT] = false;
     isHistory[ResultInfo::SURF_ELEM] = false;
     isHistory[ResultInfo::REGION] = true;
@@ -655,8 +699,6 @@ namespace CoupledField {
 
         // Check on which entity type the result is defined on
         if(candidate->definedOn == ResultInfo::NODE ) {
-          entityType = EntityList::NODE_LIST;
-        } else if(candidate->definedOn == ResultInfo::PFEM ) {
           entityType = EntityList::NODE_LIST;
         } else if(candidate->definedOn == ResultInfo::REGION ) {
           entityType = EntityList::REGION_LIST;
@@ -725,7 +767,6 @@ namespace CoupledField {
           ParamNode * listNode = NULL;
           // 1b) Look for regions the result is defined on
           if(candidate->definedOn == ResultInfo::NODE ||
-             candidate->definedOn == ResultInfo::PFEM ||
              candidate->definedOn == ResultInfo::ELEMENT ||
              candidate->definedOn == ResultInfo::REGION ) {
             listNode = actResultNode->Get("regionList", false);
@@ -818,8 +859,7 @@ namespace CoupledField {
         ParamNode * histNode = NULL;
         StdVector<ParamNode*> histEntities;
 
-        if(candidate->definedOn == ResultInfo::NODE
-            || candidate->definedOn == ResultInfo::PFEM ) {
+        if(candidate->definedOn == ResultInfo::NODE) {
           defineType = EntityList::NAMED_NODES;
           histNode = actResultNode->Get("nodeList",false);
           if( histNode )
@@ -982,8 +1022,15 @@ namespace CoupledField {
   //   SetBCs
   // **********
   void SinglePDE::SetBCs() {
+    std::map<SolutionType, StdVector<FunctionDescription> >::iterator descrIt= functions_.begin();
+    while(descrIt != functions_.end()){
+      StdVector< FunctionDescription > descriptors = descrIt->second;
+      for(UInt actFnc = 0 ; actFnc < descriptors.GetSize(); actFnc++){
+        descriptors[actFnc].feFunction->ApplyBC();
+      }
+      descrIt++;
+    }
     //just loop over the available feFunctions and call their BC Method
-    feFunction_->ApplyBC();
 /*
      // Trigger setting of BC from script file
  #ifdef USE_SCRIPTING
@@ -1156,8 +1203,6 @@ namespace CoupledField {
         hdbcNodes[i]->Get( "dof", dof, false );
         hdbcNodes[i]->Get( "entityType", entType );
 
-        // fetch related resultInfo object
-        actFeFunction = GetFeFunction( SolutionTypeEnum.Parse(resultName) );
 
         // Create homogeneous boundary condition
         if( entType == "nodeList" ) {
@@ -1172,6 +1217,10 @@ namespace CoupledField {
         shared_ptr<EntityList> actList =
           ptgrid_->GetEntityList( listType,
                                   name, defineType );
+
+        // fetch related feFunction object
+        actFeFunction = GetFeFunction( SolutionTypeEnum.Parse(resultName), name );
+
         actBc->entities = actList;
         actBc->result = actFeFunction->GetResultInfo();
         //actBc->eqnMap = eqnMap_;
@@ -1211,8 +1260,6 @@ namespace CoupledField {
         idbcNodes[i]->Get( "phase", phase );
         idbcNodes[i]->Get( "entityType", entType );
 
-        // fetch related resultInfo object
-        actFeFunction = GetFeFunction( SolutionTypeEnum.Parse(resultName) );
 
         // Create inhomogeneous boundary condition
         shared_ptr<InhomDirichletBc> actBc ( new InhomDirichletBc );
@@ -1239,6 +1286,8 @@ namespace CoupledField {
 
         // add definition
         //idBcs_.Push_back( actBc );
+        // fetch related feFunction object
+        actFeFunction = GetFeFunction( SolutionTypeEnum.Parse(resultName), name );
         actFeFunction->AddInhomDirichletBc(actBc);
       } catch (Exception & ex ) {
         RETHROW_EXCEPTION( ex, "Can not create inhomogeneous boundary conditions on '"
@@ -1319,7 +1368,7 @@ namespace CoupledField {
         csNodes[i]->Get( "slaveDof", slaveDof );
 
         // fetch related resultInfo object
-        actFeFunction = GetFeFunction( SolutionTypeEnum.Parse(resultName) );
+        actFeFunction = GetFeFunction( SolutionTypeEnum.Parse(resultName), name );
 
         // Create constraint condition
         shared_ptr<Constraint> actBc ( new Constraint );
@@ -1375,13 +1424,14 @@ namespace CoupledField {
         prNodes[i]->Get( "dof", dof );
         prNodes[i]->Get( "quantity", resultName );
 
-        // fetch related resultInfo object
-        actFeFunction = GetFeFunction( SolutionTypeEnum.Parse(resultName) );
-
         // get entitylists
         NodeList masterList( ptgrid_ ), slaveList( ptgrid_ );
         masterList.SetNamedNodes( masterName );
         slaveList.SetNamedNodes( slaveName );
+
+
+        // fetch related resultInfo object
+        actFeFunction = GetFeFunction( SolutionTypeEnum.Parse(resultName), slaveName );
 
         // ensure, that both lists have the same length
         if( masterList.GetSize() != slaveList.GetSize() ) {
@@ -1889,8 +1939,9 @@ namespace CoupledField {
       // Initialize the matrix graph object
       algsys_->GraphSetupInit(1);
 
-      algsys_->RegisterPDE( pdeId_, feSpace_->GetNumEquations(),
-                            feSpace_->GetNumFreeEquations() );
+      //WARNING Here again the SBM System should fix the pretty nasty
+      //situation when dealing with multiple FE Spaces
+      algsys_->RegisterPDE( pdeId_, numPdeEquations_, numPdeUnknowns_);
 
       //assemble_->SetPDEId( pdeId_ );
       solveStep_->SetPDEId( pdeId_ );
@@ -1907,17 +1958,29 @@ namespace CoupledField {
       // obtain reordering of the matrix graph and pass it to the EQN-object.
       StdVector<UInt> newOrder;
       //TODO WARNING!: No reordering supported
+      Warning("Reordering is only supported if there is only one Space available!! Otherwise there will be errors");
 
       algsys_->GetReordering( pdeId_, newOrder );
-      feSpace_->ReorderEqnMap( newOrder );
+      functions_[results_[0]->resultType][0].feFunction->GetFeSpace()->ReorderEqnMap( newOrder );
+
     }
 
     // pass information about dofs, number of dirichlet equations
     // and constraints to the algebraic system
     //algsys_->SetBlockSize( pdeId_, 1 );
 
-    UInt numDir = feSpace_->GetNumInhomDirichletBc() +
-      numCouplingBcs_;
+    //TODO: AGAIN THIS HAS TO BE CHANGED WITH OLAS SBM
+    std::map<SolutionType, StdVector<FunctionDescription> >::iterator descrIt= functions_.begin();
+    UInt numBC = 0;
+    while(descrIt != functions_.end()){
+      StdVector< FunctionDescription > descriptors = descrIt->second;
+      for(UInt actFnc = 0 ; actFnc < descriptors.GetSize(); actFnc++){
+        shared_ptr<FeSpace> actSpace = descriptors[actFnc].feFunction->GetFeSpace();
+        numBC += actSpace->GetNumInhomDirichletBc();
+      }
+      descrIt++;
+    }
+    UInt numDir = numBC + numCouplingBcs_;
     algsys_->SetNumDirichletBCs(pdeId_, numDir );
 
     // create matrices and solver object, if PDE is not direct coupled
@@ -1939,8 +2002,15 @@ namespace CoupledField {
         IncorporateMemento();
       }
     }
-    //Pass the system to feFunction
-    feFunction_->SetSystem(shared_ptr<BaseSystem>(algsys_));
+    //Pass the system to every feFunction
+    descrIt= functions_.begin();
+    while(descrIt != functions_.end()){
+      StdVector< FunctionDescription > descriptors = descrIt->second;
+      for(UInt actFnc = 0 ; actFnc < descriptors.GetSize(); actFnc++){
+        descriptors[actFnc].feFunction->SetSystem(shared_ptr<BaseSystem>(algsys_));
+      }
+      descrIt++;
+    }
 
   }
 
@@ -2073,6 +2143,13 @@ namespace CoupledField {
     SingleVector * val;
     Integer eqnNr;
     UInt couplingDof;
+    RegionIdType curID;
+    shared_ptr<BaseFeFunction> actFnc;
+    shared_ptr<FeSpace> actSpace;
+    StdVector<Elem*> *inputElems;
+    StdVector<Integer> eqnNrs;
+    UInt counter;
+    RegionIdType cID;
 
     // Determine maximal allowed equation number for algebraic system
     Integer maxAllowedEqn = (Integer)algsys_->GetDimension();
@@ -2111,17 +2188,39 @@ namespace CoupledField {
 
         // -------------------
         // RHS COUPLING
+        // WARNING this has been changed to get input elements
+        // a check is needed if this is always the correct way....
         // -------------------
       case RHS:
-        ptCoupling_->GetInputNodes(i, nodes);
-
+        counter = 0;
+        ptCoupling_->GetInputElements(i, inputElems);
         for ( UInt dof = 0; dof < couplingDof; dof++ ) {
-          for ( UInt j = 0; j < nodes->GetSize(); j++ ) {
-            eqnNr = feSpace_->GetNodeEqn( (*nodes)[j], dof+1 );
-            if ( eqnNr != 0 && eqnNr <= maxAllowedEqn ) {
-              algsys_->SetNodeRHS( help[ dof + couplingDof * j ], pdeId_,
-                                   eqnNr );
+          for ( UInt j = 0; j < inputElems->GetSize(); j++ ) {
+            const Elem* actElem = (*inputElems)[j];
+            if(cID != actElem->regionId){
+              actFnc = GetFeFunction(ptCoupling_->GetInputQuantity(i),actElem->regionId);
+              actSpace = actFnc->GetFeSpace();
+              cID = actElem->regionId;
             }
+            actSpace->GetElemEqns(eqnNrs,actElem,dof+1);
+            for(UInt eqn = 0 ; eqn < eqnNrs.GetSize() ; eqn++){
+              if ( eqnNrs[eqn] != 0 && eqnNrs[eqn] <= maxAllowedEqn ) {
+                algsys_->SetNodeRHS( help[ dof + couplingDof * counter ], pdeId_,
+                                     eqnNrs[eqn] );
+              }
+            }
+          }
+        }
+
+        //ptCoupling_->GetInputNodes(i, nodes);
+
+        //for ( UInt dof = 0; dof < couplingDof; dof++ ) {
+        //  for ( UInt j = 0; j < nodes->GetSize(); j++ ) {
+        //    eqnNr = feSpace_->GetNodeEqn( (*nodes)[j], dof+1 );
+        //    if ( eqnNr != 0 && eqnNr <= maxAllowedEqn ) {
+        //      algsys_->SetNodeRHS( help[ dof + couplingDof * j ], pdeId_,
+        //                           eqnNr );
+        //    }
 
 #ifndef NDEBUG
             /*
@@ -2141,9 +2240,9 @@ namespace CoupledField {
             }
             */
 #endif
+        //  }
+        //}
 
-          }
-        }
         break;
 
         // -----------------------
@@ -2166,24 +2265,47 @@ namespace CoupledField {
 
         // Set flag that the boundary conditions have to be incorporated
         updateCouplingBCs_ = true;
+        counter = 0;
 
-        ptCoupling_->GetInputNodes(i, nodes);
-
-        for ( UInt dof = 0; dof < ptCoupling_->GetInputDof(i); dof++ ) {
-          for ( UInt j = 0; j < nodes->GetSize();
-                j++, couplingBCsCounter_++) {
-
-            eqnNr = feSpace_->GetNodeEqn( (*nodes)[j], dof+1 );
-
-            if (eqnNr==0) {
-              EXCEPTION( "The specified coupling node has no equation number" );
-        //        std::cerr << "node=" << *nodes)[j]
+        ptCoupling_->GetInputElements(i, inputElems);
+        for ( UInt dof = 0; dof < couplingDof; dof++ ) {
+          for ( UInt j = 0; j < inputElems->GetSize(); j++ ) {
+            const Elem* actElem = (*inputElems)[j];
+            if(cID != actElem->regionId){
+              actFnc = GetFeFunction(ptCoupling_->GetInputQuantity(i),actElem->regionId);
+              actSpace = actFnc->GetFeSpace();
+              cID = actElem->regionId;
             }
+            actSpace->GetElemEqns(eqnNrs,actElem,dof+1);
+            for(UInt eqn = 0 ; eqn < eqnNrs.GetSize() ; eqn++){
+              if ( eqnNrs[eqn] != 0 ) {
 
-            algsys_->SetDirichlet( pdeId_, eqnNr,
-                                   help[dof+j*couplingDof] );
+                algsys_->SetDirichlet( pdeId_, eqnNrs[eqn],
+                                   help[dof+couplingDof * counter++] );
+              }else{
+                EXCEPTION( "The specified coupling node has no equation number" );
+              }
+            }
           }
         }
+
+        //ptCoupling_->GetInputNodes(i, nodes);
+
+        //for ( UInt dof = 0; dof < ptCoupling_->GetInputDof(i); dof++ ) {
+        //  for ( UInt j = 0; j < nodes->GetSize();
+        //        j++, couplingBCsCounter_++) {
+
+        //    eqnNr = feSpace_->GetNodeEqn( (*nodes)[j], dof+1 );
+
+        //    if (eqnNr==0) {
+        //      EXCEPTION( "The specified coupling node has no equation number" );
+        ////        std::cerr << "node=" << *nodes)[j]
+        //    }
+
+        //    algsys_->SetDirichlet( pdeId_, eqnNr,
+        //                           help[dof+j*couplingDof] );
+        //  }
+        //}
         break;
 
       case MAT:
@@ -2345,8 +2467,11 @@ namespace CoupledField {
 
         EntityIterator it = actSDList->GetIterator();
         UInt pos = 0;
+        shared_ptr<BaseFeFunction> actFct;
         for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
-          feSpace_->GetEqns( eqns, it );
+          actFct = GetFeFunction(results_[0]->resultType,actSDList->GetName());
+
+          actFct->GetFeSpace()->GetEqns( eqns , it );
           for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
             if ( eqns[iDof] != 0 ) {
               (*values)[numDofs*pos+iDof] = solReal[abs(eqns[iDof])-1];
@@ -2402,8 +2527,11 @@ namespace CoupledField {
         values->Init();
         EntityIterator it = actSDList->GetIterator();
         UInt pos = 0;
+        shared_ptr<BaseFeFunction> actFct;
         for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
-          feSpace_->GetEqns( eqns, it );
+          actFct = GetFeFunction(results_[0]->resultType,actSDList->GetName());
+
+          actFct->GetFeSpace()->GetEqns( eqns , it );
           for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
             if ( eqns[iDof] != 0 ) {
               (*values)[numDofs*pos+iDof] = solComp[abs(eqns[iDof])-1];
@@ -2516,8 +2644,11 @@ namespace CoupledField {
             EntityIterator it = nodes->GetIterator();
             StdVector<Integer> eqns;
             UInt pos = 0;
+            shared_ptr<BaseFeFunction> actFct;
             for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
-              feSpace_->GetEqns( eqns , it );
+              actFct = GetFeFunction(results_[0]->resultType,subdoms_[iRegion]);
+
+              actFct->GetFeSpace()->GetEqns( eqns , it );
               for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
                 UInt actPos = numDofs*pos+iDof;
                 if ( eqns[iDof] != 0
@@ -2568,8 +2699,11 @@ namespace CoupledField {
             EntityIterator it = nodes->GetIterator();
             StdVector<Integer> eqns;
             UInt pos = 0;
+            shared_ptr<BaseFeFunction> actFct;
             for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
-              feSpace_->GetEqns( eqns, it );
+              actFct = GetFeFunction(results_[0]->resultType,subdoms_[iRegion]);
+
+              actFct->GetFeSpace()->GetEqns( eqns , it );
               for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
                 if ( eqns[iDof] != 0
                      && (unsigned int) (std::abs(eqns[iDof])-1) < solVec.GetSize() ) {
@@ -2667,10 +2801,12 @@ namespace CoupledField {
     actSol.Resize( res->GetEntityList()->GetSize() *
                    actDof.dofNames.GetSize() );
 
+    shared_ptr<BaseFeFunction> actFct;
     for( it.Begin(); !it.IsEnd(); it++ ) {
+       actFct = GetFeFunction(actDof.resultType,res->GetEntityList()->GetName());
 
-      // get equation numbes
-      feSpace_->GetEqns( eqnNums, it);
+       actFct->GetFeSpace()->GetEqns( eqnNums , it );
+
       for( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ) {
         if( eqnNums[iDof] != 0 ) {
           actSol[it.GetPos()*numDofs+iDof] = solHelp[abs(eqnNums[iDof])-1];
@@ -2713,8 +2849,11 @@ namespace CoupledField {
                      actDof.dofNames.GetSize() );
 
       // iterate over all elements
+      shared_ptr<BaseFeFunction> actFct;
       for( it.Begin(); !it.IsEnd(); it++ ) {
-        feSpace_->GetEqns( eqnNums,  it );
+       actFct = GetFeFunction(actDof.resultType,res->GetEntityList()->GetName());
+
+       actFct->GetFeSpace()->GetEqns( eqnNums , it );
 
         // iterate over all dofs
         for( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ) {
@@ -2750,8 +2889,11 @@ namespace CoupledField {
                      actDof.dofNames.GetSize() );
 
       // iterate over all elements
+      shared_ptr<BaseFeFunction> actFct;
       for( it.Begin(); !it.IsEnd(); it++ ) {
-        feSpace_->GetEqns( eqnNums,  it );
+       actFct = GetFeFunction(actDof.resultType,res->GetEntityList()->GetName());
+
+       actFct->GetFeSpace()->GetEqns( eqnNums , it );
 
         // iterate over all dofs
         for( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ) {
@@ -2788,10 +2930,13 @@ namespace CoupledField {
     actSol.Resize( res->GetEntityList()->GetSize() *
                    actDof.dofNames.GetSize() );
 
+    shared_ptr<BaseFeFunction> actFct;
     for( it.Begin(); !it.IsEnd(); it++ ) {
 
       // get equation numbes
-      feSpace_->GetEqns( eqnNums, it );
+      actFct = GetFeFunction(actDof.resultType,res->GetEntityList()->GetName());
+
+      actFct->GetFeSpace()->GetEqns( eqnNums , it );
       for( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ) {
         if( eqnNums[iDof] != 0 ) {
           actSol[it.GetPos()*numDofs+iDof] = solHelp[abs(eqnNums[iDof])-1];
@@ -3104,6 +3249,104 @@ namespace CoupledField {
 
   }
 
+  void SinglePDE::DefineFeFunctions(){
+    ParamNode* PDEFunctions;
+    PDEFunctions = myParam_->Get("feFunctionIdList", false);
+    //1. everything is done standard call the default definition of the PDE
+    //2. Worst case everything is defined and needs to be checked
+    if(!PDEFunctions){
+      DefineDefaultFeFunctions();
+    } else{
+      //get all FeFunction objects defined, if size is one and
+      //the name is default, we will redefine what is given
+      StdVector<ParamNode*> feFunctionList =
+       PDEFunctions->GetList("FeFunction");
+
+      for( UInt i = 0; i < feFunctionList.GetSize(); i++ ){
+        FunctionDescription fncDescription; 
+        if(feFunctionList[i]->Get("integrationType",false)){
+           String2Enum(feFunctionList[i]->Get("integrationType","Gauss_standard")->AsString(),fncDescription.integScheme);
+        }else{
+          fncDescription.integScheme  = ECONOMICAL;
+        }
+        if(feFunctionList[i]->Get("integrationOrder",false)){
+          fncDescription.integOrder = feFunctionList[i]->Get("integrationOrder")->AsInt();
+        }else{
+          fncDescription.integOrder = -1;
+        }
+        if(analysistype_ == HARMONIC){
+          fncDescription.feFunction.reset( new FeFunction<Complex> );
+        }else{
+          fncDescription.feFunction.reset( new FeFunction<Double> );
+        }
+
+        shared_ptr<FeSpace> mySpace;
+
+        //std::string ansatzType = feFunctionList[i]->Get("ansatzType")->AsString();
+        AnsatzType ansatzType;
+        if(feFunctionList[i]->Get("ansatzType",false)){
+          ansatzType = AnsatzTypeEnum.Parse(feFunctionList[i]->Get("ansatzType")->AsString());
+        }else{
+          ansatzType = GRID;
+        }
+        if( ansatzType == GRID){
+          mySpace.reset(new FeSpaceH1Lagrange);
+          mySpace->SetMapType(FeSpace::GRID);
+        } else if(ansatzType == SPECTRAL){
+          mySpace.reset(new FeSpaceH1Lagrange);
+          mySpace->SetMapType(FeSpace::POLYNOMIAL);
+        } else if(ansatzType == LEGENDRE){
+          EXCEPTION("Legendre Approximation is not implemented yet");
+        } else{
+          EXCEPTION("Got not supported ansatzType for PDE");
+        }
+        mySpace->AddFeFunction(fncDescription.feFunction);
+        fncDescription.feFunction->SetFeSpace(mySpace);
+        //now to the order tag
+        if(feFunctionList[i]->Get("order",false) && feFunctionList[i]->Get("order")->Get("uniform",false)){
+          UInt order = feFunctionList[i]->Get("order")->Get("uniform")->AsUInt();
+          //TODO> prepare the anisotropic order
+          if(order != 0 && mySpace->GetMapType() == FeSpace::GRID){
+            Warning("you supplied an element order not equal to default but used the ansatz type GRID.\n \
+                     The Grid order will be used....");
+            order = 0;
+          }
+          fncDescription.feFunction->SetIsoOrder(order);
+        }else{
+          fncDescription.feFunction->SetIsoOrder(1);
+        }
+         
+
+
+        //now go down though the region lists
+        if(feFunctionList[i]->Get("entityList",false)){
+          StdVector<ParamNode*> feRegionList = feFunctionList[i]->GetList("regionList");
+          for( UInt j = 0; j < feRegionList.GetSize(); j++ ){
+            fncDescription.entityNames.Push_back(feRegionList[j]->Get("name")->AsString());
+            fncDescription.regions.Push_back(ptgrid_->RegionNameToId(feRegionList[j]->Get("name")->AsString()));
+          }
+          //now go down though the surfaceRegion lists
+          StdVector<ParamNode*> feSurfRegionList = feFunctionList[i]->GetList("surfRegionList");
+          for( UInt j = 0; j < feSurfRegionList.GetSize(); j++ ){
+            fncDescription.entityNames.Push_back(feSurfRegionList[j]->Get("name")->AsString());
+          }
+          //now go down though the node lists
+          StdVector<ParamNode*> nodeList = feFunctionList[i]->GetList("nodeList");
+          for( UInt j = 0; j < nodeList.GetSize(); j++ ){
+            fncDescription.entityNames.Push_back( nodeList[j]->Get("name")->AsString());
+          }
+        }
+        SolutionType quantity = SolutionTypeEnum.Parse(feFunctionList[i]->Get("quantity")->AsString());
+        functions_[quantity].Push_back(fncDescription);
+      }
+
+      if(feFunctionList.GetSize() == 1 && feFunctionList[0]->Get("id")->AsString() == "default"){
+        SolutionType quantity = SolutionTypeEnum.Parse(feFunctionList[0]->Get("quantity")->AsString());
+        functions_[quantity][0].regions = subdoms_;
+      }
+    }
+  }
+
   bool SinglePDE::BelongsPDE2PiezoHyst( ) {
 
   	bool isHyst = false;
@@ -3124,7 +3367,6 @@ namespace CoupledField {
 
     return isHyst;
   }
-
 
 //  // ========================== RegionLoads ==========================
 //   SinglePDE::RegionLoad::RegionLoad( UInt dim, bool isAxi ) {

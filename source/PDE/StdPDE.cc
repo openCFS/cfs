@@ -140,7 +140,7 @@ namespace CoupledField {
   {
 
     StdVector<Integer> eqns;
-  
+    shared_ptr<BaseFeFunction> actFunction; 
     // Eliminate inhom. dirichlet node from RHS (due to penalty formulation)
     for ( UInt i = 0; i < idBcs_.GetSize(); i++ ) {
 
@@ -151,7 +151,8 @@ namespace CoupledField {
       EntityIterator it = actBc.entities->GetIterator();
       
       for ( it.Begin(); !it.IsEnd(); it++ ) {
-        feSpace_->GetEqns( eqns, it, actBc.dof );
+        actFunction = GetFeFunction(actBc.result->resultType, actBc.entities->GetName());
+        actFunction->GetFeSpace()->GetEqns( eqns, it, actBc.dof );
         for(UInt iEqn = 0 ; iEqn < eqns.GetSize();iEqn){
           if ( eqns[iEqn] != 0 ) {
             actRHS[eqns[iEqn]] = 0.0;
@@ -267,7 +268,8 @@ namespace CoupledField {
 
 
     StdVector<Integer> eqns;
-    feSpace_->GetEqns( eqns, it );
+    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType,it.GetRegion());
+    aFct->GetFeSpace()->GetEqns( eqns, it );
 
 
     elemSol.Resize( eqns.GetSize() );
@@ -293,7 +295,8 @@ namespace CoupledField {
 
 
     StdVector<Integer> eqns;
-    feSpace_->GetEqns( eqns, it );
+    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType,it.GetRegion());
+    aFct->GetFeSpace()->GetEqns( eqns, it );
 
 
     elemSol.Resize( eqns.GetSize() );
@@ -318,7 +321,8 @@ namespace CoupledField {
                                        shared_ptr<ResultInfo> res) {
 
     StdVector<Integer> eqns;
-    feSpace_->GetEqns( eqns, it );
+    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType,it.GetRegion());
+    aFct->GetFeSpace()->GetEqns( eqns, it );
     sol.Resize( eqns.GetSize() );
     sol.Init( 0.0 ); 
     
@@ -344,7 +348,8 @@ namespace CoupledField {
 
 
     StdVector<Integer> eqns;
-    feSpace_->GetEqns( eqns, it );
+    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType,it.GetRegion());
+    aFct->GetFeSpace()->GetEqns( eqns, it );
     
     sol.Resize( eqns.GetSize() );
     sol.Init( 0.0 );
@@ -377,7 +382,8 @@ namespace CoupledField {
 
 
     StdVector<Integer> eqns;
-    feSpace_->GetEqns( eqns, it );
+    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType,it.GetRegion());
+    aFct->GetFeSpace()->GetEqns( eqns, it );
     
     sol.Resize( eqns.GetSize() );
     sol.Init( 0.0 );
@@ -402,7 +408,8 @@ namespace CoupledField {
 
 
     StdVector<Integer> eqns;
-    feSpace_->GetEqns( eqns, it );
+    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType,it.GetRegion());
+    aFct->GetFeSpace()->GetEqns( eqns, it );
     
     sol.Resize( eqns.GetSize() );
     sol.Init( 0.0 );
@@ -429,8 +436,7 @@ namespace CoupledField {
   void StdPDE::StoreAlgsysToVec(Vector<Double>& vec, Double * pt) {
 
 
-    //const UInt numElems = numPDENodes_ * dofspernode_;
-    UInt numElems = feSpace_->GetNumEquations();
+    const UInt numElems = numPdeUnknowns_;
 
     vec.Resize(numElems);
     for (UInt i=0; i<numElems; i++) {
@@ -461,17 +467,6 @@ namespace CoupledField {
     return res;
   }
 
-  shared_ptr<BaseFeFunction> StdPDE::GetFeFunction( SolutionType solType ) {
-    
-    shared_ptr<BaseFeFunction> feFct;
-    if( feFunction_->GetResultInfo()->resultType == solType) {
-      feFct = feFunction_;
-    } else {
-      EXCEPTION( "A FeFunction with solutionType '" << SolutionTypeEnum.ToString(solType)
-                 << "' was not found for " << pdename_ );
-    }
-    return feFct;
-  }
 
   // ******************
   //   ReadOlasParams
@@ -501,4 +496,74 @@ namespace CoupledField {
 
   }
 
+  //============================================================================================
+  //FeFunction Methods
+  //============================================================================================
+
+  shared_ptr<BaseFeFunction> StdPDE::GetFeFunction( SolutionType solType, std::string name ) {
+    
+    //TODO> We need to find a more failsafe way to store the entity names associated with a 
+    //FeFunction
+    shared_ptr<BaseFeFunction> feFct;
+    bool found = false;
+    if( functions_.find(solType) == functions_.end()){
+      EXCEPTION( "A FeFunction descriptor with solutionType '" << SolutionTypeEnum.ToString(solType)
+                 << "' was not found for " << pdename_ );
+    }
+    StdVector<FunctionDescription> descr = functions_[solType];
+    if(descr.GetSize() == 1){
+      feFct = descr[0].feFunction;
+      found = true;
+    }else{
+      for(UInt i = 0 ; i < descr.GetSize() ; i ++){
+        for(UInt actName = 0; actName <  descr[i].entityNames.GetSize(); actName++){
+          if(descr[i].entityNames[actName] == name){
+            feFct = descr[i].feFunction;
+            found = true;
+            break;
+          }
+        }
+      }
+    }
+    if(!found)
+        EXCEPTION("StdPDE::GetFeFunction: Could not find the corresponding FeFunction for the given entity name\n \
+                   Did you specify all Regions, Surfregions and NamedNodes in the xml?");
+
+    return feFct;
+  }
+
+  shared_ptr<BaseFeFunction> StdPDE::GetFeFunction( SolutionType solType, RegionIdType regID ) {
+    
+    //TODO> We need to find a more failsafe way to store the entity names associated with a 
+    //FeFunction
+    shared_ptr<BaseFeFunction> feFct;
+    bool found = false;
+    if( functions_.find(solType) == functions_.end()){
+      EXCEPTION( "A FeFunction descriptor with solutionType '" << SolutionTypeEnum.ToString(solType)
+                 << "' was not found for " << pdename_ );
+    }
+    StdVector<FunctionDescription> descr = functions_[solType];
+    if(descr.GetSize() == 1){
+      feFct = descr[0].feFunction;
+      found = true;
+    }else{
+      for(UInt i = 0 ; i < descr.GetSize() ; i ++){
+        for(UInt actReg = 0; actReg <  descr[i].regions.GetSize(); actReg++){
+          if(descr[i].regions[actReg] == regID){
+            feFct = descr[i].feFunction;
+            found = true;
+            break;
+          }
+        }
+      }
+    }
+    if(!found)
+        EXCEPTION("StdPDE::GetFeFunction: Could not find the corresponding FeFunction for the given entity name\n \
+                   Did you specify all Regions, Surfregions and NamedNodes in the xml?");
+
+    return feFct;
+  }
+  StdVector<BasePDE::FunctionDescription> StdPDE::GetFunctionDescriptors(SolutionType type){
+    return functions_[type];
+  };
 } // end of namespace

@@ -62,6 +62,13 @@ public:
   typedef enum{NOBC, HDBC = -2, IDBC = -3, CONSTRAINT = -4} BC_Type;
   //@}
 
+  //! Flag for Grid determined mapping of element DOFs or polinomial based mapping 
+  typedef enum {GRID,POLYNOMIAL} MappingType; 
+
+  //! Enum which stores the (Virtual) Nodes of an element according to
+  //! thier definition on vertices,edges,faces and interor
+  typedef std::map< ElementEntityType , StdVector<UInt> > ElemVirtualNodes;
+
   //! Constructor
   FeSpace();
 
@@ -100,6 +107,12 @@ public:
   //! Get a Nodal Equation number
   virtual UInt GetNodeEqn(UInt nodeNr, UInt dof) = 0;
 
+  //! Get Equation numbers for a specific element
+  virtual void GetElemEqns(StdVector<Integer>& eqns,const Elem* elem) = 0;
+
+  //! Get Equation numbers for a specific element
+  virtual void GetElemEqns(StdVector<Integer>& eqns,const Elem* elem, UInt dof) = 0;
+
   //! Reorder the equation Map (just for comptibility)
   virtual void ReorderEqnMap( StdVector<UInt> newOrder ) = 0;
 
@@ -108,7 +121,8 @@ public:
 
   //! Get number of equaitons thich are not fixed by BCs this space has assinged
   virtual UInt GetNumFreeEquations(){
-    // Hardcoded for testing
+    // in this approach we assume the penalty approach towards
+    // solution. otherwise we would need to return only the free equations
     return numEqns_;
     //return numFreeEquations_;
   }
@@ -116,6 +130,16 @@ public:
   //! Get number of equaitons this space has assinged
   virtual UInt GetNumEquations(){
     return numEqns_;
+  }
+
+  //! Sets the MapType of the equation numbering to GridBased or PolinomialBased Mapping
+  virtual void SetMapType(MappingType type){
+    mapType_ = type;
+  }
+
+  //! Returns the MapType of the equation numbering
+  MappingType GetMapType(){
+    return mapType_;
   }
 
   //! Get number of (vectorial) unknowns this space has assinged
@@ -145,6 +169,24 @@ public:
   
 protected:
 
+
+  //! A Function Creating the virtual Node Array, this method adds virtual
+  //! node numbers to each element, thus making the equation numbering more
+  //! convenient
+  virtual void CreateVirtualNodes() = 0;
+
+  //! Get all Node Numbers according to the mapping GRID based or
+  //! POLYNOMIAL Based according to the Type requested
+  virtual void GetNodesOfEntities( StdVector<UInt>& nodes,
+                                   shared_ptr<EntityList> ent,
+                                   ElementEntityType entType = ALL);
+
+  //! Get all Node Numbers of a specific element according to the mapping GRID based or
+  //! POLYNOMIAL Based according to the Type requested
+  virtual void GetNodesOfElement( StdVector<UInt>& nodes,
+                                  const Elem* ptElem,
+                                  ElementEntityType entType = ALL);
+
   //! Type of element space
   Type type_;
   
@@ -170,6 +212,25 @@ protected:
   
   //! map for storing the number of different boundary conditions
   std::map< BC_Type, UInt> bcCounter_;
+
+  //! sotres if equation numbering is grid based or order based
+  MappingType mapType_;
+
+  //! Associates GridNodeNumbers to virtual node numbers
+  //! Needed e.g. for quadratic Grids in combination with NodalBCs and linear,
+  //! Polinomial approximation
+  std::map<UInt,UInt> gridToVirtualNodes_;
+
+  //! Stores every assigned virtual node
+  StdVector<UInt> nodes_;
+
+  //! This is the virtual node Map for standard element it just contains
+  //! the connectivity of the element, for higher order elements it contains also 
+  //! the virtual node numbers in the correct ordering
+  //! This Variable could be extened to store also the coordinates of all nodes
+  //! created
+  std::map< UInt, ElemVirtualNodes > virtualNodes_;
+
 };
 
 

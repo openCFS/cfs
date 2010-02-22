@@ -275,8 +275,7 @@ namespace CoupledField {
     UInt numEnt = 0;
     UInt loc;
     
-    if ( entityType == ResultInfo::NODE ||
-         entityType == ResultInfo::PFEM ) {
+    if ( entityType == ResultInfo::NODE  ) {
       loc = 1;
       numEnt = ptGrid_->GetNumNodes();
     } else {
@@ -308,8 +307,7 @@ namespace CoupledField {
     UInt numEnt = 0;
     UInt loc;
     
-    if ( entityType == ResultInfo::NODE ||
-         entityType == ResultInfo::PFEM ) {
+      if ( entityType == ResultInfo::NODE ) {
       loc = 1;
       numEnt = ptGrid_->GetNumNodes();
     } else {

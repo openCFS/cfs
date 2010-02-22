@@ -10,6 +10,9 @@ namespace CoupledField {
 
   BaseFeFunction::BaseFeFunction(){
     mHandle_ = domain->GetMathParser()->GetNewHandle();
+    isoOrder_ = 0;
+    anIsoOrder_.Resize(0);
+
   }
   
   BaseFeFunction::~BaseFeFunction(){
@@ -63,6 +66,22 @@ namespace CoupledField {
 
   shared_ptr<BaseSystem> BaseFeFunction::GetSystem(){
     return algsys_;
+  }
+
+  void BaseFeFunction::SetIsoOrder(UInt order){
+    isoOrder_ = order;
+  }
+
+  UInt BaseFeFunction::GetIsoOrder(){
+    return isoOrder_;
+  }
+
+  void BaseFeFunction::SetAnIsoOrder(StdVector<UInt> order){
+    anIsoOrder_ = order;
+  }
+
+  StdVector<UInt> BaseFeFunction::GetAnIsoOrder(){
+    return anIsoOrder_;
   }
 
   void BaseFeFunction::AddHomDirichletBc( shared_ptr<HomDirichletBc> bc ){

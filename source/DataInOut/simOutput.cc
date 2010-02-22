@@ -56,8 +56,7 @@ namespace CoupledField {
           }
         }
       }
-    } else if ( entityType == ResultInfo::NODE ||
-                entityType == ResultInfo::PFEM ) {
+    } else if ( entityType == ResultInfo::NODE ) {
 
       // === Nodal Results ===
       gSol.Resize( ptGrid->GetNumNodes()*numDofs );
@@ -84,7 +83,6 @@ namespace CoupledField {
   bool SimOutput::ValidateNodesAndElements(ResultInfo& actInfo)
   {
     if(actInfo.definedOn != ResultInfo::NODE &&
-       actInfo.definedOn != ResultInfo::PFEM &&
        actInfo.definedOn != ResultInfo::ELEMENT &&
        actInfo.definedOn != ResultInfo::SURF_ELEM ) 
     {

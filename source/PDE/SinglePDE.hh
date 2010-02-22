@@ -39,6 +39,7 @@ namespace CoupledField
     // friend declaration
     friend class BasePairCoupling;
     friend class DirectCoupledPDE;
+
     
     //! typedefs for result handling
     typedef std::set<shared_ptr<ResultInfo> > ResultSet;
@@ -117,6 +118,8 @@ namespace CoupledField
 
     //! return subtype
     virtual std::string GetSubType() {return subType_;}
+
+
 
     //! Set Direct coupling information
     virtual void SetDirectCoupling();
@@ -279,6 +282,13 @@ namespace CoupledField
     //! Initialize NonLinearities
     virtual void InitNonLin(){};
 
+    //! Define FeFunctions for this PDE according to the
+    //! definition in the XML file
+    virtual void DefineFeFunctions();
+
+    //! Define Default FeFunctions for this PDE according to the
+    //! needs of the particular PDE
+    virtual void DefineDefaultFeFunctions() = 0;
 
     //@{
     //! Save load part of RHS to private variable

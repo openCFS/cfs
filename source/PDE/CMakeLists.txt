@@ -20,7 +20,7 @@ SET(PDE_SRCS
 #  magEdgePDE.cc
 #  magneticPDE.cc
 #  mechPDE.cc
-  mixedEqnMap.cc
+#  mixedEqnMap.cc
 #  mpcciPDE.cc
   newmark.cc
   newmarkFracDamp.cc

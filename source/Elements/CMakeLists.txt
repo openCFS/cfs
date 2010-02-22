@@ -31,9 +31,11 @@ SET(ELEMENTS_SRCS jacobian.cc basefe.cc
 fefunction.cc
 fespace.cc
 fespaceH1.cc
+fespaceH1Lagrange.cc
 #elemshapes.cc
 elemShapeMap.cc
 H1Elems.cc
+H1LagrangeVar.cc
 integrationScheme.cc
 )
 

@@ -21,28 +21,43 @@ namespace CoupledField {
   class IntegrationScheme {
   
   public:
+    typedef std::map<Elem::FEType,StdVector<LocPoint> > IntegrationPoints;
+    typedef std::map<Elem::FEType,StdVector<Double> > IntegrationWeights;
     
     //! Constructor
     IntegrationScheme();
-    
+
     //! Destructor
     ~IntegrationScheme();
   
     //! Set method and order
-    void SetOrder( std::string method, UInt oder);
+    void SetOrder( std::string method, UInt order);
+
+    //! Set method and order
+    void SetOrder( IntegrationMethod method, UInt order);
 
     //! Get integration points / weights
     void GetIntPoints( Elem::FEType elemType,
                          StdVector<LocPoint>& intPts, 
                          StdVector<Double>& weights );  
 private:
+    //! Adds the Gauss Lobatto Points up to the given order to the Integration maps
+    void FillGaussLobattoIntegPoints(UInt order);
+
+    //! Calculate the Gauss-Lobatto points an weights for the given order
+    void CalcGaussLobattoPointsWeights(UInt order,StdVector<Double>& points, StdVector<Double>& weights);
   
-    //! Map with integration points for each element type
-    std::map<Elem::FEType,StdVector<LocPoint> > intPoints_;
+    //! Map with integration points for each element type According to the Template Paramter Integration Scheme
+    std::map<IntegrationMethod, std::map< UInt, IntegrationPoints > > intPoints_;
     
     //! Map with integration weights for each element type
-    std::map<Elem::FEType,StdVector<Double> > intWeights_;
-    
+    std::map<IntegrationMethod, std::map< UInt, IntegrationWeights > > intWeights_;
+
+    //! the current method of integration
+    IntegrationMethod integMethod_;
+
+    UInt order_;
+      
     // Old Integration point imeplementation from BaseFE
 //    
 //    // ========================================================================

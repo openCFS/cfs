@@ -1330,9 +1330,9 @@ hsize_t H5IO::maxChunkSize_= 100;
     case ResultInfo::SURF_ELEM:
       definedOn = 5;
       break;
-    case ResultInfo::PFEM:
-      definedOn = 6;
-      break;
+    //case ResultInfo::PFEM:
+    //  definedOn = 6;
+    //  break;
     case ResultInfo::REGION:
       definedOn = 7;
       break;
@@ -1372,9 +1372,9 @@ hsize_t H5IO::maxChunkSize_= 100;
      case ResultInfo::SURF_ELEM:
        definedOn = "Elements";
        break;
-     case ResultInfo::PFEM:
-       definedOn = "Nodes";
-       break;
+     //case ResultInfo::PFEM:
+     //  definedOn = "Nodes";
+     //  break;
      case ResultInfo::REGION:
        definedOn = "Regions";
        break;
@@ -1416,9 +1416,9 @@ hsize_t H5IO::maxChunkSize_= 100;
     case 5:
       definedOn = ResultInfo::SURF_ELEM;
       break;
-    case 6:
-      definedOn = ResultInfo::PFEM;
-      break;
+    //case 6:
+    //  definedOn = ResultInfo::PFEM;
+    //  break;
     case 7:
       definedOn = ResultInfo::REGION;
       break;

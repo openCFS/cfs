@@ -39,6 +39,7 @@ namespace CoupledField
     // We generate the object, so we will delete it
     matDataType_ = Global::REAL;
     delMatDataAtEnd_ = false;
+    intScheme_.reset( new IntegrationScheme());
 
     baseType_ = NOTYPE;
     isSolDependent_ = false;
@@ -46,9 +47,9 @@ namespace CoupledField
     softeningModel_ = "no";   
 
     // Initialize form with standard Lagrange ansatz fct object
-    shared_ptr<AnsatzFct> fct( new LagrangeFct() );
-    ansatzFct1_ = fct;
-    ansatzFct2_ = fct;
+    //shared_ptr<AnsatzFct> fct( new LagrangeFct() );
+    //ansatzFct1_ = fct;
+    //ansatzFct2_ = fct;
 
 #ifndef INTEGLIB
 
@@ -90,6 +91,9 @@ namespace CoupledField
 //     }
   }
 
+  void BaseForm::SetIntegration(IntegrationMethod integScheme,UInt order){
+    intScheme_->SetOrder(integScheme,order);
+  }
 
   // ***************
   //   SetMaterial
@@ -108,19 +112,19 @@ namespace CoupledField
   }
 
  
-  void BaseForm::SetAnsatzFct( shared_ptr<AnsatzFct> actFct1,
-                               shared_ptr<AnsatzFct> actFct2 ) {
+  //void BaseForm::SetAnsatzFct( shared_ptr<AnsatzFct> actFct1,
+  //                             shared_ptr<AnsatzFct> actFct2 ) {
 
-    assert( actFct1 != NULL );
-    ansatzFct1_ = actFct1;
+  //  assert( actFct1 != NULL );
+  //  ansatzFct1_ = actFct1;
 
-    if( actFct2 != NULL ) {
-      ansatzFct2_ = actFct2;
-    } else {
-      ansatzFct2_ = ansatzFct1_;
-    } 
+  //  if( actFct2 != NULL ) {
+  //    ansatzFct2_ = actFct2;
+  //  } else {
+  //    ansatzFct2_ = ansatzFct1_;
+  //  } 
 
-  }
+  //}
 
    /** for ersatz material w and w/o SIMP. */
   Double BaseForm::GetErsatzMaterialFactor(const Elem* elem)

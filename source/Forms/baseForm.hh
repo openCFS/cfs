@@ -21,7 +21,6 @@ namespace CoupledField
 {
   
   // forward class declaration
-  class AnsatzFct;
   class FeSpace;
 
   //! Base class for calculation of bdb element matrices
@@ -52,7 +51,12 @@ namespace CoupledField
     
     //! Set Finite Element Space
     void SetFeSpace( shared_ptr<FeSpace> feSpace ) {
-      this->ptFeSpace_ = feSpace;
+      this->ptFeSpace1_ = feSpace;
+    }
+
+    void SetFeSpace( shared_ptr<FeSpace> feSpace1, shared_ptr<FeSpace> feSpace2) {
+      this->ptFeSpace1_ = feSpace1;
+      this->ptFeSpace2_ = feSpace2;
     }
 
 #ifndef INTEGLIB
@@ -103,9 +107,9 @@ namespace CoupledField
     //! sets pointer to actual material
     void SetMaterial( BaseMaterial* matPtr );
 
-    //!
-    void SetAnsatzFct( shared_ptr<AnsatzFct> actFct1,
-                       shared_ptr<AnsatzFct> actFct2 = shared_ptr<AnsatzFct>() );
+    ////!
+    //void SetAnsatzFct( shared_ptr<AnsatzFct> actFct1,
+    //                   shared_ptr<AnsatzFct> actFct2 = shared_ptr<AnsatzFct>() );
 
     //! Query if bilinearform uses updated lagrangian formulation
     bool IsCoordUpdate() { return coordUpdate_; }
@@ -204,6 +208,7 @@ namespace CoupledField
     virtual void ExtractElemInfo( EntityIterator& it);
     
 #endif
+    virtual void SetIntegration(IntegrationMethod integScheme,UInt order);
 
   protected:
 
@@ -226,8 +231,8 @@ namespace CoupledField
     EntityIterator it2_;
 
     //! pointer to ansatz fct
-    shared_ptr<AnsatzFct> ansatzFct1_;
-    shared_ptr<AnsatzFct> ansatzFct2_;
+    //shared_ptr<AnsatzFct> ansatzFct1_;
+    //shared_ptr<AnsatzFct> ansatzFct2_;
 #endif
 
     //! flag indicating if element matrix is symmetric
@@ -246,9 +251,12 @@ namespace CoupledField
     //! matrix with coordinates of current element
     Matrix<Double> ptCoord_;
     
-    //! pointer to finite element space
-    shared_ptr<FeSpace> ptFeSpace_;
+    //! pointer to finite element space 1
+    shared_ptr<FeSpace> ptFeSpace1_;
     
+    //! pointer to finite element space 2
+    shared_ptr<FeSpace> ptFeSpace2_;
+
     //! pointer to material data
     BaseMaterial* ptMaterial;
 
@@ -265,6 +273,9 @@ namespace CoupledField
     Vector<Double> intPoint_;
     //
     bool isSetIntPoint_;
+
+    //! The Integration Scheme used for this bilinear form
+    shared_ptr<IntegrationScheme> intScheme_;
 
     Global::ComplexPart matDataType_;     //! default = realMaterialParamter, piezoMatType_ = imagMaterialParamter if we consider complex-valued material Paramter;
 

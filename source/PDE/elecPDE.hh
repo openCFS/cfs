@@ -101,6 +101,9 @@ namespace CoupledField
     //! is negative compared to the normal one
     void SetThermoCoupling();
 
+    //! Define Default FeFunctions for this PDE according to the
+    //! needs of the particular PDE
+    virtual void DefineDefaultFeFunctions();
 
   protected:
 

@@ -1949,9 +1949,18 @@ namespace CoupledField {
     SolutionTypeEnum.Add(OPT_RESULT_9, "optResult_9");
     // independent
     SolutionTypeEnum.Add(LAGRANGE_MULT, "LagrangeMultiplier");
+
+    //===========================================================
+    //Ansatz Types
+    //===========================================================
+    AnsatzTypeEnum.Add(GRID, "Grid");
+    AnsatzTypeEnum.Add(SPECTRAL, "Spectral");
+    AnsatzTypeEnum.Add(LEGENDRE, "Legendre");
   }
   
   Enum<SolutionType> SolutionTypeEnum;
+
+  Enum<AnsatzType> AnsatzTypeEnum;
 
 }
 
