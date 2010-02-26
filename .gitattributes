@@ -50,6 +50,10 @@ ctest_scripts/ctest_lse27_gcc_nightly.cmake -text
 ctest_scripts/ctest_lse27_icc_nightly.cmake -text
 ctest_scripts/ctest_lse35_gcc_nightly.cmake -text
 ctest_scripts/ctest_lse35_icc_nightly.cmake -text
+ctest_scripts/ctest_lse501V_gcc_nightly.cmake -text
+ctest_scripts/ctest_lse501V_icc_nightly.cmake -text
+ctest_scripts/ctest_lse502V_gcc_nightly.cmake -text
+ctest_scripts/ctest_lse502V_icc_nightly.cmake -text
 ctest_scripts/ctest_mac_gcc_experimental.cmake -text
 ctest_scripts/ctest_mac_icc_experimental.cmake -text
 ctest_scripts/ctest_rom_gcc_experimental.cmake -text
