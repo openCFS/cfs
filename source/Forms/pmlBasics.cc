@@ -20,6 +20,9 @@ namespace CoupledField
     else if ( type == "massInt" ) {
       formsType_ = type;
     }
+    else if ( type == "mixedPMLMassPPInt" || type == "mixedPMLMassVVInt") {
+        formsType_ = type;
+    }
     //    else {
     //      EXCEPTION("PMLInt: type must be laplaceInt or massInt");
     //    }
@@ -63,79 +66,72 @@ namespace CoupledField
       factors[0] = Complex(1.0,-imagVal);
 
       if ( pos[1] < minY_ || pos[1] > maxY_ ) {
-	factor = ComputeDampingFactor(pos, Y);
-	imagVal = factor * omegaInv;
-	factors[1] = Complex(1.0,-imagVal);
+	      factor = ComputeDampingFactor(pos, Y);
+	      imagVal = factor * omegaInv;
+	      factors[1] = Complex(1.0,-imagVal);
 
-	//check for 3D
-	if (numVals == 3) {
-	  if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
-	    //compute z-value
-	    factor = ComputeDampingFactor(pos, Z);
-	    imagVal = factor * omegaInv;
-	    factors[2] = Complex(1.0,-imagVal);
-	  }
-	  else {
-	    factors[2] = Complex(1.0,0);
-	  }
-	}
+	      //check for 3D
+	      if (numVals == 3) {
+	        if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
+	          //compute z-value
+	          factor = ComputeDampingFactor(pos, Z);
+	          imagVal = factor * omegaInv;
+	          factors[2] = Complex(1.0,-imagVal);
+	        } else {
+	          factors[2] = Complex(1.0,0);
+	        }
+	      }
+      } else {
+	      factors[1] = Complex(1.0,0);
+
+	      //check for 3D
+	      if (numVals == 3) {
+	        if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
+	          //compute z-value
+	          factor  = ComputeDampingFactor(pos, Z);
+	          imagVal = factor * omegaInv;
+	          factors[2] = Complex(1.0,-imagVal);
+	        }
+	        else {
+	          factors[2] = Complex(1.0,0);
+	        }
+	      }
       }
-      
-      else {
-	factors[1] = Complex(1.0,0);
-
-	//check for 3D
-	if (numVals == 3) {
-	  if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
-	    //compute z-value
-	    factor  = ComputeDampingFactor(pos, Z);
-	    imagVal = factor * omegaInv;
-	    factors[2] = Complex(1.0,-imagVal);
-	  }
-	  else {
-	    factors[2] = Complex(1.0,0);
-	  }
-	}
-      }
-    }
-
-    else {
+    } else {
       factors[0] = Complex(1.0,0.0); 
 
       if ( pos[1] < minY_ || pos[1] > maxY_ ) {
-	//compute y-value
-	factor  = ComputeDampingFactor(pos, Y);
-	imagVal = factor * omegaInv;
-	factors[1] = Complex(1.0,-imagVal);
+	      //compute y-value
+	      factor  = ComputeDampingFactor(pos, Y);
+	      imagVal = factor * omegaInv;
+	      factors[1] = Complex(1.0,-imagVal);
 
-	//check for 3D
-	if (numVals == 3) {
-	  if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
-	    //compute z-value
-	    factor  = ComputeDampingFactor(pos, Z);
-	    imagVal = factor * omegaInv;
-	    factors[2] = Complex(1.0,-imagVal);
-	  }
-	  else {
-	    factors[2] = Complex(1.0,0);
-	  }
-	}
-      }
+	      //check for 3D
+	      if (numVals == 3) {
+	        if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
+	          //compute z-value
+	          factor  = ComputeDampingFactor(pos, Z);
+	          imagVal = factor * omegaInv;
+	          factors[2] = Complex(1.0,-imagVal);
+	        }
+	        else {
+	          factors[2] = Complex(1.0,0);
+	        }
+	      }
+      } else {
+	      factors[1] = Complex(1.0,0); 
 
-      else {
-	factors[1] = Complex(1.0,0); 
-
-	//check for 3D
-	if (numVals == 3) {
-	  if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
-	    factor  = ComputeDampingFactor(pos, Z);
-	    imagVal = factor * omegaInv;
-	    factors[2] = Complex(1,-imagVal);
-	  }
-	  else {
-	    factors[2] = Complex(1.0,0);
-	  }
-	}
+	      //check for 3D
+	      if (numVals == 3) {
+	        if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
+	          factor  = ComputeDampingFactor(pos, Z);
+	          imagVal = factor * omegaInv;
+	          factors[2] = Complex(1,-imagVal);
+	        }
+	        else {
+	          factors[2] = Complex(1.0,0);
+	        }
+	      }
       }
     }
 
@@ -146,7 +142,7 @@ namespace CoupledField
     factorsPML.Resize(numVals);
     factorsPML.Init();
 
-    if ( formsType_ == "laplaceInt") {
+    if ( formsType_ == "laplaceInt" || formsType_ == "mixedPMLMassPPInt" || formsType_ == "mixedPMLMassVVInt") {
       if (numVals == 3) {
         factorsPML[0] = Complex(1.0,0) / factors[0];  
         //y-part
@@ -254,75 +250,70 @@ namespace CoupledField
 
     else if ( dampingTypePML_ == "quadDist" ) {
       if ( dir == X ) {
-	//get correct layer thickness
-	if ( pos[0] < minX_ ) {
-	  delta = layerThickness_[0][0];
-	  diffCoord = abs(pos[0]) - minX_;
-	}
-	else {
-	  delta = layerThickness_[1][0];
-	  diffCoord = abs(pos[0]) - maxX_;
-	}
+	      //get correct layer thickness
+	      if ( pos[0] < minX_ ) {
+	        delta = layerThickness_[0][0];
+	        diffCoord = abs(pos[0]) - minX_;
+	      }
+	      else {
+	        delta = layerThickness_[1][0];
+	        diffCoord = abs(pos[0]) - maxX_;
+	      }
       }
       else if ( dir == Y ) {
-	//get correct layer thickness
-	if ( pos[1] < minY_ ) {
-	  delta = layerThickness_[0][1];
-	  diffCoord = abs(pos[1]) - minY_;
-	}
-	else {
-	  delta = layerThickness_[1][1];
-	  diffCoord = abs(pos[1]) - maxY_;
-	}
+	      //get correct layer thickness
+	      if ( pos[1] < minY_ ) {
+	        delta = layerThickness_[0][1];
+	        diffCoord = abs(pos[1]) - minY_;
+	      }
+	      else {
+	        delta = layerThickness_[1][1];
+	        diffCoord = abs(pos[1]) - maxY_;
+	      }
       }
       else {
-	//get correct layer thickness
-	if ( pos[2] < minZ_ ) {
-	  delta = layerThickness_[0][2];
-	  diffCoord = abs(pos[2]) - minZ_;
-	}
-	else {
-	  delta = layerThickness_[1][2];
-	  diffCoord = abs(pos[2]) - maxZ_;
-	}
+	      //get correct layer thickness
+	      if ( pos[2] < minZ_ ) {
+	        delta = layerThickness_[0][2];
+	        diffCoord = abs(pos[2]) - minZ_;
+	      }
+	      else {
+	        delta = layerThickness_[1][2];
+	        diffCoord = abs(pos[2]) - maxZ_;
+	      }
       }
 
       factor = dampingFactor_ * ( diffCoord*diffCoord )/ ( delta*delta );
 
-    }
+    } else if ( dampingTypePML_ == "inverseDist" ) {
 
-    else if ( dampingTypePML_ == "inverseDist" ) {
       if ( dir == X ) {
-	//get correct maximal PML y-coordinate
-	if ( pos[0] < minX_ ) {
-	  maxPos = minX_ - layerThickness_[0][0];
-	}
-	else {
-	  maxPos = maxX_ + layerThickness_[1][0];
-	}
-	idx = 0;
-      }
-
-      else if ( dir == Y ) {
-	//get correct maximal PML y-coordinate
-	if ( pos[1] < minY_ ) {
-	  maxPos = minY_ - layerThickness_[0][1];
-	}
-	else {
-	  maxPos = maxY_ + layerThickness_[1][1];
-	}
-	idx = 1;
-      }
-
-      else {
-	//get correct maximal PML z-coordinate
-	if ( pos[2] < minZ_ ) {
-	  maxPos = minZ_ - layerThickness_[0][2];
-	}
-	else {
-	  maxPos = maxZ_ + layerThickness_[1][2];
-	}
-	idx = 2;
+	      //get correct maximal PML y-coordinate
+	      if ( pos[0] < minX_ ) {
+	        maxPos = minX_ - layerThickness_[0][0];
+	      }
+	      else {
+	        maxPos = maxX_ + layerThickness_[1][0];
+	      }
+	      idx = 0;
+      } else if ( dir == Y ) {
+	      //get correct maximal PML y-coordinate
+	      if ( pos[1] < minY_ ) {
+	        maxPos = minY_ - layerThickness_[0][1];
+	      }
+	      else {
+	        maxPos = maxY_ + layerThickness_[1][1];
+	      }
+	      idx = 1;
+      } else {
+	      //get correct maximal PML z-coordinate
+	      if ( pos[2] < minZ_ ) {
+	        maxPos = minZ_ - layerThickness_[0][2];
+	      }
+	      else {
+	        maxPos = maxZ_ + layerThickness_[1][2];
+	      }
+	      idx = 2;
       }
 
       if ( abs (maxPos - pos[idx]) < 1e-12 ) {

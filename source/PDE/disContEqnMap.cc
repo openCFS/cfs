@@ -71,13 +71,14 @@ namespace CoupledField {
 
       // iterate over all entries in the current map and renumber them
       for ( UInt i = 0; i < actMap.GetNumRows(); i++ ) {
-        for ( UInt j = 0; j < actMap.GetNumRows(); j++ ) {
+        for ( UInt j = 0; j < actMap.GetNumCols(); j++ ) {
           if ( actMap[i][j] > 0 ) {
-            actMap[i][j] = order[actMap[i][j]-1];
+            std::cout << actMap[i][j]-1<< std::endl;
+            actMap[i][j] = (Integer)order[actMap[i][j]-1];
           }
           else if(actMap[i][j] < 0 ) {
             //due to constraints
-            actMap[i][j] = -order[-actMap[i][j]-1];   
+            actMap[i][j] = -(Integer)order[-actMap[i][j]-1];   
           }
         }
       }
@@ -193,11 +194,11 @@ namespace CoupledField {
           LOG_DBG3(disContEqnMap) << "WARNING: GetDisContEqn Called with nodelist. Its possible that this will return the wrong\
                       equation number! " << std::endl;
           UInt node = it.GetNode();
-          eqns.Clear();
+          eqns.Resize( 0);
           eqns.Init();
           
           Integer localNode = -999;
-          eqns.Clear();
+          eqns.Resize(0);
           for (UInt i = 0 ;i < mesh2DisPdeNode_[ node-1 ].GetSize() ; i++)
           {
             localNode = mesh2DisPdeNode_[ node-1 ][i][1];
@@ -915,7 +916,8 @@ namespace CoupledField {
             if(static_cast<UInt>(mesh2DisPdeNode_[actEl->connect[iNode]-1][i][0]) == actEl->elemNum)
             {  
               found = true;
-              EXCEPTION("found an already mapped entity, this should not happen!");
+              //std::cerr << "Error while mapping Node #"<< actEl->connect[iNode]-1 << "of element #" <<  actEl->elemNum << std::endl;
+              //EXCEPTION("found an already mapped entity, this should not happen!");
               break;
             }
           }
@@ -925,6 +927,7 @@ namespace CoupledField {
             mesh2DisPdeNode_[actEl->connect[iNode]-1][mesh2DisPdeNode_[actEl->connect[iNode]-1].GetSize()-1][0] = actEl->elemNum;
             mesh2DisPdeNode_[actEl->connect[iNode]-1][mesh2DisPdeNode_[actEl->connect[iNode]-1].GetSize()-1][1] = ++numLocNodes_;
             pde2MeshNode_.Push_back(actEl->connect[iNode]);
+            std::cout << "Adding node " << actEl->connect[iNode] << " to element #" << mesh2DisPdeNode_[actEl->connect[iNode]-1][mesh2DisPdeNode_[actEl->connect[iNode]-1].GetSize()-1][0] << " with local node" << numLocNodes_ << std::endl;
           }
         }
       }
@@ -1243,13 +1246,15 @@ namespace CoupledField {
           		  	locNode = mesh2DisPdeNode_[actEl->connect[iNode]-1][i][1];
           		  	for ( UInt iDof = 0; iDof < dofsPerNode; iDof++ ) 
           		  	{
-          		  	  if ( actMap[locNode-1][iDof] == NO_EQN && countNodes[locNode-1][iDof] == 0 ) 
+          		  	  if ( actMap[locNode-1][iDof] == NO_EQN )//&& countNodes[locNode-1][iDof] == 0 ) 
           		  	  {
           		  	    numEqns_++;
-          		  	    LOG_DBG3(disContEqnMap) << "Adding equation " << numEqns_ 
-          		  	                     << " to local node " << locNode << std::endl;
+          		  	    //LOG_DBG3(disContEqnMap) << "Adding equation " << numEqns_ 
+          		  	    //                 << " to local node " << locNode << std::endl;
+          		  	    std::cout << "Adding equation " << numEqns_ 
+          		  	                     << " to local node " << locNode << " to DOF" << iDof << std::endl;
           		  	    actMap[locNode-1][iDof] = numEqns_;
-          		  	    countNodes[locNode-1][iDof] = 1;
+          		  	    countNodes[locNode-1][iDof] += 1;
           		  	  }
           		  	}
 								}
@@ -1264,7 +1269,7 @@ namespace CoupledField {
         // Re-iterate over the whole equation map and set all entries 
         // with eqn-number of NO_EQN to 0
         for( UInt i = 0; i < actMap.GetNumRows(); i++ ) {
-          for( UInt j = 0; j < actMap.GetNumRows(); j++ ) {
+          for( UInt j = 0; j < actMap.GetNumCols(); j++ ) {
             if( actMap[i][j] == NO_EQN )
               actMap[i][j] = 0;
           }
@@ -1759,20 +1764,32 @@ namespace CoupledField {
                     actMap[locEdge-1].Init();
                   }
                   
-                  Integer elemIdx = 0;
-                  bool foundIdx = false;
+                  Integer elemIdx1 = 0;
+                  Integer elemIdx2 = 0;
+                  bool foundIdx1 = false;
+                  bool foundIdx2 = false;
                   // iterate over all dofs
                   for( UInt iDof = 0; iDof < dofsPerEdge; iDof++ ) {
-                    elemIdx = -333;
-                    foundIdx = false;
+                    elemIdx1 = -333;
+                    elemIdx2 = -333;
+                    foundIdx1 = false;
+                    foundIdx2 = false;
                     //find the correct element the edge belons to
                     for ( UInt k=0;k< mesh2DisPdeNode_[edge.nodes[0]-1].GetSize() ;k++ ) {
                       if(static_cast<UInt>(mesh2DisPdeNode_[edge.nodes[0]-1][k][0])== actEl.elemNum ) {
-                        elemIdx=k;
-                        foundIdx = true;
+                        elemIdx1=k;
+                        foundIdx1 = true;
                       }
                     }
-                    assert(foundIdx); 
+                    for ( UInt k=0;k< mesh2DisPdeNode_[edge.nodes[1]-1].GetSize() ;k++ ) {
+                      if(static_cast<UInt>(mesh2DisPdeNode_[edge.nodes[1]-1][k][0])== actEl.elemNum ) {
+                        elemIdx2=k;
+                        foundIdx2 = true;
+                      }
+                    }
+                    assert(foundIdx1); 
+                    assert(foundIdx2); 
+
                     //spectral and legendre functions have to be treated
                     //differently in the case of inhomognious BCs due to the
                     //non-hirarchical structure of sprectral approximations
@@ -1781,21 +1798,21 @@ namespace CoupledField {
                       // (= are (in-)hom. Dirichlet nodes)
                       // of if the edge with this dof has a smaller order
                       // than the maximum for this edge -> assign 0 equation number
-                      if(  (actNodeMap[mesh2DisPdeNode_[edge.nodes[0]-1][elemIdx][1]-1][iDof] != 0  || 
-                            actNodeMap[mesh2DisPdeNode_[edge.nodes[1]-1][elemIdx][1]-1][iDof] != 0) &&
+                      if(  (actNodeMap[mesh2DisPdeNode_[edge.nodes[0]-1][elemIdx1][1]-1][iDof] != 0  || 
+                            actNodeMap[mesh2DisPdeNode_[edge.nodes[1]-1][elemIdx2][1]-1][iDof] != 0) &&
                            (iFcn < numFcns[iDof][iEdge]) ) 
                       {
                         actMap[locEdge-1][pos++] = numEqns_ + counter + 1;
-                        if( actNodeMap[mesh2DisPdeNode_[edge.nodes[0]-1][elemIdx][1]-1][iDof] < 0  && 
-                            actNodeMap[mesh2DisPdeNode_[edge.nodes[1]-1][elemIdx][1]-1][iDof] < 0)
+                        if( actNodeMap[mesh2DisPdeNode_[edge.nodes[0]-1][elemIdx1][1]-1][iDof] < 0  && 
+                            actNodeMap[mesh2DisPdeNode_[edge.nodes[1]-1][elemIdx2][1]-1][iDof] < 0)
                           numIdBcs_++;
 
                         counter++;
                       }else
                         actMap[locEdge-1][pos++] = 0;
                     } else if ( actRes.fctType->GetType() == AnsatzFct::LEGENDRE ) {
-                      if(  (actNodeMap[mesh2DisPdeNode_[edge.nodes[0]-1][elemIdx][1]-1][iDof] > 0 || 
-                            actNodeMap[mesh2DisPdeNode_[edge.nodes[0]-1][elemIdx][1]-1][iDof] > 0 ) && 
+                      if(  (actNodeMap[mesh2DisPdeNode_[edge.nodes[0]-1][elemIdx1][1]-1][iDof] > 0 || 
+                            actNodeMap[mesh2DisPdeNode_[edge.nodes[0]-1][elemIdx2][1]-1][iDof] > 0 ) && 
                            (iFcn < numFcns[iDof][iEdge]) ) {
                         actMap[locEdge-1][pos++] = ++numEqns_;
                       } else {
@@ -1929,16 +1946,14 @@ namespace CoupledField {
                   // (= are (in-)hom. Dirichlet nodes)
                   bool allFixed = true;
                   bool isInHomBoundaryFace = true;
-                  for( UInt iNode = 0; iNode < face.nodes.GetSize(); iNode++ ) {
-                    for ( UInt k=0;k< mesh2DisPdeNode_[face.nodes[iNode]-1].GetSize() ;k++ ) {
-                      if(static_cast<UInt>(mesh2DisPdeNode_[face.nodes[iNode]-1][k][0])== actEl.elemNum ){
-                        locElemPos=k;
-                        break;
-                      }
-                    }
-                  }//for all nodes of the face
                   if( actRes.fctType->GetType() == AnsatzFct::SPECTRAL) {
                     for( UInt iNode = 0; iNode < face.nodes.GetSize(); iNode++ ) {
+                      for ( UInt k=0;k< mesh2DisPdeNode_[face.nodes[iNode]-1].GetSize() ;k++ ) {
+                        if(static_cast<UInt>(mesh2DisPdeNode_[face.nodes[iNode]-1][k][0])== actEl.elemNum ){
+                          locElemPos=k;
+                          break;
+                        }
+                      }
                       if( actNodeMap[mesh2DisPdeNode_[face.nodes[iNode]-1][locElemPos][1]-1][iDof] != 0) {
                         allFixed = false;
                       }
@@ -1960,6 +1975,12 @@ namespace CoupledField {
                     } // check for zero nodes
                   } else{
                     for( UInt iNode = 0; iNode < face.nodes.GetSize(); iNode++ ) {
+                      for ( UInt k=0;k< mesh2DisPdeNode_[face.nodes[iNode]-1].GetSize() ;k++ ) {
+                        if(static_cast<UInt>(mesh2DisPdeNode_[face.nodes[iNode]-1][k][0])== actEl.elemNum ){
+                          locElemPos=k;
+                          break;
+                        }
+                      }
                       if( actNodeMap[mesh2DisPdeNode_[face.nodes[iNode]-1][locElemPos][1]-1][iDof] > 0) {
                         allFixed = false;
                         break;

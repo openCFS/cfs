@@ -87,7 +87,10 @@ namespace CoupledField {
     virtual inline bool IsFinalized() const {return (contMap->IsFinalized() && disContMap->IsFinalized());}
 
     //! Return the total number of equations
-    virtual inline UInt GetNumEqns() const { return contMap->GetNumEqns()+disContMap->GetNumEqns(); }
+    virtual inline UInt GetNumEqns() const { 
+      //return contMap->GetNumEqns()+disContMap->GetNumEqns(); 
+      return disContMap->GetNumEqns();
+      }
 
     //! Return the equation number of the last unfixed degree of freedom
 
@@ -104,7 +107,12 @@ namespace CoupledField {
     //! penalty method and must be considered free dofs as well. Thus, in this
     //! case we return the total number of equations. Otherwise we return only
     //! the number of equations withou a dirichlet boundary condition
-    virtual UInt GetNumLastFreeDof() const { return contMap->GetNumLastFreeDof()+disContMap->GetNumLastFreeDof(); }
+    virtual UInt GetNumLastFreeDof() const { 
+      UInt eqns = 0;
+      eqns = contMap->GetNumLastFreeDof();
+      eqns += disContMap->GetNumLastFreeDof()-contMap->GetNumEqns();
+      return eqns; 
+    }
                               
     //! Return number of real inhomogeneous Dirichlet boundary conditions
 
@@ -156,6 +164,9 @@ namespace CoupledField {
       EXCEPTION("The Mixed Equation Map does not support this fuction");
     }
 
+
+    ////! Get all equation Numbers for a given reult
+    //virtual void GetResEqns(  StdVector<Integer>& eqns, const ResultInfo& result ) const;
 
     //@}
     

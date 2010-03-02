@@ -118,9 +118,10 @@ namespace CoupledField
       // ===============
       Shape.Resize(NumNodes_);
 
-      for( UInt i=0; i<NumNodes_; i++)
+      for( UInt i=0; i<NumNodes_; i++){
         Shape[i] = 0.25 * (1 + LCornerCoords_[0][i] * actCoord[0])
           * (1 + LCornerCoords_[1][i] * actCoord[1]);
+      }
     }else if(  actFct_->GetType() == AnsatzFct::SPECTRAL) {
       // ===============
       //  Spectral PART

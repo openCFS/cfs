@@ -18,6 +18,7 @@
 #include "StdPDE.hh"
 #include "Driver/stdSolveStep.hh"
 #include "PDE/mixedEqnMap.hh"
+#include "Forms/PMLInt.hh"
 
 #ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh" 
@@ -133,20 +134,112 @@ namespace CoupledField
       // create new entity list
       shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
       actSDList->SetRegion( subdoms_[actSD] );
+      RegionIdType actRegion = subdoms_[actSD];
+      std::string actRegionName;
       
+      actRegionName = ptgrid_->GetRegion().ToString( actRegion );
       BaseMaterial * actMat = materials_[subdoms_[actSD]];
       actMat->GetScalar(density, DENSITY,Global::REAL);
       actMat->GetScalar(bulkModulus, ACOU_BULK_MODULUS,Global::REAL);
       c0 = sqrt(bulkModulus/density);
       
+      ParamNode * actRegionNode = myParam_->Get("regionList")->Get( "region", "name", actRegionName );
+
       Info->PrintF( pdename_, "density = %e\n", density);
       Info->PrintF( pdename_, "bulk modulus = %e\n", bulkModulus);
       
-      std::cout << "dim: " << dim_ << std::endl;
-
       if( approxType_ == "spectral" ){
         VelSurfIntFactor = 1.0;
         abcIntFactor = density * c0;
+        // Check for Perfectly matchec layers
+        if ( dampingList_[actRegion] == PML ) {
+          //read data for PML layer
+
+          //type of PML damping
+          std::string dampingTypePML;
+          
+          // inner / outer region
+          Matrix<Double> inner;
+          Matrix<Double> outer;
+          
+          //damping factor
+          Double dampPML;
+          
+          std::string id = actRegionNode->Get("dampingId")->AsString();
+          ParamNode * pmlNode = myParam_->Get("dampingList")->Get("pml", "id", id);
+          ReadDataPML(dampingTypePML, inner, dampPML, pmlNode );
+          
+          GetPMLLayerData(inner, outer, actRegion);
+          if ( analysistype_ == HARMONIC ) {        
+            //====================================================================
+            //	 mass integrator for PML PP
+            //====================================================================
+            
+            std::string formsType = "mixedPMLMassPPInt";
+            
+            //set real part
+            BaseForm * bilinearStiff_pml_PP =
+              new PMLMixedInt(formsType, 1.0/bulkModulus, dampingTypePML, dampPML, isaxi_);
+            
+            bilinearStiff_pml_PP->SetPosPML(inner,outer);
+            
+            BiLinFormContext * stiffContextMPP =
+              new BiLinFormContext( bilinearStiff_pml_PP, MASS );
+            
+            stiffContextMPP->SetPtPdes(this, this);
+            stiffContextMPP->SetResults( results_[0], results_[0],
+                                          actSDList, actSDList );
+            // stiffContextReal->SetEntryType(matType);
+            assemble_->AddBiLinearForm( stiffContextMPP);
+            
+            //====================================================================
+            //	 mass integrator for PML VV
+            //====================================================================
+            
+            formsType = "mixedPMLMassVVInt";
+            
+            //set real part
+            BaseForm * bilinearStiff_pml_VV =
+              new PMLMixedInt(formsType, density, dampingTypePML, dampPML, isaxi_);
+            
+            bilinearStiff_pml_VV->SetPosPML(inner,outer);
+            
+            BiLinFormContext * stiffContextMVV =
+              new BiLinFormContext( bilinearStiff_pml_VV , MASS );
+            
+            stiffContextMVV->SetPtPdes(this, this);
+            stiffContextMVV->SetResults( results_[1], results_[1],
+                                          actSDList, actSDList );
+            // stiffContextReal->SetEntryType(matType);
+            assemble_->AddBiLinearForm( stiffContextMVV);
+            
+          } else{ // end of pml part
+            EXCEPTION("PML is only available in Frequency domain");
+          }
+        }else{
+          //==============  add MPP ======================================
+          BaseForm * bilinearMass_PP = new MassMixedInt_PP(1.0/bulkModulus, isaxi_);
+
+          BiLinFormContext * massContext_PP =  
+          	new BiLinFormContext( bilinearMass_PP, MASS );
+
+          massContext_PP->SetPtPdes(this, this);
+          massContext_PP->SetResults( results_[0], results_[0],
+			           actSDList, actSDList );
+          assemble_->AddBiLinearForm( massContext_PP );
+
+
+          //==============  add MVV ======================================  
+          BaseForm * bilinearMass_VV = new MassPiolaMixedInt_VV(density, dim_, isaxi_);
+
+          BiLinFormContext * massContext_VV =  
+            new BiLinFormContext( bilinearMass_VV, MASS );
+
+          massContext_VV->SetPtPdes(this, this);
+          massContext_VV->SetResults( results_[1], results_[1],
+                 actSDList, actSDList );
+          assemble_->AddBiLinearForm( massContext_VV );
+        }
         // ==============  add stiffness ======================================
         BaseForm *bilinearStiff_KPV = new StiffPiolaMixedInt_KPV( 1.0 , dim_, isaxi_);
         BiLinFormContext * stiffContext_KPV =
@@ -169,82 +262,60 @@ namespace CoupledField
 
         assemble_->AddBiLinearForm( stiffContext_KVP );
 
-        //==============  add MPP ======================================
-        BaseForm * bilinearMass_PP = new MassMixedInt_PP(1.0/bulkModulus, isaxi_);
-
-        BiLinFormContext * massContext_PP =  
-        	new BiLinFormContext( bilinearMass_PP, MASS );
-
-        massContext_PP->SetPtPdes(this, this);
-        massContext_PP->SetResults( results_[0], results_[0],
-			         actSDList, actSDList );
-        assemble_->AddBiLinearForm( massContext_PP );
-
-
-        //==============  add MVV ======================================  
-        BaseForm * bilinearMass_VV = new MassPiolaMixedInt_VV(density, dim_, isaxi_);
-
-        BiLinFormContext * massContext_VV =  
-          new BiLinFormContext( bilinearMass_VV, MASS );
-
-        massContext_VV->SetPtPdes(this, this);
-        massContext_VV->SetResults( results_[1], results_[1],
-               actSDList, actSDList );
-        assemble_->AddBiLinearForm( massContext_VV );
       }
       else{
         VelSurfIntFactor = bulkModulus;
         abcIntFactor = c0;
 
 
-	// check for flow data
+	      // check for flow data
 
-	// get current region name and get grip of paramNode
-	RegionIdType actRegion = subdoms_[actSD];
-	std::string actRegionName;
-	actRegionName = ptgrid_->GetRegion().ToString(actRegion);
-	ParamNode * actRegionNode =
-	  myParam_->Get("regionList")->Get( "region", "name", actRegionName );
+	      // get current region name and get grip of paramNode
+	      RegionIdType actRegion = subdoms_[actSD];
+	      std::string actRegionName;
+	      actRegionName = ptgrid_->GetRegion().ToString(actRegion);
+	      ParamNode * actRegionNode =
+	        myParam_->Get("regionList")->Get( "region", "name", actRegionName );
 
-        std::string id = actRegionNode->Get("flowId")->AsString();
-	if ( id != "" ) {
-	  // add the convective bilinear forms
+              std::string id = actRegionNode->Get("flowId")->AsString();
+	      if ( id != "" ) {
+	        // add the convective bilinear forms
 
-	  ParamNode * flowNode = myParam_->Get("flowList")->Get("flow", "id", id);
+	        ParamNode * flowNode = myParam_->Get("flowList")->Get("flow", "id", id);
 
-	  Vector<Double> velVec;
-	  Double MachNr;
-	  ReadDataFlow(velVec, MachNr, flowNode );
-	  
-	  MachNumber = MachNr;
-	  VelSurfIntFactor /= MachNumber;
-	  abcIntFactor /= MachNumber;
+	        Vector<Double> velVec;
+	        Double MachNr;
+	        ReadDataFlow(velVec, MachNr, flowNode );
+	        
+	        MachNumber = MachNr;
+	        VelSurfIntFactor /= MachNumber;
+	        abcIntFactor /= MachNumber;
 
-	  // ==============  add convective PV ======================================
-	  BaseForm *bilinearConv_KPP = new ConvectiveMixedInt_KPP( velVec, 
-								   dim_, isaxi_);
-	  BiLinFormContext * convContext_KPP =
-	    new BiLinFormContext(bilinearConv_KPP, STIFFNESS );
+	        // ==============  add convective PV ======================================
+	        BaseForm *bilinearConv_KPP = new ConvectiveMixedInt_KPP( velVec, 
+	      							   dim_, isaxi_);
+	        BiLinFormContext * convContext_KPP =
+	          new BiLinFormContext(bilinearConv_KPP, STIFFNESS );
 
-	  convContext_KPP->SetPtPdes(this, this);
-	  convContext_KPP->SetResults( results_[0], results_[0],
-				       actSDList, actSDList );
+	        convContext_KPP->SetPtPdes(this, this);
+	        convContext_KPP->SetResults( results_[0], results_[0],
+	      			       actSDList, actSDList );
 
-	  assemble_->AddBiLinearForm( convContext_KPP );
+	        assemble_->AddBiLinearForm( convContext_KPP );
 
 
-	  // ==============  add convective VP ======================================
-	  BaseForm *bilinearConv_KVV = new ConvectiveMixedInt_KVV( velVec, 
-								   dim_, isaxi_);
-	  BiLinFormContext * convContext_KVV =
-	    new BiLinFormContext(bilinearConv_KVV, STIFFNESS );
+	        // ==============  add convective VP ======================================
+	        BaseForm *bilinearConv_KVV = new ConvectiveMixedInt_KVV( velVec, 
+	      							   dim_, isaxi_);
+	        BiLinFormContext * convContext_KVV =
+	          new BiLinFormContext(bilinearConv_KVV, STIFFNESS );
 
-	  convContext_KVV->SetPtPdes(this, this);
-	  convContext_KVV->SetResults( results_[1], results_[1],
-				       actSDList, actSDList );
+	        convContext_KVV->SetPtPdes(this, this);
+	        convContext_KVV->SetResults( results_[1], results_[1],
+	      			       actSDList, actSDList );
 
-	  assemble_->AddBiLinearForm( convContext_KVV );
-	}
+	        assemble_->AddBiLinearForm( convContext_KVV );
+	      }
 
         // ==============  add stiffness ======================================
         BaseForm *bilinearStiff_KPV = new StiffMixedInt_KPV( bulkModulus/MachNumber, 
@@ -603,6 +674,75 @@ namespace CoupledField
     }
   }
 
+  // *********************************************
+  //   Check what type of damping should be used
+  // *********************************************
+  void AcousticMixedPDE::ReadDampingInformation( ) {
+
+
+    fracMemory_ = 0;
+    std::map<std::string, DampingType> idDampType;
+    std::map<std::string, Double>      idDampFreq;
+    std::map<std::string, Double>      idDampRatioDeltaF;
+
+    // try to get dampingList
+    ParamNode * dampListNode = myParam_->Get( "dampingList", false );
+    if( dampListNode ) {
+
+      // get specific damping nodes
+      StdVector<ParamNode*> dampNodes = dampListNode->GetChildren();
+
+      for( UInt i = 0; i < dampNodes.GetSize(); i++ ) {
+
+        std::string dampString = dampNodes[i]->GetName();
+        std::string actId = dampNodes[i]->Get("id")->AsString();
+
+        // determine type of damping
+        DampingType actType;
+        String2Enum( dampString, actType );
+
+        // store damping type string
+        idDampType[actId] = actType;
+
+      }
+    }
+
+    // Run over all region and set entry in "regionNonLinId"
+    StdVector<ParamNode*> regionNodes =
+      myParam_->Get("regionList")->GetChildren();
+
+    RegionIdType actRegionId;
+    std::string actRegionName, actDampingId;
+
+    if( regionNodes.GetSize() > 0 ) {
+      Info->PrintF( pdename_, "Damping in following region(s)\n" );
+    }
+
+    for (UInt k = 0; k < regionNodes.GetSize(); k++) {
+      regionNodes[k]->Get( "name", actRegionName );
+      regionNodes[k]->Get( "dampingId", actDampingId );
+      if( actDampingId == "" )
+        continue;
+
+      actRegionId = ptgrid_->GetRegion().Parse(actRegionName);
+
+      // Check actDampingId was already registerd
+      if( idDampType.count( actDampingId ) == 0 ) {
+        EXCEPTION( "Damping with id '" << actDampingId
+                   << "' was not defined in 'dampingList'" );
+      }
+
+      dampingList_[actRegionId] = idDampType[actDampingId];
+
+      // Log to info file
+      std::string dampString;
+      Enum2String( dampingList_[actRegionId], dampString );
+
+      Info->PrintF( pdename_, " %s: %s\n", actRegionName.c_str(),
+                    dampString.c_str() );
+    }
+    Info->PrintF( pdename_, "\n" );
+  }
 
   //   Obtain information about flow data
   // ***********************************************************************

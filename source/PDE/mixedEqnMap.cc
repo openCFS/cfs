@@ -71,6 +71,9 @@ namespace CoupledField {
     contMap->Finalize();
     disContMap->CopyMapInfo(contMap);
     disContMap->Finalize();
+
+    std::cout << "Equation Map has " << contMap->GetNumEqns() << " pressure unknowns" << std::endl;
+    std::cout << "Equation Map has " << disContMap->GetNumEqns()-contMap->GetNumEqns() << " velocity unknowns" << std::endl;
   }
 
   void MixedEqnMap::GetEqns( StdVector<Integer>& eqns, const ResultInfo& result, const EntityIterator& it )const {
@@ -110,4 +113,12 @@ namespace CoupledField {
     contMap->ToInfo(in);
     disContMap->ToInfo(in);
   }
+
+  //void MixedEqnMap::GetResEqns(  StdVector<Integer>& eqns, const ResultInfo& result ) const{
+  //  if(result.fctType->IsDiscontinuous()){
+  //   disContMap->GetResEqns(eqns,result);
+  //  }else{
+  //   contMap->GetResEqns(eqns,result);
+  //  }
+  //}
 }

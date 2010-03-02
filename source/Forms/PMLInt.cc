@@ -93,12 +93,12 @@ namespace CoupledField
                                    ptCoord, it1_.GetElem() );
 	pmlFnc_->ComputeFactorPML( factorsPML, jacDetC, CoordAtIP, omega);        
 
-	//multiply the derivatives with the x-,y- and z-factors
-	for (UInt i=0; i<xiDx.GetNumCols(); i++) {
-	  for (UInt j=0; j<xiDx.GetNumRows(); j++) {
-	    xiDxC[j][i] = xiDx[j][i] * factorsPML[i];
-	  }
-	}
+	    //multiply the derivatives with the x-,y- and z-factors
+	    for (UInt i=0; i<xiDx.GetNumCols(); i++) {
+	      for (UInt j=0; j<xiDx.GetNumRows(); j++) {
+	        xiDxC[j][i] = xiDx[j][i] * factorsPML[i];
+	      }
+	    }
 
         xiDxC.Transpose(xiDxTranspC);
         partElemMat = xiDxC * xiDxTranspC;
@@ -720,4 +720,198 @@ namespace CoupledField
     pmlFnc_-> SetPosPML( inner, outer );
   }
 
+  PMLMixedInt::PMLMixedInt(std::string type, Double factor, std::string dampingTypePML, Double damp, 
+		 bool axi)
+    : BaseForm(NULL), formsFactor_(factor)
+  {
+    name_ = "PMLMixedInt";
+
+    isComplex_ = true;
+    isaxi_     = axi;
+    std::cout << type << std::endl;
+
+    nrDofsPerNode_ = 1;
+    pmlFnc_    = new PMLBasics( dampingTypePML, damp, type);
+
+    // Set Expression for parser
+    mParser_->SetExpr( mHandle_, "f" );
+  }
+
+
+ 
+  PMLMixedInt::~PMLMixedInt()
+  {
+  }
+
+
+
+  void PMLMixedInt::CalcElementMatrix( Matrix<Complex>& elemMat,
+                                  EntityIterator& ent1, 
+                                  EntityIterator& ent2 )
+  {
+  
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );
+
+    if(pmlFnc_->GetFormsType() =="mixedPMLMassPPInt"){
+      CalcElementMatrixMassPP(ptCoord_, elemMat);
+    }else if (pmlFnc_->GetFormsType() =="mixedPMLMassVVInt"){
+      CalcElementMatrixMassVV(ptCoord_, elemMat);
+    }
+  }
+
+  void PMLMixedInt::CalcElementMatrixMassPP(Matrix<Double> & ptCoord, Matrix<Complex> & elemMat) {
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    const UInt nrIntPts= ptelem->GetNumIntPoints();
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+    const Vector<Double> * intPoints = ptelem->GetIntPoints();
+    Double jacDet;
+
+    Vector<Double> shapeFncAtIp;
+    Matrix<Double> partElemMat;
+    Vector<Double> CoordAtIP;
+
+    // set matrix to desired size and set all elements to zero
+    elemMat.Resize(numFncs);
+    elemMat.Init();
+    
+    Complex jacDetC;
+    Vector<Complex> factorsPML;
+    Complex factor, factorPML;
+    Double omega = 2 * PI * mParser_->Eval( mHandle_ );
+
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
+      ptelem->SetAnsatzFct( ansatzFct1_ );
+      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord,
+                                           it1_.GetElem() );
+        
+      ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt, it1_.GetElem() );
+        
+      partElemMat.DyadicMult(shapeFncAtIp);
+        
+      // compute PML factor 
+      ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+                                 ptCoord, it1_.GetElem() );
+
+      //std::cout << "Mass CoordAtIP:\n" << CoordAtIP << std::endl;
+      
+      pmlFnc_->ComputeFactorPML( factorsPML, jacDetC, CoordAtIP, omega); 
+
+      factorPML = jacDetC * formsFactor_;
+
+      if (isaxi_) 
+        factor = 2 * PI * intWeights[actIntPt-1] * jacDet * 
+          CoordAtIP[0] * factorPML;
+      else 
+        factor = intWeights[actIntPt-1] * jacDet * factorPML;
+        
+      for ( UInt i=0; i<numFncs; i++ ) {
+        for ( UInt j=0; j<numFncs; j++ ) {
+          elemMat[i][j] += factor * partElemMat[i][j];
+        }
+      }
+    }
+    
+    if (nrDofsPerNode_ > 1 ) {
+     Matrix <Complex> singleDofMass = elemMat;
+     UInt singleDofSize = singleDofMass.GetNumRows();
+
+     elemMat.Resize( nrDofsPerNode_* singleDofSize );
+
+     for (UInt i=0; i < singleDofSize; i++)
+       for (UInt j=0; j < singleDofSize; j++)
+         for (UInt actDof=0; actDof < nrDofsPerNode_; actDof++)
+           elemMat[i*nrDofsPerNode_ + actDof][j*nrDofsPerNode_ + actDof] = singleDofMass[i][j]; 
+   }
+
+  }
+
+  void PMLMixedInt::CalcElementMatrixMassVV(Matrix<Double> & ptCoord, Matrix<Complex> & elemMat)
+  {
+     // Extract pointer to reference element and get coordinates
+     Vector<Double> CoordAtIP;
+     Matrix<Double> tempElemMat;
+
+     ptelem->SetAnsatzFct( ansatzFct1_ );
+     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+
+     //check for spectral element approximation if not, throw error
+     assert(ansatzFct1_->GetType() == AnsatzFct::SPECTRAL );
+
+     const UInt nrIntPts= ptelem->GetNumIntPoints();    
+     const UInt spaceDim = ptelem->GetDim();  
+     const Vector<Double> & intWeights = ptelem->GetIntWeights();
+     const Vector<Double> * intPoints = ptelem->GetIntPoints();
+     Double jacDet;
+     Complex jacDetC;
+     Vector<Complex> factorsPML;
+
+     elemMat.Resize(spaceDim*numFncs);
+     elemMat.Init();
+
+     Matrix<Complex>  partElemMat;
+     partElemMat.Resize(spaceDim*numFncs);
+     partElemMat.Init();
+
+     Vector<Double> shapeFncAtIp;
+     Matrix<Double> JacMat;
+     Matrix<Complex> JacMatC;
+     Matrix<Complex> JacMatT;
+     Matrix<Complex> subMat; 
+     JacMat.Resize(spaceDim,spaceDim);
+     JacMatC.Resize(spaceDim,spaceDim);
+     JacMatT.Resize(spaceDim,spaceDim);
+     subMat.Resize(spaceDim,spaceDim);
+     JacMat.Init();
+     JacMatT.Init();
+     subMat.Init();
+
+     Double omega = 2 * PI * mParser_->Eval( mHandle_ );
+     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
+       
+       jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, it1_.GetElem() );       
+       ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, it1_.GetElem() );
+       ptelem->CalcJacobianAtIp(JacMat,actIntPt,ptCoord_,it1_.GetElem() );
+
+ 	     // compute PML factor 
+       ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+                                  ptCoord, it1_.GetElem() );
+	     pmlFnc_->ComputeFactorPML( factorsPML, jacDetC, CoordAtIP, omega);        
+
+       for ( UInt i = 0;i<spaceDim ; i++ ) {
+         for ( UInt j=0; j<spaceDim;j++ ) {
+           JacMatT[j][i] = JacMat[i][j] * (Complex(1.0,0.0) / factorsPML[j]); 
+           JacMatC[i][j] = JacMat[i][j] * (Complex(1.0,0.0) / factorsPML[j]); 
+         }
+       }
+       JacMatC.Mult(JacMatT,subMat);
+
+       for( UInt intPti = 0 ; intPti< shapeFncAtIp.GetSize();intPti++){
+         for( UInt intPtj = 0 ; intPtj< shapeFncAtIp.GetSize();intPtj++){
+           for ( UInt i = 0;i<spaceDim ; i++ ) {
+             for ( UInt j=0; j<spaceDim;j++ ) {
+               partElemMat[(intPti*spaceDim)+i][(intPtj*spaceDim)+j] =  intWeights[actIntPt-1] * 
+                                                                        subMat[i][j]  * 
+                                                                        (Complex(1.0,0.0) / jacDet) *
+                                                                        (Complex(1.0,0.0) / jacDetC) *
+                                                                        formsFactor_ *
+                                                                        shapeFncAtIp[intPti] * shapeFncAtIp[intPtj];
+             }
+           }
+         }
+       }
+
+       elemMat += partElemMat;
+     }
+     //std::cout << "MassPiolaMixedInt_VV Matrix:\n" << elemMat << std::endl;
+
+    std::cout << elemMat << std::endl << std::endl;
+  }
+
+  void PMLMixedInt::SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer)
+  {
+
+    pmlFnc_-> SetPosPML( inner, outer );
+  }
 } // end namespace CoupledField

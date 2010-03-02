@@ -151,6 +151,57 @@ namespace CoupledField
 
 };
 
+  /// Class for calculation  element stiffness/mass matrix for PML formulation
+  
+  class PMLMixedInt : public BaseForm
+  {
+  public:
+    
+    //! Constructor
+    PMLMixedInt(std::string type, Double factor, std::string dampingTypePML, 
+           Double damp, bool axi=false);
+    
+    /// 
+    virtual ~PMLMixedInt();
+    
+    //! Calculation of stiffmess matrix
+    void CalcElementMatrix( Matrix<Complex>& elemMat,
+                            EntityIterator& ent1, 
+                            EntityIterator& ent2 );
+    
+    //! set min/max of x,y,z coordinates form where PML starts and ends
+    void SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer);
+    
+    //! set number of dofs per node
+    void SetNrDofs( UInt numDofs ) {
+      nrDofsPerNode_ = numDofs;
+    };
+
+    //! set actual solution
+    void SetActElemSol(Matrix<Double>& disp){};
+    
+    
+  private:
+    
+    //! Calculation of mass PP matrix
+    void CalcElementMatrixMassPP(Matrix<Double> & ptCoord, Matrix<Complex> & elemMat);
+    
+    //! Calculation of mass VV matrix
+    void CalcElementMatrixMassVV(Matrix<Double> & ptCoord, Matrix<Complex> & elemMat);
+
+    //! object containing standard PML methods
+    PMLBasics *pmlFnc_;
+    
+    //! multiplicative factor for forms
+    Double formsFactor_;
+
+    //! number of dofs per node
+    UInt nrDofsPerNode_;
+
+    //! determine if we want to return the transposed element matrix
+    bool transpose_;
+    
+};
 }
 
 #endif // FILE_PMLINT

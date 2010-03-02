@@ -582,71 +582,71 @@ namespace CoupledField {
                                        actSDList, actSDList );
           assemble_->AddBiLinearForm( auxStiffContext);
 
-//           if ( dim_ == 3 ) {
-//             //3D computation: so we need in addition a scalar auxillary variable
-
-//             //====================================================================
-//             //	 scalar axuillary grad integrator for time domain PML
-//             //====================================================================
-//             formsType = "auxGrad";
-//             factorPDE = -1.0;
-//             BaseForm * bilinearAuxGrad =
-//               new PMLTimeInt(formsType, factorPDE, dampingTypePML, dampPML, isaxi_);
-          
-//             bilinearAuxGrad->SetPosPML(inner,outer);
-          
-//             BiLinFormContext * auxGradContext =
-//               new BiLinFormContext( bilinearAuxGrad, STIFFNESS );
-          
-//             auxGradContext->SetPtPdes(this, this);
-//             auxGradContext->SetResults( results_[1], results_[2],
-//                                         actSDList, actSDList );
-//             assemble_->AddBiLinearForm( auxGradContext);
-
-//             //====================================================================
-//             //   	 scalar axuillary stiffness integrator for time domain PML
-//             //====================================================================
-//             factorPDE = density/(c0*c0);
-//             std::string formsType = "scalarAuxStiff";
-          
-//             BaseForm * bilinearScalarAuxStiff =
-//               new PMLTimeInt(formsType, factorPDE, dampingTypePML, dampPML, isaxi_);
-          
-//             bilinearScalarAuxStiff->SetPosPML(inner,outer);
-          
-//             BiLinFormContext * scalarAuxStiffContext =
-//               new BiLinFormContext( bilinearScalarAuxStiff, STIFFNESS );
-          
-//             scalarAuxStiffContext->SetPtPdes(this, this);
-//             scalarAuxStiffContext->SetResults( results_[0], results_[2],
-//                                                actSDList, actSDList );
-//             assemble_->AddBiLinearForm( scalarAuxStiffContext);
-          
-//             //====================================================================
-//             //	 scalar axuillary mass integrator for time domain PML
-//             //====================================================================
-//             coeffmass = 1.0;
-//             MassInt* bilinearMass  = new MassInt(coeffmass, 1, isaxi_ );
-          
-//             BiLinFormContext * massScalarAuxContext =
-//               new BiLinFormContext( bilinearMass, DAMPING );
-//             massScalarAuxContext->SetResults( results_[2], results_[2],
-//                                      actSDList, actSDList );
-//             massScalarAuxContext->SetPtPdes(this, this);
-//             assemble_->AddBiLinearForm( massScalarAuxContext );        
-
-//             //====================================================================
-//             //	 pressure mass integrator for time domain PML
-//             //====================================================================
-//             coeffmass = -1.0;
-//             MassInt* bilinearMassPress  = new MassInt(coeffmass, 1, isaxi_ );
-//             BiLinFormContext * massPressContext =
-//               new BiLinFormContext( bilinearMassPress, STIFFNESS );
-//             massPressContext->SetResults( results_[2], results_[0],
-//                                           actSDList, actSDList );
-//             massPressContext->SetPtPdes(this, this);
-//             assemble_->AddBiLinearForm( massPressContext );   
-//           } 
+                //if ( dim_ == 3 ) {
+                //  //3D computation: so we need in addition a scalar auxillary variable
+                
+                //  //====================================================================
+                //  //	 scalar axuillary grad integrator for time domain PML
+                //  //====================================================================
+                //  formsType = "auxGrad";
+                //  factorPDE = -1.0;
+                //  BaseForm * bilinearAuxGrad =
+                //    new PMLTimeInt(formsType, factorPDE, dampingTypePML, dampPML, isaxi_);
+                  
+                //  bilinearAuxGrad->SetPosPML(inner,outer);
+                  
+                //  BiLinFormContext * auxGradContext =
+                //    new BiLinFormContext( bilinearAuxGrad, STIFFNESS );
+                  
+                //  auxGradContext->SetPtPdes(this, this);
+                //  auxGradContext->SetResults( results_[1], results_[2],
+                //                              actSDList, actSDList );
+                //  assemble_->AddBiLinearForm( auxGradContext);
+                
+                //  //====================================================================
+                //  //   	 scalar axuillary stiffness integrator for time domain PML
+                //  //====================================================================
+                //  factorPDE = density/(c0*c0);
+                //  std::string formsType = "scalarAuxStiff";
+                  
+                //  BaseForm * bilinearScalarAuxStiff =
+                //    new PMLTimeInt(formsType, factorPDE, dampingTypePML, dampPML, isaxi_);
+                  
+                //  bilinearScalarAuxStiff->SetPosPML(inner,outer);
+                  
+                //  BiLinFormContext * scalarAuxStiffContext =
+                //    new BiLinFormContext( bilinearScalarAuxStiff, STIFFNESS );
+                  
+                //  scalarAuxStiffContext->SetPtPdes(this, this);
+                //  scalarAuxStiffContext->SetResults( results_[0], results_[2],
+                //                                     actSDList, actSDList );
+                //  assemble_->AddBiLinearForm( scalarAuxStiffContext);
+                  
+                //  //====================================================================
+                //  //	 scalar axuillary mass integrator for time domain PML
+                //  //====================================================================
+                //  coeffmass = 1.0;
+                //  MassInt* bilinearMass  = new MassInt(coeffmass, 1, isaxi_ );
+                  
+                //  BiLinFormContext * massScalarAuxContext =
+                //    new BiLinFormContext( bilinearMass, DAMPING );
+                //  massScalarAuxContext->SetResults( results_[2], results_[2],
+                //                           actSDList, actSDList );
+                //  massScalarAuxContext->SetPtPdes(this, this);
+                //  assemble_->AddBiLinearForm( massScalarAuxContext );        
+                
+                //  //====================================================================
+                //  //	 pressure mass integrator for time domain PML
+                //  //====================================================================
+                //  coeffmass = -1.0;
+                //  MassInt* bilinearMassPress  = new MassInt(coeffmass, 1, isaxi_ );
+                //  BiLinFormContext * massPressContext =
+                //    new BiLinFormContext( bilinearMassPress, STIFFNESS );
+                //  massPressContext->SetResults( results_[2], results_[0],
+                //                                actSDList, actSDList );
+                //  massPressContext->SetPtPdes(this, this);
+                //  assemble_->AddBiLinearForm( massPressContext );   
+                //} 
           
          
 

@@ -69,6 +69,8 @@ namespace CoupledField
  
     //! Init the time stepping
     void InitTimeStepping();
+
+    void ReadDampingInformation();
     
     void ReadDataFlow(Vector<Double>& velVec, Double& MachVal,
 		      ParamNode * actNode );
