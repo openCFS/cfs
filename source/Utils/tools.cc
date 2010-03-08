@@ -175,41 +175,6 @@ namespace CoupledField {
   }
 
 
-  // **************** Conversion Function *****************
-
-  Double String2Double( const std::string & val) {
-
-
-    Double retVal = 0.0;
-    char *endp;
-    retVal = strtod(val.c_str(), &endp);
-    if (! (val.c_str() != endp && *endp == '\0') )
-        EXCEPTION("could not convert " << val << " into a double");
-
-    return retVal;
-  }
-
-  Integer String2Int( const std::string & val) {
-    Integer retVal = 0;
-    char *endp;
-    retVal = strtol(val.c_str(), &endp, 0);
-    if (! (val.c_str() != endp && *endp == '\0') )
-        EXCEPTION("could not convert " << val << " into a integer");
-
-    return retVal;
-  }
-
-  UInt String2UInt( const std::string & val) {
-
-    UInt retVal=0;
-    char *endp;
-    retVal = strtoul(val.c_str(), &endp, 0);
-    if (! (val.c_str() != endp && *endp == '\0') )
-        EXCEPTION("could not convert " << val << " into a unsigned integer");
-
-    return retVal;
-  }
-
   Double NormL2(const Double* data, const UInt size)
   {
     Double result = 0.0;

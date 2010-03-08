@@ -1931,6 +1931,8 @@ namespace CoupledField {
     list = in->Get("namedElements");
     for(unsigned int i = 0; i < namedElems_.GetSize(); i++)
       list->Get("elements", "name", namedElemNames_[i])->Get("count")->SetValue(namedElems_[i].GetSize());
+    
+    list = in->Get("coordinateSystems");
 
   } 
 

@@ -88,16 +88,22 @@ namespace CoupledField {
   void SplitStringList( const std::string &list, StdVector<std::string> &strVec,
                         const char delimiter = ',' );
 
-  //! Converts a string into a double value
-  Double String2Double( const std::string & val);
-
-  //! Converts a string into an integer value
-  Integer String2Int( const std::string & val);
-
-  //! Converts a string into an unsigned integer value
-  UInt String2UInt( const std::string & val);
     //@}
 
+  // =========================================================================
+  //  ANGLE CONVERSION
+  // =========================================================================
+  
+   //! Convert grad => rad
+   inline Double Grad2Rad( Double rad ) {
+     return rad / 180.0 * PI;
+   }
+   
+  //! Convert rad => grad
+  inline Double Rad2Grad( Double rad ) {
+     return rad / PI * 180.0;
+   }
+  
   // =========================================================================
   //     VARIOUS OTHER METHODS AND CLASSES
   // =========================================================================

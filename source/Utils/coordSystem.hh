@@ -17,6 +17,7 @@ namespace CoupledField {
 
   // forward class declarations
   class ParamNode;
+  class InfoNode;
 
   //! Base class for describing a local coordinate system
   class CoordSystem {
@@ -33,6 +34,9 @@ namespace CoupledField {
 
     //! Destructor
     virtual ~CoordSystem();
+    
+    //! Print information about coordinate system to info node
+    virtual void ToInfo( InfoNode* in ) {};
     
     //! Return the name of the coordinate system
     const std::string & GetName() const {
@@ -61,13 +65,13 @@ namespace CoupledField {
                                     const Vector<Double> & glob ) const = 0;
 
 
-    //! Return the global rotation angles for a given point
+    //! Return the global rotation matrix for a given point
 
-    //! This method returns the rotation angles about the x,y, and z axis,
+    //! This method returns the rotation matrix defining defining a rotation,
     //! by which the global coordinate system has to be rotated, so that
     //! it represents the current one in that point.
     virtual void 
-    GetGlobRotationAngles( Vector<Double> & angles,
+    GetGlobRotationMatrix( Matrix<Double> & rotMatrix,
                            const Vector<Double>& point ) const = 0;
 
     //@{
@@ -139,16 +143,16 @@ namespace CoupledField {
     
     //! Rotation matrix (global -> local)
     Matrix<Double> rotationMat_;
-
+    
     //! Rotation angles (kardan / Bryant angles) (global -> local)
     Vector<Double> rotationAng_;
 
     //! Inverse of the rotation matrix (local -> global)
     Matrix<Double> invRotationMat_;
-
+    
     //! Rotation angles (kardan / Bryant angles) (local -> global)
     Vector<Double> invRotationAng_;
-    
+
     //! Pointer to grid object
     Grid * ptGrid_;
 

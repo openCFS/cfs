@@ -1541,7 +1541,7 @@ namespace CoupledField
 
           std::string str;
           integNode->Get( "order", str );
-          IntegOrder = String2Int(str);
+          IntegOrder = lexical_cast<Double>(str);
         }
         else
         {

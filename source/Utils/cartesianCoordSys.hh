@@ -26,6 +26,9 @@ namespace CoupledField {
     //! Destructor
     virtual ~CartesianCoordSystem();
 
+    //! Print information about coordinate system to info node
+    void ToInfo( InfoNode* in );
+    
     //! Transform local into global coordinate
 
     //! This method transforms a point given in local coordinates into a
@@ -44,13 +47,14 @@ namespace CoupledField {
     void Global2LocalCoord( Vector<Double> &loc,  
                             const Vector<Double> & glob ) const;
     
-    //! Return the global rotation angles for a given point
+    //! Return the global rotation matrix for a given point
 
-    //! This method returns the Kardan rotation angles,
+    //! This method returns the rotation matrix defining defining a rotation,
     //! by which the global coordinate system has to be rotated, so that
     //! it represents the current one in that point.
-    void  GetGlobRotationAngles( Vector<Double> & angles,
-                                 const Vector<Double>& point ) const;
+    void 
+    GetGlobRotationMatrix( Matrix<Double> & rotMatrix,
+                           const Vector<Double>& point ) const;
 
 
     //@{
@@ -103,9 +107,6 @@ namespace CoupledField {
     void Local2GlobalVectorInt( Vector<TYPE> & globVec, 
                                 const Vector<TYPE> & locVec, 
                                 const Vector<Double> & globModelPoint ) const;
-    
-    //! Write summary of coordinate system
-    void PrintInfo();
     
     //! global vector pointing in local x-direction
     Vector<Double> xAxis_;

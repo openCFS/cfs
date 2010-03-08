@@ -214,13 +214,13 @@ namespace CoupledField
         STRINGpool_[name] = params[i];
         break;
       case DOUBLE:
-        DOUBLEpool_[name] = String2Double( params[i] );
+        DOUBLEpool_[name] = lexical_cast<Double>( params[i] );
         break;
       case UINT:
-        UINTpool_[name] = String2UInt( params[i] );
+        UINTpool_[name] = lexical_cast<UInt>(params[i]); 
         break;
       case INT:
-        INTpool_[name] = String2Int( params[i] );
+        INTpool_[name] = lexical_cast<Integer>( params[i] );
         break;
       case STDVEC_STR:
         SplitStringList( params[i], STDVEC_STRpool_[name], ' ');

@@ -7,10 +7,15 @@
 
 namespace CoupledField{
 
-  DefaultCoordSystem::DefaultCoordSystem(Grid * ptGrid) 
+  DefaultCoordSystem::DefaultCoordSystem(Grid * ptGrid ) 
     : CoordSystem(std::string("default") , ptGrid, NULL ) {
     
-   
+   // initialize rotation matrix
+    rotationMat_.Resize(3, 3);
+    rotationMat_[0][0] = 1.0;
+    rotationMat_[1][1] = 1.0;
+    rotationMat_[2][2] = 1.0;
+    invRotationMat_ = rotationMat_;
   }
   
   DefaultCoordSystem::~DefaultCoordSystem(){
@@ -25,6 +30,7 @@ namespace CoupledField{
                                           const Vector<Double> & glob ) const {
     loc = glob;
   }
+  
   
   void DefaultCoordSystem::
   Local2GlobalVector( Vector<Double> & globVec, 
@@ -41,6 +47,15 @@ namespace CoupledField{
 
     globVec = locVec;
   }
+  
+  void  DefaultCoordSystem::
+  GetGlobRotationMatrix( Matrix<Double> & mat,
+                         const Vector<Double>& point ) const {
+   
+    // no need to calculate anything
+    mat = invRotationMat_;
+  }
+
 
   UInt DefaultCoordSystem::GetVecComponent( const std::string & dof )  const {
 

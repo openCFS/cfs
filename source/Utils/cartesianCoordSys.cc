@@ -6,6 +6,7 @@
 #include <sstream>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ParamHandling/InfoNode.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "cartesianCoordSys.hh"
 
@@ -13,9 +14,9 @@
 namespace CoupledField{
 
   CartesianCoordSystem::CartesianCoordSystem(const std::string & name,
-                                 Grid * ptGrid,
-                                 ParamNode * myParamNode ) 
-    : CoordSystem( name, ptGrid, myParamNode )
+                                             Grid * ptGrid,
+                                             ParamNode * myParamNode ) 
+  : CoordSystem( name, ptGrid, myParamNode )
   {
     Vector<Double> originTemp, xAxisTemp, yAxisTemp;
 
@@ -45,9 +46,6 @@ namespace CoupledField{
     // calculate the rotation matrix and the invers
     CalcRotationMatrix();
 
-    // print information to .info-file
-    PrintInfo();
-    
   }
   
   CartesianCoordSystem::~CartesianCoordSystem(){
@@ -85,28 +83,13 @@ namespace CoupledField{
     // rotate global cartesian coordinate system to local one
     rotationMat_.Mult(d,loc);
   }
-
-  void  CartesianCoordSystem::
-  GetGlobRotationAngles( Vector<Double> & angles,
-                         const Vector<Double>& point ) const {
-    Vector<Double> loc, anglesLoc, anglesGlob(3);
-    Global2LocalCoord( loc, point );
-
-    // Note: currently we simply return the 'phi' part, as this 
-    // is the only changing one.
-    anglesLoc.Resize(3);
-    anglesLoc.Init();
-    anglesLoc[2] = loc[1];
-    
-    // Now add to the point rotation angles the 
-    // angles to rotate the angles back to the global system
-    angles = invRotationAng_;
-    angles *= 180 / PI;
-    angles += anglesLoc;
-
-  }
   
-  void CartesianCoordSystem::
+  void  CartesianCoordSystem::
+  GetGlobRotationMatrix( Matrix<Double> & mat,
+                         const Vector<Double>& point ) const {
+    mat = invRotationMat_;
+  }  void CartesianCoordSystem::
+  
   Local2GlobalVector( Vector<Double> & globVec, 
                       const Vector<Double> & locVec, 
                       const Vector<Double> & globModelPoint ) const { 
@@ -210,11 +193,6 @@ namespace CoupledField{
     Matrix<Double> tempInvers;
     rotationMat_.Invert(invRotationMat_);
 
-    //Now calculate the related kardan angles for forward and 
-    //backward transformation
-    CalcKardanAngles( rotationAng_, rotationMat_ );
-    CalcKardanAngles( invRotationAng_, invRotationMat_ );
-
   }
 
 
@@ -261,21 +239,30 @@ namespace CoupledField{
     return ret;
   }
 
-  void CartesianCoordSystem::PrintInfo() {
-    std::ostringstream out;
-    out << "\n--- local coordinate system ---\n"
-        << "    name:\t" << name_ << std::endl
-        << "    type:\tcartesian" << std::endl
-        << "  origin:\t" << origin_[0] << "," << origin_[1] << "," 
-        << origin_[2] << std::endl
-        << "  x-axis:\t" << xAxis_[0] << "," << xAxis_[1] << ","
-        << xAxis_[2] << std::endl
-        << "  y-axis:\t" << yAxis_[0] << "," << yAxis_[1] << ","
-        << yAxis_[2] << "\n";
-    out << "  angles:\t" << rotationAng_[0]/PI*180 << ","
-        << rotationAng_[1]/PI*180 << "," << rotationAng_[2]/PI*180 << "\n\n";
-    Info->PrintF(std::string(), out.str().c_str());
-
+  void CartesianCoordSystem::ToInfo( InfoNode * in ) {
+    
+    in = in->Get("cartesian");
+    
+    in->Get("id")->SetValue(name_);
+    InfoNode * originNode = in->Get("origin");
+    originNode->Get("x")->SetValue(origin_[0]);
+    originNode->Get("y")->SetValue(origin_[1]);
+    originNode->Get("z")->SetValue(origin_[2]);
+    
+    InfoNode * xNode = in->Get("xAxis");
+    xNode->Get("x")->SetValue(xAxis_[0]);
+    xNode->Get("y")->SetValue(xAxis_[1]);
+    xNode->Get("z")->SetValue(xAxis_[2]);
+    
+    InfoNode * yNode = in->Get("yAxis");
+    yNode->Get("x")->SetValue(yAxis_[0]);
+    yNode->Get("y")->SetValue(yAxis_[1]);
+    yNode->Get("z")->SetValue(yAxis_[2]);
+    
+    InfoNode * rotNode = in->Get("rotationAngles");
+    rotNode->Get("alpha")->SetValue(Rad2Grad(rotationAng_[0]));
+    rotNode->Get("beta")->SetValue(Rad2Grad(rotationAng_[1]));
+    rotNode->Get("gamma")->SetValue(Rad2Grad(rotationAng_[2]));
   }
 
 

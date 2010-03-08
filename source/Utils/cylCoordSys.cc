@@ -7,6 +7,7 @@
 #include <sstream>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ParamHandling/InfoNode.hh"
 #include "DataInOut/WriteInfo.hh"
 
 namespace CoupledField{
@@ -35,9 +36,6 @@ namespace CoupledField{
     // calculate the rotation matrix and the invers
     CalcRotationMatrix();
 
-    // print information to .info-file
-    PrintInfo();
-    
   }
   
   CylCoordSystem::~CylCoordSystem(){
@@ -92,26 +90,39 @@ namespace CoupledField{
   }
 
   void  CylCoordSystem::
-  GetGlobRotationAngles( Vector<Double> & angles,
+  GetGlobRotationMatrix( Matrix<Double> & mat,
                          const Vector<Double>& point ) const {
 
-    Vector<Double> loc, anglesLoc, anglesGlob(3);
+
+    Vector<Double> loc;
     Global2LocalCoord( loc, point );
 
-    // Note: currently we simply return the 'phi' part, as this 
-    // is the only changing one.
-    anglesLoc.Resize(3);
-    anglesLoc.Init();
-    anglesLoc[2] = loc[1];
-    
-    // Now add to the point rotation angles the 
-    // angles to rotate the angles back to the global system
-    angles = invRotationAng_;
-    angles *= 180 / PI;
-    angles += anglesLoc;
+    // calculate directional sinus / cosinus
+    Double s = sin( loc[1] / 180 * PI );
+    Double c = cos( loc[1] / 180 * PI );
 
+    mat.Resize(3,3);
+    const Matrix<Double> & a = invRotationMat_;
+
+    // perform explicit multiplication of a * r
+    // where r is the rotation matrix aroung the z-axis
+    //     ( c  -s  0 )
+    // r = ( s   c  0 )
+    //     ( 0   0  1 )
+
+    mat[0][0] =  c * a[0][0] + s * a[0][1];
+    mat[0][1] = -s * a[0][0] + c * a[0][1];
+    mat[0][2] = a[0][2];
+
+    mat[1][0] =  c * a[1][0] + s * a[1][1];
+    mat[1][1] = -s * a[1][0] + c * a[1][1];
+    mat[1][2] = a[1][2];
+
+    mat[2][0] =  c * a[2][0] + s * a[2][1];
+    mat[2][1] = -s * a[2][0] + c * a[2][1];
+    mat[2][2] = a[2][2];
   }
-  
+
   void CylCoordSystem::
   Local2GlobalVector( Vector<Double> & globVec, 
                       const Vector<Double> & locVec, 
@@ -234,11 +245,9 @@ namespace CoupledField{
     Matrix<Double> tempInvers;
     rotationMat_.Invert(invRotationMat_);
 
-    //Now calculate the related kardan angles for forward and 
-    //backward transformation
+    
     CalcKardanAngles( rotationAng_, rotationMat_ );
     CalcKardanAngles( invRotationAng_, invRotationMat_ );
-
   }
 
 
@@ -287,21 +296,30 @@ namespace CoupledField{
     return ret;
   }
 
-  void CylCoordSystem::PrintInfo() {
+  void CylCoordSystem::ToInfo( InfoNode * in ) {
 
-    std::ostringstream out;
-    out << "\n--- local coordinate system ---\n"
-        << "    name:\t" << name_ << std::endl
-        << "    type:\tcylindrical" << std::endl
-        << "  origin:\t" << origin_[0] << "," << origin_[1] << "," 
-        << origin_[2] << std::endl
-        << "  z-axis:\t" << zAxis_[0] << "," << zAxis_[1] << ","
-        << zAxis_[2] << std::endl
-        << "  r-axis:\t" << rAxis_[0] << "," << rAxis_[1] << ","
-        << rAxis_[2] << "\n";
-    out << "  angles:\t" << rotationAng_[0]/PI*180 << ","
-        << rotationAng_[1]/PI*180 << "," << rotationAng_[2]/PI*180 << "\n\n";
-    Info->PrintF(std::string(), out.str().c_str());
+    in = in->Get("cylindrical");
+    
+    in->Get("id")->SetValue(name_);
+    InfoNode * originNode = in->Get("origin");
+    originNode->Get("x")->SetValue(origin_[0]);
+    originNode->Get("y")->SetValue(origin_[1]);
+    originNode->Get("z")->SetValue(origin_[2]);
+    
+    InfoNode * rNode = in->Get("rAxis");
+    rNode->Get("x")->SetValue(rAxis_[0]);
+    rNode->Get("y")->SetValue(rAxis_[1]);
+    rNode->Get("z")->SetValue(rAxis_[2]);
+    
+    InfoNode * zNode = in->Get("zAxis");
+    zNode->Get("x")->SetValue(zAxis_[0]);
+    zNode->Get("y")->SetValue(zAxis_[1]);
+    zNode->Get("z")->SetValue(zAxis_[2]);
+    
+    InfoNode * rotNode = in->Get("rotationAngles");
+    rotNode->Get("alpha")->SetValue(Rad2Grad(rotationAng_[0]));
+    rotNode->Get("beta")->SetValue(Rad2Grad(rotationAng_[1]));
+    rotNode->Get("gamma")->SetValue(Rad2Grad(rotationAng_[2]));
 
   }
 

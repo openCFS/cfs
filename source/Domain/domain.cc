@@ -862,10 +862,13 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep)
 void Domain::CreateCoordinateSystems()
 {
 
+  InfoNode * in = info->Get(InfoNode::HEADER)->Get("domain");
+  in = in->Get("coordinateSystems", InfoNode::APPEND);
+  
   // first create the "global" standard cartesian
   // coordinate system
   std::string defaultname = "default";
-  coordSys_[defaultname] = new DefaultCoordSystem(gridMap_["default"]);
+  coordSys_[defaultname] = new DefaultCoordSystem(gridMap_["default"] );
 
   // get nodes with coordinate systems
   ParamNode * coosyNode = param->Get("domain")->Get("coordSysList", false);
@@ -885,21 +888,23 @@ void Domain::CreateCoordinateSystems()
     CoordSystem * actCoord = NULL;
     if (type == "polar")
     {
-      actCoord = new PolarCoordSystem(name, gridMap_["default"], coordNodes[i]);
+      actCoord = new PolarCoordSystem( name, gridMap_["default"], 
+                                       coordNodes[i] );
     }
     else if (type == "cylindric")
     {
-      actCoord = new CylCoordSystem(name, gridMap_["default"], coordNodes[i]);
+      actCoord = new CylCoordSystem( name, gridMap_["default"], 
+                                     coordNodes[i] );
     }
     else if (type == "cartesian")
     {
       actCoord = new CartesianCoordSystem(name, gridMap_["default"],
-          coordNodes[i]);
+          coordNodes[i] );
     }
     else if (type == "trivialCartesian")
     {
       actCoord = new TrivialCartesianCoordSystem(name, gridMap_["default"],
-          coordNodes[i]);
+                                                 coordNodes[i] );
     }
     else
     {
@@ -907,6 +912,7 @@ void Domain::CreateCoordinateSystems()
           << "' not known!" );
     }
     coordSys_[name] = actCoord;
+    actCoord->ToInfo(in);
   }
 }
 
