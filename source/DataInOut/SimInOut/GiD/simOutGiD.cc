@@ -45,14 +45,18 @@ namespace CoupledField {
 
     dim_ = GiD_2D;
     actMeshId_ = 1;
-    actMsStep_ = 0;
+    lastStepVal_ = -1.0;
+    lastStepRepeated_ = 0;
     stepValueOffset_ = 0;
     isAscii_ = true;
-    printGridOnly_ = false;
+    groupEigenFreqs_ = true;
     printGridOnly_ = false;
 
     // Determine, if binary result file should be written
     isAscii_ = !(myParam_->Get("binaryFormat")->AsBool() );
+    
+    // Determine, if eigenfrequencies should be grouped
+    groupEigenFreqs_= myParam_->Get("groupEigenFreqs")->AsBool();
 
     std::string pathsep;
     std::ostringstream strBuffer;
@@ -563,7 +567,7 @@ namespace CoupledField {
                                              UInt numSteps ) {
 
     actAnalysis_ = type;
-    actMsStep_ = step;
+    actMSStep_ = step;
   }
 
   void SimOutputGiD::RegisterResult( shared_ptr<BaseResult> sol,
@@ -581,15 +585,29 @@ namespace CoupledField {
 
   void SimOutputGiD::BeginStep( UInt stepNum, Double stepVal ) {
 
+    lastStepVal_ = actStepVal_;
+    
     actStep_ = stepNum;
     actStepVal_ = stepVal;
-
+    
+    
     // add  offset to step value to account for multisequence steps
     if( actAnalysis_ == BasePDE::TRANSIENT ||
         actAnalysis_ == BasePDE::STATIC  ) {
      actStepVal_ += stepValueOffset_;
     }
 
+    // Check, if current step value is the same as the previous step value.
+    // This can happen e.g. in an eigenfrequency analysis, where there maybe
+    // more than one mode shape associated with an frequency. We count the 
+    // number of occurences, to include it in the the resultname.
+    if( std::abs(actStepVal_) > EPS ) {
+      if( std::abs(actStepVal_ - lastStepVal_) / actStepVal_ < 1e-4) {
+        lastStepRepeated_++;
+      } else {
+        lastStepRepeated_ = 0;
+      }
+    }
     resultMap_.clear();
   }
 
@@ -665,7 +683,7 @@ namespace CoupledField {
 
     // assemble name for analysis step
     std::string analysisName = "transient";
-    analysisName += "_" + lexical_cast<std::string>( actMsStep_ );
+    analysisName += "_" + lexical_cast<std::string>( actMSStep_ );
 
 
     // get number of entities
@@ -690,16 +708,29 @@ namespace CoupledField {
 
     UInt numDofs = dofNames.GetSize();
 
+    // In case of an eigenfrequency analysis we 
+    std::string outName;
+    if (actAnalysis_ == BasePDE::EIGENFREQUENCY  &&
+        groupEigenFreqs_ == true )  {
+      std::string temp;
+      temp = "ef" + lexical_cast<std::string>(lastStepRepeated_+1);
+      temp += "//";
+      temp += name;
+      outName = temp;
+    } else {
+      outName = name;
+    }
+    
     // write Result header
     if ( entryType == ResultInfo::SCALAR )  {
-      GiD_BeginResultHeader( name.c_str(), analysisName.c_str(), time,
+      GiD_BeginResultHeader( outName.c_str(), analysisName.c_str(), time,
                              GiD_Scalar, loc, dummy );
       GiD_ResultValues();
       for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {
         GiD_WriteScalar( iEnt, var[iEnt-1]);
       }
     } else if( entryType == ResultInfo::VECTOR ) {
-      GiD_BeginResultHeader( name.c_str(), analysisName.c_str(), time,
+      GiD_BeginResultHeader( outName.c_str(), analysisName.c_str(), time,
                              GiD_Vector, loc, dummy );
       const char *names[3] = {"___", "__", "_"};
       for( UInt i = 0; i < numDofs; i++ ) {
@@ -731,7 +762,7 @@ namespace CoupledField {
       }
 
   } else if( entryType == ResultInfo::TENSOR ) {
-    GiD_BeginResultHeader( name.c_str(), analysisName.c_str(), time,
+    GiD_BeginResultHeader( outName.c_str(), analysisName.c_str(), time,
                            GiD_Matrix, loc, dummy );
       const char *names[6] = {"______", "_____", "____",
                               "___", "__", "_" };
@@ -778,7 +809,7 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
 
     // assemble name for analysis step
     std::string analysisName = "harmonic";
-    analysisName += "_" + lexical_cast<std::string>( actMsStep_ );
+    analysisName += "_" + lexical_cast<std::string>( actMSStep_ );
 
    // get number of entities
     UInt numEnt = 0;

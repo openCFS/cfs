@@ -97,9 +97,17 @@ namespace CoupledField
 
     //! Current region number written
     Integer actMeshId_;
+
+    //! Last time / frequency step value
+    Double lastStepVal_;
     
-    //! Current multisequence step
-    UInt actMsStep_;
+    //! Count how often the last step value was repeated
+    
+    //! This attribute is mainly used in an eigenfrequency analysis, where
+    //! due to symmetry several mode shapes with the same frequency can occur.
+    //! We count the multiplicity, to include this information into the result
+    //! name to be able to distinguish it later in GiD. 
+    UInt lastStepRepeated_;
     
     //! Type of analysis in current multisequence step
     BasePDE::AnalysisType actAnalysis_;
@@ -109,13 +117,16 @@ namespace CoupledField
 
     //! Flag for binary file format
     bool isAscii_;
+    
+    //! Flag for grouping eigenfrequencies
+    bool groupEigenFreqs_;
 
     //! Check if class is initialized
     bool isInitialized_;
 
     //! Flag indicating if only grid is printed
     bool printGridOnly_;
-
+    
   };
 
 #ifdef DOXYGEN_DETAILED_DOC
