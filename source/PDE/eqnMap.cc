@@ -1266,11 +1266,34 @@ namespace CoupledField {
            
             UInt slaveDof = actCsList[i]->slaveDof;
 
+           
+            // Check first node, which is contained in the PDE, i.e. has a
+            // non zero local node number.
+            UInt startIndex = 0;
+            while ( mesh2PdeNode_[slaveNodes[startIndex]-1] < 0) {
+              (*warning) << "EqnMap::CalcNodalEquations: Constraint node "
+                  << "nr. " << slaveNodes[startIndex]
+                                     << " is not contained in any of the regions for this PDE";
+              Warning( __FILE__, __LINE__ );
+
+              startIndex++;
+            }
+            
             // NOTE: at the moment we assume that slave and master nodes
             // are the same, therefore we start with the second node
             // within the master / slave node array
-            for ( UInt iNode = 1; iNode < slaveNodes.GetSize(); iNode++ ) {
-              actMap[mesh2PdeNode_[slaveNodes[iNode]-1]-1] [slaveDof-1] = 0;
+            for ( UInt iNode = startIndex+1; 
+                  iNode < slaveNodes.GetSize(); 
+                  iNode++ ) {
+              Integer localNode = mesh2PdeNode_[slaveNodes[iNode]-1];
+              if( localNode > 0) {
+                actMap[localNode-1] [slaveDof-1] = 0;
+              } else {
+                (*warning) << "EqnMap::CalcNodalEquations: Constraint node "
+                << "nr. " << slaveNodes[iNode]
+                << " is not contained in any of the regions for this PDE";
+                Warning( __FILE__, __LINE__ );
+              }
             }
           }
         }
@@ -1464,16 +1487,25 @@ namespace CoupledField {
             slaveNodes = nodeList->GetNodes();
             UInt slaveDof = actCsList[i]->slaveDof;
             UInt masterDof = actCsList[i]->masterDof;
-            UInt masterNode = slaveNodes[0];
+            
+            // Check first node, which is contained in the PDE, i.e. has a
+            // non zero local node number.
+            UInt startIndex = 0;
+            while ( mesh2PdeNode_[slaveNodes[startIndex]-1] < 0) 
+              startIndex++;
+            UInt masterNode = slaveNodes[startIndex];
 
             // assign the master node/dof a equation number
             //actMap[mesh2PdeNode_[slaveNodes[0]-1]-1]
             //  [slaveDof-1] = ++numEqns_;
 
-            for ( UInt iNode = 1; iNode < slaveNodes.GetSize(); iNode++ ) {
-              actMap[mesh2PdeNode_[slaveNodes[iNode]-1]-1] [slaveDof-1] =
-                -actMap[mesh2PdeNode_[masterNode-1]-1] [masterDof-1];
-              numCs_++;
+            for ( UInt iNode = startIndex+1; iNode < slaveNodes.GetSize(); iNode++ ) {
+              Integer localNode = mesh2PdeNode_[slaveNodes[iNode]-1];
+              if( localNode > 0 ) {
+                actMap[localNode-1] [slaveDof-1] =
+                    -actMap[mesh2PdeNode_[masterNode-1]-1] [masterDof-1];
+                numCs_++;
+              }
             }
           }
         }
