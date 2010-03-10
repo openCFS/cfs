@@ -138,9 +138,6 @@ namespace CoupledField
   
     Shape[0] = 1.0 - LCoord[0] - LCoord[1] - LCoord[2];
 
-    if (Shape[0] < 0)
-      EXCEPTION("Local coordinates are not inside tetrahedral element!");
-
     for( UInt i=1; i<NumNodes_; i++)
       Shape[i] = LCoord[i-1];
 
