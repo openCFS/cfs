@@ -23,9 +23,10 @@ namespace CoupledField
     else if ( type == "mixedPMLMassPPInt" || type == "mixedPMLMassVVInt") {
         formsType_ = type;
     }
-    //    else {
-    //      EXCEPTION("PMLInt: type must be laplaceInt or massInt");
-    //    }
+    else {
+      formsType_ = type;
+      //EXCEPTION("PMLInt: type must be laplaceInt or massInt");
+    }
 
     //check correct damping type
     if ( dampingTypePML == "constant" ) {
@@ -189,53 +190,105 @@ namespace CoupledField
       factorsPML[0] = ComputeDampingFactor(pos, X);
 
       if ( pos[1] < minY_ || pos[1] > maxY_ ) {
-	factorsPML[1] = ComputeDampingFactor(pos, Y);
+	      factorsPML[1] = ComputeDampingFactor(pos, Y);
 
-	//check for 3D
-	if (numVals == 3) {
-	  if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
-	    //compute z-value
-	    factorsPML[2] = ComputeDampingFactor(pos, Z);
-	  }
-	}
+	      //check for 3D
+	      if (numVals == 3) {
+	        if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
+	          //compute z-value
+	          factorsPML[2] = ComputeDampingFactor(pos, Z);
+	        }
+	      }
+      } else {
+	      //check for 3D
+	      if (numVals == 3) {
+	        if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
+	          //compute z-value
+	          factorsPML[2]  = ComputeDampingFactor(pos, Z);
+	        }
+	      }
       }
-      
-      else {
-	//check for 3D
-	if (numVals == 3) {
-	  if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
-	    //compute z-value
-	    factorsPML[2]  = ComputeDampingFactor(pos, Z);
-	  }
-	}
-      }
-    }
-
-    else {
+    } else {
       if ( pos[1] < minY_ || pos[1] > maxY_ ) {
-	//compute y-value
-	factorsPML[1]  = ComputeDampingFactor(pos, Y);
+	      //compute y-value
+	      factorsPML[1]  = ComputeDampingFactor(pos, Y);
 
-	//check for 3D
-	if (numVals == 3) {
-	  if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
-	    //compute z-value
-	    factorsPML[2]  = ComputeDampingFactor(pos, Z);
-	  }
-	}
-      }
-
-      else {
-	//check for 3D
-	if (numVals == 3) {
-	  if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
-	    factorsPML[2]  = ComputeDampingFactor(pos, Z);
-	  }
-	}
+	      //check for 3D
+	      if (numVals == 3) {
+	        if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
+	          //compute z-value
+	          factorsPML[2]  = ComputeDampingFactor(pos, Z);
+	        }
+	      }
+      } else {
+	      //check for 3D
+	      if (numVals == 3) {
+	        if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
+	          factorsPML[2]  = ComputeDampingFactor(pos, Z);
+	        }
+	      }
       }
     }
   }
 
+
+  void PMLBasics::ComputeTimeFactorPML(Vector<Double>& factorsPML, 
+                                       Vector<Double>& pos,
+                                       Vector<Double> center)
+  {
+
+    UInt numVals = pos.GetSize();
+
+    factorsPML.Resize(numVals);
+    factorsPML.Init();
+
+    if ( (pos[0] < minX_ || pos[0] > maxX_) || (center[0] < minX_ || center[0] > maxX_) ) {
+      factorsPML[0] = ComputeDampingFactor(pos, X);
+
+      if ( (pos[1] < minY_ || pos[1] > maxY_) || (center[1] < minY_ || center[1] > maxY_)) {
+	      factorsPML[1] = ComputeDampingFactor(pos, Y);
+
+	      //check for 3D
+	      if (numVals == 3) {
+	        if  ((pos[2] < minZ_ || pos[2] > maxZ_) || (center[2] < minZ_ || center[2] > maxZ_) ) {
+	          //compute z-value
+	          factorsPML[2] = ComputeDampingFactor(pos, Z);
+	        }
+	      }
+      }
+      
+      else {
+	      //check for 3D
+	      if (numVals == 3) {
+	        if  ((pos[2] < minZ_ || pos[2] > maxZ_) || (center[2] < minZ_ || center[2] > maxZ_) ) {
+	          //compute z-value
+	          factorsPML[2]  = ComputeDampingFactor(pos, Z);
+	        }
+	      }
+      }
+    } else {
+      if ( (pos[1] < minY_ || pos[1] > maxY_) || (center[1] < minY_ || center[1] > maxY_)) {
+	      //compute y-value
+	      factorsPML[1]  = ComputeDampingFactor(pos, Y);
+
+	      //check for 3D
+	      if (numVals == 3) {
+	        if  ((pos[2] < minZ_ || pos[2] > maxZ_) || (center[2] < minZ_ || center[2] > maxZ_) ) {
+	          //compute z-value
+	          factorsPML[2]  = ComputeDampingFactor(pos, Z);
+	        }
+	      }
+      } else {
+	      //check for 3D
+	      if (numVals == 3) {
+	        if  ((pos[2] < minZ_ || pos[2] > maxZ_) || (center[2] < minZ_ || center[2] > maxZ_) ) {
+	          factorsPML[2]  = ComputeDampingFactor(pos, Z);
+	        }
+	      }
+      }
+    }
+    return;
+  }
 
   Double PMLBasics::ComputeDampingFactor(Vector<Double>& pos, Directions dir)
   {
@@ -253,33 +306,33 @@ namespace CoupledField
 	      //get correct layer thickness
 	      if ( pos[0] < minX_ ) {
 	        delta = layerThickness_[0][0];
-	        diffCoord = abs(pos[0]) - minX_;
+	        diffCoord = abs(pos[0] - minX_);
 	      }
 	      else {
 	        delta = layerThickness_[1][0];
-	        diffCoord = abs(pos[0]) - maxX_;
+	        diffCoord = abs(pos[0] - maxX_);
 	      }
       }
       else if ( dir == Y ) {
 	      //get correct layer thickness
 	      if ( pos[1] < minY_ ) {
 	        delta = layerThickness_[0][1];
-	        diffCoord = abs(pos[1]) - minY_;
+	        diffCoord = abs(pos[1] - minY_);
 	      }
 	      else {
 	        delta = layerThickness_[1][1];
-	        diffCoord = abs(pos[1]) - maxY_;
+	        diffCoord = abs(pos[1] - maxY_);
 	      }
       }
       else {
 	      //get correct layer thickness
 	      if ( pos[2] < minZ_ ) {
 	        delta = layerThickness_[0][2];
-	        diffCoord = abs(pos[2]) - minZ_;
+	        diffCoord = abs(pos[2] - minZ_);
 	      }
 	      else {
 	        delta = layerThickness_[1][2];
-	        diffCoord = abs(pos[2]) - maxZ_;
+	        diffCoord = abs(pos[2] - maxZ_);
 	      }
       }
 
@@ -316,13 +369,20 @@ namespace CoupledField
 	      idx = 2;
       }
 
+      //! This is just for Lobatto integration
+      Double  divisor = abs(maxPos - pos[idx]);
       if ( abs (maxPos - pos[idx]) < 1e-12 ) {
-        EXCEPTION("PML damping inverseDist divides by factor smaller 1E-12");
+        //factor = abs (dampingFactor_ / 1e-2 );
+        factor = 0;
+        Warning("PML damping inverseDist divides by factor smaller 1E-12. Setting the factor to 0");
+      }else{
+        factor = abs (dampingFactor_ / divisor );
+        //std::cout << "got factor " << factor;
+        //std::cout << " at Position " << pos[idx] << " in " << idx << " direction" << std::endl;
       }
 
       //      std::cout << "maxPos =" << maxPos << std::endl;
 
-      factor = abs (dampingFactor_ / ( maxPos  - pos[idx] ) );
     }
 
     return factor;

@@ -1849,17 +1849,37 @@ namespace CoupledField {
 
               // iterate over all elements of this list
               for( it.Begin(); !it.IsEnd(); it++ ) {
+                StdVector<StdVector<UInt> > numFcns;
+                numFcns.Resize( dofsPerEdge );
 
                 // obtain edges
                 StdVector<Integer> const & edges = it.GetElem()->edges;
+                const Elem & actEl = *(it.GetElem());
+
+                // iterate over all dofs of this result
+                for( UInt iDof = 0; iDof < dofsPerEdge; iDof++ ) {
+                  actEl.ptElem->GetNumFncs( numFcns[iDof], actRes.fctType,
+                                            AnsatzFct::EDGE, iDof );
+                  assert( numFcns[iDof].GetSize() == actEl.edges.GetSize() );
+                }
 
                 for( UInt iEdge = 0; iEdge < edges.GetSize(); iEdge++ ) {
 
                   // check, if edge can be found
                   Integer locEdge = mesh2PdeEdge_[std::abs(edges[iEdge]) - 1];
 
+
+                  // sum up unknowns of this dof
+                  UInt sum = 0;
+                  UInt max = 0;
+                  for( UInt iDof = 0; iDof < dofsPerEdge; iDof++ ) {
+                    sum +=  numFcns[iDof][iEdge];
+                    if( numFcns[iDof][iEdge] > max )
+                      max = numFcns[iDof][iEdge];
+                  }
+
                   if( locEdge > 0 ) {
-                    actMap[locEdge-1].Resize(dofsPerEdge);
+                    actMap[locEdge-1].Resize(dofsPerEdge * max);
                     actMap[locEdge-1].Init( 0 );
                   }
                 }

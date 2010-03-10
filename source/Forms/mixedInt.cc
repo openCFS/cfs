@@ -101,58 +101,58 @@ namespace CoupledField {
   void MassMixedInt_VV::CalcElementMatrix( Matrix<Double>& elemMat,
                                    EntityIterator& ent1,
                                    EntityIterator& ent2  )  {
-     // Extract pointer to reference element and get coordinates
-     Vector<Double> CoordAtIP;
-     Matrix<Double> tempElemMat;
+    // Extract pointer to reference element and get coordinates
+    Vector<Double> CoordAtIP;
+    Matrix<Double> tempElemMat;
 
-     ExtractElemInfo( ent1 );
-     ptelem->SetAnsatzFct( ansatzFct1_ );
-     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
-     const UInt nrIntPts= ptelem->GetNumIntPoints();    
-     const Vector<Double> & intWeights = ptelem->GetIntWeights();
-     const Vector<Double> * intPoints = ptelem->GetIntPoints();
-     Double jacDet;
+    ExtractElemInfo( ent1 );
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    const UInt nrIntPts= ptelem->GetNumIntPoints();    
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();
+    const Vector<Double> * intPoints = ptelem->GetIntPoints();
+    Double jacDet;
 
-     elemMat.Resize(dim_*numFncs);
-     elemMat.Init();
+    elemMat.Resize(dim_*numFncs);
+    elemMat.Init();
 
-     tempElemMat.Resize(numFncs);
-     tempElemMat.Init();
+    tempElemMat.Resize(numFncs);
+    tempElemMat.Init();
 
-     Matrix<Double>  partElemMat;
-     partElemMat.Resize(numFncs);
-     partElemMat.Init();
+    Matrix<Double>  partElemMat;
+    partElemMat.Resize(numFncs);
+    partElemMat.Init();
 
-     Vector<Double> shapeFncAtIp;
+    Vector<Double> shapeFncAtIp;
 
-     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
-       
-       jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent1.GetElem() );       
-       ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
-       partElemMat.DyadicMult(shapeFncAtIp);
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
+      
+      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent1.GetElem() );       
+      ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
+      partElemMat.DyadicMult(shapeFncAtIp);
 
-       if (isaxi_) {
-	 ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
-				    ptCoord_, it1_.GetElem() );
-	 partElemMat *= 2 * PI * intWeights[actIntPt-1] * factor_
-	   * jacDet * CoordAtIP[0];
-       }
-       else {
-         partElemMat *= intWeights[actIntPt-1] * factor_ * jacDet;
-       }
+      if (isaxi_) {
+	      ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+	       		    ptCoord_, it1_.GetElem() );
+	      partElemMat *= 2 * PI * intWeights[actIntPt-1] * factor_
+	        * jacDet * CoordAtIP[0];
+      }
+      else {
+        partElemMat *= intWeights[actIntPt-1] * factor_ * jacDet;
+      }
 
-       tempElemMat += partElemMat;
-     }
+      tempElemMat += partElemMat;
+    }
 
 
-     //Blowing up the element matrix to number of velocity components 
-     const UInt singleDofSize = tempElemMat.GetNumRows();
-     for (UInt i=0; i < singleDofSize; i++)
-       for (UInt j=0; j < singleDofSize; j++)
-         for (UInt actDof = 0; actDof < dim_ ; actDof++)
-           elemMat[i*dim_ + actDof][j*dim_ + actDof] = tempElemMat[i][j]; 
+    //Blowing up the element matrix to number of velocity components 
+    const UInt singleDofSize = tempElemMat.GetNumRows();
+    for (UInt i=0; i < singleDofSize; i++)
+      for (UInt j=0; j < singleDofSize; j++)
+        for (UInt actDof = 0; actDof < dim_ ; actDof++)
+          elemMat[i*dim_ + actDof][j*dim_ + actDof] = tempElemMat[i][j]; 
 
-     //std::cout << "ElemMatMass:\n" << elemMat << std::endl;
+    //std::cout << "ElemMatMass:\n" << elemMat << std::endl;
 
    }
 
@@ -411,12 +411,12 @@ namespace CoupledField {
       for(UInt i=0; i<numFncs1; i++ ) {
         for(UInt j=0; j<numFncs2; j++ ) {
           for(UInt d = 0; d<spaceDim;d++) {
-            elemMat[i][(j*spaceDim)+d] -= shapeFncAtIp[j] * val * xiDx[i][d];
+            elemMat[i][(j*spaceDim)+d] += shapeFncAtIp[j] * val * xiDx[i][d];
           }
         }
       }
     }
-    //std::cout << "ElemeMatStiff KPV PIOLA:\n" << elemMat << std::endl;
+    //std::cerr << "ElemeMatStiff KPV PIOLA, element #" << it1_.GetElem()->elemNum << "\n" << elemMat << std::endl;
 
 }
 

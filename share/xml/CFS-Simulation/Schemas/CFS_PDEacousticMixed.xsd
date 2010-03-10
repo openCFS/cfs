@@ -175,6 +175,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="acouPressure"/>
       <xsd:enumeration value="acouVelocity"/>
+      <xsd:enumeration value="acouAcceleration"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -295,6 +296,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="acouVelocity"/>
       <xsd:enumeration value="acouPressure"/>
+      <xsd:enumeration value="acouAcceleration"/>
       <xsd:enumeration value="acouRhsLoad"/>
     </xsd:restriction>
   </xsd:simpleType>

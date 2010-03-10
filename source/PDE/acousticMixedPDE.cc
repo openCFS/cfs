@@ -168,6 +168,7 @@ namespace CoupledField
           std::string id = actRegionNode->Get("dampingId")->AsString();
           ParamNode * pmlNode = myParam_->Get("dampingList")->Get("pml", "id", id);
           ReadDataPML(dampingTypePML, inner, dampPML, pmlNode );
+          dampPML *= c0;
           
           GetPMLLayerData(inner, outer, actRegion);
           if ( analysistype_ == HARMONIC ) {        
@@ -214,7 +215,144 @@ namespace CoupledField
             assemble_->AddBiLinearForm( stiffContextMVV);
             
           } else{ // end of pml part
-            EXCEPTION("PML is only available in Frequency domain");
+            //EXCEPTION("PML is only available in Frequency domain");
+            //Define additional Integrators i.e.
+            // 1. M_phi,phi Mass integrator for the PML Variable
+            // 2. R_phi^sigma Integrator for \nabla v in sigma equation
+            // 3. C_V,V Damped Stiffness integrator for velocity
+            // 4. C_phi,phi damped Stiffness integrator for phi
+            // 5. M_P,phi Integrator for Sigma in euler EQ
+
+            std::string formsType = "NoInt";
+
+            //================================================
+            // 1. M_phi,phi Mass integrator for the PML Variable
+            // ===============================================
+
+              //formsType = "PMLAuxVecMass";
+
+              //BaseForm * bilinearM_phi =
+              //   new PMLMixedTimeInt(formsType, 1.0 , dampingTypePML, dampPML, isaxi_);
+
+              //bilinearM_phi->SetPosPML(inner,outer);
+
+              //BiLinFormContext * bilinearM_phiContext =
+              //              new BiLinFormContext( bilinearM_phi, MASS );
+              //bilinearM_phiContext->SetResults( results_[2], results_[2],
+              //                               actSDList, actSDList );
+              //bilinearM_phiContext->SetPtPdes(this, this);
+              //assemble_->AddBiLinearForm( bilinearM_phiContext);
+              
+              BaseForm * bilinearMass_PhiPhi = new MassMixedInt_VV(1.0, dim_, isaxi_);
+
+              BiLinFormContext * massContext_PhiPhi =  
+                new BiLinFormContext( bilinearMass_PhiPhi, MASS );
+
+              massContext_PhiPhi->SetPtPdes(this, this);
+              massContext_PhiPhi->SetResults( results_[2], results_[2],
+                     actSDList, actSDList );
+              assemble_->AddBiLinearForm( massContext_PhiPhi );
+
+            //================================================
+            // 2. 2. R_Q^sigma Integrator 
+            //================================================
+
+              formsType = "PMLGradR_PhiSigma";
+
+              BaseForm * PMLGradR_PhiSigma =
+                 new PMLMixedTimeInt(formsType, -1.0 , dampingTypePML, dampPML, isaxi_);
+
+              PMLGradR_PhiSigma->SetPosPML(inner,outer);
+
+              BiLinFormContext * PMLGradR_PhiSigmaContext =
+                            new BiLinFormContext( PMLGradR_PhiSigma, STIFFNESS );
+              PMLGradR_PhiSigmaContext->SetResults( results_[2], results_[1],
+                                             actSDList, actSDList );
+              PMLGradR_PhiSigmaContext->SetPtPdes(this, this);
+              assemble_->AddBiLinearForm( PMLGradR_PhiSigmaContext);
+
+            //================================================
+            // 3. C_VV Damped Stiffness integrator for velocity
+            //===============================================
+
+              formsType = "PMLVelStiff";
+
+              BaseForm * bilinearC_VV =
+                 new PMLMixedTimeInt(formsType, 1.0 * density , dampingTypePML, dampPML, isaxi_);
+
+              bilinearC_VV->SetPosPML(inner,outer);
+
+              BiLinFormContext * bilinearC_VVContext =
+                            new BiLinFormContext( bilinearC_VV, STIFFNESS );
+              bilinearC_VVContext->SetResults( results_[1], results_[1],
+                                             actSDList, actSDList );
+              bilinearC_VVContext->SetPtPdes(this, this);
+              assemble_->AddBiLinearForm( bilinearC_VVContext);
+
+            //================================================
+            // 4. C_QQ damped Stiffness integrator for Q
+            //================================================
+
+              formsType = "PMLAccelStiff";
+
+              BaseForm * bilinearC_phi =
+                 new PMLMixedTimeInt(formsType, 1.0 , dampingTypePML, dampPML, isaxi_);
+
+              bilinearC_phi->SetPosPML(inner,outer);
+
+              BiLinFormContext * bilinearC_phiContext =
+                            new BiLinFormContext( bilinearC_phi, STIFFNESS );
+              bilinearC_phiContext->SetResults( results_[2], results_[2],
+                                             actSDList, actSDList );
+              bilinearC_phiContext->SetPtPdes(this, this);
+              assemble_->AddBiLinearForm( bilinearC_phiContext);
+
+            //================================================
+            // 5. M_P,Q Integrator for Q in euler EQ
+            //================================================
+
+              formsType = "PMLStiffPhi";
+
+              BaseForm * PMLMassPhi =
+                   new PMLMixedTimeInt(formsType, 1.0 , dampingTypePML, dampPML, isaxi_);
+
+              PMLMassPhi->SetPosPML(inner,outer);
+
+              BiLinFormContext * PMLMassPhiContext =
+                            new BiLinFormContext( PMLMassPhi, STIFFNESS );
+              PMLMassPhiContext->SetResults( results_[0], results_[2],
+                                             actSDList, actSDList );
+              PMLMassPhiContext->SetPtPdes(this, this);
+              assemble_->AddBiLinearForm( PMLMassPhiContext);
+
+            // Give result to equation numbering class
+            eqnMap_->AddResult( *results_[2], actSDList );
+
+
+            //DEFINE STANDARD MASS INTEGRATORS FOR P AND V
+            //==============  add MPP ======================================
+            BaseForm * bilinearMass_PP = new MassMixedInt_PP(1.0/bulkModulus, isaxi_);
+
+
+            BiLinFormContext * massContext_PP =  
+            	new BiLinFormContext( bilinearMass_PP, MASS );
+
+            massContext_PP->SetPtPdes(this, this);
+            massContext_PP->SetResults( results_[0], results_[0],
+			             actSDList, actSDList );
+            assemble_->AddBiLinearForm( massContext_PP );
+
+
+            //==============  add MVV ======================================  
+            BaseForm * bilinearMass_VV = new MassPiolaMixedInt_VV(density, dim_, isaxi_);
+
+            BiLinFormContext * massContext_VV =  
+              new BiLinFormContext( bilinearMass_VV, MASS );
+
+            massContext_VV->SetPtPdes(this, this);
+            massContext_VV->SetResults( results_[1], results_[1],
+                   actSDList, actSDList );
+            assemble_->AddBiLinearForm( massContext_VV );
           }
         }else{
           //==============  add MPP ======================================
@@ -240,8 +378,11 @@ namespace CoupledField
                  actSDList, actSDList );
           assemble_->AddBiLinearForm( massContext_VV );
         }
+        Double kpvFactor = -1.0;
+        Double kvpFactor = 1.0;
+
         // ==============  add stiffness ======================================
-        BaseForm *bilinearStiff_KPV = new StiffPiolaMixedInt_KPV( 1.0 , dim_, isaxi_);
+        BaseForm *bilinearStiff_KPV = new StiffPiolaMixedInt_KPV( kpvFactor , dim_, isaxi_);
         BiLinFormContext * stiffContext_KPV =
           new BiLinFormContext(bilinearStiff_KPV, STIFFNESS );
 
@@ -252,7 +393,7 @@ namespace CoupledField
         assemble_->AddBiLinearForm( stiffContext_KPV );
 
          // ==============  add KVP ======================================
-        BaseForm *bilinearStiff_KVP = new StiffPiolaMixedInt_KVP( 1.0, dim_, isaxi_);
+        BaseForm *bilinearStiff_KVP = new StiffPiolaMixedInt_KVP( kvpFactor, dim_, isaxi_);
         BiLinFormContext * stiffContext_KVP =
           new BiLinFormContext(bilinearStiff_KVP, STIFFNESS );
 
@@ -573,7 +714,7 @@ namespace CoupledField
       res1->fctType->SetDiscontinuity(false);
     }
     else {
-      EXCEPTION( "approximation type '" << approxType << "' not allowd");
+      EXCEPTION( "approximation type '" << approxType << "' not allowed");
     }
       
     results_.Push_back( res1 );
@@ -627,6 +768,72 @@ namespace CoupledField
     results_.Push_back( res2 );
     availResults_.insert( res2 );
 
+    // for time domain PML we need auxillary variables
+    // check for time domain PML
+    if ( analysistype_ == TRANSIENT ) { 
+      bool isPML = false;
+
+      for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++) {
+        // get current region name and get grip of paramNode
+        RegionIdType actRegion = subdoms_[actSD];
+        // Check for Perfectly matchec layers
+        if ( dampingList_[actRegion] == PML )
+          isPML = true;
+      }
+
+      if ( isPML ) {
+        //======================================================================
+        //AXILIARY VARIABLES FOR TIME DOMAIN PML
+        //=====================================================================
+        // === U ===
+        shared_ptr<ResultInfo> res4(new ResultInfo); 
+        res4->resultType = ACOU_ACCELERATION;
+        if( subType_ == "3d" ) {
+          res4->dofNames = "x", "y", "z";
+        } 
+        else if ( subType_ == "axi" ) {
+          res4->dofNames = "r", "z";
+        } 
+        else if( subType_ == "plane") {
+          res4->dofNames = "x", "y";
+        } 
+        else {
+          EXCEPTION( "AcousticMixedPDE: subType '" << subType_ 
+                       << "' not known'" );
+        }
+
+        res4->unit = "m/s^2";
+        res4->entryType = ResultInfo::VECTOR;
+
+        if ( approxType == "lagrange" ) {
+          shared_ptr<AnsatzFct> fctU(new LagrangeFct);
+          res4->fctType = fctU;
+          res4->definedOn = ResultInfo::NODE;
+        } 
+        else if( approxType == "taylorHood" ) {
+          std::cerr << "Using taylorHood!\n";
+          UInt order = myParam_->Get("order")->AsUInt();
+          shared_ptr<LegendreFct> fctU(new LegendreFct);
+          fctU->SetIsoOrder( order+1 );
+          res4->fctType = fctU;
+          res4->definedOn = ResultInfo::PFEM;
+        }
+        else if(  approxType == "spectral" ) {
+          UInt order = myParam_->Get("order")->AsUInt();
+          shared_ptr<SpectralFct> fctU(new SpectralFct);
+          res4->definedOn = ResultInfo::PFEM;
+          fctU->SetOrder( order );
+          res4->fctType = fctU;
+          res4->fctType->SetDiscontinuity(false);
+        }
+        else {
+          EXCEPTION( "approximation type '" << approxType << "' not allowed");
+        }
+
+        results_.Push_back( res4 );
+        availResults_.insert( res4 );
+      }
+    }
     // ===  RHS LOAD ===
     //shared_ptr<ResultInfo> rhs(new ResultInfo);
     //rhs->resultType = ACOU_RHS_LOAD;
@@ -652,6 +859,14 @@ namespace CoupledField
       }
       break;
 
+    case ACOU_ACCELERATION:
+      if( isComplex_ ) {
+        ExtractResult<Complex>( result, sol_ );
+      } else {
+        ExtractResult<Double>( result, sol_ );
+      }
+      break;
+
     case ACOU_VELOCITY:
       if( isComplex_ ) {
         ExtractResult<Complex>( result, sol_ );
@@ -669,7 +884,7 @@ namespace CoupledField
       break;
       
     default:
-      Warning( "Resulttype not computable by mechanic PDE",
+      Warning( "Resulttype not computable by acoustic mixed PDE",
                __FILE__, __LINE__ );
     }
   }

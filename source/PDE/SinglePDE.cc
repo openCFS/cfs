@@ -282,7 +282,7 @@ namespace CoupledField {
       }else{
         eqnMap_ = shared_ptr<EqnMap>(new EqnMap( ptgrid_, pdeId_, usePenalty_ ));
       }
-    }else if(results_.GetSize() == 2){
+    }else if(results_.GetSize() >= 2){
       if(!results_[0]->fctType->IsDiscontinuous() && results_[1]->fctType->IsDiscontinuous()){
         eqnMap_ = shared_ptr<MixedEqnMap>(new MixedEqnMap( ptgrid_, pdeId_, usePenalty_ ));
       }else if(results_[0]->fctType->IsDiscontinuous() && results_[1]->fctType->IsDiscontinuous()){
@@ -2687,15 +2687,32 @@ namespace CoupledField {
     actSol.Resize( res->GetEntityList()->GetSize() *
                    actDof.dofNames.GetSize() );
 
+    actSol.Init();
     for( it.Begin(); !it.IsEnd(); it++ ) {
 
-      // get equation numbes
+      // get equation numbers
       eqnMap_->GetEqns( eqnNums, actDof, it );
-      for( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ) {
-        if( eqnNums[iDof] != 0 ) {
-          actSol[it.GetPos()*numDofs+iDof] = solHelp[abs(eqnNums[iDof])-1];
-        } else {
-          actSol[it.GetPos()*numDofs+iDof] = 0.0;
+      //check for discontinuous results and compute the average if necessary
+      if(actDof.fctType->IsDiscontinuous()){
+        //Compute the number of discontinuous dofs
+        UInt numDisNodes = eqnNums.GetSize() / numDofs;
+        Double factor = 1.0 / numDisNodes;
+        for( UInt iNode = 0; iNode < numDisNodes; iNode++ ) {
+          for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
+            if( eqnNums[iDof] != 0 ) {
+              actSol[it.GetPos()*numDofs+iDof] += solHelp[abs(eqnNums[(iNode*numDofs) + iDof])-1] * factor;
+            } else {
+              actSol[it.GetPos()*numDofs+iDof] += 0.0;
+            }
+          }
+        }
+      }else{
+        for( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ) {
+          if( eqnNums[iDof] != 0 ) {
+            actSol[it.GetPos()*numDofs+iDof] = solHelp[abs(eqnNums[iDof])-1];
+          } else {
+            actSol[it.GetPos()*numDofs+iDof] = 0.0;
+          }
         }
       }
     }
@@ -2995,13 +3012,13 @@ namespace CoupledField {
       }
     }
 
-    out << "Acoustic propagation coordinates:\n"
+    std::cout << "Acoustic propagation coordinates:\n"
         << "   xmin = " << inner[0][0] << std::endl
         << "   xmax = " << inner[1][0] << std::endl
         << "   ymin = " << inner[0][1] << std::endl
         << "   ymax = " << inner[1][1] << std::endl;
     if ( dim_ == 3) {
-      out << "   zmin = " << inner[0][2] << std::endl
+      std::cout << "   zmin = " << inner[0][2] << std::endl
           << "   zmax = " << inner[1][2] << std::endl;
     }
 
@@ -3058,17 +3075,17 @@ namespace CoupledField {
 //     outer[1][1] = 2;
 
 
-    out << "PML layer coordinates:\n"
+    std::cout << "PML layer coordinates:\n"
         << "   xmin = " << outer[0][0] << std::endl
         << "   xmax = " << outer[1][0] << std::endl
         << "   ymin = " << outer[0][1] << std::endl
         << "   ymax = " << outer[1][1] << std::endl;
     if ( dim_ == 3) {
-      out << "   zmin = " << outer[0][2] << std::endl
+      std::cout << "   zmin = " << outer[0][2] << std::endl
           << "   zmax = " << outer[1][2] << std::endl;
     }
 
-    out << std::endl;
+    std::cout << std::endl;
     Info->PrintF( pdename_, out.str().c_str() );
 
   }

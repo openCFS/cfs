@@ -192,7 +192,8 @@ namespace CoupledField{
     //    mapping from  local to global cartesian coordinate system
     Matrix<Double> tempInvers;
     rotationMat_.Invert(invRotationMat_);
-
+    CalcKardanAngles( rotationAng_, rotationMat_ );
+    CalcKardanAngles( invRotationAng_, invRotationMat_ );
   }
 
 

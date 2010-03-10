@@ -73,7 +73,7 @@ namespace CoupledField {
       for ( UInt i = 0; i < actMap.GetNumRows(); i++ ) {
         for ( UInt j = 0; j < actMap.GetNumCols(); j++ ) {
           if ( actMap[i][j] > 0 ) {
-            std::cout << actMap[i][j]-1<< std::endl;
+            //std::cout << actMap[i][j]-1<< std::endl;
             actMap[i][j] = (Integer)order[actMap[i][j]-1];
           }
           else if(actMap[i][j] < 0 ) {
@@ -927,7 +927,7 @@ namespace CoupledField {
             mesh2DisPdeNode_[actEl->connect[iNode]-1][mesh2DisPdeNode_[actEl->connect[iNode]-1].GetSize()-1][0] = actEl->elemNum;
             mesh2DisPdeNode_[actEl->connect[iNode]-1][mesh2DisPdeNode_[actEl->connect[iNode]-1].GetSize()-1][1] = ++numLocNodes_;
             pde2MeshNode_.Push_back(actEl->connect[iNode]);
-            std::cout << "Adding node " << actEl->connect[iNode] << " to element #" << mesh2DisPdeNode_[actEl->connect[iNode]-1][mesh2DisPdeNode_[actEl->connect[iNode]-1].GetSize()-1][0] << " with local node" << numLocNodes_ << std::endl;
+            //std::cout << "Adding node " << actEl->connect[iNode] << " to element #" << mesh2DisPdeNode_[actEl->connect[iNode]-1][mesh2DisPdeNode_[actEl->connect[iNode]-1].GetSize()-1][0] << " with local node" << numLocNodes_ << std::endl;
           }
         }
       }
@@ -1249,10 +1249,10 @@ namespace CoupledField {
           		  	  if ( actMap[locNode-1][iDof] == NO_EQN )//&& countNodes[locNode-1][iDof] == 0 ) 
           		  	  {
           		  	    numEqns_++;
-          		  	    //LOG_DBG3(disContEqnMap) << "Adding equation " << numEqns_ 
-          		  	    //                 << " to local node " << locNode << std::endl;
-          		  	    std::cout << "Adding equation " << numEqns_ 
-          		  	                     << " to local node " << locNode << " to DOF" << iDof << std::endl;
+          		  	    LOG_DBG3(disContEqnMap) << "Adding equation " << numEqns_ 
+          		  	                     << " to local node " << locNode << std::endl;
+          		  	    //std::cout << "Adding equation " << numEqns_ 
+          		  	    //                 << " to local node " << locNode << " to DOF" << iDof << std::endl;
           		  	    actMap[locNode-1][iDof] = numEqns_;
           		  	    countNodes[locNode-1][iDof] += 1;
           		  	  }

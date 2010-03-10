@@ -197,9 +197,66 @@ namespace CoupledField
 
     //! number of dofs per node
     UInt nrDofsPerNode_;
+    
+  };
 
-    //! determine if we want to return the transposed element matrix
-    bool transpose_;
+  class PMLMixedTimeInt : public BaseForm
+  {
+  public:
+    
+    //! Constructor
+    PMLMixedTimeInt(std::string type, Double factor, std::string dampingTypePML, 
+                    Double damp, bool axi=false);
+    
+    /// 
+    virtual ~PMLMixedTimeInt();
+    
+    //! Calculation of stiffmess matrix
+    void CalcElementMatrix( Matrix<Double>& elemMat,
+                            EntityIterator& ent1, 
+                            EntityIterator& ent2 );
+    
+    //! set min/max of x,y,z coordinates form where PML starts and ends
+    void SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer);
+    
+    //! set number of dofs per node
+    void SetNrDofs( UInt numDofs ) {
+      nrDofsPerNode_ = numDofs;
+    };
+
+    //! set actual solution
+    void SetActElemSol(Matrix<Double>& disp){};
+    
+    
+  private:
+    
+    //! Calculation of stiffmess matrix
+    void CalcElementMatrixGradRV(Matrix<Double> & ptCoord, Matrix<Double> & elemMat);
+    
+    //! Calculation of mass matrix
+    void CalcElementMatrixStiffPhi(Matrix<Double> & ptCoord, Matrix<Double> & elemMat);
+    
+    //! Calculation of mass matrix
+    void CalcElementMatrixVelStiff(Matrix<Double> & ptCoord, Matrix<Double> & elemMat);
+    
+    void CalcElementMatrixAuxVecMass(Matrix<Double> & ptCoord, Matrix<Double> & elemMat);
+
+    void CalcElementMatrixAccelStiff(Matrix<Double> & ptCoord, Matrix<Double> & elemMat);
+
+    //! object containing standard PML methods
+    PMLBasics *pmlFnc_;
+    
+    //! multiplicative factor for forms
+    Double factor_;
+
+    //! number of dofs per node
+    UInt nrDofsPerNode_;
+
+    //! type of PML integrator
+    std::string formsType_;
+
+    //! The current entity 
+    EntityIterator ent_;
     
 };
 }

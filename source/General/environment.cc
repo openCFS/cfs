@@ -384,6 +384,10 @@ namespace CoupledField {
       return "Pa";
       break;
 
+    case ACOU_ACCELERATION:
+      return "m/s^2";
+      break;
+
     case ACOU_PRESSURE_DERIV_1:
       return "Pa/s";
       break;
@@ -1999,6 +2003,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(SMOOTH_STRAIN, "smoothStrain");
     //acoustics
     SolutionTypeEnum.Add(ACOU_PRESSURE, "acouPressure");
+    SolutionTypeEnum.Add(ACOU_ACCELERATION, "acouAcceleration");
     SolutionTypeEnum.Add(ACOU_POTENTIAL, "acouPotential");
     SolutionTypeEnum.Add(ACOU_VELOCITY, "acouVelocity");
     SolutionTypeEnum.Add(ACOU_PRESSURE_DERIV_1, "acouPressureD1");

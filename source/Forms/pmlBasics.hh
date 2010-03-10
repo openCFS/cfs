@@ -29,6 +29,12 @@ namespace CoupledField
     void ComputeTimeFactorPML(Vector<Double>& factorsPML, 
                               Vector<Double>& pos );
 
+    //! calulates position and values for time domain PML Depending on the center of the element
+    //! Usefull if Lobatto integration is used
+    void ComputeTimeFactorPML(Vector<Double>& factorsPML, 
+                              Vector<Double>& pos,
+                              Vector<Double> center);
+
     //! calculates the damping factor
     Double ComputeDampingFactor( Vector<Double>& pos, Directions dir );
     

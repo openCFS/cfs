@@ -728,7 +728,7 @@ namespace CoupledField
 
     isComplex_ = true;
     isaxi_     = axi;
-    std::cout << type << std::endl;
+    //std::cout << type << std::endl;
 
     nrDofsPerNode_ = 1;
     pmlFnc_    = new PMLBasics( dampingTypePML, damp, type);
@@ -906,7 +906,7 @@ namespace CoupledField
      }
      //std::cout << "MassPiolaMixedInt_VV Matrix:\n" << elemMat << std::endl;
 
-    std::cout << elemMat << std::endl << std::endl;
+    //std::cout << elemMat << std::endl << std::endl;
   }
 
   void PMLMixedInt::SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer)
@@ -914,4 +914,437 @@ namespace CoupledField
 
     pmlFnc_-> SetPosPML( inner, outer );
   }
+
+    //! Constructor
+  PMLMixedTimeInt::PMLMixedTimeInt(std::string type, Double factor, std::string dampingTypePML, 
+                    Double damp, bool axi)
+                  : BaseForm(NULL), factor_(factor)
+  {    
+
+    name_ = "PMLMixedTimeInt, " + type;
+
+    isaxi_     = axi;
+    formsType_ = type;
+    pmlFnc_    = new PMLBasics( dampingTypePML, damp, type);
+  }
+    
+  PMLMixedTimeInt::~PMLMixedTimeInt(){
+  }
+    
+  //! Calculation of stiffmess matrix
+  void PMLMixedTimeInt::CalcElementMatrix( Matrix<Double>& elemMat,
+                            EntityIterator& ent1, 
+                            EntityIterator& ent2 ){
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );
+    ent_ = ent1;
+    
+    if ( formsType_ == "PMLVelStiff" ) { 
+      CalcElementMatrixVelStiff(ptCoord_, elemMat);
+    }   
+    else if ( formsType_ == "PMLAccelStiff" ) { 
+      CalcElementMatrixAccelStiff(ptCoord_, elemMat);
+    }   
+    else if ( formsType_ == "PMLAuxVecMass" ) { 
+      CalcElementMatrixAuxVecMass(ptCoord_, elemMat);
+    }   
+    else if ( formsType_ == "PMLStiffPhi" ) { 
+      CalcElementMatrixStiffPhi(ptCoord_, elemMat);
+    }   
+    else if ( formsType_ == "PMLGradR_PhiSigma" ) { 
+      CalcElementMatrixGradRV(ptCoord_, elemMat);
+    }  
+    else{
+      std::cout << "Requested a Type which is not supported by PMLMixedTimeInt " << formsType_ << ".... exiting" << std::endl;
+      exit(-1);
+    }
+  }
+    
+    //! set min/max of x,y,z coordinates form where PML starts and ends
+  void PMLMixedTimeInt::SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer)
+  {
+
+      pmlFnc_-> SetPosPML( inner, outer );
+  }
+    
+    //! Calculation of stiffmess matrix
+  void PMLMixedTimeInt::CalcElementMatrixGradRV(Matrix<Double> & ptCoord, Matrix<Double> & elemMat){
+
+     //check for spectral element approximation if not, throw error
+     assert(ansatzFct1_->GetType() == AnsatzFct::SPECTRAL );
+    
+    // ansatzFct1_ corresponds to functions of pressure P (Taylor Hood: 1st order)
+    // ansatzFct2_ corresponds to functions of veloctity V (TaylorHood: 2nd order )
+    //UInt numFncs1 = ptelem->GetNumFncs( ansatzFct1_ );
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct2_ );
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    const UInt nrIntPts= ptelem->GetNumIntPoints();    
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();
+     const Vector<Double> * intPoints = ptelem->GetIntPoints();
+    const UInt spaceDim = ptelem->GetDim();  
+    Double jacDet;
+
+    Vector<Double> shapeFncAtIp;
+    Vector<Double> CoordAtIP;
+    Matrix<Double> xiDx;
+    Matrix<Double> JacMat;
+    Matrix<Double> partElemMat;
+    Vector<Double> factorsPML;
+    Vector<Double> CoordCenter;
+    Vector<Double> LocalCenter;
+
+    LocalCenter.Resize(spaceDim);
+    LocalCenter.Init();
+
+    //set matrix to desired size and set all elements to zero
+    elemMat.Resize(numFncs*spaceDim, numFncs*spaceDim);
+    partElemMat.Resize(numFncs*spaceDim, numFncs*spaceDim);
+    JacMat.Resize(spaceDim);
+    factorsPML.Resize(spaceDim);
+    factorsPML.Init();
+    JacMat.Init();
+
+    elemMat.Init();
+    xiDx.Init();
+    shapeFncAtIp.Init();
+
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
+      // compute PML factor 
+      ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+                                 ptCoord, it1_.GetElem() );
+      // compute Element Center  
+      ptelem->Local2GlobalCoord( CoordCenter, LocalCenter,
+                                 ptCoord, it1_.GetElem() );
+      //pmlFnc_->ComputeTimeFactorPML( factorsPML, CoordAtIP,CoordCenter );  
+      pmlFnc_->ComputeTimeFactorPML( factorsPML, CoordAtIP );  
+
+      //get derivatives
+      ptelem->SetAnsatzFct( ansatzFct1_ , false);
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet, ent_.GetElem());
+      ptelem->CalcJacobianAtIp(JacMat,actIntPt,ptCoord_,ent_.GetElem() );
+
+      //Get the shape functions vector
+      ptelem->SetAnsatzFct( ansatzFct2_ , false);
+      ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, ent_.GetElem() );
+      
+      partElemMat.Init();
+      for( UInt intPti = 0 ; intPti< shapeFncAtIp.GetSize();intPti++){
+        for( UInt intPtj = 0 ; intPtj< shapeFncAtIp.GetSize();intPtj++){
+          for ( UInt i = 0;i<spaceDim ; i++ ) {
+            for ( UInt j=0; j<spaceDim;j++ ) {
+              partElemMat[(intPti*spaceDim)+i][(intPtj*spaceDim)+j] = //factorsPML[i] * 
+                                                                      xiDx[intPti][i] * 
+                                                                      //shapeFncAtIp[intPti] * 
+                                                                      shapeFncAtIp[intPtj] * 
+                                                                      JacMat[i][j] *
+                                                                      intWeights[actIntPt-1]*
+                                                                      factor_;
+            }
+          }
+        }
+      }
+      elemMat +=partElemMat;
+    }
+
+    //std::cerr << "CalcElementMatrixGradRV Matrix for element #" << it1_.GetElem()->elemNum << ":\n" << elemMat << std::endl;
+  }
+    
+
+    //! Calculation of mass matrix
+  void PMLMixedTimeInt::CalcElementMatrixStiffPhi(Matrix<Double> & ptCoord, Matrix<Double> & elemMat){
+    // Extract pointer to reference element and get coordinates
+    Vector<Double> CoordAtIP;
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    const UInt nrIntPts= ptelem->GetNumIntPoints();    
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();
+    const Vector<Double> * intPoints = ptelem->GetIntPoints();
+    const UInt spaceDim = ptelem->GetDim();  
+
+    Double jacDet;
+    Vector<Double> shapeFncAtIp;
+    Matrix<Double> partElemMat;
+    Matrix<Double> singleMatrix;
+    Vector<Double> factorsPML;
+    Vector<Double> CoordCenter;
+    Vector<Double> LocalCenter;
+
+    LocalCenter.Resize(spaceDim);
+    LocalCenter.Init();
+    
+    elemMat.Resize(numFncs,numFncs*spaceDim);
+    partElemMat.Resize(numFncs,numFncs);
+    singleMatrix.Resize(numFncs,numFncs);
+    elemMat.Init();
+    singleMatrix.Init();
+    partElemMat.Init();
+    
+
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
+      // compute PML factor 
+      ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+                                 ptCoord, it1_.GetElem() );
+      // compute Element Center  
+      ptelem->Local2GlobalCoord( CoordCenter, LocalCenter,
+                                 ptCoord, it1_.GetElem() );
+      //pmlFnc_->ComputeTimeFactorPML( factorsPML, CoordAtIP,CoordCenter );  
+      pmlFnc_->ComputeTimeFactorPML( factorsPML, CoordAtIP );  
+       
+      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, it1_.GetElem() );
+      ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, it1_.GetElem() );
+      
+      partElemMat.DyadicMult(shapeFncAtIp);
+
+      if (isaxi_) {
+	       ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+			     ptCoord_, it1_.GetElem() );
+	       partElemMat *= 2 * PI * intWeights[actIntPt-1] * factor_
+	                      * jacDet * CoordAtIP[0];
+      }
+      else {
+	       partElemMat *= intWeights[actIntPt-1]  * jacDet * factor_;
+      }
+      //now blow the matrix up
+      for(UInt i=0; i < numFncs; i++){
+        for(UInt j=0; j < numFncs; j++){
+          for(UInt d=0; d < spaceDim; d++){
+            elemMat[i][(j*spaceDim)+d] += partElemMat[i][j] * factorsPML[d];
+          }
+        }
+      }
+    }
+  }
+    
+  void PMLMixedTimeInt::CalcElementMatrixVelStiff(Matrix<Double> & ptCoord, Matrix<Double> & elemMat){
+    // Extract pointer to reference element and get coordinates
+    Vector<Double> CoordAtIP;
+    Matrix<Double> tempElemMat;
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+
+    //check for spectral element approximation if not, throw error
+    assert(ansatzFct1_->GetType() == AnsatzFct::SPECTRAL );
+
+    const UInt nrIntPts= ptelem->GetNumIntPoints();    
+    const UInt spaceDim = ptelem->GetDim();  
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();
+    const Vector<Double> * intPoints = ptelem->GetIntPoints();
+    Double jacDet;
+    Vector<Double> CoordCenter;
+    Vector<Double> LocalCenter;
+
+    LocalCenter.Resize(spaceDim);
+    LocalCenter.Init();
+
+    elemMat.Resize(spaceDim*numFncs);
+    elemMat.Init();
+
+    Matrix<Double>  partElemMat;
+    partElemMat.Resize(spaceDim*numFncs);
+    partElemMat.Init();
+
+    Vector<Double> shapeFncAtIp;
+    Matrix<Double> JacMat;
+    Matrix<Double> JacMatT;
+    Matrix<Double> subMat; 
+    Vector<Double> factorsPML(spaceDim);
+    JacMat.Resize(spaceDim,spaceDim);
+    JacMatT.Resize(spaceDim,spaceDim);
+    subMat.Resize(spaceDim,spaceDim);
+    JacMat.Init();
+    JacMatT.Init();
+    subMat.Init();
+    factorsPML.Init();
+
+
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
+      // compute PML factor 
+      ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+                                 ptCoord, it1_.GetElem() );
+      // compute Element Center  
+      ptelem->Local2GlobalCoord( CoordCenter, LocalCenter,
+                                 ptCoord, it1_.GetElem() );
+      //pmlFnc_->ComputeTimeFactorPML( factorsPML, CoordAtIP,CoordCenter );  
+      pmlFnc_->ComputeTimeFactorPML( factorsPML, CoordAtIP );  
+      
+      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, it1_.GetElem() );       
+      ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, it1_.GetElem() );
+      ptelem->CalcJacobianAtIp(JacMat,actIntPt,ptCoord_,it1_.GetElem() );
+
+      for ( UInt i = 0;i<spaceDim ; i++ ) {
+        for ( UInt j=0; j<spaceDim;j++ ) {
+         JacMatT[j][i] = JacMat[i][j] * factorsPML[j];
+        }
+      }
+      JacMat.Mult(JacMatT,subMat);
+
+      for( UInt intPti = 0 ; intPti< shapeFncAtIp.GetSize();intPti++){
+        for( UInt intPtj = 0 ; intPtj< shapeFncAtIp.GetSize();intPtj++){
+          for ( UInt i = 0;i<spaceDim ; i++ ) {
+            for ( UInt j=0; j<spaceDim;j++ ) {
+              partElemMat[(intPti*spaceDim)+i][(intPtj*spaceDim)+j] =  intWeights[actIntPt-1] * 
+                                                                       subMat[i][j]  * 
+                                                                       (1.0 / jacDet) *
+                                                                       factor_ *
+                                                                       shapeFncAtIp[intPti] * shapeFncAtIp[intPtj];
+            }
+          }
+        }
+      }
+
+      elemMat += partElemMat;
+    }
+    //std::cout << "MassPiolaMixedInt_VV Matrix:\n" << elemMat << std::endl;
+
+   // std::cout << "CalcElementMatrixVelStiff Matrix #" << it1_.GetElem()->elemNum << "\n" << elemMat << std::endl;
+  }
+    
+    //! Calculation of mass matrix
+  void PMLMixedTimeInt::CalcElementMatrixAuxVecMass(Matrix<Double> & ptCoord, Matrix<Double> & elemMat){
+    // Extract pointer to reference element and get coordinates
+    //Vector<Double> CoordAtIP;
+
+    //ptelem->SetAnsatzFct( ansatzFct1_ );
+    //UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    //const UInt nrIntPts= ptelem->GetNumIntPoints();    
+    //const Vector<Double> & intWeights = ptelem->GetIntWeights();
+    //const Vector<Double> * intPoints = ptelem->GetIntPoints();
+    //const UInt spaceDim = ptelem->GetDim();  
+
+    //Double jacDet;
+    //Vector<Double> shapeFncAtIp;
+    //Matrix<Double> partElemMat;
+    //Matrix<Double> singleMatrix;
+    //Matrix<Double> JacMat;
+
+    //JacMat.Resize(spaceDim,spaceDim);
+    //singleMatrix.Resize(numFncs);
+    //elemMat.Resize(numFncs*spaceDim,numFncs*spaceDim);
+    //partElemMat.Resize(numFncs,numFncs);
+    //elemMat.Init();
+    //singleMatrix.Init();
+    //partElemMat.Init();
+    //
+    //Vector<Double> factorsPML(spaceDim);
+    //Vector<Double> JacVec(spaceDim);
+
+    //for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
+    //   
+    //  partElemMat.Init();
+
+
+    //  jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, it1_.GetElem() );
+    //  ptelem->CalcJacobianAtIp(JacMat,actIntPt,ptCoord_,it1_.GetElem() );
+    //  
+    //  ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, it1_.GetElem() );
+    //  
+    //  partElemMat.DyadicMult(shapeFncAtIp);
+    //  if (isaxi_) {
+	  //     ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+		//	     ptCoord_, it1_.GetElem() );
+	  //     partElemMat *= 2 * PI * intWeights[actIntPt-1] * factor_
+	  //                    * jacDet * CoordAtIP[0];
+    //  }
+    //  else {
+	  //     partElemMat *= intWeights[actIntPt-1] * factor_;
+    //  }
+    //  singleMatrix += partElemMat;
+    //}
+    ////now blow the matrix up
+    //for(UInt i=0; i < numFncs; i++){
+    //  for(UInt j=0; j < numFncs; j++){
+    //    for(UInt d=0; d < spaceDim; d++){
+    //      elemMat[(i*spaceDim)+d][(j*spaceDim)+d] = singleMatrix[i][j];
+    //    }
+    //  }
+    //}
+    
+  }
+
+  //! Calculation of mass matrix
+  void PMLMixedTimeInt::CalcElementMatrixAccelStiff(Matrix<Double> & ptCoord, Matrix<Double> & elemMat){
+    //check for spectral element approximation if not, throw error
+    assert(ansatzFct1_->GetType() == AnsatzFct::SPECTRAL );
+
+    // Extract pointer to reference element and get coordinates
+    Vector<Double> CoordAtIP;
+    Vector<Double> factorsPML;
+    StdVector< Matrix<Double> > tempElemMat;
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    const UInt nrIntPts= ptelem->GetNumIntPoints();    
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();
+    const Vector<Double> * intPoints = ptelem->GetIntPoints();
+    const UInt spaceDim = ptelem->GetDim();  
+    Double jacDet;
+    Vector<Double> CoordCenter;
+    Vector<Double> LocalCenter;
+
+    LocalCenter.Resize(spaceDim);
+    LocalCenter.Init();
+
+    elemMat.Resize(spaceDim*numFncs);
+    elemMat.Init();
+
+    tempElemMat.Resize(spaceDim);
+    tempElemMat.Init();
+
+    for (UInt i = 0; i < spaceDim; i += 1 ){
+      tempElemMat[i].Resize(numFncs);
+      tempElemMat[i].Init();
+    }
+
+    factorsPML.Resize(spaceDim);
+    factorsPML.Init();
+
+    Matrix<Double>  partElemMat;
+    partElemMat.Resize(numFncs);
+    partElemMat.Init();
+
+    Vector<Double> shapeFncAtIp;
+
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
+      // compute PML factor 
+      ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+                                 ptCoord, it1_.GetElem() );
+      // compute Element Center  
+      ptelem->Local2GlobalCoord( CoordCenter, LocalCenter,
+                                 ptCoord, it1_.GetElem() );
+      //pmlFnc_->ComputeTimeFactorPML( factorsPML, CoordAtIP,CoordCenter );  
+      pmlFnc_->ComputeTimeFactorPML( factorsPML, CoordAtIP );  
+
+      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, it1_.GetElem() );       
+      ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, it1_.GetElem() );
+      partElemMat.DyadicMult(shapeFncAtIp);
+
+      if (isaxi_) {
+	       ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+	        		    ptCoord_, it1_.GetElem() );
+	       partElemMat *= 2 * PI * intWeights[actIntPt-1] * factor_
+	         * jacDet * CoordAtIP[0];
+      }
+      else {
+        partElemMat *= intWeights[actIntPt-1] * jacDet * factor_;
+      }
+
+      for (UInt i = 0; i < spaceDim; i += 1 ){
+        tempElemMat[i] += (partElemMat * factorsPML[i]);
+      }
+    }
+    //Blowing up the element matrix to number of velocity components 
+    for (UInt i=0; i < numFncs; i++){
+      for (UInt j=0; j < numFncs; j++){
+        for (UInt actDof = 0; actDof < spaceDim ; actDof++){
+          elemMat[i*spaceDim + actDof][j*spaceDim + actDof] = tempElemMat[actDof][i][j]; 
+        }
+      }
+    }
+
+    //std::cout << "Damped ElemMatStiff for substitution variable:\n" << elemMat << std::endl;
+
+   }
 } // end namespace CoupledField
