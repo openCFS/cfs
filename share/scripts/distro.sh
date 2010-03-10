@@ -108,6 +108,8 @@ elif [ "${OS}" = "Linux" ] ; then
 		    "3.0") PSEUDONAME="woody";;
 		    "3.1") PSEUDONAME="sarge";;
 		    "4.0") PSEUDONAME="etch";;
+                    "5.0") PSEUDONAME="lenny";;
+                    "6.0") PSEUDONAME="squeeze";;
                 esac
 #                PSEUDONAME="$PSEUDONAME `cat /etc/debian_version`"
 
@@ -140,11 +142,11 @@ elif [ "${OS}" = "Linux" ] ; then
 			    "jaunty") PSEUDONAME="Jaunty Jackalope";; # 9.04
 			    "karmic") PSEUDONAME="Karmic Koala";; # 9.10
                             "lucid") PSEUDONAME="Lucid Lynx";; # 10.04
-	                esac;;
+	                 esac;;
 		    "knoppix")
 			DIST=Knoppix;
 			REV=`cat /etc/knoppix-version | cut -d' ' -f1`
-			PSEUDONAME="Knoppix";;
+		 	PSEUDONAME="Knoppix";;
                 esac
 
 	fi
