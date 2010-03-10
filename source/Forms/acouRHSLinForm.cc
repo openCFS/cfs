@@ -368,8 +368,9 @@ namespace CoupledField {
         if (result == NULL) {
           if(!interpolate_)
           {
-            EXCEPTION("Cannot read result 'acouRhsLoad' from input id '"
-                      << id_ << "'");
+//            EXCEPTION("Cannot read result 'acouRhsLoad' from input id '"
+//                      << id_ << "'");
+              std::fill(rhsValues_.Begin(), rhsValues_.End(), 0.0);
           }
           else
           {
