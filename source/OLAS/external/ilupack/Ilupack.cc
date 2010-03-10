@@ -154,7 +154,7 @@ void Ilupack<T>::Setup(BaseMatrix &sysMat, InfoNode* analysis_id)
 
   // factorize the iLU preconditioner
   std::stringstream ss;
-  ss << "Error facorizing Ilupack: ";
+  ss << "Error factorizing Ilupack: ";
 
   int ierr = IlupackAMGFactor();
 
@@ -308,7 +308,7 @@ void Ilupack<T>::DetermineMatrixType(BaseMatrix &sysMat, InfoNode* out)
     matrix_ = matrix.Parse(xml_->Get("matrix"));
     // plausibility check -- killme: what is with hermitian?
     if (mst != BaseMatrix::SPARSE_SYM && matrix_ != GNL)
-      EXCEPTION("Matrix storrage is unsymmetric, so given ilupack_matrix is invalid " << matrix.ToString(matrix_));
+      EXCEPTION("Matrix storrage is unsymmetric, so given ilupack_matrix is invalid: '" << matrix.ToString(matrix_) << "'");
   }
   else
   {
