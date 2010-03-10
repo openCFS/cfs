@@ -413,6 +413,11 @@ ELSE(NOT PARDISO_API_VER_3 AND
   #---------------------------------------------------------------------------
   IF(PARDISO_API_VER_3 AND
      PARDISO_API_VER_4)
+    SET(PARDISO_API_VER_3_LAST_CFS_PARDISO "" CACHE INTERNAL
+        "PARDISO_API_VER_3_LAST_CFS_PARDISO" FORCE)
+    SET(PARDISO_API_VER_4_LAST_CFS_PARDISO "" CACHE INTERNAL
+        "PARDISO_API_VER_4_LAST_CFS_PARDISO" FORCE)
+
     MESSAGE(FATAL_ERROR "Checks suggest that both Pardiso API versions are present!\n"
                         "This is nonsense. Please investigate further in CMakeFiles/CMakeError.log.\n")
   ELSE(PARDISO_API_VER_3 AND
