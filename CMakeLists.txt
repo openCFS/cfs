@@ -12,11 +12,16 @@ IF(COMMAND CMAKE_POLICY)
   # This policy affects how libraries whose full paths are NOT known are
   # found at link time, but was created due to a change in how CMake
   # deals with libraries whose full paths are known.
-  CMAKE_POLICY(SET CMP0003 NEW)
+  IF(POLICY CMP0003)
+    CMAKE_POLICY(SET CMP0003 NEW)
+  ENDIF(POLICY CMP0003)
+  
 
   # Issue an error if no CMakeLists.txt exists in a subdir referenced
   # by SUBDIRS or ADD_SUBDIRECTORY 
-  CMAKE_POLICY(SET CMP0014 NEW)
+  IF(POLICY CMP0014)
+    CMAKE_POLICY(SET CMP0014 NEW)
+  ENDIF(POLICY CMP0014)
 ENDIF(COMMAND CMAKE_POLICY)
 
 #-----------------------------------------------------------------------------
