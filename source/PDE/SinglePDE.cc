@@ -3012,13 +3012,13 @@ namespace CoupledField {
       }
     }
 
-    cout << "Acoustic propagation coordinates:\n"
+    out << "Acoustic propagation coordinates:\n"
         << "   xmin = " << inner[0][0] << std::endl
         << "   xmax = " << inner[1][0] << std::endl
         << "   ymin = " << inner[0][1] << std::endl
         << "   ymax = " << inner[1][1] << std::endl;
     if ( dim_ == 3) {
-      cout << "   zmin = " << inner[0][2] << std::endl
+      out << "   zmin = " << inner[0][2] << std::endl
           << "   zmax = " << inner[1][2] << std::endl;
     }
 
@@ -3085,7 +3085,7 @@ namespace CoupledField {
           << "   zmax = " << outer[1][2] << std::endl;
     }
 
-    std::cout << std::endl;
+    out << std::endl;
     Info->PrintF( pdename_, out.str().c_str() );
 
   }
