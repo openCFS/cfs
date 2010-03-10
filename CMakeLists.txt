@@ -1,18 +1,30 @@
-#-------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
 # Don't build anything unless the version of CMake is high enough.
-#-------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
 CMAKE_MINIMUM_REQUIRED(VERSION 2.4.7 FATAL_ERROR)
 
-IF(COMMAND cmake_policy)
+#-----------------------------------------------------------------------------
+# Set CMake policies for newer versions of CMake.
+# Enter 'cmake --help-policy CMP000X' to get information about the meaning
+# of a certain policy.
+#-----------------------------------------------------------------------------
+IF(COMMAND CMAKE_POLICY)
+  # This policy affects how libraries whose full paths are NOT known are
+  # found at link time, but was created due to a change in how CMake
+  # deals with libraries whose full paths are known.
   CMAKE_POLICY(SET CMP0003 NEW)
-ENDIF(COMMAND cmake_policy)
 
-#-------------------------------------------------------------------------------
+  # Issue an error if no CMakeLists.txt exists in a subdir referenced
+  # by SUBDIRS or ADD_SUBDIRECTORY 
+  CMAKE_POLICY(SET CMP0014 NEW)
+ENDIF(COMMAND CMAKE_POLICY)
+
+#-----------------------------------------------------------------------------
 # The name of our project is "CFS".  CMakeLists files in this
 # project can refer to the root source directory of the project as
 # ${CFS_SOURCE_DIR} and to the root binary directory of the project
 # as ${CFS_BINARY_DIR}. We use C, C++ and Fortran as languages.
-#-------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
 PROJECT(CFS C CXX Fortran)
 
 #-----------------------------------------------------------------------------
