@@ -2,7 +2,7 @@
 
 # This script extracts the result of a single point over time
 
-import 
+import vtk
 import numpy
 from vtk.util.misc import vtkGetDataRoot
 from vtk.util import numpy_support
