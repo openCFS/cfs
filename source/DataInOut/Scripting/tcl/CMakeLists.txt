@@ -1,4 +1,4 @@
-# Make sure the compiler can find include files from our CFSMESHIO library.
+# Make sure the compiler can find include files from TCL.
 INCLUDE_DIRECTORIES(${TCL_INCLUDE_PATH})
 
 SET(TCLMESS_SRCS tcl-messenger.cc)
