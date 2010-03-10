@@ -66,10 +66,47 @@
   <!-- Data type for specification of a non-conforming interface -->
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_DomainNCIface">
-    <xsd:attribute name="name" type="xsd:token" use="required"/>
-    <xsd:attribute name="masterSide" type="xsd:token" use="required"/>
-    <xsd:attribute name="slaveSide" type="xsd:token" use="required"/>
-    <xsd:attribute name="lagrangeMultType" type="xsd:token" use="optional"/>
+    <xsd:attribute name="name" type="xsd:token" use="required">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Name of nonmatching interface. Is used to reference interface from
+          ncInterfaceLists of PDEs.
+        </xsd:documentation>
+      </xsd:annotation>      
+    </xsd:attribute>
+    <xsd:attribute name="masterSide" type="xsd:token" use="required">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          The master  side of the nonmatching  interface is given  by either a
+          reference to an arbitrary surface or a volume region which is planar
+          along the  common interface with  the slave region. The  elements on
+          this side are assumed to be smaller than the ones on the slave side.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="slaveSide" type="xsd:token" use="required">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          The slave  side of  the nonmatching interface  is given by  either a
+          reference to an arbitrary surface or a volume region which is planar
+          along  the common  interface  with the  master  region. The  surface
+          elements on the slave side of the nonmatching interface are also the
+          definition domain of the Lagrange Multiplier.  In the case of curved
+          interfaces the  elements of the  master side will be  projected onto
+          the elements  of the slave side before  the intersection calculation
+          takes place.
+        </xsd:documentation>
+      </xsd:annotation>      
+    </xsd:attribute>
+    <xsd:attribute name="lagrangeMultType" use="optional">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:normalizedString">
+          <xsd:enumeration value="standard"/>
+          <xsd:enumeration value="dualDiscont"/>
+          <xsd:enumeration value="dualCubic"/>
+        </xsd:restriction>
+      </xsd:simpleType>      
+    </xsd:attribute>
     <xsd:attribute name="isecCalculation" use="optional">
       <xsd:simpleType>
         <xsd:restriction base="xsd:normalizedString">
@@ -80,6 +117,17 @@
     </xsd:attribute>
     <xsd:attribute name="tolAbs" type="DT_NonNegFloat" use="optional" default="1e-12"/>
     <xsd:attribute name="tolRel" type="DT_FloatUnitInterval" use="optional" default="1e-4"/>
+    <xsd:attribute name="crossPointHandling" type="DT_CFSBool" use="optional" default="no"/>
+    <!--xsd:attribute name="removeEntitiesFromGrid" type="DT_CFSBool" use="optional" default="no"/-->
+    <xsd:attribute name="gridProjection" use="optional" default="naive">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:normalizedString">
+          <xsd:enumeration value="naive"/>
+          <xsd:enumeration value="gander-japhet"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+    <xsd:attribute name="writeGraphvizFiles" type="DT_CFSBool" use="optional" default="no"/>
   </xsd:complexType>
 
   <!-- ******************************************************************** -->
@@ -323,13 +371,23 @@
       </xsd:element>
       
       <!-- Non-conforming interface region list -->
-      <!-- A non-conforming interface is defined by references to two
-	   neighboring surface regions -->
       <xsd:element name="ncInterfaceList" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Non-conforming interface region list.
+          </xsd:documentation>
+        </xsd:annotation>              
         <xsd:complexType>
           <xsd:sequence>
             <xsd:element name="ncInterface" type="DT_DomainNCIface"
-            minOccurs="0" maxOccurs="unbounded"/>
+              minOccurs="0" maxOccurs="unbounded">
+              <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                  A non-conforming interface is defined by references to two
+                  neighboring surface or co-planar volumes regions.
+                </xsd:documentation>
+              </xsd:annotation>              
+            </xsd:element>
           </xsd:sequence>
         </xsd:complexType>
       </xsd:element>

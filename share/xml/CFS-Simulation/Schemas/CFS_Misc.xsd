@@ -64,6 +64,15 @@
     </xsd:restriction>
   </xsd:simpleType>
 
+  <!-- Data type for setting endianesss -->
+  <xsd:simpleType name="DT_CFSEndianness">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="little"/>
+      <xsd:enumeration value="big"/>
+      <xsd:enumeration value="native"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
   <!-- Data type for setting a array of doubles -->
   <xsd:simpleType name="DT_DoubleList">
     <xsd:list itemType="xsd:double"/>
