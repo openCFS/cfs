@@ -748,7 +748,7 @@ namespace CoupledField {
     // check, if input reader exists
     if( inFiles_.find(readerId) == inFiles_.end() ) {
       EXCEPTION( "Input reader with id '" << readerId 
-                 << "' is not regsitered yet" );
+                 << "' is not registered yet" );
     }
     
     inFiles_[readerId]->GetNumMultiSequenceSteps( analysis, numSteps, 
@@ -764,7 +764,7 @@ namespace CoupledField {
     // check, if input reader exists
     if( inFiles_.find(readerId) == inFiles_.end() ) {
       EXCEPTION( "Input reader with id '" << readerId 
-                 << "' is not regsitered yet" );
+                 << "' is not registered yet" );
     }
 
     inFiles_[readerId]->GetResultTypes( sequenceStep,
@@ -780,7 +780,7 @@ namespace CoupledField {
     // check, if input reader exists
     if( inFiles_.find(readerId) == inFiles_.end() ) {
       EXCEPTION( "Input reader with id '" << readerId 
-          << "' is not regsitered yet" );
+          << "' is not registered yet" );
     }
     
     inFiles_[readerId]->GetStepValues( sequenceStep, info,
@@ -796,7 +796,7 @@ namespace CoupledField {
     // check, if input reader exists
     if( inFiles_.find(readerId) == inFiles_.end() ) {
       EXCEPTION( "Input reader with id '" << readerId 
-                 << "' is not regsitered yet" );
+                 << "' is not registered yet" );
     }
 
     inFiles_[readerId]
@@ -813,7 +813,7 @@ namespace CoupledField {
     // check, if input reader exists
     if( inFiles_.find(readerId) == inFiles_.end() ) {
       EXCEPTION( "Input reader with id '" << readerId 
-                 << "' is not regsitered yet" );
+                 << "' is not registered yet" );
     }
     
     inFiles_[readerId]->GetResult( sequenceStep, stepValue, 
@@ -826,6 +826,12 @@ namespace CoupledField {
              UInt stepValue,
              SolutionType solType,
              const std::string& regionName ) {
+
+    // check, if input reader exists
+    if( inFiles_.find(readerId) == inFiles_.end() ) {
+      EXCEPTION( "Input reader with id '" << readerId 
+                 << "' is not registered yet" );
+    }
     
     // aquire input reader
     shared_ptr<SimInput> actInput = GetInputReader( readerId );
