@@ -144,6 +144,20 @@ IF(USE_BLAS OR USE_LAPACK)
   ENDIF(USE_PARDISO AND CFS_PARDISO STREQUAL "SCHENK")
 
   #-----------------------------------------------------------------------------
+  # Check which version of the Pardiso API is being used. Pardiso 4.0 intro-
+  # duces a new incompatible API due to the new iterative solver feature.
+  # However MKL still uses the old API of Pardiso 3.x. This is obviously a
+  # software engineering nightmare and the ones responsible for it deserve to
+  # be hanged from the highest mast!
+  #
+  # ATTENTION: If you switch CFS_PARDISO you should also clear
+  # PARDISO_API_VER_3 and PARDISO_API_VER_4 from the CMake cache.
+  #-----------------------------------------------------------------------------
+  IF(USE_PARDISO)
+    INCLUDE("cmake_modules/CheckPardisoAPIVersion.cmake")
+  ENDIF(USE_PARDISO)
+  
+  #-----------------------------------------------------------------------------
   # If USE_ARPACK option is defined find ARPACK library
   #-----------------------------------------------------------------------------
   IF(USE_ARPACK)

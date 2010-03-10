@@ -8,44 +8,25 @@ EXEC_PROGRAM("${DISTRO_SCRIPT}"
 LIST(GET CFS_ARCH_TEST 0 CFS_DISTRO)
 LIST(GET CFS_ARCH_TEST 1 CFS_DISTRO_VER)
 LIST(GET CFS_ARCH_TEST 2 CFS_ARCH)
+# Determine the subarchitecture of the platform.
+LIST(GET CFS_ARCH_TEST 3 CFS_SUBARCH)
 
 # MESSAGE("CFS_ARCH_TEST: ${CFS_ARCH_TEST}")
 
 IF(CFS_ARCH STREQUAL "I386")
-
   # Set path suffix for system libs
   SET(LIB_SUFFIX "lib")
-
 ENDIF(CFS_ARCH STREQUAL "I386")
 
-# Determine the subarchitecture of the platform.
 IF(CFS_ARCH STREQUAL "X86_64")
-
-  EXEC_PROGRAM("grep -i amd /proc/cpuinfo"
-    ARGS
-    OUTPUT_VARIABLE CFS_SUBARCH_TEST
-    RETURN_VALUE RETVAL)
-  
-  IF(CFS_SUBARCH_TEST STREQUAL "")
-    SET(CFS_SUBARCH "EM64T")
-  ELSE(CFS_SUBARCH_TEST STREQUAL "")
-    SET(CFS_SUBARCH "OPTERON")
-  ENDIF(CFS_SUBARCH_TEST STREQUAL "")
-  
   # Set path suffix for system libs
   SET(LIB_SUFFIX "lib64")
-  
 ENDIF(CFS_ARCH STREQUAL "X86_64")
 
 
 IF(CFS_ARCH STREQUAL "IA64")
-  IF(EXISTS "/dev/sgi_fetchop")
-    SET(CFS_SUBARCH "SGI")
-  ENDIF(EXISTS "/dev/sgi_fetchop")
-
   # Set path suffix for system libs
   SET(LIB_SUFFIX "lib")
-
 ENDIF(CFS_ARCH STREQUAL "IA64")
 
 # Determine the system in bits

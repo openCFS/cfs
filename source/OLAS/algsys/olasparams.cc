@@ -86,6 +86,8 @@ namespace CoupledField {
     SetValue( "MINRES_epsilon",    1e-6 );
     SetValue( "MINRES_logging",    true );
 
+// Pardiso handles its parameters directly from XML/ParamNode from now on.    
+#if 0    
     // PARDISO (NOTE: Changes here must be documented in PardisoSolver!)
     SetValue( "PARDISO_posDef"      , false );
     SetValue( "PARDISO_hermitian"   , false );
@@ -94,6 +96,7 @@ namespace CoupledField {
     SetValue( "PARDISO_logging"     , false );
     SetValue( "PARDISO_stats"       , false );
     SetValue( "PARDISO_pivoting"    , 1     );
+#endif
 
     // MINRES (NOTE: Changes here must be documented in MINRESSolver!)
     SetValue( "MINRES_maxIter",      50 );

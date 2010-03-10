@@ -29,6 +29,9 @@ if [ -z "$1" ]; then
 	exit 1
 fi
 
+# Set default sub-architecture
+SUBARCH="SUBARCHUNKNOWN"
+
 if [ "${OS}" = "SunOS" ] ; then
 	ARCH=`uname -p`
         DIST=`uname -n`
@@ -56,6 +59,24 @@ elif [ "${OS}" = "Linux" ] ; then
 	fi
 
 	KERNEL=`uname -r`
+
+        # Now let's determine the sub-architecture. This can be EM64T or
+	# OPTERON for X86_64 or SGI for IA64
+        if [ "$ARCH" = "X86_64" ] ; then
+            SUBARCH=$(grep -i amd /proc/cpuinfo)
+	    
+	    if [ "$SUBARCH" = "" ]; then
+	         SUBARCH="EM64T"
+            else
+	         SUBARCH="OPTERON"
+	    fi
+        fi
+        if [ "$ARCH" = "IA64" ] ; then
+	    if [ -f /dev/sgi_fetchop ]; then
+	         SUBARCH="SGI"
+	    fi
+        fi
+	
 
 	if [ -f /etc/redhat-release ] ; then
                 # On Mandrake/Mandriva/Fedora there exist also
@@ -187,9 +208,9 @@ fi
       do
           case "$1" in
               -h) echo ${OSSTR} ;;
-              -a) echo "${DIST} ${REV} ${ARCH}" | sed 'y/'$LOWER'/'$UPPER'/';;
+              -a) echo "${DIST} ${REV} ${ARCH} ${SUBARCH}" | sed 'y/'$LOWER'/'$UPPER'/';;
               -u) echo "${DIST}_${REV}_${ARCH}" | sed 'y/'$LOWER'/'$UPPER'/' ;;
-              -c) echo "${DIST};${REV};${ARCH}" | sed 'y/'$LOWER'/'$UPPER'/' ;;
+              -c) echo "${DIST};${REV};${ARCH};${SUBARCH}" | sed 'y/'$LOWER'/'$UPPER'/' ;;
               *) break ;;
           esac
           shift

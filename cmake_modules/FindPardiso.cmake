@@ -59,6 +59,16 @@ IF(USE_OPENMP)
 ELSE(USE_OPENMP)
   IF(SCHENK_PARDISO_SERIAL_LIB)
     SET(PARDISO_LIBRARY "${SCHENK_PARDISO_SERIAL_LIB}")
+    #-------------------------------------------------------------------------------
+    # Check if we need extra GFortran patch library.
+    #-------------------------------------------------------------------------------
+    IF(CFS_ARCH STREQUAL I386 AND
+       CFS_CXX_COMPILER_NAME STREQUAL GCC AND
+       CFS_CXX_COMPILER_VER VERSION_GREATER 4.2)
+      SET(PARDISO_LIBRARY "${SCHENK_PARDISO_SERIAL_LIB};-lpardiso_gfortran_patch")
+    ENDIF(CFS_ARCH STREQUAL I386 AND
+          CFS_CXX_COMPILER_NAME STREQUAL GCC AND
+          CFS_CXX_COMPILER_VER VERSION_GREATER 4.2)
     SET(PARDISO_FOUND 1)
   ENDIF(SCHENK_PARDISO_SERIAL_LIB)
 ENDIF(USE_OPENMP)

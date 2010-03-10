@@ -2,7 +2,11 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-//#include <omp.h>
+#include <fstream>
+
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/exception.hpp>
+namespace fs = boost::filesystem;
 
 #include "MatVec/basematrix.hh"
 #include "MatVec/stdmatrix.hh"
@@ -10,22 +14,42 @@
 #include "MatVec/scrs_matrix.hh"
 #include "OLAS/algsys/olasparams.hh"
 
+#include "DataInOut/Logging/cfslog.hh"
+
+#include "def_use_pardiso.hh"
 #include "pardisosolver.hh"
 
 namespace CoupledField {
 
+  // Declare logging stream and make sure that it is also available in
+  // release mode by using BOOST_DECLARE_LOG() instead of DECLARE_LOG()
+  BOOST_DECLARE_LOG(pardisoSolver)
+  DEFINE_LOG(pardisoSolver, "olas.solvers.pardiso")
+
 #define F77_FUNC(func)   func ## _
 
-  extern "C" {
+#if PARDISO_API_VER == 3
+extern "C" {
+    void F77_FUNC(pardisoinit) (void *, int *, int *);
 
-    int F77_FUNC(pardisoinit) (int *, int *, int *);
+    void F77_FUNC(pardiso) (void *, int *, int *, int *, int *, int *,
+                            const Double *, const int *, const int *, int *,
+                            int *, int *, int *, const Double *,
+                            Double *, int *);
+}
+#endif
 
-    int F77_FUNC(pardiso) (int *, int *, int *, int *, int *, int *,
-                           const Double *, const int *, const int *, int *,
-                           int *, int *, int *, const Double *,
-                           Double *, int *);
-  }
+#if PARDISO_API_VER == 4
+extern "C" {
+  void F77_FUNC(pardisoinit) (void *pt, int *mtype, int *solver,
+                              int *iparm, Double *dparm, int *error);
 
+  void F77_FUNC(pardiso) (void *pt, int *maxfct, int *mnum, int *mtype,
+                           int *phase, int *n, const Double *a, const int *ia, const int *ja,
+                           int *perm, int *nrhs, int *iparm, int *msglvl,
+                           const Double *b, Double *x, int *error, double *dparm );
+}
+#endif
 
   // ***********************
   //   Default Constructor
@@ -55,6 +79,28 @@ namespace CoupledField {
         return "Diagonal matrix problem.";
       case INT_OVERFLOW:
         return "32-bit integer overflow problem.";
+      case NO_LIC_FILE:
+        {
+          std::string msg;
+          msg = "No license file pardiso.lic found.\n";
+          msg += "Please get the file at http://www.pardiso-project.org\n";
+          msg += "and set the environment variable PARDISO_LIC_PATH to\n";
+          msg += "the directory containing pardiso.lic.\n";
+          return msg;
+        }
+      case LIC_EXPIRED:
+        return "License is expired.";
+      case WRONG_USER_OR_HOSTNAME:
+        return "Wrong username or hostname.";
+      case MAX_KRYLOV_ITERATIONS:
+        return "Reached maximum number of Krylov-subspace iterations in iterative solver.";
+      case INSUFF_KRYLOV_CONVERGENCE:
+        return "No sufficient convergence in Krylov-subspace iteration within 25 iterations.";
+      case KRYLOV_ITERATION_ERROR:
+        return "Error in Krylov-subspace iteration.";
+      case KRYLOV_BREAKDOWN:
+        return "Break-Down in Krylov-subspace iteration.";
+      
       default:
         return "Unclassified (internal) error.";
     }
@@ -64,17 +110,47 @@ namespace CoupledField {
   //   Constructor
   // ***************
   template<typename T>
-  PardisoSolver<T>::PardisoSolver( OLAS_Params *myParams,
-                                   OLAS_Report *myReport ) {
+  PardisoSolver<T>::PardisoSolver( OLAS_Params* myParams,
+                                   OLAS_Report *myReport,
+                                   ParamNode* solverNode ) {
 
 
     // Set pointers to communication objects
     myParams_  = myParams;
+    xml_ = solverNode;
     myReport_  = myReport;
 
     // Initialise attributes
     firstCall_ = true;
     msgLvl_ = 0;
+
+    // Resize data arrays for Pardiso
+    pt_.Resize(64); pt_.Init(NULL);
+    iparm_.Resize(64); iparm_.Init(0);
+    dparm_.Resize(64); dparm_.Init(0.0);
+
+    // Set default solver type to direct sparse solver
+    ParamNode *sNode = xml_->Get("pardiso", false);
+    std::string solverType = "direct";
+    if(sNode) {
+      sNode->Get("type", solverType, false);
+    }
+    if(solverType == "direct") {
+      mSolver_ = 0;
+    } else {
+      mSolver_ = 1;
+    }
+
+    sNode = xml_->Get("stoppingRule", false);
+    std::string sRule = "relNormRes0";
+    if(sNode) {
+      sNode->Get("type", sRule, false);
+    }
+
+    if(mSolver_ && sRule != "relNormRes0") {
+      Warning("The iterative solver in PARDISO only supports relative " \
+              "residual minimization as stopping rule", __FILE__, __LINE__);
+    }
 
     // Our private Fortran zeros
     zeroINT_ = 0;
@@ -105,15 +181,42 @@ namespace CoupledField {
       int errorFlag = 0;
       int phase = -1;
 
-      F77_FUNC(pardiso) ( pt_, &maxfct, &mnum, &mType_, &phase,
+#if PARDISO_API_VER == 4
+      F77_FUNC(pardiso) ( &pt_[0], &maxfct_, &mnum_, &mType_, &phase,
                           &probDim_, theMatrix_, rowPtr_, colPtr_,
-                          idPerm_, &nrhs, iparm_+1, &msgLvl_, &zeroDBL_,
+                          idPerm_, &nrhs_, &iparm_[0], &msgLvl_, &zeroDBL_,
+                          &zeroDBL_, &errorFlag, &dparm_[0] );
+#endif
+
+#if PARDISO_API_VER == 3
+      F77_FUNC(pardiso) ( &pt_[0], &maxfct_, &mnum_, &mType_, &phase,
+                          &probDim_, theMatrix_, rowPtr_, colPtr_,
+                          idPerm_, &nrhs_, &iparm_[0], &msgLvl_, &zeroDBL_,
                           &zeroDBL_, &errorFlag );
+#endif
 
       if ( errorFlag != NO_ERROR) {
-        EXCEPTION( "Pardiso: Error occured during cleanup: "
+        EXCEPTION( "Error occured during cleanup:\n"
                    << GetErrorString(errorFlag) )
       }
+
+    // Read iterative solver statistics
+    if(mSolver_ && msgLvl_ && fs::exists("pardiso-ml.out")) {
+      std::ifstream pardisoMLOut("pardiso-ml.out", std::ifstream::binary);
+      
+      LOG_TRACE(pardisoSolver) << "Contents of pardiso-ml.out:"
+                               << std::endl
+                               << pardisoMLOut.rdbuf() << std::endl;
+      LOG_TRACE(pardisoSolver) << " -------------------------------------------------------"
+                               << "-----------------------";
+
+      try {
+        fs::remove("pardiso-ml.out");
+      } catch (std::exception &ex) {
+        EXCEPTION("Error while trying to remove pardiso-ml.out: " << ex.what());
+      }      
+    }
+
     }
 
     // Delete identity re-ordering (if exists)
@@ -132,12 +235,11 @@ namespace CoupledField {
     // Flag for check Pardiso's return status
     int errorFlag = 0;
 
+    ParamNode *sNode = NULL;
+    
     // Determine, whether we are expected to be verbose
-    bool logging = myParams_->GetBoolValue( "PARDISO_logging" );
-    if ( logging == true ) {
-      (*cla) << " -------------------------------------------------------"
-             << "-----------------------\n";
-    }
+    LOG_TRACE(pardisoSolver) << " -----------------------------------------"
+                             << "-------------------------------------";
 
     // ============================================================
     //  Determine which of the two steps: symbolical and numerical
@@ -153,6 +255,11 @@ namespace CoupledField {
     }
 
     else {
+
+      // TODO: THIS CHECK DOES NOT MAKE SENSE IN MY OPINION SINCE
+      //       'newMatrixPattern' is set to false in olasparams.cc
+      //       and gets never changed elsewhere. A more intelligent
+      //       test would ask the matrix if its pattern did change.
 
       // When the matrix pattern has changed, we need to re-do
       // both steps, also the symbolical one
@@ -231,9 +338,20 @@ namespace CoupledField {
 
     mType_ = 0;
 
-    defPard = myParams_->GetBoolValue( "PARDISO_posDef" );
-    herPard = myParams_->GetBoolValue( "PARDISO_hermitian" );
-    strPard = myParams_->GetBoolValue( "PARDISO_symStructure" );
+    defPard = false;
+    if(sNode) {
+      sNode->Get("posDef", defPard, false);
+    }
+
+    herPard = false;
+    if(sNode) {
+      sNode->Get("hermitean", herPard, false);
+    }
+
+    strPard = false;
+    if(sNode) {
+      sNode->Get("symStruct", strPard, false);
+    }
 
     if ( (etype == BaseMatrix::DOUBLE ) && (!symPard) && ( strPard) ) mType_ =  1;
     if ( (etype == BaseMatrix::DOUBLE ) && ( symPard) && ( defPard) ) mType_ =  2;
@@ -251,18 +369,85 @@ namespace CoupledField {
                << "the input parameters. I cannot determine correct matrix "
                << "properties for pardiso" );
     }
-    else if ( logging == true ) {
-      (*cla) << " Pardiso: Classified matrix as mType = "
-             << mType_ << std::endl;
+    else {
+      LOG_TRACE(pardisoSolver) << " Classified matrix as mType = " << mType_;
     }
 
+    if(mSolver_ == 1) {
+      LOG_TRACE(pardisoSolver) << " Using iterative solver";
+      switch(mType_) {
+        case 11:
+        case 13:
+          EXCEPTION( "PardisoSolver: The iterative solver just supports symmetric matrices!" );
+          break;
+      }
+    } else {
+      LOG_TRACE(pardisoSolver) << " Using direct solver";
+    }
+
+    // Set default input values for dparm_;
+    dparm_[0] = 300;   // Maximum number of Krylov-subspace iterations
+    if(sNode) {
+      sNode->Get("maxIter", dparm_[0], false);
+    }
+    dparm_[1] = 1e-6;  // Relative residual reduction
+    if(sNode) {
+      sNode->Get("tol", dparm_[1], false);
+    }
+    dparm_[2] = 1e-6;  // Coarse Grid Matrix Dimension.
+    if(sNode) {
+      sNode->Get("coarseGridDim", dparm_[2], false);
+    }    
+    dparm_[3] = 10;    // Maximum Number of Grid Levels.
+    if(sNode) {
+      sNode->Get("maxNumGridLevels", dparm_[3], false);
+    }
+    dparm_[4] = 1e-2;  // Dropping value for the incomplete factor.
+    if(sNode) {
+      sNode->Get("incompFacDropVal", dparm_[4], false);
+    }
+    dparm_[5] = 5e-5;  // Dropping value for the schurcomplement.
+    if(sNode) {
+      sNode->Get("schurcompDropVal", dparm_[5], false);
+    }    
+    dparm_[6] = 10;    // Maximum number of ﬁll-in in each column in the factor.
+    if(sNode) {
+      sNode->Get("maxNumFillIn", dparm_[6], false);
+    }    
+    dparm_[7] = 500;   // Bound for the inverse of the incomplete factor L.
+    if(sNode) {
+      sNode->Get("invBoundIncompFac", dparm_[0], false);
+    }    
+    dparm_[8] = 25;    // Maximum number of non-improvement steps in Krylov-Subspace method
+    if(sNode) {
+      sNode->Get("maxNumStagnationSteps", dparm_[0], false);
+    }
+
+    // Remove output file for iterative solver
+    if(mSolver_ && fs::exists("pardiso-ml.out")) {
+      try {
+        fs::remove("pardiso-ml.out");
+      } catch (std::exception &ex) {
+        EXCEPTION("Error while trying to remove pardiso-ml.out: " << ex.what());
+      }      
+    }
+    
     // We do not need to call pardisoinit, if the matrix pattern
     // has not changed
     if ( facSymbolic ) {
-      if ( logging == true ) {
-        (*cla) << " Pardiso: Calling pardisoinit" << std::endl;
-      }
-      F77_FUNC(pardisoinit) ( pt_, &mType_, iparm_+1 );
+      LOG_TRACE(pardisoSolver) << " Calling pardisoinit";
+      
+#if PARDISO_API_VER == 4
+      Integer error = 0;
+      F77_FUNC(pardisoinit) ( &pt_[0],  &mType_, &mSolver_, &iparm_[0], &dparm_[0], &error);
+
+      if (error != 0) 
+        EXCEPTION(GetErrorString(error));
+#endif
+
+#if PARDISO_API_VER == 3
+      F77_FUNC(pardisoinit) ( &pt_[0], &mType_, &iparm_[0] );
+#endif
     }
 
 
@@ -271,40 +456,47 @@ namespace CoupledField {
     // =======================================
 
     // Avoid that Pardiso over-writes our settings
-    iparm_[1] = 1;
+    iparm_[0] = 1;
 
     // Specify number of OpenMP threads. OLAS currently has no consistent
     // concept for shared memory parallelism, so we specify one thread here.
     //#if defined (_OPENMP)
-    //iparm_[3] = omp_get_num_threads();
+    //iparm_[2] = omp_get_num_threads();
     //#else
-    iparm_[3] = 1;
+    iparm_[2] = 1;
     //#endif
 
     // Determine the re-ordering strategy: We can either fo nested dissection
     // or minimum degree re-ordering or no re-ordering at all (i.e. we use
     // the initial ordering of the linear system, which might already have been
     // re-ordered via the graph)
-    ReorderingType ordering;
-    myParams_->GetEnumValue( "PARDISO_ordering", ordering );
+    ReorderingType ordering = NESTED_DISSECTION;
+    sNode = NULL;
+    sNode = xml_->Get("pardiso", false);
+    if(sNode) {
+      std::string orderStr = "nestedDissection";
+      sNode->Get("ordering", orderStr, false);
+      String2Enum( orderStr, ordering );
+    }
+
     switch ( ordering ) {
 
     case NESTED_DISSECTION:
-      iparm_[2] = 2;
-      iparm_[5] = 0;
+      iparm_[1] = 2;
+      iparm_[4] = 0;
       break;
 
     case MINIMUM_DEGREE:
-      iparm_[2] = 0;
-      iparm_[5] = 0;
+      iparm_[1] = 0;
+      iparm_[4] = 0;
       break;
 
     case NOREORDERING:
-      // In this case iparm_[2] is irrelevant, we generate an identity
-      // permutation and use this one, by setting iparm_[5] and skip the
+      // In this case iparm_[1] is irrelevant, we generate an identity
+      // permutation and use this one, by setting iparm_[4] and skip the
       // symbolic factorisation
-      iparm_[2] = 0;
-      iparm_[5] = 1;
+      iparm_[1] = 0;
+      iparm_[4] = 1;
       if ( idPermSize_ < probDim_ ) {
         delete [] ( idPerm_ );  idPerm_  = NULL;
         NEWARRAY( idPerm_, int, probDim_ );
@@ -323,27 +515,34 @@ namespace CoupledField {
                << "' is not available with the PardisoSolver" );
     }
 
-    if ( logging == true && facSymbolic == true ) {
-      if ( ordering != NOREORDERING ) {
-        std::string tmp;
-        Enum2String( ordering, tmp );
-        (*cla) << " Pardiso: Analyse phase will determine a '"
-               << tmp << "' re-ordering" << std::endl;
-      }
-      else {
-        (*cla) << " Pardiso: Factorisation uses original matrix ordering"
-               << std::endl;
+    if(!mSolver_) {
+      if ( facSymbolic == true ) {
+        if ( ordering != NOREORDERING ) {
+          std::string tmp;
+          Enum2String( ordering, tmp );
+
+          LOG_TRACE(pardisoSolver) << " Analyse phase will determine a '"
+                                   << tmp << "' re-ordering";
+        }
+        else {
+          LOG_TRACE(pardisoSolver) << " Factorisation uses original matrix ordering";
+        }
       }
     }
-
+    
     // Do we need to determine MFLOPs for the LU factorisation
-    iparm_[19] = 0;
-    if ( myParams_->GetBoolValue( "PARDISO_stats" ) == true ) {
-      iparm_[19] = -1;
+    bool stats = false;
+    if(sNode) {
+      sNode->Get("stats", stats, false);
     }
-
+    
+    if(stats)
+      iparm_[18] = -1;
+    else
+      iparm_[18] = 0;
+  
     // Setting pivoting strategy for indefinit problems
-    iparm_[21] = myParams_->GetIntValue( "PARDISO_pivoting" );
+    iparm_[20] = 1;
 
     // In case we have no positive definite system (especially piezo)
     // we perform additional scaling to enhance the condition for very
@@ -351,25 +550,35 @@ namespace CoupledField {
     // the method of 'symmetric weighted matchings' (iparam_[13]).
     // For further information, refer to the pardiso user manual.
     if( !defPard ) {
-      iparm_[11] = 1;
-      iparm_[13] = 1;
+      iparm_[10] = 1;
+      iparm_[12] = 1;
     }
 
     // Pardiso keeps one factorisation in memory (and that is used for
     // the solution phase)
-    maxfct = 1;
-    mnum = 1;
+    maxfct_ = 1;
+    mnum_ = 1;
 
     // We simultaneously treat a single right hand side
-    nrhs = 1;
+    nrhs_ = 1;
 
     // Set the message level (for printing statistics)
     msgLvl_ = 0;
-    if ( myParams_->GetBoolValue( "PARDISO_stats" ) == true ) {
+    if ( stats ) {
       msgLvl_ = 1;
     }
 
-
+    // Switch to iterative solver
+    if(mSolver_) {
+#if PARDISO_API_VER == 3
+      EXCEPTION("This CFS++ executable has been linked to a PARDISO 3.x library.\n"
+                << "PARDISO implements iterative solvers since version 4.0.\n"
+                << "To get iterative solvers you should switch CFS_PARDISO to SCHENK.");
+#endif      
+      
+      iparm_[31] = 1;
+    }
+    
     // we have to icrement the entries of the col- and row-position arrays
     // by one, so that the first col and first row start with index 1 (and
     // not with zero) to be consistent with fortran
@@ -386,29 +595,34 @@ namespace CoupledField {
     if ( facSymbolic == true ) {
 
       // log report
-      if ( logging == true ) {
-        (*cla) << " Pardiso: Performing analyse phase (symbolic factorisation)"
-               << " ... " << std::flush;
-      }
+      LOG_TRACE(pardisoSolver) << " Performing analyse phase (symbolic factorisation)"
+                               << " ... ";
 
       // only analyse
       int phase = 11;
 
       // let pardiso go for it
-      F77_FUNC(pardiso) (pt_, &maxfct, &mnum, &mType_, &phase,
+#if PARDISO_API_VER == 4
+      F77_FUNC(pardiso) (&pt_[0], &maxfct_, &mnum_, &mType_, &phase,
                          &probDim_, theMatrix_, rowPtr_, colPtr_,
-                         idPerm_, &nrhs, iparm_+1, &msgLvl_, &zeroDBL_,
+                         idPerm_, &nrhs_, &iparm_[0], &msgLvl_, &zeroDBL_,
+                         &zeroDBL_, &errorFlag, &dparm_[0] );
+#endif
+
+#if PARDISO_API_VER == 3
+      F77_FUNC(pardiso) (&pt_[0], &maxfct_, &mnum_, &mType_, &phase,
+                         &probDim_, theMatrix_, rowPtr_, colPtr_,
+                         idPerm_, &nrhs_, &iparm_[0], &msgLvl_, &zeroDBL_,
                          &zeroDBL_, &errorFlag );
+#endif
 
       // Check return status
       if ( errorFlag != NO_ERROR ) {
-        EXCEPTION( "Pardiso: Error occured during symbolic factorization: "
+        EXCEPTION( "Error occured during symbolic factorization:\n"
                    << GetErrorString(errorFlag) );
       }
       else {
-        if ( logging == true ) {
-          (*cla) << "done" << std::endl;
-        }
+        LOG_TRACE(pardisoSolver) << "done";
       }
     }
 
@@ -419,41 +633,39 @@ namespace CoupledField {
     if ( facNumeric == true ) {
 
       // log report
-      if ( logging == true ) {
-        (*cla) << " Pardiso: Performing factorise phase (numerical "
-               << "factorisation) ... " << std::flush;
-      }
+      LOG_TRACE(pardisoSolver) << " Performing factorise phase (numerical "
+                               << "factorisation) ... ";
 
       // only factorise (numerical)
       int phase = 22;
 
       // let pardiso go for it
-      F77_FUNC(pardiso) (pt_, &maxfct, &mnum, &mType_, &phase,
+#if PARDISO_API_VER == 4
+      F77_FUNC(pardiso) (&pt_[0], &maxfct_, &mnum_, &mType_, &phase,
                          &probDim_, theMatrix_, rowPtr_, colPtr_,
-                         idPerm_, &nrhs, iparm_+1, &msgLvl_, &zeroDBL_,
+                         idPerm_, &nrhs_, &iparm_[0], &msgLvl_, &zeroDBL_,
+                         &zeroDBL_, &errorFlag, &dparm_[0] );
+#endif
+
+#if PARDISO_API_VER == 3
+      F77_FUNC(pardiso) (&pt_[0], &maxfct_, &mnum_, &mType_, &phase,
+                         &probDim_, theMatrix_, rowPtr_, colPtr_,
+                         idPerm_, &nrhs_, &iparm_[0], &msgLvl_, &zeroDBL_,
                          &zeroDBL_, &errorFlag );
+#endif
 
       // Check return status
       if ( errorFlag != NO_ERROR ) {
-        EXCEPTION( "Pardiso: Error occured during numerical factorization: "
+        EXCEPTION( "Error occured during numerical factorization:\n"
                    << GetErrorString(errorFlag) );
       }
       else {
-        if ( logging == true ) {
-          (*cla) << "done" << std::endl;
-        }
+        LOG_TRACE(pardisoSolver) << "done";
       }
     }
 
     // Now we were called once, and a factorisation is available
     firstCall_ = false;
-
-    // Finish log report
-    if ( logging == true ) {
-    
-      (*cla) << " -------------------------------------------------------"
-             << "-----------------------\n";
-    }
 
     // now we undo our increment, since on our side the frist col and row
     // has an value of zero!!
@@ -475,14 +687,9 @@ namespace CoupledField {
                                 const BasePrecond &precond,
                                 const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_step ) {
 
-
-    // Determine, whether we are expected to be verbose
-    bool logging = myParams_->GetBoolValue( "PARDISO_logging" );
-    if ( logging == true ) {
-      (*cla) << " -------------------------------------------------------"
-             << "-----------------------\n"
-             << " Pardiso: Solving linear system ... ";
-    }
+    LOG_TRACE(pardisoSolver) << " -----------------------------------------"
+                             << "-------------------------------------";
+    LOG_TRACE(pardisoSolver) << " Solving linear system ...";
 
     if ( firstCall_ == true ) {
       EXCEPTION( "The matrix has not yet been factorised by Pardiso! "
@@ -525,10 +732,19 @@ namespace CoupledField {
     for (UInt i=0; i< nnz_; i++ )
        colPtr_[i] += 1;
 
-    F77_FUNC(pardiso) (pt_, &maxfct, &mnum, &mType_, &phase,
+#if PARDISO_API_VER == 4
+    F77_FUNC(pardiso) (&pt_[0], &maxfct_, &mnum_, &mType_, &phase,
                        &probDim_, theMatrix_, rowPtr_, colPtr_,
-                       idPerm_, &nrhs, iparm_+1, &msgLvl_, theRHS,
+                       idPerm_, &nrhs_, &iparm_[0], &msgLvl_, theRHS,
+                       theSol, &errorFlag, &dparm_[0] );
+#endif
+
+#if PARDISO_API_VER == 3
+    F77_FUNC(pardiso) (&pt_[0], &maxfct_, &mnum_, &mType_, &phase,
+                       &probDim_, theMatrix_, rowPtr_, colPtr_,
+                       idPerm_, &nrhs_, &iparm_[0], &msgLvl_, theRHS,
                        theSol, &errorFlag );
+#endif
 
     // now we undo our increment, since on our side the first col and row
     // has an value of zero!!
@@ -539,24 +755,27 @@ namespace CoupledField {
 
     // Check return status
     if ( errorFlag != NO_ERROR ) {
-      EXCEPTION( "Pardiso: Error occured during solution of linear system: "
+      EXCEPTION( "Error occured during solution of linear system:\n"
                  << GetErrorString(errorFlag) );
     }
     else {
-      if ( logging == true ) {
-        (*cla) << "done" << std::endl;
-      }
+      LOG_TRACE(pardisoSolver) << "done";
     }
 
     // Finish log report
-    if ( logging == true ) {
-      (*cla) << " number of iterative refinement steps: " << iparm_[7] << std::endl;
-      (*cla) << " number of perturbed pivots: " << iparm_[14] << std::endl;
-      (*cla) << " number of positive eigenvalues: " << iparm_[22] << std::endl;
-      (*cla) << " number of negative eigenvalues: " << iparm_[23] << std::endl;
-      (*cla) << " -------------------------------------------------------"
-             << "-----------------------\n";
+    if(!mSolver_) {
+      LOG_TRACE(pardisoSolver) << " number of iterative refinement steps: " << iparm_[6];
+      LOG_TRACE(pardisoSolver) << " number of perturbed pivots: " << iparm_[13];
+      LOG_TRACE(pardisoSolver) << " number of positive eigenvalues: " << iparm_[21];
+      LOG_TRACE(pardisoSolver) << " number of negative eigenvalues: " << iparm_[22];
+    } else {
+      LOG_TRACE(pardisoSolver) << " Maximum number of iterations: " << dparm_[0];
+      LOG_TRACE(pardisoSolver) << " Number of iterations after solve step: " << dparm_[34];
+      LOG_TRACE(pardisoSolver) << " Relative Residual Reduction: " << dparm_[1];
+      LOG_TRACE(pardisoSolver) << " Relative residual after Krylov-Subspace convergence: " << dparm_[33];
     }
+    LOG_TRACE(pardisoSolver) << " -------------------------------------------------------"
+                             << "-----------------------";
 
     // Create Report (no sensible things to write for direct solvers yet)
     if ( myReport_ != NULL ) {

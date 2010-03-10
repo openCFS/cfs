@@ -124,7 +124,7 @@ SetANSYSParameters()
     # If ANSYS directory does not exist, try to determine it from executable.
     if [ ! -d "$ANSYS_ROOT_DIR" ]
     then
-        PGFLIB=`$LDD $CFS_EXE | grep libpgf90.so | cut -d' ' -f3`
+        PGFLIB=`$LDD $CFSTOOL_EXE | grep libpgf90.so | cut -d' ' -f3`
 
         if [ -f "$PGFLIB" ]
         then
@@ -208,7 +208,7 @@ then
 fi
 
 # Set path to CFS executable
-CFS_EXE=$CFS_ROOT_DIR/bin/$ARCH_STR/cfstoolbin
+CFSTOOL_EXE=$CFS_ROOT_DIR/bin/$ARCH_STR/cfstoolbin
 
 # Set parameters according to distribution type.
 case "$CFS_DIST_TYPE" in
@@ -237,7 +237,7 @@ then
 fi
 
 # Check if we have the necessary executable for the current arch.
-if [ ! -e $CFS_EXE ]
+if [ ! -e $CFSTOOL_EXE ]
 then 
     echo "Cannot find CFSTOOL executable for architecture $ARCH_STR."
     exit 3
@@ -246,17 +246,17 @@ fi
 if [ "$CFS_SCRIPT_DEBUG" = "1" ]
 then
     echo "Libraries:"
-    $LDD $CFS_EXE
+    $LDD $CFSTOOL_EXE
 fi
 
 # Check if some system libraries are missing.
-CFS_EXE_LDD=`$LDD $CFS_EXE | grep "not found"`
+CFSTOOL_EXE_LDD=`$LDD $CFSTOOL_EXE | grep "not found"`
 
-if [ "$CFS_EXE_LDD" != "" ]
+if [ "$CFSTOOL_EXE_LDD" != "" ]
 then 
     echo "Some dependencies on system libraries could not be resolved."
     echo "These were:"
-    echo "$CFS_EXE_LDD";
+    echo "$CFSTOOL_EXE_LDD";
     echo
     echo "CFSTOOL depends on the following packages on $DISTRO $DISTRO_VER:"
     GivePackageHint $DISTRO $DISTRO_VER
@@ -267,7 +267,7 @@ fi
 # Execute the CFS exutable with arguments from this script
 if [ $# != 0 ]
 then
- $CFS_EXE "$@";
+ $CFSTOOL_EXE "$@";
 else
- $CFS_EXE;
+ $CFSTOOL_EXE;
 fi

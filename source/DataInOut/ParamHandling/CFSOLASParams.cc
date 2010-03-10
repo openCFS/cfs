@@ -341,8 +341,12 @@ namespace CoupledField {
                         sNode->Get("savePatternOnly")->AsBool());
       }
       break;
-
+// Pardiso now handles its parameters by itself      
     case PARDISO:
+      Warning("Pardiso now handles its parameters by itself without (CFS)OLAS_Params.\n" \
+              "Every other part of OLAS should also implement this behavior in the future.",
+              __FILE__, __LINE__);
+#if 0
       sNode = bsNode->Get("pardiso", false);
       if(!sNode) return;
 
@@ -371,6 +375,7 @@ namespace CoupledField {
       if( sNode->Has("stats") )
         olas->SetValue("PARDISO_stats",
                        sNode->Get("stats")->AsBool() );
+#endif
       break;
 
     case ILUPACK_SOLVER:

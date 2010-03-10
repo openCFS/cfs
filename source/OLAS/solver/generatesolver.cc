@@ -252,13 +252,13 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
     }
 
     if ( eType == BaseMatrix::DOUBLE ) {
-      retSolver = new PardisoSolver<Double>( params, report );
+      retSolver = new PardisoSolver<Double>( params, report, solver_xml );
       ASSERTMEM( retSolver, sizeof(PardisoSolver<Double>) );
       (*cla) << " GenerateSolver: Generated real Pardiso solver"
       << std::endl;
     }
     if ( eType == BaseMatrix::COMPLEX ) {
-      retSolver = new PardisoSolver<Complex>( params, report );
+      retSolver = new PardisoSolver<Complex>( params, report, solver_xml );
       ASSERTMEM( retSolver, sizeof(PardisoSolver<Complex>) );
       (*cla) << " GenerateSolver: Generated complex Pardiso solver"
       << std::endl;

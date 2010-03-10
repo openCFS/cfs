@@ -26,15 +26,15 @@ fi
 DISTRO_SH=$CFS_ROOT_DIR/share/scripts/distro.sh
 
 # Get operating system
-OS=`$DISTRO_SH -h | cut -d' ' -f1`
+OS=$($DISTRO_SH -h | cut -d' ' -f1)
 
 # Get architecture and distribution
-ARCH_STR=`$DISTRO_SH -a`
+ARCH_STR=$($DISTRO_SH -a)
 
 DISTRO=`echo $ARCH_STR | cut -d' ' -f 1`
 DISTRO_VER=`echo $ARCH_STR | cut -d' ' -f 2`
 ARCH=`echo $ARCH_STR | cut -d' ' -f 3`
-ARCH_STR=`echo $ARCH_STR | sed 's/ /_/g'`
+ARCH_STR="${DISTRO}_${DISTRO_VER}_${ARCH}"
 
 # Set lib path according to architecture
 case "$ARCH" in

@@ -195,6 +195,7 @@ OPTION(USE_OPENMP
   ${USE_OPENMP_DEFAULT})
 OPTION(DEBUG "Build debug version of the code." ${DEBUG_DEFAULT})
 OPTION(PROFILING "Turn on compiler profiling (DEBUG/RELEASE)." ${PROFILING_DEFAULT})
+OPTION(COVERAGE "Turn on code coverage output." ${COVERAGE_DEFAULT})
 
 OPTION(CFSTOOL "Build CFS++ converter tool (cfstool)." ${CFSTOOL_DEFAULT})
 OPTION(CPLREADER "Build cplreader for fluid/acoustic coupling."

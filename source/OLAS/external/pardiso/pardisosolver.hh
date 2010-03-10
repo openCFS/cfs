@@ -7,6 +7,8 @@
 
 #include <string>
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Utils/StdVector.hh"
 #include "OLAS/solver/basesolver.hh"
 
 namespace CoupledField {
@@ -105,7 +107,7 @@ namespace CoupledField {
     //! The constructor does not do anything but set the pointers to the
     //! internal communciation objects.
     //! Note that the pointer to the report object is optional.
-    PardisoSolver (OLAS_Params *myParams, OLAS_Report *myReport = NULL);
+    PardisoSolver (OLAS_Params* myParams, OLAS_Report *myReport = NULL, ParamNode* solverNode=NULL);
 
     //! Default Destructor
 
@@ -156,7 +158,14 @@ namespace CoupledField {
       INTERNAL_ERROR = -5,
       PREORDERING_FAILED = -6,
       DIAGONAL_MATRIX = -7,
-      INT_OVERFLOW = -8
+      INT_OVERFLOW = -8,
+      NO_LIC_FILE = -10,
+      LIC_EXPIRED = -11,
+      WRONG_USER_OR_HOSTNAME = -12,
+      MAX_KRYLOV_ITERATIONS = -100,
+      INSUFF_KRYLOV_CONVERGENCE = -101,
+      KRYLOV_ITERATION_ERROR = -102,
+      KRYLOV_BREAKDOWN = -103
     } PardisoError;
 
     //! Returns a string describing the given error code
@@ -180,36 +189,43 @@ namespace CoupledField {
     //! A working array for the Pardiso-Routines
 
     //! This is the internal memory address array used by Pardiso. It must
-    //! contain 64 entries, which are 4-byte integers on a 32-bit architecture
-    //! and 8-byte integers on a 64-bit architecture.
-    int pt_[64];
+    //! contain 64 entries, which are 4-byte void pointers on a 32-bit
+    //! architecture and 8-byte void pointers on a 64-bit architecture.
+    StdVector<void*> pt_;
 
     //! Array for passing information to and from Pardiso
 
     //! This integer array is used to communicate parameters to and from
-    //! Pardiso. In order to not confuse the indices, we use a static array
-    //! going from iparm_[0] to iparm_[64], where iparm_[0] is unused and
-    //! pass the address (iparm_ + 1) to Pardiso. Thus, we have the same
-    //! indices for the parameters in PardisoSolver/C++ as in Pardiso/F77.
-    int iparm_[65];
+    //! Pardiso. Instead of Fortran-/one-based indexing we use C-/zero-
+    //! based element indexing.
+    StdVector<int> iparm_;
 
     //! The type of the matrix in a special encoding used by Pardiso
     int mType_;
 
+    //! The type of the solver used by Pardiso. Possible values are zero for 
+    //! sparse direct solver (0) or one for multi-recursive iterative solver (1).
+    int mSolver_;
+
+    //! This double array is used to communicate parameters to and from
+    //! Pardiso. It has been introduced in Pardiso 4.0. Instead of 
+    //! Fortran-/one-based indexing we use C-/zero-based element indexing.
+    StdVector<double> dparm_;
+    
     //! Maximal number of factors with identical nonzero-structure Pardiso
     //! should keep in memory at the same time.
-    int maxfct;
+    int maxfct_;
 
     //! The number of the matrix (out of the maxfct ones) that should be used
     //! for the solution process
-    int mnum;
+    int mnum_;
 
     //! Dimension of the linear system
     int probDim_;
 
     //! The number of right hand sides Pardiso should solve the system for
     //! at one pass
-    int nrhs;
+    int nrhs_;
 
     //! Specifies verbosity of Pardiso itself
 
