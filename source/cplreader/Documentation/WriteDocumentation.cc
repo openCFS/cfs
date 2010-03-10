@@ -29,6 +29,10 @@ namespace CoupledField
 
     if(settings.GetString("docu") == "PDF")
       GetPDFDocumentation(doc);
+    else
+    {
+      EXCEPTION("Wrong type of argument: docu-argument may just be PDF (in capital letters)'");
+    }
 
     if(!doc.size())
       return;
