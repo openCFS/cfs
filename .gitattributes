@@ -1,6 +1,7 @@
 * text=auto !eol
 /CMakeLists.txt svneol=native#text/plain
 cmake_modules/CFS_macros.cmake -text
+cmake_modules/CheckPardisoAPIVersion.cmake -text
 cmake_modules/FindACML.cmake -text
 cmake_modules/FindANSYSCust.cmake -text
 cmake_modules/FindARPACK.cmake -text
