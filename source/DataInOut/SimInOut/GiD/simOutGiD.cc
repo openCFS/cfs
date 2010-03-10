@@ -60,7 +60,6 @@ namespace CoupledField {
 
     std::string pathsep;
     std::ostringstream strBuffer;
-    std::string postFileName;
 
     // concatenate output file name
     try {
@@ -72,15 +71,6 @@ namespace CoupledField {
 
     strBuffer << dirName_ << pathsep << fileName_;
     fileName_ = strBuffer.str();
-
-    // Open result file
-    if ( isAscii_ == true) {
-      postFileName = fileName_ + ".post.res";
-      GiD_OpenPostResultFile(  postFileName.c_str(), GiD_PostAscii );
-    } else {
-      postFileName = fileName_ + ".post.bin";
-      GiD_OpenPostResultFile( postFileName.c_str(), GiD_PostBinary );
-    }
   }
 
 
@@ -565,6 +555,8 @@ namespace CoupledField {
   void SimOutputGiD::BeginMultiSequenceStep( UInt step,
                                              BasePDE::AnalysisType type,
                                              UInt numSteps ) {
+    // Write grid at the beginning of a multi sequence step.
+    WriteGrid();
 
     actAnalysis_ = type;
     actMSStep_ = step;
@@ -623,7 +615,7 @@ namespace CoupledField {
   void SimOutputGiD::FinishStep( ) {
 
     LOG_TRACE(simOutputGiD) << "Starting to finish Step";
-
+    
     std::string title;
 
     // iterate over all result types
@@ -1130,8 +1122,31 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
 
     // All meshes will be treated as degenerated quad and hexa meshes!
 
+    std::string postFileName;
+    
+    // Open result file
+    if ( isAscii_ == true) {
+      postFileName = fileName_ + ".post.res";
+      GiD_OpenPostResultFile(  postFileName.c_str(), GiD_PostAscii );
+    } else {
+      postFileName = fileName_ + ".post.bin";
+      GiD_OpenPostResultFile( postFileName.c_str(), GiD_PostBinary );
+    }
+
     // print grid
-    WriteGrid();
+    if(printGridOnly) {
+      WriteGrid();
+
+      if(isAscii_) 
+      {      
+        try 
+        {
+          fs::remove( postFileName );
+        } catch (std::exception &ex) {
+          EXCEPTION(ex.what());
+        }
+      }
+    }
   }
 
 
