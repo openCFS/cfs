@@ -85,10 +85,14 @@ IF (DOXYGEN)
   ELSE(WIN32)
     SET(GEN_DOCU_IN "${CMAKE_CURRENT_SOURCE_DIR}/makedoc.sh.in")
     SET(GEN_DOCU "${CMAKE_CURRENT_SOURCE_DIR}/makedoc.sh")
+    EXECUTE_PROCESS(COMMAND date OUTPUT_VARIABLE DATE)
   ENDIF(WIN32)
 
   CONFIGURE_FILE(${GEN_DOCU_IN}
-    ${GEN_DOCU}
+     ${GEN_DOCU}
+     @ONLY )
+  CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/DoxygenConfig/footerTemplate.html"
+    "${CMAKE_CURRENT_SOURCE_DIR}/DoxygenConfig/footer.html"
     @ONLY )
   MESSAGE(STATUS "configured ${GEN_DOCU_IN} --> ${GEN_DOCU}")
 

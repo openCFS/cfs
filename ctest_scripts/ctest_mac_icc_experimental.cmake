@@ -32,7 +32,7 @@
 #-----------------------------------------------------------------------------
 # Set source and binary directories on rom
 #-----------------------------------------------------------------------------
-SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/CFS_TRUNK")
+SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/CFS_TRUNK_GIT")
 SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/CFS_BUILD/TRUNK_RELEASE_ICC")
 
 #-----------------------------------------------------------------------------
@@ -87,12 +87,13 @@ SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY FALSE)
 # ${CTEST_BINARY_DIRECTORY}/CMakeCache.txt before starting the configure
 # run.
 #-----------------------------------------------------------------------------
-#SET(CTEST_INITIAL_CACHE
-#  "BUILD_TESTING:BOOL=ON
-#   DEBUG:BOOL=OFF
-#   TESTSUITE_DIR:STRING=$ENV{HOME}/Documents/dev/CFS_TESTSUITE
-#   USE_GMV_INPUT:BOOL=ON
-#   USE_SCPIP:BOOL=OFF")
+SET(CTEST_INITIAL_CACHE
+  "BUILD_TESTING:BOOL=ON
+   DEBUG:BOOL=OFF
+   TESTSUITE_DIR:STRING=$ENV{HOME}/Documents/dev/CFS_TESTSUITE
+   USE_GMSH:BOOL=ON
+   USE_GMV_INPUT:BOOL=ON
+   USE_SCPIP:BOOL=OFF")
 
 #-----------------------------------------------------------------------------
 # Set the following environment variables for the test run. This can be used

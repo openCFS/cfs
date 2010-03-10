@@ -32,8 +32,8 @@
 #-----------------------------------------------------------------------------
 # Set source and binary directories on rom
 #-----------------------------------------------------------------------------
-SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/CFS_TRUNK")
-SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/CFS_BUILD/TRUNK_DEBUG_GCC")
+SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/CFS_TRUNK_GIT")
+SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/CFS_BUILD/TRUNK_DEBUG_ECLIPSE")
 
 #-----------------------------------------------------------------------------
 # Place CTestConfig.cmake file for project CFS on CDash server rom into

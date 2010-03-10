@@ -379,7 +379,7 @@ fi
 
 # Create OS-specific hardware info files
 if [ "$OS" = "Mac" ]; then
-    system_profiler SPHardwareDataType SPSoftwareDataType > macosx_info.txt
+    /usr/sbin/system_profiler SPHardwareDataType SPSoftwareDataType > macosx_info.txt
     OSFILELIST="macosx_info.txt";
     STATCMD="stat -x"
 fi

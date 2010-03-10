@@ -906,7 +906,6 @@ source/MatVec/crs_matrix.hh svneol=native#text/x-c%2B%2Bhdr
 source/MatVec/denseMatrix.hh svneol=native#text/x-c%2B%2Bhdr
 source/MatVec/diag_matrix.cc svneol=native#text/x-c%2B%2Bsrc
 source/MatVec/diag_matrix.hh svneol=native#text/x-c%2B%2Bhdr
-source/MatVec/dinolfo_matrix.hh svneol=native#text/x-c%2B%2Bhdr
 source/MatVec/exprt/xpr1.hh svneol=native#text/x-c%2B%2Bhdr
 source/MatVec/exprt/xpr2.hh svneol=native#text/x-c%2B%2Bhdr
 source/MatVec/generatematvec.cc svneol=native#text/x-c%2B%2Bsrc
