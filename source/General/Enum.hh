@@ -212,7 +212,7 @@ typedef std::multimap<int, std::string> EnumMap;
           
           // check if we already have the value
           if(IsValid(value))
-            EXCEPTION("You want to set " << key << ":'" << value << "' in enum "
+            EXCEPTION("You want to set " << key << ": '" << value << "' in enum "
                       << name_ << " but value is already used");
           
           map.insert( EnumTuple(key,value) );
