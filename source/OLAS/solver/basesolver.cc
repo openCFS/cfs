@@ -3,7 +3,6 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include "MatVec/basevector.hh"
-#include "OLAS/algsys/olasparams.hh"
 
 #include "DataInOut/ParamHandling/InfoNode.hh"
 #include "Utils/tools.hh"
@@ -12,6 +11,30 @@
 #include "OLAS/solver/basesolver.hh"
 
 namespace CoupledField {
+
+  static EnumTuple solverTypeTuples[] = 
+  {
+    EnumTuple( BaseSolver::NOSOLVER, "noSolver" ),
+    EnumTuple( BaseSolver::RICHARDSON, "richardson" ),
+    EnumTuple( BaseSolver::DIAGSOLVER, "diagsolver"),
+    EnumTuple( BaseSolver::CG, "cg"),
+    EnumTuple( BaseSolver::GMRES, "gmres" ),
+    EnumTuple( BaseSolver::MINRES, "minres" ),
+    EnumTuple( BaseSolver::SYMMLQ, "symmlq"),
+    EnumTuple( BaseSolver::LAPACK_LU, "lapackLU"),
+    EnumTuple( BaseSolver::LAPACK_LL, "lapackLL" ),
+    EnumTuple( BaseSolver::LU_SOLVER, "directLU" ),
+    EnumTuple( BaseSolver::LDL_SOLVER, "directLDL"),
+    EnumTuple( BaseSolver::LDL_SOLVER2, "directLDL2"),
+    EnumTuple( BaseSolver::PARDISO, "pardiso" ),
+    EnumTuple( BaseSolver::ILUPACK, "ilupack" ),
+    EnumTuple( BaseSolver::CHOLMOD, "cholmod")
+  };
+
+  Enum<BaseSolver::SolverType> BaseSolver::solverType = \
+  Enum<BaseSolver::SolverType>("Solver Types",
+      sizeof(solverTypeTuples) / sizeof(EnumTuple),
+      solverTypeTuples); 
 
   // *******************
   //   Log Convergence
@@ -24,8 +47,7 @@ namespace CoupledField {
 
     // Write header
     if ( firstCall == true ) {
-      std::string tmp;
-      Enum2String( GetSolverType(), tmp );
+      std::string tmp = solverType.ToString( GetSolverType() );
 
       (*cla) << "\n "
       << tmp
@@ -73,15 +95,16 @@ namespace CoupledField {
     // Test for the unlikely event, that the inital
     // guess already satisfies the linear system
     if ( resNorm == 0 ) {
-      (*warning) << "I like zeros! You too?";
-      Warning( __FILE__, __LINE__ );
+      WARN("I like zeros! You too?");
     }
 
     // Query user's wish for the stopping criterion
     StopCritType stopCrit = NOSTOPCRITTYPE;
-    myParams_->GetEnumValue( "StoppingCriterion", stopCrit );
-
-
+    std::string stopCritStr = "relNormRes0";
+    ParamNode * stopRuleNode = xml_->Get("stoppingRule", false );
+    stopRuleNode->Get("type", stopCritStr, false);
+    String2Enum( stopCritStr, stopCrit );
+    
     // Report this to log file, if required
     if ( beVerbose == true ) {
       std::string tmp;
@@ -108,12 +131,13 @@ namespace CoupledField {
       // In case we cannot use RELNORM_RHS we go for RELNORM_RES0 instead.
     case RELNORM_RHS:
 
-      if ( myParams_->GetBoolValue( "RHSwithPenalty" ) == true ) {
+      if ( usingPenalty_ ) {
         (*cla) << " --> Detected Penalty Formulation\n"
         << " --> Changing from RELNORM_RHS to RELNORM_RES0\n"
         << std::endl;
         scalFac_ = resNorm;
-        myParams_->SetValue( "StoppingCriterion", RELNORM_RES0 );
+
+        stopRuleNode->Get("type")->SetValue("relNormRes0");
         if ( beVerbose == true ) {
           (*cla) << " Using || r_0 ||_2 = " << scalFac_ << " for scaling\n";
         }
@@ -125,7 +149,7 @@ namespace CoupledField {
           << " --> Changing from RELNORM_RHS to RELNORM_RES0\n"
           << std::endl;
           scalFac_ = resNorm;
-          myParams_->SetValue( "StoppingCriterion", RELNORM_RES0 );
+        stopRuleNode->Get("type")->SetValue("relNormRes0");
           if ( beVerbose == true ) {
             (*cla) << " Using || r_0 ||_2 = " << scalFac_ << " for scaling\n";
           }
@@ -230,5 +254,4 @@ namespace CoupledField {
       tmp->Get("set")->SetValue(*int_ptr == 0 ? false : true);
     }
   }
-
 }

@@ -73,7 +73,8 @@ namespace CoupledField {
     void RegisterPDE( const PdeIdType identifierPDE,
                       const UInt numEqns,
                       const UInt numLastFreeDof,
-                      const ReorderingType reorder = NOREORDERING );
+                      const BaseOrdering::ReorderingType reorder =
+                      BaseOrdering::NOREORDERING );
 
     //@}
 

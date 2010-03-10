@@ -3,6 +3,7 @@ INCLUDE_DIRECTORIES(${CFSDEPS_INCLUDE_DIR})
 
 SET(SOLVER_SRCS
     basesolver.cc
+    baseEigensolver.cc
     generateEigensolver.cc    
     generatesolver.cc
     )

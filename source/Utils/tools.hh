@@ -21,53 +21,6 @@ namespace CoupledField {
   using std::abs;
 
   // =========================================================================
-  //     ERROR / WARNING HANDLING
-  // =========================================================================
-
-
-  //@{
-  //! \name Error / Warning Handling
-
-  //! Function for issuing an warning message, will not terminate the program
-
-  //! This function can be used to issue a warning message. It is actually
-  //! only a shortcut for calling the Warning() method of the WriteInfo class.
-  //! \param Text     Text of the warning message
-  //! \param filename This is intended to contain the
-  //!                 name of the module/file in which the problem occured. The
-  //!                 __FILE__ macro should be inserted in the call. The
-  //!                 argument is optional.
-  //! \param numline  This is intended to contain the
-  //!                 number of the code line of the module/file in which the
-  //!                 problem occured. The __LINE__ macro should be inserted in
-  //!                 the call. The argument is optional.
-  void Warning( const char* Text, const char* const filename = NULL,
-                const UInt numline = 0 );
-
-
-  //! Function for issuing an warning message, will not terminate the program
-
-  //! This function can be used to issue a warning message. This variant of
-  //! Warning() obtains the warning message from the global <b>(*warning)</b>
-  //! string stream. As in the other Warning() variant the actual work is
-  //! delegated to WriteInfo::Warning().
-  //! Apropriate usage of this function looks like this
-  //! \code
-  //! (*warning) << "Index k ='" << k << "' already treated!";
-  //! Warning( __FILE__, __LINE__ );
-  //! \endcode
-  //! \param filename this is intended to contain the
-  //!                 name of the module/file in which the problem occured. The
-  //!                 __FILE__ macro should be inserted in the call.
-  //! \param numline  This is intended to contain the
-  //!                 number of the code line of the module/file in which the
-  //!                 problem occured. The __LINE__ macro should be inserted in
-  //!                 the call.
-  void Warning( const char *const filename, const UInt numline );
-
-  //@}
-
-  // =========================================================================
   //     STRING CONVERSION FUNCTIONS
   // =========================================================================
   //@{

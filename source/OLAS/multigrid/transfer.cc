@@ -1113,7 +1113,7 @@ bool TransferOperator<T>::CheckOperators() const
             }
         }
         if( ! transpositionOK ) {
-            Warning( "TransferOperator::CheckOperators: P != R'\n "
+            WARN( "TransferOperator::CheckOperators: P != R'\n "
                      "for more details inspect the debug file",
                      __FILE__, __LINE__ );
         }
@@ -1141,7 +1141,7 @@ bool TransferOperator<T>::CheckOperators() const
             }
         }
         if( ! rowSumOK ) {
-            Warning( "TransferOperator::CheckOperators: row sum of "
+            WARN( "TransferOperator::CheckOperators: row sum of "
                      "P is not 1.0\n for more details inspect the debug "
                      "file", __FILE__, __LINE__ );
         }
@@ -1232,7 +1232,7 @@ CreateOperators( const CRS_Matrix<T>& matrix,
                                  << std::endl << "number of weights exceeds row "
                                     "length " << RowLengths[i] << " in row " << i
                                  << std::endl;
-                        Warning( "TransferOperator::CreateOperators: "
+                        WARN( "TransferOperator::CreateOperators: "
                                  "-> see debug file" );
                     }
 #endif

@@ -115,7 +115,7 @@ bool DependencyGraph<T>::Create( const Integer        num_nodes,
             calculated_num_edges += node_size[i];
         }
         if( calculated_num_edges != num_edges ) {
-            Warning( "passed wrong maximal number of edges, proceeding "
+            WARN( "passed wrong maximal number of edges, proceeding "
                      "with the correct value", __FILE__, __LINE__ );
             num_edges = calculated_num_edges;
         }
@@ -148,7 +148,7 @@ Create( const Integer        num_nodes,
 
 #ifdef DEBUG_DEPENDENCYGRAPH
     if( accroach_startarray && copy_startarray ) {
-        Warning( "The combination of accroach_startarray == true "
+        WARN( "The combination of accroach_startarray == true "
                  "and copy_startarray == true does not make sense",
                  __FILE__, __LINE__ );
     }
@@ -576,13 +576,13 @@ AssignTransposed( const DependencyGraph<T>& graph,
     if( use_start_array == true ) {
 #ifdef DEBUG_DEPENDENCYGRAPH
         if( treat_as_square == false ) {
-            Warning( "DependencyGraph::AssignTransposed: parameter "
+            WARN( "DependencyGraph::AssignTransposed: parameter "
                      "\"treat_as_square\" == false does not make sense "
                      "in combination with \"use_start_array\" == true "
                      "-> \"treat_as_square\" is set to true." );
         }
         if( overlap_per_node > 1 ) {
-            Warning( "DependencyGraph::AssignTransposed: parameter "
+            WARN( "DependencyGraph::AssignTransposed: parameter "
                      "\"overlap_per_node\" > 0 does not make sense in "
                      "combination with \"use_start_array\" == true -> "
                      "\"overlap_per_node\" will be ignored." );
@@ -641,7 +641,7 @@ AssignTransposed( const DependencyGraph<T>& graph,
             NEWARRAY( msg, char, strlen(msgf)+50 )
             sprintf( msg+1, msgf, graph.GetNumNodes(),
                      debug_criticalNode, debug_highestEdgeIndex );
-            Warning( msg+1, __FILE__, __LINE__ );
+            WARN( msg+1, __FILE__, __LINE__ );
             return false;
         }
     }
@@ -810,7 +810,7 @@ GetNumEdges( const Integer node ) const
 {
 #ifdef  DEBUG_DEPENDENCYGRAPH
     if( node < 1 || node > GetNumNodes() ) {
-        Warning( __FILE__, __LINE__, "DependencyGraph::GetNumEdges(%d) : "
+        WARN( __FILE__, __LINE__, "DependencyGraph::GetNumEdges(%d) : "
                  "node %d is out of range [1,%d] -> returning 0. In "
                  "non-debug mode this call might cause a segmentation "
                  "fault\n", node, node, GetNumNodes() );
@@ -837,7 +837,7 @@ GetMaxNumEdges( const Integer node ) const
 {
 #ifdef  DEBUG_DEPENDENCYGRAPH
     if( node < 1 || node > GetNumNodes() ) {
-        Warning( __FILE__, __LINE__, "DependencyGraph::GetMaxNumEdges(%d) : "
+        WARN( __FILE__, __LINE__, "DependencyGraph::GetMaxNumEdges(%d) : "
                  "node %d is out of range [1,%d] -> returning 0. In "
                  "non-debug mode this call might cause a segmentation "
                  "fault\n", node, node, GetNumNodes() );
@@ -856,7 +856,7 @@ GetEdges( const Integer node ) const
 {
 #ifdef  DEBUG_DEPENDENCYGRAPH
     if( node < 1 || node > GetNumNodes() ) {
-        Warning( __FILE__, __LINE__, "DependencyGraph::GetEdges(%d) : "
+        WARN( __FILE__, __LINE__, "DependencyGraph::GetEdges(%d) : "
                  "node %d is out of range [1,%d] -> expect a crash\n",
                  node, node, GetNumNodes() );
     }

@@ -240,13 +240,13 @@ void FluidMechPlaneStiffInt_UV::CalcElementMatrix( Matrix<Double>& elemMat,
 		tau_mu = stabilParams_[elemNumber-1][1];
 		tau_c  = stabilParams_[elemNumber-1][2];
 		//      if (tau_c<1e-15 || tau_m<1e-15 || tau_mu<1e-15) {
-		//        Warning("one stabilization parameter is smaller than 1e-15");
+		//        WARN("one stabilization parameter is smaller than 1e-15");
 		//        std::cerr << "tau_c="  << tau_c << "\n" 
 		//                  << "tau_m="  << tau_m << "\n" 
 		//                  << "tau_mu=" << tau_mu << "\n";
 		//      }
 		//      if (tau_c>1e3 || tau_m>1e3 || tau_mu>1e3) {
-		//        Warning("one stabilization parameter is larger than 1e3");
+		//        WARN("one stabilization parameter is larger than 1e3");
 		//        std::cerr << "tau_c="  << tau_c << "\n" 
 		//                  << "tau_m="  << tau_m << "\n" 
 		//                  << "tau_mu=" << tau_mu << "\n";
@@ -569,13 +569,13 @@ void FluidMechPlaneStiffInt_PQ::CalcElementMatrix( Matrix<Double>& elemMat,
 		tau_mu = stabilParams_[elemNumber-1][1];
 		tau_c  = stabilParams_[elemNumber-1][2];
 		//      if (tau_c<1e-15 || tau_m<1e-15 || tau_mu<1e-15) {
-		//        Warning("one stabilization parameter is smaller than 1e-15");
+		//        WARN("one stabilization parameter is smaller than 1e-15");
 		//        std::cerr << "tau_c="  << tau_c << "\n" 
 		//                  << "tau_m="  << tau_m << "\n" 
 		//                  << "tau_mu=" << tau_mu << "\n";
 		//      }
 		//      if (tau_c>1e3 || tau_m>1e3 || tau_mu>1e3) {
-		//        Warning("one stabilization parameter is larger than 1e3");
+		//        WARN("one stabilization parameter is larger than 1e3");
 		//        std::cerr << "tau_c="  << tau_c << "\n" 
 		//                  << "tau_m="  << tau_m << "\n" 
 		//                  << "tau_mu=" << tau_mu << "\n";
@@ -752,13 +752,13 @@ void FluidMechPlaneStiffInt_UQ::CalcElementMatrix( Matrix<Double>& elemMat,
 		tau_mu = stabilParams_[elemNumber-1][1];
 		tau_c  = stabilParams_[elemNumber-1][2];
 		//      if (tau_c<1e-15 || tau_m<1e-15 || tau_mu<1e-15) {
-		//        Warning("one stabilization parameter is smaller than 1e-15");
+		//        WARN("one stabilization parameter is smaller than 1e-15");
 		//        std::cerr << "tau_c="  << tau_c << "\n" 
 		//                  << "tau_m="  << tau_m << "\n" 
 		//                  << "tau_mu=" << tau_mu << "\n";
 		//      }
 		//      if (tau_c>1e3 || tau_m>1e3 || tau_mu>1e3) {
-		//        Warning("one stabilization parameter is larger than 1e3");
+		//        WARN("one stabilization parameter is larger than 1e3");
 		//        std::cerr << "tau_c="  << tau_c << "\n" 
 		//                  << "tau_m="  << tau_m << "\n" 
 		//                  << "tau_mu=" << tau_mu << "\n";
@@ -978,13 +978,13 @@ void FluidMechPlaneStiffInt_PV::CalcElementMatrix( Matrix<Double>& elemMat,
 		tau_mu = stabilParams_[elemNumber-1][1];
 		tau_c  = stabilParams_[elemNumber-1][2];
 		//      if (tau_c<1e-15 || tau_m<1e-15 || tau_mu<1e-15) {
-		//        Warning("one stabilization parameter is smaller than 1e-15");
+		//        WARN("one stabilization parameter is smaller than 1e-15");
 		//        std::cerr << "tau_c="  << tau_c << "\n" 
 		//                  << "tau_m="  << tau_m << "\n" 
 		//                  << "tau_mu=" << tau_mu << "\n";
 		//      }
 		//      if (tau_c>1e3 || tau_m>1e3 || tau_mu>1e3) {
-		//        Warning("one stabilization parameter is larger than 1e3");
+		//        WARN("one stabilization parameter is larger than 1e3");
 		//        std::cerr << "tau_c="  << tau_c << "\n" 
 		//                  << "tau_m="  << tau_m << "\n" 
 		//                  << "tau_mu=" << tau_mu << "\n";

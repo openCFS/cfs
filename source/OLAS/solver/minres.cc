@@ -4,7 +4,6 @@
 
 #include "MatVec/opdefs.hh"
 #include "MatVec/generatematvec.hh"
-#include "OLAS/algsys/olasparams.hh"
 
 #include "OLAS/solver/minres.hh"
 
@@ -15,12 +14,11 @@ namespace CoupledField {
   //   Constructor
   // ***************
   template<typename T>
-  MINRESSolver<T>::MINRESSolver( OLAS_Params *myParams, OLAS_Report *myReport){
-
+  MINRESSolver<T>::MINRESSolver( ParamNode* solverNode, InfoNode *olasInfo){
+    xml_ = solverNode;
 
     // Set pointers to communication objects
-    myParams_ = myParams;
-    myReport_ = myReport;
+    solverInfo_ = olasInfo->Get("minres");
 
     // Prepare remaining internal attributes
     w0_ = NULL;
@@ -234,14 +232,21 @@ namespace CoupledField {
     sNew  = 0;
 
     // Compute stopping threshold for loop
-    double threshold = myParams_->GetDoubleValue( "MINRES_epsilon" );
+    double threshold = 1e-6;
+
+    ParamNode *sNode = NULL;
+    sNode = xml_->Get("minres", false);
+    if(sNode) {
+      sNode->Get("tol", threshold, false);
+    }
+    
     threshold *= rhsNorm;
 
 
     // ----------------------
     //   Initialise logging
     // ----------------------
-    bool logging = myParams_->GetBoolValue( "MINRES_logging" );
+    bool logging = false;
     if ( logging == true ) {
       LogConvergence( rho, 0, true );
     }
@@ -250,7 +255,10 @@ namespace CoupledField {
     // ------------------------------
     //   Main loop of the algorithm
     // ------------------------------
-    UInt maxIter = myParams_->GetIntValue( "MINRES_maxIter" );
+    UInt maxIter = 50;
+    if(sNode) {
+      sNode->Get("maxIter", maxIter, false);
+    }
     UInt k = 1;
     bool loop = true;
     while ( k <= maxIter && loop == true ) {
@@ -351,11 +359,10 @@ namespace CoupledField {
         precond.Apply( sysMat, *pV_, *q0_ );
         rho = q0_->NormL2();
         if ( rho > threshold ) {
-          (*warning) << " MINRESSolver::Solve\n"
-		     << " False convergence detected.\n"
-		     << " Predicted res.norm = " << Abs(aux) << '\n'
-		     << " Actual res.norm = " << rho << std::endl;
-	  Warning( __FILE__, __LINE__ );
+          WARN(" MINRESSolver::Solve\n"
+		           << " False convergence detected.\n"
+      		     << " Predicted res.norm = " << Abs(aux) << '\n'
+		           << " Actual res.norm = " << rho);
         }
 	else {
 	  loop = false;
@@ -379,8 +386,9 @@ namespace CoupledField {
     rho = q0_->NormL2();
 
     // Compose report
-    myReport_->SetValue( "finalNorm", rho );
-    myReport_->SetValue( "numIter", (Integer)(k-1) );
+    InfoNode* out = solverInfo_->Get(InfoNode::PROCESS)->Get("solver", InfoNode::APPEND);
+    out->Get("finalNorm")->SetValue(rho);
+    out->Get("numIter")->SetValue((Integer)(k-1));
 
   }
 
@@ -393,8 +401,8 @@ namespace CoupledField {
 
 
     if ( sysMat.GetStructureType() == BaseMatrix::SBM_MATRIX ) {
-      Warning( "MINRESSolver expects matrix entries to be scalars!"
-               " We do not test this for SBM_Matrix class" );
+      WARN( "MINRESSolver expects matrix entries to be scalars!"
+            " We do not test this for SBM_Matrix class" );
     }
   }
 

@@ -694,10 +694,7 @@ namespace CoupledField {
 
     // close output file
     if ( fclose( fp ) == EOF ) {
-      char *errmsg = NULL;
-      NEWARRAY( errmsg, char, strlen(fname)+40 );
-      sprintf( errmsg, "Could not close file %s after writing!", fname );
-      Warning( errmsg, __FILE__, __LINE__ );
+      WARN( "Could not close file " << fname << " after writing!" );
     }
   }
 

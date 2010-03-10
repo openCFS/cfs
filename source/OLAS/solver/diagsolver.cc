@@ -30,7 +30,7 @@ namespace CoupledField {
     (*cla) << "### Solver for diagonal system  matrix" << std::endl;
 
     // just apply a jacobi-preconditioner
-    if ( precond.GetPrecondType() == JACOBI ) {
+    if ( precond.GetPrecondType() == BasePrecond::JACOBI ) {
       precond.Apply( sysmat, rhs, sol );
     }
     else {

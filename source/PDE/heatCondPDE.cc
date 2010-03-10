@@ -438,7 +438,7 @@ void HeatCondPDE::CalcOutputCoupling()
   //         dof = ptCoupling_->GetOutputDof(i);
   //         break;
   //       case ELEM:
-  //         EXCEPTION("No Element coupling output", __FILE__,__LINE__);
+  //         EXCEPTION("No Element coupling output");
   //       }
   //     }
 
@@ -478,8 +478,7 @@ void HeatCondPDE::CalcResults( shared_ptr<BaseResult> result ) {
     break;
 
   default:
-    Warning( "Resulttype not computable by thermic PDE",
-        __FILE__, __LINE__ );
+    WARN( "Resulttype not computable by thermic PDE" );
   }
 }
 

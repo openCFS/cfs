@@ -99,7 +99,7 @@ namespace CoupledField {
     //! attributes to default values and setting the pointers to the internal
     //! communication objects. This is the constructor which will be called by
     //! the GenerateSolverObject() factory.
-    Lapack_LL( OLAS_Params *myParams, OLAS_Report *myReport = NULL );
+    Lapack_LL( ParamNode* solverNode, InfoNode *olasInfo = NULL );
 
     //! Default Destructor
 

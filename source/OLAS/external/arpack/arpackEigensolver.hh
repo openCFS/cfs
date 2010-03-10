@@ -27,8 +27,7 @@ namespace CoupledField {
     
     //! Default Constructor
     ArpackEigenSolver( ParamNode* xml, InfoNode* eigenInfo,
-                       OLAS_Params *myParams, 
-                       OLAS_Report *myReport );
+                       InfoNode *olasInfo );
     
     //! Default Destructor
     virtual ~ArpackEigenSolver();

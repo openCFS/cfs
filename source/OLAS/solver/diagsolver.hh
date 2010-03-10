@@ -10,8 +10,6 @@
 
 #include <def_expl_templ_inst.hh>
 
-#include "OLAS/algsys/olasparams.hh"
-
 #include "basesolver.hh"
 
 namespace CoupledField {
@@ -44,9 +42,9 @@ namespace CoupledField {
     //!                 for this solver
     //! \param myReport pointer to report object for storing general
     //!                 information on solution process
-    DiagSolver( OLAS_Params *myParams, OLAS_Report *myReport ) {
-      myParams_ = myParams;
-      myReport_ = myReport;
+    DiagSolver( ParamNode* xml, InfoNode *olasInfo ) {
+      xml_ = xml;
+      solverInfo_ = olasInfo->Get("diagsolver");
     };
 
     //! Default destructor

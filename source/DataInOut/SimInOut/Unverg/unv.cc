@@ -34,7 +34,7 @@ int unv::goto_pos(const std::streampos pos) const {
   else if (out_stream)
     return out_stream->seekp(pos).good();
   else {
-    Warning("In Method unv::goto_pos: No open stream!");
+    WARN("In Method unv::goto_pos: No open stream!");
     return 0;
   }
 
@@ -48,7 +48,7 @@ int unv::find_delimiter(int* status) {
 #endif
 
   if (!in_stream) {
-    CoupledField::Warning("In Method unv::find_delimiter: No std::ifstream is open!");
+    WARN("In Method unv::find_delimiter: No std::ifstream is open!");
     return 0;
   }
 
@@ -72,7 +72,7 @@ int unv::find_delimiter(int* status) {
     return 1;
   }
   else if (in_stream->fail())
-    CoupledField::Warning("In Method unv::find_delimiter: Input line is too long!");
+    WARN("In Method unv::find_delimiter: Input line is too long!");
 
   return 0;
 
@@ -86,7 +86,7 @@ int unv::find_next_set(std::streampos* pos, int* status) {
 #endif
 
   if (!in_stream) {
-    CoupledField::Warning("In Method unv::find_next_set: No std::ifstream is open!");
+    WARN("In Method unv::find_next_set: No std::ifstream is open!");
     return 0;
   }
 
@@ -109,7 +109,7 @@ int unv::find_next_set(std::streampos* pos, int* status) {
 #endif
 
   if (!in_stream->good()) {
-    CoupledField::Warning("In Method unv::find_next_set: Could not read dataset id!");
+    WARN("In Method unv::find_next_set: Could not read dataset id!");
     return 0;
   }
 
@@ -122,7 +122,7 @@ int unv::find_next_set(std::streampos* pos, int* status) {
 int unv::is_set_end(int* is_end) {
 
   if (!in_stream) {
-    CoupledField::Warning("In Method unv::is_set_end: No std::ifstream is open!");
+    WARN("In Method unv::is_set_end: No std::ifstream is open!");
     return 0;
   }
 
@@ -136,12 +136,12 @@ int unv::is_set_end(int* is_end) {
   while (strtok(buffer, " \n")==NULL && in_stream->good());
 
   if (in_stream->eof()) {
-    CoupledField::Warning("In Method unv::is_set_end: Reached end of file!");
+    WARN("In Method unv::is_set_end: Reached end of file!");
     return 0;
   }
 
   if (in_stream->fail()) {
-    CoupledField::Warning("In Method unv::is_set_end: Input line is too long!");
+    WARN("In Method unv::is_set_end: Input line is too long!");
     return 0;
   }
 
@@ -150,7 +150,7 @@ int unv::is_set_end(int* is_end) {
     *is_end=UNVTrue;
 
   if (!in_stream->seekg(pos).good()) {
-    CoupledField::Warning("In Method unv::is_set_end: Could not reset old std::streampos!");
+    WARN("In Method unv::is_set_end: Could not reset old std::streampos!");
     return 0;
   }
 
@@ -162,7 +162,7 @@ int unv::is_set_end(int* is_end) {
 int unv::open(const char* dir, const char* name, open_mode mode) {
 
   if (in_stream || out_stream) {
-    CoupledField::Warning("In Method unv::open: A stream is already open!");
+    WARN("In Method unv::open: A stream is already open!");
     return 0;
   }
 
@@ -200,7 +200,7 @@ int unv::close(void) {
     std::ostringstream stream;
     stream << "In Method unv::close: There are still " << num_connections \
            << " connections open!";
-    CoupledField::Warning(stream.str().c_str());
+    WARN(stream.str().c_str());
     return 0;
   }
 
@@ -215,7 +215,7 @@ int unv::close(void) {
     out_stream=NULL;
   }
   else {
-    CoupledField::Warning("In Method unv::close: No stream is open!");
+    WARN("In Method unv::close: No stream is open!");
     return 0;
   }
     
@@ -237,7 +237,7 @@ int unv::rewind(void) {
     return out_stream->seekp(start).good();
   }
   else {
-    CoupledField::Warning("In Method unv::goto_pos: No stream is open!");
+    WARN("In Method unv::goto_pos: No stream is open!");
     return 0;
   }
 
@@ -248,7 +248,7 @@ int unv::rewind(void) {
 int dataset::get_in_stream(std::ifstream** in) const {
 
   if (!u) {
-    CoupledField::Warning("In Method dataset::get_in_stream: No connection to UNV-File!");
+    WARN("In Method dataset::get_in_stream: No connection to UNV-File!");
     return 0;
   }
 
@@ -257,7 +257,7 @@ int dataset::get_in_stream(std::ifstream** in) const {
     return 1;
   }
 
-  CoupledField::Warning("In Method dataset::get_in_stream: No std::ifstream is open!");
+  WARN("In Method dataset::get_in_stream: No std::ifstream is open!");
 
   return 0;
 
@@ -267,7 +267,7 @@ int dataset::get_in_stream(std::ifstream** in) const {
 int dataset::get_out_stream(std::ofstream** out) const {
 
   if (!u) {
-    CoupledField::Warning("In Method dataset::get_out_stream: No connection to UNV-File!");
+    WARN("In Method dataset::get_out_stream: No connection to UNV-File!");
     return 0;
   }
 
@@ -276,7 +276,7 @@ int dataset::get_out_stream(std::ofstream** out) const {
     return 1;
   }
 
-  CoupledField::Warning("In Method dataset::get_out_stream: No std::ofstream is open!");
+  WARN("In Method dataset::get_out_stream: No std::ofstream is open!");
 
   return 0;
 
@@ -301,7 +301,7 @@ int dataset::connect(unv* p_unv) {
   }
 
   mode=SETNot;
-  CoupledField::Warning("In Method dataset::connect: No stream is open in UNV!");
+  WARN("In Method dataset::connect: No stream is open in UNV!");
 
   return 0;
 
@@ -339,21 +339,21 @@ int dataset::open_set(int *status) {
   }
   else if (mode==SETWrite && get_out_stream(&out)) {
     if (u->odd_delimiter) {
-      CoupledField::Warning("In Method dataset::open_set: A set is already open!");
+      WARN("In Method dataset::open_set: A set is already open!");
       return 0;
     };
     *out << "    -1\n";
     u->odd_delimiter=1;
     *out << std::setw(6) << set_num << std::endl;
     if (!out->good()) {
-      CoupledField::Warning("In Method dataset::open_set: Could not write delimiter!");
+      WARN("In Method dataset::open_set: Could not write delimiter!");
       return 0;
     }
     set_start=out->tellp();
     return 1;
   }
 
-  CoupledField::Warning("In Method dataset::open_set: No stream is open!");
+  WARN("In Method dataset::open_set: No stream is open!");
 
   return 0;
 
@@ -363,7 +363,7 @@ int dataset::open_set(int *status) {
 int dataset::rewind_set(void) const {
 
   if (!u->odd_delimiter) {
-    CoupledField::Warning("In Method dataset::rewind_set: There is no open set!");
+    WARN("In Method dataset::rewind_set: There is no open set!");
     return 0;
   }
 
@@ -380,11 +380,11 @@ int dataset::close_set() {
     std::ifstream *in;
 
     if (!get_in_stream(&in)) {
-      CoupledField::Warning("In Method dataset::close_set: Could not get std::ifstream!");
+      WARN("In Method dataset::close_set: Could not get std::ifstream!");
       return 0;
     }
     if (!u->odd_delimiter) {
-      CoupledField::Warning("In Method dataset::close_set: There is no open set!");
+      WARN("In Method dataset::close_set: There is no open set!");
       return 0;
     }
     --u->num_connections;
@@ -394,7 +394,7 @@ int dataset::close_set() {
   std::ofstream* out;
 
   if (!get_out_stream(&out)) {
-    CoupledField::Warning("In Method dataset::close_set: Could not get std::ofstream!");
+    WARN("In Method dataset::close_set: Could not get std::ofstream!");
     return 0;
   }
 
@@ -402,7 +402,7 @@ int dataset::close_set() {
   u->odd_delimiter=0;
 
   if (!out->good()) {
-    CoupledField::Warning("In Method dataset::close_set: Could not write delimiter!");
+    WARN("In Method dataset::close_set: Could not write delimiter!");
     return 0;
   }
 
@@ -415,7 +415,7 @@ int dataset::read_header(void) {
   std::ostringstream stream;
   stream << "In Method dataset::read_header: For dataset " << set_num  \
          << " is no header-record defined!";
-  CoupledField::Warning(stream.str().c_str());
+  WARN(stream.str().c_str());
   return 0;
 }
 
@@ -424,7 +424,7 @@ int dataset::read_data(int* n) {
   std::ostringstream stream;
   stream << "In Method dataset::read_data: For dataset " << set_num  \
          << " is no data-record defined!";
-  CoupledField::Warning(stream.str().c_str());
+  WARN(stream.str().c_str());
   return 0;
 }
 
@@ -433,7 +433,7 @@ int dataset::write_header(void) {
   std::ostringstream stream;
   stream << "In Method dataset::write_header: For dataset " << set_num  \
          << " is no header-record defined!";
-  CoupledField::Warning(stream.str().c_str());
+  WARN(stream.str().c_str());
   return 0;
 }
 
@@ -442,7 +442,7 @@ int dataset::write_data(void) {
   std::ostringstream stream;
   stream << "In Method dataset::write_data: For dataset " << set_num  \
          << " is no data-record defined!";
-  CoupledField::Warning(stream.str().c_str());
+  WARN(stream.str().c_str());
   return 0;
 }
 
@@ -451,14 +451,14 @@ int dataset::write_data(void) {
 int dataset_15::read_data(int* stat) {
 
   if (mode==SETWrite || mode==SETNot) {
-    CoupledField::Warning("In Method dataset_15::read_data: Open mode is not READ!");
+    WARN("In Method dataset_15::read_data: Open mode is not READ!");
     return 0;
   }
 
   std::ifstream* in;
 
   if (!get_in_stream(&in)) {
-    CoupledField::Warning("In Method dataset_15::read_data: Could not get std::ifstream!");
+    WARN("In Method dataset_15::read_data: Could not get std::ifstream!");
     return 0;
   }
 
@@ -466,7 +466,7 @@ int dataset_15::read_data(int* stat) {
       >> data.color >> data.x1 >> data.x2 >> data.x3;
 
   if (!in->good()) {
-    CoupledField::Warning("In Method dataset_15::read_data: Error by reading data!");
+    WARN("In Method dataset_15::read_data: Error by reading data!");
     return 0;
   }
 
@@ -487,14 +487,14 @@ int dataset_15::read_data(int* stat) {
   int dataset_15::write_data(void) {
 
   if (mode==SETRead || mode==SETNot) {
-  CoupledField::Warning("In Method dataset_15::write_data: Open mode is not WRITE!");
+  WARN("In Method dataset_15::write_data: Open mode is not WRITE!");
   return 0;
   }
 
   std::ofstream* out;
 
   if (!get_out_stream(&out)) {
-  CoupledField::Warning("In Method dataset_15::write_data: Could not get std::ofstream!");
+  WARN("In Method dataset_15::write_data: Could not get std::ofstream!");
   return 0;
   }
 
@@ -503,7 +503,7 @@ int dataset_15::read_data(int* stat) {
   out->form("%13.5e%13.5e%13.5e\n", data.x, data.y, data.z);
 
   if (!out->good()) {
-  CoupledField::Warning("In Method dataset_15::write_data: Error by writing data!");
+  WARN("In Method dataset_15::write_data: Error by writing data!");
   return 0;
   }
 
@@ -518,14 +518,14 @@ int dataset_55::read_header(void) {
 
   int i;
   if (mode==SETWrite || mode==SETNot) {
-    CoupledField::Warning("In Method dataset_55::read_header: Open mode is not READ!");
+    WARN("In Method dataset_55::read_header: Open mode is not READ!");
     return 0;
   }
 
   std::ifstream* in;
 
   if (!get_in_stream(&in)) {
-    CoupledField::Warning("In Method dataset_55::read_header: Could not get std::ifstream!");
+    WARN("In Method dataset_55::read_header: Could not get std::ifstream!");
     return 0;
   }
 
@@ -557,7 +557,7 @@ int dataset_55::read_header(void) {
     *in >> header.type_spec_double_par[i];
 
   if (!in->good()) {
-    CoupledField::Warning("In Method dataset_55::read_header: Error by reading header!");
+    WARN("In Method dataset_55::read_header: Error by reading header!");
     return 0;
   }
 
@@ -569,14 +569,14 @@ int dataset_55::read_header(void) {
 int dataset_55::read_data(int* stat) {
 
   if (mode==SETWrite || mode==SETNot) {
-    CoupledField::Warning("In Method dataset_55::read_data: Open mode is not READ!");
+    WARN("In Method dataset_55::read_data: Open mode is not READ!");
     return 0;
   }
 
   std::ifstream* in;
 
   if (!get_in_stream(&in)) {
-    CoupledField::Warning("In Method dataset_55::read_data: Could not get std::ifstream!");
+    WARN("In Method dataset_55::read_data: Could not get std::ifstream!");
     return 0;
   }
 
@@ -602,7 +602,7 @@ int dataset_55::read_data(int* stat) {
     *in >> data.node_data[i];
 
   if (!in->good()) {
-    CoupledField::Warning("In Method dataset_55::read_data: Error by reading data!");
+    WARN("In Method dataset_55::read_data: Error by reading data!");
     return 0;
   }
 
@@ -623,14 +623,14 @@ int dataset_55::read_data(int* stat) {
 int dataset_56::read_header(void) {
   int i;
   if (mode==SETWrite || mode==SETNot) {
-    CoupledField::Warning("In Method dataset_56::read_header: Open mode is not READ!");
+    WARN("In Method dataset_56::read_header: Open mode is not READ!");
     return 0;
   }
 
   std::ifstream* in;
 
   if (!get_in_stream(&in)) {
-    CoupledField::Warning("In Method dataset_56::read_header: Could not get std::ifstream!");
+    WARN("In Method dataset_56::read_header: Could not get std::ifstream!");
     return 0;
   }
 
@@ -662,7 +662,7 @@ int dataset_56::read_header(void) {
     *in >> header.type_spec_double_par[i];
 
   if (!in->good()) {
-    CoupledField::Warning("In Method dataset_56::read_header: Error by reading header!");
+    WARN("In Method dataset_56::read_header: Error by reading header!");
     return 0;
   }
 
@@ -674,14 +674,14 @@ int dataset_56::read_header(void) {
 int dataset_56::read_data(int* stat) {
 
   if (mode==SETWrite || mode==SETNot) {
-    CoupledField::Warning("In Method dataset_56::read_data: Open mode is not READ!");
+    WARN("In Method dataset_56::read_data: Open mode is not READ!");
     return 0;
   }
 
   std::ifstream* in;
 
   if (!get_in_stream(&in)) {
-    CoupledField::Warning("In Method dataset_56::read_data: Could not get std::ifstream!");
+    WARN("In Method dataset_56::read_data: Could not get std::ifstream!");
     return 0;
   }
 
@@ -711,7 +711,7 @@ int dataset_56::read_data(int* stat) {
       *in >> data.element_data[i];
 
     if (!in->good()) {
-      CoupledField::Warning("In Method dataset_56::read_data: Error by reading data!");
+      WARN("In Method dataset_56::read_data: Error by reading data!");
       return 0;
     }
 
@@ -738,14 +738,14 @@ int dataset_56::read_data(int* stat) {
 int dataset_752::read_data(int* stat) {
 
   if (mode==SETWrite || mode==SETNot) {
-    CoupledField::Warning("In Method dataset_752::read_data: Open mode is not READ!");
+    WARN("In Method dataset_752::read_data: Open mode is not READ!");
     return 0;
   }
 
   std::ifstream* in;
 
   if (!get_in_stream(&in)) {
-    CoupledField::Warning("In Method dataset_752::read_data: Could not get std::ifstream!");
+    WARN("In Method dataset_752::read_data: Could not get std::ifstream!");
     return 0;
   }
 
@@ -776,7 +776,7 @@ int dataset_752::read_data(int* stat) {
         >> data.entities[i].entity_tag;
 
   if (!in->good()) {
-    CoupledField::Warning("In Method dataset_752::read_data: Error by reading data!");
+    WARN("In Method dataset_752::read_data: Error by reading data!");
     return 0;
   }
 
@@ -797,14 +797,14 @@ int dataset_752::read_data(int* stat) {
 int dataset_780::read_data(int* stat) {
     
   if (mode==SETWrite || mode==SETNot) {
-    CoupledField::Warning("In Method dataset_780::read_data: Open mode is not READ!");
+    WARN("In Method dataset_780::read_data: Open mode is not READ!");
     return 0;
   }
     
   std::ifstream* in;
     
   if (!get_in_stream(&in)) {
-    CoupledField::Warning("In Method dataset_780::read_data: Could not get std::ifstream!");
+    WARN("In Method dataset_780::read_data: Could not get std::ifstream!");
     return 0;
   }
     
@@ -833,7 +833,7 @@ int dataset_780::read_data(int* stat) {
       *in >> data.node_labels[i];
         
     if (!in->good()) {
-      CoupledField::Warning("In Method dataset_780::read_data: Error by reading data!");
+      WARN("In Method dataset_780::read_data: Error by reading data!");
       return 0;
     }
         
@@ -861,14 +861,14 @@ int dataset_780::read_data(int* stat) {
 int dataset_781::read_data(int* stat) {
 
   if (mode==SETWrite || mode==SETNot) {
-    CoupledField::Warning("In Method dataset_781::read_data: Open mode is not READ!");
+    WARN("In Method dataset_781::read_data: Open mode is not READ!");
     return 0;
   }
 
   std::ifstream* in;
 
   if (!get_in_stream(&in)) {
-    CoupledField::Warning("In Method dataset_781::read_data: Could not get std::ifstream!");
+    WARN("In Method dataset_781::read_data: Could not get std::ifstream!");
     return 0;
   }
 
@@ -876,7 +876,7 @@ int dataset_781::read_data(int* stat) {
       >> data.color >> data.x1 >> data.x2 >> data.x3; 
 
   if (!in->good()) {
-    CoupledField::Warning("In Method dataset_781::read_data: Error by reading data!");
+    WARN("In Method dataset_781::read_data: Error by reading data!");
     return 0;
   }
 
@@ -896,14 +896,14 @@ int dataset_781::read_data(int* stat) {
 int dataset_666::read_data(int* stat) {
 
   if (mode==SETWrite || mode==SETNot) {
-    CoupledField::Warning("In Method dataset_666::read_data: Open mode is not READ!");
+    WARN("In Method dataset_666::read_data: Open mode is not READ!");
     return 0;
   }
 
   std::ifstream* in;
 
   if (!get_in_stream(&in)) {
-    CoupledField::Warning("In Method dataset_666::read_data: Could not get std::ifstream!");
+    WARN("In Method dataset_666::read_data: Could not get std::ifstream!");
     return 0;
   }
   /*
@@ -921,7 +921,7 @@ int dataset_666::read_data(int* stat) {
   *in >> dummy >> dummy >> data.dim >> data.num_nodes >> data.num_elems;
 
   if (!in->good()) {
-    CoupledField::Warning("In Method dataset_666::read_data: Error by reading data!");
+    WARN("In Method dataset_666::read_data: Error by reading data!");
     return 0;
   }
 

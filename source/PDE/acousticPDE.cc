@@ -755,7 +755,7 @@ namespace CoupledField {
                              startRadius, stopRadius, dampLayerNode );
 
           //get the Rayleigh material parameters
-          Warning( "The 'DampLayer' damping is not working at the moment."
+          WARN( "The 'DampLayer' damping is not working at the moment."
                    "The usage of the Rayleigh parameters ALPHA and BETA need to"
                    "be changed" );
           Double alpha, beta, measFreq;
@@ -795,10 +795,9 @@ namespace CoupledField {
 
           // We check, if damping has been specified for all regions.
 //          if ( dampingList_.size() != subdoms_.GetSize() ) {
-//            (*warning) << "Mismatch between dampingList_ and subdoms_!"
-//                       << "Size(dampingList_): " << dampingList_.size()
-//                       << "Size(subdoms_): " << subdoms_.GetSize();
-//            Warning(__FILE__, __LINE__);
+//            WARN("Mismatch between dampingList_ and subdoms_!"
+//                 << "Size(dampingList_): " << dampingList_.size()
+//                 << "Size(subdoms_): " << subdoms_.GetSize());
 //}
 
           if (dampingList_[actRegion] == RAYLEIGH) {
@@ -1102,15 +1101,18 @@ namespace CoupledField {
     bcsNode = myParam_->Get("bcsAndLoads", false );
     if( bcsNode )
       rhsValuesNode = bcsNode->Get("rhsValues", false);
-    if(!rhsValuesNode)
+    if(!rhsValuesNode->HasChildren())
       return;
 
     try
     {
       rhsRegion = rhsValuesNode->Get("region")->AsString();
-      ParamNode* intNode = rhsValuesNode->Get("interpolation", false);
-      if (intNode)
+      ParamNode* intNode = NULL;
+      if(rhsValuesNode->Has("interpolation"))
+      {
+        intNode = rhsValuesNode->Get("interpolation", false);
         intNode->Get("justInterpolate", justInterpolate_, false);
+      }
     } catch (Exception& ex)
     {
       RETHROW_EXCEPTION(ex, "Error while trying to read parameters for AcouRHSLinForm.");
@@ -1172,19 +1174,21 @@ namespace CoupledField {
 	    }
 	  }
 
+	  ParamNode* systemNode = FindLinearSystem(pdename_);
+	  
     // this includes rayleigh and thermoviscous damping
     if ( fracDamping_ == false ) {
       if ( effectiveMass_ == true ) {
         if ( diagMass_ == true ) {
           //explicit time stepping
-          TS_alg_ = new NewmarkEffMass( algsys_, pdename_, true );
+          TS_alg_ = new NewmarkEffMass( algsys_, systemNode, true );
         }
         else {
-          TS_alg_ = new NewmarkEffMass( algsys_, pdename_, false );
+          TS_alg_ = new NewmarkEffMass( algsys_, systemNode, false );
         }
       }
       else if ( effectiveMass_ == false ) {
-        TS_alg_ = new Newmark( algsys_, pdename_ );
+        TS_alg_ = new Newmark( algsys_, systemNode );
       }
     }
     else {
@@ -1407,7 +1411,7 @@ namespace CoupledField {
     //         dynamic_cast<SurfElem*> ((*couplingElems)[actElem]);
 
     //       if (actCoupleElem == NULL) {
-    //         Error( "No elements found for coupling!", __FILE__, __LINE__ );
+    //         EXCEPTION( "No elements found for coupling!" );
     //       }
 
     //       BaseFE * ptElem = actCoupleElem->ptElem;
@@ -1430,10 +1434,9 @@ namespace CoupledField {
     //       }
 
     //       if ( matIndex == -1) {
-    //         (*error) << "AcousticPDE::CalcMechCouplingRHS: The two volume "
+    //         EXCEPTION( "AcousticPDE::CalcMechCouplingRHS: The two volume "
     //                  << "element neighbours of surface element Nr. "
-    //                  << actCoupleElem->elemNum << " do not belong to my regions!";
-    //         Error( __FILE__, __LINE__ );
+    //                  << actCoupleElem->elemNum << " do not belong to my regions!");
     //       }
 
     //       // Assign correct density
@@ -1499,7 +1502,7 @@ namespace CoupledField {
     //         dynamic_cast<SurfElem*> ((*couplingElems)[actElem]);
 
     //       if (actSurfCoupleElem == NULL) {
-    //         Error( "No elements found for coupling!", __FILE__, __LINE__ );
+    //         EXCEPTION( "No elements found for coupling!" );
     //       }
 
     //       BaseFE * ptElem = actSurfCoupleElem->ptElem;
@@ -1522,9 +1525,9 @@ namespace CoupledField {
     //       }
 
     //       if ( matIndex == -1) {
-    //         (*error) << "AcousticPDE::CalcNRBCCouplingRHS: The two volume "
+    //         EXCEPTION( "AcousticPDE::CalcNRBCCouplingRHS: The two volume "
     //                  << "element neighbours of surface element Nr. "
-    //                  << actSurfCoupleElem->elemNum << " do not belong to my regions!"; //         Error( __FILE__, __LINE__ );
+    //                  << actSurfCoupleElem->elemNum << " do not belong to my regions!" );
     //       }
 
     //       // Density set to 1 since for this mass integrator no fac is needed
@@ -1794,8 +1797,7 @@ namespace CoupledField {
       break;
 
     default:
-      Warning( "Resulttype not computable by acoustic PDE",
-               __FILE__, __LINE__ );
+      WARN( "Resulttype not computable by acoustic PDE" );
     }
   }
 

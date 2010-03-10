@@ -138,7 +138,7 @@
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
           <xsd:enumeration value="expertsChoice"/>
-          <xsd:enumeration value="Richardson"/>
+          <xsd:enumeration value="richardson"/>
           <xsd:enumeration value="diagsolver"/>
           <xsd:enumeration value="cg"/>
           <xsd:enumeration value="gmres"/>

@@ -86,8 +86,7 @@ namespace CoupledField {
     //! This method is not yet implemented. Due to its nature is must be
     //! implemented in the corresponding derived class!
     // void Export( char *fname, char *comment = NULL ) const {
-    //   Error( "Export not yet implemented for any LAPACK Matrix", __FILE__,
-    //          __LINE__);
+    //   EXCEPTION( "Export not yet implemented for any LAPACK Matrix");
     // }
     std::string ToString( char colSeparator = ' ',
                           char rowSeparator = '\n' ) const {

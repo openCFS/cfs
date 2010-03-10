@@ -675,8 +675,7 @@ DEFINE_LOG(magpde, "magpde")
       break;
       
     default:
-      Warning( "Resulttype not computable by magnetic PDE",
-               __FILE__, __LINE__ );
+      WARN( "Resulttype not computable by magnetic PDE" );
     }
 
     // In any case, we should trigger calculation of magnetic

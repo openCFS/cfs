@@ -287,7 +287,7 @@ namespace CoupledField
         //                                    myPDE_->subdoms_ );
 
         //       if (!myInterface->neighbours.GetSize())
-        //      EXCEPTION("No neighbours for element coupling found!",  __FILE__,__LINE__);
+        //      EXCEPTION("No neighbours for element coupling found!");
       
       
       
@@ -309,7 +309,7 @@ namespace CoupledField
           
           
         //        if (subdomFound == false)
-        //          EXCEPTION("Subdomain name of neighbouring elements was not found",__FILE__,__LINE__);
+        //          EXCEPTION("Subdomain name of neighbouring elements was not found");
           
         //        myInterface->materials[i] = &(myPDE_->materialData_[subDomNr]);           
         //      }
@@ -333,7 +333,7 @@ namespace CoupledField
         //                                       oppositePDE->subdoms_ );
       
         //        if (!neighbours.GetSize())
-        //      EXCEPTION("No opposite neighbours for element coupling found!",  __FILE__,__LINE__);
+        //      EXCEPTION("No opposite neighbours for element coupling found!");
       
         //       for (UInt i=0; i<neighbours.GetSize(); i++)
         //         {
@@ -349,7 +349,7 @@ namespace CoupledField
                   
           
         //        if (subdomFound == false)
-        //          EXCEPTION("Subdomain name of neighbouring elements was not found",__FILE__,__LINE__);
+        //          EXCEPTION("Subdomain name of neighbouring elements was not found");
           
         //        myInterface->oppositePdeMaterials[i] = &(oppositePDE->materialData_[subDomNr]);
         //      }
@@ -850,7 +850,7 @@ namespace CoupledField
           warnMsg +="' is not present anymore in the current coupling set for PDE '";
           warnMsg += myPDE_->GetName();
           warnMsg += "'.";
-          Warning(warnMsg.c_str(), __FILE__, __LINE__);
+          WARN(warnMsg);
         } //if coupling not found
       } // loop over own couplings
     } // looop over memento couplings

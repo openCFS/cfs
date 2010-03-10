@@ -88,7 +88,7 @@ namespace CoupledField {
   public:
 
     //! Constructor
-    LUSolver( OLAS_Params *myParams, OLAS_Report *myReport = NULL );
+    LUSolver( ParamNode* solverNode, InfoNode *olasInfo = NULL );
 
     //! Default Destructor
 
@@ -168,6 +168,9 @@ namespace CoupledField {
 
     //! Object for performing iterative refinement
     IterativeRefinement iterativeRefiner_;
+    
+    UInt itRefSteps_;
+    
 
   };
 

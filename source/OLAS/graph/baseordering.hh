@@ -19,6 +19,19 @@ namespace CoupledField {
   //! (notation: ordering of nodes although in combination with
   //! CFS++ we order equation numbers).
   class BaseOrdering {
+  public:
+  //! Type of re-ordering for the graph
+
+  //! This enumeration data type describes the type of re-ordering that is to
+  //! be applied to the graph. The enumeration contains the following values:
+  //! - NOREORDERING
+  //! - METIS
+  //! - SLOAN
+  //! - MINIMUM_DEGREE
+  //! - NESTED_DISSECTION
+  typedef enum { NOREORDERING, METIS, SLOAN, NESTED_DISSECTION,
+                 MINIMUM_DEGREE } ReorderingType;
+  static Enum<ReorderingType> reorderingType;
 
   public:
     

@@ -112,7 +112,7 @@ namespace CoupledField {
     //! object is optional. If no object is assigned, then no report will be
     //! generated. This is the constructor which will be called by the
     //! GenerateSolverObject() factory.
-    Lapack_LU( OLAS_Params *myParams, OLAS_Report *myReport = NULL );
+    Lapack_LU( ParamNode* solverNode, InfoNode *olasInfo = NULL );
 
     //! Alternate constructor
 
@@ -121,8 +121,8 @@ namespace CoupledField {
     //! the basic LU factorisation of the matrix. Note that the pointer to the
     //! report object is optional. If no object is assigned, then no report
     //! will be generated.
-    Lapack_LU( BaseMatrix &mat, OLAS_Params *myParams,
-	       OLAS_Report *myReport = NULL );
+    Lapack_LU( BaseMatrix &mat, ParamNode* solverNode, 
+	       InfoNode *olasInfo = NULL );
 
     //! Default Destructor
 

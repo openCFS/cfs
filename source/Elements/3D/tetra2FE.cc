@@ -153,10 +153,6 @@ void Tetra2FE :: CalcShapeFnc(Vector<Double> & Shape,
 	Shape[2]= LCoord[1] - 0.5*Shape[5] - 0.5*Shape[6] - 0.5*Shape[9];
 	Shape[3]= LCoord[2] - 0.5*Shape[8] - 0.5*Shape[7] - 0.5*Shape[9];
 
-// 	if (Shape[0] < 0)
-// 	  Error("Local coordinates are not inside tetrahedral element!",
-//       __FILE__,__LINE__);
-
 }
 
 

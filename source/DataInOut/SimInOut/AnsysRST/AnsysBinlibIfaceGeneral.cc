@@ -291,8 +291,7 @@ namespace CoupledField
       if(  actInfo.definedOn != ResultInfo::NODE &&
            actInfo.definedOn != ResultInfo::ELEMENT ) 
       {
-        Warning( "RST can only write results on elements and nodes",
-                 __FILE__, __LINE__ );
+        WARN( "RST can only write results on elements and nodes" );
         continue;
       }
 

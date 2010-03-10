@@ -544,11 +544,9 @@ void MpCCIexch::FinishMpcciSetup(std::string couplingType)
       CCI_Def_comm(212,1,112,2,quantityIds,1,localMeshIds);
     }
   else
-    {
-      std::string errmsg = "MpCCIType '" + couplingType;
-      errmsg += "does not exist";
-      Info->Error( errmsg, __FILE__, __LINE__ );
-    }
+  {
+    EXCEPTION("MpCCIType '" << couplingType << "does not exist");
+  }
 
   //Close the definition phase; contact detection.
   //i take part in the coupling
@@ -656,8 +654,7 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
             else if ( filenum < 100 ) filename.append( "00" );
             else if ( filenum < 1000 ) filename.append( "0" );
             else if ( filenum > 10000 ) {
-              Info->Error( "Number of src file exceeds 9999!",
-                           __FILE__, __LINE__ );
+              EXCEPTION( "Number of src file exceeds 9999!" );
             }
             filename.append( lexical_cast<std::string>( filenum ) );
             filenum++;
@@ -698,9 +695,8 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
 
                         if (!outsrcnodalfile) 
                           {
-                            std::cerr << "ERROR(" << __FILE__ << " " << __LINE__ <<
-                              ") In MpCCIexch: Can't open src nodal file for output:" << filename.c_str() << std::endl;
-                            exit(1);
+                            EXCEPTION("In MpCCIexch: Can't open src nodal file "
+                                      << "for output:" << filename);
                           }
                         for (UInt i=0; i<numSteps_; i++)
                           outsrcnodalfile<< std::setiosflags(std::ios::uppercase | std::ios::scientific)
@@ -796,9 +792,7 @@ void MpCCIexch::RecvAllPartitions(std::string couplingType)
     }
   else
     {
-      std::string errmsg = "MpCCIType '" + couplingType;
-      errmsg += "does not exist";
-      Info->Error( errmsg, __FILE__, __LINE__ );
+      EXCEPTION("MpCCIType '" << couplingType << "does not exist");
     }
   
 }
@@ -891,9 +885,7 @@ void MpCCIexch::GetNodalValOfOnePartition(UInt partId, Vector<Double> & forceDat
     }
   else
     {
-      std::string errmsg = "MpCCIType '" + couplingType;
-      errmsg += "does not exist";
-      Info->Error( errmsg, __FILE__, __LINE__ );
+      EXCEPTION("MpCCIType '" << couplingType << "does not exist");
     }
 
   if (emptyNodes)  delete []  emptyNodes;

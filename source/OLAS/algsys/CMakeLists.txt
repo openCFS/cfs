@@ -2,8 +2,6 @@ SET(ALGSYS_SRCS
     basesystem.cc
     baseentrymanipulator.cc
     generateidbchandler.cc
-    olascomm.cc
-    olasparams.cc
     sbmsystem.cc
     standardsys.cc
     )
@@ -13,7 +11,6 @@ SET(ALGSYS_SRCS
     ${ALGSYS_SRCS}
     idbchandler.cc
     idbchandlerpenalty.cc
-    olascomm_templ_impl.cc
     )
 ENDIF(EXPLICIT_TEMPLATE_INSTANTIATION)
 

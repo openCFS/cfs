@@ -5,13 +5,17 @@
 #ifndef FILE_CFSOLASPARAMS
 #define FILE_CFSOLASPARAMS
 
+#include "OLAS/solver/basesolver.hh"
+#include "OLAS/solver/baseEigensolver.hh"
+#include "OLAS/precond/baseprecond.hh"
+#include "OLAS/graph/baseordering.hh"
+
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField
 {
 
   // Forward declaration of classes
-  class OLAS_Params;
   class Assemble;
 
   //! Class for passing steering parameters from CFS++ to OLAS
@@ -48,7 +52,7 @@ namespace CoupledField
     //!                       improve the solution parameters or set those
     //!                       no specified by the user
     static void SetParams( std::string pdename, ParamNode *cfs,
-                           OLAS_Params *olas, BasePDE::AnalysisType analysistype,
+                           BasePDE::AnalysisType analysistype,
                            Assemble * assemble,
                            bool overrideExpert = false );
 
@@ -69,7 +73,7 @@ namespace CoupledField
     //!       occur, if a non-validating parser is used, since the Schema
     //!       definitions require the parameters to be unique.
     static void SetSolverParams( std::string pdename, ParamNode *cfs,
-                                 OLAS_Params *olas, SolverType sType );
+                                 BaseSolver::SolverType sType );
 
     //! Set parameters for eigenvalue solver for linear system
 
@@ -87,8 +91,7 @@ namespace CoupledField
     //!       definitions require the parameters to be unique.
     static void SetEigenSolverParams( std::string pdename, 
                                       ParamNode *cfs,
-                                      OLAS_Params *olas, 
-                                      EigenSolverType sType );    
+                                      BaseEigenSolver::EigenSolverType sType );    
 
     //! Set parameters for preconditioner for linear system
 
@@ -105,18 +108,17 @@ namespace CoupledField
     //!       occur, if a non-validating parser is used, since the Schema
     //!       definitions require the parameters to be unique.
     static void SetPrecondParams( std::string pdename, ParamNode *cfs,
-                                  OLAS_Params *olas, 
-                                  PrecondType pType );
+                                  BasePrecond::PrecondType pType );
 
     //! Expert routine for correcting parameter inconsistencies
     static void Expert( ParamNode *cfs,
                         std::string pdename, 
-                        EigenSolverType &esType,
-                        SolverType &sType,
-                        PrecondType &pType, 
+                        BaseEigenSolver::EigenSolverType &esType,
+                        BaseSolver::SolverType &sType,
+                        BasePrecond::PrecondType &pType, 
                         BaseMatrix::StorageType &mType,
                         BaseMatrix::EntryType &eType, 
-                        ReorderingType &rType,
+                        BaseOrdering::ReorderingType &rType,
                         BasePDE::AnalysisType analysisType,
                         Assemble * assemble,
                         bool allowChangeOfReordering );

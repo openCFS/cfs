@@ -185,12 +185,11 @@ namespace CoupledField {
     
     // check, if result is to be updated
     if( isNeeded_.find(sol) == isNeeded_.end() ) {
-      *warning << "Result '" 
-               << sol->GetResultInfo()->resultName
-               << "' on entitylist '"
-               << sol->GetEntityList()->GetName() 
-               << "' is not needed in step " << actStep_;
-      Warning( __FILE__, __LINE__ );
+      WARN("Result '" 
+           << sol->GetResultInfo()->resultName
+           << "' on entitylist '"
+           << sol->GetEntityList()->GetName() 
+           << "' is not needed in step " << actStep_);
     }
 
     // Set flag for update to true
@@ -229,12 +228,11 @@ namespace CoupledField {
 
       // Check, if result was updated at all
       if( isUpdated_.find(*it) == isUpdated_.end() ) {
-        *warning << "Result '" 
-                 << actResult.GetResultInfo()->resultName 
-                 << "' on '" 
-                 << (*it)->GetEntityList()->GetName()
-                 << "' was not provided in step " << actStep_;
-        Warning( __FILE__, __LINE__ );
+        WARN("Result '" 
+             << actResult.GetResultInfo()->resultName 
+             << "' on '" 
+             << (*it)->GetEntityList()->GetName()
+             << "' was not provided in step " << actStep_);
       }
 
 

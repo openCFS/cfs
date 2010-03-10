@@ -18,8 +18,6 @@ namespace CoupledField {
   // forward class declarations
   class BaseEigenSolver;
   class BaseMatrix;
-  class OLAS_Params;
-  class OLAS_Report;
   class ParamNode;
   class InfoNode;
 
@@ -36,11 +34,8 @@ namespace CoupledField {
   //! \param report Pointer to report object into which the generated solver
   //!               should write its solutiopn report.
   BaseEigenSolver * GenerateEigenSolverObject( BaseMatrix &mat, 
-                                               EigenSolverType solver,
                                                ParamNode * xml,
-                                               InfoNode*   eigenInfo,     
-                                               OLAS_Params *params, 
-                                               OLAS_Report *report );
+                                               InfoNode*   eigenInfo );
 
 }
 

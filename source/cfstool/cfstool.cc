@@ -99,6 +99,7 @@ namespace CFSTool {
     } else if( fileName.find( ".msh") != std::string::npos ) {
 #ifdef USE_GMSH
       ParamNode * gmshNode = new ParamNode(false);
+      gmshNode->WriteBack(false);
       reader = shared_ptr<SimInput>(new SimInputGmsh(fileName, gmshNode) );
 #else  
       EXCEPTION( "No support for Gmsh input file format." );
@@ -134,7 +135,10 @@ namespace CFSTool {
 #ifdef USE_GIDPOST
       baseName = std::string(fileName, 0, fileName.find(".post"));
       ParamNode * gidNode = new ParamNode(false);
+      gidNode->WriteBack(false);
       ParamNode * binary = new ParamNode(false);
+      binary->WriteBack(false);
+
       binary->SetName( "binaryFormat");
       if( fileName.find( ".bin") != std::string::npos ) {
         binary->SetValue( "yes");
@@ -150,10 +154,15 @@ namespace CFSTool {
 #ifdef USE_GMV_OUTPUT
       baseName = std::string(fileName, 0, fileName.find(".gmv"));
       ParamNode * gmvNode = new ParamNode(false);
+      gmvNode->WriteBack(false);
       ParamNode * binary = new ParamNode(false);
+      binary->WriteBack(false);
+
       binary->SetName("binaryFormat");
       binary->SetValue( "yes" );
       ParamNode * fixedGrid = new ParamNode(false);
+      fixedGrid->WriteBack(false);
+
       fixedGrid->SetName("fixedGrid");
       fixedGrid->SetValue( "yes" );
       gmvNode->GetChildren().Push_back(binary);
@@ -166,10 +175,16 @@ namespace CFSTool {
 #ifdef USE_GMSH
       baseName = std::string(fileName, 0, fileName.find(".msh"));
       ParamNode * gmshNode = new ParamNode(false);
+      gmshNode->WriteBack(false);
+
       ParamNode * binary = new ParamNode(false);
+      binary->WriteBack(false);
+
       binary->SetName("binaryFormat");
       binary->SetValue( "yes" );
       ParamNode * bigEndian = new ParamNode(false);
+      bigEndian->WriteBack(false);
+
       bigEndian->SetName("endianness");
       bigEndian->SetValue( "big" );
       gmshNode->GetChildren().Push_back(binary);
@@ -182,7 +197,11 @@ namespace CFSTool {
 #ifdef USE_HDF5
       baseName = std::string(fileName, 0, fileName.find(".h5"));
       ParamNode * h5Node = new ParamNode(false);
+      h5Node->WriteBack(false);
+
       ParamNode * eFiles = new ParamNode(false);
+      eFiles->WriteBack(false);
+
       eFiles->SetName("externalFiles");
       eFiles->SetValue( "false" );
       h5Node->GetChildren().Push_back(eFiles);
@@ -936,10 +955,15 @@ namespace CFSTool {
     setParamNode(childVec[1], "start", freeCoord[1]);
     setParamNode(childVec[2], "stop",  freeCoord[2]);
     setParamNode(childVec[3], "inc",   freeCoord[3]);
+    
+    for(UInt i=0; i<4; i++)
+      childVec[i]->WriteBack(false);
 
     // create node (freeCoord) with comp,start,stop,inc as children
     parent = new ParamNode(false); //freeCoord
     setParamNode(parent, "freeCoord", "", &childVec);
+    
+    parent->WriteBack(false);
 
     // create node (list) with freeCoord and coordSysId as children
     childVec.Clear();
@@ -952,6 +976,10 @@ namespace CFSTool {
     parent = new ParamNode(false); //list
     setParamNode(parent, "list", "", &childVec);
 
+    for(UInt i=0; i<2; i++)
+      childVec[i]->WriteBack(false);
+    parent->WriteBack(false);
+    
     // create leaf (name)
     childVec.Clear();
     childVec.Push_back(parent);
@@ -959,15 +987,21 @@ namespace CFSTool {
     setParamNode(parent, "name", node_name);
     childVec.Push_back(parent);
 
+    parent->WriteBack(false);
+
     // create node (nodes) with name and list as childer
     parent = new ParamNode(false); //nodes
     setParamNode(parent, "nodes", "", &childVec);
+
+    parent->WriteBack(false);
 
     // create node (nodeList) with nodes as child
     childVec.Clear();
     childVec.Push_back(parent);
     parent = new ParamNode(false); //nodeList
     setParamNode(parent, "nodeList", "", &childVec);
+
+    parent->WriteBack(false);
 
     // create node (domain) with nodeList as child
     childVec.Clear();
@@ -1023,6 +1057,8 @@ int main(int argc, char** argv)
   try
   {
     param = new ParamNode(false);
+    param->WriteBack(false);
+
     ParamsInit(argc, argv);
 
     // Switch this flag tc true for debugging

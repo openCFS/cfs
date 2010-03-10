@@ -63,8 +63,6 @@ namespace CoupledField {
     assemble_(NULL),
     solveStep_(NULL),
     algsys_(NULL),
-    olasParams_(NULL),
-    olasReport_(NULL),
     olasInfo_(NULL), // set in the child-nodes
     isSetInitialCondition_(false),
     InitialCondition_(0.0)
@@ -173,12 +171,12 @@ namespace CoupledField {
     if ( analysistype_ != EIGENFREQUENCY ) {
       
       // create solver and preconditioner
-      algsys_->CreateSolver(olasInfo_);
+      algsys_->CreateSolver();
       algsys_->CreatePrecond();
       
     } else {
       // create eigenvalue solver
-      algsys_->CreateEigenSolver(olasInfo_->Get("eigenSolver"));
+      algsys_->CreateEigenSolver();
     }
         
     // now reset AlgebraicSystem 
@@ -199,11 +197,24 @@ namespace CoupledField {
 
   ParamNode* StdPDE::FindLinearSystem(const std::string& sysName) {
 
-
     ParamNode* pn = NULL;
+    ParamNode* linSysNode = NULL;
+    
     pn = param->Get("sequenceStep", "index", sequenceStep_, false );
-    if(pn != NULL) pn = pn->Get("linearSystems", false);
-    if(pn != NULL) pn = pn->Get("system", "name", sysName, false);
+    linSysNode = pn->Get("linearSystems", false);
+    pn = linSysNode->Get("system", "name", sysName, false);
+    
+    // If no system with the specified name could be found in XML file
+    // we just generate a new ParamNode.
+    if(!pn) {
+      linSysNode->GetChildren().Push_back(new ParamNode());
+      pn = linSysNode->GetChildren().Last();
+      pn->SetName("system");
+      pn->GetChildren().Push_back(new ParamNode());
+      ParamNode* nameNode = pn->GetChildren().Last();
+      nameNode->SetName("name");
+      nameNode->SetValue(sysName);
+    }
     
     return pn;
   }
@@ -511,7 +522,7 @@ namespace CoupledField {
       linSysNode = temp ->Get("system", "name", sysName, false );
     }
     
-    CFSOLASParams::SetParams( sysName, linSysNode, olasParams_, 
+    CFSOLASParams::SetParams( sysName, linSysNode, 
                               analysistype_, assemble_,
                               (amExpert == "yes") );
 

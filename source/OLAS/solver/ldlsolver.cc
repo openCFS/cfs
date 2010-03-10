@@ -7,7 +7,6 @@
 
 #include "MatVec/opdefs.hh"
 #include "MatVec/scrs_matrix.hh"
-#include "OLAS/algsys/olasparams.hh"
 
 #include "ldlsolver.hh"
 
@@ -28,12 +27,10 @@ namespace CoupledField {
   //   Constructor
   // ***************
   template<typename T>
-  LDLSolver<T>::LDLSolver( OLAS_Params *myParams, OLAS_Report *myReport ) {
+  LDLSolver<T>::LDLSolver( ParamNode* solverNode, InfoNode *olasInfo ) {
 
-
-    // Set pointers to communication objects
-    myParams_ = myParams;
-    myReport_ = myReport;
+    xml_ = solverNode;
+    solverInfo_ = olasInfo->Get("directLDL");
 
     // No factorisation was performed yet
     amFactorised_ = false;
@@ -51,6 +48,12 @@ namespace CoupledField {
     // No problem size known yet
     sysMatDim_  = 0;
     auxVecSize_ = 0;
+
+    ParamNode *sNode = NULL;
+    sNode = xml_->Get("directLDL", false);
+      
+    itRefSteps_ = 2;
+    sNode->Get("itRefSteps", itRefSteps_, false);
 
     // NOTE: The class currently gives wrong results, if used with
     //       block entries instead of scalar entries. Thus, we do
@@ -118,7 +121,10 @@ namespace CoupledField {
         sysMatDim_ = scrsMat.GetNumCols();
       }
       else {
-        if ( myParams_->GetBoolValue( "newMatrixPattern" ) == false &&
+        // TODO: newMatrixPattern was previously only set to false in olasparams.cc
+        // and never changed. Is it really necessary? Investigate further!
+        bool newMatrixPattern = false;
+        if ( !newMatrixPattern &&
              sysMatDim_ != scrsMat.GetNumCols() ) {
           EXCEPTION( "LDLSolver::Setup: newMatrixPattern = false, but "
                    << "matrix dimension changed from " << sysMatDim_ << " to "
@@ -136,7 +142,7 @@ namespace CoupledField {
       }
 
       // Logging
-      bool logging = myParams_->GetBoolValue( "LDLSOLVER_logging" );
+      bool logging = false;
       if ( logging ) {
         (*cla) << " -------------------------------------------------------"
                << "-----------------------\n"
@@ -146,10 +152,14 @@ namespace CoupledField {
                << std::endl;
       }
 
+      // TODO: newMatrixPattern was previously only set to false in olasparams.cc
+      // and never changed. Is it really necessary? Investigate further!
+      bool newMatrixPattern = false;
+
       // If this is the first time we are asked for a factorisation, or
       // if there is a new matrix pattern, we start an analyse phase
       if ( amFactorised_ == false ||
-           myParams_->GetBoolValue( "newMatrixPattern" ) == true ) {
+           newMatrixPattern ) {
 
         // Clear "old" vectors
         delete [] ( dataD_ );  dataD_  = NULL;
@@ -217,11 +227,23 @@ namespace CoupledField {
 
       // if the user desires it, we will export the matrix factor
       // to a file in Matrix Market format
-      if( myParams_->GetBoolValue( "LDLSOLVER_saveFacToFile" ) == true &&
-          myParams_->GetBoolValue( "LDLSOLVER_savePatternOnly" ) == false ) {
-        std::string filename;
-        filename = myParams_->GetStringValue( "LDLSOLVER_facFileName" );
-        ExportFactorisation( filename.c_str(), false );
+      bool saveFacToFile = false;
+      std::string facFileName = "fac.out";
+      bool savePatternOnly = false;
+      
+      ParamNode *sNode = NULL;
+      sNode = xml_->Get("directLDL", false);
+      if(sNode) {
+        if(sNode->Has("saveFacFile")) {
+          saveFacToFile = true;
+          sNode->Get("saveFacFile", facFileName, false);
+        }
+        
+        sNode->Get("savePatternOnly", savePatternOnly, false);
+      }
+      
+      if( saveFacToFile &&  (!savePatternOnly) ) {
+        ExportFactorisation( facFileName.c_str(), false );
       }
 
       // finish log report
@@ -242,7 +264,7 @@ namespace CoupledField {
                             BaseVector &sol, InfoNode* analysis_step ) {
 
 
-    bool logging = myParams_->GetBoolValue( "LDLSOLVER_logging" );
+    bool logging = false;
 
     // Test that a factorisation is available, if not issue an error
     if ( amFactorised_ == false ) {
@@ -267,25 +289,24 @@ namespace CoupledField {
 
 
       // If desired perform iterative refinement
-      UInt numSteps = (UInt)myParams_->GetIntValue( "LDLSOLVER_itRefSteps" );
-      UInt logLevel =
-        (UInt)myParams_->GetIntValue( "LDLSOLVER_itRefVerbosity" );
+      UInt logLevel = 2;
+      UInt numSteps = itRefSteps_;
+      
+      ParamNode *sNode = NULL;
+      sNode = xml_->Get("directLDL", false);
+      sNode->Get("itRefVerbosity", logLevel, false);
 
-      if ( numSteps > 0 ) {
-
+      if ( itRefSteps_ > 0 ) {
         // Avoid recursion, we do not want to do refinement on the
         // solution in the refinement step
-        myParams_->SetValue( "LDLSOLVER_itRefSteps", (Integer)0 );
-        myParams_->SetValue( "LDLSOLVER_logging", false );
+        itRefSteps_ = 0;
 
         // Refine
         iterativeRefiner_.Refine( (*this), sysMat, sol, rhs, numSteps,
                                   logLevel );
 
-        // Re-set parameter object
-        myParams_->SetValue( "LDLSOLVER_itRefSteps", (Integer)numSteps );
-        myParams_->SetValue( "LDLSOLVER_logging", logging );
-
+        // Reset number of iterations after refinement
+        itRefSteps_ = numSteps;
       }
 
       // Logging
@@ -300,10 +321,9 @@ namespace CoupledField {
     // Now this currently is of dubious value, since the two things queried
     // from olasReport are actually meaningless in the context of a direct
     // solver. Nevertheless we supply some values for consistency
-    if ( myReport_ != NULL ) {
-      myReport_->SetValue( "numIter", -1 );
-      myReport_->SetValue( "finalNorm", -1.0 );
-    }
+    InfoNode* out = solverInfo_->Get(InfoNode::PROCESS)->Get("solver", InfoNode::APPEND);
+    out->Get("numIter")->SetValue(-1);
+    out->Get("finalNorm")->SetValue(-1.0);
 
   }
 
@@ -335,7 +355,7 @@ namespace CoupledField {
     // =================
     //  Report start-up
     // =================
-    bool logging = myParams_->GetBoolValue( "LDLSOLVER_logging" );
+    bool logging = false;
     if ( logging ) {
       (*cla) << " Phase: ANALYSE" << std::endl;
     }
@@ -689,11 +709,23 @@ namespace CoupledField {
 
     // if the user desires it, we will export the pattern of the matrix
     // factor to a file in Matrix Market format
-    if( myParams_->GetBoolValue( "LDLSOLVER_saveFacToFile" ) == true &&
-        myParams_->GetBoolValue( "LDLSOLVER_savePatternOnly" ) == true ) {
-      std::string filename;
-      filename = myParams_->GetStringValue( "LDLSOLVER_facFileName" );
-      ExportFactorisation( filename.c_str(), false );
+    bool saveFacToFile = false;
+    std::string facFileName = "fac.out";
+    bool savePatternOnly = false;
+      
+    ParamNode *sNode = NULL;
+    sNode = xml_->Get("directLDL", false);
+    if(sNode) {
+      if(sNode->Has("saveFacFile")) {
+        saveFacToFile = true;
+        sNode->Get("saveFacFile", facFileName, false);
+      }
+        
+      sNode->Get("savePatternOnly", savePatternOnly, false);
+    }
+    
+    if( saveFacToFile && savePatternOnly ) {
+      ExportFactorisation( facFileName.c_str(), false );
     }
 
 
@@ -737,7 +769,7 @@ namespace CoupledField {
     // =================
     //  Report start-up
     // =================
-    bool logging = myParams_->GetBoolValue( "LDLSOLVER_logging" );
+    bool logging = false;
     if ( logging ) {
       (*cla) << " Phase: FACTORISE" << std::endl;
     }
@@ -836,9 +868,8 @@ namespace CoupledField {
       }
     }
     else {
-      (*warning) << "First row has no off-diagonal entry! I'm frightened! "
-                 << "Can this be correct my master?";
-      Warning( __FILE__, __LINE__ );
+      WARN("First row has no off-diagonal entry! I'm frightened! "
+           << "Can this be correct my master?");
     }
 
     // ============
@@ -1285,9 +1316,8 @@ namespace CoupledField {
     //   Close output file
     // =====================
     if ( fclose( fp ) == EOF ) {
-      (*warning) << "LDLSolver::ExportFactorisation: Could not close file "
-                 << fname << " after writing!";
-      Warning( __FILE__, __LINE__ );
+      WARN("LDLSolver::ExportFactorisation: Could not close file "
+           << fname << " after writing!");
     }
   }
 

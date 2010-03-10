@@ -2,7 +2,6 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "OLAS/algsys/olasparams.hh"
 #include "MatVec/basematrix.hh"
 #include "MatVec/stdmatrix.hh"
 #include "MatVec/scrs_matrix.hh"
@@ -22,12 +21,10 @@ namespace CoupledField {
   // *****************************
   //   Constructor (for factory)
   // *****************************
-  Lapack_LL::Lapack_LL( OLAS_Params *myParams, OLAS_Report *myReport ) {
-
-
-    // Set pointers to communication objects
-    myParams_ = myParams;
-    myReport_ = myReport;
+  Lapack_LL::Lapack_LL( ParamNode* solverNode, InfoNode *olasInfo ) {
+    
+    xml_ = solverNode;
+    solverInfo_ = olasInfo->Get("lapackLL");
 
     // Initialise remaining attributes
     facMat_            = NULL;
@@ -57,7 +54,7 @@ namespace CoupledField {
 
 
     // Are we expected to be verbose?
-    bool logging = myParams_->GetBoolValue( "LAPACKLL_logging" );
+    bool logging = false;
 
     // Report to logfile
     if ( logging == true ) {
@@ -114,7 +111,7 @@ namespace CoupledField {
     UInt i, k;
 
     // Are we expected to be verbose?
-    bool logging = myParams_->GetBoolValue( "LAPACKLL_logging" );
+    bool logging = false;
 
     // Initialise parameters for DPBTRF
     char lp_uplo = 'L';
@@ -138,10 +135,17 @@ namespace CoupledField {
     // Compute number of stored matrix entries
     // COMPWARNING: unused variable Integer nEntries = ( scrsMat.GetNnz() + lp_n ) / 2;
 
+    // TODO: THIS CHECK DOES NOT MAKE SENSE IN MY OPINION SINCE
+    //       'newMatrixPattern' is set to false in olasparams.cc
+    //       and gets never changed elsewhere. A more intelligent
+    //       test would ask the matrix if its pattern did change.
+
+    bool newMatrixPattern = false;
+      
     // Test, if we must check for a new matrix' bandwidth and
     // maybe also allocate new memory
     if ( amFactorised_ == false || facMat_ == NULL ||
-        myParams_->GetBoolValue( "newMatrixPattern" ) == true ) {
+        newMatrixPattern ) {
 
 #ifdef DEBUG_LAPACK_LL
 
@@ -149,14 +153,12 @@ namespace CoupledField {
       // two indicators agree, if not cry out loud!
       if ( (facmat_+1) != NULL || amFactorised_ == true ) {
         if ( (facmat_+1) == NULL && amFactorised_ == true ) {
-          (*error) << "Lapack_LL: Internal error. facmat_ = NULL, but "
-          << "amFactorised_ = true!";
-          Error( __FILE__, __LINE__ );
+          EXCEPTION( "Lapack_LL: Internal error. facmat_ = NULL, but "
+                     << "amFactorised_ = true!" );
         }
         else if ( amFactorised_ == false ) {
-          (*error) << "Lapack_LL: Internal error. facmat_ <> NULL, but "
-          << "amFactorised_ = false!";
-          Error( __FILE__, __LINE__ );
+          EXCEPTION( "Lapack_LL: Internal error. facmat_ <> NULL, but "
+                     << "amFactorised_ = false!" );
         }
       }
 
@@ -268,7 +270,7 @@ namespace CoupledField {
     UInt i, k;
 
     // Are we expected to be verbose?
-    bool logging = myParams_->GetBoolValue( "LAPACKLL_logging" );
+    bool logging = false;
 
     // Initialise parameters for ZPBTRF
     char lp_uplo = 'L';
@@ -291,11 +293,18 @@ namespace CoupledField {
 
     // Compute number of stored matrix entries
     // COMPWARNING: unused variable Integer nEntries = ( scrsMat.GetNnz() + lp_n ) / 2;
+    
+    // TODO: THIS CHECK DOES NOT MAKE SENSE IN MY OPINION SINCE
+    //       'newMatrixPattern' is set to false in olasparams.cc
+    //       and gets never changed elsewhere. A more intelligent
+    //       test would ask the matrix if its pattern did change.
 
+    bool newMatrixPattern = false;
+      
     // Test, if we must check for a new matrix' bandwidth and
     // maybe also allocate new memory
     if ( amFactorised_ == false || facMat_ == NULL ||
-        myParams_->GetBoolValue( "newMatrixPattern" ) == true ) {
+        newMatrixPattern ) {
 
 #ifdef DEBUG_LAPACK_LL
 
@@ -303,14 +312,12 @@ namespace CoupledField {
       // two indicators agree, if not cry out loud!
       if ( (facmat_+1) != NULL || amFactorised_ == true ) {
         if ( (facmat_+1) == NULL && amFactorised_ == true ) {
-          (*error) << "Lapack_LL: Internal error. facmat_ = NULL, but "
-          << "amFactorised_ = true!";
-          Error( __FILE__, __LINE__ );
+          EXCEPTION( "Lapack_LL: Internal error. facmat_ = NULL, but "
+                     << "amFactorised_ = true!" );
         }
         else if ( amFactorised_ == false ) {
-          (*error) << "Lapack_LL: Internal error. facmat_ <> NULL, but "
-          << "amFactorised_ = false!";
-          Error( __FILE__, __LINE__ );
+          EXCEPTION("Lapack_LL: Internal error. facmat_ <> NULL, but "
+                    << "amFactorised_ = false!");
         }
       }
 
@@ -424,7 +431,7 @@ namespace CoupledField {
 
 
     // Are we expected to be verbose?
-    bool logging = myParams_->GetBoolValue( "LAPACKLL_logging" );
+    bool logging = false;
 
     // Report to logfile
     if ( logging == true ) {

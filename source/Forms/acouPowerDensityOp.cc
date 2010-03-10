@@ -26,7 +26,7 @@ namespace CoupledField {
   {
     
     isaxi_ = isaxi;
-    //Warning( "Only working with Lagrange Functions", __FILE__, __LINE__ );
+    //WARN( "Only working with Lagrange Functions");
   }
 
   template<class TYPE>
@@ -197,8 +197,7 @@ namespace CoupledField {
 //                                         const StdVector<RegionIdType> & SD,
 //                                         const Double density)
 //   {
-//     (*error) << "AcouPowerDensityOp::CalcSDElecField: Not implemented yet"; 
-//     Error( __FILE__, __LINE__ );
+//     EXCEPTION("AcouPowerDensityOp::CalcSDElecField: Not implemented yet");
 //   }
 
 

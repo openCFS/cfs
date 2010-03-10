@@ -316,10 +316,9 @@ namespace CoupledField {
 
 #ifdef DEBUG_IDBCHANDLER
       if ( stdMat == NULL ) {
-        (*error) << "IDBC_Handler::SetWeightFixedToFree: Invalid access "
+        EXCEPTION("IDBC_Handler::SetWeightFixedToFree: Invalid access "
                  << "to non-existant sub-matrix (" << pdeID1
-                 << ", " << pdeID2;
-        Error( __FILE__, __LINE__ );
+                 << ", " << pdeID2);
       }
 #endif
     }
@@ -361,10 +360,9 @@ namespace CoupledField {
 
 #ifdef DEBUG_IDBCHANDLER
       if ( stdMat == NULL ) {
-        (*error) << "IDBC_Handler::SetWeightFixedToFree: Invalid access "
+        EXCEPTION("IDBC_Handler::SetWeightFixedToFree: Invalid access "
                  << "to non-existant sub-matrix (" << pdeID1
-                 << ", " << pdeID2;
-        Error( __FILE__, __LINE__ );
+                 << ", " << pdeID2);
       }
 #endif
     }
@@ -404,10 +402,9 @@ namespace CoupledField {
 
 #ifdef DEBUG_IDBCHANDLER
       if ( stdMat == NULL ) {
-        (*error) << "IDBC_Handler::GetWeightFixedToFree: Invalid access "
+        EXCEPTION("IDBC_Handler::GetWeightFixedToFree: Invalid access "
                  << "to non-existant sub-matrix (" << pdeID1
-                 << ", " << pdeID2;
-        Error( __FILE__, __LINE__ );
+                 << ", " << pdeID2);
       }
 #endif
     }

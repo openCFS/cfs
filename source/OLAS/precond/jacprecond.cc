@@ -26,10 +26,10 @@ namespace CoupledField {
   // ***********************
   template<class T_storage,typename T>
   JacPrecond<T_storage,T>::JacPrecond( const StdMatrix &mat, 
-                                       OLAS_Params *myParams,
-				       OLAS_Report *myReport )  {
-    this->myParams_ = myParams;
-    this->myReport_ = myReport;
+                                       ParamNode *solverNode,
+				                               InfoNode *olasInfo )  {
+    this->xml_ = solverNode;
+    this->olasInfo_ = olasInfo;
     size_     = mat.GetNumRows();
     NEWARRAY( diagInv_, T, size_ );
   }

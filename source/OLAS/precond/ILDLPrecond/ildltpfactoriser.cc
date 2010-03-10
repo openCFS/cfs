@@ -8,7 +8,6 @@
 
 #include "MatVec/opdefs.hh"
 #include "MatVec/scrs_matrix.hh"
-#include "OLAS/algsys/olasparams.hh"
 
 #include "OLAS/precond/ILDLPrecond/ildltpfactoriser.hh"
 #include "OLAS/precond/ILDLPrecond/ildlprecond.hh"
@@ -37,18 +36,17 @@ namespace CoupledField {
   //   Standard constructor
   // ************************
   template <class T>
-  ILDLTPFactoriser<T>::ILDLTPFactoriser( OLAS_Params *myParams,
-                                         OLAS_Report *myReport ) {
+  ILDLTPFactoriser<T>::ILDLTPFactoriser( ParamNode *solverNode,
+                                         InfoNode *olasInfo ) {
 
 
     // Currently this approach is not in a functional state
-    (*warning) << "The ILDLTPFactoriser is still in an experimental state. "
-               << "Do not use is for production runs!";
-    Warning( __FILE__, __LINE__ );
+    WARN("The ILDLTPFactoriser is still in an experimental state. "
+         << "Do not use is for production runs!");
 
     // Set pointers to communication objects
-    this->myParams_ = myParams;
-    this->myReport_ = myReport;
+    this->xml_ = solverNode;
+    this->olasInfo_ = olasInfo;
 
     // Initialise remaining attributes
     this->amFactorised_ = false;
@@ -91,7 +89,9 @@ namespace CoupledField {
     this->sysMatDim_ = sysMat.GetNumCols();
 
     // Dropping threshold
-    Double tau = this->myParams_->GetDoubleValue( "ILDLPRECOND_tau" );
+    Double tau = 0.01;
+    this->xml_->Get("ILDLTP", "threshold", tau, false);
+    
     if ( tau <= 0.0 || tau > 1.0 ) {
       EXCEPTION( "ILDLTPFactoriser::Factorise: Dropping threshold tau = "
                << tau << ", but should be in (0,1]. Check setting of "
@@ -99,7 +99,8 @@ namespace CoupledField {
     }
 
     // Maximal number of entries in a row
-    UInt fillVal = this->myParams_->GetIntValue( "ILDLPRECOND_fillVal" );
+    UInt fillVal = 2;
+    this->xml_->Get("ILDLTP", "fillVal", fillVal, false);
     if ( fillVal <= 0 ) {
       EXCEPTION( "ILDLTPFactoriser::Factorise: fill value factor fillVal = "
                << fillVal << ", but should be positive integer. Check setting "
@@ -112,7 +113,7 @@ namespace CoupledField {
     UInt maxFill = entriesPerRow * fillVal;
 
     // Shall we be verbose?
-    bool logging = this->myParams_->GetIntValue( "ILDLPRECOND_logging" ) > 0;
+    bool logging = false;
 
 
     // =================
@@ -556,10 +557,9 @@ namespace CoupledField {
 
 #ifdef DEBUG_ILDLTPFACTORISER
             if ( activeListPrevElem > scanListElem ) {
-              (*error) << "Error in active list add: (activeListPrevElem = "
+              EXCEPTION( "Error in active list add: (activeListPrevElem = "
                        << activeListPrevElem << ") < (scanListElem = "
-                       << scanListElem << ")";
-              Error( __FILE__, __LINE__ );
+                       << scanListElem << ")" );
             }
 #endif
 
@@ -606,9 +606,8 @@ namespace CoupledField {
       // We claim that activeListElem >= scanListElem always holds, so
       // now we should have activeListElem = listEnd
       if ( activeListElem != listEnd ) {
-        (*error) << "ILDLTPFACTORISER::Factorise: activeListElem = "
-                 << activeListElem << ", but should be " << listEnd;
-        Error( __FILE__, __LINE__ );
+        EXCEPTION( "ILDLTPFACTORISER::Factorise: activeListElem = "
+                 << activeListElem << ", but should be " << listEnd );
       }
 #endif
       

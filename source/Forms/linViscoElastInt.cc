@@ -20,8 +20,7 @@ LinViscoElastInt::LinViscoElastInt(BaseMaterial* matData, SubTensorType type,
 
   name_ = "LinViscoElastInt";
 
-  Warning( "This class is candidate for a major re-design and not working",
-      __FILE__, __LINE__ );
+  WARN( "This class is candidate for a major re-design and not working" );
 
   //   SetDimensions(type);
 

@@ -18,34 +18,6 @@
 
 namespace CoupledField {
 
-  // =========================
-  //   Issue Warning Message
-  // =========================
-  void Warning( const char *Text, const char * const filename,
-                const UInt numline ) {
-    Info->Warning( Text, filename, numline );
-    //std::cerr << "\033[31mWARNING:\033[0m " << Text;
-  }
-
-  // ======================================================
-  //   Issue Warning Message (using global string stream)
-  // ======================================================
-  void Warning( const char *const filename, const UInt numline ) {
-
-    // Obtain error message and clear string stream
-    std::string warnMsg = "";
-    if ( warning != NULL ) {
-      warnMsg = warning->str();
-      warning->str( "" );
-    }
-    else {
-      warnMsg = "<Caller did not provide error description>";
-    }
-
-    // Delegate work to WriteInfo::Warning()
-    Info->Warning( warnMsg.c_str(), filename, numline );
-  }
-
   // =========================================
   //   Split a string into a list of strings
   // =========================================

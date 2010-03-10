@@ -1198,9 +1198,8 @@ namespace CoupledField {
     //   Close output file
     // *********************
     if ( fclose( fp ) == EOF ) {
-      (*warning) << "CroutLU::ExportILUFactorisation: Could not close file "
-                 << fname << " after writing!";
-      Warning( __FILE__, __LINE__ );
+      WARN("CroutLU::ExportILUFactorisation: Could not close file "
+           << fname << " after writing!");
     }
   }
 

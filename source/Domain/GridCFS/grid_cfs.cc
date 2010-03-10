@@ -92,7 +92,7 @@ namespace CoupledField {
 
           // check if node is defined by point coord
           ParamNode * coordNode = nodes[i]->Get("coord", false );
-          if( coordNode ) {
+          if( coordNode->HasChildren() ) {
 
             // ToDo: insert defintion for axisymmetric geometry
             coord.Init();
@@ -114,7 +114,7 @@ namespace CoupledField {
 
           // check if node is defined by parametric description
           ParamNode * listNode = nodes[i]->Get("list", false );
-          if( listNode ) {
+          if( listNode->HasChildren() ) {
 
             std::string gridId, coordSysId;
 

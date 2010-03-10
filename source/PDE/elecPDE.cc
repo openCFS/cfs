@@ -642,8 +642,7 @@ namespace CoupledField {
        break;
        
      default:
-       Warning( "Resulttype not computable by electric PDE",
-              __FILE__, __LINE__ );
+       WARN( "Resulttype not computable by electric PDE" );
      }
      
    }
@@ -789,9 +788,9 @@ namespace CoupledField {
         }
       }  
     } else {
-      *warning << "No hysteresis defined for list '" <<
-        actSol.GetEntityList()->GetName() << std::endl; 
-      Warning( __FILE__, __LINE__ );}
+      WARN( "No hysteresis defined for list '"
+            << actSol.GetEntityList()->GetName() );
+    }
   }
 
 

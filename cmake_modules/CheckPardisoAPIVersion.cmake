@@ -291,8 +291,6 @@ SET(CMAKE_REQUIRED_LIBRARIES
   ${CFS_FORTRAN_LIBS}
   ${CFS_FORTRAN_DYNRT_LIBS})
   
-SET(CFS_REQUIRED_LINK_DIRECTORIES ${IFORT_LIB_PATH})
-
 #-----------------------------------------------------------------------------
 # Check for the API version each time the user changes CFS_PARDISO.
 #-----------------------------------------------------------------------------
@@ -311,7 +309,9 @@ IF(NOT PARDISO_API_VER_3_LAST_CFS_PARDISO STREQUAL CFS_PARDISO)
   #---------------------------------------------------------------------------
   # Perform test
   #---------------------------------------------------------------------------
-  CFS_CHECK_CXX_SOURCE_RUNS("${PARDISO_API_CHECK_SOURCE}" PARDISO_API_VER_3)
+  CFS_CHECK_CXX_SOURCE_RUNS("${PARDISO_API_CHECK_SOURCE}"
+                            PARDISO_API_VER_3
+                            ${IFORT_LIB_PATH})
 
 
   #---------------------------------------------------------------------------
@@ -359,7 +359,9 @@ IF(NOT PARDISO_API_VER_4_LAST_CFS_PARDISO STREQUAL CFS_PARDISO)
   #---------------------------------------------------------------------------
   # Perform test
   #---------------------------------------------------------------------------
-  CFS_CHECK_CXX_SOURCE_RUNS("${PARDISO_API_CHECK_SOURCE}" PARDISO_API_VER_4)
+  CFS_CHECK_CXX_SOURCE_RUNS("${PARDISO_API_CHECK_SOURCE}"
+                            PARDISO_API_VER_4
+                            ${IFORT_LIB_PATH})
 
   #---------------------------------------------------------------------------
   # Only set last CFS++ PARDISO variable if test was successful
@@ -424,14 +426,17 @@ ELSE(NOT PARDISO_API_VER_3 AND
        PARDISO_API_VER_4)
        
     #-------------------------------------------------------------------------
-    # Otherwise set the corresponding API version.
+    # Otherwise set the corresponding API version. And make sure that the
+    # the other API version does not get rechecked in every CMake run.
     #-------------------------------------------------------------------------
     IF(PARDISO_API_VER_3)
       SET(PARDISO_API_VER 3)
+      SET(PARDISO_API_VER_4_LAST_CFS_PARDISO "${CFS_PARDISO}" CACHE INTERNAL "PARDISO_API_VER_4_LAST_CFS_PARDISO" FORCE)      
     ENDIF(PARDISO_API_VER_3)
 
     IF(PARDISO_API_VER_4)
       SET(PARDISO_API_VER 4)
+      SET(PARDISO_API_VER_3_LAST_CFS_PARDISO "${CFS_PARDISO}" CACHE INTERNAL "PARDISO_API_VER_3_LAST_CFS_PARDISO" FORCE)      
     ENDIF(PARDISO_API_VER_4)
        
   ENDIF(PARDISO_API_VER_3 AND

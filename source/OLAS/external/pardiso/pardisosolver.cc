@@ -12,7 +12,6 @@ namespace fs = boost::filesystem;
 #include "MatVec/stdmatrix.hh"
 #include "MatVec/crs_matrix.hh"
 #include "MatVec/scrs_matrix.hh"
-#include "OLAS/algsys/olasparams.hh"
 
 #include "DataInOut/Logging/cfslog.hh"
 
@@ -110,15 +109,13 @@ extern "C" {
   //   Constructor
   // ***************
   template<typename T>
-  PardisoSolver<T>::PardisoSolver( OLAS_Params* myParams,
-                                   OLAS_Report *myReport,
-                                   ParamNode* solverNode ) {
+  PardisoSolver<T>::PardisoSolver( ParamNode* solverNode,
+                                   InfoNode *olasInfo ) {
 
 
     // Set pointers to communication objects
-    myParams_  = myParams;
     xml_ = solverNode;
-    myReport_  = myReport;
+    solverInfo_ = olasInfo->Get("pardiso");
 
     // Initialise attributes
     firstCall_ = true;
@@ -148,8 +145,8 @@ extern "C" {
     }
 
     if(mSolver_ && sRule != "relNormRes0") {
-      Warning("The iterative solver in PARDISO only supports relative " \
-              "residual minimization as stopping rule", __FILE__, __LINE__);
+      WARN("The iterative solver in PARDISO only supports relative " \
+           "residual minimization as stopping rule");
     }
 
     // Our private Fortran zeros
@@ -209,6 +206,7 @@ extern "C" {
                                << pardisoMLOut.rdbuf() << std::endl;
       LOG_TRACE(pardisoSolver) << " -------------------------------------------------------"
                                << "-----------------------";
+      pardisoMLOut.close();
 
       try {
         fs::remove("pardiso-ml.out");
@@ -236,6 +234,7 @@ extern "C" {
     int errorFlag = 0;
 
     ParamNode *sNode = NULL;
+    sNode = xml_->Get("pardiso", false);
     
     // Determine, whether we are expected to be verbose
     LOG_TRACE(pardisoSolver) << " -----------------------------------------"
@@ -261,9 +260,10 @@ extern "C" {
       //       and gets never changed elsewhere. A more intelligent
       //       test would ask the matrix if its pattern did change.
 
+      bool newMatrixPattern = false;
       // When the matrix pattern has changed, we need to re-do
       // both steps, also the symbolical one
-      if( myParams_->GetBoolValue( "newMatrixPattern" ) ) {
+      if( newMatrixPattern ) {
         facSymbolic = true;
         facNumeric  = true;
       }
@@ -470,28 +470,29 @@ extern "C" {
     // or minimum degree re-ordering or no re-ordering at all (i.e. we use
     // the initial ordering of the linear system, which might already have been
     // re-ordered via the graph)
-    ReorderingType ordering = NESTED_DISSECTION;
+    BaseOrdering::ReorderingType ordering = BaseOrdering::NESTED_DISSECTION;
     sNode = NULL;
     sNode = xml_->Get("pardiso", false);
     if(sNode) {
       std::string orderStr = "nestedDissection";
       sNode->Get("ordering", orderStr, false);
-      String2Enum( orderStr, ordering );
+      
+      ordering = BaseOrdering::reorderingType.Parse( orderStr );
     }
 
     switch ( ordering ) {
 
-    case NESTED_DISSECTION:
+    case BaseOrdering::NESTED_DISSECTION:
       iparm_[1] = 2;
       iparm_[4] = 0;
       break;
 
-    case MINIMUM_DEGREE:
+    case BaseOrdering::MINIMUM_DEGREE:
       iparm_[1] = 0;
       iparm_[4] = 0;
       break;
 
-    case NOREORDERING:
+    case BaseOrdering::NOREORDERING:
       // In this case iparm_[1] is irrelevant, we generate an identity
       // permutation and use this one, by setting iparm_[4] and skip the
       // symbolic factorisation
@@ -509,7 +510,7 @@ extern "C" {
 
     default:
       std::string tmp;
-      Enum2String( ordering, tmp );
+      tmp = BaseOrdering::reorderingType.ToString( ordering );
 
       EXCEPTION( "Re-ordering of type '" << tmp
                << "' is not available with the PardisoSolver" );
@@ -517,9 +518,9 @@ extern "C" {
 
     if(!mSolver_) {
       if ( facSymbolic == true ) {
-        if ( ordering != NOREORDERING ) {
+        if ( ordering != BaseOrdering::NOREORDERING ) {
           std::string tmp;
-          Enum2String( ordering, tmp );
+      tmp = BaseOrdering::reorderingType.ToString( ordering );
 
           LOG_TRACE(pardisoSolver) << " Analyse phase will determine a '"
                                    << tmp << "' re-ordering";
@@ -778,10 +779,9 @@ extern "C" {
                              << "-----------------------";
 
     // Create Report (no sensible things to write for direct solvers yet)
-    if ( myReport_ != NULL ) {
-      myReport_->SetValue( "numIter", -1 );
-      myReport_->SetValue( "finalNorm", -1.0 );
-    }
+    InfoNode* out = solverInfo_->Get(InfoNode::PROCESS)->Get("solver", InfoNode::APPEND);
+    out->Get("numIter")->SetValue(-1);
+    out->Get("finalNorm")->SetValue(-1.0);
   }
 
 // Explicit template instantiation

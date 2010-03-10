@@ -20,7 +20,7 @@ namespace CoupledField
     // Commented out the warning, since defaults are not bad at all and the 
     // average student user gets not disturbed by any warnings
     //check if integration parameters are defined in conf-file
-    //Info->Warning( "Bdf2: Using defaults for gamma!" );
+    //Info->WARN( "Bdf2: Using defaults for gamma!" );
     firstTime_=true;
 
   }

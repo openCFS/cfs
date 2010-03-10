@@ -25,8 +25,29 @@ namespace CoupledField {
     throw ex__;                                                        \
   }
 
+//! Macro for issuing an warning message, will not terminate the program
+
+//! This function can be used to issue a warning message. It is actually
+//! only a shortcut for calling the WARN() method of the WriteInfo class.
+//! \param Text     Text of the warning message
+//! \param filename This is intended to contain the
+//!                 name of the module/file in which the problem occured. The
+//!                 __FILE__ macro should be inserted in the call. The
+//!                 argument is optional.
+//! \param numline  This is intended to contain the
+//!                 number of the code line of the module/file in which the
+//!                 problem occured. The __LINE__ macro should be inserted in
+//!                 the call. The argument is optional.
+ #define WARN(STR){                                          \
+    std::ostringstream ostr;                                      \
+    ostr << STR;                                                  \
+    Exception ex__(NULL, __FILE__, __LINE__, ostr.str().c_str(), Exception::WARNING); \
+  }
+
   //! Base class for exception Handling
-    class Exception : public std::exception {
+  class Exception : public std::exception {
+  public:
+    enum SeverityType{EXCEPTION, WARNING};
     
   public:
     /** Creates an exception which can be thrown and then
@@ -39,12 +60,14 @@ namespace CoupledField {
     Exception( const Exception* reason,
                const char* const fileName = "NO_FILENAME", 
                const unsigned int lineNum = 0,
-               const char* const message = "NO_MESSAGE") throw ();
+               const char* const message = "NO_MESSAGE",
+               SeverityType severity = EXCEPTION) throw ();
 
     /** This is the only constructor to call an Exception by hand */
     Exception(const std::string& message,
               const char* const fileName = "NO_FILENAME", 
-              const unsigned int lineNum = 0) throw ();  
+              const unsigned int lineNum = 0,
+              SeverityType severity = EXCEPTION) throw ();  
 
     //! Copy constructor
     Exception( const Exception& exc ) throw ();
@@ -72,7 +95,8 @@ namespace CoupledField {
     void init( const Exception* reason,
                const char* const fileName, 
                const unsigned int lineNum,
-               const char* const message) throw ();
+               const char* const message,
+               SeverityType severity) throw ();
 
     //! Accumulated error message
     std::string what_;

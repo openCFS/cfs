@@ -3,7 +3,6 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include "MatVec/crs_matrix.hh"
-#include "OLAS/algsys/olasparams.hh"
 
 // Include source code of CroutLU class for template instantiation
 // Note: Might lead to double instantiation, since CroutLU is also
@@ -20,19 +19,20 @@ namespace CoupledField {
   //   Constructor
   // ***************
   template<typename T>
-  LUSolver<T>::LUSolver( OLAS_Params *myParams, OLAS_Report *myReport ) {
+  LUSolver<T>::LUSolver( ParamNode* solverNode, InfoNode *olasInfo ) {
 
 
     // Set pointers to communication objects
-    myParams_ = myParams;
-    myReport_ = myReport;
+    xml_ = solverNode;
+    solverInfo_ = olasInfo->Get("directLU");
 
     // No factorisation was performed yet
     amFactorised_ = false;
-
-    // With CFS we only treat structurally symmetric problems (in principle)
-    myParams_->SetValue( "LUSOLVER_symPattern", true );
-
+    
+    itRefSteps_ = 2;
+    ParamNode *sNode = NULL;
+    sNode = xml_->Get("directLU", false);
+    sNode->Get("itRefSteps", itRefSteps_, false);
   }
 
   // **************
@@ -90,10 +90,21 @@ namespace CoupledField {
 	     << std::endl;
 
     // If the user wishes, we can export the LU factorisation to a file
-    if ( myParams_->GetBoolValue( "CROUT_saveFacToFile" ) ) {
+    bool saveFacToFile = false;
+    std::string facFileName = "fac.out";
+    
+    ParamNode *sNode = NULL;
+    sNode = xml_->Get("directLU", false);
+    if(sNode) {
+      if(sNode->Has("saveFacFile")) {
+        saveFacToFile = true;
+        sNode->Get("saveFacFile", facFileName, false);
+      }
+    }
+    
+    if ( saveFacToFile ) {
       std::string filename;
-      filename = myParams_->GetStringValue( "CROUT_facFileName" );
-      this->ExportILUFactorisation( filename.c_str() );
+      this->ExportILUFactorisation( facFileName.c_str() );
     }
 
   }
@@ -120,38 +131,40 @@ namespace CoupledField {
     const Vector<T>& myRHS = dynamic_cast<const Vector<T>&>(rhs);
     Vector<T>& mySol = dynamic_cast<Vector<T>&>(sol);
 
-      // Logging
-      bool logging = myParams_->GetBoolValue( "LUSOLVER_logging" );
-      if ( logging ) {
-        (*cla) << " -----------------------------------------------\n"
-               << " LUSolver: Solving a problem with "
-               << sysMat.GetNumCols() << " unknowns" << std::endl;
-      }
+    // Logging
+    bool logging = false;
+    if ( logging ) {
+      (*cla) << " -----------------------------------------------\n"
+             << " LUSolver: Solving a problem with "
+             << sysMat.GetNumCols() << " unknowns" << std::endl;
+    }
 
-      // Actual solve is done by CroutLU class
-      CroutLU<T>::Solve( myRHS, mySol );
+    // Actual solve is done by CroutLU class
+    CroutLU<T>::Solve( myRHS, mySol );
 
-      // If desired perform iterative refinement
-      UInt numSteps = (UInt)myParams_->GetIntValue( "LUSOLVER_itRefSteps" );
-      UInt logLevel =
-        (UInt)myParams_->GetIntValue( "LUSOLVER_itRefVerbosity" );
+    // If desired perform iterative refinement
+    UInt logLevel = 2;
+    UInt numSteps = itRefSteps_;
+      
+    ParamNode *sNode = NULL;
+    sNode = xml_->Get("directLU", false);
+    sNode->Get("itRefVerbosity", logLevel, false);
+      
 
-      if ( numSteps > 0 ) {
+    if ( numSteps > 0 ) {
 
         // Avoid recursion, we do not want to do refinement on the
         // solution in the refinement step
-        myParams_->SetValue( "LUSOLVER_itRefSteps", (Integer)0 );
-        myParams_->SetValue( "LUSOLVER_logging", false );
+        itRefSteps_ = 0;
 
         // Refine
         iterativeRefiner_.Refine( (*this), sysMat, sol, rhs, numSteps,
                                   logLevel );
 
         // Re-set parameter object
-        myParams_->SetValue( "LUSOLVER_itRefSteps", (Integer)numSteps );
-        myParams_->SetValue( "LUSOLVER_logging", logging );
+        itRefSteps_ = numSteps;
 
-      }
+    }
 
       // Logging
       if ( logging ) {
@@ -164,10 +177,9 @@ namespace CoupledField {
     // Now this currently is of dubious value, since the two things queried
     // from olasReport are actually meaningless in the context of a direct
     // solver. Nevertheless we supply some values for consistency
-    if ( myReport_ != NULL ) {
-      myReport_->SetValue( "numIter", -1 );
-      myReport_->SetValue( "finalNorm", -1.0 );
-    }
+    InfoNode* out = solverInfo_->Get(InfoNode::PROCESS)->Get("solver", InfoNode::APPEND);
+    out->Get("numIter")->SetValue(-1);
+    out->Get("finalNorm")->SetValue(-1.0);
 
   }
 
@@ -192,7 +204,11 @@ namespace CoupledField {
     // ================================
     //  Problem structurally symmetric
     // ================================
-    if ( myParams_->GetBoolValue( "LUSOLVER_symPattern" ) == true ) {
+
+    // With CFS we only treat structurally symmetric problems (in principle)
+    bool symPattern = true;
+    
+    if ( symPattern ) {
 
       UInt i;
       UInt bwGlobal = 0;

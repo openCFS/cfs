@@ -46,7 +46,7 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  BaseGraph::BaseGraph( UInt nRows, UInt nCols, ReorderingType reorder ) {
+  BaseGraph::BaseGraph( UInt nRows, UInt nCols, BaseOrdering::ReorderingType reorder ) {
 
 
     // Avoid problems with partially empty graphs
@@ -81,7 +81,7 @@ namespace CoupledField {
   //   Alternate Constructor
   // *************************
   BaseGraph::BaseGraph( UInt nRows, UInt nCols, UInt nne, UInt *cs_nodes,
-                        UInt *cs_edges, ReorderingType reorder ) :
+                        UInt *cs_edges, BaseOrdering::ReorderingType reorder ) :
     amReordered_(false),
     amAssembled_(false) {
 
@@ -235,11 +235,10 @@ namespace CoupledField {
     CountNNE();
 
     // If user wants, try to reorder the graph
-    if ( newOrder_ != NOREORDERING ) {
+    if ( newOrder_ != BaseOrdering::NOREORDERING ) {
 
       if ( order == NULL ) {
-        std::string tmp;
-        Enum2String( newOrder_, tmp );
+        std::string tmp = BaseOrdering::reorderingType.ToString( newOrder_ );
 
         EXCEPTION("BaseGraph::FinaliseAssembly: I was told to do a '"
                  << tmp
@@ -424,13 +423,13 @@ namespace CoupledField {
   // *************************
   //   Compute a re-ordering
   // *************************
-  void BaseGraph::Reorder( ReorderingType newOrder, StdVector<UInt>& order ) {
+  void BaseGraph::Reorder( BaseOrdering::ReorderingType newOrder, StdVector<UInt>& order ) {
 
     UInt i;
     
     switch( newOrder ) {
 
-    case METIS:
+    case BaseOrdering::METIS:
       {
 #ifdef USE_METIS
 
@@ -475,13 +474,12 @@ namespace CoupledField {
         (*cla) << " Reordering: Re-ordered graph using Metis" << std::endl;
 
 #else
-        (*error) << "Re-compile with USE_METIS = yes to get Metis support";
-        Error( __FILE__, __LINE__ );
+        EXCEPTION("Re-compile with USE_METIS = yes to get Metis support");
 #endif
       }
       break;
 
-    case SLOAN:
+    case BaseOrdering::SLOAN:
       {
 
         // Generate log message
@@ -559,7 +557,7 @@ namespace CoupledField {
       }
       break;
 
-    case NOREORDERING:
+    case BaseOrdering::NOREORDERING:
       // nothing to do
       break;
 
@@ -581,10 +579,9 @@ namespace CoupledField {
                 
 #ifdef DEBUG_BASEGRAPH
 //     if ( amAssembled_ == false ) {
-//       (*error) << "Attempt to obtain information from graph object, "
+//       EXCEPTION("Attempt to obtain information from graph object, "
 //                << "before assembly was completed by calling "
-//                << "FinaliseAssembly()";
-//       Error( __FILE__, __LINE__ );
+//                << "FinaliseAssembly()");
 //     }
 #endif
                 

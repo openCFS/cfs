@@ -9,7 +9,6 @@
 
 #include "OLAS/algsys/basesystem.hh"
 
-#include "OLAS/algsys/olasparams.hh"
 #include "OLAS/algsys/baseentrymanipulator.hh"
 #include "OLAS/algsys/baseidbchandler.hh"
 #include "OLAS/graph/basegraphmanager.hh"
@@ -42,7 +41,7 @@ namespace CoupledField {
     sizePerPDE_     = NULL;
     numLastFreeDof_ = NULL;
 
-    xml             = pn; 
+    xml_             = pn; 
 
     numPDEs_            = 0;
     numRegPDEs_         = 0;
@@ -53,8 +52,8 @@ namespace CoupledField {
 
     algSysType_     = NOALGSYSTYPE;
     
-    olasInfo = info->Get("OLAS");
-    systemInfo_ = olasInfo->Get("system");
+    olasInfo_ = info->Get("OLAS");
+    systemInfo_ = olasInfo_->Get("system");
 
 #ifdef MEMTRACE
     if ( memtrace == NULL ) {
@@ -66,9 +65,18 @@ namespace CoupledField {
 
     // Default is to always use a system matrix
     matrixTypes_.insert( SYSTEM );
+    
+    // Set flag for insertion of penalty terms into matrix
+    ParamNode * setupNode = NULL;
+    setupNode = xml_->Get("setup", false );
+
+    usingPenalty_ = true;
+    std::string aux = "penalty";
+    setupNode->Get("idbcHandling", aux, false );
+    usingPenalty_ = aux == "penalty" ? true : false;
 
     // Set flag for insertion of penalty terms into matrix
-    if ( myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == true ) {
+    if ( usingPenalty_ ) {
       assembleDirichletToSysMat_ = true;
     }
     else {
@@ -155,21 +163,23 @@ namespace CoupledField {
     switch ( algSysType_ ) {
 
     case STANDARD_SYSTEM:
+      {
+        // Obtain reordering type from OLAS-Params
+        BaseOrdering::ReorderingType reorder = BaseOrdering::NOREORDERING;
+        std::string reorderStr = "noReordering";
+        xml_->Get( "matrix", "reordering", reorderStr, false );
+        reorder = BaseOrdering::reorderingType.Parse( reorderStr );
 
-      // Obtain reordering type from OLAS-Params
-      ReorderingType reorder;
-      myParams_.GetEnumValue( "GRAPH_reordering", reorder );
-
-      // Register PDE with the graphmanager
-      graphManager_->RegisterPDE( pdeId, numEqns, numLastFreeDof, reorder );
-
+        // Register PDE with the graphmanager
+        graphManager_->RegisterPDE( pdeId, numEqns, numLastFreeDof, reorder );
+      }
       break;
 
     case SBM_SYSTEM:
 
       // Register PDE with the graphmanager
       graphManager_->RegisterPDE( pdeId, numEqns, numLastFreeDof,
-                                  NOREORDERING );
+                                  BaseOrdering::NOREORDERING );
       break;
 
     default:
@@ -204,7 +214,7 @@ namespace CoupledField {
     numDirichletValues_ += numBCs;
 
     // check consistency
-    if ( myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == false ) {
+    if ( !usingPenalty_ ) {
       if ( numBCs != sizePerPDE_[pdeID] - numLastFreeDof_[pdeID] ) {
         EXCEPTION("BaseSystem::SetNumDirichletBCs:"
                  << " Inconsistency detected!\n numBCs != "
@@ -352,5 +362,8 @@ namespace CoupledField {
 
   }
 
+  Integer BaseSystem::GetNumIter() {
+    return olasInfo_->Get( "NumIter" )->AsInt();
+  }
 
 }// end of Namespace

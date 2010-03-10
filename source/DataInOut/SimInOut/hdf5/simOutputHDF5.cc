@@ -263,12 +263,10 @@ namespace CoupledField {
               H5::Group entityGroup; 
               try {
                 entityGroup = entityTypeGroup.openGroup( entIt.GetIdString() );
-                std::ostringstream sstr;
-                sstr << "You are trying to add history entity '" << entIt.GetIdString()
+                WARN("You are trying to add history entity '" << entIt.GetIdString()
                      << "' under group '"
                      << "History/" << msName.str() << "/" << it->first << "/" << entityString 
-                     << "'\nwhich already exists under a different name! Please check your mesh and XML files.";
-                Warning(sstr.str().c_str(), __FILE__, __LINE__);
+                     << "'\nwhich already exists under a different name! Please check your mesh and XML files.");
                 entityGroup.close();
 
                 continue;

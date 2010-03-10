@@ -17,8 +17,6 @@ namespace CoupledField {
   class BaseMatrix;
   class ParamNode;
   class InfoNode;  
-  class OLAS_Params;
-  class OLAS_Report;
   
   //! Generate a basic solver object
 
@@ -32,9 +30,8 @@ namespace CoupledField {
   //!               for the solver that is to be generated
   //! \param report Pointer to report object into which the generated solver
   //!               should write its solutiopn report.
-  BaseSolver* GenerateSolverObject( const BaseMatrix &mat, SolverType solver,
-                                    ParamNode* xml, InfoNode* olasInfo,
-                                    OLAS_Params *params, OLAS_Report *report );
+  BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
+                                    ParamNode* xml, InfoNode* olasInfo );
 
 }
 

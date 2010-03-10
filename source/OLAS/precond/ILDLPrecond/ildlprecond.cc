@@ -7,7 +7,6 @@
 #include "MatVec/opdefs.hh"
 #include "MatVec/stdmatrix.hh"
 #include "MatVec/scrs_matrix.hh"
-#include "OLAS/algsys/olasparams.hh"
 
 #include "ildlprecond.hh"
 
@@ -33,13 +32,13 @@ namespace CoupledField {
   //   Constructor
   // ***************
   template<typename T>
-  ILDLPrecond<T>::ILDLPrecond( const StdMatrix &stdMat, OLAS_Params *myParams,
-                               OLAS_Report *myReport ) {
+  ILDLPrecond<T>::ILDLPrecond( const StdMatrix &stdMat, ParamNode *solverNode,
+                               InfoNode *olasInfo ) {
 
 
     // Set pointers to communication objects
-    this->myParams_ = myParams;
-    this->myReport_ = myReport;
+    this->xml_ = solverNode;
+    this->olasInfo_ = olasInfo;
 
     // No factorisation was computed yet
     amFactorised_ = false;
@@ -48,11 +47,17 @@ namespace CoupledField {
     this->sysMatDim_ = 0;
 
     // Obtain and check variant information
-    this->myParams_->GetEnumValue( "ILDLPRECOND_subType", myVariant_ );
-    if ( myVariant_ != ILDL0 && myVariant_ != ILDLTP 
-	 && myVariant_ != ILDLK && myVariant_ != ILDLCN ) {
+    std::string subTypeStr = "NOPRECOND";
+    this->xml_->Get("precond", subTypeStr, false);
+
+    myVariant_ = BasePrecond::precondType.Parse(subTypeStr);
+    if ( myVariant_ != BasePrecond::ILDL0 &&
+         myVariant_ != BasePrecond::ILDLTP &&
+         myVariant_ != BasePrecond::ILDLK &&
+         myVariant_ != BasePrecond::ILDLCN ) {
+      
       std::string tmp;
-      Enum2String( myVariant_, tmp );
+      tmp = BasePrecond::precondType.ToString(myVariant_);
       
       EXCEPTION( "ILDLPrecond: The constructor detected an error in the "
                << "'ILDLPRECOND_subType' parameter! The value '"
@@ -101,7 +106,14 @@ namespace CoupledField {
       this->sysMatDim_ = scrsMat.GetNumCols();
     }
     else {
-      if ( this->myParams_->GetBoolValue( "newMatrixPattern" ) == false &&
+      // TODO: THIS CHECK DOES NOT MAKE SENSE IN MY OPINION SINCE
+      //       'newMatrixPattern' is set to false in olasparams.cc
+      //       and gets never changed elsewhere. A more intelligent
+      //       test would ask the matrix if its pattern did change.
+
+      bool newMatrixPattern = false;
+      
+      if ( newMatrixPattern == false &&
           this->sysMatDim_ != scrsMat.GetNumCols() ) {
         EXCEPTION( "ILDLPrecond::Setup: newMatrixPattern = false, but "
             << "matrix dimension changed from " << this->sysMatDim_ << " to "
@@ -114,7 +126,7 @@ namespace CoupledField {
     }
 
     // Logging
-    bool logging = this->myParams_->GetIntValue( "ILDLPRECOND_logging" ) > 0;
+    bool logging = false;
     if ( logging ) {
       (*cla) << " -------------------------------------------------------"
       << "-----------------------\n"
@@ -135,13 +147,19 @@ namespace CoupledField {
 
     // If the user desires it, we will export the matrix factor
     // to a file in Matrix Market format
-    if( this->myParams_->GetBoolValue( "ILDLPRECOND_saveFacToFile" ) == true ) {
-      bool pattern = this->myParams_->GetBoolValue( "ILDLPRECOND_savePatternOnly");
-      std::string filename;
-      filename = this->myParams_->GetStringValue( "ILDLPRECOND_facFileName" );
-      ExportFactorisation( filename.c_str(), pattern );
-    }
+    std::string saveFacFile = "ildl_fac.out";
+    std::string subTypeStr;
+    
+    subTypeStr = BasePrecond::precondType.ToString(myVariant_);
+    ParamNode* pNode = this->xml_->Get(subTypeStr, false);
 
+    if(pNode->Has("saveFacFile")) {
+      bool pattern = false;
+      pNode->Get("savePatternOnly", pattern, false);
+      pNode->Get("saveFacFile", saveFacFile, false);
+      ExportFactorisation( saveFacFile.c_str(), pattern );
+    }
+    
     // finish log report
     if ( logging ) {
 
@@ -169,7 +187,7 @@ namespace CoupledField {
                               SingleVector &z ) const {
 
 
-    bool logging = this->myParams_->GetIntValue( "ILDLPRECOND_logging" ) > 1;
+    bool logging = false;
 
     // Test that a factorisation is available, if not issue an error
     if ( amFactorised_ == false ) {
@@ -289,9 +307,8 @@ namespace CoupledField {
     //   Close output file
     // =====================
     if ( fclose( fp ) == EOF ) {
-      (*warning) << "ILDLPrecond::ExportFactorisation: Could not close file "
-                 << fname << " after writing!";
-      Warning( __FILE__, __LINE__ );
+      WARN("ILDLPrecond::ExportFactorisation: Could not close file "
+           << fname << " after writing!");
     }
   }
 
@@ -306,29 +323,29 @@ namespace CoupledField {
     switch ( myVariant_ ) {
 
       // ILDLK factoriser
-    case ILDL0:
-      factoriser_ = new ILDL0Factoriser<T>( this->myParams_, this->myReport_ );
+    case BasePrecond::ILDL0:
+      factoriser_ = new ILDL0Factoriser<T>( this->xml_, this->olasInfo_ );
       break;
 
       // ILDLK factoriser
-    case ILDLK:
-      factoriser_ = new ILDLKFactoriser<T>( this->myParams_, this->myReport_ );
+    case BasePrecond::ILDLK:
+      factoriser_ = new ILDLKFactoriser<T>( this->xml_, this->olasInfo_ );
       break;
 
       // ILDLTP factoriser
-    case ILDLTP:
-      factoriser_ = new ILDLTPFactoriser<T>( this->myParams_, this->myReport_ );
+    case BasePrecond::ILDLTP:
+      factoriser_ = new ILDLTPFactoriser<T>( this->xml_, this->olasInfo_ );
       break;
 
       // ILDLK factoriser
-    case ILDLCN:
-      factoriser_ = new ILDLCNFactoriser<T>( this->myParams_, this->myReport_ );
+    case BasePrecond::ILDLCN:
+      factoriser_ = new ILDLCNFactoriser<T>( this->xml_, this->olasInfo_ );
       break;
 
       // Wrong preconditioner type
     default:
       std::string tmp;
-      Enum2String( myVariant_, tmp );
+      tmp = BasePrecond::precondType.ToString(myVariant_);      
       
       EXCEPTION( "GenerateFactoriserObject: preconditioner type = '"
           << tmp << "' is no valid variant of an "

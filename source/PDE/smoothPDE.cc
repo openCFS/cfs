@@ -310,8 +310,7 @@ namespace CoupledField {
         ExtractDerivResult( res, 1 );
       break;
     default:
-      Warning( "Resulttype not computable by smoothing PDE",
-               __FILE__, __LINE__ );
+      WARN( "Resulttype not computable by smoothing PDE" );
     }
   }
   

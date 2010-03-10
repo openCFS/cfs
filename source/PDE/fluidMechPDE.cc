@@ -274,10 +274,10 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
     	  else if( stabilizationType_ == "none" && approxType_ == "taylorHood" )
     		  bilinearStiff = new FluidMechPlaneMixedStiffInt_UV(density,kinematicViscosity,stabilParams_,movingMesh_);
     	  else
-    		  Info->Error("Unknown discretizationType in fluidMech PDE! ",__FILE__,__LINE__);
+    		  EXCEPTION("Unknown discretizationType in fluidMech PDE! ");
       }
       else
-        Info->Error("Unknown subtype in fluidMech PDE! ",__FILE__,__LINE__);
+        EXCEPTION("Unknown subtype in fluidMech PDE! ");
       bilinearStiff->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
       bilinearStiff->SetGridSolution( dynamic_cast<NodeStoreSol<Double>&>(*gridSol_ ));
       return bilinearStiff;
@@ -288,7 +288,7 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
       if ((subType_ == "plane" || subType_ == "3d") )
         bilinearStiff = new FluidMechPlaneStiffInt_PQ(density,kinematicViscosity,stabilParams_,movingMesh_,stabilizationType_);
       else
-        Info->Error("Unknown subtype in fluidMech PDE! ",__FILE__,__LINE__);
+        EXCEPTION("Unknown subtype in fluidMech PDE! ");
       bilinearStiff->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
       bilinearStiff->SetGridSolution( dynamic_cast<NodeStoreSol<Double>&>(*gridSol_ ));
       return bilinearStiff;
@@ -296,15 +296,18 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
 
     BaseForm * FluidMechPDE::GetStiffIntegrator_UQ(Double density,Double kinematicViscosity) {
       BaseForm * bilinearStiff = NULL;
-      if (subType_ == "plane" || subType_ == "3d")
+      if (subType_ == "plane" || subType_ == "3d") {
     	  if( stabilizationType_ != "none" && approxType_ == "lagrange" )
     		  bilinearStiff = new FluidMechPlaneStiffInt_UQ(density,kinematicViscosity,stabilParams_,movingMesh_,stabilizationType_);
     	  else if( stabilizationType_ == "none" && approxType_ == "taylorHood" )
     		  bilinearStiff = new FluidMechPlaneMixedStiffInt_UQ(density,kinematicViscosity,stabilParams_,movingMesh_);
-    	  else
-    		  Info->Error("Unknown discretizationType in fluidMech PDE! ",__FILE__,__LINE__);
-      else
-        Info->Error("Unknown subtype in fluidMech PDE! ",__FILE__,__LINE__);
+    	  else {
+    		  EXCEPTION("Unknown discretizationType in fluidMech PDE! ");
+    	  }
+      }
+      else {
+        EXCEPTION("Unknown subtype in fluidMech PDE! ");
+      }
       bilinearStiff->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
       bilinearStiff->SetGridSolution( dynamic_cast<NodeStoreSol<Double>&>(*gridSol_ ));
       return bilinearStiff;
@@ -312,15 +315,18 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
 
     BaseForm * FluidMechPDE::GetStiffIntegrator_PV(Double density,Double kinematicViscosity) {
       BaseForm * bilinearStiff = NULL;
-      if (subType_ == "plane" || subType_ == "3d")
+      if (subType_ == "plane" || subType_ == "3d") {
     	  if( stabilizationType_ != "none" && approxType_ == "lagrange" )
     		  bilinearStiff = new FluidMechPlaneStiffInt_PV(density, kinematicViscosity,stabilParams_,movingMesh_,stabilizationType_);
     	  else if( stabilizationType_ == "none" && approxType_ == "taylorHood" )
     		  bilinearStiff = new FluidMechPlaneMixedStiffInt_PV(density,kinematicViscosity,stabilParams_,movingMesh_);
-    	  else
-    		  Info->Error("Unknown discretizationType in fluidMech PDE! ",__FILE__,__LINE__);
-      else
-        Info->Error("Unknown subtype in fluidMech PDE! ",__FILE__,__LINE__);
+    	  else {
+    		  EXCEPTION("Unknown discretizationType in fluidMech PDE! ");
+    	  }
+      }
+      else {
+        EXCEPTION("Unknown subtype in fluidMech PDE! ");
+      }
       bilinearStiff->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
       bilinearStiff->SetGridSolution( dynamic_cast<NodeStoreSol<Double>&>(*gridSol_ ));
       return bilinearStiff;
@@ -336,10 +342,10 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
     	  else if( stabilizationType_ == "none" && approxType_ == "taylorHood" )
     		  bilinearMass = new FluidMechPlaneMixedMassInt_UV(density,kinematicViscosity,stabilParams_,movingMesh_);
     	  else
-    		  Info->Error("Unknown discretizationType in fluidMech PDE! ",__FILE__,__LINE__);
+    		  EXCEPTION("Unknown discretizationType in fluidMech PDE! ");
       }
       else 
-        Info->Error("Unknown subtype in fluidMech PDE! ",__FILE__,__LINE__);
+        EXCEPTION("Unknown subtype in fluidMech PDE! ");
 
       bilinearMass->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
       bilinearMass->SetGridSolution( dynamic_cast<NodeStoreSol<Double>&>(*gridSol_ ));
@@ -354,7 +360,7 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
         bilinearMass = new FluidMechPlaneMassInt_UQ(density,kinematicViscosity,stabilParams_,movingMesh_,stabilizationType_);
       }
       else 
-        Info->Error("Unknown subtype in fluidMech PDE! ",__FILE__,__LINE__);
+        EXCEPTION("Unknown subtype in fluidMech PDE! ");
 
       bilinearMass->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
       bilinearMass->SetGridSolution( dynamic_cast<NodeStoreSol<Double>&>(*gridSol_ ));
@@ -1414,8 +1420,7 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
 
 
       default:
-        Warning( "Resulttype not computable by mechanic PDE",
-                 __FILE__, __LINE__ );
+        WARN( "Resulttype not computable by mechanic PDE" );
       }
     }
 

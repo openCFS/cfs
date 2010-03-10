@@ -113,8 +113,7 @@ namespace CoupledField {
     //1.0 is assumed 
     if (fncname == "none")
       {
-        Warning( "Using ampl=1.0 and phase=0.0 since fncname was not defined"
-                 , __FILE__, __LINE__ );
+        WARN( "Using ampl=1.0 and phase=0.0 since fncname was not defined" );
         Amp_Phase_atF[0]=1.0;
         Amp_Phase_atF[1]=0.0;
         return Amp_Phase_atF;

@@ -111,11 +111,11 @@ void piezoParamIdent::Init() {
     ->Get("analysis")->Get("paramIdent");
     // check, if "imagMaterialData" is used
     imagMaterialParam_ = true;
-    Warning("at the moment we assume always imaginary material parameters ...");
+    WARN("at the moment we assume always imaginary material parameters ...");
     ParamNode * matNode =param->Get("sequenceStep")->Get("couplingList")->Get("direct")
     ->Get("piezoDirect")->Get("materialDataType", false);
 
-    if (matNode ) {
+    if ( matNode->HasChildren() ) {
       imagMaterialParam_ =matNode->Get("type")->AsString() == "imagMaterialParameter";
     }
 

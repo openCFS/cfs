@@ -69,9 +69,13 @@ namespace CoupledField {
     // overwrite if set in xml
     if(xml_ != NULL)
     {
-      xml_->Get("maxIter", maxiter, false);
-      xml_->Get("tol", eps, false);
-      xml_->Get("resDirectly", tmp, false);
+      ParamNode *sNode = NULL;
+      sNode = xml_->Get("cg", false);      
+      if(sNode) {
+        sNode->Get("maxIter", maxiter, false);
+        sNode->Get("tol", eps, false);
+        sNode->Get("resDirectly", tmp, false);
+      }
     } 
     if ( tmp <= 0 ) {
       EXCEPTION( "CGSolver::CGSolver: The current value of "
@@ -212,14 +216,16 @@ namespace CoupledField {
     // ============================
     //   Generate solution report
     // ============================
-    myReport_->SetValue( "numIter", niter );
-    myReport_->SetValue( "finalNorm", resNorm );
+    InfoNode* out = solverInfo_->Get(InfoNode::PROCESS)->Get("solver", InfoNode::APPEND);
+    out->Get("numIter")->SetValue(niter);
+    out->Get("finalNorm")->SetValue(resNorm);
     if ( loop == false ) {
-      myReport_->SetValue( "solutionIsOkay", true );
+      out->Get("solutionIsOkay")->SetValue(true);
     }
     else {
-      myReport_->SetValue( "solutionIsOkay", false );
+      out->Get("solutionIsOkay")->SetValue(false);
     }
+
   }
 
 // Explicit template instantiation

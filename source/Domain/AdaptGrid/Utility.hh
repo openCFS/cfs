@@ -89,15 +89,15 @@ inline void Info(const std::string& infoText,const std::string& comment)
             << comment
             << std::endl;
 }
-// Warning Macros
-inline void Warning(const char* warningText)
+// WARN Macros
+inline void WARN(const char* warningText)
 {
   std::cerr << "Grid WARNING: "
        << warningText
        << std::endl;
 }
 
-inline void Warning(const char* warningText,const char* comment)
+inline void WARN(const char* warningText,const char* comment)
 {
   std::cerr << "Grid WARNING: "
        << warningText
@@ -106,14 +106,14 @@ inline void Warning(const char* warningText,const char* comment)
        << std::endl;
 }
 
-inline void Warning(const std::string& warningText)
+inline void WARN(const std::string& warningText)
 {
   std::cerr << "Grid WARNING: "
        << warningText
        << std::endl;
 }
 
-inline void Warning(const std::string& warningText,const std::string& comment)
+inline void WARN(const std::string& warningText,const std::string& comment)
 {
   std::cerr << "Grid WARNING: "
        << warningText

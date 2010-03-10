@@ -55,6 +55,7 @@ int main(int argc, const char **argv)
 {
   CFS* cfs = new CFS(argc, argv);
   int ret = cfs->Run();
+  
   delete cfs; // so that we can delete
   return ret;
 }
@@ -191,7 +192,6 @@ CFS::~CFS()
   delete resultHandler;
 
   // Delete global string streams
-  delete warning;
   delete Info;
 }
 
@@ -364,17 +364,17 @@ void CFS::ReadXMLFile()
 void CFS::SetupIO()
 {
   // read type of mesh-libraray
-  string libmesh = "mesh";
+//  string libmesh = "mesh";
   map<string, shared_ptr<SimInput> > inFiles;
 
-  ParamNode * meshNode = param->Get("input", false );
-  if( meshNode )
-    meshNode->Get("meshLibrary")->AsString();
+//  ParamNode * meshNode = param->Get("input", false );
+//  if( meshNode )
+//    meshNode->Get("meshLibrary", libmesh, false);
 
-  if ( libmesh != "structGrid" ) {
+//  if ( libmesh != "structGrid" ) {
     // Generate mesh reader
-    fileHandler.CreateSimInputFiles( inFiles, gridInputs );
-  }
+  fileHandler.CreateSimInputFiles( inFiles, gridInputs );
+//  }
 
   // generate material handler
   materialHandler = fileHandler.CreateMaterialHandler();

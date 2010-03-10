@@ -129,8 +129,8 @@ namespace CoupledField {
     typedef typename AssocType<T>::T_Stype T_Stype;
 
     //! Constructor
-    ILUTP_Precond( const StdMatrix &stdMat, OLAS_Params *myParams,
-		   OLAS_Report *myReport );
+    ILUTP_Precond( const StdMatrix &stdMat, ParamNode *solverNode,
+		   InfoNode *olasInfo );
 
     //! Destructor
     ~ILUTP_Precond();
@@ -140,8 +140,8 @@ namespace CoupledField {
     //! When called, this method returns the type of the preconditioner
     //! object. In the case of an object of this class the return
     //! value is ILUTP.
-    PrecondType GetPrecondType() const {
-      return ILUTP;
+    BasePrecond::PrecondType GetPrecondType() const {
+      return BasePrecond::ILUTP;
     };
 
     //! Setup function inherited from class BasePrecond

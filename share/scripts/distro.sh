@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # Detects which OS and if it is Linux then it will detect which Linux Distribution.
 
 
@@ -105,7 +105,7 @@ elif [ "${OS}" = "Linux" ] ; then
 		DIST='Mandrake'
 		PSEUDONAME=`cat /etc/mandrake-release | sed s/.*\(// | sed s/\)//`
 		REV=`cat /etc/mandrake-release | sed s/.*release\ // | sed s/\ .*//`
-	elif [ -f /etc/debian_version ] || [ -f /etc/debian-version] ; then
+	elif [ -f /etc/debian_version -o -f /etc/debian-version ]; then
 		DIST="Debian"
                 BASE_VERSION=`dpkg -p base-files 2> /dev/null | grep Version`
 		if [ ! $? -eq 0 ]; then
@@ -170,7 +170,12 @@ elif [ "${OS}" = "Linux" ] ; then
 		 	PSEUDONAME="Knoppix";;
                 esac
 
-	fi
+        elif [ -f /etc/lsb-release ]; then
+            . /etc/lsb-release;
+            DIST=$DISTRIB_ID;
+            REV=$DISTRIB_RELEASE;
+            PSEUDONAME=$DISTRIB_CODENAME;
+        fi
 	if [ -f /etc/UnitedLinux-release ] ; then
 		DIST="${DIST}[`cat /etc/UnitedLinux-release | tr "\n" ' ' | sed s/VERSION.*//`]"
 	fi

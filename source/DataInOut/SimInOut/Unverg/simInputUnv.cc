@@ -82,27 +82,27 @@ namespace CoupledField {
   }
 
   UInt SimInputUnv::GetNumNodes(){
-    CoupledField::Warning("SimInputUnv::GetNumNodes() not implemented");
+    WARN("SimInputUnv::GetNumNodes() not implemented");
     return 0;
   }
     
   UInt SimInputUnv::GetNumElems(const Integer dim){
-    CoupledField::Warning("SimInputUnv::GetNumElems() not implemented");
+    WARN("SimInputUnv::GetNumElems() not implemented");
     return 0;
   }
   
   UInt SimInputUnv::GetNumRegions(){
-    CoupledField::Warning("SimInputUnv::GetNumRegions() not implemented");
+    WARN("SimInputUnv::GetNumRegions() not implemented");
     return 0;
   }
 
   UInt SimInputUnv::GetNumNamedNodes(){
-    CoupledField::Warning("SimInputUnv::GetNumNamedNodes() not implemented");
+    WARN("SimInputUnv::GetNumNamedNodes() not implemented");
     return 0;
   }
 
   UInt SimInputUnv::GetNumNamedElems(){
-    CoupledField::Warning("SimInputUnv::GetNumNamedElems() not implemented");
+    WARN("SimInputUnv::GetNumNamedElems() not implemented");
     return 0;
   }
   

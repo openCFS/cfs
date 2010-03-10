@@ -5,8 +5,6 @@
 #include "MatVec/stdmatrix.hh"
 #include "MatVec/crs_matrix.hh"
 #include "MatVec/opdefs.hh"
-#include "OLAS/algsys/olasparams.hh"
-
 
 #include "OLAS/precond/ssorprecond.hh"
 
@@ -16,10 +14,10 @@ namespace CoupledField {
   //   Constructor
   // ***************
   template <typename T>
-  SSORPrecond<T>::SSORPrecond( const StdMatrix& mat, OLAS_Params *myParams,
-			       OLAS_Report *myReport ) {
-    this->myParams_ = myParams;
-    this->myReport_ = myReport;
+  SSORPrecond<T>::SSORPrecond( const StdMatrix& mat, ParamNode *solverNode,
+			       InfoNode *olasInfo ) {
+    this->xml_ = solverNode;
+    this->olasInfo_ = olasInfo;
     size_     = mat.GetNumRows();
     NEWARRAY( diagInv_, T, size_ );
   }
@@ -58,7 +56,9 @@ namespace CoupledField {
     T_Vtype sum;
 
     // Query relaxation parameter
-    Double omega = this->myParams_->GetDoubleValue( "SSOR_Omega" );
+    Double omega = 1.7;
+    ParamNode* pNode = this->xml_->Get("SSOR", false);
+    pNode->Get("omega", omega, false);
 
     // Extract matrix info/data
     const T *valA = sysmat.GetDataPointer();

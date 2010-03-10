@@ -21,12 +21,6 @@ namespace OutInfo{
   std::ostream *cla      = NULL;
   std::ostream *memtrace = NULL;
 
-  // Generate string stream for generation of error messages
-//  std::stringstream *error = new std::stringstream();
-
-  // Generate string stream for generation of warning messages
-  std::stringstream *warning = new std::stringstream();
-
 #ifdef MEMTRACE
   double sumdmem = 0;
   double sumimem = 0;
@@ -1449,140 +1443,6 @@ namespace CoupledField {
   // ****************************************************************
   // ****************************************************************
 
-
-  // Specialisation for SolverType
-  template<>
-  void Enum2String<SolverType>(const SolverType &in,
-                                      std::string &out) {
-    switch( in ) {
-    case NOSOLVER:
-      out = "no solver";
-      break;
-    case RICHARDSON:
-      out = "Richardson";
-      break;
-    case DIAGSOLVER:
-      out = "diagsolver";
-      break;
-    case CG:
-      out = "cg";
-      break;
-    case GMRES:
-      out = "gmres";
-      break;
-    case MINRES:
-      out = "minres";
-      break;
-    case SYMMLQ:
-      out = "symmlq";
-      break;
-    case LAPACK_LU:
-      out = "lapackLU";
-      break;
-    case LAPACK_LL:
-      out = "lapackLL";
-      break;
-    case LU_SOLVER:
-      out = "directLU";
-      break;
-    case LDL_SOLVER:
-      out = "directLDL";
-      break;
-    case LDL_SOLVER2:
-      out = "directLDL2";
-      break;
-    case PARDISO:
-      out = "pardiso";
-      break;
-    case ILUPACK_SOLVER:
-      out = "ilupack";
-      break;
-    case CHOLMOD:
-      out = "cholmod";
-      break;
-
-
-
-    default:
-      EXCEPTION( "No string value found for the specified value of the "
-           << "enumeration datatype SolverType.\n"
-           << "Seems to indicate a missing case implementation!" );
-    }
-  }
-
-  // Specialisation for EigenSolverType
-  template<>
-  void Enum2String<EigenSolverType>(const EigenSolverType &in,
-                                      std::string &out) {
-    switch( in ) {
-    case NOEIGENSOLVER:
-      out = "no eigensolver";
-      break;
-    case ARPACK:
-      out = "arpack";
-      break;
-    case SUBSPACE:
-      out = "subspace";
-      break;
-    default:
-      EXCEPTION( "No string value found for the specified value of the "
-               << "enumeration datatype EigenSolverType.\n"
-               << "Seems to indicate a missing case implementation!" );
-    }
-  }
-
-
-  // Specialisation for PrecondType
-  template<>
-  void Enum2String<PrecondType>(const PrecondType &in,
-                                      std::string &out) {
-    switch( in ) {
-    case NOPRECOND:
-      out = "no precond";
-      break;
-    case ID:
-      out = "Id";
-      break;
-    case MG:
-      out = "MG";
-      break;
-    case JACOBI:
-      break;
-    case SSOR:
-      out = "SSOR";
-      break;
-    case ILU0:
-      out = "ILU0";
-      break;
-    case ILUTP:
-      out = "ILUTP";
-      break;
-    case ILUK:
-      out = "ILUK";
-      break;
-    case ILDL0:
-      out = "ILDL0";
-      break;
-    case ILDLK:
-      out = "ILDLK";
-      break;
-    case ILDLTP:
-      out = "ILDLTP";
-      break;
-    case ILDLCN:
-      out = "ILDLCN";
-      break;
-    case IC0:
-      out = "IC0";
-      break;
-
-    default:
-      EXCEPTION( "No string value found for the specified value of the "
-           << "enumeration datatype PrecondType.\n"
-           << "Seems to indicate a missing case implementation!" );
-    }
-  }
-
   // Specialisation for StopCritType
   template<>
   void Enum2String<StopCritType>(const StopCritType &in,
@@ -1604,33 +1464,6 @@ namespace CoupledField {
     default:
       EXCEPTION( "No string value found for the specified value of the "
            << "enumeration datatype StopCritType.\n"
-           << "Seems to indicate a missing case implementation!" );
-    }
-  }
-
-  // Specialisation for ReorderingType
-  template<>
-  void Enum2String<ReorderingType>(const ReorderingType &in,
-                                        std::string &out) {
-    switch( in ) {
-    case NOREORDERING:
-      out = "noReordering";
-      break;
-    case SLOAN:
-      out = "Sloan";
-      break;
-    case METIS:
-      out = "Metis";
-      break;
-    case MINIMUM_DEGREE:
-      out = "minimumDegree";
-      break;
-    case NESTED_DISSECTION:
-      out = "nestedDissection";
-      break;
-    default:
-      EXCEPTION( "No string value found for the specified value of the "
-           << "enumeration datatype ReorderingType.\n"
            << "Seems to indicate a missing case implementation!" );
     }
   }
@@ -1758,124 +1591,6 @@ namespace CoupledField {
     }
   }
 
-  // Specialisation for SolverType
-  template<>
-  void String2Enum<SolverType>( const std::string &in, SolverType &out ) {
-
-    if ( in == "no solver" ) {
-      out = NOSOLVER;
-    }
-    else if ( in == "Richardson" ) {
-      out = RICHARDSON;
-    }
-    else if ( in == "diagsolver" ) {
-      out = DIAGSOLVER;
-    }
-    else if ( in == "cg" ) {
-      out = CG;
-    }
-    else if ( in == "gmres" ) {
-      out = GMRES;
-    }
-    else if ( in == "minres" ) {
-      out = MINRES;
-    }
-    else if ( in == "symmlq" ) {
-      out = SYMMLQ;
-    }
-    else if ( in == "lapackLL" ) {
-      out = LAPACK_LL;
-    }
-    else if ( in == "directLU" ) {
-      out = LU_SOLVER;
-    }
-    else if ( in == "directLDL" ) {
-      out = LDL_SOLVER;
-    }
-    else if ( in == "directLDL2" ) {
-      out = LDL_SOLVER2;
-    }
-    else if ( in == "pardiso" ) {
-      out = PARDISO;
-    }
-    else if ( in == "ilupack" ) {
-      out = ILUPACK_SOLVER;
-    }
-    else if ( in == "cholmod") {
-      out = CHOLMOD;
-    }
-    else {
-      EXCEPTION( "No enumeration value found in SolverType for '"
-           << in << "'\n A missing case implementation?" );
-    }
-  }
-
- // Specialisation for EigenSolverType
-  template<>
-  void String2Enum<EigenSolverType>( const std::string &in, EigenSolverType &out ) {
-
-    if ( in == "no eigensolver" ) {
-      out = NOEIGENSOLVER;
-    }
-    else if ( in == "arpack" ) {
-      out = ARPACK;
-    }
-    else if ( in == "subspace" ) {
-      out = SUBSPACE;
-    }
-    else {
-      EXCEPTION( "No enumeration value found in EigenSolverType for '"
-               << in << "'\n A missing case implementation?" );
-    }
-  }
-  // Specialisation for PrecondType
-  template<>
-  void String2Enum<PrecondType>( const std::string &in, PrecondType &out ) {
-
-    if ( in == "noPrecond" ) {
-      out = NOPRECOND;
-    }
-    else if ( in == "Id" ) {
-      out = ID;
-    }
-    else if ( in == "MG" ) {
-      out = MG;
-    }
-    else if ( in == "Jacobi" ) {
-      out = JACOBI;
-    }
-    else if ( in == "SSOR" ) {
-      out = SSOR;
-    }
-    else if ( in == "ILU0" ) {
-      out = ILU0;
-    }
-    else if ( in == "ILUTP" ) {
-      out = ILUTP;
-    }
-    else if ( in == "ILUK" ) {
-      out = ILUK;
-    }
-    else if ( in == "ILDL0" ) {
-      out = ILDL0;
-    }
-    else if ( in == "ILDLK" ) {
-      out = ILDLK;
-    }
-    else if ( in == "ILDLTP" ) {
-      out = ILDLTP;
-    }
-    else if ( in == "ILDLCN" ) {
-      out = ILDLCN;
-    }
-    else if ( in == "IC0" ) {
-      out = IC0;
-    }
-    else {
-      EXCEPTION( "No enumeration value found in PrecondType for '"
-           << in << "'\n A missing case implementation?" );
-    }
-  }
 
   // map specialisation for interpolation types
   template<>
@@ -1905,27 +1620,6 @@ namespace CoupledField {
     } else {
       EXCEPTION( "No enumeration value found in AMGSmoothertype "
        << "for '" << in << "'\n A missing case implementation?" );
-    }
-  }
-
-  // Specialisation for ReorderingType
-  template<>
-  void String2Enum<ReorderingType>( const std::string &in,
-                    ReorderingType &out ) {
-
-    if ( in == "noReordering" )
-      out = NOREORDERING;
-    else if ( in == "Sloan" )
-      out = SLOAN;
-    else if ( in == "Metis" )
-      out = METIS;
-    else if ( in == "minimumDegree" )
-      out = MINIMUM_DEGREE;
-    else if ( in == "nestedDissection" )
-      out = NESTED_DISSECTION;
-    else {
-      EXCEPTION( "String '" << in << "' cannot be converted to item of "
-           << "'ReorderingType'!"; );
     }
   }
 
@@ -2067,9 +1761,23 @@ namespace CoupledField {
     SolutionTypeEnum.Add(OPT_RESULT_9, "optResult_9");
     // independent
     SolutionTypeEnum.Add(LAGRANGE_MULT, "LagrangeMultiplier");
+  
+    feMatrixType.Add( NOTYPE, "no FE matrix" );
+    feMatrixType.Add( SYSTEM, "system matrix" );
+    feMatrixType.Add( STIFFNESS, "stiffness matrix");
+    feMatrixType.Add( DAMPING, "damping matrix" );
+    feMatrixType.Add( CONVECTION, "convection matrix");
+    feMatrixType.Add( MASS, "mass matrix" );
+    feMatrixType.Add( AUXILIARY, "auxiliary matrix" );
+    
+    MAX_NUM_FE_MATRICES = feMatrixType.map.size() - 1;    
+
   }
   
   Enum<SolutionType> SolutionTypeEnum;
 
+  UInt MAX_NUM_FE_MATRICES;
+  
+  Enum<FEMatrixType> feMatrixType;
 }
 

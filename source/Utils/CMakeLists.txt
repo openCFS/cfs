@@ -39,10 +39,12 @@ TARGET_LINK_LIBRARIES(utils
   ${TARGET_LL}
 )
 
-ADD_LIBRARY(CFSDynLd SHARED DynamicLibrary.cc)
-TARGET_LINK_LIBRARIES(CFSDynLd
-  -ldl
-)
+IF(USE_ANSYSRST)
+  ADD_LIBRARY(CFSDynLd SHARED DynamicLibrary.cc)
+  TARGET_LINK_LIBRARIES(CFSDynLd
+    -ldl
+  )
+ENDIF(USE_ANSYSRST)
 
 IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
 set_source_files_properties(piezoMicroModelBK.cc

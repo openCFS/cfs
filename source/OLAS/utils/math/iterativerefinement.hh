@@ -86,7 +86,7 @@ namespace CoupledField {
     //!  </table>
     //! </center>
     void Refine( BaseDirectSolver &mySolver, BaseMatrix const &sysMat,
-                 BaseVector &sol, BaseVector const &rhs, UInt numSteps,
+                 BaseVector &sol, BaseVector const &rhs, UInt& numSteps,
                  UInt logLevel );
 
   private:

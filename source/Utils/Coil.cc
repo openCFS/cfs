@@ -97,8 +97,7 @@ namespace CoupledField {
       coilType_ = CURRENT3D;
     }
     else {
-      Info->Error( "Encountered unsupported type of coil: " + coilTypeS_,
-                   __FILE__, __LINE__ );
+      EXCEPTION( "Encountered unsupported type of coil: " << coilTypeS_ );
     }
 
     // *******************************************
@@ -207,7 +206,7 @@ namespace CoupledField {
         fileL_ = new std::ofstream( saveFileL_.c_str() );
 
         if ( fileL_ == NULL ) {
-          Info->Error( "Could not open " + saveFileL_, __FILE__, __LINE__ );
+          EXCEPTION( "Could not open " << saveFileL_ );
         }
       }
     }
@@ -223,7 +222,7 @@ namespace CoupledField {
         fileU_ = new std::ofstream( saveFileU_.c_str() );
 
         if ( fileU_ == NULL ) {
-          Info->Error( "Could not open " + saveFileU_, __FILE__, __LINE__ );
+          EXCEPTION( "Could not open " << saveFileU_ );
         }
       }
     }
@@ -255,12 +254,12 @@ namespace CoupledField {
 //           flowDir_ = ZDIR;
 //         }
 //         else {
-//           Info->Error( "Unknown currentFlow " + aux[0], __FILE__, __LINE__ );
+//           EXCEPTION( "Unknown currentFlow " + aux[0] );
 //         }
 //       }
 //       else if ( aux.GetSize() > 1 ) {
-//         Info->Error( "More than 1 currentFlow specification for coil " +
-//                      coilRegionName_, __FILE__, __LINE__ );
+//         EXCEPTION( "More than 1 currentFlow specification for coil " +
+//                      coilRegionName_);
 //       }
 
 //       // Check for rotational specification

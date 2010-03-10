@@ -61,11 +61,10 @@ namespace CoupledField {
     // in the upper triangular part
     if ( amSymm_ == true ) {
       if ( j < i ) {
-        (*warning) << "SBM_Matrix::SetSubMatrix: Not setting sub-matrix at "
-                   << "position ( " << i << " , " << j << " )"
-                   << ", since SBM_Matrix is symmetric we only store its "
-                   << "triangle!";
-        Warning( __FILE__, __LINE__ );
+        WARN("SBM_Matrix::SetSubMatrix: Not setting sub-matrix at "
+             << "position ( " << i << " , " << j << " )"
+             << ", since SBM_Matrix is symmetric we only store its "
+             << "triangle!");
         return;
       }
     }
@@ -381,7 +380,7 @@ namespace CoupledField {
   void SBM_Matrix::MultTAdd( const BaseVector& mvec, BaseVector& rvec ) const{
 
 
-    Warning( "SBM_Matrix::MultTAdd has not yet been tested, my contain bugs");
+    WARN("SBM_Matrix::MultTAdd has not yet been tested, my contain bugs");
 
     // Downcast BaseVectors to SBM_Vectors
     try {

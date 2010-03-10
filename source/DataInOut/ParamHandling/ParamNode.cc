@@ -3,6 +3,8 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include <boost/tokenizer.hpp>
+
+#include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
 using namespace std;
@@ -10,6 +12,10 @@ using namespace boost;
 
 namespace CoupledField
 {
+  // Declare logging stream and make sure that it is also available in
+  // release mode by using BOOST_DECLARE_LOG() instead of DECLARE_LOG()
+  BOOST_DECLARE_LOG(paramNode)
+  DEFINE_LOG(paramNode, "paramNode")
     
   /** This is our global pointer of the root ParamNode holding the XML file. 
    *  Filed in cfs.cc. The corresponding
@@ -18,7 +24,8 @@ namespace CoupledField
     
   ParamNode::ParamNode(bool attribute) :
     attribute_(attribute),
-    lastresultidx_(-1)
+    lastresultidx_(-1),
+    writeBack_(true)
   {} 
     
     
@@ -117,9 +124,18 @@ namespace CoupledField
       }
     }
     
-    if(result == NULL && throwException) 
-      EXCEPTION("None of the " << children_.GetSize() << " childs of element '"
-                << this->name_ << "'" << " has a child '" << name << "'");
+    if(result == NULL) {
+      if(throwException) 
+        EXCEPTION("None of the " << children_.GetSize() << " childs of element '"
+                  << this->name_ << "'" << " has a child '" << name << "'");
+      
+      if(writeBack_) {
+        children_.Push_back(new ParamNode());
+        result = children_.Last();
+        result->SetName(name);
+        result->SetValue("__DEFAULT__");
+      }
+    }
     
     return result;
   }
@@ -127,6 +143,10 @@ namespace CoupledField
   void ParamNode::Get(const string&  name, string& ret, const bool throwException)
   {
     ParamNode * actNode = Get(name,  throwException);
+    
+    if(actNode->value_ == "__DEFAULT__")
+      actNode->value_ = ret;
+      
     if(actNode)
       ret = actNode->AsString();
   }
@@ -135,6 +155,13 @@ namespace CoupledField
   void ParamNode::Get(const string&  name, int& ret, const bool throwException)
   {
     ParamNode * actNode = Get(name, throwException);
+
+    if(actNode->value_ == "__DEFAULT__") {
+      std::stringstream sstr;
+      sstr << ret;
+      actNode->value_ = sstr.str();
+    }
+
     if( actNode )
       ret = actNode->AsInt();
   }
@@ -142,6 +169,13 @@ namespace CoupledField
   void ParamNode::Get(const string&  name, unsigned int& ret, const bool throwException)
   {
     ParamNode * actNode = Get(name, throwException);
+
+    if(actNode->value_ == "__DEFAULT__") {
+      std::stringstream sstr;
+      sstr << ret;
+      actNode->value_ = sstr.str();
+    }
+
     if( actNode )
       ret = actNode->AsUInt();
   }
@@ -149,6 +183,13 @@ namespace CoupledField
   void ParamNode::Get(const string&  name, double& ret, const bool throwException)
   {
     ParamNode * actNode = Get(name, throwException);
+
+    if(actNode->value_ == "__DEFAULT__") {
+      std::stringstream sstr;
+      sstr << ret;
+      actNode->value_ = sstr.str();
+    }
+
     if( actNode )
       ret = actNode->AsDouble();
   }
@@ -156,6 +197,13 @@ namespace CoupledField
   void ParamNode::Get(const string&  name, bool& ret, const bool throwException)
   {
     ParamNode * actNode = Get(name, throwException);
+
+    if(actNode->value_ == "__DEFAULT__") {
+      std::stringstream sstr;
+      sstr << (ret ? "true" : "false");
+      actNode->value_ = sstr.str();
+    }
+
     if( actNode )
       ret = actNode->AsBool();
   }
@@ -240,6 +288,9 @@ namespace CoupledField
     }
   }
 
+  bool ParamNode::HasChildren() const {
+    return (bool)children_.GetSize();
+  }
   
   StdVector<ParamNode*> ParamNode::GetList(const string& name)
   {
@@ -330,7 +381,10 @@ namespace CoupledField
     if(throwException)
       EXCEPTION("element '" << parent << "' has no child '" << child
                 << "' with value '" << value << "'");
-    return NULL;
+                
+    ParamNode* res = NULL;
+
+    return res;
   }
   
 
@@ -366,8 +420,10 @@ namespace CoupledField
        
   void ParamNode::Dump(int level) const
   {
-    for(int i = 0; i < level; i++) cout << "   ";
-    cout << ToString() << endl;
+    std::stringstream sstr;
+    for(int i = 0; i < level; i++) sstr << "   ";
+    sstr << ToString();
+    LOG_TRACE(paramNode) << sstr.str();
     
     for(unsigned int i = 0, chsize = children_.GetSize(); i < chsize; i++) 
       children_[i]->Dump(level + 1);

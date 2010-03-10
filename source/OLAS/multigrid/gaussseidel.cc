@@ -44,7 +44,7 @@ bool GaussSeidel<T>::Setup( const CRS_Matrix<T>& matrix )
 
 #ifdef  DEBUG_GAUSSSEIDEL
     if( matrix.GetNumRows() <= 0 ) {
-        Warning( "GaussSeidel::Setup called with an empty "
+        WARN( "GaussSeidel::Setup called with an empty "
                  "matrix -> object reseted", __FILE__, __LINE__ );
         Reset();
         return false;
@@ -126,7 +126,7 @@ Step( const CRS_Matrix<T>&                  matrix,
     // the matrix size and the size of the GaussSeidel preparation
     // do not match
     if( matrix.GetNumRows() != Size_ ) {
-        Warning( "suppressed setup in GaussSeidel::Step, but the "
+        WARN( "suppressed setup in GaussSeidel::Step, but the "
                  "dimensions do not match", __FILE__, __LINE__ );
         return;
     }

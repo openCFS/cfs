@@ -191,7 +191,7 @@ namespace CoupledField {
 
       if ( regionNonLinType_[actRegion] != NO_NONLINEARITY ) {
 
-        Warning( "Nonlinearity for 3D magnetic edge formulation not yet ported from NACS" );
+        WARN( "Nonlinearity for 3D magnetic edge formulation not yet ported from NACS" );
 //        if ( regionNonLinType_[actRegion] == HYSTERESIS ) {
 //          EXCEPTION("Magnetics with nonlineaity in 3D not supported");
 //        }
@@ -414,8 +414,7 @@ namespace CoupledField {
         break;
 
       default:
-        Warning( "Resulttype not computable by magnetic PDE",
-                 __FILE__, __LINE__ );
+        WARN( "Resulttype not computable by magnetic PDE" );
     }
 
   }

@@ -7,7 +7,6 @@
 #include <iterator>
 
 #include "MatVec/crs_matrix.hh"
-#include "OLAS/algsys/olasparams.hh"
 
 #include "OLAS/precond/ilukprecond.hh"
 
@@ -25,13 +24,13 @@ namespace CoupledField {
   // *****************************************************
   template <typename T>
   ILUK_Precond<T>::ILUK_Precond( const StdMatrix& stdMat, 
-                                 OLAS_Params *myParams,
-                                 OLAS_Report *myReport ) {
+                                 ParamNode *solverNode,
+                                 InfoNode *olasInfo ) {
 
 
     // Set pointers to communication objects
-    this->myParams_ = myParams;
-    this->myReport_ = myReport;
+    this->xml_ = solverNode;
+    this->olasInfo_ = olasInfo;
 
     // No factorisation was performed yet
     this->readyToUse_ = false;
@@ -91,10 +90,12 @@ namespace CoupledField {
   void ILUK_Precond<T>::Setup( CRS_Matrix<T> &sysMat ) {
 
 
-    bool logging = this->myParams_->GetBoolValue( "ILUK_logging" );
+    bool logging = false;
 
     // Query parameter object for factorisation parameter
-    maxLevel_ = this->myParams_->GetIntValue( "ILUK_level" );
+    maxLevel_ = 1;
+    ParamNode* pNode = this->xml_->Get("ILUK", false );
+    pNode->Get("level", maxLevel_, false);
 
     // Obtain and check dimensions of matrix
     this->sysMatDim_ = sysMat.GetNumCols();
@@ -128,12 +129,13 @@ namespace CoupledField {
     this->readyToUse_ = true;
 
     // If the user wishes, we can export the LU factorisation to a file
-    if ( this->myParams_->GetBoolValue( "CROUT_saveFacToFile" ) ) {
-      std::string filename;
-      filename = this->myParams_->GetStringValue( "CROUT_facFileName" );
-      this->ExportILUFactorisation( filename.c_str() );
+    std::string saveFacFile = "crout_fac.out";
+    if(pNode->Has("saveFacFile")) {
+      pNode->Get("saveFacFile", saveFacFile, false);
+
+      this->ExportILUFactorisation( saveFacFile.c_str() );
       if ( logging == true ) {
-	(*cla) << " Exported factor matrix to file '" << filename << "'"
+	(*cla) << " Exported factor matrix to file '" << saveFacFile << "'"
 	       << std::endl;
       }
     }

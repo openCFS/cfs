@@ -205,10 +205,6 @@ namespace CoupledField {
       algsys_ = new StandardSystem(FindLinearSystem("direct"));
     }
 
-    // Get parameter and report object of OLAS
-    olasParams_ = algsys_->GetOLASParams();
-    olasReport_ = algsys_->GetOLASReport();
-
     // ----------------------------
     //  Detection of analysis type
     // ----------------------------
@@ -649,9 +645,10 @@ namespace CoupledField {
   // ********************
   void DirectCoupledPDE::InitTimeStepping() {
 
+    ParamNode* systemNode = FindLinearSystem("direct");
 
     // Hard Coded
-    TS_alg_ = new Newmark( algsys_, "direct" );
+    TS_alg_ = new Newmark( algsys_, systemNode );
 
     // Pass time stepping object to single pdes
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {

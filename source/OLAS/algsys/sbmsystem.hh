@@ -89,7 +89,7 @@ namespace CoupledField {
     //! CreatePrecond() and SetupPrecond() methods should be finished, if
     //! a preconditioner is to be used.
     //! \note We currently always generate a GMRES solver
-    void CreateSolver(InfoNode* olasInfo);
+    void CreateSolver();
 
     //! Generate preconditioner
     void CreatePrecond();
@@ -103,7 +103,7 @@ namespace CoupledField {
     //! be called.
     //! \note If an Eigenfrequency analysis is performed, the methods
     //! SetupPrecond() and SetupSolver() must not be called!
-    void CreateEigenSolver(InfoNode* eigenInfo);
+    void CreateEigenSolver();
 
     //! Trigger setup of preconditioner
 

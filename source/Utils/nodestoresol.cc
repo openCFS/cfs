@@ -317,7 +317,7 @@ namespace CoupledField {
     Integer eqnNr;
     eqnNr = eqnMap_->GetNodeEqn( node+1,dof+1 );
 
-    Warning ("Is this operator ever be used?", __FILE__, __LINE__);
+    WARN ("Is this operator ever be used?");
     if (eqnNr > 0)
       return data_[abs(eqnNr)-1];
     else
@@ -644,7 +644,7 @@ namespace CoupledField {
   void NodeStoreSol<TYPE>::SetAlgSysVector(const SingleVector & val)
   {
 #ifdef CHECK_INITIALIZED
-    if (length_ == 0) Warning ("NodeStoreSol: Use of uninitialized object!", __FILE__, __LINE__);
+    if (length_ == 0) WARN ("Use of uninitialized object!");
 #endif
 #ifdef CHECK_INDEX
    //  if (val.GetSize() !=  lengthVector_)

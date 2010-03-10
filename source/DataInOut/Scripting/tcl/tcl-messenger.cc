@@ -52,7 +52,7 @@ namespace CoupledField {
     tcl_ = NULL;
   }
   
-  void TCL_CFSMessenger::Warning( const char * msg, const char * const filename,
+  void TCL_CFSMessenger::WARN( const char * msg, const char * const filename,
                                   const UInt numline) {
     
     std::stringstream warn;
@@ -65,7 +65,7 @@ namespace CoupledField {
     // After having generated the correct error string,
     // the bucket is passed back to the global error handler
     isEvaluating_ = false;
-    ::Warning( warn.str().c_str(), filename, numline );
+    ::WARN( warn.str().c_str(), filename, numline );
     isEvaluating_ = true;
   }
 

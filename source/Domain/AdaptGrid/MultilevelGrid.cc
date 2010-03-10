@@ -299,7 +299,7 @@ MultilevelGrid::buildCoarseGrid(vector<Vertex*>& vertex,vector<Element*>& elemen
       if (lst1->size() == 1)
         theElement->setNeighbor(face,lst1->back());
       else if (lst1->size() > 1)
-        Warning("more than one neighbor for a face");
+        WARN("more than one neighbor for a face");
 
       // remove auxiliary data
       delete lst1;

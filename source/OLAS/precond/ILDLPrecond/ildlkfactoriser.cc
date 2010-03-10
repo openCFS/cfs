@@ -6,7 +6,6 @@
 #include <cstdio>
 
 #include "MatVec/scrs_matrix.hh"
-#include "OLAS/algsys/olasparams.hh"
 
 #include "OLAS/precond/ILDLPrecond/ildlkfactoriser.hh"
 #include "OLAS/precond/ILDLPrecond/ildlprecond.hh"
@@ -29,13 +28,13 @@ namespace CoupledField {
   //   Standard constructor
   // ************************
   template <class T>
-  ILDLKFactoriser<T>::ILDLKFactoriser( OLAS_Params *myParams,
-                                       OLAS_Report *myReport ) {
+  ILDLKFactoriser<T>::ILDLKFactoriser( ParamNode *solverNode,
+                                       InfoNode *olasInfo ) {
 
 
     // Set pointers to communication objects
-    this->myParams_ = myParams;
-    this->myReport_ = myReport;
+    this->xml_ = solverNode;
+    this->olasInfo_ = olasInfo;
 
     // Initialise remaining attributes
     this->amFactorised_ = false;
@@ -85,7 +84,8 @@ namespace CoupledField {
     }
 
     // What fill level is allowed
-    level_ = (UInt) this->myParams_->GetIntValue( "ILDLPRECOND_level" );
+    level_ = 1;
+    this->xml_->Get("ILDK", "level", level_, false);
 
     // Start pattern analysis combined with factorisation
     if ( this->amFactorised_ == false || newPattern == true ) {
@@ -117,7 +117,7 @@ namespace CoupledField {
     T elim, aux;
 
     // Shall we be verbose?
-    bool logging = this->myParams_->GetIntValue( "ILDLPRECOND_logging" ) > 0;
+    bool logging = false;
 
 
     // =================
@@ -597,10 +597,9 @@ namespace CoupledField {
 
 #ifdef DEBUG_ILDLKFACTORISER
             if ( activeListPrevElem > scanListElem ) {
-              (*error) << "Error in active list add: (activeListPrevElem = "
+              EXCEPTION( "Error in active list add: (activeListPrevElem = "
                        << activeListPrevElem << ") < (scanListElem = "
-                       << scanListElem << ")";
-              Error( __FILE__, __LINE__ );
+                       << scanListElem << ")" );
             }
 #endif
 
@@ -647,9 +646,8 @@ namespace CoupledField {
       // We claim that activeListElem >= scanListElem always holds, so
       // now we should have activeListElem = listEnd
       if ( activeListElem != listEnd ) {
-        (*error) << "ILDLKFACTORISER::Factorise: activeListElem = "
-                 << activeListElem << ", but should be " << listEnd;
-        Error( __FILE__, __LINE__ );
+        EXCEPTION( "ILDLKFACTORISER::Factorise: activeListElem = "
+                 << activeListElem << ", but should be " << listEnd );
       }
 #endif
       
@@ -716,10 +714,10 @@ namespace CoupledField {
     // =====================
     //   Export Fill Levels
     // =====================
-    if( this->myParams_->GetBoolValue( "ILDLPRECOND_saveLevels" ) == true ) {
-      std::string filename;
-      filename = this->myParams_->GetStringValue( "ILDLPRECOND_levelsFileName" );
-      ExportFillLevels( filename.c_str(), rptrU, cidxU, fillU );
+    std::string saveLevelsFile = "";
+    this->xml_->Get("ILDLK", "saveLevelsFile", saveLevelsFile, false);
+    if( saveLevelsFile != "" ) {
+      ExportFillLevels( saveLevelsFile.c_str(), rptrU, cidxU, fillU );
     }
 
 
@@ -759,7 +757,7 @@ namespace CoupledField {
 
     // Shall we be verbose?
     // TODO: Check if this is still needed
-    // bool logging = this->myParams_->GetIntValue( "ILDLPRECOND_logging" ) > 0;
+    // bool logging = false;
   }
 
 
@@ -787,7 +785,7 @@ namespace CoupledField {
     UInt profile, profAux, profileMult;
 
     // Shall we be verbose?
-    bool logging = this->myParams_->GetIntValue( "ILDLPRECOND_logging" ) > 0;
+    bool logging = false;
 
     // Get hold of column index array
     const UInt *cidxA = sysMat.GetColPointer();
@@ -921,9 +919,8 @@ namespace CoupledField {
     //   Close output file
     // =====================
     if ( fclose( fp ) == EOF ) {
-      (*warning) << "ILDLPrecond::ExportFillLevels: Could not close file "
-                 << fname << " after writing!";
-      Warning( __FILE__, __LINE__ );
+      WARN("ILDLPrecond::ExportFillLevels: Could not close file "
+           << fname << " after writing!");
     }
   }
 

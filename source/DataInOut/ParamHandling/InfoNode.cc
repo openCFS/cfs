@@ -30,7 +30,7 @@ namespace CoupledField
   const string InfoNode::SUMMARY = "summary";
   
   const string InfoNode::COMMENT = "comment";
-  const string InfoNode::WARNING = "warning";
+  const string InfoNode::WARNING = "warnings";
   const string InfoNode::ERROR   = "error";
   
   const string DATA_IS_IN_MATRIX_VALUE = "data is in matrix_value_!";
@@ -48,6 +48,7 @@ namespace CoupledField
     filename_(filename),
     preamble_(preamble)
   {
+      writeBack_ = false;
   }
   
   InfoNode::~InfoNode()
@@ -397,11 +398,13 @@ namespace CoupledField
     type_ = STRING;
     attribute_ = IsGoodAttribute(value);
     
-    // handle warnings also als console print
-    if(name_ == WARNING)
+    // handle warnings also as console print
+    if(parent_ && 
+       parent_->name_ == "warning" &&
+       name_ == "message")
     {
-      std::cerr << fg_magenta << "Warning: /" << fg_reset;
-      
+      std::cerr  << std::endl << fg_yellow << "WARNING: " << fg_reset << std::endl; 
+#if 0      
       InfoNode* in = parent_; // beyond warning
       StdVector<string> tree;
       while(in != NULL)
@@ -412,10 +415,11 @@ namespace CoupledField
       for(unsigned int i = tree.GetSize() -1; i > 0; --i)
       {
         std::cerr << tree[i];
-        if(i > 1) std::cerr << "/";
       }
-      
-      std::cerr << ": " << fg_magenta << "\"" << fg_reset << value << fg_magenta << "\"" << fg_reset << std::endl;
+#endif      
+      std::cerr << parent_->Get("fileName")->AsString() << ":" 
+                << parent_->Get("lineNum")->AsInt() << ":" << std::endl
+                << value << std::endl << std::endl;
     }
   }
   

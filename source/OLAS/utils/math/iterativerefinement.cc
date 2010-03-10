@@ -65,9 +65,12 @@ namespace CoupledField {
                                     const BaseMatrix &sysMat,
                                     BaseVector &sol,
                                     const BaseVector &rhs,
-                                    UInt numSteps, UInt logLevel ) {
+                                    UInt& numSteps, UInt logLevel ) {
 
 
+//    if(!numSteps)
+//      return;
+      
     // Be verbose
     if ( logLevel > 0 ) {
       (*cla) << " Performing " << numSteps << " steps of iterative"
@@ -108,7 +111,6 @@ namespace CoupledField {
              << residual_->NormL2()
              << std::endl;
     }
-
   }
 
 }

@@ -37,7 +37,7 @@ namespace CoupledField {
                           const StdVector<std::string> & context);
     
     //! Trigger the writing of a warning message
-    virtual void Warning( const char * msg, const char * const filename,
+    virtual void WARN( const char * msg, const char * const filename,
                           const UInt numline);
     
     //! Trigger the abortion of the program with a given error message

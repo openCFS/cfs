@@ -586,9 +586,6 @@ namespace CoupledField {
     
     BaseSystem * algsys_;      //!< pointer to algebraic system
   
-    OLAS_Params * olasParams_; //!< pointer to paramter object of OLAS
-    OLAS_Report * olasReport_; //!< pointer to report object of OLAS
-    
     /** This is the node for linear system responsible for this pde. */
     InfoNode* olasInfo_;
     

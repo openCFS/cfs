@@ -139,11 +139,8 @@ namespace CoupledField {
     if(feType != Elem::UNDEF) {
       numNodes = Elem::GetNumElemNodes(feType);
     } else {
-      std::stringstream sstr;
-      
-      sstr << "Cannot handle Gmsh element type " << eType 
-           << " which has " << numNodes << " nodes.";
-      Warning(sstr.str().c_str(), __FILE__, __LINE__);
+      WARN("Cannot handle Gmsh element type " << eType 
+           << " which has " << numNodes << " nodes.");
     }
   }
 

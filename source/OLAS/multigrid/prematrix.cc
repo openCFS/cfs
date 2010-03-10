@@ -214,7 +214,7 @@ void PreMatrix<T>::SortDiagonal()
             // loop run, this means that we could not find the
             // diagonal entry
             if( ij == rowSize_[i] ) {
-                Warning( __FILE__, __LINE__,
+                WARN( __FILE__, __LINE__,
                          "PreMatrix::SortDiagonal: found row [%d] "
                          "without diagonal entry", i );
                          
@@ -313,7 +313,7 @@ bool PreMatrix<T>::ImportASCII( const char* const filename )
     ssize_t  read   = 0;
     
     if( file == NULL ) {
-        Warning( __FILE__, __LINE__,
+        WARN( __FILE__, __LINE__,
                  "PreMatrix::importASCII: could not open file "
                  "\"%s\". Matrix stayes unchanged.",
                  filename );
@@ -336,7 +336,7 @@ bool PreMatrix<T>::ImportASCII( const char* const filename )
                     return false;
                 }
             } else {
-                Warning( __FILE__, __LINE__,
+                WARN( __FILE__, __LINE__,
                          "PreMatrix::importASCII: could not read matrix "
                          "header data in file \"%s\". File might not have"
                          " the appropriate format.", filename );
@@ -352,7 +352,7 @@ bool PreMatrix<T>::ImportASCII( const char* const filename )
                 // read las entry
                 if( --nnz <= 0 )  break;
             } else {
-                Warning( __FILE__, __LINE__,
+                WARN( __FILE__, __LINE__,
                          "PreMatrix::importASCII: Could not read matrix "
                          "entry in file \"%s\". Still %d non-zero entries "
                          "are missing. Aborting import.",

@@ -160,8 +160,7 @@ namespace CoupledField {
 //      
 //      // perform predictor step
 //      if ( TS_alg_== NULL ) {
-//        Error( "TS_alg has NULL-Pointer, in SolveStepMag::StepTransNonLin",
-//               __FILE__, __LINE__ );
+//        EXCEPTION( "TS_alg has NULL-Pointer, in SolveStepMag::StepTransNonLin");
 //      }
 //      else {
 //          if(nrLoadSteps>1)
@@ -355,8 +354,7 @@ namespace CoupledField {
 
 //     // perform predictor step
 //     if ( TS_alg_== NULL ) {
-//       Error( "TS_alg has NULL-Pointer, in SolveStepMag::StepTransNonLin",
-//              __FILE__, __LINE__ );
+//       EXCEPTION( "TS_alg has NULL-Pointer, in SolveStepMag::StepTransNonLin");
 //     }
 //     else {
 //       if ( isIterCoupled == false) {        

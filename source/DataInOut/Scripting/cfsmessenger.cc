@@ -51,7 +51,7 @@ namespace CoupledField {
     // trick: Pretend, that no script is executing and simply
     // pass the error back to the global function
     isEvaluating_ = false;
-    Info->Error( msg, filename, numline );
+//    Info->Error( msg, filename, numline );
     
   }
   
@@ -60,7 +60,7 @@ namespace CoupledField {
     // trick: Pretend, that no script is executing and simply
     // pass the error back to the global function
     isEvaluating_ = false;
-    Info->Warning( msg, filename, numline );
+//    Info->WARN( msg, filename, numline );
     
   }
     

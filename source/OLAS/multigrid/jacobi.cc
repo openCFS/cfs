@@ -44,7 +44,7 @@ bool Jacobi<T>::Setup( const CRS_Matrix<T>& matrix )
 
 #ifdef  DEBUG_JACOBI
     if( matrix.GetNumRows() <= 0 ) {
-        Warning( "Jacobi::Setup called with an empty "
+        WARN( "Jacobi::Setup called with an empty "
                  "matrix -> object reseted", __FILE__, __LINE__ );
         Reset();
         return false;
@@ -129,7 +129,7 @@ Step( const CRS_Matrix<T>&                  matrix,
     // the matrix size and the size of the Jacobi preparation do
     // not match
     if( matrix.GetNumRows() != Size_ ) {
-        Warning( "Jacobi::Step: non-matching dimensions",
+        WARN( "Jacobi::Step: non-matching dimensions",
                  __FILE__, __LINE__ );
         return;
     }

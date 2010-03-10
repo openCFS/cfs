@@ -412,7 +412,7 @@ namespace CoupledField
       Double C_k = 1.0/(lambda_k*h_k*h_k);
 
       if ( m_k > 2.0*C_k) {
-        Warning( "Using C_k !", __FILE__, __LINE__);
+        WARN( "Using C_k !" );
         m_k = 2.0*C_k;
       }
       
@@ -429,7 +429,7 @@ namespace CoupledField
       tau_c =  ( lambda * VelNorm * h_k * zeta );
 
       if ( tau_mp > (( m_k*h_k*h_k )/(8.0*kinematicViscosity)) ) {
-        Warning( "upper bound reached !", __FILE__, __LINE__);
+        WARN( "upper bound reached !" );
         tau_mp = (( m_k*h_k*h_k )/(8.0*kinematicViscosity));
       }
 

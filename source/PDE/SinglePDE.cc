@@ -177,19 +177,13 @@ namespace CoupledField {
         algsys_ = new StandardSystem(FindLinearSystem(pdename_));
       }
 
-      // Get parameter and report object of OLAS
-      olasParams_ = algsys_->GetOLASParams();
-      olasReport_ = algsys_->GetOLASReport();
-
       // Obtain unique pde identifier
       pdeId_ = algsys_->ObtainPDEId( pdename_ );
 
 
       // Determine, if this is a parallel run
       // and pass this information to OLAS
-      bool parallel = false;
-
-      olasParams_->SetValue( "Parallel", parallel );
+      // bool parallel = false;
     }
 
     // =====================================================================
@@ -733,7 +727,8 @@ namespace CoupledField {
         }
 
         // determine complexFormat
-        complexFormatString = actResultNode->Get("complexFormat")->AsString();
+        complexFormatString = "amplPhase";
+        actResultNode->Get("complexFormat", complexFormatString, false);
         String2Enum( complexFormatString, complexFormat );
 
         // otherwise check, if result is to be saved on "allRegions"
@@ -791,7 +786,7 @@ namespace CoupledField {
           }
 
           // only enter, at least one region is present
-          if( listNode ) {
+          if( listNode->HasChildren() ) {
             // fetch saveBegin, saveEnd and saveInc
             listNode->Get( "saveBegin", saveBegin );
             listNode->Get( "saveEnd", saveEnd );
@@ -894,8 +889,8 @@ namespace CoupledField {
           }
         }
 
-        // only proceed, if any history result is defined+
-        if( histNode ) {
+        // only proceed, if any history result is defined
+        if( histNode && histNode->HasChildren() ) {
 
           // fetch saveBegin, saveEnd and saveInc
           histNode->Get("saveBegin", saveBegin );
@@ -1751,7 +1746,7 @@ namespace CoupledField {
         // 2D, -> material is rotated by
         // alpha = -90 and gamma = -90 degree,
         // so that we pick by default the yz-plane
-        if( !rotNode ) {
+        if( !rotNode->HasChildren() ) {
           if( dim_ == 2) {
             rotVec[0] = -90.0;
             rotVec[2] = -90.0;
@@ -2913,7 +2908,7 @@ namespace CoupledField {
     // If no propagation region is defined explicitly, we
     // let the method GetPMLLayerData() extract the geometric information
     // for the propagation region
-    if( propRegionNode ) {
+    if( propRegionNode && propRegionNode->HasChildren() ) {
 
       //resize data for ptopagation region
       inner.Resize(2,dim_);
@@ -3192,20 +3187,27 @@ namespace CoupledField {
 
     if ( isPiezo ) {
 
+      ParamNode * cplNode = (*couplings)[idx]->GetParamNode();
+      if(! cplNode->HasChildren() )
+        return false;
+      
       // found = true;
       ParamNode * nonLinNode = NULL;
-      nonLinNode = (*couplings)[idx]->GetParamNode()->Get("nonLinList", false);
+      if(cplNode->Has("nonLinList") )
+        nonLinNode = cplNode->Get("nonLinList", false);
       if ( !nonLinNode )
         return false;
 
-      ParamNode* regionNode = NULL;
-      regionNode = (*couplings)[idx]->GetParamNode()->
-        Get("regionList")->Get("region", "name", regionName);
-      if( !regionNode)
+      ParamNode* regionListNode = NULL;
+      if(cplNode->Has("regionList") )
+        regionListNode = cplNode->Get("regionList");
+      
+      if(!regionListNode->Has("region", "name", regionName));
         return false;
 
       // check for nonLin Id
       std::string nonLinId;
+      ParamNode* regionNode = regionListNode->Get("region", "name", regionName);
       regionNode->Get("nonLinId", nonLinId, false);
 
       if (nonLinId == "" )

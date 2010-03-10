@@ -135,7 +135,7 @@ namespace CoupledField {
   void GraphManagerSBMMat::RegisterPDE( const PdeIdType identifierPDE,
                                         const UInt numEqns,
                                         const UInt numLastFreeDof,
-                                        const ReorderingType reorder ) {
+                                        const BaseOrdering::ReorderingType reorder ) {
 
 
     // Be cautious
@@ -180,7 +180,7 @@ namespace CoupledField {
     // If reordering is going to be performed for the current PDE then
     // we need to allocate memory to store the resulting permutation
     // vector
-    if ( reorder != NOREORDERING ) {
+    if ( reorder != BaseOrdering::NOREORDERING ) {
       newOrdering_[identifierPDE].Resize( numLastFreeDof );
     }
   }
@@ -328,23 +328,20 @@ namespace CoupledField {
 
     // Perform some consistency checks in debug mode only
     if ( identifierPDE1 == NO_PDE_ID ) {
-      (*error) << "GraphManagerSBMMat: First PDE identifier passed to "
-               << "SetElementPos is empty!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION("GraphManagerSBMMat: First PDE identifier passed to "
+               << "SetElementPos is empty!");
     }
     else if ( identifierPDE1 > numPDEs_ ) {
-      (*error) << "GraphManagerSBMMat: First PDE identifier passed to "
+      EXCEPTION("GraphManagerSBMMat: First PDE identifier passed to "
                << "SetElementPos is " << identifierPDE1
                << " which exceeds the number of " << numPDEs_
-               << " registered PDEs!";
-      Error( __FILE__, __LINE__ );
+               << " registered PDEs!");
     }
     if ( graph_[idx] == NULL ) {
-      (*error) << "GraphManagerSBMMat::SetElementPos: "
+      EXCEPTION("GraphManagerSBMMat::SetElementPos: "
                << "Pointer to graph object = NULL! "
                << "Did you call RegisterPDE() for all " << numPDEs_
-               << " PDEs?";
-      Error( __FILE__, __LINE__ );
+               << " PDEs?");
     }
 
 #endif
@@ -690,7 +687,7 @@ namespace CoupledField {
 
     // Generate graph object
     graph_[idx] = new BaseGraph( numLastFreeDof_[pdeID1],
-                                 numLastFreeDof_[pdeID2], NOREORDERING );
+                                 numLastFreeDof_[pdeID2], BaseOrdering::NOREORDERING );
 
     if ( graph_[idx] == NULL ) {
       EXCEPTION("GraphManagerSBMMat: Generation of sub-graph "

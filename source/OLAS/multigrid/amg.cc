@@ -59,7 +59,7 @@ bool AMGSolver<T>::Setup( const CRS_Matrix<T>* const sys_matrix,
 {
 
     if( aux_matrix ) {
-        Warning( "AMGSolver::Setup: please note that the auxiliary"
+        WARN( "AMGSolver::Setup: please note that the auxiliary"
                  " matrix is not yet used\n", __FILE__, __LINE__ );
     }
 
@@ -114,7 +114,7 @@ void AMGSolver<T>::Cycle( const Vector<T>& rhs,
 {
 
     if( !prepared_ ) {
-        Warning( "called AMGSolver::Cycle at a non prepared AMG" );
+        WARN( "called AMGSolver::Cycle at a non prepared AMG" );
         return;
     }
 

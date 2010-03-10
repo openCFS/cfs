@@ -42,7 +42,7 @@ namespace CoupledField {
     capacity_(vec.size()),
     data_(new TYPE [vec.size()])
   {
-    //Warning(" This function should not be used anymore!");
+    //WARN(" This function should not be used anymore!");
     for(unsigned int i = 0; i < size_; ++i)
       data_[i] =  vec[i];
   }

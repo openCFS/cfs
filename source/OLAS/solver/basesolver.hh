@@ -13,7 +13,6 @@ namespace CoupledField {
   class BasePrecond;
   class BaseMatrix;
   class BaseVector;
-  class OLAS_Params;
   class OLAS_Report;
   class ParamNode;
   class Timer;
@@ -25,6 +24,32 @@ namespace CoupledField {
 
   //! Base class for algebraic system solver
   class BaseSolver {
+    
+  public:
+    //! Type of solver
+
+    //! This enumeration data type describes the type of solver which
+    //! is applied to solve the system. Note that not all solvers can handle
+    //! all types of matrices. The enumeration contains the following values:
+    //! - NOSOLVER
+    //! - DIRECT
+    //! - RICHARDSON
+    //! - CG
+    //! - LANCZOS
+    //! - QMR
+    //! - GMRES
+    //! - MINRES
+    //! - LAPACK_LU
+    //! - LAPACK_LL
+    //! - PARDISO
+    //! - ILUPACK_SOLVER
+    //! - LU_SOLVER
+    //! - LDL_SOLVER
+    //! - LDL_SOLVER2
+    typedef enum {NOSOLVER, DIRECT, RICHARDSON, CG, LANCZOS, QMR, GMRES,
+                  MINRES, SYMMLQ, LAPACK_LU, LAPACK_LL, PARDISO,  ILUPACK, LU_SOLVER, CHOLMOD, 
+                  LDL_SOLVER, LDL_SOLVER2, DIAGSOLVER } SolverType;    
+    static Enum<SolverType> solverType;
 
   public:
 
@@ -34,6 +59,7 @@ namespace CoupledField {
       solverInfo_ = NULL;
       setupTimer_ = NULL;
       solveTimer_ = NULL;
+      usingPenalty_ = false;
     }
 
     //! Default Destructor
@@ -67,6 +93,10 @@ namespace CoupledField {
     Timer* GetSetupTimer() { return setupTimer_; }
     Timer* GetSolveTimer() { return solveTimer_; }
 
+    void SetUsingPenalty(bool usingPenalty) {
+      usingPenalty_ = usingPenalty;
+    }
+    
   protected:
     
     /** Helper method for InitParameters. Takes the default-value, prints it to the InfoNode (via
@@ -91,20 +121,9 @@ namespace CoupledField {
       }
     }
     
-    //! Pointer to parameter object
-
-    //! This is a pointer to a parameter object containing the steering
-    //! parameters for this solver.
-    OLAS_Params *myParams_;
-
-    //! Pointer to report object
-
-    //! This is a pointer to a report object in which the solver will store
-    //! general information about the solution of a linear system.
-    OLAS_Report *myReport_;
-
-    /** This is the description of the solver part in XML - if given!! 
-     * Might easily be NULL!! */
+    /** This is the description of the solver part in XML
+     * This may not be NULL since proper default values have to be set
+     * before the solver gets constructed. */
     ParamNode* xml_;
     
     /** This stores the general solver Information (HEADER, SUMMARY) ->
@@ -115,6 +134,7 @@ namespace CoupledField {
     Timer* setupTimer_;
     Timer* solveTimer_;
 
+    bool usingPenalty_;
   };
 
 

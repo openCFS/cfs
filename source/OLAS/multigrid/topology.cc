@@ -127,7 +127,7 @@ inline bool Topology<T>::IsFPoint( const int i ) const
                __FILE__, __LINE__ );
     }
     if( CoarseIndex_[i] == UNDEFINED ) {
-        Warning( "Topology::IsFPoint: evaluated UNDEFINED point\n",
+        WARN( "Topology::IsFPoint: evaluated UNDEFINED point\n",
                  __FILE__, __LINE__ );
     }
 #endif
@@ -146,7 +146,7 @@ inline bool Topology<T>::IsCPoint( const int i ) const
                __FILE__, __LINE__ );
     }
     if( CoarseIndex_[i] == UNDEFINED ) {
-        Warning( "Topology::IsFPoint: evaluated UNDEFINED point\n",
+        WARN( "Topology::IsFPoint: evaluated UNDEFINED point\n",
                  __FILE__, __LINE__ );
     }
 #endif
@@ -170,7 +170,7 @@ inline Integer Topology<T>::GetCoarseIndex( const Integer i ) const
                "out of valid range [1,%d]", i, GetSizeh() );
     }
     if( CoarseIndex_[i] == UNDEFINED ) {
-        Warning( "Topology::GetCoarseIndex: evaluated "
+        WARN( "Topology::GetCoarseIndex: evaluated "
                  "UNDEFINED point\n", __FILE__, __LINE__ );
     }
 #endif
@@ -703,7 +703,7 @@ GetCoarseImportance( Integer const i ) const
 
 #ifdef DEBUG_TOPOLOGY
     if( CoarseIndex_[i] >= COARSE ) {
-        Warning( __FILE__, __LINE__,
+        WARN( __FILE__, __LINE__,
                  "Called GetCoarseImportance on a C-point [%d]"
                  "-> returning 0\n   Expect wrong results in "
                  "non-debug mode.\n", i );
@@ -1013,7 +1013,7 @@ void Topology<T>::ExportCFSplitting()
 {
 
     if( CoarseIndex_ == NULL ) {
-        Warning( "Topology::ExportCFSplitting: array for "
+        WARN( "Topology::ExportCFSplitting: array for "
                  "splitting not yet present. No export.",
                  __FILE__, __LINE__ );
         return;
@@ -1036,7 +1036,7 @@ void Topology<T>::ExportCFSplitting()
         }
         fclose( file );
     } else {
-        Warning( __FILE__, __LINE__,
+        WARN( __FILE__, __LINE__,
                  "Topology::ExportCFSplitting: could not open "
                  "\"%s\"", filename );
     }

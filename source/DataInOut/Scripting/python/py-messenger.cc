@@ -138,7 +138,7 @@ namespace CoupledField {
     // After having generated the correct error string,
     // the bucket is passed back to the global error handler
     isEvaluating_ = false;
-    ::Warning( warn.str().c_str(), filename, numline );
+    WARN( warn.str() );
     isEvaluating_ = true;
 
   }

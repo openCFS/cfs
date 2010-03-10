@@ -64,17 +64,18 @@ namespace CoupledField {
       // input ID of destination region
       rhsValuesNode->Get("inputId", id_);
       // factor (is multiplied with RHS)
-      tmpNode = rhsValuesNode->Get("factor", false);
-      if (tmpNode)
-        factor = tmpNode->AsString();
+      rhsValuesNode->Get("factor", factor, false);
       
       // interpolation parameters (if any)
-      ParamNode* intNode = rhsValuesNode->Get("interpolation", false);
+      ParamNode* intNode = NULL;
+      if(rhsValuesNode->Has("interpolation"))
+        intNode = rhsValuesNode->Get("interpolation", false);
+      
       if (intNode) {
         interpolate_ = true;
         
         tmpNode = intNode->Get("srcRegions", false);
-        if (tmpNode) {
+        if (tmpNode->HasChildren()) {
           // names of source regions
           tmpNode->Get("names", srcRegions);
           // input ID of source regions
@@ -86,13 +87,13 @@ namespace CoupledField {
         // if 3D data are to be interpolated to a 2D grid,
         // where should the xy-plane be?
         tmpNode = intNode->Get("xyPlane", false);
-        if (tmpNode) {
+        if (tmpNode->HasChildren()) {
           tmpNode->Get("z", z_, false);
           tmpNode->Get("tol", zEpsilon_, false);
         }
         
         tmpNode = intNode->Get("tolerances", false);
-        if (tmpNode) {
+        if (tmpNode->HasChildren()) {
           // tolerance in global coordinates
           ParamNode* tolNode = tmpNode->Get("global", false);
           if (tolNode) {
@@ -114,8 +115,8 @@ namespace CoupledField {
         intNode->Get("restartFileMode", restartFileMode_, false);
         
         // verbosity of warnings
-        tmpNode = intNode->Get("nodeWarnings", false);
-        if (tmpNode) {
+        tmpNode = intNode->Get("nodeWARNs", false);
+        if (tmpNode->HasChildren()) {
           std::string dispStr = tmpNode->Get("display")->AsString();
           if (dispStr == "verbose")
             node_warnings_ = (ciWarnFlags) (CI_WARN_YES | CI_WARN_VERBOSE);
@@ -157,10 +158,9 @@ namespace CoupledField {
 
         // linear interpolation does not make sense here
         if (asyncSteps_ == "interpolate") {
-          *warning << "For a harmonic analysis it makes no sense to use "
-            << "linear frequency step interpolation; switching to nearest "
-            << "neighbor.";
-          Warning(__FILE__, __LINE__);
+          WARN("For a harmonic analysis it makes no sense to use "
+               << "linear frequency step interpolation; switching to nearest "
+               << "neighbor.");
           asyncSteps_ = "nearest";
         }
       }
@@ -287,9 +287,8 @@ namespace CoupledField {
           else if (intFactor > 1.0) {
             intFactor = 1.0;
             if (intFactor > 1.0 + timeTol) {
-              *warning << "Current time/frequency step is beyond the last "
-                       << "step of input file (id='" << srcInputId_ << "')";
-              Warning(__FILE__, __LINE__);
+              WARN("Current time/frequency step is beyond the last "
+                   << "step of input file (id='" << srcInputId_ << "')");
             }
           }
         }
@@ -482,10 +481,9 @@ namespace CoupledField {
                 }
               }
               else {
-                (*warning) << "An error occured while reading the restart file "
-                           << "for conservative interpolation weights. All "
-                           << "weights will be recalculated.";
-                Warning(__FILE__, __LINE__);
+                WARN("An error occured while reading the restart file "
+                     << "for conservative interpolation weights. All "
+                     << "weights will be recalculated.");
               }
             }
   
@@ -516,9 +514,8 @@ namespace CoupledField {
                 }
               }
               else {
-                (*warning) << "An error occured while writing the restart file "
-                           << "for conservative interpolation weights.";
-                Warning(__FILE__, __LINE__);
+                WARN("An error occured while writing the restart file "
+                     << "for conservative interpolation weights.");
               }
             }
             
@@ -612,13 +609,10 @@ namespace CoupledField {
                   // If this condition occurs it means that some source nodes
                   // do not have coservative interpolation weights in consInterpWeights_[i]
                   // so that the for loop above does not do anything.
-                  std::stringstream str;
-                  str << "Sum of interpolated source terms (" << sum << ") off by "
-                    << (ratio * 100) << "% of sum of original source terms ("
-                    << sum_orig << ") from node index " << j
-                    << " in source region '" << srcRegions_[i] << "'.";
-
-                  Warning(str.str().c_str(), __FILE__, __LINE__);
+                  WARN("Sum of interpolated source terms (" << sum << ") off by "
+                       << (ratio * 100) << "% of sum of original source terms ("
+                       << sum_orig << ") from node index " << j
+                       << " in source region '" << srcRegions_[i] << "'.");
                 }
               }
             }
@@ -635,9 +629,8 @@ namespace CoupledField {
             std::ofstream badNodesFile;
 
             if (node_warnings_ & CI_WARN_YES) {
-              (*warning) << "During conservative interpolation " << numBadNodes
-              << " nodes in total were not mapped.";
-              Warning(__FILE__, __LINE__);
+              WARN("During conservative interpolation " << numBadNodes
+                   << " nodes in total were not mapped.");
             }
 
             if (node_warnings_ & CI_WARN_LIST) {
@@ -652,9 +645,8 @@ namespace CoupledField {
 
             for(UInt i=0; i<numBadNodes; ++i) {
               if (node_warnings_ & CI_WARN_VERBOSE) {
-                (*warning) << "Node " << unmapped_nodes[i] << " from source "
-                           << "grid could not be mapped to destination grid.";
-                Warning(__FILE__, __LINE__);
+                WARN("Node " << unmapped_nodes[i] << " from source "
+                     << "grid could not be mapped to destination grid.");
               }
               if ((node_warnings_ & CI_WARN_LIST) && badNodesFile) {
                 badNodesFile << unmapped_nodes[i] << std::endl;

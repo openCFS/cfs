@@ -10,7 +10,6 @@
 #include "multigrid/hierarchylevel.hh"
 #include "multigrid/gaussseidel.hh"
 #include "multigrid/jacobi.hh"
-#include "algsys/olasparams.hh"
 
 #include "solver/generatesolver.hh"
 #include "solver/basesolver.hh"
@@ -530,7 +529,7 @@ HIERARCHY_EXPORT_VECTOR( sol, "u_%d.04" );
             typename Smoother<T>::Direction dir = Smoother<T>::FORWARD;
             sol.Init();
             do{ if( ++nExactSmoothingSteps > maxNumSmoothingSteps ) {
-                    Warning( __FILE__, __LINE__,
+                    WARN( __FILE__, __LINE__,
                              "AMG: Used smoother as exact solver on coarsest "
                              "level, but did not succeed within %d steps "
                              "-> aborting exact solving, choose a better exact "
@@ -970,7 +969,7 @@ TraceCFSplitting( AMG_CF_TRACE_TYPE *trace,
         for( Integer i = 1; i <= sizeh; i++ )  indexMap[i] =  i;
     } else {
         if( !trace || !indexMap) {
-            Warning( __FILE__, __LINE__,
+            WARN( __FILE__, __LINE__,
                      "HierarchyLevel::TraceCFSplitting: (level %d) this "
                      " function should be called on coarser levels only "
                      "recursively by the next finer level", GetLevelID() );
@@ -982,7 +981,7 @@ TraceCFSplitting( AMG_CF_TRACE_TYPE *trace,
     // also part of this level.
     for( Integer ih = 1; ih <= sizeh; ih++ ) {
         if( ++trace[indexMap[ih]] != GetLevelID() ) {
-            Warning( __FILE__, __LINE__,
+            WARN( __FILE__, __LINE__,
                      "HierarchyLevel::TraceCFSplitting: error on "
                      "level %d", GetLevelID() );
             traceResult = false;
@@ -1005,7 +1004,7 @@ TraceCFSplitting( AMG_CF_TRACE_TYPE *trace,
             delete [] ( indexMapH );  indexMapH  = NULL;
         // Topology_ == NULL
         } else {
-            Warning( __FILE__, __LINE__,
+            WARN( __FILE__, __LINE__,
                      "HierarchyLevel::TraceCFSplitting: no topology "
                      "object on level %d. Cannot trace coarsening",
                      GetLevelID() );
@@ -1033,14 +1032,14 @@ TraceCFSplitting( AMG_CF_TRACE_TYPE *trace,
 #endif
                 fclose( file );
             } else {
-                Warning( __FILE__, __LINE__,
+                WARN( __FILE__, __LINE__,
                          "HierarchyLevel::TraceCFSplitting: could not open "
                          "file \033[1\"%s\"\033[0m. Trace file not written",
                          filename );
                 traceResult = false;
             }
         } else {
-            Warning( "HierarchyLevel::TraceCFSplitting:\n since there were "
+            WARN( "HierarchyLevel::TraceCFSplitting:\n since there were "
                      "errors on at least one level, no splitting trace file "
                      "is written.", __FILE__, __LINE__ );
         }

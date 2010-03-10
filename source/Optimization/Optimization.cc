@@ -859,8 +859,10 @@ void Optimization::Log::Init(const string& log_name, ParamNode* pn_log)
 
     if(pn_log != NULL)
     {
-      design = pn_log->Get("design")->AsBool();
-      designGradient = pn_log->Get("designGradient")->AsBool();
+      design = false;
+      pn_log->Get("design", design, false);
+      designGradient = false;
+      pn_log->Get("designGradient", designGradient, false);
     }
   }
 }

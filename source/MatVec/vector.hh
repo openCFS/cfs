@@ -170,10 +170,9 @@ template<typename T> class ElemStoreSol;
     {
       if(memBelongsToMe_ == false)
       {
-        (*warning) << "DecoupleMem was called on a vector object not "
-        << "responsible for managing its memory block! Memory "
-        << "problems may arise!";
-        Warning( __FILE__, __LINE__ );
+        WARN("DecoupleMem was called on a vector object not "
+             << "responsible for managing its memory block! Memory "
+             << "problems may arise!");
       }
       memBelongsToMe_ = false;
       return data_;

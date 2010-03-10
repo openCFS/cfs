@@ -295,8 +295,7 @@ namespace CoupledField {
 
 #ifdef DEBUG_LAPACKGBMATRIX
       if ( data_ == NULL ) {
-        Error( "LapackGBMatrix::GetDataPointer0 data_ has not been allocated!",
-               __FILE__, __LINE__ );
+        Error( "LapackGBMatrix::GetDataPointer0 data_ has not been allocated!" );
       }
 #endif
 
@@ -313,8 +312,7 @@ namespace CoupledField {
 
 #ifdef DEBUG_LAPACKGBMATRIX
       if ( data_ == NULL ) {
-        Error( "LapackGBMatrix::GetDataPointer0 data_ has not been allocated!",
-               __FILE__, __LINE__ );
+        EXCEPTION( "LapackGBMatrix::GetDataPointer0 data_ has not been allocated!");
       }
 #endif
 

@@ -52,7 +52,7 @@ class DirectCoupledPDE;
 
     //! Return current time / frequency step of simulation
     UInt GetActStep( const std::string& pdename ) {
-      Warning("Tom: Does there exist a meaningful value for this?");
+      WARN("Tom Lahmer: Does there exist a meaningful value for this?");
       return 0;
     }
 

@@ -155,22 +155,20 @@ namespace CoupledField {
       // for ( std::vector<CoordFormat::triple>::iterator it=entries_.begin();
       //      it != entries_.end(); it++ ) {
       //  if ( it.ridx > nrows_ || it.ridx < 1 ) {
-      //    (*error) << "Row index of entry out of bounds:\n"
+      //    EXCEPTION("Row index of entry out of bounds:\n"
       //           << "row index    = " << it.ridx
       //           << " should be in [1," << nrows_ << "]\n"
       //           << "column index = " << it.cidx
       //             << " should be in [1," << ncols_ << "]\n"
-      //             << " value       = " << it.value;
-      //    Error( __FILE__, __LINE__ );
+      //             << " value       = " << it.value);
       //  }
       //  if ( it.cidx > ncols_ || it.cidx < 1 ) {
-      //    (*error) << "Column index of entry out of bounds:\n"
+      //    EXCEPTION("Column index of entry out of bounds:\n"
       //             << "row index    = " << it.ridx
       //             << " should be in [1," << nrows_ << "]\n"
       //             << "column index = " << it.cidx
       //             << " should be in [1," << ncols_ << "]\n"
-      //             << " value       = " << it.value;
-      //    Error( __FILE__, __LINE__ );
+      //             << " value       = " << it.value);
       //  }
       //}
 

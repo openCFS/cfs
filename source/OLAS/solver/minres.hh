@@ -243,7 +243,7 @@ namespace CoupledField {
     //!                 for this solver
     //! \param myReport pointer to report object for storing general
     //!                 information on solution process
-    MINRESSolver( OLAS_Params *myParams, OLAS_Report *myReport );
+    MINRESSolver( ParamNode* solverNode, InfoNode *olasInfo );
 
     //! Default Destructor
 

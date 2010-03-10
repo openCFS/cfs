@@ -11,7 +11,209 @@
 #include "General/environment.hh"
 #include "MatVec/matrix.hh"
 
+#include <boost/math/special_functions/bessel.hpp>
+
+
 namespace CoupledField {
+
+
+//! =======================================================================
+//! List of mathematical functions, primarily for the use in mathParser
+//! to generate signals
+//! =======================================================================
+
+
+  //! Generate a sinus burst signal
+  Double SinBurst( Double freq, Double numPeriods,
+                Double nPerFadeIn, Double nPerFadeOut,
+                Double t) {
+
+    Double ret = 0.0;
+
+    Double T = 1.0 / freq;
+
+    if( t < nPerFadeIn * T ) {
+      ret = sin( 2 * PI * freq * t) *
+            pow( sin( 2 * PI * freq * t / 4 / nPerFadeIn), 2);
+    }
+    else if( t < (numPeriods - nPerFadeOut) * T )  {
+      ret = sin( 2 * PI * freq * t);
+    }
+    else if( t < numPeriods * T) {
+      ret = sin( 2 * PI * freq * t) *
+            pow( sin( 2 * PI * freq *
+                (t - numPeriods * T) / 4 / nPerFadeOut), 2);
+    }
+
+    return ret;
+  }
+
+  //! return a fade-in function
+  Double FadeIn( Double fadeInTime, Double mode, Double t) {
+
+    Double ret = 0.0;
+
+    //! Helper Parameter for the exp functions
+    Double T0 = 0.0;
+
+    //! amount in percent that will be reached after fadeInTime
+    Double perCent = 0.999;
+
+
+
+    if( mode == 1) {
+      //! using sin^2
+      if ( t < fadeInTime ) {
+        ret = sin(2 * PI * t / fadeInTime / 4) * sin(2 * PI * t / fadeInTime / 4);
+      }
+      else {
+        ret = 1.0;
+      }
+    }
+    else if( mode == 2) {
+      //! using exp
+      T0 = fadeInTime / ( -1.0 * log( 1 - perCent) );
+      ret = 1 - exp( -(t/T0) );
+    }
+    else if( mode == 3) {
+      //! using exp.^2
+      T0 = fadeInTime / sqrt( -1.0 * log( 1 - perCent) );
+      ret = 1 - exp( -(t/T0) * (t/T0) );
+    }
+
+    return ret;
+  }
+
+  //! Generate a spike signal
+  Double Spike( Double duration, Double t ) {
+    Double ret=0.0, riseT=duration/2;
+
+    if (t <= duration)
+      ret = (t <= riseT) ? t/riseT : 2.0-t/riseT;
+
+    return ret;
+  }
+
+  //! Generate a band-filtered spike signal
+  Double SpikeBPF( Double cutOff, Double slewRate, Double t ) {
+    return 0;
+  }
+
+  //! Generate a square pulse signal
+  Double CosPulseComb( Double freq, Double pulseWidth, Double t ) {
+
+    Double ret = 0.0;
+
+    Double T = 1.0 / freq;
+
+    if( (Mod(t,T) < pulseWidth/2.0) || (Mod(t,T) > T - pulseWidth/2.0)  )  {
+      ret = 1 + cos( 2 * PI * t / pulseWidth);
+    }
+
+    return ret;
+  }
+
+
+
+  //! Generate a square pulse signal
+  Double SquarePulse( Double freq, Double numPeriods, Double biPolarType,
+                      Double pulseWidth, Double riseTime, Double t ) {
+
+    PolarType pT = (PolarType) (Integer) biPolarType;
+
+    Double ret = 0.0;
+
+    Double T = 1.0 / freq;
+
+    if( t > numPeriods * T )  {
+      ret = sin( 2 * PI * freq * t );
+    }
+
+    switch ( pT ) {
+
+      case UNI_POLAR:
+        if( fmod(t,T) < riseTime ) {
+          ret = 1.0/riseTime*fmod(t,T);
+        }
+        else if( fmod(t,T) < pulseWidth/100*T) {
+          ret = 1.0;
+        }
+        else if( fmod(t,T) < pulseWidth/100*T+riseTime)
+          ret = 1.0 - 1.0/riseTime*(fmod(t,T)-pulseWidth/100*T);
+        else {
+          ret = 0.0;
+        }
+        break;
+
+      case BI_POLAR:
+        if( fmod(t,T) < riseTime/2 ) {
+          ret = 2.0/riseTime*fmod(t,T);
+        }
+        else if( fmod(t,T) < pulseWidth/100*T-riseTime/2) {
+          ret = 1.0;
+        }
+        else if( fmod(t,T) < pulseWidth/100*T+riseTime/2) {
+          ret = 1.0 - 2.0/riseTime*(fmod(t,T)-pulseWidth/100*T+riseTime/2);
+        }
+        else if( fmod(t,T) < T-riseTime/2) {
+          ret = -1.0;
+        }
+        else {
+          ret= -1.0 + 2.0/riseTime*(fmod(t,T)+riseTime/2-T);
+        }
+        break;
+
+      default:
+        EXCEPTION( "Polar Type '" <<  pT << "' not known!" );
+    }
+
+    if( t > numPeriods * T )  {
+      ret = 0.0;
+    }
+
+    return ret;
+  }
+
+  //! Modulo function
+  Double Mod( Double x, Double m ) {
+
+    return x-floor(x/m)*m;
+  }
+
+  //! Generate a Gauss shaped signal
+  //! normVal: 1   the returned max val equals to 1
+  //!          0   the integral value of the returned values equals 1
+
+  Double Gauss( Double mue, Double sigma, Double normVal, Double x ) {
+    Double help = (x - mue) / sigma;
+    if( normVal == 1) {
+      return exp( -0.5 * help * help );
+    }
+    else {
+      return 1.0 / ( sigma * sqrt( 2 * PI) ) *
+             exp( -0.5 * help * help );
+    }
+  }
+
+  //! Calculate cylindric bessel function of first kind
+  Double BesselCylJ( Double x, Double v ) {
+    return boost::math::cyl_bessel_j(v, x);
+  }
+
+  //! Calculate cylindric bessel function of second kind
+  Double BesselCylY( Double x, Double v ) {
+    return boost::math::cyl_neumann(v, x );
+  }
+
+  //! Calculate spherical bessel function of first kind
+  Double BesselSphJ( Double x, Double v ) {
+    return boost::math::sph_bessel( (UInt) v, x );
+  }
+
+  //! Calculate spherical bessel function of second kind
+  Double BesselSphY( Double x, Double v ) {
+    return boost::math::sph_neumann( (UInt) v, x );
+  }
 
   Double gammaln(Double xx)
   {

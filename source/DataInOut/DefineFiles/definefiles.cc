@@ -138,20 +138,24 @@ void DefineInOutFiles::CreateSimInputFiles(std::map<std::string, shared_ptr<
   std::string informat = "mesh";
   StdVector<ParamNode *> inputOptionNodes;
   ParamNode * inputNode = param->Get("fileFormats") ->Get("input", false);
+  inputOptionNodes = inputNode->GetChildren();
 
   // if no reader is defined explictly, create implicit one
-  if (!inputNode)
+  if (!inputOptionNodes.GetSize())
   {
     actId = "default";
     actGridId = "default";
     if (meshFile.empty())
       meshFile = simName + ".mesh";
+    
+    ParamNode* meshNode = inputNode->Get("mesh", false);
+    meshNode->Get("id", actId, false);
+    meshNode->Get("gridId", actGridId, false);
+    
     inFiles[actId] = shared_ptr<SimInput> (new SimInputMESH(meshFile, NULL ));
     gridInputs[actGridId].Push_back(inFiles[actId]);
     return;
   }
-
-  inputOptionNodes = inputNode->GetChildren();
 
   for (UInt i = 0; i < inputOptionNodes.GetSize(); i++)
   {
@@ -263,7 +267,7 @@ void DefineInOutFiles::CreateSimOutputFiles(std::map<std::string, shared_ptr<
 
   if (!outNode)
   {
-    Warning("There was no output writer specified at all", __FILE__, __LINE__ );
+    WARN("There was no output writer specified at all");
   }
   StdVector<ParamNode*> formatNodes = outNode->GetChildren();
   

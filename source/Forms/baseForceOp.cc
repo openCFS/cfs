@@ -27,7 +27,7 @@ namespace CoupledField
                            bool isaxi, bool coordUpdate )
     : BaseOperator(ptGrid, ptPDE, eqnMap, isaxi, coordUpdate )
   {
-    //Warning( "Only working wit Lagrange elements", __FILE__, __LINE__ );
+    //WARN( "Only working wit Lagrange elements" );
     dim_ = dim;
     materials_ = matData;
 

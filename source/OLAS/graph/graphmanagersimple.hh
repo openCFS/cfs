@@ -73,8 +73,8 @@ namespace CoupledField {
     void RegisterPDE( const PdeIdType identifierPDE,
                       const UInt numEqns,
                       const UInt numLastFreeDof,
-                      const ReorderingType reorder 
-                      = NOREORDERING );
+                      const BaseOrdering::ReorderingType reorder 
+                      = BaseOrdering::NOREORDERING );
 
     //@}
 
@@ -245,7 +245,7 @@ namespace CoupledField {
 
     //! This attribute stores the type of re-ordering that will be applied to
     //! the graph once the latter was completely assembled.
-    ReorderingType reorderType_;
+    BaseOrdering::ReorderingType reorderType_;
 
     //! Attribute for testing wether it is safe to query the graph re-ordering
 

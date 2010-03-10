@@ -189,8 +189,7 @@ namespace CoupledField {
     for ( UInt i = 0; i < numIDBC_; i++ ) {
       if ( dirichletEQN_[i] == 0 ) {
         PrintInternalState( std::cerr );
-        (*error) << "Found unset IDBC (eqnNo = 0): # = " << i;
-        Error( __FILE__, __LINE__ );
+        EXCEPTION("Found unset IDBC (eqnNo = 0): # = " << i);
       }
     }
 //    PrintInternalState( *debug );

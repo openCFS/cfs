@@ -124,9 +124,8 @@ namespace CoupledField {
     //     }
   
     //     if( it == materials_.end() ) {
-    //       (*error) << "PressureLinForm: Surface element number " << actElem_->elemNum
-    //                << " has no mechanic volume element neighbour!";
-    //       Error( __FILE__, __LINE__ );
+    //       EXCEPTION("PressureLinForm: Surface element number " << actElem_->elemNum
+    //                << " has no mechanic volume element neighbour!");
     //     };
 
     UInt numDofs;

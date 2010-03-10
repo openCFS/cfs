@@ -5,12 +5,15 @@
 #ifndef OLAS_BASE_EIGENSOLVER_HH
 #define OLAS_BASE_EIGENSOLVER_HH
 
+#include "General/Enum.hh"
+#include "MatVec/basematrix.hh"
+
 namespace CoupledField {
   
   class OLAS_BaseMatrix;
   class OLAS_BaseVector;
   template<typename> class Vector;
-  class OLAS_Params;
+  class ParamNode;
   class OLAS_Report;
   
   // forward class declaration
@@ -22,13 +25,25 @@ namespace CoupledField {
   
   //! Base class for algebraic system eigenvalue solver
   class BaseEigenSolver {
+  
+  public:
+    //! Type of EigenSolver
+
+    //! This enumeration data type describes the type of eigensolver which is
+    //! applied to solve a generalized eigenvalue problem. The enumeration
+    //! contains the following:
+    //! - NOEIGENSOLVER
+    //! - ARPACK
+    //! - SUBSPACE
+    typedef enum {NOEIGENSOLVER, ARPACK, SUBSPACE} EigenSolverType;    
+    static Enum<EigenSolverType> eigenSolverType;    
     
   public:
     
     //! Default Constructor
-    BaseEigenSolver( OLAS_Params *myParams, OLAS_Report *myReport )
-      : myParams_(myParams),
-        myReport_(myReport),
+    BaseEigenSolver( ParamNode* solverParams, InfoNode *olasInfo )
+      : xml_(solverParams),
+        olasInfo_(olasInfo),
         numFreq_(0),
         freqShift_(0.0),
         isQuadratic_(false)
@@ -119,13 +134,13 @@ namespace CoupledField {
 
     //! This is a pointer to a parameter object containing the steering
     //! parameters for this solver.
-    OLAS_Params *myParams_;
+    ParamNode *xml_;
     
     //! Pointer to report object
     
     //! This is a pointer to a report object in which the solver will store
     //! general information about the solution of a linear system.
-    OLAS_Report *myReport_;
+    InfoNode *olasInfo_;
     
     //! Number of frequencies to be calculated
     UInt numFreq_;

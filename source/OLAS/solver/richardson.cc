@@ -3,7 +3,6 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include "MatVec/generatematvec.hh"
-#include "OLAS/algsys/olasparams.hh"
 
 #include "OLAS/precond/baseprecond.hh"
 #include "OLAS/solver/richardson.hh"
@@ -29,6 +28,9 @@ namespace CoupledField {
 				   const BasePrecond &precond,
 				   const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_step ) {
 
+    EXCEPTION("The Richardson solver has not been in use for a very long time."
+              << "Please check if it is still working for you!");
+    
     // Tracing information
     (*cla) << "### preconditioned Richardson Solver" << std::endl;
 
@@ -50,10 +52,15 @@ namespace CoupledField {
     Double norm_old;
 
     // Query parameter object for values
-    Integer maxiter = myParams_->GetIntValue   ( "MaxIter" );
-    Double eps      = myParams_->GetDoubleValue( "eps"     );
-    Double epsmach  = myParams_->GetDoubleValue( "epsmach" );
-    Double omega    = myParams_->GetDoubleValue( "R_Omega" );
+    ParamNode* pn = xml_->Get("solver", false);
+    Integer maxiter = 1;
+    pn->Get("richardson", "maxIter", maxiter, false);
+    Double eps      = 1e-6;
+    pn->Get("richardson", "tol", eps, false);
+    Double epsmach  = 1e-20;
+    pn->Get("richardson", "epsmach", epsmach, false);
+    Double omega    = 1.0;
+    pn->Get("richardson", "omega", omega, false);
 
 #ifdef DEBUG_RICHARDSON
     (*debug) << " ------- START RICHARDSON ITERATION -------- " << std::endl;
@@ -159,8 +166,10 @@ namespace CoupledField {
     // ****************************
     //   Generate solution report
     // ****************************
-    myReport_->SetValue( "numIter", niter );
-    myReport_->SetValue( "finalPrecondResNorm", norm_new );
+    InfoNode* out = solverInfo_->Get(InfoNode::PROCESS)->Get("solver", InfoNode::APPEND);
+    out->Get("numIter")->SetValue(niter);
+    out->Get("finalPrecondResNorm")->SetValue(norm_new);
+    
   }
 
 // Explicit template instantiation

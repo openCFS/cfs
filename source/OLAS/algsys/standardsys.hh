@@ -19,7 +19,6 @@ namespace CoupledField
   class PatternPool;
   class InfoNode;
 
-
   //! Linear algebraic system for normal scalar- and blocksystems
 
   //! This class implements the default user interface for %OLAS in the case
@@ -75,7 +74,7 @@ namespace CoupledField
     void CreatePrecond();
 
     /** @see BaseSystem::CreateSolver */
-    void CreateSolver(InfoNode* olasInfo);
+    void CreateSolver();
 
     //! Generate EigenSolver object
 
@@ -86,7 +85,7 @@ namespace CoupledField
     //! be called.
     //! \note If an Eigenfrequency analysis is performed, the methods
     //! SetupPrecond() and SetupSolver() must not be called!
-    void CreateEigenSolver(InfoNode* eigenInfo);
+    void CreateEigenSolver();
 
     //! Trigger setup of preconditioner
 

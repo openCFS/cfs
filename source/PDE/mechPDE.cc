@@ -719,7 +719,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
         //           else if (subType_ == "3d")
         //             bilinearPreStress = new PreStressInt3D(actSDMat, preStrVal);
         //           else
-        //             Info->Error("Unknown subtype in mech PDE! ",__FILE__,__LINE__);
+        //             EXCEPTION("Unknown subtype in mech PDE! ");
 
         //           BiLinFormContext * actIntDescrPre =
         //             new BiLinFormContext(bilinearPreStress, STIFFNESS );
@@ -1563,10 +1563,9 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     //         }
 
     //         if ( matIndex == -1) {
-    //           (*error) << "MechPDE::CalcAcousticCouplingRHS: The two volume "
+    //           EXCEPTION( "MechPDE::CalcAcousticCouplingRHS: The two volume "
     //                    << "element neighbours of surface element Nr. "
-    //                    << actCoupleElem->elemNum << " do not belong to my regions!";
-    //           Error( __FILE__, __LINE__ );
+    //                    << actCoupleElem->elemNum << " do not belong to my regions!" );
     //         }
 
     //         // Assign correct density
@@ -1657,18 +1656,20 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       }
     }
 
+    ParamNode* systemNode = FindLinearSystem(pdename_);
+    
     if ( fracDamping_ == false ) {
       if ( effectiveMass_ == true ) {
         if ( diagMass_ == true ) {
           //explicit time stepping
-          TS_alg_ = new NewmarkEffMass( algsys_, pdename_, true );
+          TS_alg_ = new NewmarkEffMass( algsys_, systemNode, true );
         }
         else {
-          TS_alg_ = new NewmarkEffMass( algsys_, pdename_, false );
+          TS_alg_ = new NewmarkEffMass( algsys_, systemNode, false );
         }
       }
       else if ( effectiveMass_ == false ) {
-        TS_alg_ = new Newmark( algsys_, pdename_ );
+        TS_alg_ = new Newmark( algsys_, systemNode );
       }
     }
     else {
@@ -1697,14 +1698,18 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     ParamNode * volNode =
       resultsNode->Get("surfRegionResult", "type", "volumeAboveDefSurf", false );
     if( !volNode ) return;
-    StdVector<ParamNode*> volListNodes =
-      volNode->Get("surfRegionList")->GetList( "surfRegion" );
+    StdVector<ParamNode*> volListNodes;
+    UInt saveBegin=0, saveEnd=2000000, saveInc=1;
+    
+    if(volNode->Has("surfRegionList"))
+    {  
+      volListNodes = volNode->Get("surfRegionList")->GetList( "surfRegion" );
 
-    UInt saveBegin, saveEnd, saveInc;
-    volNode->Get("surfRegionList")->Get("saveBegin", saveBegin );
-    volNode->Get("surfRegionList")->Get("saveEnd", saveEnd );
-    volNode->Get("surfRegionList")->Get("saveInc", saveInc );
-
+      volNode->Get("surfRegionList")->Get("saveBegin", saveBegin );
+      volNode->Get("surfRegionList")->Get("saveEnd", saveEnd );
+      volNode->Get("surfRegionList")->Get("saveInc", saveInc );
+    }
+    
     if( volListNodes.GetSize() > 0 ) {
       ResultHandler * resHandler = domain->GetResultHandler();
 
@@ -2091,8 +2096,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
 
 
     default:
-      Warning( "Resulttype not computable by mechanic PDE",
-               __FILE__, __LINE__ );
+      WARN( "Resulttype not computable by mechanic PDE" );
     }
   }
 

@@ -726,7 +726,7 @@ namespace CoupledField
                                                      nodalVel, elemVec, density);
       } catch (CoupledField::Exception &ex)
       {
-        std::cerr << "Warning: An Exception occurred during source term "
+        std::cerr << "WARN: An Exception occurred during source term "
                   << "computation:\nElement " << i+1 << " of partition "
                   << ptFileReader_->GetRegionName(regionIdx) << std::endl;
 

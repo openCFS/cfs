@@ -110,7 +110,7 @@ namespace CoupledField
 
     /** This is not Ilupack intern but Olas stuff. It means that this is
      * a Ilupack, the actual solver called by the lib is in Ilupack::Solver */
-    SolverType GetSolverType() { return ILUPACK_SOLVER; }
+    BaseSolver::SolverType GetSolverType() { return BaseSolver::ILUPACK; }
 
     /** This are the names of the matrix types in ILUPACK style */
     typedef enum { GNL, SYM, PD, HER } Matrix;

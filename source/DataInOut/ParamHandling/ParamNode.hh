@@ -130,6 +130,9 @@ namespace CoupledField
              const std::string& child, 
              const std::string& value ) const;  
         
+    /** Checks if current node has children */
+    bool HasChildren() const;
+    
     /** Get all direct childs of a name
      * example: param.Get("pdeList").Get("mechanic").Get("bcsAndLoads").GetList("dirichletInHom") */
     StdVector<ParamNode*> GetList(const std::string&  name);
@@ -208,7 +211,16 @@ namespace CoupledField
     {
       return input.find('/') != std::string::npos;
     }
-    
+
+    /** Write back entries into the ParamNode tree if the Get functions cannot find.
+     *  a previous value.
+     * @param writeBack Should this ParamNode write back changes while querying with Get
+     */
+    void WriteBack(bool writeBack=true)
+    {
+      writeBack_ = writeBack;
+    }
+
   protected:
 
     /** Helper that implements a Get() as same as Has(). Call this if ContainsTokens() returns true. */
@@ -230,6 +242,8 @@ namespace CoupledField
     
     /** cache variable for last Get() result */
     int lastresultidx_;
+    
+    bool writeBack_;
   }; 
 
   

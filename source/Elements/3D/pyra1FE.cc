@@ -155,8 +155,6 @@ namespace CoupledField
 
     if (Shape[4] < 0)
       std::cerr << "There would be 'Local coordinates are not inside pyramidal element!' in Pyra1FE::CalcShapeFnc() ?? - Fabian\n";
-      // Killme - check this!! Fabian 14.06.06
-      // Error("Local coordinates are not inside pyramidal element!",__FILE__,__LINE__);
 
   }
 

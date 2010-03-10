@@ -91,12 +91,9 @@ Domain::Domain(
 
 void Domain::CreateGrid()
 {
-
-  // read type of mesh library
+  // Type of mesh library. May either be cfsGrid or adaptGrid
+  // (if AdaptGrid should be ever revived.)
   std::string libmesh = "cfsGrid";
-  ParamNode * inputNode = param->Get("input", false);
-  if (inputNode)
-    inputNode->Get("meshLibrary", libmesh);
 
   std::string probGeo;
   param->Get("domain")->Get("geometryType", probGeo);
@@ -125,9 +122,8 @@ void Domain::CreateGrid()
     std::string gridId = gridIt->first;
     if ((gridId != "default") && (gridInputs_.size() == 1))
     {
-      (*warning) << "Grid '" << gridId << "' was renamed to 'default', as "
-          << "it is the only one.";
-      Warning(__FILE__, __LINE__);
+      WARN("Grid '" << gridId << "' was renamed to 'default', as "
+          << "it is the only one.");
       gridId = "default";
     }
 

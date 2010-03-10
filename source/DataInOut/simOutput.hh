@@ -86,7 +86,7 @@ namespace CoupledField {
          ( c.real() < 0.0 ) ? 180 : 0 ; 
     }
     
-    /** checks the result info for nodes and elements. if not such a Warning is printed!
+    /** checks the result info for nodes and elements. if not such a WARN is printed!
      * @return true if nodes and elements */
     bool ValidateNodesAndElements(ResultInfo& actInfo);
 

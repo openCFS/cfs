@@ -12,6 +12,29 @@
 
 namespace CoupledField {
 
+  static EnumTuple precondTypeTuples[] = 
+  {
+    EnumTuple( BasePrecond::NOPRECOND, "noPrecond" ),
+    EnumTuple( BasePrecond::ID, "Id" ),
+    EnumTuple( BasePrecond::MG, "MG"),
+    EnumTuple( BasePrecond::JACOBI, "Jacobi"),
+    EnumTuple( BasePrecond::SSOR, "SSOR" ),
+    EnumTuple( BasePrecond::ILU0, "ILU0" ),
+    EnumTuple( BasePrecond::ILUTP, "ILUTP"),
+    EnumTuple( BasePrecond::ILUK, "ILUK"),
+    EnumTuple( BasePrecond::ILDL0, "ILDL0" ),
+    EnumTuple( BasePrecond::ILDLK, "ILDLK" ),
+    EnumTuple( BasePrecond::ILDLTP, "ILDLTP"),
+    EnumTuple( BasePrecond::ILDLCN, "ILDLCN"),
+    EnumTuple( BasePrecond::IC0, "IC0" ),
+  };
+
+  Enum<BasePrecond::PrecondType> BasePrecond::precondType = \
+  Enum<BasePrecond::PrecondType>("Preconditioner Types",
+      sizeof(precondTypeTuples) / sizeof(EnumTuple),
+      precondTypeTuples); 
+
+
   void BaseStdPrecond::Apply( const BaseMatrix &sysmat, const BaseVector &r, 
                            BaseVector &z ) const {
     const StdMatrix& stdsysmat = dynamic_cast<const StdMatrix&>(sysmat);

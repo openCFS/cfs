@@ -22,12 +22,11 @@ namespace CoupledField {
   //   Constructor
   // ***************
   template<typename T>
-  GMRESSolver<T>::GMRESSolver( OLAS_Params *myParams, OLAS_Report *myReport ){
-
+  GMRESSolver<T>::GMRESSolver( ParamNode* solverNode, InfoNode *olasInfo ){
+    xml_ = solverNode;
 
     // Set pointers to communication objects
-    myParams_ = myParams;
-    myReport_ = myReport;
+    solverInfo_ = olasInfo->Get("gmres");
 
     // Prepare remaining internal attributes
     c_              = NULL;
@@ -98,7 +97,13 @@ namespace CoupledField {
 #ifndef NDEBUG
     UInt nRows = sysMat.GetNumRows();
 #endif
-    UInt newKrylovDim = (UInt)myParams_->GetIntValue( "GMRES_maxKrylovDim" );
+    UInt newKrylovDim = 50;
+    ParamNode *sNode = NULL;
+    sNode = xml_->Get("gmres", false);
+    if(sNode) {
+      sNode->Get("maxKrylovDim", newKrylovDim, false);
+    }
+    
 
     // Check that matrix is square
     assert(nCols == nRows); 
@@ -106,12 +111,10 @@ namespace CoupledField {
     // Check that the maximal dimension of the Krylov subspace is not
     // larger than the dimension of the problem
     if ( newKrylovDim > nCols ) {
-      (*warning) << "maxKrylovDim = " << newKrylovDim << " exceeds matrix "
-                 << " dimension = " << nCols << ". Using " << nCols
-                 << " instead.";
-      Warning( __FILE__, __LINE__ );
+      WARN("maxKrylovDim = " << newKrylovDim << " exceeds matrix "
+           << " dimension = " << nCols << ". Using " << nCols
+           << " instead.");
       newKrylovDim = nCols;
-      myParams_->SetValue( "GMRES_maxKrylovDim", (Integer)nCols );
     }
 
     // -------------------------------------
@@ -162,10 +165,11 @@ namespace CoupledField {
   template<typename T>
   void GMRESSolver<T>::Solve( const BaseMatrix &sysMat,
                               const BasePrecond &precond,
-                              const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_step ) {
+                              const BaseVector &rhs, BaseVector &sol,
+                              InfoNode* analysis_step ) {
 
 
-    bool logging = myParams_->GetBoolValue( "GMRES_logging" );
+    bool logging = false;
 
 
     // ------------------------------------------------------
@@ -206,7 +210,13 @@ namespace CoupledField {
     //   initial residual in this way
     // -------------------------------------------------------------
     Double resNorm = 0;
-    Double eps = myParams_->GetDoubleValue( "GMRES_epsilon" );
+    Double eps = 1e-6;
+    ParamNode *sNode = NULL;
+    sNode = xml_->Get("gmres", false);
+    if(sNode) {
+      sNode->Get("tol", eps, false);
+    }
+    
     Double tolerance = ComputeThreshold( eps, rhs, *(vMat_[1]), resNorm,
                                          logging );
     if ( logging == true ) {
@@ -217,7 +227,11 @@ namespace CoupledField {
     // ----------------------------------
     //   Perform the GMRES(m) iteration
     // ----------------------------------
-    Integer maxIter = myParams_->GetIntValue( "GMRES_maxIter" );
+    Integer maxIter = 1;
+    if(sNode) {
+      sNode->Get("maxIter", maxIter, false);
+    }
+
     Integer loopsDone = maxIter;
     UInt stepCount = 0;
     UInt stepCountGlobal = 0;
@@ -268,24 +282,26 @@ namespace CoupledField {
     // ----------------------------
 
     // Number of iterations: Depends on GMRES(m) -> Full GMRES
+    InfoNode* out = solverInfo_->Get(InfoNode::PROCESS)->Get("solver", InfoNode::APPEND);
+    
     if ( maxIter == 1 ) {
-      myReport_->SetValue( "numIter", (Integer)stepCount );
-      myReport_->SetValue( "numGlobalIter", (Integer)stepCount );
+      out->Get("numIter")->SetValue( (Integer)stepCount );
+      out->Get("numGlobalIter")->SetValue( (Integer)stepCount );
     }
     else {
-      myReport_->SetValue( "numIter", loopsDone );
-      myReport_->SetValue( "numGlobalIter", (Integer)stepCountGlobal );
+      out->Get("numIter")->SetValue( loopsDone );
+      out->Get("numGlobalIter")->SetValue( (Integer)stepCountGlobal );
     }
 
     // Final relative residual norm
-    myReport_->SetValue( "finalNorm", resNorm );
+    out->Get("finalNorm")->SetValue(resNorm);
 
     if ( logging == true ) {
       (*cla) << "\n --> Final norm = " << resNorm << std::endl;
     }
 
     // Status of solution
-    myReport_->SetValue( "solutionIsOkay", approxIsGood );
+    out->Get("solutionIsOkay")->SetValue(resNorm);
 
     // Report to standard logfile
     (*cla) << "\n GMRESSolver done\n" << std::endl;
@@ -313,7 +329,8 @@ namespace CoupledField {
     Double resNormOld = 0.0;
     Double resNormNew = beta;
     approxIsGood = false;
-    bool logging = myParams_->GetBoolValue( "GMRES_logging" );
+    
+    bool logging = false;
 
 
     // ------------------
@@ -441,7 +458,7 @@ namespace CoupledField {
   void GMRESSolver<T>::AllocateHessenbergMatrix() {
 
 
-    bool logging = myParams_->GetBoolValue( "GMRES_logging" );
+    bool logging = false;
 
     // First test, if it is really necessary to allocate
     // a new upper Hessenberg matrix. This is the case,
@@ -505,7 +522,7 @@ namespace CoupledField {
   void GMRESSolver<T>::AllocateKrylovBasis( const BaseMatrix &sysMat ) {
 
 
-    bool logging = myParams_->GetBoolValue( "GMRES_logging" );
+    bool logging = false;
 
     // Determine length of base vectors
     UInt oldLength = 0;

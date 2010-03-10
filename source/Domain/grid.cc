@@ -835,14 +835,12 @@ namespace CoupledField
     }
 
     if(relativeElemVol < 1e-3) {
-      std::stringstream sstr;
-      sstr << "Rejecting ncElem due to a relative volume of " << relativeElemVol;
-      sstr << std::endl;
-      sstr << "  for intersection of elements " << ifaceElem1->elemNum;
-      sstr << " (" << region_.ToString(ifaceElem1->regionId) << ") ";
-      sstr << "and " << ifaceElem2->elemNum;
-      sstr << " (" << region_.ToString(ifaceElem2->regionId) << ") ";
-      Warning(sstr.str().c_str(), __FILE__, __LINE__);
+      WARN("Rejecting ncElem due to a relative volume of " << relativeElemVol
+           << std::endl
+           << "  for intersection of elements " << ifaceElem1->elemNum
+           << " (" << region_.ToString(ifaceElem1->regionId) << ") "
+           << "and " << ifaceElem2->elemNum
+           << " (" << region_.ToString(ifaceElem2->regionId) << ") ");
       delete ncElem;
       return false;
     }

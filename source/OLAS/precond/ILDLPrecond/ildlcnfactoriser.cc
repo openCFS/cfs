@@ -7,7 +7,6 @@
 
 #include "MatVec/scrs_matrix.hh"
 #include "MatVec/opdefs.hh"
-#include "OLAS/algsys/olasparams.hh"
 
 #include "OLAS/precond/ILDLPrecond/ildlcnfactoriser.hh"
 #include "OLAS/precond/ILDLPrecond/ildlprecond.hh"
@@ -33,18 +32,17 @@ namespace CoupledField {
   //   Standard constructor
   // ************************
   template <class T>
-  ILDLCNFactoriser<T>::ILDLCNFactoriser( OLAS_Params *myParams,
-                                         OLAS_Report *myReport ) {
+  ILDLCNFactoriser<T>::ILDLCNFactoriser( ParamNode *solverNode,
+                                         InfoNode *olasInfo ) {
 
 
     // Currently this approach is not in a functional state
-    (*warning) << "The ILDLCNFactoriser is still in an experimental state. "
-               << "Do not use is for production runs!";
-    Warning( __FILE__, __LINE__ );
+    WARN("The ILDLCNFactoriser is still in an experimental state. "
+         << "Do not use is for production runs!");
 
     // Set pointers to communication objects
-    this->myParams_ = myParams;
-    this->myReport_ = myReport;
+    this->xml_ = solverNode;
+    this->olasInfo_ = olasInfo;
 
     // Initialise remaining attributes
     this->amFactorised_ = false;
@@ -87,7 +85,9 @@ namespace CoupledField {
     this->sysMatDim_ = sysMat.GetNumCols();
 
     // Dropping threshold
-    Double tau = this->myParams_->GetDoubleValue( "ILDLPRECOND_tau" );
+    Double tau = 0.01;
+    this->xml_->Get("ILDLCN", "threshold", tau, false);
+
     // if ( tau <= 0.0 || tau > 1.0 ) {
     if ( tau < 0.0 ) {
       EXCEPTION( "ILDLCNFactoriser::Factorise: Dropping threshold tau = "
@@ -96,7 +96,7 @@ namespace CoupledField {
     }
  
     // Shall we be verbose?
-    bool logging = this->myParams_->GetIntValue( "ILDLPRECOND_logging" ) > 0;
+    bool logging = false;
 
     // =================
     //  Report start-up
@@ -566,10 +566,9 @@ namespace CoupledField {
 
 #ifdef DEBUG_ILDLCNFACTORISER
             if ( activeListPrevElem > scanListElem ) {
-              (*error) << "Error in active list add: (activeListPrevElem = "
+              EXCEPTION( "Error in active list add: (activeListPrevElem = "
                        << activeListPrevElem << ") < (scanListElem = "
-                       << scanListElem << ")";
-              Error( __FILE__, __LINE__ );
+                       << scanListElem << ")" );
             }
 #endif
 
@@ -616,9 +615,8 @@ namespace CoupledField {
       // We claim that activeListElem >= scanListElem always holds, so
       // now we should have activeListElem = listEnd
       if ( activeListElem != listEnd ) {
-        (*error) << "ILDLCNFACTORISER::Factorise: activeListElem = "
-                 << activeListElem << ", but should be " << listEnd;
-        Error( __FILE__, __LINE__ );
+        EXCEPTION( "ILDLCNFACTORISER::Factorise: activeListElem = "
+                 << activeListElem << ", but should be " << listEnd );
       }
 #endif
       

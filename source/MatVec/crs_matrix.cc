@@ -30,11 +30,10 @@ namespace CoupledField {
     // it to a full matrix currently.
     bool isSymm = sparseMat.GetSymmStorageFlag();
     if ( isSymm == true ) {
-      (*warning) << "Input matrix is stored in symmetric format!\n"
-		 << "We cannot expand this! Creating a matrix containing "
-		 << "only the upper triangle.\n Maybe you should use "
-		 << "an SCRS_Matrix?";
-      Warning( __FILE__, __LINE__ );
+      WARN("Input matrix is stored in symmetric format!\n"
+		       << "We cannot expand this! Creating a matrix containing "
+		       << "only the upper triangle.\n Maybe you should use "
+		       << "an SCRS_Matrix?");
     }
 
     // Set general matrix pattern and dimension info
@@ -154,8 +153,7 @@ namespace CoupledField {
     // Make a consistency check
     // Why do we need to specify nrows and ncols anyway?
     if ( nrows != premat.GetNumRows() ) {
-      Warning( "CRS_Matrix: PreMatrix has mismatched size ", __FILE__,
-	       __LINE__ );
+      WARN( "CRS_Matrix: PreMatrix has mismatched size " );
     }
 
     rowPtr_[0] = 0;
@@ -562,10 +560,7 @@ namespace CoupledField {
 
     // close output file
     if ( fclose( fp ) == EOF ) {
-      char *errmsg = NULL;
-      NEWARRAY( errmsg, char, strlen(fname)+40 );
-      sprintf( errmsg, "Could not close file %s after writing!", fname );
-      Warning( errmsg, __FILE__, __LINE__ );
+      WARN("Could not close file " << fname << " after writing!");
     }
   }
 
@@ -1085,7 +1080,7 @@ namespace CoupledField {
 
 #ifdef DEBUG_CRS_MATRIX
     if ( nrows < 0 || nnz < 0 ) {
-      Error( "invalid dimensions", __FILE__, __LINE__ );
+      EXCEPTION( "invalid dimensions" );
     }
 #endif
 

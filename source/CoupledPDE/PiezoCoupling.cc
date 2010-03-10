@@ -145,8 +145,7 @@ namespace CoupledField {
       break;
 
     default: 
-      Warning( "Resulttype not computable by piezoelectric coupling",
-               __FILE__, __LINE__ );
+      WARN( "Resulttype not computable by piezoelectric coupling" );
     }
   }
 

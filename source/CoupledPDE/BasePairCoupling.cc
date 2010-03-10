@@ -277,7 +277,7 @@ namespace CoupledField {
         // 2D, -> material is rotated by
         // alpha = -90 and gamma = -90 degree, 
         // so that we pick by default the yz-plane      
-        if( !rotNode ) {
+        if( !rotNode->HasChildren() ) {
           if( dim_ == 2) {
             rotVec[0] = -90.0;
             rotVec[2] = -90.0;
@@ -468,7 +468,8 @@ namespace CoupledField {
       }
 
       // determine complexFormat
-      complexFormatString = actResultNode->Get("complexFormat")->AsString();
+      complexFormatString = "amplPhase";
+      actResultNode->Get("complexFormat", complexFormatString, false);
       String2Enum( complexFormatString, complexFormat );
       
       // otherwise check, if result is to be saved on "allRegions"
@@ -525,7 +526,7 @@ namespace CoupledField {
         } 
         
         // only enter, at least one region is present
-        if( listNode ) {
+        if( listNode->HasChildren() ) {
           // fetch saveBegin, saveEnd and saveInc
           listNode->Get( "saveBegin", saveBegin );
           listNode->Get( "saveEnd", saveEnd );
@@ -630,7 +631,7 @@ namespace CoupledField {
       }
 
       // only proceed, if any history result is defined+
-      if( histNode ) {
+      if( histNode->HasChildren() ) {
         
         // fetch saveBegin, saveEnd and saveInc
         histNode->Get("saveBegin", saveBegin );

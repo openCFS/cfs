@@ -35,7 +35,7 @@ namespace CoupledField
     //! Error (non-recoverable)
     virtual void Error( const Exception &exc ) = 0;
 
-    //! Warning (recoverable)
+    //! WARN (recoverable)
     virtual void Warning( const Exception &exc ) = 0;
   };
 

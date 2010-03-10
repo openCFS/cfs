@@ -108,7 +108,7 @@ namespace CoupledField {
   public:
 
     //! Constructor
-    LDLSolver( OLAS_Params *myParams, OLAS_Report *myReport = NULL );
+    LDLSolver( ParamNode* solverNode, InfoNode *olasInfo = NULL );
 
     //! Default Destructor
 
@@ -232,6 +232,7 @@ namespace CoupledField {
     //! \param patternOnly if true, only the sparsity pattern is exported
     void ExportFactorisation( const char *fname, bool patternOnly = false );
 
+    UInt itRefSteps_;
   };
 
 }

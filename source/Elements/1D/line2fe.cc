@@ -124,10 +124,8 @@ namespace CoupledField
     diffVecElemMidPoint.Inner(diffVecWholeElem, s);
     s *= fac / diffVecElemMidPoint.NormL2();
     if(fabs(s - 1) > 1e-6) {
-      Warning("WARNING: Line2FE just uses linear mapping " \
-              "for Global2LocalCoords and element is curved!", __FILE__,__LINE__);
-      LOG_DBG(line2fe) << "WARNING: Line2FE just uses linear mapping "
-                       << "for Global2LocalCoords and element is curved!";
+      WARN("Line2FE just uses linear mapping " \
+           "for Global2LocalCoords and element is curved!");
     }
 
     localCoords.Resize(Dim_, globalCoords.GetNumCols());

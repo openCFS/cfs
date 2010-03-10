@@ -1135,19 +1135,17 @@ namespace CoupledField {
             for( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
               // Check if homDirichletNode belongs to one of my subdomains
               if ( mesh2DisPdeNode_[nodes[iNode]-1].GetSize() == 0 ) {
-                (*warning) << "DiscontinuousEqnMap::CalcNodalEquations: Homogen. Dirichlet node "
-                << "nr. " << nodes[iNode]
-                                   << " is not contained in any of the regions for this PDE";
-                Warning( __FILE__, __LINE__ );
+                WARN("CalcNodalEquations: Homogen. Dirichlet node "
+                     << "nr. " << nodes[iNode]
+                     << " is not contained in any of the regions for this PDE");
               }
               //else if ( countNodes[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] != 0 ) {
-              //  //     (*warning) << "DiscontinuousEqnMap::CalcNodalEquations: HomDirichletNode # "
+              //  //     WARN( "DiscontinuousEqnMap::CalcNodalEquations: HomDirichletNode # "
               //  //                << nodes[i]
               //  //                << "\nappeared already at least once in the list of "
               //  //                << "boundary nodes for this PDE!\n Please check, if this "
               //  //                << "node is defined in more than one level of boundary "
-              //  //                << "nodes!";
-              //  //     Warning( __FILE__, __LINE__ );
+              //  //                << "nodes!" );
               //}
               else {
                 for ( UInt i=0;i<mesh2DisPdeNode_[nodes[iNode]-1].GetSize() ;i++ )
@@ -1182,21 +1180,19 @@ namespace CoupledField {
             for( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
 
               if ( mesh2DisPdeNode_[ nodes[iNode] - 1 ].GetSize() == 0 ) {
-                (*warning) << "DiscontinuousEqnMap::CalcNodalEquations: Inhom. Dirichlet "
-                << "node #" << nodes[iNode]
-                                     << " is not contained in any of the regions for "
-                                     << "this Pde";
-                Warning( __FILE__, __LINE__ );
+                WARN("CalcNodalEquations: Inhom. Dirichlet "
+                     << "node #" << nodes[iNode]
+                     << " is not contained in any of the regions for "
+                     << "this PDE");
               }
               //else if ( countNodes[mesh2PdeNode_[nodes[iNode]-1]-1]
               //                     [actDof-1] != 0 ) {
-              //  //   (*warning) << "DiscontinuousEqnMap::CalcNodalEquations: Inhom. Dirichlet "
+              //  //   WARN( "DiscontinuousEqnMap::CalcNodalEquations: Inhom. Dirichlet "
               //  //                << "node #" << nodes[iNode]
               //  //                << "\nappeared already at least once in the list of "
               //  //                << "boundary nodes for this Pde!\n Please check, if "
               //  //                << "this node is defined in more than one level of "
-              //  //                << "boundary nodes!";
-              //  //     Warning( __FILE__, __LINE__ );
+              //  //                << "boundary nodes!" );
               //}
               else {
                 
@@ -1531,21 +1527,19 @@ namespace CoupledField {
             for( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
               UInt actElem = elemIt.GetElem()->elemNum;
               if ( mesh2PdeElem_[ actElem - 1 ] - 1 < 0 ) {
-                (*warning) << "EqnMap::CalcElemEquations: Inhom. Dirichlet "
-                << "elem #" << actElem
-                << " is not contained in any of the regions for "
-                << "this Pde";
-                Warning( __FILE__, __LINE__ );
+                WARN("CalcElemEquations: Inhom. Dirichlet "
+                     << "elem #" << actElem
+                     << " is not contained in any of the regions for "
+                     << "this Pde");
               }
               else if ( countElems[mesh2PdeElem_[actElem-1]-1]
                                    [actDof-1] != 0 ) {
-                (*warning) << "EqnMap::CalcElemEquations: Inhom. Dirichlet "
-                << "elem #" << actElem
-                << "\nappeared already at least once in the list of "
-                << "boundary nodes for this Pde!\n Please check, if "
-                << "this node is defined in more than one level of "
-                << "boundary nodes!";
-                Warning( __FILE__, __LINE__ );
+                WARN("CalcElemEquations: Inhom. Dirichlet "
+                     << "elem #" << actElem
+                     << "\nappeared already at least once in the list of "
+                     << "boundary nodes for this Pde!\n Please check, if "
+                     << "this node is defined in more than one level of "
+                     << "boundary nodes!");
               }
               else {
                 actMap[mesh2PdeElem_[actElem-1]-1] [actDof-1] = -1;

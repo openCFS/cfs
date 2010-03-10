@@ -17,7 +17,7 @@
 namespace CoupledField {
 
   class BasePrecond;
-  class OLAS_Params;
+  class ParamNode;
   class OLAS_Report;
   
   // template<typename> class Matrix;
@@ -66,10 +66,10 @@ namespace CoupledField {
     //!                 for this solver
     //! \param myReport pointer to report object for storing general
     //!                 information on solution process
-    RichardsonSolver( OLAS_Params *myParams, OLAS_Report *myReport ) :
+    RichardsonSolver( ParamNode *solverNode, InfoNode *olasInfo ) :
       r_(NULL), w_(NULL) {
-      myParams_ = myParams;
-      myReport_ = myReport;
+      xml_ = solverNode;
+      solverInfo_ = olasInfo->Get("richardson");
     };
 
     //! Default destructor

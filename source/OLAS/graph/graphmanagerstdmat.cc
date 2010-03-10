@@ -15,7 +15,7 @@ namespace CoupledField {
   // ===============
   GraphManagerStdMat::GraphManagerStdMat()
     : 
-      reorderType_(NOREORDERING),
+      reorderType_(BaseOrdering::NOREORDERING),
       offset_(NULL),
       offsetIDBC_(NULL),
       offset1_(0),
@@ -106,7 +106,7 @@ namespace CoupledField {
     // If re-ordering is to be performed, allocate auxilliary
     // vector to store large permutation vector
     StdVector<UInt> permutation;
-    if ( reorderType_ != NOREORDERING ) {
+    if ( reorderType_ != BaseOrdering::NOREORDERING ) {
       permutation.Resize( numFreeDofs_ );
     }
 
@@ -114,7 +114,7 @@ namespace CoupledField {
     // using the elimination approach and there are fixed dofs
     // for the first PDE
     UInt firstPermVec = 0;
-    if ( numLastFreeDof_[0] == numEqn_[0] && reorderType_ == NOREORDERING ) {
+    if ( numLastFreeDof_[0] == numEqn_[0] && reorderType_ == BaseOrdering::NOREORDERING ) {
       firstPermVec = 1;
     }
 
@@ -145,7 +145,7 @@ namespace CoupledField {
     // If re-ordering was performed, split large permutation vector
     // up into small vectors for each individual PDE
     UInt i, k, index;
-    if ( reorderType_ != NOREORDERING ) {
+    if ( reorderType_ != BaseOrdering::NOREORDERING ) {
 
       // Loop over all registered PDEs
       for ( i = 0; i < numPDEs_; i++ ) {
@@ -212,7 +212,7 @@ namespace CoupledField {
   void GraphManagerStdMat::RegisterPDE( const PdeIdType identifierPDE,
 					const UInt n,
                                         const UInt numLastFreeDof,
-					const ReorderingType reorder ) {
+					const BaseOrdering::ReorderingType reorder ) {
 
 
     // Step counter for the number of registered PDEs and check number
@@ -495,7 +495,7 @@ namespace CoupledField {
                << "been reordered, yet!");
     }
     else if ( !newOrdering_[identifier].GetSize() &&
-              reorderType_ != NOREORDERING ) {
+              reorderType_ != BaseOrdering::NOREORDERING ) {
       EXCEPTION("GraphManagerStdMat::GetReordering: "
                << "No reordering vector available for PDE with identifier '"
                << identifier << "' Maybe it was already claimed?");

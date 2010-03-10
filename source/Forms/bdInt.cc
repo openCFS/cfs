@@ -233,9 +233,8 @@ namespace CoupledField
   BDInt::BDInt(BaseMaterial* matData,std::string geomType, Double timeStep)
     : BaseForm(matData), updateDMatInEveryIP_(0) {
 
-    *warning << "This class is a candidate for major reimplementation and therefore "
-             << "not working -> Contact Gerhard and Andreas";
-    Warning( __FILE__, __LINE__ );
+    WARN( "This class is a candidate for major reimplementation and therefore "
+          << "not working -> Contact Gerhard and Andreas" );
   //   name_ = "BDInt";
 //     geomType_ = geomType;
 //     ptMaterial->GetScalar(dampAlpha_,RAYLEIGH_ALPHA,Global::REAL);

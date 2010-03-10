@@ -323,11 +323,10 @@ namespace CoupledField {
   {
 #ifdef DEBUG_VECTOR
     if ( i <= 0 || i > size_ ) {
-      (*error) << "Vector<" << AssocType<T>::tagV << ">::SetVectorEntry: "
+      EXCEPTION( "Vector<" << AssocType<T>::tagV << ">::SetVectorEntry: "
                << "Detected index error:"
                << "\n index = " << i
-               << "\n size  = " << size_;
-      Error( __FILE__, __LINE__ );
+               << "\n size  = " << size_ );
     }
 #endif
     data_[i] = val;
@@ -499,8 +498,7 @@ namespace CoupledField {
     // close output file
     if(fclose( fp ) == EOF)
     {
-      (*warning) << "Could not close file '" << fname << "' after writing!";
-      Warning( __FILE__, __LINE__ );
+      WARN("Could not close file '" << fname << "' after writing!");
     }
   }
 
@@ -514,8 +512,7 @@ namespace CoupledField {
 #ifdef DEBUG_VECTOR
     if(factor == 0)
     {
-      (*error) << "Vector::ScalarDiv: Division by Zero!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "Vector::ScalarDiv: Division by Zero!" );
     }
 #endif
     T fac(static_cast<T>(factor)); // for compilers

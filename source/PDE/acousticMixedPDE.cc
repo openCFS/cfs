@@ -71,12 +71,10 @@ namespace CoupledField
       Info->PrintF("", "=== PLANE PROBLEM\n");
     }
     else
-      {
-        std::string errmsg = "Subtype '" + subType_;
-        errmsg += "' of PDE '" + pdename_ + "' does not fit to problem ";
-        errmsg += "geometry '" + probGeo + "'\n";
-        Info->Error( errmsg, __FILE__, __LINE__ );
-      }
+    {
+      EXCEPTION("Subtype '" << subType_ << "' of PDE '" << pdename_ 
+                <<"' does not fit to problem geometry '" << probGeo);
+    }
 
 
     // timestepping formulation
@@ -884,8 +882,7 @@ namespace CoupledField
       break;
       
     default:
-      Warning( "Resulttype not computable by acoustic mixed PDE",
-               __FILE__, __LINE__ );
+      WARN( "Resulttype not computable by mechanic PDE" );
     }
   }
 

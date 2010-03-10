@@ -164,7 +164,7 @@ namespace CoupledField {
         }
         else {
           incrementalVeloErr = solVelocityIncL2Norm;
-          //Warning("Zero velocity solution vector!! ", __FILE__,__LINE__);      
+          //WARN("Zero velocity solution vector!! ");      
         }
           
         if (actPresL2Norm > 1.0){
@@ -172,7 +172,7 @@ namespace CoupledField {
         }
         else {
           incrementalPresErr = solPressureIncL2Norm;
-          //Warning("Zero pressure solution vector!! ", __FILE__,__LINE__);      
+          //WARN("Zero pressure solution vector!! ");      
         }
 
         if (actSolL2Norm > 1.0)
@@ -180,7 +180,7 @@ namespace CoupledField {
         else
           {
             incrementalErr = solIncrL2Norm;
-            //Warning("Zero solution vector!! ", __FILE__,__LINE__);      
+            //WARN("Zero solution vector!! ");      
           }
         
         if ( nonLinLogging_ == true ) {
@@ -216,10 +216,17 @@ namespace CoupledField {
 
       }while(performOneMoreStep && iterationCounter < nonLinMaxIter_);  
       
-    if (incrementalErr > 50*incStopCrit_ || incrementalVeloErr > 50*incStopCrit_ || incrementalPresErr > 50*incStopCrit_)
-      Warning("FluidMech did not converged!!! Simulation SHOULD be aborted",__FILE__,__LINE__);
-    else if (incrementalErr > incStopCrit_ || incrementalVeloErr > incStopCrit_ || incrementalPresErr > incStopCrit_){
-      Warning("FluidMech did not converged!!!",__FILE__,__LINE__);
+    if (incrementalErr > 50*incStopCrit_ ||
+        incrementalVeloErr > 50*incStopCrit_ ||
+        incrementalPresErr > 50*incStopCrit_) {
+      WARN("FluidMech did not converge!!! Simulation SHOULD be aborted");
+    }
+    else {
+      if (incrementalErr > incStopCrit_ ||
+          incrementalVeloErr > incStopCrit_ ||
+          incrementalPresErr > incStopCrit_) {
+        WARN("FluidMech did not converge!!!");
+      }
     }
            
     if ( isInstationary_ ) {

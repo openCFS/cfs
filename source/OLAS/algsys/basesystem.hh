@@ -10,7 +10,6 @@
 
 #include "General/defs.hh"
 #include "General/environment.hh"
-#include "olasparams.hh"
 
 #include "General/exception.hh"
 
@@ -57,18 +56,6 @@ namespace CoupledField {
 
     //! Default Destructor
     virtual ~BaseSystem();
-
-
-
-    //! Obtain a pointer to the parameter object
-    OLAS_Params* GetOLASParams() {
-      return &myParams_;
-    }
-
-    //! Obtain a pointer to the report object
-    OLAS_Report* GetOLASReport() {
-      return &myReport_;
-    }
 
     /**  killme! check if really used in SIMP optimization */
     BaseEntryManipulator* GetEntryManipulator()
@@ -125,7 +112,7 @@ namespace CoupledField {
     //! \note This method must not be called if an eigenfrequency analysis
     //! is performed, since this method creates only a solver to solve
     //! a system Ax=b.
-    virtual void CreateSolver(InfoNode* olasInfo) = 0;
+    virtual void CreateSolver() = 0;
 
     //! Generate EigenSolver object
 
@@ -137,7 +124,7 @@ namespace CoupledField {
     //! be called.
     //! \note If an Eigenfrequency analysis is performed, the methods
     //! SetupPrecond() and SetupSolver() must not be called!
-    virtual void CreateEigenSolver(InfoNode* eigenInfo) = 0;
+    virtual void CreateEigenSolver() = 0;
 
     /** Trigger setup of preconditioner.
      * Calling this method will trigger the setup phase of the
@@ -747,9 +734,7 @@ namespace CoupledField {
     void SetNumDirichletBCs( const PdeIdType identifier, const UInt numBCs );
 
     //! Get number of iterations specified for an iterative solver
-    Integer GetNumIter() {
-      return myReport_.GetIntValue( "NumIter" );
-    }
+    Integer GetNumIter();
     //@}
 
 
@@ -845,22 +830,8 @@ namespace CoupledField {
     //! Degree of freedom (= blocksize in blocksystems)
     Integer blockSize_;
 
-    //! Parameter object
-
-    /** collect system datate, but bot the individual preconditioner/ solver data*/
+    /** collect system data, but bot the individual preconditioner/ solver data*/
     InfoNode* systemInfo_;
-
-    //! This is the central parameter object of the BaseSystem. All steering
-    //! parameters are read from this object and it will be passed on to the
-    //! solver and preconditioner used in the solution of the linear system.
-    OLAS_Params myParams_;
-
-    //! Report object
-
-    //! A pointer to this report object will be passed on to the generated
-    //! solver and preconditioner used for solving the linear system, so that
-    //! they can write their status reports into this object.
-    OLAS_Report myReport_;
 
     // =======================================================================
     // BOUNDARY CONDITIONS / CONSTRAINTS
@@ -908,8 +879,10 @@ namespace CoupledField {
 
     /** Here we store the complete ParamNode descripton of our liner system
      * - As given in the XML - hence it might be NULL! */
-    ParamNode* xml;
-    InfoNode* olasInfo;
+    ParamNode* xml_;
+    InfoNode* olasInfo_;
+    
+    bool usingPenalty_;
   };
 
 } // namespace

@@ -12,10 +12,11 @@ namespace CoupledField {
   //   Constructor
   // ***************
   template <typename T>
-  IC0Precond<T>::IC0Precond( const StdMatrix& mat, OLAS_Params *myParams,
-                             OLAS_Report *myReport ) {
-    this->myParams_ = myParams;
-    this->myReport_ = myReport;
+  IC0Precond<T>::IC0Precond( const StdMatrix& mat, ParamNode* solverNode,
+                             InfoNode *olasInfo )
+  {
+    this->xml_ = solverNode;
+    this->olasInfo_ = olasInfo;
     size_           = mat.GetNumRows();
     amFactorised_   = false;
   }

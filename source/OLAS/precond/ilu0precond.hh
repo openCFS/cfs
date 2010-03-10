@@ -50,8 +50,8 @@ namespace CoupledField {
     typedef typename AssocType<T>::T_Stype T_Stype;
 
     //! Constructor (for use in GenerateStdPrecondObject)
-    ILU0Precond( const StdMatrix &mat, OLAS_Params *myParams,
-		 OLAS_Report *myReport );
+    ILU0Precond( const StdMatrix &mat, ParamNode* solverNode,
+		 InfoNode *olasInfo );
 
     //! Deep Destructor
     ~ILU0Precond();
@@ -78,8 +78,8 @@ namespace CoupledField {
 
     //! When called this method returns the type of the preconditioner object.
     //! In the case of an object of this class the return value is ILU0.
-    PrecondType GetPrecondType() const {
-      return ILU0;
+    BasePrecond::PrecondType GetPrecondType() const {
+      return BasePrecond::ILU0;
     };
 
   private:

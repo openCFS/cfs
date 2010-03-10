@@ -144,7 +144,8 @@ namespace CoupledField {
 
     /// does a formatted print leaded by the PDE name, equal to std::printf(...)
     void PrintF(const std::string& pdeName, const char * formatStr ...);
-
+    
+#if 0
     /// prints warning to info-file and std::cerr
     void Warning(const std::string & text, const char * const filename=NULL,
                  const UInt numline=0);
@@ -152,7 +153,8 @@ namespace CoupledField {
     /// prints error to both std::out and info-file
     void Error( const std::string &text, const char *const filename,
                 const UInt numline );
-
+#endif
+    
     /// generates a message, that a certain action has started
     void StartProgress(const std::string &name, bool needAck = true);
 

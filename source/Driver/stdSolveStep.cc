@@ -248,7 +248,7 @@ namespace CoupledField {
             incrementalErr = solIncrL2Norm / actSolL2Norm;
           else {
             incrementalErr = solIncrL2Norm;
-            Warning("Zero solution vector!! ", __FILE__,__LINE__);
+            WARN("Zero solution vector!! ");
           }
 
           // output of norms and data
@@ -942,7 +942,7 @@ namespace CoupledField {
 
     // If extForcesL2Norm is 0, no residual norm can be calculated
     if (!RhsLinL2Norm) {
-      Warning("Zero external force vector!! ", __FILE__,__LINE__);
+      WARN("Zero external force vector!! ");
     }
 
     return RhsLinL2Norm;
@@ -1199,7 +1199,7 @@ namespace CoupledField {
 
     // Check, if any nonlinear node was found
     if( !nonLinNode ) {
-      Warning("Taking default parameters for nonlinear data" );
+      WARN("Taking default parameters for nonlinear data" );
     }
 
     // Read data, if "nonLinear" element was found

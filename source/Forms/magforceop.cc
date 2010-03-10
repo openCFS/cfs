@@ -24,7 +24,7 @@ namespace CoupledField
     : BaseOperator(ptGrid, ptPDE, eqnMap, isaxi, coordUpdate )
   {
 
-    //Warning( "Only working with Lagrange Elements" __FILE__, __LINE__ );
+    //WARN( "Only working with Lagrange Elements");
     curlFieldOp_ = new  CurlNodeOp<TYPE>(ptGrid, ptPDE, eqnMap,
                                          magPotential, coordUpdate);
     curlFieldOp_->Set2DType(isaxi);

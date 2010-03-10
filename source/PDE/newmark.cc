@@ -8,6 +8,8 @@
 
 #include "OLAS/algsys/basesystem.hh"
 
+#include "PDE/StdPDE.hh"
+
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "newmark.hh"
@@ -15,7 +17,7 @@
 namespace CoupledField
 {
 
-  Newmark::Newmark(BaseSystem * algebraicsystem, const std::string& sysName )
+  Newmark::Newmark(BaseSystem * algebraicsystem, ParamNode* systemNode )
     :TimeStepping(algebraicsystem )
   {
 
@@ -27,18 +29,11 @@ namespace CoupledField
     gamma_ = (1 - 2*alpha_) / 2.0;
     nu_ = 0.0;
 
-    ParamNode* myParam = NULL;
-    myParam = param->Get("linearSystems", false);
-    if( myParam != NULL ) {
-      myParam = myParam->Get("system", "name", sysName, false);
-      if( myParam != NULL ) {
-        if ( param->Has("timeSteppingParameters") ) {
-          myParam =  myParam->Get("timeSteppingParameters");
-          myParam->Get("beta", beta_, false);
-          myParam->Get("gamma", gamma_, false);
-          myParam->Get("nu", nu_, false);
-        }
-      }
+    if ( systemNode->Has("timeSteppingParameters") ) {
+      ParamNode* myParam = systemNode->Get("timeSteppingParameters");
+      myParam->Get("beta", beta_, false);
+      myParam->Get("gamma", gamma_, false);
+      myParam->Get("nu", nu_, false);
     }
 
     gamma_ = gamma_ + nu_;
@@ -218,7 +213,7 @@ namespace CoupledField
   // Effective Mass Matrix Formulation
   // ====================================================
 
-  NewmarkEffMass::NewmarkEffMass(BaseSystem * algebraicsystem, const std::string& sysName,
+  NewmarkEffMass::NewmarkEffMass(BaseSystem * algebraicsystem, ParamNode* systemNode,
                                  bool intExplicit)
     :TimeStepping(algebraicsystem)
   { 
@@ -231,19 +226,11 @@ namespace CoupledField
 
     nu_ = 0.0;
 
-
-    ParamNode* myParam = NULL;
-    myParam = param->Get("linearSystems", false);
-    if( myParam != NULL ) {
-      myParam = myParam->Get("system", "name", sysName, false);
-      if( myParam != NULL ) {
-        if ( param->Has("timeSteppingParameters") ) {
-          myParam =  myParam->Get("timeSteppingParameters");
-          myParam->Get("beta", beta_, false);
-          myParam->Get("gamma", gamma_, false);
-          myParam->Get("nu", nu_, false);
-        }
-      }
+    if ( systemNode->Has("timeSteppingParameters") ) {
+      ParamNode* myParam = systemNode->Get("timeSteppingParameters");
+      myParam->Get("beta", beta_, false);
+      myParam->Get("gamma", gamma_, false);
+      myParam->Get("nu", nu_, false);
     }
 
     gamma_ = gamma_ + nu_;

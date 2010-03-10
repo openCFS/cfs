@@ -4,6 +4,11 @@
 
 #include <iostream>
 
+#include <boost/algorithm/string/trim.hpp>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ParamHandling/InfoNode.hh"
+
 #include "exception.hh"
 
 namespace CoupledField {
@@ -14,23 +19,26 @@ namespace CoupledField {
     Exception::Exception( const Exception* reason,
                const char* const fileName, 
                const unsigned int lineNum,
-               const char* const message) throw ()
+               const char* const message,
+               SeverityType severity) throw ()
     {
-        init(reason, fileName, lineNum, message);
+        init(reason, fileName, lineNum, message, severity);
     }
 
     /** this is the constructor to be called manually */
     Exception::Exception( const std::string& message,
                const char* const fileName, 
-               const unsigned int lineNum) throw ()
+               const unsigned int lineNum,
+               SeverityType severity) throw ()
     {
-        init(NULL, fileName, lineNum, message.c_str());
+        init(NULL, fileName, lineNum, message.c_str(), severity);
     }
 
     void Exception::init(const Exception* reason,
                const char* const fileName, 
                const unsigned int lineNum,
-               const char* const message) throw () 
+               const char* const message,
+               SeverityType severity) throw () 
     {
         this->fileName_ = fileName;
         this->lineNum_  = lineNum;
@@ -62,13 +70,28 @@ namespace CoupledField {
 
         what_ = ostream.str();
 
-        // force segfault to gain stacktrace
-        if(segfault_)
+        switch(severity)
         {
-            std::cerr << what_;
+          case EXCEPTION:
+            // force segfault to gain stacktrace
+            if( segfault_) {
+              std::cerr << what_;
             
-            int* ip = NULL;
-            (*ip)++;
+              int* ip = NULL;
+              (*ip)++;
+            }
+            break;
+          case WARNING:
+            std::string msg = message;
+            boost::trim(msg);
+
+            InfoNode* out = info->Get(InfoNode::WARNING)->Get("warning", InfoNode::APPEND);
+            
+            out->Get("lineNum")->SetValue(lineNum);
+            out->Get("fileName")->SetValue(fileName);
+            out->Get("message")->SetValue(message);
+            
+            break;
         }
     }
   

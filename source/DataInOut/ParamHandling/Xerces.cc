@@ -236,7 +236,7 @@ namespace CoupledField
   void Xerces::EventHandler::warning(const SAXParseException &event )
   {
     std::stringstream os;
-    os << "Warning parsing the xml file'" << xerces_->file_ << "' in line "
+    os << "WARN parsing the xml file'" << xerces_->file_ << "' in line "
        << event.getLineNumber() << ", column " << event.getColumnNumber() << std::endl
        << "-> '" << XMLString::transcode(event.getMessage()) << "'" << std::endl
        << " schema: '" << (!xerces_->schema_.empty() ? xerces_->schema_ : "<no-schema>") << "'";

@@ -20,12 +20,11 @@ namespace CoupledField {
   // *****************************
   //   Constructor (for factory)
   // *****************************
-  Lapack_LU::Lapack_LU( OLAS_Params *myParams, OLAS_Report *myReport )
+  Lapack_LU::Lapack_LU( ParamNode* solverNode, InfoNode *olasInfo )
     : pivots_(NULL), facmat_(NULL), amFactorised_(false) {
 
-    // Set pointers to communication objects
-    myParams_ = myParams;
-    myReport_ = myReport;
+    xml_ = solverNode;
+    solverInfo_ = olasInfo->Get("lapackLU");
 
     // Initialise pointers for LAPACK workspaces
     workspaceF77REAL8_     = NULL;
@@ -43,14 +42,13 @@ namespace CoupledField {
   // *************************
   //   Alternate Constructor
   // *************************
-  Lapack_LU::Lapack_LU( BaseMatrix &mat, OLAS_Params *myParams,
-			OLAS_Report *myReport )
+  Lapack_LU::Lapack_LU( BaseMatrix &mat,
+                        ParamNode* solverNode, 
+			                  InfoNode *olasInfo )
     : pivots_(NULL), facmat_(NULL), amFactorised_(false) {
 
-
-    // Set pointers to communication objects
-    myParams_ = myParams;
-    myReport_ = myReport;
+    xml_ = solverNode;
+    solverInfo_ = olasInfo->Get("lapackLU");
 
     // Initialise pointers for LAPACK workspaces
     workspaceF77REAL8_     = NULL;
@@ -160,8 +158,15 @@ namespace CoupledField {
     // =======================================================
     //   Scale matrix to improve condition number (optional)
     // =======================================================
-
-    if ( myParams_->GetBoolValue( "LAPACKLU_tryScaling" ) == true ) {
+    bool tryScaling = true;
+      
+    ParamNode *sNode = NULL;
+    sNode = xml_->Get("lapackLU", false);
+    if(sNode) {
+      sNode->Get("tryScaling", tryScaling, false);
+    }
+    
+    if ( tryScaling ) {
 
       // Allocate memory for scaling factors
       row_scalings_ = new F77real8[lp_nrows];
@@ -316,7 +321,15 @@ namespace CoupledField {
     //   Scale matrix to improve condition number (optional)
     // =======================================================
 
-    if ( myParams_->GetBoolValue( "LAPACKLU_tryScaling" ) == true ) {
+    bool tryScaling = true;
+      
+    ParamNode *sNode = NULL;
+    sNode = xml_->Get("lapackLU", false);
+    if(sNode) {
+      sNode->Get("tryScaling", tryScaling, false);
+    }
+    
+    if ( tryScaling ) {
 
       // Allocate memory for scaling factors
       row_scalings_ = new F77real8[lp_nrows];
@@ -452,7 +465,7 @@ namespace CoupledField {
 
 
     // Are we expected to be verbose?
-    bool logging = myParams_->GetBoolValue( "LAPACKLU_logging" );
+    bool logging = false;
 
     // Report to logfile
     if ( logging == true ) {
@@ -519,7 +532,7 @@ namespace CoupledField {
 
 
     // Are we expected to be verbose?
-    bool logging = myParams_->GetBoolValue( "LAPACKLU_logging" );
+    bool logging = false;
 
     // Some variables for LAPACK
     char lp_trans = 'N';
@@ -599,7 +612,15 @@ namespace CoupledField {
     // ==============================
     //   Refine solution (optional)
     // ==============================
-    if ( myParams_->GetBoolValue( "LAPACKLU_refineSol" ) == true ) {
+    bool refineSol = true;
+      
+    ParamNode *sNode = NULL;
+    sNode = xml_->Get("lapackLU", false);
+    if(sNode) {
+      sNode->Get("refineSol", refineSol, false);
+    }
+    
+    if ( refineSol ) {
 
       // Prepare some parameters
       F77real8 lp_ferr = 0;
@@ -656,10 +677,10 @@ namespace CoupledField {
     // Now this currently is of dubious value, since the two things queried
     // from olasReport are actually meaningless in the context of a direct
     // solver. Nevertheless we supply some values for consistency
-    if ( myReport_ != NULL ) {
-      myReport_->SetValue( "numIter", -1 );
-      myReport_->SetValue( "finalNorm", -1.0 );
-    }
+
+    InfoNode* out = solverInfo_->Get(InfoNode::PROCESS)->Get("solver", InfoNode::APPEND);
+    out->Get("numIter")->SetValue(-1);
+    out->Get("finalNorm")->SetValue(-1.0);
 
   }
 
@@ -672,7 +693,7 @@ namespace CoupledField {
 
 
     // Are we expected to be verbose?
-    bool logging = myParams_->GetBoolValue( "LAPACKLU_logging" );
+    bool logging = false;
 
     // Some variables for LAPACK
     char lp_trans = 'N';
@@ -771,7 +792,15 @@ namespace CoupledField {
     // ==============================
     //   Refine solution (optional)
     // ==============================
-    if ( myParams_->GetBoolValue( "LAPACKLU_refineSol" ) == true ) {
+    bool refineSol = true;
+      
+    ParamNode *sNode = NULL;
+    sNode = xml_->Get("lapackLU", false);
+    if(sNode) {
+      sNode->Get("refineSol", refineSol, false);
+    }
+    
+    if ( refineSol ) {
 
       // Prepare some parameters
       F77real8 lp_ferr = 0;
@@ -837,10 +866,9 @@ namespace CoupledField {
     // Now this currently is of dubious value, since the two things queried
     // from olasReport are actually meaningless in the context of a direct
     // solver. Nevertheless we supply some values for consistency
-    if ( myReport_ != NULL ) {
-      myReport_->SetValue( "numIter", -1 );
-      myReport_->SetValue( "finalNorm", -1.0 );
-    }
+    InfoNode* out = solverInfo_->Get(InfoNode::PROCESS)->Get("solver", InfoNode::APPEND);
+    out->Get("numIter")->SetValue(-1);
+    out->Get("finalNorm")->SetValue(-1.0);
 
   }
 

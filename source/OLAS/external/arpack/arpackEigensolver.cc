@@ -7,7 +7,8 @@
 
 #include "MatVec/stdmatrix.hh"
 #include "MatVec/generatematvec.hh"
-#include "OLAS/algsys/olasparams.hh"
+
+#include "DataInOut/ParamHandling/InfoNode.hh"
 
 #include "OLAS/precond/generateprecond.hh"
 #include "OLAS/precond/baseprecond.hh"
@@ -20,9 +21,8 @@ namespace CoupledField {
 
   ArpackEigenSolver::ArpackEigenSolver( ParamNode * xml,
                                         InfoNode* eigenInfo,
-                                        OLAS_Params *myParams,
-                                        OLAS_Report *myReport )
-    : BaseEigenSolver( myParams, myReport ){
+                                        InfoNode *olasInfo )
+    : BaseEigenSolver( xml, olasInfo ){
 
     interface_    = NULL;
     matrixA_      = NULL;
@@ -80,7 +80,13 @@ namespace CoupledField {
     arpackSolver_ = new ArpackSolver();
 
     // Check 'which'-settings regarding the type of eigenvalues searched for
-    std::string whichString = (myParams_->GetStringValue( "ARPACK_which" ));
+    std::string whichString = "LM";
+    ParamNode *sNode = NULL;
+    sNode = xml_->Get("arpack", false);
+    if(sNode) {
+      sNode->Get("which", whichString, false);
+    }
+    
     which_ = new char[whichString.size()+1];
     strncpy(which_, whichString.c_str(), whichString.size()+1 );
 
@@ -90,9 +96,18 @@ namespace CoupledField {
 
     // Set additional parameters for tolerance, number of Arnoldi vectors and
     // number of iterations
-    Double tol = myParams_->GetDoubleValue("ARPACK_tolerance");
-    Integer maxIt = myParams_->GetIntValue("ARPACK_maxIt");
-    Integer numVec = myParams_->GetIntValue("ARPACK_numVec");
+    Double tol = -1.0;
+    if(sNode) {
+      sNode->Get("tolerance", tol, false);
+    }
+    Integer maxIt = -1;
+    if(sNode) {
+      sNode->Get("maxIt", maxIt, false);
+    }
+    Integer numVec = -1;
+    if(sNode) {
+      sNode->Get("numVec", numVec, false);
+    }
 
     if (tol > 0.0)
       arpackSolver_->SetTolerance(tol);
@@ -102,29 +117,20 @@ namespace CoupledField {
       arpackSolver_->SetNumVectors(numVec);
 
     // Check trace settings
-    if ( myParams_->GetBoolValue( "ARPACK_logging" ) == true ) {
-      arpackSolver_->DebugOn();
-    }
+    arpackSolver_->DebugOff();
 
     // Print log-info about EigenSolver
     PrintInfo();
 
     // Create solver
-    SolverType solver;
-    myParams_->GetEnumValue( "Solver", solver );
-    // killme! check the ParamNode parameter
-    solver_ = GenerateSolverObject( *matrixA_, solver, xml_, eigenInfo_,
-                                    myParams_, myReport_ );
-
-    // Create preconditioner
-    PrecondType precond;
-    myParams_->GetEnumValue("Precond", precond);
+    solver_ = GenerateSolverObject( *matrixA_, xml_, eigenInfo_ );
 
     // Perform check, if matrix is std or sbm
     if ( matrixA_->GetStructureType() == BaseMatrix::SPARSE_MATRIX ) {
       const StdMatrix & mat = dynamic_cast< const StdMatrix &>( *matrixA_ );
-      precond_ = GenerateStdPrecondObject( mat, precond,
-                                           myParams_, myReport_ );
+
+      // Create preconditioner 
+      precond_ = GenerateStdPrecondObject( mat, xml_, eigenInfo_ );
     } else {
       EXCEPTION( "No preconditioner available for SBM-matrices!" );
     }
@@ -170,7 +176,13 @@ namespace CoupledField {
     arpackSolver_ = new ArpackSolver();
 
     // Check 'which'-settings regarding the type of eigenvalues searched for
-    std::string whichString = (myParams_->GetStringValue( "ARPACK_which" ));
+    ParamNode *sNode = NULL;
+    std::string whichString = "LM";
+    sNode = xml_->Get("arpack", false);
+    if(sNode) {
+      sNode->Get("which", whichString, false);
+    }
+    
     which_ = new char[whichString.size()+1];
     strncpy(which_, whichString.c_str(), whichString.size()+1 );
 
@@ -180,9 +192,18 @@ namespace CoupledField {
 
     // Set additional parameters for tolerance, number of Arnoldi vectors and
     // number of iterations
-    Double tol = myParams_->GetDoubleValue("ARPACK_tolerance");
-    Integer maxIt = myParams_->GetIntValue("ARPACK_maxIt");
-    Integer numVec = myParams_->GetIntValue("ARPACK_numVec");
+    Double tol = -1.0;
+    if(sNode) {
+      sNode->Get("tolerance", tol, false);
+    }
+    Integer maxIt = -1;
+    if(sNode) {
+      sNode->Get("maxIt", maxIt, false);
+    }
+    Integer numVec = -1;
+    if(sNode) {
+      sNode->Get("numVec", numVec, false);
+    }
 
     if (tol > 0.0)
         arpackSolver_->SetTolerance(tol);
@@ -192,29 +213,20 @@ namespace CoupledField {
         arpackSolver_->SetNumVectors(numVec);
 
     // Check trace settings
-    if ( myParams_->GetBoolValue( "ARPACK_logging" ) == true ) {
-       arpackSolver_->DebugOn();
-    }
+    arpackSolver_->DebugOff();
 
     // Print log-info about EigenSolver
     PrintInfo();
 
     // Create solver
-    SolverType solver;
-    myParams_->GetEnumValue( "Solver", solver );
-    // killme! check the ParamNode parameter
-    solver_ = GenerateSolverObject( *matrixB_, solver, xml_, eigenInfo_, myParams_,
-                                    myReport_ );
-
-    // Create preconditioner
-    PrecondType precond;
-    myParams_->GetEnumValue("Precond", precond);
+    solver_ = GenerateSolverObject( *matrixB_, xml_, eigenInfo_ );
 
     // Perform check, if matrix is std or sbm
     if ( matrixA_->GetStructureType() == BaseMatrix::SPARSE_MATRIX ) {
       const StdMatrix & mat = dynamic_cast< const StdMatrix &>( *matrixB_ );
-      precond_ = GenerateStdPrecondObject( mat, precond,
-                                           myParams_, myReport_ );
+
+      // Create preconditioner
+      precond_ = GenerateStdPrecondObject( mat, xml_, eigenInfo_ );
     } else {
       EXCEPTION( "No preconditioner available for SBM-matrices!" );
     }
@@ -345,11 +357,23 @@ namespace CoupledField {
     // Create solver class
     arpackSolver_ = new ArpackSolver();
 
+    ParamNode *sNode = NULL;
+    sNode = xml_->Get("arpack", false);
+
     // Set additional parameters for tolerance, number of Arnoldi vectors and
     // number of iterations
-    Double tol = myParams_->GetDoubleValue("ARPACK_tolerance");
-    Integer maxIt = myParams_->GetIntValue("ARPACK_maxIt");
-    Integer numVec = myParams_->GetIntValue("ARPACK_numVec");
+    Double tol = -1.0;
+    if(sNode) {
+      sNode->Get("tolerance", tol, false);
+    }
+    Integer maxIt = -1;
+    if(sNode) {
+      sNode->Get("maxIt", maxIt, false);
+    }
+    Integer numVec = -1;
+    if(sNode) {
+      sNode->Get("numVec", numVec, false);
+    }
 
     // set mode: we look at both ends of the spectrum for eigenvalues
     std::string whichString = "BE";
@@ -373,28 +397,20 @@ namespace CoupledField {
       arpackSolver_->SetNumVectors(numVec);
 
     // Check trace settings
-    if ( myParams_->GetBoolValue( "ARPACK_logging" ) == true ) {
-      arpackSolver_->DebugOn();
-    }
+    arpackSolver_->DebugOff();
 
     // Print log-info about EigenSolver
     PrintInfo();
 
     // Create standard solver
-    SolverType solver;
-    myParams_->GetEnumValue( "Solver", solver );
-    solver_ = GenerateSolverObject( *matrixA_, solver, xml_, eigenInfo_, myParams_,
-                                    myReport_ );
-
-    // Create preconditioner
-    PrecondType precond;
-    myParams_->GetEnumValue("Precond", precond);
+    solver_ = GenerateSolverObject( *matrixA_, xml_, eigenInfo_ );
 
     // Perform check, if matrix is std or sbm
     if ( matrixA_->GetStructureType() == BaseMatrix::SPARSE_MATRIX ) {
       const StdMatrix & mat = dynamic_cast< const StdMatrix &>( *matrixA_ );
-      precond_ = GenerateStdPrecondObject( mat, precond,
-                                           myParams_, myReport_ );
+
+      // Create preconditioner
+      precond_ = GenerateStdPrecondObject( mat, xml_, eigenInfo_ );
     } else {
       EXCEPTION( "No preconditioner available for SBM-matrices!" );
     }
@@ -469,7 +485,8 @@ namespace CoupledField {
            << arpackSolver_->GetNcv() << "\n";
 
     // Trace settings
-    if ( myParams_->GetBoolValue( "ARPACK_logging" ) == true ) {
+    bool logging = false;
+    if ( logging ) {
       (*cla) << " Logging activated\n";
     }
     (*cla) << " -------------------------------------------------------"

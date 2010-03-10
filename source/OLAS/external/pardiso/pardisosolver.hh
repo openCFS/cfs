@@ -13,10 +13,6 @@
 
 namespace CoupledField {
 
-  class OLAS_BaseMatrix;
-  class OLAS_Params;
-  class OLAS_Report;
-
   //! This class implements the interface to PARDISO's LU decomposition
   //! and solving of a sparse system of linear equations.
 
@@ -107,7 +103,7 @@ namespace CoupledField {
     //! The constructor does not do anything but set the pointers to the
     //! internal communciation objects.
     //! Note that the pointer to the report object is optional.
-    PardisoSolver (OLAS_Params* myParams, OLAS_Report *myReport = NULL, ParamNode* solverNode=NULL);
+    PardisoSolver (ParamNode* solverNode, InfoNode *olasInfo = NULL);
 
     //! Default Destructor
 

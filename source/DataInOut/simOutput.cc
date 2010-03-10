@@ -89,7 +89,7 @@ namespace CoupledField {
        actInfo.definedOn != ResultInfo::SURF_ELEM ) 
     {
       std::string msg = formatName_ + " can only write results on element and nodes";
-      Warning(msg.c_str());
+      WARN(msg.c_str());
       return false;
     }
     else 

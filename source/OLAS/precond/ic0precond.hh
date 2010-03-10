@@ -32,7 +32,7 @@ namespace CoupledField {
     //! size, matrix and entry types are derived and two pointers to the
     //! communication objects. This is the constructor required by the
     //! GeneratePrecondObject function.
-    IC0Precond( const StdMatrix &mat, OLAS_Params *myParams, OLAS_Report *myReport);
+    IC0Precond( const StdMatrix &mat, ParamNode* solverNode, InfoNode *olasInfo);
 
     //! Default Destructor
 
@@ -58,8 +58,8 @@ namespace CoupledField {
 
     //! When called this method returns the type of the preconditioner object.
     //! In the case of an object of this class the return value is JACOBI.
-    PrecondType GetPrecondType() const{
-      return IC0;
+    BasePrecond::PrecondType GetPrecondType() const{
+      return BasePrecond::IC0;
     };
 
 

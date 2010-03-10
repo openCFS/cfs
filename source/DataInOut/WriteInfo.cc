@@ -195,7 +195,7 @@ namespace CoupledField {
   {
 
     if (subdoms.GetSize() != results.GetSize())
-      Error("Problem in WriteResults",__FILE__,__LINE__);
+      EXCEPTION("Problem in WriteResults");
  
     if (cfsInfo) {
       *cfsInfo << endl << " PostProcessing Result for PDE " << pdename
@@ -219,7 +219,7 @@ namespace CoupledField {
   {
 
     if (subdoms.GetSize() != results.GetSize())
-      Error("Problem in WriteResults",__FILE__,__LINE__);
+      EXCEPTION("Problem in WriteResults");
  
     if (cfsInfo) {
       *cfsInfo << endl << " PostProcessing Result for PDE " << pdename
@@ -435,6 +435,7 @@ namespace CoupledField {
 
 #endif //INTEGLIB
 
+#if 0  
   // prints warning to info-file
   void WriteInfo::Warning( const std::string & Text,
                            const char* const filename, const UInt numline ) {
@@ -445,7 +446,7 @@ namespace CoupledField {
 #ifdef USE_SCRIPTING
     if ( messenger ) {
       if ( messenger->IsEvaluating() ) {
-        messenger->Warning( Text.c_str(), filename, numline );
+        messenger->WARN( Text.c_str(), filename, numline );
       }
     }
 #endif
@@ -565,7 +566,7 @@ namespace CoupledField {
     //     char* a = NULL;
     //     std::cerr << a[0] << a[1] << a[2] << a[3];
   }
-
+#endif
 
 #ifndef INTEGLIB
 

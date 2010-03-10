@@ -245,7 +245,7 @@ namespace CoupledField {
     //! Return matrix as separated string
     std::string ToString( char colSeparator = ' ',
                           char rowSeparator = '\n' ) const {
-      Warning( "ToString not implemented for SBM_Matrix", __FILE__, __LINE__ );
+      WARN( "ToString not implemented for SBM_Matrix");
 
       return "SBM_Matrix";
     };

@@ -49,7 +49,7 @@ bool BaseDriver::printMeshesOrNot() {
 
 void BaseDriver::PrintSeqMeshes()
 {
-  Warning( "Not implemented anymore", __FILE__, __LINE__ );
+  WARN( "Not implemented anymore" );
 }
 
 InfoNode* BaseDriver::CreateAnalysisId(const std::string& child_name, int child_id, 

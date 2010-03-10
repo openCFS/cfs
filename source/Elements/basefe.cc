@@ -1454,8 +1454,8 @@ namespace CoupledField
       {
         if(order != org_order)
         {
-          *warning << "Use Integration " << key << " instead of the wanted order " << org_order << std::endl;
-          Warning(__FILE__, __LINE__);
+          WARN("Use Integration " << key << " instead of the wanted order "
+               << org_order);
         }
         return IntegrationPointsMap_[key];
       }
@@ -1473,13 +1473,14 @@ namespace CoupledField
 
     // print msg;
     MakeKey(type, org_order, key);
-    *warning << "No integration points defined for " << key << "! Available are: ";
+    std::stringstream warning;
+    warning << "No integration points defined for " << key << "! Available are: ";
     std::map<const std::string, StdVector<Double*>*>::iterator iter;
 
     for(iter = IntegrationPointsMap_.begin(); iter != IntegrationPointsMap_.end(); iter++) {
-      *warning << iter->first << "\n";
-    }
-    Warning(__FILE__, __LINE__);
+      warning << iter->first << "\n";
+    }    
+    WARN(warning.str());
 
     // use default
     // restrict to order 2 but stay on 1 if desired
@@ -1509,8 +1510,7 @@ namespace CoupledField
     if(data != NULL)
     {
       MakeKey(alt_m, alt_o, key);
-      *warning << "Use fallback " << key << " for integration\n";
-      Warning(__FILE__, __LINE__);
+      WARN("Use fallback " << key << " for integration\n");
       return data;
     }
 
@@ -1533,13 +1533,14 @@ namespace CoupledField
         SetDefaultIntegration();
       } else {
         ParamNode * integNode = param->Get( "integRules", false );
-        if(integNode)
+        if(integNode && integNode->HasChildren())
         {
-          std::string type = integNode->Get("type")->AsString();
+          std::string type = "Gauss_standard";
+          integNode->Get("type", type);
           // we have values in the XML file
           String2Enum(type,IntegMethod );
 
-          std::string str;
+          std::string str = "4";
           integNode->Get( "order", str );
           IntegOrder = lexical_cast<Double>(str);
         }
