@@ -88,6 +88,7 @@ include/def_use_arpack.hh.in -text
 include/def_use_blas.hh.in -text
 include/def_use_cholmod.hh.in -text
 include/def_use_gidpost.hh.in -text
+include/def_use_gmsh.hh.in -text
 include/def_use_gmv.hh.in -text
 include/def_use_hdf5.hh.in -text
 include/def_use_ilupack.hh.in -text
@@ -547,6 +548,13 @@ source/DataInOut/SimInOut/Unverg/unv_dat.hh svneol=native#text/plain
 source/DataInOut/SimInOut/Unverg/unv_if.cc svneol=native#text/plain
 source/DataInOut/SimInOut/Unverg/unv_if.hh svneol=native#text/plain
 source/DataInOut/SimInOut/Unverg/unv_reader.cc svneol=native#text/plain
+source/DataInOut/SimInOut/gmsh/CMakeLists.txt svneol=native#text/plain
+source/DataInOut/SimInOut/gmsh/GmshHelper.cc svneol=native#text/plain
+source/DataInOut/SimInOut/gmsh/GmshHelper.hh svneol=native#text/plain
+source/DataInOut/SimInOut/gmsh/simInputGmsh.cc svneol=native#text/plain
+source/DataInOut/SimInOut/gmsh/simInputGmsh.hh svneol=native#text/plain
+source/DataInOut/SimInOut/gmsh/simOutputGmsh.cc svneol=native#text/plain
+source/DataInOut/SimInOut/gmsh/simOutputGmsh.hh svneol=native#text/plain
 source/DataInOut/SimInOut/gmv/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/gmv/gmvread.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/gmv/gmvread.hh svneol=native#text/x-c%2B%2Bhdr

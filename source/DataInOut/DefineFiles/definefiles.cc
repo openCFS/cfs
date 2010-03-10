@@ -14,6 +14,7 @@
 #include <def_use_gidpost.hh>
 #include <def_use_hdf5.hh>
 #include <def_use_gmv.hh>
+#include <def_use_gmsh.hh>
 #include <def_use_unv.hh>
 #include <def_use_ansysrst.hh>
 #include <def_use_scripting.hh>
@@ -33,6 +34,11 @@
 
 #ifdef USE_GMV_OUTPUT
 #include "DataInOut/SimInOut/gmv/simOutGMV.hh"
+#endif
+
+#ifdef USE_GMSH
+#include "DataInOut/SimInOut/gmsh/simInputGmsh.hh"
+#include "DataInOut/SimInOut/gmsh/simOutputGmsh.hh"
 #endif
 
 #ifdef USE_HDF5
@@ -208,6 +214,17 @@ void DefineInOutFiles::CreateSimInputFiles(std::map<std::string, shared_ptr<
       EXCEPTION( "No support for GMV input file format." );
 #endif // USE_GMV_INPUT
     }
+    else if (informat == "gmsh")
+    {
+#ifdef USE_GMSH
+      if (meshFile == "")
+        meshFile = simName + ".msh";
+      inFiles[actId] = shared_ptr<SimInput> (
+          new SimInputGmsh(meshFile, actNode));
+#else
+      EXCEPTION( "No support for GMSH input file format." );
+#endif // USE_GMSH
+    }
     else if (informat == "unv")
     {
 #ifdef USE_UNV
@@ -287,6 +304,16 @@ void DefineInOutFiles::CreateSimOutputFiles(std::map<std::string, shared_ptr<
       continue;
 #else
       EXCEPTION( "No support for GiD output file format." );
+#endif
+    }
+
+    if (actFormat == "gmsh")
+    {
+#ifdef USE_GMSH
+      out[actId] = shared_ptr<SimOutput> (new SimOutputGmsh(simName, actNode));
+      continue;
+#else
+      EXCEPTION( "No support for Gmsh output file format." );
 #endif
     }
 

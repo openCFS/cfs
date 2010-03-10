@@ -61,6 +61,9 @@ OPTION(USE_MESH
 OPTION(USE_GIDPOST
   "Use the GiD library for simulation output."
   ${USE_GIDPOST_DEFAULT})
+OPTION(USE_GMSH
+  "Use Gmsh meshes for simulation input."
+  ${USE_GMSH_DEFAULT})
 OPTION(USE_GMV
   "Use General Mesh Viewer (GMV) for simulation in/output."
   ${USE_GMV_DEFAULT})
@@ -110,7 +113,8 @@ IF(USE_PARDISO OR
     "Use the LAPACK linear algebra library." FORCE)
 ELSE(USE_PARDISO OR
      USE_ARPACK OR
-     USE_ILUPACK)
+     USE_ILUPACK OR
+     USE_CHOLMOD)
   OPTION(USE_LAPACK
     "Use the LAPACK linear algebra library."
     ${USE_LAPACK_DEFAULT})
@@ -234,6 +238,7 @@ ENDIF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
 #-----------------------------------------------------------------------------
 MARK_AS_ADVANCED(USE_UNV)
 MARK_AS_ADVANCED(USE_GMV)
+MARK_AS_ADVANCED(USE_GMSH)
 MARK_AS_ADVANCED(USE_MESH)
 MARK_AS_ADVANCED(USE_XERCES)
 MARK_AS_ADVANCED(CMAKE_BUILD_TYPE)
@@ -515,6 +520,10 @@ IF(USE_GMV)
   MARK_AS_ADVANCED(USE_GMV_INPUT USE_GMV_OUTPUT)
   SUBDIRS(source/DataInOut/SimInOut/gmv)
 ENDIF(USE_GMV)
+
+IF(USE_GMSH)
+  SUBDIRS(source/DataInOut/SimInOut/gmsh)
+ENDIF(USE_GMSH)
 
 IF(USE_HDF5)
   SUBDIRS(source/DataInOut/SimInOut/hdf5)

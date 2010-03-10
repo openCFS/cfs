@@ -10,6 +10,7 @@
 #include <def_use_mesh.hh>
 #include <def_use_gidpost.hh>
 #include <def_use_hdf5.hh>
+#include <def_use_gmsh.hh>
 #include <def_use_gmv.hh>
 #include <def_use_unv.hh>
 #include <def_use_ansysrst.hh>
@@ -29,6 +30,11 @@ namespace fs = boost::filesystem;
 
 #ifdef USE_MESH
 #include "DataInOut/SimInOut/AnsysFile/simInputMESH.hh"
+#endif
+
+#ifdef USE_GMSH
+#include "DataInOut/SimInOut/gmsh/simInputGmsh.hh"
+#include "DataInOut/SimInOut/gmsh/simOutputGmsh.hh"
 #endif
 
 #ifdef USE_GMV_INPUT
@@ -90,6 +96,13 @@ namespace CFSTool {
 #else
       EXCEPTION( "No support for HDF5 input file format." );
 #endif
+    } else if( fileName.find( ".msh") != std::string::npos ) {
+#ifdef USE_GMSH
+      ParamNode * gmshNode = new ParamNode(false);
+      reader = shared_ptr<SimInput>(new SimInputGmsh(fileName, gmshNode) );
+#else  
+      EXCEPTION( "No support for Gmsh input file format." );
+#endif
     } else if( fileName.find( ".gmv") != std::string::npos ) {
 #ifdef USE_GMV_INPUT
       reader = shared_ptr<SimInput>(new SimInputGMV(fileName, param));
@@ -148,6 +161,22 @@ namespace CFSTool {
       writer = shared_ptr<SimOutput>( new SimOutputGMV( baseName, gmvNode ) );
 #else
       EXCEPTION( "No support for GMV output file format." );
+#endif
+    } else if( fileName.find( ".msh") != std::string::npos ) {
+#ifdef USE_GMSH
+      baseName = std::string(fileName, 0, fileName.find(".msh"));
+      ParamNode * gmshNode = new ParamNode(false);
+      ParamNode * binary = new ParamNode(false);
+      binary->SetName("binaryFormat");
+      binary->SetValue( "yes" );
+      ParamNode * bigEndian = new ParamNode(false);
+      bigEndian->SetName("endianness");
+      bigEndian->SetValue( "big" );
+      gmshNode->GetChildren().Push_back(binary);
+      gmshNode->GetChildren().Push_back(bigEndian);
+      writer = shared_ptr<SimOutput>( new SimOutputGmsh( baseName, gmshNode ) );
+#else 
+      EXCEPTION( "No support for GMsh output file format." );
 #endif
     } else if(fileName.find( ".h5") != std::string::npos) {
 #ifdef USE_HDF5
