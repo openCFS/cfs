@@ -311,7 +311,7 @@ IF(NOT PARDISO_API_VER_3_LAST_CFS_PARDISO STREQUAL CFS_PARDISO)
   #---------------------------------------------------------------------------
   CFS_CHECK_CXX_SOURCE_RUNS("${PARDISO_API_CHECK_SOURCE}"
                             PARDISO_API_VER_3
-                            ${IFORT_LIB_PATH})
+                            "${IFORT_LIB_PATH}")
 
 
   #---------------------------------------------------------------------------
@@ -361,7 +361,7 @@ IF(NOT PARDISO_API_VER_4_LAST_CFS_PARDISO STREQUAL CFS_PARDISO)
   #---------------------------------------------------------------------------
   CFS_CHECK_CXX_SOURCE_RUNS("${PARDISO_API_CHECK_SOURCE}"
                             PARDISO_API_VER_4
-                            ${IFORT_LIB_PATH})
+                            "${IFORT_LIB_PATH}")
 
   #---------------------------------------------------------------------------
   # Only set last CFS++ PARDISO variable if test was successful
