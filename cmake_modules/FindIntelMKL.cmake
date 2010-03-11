@@ -1,8 +1,14 @@
 SET (MKL_POSSIBLE_PATHS
+  # Path the user may have specified via -DMKL_ROOT_DIR:PATH=...
   ${MKL_ROOT_DIR}
+  # Path the user may have specified as environment variable
   $ENV{MKL_ROOT_DIR}
+  # Path which may have been given in a platform_defaults_*.cmake file 
   ${MKL_ROOT_DIR_DEFAULT}
+  # Path set by ifortvars.sh resp. iccvars.sh
+  $ENV{MKLROOT}
   # Paths at LSE and local paths
+  /opt/intel/Compiler/11.1/069/mkl
   /opt/intel/Compiler/11.0/059/Frameworks/mkl
   /opt/intel/Compiler/11.0/081/mkl
   /opt/intel/Compiler/11.0/074/mkl

@@ -576,9 +576,9 @@ namespace CoupledField {
     out << "BLAS_IMPLEMENTATION:   "
         << fg_blue  << CFS_BLAS_LAPACK << fg_reset << endl;
  #ifdef USE_MKL
-    MKLVersion ver;
+    CFSMKLVersion ver;
 
-    MKLGetVersion(&ver);
+    MKLGetVersion((MKLVersion*)&ver);
 
     out << "MKL_VERSION:           " << fg_blue
         << ver.MajorVersion << "."
