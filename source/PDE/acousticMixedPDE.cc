@@ -661,7 +661,7 @@ namespace CoupledField
     }
     else {
       TS_alg_ = new Trapezoidal( algsys_ );
-      TS_alg_->SetTrapezoidalGamma(0.5);
+      TS_alg_->SetTrapezoidalGamma(0.505);
       //      TS_alg_ = new Bdf2( algsys_ );
     }
   }

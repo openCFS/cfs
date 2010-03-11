@@ -372,7 +372,6 @@ namespace CoupledField
       //! This is just for Lobatto integration
       Double  divisor = abs(maxPos - pos[idx]);
       if ( abs (maxPos - pos[idx]) < 1e-12 ) {
-        //factor = abs (dampingFactor_ / 1e-2 );
         factor = 0;
         WARN("PML damping inverseDist divides by factor smaller 1E-12. Setting the factor to 0");
       }else{
