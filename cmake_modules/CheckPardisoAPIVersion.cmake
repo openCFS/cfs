@@ -8,7 +8,7 @@ SET(PARDISO_API_CHECK_SOURCE
 #include <cmath>
 
 /* PARDISO prototypes according to API version. */
-
+ 
 #if PARDISO_API_VER == 3
 extern \"C\" {
   void pardisoinit_ (void *pt[64], int *mtype, int iparm[64]);
