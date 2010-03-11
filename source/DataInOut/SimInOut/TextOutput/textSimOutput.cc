@@ -447,6 +447,11 @@ namespace CoupledField {
       for( it.Begin(); !it.IsEnd(); it++ ) {
 
         entityString = it.GetIdString();
+        if(list->GetType() == EntityList::NODE_LIST){
+          //ok so it seems we have history nodes.
+          //lets add the name of the nodelist to the filename
+          entityString += "-" + list->GetName();
+        }
 //        switch( actInfo.definedOn ) {
 //          
 //        case ResultInfo::NODE:

@@ -373,7 +373,6 @@ namespace CoupledField
       Double  divisor = abs(maxPos - pos[idx]);
       if ( abs (maxPos - pos[idx]) < 1e-12 ) {
         factor = 0;
-        WARN("PML damping inverseDist divides by factor smaller 1E-12. Setting the factor to 0");
       }else{
         factor = abs (dampingFactor_ / divisor );
         //std::cout << "got factor " << factor;

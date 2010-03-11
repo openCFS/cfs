@@ -926,9 +926,9 @@ namespace CoupledField
     isaxi_     = axi;
     formsType_ = type;
     if(dampingTypePML == "inverseDist"){
-      std::cerr << "WARNING: Computing PML for Mixed Acoustics with inverse Distance." << std::endl \
-                << "Due to the Lobatto integration, the Damping factor is set to zero at the outer most DOF" << std::endl \
-                << "You might want to specify Homogenious BCs for AcouAcceleration here" << std::endl;
+      WARN( "WARNING: Computing PML for Mixed Acoustics with inverse Distance.\n \
+             Due to the Lobatto integration, the Damping factor is set to zero at the outer most DOF \n \
+             You might want to specify Homogenious BCs for AcouAcceleration here");
     }
     pmlFnc_    = new PMLBasics( dampingTypePML, damp, type);
   }
@@ -1110,10 +1110,6 @@ namespace CoupledField
       }
       else {
 	       partElemMat *= intWeights[actIntPt-1]  * jacDet * factor_;
-      }
-      if(it1_.GetElem()->elemNum == 15626 || it1_.GetElem()->elemNum == 21253){
-        std::cerr << "for elem#" << it1_.GetElem()->elemNum << " i got \n" << factorsPML << std::endl;
-        std::cerr << "for the global coordinates" << CoordAtIP << std::endl << std::endl;
       }
       //now blow the matrix up
       for(UInt i=0; i < numFncs; i++){
