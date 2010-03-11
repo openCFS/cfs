@@ -167,8 +167,8 @@ namespace CoupledField {
         // Obtain reordering type from OLAS-Params
         BaseOrdering::ReorderingType reorder = BaseOrdering::NOREORDERING;
         std::string reorderStr = "noReordering";
-        xml_->Get( "matrix", "reordering", reorderStr, false );
-        reorder = BaseOrdering::reorderingType.Parse( reorderStr );
+        xml_->Get( "matrix")->Get( "reordering", reorderStr, false );
+        reorder = BaseOrdering::reorderingType.Parse( reorderStr ); 
 
         // Register PDE with the graphmanager
         graphManager_->RegisterPDE( pdeId, numEqns, numLastFreeDof, reorder );
