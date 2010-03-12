@@ -80,9 +80,11 @@ int main (int argc, char* argv[])
 
     /* Pardiso control parameters. */
     int      iparm[64];
+    std::fill(iparm, iparm+64, 0);
 #if PARDISO_API_VER == 4    
     double   dparm[64];
-    int solver;
+    std::fill(dparm, dparm+64, 0);
+    int solver = 0;
 #endif
 
     int      maxfct, mnum, phase, error, msglvl;
