@@ -114,5 +114,5 @@ SET(CTEST_ENVIRONMENT
   "LC_ALL=C"
   "LANG=C"
   "LANGUAGE=C"
-  "CPLREADER_PERF_SUITE=$ENV{HOME}/cplreader_performance_suite"
+  "CPLREADER_PERF_SUITE=/media/CFD_Data/cplreader_performance_suite"
   )

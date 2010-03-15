@@ -56,7 +56,7 @@ namespace CoupledField {
 #endif
 
 /* Test for GCC > 4.1.0 */
-#if GCC_VERSION > 40100  && not defined(__INTEL_COMPILER)
+#if GCC_VERSION >= 40200  && not defined(__INTEL_COMPILER)
     if(size == 2)
     {
       for (unsigned int i = 0; i < size / 2; ++i)
@@ -79,13 +79,13 @@ namespace CoupledField {
       }
     }
     
- #else
+#else
     for (unsigned int i = 0; i < size / 2; ++i)
     {
       out.bytes[i] = in.bytes[size - 1 - i];
       out.bytes[size - 1 - i] = in.bytes[i];
     }
- #endif
+#endif
     return out.value;
   }
   

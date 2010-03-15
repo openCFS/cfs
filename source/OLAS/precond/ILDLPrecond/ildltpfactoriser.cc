@@ -90,7 +90,8 @@ namespace CoupledField {
 
     // Dropping threshold
     Double tau = 0.01;
-    this->xml_->Get("ILDLTP", "threshold", tau, false);
+    ParamNode* ildltpNode = this->xml_->Get("ILDLTP", false);
+    ildltpNode->Get("threshold", tau, false);
     
     if ( tau <= 0.0 || tau > 1.0 ) {
       EXCEPTION( "ILDLTPFactoriser::Factorise: Dropping threshold tau = "

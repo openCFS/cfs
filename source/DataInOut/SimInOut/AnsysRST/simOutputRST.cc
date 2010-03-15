@@ -66,12 +66,15 @@ namespace CoupledField {
 
     revisionDLLMap["10.0"] = "libCFSAnsysBinlibIfaceRev100.so";
     revisionDLLMap["11.0"] = "libCFSAnsysBinlibIfaceRev110.so";
+    revisionDLLMap["12.0"] = "libCFSAnsysBinlibIfaceRev120.so";
     
     archMachIdMap["I386"] = "linia32";
     archMachIdMap["X86_64"] = "linop64";
 
+    std::string ansysRev = "11.0";
+    outputNode_->Get("ansysRevision", ansysRev, false);
     sstr.clear(); sstr.str("");
-    sstr << outputNode_->Get("ansysRevision")->AsString();
+    sstr << ansysRev;
     sstr >> ansysBinlibRev_;
     sstr.clear(); sstr.str("");
     sstr.precision(1);

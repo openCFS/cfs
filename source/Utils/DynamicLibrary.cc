@@ -22,16 +22,22 @@ namespace CoupledField
     if(_objFile == 0) {
       return 0;
     }
+
+    typedef void* (*FuncPtrType)(const char*, int, void**); // a function pointer type
+    
     // Get the loadObject() function.  If it doesn't exist, return NULL.
-    void* loadSym = dlsym(_objFile, "loadObject");
+    // http://www.mr-edd.co.uk/blog/supressing_gcc_warnings
+#ifdef __GNUC__
+__extension__
+#endif
+    FuncPtrType loadSym = reinterpret_cast<FuncPtrType>( dlsym(_objFile, "loadObject") );
     if(loadSym == 0) {
       return 0;
     }
+
     // Load a new instance of the requested class, and return it
     void* obj = 0;
-    std::cerr << "Loading of C++ object from DLL has to be reimplemented cleanly." << std::endl;
-    exit(1);
-    // obj = ((void* (*)(const char*, int, void**))(loadSym))(name, argc, argv);
+    obj = loadSym(name, argc, argv);
     return reinterpret_cast<DynamicObject*>(obj);
   }
   

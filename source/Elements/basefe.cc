@@ -1542,7 +1542,7 @@ namespace CoupledField
 
           std::string str = "4";
           integNode->Get( "order", str );
-          IntegOrder = lexical_cast<Double>(str);
+          IntegOrder = lexical_cast<UInt>(str);
         }
         else
         {

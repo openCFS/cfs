@@ -86,7 +86,8 @@ namespace CoupledField {
 
     // Dropping threshold
     Double tau = 0.01;
-    this->xml_->Get("ILDLCN", "threshold", tau, false);
+    ParamNode* ildlcnNode = this->xml_->Get("ILDLCN", false);
+    ildlcnNode->Get("threshold", tau, false);
 
     // if ( tau <= 0.0 || tau > 1.0 ) {
     if ( tau < 0.0 ) {

@@ -53,14 +53,15 @@ namespace CoupledField {
 
     // Query parameter object for values
     ParamNode* pn = xml_->Get("solver", false);
+    pn = pn->Get("richardson", false);
     Integer maxiter = 1;
-    pn->Get("richardson", "maxIter", maxiter, false);
+    pn->Get("maxIter", maxiter, false);
     Double eps      = 1e-6;
-    pn->Get("richardson", "tol", eps, false);
+    pn->Get("tol", eps, false);
     Double epsmach  = 1e-20;
-    pn->Get("richardson", "epsmach", epsmach, false);
+    pn->Get("epsmach", epsmach, false);
     Double omega    = 1.0;
-    pn->Get("richardson", "omega", omega, false);
+    pn->Get("omega", omega, false);
 
 #ifdef DEBUG_RICHARDSON
     (*debug) << " ------- START RICHARDSON ITERATION -------- " << std::endl;

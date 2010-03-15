@@ -135,6 +135,10 @@
       <xsd:enumeration value="intersection operations"/>
       <xsd:enumeration value="wire baskets"/>
       <xsd:enumeration value="automatic interface determination"/>
+      <!-- input/output related keywords -->
+      <xsd:enumeration value="input"/>
+      <xsd:enumeration value="output"/>
+      <xsd:enumeration value="file format"/>
     </xsd:restriction>
   </xsd:simpleType>
   

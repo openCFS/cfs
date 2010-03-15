@@ -188,6 +188,7 @@ namespace CoupledField
                                       bool printGridOnly )
   {
     ptGrid_ = ptGrid;
+    printGrid_ = printGridOnly;
     WriteGrid();
   }
   
@@ -909,7 +910,8 @@ namespace CoupledField
   {
     UInt numElemNodes = Elem::GetNumElemNodes(eType);
     Integer ansysElemType = elemType2AnsysType_[eType];
-   
+    static bool warnAboutQuadrPyras = false;
+    
     switch(eType)
     {
     case Elem::TRIA3:
@@ -1024,22 +1026,36 @@ namespace CoupledField
       connectANSYS[1] = connect[1];    // J 
       connectANSYS[2] = connect[2];    // K 
       connectANSYS[3] = connect[3];    // L 
+      
       connectANSYS[4] = connect[4];    // M 
       connectANSYS[5] = connect[4];    // N 
       connectANSYS[6] = connect[4];    // O 
       connectANSYS[7] = connect[4];    // P 
+      
       connectANSYS[8] = connect[5];    // Q 
       connectANSYS[9] = connect[6];    // R 
       connectANSYS[10] = connect[7];   // S 
       connectANSYS[11] = connect[8];   // T 
+      
       connectANSYS[12] = connect[4];   // U 
       connectANSYS[13] = connect[4];   // V 
       connectANSYS[14] = connect[4];   // W 
       connectANSYS[15] = connect[4];   // X 
+      
       connectANSYS[16] = connect[9];   // Y 
       connectANSYS[17] = connect[10];  // Z 
       connectANSYS[18] = connect[11];  // A 
-      connectANSYS[19] = connect[12];  // B 
+      connectANSYS[19] = connect[12];  // B
+      
+      // Make sure that we warn only once about pyramid problem.
+      if(!warnAboutQuadrPyras) {
+	WARN("The mesh contains quadratic pyramid elements.\n"
+	     << "Quadratic pyramids which get mapped to degenerated SOLID95\n"
+	     << "elements for ANSYS seem to cause ANSYS classic to crash.\n"
+	     << "On the other hand they seem to work properly in CFX-Post.\n"
+	     << "(Tested with: libbin.so 11.0, ANSYS 11.0 and CFX 11.0)");
+	warnAboutQuadrPyras = true;
+      }
       break;
 
     case Elem::HEXA8:
