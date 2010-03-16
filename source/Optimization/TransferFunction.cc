@@ -2,7 +2,7 @@
 #include "Optimization/DesignElement.hh"
 #include "Optimization/TransferFunction.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "General/exception.hh"
 #include "Utils/StdVector.hh"
@@ -28,22 +28,22 @@ TransferFunction::TransferFunction()
   param_ = 0.0;
 }
 
-TransferFunction::TransferFunction(ParamNode* pn, DesignElement::Type default_design)
+TransferFunction::TransferFunction(PtrParamNode pn, DesignElement::Type default_design)
 {
   // initialize the static Enum the first time
   if(type.map.size() == 0) SetEnums();
-  this->type_ = type.Parse(pn->Get("type"));
+  this->type_ = type.Parse(pn->Get("type")->As<std::string>());
   this->orgType_ = NO_TYPE;
-  this->application_ = Optimization::application.Parse(pn->Get("application"));
+  this->application_ = Optimization::application.Parse(pn->Get("application")->As<std::string>());
   if(pn->Has("design"))
-    this->design_ = DesignElement::type.Parse(pn->Get("design"));
+    this->design_ = DesignElement::type.Parse(pn->Get("design")->As<std::string>());
   else
   {
     if(default_design == DesignElement::NO_TYPE) 
       throw Exception("Set the 'design' attribute for 'transferFunction' when using multiple design variables.");
     this->design_ = default_design;
   }
-  this->param_ = pn->Has("param") ? pn->Get("param")->AsDouble() : 1.0;
+  this->param_ = pn->Has("param") ? pn->Get("param")->As<Double>() : 1.0;
   
   // validate param
   if(!pn->Has("param") && (type_ != IDENTITY && type_ != FULL))  
@@ -55,7 +55,7 @@ TransferFunction::TransferFunction(ParamNode* pn, DesignElement::Type default_de
         + Optimization::application.ToString(Optimization::PIEZO_COUPLING) + "'");
 }
 
-void TransferFunction::ToInfo(InfoNode* in) const
+void TransferFunction::ToInfo(PtrParamNode in) const
 {
   in->Get("type")->SetValue(type.ToString(type_));
   in->Get("application")->SetValue(Optimization::application.ToString(application_));

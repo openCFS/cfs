@@ -22,7 +22,7 @@ namespace CoupledField {
     std::string nameFreqFile;
     param->Get("sequenceStep") 
       ->Get("analysis")->Get("harmonic")->Get("freqDataFile")
-      ->Get("name", nameFreqFile );
+      ->GetValue("name", nameFreqFile );
     fnc_names_.Push_back( nameFreqFile );
     
   }

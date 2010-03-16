@@ -208,7 +208,7 @@ namespace CoupledField
 		try {
 
           Double refTemp = pn_->Has("referenceTemperature") ?
-            pn_->Get("referenceTemperature")->AsDouble() : 0.0;
+            pn_->Get("referenceTemperature")->As<Double>() : 0.0;
 
 	
 			// Set type of ansatz function , but do not recalculate

@@ -10,7 +10,8 @@
 
 #include "General/defs.hh"
 #include "General/environment.hh"
-
+#include "MatVec/matrix.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/exception.hh"
 
 namespace CoupledField {
@@ -26,8 +27,6 @@ namespace CoupledField {
   class StdMatrix;
   class BaseVector;
   class SingleVector;
-  class ParamNode;
-  class InfoNode;
   template <class TYPE> class StdVector;
   template <class TYPE> class Vector;
 
@@ -52,7 +51,7 @@ namespace CoupledField {
   public:
 
     //! Default Constructor
-    BaseSystem(ParamNode* pn = NULL);
+    BaseSystem(PtrParamNode pn = PtrParamNode());
 
     //! Default Destructor
     virtual ~BaseSystem();
@@ -142,7 +141,7 @@ namespace CoupledField {
      * factorisation of the problem matrix will be performed at this stage.
      * The setup is performed using the system matrix of the linear system.
      * @param analysis_id @see SetupPrecond() */
-    virtual void SetupSolver(InfoNode* analysis_id) = 0;
+    virtual void SetupSolver(PtrParamNode analysis_id) = 0;
 
     //! Trigger setup of eigenvalue solver
 
@@ -171,7 +170,7 @@ namespace CoupledField {
      * form Ax=b.
      * @param analysis_id identifies the analysis step.
      *        When the linear system is exported via file, the comment is used. */
-    virtual void Solve(InfoNode* analysis_id) = 0;
+    virtual void Solve(PtrParamNode analysis_id) = 0;
 
     //! Calculate eigenfrequencies of a generalized eigenvalue problem
 
@@ -831,7 +830,7 @@ namespace CoupledField {
     Integer blockSize_;
 
     /** collect system data, but bot the individual preconditioner/ solver data*/
-    InfoNode* systemInfo_;
+    PtrParamNode systemInfo_;
 
     // =======================================================================
     // BOUNDARY CONDITIONS / CONSTRAINTS
@@ -879,8 +878,8 @@ namespace CoupledField {
 
     /** Here we store the complete ParamNode descripton of our liner system
      * - As given in the XML - hence it might be NULL! */
-    ParamNode* xml_;
-    InfoNode* olasInfo_;
+    PtrParamNode xml_;
+    PtrParamNode olasInfo_;
     
     bool usingPenalty_;
   };

@@ -7,6 +7,7 @@
 
 #include <Domain/grid.hh>
 #include "Domain/edgeFace.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 #ifdef ADAPTGRID
 #include "Vertex.h"
@@ -26,7 +27,7 @@ namespace CoupledField
   // Forward class declarations
   struct Elem;
   struct SurfElem;
-  class InfoNode;
+  class ParamNode;
 
   //! Implementation of a simple, one level grid.
 
@@ -531,7 +532,7 @@ namespace CoupledField
                                 std::map<UInt, SurfElem*> & mappedElems );
 
     //! Prints information about the grid into the .info.xml file
-    void ToInfo(InfoNode* in);
+    void ToInfo(PtrParamNode in);
     
     //! Create new nodes / elements, which are defined either by point coordinate
     //! or parametric description

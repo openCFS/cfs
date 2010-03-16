@@ -40,7 +40,7 @@ namespace CoupledField {
   //   Constructor
   // ***************
   PiezoCoupling::PiezoCoupling( SinglePDE *pde1, SinglePDE *pde2,
-                                ParamNode * paramNode  )
+                                PtrParamNode paramNode  )
     : BasePairCoupling( pde1, pde2, paramNode ) {
 
 
@@ -48,7 +48,7 @@ namespace CoupledField {
     materialClass_ = PIEZO;
 
     // determine subtype from mechanic pde
-    pde1_->GetParamNode()->Get( "subType", subType_ );
+    pde1_->GetParamNode()->GetValue( "subType", subType_ );
 
     // read nonlinearity
     nonLin_ = false;
@@ -57,9 +57,9 @@ namespace CoupledField {
     nonLinMaterial_ = false;
     
     nonLinPiezoCoupling_=false;
-    ParamNode * nonLinNode = myParam_->Get("nonLinList", false );
+    PtrParamNode nonLinNode = myParam_->Get("nonLinList", ParamNode::PASS );
     if( nonLinNode ) {
-       StdVector<ParamNode*> nonLinNodes = nonLinNode->GetChildren();
+       ParamNodeList nonLinNodes = nonLinNode->GetChildren();
        for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
 
          std::string nonLinearity = nonLinNodes[i]->GetName();
@@ -481,7 +481,7 @@ namespace CoupledField {
      //  Writes result to StdPDE for later retrieval in SinglePDEs
      // (required by piezoParamIdent)
      std::string analysis =
-       param->Get("sequenceStep", std::string("index"), sequenceStep_, true)
+       param->GetByVal("sequenceStep","index", sequenceStep_)
        ->Get("analysis")->GetChild()->GetName();
      if(analysis == "paramIdent") {
 
@@ -866,7 +866,7 @@ namespace CoupledField {
 
 
     // Check, if "nonLinList" is present
-    ParamNode * nonLinListNode = myParam_->Get("nonLinList", false );
+    PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
 
 
     // --------------------------------------
@@ -879,11 +879,11 @@ namespace CoupledField {
     
     if( nonLinListNode) {
       // Get nonlinear types
-      StdVector<ParamNode*> nonLinNodes = nonLinListNode->GetChildren();
+      ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
       for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
 
         std::string actTypeString = nonLinNodes[i]->GetName();
-        std::string actId = nonLinNodes[i]->Get("id")->AsString();
+        std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
 
         NonLinType actType;
         String2Enum( actTypeString, actType );
@@ -912,7 +912,7 @@ namespace CoupledField {
     }
 
     // Run over all region and set entry in "regionNonLinId"
-    StdVector<ParamNode*> regionNodes =
+    ParamNodeList regionNodes =
       myParam_->Get("regionList")->GetChildren();
 
     RegionIdType actRegionId;
@@ -924,8 +924,8 @@ namespace CoupledField {
     for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
 
       // get data
-      regionNodes[i]->Get( "name", actRegionName );
-      regionNodes[i]->Get( "nonLinId", actNonLinId );
+      regionNodes[i]->GetValue( "name", actRegionName );
+      regionNodes[i]->GetValue( "nonLinId", actNonLinId );
 
       if( actNonLinId == "" )
         continue;

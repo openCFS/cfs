@@ -15,6 +15,7 @@ namespace CoupledField {
 
   //! Forward class declaration
   class ParamNode;
+  
 
   //! Base class for writing result objects to file
   class SimOutput {
@@ -29,7 +30,7 @@ namespace CoupledField {
     typedef enum {NONE, MESH, MESH_RESULTS, HISTORY, USERDATA} Capability;
 
     //! Constructor
-    SimOutput( const std::string& fileName, ParamNode * outputNode );
+    SimOutput( const std::string& fileName, PtrParamNode outputNode );
 
     //! Destructor
     virtual ~SimOutput();
@@ -106,7 +107,7 @@ namespace CoupledField {
     Grid* ptGrid_;
 
     //! Parameter node for current output class
-    ParamNode * myParam_;
+    PtrParamNode myParam_;
 
     //! Current multisequence step in analysis
     UInt actMSStep_;

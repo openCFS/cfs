@@ -93,20 +93,20 @@ namespace CoupledField
   class Ilupack : public BaseIterativeSolver 
   {
   public:
-    Ilupack(ParamNode* param, InfoNode* olasInfo, BaseMatrix::EntryType type);
+    Ilupack(PtrParamNode param, PtrParamNode olasInfo, BaseMatrix::EntryType type);
 
     ~Ilupack();
 
     /** Every call sets up a new preconditionier.
      * @param analysis_id shall be the current info/analysis/progress/step entry and contain an "analysis_id" element */
-    void Setup(BaseMatrix &sysmat, InfoNode* analysis_id);
+    void Setup(BaseMatrix &sysmat, PtrParamNode analysis_id);
      
     /** To satisfy the compiler 
      * @param sysmat shall be the one Setup() is called with
      * @param precond ignored
      * @param analysis_id @see Setup() */
     void Solve( const BaseMatrix &sysmat, const BasePrecond &precond,
-                const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_id);
+                const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_id);
 
     /** This is not Ilupack intern but Olas stuff. It means that this is
      * a Ilupack, the actual solver called by the lib is in Ilupack::Solver */
@@ -123,7 +123,7 @@ namespace CoupledField
 
     /** Determine the matrix type for ilupack. This can be set optionally in the xml file.
      * If it is not set, then it is SYM or GNL but neither SPD, HPD nor HER */
-    void DetermineMatrixType(BaseMatrix &sysMat, InfoNode* out);
+    void DetermineMatrixType(BaseMatrix &sysMat, PtrParamNode out);
 
     /** Initializes the parameter with default settings by ilupack, conditionally
      * overwrite them with the xml settings and print out the complete stuff. 
@@ -151,7 +151,7 @@ namespace CoupledField
     Enum<Matrix> matrix; 
                             
     /** Calculates the fill in factor of the preconditioner */
-    void CalcFillIn(InfoNode* out);
+    void CalcFillIn(PtrParamNode out);
     
     /** killme */
     void Ilupack_symmessages();

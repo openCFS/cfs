@@ -28,8 +28,8 @@ namespace CoupledField {
   //   Standard constructor
   // ************************
   template <class T>
-  ILDLKFactoriser<T>::ILDLKFactoriser( ParamNode *solverNode,
-                                       InfoNode *olasInfo ) {
+  ILDLKFactoriser<T>::ILDLKFactoriser( PtrParamNode solverNode,
+                                       PtrParamNode olasInfo ) {
 
 
     // Set pointers to communication objects
@@ -85,7 +85,7 @@ namespace CoupledField {
 
     // What fill level is allowed
     level_ = 1;
-    this->xml_->Get("ILDK", "level", level_, false);
+    this->xml_->Get("ILDK",ParamNode::INSERT)->GetValue( "level", level_, ParamNode::INSERT);
 
     // Start pattern analysis combined with factorisation
     if ( this->amFactorised_ == false || newPattern == true ) {
@@ -715,7 +715,8 @@ namespace CoupledField {
     //   Export Fill Levels
     // =====================
     std::string saveLevelsFile = "";
-    this->xml_->Get("ILDLK", "saveLevelsFile", saveLevelsFile, false);
+    this->xml_->Get("ILDLK", ParamNode::INSERT)
+      ->GetValue( "saveLevelsFile", saveLevelsFile, ParamNode::INSERT);
     if( saveLevelsFile != "" ) {
       ExportFillLevels( saveLevelsFile.c_str(), rptrU, cidxU, fillU );
     }

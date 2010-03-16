@@ -44,10 +44,10 @@ namespace CoupledField {
 
 //     // get subType of pde
 //     UInt actSequenceStep = domain->GetSingleDriver()->GetActSequenceStep();
-//     ParamNode * actStepNode = 
+//     PtrParamNode actStepNode = 
 //       param->Get("sequenceStep", "index", GenStr(actSequenceStep));
 //     mechNode_ = actStepNode->Get("pdeList")->Get("mechanic");
-//     subType_ = mechNode_->AsString();
+//     subType_ = mechNode_->As<std::string>();
 	
 //     subdoms_     = asubdomainList;
 //     dampingList_ = adampingList;
@@ -62,7 +62,7 @@ namespace CoupledField {
 
 //     //check if integration parameters are defined
 //     std::string analysis;
-//     if( actStepNode->Get("analysis")->GetChild()->AsString()  != "paramIdent" ) {
+//     if( actStepNode->Get("analysis")->GetChild()->As<std::string>()  != "paramIdent" ) {
 //       Info->PrintF( pdename_, "NewmarkFracDampMech: Using defaults for alpha, \
 //                                beta and gamma!\n" );
 //     }
@@ -82,11 +82,11 @@ namespace CoupledField {
 
     //elastModule_ = 1.0;  
     //elastModule_ = 658.2;  
-    ParamNode * firstRegionNode = (mechNode_->Get("regionList")->GetList("region"))[0];
-    firstRegionNode->Get("damping")->Get("ElastModul", elastModule_ );
+    PtrParamNode firstRegionNode = (mechNode_->Get("regionList")->GetList("region"))[0];
+    firstRegionNode->Get("damping")->GetValue("ElastModul", elastModule_ );
     
     Double timeSlot;
-    firstRegionNode->Get("damping")->Get("timeSlot", timeSlot );
+    firstRegionNode->Get("damping")->GetValue("timeSlot", timeSlot );
   
     Double temp;
     temp   = (timeSlot/GetTimeStep())/fracMemory_;
@@ -189,16 +189,16 @@ namespace CoupledField {
     firstMat->GetScalar(dampAlpha_,ACOU_ALPHA,Global::REAL);
     firstMat->GetScalar(dampBeta_,FRACTIONAL_EXPONENT,Global::REAL);
 
-    ParamNode * firstRegionNode = (mechNode_->GetList("region"))[0];
+    PtrParamNode firstRegionNode = (mechNode_->GetList("region"))[0];
     Double fracDeriv_;
-    firstRegionNode->Get("damping")->Get("fracDeriv", fracDeriv_ );
+    firstRegionNode->Get("damping")->GetValue("fracDeriv", fracDeriv_ );
 
     Double timeStep = GetTimeStep();
     timeStepPowerFracDeriv_ = std::pow(timeStep,-fracDeriv_);
 
 
     std::string model;
-    firstRegionNode->Get("damping")->Get( "model", model );
+    firstRegionNode->Get("damping")->GetValue( "model", model );
 
     for ( UInt actSD=0; actSD < subdoms_.GetSize(); actSD++ ) {
       if ( dampingList_[subdoms_[actSD]] == NONE ) {

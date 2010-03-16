@@ -172,7 +172,7 @@ namespace CoupledField {
     Double elastModule_;
 
     //! node of parameter file of mechanic PDE
-    ParamNode * mechNode_;
+    PtrParamNode mechNode_;
 
 
   };

@@ -75,7 +75,7 @@
 #include <CGAL/version.h>
 #endif
 
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/environment.hh"
 #include "General/exception.hh"
 #include "Utils/tools.hh"
@@ -459,10 +459,10 @@ namespace CoupledField {
     out << helpMsg_;
   }
 
-  void ProgramOptions::ToInfo(InfoNode* in) const
+  void ProgramOptions::ToInfo(PtrParamNode in) const
   {
     in->SetComment("values of command line parameters (including defaults)");
-    in->Get("problem", "name of simulation run")->SetValue(GetSimName());
+    in->Get("problem")->SetValue(GetSimName());
     in->Get("parameterFile")->SetValue(GetParamFileStr());
     in->Get("schemaPath")->SetValue(GetSchemaPathStr());
     in->Get("meshFile")->SetValue(GetMeshFileStr());

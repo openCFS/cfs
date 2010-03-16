@@ -14,7 +14,7 @@ namespace CoupledField
   class EvaluateOnly : public BaseOptimizer
   {
   public:
-    EvaluateOnly(Optimization* optimization, ParamNode* pn);
+    EvaluateOnly(Optimization* optimization, PtrParamNode pn);
     
     ~EvaluateOnly() {}
     

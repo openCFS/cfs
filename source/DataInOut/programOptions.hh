@@ -16,6 +16,7 @@
 
 // Required for the CFS own data types
 #include "General/environment.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
@@ -23,7 +24,6 @@ namespace fs = boost::filesystem;
 namespace CoupledField
 {
   class ProgramOptions;
-  class InfoNode;
 
   //! Define global instance of this class
   extern ProgramOptions* progOpts;
@@ -162,7 +162,7 @@ namespace CoupledField
     void PrintHelp( std::ostream &out );
 
     /** Write the command line options to the info.xml file */
-    void ToInfo(InfoNode* in) const;
+    void ToInfo(PtrParamNode in) const;
 
     /** collects all available data to the string 
      *  It containts valuable information about the executable like the 

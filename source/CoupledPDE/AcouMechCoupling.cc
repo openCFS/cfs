@@ -22,7 +22,7 @@ namespace CoupledField {
   //   Constructor
   // ***************
   AcouMechCoupling::AcouMechCoupling( SinglePDE *pde1, SinglePDE *pde2,
-                                      ParamNode * paramNode  )
+                                      PtrParamNode paramNode  )
     : BasePairCoupling( pde1, pde2, paramNode ) {
 
 

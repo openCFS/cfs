@@ -45,7 +45,7 @@ namespace CoupledField
       \param aGrid pointer to grid
       \param aGrid pointer to class Grid
     */
-    ElecPDE( Grid* aptgrid, ParamNode* paramNode );
+    ElecPDE( Grid* aptgrid, PtrParamNode paramNode );
 
     //! Destructor
     virtual ~ElecPDE(){};

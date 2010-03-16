@@ -14,7 +14,7 @@
 #include "MatVec/scrs_matrix.hh"
 #include "MatVec/crs_matrix.hh"
 #include "DataInOut/Logging/cfslog.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Utils/StdVector.hh"
 #include "CholMod.hh"
 
@@ -24,10 +24,10 @@ DEFINE_LOG(cholmod, "cholmod")
 using namespace CoupledField;
 
 template<typename T>
-CholMod<T>::CholMod(ParamNode* xml, InfoNode* olasInfo, BaseMatrix::EntryType type)
+CholMod<T>::CholMod(PtrParamNode xml, PtrParamNode olasInfo, BaseMatrix::EntryType type)
 {
-  // we work with out 
-  xml_ = xml != NULL && xml->Has("cholmod") ? xml->Get("cholmod") : NULL;
+  // we work with out
+  xml_ =  xml->Get("cholmod", ParamNode::PASS);
   solverInfo_ = olasInfo->Get("cholmod");
 
   if(type != BaseMatrix::COMPLEX && type != BaseMatrix::DOUBLE){
@@ -91,9 +91,9 @@ void CholMod<T>::SetMatrix(const BaseMatrix &base_mat)
 }
 
 template<typename T>
-void CholMod<T>::Setup(BaseMatrix &sysMat, InfoNode* analysis_id)
+void CholMod<T>::Setup(BaseMatrix &sysMat, PtrParamNode analysis_id)
 {
-  InfoNode* out = solverInfo_->Get(InfoNode::PROCESS)->Get("setup", InfoNode::APPEND);
+  PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("setup", ParamNode::APPEND);
   out->Get("analysis_id")->SetValue(analysis_id->Get("analysis_id"));
   
   LOG_TRACE2(cholmod) <<  "Setup: matrix -> " << sysMat.ToString();
@@ -126,7 +126,7 @@ void CholMod<T>::Setup(BaseMatrix &sysMat, InfoNode* analysis_id)
     u = CHOLMOD_MAXMETHODS+1;
   }
   for(int i = 0; i < u; ++i){
-    InfoNode* m = out->Get("method", InfoNode::APPEND);
+    PtrParamNode m = out->Get("method", ParamNode::APPEND);
     m->Get("id")->SetValue(i);
     m->Get("lnz")->SetValue(common_.method[i].lnz);
     m->Get("fl")->SetValue(common_.method[i].fl);
@@ -136,9 +136,9 @@ void CholMod<T>::Setup(BaseMatrix &sysMat, InfoNode* analysis_id)
 
 template<typename T>
 void CholMod<T>::Solve(const BaseMatrix &base_mat, const BasePrecond &base_precond, 
-    const BaseVector &base_rhs,  BaseVector &base_sol, InfoNode* analysis_id)
+    const BaseVector &base_rhs,  BaseVector &base_sol, PtrParamNode analysis_id)
 {
-  InfoNode* out = solverInfo_->Get(InfoNode::PROCESS)->Get("solver", InfoNode::APPEND);
+  PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
   out->Get("analysis_id")->SetValue(analysis_id->Get("analysis_id"));
   
   // the preconditioner sets the matrix
@@ -184,7 +184,7 @@ void CholMod<T>::InitParameters()
   CholModDefaultParams();
   
   // dump the parameter block and overwrite
-  InfoNode* out = solverInfo_->Get(InfoNode::HEADER)->Get("parameters");
+  PtrParamNode out = solverInfo_->Get(ParamNode::HEADER)->Get("parameters");
   
   CheckParameter(out, &common_.nmethods, "factorization/nmethods");
   CheckParameter(out, reinterpret_cast<bool*>(&common_.postorder), "factorization/postorder");
@@ -193,10 +193,10 @@ void CholMod<T>::InitParameters()
   CheckParameter(out, &common_.supernodal_switch, "supernodal/switch");
   CheckParameter(out, &common_.print, "output/level");
   CheckParameter(out, reinterpret_cast<bool*>(&common_.precise), "output/precise");
-  StdVector<ParamNode*> mList = out->GetList("method");
+  ParamNodeList mList = out->GetList("method");
   for(unsigned int i = 0; i < mList.GetSize(); ++i){
-    InfoNode* m = static_cast<InfoNode*>(mList[i]);
-    int idx = m->Get("id")->AsInt();
+    PtrParamNode m = static_cast<PtrParamNode>(mList[i]);
+    int idx = m->Get("id")->As<Integer>();
     CheckParameter(m, &common_.method[idx].prune_dense,"prune_dense");
     CheckParameter(m, &common_.method[idx].prune_dense2, "prune_dense2");
     CheckParameter(m, &common_.method[idx].nd_oksep, "nd_oksep");

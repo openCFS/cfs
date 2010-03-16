@@ -65,7 +65,6 @@ namespace fs = boost::filesystem;
 
 #include "DataInOut/SimInOut/TextOutput/textSimOutput.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
 
 using namespace CoupledField;
 
@@ -73,8 +72,8 @@ namespace CFSTool {
 
   void setFreeCoord(std::string coordSysId="default",
       std::string node_name="averageDomain");
-  inline void setParamNode(ParamNode *paramNode, std::string name, std::string value,
-      StdVector<ParamNode*>* children=NULL);
+  inline void setParamNode(PtrParamNode paramNode, std::string name, std::string value,
+      ParamNodeList* children = NULL);
 
   shared_ptr<SimInput> GetInputReader(const std::string& fileName)
   {
@@ -86,7 +85,7 @@ namespace CFSTool {
 
     if( fileName.find( ".mesh") != std::string::npos ) {
 #ifdef USE_MESH
-      reader = shared_ptr<SimInput>(new SimInputMESH( fileName, NULL ) );
+      reader = shared_ptr<SimInput>(new SimInputMESH( fileName, PtrParamNode() ) );
 #else
       EXCEPTION( "No support for MESH input file format." );
 #endif
@@ -98,7 +97,7 @@ namespace CFSTool {
 #endif
     } else if( fileName.find( ".msh") != std::string::npos ) {
 #ifdef USE_GMSH
-      ParamNode * gmshNode = new ParamNode(false);
+      PtrParamNode gmshNode = new ParamNode(false);
       gmshNode->WriteBack(false);
       reader = shared_ptr<SimInput>(new SimInputGmsh(fileName, gmshNode) );
 #else  
@@ -134,18 +133,15 @@ namespace CFSTool {
     if( fileName.find( ".post") != std::string::npos ) {
 #ifdef USE_GIDPOST
       baseName = std::string(fileName, 0, fileName.find(".post"));
-      ParamNode * gidNode = new ParamNode(false);
-      gidNode->WriteBack(false);
-      ParamNode * binary = new ParamNode(false);
-      binary->WriteBack(false);
-
+      PtrParamNode gidNode( new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
+      PtrParamNode binary (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
       binary->SetName( "binaryFormat");
       if( fileName.find( ".bin") != std::string::npos ) {
         binary->SetValue( "yes");
       } else {
         binary->SetValue( "false");
       }
-      gidNode->GetChildren().Push_back(binary);
+      gidNode->AddChildNode( binary);
       writer = shared_ptr<SimOutput>( new SimOutputGiD( baseName, gidNode ) );
 #else
       EXCEPTION( "No support for GiD output file format." );
@@ -153,20 +149,16 @@ namespace CFSTool {
     } else if( fileName.find( ".gmv") != std::string::npos ) {
 #ifdef USE_GMV_OUTPUT
       baseName = std::string(fileName, 0, fileName.find(".gmv"));
-      ParamNode * gmvNode = new ParamNode(false);
-      gmvNode->WriteBack(false);
-      ParamNode * binary = new ParamNode(false);
-      binary->WriteBack(false);
+      PtrParamNode gmvNode(new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
+      PtrParamNode binary (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
 
       binary->SetName("binaryFormat");
       binary->SetValue( "yes" );
-      ParamNode * fixedGrid = new ParamNode(false);
-      fixedGrid->WriteBack(false);
-
+      PtrParamNode fixedGrid (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
       fixedGrid->SetName("fixedGrid");
       fixedGrid->SetValue( "yes" );
-      gmvNode->GetChildren().Push_back(binary);
-      gmvNode->GetChildren().Push_back(fixedGrid);
+      gmvNode->AddChildNode( binary);
+      gmvNode->AddChildNode( fixedGrid );
       writer = shared_ptr<SimOutput>( new SimOutputGMV( baseName, gmvNode ) );
 #else
       EXCEPTION( "No support for GMV output file format." );
@@ -174,21 +166,15 @@ namespace CFSTool {
     } else if( fileName.find( ".msh") != std::string::npos ) {
 #ifdef USE_GMSH
       baseName = std::string(fileName, 0, fileName.find(".msh"));
-      ParamNode * gmshNode = new ParamNode(false);
-      gmshNode->WriteBack(false);
-
-      ParamNode * binary = new ParamNode(false);
-      binary->WriteBack(false);
-
+      PtrParamNode gmshNode(new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
+      PtrParamNode binary (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
       binary->SetName("binaryFormat");
       binary->SetValue( "yes" );
-      ParamNode * bigEndian = new ParamNode(false);
-      bigEndian->WriteBack(false);
-
+      PtrParamNode bigEndian (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
       bigEndian->SetName("endianness");
       bigEndian->SetValue( "big" );
-      gmshNode->GetChildren().Push_back(binary);
-      gmshNode->GetChildren().Push_back(bigEndian);
+      gmshNode->AddChildNode(binary);
+      gmshNode->AddChildNode(bigEndian);
       writer = shared_ptr<SimOutput>( new SimOutputGmsh( baseName, gmshNode ) );
 #else 
       EXCEPTION( "No support for GMsh output file format." );
@@ -196,15 +182,11 @@ namespace CFSTool {
     } else if(fileName.find( ".h5") != std::string::npos) {
 #ifdef USE_HDF5
       baseName = std::string(fileName, 0, fileName.find(".h5"));
-      ParamNode * h5Node = new ParamNode(false);
-      h5Node->WriteBack(false);
-
-      ParamNode * eFiles = new ParamNode(false);
-      eFiles->WriteBack(false);
-
+      PtrParamNode h5Node (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
+      PtrParamNode eFiles (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
       eFiles->SetName("externalFiles");
       eFiles->SetValue( "false" );
-      h5Node->GetChildren().Push_back(eFiles);
+      h5Node->AddChildNode(eFiles);
       writer =  shared_ptr<SimOutput>( new SimOutputHDF5( baseName, h5Node ) );
 #else
       EXCEPTION( "No support for HDF5 output file format." );
@@ -212,7 +194,7 @@ namespace CFSTool {
     } else if(fileName.find( ".rst") != std::string::npos) {
 #ifdef USE_ANSYSRST
       baseName = std::string(fileName, 0, fileName.find(".rst"));
-      ParamNode * rstNode = new ParamNode(false);
+      PtrParamNode rstNode (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
       writer =  shared_ptr<SimOutput>( new SimOutputRST( baseName, rstNode ) );
 #else
       EXCEPTION( "No support for ANSYS .rst output file format." );
@@ -220,7 +202,7 @@ namespace CFSTool {
     } else if(fileName.find( ".unv") != std::string::npos) {
 #ifdef USE_UNV
       baseName = std::string(fileName, 0, fileName.find(".unv"));
-      ParamNode * unvNode = new ParamNode(false);
+      PtrParamNode unvNode (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
       writer =  shared_ptr<SimOutput>( new SimOutputUnv( baseName, unvNode ) );
 #else
       EXCEPTION( "No support for IDEAS universal output file format." );
@@ -709,7 +691,7 @@ namespace CFSTool {
   void calcAverage( const std::string& inFile,
               const std::string& outFile)
   {
-    std::string isFreecoord = param->Get("freeCoord")->AsString();
+    std::string isFreecoord = param->Get("freeCoord")->As<std::string>();
     if (isFreecoord != "")
     {
       std::cerr << "selection of region not implemented!\n";
@@ -931,7 +913,7 @@ namespace CFSTool {
     boost::char_separator<char> sep(";| ");
 
     // Initialize vector with output fields
-    Tok tokenizer(param->Get("freeCoord")->AsString(), sep);
+    Tok tokenizer(param->Get("freeCoord")->As<std::string>(), sep);
     std::copy(tokenizer.begin(), tokenizer.end(),
               std::back_inserter(freeCoord));
     if (freeCoord.size() != 4)
@@ -940,13 +922,13 @@ namespace CFSTool {
           << ". Need 4 arguments (comp, start, stop, inc')");
     }
 
-    ParamNode* parent;
+    PtrParamNode parent;
 
-    StdVector<ParamNode*> childVec;
-    childVec.Push_back(new ParamNode(false));  //comp
-    childVec.Push_back(new ParamNode(false));  //start
-    childVec.Push_back(new ParamNode(false));  //stop
-    childVec.Push_back(new ParamNode(false));  //inc
+    ParamNodeList childVec;
+    childVec.Push_back(PtrParamNode(new ParamNode())); // comp
+    childVec.Push_back(PtrParamNode(new ParamNode())); // start
+    childVec.Push_back(PtrParamNode(new ParamNode())); // stop
+    childVec.Push_back(PtrParamNode(new ParamNode())); // inc
 
     // create a tree (Paramnode):
     // domain->nodeList->nodes->(name, list (coordSysId, freeCoord->(comp, start, stop, inc)))
@@ -956,52 +938,39 @@ namespace CFSTool {
     setParamNode(childVec[2], "stop",  freeCoord[2]);
     setParamNode(childVec[3], "inc",   freeCoord[3]);
     
-    for(UInt i=0; i<4; i++)
-      childVec[i]->WriteBack(false);
 
     // create node (freeCoord) with comp,start,stop,inc as children
-    parent = new ParamNode(false); //freeCoord
+    parent = PtrParamNode(new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
     setParamNode(parent, "freeCoord", "", &childVec);
     
-    parent->WriteBack(false);
-
     // create node (list) with freeCoord and coordSysId as children
     childVec.Clear();
-    childVec.Push_back(new ParamNode(false)); // coordSysId
+    childVec.Push_back(PtrParamNode( new ParamNode())); // coordSysId
     childVec.Push_back(parent);
     setParamNode(childVec[0], "coordSysId", coordSysId);
-    childVec.Push_back(new ParamNode(false)); // gridId
+    childVec.Push_back(PtrParamNode( new ParamNode())); // gridId
     childVec.Push_back(parent);
     setParamNode(childVec[1], "gridId", "default");
-    parent = new ParamNode(false); //list
+    parent = PtrParamNode( new ParamNode()); //list
     setParamNode(parent, "list", "", &childVec);
 
-    for(UInt i=0; i<2; i++)
-      childVec[i]->WriteBack(false);
-    parent->WriteBack(false);
-    
     // create leaf (name)
     childVec.Clear();
     childVec.Push_back(parent);
-    parent = new ParamNode(false); //nodes name=""
+    parent = PtrParamNode( new ParamNode()); //nodes name=""
     setParamNode(parent, "name", node_name);
     childVec.Push_back(parent);
 
-    parent->WriteBack(false);
 
     // create node (nodes) with name and list as childer
-    parent = new ParamNode(false); //nodes
+    parent = PtrParamNode( new ParamNode()); //nodes
     setParamNode(parent, "nodes", "", &childVec);
-
-    parent->WriteBack(false);
 
     // create node (nodeList) with nodes as child
     childVec.Clear();
     childVec.Push_back(parent);
-    parent = new ParamNode(false); //nodeList
+    parent = PtrParamNode( new ParamNode()); //nodeList
     setParamNode(parent, "nodeList", "", &childVec);
-
-    parent->WriteBack(false);
 
     // create node (domain) with nodeList as child
     childVec.Clear();
@@ -1011,11 +980,11 @@ namespace CFSTool {
     //childVec.Clear();
 
     // put the childs into param
-    param->Get("domain")->GetChildren().Push_back(parent);
+    param->Get("domain",ParamNode::INSERT )->GetChildren().Push_back(parent);
   }
 
-  inline void setParamNode(ParamNode *paramNode, std::string name, std::string value,
-      StdVector<ParamNode*>* children)
+  inline void setParamNode(PtrParamNode paramNode, std::string name, std::string value,
+      ParamNodeList* children  )
   {
     paramNode->SetName(name);
     if (name != "")
@@ -1024,7 +993,7 @@ namespace CFSTool {
     }
     if (children != NULL)
     {
-      StdVector<ParamNode*> &childTmp = paramNode->GetChildren();
+      ParamNodeList &childTmp = paramNode->GetChildren();
       childTmp = *children;
     }
   }
@@ -1053,23 +1022,22 @@ int main(int argc, char** argv)
             << std::endl << std::endl;
 
   std::string maxDiffResultName; // that's chaos man!
-
+  std::string infoFileName;
   try
   {
-    param = new ParamNode(false);
-    param->WriteBack(false);
+    param = PtrParamNode(new ParamNode( ParamNode::PASS, ParamNode::ELEMENT));
 
     ParamsInit(argc, argv);
 
     // Switch this flag tc true for debugging
-    if (param->Get("forceSegFault")->AsBool())
+    if (param->Get("forceSegFault")->As<bool>())
     {
       Exception::segfault_ = true;
     } else {
       Exception::segfault_ = false;
     }
 
-    std::string param_mode = param->Get("mode")->AsString();
+    std::string param_mode = param->Get("mode")->As<std::string>();
 
     // get filenames from parameter
     std::vector<std::string> param_files;
@@ -1077,14 +1045,15 @@ int main(int argc, char** argv)
     boost::char_separator<char> sep(";| ");
 
     // Initialize vector with output fields
-    Tok tokenizer(param->Get("files")->AsString(), sep);
+    Tok tokenizer(param->Get("files")->As<std::string>(), sep);
     std::copy(tokenizer.begin(), tokenizer.end(),
               std::back_inserter(param_files));
     UInt num_files = param_files.size();
     if (param_files.size() >= 1)
     {
       // This is necessary to run, but I do not know what it is for
-      info = new InfoNode(param_mode + "_" + param_files[0] + ".info.xml", "<?xml version=\"1.0\"?>"); 
+      info = PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT));
+      infoFileName = param_mode + "_" + param_files[0] + ".info.xml";
       info->SetName("cfsInfo"); 
     }
 
@@ -1102,7 +1071,7 @@ int main(int argc, char** argv)
       }
       CFSTool::Convert( param_files[0], param_files[1] );
     } else if (param_mode == "scalardiff") {
-      Double tolerance = param->Get("eps")->AsDouble();
+      Double tolerance = param->Get("eps")->As<Double>();
       if (num_files != 2)
       {
         EXCEPTION( "Please provide <infFile1> and <inFile2>" );
@@ -1150,14 +1119,12 @@ int main(int argc, char** argv)
     std::cerr << "The following error occured:\n" << ex.what();
     if (info != NULL)
     {
-      info->Get(InfoNode::ERROR)->SetValue(ex.what());
-      info->ToFile();
+      info->Get(ParamNode::ERROR)->SetValue(ex.what());
+      info->ToFile(infoFileName);
     }
     std::cerr << "The following error occured during program execution:\n\n" << ex.what();
     return -1;
   }
-  info->ToFile();
-  delete info;
-
+  info->ToFile(infoFileName);
   return 0;
 }

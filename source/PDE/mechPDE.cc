@@ -23,7 +23,7 @@
 #include "newmarkFracDampMech.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/resultHandler.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "CoupledPDE/pdecoupling.hh"
@@ -46,7 +46,7 @@ DECLARE_LOG(mechpde)
 DEFINE_LOG(mechpde, "mechpde")
 
 
-MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
+MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     :SinglePDE( aptgrid, paramNode ) {
 
     pdename_          = "mechanic";
@@ -64,18 +64,18 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     firstTime_   = true;
     useAitken_   = false;
     //displFac_    = 0.3;
-    displFac_ = myParam_->Get("fsiRelaxationParam")->AsDouble();
-    FSI_=myParam_->Get("fsi")->AsBool();
+    displFac_ = myParam_->Get("fsiRelaxationParam")->As<Double>();
+    FSI_=myParam_->Get("fsi")->As<bool>();
 
     // ****************************
     // DETERMINE GEOMETRY
     // ****************************
 
     // Get problem geometry and PDE subtype
-    myParam_->Get("subType", subType_ );
+    myParam_->GetValue("subType", subType_ );
 
     std::string probGeo;
-    param->Get("domain")->Get("geometryType", probGeo );
+    param->Get("domain")->GetValue("geometryType", probGeo );
 
     // Set number of degrees of freedom and
     // ensure that subtype fits to problem geometry
@@ -131,16 +131,16 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     std::map<std::string, shared_ptr<RaylDampingData> > idRaylData;
 
     // try to get dampingList
-    ParamNode * dampListNode = myParam_->Get( "dampingList", false );
+    PtrParamNode dampListNode = myParam_->Get( "dampingList", ParamNode::PASS );
     if( dampListNode ) {
 
       // get specific damping nodes
-      StdVector<ParamNode*> dampNodes = dampListNode->GetChildren();
+      ParamNodeList dampNodes = dampListNode->GetChildren();
 
       for( UInt i = 0; i < dampNodes.GetSize(); i++ ) {
 
         std::string dampString = dampNodes[i]->GetName();
-        std::string actId = dampNodes[i]->Get("id")->AsString();
+        std::string actId = dampNodes[i]->Get("id")->As<std::string>();
 
         // determine type of damping
         DampingType actType;
@@ -156,12 +156,12 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
 
           // Gather additional information for fractional damping model
           std::string fracAlg = "gl";
-          dampNodes[i]->Get( "fracAlg", fracAlg, false );
+          dampNodes[i]->GetValue( "fracAlg", fracAlg, ParamNode::PASS );
 
           std::string interpol = "no";
-          dampNodes[i]->Get( "interpolation", interpol, false );
+          dampNodes[i]->GetValue( "interpolation", interpol, ParamNode::PASS );
           UInt fracMem = 1;
-          dampNodes[i]->Get( "fracMemory", fracMem, false );
+          dampNodes[i]->GetValue( "fracMemory", fracMem, ParamNode::PASS );
 
           if  ( fracAlg == "gl" ) {
 
@@ -188,16 +188,9 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
           actRaylDamp->ratioDeltaF = 0.01;
           actRaylDamp->freq = 0.0;
 
-          if( dampNodes[i]->Has("freq") ) {
-            dampNodes[i]->Get( "freq", actRaylDamp->freq);
-          }
-          if( dampNodes[i]->Has("ratioDeltaF") ) {
-            dampNodes[i]->Get( "ratioDeltaF", actRaylDamp->ratioDeltaF );
-          }
-          if( dampNodes[i]->Has("adjustDamping") ) {
-            actRaylDamp->adjustDamping = 
-                dampNodes[i]->Get( "adjustDamping")->AsBool();
-          }
+          dampNodes[i]->GetValue( "freq", actRaylDamp->freq, ParamNode::PASS);
+          dampNodes[i]->GetValue( "ratioDeltaF", actRaylDamp->ratioDeltaF, ParamNode::PASS );
+          dampNodes[i]->GetValue( "adjustDamping", actRaylDamp->adjustDamping, ParamNode::PASS );
           idRaylData[actId] = actRaylDamp;
         }
 
@@ -207,7 +200,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     }
 
     // Run over all region and set entry in "regionNonLinId"
-    StdVector<ParamNode*> regionNodes =
+    ParamNodeList regionNodes =
       myParam_->Get("regionList")->GetChildren();
 
     RegionIdType actRegionId;
@@ -218,8 +211,8 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     }
 
     for (UInt k = 0; k < regionNodes.GetSize(); k++) {
-      regionNodes[k]->Get( "name", actRegionName );
-      regionNodes[k]->Get( "dampingId", actDampingId );
+      regionNodes[k]->GetValue( "name", actRegionName );
+      regionNodes[k]->GetValue( "dampingId", actDampingId );
       if( actDampingId == "" )
         continue;
 
@@ -301,12 +294,12 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
   void MechPDE::DefineSprings() {
 
     // try to get bcsAndLoads node
-    ParamNode * bcNode = myParam_->Get("bcsAndLoads", false);
+    PtrParamNode bcNode = myParam_->Get("bcsAndLoads", ParamNode::PASS);
     if( !bcNode )
       return;
 
     // fetch parameter node specifying spring
-    StdVector<ParamNode*> springNodes =
+    ParamNodeList springNodes =
       bcNode->GetList("spring");
 
     // Iterate over all springs
@@ -316,12 +309,12 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     for( UInt i = 0; i < springNodes.GetSize(); i++ ) {
 
       // get data from node
-      springNodes[i]->Get( "name", name );
-      springNodes[i]->Get( "dof", dofName );
-      springNodes[i]->Get( "massValue", massVal );
-      springNodes[i]->Get( "dampingValue", dampVal );
-      springNodes[i]->Get( "stiffnessValue", stiffVal );
-      relStiff = springNodes[i]->Get("relStiffness")->AsBool(); // other Get is ambiguous
+      springNodes[i]->GetValue( "name", name );
+      springNodes[i]->GetValue( "dof", dofName );
+      springNodes[i]->GetValue( "massValue", massVal );
+      springNodes[i]->GetValue( "dampingValue", dampVal );
+      springNodes[i]->GetValue( "stiffnessValue", stiffVal );
+      relStiff = springNodes[i]->Get("relStiffness")->As<bool>(); // other Get is ambiguous
 
       UInt dof = results_[0]->GetDofIndex( dofName );
 
@@ -384,14 +377,14 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     // Check if softeningList node is present
     std::string type, id;
     std::map<std::string, std::string> idSoftTypeMap;
-    ParamNode * softListNode = myParam_->Get("softeningList", false );
+    PtrParamNode softListNode = myParam_->Get("softeningList", ParamNode::PASS );
     if( softListNode ) {
 
       // Get child elements and read data
-      StdVector<ParamNode*> softNodes = softListNode->GetChildren();
+      ParamNodeList softNodes = softListNode->GetChildren();
       for( UInt i = 0; i < softNodes.GetSize(); i++ ) {
         type = softNodes[i]->GetName();
-        softNodes[i]->Get( "id", id );
+        softNodes[i]->GetValue( "id", id );
         idSoftTypeMap[id] = type;
       }
 
@@ -401,17 +394,17 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     }
 
     // Now iterate over all regions and check for softening type
-    StdVector<ParamNode*> regionNodes =
+    ParamNodeList regionNodes =
       myParam_->Get("regionList")->GetList("region");
     for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
 
       // get region Name
-      std::string regionName = regionNodes[i]->Get("name")->AsString();
+      std::string regionName = regionNodes[i]->Get("name")->As<std::string>();
       RegionIdType regionId = ptgrid_->GetRegion().Parse( regionName );
 
       // get softeningId of current region
       id = "";
-      regionNodes[i]->Get( "softeningId", id, false );
+      regionNodes[i]->GetValue( "softeningId", id, ParamNode::PASS );
       if (id == "") continue;
 
       // try to find related softening definition
@@ -440,15 +433,15 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     // ==============================================================
 
     // Check, if "nonLinList" is present
-    ParamNode * nonLinListNode = myParam_->Get("nonLinList", false );
+    PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
     if( nonLinListNode) {
 
       // Get nonlinear types
-      StdVector<ParamNode*> nonLinNodes = nonLinListNode->GetChildren();
+      ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
       for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
 
         std::string actTypeString = nonLinNodes[i]->GetName();
-        std::string actId = nonLinNodes[i]->Get("id")->AsString();
+        std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
 
         NonLinType actType;
         String2Enum( actTypeString, actType );
@@ -457,7 +450,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     }
 
     // Run over all regions and get entry in "regionNonLinId"
-    StdVector<ParamNode*> regionNodes =
+    ParamNodeList regionNodes =
       myParam_->Get("regionList")->GetChildren();
 
     RegionIdType actRegionId;
@@ -469,8 +462,8 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
 
       // get data
-      regionNodes[i]->Get( "name", actRegionName );
-      regionNodes[i]->Get( "nonLinId", actNonLinId );
+      regionNodes[i]->GetValue( "name", actRegionName );
+      regionNodes[i]->GetValue( "nonLinId", actNonLinId );
 
       if( actNonLinId == "" )
         continue;
@@ -524,7 +517,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     // ------------------------------------------
     if ( nonLin_ == true ) {
       for ( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-        if ( regionNodes[i]->Get("reducedInt")->AsString() == "yes" ) {
+        if ( regionNodes[i]->Get("reducedInt")->As<std::string>() == "yes" ) {
           EXCEPTION( "Currently we do not support non-linearity with "
                      << "reduced integration!" );
         }
@@ -590,11 +583,11 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
         //damping factor
         Double dampPML;
 
-        ParamNode * actRegionNode =
-          myParam_->Get("regionList")->Get( "region", "name", actRegionName );
+        PtrParamNode actRegionNode =
+          myParam_->Get("regionList")->GetByVal( "region", "name", actRegionName );
 
-        std::string id = actRegionNode->Get("dampingId")->AsString();
-        ParamNode * pmlNode = myParam_->Get("dampingList")->Get("pml", "id", id);
+        std::string id = actRegionNode->Get("dampingId")->As<std::string>();
+        PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml", "id", id);
         ReadDataPML(dampingTypePML, inner, dampPML, pmlNode );
 
         GetPMLLayerData(inner, outer, actRegion);
@@ -833,14 +826,14 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
           FlatShellMassInt * bilinearMass = new FlatShellMassInt(actSDMat, false);
 
           // Obtain thickness and penalty dof
-          ParamNode * actRegionNode =
-            myParam_->Get( "region", "name", actRegionName );
+          PtrParamNode actRegionNode =
+            myParam_->GetByVal( "region", "name", actRegionName );
 
-          Double thickness = actRegionNode->Get("thickness")->AsDouble();
+          Double thickness = actRegionNode->Get("thickness")->As<Double>();
           bilinearMass->SetThickness( thickness );
 
           // Get penalty value for drilling dof of region
-          Double penaltyDof = actRegionNode->Get("penaltyDof")->AsDouble();
+          Double penaltyDof = actRegionNode->Get("penaltyDof")->As<Double>();
           bilinearMass->SetPenaltyDof( penaltyDof );
 
           actIntDescr = new BiLinFormContext(bilinearMass, MASS);
@@ -906,8 +899,8 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       // get current region name and get grip of paramNode
       std::string actRegionName;
       actRegionName = ptgrid_->GetRegion().ToString( actRegion );
-      ParamNode * actRegionNode =
-        myParam_->Get("regionList")->Get( "region", "name", actRegionName );
+      PtrParamNode actRegionNode =
+        myParam_->Get("regionList")->GetByVal( "region", "name", actRegionName );
 
 
       // create new entity list
@@ -916,7 +909,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
 
 
       // Get penalty value for drilling dof of region
-      Double penaltyDof = actRegionNode->Get("penaltyDof")->AsDouble();
+      Double penaltyDof = actRegionNode->Get("penaltyDof")->As<Double>();
 
 
       // ==============  add stiffness ===========================================
@@ -992,8 +985,8 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     // =======================================================================
     // Integrators for NonConforming Interfaces
     // =======================================================================
-    ParamNode* ncIfaceListNode
-        = param->Get("domain")->Get("ncInterfaceList", false);
+    PtrParamNode ncIfaceListNode
+        = param->Get("domain")->Get("ncInterfaceList", ParamNode::PASS);
 
     // Get index of LAGRANGE_MULT result, just in case... who knows...
     UInt lmResultIdx = 0;
@@ -1015,9 +1008,9 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       if (!ncIfaceListNode) {
         EXCEPTION("No ncInterfaces defined in domain section.");
       }
-      ParamNode* curNciNode = ncIfaceListNode->Get("ncInterface", "name",
+      PtrParamNode curNciNode = ncIfaceListNode->GetByVal("ncInterface", "name",
                                                    ncIfaceName);
-      slaveSide = curNciNode->Get("slaveSide")->AsString();
+      slaveSide = curNciNode->Get("slaveSide")->As<std::string>();
 
       // Part 1: Define integrator M(u, Lambda) on
       //         non-conforming interface (master/slave side)
@@ -1182,15 +1175,15 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       FlatShellStiffInt * myInt = new FlatShellStiffInt(actSDMat, false);
 
       // Get region node
-      ParamNode * actRegionNode =
-        myParam_->Get( "region", "name", regionName );
+      PtrParamNode actRegionNode =
+        myParam_->GetByVal( "region", "name", regionName );
 
       // Get thickness of region
-      Double thickness = actRegionNode->Get("thickness")->AsDouble();
+      Double thickness = actRegionNode->Get("thickness")->As<Double>();
       myInt->SetThickness( thickness );
 
       // Get penalty value for drilling dof of region
-      Double penaltyDof = actRegionNode->Get("penaltyDof")->AsDouble();
+      Double penaltyDof = actRegionNode->Get("penaltyDof")->As<Double>();
       myInt->SetPenaltyDof( penaltyDof );
 
       bilinearStiff = myInt;
@@ -1631,13 +1624,13 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
   {
 
     // timestepping formulation
-    ParamNode* myLinSysNode = FindLinearSystem( pdename_ );
+    PtrParamNode myLinSysNode = FindLinearSystem( pdename_ );
 
     // <system name="acoustic"/> exists
     if( myLinSysNode ) {
 
       std::string str = "";
-      myLinSysNode->Get( "timeSteppingFormulation", str,  false );
+      myLinSysNode->GetValue( "timeSteppingFormulation", str,  ParamNode::PASS );
       if ( str == "effMassMatrix" ) {
         effectiveMass_ = true;
         Info->PrintF( pdename_,
@@ -1656,7 +1649,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       }
     }
 
-    ParamNode* systemNode = FindLinearSystem(pdename_);
+    PtrParamNode systemNode = FindLinearSystem(pdename_);
     
     if ( fracDamping_ == false ) {
       if ( effectiveMass_ == true ) {
@@ -1693,28 +1686,28 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
      // ---------------------------
     //  Determine special results
     // ---------------------------
-    ParamNode * resultsNode = myParam_->Get("storeResults", false );
+    PtrParamNode resultsNode = myParam_->Get("storeResults", ParamNode::PASS );
     if ( !resultsNode ) return;
-    ParamNode * volNode =
-      resultsNode->Get("surfRegionResult", "type", "volumeAboveDefSurf", false );
+    PtrParamNode volNode =
+      resultsNode->GetByVal("surfRegionResult", "type", "volumeAboveDefSurf", ParamNode::PASS );
     if( !volNode ) return;
-    StdVector<ParamNode*> volListNodes;
+    ParamNodeList volListNodes;
     UInt saveBegin=0, saveEnd=2000000, saveInc=1;
     
     if(volNode->Has("surfRegionList"))
     {  
       volListNodes = volNode->Get("surfRegionList")->GetList( "surfRegion" );
 
-      volNode->Get("surfRegionList")->Get("saveBegin", saveBegin );
-      volNode->Get("surfRegionList")->Get("saveEnd", saveEnd );
-      volNode->Get("surfRegionList")->Get("saveInc", saveInc );
+      volNode->Get("surfRegionList")->GetValue("saveBegin", saveBegin );
+      volNode->Get("surfRegionList")->GetValue("saveEnd", saveEnd );
+      volNode->Get("surfRegionList")->GetValue("saveInc", saveInc );
     }
     
     if( volListNodes.GetSize() > 0 ) {
       ResultHandler * resHandler = domain->GetResultHandler();
 
       std::string dirName;
-      volNode->Get( "dof", dirName );
+      volNode->GetValue( "dof", dirName );
       shared_ptr<ResultInfo> vol(new ResultInfo);
       vol->resultType = MECH_DEF_VOLUME;
       vol->dofNames = "";
@@ -1730,8 +1723,8 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
         // get data from node
         std::string regionName, outputIdString;
         StdVector<std::string> outputIds;
-        volListNodes[i]->Get( "name", regionName );
-        volListNodes[i]->Get("outputIds", outputIdString );
+        volListNodes[i]->GetValue( "name", regionName );
+        volListNodes[i]->GetValue("outputIds", outputIdString );
         SplitStringList( outputIdString, outputIds, ',' );
 
         actList = ptgrid_->GetEntityList( EntityList::REGION_LIST,
@@ -1778,10 +1771,10 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     } else if( subType_ == "flatShell" ) {
 
       // Job to do: check, if penalty dof is used
-      StdVector<ParamNode*> regionNodes = myParam_->Get("regionList")->GetChildren();
+      ParamNodeList regionNodes = myParam_->Get("regionList")->GetChildren();
 
       for(UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-        Double val = regionNodes[i]->Get("penaltyDof")->AsDouble();
+        Double val = regionNodes[i]->Get("penaltyDof")->As<Double>();
         if( val != 0.0 ) {
           usePlatePenaltyDof_ = true;
           break;
@@ -1806,13 +1799,13 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     }
 
     // check if problem is lagrange or legendre
-    std::string approxType = myParam_->Get("type")->AsString();
+    std::string approxType = myParam_->Get("type")->As<std::string>();
     if ( approxType == "lagrange" ) {
       shared_ptr<AnsatzFct> fct(new LagrangeFct);
       disp->fctType = fct;
       disp->definedOn = ResultInfo::NODE;
     }else if(  approxType == "spectral" ) {
-      UInt order = myParam_->Get("order")->AsUInt();
+      UInt order = myParam_->Get("order")->As<UInt>();
       shared_ptr<SpectralFct> fct(new SpectralFct);
       disp->definedOn = ResultInfo::PFEM;
       fct->SetOrder(order);
@@ -1820,8 +1813,8 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     } else {
       // define Legendre type
       shared_ptr<LegendreFct> fct(new LegendreFct);
-      if( myParam_->Get("isIsotropic")->AsBool() ) {
-        UInt order = myParam_->Get("order")->AsUInt();
+      if( myParam_->Get("isIsotropic")->As<bool>() ) {
+        UInt order = myParam_->Get("order")->As<UInt>();
         fct->SetIsoOrder( order );
       } else {
         Matrix<UInt> orderMat;
@@ -1939,28 +1932,26 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     LOG_DBG2(mechpde) << "NonMatching: Checking if nonconforming "
                       << "interfaces of PDE exist in domain.";
 
-    ParamNode* domainNCIfaceListNode;
-    domainNCIfaceListNode = param->Get("domain")->Get("ncInterfaceList", false);
+    PtrParamNode domainNCIfaceListNode;
+    domainNCIfaceListNode = param->Get("domain")->Get("ncInterfaceList", ParamNode::PASS);
 
     if(domainNCIfaceListNode)
     {
-      ParamNode* ncInterfaceListNode =
-        param->Get("sequenceStep", std::string("index"), sequenceStep_)
-        ->Get("pdeList/mechanic/ncInterfaceList", false);
-      StdVector<ParamNode*> pdeNCIfaceNodes;
+      PtrParamNode ncInterfaceListNode = myParam_->Get("ncInterfaceList", ParamNode::PASS);
+      ParamNodeList pdeNCIfaceNodes;
 
       if(ncInterfaceListNode)
       {
         pdeNCIfaceNodes = ncInterfaceListNode->GetList("ncInterface");
 
         for (UInt i = 0; i < pdeNCIfaceNodes.GetSize(); i++) {
-          std::string pdeIfaceName = pdeNCIfaceNodes[i]->Get("name")->AsString();
+          std::string pdeIfaceName = pdeNCIfaceNodes[i]->Get("name")->As<std::string>();
           std::string domainIfaceName;
 
-          ParamNode* domainIfaceNode = domainNCIfaceListNode->Get("ncInterface",
+          PtrParamNode domainIfaceNode = domainNCIfaceListNode->GetByVal("ncInterface",
               "name",
               pdeIfaceName,
-              false);
+              ParamNode::PASS);
           if(!domainIfaceNode)
           {
             LOG_DBG2(mechpde) << "NonMatching: Nonconforming "
@@ -2290,36 +2281,36 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
 
 
     // Check, if any prestressing boundary condition is present
-    ParamNode * bcsNode = myParam_->Get("bcsAndLoads", false );
+    PtrParamNode bcsNode = myParam_->Get("bcsAndLoads", ParamNode::PASS );
     if( !bcsNode) return;
 
     // Get prestressing parameter nodes
-    StdVector<ParamNode*> stressNodes = bcsNode->GetList("preStress");
+    ParamNodeList stressNodes = bcsNode->GetList("preStress");
 
     for (UInt k = 0; k < stressNodes.GetSize(); k++) {
 
       // get current name,
       std::string actRegionName, actType;
 
-      stressNodes[k]->Get( "type", actType );
+      stressNodes[k]->GetValue( "type", actType );
       if ( actType != "RHS" ) {
         EXCEPTION("Prestressing of type '" << actType
                   << "' is not supported at the moment.");
       }
 
-      stressNodes[k]->Get( "region", actRegionName );
+      stressNodes[k]->GetValue( "region", actRegionName );
       RegionIdType actRegion = ptgrid_->GetRegion().Parse( actRegionName );
 
       // fetch data
       std::string type;
       Vector<Double> stress(6);
-      stressNodes[k]->Get( "type", type );
-      stressNodes[k]->Get( "stress1", stress[0] );
-      stressNodes[k]->Get( "stress2", stress[1] );
-      stressNodes[k]->Get( "stress3", stress[2] );
-      stressNodes[k]->Get( "stress4", stress[3] );
-      stressNodes[k]->Get( "stress5", stress[4] );
-      stressNodes[k]->Get( "stress6", stress[5] );
+      stressNodes[k]->GetValue( "type", type );
+      stressNodes[k]->GetValue( "stress1", stress[0] );
+      stressNodes[k]->GetValue( "stress2", stress[1] );
+      stressNodes[k]->GetValue( "stress3", stress[2] );
+      stressNodes[k]->GetValue( "stress4", stress[3] );
+      stressNodes[k]->GetValue( "stress5", stress[4] );
+      stressNodes[k]->GetValue( "stress6", stress[5] );
 
       preStressList_[actRegion] = "RHS";
       preStressVal_[actRegion] = stress;
@@ -2330,10 +2321,10 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
   void MechPDE::ReadSurfStress() {
 
     // try to get bcsAndLoads node
-    ParamNode * bcNode = myParam_->Get("bcsAndLoads", false);
+    PtrParamNode bcNode = myParam_->Get("bcsAndLoads", ParamNode::PASS);
     if( !bcNode )
       return;
-    StdVector<ParamNode*> stressNodes = bcNode->GetList("surfStress");
+    ParamNodeList stressNodes = bcNode->GetList("surfStress");
 
 
     // iterate over all surface stress definitions
@@ -2342,9 +2333,9 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     for( UInt i = 0; i < stressNodes.GetSize(); i++ ) {
 
       // fetch data
-      stressNodes[i]->Get( "name", surf );
-      stressNodes[i]->Get( "region", volume );
-      stressNodes[i]->Get( "phase", phase );
+      stressNodes[i]->GetValue( "name", surf );
+      stressNodes[i]->GetValue( "region", volume );
+      stressNodes[i]->GetValue( "phase", phase );
       ParamTools::AsTensor<double>(stressNodes[i]->Get("value"),
                                          stressDim_, 1, valMat );
 
@@ -2365,21 +2356,21 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
 
   void MechPDE::ReadPressureLoads()
   {
-    ReadPressureLoadsFromXML(myParam_->Get("bcsAndLoads", false), pressSurf_, pressVals_, pressPhase_);
+    ReadPressureLoadsFromXML(myParam_->Get("bcsAndLoads", ParamNode::PASS), pressSurf_, pressVals_, pressPhase_);
   }
   
-  void MechPDE::ReadPressureLoadsFromXML(ParamNode* bcNode, StdVector<shared_ptr<EntityList> >& pressSurf, StdVector<std::string>& pressVals, StdVector<std::string>& pressPhase) {
+  void MechPDE::ReadPressureLoadsFromXML(PtrParamNode bcNode, StdVector<shared_ptr<EntityList> >& pressSurf, StdVector<std::string>& pressVals, StdVector<std::string>& pressPhase) {
     if( !bcNode )
       return;
-    StdVector<ParamNode*> presNodes = bcNode->GetList("pressure");
+    ParamNodeList presNodes = bcNode->GetList("pressure");
 
     // iterate over all pressure definitions
     std::string name, value, phase;
     for( UInt i = 0; i < presNodes.GetSize(); i++ ) {
 
-      presNodes[i]->Get("name", name );
-      presNodes[i]->Get("value", value );
-      presNodes[i]->Get("phase", phase );
+      presNodes[i]->GetValue("name", name );
+      presNodes[i]->GetValue("value", value );
+      presNodes[i]->GetValue("phase", phase );
 
       pressSurf.Push_back( 
         ptgrid_->GetEntityList( EntityList::SURF_ELEM_LIST,
@@ -2394,7 +2385,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
   void MechPDE::CalcHomogenizedTensor(shared_ptr<BaseResult> base_result)
   {
     // TODO: Either the calculation moves here ore the data interchange
-    // with ErsatzMaterial is done nice. Now steal the data from InfoNode!!! :((
+    // with ErsatzMaterial is done nice. Now steal the data from ParamNode!!! :((
 
     ErsatzMaterial* em = domain->GetOptimization() != NULL ? dynamic_cast<ErsatzMaterial*>(domain->GetOptimization()) : NULL;
     if(em == NULL) EXCEPTION("the result 'homogenizedTensor' requires an appropriate optimization definition.");

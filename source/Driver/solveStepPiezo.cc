@@ -59,7 +59,7 @@ namespace CoupledField {
 
   // time is used for a series of static calculations
   // don't get confused with REAL transient simulations!
-  void SolveStepPiezo::SolveStepTrans(InfoNode* analysis_id) {
+  void SolveStepPiezo::SolveStepTrans(PtrParamNode analysis_id) {
 
 
     if (isHyst_) {
@@ -79,7 +79,7 @@ namespace CoupledField {
   }
 
 
-  void SolveStepPiezo::StepTransNonLinEpsDiff(InfoNode* analysis_base) {
+  void SolveStepPiezo::StepTransNonLinEpsDiff(PtrParamNode analysis_base) {
 
 
     //    std::cout << "\n In :StepTransNonLinEpsDiff  \n " << std::endl;
@@ -119,7 +119,7 @@ namespace CoupledField {
     do {
       iterationCounter++;
 
-      InfoNode* analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
+      PtrParamNode analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
       
       // set solution of previous iteration
       if (iterationCounter == 1 ) {

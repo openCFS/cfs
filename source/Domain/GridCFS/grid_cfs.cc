@@ -14,7 +14,7 @@
 
 #include "Elements/elements_header.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "General/exception.hh"
@@ -68,17 +68,17 @@ namespace CoupledField {
     std::string name;
 
     for( UInt iType = 0; iType < 2; iType++ ) {
-      ParamNode * listNode = NULL;
-      StdVector<ParamNode*> nodes;
+      PtrParamNode listNode;
+      ParamNodeList nodes;
       bool isNode = true;
 
       if( iType == 0 ) {
         // iterate over nodes
-        listNode = param->Get("domain")->Get("nodeList", false);
+        listNode = param->Get("domain")->Get("nodeList", ParamNode::PASS);
         isNode = true;
       } else {
         // iterate over nodes
-        listNode = param->Get("domain")->Get("elemList", false);
+        listNode = param->Get("domain")->Get("elemList", ParamNode::PASS);
         isNode = false;
       }
 
@@ -88,18 +88,18 @@ namespace CoupledField {
         for( UInt i=0; i < nodes.GetSize(); i++ ) {
 
           // fetch name of nodes to be selected
-          nodes[i]->Get("name", name );
+          nodes[i]->GetValue("name", name );
 
           // check if node is defined by point coord
-          ParamNode * coordNode = nodes[i]->Get("coord", false );
-          if( coordNode->HasChildren() ) {
+          PtrParamNode coordNode = nodes[i]->Get("coord", ParamNode::PASS );
+          if( coordNode ) {
 
             // ToDo: insert defintion for axisymmetric geometry
             coord.Init();
-            coordNode->Get( "x", coord[0] );
-            coordNode->Get( "y", coord[1] );
+            coordNode->GetValue( "x", coord[0] );
+            coordNode->GetValue( "y", coord[1] );
             if( dim_ == 3 )
-            coordNode->Get( "z", coord[2] );
+            coordNode->GetValue( "z", coord[2] );
             StdVector<UInt> entityNum(1);
             entityNum[0] = FindEntityMinDistance( isNode, coord );
 
@@ -113,43 +113,43 @@ namespace CoupledField {
           }
 
           // check if node is defined by parametric description
-          ParamNode * listNode = nodes[i]->Get("list", false );
-          if( listNode->HasChildren() ) {
+          PtrParamNode listNode = nodes[i]->Get("list", ParamNode::PASS );
+          if( listNode ) {
 
             std::string gridId, coordSysId;
 
             // make sure, that this is the correct grid
-            listNode->Get("gridId", gridId);
+            listNode->GetValue("gridId", gridId);
             if (domain->GetGrid(gridId) != this) return;
 
             // get coordinate system
-            listNode->Get( "coordSysId", coordSysId );
+            listNode->GetValue( "coordSysId", coordSysId );
 
             StdVector<PointSelection> selections;
 
             // get free component
-            StdVector<ParamNode*>  freeNodes =
+            ParamNodeList  freeNodes =
               listNode->GetList("freeCoord");
             for( UInt i = 0; i < freeNodes.GetSize(); i++ ) {
-              ParamNode * actNode = freeNodes[i];
+              PtrParamNode actNode = freeNodes[i];
               PointSelection actSel;
               actSel.isFree = true;
-              actNode->Get( "comp", actSel.comp );
-              actNode->Get( "start", actSel.start );
-              actNode->Get( "stop", actSel.stop );
-              actNode->Get( "inc", actSel.inc );
+              actNode->GetValue( "comp", actSel.comp );
+              actNode->GetValue( "start", actSel.start );
+              actNode->GetValue( "stop", actSel.stop );
+              actNode->GetValue( "inc", actSel.inc );
               selections.Push_back( actSel);
             }
 
             // get fixed component(s)
-            StdVector<ParamNode*> fixedNodes =
+            ParamNodeList fixedNodes =
               listNode->GetList("fixedCoord");
             for( UInt i = 0; i < fixedNodes.GetSize(); i++ ) {
-              ParamNode * actNode = fixedNodes[i];
+              PtrParamNode actNode = fixedNodes[i];
               PointSelection actSel;
               actSel.isFree = false;
-              actNode->Get( "comp", actSel.comp );
-              actNode->Get( "value", actSel.value );
+              actNode->GetValue( "comp", actSel.comp );
+              actNode->GetValue( "value", actSel.value );
               selections.Push_back( actSel);
             }
 
@@ -719,7 +719,7 @@ namespace CoupledField {
     CreateUserDefinedNodesElems();
 
     // print information to file
-    ToInfo(info->Get(InfoNode::HEADER)->Get("domain")); 
+    ToInfo(info->Get(ParamNode::HEADER)->Get("domain")); 
   }
 
   bool GridCFS::CheckForRegularRegion(RegionIdType reg)
@@ -1905,16 +1905,16 @@ namespace CoupledField {
 
   }
 
-  void GridCFS::ToInfo(InfoNode* in) 
+  void GridCFS::ToInfo(PtrParamNode in) 
   { 
     in->Get("dimensions")->SetValue(GetDim()); 
     in->Get("elements")->SetValue(GetNumElems()); 
     in->Get("nodes")->SetValue(GetNumNodes()); 
 
-    InfoNode* list = in->Get("regions"); 
+    PtrParamNode list = in->Get("regions"); 
     for(unsigned int i = 0; i < regionData.GetSize(); i++ )
     { 
-      InfoNode* in_ = list->Get("region", InfoNode::APPEND);
+      PtrParamNode in_ = list->Get("region", ParamNode::APPEND);
       RegionData& rd = regionData[i];
       in_->Get("name")->SetValue(rd.name);
       in_->Get("id")->SetValue(rd.id);
@@ -1926,11 +1926,13 @@ namespace CoupledField {
 
     list = in->Get("namedNodes");
     for(unsigned int i = 0; i < namedNodes_.GetSize(); i++)
-      list->Get("nodes", "name", namedNodeNames_[i])->Get("count")->SetValue(namedNodes_[i].GetSize());
+      list->GetByVal("nodes", "name", namedNodeNames_[i],ParamNode::APPEND)
+      ->Get("count")->SetValue(namedNodes_[i].GetSize());
 
     list = in->Get("namedElements");
     for(unsigned int i = 0; i < namedElems_.GetSize(); i++)
-      list->Get("elements", "name", namedElemNames_[i])->Get("count")->SetValue(namedElems_[i].GetSize());
+      list->GetByVal("elements", "name", namedElemNames_[i], ParamNode::APPEND)
+      ->Get("count")->SetValue(namedElems_[i].GetSize());
     
     list = in->Get("coordinateSystems");
 

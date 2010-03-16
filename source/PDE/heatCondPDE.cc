@@ -37,7 +37,7 @@ namespace CoupledField {
 // ======================================================
 // SET SOLUTION INFORMATION
 // ======================================================
-HeatCondPDE::HeatCondPDE(Grid * aptgrid, ParamNode* paramNode )
+HeatCondPDE::HeatCondPDE(Grid * aptgrid, PtrParamNode paramNode )
 :SinglePDE( aptgrid, paramNode ) {
 
   pdename_          = "heatConduction";
@@ -58,7 +58,7 @@ void HeatCondPDE::SetInitialCondition() {
 
   try {
     // fetch paramnodes for initial condition
-    myParam_->Get("InitialCondition", InitialCondition_);
+    myParam_->GetValue("InitialCondition", InitialCondition_);
 
     //std::cerr << "\n Initial Temperature : " << InitialCondition_ << std::endl;
 
@@ -97,7 +97,7 @@ void HeatCondPDE::ReadSpecialBCs() {
   //inBcs_.Clear();
 
   // fetch paramnodes for Robin boundary condition
-  StdVector<ParamNode*> rbcNodes =
+  ParamNodeList rbcNodes =
     myParam_->Get("bcsAndLoads")->GetList("robin");
 
   std::string myDof, myName, myType, myHTC, myBulkTemp;
@@ -106,10 +106,10 @@ void HeatCondPDE::ReadSpecialBCs() {
   for( UInt i = 0; i < rbcNodes.GetSize(); i++ ) {
     try {
       myDof.clear();
-      rbcNodes[i]->Get( "name", myName );
-      rbcNodes[i]->Get( "entityType", myType );
-      rbcNodes[i]->Get( "heatTransferCoefficient", myHTC );
-      rbcNodes[i]->Get( "bulkTemperature", myBulkTemp );
+      rbcNodes[i]->GetValue( "name", myName );
+      rbcNodes[i]->GetValue( "entityType", myType );
+      rbcNodes[i]->GetValue( "heatTransferCoefficient", myHTC );
+      rbcNodes[i]->GetValue( "bulkTemperature", myBulkTemp );
 
       // Create robin boundary condition
       shared_ptr<RobinBc> actBc ( new RobinBc );
@@ -146,7 +146,7 @@ void HeatCondPDE::DefineIntegrators()
 
   //type of geometry
   std::string geometryType;
-  param->Get("domain")->Get("geometryType", geometryType );
+  param->Get("domain")->GetValue("geometryType", geometryType );
 
   // convert to tensor type
   SubTensorType tensorType = FULL;
@@ -323,7 +323,7 @@ void HeatCondPDE::DefineIntegrators()
   // ======================================================================
 
   // fetch paramnodes for RHS source
-  StdVector<ParamNode*> rhsValuesNodes =
+  ParamNodeList rhsValuesNodes =
     myParam_->Get("bcsAndLoads")->GetList("rhsValues");
 
   bool isharmonic;
@@ -333,9 +333,9 @@ void HeatCondPDE::DefineIntegrators()
     // iterate over all parameter nodes
     for( UInt i = 0; i < rhsValuesNodes.GetSize(); i++ )
     {
-      std::string rhsRegion(rhsValuesNodes[i]->Get("region")->AsString());
-      rhsValuesNodes[i]->Get("isharmonic", isharmonic, true);
-      //rhsFileId = rhsValuesNodes[i]->Get("inputId")->AsString();
+      std::string rhsRegion(rhsValuesNodes[i]->Get("region")->As<std::string>());
+      rhsValuesNodes[i]->GetValue("isharmonic", isharmonic, ParamNode::EX);
+      //rhsFileId = rhsValuesNodes[i]->Get("inputId")->As<std::string>();
 
       if ( isharmonic ) {
         Info->PrintF( pdename_,

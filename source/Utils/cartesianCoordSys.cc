@@ -6,7 +6,7 @@
 #include <sstream>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "cartesianCoordSys.hh"
 
@@ -15,7 +15,7 @@ namespace CoupledField{
 
   CartesianCoordSystem::CartesianCoordSystem(const std::string & name,
                                              Grid * ptGrid,
-                                             ParamNode * myParamNode ) 
+                                             PtrParamNode myParamNode ) 
   : CoordSystem( name, ptGrid, myParamNode )
   {
     Vector<Double> originTemp, xAxisTemp, yAxisTemp;
@@ -240,27 +240,27 @@ namespace CoupledField{
     return ret;
   }
 
-  void CartesianCoordSystem::ToInfo( InfoNode * in ) {
+  void CartesianCoordSystem::ToInfo( PtrParamNode in ) {
     
     in = in->Get("cartesian");
     
     in->Get("id")->SetValue(name_);
-    InfoNode * originNode = in->Get("origin");
+    PtrParamNode originNode = in->Get("origin");
     originNode->Get("x")->SetValue(origin_[0]);
     originNode->Get("y")->SetValue(origin_[1]);
     originNode->Get("z")->SetValue(origin_[2]);
     
-    InfoNode * xNode = in->Get("xAxis");
+    PtrParamNode xNode = in->Get("xAxis");
     xNode->Get("x")->SetValue(xAxis_[0]);
     xNode->Get("y")->SetValue(xAxis_[1]);
     xNode->Get("z")->SetValue(xAxis_[2]);
     
-    InfoNode * yNode = in->Get("yAxis");
+    PtrParamNode yNode = in->Get("yAxis");
     yNode->Get("x")->SetValue(yAxis_[0]);
     yNode->Get("y")->SetValue(yAxis_[1]);
     yNode->Get("z")->SetValue(yAxis_[2]);
     
-    InfoNode * rotNode = in->Get("rotationAngles");
+    PtrParamNode rotNode = in->Get("rotationAngles");
     rotNode->Get("alpha")->SetValue(Rad2Grad(rotationAng_[0]));
     rotNode->Get("beta")->SetValue(Rad2Grad(rotationAng_[1]));
     rotNode->Get("gamma")->SetValue(Rad2Grad(rotationAng_[2]));

@@ -1,7 +1,7 @@
 #include "Optimization/Condition.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/exception.hh"
 #include "General/environment.hh"
 #include "Domain/domain.hh"
@@ -18,35 +18,35 @@ Enum<Condition::Name> Condition::name;
 Enum<Condition::Type> Condition::type;
 
 
-Condition::Condition(ParamNode* pn)
+Condition::Condition(PtrParamNode pn)
 {
   volume_fraction_ = 0.0;
-  name_ = name.Parse(pn->Get("name"));
-  type_ = type.Parse(pn->Get("type"));
+  name_ = name.Parse(pn->Get("name")->As<std::string>());
+  type_ = type.Parse(pn->Get("type")->As<std::string>());
   design = !pn->Has("design") ? DesignElement::DEFAULT :
-           DesignElement::type.Parse(pn->Get("design"));
-  scaling = pn->Get("scaling")->AsDouble();
-  parameter = pn->Has("parameter") ? pn->Get("parameter")->AsDouble() : 0.0;
-  active = pn->Get("mode")->AsString() == "constraint";
+           DesignElement::type.Parse(pn->Get("design")->As<std::string>());
+  scaling = pn->Get("scaling")->As<Double>();
+  parameter = pn->Has("parameter") ? pn->Get("parameter")->As<Double>() : 0.0;
+  active = pn->Get("mode")->As<std::string>() == "constraint";
 
   delta_logging_ignored_ = false;
-  delta_logging = pn->Get("log_delta")->AsBool();
+  delta_logging = pn->Get("log_delta")->As<bool>();
 
-  if(pn->Get("log_delta")->AsBool() && (!pn->Has("value") && !pn->Has("tensor") && !pn->Has("isotropic")))
+  if(pn->Get("log_delta")->As<bool>() && (!pn->Has("value") && !pn->Has("tensor") && !pn->Has("isotropic")))
     delta_logging_ignored_ = true;
 
   // value is not mandatory for all almost all constraints. Check for homogenization later
   if(!pn->Has("value") && active && name_ != HOMOGENIZATION_TENSOR && name_ != HOMOGENIZATION_TRACKING && name_ != ISOTROPY)
     EXCEPTION("constraint '" << name.ToString(name_) << "' is active but no value is given.");
-  value = pn->Has("value") ? pn->Get("value")->AsDouble() : -1.0;
+  value = pn->Has("value") ? pn->Get("value")->As<Double>() : -1.0;
 
-  penalty = pn->Get("penalty")->AsDouble();
+  penalty = pn->Get("penalty")->As<Double>();
   region = ALL_REGIONS;
 
   ReadTensor(pn, matrix_); // is save and sets default
 
-  if(pn->Has("region") && pn->Get("region")->AsString() != "all"){
-    region = domain->GetGrid()->GetRegion().Parse(pn->Get("region"));
+  if(pn->Has("region") && pn->Get("region")->As<std::string>() != "all"){
+    region = domain->GetGrid()->GetRegion().Parse(pn->Get("region")->As<std::string>());
   }
 
   if(name_ == ISOTROPY && pn->Has("value"))
@@ -70,7 +70,7 @@ Condition::Condition(ParamNode* pn)
 
 }
 
-bool Condition::ReadTensor(ParamNode* pn, Matrix<double>& matrix)
+bool Condition::ReadTensor(PtrParamNode pn, Matrix<double>& matrix)
 {
   matrix.Resize(1,1); // minimal size, as 0,0 is not defined.
 
@@ -80,14 +80,14 @@ bool Condition::ReadTensor(ParamNode* pn, Matrix<double>& matrix)
     EXCEPTION("please specify either <tensor> or <isotropic>, not both");
 
   // check for tensor element
-  ParamNode* tens = pn->Get("tensor", false);
+  PtrParamNode tens = pn->Get("tensor", ParamNode::PASS);
   if(tens != NULL)
   {
 
-    int dim = tens->Get("dim1")->AsInt();
+    int dim = tens->Get("dim1")->As<Integer>();
     if(dim != 3 && dim != 6)
       EXCEPTION("The Voigt 'tensor' for homogenizations needs to be 3x3 or 6x6");
-    if(tens->Has("dim2") && dim != tens->Get("dim2")->AsInt())
+    if(tens->Has("dim2") && dim != tens->Get("dim2")->As<Integer>())
       EXCEPTION("The 'tensor' for homogenization needs to be symmetric");
     if((domain->GetGrid()->GetDim() == 2 && dim != 3) || (domain->GetGrid()->GetDim() == 3 && dim != 6))
       EXCEPTION("The 'tensor' for homogenization needs to be 3x3 for 2D and 6x6 for 3D");
@@ -97,15 +97,15 @@ bool Condition::ReadTensor(ParamNode* pn, Matrix<double>& matrix)
     ParamTools::AsTensor<double>(tens->Get("real"), dim , dim, matrix);
 
     // check for a scaling factor
-    const double factor(tens->Get("factor")->AsDouble());
+    const double factor(tens->Get("factor")->As<Double>());
     if(factor != 1.0) matrix *= factor;
   }
   
-  tens = pn->Get("isotropic", false);
+  tens = pn->Get("isotropic", ParamNode::PASS);
   if(tens != NULL)
   {
-    double emod = tens->Get("real")->Get("elasticityModulus")->AsDouble();
-    double poisson = tens->Get("real")->Get("poissonNumber")->AsDouble();
+    double emod = tens->Get("real")->Get("elasticityModulus")->As<Double>();
+    double poisson = tens->Get("real")->Get("poissonNumber")->As<Double>();
     
     MechanicMaterial::CalcIsotropicStiffnessTensorFromEAndPoisson(matrix, emod, poisson, domain->GetGrid()->GetDim());
   }
@@ -115,7 +115,7 @@ bool Condition::ReadTensor(ParamNode* pn, Matrix<double>& matrix)
   return true;
 }
 
-void Condition::AddCondition(ParamNode* pn, StdVector<Condition>& constraints, StdVector<Condition>& observation)
+void Condition::AddCondition(PtrParamNode pn, StdVector<Condition>& constraints, StdVector<Condition>& observation)
 {
   Condition tmp = Condition(pn);
   // which list to append
@@ -318,9 +318,9 @@ Condition* Condition::AppendSubCondition(StdVector<Condition>& list, unsigned in
 
 
 
-bool Condition::ReadCoord(ParamNode* pn)
+bool Condition::ReadCoord(PtrParamNode pn)
 {
-  std::string val = pn->Get("coord")->AsString();
+  std::string val = pn->Get("coord")->As<std::string>();
   if(val == "all") return false;
 
   assert(val.size() == 2);
@@ -363,7 +363,7 @@ std::string Condition::ToString() const
 }
 
 
-void Condition::ToInfo(InfoNode* in) const
+void Condition::ToInfo(PtrParamNode in) const
 {
   in->Get("name")->SetValue(name.ToString(name_));
   in->Get("design")->SetValue(DesignElement::type.ToString(design));
@@ -383,7 +383,7 @@ void Condition::ToInfo(InfoNode* in) const
   }
 
   if(delta_logging_ignored_)
-    in->Get("deltaLogging")->Get(InfoNode::WARNING)->SetValue("no value given");
+    in->Get("deltaLogging")->Get(ParamNode::WARNING)->SetValue("no value given");
   else
     in->Get("deltaLogging")->SetValue(delta_logging);
 }

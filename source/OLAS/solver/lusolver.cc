@@ -19,7 +19,7 @@ namespace CoupledField {
   //   Constructor
   // ***************
   template<typename T>
-  LUSolver<T>::LUSolver( ParamNode* solverNode, InfoNode *olasInfo ) {
+  LUSolver<T>::LUSolver( PtrParamNode solverNode, PtrParamNode olasInfo ) {
 
 
     // Set pointers to communication objects
@@ -30,9 +30,9 @@ namespace CoupledField {
     amFactorised_ = false;
     
     itRefSteps_ = 2;
-    ParamNode *sNode = NULL;
-    sNode = xml_->Get("directLU", false);
-    sNode->Get("itRefSteps", itRefSteps_, false);
+    PtrParamNode sNode;
+    sNode = xml_->Get("directLU", ParamNode::INSERT);
+    sNode->GetValue("itRefSteps", itRefSteps_, ParamNode::INSERT);
   }
 
   // **************
@@ -48,7 +48,7 @@ namespace CoupledField {
   //   Setup
   // *********
   template<typename T>
-  void LUSolver<T>::Setup( BaseMatrix &sysMat, InfoNode* analysis_step ) {
+  void LUSolver<T>::Setup( BaseMatrix &sysMat, PtrParamNode analysis_step ) {
 
 
     // Check that we have a StdMatrix
@@ -93,13 +93,11 @@ namespace CoupledField {
     bool saveFacToFile = false;
     std::string facFileName = "fac.out";
     
-    ParamNode *sNode = NULL;
-    sNode = xml_->Get("directLU", false);
-    if(sNode) {
-      if(sNode->Has("saveFacFile")) {
-        saveFacToFile = true;
-        sNode->Get("saveFacFile", facFileName, false);
-      }
+    PtrParamNode sNode;
+    sNode = xml_->Get("directLU", ParamNode::INSERT);
+    if(sNode->Has("saveFacFile")) {
+      saveFacToFile = true;
+      sNode->GetValue("saveFacFile", facFileName, ParamNode::INSERT);
     }
     
     if ( saveFacToFile ) {
@@ -115,7 +113,7 @@ namespace CoupledField {
   template<typename T>
   void LUSolver<T>::Solve( const BaseMatrix &sysMat,
 			   const BasePrecond &precond,
-			   const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_step ) {
+			   const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
 
 
     // Test that a factorisation is available, if not issue a warning.
@@ -146,9 +144,9 @@ namespace CoupledField {
     UInt logLevel = 2;
     UInt numSteps = itRefSteps_;
       
-    ParamNode *sNode = NULL;
-    sNode = xml_->Get("directLU", false);
-    sNode->Get("itRefVerbosity", logLevel, false);
+    PtrParamNode sNode;
+    sNode = xml_->Get("directLU", ParamNode::INSERT);
+    sNode->GetValue("itRefVerbosity", logLevel, ParamNode::INSERT);
       
 
     if ( numSteps > 0 ) {
@@ -177,7 +175,7 @@ namespace CoupledField {
     // Now this currently is of dubious value, since the two things queried
     // from olasReport are actually meaningless in the context of a direct
     // solver. Nevertheless we supply some values for consistency
-    InfoNode* out = solverInfo_->Get(InfoNode::PROCESS)->Get("solver", InfoNode::APPEND);
+    PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
     out->Get("numIter")->SetValue(-1);
     out->Get("finalNorm")->SetValue(-1.0);
 

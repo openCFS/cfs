@@ -14,7 +14,7 @@ namespace CoupledField {
   //   Constructor
   // ***************
   template<typename T>
-  MINRESSolver<T>::MINRESSolver( ParamNode* solverNode, InfoNode *olasInfo){
+  MINRESSolver<T>::MINRESSolver( PtrParamNode solverNode, PtrParamNode olasInfo){
     xml_ = solverNode;
 
     // Set pointers to communication objects
@@ -66,7 +66,7 @@ namespace CoupledField {
   //   Setup (public version)
   // **************************
   template<typename T>
-  void MINRESSolver<T>::Setup( BaseMatrix &sysMat, InfoNode* analysis_step) {
+  void MINRESSolver<T>::Setup( BaseMatrix &sysMat, PtrParamNode analysis_step) {
     PrivateSetup( sysMat );
   }
 
@@ -163,7 +163,7 @@ namespace CoupledField {
   template<typename T>
   void MINRESSolver<T>::Solve( const BaseMatrix &sysMat,
                                const BasePrecond &precond,
-                               const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_step ) {
+                               const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
 
 
     // ----------------------------------------
@@ -234,11 +234,9 @@ namespace CoupledField {
     // Compute stopping threshold for loop
     double threshold = 1e-6;
 
-    ParamNode *sNode = NULL;
-    sNode = xml_->Get("minres", false);
-    if(sNode) {
-      sNode->Get("tol", threshold, false);
-    }
+    PtrParamNode sNode;
+    sNode = xml_->Get("minres", ParamNode::INSERT);
+    sNode->GetValue("tol", threshold, ParamNode::INSERT);
     
     threshold *= rhsNorm;
 
@@ -256,9 +254,7 @@ namespace CoupledField {
     //   Main loop of the algorithm
     // ------------------------------
     UInt maxIter = 50;
-    if(sNode) {
-      sNode->Get("maxIter", maxIter, false);
-    }
+    sNode->GetValue("maxIter", maxIter, ParamNode::INSERT);
     UInt k = 1;
     bool loop = true;
     while ( k <= maxIter && loop == true ) {
@@ -386,7 +382,7 @@ namespace CoupledField {
     rho = q0_->NormL2();
 
     // Compose report
-    InfoNode* out = solverInfo_->Get(InfoNode::PROCESS)->Get("solver", InfoNode::APPEND);
+    PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
     out->Get("finalNorm")->SetValue(rho);
     out->Get("numIter")->SetValue((Integer)(k-1));
 

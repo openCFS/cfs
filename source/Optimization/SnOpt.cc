@@ -32,7 +32,7 @@ int SnOpt_C_Callback(int* Status, int *n,
   return static_snopt_base->Callback(Status, *n, x, needF, nF, F, needG, nG, G, cu, lencu, iu, leniu, ru, lenru);
 }
 
-SnOpt::SnOpt(Optimization* opt, ParamNode* pn) :
+SnOpt::SnOpt(Optimization* opt, PtrParamNode pn) :
   BaseOptimizer(opt, pn),
   SnOptBase(),
   optimizer_pn_(pn->Get(Optimization::optimizer.ToString(Optimization::SNOPT_SOLVER), false))
@@ -363,15 +363,15 @@ void SnOpt::SetSnOptOptions()
   // check for optional parameters from xml
   if(optimizer_pn_ != NULL)
   {
-    StdVector<ParamNode*> list;
+    ParamNodeList list;
     
     list = optimizer_pn_->GetList("option", "type", "integer");
     for(unsigned int i = 0; i < list.GetSize(); i++)
-      SetIntegerValue(list[i]->Get("name")->AsString(), list[i]->Get("value")->AsInt());
+      SetIntegerValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<Integer>());
     
     list = optimizer_pn_->GetList("option", "type", "real");
     for(unsigned int i = 0; i < list.GetSize(); i++)
-      SetNumericValue(list[i]->Get("name")->AsString(), list[i]->Get("value")->AsDouble());
+      SetNumericValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<Double>());
   }
 }
 

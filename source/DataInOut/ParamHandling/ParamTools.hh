@@ -47,15 +47,15 @@ namespace CoupledField
         </tensor>
       </elasticity></pre> 
      * Call this like the following:<pre>
-     * ParamNode* elast = pn->Get("elasticity");
-     * ParamNode* tensor = elast->Get("tensor", "dim1", "6");
+     * PtrParamNode elast = pn->Get("elasticity");
+     * PtrParamNode tensor = elast->Get("tensor", "dim1", "6");
      * Matrix<double> mat(6,6);
      * ParamTools::AsTensor<double>(tensor->Get("real"), 6, 6, mat);</pre> */
     template <class TYPE>
-    static void AsTensor(ParamNode* node, unsigned int dim1, unsigned int dim2, Matrix<TYPE>& ret)
+    static void AsTensor(PtrParamNode node, unsigned int dim1, unsigned int dim2, Matrix<TYPE>& ret)
     {
       StdVector<std::string> strVec;
-      SplitStringList(node->AsString(), strVec, ' ' );
+      SplitStringList(node->As<std::string>(), strVec, ' ' );
 
       ret.Resize( dim1, dim2 );
       ret.Init();

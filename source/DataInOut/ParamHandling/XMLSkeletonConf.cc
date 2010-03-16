@@ -159,7 +159,7 @@ namespace CoupledField {
     // Note: This parameter node is queried by the finite elements themselves
     // for getting the integration parameters.
     // This should be changed in the future
-    param = new ParamNode();
+    param = PtrParamNode(new ParamNode());
     
     ptQ1   = new Quad1FE();
     ptQ2   = new Quad2FE();
@@ -177,9 +177,8 @@ namespace CoupledField {
     ptWedge2 = new Wedge2FE();
 
     // now we can delete conf-object already
-    delete param;
-    param = NULL;
-
+    param.reset();
+    
     // Reopen skeleton-conf file
     std::string xmlFile = progOpts->GetSimName() + ".xml";
     out_->clear();

@@ -23,7 +23,7 @@ namespace CoupledField {
   private:
 
   public:
-    SimInputGmsh(std::string fileName, ParamNode * inputNode);
+    SimInputGmsh(std::string fileName, PtrParamNode inputNode);
     virtual ~SimInputGmsh();
 
     virtual void InitModule();

@@ -16,7 +16,7 @@ class SnOpt : public BaseOptimizer, public SnOptBase
 public:
   /** @param optimization the problem we optimize
    * @param pn here we can have options - might be NULL! */
-  SnOpt(Optimization* optimization, ParamNode* pn);
+  SnOpt(Optimization* optimization, PtrParamNode pn);
   
   ~SnOpt();
 
@@ -74,7 +74,7 @@ private:
   void SetSnOptOptions();
  
   /** The optimizer ParamNode - away from the constructor to support restart */
-  ParamNode* optimizer_pn_;
+  PtrParamNode optimizer_pn_;
 };
 
 } // end of namespace

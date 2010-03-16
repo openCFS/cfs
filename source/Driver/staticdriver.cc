@@ -28,12 +28,12 @@ namespace CoupledField {
     restartIncr_= 0;
 
     // get parameter node
-    ParamNode * myNode = 
-      param->Get("sequenceStep", std::string("index"), sequenceStep)
+    PtrParamNode myNode = 
+      param->GetByVal("sequenceStep", std::string("index"), sequenceStep)
       ->Get("analysis")->Get("static");
     
     // Get save increment for restart file (optional)
-    myNode->Get( "writeRestartInc", restartIncr_, false );
+    myNode->GetValue( "writeRestartInc", restartIncr_, ParamNode::PASS );
 
     driverNode = driverNode->Get("static");
     driverNode->Get("sequenceStep")->SetValue(sequenceStep);
@@ -55,7 +55,7 @@ namespace CoupledField {
   // *****************
   //   Solve problem
   // *****************
-  void StaticDriver::SolveProblem(bool write_results, InfoNode* given_analysis_id, const bool reAssembleMatrices)
+  void StaticDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id, const bool reAssembleMatrices)
   {
     // Set curent value of timestep and time step size in the mathParser
     domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
@@ -69,8 +69,8 @@ namespace CoupledField {
     // store such that special steps can add non-lin stuff and optimization adjoints
     if(given_analysis_id == NULL)
     {
-      analysis_id_ = driverNode->Get(InfoNode::PROCESS)->Get("step", InfoNode::APPEND);
-      analysis_id_->Get("analysis_id")->SetValue(0);
+      analysis_id_ = driverNode->Get(ParamNode::PROCESS)->Get("step", ParamNode::APPEND);
+      analysis_id_->Get("analysis_id")->SetValue("0");
     }
     else
     {

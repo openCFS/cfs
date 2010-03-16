@@ -6,7 +6,7 @@
 #include "Optimization/ShapeOptimizer.hh"
 #include "Optimization/LevelSet.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/exception.hh"
 #include "General/Enum.hh"
 #include "Domain/domain.hh"
@@ -28,7 +28,7 @@ DEFINE_LOG(designSpace, "designSpace")
 DECLARE_LOG(ersatz)
 DEFINE_LOG(ersatz, "ersatzMaterialFactor")
 
-DesignSpace::DesignSpace(StdVector<RegionIdType>& regionIds, StdVector<ParamNode*>& pn_design, StdVector<ParamNode*>& trans_in, StdVector<ParamNode*>& result, ErsatzMaterial::Method method)
+DesignSpace::DesignSpace(StdVector<RegionIdType>& regionIds, ParamNodeList& pn_design, ParamNodeList& trans_in, ParamNodeList& result, ErsatzMaterial::Method method)
 {
   LOG_TRACE(designSpace) << "DesignSpace for regions=" << regionIds << " #designs=" << pn_design.GetSize()
                          << " #transferFunctions=" << trans_in.GetSize() << " #results=" << result.GetSize();
@@ -61,7 +61,8 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& regionIds, StdVector<ParamNode
   // number of different designs
   unsigned int nd = 0;
   for(unsigned int d = 0; d < pn_design.GetSize(); d++){
-    DesignElement::Type dt = DesignElement::type.Parse(pn_design[d]->Get("name"));
+    DesignElement::Type dt = 
+        DesignElement::type.Parse(pn_design[d]->Get("name")->As<std::string>());
     if(design.Find(dt) < 0){
       design.Push_back(dt);
       nd++;
@@ -101,10 +102,10 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& regionIds, StdVector<ParamNode
   for(unsigned int dti = 0; dti < design.GetSize(); dti++){
     DesignElement::Type dt = design[dti];
     for(unsigned int d = 0; d < pn_design.GetSize(); d++) {
-      if(DesignElement::type.Parse(pn_design[d]->Get("name")) != dt){
+      if(DesignElement::type.Parse(pn_design[d]->Get("name")->As<std::string>()) != dt){
         continue;
       }
-      std::string design_reg = pn_design[d]->Get("region")->AsString();
+      std::string design_reg = pn_design[d]->Get("region")->As<std::string>();
 
       for(unsigned int r = 0; r < regionIds.GetSize(); r++){
         domain->GetGrid()->GetElems(elems, regionIds[r]);
@@ -124,17 +125,17 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& regionIds, StdVector<ParamNode
             throw Exception("Design/Region combination given twice!");
           }
           region_design[r*nd + di] = false;
-          if(pn_design[d]->Get("constant")->AsBool()){ // we have a constant densign-value on that region
+          if(pn_design[d]->Get("constant")->As<bool>()){ // we have a constant densign-value on that region
             regions_[r].constant = true;
           }
-          if(pn_design[d]->Get("scale")->AsBool()){
-            double upper = pn_design[d]->Get("upper")->AsDouble();
-            double lower = pn_design[d]->Get("lower")->AsDouble();
+          if(pn_design[d]->Get("scale")->As<bool>()){
+            double upper = pn_design[d]->Get("upper")->As<Double>();
+            double lower = pn_design[d]->Get("lower")->As<Double>();
             scale_design[di][r] = (upper - lower);
             translate_design[di][r] = lower;
           }
 
-          double initial = pn_design[d]->Get("initial")->AsDouble();
+          double initial = pn_design[d]->Get("initial")->As<Double>();
           LOG_DBG2(designSpace) << "add design " << dt << ":" << DesignElement::type.ToString(dt)
           << " initial=" << initial;
 
@@ -199,7 +200,7 @@ DesignSpace::~DesignSpace(){
   }
 }
 
-DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> regionIds, StdVector<ParamNode*>& design, StdVector<ParamNode*>& transfer, StdVector<ParamNode*>& result, ErsatzMaterial::Method method){
+DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> regionIds, ParamNodeList& design, ParamNodeList& transfer, ParamNodeList& result, ErsatzMaterial::Method method){
   switch(method){
   case ErsatzMaterial::SHAPE_OPT:
   case ErsatzMaterial::SHAPE_PARAM_MAT:
@@ -215,7 +216,7 @@ void DesignSpace::PostInit(int objectives, int constraints)
     data[i].PostInit(objectives, constraints);
 }
 
-void DesignSpace::SetDesignMaterial(ParamNode* dm){
+void DesignSpace::SetDesignMaterial(PtrParamNode dm){
   if(transfer.GetSize() > 0)
     throw Exception("designmaterial can not be given when using transferFunctions");
   transfer.Push_back(TransferFunction()); // create an identity transfer function
@@ -652,21 +653,21 @@ int DesignSpace::Find(const Elem* elem, bool throw_exception)
   EXCEPTION("element " << elem->ToString() << " has no volume element in design region");
 }
 
-void DesignSpace::ToInfo(InfoNode* in)
+void DesignSpace::ToInfo(PtrParamNode in)
 {
-  InfoNode* tf = in->Get("transferFunctions");
+  PtrParamNode tf = in->Get("transferFunctions");
   for(unsigned int i = 0; i < transfer.GetSize(); i++)
-    transfer[i].ToInfo(tf->Get("transferFunction", InfoNode::APPEND));
+    transfer[i].ToInfo(tf->Get("transferFunction", ParamNode::APPEND));
 
-  InfoNode* dv = in->Get("designVariables");
+  PtrParamNode dv = in->Get("designVariables");
   dv->Get("totalDesignVariables")->SetValue(data.GetSize());
   for(unsigned int i = 0; i < design.GetSize(); i++)
-    data[i * elements_].ToInfo(dv->Get("design", InfoNode::APPEND));
+    data[i * elements_].ToInfo(dv->Get("design", ParamNode::APPEND));
 
-  InfoNode* rs = in->Get("regions");
+  PtrParamNode rs = in->Get("regions");
   for(unsigned int i = 0; i < regions_.GetSize(); i++)
   {
-    InfoNode* r = rs->Get("region", InfoNode::APPEND);
+    PtrParamNode r = rs->Get("region", ParamNode::APPEND);
     r->Get("name")->SetValue(domain->GetGrid()->GetRegion().ToString(regions_[i].regionId));
     r->Get("elements")->SetValue(regions_[i].elements);
   }

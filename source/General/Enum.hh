@@ -5,7 +5,8 @@
 #include <string>
 
 #include "General/defs.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/exception.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField 
 {
@@ -172,11 +173,14 @@ typedef std::multimap<int, std::string> EnumMap;
           return(def);
         }
 
-        /** Takes the ->ToString() value */
-        T Parse(ParamNode* pn) const
-        {
-          return static_cast<T>(Parse(pn->AsString()));
-        }
+        // Commented out, as this introduces another dependency
+        // on the ParamNode, which leads to problems in the h5tool.
+        // (ahauck, 2010-03-15)
+//        /** Takes the ->ToString() value */
+//        T Parse(PtrParamNode pn) const
+//        {
+//          return static_cast<T>(Parse(pn->As<std::string>()));
+//        }
 
         /** converts the enumeration to the string.
          * @param type as enums are not typesafe actually an arbitrary int

@@ -136,8 +136,8 @@ void DefineInOutFiles::CreateSimInputFiles(std::map<std::string, shared_ptr<
   gridInputs.clear();
 
   std::string informat = "mesh";
-  StdVector<ParamNode *> inputOptionNodes;
-  ParamNode * inputNode = param->Get("fileFormats") ->Get("input", false);
+  StdVector<PtrParamNode> inputOptionNodes;
+  PtrParamNode inputNode = param->Get("fileFormats") ->Get("input",ParamNode::INSERT);
   inputOptionNodes = inputNode->GetChildren();
 
   // if no reader is defined explictly, create implicit one
@@ -148,11 +148,11 @@ void DefineInOutFiles::CreateSimInputFiles(std::map<std::string, shared_ptr<
     if (meshFile.empty())
       meshFile = simName + ".mesh";
     
-    ParamNode* meshNode = inputNode->Get("mesh", false);
-    meshNode->Get("id", actId, false);
-    meshNode->Get("gridId", actGridId, false);
+    PtrParamNode meshNode = inputNode->Get("mesh", ParamNode::INSERT);
+    meshNode->GetValue("id", actId, ParamNode::INSERT);
+    meshNode->GetValue("gridId", actGridId, ParamNode::INSERT);
     
-    inFiles[actId] = shared_ptr<SimInput> (new SimInputMESH(meshFile, NULL ));
+    inFiles[actId] = shared_ptr<SimInput> (new SimInputMESH(meshFile, PtrParamNode() ));
     gridInputs[actGridId].Push_back(inFiles[actId]);
     return;
   }
@@ -161,11 +161,11 @@ void DefineInOutFiles::CreateSimInputFiles(std::map<std::string, shared_ptr<
   {
 
     // fetch format and id of output class
-    ParamNode * actNode = inputOptionNodes[i];
+    PtrParamNode actNode = inputOptionNodes[i];
     informat = actNode->GetName();
-    actId = actNode->Get("id")->AsString();
-    actNode->Get("fileName", fileName, false);
-    actNode->Get("gridId", actGridId, true);
+    actId = actNode->Get("id")->As<std::string>();
+    actNode->GetValue("fileName", fileName, ParamNode::PASS);
+    actNode->GetValue("gridId", actGridId, ParamNode::EX);
 
     if (i == 0)
     {
@@ -263,13 +263,13 @@ void DefineInOutFiles::CreateSimOutputFiles(std::map<std::string, shared_ptr<
   std::string simName = progOpts->GetSimName();
 
   // get list of output formats
-  ParamNode * outNode = param->Get("fileFormats")->Get("output", false);
+  PtrParamNode outNode = param->Get("fileFormats")->Get("output", ParamNode::PASS);
 
   if (!outNode)
   {
     WARN("There was no output writer specified at all");
   }
-  StdVector<ParamNode*> formatNodes = outNode->GetChildren();
+  ParamNodeList formatNodes = outNode->GetChildren();
   
   // iterate over all found files
   std::string actFormat, actId;
@@ -277,9 +277,9 @@ void DefineInOutFiles::CreateSimOutputFiles(std::map<std::string, shared_ptr<
   {
 
     // fetch format and id of output class
-    ParamNode * actNode = formatNodes[i];
+    PtrParamNode actNode = formatNodes[i];
     actFormat = actNode->GetName();
-    actId = actNode->Get("id")->AsString();
+    actId = actNode->Get("id")->As<std::string>();
 
     // ensure, that id is unique
     if (out.find(actId) != out.end())
@@ -377,11 +377,12 @@ DefineInOutFiles::CreateMaterialHandler()
   std::string format = "dat";
 
   // Determine filename and format
-  ParamNode * matNode = param->Get("fileFormats")->Get("materialData", false);
+  PtrParamNode matNode = 
+      param->Get("fileFormats")->Get("materialData", ParamNode::PASS);
   if (matNode)
   {
-    matNode->Get("file", fileName);
-    matNode->Get("format", format);
+    matNode->GetValue("file", fileName);
+    matNode->GetValue("format", format);
   }
 
   if (format == "dat")

@@ -17,7 +17,7 @@
 #include "Driver/stdSolveStep.hh"
 #include "Driver/harmonicDriver.hh"
 #include "DataInOut/Logging/cfslog.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "OLAS/algsys/basesystem.hh"
 #include "Utils/Timer.hh"
 #include "DataInOut/Scripting/cfsmessenger.hh"
@@ -57,7 +57,8 @@ namespace CoupledField
     mHandle_ = domain->GetMathParser()->GetNewHandle();
 
     // the timer object is used in every AssembleMatrices() call
-    timer_ = info->Get("analysis")->Get(InfoNode::SUMMARY)->Get("assemble")->SetValue(new Timer());
+    timer_ = new Timer();
+    info->Get("analysis")->Get(ParamNode::SUMMARY)->Get("assemble")->SetValue(timer_);
 
     // Initialize scripting interface
     RegisterFunctions();
@@ -709,9 +710,9 @@ namespace CoupledField
 
   }
 
-  void Assemble::ToInfo(InfoNode* in)
+  void Assemble::ToInfo(PtrParamNode in)
   {
-    InfoNode* list = in->Get("matrixBiLinearForms");
+    PtrParamNode list = in->Get("matrixBiLinearForms");
 
     // iterate over all descriptors
     std::set<BiLinFormContext*>::iterator it;
@@ -720,7 +721,7 @@ namespace CoupledField
       // get integrator
       BiLinFormContext & context = **it;
 
-      InfoNode* form = list->Get("bilinearForm", InfoNode::APPEND);
+      PtrParamNode form = list->Get("bilinearForm", ParamNode::APPEND);
       // integrator name
       form->Get("integrator")->SetValue(context.GetIntegrator()->GetName());
 
@@ -753,7 +754,7 @@ namespace CoupledField
     std::set<LinearFormContext*>::iterator linIt;
     for (linIt = linForms_.begin(); linIt != linForms_.end(); linIt++)
     {
-      InfoNode* form = list->Get("linearForm", InfoNode::APPEND);
+      PtrParamNode form = list->Get("linearForm", ParamNode::APPEND);
 
       // get integrator
       LinearFormContext & context = **linIt;

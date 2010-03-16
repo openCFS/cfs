@@ -23,8 +23,8 @@ namespace CoupledField {
     typedef enum { TRANSISO_XY, TRANSISO_YZ, TRANSISO_XZ } TransIsoType;
     
     /** constructor, reads in DesignMaterial from XML
-     * @param pn pointer to ParamNode */ 
-    DesignMaterial(ParamNode* pn);
+     * @param pn pointer to PtrParamNode */ 
+    DesignMaterial(PtrParamNode pn);
     
     /** returns the numbers of parameters requiered for this material */
     unsigned int RequiredParameters();    

@@ -308,11 +308,11 @@ namespace CoupledField
     std::string ncRegionName;
     RegionIdType slaveId;
     RegionIdType masterId;
-    ParamNode* pNode;
-    StdVector<ParamNode*> ncIfaceNodes;
+    PtrParamNode pNode;
+    ParamNodeList ncIfaceNodes;
 
     pNode = param->Get("domain");
-    pNode = pNode->Get("ncInterfaceList",false);
+    pNode = pNode->Get("ncInterfaceList",ParamNode::PASS);
     if(!pNode)
     {
       Info->PrintF("","\nNo non-conforming interfaces found!\n");
@@ -326,13 +326,13 @@ namespace CoupledField
     ncInterfaces_.Resize(numIfaces);
 
     for (UInt i = 0; i < numIfaces; ++i) {
-      ParamNode* ncIfaceNode = ncIfaceNodes[i];
-      ParamNode* rotNode = ncIfaceNode->Get("rotation", false);
+      PtrParamNode ncIfaceNode = ncIfaceNodes[i];
+      PtrParamNode rotNode = ncIfaceNode->Get("rotation", ParamNode::PASS);
 
-      ncInterfaces_[i].name = ncIfaceNode->Get("name")->AsString();
+      ncInterfaces_[i].name = ncIfaceNode->Get("name")->As<std::string>();
 
-      masterId = GetRegion().Parse(ncIfaceNode->Get("masterSide")->AsString());
-      slaveId = GetRegion().Parse(ncIfaceNode->Get("slaveSide")->AsString());
+      masterId = GetRegion().Parse(ncIfaceNode->Get("masterSide")->As<std::string>());
+      slaveId = GetRegion().Parse(ncIfaceNode->Get("slaveSide")->As<std::string>());
       if ((masterId == -1) || (slaveId == -1)) {
         EXCEPTION("Cannot find master/slave regions of ncInterface '"
             << ncInterfaces_[i].name << "'.");
@@ -345,19 +345,19 @@ namespace CoupledField
       }
       else {
         std::string isecCalc;
-        ncIfaceNode->Get("isecCalculation", isecCalc, false);
+        ncIfaceNode->GetValue("isecCalculation", isecCalc, ParamNode::PASS);
         if (isecCalc == "coaxi")
           ncInterfaces_[i].intersectAlgo = RECT_INTERSECT;
         else
           ncInterfaces_[i].intersectAlgo = POLYGON_INTERSECT;
       }
 
-      ncIfaceNode->Get("tolAbs", ncInterfaces_[i].tolAbs, false);
-      ncIfaceNode->Get("tolRel", ncInterfaces_[i].tolRel, false);
+      ncIfaceNode->GetValue("tolAbs", ncInterfaces_[i].tolAbs, ParamNode::PASS);
+      ncIfaceNode->GetValue("tolRel", ncInterfaces_[i].tolRel, ParamNode::PASS);
 
       if (rotNode) {
-        rotNode->Get("coordSysId", ncInterfaces_[i].coordSysId, false);
-        rotNode->Get("angleStep", ncInterfaces_[i].rotationAngle, false);
+        rotNode->GetValue("coordSysId", ncInterfaces_[i].coordSysId, ParamNode::PASS);
+        rotNode->GetValue("angleStep", ncInterfaces_[i].rotationAngle, ParamNode::PASS);
       }
       else {
         ncInterfaces_[i].rotationAngle = 0.0;

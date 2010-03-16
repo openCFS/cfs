@@ -7,14 +7,13 @@
 
 #include "General/Enum.hh"
 #include "MatVec/basematrix.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField {
   
   class OLAS_BaseMatrix;
   class OLAS_BaseVector;
   template<typename> class Vector;
-  class ParamNode;
-  class OLAS_Report;
   
   // forward class declaration
   //class BaseSolver;
@@ -41,7 +40,7 @@ namespace CoupledField {
   public:
     
     //! Default Constructor
-    BaseEigenSolver( ParamNode* solverParams, InfoNode *olasInfo )
+    BaseEigenSolver( PtrParamNode solverParams, PtrParamNode olasInfo )
       : xml_(solverParams),
         olasInfo_(olasInfo),
         numFreq_(0),
@@ -134,13 +133,13 @@ namespace CoupledField {
 
     //! This is a pointer to a parameter object containing the steering
     //! parameters for this solver.
-    ParamNode *xml_;
+    PtrParamNode xml_;
     
     //! Pointer to report object
     
     //! This is a pointer to a report object in which the solver will store
     //! general information about the solution of a linear system.
-    InfoNode *olasInfo_;
+    PtrParamNode olasInfo_;
     
     //! Number of frequencies to be calculated
     UInt numFreq_;

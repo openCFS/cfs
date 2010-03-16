@@ -21,7 +21,7 @@ namespace CoupledField
   public:
 
     //!  
-    AcouCombustionNoise( Grid* aptgrid, ParamNode* paramNode );
+    AcouCombustionNoise( Grid* aptgrid, PtrParamNode paramNode );
 
     //!
     virtual ~AcouCombustionNoise();

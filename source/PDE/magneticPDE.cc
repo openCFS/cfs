@@ -40,7 +40,7 @@ DEFINE_LOG(magpde, "magpde")
   // **************
   //  Constructor
   // **************
-  MagPDE::MagPDE( Grid * aptgrid, ParamNode* paramNode )
+  MagPDE::MagPDE( Grid * aptgrid, PtrParamNode paramNode )
     :SinglePDE( aptgrid, paramNode ) {
 
 
@@ -53,7 +53,7 @@ DEFINE_LOG(magpde, "magpde")
 
     // check if we have a 3d setup
     is3d_ = false;
-    is3d_ = param->Get("domain")->Get("geometryType")->AsString() == "3d";
+    is3d_ = param->Get("domain")->Get("geometryType")->As<std::string>() == "3d";
   }
 
 
@@ -67,25 +67,26 @@ DEFINE_LOG(magpde, "magpde")
   //****************
   // Initialize PDE
   //****************
-  void MagPDE::Init(UInt sequenceStep, InfoNode* base) {
+  void MagPDE::Init(UInt sequenceStep, PtrParamNode base) {
     SinglePDE::Init(sequenceStep);
     
     // store regions on which the Lorentz force should be calculated
-    ParamNode *nodeStoreRes = myParam_->Get("storeResults", false);
+    PtrParamNode nodeStoreRes = myParam_->Get("storeResults", ParamNode::PASS);
     if (nodeStoreRes) {
-      StdVector<ParamNode*> resForceL
-        = nodeStoreRes->GetList("nodeResult", "type", "magForceLorentz");
+      ParamNodeList resForceL
+        = nodeStoreRes->GetListByVal("nodeResult", "type", "magForceLorentz");
       for (UInt i=0, n=resForceL.GetSize(); i<n; ++i) {
         if (resForceL[i]->Has("allRegions")) {
           regionsForceL_.insert(subdoms_.Begin(), subdoms_.End());
         } else {
-          ParamNode *nodeRegionList = resForceL[i]->Get("regionList", false);
+          PtrParamNode nodeRegionList = resForceL[i]->Get("regionList", ParamNode::PASS);
           if (nodeRegionList) {
-            StdVector<ParamNode*> resultRegions
+            ParamNodeList resultRegions
               = nodeRegionList->GetList("region");
             for (UInt iReg=0, nReg=resultRegions.GetSize(); iReg<nReg; ++iReg)
             {
-              RegionIdType curRegId = ptgrid_->GetRegion().Parse(resultRegions[iReg]->Get("name"));
+              RegionIdType curRegId = 
+                  ptgrid_->GetRegion().Parse(resultRegions[iReg]->Get("name")->As<std::string>());
               if (subdoms_.Find(curRegId) >= -1)
                 regionsForceL_.insert(curRegId);
             }
@@ -125,15 +126,15 @@ DEFINE_LOG(magpde, "magpde")
     isHysteresis_ = false;
 
     // Check, if "nonLinList" is present
-    ParamNode * nonLinListNode = myParam_->Get("nonLinList", false );
+    PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
     if( nonLinListNode ) { 
 
       // Get nonlinear types
-      StdVector<ParamNode*> nonLinNodes = nonLinListNode->GetChildren();
+      ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
       for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
 
         std::string actTypeString = nonLinNodes[i]->GetName();
-        std::string actId = nonLinNodes[i]->Get("id")->AsString();
+        std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
 
         NonLinType actType;
         String2Enum( actTypeString, actType );
@@ -144,7 +145,7 @@ DEFINE_LOG(magpde, "magpde")
     }
 
     // Run over all region and set entry in "regionNonLinId"
-    StdVector<ParamNode*> regionNodes = 
+    ParamNodeList regionNodes = 
       myParam_->Get("regionList")->GetChildren();
     
     RegionIdType actRegionId;
@@ -156,8 +157,8 @@ DEFINE_LOG(magpde, "magpde")
     for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
       
       // get data
-      regionNodes[i]->Get( "name", actRegionName );
-      regionNodes[i]->Get( "nonLinId", actNonLinId );
+      regionNodes[i]->GetValue( "name", actRegionName );
+      regionNodes[i]->GetValue( "nonLinId", actNonLinId );
       
       if( actNonLinId == "" )
         continue;
@@ -197,10 +198,10 @@ DEFINE_LOG(magpde, "magpde")
     
     // Here we need in addition the nonLinMethod_ for the definition
     // of the integrators
-    ParamNode * nonLinNode = myParam_->Get("nonLinear", false );
+    PtrParamNode nonLinNode = myParam_->Get("nonLinear", ParamNode::PASS );
     nonLinMethod_ = "fixPoint";
     if( nonLinNode ) {
-      nonLinNode->Get(  "method", nonLinMethod_, false );
+      nonLinNode->GetValue(  "method", nonLinMethod_, ParamNode::PASS );
     }
 
   }
@@ -482,8 +483,8 @@ DEFINE_LOG(magpde, "magpde")
     // =======================================================================
     // Integrators for NonConforming Interfaces
     // =======================================================================
-    ParamNode* ncIfaceListNode
-        = param->Get("domain")->Get("ncInterfaceList", false);
+    PtrParamNode ncIfaceListNode
+        = param->Get("domain")->Get("ncInterfaceList", ParamNode::PASS);
     
     // Get index of LAGRANGE_MULT result, just in case of coupled magnetics
     UInt lmResultIdx = 0;
@@ -505,9 +506,9 @@ DEFINE_LOG(magpde, "magpde")
       if (!ncIfaceListNode) {
         EXCEPTION("No ncInterfaces defined in domain section.");
       }
-      ParamNode* curNciNode = ncIfaceListNode->Get("ncInterface", "name",
+      PtrParamNode curNciNode = ncIfaceListNode->GetByVal("ncInterface", "name",
                                                    ncIfaceName);
-      slaveSide = curNciNode->Get("slaveSide")->AsString();
+      slaveSide = curNciNode->Get("slaveSide")->As<std::string>();
 
       // Part 1: Define integrator M(u, Lambda) on
       //         non-conforming interface (master/slave side)
@@ -1156,12 +1157,12 @@ DEFINE_LOG(magpde, "magpde")
 
     // Check if the element "coils" is present at all.
     // Otherwise leave
-    ParamNode * coilNode = myParam_->Get( "coils", false );
+    PtrParamNode coilNode = myParam_->Get( "coils", ParamNode::PASS );
     if ( !coilNode )
       return;
     
     // Get single coil nodes
-    StdVector<ParamNode*> coilNodes = coilNode->GetChildren();
+    ParamNodeList coilNodes = coilNode->GetChildren();
 
     // Trigger reading in of definitions
     if( coilNodes.GetSize() > 0 ) {
@@ -1169,7 +1170,7 @@ DEFINE_LOG(magpde, "magpde")
       for( UInt i = 0; i < coilNodes.GetSize(); i++ ) {
         
         // get region name of actual coil
-        std::string regionName = coilNodes[i]->Get("name")->AsString();
+        std::string regionName = coilNodes[i]->Get("name")->As<std::string>();
         RegionIdType regionId = ptgrid_->GetRegion().Parse( regionName );
 
         coilRegionId_.Push_back( regionId );
@@ -1190,12 +1191,12 @@ DEFINE_LOG(magpde, "magpde")
 
     // Check if the element "magnets" is present at all.
     // Otherwise leave
-    ParamNode * magnetNode = myParam_->Get( "magnets", false );
+    PtrParamNode magnetNode = myParam_->Get( "magnets", ParamNode::PASS );
     if ( !magnetNode )
       return;
 
     // Get single magnet nodes
-    StdVector<ParamNode*> magnetNodes = magnetNode->GetChildren();
+    ParamNodeList magnetNodes = magnetNode->GetChildren();
 
     // trigger definition of magnets
     if( magnetNodes.GetSize() > 0 ) {
@@ -1206,19 +1207,19 @@ DEFINE_LOG(magpde, "magpde")
       for( UInt i = 0; i < magnetNodes.GetSize(); i++ ) {
         
         // get region name of actual magnet
-        std::string regionName = magnetNodes[i]->Get("name")->AsString();
+        std::string regionName = magnetNodes[i]->Get("name")->As<std::string>();
         RegionIdType regionId = ptgrid_->GetRegion().Parse( regionName );
         
         magnetsDomain_.Push_back( regionId );
         
         // read orientation
-        magnetNodes[i]->Get( "orientX", tmpDir );
+        magnetNodes[i]->GetValue( "orientX", tmpDir );
         magnetsOriX_.Push_back( tmpDir );
           
-        magnetNodes[i]->Get( "orientY", tmpDir );
+        magnetNodes[i]->GetValue( "orientY", tmpDir );
         magnetsOriY_.Push_back( tmpDir );
           
-        magnetNodes[i]->Get( "orientZ", tmpDir );
+        magnetNodes[i]->GetValue( "orientZ", tmpDir );
         magnetsOriZ_.Push_back( tmpDir );
 
         // report name to logfile
@@ -1246,14 +1247,14 @@ DEFINE_LOG(magpde, "magpde")
     res1->resultType = MAG_POTENTIAL;
     
     // check if problem is lagrange or legendre
-    std::string approxType = myParam_->Get("type")->AsString();
+    std::string approxType = myParam_->Get("type")->As<std::string>();
     if ( approxType == "lagrange" ) {
       shared_ptr<AnsatzFct> fct(new LagrangeFct);
       res1->fctType = fct;
       res1->definedOn = ResultInfo::NODE;
     } else if (approxType == "legendre" ) {
       shared_ptr<LegendreFct> fct(new LegendreFct);
-      UInt order =  myParam_->Get("order")->AsUInt();
+      UInt order =  myParam_->Get("order")->As<UInt>();
       fct->SetIsoOrder( order );
       res1->definedOn = ResultInfo::PFEM;
       res1->fctType = fct;
@@ -1375,28 +1376,26 @@ DEFINE_LOG(magpde, "magpde")
     LOG_DBG2(magpde) << "NonMatching: Checking if nonconforming "
                       << "interfaces of PDE exist in domain.";
 
-    ParamNode* domainNCIfaceListNode;
-    domainNCIfaceListNode = param->Get("domain")->Get("ncInterfaceList", false);
+    PtrParamNode domainNCIfaceListNode;
+    domainNCIfaceListNode = param->Get("domain")->Get("ncInterfaceList", ParamNode::PASS);
 
     if(domainNCIfaceListNode)
     {
-      ParamNode* ncInterfaceListNode =
-        param->Get("sequenceStep", std::string("index"), sequenceStep_)
-        ->Get("pdeList/magnetic/ncInterfaceList", false);
-      StdVector<ParamNode*> pdeNCIfaceNodes;
+      PtrParamNode ncInterfaceListNode = myParam_->Get("ncInterfaceList", ParamNode::PASS );
+      ParamNodeList pdeNCIfaceNodes;
 
       if(ncInterfaceListNode)
       {
         pdeNCIfaceNodes = ncInterfaceListNode->GetList("ncInterface");
 
         for (UInt i = 0; i < pdeNCIfaceNodes.GetSize(); i++) {
-          std::string pdeIfaceName = pdeNCIfaceNodes[i]->Get("name")->AsString();
+          std::string pdeIfaceName = pdeNCIfaceNodes[i]->Get("name")->As<std::string>();
           std::string domainIfaceName;
 
-          ParamNode* domainIfaceNode = domainNCIfaceListNode->Get("ncInterface",
+          PtrParamNode domainIfaceNode = domainNCIfaceListNode->GetByVal("ncInterface",
               "name",
               pdeIfaceName,
-              false);
+              ParamNode::PASS);
           if(!domainIfaceNode)
           {
             LOG_DBG2(magpde) << "NonMatching: Nonconforming "

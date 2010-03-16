@@ -54,12 +54,13 @@ public:
   void Init();
 
   //! Main method, where harmonic analysis is implemented.
-  void SolveProblem(bool write_results = true, InfoNode* analysis_id = NULL, const bool reAssembleMatrices = true);
+  void SolveProblem(bool write_results = true, PtrParamNode analysis_id = PtrParamNode(),
+                    const bool reAssembleMatrices = true);
 
   /** This allows optimization to handle the individual frequency steps, e.g. to compute
    * objective values. Internally this is is a service function for SolveProblem()
    * @param actFreqStep sets the actFreq_ attribute, to start with 1 and not to exceed numFreq_ */
-   Double ComputeFrequencyStep(UInt actFreqStep, InfoNode* analysis_id);
+   Double ComputeFrequencyStep(UInt actFreqStep, PtrParamNode analysis_id);
 
    /** This StoreResults meant for Optimization only */
   void StoreResults(double step_val);
@@ -117,7 +118,7 @@ protected:
   FreqSamplingType samplingType_;
 
   /** This is the pointer to our analysis description */
-  ParamNode* pn_;
+  PtrParamNode pn_;
 };
 
 }

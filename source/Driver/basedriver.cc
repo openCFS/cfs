@@ -21,7 +21,6 @@ using namespace CoupledField;
 BaseDriver::BaseDriver( )
 {
   actSequenceStep_ = 1;
-  analysis_id_ = NULL;
   nummeshes_=0;
   handler_ = domain->GetResultHandler();
   driverNode = info->Get("analysis"); // analysis step set in singleDriver
@@ -52,26 +51,26 @@ void BaseDriver::PrintSeqMeshes()
   WARN( "Not implemented anymore" );
 }
 
-InfoNode* BaseDriver::CreateAnalysisId(const std::string& child_name, int child_id, 
+PtrParamNode BaseDriver::CreateAnalysisId(const std::string& child_name, int child_id, 
                                        const std::string& child_2_name, int child_2_id)
 {
-  InfoNode* child = driverNode->Get(InfoNode::PROCESS)->Get("step", InfoNode::APPEND);
+  PtrParamNode child = driverNode->Get(ParamNode::PROCESS)->Get("step", ParamNode::APPEND);
   child->Get("analysis_id")->SetValue(ConcatAnalysisId(child, child_name, child_id, child_2_name, child_2_id));
   return child;
 }
 
-InfoNode* BaseDriver::CreateAnalysisIdChild(InfoNode* base, const std::string& child_name, int child_id, 
+PtrParamNode BaseDriver::CreateAnalysisIdChild(PtrParamNode base, const std::string& child_name, int child_id, 
     const std::string& child_2_name, int child_2_id)
 {
   // create a child
-  InfoNode* child = base->Get(child_name);
+  PtrParamNode child = base->Get(child_name);
   std::string val = domain->GetDriver()->ConcatAnalysisId(base, child_name, child_id, child_2_name, child_2_id);
   child->Get("analysis_id")->SetValue(val);
   return child;
 }
 
 
-std::string BaseDriver::ConcatAnalysisId(InfoNode* analysis_id, const std::string& child_name, int child_id, 
+std::string BaseDriver::ConcatAnalysisId(PtrParamNode analysis_id, const std::string& child_name, int child_id, 
                                     const std::string& child_2_name, int child_2_id)
 {
   assert(!(child_name == "" && child_id != -1));
@@ -79,7 +78,7 @@ std::string BaseDriver::ConcatAnalysisId(InfoNode* analysis_id, const std::strin
   assert(!(child_2_name != "" && child_id == -1));
   
   std::stringstream ss;
-  ss << analysis_id->Has("analysis_id") ? analysis_id->Get("analysis_id")->AsString() : ""; 
+  ss << analysis_id->Has("analysis_id") ? analysis_id->Get("analysis_id")->As<std::string>() : ""; 
 
   if(child_name != "")
   ss << ":" << child_name;
@@ -119,7 +118,7 @@ BaseDriver* BaseDriver::CreateInstance()
     std::string one = "1";
 
     analysisString =
-      param->Get(name, idx, one)->Get("analysis")->GetChild()->GetName();
+      param->GetByVal(name, idx, one)->Get("analysis")->GetChild()->GetName();
     type = BasePDE::analysisType.Parse(analysisString);
 
     // Generate driver

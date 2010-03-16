@@ -7,7 +7,7 @@
 #include "Utils/StdVector.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 using namespace CoupledField;
 
@@ -15,20 +15,24 @@ using namespace CoupledField;
 DECLARE_LOG(scpip)
 DEFINE_LOG(scpip, "scpip")
 
-SCPIP::SCPIP(Optimization* optimization, ParamNode* optimizer_pn) :
+SCPIP::SCPIP(Optimization* optimization, PtrParamNode optimizer_pn) :
  BaseOptimizer(optimization, optimizer_pn)
 {
   LOG_TRACE(scpip) << "Initialize SCPIP";
 
   // reduce to our actual ParamNode
-  ParamNode* scpip_pn =  optimizer_pn->Get(Optimization::optimizer.ToString(Optimization::SCPIP_SOLVER), false);
+  PtrParamNode scpip_pn =  optimizer_pn->Get(Optimization::optimizer.ToString(Optimization::SCPIP_SOLVER), 
+                                             ParamNode::PASS);
   
   // init scaling - to be set in SolveProblem() for restarted autoscale
   double manual_scaling = 1.0;
-  if(scpip_pn != NULL) scpip_pn->Get<double>("option", "name", "obj_scaling_factor", manual_scaling, "value", false);
-  
+  if(scpip_pn) {
+     PtrParamNode optionNode = scpip_pn->GetByVal("option", "name", "obj_scaling_factor", ParamNode::PASS);
+     if( optionNode) 
+      scpip_pn->GetValue("value", manual_scaling, ParamNode::PASS);
+  }
   //double manual_scaling = scpip_pn != NULL && optimizer_pn->Has("option", "name", "obj_scaling_factor") ?
-  //    scpip_pn->Get("option", "name", "obj_scaling_factor")->Get("value")->AsDouble() : 1.0;
+  //    scpip_pn->Get("option", "name", "obj_scaling_factor")->Get("value")->As<Double>() : 1.0;
   PostInit(manual_scaling); // does autoscale    
   std::cout << objective->ToString() << std::endl;
   
@@ -40,22 +44,22 @@ SCPIP::SCPIP(Optimization* optimization, ParamNode* optimizer_pn) :
   // check for optional parameters
   if(scpip_pn != NULL)
   {
-    StdVector<ParamNode*> list;
+    ParamNodeList list;
     
-    list = scpip_pn->GetList("option", "type", "string");
+    list = scpip_pn->GetListByVal("option", "type", "string");
     for(unsigned int i = 0; i < list.GetSize(); i++)
-      SetStringValue(list[i]->Get("name")->AsString(), list[i]->Get("value")->AsString());
+      SetStringValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<std::string>());
 
-    list = scpip_pn->GetList("option", "type", "integer");
+    list = scpip_pn->GetListByVal("option", "type", "integer");
     for(unsigned int i = 0; i < list.GetSize(); i++)
-      SetIntegerValue(list[i]->Get("name")->AsString(), list[i]->Get("value")->AsInt());
+      SetIntegerValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<Integer>());
 
-    list = scpip_pn->GetList("option", "type", "real");
+    list = scpip_pn->GetListByVal("option", "type", "real");
     for(unsigned int i = 0; i < list.GetSize(); i++)
     {
       // do not set obj_scaling_factor -> it was set before
-      if(list[i]->Get("name")->AsString() != "obj_scaling_factor")
-        SetNumericValue(list[i]->Get("name")->AsString(), list[i]->Get("value")->AsDouble());
+      if(list[i]->Get("name")->As<std::string>() != "obj_scaling_factor")
+        SetNumericValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<Double>());
     }
   }
   
@@ -80,7 +84,7 @@ void SCPIP::SolveProblem()
       objective->CalcAutoscale();
       LOG_TRACE(scpip) << "Restart SCPIP with scaling " << objective->scaling.value;
       std::cout << "Restart SCPIP with scaling " << objective->scaling.value << std::endl;
-      InfoNode* in = optimization->optInfoNode->Get(InfoNode::PROCESS)->Get("iteration");
+      PtrParamNode in = optimization->optInfoNode->Get(ParamNode::PROCESS)->Get("iteration");
       in->Get("rescale")->SetValue(objective->scaling.value);
       
       // adjust the number of iterations
@@ -100,7 +104,7 @@ void SCPIP::SolveProblem()
     // call the base solver !!!!!!!!!!!
     int status = SCPIPBase::SolveProblem();
     
-    InfoNode* in = optimization->optInfoNode->Get(InfoNode::SUMMARY)->Get("break");
+    PtrParamNode in = optimization->optInfoNode->Get(ParamNode::SUMMARY)->Get("break");
     
     switch(status)
     {
@@ -141,7 +145,7 @@ void SCPIP::SolveProblem()
     }
     
     if(!restart_requested)
-      optimization->optInfoNode->Get(InfoNode::SUMMARY)->Get("problem")->SetValue(ToString(status));
+      optimization->optInfoNode->Get(ParamNode::SUMMARY)->Get("problem")->SetValue(ToString(status));
   }
   while(restart_requested);
 }

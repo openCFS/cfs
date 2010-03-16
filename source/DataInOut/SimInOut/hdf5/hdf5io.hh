@@ -185,7 +185,7 @@ namespace CoupledField {
     //! Map SimOuput::Capability class to hdf5 type
     static Integer MapCapabilityType( SimOutput::Capability c );
 
-    //! Map hdf5 representation of simOutput::Capability to enum representat
+    //! Map hdf5 representation of simOutput::Capability to enum representation
     static SimOutput::Capability MapCapabilityType( Integer c );
 
     //! Map EntityUnknownType enum to hdf5 type

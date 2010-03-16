@@ -46,7 +46,7 @@ namespace CoupledField {
 
   // time is used for a series of static calculations
   // don't get confused with REAL transient simulations!
-  void SolveStepElec::SolveStepStatic(InfoNode* analysis_id) {
+  void SolveStepElec::SolveStepStatic(PtrParamNode analysis_id) {
     if ( isHyst_ ) 
       StepStaticNonLinEpsDiff(analysis_id);
     else 
@@ -54,7 +54,7 @@ namespace CoupledField {
   }
 
 
-  void SolveStepElec::StepStaticNonLinEpsDiff(InfoNode* analysis_base) {
+  void SolveStepElec::StepStaticNonLinEpsDiff(PtrParamNode analysis_base) {
 
 
     bool performOneMoreStep;
@@ -91,7 +91,7 @@ namespace CoupledField {
       else 
         std::cout << "Iter:  " << iterationCounter << std::endl;
 
-      InfoNode* analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
+      PtrParamNode analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
       
       // set solution of previous iteration
       if (iterationCounter == 1 ) {

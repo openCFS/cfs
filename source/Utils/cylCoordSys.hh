@@ -20,16 +20,16 @@ namespace CoupledField {
     //!                  find the additional parameters in the .xml-file
     //! \param ptGrid (in) pointer to finite element grid object
     //! \param myParamNode (in) pointer to parameter node of current coosy
-    //! \param myInfoNode (in) pointer to info node of current coosy;
+    //! \param myParamNode (in) pointer to info node of current coosy;
     CylCoordSystem(const std::string & name, Grid * ptGrid,
-                   ParamNode * myParamNode );
+                   PtrParamNode myParamNode );
 
     
     //! Destructor
     virtual ~CylCoordSystem();
     
     //! Print information about coordinate system to info node
-    void ToInfo( InfoNode* in );
+    void ToInfo( PtrParamNode in );
 
     //! Transform local into global coordinate
 

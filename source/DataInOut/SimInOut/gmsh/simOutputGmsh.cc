@@ -32,7 +32,7 @@ namespace CoupledField {
   //   Constructor
   //*****************
   SimOutputGmsh::SimOutputGmsh( const std::string fileName,
-                                ParamNode * outputNode ) :
+                                PtrParamNode outputNode ) :
   SimOutput( fileName, outputNode ),
     output_(NULL),
     printGridOnly_(false),
@@ -62,13 +62,13 @@ namespace CoupledField {
     }
     
     // Change defaults according to XML file
-    if(myParam_->Get("binaryFormat", false)->AsString() == "yes")
+    if(myParam_->Get("binaryFormat", false)->As<std::string>() == "yes")
     {
         ascii_ = false;
     }
 
     std::string endianness = "native";
-    endianness = myParam_->Get("endianness", false)->AsString();
+    endianness = myParam_->Get("endianness", false)->As<std::string>();
 
     if(!ascii_) 
     {

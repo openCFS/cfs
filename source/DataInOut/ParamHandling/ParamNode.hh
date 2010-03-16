@@ -2,21 +2,28 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#ifndef PARAMNODE_HH_
-#define PARAMNODE_HH_
+#ifndef ParamNode_HH_
+#define ParamNode_HH_
 
 #include <string>
+#include <boost/enable_shared_from_this.hpp>
+#include <boost/shared_ptr.hpp>
 #include <boost/tokenizer.hpp>
+#include <boost/any.hpp>
 
 #include "Utils/StdVector.hh"
 #include "General/exception.hh"
 
 namespace CoupledField
 {
-  /** The global pointer of the ParamNode (tree) holding the XML file */
   class ParamNode;
-  template <class TYPE> class Matrix;  
-  extern ParamNode* param;
+  /** Definitions of pointers, using boost::shared_ptr */
+  typedef boost::shared_ptr<ParamNode> PtrParamNode;
+  typedef StdVector<boost::shared_ptr<ParamNode> > ParamNodeList;
+  
+  /** global parameter instance */
+  extern PtrParamNode param;
+  extern PtrParamNode info;
   
   /** This class realizes the following concept of param handling, mainly the representation
    * of the XML file.
@@ -31,179 +38,298 @@ namespace CoupledField
    *   <li>There are leaf nodes which are defined as having no children</li>
    *   <li>The children can be unsorted leaf nodes or "more complex" nodes</li>
    *   <li>You can alter the content (modify value or modify children)</li>
-   * </ul> */  
-  class ParamNode
+   * </ul> 
+   * 
+   * The ParamNode internally disinguishes the types of nodes (ATTRIBUTE, ELEMENT, COMMENT), 
+   * this is just needed when performing i/o in xml format.
+   * Things to note:
+   *  - node type normally not of ineteres
+   *  - const char* implicitly converted to std::string
+   *  - 
+   *
+   * ToDO:
+   * - Implement special case for template<const char*> to be converted into normal strings
+   * - Merge missing methods from ParamNode
+   *
+   *
+   * Some open questions remain:
+   *  - Should we use shared_ptr<> instead of plain *? This would ease the use withing the
+   *    program and prevent memory leaks, but it would introduce some addtional runtime 
+   *    overhead
+   *  - Should we clearly distinguish between set / get methods? At the moment, most get-
+   *    methods implicitly set the value passed, if INSERT / ADD is given
+   *  - Should all methods direclty return the PtrParamNode they are working on as return value?
+   *    This would allow for chains in the form:
+   *      myNode->SetValue("aValue")->Get("myChildNode")->SetValue("test");
+   *  - Is it necessary to have a separate ParamNode? One possibility is to re-implement
+   *    the methods of the ParamNode, but instead of the dfeault argument EX they have a default
+   *    argument APPEND / REPLACE, i.e. by default we just add new elements, if they are not present
+   *  - How to treat comments? Should we have a method SetComment(), wich just creates a comment node
+   *    as child?
+   *  
+   * */  
+  class ParamNode : public boost::enable_shared_from_this<ParamNode>
   {
   public:
-    /** The default constructor, name and value are to be set via the setter methods */
-    ParamNode(bool attribute = false); 
+    
+    /** This string constant shall mark the logging part which contains "dynamic" data, e.g. current iteration */
+    const static std::string HEADER;
+    const static std::string PROCESS;
+    /** this string constann shall mark summary information, e.g. total number of iterations */
+    const static std::string SUMMARY;
+    const static std::string WARNING;
+    const static std::string ERROR;
+    
+    /** Define behavior for get() methods in case the element does not exist:
+    * DEFAULT: Apply default action of current node (gets inherited)
+    * EX:   Throw exception, if element does not exist
+    * PASS: If element does not exist, just leave method and leave all variables
+    *       in their original state. Otherwise return element.
+    * INSERT: Create new element with default value if the element does not exist.
+    *          If it exists, return value.
+    * APPEND: Always create new node with default value.
+    */
+    
+    typedef enum { DEFAULT, EX, PASS, INSERT, APPEND } ActionType;
+    
+    /** Possible node types
+     * UNDEF: In most cases we do not care about the type of the paramnode,
+     *        so UNDEF is a valid statte. Only when converting a node to an XML
+     *        structure, we have to convert it to another type
+     * ELEMENT: This node represents a XML element
+     * ATTRIBUTE: This node represents a XML attribute
+     * COMMENT: This node represents just a comment without syntactical meaning.
+     *          Note: Comment-nodes are not allowed to have children!
+     */
+    typedef enum { UNDEF, ELEMENT, ATTRIBUTE, COMMENT } NodeType;
+    
+    /** The default constructor
+     * @param type Type of the node (defaults to UNDEF)
+     * @return
+     */
+    ParamNode( ActionType defaultAction = EX, NodeType type = UNDEF );
 
     /** Recursively delete the child nodes */
     virtual ~ParamNode();
 
+    /************************************************************************
+    * S E T    M E T H O D S
+    *************************************************************************/
+    
+    /** Set name of the current node */
+    void SetName(const std::string& name) { this->name_ = name; }
+
+    /** Set the type of the current node */
+    void SetType(const NodeType type) { this->type_ = type; }
+    
+    //@{
+    /** Set the value */
+    void SetValue(const boost::any& value);
+    void SetValue( const char* value);
+    //@}
+    
+    /** Creates a sub-node with the content */
+    void SetComment(const std::string& string);
+      
+    /** Add child parameter nod*/
+    void AddChildNode( PtrParamNode child);
+    
+    /** If you really know what you do, you can set a child manually.
+      * An existing value is overwritten and not deleted!
+      * @param name an element with this name will exist afterwards
+      * @param index the children list must be large enough.
+      * @return the newly created object. */
+     PtrParamNode SetNewChild(const std::string& name, unsigned int index);
+    
+    /************************************************************************
+     * N O D E   A C C E S S     M E T H O D S
+     ************************************************************************/
     /** @return the name of the attribute or XML element */
     const std::string& GetName() const { return name_;} 
-       
-    /** Only when we fill the global root element from xerces we need this method */
-    void SetName(const std::string& name) { this->name_ = name; }
-       
-    /** @return a string, a int/Double as string or empty if this is not a leaf node (we have children) */
-    const std::string& AsString() const { return value_;} 
+    
+    /** Returns all children which are attributes and simple xml elements (cannot be differentiated) or in
+    * other words leaf nodes - and without any sorting complex ParamNodes which have children themselves. 
+    * If this element is already a leaf node, the list is empty.<br>
+    * Be careful when editing this list! */
+    ParamNodeList& GetChildren() { return children_;}
+           
+    /** Returns the only child of an element which might be an attribute or simple xml element or in
+    * other words a leaf node - and without any sorting a complex ParamNode which has children by itself. 
+    * If the element has more than one child node, an exception is thrown.
+    * If this element is already a leaf node, the return value is NULL. */
+    PtrParamNode GetChild();
 
-    /** set the value */
-    void SetValue(const std::string& value) { this->value_ = value; }
-
-    /** @return the integer if this is convertible
-     * @throws an exception if the value is not set or not convertible */
-    int  AsInt() const;
-
-    /** @return the UInteger if this is convertible
-     * @throws an exception if the value is not set or not convertible or negative */
-    unsigned int AsUInt() const;
-
-    /** @return the Double if this is convertible
-     * @throws an exception if the value is not set or not convertible */
-    double AsDouble() const;
-       
-    /** @return checks the value for "yes", "true", "on" respectively "no", "false", "off".
-     * @throws exception if no value or none of the above */
-    bool AsBool() const;
-     
     /** returns the only direct child which has the name.<br>
-     * Is only valid, if the corresponding GetList() would return one value. Exception if 0 or greater 1.<br>
-     * In case check before with Has() and Count().
-     * example: "optimization" is a complex element which is a direct child of the root: param.Get("optimization")
-     * @param name might contain several levels by the '/' separator. 
-     *             Get("optimization/ersatzMaterial") is equivalent to Get("optimization")->Get("ersatzMaterial").
-     *             Check with Has() first! 
-     * @throws exception if there is not such a direct child, e.g. if this is a leaf node OR if there more than only
-     * one of such elements (e.g. simple xml elements). */     
-    ParamNode* Get(const std::string&  name, const bool throwException = true ); 
+    * Is only valid, if the corresponding GetList() would return one value. Exception if 0 or greater 1.<br>
+    * In case check before with Has() and Count().
+    * example: "optimization" is a complex element which is a direct child of the root: param.Get("optimization")
+    * @param name might contain several levels by the '/' separator. 
+    *             Get("optimization/ersatzMaterial") is equivalent to Get("optimization")->Get("ersatzMaterial").
+    *             Check with Has() first! 
+    * @throws exception if there is not such a direct child, e.g. if this is a leaf node OR if there more than only
+    * one of such elements (e.g. simple xml elements). */     
+    PtrParamNode Get(const std::string&  name, ActionType = DEFAULT ); 
+    
+    //@{
+    /** Get the direct childs which has an attribute with a given value or in other words:
+    *  Get the direct child where the grandchildren are as specified.<br>
+    *  example: param.Get("pdeList").Get("mechanic").Get("bcsAndLoads").Get("dirichletInHom", "name", "fixed")
+    *  @return the direct child, not the grandchildren */
+    template<typename TYPE >
+    PtrParamNode GetByVal( const std::string& parent, 
+                          const std::string& child, 
+                          const TYPE& value,
+                          ActionType action = DEFAULT );
+    PtrParamNode GetByVal( const std::string& parent, 
+                          const std::string& child, 
+                          const char* value,
+                          ActionType action = DEFAULT );
+    //@}
+
+    /** Get all direct childs of a name
+    * example: param.Get("pdeList").Get("mechanic").Get("bcsAndLoads").GetList("dirichletInHom") */
+    ParamNodeList GetList(const std::string&  name);
     
 
     //@{
-    /** gets the only direct child which has the name and stores its value in ret <br>
-     * Is only valid, if the corresponding GetList() would return one value. Exception if 0 or greater 1
-     * or if the found value can not be converted into type of return value.<br>
-     * If no matching element is found an exception will be thrown if throwException is set to true. 
-     * Otherwise the function will return silently and the original value in ret will be kept.
-     * example: "optimization" is a complex element which is a direct child of the root: param.Get("optimization") 
-     * @throws exception if there is not such a direct child, e.g. if this is a leaf node OR if there more than only
-     * one of such elements (e.g. simple xml elements). */
-    void Get(const std::string& name, std::string& ret, const bool throwException = true);
+    /** Get all direct childs which have an attribute with a given value or in other words:
+    *  Get all direct childs where the grandchildren are specified.<br>
+    *  example: param.Get("pdeList").Get("mechanic").Get("bcsAndLoads").GetList("dirichletInHom", "name", "fixed")
+    *  @return the direct childs, not the grandchildren */
+    template<typename TYPE>
+    ParamNodeList GetListByVal(const std::string& parent, 
+                                             const std::string& child, 
+                                             const TYPE & value);
+    ParamNodeList GetListByVal(const std::string& parent, 
+                                        const std::string& child, 
+                                        const char * value);
+    //@}
 
-    void Get(const std::string& name, int& ret, const bool throwException = true);
+    /************************************************************************
+    * D A T A    G E T   M E T H O D S
+    ************************************************************************/
 
-    void Get(const std::string& name, unsigned int& ret, const bool throwException = true);
+    /** @return converted value
+    * @throws an exception if the value is not set or not convertible
+    * version for all types instead of integral ones */
+    template<typename TYPE>
+    TYPE As() const;
 
-    void Get(const std::string& name, double& ret, const bool throwException = true);
+    /** @return the integer if this is convertible
+    * @throws an exception if the value is not set or not convertible */
+    template<typename TYPE>
+    const TYPE& AsConst() const;
 
-    void Get(const std::string& name, bool& ret, const bool throwException = true);
-
-    
-    /** Checks if there is at least one direct child with the given name.<br>
-     * Note, that even when not specified in the XML file, the value might come from the default value in the
-     * XML schema definition.<br>
-     * Does not differentiate between one or more than one occurrence (then Get() will throw an exception). Note,
-     * that there might be only one XML attribute but multiple XML simple elements and we do not differentiate 
-     * between this two types. 
-     * @param name might contains several levels by the '/' token.
-     * @return true if there is at least one direct child (leaf or "complex") with the given name */
-    bool Has(const std::string& name) const;  
-
-    /** Checks if a direct child (e.g. attribute) exists and has a special value
-     * @see Has(const std::string&) const */
-    bool Has(const std::string& name, const std::string& value) const;
-
-    /** Checks if a direct child (e.g. attribute) exists and is set to "true"/"false", "yes"/"no", "on"/"off"
-    * @see Has(const std::string&) const */
-    bool Has(const std::string& name, bool value) const;
-    
-    /** Checks if there is at least one direct child with the given name and an attribute with the given value.<br>
-     * Note, that even when not specified in the XML file, the value might come from the default value in the
-     * XML schema definition.<br>
-     * Does not differentiate between one or more than one occurrence (then Get() will throw an exception). Note,
-     * that there might be only one XML attribute but multiple XML simple elements and we do not differentiate 
-     * between this two types. 
-     * @return true if there is at least one direct child (leaf or "complex") with the given name */
-    bool Has(const std::string& name,
-             const std::string& child, 
-             const std::string& value ) const;  
+    /** Directly access the value of the current node as a given type.
+     *  In case the node does not exist the following action is taken:
+     *  PASS: Method returns wiithou warning / error
+     *  EX: An exception is generated
+     *  INSERT: A new node is generated with the value of the ret variable
+     *           as new value
+     *  APPEND: A new node is generated anyway and the value of the ret variable
+     *          is set as new value
+     */
+    template<typename TYPE>
+    void GetValue(const std::string& name, TYPE& ret, ActionType = EX );        
         
+    /** This Get() version overwrites with throwException=false a preset value and does nothing if the
+    *  value does not exist. So you do not need to check with Has() first.<br>
+    *  Get the direct child which has an attribute with a given value and store it in the
+    *  return variable or in other words:
+    *  Get the direct child where the grandchildren are as specified.<br>
+    *  example: 
+    *  <pre>
+    // instead of:
+    double manual_scaling = node->Has("option", "name", "obj_scaling_factor") ?
+    node->Get("option", "name", "obj_scaling_factor")->Get("value")->As<Double>() : 1.0;
+    // you can do
+    double manual_scaling = 1.0;
+    node->Get<double>("option", "name", "obj_scaling_factor", manual_scaling, "value", false);
+    </pre> 
+//    */
+//    template <typename TYPE, typename TYPE2>
+//    void Get( const std::string& parent, 
+//              const std::string& child, 
+//              const std::string& value, 
+//              TYPE& ret, 
+//              const TYPE2& value_node, 
+//              const ActionType = EX );
+    
+    /************************************************************************
+    *  Q U E R Y     M E T H O D S
+    ************************************************************************/
+
+    /** Checks if there is at least one direct child with the given name.<br>
+    * Note, that even when not specified in the XML file, the value might come from the default value in the
+    * XML schema definition.<br>
+    * Does not differentiate between one or more than one occurrence (then Get() will throw an exception). Note,
+    * that there might be only one XML attribute but multiple XML simple elements and we do not differentiate 
+    * between this two types. 
+    * @param name might contains several levels by the '/' token.
+    * @return true if there is at least one direct child (leaf or "complex") with the given name */
+    bool Has( const std::string& name ) const;  
+
+    //@{
+    /** Checks if there is at least one direct child with the given name and an attribute with the given value.<br>
+    * Note, that even when not specified in the XML file, the value might come from the default value in the
+    * XML schema definition.<br>
+    * Does not differentiate between one or more than one occurrence (then Get() will throw an exception). Note,
+    * that there might be only one XML attribute but multiple XML simple elements and we do not differentiate 
+    * between this two types. 
+    * @return true if there is at least one direct child (leaf or "complex") with the given name */
+    template<typename TYPE>
+    bool HasByVal( const std::string& name,
+                   const std::string& child, 
+                   const TYPE& value ) const;  
+    bool HasByVal( const std::string& name,
+                   const std::string& child, 
+                   const char* value ) const;
+    //@}
+
+    //@{
+    /** Checks if a direct child (e.g. attribute) exists and has a special value
+    * @see Has(const std::string&) const */
+    template<typename TYPE>
+    bool HasByVal(const std::string& name, const TYPE& value) const;
+    bool HasByVal(const std::string& name, const char* value) const;
+    //@}
+    
     /** Checks if current node has children */
     bool HasChildren() const;
-    
-    /** Get all direct childs of a name
-     * example: param.Get("pdeList").Get("mechanic").Get("bcsAndLoads").GetList("dirichletInHom") */
-    StdVector<ParamNode*> GetList(const std::string&  name);
 
     /** Returns the number of entries, the corresponding GetList() would return.
-     * @See GetList(const std::string&) */
+    * @See GetList(const std::string&) */
     unsigned int Count(const std::string&  name) const; 
-       
-    /** Get all direct childs which have an attribute with a given value or in other words:
-     *  Get all direct childs where the grandchildren are specified.<br>
-     *  example: param.Get("pdeList").Get("mechanic").Get("bcsAndLoads").GetList("dirichletInHom", "name", "fixed")
-     *  @return the direct childs, not the grandchildren */
-    StdVector<ParamNode*> GetList(const std::string& parent, const std::string& child, const std::string& value);
 
-    /** Get the direct childs which has an attribute with a given value or in other words:
-     *  Get the direct child where the grandchildren are as specified.<br>
-     *  example: param.Get("pdeList").Get("mechanic").Get("bcsAndLoads").Get("dirichletInHom", "name", "fixed")
-     *  @return the direct child, not the grandchildren */
-    ParamNode* Get( const std::string& parent, 
-                    const std::string& child, 
-                    const std::string& value,
-                    const bool throwException = true );
+    /************************************************************************
+    * M I S C    M E T H O D S
+    ************************************************************************/
 
-    ParamNode* Get( const std::string& parent,
-                    const std::string& child,
-                    const unsigned int value,
-                    const bool throwException = true );
-
-
-
-    /** This Get() version overwrites with throwException=false a preset value and does nothing if the
-     *  value does not exist. So you do not need to check with Has() first.<br>
-     *  Get the direct child which has an attribute with a given value and store it in the
-     *  return variable or in other words:
-     *  Get the direct child where the grandchildren are as specified.<br>
-     *  example: 
-     *  <pre>
-        // instead of:
-        double manual_scaling = node->Has("option", "name", "obj_scaling_factor") ?
-               node->Get("option", "name", "obj_scaling_factor")->Get("value")->AsDouble() : 1.0;
-        // you can do
-        double manual_scaling = 1.0;
-        node->Get<double>("option", "name", "obj_scaling_factor", manual_scaling, "value", false);
-        </pre> 
-     */
-    template <class TYPE>
-    void Get(const std::string& parent, const std::string& child, const std::string& value, 
-             TYPE& ret, const std::string& value_node, bool throwException = true);
-
-    /** Returns all children which are attributes and simple xml elements (cannot be differentiated) or in
-     * other words leaf nodes - and without any sorting complex ParamNodes which have children themselves. 
-     * If this element is already a leaf node, the list is empty.<br>
-     * Be careful when editing this list! */
-    StdVector<ParamNode*>& GetChildren() { return children_;}
-    
-    /** Returns the only child of an element which might be an attribute or simple xml element or in
-     * other words a leaf node - and without any sorting a complex ParamNode which has children by itself. 
-     * If the element has more than one child node, an exception is thrown.
-     * If this element is already a leaf node, the return value is NULL. */
-    ParamNode* GetChild();
-    
     /** returns name and value, and child summary information */
-    virtual std::string ToString() const;
-         
-    /** This is a recursive Dump of the tree to std::cout
-     * @param level start with 0, is used for ident */
-    virtual void Dump(int level = 0) const;
+    void ToString(std::string& ret ) const;
+    
+    /** Prints this as xml element to the stream. Builds a tree. Shall no be directly
+     * called for an attribute.
+     * Might change the order as Sort() is called to ensure HEADER < PROCESS < SUMMARY
+     * @param depth number of ident steps, will be interpreted as one space */
+    void ToXML(std::ostream& os, int depth = 0);
+    
+    /** Print Param / INfo node to file 
+     * Note: This is just a temporary solution, until we move the serialization of the 
+     * ParamNode to the WriteInfo class 
+     */
+    void ToFile( const std::string& name = std::string());
 
+    /** This is a recursive Dump of the tree to std::cout
+    * @param level start with 0, is used for ident */
+    void Dump(int level = 0) const;
+
+    /** The ParamNode::Dump() shows all sub-content. This shows the parent path */
+    void DumpParentPath();
+    
     /** Helper method that splits a string by slashes '/'. Is trivial xpath stuff
-     * @param input might be empty and containt slashes with strings inbetween
-     * @return an empty list only for an empty parameter */
+    * @param input might be empty and containt slashes with strings inbetween
+    * @return an empty list only for an empty parameter */
     StdVector<std::string> SplitIntoTokens(const std::string& input) const;
 
     /** Speed up the tokenizer stuff from SplitIntoTokens() by asking if it containts tokens. */
@@ -212,62 +338,52 @@ namespace CoupledField
       return input.find('/') != std::string::npos;
     }
 
-    /** Write back entries into the ParamNode tree if the Get functions cannot find.
-     *  a previous value.
-     * @param writeBack Should this ParamNode write back changes while querying with Get
-     */
-    void WriteBack(bool writeBack=true)
-    {
-      writeBack_ = writeBack;
-    }
-
   protected:
 
     /** Helper that implements a Get() as same as Has(). Call this if ContainsTokens() returns true. */
-    ParamNode* TokenizedHasAndGet(const std::string& name, const std::string& value, bool has_bool_value, bool bool_value = false) const;
+    template<typename TYPE>
+    PtrParamNode TokenizedHasAndGet(const std::string& name, const TYPE& value,
+                                   bool restrictToVal ) const;
     
+    /** Makes a valid XML name, e.g. removes spaces. Used to create
+    * automatically an ParamNode::name_ value out of caption_
+    * @param in might contain spaces, e.g. "Number of iterations"
+    * @return for this example 'NumberOfIterations' */
+    void ToValidLabel(const std::string& in,
+                      std::string& out) const;
+
+    /** Determine recursively the suitable type for nodes. This method
+     * iterates recursively over all nodes and determines for all nodes, which 
+     * have a type UNDEF a suitable type (ELEMENT, ATTRIBUTE)
+     */ 
+    void AdjustElementType();
+
     /** The real content (attribute or simple type content */
-    std::string value_;
-    
+    boost::any value_;
+
     /** The name of the xml element/ attribute */
     std::string name_;
+    
+    /** Type of the node (ELEMENT, ATTRIBUTE, COMMENT)*/
+    NodeType type_;
        
     /** This are the children of this element, either simple types (simple element
      * or attributes) or complex elements. If this element is a simple type the 
      * vector is empty. */
-    StdVector<ParamNode*> children_;
+    ParamNodeList children_;
     
-    /** Was this originally an attribute or no ? */
-    bool attribute_;
+    /** pointer to father node */
+    PtrParamNode parent_;
+    
+    /** default action for non-existing nodes */
+    ActionType defaultAction_;
     
     /** cache variable for last Get() result */
     int lastresultidx_;
-    
-    bool writeBack_;
   }; 
 
-  
-  template <class TYPE>
-  void ParamNode::Get(const std::string& parent, const std::string& child, const std::string& value, 
-           TYPE& ret, const std::string& value_node, bool throwException)
-  {
-    ParamNode * base = Get(parent, child, value, throwException);
-    if(base != NULL) 
-    {
-      try
-      {
-        ret = boost::lexical_cast<TYPE>(base->Get(value_node)->AsString());
-      }
-      catch(boost::bad_lexical_cast &)
-      {
-        EXCEPTION("cannot cast value '" << value_ << "' in XML node " << parent << "/" 
-                  << child << "=" << value);
-      }
-    }// else do nothing
-  }
-  
-  
+
 } // end of namespace
 
 
-#endif /*PARAMNODE_HH_*/
+#endif /*ParamNode_HH_*/

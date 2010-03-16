@@ -20,7 +20,7 @@
 #include "Domain/entityList.hh"
 #include "General/environment.hh"
 #include "DataInOut/ParamHandling/SkeletonConf.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
 #include "DataInOut/resultHandler.hh"
 #include "DataInOut/coloredConsole.hh"
@@ -100,10 +100,12 @@ CFS::CFS(int argc, const char **argv)
   SetGlobalEnums();
 
   // the new xml logging derived from the ParamNode
-  info = new InfoNode(progOpts->GetSimName() + ".info.xml", "<?xml version=\"1.0\"?>");
+  info = PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT ));
+      //progOpts->GetSimName() + ".info.xml", "<?xml version=\"1.0\"?>");
   info->SetName("cfsInfo");
   info->Get("status")->SetValue("running"); // to be overwritten by "aborted" or "finished"
-  timer = info->Get(InfoNode::SUMMARY)->SetValue(new Timer());
+  timer = new Timer();
+  info->Get(ParamNode::SUMMARY)->Get("timer")->SetValue(timer);
   timer->Start(); // ignore that this is not the real beginning
 
   // Print information about program start time and host
@@ -111,7 +113,7 @@ CFS::CFS(int argc, const char **argv)
   using namespace boost::gregorian;
 
   // our calculation environment
-  InfoNode* env = info->Get(InfoNode::HEADER)->Get("environment");
+  PtrParamNode env = info->Get(ParamNode::HEADER)->Get("environment");
   start_time_ = to_simple_string( second_clock::local_time() );
   env->Get("started")->SetValue(start_time_);
 
@@ -183,10 +185,19 @@ CFS::~CFS()
 
   // flush last information.
   info->ToFile();
-  delete info;
+  
+  // TEMPORARY: Just for debug purpose
+//  std::cout << "Info tree:\n"
+//            << "=========\n";
+//  info->Dump(0);
+//  std::cout << "\n\n\n";
+//  std::cout << "Param tree:\n"
+//              << "=========\n";
+//  param->Dump(0);
+            
 
   // Delete objects
-  delete param;
+  //delete param;
   delete domain; // might write ersatz material file if <export save="finally"/> in optimization
   delete progOpts;
   delete resultHandler;
@@ -232,8 +243,8 @@ int CFS::Run()
 
     // write the info object
     info->Get("status")->SetValue("finished"); // overwrite 'running'
-    info->Get(InfoNode::SUMMARY)->Get("memory/final")->SetValue(MemoryUsage(false));
-    info->Get(InfoNode::SUMMARY)->Get("memory/peak")->SetValue(MemoryUsage(true));
+    info->Get(ParamNode::SUMMARY)->Get("memory/final")->SetValue(MemoryUsage(false)); 
+    info->Get(ParamNode::SUMMARY)->Get("memory/peak")->SetValue(MemoryUsage(true));
 
     return 0;
   }
@@ -257,7 +268,7 @@ int CFS::Run()
     // Print error cause to info file
     if(info != NULL)
     {
-      InfoNode* errorNode = info->Get(InfoNode::ERROR);
+      PtrParamNode errorNode = info->Get(ParamNode::ERROR);
       errorNode->SetValue(ex.what());
       info->Get("status")->SetValue("aborted");
       info->ToFile();
@@ -323,7 +334,7 @@ void CFS::WriteXMLSkeleton()
   string simName = progOpts->GetSimName();
   if(meshFile == "")
     meshFile = simName + ".mesh";
-  SimInput * ptInputfile = new SimInputMESH(meshFile, NULL);
+  SimInput * ptInputfile = new SimInputMESH(meshFile, PtrParamNode());
   ptInputfile->InitModule();
   // class writing log-information
   SkeletonConf *ptskel = new SkeletonConf(ptInputfile);
@@ -346,8 +357,6 @@ void CFS::ReadXMLFile()
 #endif
 
   // this is the new param staff which replaces the old params - delete this comment finally
-  param = NULL;
-
   string schema = progOpts->GetSchemaPathStr();
   schema += "/CFS-Simulation/CFS.xsd";
 
@@ -367,7 +376,7 @@ void CFS::SetupIO()
 //  string libmesh = "mesh";
   map<string, shared_ptr<SimInput> > inFiles;
 
-//  ParamNode * meshNode = param->Get("input", false );
+//  PtrParamNode meshNode = param->Get("input", false );
 //  if( meshNode )
 //    meshNode->Get("meshLibrary", libmesh, false);
 
@@ -401,9 +410,9 @@ void CFS::SetupIO()
 
 
   // Log command line parameters
-  progOpts->ToInfo(info->Get(InfoNode::HEADER)->Get("progOpts"));
+  progOpts->ToInfo(info->Get(ParamNode::HEADER)->Get("progOpts"));
   // log the optinal id/name/token/label from <cfsSimulation id="..">
-  info->Get(InfoNode::HEADER)->Get("id")->SetValue(param->Get("id"));
+  info->Get(ParamNode::HEADER)->Get("id")->SetValue(param->Get("id"));
 
   // Open file for status reports by OLAS
   fileHandler.OpenFile( OLAS_FILE );

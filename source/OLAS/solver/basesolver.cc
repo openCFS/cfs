@@ -4,7 +4,7 @@
 
 #include "MatVec/basevector.hh"
 
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Utils/tools.hh"
 #include "Utils/Timer.hh"
 
@@ -101,8 +101,8 @@ namespace CoupledField {
     // Query user's wish for the stopping criterion
     StopCritType stopCrit = NOSTOPCRITTYPE;
     std::string stopCritStr = "relNormRes0";
-    ParamNode * stopRuleNode = xml_->Get("stoppingRule", false );
-    stopRuleNode->Get("type", stopCritStr, false);
+    PtrParamNode stopRuleNode = xml_->Get("stoppingRule", ParamNode::INSERT );
+    stopRuleNode->GetValue("type", stopCritStr, ParamNode::INSERT);
     String2Enum( stopCritStr, stopCrit );
     
     // Report this to log file, if required
@@ -191,66 +191,68 @@ namespace CoupledField {
   
   void BaseSolver::PostInit()
   {
-    // not all solvers are switched to InfoNode yet
-    InfoNode* base = solverInfo_ != NULL ? solverInfo_ : info->Get("OLAS/legacySolver", InfoNode::APPEND);
-    setupTimer_ = base->Get(InfoNode::SUMMARY)->Get("setup")->SetValue(new Timer());
-    solveTimer_ = base->Get(InfoNode::SUMMARY)->Get("solve")->SetValue(new Timer());
+    // not all solvers are switched to ParamNode yet
+    PtrParamNode base = solverInfo_ != NULL ? solverInfo_ : info->Get("OLAS/legacySolver", ParamNode::APPEND);
+    setupTimer_ = new Timer();
+    base->Get(ParamNode::SUMMARY)->Get("setup")->SetValue( setupTimer_ );
+    solveTimer_ = new Timer();
+    base->Get(ParamNode::SUMMARY)->Get("solve")->SetValue( solveTimer_ );
   }
 
-  void BaseSolver::CheckParameter(InfoNode* out, char** val, const char* param_name)
+  void BaseSolver::CheckParameter(PtrParamNode out, char** val, const char* param_name)
   {
-    InfoNode* tmp = out->Get(param_name);
+    PtrParamNode tmp = out->Get(param_name);
     tmp->Get("default")->SetValue(*val);
     if (xml_ != NULL && xml_->Has(param_name))
     {
-      *val = const_cast<char*> (xml_->Get(param_name)->AsString().c_str());
+      *val = const_cast<char*> (xml_->Get(param_name)->As<std::string>().c_str());
       tmp->Get("set")->SetValue(*val);
     }
   }
 
-  void BaseSolver::CheckParameter(InfoNode* out, double* val, const char* param_name)
+  void BaseSolver::CheckParameter(PtrParamNode out, double* val, const char* param_name)
   {
-    InfoNode* tmp = out->Get(param_name);
+    PtrParamNode tmp = out->Get(param_name);
     tmp->Get("default")->SetValue(*val);
     if (xml_ != NULL && xml_->Has(param_name))
     {
-      *val = xml_->Get(param_name)->AsDouble();
+      *val = xml_->Get(param_name)->As<Double>();
       tmp->Get("set")->SetValue(*val);
     }
   }
 
-  void BaseSolver::CheckParameter(InfoNode* out, int* val, const char* param_name)
+  void BaseSolver::CheckParameter(PtrParamNode out, int* val, const char* param_name)
   {
-    InfoNode* tmp = out->Get(param_name);
+    PtrParamNode tmp = out->Get(param_name);
     tmp->Get("default")->SetValue(*val);
     if (xml_ != NULL && xml_->Has(param_name))
     {
-      *val = xml_->Get(param_name)->AsInt();
+      *val = xml_->Get(param_name)->As<Integer>();
       tmp->Get("set")->SetValue(*val);
     }
   }
 
-  void BaseSolver::CheckParameter(InfoNode* out, size_t* val, const char* param_name)
+  void BaseSolver::CheckParameter(PtrParamNode out, size_t* val, const char* param_name)
   {
-    InfoNode* tmp = out->Get(param_name);
+    PtrParamNode tmp = out->Get(param_name);
     tmp->Get("default")->SetValue(*val);
     if (xml_ != NULL && xml_->Has(param_name))
     {
-      *val = xml_->Get(param_name)->AsInt();
+      *val = xml_->Get(param_name)->As<Integer>();
       tmp->Get("set")->SetValue(*val);
     }
   }
 
-  void BaseSolver::CheckParameter(InfoNode* out, bool* val, const char* param_name)
+  void BaseSolver::CheckParameter(PtrParamNode out, bool* val, const char* param_name)
   {
     // by convention we interpret this as "integer"
     int* int_ptr = reinterpret_cast<int*>(val);
     
-    InfoNode* tmp = out->Get(param_name);
+    PtrParamNode tmp = out->Get(param_name);
     tmp->Get("default")->SetValue(*val);
     if (xml_ != NULL && xml_->Has(param_name))
     {
-      *int_ptr = xml_->Get(param_name)->AsBool() == false ? 0 : 1;
+      *int_ptr = xml_->Get(param_name)->As<bool>() == false ? 0 : 1;
       tmp->Get("set")->SetValue(*int_ptr == 0 ? false : true);
     }
   }

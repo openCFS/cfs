@@ -18,7 +18,7 @@
 #include "OLAS/solver/basesolver.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 
 namespace CoupledField {
@@ -28,7 +28,7 @@ namespace CoupledField {
   // ***********************
   //   Default Constructor
   // ***********************
-  BaseSystem::BaseSystem(ParamNode* pn) 
+  BaseSystem::BaseSystem(PtrParamNode pn) 
   {
     graphManager_   = NULL;
     assemble_       = NULL;
@@ -67,12 +67,12 @@ namespace CoupledField {
     matrixTypes_.insert( SYSTEM );
     
     // Set flag for insertion of penalty terms into matrix
-    ParamNode * setupNode = NULL;
-    setupNode = xml_->Get("setup", false );
+    PtrParamNode setupNode;
+    setupNode = xml_->Get("setup", ParamNode::INSERT );
 
     usingPenalty_ = true;
     std::string aux = "penalty";
-    setupNode->Get("idbcHandling", aux, false );
+    setupNode->GetValue("idbcHandling", aux, ParamNode::INSERT );
     usingPenalty_ = aux == "penalty" ? true : false;
 
     // Set flag for insertion of penalty terms into matrix
@@ -167,7 +167,8 @@ namespace CoupledField {
         // Obtain reordering type from OLAS-Params
         BaseOrdering::ReorderingType reorder = BaseOrdering::NOREORDERING;
         std::string reorderStr = "noReordering";
-        xml_->Get( "matrix")->Get( "reordering", reorderStr, false );
+        xml_->Get( "matrix",ParamNode::INSERT)
+        ->GetValue( "reordering", reorderStr, ParamNode::INSERT );
         reorder = BaseOrdering::reorderingType.Parse( reorderStr ); 
 
         // Register PDE with the graphmanager
@@ -363,7 +364,7 @@ namespace CoupledField {
   }
 
   Integer BaseSystem::GetNumIter() {
-    return olasInfo_->Get( "NumIter" )->AsInt();
+    return olasInfo_->Get( "NumIter" )->As<Integer>();
   }
 
 }// end of Namespace

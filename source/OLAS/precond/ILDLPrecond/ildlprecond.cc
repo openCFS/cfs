@@ -32,8 +32,8 @@ namespace CoupledField {
   //   Constructor
   // ***************
   template<typename T>
-  ILDLPrecond<T>::ILDLPrecond( const StdMatrix &stdMat, ParamNode *solverNode,
-                               InfoNode *olasInfo ) {
+  ILDLPrecond<T>::ILDLPrecond( const StdMatrix &stdMat, PtrParamNode solverNode,
+                               PtrParamNode olasInfo ) {
 
 
     // Set pointers to communication objects
@@ -48,7 +48,7 @@ namespace CoupledField {
 
     // Obtain and check variant information
     std::string subTypeStr = "NOPRECOND";
-    this->xml_->Get("precond", subTypeStr, false);
+    this->xml_->GetValue("precond", subTypeStr, ParamNode::INSERT);
 
     myVariant_ = BasePrecond::precondType.Parse(subTypeStr);
     if ( myVariant_ != BasePrecond::ILDL0 &&
@@ -151,12 +151,12 @@ namespace CoupledField {
     std::string subTypeStr;
     
     subTypeStr = BasePrecond::precondType.ToString(myVariant_);
-    ParamNode* pNode = this->xml_->Get(subTypeStr, false);
+    PtrParamNode pNode = this->xml_->Get(subTypeStr, ParamNode::INSERT);
 
     if(pNode->Has("saveFacFile")) {
       bool pattern = false;
-      pNode->Get("savePatternOnly", pattern, false);
-      pNode->Get("saveFacFile", saveFacFile, false);
+      pNode->GetValue("savePatternOnly", pattern, ParamNode::INSERT);
+      pNode->GetValue("saveFacFile", saveFacFile, ParamNode::INSERT);
       ExportFactorisation( saveFacFile.c_str(), pattern );
     }
     

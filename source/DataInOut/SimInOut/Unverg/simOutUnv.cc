@@ -20,13 +20,13 @@ namespace CoupledField {
   //   Constructor
   // ***************
   SimOutputUnv::SimOutputUnv(  const std::string& filename,
-                               ParamNode * outputNode ) 
+                               PtrParamNode outputNode ) 
     : SimOutput ( filename, outputNode ) {
     std::string sysPathSep;
     
     formatName_ = "unv";
     dirName_ = "results_" + formatName_;
-    outputNode->Get("directory", dirName_, false );
+    outputNode->GetValue("directory", dirName_, ParamNode::PASS );
     try 
     {
       sysPathSep = fs::path("/").native_directory_string();

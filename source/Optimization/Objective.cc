@@ -1,7 +1,7 @@
 #include "Optimization/Objective.hh"
 #include "Optimization/Condition.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "General/exception.hh"
 #include "Domain/domain.hh"
@@ -11,7 +11,7 @@ using namespace CoupledField;
 // instantiation of the static elements
 Enum<Objective::Type> Objective::type;
 
-Objective::Objective(ParamNode* pn, ParamNode* pn_type, unsigned int idx)
+Objective::Objective(PtrParamNode pn, PtrParamNode pn_type, unsigned int idx)
 {
   // multiple excitation is handled in Optimization itself!
 
@@ -20,28 +20,28 @@ Objective::Objective(ParamNode* pn, ParamNode* pn_type, unsigned int idx)
   this->value_       = -1.0;
   this->pn           = pn;
   this->harmonic_    = BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType());
-  this->omega_omega_ = pn->Has("factor") ? pn->Get("factor")->Get("omega_omega")->AsBool() : false;
+  this->omega_omega_ = pn->Has("factor") ? pn->Get("factor")->Get("omega_omega")->As<bool>() : false;
   this->volumePenaltyExponent = 1.0;
   if(!harmonic_ && omega_omega_)
     throw Exception("It makes no sense to set costFunction/factor/omega_omega in static optimization");
 
-  this->type_ = type.Parse(pn_type->Get("type"));
-  this->penalty_ = pn_type->Has("penalty") ? pn_type->Get("penalty")->AsDouble() : 1.0;
+  this->type_ = type.Parse(pn_type->Get("type")->As<std::string>());
+  this->penalty_ = pn_type->Has("penalty") ? pn_type->Get("penalty")->As<Double>() : 1.0;
 
   if(type_ == HOMOGENIZATION_TRACKING)
     if(!Condition::ReadTensor(pn, tensor))
       EXCEPTION("A 'tensor' element is mandatory  for 'homogenizationTracking'");
 
   // currently we have only relative implemented up to now!
-  stop.value = pn->Has("stopping") ? pn->Get("stopping/value")->AsDouble() : 1e-5;
-  stop.queue = pn->Has("stopping") ? pn->Get("stopping/queue")->AsInt() : 5; // is >= 1!
+  stop.value = pn->Has("stopping") ? pn->Get("stopping/value")->As<Double>() : 1e-5;
+  stop.queue = pn->Has("stopping") ? pn->Get("stopping/queue")->As<Integer>() : 5; // is >= 1!
 
   // set how often to evaluate the objective for multiple excitations
   switch(type_)
   {
     case VOLUME:
       if(pn->Has("volumePenaltyExponent"))
-        volumePenaltyExponent = pn->Get("volumePenaltyExponent")->Get("value")->AsDouble();
+        volumePenaltyExponent = pn->Get("volumePenaltyExponent")->Get("value")->As<Double>();
       // we do not break here!
       // because we also need the evaluateOnce_ value to be set!
     case HOMOGENIZATION_TENSOR:
@@ -107,12 +107,12 @@ ObjectiveContainer::~ObjectiveContainer()
   }
 }
 
-void ObjectiveContainer::Read(ParamNode* obj_node)
+void ObjectiveContainer::Read(PtrParamNode obj_node)
 {
-  this->minimize_ = obj_node->Get("task")->AsString() == "minimize";
+  this->minimize_ = obj_node->Get("task")->As<std::string>() == "minimize";
 
   // depending on the costFunction attribute type we read the multiObjective list.
-  bool mo = Objective::type.Parse(obj_node->Get("type")) == Objective::MULTI_OBJECTIVE;
+  bool mo = Objective::type.Parse(obj_node->Get("type")->As<std::string>()) == Objective::MULTI_OBJECTIVE;
 
   if(!mo)
   {
@@ -124,7 +124,7 @@ void ObjectiveContainer::Read(ParamNode* obj_node)
     if(!obj_node->Has("multiObjective"))
       throw Exception("For costFunction type 'multiObjective' element with 'objective' childs is needed");
 
-    StdVector<ParamNode*> list = obj_node->Get("multiObjective")->GetList("objective");
+    ParamNodeList list = obj_node->Get("multiObjective")->GetList("objective");
     if(list.GetSize() == 0)
       throw Exception("For costFunction type 'multiObjective' element with 'objective' childs is needed");
 
@@ -139,15 +139,15 @@ void ObjectiveContainer::Read(ParamNode* obj_node)
 }
 
 
-void ObjectiveContainer::ToInfo(InfoNode* in) const
+void ObjectiveContainer::ToInfo(PtrParamNode in) const
 {
   bool mo = data.GetSize() > 1;
   if(mo)
   {
-    InfoNode* m = in->Get("multiObjective");
+    PtrParamNode m = in->Get("multiObjective");
     for(unsigned int i = 0; i < data.GetSize(); i++)
     {
-      InfoNode* o = m->Get("objective", InfoNode::APPEND);
+      PtrParamNode o = m->Get("objective", ParamNode::APPEND);
       o->Get("type")->SetValue(Objective::type.ToString(data[i]->type_));
       o->Get("penalty")->SetValue(data[i]->penalty_);
       o->Get("evaluate")->SetValue(data[i]->evaluateOnce_ ? "once" : "always");

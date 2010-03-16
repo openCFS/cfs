@@ -101,7 +101,7 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::SolveStepStatic(InfoNode* analysis_id, const bool reAssembleMatrices) {
+  void StdSolveStep::SolveStepStatic(PtrParamNode analysis_id, const bool reAssembleMatrices) {
 
     if (nonLin_) {
       StepStaticNonLin(analysis_id);
@@ -112,7 +112,7 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::StepStaticLin(InfoNode* analysis_id, const bool reAssembleMatrices) {
+  void StdSolveStep::StepStaticLin(PtrParamNode analysis_id, const bool reAssembleMatrices) {
 
     if(reAssembleMatrices)
       assemble_->AssembleMatrices();
@@ -153,7 +153,7 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::StepStaticNonLin(InfoNode* analysis_id)
+  void StdSolveStep::StepStaticNonLin(PtrParamNode analysis_id)
   {
 
     bool performOneMoreStep;
@@ -192,7 +192,7 @@ namespace CoupledField {
           iterationCounter++;
           // RHS is already set up!!
       
-          InfoNode* child_id = BaseDriver::CreateAnalysisIdChild(analysis_id, "nonLin", iterationCounter);
+          PtrParamNode child_id = BaseDriver::CreateAnalysisIdChild(analysis_id, "nonLin", iterationCounter);
           
           // setup and solve new system (rhs is already set) =====================
           //assemble_.InitNonLinMatrices();
@@ -285,7 +285,7 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::SolveStepTrans(InfoNode* analysis_id) {
+  void StdSolveStep::SolveStepTrans(PtrParamNode analysis_id) {
 
 
     // do a nonlinear material time step
@@ -306,7 +306,7 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::StepTransLin(InfoNode* analysis_id) 
+  void StdSolveStep::StepTransLin(PtrParamNode analysis_id) 
   {
     //account for RHS
     assemble_->AssembleLinRHS();
@@ -369,7 +369,7 @@ namespace CoupledField {
 
 
 
-  void StdSolveStep::StepTransNonLin(InfoNode* base_analysis_id) {
+  void StdSolveStep::StepTransNonLin(PtrParamNode base_analysis_id) {
 
 
     bool performOneMoreStep;
@@ -417,7 +417,7 @@ namespace CoupledField {
         iterationCounter++;
 
         // RHS is already set up!!
-        InfoNode* child_id = BaseDriver::CreateAnalysisIdChild(base_analysis_id, "load", iload, "nonLin", iterationCounter);
+        PtrParamNode child_id = BaseDriver::CreateAnalysisIdChild(base_analysis_id, "load", iload, "nonLin", iterationCounter);
 
         assemble_->AssembleMatrices();
         algsys_->ConstructEffectiveMatrix(matrix_factor_);
@@ -500,7 +500,7 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::StepTransNonLinMaterial(InfoNode* analysis_id) {
+  void StdSolveStep::StepTransNonLinMaterial(PtrParamNode analysis_id) {
 
 
     bool performOneMoreStep;
@@ -530,7 +530,7 @@ namespace CoupledField {
       // compute u_{n+1}^k+1
       iterationCounter++;
 
-      InfoNode* child_id = BaseDriver::CreateAnalysisIdChild(analysis_id, "nonLin", iterationCounter);
+      PtrParamNode child_id = BaseDriver::CreateAnalysisIdChild(analysis_id, "nonLin", iterationCounter);
       
       // re initialize RHS and system matrix
       algsys_->InitRHS();
@@ -628,7 +628,7 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::StepTransNonLinHysteresis(InfoNode* analysis_id) {
+  void StdSolveStep::StepTransNonLinHysteresis(PtrParamNode analysis_id) {
     bool performOneMoreStep;
 
     Vector<Double> solInc( numEqns_ );
@@ -681,7 +681,7 @@ namespace CoupledField {
         iterationCounter++;
         oldSol = actSol;
 
-        InfoNode* child_id = BaseDriver::CreateAnalysisIdChild(analysis_id, "load", iload, "nonLin", iterationCounter);
+        PtrParamNode child_id = BaseDriver::CreateAnalysisIdChild(analysis_id, "load", iload, "nonLin", iterationCounter);
 
         //        RHS is already set up!!
         if ( iterationCounter > 0 ) {
@@ -814,7 +814,7 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::SolveStepHarmonic(InfoNode* analysis_id) {
+  void StdSolveStep::SolveStepHarmonic(PtrParamNode analysis_id) {
     if ( nonLin_ ) {
       StepHarmonicNonLin(analysis_id);
     }
@@ -824,7 +824,7 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::StepHarmonicLin(InfoNode* analysis_id) {
+  void StdSolveStep::StepHarmonicLin(PtrParamNode analysis_id) {
 
 
     //this has to be done each frequency!
@@ -1151,7 +1151,7 @@ namespace CoupledField {
   void StdSolveStep::ReadNonLinData() {
 
     // Get ParamNode of pde
-    ParamNode  * nonLinNode = NULL;
+    PtrParamNode nonLinNode;
     std::string pdeName = PDE_.GetName();
 
     // SPECIAL: If PDE-name contains the "-" sign,
@@ -1163,16 +1163,16 @@ namespace CoupledField {
       // get current multiSequenceStep
       UInt actMsStep =
         domain->GetSingleDriver()->GetActSequenceStep();
-      StdVector<ParamNode *> pairCouplings;
-      ParamNode * cplList =
-        param->Get("sequenceStep",std::string("index"), actMsStep)
-        ->Get("couplingList", false);
+      StdVector<PtrParamNode> pairCouplings;
+      PtrParamNode cplList =
+        param->GetByVal("sequenceStep",std::string("index"), actMsStep)
+        ->Get("couplingList", ParamNode::PASS);
       if( cplList ) {
-        StdVector<ParamNode *> pairCouplings =
+        StdVector<PtrParamNode> pairCouplings =
           cplList->Get("direct")->GetChildren();
         // look for each direct coupling, if it has a "nonLin"-node
         for( UInt iCpl = 0; iCpl < pairCouplings.GetSize(); iCpl++ ) {
-          nonLinNode = pairCouplings[iCpl]->Get("nonLinear", false );
+          nonLinNode = pairCouplings[iCpl]->Get("nonLinear", ParamNode::PASS );
           if( nonLinNode ) {
             break;
           }
@@ -1181,12 +1181,12 @@ namespace CoupledField {
       if( !nonLinNode ) {
         // in this case we iterate over all single PDEs and try to
         // find the related entry
-        StdVector<ParamNode*> pdes =
-          param->Get("sequenceStep",std::string("index"), actMsStep)
+        ParamNodeList pdes =
+          param->GetByVal("sequenceStep",std::string("index"), actMsStep)
           ->Get("pdeList")->GetChildren();
         for (UInt iPde = 0; iPde < pdes.GetSize(); iPde++ ) {
           if( boost::find_first(pdeName, pdes[iPde]->GetName() ) ) {
-            nonLinNode = pdes[iPde]->Get("nonLinear", false );
+            nonLinNode = pdes[iPde]->Get("nonLinear", ParamNode::PASS );
             if( nonLinNode ) {
               break;
             }
@@ -1194,7 +1194,7 @@ namespace CoupledField {
         }
       }
     } else {
-      nonLinNode = PDE_.GetParamNode()->Get("nonLinear", false );
+      nonLinNode = PDE_.GetParamNode()->Get("nonLinear", ParamNode::PASS );
     }
 
     // Check, if any nonlinear node was found
@@ -1206,22 +1206,22 @@ namespace CoupledField {
     if( nonLinNode ) {
 
       // solution method
-      nonLinNode->Get( "method", nonLinMethod_, false );
+      nonLinNode->GetValue( "method", nonLinMethod_, ParamNode::PASS );
 
       // perform logging?
-      nonLinNode->Get( "logging", nonLinLogging_, true );
+      nonLinNode->GetValue( "logging", nonLinLogging_, ParamNode::PASS );
 
       // type of line search
-      nonLinNode->Get( "lineSearch")->Get( "type", lineSearch_ );
+      nonLinNode->Get( "lineSearch")->GetValue( "type", lineSearch_ );
 
       // incremental stopping criterion
-      nonLinNode->Get( "incStopCrit", incStopCrit_ );
+      nonLinNode->GetValue( "incStopCrit", incStopCrit_ );
 
       // residual stopping criterion
-      nonLinNode->Get( "resStopCrit", residualStopCrit_ );
+      nonLinNode->GetValue( "resStopCrit", residualStopCrit_ );
 
       // maximal number of NL-iterations
-      nonLinNode->Get( "maxNumIters", nonLinMaxIter_ );
+      nonLinNode->GetValue( "maxNumIters", nonLinMaxIter_ );
     }
 
   }

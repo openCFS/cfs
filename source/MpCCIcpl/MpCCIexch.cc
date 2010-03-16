@@ -61,7 +61,7 @@ MpCCIexch::MpCCIexch(Grid *aptgrid, StdVector<UInt> & mapSD)
   writeSrcFileperNode_ = false;
   
   // Check, if acoustic-PDE is present
-  ParamNode * acouNode = param->Get( "sequenceStep")->Get("pdeList")->Get("acoustic", false );
+  PtrParamNode acouNode = param->Get( "sequenceStep")->Get("pdeList")->Get("acoustic", false );
   if( acouNode ) {
     acouNode->Get( "writeCoupledGrid",  writeGridFile_, false );
     acouNode->Get( "writeSrcFileperTS", writeSrcFileperTS_, false );
@@ -630,12 +630,12 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
 
     //check type of flow data
     // try to get acousticPDE node
-    ParamNode * acouNode = param->Get( "sequenceStep")
+    PtrParamNode acouNode = param->Get( "sequenceStep")
       ->Get("pdeList")->Get("acoustic", false );
     if( acouNode ) {
-      ParamNode * flowNode = acouNode->Get("flowData", false );
+      PtrParamNode flowNode = acouNode->Get("flowData", false );
       if( flowNode ) {
-        nodalSrc = flowNode->Get("type")->AsString() ==  "nodalSrc";
+        nodalSrc = flowNode->Get("type")->As<std::string>() ==  "nodalSrc";
       }
     }
     

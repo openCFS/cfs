@@ -73,7 +73,7 @@ namespace CoupledField
                                                     const std::string& formatName,
                                                     const std::string& dirName,
                                                     const std::string& pathSep,
-                                                    ParamNode * outputNode )
+                                                    PtrParamNode outputNode )
   {
     formatName_ = formatName;
     fileName_ = fileName;

@@ -17,7 +17,7 @@ class ParamNode;
     public:
       /** @param optimization the problem we optimize
        * @param pn here we can have options - might be NULL! */
-      SCPIP(Optimization* optimization, ParamNode* pn);
+      SCPIP(Optimization* optimization, PtrParamNode pn);
       
       virtual ~SCPIP();
     

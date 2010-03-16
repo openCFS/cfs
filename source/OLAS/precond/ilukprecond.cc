@@ -24,8 +24,8 @@ namespace CoupledField {
   // *****************************************************
   template <typename T>
   ILUK_Precond<T>::ILUK_Precond( const StdMatrix& stdMat, 
-                                 ParamNode *solverNode,
-                                 InfoNode *olasInfo ) {
+                                 PtrParamNode solverNode,
+                                 PtrParamNode olasInfo ) {
 
 
     // Set pointers to communication objects
@@ -94,8 +94,8 @@ namespace CoupledField {
 
     // Query parameter object for factorisation parameter
     maxLevel_ = 1;
-    ParamNode* pNode = this->xml_->Get("ILUK", false );
-    pNode->Get("level", maxLevel_, false);
+    PtrParamNode pNode = this->xml_->Get("ILUK", ParamNode::INSERT );
+    pNode->GetValue("level", maxLevel_, ParamNode::INSERT );
 
     // Obtain and check dimensions of matrix
     this->sysMatDim_ = sysMat.GetNumCols();
@@ -131,7 +131,7 @@ namespace CoupledField {
     // If the user wishes, we can export the LU factorisation to a file
     std::string saveFacFile = "crout_fac.out";
     if(pNode->Has("saveFacFile")) {
-      pNode->Get("saveFacFile", saveFacFile, false);
+      pNode->GetValue("saveFacFile", saveFacFile, ParamNode::INSERT);
 
       this->ExportILUFactorisation( saveFacFile.c_str() );
       if ( logging == true ) {

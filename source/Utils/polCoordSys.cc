@@ -7,14 +7,14 @@
 #include <sstream>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/WriteInfo.hh"
 
 namespace CoupledField{
 
   PolarCoordSystem::PolarCoordSystem( const std::string & name,
                                       Grid * ptGrid, 
-                                      ParamNode * myParamNode ) 
+                                      PtrParamNode myParamNode ) 
     : CoordSystem( name, ptGrid, myParamNode ) {
     
     
@@ -261,15 +261,15 @@ namespace CoupledField{
     return ret;
   }
 
-  void PolarCoordSystem::ToInfo( InfoNode * in ) {
+  void PolarCoordSystem::ToInfo( PtrParamNode in ) {
     in = in->Get("polar");
 
     in->Get("id")->SetValue(name_);
-    InfoNode * originNode = in->Get("origin");
+    PtrParamNode originNode = in->Get("origin");
     originNode->Get("x")->SetValue(origin_[0]);
     originNode->Get("y")->SetValue(origin_[1]);
 
-    InfoNode * rNode = in->Get("rAxis");
+    PtrParamNode rNode = in->Get("rAxis");
     rNode->Get("x")->SetValue(rAxis_[0]);
     rNode->Get("y")->SetValue(rAxis_[1]);
   }

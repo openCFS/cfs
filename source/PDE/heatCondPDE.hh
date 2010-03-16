@@ -19,7 +19,7 @@ namespace CoupledField {
     /*!
       \param aGrid pointer to grid
     */
-    HeatCondPDE( Grid* aGrid, ParamNode* paramNode );
+    HeatCondPDE( Grid* aGrid, PtrParamNode paramNode );
 
     //! Destructor
     virtual ~HeatCondPDE(){};

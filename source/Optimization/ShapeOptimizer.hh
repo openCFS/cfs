@@ -18,7 +18,7 @@ class LevelSet;
 class ShapeOptimizer : public BaseOptimizer
 {
 public:
-  explicit ShapeOptimizer(Optimization* optimization, ParamNode* pn);
+  explicit ShapeOptimizer(Optimization* optimization, PtrParamNode pn);
   virtual ~ShapeOptimizer();
 
   
@@ -38,7 +38,7 @@ private:
   /** for timing the shape optimizer */
   boost::posix_time::ptime start_time;
   
-  ParamNode* shoptpn;
+  PtrParamNode shoptpn;
   
   /** evaluate TopGrad? Read from XML */
   bool topgrad_;

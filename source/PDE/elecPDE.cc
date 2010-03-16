@@ -48,7 +48,7 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  ElecPDE::ElecPDE( Grid* aptgrid, ParamNode* paramNode )
+  ElecPDE::ElecPDE( Grid* aptgrid, PtrParamNode paramNode )
     :SinglePDE( aptgrid, paramNode ) {
 
 
@@ -68,22 +68,22 @@ namespace CoupledField {
     needSolPrev_ = true;
  
     // Check the subtype of the problem
-    paramNode->Get("subType", subType_);
+    paramNode->GetValue("subType", subType_);
   }
   
 
   void ElecPDE::InitNonLin() {
 
     // Check, if "nonLinList" is present
-    ParamNode * nonLinListNode = myParam_->Get("nonLinList", false );
+    PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
     if( nonLinListNode ) { 
 
       // Get nonlinear types
-      StdVector<ParamNode*> nonLinNodes = nonLinListNode->GetChildren();
+      ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
       for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
 
         std::string actTypeString = nonLinNodes[i]->GetName();
-        std::string actId = nonLinNodes[i]->Get("id")->AsString();
+        std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
 
         NonLinType actType;
         String2Enum( actTypeString, actType );
@@ -92,7 +92,7 @@ namespace CoupledField {
     }
     
     // Run over all region and set entry in "regionNonLinId"
-    StdVector<ParamNode*> regionNodes = 
+    ParamNodeList regionNodes = 
       myParam_->Get("regionList")->GetChildren();
 
     RegionIdType actRegionId;
@@ -103,8 +103,8 @@ namespace CoupledField {
     }
     for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
       
-      regionNodes[i]->Get( "name", actRegionName );
-      regionNodes[i]->Get( "nonLinId", actNonLinId );
+      regionNodes[i]->GetValue( "name", actRegionName );
+      regionNodes[i]->GetValue( "nonLinId", actNonLinId );
       
       if( actNonLinId == "" )
         continue;
@@ -367,12 +367,12 @@ namespace CoupledField {
       std::string slaveSide;
       std::string ncIfaceName = ptgrid_->GetRegion().ToString(ncIFaces_[i]);
 
-      ParamNode* ncIfaceListNode;
+      PtrParamNode ncIfaceListNode;
       ncIfaceListNode = param->Get("domain")->Get("ncInterfaceList");
 
-      slaveSide = ncIfaceListNode->Get("ncInterface",
-                                       "name",
-                                       ncIfaceName)->Get("slaveSide")->AsString();
+      slaveSide = ncIfaceListNode->
+          GetByVal("ncInterface", "name",
+                   ncIfaceName)->Get("slaveSide")->As<std::string>();
 
       // Part 1: Define integrator M(Psi, Lambda) on
       //         non-conforming interface
@@ -520,7 +520,7 @@ namespace CoupledField {
   {
   
     // Get values from parameter file
-    StdVector<ParamNode*> impedNodes = 
+    ParamNodeList impedNodes = 
       myParam_->Get("bcsAndLoads")->GetList("impedance");
    
     // make sure we are in harmonic mode
@@ -534,19 +534,19 @@ namespace CoupledField {
     StdVector<UInt> nodeVec, oneNodeVec(1);
     
     // resize impedances and fill in data
-    InfoNode* list = infoNode_->Get(InfoNode::HEADER)->Get("impedances");
+    PtrParamNode list = infoNode_->Get(ParamNode::HEADER)->Get("impedances");
     std::ostringstream out;
     impedances_.Resize( impedNodes.GetSize() );
     for( UInt i = 0; i < impedNodes.GetSize(); i++ )
     {
-      ParamNode* node = impedNodes[i];
+      PtrParamNode node = impedNodes[i];
       
       // get data from node
-      node1       = node->Get("node1")->AsString();
-      node2       = node->Get("node2")->AsString();
-      resistance  = node->Get("resistance")->AsDouble();
-      inductance  = node->Get("inductance")->AsDouble();
-      capacitance = node->Get("capacitance")->AsDouble();
+      node1       = node->Get("node1")->As<std::string>();
+      node2       = node->Get("node2")->As<std::string>();
+      resistance  = node->Get("resistance")->As<Double>();
+      inductance  = node->Get("inductance")->As<Double>();
+      capacitance = node->Get("capacitance")->As<Double>();
 
       Impedance& imp = impedances_[i];
       
@@ -563,7 +563,7 @@ namespace CoupledField {
       imp.capacitance = capacitance;
       imp.inductance = inductance;
 
-      InfoNode* in = list->Get("impedance", InfoNode::APPEND);
+      PtrParamNode in = list->Get("impedance", ParamNode::APPEND);
       in->Get("node1")->SetValue(node1);
       in->Get("node2")->SetValue(node2);
       in->Get("resistance")->SetValue(imp.resistance);
@@ -1158,7 +1158,7 @@ namespace CoupledField {
     // Electric Potential
 
     // check if problem is lagrange or legendre
-    std::string approxType = myParam_->Get("type")->AsString();
+    std::string approxType = myParam_->Get("type")->As<std::string>();
 
     if ( approxType == "lagrange" ) {
       // Create new resultDof object
@@ -1175,7 +1175,7 @@ namespace CoupledField {
         res1->fctType = fct;
       } else {
         // Determine number of laminas for setting number of dofs
-        StdVector<ParamNode*>  laminas = param->Get("domain")
+        ParamNodeList  laminas = param->Get("domain")
           ->GetList("composite");
         
         if (laminas.GetSize() == 0) {
@@ -1199,7 +1199,7 @@ namespace CoupledField {
       
     }else if(  approxType == "spectral" ) {
       shared_ptr<ResultInfo> res1( new ResultInfo);
-      UInt order = myParam_->Get("order")->AsUInt();
+      UInt order = myParam_->Get("order")->As<UInt>();
       shared_ptr<SpectralFct> fct(new SpectralFct);
       res1->definedOn = ResultInfo::PFEM;
       fct->SetOrder(order);
@@ -1216,8 +1216,8 @@ namespace CoupledField {
       // Create new resultDof object
       shared_ptr<ResultInfo> res1( new ResultInfo);
       shared_ptr<LegendreFct> fct(new LegendreFct);
-      if( myParam_->Get("isIsotropic")->AsBool() ) {
-        UInt order =  myParam_->Get("order")->AsUInt();
+      if( myParam_->Get("isIsotropic")->As<bool>() ) {
+        UInt order =  myParam_->Get("order")->As<UInt>();
         fct->SetIsoOrder( order );
       } else {
         Matrix<UInt> orderMat;
@@ -1313,31 +1313,29 @@ namespace CoupledField {
     LOG_DBG2(elecpde) << "NonMatching: Checking if nonconforming "
                       << "interfaces of PDE exist in domain.";
 
-    ParamNode* elecPDENCIfaceListNode;
-    elecPDENCIfaceListNode = param->Get("sequenceStep", std::string("index"), sequenceStep_)
-    ->Get("pdeList/electrostatic/ncInterfaceList", false);
+    PtrParamNode elecPDENCIfaceListNode;
+    elecPDENCIfaceListNode = param->GetByVal("sequenceStep", std::string("index"), sequenceStep_)
+    ->Get("pdeList/electrostatic/ncInterfaceList", ParamNode::PASS);
     
     if(!elecPDENCIfaceListNode)
       return;
 
-    ParamNode* domainNCIfaceListNode;
-    domainNCIfaceListNode = param->Get("domain")->Get("ncInterfaceList", false);
+    PtrParamNode domainNCIfaceListNode;
+    domainNCIfaceListNode = param->Get("domain")->Get("ncInterfaceList", ParamNode::PASS);
 
     if(!domainNCIfaceListNode)
     {
       EXCEPTION("No nonmatching interfaces have been specified in domain!");
     }
 
-    StdVector<ParamNode*> pdeNCIfaceNodes;
+    ParamNodeList pdeNCIfaceNodes;
     pdeNCIfaceNodes = elecPDENCIfaceListNode->GetList("ncInterface");
 
     for (UInt i = 0; i < pdeNCIfaceNodes.GetSize(); i++) {
-      std::string pdeIfaceName = pdeNCIfaceNodes[i]->Get("name")->AsString();
+      std::string pdeIfaceName = pdeNCIfaceNodes[i]->Get("name")->As<std::string>();
 
-      ParamNode* domainIfaceNode = domainNCIfaceListNode->Get("ncInterface",
-          "name",
-          pdeIfaceName,
-          false);
+      PtrParamNode domainIfaceNode = domainNCIfaceListNode
+          ->GetByVal("ncInterface", "name", pdeIfaceName, ParamNode::PASS);
       if(!domainIfaceNode)
       {
         LOG_DBG2(elecpde) << "NonMatching: Nonconforming "

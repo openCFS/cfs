@@ -35,7 +35,7 @@ namespace CoupledField {
   //   Constructor
   //*****************
   SimOutputGMV::SimOutputGMV( const std::string fileName,
-                              ParamNode * outputNode ) :
+                              PtrParamNode outputNode ) :
     SimOutput( fileName, outputNode )
   {
 
@@ -50,7 +50,7 @@ namespace CoupledField {
     stepNumOffset_ = 0;
     stepValOffset_ = 0.0;
     dirName_ = "results_" + formatName_;
-    outputNode->Get("directory", dirName_, false );
+    outputNode->GetValue("directory", dirName_, ParamNode::PASS );
     fileName_ = fileName;
 
     try 
@@ -71,12 +71,12 @@ namespace CoupledField {
 
 
     // Change defaults according to XML file
-    if(myParam_->Get("binaryFormat", false)->AsString() == "no")
+    if(myParam_->Get("binaryFormat")->As<std::string>() == "no")
     {
         ascii_ = true;
     }
 
-    if(myParam_->Get("fixedGrid", false)->AsString() == "no")
+    if(myParam_->Get("fixedGrid")->As<std::string>() == "no")
     {
         fixedgrid_ = false;
     }

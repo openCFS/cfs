@@ -22,7 +22,7 @@ namespace CoupledField
     /*!
       \param aGrid pointer to grid
     */
-    SmoothPDE( Grid* Grid, ParamNode* paramNode );
+    SmoothPDE( Grid* Grid, PtrParamNode paramNode );
 
     //!  Deconstructor
     virtual ~SmoothPDE() {;};

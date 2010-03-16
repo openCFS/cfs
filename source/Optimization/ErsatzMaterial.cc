@@ -25,7 +25,7 @@
 #include "Driver/baseSolveStep.hh"
 #include "Driver/harmonicDriver.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/programOptions.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "OLAS/algsys/basesystem.hh"
@@ -58,7 +58,7 @@ ErsatzMaterial::ErsatzMaterial() :
 
   pn = param->Get("optimization")->Get("ersatzMaterial");
 
-  method_ = method.Parse(pn->Get("method"));
+  method_ = method.Parse(pn->Get("method")->As<std::string>());
 
   homogenization_ = false;
   for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
@@ -69,17 +69,17 @@ ErsatzMaterial::ErsatzMaterial() :
 
   for(unsigned int i = 0; i < outputs.GetSize(); i++)
     if(outputs[i].IsHomogenization()) homogenization_ = true;
-  optInfoNode->Get(InfoNode::HEADER)->Get("homogenization")->SetValue(homogenization_);
+  optInfoNode->Get(ParamNode::HEADER)->Get("homogenization")->SetValue(homogenization_);
 
   homogenizedTensor.Resize(dim == 2 ? 3 : 6, dim == 2 ? 3 : 6);
 
   // region stuff
-  StdVector<ParamNode*> region_list = pn->GetList("region");
+  ParamNodeList region_list = pn->GetList("region");
   if(region_list.IsEmpty() && (method_ != SHAPE_OPT && method_ != SHAPE_PARAM_MAT))
     EXCEPTION("no region given!");
     
   for(unsigned int i=0; i < region_list.GetSize(); i++){
-    std::string reg = region_list[i]->Has("name") ? region_list[i]->Get("name")->AsString() : region_list[i]->AsString();
+    std::string reg = region_list[i]->Has("name") ? region_list[i]->Get("name")->As<std::string>() : region_list[i]->As<std::string>();
     if(!domain->GetGrid()->GetRegion().IsValid(reg))
       throw Exception("region given in ersatzMaterial is invalid");
     regionIds.Push_back(domain->GetGrid()->GetRegion().Parse(reg));
@@ -98,23 +98,22 @@ ErsatzMaterial::ErsatzMaterial() :
 
   // set up the design space elements, note PiezoSIMP have only POLARIZATION
   // this includes the transfer functions!
-  StdVector<ParamNode*> design_list = pn->GetList("design");
-  StdVector<ParamNode*> transfer_list = pn->GetList("transferFunction");
-  StdVector<ParamNode*> result = pn->GetList("result");
+  ParamNodeList design_list = pn->GetList("design");
+  ParamNodeList transfer_list = pn->GetList("transferFunction");
+  ParamNodeList result = pn->GetList("result");
   design = DesignSpace::CreateInstance(regionIds, design_list, transfer_list, result, method_);
   // make basic loggings
-  design->ToInfo(optInfoNode->Get(InfoNode::HEADER)->Get("designSpace"));
+  design->ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("designSpace"));
   
   // optionally write the densities to an xml file
   if(pn->Has("export"))
   {
-    std::string name = pn->Get("export/file")->AsString();
+    std::string name = pn->Get("export/file")->As<std::string>();
     if(name == "[problem]") name = progOpts->GetSimName() + ".density.xml";
     exportDesign = CreateExportDesign(name, design_list, transfer_list);
-    exportDesignAllIterations = pn->Get("export/save")->AsString() == "all";
-    exportDesignFinallyOnly   = pn->Get("export/write")->AsString() == "finally";
+    exportDesignAllIterations = pn->Get("export/save")->As<std::string>() == "all";
+    exportDesignFinallyOnly   = pn->Get("export/write")->As<std::string>() == "finally";
   }
-  else exportDesign = NULL;
   
   // we assume always to have either a mechanic or heatcond pde. in pde[] we might have more pdes.
   pde = domain->GetSinglePDE("mechanic", false);
@@ -193,11 +192,12 @@ ErsatzMaterial::~ErsatzMaterial()
   // if write to file close the xml envelope and the file
   if(exportDesign != NULL)
   {
-     if(exportDesignFinallyOnly) // in CommitIteration or here?
-        exportDesign->ToFile();
-
-    delete exportDesign; 
-    exportDesign = NULL;
+    if(exportDesignFinallyOnly) { // in CommitIteration or here?
+      std::string name = pn->Get("export/file")->As<std::string>();
+      if(name == "[problem]") name = progOpts->GetSimName() + ".density.xml";
+      exportDesign->ToFile( name); 
+    }
+    exportDesign.reset();
   }
 
   if(material) delete material;
@@ -257,7 +257,7 @@ void ErsatzMaterial::PostInit()
       case Objective::ABS_DYN_OUTPUT_SQUARED:
       {
         // optimizing for nodes is mechanic, optimizing for loads is electrostatic, even if we SIMP mechanic!
-        ParamNode* output = cost->pn->Get("output");
+        PtrParamNode output = cost->pn->Get("output");
 
         if(output->Has("nodes") && output->Has("loads"))
           throw Exception("current implementation cannot optimize nodes and loads concurrently");
@@ -281,7 +281,8 @@ void ErsatzMaterial::PostInit()
   // create Material class
   if(pde != NULL)
   {
-    OptimizationMaterial::System system = OptimizationMaterial::system.Parse(pn->Get("material"));
+    OptimizationMaterial::System system = 
+        OptimizationMaterial::system.Parse(pn->Get("material")->As<std::string>());
     switch(system)
     {
     case OptimizationMaterial::PIEZO:
@@ -298,7 +299,7 @@ void ErsatzMaterial::PostInit()
 
     default: assert(false);
     }
-    optInfoNode->Get(InfoNode::HEADER)->Get("material")->SetValue(OptimizationMaterial::system.ToString(material->GetSystem()));
+    optInfoNode->Get(ParamNode::HEADER)->Get("material")->SetValue(OptimizationMaterial::system.ToString(material->GetSystem()));
   }
   
   Optimization::PostInit();
@@ -312,7 +313,7 @@ void ErsatzMaterial::PrepareMultipleExcitations()
   excitations.Resize(1);
   excitations[0].index = 0;
   
-  ParamNode* pncf = param->Get("optimization")->Get("costFunction");
+  PtrParamNode pncf = param->Get("optimization")->Get("costFunction");
   
   // the actual multipleExcitation description is read in Optimization as part of
   // objective function block
@@ -320,7 +321,7 @@ void ErsatzMaterial::PrepareMultipleExcitations()
   int num_freq  = !harmonic ? 0 : dynamic_cast<HarmonicDriver*>(domain->GetDriver())->freqs.GetSize();
   int num_loads = assemble_->GetLoads().GetSize(); // to be faked later for homogenization test strains
   
-  StdVector<ParamNode*> pnexcitations;
+  ParamNodeList pnexcitations;
 
   double weight_sum = 0.0;
 
@@ -393,7 +394,7 @@ void ErsatzMaterial::PrepareMultipleExcitations()
     { //
       for(unsigned int i = 0; i < excitations.GetSize(); i++)
       {
-        parser->SetExpr(handle, pnexcitations[i]->Get("weight")->AsString());
+        parser->SetExpr(handle, pnexcitations[i]->Get("weight")->As<std::string>());
         const double weight = parser->Eval(handle);
         excitations[i].weight = weight;
         weight_sum += weight;
@@ -435,14 +436,14 @@ void ErsatzMaterial::PrepareMultipleExcitations()
   // for many concurrent mechanical loads do no print information
   if(multiple_excitation->IsEnabled() || harmonic)
   {
-    InfoNode* in = optInfoNode->Get(InfoNode::HEADER)->Get("excitations");
+    PtrParamNode in = optInfoNode->Get(ParamNode::HEADER)->Get("excitations");
 
     if(!multiple_excitation->IsEnabled() && num_freq > 1 && optimizer_ != EVALUATE_INITIAL_DESIGN)
     {
       stringstream ss;
       ss << "Solve only for 1. frequency (" << excitations[0].frequency << "Hz) of "
          << num_freq << " as multiple excitations are disabled";
-      in->Get(InfoNode::WARNING)->SetValue(ss.str());
+      in->Get(ParamNode::WARNING)->SetValue(ss.str());
     }
 
     // communicate what we have but also normalize the weights!
@@ -453,7 +454,7 @@ void ErsatzMaterial::PrepareMultipleExcitations()
 
       ex.normalized_weight = ex.weight / weight_sum;
 
-      InfoNode* exin = in->Get("excitation", InfoNode::APPEND);
+      PtrParamNode exin = in->Get("excitation", ParamNode::APPEND);
       exin->Get("index")->SetValue(ex.index);
       if(! ex.loads.IsEmpty())
         ex.loads[0]->ToInfo(exin->Get("load"));
@@ -545,18 +546,18 @@ void ErsatzMaterial::NormalizeMultipleExcitations()
   }
 }
 
-InfoNode* ErsatzMaterial::CreateExportDesign(const std::string& filename, StdVector<ParamNode*>& des, StdVector<ParamNode*>& tfs)
+PtrParamNode ErsatzMaterial::CreateExportDesign(const std::string& filename, ParamNodeList& des, ParamNodeList& tfs)
 {
-   InfoNode* in = new InfoNode(filename, "<?xml version=\"1.0\"?>");
+   PtrParamNode in = PtrParamNode(new ParamNode(ParamNode::INSERT));
    in->SetName("cfsErsatzMaterial");
    
    // write header
-   InfoNode* in_ = in->Get("header");
+   PtrParamNode in_ = in->Get("header");
    for(unsigned int i = 0; i < des.GetSize(); i++)
-     in_->Get("dummy", InfoNode::APPEND)->SetValue(des[i]); // name is overwritten
+     in_->Get("dummy", ParamNode::APPEND)->SetValue(des[i]); // name is overwritten
 
    for(unsigned int i = 0; i < tfs.GetSize(); i++)
-     in_->Get("dummy", InfoNode::APPEND)->SetValue(tfs[i]);
+     in_->Get("dummy", ParamNode::APPEND)->SetValue(tfs[i]);
 
    return in;
    
@@ -599,16 +600,16 @@ void ErsatzMaterial::StoreResults(double step_val)
 }
 
 
-InfoNode* ErsatzMaterial::CommitIteration(bool keep_iteration_number)
+PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 {
   // will write the cfs results and the log file
-  InfoNode* iter = Optimization::CommitIteration(keep_iteration_number);
+  PtrParamNode iter = Optimization::CommitIteration(keep_iteration_number);
   // add our multiple excitation stuff here (only in info.xml, this would be to complex for dat
   if(multiple_excitation->IsEnabled())
   {
     for(unsigned int i = 0; i < excitations.GetSize(); i++)
     {
-      InfoNode* e = iter->Get("excitation", InfoNode::APPEND);
+      PtrParamNode e = iter->Get("excitation", ParamNode::APPEND);
       e->Get("index")->SetValue(excitations[i].index);
       e->Get("objective")->SetValue(excitations[i].cost);
       e->Get("normalized_weight")->SetValue(excitations[i].normalized_weight);
@@ -617,7 +618,7 @@ InfoNode* ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
   if(homogenization_)
   {
-    InfoNode* in = iter->Get("homogenizedTensor");
+    PtrParamNode in = iter->Get("homogenizedTensor");
     in->SetValue(new Matrix<double>(homogenizedTensor));
     in->Get("norm_L2")->SetValue(homogenizedTensor.NormL2());
     in = in->Get("isotropy");
@@ -630,8 +631,11 @@ InfoNode* ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   if(exportDesign != NULL)
   {
     SetCurrentExportDesign(); // appends or replaces
-    if(!exportDesignFinallyOnly) // here or on destructor
-      exportDesign->ToFile();
+    if(!exportDesignFinallyOnly) { // here or on destructor
+      std::string name = pn->Get("export/file")->As<std::string>();
+      if(name == "[problem]") name = progOpts->GetSimName() + ".density.xml";
+      exportDesign->ToFile(name);
+    }
   }
 
   return iter;
@@ -639,7 +643,7 @@ InfoNode* ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
 void ErsatzMaterial::SetCurrentExportDesign()
 {
-  InfoNode* in = exportDesign->Get("set", exportDesignAllIterations ? InfoNode::APPEND : InfoNode::USE_EXISTING);
+  PtrParamNode in = exportDesign->Get("set", exportDesignAllIterations ? ParamNode::APPEND : ParamNode::INSERT);
   // add the entry, note that the iteration counter was incremented in base implementation
   in->Get("id")->SetValue(currentIteration-1);
 
@@ -648,7 +652,7 @@ void ErsatzMaterial::SetCurrentExportDesign()
 
   // even for !exportDesignAllIterations in is empty in the first commit
 
-  StdVector<ParamNode*>& list = in->GetChildren();
+  ParamNodeList& list = in->GetChildren();
 
   const unsigned int bias = 1; // there one "id" element as first element
 
@@ -664,7 +668,7 @@ void ErsatzMaterial::SetCurrentExportDesign()
   for(unsigned int i = 0, s = design->data.GetSize(); i < s; ++i)
   {
     DesignElement* de = &design->data[i];
-    InfoNode* el = append ? in->SetNewChild("element", i + bias) : dynamic_cast<InfoNode*>(list[i + bias]);
+    PtrParamNode el = append ? in->SetNewChild("element", i + bias) : list[i + bias];
     el->Get("nr")->SetValue(de->elem->elemNum);
     el->Get("type")->SetValue(DesignElement::type.ToString(de->GetType()));
     el->Get("design")->SetValue(de->GetDesign(DesignElement::PLAIN));

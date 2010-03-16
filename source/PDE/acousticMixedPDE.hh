@@ -27,7 +27,7 @@ namespace CoupledField
 //     WriteResults *aOutFile; //pointer to class TimeFunc
 
 
-    AcousticMixedPDE(Grid* aGrid, ParamNode* paramNode ); 
+    AcousticMixedPDE(Grid* aGrid, PtrParamNode paramNode ); 
     //!  Deconstructor
     virtual ~AcousticMixedPDE();
 
@@ -73,7 +73,7 @@ namespace CoupledField
     void ReadDampingInformation();
     
     void ReadDataFlow(Vector<Double>& velVec, Double& MachVal,
-		      ParamNode * actNode );
+		      PtrParamNode actNode );
 
     //! surface elements with absorbing boundary conditions
     StdVector<shared_ptr<EntityList> > absBCs_; 

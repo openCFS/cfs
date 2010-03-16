@@ -47,11 +47,11 @@ MACRO(ADD_OPTION
   SET(VARIABLE_NAMES "${VARIABLE_NAMES}    ${VARIABLE_NAME}\n")
 
   IF("${OPT_NAME_DATATYPE}" STREQUAL "string")
-    SET(PARAMNODE "leafs.Push_back(new ParamNode);
+    SET(PARAMNODE "leafs.Push_back(PtrParamNode(new ParamNode()));
     leafs[leafs.GetSize()-1]->SetName(\"${OPT_NAME_LONGFORM}\");
     leafs[leafs.GetSize()-1]->SetValue(param_${OPT_NAME_LONGFORM});")
   ELSE("${OPT_NAME_DATATYPE}" STREQUAL "string")
-    SET(PARAMNODE "leafs.Push_back(new ParamNode);
+    SET(PARAMNODE "leafs.Push_back(PtrParamNode(new ParamNode()));
     leafs[leafs.GetSize()-1]->SetName(\"${OPT_NAME_LONGFORM}\");
     leafs[leafs.GetSize()-1]->SetValue(lexical_cast<std::string>(param_${OPT_NAME_LONGFORM}));")
   ENDIF("${OPT_NAME_DATATYPE}" STREQUAL "string")

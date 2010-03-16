@@ -15,7 +15,7 @@ namespace CoupledField
   {
   public:
 
-    SimOutputInfo( ParamNode * outputNode );
+    SimOutputInfo( PtrParamNode outputNode );
 
     ~SimOutputInfo();
 
@@ -38,7 +38,7 @@ namespace CoupledField
   private:
     
     /** root in info.xml */
-    InfoNode* info_root;
+    PtrParamNode info_root;
   };
 }
 

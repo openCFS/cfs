@@ -1,8 +1,6 @@
 #include "Optimization/Optimization.hh"
 #include "Optimization/BaseOptimizer.hh"
 #include "Optimization/DesignSpace.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
 #include "General/exception.hh"
 #include "Utils/StdVector.hh"
 #include "DataInOut/Logging/cfslog.hh"
@@ -19,7 +17,7 @@ DECLARE_LOG(optimizer)
 DEFINE_LOG(optimizer, "optimizer")
 
 
-BaseOptimizer::Scale::Scale(BaseOptimizer* base, ParamNode* autoscale, double manual_scale, bool no_autoscale)
+BaseOptimizer::Scale::Scale(BaseOptimizer* base, PtrParamNode autoscale, double manual_scale, bool no_autoscale)
  : target(0.0),
    tol(0.0),
    opt_scaling(DesignMemory(-1, 0.0)),
@@ -31,14 +29,14 @@ BaseOptimizer::Scale::Scale(BaseOptimizer* base, ParamNode* autoscale, double ma
   // the vectors are zero size by default!
   if(autoscale != NULL && !no_autoscale)
   {
-    target = autoscale->Get("target")->AsDouble();
+    target = autoscale->Get("target")->As<Double>();
     
     if(target == 0.0) 
       throw Exception("A target of 0.0 disabled autoscaling");
     if(manual_scale != 0.0 && manual_scale != 1.0) 
       throw Exception("Don't give explicit objective scaling with autoscale");
 
-    tol    = autoscale->Get("tolerance")->AsDouble();
+    tol    = autoscale->Get("tolerance")->As<Double>();
     // Cannot CalcAutoscale() has to be done in PostInit()
   }
   else
@@ -167,7 +165,7 @@ std::string BaseOptimizer::Scale::ToString()
   return os.str();
 }
 
-BaseOptimizer::BaseOptimizer(Optimization* opt, ParamNode* pn) :
+BaseOptimizer::BaseOptimizer(Optimization* opt, PtrParamNode pn) :
   optimization(opt),
   info_(info->Get("optimization")->Get("optimizer")),
   objective(NULL),
@@ -175,7 +173,8 @@ BaseOptimizer::BaseOptimizer(Optimization* opt, ParamNode* pn) :
   design_(DesignMemory(-1, 0.0)),
   optimizer_pn_(pn)
 {
-  this->timer_ = info_->Get(InfoNode::SUMMARY)->SetValue(new Timer());
+  this->timer_ =  new Timer();
+  info_->Get(ParamNode::SUMMARY)->SetValue(this->timer_ );
 }
 
 BaseOptimizer::~BaseOptimizer()
@@ -185,7 +184,7 @@ BaseOptimizer::~BaseOptimizer()
 
 void BaseOptimizer::PostInit(double manual_scaling, bool no_autoscale)
 {
-  ParamNode* as = optimizer_pn_ != NULL ? optimizer_pn_->Get("autoscale", false) : NULL;
+  PtrParamNode as = optimizer_pn_->Get("autoscale", ParamNode::PASS);
   objective = new Scale(this, as, manual_scaling, no_autoscale);
   objective->PostInit();
 }
@@ -203,7 +202,7 @@ std::string BaseOptimizer::LogFileHeader()
 }
 
 
-void BaseOptimizer::LogFileLine(std::ofstream* out, InfoNode* iteration)
+void BaseOptimizer::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 {
   if(out) *out << "\t" << objective->current.value;
   

@@ -32,7 +32,7 @@ using boost::posix_time::ptime;
 using boost::posix_time::second_clock;
 using boost::posix_time::microsec_clock;
 
-TopGrad::TopGrad(Optimization* opt, ParamNode* pn, const bool ls) :
+TopGrad::TopGrad(Optimization* opt, PtrParamNode pn, const bool ls) :
   max_volume_to_remove_(0.5),
   elems_removed_per_iteration_(2),
   pivot_percent_(0.3),
@@ -77,15 +77,15 @@ TopGrad::TopGrad(Optimization* opt, ParamNode* pn, const bool ls) :
   // FIXME resize member vectors and matrix according to subtype
 
   // reduce to our actual ParamNode
-  pn = pn->Get("topGrad", false);
+  pn = pn->Get("topGrad", ParamNode::PASS);
   if(pn != NULL)
   {
     // read necessary parameters from XML
     // note: the lower bound for the pseudo-density is set in the options for the design!
-    if(pn->Has("tg_elemsremove")) elems_removed_per_iteration_ = pn->Get("tg_elemsremove")->AsInt();
-    if(pn->Has("tg_initpercent")) pivot_percent_ = pn->Get("tg_initpercent")->AsDouble();
-    if(pn->Has("tg_enableadaptive")) adaptive_ = pn->Get("tg_enableadaptive")->AsBool();
-    if(pn->Has("tg_moreoutput")) more_output_ = pn->Get("tg_moreoutput")->AsBool();
+    if(pn->Has("tg_elemsremove")) elems_removed_per_iteration_ = pn->Get("tg_elemsremove")->As<Integer>();
+    if(pn->Has("tg_initpercent")) pivot_percent_ = pn->Get("tg_initpercent")->As<Double>();
+    if(pn->Has("tg_enableadaptive")) adaptive_ = pn->Get("tg_enableadaptive")->As<bool>();
+    if(pn->Has("tg_moreoutput")) more_output_ = pn->Get("tg_moreoutput")->As<bool>();
   }
   else
     cout << "No ParamNode found, using default values" << endl;

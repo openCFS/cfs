@@ -20,7 +20,7 @@ namespace CoupledField {
   //   Constructor
   // ***************
   ThermoMechCoupling::ThermoMechCoupling( SinglePDE *pde1, SinglePDE *pde2,
-                                      ParamNode * paramNode  )
+                                      PtrParamNode paramNode  )
     : BasePairCoupling( pde1, pde2, paramNode ) {
 
     couplingName_ = "thermoMechDirect";
@@ -34,7 +34,7 @@ namespace CoupledField {
     try {
 		// Check the subtype of the mechanic problem
 		// (full, normal or axi-symmetric)
-		pde1_->GetParamNode()->Get( "subType", subType_ );
+		pde1_->GetParamNode()->GetValue( "subType", subType_ );
 	}
 	catch (Exception& e) {
 		RETHROW_EXCEPTION(e, "Could not get the parameter subType_ on "

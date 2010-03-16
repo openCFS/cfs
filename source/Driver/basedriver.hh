@@ -7,6 +7,7 @@
 
 #include "PDE/basePDE.hh"
 #include "General/environment.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField
 {
@@ -42,7 +43,9 @@ namespace CoupledField
      * @param write_results if false nothing is written to the output files
      * @param analysis_id if given is *set* as current and used.
      * @see StoreResults(double) */
-    virtual void SolveProblem(bool write_results = true, InfoNode* analysis_id = NULL, const bool reAssembleMatrices = true) = 0;
+    virtual void SolveProblem(bool write_results = true, 
+                              PtrParamNode analysis_id = PtrParamNode(), 
+                              const bool reAssembleMatrices = true) = 0;
     
     /** Only of interest for optimization, where one might not want to generate
      * output (gid, hdf5, gmv, ...) for every forward solution. 
@@ -65,7 +68,7 @@ namespace CoupledField
     virtual UInt GetActStep ( const std::string& pdename ) = 0;
     
     
-    InfoNode* GetAnalysisId() { return analysis_id_; }
+    PtrParamNode GetAnalysisId() { return analysis_id_; }
     
     /** Helper function to create a child analysis step
      * Adds a child-element to base with "analysis_id" = the analysis_id of the base
@@ -74,12 +77,12 @@ namespace CoupledField
      * @param child_name e.g. "nonLin", "adjoint" ...
      * @param child_id will be added after child_name. is optional (-1)
      * @return the child element */
-    static InfoNode* CreateAnalysisIdChild(InfoNode* base, const std::string& child_name, int child_id = -1,
+    static PtrParamNode CreateAnalysisIdChild(PtrParamNode base, const std::string& child_name, int child_id = -1,
         const std::string& child_2_name = "", int child_2_id = -1);
 
     /** Adds a new analysis id for this driver.
      * @see CreateAnalysisIdChild() */
-    InfoNode* CreateAnalysisId(const std::string& child_name, int child_id = -1,
+    PtrParamNode CreateAnalysisId(const std::string& child_name, int child_id = -1,
                                const std::string& child_2_name = "", int child_2_id = -1);
 
     
@@ -100,10 +103,10 @@ namespace CoupledField
     BasePDE::AnalysisType analysis_;
 
     /** @see GetActAnalysisId() */
-    InfoNode* analysis_id_;
+    PtrParamNode analysis_id_;
     
     /** our report node */ 
-    InfoNode* driverNode; 
+    PtrParamNode driverNode; 
 
     
     //! --------------------- stuff for computation with adaptivity
@@ -127,7 +130,7 @@ namespace CoupledField
     
   private:
     /** helper function. Items are separated via ':' to be replaces when using as filename! */
-    std::string ConcatAnalysisId(InfoNode* analysis_id, const std::string& child_name, int child_id, 
+    std::string ConcatAnalysisId(PtrParamNode analysis_id, const std::string& child_name, int child_id, 
                                  const std::string& child_2_name, int child_2_id);
   };
 

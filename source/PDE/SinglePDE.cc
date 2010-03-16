@@ -12,7 +12,7 @@
 
 #include "DataInOut/ParamHandling/CFSOLASParams.hh"
 #include "DataInOut/programOptions.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 #include "OLAS/algsys/basesystem.hh"
 #include "OLAS/algsys/standardsys.hh"
@@ -60,7 +60,7 @@ namespace CoupledField {
   DECLARE_LOG(pde)
   DEFINE_LOG(pde, "pde")
 
-  SinglePDE::SinglePDE( Grid *aptgrid, ParamNode* paramNode ) :
+  SinglePDE::SinglePDE( Grid *aptgrid, PtrParamNode paramNode ) :
     StdPDE( aptgrid, paramNode ),
     ptError_(NULL),
     tolSpaceErr_(0.0),
@@ -115,12 +115,12 @@ namespace CoupledField {
   // ********
   //   Init
   // ********
-  void SinglePDE::Init( UInt sequenceStep, InfoNode* base ) {
+  void SinglePDE::Init( UInt sequenceStep, PtrParamNode base ) {
 
     sequenceStep_ = sequenceStep;
 
     infoNode_ = base == NULL ? info->Get("PDE")->Get(pdename_) : base->Get(pdename_);
-    infoNode_->Get(InfoNode::HEADER)->Get("sequenceStep")->SetValue(sequenceStep);
+    infoNode_->Get(ParamNode::HEADER)->Get("sequenceStep")->SetValue(sequenceStep);
 
     StdVector<RegionIdType> allIDs;
     LOG_TRACE(pde) << pdename_ << ": Starting Initialization";
@@ -150,21 +150,21 @@ namespace CoupledField {
 
 
     // Obtain regions the pde is defined on
-    StdVector<ParamNode*> regionNodes =
+    ParamNodeList regionNodes =
       myParam_->Get("regionList")->GetList("region");
 
     // output to info-file
-    InfoNode* list = infoNode_->Get(InfoNode::HEADER);
+    PtrParamNode list = infoNode_->Get(ParamNode::HEADER);
 
     // output and set subdoms_
     for( UInt i = 0; i < regionNodes.GetSize(); i++ )
     {
-      InfoNode* in_ = list->Get("region");
-      in_->Get("name")->SetValue(regionNodes[i]->Get("name")->AsString());
+      PtrParamNode in_ = list->Get("region");
+      in_->Get("name")->SetValue(regionNodes[i]->Get("name")->As<std::string>());
       bool complexMat = false;
-      regionNodes[i]->Get("complexMaterial",  complexMat, false );
+      regionNodes[i]->GetValue("complexMaterial",  complexMat, ParamNode::PASS );
       
-      RegionIdType actRegionId = ptgrid_->GetRegion().Parse(regionNodes[i]->Get("name")->AsString());
+      RegionIdType actRegionId = ptgrid_->GetRegion().Parse(regionNodes[i]->Get("name")->As<std::string>());
       subdoms_.Push_back( actRegionId );
       complexMatData_[actRegionId] = complexMat;
     }
@@ -252,21 +252,21 @@ namespace CoupledField {
     // How do we want to treat inhomogeneous Dirichlet boundary conditions?
     {
       std::string aux = "penalty";
-      ParamNode * systemsNode =
-        param->Get("sequenceStep", std::string("index"), sequenceStep_)
-        ->Get("linearSystems",false);
+      PtrParamNode systemsNode =
+        param->GetByVal("sequenceStep", "index", sequenceStep_)
+        ->Get("linearSystems",ParamNode::PASS);
       if( systemsNode ) {
-        ParamNode * mySystemNode = systemsNode->
-          Get("system", "name", systemName, false);
+        PtrParamNode mySystemNode = systemsNode->
+          GetByVal("system", "name", systemName, ParamNode::PASS);
         if( mySystemNode) {
-          ParamNode * setupNode = mySystemNode->Get("setup", false);
+          PtrParamNode setupNode = mySystemNode->Get("setup", ParamNode::PASS);
           if( setupNode ) {
-            setupNode->Get("idbcHandling", aux, false );
+            setupNode->GetValue("idbcHandling", aux, ParamNode::PASS );
           }
         }
       }
       usePenalty_ = aux == "penalty" ? true : false;
-      infoNode_->Get(InfoNode::HEADER)->Get("idbc", "handling of IDBCs")->SetValue(aux);
+      infoNode_->Get(ParamNode::HEADER)->Get("idbc")->Get("handling of IDBCs")->SetValue(aux);
     }
 
     //determine which kind of equationmap will be needed
@@ -345,7 +345,7 @@ namespace CoupledField {
 
     // Print information about defined integrators
     if( !isDirectCoupled_ && needsAlgsys_ == true)
-      assemble_->ToInfo(infoNode_->Get(InfoNode::HEADER)->Get("integrators"));
+      assemble_->ToInfo(infoNode_->Get(ParamNode::HEADER)->Get("integrators"));
 
     // now we know about nonlinearities and we can trigger the
     // material objects to perform the approximations of the nonlinear
@@ -363,11 +363,11 @@ namespace CoupledField {
     eqnMap_->SetConstraints( constraints_ );
     eqnMap_->Finalize();
 
-    infoNode_->Get(InfoNode::HEADER)->Get("equations", "number of equations in linear system")->SetValue(eqnMap_->GetNumEqns());
+    infoNode_->Get(ParamNode::HEADER)->Get("equations")->SetValue(eqnMap_->GetNumEqns());
 
     // writes numerous lists about mapping -> might be huge!
     if(progOpts->DoListMapping())
-      eqnMap_->ToInfo(infoNode_->Get(InfoNode::HEADER)->Get("mapping"));
+      eqnMap_->ToInfo(infoNode_->Get(ParamNode::HEADER)->Get("mapping"));
 
     numPDENodes_ = eqnMap_->GetNumLocalNodes();
     numElems_ = eqnMap_->GetNumLocalElems();
@@ -531,61 +531,61 @@ namespace CoupledField {
    void SinglePDE::WriteGeneralPDEdefines()
    {
     // loads
-    InfoNode* base = infoNode_->Get(InfoNode::HEADER)->Get("loads");
+    PtrParamNode base = infoNode_->Get(ParamNode::HEADER)->Get("loads");
 
     for(unsigned int i = 0, in = loads_.GetSize(); i < in; i++)
     {
       LoadBc const & actBc = *loads_[i];
       EntityList const & actList = *actBc.entities;
 
-      InfoNode* in = base->Get(actList.listType.ToString(actList.GetType()), "name", actList.GetName());
+      PtrParamNode in = base->GetByVal(actList.listType.ToString(actList.GetType()), "name", actList.GetName());
       in->Get("dof")->SetValue(actBc.result->GetDofName(actBc.dof));
       in->Get("value")->SetValue(actBc.value);
       in->Get("phase")->SetValue(actBc.phase);
     }
 
     // Homogeneous Dirichlet BC
-    base = infoNode_->Get(InfoNode::HEADER)->Get("homDirichletBC");
+    base = infoNode_->Get(ParamNode::HEADER)->Get("homDirichletBC");
 
     for(unsigned int i = 0, in = hdBcs_.GetSize(); i < in; i++)
     {
       HomDirichletBc const & actBc = *hdBcs_[i];
       EntityList const & actList = *actBc.entities;
 
-      InfoNode* in = base->Get(actList.listType.ToString(actList.GetType()), "name", actList.GetName());
+      PtrParamNode in = base->GetByVal(actList.listType.ToString(actList.GetType()), "name", actList.GetName());
       in->Get("dof")->SetValue(actBc.result->GetDofName(actBc.dof));
     }
 
     // Inhomogeneous Dirichlet BC
-    base = infoNode_->Get(InfoNode::HEADER)->Get("inhomDirichletBC");
+    base = infoNode_->Get(ParamNode::HEADER)->Get("inhomDirichletBC");
 
     for(unsigned int i = 0, in = idBcs_.GetSize(); i < in; i++)
     {
       InhomDirichletBc const & actBc = *idBcs_[i];
       EntityList const & actList = *actBc.entities;
 
-      InfoNode* in = base->Get(actList.listType.ToString(actList.GetType()), "name", actList.GetName());
+      PtrParamNode in = base->GetByVal(actList.listType.ToString(actList.GetType()), "name", actList.GetName());
       in->Get("dof")->SetValue(actBc.result->GetDofName(actBc.dof));
       in->Get("value")->SetValue(actBc.value);
       in->Get("phase")->SetValue(actBc.phase);
     }
 
     // Inhomogeneous Neumann BC
-    base = infoNode_->Get(InfoNode::HEADER)->Get("inhomNeumannBC");
+    base = infoNode_->Get(ParamNode::HEADER)->Get("inhomNeumannBC");
 
     for(unsigned int i = 0, in = inBcs_.GetSize(); i < in; i++)
     {
       InhomNeumannBc const & actBc = *inBcs_[i];
       EntityList const & actList = *actBc.entities;
 
-      InfoNode* in = base->Get(actList.listType.ToString(actList.GetType()), "name", actList.GetName());
+      PtrParamNode in = base->GetByVal(actList.listType.ToString(actList.GetType()), "name", actList.GetName());
       in->Get("dof")->SetValue(actBc.result->GetDofName(actBc.dof));
       in->Get("value")->SetValue(actBc.value);
       in->Get("phase")->SetValue(actBc.phase);
     }
 
     // constraints
-    base = infoNode_->Get(InfoNode::HEADER)->Get("constraints");
+    base = infoNode_->Get(ParamNode::HEADER)->Get("constraints");
     // periodic boundary conditions blow this up.
     if(constraints_.GetSize() <= 5 || progOpts->DoListMapping())
     {
@@ -595,12 +595,12 @@ namespace CoupledField {
         EntityList const & masterList = *actBc.masterEntities;
         EntityList const & slaveList = *actBc.slaveEntities;
 
-        InfoNode* in = base->Get("pair", "master", masterList.GetName());
+        PtrParamNode in = base->GetByVal("pair", "master", masterList.GetName());
         in->Get("slave")->SetValue(slaveList.GetName());
         // the names are repeated for the different dofs
         std::string dof = actBc.result->GetDofName(actBc.masterDof);
-        if(!in->Has("dof", dof))
-          in->Get("dof", InfoNode::APPEND)->SetValue(dof);
+        if(!in->HasByVal("dof", dof))
+          in->Get("dof", ParamNode::APPEND)->SetValue(dof);
 
         in->Get("periodic")->SetValue(actBc.periodic);
       }
@@ -610,7 +610,7 @@ namespace CoupledField {
       if(constraints_.GetSize() > 5)
       {
         base->Get("number")->SetValue(constraints_.GetSize());
-        base->Get(InfoNode::COMMENT)->SetValue("run cfs with -l for list");
+        base->SetComment("run cfs with -l for list");
       }
     }
   }
@@ -620,7 +620,7 @@ namespace CoupledField {
     ResultSet::iterator it;
 
     // fetch result node and leave, if none is present
-    ParamNode * resultNode = myParam_->Get("storeResults", false);
+    PtrParamNode resultNode = myParam_->Get("storeResults", ParamNode::PASS);
     if( !resultNode )
       return;
 
@@ -667,7 +667,7 @@ namespace CoupledField {
     
 
     // fetch result node and leave, if none is present
-    ParamNode * resultNode = myParam_->Get("storeResults", false);
+    PtrParamNode resultNode = myParam_->Get("storeResults", ParamNode::PASS);
     if( !resultNode )
       return false;
 
@@ -686,8 +686,8 @@ namespace CoupledField {
         }
 
         // Remember current result node
-        ParamNode* actResultNode =
-          resultNode->Get(xmlElemName, "type", quantity, false );
+        PtrParamNode actResultNode =
+          resultNode->GetByVal(xmlElemName, "type", quantity, ParamNode::PASS );
 
         // Check on which entity type the result is defined on
         switch(candidate->definedOn)
@@ -728,69 +728,69 @@ namespace CoupledField {
 
         // determine complexFormat
         complexFormatString = "amplPhase";
-        actResultNode->Get("complexFormat", complexFormatString, false);
+        actResultNode->GetValue("complexFormat", complexFormatString, ParamNode::PASS);
         String2Enum( complexFormatString, complexFormat );
 
         // otherwise check, if result is to be saved on "allRegions"
         if( actResultNode->Has("allRegions" ) ) {
           ptgrid_->GetRegion().ToString(subdoms_,regionNames);
 
-          ParamNode * allRegionsNode = actResultNode->Get("allRegions");
+          PtrParamNode allRegionsNode = actResultNode->Get("allRegions");
 
           std::string allPostProcName, allOutDestName;
 
           // fetch postProcNames
-          allRegionsNode->Get("postProcId", allPostProcName );
+          allRegionsNode->GetValue("postProcId", allPostProcName );
           postProcNames.Resize( regionNames.GetSize() );
           postProcNames.Init( allPostProcName );
 
           //fetch outDestName
-          allRegionsNode->Get("outputIds", allOutDestName );
+          allRegionsNode->GetValue("outputIds", allOutDestName );
           outDestNames.Resize( regionNames.GetSize() );
           outDestNames.Init( allOutDestName );
 
           // fetch saveBegin, saveEnd and saveInc
-          allRegionsNode->Get("saveBegin", saveBegin );
-          allRegionsNode->Get("saveEnd", saveEnd );
-          allRegionsNode->Get("saveInc", saveInc );
+          allRegionsNode->GetValue("saveBegin", saveBegin );
+          allRegionsNode->GetValue("saveEnd", saveEnd );
+          allRegionsNode->GetValue("saveInc", saveInc );
 
           // fetch writeResult flag
           std::string writeResult;
-          allRegionsNode->Get("writeResult", writeResult );
+          allRegionsNode->GetValue("writeResult", writeResult );
           writeResults.Resize( regionNames.GetSize() );
           writeResults.Init( writeResult );
 
         } else {
 
-          StdVector<ParamNode*> regionNodes;
-          ParamNode * listNode = NULL;
+          ParamNodeList regionNodes;
+          PtrParamNode listNode;
           // 1b) Look for regions the result is defined on
           if(candidate->definedOn == ResultInfo::NODE ||
              candidate->definedOn == ResultInfo::PFEM ||
              candidate->definedOn == ResultInfo::ELEMENT ||
              candidate->definedOn == ResultInfo::REGION ) {
-            listNode = actResultNode->Get("regionList", false);
+            listNode = actResultNode->Get("regionList", ParamNode::PASS);
             if( listNode )
               regionNodes = listNode->GetList("region");
           } else if(candidate->definedOn == ResultInfo::SURF_ELEM ||
                     candidate->definedOn == ResultInfo::SURF_REGION ) {
-            listNode = actResultNode->Get("surfRegionList", false);
+            listNode = actResultNode->Get("surfRegionList", ParamNode::PASS);
             if( listNode )
               regionNodes = listNode->GetList("surfRegion");
 
             // fetch entry with neighboring regions
             for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
               neighborRegions.Push_back( regionNodes[i]->
-                                         Get("neighborRegion")->AsString() );
+                                         Get("neighborRegion")->As<std::string>() );
             }
           }
 
           // only enter, at least one region is present
-          if( listNode->HasChildren() ) {
+          if( listNode ) {
             // fetch saveBegin, saveEnd and saveInc
-            listNode->Get( "saveBegin", saveBegin );
-            listNode->Get( "saveEnd", saveEnd );
-            listNode->Get( "saveInc", saveInc );
+            listNode->GetValue( "saveBegin", saveBegin );
+            listNode->GetValue( "saveEnd", saveEnd );
+            listNode->GetValue( "saveInc", saveInc );
 
             // iterate over all regions
             regionNames.Clear();
@@ -798,10 +798,10 @@ namespace CoupledField {
             outDestNames.Clear();
             writeResults.Clear();
             for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-              regionNames.Push_back( regionNodes[i]->Get("name")->AsString() );
-              postProcNames.Push_back( regionNodes[i]->Get("postProcId")->AsString() );
-              outDestNames.Push_back( regionNodes[i]->Get("outputIds")->AsString() );
-              writeResults.Push_back( regionNodes[i]->Get("writeResult")->AsString() );
+              regionNames.Push_back( regionNodes[i]->Get("name")->As<std::string>() );
+              postProcNames.Push_back( regionNodes[i]->Get("postProcId")->As<std::string>() );
+              outDestNames.Push_back( regionNodes[i]->Get("outputIds")->As<std::string>() );
+              writeResults.Push_back( regionNodes[i]->Get("writeResult")->As<std::string>() );
             }
           }
         }
@@ -856,27 +856,27 @@ namespace CoupledField {
         StdVector<std::string> histNames;
         neighborRegions.Clear();
 
-        ParamNode * histNode = NULL;
-        StdVector<ParamNode*> histEntities;
+        PtrParamNode histNode;
+        ParamNodeList histEntities;
 
         if(candidate->definedOn == ResultInfo::NODE
             || candidate->definedOn == ResultInfo::PFEM ) {
           defineType = EntityList::NAMED_NODES;
-          histNode = actResultNode->Get("nodeList",false);
+          histNode = actResultNode->Get("nodeList",ParamNode::PASS);
           if( histNode )
             histEntities = histNode->GetList("nodes");
           entityTypeName = "nodes";
 
         } else if(candidate->definedOn == ResultInfo::ELEMENT ) {
           defineType = EntityList::NAMED_ELEMS;
-          histNode = actResultNode->Get("elemList",false);
+          histNode = actResultNode->Get("elemList",ParamNode::PASS);
           if( histNode )
             histEntities = histNode->GetList("elems");
           entityTypeName = "elements";
 
         } else if(candidate->definedOn == ResultInfo::SURF_ELEM ) {
           defineType = EntityList::NAMED_ELEMS;
-          histNode = actResultNode->Get("surfElemList",false);
+          histNode = actResultNode->Get("surfElemList",ParamNode::PASS);
           if( histNode)
             histEntities = histNode->GetList("surfElems");
           entityTypeName = "surfElems";
@@ -885,7 +885,7 @@ namespace CoupledField {
           // fetch entry with neighboring regions
           for( UInt i = 0; i < histEntities.GetSize(); i++ ) {
             neighborRegions.Push_back( histEntities[i]->
-                                       Get("neighborRegion")->AsString() );
+                                       Get("neighborRegion")->As<std::string>() );
           }
         }
 
@@ -893,9 +893,9 @@ namespace CoupledField {
         if( histNode && histNode->HasChildren() ) {
 
           // fetch saveBegin, saveEnd and saveInc
-          histNode->Get("saveBegin", saveBegin );
-          histNode->Get("saveEnd", saveEnd );
-          histNode->Get("saveInc", saveInc );
+          histNode->GetValue("saveBegin", saveBegin );
+          histNode->GetValue("saveEnd", saveEnd );
+          histNode->GetValue("saveInc", saveInc );
 
           // iterate over all regions
           histNames.Clear();
@@ -903,10 +903,10 @@ namespace CoupledField {
           outDestNames.Clear();
           writeResults.Clear();
           for( UInt i = 0; i < histEntities.GetSize(); i++ ) {
-            histNames.Push_back( histEntities[i]->Get("name")->AsString() );
-            postProcNames.Push_back( histEntities[i]->Get("postProcId")->AsString() );
-            outDestNames.Push_back( histEntities[i]->Get("outputIds")->AsString() );
-            writeResults.Push_back( histEntities[i]->Get("writeResult")->AsString() );
+            histNames.Push_back( histEntities[i]->Get("name")->As<std::string>() );
+            postProcNames.Push_back( histEntities[i]->Get("postProcId")->As<std::string>() );
+            outDestNames.Push_back( histEntities[i]->Get("outputIds")->As<std::string>() );
+            writeResults.Push_back( histEntities[i]->Get("writeResult")->As<std::string>() );
           }
         }
 
@@ -1160,7 +1160,7 @@ namespace CoupledField {
 
     // fetch "bcsAndLoads" parameter node, if present.
     // otherwise leave
-    ParamNode * bcsNode = myParam_->Get("bcsAndLoads", false );
+    PtrParamNode bcsNode = myParam_->Get("bcsAndLoads", ParamNode::PASS );
     if( !bcsNode )
       return;
 
@@ -1174,7 +1174,7 @@ namespace CoupledField {
     // =====================================================================
 
     // fetch paramnodes for hdbc
-    StdVector<ParamNode*> hdbcNodes = bcsNode->GetList("dirichletHom");
+    ParamNodeList hdbcNodes = bcsNode->GetList("dirichletHom");
 
     // iterate over all parameter nodes
     for( UInt i = 0; i < hdbcNodes.GetSize(); i++ ) {
@@ -1182,10 +1182,10 @@ namespace CoupledField {
       try {
         // read parameters
         dof.clear();
-        hdbcNodes[i]->Get( "name", name );
-        hdbcNodes[i]->Get( "quantity", resultName );
-        hdbcNodes[i]->Get( "dof", dof, false );
-        hdbcNodes[i]->Get( "entityType", entType );
+        hdbcNodes[i]->GetValue( "name", name );
+        hdbcNodes[i]->GetValue( "quantity", resultName );
+        hdbcNodes[i]->GetValue( "dof", dof, ParamNode::PASS );
+        hdbcNodes[i]->GetValue( "entityType", entType );
 
         // fetch related resultInfo object
         actResultInfo = GetResultInfo( SolutionTypeEnum.Parse(resultName) );
@@ -1224,7 +1224,7 @@ namespace CoupledField {
     // =====================================================================
 
     // fetch paramnodes for idbc
-    StdVector<ParamNode*> idbcNodes = bcsNode->GetList("dirichletInhom");
+    ParamNodeList idbcNodes = bcsNode->GetList("dirichletInhom");
 
     // iterate over all parameter nodes
     for( UInt i = 0; i < idbcNodes.GetSize(); i++ ) {
@@ -1232,12 +1232,12 @@ namespace CoupledField {
       try {
         // read parameters
         dof.clear();
-        idbcNodes[i]->Get( "name", name );
-        idbcNodes[i]->Get( "quantity", resultName );
-        idbcNodes[i]->Get( "dof", dof, false );
-        idbcNodes[i]->Get( "value", value );
-        idbcNodes[i]->Get( "phase", phase );
-        idbcNodes[i]->Get( "entityType", entType );
+        idbcNodes[i]->GetValue( "name", name );
+        idbcNodes[i]->GetValue( "quantity", resultName );
+        idbcNodes[i]->GetValue( "dof", dof, ParamNode::PASS );
+        idbcNodes[i]->GetValue( "value", value );
+        idbcNodes[i]->GetValue( "phase", phase );
+        idbcNodes[i]->GetValue( "entityType", entType );
 
         // fetch related resultInfo object
         actResultInfo = GetResultInfo( SolutionTypeEnum.Parse(resultName) );
@@ -1278,18 +1278,18 @@ namespace CoupledField {
     // =====================================================================
 
     // fetch paramnodes for inbc
-    StdVector<ParamNode*> inbcNodes = bcsNode->GetList("neumannInhom");
+    ParamNodeList inbcNodes = bcsNode->GetList("neumannInhom");
 
     // iterate over all parameter nodes
     for( UInt i = 0; i < inbcNodes.GetSize(); i++ ) {
       try {
         dof.clear();
-        inbcNodes[i]->Get( "name", name );
-        inbcNodes[i]->Get( "quantity", resultName );
-        inbcNodes[i]->Get( "dof", dof, false );
-        inbcNodes[i]->Get( "value", value );
-        inbcNodes[i]->Get( "phase", phase );
-        inbcNodes[i]->Get( "entityType", entType );
+        inbcNodes[i]->GetValue( "name", name );
+        inbcNodes[i]->GetValue( "quantity", resultName );
+        inbcNodes[i]->GetValue( "dof", dof, ParamNode::PASS );
+        inbcNodes[i]->GetValue( "value", value );
+        inbcNodes[i]->GetValue( "phase", phase );
+        inbcNodes[i]->GetValue( "entityType", entType );
 
         // fetch related resultInfo object
         actResultInfo = GetResultInfo( SolutionTypeEnum.Parse(resultName) );
@@ -1330,17 +1330,17 @@ namespace CoupledField {
     // =====================================================================
 
     // fetch paramnodes for constraint
-    StdVector<ParamNode*> csNodes = bcsNode->GetList("constraint");
+    ParamNodeList csNodes = bcsNode->GetList("constraint");
     std::string masterDof, slaveDof;
 
     // iterate over all parameter nodes
     for( UInt i = 0; i < csNodes.GetSize(); i++ ) {
       try {
-        csNodes[i]->Get( "name", name );
-        csNodes[i]->Get( "quantity", resultName );
-        csNodes[i]->Get( "entityType", entType );
-        csNodes[i]->Get( "masterDof", masterDof );
-        csNodes[i]->Get( "slaveDof", slaveDof );
+        csNodes[i]->GetValue( "name", name );
+        csNodes[i]->GetValue( "quantity", resultName );
+        csNodes[i]->GetValue( "entityType", entType );
+        csNodes[i]->GetValue( "masterDof", masterDof );
+        csNodes[i]->GetValue( "slaveDof", slaveDof );
 
         // fetch related resultInfo object
         actResultInfo = GetResultInfo( SolutionTypeEnum.Parse(resultName) );
@@ -1386,16 +1386,16 @@ namespace CoupledField {
     // =====================================================================
 
     // fetch paramnodes for constraint
-    StdVector<ParamNode*> prNodes = bcsNode->GetList("periodic");
+    ParamNodeList prNodes = bcsNode->GetList("periodic");
     std::string masterName, slaveName;
 
     // iterate over all parameter nodes
     for( UInt i = 0; i < prNodes.GetSize(); i++ ) {
       try {
-        prNodes[i]->Get( "master", masterName );
-        prNodes[i]->Get( "slave", slaveName );
-        prNodes[i]->Get( "dof", dof );
-        prNodes[i]->Get( "quantity", resultName );
+        prNodes[i]->GetValue( "master", masterName );
+        prNodes[i]->GetValue( "slave", slaveName );
+        prNodes[i]->GetValue( "dof", dof );
+        prNodes[i]->GetValue( "quantity", resultName );
 
         // fetch related resultInfo object
         actResultInfo = GetResultInfo( SolutionTypeEnum.Parse(resultName) );
@@ -1474,7 +1474,7 @@ namespace CoupledField {
   }
 
 
-  void SinglePDE::ReadLoads(StdVector<ParamNode*> loadNodes, LoadList& out_list)
+  void SinglePDE::ReadLoads(ParamNodeList loadNodes, LoadList& out_list)
   {
 
     std::string name, resultName, dof, entType, value, phase, weight;
@@ -1486,13 +1486,13 @@ namespace CoupledField {
     for( UInt i = 0; i < loadNodes.GetSize(); i++ ) {
       try {
         dof.clear();
-        loadNodes[i]->Get( "name", name );
-        loadNodes[i]->Get( "quantity", resultName );
-        loadNodes[i]->Get( "dof", dof, false );
-        loadNodes[i]->Get( "value", value );
-        loadNodes[i]->Get( "phase", phase );
-        loadNodes[i]->Get( "weight", weight, false ); // only mechanical for optimization
-        loadNodes[i]->Get( "entityType", entType );
+        loadNodes[i]->GetValue( "name", name );
+        loadNodes[i]->GetValue( "quantity", resultName );
+        loadNodes[i]->GetValue( "dof", dof, ParamNode::PASS );
+        loadNodes[i]->GetValue( "value", value );
+        loadNodes[i]->GetValue( "phase", phase );
+        loadNodes[i]->GetValue( "weight", weight, ParamNode::PASS ); // only mechanical for optimization
+        loadNodes[i]->GetValue( "entityType", entType );
 
 
         // fetch related resultInfo object
@@ -1530,10 +1530,10 @@ namespace CoupledField {
   }
 
   void SinglePDE::ReadRegionLoads(){
-    ReadRegionLoadsFromXML(myParam_->Get("bcsAndLoads", false), regionLoads_);
+    ReadRegionLoadsFromXML(myParam_->Get("bcsAndLoads", ParamNode::PASS), regionLoads_);
   }
   
-  void SinglePDE::ReadRegionLoadsFromXML(ParamNode* bcNode, std::map<RegionIdType, RegionLoad>& regloads) {
+  void SinglePDE::ReadRegionLoadsFromXML(PtrParamNode bcNode, std::map<RegionIdType, RegionLoad>& regloads) {
 
     StdVector<std::string> names, dofs, refCoord, type, phase;
     StdVector<std::string> tempNames, tempDofs,  tempPhase;
@@ -1573,19 +1573,19 @@ namespace CoupledField {
       // try to get bcsAndLoads node
       if( !bcNode )
         return;
-      StdVector<ParamNode*> loadNodes = bcNode->GetList("regionLoad");
+      ParamNodeList loadNodes = bcNode->GetList("regionLoad");
 
 
       for( UInt i = 0; i < loadNodes.GetSize(); i++ ) {
 
-        ParamNode * actNode = loadNodes[i];
+        PtrParamNode actNode = loadNodes[i];
 
-        tempNames.Push_back( actNode->Get("name")->AsString() );
-        tempLoadVec.Push_back( actNode->Get("value")->AsString() );
-        tempPhase.Push_back( actNode->Get("phase")->AsString() );
-        tempDofs.Push_back( actNode->Get("dof")->AsString() );
-        tempRefCoord.Push_back( actNode->Get("coordSysId")->AsString() );
-        tempType.Push_back( actNode->Get("type")->AsString() );
+        tempNames.Push_back( actNode->Get("name")->As<std::string>() );
+        tempLoadVec.Push_back( actNode->Get("value")->As<std::string>() );
+        tempPhase.Push_back( actNode->Get("phase")->As<std::string>() );
+        tempDofs.Push_back( actNode->Get("dof")->As<std::string>() );
+        tempRefCoord.Push_back( actNode->Get("coordSysId")->As<std::string>() );
+        tempType.Push_back( actNode->Get("type")->As<std::string>() );
       }
 
 #ifdef USE_SCRIPTING
@@ -1681,10 +1681,10 @@ namespace CoupledField {
     UInt i, numRegions;
     
     // get list of parameter nodes for region definitions
-    StdVector<ParamNode*> regionNodes;
+    ParamNodeList regionNodes;
 
-    ParamNode * regionListNode = param->
-      Get("domain")->Get("regionList", false );
+    PtrParamNode regionListNode = param->
+      Get("domain")->Get("regionList", ParamNode::PASS );
     if( regionListNode)
       regionNodes = regionListNode->GetList("region");
 
@@ -1705,9 +1705,9 @@ namespace CoupledField {
 
       try{
         // get data from node
-        regionNodes[i]->Get( "name", region );
-        regionNodes[i]->Get( "material", material );
-        regionNodes[i]->Get( "coordSysId", refCoordSys );
+        regionNodes[i]->GetValue( "name", region );
+        regionNodes[i]->GetValue( "material", material );
+        regionNodes[i]->GetValue( "coordSysId", refCoordSys );
 
         // get regionId
         RegionIdType actRegionId = ptgrid_->GetRegion().Parse( region );
@@ -1737,7 +1737,7 @@ namespace CoupledField {
         }
 
         // Check for material rotation parameters
-        ParamNode * rotNode = regionNodes[i]->Get("matRotation", false);
+        PtrParamNode rotNode = regionNodes[i]->Get("matRotation", ParamNode::PASS );
 
         Vector<Double> rotVec (3);
         rotVec.Init();
@@ -1746,7 +1746,7 @@ namespace CoupledField {
         // 2D, -> material is rotated by
         // alpha = -90 and gamma = -90 degree,
         // so that we pick by default the yz-plane
-        if( !rotNode->HasChildren() ) {
+        if( !rotNode ) {
           if( dim_ == 2) {
             rotVec[0] = -90.0;
             rotVec[2] = -90.0;
@@ -1755,9 +1755,9 @@ namespace CoupledField {
           }
           continue;
         } else {
-          rotNode->Get( "alpha", rotVec[0] );
-          rotNode->Get( "beta", rotVec[1] );
-          rotNode->Get( "gamma", rotVec[2] );
+          rotNode->GetValue( "alpha", rotVec[0] );
+          rotNode->GetValue( "beta", rotVec[1] );
+          rotNode->GetValue( "gamma", rotVec[2] );
 
           materials_[actRegionId]->
             RotateAllTensorsByRotationAngles( rotVec, true );
@@ -1785,8 +1785,8 @@ namespace CoupledField {
 
       try{
         // get data from node
-        regionNodes[i]->Get( "name", region );
-        regionNodes[i]->Get( "composite", composite );
+        regionNodes[i]->GetValue( "name", region );
+        regionNodes[i]->GetValue( "composite", composite );
 
         // get regionId
         RegionIdType actRegionId = ptgrid_->GetRegion().Parse( region );
@@ -1804,17 +1804,17 @@ namespace CoupledField {
         out.str("");
 
         // get composite node
-        ParamNode * compNode = NULL;
+        PtrParamNode compNode;
         try {
           compNode = param->Get("domain")
-            ->Get("composite", "name", composite );
+            ->GetByVal("composite", "name", composite );
         } catch( Exception& ex ) {
           RETHROW_EXCEPTION( ex, "No composite material defined with name '"
                              << composite << "'" );
         }
 
         // get laminaNodes
-        StdVector<ParamNode*> laminaNodes = compNode->GetList("lamina");
+        ParamNodeList laminaNodes = compNode->GetList("lamina");
 
         // Create new lamina and fill ine materials and thicknesses
         Composite & myMat = compositeMaterials_[actRegionId];
@@ -1827,9 +1827,9 @@ namespace CoupledField {
           std::string lamMaterial;
           Double lamThickness, lamOrientation;
 
-          laminaNodes[j]->Get( "material", lamMaterial);
-          laminaNodes[j]->Get( "thickness", lamThickness);
-          laminaNodes[j]->Get( "orientation", lamOrientation);
+          laminaNodes[j]->GetValue( "material", lamMaterial);
+          laminaNodes[j]->GetValue( "thickness", lamThickness);
+          laminaNodes[j]->GetValue( "orientation", lamOrientation);
 
           // Print information
           out << " --- Lamina " << j+1 << ": thickness = "
@@ -1854,7 +1854,7 @@ namespace CoupledField {
     // once again: loop over all regions and make sure that there is either
     // a normal material or a composite material
     for( i = 0; i < numRegions; ++i ) {
-      regionNodes[i]->Get( "name", region );
+      regionNodes[i]->GetValue( "name", region );
       RegionIdType actRegionId = ptgrid_->GetRegion().Parse( region );
       if (subdoms_.Find(actRegionId) < 0)
         continue;
@@ -2899,11 +2899,11 @@ namespace CoupledField {
   void SinglePDE::ReadDataPML(std::string& dampingTypePML,
                               Matrix<Double>& inner,
                               Double& dampPML,
-                              ParamNode * actNode ) {
+                              PtrParamNode actNode ) {
 
 
     // Check, if pml node has a child "propRegion"
-    ParamNode * propRegionNode = actNode->Get( "propRegion", false );
+    PtrParamNode propRegionNode = actNode->Get( "propRegion", ParamNode::PASS );
 
     // If no propagation region is defined explicitly, we
     // let the method GetPMLLayerData() extract the geometric information
@@ -2915,31 +2915,31 @@ namespace CoupledField {
       inner.Init();
 
       //xMin
-      propRegionNode->Get( "xMin", inner[0][0] );
+      propRegionNode->GetValue( "xMin", inner[0][0] );
 
       //xMax
-      propRegionNode->Get( "xMax", inner[1][0] );
+      propRegionNode->GetValue( "xMax", inner[1][0] );
 
       //yMin
-      propRegionNode->Get( "yMin", inner[0][1] );
+      propRegionNode->GetValue( "yMin", inner[0][1] );
 
       //yMax
-      propRegionNode->Get( "yMax", inner[1][1] );
+      propRegionNode->GetValue( "yMax", inner[1][1] );
 
       if ( dim_ == 3 ) {
         //zMin
-        propRegionNode->Get( "zMin", inner[0][2] );
+        propRegionNode->GetValue( "zMin", inner[0][2] );
 
         //zMax
-        propRegionNode->Get( "zMax", inner[1][2] );
+        propRegionNode->GetValue( "zMax", inner[1][2] );
       }
     }
 
     //get type of damping function
-    actNode ->Get( "type", dampingTypePML );
+    actNode ->GetValue( "type", dampingTypePML );
 
     //get factor for damping function
-    actNode->Get( "dampFactor", dampPML );
+    actNode->GetValue( "dampFactor", dampPML );
 
   }
 
@@ -3109,29 +3109,29 @@ namespace CoupledField {
     if ( isPiezo ) {
 
       //      found = true;
-      ParamNode * nonLinNode = NULL;
-      nonLinNode = (*couplings)[idx]->GetParamNode()->Get("nonLinList", false);
+      PtrParamNode nonLinNode;
+      nonLinNode = (*couplings)[idx]->GetParamNode()->Get("nonLinList", ParamNode::PASS);
       if ( !nonLinNode )
         return false;
 
-      ParamNode* regionNode = NULL;
+      PtrParamNode regionNode;
       if (  (*couplings)[idx]->GetParamNode()->
-            Get("regionList")->Has("region", "name", regionName) ) {
+            Get("regionList")->HasByVal("region", "name", regionName) ) {
         regionNode = (*couplings)[idx]->GetParamNode()->
-          Get("regionList")->Get("region", "name", regionName);
+          Get("regionList")->GetByVal("region", "name", regionName);
       }
       if( !regionNode)
         return false;
 
       // check for nonLin Id
       std::string nonLinId;
-      regionNode->Get("nonLinId", nonLinId, false);
+      regionNode->GetValue("nonLinId", nonLinId, ParamNode::PASS);
 
       if (nonLinId == "" )
         return false;
 
       // check for hystersis nonlinearity
-      isHyst = nonLinNode->Has("hysteresis", "id", nonLinId);
+      isHyst = nonLinNode->HasByVal("hysteresis", "id", nonLinId);
       return isHyst;
     }
 
@@ -3187,34 +3187,34 @@ namespace CoupledField {
 
     if ( isPiezo ) {
 
-      ParamNode * cplNode = (*couplings)[idx]->GetParamNode();
+      PtrParamNode cplNode = (*couplings)[idx]->GetParamNode();
       if(! cplNode->HasChildren() )
         return false;
       
       // found = true;
-      ParamNode * nonLinNode = NULL;
+      PtrParamNode nonLinNode;
       if(cplNode->Has("nonLinList") )
-        nonLinNode = cplNode->Get("nonLinList", false);
+        nonLinNode = cplNode->Get("nonLinList", ParamNode::PASS);
       if ( !nonLinNode )
         return false;
 
-      ParamNode* regionListNode = NULL;
+      PtrParamNode regionListNode;
       if(cplNode->Has("regionList") )
         regionListNode = cplNode->Get("regionList");
       
-      if(!regionListNode->Has("region", "name", regionName));
+      if(!regionListNode->HasByVal("region", "name", regionName));
         return false;
 
       // check for nonLin Id
       std::string nonLinId;
-      ParamNode* regionNode = regionListNode->Get("region", "name", regionName);
-      regionNode->Get("nonLinId", nonLinId, false);
+      PtrParamNode regionNode = regionListNode->GetByVal("region", "name", regionName);
+      regionNode->GetValue("nonLinId", nonLinId, ParamNode::PASS);
 
       if (nonLinId == "" )
         return false;
 
       // check for micro-piezo
-       isMicroPiezo = nonLinNode->Has("piezoMicroHF", "id", nonLinId);
+       isMicroPiezo = nonLinNode->HasByVal("piezoMicroHF", "id", nonLinId);
       return isMicroPiezo;
     }
 

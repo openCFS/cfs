@@ -23,7 +23,7 @@
 #include "OLAS/algsys/baseidbchandler.hh"
 
 #include "DataInOut/programOptions.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 
 namespace CoupledField {
@@ -32,7 +32,7 @@ namespace CoupledField {
   // ***********************
   //   Default Constructor
   // ***********************
-  SBM_System::SBM_System(ParamNode* pn) : BaseSystem(pn) {
+  SBM_System::SBM_System(PtrParamNode pn) : BaseSystem(pn) {
 
 
     precond_             = NULL;
@@ -232,10 +232,10 @@ namespace CoupledField {
 
     // Obtain symmetry flag
     sbmSymm_ = false;    
-    ParamNode * matrixNode = NULL;
+    PtrParamNode matrixNode;
     
-    matrixNode = xml_->Get("sbmMatrix", false);
-    matrixNode->Get("symmetric", sbmSymm_, false);
+    matrixNode = xml_->Get("sbmMatrix", ParamNode::INSERT);
+    matrixNode->GetValue("symmetric", sbmSymm_, ParamNode::INSERT);
 
     // Determine the set of sub-matrices that we need for the system matrix
     // There are two different cases:
@@ -285,7 +285,7 @@ namespace CoupledField {
     // Obtain some info from parameter file
     BaseMatrix::EntryType entryType;
     std::string entryStr = "double";
-    matrixNode->Get("entry", entryStr, false);
+    matrixNode->GetValue("entry", entryStr, ParamNode::INSERT);
     entryType = BaseMatrix::entryType.Parse( entryStr );
 
     for ( fIt = matrixTypes_.begin(); fIt != matrixTypes_.end(); fIt++ ) {
@@ -300,12 +300,12 @@ namespace CoupledField {
     // Check the case we have (elimination vs. penalty) and generate
     // an appropriate object for handling inhomogeneous Dirichlet
     // boundary conditions
-    ParamNode * setupNode = NULL;
+    PtrParamNode setupNode;
     std::string idbcHandlingStr = "penalty";
     bool usePenaltyFormulation = true;
     
-    setupNode = xml_->Get("setup", false);
-    setupNode->Get("idbcHandling", idbcHandlingStr, false);
+    setupNode = xml_->Get("setup", ParamNode::INSERT);
+    setupNode->GetValue("idbcHandling", idbcHandlingStr, ParamNode::INSERT);
     if(idbcHandlingStr == "penalty") {
       usePenaltyFormulation = true;
     } else {
@@ -620,12 +620,12 @@ namespace CoupledField {
       }
     }
 
-    ParamNode * setupNode = NULL;
+    PtrParamNode setupNode;
     std::string idbcHandlingStr = "penalty";
     bool usePenaltyFormulation = true;
     
-    setupNode = xml_->Get("setup", false);
-    setupNode->Get("idbcHandling", idbcHandlingStr, false);
+    setupNode = xml_->Get("setup", ParamNode::INSERT);
+    setupNode->GetValue("idbcHandling", idbcHandlingStr, ParamNode::INSERT);
     if(idbcHandlingStr == "penalty") {
       usePenaltyFormulation = true;
     } else {
@@ -841,7 +841,7 @@ namespace CoupledField {
   // *********
   //   Solve
   // *********
-  void SBM_System::Solve(InfoNode* analysis_id) {
+  void SBM_System::Solve(PtrParamNode analysis_id) {
 
 
     // If the penalty formulation is used and we have inhomogeneous
@@ -863,7 +863,7 @@ namespace CoupledField {
 
 
     // Assume that everything will go well
-    InfoNode* out = olasInfo_->Get(InfoNode::PROCESS)->Get("solver", InfoNode::APPEND);
+    PtrParamNode out = olasInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
     out->Get("solutionIsOkay")->SetValue(true);
 
     // Now modifiy the right-hand side vector
@@ -873,7 +873,7 @@ namespace CoupledField {
     // the solve part is commentet out, I see no reason to export linsys also here, it would
     // require a generalization anyway. Fabian 16.11.07
     // check if we do export stuff
-     ParamNode* els = xml_ != NULL && xml_->Has("exportLinSys") ? xml_->Get("exportLinSys") : NULL;
+     PtrParamNode els = xml_->Get("exportLinSys", ParamNode::PASS );
      std::string file;
      std::string base;
 
@@ -881,19 +881,19 @@ namespace CoupledField {
      // need it common even when exclusive solution
      if(els) {
        std::ostringstream os;
-       std::string name = els->Has("baseName") ? els->Get("baseName")->AsString() : progOpts->GetSimName();
+       std::string name = els->Has("baseName") ? els->Get("baseName")->As<std::string>() : progOpts->GetSimName();
        os << name;
-       std::string id = analysis_id->Get("analysis_id")->AsString();
+       std::string id = analysis_id->Get("analysis_id")->As<std::string>();
        boost::replace_all(id, ":", "_");
        os << "_" << id;
        base = os.str();
      }
 
      // check if we do not only want the solution
-     if(els && els->Get("solution")->AsString() != "exclusive")
+     if(els && els->Get("solution")->As<std::string>() != "exclusive")
      {
        // two formats. The harwell-boing format includes the rhs!
-       if(els->Get("format")->AsString()  == "harwell-boeing")
+       if(els->Get("format")->As<std::string>()  == "harwell-boeing")
        {
          EXCEPTION( "Harwell-Boeing Format not implemented for SBM-case" );
        }
@@ -901,17 +901,17 @@ namespace CoupledField {
        {
          sysMat_[SYSTEM]->Export((base+".mtx").c_str() );
 
-         if(els->Has("damping", true) && sysMat_[DAMPING] != NULL)
+         if(els->HasByVal("damping", true) && sysMat_[DAMPING] != NULL)
            sysMat_[DAMPING]->Export((base+"_damping.mtx").c_str() );
 
-         if(els->Has("auxiliary", true) && sysMat_[AUXILIARY] != NULL)
+         if(els->HasByVal("auxiliary", true) && sysMat_[AUXILIARY] != NULL)
            sysMat_[AUXILIARY]->Export((base+"_aux.mtx").c_str() );
 
          // rhs is only in harwell-boing included
          rhs_->Export((base+".vec").c_str() );
        }
      }
-     if(els && els->Has("initialGuess", true))
+     if(els && els->HasByVal("initialGuess", true))
            sol_->Export((base+"_intial_guess.vec").c_str());
 
     // Trigger solution
@@ -921,7 +921,7 @@ namespace CoupledField {
     idbcHandler_->RemoveIDBCFromRHS( rhs_ );
 
     // Check that solution went fine, if not issue a warning
-    if ( out->Get("solutionIsOkay")->AsBool() == false ) {
+    if ( out->Get("solutionIsOkay")->As<bool>() == false ) {
       WARN("Solver reports a problem! Consult .las file for "
            << "further diagnostics!");
     }
@@ -1064,7 +1064,7 @@ namespace CoupledField {
   // ***************
   //   SetupSolver
   // ***************
-  void SBM_System::SetupSolver(InfoNode* analysis_id) {
+  void SBM_System::SetupSolver(PtrParamNode analysis_id) {
     solver_->Setup( *sysMat_[SYSTEM]);
   }
 

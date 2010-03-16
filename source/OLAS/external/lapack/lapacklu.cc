@@ -20,7 +20,7 @@ namespace CoupledField {
   // *****************************
   //   Constructor (for factory)
   // *****************************
-  Lapack_LU::Lapack_LU( ParamNode* solverNode, InfoNode *olasInfo )
+  Lapack_LU::Lapack_LU( PtrParamNode solverNode, PtrParamNode olasInfo )
     : pivots_(NULL), facmat_(NULL), amFactorised_(false) {
 
     xml_ = solverNode;
@@ -43,8 +43,8 @@ namespace CoupledField {
   //   Alternate Constructor
   // *************************
   Lapack_LU::Lapack_LU( BaseMatrix &mat,
-                        ParamNode* solverNode, 
-			                  InfoNode *olasInfo )
+                        PtrParamNode solverNode, 
+			                  PtrParamNode olasInfo )
     : pivots_(NULL), facmat_(NULL), amFactorised_(false) {
 
     xml_ = solverNode;
@@ -77,7 +77,7 @@ namespace CoupledField {
   // ********************************
   //   Setup: Perform Factorisation
   // ********************************
-  void Lapack_LU::Setup( BaseMatrix &sysmat, InfoNode* analysis_step ) {
+  void Lapack_LU::Setup( BaseMatrix &sysmat, PtrParamNode analysis_step ) {
     PrivateSetup( sysmat );
   }
 
@@ -160,10 +160,10 @@ namespace CoupledField {
     // =======================================================
     bool tryScaling = true;
       
-    ParamNode *sNode = NULL;
-    sNode = xml_->Get("lapackLU", false);
+    PtrParamNode sNode;
+    sNode = xml_->Get("lapackLU", ParamNode::INSERT);
     if(sNode) {
-      sNode->Get("tryScaling", tryScaling, false);
+      sNode->GetValue("tryScaling", tryScaling, ParamNode::INSERT );
     }
     
     if ( tryScaling ) {
@@ -323,10 +323,10 @@ namespace CoupledField {
 
     bool tryScaling = true;
       
-    ParamNode *sNode = NULL;
-    sNode = xml_->Get("lapackLU", false);
+    PtrParamNode sNode;
+    sNode = xml_->Get("lapackLU", ParamNode::INSERT);
     if(sNode) {
-      sNode->Get("tryScaling", tryScaling, false);
+      sNode->GetValue("tryScaling", tryScaling, ParamNode::INSERT );
     }
     
     if ( tryScaling ) {
@@ -461,7 +461,7 @@ namespace CoupledField {
   //   Solve linear system
   // ***********************
   void Lapack_LU::Solve( const BaseMatrix &sysmat, const BasePrecond &precond,
-      const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_step ) {
+      const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
 
 
     // Are we expected to be verbose?
@@ -614,10 +614,10 @@ namespace CoupledField {
     // ==============================
     bool refineSol = true;
       
-    ParamNode *sNode = NULL;
-    sNode = xml_->Get("lapackLU", false);
+    PtrParamNode sNode;
+    sNode = xml_->Get("lapackLU", ParamNode::INSERT );
     if(sNode) {
-      sNode->Get("refineSol", refineSol, false);
+      sNode->GetValue("refineSol", refineSol, ParamNode::INSERT );
     }
     
     if ( refineSol ) {
@@ -678,7 +678,7 @@ namespace CoupledField {
     // from olasReport are actually meaningless in the context of a direct
     // solver. Nevertheless we supply some values for consistency
 
-    InfoNode* out = solverInfo_->Get(InfoNode::PROCESS)->Get("solver", InfoNode::APPEND);
+    PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
     out->Get("numIter")->SetValue(-1);
     out->Get("finalNorm")->SetValue(-1.0);
 
@@ -794,10 +794,10 @@ namespace CoupledField {
     // ==============================
     bool refineSol = true;
       
-    ParamNode *sNode = NULL;
-    sNode = xml_->Get("lapackLU", false);
+    PtrParamNode sNode;
+    sNode = xml_->Get("lapackLU", ParamNode::INSERT );
     if(sNode) {
-      sNode->Get("refineSol", refineSol, false);
+      sNode->GetValue("refineSol", refineSol, ParamNode::INSERT);
     }
     
     if ( refineSol ) {
@@ -866,7 +866,7 @@ namespace CoupledField {
     // Now this currently is of dubious value, since the two things queried
     // from olasReport are actually meaningless in the context of a direct
     // solver. Nevertheless we supply some values for consistency
-    InfoNode* out = solverInfo_->Get(InfoNode::PROCESS)->Get("solver", InfoNode::APPEND);
+    PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
     out->Get("numIter")->SetValue(-1);
     out->Get("finalNorm")->SetValue(-1.0);
 

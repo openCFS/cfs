@@ -7,14 +7,14 @@
 #include <sstream>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/WriteInfo.hh"
 
 namespace CoupledField{
 
   CylCoordSystem::CylCoordSystem(const std::string & name,
                                  Grid * ptGrid,
-                                 ParamNode * myParamNode ) 
+                                 PtrParamNode myParamNode ) 
     : CoordSystem( name, ptGrid, myParamNode ) {
     
     
@@ -296,27 +296,27 @@ namespace CoupledField{
     return ret;
   }
 
-  void CylCoordSystem::ToInfo( InfoNode * in ) {
+  void CylCoordSystem::ToInfo( PtrParamNode in ) {
 
     in = in->Get("cylindrical");
     
     in->Get("id")->SetValue(name_);
-    InfoNode * originNode = in->Get("origin");
+    PtrParamNode originNode = in->Get("origin");
     originNode->Get("x")->SetValue(origin_[0]);
     originNode->Get("y")->SetValue(origin_[1]);
     originNode->Get("z")->SetValue(origin_[2]);
     
-    InfoNode * rNode = in->Get("rAxis");
+    PtrParamNode rNode = in->Get("rAxis");
     rNode->Get("x")->SetValue(rAxis_[0]);
     rNode->Get("y")->SetValue(rAxis_[1]);
     rNode->Get("z")->SetValue(rAxis_[2]);
     
-    InfoNode * zNode = in->Get("zAxis");
+    PtrParamNode zNode = in->Get("zAxis");
     zNode->Get("x")->SetValue(zAxis_[0]);
     zNode->Get("y")->SetValue(zAxis_[1]);
     zNode->Get("z")->SetValue(zAxis_[2]);
     
-    InfoNode * rotNode = in->Get("rotationAngles");
+    PtrParamNode rotNode = in->Get("rotationAngles");
     rotNode->Get("alpha")->SetValue(Rad2Grad(rotationAng_[0]));
     rotNode->Get("beta")->SetValue(Rad2Grad(rotationAng_[1]));
     rotNode->Get("gamma")->SetValue(Rad2Grad(rotationAng_[2]));

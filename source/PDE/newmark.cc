@@ -17,7 +17,7 @@
 namespace CoupledField
 {
 
-  Newmark::Newmark(BaseSystem * algebraicsystem, ParamNode* systemNode )
+  Newmark::Newmark(BaseSystem * algebraicsystem, PtrParamNode systemNode )
     :TimeStepping(algebraicsystem )
   {
 
@@ -30,10 +30,10 @@ namespace CoupledField
     nu_ = 0.0;
 
     if ( systemNode->Has("timeSteppingParameters") ) {
-      ParamNode* myParam = systemNode->Get("timeSteppingParameters");
-      myParam->Get("beta", beta_, false);
-      myParam->Get("gamma", gamma_, false);
-      myParam->Get("nu", nu_, false);
+      PtrParamNode myParam = systemNode->Get("timeSteppingParameters");
+      myParam->GetValue("beta", beta_, ParamNode::PASS);
+      myParam->GetValue("gamma", gamma_, ParamNode::PASS);
+      myParam->GetValue("nu", nu_, ParamNode::PASS);
     }
 
     gamma_ = gamma_ + nu_;
@@ -213,7 +213,7 @@ namespace CoupledField
   // Effective Mass Matrix Formulation
   // ====================================================
 
-  NewmarkEffMass::NewmarkEffMass(BaseSystem * algebraicsystem, ParamNode* systemNode,
+  NewmarkEffMass::NewmarkEffMass(BaseSystem * algebraicsystem, PtrParamNode systemNode,
                                  bool intExplicit)
     :TimeStepping(algebraicsystem)
   { 
@@ -227,10 +227,10 @@ namespace CoupledField
     nu_ = 0.0;
 
     if ( systemNode->Has("timeSteppingParameters") ) {
-      ParamNode* myParam = systemNode->Get("timeSteppingParameters");
-      myParam->Get("beta", beta_, false);
-      myParam->Get("gamma", gamma_, false);
-      myParam->Get("nu", nu_, false);
+      PtrParamNode myParam = systemNode->Get("timeSteppingParameters");
+      myParam->GetValue("beta", beta_, ParamNode::PASS);
+      myParam->GetValue("gamma", gamma_, ParamNode::PASS);
+      myParam->GetValue("nu", nu_, ParamNode::PASS);
     }
 
     gamma_ = gamma_ + nu_;

@@ -44,7 +44,7 @@ namespace CoupledField {
   // =========================================================================
   // set solution information
   // =========================================================================
-    AcousticPDE::AcousticPDE( Grid* aptgrid, ParamNode* paramNode )
+    AcousticPDE::AcousticPDE( Grid* aptgrid, PtrParamNode paramNode )
       : SinglePDE( aptgrid, paramNode ) {
 
 
@@ -64,13 +64,13 @@ namespace CoupledField {
       //      mParser->SetExpr( mHandle_, "t" );
 
       // PDE formulation either in acoustic potential or pressure
-      std::string str = myParam_->Get("formulation")->AsString();
+      std::string str = myParam_->Get("formulation")->As<std::string>();
       formulation_ = SolutionTypeEnum.Parse(str);
       str = "Using * " + str + " as state variable in formulation of PDE\n";
       Info->PrintF( pdename_, str.c_str() );
 
       //compute on deformed geometry
-      str = myParam_->Get("updatedLagrange")->AsString();
+      str = myParam_->Get("updatedLagrange")->As<std::string>();
       if ( str == "yes" )
       {
         str = "Compute acoustic field on defomred geometry\n";
@@ -80,14 +80,14 @@ namespace CoupledField {
 
       // get geometry type
       std::string probGeo;
-      param->Get("domain")->Get("geometryType", probGeo );
+      param->Get("domain")->GetValue("geometryType", probGeo );
 
       // since we have no special subType as in mechanics, 
       // the subType 9is equal to the geometry type
       subType_ = probGeo;
 
       //To check if acoustic is coupled with nrbc and set isNrbcCoupled
-      myParam_->Get( "isCoupledNrbc", isNrbcCoupled_, false );
+      myParam_->GetValue( "isCoupledNrbc", isNrbcCoupled_, ParamNode::PASS );
 
     }
 
@@ -104,16 +104,16 @@ namespace CoupledField {
     std::map<std::string, shared_ptr<RaylDampingData> > idRaylData;
     
     // try to get dampingList
-    ParamNode * dampListNode = myParam_->Get( "dampingList", false );
+    PtrParamNode dampListNode = myParam_->Get( "dampingList", ParamNode::PASS );
     if( dampListNode ) {
 
       // get specific damping nodes
-      StdVector<ParamNode*> dampNodes = dampListNode->GetChildren();
+      ParamNodeList dampNodes = dampListNode->GetChildren();
 
       for( UInt i = 0; i < dampNodes.GetSize(); i++ ) {
 
         std::string dampString = dampNodes[i]->GetName();
-        std::string actId = dampNodes[i]->Get("id")->AsString();
+        std::string actId = dampNodes[i]->Get("id")->As<std::string>();
 
         // determine type of damping
         DampingType actType;
@@ -129,13 +129,13 @@ namespace CoupledField {
 
           // Gather additional information for fractional damping model
           std::string fracAlg = "gl";
-          dampNodes[i]->Get( "fracAlg", fracAlg, false );
+          dampNodes[i]->GetValue( "fracAlg", fracAlg, ParamNode::PASS);
 
           std::string interpol = "no";
-          dampNodes[i]->Get( "interpolation", interpol, false );
+          dampNodes[i]->GetValue( "interpolation", interpol, ParamNode::PASS );
 
           UInt fracMem = 1;
-          dampNodes[i]->Get( "fracMemory", fracMem, false );
+          dampNodes[i]->GetValue( "fracMemory", fracMem, ParamNode::PASS );
 
           if  ( fracAlg == "gl" ) {
             if (interpol == "no" )
@@ -165,16 +165,11 @@ namespace CoupledField {
           actRaylDamp->adjustDamping = true;
           actRaylDamp->ratioDeltaF = 0.01;
           actRaylDamp->freq = 0.0;
-          if( dampNodes[i]->Has("freq") ) {
-            dampNodes[i]->Get( "freq", actRaylDamp->freq);
-          }
-          if( dampNodes[i]->Has("ratioDeltaF") ) {
-            dampNodes[i]->Get( "ratioDeltaF", actRaylDamp->ratioDeltaF );
-          }
-          if( dampNodes[i]->Has("adjustDamping") ) {
-            actRaylDamp->adjustDamping = 
-                dampNodes[i]->Get( "adjustDamping")->AsBool();
-          }
+          dampNodes[i]->GetValue( "freq", actRaylDamp->freq, ParamNode::PASS);
+          dampNodes[i]->GetValue( "ratioDeltaF", actRaylDamp->ratioDeltaF,
+                             ParamNode::PASS );
+          dampNodes[i]->GetValue( "adjustDamping",actRaylDamp->adjustDamping,  
+                                  ParamNode::PASS);
           idRaylData[actId] = actRaylDamp;        
         }
 
@@ -189,7 +184,7 @@ namespace CoupledField {
     }
 
     // Run over all region and set entry in "regionNonLinId"
-    StdVector<ParamNode*> regionNodes =
+    ParamNodeList regionNodes =
       myParam_->Get("regionList")->GetChildren();
 
     RegionIdType actRegionId;
@@ -200,8 +195,8 @@ namespace CoupledField {
     }
 
     for (UInt k = 0; k < regionNodes.GetSize(); k++) {
-      regionNodes[k]->Get( "name", actRegionName );
-      regionNodes[k]->Get( "dampingId", actDampingId );
+      regionNodes[k]->GetValue( "name", actRegionName );
+      regionNodes[k]->GetValue( "dampingId", actDampingId );
       if( actDampingId == "" )
         continue;
 
@@ -259,12 +254,12 @@ namespace CoupledField {
     // ***************************************************************
     StdVector<std::string> auxVec;
     absorbingBCs_ = false;
-    ParamNode * bcNode = myParam_->Get( "bcsAndLoads", false );
+    PtrParamNode bcNode = myParam_->Get( "bcsAndLoads", ParamNode::PASS );
     if( bcNode ) {
-      StdVector<ParamNode*> abcNodes = bcNode->GetList( "absorbingBCs" );
+      ParamNodeList abcNodes = bcNode->GetList( "absorbingBCs" );
 
       for( UInt i = 0; i < abcNodes.GetSize(); i++ ) {
-        std::string regionName = abcNodes[i]->Get("name")->AsString();
+        std::string regionName = abcNodes[i]->Get("name")->As<std::string>();
         absBCs_.Push_back( ptgrid_
           ->GetEntityList( EntityList::SURF_ELEM_LIST,
                            regionName, EntityList::REGION ) );
@@ -284,15 +279,15 @@ namespace CoupledField {
 
     nonLin_ = false;
     // Check, if "nonLinList" is present
-    ParamNode * nonLinListNode = myParam_->Get("nonLinList", false );
+    PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
     if( nonLinListNode ) {
 
       // Get nonlinear types
-      StdVector<ParamNode*> nonLinNodes = nonLinListNode->GetChildren();
+      ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
       for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
 
         std::string actTypeString = nonLinNodes[i]->GetName();
-        std::string actId = nonLinNodes[i]->Get("id")->AsString();
+        std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
 
         NonLinType actType;
         String2Enum( actTypeString, actType );
@@ -301,7 +296,7 @@ namespace CoupledField {
     }
 
     // Run over all region and set entry in "regionNonLinId"
-    StdVector<ParamNode*> regionNodes =
+    ParamNodeList regionNodes =
       myParam_->Get("regionList")->GetChildren();
 
     RegionIdType actRegionId;
@@ -312,8 +307,8 @@ namespace CoupledField {
     }
     for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
 
-      regionNodes[i]->Get( "name", actRegionName );
-      regionNodes[i]->Get( "nonLinId", actNonLinId );
+      regionNodes[i]->GetValue( "name", actRegionName );
+      regionNodes[i]->GetValue( "nonLinId", actNonLinId );
 
       if( actNonLinId == "" )
         continue;
@@ -387,8 +382,8 @@ namespace CoupledField {
       std::string actRegionName;
       actRegionName = ptgrid_->GetRegion().ToString( actRegion );
 
-      ParamNode * actRegionNode =
-        myParam_->Get("regionList")->Get( "region", "name", actRegionName );
+      PtrParamNode actRegionNode =
+        myParam_->Get("regionList")->GetByVal( "region", "name", actRegionName );
 
       // ********************************************************************
       //   Attention:
@@ -422,8 +417,8 @@ namespace CoupledField {
         //damping factor
         Double dampPML;
         
-        std::string id = actRegionNode->Get("dampingId")->AsString();
-        ParamNode * pmlNode = myParam_->Get("dampingList")->Get("pml", "id", id);
+        std::string id = actRegionNode->Get("dampingId")->As<std::string>();
+        PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml", "id", id);
         ReadDataPML(dampingTypePML, inner, dampPML, pmlNode );
         dampPML *= c0;
         
@@ -707,7 +702,7 @@ namespace CoupledField {
             EXCEPTION("Pierce-Equation just possible in velocity potential formulation" );
 
           //read flow data
-          ParamNode * flowNode = regionFlowNodes_[actRegion];
+          PtrParamNode flowNode = regionFlowNodes_[actRegion];
           SimpleFlow* flowData = new SimpleFlow();
           flowData->ReadFlowData( flowNode, dim_);
 
@@ -745,8 +740,9 @@ namespace CoupledField {
           //type of damping fnc
           std::string dampFnc;
 
-          std::string id = actRegionNode->Get("dampingId")->AsString();
-          ParamNode * dampLayerNode = myParam_->Get("dampingList")->Get("dampLayer", "id", id);
+          std::string id = actRegionNode->Get("dampingId")->As<std::string>();
+          PtrParamNode dampLayerNode = myParam_->Get("dampingList")
+              ->GetByVal("dampLayer", "id", id);
 
           //damping data
           Double dampFactor, dampFactorMax, startRadius, stopRadius;
@@ -1010,8 +1006,8 @@ namespace CoupledField {
     // =======================================================================
     // Integrators for NonConforming Interfaces
     // =======================================================================
-    ParamNode* ncIfaceListNode
-        = param->Get("domain")->Get("ncInterfaceList", false);
+    PtrParamNode ncIfaceListNode
+        = param->Get("domain")->Get("ncInterfaceList", ParamNode::PASS);
 
     // Get index of LAGRANGE_MULT result, just in case... who knows...
     UInt lmResultIdx = 0;
@@ -1034,9 +1030,9 @@ namespace CoupledField {
       if (!ncIfaceListNode) {
         EXCEPTION("No ncInterfaces defined in domain section.");
       }
-      ParamNode* curNciNode = ncIfaceListNode->Get("ncInterface", "name",
+      PtrParamNode curNciNode = ncIfaceListNode->GetByVal("ncInterface", "name",
                                                    ncIfaceName);
-      slaveSide = curNciNode->Get("slaveSide")->AsString();
+      slaveSide = curNciNode->Get("slaveSide")->As<std::string>();
 
       // Part 1: Define integrator M(Psi, Lambda) on
       //         non-conforming interface
@@ -1095,23 +1091,22 @@ namespace CoupledField {
     shared_ptr<NodeList> acouRHSRegionNodeList( new NodeList(ptgrid_ ) );
 
     std::string rhsRegion;
-    ParamNode* rhsValuesNode = NULL;
-    ParamNode* bcsNode = NULL;
+    PtrParamNode rhsValuesNode, bcsNode;
 
-    bcsNode = myParam_->Get("bcsAndLoads", false );
+    bcsNode = myParam_->Get("bcsAndLoads", ParamNode::PASS );
     if( bcsNode )
-      rhsValuesNode = bcsNode->Get("rhsValues", false);
-    if(!rhsValuesNode->HasChildren())
+      rhsValuesNode = bcsNode->Get("rhsValues", ParamNode::PASS );
+    if(!rhsValuesNode)
       return;
 
     try
     {
-      rhsRegion = rhsValuesNode->Get("region")->AsString();
-      ParamNode* intNode = NULL;
+      rhsRegion = rhsValuesNode->Get("region")->As<std::string>();
+      PtrParamNode intNode;
       if(rhsValuesNode->Has("interpolation"))
       {
-        intNode = rhsValuesNode->Get("interpolation", false);
-        intNode->Get("justInterpolate", justInterpolate_, false);
+        intNode = rhsValuesNode->Get("interpolation", ParamNode::PASS);
+        intNode->GetValue("justInterpolate", justInterpolate_, ParamNode::PASS);
       }
     } catch (Exception& ex)
     {
@@ -1131,7 +1126,7 @@ namespace CoupledField {
       assemble_->AddLinearForm( acouRHSContext );
 
       //
-      rhsValuesNode->Get("inputId", fileName4GridDisplacements_ );
+      rhsValuesNode->GetValue("inputId", fileName4GridDisplacements_ );
       regions4GridDisplacements_.Push_back(rhsRegion);
 
     }
@@ -1149,13 +1144,13 @@ namespace CoupledField {
   void AcousticPDE::InitTimeStepping() {
 
 	  // timestepping formulation
-	  ParamNode* myLinSysNode = FindLinearSystem( pdename_ );
+	  PtrParamNode myLinSysNode = FindLinearSystem( pdename_ );
 
 	  // <system name="acoustic"/> exists
 	  if( myLinSysNode ) {
 
 	    std::string str = "";
-	    myLinSysNode->Get( "timeSteppingFormulation", str,  false );
+	    myLinSysNode->GetValue( "timeSteppingFormulation", str,  ParamNode::PASS );
 	    if ( str == "effMassMatrix" ) {
 	      effectiveMass_ = true;
 	      Info->PrintF( pdename_,
@@ -1174,7 +1169,7 @@ namespace CoupledField {
 	    }
 	  }
 
-	  ParamNode* systemNode = FindLinearSystem(pdename_);
+	  PtrParamNode systemNode = FindLinearSystem(pdename_);
 	  
     // this includes rayleigh and thermoviscous damping
     if ( fracDamping_ == false ) {
@@ -2479,7 +2474,7 @@ namespace CoupledField {
 
     // === NODE POTENTIAL / PRESSURE (Primary Unknown) ===
     // check if problem is lagrange or legendre
-    std::string approxType = myParam_->Get("type")->AsString();
+    std::string approxType = myParam_->Get("type")->As<std::string>();
 
     // Create new resultDof object
     shared_ptr<ResultInfo> res1(new ResultInfo);
@@ -2498,14 +2493,14 @@ namespace CoupledField {
       res1->definedOn = ResultInfo::NODE;
       res1->fctType = fct;
     }else if(  approxType == "spectral" ) {
-      UInt order = myParam_->Get("order")->AsUInt();
+      UInt order = myParam_->Get("order")->As<UInt>();
       shared_ptr<SpectralFct> fct(new SpectralFct);
       res1->definedOn = ResultInfo::PFEM;
       fct->SetOrder(order);
       res1->fctType = fct;
 
     } else {
-      UInt order = myParam_->Get("order")->AsUInt();
+      UInt order = myParam_->Get("order")->As<UInt>();
 
       // Create new resultDof object
       shared_ptr<LegendreFct> fct(new LegendreFct);
@@ -2548,14 +2543,14 @@ namespace CoupledField {
         res2->unit = "m/s";
         res2->entryType = ResultInfo::VECTOR;
         
-        std::string approxTypeV = myParam_->Get("type")->AsString();
+        std::string approxTypeV = myParam_->Get("type")->As<std::string>();
         if ( approxTypeV == "lagrange" ) {
           shared_ptr<AnsatzFct> fctV(new LagrangeFct);
           res2->fctType = fctV;
           res2->definedOn = ResultInfo::NODE;
         } 
         else {
-          UInt order = myParam_->Get("order")->AsUInt();
+          UInt order = myParam_->Get("order")->As<UInt>();
           
           // Create new resultDof object
           shared_ptr<LegendreFct> fct(new LegendreFct);
@@ -2715,28 +2710,26 @@ namespace CoupledField {
     LOG_DBG2(acoupde) << "NonMatching: Checking if nonconforming "
                       << "interfaces of PDE exist in domain.";
 
-    ParamNode* domainNCIfaceListNode;
-    domainNCIfaceListNode = param->Get("domain")->Get("ncInterfaceList", false);
+    PtrParamNode domainNCIfaceListNode;
+    domainNCIfaceListNode = param->Get("domain")->Get("ncInterfaceList", ParamNode::PASS);
 
     if(domainNCIfaceListNode)
     {
-      ParamNode* ncInterfaceListNode =
-        param->Get("sequenceStep", std::string("index"), sequenceStep_)
-        ->Get("pdeList")->Get("acoustic")->Get("ncInterfaceList", false);
-      StdVector<ParamNode*> pdeNCIfaceNodes;
+      PtrParamNode ncInterfaceListNode =
+        param->GetByVal("sequenceStep", std::string("index"), sequenceStep_)
+        ->Get("pdeList")->Get("acoustic")->Get("ncInterfaceList", ParamNode::PASS);
+      ParamNodeList pdeNCIfaceNodes;
 
       if(ncInterfaceListNode)
       {
         pdeNCIfaceNodes = ncInterfaceListNode->GetList("ncInterface");
 
         for (UInt i = 0; i < pdeNCIfaceNodes.GetSize(); i++) {
-          std::string pdeIfaceName = pdeNCIfaceNodes[i]->Get("name")->AsString();
+          std::string pdeIfaceName = pdeNCIfaceNodes[i]->Get("name")->As<std::string>();
           std::string domainIfaceName;
 
-          ParamNode* domainIfaceNode = domainNCIfaceListNode->Get("ncInterface",
-              "name",
-              pdeIfaceName,
-              false);
+          PtrParamNode domainIfaceNode = domainNCIfaceListNode->GetByVal("ncInterface",
+              "name", pdeIfaceName, ParamNode::PASS);
           if(!domainIfaceNode)
           {
             LOG_DBG2(acoupde) << "NonMatching: Nonconforming "
@@ -2775,13 +2768,13 @@ namespace CoupledField {
   void AcousticPDE::ReadFlowData() {
 
     // check if bcsNode is present
-    ParamNode * bcsNode = myParam_->Get("bcsAndLoads", false );
+    PtrParamNode bcsNode = myParam_->Get("bcsAndLoads", ParamNode::PASS );
     if( !bcsNode) return;
 
     // get nodes with flowData
-    StdVector<ParamNode*> flowNodes = bcsNode->GetList("flowData");
+    ParamNodeList flowNodes = bcsNode->GetList("flowData");
     for( UInt i = 0; i < flowNodes.GetSize(); i++ ) {
-      std::string regionName = flowNodes[i]->Get("region")->AsString();
+      std::string regionName = flowNodes[i]->Get("region")->As<std::string>();
       RegionIdType regionId = ptgrid_->GetRegion().Parse(regionName);
 
       // store information about flow
@@ -2797,7 +2790,7 @@ namespace CoupledField {
                                        Double& dampFactorMax,
                                        Double& startRadius,
                                        Double& endRadius,
-                                       ParamNode * actNode ) {
+                                       PtrParamNode actNode ) {
 
 
 
@@ -2805,27 +2798,27 @@ namespace CoupledField {
     StdVector<std::string> stringVal;
 
     // Construct vectors for restricted parameter search
-    actNode->Get( "type", dampingTypePML );
+    actNode->GetValue( "type", dampingTypePML );
 
     //get the center point
     mPoint.Resize(dim_);
 
     //xM, yM,
-    actNode->Get( "xM", mPoint[0] );
-    actNode->Get( "yM", mPoint[1] );
+    actNode->GetValue( "xM", mPoint[0] );
+    actNode->GetValue( "yM", mPoint[1] );
 
     if ( dim_ == 3 ) {
       //zM
-      actNode->Get( "zM", mPoint[2] );
+      actNode->GetValue( "zM", mPoint[2] );
     }
 
     //start radius, end radius, dampFactor
-    actNode->Get( "radiusStart", startRadius );
-    actNode->Get( "radiusEnd", endRadius );
-    actNode->Get( "dampFactor", dampFactor );
+    actNode->GetValue( "radiusStart", startRadius );
+    actNode->GetValue( "radiusEnd", endRadius );
+    actNode->GetValue( "dampFactor", dampFactor );
 
     //get maximal damping factor (saturation)
-    actNode->Get( "dampFactorMax", dampFactorMax );
+    actNode->GetValue( "dampFactorMax", dampFactorMax );
   }
 
 } // end of namespace

@@ -17,7 +17,7 @@ namespace CoupledField
   class StdMatrix;
   class SingleVector;
   class PatternPool;
-  class InfoNode;
+  class ParamNode;
 
   //! Linear algebraic system for normal scalar- and blocksystems
 
@@ -39,7 +39,7 @@ namespace CoupledField
     //! This is the default constructor. It will perform some initial memory
     //! allocation (e.g. for the array of matrices) and set some default
     //! values.
-    StandardSystem(ParamNode* xml = NULL);
+    StandardSystem(PtrParamNode xml = PtrParamNode());
 
     //! Destructor
 
@@ -103,7 +103,7 @@ namespace CoupledField
     //! is especially important for direct solvers, where typically the
     //! factorisation of the problem matrix will be performed at this stage.
     //! The setup is performed using the system matrix of the linear system.
-    void SetupSolver(InfoNode* analysis_id);
+    void SetupSolver(PtrParamNode analysis_id);
 
     //! Trigger setup of eigenvalue solver
 
@@ -129,7 +129,7 @@ namespace CoupledField
     //! \note This method must not be called if an eigenfrequency analysis
     //! is performed, since this method is only used to solve a system of the
     //! form Ax=b.
-    void Solve(InfoNode* analysis_id);
+    void Solve(PtrParamNode analysis_id);
 
     //! Calculate eigenfrequencies of a generalized eigenvalue problem
 

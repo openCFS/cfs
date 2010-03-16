@@ -22,7 +22,7 @@ namespace CoupledField {
     /*!
       \param aGrid pointer to grid
     */
-    AcousticPDE(Grid* aGrid, ParamNode* paramNode );
+    AcousticPDE(Grid* aGrid, PtrParamNode paramNode );
 
     //! Destructor
     virtual ~AcousticPDE(){};
@@ -229,12 +229,12 @@ namespace CoupledField {
 			   Double& dampFactorMax, 
 			   Double& startRadius, 
 			   Double& endRadius, 
-			   ParamNode * actNode );
+			   PtrParamNode actNode );
 
     //! 
 
     //! map storing for each region the related flowData node
-    std::map<RegionIdType, ParamNode*> regionFlowNodes_;
+    std::map<RegionIdType, PtrParamNode> regionFlowNodes_;
 
     //! Handle for MathParser object
     MathParser::HandleType mHandle_;

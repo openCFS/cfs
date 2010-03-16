@@ -21,7 +21,6 @@ namespace CoupledField {
   class TimeFunc;
   class Timer;
   class StdPDE;
-  class InfoNode;
 
   //! Class for assembling element/entities matrices and RHS vectors
   class Assemble : public Scriptable {
@@ -80,7 +79,7 @@ namespace CoupledField {
     bool IsMatrixUpdated(){ return matrixUpdated_;}
 
     /** Append info about registered (bi)linearforms */
-    void ToInfo(InfoNode* in);
+    void ToInfo(PtrParamNode in);
 
     /** <p>The PDEs don't know their own Integrators (the Element matrices K_{uu},
      *  ...) but when one wants to use it, we have to get it back from the
@@ -220,7 +219,7 @@ namespace CoupledField {
     //! Handle for MathParser object
     MathParser::HandleType mHandle_;
 
-    /** The object is within a InfoNode and deleted there! */
+    /** The object is within a ParamNode and deleted there! */
     Timer* timer_;
   };
 }

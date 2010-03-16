@@ -6,7 +6,7 @@
 #include "PDE/SinglePDE.hh"
 #include "Elements/basefe.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Utils/Timer.hh"
 #include "DataInOut/Logging/cfslog.hh"
 
@@ -16,10 +16,11 @@ using namespace CoupledField;
 DECLARE_LOG(df)
 DEFINE_LOG(df, "designFilter")
 
-DesignFilter::DesignFilter(SIMP* simp, ParamNode* pn)
+DesignFilter::DesignFilter(SIMP* simp, PtrParamNode pn)
 {
-  info_ = info->Get("optimization")->Get(InfoNode::HEADER)->Get("regularization/filter", InfoNode::APPEND);
-  timer_ = info_->SetValue(new Timer());
+  info_ = info->Get("optimization")->Get(ParamNode::HEADER)->Get("regularization/filter", ParamNode::APPEND);
+  timer_ = new Timer();
+  info_->SetValue(timer_);
   timer_->Start();
 
   Grid* grid = domain->GetGrid();
@@ -58,8 +59,8 @@ DesignFilter::DesignFilter(SIMP* simp, ParamNode* pn)
     grid->CalcVolumeSpannedByNamedNodes(&dimension);
   }
 
-  filter = DesignElement::filter.Parse(pn->Get("type"));
-  value  = pn->Get("value")->AsDouble();
+  filter = DesignElement::filter.Parse(pn->Get("type")->As<std::string>());
+  value  = pn->Get("value")->As<Double>();
 
   info_->Get("type")->SetValue(DesignElement::filter.ToString(filter));
   info_->Get("value")->SetValue(value);

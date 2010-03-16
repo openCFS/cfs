@@ -11,7 +11,7 @@ namespace CoupledField
   class IPOPTHolder : public BaseOptimizer
   {
   public:
-    IPOPTHolder(Optimization* optimization, ParamNode* pn) : BaseOptimizer(optimization, pn)
+    IPOPTHolder(Optimization* optimization, PtrParamNode pn) : BaseOptimizer(optimization, pn)
     {
       ipopt_ = new IPOPT(optimization, this, pn);
     }

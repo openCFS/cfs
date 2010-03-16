@@ -7,30 +7,30 @@
 
 using namespace CoupledField;
 
-ShapeDesign::ShapeDesign(StdVector<RegionIdType>& regionIds, StdVector<ParamNode*>& design, StdVector<ParamNode*>& transfer, StdVector<ParamNode*>& result, ErsatzMaterial::Method method)
+ShapeDesign::ShapeDesign(StdVector<RegionIdType>& regionIds, ParamNodeList& design, ParamNodeList& transfer, ParamNodeList& result, ErsatzMaterial::Method method)
   : DesignSpace(regionIds, design, transfer, result, method)
 {
   dim_ = domain->GetGrid()->GetDim();
   alsomatopt_ = method == ErsatzMaterial::SHAPE_PARAM_MAT;
 }
 
-void ShapeDesign::Configure(ParamNode* pn, int objectives, int constraints){
+void ShapeDesign::Configure(PtrParamNode pn, int objectives, int constraints){
   // done as in domain.cc Domain::ReadErsatzMaterial
   /* it would be nicer to use the schema to check, but this takes over 8 hours on a 3D example 
   std::string schema = progOpts->GetSchemaPathStr();
   schema += "/CFS-Simulation/Schemas/CFS_MeshDeformations.xsd";
-  Xerces* xerces = new Xerces(pn->Get("meshdeformationfile")->AsString(), schema); */
-  Xerces* xerces = new Xerces(pn->Get("meshdeformationfile")->AsString());
-  ParamNode* xml = xerces->CreateParamNodeInstance();
+  Xerces* xerces = new Xerces(pn->Get("meshdeformationfile")->As<std::string>(), schema); */
+  Xerces* xerces = new Xerces(pn->Get("meshdeformationfile")->As<std::string>());
+  PtrParamNode xml = xerces->CreateParamNodeInstance();
   delete xerces;
-  ParamNode* meshdefs = xml->Get("meshdeformations");
-  nshapeparams_ = meshdefs->Get("parameters")->AsInt();
-  StdVector<ParamNode*> deformations = meshdefs->GetList("deformation");
+  PtrParamNode meshdefs = xml->Get("meshdeformations");
+  nshapeparams_ = meshdefs->Get("parameters")->As<Integer>();
+  ParamNodeList deformations = meshdefs->GetList("deformation");
   unsigned int numnodes = domain->GetGrid()->GetNumNodes();
-  if((unsigned int)meshdefs->Get("nodes")->AsInt() != numnodes){
+  if((unsigned int)meshdefs->Get("nodes")->As<Integer>() != numnodes){
     EXCEPTION("The number of nodes given in the mesh deformation file for Shape Optimization does not correspond to the number of nodes in the grid!");
   }
-  if((unsigned int)meshdefs->Get("dim")->AsInt() > dim_){ // one can specify fewer dimensions as in 3D usually only 2D movements are needed
+  if((unsigned int)meshdefs->Get("dim")->As<Integer>() > dim_){ // one can specify fewer dimensions as in 3D usually only 2D movements are needed
     EXCEPTION("The dimension of the mesh deformation file is higher than the current problem!");
   }
   nodedeformations_.Reserve(numnodes);
@@ -39,16 +39,16 @@ void ShapeDesign::Configure(ParamNode* pn, int objectives, int constraints){
     nodedeformations_.Push_back(empty);
   }
   for(unsigned int i = 0; i < deformations.GetSize(); i++){
-    ParamNode* deformation = deformations[i];
-    unsigned int node = deformation->Get("node")->AsInt();
+    PtrParamNode deformation = deformations[i];
+    unsigned int node = deformation->Get("node")->As<Integer>();
     Matrix<double>& m = nodedeformations_[node-1]; // Nodes are numbered in the xml corresponding to the mesh, but we have 0-based index here
     if(m.GetNumRows() == 0){ // resize if first param for this node
       m.Resize(dim_, nshapeparams_);
       m.Init(); // this initializes with 0.0
     }
-    unsigned int param = deformation->Get("param")->AsInt();
-    unsigned int direction = deformation->Get("direction")->AsInt();
-    double value = deformation->Get("value")->AsDouble();
+    unsigned int param = deformation->Get("param")->As<Integer>();
+    unsigned int direction = deformation->Get("direction")->As<Integer>();
+    double value = deformation->Get("value")->As<Double>();
     m[direction][param] = value;
   }
   // note that there exist empty matrices in the nodedeformations_
@@ -57,9 +57,9 @@ void ShapeDesign::Configure(ParamNode* pn, int objectives, int constraints){
   double u = 1.0;
   scaling = 1.0;
   if(pn->Has("allShapeParams")){
-    l = pn->Get("allShapeParams")->Get("lower")->AsDouble();
-    u = pn->Get("allShapeParams")->Get("upper")->AsDouble();
-    scaling = pn->Get("allShapeParams")->Get("scaling")->AsDouble();
+    l = pn->Get("allShapeParams")->Get("lower")->As<Double>();
+    u = pn->Get("allShapeParams")->Get("upper")->As<Double>();
+    scaling = pn->Get("allShapeParams")->Get("scaling")->As<Double>();
   }
   for(unsigned int i = 0; i < nshapeparams_; i++){
     BaseDesignElement de;
@@ -68,17 +68,17 @@ void ShapeDesign::Configure(ParamNode* pn, int objectives, int constraints){
     de.PostInit(objectives, constraints);
     shapeparams_.Push_back(de);
   }
-  StdVector<ParamNode*> shapeparams = pn->GetList("shapeParam");
+  ParamNodeList shapeparams = pn->GetList("shapeParam");
   for(unsigned int i = 0; i < shapeparams.GetSize(); i++){
-    unsigned int p = shapeparams[i]->Get("param")->AsInt();
+    unsigned int p = shapeparams[i]->Get("param")->As<Integer>();
     if(p >= nshapeparams_){
       throw Exception("ShapeParameter does  not exist!");
     }
     if(shapeparams[i]->Has("lower")){
-      shapeparams_[p].SetLowerBound(shapeparams[i]->Get("lower")->AsDouble());
+      shapeparams_[p].SetLowerBound(shapeparams[i]->Get("lower")->As<Double>());
     }
     if(shapeparams[i]->Has("upper")){
-      shapeparams_[p].SetUpperBound(shapeparams[i]->Get("upper")->AsDouble());
+      shapeparams_[p].SetUpperBound(shapeparams[i]->Get("upper")->As<Double>());
     }
   }
 }

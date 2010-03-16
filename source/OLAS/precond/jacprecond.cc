@@ -26,8 +26,8 @@ namespace CoupledField {
   // ***********************
   template<class T_storage,typename T>
   JacPrecond<T_storage,T>::JacPrecond( const StdMatrix &mat, 
-                                       ParamNode *solverNode,
-				                               InfoNode *olasInfo )  {
+                                       PtrParamNode solverNode,
+				                               PtrParamNode olasInfo )  {
     this->xml_ = solverNode;
     this->olasInfo_ = olasInfo;
     size_     = mat.GetNumRows();

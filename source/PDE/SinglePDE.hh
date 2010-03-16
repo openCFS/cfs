@@ -48,8 +48,8 @@ namespace CoupledField
     class RegionLoad;
 
     /** Initialize PDEs 
-     * @param base a coupled PDE case we do not choose our own base */ 
-    virtual void Init( UInt sequenceStep, InfoNode* base = NULL ); 
+     * @param base pointer to InfoNode of this PDE */
+    virtual void Init( UInt sequenceStep, PtrParamNode base = PtrParamNode() ); 
 
     // ---------------------- ***** --------------------------------
 
@@ -138,7 +138,7 @@ namespace CoupledField
      * by the SIMP mechanism design optimization to read the outputs
      * @param loadNodes the potential empty array from the xml file
      * @param either the loads_ of StdPDE or for optimization */
-    void ReadLoads(StdVector<ParamNode*> loadNodes, LoadList& out_list);
+    void ReadLoads(ParamNodeList loadNodes, LoadList& out_list);
     
     /** Write general defines (BCs, loads, etc.) to info.xml.
      * Note, that only the current state is (over) written! */
@@ -206,7 +206,7 @@ namespace CoupledField
     /** do the actual reading of loads, this is also called from optimization 
      * @param bcNode paramnode that has "regionLoad" nodes as children 
      * @param pressSurf StdVector containing the RegionLoads */
-    void ReadRegionLoadsFromXML(ParamNode* bcNode, std::map<RegionIdType, RegionLoad>& regionLoads_);
+    void ReadRegionLoadsFromXML(PtrParamNode bcNode, std::map<RegionIdType, RegionLoad>& regionLoads_);
 
   protected:
 
@@ -215,7 +215,7 @@ namespace CoupledField
     /*!
       \param aptgrid pointer to grid
     */
-    SinglePDE( Grid *aptgrid, ParamNode *paramNode );
+    SinglePDE( Grid *aptgrid, PtrParamNode );
 
     //! private copy constructor
     SinglePDE & operator= (const StdPDE & myPDE) {
@@ -386,7 +386,7 @@ namespace CoupledField
 
     // reads in the PML data
     void ReadDataPML(std::string& typePML, Matrix<Double>& inner, 
-		     Double& dampPML, ParamNode * actNode);
+		     Double& dampPML, PtrParamNode actNode);
 
     //! computes the PML layer dimensions
     void GetPMLLayerData(Matrix<Double>& inner, Matrix<Double>& outer,

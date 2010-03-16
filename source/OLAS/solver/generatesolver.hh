@@ -6,6 +6,8 @@
 #define OLAS_GENERATESOLVER_HH
 
 #include "General/environment.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+
 
 //! \file generatesolver.hh
 //! This module handles generation of solver objects. It is also responsible
@@ -15,8 +17,6 @@ namespace CoupledField {
 
   class BaseSolver;
   class BaseMatrix;
-  class ParamNode;
-  class InfoNode;  
   
   //! Generate a basic solver object
 
@@ -31,7 +31,7 @@ namespace CoupledField {
   //! \param report Pointer to report object into which the generated solver
   //!               should write its solutiopn report.
   BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
-                                    ParamNode* xml, InfoNode* olasInfo );
+                                    PtrParamNode xml, PtrParamNode olasInfo );
 
 }
 

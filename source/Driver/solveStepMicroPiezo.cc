@@ -60,14 +60,14 @@ namespace CoupledField {
 
 
 
-  void SolveStepMicroPiezo::SolveStepTrans(InfoNode* analysis_id) {
+  void SolveStepMicroPiezo::SolveStepTrans(PtrParamNode analysis_id) {
 
     StepTransNonLin(analysis_id);
 
   }
 
 
-  void SolveStepMicroPiezo::StepTransNonLin(InfoNode* analysis_id) {
+  void SolveStepMicroPiezo::StepTransNonLin(PtrParamNode analysis_id) {
 
 
     //  std::cout << "\n In :StepTransNonLinEpsDiff  \n " << std::endl;

@@ -5,13 +5,13 @@
 #include "Domain/elem.hh"
 #include "Utils/tools.hh"
 #include "MatVec/vector.hh"
-
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField
 {
 class Elem;
 class ParamNode;
-class InfoNode;
+class ParamNode;
 class DesignSpace;
 class DesignElement;
 class ResultDescription;
@@ -160,7 +160,7 @@ public:
 
   /** This sets the DesignElement with the values from the XML file.
    * Is slow as it does the same evaluation often but is only O(n) */
-  DesignElement(ParamNode* pn, Elem* elem);
+  DesignElement(PtrParamNode pn, Elem* elem);
 
   ~DesignElement();
 
@@ -225,7 +225,7 @@ public:
     Type GetType() const { return type_; }
     
     /** Write key values as attributes */
-    void ToInfo(InfoNode* in) const;
+    void ToInfo(PtrParamNode in) const;
 
     std::string ToString() { return ToString(this); }
 
@@ -341,7 +341,7 @@ public:
 
   /** reads itsef from the xml element.
    * @param pn our data */
-  ResultDescription(ParamNode* pn);
+  ResultDescription(PtrParamNode pn);
 
   SolutionType solutionType;
 

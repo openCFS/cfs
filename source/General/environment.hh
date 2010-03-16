@@ -56,6 +56,9 @@ namespace CoupledField {
   class Domain;
   class CFSMessenger;
   class LogConfigurator;
+  class ParamNode;
+  class InfoNode;
+  
 
   // Type definitions for regions
   typedef Integer RegionIdType;

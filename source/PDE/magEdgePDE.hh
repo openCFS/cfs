@@ -22,7 +22,7 @@ namespace CoupledField
   public:
 
     //! Constructor
-    MagEdgePDE( Grid * aptgrid, ParamNode* paramNode );
+    MagEdgePDE( Grid * aptgrid, PtrParamNode paramNode );
 
     //! Default Destructor
 

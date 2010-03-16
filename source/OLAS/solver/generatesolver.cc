@@ -63,23 +63,23 @@ namespace CoupledField {
 //   Generate a solver object
 // ****************************
 BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
-                                  ParamNode* xml,
-                                  InfoNode*  olasInfo ){
+                                  PtrParamNode xml,
+                                  PtrParamNode  olasInfo ){
 
   BaseSolver *retSolver = NULL;
   BaseMatrix::EntryType eType = mat.GetEntryType();
   bool eTypeUnknown = false;
   std::string solverStr = "";
 
-  ParamNode* solverXML = NULL;
-  solverXML = xml->Get("solver", false);
+  PtrParamNode solverXML;
+  solverXML = xml->Get("solver", ParamNode::INSERT);
   
   EnumMap::iterator it, end;
   it = BaseSolver::solverType.map.begin();
   end = BaseSolver::solverType.map.end();
   
   for( ; it != end; it++ ) {
-    if( solverXML->Has("type", it->second) ) {
+    if( solverXML->HasByVal("type", it->second) ) {
       if(solverStr != "")
         EXCEPTION("Two solvers have been specified: " << solverStr << " and " << (it->second))
         

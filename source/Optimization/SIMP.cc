@@ -49,12 +49,12 @@ SIMP::~SIMP()
 
 void SIMP::PostInit()
 {
-  ParamNode* simp_pn = pn->Get("SIMP", false);
+  PtrParamNode simp_pn = pn->Get("SIMP", ParamNode::PASS);
 
   // There might be a filter regularization based on the design element.
-  if(simp_pn != NULL && simp_pn->Has("regularization", "type", "filter"))
+  if(simp_pn  && simp_pn->HasByVal("regularization", "type", "filter"))
   {
-    StdVector<ParamNode*> list = simp_pn->Get("regularization")->GetList("filter");
+    ParamNodeList list = simp_pn->Get("regularization")->GetList("filter");
     // this is save for design=polarization
     for(unsigned int i = 0; i < list.GetSize(); i++)
     {

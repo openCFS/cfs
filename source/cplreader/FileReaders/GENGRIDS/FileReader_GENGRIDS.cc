@@ -35,18 +35,18 @@ namespace CoupledField
     
     Settings& settings = Settings::Instance();
 
-    ParamNode *param = settings.GetParamNode();
+    PtrParamNodeparam = settings.GetParamNode();
 
-    ParamNode* typeNode = NULL;
-    ParamNode* fieldsNode = NULL;
+    PtrParamNode typeNode = NULL;
+    PtrParamNode fieldsNode = NULL;
 
     if(param) 
     {
       typeNode = param->Get("type");
-      if(typeNode->Get("name")->AsString() == "GENGRIDS") 
+      if(typeNode->Get("name")->As<std::string>() == "GENGRIDS") 
       {
         std::string subType = "RectilinearUniformGridGenerator";
-        //        ParamNode* subTypeNode = typeNode->Get("subType", false);
+        //        PtrParamNode subTypeNode = typeNode->Get("subType", false);
         typeNode->Get("subType", subType, false);
 
         if(subType == "RectilinearUniformGridGenerator") 
@@ -63,7 +63,7 @@ namespace CoupledField
         if(subType == "ReferenceElementGenerator") 
         {
           std::string elemTypeName = "HEXA8";
-          ParamNode* elemTypeNode = typeNode->Get("elementType", false);
+          PtrParamNode elemTypeNode = typeNode->Get("elementType", false);
           
           if(elemTypeNode) {
             elemTypeNode->Get("name", elemTypeName, false);
@@ -91,16 +91,16 @@ namespace CoupledField
         fieldsNode = typeNode->Get("fields", false);
         if(fieldsNode) 
         {
-          StdVector<ParamNode*> fields = fieldsNode->GetList("field");
+          ParamNodeList fields = fieldsNode->GetList("field");
 
           for(UInt i=0; i<fields.GetSize(); i++) 
           {
             std::string fieldName = "default";
-            //            ParamNode* elemTypeNode = typeNode->Get("elementType", false);
+            //            PtrParamNode elemTypeNode = typeNode->Get("elementType", false);
             fields[i]->Get("name", fieldName, false);
             std::cout << "field: " << fieldName << std::endl;
 
-            StdVector<ParamNode*> components = fields[i]->GetList("component");
+            ParamNodeList components = fields[i]->GetList("component");
             fieldExprs_[fieldName].resize(components.GetSize());
             
             for(UInt j=0; j<components.GetSize(); j++) 
@@ -109,7 +109,7 @@ namespace CoupledField
               std::string expr;
               
               components[j]->Get("axis", compAxis, false);
-              expr = components[j]->AsString();
+              expr = components[j]->As<std::string>();
 
               for(UInt l=0; l<expr.length(); l++) 
               {

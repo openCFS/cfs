@@ -38,7 +38,7 @@ namespace CoupledField {
   // Solve Step Static SECTION  
   // ======================================================
 
-  void SolveStepFluidMech::StepTransNonLin(InfoNode* analysis_base)
+  void SolveStepFluidMech::StepTransNonLin(PtrParamNode analysis_base)
   {
 
     assemble_->AssembleLinRHS();
@@ -115,7 +115,7 @@ namespace CoupledField {
           PDE_.PrintStabParams();
         }
         
-        InfoNode* analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
+        PtrParamNode analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
         
         algsys_->ConstructEffectiveMatrix(matrix_factor_);
         algsys_->BuildInDirichlet();

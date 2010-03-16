@@ -5,18 +5,18 @@ using namespace CoupledField;
 Enum<DesignMaterial::Type>      DesignMaterial::type;
 Enum<DesignMaterial::TransIsoType> DesignMaterial::transIsoType;
 
-DesignMaterial::DesignMaterial(ParamNode* pn){
-  type_ = type.Parse(pn->Get("type")->AsString());
+DesignMaterial::DesignMaterial(PtrParamNode pn){
+  type_ = type.Parse(pn->Get("type")->As<std::string>());
   
   // read non-design parameters
-  StdVector<ParamNode*> params = pn->GetList("param");
+  ParamNodeList params = pn->GetList("param");
   nparams_ = 0;
   for(unsigned int i=0; i < params.GetSize(); i++){
-    SetParameter(DesignElement::type.Parse(params[i]->Get("name")->AsString()), params[i]->Get("value")->AsDouble());
+    SetParameter(DesignElement::type.Parse(params[i]->Get("name")->As<std::string>()), params[i]->Get("value")->As<Double>());
     nparams_++;
   }
 
-  transIsoType_ = transIsoType.Parse(pn->Get("isoplane")->AsString());
+  transIsoType_ = transIsoType.Parse(pn->Get("isoplane")->As<std::string>());
 }
 
 unsigned int DesignMaterial::RequiredParameters(){

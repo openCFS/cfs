@@ -455,7 +455,7 @@ const std::string ToString(const LevelSetElement &elem)
 
 
 
-LevelSet::LevelSet(Optimization* opt, ParamNode* pn) : 
+LevelSet::LevelSet(Optimization* opt, PtrParamNode pn) : 
   last_node_index_(0), dump_fast_marching_(false), dump_lselement_(0)
 {
   cout << "Levelset: " << flush;
@@ -479,13 +479,13 @@ LevelSet::LevelSet(Optimization* opt, ParamNode* pn) :
   {
     // reduce to our actual ParamNode
     pn = pn->Get("levelSet");
-    dump_fast_marching_ = pn->Get("ls_dump_fast_marching")->AsBool();
-    dump_lselement_ = pn->Get("ls_element")->AsInt();
-    time_step_ = pn->Get("ls_time_step")->AsDouble();
+    dump_fast_marching_ = pn->Get("ls_dump_fast_marching")->As<bool>();
+    dump_lselement_ = pn->Get("ls_element")->As<Integer>();
+    time_step_ = pn->Get("ls_time_step")->As<Double>();
     bool make_trivial_holes(false);
     if(pn->Has("actionList"))
     {
-      StdVector<ParamNode*> list = pn->Get("actionList")->GetChildren();
+      ParamNodeList list = pn->Get("actionList")->GetChildren();
       const unsigned int list_size(list.GetSize());
       LOG_DBG(ls) << "read " << list_size << " actions from xml";
       // FSFSFS: maybe give some defaults if list_size == 0
@@ -501,13 +501,13 @@ LevelSet::LevelSet(Optimization* opt, ParamNode* pn) :
     {
       if(pn->Has("nodeList"))
       {
-        StdVector<ParamNode*> list = pn->Get("nodeList")->GetChildren();
+        ParamNodeList list = pn->Get("nodeList")->GetChildren();
         const unsigned int list_size(list.GetSize());
         LOG_DBG(ls) << "trivial hole: read " << list_size << " node numbers from xml";
         trivial_holes_.reserve(list_size);
         for(unsigned int i = 0; i < list_size; ++i)
         {
-          trivial_holes_.push_back(list[i]->Get("value")->AsInt());
+          trivial_holes_.push_back(list[i]->Get("value")->As<Integer>());
           LOG_DBG(ls) << " node " << i+1 << ": number " << trivial_holes_[i];
         }
         assert(trivial_holes_.size() == list_size);
@@ -1473,12 +1473,12 @@ void LevelSet::TransportLevelSet(const double dt)
 }
 
 /**************** ACTION ************************/
-LevelSet::Action::Action(ParamNode* const pn) : modulus_(1), perform_(1), first_(true)
+LevelSet::Action::Action(PtrParamNode const pn) : modulus_(1), perform_(1), first_(true)
 {
-  type_     = type.Parse(pn->Get("type"));
-  modulus_  = pn->Get("modulus")->AsInt();
-  perform_  = pn->Get("perform")->AsInt();
-  first_    = pn->Get("first")->AsBool();
+  type_     = type.Parse(pn->Get("type")->As<std::string>());
+  modulus_  = pn->Get("modulus")->As<Integer>();
+  perform_  = pn->Get("perform")->As<Integer>();
+  first_    = pn->Get("first")->As<bool>();
 }
 
 LevelSet::Action* LevelSet::IsTriggered(const Action::Type type, const int iteration)

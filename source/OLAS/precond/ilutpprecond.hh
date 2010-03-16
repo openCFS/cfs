@@ -129,8 +129,8 @@ namespace CoupledField {
     typedef typename AssocType<T>::T_Stype T_Stype;
 
     //! Constructor
-    ILUTP_Precond( const StdMatrix &stdMat, ParamNode *solverNode,
-		   InfoNode *olasInfo );
+    ILUTP_Precond( const StdMatrix &stdMat, PtrParamNode solverNode,
+		   PtrParamNode olasInfo );
 
     //! Destructor
     ~ILUTP_Precond();

@@ -60,7 +60,9 @@ class DirectCoupledPDE;
     void Init();
 
     //! Starts parameter identification
-    void SolveProblem(bool write_results = true, InfoNode* given_analysis_id = NULL, const bool reAssembleMatrices = true);
+    void SolveProblem(bool write_results = true, 
+                      PtrParamNode given_analysis_id = PtrParamNode(), 
+                      const bool reAssembleMatrices = true);
 
   protected:
     //! Calculates the parameter to soution map F(p^k) at Newton iteration step k
@@ -228,7 +230,7 @@ class DirectCoupledPDE;
       std::ofstream * allTensors_;
 
     //! Parameter node for "paramIden"-element from xml-parameter file
-        ParamNode * myParam_;
+        PtrParamNode myParam_;
 
         bool CalcImpedanceCurve_;
         bool CalcMechDisplCurve_;

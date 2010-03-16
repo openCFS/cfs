@@ -32,7 +32,7 @@ namespace CoupledField
 
   //----------------------- STATIC--------------------------------------------
 
-  void IterSolveStep::SolveStepStatic(InfoNode* analysis_id, const bool reAssembleMatrices)
+  void IterSolveStep::SolveStepStatic(PtrParamNode analysis_id, const bool reAssembleMatrices)
   {
   
     SingleVector *val, *oldVal;
@@ -108,7 +108,7 @@ namespace CoupledField
 
 
   //----------------------- TRANSIENT-----------------------------------------
-  void IterSolveStep::SolveStepTrans(InfoNode* analysis_id)
+  void IterSolveStep::SolveStepTrans(PtrParamNode analysis_id)
   {
 
     UInt iter = 0;
@@ -232,7 +232,7 @@ namespace CoupledField
   } 
 
   //----------------------- HARMONIC---------------------------------------
-  void IterSolveStep::SolveStepHarmonic(InfoNode* analysis_id)
+  void IterSolveStep::SolveStepHarmonic(PtrParamNode analysis_id)
   {
     EXCEPTION("Harmonic iterative coupling is not yet implemented"); 
   }

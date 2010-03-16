@@ -29,7 +29,7 @@ namespace CoupledField
   
 
     //! Constructor with name of mesh-file
-    SimInputUnv(std::string fileName, ParamNode * inputNode );
+    SimInputUnv(std::string fileName, PtrParamNode inputNode );
 
     //! Destructor
     virtual ~SimInputUnv() {};

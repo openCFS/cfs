@@ -3,12 +3,13 @@
 
 #include "Utils/StdVector.hh"
 #include "MatVec/matrix.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField
 {
 
 class ParamNode;
-class InfoNode;
+class ParamNode;
 class ObjectiveContainer;
 
 /** We combine the cost function in a set to handle multiple of it.
@@ -25,7 +26,7 @@ class Objective
      * @param pn_type either the costFunction pointer (for type attribute)
      *                or a multiObjective/objective element
      * @param index our position withn the objectives for the design element costGradient */
-    Objective(ParamNode* pn, ParamNode* pn_type, unsigned int index);
+    Objective(PtrParamNode pn, PtrParamNode pn_type, unsigned int index);
 
     /** Known types of cost functions */
     typedef enum {
@@ -96,7 +97,7 @@ class Objective
     StoppingRule stop;
 
     /** Here we store our ParamNode such we can more easily access it in ErsatzMaterial */
-    ParamNode* pn;
+    PtrParamNode pn;
 
     /** for HOMOGENIZATION_TRACKING this is the target tensor. */
     Matrix<double> tensor;
@@ -146,7 +147,7 @@ public:
   ~ObjectiveContainer();
 
   /** actual constructor */
-  void Read(ParamNode* obj_node);
+  void Read(PtrParamNode obj_node);
 
   /** Check for given objective */
   bool Has(Objective::Type type) const;
@@ -164,7 +165,7 @@ public:
   /** current values go to history */
   void PushBackHistory();
 
-  void ToInfo(InfoNode* in) const;
+  void ToInfo(PtrParamNode in) const;
 
   bool DoMinimize() const { return minimize_; }
   bool DoMaximize() const { return !minimize_; }

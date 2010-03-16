@@ -34,7 +34,7 @@ namespace CoupledField
   void CoupledPDEDef::CreateCoupling(StdVector<StdPDE*> & OrderedPDEs, 
                                      StdVector<PDECoupling*> & Couplings,
                                      StdVector<StdPDE*> & UnorderedPDEs,
-                                     ParamNode * iterCoupledNode )
+                                     PtrParamNode iterCoupledNode )
   {
 
 
@@ -111,7 +111,7 @@ namespace CoupledField
         if (inputOptionality[j]) {
    
           // look for correct pde
-          ParamNode * pdeNode = NULL;
+          PtrParamNode pdeNode;
           for( UInt iNode = 0; iNode < iterCoupledNode->GetChildren().GetSize(); iNode++ ) {
             // check, id node is "nonLinear"
             if( (iterCoupledNode->GetChildren())[iNode]->GetName() == "nonLinear") 
@@ -131,12 +131,13 @@ namespace CoupledField
             break;
 
           // create vector with paramnode for each coupling region
-          StdVector<ParamNode*> couplNodes = pdeNode->GetList( "coupling");
+          ParamNodeList couplNodes = pdeNode->GetList( "coupling");
 
           couplingTermsConv.Clear();
           couplingTermsConv.Resize(couplNodes.GetSize());
           for (UInt k = 0; k < couplNodes.GetSize(); k++) {
-            couplingTermsConv[k] = SolutionTypeEnum.Parse(couplNodes[k]->Get("quantity"));
+            couplingTermsConv[k] = 
+                SolutionTypeEnum.Parse(couplNodes[k]->Get("quantity")->As<std::string>());
           }
           
           for (UInt k=0; k<couplingTermsConv.GetSize(); k++)

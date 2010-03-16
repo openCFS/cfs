@@ -12,12 +12,13 @@
 #include "MatVec/vector.hh"
 #include "MatVec/matrix.hh"
 #include "General/environment.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField {
 
   // forward class declarations
   class ParamNode;
-  class InfoNode;
+  class ParamNode;
 
   //! Base class for describing a local coordinate system
   class CoordSystem {
@@ -30,13 +31,13 @@ namespace CoupledField {
     //! \param ptGrid (in) pointer to finite element grid object
     //! \param myParamNode (in) pointer to parameter node of current coosy
     CoordSystem(const std::string & name, Grid * ptGrid,
-                ParamNode * myParamNode );
+                PtrParamNode myParamNode );
 
     //! Destructor
     virtual ~CoordSystem();
     
     //! Print information about coordinate system to info node
-    virtual void ToInfo( InfoNode* in ) {};
+    virtual void ToInfo( PtrParamNode in ) {};
     
     //! Return the name of the coordinate system
     const std::string & GetName() const {
@@ -120,7 +121,7 @@ namespace CoupledField {
 
     //! Helper function for obtaining a point vector
     void GetPoint(Vector<Double> & vec, 
-                  ParamNode * pointNode );
+                  PtrParamNode pointNode );
 
     //! Calculate rotation matrix and inverse
     virtual void CalcRotationMatrix() = 0;
@@ -157,7 +158,7 @@ namespace CoupledField {
     Grid * ptGrid_;
 
     //! Pointer to parameter node defining the current coordinate system
-    ParamNode * myParam_;
+    PtrParamNode myParam_;
     
   };
 

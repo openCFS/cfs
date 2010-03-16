@@ -6,6 +6,7 @@
 #define OLAS_BASEPRECOND_HH
 
 #include "General/environment.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField {
 
@@ -15,8 +16,6 @@ namespace CoupledField {
   class BaseVector;
   class SBM_Vector;
   class SingleVector;
-  class InfoNode;
-  class ParamNode;
 
   //! Generic preconditioner class
   class BasePrecond {
@@ -45,7 +44,7 @@ namespace CoupledField {
   public:
 
     //! Default Constructor
-    BasePrecond() : xml_(NULL) {
+    BasePrecond()  {
     };
 
     //! Default Destructor
@@ -82,13 +81,13 @@ namespace CoupledField {
 
     //! This is a pointer to a parameter object containing the steering
     //! parameters for this preconditioner.
-    ParamNode* xml_;
+    PtrParamNode xml_;
 
     //! Pointer to report object
 
     //! This is a pointer to a report object which the preconditioner can use
     //! to store general information about its performance or setup phase.
-    InfoNode *olasInfo_;
+    PtrParamNode olasInfo_;
 
   };
 

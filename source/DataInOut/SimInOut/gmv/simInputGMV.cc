@@ -35,7 +35,7 @@ namespace CoupledField {
   gmvray_data_struct gmvray_data;
   std::vector< std::string > gmv_vector_components;
 
-  SimInputGMV::SimInputGMV(std::string fileName, ParamNode * inputNode) :
+  SimInputGMV::SimInputGMV(std::string fileName, PtrParamNode inputNode) :
       SimInput(fileName, inputNode)
   {
     if(mPossibleAttribs.empty())

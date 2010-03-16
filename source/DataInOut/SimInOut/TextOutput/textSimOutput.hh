@@ -23,7 +23,7 @@ namespace CoupledField {
     typedef enum { ENTITY, TIMEFREQ, ALTOGETHER} CollectionType;
 
     //! Constructor
-    SimOutputText( const std::string& fileName, ParamNode * outputNode );
+    SimOutputText( const std::string& fileName, PtrParamNode outputNode );
 
     //! Destructor
     ~SimOutputText();

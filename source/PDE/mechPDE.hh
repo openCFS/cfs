@@ -26,7 +26,7 @@ namespace CoupledField
     /*!
       \param aGrid pointer to grid
     */
-    MechPDE( Grid *aGrid, ParamNode* paramNode );
+    MechPDE( Grid *aGrid, PtrParamNode paramNode );
 
     //!  Deconstructor
     virtual ~MechPDE();
@@ -112,7 +112,7 @@ namespace CoupledField
      * @param pressSurf StdVector containing the information
      * @param pressVals StdVector containing the information
      * @param pressPhase StdVector containing the information */
-    void ReadPressureLoadsFromXML(ParamNode* bcNode, StdVector<shared_ptr<EntityList> >& pressSurf, StdVector<std::string>& pressVals, StdVector<std::string>& pressPhase);
+    void ReadPressureLoadsFromXML(PtrParamNode bcNode, StdVector<shared_ptr<EntityList> >& pressSurf, StdVector<std::string>& pressVals, StdVector<std::string>& pressPhase);
     
   protected:
 

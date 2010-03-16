@@ -6,7 +6,7 @@
 #define OLAS_BASESOLVER_HH
 
 #include "General/environment.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField {
 
@@ -55,8 +55,6 @@ namespace CoupledField {
 
     //! Default Constructor
     BaseSolver() {
-      xml_ = NULL;
-      solverInfo_ = NULL;
       setupTimer_ = NULL;
       solveTimer_ = NULL;
       usingPenalty_ = false;
@@ -75,12 +73,12 @@ namespace CoupledField {
      * solvers just construction of some vectors etc.
      * @param analysis_id references to the info/analysis/progress/step(/substep) 
      *                   element with the "analysis_id" attribute */
-    virtual void Setup( BaseMatrix &sysmat, InfoNode* analysis_id = NULL) = 0;
+    virtual void Setup( BaseMatrix &sysmat, PtrParamNode analysis_id = PtrParamNode()) = 0;
 
     /** Solve the linear system sysmat*sol=rhs for sol
      * @param analysis_id @see Setup() */
     virtual void Solve( const BaseMatrix &sysmat, const BasePrecond &precond,
-			const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_id = NULL) = 0;
+			const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_id = PtrParamNode()) = 0;
 
     //! Query type of the solver
 
@@ -89,7 +87,7 @@ namespace CoupledField {
     //! \return type of the solver
     virtual SolverType GetSolverType() = 0;
 
-    /** Gives the timer located within InfoNode */
+    /** Gives the timer located within PtrParamNode */
     Timer* GetSetupTimer() { return setupTimer_; }
     Timer* GetSolveTimer() { return solveTimer_; }
 
@@ -99,24 +97,24 @@ namespace CoupledField {
     
   protected:
     
-    /** Helper method for InitParameters. Takes the default-value, prints it to the InfoNode (via
+    /** Helper method for InitParameters. Takes the default-value, prints it to the ParamNode (via
      * param_name).
      * If there is a parameter with param_name in the xml file, it is used and printed.
      * @param param_name simple xpath chain via slash */
-    void CheckParameter(InfoNode* out, double* val, const char* param_name);
-    void CheckParameter(InfoNode* out, char** val, const char* param_name);
-    void CheckParameter(InfoNode* out, int* val, const char* param_name);  
-    void CheckParameter(InfoNode* out, size_t* val, const char* param_name);  
-    void CheckParameter(InfoNode* out, bool* val, const char* param_name);
+    void CheckParameter(PtrParamNode out, double* val, const char* param_name);
+    void CheckParameter(PtrParamNode out, char** val, const char* param_name);
+    void CheckParameter(PtrParamNode out, int* val, const char* param_name);  
+    void CheckParameter(PtrParamNode out, size_t* val, const char* param_name);  
+    void CheckParameter(PtrParamNode out, bool* val, const char* param_name);
     
     template<typename E> // needed in header because of instantiation
-    void CheckParameter(InfoNode* out, Enum<E>* en, int* val, const char* param_name)
+    void CheckParameter(PtrParamNode out, Enum<E>* en, int* val, const char* param_name)
     {
-      InfoNode* tmp = out->Get(param_name);
+      PtrParamNode tmp = out->Get(param_name);
       tmp->Get("default")->SetValue(en->ToString(static_cast<E>(*val)));
-      if (xml_ != NULL && xml_->Has(param_name))
+      if (xml_ && xml_->Has(param_name))
       {
-        *val = en->Parse(xml_->Get(param_name)->AsString());
+        *val = en->Parse(xml_->Get(param_name)->As<std::string>());
         tmp->Get("set")->SetValue(en->ToString(static_cast<E>(*val)));
       }
     }
@@ -124,13 +122,13 @@ namespace CoupledField {
     /** This is the description of the solver part in XML
      * This may not be NULL since proper default values have to be set
      * before the solver gets constructed. */
-    ParamNode* xml_;
+    PtrParamNode xml_;
     
     /** This stores the general solver Information (HEADER, SUMMARY) ->
      * For the current solve steps the pointer is given */
-    InfoNode* solverInfo_;
+    PtrParamNode solverInfo_;
 
-    /** This is a pointer to the setup timer. Located within InfoNode */
+    /** This is a pointer to the setup timer. Located within PtrParamNode*/
     Timer* setupTimer_;
     Timer* solveTimer_;
 

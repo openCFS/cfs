@@ -143,7 +143,7 @@ namespace CoupledField {
     //!                 for this solver
     //! \param myReport pointer to report object for storing general
     //!                 information on solution process
-    SYMMLQSolver( ParamNode *solverNode, InfoNode *olasInfo );
+    SYMMLQSolver( PtrParamNode solverNode, PtrParamNode olasInfo );
 
     //! Default Destructor
 

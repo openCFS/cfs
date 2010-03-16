@@ -26,7 +26,6 @@ namespace CoupledField
   class BaseNodeStoreSol;
   class Composite;
   class ParamNode;
-  class InfoNode;
 
   //! Base class for pairwise direct coupling of two pdes
   class BasePairCoupling
@@ -102,7 +101,7 @@ namespace CoupledField
     PdeIdType GetPdeId2();
 
     //! Ger ParamNode of coupling object
-    ParamNode * GetParamNode() { return myParam_; }
+    PtrParamNode GetParamNode() { return myParam_; }
 
     bool nonLin_;             //!< flag for nonlinear calculations
     bool nonLinMaterial_;     //!< flag for nonlinear material calculations
@@ -120,7 +119,7 @@ namespace CoupledField
 
     //! Constructor
     BasePairCoupling( SinglePDE *pde1, SinglePDE *pde2,
-                      ParamNode * paramNode );
+                      PtrParamNode paramNode );
 
     //! Definition of the (bi)linear forms
     virtual void DefineIntegrators() = 0;
@@ -144,7 +143,7 @@ namespace CoupledField
     // Miscellaneous
     // =====================================================
 
-    InfoNode* infoNode_; // set only in Init()
+    PtrParamNode infoNode_; // set only in Init()
 
     BaseNodeStoreSol * sol_;    //!< solution
 
@@ -221,7 +220,7 @@ namespace CoupledField
     SingleVector * solVec_;        //! needed in iterative coupled computation
 
     //! Parameter node of direct coupling section
-    ParamNode * myParam_;
+    PtrParamNode myParam_;
 
     // -----------------------------------------------------------------------
     // Material data

@@ -358,9 +358,9 @@ namespace CoupledField {
     }
 
     // fetch current postProcNode
-    ParamNode * postProcNode = 
-      param->Get("sequenceStep", std::string("index"), sequenceStep_)
-      ->Get( "postProcList")->Get( "postProc", "id", postProcName );
+    PtrParamNode postProcNode = 
+      param->GetByVal("sequenceStep", std::string("index"), sequenceStep_)
+      ->Get( "postProcList")->GetByVal( "postProc", "id", postProcName );
     
     if( !postProcNode ) {
       EXCEPTION( "A Postprocessing section for '" << postProcName
@@ -710,7 +710,7 @@ namespace CoupledField {
       if( neededCap == SimOutput::HISTORY ) {
         std::string simName = progOpts->GetSimName();
         shared_ptr<SimOutput> textOut 
-          = shared_ptr<SimOutput>(new SimOutputText( simName, NULL ) );
+          = shared_ptr<SimOutput>(new SimOutputText( simName, PtrParamNode() ) );
         textOut->Init(  domain->GetGrid(), false );
         outFiles_["histDefault"] = textOut;
         out.Push_back( "histDefault" );
@@ -935,7 +935,7 @@ namespace CoupledField {
     eqnMap->Finalize();
     
     if(progOpts->DoListMapping()) 
-      eqnMap->ToInfo(info->Get(InfoNode::HEADER)->Get("mappings", InfoNode::APPEND));
+      eqnMap->ToInfo(info->Get(ParamNode::HEADER)->Get("mappings", ParamNode::APPEND));
     
     // create new vector with coefficients
     Vector<TYPE> solVec;

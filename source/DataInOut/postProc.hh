@@ -10,6 +10,7 @@
 #include "Domain/resultInfo.hh"
 #include "Utils/mathParser/mathParser.hh"
 #include "MatVec/vector.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField {
 
@@ -28,7 +29,7 @@ namespace CoupledField {
     typedef enum { SPACE, TIME_FREQ, NONE } ReductionType;
     
     //! Constructor
-    PostProc( Grid* ptGrid, ParamNode * postProcNode );
+    PostProc( Grid* ptGrid, PtrParamNode postProcNode );
     
     //! Destructor
     virtual ~PostProc();
@@ -67,7 +68,7 @@ namespace CoupledField {
     virtual void Finalize( ) {};
 
     //! Create postProcessing routine by reading related xml-specification
-    static void CreatePostProc( ParamNode * procNode,
+    static void CreatePostProc( PtrParamNode procNode,
                                 Grid * ptGrid, 
                                 StdVector<shared_ptr<PostProc> >& postProcs );
     
@@ -90,7 +91,7 @@ namespace CoupledField {
     Grid * ptGrid_;
 
     //! Pointer to parameter node of current postProc
-    ParamNode * myParam_;
+    PtrParamNode myParam_;
 
     //! Input result
     shared_ptr<BaseResult> input_;
@@ -120,7 +121,7 @@ namespace CoupledField {
     
     //! Constructor
     PostProcSum( Grid * ptGrid, ReductionType type, 
-                 ParamNode * postProcNode );
+                 PtrParamNode postProcNode );
 
     //! Destructor
     virtual ~PostProcSum();
@@ -153,7 +154,7 @@ namespace CoupledField {
   
     //! Constructor
     PostProcMax( Grid * ptGrid, ReductionType type,
-                 ParamNode * postProcNode );
+                 PtrParamNode postProcNode );
     
     //! Destructor
     virtual ~PostProcMax();
@@ -190,7 +191,7 @@ namespace CoupledField {
   public:
 
     //! Constructor
-    PostProcFunc( Grid * ptGrid, ParamNode * postProcNode );
+    PostProcFunc( Grid * ptGrid, PtrParamNode postProcNode );
 
     //! Destructor
     virtual ~PostProcFunc();
@@ -259,7 +260,7 @@ namespace CoupledField {
   
     //! Constructor
     PostProcLimit( Grid * ptGrid, 
-                   ParamNode * postProcNode );
+                   PtrParamNode postProcNode );
     
     //! Destructor
     virtual ~PostProcLimit();

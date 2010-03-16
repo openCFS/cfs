@@ -13,8 +13,8 @@ namespace CoupledField {
   //   Constructor (for use in GenerateStdPrecondObject)
   // =====================================================
   template <typename T>
-  ILU0Precond<T>::ILU0Precond( const StdMatrix& mat, ParamNode *solverNode,
-			       InfoNode *olasInfo ) {
+  ILU0Precond<T>::ILU0Precond( const StdMatrix& mat, PtrParamNode solverNode,
+			       PtrParamNode olasInfo ) {
 
     
     // Set pointers to communication objects

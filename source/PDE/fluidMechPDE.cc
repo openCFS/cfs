@@ -46,7 +46,7 @@ DECLARE_LOG(fluidmechpde)
 DEFINE_LOG(fluidmechpde, "fluidmechpde")
 
 
-    FluidMechPDE::FluidMechPDE(Grid * aptgrid, ParamNode* paramNode )
+    FluidMechPDE::FluidMechPDE(Grid * aptgrid, PtrParamNode paramNode )
       :SinglePDE( aptgrid, paramNode ) {
 
       pdename_          = "fluidMech";
@@ -66,10 +66,10 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
       // ****************************
 
       // Get problem geometry and PDE subtype
-      myParam_->Get("subType", subType_ );
+      myParam_->GetValue("subType", subType_ );
 
       std::string probGeo;
-      param->Get("domain")->Get("geometryType", probGeo );
+      param->Get("domain")->GetValue("geometryType", probGeo );
 
       // Set number of degrees of freedom and
       // ensure that subtype fits to problem geometry
@@ -94,10 +94,10 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
                    << probGeo << "'"; );
       }
 
-      approxType_ = myParam_->Get("type")->AsString();
-      stabilizationType_ = myParam_->Get("stabilizationType")->AsString();
-      movingMesh_ = myParam_->Get("movingMesh")->AsBool();
-      saveAcouSrc_= myParam_->Get("aeroAcoustics")->AsBool();
+      approxType_ = myParam_->Get("type")->As<std::string>();
+      stabilizationType_ = myParam_->Get("stabilizationType")->As<std::string>();
+      movingMesh_ = myParam_->Get("movingMesh")->As<bool>();
+      saveAcouSrc_= myParam_->Get("aeroAcoustics")->As<bool>();
       
       forceFac_ = 1.0;
       
@@ -1246,7 +1246,7 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
     	  vel->definedOn = ResultInfo::NODE;
       } else if ( approxType_ == "legendre" ) {
     	  shared_ptr<LegendreFct> fct(new LegendreFct);
-    	  UInt order = myParam_->Get("order")->AsUInt();
+    	  UInt order = myParam_->Get("order")->As<UInt>();
     	  fct->SetIsoOrder( order );
     	  vel->fctType = fct;
     	  vel->definedOn = ResultInfo::PFEM;
@@ -1282,7 +1282,7 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
       } else if ( approxType_ == "legendre" ){
     	  // define Legendre type
     	  shared_ptr<LegendreFct> fct(new LegendreFct);
-    	  UInt order = myParam_->Get("order")->AsUInt();
+    	  UInt order = myParam_->Get("order")->As<UInt>();
     	  fct->SetIsoOrder( order );
     	  pres->fctType = fct;
     	  pres->definedOn = ResultInfo::PFEM;
@@ -1612,18 +1612,18 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
     void FluidMechPDE::ReadPressureLoads() {
 
       // try to get bcsAndLoads node
-      ParamNode * bcNode = myParam_->Get("bcsAndLoads", false);
+      PtrParamNode bcNode = myParam_->Get("bcsAndLoads", ParamNode::PASS);
       if( !bcNode )
         return;
-      StdVector<ParamNode*> presNodes = bcNode->GetList("pressure");
+      ParamNodeList presNodes = bcNode->GetList("pressure");
     
       // iterate over all pressure definitions
       std::string name, value, phase;
       for( UInt i = 0; i < presNodes.GetSize(); i++ ) {
       
-        presNodes[i]->Get("name", name );
-        presNodes[i]->Get("value", value );
-        presNodes[i]->Get("phase", phase );
+        presNodes[i]->GetValue("name", name );
+        presNodes[i]->GetValue("value", value );
+        presNodes[i]->GetValue("phase", phase );
       
         pressSurf_.Push_back(ptgrid_->GetEntityList( EntityList::SURF_ELEM_LIST,
         		name, EntityList::REGION ) );

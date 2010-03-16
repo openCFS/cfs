@@ -14,7 +14,7 @@ namespace CoupledField
 {
    class Elem;
    class ParamNode;
-   class InfoNode;
+   class ParamNode;
    class DesignSpace;
    class OptimalityCondition;
    class BaseOptimizer;
@@ -120,7 +120,7 @@ namespace CoupledField
          * @see FinalizeStoreResults() for calling after the last CommitIteration()
          * @param keep_iteration_number will keep currentIteration and not rest problemsWithinIteration
          * @return the iteration element we added */
-        virtual InfoNode* CommitIteration(bool keep_iteraton_number = false);
+        virtual PtrParamNode CommitIteration(bool keep_iteraton_number = false);
 
         /** the break condition for the optimization loop.
          * Checks the stopping rule from the XML file an searches for an HALTOPT file.  */
@@ -136,9 +136,9 @@ namespace CoupledField
         public:
           /** @param enabled comes from the attribute.
            * @param pn if NULL only the defaults are set */
-          MultipleExcitation(bool enabled, ParamNode* pn);
+          MultipleExcitation(bool enabled, PtrParamNode pn);
 
-          void ToInfo(InfoNode* in) const;
+          void ToInfo(PtrParamNode in) const;
 
           typedef enum { NO_TYPE, FIXED_WEIGHT, META_OBJECTIVE, HOMOGENIZATION_TEST_STRAINS } Type;
 
@@ -185,8 +185,8 @@ namespace CoupledField
         /** set the (static) enums - if they are used outside optimization, make this method public */
         static void SetEnums();
 
-        /** Our base InfoNode pointer, pointing to a plain <optimization> */
-        InfoNode* optInfoNode;
+        /** Our base ParamNode pointer, pointing to a plain <optimization> */
+        PtrParamNode optInfoNode;
 
         /** This is the list of concurrent objective functions.
          * It is guaranteed to have at least one entry.
@@ -200,7 +200,7 @@ namespace CoupledField
 
         /** Appends to the current analysis_id of the driver a child and
          * sets analysis_id and excite accordingly */
-        InfoNode* CreateAdjointAnalysisIdNode();
+        PtrParamNode CreateAdjointAnalysisIdNode();
         
         /** This tells the driver to store the last solved problem (gid, ...). Called in
          * CommitIteration(). For PiezoSIMP we can save more often and there this method
@@ -211,7 +211,7 @@ namespace CoupledField
         /** called by CommitIteration(), to be overwritten if additional data should be
          * written, then logFileHeader should also be set. Don't add a new-line here!!.
          * @param iteration a duplicate of the log file output to the info xml file */
-        virtual void LogFileLine(std::ofstream* out, InfoNode* iteration);
+        virtual void LogFileLine(std::ofstream* out, PtrParamNode iteration);
 
         /** PostInit is to be called after the constructor. 
          * PostInit  does not really solve something. */
@@ -279,7 +279,7 @@ namespace CoupledField
 
         /** Read the objective functions. Fills the objectives list with almost identical entries.
          * Handles multiObjectives */
-        void ReadObjectives(ParamNode* obj_node);
+        void ReadObjectives(PtrParamNode obj_node);
 
         /** Encapsulates Logging information */
         class Log
@@ -293,7 +293,7 @@ namespace CoupledField
 
           /** @param log_name is interpreted. If allows a file, the logFile is created.
            * @param pn_log pointer to the 'log' element. Might be NULL */
-          void Init(const std::string& log_name, ParamNode* pn_log);
+          void Init(const std::string& log_name, PtrParamNode pn_log);
 
           /** The header of the logFile_, to be overwritten if LogFileLine() is overwritten. CommitIteration()
            * writes this string to logFile_ a the first execution */
@@ -350,10 +350,10 @@ namespace CoupledField
     double GetOmegaOmega();
     
     /** read the tracking node list from XML */
-    void ReadTrackings(ParamNode* ts);
+    void ReadTrackings(PtrParamNode ts);
     
     /** read the loads from XML */
-    void ReadLoads(ParamNode* ls);
+    void ReadLoads(PtrParamNode ls);
     
     void ReadTestStrain(const Vector<double>& vec);
 

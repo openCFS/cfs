@@ -23,7 +23,7 @@ namespace CoupledField {
   std::string SimOutputText::delim_ = "  ";
 
   SimOutputText::SimOutputText( const std::string& fileName,
-                                ParamNode * outputNode )
+                                PtrParamNode outputNode )
     : SimOutput( fileName, outputNode ){
 
     // initialize variables
@@ -46,14 +46,14 @@ namespace CoupledField {
     // Get comment char 
     cmChar_ = '#';
     if( outputNode )
-      cmChar_ = (outputNode->Get("commentChar")->AsString())[0];
+      cmChar_ = (outputNode->Get("commentChar")->As<std::string>())[0];
 
     // Get type of collection
     collecType_ = ENTITY;
     if ( outputNode ) {
-      if( outputNode->Get("fileCollect")->AsString() == "timeFreq" )
+      if( outputNode->Get("fileCollect")->As<std::string>() == "timeFreq" )
         collecType_ = TIMEFREQ;
-      if( outputNode->Get("fileCollect")->AsString() == "altogether" )
+      if( outputNode->Get("fileCollect")->As<std::string>() == "altogether" )
         collecType_ = ALTOGETHER;
     }
   }
@@ -79,7 +79,7 @@ namespace CoupledField {
     // Get reference coordinate system
     if( myParam_ ) {
       std::string coordSysName;
-      myParam_->Get("coordSysId", coordSysName);
+      myParam_->GetValue("coordSysId", coordSysName);
       coordSys_ = domain->GetCoordSystem( coordSysName );
     }
   }

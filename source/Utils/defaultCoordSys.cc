@@ -8,7 +8,7 @@
 namespace CoupledField{
 
   DefaultCoordSystem::DefaultCoordSystem(Grid * ptGrid ) 
-    : CoordSystem(std::string("default") , ptGrid, NULL ) {
+    : CoordSystem(std::string("default") , ptGrid, PtrParamNode() ) {
     
    // initialize rotation matrix
     rotationMat_.Resize(3, 3);

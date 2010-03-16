@@ -27,7 +27,7 @@
 #include "Domain/domain.hh"
 #include "Domain/grid.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/resultHandler.hh"
 #include "DataInOut/programOptions.hh"
@@ -78,17 +78,17 @@ Optimization::Optimization()
     throw Exception("optimization not implemented for driver " + driver->GetDriverClass());
 
   optInfoNode = info->Get("optimization");   // store our info results here
-  ParamNode* pn = param->Get("optimization"); // read our parameters from the xml file
+  PtrParamNode pn = param->Get("optimization"); // read our parameters from the xml file
 
   // the tool to solve the optimization problem
-  optimizer_ = optimizer.Parse(pn->Get("optimizer")->Get("type"));
-  maxIterations = pn->Get("optimizer")->Get("maxIterations")->AsInt();
+  optimizer_ = optimizer.Parse(pn->Get("optimizer")->Get("type")->As<std::string>());
+  maxIterations = pn->Get("optimizer")->Get("maxIterations")->As<Integer>();
 
   // might read a multiObjective problem
   objectives.Read(pn->Get("costFunction")); //
-  objectives.ToInfo(optInfoNode->Get(InfoNode::HEADER)->Get("objective"));
+  objectives.ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("objective"));
 
-  // constraints to be added later -- it is so much easier with the InfoNodes
+  // constraints to be added later -- it is so much easier with the ParamNodes
   this->log.fileHeader = harmonic ? "#iter\tfreq" : "#iter";
   for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
     this->log.fileHeader += "\t" + Objective::type.ToString(objectives.data[i]->GetType());
@@ -97,14 +97,14 @@ Optimization::Optimization()
 
   // multiple excitations are are toggled via attribute. Only if enabled we read the optional element
   // actually part of costFunction - but we store in Optimization itself!
-  bool me = pn->Get("costFunction")->Get("multiple_excitation")->AsBool();
-  this->multiple_excitation = new MultipleExcitation(me, me ? pn->Get("costFunction")->Get("multipleExcitation", false) : NULL);
-  if(me) this->multiple_excitation->ToInfo(optInfoNode->Get(InfoNode::HEADER)->Get("multipleExcitations"));
+  bool me = pn->Get("costFunction")->Get("multiple_excitation")->As<bool>();
+  this->multiple_excitation = new MultipleExcitation(me, me ? pn->Get("costFunction")->Get("multipleExcitation", ParamNode::PASS) : PtrParamNode());
+  if(me) this->multiple_excitation->ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("multipleExcitations"));
 
   // the commit stuff
-  string cm = pn->Has("commit") ? pn->Get("commit")->Get("mode")->AsString() : "forward";
+  string cm = pn->Has("commit") ? pn->Get("commit")->Get("mode")->As<std::string>() : "forward";
   this->commitMode_ = commitMode.Parse(cm);
-  this->commitStride = pn->Has("commit") ? pn->Get("commit")->Get("stride")->AsInt() : 1;
+  this->commitStride = pn->Has("commit") ? pn->Get("commit")->Get("stride")->As<Integer>() : 1;
   optInfoNode->Get("commit")->Get("mode")->SetValue(cm);
   optInfoNode->Get("commit")->Get("stride")->SetValue(commitStride);
   
@@ -112,8 +112,8 @@ Optimization::Optimization()
   optInfoNode->Get("haltopt_directory")->SetValue(fs::current_path().directory_string());
 
   // the constraints are optional and might not be real constraints!
-  StdVector<ParamNode*> list = pn->GetList("constraint");
-  InfoNode* in = optInfoNode->Get(InfoNode::HEADER)->Get("constraints");
+  ParamNodeList list = pn->GetList("constraint");
+  PtrParamNode in = optInfoNode->Get(ParamNode::HEADER)->Get("constraints");
   for(unsigned int i = 0; i < list.GetSize(); i++)
   {
     // the constraint is either added to constraints or outputs if mode is observation
@@ -127,17 +127,17 @@ Optimization::Optimization()
     // if in the 'logging' element deltaConstraints is enabled, we modify the output!
     string delta = constraints[i].delta_logging ? "delta_" : "";
     this->log.fileHeader += "\t" + delta + constraints[i].ToString();
-    constraints[i].ToInfo(in->Get("constraint", InfoNode::APPEND));
+    constraints[i].ToInfo(in->Get("constraint", ParamNode::APPEND));
   }
 
   for(unsigned int i = 0; i < outputs.GetSize(); i++)
   {
     string delta = outputs[i].delta_logging ? "delta_" : "";
     this->log.fileHeader += "\t" + delta + outputs[i].ToString();
-    outputs[i].ToInfo(in->Get("observation", InfoNode::APPEND));
+    outputs[i].ToInfo(in->Get("observation", ParamNode::APPEND));
   }
 
-  log.Init(pn->Get("log")->AsString(), pn->Get("logging", false)); // is fail save
+  log.Init(pn->Get("log")->As<std::string>(), pn->Get("logging", ParamNode::PASS)); // is fail save
 
   // remove a stop file, if found
   if(fs::exists("HALTOPT"))
@@ -163,7 +163,7 @@ void Optimization::PostInit()
 
 void Optimization::PostInitSecond()
 {
-  ParamNode* opt = param->Get("optimization")->Get("optimizer");
+  PtrParamNode opt = param->Get("optimization")->Get("optimizer");
 
   switch(optimizer_)
   {
@@ -315,7 +315,7 @@ void Optimization::SetEnums()
 
 bool Optimization::DoStopOptimization()
 {
-  InfoNode* in = optInfoNode->Get(InfoNode::SUMMARY)->Get("break");
+  PtrParamNode in = optInfoNode->Get(ParamNode::SUMMARY)->Get("break");
   // check if the HALTOPT file exists
   if(fs::exists("HALTOPT"))
   {
@@ -360,15 +360,16 @@ Optimization* Optimization::CreateInstance()
 
   // we assume ersatz material, currently there is nothing else.
   // note, we read method again in the ersatz material constructor.
-  ParamNode* em = param->Get("optimization")->Get("ersatzMaterial");
-  ErsatzMaterial::Method method = ErsatzMaterial::method.Parse(em->Get("method"));
+  PtrParamNode em = param->Get("optimization")->Get("ersatzMaterial");
+  ErsatzMaterial::Method method = 
+      ErsatzMaterial::method.Parse(em->Get("method")->As<std::string>());
   
   Optimization* opt = NULL;
   
   switch(method)
   {
   case ErsatzMaterial::SIMP_METHOD:
-    switch(OptimizationMaterial::system.Parse(em->Get("material")))
+    switch(OptimizationMaterial::system.Parse(em->Get("material")->As<std::string>()))
     {
     case OptimizationMaterial::MECHANIC:
       opt = new SIMP();
@@ -433,11 +434,11 @@ void Optimization::SolveProblem()
 }
 
 
-InfoNode* Optimization::CreateAdjointAnalysisIdNode()
+PtrParamNode Optimization::CreateAdjointAnalysisIdNode()
 {
   BaseDriver* driver = domain->GetDriver();
-  InfoNode* base = driver->GetAnalysisId();
-  InfoNode* in = driver->CreateAnalysisIdChild(base, "adjoint");
+  PtrParamNode base = driver->GetAnalysisId();
+  PtrParamNode in = driver->CreateAnalysisIdChild(base, "adjoint");
   
   return in;
 }
@@ -449,7 +450,7 @@ void Optimization::SolveStateProblem(Excitation* excite)
 
   // this is the forward problem. Store the analysis_id in the driver such that
   // we can aquire it for the adjoint problem
-  InfoNode* analysis_id = excite == NULL ? driver->CreateAnalysisId("iter", currentIteration)
+  PtrParamNode analysis_id = excite == NULL ? driver->CreateAnalysisId("iter", currentIteration)
                                          : driver->CreateAnalysisId("iter", currentIteration, "excite", excite->index);
   
   bool reAssembleMatrices = true;
@@ -542,7 +543,7 @@ void Optimization::FinalizeStoreResults()
 }
 
 
-InfoNode* Optimization::CommitIteration(bool keep_iteration_number)
+PtrParamNode Optimization::CommitIteration(bool keep_iteration_number)
 {
   // store the real cost -> not a scaled one
   objectives.PushBackHistory();
@@ -564,11 +565,11 @@ InfoNode* Optimization::CommitIteration(bool keep_iteration_number)
   design->WriteDesignToExtern(last_iteration.GetPointer());
 
   // also log to info node, append the iteration
-  InfoNode* iteration = optInfoNode->Get(InfoNode::PROCESS)->Get("iteration", InfoNode::APPEND);
+  PtrParamNode iteration = optInfoNode->Get(ParamNode::PROCESS)->Get("iteration", ParamNode::APPEND);
 
   // write the header only once - we might keep the iteration number
   if(log.file) if(objectives.GetHistorySize() == 1) *log.file << log.fileHeader << endl;
-  LogFileLine(log.file, iteration); // also InfoNode is to be written
+  LogFileLine(log.file, iteration); // also ParamNode is to be written
   baseOptimizer_->LogFileLine(log.file, iteration);
   if(log.file) *log.file << endl;
 
@@ -590,7 +591,7 @@ InfoNode* Optimization::CommitIteration(bool keep_iteration_number)
   return iteration;
 }
 
-void Optimization::LogFileLine(ofstream* out, InfoNode* iteration)
+void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
 {
   // calculate the relative cost change
   int hs = objectives.GetHistorySize();
@@ -659,7 +660,7 @@ void Optimization::LogFileLine(ofstream* out, InfoNode* iteration)
 }
 
 
-Optimization::MultipleExcitation::MultipleExcitation(bool multiple, ParamNode* pn)
+Optimization::MultipleExcitation::MultipleExcitation(bool multiple, PtrParamNode pn)
 {
   // set defaults
   this->stride = 1;
@@ -671,22 +672,22 @@ Optimization::MultipleExcitation::MultipleExcitation(bool multiple, ParamNode* p
   // if disabled, we don't read anything
   if(!multiple || pn == NULL) return;
 
-  this->type_ = type.Parse(pn->Get("type"));
+  this->type_ = type.Parse(pn->Get("type")->As<std::string>());
 
   // adjust defaults
   if(pn->Has("adjustWeights")) {
-    this->stride   = pn->Get("adjustWeights")->Get("stride")->AsInt();
-    this->max_gain = pn->Get("adjustWeights")->Get("max_gain")->AsDouble();
-    this->damping  = pn->Get("adjustWeights")->Get("damping")->AsDouble();
+    this->stride   = pn->Get("adjustWeights")->Get("stride")->As<Integer>();
+    this->max_gain = pn->Get("adjustWeights")->Get("max_gain")->As<Double>();
+    this->damping  = pn->Get("adjustWeights")->Get("damping")->As<Double>();
   }
 }
 
-void Optimization::MultipleExcitation::ToInfo(InfoNode* in) const
+void Optimization::MultipleExcitation::ToInfo(PtrParamNode in) const
 {
   if(!multiple_excitation_) return;
 
   if(type_ == META_OBJECTIVE)  {
-    InfoNode* in_ = in->Get("metaObjective");
+    PtrParamNode in_ = in->Get("metaObjective");
     in_->Get("type")->SetValue("best_value");
     in_->Get("damping")->SetValue(damping);
     in_->Get("stride")->SetValue(stride);
@@ -772,16 +773,16 @@ double Excitation::GetWeightedFactor(Objective* cost)
   return normalized_weight * GetFactor(cost);
 }
 
-void Excitation::ReadTrackings(ParamNode* ts){
+void Excitation::ReadTrackings(PtrParamNode ts){
   StdPDE* mech = domain->GetStdPDE("mechanic");
   trackings.Clear();
-  StdVector<ParamNode*> tracking_list = ts->GetChildren();
+  ParamNodeList tracking_list = ts->GetChildren();
   for(unsigned int i = 0; i < tracking_list.GetSize(); i++){
     std::string name, dof, value;
     dof = "";
-    tracking_list[i]->Get("name", name);
-    tracking_list[i]->Get("dof", dof, false);
-    tracking_list[i]->Get("value", value);
+    tracking_list[i]->GetValue("name", name);
+    tracking_list[i]->GetValue("dof", dof, ParamNode::PASS);
+    tracking_list[i]->GetValue("value", value);
     shared_ptr<LoadBc> actLoad( new LoadBc );
     shared_ptr<EntityList> actList = domain->GetGrid()->GetEntityList( EntityList::NODE_LIST, name, EntityList::NAMED_NODES );
     actLoad->entities = actList;
@@ -796,7 +797,7 @@ void Excitation::ReadTrackings(ParamNode* ts){
   }
 }
 
-void Excitation::ReadLoads(ParamNode* ls)
+void Excitation::ReadLoads(PtrParamNode ls)
 {
   apply_linForms = true;
   
@@ -848,7 +849,7 @@ Optimization::Log::Log()
   this->fileHeader = "";
 }
 
-void Optimization::Log::Init(const string& log_name, ParamNode* pn_log)
+void Optimization::Log::Init(const string& log_name, PtrParamNode pn_log)
 {
   if(log_name != "false")
   {
@@ -860,9 +861,9 @@ void Optimization::Log::Init(const string& log_name, ParamNode* pn_log)
     if(pn_log != NULL)
     {
       design = false;
-      pn_log->Get("design", design, false);
+      pn_log->GetValue("design", design, ParamNode::PASS);
       designGradient = false;
-      pn_log->Get("designGradient", designGradient, false);
+      pn_log->GetValue("designGradient", designGradient, ParamNode::PASS);
     }
   }
 }

@@ -31,7 +31,7 @@ namespace CoupledField {
   // Solve Step Transient SECTION  
   // ======================================================
 
-  void SolveStepAcoustic::StepTransNonLin(InfoNode* analysis_base) 
+  void SolveStepAcoustic::StepTransNonLin(PtrParamNode analysis_base) 
   {
     UInt job;
     bool performOneMoreStep;
@@ -85,7 +85,7 @@ namespace CoupledField {
           std::cout << "  " << iterationCounter;
       }
       
-      InfoNode* analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
+      PtrParamNode analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
       
       // set solution of previous iteration
       oldSol = newSol;
@@ -226,7 +226,7 @@ namespace CoupledField {
     }
   }
 
-  void SolveStepAcoustic::StepTransLin(InfoNode* analysis_id) {
+  void SolveStepAcoustic::StepTransLin(PtrParamNode analysis_id) {
     if(justInterpolate_) {
       //account for RHS
       assemble_->AssembleLinRHS();

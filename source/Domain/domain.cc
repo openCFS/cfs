@@ -16,7 +16,7 @@
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/MaterialHandler.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
 #include "DataInOut/programOptions.hh"
 #include "DataInOut/simInput.hh"
@@ -96,7 +96,7 @@ void Domain::CreateGrid()
   std::string libmesh = "cfsGrid";
 
   std::string probGeo;
-  param->Get("domain")->Get("geometryType", probGeo);
+  param->Get("domain")->GetValue("geometryType", probGeo);
   if (probGeo == "3d")
   {
     dim_ = 3;
@@ -528,9 +528,9 @@ void Domain::CreateSinglePDEs(UInt sequenceStep)
   // default grid
   Grid * defaultGrid = gridMap_["default"];
 
-  StdVector<ParamNode*> pdeNodes;
+  ParamNodeList pdeNodes;
   pdeNodes
-      = param->Get("sequenceStep", std::string("index"), sequenceStep) 
+      = param->GetByVal("sequenceStep", std::string("index"), sequenceStep) 
       ->Get("pdeList")->GetChildren();
 
   ptSinglePde_.Resize(pdeNodes.GetSize());
@@ -541,7 +541,7 @@ void Domain::CreateSinglePDEs(UInt sequenceStep)
   {
 
     std::string actPdeName = pdeNodes[i]->GetName();
-    ParamNode * actPdeNode = pdeNodes[i];
+    PtrParamNode actPdeNode = pdeNodes[i];
     Info->StartProgress("Creating PDE '" + actPdeName + "'");
 
     if (actPdeName == "electrostatic")
@@ -553,7 +553,7 @@ void Domain::CreateSinglePDEs(UInt sequenceStep)
     else if (actPdeName == "acoustic")
     {
 
-      std::string acouSubType = actPdeNode->Get("subType")->AsString();
+      std::string acouSubType = actPdeNode->Get("subType")->As<std::string>();
 
       if (acouSubType == "combustionNoise")
         ptSinglePde_[i] = new AcouCombustionNoise(defaultGrid, actPdeNode);
@@ -619,15 +619,15 @@ void Domain::CreateIterCoupledPDE(UInt sequenceStep)
   // ================================
 
   // check for presence of "couplingList" and "iterative" element
-  ParamNode * couplingNode =
-      param->Get("sequenceStep", std::string("index"), sequenceStep) 
-        ->Get("couplingList", false);
+  PtrParamNode couplingNode =
+      param->GetByVal("sequenceStep", std::string("index"), sequenceStep) 
+        ->Get("couplingList", ParamNode::PASS);
   if (!couplingNode)
     return;
-  ParamNode * iterNode = couplingNode->Get("iterative", false);
+  PtrParamNode iterNode = couplingNode->Get("iterative", ParamNode::PASS);
   if (!iterNode)
     return;
-  StdVector<ParamNode*> iterCplNodes = iterNode->GetChildren();
+  ParamNodeList iterCplNodes = iterNode->GetChildren();
 
   // iterate over all pairwise iterative couplings
   StdVector<StdPDE*> iterCoupledPDEs;
@@ -642,7 +642,7 @@ void Domain::CreateIterCoupledPDE(UInt sequenceStep)
       continue;
 
     // fetch names of related pdes
-    StdVector<ParamNode*> pdeNodes = iterCplNodes[i]->GetChildren();
+    ParamNodeList pdeNodes = iterCplNodes[i]->GetChildren();
 
     for (UInt iPde = 0; iPde < pdeNodes.GetSize(); iPde++)
     {
@@ -717,15 +717,15 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep)
   }
 
   // get "couplingList" node (must exist)
-  ParamNode * couplingNode =
-      param->Get("sequenceStep", std::string("index"), sequenceStep)
+  PtrParamNode couplingNode =
+      param->GetByVal("sequenceStep", std::string("index"), sequenceStep)
         ->Get("couplingList");
-  ParamNode * directNode = couplingNode->Get("direct", false);
+  PtrParamNode directNode = couplingNode->Get("direct", ParamNode::PASS);
   if (!directNode)
     return;
 
   // get nodes of pairwise direct couplings
-  StdVector<ParamNode*> pairNodes = directNode->GetChildren();
+  ParamNodeList pairNodes = directNode->GetChildren();
 
   SinglePDE *pde1 = NULL;
   SinglePDE *pde2 = NULL;
@@ -833,7 +833,7 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep)
     singlePdes.Push_back(GetSinglePDE(*itSet));
   }
 
-  ptDirectCoupledPde_.Push_back(new DirectCoupledPDE(gridMap_["default"], NULL));
+  ptDirectCoupledPde_.Push_back(new DirectCoupledPDE(gridMap_["default"], PtrParamNode()));
   ptDirectCoupledPde_[0]->SetSinglePDEs(singlePdes);
   ptDirectCoupledPde_[0]->SetCouplings(DirectCouplingPairs);
 
@@ -858,8 +858,8 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep)
 void Domain::CreateCoordinateSystems()
 {
 
-  InfoNode * in = info->Get(InfoNode::HEADER)->Get("domain");
-  in = in->Get("coordinateSystems", InfoNode::APPEND);
+  PtrParamNode in = info->Get(ParamNode::HEADER)->Get("domain");
+  in = in->Get("coordinateSystems", ParamNode::APPEND);
   
   // first create the "global" standard cartesian
   // coordinate system
@@ -867,11 +867,11 @@ void Domain::CreateCoordinateSystems()
   coordSys_[defaultname] = new DefaultCoordSystem(gridMap_["default"] );
 
   // get nodes with coordinate systems
-  ParamNode * coosyNode = param->Get("domain")->Get("coordSysList", false);
+  PtrParamNode coosyNode = param->Get("domain")->Get("coordSysList", ParamNode::PASS);
   if (!coosyNode)
     return;
 
-  StdVector<ParamNode*> coordNodes = coosyNode->GetChildren();
+  ParamNodeList coordNodes = coosyNode->GetChildren();
 
   // iterate over all coordinate system nodes
   for (UInt i = 0; i < coordNodes.GetSize(); i++)
@@ -879,7 +879,7 @@ void Domain::CreateCoordinateSystems()
 
     // fetch coosy name and type
     std::string type = coordNodes[i]->GetName();
-    std::string name = coordNodes[i]->Get("id")->AsString();
+    std::string name = coordNodes[i]->Get("id")->As<std::string>();
 
     CoordSystem * actCoord = NULL;
     if (type == "polar")
@@ -973,7 +973,7 @@ void Domain::ResetPDEs()
   numIterCoupledStdPde_ = 0;
 }
 
-void Domain::ReadErsatzMaterial(ParamNode* pn)
+void Domain::ReadErsatzMaterial(PtrParamNode pn)
 {
   // perhaps Optimization has already called the SetEnums
   if (DesignElement::filter.map.empty())
@@ -983,20 +983,20 @@ void Domain::ReadErsatzMaterial(ParamNode* pn)
 
   // we read something like <loadErsatzMaterial region="piezo" file="piezo_density.xml" set="last"/>
   // Initialize our xerces dom parser to handle the external xml file
-  Xerces* xerces = new Xerces(pn->Get("file")->AsString());
+  Xerces* xerces = new Xerces(pn->Get("file")->As<std::string>());
   // set the global ParamNode tree pointer
-  ParamNode* xml = xerces->CreateParamNodeInstance();
+  PtrParamNode xml = xerces->CreateParamNodeInstance();
   // release the xerces ressources, param is not affected
   delete xerces;
   // check this file
   if (xml->Count("set") == 0)
     throw Exception("There are no design sets in the ersatz material file");
 
-  StdVector<ParamNode*> region_list = pn->GetList("region");
+  ParamNodeList region_list = pn->GetList("region");
   StdVector<RegionIdType> regionIds;
   for (unsigned int i = 0; i < region_list.GetSize(); i++)
   {
-    std::string reg = region_list[i]->Get("name")->AsString();
+    std::string reg = region_list[i]->Get("name")->As<std::string>();
     if (!GetGrid()->GetRegion().IsValid(reg))
       throw Exception("region given in loadErsatzMaterial is invalid");
     regionIds.Push_back(GetGrid()->GetRegion().Parse(reg));
@@ -1015,45 +1015,45 @@ void Domain::ReadErsatzMaterial(ParamNode* pn)
     // the design set consists of entries like
     // <element nr="401" type="density" design="0.886466" gradient="-7.56246e-09" filt_grad="-7.56246e-09"/>
     // only the combination nr and type is unique. E.g. in piezo we have types density and polarization
-    StdVector<ParamNode*> des = xml->Get("header")->GetList("design");
-    StdVector<ParamNode*> tfs = xml->Get("header")->GetList("transferFunction");
-    StdVector<ParamNode*> res(0); // empty
+    ParamNodeList des = xml->Get("header")->GetList("design");
+    ParamNodeList tfs = xml->Get("header")->GetList("transferFunction");
+    ParamNodeList res(0); // empty
 
     // create the design space -> data has initial values!
     ersatzMaterial = new DesignSpace(regionIds, des, tfs, res);
 
-    ersatzMaterial->ToInfo(info->Get("ersatzMaterial")->Get(InfoNode::HEADER));
+    ersatzMaterial->ToInfo(info->Get("ersatzMaterial")->Get(ParamNode::HEADER));
   }
 
   // find the proper design set. This is either 'first', 'last' or the * in <set id="*"> ...
-  ParamNode* set = NULL;
-  std::string key = pn->Get("set")->AsString();
+  PtrParamNode set;
+  std::string key = pn->Get("set")->As<std::string>();
   if (key == "first")
     set = xml->GetList("set")[0];
   if (key == "last")
     set = xml->GetList("set").Last();
   if (set == NULL)
-    set = xml->Get("set", "id", key);
+    set = xml->GetByVal("set", "id", key);
 
   // read the set and replace the initial values
-  StdVector<ParamNode*> elems = set->GetList("element");
+  ParamNodeList elems = set->GetList("element");
 
   // check the the dimensions! the number of design variables comes from the regions and designs
   if (ersatzMaterial->data.GetSize() != elems.GetSize())
-    EXCEPTION("ErsatzMaterialFile '" << pn->Get("file")->AsString() << "' has " << elems.GetSize()
+    EXCEPTION("ErsatzMaterialFile '" << pn->Get("file")->As<std::string>() << "' has " << elems.GetSize()
         << " entries, the mesh has "<< ersatzMaterial->data.GetSize() << " design elements");
 
   // check if we ignore the element numbers
-  bool ignore_numbers = pn->Get("ignore_element_numbers")->AsBool();
+  bool ignore_numbers = pn->Get("ignore_element_numbers")->As<bool>();
   if (ignore_numbers && region_list.GetSize() != 1)
     EXCEPTION("'ignore_element_numbers' in 'loadErsatzMaterial' only allowed for a single region");
 
   for (unsigned int e = 0; e < elems.GetSize(); e++)
   {
-    unsigned int nr = elems[e]->Get("nr")->AsInt();
+    unsigned int nr = elems[e]->Get("nr")->As<Integer>();
     DesignElement::Type dt = (DesignElement::Type) DesignElement::type.Parse(
-        elems[e]->Get("type")->AsString());
-    double val = elems[e]->Get("design")->AsDouble();
+        elems[e]->Get("type")->As<std::string>());
+    double val = elems[e]->Get("design")->As<Double>();
 
     // replace the value of the DesignElement
     DesignElement* de = ignore_numbers ? &(ersatzMaterial->data[e])
@@ -1070,7 +1070,6 @@ void Domain::ReadErsatzMaterial(ParamNode* pn)
     }
   }
 
-  delete xml;
 }
 
 bool Domain::GetErsatzMaterial(const Elem* elem, const BaseForm* form,

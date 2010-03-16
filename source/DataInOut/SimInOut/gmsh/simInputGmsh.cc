@@ -31,7 +31,7 @@
 
 namespace CoupledField {
     
-  SimInputGmsh::SimInputGmsh(std::string fileName, ParamNode * inputNode) :
+  SimInputGmsh::SimInputGmsh(std::string fileName, PtrParamNode inputNode) :
     SimInput(fileName, inputNode),
     numNodesPerElem_(27),
     dim_(0),
@@ -40,17 +40,17 @@ namespace CoupledField {
   {
     GmshHelper::InitElemNodeMap();
 
-    ParamNode *pNode = NULL;
-    StdVector<ParamNode*> pNodeList;
+    PtrParamNodepNode = NULL;
+    ParamNodeList pNodeList;
 
     pNode = myParam_->Get("coordSysId", false);
     if(pNode) {
-      coordSysId_ = myParam_->Get("coordSysId", false)->AsString();
+      coordSysId_ = myParam_->Get("coordSysId", false)->As<std::string>();
     }
     
     pNode = myParam_->Get("scaleFac", false);
     if(pNode) {
-      scaleFac_ = myParam_->Get("scaleFac", false)->AsDouble();
+      scaleFac_ = myParam_->Get("scaleFac", false)->As<Double>();
     }
 
     readOnlySomeRegions_ = false;
@@ -58,7 +58,7 @@ namespace CoupledField {
     for(UInt i=0, n= pNodeList.GetSize(); i<n; i++)
     {
       std::string regionName =
-        pNodeList[i]->Get("name", false)->AsString();
+        pNodeList[i]->Get("name", false)->As<std::string>();
 
       bool linearize = false;
       pNodeList[i]->Get("linearize", linearize, false);

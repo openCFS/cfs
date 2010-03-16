@@ -1,4 +1,4 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+  // -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
@@ -20,7 +20,7 @@ namespace CoupledField {
   class SimOutputGmsh : public SimOutput
   {
   public:
-    SimOutputGmsh(std::string fileName, ParamNode * inputNode);
+    SimOutputGmsh(std::string fileName, PtrParamNode inputNode);
     virtual ~SimOutputGmsh();
 
     //! Initialize class

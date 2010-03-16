@@ -19,17 +19,17 @@ DECLARE_LOG(ipopt)
 DEFINE_LOG(ipopt, "ipopt")
 
 
-IPOPT::IPOPT(Optimization* optimization, BaseOptimizer* base, ParamNode* pn)
+IPOPT::IPOPT(Optimization* optimization, BaseOptimizer* base, PtrParamNode pn)
 {
   LOG_TRACE(ipopt) << "Initialize IPOPT";
   this->optimization_ = optimization;
   this->base_ = base;
   this->optimizer_pn_ = pn;
   // reduce to our actual ParamNode
-  ParamNode* pn_ipopt = optimizer_pn_->Get(Optimization::optimizer.ToString(Optimization::IPOPT_SOLVER), false);
+  PtrParamNode pn_ipopt = optimizer_pn_->Get(Optimization::optimizer.ToString(Optimization::IPOPT_SOLVER), false);
   
   double manual_scaling = pn_ipopt != NULL && pn_ipopt->Has("option", "name", "obj_scaling_factor") ?
-      pn_ipopt->Get("option", "name", "obj_scaling_factor")->Get("value")->AsDouble() : 1.0;
+      pn_ipopt->Get("option", "name", "obj_scaling_factor")->Get("value")->As<Double>() : 1.0;
   base->PostInit(manual_scaling);
   Init();
 }
@@ -76,25 +76,25 @@ void IPOPT::Init()
   }
 
   // reduce to our actual ParamNode
-  ParamNode* pn_ipopt = optimizer_pn_->Get(Optimization::optimizer.ToString(Optimization::IPOPT_SOLVER), false);
+  PtrParamNode pn_ipopt = optimizer_pn_->Get(Optimization::optimizer.ToString(Optimization::IPOPT_SOLVER), false);
   
   // check for optional paramters
   if(pn_ipopt != NULL)
   {
-    StdVector<ParamNode*> list = pn_ipopt->GetList("option", "type", "string");
+    ParamNodeList list = pn_ipopt->GetList("option", "type", "string");
     for(unsigned int i = 0; i < list.GetSize(); i++)
-      app->Options()->SetStringValue(list[i]->Get("name")->AsString(), list[i]->Get("value")->AsString());
+      app->Options()->SetStringValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<std::string>());
 
     list = pn_ipopt->GetList("option", "type", "integer");
     for(unsigned int i = 0; i < list.GetSize(); i++)
-      app->Options()->SetIntegerValue(list[i]->Get("name")->AsString(), list[i]->Get("value")->AsInt());
+      app->Options()->SetIntegerValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<Integer>());
 
     list = pn_ipopt->GetList("option", "type", "real");
     for(unsigned int i = 0; i < list.GetSize(); i++)
     {
       // do not set obj_scaling_factor -> it is set via get_scaling_parameters() or before with maximation factor
-      if(list[i]->Get("name")->AsString() != "obj_scaling_factor")
-        app->Options()->SetNumericValue(list[i]->Get("name")->AsString(), list[i]->Get("value")->AsDouble());
+      if(list[i]->Get("name")->As<std::string>() != "obj_scaling_factor")
+        app->Options()->SetNumericValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<Double>());
     }
   }
 }
@@ -107,7 +107,7 @@ void IPOPT::SolveProblem()
 {
   ApplicationReturnStatus status = app->OptimizeTNLP(this);
 
-  InfoNode* in = optimization_->optInfoNode->Get(InfoNode::SUMMARY)->Get("break");
+  PtrParamNode in = optimization_->optParamNode->Get(ParamNode::SUMMARY)->Get("break");
   
   if (status == Solve_Succeeded) {
     // Retrieve some statistics about the solve

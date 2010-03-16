@@ -15,7 +15,7 @@ namespace CoupledField
   class GradientCheck : public BaseOptimizer
   {
   public:
-    GradientCheck(Optimization* optimization, ParamNode* pn);
+    GradientCheck(Optimization* optimization, PtrParamNode pn);
     
     ~GradientCheck() {}
 
@@ -26,7 +26,7 @@ namespace CoupledField
 
   private:
     /** Performs the finite difference evaluation. Does not store. Resets design */
-    double PerformFiniteDifferenceEval(DesignElement* de, double current_objective, InfoNode* cg);
+    double PerformFiniteDifferenceEval(DesignElement* de, double current_objective, PtrParamNode cg);
     
     /** our h-spacing from XML or default */
     double h;

@@ -7,11 +7,11 @@
 
 using namespace CoupledField;
 
-EvaluateOnly::EvaluateOnly(Optimization* optimization, ParamNode* pn)
+EvaluateOnly::EvaluateOnly(Optimization* optimization, PtrParamNode pn)
  : BaseOptimizer(optimization, pn)
 {
   // reduce to our actual ParamNode
-  pn = pn->Get(Optimization::optimizer.ToString(Optimization::EVALUATE_INITIAL_DESIGN), false);
+  pn = pn->Get(Optimization::optimizer.ToString(Optimization::EVALUATE_INITIAL_DESIGN), ParamNode::PASS);
 
   PostInit(1.0, true);
 }

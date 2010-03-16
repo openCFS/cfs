@@ -6,8 +6,7 @@
 
 #include <boost/algorithm/string/trim.hpp>
 
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+//#include "DataInOut/ParamHandling/ParamNode.hh"
 
 #include "exception.hh"
 
@@ -85,11 +84,16 @@ namespace CoupledField {
             std::string msg = message;
             boost::trim(msg);
 
-            InfoNode* out = info->Get(InfoNode::WARNING)->Get("warning", InfoNode::APPEND);
-            
-            out->Get("lineNum")->SetValue(lineNum);
-            out->Get("fileName")->SetValue(fileName);
-            out->Get("message")->SetValue(message);
+            // ahauck, 2010-03-15
+            // The following section is commented out, as it introduces a 
+            // dependency of the exception class to the ParamNode class.
+            // This in addition creates a dependency of the h5tool to the
+            // libparamh ..
+//            PtrParamNode out = info->Get(ParamNode::WARNING)->Get("warning", ParamNode::APPEND);
+//            
+//            out->Get("lineNum")->SetValue(lineNum);
+//            out->Get("fileName")->SetValue(fileName);
+//            out->Get("message")->SetValue(message);
             
             break;
         }

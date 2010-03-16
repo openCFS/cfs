@@ -27,7 +27,7 @@
 namespace CoupledField
 {
 
-  AcousticMixedPDE::AcousticMixedPDE( Grid* aGrid, ParamNode* paramNode )
+  AcousticMixedPDE::AcousticMixedPDE( Grid* aGrid, PtrParamNode paramNode )
     :SinglePDE(aGrid, paramNode )
 
   {
@@ -41,11 +41,11 @@ namespace CoupledField
     // ****************************
 
     // Get problem geometry and PDE subtype
-    myParam_->Get( "subType", subType_ );
+    myParam_->GetValue( "subType", subType_ );
     std::string probGeo;
-    param->Get("domain")->Get("geometryType", probGeo );
+    param->Get("domain")->GetValue("geometryType", probGeo );
 
-    approxType_ = myParam_->Get("type")->AsString();
+    approxType_ = myParam_->Get("type")->As<std::string>();
     if(approxType_ == "spectral"){
       std::cerr << std::endl << "Usng the mixed Equation Map" << std::endl;
       //eqnMap_->~EqnMap();
@@ -79,7 +79,7 @@ namespace CoupledField
 
     // timestepping formulation
     std::string str = "";
-    myParam_->Get( "timeSteppingFormulation", str,  false );
+    myParam_->GetValue( "timeSteppingFormulation", str,  ParamNode::PASS );
     //myParam_->Get( "timeSteppingFormulation", str,  true );
     //str = "effMassMatrix";
     if ( str == "effMassMatrix" ) {
@@ -141,7 +141,8 @@ namespace CoupledField
       actMat->GetScalar(bulkModulus, ACOU_BULK_MODULUS,Global::REAL);
       c0 = sqrt(bulkModulus/density);
       
-      ParamNode * actRegionNode = myParam_->Get("regionList")->Get( "region", "name", actRegionName );
+      PtrParamNode actRegionNode = myParam_->Get("regionList")
+          ->GetByVal( "region", "name", actRegionName );
 
       Info->PrintF( pdename_, "density = %e\n", density);
       Info->PrintF( pdename_, "bulk modulus = %e\n", bulkModulus);
@@ -163,8 +164,8 @@ namespace CoupledField
           //damping factor
           Double dampPML;
           
-          std::string id = actRegionNode->Get("dampingId")->AsString();
-          ParamNode * pmlNode = myParam_->Get("dampingList")->Get("pml", "id", id);
+          std::string id = actRegionNode->Get("dampingId")->As<std::string>();
+          PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal   ("pml", "id", id);
           ReadDataPML(dampingTypePML, inner, dampPML, pmlNode );
           dampPML *= c0;
           
@@ -413,14 +414,14 @@ namespace CoupledField
 	      RegionIdType actRegion = subdoms_[actSD];
 	      std::string actRegionName;
 	      actRegionName = ptgrid_->GetRegion().ToString(actRegion);
-	      ParamNode * actRegionNode =
-	        myParam_->Get("regionList")->Get( "region", "name", actRegionName );
+	      PtrParamNode actRegionNode =
+	        myParam_->Get("regionList")->GetByVal( "region", "name", actRegionName );
 
-              std::string id = actRegionNode->Get("flowId")->AsString();
+              std::string id = actRegionNode->Get("flowId")->As<std::string>();
 	      if ( id != "" ) {
 	        // add the convective bilinear forms
 
-	        ParamNode * flowNode = myParam_->Get("flowList")->Get("flow", "id", id);
+	        PtrParamNode flowNode = myParam_->Get("flowList")->GetByVal("flow", "id", id);
 
 	        Vector<Double> velVec;
 	        Double MachNr;
@@ -601,12 +602,12 @@ namespace CoupledField
     // ***************************************************************
     StdVector<std::string> auxVec;
     absorbingBCs_ = false;
-    ParamNode * bcNode = myParam_->Get( "bcsAndLoads", false );
+    PtrParamNode bcNode = myParam_->Get( "bcsAndLoads", ParamNode::PASS );
     if( bcNode ) {
-      StdVector<ParamNode*> abcNodes = bcNode->GetList( "absorbingBCs" );
+      ParamNodeList abcNodes = bcNode->GetList( "absorbingBCs" );
       
       for( UInt i = 0; i < abcNodes.GetSize(); i++ ) {
-        std::string regionName = abcNodes[i]->Get("name")->AsString(); 
+        std::string regionName = abcNodes[i]->Get("name")->As<std::string>(); 
         absBCs_.Push_back( ptgrid_
           ->GetEntityList( EntityList::SURF_ELEM_LIST,
                            regionName, EntityList::REGION ) );
@@ -621,12 +622,12 @@ namespace CoupledField
     //   Surface bilinear form for particle velocity in normal direction
     // ***************************************************************
     isSurfVelLHS_ = false;
-    ParamNode * bcNodeVel = myParam_->Get( "bcsAndLoads", false );
+    PtrParamNode bcNodeVel = myParam_->Get( "bcsAndLoads", ParamNode::PASS );
     if( bcNodeVel ) {
-      StdVector<ParamNode*> surfNodes = bcNodeVel->GetList( "surfVelLHS" );
+      ParamNodeList surfNodes = bcNodeVel->GetList( "surfVelLHS" );
       
       for( UInt i = 0; i < surfNodes.GetSize(); i++ ) {
-        std::string regionName = surfNodes[i]->Get("name")->AsString(); 
+        std::string regionName = surfNodes[i]->Get("name")->As<std::string>(); 
         surfVelLHS_.Push_back( ptgrid_->GetEntityList( EntityList::SURF_ELEM_LIST,
                    regionName, EntityList::REGION ) );
         isSurfVelLHS_ = true;
@@ -689,7 +690,7 @@ namespace CoupledField
     res1->unit = "Pa";
     res1->entryType = ResultInfo::SCALAR;
 
-    std::string approxType = myParam_->Get("type")->AsString();
+    std::string approxType = myParam_->Get("type")->As<std::string>();
     if ( approxType == "lagrange" ) {
       shared_ptr<AnsatzFct> fct(new LagrangeFct);
       res1->fctType = fct;
@@ -697,14 +698,14 @@ namespace CoupledField
     } 
     else if( approxType == "taylorHood" ) {
       std::cerr << "Using taylorHood!\n";
-      UInt order = myParam_->Get("order")->AsUInt();
+      UInt order = myParam_->Get("order")->As<UInt>();
       shared_ptr<LegendreFct> fct(new LegendreFct);
       fct->SetIsoOrder( order );
       res1->fctType = fct;
       res1->definedOn = ResultInfo::PFEM;
     } 
     else if (  approxType == "spectral" ) {
-      UInt order = myParam_->Get("order")->AsUInt();
+      UInt order = myParam_->Get("order")->As<UInt>();
       shared_ptr<SpectralFct> fct(new SpectralFct);
       res1->definedOn = ResultInfo::PFEM;
       fct->SetOrder( order );
@@ -737,7 +738,7 @@ namespace CoupledField
     res2->unit = "m/s";
     res2->entryType = ResultInfo::VECTOR;
 
-    std::string approxTypeV = myParam_->Get("type")->AsString();
+    std::string approxTypeV = myParam_->Get("type")->As<std::string>();
     if ( approxTypeV == "lagrange" ) {
       shared_ptr<AnsatzFct> fctV(new LagrangeFct);
       res2->fctType = fctV;
@@ -745,14 +746,14 @@ namespace CoupledField
     } 
     else if( approxType == "taylorHood" ) {
       std::cerr << "Using taylorHood!\n";
-      UInt order = myParam_->Get("order")->AsUInt();
+      UInt order = myParam_->Get("order")->As<UInt>();
       shared_ptr<LegendreFct> fctV(new LegendreFct);
       fctV->SetIsoOrder( order+1 );
       res2->fctType = fctV;
       res2->definedOn = ResultInfo::PFEM;
     }
     else if(  approxType == "spectral" ) {
-      UInt order = myParam_->Get("order")->AsUInt();
+      UInt order = myParam_->Get("order")->As<UInt>();
       shared_ptr<SpectralFct> fct(new SpectralFct);
       res2->definedOn = ResultInfo::PFEM;
       fct->SetOrder( order );
@@ -810,14 +811,14 @@ namespace CoupledField
         } 
         else if( approxType == "taylorHood" ) {
           std::cerr << "Using taylorHood!\n";
-          UInt order = myParam_->Get("order")->AsUInt();
+          UInt order = myParam_->Get("order")->As<UInt>();
           shared_ptr<LegendreFct> fctU(new LegendreFct);
           fctU->SetIsoOrder( order+1 );
           res4->fctType = fctU;
           res4->definedOn = ResultInfo::PFEM;
         }
         else if(  approxType == "spectral" ) {
-          UInt order = myParam_->Get("order")->AsUInt();
+          UInt order = myParam_->Get("order")->As<UInt>();
           shared_ptr<SpectralFct> fctU(new SpectralFct);
           res4->definedOn = ResultInfo::PFEM;
           fctU->SetOrder( order );
@@ -898,16 +899,16 @@ namespace CoupledField
     std::map<std::string, Double>      idDampRatioDeltaF;
 
     // try to get dampingList
-    ParamNode * dampListNode = myParam_->Get( "dampingList", false );
+    PtrParamNode dampListNode = myParam_->Get( "dampingList", ParamNode::PASS );
     if( dampListNode ) {
 
       // get specific damping nodes
-      StdVector<ParamNode*> dampNodes = dampListNode->GetChildren();
+      ParamNodeList dampNodes = dampListNode->GetChildren();
 
       for( UInt i = 0; i < dampNodes.GetSize(); i++ ) {
 
         std::string dampString = dampNodes[i]->GetName();
-        std::string actId = dampNodes[i]->Get("id")->AsString();
+        std::string actId = dampNodes[i]->Get("id")->As<std::string>();
 
         // determine type of damping
         DampingType actType;
@@ -920,7 +921,7 @@ namespace CoupledField
     }
 
     // Run over all region and set entry in "regionNonLinId"
-    StdVector<ParamNode*> regionNodes =
+    ParamNodeList regionNodes =
       myParam_->Get("regionList")->GetChildren();
 
     RegionIdType actRegionId;
@@ -931,8 +932,8 @@ namespace CoupledField
     }
 
     for (UInt k = 0; k < regionNodes.GetSize(); k++) {
-      regionNodes[k]->Get( "name", actRegionName );
-      regionNodes[k]->Get( "dampingId", actDampingId );
+      regionNodes[k]->GetValue( "name", actRegionName );
+      regionNodes[k]->GetValue( "dampingId", actDampingId );
       if( actDampingId == "" )
         continue;
 
@@ -959,26 +960,26 @@ namespace CoupledField
   //   Obtain information about flow data
   // ***********************************************************************
   void AcousticMixedPDE::ReadDataFlow(Vector<Double>& velVec, Double& MachVal,
-				      ParamNode * actNode ) {
+				      PtrParamNode actNode ) {
 
 
     velVec.Resize(dim_);
     // Check, if pml node has a child "propRegion"
-    ParamNode * velDataNode = actNode->Get( "velocityData", false );
+    PtrParamNode velDataNode = actNode->Get( "velocityData", ParamNode::PASS );
 
     //Vx
-    velDataNode->Get( "Vx", velVec[0] );
+    velDataNode->GetValue( "Vx", velVec[0] );
 
     //Vy
-    velDataNode->Get( "Vy", velVec[1] );
+    velDataNode->GetValue( "Vy", velVec[1] );
 
     if ( dim_ == 3) {
       //Vz
-      velDataNode->Get( "Vz", velVec[2] );
+      velDataNode->GetValue("Vz", velVec[2] );
     }
 
     //get Mach number
-    actNode->Get( "Mach", MachVal );
+    actNode->GetValue( "Mach", MachVal );
 
   }
 

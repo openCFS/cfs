@@ -21,7 +21,7 @@ namespace CoupledField
   public:
 
     //! Constructor
-    SimOutputRST( const std::string& fileName, ParamNode * outputNode );
+    SimOutputRST( const std::string& fileName, PtrParamNode outputNode );
   
     //! Destructor
     virtual ~SimOutputRST();
@@ -65,7 +65,7 @@ namespace CoupledField
     Double compiledAnsysRev_;
     std::string ansysMachineId_;
 
-    ParamNode* outputNode_;
+    PtrParamNode outputNode_;
     std::string sysPathSep_;
 
     DynamicLibrary* dynLibrary_;

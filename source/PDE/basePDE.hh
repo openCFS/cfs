@@ -11,6 +11,7 @@
 #include "Utils/StdVector.hh"
 #include "General/exception.hh"
 #include "General/Enum.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField
 {
@@ -31,7 +32,7 @@ namespace CoupledField
     bool converged_; //!< needed for coupling with MpCCI
 
     //! Constructor
-    BasePDE( ParamNode* paramNode );
+    BasePDE( PtrParamNode paramNode );
     
     //! Destructor
     virtual ~BasePDE();
@@ -111,7 +112,7 @@ namespace CoupledField
     UInt sequenceStep_;
 
     //! ParamNode of current pde
-    ParamNode * myParam_;
+    PtrParamNode myParam_;
     //@}
 
     //! name of the PDE

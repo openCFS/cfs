@@ -7,7 +7,7 @@
 #include "Domain/grid.hh"
 #include "Elements/basefe.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "boost/lexical_cast.hpp"
 #include "boost/date_time/posix_time/posix_time.hpp"
@@ -106,21 +106,21 @@ DesignElement::DesignElement() : BaseDesignElement()
   Init();
 }
 
-DesignElement::DesignElement(ParamNode* pn, Elem* elem) : BaseDesignElement()
+DesignElement::DesignElement(PtrParamNode pn, Elem* elem) : BaseDesignElement()
 {
   Init();
   this->elem      = elem;
 
   // it is a little slow to perform this code for every DesignElement but the
   // implementations are rater fast and it should be not measurable in the end
-  type_ = type.Parse(pn->Get("name"));
+  type_ = type.Parse(pn->Get("name")->As<std::string>());
 
   upper_ = 1.0;
   // eventually overwrite
-  pn->Get("upper", upper_, false);
+  pn->GetValue("upper", upper_, ParamNode::INSERT);
 
   lower_ = type_ == POLARIZATION ? -1.0 : 0.001;
-  pn->Get("lower", lower_, false);
+  pn->GetValue("lower", lower_, ParamNode::INSERT);
 }
 
 
@@ -277,7 +277,7 @@ double DesignElement::GetDesign(Access access) const
 }
 
 
-void DesignElement::ToInfo(InfoNode* in) const
+void DesignElement::ToInfo(PtrParamNode in) const
 {
   in->Get("type")->SetValue(type.ToString(type_));
   in->Get("upperBound")->SetValue(upper_);
@@ -609,17 +609,17 @@ ResultDescription::ResultDescription()
   design = DesignElement::DEFAULT;
 }
 
-ResultDescription::ResultDescription(ParamNode* pn)
+ResultDescription::ResultDescription(PtrParamNode pn)
 {
-  solutionType = SolutionTypeEnum.Parse(pn->Get("id"));
+  solutionType = SolutionTypeEnum.Parse(pn->Get("id")->As<std::string>());
 
   design = DesignElement::DEFAULT;
   if(pn->Has("design"))
-    design = DesignElement::type.Parse(pn->Get("design"));
+    design = DesignElement::type.Parse(pn->Get("design")->As<std::string>());
 
-  access = DesignElement::access.Parse(pn->Get("access"));
+  access = DesignElement::access.Parse(pn->Get("access")->As<std::string>());
 
-  value = DesignElement::valueSpecifier.Parse(pn->Get("value"));
+  value = DesignElement::valueSpecifier.Parse(pn->Get("value")->As<std::string>());
 
-  detail = DesignElement::detail.Parse(pn->Get("detail"));
+  detail = DesignElement::detail.Parse(pn->Get("detail")->As<std::string>());
 }

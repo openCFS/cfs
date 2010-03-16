@@ -4,7 +4,7 @@
 
 #include "bcs.hh"
 #include "General/environment.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField {
 
@@ -13,7 +13,7 @@ namespace CoupledField {
     dof = 1;
   }
 
-  void HomDirichletBc::ToInfo(InfoNode* in) const
+  void HomDirichletBc::ToInfo(PtrParamNode in) const
   {
     in->Get("dof")->SetValue(dof);
   }
@@ -39,7 +39,7 @@ namespace CoupledField {
   InhomNeumannBc::InhomNeumannBc() {
   }
 
-  void InhomDirichletBc::ToInfo(InfoNode* in) const
+  void InhomDirichletBc::ToInfo(PtrParamNode in) const
   {
     HomDirichletBc::ToInfo(in);
     in->Get("value")->SetValue(value);
@@ -57,7 +57,7 @@ namespace CoupledField {
   LoadBc::LoadBc() {
   }
 
-  void LoadBc::ToInfo(InfoNode* in) const
+  void LoadBc::ToInfo(PtrParamNode in) const
   {
     HomDirichletBc::ToInfo(in);
     in->Get("value")->SetValue(value);

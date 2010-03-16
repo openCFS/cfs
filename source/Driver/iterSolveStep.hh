@@ -34,7 +34,7 @@ namespace CoupledField
     virtual void PreStepStatic()  {;};
  
     /** base method for solving one static step */
-    virtual void SolveStepStatic(InfoNode* analysis_id, const bool reAssembleMatrices = true);
+    virtual void SolveStepStatic(PtrParamNode analysis_id, const bool reAssembleMatrices = true);
 
     //! routine for acttions after the SolveStep-method
     virtual void PostStepStatic() {;}
@@ -47,7 +47,7 @@ namespace CoupledField
 
 
     //! base method for solving one transient step 
-    virtual void SolveStepTrans(InfoNode* analysis_id);
+    virtual void SolveStepTrans(PtrParamNode analysis_id);
     
     //! routine for actions after the SolveStep-method
     virtual void PostStepTrans() {;};
@@ -59,7 +59,7 @@ namespace CoupledField
 
 
     //!  base method for solving one harmonic step 
-    virtual void SolveStepHarmonic(InfoNode* analysis_id);
+    virtual void SolveStepHarmonic(PtrParamNode analysis_id);
 
 
     //!  routine for actions after the SolveStep-method

@@ -27,7 +27,7 @@ namespace CoupledField {
   //   Constructor
   // ***************
   template<typename T>
-  LDLSolver<T>::LDLSolver( ParamNode* solverNode, InfoNode *olasInfo ) {
+  LDLSolver<T>::LDLSolver( PtrParamNode solverNode, PtrParamNode olasInfo ) {
 
     xml_ = solverNode;
     solverInfo_ = olasInfo->Get("directLDL");
@@ -49,11 +49,11 @@ namespace CoupledField {
     sysMatDim_  = 0;
     auxVecSize_ = 0;
 
-    ParamNode *sNode = NULL;
-    sNode = xml_->Get("directLDL", false);
+    PtrParamNode sNode;
+    sNode = xml_->Get("directLDL", ParamNode::INSERT);
       
     itRefSteps_ = 2;
-    sNode->Get("itRefSteps", itRefSteps_, false);
+    sNode->GetValue("itRefSteps", itRefSteps_, ParamNode::INSERT);
 
     // NOTE: The class currently gives wrong results, if used with
     //       block entries instead of scalar entries. Thus, we do
@@ -92,7 +92,7 @@ namespace CoupledField {
   //   Setup
   // *********
   template<typename T>
-  void LDLSolver<T>::Setup( BaseMatrix &sysMat, InfoNode* analysis_step ) {
+  void LDLSolver<T>::Setup( BaseMatrix &sysMat, PtrParamNode analysis_step ) {
 
 
     // Check that we have a StdMatrix
@@ -231,16 +231,14 @@ namespace CoupledField {
       std::string facFileName = "fac.out";
       bool savePatternOnly = false;
       
-      ParamNode *sNode = NULL;
-      sNode = xml_->Get("directLDL", false);
-      if(sNode) {
-        if(sNode->Has("saveFacFile")) {
-          saveFacToFile = true;
-          sNode->Get("saveFacFile", facFileName, false);
-        }
-        
-        sNode->Get("savePatternOnly", savePatternOnly, false);
+      PtrParamNode sNode;
+      sNode = xml_->Get("directLDL", ParamNode::INSERT);
+      if(sNode->Has("saveFacFile")) {
+        saveFacToFile = true;
+        sNode->GetValue("saveFacFile", facFileName, ParamNode::INSERT);
       }
+
+      sNode->GetValue("savePatternOnly", savePatternOnly, ParamNode::INSERT);
       
       if( saveFacToFile &&  (!savePatternOnly) ) {
         ExportFactorisation( facFileName.c_str(), false );
@@ -261,7 +259,7 @@ namespace CoupledField {
   void LDLSolver<T>::Solve( const BaseMatrix  &sysMat,
                             const BasePrecond &precond,
                             const BaseVector  &rhs,
-                            BaseVector &sol, InfoNode* analysis_step ) {
+                            BaseVector &sol, PtrParamNode analysis_step ) {
 
 
     bool logging = false;
@@ -292,9 +290,9 @@ namespace CoupledField {
       UInt logLevel = 2;
       UInt numSteps = itRefSteps_;
       
-      ParamNode *sNode = NULL;
-      sNode = xml_->Get("directLDL", false);
-      sNode->Get("itRefVerbosity", logLevel, false);
+      PtrParamNode sNode;
+      sNode = xml_->Get("directLDL", ParamNode::INSERT);
+      sNode->GetValue("itRefVerbosity", logLevel, ParamNode::INSERT);
 
       if ( itRefSteps_ > 0 ) {
         // Avoid recursion, we do not want to do refinement on the
@@ -321,9 +319,11 @@ namespace CoupledField {
     // Now this currently is of dubious value, since the two things queried
     // from olasReport are actually meaningless in the context of a direct
     // solver. Nevertheless we supply some values for consistency
-    InfoNode* out = solverInfo_->Get(InfoNode::PROCESS)->Get("solver", InfoNode::APPEND);
-    out->Get("numIter")->SetValue(-1);
-    out->Get("finalNorm")->SetValue(-1.0);
+    if( logging ) {
+      PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
+      out->Get("numIter")->SetValue(-1);
+      out->Get("finalNorm")->SetValue(-1.0);
+    }
 
   }
 
@@ -713,16 +713,14 @@ namespace CoupledField {
     std::string facFileName = "fac.out";
     bool savePatternOnly = false;
       
-    ParamNode *sNode = NULL;
-    sNode = xml_->Get("directLDL", false);
-    if(sNode) {
-      if(sNode->Has("saveFacFile")) {
-        saveFacToFile = true;
-        sNode->Get("saveFacFile", facFileName, false);
-      }
-        
-      sNode->Get("savePatternOnly", savePatternOnly, false);
+    PtrParamNode sNode;
+    sNode = xml_->Get("directLDL", ParamNode::INSERT);
+    if(sNode->Has("saveFacFile")) {
+      saveFacToFile = true;
+      sNode->GetValue("saveFacFile", facFileName, ParamNode::INSERT);
     }
+
+    sNode->GetValue("savePatternOnly", savePatternOnly, ParamNode::INSERT);
     
     if( saveFacToFile && savePatternOnly ) {
       ExportFactorisation( facFileName.c_str(), false );

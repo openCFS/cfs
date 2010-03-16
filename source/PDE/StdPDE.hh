@@ -27,7 +27,6 @@ namespace CoupledField {
   class MixedEqnMap;
   class EqnMap;
   class ParamNode;
-  class InfoNode;
   
   //! Base class for all single-field and direct-coupled problems
 
@@ -57,7 +56,7 @@ namespace CoupledField {
     
     /** Finds the xml node of the linear system
      * @return might be NULL */
-    ParamNode* FindLinearSystem(const std::string& sysName);
+    PtrParamNode FindLinearSystem(const std::string& sysName);
     
     //! Transfer parameters from CFS++ to OLAS parameter object
 
@@ -142,7 +141,7 @@ namespace CoupledField {
     }
 
     //! Return pointer to paramNode of current pde
-    ParamNode * GetParamNode() { return myParam_; }
+    PtrParamNode GetParamNode() { return myParam_; }
 
     //!
     //! \for computing and adding RHS to PDE in case of special sources 
@@ -351,7 +350,7 @@ namespace CoupledField {
     /*!
       \param aptgrid pointer to grid
     */
-    StdPDE(Grid *aptgrid, ParamNode* paramNode );
+    StdPDE(Grid *aptgrid, PtrParamNode paramNode );
   
     //! private copy constructor
     StdPDE & operator= (const StdPDE & myPDE) {
@@ -397,7 +396,7 @@ namespace CoupledField {
     //@}
 
     /** This is our pde info node. To be set/overwritten in each PDE! */ 
-    InfoNode* infoNode_; 
+    PtrParamNode infoNode_; 
 
     // -----------------------------------------------------------------------
     // Geometry & node numbering
@@ -587,7 +586,7 @@ namespace CoupledField {
     BaseSystem * algsys_;      //!< pointer to algebraic system
   
     /** This is the node for linear system responsible for this pde. */
-    InfoNode* olasInfo_;
+    PtrParamNode olasInfo_;
     
     //! flag to check if there are initial conditions in the set up
     bool isSetInitialCondition_;

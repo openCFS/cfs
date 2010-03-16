@@ -13,7 +13,7 @@ using namespace CoupledField;
 ShapeOpt::ShapeOpt() : ParamMat() {
   shapedesign = dynamic_cast<ShapeDesign*>(design);
 
-  ParamNode* sopn = pn->Get("shapeOpt");
+  PtrParamNode sopn = pn->Get("shapeOpt");
   shapedesign->Configure(sopn, objectives.data.GetSize(), constraints.GetSize());
   alsomatopt_ = shapedesign->AlsoMatOpt();
 

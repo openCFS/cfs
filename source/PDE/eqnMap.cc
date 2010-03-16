@@ -13,7 +13,7 @@
 #include "Domain/domain.hh"
 #include "Utils/coordSystem.hh"
 #include "DataInOut/Logging/cfslog.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/shared_ptr.hpp>
@@ -810,17 +810,17 @@ namespace CoupledField {
   //! MISCELLANEOUS
   //! ======================================================================
 
-  void EqnMap::ToInfo(InfoNode* base) const
+  void EqnMap::ToInfo(PtrParamNode base) const
   {
-    InfoNode* lg = base->Get("localGlobal");
+    PtrParamNode lg = base->Get("localGlobal");
 
     // local <-> global mapping (nodes)
-    InfoNode* root = lg->Get("nodes");
+    PtrParamNode root = lg->Get("nodes");
     root->Get("globalNodes")->SetValue(ptGrid_->GetNumNodes());
     root->Get("localNodes")->SetValue(numLocNodes_);
     for( UInt iNode = 0; iNode < pde2MeshNode_.GetSize(); iNode++ )
     {
-      InfoNode* in = root->Get("mapping", InfoNode::APPEND);
+      PtrParamNode in = root->Get("mapping", ParamNode::APPEND);
       in->Get("local")->SetValue(iNode+1);
       in->Get("global")->SetValue(pde2MeshNode_[iNode]);
     }
@@ -831,7 +831,7 @@ namespace CoupledField {
     root->Get("localElements")->SetValue(numLocElems_);
     for( UInt iElem = 0; iElem < pde2MeshElem_.GetSize(); iElem++ )
     {
-      InfoNode* in = root->Get("mapping", InfoNode::APPEND);
+      PtrParamNode in = root->Get("mapping", ParamNode::APPEND);
       in->Get("local")->SetValue(iElem+1);
       in->Get("global")->SetValue(pde2MeshElem_[iElem]);
     }
@@ -840,7 +840,7 @@ namespace CoupledField {
     root = lg->Get("faces");
     for( UInt iFace = 0; iFace < mesh2PdeFace_.GetSize(); iFace++ )
     {
-      InfoNode* in = root->Get("mapping", InfoNode::APPEND);
+      PtrParamNode in = root->Get("mapping", ParamNode::APPEND);
       in->Get("local")->SetValue(iFace+1);
       in->Get("global")->SetValue(mesh2PdeFace_[iFace]);
     }
@@ -849,14 +849,14 @@ namespace CoupledField {
     root = lg->Get("edges");
     for( UInt iEdge = 0; iEdge < mesh2PdeEdge_.GetSize(); iEdge++ )
     {
-      InfoNode* in = root->Get("mapping", InfoNode::APPEND);
+      PtrParamNode in = root->Get("mapping", ParamNode::APPEND);
       in->Get("local")->SetValue(iEdge+1);
       in->Get("global")->SetValue(mesh2PdeEdge_[iEdge]);
     }
 
     // Nodal equation mapping
-    InfoNode* em = base->Get("equationMapping");
-    InfoNode* rt = em->Get("nodal");
+    PtrParamNode em = base->Get("equationMapping");
+    PtrParamNode rt = em->Get("nodal");
 
 
     // Loop over all nodal mapped results
@@ -870,13 +870,13 @@ namespace CoupledField {
       UInt dofsPerNode = listIt->first.dofNames.GetSize();
 
       // head for which result this is shown
-      InfoNode* res = rt->Get("result", InfoNode::APPEND);
+      PtrParamNode res = rt->Get("result", ParamNode::APPEND);
       res->Get("type")->SetValue(SolutionTypeEnum.ToString(listIt->first.resultType));
       res->Get("dofs")->SetValue(dofsPerNode);
 
       for ( UInt iNode = 0; iNode < pde2MeshNode_.GetSize(); iNode++ )
       {
-        InfoNode* in = res->Get("mapping", InfoNode::APPEND);
+        PtrParamNode in = res->Get("mapping", ParamNode::APPEND);
         in->Get("local")->SetValue(iNode+1);
         in->Get("global")->SetValue(pde2MeshNode_[iNode]);
 
@@ -897,7 +897,7 @@ namespace CoupledField {
         (edgeEqns_.find(edgeListIt->first))->second;
 
       // Print head for which result this is shown
-      InfoNode* res = rt->Get("result", InfoNode::APPEND);
+      PtrParamNode res = rt->Get("result", ParamNode::APPEND);
       res->Get("type")->SetValue(SolutionTypeEnum.ToString(edgeListIt->first.resultType));
 
       for ( UInt iEdge = 0; iEdge < ptGrid_->GetNumEdges(); iEdge++ )
@@ -907,7 +907,7 @@ namespace CoupledField {
         // check if edge has any equations at all
         if ( locEdge <= 0 ) break;
 
-        InfoNode* in = res->Get("mapping", InfoNode::APPEND);
+        PtrParamNode in = res->Get("mapping", ParamNode::APPEND);
         in->Get("local")->SetValue(iEdge+1);
         in->Get("global")->SetValue(mesh2PdeEdge_[iEdge]);
 
@@ -932,7 +932,7 @@ namespace CoupledField {
         (faceEqns_.find(faceListIt->first))->second;
 
       // Print head for which result this is shown
-      InfoNode* res = rt->Get("result", InfoNode::APPEND);
+      PtrParamNode res = rt->Get("result", ParamNode::APPEND);
       res->Get("type")->SetValue(SolutionTypeEnum.ToString(faceListIt->first.resultType));
 
       for ( UInt iFace = 0; iFace < ptGrid_->GetNumFaces(); iFace++ )
@@ -943,7 +943,7 @@ namespace CoupledField {
         // check if face has any equations at all
         if ( locFace <= 0 ) break;
 
-        InfoNode* in = res->Get("mapping", InfoNode::APPEND);
+        PtrParamNode in = res->Get("mapping", ParamNode::APPEND);
         in->Get("localFaceNr")->SetValue(iFace+1);
         in->Get("globalFaceNr")->SetValue(mesh2PdeFace_[iFace]);
 
@@ -966,12 +966,12 @@ namespace CoupledField {
         (elemEqns_.find(it->first))->second;
 
       // Print head for which result this is shown
-      InfoNode* res = rt->Get("result", InfoNode::APPEND);
+      PtrParamNode res = rt->Get("result", ParamNode::APPEND);
       res->Get("type")->SetValue(SolutionTypeEnum.ToString(it->first.resultType));
 
       for ( UInt iElem = 0; iElem < numLocElems_; iElem++ )
       {
-        InfoNode* in = res->Get("mapping", InfoNode::APPEND);
+        PtrParamNode in = res->Get("mapping", ParamNode::APPEND);
         in->Get("localElemNr")->SetValue(iElem+1);
         in->Get("globalElenNr")->SetValue(pde2MeshElem_[iElem]);
 

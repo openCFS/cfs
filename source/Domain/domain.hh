@@ -173,7 +173,7 @@ namespace CoupledField
 
      /** Reads the 'loadErsatzMaterial' node. Check before that it exists.
       * Is called from optimization if used concurrently. */ 
-     void ReadErsatzMaterial(ParamNode* pn);
+     void ReadErsatzMaterial(PtrParamNode pn);
      
      /** Returns true, if optimization does provide a complete tensor */
      bool HasErsatzMaterialTensor();

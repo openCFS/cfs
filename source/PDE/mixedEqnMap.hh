@@ -19,7 +19,7 @@ namespace CoupledField {
   //class ElemList;
   //class EntityIterator;
   //class ResultInfo;
-  //class InfoNode; 
+  //class ParamNode; 
 
   //! Class for mapping entities and continuous ansatz functions to equation numbers
   class MixedEqnMap : public EqnMap {
@@ -217,7 +217,7 @@ namespace CoupledField {
     /** Give all details of the mapping to the info.xml file it triggered 
      * such in the comman line. One can gain similar data via the loggin 
      * (in the debug version) */ 
-    virtual void ToInfo(InfoNode* in) const;
+    virtual void ToInfo(PtrParamNode in) const;
     
   private:
 

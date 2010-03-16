@@ -22,8 +22,8 @@ namespace CoupledField {
   // =====================================================
   template <typename T>
   ILUTP_Precond<T>::ILUTP_Precond( const StdMatrix& stdMat, 
-                                   ParamNode *solverNode,
-				   InfoNode *olasInfo ) {
+                                   PtrParamNode solverNode,
+				   PtrParamNode olasInfo ) {
 
 
     // Set pointers to communication objects
@@ -83,9 +83,9 @@ namespace CoupledField {
     // Query parameter object for factorisation parameters
     tau_ = 0.01;
     Integer aux = -2;
-    ParamNode* pNode = this->xml_->Get("ILUTP", false);
-    pNode->Get("tau", tau_, false);
-    pNode->Get("aux", aux, false);
+    PtrParamNode pNode = this->xml_->Get("ILUTP", ParamNode::INSERT);
+    pNode->GetValue("tau", tau_, ParamNode::INSERT);
+    pNode->GetValue("aux", aux, ParamNode::INSERT);
     
     if ( aux >= 0 ) {
       maxFill_ = (UInt)aux;
@@ -105,7 +105,7 @@ namespace CoupledField {
     // If the user wishes, we can export the LU factorisation to a file
     std::string saveFacFile = "crout_fac.out";
     if(pNode->Has("saveFacFile")) {
-      pNode->Get("saveFacFile", saveFacFile, false);
+      pNode->GetValue("saveFacFile", saveFacFile, ParamNode::INSERT);
       this->ExportILUFactorisation( saveFacFile.c_str() );
     }
 

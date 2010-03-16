@@ -7,7 +7,7 @@
 #include "Optimization/DesignElement.hh"
 #include "General/exception.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
 
 using namespace CoupledField;
@@ -16,7 +16,7 @@ using std::abs;
 DECLARE_LOG(oc)
 DEFINE_LOG(oc, "optimalityCondition")
 
-OptimalityCondition::OptimalityCondition(Optimization* optimization, ParamNode* pn)
+OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNode pn)
  : BaseOptimizer(optimization, pn)
 {
   type.SetName("OptimalityCondition::Type");
@@ -51,27 +51,27 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, ParamNode* 
   this->expand_ = 1.99;
 
   // reduce to our actual ParamNode
-  pn = pn->Get(Optimization::optimizer.ToString(Optimization::OPTIMALITY_CONDITION), false);
+  pn = pn->Get(Optimization::optimizer.ToString(Optimization::OPTIMALITY_CONDITION), ParamNode::PASS);
   
   // read the xml values
   if(pn != NULL)
   {
-    type_       = type.Parse(pn->Get("type"));
-    move_limit_ = pn->Get("move_limit")->AsDouble();
-    oc_damping_ = pn->Get("damping")->AsDouble();
-    lambda_min_ = pn->Get("lambda_min")->AsDouble();
-    err_eps_    = pn->Get("err_eps")->AsDouble();
+    type_       = type.Parse(pn->Get("type")->As<std::string>());
+    move_limit_ = pn->Get("move_limit")->As<Double>();
+    oc_damping_ = pn->Get("damping")->As<Double>();
+    lambda_min_ = pn->Get("lambda_min")->As<Double>();
+    err_eps_    = pn->Get("err_eps")->As<Double>();
 
     // it doesn't harm to read the parameters for all types!
     if(pn->Has(type.ToString(FRAMED)))
     {
-      ParamNode* t = pn->Get(type.ToString(FRAMED));
+      PtrParamNode t = pn->Get(type.ToString(FRAMED));
       // there are defaults in XML
-      always_enlarge_ = t->Get("alwaysEnlarge")->AsBool();
-      start_lower_    = t->Get("lower")->AsDouble();
-      start_upper_    = t->Get("upper")->AsDouble();
-      enlarge_lower_  = t->Get("enlargeLower")->AsDouble();
-      enlarge_upper_  = t->Get("enlargeUpper")->AsDouble();
+      always_enlarge_ = t->Get("alwaysEnlarge")->As<bool>();
+      start_lower_    = t->Get("lower")->As<Double>();
+      start_upper_    = t->Get("upper")->As<Double>();
+      enlarge_lower_  = t->Get("enlargeLower")->As<Double>();
+      enlarge_upper_  = t->Get("enlargeUpper")->As<Double>();
 
       if(start_lower_ < 0)
         throw Exception("no negative lower bound frame allowed in current implementation");
@@ -82,11 +82,11 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, ParamNode* 
     }
     if(pn->Has(type.ToString(FUMBLE)))    
     {
-      ParamNode* t = pn->Get(type.ToString(FUMBLE));
+      PtrParamNode t = pn->Get(type.ToString(FUMBLE));
       
-      step_     = t->Get("step")->AsDouble();
-      contract_ = t->Get("contract")->AsDouble();
-      expand_   = t->Get("expand")->AsDouble();
+      step_     = t->Get("step")->As<Double>();
+      contract_ = t->Get("contract")->As<Double>();
+      expand_   = t->Get("expand")->As<Double>();
       
       if(expand_ <= 1.0)
         throw Exception("expand shall be > 1.0, e.g. 1.99");
@@ -169,7 +169,7 @@ void OptimalityCondition::SolveProblem()
     iter++;
   }
   
-  InfoNode* in = optimization->optInfoNode->Get(InfoNode::SUMMARY)->Get("break");
+  PtrParamNode in = optimization->optInfoNode->Get(ParamNode::SUMMARY)->Get("break");
   
   if(iter >= max_iter-1) 
   {
@@ -478,7 +478,7 @@ std::string OptimalityCondition::LogFileHeader()
 }
 
 
-void OptimalityCondition::LogFileLine(std::ofstream* out, InfoNode* iteration)
+void OptimalityCondition::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 {
   if(out) *out << "\t" << lambda_ << "\t" << lambda_iters_;
 

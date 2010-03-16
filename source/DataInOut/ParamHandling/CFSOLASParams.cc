@@ -22,15 +22,13 @@ namespace CoupledField {
   //   SetParams
   // *************
   void CFSOLASParams::SetParams( std::string pdename,
-                                 ParamNode *cfs,
+                                 PtrParamNode cfs,
                                  BasePDE::AnalysisType analysisType,
                                  Assemble * assemble,
                                  bool overrideExpert ) {
 
     // Fetch setup node
-    ParamNode * setupNode = NULL;
-    if( cfs )
-      setupNode = cfs->Get("setup", false );
+    PtrParamNode setupNode  = cfs->Get("setup", ParamNode::INSERT );
 
 
     // First determine approach for handling inhomogeneous Dirichlet
@@ -38,19 +36,17 @@ namespace CoupledField {
     bool usingPenalty = true;
     {
       std::string aux = "penalty";
-      if( setupNode )
-        setupNode->Get("idbcHandling", aux, false );
-
+      setupNode->GetValue("idbcHandling", aux, ParamNode::INSERT );
       usingPenalty = aux == "penalty" ? true : false;
     }
 
     // Determine the type of solver for this PDE
     std::string sTypeString = "expertsChoice";
     BaseSolver::SolverType sType;
-    ParamNode * solverNode = NULL;
+    PtrParamNode solverNode;
 
-    solverNode = cfs->Get("solver", false);
-    solverNode->Get("type", sTypeString, false );
+    solverNode = cfs->Get("solver", ParamNode::INSERT);
+    solverNode->GetValue("type", sTypeString, ParamNode::INSERT);
     if ( sTypeString == "expertsChoice" ) {
       if ( overrideExpert ) {
         EXCEPTION( "You cannot specify expertsChoice as solver type "
@@ -65,7 +61,7 @@ namespace CoupledField {
     std::string pTypeString = "noPrecond";
     BasePrecond::PrecondType pType;
 
-    solverNode->Get("precond", pTypeString, false );
+    solverNode->GetValue("precond", pTypeString, ParamNode::INSERT );
     pType = BasePrecond::precondType.Parse(pTypeString);
 
     // Now determine, if we are running an eigenfrequency analysis and if
@@ -74,8 +70,8 @@ namespace CoupledField {
     BaseEigenSolver::EigenSolverType esType = BaseEigenSolver::NOEIGENSOLVER;
     
     if ( analysisType == BasePDE::EIGENFREQUENCY ) {
-      ParamNode * eigenSolverNode = cfs->Get("eigenSolver", false );
-      eigenSolverNode->Get("type", esTypeString, false );
+      PtrParamNode eigenSolverNode = cfs->Get("eigenSolver", ParamNode::INSERT );
+      eigenSolverNode->GetValue("type", esTypeString, ParamNode::INSERT );
       
       if ( esTypeString == "expertsChoice" ) {
         if ( overrideExpert ) {
@@ -95,27 +91,27 @@ namespace CoupledField {
     // element
     bool sbmSymmetry = false;
     bool stdSystem = true;
-    ParamNode * matrixNode = NULL;
+    PtrParamNode matrixNode;
 
     if(cfs->Has("sbmMatrix") ) {
-      matrixNode = cfs->Get("sbmMatrix", false);
+      matrixNode = cfs->Get("sbmMatrix");
       stdSystem = false;
-      matrixNode->Get("symmetric", sbmSymmetry, false);
+      matrixNode->GetValue("symmetric", sbmSymmetry, ParamNode::INSERT );
     }
 
     if( !matrixNode ) {
-      matrixNode = cfs->Get("matrix", false);
+      matrixNode = cfs->Get("matrix", ParamNode::INSERT);
     }
 
     // Determine matrix entry type
     BaseMatrix::EntryType eType;
     std::string eMatString = "double";
-    matrixNode->Get("entry", eMatString, false);
+    matrixNode->GetValue("entry", eMatString, ParamNode::INSERT);
     eType = BaseMatrix::entryType.Parse(eMatString);  
     
     // Determine calculation of condition number
     bool calcCondition = false;
-    matrixNode->Get("calcConditionNumber", calcCondition, false );
+    matrixNode->GetValue("calcConditionNumber", calcCondition, ParamNode::INSERT );
 
     // Following stuff only for required for standard systems
     BaseMatrix::StorageType mType  = BaseMatrix::NOSTORAGETYPE;
@@ -126,7 +122,7 @@ namespace CoupledField {
     if ( stdSystem == true ) {
       std::string mMatString = "expertsChoice";
       // Next determine the matrix type for this PDE
-      matrixNode->Get( "storage", mMatString, false );
+      matrixNode->GetValue( "storage", mMatString, ParamNode::INSERT );
       
       if ( mMatString == "expertsChoice" ) {
         if ( overrideExpert ) {
@@ -140,7 +136,7 @@ namespace CoupledField {
 
       // Type of re-odering
       std::string orderString = "expertsChoice";
-      matrixNode->Get( "reordering", orderString, false );
+      matrixNode->GetValue( "reordering", orderString, ParamNode::INSERT );
       
       if ( orderString == "expertsChoice" ) {
         if ( overrideExpert ) {
@@ -173,13 +169,13 @@ namespace CoupledField {
   //   SetSolverParams
   // *******************
   void CFSOLASParams::SetSolverParams( std::string pdename,
-                                       ParamNode *cfs,
+                                       PtrParamNode cfs,
                                        BaseSolver::SolverType sType ) {
     // Now set the stopping rule
     std::string stopCrit = "relNormRes0";
-    ParamNode * bsNode = cfs->Get("solver", false );
-    ParamNode * stopRuleNode = bsNode->Get("stoppingRule", false );
-    stopRuleNode->Get("type", stopCrit, false);
+    PtrParamNode bsNode = cfs->Get("solver", ParamNode::INSERT );
+    PtrParamNode stopRuleNode = bsNode->Get("stoppingRule", ParamNode::INSERT );
+    stopRuleNode->GetValue("type", stopCrit, ParamNode::INSERT);
     StopCritType stopRule;
     String2Enum( stopCrit, stopRule );
   }
@@ -189,7 +185,7 @@ namespace CoupledField {
   //   SetPrecondParams
   // ********************
   void CFSOLASParams::SetPrecondParams( std::string pdename,
-                                        ParamNode *cfs,
+                                        PtrParamNode cfs,
                                         BasePrecond::PrecondType pType ) {
   }
 
@@ -197,7 +193,7 @@ namespace CoupledField {
   //   SetEigenSolverParams
   // *******************
   void CFSOLASParams::SetEigenSolverParams( std::string pdename,
-                                            ParamNode *cfs,
+                                            PtrParamNode cfs,
                                             BaseEigenSolver::EigenSolverType sType ) {
   }
 
@@ -205,7 +201,7 @@ namespace CoupledField {
   // *******************
   //   Expert's Choice
   // *******************
-  void CFSOLASParams::Expert( ParamNode *cfs,
+  void CFSOLASParams::Expert( PtrParamNode cfs,
                               std::string pdename,
                               BaseEigenSolver::EigenSolverType &esType,
                               BaseSolver::SolverType &sType,
@@ -431,7 +427,7 @@ namespace CoupledField {
     // Special treatment for parameter identification process
     std::string analysis;
     UInt seqStep = domain->GetSingleDriver()->GetActSequenceStep();
-    param->Get("sequenceStep", std::string("index"), seqStep)->Get("analysis")
+    param->GetByVal("sequenceStep", std::string("index"), seqStep)->Get("analysis")
       ->GetChild()->GetName();
 
     if ( analysis == "paramIdent" && eType != BaseMatrix::COMPLEX ) {

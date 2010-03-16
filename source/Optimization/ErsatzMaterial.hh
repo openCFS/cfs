@@ -69,7 +69,7 @@ public:
   void CalcConstraintGradient(Condition* constraint = NULL, double* grad_out = NULL);
 
   /** Here we also write the density files */
-  InfoNode* CommitIteration(bool keep_iteration_number = false);
+  PtrParamNode CommitIteration(bool keep_iteration_number = false);
 
   /** Adds validation stuff here to keep out of long constructor */
   virtual void PostInit();
@@ -421,7 +421,7 @@ protected:
   Method method_;
 
   /** this is the optimization->simp XML element */
-  ParamNode* pn;
+  PtrParamNode pn;
 
   /** The assemble class for our PDE */
   Assemble* assemble_;
@@ -470,7 +470,7 @@ private:
   double CalcObjective(Excitation& excite, Objective* cost);
   
   /** Creates the pseudo density node and stores the header */
-  InfoNode* CreateExportDesign(const std::string& filename, StdVector<ParamNode*>& des, StdVector<ParamNode*>& tfs);
+  PtrParamNode CreateExportDesign(const std::string& filename, ParamNodeList& des, ParamNodeList& tfs);
 
   /** See the non-template version for documentation! */
   template <class T>
@@ -547,7 +547,7 @@ private:
   void NormalizeMultipleExcitations();
 
   /** If not NULL we want to export the pseudo densities */
-  InfoNode* exportDesign;
+  PtrParamNode exportDesign;
 
   /** shall we write the densities for all iterations or overwrite? */
   bool exportDesignAllIterations;

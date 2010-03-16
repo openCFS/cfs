@@ -29,7 +29,7 @@
 #include "General/exception.hh"
 #include "Utils/Timer.hh"
 
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/programOptions.hh"
 #include "DataInOut/Logging/cfslog.hh"
 
@@ -44,7 +44,7 @@ namespace CoupledField {
   // ***********************
   //   Default Constructor
   // ***********************
-  StandardSystem::StandardSystem(ParamNode* pn) : BaseSystem(pn) {
+  StandardSystem::StandardSystem(PtrParamNode pn) : BaseSystem(pn) {
 
 
     totalSize_           = 0;
@@ -107,7 +107,7 @@ namespace CoupledField {
   // *********************************
   //   Trigger setup phase of solver
   // *********************************
-  void StandardSystem::SetupSolver(InfoNode* analysis_id) {
+  void StandardSystem::SetupSolver(PtrParamNode analysis_id) {
     solver_->GetSetupTimer()->Start();
     solver_->Setup(*sysmat_[SYSTEM], analysis_id);
     solver_->GetSetupTimer()->Stop();
@@ -175,21 +175,22 @@ namespace CoupledField {
   // ***********************
   //   Solve linear system
   // ***********************
-  void StandardSystem::Solve(InfoNode* analysis_id) 
+  void StandardSystem::Solve(PtrParamNode analysis_id) 
   {
     info->ToFile(); // write current info state
     solver_->GetSolveTimer()->Start();
     
     // Check, if condition number is to be calculated
     bool calcCapa = false;
-    xml_->Get("matrix", "calcConditionNumber", calcCapa, false );
+    xml_->Get("matrix", ParamNode::INSERT)
+    ->GetValue("calcConditionNumber", calcCapa, ParamNode::INSERT );
     
     if( calcCapa ) {
       Double condNumber = 0.0;
       Vector<Double> ev, err;
       BaseEigenSolver * evs = 
         GenerateEigenSolverObject( *(sysmat_[SYSTEM]), xml_, olasInfo_->Get("solve_eigen") );
-      InfoNode* in = systemInfo_->Get(InfoNode::PROCESS)->Get("conditionNumber", InfoNode::APPEND);
+      PtrParamNode in = systemInfo_->Get(ParamNode::PROCESS)->Get("conditionNumber", ParamNode::APPEND);
       in->Get("analysis_id")->SetValue(analysis_id);
       try {
         evs->CalcConditionNumber( *(sysmat_[SYSTEM]), condNumber,
@@ -198,7 +199,7 @@ namespace CoupledField {
         in = in->Get("extremalEigenValues");
 
         for( UInt i = 0; i < ev.GetSize(); i++ )  {
-          InfoNode* t = in->Get("eigenvalue", InfoNode::APPEND);
+          PtrParamNode t = in->Get("eigenvalue", ParamNode::APPEND);
           t->Get("value")->SetValue(ev[i]);
           t->Get("tolerance")->SetValue(err[i]);
         }
@@ -227,9 +228,9 @@ namespace CoupledField {
     if ( dynamic_cast<BaseIterativeSolver*>(solver_) != NULL &&
          usingPenalty_ ) {
       idbcHandler_->SetDofsToIDBC( sol_ );
-      InfoNode* in = systemInfo_->Get(InfoNode::HEADER)->Get("idbc");
+      PtrParamNode in = systemInfo_->Get(ParamNode::HEADER)->Get("idbc");
       in->Get("penalty")->SetValue(true);
-      in->Get(InfoNode::COMMENT)->SetValue("Inserted Dirichlet values into initial guess");
+      in->SetComment("Inserted Dirichlet values into initial guess");
       LOG_DBG(stdSys) << "Solve: Inserted Idbc values into initial guess for iterative solver";
     }
 
@@ -239,7 +240,7 @@ namespace CoupledField {
     }
 
     // Assume that everything will go well
-    InfoNode* out = olasInfo_->Get(InfoNode::PROCESS)->Get("solver", InfoNode::APPEND);
+    PtrParamNode out = olasInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
     out->Get("solutionIsOkay")->SetValue(true);
 
     // Now modifiy the right-hand side vector
@@ -247,41 +248,41 @@ namespace CoupledField {
     idbcHandler_->AddIDBCToRHS( rhs_ );
 
     // check if we do export stuff
-    ParamNode* els = xml_  != NULL && xml_->Has("exportLinSys") ? xml_->Get("exportLinSys") : NULL;
+    PtrParamNode els =  xml_->Get("exportLinSys", ParamNode::PASS);
     string file;
     string base;
     
     // need it common even when exclusive solution
     if(els) {
-      string id = analysis_id->Get("analysis_id")->AsString();
+      string id = analysis_id->Get("analysis_id")->As<std::string>();
       boost::replace_all(id, ":", "_");
-      string name = els->Has("baseName") ? els->Get("baseName")->AsString() : progOpts->GetSimName();
+      string name = els->Has("baseName") ? els->Get("baseName")->As<std::string>() : progOpts->GetSimName();
       base = name + "_" + id;
-      systemInfo_->Get(InfoNode::PROCESS)->Get("exportLinearSystem", InfoNode::APPEND)->Get("name")->SetValue(base);
+      systemInfo_->Get(ParamNode::PROCESS)->Get("exportLinearSystem", ParamNode::APPEND)->Get("name")->SetValue(base);
     }
 
     // check if we do not only want the solution
-    if(els && els->Get("solution")->AsString() != "exclusive")
+    if(els && els->Get("solution")->As<std::string>() != "exclusive")
     {
       // two formats. The harwell-boing format includes the rhs!
-      if(els->Get("format")->AsString()  == "harwell-boeing")
+      if(els->Get("format")->As<std::string>()  == "harwell-boeing")
       {
         sysmat_[SYSTEM]->ExportHarwellBoeing(base+".hb", *rhs_);
 
-        if(els->Has("damping", true) && sysmat_[DAMPING] != NULL)
+        if(els->HasByVal("damping", true) && sysmat_[DAMPING] != NULL)
           sysmat_[DAMPING]->ExportHarwellBoeing(base+"_damping.hb", *rhs_);
 
-        if(els->Has("auxiliary", true) && sysmat_[AUXILIARY] != NULL)
+        if(els->HasByVal("auxiliary", true) && sysmat_[AUXILIARY] != NULL)
           sysmat_[AUXILIARY]->ExportHarwellBoeing(base+"_aux.hb", *rhs_);
       }
       else // classical (default) matrix-market
       {
         sysmat_[SYSTEM]->Export((base+".mtx").c_str() );
 
-        if(els->Has("damping", true) && sysmat_[DAMPING] != NULL)
+        if(els->HasByVal("damping", true) && sysmat_[DAMPING] != NULL)
           sysmat_[DAMPING]->Export((base+"_damping.mtx").c_str() );
 
-        if(els->Has("auxiliary", true) && sysmat_[AUXILIARY] != NULL)
+        if(els->HasByVal("auxiliary", true) && sysmat_[AUXILIARY] != NULL)
           sysmat_[AUXILIARY]->Export((base+"_aux.mtx").c_str() );
 
         // rhs is only in harwell-boing included
@@ -289,7 +290,7 @@ namespace CoupledField {
       }
     }
 
-    if(els && els->Has("initialGuess", true))
+    if(els && els->HasByVal("initialGuess", true))
       sol_->Export((base+"_intial_guess.vec").c_str());
 
     LOG_TRACE2(stdSys) << "before solve: euclidian norm of initial guess = " << sol_->NormL2();
@@ -301,7 +302,7 @@ namespace CoupledField {
 
     LOG_TRACE2(stdSys) << "after solve: euclidian norm of solution = " << sol_->NormL2();
 
-    if(els && els->Get("solution")->AsString() != "no")
+    if(els && els->Get("solution")->As<std::string>() != "no")
       sol_->Export((base+".sol.vec").c_str());
 
     LOG_DBG(stdSys) << "Solve: remove idbc from rhs";
@@ -310,7 +311,7 @@ namespace CoupledField {
 
 
     // Check that solution went fine, if not issue a warning
-    if ( out->Get("solutionIsOkay")->AsBool() == false ) {
+    if ( out->Get("solutionIsOkay")->As<bool>() == false ) {
       // std::cerr << "Life's a piece of shit, when you look at it ...\n";
       WARN("Solver reports a problem! Consult .info.xml file for "
            << "further diagnostics!");
@@ -411,9 +412,9 @@ namespace CoupledField {
     std::string entryTypeStr = "double";
     std::string storageTypeStr = "";
     
-    ParamNode* matrixNode = xml_->Get("matrix", false);
-    matrixNode->Get("entry", entryTypeStr, false);
-    matrixNode->Get("storage", storageTypeStr, false);
+    PtrParamNode matrixNode = xml_->Get("matrix", ParamNode::INSERT);
+    matrixNode->GetValue("entry", entryTypeStr, ParamNode::INSERT);
+    matrixNode->GetValue("storage", storageTypeStr, ParamNode::INSERT);
     
     entryType = BaseMatrix::entryType.Parse( entryTypeStr );
     storageType = BaseMatrix::storageType.Parse( storageTypeStr );
@@ -471,8 +472,8 @@ namespace CoupledField {
     //check for solver
     BaseSolver::SolverType solver;
     std::string solverStr;
-    ParamNode* solverNode = xml_->Get("solver", false);
-    solverNode->Get("type", solverStr, false);
+    PtrParamNode solverNode = xml_->Get("solver", ParamNode::INSERT);
+    solverNode->GetValue("type", solverStr, ParamNode::INSERT);
     solver = BaseSolver::solverType.Parse(solverStr);
 
     // In the case of SRCS_Matrices we can save memory by sharing
@@ -554,12 +555,12 @@ namespace CoupledField {
     //GenerateEntryManipulatorObject( entryType, blockSize_ );
 
     // Print information about matrix types
-    InfoNode* inm = info->Get("OLAS")->Get(InfoNode::HEADER)->Get("matrices");
+    PtrParamNode inm = info->Get("OLAS")->Get(ParamNode::HEADER)->Get("matrices");
     for ( it = matrixTypes_.begin(); it != matrixTypes_.end(); it++ )
     {
       string tmp;
       Enum2String( *it, tmp ); // such fucking non-sense :(
-      InfoNode* in = inm->Get(tmp);
+      PtrParamNode in = inm->Get(tmp);
       StdMatrix* mat = sysmat_[*it];
       in->Get("rows")->SetValue(mat->GetNumRows());
       in->Get("cols")->SetValue(mat->GetNumCols());

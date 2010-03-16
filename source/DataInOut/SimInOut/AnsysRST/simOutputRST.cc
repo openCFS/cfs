@@ -25,7 +25,7 @@ namespace fs = boost::filesystem;
 namespace CoupledField {
   
   SimOutputRST::SimOutputRST( const std::string& fileName,
-                              ParamNode * outputNode )
+                              PtrParamNode outputNode )
     : SimOutput( fileName, outputNode ) {
 
     // Initialize variables
@@ -72,7 +72,7 @@ namespace CoupledField {
     archMachIdMap["X86_64"] = "linop64";
 
     std::string ansysRev = "11.0";
-    outputNode_->Get("ansysRevision", ansysRev, false);
+    outputNode_->Get("ansysRevision", ansysRev, ParamNode::INSERT);
     sstr.clear(); sstr.str("");
     sstr << ansysRev;
     sstr >> ansysBinlibRev_;

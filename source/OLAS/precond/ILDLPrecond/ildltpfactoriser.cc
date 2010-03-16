@@ -36,8 +36,8 @@ namespace CoupledField {
   //   Standard constructor
   // ************************
   template <class T>
-  ILDLTPFactoriser<T>::ILDLTPFactoriser( ParamNode *solverNode,
-                                         InfoNode *olasInfo ) {
+  ILDLTPFactoriser<T>::ILDLTPFactoriser( PtrParamNode solverNode,
+                                         PtrParamNode olasInfo ) {
 
 
     // Currently this approach is not in a functional state
@@ -90,8 +90,8 @@ namespace CoupledField {
 
     // Dropping threshold
     Double tau = 0.01;
-    ParamNode* ildltpNode = this->xml_->Get("ILDLTP", false);
-    ildltpNode->Get("threshold", tau, false);
+    PtrParamNode ildltpNode = this->xml_->Get("ILDLTP",ParamNode::INSERT);
+    ildltpNode->GetValue("threshold", tau, ParamNode::INSERT);
     
     if ( tau <= 0.0 || tau > 1.0 ) {
       EXCEPTION( "ILDLTPFactoriser::Factorise: Dropping threshold tau = "
@@ -101,7 +101,7 @@ namespace CoupledField {
 
     // Maximal number of entries in a row
     UInt fillVal = 2;
-    this->xml_->Get("ILDLTP", "fillVal", fillVal, false);
+    this->xml_->Get("ILDLTP")->GetValue("fillVal", fillVal, ParamNode::INSERT);
     if ( fillVal <= 0 ) {
       EXCEPTION( "ILDLTPFactoriser::Factorise: fill value factor fillVal = "
                << fillVal << ", but should be positive integer. Check setting "

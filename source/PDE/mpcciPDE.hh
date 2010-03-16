@@ -27,7 +27,7 @@ namespace CoupledField
       \param 
       \param aGrid pointer to grid
     */
-    MpcciPDE( Grid* aptgrid, ParamNode* paramNode );
+    MpcciPDE( Grid* aptgrid, PtrParamNode paramNode );
 
     //! Deconstructor
     virtual ~MpcciPDE(){};

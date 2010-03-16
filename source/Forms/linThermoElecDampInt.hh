@@ -96,7 +96,7 @@ namespace CoupledField
 		// To keep the last heat solution
 		Vector< Double > teta_;
 
-    ParamNode* pn_;
+    PtrParamNode pn_;
 
     //flag to set -K
     //bool flagNegate_;

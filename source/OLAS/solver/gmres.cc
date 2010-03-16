@@ -22,7 +22,7 @@ namespace CoupledField {
   //   Constructor
   // ***************
   template<typename T>
-  GMRESSolver<T>::GMRESSolver( ParamNode* solverNode, InfoNode *olasInfo ){
+  GMRESSolver<T>::GMRESSolver( PtrParamNode solverNode, PtrParamNode olasInfo ){
     xml_ = solverNode;
 
     // Set pointers to communication objects
@@ -76,7 +76,7 @@ namespace CoupledField {
   //   Setup (public version)
   // **************************
   template<typename T>
-  void GMRESSolver<T>::Setup( BaseMatrix &sysMat, InfoNode* analysis_step ) {
+  void GMRESSolver<T>::Setup( BaseMatrix &sysMat, PtrParamNode analysis_step ) {
     PrivateSetup( sysMat );
   }
 
@@ -98,11 +98,9 @@ namespace CoupledField {
     UInt nRows = sysMat.GetNumRows();
 #endif
     UInt newKrylovDim = 50;
-    ParamNode *sNode = NULL;
-    sNode = xml_->Get("gmres", false);
-    if(sNode) {
-      sNode->Get("maxKrylovDim", newKrylovDim, false);
-    }
+    PtrParamNode sNode;
+    sNode = xml_->Get("gmres", ParamNode::INSERT);
+    sNode->GetValue("maxKrylovDim", newKrylovDim, ParamNode::INSERT);
     
 
     // Check that matrix is square
@@ -166,7 +164,7 @@ namespace CoupledField {
   void GMRESSolver<T>::Solve( const BaseMatrix &sysMat,
                               const BasePrecond &precond,
                               const BaseVector &rhs, BaseVector &sol,
-                              InfoNode* analysis_step ) {
+                              PtrParamNode analysis_step ) {
 
 
     bool logging = false;
@@ -211,11 +209,9 @@ namespace CoupledField {
     // -------------------------------------------------------------
     Double resNorm = 0;
     Double eps = 1e-6;
-    ParamNode *sNode = NULL;
-    sNode = xml_->Get("gmres", false);
-    if(sNode) {
-      sNode->Get("tol", eps, false);
-    }
+    PtrParamNode sNode;
+    sNode = xml_->Get("gmres", ParamNode::INSERT);
+    sNode->GetValue("tol", eps, ParamNode::INSERT);
     
     Double tolerance = ComputeThreshold( eps, rhs, *(vMat_[1]), resNorm,
                                          logging );
@@ -228,9 +224,7 @@ namespace CoupledField {
     //   Perform the GMRES(m) iteration
     // ----------------------------------
     Integer maxIter = 1;
-    if(sNode) {
-      sNode->Get("maxIter", maxIter, false);
-    }
+    sNode->GetValue("maxIter", maxIter, ParamNode::INSERT);
 
     Integer loopsDone = maxIter;
     UInt stepCount = 0;
@@ -282,7 +276,7 @@ namespace CoupledField {
     // ----------------------------
 
     // Number of iterations: Depends on GMRES(m) -> Full GMRES
-    InfoNode* out = solverInfo_->Get(InfoNode::PROCESS)->Get("solver", InfoNode::APPEND);
+    PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
     
     if ( maxIter == 1 ) {
       out->Get("numIter")->SetValue( (Integer)stepCount );

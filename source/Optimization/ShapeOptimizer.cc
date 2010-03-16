@@ -1,4 +1,4 @@
-#include "Optimization/ShapeOptimizer.hh"
+  #include "Optimization/ShapeOptimizer.hh"
 #include "Optimization/Optimization.hh"
 #include "Domain/domain.hh"
 #include "Optimization/TopGrad.hh"
@@ -14,7 +14,7 @@ using std::string;
 using boost::posix_time::second_clock;
 using boost::posix_time::time_duration;
 
-ShapeOptimizer::ShapeOptimizer(Optimization* optimization, ParamNode* pn) :
+ShapeOptimizer::ShapeOptimizer(Optimization* optimization, PtrParamNode pn) :
   BaseOptimizer(optimization, pn),
   topgrad_(false),
   levelset_(false),
@@ -22,21 +22,21 @@ ShapeOptimizer::ShapeOptimizer(Optimization* optimization, ParamNode* pn) :
 {
   start_time = second_clock::local_time();
   /** ParamNode for reading info from XML-file */
-  shoptpn = pn->Get(Optimization::optimizer.ToString(Optimization::SHAPE_SOLVER), false);
+  shoptpn = pn->Get(Optimization::optimizer.ToString(Optimization::SHAPE_SOLVER), ParamNode::PASS);
 
   if(shoptpn != NULL)
   {
     if(shoptpn->Has("enableTopgrad"))
     {
-      topgrad_ = shoptpn->Get("enableTopgrad")->AsBool();
+      topgrad_ = shoptpn->Get("enableTopgrad")->As<bool>();
     }
     if(shoptpn->Has("useLevelSet"))
     {
-      levelset_ = shoptpn->Get("useLevelSet")->AsBool();
+      levelset_ = shoptpn->Get("useLevelSet")->As<bool>();
     }
     if(shoptpn->Has("useShapeOptimization"))
     {
-      shapeopt_ = shoptpn->Get("useShapeOptimization")->AsBool();
+      shapeopt_ = shoptpn->Get("useShapeOptimization")->As<bool>();
       // shape optimization only works with a levelset
       if(shapeopt_) levelset_ = true;
     }

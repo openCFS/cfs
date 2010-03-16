@@ -32,7 +32,7 @@ class IPOPT : public TNLP
 public:
   /** @param optimization the problem we optimize
    * @param pn here we can have options - might be NULL! */
-  IPOPT(Optimization* optimization, BaseOptimizer* base, ParamNode* pn);
+  IPOPT(Optimization* optimization, BaseOptimizer* base, PtrParamNode pn);
   
   virtual ~IPOPT();
 
@@ -117,7 +117,7 @@ private:
   BaseOptimizer* base_;
   
   /** The optimizer ParamNode - away from the constructor to support restart */
-  ParamNode* optimizer_pn_;
+  PtrParamNode optimizer_pn_;
   
   /** We handle the ipopt framework within this class */
   SmartPtr<IpoptApplication> app;

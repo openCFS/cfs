@@ -56,7 +56,7 @@ namespace CoupledField {
 //  }
 
 
-  void SolveStepMech::StepTransLin(InfoNode* analysis_base) {
+  void SolveStepMech::StepTransLin(PtrParamNode analysis_base) {
 
     //account for RHS
     assemble_->AssembleLinRHS();
@@ -64,7 +64,7 @@ namespace CoupledField {
     UInt& iterCoupledCounter = PDE_.GetIterCoupledCounter();
     bool isIterCoupled    = PDE_.IsIterCoupled();
 
-    InfoNode* analysis_id = !isIterCoupled ? analysis_base :
+    PtrParamNode analysis_id = !isIterCoupled ? analysis_base :
           BaseDriver::CreateAnalysisIdChild(analysis_base, "iterCoupled", iterCoupledCounter);    
 
     // perform predictor step: if we have an iterative coupled 

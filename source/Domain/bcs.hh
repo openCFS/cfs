@@ -7,6 +7,7 @@
 
 #include <ostream>
 #include "General/environment.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField {
 
@@ -14,7 +15,6 @@ namespace CoupledField {
   class EntityList;
   class EqnMap;
   class ResultInfo;
-  class InfoNode;
   template <class TYPE> class StdVector;
 
   //! Definition of a homogeneous Dirichlet boundary condition
@@ -39,7 +39,7 @@ namespace CoupledField {
     UInt dof;
 
     /** Ouptut our content to info.xml */
-    virtual void ToInfo(InfoNode* in) const;
+    virtual void ToInfo(PtrParamNode in) const;
 
     /** Just a simple Dump() for developers */
     virtual std::string ToString();
@@ -61,7 +61,7 @@ namespace CoupledField {
     std::string phase;
 
     /** Ouptut our content to info.xml */
-    virtual void ToInfo(InfoNode* in) const;
+    virtual void ToInfo(PtrParamNode in) const;
 
     virtual std::string ToString();
   };
@@ -101,7 +101,7 @@ namespace CoupledField {
     std::string weight;
 
     /** Ouptut our content to info.xml */
-    virtual void ToInfo(InfoNode* in) const;
+    virtual void ToInfo(PtrParamNode in) const;
 
     virtual std::string ToString();
   };

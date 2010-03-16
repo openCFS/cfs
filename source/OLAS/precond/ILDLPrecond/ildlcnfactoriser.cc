@@ -32,8 +32,8 @@ namespace CoupledField {
   //   Standard constructor
   // ************************
   template <class T>
-  ILDLCNFactoriser<T>::ILDLCNFactoriser( ParamNode *solverNode,
-                                         InfoNode *olasInfo ) {
+  ILDLCNFactoriser<T>::ILDLCNFactoriser( PtrParamNode solverNode,
+                                         PtrParamNode olasInfo ) {
 
 
     // Currently this approach is not in a functional state
@@ -86,8 +86,8 @@ namespace CoupledField {
 
     // Dropping threshold
     Double tau = 0.01;
-    ParamNode* ildlcnNode = this->xml_->Get("ILDLCN", false);
-    ildlcnNode->Get("threshold", tau, false);
+    PtrParamNode ildlcnNode = this->xml_->Get("ILDLCN", ParamNode::INSERT);
+    ildlcnNode->GetValue("threshold", tau, ParamNode::INSERT);
 
     // if ( tau <= 0.0 || tau > 1.0 ) {
     if ( tau < 0.0 ) {

@@ -28,7 +28,7 @@ namespace CoupledField
                                      const std::string& formatName,
                                      const std::string& dirName,
                                      const std::string& pathSep,
-                                     ParamNode * outputNode ) = 0;
+                                     PtrParamNode outputNode ) = 0;
     //! Initialize
     virtual void Init( Grid* ptGrid,
                        bool printGridOnly ) = 0;

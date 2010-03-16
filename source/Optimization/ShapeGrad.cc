@@ -19,7 +19,7 @@ DEFINE_LOG(shapeGrad, "shapeGrad")
 
 ShapeGrad::ShapeGrad() : ErsatzMaterial(), mech_mat_(NULL)
 {
-  ParamNode* pncf = param->Get("optimization")->Get("costFunction");
+  PtrParamNode pncf = param->Get("optimization")->Get("costFunction");
   if(pncf->Has("multipleExcitation"))
   {
     std::cout << "shapegrad has multiple excitation" << std::endl;

@@ -52,13 +52,13 @@ namespace CoupledField
     virtual void PreStepStatic();
  
     /** base method for solving one static step */
-    virtual void SolveStepStatic(InfoNode* analysis_id, const bool reAssembleMatrices = true);
+    virtual void SolveStepStatic(PtrParamNode analysis_id, const bool reAssembleMatrices = true);
 
     /** @see SolveStepStatic() */ 
-    virtual void StepStaticLin(InfoNode* analysis_id, const bool reAssembleMatrices = true);
+    virtual void StepStaticLin(PtrParamNode analysis_id, const bool reAssembleMatrices = true);
 
     //! solves for one nonlinear static step 
-    virtual void StepStaticNonLin(InfoNode* analysis_id);
+    virtual void StepStaticNonLin(PtrParamNode analysis_id);
     
     //! routine for actions after the SolveStep-method
     virtual void PostStepStatic();
@@ -72,21 +72,21 @@ namespace CoupledField
     //virtual void PredictorStep(){;};
 
     //! base method for solving one transient step 
-    virtual void SolveStepTrans(InfoNode* analysis_id);
+    virtual void SolveStepTrans(PtrParamNode analysis_id);
 
     //! solves for one linear transient step 
-    virtual void StepTransLin(InfoNode* analysis_id);
+    virtual void StepTransLin(PtrParamNode analysis_id);
 
     //! solves for one nonlinear transient step 
-    virtual void StepTransNonLin(InfoNode* analysis_id);
+    virtual void StepTransNonLin(PtrParamNode analysis_id);
 
     //! solves for one nonlinear transient step 
     //! consideres material nonlinearities in direct coupled PDEs
-    void StepTransNonLinMaterial(InfoNode* analysis_id);
+    void StepTransNonLinMaterial(PtrParamNode analysis_id);
 
     //! solves for one nonlinear transient step 
     //! consideres hystreresis nonlinearities in direct coupled PDEs
-    virtual void StepTransNonLinHysteresis(InfoNode* analysis_id);
+    virtual void StepTransNonLinHysteresis(PtrParamNode analysis_id);
     
     //! routine for actions after the SolveStep-method
     virtual void PostStepTrans();
@@ -96,13 +96,13 @@ namespace CoupledField
     virtual void PreStepHarmonic();
 
     //!  base method for solving one harmonic step 
-    virtual void SolveStepHarmonic(InfoNode* analysis_id);
+    virtual void SolveStepHarmonic(PtrParamNode analysis_id);
     
     //! solves for one linear frequency step 
-    virtual void StepHarmonicLin(InfoNode* analysis_id);
+    virtual void StepHarmonicLin(PtrParamNode analysis_id);
 
     //! solves for one nonlinear frequency step 
-    virtual void StepHarmonicNonLin(InfoNode* analysis_id)
+    virtual void StepHarmonicNonLin(PtrParamNode analysis_id)
     {EXCEPTION("Harmonic step not implemented!");};
     
     //!  routine for actions after the SolveStep-method

@@ -4,14 +4,13 @@
 
 #include "result.hh"
 #include "Domain/resultInfo.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include <sstream>
 
 namespace CoupledField {
 
 
   BaseResult::BaseResult() {
-    infoNode_ = NULL;
   }
 
   BaseResult::~BaseResult() {

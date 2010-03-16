@@ -19,8 +19,6 @@ namespace CoupledField {
   class BaseEigenSolver;
   class BaseMatrix;
   class ParamNode;
-  class InfoNode;
-
 
   //! Generate a basic solver object
 
@@ -34,8 +32,8 @@ namespace CoupledField {
   //! \param report Pointer to report object into which the generated solver
   //!               should write its solutiopn report.
   BaseEigenSolver * GenerateEigenSolverObject( BaseMatrix &mat, 
-                                               ParamNode * xml,
-                                               InfoNode*   eigenInfo );
+                                               PtrParamNode xml,
+                                               PtrParamNode   eigenInfo );
 
 }
 

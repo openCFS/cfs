@@ -2,6 +2,7 @@
 #define OPTIMALITYCONDITION_HH_
 
 #include "Optimization/BaseOptimizer.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "MatVec/vector.hh"
 #include "General/Enum.hh"
 
@@ -15,14 +16,14 @@ namespace CoupledField
     public:
       /** @param optimization the problem we optimize
        * @param pn here we can have options - might be NULL! */
-      OptimalityCondition(Optimization* optimization, ParamNode* pn);
+      OptimalityCondition(Optimization* optimization, PtrParamNode pn);
       
       /** This destructor does nothing but Optimizer has a virtual destructor */
       ~OptimalityCondition() { } 
       
       virtual std::string LogFileHeader();
 
-      virtual void LogFileLine(std::ofstream* out, InfoNode* iteration);
+      virtual void LogFileLine(std::ofstream* out, PtrParamNode iteration);
 
     protected:
 

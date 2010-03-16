@@ -6,7 +6,7 @@
 #include <sstream>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "trivialCartesianCoordSys.hh"
 
@@ -15,7 +15,7 @@ namespace CoupledField{
 
   TrivialCartesianCoordSystem::TrivialCartesianCoordSystem(const std::string & name,
                                                            Grid * ptGrid,
-                                                           ParamNode * myParamNode ) 
+                                                           PtrParamNode myParamNode ) 
     : CoordSystem( name, ptGrid, myParamNode ) {
     Vector<Double> originTemp, xAxisTemp, yAxisTemp;
     std::vector< std::string > axisMapTemp;
@@ -32,13 +32,13 @@ namespace CoupledField{
       GetPoint( originTemp, myParam_->Get( "origin" ) );
       
       // get axis map
-      ParamNode* node = myParam_->Get("axisMap", false);
+      PtrParamNode node = myParam_->Get("axisMap", ParamNode::PASS );
       
       if(node)
       {
-        node->Get("x", axisMapTemp[0], true);
-        node->Get("y", axisMapTemp[1], true);
-        node->Get("z", axisMapTemp[2], true);
+        node->GetValue("x", axisMapTemp[0], ParamNode::PASS);
+        node->GetValue("y", axisMapTemp[1], ParamNode::PASS);
+        node->GetValue("z", axisMapTemp[2], ParamNode::PASS);
       }
     }
     
@@ -258,22 +258,22 @@ namespace CoupledField{
     return ret;
   }
 
-  void TrivialCartesianCoordSystem::ToInfo( InfoNode * in ) {
+  void TrivialCartesianCoordSystem::ToInfo( PtrParamNode in ) {
     
     in = in->Get("trivialCaresionCoordinateSystem");
     
     in->Get("id")->SetValue(name_);
-    InfoNode * originNode = in->Get("origin");
+    PtrParamNode originNode = in->Get("origin");
     originNode->Get("x")->SetValue(origin_[0]);
     originNode->Get("y")->SetValue(origin_[1]);
     originNode->Get("z")->SetValue(origin_[2]);
     
-    InfoNode * factorNode = in->Get("axisFactors");
+    PtrParamNode factorNode = in->Get("axisFactors");
     factorNode->Get("x")->SetValue(axisFactors_[0]);
     factorNode->Get("y")->SetValue(axisFactors_[1]);
     factorNode->Get("z")->SetValue(axisFactors_[2]);
     
-    InfoNode * mapNode = in->Get("axisMap");
+    PtrParamNode mapNode = in->Get("axisMap");
     mapNode->Get("x")->SetValue(axisMap_[0]);
     mapNode->Get("y")->SetValue(axisMap_[1]);
     mapNode->Get("z")->SetValue(axisMap_[2]);

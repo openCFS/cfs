@@ -108,7 +108,7 @@ namespace CoupledField
 		Vector< Double > teta_;
 
     // ParamNode
-    ParamNode* pn_;
+    PtrParamNode pn_;
 
 
   };

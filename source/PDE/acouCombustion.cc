@@ -25,7 +25,7 @@ extern "C" {
 namespace CoupledField
 {
 
-  AcouCombustionNoise::AcouCombustionNoise( Grid *aptgrid, ParamNode* paramNode )
+  AcouCombustionNoise::AcouCombustionNoise( Grid *aptgrid, PtrParamNode paramNode )
     :AcousticPDE( aptgrid, paramNode )
   {
 
@@ -52,8 +52,8 @@ namespace CoupledField
 
 
     // fetch combustion data node
-    ParamNode * combNode = myParam_->Get("combustionData");
-    combNode->Get("coupledRegion",coupledRegionNames[0]);
+    PtrParamNode combNode = myParam_->Get("combustionData");
+    combNode->GetValue("coupledRegion",coupledRegionNames[0]);
     ptgrid_->GetRegion().Parse(regionNames, subdoms_);
     ptgrid_->GetRegion().Parse(coupledRegionNames, couplSubDomId_);
 
@@ -64,15 +64,15 @@ namespace CoupledField
       srcChemical, srcDensityDeriv2, srcHeatRelease, srcShearTerm,
       srcGasConstDeriv2;
 
-    combNode->Get("fileName",filenameCFD_);
-    combNode->Get("varSpeedOfSound",varSpeedOfSound);
-    combNode->Get("ReynoldStress",srcReynoldStress);
-    combNode->Get("momentum",srcMomentum);
-    combNode->Get("chemical",srcChemical);
-    combNode->Get("densityDeriv2",srcDensityDeriv2);
-    combNode->Get("heatRelease",srcHeatRelease);
-    combNode->Get("gasConstDeriv2",srcGasConstDeriv2);
-    combNode->Get("shearTerm",srcShearTerm);
+    combNode->GetValue("fileName",filenameCFD_);
+    combNode->GetValue("varSpeedOfSound",varSpeedOfSound);
+    combNode->GetValue("ReynoldStress",srcReynoldStress);
+    combNode->GetValue("momentum",srcMomentum);
+    combNode->GetValue("chemical",srcChemical);
+    combNode->GetValue("densityDeriv2",srcDensityDeriv2);
+    combNode->GetValue("heatRelease",srcHeatRelease);
+    combNode->GetValue("gasConstDeriv2",srcGasConstDeriv2);
+    combNode->GetValue("shearTerm",srcShearTerm);
 
     Info->WriteCombustionNoiseInfo(filenameCFD_, coupledRegionNames[0], 
 				   varSpeedOfSound, srcReynoldStress, 
@@ -89,7 +89,7 @@ namespace CoupledField
     }
 
     //get number of src-data in CFD-file
-    combNode->Get("numDataInCFD", numDataInCFD_);
+    combNode->GetValue("numDataInCFD", numDataInCFD_);
 
     UInt numSrc = srcReynoldStress + srcMomentum + srcChemical 
       + srcDensityDeriv2 + srcHeatRelease + srcGasConstDeriv2 + srcShearTerm;
@@ -204,16 +204,16 @@ namespace CoupledField
     Double bndoffsetXmin, bndoffsetYmin, bndoffsetZmin = 0.0, bndoffsetXmax, bndoffsetYmax, bndoffsetZmax = 0.0;
 
     // fetch combustion data node
-    ParamNode * combNode = myParam_->Get("combustionData");
+    PtrParamNode combNode = myParam_->Get("combustionData");
 
-    combNode->Get("xfmin",xfmin);
-    combNode->Get("yfmin",yfmin);
-    combNode->Get("xfmax",xfmax);
-    combNode->Get("yfmax",yfmax);
-    combNode->Get("facrampXmin",facRampXmin);
-    combNode->Get("facrampYmin",facRampYmin);
-    combNode->Get("facrampXmax",facRampXmax);
-    combNode->Get("facrampYmax",facRampYmax);
+    combNode->GetValue("xfmin",xfmin);
+    combNode->GetValue("yfmin",yfmin);
+    combNode->GetValue("xfmax",xfmax);
+    combNode->GetValue("yfmax",yfmax);
+    combNode->GetValue("facrampXmin",facRampXmin);
+    combNode->GetValue("facrampYmin",facRampYmin);
+    combNode->GetValue("facrampXmax",facRampXmax);
+    combNode->GetValue("facrampYmax",facRampYmax);
 
     bndoffsetXmin=facRampXmin*xfmin;
     bndoffsetYmin=facRampYmin*yfmin; 
@@ -221,10 +221,10 @@ namespace CoupledField
     bndoffsetYmax=facRampYmax*yfmax;
 
     if (dim_==3) {
-      combNode->Get("zfmin",zfmin);
-      combNode->Get("zfmax",zfmax);
-      combNode->Get("facrampZmin",facRampZmin);
-      combNode->Get("facrampZmax",facRampZmax);
+      combNode->GetValue("zfmin",zfmin);
+      combNode->GetValue("zfmax",zfmax);
+      combNode->GetValue("facrampZmin",facRampZmin);
+      combNode->GetValue("facrampZmax",facRampZmax);
       bndoffsetZmin=facRampZmin*zfmin;
       bndoffsetZmax=facRampZmax*zfmax;
     }

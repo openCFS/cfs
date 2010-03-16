@@ -42,7 +42,7 @@ namespace CoupledField
     virtual void CreateCoupling(StdVector<StdPDE*> &  OrderedPDEs, 
                                 StdVector<PDECoupling*> & Couplings,
                                 StdVector<StdPDE*> & UnorderedPDEs,
-                                ParamNode * iterCoupledNode );
+                                PtrParamNode iterCoupledNode );
     
 
   protected:

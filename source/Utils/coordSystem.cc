@@ -12,7 +12,7 @@ namespace CoupledField{
 
   CoordSystem::CoordSystem( const std::string & name,
                             Grid * ptGrid,
-                            ParamNode * myParamNode ) {
+                            PtrParamNode myParamNode ) {
 
     name_ = name;
     ptGrid_ = ptGrid;
@@ -28,7 +28,7 @@ namespace CoupledField{
   }
 
   void CoordSystem::GetPoint(Vector<Double> & vec,
-                             ParamNode * pointNode ) {
+                             PtrParamNode pointNode ) {
 
     
    
@@ -39,7 +39,7 @@ namespace CoupledField{
 
     // check, if node is given by name and eventually get it
     // from the grid object
-    pointNode->Get( "node", nodeName );
+    pointNode->GetValue( "node", nodeName );
 
     vec.Resize(dim_);
     if ( nodeName != "none" ) {
@@ -59,7 +59,7 @@ namespace CoupledField{
 
       // if no node name was given, read in global x,y and z coordinate
       for (UInt i=0; i<vec.GetSize(); i++) {
-        pointNode->Get( coordNames[i], vec[i] );
+        pointNode->GetValue( coordNames[i], vec[i] );
       }
     }
       

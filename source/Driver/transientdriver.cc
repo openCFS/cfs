@@ -51,20 +51,20 @@ namespace CoupledField {
     restartStep_ = 0;
 
     // get parameter node
-    ParamNode * myNode = 
-      param->Get("sequenceStep", std::string("index"), sequenceStep)
+    PtrParamNode myNode = 
+      param->GetByVal("sequenceStep", std::string("index"), sequenceStep)
       ->Get("analysis")->Get("transient");
 
     driverNode = driverNode->Get("transient");
     driverNode->Get("sequenceStep")->SetValue(sequenceStep);
-    driverNode->Get(InfoNode::HEADER)->Get("unit")->SetValue("s");
+    driverNode->Get(ParamNode::HEADER)->Get("unit")->SetValue("s");
     
     // Get time stepping information from parameter object
-    myNode->Get( "numSteps", numstep_ );
-    myNode->Get( "deltaT", firstdt_ );
+    myNode->GetValue( "numSteps", numstep_ );
+    myNode->GetValue( "deltaT", firstdt_ );
 
     // Get save increment for restart file (optional)
-    myNode->Get( "writeRestartInc", restartIncr_, false );
+    myNode->GetValue( "writeRestartInc", restartIncr_, ParamNode::PASS );
   
     // remove HALTCFS File at the beginning
     if(fs::exists("./HALTCFS")) 
@@ -86,7 +86,8 @@ namespace CoupledField {
     InitializePDEs();
   }
     
-  void TransientDriver::SolveProblem(bool write_results, InfoNode* given_analysis_id, const bool reAssembleMatrices) 
+  void TransientDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id, 
+                                     const bool reAssembleMatrices) 
   {
     // options not implemented
     assert(write_results == true);
@@ -170,7 +171,7 @@ namespace CoupledField {
       
       if(given_analysis_id == NULL)
       {
-        analysis_id_ = driverNode->Get(InfoNode::PROCESS)->Get("step", InfoNode::APPEND); 
+        analysis_id_ = driverNode->Get(ParamNode::PROCESS)->Get("step", ParamNode::APPEND); 
         analysis_id_->Get("analysis_id")->SetValue(actTimeStep_);
       }
       else

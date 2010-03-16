@@ -32,7 +32,7 @@ namespace CoupledField {
   // volume source integration
   // ====================================================================
 
-  AcouRHSLinForm::AcouRHSLinForm(ParamNode* rhsValuesNode)
+  AcouRHSLinForm::AcouRHSLinForm(PtrParamNode rhsValuesNode)
     : LinearForm(),
       id_("default"),
       interpolate_(false),
@@ -56,68 +56,68 @@ namespace CoupledField {
     std::string srcRegions, factor = "1.0";
 
     // Read parameters from XML file
-    ParamNode* tmpNode = NULL;
+    PtrParamNode tmpNode;
 
     try {
       // destination region
-      rhsValuesNode->Get("region", regionName_);
+      rhsValuesNode->GetValue("region", regionName_);
       // input ID of destination region
-      rhsValuesNode->Get("inputId", id_);
+      rhsValuesNode->GetValue("inputId", id_);
       // factor (is multiplied with RHS)
-      rhsValuesNode->Get("factor", factor, false);
+      rhsValuesNode->GetValue("factor", factor, ParamNode::PASS);
       
       // interpolation parameters (if any)
-      ParamNode* intNode = NULL;
+      PtrParamNode intNode;
       if(rhsValuesNode->Has("interpolation"))
-        intNode = rhsValuesNode->Get("interpolation", false);
+        intNode = rhsValuesNode->Get("interpolation", ParamNode::PASS);
       
       if (intNode) {
         interpolate_ = true;
         
-        tmpNode = intNode->Get("srcRegions", false);
+        tmpNode = intNode->Get("srcRegions", ParamNode::PASS);
         if (tmpNode->HasChildren()) {
           // names of source regions
-          tmpNode->Get("names", srcRegions);
+          tmpNode->GetValue("names", srcRegions);
           // input ID of source regions
-          tmpNode->Get("inputId", srcInputId_);
+          tmpNode->GetValue("inputId", srcInputId_);
           // coordinate system ID of source regions
-          tmpNode->Get("coordSysId", coordSysId_);
+          tmpNode->GetValue("coordSysId", coordSysId_);
         }
         
         // if 3D data are to be interpolated to a 2D grid,
         // where should the xy-plane be?
-        tmpNode = intNode->Get("xyPlane", false);
+        tmpNode = intNode->Get("xyPlane", ParamNode::PASS);
         if (tmpNode->HasChildren()) {
-          tmpNode->Get("z", z_, false);
-          tmpNode->Get("tol", zEpsilon_, false);
+          tmpNode->GetValue("z", z_, ParamNode::PASS);
+          tmpNode->GetValue("tol", zEpsilon_, ParamNode::PASS);
         }
         
-        tmpNode = intNode->Get("tolerances", false);
+        tmpNode = intNode->Get("tolerances", ParamNode::PASS);
         if (tmpNode->HasChildren()) {
           // tolerance in global coordinates
-          ParamNode* tolNode = tmpNode->Get("global", false);
+          PtrParamNode tolNode = tmpNode->Get("global", ParamNode::PASS);
           if (tolNode) {
-            tolNode->Get("start", globalEpsilon_.start, false);
-            tolNode->Get("end", globalEpsilon_.end, false);
-            tolNode->Get("inc", globalEpsilon_.inc, false);
+            tolNode->GetValue("start", globalEpsilon_.start, ParamNode::PASS);
+            tolNode->GetValue("end", globalEpsilon_.end, ParamNode::PASS);
+            tolNode->GetValue("inc", globalEpsilon_.inc, ParamNode::PASS);
           }
           
           // tolerance in local coordinates
-          tolNode = tmpNode->Get("local", false);
+          tolNode = tmpNode->Get("local", ParamNode::PASS);
           if (tolNode) {
-            tolNode->Get("start", localEpsilon_.start, false);
-            tolNode->Get("end", localEpsilon_.end, false);
-            tolNode->Get("inc", localEpsilon_.inc, false);
+            tolNode->GetValue("start", localEpsilon_.start, ParamNode::PASS);
+            tolNode->GetValue("end", localEpsilon_.end, ParamNode::PASS);
+            tolNode->GetValue("inc", localEpsilon_.inc, ParamNode::PASS);
           }
         }
         
         // restart file mode
-        intNode->Get("restartFileMode", restartFileMode_, false);
+        intNode->GetValue("restartFileMode", restartFileMode_, ParamNode::PASS);
         
         // verbosity of warnings
-        tmpNode = intNode->Get("nodeWARNs", false);
+        tmpNode = intNode->Get("nodeWARNs", ParamNode::PASS);
         if (tmpNode->HasChildren()) {
-          std::string dispStr = tmpNode->Get("display")->AsString();
+          std::string dispStr = tmpNode->Get("display")->As<std::string>();
           if (dispStr == "verbose")
             node_warnings_ = (ciWarnFlags) (CI_WARN_YES | CI_WARN_VERBOSE);
           else if (dispStr == "yes")
@@ -125,17 +125,17 @@ namespace CoupledField {
           else
             node_warnings_ = CI_WARN_NO;
           
-          if (tmpNode->Get("writeNodes")->AsBool()) {
+          if (tmpNode->Get("writeNodes")->As<bool>()) {
             node_warnings_ = (ciWarnFlags) (node_warnings_ | CI_WARN_LIST);
           }
         }
 
         // overwrite old source terms present on destination mesh?
-        intNode->Get("overwriteOldSrcs", overwriteOldSrcs_, false);
+        intNode->GetValue("overwriteOldSrcs", overwriteOldSrcs_, ParamNode::PASS);
       }
       
       // do we use asynchronous time/frequency steps?
-      rhsValuesNode->Get("asyncSteps", asyncSteps_, false);
+      rhsValuesNode->GetValue("asyncSteps", asyncSteps_, ParamNode::PASS);
       
     } catch (Exception& ex) 
     {

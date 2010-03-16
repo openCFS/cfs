@@ -1532,16 +1532,16 @@ namespace CoupledField
       if(!param) {
         SetDefaultIntegration();
       } else {
-        ParamNode * integNode = param->Get( "integRules", false );
+        PtrParamNode integNode = param->Get( "integRules", ParamNode::PASS );
         if(integNode && integNode->HasChildren())
         {
           std::string type = "Gauss_standard";
-          integNode->Get("type", type);
+          integNode->GetValue("type", type);
           // we have values in the XML file
           String2Enum(type,IntegMethod );
 
           std::string str = "4";
-          integNode->Get( "order", str );
+          integNode->GetValue( "order", str );
           IntegOrder = lexical_cast<UInt>(str);
         }
         else

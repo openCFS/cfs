@@ -21,8 +21,8 @@ namespace CoupledField {
   //   Generate a EigenSolver object
   // *********************************
   BaseEigenSolver* GenerateEigenSolverObject( BaseMatrix &mat, 
-                                              ParamNode* xml,
-                                              InfoNode*  eigenInfo ) {
+                                              PtrParamNode xml,
+                                              PtrParamNode  eigenInfo ) {
     
     BaseEigenSolver *retSolver = NULL;
     // TODO: Check if this is still needed
@@ -30,15 +30,15 @@ namespace CoupledField {
     // COMPWARNING: unused variable bool eTypeUnknown = false;
     
     std::string solverStr;
-    ParamNode* solverXML = NULL;
-    solverXML = xml->Get("eigenSolver", false);
+    PtrParamNode solverXML;
+    solverXML = xml->Get("eigenSolver", ParamNode::INSERT);
   
     EnumMap::iterator it, end;
     it = BaseEigenSolver::eigenSolverType.map.begin();
     end = BaseEigenSolver::eigenSolverType.map.end();
   
     for( ; it != end; it++ ) {
-      if( solverXML->Has("type", it->second) ) {
+      if( solverXML->HasByVal("type", it->second) ) {
         if(solverStr != "")
           EXCEPTION("Two eigensolvers have been specified: " << solverStr
                     << " and " << (it->second))

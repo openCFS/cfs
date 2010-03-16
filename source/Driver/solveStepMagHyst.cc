@@ -25,7 +25,7 @@ namespace CoupledField {
   SolveStepMagHyst::~SolveStepMagHyst() {
   }
   
-  void SolveStepMagHyst::StepTransNonLinHysteresis(InfoNode* analysis_base) {
+  void SolveStepMagHyst::StepTransNonLinHysteresis(PtrParamNode analysis_base) {
 
 
     bool performOneMoreStep;
@@ -103,7 +103,7 @@ namespace CoupledField {
       else 
         std::cout << "Iter:  " << iterationCounter << std::endl;
 
-      InfoNode* analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
+      PtrParamNode analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
       
       // set solution of previous iteration
       if (iterationCounter > 1 )
@@ -218,7 +218,7 @@ namespace CoupledField {
   }
 
 
-  void SolveStepMagHyst::StepTransNonLinHysteresisDiff(InfoNode* analysis_base) {
+  void SolveStepMagHyst::StepTransNonLinHysteresisDiff(PtrParamNode analysis_base) {
 
     bool performOneMoreStep;
 
@@ -275,7 +275,7 @@ namespace CoupledField {
       else 
         std::cout << "Iter:  " << iterationCounter << std::endl;
 
-      InfoNode* analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
+      PtrParamNode analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
             
       // set solution of previous iteration
       if (iterationCounter > 1 )

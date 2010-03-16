@@ -64,7 +64,7 @@ namespace CoupledField
   
 
     //! Constructor with name of mesh-file
-      SimInput(std::string fileName, ParamNode * inputNode ) :
+      SimInput(std::string fileName, PtrParamNode inputNode ) :
           fileName_(fileName),
           myParam_(inputNode)
       {};
@@ -203,7 +203,7 @@ namespace CoupledField
     std::set<Capability> capabilities_;
     
     //! Parameter node for current output class
-    ParamNode * myParam_;
+    PtrParamNode myParam_;
 
     UInt dim_;
     std::vector<UInt> numElemsOfDim_;

@@ -17,7 +17,7 @@ namespace CoupledField
   template <class TYPE> class StdVector;
   class SinglePDE;
   class ParamNode;
-  class InfoNode;
+  class ParamNode;
   class Elem;
   class BaseResult;
   class ResultInfo;
@@ -31,13 +31,13 @@ namespace CoupledField
     public:
      /** Constructor for SIMP type Optimization - there we lay on a region which containts also n# elements
       * @param result the result description list  */
-     DesignSpace(StdVector<RegionIdType>& regionIds, StdVector<ParamNode*>& design, StdVector<ParamNode*>& transfer, StdVector<ParamNode*>& result,
+     DesignSpace(StdVector<RegionIdType>& regionIds, ParamNodeList& design, ParamNodeList& transfer, ParamNodeList& result,
          ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
 
      virtual ~DesignSpace();
     
      /** creates the corresponding DesignSpace object depending on the method */
-     static DesignSpace* CreateInstance(StdVector<RegionIdType> regionIds, StdVector<ParamNode*>& design, StdVector<ParamNode*>& transfer, StdVector<ParamNode*>& result,
+     static DesignSpace* CreateInstance(StdVector<RegionIdType> regionIds, ParamNodeList& design, ParamNodeList& transfer, ParamNodeList& result,
               ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
 
      /** PostInit as usual when not all can be stuffed into the constructor
@@ -47,7 +47,7 @@ namespace CoupledField
 
      /** Set the DesignMaterial this is only used in parametric material optimization and therefore not in constructor
       * @param dm ParamNode in XML */
-     void SetDesignMaterial(ParamNode* dm);
+     void SetDesignMaterial(PtrParamNode dm);
 
      /** Set the optimizer, required for level set give the level set values as nodal values.
       * Otherwise not required to be called */
@@ -197,7 +197,7 @@ namespace CoupledField
      std::string ToString();
 
      /** Writes summary information about design variables and transfer functions into the node */
-     void ToInfo(InfoNode* in);
+     void ToInfo(PtrParamNode in);
      
      struct DesignRegion{
        RegionIdType regionId;

@@ -27,7 +27,7 @@ namespace CoupledField {
   template<typename T>
   void CGSolver<T>::Solve( const BaseMatrix &sysmat,
                            const BasePrecond &precond,
-                           const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_step ) {
+                           const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
 
     // Tracing information
 
@@ -69,13 +69,11 @@ namespace CoupledField {
     // overwrite if set in xml
     if(xml_ != NULL)
     {
-      ParamNode *sNode = NULL;
-      sNode = xml_->Get("cg", false);      
-      if(sNode) {
-        sNode->Get("maxIter", maxiter, false);
-        sNode->Get("tol", eps, false);
-        sNode->Get("resDirectly", tmp, false);
-      }
+      PtrParamNode sNode;
+      sNode = xml_->Get("cg", ParamNode::INSERT);      
+      sNode->GetValue("maxIter", maxiter, ParamNode::INSERT);
+      sNode->GetValue("tol", eps, ParamNode::INSERT);
+      sNode->GetValue("resDirectly", tmp, ParamNode::INSERT);
     } 
     if ( tmp <= 0 ) {
       EXCEPTION( "CGSolver::CGSolver: The current value of "
@@ -216,7 +214,7 @@ namespace CoupledField {
     // ============================
     //   Generate solution report
     // ============================
-    InfoNode* out = solverInfo_->Get(InfoNode::PROCESS)->Get("solver", InfoNode::APPEND);
+    PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
     out->Get("numIter")->SetValue(niter);
     out->Get("finalNorm")->SetValue(resNorm);
     if ( loop == false ) {

@@ -22,7 +22,7 @@
 #include "Driver/transientdriver.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/resultHandler.hh"
 
 #include "OLAS/algsys/sbmsystem.hh"
@@ -34,7 +34,7 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  DirectCoupledPDE::DirectCoupledPDE( Grid *aptgrid, ParamNode* paramNode )
+  DirectCoupledPDE::DirectCoupledPDE( Grid *aptgrid, PtrParamNode paramNode )
 
     : StdPDE( aptgrid, paramNode ) {
 
@@ -179,16 +179,17 @@ namespace CoupledField {
   {
     sequenceStep_ = sequenceStep;
 
-    infoNode_ = info->Get("PDE")->Get("directCoupledPDE", InfoNode::APPEND);
-    infoNode_->Get(InfoNode::HEADER)->Get("sequeceStep")->SetValue(sequenceStep);
+    infoNode_ = info->Get("PDE")->Get("directCoupledPDE", ParamNode::APPEND);
+    infoNode_->Get(ParamNode::HEADER)->Get("sequeceStep")->SetValue(sequenceStep);
 
     // Check, whether we shall generate an SBM_System
     bool genSBMSys = false;
-    ParamNode * linSysNode =
-      param->Get( "sequenceStep", std::string("index"), sequenceStep)->Get("linearSystems", false );
+    PtrParamNode linSysNode =
+      param->GetByVal( "sequenceStep", std::string("index"), sequenceStep)
+      ->Get("linearSystems", ParamNode::PASS );
     if( linSysNode ) {
-      ParamNode * specSysNode = linSysNode
-        ->Get("system","name","direct", false);
+      PtrParamNode specSysNode = linSysNode
+        ->GetByVal("system","name","direct", ParamNode::PASS);
       if( specSysNode ) {
         if( specSysNode->Has("sbmMatrix") ) {
           genSBMSys = true;
@@ -522,7 +523,7 @@ namespace CoupledField {
     }
 
     // Print information from assemble class
-    assemble_->ToInfo(infoNode_->Get(InfoNode::HEADER)->Get("integrators"));
+    assemble_->ToInfo(infoNode_->Get(ParamNode::HEADER)->Get("integrators"));
 
     // Allocate the necessary matrices as well as solver and preconditioner
     CreateMatrices_Solver();
@@ -645,7 +646,7 @@ namespace CoupledField {
   // ********************
   void DirectCoupledPDE::InitTimeStepping() {
 
-    ParamNode* systemNode = FindLinearSystem("direct");
+    PtrParamNode systemNode = FindLinearSystem("direct");
 
     // Hard Coded
     TS_alg_ = new Newmark( algsys_, systemNode );

@@ -30,7 +30,7 @@ namespace CoupledField {
   DEFINE_LOG(simOutputGiD, "SimOutputGiD")
 
     SimOutputGiD::SimOutputGiD( const std::string& fileName,
-                                ParamNode * outputNode )
+                                PtrParamNode outputNode )
       : SimOutput( fileName, outputNode ) {
 
 
@@ -38,7 +38,7 @@ namespace CoupledField {
     formatName_ = "gid";
     fileName_ = fileName;
     dirName_ = "results_" + formatName_;
-    outputNode->Get("directory", dirName_, false );
+    outputNode->GetValue("directory", dirName_, ParamNode::PASS );
 
     capabilities_.insert( MESH );
     capabilities_.insert( MESH_RESULTS );
@@ -53,10 +53,10 @@ namespace CoupledField {
     printGridOnly_ = false;
 
     // Determine, if binary result file should be written
-    isAscii_ = !(myParam_->Get("binaryFormat")->AsBool() );
+    isAscii_ = !(myParam_->Get("binaryFormat")->As<bool>() );
     
     // Determine, if eigenfrequencies should be grouped
-    groupEigenFreqs_= myParam_->Get("groupEigenFreqs")->AsBool();
+    groupEigenFreqs_= myParam_->Get("groupEigenFreqs")->As<bool>();
 
     std::string pathsep;
     std::ostringstream strBuffer;

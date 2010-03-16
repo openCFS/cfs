@@ -14,7 +14,7 @@
 #include "MatVec/scrs_matrix.hh"
 #include "MatVec/crs_matrix.hh"
 #include "DataInOut/Logging/cfslog.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Utils/StdVector.hh"
 #include "Ilupack.hh"
 
@@ -25,10 +25,10 @@ using namespace CoupledField;
 
 
 template<typename T>
-Ilupack<T>::Ilupack(ParamNode* xml, InfoNode* olasInfo, BaseMatrix::EntryType type)
+Ilupack<T>::Ilupack(PtrParamNode xml, PtrParamNode olasInfo, BaseMatrix::EntryType type)
 {
   // we work with out 
-  xml_ = xml != NULL && xml->Has("ilupack") ? xml->Get("ilupack") : NULL;
+  xml_ = xml->Get("ilupack", ParamNode::PASS);
   solverInfo_ = olasInfo->Get("ilupack");
 
   if (type != BaseMatrix::COMPLEX && type != BaseMatrix::DOUBLE)EXCEPTION("unhandled type " << type);
@@ -130,9 +130,9 @@ void Ilupack<T>::SetMatrix(const BaseMatrix &base_mat)
 }
 
 template<typename T>
-void Ilupack<T>::Setup(BaseMatrix &sysMat, InfoNode* analysis_id)
+void Ilupack<T>::Setup(BaseMatrix &sysMat, PtrParamNode analysis_id)
 {
-  InfoNode* out = solverInfo_->Get(InfoNode::PROCESS)->Get("setup", InfoNode::APPEND);
+  PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("setup", ParamNode::APPEND);
   out->Get("analysis_id")->SetValue(analysis_id->Get("analysis_id"));
   
   // determine the matrix type. Symmetric/nonsymmetric, positive definite, ...
@@ -199,7 +199,7 @@ void Ilupack<T>::Setup(BaseMatrix &sysMat, InfoNode* analysis_id)
  
   out->Get("levels")->SetValue(precond.nlev);
   CalcFillIn(out);
-  InfoNode* timing = out->Get("timing");
+  PtrParamNode timing = out->Get("timing");
   timing->Get("total_time")->SetValue(ILUPACK_secnds[7]);
   timing->Get("initial_preprocessing")->SetValue(ILUPACK_secnds[0]);
   timing->Get("reordering_remaining_levels")->SetValue(ILUPACK_secnds[1]);
@@ -208,9 +208,9 @@ void Ilupack<T>::Setup(BaseMatrix &sysMat, InfoNode* analysis_id)
 
 template<typename T>
 void Ilupack<T>::Solve(const BaseMatrix &base_mat, const BasePrecond &base_precond, 
-    const BaseVector &base_rhs,  BaseVector &base_sol, InfoNode* analysis_id)
+    const BaseVector &base_rhs,  BaseVector &base_sol, PtrParamNode analysis_id)
 {
-  InfoNode* out = solverInfo_->Get(InfoNode::PROCESS)->Get("solver", InfoNode::APPEND);
+  PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
   out->Get("analysis_id")->SetValue(analysis_id->Get("analysis_id"));
   
   // the preconditioner sets the ilupack matrix
@@ -255,10 +255,10 @@ void Ilupack<T>::Solve(const BaseMatrix &base_mat, const BasePrecond &base_preco
   if(ierr != 0) throw Exception(ss.str());
 
   out->Get("iterations")->SetValue(param.ipar[26]);
-  InfoNode* timing = out->Get("timing");
+  PtrParamNode timing = out->Get("timing");
   timing->Get("total")->SetValue(ILUPACK_secnds[5]);
   timing->Get("maxtrix_vector_mult")->SetValue(ILUPACK_secnds[6]);
-  InfoNode* norms = out->Get("norms");
+  PtrParamNode norms = out->Get("norms");
   norms->Get("target")->SetValue(param.fpar[23]);
 }
 
@@ -273,7 +273,7 @@ void Ilupack<T>::InitParameters()
   IlupackAMGInit();
   
   // dump the parameter block and overwrite
-  InfoNode* out = solverInfo_->Get(InfoNode::HEADER)->Get("parameters");
+  PtrParamNode out = solverInfo_->Get(ParamNode::HEADER)->Get("parameters");
 
   CheckParameter(out, reinterpret_cast<bool*>(&param.matching), "matching");
   CheckParameter(out, &param.ordering, "ordering");
@@ -292,7 +292,7 @@ void Ilupack<T>::InitParameters()
 
 
 template<typename T>
-void Ilupack<T>::DetermineMatrixType(BaseMatrix &sysMat, InfoNode* out)
+void Ilupack<T>::DetermineMatrixType(BaseMatrix &sysMat, PtrParamNode out)
 {
   // first determine it manually for some checking
   if(sysMat.GetStructureType() != BaseMatrix::SPARSE_MATRIX)
@@ -305,7 +305,7 @@ void Ilupack<T>::DetermineMatrixType(BaseMatrix &sysMat, InfoNode* out)
 
   if (xml_ != NULL && xml_->Has("matrix"))
   {
-    matrix_ = matrix.Parse(xml_->Get("matrix"));
+    matrix_ = matrix.Parse(xml_->Get("matrix")->As<std::string>());
     // plausibility check -- killme: what is with hermitian?
     if (mst != BaseMatrix::SPARSE_SYM && matrix_ != GNL)
       EXCEPTION("Matrix storrage is unsymmetric, so given ilupack_matrix is invalid: '" << matrix.ToString(matrix_) << "'");
@@ -474,7 +474,7 @@ void Ilupack<T>::IlupackAMGDelete()
 
 
 template<typename T>
-void Ilupack<T>::CalcFillIn(InfoNode* out)
+void Ilupack<T>::CalcFillIn(PtrParamNode out)
 {
   // this is an extract for the symprintperformance.c sample from Ilupack 2.2
   // It is reduced to the total fill-in factor

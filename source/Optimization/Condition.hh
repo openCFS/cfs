@@ -11,7 +11,7 @@ using std::pair;
 namespace CoupledField
 {
    class ParamNode;
-   class InfoNode;
+   class ParamNode;
    class DenseMatrix;
 
    /** our constraint criteria. Can be filled directly from XML */
@@ -28,7 +28,7 @@ namespace CoupledField
         * @param pn determines active mode
         * @param constraints stuff is added here if the mode is constraint
         * @param observation stuff is added here in observation mode */
-       static void AddCondition(ParamNode* pn, StdVector<Condition>& constraints, StdVector<Condition>& observation);
+       static void AddCondition(PtrParamNode pn, StdVector<Condition>& constraints, StdVector<Condition>& observation);
 
        /** Note the difference to the Type! See Name as equivalent of Kind! */
        typedef enum
@@ -68,7 +68,7 @@ namespace CoupledField
        std::string ToString() const; 
 
        /** log to info.xml */
-       void ToInfo(InfoNode* in) const;
+       void ToInfo(PtrParamNode in) const;
        
        /** the tensor exists only in the homogenization constraint case */
        Matrix<double>& GetTensor();
@@ -77,7 +77,7 @@ namespace CoupledField
         * @param pn might contain a "tensor" child
         * @param matrix where to store the data
         * @return true if the tensor was read */
-       static bool ReadTensor(ParamNode* pn, Matrix<double>& matrix);
+       static bool ReadTensor(PtrParamNode pn, Matrix<double>& matrix);
 
        /** This is DEFAULT (= applies always) if not defined */
        DesignElement::Type design;
@@ -122,11 +122,11 @@ namespace CoupledField
 
     private:   
       /** Helper constructor for AddCondition */
-      Condition(ParamNode* pn);
+      Condition(PtrParamNode pn);
 
       /** Reads the coord attribute and sets the coord pair if value is not 'all'
        * @return false if 'all' and the coord pair is not set */
-      bool ReadCoord(ParamNode* pn);
+      bool ReadCoord(PtrParamNode pn);
 
       /** Add a subcondition with only index and value set (to zero) */
       Condition* AppendSubCondition(StdVector<Condition>& list);
@@ -135,7 +135,7 @@ namespace CoupledField
        * @param base the base of cloning. Needs to contain a tensor!
        * @param list where to append the child. Index is set
        * @return the appendend child */
-      Condition* AppendSubCondition(StdVector<Condition>& list, ParamNode* entry_pos);
+      Condition* AppendSubCondition(StdVector<Condition>& list, PtrParamNode entry_pos);
 
       /** @see other AppendSubCondition() */
       Condition* AppendSubCondition(StdVector<Condition>& list, unsigned int pos_x, unsigned int pos_y);

@@ -1,7 +1,7 @@
 #include "Optimization/GradientCheck.hh"
 #include "Optimization/Optimization.hh"
 #include "Optimization/DesignSpace.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Driver/harmonicDriver.hh"
 #include "Domain/domain.hh"
 #include "DataInOut/Logging/cfslog.hh"
@@ -10,17 +10,17 @@ using namespace CoupledField;
 
 DECLARE_LOG(optimizer)
 
-GradientCheck::GradientCheck(Optimization* optimization, ParamNode* pn) :
+GradientCheck::GradientCheck(Optimization* optimization, PtrParamNode pn) :
   BaseOptimizer(optimization, pn)
 {
   // reduce to our actual ParamNode
   pn = pn->Get(Optimization::optimizer.ToString(Optimization::GRADIENT_CHECK),
-      false);
+      ParamNode::PASS);
 
-  h = pn != NULL ? pn->Get("h")->AsDouble() : 1e-6;
+  h = pn != NULL ? pn->Get("h")->As<Double>() : 1e-6;
   if (h <= 0.0)
     throw Exception("gradient check 'h' needs to be non-negative");
-  order = pn != NULL ? (pn->Get("order")->AsString() == "first" ? 1 : 2) : 1;
+  order = pn != NULL ? (pn->Get("order")->As<std::string>() == "first" ? 1 : 2) : 1;
   design = optimization->GetDesign();
 
   DesignElement& de = design->data[0];
@@ -32,10 +32,10 @@ GradientCheck::GradientCheck(Optimization* optimization, ParamNode* pn) :
 
   PostInit(1.0, true);
 
-  info_->Get(InfoNode::HEADER)->Get("type")->SetValue(
+  info_->Get(ParamNode::HEADER)->Get("type")->SetValue(
       Optimization::optimizer.ToString(Optimization::GRADIENT_CHECK));
-  info_->Get(InfoNode::HEADER)->Get("h")->SetValue(h);
-  info_->Get(InfoNode::HEADER)->Get("order")->SetValue(order == 1 ? "first"
+  info_->Get(ParamNode::HEADER)->Get("h")->SetValue(h);
+  info_->Get(ParamNode::HEADER)->Get("order")->SetValue(order == 1 ? "first"
       : "second");
 }
 
@@ -45,7 +45,7 @@ void GradientCheck::SolveProblem()
       << (order == 1 ? "first" : "second") << " order)" << std::endl;
 
   if (finite_diff_result_index_ == -1 || error_result_index_ == -1)
-    info_->Get(InfoNode::WARNING)->SetValue(
+    info_->Get(ParamNode::WARNING)->SetValue(
         "Not all results defined for finite difference (value='costGradient' detail='...')");
 
   // solve the original problem once!!
@@ -72,10 +72,10 @@ void GradientCheck::SolveProblem()
 
     // expensive!!
     // store only the latest so progress can ge checked
-    InfoNode* in = info_->Get(InfoNode::PROCESS)->Get("current");
+    PtrParamNode in = info_->Get(ParamNode::PROCESS)->Get("current");
     in->Get("pos")->SetValue(i+1);
     in->Get("total")->SetValue(design->data.GetSize());
-    InfoNode* cg = in->Get("costGradient");
+    PtrParamNode cg = in->Get("costGradient");
 
     finite[i] = PerformFiniteDifferenceEval(de, curr_obj, cg);
     analytical[i] = de->GetValue(DesignElement::COST_GRADIENT);
@@ -98,13 +98,13 @@ void GradientCheck::SolveProblem()
   double l2 = error.NormL2() / error.GetSize();
   double max = error.NormMax();
 
-  info_->Get(InfoNode::SUMMARY)->Get("max_relative_error")->SetValue(max);
-  info_->Get(InfoNode::SUMMARY)->Get("relative_L2_error")->SetValue(l2);
+  info_->Get(ParamNode::SUMMARY)->Get("max_relative_error")->SetValue(max);
+  info_->Get(ParamNode::SUMMARY)->Get("relative_L2_error")->SetValue(l2);
   std::cout << "relative error -> max=" << max << " L2=" << l2 << std::endl;
 }
 
 double GradientCheck::PerformFiniteDifferenceEval(DesignElement* de,
-    double f_x, InfoNode* in)
+    double f_x, PtrParamNode in)
 {
   double f_x1 = 0.0, f_x2 = 0.0, fd = 0.0;
   // in first order we always perform a forward fifference quotient

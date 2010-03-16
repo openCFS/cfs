@@ -7,7 +7,7 @@
 #include "PDE/basePDE.hh"
 #include "Domain/domain.hh"
 #include "DataInOut/WriteInfo.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField{
 

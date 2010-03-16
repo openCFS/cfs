@@ -1,14 +1,15 @@
-#ifndef BASEOPTIMIZER_HH_
+  #ifndef BASEOPTIMIZER_HH_
 #define BASEOPTIMIZER_HH_
 
 #include "Utils/StdVector.hh"
 #include <string>
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField
 {
   class Optimization;
   class ParamNode;
-  class InfoNode;
+  class ParamNode;
   class Timer;
   
   /** This is the base class of the optimizer tools.
@@ -22,7 +23,7 @@ namespace CoupledField
   public:
     /** @param optimization this is the actual optimization problem
      * @param pn to hold the complete "optimizer" element!. Not NULL! */
-    BaseOptimizer(Optimization* optimization, ParamNode* pn); 
+    BaseOptimizer(Optimization* optimization, PtrParamNode pn); 
 
     virtual ~BaseOptimizer();
 
@@ -37,7 +38,7 @@ namespace CoupledField
     
     /** called by Optimization::CommitIteration(), to be overwritten to add optimizer
      * specific data. Shall match LogFileHeader().Don't add a new-line here!! */
-    virtual void LogFileLine(std::ofstream* out, InfoNode* iteration);
+    virtual void LogFileLine(std::ofstream* out, PtrParamNode iteration);
 
   protected:
 
@@ -93,7 +94,7 @@ namespace CoupledField
     {
     public:
       /** This sets all value and prepares everything. Note that you have to do PostInit()! */
-      Scale(BaseOptimizer* base, ParamNode* autoscale, double manual_scale, bool no_autoscale);
+      Scale(BaseOptimizer* base, PtrParamNode autoscale, double manual_scale, bool no_autoscale);
       
       void PostInit();
       
@@ -139,7 +140,7 @@ namespace CoupledField
     Optimization* optimization;
 
     /** Info Node base */
-    InfoNode* info_;
+    PtrParamNode info_;
     
     Scale* objective;
     
@@ -154,7 +155,7 @@ namespace CoupledField
     /** Here we store the objective value for a design. */
     DesignMemory design_;
     
-    ParamNode* optimizer_pn_;
+    PtrParamNode optimizer_pn_;
     
   };
 

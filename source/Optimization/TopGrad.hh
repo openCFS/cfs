@@ -69,12 +69,12 @@ struct FindElementValuesByNumber :
 class TopGrad
 {
 public:
-  /** \fn TopGrad(Optimization* optimization, ParamNode* pn)
+  /** \fn TopGrad(Optimization* optimization, PtrParamNode pn)
    * \brief Constructor of class TopGrad.
    * @param optimization the problem we optimize
    * @param pn here we must have options
    * @param ls use topgrad together with levelset */
-  explicit TopGrad(Optimization* opt, ParamNode* pn, const bool ls = false);
+  explicit TopGrad(Optimization* opt, PtrParamNode pn, const bool ls = false);
 
   /** \fn ~TopGrad()
    * \brief Destructor of class TopGrad.*/

@@ -5,7 +5,7 @@
 #include "Domain/ansatzFct.hh"
 #include "Utils/coordSystem.hh"
 #include "DataInOut/Logging/cfslog.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/entityList.hh"
 
 #include <boost/lexical_cast.hpp> 
@@ -109,7 +109,7 @@ namespace CoupledField {
     }
   }
 
-  void MixedEqnMap::ToInfo(InfoNode* in) const{
+  void MixedEqnMap::ToInfo(PtrParamNode in) const{
     contMap->ToInfo(in);
     disContMap->ToInfo(in);
   }

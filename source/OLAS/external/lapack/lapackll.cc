@@ -21,7 +21,7 @@ namespace CoupledField {
   // *****************************
   //   Constructor (for factory)
   // *****************************
-  Lapack_LL::Lapack_LL( ParamNode* solverNode, InfoNode *olasInfo ) {
+  Lapack_LL::Lapack_LL( PtrParamNode solverNode, PtrParamNode olasInfo ) {
     
     xml_ = solverNode;
     solverInfo_ = olasInfo->Get("lapackLL");
@@ -50,7 +50,7 @@ namespace CoupledField {
   // ********************************
   //   Setup: Perform Factorisation
   // ********************************
-  void Lapack_LL::Setup( BaseMatrix &sysMat, InfoNode* analysis_step ) {
+  void Lapack_LL::Setup( BaseMatrix &sysMat, PtrParamNode analysis_step ) {
 
 
     // Are we expected to be verbose?
@@ -427,7 +427,7 @@ namespace CoupledField {
   //   Solve linear system
   // ***********************
   void Lapack_LL::Solve( const BaseMatrix &sysMat, const BasePrecond &precond,
-                         const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_step ) {
+                         const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
 
 
     // Are we expected to be verbose?

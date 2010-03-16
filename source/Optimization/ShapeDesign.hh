@@ -12,12 +12,12 @@ namespace CoupledField{
 
   public:
 
-    ShapeDesign(StdVector<RegionIdType>& regionIds, StdVector<ParamNode*>& design, StdVector<ParamNode*>& transfer, StdVector<ParamNode*>& result,
+    ShapeDesign(StdVector<RegionIdType>& regionIds, ParamNodeList& design, ParamNodeList& transfer, ParamNodeList& result,
         ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
 
     virtual ~ShapeDesign() {};
 
-    void Configure(ParamNode* pn, int objectives, int constraints);
+    void Configure(PtrParamNode pn, int objectives, int constraints);
 
     /** Reads design from optimizer, note that first nshapeparams_ entries are the Shape parameters,
      * the rest may be other design parameters */

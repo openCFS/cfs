@@ -36,7 +36,7 @@ namespace CoupledField {
 //     PostStepStatic();
 //   }
 
-  void SolveStepSmooth::StepTransNonLin(InfoNode* analysis_base) {
+  void SolveStepSmooth::StepTransNonLin(PtrParamNode analysis_base) {
 
 	UInt& iterCoupledCounter = PDE_.GetIterCoupledCounter();
     bool isIterCoupled    = PDE_.IsIterCoupled();
@@ -65,7 +65,7 @@ namespace CoupledField {
     do{
       iterationCounter++;
       
-      InfoNode* analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
+      PtrParamNode analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
       
       assemble_->CalcMinMaxStrain();
 

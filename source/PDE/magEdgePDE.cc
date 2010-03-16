@@ -30,7 +30,7 @@ namespace CoupledField {
   // **************
   //  Constructor
   // **************
-  MagEdgePDE::MagEdgePDE( Grid * aptgrid, ParamNode* paramNode )
+  MagEdgePDE::MagEdgePDE( Grid * aptgrid, PtrParamNode paramNode )
     :SinglePDE( aptgrid, paramNode ) {
 
     // =====================================================================
@@ -41,7 +41,7 @@ namespace CoupledField {
     maxTimeDerivOrder_ = 1;
 
     // check if we have a 3d setup
-    bool is3d = param->Get("domain")->Get("geometryType")->AsString() == "3d";
+    bool is3d = param->Get("domain")->Get("geometryType")->As<std::string>() == "3d";
     if ( !is3d )
       EXCEPTION("MagEdgePDE is just implemented for 3D setups!");
   }
@@ -83,16 +83,16 @@ namespace CoupledField {
     isHysteresis_ = false;
 
     // Check, if "nonLinList" is present
-    ParamNode * nonLinListNode = myParam_->Get("nonLinList", false );
+    PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
     if( !nonLinListNode)
       return;
 
     // Get nonlinear types
-    StdVector<ParamNode*> nonLinNodes = nonLinListNode->GetChildren();
+    ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
     for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
 
       std::string actTypeString = nonLinNodes[i]->GetName();
-      std::string actId = nonLinNodes[i]->Get("id")->AsString();
+      std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
 
       NonLinType actType;
       String2Enum( actTypeString, actType );
@@ -108,7 +108,7 @@ namespace CoupledField {
     }
 
     // Run over all region and set entry in "regionNonLinId"
-    StdVector<ParamNode*> regionNodes =
+    ParamNodeList regionNodes =
       myParam_->Get("regionList")->GetChildren();
 
     RegionIdType actRegionId;
@@ -120,8 +120,8 @@ namespace CoupledField {
     for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
 
       // get data
-      regionNodes[i]->Get( "name", actRegionName );
-      regionNodes[i]->Get( "nonLinId", actNonLinId );
+      regionNodes[i]->GetValue( "name", actRegionName );
+      regionNodes[i]->GetValue( "nonLinId", actNonLinId );
 
       if( actNonLinId == "" )
         continue;
@@ -153,10 +153,10 @@ namespace CoupledField {
 
     // Here we need in addition the nonLinMethod_ for the definition
     // of the integrators
-    ParamNode * nonLinNode = myParam_->Get("nonLinear", false );
+    PtrParamNode nonLinNode = myParam_->Get("nonLinear", ParamNode::PASS );
     nonLinMethod_ = "fixPoint";
     if( nonLinNode ) {
-      nonLinNode->Get(  "method", nonLinMethod_, false );
+      nonLinNode->GetValue(  "method", nonLinMethod_, ParamNode::PASS );
     }
 
   }
@@ -529,12 +529,12 @@ namespace CoupledField {
 
     // Check if the element "coils" is present at all.
     // Otherwise leave
-    ParamNode * coilNode = myParam_->Get( "coils", false );
+    PtrParamNode coilNode = myParam_->Get( "coils", ParamNode::PASS );
     if ( !coilNode )
       return;
 
     // Get single coil nodes
-    StdVector<ParamNode*> coilNodes = coilNode->GetChildren();
+    ParamNodeList coilNodes = coilNode->GetChildren();
 
     // Trigger reading in of definitions
     if( coilNodes.GetSize() > 0 ) {
@@ -542,7 +542,7 @@ namespace CoupledField {
       for( UInt i = 0; i < coilNodes.GetSize(); i++ ) {
 
         // get region name of actual coil
-        std::string regionName = coilNodes[i]->Get("name")->AsString();
+        std::string regionName = coilNodes[i]->Get("name")->As<std::string>();
         RegionIdType regionId = ptgrid_->GetRegion().Parse( regionName );
 
         coilRegionId_.Push_back( regionId );
@@ -561,12 +561,12 @@ namespace CoupledField {
 
     // Check if the element "magnets" is present at all.
     // Otherwise leave
-    ParamNode * magnetNode = myParam_->Get( "magnets", false );
+    PtrParamNode magnetNode = myParam_->Get( "magnets", ParamNode::PASS );
     if ( !magnetNode )
       return;
 
     // Get single magnet nodes
-    StdVector<ParamNode*> magnetNodes = magnetNode->GetChildren();
+    ParamNodeList magnetNodes = magnetNode->GetChildren();
 
     // trigger definition of magnets
     if( magnetNodes.GetSize() > 0 ) {
@@ -577,19 +577,19 @@ namespace CoupledField {
       for( UInt i = 0; i < magnetNodes.GetSize(); i++ ) {
 
         // get region name of actual magnet
-        std::string regionName = magnetNodes[i]->Get("name")->AsString();
+        std::string regionName = magnetNodes[i]->Get("name")->As<std::string>();
         RegionIdType regionId = ptgrid_->GetRegion().Parse( regionName );
 
         magnetsDomain_.Push_back( regionId );
 
         // read orientation
-        magnetNodes[i]->Get( "orientX", tmpDir );
+        magnetNodes[i]->GetValue( "orientX", tmpDir );
         magnetsOriX_.Push_back( tmpDir );
 
-        magnetNodes[i]->Get( "orientY", tmpDir );
+        magnetNodes[i]->GetValue( "orientY", tmpDir );
         magnetsOriY_.Push_back( tmpDir );
 
-        magnetNodes[i]->Get( "orientZ", tmpDir );
+        magnetNodes[i]->GetValue( "orientZ", tmpDir );
         magnetsOriZ_.Push_back( tmpDir );
 
         // report name to logfile

@@ -39,7 +39,7 @@ class Timer
    * (e.g. OpenMP MKL) is used */
   double GetCPUTime() const;
 
-  /** This writes the attribes for InfoNode::ToFile() */
+  /** This writes the attribes for ParamNode::ToFile() */
   std::string ToXML() const;
   
   /** static function; converts a boost time interval

@@ -26,11 +26,11 @@ namespace CoupledField
 
     //! solves for one nonlinear transient step 
     //! consideres hystreresis 
-    void StepTransNonLinHysteresis(InfoNode* analysis_id);
+    void StepTransNonLinHysteresis(PtrParamNode analysis_id);
 
     //! solves for one nonlinear transient step 
     //! consideres hystreresis 
-    void StepTransNonLinHysteresisDiff(InfoNode* analysis_id);
+    void StepTransNonLinHysteresisDiff(PtrParamNode analysis_id);
 
     //! computes differential permittivity
     void SetPreviousVals4Hyst();

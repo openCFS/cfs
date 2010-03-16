@@ -245,10 +245,10 @@ namespace CoupledField
         {
           neighRegions.Clear();
           // get paramnode of oppsite pde
-          StdVector<ParamNode*> regionNodes = 
+          ParamNodeList regionNodes = 
             oppositePDE->GetParamNode()->Get("regionList")->GetList("region");
           for( UInt iRegion = 0; iRegion < regionNodes.GetSize(); iRegion++ ) {
-            neighRegions.Push_back( regionNodes[iRegion]->Get("name")->AsString() );
+            neighRegions.Push_back( regionNodes[iRegion]->Get("name")->As<std::string>() );
           }
         }
       else if (numAllOccured > 0)

@@ -42,8 +42,8 @@ namespace CoupledField {
     //! size, matrix and entry types are derived and two pointers to the
     //! communication objects. This is the constructor required by the
     //! GeneratePrecondObject function.
-    JacPrecond( const StdMatrix &mat, ParamNode *solverNode, 
-                InfoNode *olasInfo );
+    JacPrecond( const StdMatrix &mat, PtrParamNode solverNode, 
+                PtrParamNode olasInfo );
 
     //! Default Destructor
     ~JacPrecond();

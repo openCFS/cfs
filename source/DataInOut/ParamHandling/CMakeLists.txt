@@ -1,8 +1,7 @@
 SET(PARAMH_SRCS
   XMLSkeletonConf.cc
   CFSOLASParams.cc
-  ParamNode.cc
-  InfoNode.cc)
+  ParamNode.cc)
 
 IF(USE_XERCES)
 

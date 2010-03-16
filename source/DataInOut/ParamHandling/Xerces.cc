@@ -15,7 +15,7 @@
 
 #include "General/exception.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
+
 
 // we want to use the Xerces-C++ namespace
 using namespace xercesc;
@@ -152,17 +152,17 @@ namespace CoupledField
   }
 
 
-  ParamNode* Xerces::CreateParamNodeInstance()
+  PtrParamNode Xerces::CreateParamNodeInstance()
   {
      // read the file, this cannot be done in the constructor as the error handler takes this object
      Parse();
 
-     ParamNode* out = new ParamNode();
+     PtrParamNode out (new ParamNode(ParamNode::EX, ParamNode::ELEMENT ) );
      Fill(root_, out);
      return out;
   }
 
-  void Xerces::Fill(DOMNode* node, ParamNode* parent)
+  void Xerces::Fill(DOMNode* node, PtrParamNode parent)
   {
     // determine if this is a valid node
     // std::cout << "node " << XMLString::transcode(node->getNodeName()) << " has type " << node->getNodeType();
@@ -190,11 +190,18 @@ namespace CoupledField
     }
     // normally we create here a new element and add it to parent.
     // This is not the case when node is root_, then we set the properties of parent directly
-    ParamNode* pn = NULL;
+    PtrParamNode pn;
     if(node != root_)
     {
       // create a new param node and set it as a new child at the father
-      parent->GetChildren().Push_back(new ParamNode(node->getNodeType() == DOMNode::ATTRIBUTE_NODE));
+      ParamNode::NodeType type = ParamNode::ELEMENT;
+      if ( node->getNodeType() == DOMNode::ATTRIBUTE_NODE  ) 
+        type = ParamNode::ATTRIBUTE;
+      PtrParamNode newNode = 
+          PtrParamNode(new ParamNode(ParamNode::EX, type));
+      parent->AddChildNode( newNode );
+      pn = newNode;
+      //parent->GetChildren().Push_back(new ParamNode();
       // we work with the this just added element - here we avoid any
       // potential copy constructor issues
       pn = parent->GetChildren().Last();

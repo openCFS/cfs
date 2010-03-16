@@ -26,20 +26,20 @@ namespace CoupledField
   class CholMod : public BaseIterativeSolver 
   {
   public:
-    CholMod(ParamNode* param, InfoNode* olasInfo, BaseMatrix::EntryType type);
+    CholMod(PtrParamNode param, PtrParamNode olasInfo, BaseMatrix::EntryType type);
 
     ~CholMod();
 
     /** Every call does the complete factorization
      * @param analysis_id shall be the current info/analysis/progress/step entry and contain an "analysis_id" element */
-    void Setup(BaseMatrix &sysmat, InfoNode* analysis_id);
+    void Setup(BaseMatrix &sysmat, PtrParamNode analysis_id);
      
     /** solve using a pre computed factorization 
      * @param sysmat shall be the one Setup() is called with
      * @param precond ignored
      * @param analysis_id @see Setup() */
     void Solve( const BaseMatrix &sysmat, const BasePrecond &precond,
-                const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_id);
+                const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_id);
 
     /** Return what solver is used (here CholMod) */
     SolverType GetSolverType() { return CHOLMOD; }

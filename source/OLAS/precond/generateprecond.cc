@@ -56,8 +56,8 @@ retVal = new precondObjType( mat, solverNode, olasInfo );\
   //   Generation routine
   // **********************
   BaseStdPrecond* GenerateStdPrecondObject( const StdMatrix &mat,
-                                            ParamNode* solverNode,
-                                            InfoNode *olasInfo ) {
+                                            PtrParamNode solverNode,
+                                            PtrParamNode olasInfo ) {
 
 
     BaseStdPrecond *retVal = NULL;
@@ -67,15 +67,15 @@ retVal = new precondObjType( mat, solverNode, olasInfo );\
     BaseMatrix::StorageType storageType = mat.GetStorageType();
     std::string precondStr = "";
 
-    ParamNode* solverXML = NULL;
-    solverXML = solverNode->Get("solver", false);
+    PtrParamNode solverXML;
+    solverXML = solverNode->Get("solver", ParamNode::INSERT );
 
     EnumMap::iterator it, end;
     it = BasePrecond::precondType.map.begin();
     end = BasePrecond::precondType.map.end();
     
     for( ; it != end; it++ ) {
-      if( solverXML->Has("precond", it->second) ) {
+      if( solverXML->HasByVal("precond", it->second) ) {
         if(precondStr != "")
           EXCEPTION("Two preconditioners have been specified: " << precondStr << " and " << (it->second))
         
@@ -285,22 +285,22 @@ retVal = new precondObjType( mat, solverNode, olasInfo );\
   }
 
   BaseSBMPrecond* GenerateSBMPrecondObject( const SBM_Matrix &mat,
-                                            ParamNode *solverNode,
-                                            InfoNode *olasInfo ) {
+                                            PtrParamNode solverNode,
+                                            PtrParamNode olasInfo ) {
 
     BaseSBMPrecond *retVal = NULL;
 
     std::string precondStr = "";
 
-    ParamNode* solverXML = NULL;
-    solverXML = solverNode->Get("solver", false);
+    PtrParamNode solverXML;
+    solverXML = solverNode->Get("solver", ParamNode::INSERT );
   
     EnumMap::iterator it, end;
     it = BasePrecond::precondType.map.begin();
     end = BasePrecond::precondType.map.end();
     
     for( ; it != end; it++ ) {
-      if( solverXML->Has("precond", it->second) ) {
+      if( solverXML->HasByVal("precond", it->second) ) {
         if(precondStr != "")
           EXCEPTION("Two preconditioners have been specified: " << precondStr << " and " << (it->second))
         

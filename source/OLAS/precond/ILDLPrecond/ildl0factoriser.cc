@@ -30,8 +30,8 @@ namespace CoupledField {
   //   Standard constructor
   // ************************
   template <class T>
-  ILDL0Factoriser<T>::ILDL0Factoriser( ParamNode *solverNode,
-                                       InfoNode *olasInfo ) {
+  ILDL0Factoriser<T>::ILDL0Factoriser( PtrParamNode solverNode,
+                                       PtrParamNode olasInfo ) {
 
 
     // Set pointers to communication objects

@@ -6,7 +6,7 @@
 namespace CoupledField
 {
 class ParamNode;
-class InfoNode;
+class ParamNode;
 class SIMP;
 class Timer;
 
@@ -20,7 +20,7 @@ public:
   /** Is already a little expensive. Give this object a short live time!
    * @param simp refers to the data and has pde reference for bcs.
    * @param pn our parameter section, includes design name */
-  DesignFilter(SIMP* simp, ParamNode* pn);
+  DesignFilter(SIMP* simp, PtrParamNode pn);
 
   /** This is the actual, expensive action. It sets the filters for all
    * relevant design elements of simp->design.data */
@@ -97,7 +97,7 @@ private:
 
   SIMP* simp;
 
-  InfoNode* info_;
+  PtrParamNode info_;
 
   /** this timer is stored within the info_ element */
   Timer* timer_;

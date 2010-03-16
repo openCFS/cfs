@@ -651,7 +651,7 @@ namespace CoupledField
         regions_.push_back(region + numRegions);
         elem++;
         
-        // Reihenfolge geändert!
+        // Reihenfolge geï¿½ndert!
         connect_[elem*maxNumElemNodes_+0] = p2 + nodeOffsetBottom;
         connect_[elem*maxNumElemNodes_+1] = p1 + nodeOffsetBottom;
         connect_[elem*maxNumElemNodes_+2] = p1 + nodeOffsetTop;
@@ -680,7 +680,7 @@ namespace CoupledField
         regions_.push_back(region + numRegions);
         elem++;
 
-        // Reihenfolge geändert!
+        // Reihenfolge geï¿½ndert!
         connect_[elem*maxNumElemNodes_+0] = p3 + nodeOffsetBottom;
         connect_[elem*maxNumElemNodes_+1] = p2 + nodeOffsetBottom;
         connect_[elem*maxNumElemNodes_+2] = p2 + nodeOffsetTop;
@@ -709,7 +709,7 @@ namespace CoupledField
         regions_.push_back(region + numRegions);
         elem++;
         
-        // Reihenfolge geändert!
+        // Reihenfolge geï¿½ndert!
         connect_[elem*maxNumElemNodes_+0] = p4 + nodeOffsetBottom;
         connect_[elem*maxNumElemNodes_+1] = p3 + nodeOffsetBottom;
         connect_[elem*maxNumElemNodes_+2] = p3 + nodeOffsetTop;
@@ -738,7 +738,7 @@ namespace CoupledField
         regions_.push_back(region + numRegions);
         elem++;
 
-        // Reihenfolge geändert!
+        // Reihenfolge geï¿½ndert!
         connect_[elem*maxNumElemNodes_+0] = p1 + nodeOffsetBottom;
         connect_[elem*maxNumElemNodes_+1] = p4 + nodeOffsetBottom;
         connect_[elem*maxNumElemNodes_+2] = p4 + nodeOffsetTop;
@@ -767,7 +767,7 @@ namespace CoupledField
         regions_.push_back(region + numRegions);
         elem++;
 
-        // Reihenfolge geändert!
+        // Reihenfolge geï¿½ndert!
         connect_[elem*maxNumElemNodes_+0] = p4 + nodeOffsetTop;
         connect_[elem*maxNumElemNodes_+1] = p3 + nodeOffsetTop;
         connect_[elem*maxNumElemNodes_+2] = p2 + nodeOffsetTop;
@@ -1361,20 +1361,20 @@ namespace CoupledField
     
     Settings& settings = Settings::Instance();
     
-    ParamNode *param = settings.GetParamNode();
+    PtrParamNodeparam = settings.GetParamNode();
 
-    ParamNode* typeNode = NULL;
-    ParamNode* node = NULL;
+    PtrParamNode typeNode = NULL;
+    PtrParamNode node = NULL;
 
     if(param) 
     {
       typeNode = param->Get("type");
-      if(typeNode->Get("name")->AsString() == "GENGRIDS") 
+      if(typeNode->Get("name")->As<std::string>() == "GENGRIDS") 
       {
         std::cout << "GENGRIDS node found!" << std::endl;
         
         std::string elemTypeName = "HEXA8";
-        ParamNode* elemTypeNode = typeNode->Get("elementType", false);
+        PtrParamNode elemTypeNode = typeNode->Get("elementType", false);
 
         if(elemTypeNode) {
           elemTypeNode->Get("name", elemTypeName, false);

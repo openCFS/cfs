@@ -37,13 +37,13 @@ namespace CoupledField {
   }
 
 
-  SimOutputHDF5::SimOutputHDF5(std::string fileName, ParamNode * inputNode) :
+  SimOutputHDF5::SimOutputHDF5(std::string fileName, PtrParamNode inputNode) :
     SimOutput(fileName, inputNode) {
 
     fileName_ = fileName;
     formatName_ = "hdf5";
     dirName_ = "results_" + formatName_;
-    inputNode->Get("directory", dirName_, false );
+    inputNode->GetValue("directory", dirName_, ParamNode::PASS );
     
     capabilities_.insert( MESH );
     capabilities_.insert( MESH_RESULTS );
@@ -60,18 +60,18 @@ namespace CoupledField {
     // using values specified by user
     UInt compressionLevel = 6;
     UInt maxChunkSize = 100;
-    myParam_->Get("compressionLevel", compressionLevel, false );
+    myParam_->GetValue("compressionLevel", compressionLevel, ParamNode::PASS );
     if( compressionLevel > 9) {
       EXCEPTION( "Value for compressionLevel must be betwen 1 and 9" );
     }
-    myParam_->Get("maxChunkSize", maxChunkSize, false );
+    myParam_->GetValue("maxChunkSize", maxChunkSize, ParamNode::PASS );
     dPropList_ = H5::DSetCreatPropList::DEFAULT;
     dPropList_.setLayout( H5D_CHUNKED );
     dPropList_.setDeflate( compressionLevel );
     H5IO::SetMaxChunkSize( maxChunkSize );
 
     // Change defaults according to XML file
-    myParam_->Get("externalFiles", externalFiles_, false);
+    myParam_->GetValue("externalFiles", externalFiles_, ParamNode::PASS);
 
     // Do not print HDF5 exceptions by default
     H5::Exception::dontPrint();
@@ -558,7 +558,7 @@ namespace CoupledField {
   {
     if(externalFiles_)
     {
-      InfoNode* in = info->Get("analysis/output/externalFile");
+      PtrParamNode in = info->Get("analysis/output/externalFile");
       try {
         in->Get("name")->SetValue(currStepFile_.getFileName());
         in->Get("size")->SetValue((int) currStepFile_.getFileSize());
@@ -638,7 +638,7 @@ namespace CoupledField {
     fileNames.push_back(progOpts->GetParamFileStr());
     fileNames.push_back(param->Get("fileFormats")
                         ->Get("materialData")
-                        ->Get("file")->AsString());
+                        ->Get("file")->As<std::string>());
 
     dataSetNames.push_back("ParameterFile");
     dataSetNames.push_back("MaterialFile");

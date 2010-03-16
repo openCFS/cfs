@@ -185,7 +185,7 @@ namespace CoupledField
                                      const std::string& formatName,
                                      const std::string& dirName,
                                      const std::string& pathSep,
-                                     ParamNode * outputNode );
+                                     PtrParamNode outputNode );
 
     //! Initialize
     virtual void Init( Grid* ptGrid,

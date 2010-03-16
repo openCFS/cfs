@@ -11,7 +11,6 @@ namespace CoupledField {
 
   // forward class declaration
   class BasePDE;
-  class InfoNode; 
   
   //! Abstract base class for sinlge driver (static, transient, harmonic)
   class SingleDriver : public BaseDriver {

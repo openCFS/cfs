@@ -51,7 +51,7 @@ namespace CoupledField
     //!                       Expert() module in order to validate or
     //!                       improve the solution parameters or set those
     //!                       no specified by the user
-    static void SetParams( std::string pdename, ParamNode *cfs,
+    static void SetParams( std::string pdename, PtrParamNode cfs,
                            BasePDE::AnalysisType analysistype,
                            Assemble * assemble,
                            bool overrideExpert = false );
@@ -72,7 +72,7 @@ namespace CoupledField
     //!       the parameter is not set. The case of multiple matches can only
     //!       occur, if a non-validating parser is used, since the Schema
     //!       definitions require the parameters to be unique.
-    static void SetSolverParams( std::string pdename, ParamNode *cfs,
+    static void SetSolverParams( std::string pdename, PtrParamNode cfs,
                                  BaseSolver::SolverType sType );
 
     //! Set parameters for eigenvalue solver for linear system
@@ -90,7 +90,7 @@ namespace CoupledField
     //!       occur, if a non-validating parser is used, since the Schema
     //!       definitions require the parameters to be unique.
     static void SetEigenSolverParams( std::string pdename, 
-                                      ParamNode *cfs,
+                                      PtrParamNode cfs,
                                       BaseEigenSolver::EigenSolverType sType );    
 
     //! Set parameters for preconditioner for linear system
@@ -107,11 +107,11 @@ namespace CoupledField
     //!       the parameter is not set. The case of multiple matches can only
     //!       occur, if a non-validating parser is used, since the Schema
     //!       definitions require the parameters to be unique.
-    static void SetPrecondParams( std::string pdename, ParamNode *cfs,
+    static void SetPrecondParams( std::string pdename, PtrParamNode cfs,
                                   BasePrecond::PrecondType pType );
 
     //! Expert routine for correcting parameter inconsistencies
-    static void Expert( ParamNode *cfs,
+    static void Expert( PtrParamNode cfs,
                         std::string pdename, 
                         BaseEigenSolver::EigenSolverType &esType,
                         BaseSolver::SolverType &sType,

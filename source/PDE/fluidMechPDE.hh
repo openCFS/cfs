@@ -24,7 +24,7 @@ namespace CoupledField
     /*!
       \param aGrid pointer to grid
     */
-    FluidMechPDE( Grid *aGrid, ParamNode* paramNode );
+    FluidMechPDE( Grid *aGrid, PtrParamNode paramNode );
 
     //!  Deconstructor
     virtual ~FluidMechPDE();

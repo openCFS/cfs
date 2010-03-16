@@ -13,7 +13,7 @@
 
 // headers for Paramhandling
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/CFSOLASParams.hh"
 #include "Driver/assemble.hh"
 
@@ -22,10 +22,9 @@
 namespace CoupledField {
 
 
-  StdPDE::StdPDE(Grid *aptgrid, ParamNode* paramNode ) :
+  StdPDE::StdPDE(Grid *aptgrid, PtrParamNode paramNode ) :
     BasePDE(paramNode),
     ptgrid_(aptgrid),
-    infoNode_(NULL),
     numPDENodes_(0),
     numElems_(0),
     subType_(),
@@ -46,7 +45,7 @@ namespace CoupledField {
     needsAlgsys_(true),
     isAlwaysStatic_(false),
     dim_(ptgrid_->GetDim()), 
-    isaxi_(param->Get("domain")->Get("geometryType")->AsString() == "axi"),
+    isaxi_(param->Get("domain")->Get("geometryType")->As<std::string>() == "axi"),
     isComplex_(false),    
     needSolPrev_(false),
     sol_(NULL),  
@@ -63,7 +62,6 @@ namespace CoupledField {
     assemble_(NULL),
     solveStep_(NULL),
     algsys_(NULL),
-    olasInfo_(NULL), // set in the child-nodes
     isSetInitialCondition_(false),
     InitialCondition_(0.0)
   {
@@ -195,26 +193,28 @@ namespace CoupledField {
   // ALGSYS SECTION (SOLVER, ...) 
   // ======================================================
 
-  ParamNode* StdPDE::FindLinearSystem(const std::string& sysName) {
+  PtrParamNode StdPDE::FindLinearSystem(const std::string& sysName) {
 
-    ParamNode* pn = NULL;
-    ParamNode* linSysNode = NULL;
+    PtrParamNode pn, linSysNode;
     
-    pn = param->Get("sequenceStep", "index", sequenceStep_, false );
-    linSysNode = pn->Get("linearSystems", false);
-    pn = linSysNode->Get("system", "name", sysName, false);
+    pn = param->GetByVal("sequenceStep", "index", sequenceStep_, ParamNode::PASS);
+    linSysNode = pn->Get("linearSystems", ParamNode::INSERT);
+    pn = linSysNode->GetByVal("system", "name", sysName, ParamNode::INSERT);
     
     // If no system with the specified name could be found in XML file
     // we just generate a new ParamNode.
-    if(!pn) {
-      linSysNode->GetChildren().Push_back(new ParamNode());
-      pn = linSysNode->GetChildren().Last();
-      pn->SetName("system");
-      pn->GetChildren().Push_back(new ParamNode());
-      ParamNode* nameNode = pn->GetChildren().Last();
-      nameNode->SetName("name");
-      nameNode->SetValue(sysName);
-    }
+    WARN("Check, if <linearSystems> node is created properly");
+    //    if(!pn) {
+//      
+//      
+//      linSysNode->GetChildren().Push_back(PtrParamNode(new ParamNode());
+//      pn = linSysNode->GetChildren().Last();
+//      pn->SetName("system");
+//      pn->GetChildren().Push_back(new ParamNode());
+//      PtrParamNode nameNode = pn->GetChildren().Last();
+//      nameNode->SetName("name");
+//      nameNode->SetValue(sysName);
+//    }
     
     return pn;
   }
@@ -512,16 +512,12 @@ namespace CoupledField {
 
     // Set parameters for OLAS
     std::string amExpert = "no";
-    param->Get( "override", amExpert, false);
+    param->GetValue( "override", amExpert, ParamNode::PASS );
 
-    ParamNode * linSysNode = NULL;
-    ParamNode * temp = param->Get("sequenceStep", "index", sequenceStep_, false );
-    if ( temp )
-      temp = temp->Get("linearSystems", false);
-    if ( temp ) {
-      linSysNode = temp ->Get("system", "name", sysName, false );
-    }
-    
+    PtrParamNode linSysNode;
+    PtrParamNode temp = param->GetByVal("sequenceStep", "index", sequenceStep_);
+    temp = temp->Get("linearSystems", ParamNode::INSERT);
+    linSysNode = temp ->GetByVal("system", "name", sysName, ParamNode::INSERT );
     CFSOLASParams::SetParams( sysName, linSysNode, 
                               analysistype_, assemble_,
                               (amExpert == "yes") );

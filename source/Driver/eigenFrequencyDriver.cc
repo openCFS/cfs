@@ -12,7 +12,7 @@
 #include "Domain/domain.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/resultHandler.hh"
 
 namespace CoupledField {
@@ -39,15 +39,15 @@ namespace CoupledField {
   void EigenFrequencyDriver::Init() {
     
     // get parameter node
-    ParamNode * myNode = 
-      param->Get("sequenceStep", std::string("index"), sequenceStep_)
+    PtrParamNode myNode = 
+      param->GetByVal("sequenceStep", std::string("index"), sequenceStep_)
         ->Get("analysis")->Get("eigenFrequency");
 
     // read required parameters from parameter node
-    myNode->Get( "numModes", numFreq_ );
-    myNode->Get( "freqShift", freqShift_ );
-    myNode->Get( "writeModes", writeModes_, true );
-    myNode->Get( "isQuadratic", isQuadratic_, true );
+    myNode->GetValue( "numModes", numFreq_ );
+    myNode->GetValue( "freqShift", freqShift_ );
+    myNode->GetValue( "writeModes", writeModes_, ParamNode::PASS );
+    myNode->GetValue( "isQuadratic", isQuadratic_, ParamNode::PASS );
 
     InitializePDEs();
   }
@@ -63,7 +63,7 @@ namespace CoupledField {
   // *****************
   //   Solve problem
   // *****************
-  void EigenFrequencyDriver::SolveProblem(bool write_results, InfoNode* given_analysis_id, const bool reAssembleMatrices) {
+  void EigenFrequencyDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id, const bool reAssembleMatrices) {
     // options not implemented
     assert(write_results == true);
     assert(given_analysis_id == NULL); // not implemented yet
@@ -130,7 +130,7 @@ namespace CoupledField {
       std::cout << std::setw(20) << errBounds[i] <<  "\n";
 
       // also log via info node
-      InfoNode* result = driverNode->Get("result",InfoNode::APPEND);
+      PtrParamNode result = driverNode->Get("result",ParamNode::APPEND);
       result->Get("frequency")->SetValue(eigenFreqs[i]);
       result->Get("errorbound")->SetValue(errBounds[i]);
     }

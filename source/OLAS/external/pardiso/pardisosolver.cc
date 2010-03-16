@@ -109,8 +109,8 @@ extern "C" {
   //   Constructor
   // ***************
   template<typename T>
-  PardisoSolver<T>::PardisoSolver( ParamNode* solverNode,
-                                   InfoNode *olasInfo ) {
+  PardisoSolver<T>::PardisoSolver( PtrParamNode solverNode,
+                                   PtrParamNode olasInfo ) {
 
 
     // Set pointers to communication objects
@@ -127,22 +127,19 @@ extern "C" {
     dparm_.Resize(64); dparm_.Init(0.0);
 
     // Set default solver type to direct sparse solver
-    ParamNode *sNode = xml_->Get("pardiso", false);
+    PtrParamNode sNode = xml_->Get("pardiso", ParamNode::INSERT);
     std::string solverType = "direct";
-    if(sNode) {
-      sNode->Get("type", solverType, false);
-    }
+    sNode->GetValue("type", solverType, ParamNode::INSERT);
+      
     if(solverType == "direct") {
       mSolver_ = 0;
     } else {
       mSolver_ = 1;
     }
 
-    sNode = xml_->Get("stoppingRule", false);
+    sNode = xml_->Get("stoppingRule", ParamNode::INSERT);
     std::string sRule = "relNormRes0";
-    if(sNode) {
-      sNode->Get("type", sRule, false);
-    }
+    sNode->GetValue("type", sRule, ParamNode::INSERT);
 
     if(mSolver_ && sRule != "relNormRes0") {
       WARN("The iterative solver in PARDISO only supports relative " \
@@ -228,13 +225,13 @@ extern "C" {
   //   Setup
   // *********
   template<typename T>
-  void PardisoSolver<T>::Setup( BaseMatrix &sysMat, InfoNode* analysis_step ) {
+  void PardisoSolver<T>::Setup( BaseMatrix &sysMat, PtrParamNode analysis_step ) {
 
     // Flag for check Pardiso's return status
     int errorFlag = 0;
 
-    ParamNode *sNode = NULL;
-    sNode = xml_->Get("pardiso", false);
+    PtrParamNode sNode;
+    sNode = xml_->Get("pardiso", ParamNode::INSERT);
     
     // Determine, whether we are expected to be verbose
     LOG_TRACE(pardisoSolver) << " -----------------------------------------"
@@ -339,19 +336,13 @@ extern "C" {
     mType_ = 0;
 
     defPard = false;
-    if(sNode) {
-      sNode->Get("posDef", defPard, false);
-    }
+    sNode->GetValue("posDef", defPard, ParamNode::INSERT);
 
     herPard = false;
-    if(sNode) {
-      sNode->Get("hermitean", herPard, false);
-    }
+    sNode->GetValue("hermitean", herPard, ParamNode::INSERT);
 
     strPard = false;
-    if(sNode) {
-      sNode->Get("symStruct", strPard, false);
-    }
+    sNode->GetValue("symStruct", strPard, ParamNode::INSERT);
 
     if ( (etype == BaseMatrix::DOUBLE ) && (!symPard) && ( strPard) ) mType_ =  1;
     if ( (etype == BaseMatrix::DOUBLE ) && ( symPard) && ( defPard) ) mType_ =  2;
@@ -387,41 +378,31 @@ extern "C" {
 
     // Set default input values for dparm_;
     dparm_[0] = 300;   // Maximum number of Krylov-subspace iterations
-    if(sNode) {
-      sNode->Get("maxIter", dparm_[0], false);
-    }
+    sNode->GetValue("maxIter", dparm_[0], ParamNode::INSERT);
+
     dparm_[1] = 1e-6;  // Relative residual reduction
-    if(sNode) {
-      sNode->Get("tol", dparm_[1], false);
-    }
+    sNode->GetValue("tol", dparm_[1], ParamNode::INSERT);
+
     dparm_[2] = 1e-6;  // Coarse Grid Matrix Dimension.
-    if(sNode) {
-      sNode->Get("coarseGridDim", dparm_[2], false);
-    }    
+    sNode->GetValue("coarseGridDim", dparm_[2], ParamNode::INSERT);
+
     dparm_[3] = 10;    // Maximum Number of Grid Levels.
-    if(sNode) {
-      sNode->Get("maxNumGridLevels", dparm_[3], false);
-    }
+    sNode->GetValue("maxNumGridLevels", dparm_[3], ParamNode::INSERT);
+
     dparm_[4] = 1e-2;  // Dropping value for the incomplete factor.
-    if(sNode) {
-      sNode->Get("incompFacDropVal", dparm_[4], false);
-    }
+    sNode->GetValue("incompFacDropVal", dparm_[4], ParamNode::INSERT);
+
     dparm_[5] = 5e-5;  // Dropping value for the schurcomplement.
-    if(sNode) {
-      sNode->Get("schurcompDropVal", dparm_[5], false);
-    }    
+    sNode->GetValue("schurcompDropVal", dparm_[5], ParamNode::INSERT);
+
     dparm_[6] = 10;    // Maximum number of ﬁll-in in each column in the factor.
-    if(sNode) {
-      sNode->Get("maxNumFillIn", dparm_[6], false);
-    }    
+    sNode->GetValue("maxNumFillIn", dparm_[6], ParamNode::INSERT);
+
     dparm_[7] = 500;   // Bound for the inverse of the incomplete factor L.
-    if(sNode) {
-      sNode->Get("invBoundIncompFac", dparm_[0], false);
-    }    
+    sNode->GetValue("invBoundIncompFac", dparm_[0], ParamNode::INSERT);
+
     dparm_[8] = 25;    // Maximum number of non-improvement steps in Krylov-Subspace method
-    if(sNode) {
-      sNode->Get("maxNumStagnationSteps", dparm_[0], false);
-    }
+    sNode->GetValue("maxNumStagnationSteps", dparm_[0], ParamNode::INSERT);
 
     // Remove output file for iterative solver
     if(mSolver_ && fs::exists("pardiso-ml.out")) {
@@ -471,14 +452,10 @@ extern "C" {
     // the initial ordering of the linear system, which might already have been
     // re-ordered via the graph)
     BaseOrdering::ReorderingType ordering = BaseOrdering::NESTED_DISSECTION;
-    sNode = NULL;
-    sNode = xml_->Get("pardiso", false);
-    if(sNode) {
-      std::string orderStr = "nestedDissection";
-      sNode->Get("ordering", orderStr, false);
-      
-      ordering = BaseOrdering::reorderingType.Parse( orderStr );
-    }
+    sNode = xml_->Get("pardiso", ParamNode::INSERT);
+    std::string orderStr = "nestedDissection";
+    sNode->GetValue("ordering", orderStr, ParamNode::INSERT);
+    ordering = BaseOrdering::reorderingType.Parse( orderStr );
 
     switch ( ordering ) {
 
@@ -533,9 +510,7 @@ extern "C" {
     
     // Do we need to determine MFLOPs for the LU factorisation
     bool stats = false;
-    if(sNode) {
-      sNode->Get("stats", stats, false);
-    }
+      sNode->GetValue("stats", stats, ParamNode::INSERT);
     
     if(stats)
       iparm_[18] = -1;
@@ -686,7 +661,7 @@ extern "C" {
   template<typename T>
   void PardisoSolver<T>::Solve( const BaseMatrix &sysmat,
                                 const BasePrecond &precond,
-                                const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_step ) {
+                                const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
 
     LOG_TRACE(pardisoSolver) << " -----------------------------------------"
                              << "-------------------------------------";
@@ -779,7 +754,7 @@ extern "C" {
                              << "-----------------------";
 
     // Create Report (no sensible things to write for direct solvers yet)
-    InfoNode* out = solverInfo_->Get(InfoNode::PROCESS)->Get("solver", InfoNode::APPEND);
+    PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
     out->Get("numIter")->SetValue(-1);
     out->Get("finalNorm")->SetValue(-1.0);
   }

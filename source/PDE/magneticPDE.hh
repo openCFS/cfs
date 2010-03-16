@@ -22,7 +22,7 @@ namespace CoupledField
   public:
 
     //! Constructor
-    MagPDE( Grid * aptgrid, ParamNode* paramNode );
+    MagPDE( Grid * aptgrid, PtrParamNode paramNode );
 
     //! Default Destructor
 
@@ -32,7 +32,7 @@ namespace CoupledField
 
 
     //! Initialize PDE
-    virtual void Init( UInt sequenceStep, InfoNode* base = NULL );
+    virtual void Init( UInt sequenceStep, PtrParamNode base = PtrParamNode() );
 
     //! Initialize NonLinearities
     virtual void InitNonLin();

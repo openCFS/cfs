@@ -37,10 +37,10 @@ namespace CoupledField
     void PreStepTrans();
 
     //! base method for solving one transient step 
-    void SolveStepTrans(InfoNode* analysis_id);
+    void SolveStepTrans(PtrParamNode analysis_id);
 
     //! solves for one nonlinear transient step (with hysteresis) 
-    void StepTransNonLin(InfoNode* analysis_id);
+    void StepTransNonLin(PtrParamNode analysis_id);
 
     //! save the current values as previous values for the next time step
     void SetPreviousVals();

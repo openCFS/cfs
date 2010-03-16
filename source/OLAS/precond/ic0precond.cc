@@ -12,8 +12,8 @@ namespace CoupledField {
   //   Constructor
   // ***************
   template <typename T>
-  IC0Precond<T>::IC0Precond( const StdMatrix& mat, ParamNode* solverNode,
-                             InfoNode *olasInfo )
+  IC0Precond<T>::IC0Precond( const StdMatrix& mat, PtrParamNode solverNode,
+                             PtrParamNode olasInfo )
   {
     this->xml_ = solverNode;
     this->olasInfo_ = olasInfo;

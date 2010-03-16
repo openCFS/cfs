@@ -25,7 +25,7 @@ namespace CoupledField {
     /*!
       \param aptgrid pointer to grid
     */
-    DirectCoupledPDE( Grid *aptgrid, ParamNode* paramNode ); 
+    DirectCoupledPDE( Grid *aptgrid, PtrParamNode paramNode ); 
     
     //! Destructor
     virtual ~DirectCoupledPDE();

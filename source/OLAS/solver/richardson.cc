@@ -26,7 +26,7 @@ namespace CoupledField {
   template<typename T>
   void RichardsonSolver<T>::Solve( const BaseMatrix &sysmat,
 				   const BasePrecond &precond,
-				   const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_step ) {
+				   const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
 
     EXCEPTION("The Richardson solver has not been in use for a very long time."
               << "Please check if it is still working for you!");
@@ -52,16 +52,16 @@ namespace CoupledField {
     Double norm_old;
 
     // Query parameter object for values
-    ParamNode* pn = xml_->Get("solver", false);
-    pn = pn->Get("richardson", false);
-    Integer maxiter = 1;
-    pn->Get("maxIter", maxiter, false);
+    PtrParamNode pn = xml_->Get("solver", ParamNode::INSERT); 
+    pn = pn->Get("richardson", ParamNode::INSERT); 
+    Integer maxiter = 1; 
+    pn->GetValue("maxIter", maxiter, ParamNode::INSERT);
     Double eps      = 1e-6;
-    pn->Get("tol", eps, false);
+    pn->GetValue("tol", eps, ParamNode::INSERT);
     Double epsmach  = 1e-20;
-    pn->Get("epsmach", epsmach, false);
+    pn->GetValue("epsmach", epsmach, ParamNode::INSERT);
     Double omega    = 1.0;
-    pn->Get("omega", omega, false);
+    pn->GetValue("omega", omega, ParamNode::INSERT);
 
 #ifdef DEBUG_RICHARDSON
     (*debug) << " ------- START RICHARDSON ITERATION -------- " << std::endl;
@@ -167,7 +167,7 @@ namespace CoupledField {
     // ****************************
     //   Generate solution report
     // ****************************
-    InfoNode* out = solverInfo_->Get(InfoNode::PROCESS)->Get("solver", InfoNode::APPEND);
+    PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
     out->Get("numIter")->SetValue(niter);
     out->Get("finalPrecondResNorm")->SetValue(norm_new);
     

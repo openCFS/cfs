@@ -20,13 +20,13 @@ namespace CoupledField {
     //! \param ptGrid (in) pointer to finite element grid object
     //! \param myParamNode (in) pointer to parameter node of current coosy
     PolarCoordSystem( const std::string & name, Grid * ptGrid, 
-                      ParamNode * myParamNode );
+                      PtrParamNode myParamNode );
     
     //! Destructor
     virtual ~PolarCoordSystem();
     
     //! Print information about coordinate system to info node
-    void ToInfo( InfoNode* in );
+    void ToInfo( PtrParamNode in );
     
     //! Transform local into global coordinate
     
