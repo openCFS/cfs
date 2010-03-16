@@ -197,18 +197,19 @@ source /opt/intel/Compiler/11.0/081/bin/ifortvars.sh intel64
 
 PerformTest "sedici_icc_nightly"
 
-#if [ -f $CFSBIN ] && [ -f $CFSTOOLBIN ] && [ -f $CPLREADER ]; then
-#    # Copy binaries to /opt/pckg/cfs_nightly
-#    rm -rf $DESTDIR/trunk_icc 
-#    mkdir $DESTDIR/trunk_icc
-#    cp -a $TESTDIR/CFS_BUILD_NIGHTLY/bin $DESTDIR/trunk_icc
-#    cp -a $TESTDIR/CFS_BUILD_NIGHTLY/lib64 $DESTDIR/trunk_icc
-#    cp -a $TESTDIR/CFS_BUILD_NIGHTLY/share $DESTDIR/trunk_icc
-#    cp -a $TESTDIR/CFS_TRUNK_NIGHTLY/share/matlab $DESTDIR/trunk_icc/share
-#
+if [ -f $CFSBIN ] && [ -f $CFSTOOLBIN ] && [ -f $CPLREADER ]; then
+    # Copy binaries to /opt/pckg/cfs_nightly
+    ICC_SEDICI_DIR=$DESTDIR/trunk_icc_sedici
+    rm -rf $ICC_SEDICI_DIR 
+    mkdir $ICC_SEDICI_DIR
+    cp -a $TESTDIR/CFS_BUILD_NIGHTLY/bin $ICC_SEDICI_DIR
+    cp -a $TESTDIR/CFS_BUILD_NIGHTLY/lib64 $ICC_SEDICI_DIR
+    cp -a $TESTDIR/CFS_BUILD_NIGHTLY/share $ICC_SEDICI_DIR
+    cp -a $TESTDIR/CFS_TRUNK_NIGHTLY/share/matlab $ICC_SEDICI_DIR/share
+
 #    rm -rf /opt/pckg/CFSDEPSCACHE/precompiled/*
 #    cp -a $TESTDIR/CFSDEPSCACHE/precompiled/* /opt/pckg/CFSDEPSCACHE/precompiled
-#fi
+fi
 
 # Change into CFS++ source directory and execute CTest for Schenk Pardiso
 # using NETLIB, GOTOBLAS and ACML.

@@ -1,8 +1,11 @@
 #!/bin/sh
 
 # This script is run by the following entry in /etc/crontab on rom
+# 30    1 * * *   strieben /home/users/strieben/Documents/dev/nightly_cfs_test.sh > /home/users/strieben/Documents/dev/nightly_cfs_test.log 2>&1
 #
-# 30    1 * * *   strieben /home/strieben/Documents/dev/nightly_cfs_test.sh > /home/strieben/Documents/dev/nightly_cfs_test.log 2>&1
+# The Ubuntu VBox which is started by the current script will be turned
+# off by the following line.
+# 30   13 * * *   strieben VBoxManage --nologo controlvm 'Ubuntu 8.04' poweroff >> /home/users/strieben/Documents/dev/ubuntu804.log
 
 echo "`basename $0` started on `date`"
 echo "-----------------------------------------------------------------------------"
@@ -185,12 +188,13 @@ PerformTest "rom_icc_nightly"
 
 if [ -f $CFSBIN ] && [ -f $CFSTOOLBIN ] && [ -f $CPLREADER ]; then
     # Copy binaries to /opt/pckg/cfs_nightly
-    rm -rf $DESTDIR/trunk_icc 
-    mkdir $DESTDIR/trunk_icc
-    cp -a $TESTDIR/CFS_BUILD_NIGHTLY/bin $DESTDIR/trunk_icc
-    cp -a $TESTDIR/CFS_BUILD_NIGHTLY/lib64 $DESTDIR/trunk_icc
-    cp -a $TESTDIR/CFS_BUILD_NIGHTLY/share $DESTDIR/trunk_icc
-    cp -a $TESTDIR/CFS_TRUNK_NIGHTLY/share/matlab $DESTDIR/trunk_icc/share
+    ICC_ROM_DIR=$DESTDIR/trunk_icc_rom
+    rm -rf $ICC_ROM_DIR
+    mkdir $ICC_ROM_DIR
+    cp -a $TESTDIR/CFS_BUILD_NIGHTLY/bin $ICC_ROM_DIR
+    cp -a $TESTDIR/CFS_BUILD_NIGHTLY/lib64 $ICC_ROM_DIR
+    cp -a $TESTDIR/CFS_BUILD_NIGHTLY/share $ICC_ROM_DIR
+    cp -a $TESTDIR/CFS_TRUNK_NIGHTLY/share/matlab $ICC_ROM_DIR/share
 
     rm -rf /opt/pckg/CFSDEPSCACHE/precompiled/*
     cp -a $TESTDIR/CFSDEPSCACHE/precompiled/* /opt/pckg/CFSDEPSCACHE/precompiled

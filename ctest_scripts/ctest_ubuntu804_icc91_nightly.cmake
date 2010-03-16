@@ -72,6 +72,13 @@ SET(CTEST_COMMAND "${CTEST_COMMAND} -A ${CTEST_BINARY_DIRECTORY}/CMakeCache.txt"
 SET(CTEST_COMMAND "${CTEST_COMMAND} -E optimization")
 #SET(CTEST_COMMAND "${CTEST_COMMAND} -R torque3d")
 
+# Leave away biggest CFX test cases
+SET(CTEST_COMMAND "${CTEST_COMMAND} -E ellipse_behind")
+SET(CTEST_COMMAND "${CTEST_COMMAND} -E festo_valve")
+
+
+
+
 #-----------------------------------------------------------------------------
 # Use CMake (cmake) executable corresponding to CTest executable used to run
 # this script.
@@ -97,6 +104,9 @@ SET(CTEST_INITIAL_CACHE
    MKL_ROOT_DIR:PATH=/opt/intel/mkl/9.1.021
    CFS_PARDISO:STRING=MKL
    USE_GMV_INPUT:BOOL=ON
+   USE_ANSYSRST:BOOL=ON
+   USE_GMSH:BOOL=ON
+   CPLREADER:BOOL=ON
    USE_PYTHON:BOOL=ON
    USE_TCL:BOOL=OFF
    USE_SCPIP:BOOL=OFF")
@@ -114,4 +124,5 @@ SET(CTEST_ENVIRONMENT
   "LC_ALL=C"
   "LANG=C"
   "LANGUAGE=C"
+  "CPLREADER_PERF_SUITE=/media/CFD_Data/cplreader_performance_suite"
   )

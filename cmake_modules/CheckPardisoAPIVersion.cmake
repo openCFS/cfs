@@ -3,6 +3,7 @@
 #-----------------------------------------------------------------------------
 SET(PARDISO_API_CHECK_SOURCE 
 "#include <iostream>
+#include <fstream>
 #include <algorithm>
 #include <vector>
 #include <cmath>
@@ -71,29 +72,43 @@ int main (int argc, char* argv[])
 
     /* RHS and solution vectors. */
     double   b[8], x[8];
+    std::fill(b, b+8, 0);
+    std::fill(x, x+8, 0);
     int      nrhs = 1;          /* Number of right hand sides. */
 
     /* Internal solver memory pointer pt,                  */
     /* 32-bit: int pt[64]; 64-bit: long int pt[64]         */
     /* or void *pt[64] should be OK on both architectures  */ 
-    void    *pt[64]; 
+    void    *pt[64];
+    for(int i=0; i<64; i++) {
+      pt[i] = NULL;
+    }
 
+    // We interpret the parameters to pardisoinit_ as consecutive data.
+    // This way we can make sure, that the solver parameter will be overwritten
+    // by default parameters by pardisoinit_ in the case of a Pardiso 3.x
+    // library being called through the Pardiso 4.0 interface. We can afterwards
+    // check for this condition.
+    
+    int param_array[66];
+    
     /* Pardiso control parameters. */
-    int      iparm[64];
-    std::fill(iparm, iparm+64, 0);
-#if PARDISO_API_VER == 4    
-    double   dparm[64];
-    std::fill(dparm, dparm+64, 0);
-    int solver = 0;
-#endif
+    int* solver = param_array;
+    int* iparm = param_array+1;
+    
+    std::fill(param_array, param_array+66, -666);
+    solver[0] = 0; // Use direct solver    
+    iparm[0] = 0; // IPARM(1) sets iparm array to default values if 0
 
+    double dparm[64];
+    std::fill(dparm, dparm+64, -999);
+    
     int      maxfct, mnum, phase, error, msglvl;
 
     /* Number of processors. */
     int      num_procs;
 
     /* Auxiliary variables. */
-//    char   var[256];
     int      i;
 
     double   ddum;              /* Double dummy */
@@ -106,11 +121,21 @@ int main (int argc, char* argv[])
 	error = 0;
 #if PARDISO_API_VER == 3
     pardisoinit_ (pt,  &mtype, iparm); 
+//    std::string fn = \"/tmp/pardiso_log_3.txt\";
 #endif
 #if PARDISO_API_VER == 4
-    pardisoinit_ (pt,  &mtype, &solver, iparm, dparm, &error); 
+    pardisoinit_ (pt,  &mtype, solver, iparm, dparm, &error); 
+//    std::string fn = \"/tmp/pardiso_log_4.txt\";
 #endif
+   
 
+//    std::ofstream os(fn.c_str());
+//    os << \"solver : \" << (*solver) << std::endl;
+//    for(int i=0; i<66; i++) {
+//       os << i << \": \" << iparm[i] << \"  \" << dparm[i] << std::endl;
+//    }
+//    os.close();
+   
     if (error != 0) 
     {
         if (error == -10 )
@@ -125,6 +150,15 @@ int main (int argc, char* argv[])
     }
     else
         std::cout << \"PARDISO license check was successful...\" << std::endl;
+
+    // Check if everything is where it is supposed to be
+    if(*solver != 0  || // Stands for the solver, must always be 0 (direct)
+       iparm[0] != 1  || // IPARM(1) must always be 1 after call to pardisoinit_
+       iparm[63] != 0)   // If calling a 3.x lib with 4.x API iparm[64] == -666
+    {
+      std::cout << \"IPARM array is not the way it should be...\" << std::endl;
+      return 66;
+    }
 
     num_procs = 1;
     iparm[2]  = num_procs;
@@ -423,7 +457,13 @@ ELSE(NOT PARDISO_API_VER_3 AND
         "PARDISO_API_VER_4_LAST_CFS_PARDISO" FORCE)
 
     MESSAGE(FATAL_ERROR "Checks suggest that both Pardiso API versions are present!\n"
-                        "This is nonsense. Please investigate further in CMakeFiles/CMakeError.log.\n")
+                        "Please try to re-run CMake in order to get a correct result.\n\n"
+                        "The case you have discovered is nonsense but can happen due to the \"excellent\" (<- note the irony)\n"
+                        "software engineering practices used to implement the PARDISO API.\n"
+                        "There is no function to determine the version, and the number and ordering\n"
+                        "of parameters changed from version 3 to 4. THANK YOU VERY MUCH PARDISO DEVELOPERS!\n\n"
+                        "If you know the PARDISO API version you may also\n"
+                        "set it by hand in CMakeCache.txt(e.g. PARDISO_API_VER_3:INTERNAL=1)")
   ELSE(PARDISO_API_VER_3 AND
        PARDISO_API_VER_4)
        
