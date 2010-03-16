@@ -494,6 +494,9 @@ namespace CoupledField
     if( fcnType->GetType() == AnsatzFct::LAGRANGE ) {
       numFcns.Resize( NumNodes_ );
       numFcns.Init(1);
+    } else if( fcnType->GetType() == AnsatzFct::NEDELEC ) {
+      numFcns.Resize( NumEdges_ );
+      numFcns.Init(1);
     }else if(fcnType->GetType() == AnsatzFct::SPECTRAL)
     {
       // Remember approximation order
