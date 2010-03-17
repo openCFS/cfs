@@ -254,15 +254,21 @@ ENDIF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
 #-----------------------------------------------------------------------------
 # Mark some of the options as advanced to clear up the standard selection
 #-----------------------------------------------------------------------------
+MARK_AS_ADVANCED(USE_ADAPTGRID)
 MARK_AS_ADVANCED(USE_UNV)
 MARK_AS_ADVANCED(USE_GMV)
-MARK_AS_ADVANCED(USE_GMSH)
 MARK_AS_ADVANCED(USE_MESH)
+MARK_AS_ADVANCED(USE_MPCCI)
 MARK_AS_ADVANCED(USE_XERCES)
 MARK_AS_ADVANCED(CMAKE_BUILD_TYPE)
 MARK_AS_ADVANCED(CMAKE_BACKWARDS_COMPATIBILITY)
 MARK_AS_ADVANCED(CMAKE_INSTALL_PREFIX)
 MARK_AS_ADVANCED(EXPLICIT_TEMPLATE_INSTANTIATION)
+MARK_AS_ADVANCED(BUILD_PARAVIEW)
+MARK_AS_ADVANCED(BUILD_HDFVIEW)
+MARK_AS_ADVANCED(COVERAGE)
+MARK_AS_ADVANCED(PROFILING)
+MARK_AS_ADVANCED(XMLSCHEMA)
 
 #-----------------------------------------------------------------------------
 # Set some variables according to build type DEBUG / RELEASE
@@ -527,15 +533,12 @@ IF(USE_MESH)
 ENDIF(USE_MESH)
 
 IF(USE_GMV)
-  OPTION(USE_GMV_INPUT
-    "Use GMV files as input for simulation. Attention! Debugging may not work!"
-    OFF)
+  SET(USE_GMV_INPUT ON 
+    CACHE INTERNAL "Use GMV files as input for simulation. Attention! Debugging may not work!")
 
-  OPTION(USE_GMV_OUTPUT
-    "Use GMV files as output for simulation."
-    ON)
+  SET(USE_GMV_OUTPUT ON 
+    CACHE INTERNAL "Use GMV files as output for simulation.")
 
-  MARK_AS_ADVANCED(USE_GMV_INPUT USE_GMV_OUTPUT)
   SUBDIRS(source/DataInOut/SimInOut/gmv)
 ENDIF(USE_GMV)
 
