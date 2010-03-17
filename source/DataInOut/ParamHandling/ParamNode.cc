@@ -880,26 +880,38 @@ PtrParamNode ParamNode::TokenizedHasAndGet( const string& name,
   // we rely on operator==() and operator<<() for the other types
   // (the integral types can be casted using the boost::lexical_cast<> 
   // statement
-#define INSTANTIATE_METHODS(TYPE)\
+#define INSTANTIATE_METHOD_AS(TYPE)\
   template\
-  TYPE ParamNode::As<TYPE>() const;\
+  TYPE ParamNode::As<TYPE>() const;
+  
+  INSTANTIATE_METHOD_AS(Vector<Double>)
+  INSTANTIATE_METHOD_AS(Vector<Complex>)
+  INSTANTIATE_METHOD_AS(Matrix<Double>)
+  INSTANTIATE_METHOD_AS(Matrix<Complex>)
+  INSTANTIATE_METHOD_AS(Vector<Double>*)
+  INSTANTIATE_METHOD_AS(Vector<Complex>*)
+  INSTANTIATE_METHOD_AS(Matrix<Double>*)
+  INSTANTIATE_METHOD_AS(Matrix<Complex>*)
+  INSTANTIATE_METHOD_AS(Timer*)
+
+#define INSTANTIATE_METHOD_GETVALUE(TYPE)\
   template void ParamNode::GetValue<TYPE>\
   (const std::string& name, TYPE& ret, const ActionType);
   
-  INSTANTIATE_METHODS(Integer)
-  INSTANTIATE_METHODS(Double)
-  INSTANTIATE_METHODS(UInt)
-  INSTANTIATE_METHODS(bool)
-  INSTANTIATE_METHODS(std::string)
-  INSTANTIATE_METHODS(Vector<Double>)
-  INSTANTIATE_METHODS(Vector<Complex>)
-  INSTANTIATE_METHODS(Matrix<Double>)
-  INSTANTIATE_METHODS(Matrix<Complex>)
-  INSTANTIATE_METHODS(Vector<Double>*)
-  INSTANTIATE_METHODS(Vector<Complex>*)
-  INSTANTIATE_METHODS(Matrix<Double>*)
-  INSTANTIATE_METHODS(Matrix<Complex>*)
-  INSTANTIATE_METHODS(Timer*)
+  INSTANTIATE_METHOD_GETVALUE(Integer)
+  INSTANTIATE_METHOD_GETVALUE(Double)
+  INSTANTIATE_METHOD_GETVALUE(UInt)
+  INSTANTIATE_METHOD_GETVALUE(bool)
+  INSTANTIATE_METHOD_GETVALUE(std::string)
+  INSTANTIATE_METHOD_GETVALUE(Vector<Double>)
+  INSTANTIATE_METHOD_GETVALUE(Vector<Complex>)
+  INSTANTIATE_METHOD_GETVALUE(Matrix<Double>)
+  INSTANTIATE_METHOD_GETVALUE(Matrix<Complex>)
+  INSTANTIATE_METHOD_GETVALUE(Vector<Double>*)
+  INSTANTIATE_METHOD_GETVALUE(Vector<Complex>*)
+  INSTANTIATE_METHOD_GETVALUE(Matrix<Double>*)
+  INSTANTIATE_METHOD_GETVALUE(Matrix<Complex>*)
+  INSTANTIATE_METHOD_GETVALUE(Timer*)
   
   // B)Now just the integral types
   // -----------------------------

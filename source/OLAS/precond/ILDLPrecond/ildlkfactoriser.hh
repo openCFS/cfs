@@ -73,7 +73,7 @@ namespace CoupledField {
     ILDLKFactoriser();
 
     //! Standard constructor
-    ILDLKFactoriser( PtrParamNode solverNode, PtrParamNode olasInfo = NULL );
+    ILDLKFactoriser( PtrParamNode solverNode, PtrParamNode olasInfo );
 
     //! Default destructor
     ~ILDLKFactoriser();

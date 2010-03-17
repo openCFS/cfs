@@ -103,7 +103,7 @@ namespace CoupledField {
     //! The constructor does not do anything but set the pointers to the
     //! internal communciation objects.
     //! Note that the pointer to the report object is optional.
-    PardisoSolver (PtrParamNode solverNode, PtrParamNode olasInfo = NULL);
+    PardisoSolver (PtrParamNode solverNode, PtrParamNode olasInfo);
 
     //! Default Destructor
 

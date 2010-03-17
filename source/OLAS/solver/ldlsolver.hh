@@ -108,7 +108,7 @@ namespace CoupledField {
   public:
 
     //! Constructor
-    LDLSolver( PtrParamNode solverNode, PtrParamNode olasInfo = NULL );
+    LDLSolver( PtrParamNode solverNode, PtrParamNode olasInfo );
 
     //! Default Destructor
 
@@ -121,7 +121,7 @@ namespace CoupledField {
 
     //! The setup method takes care of the LDL factorisation of the problem
     //! matrix.
-    void Setup( BaseMatrix &sysMat, PtrParamNode analysis_step = NULL);
+    void Setup( BaseMatrix &sysMat, PtrParamNode analysis_step );
 
     //! Direct solution of the linear system
 
@@ -133,7 +133,7 @@ namespace CoupledField {
     //! we perform a direct solution. Note also, that the sysmat input
     //! parameter will only be used, when an iterative refinement is performed.
     void Solve( const BaseMatrix &sysMat, const BasePrecond &precond,
-                const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step = NULL );
+                const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step );
 
     //! Query type of this solver.
 

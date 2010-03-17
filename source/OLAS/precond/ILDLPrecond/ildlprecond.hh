@@ -116,7 +116,7 @@ namespace CoupledField {
 
     //! Constructor
     ILDLPrecond( const StdMatrix &stdMat, PtrParamNode solverNode,
-                 PtrParamNode olasInfo = NULL );
+                 PtrParamNode olasInfo );
 
     //! Default Destructor
 

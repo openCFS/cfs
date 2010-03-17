@@ -15,6 +15,7 @@
 #include <def_use_xerces.hh>
 #include <def_use_arpack.hh>
 #include <def_use_gmv.hh>
+#include <def_use_gmsh.hh>
 #include <def_use_lapack.hh>
 #include <def_use_mpcci.hh>
 #include <def_use_interpolation.hh>
@@ -593,6 +594,10 @@ namespace CoupledField {
         << endl;
 
     MKL_FreeBuffers();
+
+    out << "MKL_NUM_THREADS:       "
+        << fg_blue << (getenv("MKL_NUM_THREADS") != NULL ? getenv("MKL_NUM_THREADS") : "-")
+        << fg_reset << endl;
  #endif
  #ifdef USE_ACML
     Integer acml_major, acml_minor, acml_patch;
@@ -708,7 +713,17 @@ namespace CoupledField {
 
     out << endl;
 
- #ifdef USE_GIDPOST
+#ifdef USE_ANSYSCRT
+    out << "USE_ANSYSRST:          "
+        << fg_blue << "YES" << fg_reset << endl;
+    out << "CFS_ANSYS_VERSION:    "
+        << fg_blue << CFS_ANSYS_VERSION << fg_reset << endl;
+#else
+    out << "USE_ANSYSRST:          "
+        << fg_blue << "NO" << fg_reset << endl;
+#endif
+
+#ifdef USE_GIDPOST
     out << "USE_GIDPOST:           "
         << fg_blue << "YES" << fg_reset << endl;
     out << "CFS_GIDPOST_VERSION:   "
@@ -718,7 +733,15 @@ namespace CoupledField {
         << fg_blue << "NO" << fg_reset << endl;
  #endif
 
- #ifdef USE_GMV_INPUT
+#ifdef USE_GMSH
+    out << "USE_GMSH:              "
+        << fg_blue << "YES" << fg_reset << endl;
+#else
+    out << "USE_GMSH:              "
+        << fg_blue << "NO" << fg_reset << endl;
+#endif
+
+#ifdef USE_GMV_INPUT
     out << "USE_GMV_INPUT:         "
         << fg_blue << "YES" << fg_reset << endl;
  #else
@@ -780,17 +803,6 @@ namespace CoupledField {
 
     out << endl;
 
-#ifdef USE_ANSYSCRT
-    out << "USE_ANSYSRST:          "
-        << fg_blue << "YES" << fg_reset << endl;
-    out << "CFS_ANSYS_VERSION:    "
-        << fg_blue << CFS_ANSYS_VERSION << fg_reset << endl;
-#else
-    out << "USE_ANSYSRST:          "
-        << fg_blue << "NO" << fg_reset << endl;
-#endif
-
-    out << endl;
 #ifdef MpCCI
     out << "MpCCI:                 "
         << fg_blue << "YES" << fg_reset << endl;
@@ -805,7 +817,7 @@ namespace CoupledField {
     out << "USE_INTERPOLATION:     "
         << fg_blue << "YES" << fg_reset << endl;
     out << "CFS_CGAL_VERSION:      "
-        << fg_blue <<   QUOTEMACRO(QUOTEMACRO(CGAL_VERSION))
+        << fg_blue << QUOTEME(CGAL_VERSION)
         << " (" << CGAL_VERSION_NR
         << ", SVN rev. " << CGAL_SVN_REVISION << ")"
         << fg_reset << endl;
@@ -829,11 +841,6 @@ namespace CoupledField {
     out << "CFX_IO_VERSION:        "
         << fg_blue << io_get_version() << fg_reset << endl;
 #endif
-
-    out << endl;
-    out << "MKL_NUM_THREADS:       "
-        << fg_blue << (getenv("MKL_NUM_THREADS") != NULL ? getenv("MKL_NUM_THREADS") : "-")
-        << fg_reset << endl;
 
     out << endl;
     out << "sizeof(int)            "  << fg_blue << sizeof(int) << fg_reset << endl;

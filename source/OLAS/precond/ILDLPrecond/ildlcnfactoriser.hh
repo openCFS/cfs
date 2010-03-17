@@ -65,7 +65,7 @@ namespace CoupledField {
     ILDLCNFactoriser();
 
     //! Standard constructor
-    ILDLCNFactoriser( PtrParamNode solverNode, PtrParamNode olasInfo = NULL );
+    ILDLCNFactoriser( PtrParamNode solverNode, PtrParamNode olasInfo );
 
     //! Default destructor
     ~ILDLCNFactoriser();

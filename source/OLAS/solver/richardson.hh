@@ -85,14 +85,14 @@ namespace CoupledField {
     //! \param rhs Right-hand side vector of the linear system
     //! \param sol Solution vector of linear system
     void Solve(const BaseMatrix& sysmat, const BasePrecond& premat, 
-	       const BaseVector& rhs, BaseVector& sol, PtrParamNode analysis_step = NULL);
+	       const BaseVector& rhs, BaseVector& sol, PtrParamNode analysis_step);
 
     //! Dummy setup method
 
     //! This method implements the pure virtual setup function defined in the
     //! BaseSolver class. In the case of the Richardson solver there is nothing
     //! to be done.
-    void Setup( BaseMatrix &sysmat, PtrParamNode analysis_step = NULL) {};
+    void Setup( BaseMatrix &sysmat, PtrParamNode analysis_step ) {};
 
     //! Query type of the solver
 
