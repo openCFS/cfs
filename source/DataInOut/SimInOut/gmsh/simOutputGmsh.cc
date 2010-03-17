@@ -50,7 +50,7 @@ namespace CoupledField {
     std::ostringstream strBuffer;
 
     dirName_ = "results_" + formatName_;
-    outputNode->Get("directory", dirName_, false );
+    outputNode->GetValue("directory", dirName_, ParamNode::PASS );
     fileName_ = fileName;
 
     try 
@@ -62,13 +62,13 @@ namespace CoupledField {
     }
     
     // Change defaults according to XML file
-    if(myParam_->Get("binaryFormat", false)->As<std::string>() == "yes")
+    if(myParam_->Get("binaryFormat", ParamNode::PASS)->As<std::string>() == "yes")
     {
         ascii_ = false;
     }
 
     std::string endianness = "native";
-    endianness = myParam_->Get("endianness", false)->As<std::string>();
+    endianness = myParam_->Get("endianness", ParamNode::PASS)->As<std::string>();
 
     if(!ascii_) 
     {

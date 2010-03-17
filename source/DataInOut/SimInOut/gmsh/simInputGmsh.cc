@@ -40,17 +40,17 @@ namespace CoupledField {
   {
     GmshHelper::InitElemNodeMap();
 
-    PtrParamNodepNode = NULL;
+    PtrParamNode pNode;
     ParamNodeList pNodeList;
 
-    pNode = myParam_->Get("coordSysId", false);
+    pNode = myParam_->Get("coordSysId", ParamNode::PASS);
     if(pNode) {
-      coordSysId_ = myParam_->Get("coordSysId", false)->As<std::string>();
+      coordSysId_ = myParam_->Get("coordSysId", ParamNode::PASS)->As<std::string>();
     }
     
-    pNode = myParam_->Get("scaleFac", false);
+    pNode = myParam_->Get("scaleFac", ParamNode::PASS);
     if(pNode) {
-      scaleFac_ = myParam_->Get("scaleFac", false)->As<Double>();
+      scaleFac_ = myParam_->Get("scaleFac", ParamNode::PASS)->As<Double>();
     }
 
     readOnlySomeRegions_ = false;
@@ -58,13 +58,13 @@ namespace CoupledField {
     for(UInt i=0, n= pNodeList.GetSize(); i<n; i++)
     {
       std::string regionName =
-        pNodeList[i]->Get("name", false)->As<std::string>();
+        pNodeList[i]->Get("name", ParamNode::PASS)->As<std::string>();
 
       bool linearize = false;
-      pNodeList[i]->Get("linearize", linearize, false);
+      pNodeList[i]->GetValue("linearize", linearize, ParamNode::PASS);
       
       Integer physEntity = 0;
-      pNodeList[i]->Get("physicalEntity", physEntity, false);
+      pNodeList[i]->GetValue("physicalEntity", physEntity, ParamNode::PASS);
 
       physEntities2RegionNames_[physEntity] = regionName;
       linearizeRegions_[regionName] = linearize;

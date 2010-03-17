@@ -87,13 +87,13 @@ namespace CoupledField {
         // if 3D data are to be interpolated to a 2D grid,
         // where should the xy-plane be?
         tmpNode = intNode->Get("xyPlane", ParamNode::PASS);
-        if (tmpNode->HasChildren()) {
+        if (tmpNode) {
           tmpNode->GetValue("z", z_, ParamNode::PASS);
           tmpNode->GetValue("tol", zEpsilon_, ParamNode::PASS);
         }
         
         tmpNode = intNode->Get("tolerances", ParamNode::PASS);
-        if (tmpNode->HasChildren()) {
+        if (tmpNode) {
           // tolerance in global coordinates
           PtrParamNode tolNode = tmpNode->Get("global", ParamNode::PASS);
           if (tolNode) {
@@ -116,7 +116,7 @@ namespace CoupledField {
         
         // verbosity of warnings
         tmpNode = intNode->Get("nodeWARNs", ParamNode::PASS);
-        if (tmpNode->HasChildren()) {
+        if (tmpNode) {
           std::string dispStr = tmpNode->Get("display")->As<std::string>();
           if (dispStr == "verbose")
             node_warnings_ = (ciWarnFlags) (CI_WARN_YES | CI_WARN_VERBOSE);

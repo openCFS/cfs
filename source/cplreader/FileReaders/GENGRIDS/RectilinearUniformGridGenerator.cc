@@ -30,7 +30,7 @@ namespace CoupledField
     elemTypes.clear();
     Settings& settings = Settings::Instance();
     
-    PtrParamNodeparam = settings.GetParamNode();
+    PtrParamNode param = settings.GetParamNode();
     
     std::vector<Double> xCoords;
     std::vector<Double> yCoords;
@@ -75,7 +75,7 @@ namespace CoupledField
     zNElems.push_back(1);
     zCoords.push_back(1);
 
-    PtrParamNode typeNode = NULL;
+    PtrParamNode typeNode;
 
     if(param) 
     {
@@ -85,10 +85,10 @@ namespace CoupledField
         std::cout << "GENGRIDS node found!" << std::endl;
         
         std::string elemTypeName = "HEXA8";
-        PtrParamNode elemTypeNode = typeNode->Get("elementType", false);
+        PtrParamNode elemTypeNode = typeNode->Get("elementType", ParamNode::PASS);
 
         if(elemTypeNode) {
-          elemTypeNode->Get("name", elemTypeName, false);
+          elemTypeNode->GetValue("name", elemTypeName, ParamNode::PASS);
         }
         
         if(elemTypeName == "HEXA8") {
@@ -118,7 +118,7 @@ namespace CoupledField
           
           for(UInt j=0; j<nCoords; j++) 
           {
-            std::string coordType = coords[j]->Get("type", false)->As<std::string>();
+            std::string coordType = coords[j]->Get("type")->As<std::string>();
             std::cout << coordType << " " << coords[j]->As<std::string>() << std::endl;
             sstr.clear();
             sstr.str("");
@@ -206,10 +206,6 @@ namespace CoupledField
         
 
       }
-      else 
-      {
-        typeNode = NULL;
-      }      
     }
     
 
@@ -259,7 +255,7 @@ namespace CoupledField
     
     if(typeNode)
     {
-      PtrParamNode regionsNode = typeNode->Get("regions", false);
+      PtrParamNode regionsNode = typeNode->Get("regions", ParamNode::PASS);
       std::cout << "Type node exists" << std::endl;
       
       if(regionsNode) 

@@ -32,7 +32,7 @@ namespace CoupledField {
     formatName_ = "rst";
     fileName_ = fileName;
     dirName_ = "results_" + formatName_;
-    outputNode->Get("directory", dirName_, false );
+    outputNode->GetValue("directory", dirName_, ParamNode::INSERT );
     outputNode_ = outputNode;
 
     capabilities_.insert( MESH );
@@ -72,7 +72,7 @@ namespace CoupledField {
     archMachIdMap["X86_64"] = "linop64";
 
     std::string ansysRev = "11.0";
-    outputNode_->Get("ansysRevision", ansysRev, ParamNode::INSERT);
+    outputNode_->GetValue("ansysRevision", ansysRev, ParamNode::INSERT);
     sstr.clear(); sstr.str("");
     sstr << ansysRev;
     sstr >> ansysBinlibRev_;

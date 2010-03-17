@@ -97,8 +97,7 @@ namespace CFSTool {
 #endif
     } else if( fileName.find( ".msh") != std::string::npos ) {
 #ifdef USE_GMSH
-      PtrParamNode gmshNode = new ParamNode(false);
-      gmshNode->WriteBack(false);
+      PtrParamNode gmshNode(new ParamNode (ParamNode::EX, ParamNode::ELEMENT));
       reader = shared_ptr<SimInput>(new SimInputGmsh(fileName, gmshNode) );
 #else  
       EXCEPTION( "No support for Gmsh input file format." );

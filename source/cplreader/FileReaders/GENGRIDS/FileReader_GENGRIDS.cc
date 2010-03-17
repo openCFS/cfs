@@ -35,10 +35,10 @@ namespace CoupledField
     
     Settings& settings = Settings::Instance();
 
-    PtrParamNodeparam = settings.GetParamNode();
+    PtrParamNode param = settings.GetParamNode();
 
-    PtrParamNode typeNode = NULL;
-    PtrParamNode fieldsNode = NULL;
+    PtrParamNode typeNode;
+    PtrParamNode fieldsNode;
 
     if(param) 
     {
@@ -47,7 +47,7 @@ namespace CoupledField
       {
         std::string subType = "RectilinearUniformGridGenerator";
         //        PtrParamNode subTypeNode = typeNode->Get("subType", false);
-        typeNode->Get("subType", subType, false);
+        typeNode->GetValue("subType", subType, ParamNode::PASS);
 
         if(subType == "RectilinearUniformGridGenerator") 
         {
@@ -63,10 +63,10 @@ namespace CoupledField
         if(subType == "ReferenceElementGenerator") 
         {
           std::string elemTypeName = "HEXA8";
-          PtrParamNode elemTypeNode = typeNode->Get("elementType", false);
+          PtrParamNode elemTypeNode = typeNode->Get("elementType", ParamNode::PASS);
           
           if(elemTypeNode) {
-            elemTypeNode->Get("name", elemTypeName, false);
+            elemTypeNode->GetValue("name", elemTypeName, ParamNode::PASS);
           }
           
           refGen.GenGrid(nodalCoords_,
@@ -88,7 +88,7 @@ namespace CoupledField
                                      nodeGroups_);
         }
 
-        fieldsNode = typeNode->Get("fields", false);
+        fieldsNode = typeNode->Get("fields", ParamNode::PASS);
         if(fieldsNode) 
         {
           ParamNodeList fields = fieldsNode->GetList("field");
@@ -97,7 +97,7 @@ namespace CoupledField
           {
             std::string fieldName = "default";
             //            PtrParamNode elemTypeNode = typeNode->Get("elementType", false);
-            fields[i]->Get("name", fieldName, false);
+            fields[i]->GetValue("name", fieldName, ParamNode::PASS);
             std::cout << "field: " << fieldName << std::endl;
 
             ParamNodeList components = fields[i]->GetList("component");
@@ -108,7 +108,7 @@ namespace CoupledField
               std::string compAxis = "x";
               std::string expr;
               
-              components[j]->Get("axis", compAxis, false);
+              components[j]->GetValue("axis", compAxis, ParamNode::PASS);
               expr = components[j]->As<std::string>();
 
               for(UInt l=0; l<expr.length(); l++) 
@@ -200,7 +200,7 @@ namespace CoupledField
     UInt regionIdx, nRegions;
     Settings& settings = Settings::Instance();
     Double timeStep = timeStepIdx * settings.GetDouble("timestep");
-    TrivialCartesianCoordSystem coordSys("cplreaderCoordSys", NULL, NULL);
+    TrivialCartesianCoordSystem coordSys("cplreaderCoordSys", NULL, PtrParamNode());
     Vector<Double> globCoord(3);
 
     std::map<std::string, std::vector<UInt> >::iterator it;

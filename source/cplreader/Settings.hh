@@ -217,7 +217,7 @@ namespace CoupledField
     //! This one can never be called from outside.
     //! The only way to instantiate a Settings object is
     //! by using Instance().
-    Settings() {param_ = NULL; };
+    Settings() {};
 
     //! Private copy constructor.
     //!
