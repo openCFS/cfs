@@ -347,7 +347,7 @@ namespace CoupledField
                   << "' to desired type.");\
       }\
     }\
-    TYPE dummy;\
+    TYPE dummy = TYPE();\
      return dummy;\
   }
   
