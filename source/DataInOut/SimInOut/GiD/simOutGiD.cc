@@ -56,7 +56,8 @@ namespace CoupledField {
     isAscii_ = !(myParam_->Get("binaryFormat")->As<bool>() );
     
     // Determine, if eigenfrequencies should be grouped
-    groupEigenFreqs_= myParam_->Get("groupEigenFreqs")->As<bool>();
+    groupEigenFreqs_ = true;
+    myParam_->GetValue("groupEigenFreqs", groupEigenFreqs_, ParamNode::INSERT );
 
     std::string pathsep;
     std::ostringstream strBuffer;
