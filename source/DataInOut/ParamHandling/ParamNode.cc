@@ -698,12 +698,18 @@ PtrParamNode ParamNode::TokenizedHasAndGet( const string& name,
     //        os << " value=\"" << ToString() << "\"";
 
 
-    if(only_attributes)
+    if(only_attributes) {
       if(type_ == COMMENT) {
         os << "<!-- " << strValue << "-->" << std::endl;
       } else {
-        os << "/>"; // "quick close"
+        // check, if value is set
+        if (!value_.empty() ) {
+          os <<"> " <<  strValue << "</" << name_ << ">" << std::endl;
+        } else {
+          os << "/>"; // "quick close"
+        }
       }
+    }
     else {
       os << ">";
       
@@ -719,14 +725,14 @@ PtrParamNode ParamNode::TokenizedHasAndGet( const string& name,
 //      if(type_ == COMMENT) {
 //        os << "<!-- " << ToString() << "-->" << std::endl;
 //      } else 
-      if (type_ == ELEMENT ) {
-        // check, if value is set
-        if (!value_.empty() ) {
-          os << string(depth + 2, ' ') << strValue;
-        }
-        os << std::endl;
-        endl_written = true;
-      }
+//      if (type_ == ELEMENT ) {
+//        // check, if value is set
+//        if (!value_.empty() ) {
+//          os << string(depth + 2, ' ') << strValue;
+//        }
+//        os << std::endl;
+//        endl_written = true;
+//      }
       
       // do we close in the same line?
       if(chsize != 0 && !endl_written) os << std::endl;
@@ -839,6 +845,15 @@ PtrParamNode ParamNode::TokenizedHasAndGet( const string& name,
     if( type_ == ATTRIBUTE && children_.GetSize() ) {
       WARN("Node '" << name_ << "' is a ATTRIBUTE and has child nodes. "
            << "This is not possible in a xml tree!");
+    }
+    
+    
+    // HARD-CODED Intermediate check for Timer element:
+    // As the method "ToXML()" of the timer currently returns hard-coded 
+    // the string representation of a xml element, we have to ensure that
+    // the type of ParamNodes containing a Timer-object always ELEMENT is
+    if( value_.type() == typeid(Timer*) ) {
+      type_ = ELEMENT;
     }
     
     // ToDO: What is currently missing is the check for valid labels etc.
