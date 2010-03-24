@@ -200,22 +200,6 @@ namespace CoupledField {
     pn = param->GetByVal("sequenceStep", "index", sequenceStep_, ParamNode::PASS);
     linSysNode = pn->Get("linearSystems", ParamNode::INSERT);
     pn = linSysNode->GetByVal("system", "name", sysName, ParamNode::INSERT);
-    
-    // If no system with the specified name could be found in XML file
-    // we just generate a new ParamNode.
-    WARN("Check, if <linearSystems> node is created properly");
-    //    if(!pn) {
-//      
-//      
-//      linSysNode->GetChildren().Push_back(PtrParamNode(new ParamNode());
-//      pn = linSysNode->GetChildren().Last();
-//      pn->SetName("system");
-//      pn->GetChildren().Push_back(new ParamNode());
-//      PtrParamNode nameNode = pn->GetChildren().Last();
-//      nameNode->SetName("name");
-//      nameNode->SetValue(sysName);
-//    }
-    
     return pn;
   }
 
