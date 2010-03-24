@@ -5,9 +5,6 @@
 #include <iostream>
 
 #include <boost/algorithm/string/trim.hpp>
-
-//#include "DataInOut/ParamHandling/ParamNode.hh"
-
 #include "exception.hh"
 
 namespace CoupledField {
@@ -83,6 +80,14 @@ namespace CoupledField {
           case WARNING:
             std::string msg = message;
             boost::trim(msg);
+           
+            // The following section is taken from WriteInfo.cc, only
+            // the coloring is neglected, as we can not link the 
+            // coloredConsole here, which would lead to missing objects
+            // for the h5tool.
+            std::cerr << "\n "
+             << "WARNING:" << "\n"
+            << what_ << std::endl;
 
             // ahauck, 2010-03-15
             // The following section is commented out, as it introduces a 
