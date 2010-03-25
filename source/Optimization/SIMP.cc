@@ -108,7 +108,7 @@ void SIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* mat_out,
   {
   case MECH:
   {
-    const Matrix<double> mechStiffness = mech_mat_->MechStiffness(de->elem);
+    const Matrix<double> &mechStiffness = mech_mat_->MechStiffness(de->elem);
     
     // Find the transferfunction for K (e.g. DENSITY, MECH)
     TransferFunction* tf = design->GetTransferFunction(de->GetType(), app);

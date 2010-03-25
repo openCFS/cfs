@@ -7,7 +7,6 @@
 #include "Optimization/DesignElement.hh"
 #include "General/exception.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
 
 using namespace CoupledField;
@@ -123,6 +122,10 @@ void OptimalityCondition::SolveProblem()
     // calc gradients to store the results in data[element]...
     // the gradients are based for the calculation of the next iteration
     optimization->CalcObjectiveGradient(NULL);
+    
+    // reset values of the constraint gradients
+    optimization->GetDesign()->Reset(DesignElement::CONSTRAINT_GRADIENT, DesignElement::DEFAULT);
+    
     if(optimization->constraints.view->GetNumberOfActiveConstraints() > 0)
       optimization->CalcConstraintGradient(NULL);
     

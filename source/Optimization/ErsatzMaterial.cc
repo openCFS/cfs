@@ -1119,7 +1119,6 @@ void ErsatzMaterial::SubstractGradSurfaceRHS(DesignElement* de, TransferFunction
 
 void ErsatzMaterial::CalcConstraintGradient(Condition* g, StdVector<double>* grad_out)
 {
-  design->Reset(DesignElement::CONSTRAINT_GRADIENT, g != NULL ? g->design : DesignElement::DEFAULT);
   CalcConstraint(g, true, grad_out);
 }
 
@@ -2113,7 +2112,7 @@ double ErsatzMaterial::CalcSlopeConstraint(Condition* g, bool derivative)
   DesignElement* de         = &(design->data[de_idx]);
   int            neigh_num  = slope->GetCurrentVirtualNeighbor(); // 0, 2 (,4)
   DesignElement* neigh      = de->vicinity->GetNeighbour((VicinityElement::Neighbour) neigh_num);
-
+  
   // the abs(slope) is done by two inequality constraints. Therefore the 2 * dim
   // a) x_i+1 - x_i <= c*h
   // b) -x_i+1 + x_i <= c*h was x_i+1 - x_i >= -c*h
@@ -2129,7 +2128,13 @@ double ErsatzMaterial::CalcSlopeConstraint(Condition* g, bool derivative)
 
     // the index of the neighbor element
     unsigned int neigh_idx = design->Find(neigh);
-
+    
+    // reset the constraint gradients for this and the neighbour element
+    // this is now necessary because we moved the Reset-function out of
+    // ErsatzMaterial::CalcConstraintGradient
+    design->data[neigh_idx].Reset(DesignElement::CONSTRAINT_GRADIENT, g);
+    design->data[de_idx].Reset(DesignElement::CONSTRAINT_GRADIENT, g);
+    
     design->data[neigh_idx].AddGradient(NULL, g, case_a ? 1.0 : -1.0);
     design->data[de_idx].AddGradient(NULL, g, case_a ? -1.0 : 1.0);
 

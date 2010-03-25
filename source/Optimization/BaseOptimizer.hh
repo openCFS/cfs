@@ -40,6 +40,10 @@ namespace CoupledField
     /** called by Optimization::CommitIteration(), to be overwritten to add optimizer
      * specific data. Shall match LogFileHeader().Don't add a new-line here!! */
     virtual void LogFileLine(std::ofstream* out, PtrParamNode iteration);
+    
+    /* snopt needs separated evalutations for the linear and nonlinear constraint gradients
+     * all other optimizers always need everything */
+    typedef enum { ALL, LINEAR, NONLINEAR } GradientType;
 
   protected:
 
@@ -66,12 +70,12 @@ namespace CoupledField
     void EvalConstraints(int n, const double* x, int m, bool cfs_scale, double* g);
     
     /** Evaluates the constraint gradients and does reordering if necessary
-     * @param cfs_scale @see EvalObjective() */
-    void EvalGradConstraints(int n, const double* x, int m, int nentries, bool cfs_scale, StdVector<double>& values);
-    
-    /** helper function for snopt-optimizer which separates linear and nonlinear constraint gradients */
-    int EvalGradConstraints(Condition* g, int start, bool cfs_scale, StdVector<double>& values);
-    
+     * @param cfs_scale @see EvalObjective()
+     * @param nonlin_only snopt makes a difference between linear and nonlinear constraints and only
+     *  need evaluation for the nonlinear part */
+    void EvalGradConstraints(int n, const double* x, int m, int nentries, bool cfs_scale,
+        StdVector<double>& values, GradientType grtype = ALL);
+
     /** Provide Upper and Lower bounds to the optimizer */
     void GetBounds(int n, double* x_l, double* x_u, int m, double* g_l, double* g_u);
     
@@ -169,6 +173,10 @@ namespace CoupledField
     Timer* timer_;
     
   private:
+    /** helper function for snopt-optimizer which separates linear and nonlinear constraint gradients */
+    int EvalGradConstraints(Condition* g, int start, bool cfs_scale, 
+        StdVector<double>& values, GradientType grtype = ALL);
+    
     /** Here we store the objective value for a design. */
     DesignMemory design_;
     

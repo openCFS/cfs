@@ -604,12 +604,12 @@ PtrParamNode ParamNode::TokenizedHasAndGet( const string& name,
     // special conversion types for matrix
     if( value_.type() == typeid(Matrix<Double>) ) {
      Matrix<Double>  mat  = boost::any_cast<Matrix<Double> >(value_);
-      ret = mat.ToString();
+      ret = mat.ToXML();
       return;
     }
     if( value_.type() == typeid(Matrix<Complex>) ) {
       Matrix<Complex> mat  = boost::any_cast<Matrix<Complex> >(value_);
-      ret = mat.ToString();
+      ret = mat.ToXML();
       return;
     }
     
@@ -628,12 +628,12 @@ PtrParamNode ParamNode::TokenizedHasAndGet( const string& name,
     // special conversion types for matrix
     if( value_.type() == typeid(Matrix<Double>*) ) {
       Matrix<Double> & mat  = *(boost::any_cast<Matrix<Double>* >(value_));
-      ret = mat.ToString();
+      ret = mat.ToXML();
       return;
     }
     if( value_.type() == typeid(Matrix<Complex>*) ) {
       Matrix<Complex> & mat  = *(boost::any_cast<Matrix<Complex>* >(value_));
-      ret = mat.ToString();
+      ret = mat.ToXML();
       return;
     }
     

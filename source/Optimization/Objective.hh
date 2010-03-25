@@ -45,9 +45,6 @@ class Objective : public Function
     * This makes "u L conj(u)" to actually calc "v L conj(v)" with v = du/dt. -> approximatates sound intensity */
     bool FactorOmegaOmega() const { return omega_omega_; }
 
-    /** index within all objectives for design element gradient */
-    unsigned int GetIndex() const { return index_; }
-
     /** gathered by some of the costFunction attributes in XML, the defaults are in the XML-Schema */
     class StoppingRule
     {
@@ -81,9 +78,6 @@ class Objective : public Function
 
     /** by default 1.0 if not multiObjective */
     double penalty_;
-
-    /** our index within the objectives for gradient storage in DesignElement */
-    unsigned int index_;
 };
 
 

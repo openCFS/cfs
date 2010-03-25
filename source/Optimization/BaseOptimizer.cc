@@ -360,29 +360,38 @@ void BaseOptimizer::EvalConstraints(int n, const double* x, int m, bool cfs_scal
   timer_->Stop();
 }
 
-int BaseOptimizer::EvalGradConstraints(Condition* g, int start, bool cfs_scale, StdVector<double>& values)
+int BaseOptimizer::EvalGradConstraints(Condition* g, int start, bool cfs_scale,
+    StdVector<double>& values, GradientType grtype)
 {
-  int nnz = g->GetSparsityPattern().GetSize();
+  // always initialize the window!!
+  int nnz(0); 
   values.window.Set(start, nnz);
-  // evaluate
-  optimization->CalcConstraintGradient(g, &values);
-
-  // we might ignore that value
-  double scaling = g->DoObjectiveScaling() ? objective->scaling.value : g->manual_scaling_value;
-
-  if(cfs_scale)
+  
+  if(grtype == ALL || (grtype == LINEAR && g->IsLinear()) || (grtype == NONLINEAR && !g->IsLinear()))
   {
-    for(int p = 0; p < nnz; p++)
+    nnz = g->GetSparsityPattern().GetSize();
+    values.window.Set(start, nnz);
+    
+    // evaluate
+    optimization->CalcConstraintGradient(g, &values);
+
+    // we might ignore that value
+    double scaling = g->DoObjectiveScaling() ? objective->scaling.value : g->manual_scaling_value;
+
+    if(cfs_scale)
     {
-      values[start + p] *= scaling;
-      assert(values.InWindow(start + p));
+      for(int p = 0; p < nnz; p++)
+      {
+        values[start + p] *= scaling;
+        assert(values.InWindow(start + p));
+      }
     }
   }
-
   return nnz;
 }
 
-void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentries, bool cfs_scale, StdVector<double>& values)
+void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentries, bool cfs_scale,
+      StdVector<double>& values, GradientType grtype)
 {
   timer_->Start();
 
@@ -391,10 +400,14 @@ void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentr
 
   // set the window
   int start = 0;
-
+  
+  // reset values of the constraint gradients before the loop
+  // as it also contains a loop over all the design elements
+  optimization->GetDesign()->Reset(DesignElement::CONSTRAINT_GRADIENT, DesignElement::DEFAULT);
+  
   for(int c = 0; c < m; c++)
   {
-    int tmp = EvalGradConstraints(optimization->constraints.view->Get(c), start, cfs_scale, values); 
+    int tmp = EvalGradConstraints(optimization->constraints.view->Get(c), start, cfs_scale, values, grtype); 
     start += tmp;
     LOG_DBG3(optimizer) << "EvalGradConstraints: co=" << c << " scaled val=" << values.ToString(true);
   }

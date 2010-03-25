@@ -218,6 +218,7 @@ DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> regionIds, Para
 
 void DesignSpace::PostInit(int objectives, int constraints)
 {
+  LOG_DBG(designSpace) << "# objectives = " << objectives << ", # constraints = " << constraints;
   DesignElement::SetDesignSpace(this);
 
   for(unsigned int i = 0; i < data.GetSize(); i++)

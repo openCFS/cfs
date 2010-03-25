@@ -118,6 +118,9 @@ class Function
 
     /** the tensor exists only in the homogenization constraint case */
     Matrix<double>& GetTensor() { return tensor_; }
+    
+    /** index within all objectives for design element gradient */
+    int GetIndex() const { return index_; }
 
     /** Here we store our ParamNode such we can more easily access it in ErsatzMaterial */
     PtrParamNode pn;
@@ -152,6 +155,9 @@ class Function
     /** @see IsPhysical() */
     bool physical_;
 
+    /** this index is the position in the Optimization list and is used to
+     * identify the constraint gradient in DesignElement. Only relevant for type = active */
+    int index_;
 };
 
 } // namespace

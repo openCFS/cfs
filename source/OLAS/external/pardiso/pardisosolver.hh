@@ -15,9 +15,6 @@ namespace CoupledField {
 
   //! This class implements the interface to PARDISO's LU decomposition
   //! and solving of a sparse system of linear equations.
-
-  //! This class implements the interface to PARDISO's LU decomposition
-  //! and solving of a sparse system of linear equations.
   //! There is no need to initialise it, the Setup-Method does in fact
   //! nothing at all.
   //! After Solve is called the BaseMatrix (expected to be either a CRS

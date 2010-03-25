@@ -337,22 +337,9 @@ bool SnOpt::eval_jac_g(int n, const double* x, int m, int nele_jac, double* pG)
   assert(pG != NULL);
   assert(m == nonlin_constraints);
 
-  int start(0);
-  int number(0);
-  
-  for(int c = 0, nc = optimization->constraints.view->GetNumberOfActiveConstraints(); c < nc; c++)
-  {
-    Condition* g = optimization->constraints.view->Get(c);
-
-    if(!g->IsLinear()) // nonlinear
-    {  
-      int nnz = EvalGradConstraints(g, start, true, gradhelper);
-      start += nnz;
-      ++number;
-    }
-  }
-  
-  assert(number == nonlin_constraints);
+  int nc(optimization->constraints.view->GetNumberOfActiveConstraints());
+ 
+  EvalGradConstraints(n, x, nc, nele_jac, true, gradhelper, BaseOptimizer::NONLINEAR);
   
   for(int i = 0; i < nele_jac; i++)
   {
@@ -527,32 +514,17 @@ void SnOpt::setupLinearConstraints()
 {
   // setup linear constraints
   StdVector<double> lincon(nA);
-  int start(0);
-  int count(0);
-  // call BaseOptimizer EvalGradConstraints(Condition* g, int start, bool cfs_scale, StdVector<double>& values)
-  // for all linear constraints
-  for(int c = 0, nc = optimization->constraints.view->GetNumberOfActiveConstraints(); c < nc; c++)
-  {
-    Condition* g = optimization->constraints.view->Get(c);
 
-    if(g->IsLinear()) // linear
-    {
-      ++count;
-      int tmp = EvalGradConstraints(g, start, true, lincon);
-      assert(tmp > 0);
-      start += tmp;
-    }
-  }
-
-  optimization->constraints.view->Done(); // call Done() after traversing the view
-
+  EvalGradConstraints(n, &x[0], optimization->constraints.view->GetNumberOfActiveConstraints(), nA,
+      true, lincon, BaseOptimizer::LINEAR);
+  
   for(int i = 0; i < nA; i++)
   {
     A[i] = lincon[i];
     LOG_DBG3(snopt) << "A[" << i << "] = " << A[i];
   }
   
-  assert(count == lin_constraints);
+  //assert(count == lin_constraints);
 }
 
 void SnOpt::SetIntegerValue(const std::string& key, int value)

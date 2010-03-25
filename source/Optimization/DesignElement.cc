@@ -76,23 +76,24 @@ void BaseDesignElement::AddGradient(const Objective* f, const Condition* g, doub
            else constraintGradient[g->GetIndex()] += value;
 }
 
-void BaseDesignElement::Reset(ValueSpecifier vs)
+void BaseDesignElement::Reset(ValueSpecifier vs, Condition *g)
 {
-  if(vs == COST_GRADIENT)
+  switch(vs)
   {
+  case COST_GRADIENT:
     for(unsigned int i = 0; i < costGradient.GetSize(); i++)
       costGradient[i] = 0.0;
-    return;
+    break;
+  case CONSTRAINT_GRADIENT:
+    if(g != NULL)
+      constraintGradient[g->GetIndex()] = 0.0;
+    else
+      for(unsigned int i = 0; i < constraintGradient.GetSize(); i++)
+        constraintGradient[i] = 0.0;
+    break;
+  default:
+    EXCEPTION("invalid value specifier " << vs);
   }
-
-  if(vs == CONSTRAINT_GRADIENT)
-  {
-    for(unsigned int i = 0; i < constraintGradient.GetSize(); i++)
-      constraintGradient[i] = 0.0;
-    return;
-  }
-
-  EXCEPTION("invalid value specifier " << vs);
 }
 
 double BaseDesignElement::SumObjectiveGradient() const

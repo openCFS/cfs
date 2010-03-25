@@ -11,7 +11,7 @@ namespace CoupledField
 {
 class Elem;
 class ParamNode;
-class ParamNode;
+class Condition;
 class DesignSpace;
 class DesignStructure;
 class DesignElement;
@@ -121,8 +121,10 @@ public:
   void AddGradient(const Objective* f, const Condition* g, double value);
 
   /** Reset either gradients of the class
-   * @param vs either COST_GRADIENT or CONSTRAINT_GRADIENT */
-  void Reset(ValueSpecifier vs);
+   * @param vs either COST_GRADIENT or CONSTRAINT_GRADIENT 
+   * @param g this should preferably be a Funtion*, but it didn't work and 
+   *  it is currently only needed for Condition anyways */
+  void Reset(ValueSpecifier vs, Condition *g = NULL);
 
   /**  Gets the lower bound of the desing variable -
    * up to now this are defaults by type */

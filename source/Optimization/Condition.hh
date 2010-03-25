@@ -45,9 +45,6 @@ namespace CoupledField
        /** The bound value for inhomogeneous constraints. */
        double GetBoundValue() const { return boundValue_; }
 
-       /** Has only relevance for type = active! */
-       int GetIndex() const { return index_; }
-
        /** Is this a linear condition? E.g. SnOpt can handle them more efficiently */
        bool IsLinear() const { return linear_; }
 
@@ -135,10 +132,6 @@ namespace CoupledField
       /** To be called by ConditionContainer::PostProc() which is a friend */
       void SetDenseSparsityPattern(DesignSpace* space);
       
-      /** this index is the position in the Optimization list and is used to
-       * identify the constraint gradient in DesignElement. Only relevant for type = active */
-      int  index_;
-
       Bound bound_;
 
       /** the bound value, the value_ attribute contains the function value */
