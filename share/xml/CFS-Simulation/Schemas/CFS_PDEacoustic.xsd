@@ -266,13 +266,15 @@
                 <xsd:enumeration value="constant"   />
                 <xsd:enumeration value="quadDist"     />
                 <xsd:enumeration value="inverseDist"     />
+                <xsd:enumeration value="smoothDamp"     />
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:element>
 
           <!-- Damping factor -->
-          <xsd:element name="dampFactor" type="xsd:double"
-            minOccurs="0" maxOccurs="1" />
+          <xsd:element name="dampFactor" type="xsd:double" minOccurs="0" maxOccurs="1" />
+
+          <!--xsd:element name="aPML"  type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no"/-->
         </xsd:sequence>
 
       </xsd:extension>
@@ -453,6 +455,8 @@
       <xsd:enumeration value="acouPressure"/>
       <xsd:enumeration value="acouPotential"/>
       <xsd:enumeration value="LagrangeMultiplier"/>
+      <xsd:enumeration value="acouPmlAuxScalar"/>
+      <xsd:enumeration value="acouPmlAuxVec"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -470,6 +474,17 @@
           use="optional" default="nodeList"/>
         <xsd:attribute name="quantity" default="acouPressure"
           type="DT_AcousticUnknownType"/>
+        <xsd:attribute name="dof">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value=""/>
+              <xsd:enumeration value="psi"/>
+              <xsd:enumeration value="phix"/>
+              <xsd:enumeration value="phiy"/>
+              <xsd:enumeration value="phiz"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

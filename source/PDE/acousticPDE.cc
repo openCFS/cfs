@@ -424,12 +424,28 @@ namespace CoupledField {
         
         GetPMLLayerData(inner, outer, actRegion);
 
-        if ( analysistype_ == HARMONIC ) {        
+        if ( analysistype_ == HARMONIC ) {  
+          std::string formsType;
+
+          bool isAPML = false;
+          std::string helpStr;
+          pmlNode->GetValue("aPML",helpStr);
+          if ( helpStr == "yes" ) {
+            //almost PML formulation: just makes since in 3D
+            if ( dim_ != 3) 
+              EXCEPTION( "APML formulation just makes sense in 3D");
+
+            isAPML = true;
+            std::cout << "\n DO APML\n" << std::endl;
+          }
+   
           //====================================================================
           //	 stiffness integrator for PML
           //====================================================================
-          
-          std::string formsType = "laplaceInt";
+          if ( isAPML )
+            formsType = "laplaceIntAPML";
+          else
+            formsType = "laplaceInt";
           
           //set real part
           BaseForm * bilinearStiffReal =
@@ -446,12 +462,15 @@ namespace CoupledField {
           // stiffContextReal->SetEntryType(matType);
           assemble_->AddBiLinearForm( stiffContextReal);
           
-          
           //====================================================================
           //	 mass integrator for PML
           //====================================================================
           
-          formsType = "massInt";
+          if ( isAPML )
+            formsType = "massIntAPML";
+          else
+            formsType = "massInt";
+
           Double massFactor = density/(c0*c0);
           
           //set real part

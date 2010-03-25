@@ -14,19 +14,21 @@ namespace CoupledField
   {
 
     //check for correct type
-    if ( type == "laplaceInt" ) {
-      formsType_ = type;
-    }
-    else if ( type == "massInt" ) {
-      formsType_ = type;
-    }
-    else if ( type == "mixedPMLMassPPInt" || type == "mixedPMLMassVVInt") {
-        formsType_ = type;
-    }
-    else {
-      formsType_ = type;
-      //EXCEPTION("PMLInt: type must be laplaceInt or massInt");
-    }
+//     if ( type == "laplaceInt" ) {
+//       formsType_ = type;
+//     }
+//     else if ( type == "massInt" ) {
+//       formsType_ = type;
+//     }
+//     else if ( type == "mixedPMLMassPPInt" || type == "mixedPMLMassVVInt") {
+//         formsType_ = type;
+//     }
+//     else {
+//       formsType_ = type;
+//       //EXCEPTION("PMLInt: type must be laplaceInt or massInt");
+//     }
+
+    formsType_ = type;
 
     //check correct damping type
     if ( dampingTypePML == "constant" ) {
@@ -38,7 +40,9 @@ namespace CoupledField
     else if ( dampingTypePML == "inverseDist" ) {
       dampingTypePML_ = dampingTypePML;
     }
-    else {
+    else if ( dampingTypePML == "smoothDamp" ) {
+      dampingTypePML_ = dampingTypePML;
+    }    else {
       EXCEPTION("Damping type for PML not known");
     }
 
@@ -176,6 +180,98 @@ namespace CoupledField
 
   }
 
+  //factors for almost PML
+  void PMLBasics::ComputeFactorAPML(Vector<Complex>& factorsPML,  
+                                    Vector<Double> & pos, 
+                                    Double omega)
+  {
+
+    UInt numVals = pos.GetSize();
+
+    Vector<Complex> factors(numVals);
+    Vector<Double> dampFactors(numVals);
+    dampFactors.Init(0.0);
+
+    if ( pos[0] < minX_ || pos[0] > maxX_ ) {
+      dampFactors[0] = ComputeDampingFactor(pos, X);
+
+      if ( pos[1] < minY_ || pos[1] > maxY_ ) {
+	dampFactors[1] = ComputeDampingFactor(pos, Y);
+
+	//check for 3D
+	if (numVals == 3) {
+	  if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
+	    //compute z-value
+	    dampFactors[2] = ComputeDampingFactor(pos, Z);
+	  }
+	}
+      }
+      
+      else {
+	//check for 3D
+	if (numVals == 3) {
+	  if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
+	    //compute z-value
+	    dampFactors[2] = ComputeDampingFactor(pos, Z);
+	  }
+	}
+      }
+    }
+
+    else {
+      if ( pos[1] < minY_ || pos[1] > maxY_ ) {
+	//compute y-value
+	dampFactors[1] = ComputeDampingFactor(pos, Y);
+	//check for 3D
+	if (numVals == 3) {
+	  if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
+	    //compute z-value
+	    dampFactors[2] = ComputeDampingFactor(pos, Z);
+	  }
+	}
+      }
+
+      else {
+	//check for 3D
+	if (numVals == 3) {
+	  if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
+	    dampFactors[2] = ComputeDampingFactor(pos, Z);
+	  }
+	}
+      }
+    }
+
+    factorsPML.Resize(numVals);
+    factorsPML.Init();
+
+    if ( formsType_ == "laplaceIntAPML") {
+      //x-part
+      factorsPML[0] = Complex(dampFactors[1]+dampFactors[2],omega) 
+        / Complex( dampFactors[0], omega);
+//         + Complex(dampFactors[1]*dampFactors[2],0) 
+//         / Complex(-omega*omega, omega* dampFactors[0]); 
+
+      //y-part
+      factorsPML[1] = Complex(dampFactors[0]+dampFactors[2],omega) 
+        / Complex( dampFactors[1], omega);
+//         +  Complex(dampFactors[0]*dampFactors[2],0) 
+//         / Complex(-omega*omega, omega* dampFactors[1]);
+ 
+      //z-part
+      factorsPML[2] = Complex(dampFactors[0]+dampFactors[1],omega) 
+        / Complex( dampFactors[2], omega);
+//         + Complex(dampFactors[0]*dampFactors[1],0) 
+//         / Complex(-omega*omega, omega* dampFactors[2]); 
+    }
+    else {
+      //PML factor for mass integrator
+      factorsPML[0] = Complex(1, (-1.0/omega)*(dampFactors[0]+dampFactors[1]+dampFactors[2]) )
+        + Complex( -1/(omega*omega)* (  dampFactors[0]*dampFactors[1] 
+                                        + dampFactors[0]*dampFactors[2]
+                                        + dampFactors[1]*dampFactors[2] ), 0 );
+      //      + Complex(0,1/(omega*omega*omega) * dampFactors[0]*dampFactors[1]*dampFactors[2]);
+    }
+  }
 
   void PMLBasics::ComputeTimeFactorPML(Vector<Double>& factorsPML, 
                                        Vector<Double>& pos )
@@ -380,6 +476,45 @@ namespace CoupledField
       }
 
       //      std::cout << "maxPos =" << maxPos << std::endl;
+
+    }
+    else if ( dampingTypePML_ == "smoothDamp" ) {
+      if ( dir == X ) {
+	//get correct layer thickness
+	if ( pos[0] < minX_ ) {
+	  delta = layerThickness_[0][0];
+	  diffCoord = abs(pos[0]) - minX_;
+	}
+	else {
+	  delta = layerThickness_[1][0];
+	  diffCoord = abs(pos[0]) - maxX_;
+	}
+      }
+      else if ( dir == Y ) {
+	//get correct layer thickness
+	if ( pos[1] < minY_ ) {
+	  delta = layerThickness_[0][1];
+	  diffCoord = abs(pos[1]) - minY_;
+	}
+	else {
+	  delta = layerThickness_[1][1];
+	  diffCoord = abs(pos[1]) - maxY_;
+	}
+      }
+      else {
+	//get correct layer thickness
+	if ( pos[2] < minZ_ ) {
+	  delta = layerThickness_[0][2];
+	  diffCoord = abs(pos[2]) - minZ_;
+	}
+	else {
+	  delta = layerThickness_[1][2];
+	  diffCoord = abs(pos[2]) - maxZ_;
+	}
+      }
+
+      factor = dampingFactor_ * 
+        ( diffCoord/delta - std::sin(2*PI*diffCoord/delta) / ( 2*PI ) );
 
     }
 

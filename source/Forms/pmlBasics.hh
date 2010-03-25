@@ -24,6 +24,10 @@ namespace CoupledField
     //! calculates position and values
     void ComputeFactorPML( Vector<Complex>& factorsPML, Complex& pmlDet,
                            Vector<Double>& coordAtIP, Double omega );
+
+   //! calculates position and values
+    void ComputeFactorAPML( Vector<Complex>& factorsPML, 
+                            Vector<Double>& coordAtIP, Double omega );
     
     //! calulates position and values for time domain PML
     void ComputeTimeFactorPML(Vector<Double>& factorsPML, 

@@ -50,7 +50,14 @@ namespace CoupledField
     
     //! Calculation of mass matrix
     void CalcElementMatrixMass(Matrix<Double> & ptCoord, Matrix<Complex> & elemMat);
+
+    //! Calculation of stiffmess matrix for almost PML
+    void CalcElementMatrixStiff4APML(Matrix<Double> & ptCoord, Matrix<Complex> & elemMat);
     
+    //! Calculation of mass matrix for almost PML
+    void CalcElementMatrixMass4APML(Matrix<Double> & ptCoord, Matrix<Complex> & elemMat);
+
+
     //! object containing standard PML methods
     PMLBasics *pmlFnc_;
     

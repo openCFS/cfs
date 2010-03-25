@@ -44,12 +44,20 @@ namespace CoupledField
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
 
+    //correct PML
     if ( pmlFnc_->GetFormsType() =="laplaceInt" ) {
       CalcElementMatrixStiff(ptCoord_, elemMat);
     }
-    else {
+    else if ( pmlFnc_->GetFormsType() =="massInt" ) {
       CalcElementMatrixMass(ptCoord_, elemMat);
     }
+    //almost PML
+    else if ( pmlFnc_->GetFormsType() =="laplaceIntAPML" ) {
+      CalcElementMatrixStiff4APML(ptCoord_, elemMat);
+    }
+    else if ( pmlFnc_->GetFormsType() =="massIntAPML" ) {
+      CalcElementMatrixMass4APML(ptCoord_, elemMat);
+    } 
   }
 
 
@@ -194,6 +202,139 @@ namespace CoupledField
     pmlFnc_-> SetPosPML( inner, outer );
   }
 
+
+  //------------------------harmonic case for almost PML---------------------------------
+
+  void PMLInt::CalcElementMatrixStiff4APML(Matrix<Double> & ptCoord, 
+                                           Matrix<Complex> & elemMat) {
+    
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    const UInt nrIntPts= ptelem->GetNumIntPoints();
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+    const Vector<Double> * intPoints = ptelem->GetIntPoints();
+    Double jacDet;  
+
+    // derivation of shape functions after global coordinates 
+    Matrix<Double> xiDx;
+    Matrix<Complex> xiDxC,xiDxTranspC;
+    Matrix<Complex> partElemMat;
+    Vector<Double> ShpFncAtIp;
+    Vector<Double> CoordAtIP;
+
+    // set matrix to desired size and set all elements to zero
+    elemMat.Resize(numFncs); 
+    elemMat.Init();
+   
+    //set correct size for complex xiDx
+    const UInt spaceDim = ptelem->GetDim();  
+    xiDxC.Resize(numFncs, spaceDim);
+
+    Vector<Complex> factorsPML;
+    Double omega = 2 * PI * mParser_->Eval( mHandle_ );
+
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
+      {
+        jacDet = 0;
+        ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord, 
+                                      jacDet, it1_.GetElem() );
+ 	// compute PML factor 
+        ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+                                   ptCoord, it1_.GetElem() );
+	pmlFnc_->ComputeFactorAPML( factorsPML, CoordAtIP, omega);        
+
+	//multiply the derivatives with the x-,y- and z-factors
+	for (UInt i=0; i<xiDx.GetNumCols(); i++) {
+	  for (UInt j=0; j<xiDx.GetNumRows(); j++) {
+	    xiDxC[j][i] = xiDx[j][i] * factorsPML[i];
+	  }
+	}
+
+        xiDxC.Transpose(xiDxTranspC);
+        partElemMat = xiDx * xiDxTranspC;
+
+        if (isaxi_) {
+	  partElemMat *= 2 * PI * intWeights[actIntPt-1] * jacDet * 
+            formsFactor_ * CoordAtIP[0];
+	}
+        else 
+          partElemMat *= intWeights[actIntPt-1] * jacDet * 
+            formsFactor_;
+
+        elemMat += partElemMat;
+      }
+
+    //std::cout << "PML-ElemMatStiff:\n" << elemMat << std::endl;
+  }
+
+
+  void PMLInt::CalcElementMatrixMass4APML(Matrix<Double> & ptCoord, 
+                                          Matrix<Complex> & elemMat) {
+    
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    const UInt nrIntPts= ptelem->GetNumIntPoints();
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+    const Vector<Double> * intPoints = ptelem->GetIntPoints();
+    Double jacDet;
+
+    Vector<Double> shapeFncAtIp;
+    Matrix<Double> partElemMat;
+    Vector<Double> CoordAtIP;
+
+    // set matrix to desired size and set all elements to zero
+    elemMat.Resize(numFncs);
+    elemMat.Init();
+    
+    Vector<Complex> factorsPML;
+    Complex factor, factorPML;
+    Double omega = 2 * PI * mParser_->Eval( mHandle_ );
+
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
+      ptelem->SetAnsatzFct( ansatzFct1_ );
+      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord,
+                                           it1_.GetElem() );
+        
+      ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt, it1_.GetElem() );
+        
+      partElemMat.DyadicMult(shapeFncAtIp);
+        
+      // compute PML factor 
+      ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+                                 ptCoord, it1_.GetElem() );
+
+      pmlFnc_->ComputeFactorAPML( factorsPML, CoordAtIP, omega); 
+
+      factorPML = factorsPML[0] * formsFactor_;
+
+      if (isaxi_) 
+        factor = 2 * PI * intWeights[actIntPt-1] * jacDet * 
+          CoordAtIP[0] * factorPML;
+      else 
+        factor = intWeights[actIntPt-1] * jacDet * factorPML;
+        
+      for ( UInt i=0; i<numFncs; i++ ) {
+        for ( UInt j=0; j<numFncs; j++ ) {
+          elemMat[i][j] += factor * partElemMat[i][j];
+        }
+      }
+    }
+    
+    if (nrDofsPerNode_ > 1 ) {
+     Matrix <Complex> singleDofMass = elemMat;
+     UInt singleDofSize = singleDofMass.GetNumRows();
+
+     elemMat.Resize( nrDofsPerNode_* singleDofSize );
+
+     for (UInt i=0; i < singleDofSize; i++)
+       for (UInt j=0; j < singleDofSize; j++)
+         for (UInt actDof=0; actDof < nrDofsPerNode_; actDof++)
+           elemMat[i*nrDofsPerNode_ + actDof][j*nrDofsPerNode_ + actDof] = singleDofMass[i][j]; 
+   }
+
+
+    // std::cout << "PML-ElemMatMass:\n" << elemMat << std::endl;
+  }
 
 
   //========================================= MECHANICAL ===============================
