@@ -105,7 +105,7 @@ namespace CoupledField {
     };
 
     //! Default Destructor
-    ~BaseStdPrecond() {
+    virtual ~BaseStdPrecond() {
     };
 
     //! Applies the preconditioner by "solving" Az=r for z

@@ -132,16 +132,35 @@ int ShapeDesign::WriteDesignToExtern(double* space_out, bool scaling) const {
   return(design_id);
 }
 
-void ShapeDesign::WriteGradientToExtern(double* out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Condition* g, bool scaling) const {
+void ShapeDesign::WriteDenseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Condition* g, bool scaling) const
+{
+  // makes use of the window within out even  if only a part of the window is used in the alsomatopt_ case
   WriteShapeGradientToExtern(out, g);
-  if(alsomatopt_){
-    DesignSpace::WriteGradientToExtern(out + nshapeparams_, vs, access, g, scaling);
+
+  if(alsomatopt_)
+  {
+    // we call DesignSpace::WriteDenseGradientToExtern() for the ersatz material part.
+    // therefore the window needs to be adjusted to a "subwindow" as WriteDenseGradientToExtern()
+    // orientates itself on the given window.
+    // The original window needs to be restored afterwards for assert() in BaseOptimization which
+    // dies not know about separation into shape and mat variables
+    StdVector<double>::Window org_window = out.window; // I like standard constructors :)
+    // shift the window to do the rest
+    assert(nshapeparams_ <= out.window.GetSize());
+    // replace the original window by a subwindow excluding the shape stuff
+    out.window.Set(out.window.GetStart() + nshapeparams_, out.window.GetSize() - nshapeparams_);
+    DesignSpace::WriteDenseGradientToExtern(out, vs, access, g, scaling);
+
+    // restore original window
+    out.window = org_window;
   }
 }
 
-void ShapeDesign::WriteShapeGradientToExtern(double* out, Condition* g) const {
+void ShapeDesign::WriteShapeGradientToExtern(StdVector<double>& out, Condition* g) const {
+  unsigned int base = out.window.GetStart();
+  assert(nshapeparams_ <= out.window.GetSize());
   for(unsigned int i=0; i < nshapeparams_; i++){
-    out[i] = shapeparams_[i].GetGradient(NULL, g) * scaling;
+    out[base + i] = shapeparams_[i].GetGradient(NULL, g) * scaling;
   }
 }
 

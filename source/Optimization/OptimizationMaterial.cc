@@ -72,8 +72,14 @@ OptMechMat::OptMechMat(ErsatzMaterial* em) : OptimizationMaterial(em)
   for(unsigned int r=0; r < regionIds.GetSize(); r++)
   {
     GetElementMatrix(opt->GetForm(regionIds[r], mech, mech, "linElastInt"), mechStiffness_map[regionIds[r]]);
+    LOG_DBG(om) << "OptMechMat MechStiffness region=" << domain->GetGrid()->GetRegion().ToString(regionIds[r])
+                << std::endl << mechStiffness_map[regionIds[r]].ToString(0,true);
     if(opt->IsHarmonic())
+    {
       GetElementMatrix(opt->GetForm(regionIds[r], mech, mech, "MassInt"), mechMass_map[regionIds[r]]);
+      LOG_DBG(om) << "OptMechMat MechMaxx region=" << domain->GetGrid()->GetRegion().ToString(regionIds[r])
+                  << std::endl << mechMass_map[regionIds[r]].ToString(0,true);
+    }
   }
 }
 

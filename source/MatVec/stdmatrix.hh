@@ -25,6 +25,8 @@ namespace CoupledField {
   class StdMatrix : public BaseMatrix {
 
   public:
+    
+    virtual ~StdMatrix() {}
 
     // ========================================================================
     // QUERY METHODS

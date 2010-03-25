@@ -82,7 +82,15 @@ namespace CoupledField {
     SolutionType GetFormulation() {
       return formulation_;
     }
-    
+
+    /** Helper for CalcAcouSurfIntensity() and eventually also for other methods to fight the copy and past stuff :(.
+     * Used by optimization for acoustic near field optimization.
+     * Evaluates for the surface center points the gradient by the help of the neighbor volume element.
+     * @param apply_normal if true then the gradient is multiplied by -1 if vol2 is used -> see CalcAcouPower().
+     *                     It seems that his corrects actSurfElem->normalSign
+     * @param grad_out for every surface element within val the gradient is evaluated. Eventually multiplied by -1 (see apply_normal) */
+    template <class TYPE>
+    void CalcGradSurfaceElement( shared_ptr<BaseResult> vals, SolutionType solType, bool apply_normal, StdVector<Vector<TYPE> >& grad_out );
 
   protected:
 
@@ -118,6 +126,9 @@ namespace CoupledField {
     // Postprocessing
     // ========================
 
+    /** Calculate acoustic power. */
+    template <class TYPE>
+    void CalcAcouPower( shared_ptr<BaseResult> vals);
     
     //! calculate Force acting on specified surface elements
     template <class TYPE> 
@@ -127,14 +138,12 @@ namespace CoupledField {
     template <class TYPE>
     void CalcElemPressure( shared_ptr<BaseResult> vals );
     
-    //! Calculate acoustic power
-    template <class TYPE>
-    void CalcAcouPower( shared_ptr<BaseResult> vals );
 
     //! Calculate Kaltenbacher's intensity projected on a surface
     template <class TYPE>
     void CalcAcouSurfIntensity( shared_ptr<BaseResult> vals );
     
+
     //! Calculate acoustic intensity
     template <class TYPE>
     void CalcAcouIntensity( shared_ptr<BaseResult> vals );

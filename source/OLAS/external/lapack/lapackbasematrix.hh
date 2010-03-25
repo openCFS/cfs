@@ -25,6 +25,8 @@ namespace CoupledField {
   class LapackBaseMatrix : public StdMatrix {
 
   public:
+    
+    virtual ~LapackBaseMatrix() {}
 
     //! Return the block size of the matrix
 

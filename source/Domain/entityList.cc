@@ -243,14 +243,14 @@ namespace CoupledField {
     return grid_->GetRegion().ToString( list_.Last() );
   }
 
-  void RegionList::SetRegionId( RegionIdType region ) {
+  void RegionList::SetRegion( RegionIdType region ) {
     defineType_ = REGION;
     list_.Resize(1);
     list_[0] = region;
     size_ = 1;
   }
 
-  void RegionList::SetRegionNames( const StdVector<RegionIdType>& regions ) {
+  void RegionList::SetRegions( const StdVector<RegionIdType>& regions ) {
     defineType_ = REGION;
     list_ = regions;
     size_ = list_.GetSize();

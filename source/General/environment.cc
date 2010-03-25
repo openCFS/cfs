@@ -1708,7 +1708,6 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_RHS_LOAD, "acouRhsLoad");
     SolutionTypeEnum.Add(ACOU_RHSVAL, "acouRHSval");
     SolutionTypeEnum.Add(ACOUSURF_RHSVAL, "acouSurfRHSval");
-    SolutionTypeEnum.Add(ACOU_SOUND_SPEEED, "acouSoundSpeed");
     SolutionTypeEnum.Add(ACOU_BUBBLE_RHS_VAL, "acouBubbleRhsVal");
     SolutionTypeEnum.Add(ACOU_POT_NRBC, "acouPotNRBC");
     SolutionTypeEnum.Add(NRBC_PHI, "nrbcPhi");

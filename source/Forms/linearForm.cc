@@ -2480,5 +2480,4 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
       elemVec += partElemVec;
     }
   }
-  
 } // end of namespace

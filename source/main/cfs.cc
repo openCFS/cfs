@@ -413,7 +413,9 @@ void CFS::SetupIO()
   progOpts->ToInfo(info->Get(ParamNode::HEADER)->Get("progOpts"));
   // log the optinal id/name/token/label from <cfsSimulation id="..">
   info->Get(ParamNode::HEADER)->Get("id")->SetValue(param->Get("id"));
-
+  // if requested five the problem file -> one can see the defaults then
+  if(progOpts->DoDetailedInfo())
+    info->Get(ParamNode::HEADER)->Get("cfsSimulation")->SetValue(param);
   // Open file for status reports by OLAS
   fileHandler.OpenFile( OLAS_FILE );
 }

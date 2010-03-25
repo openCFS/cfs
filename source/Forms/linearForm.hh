@@ -709,7 +709,6 @@ namespace CoupledField
       SubTensorType subTensorType_;
     };
 
-
 } // end of namespace
 
 #endif // FILE_LINEARFORM

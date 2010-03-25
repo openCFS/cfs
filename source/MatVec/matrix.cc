@@ -101,6 +101,7 @@ namespace CoupledField
     {
       delete[] data_[0];
       delete[] data_;
+      data_= NULL;
     }
   }
 
@@ -304,6 +305,7 @@ namespace CoupledField
   template<class TYPE>
   Matrix<TYPE> &Matrix<TYPE>::operator=(const Matrix<TYPE> &x)
   {
+    // allows to copy an empty matrix. !
 
     // Note! it shall be possible to copy an empty matrix!
 //#ifdef CHECK_INITIALIZED
@@ -311,10 +313,9 @@ namespace CoupledField
 //      EXCEPTION("undefined Matrix");
 //#endif  
 
-    if (this == &x)  {
+    if (this == &x)
       return *this;
-    }
-  
+
     // set the size in any case to the size of the assigned matrix
     Resize(x.size_row_, x.size_col_);
   
@@ -1391,7 +1392,6 @@ namespace CoupledField
 
     return static_cast<TYPE>(std::sqrt(result)); // for compilers
   }
-
 
   // Alternate version of symmetry checker, that will report
   // asymmetries to standard output

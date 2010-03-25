@@ -106,14 +106,11 @@ namespace CoupledField {
       elemMat = multDofMass;
     }
 
-    // for the harmonic topology optimzation case (or load ersatz material)
+    // for the harmonic topology optimization case (or load ersatz material)
     double density = GetErsatzMaterialFactor(ent1.GetElem());
-    if(density != 1.0) elemMat *= density;    
     LOG_DBG3(forms) << GetName() << "::CalcElementMatrix(" << ent1.GetElem()->elemNum  
                     << ") -> density=" << density;    
     if(density != 1.0) elemMat *= density;
-    
-    //     std::cout << "ElemMatMass:\n" << elemMat << std::endl;
   }
 
   void MassInt::MassMultiDof(Matrix<Double>& massMultDof, 

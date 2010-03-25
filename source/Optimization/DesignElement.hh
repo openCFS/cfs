@@ -13,6 +13,7 @@ class Elem;
 class ParamNode;
 class ParamNode;
 class DesignSpace;
+class DesignStructure;
 class DesignElement;
 class ResultDescription;
 class SIMPElement;
@@ -30,8 +31,11 @@ public:
   VicinityElement();
 
   /** Initializes all elements, ignores multiple design elements!
-   * Adds VicinityElement packages to the design elements*/
-  static void Init(DesignSpace* design);
+   * Adds VicinityElement packages to the design elements.
+   * Make use of of the element neighbors and works only for regular grids!
+   * Makes it only once! If the first element has vicinity we return silent!
+   * @param structure in the periodic case this is a helper */
+  static void Init(DesignSpace* design, DesignStructure* structure);
 
   /** Gives the number of not NULL entries. */
   int GetNumberOfEntries() const;
@@ -39,22 +43,31 @@ public:
   /** This are indices for the entries to design */
   enum Neighbour {X_P = 0, X_N = 1, Y_P = 2, Y_N = 3, Z_P = 4, Z_N = 5, NONE = -1};
 
-  /** Gives the neighbour elements */
+  /** Gives the neighbor elements */
   DesignElement* GetNeighbour(Neighbour idx) { return design[idx]; }
+
+  /** convenience to check if the neighbor is NULL */
+  bool HasNeighbor(Neighbour idx) const { return design[idx] != NULL; }
 
   /** dump method for logging */
   std::string ToString();
 
-  /** Contains the next neighbours (only +/- x,y(,z) and not diagonal.
+  /** Contains the next neighbors (only +/- x,y(,z) and not diagonal.
    * Ordered as +x, -x, +y, -y (+z, -z). As the elements are DesignElements only within this region.
-   * If there is no neighbour (e.g. z in 2D or on the boundary) the value is NULL */
+   * If there is no neighbor (e.g. z in 2D or on the boundary) the value is NULL.
+   * Periodic BC could be treated as 'real' element. Please check and clear this comment!*/
   StdVector<DesignElement*> design;
 
 private:
 
-  /** Helper method that identifies the neighborhood of two elements given by their nodal coordinates.
-   * TODO: make use of the element neighbors containing the number of common nodes! */
-  static bool IdentifyNeighbor(Matrix<Double>& reference, Matrix<Double>& other, int& dimension, bool& positive);
+  /** Compares the node coordinates of two elements and decides which orientation we have.
+   * Only face/line (3D/2D) neighbors are assumed. We are happy with the first nodes
+   * coordinates to perform this comparison. Note that we regular!
+   * @param reference from 'reference' element the first node's coordinates
+   * @param other for a 'close' neighbor element the first node's coordinate
+   * @param spacing to identify periodic b.c. correctly
+   * @return the index within VicinitiyElement::design */
+  static Neighbour FindRelativeNeighborLocation(Point& referenence, Point& other, StdVector<double> spacing);
 };
 
 
@@ -79,8 +92,10 @@ class BaseDesignElement
 public:
 
   /** types for GetFilteredValue() */
-  typedef enum { DESIGN, DESIGN_COST_GRADIENT, COST_GRADIENT, CONSTRAINT_GRADIENT, WEIGHT, OBJECTIVE, NUM_NEIGHBOURS,
+  typedef enum { DESIGN, PHYSICAL_MECH_DESIGN, DESIGN_COST_GRADIENT, COST_GRADIENT, CONSTRAINT_GRADIENT, WEIGHT, OBJECTIVE, NUM_NEIGHBOURS,
     LEVEL_SET_VALUE, LEVEL_SET_STATE, TOPGRAD_VALUE, SHAPEGRAD_VALUE, SHAPEGRAD_NODE_VALUE,
+    MAX_SLOPE, /* the max(abs()) of the 2 * dim slope constraints for each element */
+    CHECKERBOARD, /* the max value per element */
     LEVEL_SET_GRAD_XP, LEVEL_SET_GRAD_XN, LEVEL_SET_GRAD_YP, LEVEL_SET_GRAD_YN, LEVEL_SET_GRAD_ZP, LEVEL_SET_GRAD_ZN } ValueSpecifier;
 
   BaseDesignElement();
@@ -159,11 +174,17 @@ public:
   DesignElement();
 
   /** This sets the DesignElement with the values from the XML file.
-   * Is slow as it does the same evaluation often but is only O(n) */
+   * Is slow as it does the same evaluation often but is only O(n)
+   * @param space to output 'penalizedDesign' the pointer is needed to find the transfer function*/
   DesignElement(PtrParamNode pn, Elem* elem);
 
   ~DesignElement();
 
+   /** Is only required once - there is no need to hold the pointer private */
+  static void SetDesignSpace(DesignSpace* space)
+  {
+    space_ = space;
+  }
 
   /** This defines how to acces variables (design, objective_gradient, ...),
    *  PLAIN is the value and SMART does a filtering if enabled otherwise also as PLAIN */
@@ -176,7 +197,7 @@ public:
    *   <li>VOLUME_RADIUS: The radius is *value* times square/cube edge length where the
    *               square/cube has the volume of the element</li>
    * </ul> */
-  typedef enum { RADIUS, VOLUME_RADIUS, MAX_EDGE } Filter;
+  typedef enum { NO_FILTER, RADIUS, VOLUME_RADIUS, MAX_EDGE } Filter;
 
   /** The type of this design element, influences the Get*Bound() methods.
    * By definition the design elements are stored in the ordering of the type!! */
@@ -190,7 +211,8 @@ public:
      * For the PiezoSIMP case:
      * COST_GRADIENT/MECH_MECH ... as ErsatzMaterial::CalcU1KU2() Parameters. QUAD is calcMode
      * or it does the very special purpose symmetry for the ValueSpecifier */
-    typedef enum { NONE, SYMMETRY, FINITE_DIFF_COST_GRADIENT, ERROR_COST_GRADIENT, MECH_MECH, ELEC_ELEC, ELEC_ELEC_QUAD, ELEC_MECH, MECH_ELEC } Detail;
+    typedef enum { NONE, SYMMETRY, FINITE_DIFF_COST_GRADIENT, ERROR_COST_GRADIENT, MECH_MECH, ELEC_ELEC, ELEC_ELEC_QUAD, ELEC_MECH, MECH_ELEC,
+      COMPLIANCE, VOLUME, PENALIZED_VOLUME, GAP, TRACKING, HOMOGENIZATION_TRACKING, POISSONS_RATIO, YOUNGS_MODULUS, TYCHONOFF, GREYNESS, REALVOLUME} Detail;
 
     /** Gets the design element
      * @param access if plain the rho value if SMART and filtering is enabled the filtered value */
@@ -256,7 +278,7 @@ public:
     SIMPElement* simp;
 
     /** The vicinity (structured grids, e.g. for Level-Set */
-    VicinityElement* vicinity_;
+    VicinityElement* vicinity;
 
     /** The level-set element, will be destroyed by LevelSet */
     LevelSetElement* lse_;
@@ -280,6 +302,9 @@ private:
   /** what is our design type */
   Type type_;
 
+  /** up to now only needed to extract 'penalizedDesign'. Make it protected
+   * if you need it. */
+  static DesignSpace* space_;
 };
 
 
@@ -311,8 +336,9 @@ public:
   /** The weight of THIS element to be summed to 1.0 with all neighbor weights */
   double weight;
 
-  /** The neighbors if filter otherwise empty. Set by InitFilter().
-   * The element itself is NOT part of the neighborhood! */
+  /** The neighbors if filter otherwise empty.
+   * The element itself is NOT part of the neighborhood!
+   * @see DesignStructure::DesignStructure() */
   StdVector<NeighbourElement> neighborhood;
 
   /** for debugging. Sums the weights of all neighbors, ... */

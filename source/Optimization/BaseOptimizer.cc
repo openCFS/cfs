@@ -16,7 +16,6 @@ using std::abs;
 DECLARE_LOG(optimizer)
 DEFINE_LOG(optimizer, "optimizer")
 
-
 BaseOptimizer::Scale::Scale(BaseOptimizer* base, PtrParamNode autoscale, double manual_scale, bool no_autoscale)
  : target(0.0),
    tol(0.0),
@@ -75,8 +74,8 @@ void BaseOptimizer::Scale::CalcAutoscale()
   // copy the design to our temporary space
   int design_id = base_->optimization->GetDesign()->WriteDesignToExtern(data.GetPointer());
 
-  // evaluate the the gradient -> will be cheep in restart case
-  bool good = base_->EvalGradObjective(grad.GetSize(), data.GetPointer(), grad.GetPointer());
+  // evaluate the the gradient -> will be cheap in restart case
+  bool good = base_->EvalGradObjective(grad.GetSize(), data.GetPointer(), false, grad);
   if(!good) EXCEPTION("internal error"); // needs to be good as tol = set to 0.0;
   assert(opt_scaling.value != 0.0);
   
@@ -87,6 +86,7 @@ void BaseOptimizer::Scale::CalcAutoscale()
   // reset the tolerance
   tol = tol_save;
   autoscale_ = true;
+
   LOG_TRACE(optimizer) << "Scale::CalcAutoscale(): scale=" << scaling.value << " desing=" 
                        << scaling.design_id << " needed_eval=" << (opt_scaling.design_id != design_id);
 }
@@ -94,7 +94,7 @@ void BaseOptimizer::Scale::CalcAutoscale()
 
 /** Checks the current gradients in the design space against the tolerance.
  * @return true if not active or no tolerance or within tolerance */
-bool BaseOptimizer::Scale::CheckScaling(int n, double* grad) 
+bool BaseOptimizer::Scale::CheckScaling(int n, StdVector<double>& grad)
 {
   assert(base_->design_.design_id != -1);
 
@@ -144,7 +144,8 @@ bool BaseOptimizer::Scale::CheckScaling(int n, double* grad)
 
 std::string BaseOptimizer::Scale::ToString()
 {
-  if(scaling.value == 0.0)
+  // scaling.value = -1.0 when no target but maximization
+  if(scaling.value == 0.0 || target == 0.0)
   {
     return "No scaling";
   }
@@ -155,12 +156,8 @@ std::string BaseOptimizer::Scale::ToString()
   {
     os << "Autosale target=" << target;
     if(tol != 0.0) os << " tolerance=" << tol;
+    os << " scaling=" << scaling.value;
   }
-  else
-  {
-    os << "Scale";
-  }
-  os << " scaling=" << scaling.value;
   
   return os.str();
 }
@@ -198,7 +195,11 @@ void BaseOptimizer::SolveOptimizationProblem()
 
 std::string BaseOptimizer::LogFileHeader()
 {
-  return objective->target != 0.0 ? "\tmax_f_grad\tscale\topt_scale" : "\tmax_f_grad";
+  std::string tmp = objective->target != 0.0 ? "\tmax_f_grad\tscale\topt_scale" : "\tmax_f_grad";
+  if(GetCurrenActiveSetSize() >= 0)
+    tmp += "\tactive_set";
+
+  return tmp;
 }
 
 
@@ -215,10 +216,12 @@ void BaseOptimizer::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     
     iteration->Get("scale")->SetValue(objective->scaling.value);
     iteration->Get("opt_scale")->SetValue(objective->opt_scaling.value);
+    if(GetCurrenActiveSetSize() >= 0)
+      iteration->Get("active_set")->SetValue(GetCurrenActiveSetSize());
   }
 }
 
-double BaseOptimizer::EvalObjective(int n, const double* x)
+double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
 {
   assert(optimization->GetDesign()->GetNumberOfVariables() == (unsigned int) n);
 
@@ -244,20 +247,22 @@ double BaseOptimizer::EvalObjective(int n, const double* x)
   {
     // the design did not change
     // in the debug case we evaluate the objective to be sure!
-    assert(design_.value == optimization->CalcObjective());
+    assert(close(design_.value, optimization->CalcObjective()));
     need_eval = false;
   }
 
   timer_->Start();
 
+  double ret = cfs_scale ? objective->scaling.value * design_.value : design_.value;
+
   LOG_DBG(optimizer) << "EvalObjective: x_avg=" << Average(x, n) 
                      << " std_dev=" << StandardDeviation(x, n) 
-                     << " is_new=" << need_eval << " -> " << design_.value;
-
-  return design_.value;
+                     << " is_new=" << need_eval << " -> " << design_.value
+                     << " scaled=" << ret;
+  return ret;
 }
 
-bool BaseOptimizer::EvalGradObjective(int n, const double* x, double* grad_f)
+bool BaseOptimizer::EvalGradObjective(int n, const double* x, bool cfs_scale, StdVector<double>& grad_f)
 {
   assert(optimization->GetDesign()->GetNumberOfVariables() == (unsigned int) n);
 
@@ -266,7 +271,7 @@ bool BaseOptimizer::EvalGradObjective(int n, const double* x, double* grad_f)
   // set the design and see if it is a new one
   int new_design = optimization->GetDesign()->ReadDesignFromExtern(x);
   
-  LOG_DBG2(optimizer) << "EvalGradObjective() extern design_id=" << new_design << " design.design_id=" << design_.design_id;    
+  LOG_DBG2(optimizer) << "EvalGradObjective() external design_id=" << new_design << " design.design_id=" << design_.design_id;
   
   // do we have a valid value?
   bool need_eval = true;
@@ -287,12 +292,15 @@ bool BaseOptimizer::EvalGradObjective(int n, const double* x, double* grad_f)
   {
     need_eval = false;
     // only done in debug
-    assert(design_.value == optimization->CalcObjective());
+    assert(close(design_.value, optimization->CalcObjective()));
   }
   
   LOG_DBG2(optimizer) << "EvalGradObjective: call CalcObjectiveGradient()";
   // calc our gradient - it is not stored anywhere
-  optimization->CalcObjectiveGradient(grad_f);    
+    
+  assert(n <= (int) grad_f.GetSize()); // FIXME
+  grad_f.window.Set(grad_f);
+  optimization->CalcObjectiveGradient(&grad_f);
 
   // check the scaling - harmless if not restarted autoscale
   restart_requested = false;
@@ -304,43 +312,95 @@ bool BaseOptimizer::EvalGradObjective(int n, const double* x, double* grad_f)
     restart_requested = true;
   }
   
+  // eventually perform the scaling
+  if(cfs_scale)
+    for(int i = 0; i < n; i++)
+      grad_f[i] *= objective->scaling.value;
+
   timer_->Stop();
 
-  LOG_DBG(optimizer) << "EvalGradObjective: design=" << design_.design_id << " need_eval=" << need_eval 
-                     << " -> grad.scale=" << objective->scaling.value << " grad.opt_scaling="
-                     << objective->opt_scaling.value;
+  LOG_DBG(optimizer) << "EvalGradObjective: cfs_scale=" << cfs_scale << " design=" << design_.design_id
+                     << " need_eval=" << need_eval << " -> grad.scale=" << objective->scaling.value
+                     << " grad.opt_scaling=" << objective->opt_scaling.value;
   
   return !restart_requested;
 }
 
-void BaseOptimizer::EvalConstraints(int n, const double* x, int m, double* g)
+void BaseOptimizer::EvalConstraints(int n, const double* x, int m, bool cfs_scale, double* g_val)
 {
+  assert(m == optimization->constraints.view->GetNumberOfActiveConstraints());
   timer_->Start();
 
   // we overwrite the design space, but we do this all the time - especially before eval_f
   optimization->GetDesign()->ReadDesignFromExtern(x); 
      
   // iterate over all constraints
-  for(int i = 0; i < m; i++) 
-     g[i] = optimization->CalcConstraint(&optimization->constraints[i]);
+  for(int i = 0; i < m; i++)
+  {
+    Condition* g = optimization->constraints.view->Get(i);
+    double org = optimization->CalcConstraint(g);
+    double manual_scaling = 1.0;
+    double objective_scaling = 1.0;
+    if(cfs_scale)
+    {
+      if(g->DoObjectiveScaling())
+        objective_scaling = objective->scaling.value;
+      else
+        manual_scaling = g->manual_scaling_value;
+    }
+    double val = org * manual_scaling * objective_scaling;
+
+    LOG_DBG2(optimizer) << "EvalConstraints: g=" << g->type.ToString(g->GetType()) << " org=" << org
+                        << " manual_scale=" << manual_scaling << " objective_scale=" << objective_scaling
+                        << " ->" << val;
+    g_val[i] = val;
+  }
+  optimization->constraints.view->Done(); // reset slope constraint to global mode
 
   timer_->Stop();
-
-  LOG_DBG2(optimizer) << "EvalConstraints: val=" << StdVector<double>::ToString(m, g);
 }
 
-void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentries, double* values)
+int BaseOptimizer::EvalGradConstraints(Condition* g, int start, bool cfs_scale, StdVector<double>& values)
+{
+  int nnz = g->GetSparsityPattern().GetSize();
+  values.window.Set(start, nnz);
+  // evaluate
+  optimization->CalcConstraintGradient(g, &values);
+
+  // we might ignore that value
+  double scaling = g->DoObjectiveScaling() ? objective->scaling.value : g->manual_scaling_value;
+
+  if(cfs_scale)
+  {
+    for(int p = 0; p < nnz; p++)
+    {
+      values[start + p] *= scaling;
+      assert(values.InWindow(start + p));
+    }
+  }
+
+  return nnz;
+}
+
+void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentries, bool cfs_scale, StdVector<double>& values)
 {
   timer_->Start();
 
-  // note, that we have dense gradient pointers!
+  // note, that we have dense gradients!
   // iterate over the gradients
+
+  // set the window
+  int start = 0;
+
   for(int c = 0; c < m; c++)
   {
-    double* ptr = values + (c*n);
-    optimization->CalcConstraintGradient(&optimization->constraints[c], ptr);
-    LOG_DBG3(optimizer) << "EvalGradConstraints: co=" << c << " val=" << StdVector<double>::ToString(n, ptr);
+    int tmp = EvalGradConstraints(optimization->constraints.view->Get(c), start, cfs_scale, values); 
+    start += tmp;
+    LOG_DBG3(optimizer) << "EvalGradConstraints: co=" << c << " scaled val=" << values.ToString(true);
   }
+  optimization->constraints.view->Done(); // reset slope constraint to global mode
+
+  assert(start == nentries);
 
   timer_->Stop();
 }
@@ -351,17 +411,18 @@ void BaseOptimizer::GetBounds(int n, double* x_l, double* x_u, int m, double* g_
   
   optimization->GetDesign()->WriteBoundsToExtern(x_l,x_u);
 
-  assert(m == (int) optimization->constraints.GetSize());
+  assert(m == (int) optimization->constraints.view->GetNumberOfActiveConstraints());
     
   // normalization to =0 and <=0 constraints is done SCPIPBase   
     
   for(int i = 0; i < m; i++)
   {
-    Condition* g = &optimization->constraints[i];
+    Condition* g = optimization->constraints.view->Get(i);
     // handle as in IPOPT 
-    g_l[i] = g_u[i] = g->value;    
-    if(g->GetType() == Condition::LOWER_BOUND) g_u[i] =  GetInfBound();
-    if(g->GetType() == Condition::UPPER_BOUND) g_l[i] = -GetInfBound();
+    g_l[i] = g_u[i] = g->GetBoundValue();
+    if(g->GetBound() == Condition::LOWER_BOUND) g_u[i] =  GetInfBound();
+    if(g->GetBound() == Condition::UPPER_BOUND) g_l[i] = -GetInfBound();
   }
+  optimization->constraints.view->Done(); // reset slope constraint to global mode
   
 }

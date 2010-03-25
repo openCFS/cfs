@@ -5,9 +5,6 @@
 #ifndef FILE_PDECOUPLING_2003
 #define FILE_PDECOUPLING_2003
 
-#include <list>
-
-
 #include "General/environment.hh"
 #include "MatVec/vector.hh"
 #include "Utils/StdVector.hh"

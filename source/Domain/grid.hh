@@ -302,7 +302,7 @@ namespace CoupledField
 
     //! Get vector containing all region names
 
-    //! Get a vecor which contains all region nodes. The order is in that way,
+    //! Get a vector which contains all region nodes. The order is in that way,
     //! that one can access directly the elements of the vector by using a
     //! RegionId and get the according entry of the vector.
     void GetRegionNames(StdVector<std::string>& out);

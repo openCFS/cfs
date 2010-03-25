@@ -694,8 +694,11 @@ void LevelSet::SetupSpace()
   // we need the vicinity in the design elements set (if not set yet)
   // mark! assumes only one design variable!!
   DesignElement& de = (*design_)[0];
-  if(de.vicinity_ == NULL) VicinityElement::Init(optimization->GetDesign());
-  assert(de.vicinity_ != NULL);
+
+  // Assume no periodic B.C. Otherwise organize DesignStructure from ErsatzMaterial or create
+  // own instance!
+  if(de.vicinity == NULL) VicinityElement::Init(optimization->GetDesign(), NULL);
+  assert(de.vicinity != NULL);
   
   cout << "Levelset space... " << flush;
 
@@ -1141,7 +1144,7 @@ void LevelSet::BuildNeighbourhoodOfLevelsetNodes(const DesignElement* de)
 {
   assert(de != NULL);
   const bool threeDAndZPIsNULL((domain->GetGrid()->GetDim() == 3) && 
-                               (de->vicinity_->GetNeighbour(VicinityElement::Z_P) == NULL));
+                               (de->vicinity->GetNeighbour(VicinityElement::Z_P) == NULL));
   
   // we always have to set the neighbours of this node
   // low left node has index 0 in the front row, index 4 in the back row
@@ -1156,7 +1159,7 @@ void LevelSet::BuildNeighbourhoodOfLevelsetNodes(const DesignElement* de)
   // there are 3 possible cases (in 2D)
   // 1. X_P == 0:
   // also set neighbourhood of lower right node
-  if(de->vicinity_->GetNeighbour(VicinityElement::X_P) == NULL)
+  if(de->vicinity->GetNeighbour(VicinityElement::X_P) == NULL)
   {
     // low right node has index 1 in the front row, index 5 in the back row
     SetNeighboursOfLowRightNode(1, de);
@@ -1166,7 +1169,7 @@ void LevelSet::BuildNeighbourhoodOfLevelsetNodes(const DesignElement* de)
   
   // 2. Y_P == 0
   // also set neighbourhood of upper left node
-  if(de->vicinity_->GetNeighbour(VicinityElement::Y_P) == NULL)
+  if(de->vicinity->GetNeighbour(VicinityElement::Y_P) == NULL)
   {
     // up left node has index 3 in the front row, index 7 in the back row
     SetNeighboursOfUpLeftNode(3, de);
@@ -1176,8 +1179,8 @@ void LevelSet::BuildNeighbourhoodOfLevelsetNodes(const DesignElement* de)
   
   // 3. X_P == 0 && Y_P == 0
   // also set neighbourhood of lower right (done), upper left (done) and upper right node
-  if((de->vicinity_->GetNeighbour(VicinityElement::X_P) == NULL) &&
-     (de->vicinity_->GetNeighbour(VicinityElement::Y_P) == NULL))
+  if((de->vicinity->GetNeighbour(VicinityElement::X_P) == NULL) &&
+     (de->vicinity->GetNeighbour(VicinityElement::Y_P) == NULL))
   {
     // up right node has index 2 in the front row, index 6 in the back row
     SetNeighboursOfUpRightNode(2, de);
@@ -1200,7 +1203,7 @@ void LevelSet::SetNeighboursOfLowLeftNode(const int startIdx, const DesignElemen
   // right is always in the same element
   low_left[VicinityElement::X_P] = de->lse_->nodes_[startIdx+1];
   // left neighbour is the lower left node in neighbour element to the left
-  DesignElement *tmp_de = de->vicinity_->GetNeighbour(VicinityElement::X_N);
+  DesignElement *tmp_de = de->vicinity->GetNeighbour(VicinityElement::X_N);
   if(tmp_de != NULL)
   {
     low_left[VicinityElement::X_N] = tmp_de->lse_->nodes_[startIdx];
@@ -1214,7 +1217,7 @@ void LevelSet::SetNeighboursOfLowLeftNode(const int startIdx, const DesignElemen
   // upper is always in the same element
   low_left[VicinityElement::Y_P] = de->lse_->nodes_[startIdx+3];
   // lower neighbour is the lower left node in neighbour element downwards
-  tmp_de = de->vicinity_->GetNeighbour(VicinityElement::Y_N);
+  tmp_de = de->vicinity->GetNeighbour(VicinityElement::Y_N);
   if(tmp_de != NULL)
   {
     low_left[VicinityElement::Y_N] = tmp_de->lse_->nodes_[startIdx];
@@ -1230,7 +1233,7 @@ void LevelSet::SetNeighboursOfLowLeftNode(const int startIdx, const DesignElemen
     // also add z-neighbours
     assert(low_left.size() == 6);
     low_left[VicinityElement::Z_P] = de->lse_->nodes_[4];
-    tmp_de = de->vicinity_->GetNeighbour(VicinityElement::Z_N);
+    tmp_de = de->vicinity->GetNeighbour(VicinityElement::Z_N);
     if(tmp_de != NULL)
     {
       low_left[VicinityElement::Z_N] = tmp_de->lse_->nodes_[0];
@@ -1266,7 +1269,7 @@ void LevelSet::SetNeighboursOfLowRightNode(const int startIdx, const DesignEleme
   low_right[VicinityElement::X_P] = NULL;
   low_right[VicinityElement::X_N] = de->lse_->nodes_[startIdx-1];
   low_right[VicinityElement::Y_P] = de->lse_->nodes_[startIdx+1];
-  DesignElement *tmp_de = de->vicinity_->GetNeighbour(VicinityElement::Y_N);
+  DesignElement *tmp_de = de->vicinity->GetNeighbour(VicinityElement::Y_N);
   if(tmp_de != NULL)
   {
     low_right[VicinityElement::Y_N] = tmp_de->lse_->nodes_[startIdx];
@@ -1280,7 +1283,7 @@ void LevelSet::SetNeighboursOfLowRightNode(const int startIdx, const DesignEleme
   {
     assert(low_right.size() == 6);
     low_right[VicinityElement::Z_P] = de->lse_->nodes_[5];
-    tmp_de = de->vicinity_->GetNeighbour(VicinityElement::Z_N);
+    tmp_de = de->vicinity->GetNeighbour(VicinityElement::Z_N);
     if(tmp_de != NULL)
     {
       low_right[VicinityElement::Z_N] = tmp_de->lse_->nodes_[1];
@@ -1313,7 +1316,7 @@ void LevelSet::SetNeighboursOfUpLeftNode(const int startIdx, const DesignElement
   
   up_left[VicinityElement::X_P] = de->lse_->nodes_[startIdx-1];
 
-  DesignElement *tmp_de = de->vicinity_->GetNeighbour(VicinityElement::X_N);
+  DesignElement *tmp_de = de->vicinity->GetNeighbour(VicinityElement::X_N);
   if(tmp_de != NULL)
   {
     up_left[VicinityElement::X_N] = tmp_de->lse_->nodes_[startIdx];
@@ -1330,7 +1333,7 @@ void LevelSet::SetNeighboursOfUpLeftNode(const int startIdx, const DesignElement
   {
     assert(up_left.size() == 6);
     up_left[VicinityElement::Z_P] = de->lse_->nodes_[7];
-    tmp_de = de->vicinity_->GetNeighbour(VicinityElement::Z_N);
+    tmp_de = de->vicinity->GetNeighbour(VicinityElement::Z_N);
     if(tmp_de != NULL)
     {
       up_left[VicinityElement::Z_N] = tmp_de->lse_->nodes_[3];
@@ -1370,7 +1373,7 @@ void LevelSet::SetNeighboursOfUpRightNode(const int startIdx, const DesignElemen
   {
     assert(up_right.size() == 6);
     up_right[VicinityElement::Z_P] = de->lse_->nodes_[6];
-    const DesignElement *tmp_de = de->vicinity_->GetNeighbour(VicinityElement::Z_N);
+    const DesignElement *tmp_de = de->vicinity->GetNeighbour(VicinityElement::Z_N);
     if(tmp_de != NULL)
     {
       up_right[VicinityElement::Z_N] = tmp_de->lse_->nodes_[2];
@@ -1435,8 +1438,8 @@ void LevelSet::TransportLevelSet(const double dt)
   // \phi_{ij}^{n+1} = \phi_{ij}^n - F * dt * |\grad(\phi_{ij}^n)|
   // FIXME F = shapegrad here, but should be f_ext!!
   // get the volume constraint from the optimization
-  const double penalty(optimization->GetConstraint(Condition::VOLUME).penalty);
-  const double vol(optimization->GetConstraint(Condition::VOLUME).value);
+  const double penalty(optimization->constraints.Get(Condition::VOLUME)->penalty);
+  const double vol(optimization->constraints.Get(Condition::VOLUME)->GetBoundValue());
   LOG_DBG3(ls) << "using volume constraint of " << vol;
   
   double constraint(0.0);

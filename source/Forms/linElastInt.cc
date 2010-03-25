@@ -199,9 +199,25 @@ void linElastInt::calcDMat(Matrix<Double> & dMat, const Elem* elem, const Design
 {
   GetErsatzMaterialTensor(dMat, elem, direction);
   //ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,matDataType_,subTensorType_);
-
+  
   Double density = elem != NULL ? GetErsatzMaterialFactor(elem) : 1.0;
-  if(density != 1.0) dMat *= density;
+  if(density != 1.0)
+  {
+    dMat *= density;
+
+    // check for bimaterial tensor in the design space, set by the SIMP class
+    if(domain->GetErsatzMaterial(false) != NULL
+        && domain->GetErsatzMaterial(false)->GetBiMatTensor().GetNumCols() != 0)
+    {
+      Matrix<Double> t(domain->GetErsatzMaterial(false)->GetBiMatTensor());
+      assert(t.GetNumCols() == dMat.GetNumCols());
+      assert(t.GetNumRows() == dMat.GetNumRows());
+      t *= (1.0 - density);
+      dMat +=  t;
+      LOG_DBG3(forms) << "bimaterial tensor = " << t.ToString(1);
+    }
+  }
+  
   LOG_DBG3(forms) << GetName() << "::calcDMat(Matrix<Double>, "
                   << (elem != NULL ? Integer(elem->elemNum) : -1)
                   << ") -> density=" << density;
@@ -326,7 +342,7 @@ void linElastInt::calcDMat(Matrix<Complex> & dMat, const Elem* elem)
     EXCEPTION("Softening Model just supported for real valed material data");
 
   ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,Global::COMPLEX,subTensorType_);
-
+      
   Double density = elem != NULL ? GetErsatzMaterialFactor(elem) : 1.0;
   if(density != 1.0) dMat *= density;
   LOG_DBG3(forms) << GetName() << "->linElastInt::calcDMat(<Complex>, "
@@ -860,7 +876,9 @@ linElastInt::~linElastInt()
 
 void linElastInt::GetErsatzMaterialTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction){
   // it is possible that a region is not subject to optimization. such a region is only identified in GetErsatzMaterialTensor
-  if(elem == NULL || !domain->HasErsatzMaterialTensor() || !domain->GetErsatzMaterial()->GetErsatzMaterialTensor(t, subTensorType_, elem, direction)){
+  if(elem == NULL 
+      || !domain->HasErsatzMaterialTensor()
+      || !domain->GetErsatzMaterial()->GetErsatzMaterialTensor(t, subTensorType_, elem, direction)){
     ptMaterial->GetTensor(t, MECH_STIFFNESS_TENSOR, matDataType_, subTensorType_);
   }
 }

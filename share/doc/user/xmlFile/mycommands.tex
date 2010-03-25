@@ -42,7 +42,8 @@
 % | Attribute | Values | Description |
 \newenvironment{xatlist}[1]
 {\begin{center} \newcommand{\attrDesc}{#1}
-\begin{tabular}{lp{0.3\textwidth}p{0.5\textwidth}} \toprule \rowcolor{darkgrey}
+\begin{tabular}{lp{0.3\textwidth}p{0.5\textwidth}} 
+\toprule \rowcolor{darkgrey}
 Attribute & Values & Description \\ \midrule} {\\\bottomrule
 \end{tabular}\\[0.2ex] \attrDesc \end{center}}
 
@@ -50,7 +51,8 @@ Attribute & Values & Description \\ \midrule} {\\\bottomrule
 
 % definition list for element values in the form
 \newenvironment{xellist}[1]
-{\begin{center} \newcommand{\xelDesc}{#1} \begin{tabular}{llp{5cm}}
+{\begin{center} \newcommand{\xelDesc}{#1} 
+\begin{tabular}{lp{0.3\textwidth}p{0.5\textwidth}}
 \toprule \rowcolor{darkgrey} Element & Values & Description \\ \midrule}
 {\end{tabular} \\[0.2ex] \xelDesc\end{center}}
 

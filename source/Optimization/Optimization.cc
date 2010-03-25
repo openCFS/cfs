@@ -17,13 +17,13 @@
 #include "Optimization/ParamMat.hh"
 #include "Optimization/OptimizationMaterial.hh"
 #include "Driver/assemble.hh"
-#include "Driver/assemble.hh"
 #include "Driver/basedriver.hh"
 #include "Driver/harmonicDriver.hh"
 #include "Driver/singleDriver.hh"
 #include "PDE/StdPDE.hh"
 #include "PDE/SinglePDE.hh"
 #include "PDE/mechPDE.hh"
+#include "PDE/elecPDE.hh" // for polarization matrix, see class TopGrad
 #include "Domain/domain.hh"
 #include "Domain/grid.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -85,21 +85,36 @@ Optimization::Optimization()
   maxIterations = pn->Get("optimizer")->Get("maxIterations")->As<Integer>();
 
   // might read a multiObjective problem
-  objectives.Read(pn->Get("costFunction")); //
+  objectives.Read(pn->Get("costFunction"));
   objectives.ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("objective"));
 
   // constraints to be added later -- it is so much easier with the ParamNodes
   this->log.fileHeader = harmonic ? "#iter\tfreq" : "#iter";
   for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
-    this->log.fileHeader += "\t" + Objective::type.ToString(objectives.data[i]->GetType());
+    this->log.fileHeader += "\t" + objectives.data[i]->GetName();
   this->log.fileHeader += "\tchange\tproblems";
-
 
   // multiple excitations are are toggled via attribute. Only if enabled we read the optional element
   // actually part of costFunction - but we store in Optimization itself!
   bool me = pn->Get("costFunction")->Get("multiple_excitation")->As<bool>();
   this->multiple_excitation = new MultipleExcitation(me, me ? pn->Get("costFunction")->Get("multipleExcitation", ParamNode::PASS) : PtrParamNode());
   if(me) this->multiple_excitation->ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("multipleExcitations"));
+
+  // slope constraints to be processed in SIMP -> Constraints::PostProc
+  ParamNodeList list = pn->GetList("constraint");
+  constraints.Read(list);
+  PtrParamNode in = optInfoNode->Get(ParamNode::HEADER)->Get("constraints");
+
+  // call this again after PostProc()
+  constraints.ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("constraints"));
+
+  for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
+  {
+    Condition* g = constraints.all[i];
+    this->log.fileHeader += "\t" + g->ToString();
+  }
+
+  log.Init(pn->Get("log")->As<std::string>(), pn->Get("logging", ParamNode::PASS)); // is fail save
 
   // the commit stuff
   string cm = pn->Has("commit") ? pn->Get("commit")->Get("mode")->As<std::string>() : "forward";
@@ -110,34 +125,6 @@ Optimization::Optimization()
   
   // write out the directory where the HALTOPT file will be searched for
   optInfoNode->Get("haltopt_directory")->SetValue(fs::current_path().directory_string());
-
-  // the constraints are optional and might not be real constraints!
-  ParamNodeList list = pn->GetList("constraint");
-  PtrParamNode in = optInfoNode->Get(ParamNode::HEADER)->Get("constraints");
-  for(unsigned int i = 0; i < list.GetSize(); i++)
-  {
-    // the constraint is either added to constraints or outputs if mode is observation
-    // homogenization constraints are "super constraints" which might "blow" up to 4 or 9 constraints
-     Condition::AddCondition(list[i], constraints, outputs);
-  }
-
-  // first the constraints then the outputs!
-  for(unsigned int i = 0; i < constraints.GetSize(); i++)
-  {
-    // if in the 'logging' element deltaConstraints is enabled, we modify the output!
-    string delta = constraints[i].delta_logging ? "delta_" : "";
-    this->log.fileHeader += "\t" + delta + constraints[i].ToString();
-    constraints[i].ToInfo(in->Get("constraint", ParamNode::APPEND));
-  }
-
-  for(unsigned int i = 0; i < outputs.GetSize(); i++)
-  {
-    string delta = outputs[i].delta_logging ? "delta_" : "";
-    this->log.fileHeader += "\t" + delta + outputs[i].ToString();
-    outputs[i].ToInfo(in->Get("observation", ParamNode::APPEND));
-  }
-
-  log.Init(pn->Get("log")->As<std::string>(), pn->Get("logging", ParamNode::PASS)); // is fail save
 
   // remove a stop file, if found
   if(fs::exists("HALTOPT"))
@@ -229,40 +216,36 @@ void Optimization::PostInitSecond()
 
 void Optimization::SetEnums()
 {
-  Objective::type.SetName("Objective::Type");
-  Objective::type.Add(Objective::MULTI_OBJECTIVE, "multiObjective");
-  Objective::type.Add(Objective::COMPLIANCE, "compliance");
-  Objective::type.Add(Objective::OUTPUT, "output");
-  Objective::type.Add(Objective::DYNAMIC_OUTPUT, "dynamicOutput");
-  Objective::type.Add(Objective::ABS_DYN_OUTPUT_SQUARED, "absDynamicOutputSquared");
-  Objective::type.Add(Objective::GLOBAL_DYNAMIC_COMPLIANCE, "globalDynamicCompliance");
-  Objective::type.Add(Objective::CONJUGATE_COMPLIANCE, "conjugateCompliance");
-  Objective::type.Add(Objective::VOLUME, "volume");
-  Objective::type.Add(Objective::TRACKING, "tracking");
-  Objective::type.Add(Objective::ELEC_ENERGY, "elecEnergy");
-  Objective::type.Add(Objective::HOMOGENIZATION_TENSOR, "homTensor");
-  Objective::type.Add(Objective::HOMOGENIZATION_E11, "homE11");
-  Objective::type.Add(Objective::HOMOGENIZATION_TRACKING, "homTracking");
-  Objective::type.Add(Objective::POISSONS_RATIO, "poissonsRatio");
-  Objective::type.Add(Objective::YOUNGS_MODULUS, "homYoungsModulus");
-  Objective::type.Add(Objective::TYCHONOFF, "tychonoff");
-  Objective::type.Add(Objective::TEMPERATURE, "temperature");
+  Function::type.SetName("Function::Type");
+  Function::type.Add(Function::MULTI_OBJECTIVE, "multiObjective");
+  Function::type.Add(Function::COMPLIANCE, "compliance");
+  Function::type.Add(Function::OUTPUT, "output");
+  Function::type.Add(Function::DYNAMIC_OUTPUT, "dynamicOutput");
+  Function::type.Add(Function::ABS_DYN_OUTPUT_SQUARED, "absDynamicOutputSquared");
+  Function::type.Add(Function::GLOBAL_DYNAMIC_COMPLIANCE, "globalDynamicCompliance");
+  Function::type.Add(Function::CONJUGATE_COMPLIANCE, "conjugateCompliance");
+  Function::type.Add(Function::VOLUME, "volume");
+  Function::type.Add(Function::PENALIZED_VOLUME, "penalizedVolume");
+  Function::type.Add(Function::GAP, "gap");
+  Function::type.Add(Function::REALVOLUME, "realvolume");
+  Function::type.Add(Function::TRACKING, "tracking");
+  Function::type.Add(Function::ELEC_ENERGY, "elecEnergy");
+  Function::type.Add(Function::ACOU_NEAR_FIELD, "acousticNearField");
+  Function::type.Add(Function::HOMOGENIZATION_TENSOR, "homTensor");
+  Function::type.Add(Function::HOMOGENIZATION_TRACKING, "homTracking");
+  Function::type.Add(Function::POISSONS_RATIO, "poissonsRatio");
+  Function::type.Add(Function::YOUNGS_MODULUS, "homYoungsModulus");
+  Function::type.Add(Function::TYCHONOFF, "tychonoff");
+  Function::type.Add(Function::TEMPERATURE, "temperature");
+  Function::type.Add(Function::GREYNESS, "greyness");
+  Function::type.Add(Function::ISOTROPY, "isotropy");
+  Function::type.Add(Function::SLOPE, "slope");
+  Function::type.Add(Function::CHECKERBOARD, "checkerboard");
 
-  Condition::name.SetName("Constraint::Name");
-  Condition::name.Add(Condition::VOLUME, "volume");
-  Condition::name.Add(Condition::COMPLIANCE, "compliance");
-  Condition::name.Add(Condition::GREYNESS, "greyness");
-  Condition::name.Add(Condition::GAUSS_GREYNESS, "gaussGreyness");
-  Condition::name.Add(Condition::TRACKING, "tracking");
-  Condition::name.Add(Condition::REALVOLUME, "realvolume");
-  Condition::name.Add(Condition::HOMOGENIZATION_TENSOR, "homTensor");
-  Condition::name.Add(Condition::HOMOGENIZATION_TRACKING, "homTracking");
-  Condition::name.Add(Condition::ISOTROPY, "isotropy");
-
-  Condition::type.SetName("Constraint::Type");
-  Condition::type.Add(Condition::EQUAL, "equal");
-  Condition::type.Add(Condition::LOWER_BOUND, "lowerBound");
-  Condition::type.Add(Condition::UPPER_BOUND, "upperBound");
+  Condition::bound.SetName("Constraint::Bound");
+  Condition::bound.Add(Condition::EQUAL, "equal");
+  Condition::bound.Add(Condition::LOWER_BOUND, "lowerBound");
+  Condition::bound.Add(Condition::UPPER_BOUND, "upperBound");
 
   optimizer.SetName("Optimization::Optimizer");
   optimizer.Add(OPTIMALITY_CONDITION, "optimalityCondition");
@@ -305,11 +288,11 @@ void Optimization::SetEnums()
   LevelSet::Action::type.Add(LevelSet::Action::DO_SHAPE_STEP, "shapeStep");
 
   MultipleExcitation::type.SetName("Optimization::MultipleExcitation::Type");
-  MultipleExcitation::type.Add(MultipleExcitation::NO_TYPE, "no_type:q"
-      "");
+  MultipleExcitation::type.Add(MultipleExcitation::NO_TYPE, "no_type");
   MultipleExcitation::type.Add(MultipleExcitation::FIXED_WEIGHT, "fixed_weights");
   MultipleExcitation::type.Add(MultipleExcitation::META_OBJECTIVE, "meta_objective");
   MultipleExcitation::type.Add(MultipleExcitation::HOMOGENIZATION_TEST_STRAINS, "homogenizationTestStrains");
+  MultipleExcitation::type.Add(MultipleExcitation::POLARIZATION_MATRIX, "polarizationMatrix");
 }
 
 
@@ -431,6 +414,7 @@ void Optimization::SolveProblem()
   rh->FinishMultiSequenceStep();
   rh->Finalize();
   if(e != NULL) throw *e;
+  delete e;
 }
 
 
@@ -622,20 +606,28 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   iteration->Get("change")->SetValue(change);
   iteration->Get("problemsSolved")->SetValue(problemSolvedCounter);
 
-  for(unsigned int i = 0; i < constraints.GetSize(); i++)
+  // For iteration 0 we want also the constraint values but they were not evaluated.
+  // For any iteration we need to evaluate the observe constraints
+  // A problem are the slope constraints, they need to be evaluated in local mode
+  // and Done() forms the global result
+  for(unsigned int i = 0, m = constraints.view->GetNumberOfTotalConstraints(); currentIteration == 0 && i < m; i++)
   {
-    double value = CalcConstraint(&constraints[i]);
-    if(constraints[i].delta_logging) value = value - constraints[i].value;
-    if(out) *out << "\t" << value;
-    iteration->Get(constraints[i].ToString())->SetValue(value);
+    Condition* g = constraints.view->Get(i); // traverse in local mode
+    if(g->GetValue() == -1.0)
+      CalcConstraint(g);
   }
+  constraints.view->Done(); // we have now a global slope constraint value
 
-  for(unsigned int i = 0; i < outputs.GetSize(); i++)
+  for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
   {
-    double value = CalcConstraint(&outputs[i]);
-    if(outputs[i].delta_logging) value = value - outputs[i].value;
+    Condition* g = constraints.all[i]; // Now traverse in global mode
+    if(g->IsObservation())
+      CalcConstraint(g); // would not be evaluated otherwise, don't check for -1.0
+
+    double value = g->GetValue();
+    if(g->delta_logging) value = value - g->GetBoundValue();
     if(out) *out << "\t" << value;
-    iteration->Get(outputs[i].ToString())->SetValue(value);
+    iteration->Get(g->ToString())->SetValue(value);
   }
 
   if(out && log.design){
@@ -650,7 +642,8 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   if(out && log.designGradient){
     StdVector<double> d;
     d.Resize(design->GetNumberOfVariables());
-    design->WriteGradientToExtern(d.GetPointer(), DesignElement::COST_GRADIENT, DesignElement::PLAIN, NULL, false);
+    d.window.Set(d);
+    design->WriteGradientToExtern(d, DesignElement::COST_GRADIENT, DesignElement::PLAIN, NULL, false);
     for(unsigned int i = 0; i < design->GetNumberOfVariables(); i++){
       *out << "\t" << d[i];
     }
@@ -694,33 +687,6 @@ void Optimization::MultipleExcitation::ToInfo(PtrParamNode in) const
     in_->Get("max_gain")->SetValue(max_gain);
   } else
     in->Get("type")->SetValue(type.ToString(type_));
-}
-
-Condition& Optimization::GetConstraint(Condition::Name name, DesignElement::Type design)
-{
-  // be save and check for uniqueness!
-  int count = 0;
-
-  for(unsigned int i = 0; i < constraints.GetSize(); i++)
-    if(constraints[i].GetName() == name &&
-       (design != DesignElement::NO_TYPE ? constraints[i].design == design : true))
-          count++;
-
-  for(unsigned int i = 0; i < outputs.GetSize(); i++)
-    if(outputs[i].GetName() == name &&
-       (design != DesignElement::NO_TYPE ? outputs[i].design == design : true))
-          count++;
-
-  if(count > 1)
-    throw Exception("constraint " + Condition::name.ToString(name) + "is not unique");
-
-  for(unsigned int i = 0; i < constraints.GetSize(); i++)
-    if(constraints[i].GetName() == name) return constraints[i];
-
-  for(unsigned int i = 0; i < outputs.GetSize(); i++)
-    if(outputs[i].GetName() == name) return outputs[i];
-
-  throw Exception("no constraint " + Condition::name.ToString(name) + " found");
 }
 
 
@@ -841,6 +807,25 @@ void Excitation::ReadTestStrain(const Vector<double>& vec)
   linForms.insert(assLinForms->begin(), assLinForms->end());
 }
 
+void Excitation::SetPolarizationMatrixRHS(const Vector<double>& mechp,
+    const Vector<double>& elecp, const int num)
+{
+  apply_linForms = true;
+
+  loads.Clear();
+  linForms.clear();
+  
+  MechPDE* mech = dynamic_cast<MechPDE*>(domain->GetSinglePDE("mechanic"));
+  mech->DefinePolarizationMatrixIntegrators(mechp, &linForms, num);
+  
+  ElecPDE* elec = dynamic_cast<ElecPDE*>(domain->GetSinglePDE("electrostatic"));
+  elec->DefinePolarizationMatrixIntegrators(elecp, &linForms, num);
+  
+  // all already set linear Forms
+  std::set<LinearFormContext*>* assLinForms = domain->GetBasePDE()->getPDE_assemble()->GetLinForms();
+  linForms.insert(assLinForms->begin(), assLinForms->end());
+}
+
 Optimization::Log::Log()
 {
   this->design = false;
@@ -860,10 +845,8 @@ void Optimization::Log::Init(const string& log_name, PtrParamNode pn_log)
 
     if(pn_log != NULL)
     {
-      design = false;
-      pn_log->GetValue("design", design, ParamNode::PASS);
-      designGradient = false;
-      pn_log->GetValue("designGradient", designGradient, ParamNode::PASS);
+      design = pn_log->Get("design")->As<bool>();
+      designGradient = pn_log->Get("designGradient")->As<bool>();
     }
   }
 }

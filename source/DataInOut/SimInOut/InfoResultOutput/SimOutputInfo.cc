@@ -67,14 +67,14 @@ void SimOutputInfo::AddResult(shared_ptr<BaseResult> br)
   else {
     c_vec = dynamic_cast<Vector<Complex>*>(br->GetSingleVector()); }
 
-  // loop over indiviual regions
+  // loop over individual regions
   shared_ptr<EntityList> list = br->GetEntityList();
   EntityIterator it = list->GetIterator();
   // we also need the index for strange code below
   for(it.Begin(); !it.IsEnd(); it++) 
   {
     PtrParamNode in = br->GetInfoNode()->Get("item", ParamNode::APPEND);
-    in->Get("analysis_id")->SetValue(domain->GetDriver()->GetAnalysisId());
+    in->Get("analysis_id")->SetValue(domain->GetDriver()->GetAnalysisId()->Get("analysis_id")->As<std::string>());
 
     // print value(s)
     StdVector<string>& dofs = ri->dofNames; 

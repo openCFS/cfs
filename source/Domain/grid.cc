@@ -271,7 +271,7 @@ namespace CoupledField
         shared_ptr<RegionList>( new RegionList(this) );
       if( entityType == EntityList::REGION ) {
         RegionIdType regionId = GetRegion().Parse( name );
-        regionList->SetRegionId( regionId );
+        regionList->SetRegion( regionId );
       } else {
         EXCEPTION( "GetEntityList with REGION_LIST works only with regions!" );
       }

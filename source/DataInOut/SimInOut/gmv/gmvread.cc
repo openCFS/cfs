@@ -9,7 +9,7 @@
 #include <iostream>
 
 #include <stdlib.h>
-#include <stdio.h>
+#include <cstdio>
 #include <string.h>
 
 #include <sys/types.h>
@@ -23,6 +23,7 @@
 
 namespace CoupledField {
 
+int ignore_me;
 
   DEFINE_LOG(gmvread, "gmvread")
 
@@ -334,7 +335,7 @@ namespace CoupledField {
       binread(magic,charsize,CHAR,(long)8,gmvin);
       binread(filetype,charsize,CHAR,(long)8,gmvin);
     }
-    if (ftype == ASCII) fscanf(gmvin,"%s%s",magic,filetype);
+    if (ftype == ASCII) ignore_me = fscanf(gmvin,"%s%s",magic,filetype);
 
     readkeyword = 1;
 
@@ -481,7 +482,7 @@ namespace CoupledField {
         binread(keyword,charsize,CHAR,(long)8,gmvin);
         *(keyword+8)=(char)0;
       }
-      if (ftype == ASCII) fscanf(gmvin,"%s",keyword);
+      if (ftype == ASCII) ignore_me = fscanf(gmvin,"%s",keyword);
 
       if ((feof(gmvin) != 0) | (ferror(gmvin) != 0)) iend = 1;
 
@@ -495,7 +496,7 @@ namespace CoupledField {
           binread(keyword,charsize,CHAR,(long)8,gmvin);
           *(keyword+8)=(char)0;
         }
-        if (ftype == ASCII) fscanf(gmvin,"%s",keyword);
+        if (ftype == ASCII) ignore_me = fscanf(gmvin,"%s",keyword);
         if ((feof(gmvin) != 0) | (ferror(gmvin) != 0)) iend = 1;
       }
 
@@ -682,7 +683,7 @@ namespace CoupledField {
             ptime = tmptime;
           }
         }
-        if (ftype == ASCII) fscanf(gmvin,"%lf",&ptime);
+        if (ftype == ASCII) ignore_me = fscanf(gmvin,"%lf",&ptime);
         gmv_data.keyword = PROBTIME;
         gmv_data.datatype = 0;
         gmv_data.ndoubledata1 = 1;
@@ -694,7 +695,7 @@ namespace CoupledField {
       case(CYCLENO):
         if (ftype != ASCII) binread(&cycleno,intsize,INT,
                                     (long)1,gmvin);
-        if (ftype == ASCII) fscanf(gmvin,"%d",&cycleno);
+        if (ftype == ASCII) ignore_me = fscanf(gmvin,"%d",&cycleno);
         gmv_data.keyword = CYCLENO;
         gmv_data.num = cycleno;
         readkeyword = 1;
@@ -787,7 +788,7 @@ namespace CoupledField {
         }
         if (ftype == ASCII)
         {
-          fscanf(gmvin,"%s",tmpchar);
+          ignore_me = fscanf(gmvin,"%s",tmpchar);
           *(tmpchar+8)=(char)0;
         }
         ioerrtst(gmvin);
@@ -925,7 +926,7 @@ namespace CoupledField {
 
       *(ckeyword+8)=(char)0;
     }
-    if (ftype == ASCII) fscanf(gmvin,"%s",ckeyword);
+    if (ftype == ASCII) ignore_me = fscanf(gmvin,"%s",ckeyword);
  
     return
       strncmp(ckeyword,keystring,strlen(keystring));
@@ -998,7 +999,7 @@ namespace CoupledField {
     if (ftype != ASCII)
       binread(stringbuf, charsize, CHAR, (long)4, gmvin);
     else
-      fscanf(gmvin,"%s",stringbuf);
+      ignore_me = fscanf(gmvin,"%s",stringbuf);
 
     if (strncmp("from",stringbuf, 4) != 0) return;
 
@@ -1021,7 +1022,7 @@ namespace CoupledField {
 
     if (ftype == ASCII) 
     {
-      fscanf(gmvin,"%s",tmpbuf);
+      ignore_me = fscanf(gmvin,"%s",tmpbuf);
       charptr = strpbrk(&tmpbuf[1],"\"");
       *charptr = '\0';
       charptr = &tmpbuf[1];
@@ -1135,7 +1136,7 @@ namespace CoupledField {
 
     if (ftype == ASCII)
     {
-      fscanf(gmvin,"%ld",&lnodes);
+      ignore_me = fscanf(gmvin,"%ld",&lnodes);
       ioerrtst(gmvin);
     }
     else
@@ -1193,7 +1194,7 @@ namespace CoupledField {
           binread(ckkeyword,charsize,CHAR,(long)8,gmvin);
           *(ckkeyword+8)=(char)0;
         }
-        if (ftype == ASCII) fscanf(gmvin,"%s",ckkeyword);
+        if (ftype == ASCII) ignore_me = fscanf(gmvin,"%s",ckkeyword);
         if (strncmp(ckkeyword,"cells",5) != 0 &&
             strncmp(ckkeyword,"faces",5) != 0 &&
             strncmp(ckkeyword,"xfaces",6) != 0 &&
@@ -1232,7 +1233,7 @@ namespace CoupledField {
         binread(ckkeyword,charsize,CHAR,(long)8,gmvin);
         *(ckkeyword+8)=(char)0;
       }
-      if (ftype == ASCII) fscanf(gmvin,"%s",ckkeyword);
+      if (ftype == ASCII) ignore_me = fscanf(gmvin,"%s",ckkeyword);
       if (strncmp(ckkeyword,"cells",5) != 0 &&
           strncmp(ckkeyword,"faces",5) != 0 &&
           strncmp(ckkeyword,"vfaces",6) != 0)
@@ -1265,7 +1266,7 @@ namespace CoupledField {
       }
       if (ftype == ASCII) 
       {
-        fscanf(gmvin,"%d%d%d",&lnxv,&lnyv,&lnzv);
+        ignore_me = fscanf(gmvin,"%d%d%d",&lnxv,&lnyv,&lnzv);
         ioerrtst(gmvin);
       }
 
@@ -1288,7 +1289,7 @@ namespace CoupledField {
       }
       if (ftype == ASCII) 
       {
-        fscanf(gmvin,"%d%d%d",&lnxv,&lnyv,&lnzv);
+        ignore_me = fscanf(gmvin,"%d%d%d",&lnxv,&lnyv,&lnzv);
         ioerrtst(gmvin);
       }
    
@@ -1586,7 +1587,7 @@ namespace CoupledField {
       numcellsin = 0;
       if (ftype == ASCII)
       {
-        fscanf(gmvin,"%ld",&lncells);
+        ignore_me = fscanf(gmvin,"%ld",&lncells);
         ioerrtst(gmvin);
       }
       else
@@ -1618,7 +1619,7 @@ namespace CoupledField {
     {
       if (ftype == ASCII)
       {
-        fscanf(gmvin,"%ld",&numtop);
+        ignore_me = fscanf(gmvin,"%ld",&numtop);
         ioerrtst(gmvin);
       }
       else
@@ -1700,7 +1701,7 @@ namespace CoupledField {
       binread(&ndat,intsize,INT,(long)1,gmvin);
       ioerrtst(gmvin);
     }
-    if (ftype == ASCII) fscanf(gmvin,"%s%d",keyword,&ndat);
+    if (ftype == ASCII) ignore_me = fscanf(gmvin,"%s%d",keyword,&ndat);
 
     /*  Check cell type.  */
     if (strncmp(keyword,"general",7) != 0 &&
@@ -1979,8 +1980,8 @@ namespace CoupledField {
       /*  Read no. of faces to read and cells to generate.  */
       if (ftype == ASCII)
       {
-        fscanf(gmvin,"%ld",&lnfaces);
-        fscanf(gmvin,"%ld",&lncells);
+        ignore_me = fscanf(gmvin,"%ld",&lnfaces);
+        ignore_me = fscanf(gmvin,"%ld",&lncells);
       }
       else
       {
@@ -2026,7 +2027,7 @@ namespace CoupledField {
 
     /*  Read face vertices and cell info for each face.  */
     if (ftype != ASCII) binread(&nverts,intsize,INT,(long)1,gmvin);
-    if (ftype == ASCII) fscanf(gmvin,"%d",&nverts);
+    if (ftype == ASCII) ignore_me = fscanf(gmvin,"%d",&nverts);
     ioerrtst(gmvin);
 
     /*  Read a face vertices and cells.  */
@@ -2086,7 +2087,7 @@ namespace CoupledField {
     {
 
       /*  Read no. of vfaces to read.  */
-      if (ftype == ASCII) fscanf(gmvin,"%ld",&lnfaces);
+      if (ftype == ASCII) ignore_me = fscanf(gmvin,"%ld",&lnfaces);
       else
       {
         if (ftype == IEEEI8R4 || ftype == IEEEI8R8)
@@ -2145,10 +2146,10 @@ namespace CoupledField {
     }
     if (ftype == ASCII)
     {
-      fscanf(gmvin,"%d%d",&nverts,&facepe);
-      fscanf(gmvin,"%ld",&oppface);
-      fscanf(gmvin,"%d",&oppfacepe);
-      fscanf(gmvin,"%ld",&cellid);
+      ignore_me = fscanf(gmvin,"%d%d",&nverts,&facepe);
+      ignore_me = fscanf(gmvin,"%ld",&oppface);
+      ignore_me = fscanf(gmvin,"%d",&oppfacepe);
+      ignore_me = fscanf(gmvin,"%ld",&cellid);
     }
     ioerrtst(gmvin);
 
@@ -2218,7 +2219,7 @@ namespace CoupledField {
     {
 
       /*  Read no. of xfaces to read.  */
-      if (ftype == ASCII) fscanf(gmvin,"%ld",&lnfaces);
+      if (ftype == ASCII) ignore_me = fscanf(gmvin,"%ld",&lnfaces);
       else
       {
         if (ftype == IEEEI8R4 || ftype == IEEEI8R8)
@@ -2419,12 +2420,12 @@ namespace CoupledField {
     /*  Read no. of materials and data type (cells or nodes).  */
     if (ftype != ASCII)
       binread(&lmmats,intsize,INT,(long)1,gmvin);
-    else fscanf(gmvin,"%d",&lmmats);  
+    else ignore_me = fscanf(gmvin,"%d",&lmmats);  
     ioerrtst(gmvin);
 
     if (ftype != ASCII)
       binread(&i,intsize,INT,(long)1,gmvin);
-    if (ftype == ASCII) fscanf(gmvin,"%d",&i);
+    if (ftype == ASCII) ignore_me = fscanf(gmvin,"%d",&i);
     ioerrtst(gmvin);
     if (i == 0) data_type = CELL;
     if (i == 1) data_type = NODE;
@@ -2460,7 +2461,7 @@ namespace CoupledField {
       }
       if (ftype == ASCII)
       {
-        fscanf(gmvin,"%s",mname);
+        ignore_me = fscanf(gmvin,"%s",mname);
         ioerrtst(gmvin);
       }
       strncpy(&matnames[i*33],mname,32);
@@ -2517,7 +2518,7 @@ namespace CoupledField {
 
     /*  Read data type (cells, nodes or faces).  */
     if (ftype != ASCII) binread(&i,intsize,INT,(long)1,gmvin);
-    if (ftype == ASCII) fscanf(gmvin,"%d",&i);
+    if (ftype == ASCII) ignore_me = fscanf(gmvin,"%d",&i);
     ioerrtst(gmvin);
     if (i == 0) data_type = CELL;
     if (i == 1) data_type = NODE;
@@ -2643,9 +2644,9 @@ namespace CoupledField {
     }
     if (ftype == ASCII)
     {
-      fscanf(gmvin,"%s",vectname);
+      ignore_me = fscanf(gmvin,"%s",vectname);
       if (strncmp(vectname,"endvect",7) != 0)
-        fscanf(gmvin,"%d",&i);
+        ignore_me = fscanf(gmvin,"%d",&i);
     }
     ioerrtst(gmvin);
 
@@ -2684,7 +2685,7 @@ namespace CoupledField {
 
     /*  Read number of vector components */
     if (ftype != ASCII) binread(&ncomps,intsize,INT,(long)1,gmvin);
-    if (ftype == ASCII) fscanf(gmvin,"%d",&ncomps);
+    if (ftype == ASCII) ignore_me = fscanf(gmvin,"%d",&ncomps);
     ioerrtst(gmvin);
 
     /*  Read vector component name flag */
@@ -2722,7 +2723,7 @@ namespace CoupledField {
           *(compname+charsize_in)=(char)0;
         }
         else
-          fscanf(gmvin,"%s", compname);
+          ignore_me = fscanf(gmvin,"%s", compname);
 
         gmv_vector_components.push_back(compname);
         LOG_DBG2(gmvread) << "vector component: " << compname;
@@ -2804,9 +2805,9 @@ namespace CoupledField {
     }
     if (ftype == ASCII)
     {
-      fscanf(gmvin,"%s",varname);
+      ignore_me = fscanf(gmvin,"%s",varname);
       if (strncmp(varname,"endvars",7) != 0)
-        fscanf(gmvin,"%d",&i);
+        ignore_me = fscanf(gmvin,"%d",&i);
     }
     ioerrtst(gmvin);
 
@@ -2920,9 +2921,9 @@ namespace CoupledField {
     }
     if (ftype == ASCII) 
     {
-      fscanf(gmvin,"%s",flgname);
+      ignore_me = fscanf(gmvin,"%s",flgname);
       if (strncmp(flgname,"endflag",7) != 0)
-        fscanf(gmvin,"%d%d",&ntypes,&i);
+        ignore_me = fscanf(gmvin,"%d%d",&ntypes,&i);
     }
     ioerrtst(gmvin);
 
@@ -2972,7 +2973,7 @@ namespace CoupledField {
       }
       if (ftype == ASCII)
       {
-        fscanf(gmvin,"%s",fname);
+        ignore_me = fscanf(gmvin,"%s",fname);
         ioerrtst(gmvin);
         *(fname+charsize_in) = (char) 0;
       }
@@ -3040,7 +3041,7 @@ namespace CoupledField {
     }
     if (ftype == ASCII)
     {
-      fscanf(gmvin,"%s",varname);
+      ignore_me = fscanf(gmvin,"%s",varname);
       sscanf(varname,"%d", &limatno);
     }
     ioerrtst(gmvin);
@@ -3064,7 +3065,7 @@ namespace CoupledField {
 
     /*  Read no. vertices. */
     if (ftype != ASCII) binread(&nvertsin,intsize,INT,(long)1,gmvin);
-    if (ftype == ASCII) fscanf(gmvin,"%d",&nvertsin);
+    if (ftype == ASCII) ignore_me = fscanf(gmvin,"%d",&nvertsin);
     ioerrtst(gmvin);
 
     /*  Read vertices and set data.  */
@@ -3151,7 +3152,7 @@ namespace CoupledField {
 
       /*  Read no of tracers and x,y,z data.  */
       if (ftype != ASCII) binread(&numtracers,intsize,INT,(long)1,gmvin);
-      if (ftype == ASCII) fscanf(gmvin,"%d",&numtracers);
+      if (ftype == ASCII) ignore_me = fscanf(gmvin,"%d",&numtracers);
       ioerrtst(gmvin);
 
       lxtr = NULL;  lytr = NULL;  lztr = NULL;
@@ -3238,7 +3239,7 @@ namespace CoupledField {
       }
       *(varname+charsize_in)=(char)0;
     }
-    if (ftype == ASCII) fscanf(gmvin,"%s",varname);
+    if (ftype == ASCII) ignore_me = fscanf(gmvin,"%s",varname);
     ioerrtst(gmvin);
 
     /*  Check for endtrace.  */
@@ -3526,7 +3527,7 @@ namespace CoupledField {
     }
     if (ftype == ASCII)
     {
-      fscanf(gmvin,"%s",unittype);
+      ignore_me = fscanf(gmvin,"%s",unittype);
     }
     ioerrtst(gmvin);
 
@@ -3554,7 +3555,7 @@ namespace CoupledField {
       }
       if (ftype == ASCII)
       {
-        fscanf(gmvin,"%s",unitname);
+        ignore_me = fscanf(gmvin,"%s",unitname);
         ioerrtst(gmvin);
         *(unitname+16) = (char) 0;
       }
@@ -3596,7 +3597,7 @@ namespace CoupledField {
       }
       if (ftype == ASCII)
       {
-        fscanf(gmvin,"%d",&numunits);
+        ignore_me = fscanf(gmvin,"%d",&numunits);
         ioerrtst(gmvin);
       }
 
@@ -3624,10 +3625,10 @@ namespace CoupledField {
         }
         if (ftype == ASCII)
         {
-          fscanf(gmvin,"%s",fldname);
+          ignore_me = fscanf(gmvin,"%s",fldname);
           ioerrtst(gmvin);
           *(fldname+8) = (char) 0;
-          fscanf(gmvin,"%s",unitname);
+          ignore_me = fscanf(gmvin,"%s",unitname);
           ioerrtst(gmvin);
           *(unitname+16) = (char) 0;
         }
@@ -3659,7 +3660,7 @@ namespace CoupledField {
     {
 
       /*  Read no. of surface facets to read.  */
-      if (ftype == ASCII) fscanf(gmvin,"%d",&lnsurf);
+      if (ftype == ASCII) ignore_me = fscanf(gmvin,"%d",&lnsurf);
       else
         binread(&lnsurf,intsize,INT,(long)1,gmvin);
       ioerrtst(gmvin);
@@ -3689,7 +3690,7 @@ namespace CoupledField {
     {
       binread(&nverts,intsize,INT,(long)1,gmvin);
     }
-    if (ftype == ASCII) fscanf(gmvin,"%d",&nverts);
+    if (ftype == ASCII) ignore_me = fscanf(gmvin,"%d",&nverts);
     ioerrtst(gmvin);
 
     /*  Read all face vertices.  */
@@ -3906,7 +3907,7 @@ namespace CoupledField {
       }
       *(varname+charsize_in)=(char)0;
     }
-    if (ftype == ASCII) fscanf(gmvin,"%s",varname);
+    if (ftype == ASCII) ignore_me = fscanf(gmvin,"%s",varname);
     ioerrtst(gmvin);
 
     /*  Check for endsvar.  */
@@ -3989,7 +3990,7 @@ namespace CoupledField {
     }
     if (ftype == ASCII) 
     {
-      fscanf(gmvin,"%s",flgname);
+      ignore_me = fscanf(gmvin,"%s",flgname);
     }
     ioerrtst(gmvin);
 
@@ -4009,7 +4010,7 @@ namespace CoupledField {
     }
     if (ftype == ASCII) 
     {
-      fscanf(gmvin,"%d",&ntypes);
+      ignore_me = fscanf(gmvin,"%d",&ntypes);
     }
     ioerrtst(gmvin);
 
@@ -4044,7 +4045,7 @@ namespace CoupledField {
       }
       if (ftype == ASCII)
       {
-        fscanf(gmvin,"%s",fname);
+        ignore_me = fscanf(gmvin,"%s",fname);
         ioerrtst(gmvin);
         *(fname+charsize_in) = (char) 0;
       }
@@ -4176,9 +4177,9 @@ namespace CoupledField {
     }
     if (ftype == ASCII)
     {
-      fscanf(gmvin,"%s",varname);
+      ignore_me = fscanf(gmvin,"%s",varname);
       if (strncmp(varname,"endvinfo",8) != 0)
-        fscanf(gmvin,"%d%d",&nelem_line,&nlines);
+        ignore_me = fscanf(gmvin,"%d%d",&nelem_line,&nlines);
     }
     ioerrtst(gmvin);
 
@@ -4250,7 +4251,7 @@ namespace CoupledField {
     rdcomms = 1;
     while (rdcomms)
     {
-      fscanf(gmvin,"%s",varname);
+      ignore_me = fscanf(gmvin,"%s",varname);
       ioerrtst(gmvin);
       if (strncmp(varname,"endcomm",7) == 0)
         rdcomms = 0;
@@ -4291,9 +4292,9 @@ namespace CoupledField {
     }
     if (ftype == ASCII) 
     {
-      fscanf(gmvin,"%s",grpname);
+      ignore_me = fscanf(gmvin,"%s",grpname);
       if (strncmp(grpname,"endgrp",6) != 0)
-        fscanf(gmvin,"%d%d",&i,&ngroupin);
+        ignore_me = fscanf(gmvin,"%d%d",&i,&ngroupin);
     }
     ioerrtst(gmvin);
 
@@ -4448,9 +4449,9 @@ namespace CoupledField {
     }
     if (ftype == ASCII)
     {
-      fscanf(gmvin,"%s",varname);
+      ignore_me = fscanf(gmvin,"%s",varname);
       if (strncmp(varname,"endsubv",7) != 0)
-        fscanf(gmvin,"%d%d",&i,&nsubvarin);
+        ignore_me = fscanf(gmvin,"%d%d",&i,&nsubvarin);
     }
     ioerrtst(gmvin);
 
@@ -4566,7 +4567,7 @@ namespace CoupledField {
     }
     if (ftype == ASCII)
     {
-      fscanf(gmvin,"%d%d",&i,&nghostin);
+      ignore_me = fscanf(gmvin,"%d%d",&i,&nghostin);
     }
     ioerrtst(gmvin);
 
@@ -4878,7 +4879,7 @@ int chk_gmvend(FILE *fin)
 
   /*  Read the last 20 characters of the file.  */
   fseek(fin, -20L, 2);
-  fread(rdend,sizeof(char), 20, fin);
+  ignore_me = fread(rdend,sizeof(char), 20, fin);
 
   /*  Check the 20 characters for endgmv.  */
   chkend = 0;
@@ -6800,7 +6801,7 @@ int gmvrayread_open(char *filnam)
     binread(magic,charsize,CHAR,(long)8,gmvrayin);
     binread(filetype,charsize,CHAR,(long)8,gmvrayin);
   }
-  if (ftype == ASCII) fscanf(gmvrayin,"%s%s",magic,filetype);
+  if (ftype == ASCII) ignore_me = fscanf(gmvrayin,"%s%s",magic,filetype);
 
   return 0;
 }
@@ -6849,7 +6850,7 @@ void gmvrayread_data()
       binread(keyword,charsize,CHAR,(long)8,gmvrayin);
       *(keyword+8)=(char)0;
     }
-    if (ftype == ASCII) fscanf(gmvrayin,"%s",keyword);
+    if (ftype == ASCII) ignore_me = fscanf(gmvrayin,"%s",keyword);
 
     if ((feof(gmvrayin) != 0) | (ferror(gmvrayin) != 0)) iend = 1;
 
@@ -6910,7 +6911,7 @@ void readrays(FILE* gmvrayin, int ftype)
 
   if (ftype == ASCII)
   {
-    fscanf(gmvrayin,"%d %d",&lrays,&lrayvars);
+    ignore_me = fscanf(gmvrayin,"%d %d",&lrays,&lrayvars);
     if (ioerrtst2(gmvrayin)) return;
   }
   else
@@ -6973,7 +6974,7 @@ void readrays(FILE* gmvrayin, int ftype)
     }
     if (ftype == ASCII)
     {
-      fscanf(gmvrayin,"%s %d",vname,&j);
+      ignore_me = fscanf(gmvrayin,"%s %d",vname,&j);
       if (ioerrtst2(gmvrayin)) return;
     }
       
@@ -7022,7 +7023,7 @@ void readrays(FILE* gmvrayin, int ftype)
     }
     if (ftype == ASCII)
     {
-      fscanf(gmvrayin,"%d",&npts);
+      ignore_me = fscanf(gmvrayin,"%d",&npts);
       if (ioerrtst2(gmvrayin)) return;
     }
     gmvrays[iray].npts = npts;
@@ -7246,7 +7247,7 @@ int chk_rayend(FILE *fin)
 
   /*  Read the last 20 characters of the file.  */
   fseek(fin, -20L, 2);
-  fread(rdend,sizeof(char), 20, fin);
+  ignore_me = fread(rdend,sizeof(char), 20, fin);
 
   /*  Check the 20 characters for endray.  */
   chkend = 0;

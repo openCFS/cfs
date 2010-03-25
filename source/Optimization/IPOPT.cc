@@ -60,8 +60,8 @@ void IPOPT::Init()
   // do scaling via get_scaling_parameters() only if we do constraint scaling 
   // otherwise IPOPT is strange
   bool g_scale = false;
-  for(unsigned int i = 0; i < optimization_->constraints.GetSize(); i++)
-    if(optimization_->constraints[i].scaling != 1.0) g_scale = true;    
+  for(unsigned int i = 0; i < optimization_->constraints.view->GetNumberOfActiveConstraints(); i++)
+    if(optimization_->constraints.view->Get(i)->manual_scaling_value != 1.0) g_scale = true;
 
   if(g_scale)
   {
@@ -165,7 +165,7 @@ bool IPOPT::get_nlp_info(Index& n, Index& m, Index& nnz_jac_g,
   n = optimization_->GetDesign()->GetNumberOfVariables();
 
   // arbitrary constraints ,
-  m = optimization_->constraints.GetSize();
+  m = optimization_->constraints.view->GetNumberOfActiveConstraints();
 
   // up to now we have only dense constraint gradients. 
   // In practice one could make the non-matching part spare or
@@ -221,7 +221,7 @@ bool IPOPT::eval_f(Index n, const Number* x, bool new_x, Number& obj_value)
   // return the value of the objective function.
   try
   {
-    obj_value = base_->EvalObjective(n, x);
+    obj_value = base_->EvalObjective(n, x, false); // IPOPT can scale by itself!
   }
   catch(Exception& e)
   {
@@ -240,7 +240,13 @@ bool IPOPT::eval_grad_f(Index n, const Number* x, bool new_x, Number* grad_f)
   int old_design = base_->objective->scaling.design_id;
   // return the gradient of the objective function grad_{x} f(x)
 
-  bool ok = base_->EvalGradObjective(n, x, grad_f);           
+  // TODO: do better :)
+  StdVector<double> tmp(n);
+
+  bool ok = base_->EvalGradObjective(n, x, false, grad_f);
+
+  for(unsigned int i = 0; i < tmp.GetSize(); i++)
+    grad_f[i] = tmp[i];
 
   LOG_TRACE2(ipopt) << "eval_grad_f: new_x = " << new_x << " design=" << base_->objective->scaling.design_id
                     << " needed_eval=" << (base_->objective->scaling.design_id != old_design)
@@ -256,7 +262,7 @@ bool IPOPT::eval_g(Index n, const Number* x, bool new_x, Index m, Number* g)
   // we overwrite the design space, but we do this all the time - especially befor eval_f
   optimization_->GetDesign()->ReadDesignFromExtern(x);
   
-  base_->EvalConstraints(n, x, m, g);
+  base_->EvalConstraints(n, x, m, false, g);
 
   return true;
 }
@@ -287,7 +293,12 @@ bool IPOPT::eval_jac_g(Index n, const Number* x, bool new_x,
   // do evaluation
   else
   {
-    base_->EvalGradConstraints(n, x, m, nele_jac, values);
+    StdVector<double> tmp(nele_jac);
+
+    base_->EvalGradConstraints(n, x, m, nele_jac, false, tmp);
+
+    for(unsigned int i = 0; i < tmp.GetSize(); i++)
+      values[i] = tmp[i];
   }
   return true;
 }
@@ -341,18 +352,19 @@ bool IPOPT::get_scaling_parameters(Number& obj_scaling, bool& use_x_scaling,
   // we don't do x_scaling
   use_x_scaling = false;
 
-  use_g_scaling = false;
+  use_g_scaling = false; // preliminary
+
   for(int i = 0; i < m; i++)
   {
-    Condition* g = &optimization_->constraints[i];
-    g_scaling[i] = g->scaling;
-    if(g->scaling != 1.0) use_g_scaling = true;    
+    Condition* g = &optimization_->constraints.view->GetNumberOfActiveConstraints(i);
+    g_scaling[i] = g->DoObjectiveScaling() ? obj_scaling : g->manual_scaling_value;
+    if(g_scaling[i] != 1.0) use_g_scaling = true;
+
+    LOG_TRACE(ipopt) << "get_scaling_parameters: g=" << g->type.ToString(g->GetType()) << " scaling=" << g_scaling[i];
   }
 
-  // note, that when use_g_scaling = false we have a different IPOPT behaviour than with
+  // note, that when use_g_scaling = false we have a different IPOPT behavior than with
   // not calling get_scaling_parameters().
-  LOG_TRACE(ipopt) << "get_scaling_parameters: obj_scaling -> " << obj_scaling << " use_g_scaling -> "
-                   << use_g_scaling;
                    
   return true;                 
 }              

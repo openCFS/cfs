@@ -48,6 +48,9 @@ namespace CoupledField {
       delete integrator_;
       integrator_ = NULL;
     }
+    
+    delete dampingLayer_;
+    dampingLayer_ = NULL;
   }
   
   void BiLinFormContext::MapEqns( EntityIterator& it1, 

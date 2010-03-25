@@ -29,16 +29,19 @@ namespace CoupledField
       typedef enum { NO_TYPE = -1, SIMP_TYPE, IDENTITY, RAMP, FIXED, FULL } Type;
     
       /** applies the transformation */
-      double Transform(DesignElement* de); 
+      double Transform(const DesignElement* de) const;
 
       /** applies the first derivative of the transformation */
-      double Derivative(DesignElement* de);
+      double Derivative(const DesignElement* de) const;
      
       Optimization::Application GetApplication() { return application_; }
       
       DesignElement::Type GetDesign() { return design_; }
       
       Type GetType() { return type_; }
+
+      /** @return true for SIMP with p != 1 and RAMP != 0 */
+      bool IsPenalized() const;
 
       /** sets the disable stuff */
       void Enable(bool enable) 

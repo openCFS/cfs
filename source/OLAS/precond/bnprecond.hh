@@ -18,6 +18,8 @@ namespace CoupledField {
   class BNPrecond : public BaseStdPrecond {
 
   public:
+    
+    virtual ~BNPrecond() {}
 
     using BasePrecond::Apply;
     using BasePrecond::Setup;

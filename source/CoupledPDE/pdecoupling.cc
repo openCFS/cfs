@@ -4,8 +4,6 @@
 
 #include "pdecoupling.hh"
 
-#include <list>
-
 #include "MatVec/basematrix.hh"
 #include "couplingmemento.hh"
 #include "PDE/StdPDE.hh"

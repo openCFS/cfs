@@ -24,22 +24,12 @@ SCPIP::SCPIP(Optimization* optimization, PtrParamNode optimizer_pn) :
   PtrParamNode scpip_pn =  optimizer_pn->Get(Optimization::optimizer.ToString(Optimization::SCPIP_SOLVER), 
                                              ParamNode::PASS);
   
-  // init scaling - to be set in SolveProblem() for restarted autoscale
-  double manual_scaling = 1.0;
-  if(scpip_pn) {
-     PtrParamNode optionNode = scpip_pn->GetByVal("option", "name", "obj_scaling_factor", ParamNode::PASS);
-     if( optionNode) 
-      scpip_pn->GetValue("value", manual_scaling, ParamNode::PASS);
-  }
-  //double manual_scaling = scpip_pn != NULL && optimizer_pn->Has("option", "name", "obj_scaling_factor") ?
-  //    scpip_pn->Get("option", "name", "obj_scaling_factor")->Get("value")->As<Double>() : 1.0;
-  PostInit(manual_scaling); // does autoscale    
+  // we do NOT use the SCPIPBase scaling but the one from BaseOptimizer!
+  PostInit(1.0); // does autoscale
+
   std::cout << objective->ToString() << std::endl;
   
   SetIntegerValue("max_iter", optimization->GetMaxIterations());
-  
-  // SCPIP has not automated scaling we might disable with 1.0
-  SetNumericValue("obj_scaling_factor", objective->scaling.value);
   
   // check for optional parameters
   if(scpip_pn != NULL)
@@ -57,9 +47,7 @@ SCPIP::SCPIP(Optimization* optimization, PtrParamNode optimizer_pn) :
     list = scpip_pn->GetListByVal("option", "type", "real");
     for(unsigned int i = 0; i < list.GetSize(); i++)
     {
-      // do not set obj_scaling_factor -> it was set before
-      if(list[i]->Get("name")->As<std::string>() != "obj_scaling_factor")
-        SetNumericValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<Double>());
+      SetNumericValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<Double>());
     }
   }
   
@@ -98,8 +86,6 @@ void SCPIP::SolveProblem()
         return;
       }
     }
-    // SCPIP has not automated scaling we might disable with 1.0
-    SetNumericValue("obj_scaling_factor", objective->scaling.value);
     
     // call the base solver !!!!!!!!!!!
     int status = SCPIPBase::SolveProblem();
@@ -150,20 +136,92 @@ void SCPIP::SolveProblem()
   while(restart_requested);
 }
 
+
+void SCPIP::SetConstraintSparsityPattern()
+{
+  assert(iern.GetSize() != 0 && iecn.GetSize() != 0 && iederv.GetSize() != 0);
+  assert(eqrn.GetSize() != 0 && eqcn.GetSize() != 0 && eqcoef.GetSize() != 0);
+  assert(m >= 0 && mie >= 0 && meq >= 0);
+
+  // SCPIPBase has the constraints slit into equality and inequality constraints
+  // beside this the ordering is not changed.
+  int ie = 0; // summed up total inequality constraint
+  int ie_active = 0; // summed up active inequality constraint
+  int eq = 0;
+
+  int ie_nnz = 0; // counter
+  int eq_nnz = 0;
+
+  for(int c = 0, nc = optimization->constraints.view->GetNumberOfActiveConstraints(); c < nc; c++)
+  {
+    Condition* g = optimization->constraints.view->Get(c);
+    if(g->GetBound() != Condition::EQUAL)
+    {
+      assert(active[ie] == 1 || active[ie] == 0);
+      if(active[ie] == 1)
+      {
+        StdVector<unsigned int>& pattern = g->GetSparsityPattern();
+        for(unsigned int e = 0; e < pattern.GetSize(); e++)
+        {
+          iern[ie_nnz] = pattern[e] + 1; // fortran!
+          iecn[ie_nnz] = ie +1; // fortran
+          ie_nnz++;
+        }
+        ie_active++;
+      }
+      ie++;
+    }
+    else // equality constraint
+    {
+      StdVector<unsigned int>& pattern = g->GetSparsityPattern();
+      for(unsigned int e = 0; e < pattern.GetSize(); e++)
+      {
+        eqrn[eq_nnz] = pattern[e] + 1; // fortran!
+        eqcn[eq_nnz] = eq +1; // fortran
+        eq_nnz++;
+      }
+      eq++;
+    }
+  }
+
+  optimization->constraints.view->Done(); // mandatory after traversing the view
+
+  assert(ie_nnz + eq_nnz == ieleng + eqleng);
+  assert(mactiv == ie_active + eq);
+  assert(ie + eq <= m);
+}
+
 bool  SCPIP::get_nlp_info(int& n, int& m, int& nnz_jac_g)
 {
   n = optimization->GetDesign()->GetNumberOfVariables();
 
   // arbitrary constraints ,
-  m = optimization->constraints.GetSize();
+  m = optimization->constraints.view->GetNumberOfActiveConstraints();
 
-  // up to now we have only dense constraint gradients. 
-  // In practice one could make the non-matching part spare or
-  // combine the sparse parts of constraints ... but this is future!
-  nnz_jac_g = n * m; 
+  // SCPIPBase will do this again, we use jac_g_size as "buffer"
+  jac_g_size.Resize(m);
+  nnz_jac_g = get_sparsity_pattern_size(m, m > 0 ? jac_g_size.GetPointer() : NULL);
 
   return true;
 }
+
+int SCPIP::get_sparsity_pattern_size(int m, int* jac_g_dim)
+{
+  assert(m == optimization->constraints.view->GetNumberOfActiveConstraints());
+
+  int nnz = 0;
+  for(int i = 0; i < m; i++)
+  {
+    Condition* g = optimization->constraints.view->Get(i);
+    int local = g->GetSparsityPattern().GetSize();
+    jac_g_dim[i] = local;
+    nnz += local;
+  }
+  optimization->constraints.view->Done(); // mandatory after traversing the view
+
+  return nnz;
+}
+
 
 bool SCPIP::get_bounds_info(int n, double* x_l, double* x_u,
                             int m, double* g_l, double* g_u)
@@ -182,7 +240,7 @@ bool SCPIP::get_starting_point(int n, double* x)
 
 bool SCPIP::eval_f(int n, const double* x, double& obj_value)
 {
-  obj_value = EvalObjective(n, x);
+  obj_value = EvalObjective(n, x, true); // always CFS scale!
   return true;
 }
 
@@ -190,7 +248,8 @@ bool SCPIP::eval_grad_f(int n, const double* x, double* grad_f)
 {
   
   // restart_requested handled in intermediate_callback
-  bool result = EvalGradObjective(n, x, grad_f);
+  assert(grad_f == df.GetPointer());
+  bool result = EvalGradObjective(n, x, true, df);
 
   // do we have to write the initial iteration in the non-autoscale case?
   // SCPIP first does eval_f and then eval_grad_f
@@ -201,7 +260,7 @@ bool SCPIP::eval_grad_f(int n, const double* x, double* grad_f)
 
 bool SCPIP::eval_g(int n, const double* x, int m, double* g)
 {
-  EvalConstraints(n, x, m, g);
+  EvalConstraints(n, x, m, true, g);
 
   return true;
 }
@@ -210,8 +269,9 @@ bool SCPIP::eval_jac_g(int n, const double* x, int m, int nele_jac, double* valu
 {
   // the gradients are dense in SCPIPBase
   assert(values != NULL);
+  assert(jac_g.GetPointer() == values);
   
-  EvalGradConstraints(n, x, m, nele_jac, values);
+  EvalGradConstraints(n, x, m, nele_jac, true, jac_g);
 
   return true;
 }
@@ -234,8 +294,11 @@ void SCPIP::finalize_solution(int status, int n, const double* x, const double* 
   
   std::cout << "SCPIP finished: f=" << obj_value;
   for(int i = 0; i < m; i++)
-    std::cout << " + " << lambda[i] << "*" << g[i];
+    if(!optimization->constraints.view->Get(i)->IsVirtual()) // don't display blown up slopes
+      std::cout << " + " << lambda[i] << "*" << g[i];
   std::cout << std::endl;  
+
+  optimization->constraints.view->Done(); // swith slope constraints back to global
 }
  
 bool SCPIP::intermediate_callback(int iter, bool next_iter)
@@ -244,29 +307,14 @@ bool SCPIP::intermediate_callback(int iter, bool next_iter)
 
   optimization->CommitIteration();
 
+
   // break the optimization - e.g. if our relative change is smaller than given in xml
   // or we have to do a restart
   LOG_TRACE2(scpip) << "intermediate_callback iter=" << iter << " next_iter=" << next_iter
                     << " restart_requested=" << restart_requested;
+  LOG_DBG(scpip) << "ic: mactiv=" << mactiv;
+  LOG_DBG2(scpip) << "ic: active=" << active.ToString();
   
   return (restart_requested || optimization->DoStopOptimization()) ? false : true; 
 }     
 
-bool SCPIP::get_scaling_parameters(double& obj_scaling, bool& use_g_scaling, int m, double* g_scaling)
-{
-  // this method is only called if nlp_scaling_method is set to user-scaling!
-  obj_scaling = objective->scaling.value;
-
-  use_g_scaling = false;
-  for(int i = 0; i < m; i++)
-  {
-    Condition* g = &optimization->constraints[i];
-    g_scaling[i] = g->scaling;
-    if(g->scaling != 1.0) use_g_scaling = true;    
-  }
-  
-  LOG_TRACE(scpip) << "get_scaling_parameters: obj_scaling -> " << obj_scaling << " use_g_scaling -> "
-                   << use_g_scaling;
-                   
-  return true;                 
-}              

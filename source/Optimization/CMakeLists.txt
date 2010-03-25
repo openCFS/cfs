@@ -1,8 +1,8 @@
-SET(OPTIMIZATION_SRCS DesignElement.cc DesignSpace.cc Optimization.cc PiezoSIMP.cc ErsatzMaterial.cc SIMP.cc 
+SET(OPTIMIZATION_SRCS  Function.cc DesignElement.cc DesignSpace.cc Optimization.cc PiezoSIMP.cc ErsatzMaterial.cc SIMP.cc 
                       TransferFunction.cc Condition.cc Objective.cc OptimalityCondition.cc EvaluateOnly.cc
                       BaseOptimizer.cc ShapeGrad.cc LevelSet.cc ParamMat.cc DesignMaterial.cc ShapeOptimizer.cc
                       TopGrad.cc OptimizationMaterial.cc GradientCheck.cc ShapeOpt.cc ShapeDesign.cc
-                      DesignFilter.cc)
+                      DesignStructure.cc)
 
 # Just redefine __builtin_isnan to ::isnan for Intel compiler for
 # OptimalityCondition.cc
@@ -52,7 +52,7 @@ IF(USE_SNOPT)
     ${SNOPT_LIBRARY}
     ${CFS_FORTRAN_LIBS})
    
-   SET(OPTIMIZATION_SRCS ${OPTIMIZATION_SRCS} SnOptInterface.cc SnOpt.cc SnOptBase.cc)
+   SET(OPTIMIZATION_SRCS ${OPTIMIZATION_SRCS} SnOptInterface.cc SnOpt.cc)
 ENDIF(USE_SNOPT)
 
 ADD_LIBRARY(optimization STATIC ${OPTIMIZATION_SRCS})
@@ -62,6 +62,7 @@ SET(TARGET_LL
   domain
   forms
   matvec
+  pde
 )
 
 IF(USE_XERCES)

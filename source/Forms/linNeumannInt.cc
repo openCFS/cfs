@@ -136,7 +136,8 @@ namespace CoupledField
 
     LOG_DBG3(forms) << "LinNeumannInt::CalcElemVector<double> elem="
                     << actElem_->elemNum << " pseudo density=" << density
-                    << " factor=" << factor;
+                    << " factor=" << factor 
+                    << " elem vec = " << elemVec.ToString();
 
     // multiply element vector with factor
     elemVec *= factor;

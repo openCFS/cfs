@@ -156,6 +156,48 @@ for y = 1:sy;
 endfor
 fprintf(xml_file, '</set>\n\n');
 
+fprintf(xml_file, '<set id="vbars">\n');
+for y = 1:sy;
+  for x = 1:sx;
+    # number of current element
+    num = (y - 1) * sx + x;
+
+		if(x == 1 || x == sx || y == 1 || y == sy)
+			v = 1;
+		else
+			if(mod(x, 2))
+				v = dmin;
+			else 
+				v = 1;
+			endif
+		endif
+
+    fprintf(xml_file, '  <element nr="%d" type="density" design="%g"/>\n', num, v);
+  endfor
+endfor
+fprintf(xml_file, '</set>\n\n');
+
+fprintf(xml_file, '<set id="hbars">\n');
+for y = 1:sy;
+  for x = 1:sx;
+    # number of current element
+    num = (y - 1) * sx + x;
+
+		if(x == 1 || x == sx || y == 1 || y == sy)
+			v = 1;
+		else
+			if(mod(y, 2))
+				v = dmin;
+			else 
+				v = 1;
+			endif
+		endif
+
+    fprintf(xml_file, '  <element nr="%d" type="density" design="%g"/>\n', num, v);
+  endfor
+endfor
+fprintf(xml_file, '</set>\n\n');
+
 fprintf(xml_file, '<set id="random">\n');
 for y = 1:sy;
   for x = 1:sx;

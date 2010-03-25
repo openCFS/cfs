@@ -167,9 +167,11 @@ namespace CoupledField
     }
     
     // perform action, in case no node was found
-    if(result == NULL || action == APPEND) {
+    if(result == NULL || action == APPEND) 
+    {
       // depending on ActionType:
-      switch(action) {
+      switch(action)
+      {
         case DEFAULT:
           EXCEPTION("Some action has to be performed");
           break;
@@ -193,7 +195,8 @@ namespace CoupledField
           break;
       }
     }
-      return result;
+
+    return result;
   }
   
   template<typename TYPE>

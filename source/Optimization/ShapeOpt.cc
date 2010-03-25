@@ -14,7 +14,7 @@ ShapeOpt::ShapeOpt() : ParamMat() {
   shapedesign = dynamic_cast<ShapeDesign*>(design);
 
   PtrParamNode sopn = pn->Get("shapeOpt");
-  shapedesign->Configure(sopn, objectives.data.GetSize(), constraints.GetSize());
+  shapedesign->Configure(sopn, objectives.data.GetSize(), constraints.view->GetNumberOfActiveConstraints());
   alsomatopt_ = shapedesign->AlsoMatOpt();
 
   // all (bi)linear forms need to use updated coordinates
@@ -31,10 +31,9 @@ ShapeOpt::ShapeOpt() : ParamMat() {
   }
 }
 
-double ShapeOpt::CalcVolume(Objective* f, Condition* constraint, bool derivative, bool normalized, double exponent){
+double ShapeOpt::CalcVolume(Objective* f, Condition* constraint, bool derivative, bool normalized){
   // the exponent is used in Ersatzmaterial for the volume cost function
   // if an exponent != 1.0 at this point makes any sense is unknown
-  assert(exponent == 1.0);
   
   if(derivative){
     StdVector<double> der; // solution
@@ -49,7 +48,7 @@ double ShapeOpt::CalcVolume(Objective* f, Condition* constraint, bool derivative
     der.Resize(np, 0);
     if(alsomatopt_){
       // this needs to be done before, we do use fraction
-      ErsatzMaterial::CalcVolume(f, constraint, derivative, normalized, exponent);
+      ErsatzMaterial::CalcVolume(f, constraint, derivative, normalized);
     }
     if(!alsomatopt_ || (constraint && constraint->design == DesignElement::UNITY)){
       if(!normalized){
@@ -97,7 +96,7 @@ double ShapeOpt::CalcVolume(Objective* f, Condition* constraint, bool derivative
       // this is similar to ErsatzMaterial::CalcVolume but calculates derivatives w.r.t. shape
       Grid* grd = domain->GetGrid();
       bool isObjective = constraint == NULL;
-      double fraction = isObjective ? volume_fraction_ : constraint->volume_fraction_; // this already considers everything
+      double fraction = isObjective ? volume_fraction_ : constraint->volume_fraction; // this already considers everything
       double volume = 0.0;
       if(!normalized){  // needed for derivative in normalized versions
         volume = CalcVolume(f, constraint, derivative, normalized);
@@ -402,8 +401,8 @@ void ShapeOpt::CalcUdF(Excitation& excite, StdVector<SingleVector*>& u, Objectiv
 
 double ShapeOpt::CalcCompliance(Excitation& excite, Objective* f, Condition* constraint, bool derivative){
   if(derivative){
-    forward.data[excite.index]->Read(Solution::GRIDELEM_VECTORS, pde, MECH);
-    StdVector<SingleVector*>& u = forward.data[excite.index]->gridelem[MECH];
+    forward.Get(excite)->Read(Solution::GRIDELEM_VECTORS, pde, MECH);
+    StdVector<SingleVector*>& u = forward.Get(excite)->gridelem[MECH];
     
     // the derivative of tracking w.r.t. shape is: - u' dA/dShape u + 2 u dF/dShape 
     CalcMinusU1dKU2(u, u, f, constraint, excite.weight);
@@ -424,8 +423,8 @@ double ShapeOpt::CalcTracking(Excitation& excite, Objective* f, Condition* const
     }
 
     StdVector<SingleVector*>& z = tracking_->gridelem[MECH];
-    forward.data[excite.index]->Read(Solution::GRIDELEM_VECTORS, pde, MECH);
-    StdVector<SingleVector*>& u = forward.data[excite.index]->gridelem[MECH];
+    forward.Get(excite)->Read(Solution::GRIDELEM_VECTORS, pde, MECH);
+    StdVector<SingleVector*>& u = forward.Get(excite)->gridelem[MECH];
     
     // the derivative of tracking w.r.t. shape is: - z' dA/dShape u + z dF/dShape 
     CalcMinusU1dKU2(z, u, f, constraint, excite.weight);

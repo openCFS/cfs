@@ -19,7 +19,7 @@ namespace CoupledField
     LinearSurfForm();
 
     //! Destructor
-    ~LinearSurfForm();
+    virtual ~LinearSurfForm();
 
     //! Set pointer to surface element
     void SetSurfElem( SurfElem * ptSurfElem);

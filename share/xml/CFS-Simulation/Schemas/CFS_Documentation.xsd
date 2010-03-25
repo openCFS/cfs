@@ -123,6 +123,7 @@
       <xsd:enumeration value="filter"/>      
       <xsd:enumeration value="SIMP"/>      
       <xsd:enumeration value="mathematical_limit_homogenization"/>
+      <xsd:enumeration value="snopt"/>      
       <!-- this are solver keywords -->
       <xsd:enumeration value="solver"/>
       <!-- nonmatching grids specific key words -->

@@ -1,6 +1,7 @@
 #include "General/exception.hh"
 #include "Optimization/DesignElement.hh"
 #include "Optimization/DesignSpace.hh"
+#include "Optimization/DesignStructure.hh"
 #include "Optimization/Condition.hh"
 #include "Optimization/Objective.hh"
 #include "Domain/domain.hh"
@@ -31,6 +32,9 @@ Enum<DesignElement::Type>           DesignElement::type;
 Enum<DesignElement::ValueSpecifier> DesignElement::valueSpecifier;
 Enum<DesignElement::Access>         DesignElement::access;
 Enum<DesignElement::Detail>         DesignElement::detail;
+
+// is a static attribute
+DesignSpace* DesignElement::space_(NULL);
 
 BaseDesignElement::BaseDesignElement() {
   design          = 0.0;
@@ -109,7 +113,8 @@ DesignElement::DesignElement() : BaseDesignElement()
 DesignElement::DesignElement(PtrParamNode pn, Elem* elem) : BaseDesignElement()
 {
   Init();
-  this->elem      = elem;
+  this->elem = elem;
+
 
   // it is a little slow to perform this code for every DesignElement but the
   // implementations are rater fast and it should be not measurable in the end
@@ -127,14 +132,14 @@ DesignElement::DesignElement(PtrParamNode pn, Elem* elem) : BaseDesignElement()
 DesignElement::~DesignElement()
 {
   delete simp; simp = NULL;
-  delete vicinity_; vicinity_ = NULL;
+  delete vicinity; vicinity = NULL;
   delete location_; location_ = NULL;
 }
 
 void DesignElement::Init()
 {
   simp            = NULL;
-  vicinity_       = NULL;
+  vicinity       = NULL;
   lse_            = NULL;
   tge             = NULL;
   location_       = NULL;
@@ -167,7 +172,11 @@ Point* DesignElement::GetLocation()
 void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsigned int dofs) const
 {
   // check for special result
-  if(rd.value == OBJECTIVE || (rd.value == COST_GRADIENT && rd.detail != NONE))
+  if(    rd.value == OBJECTIVE
+      || (rd.value == COST_GRADIENT && rd.detail != NONE)
+      || rd.value == MAX_SLOPE
+      || rd.value == CONSTRAINT_GRADIENT
+      || rd.value == CHECKERBOARD)
   {
     if(dofs != 1) throw Exception("special results is only defined for scalar values");
     switch(rd.solutionType)
@@ -231,20 +240,33 @@ double DesignElement::GetValue(ValueSpecifier sp) const
   // validate first:
   switch(sp)
   {
-  case DESIGN:               return design;
-  case DESIGN_COST_GRADIENT: return design * SumObjectiveGradient();
-  case COST_GRADIENT:        return SumObjectiveGradient();
+  case DESIGN:                return design;
+  case PHYSICAL_MECH_DESIGN:
+    {
+      // C++ is amazing :((
+      const TransferFunction* tf = const_cast<const TransferFunction*>(space_->GetTransferFunction(type_, ErsatzMaterial::MECH, true));
+      return tf->Transform(this);
+    }
+
+  case DESIGN_COST_GRADIENT:  return design * SumObjectiveGradient();
+  case COST_GRADIENT:         return SumObjectiveGradient();
   case WEIGHT:
     if(simp == NULL) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to SIMP");
     return simp->weight;
+
   case NUM_NEIGHBOURS:       
     if(simp == NULL) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to SIMP");
     return simp->neighborhood.GetSize();
-  case CONSTRAINT_GRADIENT:  
-    throw Exception("for constraint gradient we need an index!");
+
+  case CONSTRAINT_GRADIENT:
+  case MAX_SLOPE:
+  case CHECKERBOARD:
+    assert(false); // should be covered before by special result index
+
   case TOPGRAD_VALUE:
     if(tge == 0) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to TopGrad");
     return tge->value;
+
   case SHAPEGRAD_VALUE:
     if(lse_ == 0) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to Levelset");
     return lse_->shapeGradValue;
@@ -292,7 +314,7 @@ std::string DesignElement::ToString(DesignElement* de)
   if(de->elem == NULL)
   {
     ss << "ghost";
-    if(de->vicinity_ != NULL) ss << de->vicinity_->ToString();
+    if(de->vicinity != NULL) ss << de->vicinity->ToString();
   }
   else ss << boost::lexical_cast<std::string>(de->elem->elemNum);
   
@@ -326,9 +348,12 @@ void DesignElement::SetEnums()
 
   valueSpecifier.SetName("DesignElement::ValueSpecifier");
   valueSpecifier.Add(DESIGN, "design");
+  valueSpecifier.Add(PHYSICAL_MECH_DESIGN, "physicalMechDesign");
   valueSpecifier.Add(DESIGN_COST_GRADIENT, "designTimesCostGradient");
   valueSpecifier.Add(COST_GRADIENT, "costGradient");
   valueSpecifier.Add(CONSTRAINT_GRADIENT, "constraintGradient");
+  valueSpecifier.Add(MAX_SLOPE, "maxSlope");
+  valueSpecifier.Add(CHECKERBOARD, "checkerboard");
   valueSpecifier.Add(WEIGHT, "weight");
   valueSpecifier.Add(OBJECTIVE, "objective");
   valueSpecifier.Add(NUM_NEIGHBOURS, "neighbours");
@@ -354,6 +379,19 @@ void DesignElement::SetEnums()
   detail.Add(ELEC_ELEC_QUAD, "elec_elec_quad");
   detail.Add(ELEC_MECH, "elec_mech");
   detail.Add(MECH_ELEC, "mech_elec");
+  // this ia a selection of constraints for constraintGradient
+  detail.Add(COMPLIANCE, "compliance");
+  detail.Add(VOLUME, "volume");
+  detail.Add(PENALIZED_VOLUME, "penalizedVolume");
+  detail.Add(GAP, "gap");
+  detail.Add(REALVOLUME, "realvolume");
+  detail.Add(TRACKING, "tracking");
+  detail.Add(HOMOGENIZATION_TRACKING, "homTracking");
+  detail.Add(POISSONS_RATIO, "poissonsRatio");
+  detail.Add(YOUNGS_MODULUS, "homYoungsModulus");
+  detail.Add(TYCHONOFF, "tychonoff");
+  detail.Add(GREYNESS, "greyness");
+
 }
 
 
@@ -388,7 +426,7 @@ double SIMPElement::GetFilteredValue(DesignElement::ValueSpecifier sp, bool desi
   // add our part :)
   double des_weight = design_weighted ? de_->GetDesign(DesignElement::PLAIN) : 1.0;
 
-  LOG_DBG2(del) << de_->elem->elemNum << ": factor_sum = " << factor_sum << " + " << de_->GetValue(sp)
+  LOG_DBG3(del) << de_->elem->elemNum << ": factor_sum = " << factor_sum << " + " << de_->GetValue(sp)
   << " weight_sum = " << weight_sum << " + " << weight << " -> "
   << ((factor_sum+(de_->GetValue(sp)*des_weight))/((weight_sum+weight)*des_weight)) << " instead of " << de_->GetValue(sp);
 
@@ -425,86 +463,90 @@ void SIMPElement::Dump()
 
 VicinityElement::VicinityElement()
 {
-  design.Resize(domain->GetGrid()->GetDim() == 2 ? 4 : 6, 0);
+  design.Resize(domain->GetGrid()->GetDim() == 2 ? 4 : 6);
+  design.Init(NULL);
 }
 
 
-void VicinityElement::Init(DesignSpace* design)
+void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
 {
-  ptime before_time = second_clock::local_time();
-  
-  cout << "Vicinities " << flush;
+  // do it only once
+  if(space->data[0].vicinity != NULL)
+    return;
+
   Grid* grid = domain->GetGrid();
-  StdVector<DesignElement> &data = design->data;
+  
+  if(!space->IsRegular())
+    throw Exception("A regular design domain is required to use VicinityElements");
 
-  // Our design region(s)
-  StdVector<RegionIdType> regions;
-  regions.Push_back(design->GetRegionId());
+  // let CFS find the neighborhood of *all* elements. With some luck this was done
+  // anyway already and we get it for free
+  // This does not include periodic b.c. neighbors, this is done by structure
+  grid->FindElementNeighorhood();
 
-  // result of GetElemsNextToNodes()
-  StdVector<Elem*> elems;
+  // todo: Only LevelSet does not call this method with structure but always NULL
+  bool periodic = structure != NULL ? structure->IsPeriodic() : false;
 
-  // coordinatates of "this" element
-  Matrix<double> reference;
-  // coordinates of compare element
-  Matrix<double> other;
+  // we are either linear or quadratic quadrilaterals or hexahedrons. This is the linear
+  // limit of common nodes in the elem->neighborhood pair
+  int common = grid->GetDim() == 2 ? 2 : 4;
 
-  unsigned int factor(1);
-  for(unsigned int element = 0, data_size = data.GetSize(); element < data_size; ++element)
+  // We need the spacing of a element to detect periodic elements later
+  StdVector<double> spacing; // the output
+  Matrix<double> coords; // temporary
+  Elem* elem = space->data[0].elem;
+  domain->GetGrid()->GetElemNodesCoord(coords, elem->connect);
+  elem->ptElem->GetEdgeLength(coords, spacing);
+
+
+  // We have to compare this element with the neighbors to do the sorting we restrict
+  // ourself to the first node of the elements
+  Point this_elem_point;
+  Point neigh_elem_point;
+
+  // in the periodic case the neighborhood is enlarged
+  StdVector<std::pair<Elem*, int> > enlarged_data;
+
+  // traverse over all elements
+  // double cfs elements for multiple design variables are not handled special
+  for(unsigned int e = 0, n = space->data.GetSize(); e < n; e++)
   {
-    if(10*element == factor*data_size) //draw a dot every 1/10 elements to cout
+    DesignElement& de = space->data[e];
+    de.vicinity = new VicinityElement();
+    // here we store the neighbors in a sorted way
+    StdVector<DesignElement*>& ve_data = de.vicinity->design; // has proper size of NULLs
+    // set the reference point of this element
+    grid->GetNodeCoordinate(this_elem_point, de.elem->connect[0]);
+
+
+    // reference case
+    StdVector<std::pair<Elem*, int> >& neighbors = *(de.elem->neighborhood);
+    // reuse the enlarged_data element for the periodic case only
+    if(periodic)
     {
-      cout << "." << flush;
-      ++factor;
+      if(structure->ExtendPeriodicNeighborhood(de.elem, common, enlarged_data))
+        neighbors = enlarged_data; // in the non-periodic case there is no need to copy the element data
     }
-    DesignElement& de = data[element];
-    de.vicinity_ = new VicinityElement();
 
-    // all nodes of this element
-    StdVector<unsigned int> &nodes = de.elem->connect;
+    LOG_DBG(del) << "VE:Init elem=" << de.elem->elemNum << " neighbors=" << neighbors.ToString();
 
-    // coordinates of current element, not updated lagrangian
-    grid->GetElemNodesCoord(reference, nodes, false );
-
-    // all elements that share "our" nodes, includes diagonal and "this" elements
-    elems.Clear();
-    grid->GetElemsNextToNodes(elems, nodes, regions);
-
-    // check the neighbour elements
-    for(unsigned int n = 0, elems_size = elems.GetSize(); n < elems_size; ++n)
+    for(unsigned int n = 0; n < neighbors.GetSize(); n++)
     {
-      Elem* other_elem = elems[n];
-      // ignore "this" element
-      if(de.elem->elemNum == other_elem->elemNum) continue;
-
-      grid->GetElemNodesCoord(other, other_elem->connect, false );
-
-      int orientation; // 0..2 = x..z neighbour
-      bool positive;    // +/- x..z neighbour
-      bool valid = VicinityElement::IdentifyNeighbor(reference, other, orientation, positive);
-      
-      // set the vicinity element
-      if(!valid) continue;
-      
-      int  idx   = orientation * 2 + (positive ? 0 : 1);
-      LOG_DBG3(del) << "VicinityElement::Init: reference=" << de.elem->elemNum << " other=" << other_elem->elemNum 
-                    << " vicinity=" << valid << " orientation=" << orientation << " positive=" << positive << " idx=" << idx;
-
-      DesignElement* other_de = design->Find(other_elem->elemNum, DesignElement::DENSITY); // quick and dirty!
-
-      de.vicinity_->design[idx] = other_de;
+      // we consider only direct (edge/face) neighbors
+      if(neighbors[n].second < common) continue;
+      // now we have to find the relative position of candidate
+      Elem* candidate = neighbors[n].first;
+      // the reference point of the candidate
+      grid->GetNodeCoordinate(neigh_elem_point, candidate->connect[0]);
+      // the spacing allows to identify periodic elements
+      int idx = FindRelativeNeighborLocation(this_elem_point, neigh_elem_point, spacing);
+      ve_data[idx] = space->Find(candidate->elemNum, de.GetType());
     }
   }
-  cout << "done (" << Timer::GetTimeString(second_clock::local_time() - before_time) << ") " << flush;
-}
+ }
 
 
-/** Compares the node coordinates of two elements and decides which orientation we have. only face/line (3D/2D) neighbours.
- * "diagonal" elements and identical elements are "false".
- * @param dimension 0, 1, 2 for x, y, z
- * @param positive if other is reference + dimension, false if reference - other
- * @return true if other is a true closest neighbour */
-bool VicinityElement::IdentifyNeighbor(Matrix<double>& reference, Matrix<double>& other, int& dimension, bool& positive)
+VicinityElement::Neighbour VicinityElement::FindRelativeNeighborLocation(Point& ref, Point& other, StdVector<double> spacing)
 {
   // -------------------------
   // |       |       |       |
@@ -519,56 +561,53 @@ bool VicinityElement::IdentifyNeighbor(Matrix<double>& reference, Matrix<double>
   // |   4   |   5   |  6    |
   // |       |  -y   |       |
   // -------------------------
-  // 
-  // From the example above, for reference element 0, we return 1,3,5,7
-  
-  // the structure of the matrices is 
-  // [x][i]
-  // [y][i]
-  // [z][i]
-  // and i \in {0, ..., number_of_elem_nodes} (4 in 2D, 8 in 3D)
-  const unsigned int dim(reference.GetNumRows());
-  const unsigned int size(reference.GetNumCols());
+  //
 
-  assert(other.GetNumRows() == dim);
-  assert(other.GetNumCols() == size);
-  assert(dim == domain->GetGrid()->GetDim());
-  
-  // defaults to make logging in the false case easier
-  dimension = -1;
-  positive = false;
-  
-  // we first test for x, then for y and then for z
-  for(unsigned int d = 0; d < dim; ++d)
+  // we do not return after the first result is found.
+  // This allows the asserts and also it should be of the
+  // similar performance as the code can be vectorized
+  Neighbour res = NONE;
+  Point diff = ref - other;
+
+  if(!IsNoise(diff[0]))
   {
-    // assume 2D and d = 0 (=x), then all y-coordinates of 3 and 7 match 0
-    bool good(true); // for above, only true for 0,3,7
-    // probe for the other dimensions
-    for(unsigned int p = 0; p < dim; ++p)
-    {
-      if(d == p) continue;
-      // check all element nodes (size == 4 in 2D, size == 8 in 3D)
-      for(unsigned int node = 0; node < size && good; ++node)
-      {
-        // for the neighbour in direction d, all coordinates of all points
-        // in the other directions have to match
-        // if we find a difference, we have no candidate!
-        if(std::abs(reference[p][node] - other[p][node]) > 1e-6) good = false;
-      }
-    }
+    // the nodes can only be larger than the regular spacing in the periodic case
+    if(std::abs(diff[0]) > spacing[0] * 1.5) // 1.5 reference size makes it robust
+     res = diff[0] < 0 ? X_N : X_P; // flip due to periodic b.c.
+    else
+     res = diff[0] < 0 ? X_P : X_N; // normal, non-periodic case
 
-    if(!good) continue;
-
-    // this element and the reference element differ only in direction d
-    // check if we are comparing to self
-    if(std::abs(reference[d][0] - other[d][0]) < 1e-6) return false;
-    dimension = d;
-    // check for positive or negative
-    positive = (other[d][0] > reference[d][0]);
-    return true;
+    assert(IsNoise(diff[1]));
+    assert(IsNoise(diff[2]));
   }
-  // nothing found
-  return false;
+  if(!IsNoise(diff[1]))
+  {
+    assert(IsNoise(diff[0]));
+
+    if(std::abs(diff[1]) > spacing[1] * 1.5)
+      res = diff[1] < 0 ? Y_N : Y_P;
+    else
+      res = diff[1] < 0 ? Y_P : Y_N;
+
+    assert(IsNoise(diff[2]));
+  }
+  if(!IsNoise(diff[2]))
+  {
+    assert(IsNoise(diff[0]));
+    assert(IsNoise(diff[1]));
+
+    if(std::abs(diff[2]) > spacing[2] * 1.5)
+      res = diff[2] < 0 ? Z_N : Z_P;
+    else
+      res = diff[2] < 0 ? Z_P : Z_N;
+  }
+  
+  LOG_DBG(del) << "VE:FRNL ref =" << ref.ToString() << " other=" << other.ToString() << " -> " << res;
+
+  if(res == NONE)
+    EXCEPTION("cannot identify relative neighborhood of " << ref.ToString() << " and " << other.ToString());
+
+  return res;
 }
 
 

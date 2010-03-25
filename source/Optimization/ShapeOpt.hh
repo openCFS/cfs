@@ -15,7 +15,7 @@ namespace CoupledField {
 
     ShapeOpt();
 
-    virtual double CalcVolume(Objective* f, Condition* g, bool derivative, bool normalized = true, double exponent = 1.0);
+    virtual double CalcVolume(Objective* f, Condition* g, bool derivative, bool normalized = true);
 
     /** Calculate part of the derivative u1 dK/dShape u2 of compliance and tracking w.r.t. shape */
     void CalcMinusU1dKU2(StdVector<SingleVector*>& u1, StdVector<SingleVector*>& u2, Objective* f, Condition* constraint, double w);

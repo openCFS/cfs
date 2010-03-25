@@ -28,10 +28,23 @@ class ParamNode;
        * @throws exception when not ok! */ 
       void SolveProblem();
 
+      /** overload BaseOptimier method */
+      int GetCurrenActiveSetSize() const
+      {
+        assert(mactiv >= 0);
+        return mactiv;
+      }
+
     private:
 
+      /** Overloads the default implementation to allow sparse jacobians */
+      void SetConstraintSparsityPattern();
+
+      /** This implementation uses get_sparsity_pattern_size to determine nnz_jac_g */
       bool get_nlp_info(int& n, int& m, int& nnz_jac_g);
     
+      int get_sparsity_pattern_size(int m, int* jac_g_dim);
+
       /** overload this method to return the information about the bound
        *  on the variables and constraints. The value that indicates
        *  that a bound does not exist is specified in the parameters
@@ -70,9 +83,6 @@ class ParamNode;
       void finalize_solution(int status, int n, const double* x, const double* z_L, 
                              const double* z_U, int m, const double* g, 
                              const double* lambda, double obj_value);
-
-      /** called for constraint scaling */
-      bool get_scaling_parameters(double& obj_scaling, bool& use_g_scaling, int m, double* g_scaling);
 
       /** This method is called every time SCPIP returns. It is more common
        * to IPOPT when next_iter is true! */

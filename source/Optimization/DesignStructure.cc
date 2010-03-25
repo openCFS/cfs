@@ -1,4 +1,4 @@
-#include "Optimization/DesignFilter.hh"
+#include "Optimization/DesignStructure.hh"
 #include "Optimization/DesignSpace.hh"
 #include "Optimization/SIMP.hh"
 #include "Domain/domain.hh"
@@ -6,44 +6,40 @@
 #include "PDE/SinglePDE.hh"
 #include "Elements/basefe.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Utils/Timer.hh"
 #include "DataInOut/Logging/cfslog.hh"
 
 using std::string;
+using std::map;
 using namespace CoupledField;
 
-DECLARE_LOG(df)
-DEFINE_LOG(df, "designFilter")
+DECLARE_LOG(ds)
+DEFINE_LOG(ds, "designStructure")
 
-DesignFilter::DesignFilter(SIMP* simp, PtrParamNode pn)
+DesignStructure::DesignStructure(ErsatzMaterial* em)
 {
-  info_ = info->Get("optimization")->Get(ParamNode::HEADER)->Get("regularization/filter", ParamNode::APPEND);
-  timer_ = new Timer();
-  info_->SetValue(timer_);
-  timer_->Start();
+  initialized_ = false;
 
-  Grid* grid = domain->GetGrid();
 
-  this->simp = simp;
-  this->dim  = grid->GetDim();
-
-  StdVector<RegionIdType>&  regions = simp->regionIds;
-  StdVector<DesignElement>& data    = simp->GetDesign()->data;
+  this->em = em;
+  this->dim  = domain->GetGrid()->GetDim();
 
   periodic = false;
-  for(unsigned int i = 0; i < simp->pdes.GetSize(); i++)
-    if(simp->pdes[i]->HasPeriodicBC()) periodic = true;
-  info_->Get("periodicBCs")->SetValue(periodic);
+  for(map<Optimization::Application, SinglePDE*>::iterator it = em->pdes.begin(); it != em->pdes.end(); ++it)
+    if(it->second->HasPeriodicBC()) periodic = true;
+
+  filter = DesignElement::NO_FILTER;
+  value  = -1.0;
+}
+
+void DesignStructure::Initialize()
+{
+  Grid* grid = domain->GetGrid();
 
   // save to be called multiple times. Has all neighbors and the number of common nodes
   grid->FindElementNeighorhood();
 
-  // the element point to Elem* neighbors, but we need DesignElement* neighbors
-  // fill partially for direct access by element number
-  elemToDesign.Resize(grid->GetNumElems() + 1); // 1 based.
-  for(unsigned int i = 0, in = data.GetSize(); i < in; i++)
-    elemToDesign[data[i].elem->elemNum] = &data[i];
+  StdVector<RegionIdType>&  regions = em->regionIds;
 
   // we will need the barycenters in FindNeibhborhood()
   for(unsigned int i = 0; i < regions.GetSize(); i++)
@@ -59,26 +55,36 @@ DesignFilter::DesignFilter(SIMP* simp, PtrParamNode pn)
     grid->CalcVolumeSpannedByNamedNodes(&dimension);
   }
 
-  filter = DesignElement::filter.Parse(pn->Get("type")->As<std::string>());
-  value  = pn->Get("value")->As<Double>();
-
-  info_->Get("type")->SetValue(DesignElement::filter.ToString(filter));
-  info_->Get("value")->SetValue(value);
-
-  info_->Get("enabled")->SetValue(value > 0.0);
-
-  timer_->Stop(); // to be restarted by SetFilter
+  initialized_ = true;
 }
 
-void DesignFilter::SetFilters()
+void DesignStructure::SetFilters(PtrParamNode pn)
 {
+  if(!initialized_)
+    Initialize();
+
+  filter = DesignElement::filter.Parse(pn->Get("type")->As<std::string>());
+  value  = pn->Get("value")->As<double>();
+
+  PtrParamNode in = info->Get("optimization")->Get(ParamNode::HEADER)->Get("regularization/filter", ParamNode::APPEND);
+  in->Get("periodicBCs")->SetValue(periodic);
+
+  in->Get("type")->SetValue(DesignElement::filter.ToString(filter));
+  in->Get("value")->SetValue(value);
+
+  in->Get("enabled")->SetValue(value > 0.0);
+
+
   if(value <= 0.0) return; // most times, there will be no filter when no filter is wanted and not a filter with value 0
 
-  timer_->Start();
+  // the initialization was seperated!
+  Timer* timer = new Timer(); 
+  in->SetValue(timer);
+  timer->Start();
 
   double avg_radius = 0;
   double avg_neighbours = 0;
-  StdVector<DesignElement>& data = simp->GetDesign()->data;
+  StdVector<DesignElement>& data = em->GetDesign()->data;
 
   // find simp neighbors for all our elements
   double radius = -1.0; // for each element, set only once for regular.
@@ -108,7 +114,7 @@ void DesignFilter::SetFilters()
 
     StdVector<std::pair<Elem*, int> >* start = extend ? &base_buddies : de->elem->neighborhood;
 
-    LOG_DBG2(df) << "SF: call FN for " << de->elem->ToString();
+    LOG_DBG2(ds) << "SF: call FN for " << de->elem->ToString();
     FindNeighborhood(de, radius, *start, neighbors, too_far); // works recursive
     // save neighborhood
     de->simp->neighborhood = neighbors;
@@ -127,21 +133,21 @@ void DesignFilter::SetFilters()
     avg_neighbours += de->simp->neighborhood.GetSize();
   }
 
-  info_->Get("avg_radius")->SetValue(avg_radius / data.GetSize());
-  info_->Get("avg_neighbors")->SetValue(avg_neighbours / data.GetSize());
+  in->Get("avg_radius")->SetValue(avg_radius / data.GetSize());
+  in->Get("avg_neighbors")->SetValue(avg_neighbours / data.GetSize());
 
-  timer_->Stop();
+  timer->Stop();
 
   std::cout << "Filter: avg radius: " << (avg_radius / data.GetSize())
             << " avg neighbourhood: " << (avg_neighbours / data.GetSize()) << std::endl;
 }
 
-void DesignFilter::FindNeighborhood(DesignElement* base, double radius,
+void DesignStructure::FindNeighborhood(DesignElement* base, double radius,
                                       StdVector<std::pair<Elem*, int> >& buddies,
                                       StdVector<SIMPElement::NeighbourElement>& neighbors,
                                       StdVector<unsigned int>& too_far)
 {
-  LOG_DBG2(df) << "FN: base= " << base->elem->elemNum << " buddies=" << buddies.ToString() << " n=" << ToString(neighbors) << " tf=" << too_far.ToString();
+  LOG_DBG2(ds) << "FN: base= " << base->elem->elemNum << " buddies=" << buddies.ToString() << " n=" << ToString(neighbors) << " tf=" << too_far.ToString();
 
     // the idea is as follows:
   // * We assume non regular grid.
@@ -178,7 +184,8 @@ void DesignFilter::FindNeighborhood(DesignElement* base, double radius,
       // this is the implementation from Bendsoe/ Sigmund
       SIMPElement::NeighbourElement ne;
 
-      ne.neighbour = elemToDesign[test]; // map from element number to design
+      // map from element number to design
+      ne.neighbour = em->GetDesign()->Find(test, base->GetType());
       assert(ne.neighbour->elem->elemNum == test);
 
       ne.weight    = value - distance;
@@ -192,7 +199,7 @@ void DesignFilter::FindNeighborhood(DesignElement* base, double radius,
   }
 }
 
-double DesignFilter::RelaxedDistance(const Elem* base, const Elem* test) const
+double DesignStructure::RelaxedDistance(const Elem* base, const Elem* test) const
 {
   // default case
   const Point& bb = base->barycenter;
@@ -225,7 +232,7 @@ double DesignFilter::RelaxedDistance(const Elem* base, const Elem* test) const
     }
   }
 
-  LOG_DBG3(df) << "RD: base=" << base->elemNum << " " << base->barycenter.ToString()
+  LOG_DBG3(ds) << "RD: base=" << base->elemNum << " " << base->barycenter.ToString()
                << " test=" << test->elemNum << " " << test->barycenter.ToString()
                << " direct=" << dist << " relaxed=" << std::sqrt(preSqrt);
 
@@ -234,7 +241,7 @@ double DesignFilter::RelaxedDistance(const Elem* base, const Elem* test) const
 
 /** The is not performance tuned as for almost cases we have regular grids and then this method is
  * only called once. In the other cases - life with it */
-double DesignFilter::FindFilterRadius(DesignElement::Filter filter, DesignElement* de) const
+double DesignStructure::FindFilterRadius(DesignElement::Filter filter, DesignElement* de) const
 {
   Matrix<double>  coords;
   domain->GetGrid()->GetElemNodesCoord(coords, de->elem->connect, false );
@@ -253,49 +260,49 @@ double DesignFilter::FindFilterRadius(DesignElement::Filter filter, DesignElemen
       // The radius is <value> times square/cube edge length where the
       // square/cube has the volume of the element
       radius = value * std::pow(tmp, 1.0/ (double) domain->GetGrid()->GetDim());
-      LOG_DBG3(df) << "FFR: de=" << de->ToString() << " from volume " << tmp << " to radius " << radius;
+      LOG_DBG3(ds) << "FFR: de=" << de->ToString() << " from volume " << tmp << " to radius " << radius;
       break;
 
     case DesignElement::MAX_EDGE:
       de->elem->ptElem->GetMaxMinEdgeLength(coords, radius, tmp);
       radius = value * radius;
-      LOG_DBG3(df) << "FFR: de=" << de->ToString() << " edge max=" << radius << " min=" << tmp << " to radius " << radius;
+      LOG_DBG3(ds) << "FFR: de=" << de->ToString() << " edge max=" << radius << " min=" << tmp << " to radius " << radius;
       break;
+
+    default:
+      assert(false); // NO_FILTER
   }
 
   return radius;
 }
 
-void DesignFilter::SetPeriodicConstraintMapping()
+void DesignStructure::SetPeriodicConstraintMapping()
 {
-   constraintMapping.Resize(domain->GetGrid()->GetNumNodes() + 1,0); // 1-based
+   constraintMapping.Resize(domain->GetGrid()->GetNumNodes() + 1); // 1-based
 
-   ConstraintList glist = simp->pde->GetConstraints();
+   ConstraintList glist = em->pde->GetConstraints();
 
-   assert(simp->pdes.GetSize() == 1);
+   assert(em->pdes.size() == 1);
    assert(glist.GetSize() > 0);
 
-   LOG_DBG(df) << "SPCM: constraint list = " << glist.GetSize();
+   LOG_DBG(ds) << "SPCM: constraint list = " << glist.GetSize();
 
    StdVector<unsigned int> nlist;
 
    for(unsigned int i = 0, n = glist.GetSize(); i < n; i++)
    {
      shared_ptr<Constraint> g = glist[i];
-     EntityList* mlist = g->masterEntities.get();
+     shared_ptr<EntityList> mlist = g->masterEntities;
      //EntityList* slist = g->slaveEntities.get();
 
      assert(mlist->GetType() == EntityList::NODE_LIST);
-     assert(g->slaveEntities.get()->GetType() == EntityList::NODE_LIST);
-
-     LOG_DBG3(df) << "master=" << mlist->GetName() << " slave=" << g->slaveEntities.get()->GetName();
+     assert(g->slaveEntities->GetType() == EntityList::NODE_LIST);
 
      // we assume two entries for the master and the same entries for the slave.
      assert(mlist->GetSize() == 2);
-     assert(mlist->GetSize() == g->slaveEntities.get()->GetSize());
+     assert(mlist->GetSize() == g->slaveEntities->GetSize());
 
      EntityIterator mit = mlist->GetIterator();
-
      nlist.Resize(0);
 
      for(mit.Begin(); !mit.IsEnd(); mit++)
@@ -304,23 +311,60 @@ void DesignFilter::SetPeriodicConstraintMapping()
      assert(nlist.GetSize() == 2);
 
      // map against each other
-     constraintMapping[nlist[0]] = nlist[1];
-     constraintMapping[nlist[1]] = nlist[0];
+     if(!constraintMapping[nlist[0]].Contains(nlist[1]))
+       constraintMapping[nlist[0]].Push_back(nlist[1]);
+
+     if(!constraintMapping[nlist[1]].Contains(nlist[0]))
+       constraintMapping[nlist[1]].Push_back(nlist[0]);
 
      // 0 identifies not set
      assert(nlist[0] != 0 && nlist[1] != 0);
 
-     LOG_DBG3(df) << " add pair " << nlist[0] << ", " << nlist[1];
+     LOG_DBG3(ds) << "stored pairs cn[" << nlist[0] << "]=" << constraintMapping[nlist[0]].ToString()
+                  << " cn[" << nlist[1] << "]=" << constraintMapping[nlist[1]].ToString()
+                  << " current pair: master=" << mlist->GetName() << " slave=" << g->slaveEntities->GetName();
    }
+
+   // now we need a post processing as all connectesd 3D coner nodes can only be found by following
+   // the chain. This is because the current constraint implemenation does not resolve multiple constraints
+   // in the exact sense (but the computions are correct!)
+   for(unsigned int n = 0, nn = constraintMapping.GetSize(); n < nn; n++)
+   {
+     StdVector<unsigned int>& cm = constraintMapping[n];
+     if(cm.IsEmpty()) continue;
+     // cm is extended by the recursive call, therefore it is important to start recursion only
+     // for the pre existing entries.
+     for(unsigned int o = 0, on = cm.GetSize(); o < on; o++)
+       RecursiveCompletePeriodicity(n, cm, cm[o]);
+     LOG_DBG3(ds) << "final cm[" << n << "]=" << cm.ToString();
+   }
+
 }
 
-void DesignFilter::SetNodeElemMapping()
+void DesignStructure::RecursiveCompletePeriodicity(unsigned int master, StdVector<unsigned int>& list, unsigned int test)
+{
+  StdVector<unsigned int>& other = constraintMapping[test];
+
+  for(unsigned int o = 0; o < other.GetSize(); o++)
+  {
+    // anything new?
+    if(other[o] == master || list.Contains(other[o]))
+      continue;
+
+    // yes, something is found!
+    list.Push_back(other[o]);
+    // now check if there are more references to come
+    RecursiveCompletePeriodicity(master, list, other[o]);
+  }
+}
+
+void DesignStructure::SetNodeElemMapping()
 {
   assert(periodic);
 
   nodeToElem.Resize(domain->GetGrid()->GetNumNodes() + 1,0); // 1-based
 
-  StdVector<DesignElement>& data = simp->GetDesign()->data;
+  StdVector<DesignElement>& data = em->GetDesign()->data;
   // traverse all elements
   for(unsigned int e = 0, en = data.GetSize(); e < en; e++)
   {
@@ -330,12 +374,52 @@ void DesignFilter::SetNodeElemMapping()
     for(unsigned int n = 0, nn = elem->connect.GetSize(); n < nn; n++)
     {
       nodeToElem[elem->connect[n]] = elem; // we are only interested in one of the elements.
-      LOG_DBG3(df) << "SNEM: add elem " << elem->elemNum << " for node " << elem->connect[n];
+      LOG_DBG3(ds) << "SNEM: add elem " << elem->elemNum << " for node " << elem->connect[n];
     }
   }
 }
 
-bool DesignFilter::ExtendPeriodicNeighborhood(Elem* elem, StdVector<std::pair<Elem*, int> >& neighbors)
+bool DesignStructure::ExtendPeriodicNeighborhood(Elem* elem, int common, StdVector<std::pair<Elem*, int> >& neighbors)
+{
+  if(!initialized_)
+    Initialize();
+
+  assert(periodic);
+
+  neighbors.Resize(0);
+
+  // collect the constraint nodes of the main element
+  constraintNodes_.Resize(0);
+
+  for(unsigned int n = 0; n < elem->connect.GetSize(); n++)
+  {
+    unsigned int test = elem->connect[n];
+    StdVector<unsigned int>& others = constraintMapping[test];
+
+    for(unsigned int o = 0; o < others.GetSize(); o++)
+      if(!constraintNodes_.Contains(others[o]))
+        constraintNodes_.Push_back(others[o]);
+  }
+
+  // traverse over the elements of the pairing constraint nodes
+  // Add only those elements with a minimum of 'common' nodes
+  for(unsigned int i = 0; i < constraintNodes_.GetSize(); i++)
+  {
+    Elem* other_elem = nodeToElem[constraintNodes_[i]];
+    AppendNeighbors(other_elem, constraintNodes_, common, neighbors);
+  }
+
+  // add the original neighborhood if there is a periodic case
+  if(neighbors.GetSize() > 0)
+    AppendNeighbors(*elem->neighborhood, neighbors);
+
+  LOG_DBG3(ds) << "EPN_C: elem=" << elem->elemNum << " en=" << neighbors.ToString();
+
+  return neighbors.GetSize() > 0;
+}
+
+
+bool DesignStructure::ExtendPeriodicNeighborhood(Elem* elem, StdVector<std::pair<Elem*, int> >& neighbors)
 {
   assert(periodic);
 
@@ -345,28 +429,29 @@ bool DesignFilter::ExtendPeriodicNeighborhood(Elem* elem, StdVector<std::pair<El
   for(unsigned int n = 0; n < elem->connect.GetSize(); n++)
   {
     unsigned int test = elem->connect[n];
-    unsigned int other = constraintMapping[test];
+    StdVector<unsigned int>& others = constraintMapping[test];
 
-    // 0 means not set
-    if(other == 0) continue;
+    if(others.IsEmpty()) continue;
 
-    // take one of the elemnts that share the node. Due to the
-    // recursive FindNeighborhood() the other elements will be covered
-    Elem* other_elem = nodeToElem[other];
-    AppendNeighbors(*other_elem->neighborhood, neighbors);
+    // take one of the elements that share the node.
+    for(unsigned int o = 0; o < others.GetSize(); o++)
+    {
+      Elem* other_elem = nodeToElem[others[o]];
+      AppendNeighbors(*other_elem->neighborhood, neighbors);
+    }
   }
 
   // add the original neighborhood if there is a periodic case
   if(neighbors.GetSize() > 0)
     AppendNeighbors(*elem->neighborhood, neighbors);
 
-  LOG_DBG3(df) << "EPN: elem=" << elem->elemNum << " en=" << neighbors.ToString();
+  LOG_DBG3(ds) << "EPN: elem=" << elem->elemNum << " en=" << neighbors.ToString();
 
   return neighbors.GetSize() > 0;
 }
 
 
-void DesignFilter::AppendNeighbors(const StdVector<std::pair<Elem*, int> >& source, StdVector<std::pair<Elem*, int> >& out)
+void DesignStructure::AppendNeighbors(const StdVector<std::pair<Elem*, int> >& source, StdVector<std::pair<Elem*, int> >& out)
 {
   for(unsigned int s = 0, sn = source.GetSize(); s < sn; s++)
   {
@@ -381,7 +466,42 @@ void DesignFilter::AppendNeighbors(const StdVector<std::pair<Elem*, int> >& sour
   }
 }
 
-string DesignFilter::ToString(StdVector<SIMPElement::NeighbourElement>& data)
+void DesignStructure::AppendNeighbors(Elem* check,
+                                           const StdVector<unsigned int>& constraints, int min_common,
+                                           StdVector<std::pair<Elem*, int> >& out)
+{
+  StdVector<std::pair<Elem*, int> >& source = *(check->neighborhood);
+
+  // check all elements
+  for(int s = -1, sn = (int) source.GetSize(); s < sn; s++)
+  {
+    Elem* test = s == -1 ? check : source[s].first;
+
+    int common = 0;
+    // check first if we have enough common
+    for(unsigned int n = 0; n < test->connect.GetSize(); n++)
+      if(constraints.Contains(test->connect[n])) common++;
+
+    // is the element of interest?
+    if(common < min_common)
+      continue;
+
+    bool found = false;
+    // check if the element is known
+    for(unsigned int o = 0, on = out.GetSize(); o < on && !found; o++)
+    {
+      if(test == out[o].first)
+        found = true;
+    }
+    if(!found)
+    {
+      // fake the common information
+      out.Push_back(std::make_pair(test, common));
+    }
+  }
+}
+
+string DesignStructure::ToString(StdVector<SIMPElement::NeighbourElement>& data)
 {
   std::stringstream out;
   for(unsigned int i = 0, ni = data.GetSize(); i < ni; i++)

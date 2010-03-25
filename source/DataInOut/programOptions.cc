@@ -168,8 +168,11 @@ namespace CoupledField {
       ( "scriptFile,e", po::value<string>(),
         "name of script file to be evaluated" )
 #endif
-      ( "listMapping,l",
-        "equation/local<>global mapping/constraints to info.xml")
+      ( "mapping,l",
+        "equation and constraints to info.xml")
+
+      ( "detailed,d",
+        "detailed output to info.xml")
 
       ( "quiet,q",
         "more compressed console output (env CFS_QUIET)")
@@ -262,13 +265,14 @@ namespace CoupledField {
     }
 
     // Check for help
-    if( varMap_.count("help") != 0) 
+    if( varMap_.count("help") != 0 || varMap_.count("simName") == 0) 
     {
       GetHeaderString(cout);      
       cout << helpMsg_;
       exit(EXIT_SUCCESS);
     }
 
+    /*
     // If no argument was given, print additional information
     if( varMap_.count("simName") == 0 )
     {
@@ -276,6 +280,7 @@ namespace CoupledField {
       cout << "cfs: no input files. Please run with --help for help\n";
       exit(EXIT_SUCCESS);
     }
+    */
   }
 
   string ProgramOptions::EnvironmentNameMapper(const string& var )  {
@@ -447,8 +452,14 @@ namespace CoupledField {
 
   bool ProgramOptions::DoListMapping() const
   {
-    return varMap_.count("listMapping") > 0;
+    return varMap_.count("mapping") > 0;
   }
+
+  bool ProgramOptions::DoDetailedInfo() const
+  {
+    return varMap_.count("detailed") > 0;
+  }
+
 
   bool ProgramOptions::IsQuiet() const
   {
@@ -470,8 +481,16 @@ namespace CoupledField {
 #ifdef USE_SCRIPTING
     in->Get("scriptFile")->SetValue(GetScriptFileStr());
 #endif
-    in->Get("listMapping")->SetValue(DoListMapping());
+    in->Get("mapping")->SetValue(DoListMapping());
+    in->Get("detailed")->SetValue(DoDetailedInfo());
     in->Get("MKL_NUM_THREADS")->SetValue(getenv("MKL_NUM_THREADS") != NULL ? getenv("MKL_NUM_THREADS") : "-");
+
+    // cfs information
+    in = in->Get("cfs");
+    in->Get("version")->SetValue(CFS_VERSION);
+    in->Get("name")->SetValue(CFS_NAME);
+    in->Get("build")->SetValue(CMAKE_BUILD_TYPE);
+    in->Get("svn_revision")->SetValue(CFS_SUBVERSION_REV);
   }
 
   
@@ -584,7 +603,8 @@ namespace CoupledField {
     out << "MKL_VERSION:           " << fg_blue
         << ver.MajorVersion << "."
         << ver.MinorVersion << "."
-        << ver.BuildNumber << fg_reset
+        << ver.BuildNumber 
+        << fg_reset
         << endl;
     out << "MKL_PRODSTAT:          " << fg_blue
         << ver.ProductStatus << fg_reset
@@ -868,11 +888,11 @@ namespace CoupledField {
         << endl
         << "09.03, Maehende Machete" << endl
         << "  This finally is the famous MACHETE branch with a 0-based OLAS, unified" << endl
-        << "  matrix and vector classes and the brand new CFSDEPS building matching libs." << endl
+        << "  matrix and vector classes and the brand new CFSDEPS building libs." << endl
         << endl
         << "09.08, Rasanter Rechner" << endl
         << "  ILUPACK by M. Bollhoefer works again (iterative preconditioner/ solver package)" << endl
-        << "  CHOLMOD (as in MATLAB) is a s.p.d. direct solver, 20% faster than Pardiso" << endl;
+        << "  CHOLMOD (as in MATLAB) is a s.p.d. direct solver, >= 20% faster than Pardiso" << endl;
   }
 
   void ProgramOptions::GetHeaderString(std::ostream & out)

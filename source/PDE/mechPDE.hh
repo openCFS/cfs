@@ -6,7 +6,6 @@
 #define FILE_NEWBASEMECHPDE
 
 #include <map>
-#include <set>
 
 #include "SinglePDE.hh"
 
@@ -15,6 +14,7 @@ namespace CoupledField
 
   class BaseForm;
   class LinearFormContext;
+  class set;
 
   //! Class for mechanic equation (no adaptivity)
   class MechPDE: public SinglePDE
@@ -98,7 +98,7 @@ namespace CoupledField
     
     /** add the integrators for the test strains for homogenization to the linear forms, similar as in multiple load case;
      * called from Excitation::ReadLoads 
-     * @param vals contains the values from the xml test strains
+     * @param vals contains the values from the xml material parameters
      * @param linForms set to append linear Forms to, if NULL use assemble_ */
     void DefineTestStrainIntegrators(const Vector<Double> &vals, std::set<LinearFormContext*> *linForms = NULL);
     
@@ -114,6 +114,13 @@ namespace CoupledField
      * @param pressPhase StdVector containing the information */
     void ReadPressureLoadsFromXML(PtrParamNode bcNode, StdVector<shared_ptr<EntityList> >& pressSurf, StdVector<std::string>& pressVals, StdVector<std::string>& pressPhase);
     
+    /** add the integrators for the polarization matrix to the linear forms, similar as in multiple load case;
+      * called from Excitation::SetPolarizationMatrixRHS
+      * @param vals contains the values from the xml test strains
+      * @param linForms set to append linear Forms to, if NULL use assemble_ */
+    void DefinePolarizationMatrixIntegrators(const Vector<Double> &vals,
+        std::set<LinearFormContext*> *linForms, const int num);
+
   protected:
 
     // ======================================================

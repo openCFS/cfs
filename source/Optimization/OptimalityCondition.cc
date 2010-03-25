@@ -96,9 +96,9 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNod
   }
 
   // some plausibility about optimality condition
-  if(type_ != EXTREMIZE && optimization->constraints.GetSize() != 1)
+  if(type_ != EXTREMIZE && optimization->constraints.view->GetNumberOfActiveConstraints() != 1)
     throw Exception("optimality condition is only possible with exactly one constraint");
-  if(type_ == EXTREMIZE && optimization->constraints.GetSize() > 0)
+  if(type_ == EXTREMIZE && optimization->constraints.view->GetNumberOfActiveConstraints() > 0)
     throw Exception("Optimality Condition 'extremize' is not implemented for constraints");
 
   LOG_TRACE(oc) << "OptimalityCondition of type " << type.ToString(type_);
@@ -123,7 +123,7 @@ void OptimalityCondition::SolveProblem()
     // calc gradients to store the results in data[element]...
     // the gradients are based for the calculation of the next iteration
     optimization->CalcObjectiveGradient(NULL);
-    if(optimization->constraints.GetSize() > 0)
+    if(optimization->constraints.view->GetNumberOfActiveConstraints() > 0)
       optimization->CalcConstraintGradient(NULL);
     
     // store iteration 0
@@ -414,8 +414,10 @@ double OptimalityCondition::Evaluate(double lambda)
                << org_lambda << " adjust to " << lambda << std::endl;
      LOG_DBG(oc) << "Evaluate: adjust " << org_lambda << " to " << lambda;
    }
-    
-   Condition* g = &(optimization->GetConstraint(Condition::VOLUME));
+
+   ConditionContainer& cc = optimization->constraints;
+   assert(cc.view->GetNumberOfActiveConstraints() == 1);
+   Condition* g = cc.view->Get(0);
    StdVector<DesignElement>& data = optimization->GetDesign()->data;
 
    // we cannot set the design directly otherwise the filter does not 
@@ -463,8 +465,8 @@ double OptimalityCondition::Evaluate(double lambda)
    // store the new values in the design variables
    optimization->GetDesign()->ReadDesignFromExtern(evaluate_tmp_.GetPointer());
    
-   double vol = optimization->CalcConstraint();
-   double err = optimization->GetConstraint(Condition::VOLUME).value - vol;
+   double vol = optimization->CalcConstraint(g);
+   double err = g->GetBoundValue() - vol;
    return err;
 }
 

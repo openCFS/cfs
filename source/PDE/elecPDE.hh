@@ -14,6 +14,8 @@ namespace CoupledField
   // forward class declaration
   class BaseResult;
   class ResultHandler;
+  class LinearFormContext;
+  class set;
   
   //! Class for electrostatic equation (no adaptivity)
   class ElecPDE : public SinglePDE {
@@ -100,6 +102,12 @@ namespace CoupledField
     //! is negative compared to the normal one
     void SetThermoCoupling();
 
+    /** add the integrators for the polarization matrix to the linear forms, similar as in multiple load case;
+     * called from Excitation::SetPolarizationMatrixRHS
+     * @param vals contains the values from the xml test strains
+     * @param linForms set to append linear Forms to, if NULL use assemble_ */
+    void DefinePolarizationMatrixIntegrators(const Vector<Double> &vals,
+        std::set<LinearFormContext*> *linForms, const int num);
 
   protected:
 

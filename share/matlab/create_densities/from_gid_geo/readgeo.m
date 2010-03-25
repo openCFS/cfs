@@ -1,12 +1,9 @@
-function [ nodes, edges ] = readmesh( filename )
+function [ nodes, edges ] = readgeo( filename )
 
 geo_file = fopen(filename, 'r');
 
 nodes=[];
 edges=[];
-
-nedges = 0;
-nnodes = 0;
 
 line = fgetl(geo_file);
 line = fgetl(geo_file);

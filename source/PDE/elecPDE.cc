@@ -7,6 +7,7 @@
 #include <sstream>
 #include <math.h>
 #include <string>
+#include <set>
 
 #include "elecPDE.hh"
 
@@ -21,6 +22,7 @@
 #include "Forms/singleEntryInt.hh"
 #include "Forms/massInt.hh"
 #include "Forms/gradfieldop.hh"
+#include "Forms/piezoPolarizationMatrixRHSInt.hh"
 #include "General/defs.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
@@ -1141,6 +1143,28 @@ namespace CoupledField {
   
     isThermoCoupled_ = true;
 
+  }
+  
+  void ElecPDE::DefinePolarizationMatrixIntegrators(const Vector<Double> &vals,
+      std::set<LinearFormContext*> *linForms, const int num)
+  {
+    LinearForm * polRHSElec = new PiezoPolarizationMatrixElecRHSInt(vals, num);
+    
+    StdVector<std::string> region_names;
+    domain->GetGrid()->GetRegionNames(region_names);
+    LOG_DBG(elecpde) << "region names = " << region_names.ToString();
+    // FIXME: hardcoded region name!!
+    shared_ptr<EntityList> entlist = domain->GetGrid()->GetEntityList(EntityList::SURF_ELEM_LIST, 
+        region_names[1], EntityList::NO_TYPE);
+    
+    LinearFormContext *linRhs = new LinearFormContext(polRHSElec);
+    linRhs->SetPtPde(this);
+    linRhs->SetResult(results_[0], entlist);
+    
+    if(linForms != NULL)
+      linForms->insert(linRhs);
+    else
+      assemble_->AddLinearForm(linRhs);
   }
 
   void ElecPDE::DefineAvailResults() {

@@ -189,6 +189,18 @@
             <xsd:element name="storeResults" type="DT_PiezoDirectStoreResults"
               minOccurs="0" maxOccurs="1"/>          
             <xsd:element name="nonLinear" type="DT_NonLinParams" minOccurs="0"/>
+            
+            
+            <!-- Material data for computation of polarization matrix, see class TopGrad (optional) -->
+            <xsd:element name="polarizationMatrix" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+               <xsd:sequence>
+                  <xsd:element name="mechTensor" type="DT_MechElastTensor" minOccurs="1" maxOccurs="1"/>
+                  <xsd:element name="elecTensor" type="DT_ElecPermTensor" minOccurs="1" maxOccurs="1"/>
+                  <xsd:element name="couplingTensor" type="DT_PiezoCouplTensor" minOccurs="1" maxOccurs="1"/>         
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
           </xsd:sequence>
         </xsd:extension>
       </xsd:complexContent>
@@ -330,5 +342,77 @@
     </xsd:sequence>
   </xsd:complexType>
 
+
+  <!-- This is almost a copy & paste of DT_MechElastTensor from the material schema stuff >
+  <xsd:complexType name="DT_MechElastTensor">
+    <xsd:sequence>
+      <xsd:element name="real">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="36"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+      <xsd:element name="imag" minOccurs="0">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="36"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+    </xsd:sequence>
+    <xsd:attribute name="dim1" type="xsd:nonNegativeInteger" use="required"/>
+    <xsd:attribute name="dim2" type="xsd:nonNegativeInteger" use="optional"/>
+    <xsd:attribute name="factor" type="xsd:float" use="optional" default="1.0"/>
+  </xsd:complexType -->
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of electric permittivity in tensor form                -->
+  <!-- ******************************************************************* -->
+  <!-- This is almost a copy & paste of DT_ElecPermTensor from the electric schema stuff -->
+  <xsd:complexType name="DT_ElecPermTensor">
+    <xsd:sequence>
+      <xsd:element name="real">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="9"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+      <xsd:element name="imag" minOccurs="0">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="9"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+    </xsd:sequence>
+    <xsd:attribute name="dim1" type="xsd:nonNegativeInteger" use="required"/>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of piezo coupling tensor                               -->
+  <!-- ******************************************************************* -->
+  <!-- This is almost a copy & paste of DT_PiezoCouplTensor from the piezo schema stuff -->
+  <xsd:complexType name="DT_PiezoCouplTensor">
+    <xsd:sequence>
+      <xsd:element name="real">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="18"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+      <xsd:element name="imag" minOccurs="0">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="18"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+    </xsd:sequence>
+    <xsd:attribute name="dim1" type="xsd:nonNegativeInteger" use="required"/>
+    <xsd:attribute name="dim2" type="xsd:nonNegativeInteger" use="required"/>
+  </xsd:complexType>
 
 </xsd:schema>

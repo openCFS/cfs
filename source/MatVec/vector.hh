@@ -392,9 +392,10 @@ template<typename T> class ElemStoreSol;
     //! \name Methods for I/O operations
 
     //@{
-    //! Prints the content for Logging
-    //! \return seperated list from index 1 to <= size! */
-    std::string ToString(const char separator = ',') const;
+    /** Prints the content for Logging
+     * @param level 0 is all content, 1 is only non zero
+     * @param separator as default a comma  */
+    std::string ToString(const int level = 0, const char separator = ',') const;
 
     //! Export vector to file
 

@@ -17,6 +17,13 @@ namespace CoupledField{
 
     virtual ~ShapeDesign() {};
 
+    /** Overwrite the virtual base function.
+     * We have always a non-regular grid for SHAPE_OPT and SHAPE_PARAM_MAT */
+    virtual bool IsRegular() const
+    {
+      return false;
+    }
+
     void Configure(PtrParamNode pn, int objectives, int constraints);
 
     /** Reads design from optimizer, note that first nshapeparams_ entries are the Shape parameters,
@@ -30,11 +37,11 @@ namespace CoupledField{
     int WriteDesignToExtern(double* space_out, bool scaling = true) const;
 
     /** write gradient out to the vector, prepending with shape gradient */
-    void WriteGradientToExtern(double* out, DesignElement::ValueSpecifier vs,
+    void WriteDenseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
                                DesignElement::Access access, Condition* constraint = NULL, bool scaling = true) const;
 
     /** write the shape gradient part */
-    void WriteShapeGradientToExtern(double* out, Condition* constraint) const;
+    void WriteShapeGradientToExtern(StdVector<double>& out, Condition* constraint) const;
     
     /** same as in DesignSpace, setting elements to zero, but also shape elements */
     void Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design = DesignElement::DEFAULT);

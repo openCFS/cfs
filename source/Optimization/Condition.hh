@@ -1,100 +1,93 @@
 #ifndef CONDITION_HH_
 #define CONDITION_HH_
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Optimization/DesignElement.hh"
-#include "General/Enum.hh"
-#include "General/environment.hh"
-#include "MatVec/matrix.hh"
-
-using std::pair;
+#include "Optimization/Function.hh"
+#include "MatVec/vector.hh"
 
 namespace CoupledField
 {
-   class ParamNode;
-   class ParamNode;
-   class DenseMatrix;
+   class DesignSpace;
+   class ConditionContainer;
 
    /** our constraint criteria. Can be filled directly from XML */
-   class Condition 
+   class Condition : public Function
    {
+     friend class ConditionContainer;
+
      public:
        /** Empty constructor for StdVector */
        Condition() { };
-     
+       /** virtual dtor because base class */
+       virtual ~Condition() { };
+
+       /** Helper constructor for AddCondition */
+       Condition(PtrParamNode pn);
+
        /** Call this method to append a Condition. This calls the actual (private) constructor.
         * Index is set with position of the relevant list.
-        * If it is a homogenization constraint there might be a blow up reCoupledField::DesignElement::DEFAULTsulting in several
+        * If it is a homogenization constraint there might be a blow up resulting in several
         * constraints if either multiple entries are given or the entry position is 'all'.
         * @param pn determines active mode
         * @param constraints stuff is added here if the mode is constraint
         * @param observation stuff is added here in observation mode */
-       static void AddCondition(PtrParamNode pn, StdVector<Condition>& constraints, StdVector<Condition>& observation);
+       static void AddCondition(PtrParamNode pn, StdVector<Condition*>& constraints);
 
-       /** Note the difference to the Type! See Name as equivalent of Kind! */
-       typedef enum
-       {
-         VOLUME = 0,
-         GREYNESS = 1,
-         GAUSS_GREYNESS = 2,
-         COMPLIANCE = 3,
-         TRACKING = 4,
-         REALVOLUME = 5,
-         HOMOGENIZATION_TENSOR = 6,   // might blow up to several HOMOGENIZATION_TENSOR if a tensor is given
-         HOMOGENIZATION_TRACKING = 7,
-         POISSONS_RATIO = 8,          // homogenization only
-         YOUNGS_MODULUS = 9,          // homogenization only
-         ISOTROPY = 10                // blows up to several HOMOGENIZATION_TENSOR constraints! No ISOTROPY will be left!
-       } Name;
+       /** General constraint bounds */
+       typedef enum { EQUAL, LOWER_BOUND, UPPER_BOUND } Bound;
 
-       /** Genertal constraint types */             
-       typedef enum { EQUAL, LOWER_BOUND, UPPER_BOUND } Type;
-
-       /** Be sure not to mix up with Type! */  
-       Name GetName() const { return name_; } 
+       static Enum<Bound> bound;
 
        /** Be sure not to mix up with Name! */             
-       Type GetType() const { return type_; }
+       Bound GetBound() const { return bound_; }
        
+       /** The bound value for inhomogeneous constraints. */
+       double GetBoundValue() const { return boundValue_; }
+
        /** Has only relevance for type = active! */
        int GetIndex() const { return index_; }
+
+       /** Is this a linear condition? E.g. SnOpt can handle them more efficiently */
+       bool IsLinear() const { return linear_; }
+
+       /** Is this observation or active */
+       bool IsObservation() const { return observation_; }
+
+       /** active not in a active set optimization sense but !observation */
+       bool IsActive() const { return !IsObservation(); }
        
+       /** Only the slope constraint in local mode is virtual */
+       virtual bool IsVirtual() const { return false; }
+
        /** Check whether condition should be calculated for given region */
        bool IsForRegion(RegionIdType regionId);
-       
-       /** Check if this is homogenization constraint */
-       bool IsHomogenization() const;
 
-       /** This is a nice statement for output */
-       std::string ToString() const; 
+       /** This is a nice statement for output which adds delta_logging and details for result output.
+        * Contains the virtual element for slope */
+       virtual std::string ToString() const;
 
        /** log to info.xml */
        void ToInfo(PtrParamNode in) const;
        
-       /** the tensor exists only in the homogenization constraint case */
-       Matrix<double>& GetTensor();
+       /** Shall the scaling be linked to the objective scaling */
+       bool DoObjectiveScaling() const { return objective_scaling_; }
 
-       /** Read the tensor if it is given, otherwise sets to 1.1
-        * @param pn might contain a "tensor" child
-        * @param matrix where to store the data
-        * @return true if the tensor was read */
-       static bool ReadTensor(PtrParamNode pn, Matrix<double>& matrix);
-
+       /** Is the gradient dense or sparse. Only the slope is sparse! */
+       bool HasDenseJacobian() const { return type_ != SLOPE; }
+       
+       /** Gives the sparsity pattern of the jacobian. It gives the sorted, 0-based indices which have
+        * values. For the dens case this is 0, 1, ... m.
+        * This works only after ConditionContainer::PostProc() is called as otherwise the design is not known yet.
+        * Is overwritten for the slope constraint which acutally has spare patterns. */
+       virtual StdVector<unsigned int>& GetSparsityPattern();
+       
        /** This is DEFAULT (= applies always) if not defined */
        DesignElement::Type design;
-
-       /** The value for upper/lower/equal constraint */ 
-       double value;
  
-       /** The parameter is optional, e.g. "h" for gaussGreyness.
-        * Default = 0.0 */
-       double parameter;  
-       
-       /** determine if this is a real constraint or just for logging the information.
-        * <b>this has nothing to do with "active" inequalitly constraints in optimizing!</b> */
-       bool active;
-       
-       /** The scaling is evaluated in the Optimizer IPOPT only. Not in OC! */
-       double scaling;
+       /** The scaling is evaluated for external optimizers, not in OC!
+        * This is the manual set scaling value - in objective_scaling_ case this value is ignored! */
+       double manual_scaling_value;
 
        /**The penalty formulation allows to add constraints via this penalty term to the objective.
         * Actually a penelty method finds iteratively the right value, in practice it is a given
@@ -108,28 +101,27 @@ namespace CoupledField
        RegionIdType region;
        
        /** Used for caching 1.0 / complete_volume per region */
-       double volume_fraction_;
+       double volume_fraction;
+
+       /** If there is a <result id="optResult_1" value="constraintGradient" detail="volume" />
+        * this is the special result index where the constraint gradient is also stored in
+        * DesignElement::specialResult[]. -1 for no index */
+       int special_result_idx;
 
        /** For the homogenization tensor constraint this gives the actual position within the matrix_.
         * The first entry is for homogenization always set.
         * In the case of a "smart" isotropy constraint also E11-E22 = 0 and
         * E11-E12-2E33 = E11-E12-E33-E33 = 0 are generated. Then coord is 2 or 4 entries.
         * Note, that the entries are 1-based!!! */
-       StdVector<pair<unsigned int, unsigned int> > coord;
+       StdVector<pair<int, int> > coords;
 
-       static Enum<Name> name;              
-       static Enum<Type> type;
-
-    private:   
-      /** Helper constructor for AddCondition */
-      Condition(PtrParamNode pn);
-
+    protected:
       /** Reads the coord attribute and sets the coord pair if value is not 'all'
        * @return false if 'all' and the coord pair is not set */
       bool ReadCoord(PtrParamNode pn);
 
       /** Add a subcondition with only index and value set (to zero) */
-      Condition* AppendSubCondition(StdVector<Condition>& list);
+      Condition* AppendSubCondition(StdVector<Condition*>& list);
 
       /** Create a new homogenization constraint with the given tensor position
        * @param base the base of cloning. Needs to contain a tensor!
@@ -138,19 +130,266 @@ namespace CoupledField
       Condition* AppendSubCondition(StdVector<Condition>& list, PtrParamNode entry_pos);
 
       /** @see other AppendSubCondition() */
-      Condition* AppendSubCondition(StdVector<Condition>& list, unsigned int pos_x, unsigned int pos_y);
+      Condition* AppendSubCondition(StdVector<Condition*>& list, int pos_x, int pos_y);
 
-       /** this index is the position in the Optimization list and is used to
-        * identify the constraint gradient in DesignElement. Only relevant for type = active */
-       int  index_;
-       Name name_;
-       Type type_;
+      /** To be called by ConditionContainer::PostProc() which is a friend */
+      void SetDenseSparsityPattern(DesignSpace* space);
+      
+      /** this index is the position in the Optimization list and is used to
+       * identify the constraint gradient in DesignElement. Only relevant for type = active */
+      int  index_;
 
-       /** for constraints of type "homogenization" one can give the tensor we want to reach
-        * or for multiple constraints the entry sub element 'pos' refers to the constraint value */
-       Matrix<double> matrix_;
+      Bound bound_;
 
-       bool delta_logging_ignored_;
+      /** the bound value, the value_ attribute contains the function value */
+      double boundValue_;
+
+      bool delta_logging_ignored_;
+
+      bool objective_scaling_;
+
+      /** Is this an observation constraint only. */
+      bool observation_;
+
+      /** the sparsity pattern to be set by ConditionContainer::PostProc() via SetSparsity() */
+      StdVector<unsigned int> sparsity_;
+      
+      /** Some special constraints are automatically blown up - like isotropy. But
+       * even then the first of the entries is NOT blown up!
+       * Set by AppendSubCondition() */
+      bool blown_up_;
+
+      /** Conditions mark themself as (non) linear -> no power in the design variable, ...*/
+      bool linear_;
+   };
+
+   /** This specialization is kind of a super constraint as it handles the 2*dim*n slope conditions
+    * where n is the number of design elements. See ErsatzMaterial::CalcSlopeConstraint() for documentation */
+   class SlopeCondition : public Condition
+   {
+   public:
+     /** Helper constructor for AddCondition */
+     SlopeCondition(PtrParamNode pn);
+     
+     virtual ~SlopeCondition() {};
+
+     /** PostInit when we have the design space */
+     void PostInit(DesignSpace* space);
+
+     /** The active index within the ConditionContainer::VirtualView iterator blowing up the slope constraints.
+      * Requires (base) index_ and there are dim constraint s per design element.
+      * @param view_index ranging from base_index plus dim * design.size.
+      *        Set back to -1 after traversing! */
+     void SetCurrentViewIndex(int view_index) {
+       current_view_index_ = view_index;
+     }
+
+     /** The number of slope constraints. */
+     unsigned int GetConstraintSize() const {
+       return values_.GetSize();
+     }
+
+     /** The local mode has current_view_index_ set. For -1 we are in global mode */
+     bool IsLocal() const {
+       return current_view_index_ != -1;
+     }
+
+     /** overwrites the base method */
+     bool IsVirtual() const {
+       return IsLocal();
+     }
+
+     /** overloaded version which gives in the local case only the 0 (no full neighborhood)
+      * or 2 indices */
+     StdVector<unsigned int>& GetSparsityPattern();
+
+     /** The "center" element index within the design space referenced by current_view_index_.
+      * There are 2*dim constraints for each of this virtual elements.
+      * @see GetCurrentVirtualIndex() */
+     unsigned int GetCurrentVirtualElement() const;
+
+     /** The index within the current virtual element as positive VicinityElement::Neighbour.
+         @return 0, 2 (,4) = X_P, Y_P (, Z_P)
+         @see GetCurrentVirtualSign() */
+     int GetCurrentVirtualNeighbor() const;
+
+     /** It is not possible to constraint abs(slope), hence there are always two consecutive
+      * constraints: slope(this, X_P), -slope(this, X_P), slope(this,Y_P), -slope(this, Y_P), ...
+      * @return -1 or 1
+      * @see ErsatzMaterial::CalcSlopeConstraint() */
+     int GetCurrentVirtualSign() const;
+
+     /** Overloads the base method. If in special mode element value is returned. Otherwise
+      * the max norm is returned (calculated on the fly */
+     double GetValue() const;
+
+     /** Overloaded to set the local blown up values if in local mode.  */
+     void SetValue(double val);
+
+     /** Gives  ErsatzMaterial::CalcSlopeConstraint() the data */
+     Vector<double>& GetData() {
+       return values_;
+     }
+
+     /** Service function for the maxSloüe visualization */
+     double GetMaxElementSlope(unsigned int element) const;
+
+     /** overloads ToString() to add local information if in local mode. For debug logging */
+     std::string ToString() const;
+
+   private:
+
+     /** We need the design space to access the values */
+     DesignSpace* space_;
+
+     /** Store the constraint values. The base value_ contains the max norm value
+      * Size is number of constraints times dim.
+      * Note, that this is a linear constraint and the gradients are constants!  */
+     Vector<double> values_;
+
+     /** To be set via SetCurrentViewIndex(). Negative if not initialized. */
+     int current_view_index_;
+
+     /** domain->GetGrid()->GetDim() */
+     int dim_;
+
+     /** the mapping from a relative slope constraint number (0-based) to the actual
+      * constraint. This allows to remove constraints for elements which have no (full)
+      * neighborbood */
+     struct Identifier
+     {
+       /** default constructor for StdVector() */
+       Identifier() {}
+
+       Identifier(unsigned int element_idx, VicinityElement::Neighbour neighbor, int sign)
+       {
+         this->element_idx = element_idx;
+         this->neighbor = neighbor;
+         this->sign = sign;
+       }
+       unsigned int element_idx; // this represents DesignSpace::data[element_idx]
+       VicinityElement::Neighbour neighbor; // only X_P, Y_P (,Z_P);
+       int sign; // -1 for X_N, 1 for X_P
+     };
+
+     /** Elements with no full neighborhood are not stored. If they would be stored
+      * we could easily calculate the virtual element number.
+      * This vector maps from the relative virtual constraint number (0 based)
+      * to the relative element index (also 0-based). If we have all periodic b.c.
+      * then this is a 1:1 mapping, otherwise this list is smaller than 2*dim*n by
+      * 2*dim<not full neighborhood> */
+     StdVector<Identifier> virtual_elem_map_;
+   };
+
+   /** This is a container for the conditions within Optimization.
+    * It holds the active and inactive (observation) conditions.
+    * Constraints are called conditions as the is an older type "Constraint" in CFS
+    */
+   class ConditionContainer
+   {
+   public:
+
+     ConditionContainer();
+
+     ~ConditionContainer();
+
+     /** The slope constraint is a super constraint which represent from the external
+      * optimizers point of view up to several thousand constraints. Therefore
+      * the optimizers shall only access it by this class. */
+     class VirtualView
+     {
+     public:
+
+       VirtualView(ConditionContainer* constraints);
+
+       /** The constraints have been changed (slope constraints initialized) */
+       void Refresh();
+
+       /** call this after traversing via Get() to swith a potential slope constraint back to global mode */
+       void Done();
+
+       /** handles slope constraints. Note that observe is always after active!
+        * @param index from 0 to NumberOfTotalConstraints() which might be several thousands if there
+        *        is a slope constraint
+        * @return in the slope constraint case a "tunded" SlopeCondition object */
+       Condition* Get(int index);
+
+       /** When there is no slope constraint this is active otherwise several thousands */
+       int GetNumberOfActiveConstraints() const {
+         return virtual_active_size_;
+       }
+
+       /** Adds observe to active - the slope can also be an observe!
+        * Is never smaller NumberOfActiveConstraints(). */
+       int GetNumberOfTotalConstraints() const {
+         return virtual_total_size_;
+       }
+
+
+     private:
+       /** -1 if there is no slope constraint. Used by Get() */
+       int slope_index_;
+
+       ConditionContainer* container_;
+
+       int virtual_active_size_;
+       int virtual_total_size_;
+     };
+
+     /** Process the xml parameters. To be called only once. PostProc() can be called
+      * more often within the Optimization subclasses.
+      * The slope constraint cannot be processed w/o DesignSpace. It needs to be initialized
+      * by PostProc() later
+      * @param pn_cond the list of "condition" from the xml file
+      * @see PostProc() */
+     void Read(ParamNodeList pn_cond);
+
+     /** The slope constraints can only be initialized when the design exists.
+      * Requires ToInfo() to be called prior such that we can do the info output to the stored info
+      * @structure is from ErsatzMaterial */
+     void PostProc(DesignSpace* space, DesignStructure* structure);
+
+     /** Log the head information. The InfoNode is stored such that PostProc can do the info output
+      * if already set. */
+     void ToInfo(PtrParamNode in);
+
+     /** Searches in active constraints only!
+     *  @param design NO_TYPE ignores this criteria. DEFAULT would be problematic for
+      *                this purpose as it is a valid value
+      * @return check active flag! Not NULL! */
+     Condition* Get(Condition::Type type = Condition::VOLUME, DesignElement::Type design = DesignElement::NO_TYPE);
+
+     /** query before Get() throws ans exception */
+     bool Has(Condition::Type type = Condition::VOLUME, DesignElement::Type design = DesignElement::NO_TYPE);
+
+     /** All external optimizers should only work with this view.
+      * It make the special handling for the slope constraints */
+     VirtualView* view;
+
+     /** This is a virtual container combining standard + observe */
+     StdVector<Condition*> all;
+
+     /** The real constraints which are evaluated by the optimizer. Has nothing to do with
+      * "active" in the sense of active sets but means !observe.
+      * Be sure that you should not use the VirtualView!! (external optimizers!) */
+     StdVector<Condition*> active;
+
+     /** The "inactive" constraints with are only evaluated for printing */
+     StdVector<Condition*> observe;
+
+   private:
+
+     /** Postprocess the slope constraint in SIMP. */
+     void InitSlopeConstraint(Condition* g, DesignSpace* space, DesignStructure* structure);
+
+     /** Helper */
+     StdVector<Condition*> GetList(Condition::Type type, DesignElement::Type design, bool only_active);
+
+     /** We store the info from ToInfo() to extend id on PostProc() */
+     PtrParamNode info_;
+
+     /** save for maxSlope output */
+     DesignSpace* space_;
    };
 
 } // namespace

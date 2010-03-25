@@ -44,7 +44,7 @@ void ShapeGrad::GetMaterialParameters(double &lambda, double &mu) const
 
 void ShapeGrad::GetElementSolution(Vector<double> &vecforward, Vector<double> &vecadjoint, 
                                     const unsigned int e, const SubTensorType type,
-                                    Application app) const
+                                    Application app)
 { 
   Vector<double> intPoint;
   Matrix<double> elem_sol_forward_matrix;
@@ -71,8 +71,8 @@ void ShapeGrad::GetElementSolution(Vector<double> &vecforward, Vector<double> &v
   case MECH:
     {
       // set element solution to matrix
-      node_store_sol->GetElemSolutionAsMatrix(elem_sol_forward_matrix, it, 0, forward.data[idx]->raw[app]);
-      node_store_sol->GetElemSolutionAsMatrix(elem_sol_adjoint_matrix, it, 0, adjoint.data[idx]->raw[app]);
+      node_store_sol->GetElemSolutionAsMatrix(elem_sol_forward_matrix, it, 0, forward.Get(idx)->GetVector(Solution::RAW_VECTOR));
+      node_store_sol->GetElemSolutionAsMatrix(elem_sol_adjoint_matrix, it, 0, adjoint.Get(idx)->GetVector(Solution::RAW_VECTOR));
 
       BaseMaterial* material = pde->getPDEMaterialData()[regionIds[idx]];
   

@@ -69,7 +69,27 @@
      * Returns the last ierr value which can be decoded via ToString() */
     int SolveProblem(bool fromWarmstart = false); 
 
+    /** Determines information about the problem dimensions. Taken from IPOPT.
+     * @param n return here the total number of design variables
+     * @param m return here the sum of all equality and inequality constraints
+     * @param nnz_jac_g return the size of the jacobian matrix. For dense gradients
+     *        this is m * n. If and only if nnz_jac_g is returnes smaller than m * n
+     *        then get_sparsity_pattern() is called next.
+     * @return true if you could provide the information.
+     * @see get_sparsity_pattern() */
     virtual bool get_nlp_info(int& n, int& m, int& nnz_jac_g) = 0;
+
+    /** This method does not exist in IPOPT. As SCPIP divides between equality and
+     * inequality constraints but this interface hides the difference additional information
+     * about the sparsity pattern of the constraint gradients is needed.
+     * If you have dense Jacobians there is no need to overload this method.
+     * @param m for verification the total number of constraints
+     * @param jac_g_dim a vector of size m where all entries are to be set with the number
+     *        of nonzero entries in the respective constraint. The maximum value is n for each
+     *        entry.
+     * @return the sum over jac_g_dim = n * m in the dense case. -1 if you cannot provie this information
+     * @see get_nlp_info() */
+    virtual int get_sparsity_pattern_size(int m, int* jac_g_dim);
 
     /** overload this method to return the information about the bound
      *  on the variables and constraints. The value that indicates
@@ -99,10 +119,18 @@
     /** overload this method to return the vector of constraint values */
     virtual bool eval_g(int n, const double* x, int m, double* g) = 0;
 
-    /** overload this method to return the jacobian of the
-     *  constraints. */
-    virtual bool eval_jac_g(int n, const double* x, 
-        int m, int nele_jac, double* values) = 0;
+    /** overload this method to return the jacobian of the  constraints.
+     * In contrast to IPOPT does SCPIP support active set and w.r.t SCPIP active sets
+     * are implemented. The memory layout becomes quite complicated for active sets,
+     * therefore we request the full data here.
+     * It is possible to extend this method by a vector active indicating the active
+     * constraints, just note that SCPIP internally makes a difference of equality and
+     * inequality constraints and the existing vector active is only for inequality but
+     * this interface mixes both up as with IPOPT.
+     * @param n number of design variables. Sparse constraint jacobians have less
+     * @param x the design vector of size n
+     * @param nele_jac the nnz pattern of all gradients. if all dense this is m*n */
+    virtual bool eval_jac_g(int n, const double* x, int m, int nele_jac, double* values) = 0;
 
     /** This method is called when the algorithm is complete, so one can
      * store/write the solution. Hence this method is directly called before
@@ -172,9 +200,10 @@
     /** This struct helps converting/normalizing the constraints */
     struct ConstraintShift
     {
-      /** the numer of the constrain is the index within m. From 0! */
+      /** the number of the constrain is the index within m. From 0! */
       int number;
 
+      /** is this an equality constraint or an inequality constraint */
       bool equal;
 
       /** the original value! */
@@ -186,8 +215,11 @@
       /** org value - shift = 0 */
       double shift;
 
-      /** only for inequal. is 1/-1 AFTER shifting */
+      /** only for unequal. is 1/-1 AFTER shifting */
       double factor;
+
+      /** shortcut to and redundant with grad_j_size */
+      int nnz;
     };
 
     /** Generates an message out of the last status (ierr). */
@@ -195,6 +227,19 @@
 
     /** Dumps the info block (info and rinfo). For debugging */
     void PrintInfo(std::ostream& os);
+
+    /** Set the gradient structure according the current active set!
+     * Is called on initialization and every time the active set changes.
+     * IERN, IECN, EQRN and EQCN are filled.
+     * Assumes IERN, IECN, EQRN and EQCN to be properly sized and
+     * IELENG, IELPAR and EQLENG, EQLPAR to be set..
+     * The default implementation calls SetDenseConstraintGradientPattern()
+     * so nothing needs to be done for dense Jacobians.
+     * @see PrepareConstraintPattern()
+     * @see SetDenseConstraintGradientPattern() */
+    virtual void SetConstraintSparsityPattern() {
+      SetDenseConstraintGradientPattern();
+    }
 
     /**-- From the IPOPT interface --- */
     /** The number of nonzeros of the constraints jacobian */ 
@@ -239,6 +284,9 @@
     /** The nnz_jac_g IPOPT like constraint gradients */
     StdVector<double> jac_g;
 
+    /** Number of nnz per constraint. Each is n in the dense case */
+    StdVector<int> jac_g_size;
+
     /** We use this only to store the combined gradiend lagrange multipliers
      * for finalize_solution. It is small, hence better than missusing g */
     StdVector<double> y_g;
@@ -257,6 +305,14 @@
 
     /** the number of equality constraints */
     int meq;
+
+    /** the number of entries (nnz) of all inequality contraint jacobians.
+     * Depends on the active set. */
+    int ieleng;
+
+    /** the number of entries (nnz) of all equality contraint jacobians.
+     * Does not depend on the active set */
+    int eqleng;
 
     /** Dimension of inequality dependent arrays H ORG, Y IE, ACTIVE */
     int iemax;
@@ -349,7 +405,8 @@
     /** equality constraints column numbers. We are dense! */
     StdVector<int> eqcn;
 
-    /** The derivative values of the equality constraints */
+    /** The derivative values of the equality constraints.
+     * Is once called eqderv in the SCPIP manual but this is wrong. */
     StdVector<double> eqcoef;
 
     /** number of active constraints in the subproblem */
@@ -390,9 +447,6 @@
      * no change! */
     void AllocateDynamic(); 
 
-    /** defines the dense constraint gradients */
-    void SetDenseConstraintGradient();
-
     /** Sets the default parameters. This can be overwritten with Set*Value() */
     void SetDefaultParameters();
 
@@ -402,6 +456,16 @@
 
     /** Evaluates the objective and constraint gradients */
     bool EvaluateGradients();
+
+    /** This prepares everything what is necessary for SetConstraintSparsityPattern().
+     * It uses active and is to be called potentially multiple times when the active
+     * set changes.
+     * @param inital_call sets also the equality stuff and initializes active and other
+     * fixed variables. */
+    void PrepareConstraintPattern(bool initial_call);
+
+    /** Sets the dense constraint gradients structure according to the current active set. */
+    void SetDenseConstraintGradientPattern();
 
     /** Helper which copies the element from the ipopt unsorted gradient
      * to the the sorted ones and does eventually a negation.

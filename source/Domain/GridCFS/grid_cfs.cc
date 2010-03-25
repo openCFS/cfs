@@ -1980,6 +1980,7 @@ namespace CoupledField {
       n[2] = vec1[0] * vec2[1] - vec1[1]*vec2[0];
       //normalize the length to 1
       Double length = n.NormL2();
+      assert(length > 0.0); // length must be well defined
       n /= length;
 
     }

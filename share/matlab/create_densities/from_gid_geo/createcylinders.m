@@ -1,4 +1,5 @@
 function cyl = createcylinders( nodes, edges, radius)
+disp(['createcylinders with radius = ', num2str(radius)]);
 
 nelements = size(edges,1);
 

@@ -36,8 +36,9 @@ namespace CoupledField {
     //! Initialize entries with 0
     virtual void Init() = 0;
 
-    //! Return vector as separated string
-    virtual std::string ToString( char separator = ',') const = 0;
+    /** Return vector as separated string
+     * @see Vector::ToString() */
+    virtual std::string ToString(const int level = 0, char separator = ',') const = 0;
 
     //! Return the Entry type of the vector
 

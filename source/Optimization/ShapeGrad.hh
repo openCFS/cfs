@@ -27,17 +27,17 @@ public:
   void GetElementSolution(Vector<double> &vecforward, Vector<double> &vecadjoint, 
                           const unsigned int e,
                           const SubTensorType type = PLANE_STRAIN,
-                          Application app = MECH) const;
+                          Application app = MECH);
 
   /** Helper function for TopGrad, where we need the SubTensorType */
   void GetSubTensorType(SubTensorType &stt) const;
 
-  StdVector<SingleVector*>& getSolutionVectors(const bool forward_solution = true) const
+  StdVector<SingleVector*>& getSolutionVectors(const bool forward_solution = true)
   {
     if(forward_solution)
-      return forward.data[0]->elem[MECH];
+      return forward.Get(0)->elem[MECH];
     else // adjoint
-      return adjoint.data[0]->elem[MECH];
+      return adjoint.Get(0)->elem[MECH];
   }
 
   /** called in LevelSet::CalcShapeGradientOnAllElements() */

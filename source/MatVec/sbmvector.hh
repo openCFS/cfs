@@ -110,8 +110,9 @@ namespace CoupledField {
     void Add( const BaseVector &vec );
 
 
-    //! Return vector as separated string
-    std::string ToString( char separator = ',') const;
+    /** Return vector as separated string
+     * @see Vector::ToString() */
+    std::string ToString(const Integer level = 0, const char separator = ',') const;
 
     //! Export vector to file
 

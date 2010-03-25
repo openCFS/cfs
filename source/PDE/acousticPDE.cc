@@ -2022,6 +2022,73 @@ namespace CoupledField {
     delete gradOp;
   }
 
+  template <class TYPE>
+  void AcousticPDE::CalcGradSurfaceElement( shared_ptr<BaseResult> vals, SolutionType solType, bool apply_normal, StdVector<Vector<TYPE> >& grad_out )
+  {
+    //some help variables
+    Vector<Double> lCoordSurf, lCoordVol, normal;
+    Vector<TYPE> gradVal(dim_);
+    Vector<TYPE> elemIntensity(dim_);
+    BaseFE * ptSurfElemFE, * ptVolElemFE;
+
+    // Create vector with interpolation coordinate.
+    // For simplicity we only evaluate the integral
+    // in coordinate origin
+    lCoordSurf.Resize(dim_-1);
+    lCoordSurf.Init(0);
+
+    // Create operator for gradient computation of solution
+    NodeStoreSol<TYPE> * solhelp = dynamic_cast<NodeStoreSol<TYPE>*>(sol_);
+    GradientFieldOp<TYPE> * gradOp =
+      new GradientFieldOp<TYPE>(ptgrid_, this, eqnMap_, *solhelp,
+                                solType, results_[0], isaxi_);
+
+    Result<TYPE> & actRes = dynamic_cast<Result<TYPE>&>(*vals);
+    EntityIterator it = actRes.GetEntityList()->GetIterator();
+
+    grad_out.Resize(actRes.GetEntityList()->GetSize());
+
+    // loop over all surface elements
+    for ( it.Begin(); !it.IsEnd(); it++ )
+    {
+      const SurfElem * actSurfElem = it.GetSurfElem();
+      // Determine, which volume element is the right neighbor for the
+      // calculation;
+      // our normal should point out of the correct neighbor volume element!
+      bool vol_1 = surfNeighborRegions_[vals] == actSurfElem->ptVolElem1->regionId;
+      Elem* ptVolElem   = vol_1 ? actSurfElem->ptVolElem1 : actSurfElem->ptVolElem2;
+      double normal_sign = vol_1 ? 1.0 : -1.0; // from CalcAcouPower() -> seem to correct surfElem->normalSign
+
+      ptSurfElemFE = actSurfElem->ptElem;
+      ptVolElemFE = ptVolElem->ptElem;
+
+      const StdVector<UInt> & surfConnect = actSurfElem->connect;
+      const StdVector<UInt> & volConnect = ptVolElem->connect;
+
+      // calculate volume integration coordinates from
+      // surface integration coordinate for evaluating the
+      // gradient on the surface of the volume element
+      ptSurfElemFE->GetCoordMidPoint(lCoordSurf);
+      ptVolElemFE->GetLocalIntPoints4Surface(surfConnect, volConnect,
+                                             lCoordSurf, lCoordVol);
+      // Calc gradient
+      ElemList elList(ptgrid_);
+      elList.SetElement( ptVolElem );
+      EntityIterator it2 = elList.GetIterator();
+      gradOp->CalcElemGradField(gradVal, it2, lCoordVol,1.0);
+
+      if(apply_normal) // check also surfElem->normalSign
+        gradVal *= normal_sign;
+
+      grad_out[it.GetPos()] = gradVal;
+
+      LOG_DBG3(acoupde) << "CGSE: se=" << actSurfElem->elemNum << " lCoordVol=" << lCoordVol.ToString() << " grad=" << gradVal.ToString();
+
+    }
+
+    delete gradOp;
+
+  }
 
   template <class TYPE>
   void AcousticPDE::CalcAcouSurfIntensity( shared_ptr<BaseResult> vals ) {
@@ -2047,11 +2114,9 @@ namespace CoupledField {
     }
 
     //some help variables
-    Vector<Double> lCoordSurf, lCoordVol, normal;
-    Vector<TYPE> gradVal(dim_);
+    Vector<Double> lCoordSurf;
     Vector<TYPE> elemIntensity(dim_);
-    Elem * ptVolElem;
-    BaseFE * ptSurfElemFE, * ptVolElemFE;
+    BaseFE * ptSurfElemFE;
     Double density  = 0.0;
 
     // Create vector with interpolation coordinate.
@@ -2060,12 +2125,6 @@ namespace CoupledField {
     lCoordSurf.Resize(dim_-1);
     lCoordSurf.Init(0);
 
-    // Create operator for gradient computation of solution
-    NodeStoreSol<TYPE> * solhelp = dynamic_cast<NodeStoreSol<TYPE>*>(sol_);
-    GradientFieldOp<TYPE> * gradOp =
-      new GradientFieldOp<TYPE>(ptgrid_, this, eqnMap_, *solhelp,
-                                solType, results_[0], isaxi_);
-
     TYPE factorI;
     Result<TYPE> & actRes = dynamic_cast<Result<TYPE>&>(*vals);
     EntityIterator it = actRes.GetEntityList()->GetIterator();
@@ -2073,33 +2132,28 @@ namespace CoupledField {
     Vector<TYPE> & actVal = actRes.GetVector();
     actVal.Resize( actRes.GetEntityList()->GetSize() * dim_ );
 
+    // calculate the gradient by CalcGradSurfaceElement()
+    StdVector<Vector<TYPE> > grad_out;
+    // in the original code the normal was not considered??
+    CalcGradSurfaceElement(vals, solType, false, grad_out);
+
+    NodeStoreSol<TYPE> * solhelp = dynamic_cast<NodeStoreSol<TYPE>*>(sol_);
+
     // loop over all surface elements
     for ( it.Begin(); !it.IsEnd(); it++ ) {
 
       const SurfElem * actSurfElem = it.GetSurfElem();
-      // Determine, which volume element is the right neighbour for the
+
+      // Determine, which volume element is the right neighbor for the
       // calculation;
       // our normal should point out of the correct neighbor volume element!
-      if ( surfNeighborRegions_[vals] ==
-           actSurfElem->ptVolElem1->regionId ) {
-        ptVolElem = actSurfElem->ptVolElem1;
-      }
-      else {
-        ptVolElem = actSurfElem->ptVolElem2;
-      }
+      bool vol_1 = surfNeighborRegions_[vals] == actSurfElem->ptVolElem1->regionId;
+      Elem* ptVolElem = vol_1 ? actSurfElem->ptVolElem1 : actSurfElem->ptVolElem2;
 
       ptSurfElemFE = actSurfElem->ptElem;
-      ptVolElemFE = ptVolElem->ptElem;
 
       const StdVector<UInt> & surfConnect = actSurfElem->connect;
-      const StdVector<UInt> & volConnect = ptVolElem->connect;
 
-      // calculate volume integration coordinates from
-      // surface integration coordinat for evalauting the
-      // gradient on the surface of the volume element
-      ptSurfElemFE->GetCoordMidPoint(lCoordSurf);
-      ptVolElemFE->GetLocalIntPoints4Surface(surfConnect, volConnect,
-                                             lCoordSurf, lCoordVol);
 
       BaseMaterial * myMat = materials_[ptVolElem->regionId];
       myMat->GetScalar(density,DENSITY,Global::REAL);
@@ -2107,12 +2161,7 @@ namespace CoupledField {
       Matrix<Double> CornerCoords;
       ptgrid_->GetElemNodesCoord( CornerCoords, surfConnect, false );
 
-      // Calc gradient
-      ElemList elList(ptgrid_);
-      elList.SetElement( ptVolElem );
-      EntityIterator it2 = elList.GetIterator();
-      gradOp->CalcElemGradField(gradVal, it2,
-                                lCoordVol,1.0);
+      Vector<TYPE>& gradVal = grad_out[it.GetPos()];
 
       //get average solution
       TYPE elemSol = 0;
@@ -2122,6 +2171,8 @@ namespace CoupledField {
         elemSol += nodeSol;
       }
       elemSol /= (Double)surfConnect.GetSize();
+
+      LOG_DBG3(acoupde) << "CASI: se=" << actSurfElem->elemNum << " grad=" << gradVal.ToString() << " elemSol=" << elemSol;
 
       // get the conjugate complex value
       elemSol = std::conj(elemSol);
@@ -2139,13 +2190,14 @@ namespace CoupledField {
         actVal[it.GetPos()*dim_ + iDim] = elemIntensity[iDim];
       }
     }
-
-    delete gradOp;
   }
 
-  template<class TYPE>
-  void AcousticPDE::CalcAcouPower( shared_ptr<BaseResult> vals ) {
 
+
+
+  template<class TYPE>
+  void AcousticPDE::CalcAcouPower(shared_ptr<BaseResult> vals)
+  {
     // currently we just support harmonic analysis: complex data
 
     //get frequency
@@ -2168,7 +2220,6 @@ namespace CoupledField {
     }
 
     NodeStoreSol<TYPE> * solhelp = dynamic_cast<NodeStoreSol<TYPE>*>(sol_);
-
 
     //some help variables
     Vector<Double> lCoordSurf, lCoordVol, normal;
@@ -2206,7 +2257,8 @@ namespace CoupledField {
     actVal.Init();
 
     // Loop over regions
-    for( regionIt.Begin(); !regionIt.IsEnd(); regionIt++ ) {
+    for( regionIt.Begin(); !regionIt.IsEnd(); regionIt++ )
+    {
       SurfElemList actSDList(ptgrid_ );
       actSDList.SetRegion( regionIt.GetRegion() );
       EntityIterator it = actSDList.GetIterator();
@@ -2217,7 +2269,7 @@ namespace CoupledField {
 
         const SurfElem * actSurfElem = it.GetSurfElem();
 
-        // Determine, which volume element is the right neighbour for the
+        // Determine, which volume element is the right neighbor for the
         // calculation;
         // our normal should point out of the correct neighbor volume element!
         if (   surfNeighborRegions_[vals] ==
@@ -2261,27 +2313,27 @@ namespace CoupledField {
         for( UInt iPt = 0; iPt < nrIntPts; iPt++ ) {
 
           // calculate volume integration coordinates from
-          // surface integration coordinat for evalauting the
+          // surface integration coordinate for evaluating the
           // gradient on the surface of the volume element
           ptVolElemFE->GetLocalIntPoints4Surface(surfConnect, volConnect,
                                                  intPoints[iPt], lCoordVol);
 
           // Calculate jacobian gradient of surface element
-          Double jacDet = ptSurfElemFE->CalcJacobianDetAtIp(iPt+1,
-                                                            CornerCoords,
-                                                            actSurfElem );
+          Double jacDet = ptSurfElemFE->CalcJacobianDetAtIp(iPt+1, CornerCoords, actSurfElem );
 
           // Calc gradient
           ElemList elList(ptgrid_);
           elList.SetElement( ptVolElem );
           EntityIterator it2 = elList.GetIterator();
-          gradOp->CalcElemGradField(gradVal, it2,
-                                    lCoordVol,1.0);
+          gradOp->CalcElemGradField(gradVal, it2, lCoordVol,1.0);
+
           // Calc global normal
           ptgrid_->CalcSurfNormal(normal, *actSurfElem);
 
           normal    *= normSign;
           gradNormal = normal * gradVal;
+
+          LOG_DBG3(acoupde) << "CAP: se=" << actSurfElem->elemNum << " ip=" << iPt << " lCoordVol=" << lCoordVol.ToString() << " grad=" << gradVal.ToString() << " grad_n=" << gradNormal;
 
           // get solution of element and interpolate into integration point
           Vector<TYPE> elemSol;
@@ -2291,20 +2343,20 @@ namespace CoupledField {
           TYPE intPointSol = shapeFnc * elemSol;
 
           // get the conjugate complex value
-          intPointSol = std::conj(intPointSol);
+          TYPE intPointSolConj = std::conj(intPointSol);
 
           if ( formulation_ == ACOU_PRESSURE ) {
-            helpVal =  multVal * gradNormal * intPointSol * (1.0 / density );
+            helpVal =  multVal * gradNormal * intPointSolConj * (1.0 / density );
           }
           else {
-            helpVal = multVal * density  * gradNormal * intPointSol;
+            helpVal = multVal * density  * gradNormal * intPointSolConj;
           }
 
           // integrate value
           elemPower += intWeights[iPt] * helpVal * jacDet;
         }
-        actVal[regionIt.GetPos()] += elemPower;
 
+        actVal[regionIt.GetPos()] += elemPower;
       }
     }
     delete gradOp;
@@ -2822,3 +2874,14 @@ namespace CoupledField {
   }
 
 } // end of namespace
+
+// explicit template instantiation for GCC compiler
+#ifdef __GNUC__
+
+template
+void AcousticPDE::CalcGradSurfaceElement<Complex>(
+    shared_ptr<BaseResult> vals, SolutionType solType,
+    bool apply_normal,
+    StdVector<Vector<Complex> >& grad_out );
+
+#endif

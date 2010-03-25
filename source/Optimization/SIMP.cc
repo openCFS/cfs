@@ -1,7 +1,7 @@
 #include "Optimization/SIMP.hh"
 #include "Optimization/DesignSpace.hh"
 #include "Optimization/DesignElement.hh"
-#include "Optimization/DesignFilter.hh"
+#include "Optimization/DesignStructure.hh"
 #include "Optimization/OptimizationMaterial.hh"
 #include "Domain/domain.hh"
 #include "Domain/surfElem.hh"
@@ -52,23 +52,37 @@ void SIMP::PostInit()
   PtrParamNode simp_pn = pn->Get("SIMP", ParamNode::PASS);
 
   // There might be a filter regularization based on the design element.
-  if(simp_pn  && simp_pn->HasByVal("regularization", "type", "filter"))
+  if(simp_pn)
   {
-    ParamNodeList list = simp_pn->Get("regularization")->GetList("filter");
-    // this is save for design=polarization
-    for(unsigned int i = 0; i < list.GetSize(); i++)
+    if(simp_pn->HasByVal("regularization", "type", "filter"))
     {
-      DesignFilter df(this, list[i]);
-      df.SetFilters();
+      ParamNodeList list = simp_pn->Get("regularization")->GetList("filter");
+      // this is save for design=polarization
+      for(unsigned int i = 0; i < list.GetSize(); i++)
+      {
+        if(structure_ == NULL)
+          structure_ = new DesignStructure(this);
+        structure_->SetFilters(list[i]);
+      }
+    }
+    else
+    {
+      if(simp_pn->Has("regularization"))
+        throw Exception("regularization not implemented");
+    }
+
+    // check for bimaterial and read tensor if available
+    if(simp_pn->Has("bimaterial"))
+    {
+      Matrix<double> t(3, 3);
+      bool ok = Function::ReadTensor(simp_pn->Get("bimaterial"), t);
+      if(!ok) EXCEPTION("bimaterial specified but no tensor given or incorrect format");
+
+      design->SetBiMatTensor(t);
+      LOG_DBG3(simp) << "bimaterial tensor = " << std::endl << design->GetBiMatTensor().ToString(1);
     }
   }
-  else
-  {
-    if(simp_pn != NULL && simp_pn->Has("regularization"))
-      throw Exception("regularization not implemented");
-  }
-
-
+  
   if(harmonic) mechRHS.Init<complex<double> >(design, PRESSURE); // in many cases NULL;
           else mechRHS.Init<double>(design, PRESSURE);
 
@@ -102,7 +116,8 @@ void SIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* mat_out,
 
     // copy from real mechStiffness to potential complex out and factor the derivative
     Assign(out, mechStiffness, k_factor);
-    LOG_DBG3(simp) << "SetElementK: org mech " << out.ToString(0);
+    // This log is very expensive, it blows up inv_tensor in the debug mode
+    //LOG_DBG3(simp) << "SetElementK: org mech " << out.ToString(0);
 
     if(harmonic)
     {
@@ -186,16 +201,11 @@ double SIMP::CalcObjective(Excitation& excite, Objective* cost)
   return ErsatzMaterial::CalcObjective(excite, cost);
 }
   
-void SIMP::ConstructAdjointRHS(Excitation& excite)
-{
-  ErsatzMaterial::ConstructAdjointRHS(excite);
-}
 
 void SIMP::CalcObjectiveGradient(Excitation& excite, Objective* cost)
 {
   TransferFunction* tf = design->GetTransferFunction(DesignElement::DENSITY, MECH, true);
 
-  int idx = excite.index;
   double weight = excite.GetWeightedFactor(cost);
   LOG_DBG(simp) << "CalcObjectiveGradient(idx=" << excite.index << ") norm_weight= " <<  excite.normalized_weight
                 << " factor=" << excite.GetFactor(cost) << " weight=" << weight;
@@ -205,7 +215,7 @@ void SIMP::CalcObjectiveGradient(Excitation& excite, Objective* cost)
   case Objective::GLOBAL_DYNAMIC_COMPLIANCE:
     // synthesis of compliant mechanism: As our adjoint PDE
     // c' = l K' u
-    CalcU1KU2(tf, adjoint.data[idx]->elem[MECH], MECH, forward.data[idx]->elem[MECH], NULL, weight, STANDARD, cost, NULL);
+    CalcU1KU2(tf, adjoint.Get(excite)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, weight, STANDARD, cost, NULL);
     break;
 
   case Objective::OUTPUT:
@@ -214,7 +224,11 @@ void SIMP::CalcObjectiveGradient(Excitation& excite, Objective* cost)
   case Objective::ABS_DYN_OUTPUT_SQUARED:
     // synthesis of compliant mechanism: As our adjoint PDE
     // c' = l K' u
-    CalcU1KU2(tf, adjoint.data[idx]->elem[MECH], MECH, forward.data[idx]->elem[MECH], NULL, weight, STANDARD, cost, NULL);
+    CalcU1KU2(tf, adjoint.Get(excite)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, weight, STANDARD, cost, NULL);
+    break;
+
+  case Objective::ACOU_NEAR_FIELD:
+    // TODO
     break;
 
   default:

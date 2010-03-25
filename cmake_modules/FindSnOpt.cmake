@@ -37,7 +37,7 @@ BUILD_EXTLIB("SnOpt"
 # Determine paths of SNOPT libraries.
 #-------------------------------------------------------------------------------
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(SNOPT_LIBRARY "${LD}/libsnopt_c.a;${LD}/libsnopt-blas_c.a;libf2c.a;-lm" 
+SET(SNOPT_LIBRARY "${LD}/libsnopt_c.a;${LD}/libsnopt-blas_c.a;${LD}/libsnprint_c.a;libf2c.a;-lm" 
     CACHE FILEPATH "SnOpt library.")
 
 MARK_AS_ADVANCED(SNOPT_LIBRARY)

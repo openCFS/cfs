@@ -6,6 +6,7 @@
 
 #include <sstream>
 #include <iomanip>
+#include <set>
 
 #include "Forms/mechStressStrain.hh"
 #include "Forms/PMLInt.hh"
@@ -18,6 +19,7 @@
 #include "Forms/linPressureInt.hh"
 #include "Forms/singleEntryInt.hh"
 #include "Forms/linSurfStressInt.hh"
+#include "Forms/piezoPolarizationMatrixRHSInt.hh"
 #include "Driver/assemble.hh"
 #include "newmark.hh"
 #include "newmarkFracDampMech.hh"
@@ -1125,6 +1127,29 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         assemble_->AddLinearForm(linRhs);
       }
     }
+  }
+  
+  void MechPDE::DefinePolarizationMatrixIntegrators(const Vector<Double> &vals,
+      std::set<LinearFormContext*> *linForms, const int num)
+  {
+    
+    LinearForm * polRHSMech = new PiezoPolarizationMatrixMechRHSInt(vals, num);
+    
+    StdVector<std::string> region_names;
+    domain->GetGrid()->GetRegionNames(region_names);
+    LOG_DBG(mechpde) << "region names = " << region_names.ToString();
+    // FIXME: hardcoded region name!!
+    shared_ptr<EntityList> entlist = domain->GetGrid()->GetEntityList(EntityList::SURF_ELEM_LIST, 
+        region_names[1], EntityList::NO_TYPE);
+
+    LinearFormContext *linRhs = new LinearFormContext(polRHSMech);
+    linRhs->SetPtPde(this);
+    linRhs->SetResult(results_[0], entlist);
+    
+    if(linForms != NULL)
+      linForms->insert(linRhs);
+    else
+      assemble_->AddLinearForm(linRhs);
   }
   
   void MechPDE::DefineRegionLoadIntegrators(std::map<RegionIdType, RegionLoad>& regionLoads, std::set<LinearFormContext*>* linForms){

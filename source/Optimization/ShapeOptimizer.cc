@@ -88,7 +88,7 @@ void ShapeOptimizer::SolveProblem()
     // in every iteration we need to solve the state problem again
     if(curr_iter > 0) optimization->SolveStateProblem();
     
-    if(dynamic_cast<ErsatzMaterial*>(optimization)->HasApp(Optimization::MECH))
+    if(dynamic_cast<ErsatzMaterial*>(optimization)->ToPDE(Optimization::MECH, false) != NULL)
     {
       if(topgrad_ && curr_iter > 0)
       {

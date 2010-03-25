@@ -57,7 +57,7 @@ namespace CoupledField {
   // *****************
   void StaticDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id, const bool reAssembleMatrices)
   {
-    // Set curent value of timestep and time step size in the mathParser
+    // Set current value of time step and time step size in the mathParser
     domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                          "t", 0.0 );
     domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,

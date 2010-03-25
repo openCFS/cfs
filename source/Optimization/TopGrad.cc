@@ -50,8 +50,8 @@ TopGrad::TopGrad(Optimization* opt, PtrParamNode pn, const bool ls) :
   assert(optimization != NULL);
 
   // get volume constraint from xml
-  Condition& condition = optimization->GetConstraint(Condition::VOLUME);
-  max_volume_to_remove_ = condition.value;
+  Condition* condition = optimization->constraints.Get(Condition::VOLUME);
+  max_volume_to_remove_ = condition->GetBoundValue();
 
   // cache number of elements
   numelems_ = optimization->GetDesign()->GetNumberOfElements();
@@ -281,7 +281,7 @@ double TopGrad::CalcTopGradOnElement() const
        * formula is
        * c_2 = \pi * (lambda_ + 2mu_)/(2mu_(lambda_ + mu_))
        * tg = c_2(4mu_ * Ae(u)*e(u) + (lambda_ - mu_)tr(Ae(u))tr(e(u)))
-       * entries of e(u) are contained in forward_strain[0 - 2]      
+       * entries of e(u) are contained in forward_strain[0 - 2]
        * */
       assert(elem_forw.GetSize() == 3);
       assert(elem_adj.GetSize() == 3);

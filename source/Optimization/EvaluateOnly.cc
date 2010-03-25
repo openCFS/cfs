@@ -46,17 +46,14 @@ void EvaluateOnly::SolveProblem()
     // calc gradients, they might be stored in store results!
     optimization->CalcObjectiveGradient(NULL);
 
-    StdVector<Condition>& cns = optimization->constraints;
-    StdVector<Condition>& ops = optimization->outputs; // The "inactive" constraints with output_only mode in xml
-
-    for(unsigned int c = 0; c < cns.GetSize(); c++)
-      optimization->CalcConstraint(&cns[c]);
-    
-    for(unsigned int c = 0; c < cns.GetSize(); c++)
-      optimization->CalcConstraintGradient(&cns[c], NULL);
-
-    for(unsigned int c = 0; c < ops.GetSize(); c++)
-      optimization->CalcConstraintGradient(&ops[c], NULL);
+    for(int c = 0; c < optimization->constraints.view->GetNumberOfTotalConstraints(); c++)
+    {
+      Condition* g = optimization->constraints.view->Get(c);
+      optimization->CalcConstraint(g);
+      if(g->IsActive()) // not for observation stuff
+        optimization->CalcConstraintGradient(g);
+    }
+    optimization->constraints.view->Done(); // reset the slope constraints to global
 
     // multiple excitations in evaluate only are identified as increasing "iterations".
     optimization->CommitIteration(false);

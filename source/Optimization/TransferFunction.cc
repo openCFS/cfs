@@ -65,6 +65,21 @@ void TransferFunction::ToInfo(PtrParamNode in) const
   
 }
 
+bool TransferFunction::IsPenalized() const
+{
+  switch(type_)
+  {
+  case SIMP_TYPE:
+    return param_ != 1.0;
+
+  case RAMP:
+    return param_ != 0.0;
+
+  default:
+    return false;
+  }
+}
+
 std::string TransferFunction::ToString()
 {
   std::ostringstream os;
@@ -76,7 +91,7 @@ std::string TransferFunction::ToString()
   return os.str();   
 }
 
-double TransferFunction::Transform(DesignElement* de)
+double TransferFunction::Transform(const DesignElement* de) const
 {
   double value = de->GetDesign(DesignElement::PLAIN);
   double result;
@@ -115,7 +130,7 @@ double TransferFunction::Transform(DesignElement* de)
   return result;
 }     
 
-double TransferFunction::Derivative(DesignElement* de)
+double TransferFunction::Derivative(const DesignElement* de) const
 {
   double value = de->GetDesign(DesignElement::PLAIN);
 

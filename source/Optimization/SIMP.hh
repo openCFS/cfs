@@ -102,9 +102,6 @@ protected:
   /** overwrite this method for own objectives. */
   virtual double CalcObjective(Excitation& excite, Objective* cost);
   
-  /** no special case here */
-  virtual void ConstructAdjointRHS(Excitation& excite);
-  
   /** Does mech DENSITY gradients, COMPLIANCE is done in ErsatzMaterial */
   virtual void CalcObjectiveGradient(Excitation& excite, Objective* cost);
 

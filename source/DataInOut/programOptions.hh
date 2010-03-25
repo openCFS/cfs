@@ -149,6 +149,9 @@ namespace CoupledField
      * * constraints */
     bool DoListMapping() const;
 
+    /** Also more detailed info.xml output as with DoListMapping */
+    bool DoDetailedInfo() const;
+
     /** Is cfs invoked with the quite flag to compress console output? */
     bool IsQuiet() const;
 

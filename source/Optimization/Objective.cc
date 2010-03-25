@@ -1,98 +1,46 @@
 #include "Optimization/Objective.hh"
 #include "Optimization/Condition.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "General/exception.hh"
 #include "Domain/domain.hh"
 
 using namespace CoupledField;
 
-// instantiation of the static elements
-Enum<Objective::Type> Objective::type;
-
 Objective::Objective(PtrParamNode pn, PtrParamNode pn_type, unsigned int idx)
+ : Function(pn_type)
 {
   // multiple excitation is handled in Optimization itself!
 
   // the current value -> check <Get/Set>Value() when altering the presets!
   this->index_       = idx;
-  this->value_       = -1.0;
-  this->pn           = pn;
   this->harmonic_    = BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType());
   this->omega_omega_ = pn->Has("factor") ? pn->Get("factor")->Get("omega_omega")->As<bool>() : false;
-  this->volumePenaltyExponent = 1.0;
   if(!harmonic_ && omega_omega_)
     throw Exception("It makes no sense to set costFunction/factor/omega_omega in static optimization");
 
-  this->type_ = type.Parse(pn_type->Get("type")->As<std::string>());
   this->penalty_ = pn_type->Has("penalty") ? pn_type->Get("penalty")->As<Double>() : 1.0;
-
-  if(type_ == HOMOGENIZATION_TRACKING)
-    if(!Condition::ReadTensor(pn, tensor))
-      EXCEPTION("A 'tensor' element is mandatory  for 'homogenizationTracking'");
 
   // currently we have only relative implemented up to now!
   stop.value = pn->Has("stopping") ? pn->Get("stopping/value")->As<Double>() : 1e-5;
   stop.queue = pn->Has("stopping") ? pn->Get("stopping/queue")->As<Integer>() : 5; // is >= 1!
 
-  // set how often to evaluate the objective for multiple excitations
-  switch(type_)
-  {
-    case VOLUME:
-      if(pn->Has("volumePenaltyExponent"))
-        volumePenaltyExponent = pn->Get("volumePenaltyExponent")->Get("value")->As<Double>();
-      // we do not break here!
-      // because we also need the evaluateOnce_ value to be set!
-    case HOMOGENIZATION_TENSOR:
-    case HOMOGENIZATION_TRACKING:
-    case HOMOGENIZATION_E11:
-    case POISSONS_RATIO:
-    case YOUNGS_MODULUS:
-    case TYCHONOFF:
-      this->evaluateOnce_ = true;
-      break;
+  coord.first = -1;
+  coord.second = -1;
+  if(pn_type->Has("coord"))
+    ParseCoord(pn_type, coord);
 
-    case MULTI_OBJECTIVE: // only to make the switch complete
-    case COMPLIANCE:
-    case OUTPUT:
-    case DYNAMIC_OUTPUT:
-    case TRACKING:
-    case ABS_DYN_OUTPUT_SQUARED:
-    case CONJUGATE_COMPLIANCE:
-    case GLOBAL_DYNAMIC_COMPLIANCE:
-    case ELEC_ENERGY:
-    case TEMPERATURE:
-      this->evaluateOnce_ = false; // standard case
-  }
+  this->pn = pn;
 }
 
-double Objective::GetValue() const
+std::string Objective::GetName() const
 {
-  return value_;
+  if(coord.first == -1)
+    return type.ToString(type_);
+  else
+    return type.ToString(type_) + "E" + lexical_cast<std::string>(coord.first) + lexical_cast<std::string>(coord.first);
 }
 
-
-void Objective::SetValue(double val)
-{
-  value_ = val;
-}
-
-bool Objective::IsHomogenization() const
-{
-  switch(type_)
-  {
-    case HOMOGENIZATION_TENSOR:
-    case HOMOGENIZATION_TRACKING:
-    case HOMOGENIZATION_E11:
-    case POISSONS_RATIO:
-    case YOUNGS_MODULUS:
-      return true;
-
-    default:
-      return false;
-  }
-}
 
 ObjectiveContainer::ObjectiveContainer()
 {
@@ -116,7 +64,8 @@ void ObjectiveContainer::Read(PtrParamNode obj_node)
 
   if(!mo)
   {
-    data.Resize(1);
+    //Objective* tmp = new Objective(obj_node, obj_node, 0);
+    data.Resize(1, NULL);
     data[0] = new Objective(obj_node, obj_node, 0);
   }
   else
@@ -128,7 +77,7 @@ void ObjectiveContainer::Read(PtrParamNode obj_node)
     if(list.GetSize() == 0)
       throw Exception("For costFunction type 'multiObjective' element with 'objective' childs is needed");
 
-    data.Resize(list.GetSize());
+    data.Resize(list.GetSize(), NULL);
 
     for(unsigned int i = 0; i < list.GetSize(); i++)
       data[i] = new Objective(obj_node, list[i], i);
@@ -148,22 +97,23 @@ void ObjectiveContainer::ToInfo(PtrParamNode in) const
     for(unsigned int i = 0; i < data.GetSize(); i++)
     {
       PtrParamNode o = m->Get("objective", ParamNode::APPEND);
-      o->Get("type")->SetValue(Objective::type.ToString(data[i]->type_));
-      o->Get("penalty")->SetValue(data[i]->penalty_);
-      o->Get("evaluate")->SetValue(data[i]->evaluateOnce_ ? "once" : "always");
+      Objective* f = data[i];
+      o->Get("type")->SetValue(f->GetName());
+      o->Get("penalty")->SetValue(f->penalty_);
+      o->Get("evaluate")->SetValue(f->evaluateOnce_ ? "once" : "always");
     }
   }
   else
   {
-    in->Get("type")->SetValue(Objective::type.ToString(data[0]->type_));
+    in->Get("type")->SetValue(data[0]->GetName());
     in->Get("evaluate")->SetValue(data[0]->evaluateOnce_ ? "once" : "always");
   }
 
   in->Get("task")->SetValue(minimize_ ? "minimize" : "maximize");
   if(data[0]->harmonic_)
     in->Get("factor")->Get("omega_omega")->SetValue(data[0]->omega_omega_);
-  if(data[0]->tensor.GetNumRows() > 1)
-    in->Get("tensor")->SetValue(new Matrix<double>(data[0]->tensor));
+  if(data[0]->tensor_.GetNumRows() > 1)
+    in->Get("tensor")->SetValue(new Matrix<double>(data[0]->tensor_));
 }
 
 

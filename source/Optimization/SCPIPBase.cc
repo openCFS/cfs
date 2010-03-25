@@ -42,6 +42,8 @@ SCPIPBase::SCPIPBase()
   use_obj_scaling = false;
   use_g_scaling = false;
   obj_scaling = 1.0;
+  ieleng = 0;
+  eqleng = 0;
 
   f_evals = grad_evals = 0;
 
@@ -80,8 +82,9 @@ void SCPIPBase::Initialize()
   // set the problem dependend data
   AllocateProblem();
 
-  // define dense constraint gradient structure
-  SetDenseConstraintGradient();
+  // define constraint gradient structure
+  SetConstraintSparsityPattern();
+
 }
 
 void SCPIPBase::SetDefaultParameters()
@@ -122,13 +125,11 @@ int SCPIPBase::SolveProblem(bool fromWarmstart)
   int ielpar = iern.GetSize();
   assert(ielpar == (int) iecn.GetSize());
   assert(ielpar == (int) iederv.GetSize());
-  int ieleng = n * mie;
-  assert(ieleng == ielpar || ieleng == ielpar-1);
+  assert(ieleng == ielpar || ieleng == ielpar-1); // the array has always min 1 entry to hace a pointer
 
   int eqlpar = eqrn.GetSize();
   assert(eqlpar == (int) eqcn.GetSize());
   assert(eqlpar == (int) eqcoef.GetSize());
-  int eqleng = n * meq;
   assert(eqleng == eqlpar || eqleng == eqlpar-1);
 
   int rdim = r_scp.GetSize();
@@ -224,19 +225,53 @@ void SCPIPBase::InitVariables()
   n = m = mie = meq = iemax = eqmax = -1;
 }
 
-void SCPIPBase::SetDenseConstraintGradient()
+void SCPIPBase::PrepareConstraintPattern(bool initial_call)
+{
+  assert(m >= 0 && iemax >= 0 && eqmax >= 0);
+
+  if(initial_call)
+  {
+
+  }
+
+  ieleng = 0;
+  int ie_cnt = 0;
+  for(unsigned int i = 0; i < shift.GetSize(); i++)
+  {
+    if(!shift[i].equal)
+    {
+      assert(active[ie_cnt] == 0 || active[ie_cnt] == 1);
+
+      if(active[ie_cnt] == 1)
+        ieleng += shift[i].nnz;
+
+      ie_cnt++;
+    }
+  }
+}
+
+void SCPIPBase::SetDenseConstraintGradientPattern()
 {
    assert(iern.GetSize() != 0 && iecn.GetSize() != 0 && iederv.GetSize() != 0);
    assert(eqrn.GetSize() != 0 && eqcn.GetSize() != 0 && eqcoef.GetSize() != 0);
    assert(m >= 0 && mie >= 0 && meq >= 0);
 
+   int ie_conseq = 0;
    for(int ie = 0; ie < mie; ie++)
    {
-     for(int e = 0; e < n; e++)
+     // the active set wants consecutive constraint numbers which is really strange
+     // as such a constraint has a different number for the constraint evaluation
+     // and it's gradient!!
+     assert(active[ie] == 1 || active[ie] == 0);
+     if(active[ie] == 1)
      {
-       int index = ie * n + e;
-       iern[index] = e + 1; // fortran!
-       iecn[index] = ie +1; // fortran!
+       for(int e = 0; e < n; e++)
+       {
+         int index = ie_conseq * n + e;
+         iern[index] = e + 1; // fortran!
+         iecn[index] = ie_conseq +1; // fortran!
+       }
+       ie_conseq++;
      }
    }
 
@@ -284,10 +319,23 @@ void SCPIPBase::AllocateProblem()
   // this are our constraint scalings, the initial value is replaced
   // via get_scaling_parameters()
   g_scaling.Resize(m);
-  for(int i = 0; i < m; i++) g_scaling[i] = 1.0;
+  for(int i = 0; i < m; i++)
+    g_scaling[i] = 1.0;
 
-  assert(nnz_jac_g == m * n); // dense!!
+  // handle dense and sparse constraint jacobians
   jac_g.Resize(nnz_jac_g, 0.0);
+  jac_g_size.Resize(m);
+
+  if(nnz_jac_g != m * n) // sparse?
+  {
+    assert(nnz_jac_g < m * n && nnz_jac_g > 0);
+    get_sparsity_pattern_size(m, jac_g_size.GetPointer());
+  }
+  else // dense
+  {
+    for(int i = 0; i < m; i++)
+      jac_g_size[i] = n;
+  }
 
   // temporary only
   StdVector<double> g_l(m);
@@ -297,13 +345,17 @@ void SCPIPBase::AllocateProblem()
 
   shift.Resize(m);
 
-  // now determine mie and meq and set the constraint shif and factors;
+  // now determine mie and meq and set the constraint shift and factors;
   mie = meq = 0;
+  ieleng = 0; // sum the total number of nnz up
+  eqleng = 0; // do it on the fly as there might be sparse jacobians
   for(int i = 0; i < m; i++)
   {
     ConstraintShift* cs = &shift[i];
 
     cs->number = i;
+    cs->nnz = jac_g_size[i];
+
     cs->factor = 1.0;
 
     cs->lower = g_l[i];
@@ -313,6 +365,7 @@ void SCPIPBase::AllocateProblem()
     if(cs->equal)
     {
       meq++;
+      eqleng += cs->nnz;
       cs->shift = cs->lower;
       LOG_TRACE2(scpip_base) << "constraint " << i << " becomes equality constraint " << meq << " with shift " << cs->shift;
     }
@@ -320,6 +373,7 @@ void SCPIPBase::AllocateProblem()
     {
       // inequality constraint!
       mie++;
+      ieleng += cs->nnz;
 
       // one value will be +/- infinity -> search the smaller abs-value
       if(abs(cs->lower) < abs(cs->upper))
@@ -345,27 +399,27 @@ void SCPIPBase::AllocateProblem()
   g_org.Resize(eqmax, 0.0);
 
   // inequality constraints considered active
-  active.Resize(iemax, 0);
+  active.Resize(iemax, 1);
   // starting value
   mactiv = m;
 
   // objective constraint
   df.Resize(n, 0.0);
 
-  // diverse lagrange multipliers
+  // lagrange multipliers
   y_ie.Resize(iemax, 0.0);
   y_eq.Resize(eqmax, 0.0);
   y_l.Resize(n, 0.0);
   y_u.Resize(n, 0.0);
 
-  // we have only dense gradients
+  // take care of sparse constraint gradients
   // there is no NULL pointer, hence the minimal size is 1
-  int ielpar = std::max(n * mie, 1);
+  int ielpar = std::max(ieleng, 1);
   iern.Resize(ielpar, 0);
   iecn.Resize(ielpar, 0);
   iederv.Resize(ielpar, 0);
 
-  int eqlpar = std::max(n * meq, 1);
+  int eqlpar = std::max(eqleng, 1);
   eqrn.Resize(eqlpar, 0);
   eqcn.Resize(eqlpar, 0);
   eqcoef.Resize(eqlpar, 0);
@@ -443,6 +497,10 @@ bool SCPIPBase::intermediate_callback(int iter, bool next_iter)
   return true;
 }
 
+int SCPIPBase::get_sparsity_pattern_size(int m, int* jac_g_dim)
+{
+  throw Exception("get_sparsity_pattern_size() not overloaded but get_nlp_info() reported sparse Jacobians.");
+}
 
 void SCPIPBase::EvaluateFunctionValues()
 {
@@ -464,7 +522,7 @@ void SCPIPBase::EvaluateFunctionValues()
   for(int i = 0; i < m; i++)
   {
     g[i] = g_unscaled[i] * g_scaling[i];
-    LOG_DBG3(scpip_base) << "eval_g[" << i << "]: " << g_unscaled[i] << " * "
+    LOG_DBG3(scpip_base) << "EFV: eval_g[" << i << "]: " << g_unscaled[i] << " * "
                          <<  g_scaling[i] << " -> " << g[i];
   }
 
@@ -480,14 +538,14 @@ void SCPIPBase::EvaluateFunctionValues()
     if(cs.equal)
     {
       g_org[eq] = val;
-      LOG_DBG2(scpip_base) << "eval_g[" << c << "]: eq=" << eq << " " << g[c] << " -> " << g_org[eq];
+      LOG_DBG2(scpip_base) << "EFV: eval_g[" << c << "]: eq=" << eq << " " << g[c] << " -> " << g_org[eq];
       eq++;
     }
     else
     {
       val *= cs.factor;
       h_org[ie] = val;
-      LOG_DBG2(scpip_base) << "eval_g[" << c << "]: ie=" << ie << " " << g[c] << " -> " << h_org[ie];
+      LOG_DBG2(scpip_base) << "EFV: eval_g[" << c << "]: ie=" << ie << " " << g[c] << " -> " << h_org[ie];
       ie++;
     }
   }
@@ -503,8 +561,8 @@ bool SCPIPBase::EvaluateGradients()
   if(use_obj_scaling)
     for(int i = 0; i < n; i++) df[i] *= obj_scaling;
 
-  // evaluate the grad g temporarily unsorted
-  assert(nnz_jac_g == m * n && (int) jac_g.GetSize() == nnz_jac_g);
+  // evaluate the grad g temporarily unsorted. Be aware of sparsity
+  assert(nnz_jac_g <= m * n && (int) jac_g.GetSize() == nnz_jac_g);
   if(m > 0)
   {
     ok = eval_jac_g(n, x.GetPointer(), m, nnz_jac_g, jac_g.GetPointer());
@@ -514,11 +572,15 @@ bool SCPIPBase::EvaluateGradients()
   // the constraint scaling has nothing to do with the normalization
   if(use_g_scaling)
   {
+    int idx = 0;
     for(int c = 0; c < m; c++)
     {
        double scale = g_scaling[c];
-       for(int e = c * n; e < (c+1) * n; e++)
-         jac_g[e] *= scale;
+       for(int e = 0; e < jac_g_size[c]; e++)
+       {
+         jac_g[idx] *= scale;
+         idx++;
+       }
     }
   }
 
@@ -526,34 +588,44 @@ bool SCPIPBase::EvaluateGradients()
 
   int ie = 0;
   int eq = 0;
+  int ie_nnz = 0; // counter
+  int eq_nnz = 0;
   for(unsigned int c = 0; c < shift.GetSize(); c++)
   {
-    double* ipopt = jac_g.GetPointer() + c * n;
+    double* own = jac_g.GetPointer() + ie_nnz + eq_nnz;
     ConstraintShift& cs = shift[c];
     if(cs.equal)
     {
-      CopyConstraintGradient(ipopt, eqcoef.GetPointer() + eq * n, cs);
+      CopyConstraintGradient(own, eqcoef.GetPointer() + eq_nnz, cs);
       eq++;
+      eq_nnz += cs.nnz;
     }
     else
     {
-      CopyConstraintGradient(ipopt, iederv.GetPointer() + ie * n, cs);
+      if(active[ie] == 1)
+      {
+        CopyConstraintGradient(own, iederv.GetPointer() + ie_nnz, cs);
+        ie_nnz += cs.nnz;
+      }
       ie++;
     }
+    LOG_DBG(scpip_base) << "EG: c=" << c << " " << (cs.equal ? "equal" : "inequality")
+                        << " nnz=" << cs.nnz << " active=" << (cs.equal ? -1 : active[ie-1]);
   }
+
   assert(ie + eq == m);
   return true;
 }
 
 void SCPIPBase::CopyConstraintGradient(const double* ipopt, double* scpip, ConstraintShift& cs)
 {
-  for(int i = 0; i < n; i++)
+  for(int i = 0; i < cs.nnz; i++)
   {
     double val = ipopt[i];
     // the shift is not in the gradient, but maybe the inequality normalization
     val *= cs.factor;
     scpip[i] = val;
-    LOG_DBG3(scpip_base) << "grad_g[" << cs.number << "]:" << i << " " << ipopt[i] << " -> " << scpip[i];
+    LOG_DBG3(scpip_base) << "CCG: grad_g[" << cs.number << "]:" << i << " " << ipopt[i] << " -> " << scpip[i];
   }
 }
 
@@ -570,7 +642,6 @@ void SCPIPBase::CallFinalizeSolution()
   finalize_solution(ierr, n, x.GetPointer(), y_l.GetPointer(), y_u.GetPointer(), m,
                     g_unscaled.IsEmpty() ? NULL : g_unscaled.GetPointer(),
                     y_g.IsEmpty() ? NULL : y_g.GetPointer(), f_org_unscaled);
-
 }
 
 
@@ -601,17 +672,18 @@ std::string SCPIPBase::ToString(int ierr)
     case 9:   os << "rsubdim (" << r_sub.GetSize() << ") too small. Required: " << info[4-1];
               break;
 
+    case 15: os << "The Jacobian matrices are not stored columnwise";
+              break;
+
     case 16:  os << "The jacobian matrices are not stored correctly. For at least one "
                  << "column the components are out of order";
 
-              assert((int) iecn.GetSize() == mie * n);
-              for(int i = 0; i < mie * n; i++)
+              for(int i = 0; i < ieleng; i++)
                 std::cout << "iern[" << i << "]=" << iern[i]
                           << "\tiecn[" << i << "]=" << iecn[i]
                           << "\tiederv[" << i << "]=" << iederv[i] << std::endl;
 
-              assert((int) eqcn.GetSize() == meq * n);
-              for(int i = 0; i < meq * n; i++)
+              for(int i = 0; i < eqleng; i++)
                 std::cout << "eqrn[" << i << "]=" << eqrn[i]
                           << "\teqcn[" << i << "]=" << eqcn[i]
                           << "\teqcoef[" << i << "]=" << eqcoef[i] << std::endl;
@@ -637,6 +709,9 @@ std::string SCPIPBase::ToString(int ierr)
 
     case Gradients_Return_False:
               os << "Evaluation of the gradients failed";
+              break;
+
+    case 161: os << "The Jacobian matrices are not stored correctly. More columns than constraints are provided.";
               break;
 
     default:  os << "error: " << ierr;

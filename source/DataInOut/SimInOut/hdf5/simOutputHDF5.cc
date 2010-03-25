@@ -1116,7 +1116,6 @@ namespace CoupledField {
 
         actGroup.close();
 
-
       } H5_CATCH( "Could not write result description for result '"
                   << resultName << "'" );
     }

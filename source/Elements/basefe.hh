@@ -363,17 +363,17 @@ namespace CoupledField
     }
 
 
-    //! Calculates corresponding volume point of neighbouring surfaces
-    //! For a given surface element and a neighbouring volume element this
-    //! mehtod calculates the local volume-coordinates out of the given
+    //! Calculates corresponding volume point of neighboring surfaces
+    //! For a given surface element and a neighboring volume element this
+    //! method calculates the local volume-coordinates out of the given
     //! local surface-coordinates, which have one less dimension.
-    //! This can be used to get the corrsponding volume coordinates of
+    //! This can be used to get the corresponding volume coordinates of
     //! the integration points of a surface. Therefore it calculates
-    //! on which side of the volume element the surface elemente lies
+    //! on which side of the volume element the surface element lies
     //! and creates the according volume point.
     /*!
       \param surfConnect (input) Node numbers of surface element
-      \param volConnect (input) Node numbers of colume element
+      \param volConnect (input) Node numbers of volume element
       \param surfIntPoint (input) Surface integration point, which gets mapped
       onto the volume element
       \param volIntPoint (output) Corresponding volume integration point
@@ -424,9 +424,9 @@ namespace CoupledField
     //! compute length of edge with maximal/minimal size
     virtual void GetMaxMinEdgeLength( Matrix<Double> &ptCoord, Double &Lmax, Double &Lmin ); 
 
-    /** Compute the average side length for all dimenstions. Clearly works only for quadrilaterals ans hexahedrons.
+    /** Compute the average side length for all dimensions. Clearly works only for quadrilaterals and hexahedrons.
      * @param ptCoord input, from the element
-     * @param edges_out array with index 0 for x, ... */
+     * @param edges_out array with index 0 for x, ... Is resized to dim (2 or 3) */
     virtual void GetEdgeLength(Matrix<Double> &ptCoord, StdVector<Double>& edges_out) 
     { 
       EXCEPTION("GetMaxMinEdgeLength not implemented");

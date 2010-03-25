@@ -222,10 +222,10 @@ namespace CoupledField {
     std::string GetName() const;
 
     //! Set Region id
-    void SetRegionId( RegionIdType name );
+    void SetRegion( RegionIdType name );
 
     //! Set Region ids
-    void SetRegionNames( const StdVector<RegionIdType>& names );
+    void SetRegions( const StdVector<RegionIdType>& names );
 
     //! Get Region anmes
     const StdVector<RegionIdType>& GetRegionIds() const {return list_; }

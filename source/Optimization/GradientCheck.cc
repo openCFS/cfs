@@ -51,6 +51,7 @@ void GradientCheck::SolveProblem()
   // solve the original problem once!!
   optimization->SolveStateProblem();
   double curr_obj = optimization->CalcObjective();
+
   optimization->CalcObjectiveGradient(NULL);
 
   // store here the finite difference value

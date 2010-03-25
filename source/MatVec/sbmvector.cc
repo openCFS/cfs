@@ -136,13 +136,13 @@ namespace CoupledField {
   // ***************
   //   Print vector
   // ***************
-  std::string SBM_Vector::ToString( char separator ) const {
+  std::string SBM_Vector::ToString(const Integer level, const char separator ) const {
     std::stringstream os;
     for( UInt i = 1; i <= size_; i++ ) {
       if( subVec_[i] != NULL ) {
         os <<   "sub-Vector #" << i
            << "\n--------------\n";
-        os <<  subVec_[i]->ToString( separator );
+        os <<  subVec_[i]->ToString(level, separator );
       }
     }
     return os.str();

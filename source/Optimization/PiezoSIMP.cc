@@ -30,37 +30,36 @@ DECLARE_LOG(simp)
 
 PiezoSIMP::PiezoSIMP()
 {
-   elec = dynamic_cast<ElecPDE*>(domain->GetSinglePDE("electrostatic"));
-   assert(pdes.GetSize() == 1);
-   pdes.Push_back(elec);
+  elec = dynamic_cast<ElecPDE*>(domain->GetSinglePDE("electrostatic"));
+  pdes[ELEC] = elec;
 
-   for(unsigned int r = 0; r < regionIds.GetSize(); r++)
-   {
-     GetForm(regionIds[r], pde, elec, "linPiezoCoupling")->SetSolDependent(true);
-     GetForm(regionIds[r], elec, elec, "linElecInt")->SetSolDependent(true);
-   }
-   // The linear forms (pressure, charge density) are set in SoluctionRef::Init()
+  for(unsigned int r = 0; r < regionIds.GetSize(); r++)
+  {
+    GetForm(regionIds[r], pde, elec, "linPiezoCoupling")->SetSolDependent(true);
+    GetForm(regionIds[r], elec, elec, "linElecInt")->SetSolDependent(true);
+  }
+  // The linear forms (pressure, charge density) are set in SoluctionRef::Init()
 
-   // validate the transfer functions
-   if(design->design.Find(DesignElement::DENSITY) >= 0)
-   {
-      if(design->GetTransferFunction(DesignElement::DENSITY, MECH, false) == NULL)
-        throw Exception("miss transfer function for densitiy and mechanic");
+  // validate the transfer functions
+  if(design->design.Find(DesignElement::DENSITY) >= 0)
+  {
+    if(design->GetTransferFunction(DesignElement::DENSITY, MECH, false) == NULL)
+      throw Exception("miss transfer function for densitiy and mechanic");
 
-      if(design->GetTransferFunction(DesignElement::DENSITY, ELEC, false) == NULL &&
-         design->GetTransferFunction(DesignElement::POLARIZATION, ELEC, false) == NULL)
-        throw Exception("miss transfer function for densitiy/polarization and electrostatic");
+    if(design->GetTransferFunction(DesignElement::DENSITY, ELEC, false) == NULL &&
+        design->GetTransferFunction(DesignElement::POLARIZATION, ELEC, false) == NULL)
+      throw Exception("miss transfer function for densitiy/polarization and electrostatic");
 
-      if(design->GetTransferFunction(DesignElement::DENSITY, PIEZO_COUPLING, false) == NULL)
-        throw Exception("miss transfer function for densitiy and coupling");
-   }
-   if(design->design.Find(DesignElement::POLARIZATION) >= 0)
-   {
-      if(design->GetTransferFunction(DesignElement::POLARIZATION, PIEZO_COUPLING, false) == NULL)
-        throw Exception("miss transfer function for polarization and coupling");
-   }
-   
-   piezo_mat_ = NULL; // to be set in PostInit()
+    if(design->GetTransferFunction(DesignElement::DENSITY, PIEZO_COUPLING, false) == NULL)
+      throw Exception("miss transfer function for densitiy and coupling");
+  }
+  if(design->design.Find(DesignElement::POLARIZATION) >= 0)
+  {
+    if(design->GetTransferFunction(DesignElement::POLARIZATION, PIEZO_COUPLING, false) == NULL)
+      throw Exception("miss transfer function for polarization and coupling");
+  }
+
+  piezo_mat_ = NULL; // to be set in PostInit()
 }
 
 PiezoSIMP::~PiezoSIMP()
@@ -84,8 +83,6 @@ void PiezoSIMP::PostInit()
 template <class T>
 double PiezoSIMP::CalcElecEnergy(Excitation& excite)
 {
-  int idx = excite.index;
-
   // calculate the element sum of p^T K_pp p or p^T K_pp p^*
   // here we do <K_pp p, p> which is equivalent as K_pp is self adjoined
   // (it is real and K_pp = K_pp^T). As the complex scalar product is
@@ -98,7 +95,7 @@ double PiezoSIMP::CalcElecEnergy(Excitation& excite)
   TransferFunction* tf = design->GetTransferFunction(dt, ELEC);
   
   // our solution vectors
-  StdVector<SingleVector*>& all_p = forward.data[idx]->elem[ELEC];
+  StdVector<SingleVector*>& all_p = forward.Get(excite)->elem[ELEC];
   Matrix<T> mat(all_p[0]->GetSize(), all_p[0]->GetSize());
   
   Vector<T> mat_vec(all_p[0]->GetSize()); // for the temporary K_pp * p result
@@ -143,21 +140,22 @@ double PiezoSIMP::CalcElecEnergy(Excitation& excite)
 
 /** Sets -K_pp p or -K_pp p^* for ELEC_ENERGY */
 template <class T>
-void PiezoSIMP::ConstructAdjointRHS(Excitation& excite)
+void PiezoSIMP::ConstructAdjointRHS(Excitation& excite, Objective* cost)
 {
   assert(objectives.Has(Objective::ELEC_ENERGY));
   assert(design->design.GetSize() == 1);
-  int idx = excite.index;
 
   DesignElement::Type dt = design->design[0];
   TransferFunction* tf = design->GetTransferFunction(dt, ELEC);
 
   // our solution vectors
-  StdVector<SingleVector*>& all_p = forward.data[idx]->elem[ELEC];
+  StdVector<SingleVector*>& all_p = forward.Get(excite)->elem[ELEC];
   Matrix<T> mat(all_p[0]->GetSize(), all_p[0]->GetSize()); // store K_pp
 
-  Vector<T> rhs;
-  assemble_->GetAlgSys()->GetRHSVal(rhs);
+  // define our new adjont RHS
+  Vector<T> rhs(forward.Get(excite)->GetVector(Solution::RHS_VECTOR)->GetSize()); // is initialized
+  // TODO: up to now the rhs is not PDE specific but for the whole system!!
+
   Vector<T> mat_vec(all_p[0]->GetSize()); // for the temporary K_pp * p 
 
   // traverse over our elements
@@ -173,8 +171,6 @@ void PiezoSIMP::ConstructAdjointRHS(Excitation& excite)
 
     // gain +K_pp(rho), the plus because K_pp is only in the piezo -K_pp
     Assign(mat, piezo_mat_->ElecStiffness(de->elem, 1), tf->Transform(de));
-
-    assert(!harmonic); // implement conjugate complex
 
     // in the complex case with the conjugate complex
     mat.MultInner(p_vec, mat_vec);
@@ -202,9 +198,7 @@ void PiezoSIMP::ConstructAdjointRHS(Excitation& excite)
   }
 
   // RHS has to be applied
-  LOG_DBG2(simp) << "CARHS: rhs before setting: " << rhs.ToString();
-  // write the new rhs to the algsys. Note, that adjoint[excite.index]->rhs[MECH]) misses the -1
-  //assemble_->GetAlgSys()->InitRHS(const_cast<const Vector<T>& >(rhs));
+  LOG_DBG2(simp) << "CARHS: final rhs before setting: " << rhs.ToString();
   assemble_->GetAlgSys()->InitRHS(rhs);
   LOG_DBG2(simp) << "CARHS: rhs after setting: " << rhs.ToString();
   
@@ -214,7 +208,6 @@ void PiezoSIMP::ConstructAdjointRHS(Excitation& excite)
 
 void PiezoSIMP::CalcObjectiveGradient(Excitation& excite, Objective* cost)
 {
-  unsigned int idx = excite.index;
   double factor = excite.GetWeightedFactor(cost);
   
   switch(cost->GetType())
@@ -259,32 +252,32 @@ void PiezoSIMP::CalcObjectiveGradient(Excitation& excite, Objective* cost)
         // p^T K_pp' p^*
         tf = design->GetTransferFunction(dt, ELEC, true);
         res_idx = GetSpecialResultIndex(ELEC, ELEC, CONJ_QUAD);
-        CalcU1KU2(tf, forward.data[idx]->elem[ELEC], ELEC, forward.data[idx]->elem[ELEC], elec_rhs, factor, CONJ_QUAD, cost, NULL, res_idx);
+        CalcU1KU2(tf, forward.Get(excite)->elem[ELEC], ELEC, forward.Get(excite)->elem[ELEC], elec_rhs, factor, CONJ_QUAD, cost, NULL, res_idx);
       }
       
       // lambda_u * K_uu' * u
       tf = design->GetTransferFunction(dt, MECH, false); // we allow NULL
       res_idx = GetSpecialResultIndex(MECH, MECH);
       if(tf != NULL)
-        CalcU1KU2(tf, adjoint.data[idx]->elem[MECH], MECH, forward.data[idx]->elem[MECH], mech_rhs, factor, STANDARD, cost, NULL, res_idx);
+        CalcU1KU2(tf, adjoint.Get(excite)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], mech_rhs, factor, STANDARD, cost, NULL, res_idx);
 
       // lambda_u * K_up' * p
       tf = design->GetTransferFunction(dt, PIEZO_COUPLING, false);
       res_idx = GetSpecialResultIndex(MECH, ELEC);
       if(tf != NULL)
-        CalcU1KU2(tf, adjoint.data[idx]->elem[MECH], PIEZO_COUPLING, forward.data[idx]->elem[ELEC], mech_rhs, factor, STANDARD, cost, NULL, res_idx);
+        CalcU1KU2(tf, adjoint.Get(excite)->elem[MECH], PIEZO_COUPLING, forward.Get(excite)->elem[ELEC], mech_rhs, factor, STANDARD, cost, NULL, res_idx);
 
       // lambda_p * (K_up^T)' * u
       tf = design->GetTransferFunction(dt, PIEZO_COUPLING, false);
       res_idx = GetSpecialResultIndex(ELEC, MECH);
       if(tf != NULL)
-        CalcU1KU2(tf, adjoint.data[idx]->elem[ELEC], PIEZO_COUPLING, forward.data[idx]->elem[MECH], elec_rhs, factor, STANDARD, cost, NULL, res_idx);
+        CalcU1KU2(tf, adjoint.Get(excite)->elem[ELEC], PIEZO_COUPLING, forward.Get(excite)->elem[MECH], elec_rhs, factor, STANDARD, cost, NULL, res_idx);
 
       // lambda_p * K_pp' * p
       tf = design->GetTransferFunction(dt, ELEC, false);
       res_idx = GetSpecialResultIndex(ELEC, ELEC);
       if(tf != NULL)
-        CalcU1KU2(tf, adjoint.data[idx]->elem[ELEC], ELEC, forward.data[idx]->elem[ELEC], elec_rhs, factor, STANDARD, cost, NULL, res_idx);
+        CalcU1KU2(tf, adjoint.Get(excite)->elem[ELEC], ELEC, forward.Get(excite)->elem[ELEC], elec_rhs, factor, STANDARD, cost, NULL, res_idx);
     }
   }
   break;

@@ -981,6 +981,8 @@ void Domain::ReadErsatzMaterial(PtrParamNode pn)
   if (Objective::type.map.empty())
     Optimization::SetEnums();
 
+  std::cout << "++ Load ersatz material file: '" << pn->Get("file")->As<std::string>() << "'" << std::endl;
+
   // we read something like <loadErsatzMaterial region="piezo" file="piezo_density.xml" set="last"/>
   // Initialize our xerces dom parser to handle the external xml file
   Xerces* xerces = new Xerces(pn->Get("file")->As<std::string>());

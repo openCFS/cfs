@@ -13,8 +13,6 @@
 namespace CoupledField
 {
    class Elem;
-   class ParamNode;
-   class ParamNode;
    class DesignSpace;
    class OptimalityCondition;
    class BaseOptimizer;
@@ -46,7 +44,7 @@ namespace CoupledField
 
          /** Where we apply the transformation.
           * A subset of the values are PDE identifiers for ToPDE() and ToApp(). */
-         typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, HEAT, NO_APP} Application;
+         typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, HEAT, ACOUSTIC, NO_APP} Application;
 
          /** Not the optimization problem but the solver! */
          typedef enum { OPTIMALITY_CONDITION, IPOPT_SOLVER, SCPIP_SOLVER, SNOPT_SOLVER, SHAPE_SOLVER, 
@@ -77,16 +75,17 @@ namespace CoupledField
          * Does a multiplication with Excitation::GetWeightedFactor(). Note, that 
          * the Calc* methods for the objective do only Excitation::GetFactor().
          * @param grad_out size is GetDesignSpaceSize(). If null only DesingElement.objective_gradient */
-        virtual void CalcObjectiveGradient(double* grad_out) = 0;
+        virtual void CalcObjectiveGradient(StdVector<double>* grad_out) = 0;
 
         /** Determines the constraint.
+         * The function value is stored in value_
          * @param which constraint to calc? Default is the only one! */
-        virtual double CalcConstraint(Condition* constraint = NULL) = 0;
+        virtual double CalcConstraint(Condition* constraint) = 0;
 
         /** evaluates the gradient of the cost function by the desing element
          * Writes to DesignElement.contraint_gradient
          * @see CalcObjectiveGradient() for parameter description */
-        virtual void CalcConstraintGradient(Condition* constraint = NULL, double* grad_out = NULL) = 0;
+        virtual void CalcConstraintGradient(Condition* constraint = NULL, StdVector<double>* grad_out = NULL) = 0;
 
         /** This is brute force debug method which calculates the symmetry of a sqared
          * model with horizontal symmetry axis with lexicographic order (at least works for gid).
@@ -140,7 +139,8 @@ namespace CoupledField
 
           void ToInfo(PtrParamNode in) const;
 
-          typedef enum { NO_TYPE, FIXED_WEIGHT, META_OBJECTIVE, HOMOGENIZATION_TEST_STRAINS } Type;
+          typedef enum { NO_TYPE, FIXED_WEIGHT, META_OBJECTIVE, HOMOGENIZATION_TEST_STRAINS,
+                         POLARIZATION_MATRIX } Type;
 
           static Enum<Type> type;
           /** Do we do multiple excitation at all? */
@@ -150,6 +150,8 @@ namespace CoupledField
           bool DoAdjustWeights() const { return type_ == META_OBJECTIVE; }
 
           bool DoHomogenization() const { return type_ == HOMOGENIZATION_TEST_STRAINS; }
+          
+          bool DoPolarizationMatrix() const { return type_ == POLARIZATION_MATRIX; }
 
           /** The stride for adjust weights: 1 = every iteration, 2 = every second ... */
           int stride;
@@ -169,18 +171,6 @@ namespace CoupledField
         /** The current multiple excitation state -> check with IsEnabled() */
         MultipleExcitation* GetMultipleExcitation() const { return multiple_excitation; }
 
-        /** The constraints we have */
-        StdVector<Condition> constraints;
-
-        /** The "inactive" constraints with output_only mode in xml */
-        StdVector<Condition> outputs;
-
-        /** Searches in active and output only constraints!
-         * TODO: make name default for only one constraint
-         *  @param design NO_TYPE ignores this criteria. DEFAULT would be problematic for
-         *                this purpose as it is a valid value
-         * @return check active flag!  */
-        Condition& GetConstraint(Condition::Name name, DesignElement::Type design = DesignElement::NO_TYPE);
 
         /** set the (static) enums - if they are used outside optimization, make this method public */
         static void SetEnums();
@@ -192,6 +182,10 @@ namespace CoupledField
          * It is guaranteed to have at least one entry.
          * The objectives are almost identical (share most attributes) */
         ObjectiveContainer objectives;
+
+        /** This contains the constraints in their three forms: standard, hidden and observe
+         * and several virtual views on that */
+        ConditionContainer constraints;
 
       protected:
         /** Set up the optimization system e.g. prepare the domain for optimization. called
@@ -277,10 +271,6 @@ namespace CoupledField
          * if necessary. Should always be called when finished (in the good and bad sense) */
         void FinalizeStoreResults();
 
-        /** Read the objective functions. Fills the objectives list with almost identical entries.
-         * Handles multiObjectives */
-        void ReadObjectives(PtrParamNode obj_node);
-
         /** Encapsulates Logging information */
         class Log
         {
@@ -356,6 +346,10 @@ namespace CoupledField
     void ReadLoads(PtrParamNode ls);
     
     void ReadTestStrain(const Vector<double>& vec);
+    
+    /** set correct values of pol_rhs for calculation of polarization matrix */
+    void SetPolarizationMatrixRHS(const Vector<double> &mechp,
+        const Vector<double> &elecp, const int num);
 
     /** return pointer to linForms, used by Shape-Optimization */
     std::set<LinearFormContext*>* GetLinForms() { return &linForms; }
@@ -397,9 +391,13 @@ namespace CoupledField
     /** Here we might store the "original" (@see objective) gradient for analysis/output */
     StdVector<double> cost_gradient;
     
-    /** for the calculation of a homogenized material tensor, one can specify test strains in
-     *  xml file. */
+    /** for the calculation of a homogenized material tensor, we use the test 
+     * strains defined in ErsatzMaterial::SetHomogenizationTestStrains() */
     Vector<double> test_strain;
+    
+    /** for the calculation of the polarization matrix for the piezo topology gradient
+     *  contains the rhs-values, length is 5 for 2D, 9 for 3D (mech + elec) */
+    Vector<double> pol_rhs;
   };
 
 } // namespace

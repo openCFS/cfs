@@ -67,7 +67,11 @@ namespace CoupledField
     //! Return current time / frequency step of simulation
     virtual UInt GetActStep ( const std::string& pdename ) = 0;
     
-    
+    /** Every analysis step has a unique id stored within an InfoNode.
+     * It allows the identification of
+     * Analysis information (timestep, frequency, optimization iteration)
+     * with OLAS information (time, memory, iterations, residual).
+     * @see CreateAnalysisId() and CreateAnalysisIdChild) */
     PtrParamNode GetAnalysisId() { return analysis_id_; }
     
     /** Helper function to create a child analysis step
@@ -102,7 +106,7 @@ namespace CoupledField
     //! type of analysis
     BasePDE::AnalysisType analysis_;
 
-    /** @see GetActAnalysisId() */
+    /** @see GetAnalysisId() */
     PtrParamNode analysis_id_;
     
     /** our report node */ 

@@ -32,19 +32,22 @@ protected:
       return SIMP::CalcObjective(excite, cost);
   }
   
-  virtual void ConstructAdjointRHS(Excitation& excite)
+  virtual void ConstructAdjointRHS(Excitation& excite, Objective* cost)
   {
-    if(objectives.Has(Objective::ELEC_ENERGY))
+    if(cost->GetType() == Objective::ELEC_ENERGY)
     {
-      if(harmonic) ConstructAdjointRHS<std::complex<double> >(excite);
-              else ConstructAdjointRHS<double>(excite);
+      if(harmonic) ConstructAdjointRHS<std::complex<double> >(excite, cost);
+              else ConstructAdjointRHS<double>(excite, cost);
     }
-    // else
-    SIMP::ConstructAdjointRHS(excite);
+    else
+    {
+      SIMP::ConstructAdjointRHS(excite, cost); // EM
+    }
   }
   
   /** Calculates gradients in the form <l, Ku> */
   void CalcObjectiveGradient(Excitation& excite, Objective* cost);
+
 
 private:
 
@@ -54,7 +57,7 @@ private:
 
   /** Sets -K_pp p or -K_pp p^* */
   template <class T>
-  void ConstructAdjointRHS(Excitation& excite);  
+  void ConstructAdjointRHS(Excitation& excite, Objective* cost);
   
   
   /** This is our part for CalcU1KU2() -> This set the matrix derivatives form ELEC and
