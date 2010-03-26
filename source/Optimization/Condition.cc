@@ -469,8 +469,8 @@ StdVector<unsigned int>& SlopeCondition::GetSparsityPattern()
   sparsity_[1] = own_idx > other_idx ? own_idx : other_idx;
   
   LOG_DBG3(conditions) << "SC:GetSparPat: current_view_index_=" << current_view_index_ 
-                       << " g[0]=" << (sparsity_.IsEmpty() ? -1 : sparsity_[0])
-                       << " g[1]=" << (sparsity_.IsEmpty() ? -1 : sparsity_[1]);
+                       << " g[0]=" << (sparsity_.IsEmpty() ? "-1" : lexical_cast<std::string>(sparsity_[0]))
+                       << " g[1]=" << (sparsity_.IsEmpty() ? "-1" : lexical_cast<std::string>(sparsity_[1]));
   return sparsity_;
 }
 
