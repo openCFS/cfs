@@ -816,6 +816,66 @@ namespace CoupledField
       }
 
       //-----------------------------------------------------------------------
+      //     Reading density from input file
+      //-----------------------------------------------------------------------
+      if(requiredResults_[FLUIDMECH_DENSITY] ||
+         requiredResults_[NO_SOLUTION_TYPE])
+      {
+        sprintf(what, "G/DENSITY_FL1");
+        sprintf(where, "ZN1/VX");
+        when  = timeStepNumbers_[timeStepIdx];
+
+        if(floatDS)
+          dattyp = __real_data_type__;
+        else
+          dattyp = __double_data_type__;
+
+        length = 1;
+        nsize  = nvx;
+        iopt   = __stop_if_failed__;
+
+        if(floatDS)
+          readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
+              &floatvec[0],iarr,carr,larr,darr,sarr,
+              strlen(what), strlen(where), 0);
+        else
+          readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
+              &floatvec[0],iarr,carr,larr,&doublevec[0],sarr,
+              strlen(what), strlen(where), 0);
+
+        if(nerr)
+        {
+          if(settings.GetInt("verbose"))
+            std::cerr << "WARNING: CFX dataset does not contain density!"
+            << std::endl;
+        }
+        else
+        {
+          FlowDataPartStruct& fdps = fd[FLUIDMECH_DENSITY];
+          fdps.isActive = true; // all partitions have results
+          if(fdps.dofNames.empty())
+          {
+            fdps.definedOn = ResultInfo::NODE; // nodes
+            fdps.dofNames.push_back("-");
+            fdps.unit = MapSolTypeToUnit(FLUIDMECH_DENSITY);
+            fdps.resultName = SolutionTypeEnum.ToString(FLUIDMECH_DENSITY);
+            fdps.entryType = ResultInfo::SCALAR;
+          }
+          numDOFs = fdps.dofNames.size();
+          fdps.data.resize(numDOFs * nvx);
+
+          if(floatDS)
+            std::copy(floatvec.begin(),
+                floatvec.begin() + (numDOFs * nvx),
+                fdps.data.begin());
+          else
+            std::copy(doublevec.begin(),
+                doublevec.begin() + (numDOFs * nvx),
+                fdps.data.begin());
+        }
+      }
+
+      //-----------------------------------------------------------------------
       //     Reading turbulent kinetic energy from input file
       //-----------------------------------------------------------------------
       if(requiredResults_[FLUIDMECH_TKE] ||
