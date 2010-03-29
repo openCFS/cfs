@@ -565,6 +565,20 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       bool isMicroPiezo = IsRegionMicroPiezo( actRegionName );
 
 
+      // Safety check: In general it does not make sense to allow for 
+      // the same region RAYLEIGH damping AND complex-valued material
+      // parameters, as both of them specify a damping behaviour at
+      // the smae time
+      if( dampingList_[actRegion] == RAYLEIGH &&
+          complexMatData_[actRegion] ) {
+        WARN("You have defined for region '" << actRegionName
+            << "' both RAYLEIGH damping, "
+            << "as well as complex-valued material parameters, which is "
+            << "in general not recommended. Note, that the stiffness "
+            << "proportional damping part is just computed from the real"
+            << "part of the stiffness." );
+      }
+      
       //================= Check for Perfectly matched layers ====================//
       if ( dampingList_[actRegion] == PML &&  !isMicroPiezo ) {
         if ( analysistype_ != HARMONIC ) {
@@ -661,8 +675,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
                                         actSDList, actSDList );
 
           //check for damping
-          if ( dampingList_[actRegion] == RAYLEIGH && 
-              complexMatData_[actRegion] == false ) {
+          if ( dampingList_[actRegion] == RAYLEIGH ) {
             RaylDampingData & actDamp = (regionRaylDamping_[actRegion]);
             actIntDescrStiff->SetSecDestMat(DAMPING, actDamp.beta );
           }
@@ -679,7 +692,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
             //check  for softening!
             if ( regionSoftening_.count(actRegion) ) {
-              std::cerr << "Applying softening for region " << actRegionName << std::endl;
               bilinearStiffImag->SetSofteningModel( regionSoftening_[actRegion] );
             }
 
