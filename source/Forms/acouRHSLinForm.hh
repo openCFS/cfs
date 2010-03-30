@@ -24,7 +24,7 @@ namespace CoupledField
   {
   public:
     ///
-    AcouRHSLinForm(PtrParamNode rhsValuesNode);
+    AcouRHSLinForm(PtrParamNode rhsRegionNode);
 
     ///
     virtual ~AcouRHSLinForm();

@@ -32,7 +32,7 @@ namespace CoupledField {
   // volume source integration
   // ====================================================================
 
-  AcouRHSLinForm::AcouRHSLinForm(PtrParamNode rhsValuesNode)
+  AcouRHSLinForm::AcouRHSLinForm(PtrParamNode rhsRegionNode)
     : LinearForm(),
       id_("default"),
       interpolate_(false),
@@ -60,16 +60,16 @@ namespace CoupledField {
 
     try {
       // destination region
-      rhsValuesNode->GetValue("region", regionName_);
+      rhsRegionNode->GetValue("name", regionName_);
       // input ID of destination region
-      rhsValuesNode->GetValue("inputId", id_);
+      rhsRegionNode->GetValue("inputId", id_);
       // factor (is multiplied with RHS)
-      rhsValuesNode->GetValue("factor", factor, ParamNode::PASS);
+      rhsRegionNode->GetValue("factor", factor, ParamNode::PASS);
       
       // interpolation parameters (if any)
       PtrParamNode intNode;
-      if(rhsValuesNode->Has("interpolation"))
-        intNode = rhsValuesNode->Get("interpolation", ParamNode::PASS);
+      if(rhsRegionNode->Has("interpolation"))
+        intNode = rhsRegionNode->Get("interpolation", ParamNode::PASS);
       
       if (intNode) {
         interpolate_ = true;
@@ -135,7 +135,7 @@ namespace CoupledField {
       }
       
       // do we use asynchronous time/frequency steps?
-      rhsValuesNode->GetValue("asyncSteps", asyncSteps_, ParamNode::PASS);
+      rhsRegionNode->GetValue("asyncSteps", asyncSteps_, ParamNode::PASS);
       
     } catch (Exception& ex) 
     {

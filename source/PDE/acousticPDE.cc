@@ -1111,6 +1111,7 @@ namespace CoupledField {
 
     std::string rhsRegion;
     PtrParamNode rhsValuesNode, bcsNode;
+    StdVector<PtrParamNode> regionList;
 
     bcsNode = myParam_->Get("bcsAndLoads", ParamNode::PASS );
     if( bcsNode )
@@ -1118,36 +1119,40 @@ namespace CoupledField {
     if(!rhsValuesNode)
       return;
 
-    try
+    regionList = rhsValuesNode->GetList("region");
+    for (StdVector<PtrParamNode>::iterator regionIter = regionList.Begin();
+        regionIter != regionList.End(); ++regionIter)
     {
-      rhsRegion = rhsValuesNode->Get("region")->As<std::string>();
-      PtrParamNode intNode;
-      if(rhsValuesNode->Has("interpolation"))
+      try
       {
-        intNode = rhsValuesNode->Get("interpolation", ParamNode::PASS);
-        intNode->GetValue("justInterpolate", justInterpolate_, ParamNode::PASS);
+        rhsRegion = (*regionIter)->Get("name")->As<std::string>();
+        PtrParamNode intNode;
+        if((*regionIter)->Has("interpolation"))
+        {
+          intNode = (*regionIter)->Get("interpolation", ParamNode::PASS);
+          intNode->GetValue("justInterpolate", justInterpolate_, ParamNode::PASS);
+        }
+      } catch (Exception& ex)
+      {
+        RETHROW_EXCEPTION(ex, "Error while trying to read parameters for AcouRHSLinForm.");
       }
-    } catch (Exception& ex)
-    {
-      RETHROW_EXCEPTION(ex, "Error while trying to read parameters for AcouRHSLinForm.");
-    }
 
-    if(rhsRegion != "")
-    {
-      acouRHSRegionNodeList->SetNodesOfRegion( ptgrid_->GetRegion().Parse(rhsRegion) );
+      if(rhsRegion != "")
+      {
+        acouRHSRegionNodeList->SetNodesOfRegion( ptgrid_->GetRegion().Parse(rhsRegion) );
 
-      AcouRHSLinForm* acouRHSInt = new AcouRHSLinForm(rhsValuesNode);
+        AcouRHSLinForm* acouRHSInt = new AcouRHSLinForm((*regionIter));
 
-      LinearFormContext * acouRHSContext =
-        new LinearFormContext( acouRHSInt );
-      acouRHSContext->SetPtPde( this );
-      acouRHSContext->SetResult( results_[0], acouRHSRegionNodeList );
-      assemble_->AddLinearForm( acouRHSContext );
+        LinearFormContext * acouRHSContext = new LinearFormContext( acouRHSInt );
+        acouRHSContext->SetPtPde( this );
+        acouRHSContext->SetResult( results_[0], acouRHSRegionNodeList );
+        assemble_->AddLinearForm( acouRHSContext );
 
-      //
-      rhsValuesNode->GetValue("inputId", fileName4GridDisplacements_ );
-      regions4GridDisplacements_.Push_back(rhsRegion);
+        //
+        (*regionIter)->GetValue("inputId", fileName4GridDisplacements_ );
+        regions4GridDisplacements_.Push_back(rhsRegion);
 
+      }
     }
   }
 
