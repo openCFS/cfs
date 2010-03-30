@@ -1066,11 +1066,6 @@ namespace CoupledField
 
     isaxi_     = axi;
     formsType_ = type;
-    if(dampingTypePML == "inverseDist"){
-      WARN( "WARNING: Computing PML for Mixed Acoustics with inverse Distance.\n \
-             Due to the Lobatto integration, the Damping factor is set to zero at the outer most DOF \n \
-             You might want to specify Homogenious BCs for AcouAcceleration here");
-    }
     pmlFnc_    = new PMLBasics( dampingTypePML, damp, type);
   }
     
