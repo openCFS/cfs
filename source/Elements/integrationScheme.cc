@@ -28,7 +28,7 @@ IntegrationScheme::IntegrationScheme() {
     lp.coord.Resize(2);
     lp.coord[0] = a3[i][0];
     lp.coord[1] = a3[i][1];
-    lp.number = 0;
+    lp.number = numIntPts_[Elem::ET_QUAD4]++;
     points[i] = lp;
     weights[i] =  a3[i][2];
   }
@@ -57,7 +57,7 @@ IntegrationScheme::IntegrationScheme() {
      lp.coord[0] = c1_2FE[i][0];
      lp.coord[1] = c1_2FE[i][1];
      lp.coord[2] = c1_2FE[i][2];
-     lp.number = 0;
+     lp.number = numIntPts_[Elem::ET_HEXA8]++;
      points[i] = lp;
      weights[i] =  c1_2FE[i][3];
    }
@@ -88,7 +88,7 @@ void IntegrationScheme::FillGaussLobattoIntegPoints(UInt order){
       LocPoint lp;
       lp.coord.Resize(1);
       lp.coord[0] = intPoints1D[i];
-      lp.number = i;
+      lp.number = numIntPts_[Elem::ET_LINE2]++;
       points[i] = lp;
       weights[i] =  weights1D[i];
     }
@@ -106,7 +106,7 @@ void IntegrationScheme::FillGaussLobattoIntegPoints(UInt order){
         lp.coord.Resize(2);
         lp.coord[0] = intPoints1D[i];
         lp.coord[1] = intPoints1D[j];
-        lp.number = (i*(ord+1) + j);
+        lp.number = numIntPts_[Elem::ET_QUAD4]++;
         points[(i*(ord+1) + j)] = lp;
         weights[(i*(ord+1) + j)] =  weights1D[i]*weights1D[j];
       }
@@ -127,7 +127,7 @@ void IntegrationScheme::FillGaussLobattoIntegPoints(UInt order){
           lp.coord[0] = intPoints1D[i];
           lp.coord[1] = intPoints1D[j];
           lp.coord[2] = intPoints1D[k];
-          lp.number = (i*((ord+1)*(ord+1)) + j*(ord+1) + k);
+          lp.number = numIntPts_[Elem::ET_HEXA8]++;
           points[(i*((ord+1)*(ord+1)) + j*(ord+1) + k)] = lp;
           weights[(i*((ord+1)*(ord+1)) + j*(ord+1) + k)] =  weights1D[i]*weights1D[j]*weights1D[k];
         }
@@ -251,8 +251,29 @@ void IntegrationScheme::GetIntPoints( Elem::FEType elemType,
       points[i] = tmpPoints[i-1];
       weights[i] = tmpWeights[i-1];
     }
-
   }
 
+
+  void IntegrationScheme::GetAllIntegrationPoints(StdVector< LocPoint >& points,Elem::FEType type){ 
+
+    points.Resize(numIntPts_[type]);
+    points.Init();
+    UInt counter = 0;
+    //loop over all defined methods
+    std::map<IntegrationMethod, std::map< UInt, IntegrationPoints > >::iterator methods;
+    for(methods = intPoints_.begin();methods != intPoints_.end() ; methods++){
+      //loop over every order available
+      std::map< UInt, IntegrationPoints >::iterator orders;
+      for(orders = methods->second.begin();orders != methods->second.end(); orders++){
+        //get the vector for the given FeType and fill the vector
+        if(orders->second[type].GetSize() > 0){
+          StdVector<LocPoint> curPoints = orders->second[type];
+          for(UInt curPoint = 0; curPoint < curPoints.GetSize();curPoint++){
+            points[counter++] = orders->second[type][curPoint];
+          }
+        }
+      }
+    }
+  }
 
 } // namespace CoupledField

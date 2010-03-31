@@ -17,6 +17,7 @@
 #include "Domain/resultInfo.hh"
 #include "Elements/fefunction.hh"
 #include "MatVec/matrix.hh"
+#include "Elements/integrationScheme.hh"
 
 namespace CoupledField {
 
@@ -119,6 +120,9 @@ public:
   //! Add result
   virtual void AddFeFunction( shared_ptr<BaseFeFunction> fct ) = 0;
 
+  //! Precalculate integrationpoints
+  virtual void PreCalcShapeFncs();
+
   //! Get number of equaitons thich are not fixed by BCs this space has assinged
   virtual UInt GetNumFreeEquations(){
     // in this approach we assume the penalty approach towards
@@ -165,6 +169,7 @@ public:
   virtual void Finalize() = 0;
 
   virtual void PrintEqnMap() = 0;
+
   //@}
   
 protected:

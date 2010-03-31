@@ -40,6 +40,10 @@ namespace CoupledField {
     void GetIntPoints( Elem::FEType elemType,
                          StdVector<LocPoint>& intPts, 
                          StdVector<Double>& weights );  
+
+    //! Returns all definied integration points in a single vector
+    void GetAllIntegrationPoints(StdVector< LocPoint >& points, Elem::FEType type); 
+
 private:
     //! Adds the Gauss Lobatto Points up to the given order to the Integration maps
     void FillGaussLobattoIntegPoints(UInt order);
@@ -57,6 +61,10 @@ private:
     IntegrationMethod integMethod_;
 
     UInt order_;
+
+    //! stores the overall number of integration points definied in this class
+    //! for each element type, zero based
+    std::map<Elem::FEType,UInt> numIntPts_;
       
     // Old Integration point imeplementation from BaseFE
 //    

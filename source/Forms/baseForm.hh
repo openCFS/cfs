@@ -208,7 +208,7 @@ namespace CoupledField
     virtual void ExtractElemInfo( EntityIterator& it);
     
 #endif
-    virtual void SetIntegration(IntegrationMethod integScheme,UInt order);
+    virtual void SetIntegration(shared_ptr<IntegrationScheme> intScheme, IntegrationMethod integScheme,UInt order);
 
   protected:
 

@@ -206,31 +206,31 @@ namespace CoupledField {
     return numFnc;
   }
 
-  void FeH1LagrangeExpl::GetShFnc( Vector<Double> & shape, const LocPoint& lp,
-                                   const Elem* ptElem,  UInt comp ) {
+//  void FeH1LagrangeExpl::GetShFnc( Vector<Double> & shape, const LocPoint& lp,
+//                                   const Elem* ptElem,  UInt comp ) {
+//  
+//    // In the future, we re-use the shape functions calculated at
+//      // the integration points
+//    //  if( lp.number != 0 ) {
+//    //    //shape = shapeAtIp_[lp.number];
+//    //  } else { 
+//        CalcShFnc( shape, lp.coord);
+//    //  }
+//  }
   
-    // In the future, we re-use the shape functions calculated at
-      // the integration points
-    //  if( lp.number != 0 ) {
-    //    //shape = shapeAtIp_[lp.number];
-    //  } else { 
-        CalcShFnc( shape, lp.coord);
-    //  }
-  }
-  
-  void FeH1LagrangeExpl::GetDerivShFnc( Matrix<Double> & deriv, 
-                                        const LocPoint& lp,
-                                        const Elem * elem, 
-                                        UInt comp  ) {
-    
-    // In the future, we re-use the shape functions calculated at
-    // the integration points
-  //  if( lp.number != 0 ) {
-  //    //deriv = shapeDerivAtIp_[lp.number];
-  //  } else { 
-      CalcDerivShFnc( deriv, lp.coord);
-  //  }
-  }
+//  void FeH1LagrangeExpl::GetDerivShFnc( Matrix<Double> & deriv, 
+//                                        const LocPoint& lp,
+//                                        const Elem * elem, 
+//                                        UInt comp  ) {
+//    
+//    // In the future, we re-use the shape functions calculated at
+//    // the integration points
+//  //  if( lp.number != 0 ) {
+//  //    //deriv = shapeDerivAtIp_[lp.number];
+//  //  } else { 
+//      CalcDerivShFnc( deriv, lp.coord);
+//  //  }
+//  }
     
   
   // ========================================================================

@@ -422,6 +422,7 @@ namespace CoupledField {
         descriptors[actFnc].feFunction->SetGrid(shared_ptr<Grid>(ptgrid_));
         shared_ptr<FeSpace> actSpace = descriptors[actFnc].feFunction->GetFeSpace();
         actSpace->Finalize();
+        actSpace->PreCalcShapeFncs();
         numPdeEquations_ += actSpace->GetNumEquations();
         numPdeUnknowns_ += actSpace->GetNumFreeEquations();
         numPdeInHomDirBc_ += actSpace->GetNumInhomDirichletBc();

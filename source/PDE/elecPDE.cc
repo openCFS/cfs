@@ -202,7 +202,7 @@ namespace CoupledField {
         linElecInt *  linElecForm = new linElecInt( actSDMat, tensorType,
                                                     upLagrangeForm );
         linElecForm->SetFactor( factor );
-        linElecForm->SetIntegration(descriptions[actDescr].integScheme,descriptions[actDescr].integOrder);
+        linElecForm->SetIntegration(ptgrid_->GetIntegrationScheme(), descriptions[actDescr].integScheme,descriptions[actDescr].integOrder);
         
         BiLinFormContext * stiffIntDescr = 
           new BiLinFormContext(linElecForm, STIFFNESS );

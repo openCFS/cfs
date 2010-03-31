@@ -34,6 +34,7 @@ namespace CoupledField
     // Register functions
     RegisterFunctions();
  #endif
+    integScheme_.reset(new IntegrationScheme());
 
   }
 

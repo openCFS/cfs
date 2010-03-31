@@ -16,6 +16,8 @@
 // 
 // =====================================================================================
 #include "Elements/fespaceH1Lagrange.hh"
+//#include "Domain/elem.hh"
+//#include "Elements/integrationScheme.hh"
 
 namespace CoupledField{
 
@@ -30,7 +32,6 @@ namespace CoupledField{
 
     void FeSpaceH1Lagrange::SetMapType( MappingType mapT){
       mapType_ = mapT;
-      
       //build up the pointerMap
       
       // Note: at the moment this is not implemented in a 
@@ -40,6 +41,7 @@ namespace CoupledField{
       // method, which would deliver the correct number of
       // unknowns for the calculation element instead of the 
       // geometric element.
+
       if( mapType_ == GRID ) {
         refElems_[Elem::ET_LINE2]  = new FeH1LagrangeLine1();
         refElems_[Elem::ET_QUAD4]  = new FeH1LagrangeQuad1();
@@ -54,13 +56,20 @@ namespace CoupledField{
         refElems_[Elem::ET_LINE3]  = new FeH1LagrangeLineVar();
         refElems_[Elem::ET_QUAD8]  = new FeH1LagrangeQuadVar();
         refElems_[Elem::ET_HEXA20] = new FeH1LagrangeHexVar();
+      }
+    }
+    void FeSpace::PreCalcShapeFncs(){
+      //now precalculate all available integration points
+      //stupid but simple
+      //get grip of the integrationScheme object
+      shared_ptr<IntegrationScheme> integScheme = feFunction_->GetGrid()->GetIntegrationScheme();
 
-        ////for lagrangian elements only isoparateric element orders are supported
-        //std::map<FEType,BaseFE*>::iterator i = refElems_.begin();
-        //for( ; i != refElems_.end(); ++i ) {
-        //  i->second->SetIsoOrder(order_);
-        //}
-
+      StdVector<LocPoint> integPoints;
+      std::map<Elem::FEType, BaseFE* >::iterator elemIt = refElems_.begin();
+      while(elemIt != refElems_.end()){
+        integScheme->GetAllIntegrationPoints(integPoints,elemIt->first);
+        elemIt->second->SetFunctionsAtIp(integPoints);
+        elemIt++;
       }
     }
 

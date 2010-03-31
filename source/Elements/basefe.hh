@@ -84,7 +84,14 @@ namespace CoupledField
       \param ip (input) Integration point
     */
     virtual void GetShFnc( Vector<Double>& S, const LocPoint& lp,
-                              const Elem* ptElem,  UInt comp = 1 ){}
+                              const Elem* ptElem,  UInt comp = 1 ){
+      //check if the shfunction is already computed
+      if(lp.number>= shapeFncDerivsAtIp_.GetSize() || comp!=1){
+        CalcShFnc( S, lp.coord);
+      }else{
+        S = shapeFncsAtIp_[lp.number];
+      }
+    }
 
     
     //! Get local derivatives of all shape fnc at arbitrary local point
@@ -102,7 +109,14 @@ namespace CoupledField
     virtual  void GetDerivShFnc(Matrix<Double> & Deriv, 
                                     const LocPoint& lp,
                                     const Elem * elem, 
-                                    UInt comp = 1){}
+                                    UInt comp = 1){
+      //check if the shfunction is already computed
+      if(lp.number>= shapeFncDerivsAtIp_.GetSize() || comp!=1){
+        CalcDerivShFnc( Deriv, lp.coord);
+      }else{
+        Deriv = shapeFncDerivsAtIp_[lp.number];
+      }
+    }
 
 
     //! Set the isotropic order of the Element. This methods gets overwritten 
@@ -139,6 +153,7 @@ namespace CoupledField
 //    {
 //      EXCEPTION( "BaseFE::GetLocalIntPoints4Surface: Not implemented here" );}
 
+     virtual void SetFunctionsAtIp(const StdVector<LocPoint>& iPoints);
 
   protected:
 
@@ -146,17 +161,23 @@ namespace CoupledField
      virtual void Init()
      { EXCEPTION("Init not implemented for this element type! ");};
      
+     //! Compute shape function at given position
+     virtual void CalcShFnc( Vector<Double>& shape,
+                             const Vector<Double>& point ) = 0;
+
+     //! Compute local derivative at of shape function at given position
+     virtual void CalcDerivShFnc( Matrix<Double> & deriv, 
+                                 const Vector<Double>& point ) = 0;
      
      // =======================================================================
      //  PRE CALCULATION OF SHAPE FUNCTIONS AT INTEGRATION POINTS
      // =======================================================================
-     
-     //! Set value of shape fnc at integration points
-     virtual void SetShapeFncAtIp();
 
+     //! Stores Shape Functions for each integration point definied
+     StdVector< Vector<Double> > shapeFncsAtIp_;
 
-     //! Set value of shape fnc derivatives at integration points
-     virtual void SetShapeFncDerivAtIp();    
+     //! Stores shape function derivatives for each integration point
+     StdVector< Matrix<Double> > shapeFncDerivsAtIp_;
 
     //! Actual number of ansatz functions
     UInt actNumFcns_;

@@ -142,17 +142,17 @@ namespace CoupledField {
       }
     }
 
-    void FeH1LagrangeVar::GetShFnc( Vector<Double> & S, const LocPoint& lp,
-                   const Elem* ptElem,  UInt comp ){
-      CalcShFnc( S, lp.coord);
-    }
+    //void FeH1LagrangeVar::GetShFnc( Vector<Double> & S, const LocPoint& lp,
+    //               const Elem* ptElem,  UInt comp ){
+    //  CalcShFnc( S, lp.coord);
+    //}
 
-    void FeH1LagrangeVar::GetDerivShFnc( Matrix<Double> & deriv, 
-                        const LocPoint& lp,
-                        const Elem * elem, 
-                        UInt comp ){
-      CalcDerivShFnc( deriv, lp.coord);
-    }
+    //void FeH1LagrangeVar::GetDerivShFnc( Matrix<Double> & deriv, 
+    //                    const LocPoint& lp,
+    //                    const Elem * elem, 
+    //                    UInt comp ){
+    //  CalcDerivShFnc( deriv, lp.coord);
+    //}
 
 
   //=========================================================================
@@ -277,9 +277,9 @@ namespace CoupledField {
           Shape[offset++] = shapeX[i] * shapeY[j]; 
         }                                          
       }                                            
-      std::cout << Shape << std::endl;
-      std::cout << shapeX << std::endl;
-      std::cout << shapeY << std::endl;
+      //std::cout << Shape << std::endl;
+      //std::cout << shapeX << std::endl;
+      //std::cout << shapeY << std::endl;
       return;
     }
 

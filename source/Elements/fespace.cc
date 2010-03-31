@@ -20,6 +20,9 @@ namespace CoupledField {
     bcCounter_[HDBC] = 0;
     bcCounter_[IDBC] = 0;
     bcCounter_[CONSTRAINT] = 0;
+
+    //now call the function defining its integration scheme
+
   }
 
   FeSpace::~FeSpace(){
@@ -116,4 +119,5 @@ namespace CoupledField {
       }
     }
   }
+
 }

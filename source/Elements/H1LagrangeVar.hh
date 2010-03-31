@@ -69,15 +69,15 @@ namespace CoupledField {
                                     ElementEntityType fctEntityType,
                                     UInt entNumber);
 
-    //! Return shape function
-    void GetShFnc( Vector<Double> & S, const LocPoint& lp,
-                   const Elem* ptElem,  UInt comp = 1 );
+    ////! Return shape function
+    //void GetShFnc( Vector<Double> & S, const LocPoint& lp,
+    //               const Elem* ptElem,  UInt comp = 1 );
 
-    //! Return local derivative of shape function
-    void GetDerivShFnc( Matrix<Double> & deriv, 
-                        const LocPoint& lp,
-                        const Elem * elem, 
-                        UInt comp = 1 );
+    ////! Return local derivative of shape function
+    //void GetDerivShFnc( Matrix<Double> & deriv, 
+    //                    const LocPoint& lp,
+    //                    const Elem * elem, 
+    //                    UInt comp = 1 );
 
     //! returns the number of functions for a single edge or face
     UInt GetNumFncsPerEntType( ElementEntityType fctEntityType, UInt dof = 1);

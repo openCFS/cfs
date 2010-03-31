@@ -25,6 +25,7 @@
 #include "Domain/entityList.hh"
 #include "DataInOut/Scripting/scriptable.hh"
 #include "MatVec/vector.hh"
+#include "Elements/integrationScheme.hh"
 
 
 namespace CoupledField
@@ -713,6 +714,12 @@ namespace CoupledField
 
     //@}
 
+    // =======================================================================
+    // Interation Scheme
+    // =======================================================================
+    shared_ptr<IntegrationScheme> GetIntegrationScheme(){
+      return integScheme_;
+    }
 
   protected:
 
@@ -764,6 +771,11 @@ namespace CoupledField
 
     //! Map from name to type of entity
     std::map<std::string, EntityList::DefineType> nameTypeMap_;
+
+    // =======================================================================
+    // Interation Scheme
+    // =======================================================================
+    shared_ptr<IntegrationScheme> integScheme_;
 
 
     // =======================================================================

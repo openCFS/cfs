@@ -39,7 +39,6 @@ namespace CoupledField
     // We generate the object, so we will delete it
     matDataType_ = Global::REAL;
     delMatDataAtEnd_ = false;
-    intScheme_.reset( new IntegrationScheme());
 
     baseType_ = NOTYPE;
     isSolDependent_ = false;
@@ -91,7 +90,8 @@ namespace CoupledField
 //     }
   }
 
-  void BaseForm::SetIntegration(IntegrationMethod integScheme,UInt order){
+  void BaseForm::SetIntegration(shared_ptr<IntegrationScheme> intScheme, IntegrationMethod integScheme,UInt order){
+    intScheme_ = intScheme;
     intScheme_->SetOrder(integScheme,order);
   }
 

@@ -44,34 +44,43 @@ namespace CoupledField
 
   BaseFE::~BaseFE()
   {
-//
-//    if( ShFncAtIp_ ) delete[] ShFncAtIp_;
-//    if( ShFncDerivAtIp_ ) delete[] ShFncDerivAtIp_;
-//    if( ShFnc2ndDerivAtIp_ ) delete[] ShFnc2ndDerivAtIp_;
-//    if( IntPoints_ ) delete[] IntPoints_;
+      //
+      //    if( ShFncAtIp_ ) delete[] ShFncAtIp_;
+      //    if( ShFncDerivAtIp_ ) delete[] ShFncDerivAtIp_;
+      //    if( ShFnc2ndDerivAtIp_ ) delete[] ShFnc2ndDerivAtIp_;
+      //    if( IntPoints_ ) delete[] IntPoints_;
+      
+      //    if(edgeIndices_ != NULL) { delete[] edgeIndices_; edgeIndices_ = NULL; }
+      //    if(faceIndices_ != NULL) { delete[] faceIndices_; faceIndices_ = NULL; }
+      //    if(ShFncICModesAtIp_) { delete[]  ShFncICModesAtIp_ ; ShFncICModesAtIp_ = NULL; }
+      //    if(ShFncICModesDerivAtIp_) { delete[]  ShFncICModesDerivAtIp_ ; ShFncICModesDerivAtIp_ = NULL; }
+      
+          // delete our map. The content of normal integration rules are static array
+          // the cartesian rules are complete dynamic
+      //    std::map<const std::string, StdVector<Double*>*>::iterator iter;
+      //    for(iter = IntegrationPointsMap_.begin();
+      //        iter != IntegrationPointsMap_.end(); iter++)  {
+      //      StdVector<Double*>* data = iter->second;
+      //      if(data != NULL) {
+      //        if(iter->first.find("Cartesian", 0 ) != std::string::npos)  {
+      //          for(UInt i = 0; i < data->GetSize(); i++)  {
+      //            delete (*data)[i];
+      //          }
+      //        }
+      //
+      //        delete data;
+      //      }
+      //    }
+      
+  }
 
-//    if(edgeIndices_ != NULL) { delete[] edgeIndices_; edgeIndices_ = NULL; }
-//    if(faceIndices_ != NULL) { delete[] faceIndices_; faceIndices_ = NULL; }
-//    if(ShFncICModesAtIp_) { delete[]  ShFncICModesAtIp_ ; ShFncICModesAtIp_ = NULL; }
-//    if(ShFncICModesDerivAtIp_) { delete[]  ShFncICModesDerivAtIp_ ; ShFncICModesDerivAtIp_ = NULL; }
-
-    // delete our map. The content of normal integration rules are static array
-    // the cartesian rules are complete dynamic
-//    std::map<const std::string, StdVector<Double*>*>::iterator iter;
-//    for(iter = IntegrationPointsMap_.begin();
-//        iter != IntegrationPointsMap_.end(); iter++)  {
-//      StdVector<Double*>* data = iter->second;
-//      if(data != NULL) {
-//        if(iter->first.find("Cartesian", 0 ) != std::string::npos)  {
-//          for(UInt i = 0; i < data->GetSize(); i++)  {
-//            delete (*data)[i];
-//          }
-//        }
-//
-//        delete data;
-//      }
-//    }
-
+  void BaseFE::SetFunctionsAtIp(const StdVector<LocPoint>& iPoints){
+    shapeFncsAtIp_.Resize(iPoints.GetSize());
+    shapeFncDerivsAtIp_.Resize(iPoints.GetSize());
+    for(UInt aPoint = 0; aPoint < iPoints.GetSize();aPoint++){
+      CalcShFnc( shapeFncsAtIp_[aPoint], iPoints[aPoint].coord);
+      CalcDerivShFnc( shapeFncDerivsAtIp_[aPoint], iPoints[aPoint].coord);
+    }
   }
 
 //  void BaseFE::GetShFnc(Vector<double> & S,
@@ -769,9 +778,9 @@ namespace CoupledField
 //  }
 
 
-  void BaseFE::SetShapeFncAtIp()
-  {
-    EXCEPTION("Not imple,ented");
+  //void BaseFE::SetShapeFncAtIp()
+  //{
+  //  EXCEPTION("Not imple,ented");
 //    if (!ShFncAtIp_) {
 //      ShFncAtIp_ = new Vector<Double>[NumIntPoints_];
 //    } else{
@@ -801,11 +810,11 @@ namespace CoupledField
 //                             NULL, 1, AnsatzFct::NODE );
 //      }
 //    }
-  }
+  //}
 
-  void BaseFE::SetShapeFncDerivAtIp()
-  {
-    EXCEPTION("Not imple,ented");
+  //void BaseFE::SetShapeFncDerivAtIp()
+  //{
+  //  EXCEPTION("Not imple,ented");
 //    if( !ShFncDerivAtIp_) {
 //      ShFncDerivAtIp_ = new Matrix<Double>[NumIntPoints_];
 //    }
@@ -832,7 +841,7 @@ namespace CoupledField
 //					NULL, 1, AnsatzFct::NODE );
 //      }
 //    }
-  }
+//  }
 
 //  void BaseFE :: SetShapeFnc2ndDerivAtIp()
 //  {
