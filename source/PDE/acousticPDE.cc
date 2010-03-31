@@ -1107,7 +1107,6 @@ namespace CoupledField {
     // Integrators for acoustic RHS values (i.e. Lighthill sources)
     // =======================================================================
 
-    shared_ptr<NodeList> acouRHSRegionNodeList( new NodeList(ptgrid_ ) );
 
     std::string rhsRegion;
     PtrParamNode rhsValuesNode, bcsNode;
@@ -1123,6 +1122,7 @@ namespace CoupledField {
     for (StdVector<PtrParamNode>::iterator regionIter = regionList.Begin();
         regionIter != regionList.End(); ++regionIter)
     {
+      shared_ptr<NodeList> acouRHSRegionNodeList( new NodeList(ptgrid_ ) );
       try
       {
         rhsRegion = (*regionIter)->Get("name")->As<std::string>();

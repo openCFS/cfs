@@ -1319,7 +1319,7 @@ namespace CoupledField {
       helpVec[0] = 2.0 * VelAtIP[0] * VelDerAtIP[0][0] 
                                                     + VelAtIP[1] *  VelDerAtIP[0][1] 
                                                                                   + VelAtIP[0] *  VelDerAtIP[1][1];
-      if(n == 8)
+      if (dimelem == 3)
       {
         helpVec[0] += VelAtIP[2] *  VelDerAtIP[0][2]
                                                   + VelAtIP[0] *  VelDerAtIP[2][2]; 
@@ -1329,31 +1329,31 @@ namespace CoupledField {
       helpVec[1] = 2.0 * VelAtIP[1] * VelDerAtIP[1][1] 
                                                     + VelAtIP[0] *  VelDerAtIP[1][0] 
                                                                                   + VelAtIP[1] *  VelDerAtIP[0][0]; 
-        if(n == 8)
-        {
-            helpVec[1] += VelAtIP[1] *  VelDerAtIP[2][2]
-                          + VelAtIP[2] *  VelDerAtIP[1][2]; 
-        }
-        
+      if (dimelem == 3)
+      {
+        helpVec[1] += VelAtIP[1] *  VelDerAtIP[2][2]
+          + VelAtIP[2] *  VelDerAtIP[1][2]; 
+      }
 
-        if(n == 8)
-        {
-            helpVec[2] = 2.0 * VelAtIP[2] * VelDerAtIP[2][2] 
+
+      if (dimelem == 3)
+      {
+        helpVec[2] = 2.0 * VelAtIP[2] * VelDerAtIP[2][2] 
                          + VelAtIP[0] *  VelDerAtIP[2][0] 
                          + VelAtIP[2] *  VelDerAtIP[0][0]
                          + VelAtIP[1] *  VelDerAtIP[2][1]
                          + VelAtIP[2] *  VelDerAtIP[1][1]; 
-        }
-
-
-        helpVec *= density;
-
-        // Multiplication with the derivatives of the shape functions
-        partResult  = xiDx * helpVec;
-        partResult *= jacDet * intWeights[actInt-1];
-        //std::cout<<"JacDet= "<<jacDet<<std::endl;
-        Result     += partResult;
       }
+
+
+      helpVec *= density;
+
+      // Multiplication with the derivatives of the shape functions
+      partResult  = xiDx * helpVec;
+      partResult *= jacDet * intWeights[actInt-1];
+      //std::cout<<"JacDet= "<<jacDet<<std::endl;
+      Result     += partResult;
+    }
 
   } // end of method
 
