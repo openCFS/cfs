@@ -285,10 +285,6 @@ namespace CoupledField {
     static Enum<ComplexPart> complexPart;
   };
 
-  //! Defines available element entity types
-  //! Flags to distiguish vertex,interior,edge etc. Nodes
-  //! THink of a NEW name!
-  typedef enum { ALL, VERTEX, EDGE, FACE, INTERIOR} ElementEntityType;
   
   //! Data type for specification of frequency sampling approach
 

@@ -658,8 +658,8 @@ namespace CoupledField
                           <<  NumNodes_ + numFaceFncs + numEdgeFncs
                           << std::endl;
 
-        actNumFcns_ = (NumNodes_ + numFaceFncs + numEdgeFncs);
-        return actNumFcns_;
+        actNumFncs_ = (NumNodes_ + numFaceFncs + numEdgeFncs);
+        return actNumFncs_;
 
       } else {
         // *** anisotropic case ***

@@ -47,7 +47,7 @@ namespace CoupledField {
     }
 
     void FeH1LagrangeVar::GetNumFncs( StdVector<UInt>& numFcns,
-                     ElementEntityType fctEntityType,
+                     EntityType fctEntityType,
                      UInt dof){
       if( fctEntityType == VERTEX ) {
         numFcns.Resize( shape_.numVertices );
@@ -61,6 +61,8 @@ namespace CoupledField {
       } else if ( fctEntityType == INTERIOR ) {
         numFcns.Resize(  (order_ - 1)*(order_ - 1)*(order_ - 1)  );
         numFcns.Init( dof );
+      } else {
+        EXCEPTION( "Entitytype '" << fctEntityType << "' not known!");
       }
     }
 
@@ -71,10 +73,10 @@ namespace CoupledField {
     //  GetNumFncs( numFcns, fctEntityType, dof);
     //}
 
-    void FeH1LagrangeVar::GetFncPermutation( StdVector<UInt>& fncPermutation,
-                                              const Elem* ptElem,
-                                              ElementEntityType fctEntityType,
-                                              UInt entNumber){
+    void FeH1LagrangeVar::GetNodalPermutation( StdVector<UInt>& fncPermutation,
+                                               const Elem* ptElem,
+                                               EntityType fctEntityType,
+                                               UInt entNumber){
       if( fctEntityType == VERTEX ) {
         fncPermutation.Resize(shape_.numNodes);
         for ( UInt i = 0; i < shape_.numNodes; i++ ){
@@ -163,7 +165,7 @@ namespace CoupledField {
       feType_ = Elem::ET_LINE2;
       shape_ = Elem::shapes[feType_];
       //this is always element order +1
-      actNumFcns_ = 2;
+      actNumFncs_ = 2;
       order_ = 1;
 
     }
@@ -173,11 +175,11 @@ namespace CoupledField {
 
     void FeH1LagrangeLineVar::CalcShFnc( Vector<Double>& Shape,
                                          const Vector<Double>& point ){
-      Shape.Resize( actNumFcns_ );
+      Shape.Resize( actNumFncs_ );
       Shape.Init();
       //now get the shape functions and the derivatives for the given coordinates
-      if(supportingPoints_.find(actNumFcns_-1) == supportingPoints_.end() )
-       supportingPoints_[actNumFcns_-1] = CalcGaussLobattoPoints(actNumFcns_-1);
+      if(supportingPoints_.find(actNumFncs_-1) == supportingPoints_.end() )
+       supportingPoints_[actNumFncs_-1] = CalcGaussLobattoPoints(actNumFncs_-1);
 
       Vector<Double> lagPoly;
       EvaluateLagrangePolynomial(lagPoly, point[0] );
@@ -194,12 +196,12 @@ namespace CoupledField {
 
     void FeH1LagrangeLineVar::CalcDerivShFnc( Matrix<Double> & deriv, 
                                               const Vector<Double>& point ){
-      if(supportingPoints_.find(actNumFcns_-1) == supportingPoints_.end() )
-       supportingPoints_[actNumFcns_-1] = CalcGaussLobattoPoints(actNumFcns_-1);
+      if(supportingPoints_.find(actNumFncs_-1) == supportingPoints_.end() )
+       supportingPoints_[actNumFncs_-1] = CalcGaussLobattoPoints(actNumFncs_-1);
 
       Vector<Double> lagPoly;
 
-      deriv.Resize( actNumFcns_, shape_.dim );
+      deriv.Resize( actNumFncs_, shape_.dim );
 
       //now get the shape functions and the derivatives for the given coordinates
       EvaluateDerivLagrangePolynomial( lagPoly,point[0] );
@@ -215,7 +217,7 @@ namespace CoupledField {
  
   void  FeH1LagrangeLineVar::SetIsoOrder(UInt order){
     order_ = order;
-    actNumFcns_ = order+1;
+    actNumFncs_ = order+1;
   }
   //=========================================================================
   //Quadrilateral elements of arbitrary order
@@ -224,7 +226,7 @@ namespace CoupledField {
     FeH1LagrangeQuadVar::FeH1LagrangeQuadVar(){
       feType_ = Elem::ET_QUAD4;
       shape_ = Elem::shapes[feType_];
-      actNumFcns_ = 4;
+      actNumFncs_ = 4;
       order_ = 1;
     }
 
@@ -233,14 +235,14 @@ namespace CoupledField {
 
     void FeH1LagrangeQuadVar::CalcShFnc( Vector<Double>& Shape,
                                          const Vector<Double>& point ){
-      Shape.Resize( actNumFcns_ * actNumFcns_ );
+      Shape.Resize( actNumFncs_ * actNumFncs_ );
       Shape.Init();
       //now get the shape functions and the derivatives for the given coordinates
       Vector<Double> shapeX;
       Vector<Double> shapeY;
 
-      shapeX.Resize(actNumFcns_);
-      shapeY.Resize(actNumFcns_);
+      shapeX.Resize(actNumFncs_);
+      shapeY.Resize(actNumFncs_);
       shapeX.Init();
       shapeY.Init();
       EvaluateLagrangePolynomial(shapeX, point[0] );
@@ -337,7 +339,7 @@ namespace CoupledField {
 
   void  FeH1LagrangeQuadVar::SetIsoOrder(UInt order){
     order_ = order;
-    actNumFcns_ = (order+1)*(order+1);
+    actNumFncs_ = (order+1)*(order+1);
   }
 
   //=========================================================================
@@ -350,7 +352,7 @@ namespace CoupledField {
     FeH1LagrangeHexVar::~FeH1LagrangeHexVar(){
     }
 
-    UInt FeH1LagrangeVar::GetNumFncsPerEntType( ElementEntityType fctEntityType,
+    UInt FeH1LagrangeVar::GetNumFncsPerEntType( EntityType fctEntityType,
                                        UInt dof){
       UInt numFncs = 0;
       if( fctEntityType == VERTEX ) {
@@ -374,6 +376,6 @@ namespace CoupledField {
 
     void FeH1LagrangeHexVar::SetIsoOrder(UInt order){
       order_ = order;
-      actNumFcns_ = (order+1)*(order+1)*(order+1);
+      actNumFncs_ = (order+1)*(order+1)*(order+1);
     }
 }

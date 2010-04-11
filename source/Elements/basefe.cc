@@ -5,6 +5,8 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <numeric>
+
 
 #include <string.h>
 #include "basefe.hh"
@@ -33,7 +35,7 @@ namespace CoupledField
     // Create dummy ansatzFct object for lagrange functions
 //    shared_ptr<AnsatzFct> fct( new LagrangeFct() );
 //    actFct_ = fct;
-    actNumFcns_ = 0;
+    actNumFncs_ = 0;
     order_ = 0;
 
 //    ICModes_     = false;
@@ -81,6 +83,15 @@ namespace CoupledField
       CalcShFnc( shapeFncsAtIp_[aPoint], iPoints[aPoint].coord);
       CalcDerivShFnc( shapeFncDerivsAtIp_[aPoint], iPoints[aPoint].coord);
     }
+  }
+  
+  UInt BaseFE::GetNumFncs( EntityType entType,
+                           UInt dof ) {
+    StdVector<UInt> numFncs;
+    this->GetNumFncs(numFncs, entType, dof);
+   
+    // Sum up all entries of vector
+    return std::accumulate(numFncs.Begin(), numFncs.End(), 0);
   }
 
 //  void BaseFE::GetShFnc(Vector<double> & S,
@@ -1616,5 +1627,25 @@ namespace CoupledField
 //    {1.0/32.0*sqrt(26.0)  ,   33, 0,  -63, 0,  35, 0,   -5, 0, 0 },
 //    {1.0/256.0*sqrt(30.0) ,  429, 0, -924, 0, 630, 0, -140, 0, 5 }
 //  };
+
+  
+  
+  // ************************************************************************
+  // ENUM INITIALIZATION
+  // ************************************************************************
+      
+  // Definition of entity types
+  static EnumTuple entityTypeTuples[] = {
+    EnumTuple(BaseFE::ALL,      "ALL"), 
+    EnumTuple(BaseFE::VERTEX,   "VERTEX"),
+    EnumTuple(BaseFE::NODE,     "NODE"),
+    EnumTuple(BaseFE::EDGE,     "EDGE"),
+    EnumTuple(BaseFE::FACE,     "FACE"),
+    EnumTuple(BaseFE::INTERIOR, "INTERIOR")
+  };
+  Enum<BaseFE::EntityType> BaseFE::entityType = \
+      Enum<BaseFE::EntityType>("Finite Element Entity Types",
+          sizeof(entityTypeTuples) / sizeof(EnumTuple),
+          entityTypeTuples);
 
 } // end namespace CoupledField

@@ -1760,9 +1760,10 @@ namespace CoupledField {
       oldElem = *elIt;
      // create new surface element
       myElem = new SurfElem();
-      myElem->connect = oldElem->connect;
-      myElem->regionId = oldElem->regionId;
       myElem->elemNum = oldElem->elemNum;
+      myElem->type = oldElem->type;
+      myElem->regionId = oldElem->regionId;
+      myElem->connect = oldElem->connect;
       surfElems[myElem->elemNum] = myElem;
 
       // delete old volume element
@@ -1907,7 +1908,11 @@ namespace CoupledField {
   void GridCFS::CalcSurfNormal( Vector<Double> & n, 
                                 const Elem & surfElem,
                                 bool updated ) {
-    EXCEPTION( "Move me");
+   Warning( "Calculation of Surface normal has to be moved to element shape map");
+   
+   // Obtain shape map
+   n.Resize(2);
+   n.Init(1);
 //    //compute normal vector
 //    Matrix<Double>  ptCoord;
 //
@@ -1957,8 +1962,10 @@ namespace CoupledField {
                                        const Elem & volElem,
                                        bool updated )
   {
-    EXCEPTION( "Move me");
-//
+    Warning( "Calculation of directional Surface normal has to be moved to element shape map");
+    n.Resize(2);
+    n.Init(1);
+    //
 //    //compute normal vector
 //    Matrix<Double>  ptVolCoord, ptSurfCoord;
 //
@@ -2850,8 +2857,7 @@ namespace CoupledField {
       Elem* el = orderedElems_[i];
       shared_ptr<ElemShapeMap> esm = GetElemShapeMap( el, false );
       
-      esm->CalcJ( jacobian, Elem::shapes[el->type].midPointCoord);
-      jacobian.Determinant( jacDet );      
+      jacDet = esm->CalcJDet( jacobian, Elem::shapes[el->type].midPointCoord);
       if( jacDet < 0 ) {
         el->CorrectConnectivity();
       }

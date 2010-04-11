@@ -54,21 +54,22 @@ public:
 
   //! Enumeration type for element space
   //@{
-  typedef enum { CONST, H1_LO, H1_HI, HCURL_LO, HCURL_HI, HDIV_Lo, HDIV_HI, L2_LO, L2_HI } Type;
-  static Enum<Type> TypeEnum;
+  typedef enum { CONST, H1_LO, H1_HI, HCURL_LO, HCURL_HI, HDIV_LO, HDIV_HI, L2_LO, L2_HI } SpaceType;
+  static Enum<SpaceType> spaceType;
   //@}
 
   //! Enumeration type for boundary conditions 
   //@{
-  typedef enum{NOBC, HDBC = -2, IDBC = -3, CONSTRAINT = -4} BC_Type;
+  typedef enum{NOBC, HDBC = -2, IDBC = -3, CS = -4} BcType;
+  static Enum<BcType> bcType;
   //@}
 
-  //! Flag for Grid determined mapping of element DOFs or polinomial based mapping 
+  //! Flag for Grid determined mapping of element DOFs or polynomial based mapping 
   typedef enum {GRID,POLYNOMIAL} MappingType; 
 
   //! Enum which stores the (Virtual) Nodes of an element according to
   //! thier definition on vertices,edges,faces and interor
-  typedef std::map< ElementEntityType , StdVector<UInt> > ElemVirtualNodes;
+  typedef std::map< BaseFE::EntityType , StdVector<UInt> > ElemVirtualNodes;
 
   //! Constructor
   FeSpace();
@@ -77,10 +78,20 @@ public:
   ~FeSpace();
 
   //! Return type of FeSpace
-  Type GetType() { return type_;}
+  SpaceType GetSpaceType() { return type_;}
   
   //! Generate instance of specific element space type
-  static shared_ptr<FeSpace> CreateInstance( Type type );
+  static shared_ptr<FeSpace> CreateInstance( SpaceType type );
+  
+  // ========================================================================
+  //  INITIALIZATION 
+  // ========================================================================
+  //@{ \name Initialization
+  
+    //! Set isotropic order of functions to be used
+  void SetIsoOrder( UInt order );
+  
+  //@}
   
   // ========================================================================
   //  ELEMENT HANDLING
@@ -89,7 +100,11 @@ public:
 
   //! Return pointer to reference element
   virtual BaseFE* GetFe( const EntityIterator ent ) = 0;
+  
+  //! Return pointer to reference element (by element number)
+  virtual BaseFE* GetFe( UInt elemNum ) = 0;
 
+  //! Return number of functions for given entity
   virtual UInt GetNumFunctions( const EntityIterator ent ) = 0;
   //@}
   
@@ -103,7 +118,11 @@ public:
 
   //! Return equation numbers for a specific dof
   virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent
-                        , UInt dof ) = 0; 
+                        , UInt dof ) = 0;
+  
+  //! Return equation numbers for a specific dof and entitytype
+  virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent
+                        , UInt dof, BaseFE::EntityType ) = 0; 
 
   //! Get a Nodal Equation number
   virtual UInt GetNodeEqn(UInt nodeNr, UInt dof) = 0;
@@ -120,7 +139,7 @@ public:
   //! Add result
   virtual void AddFeFunction( shared_ptr<BaseFeFunction> fct ) = 0;
 
-  //! Precalculate integrationpoints
+  //! Precalculate integration points
   virtual void PreCalcShapeFncs();
 
   //! Get number of equaitons thich are not fixed by BCs this space has assinged
@@ -131,12 +150,13 @@ public:
     //return numFreeEquations_;
   }
 
+  
   //! Get number of equaitons this space has assinged
   virtual UInt GetNumEquations(){
     return numEqns_;
   }
 
-  //! Sets the MapType of the equation numbering to GridBased or PolinomialBased Mapping
+  //! Sets the MapType of the equation numbering to GridBased or PolynomialBased Mapping
   virtual void SetMapType(MappingType type){
     mapType_ = type;
   }
@@ -162,12 +182,26 @@ public:
   }
 
   UInt GetNumConstraints(){
-    return bcCounter_[CONSTRAINT];
+    return bcCounter_[CS];
   }
 
+  //! Get polynomial order per entity per dof
+  
+  //! This method returns the number of unknowns per entitytype (NODE / EDGE / FACE / INTERIOR)
+  //! per component of the unknown if its a vectorial unkown. If the order is isotropic
+  //! (e.g. Lagrangian space), this method returns always the same number. 
+  //! In the case of anisotropic polynomial orders (e.g. hierarchical FE) this is more involved
+  virtual UInt GetEntityOrder( UInt elemNum, BaseFE::EntityType type, 
+                               UInt entityNum, UInt comp = 1 ) = 0;
+  
+  //! Get maximum polynomial orde per enntity (maximum over all components) 
+  virtual UInt GetMaxEntityOrder( UInt elemNum, BaseFE::EntityType type, 
+                                  UInt entityNum ) = 0;
+    
   //! Map equations i.e. intialize object
   virtual void Finalize() = 0;
 
+  //! Dump information of the equation map to the console
   virtual void PrintEqnMap() = 0;
 
   //@}
@@ -175,25 +209,8 @@ public:
 protected:
 
 
-  //! A Function Creating the virtual Node Array, this method adds virtual
-  //! node numbers to each element, thus making the equation numbering more
-  //! convenient
-  virtual void CreateVirtualNodes() = 0;
-
-  //! Get all Node Numbers according to the mapping GRID based or
-  //! POLYNOMIAL Based according to the Type requested
-  virtual void GetNodesOfEntities( StdVector<UInt>& nodes,
-                                   shared_ptr<EntityList> ent,
-                                   ElementEntityType entType = ALL);
-
-  //! Get all Node Numbers of a specific element according to the mapping GRID based or
-  //! POLYNOMIAL Based according to the Type requested
-  virtual void GetNodesOfElement( StdVector<UInt>& nodes,
-                                  const Elem* ptElem,
-                                  ElementEntityType entType = ALL);
-
   //! Type of element space
-  Type type_;
+  SpaceType type_;
   
   //! Map for reference elmenets
   std::map<Elem::FEType, BaseFE* > refElems_;
@@ -203,7 +220,16 @@ protected:
 
   //!flag indicatng if the FeSpace is already initialized
   bool isFinalized_;
+  
+  //! Flag indicating use of discontinuous (L2) functions.
+  
+  //! If false, we perform the numbering of nodes/edges/faces 
+  //! element local.
+  bool isContinuous_;
 
+  //! Isotropic polynomial approximation order
+  UInt isoOrder_;
+  
   //! Number of equations administrated by this space
   UInt numEqns_;
 
@@ -216,14 +242,36 @@ protected:
   UInt numUnknowns_;
   
   //! map for storing the number of different boundary conditions
-  std::map< BC_Type, UInt> bcCounter_;
+  std::map< BcType, UInt> bcCounter_;
 
   //! sotres if equation numbering is grid based or order based
   MappingType mapType_;
 
+  // =====================================================
+  //  Nodal section
+  // =====================================================
+  
+  //! A Function Creating the virtual Node Array, this method adds virtual
+   //! node numbers to each element, thus making the equation numbering more
+   //! convenient
+   virtual void CreateVirtualNodes();
+
+   //! Get all Node Numbers according to the mapping GRID based or
+   //! POLYNOMIAL Based according to the Type requested
+   virtual void GetNodesOfEntities( StdVector<UInt>& nodes,
+                                    shared_ptr<EntityList> ent,
+                                    BaseFE::EntityType entType = BaseFE::ALL);
+
+   //! Get all Node Numbers of a specific element according to the mapping GRID based or
+   //! POLYNOMIAL Based according to the Type requested
+   virtual void GetNodesOfElement( StdVector<UInt>& nodes,
+                                   const Elem* ptElem,
+                                   BaseFE::EntityType entType = BaseFE::ALL);
+   
+  
   //! Associates GridNodeNumbers to virtual node numbers
   //! Needed e.g. for quadratic Grids in combination with NodalBCs and linear,
-  //! Polinomial approximation
+  //! Polynomial approximation
   std::map<UInt,UInt> gridToVirtualNodes_;
 
   //! Stores every assigned virtual node
@@ -232,35 +280,38 @@ protected:
   //! This is the virtual node Map for standard element it just contains
   //! the connectivity of the element, for higher order elements it contains also 
   //! the virtual node numbers in the correct ordering
-  //! This Variable could be extened to store also the coordinates of all nodes
+  //! This Variable could be extended to store also the coordinates of all nodes
   //! created
   std::map< UInt, ElemVirtualNodes > virtualNodes_;
+  
+  // =====================================================
+  //  Edge section
+  // =====================================================
+  
+  // Map virtual edges
+  virtual void CreateVirtualEdges();
+  
+  //! Associate element number -> edge numbers
+  
+  //! The difference in comparison to the virtualNodes is, that edges
+  //! always get mapped to edges indstead of "virtual" nodes.
+  std::map< UInt, StdVector<UInt> > virtualEdges_;
 
-};
+  //! Map global edge -> virtual edge
+  std::map<UInt, UInt> gridToVirtualEdges_;
 
+  // =====================================================
+  //  Face section
+  // =====================================================
+  
+  // Create virtual faces
+  virtual void CreateVirtualFaces();
+  
+  //! Associate element number <-> virtual face numbers
+  std::map< UInt, StdVector<UInt> > virtualFaces_;
 
-///////////////////////////////////////////////////////////////////
-// H1 - Higher Order / hierarchical
-///////////////////////////////////////////////////////////////////
-
-class FeSpaceH1Hi : public FeSpace {
-
-};
-
-///////////////////////////////////////////////////////////////////
-// HCurl - Lower Order (Nedelec) / not hierarchical
-///////////////////////////////////////////////////////////////////
-
-class FeSpaceHCur : public FeSpace {
-
-};
-
-///////////////////////////////////////////////////////////////////
-// HCurl - Higher Order 
-///////////////////////////////////////////////////////////////////
-
-class FeSpaceHCurlHi : public FeSpace {
-
+  //! Map global face -> virtual face
+  std::map<UInt, UInt> gridToVirtualFaces_;
 };
 
 

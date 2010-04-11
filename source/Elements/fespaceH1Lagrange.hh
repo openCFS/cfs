@@ -1,3 +1,9 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+#ifndef FILE_CFS_FESPACE_H1_LAGRANGE_HH
+#define FILE_CFS_FESPACE_H1_LAGRANGE_HH
+
 // =====================================================================================
 // 
 //       Filename:  fespaceH1Lagrange.hh
@@ -38,34 +44,40 @@ class FeSpaceH1Lagrange : public FeSpaceH1 {
     //! Destructor
     ~FeSpaceH1Lagrange();
 
+    //! Return pointer to reference element
+    virtual BaseFE* GetFe( const EntityIterator ent );
+    
+    //! Return pointer to reference element (by element number)
+    virtual BaseFE* GetFe( UInt elemNum );
+    
     ////! Return equation numbers
     //virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent ); 
 
     ////! Return equation numbers for a specific dof
     //virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent
-    //                      , UInt dof ); 
-
-    //! Map equations i.e. intialize object
+    //                      , UInt dof );
+    
+    //! @see FeSpace::GetEntityOrder
+    UInt GetEntityOrder( UInt elemNum, BaseFE::EntityType type, 
+                           UInt entityNum, UInt comp = 1 );
+    
+    //! @see FeSpace:: GetMaxEntityOrder
+    UInt GetMaxEntityOrder( UInt elemNum, BaseFE::EntityType type, 
+                            UInt entityNum );
+    
+    //! Map equations i.e. initialize object
     virtual void Finalize();
 
-    //! Reorder the equation Map (just for comptibility)
-    virtual void ReorderEqnMap( StdVector<UInt> newOrder );
-
-    //! print the equation map
-    virtual void PrintEqnMap();
-
+    //! Set type of map
     virtual void SetMapType(MappingType mapT);
 
   protected:
       
-    //! Map BC Equation NUmbers
-    virtual void MapBCs();
-
     //! This array stores all nodes, including the virtual ones, which are available in the feSpace
-    StdVector<UInt> nodes;
+    //StdVector<UInt> nodes;
 
-    virtual void CreateVirtualNodes();
 
   private:
 };
 }
+#endif //

@@ -160,23 +160,11 @@ namespace CoupledField {
   void FeH1LagrangeExpl::SetIntPoints( StdVector<LocPoint>& intPoints ) {
   }
   
-  
-  //void FeH1LagrangeExpl::GetNumFncs( StdVector<UInt>& numFcns,
-  //                                   const shared_ptr<AnsatzFct>& fcnType,
-  //                                   AnsatzFct::FctEntityType fctEntityType,
-  //                                   UInt dof ) {
-  //  // Initialize explictily with number of nodes
-  //  if( fctEntityType == AnsatzFct::NODE ) {
-  //    numFcns.Resize( shape_.numNodes );
-  //    numFcns.Init( 1 );
-  //  }
-  //}
-  
   void FeH1LagrangeExpl::GetNumFncs( StdVector<UInt>& numFcns,
-                                     ElementEntityType fctEntityType,
+                                     EntityType fctEntityType,
                                      UInt dof ) {
     // Initialize explictily with number of nodes
-    if( fctEntityType == VERTEX ) {
+    if( fctEntityType == NODE ) {
       numFcns.Resize( shape_.numNodes );
       numFcns.Init( 1 );
     }
@@ -184,9 +172,9 @@ namespace CoupledField {
 
   void FeH1LagrangeExpl::GetFncPermutation( StdVector<UInt>& fncPermutation,
                                             const Elem* ptElem,
-                                            ElementEntityType fctEntityType,
+                                            EntityType fctEntityType,
                                             UInt entNumber){
-    if( fctEntityType == VERTEX ) {
+    if( fctEntityType == NODE ) {
       fncPermutation.Resize(shape_.numNodes);
       for ( UInt i = 0; i < shape_.numNodes; i++ ){
         fncPermutation[i] = i;
@@ -196,11 +184,11 @@ namespace CoupledField {
     }
     return;
   }
-  UInt FeH1LagrangeExpl::GetNumFncsPerEntType( ElementEntityType fctEntityType,
+  UInt FeH1LagrangeExpl::GetNumFncsPerEntType( EntityType fctEntityType,
                                      UInt dof){
     UInt numFnc = 0;
     // Initialize explictily with number of nodes
-    if( fctEntityType == VERTEX ) {
+    if( fctEntityType == NODE ) {
       numFnc = shape_.numNodes;
     }
     return numFnc;
@@ -240,9 +228,9 @@ namespace CoupledField {
   // --- Line 1st order ---
   
   FeH1LagrangeLine1::FeH1LagrangeLine1() {
-    feType_ = Elem::ET_LINE2;;
+    feType_ = Elem::ET_LINE2;
     shape_ = Elem::shapes[feType_];
-    actNumFcns_ = 2;
+    actNumFncs_ = 2;
     order_ = 1;
   }
   FeH1LagrangeLine1::~FeH1LagrangeLine1() {
@@ -269,7 +257,7 @@ namespace CoupledField {
   FeH1LagrangeQuad1::FeH1LagrangeQuad1() {
     feType_ = Elem::ET_QUAD4;
     shape_ = Elem::shapes[feType_];
-    actNumFcns_ = 4;
+    actNumFncs_ = 4;
     order_ = 1; 
   }
     
@@ -302,7 +290,7 @@ namespace CoupledField {
   FeH1LagrangeHex1::FeH1LagrangeHex1() {
     feType_ = Elem::ET_HEXA8;
     shape_ = Elem::shapes[feType_];
-    actNumFcns_ = 8;
+    actNumFncs_ = 8;
   }
     
   FeH1LagrangeHex1::~FeH1LagrangeHex1() {
@@ -352,7 +340,7 @@ namespace CoupledField {
   FeH1LagrangeLine2::FeH1LagrangeLine2() {
     feType_ = Elem::ET_LINE3;;
     shape_ = Elem::shapes[feType_];
-    actNumFcns_ = 3;
+    actNumFncs_ = 3;
   }
   FeH1LagrangeLine2::~FeH1LagrangeLine2() {
     
@@ -379,7 +367,7 @@ namespace CoupledField {
   FeH1LagrangeQuad2::FeH1LagrangeQuad2() {
     feType_ = Elem::ET_QUAD8;
     shape_ = Elem::shapes[feType_];
-    actNumFcns_ = 8;  
+    actNumFncs_ = 8;  
   }
     
   FeH1LagrangeQuad2::~FeH1LagrangeQuad2() {
@@ -440,7 +428,7 @@ namespace CoupledField {
   FeH1LagrangeHex2::FeH1LagrangeHex2() {
     feType_ = Elem::ET_HEXA20;
     shape_ = Elem::shapes[feType_];
-    actNumFcns_ = 20;
+    actNumFncs_ = 20;
   }
     
   FeH1LagrangeHex2::~FeH1LagrangeHex2() {

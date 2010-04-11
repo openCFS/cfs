@@ -49,7 +49,7 @@ namespace CoupledField {
 
     //! Get number of shape functions for a given type (NODE/EDGE/FACE/ELEM)
     void GetNumFncs( StdVector<UInt>& numFcns,
-                     ElementEntityType fctEntityType,
+                     EntityType fctEntityType,
                      UInt dof = 1 );
 
     //! This holds only for line,quad and hex,
@@ -61,13 +61,14 @@ namespace CoupledField {
     /*!
       \param fncPermutation (output) The Permuation Vector 
       \param ptElem (input) pointer to Grid Element to get grip of flags 
-      \param fctEntityType (input) The Entity type, Node/Edge/Face
+      \param fctEntityType (input) The Entity type, Node/Edge/Face where the 
+                                   nodes are located at
       \param entNumber (input) The local entity number 
     */
-    virtual void GetFncPermutation( StdVector<UInt>& fncPermutation,
-                                    const Elem* ptElem,
-                                    ElementEntityType fctEntityType,
-                                    UInt entNumber);
+    virtual void GetNodalPermutation( StdVector<UInt>& fncPermutation,
+                                      const Elem* ptElem,
+                                      EntityType fctEntityType,
+                                      UInt entNumber);
 
     ////! Return shape function
     //void GetShFnc( Vector<Double> & S, const LocPoint& lp,
@@ -80,7 +81,7 @@ namespace CoupledField {
     //                    UInt comp = 1 );
 
     //! returns the number of functions for a single edge or face
-    UInt GetNumFncsPerEntType( ElementEntityType fctEntityType, UInt dof = 1);
+    UInt GetNumFncsPerEntType( EntityType fctEntityType, UInt dof = 1);
 
   protected:
 

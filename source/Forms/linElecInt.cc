@@ -31,7 +31,7 @@ void linElecInt::calcBMat(Matrix<Double>& bMat,
   // coords (format: nrNodes x spaceDim)
   Matrix<Double> xiDx;
   FeH1 *feH1 = (dynamic_cast<FeH1*>(ptFe));
-  feH1->GetGlobDerivShFnc( xiDx, lp, NULL, 1 );
+  feH1->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
   bMat = Transpose (xiDx);
 //  
 //  if ( subTensorType_ == FULL ) {

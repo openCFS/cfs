@@ -93,19 +93,6 @@ public:
   //! Get the algebraic System
   shared_ptr<BaseSystem> GetSystem();
 
-  //! Set Isotropic order
-  void SetIsoOrder(UInt order);
-
-  //! Get Isotropic order
-  UInt GetIsoOrder();
-
-  //! Set anisotropic order
-  void SetAnIsoOrder(StdVector<UInt> order);
-
-  //! Get Anisotropic Ordering
-  StdVector<UInt> GetAnIsoOrder();
-
-  
   //@}
   
   
@@ -205,11 +192,6 @@ protected:
   //! pointer to algebraic system
   shared_ptr<BaseSystem> algsys_;      
 
-  //! Isotropic Order of Approximation
-  UInt isoOrder_;
-
-  //! Anisotropic order of Approximation
-  StdVector<UInt> anIsoOrder_;
 };
 
 

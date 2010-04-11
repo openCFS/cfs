@@ -55,6 +55,7 @@
 //feSpaces
 #include "Elements/fespaceH1Lagrange.hh"
 #include "Elements/fespaceH1.hh"
+#include "Elements/fespaceH1Hi.hh"
 
 using std::string;
 
@@ -426,10 +427,10 @@ namespace CoupledField {
         numPdeEquations_ += actSpace->GetNumEquations();
         numPdeUnknowns_ += actSpace->GetNumFreeEquations();
         numPdeInHomDirBc_ += actSpace->GetNumInhomDirichletBc();
-        // Redo it for logging out
-        //std::cerr << numPdeEquations_  <<  std::endl 
-        //          << numPdeUnknowns_   << std::endl 
-        //          << numPdeInHomDirBc_ << "run" << std::endl;
+//        // Redo it for logging out
+//        std::cerr << numPdeEquations_  <<  std::endl 
+//                  << numPdeUnknowns_   << std::endl 
+//                  << numPdeInHomDirBc_ << "run" << std::endl;
       }
       descrIt++;
     }
@@ -3297,11 +3298,13 @@ namespace CoupledField {
           mySpace.reset(new FeSpaceH1Lagrange);
           mySpace->SetMapType(FeSpace::POLYNOMIAL);
         } else if(ansatzType == LEGENDRE){
-          EXCEPTION("Legendre Approximation is not implemented yet");
+          mySpace.reset(new FeSpaceH1Hi);
+          mySpace->SetMapType(FeSpace::POLYNOMIAL);
         } else{
           EXCEPTION("Got not supported ansatzType for PDE");
         }
         mySpace->AddFeFunction(fncDescription.feFunction);
+        
         fncDescription.feFunction->SetFeSpace(mySpace);
         //now to the order tag
         if(feFunctionList[i]->Get("order",false) && feFunctionList[i]->Get("order")->Get("uniform",false)){
@@ -3312,15 +3315,16 @@ namespace CoupledField {
                      The Grid order will be used....");
             order = 0;
           }
-          fncDescription.feFunction->SetIsoOrder(order);
+          mySpace->SetIsoOrder(order);
         }else{
-          fncDescription.feFunction->SetIsoOrder(1);
+          mySpace->SetIsoOrder(1);
         }
          
 
 
         //now go down though the region lists
-        if(feFunctionList[i]->Get("entityList",false)){
+        if(feFunctionList[i]->Get("entityLists",false)){
+          shared_ptr<EntityList> actList;
           StdVector<ParamNode*> feRegionList = feFunctionList[i]->GetList("regionList");
           for( UInt j = 0; j < feRegionList.GetSize(); j++ ){
             fncDescription.entityNames.Push_back(feRegionList[j]->Get("name")->AsString());
@@ -3329,7 +3333,10 @@ namespace CoupledField {
           //now go down though the surfaceRegion lists
           StdVector<ParamNode*> feSurfRegionList = feFunctionList[i]->GetList("surfRegionList");
           for( UInt j = 0; j < feSurfRegionList.GetSize(); j++ ){
-            fncDescription.entityNames.Push_back(feSurfRegionList[j]->Get("name")->AsString());
+            std::string name = feSurfRegionList[j]->Get("name")->AsString();
+            fncDescription.entityNames.Push_back(name);
+            actList = ptgrid_->GetEntityList( EntityList::ELEM_LIST, name, EntityList::NAMED_ELEMS );
+            fncDescription.feFunction->AddEntityList( actList );
           }
           //now go down though the node lists
           StdVector<ParamNode*> nodeList = feFunctionList[i]->GetList("nodeList");

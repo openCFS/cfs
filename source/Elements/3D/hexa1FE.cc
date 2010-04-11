@@ -905,8 +905,8 @@ namespace CoupledField
           + numEdgeFncs + numBubbles
                           << std::endl;
 
-        actNumFcns_ = (NumNodes_ + numFaceFncs + numEdgeFncs + numBubbles);
-        return actNumFcns_;
+        actNumFncs_ = (NumNodes_ + numFaceFncs + numEdgeFncs + numBubbles);
+        return actNumFncs_;
 
       } else {
         // *** anisotropic case ***
@@ -981,9 +981,9 @@ namespace CoupledField
         }
 
 
-        actNumFcns_ = numNodeModes + numEdgeModes
+        actNumFncs_ = numNodeModes + numEdgeModes
           + numFaceModes + numBubbleModes;
-        return actNumFcns_;
+        return actNumFncs_;
       }
     }
     return 0;
@@ -997,7 +997,7 @@ namespace CoupledField
     }
 
     // first of all: compute the number of ansatz functions!
-    actNumFcns_ = GetNumFncs( actFct );
+    actNumFncs_ = GetNumFncs( actFct );
 
     actFct_ = actFct;
    if( actFct->GetType() == AnsatzFct::SPECTRAL ) {

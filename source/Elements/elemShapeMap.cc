@@ -32,9 +32,27 @@ namespace CoupledField {
   
   // Calculate Jacobian, its inverse as well as determinant for local point
   esm->CalcJ( jac, lp);
-  jac.Invert( jacInv);
-  jac.Determinant(jacDet);
   
+  // The inversion can only be performed in case we have a quadratic Jacobian
+  // i.e. the dimension of the element is the dimension of the grid
+  if( jac.GetNumCols() == jac.GetNumRows() ) {
+    jac.Invert( jacInv);
+    jac.Determinant(jacDet);
+  } else if ( jac.GetNumRows() == 3) {
+    // 2D elements in 3D
+    Vector<Double> normal; 
+    normal.Resize(3);
+    normal[0]= jac[1][0]* jac[2][1]- jac[2][0]* jac[1][1];
+    normal[1]=jac[2][0]*jac[0][1]- jac[0][0]* jac[2][1];
+    normal[2]= jac[0][0]* jac[1][1]- jac[1][0]*jac[0][1];
+    jacDet = sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
+
+  } else if ( jac.GetNumRows() == 2) {
+    // 1D elements in 2D
+    //see kaltenbacher, p.23, eq.(2.122)
+    jacDet = sqrt(jac[0][0]*jac[0][0] + jac[1][0]*jac[1][0]);
+  }
+
   // Check, if geometry is axi-symmetric. In this case scale the 
   // Jacobian determinant with 2*pi*r
   Vector<Double> globPoint;
@@ -89,9 +107,35 @@ void ElemShapeMap::SetElem( const Elem* ptElem ) {
 LagrangeElemShapeMap::LagrangeElemShapeMap( Grid* ptGrid, bool isUpdated ) 
 : ElemShapeMap(ptGrid, isUpdated ) {
   type_ = LAGRANGE; 
+  
+  
+  // Fill map with reference elements
+  feMap_[Elem::ET_LINE2] = new FeH1LagrangeLine1(); 
+  feMap_[Elem::ET_LINE3] = new FeH1LagrangeLine2();
+//  feMap_[ET_TRIA3] = new FeH1Lagrange();
+//  feMap_[ET_TRIA6] = new FeH1LagrangeLine1();
+  feMap_[Elem::ET_QUAD4] = new FeH1LagrangeQuad1();
+  feMap_[Elem::ET_QUAD8] = new FeH1LagrangeQuad2();
+//  feMap_[ET_QUAD9] = new FeH1LagrangeQuad1();
+//  feMap_[ET_TET4] = new FeH1LagrangeLine1();
+//  feMap_[ET_TET10] = new FeH1LagrangeLine1();
+  feMap_[Elem::ET_HEXA8] = new FeH1LagrangeHex1();
+//  feMap_[ET_HEXA20] = new FeH1LagrangeHexa2();
+//  feMap_[ET_HEXA27] = new FeH1LagrangeLine1();
+//  feMap_[ET_PYRA5] = new FeH1LagrangeLine1();
+//  feMap_[ ET_PYRA13] = new FeH1LagrangeLine1();
+//  feMap_[ET_WEDGE6] = new FeH1LagrangeLine1();
+//  feMap_[ET_WEDGE15] = new FeH1LagrangeLine1();
 }
 
 LagrangeElemShapeMap::~LagrangeElemShapeMap() {
+  
+  // Remove pointers to all refrence elements
+  std::map<Elem::FEType, FeH1 *>::iterator it = feMap_.begin();
+  for( ; it != feMap_.end(); it++ ) {
+    delete  it->second;
+  }
+  feMap_.clear();
 }
 
 void LagrangeElemShapeMap::Local2Global( Vector<Double>& globPoint, 
@@ -450,6 +494,36 @@ void LagrangeElemShapeMap::CalcJ( Matrix<Double>& jac,
   jac = coords_ * deriv;
   jac *= depth_; // explicitly include depth_ of setup
 }
+
+Double LagrangeElemShapeMap::CalcJDet( Matrix<Double>& jac, 
+                                       const LocPoint& lp ) {
+  Matrix<Double> deriv;
+  
+  ptFe_->GetDerivShFnc( deriv, lp, ptElem_ );
+  jac = coords_ * deriv;
+  jac *= depth_; // explicitly include depth_ of setup
+  
+  Double jacDet = 0.0;
+  // redundant code, but necessary at some points
+  if( jac.GetNumCols() == jac.GetNumRows() ) {
+    jac.Determinant(jacDet);
+  } else if ( jac.GetNumRows() == 3) {
+    // 2D elements in 3D
+    Vector<Double> normal; 
+    normal.Resize(3);
+    normal[0]= jac[1][0]* jac[2][1]- jac[2][0]* jac[1][1];
+    normal[1]=jac[2][0]*jac[0][1]- jac[0][0]* jac[2][1];
+    normal[2]= jac[0][0]* jac[1][1]- jac[1][0]*jac[0][1];
+    jacDet = sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
+
+  } else if ( jac.GetNumRows() == 2) {
+    // 1D elements in 2D
+    //see kaltenbacher, p.23, eq.(2.122)
+    jacDet = sqrt(jac[0][0]*jac[0][0] + jac[1][0]*jac[1][0]);
+  }
+  
+  return jacDet;
+}
    
    
 void LagrangeElemShapeMap::SetElem( const Elem* ptElem ) {
@@ -458,48 +532,9 @@ void LagrangeElemShapeMap::SetElem( const Elem* ptElem ) {
   
   // get coordinates from grid
   ptGrid_->GetElemNodesCoord( coords_,ptElem->connect, isUpdated_ );
-  
-  // HARD CODED: Create Lagrange element of according type
-  switch( ptElem->type) {
-    case Elem::ET_LINE2:
-      ptFe_ = new FeH1LagrangeLine1();
-      break;
-    case Elem::ET_QUAD4:
-      ptFe_ = new FeH1LagrangeQuad1();
-      break;
-    case Elem::ET_HEXA8:
-      ptFe_ = new FeH1LagrangeHex1();
-      break;
-    default:
-      EXCEPTION("Explicit Lagrangian shape mapping for elements of type '" 
-                << Elem::feType.ToString(ptElem->type) 
-                << "' is not implemented!");
-  }
-}
 
-//void VariableLagrangeElemShapeMap::SetElem( const Elem* ptElem ) {
-//  
-//  ptElem_ = ptElem;
-//  
-//  // get coordinates from grid
-//  ptGrid_->GetElemNodesCoord( coords_,ptElem->connect, isUpdated_ );
-//  
-//  // HARD CODED: Create Lagrange element of according type
-//  switch( ptElem->type) {
-//    case Elem::ET_LINE2:
-//      ptFe_ = new FeH1LagrangeLineVar();
-//      break;
-//    case Elem::ET_QUAD4:
-//      ptFe_ = new FeH1LagrangeQuadVar();
-//      break;
-//    case Elem::ET_HEXA8:
-//      ptFe_ = new FeH1LagrangeHexVar();
-//      break;
-//    default:
-//      EXCEPTION("Explicit Lagrangian shape mapping for elements of type '" 
-//                << Elem::feType.ToString(ptElem->type) 
-//                << "' is not implemented!");
-//  }
-//}
+  // set reference element
+  ptFe_ = feMap_[ptElem->type];
+}
 
 } // namespace CoupledField

@@ -7,6 +7,7 @@
 #include "General/defs.hh"
 #include "MatVec/vector.hh"
 #include "MatVec/matrix.hh"
+#include "Domain/elem.hh"
 
 
 namespace CoupledField {
@@ -143,6 +144,12 @@ namespace CoupledField {
     //! Set current element
     //! @param ptElem output Current element
     virtual void SetElem( const Elem* ptElem );
+    
+    //! Set current element
+    //! @param ptElem output Current element
+    virtual const Elem* GetElem( ) {
+      return ptElem_;
+    }
 
     //! Query type of shape-type
     ShapeMapType GetShapeMapType() const {return type_;}
@@ -221,6 +228,16 @@ namespace CoupledField {
     virtual void CalcJ( Matrix<Double>& jac, 
                         const LocPoint& ip ) = 0;
 
+    //! Calculation of Jacobian determinant
+    /*!
+         \param LCoord (input) Local Coordinates of evaluation point
+         \param CornerCoords (input) Coordinates of element corners
+          \f$ [ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
+         \cdots & \cdots & \cdots \end{array} \right)  \f$ ]
+     */
+    virtual Double CalcJDet( Matrix<Double>& jac, 
+                             const LocPoint& ip ) = 0;
+    
   protected:
 
     //! Type of shape mapping
@@ -246,6 +263,7 @@ namespace CoupledField {
   // ========================================================================
   //  Lagrangian Element Shape Map
   // ========================================================================
+  
   
   //! Lagrangian representation for finite elements
   
@@ -309,41 +327,23 @@ namespace CoupledField {
     //! @see ElemShapeMap::CalcJ
     void CalcJ( Matrix<Double>& jac, 
                 const LocPoint& ip );
+    
+    //! @see ElemShapeMap::CalcJ
+    Double CalcJDet( Matrix<Double>& jac, 
+                     const LocPoint& ip );
 
   protected:
 
     //! Pointer to H1 element of lower order
     FeH1* ptFe_;
+    
+    //! Map with pointers to reference elements
+    std::map<Elem::FEType, FeH1 *> feMap_;
 
     //! Nodal coordinates
     Matrix<Double> coords_;
     
   };
-
-//  class ExplicitLagrangeElemShapeMap : public LagrangeElemShapeMap {
-//    ExplicitLagrangeElemShapeMap( Grid* ptGrid, bool isUpdated = false ):
-//     LagrangeElemShapeMap( ptGrid, isUpdated ){
-//
-//    }
-//
-//    ~ExplicitLagrangeElemShapeMap(){
-//    }
-//
-//    //! @see ElemShapeMap::SetElem
-//    virtual void SetElem( const Elem* ptElem );
-//  };
-//
-//  class VariableLagrangeElemShapeMap : public LagrangeElemShapeMap {
-//    VariableLagrangeElemShapeMap( Grid* ptGrid, bool isUpdated = false ):
-//     LagrangeElemShapeMap( ptGrid, isUpdated ){
-//    }
-//
-//    ~VariableLagrangeElemShapeMap(){
-//    }
-//
-//    //! @see ElemShapeMap::SetElem
-//    virtual void SetElem( const Elem* ptElem );
-//  };
 
 }
 

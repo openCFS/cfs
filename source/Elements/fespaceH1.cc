@@ -1,7 +1,12 @@
 #include "fespaceH1.hh"
 #include "H1Elems.hh"
+#include "DataInOut/Logging/cfslog.hh"
 
 namespace CoupledField {
+
+// declare class specific logging stream
+ DECLARE_LOG(feSpaceH1)
+ DEFINE_LOG(feSpaceH1, "feSpaceH1");
 
   //! Constructor
   FeSpaceH1::FeSpaceH1() : FeSpace() {
@@ -11,22 +16,12 @@ namespace CoupledField {
   FeSpaceH1::~FeSpaceH1(){
   }
 
-  //! Set type of basis
-  void FeSpaceH1::SetBasis( BasisType type ){
-    basis_ = type;
-  }
-  
   void FeSpaceH1::AddFeFunction( shared_ptr<BaseFeFunction> fct ){
     feFunction_ = fct;
     return;
   }
   
-  BaseFE* FeSpaceH1::GetFe( const EntityIterator ent ){
-    if(refElems_.find(ent.GetElem()->type) == refElems_.end()){
-      EXCEPTION("fespaceh1::getfe( const entityiterator): requested fetype which is noch supported by space");
-    }
-    return refElems_[ent.GetElem()->type];
-  }
+  
 
   //! Returns the number of (vectorial) unkowns on the element
   UInt FeSpaceH1::GetNumFunctions( const EntityIterator ent ){
@@ -111,6 +106,35 @@ namespace CoupledField {
     }
   
   }
+  void FeSpaceH1::GetEqns( StdVector<Integer>& eqns, const EntityIterator ent
+                          , UInt dof, BaseFE::EntityType entityType){ 
+      //Get result for the feFunction
+      shared_ptr<ResultInfo> feFctResult = feFunction_->GetResultInfo();
+
+      //Get "dimension" of one Unknown
+      UInt dofsPerUnknown = feFctResult->dofNames.GetSize();
+
+      //First cover the nodal/grid case
+      if ( ent.GetType() == EntityList::NODE_LIST ) {
+        UInt node = ent.GetNode();
+        eqns.Resize(1);
+        eqns.Init();
+        eqns[0] = nodeMap_[node][dof];
+
+      } else if( ent.GetType() == EntityList::ELEM_LIST ||
+                 ent.GetType() == EntityList::SURF_ELEM_LIST){
+        StdVector<UInt> nodes;
+        GetNodesOfElement(nodes,ent.GetElem(), entityType);
+        eqns.Resize( nodes.GetSize() );
+        eqns.Init();
+        for (UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
+          eqns[iNode] = nodeMap_[nodes[iNode]][dof];
+        }
+      } else {
+        EXCEPTION("In FeSpaceH1::GetEqns(StdVector,EntityIterator,UInt):  Supplied an iterator which is not supported by FeSpace");
+      }
+    
+    }
 
   //! get a nodal equation number
   UInt FeSpaceH1::GetNodeEqn(UInt nodeNr, UInt dof){
@@ -125,24 +149,140 @@ namespace CoupledField {
   void FeSpaceH1::GetElemEqns(StdVector<Integer>& eqns,const Elem* elem, UInt dof){
   }
 
-  //! Map equations i.e. intialize object
-  void FeSpaceH1::Finalize(){
+  //! Map Nodal BC Equation NUmbers
+  void FeSpaceH1::MapNodalBCs(){
+    StdVector<UInt> actNodes;
+    
+    //Get Grip of HdBC List for the fefunction
+    const HdBcList hdbcs = feFunction_->GetHomDirichletBCs();
+    HdBcList::const_iterator actHBC;
+    UInt dofsPerUnknown = feFunction_->GetResultInfo()->dofNames.GetSize();
 
-    UInt numEqns_ = 0;
-    UInt numFreeEquations_ = 0;
-    CreateVirtualNodes();
-    //Determine boundary Unknowns
-    MapBCs();
-    MapNodalEqns(1);
-    MapNodalEqns(2);
-    isFinalized_ = true;
+    for(actHBC = hdbcs.Begin(); actHBC != hdbcs.End(); actHBC++) {
+      // Get EntityIterator
+      GetNodesOfEntities(actNodes,(*actHBC)->entities);
+      for(UInt iNode = 0 ; iNode < actNodes.GetSize();iNode++){
+         if( nodeMap_.BcKeys.find(actNodes[iNode]) == nodeMap_.BcKeys.end()){
+           //nodeMap_.BcKeys[node] = StdVector<BaseFeFunction::BcType>(dofsPerUnknown,BaseFeFunction::NOBC);
+           nodeMap_.BcKeys[actNodes[iNode]] = StdVector<BcType>(dofsPerUnknown,NOBC);
+         }
+         nodeMap_.BcKeys[actNodes[iNode]][(*actHBC)->dof] = HDBC;
+         bcCounter_[HDBC]++;
+      }
+    }
+
+    //Get Grip of IdBC List for the fefunction
+    const IdBcList idbcs = feFunction_->GetInHomDirichletBCs();
+    IdBcList::const_iterator actIBC;
+
+    for(actIBC = idbcs.Begin(); actIBC != idbcs.End(); actIBC++) {
+      // Get all (Virtual) Nodes of the list
+      GetNodesOfEntities(actNodes,(*actIBC)->entities);
+      for(UInt iNode = 0 ; iNode < actNodes.GetSize();iNode++){
+         //TODO find the source
+         //make it zero based
+         if( nodeMap_.BcKeys.find(actNodes[iNode]) == nodeMap_.BcKeys.end()){
+           nodeMap_.BcKeys[actNodes[iNode]] = StdVector<BcType>(dofsPerUnknown,NOBC);
+         }
+         // check first, if this node was already processed
+         if( nodeMap_.BcKeys[actNodes[iNode]][(*actIBC)->dof] != IDBC) {
+           nodeMap_.BcKeys[actNodes[iNode]][(*actIBC)->dof] = IDBC;
+           bcCounter_[IDBC]++;
+         }
+      }
+    }
+
+    //Get Grip of constraint List for the fefunction
+    const ConstraintList constraints = feFunction_->GetConstraints();
+    ConstraintList::const_iterator actConstr;
+    for(actConstr = constraints.Begin(); actConstr != constraints.End(); actConstr++) {
+      StdVector<UInt> slaveNodes;
+      GetNodesOfEntities(slaveNodes,(*actConstr)->slaveEntities);
+      UInt masterDof = (*actConstr)->masterDof;
+      UInt slaveDof = (*actConstr)->slaveDof;
+      UInt mNode = slaveNodes[0];
+
+      for ( UInt iNode = 1; iNode < slaveNodes.GetSize(); iNode++ ) {
+        if( nodeMap_.BcKeys.find(slaveNodes[iNode]) == nodeMap_.BcKeys.end()){
+          nodeMap_.BcKeys[slaveNodes[iNode]] = StdVector<BcType>(dofsPerUnknown,NOBC);
+        }
+        nodeMap_.BcKeys[slaveNodes[iNode]][slaveDof] = CS;
+        nodeMap_.constraintNodes[std::pair<Integer,Integer>(slaveNodes[iNode],slaveDof)] = std::pair<Integer,Integer>(mNode,masterDof);
+        bcCounter_[CS]++;
+      }
+    }
+
+    //DEBUG output reaenable along with logging
+    //std::map< Integer,StdVector<FeSpace::BcType> >::iterator iter = nodeMap_.BcKeys.begin();
+    //for(iter; iter!= nodeMap_.BcKeys.end();iter++){
+    //  std::cout << "The node #" << iter->first << " has the following flags: " << std::endl;
+    //  for(UInt i = 0; i < iter->second.GetSize() ; i++){
+    //    std::cout <<  iter->second[i] << std::endl;
+    //  }
+    //  std::cout << std::endl;
+    //}
+  }
+  void FeSpaceH1::MapEdgeBCs(){
+    
+    
+    // === Homogeneous Dirichlet BC ===
+    const HdBcList hdbcs = feFunction_->GetHomDirichletBCs();
+    HdBcList::const_iterator actHBC;
+    // determine number of solution components
+    UInt numComp = feFunction_->GetResultInfo()->dofNames.GetSize();
+
+    for(actHBC = hdbcs.Begin(); actHBC != hdbcs.End(); actHBC++) {
+      
+      shared_ptr<EntityList> actList =((*actHBC)->entities);
+      UInt actComp = (*actHBC)->dof;
+      
+      // Check, that list contains only (surface)elements
+      EntityIterator elemIt = actList->GetIterator();
+      StdVector<UInt> numEdgeFncs;
+      // Loop over all elements
+      for( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
+        const Elem * actEl = elemIt.GetElem();
+        BaseFE * actFe = GetFe(elemIt);
+        actFe->GetNumFncs( numEdgeFncs, BaseFE::EDGE);
+        
+        // Loop over all edges
+        StdVector<UInt> vEdges = virtualEdges_[actEl->elemNum];
+        UInt numEdges = vEdges.GetSize();
+        for( UInt iEdge = 0; iEdge < numEdges; ++iEdge ) {
+          UInt actEdge = vEdges[iEdge];
+          UInt numFncs = numEdgeFncs[iEdge];
+          
+          // check, if edge got already assigned
+          if( edgeMap_.BcKeys.find(actEdge) == edgeMap_.BcKeys.end()){
+            edgeMap_.BcKeys[actEdge].Resize(numComp);
+
+            // resize and initialize all components of the result 
+            for( UInt i = 0; i < numComp; ++i ) {
+              edgeMap_.BcKeys[actEdge][i].Resize(numFncs);
+              edgeMap_.BcKeys[actEdge][i].Init(NOBC);
+            }
+          } // if
+          // set BC key for HDBC
+          edgeMap_.BcKeys[actEdge][actComp].Init(HDBC);
+        } // loop over edges
+      }
+      
+      
+      
+    }
+    
+    // === Inhomogeneous Dirichlet BC ===
+    
+    // === Constraints Dirichlet BC ===
+    
+  }
+  void FeSpaceH1::MapFaceBCs(){
+    Warning ("Implement FeSpaceH1::MapFaceBCs()");
+  }
+  void FeSpaceH1::MapInteriorBCs(){
+    Warning ("Implement FeSpaceH1::MapInteriorBCs()");
   }
 
-  //! Map BC Equation 
-  void FeSpaceH1::MapBCs(){
-
-  
-  }
   
   //=======================================================
   //Perform Nodal equation Numbering
@@ -152,7 +292,7 @@ namespace CoupledField {
     shared_ptr<ResultInfo> feFctResult;
     StdVector< shared_ptr<EntityList> > fctEntList;
     StdVector< shared_ptr<EntityList> >::iterator entIt;
-    std::map< Integer , StdVector<BC_Type> >::iterator bcIt;
+    std::map< Integer , StdVector<BcType> >::iterator bcIt;
     UInt actNode = -1;
 
     switch(phase){
@@ -223,7 +363,78 @@ namespace CoupledField {
     }
   }
 
-  //! Reorder the equation Map (just for comptibility)
+  //! Map Edge Equation Numbers
+   void FeSpaceH1::MapEdgeEqns(UInt phase){
+     
+     
+     if( phase == 1 ) {
+       //Get result for the feFunction
+       shared_ptr<ResultInfo >feFctResult = feFunction_->GetResultInfo();
+       UInt numComp = feFctResult->dofNames.GetSize();
+
+       // Loop over all elements in virtual Edges
+       std::map< UInt, StdVector<UInt> >::iterator elemIt = virtualEdges_.begin();
+       for( ; elemIt != virtualEdges_.end(); elemIt++ ) {
+         StdVector<UInt> & edges = elemIt->second;
+         UInt numEdges = 0;
+         BaseFE * fe = GetFe( elemIt->first );
+
+         // Loop over all edges of element
+         for( UInt iEdge = 0; iEdge < numEdges; ++iEdge ) {
+           UInt actEdge = edges[iEdge];
+
+           // Get Maximum number of functions for this edge
+           UInt maxFncs = fe->GetNumFncs( BaseFE::EDGE, iEdge );
+           Matrix<Integer> & edgeEqns = edgeMap_.eqns[actEdge];
+
+           // check if edge is already mapped
+           if( edgeEqns.GetNumCols() == 0 || edgeEqns.GetNumRows() == 0 ) {
+             // Resize matrix (numComponents x numFunctions)
+             edgeEqns.Resize( numComp, maxFncs);
+
+             // Loop over all dofs
+             for( UInt iComp = 0; iComp < numComp; ++iComp ) {
+
+               // get exact number of functions for this dof
+               // -> at the moment we assume, that we have the same number
+               // of unknowns for every component
+
+               // perform numbering, taking into account the boundary conditions
+               for( UInt iFnc = 0; iFnc < maxFncs; ++iFnc ) {
+
+                 BcType actBc = NOBC;
+                 if( edgeMap_.BcKeys.find( actEdge) != edgeMap_.BcKeys.end() ) {
+                   actBc = (edgeMap_.BcKeys[actEdge])[iFnc][iComp];
+                 }
+                 if( actBc == NOBC ) {
+                   edgeEqns[iFnc][iComp] = ++numEqns_;
+                 }
+               } // functions
+             }// components
+           } // if edge is not mapped
+         } // edges
+       } // elements
+     } else if ( phase == 2 ) {
+       
+       
+     } else {
+
+       EXCEPTION("In FeSpaceH1::MapEdgeEqns(): Supplied wrong argument for the numbering phase");
+     }
+
+   }
+
+   //! Map Face Equation Numbers
+   void FeSpaceH1::MapFaceEqns(UInt phase){
+     Warning("In FeSpaceH1::MapFaceEquations(UInt phase): This FeSpace currently only supports nodal equation numbering");
+   }
+
+   //! Map Interior Equation Numbers
+   void FeSpaceH1::MapInteriorEqns(UInt phase){
+     Warning("In FeSpaceH1::MapInteriorEquations(UInt phase): This FeSpace currently only supports nodal equation numbering");
+   }
+  
+  //! Reorder the equation Map (just for compatibility)
   void FeSpaceH1::ReorderEqnMap( StdVector<UInt> newOrder ){
     if(!newOrder.GetSize()){
       return;
@@ -240,37 +451,223 @@ namespace CoupledField {
       }
       mapIt++;
     }
+    // EDGE PART
+    
+    // FACE PART
+    
+    // INNER PART
   }
 
   void FeSpaceH1::PrintEqnMap(){
-     std::map< Integer , StdVector<Integer> >::iterator mapIt = nodeMap_.eqns.begin();
-     std::cout << "EQUATION MAPPING" << std::endl << std::endl;
-     std::cout << "nodeNr \t|\t equationNr" << std::endl;
-     std::cout << "-----------------------------------------------" << std::endl;
-     while(mapIt != nodeMap_.eqns.end()){
-       for(UInt iDof =0; iDof < mapIt->second.GetSize(); iDof++){
-         std::cout << mapIt->first << "\t|\t" << mapIt->second[iDof] << std::endl;
-       }
-       mapIt++;
-     }
+    
+    // =================================
+    // 1) Virtual Nodes / Edges / Faces
+    // =================================
+    
+    // Print virtual Nodes information in the following form
+    
+    // iterate over all elements
+    shared_ptr<Grid> ptGrid = feFunction_->GetGrid();
+    std::map< UInt, ElemVirtualNodes >::iterator elemIt;
+    
+    for( elemIt = virtualNodes_.begin(); 
+        elemIt != virtualNodes_.end(); elemIt++ ) {
+     
+      // print element information (type, region, connect, edges, faces)
+      const Elem * ptElem = ptGrid->GetElem(elemIt->first);
+      std::cout << "=========================================\n"
+                << " Elem #" << elemIt->first << std::endl
+                << "=========================================\n";
+      std::cout << "Type: " << Elem::feType.ToString( ptElem->type ) << std::endl;
+      std::cout << "Connect: " << ptElem->connect.ToString( 0 ) << std::endl;
+      
+      // Print edge  information
+      std::cout << "Edges: ";
+      for( UInt i=0, numEdges = ptElem->edges.GetSize(); i < numEdges; ++i ) {
+        Integer edgeNum = ptElem->edges[i];
+        const Edge& myEdge = ptGrid->GetEdge(std::abs(edgeNum) );
+        std::cout << "E #" << edgeNum << " (" 
+                  << myEdge.nodes[0] << "-> " << myEdge.nodes[1] << "), ";
+      }
+      std::cout << "\n\n";
+      
+      // Print face  information
+      std::cout << "Faces: ";
+      for( UInt i=0, numFaces = ptElem->faces.GetSize(); i < numFaces; ++i ) {
+        Integer faceNum = ptElem->faces[i];
+        const Face& myFace = ptGrid->GetFace(faceNum);
+        std::cout << "F #" << faceNum << " (" << myFace.nodes.ToString( 0 ) << "), ";
+      }
+      std::cout << "\n\n";
+
+      // ---------------
+      //  VIRTUAL NODES 
+      // ---------------
+      std::cout << "a) Nodal mapping\n" 
+      << "----------------\n";
+      StdVector<UInt> & vVertexNodes = elemIt->second[BaseFE::VERTEX];
+      StdVector<UInt> & vEdgeNodes = elemIt->second[BaseFE::EDGE];
+      StdVector<UInt> & vFaceNodes = elemIt->second[BaseFE::FACE];
+      StdVector<UInt> & vInnerNodes = elemIt->second[BaseFE::INTERIOR];
+      
+      StdVector<UInt> rVertexNodes(vVertexNodes.GetSize());
+      StdVector<UInt> rEdgeNodes(vEdgeNodes.GetSize());
+      StdVector<UInt> rFaceNodes(vFaceNodes.GetSize());
+      StdVector<UInt> rInnerNodes(vInnerNodes.GetSize());
+      rVertexNodes.Init(0);
+      rEdgeNodes.Init(0);
+      rFaceNodes.Init(0);
+      rInnerNodes.Init(0);
+      
+
+      // loop over nodal connectivity of element and try to find corresponding virtual node
+      for( UInt i = 0; i < ptElem->connect.GetSize(); ++i ) {
+        UInt actNode = ptElem->connect[i];
+        
+        // vertex nodes
+        Integer index = vVertexNodes.Find(gridToVirtualNodes_[actNode]); 
+        if( index > -1 ) {
+          rVertexNodes[index] = vVertexNodes[index];
+        }
+        // edge nodes
+        index = vEdgeNodes.Find(gridToVirtualNodes_[actNode]); 
+        if( index > -1 ) {
+          rEdgeNodes[index] = vEdgeNodes[index];
+        }
+        // face nodes
+        index = vFaceNodes.Find(gridToVirtualNodes_[actNode]); 
+        if( index > -1 ) {
+          rFaceNodes[index] = vFaceNodes[index];
+        }
+        // inner nodes
+        index = vInnerNodes.Find(gridToVirtualNodes_[actNode]); 
+        if( index > -1 ) {
+          rInnerNodes[index] = vInnerNodes[index];
+        }
+      }
+      std::cout << "vVertexNodes: " << vVertexNodes.ToString(0) << std::endl;
+      std::cout << "real nodes:   " << rVertexNodes.ToString(0) << std::endl << std::endl;
+      
+      std::cout << "vEdgeNodes:   " << vEdgeNodes.ToString(0) << std::endl;
+      std::cout << "real nodes:   " << rEdgeNodes.ToString(0) << std::endl << std::endl;
+      
+      std::cout << "vFaceNodes:   " << vFaceNodes.ToString(0) << std::endl;
+      std::cout << "real nodes:   " << rFaceNodes.ToString(0) << std::endl << std::endl;
+      
+      std::cout << "vInnerNodes:  " << vInnerNodes.ToString(0) << std::endl;
+      std::cout << "real nodes:   " << rInnerNodes.ToString(0) << std::endl << std::endl;
+    
+    // ---------------
+    //  VIRTUAL EDGES 
+    // ---------------
+    std::cout << "b) Edge mapping\n" 
+              << "----------------\n";
+
+    const StdVector<UInt> & vEdges = virtualEdges_[elemIt->first];
+    StdVector<UInt> rEdges(vEdges.GetSize());
+    rEdges.Init(0);
+    
+    // loop over edges of element
+    for( UInt i = 0; i < ptElem->edges.GetSize(); ++i ) {
+      UInt actEdge = std::abs(ptElem->edges[i]);
+      Integer index = vEdges.Find(gridToVirtualEdges_[actEdge]); 
+      if( index > -1 ) {
+        rEdges[index] = actEdge;
+      }
+    }
+    std::cout << "vEdges:     " << vEdges.ToString(0) << std::endl;
+    std::cout << "real edges: " << rEdges.ToString(0) << std::endl << std::endl;
+    
+    // ---------------
+    //  VIRTUAL FACES 
+    // ---------------
+    std::cout << "c) Face mapping\n" 
+              << "----------------\n";
+    const StdVector<UInt> & vFaces = virtualFaces_[elemIt->first];
+      StdVector<UInt> rFaces(vFaces.GetSize());
+      
+      // loop over faces of element
+      for( UInt i = 0; i < ptElem->faces.GetSize(); ++i ) {
+        UInt actFace = ptElem->faces[i];
+        Integer index = vFaces.Find(gridToVirtualFaces_[actFace]); 
+        if( index > -1 ) {
+          rFaces[index] = vFaces[index];
+        }
+      }
+      std::cout << "vFaces:     " << vFaces.ToString(0) << std::endl;
+      std::cout << "real faces: " << rFaces.ToString(0) << std::endl << std::endl;
+    std::cout << std::endl;
+    }  
+    
+    
+    // =================================
+    // 1) Equation numbering
+    // =================================
+    shared_ptr<ResultInfo> feFctResult = feFunction_->GetResultInfo();
+    // ---------------
+    //  NODES
+    // ---------------
+    std::map< Integer , StdVector<Integer> >::iterator nodeIt = nodeMap_.eqns.begin();
+    std::map< Integer , StdVector<BcType> >::iterator nodeBcIt;
+    
+    std::cout << "EQUATION MAPPING" << std::endl << std::endl;
+    std::cout << "nodeNr \t|" <<  std::setw (8) <<"  Comp" << "|\t eqnNr \t|\t BC" << std::endl;
+    std::cout << "-----------------------------------------------" << std::endl;
+    while(nodeIt != nodeMap_.eqns.end()){
+      nodeBcIt = nodeMap_.BcKeys.find(nodeIt->first);
+      for(UInt iDof =0; iDof < nodeIt->second.GetSize(); iDof++){
+        // virtual node number (only once for all dofs)
+        if( iDof == 0)
+          std::cout << nodeIt->first;
+        else
+          std::cout << "       ";
+        // component 
+        std::cout << "\t|" << std::setw (8) << feFctResult->dofNames[iDof];
+         // eqn number
+        std::cout << "|\t" << nodeIt->second[iDof];
+        // bc type
+        std::cout << "\t|\t"; 
+        if(  nodeBcIt != nodeMap_.BcKeys.end() ) {
+          if( nodeBcIt->second[iDof] != NOBC ) {
+            std::cout << bcType.ToString(nodeBcIt->second[iDof]);
+          } 
+        }
+        std::cout << std::endl;
+      }
+      nodeIt++;
+    }
+    
+    // ---------------
+    //  EDGES
+    // ---------------
+    std::map< Integer, Matrix<Integer> >::iterator edgeIt = edgeMap_.eqns.begin();
+    std::map< Integer, StdVector< StdVector<BcType> > >::iterator edgeBcIt = edgeMap_.BcKeys.begin();  
+    
+    std::cout << std::endl;
+    std::cout << "edgeNr \t|" <<  std::setw (8) <<"  Comp"
+              <<  std::setw (8) <<"  Func"<< "|\t eqnNr \t|\t BC" << std::endl;
+    std::cout << "-----------------------------------------------" << std::endl;
+    while(edgeIt != edgeMap_.eqns.end()){
+      edgeBcIt = edgeMap_.BcKeys.begin();
+      
+      edgeIt++;
+    }
+    
+    // ---------------
+    //  FACES
+    // ---------------
+    
+    // ... IMPLEMENT ME ...
+    
+    // ---------------
+    //  INTERIOR
+    // ---------------
+    
+    // ... IMPLEMENT ME ...
+
   }
 
 
-  //! Map Edge Equation Numbers
-  void FeSpaceH1::MapEdgeEquations(UInt phase){
-    EXCEPTION("In FeSpaceH1::MapEdgeEquations(UInt phase): This FeSpace currently only supports nodal equation numbering");
-  }
-
-  //! Map Face Equation Numbers
-  void FeSpaceH1::MapFaceEquations(UInt phase){
-    EXCEPTION("In FeSpaceH1::MapFaceEquations(UInt phase): This FeSpace currently only supports nodal equation numbering");
-  }
-
-  //! Map Inerior Equation Numbers
-  void FeSpaceH1::MapInteriorEquations(UInt phase){
-    EXCEPTION("In FeSpaceH1::MapInteriorEquations(UInt phase): This FeSpace currently only supports nodal equation numbering");
-  }
-
-  
+ 
 
 }

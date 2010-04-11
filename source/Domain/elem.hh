@@ -153,7 +153,7 @@ class ElemShape;
   
   //! Description of geometry of reference elements
   
-  //! This struct contains the geometric information about a reference element.
+  //! This struct contains the geometric information about a reference element,
   //! i.e. the nodal positions, edge/face indices etc.
   //! A collection of all element shapes can be found in the variable 
   //! Elem::shapes.

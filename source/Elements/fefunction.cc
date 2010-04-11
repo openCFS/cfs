@@ -10,8 +10,6 @@ namespace CoupledField {
 
   BaseFeFunction::BaseFeFunction(){
     mHandle_ = domain->GetMathParser()->GetNewHandle();
-    isoOrder_ = 0;
-    anIsoOrder_.Resize(0);
 
   }
   
@@ -68,32 +66,19 @@ namespace CoupledField {
     return algsys_;
   }
 
-  void BaseFeFunction::SetIsoOrder(UInt order){
-    isoOrder_ = order;
-  }
-
-  UInt BaseFeFunction::GetIsoOrder(){
-    return isoOrder_;
-  }
-
-  void BaseFeFunction::SetAnIsoOrder(StdVector<UInt> order){
-    anIsoOrder_ = order;
-  }
-
-  StdVector<UInt> BaseFeFunction::GetAnIsoOrder(){
-    return anIsoOrder_;
-  }
-
   void BaseFeFunction::AddHomDirichletBc( shared_ptr<HomDirichletBc> bc ){
     hdBcs_.Push_back(bc);
+    entities_.Push_back(bc->entities);
   }
 
   void BaseFeFunction::AddInhomDirichletBc( shared_ptr<InhomDirichletBc> bc ){
     idBcs_.Push_back(bc);
+    entities_.Push_back(bc->entities);
   }
 
   void BaseFeFunction::AddInhomNeumannBC( shared_ptr<InhomNeumannBc> bc ){
     inBcs_.Push_back(bc);
+    entities_.Push_back(bc->entities);
   }
 
   void BaseFeFunction::AddConstraint( shared_ptr<Constraint> bc ){
@@ -204,7 +189,7 @@ namespace CoupledField {
     // InHomogenious BCs
     // ==================================================
 
-    //loop over all homogenious BCs
+    //loop over all inhomogeneous BCs
     for ( UInt i = 0; i < idBcs_.GetSize(); i++ ) {
       InhomDirichletBc const & actBc = *(idBcs_[i]);
 
@@ -217,7 +202,14 @@ namespace CoupledField {
 
       //RESULTINFO???
       for ( it.Begin(); !it.IsEnd(); it++ ) {
-        StdVector<Integer> eqns;
+        StdVector<Integer> eqns, vEqns;
+        // check type of space: if it is the "normal" H1, we set all of the
+        // boundary nodes to the specified value.
+        // If it is the H1Hi, we set the EDGE /FACE / INNER nodes to zero,
+        // as we assume a linear boundary condition.
+        if( feSpace_->GetSpaceType() == FeSpace::H1_HI )  {
+         feSpace_->GetEqns(vEqns, it, dof, BaseFE::VERTEX ); 
+        }
         feSpace_->GetEqns( eqns, it, dof  );
 
         for( UInt iEqn = 0; iEqn < eqns.GetSize(); iEqn++){
@@ -238,9 +230,17 @@ namespace CoupledField {
           parser->SetExpr( mHandle_, actBc.value );
           val = parser->Eval( mHandle_ );
           pde_->TransformBC(val, val, eqnNr);
-
-          algsys_->SetDirichlet(  fctId_, eqnNr, val);
-        }
+          
+          // if we have the higher order H1 space, we just set
+          // the dirichelt values for the vertex unknowns.
+          // The edge/face/inner ones are assumed to be constant.
+          if( feSpace_->GetSpaceType() == FeSpace::H1_HI 
+              && iEqn >= vEqns.GetSize() )  {
+            algsys_->SetDirichlet(  fctId_, eqnNr, 0.0);
+          } else {
+            algsys_->SetDirichlet(  fctId_, eqnNr, val);
+          }
+        } // for eqns
       }
     }
   }

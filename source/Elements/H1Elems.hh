@@ -35,7 +35,7 @@ namespace CoupledField {
     virtual void SetIsoOrder(UInt order){
       // after debugging phase, this EXCEPTION can become a warning
       EXCEPTION("Trying to set the ISOTROPIC order of an element which does not support this opeeration.\
-                The element will reamin unchanged!");
+                The element will remain unchanged!");
     }
 
     //! Set the Anisotropic order of the Element. This methods gets overwritten 
@@ -44,8 +44,8 @@ namespace CoupledField {
     //! \param order (input) vector of element orders for each space direction 
     virtual void SetAnisoOrder(StdVector<UInt> order){
       // after debugging phase, this EXCEPTION can become a warning
-      EXCEPTION("Trying to set the ANISOTROPIC order of an element which does not support this opeeration.\
-                The element will reamin unchanged!");
+      EXCEPTION("Trying to set the ANISOTROPIC order of an element which does not support this operation.\
+                The element will remain unchanged!");
     }
 
   protected:
@@ -93,15 +93,9 @@ namespace CoupledField {
     //! Pre-calculate values at integration points
     void SetIntPoints( StdVector<LocPoint>& intPoints );
 
-    ////! Get number of shape functions for a given type (NODE/EDGE/FACE/ELEM)
-    //void GetNumFncs( StdVector<UInt>& numFcns,
-    //                 const shared_ptr<AnsatzFct>& fcnType,
-    //                 AnsatzFct::FctEntityType fctEntityType,
-    //                 UInt dof = 1 );
-
     //! Get number of shape functions for a given type (NODE/EDGE/FACE/ELEM)
     void GetNumFncs( StdVector<UInt>& numFcns,
-                     ElementEntityType fctEntityType,
+                     EntityType fctEntityType,
                      UInt dof = 1 );
 
     //! Get the permutation Vector for a given Face or Edge
@@ -116,7 +110,7 @@ namespace CoupledField {
     */
     virtual void GetFncPermutation( StdVector<UInt>& fncPermutation,
                                     const Elem* ptElem,
-                                    ElementEntityType fctEntityType,
+                                    EntityType fctEntityType,
                                     UInt entNumber);
 
     ////! Return shape function
@@ -130,7 +124,7 @@ namespace CoupledField {
     //                    UInt comp = 1 );
 
     //! returns the number of functions for a single edge or face
-    UInt GetNumFncsPerEntType( ElementEntityType fctEntityType, UInt dof = 1);
+    UInt GetNumFncsPerEntType( EntityType fctEntityType, UInt dof = 1);
 
   protected:
 
@@ -147,7 +141,6 @@ namespace CoupledField {
 
     //! Value of local derivatives of shape functions at integration points
     StdVector<Matrix<Double> > shapeDerivAtIp_;
-
 
   };
 
@@ -291,24 +284,6 @@ namespace CoupledField {
                           const Vector<Double>& point );
    };
 
-
-  // ========================================================================
-  // Lagrange H1 elements of arbitrary order (evaluation using
-  // general Lagrange polynomials)
-  // ========================================================================
-
-   //! Lagrangian line element of variable order
-   class FeH1LoLineVar : public FeH1 {
-
-   };
-   //! Lagrangian quadrilateral element of variable order 
-   class FeH1LoQuadVar : public FeH1 {
-
-   };
-   //! Lagrangian hexahedral element of varaiable order
-   class FeH1LoHexVar : public FeH1 {
-
-   };  
   
 } // namespace CoupledField
 

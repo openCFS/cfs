@@ -38,6 +38,17 @@ namespace CoupledField
     friend class ElemIntegr;
 #endif
 
+    
+    //! Defines available element entity types
+    
+    //! Define element entity types, on which unknowns are associated with,
+    //! i.e. vertex (= corner nodes), node (= all nodes), edges, faces and
+    //! the interior.
+    typedef enum { ALL, VERTEX, NODE, EDGE, FACE, INTERIOR} EntityType;
+    
+    //! Static Enum for conversion of ElemShapeType
+    static Enum<EntityType> entityType;
+    
     //! constructor (does nothing)
     BaseFE();
 
@@ -55,27 +66,42 @@ namespace CoupledField
     virtual Elem::FEType feType() {return feType_;}
     
     //! Get total number of dofs for particular dof
-    virtual UInt GetNumFncs( ) {return actNumFcns_;}
+    virtual UInt GetNumFncs( ) {return actNumFncs_;}
+    
+    //! Get cumulated number of shape functions for entities of given type (node/edge/face/inner)
+    virtual UInt GetNumFncs( EntityType entType,
+                             UInt dof = 1);
+     
 
-    //! Get number of shape functions for a given type
+    //! Get number of shape functions for all entities of given type (edge/face etc.)
+    
+    //! This method delivers for a given entity type (NODE/EDGE/FACE/INNER) the number
+    //! of unknowns associated with each NODE/EDGE/FACE/INNER.
+    //! \param numFncs (out) Vector containing the number of unkowns associated with each 
+    //!                      of given type
+    //! \param entType (in) Type of entity (NODE, EDGE, FACE, INNER)
+    //! \Note: For Lagrangian elements, only the entity type NODE is defined.
     virtual void GetNumFncs( StdVector<UInt>& numFcns,
-                             ElementEntityType fctEntityType,
+                             EntityType entType,
                              UInt dof = 1) = 0;
 
-    //! Get the permutation Vector for a given Face or Edge
+    //! Get the nodal permutation Vector for a given Face or Edge
     //! e.g. If asked for a face, the element will check the flags
     //! of this face and return a vector of size NumberOfFncs on the Face
     //! holding the correct ordering 
     /*!
       \param fncPermutation (output) The Permuation Vector 
       \param ptElem (input) pointer to Grid Element to get grip of flags 
-      \param fctEntityType (input) The Entity type, Node/Edge/Face
+      \param fctEntityType (input) The Entity type, Node/Edge/Face where the 
+                                   nodes are located at
       \param entNumber (input) The local entity number 
     */
-    virtual void GetFncPermutation( StdVector<UInt>& fncPermutation,
-                                    const Elem* ptElem,
-                                    ElementEntityType fctEntityType,
-                                    UInt entNumber){
+    //! \Note: For non-Lagrangian elements, only the VERTEX fctEntityType returns
+    //!        values, as the higher order coefficients are not associated to nodes.
+    virtual void GetNodalPermutation( StdVector<UInt>& fncPermutation,
+                                      const Elem* ptElem,
+                                      EntityType fctEntityType,
+                                      UInt entNumber){
     };
 
     //! Get value of all shape fnc at integration point ip
@@ -85,7 +111,7 @@ namespace CoupledField
     */
     virtual void GetShFnc( Vector<Double>& S, const LocPoint& lp,
                               const Elem* ptElem,  UInt comp = 1 ){
-      //check if the shfunction is already computed
+      //check if the shape function is already computed
       if(lp.number>= shapeFncDerivsAtIp_.GetSize() || comp!=1){
         CalcShFnc( S, lp.coord);
       }else{
@@ -163,11 +189,15 @@ namespace CoupledField
      
      //! Compute shape function at given position
      virtual void CalcShFnc( Vector<Double>& shape,
-                             const Vector<Double>& point ) = 0;
+                             const Vector<Double>& point ) {
+       EXCEPTION("CalcShFnc not properly overwritten");
+     }
 
      //! Compute local derivative at of shape function at given position
      virtual void CalcDerivShFnc( Matrix<Double> & deriv, 
-                                 const Vector<Double>& point ) = 0;
+                                 const Vector<Double>& point ) {
+       EXCEPTION("CalcDerivShFnc not properly overwritten");
+     }
      
      // =======================================================================
      //  PRE CALCULATION OF SHAPE FUNCTIONS AT INTEGRATION POINTS
@@ -180,11 +210,12 @@ namespace CoupledField
      StdVector< Matrix<Double> > shapeFncDerivsAtIp_;
 
     //! Actual number of ansatz functions
-    UInt actNumFcns_;
+    UInt actNumFncs_;
     
     //! Actual Order of the element
     UInt order_;
 
+    //! Geometrix type of finite element
     Elem::FEType feType_;
   };
 
