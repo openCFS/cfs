@@ -1853,14 +1853,15 @@ namespace CoupledField {
 
     // once again: loop over all regions and make sure that there is either
     // a normal material or a composite material
+    numRegions = subdoms_.GetSize();
+    std::map<RegionIdType, BaseMaterial*>::iterator matEnd = materials_.end();
+    std::map<RegionIdType, Composite>::iterator
+        compEnd = compositeMaterials_.end();
+    
     for( i = 0; i < numRegions; ++i ) {
-      regionNodes[i]->GetValue( "name", region );
-      RegionIdType actRegionId = ptgrid_->GetRegion().Parse( region );
-      if (subdoms_.Find(actRegionId) < 0)
-        continue;
-      if ((materials_.find(actRegionId) == materials_.end())
-          && (compositeMaterials_.find(actRegionId) 
-              == compositeMaterials_.end())) {
+      RegionIdType actRegionId = subdoms_[i];
+      if ((materials_.find(actRegionId) == matEnd)
+          && (compositeMaterials_.find(actRegionId) == compEnd)) {
         EXCEPTION("Region '" << region << "' has no material assigned.");
       }
     }
