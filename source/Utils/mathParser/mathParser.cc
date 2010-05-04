@@ -16,7 +16,12 @@
 
 namespace CoupledField {
   
-  
+// Some remarks:
+// One new instance of muParser (i.e. when obtaining a new handle), requires 
+// about 3-10 kB of memory. Additional memory is of course required, for
+// registered variables.
+
+
   // Static variable instantiation 
   std::list<Double> MathParser::dynamicPool_ = std::list<Double>();
 
