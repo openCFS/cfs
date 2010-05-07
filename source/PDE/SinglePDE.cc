@@ -2958,25 +2958,57 @@ namespace CoupledField {
     out.clear();
     out << "PML for region '" << ptgrid_->GetRegion().ToString(actRegion) << "':" << std::endl;
 
+    // only determine inner region, if not specified by hand using the
+    // <propRegion> sub-element
     if ( inner.GetNumCols() != dim_ ) {
 
       //we have to compute it, since the user has not specified it
       inner.Resize(2,dim_);
-      inner.Init();
+      
+      // The layout of inner is as follows
+      // min( x_min y_min z_min )
+      // max( x_max y_max z_max )
+      
+      // Set maximum values to minus large value and the minimum to large value
+      Double largeVal = 1e33;
+      for(UInt i = 0; i < dim_; i++ ) {
+        inner[0][i] =   largeVal;
+        inner[1][i] = - largeVal;
+      }
 
+      // Determine list of propagation regions (= all regions except the PML)
+      StdVector<RegionIdType> propRegions;
+      bool hasRealPropRegion = false;
       for (UInt isd = 0; isd < subdoms_.GetSize(); isd++) {
         if ( subdoms_[isd] != actRegion ) {
-          StdVector<Elem*> elemssd;
-          ptgrid_->GetElems(elemssd, subdoms_[isd] );
+          hasRealPropRegion = true;
+          propRegions.Push_back( subdoms_[isd]);
+        }
+      }
+      // If we have no "real" propagation region, i.e. only one or several
+      // PML regions, we can not uniquely determine the damping parameters.
+      // In this case the user needs to define the propagation region by hand,
+      // so we issue an exception;
+      // we can not uniquely 
+      if( !hasRealPropRegion ){
+        EXCEPTION("The acousitc PDE has only PML damped regions. \nThus the "
+            << "automatic calculation of damping parameters does not work!\n"
+            << "Use the <propRegion> element instead do define the propagation "
+            << "region explicitly!");
+      }
 
-          for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
-            StdVector<UInt> & connecth = elemssd[actEl]->connect;
+      for (UInt isd = 0; isd < propRegions.GetSize(); isd++) {
+        StdVector<Elem*> elemssd;
+        ptgrid_->GetElems(elemssd, propRegions[isd] );
 
-            Matrix<Double> ptCoord;
-            ptgrid_->GetElemNodesCoord(ptCoord, connecth,  false );
-            for (UInt i=0; i< ptCoord.GetNumCols(); i++) {
-              //minInnerX
-              if ( ptCoord[0][i] < inner[0][0] )
+        for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
+          StdVector<UInt> & connecth = elemssd[actEl]->connect;
+
+          Matrix<Double> ptCoord;
+          ptgrid_->GetElemNodesCoord(ptCoord, connecth,  false );
+          for (UInt i=0; i< ptCoord.GetNumCols(); i++) {
+            //minInnerX
+            if ( ptCoord[0][i] < inner[0][0] )
                 inner[0][0] = ptCoord[0][i];
 
               //minInnerY
@@ -3005,9 +3037,7 @@ namespace CoupledField {
             }
           }
         }
-      }
     }
-
     out << "Acoustic propagation coordinates:\n"
         << "   xmin = " << inner[0][0] << std::endl
         << "   xmax = " << inner[1][0] << std::endl
