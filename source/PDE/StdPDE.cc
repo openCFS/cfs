@@ -404,6 +404,34 @@ namespace CoupledField {
     }
   }
 
+  // real valued method (for TRANSIENT ): returns previous solution
+  //                                      for element
+  void StdPDE::GetPrevSolVecOfElement( Vector<Double>& elemSol,
+                                       const EntityIterator& it,
+                                       shared_ptr<ResultInfo> res ) {
+
+    if ( solPrev_ == NULL ) 
+      EXCEPTION("Previous Solution not defined");
+
+    StdVector<Integer> eqns;
+    eqnMap_->GetEqns( eqns, *res, it );
+
+
+    elemSol.Resize( eqns.GetSize() );
+    elemSol.Init(0);
+    NodeStoreSol<Double> * solhelp = 
+      dynamic_cast<NodeStoreSol<Double>*>(solPrev_);
+    Vector<Double> & sol = solhelp->GetAlgSysVector();
+    
+    for( UInt i = 0; i < eqns.GetSize(); i++ ) {
+      if ( eqns[i] != 0 ) {
+        elemSol[i] = sol[abs(eqns[i])-1];
+      } else {
+        elemSol[i] = 0.0;
+      }
+     }
+  }
+
   //stores an algsys_ vector into an StdVector
   void StdPDE::StoreAlgsysToVec(Vector<Double>& vec, Double * pt) {
 

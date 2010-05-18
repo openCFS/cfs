@@ -129,7 +129,14 @@ namespace CoupledField {
     /** Calculate acoustic power. */
     template <class TYPE>
     void CalcAcouPower( shared_ptr<BaseResult> vals);
-    
+
+    /** Calculate acoustic energy. */
+    template <class TYPE>
+    void CalcAcouEnergy( shared_ptr<BaseResult> vals);
+
+    //! computes praticle velocity out of pressure    
+    void  CalcVelFromPressure( shared_ptr<BaseResult> vals );
+
     //! calculate Force acting on specified surface elements
     template <class TYPE> 
     void CalcForce( shared_ptr<BaseResult> vals );
@@ -147,6 +154,9 @@ namespace CoupledField {
     //! Calculate acoustic intensity
     template <class TYPE>
     void CalcAcouIntensity( shared_ptr<BaseResult> vals );
+
+    //! Do some jobs befor computation  starts
+    virtual void PreparePDE4Computation();
 
     // ========================
     // set solution information
@@ -189,6 +199,9 @@ namespace CoupledField {
     // Postprocessing results
     // ========================
 
+    // stores acoustic particle velocity; needed for energy computation
+    std::map<RegionIdType, Vector<Double> > acouParticleVelocity_;
+
     //! right hand side vector
     NodeStoreSol<Double> rhs_; 
 
@@ -201,6 +214,7 @@ namespace CoupledField {
     //! variable speed of sound( combustion noise )
     NodeStoreSol<Double> speedOfSound_; 
 
+    bool isAPML;  //flag for almost PML formulation
     bool plotRHS_; // Flag for saving of rhs for output
     bool plotRHSVel_; // Flag for saving of rhs as a vector field
     bool justInterpolate_; // Should only the RHS interpolation be performed?

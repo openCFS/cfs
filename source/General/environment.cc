@@ -406,6 +406,9 @@ namespace CoupledField {
       return "m/s";
       break;
 
+    case ACOU_ENERGY:
+      return "Ws";
+      break;
 
     case ELEC_CHARGE:
       return "C";
@@ -1716,6 +1719,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_POWER, "acouPower");
     SolutionTypeEnum.Add(ACOU_INTENSITY, "acouIntensity");
     SolutionTypeEnum.Add(ACOU_SURFINTENSITY, "acouSurfIntensity");
+    SolutionTypeEnum.Add(ACOU_ENERGY, "acouEnergy");
     SolutionTypeEnum.Add(ACOU_PMLAUXVEC,"acouPmlAuxVec");
     SolutionTypeEnum.Add(ACOU_PMLAUXSCALAR, "acouPmlAuxScalar");
 

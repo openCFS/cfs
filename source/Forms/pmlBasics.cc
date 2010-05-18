@@ -471,7 +471,7 @@ namespace CoupledField
         factor = 0;
       }else{
         factor = abs (dampingFactor_ / divisor );
-        //std::cout << "got factor " << factor;
+        //std::cout << "Factor: " << factor << std::endl;
         //std::cout << " at Position " << pos[idx] << " in " << idx << " direction" << std::endl;
       }
 
@@ -515,6 +515,7 @@ namespace CoupledField
 
       factor = dampingFactor_ * 
         ( diffCoord/delta - std::sin(2*PI*diffCoord/delta) / ( 2*PI ) );
+      //std::cout << "Factor: " << factor << std::endl;
 
     }
 

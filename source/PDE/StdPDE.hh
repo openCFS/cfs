@@ -219,6 +219,10 @@ namespace CoupledField {
     void GetDeriv2SolVecOfElement( Vector<Complex>& sol, const EntityIterator& it, 
                                    shared_ptr<ResultInfo> res);
 
+    /// returns the vector of the previous solution belonging to all nodes of the actual element
+    void GetPrevSolVecOfElement( Vector<Double>& sol, const EntityIterator& it, 
+                                 shared_ptr<ResultInfo> res );
+
     //! Init the time stepping
     virtual void InitTimeStepping()
     {EXCEPTION("InitTimeStepping not implemented");};

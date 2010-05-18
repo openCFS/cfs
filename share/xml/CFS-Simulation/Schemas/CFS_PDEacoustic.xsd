@@ -275,7 +275,7 @@
           <!-- Damping factor -->
           <xsd:element name="dampFactor" type="xsd:double" minOccurs="0" maxOccurs="1" />
 
-          <!--xsd:element name="aPML"  type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no"/-->
+          <xsd:element name="aPML"  type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no"/>
         </xsd:sequence>
 
       </xsd:extension>
@@ -749,6 +749,13 @@
     </xsd:restriction>
   </xsd:simpleType>
 
+  <!-- Definition of region result types of magnetic PDE -->
+  <xsd:simpleType name="DT_AcousticRegionResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="acouEnergy"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
 
   <!-- Global type for specifying desired electrostatic output quantities -->
   <xsd:complexType name="DT_AcousticStoreResults">
@@ -782,7 +789,7 @@
         </xsd:element>
 
         <!-- Region result definition -->
-        <!-- <xsd:element name="regionResult" minOccurs="0"
+        <xsd:element name="regionResult" minOccurs="0"
           maxOccurs="unbounded">
           <xsd:complexType>
             <xsd:complexContent>
@@ -791,7 +798,7 @@
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
-        </xsd:element> -->
+        </xsd:element>
 
         <!-- Surface result definition -->
         <xsd:element name="surfElemResult" minOccurs="0"

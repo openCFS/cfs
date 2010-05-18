@@ -53,6 +53,7 @@ namespace CoupledField {
       maxTimeDerivOrder_ = 2;
       fracDamping_ = false;
 
+      isAPML = false;
       isMechCoupled_ = false;
       isNrbcCoupled_ = false;
       variableSpeedOfSoundCN_ = false;
@@ -424,21 +425,21 @@ namespace CoupledField {
         
         GetPMLLayerData(inner, outer, actRegion);
 
-        if ( analysistype_ == HARMONIC ) {  
-          std::string formsType;
+        // check for almost PML formulation
+        std::string formsType;
+        std::string helpStr;
+        pmlNode->GetValue("aPML",helpStr);
+        if ( helpStr == "yes" ) {
+          //almost PML formulation: just makes since in 3D
+          if ( dim_ != 3) 
+            EXCEPTION( "APML formulation just makes sense in 3D");
+          
+          isAPML = true;
+          std::cout << "\n DO APML\n" << std::endl;
+        }
 
-          bool isAPML = false;
-          std::string helpStr;
-          pmlNode->GetValue("aPML",helpStr);
-          if ( helpStr == "yes" ) {
-            //almost PML formulation: just makes since in 3D
-            if ( dim_ != 3) 
-              EXCEPTION( "APML formulation just makes sense in 3D");
 
-            isAPML = true;
-            std::cout << "\n DO APML\n" << std::endl;
-          }
-   
+        if ( analysistype_ == HARMONIC ) {     
           //====================================================================
           //	 stiffness integrator for PML
           //====================================================================
@@ -596,71 +597,71 @@ namespace CoupledField {
                                        actSDList, actSDList );
           assemble_->AddBiLinearForm( auxStiffContext);
 
-                //if ( dim_ == 3 ) {
-                //  //3D computation: so we need in addition a scalar auxillary variable
+          if ( dim_ == 3 && isAPML == false ) {
+            //3D computation: so we need in addition a scalar auxillary variable
                 
-                //  //====================================================================
-                //  //	 scalar axuillary grad integrator for time domain PML
-                //  //====================================================================
-                //  formsType = "auxGrad";
-                //  factorPDE = -1.0;
-                //  BaseForm * bilinearAuxGrad =
-                //    new PMLTimeInt(formsType, factorPDE, dampingTypePML, dampPML, isaxi_);
-                  
-                //  bilinearAuxGrad->SetPosPML(inner,outer);
-                  
-                //  BiLinFormContext * auxGradContext =
-                //    new BiLinFormContext( bilinearAuxGrad, STIFFNESS );
-                  
-                //  auxGradContext->SetPtPdes(this, this);
-                //  auxGradContext->SetResults( results_[1], results_[2],
-                //                              actSDList, actSDList );
-                //  assemble_->AddBiLinearForm( auxGradContext);
-                
-                //  //====================================================================
-                //  //   	 scalar axuillary stiffness integrator for time domain PML
-                //  //====================================================================
-                //  factorPDE = density/(c0*c0);
-                //  std::string formsType = "scalarAuxStiff";
-                  
-                //  BaseForm * bilinearScalarAuxStiff =
-                //    new PMLTimeInt(formsType, factorPDE, dampingTypePML, dampPML, isaxi_);
-                  
-                //  bilinearScalarAuxStiff->SetPosPML(inner,outer);
-                  
-                //  BiLinFormContext * scalarAuxStiffContext =
-                //    new BiLinFormContext( bilinearScalarAuxStiff, STIFFNESS );
-                  
-                //  scalarAuxStiffContext->SetPtPdes(this, this);
-                //  scalarAuxStiffContext->SetResults( results_[0], results_[2],
-                //                                     actSDList, actSDList );
-                //  assemble_->AddBiLinearForm( scalarAuxStiffContext);
-                  
-                //  //====================================================================
-                //  //	 scalar axuillary mass integrator for time domain PML
-                //  //====================================================================
-                //  coeffmass = 1.0;
-                //  MassInt* bilinearMass  = new MassInt(coeffmass, 1, isaxi_ );
-                  
-                //  BiLinFormContext * massScalarAuxContext =
-                //    new BiLinFormContext( bilinearMass, DAMPING );
-                //  massScalarAuxContext->SetResults( results_[2], results_[2],
-                //                           actSDList, actSDList );
-                //  massScalarAuxContext->SetPtPdes(this, this);
-                //  assemble_->AddBiLinearForm( massScalarAuxContext );        
-                
-                //  //====================================================================
-                //  //	 pressure mass integrator for time domain PML
-                //  //====================================================================
-                //  coeffmass = -1.0;
-                //  MassInt* bilinearMassPress  = new MassInt(coeffmass, 1, isaxi_ );
-                //  BiLinFormContext * massPressContext =
-                //    new BiLinFormContext( bilinearMassPress, STIFFNESS );
-                //  massPressContext->SetResults( results_[2], results_[0],
-                //                                actSDList, actSDList );
-                //  massPressContext->SetPtPdes(this, this);
-                //  assemble_->AddBiLinearForm( massPressContext );   
-                //} 
+            //====================================================================
+            //	 scalar axuillary grad integrator for time domain PML
+            //====================================================================
+            formsType = "auxGrad";
+            factorPDE = -density;
+            BaseForm * bilinearAuxGrad =
+              new PMLTimeInt(formsType, factorPDE, dampingTypePML, dampPML, isaxi_);
+            
+            bilinearAuxGrad->SetPosPML(inner,outer);
+            
+            BiLinFormContext * auxGradContext =
+              new BiLinFormContext( bilinearAuxGrad, STIFFNESS );
+            
+            auxGradContext->SetPtPdes(this, this);
+            auxGradContext->SetResults( results_[1], results_[2],
+                                        actSDList, actSDList );
+            assemble_->AddBiLinearForm( auxGradContext);
+            
+            //====================================================================
+            //   	 scalar axuillary stiffness integrator for time domain PML
+            //====================================================================
+            factorPDE = density/(c0*c0);
+            std::string formsType = "scalarAuxStiff";
+            
+            BaseForm * bilinearScalarAuxStiff =
+              new PMLTimeInt(formsType, factorPDE, dampingTypePML, dampPML, isaxi_);
+            
+            bilinearScalarAuxStiff->SetPosPML(inner,outer);
+            
+            BiLinFormContext * scalarAuxStiffContext =
+              new BiLinFormContext( bilinearScalarAuxStiff, STIFFNESS );
+            
+            scalarAuxStiffContext->SetPtPdes(this, this);
+            scalarAuxStiffContext->SetResults( results_[0], results_[2],
+                                               actSDList, actSDList );
+            assemble_->AddBiLinearForm( scalarAuxStiffContext);
+            
+            //====================================================================
+            //	 scalar axuillary mass integrator for time domain PML
+            //====================================================================
+            coeffmass = density;
+            MassInt* bilinearMass  = new MassInt(coeffmass, 1, isaxi_ );
+            
+            BiLinFormContext * massScalarAuxContext =
+              new BiLinFormContext( bilinearMass, DAMPING );
+            massScalarAuxContext->SetResults( results_[2], results_[2],
+                                              actSDList, actSDList );
+            massScalarAuxContext->SetPtPdes(this, this);
+            assemble_->AddBiLinearForm( massScalarAuxContext );        
+            
+            //====================================================================
+            //	 pressure mass integrator for time domain PML
+            //====================================================================
+            coeffmass = -density;
+            MassInt* bilinearMassPress  = new MassInt(coeffmass, 1, isaxi_ );
+            BiLinFormContext * massPressContext =
+              new BiLinFormContext( bilinearMassPress, STIFFNESS );
+            massPressContext->SetResults( results_[2], results_[0],
+                                          actSDList, actSDList );
+            massPressContext->SetPtPdes(this, this);
+            assemble_->AddBiLinearForm( massPressContext );   
+          } 
           
          
 
@@ -964,8 +965,8 @@ namespace CoupledField {
       if ( putSecondResult2EQNclass ) {
         eqnMap_->AddResult( *results_[1], actSDList );
         putSecondResult2EQNclass = false;
-//         if ( dim_ == 3 ) 
-//           eqnMap_->AddResult( *results_[2], actSDList );
+        if ( dim_ == 3 && isAPML == false ) 
+          eqnMap_->AddResult( *results_[2], actSDList );
       }
     }
 
@@ -1815,6 +1816,19 @@ namespace CoupledField {
       }
       break;
 
+    case ACOU_ENERGY:
+      if( isComplex_ ) {
+        //        CalcAcouEnergy<Complex>( result );
+        EXCEPTION( "Acoustic energy currently only computable for time "
+                   << "analysis!" );
+      } else {
+        //first compute particle velocity
+        if ( formulation_ == ACOU_PRESSURE )
+          CalcVelFromPressure( result );
+        CalcAcouEnergy<Double>( result );
+      }
+      break;
+
     default:
       WARN( "Resulttype not computable by acoustic PDE" );
     }
@@ -2386,161 +2400,177 @@ namespace CoupledField {
     delete gradOp;
   }
 
-  /**  template <class TYPE>
-       void AcousticPDE::CalcAcouPower( shared_ptr<BaseResult> vals ) {
 
-       // currently we just support harmonic analysis: complex data
+  template<class TYPE>
+  void AcousticPDE::CalcAcouEnergy(shared_ptr<BaseResult> vals)
+  {
+    //get frequency
+//     MathParser * parser = domain->GetMathParser();
+//     parser->SetExpr( mHandle_, "f" );
+//     Double actFreq = parser->Eval( mHandle_ );
 
-       //get frequency
-       MathParser * parser = domain->GetMathParser();
-       parser->SetExpr( mHandle_, "f" );
-       Double actFreq = parser->Eval( mHandle_ );
+    //check solution type and compute factor
+    SolutionType solType;
+    if ( formulation_ == ACOU_PRESSURE ) {
+      solType = ACOU_PRESSURE;
+    }
+    else {
+      solType = ACOU_POTENTIAL;
+    }
 
-       //check solution type and compute factor
-       SolutionType solType;
-       Complex multVal = 0;
+    //some help variables
+    Vector<TYPE> gradVal(dim_);
+    TYPE elemEnergy;
 
-       // factor 0.5 is due to the fact, that the values are peak values
-       if ( formulation_ == ACOU_PRESSURE ) {
-       solType = ACOU_PRESSURE;
-       multVal = Complex(0.0, -0.5/ (2.0*PI*actFreq) );
-       }
-       else {
-       solType = ACOU_POTENTIAL;
-       multVal = Complex(0.0, -0.5*(2.0*PI*actFreq));
-       }
+    // convert result object
+    Result<TYPE> &  actRes =
+      dynamic_cast<Result<TYPE>&>(*vals);
+    EntityIterator regionIt = actRes.GetEntityList()->GetIterator();
 
-       NodeStoreSol<TYPE> * solhelp = dynamic_cast<NodeStoreSol<TYPE>*>(sol_);
+    // resize vector
+    Vector<TYPE> & actVal = actRes.GetVector();
+    actVal.Resize( actRes.GetEntityList()->GetSize() );
+    actVal.Init();
 
+    // Loop over regions
+    for( regionIt.Begin(); !regionIt.IsEnd(); regionIt++ ) {
+      // get material parameters
+      Double density, compressibility, c0;
+      materials_[regionIt.GetRegion()]
+        ->GetScalar(density,DENSITY,Global::REAL);
+      materials_[regionIt.GetRegion()]
+        ->GetScalar(compressibility,ACOU_BULK_MODULUS,Global::REAL);
+      Double pressFactor = 1.0 / compressibility;
 
-       //some help variables
-       Vector<Double> lCoordSurf, lCoordVol, normal;
-       Vector<TYPE> gradVal(dim_);
-       Vector<TYPE> elemIntensity(dim_);
+      ElemList actSDList(ptgrid_ );
+      actSDList.SetRegion( regionIt.GetRegion() );
+      EntityIterator elemIt = actSDList.GetIterator();
+      
+      RegionIdType actRegion = regionIt.GetRegion();
+      Vector<Double>& acouVel = acouParticleVelocity_[actRegion];
 
+      TYPE energy = 0.0;
+      for ( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
+        BaseFE * ptElem = elemIt.GetElem()->ptElem;
+        ptElem->SetAnsatzFct( results_[0]->fctType );
+        const UInt nrIntPts = ptElem->GetNumIntPoints();
+        const Vector<Double> & intWeights = ptElem->GetIntWeights();  
+        
+        Matrix<Double> ptCoord;
+        ptgrid_->GetElemNodesCoord( ptCoord, 
+                                    elemIt.GetElem()->connect,
+                                    true );
 
-       Elem * ptVolElem;
-       BaseFE * ptSurfElemFE, * ptVolElemFE;
+        // get solution and time derivative of it
+        Vector<TYPE> elemSol, elemSolTimeDeriv;
+        GetSolVecOfElement(elemSol,elemIt,results_[0]);
+        GetDerivSolVecOfElement(elemSolTimeDeriv,elemIt,results_[0]);
 
-       TYPE gradNormal = 0.0;
-       TYPE elemPower  = 0.0;
-       Double normSign = 0;
-       Double density  = 0.0;
-       UInt pdeElemNum = 0;
+        // Loop over integration points
+        TYPE elemEnergy = 0.0;
+        Matrix<Double> xiDx, xiDxTransp;
+        Vector<Double> shpFnc;
+        Double jacDet;
 
-       // Create vector with interpolation coordinate.
-       // For simplicity we only evaluate the integral
-       // in coordinate origin
-       lCoordSurf.Resize(dim_-1);
-       lCoordSurf.Init(0);
+        // sum over all integration points
+        for( UInt iPt = 0; iPt < nrIntPts; iPt++ ) {
 
-       // Create operator for gradient computation of solution
-       GradientFieldOp<TYPE> * gradOp =
-       new GradientFieldOp<TYPE>(ptgrid_, this, eqnMap_, *solhelp,
-       solType, results_[0], isaxi_);
+          //pressure at IP
+          ptElem->GetShFncAtIp(shpFnc,iPt+1,elemIt.GetElem());
+          TYPE pressureAtIp;
+          if ( solType == ACOU_POTENTIAL ) {
+            elemSolTimeDeriv.Inner(shpFnc,pressureAtIp); 
+            pressureAtIp *= density;
+          }
+          else {
+            elemSol.Inner(shpFnc,pressureAtIp); 
+          }
 
-       // convert result object
-       Result<TYPE> &  actRes =
-       dynamic_cast<Result<TYPE>&>(*vals);
-       EntityIterator regionIt = actRes.GetEntityList()->GetIterator();
+          //compute global derivatives and  jacobian determinant
+          ptElem->GetGlobDerivShFncAtIp(xiDx, iPt+1, ptCoord, jacDet, elemIt.GetElem());
+          if (isaxi_) {
+            Vector<Double> CoordAtIP;
+            CoordAtIP = ptCoord * shpFnc;
+            jacDet *=  2 * PI * CoordAtIP[0];
+          }
 
-       // resize vector
-       Vector<TYPE> & actVal = actRes.GetVector();
-       actVal.Resize( actRes.GetEntityList()->GetSize() );
+          //compute square of particle velocity
+          xiDx.Transpose(xiDxTransp);
+          Double factorGrad;
+          if ( solType == ACOU_PRESSURE ) {
+            for ( UInt i=0; i<dim_; i++ ) 
+              gradVal[i] = acouVel[elemIt.GetPos()*dim_ + i];
 
-       // Loop over regions
-       for( regionIt.Begin(); !regionIt.IsEnd(); regionIt++ ) {
-       SurfElemList actSDList(ptgrid_ );
-       actSDList.SetRegion( regionIt.GetRegion() );
-       EntityIterator it = actSDList.GetIterator();
+            gradVal.Inner(gradVal,factorGrad);
+          }
+          else {
+            gradVal = xiDxTransp * elemSol; 
+            gradVal.Inner(gradVal,factorGrad); 
+          }
 
-       // Loop over all surface elements
-       UInt counterElems = 0;
-       for ( it.Begin(); !it.IsEnd(); it++, counterElems++ ) {
+          elemEnergy += 0.5*intWeights[iPt]*jacDet*
+            ( density*factorGrad + pressFactor*pressureAtIp*pressureAtIp );
+        }
 
-       const SurfElem * actSurfElem = it.GetSurfElem();
-       // Determine, which volume element is the right neighbour for the
-       // calculation;
-       // our normal should point out of the correct neighbor volume element!
-       if (   surfNeighborRegions_[vals] ==
-       actSurfElem->ptVolElem1->regionId ) {
-       ptVolElem = actSurfElem->ptVolElem1;
-       normSign = 1.0;
-       }
-       else {
-       ptVolElem = actSurfElem->ptVolElem2;
-       normSign = -1.0;
-       }
+        actVal[regionIt.GetPos()] += elemEnergy;
+      }
+    }
+  }
 
-       normSign *= (Double) actSurfElem->normalSign;
+  void AcousticPDE::CalcVelFromPressure( shared_ptr<BaseResult> vals )
+  {
+    Vector<Double> lCoord;
+    Vector<Double> tempGrad;
+    NodeStoreSol<Double> & solhelp = dynamic_cast<NodeStoreSol<Double>&>(*sol_);
 
-       ptSurfElemFE = actSurfElem->ptElem;
-       ptVolElemFE = ptVolElem->ptElem;
+    // Create operator for gradient computation of solution
+    GradientFieldOp<Double> * gradOp =
+      new GradientFieldOp<Double>(ptgrid_, this, eqnMap_, solhelp,
+                                ACOU_PRESSURE, results_[0], isaxi_);
 
-       const StdVector<UInt> & surfConnect = actSurfElem->connect;
-       const StdVector<UInt> & volConnect = ptVolElem->connect;
+    // convert result object
+    Result<Double> &  actRes =
+      dynamic_cast<Result<Double>&>(*vals);
+    EntityIterator regionIt = actRes.GetEntityList()->GetIterator();
+    
+    Double dt = TS_alg_->GetTimeStep() ;
 
-       // calculate volume integration coordinates from
-       // surface integration coordinat for evalauting the
-       // gradient on the surface of the volume element
-       ptSurfElemFE->GetCoordMidPoint(lCoordSurf);
-       ptVolElemFE->GetLocalIntPoints4Surface(surfConnect, volConnect,
-       lCoordSurf, lCoordVol);
+    // Loop over regions
+    for( regionIt.Begin(); !regionIt.IsEnd(); regionIt++ ) {
+      // get material parameters
+      Double density, factor;
+      materials_[regionIt.GetRegion()]
+        ->GetScalar(density,DENSITY,Global::REAL);
 
-       BaseMaterial * myMat = materials_[ptVolElem->regionId];
-       myMat->GetScalar(density,DENSITY,Global::REAL);
+      factor = dt / density;
 
-       Matrix<Double> CornerCoords;
-       ptgrid_->GetElemNodesCoord( CornerCoords, surfConnect, false );
-       Double area = ptSurfElemFE->CalcVolume( CornerCoords, isaxi_);
+      ElemList actSDList(ptgrid_ );
+      actSDList.SetRegion( regionIt.GetRegion() );
+      EntityIterator elemIt = actSDList.GetIterator();
 
-       // Calc gradient
-       ElemList elList(ptgrid_);
-       elList.SetElement( ptVolElem );
-       EntityIterator it2 = elList.GetIterator();
-       gradOp->CalcElemGradField(gradVal, it2,
-       lCoordVol,1.0);
-       // Calc global normal
-       ptgrid_->CalcSurfNormal(normal, *actSurfElem);
+      //get acoustic particle velocity array for current region     
+      RegionIdType actRegion = regionIt.GetRegion();
+      Vector<Double>& vel = acouParticleVelocity_[actRegion];
 
-       normal    *= normSign;
-       gradNormal = normal * gradVal;
+      for ( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
+        elemIt.GetElem()->ptElem->GetCoordMidPoint(lCoord);
+        //computes -(nabla p); minus included!
+        gradOp->CalcElemGradField( tempGrad, elemIt, lCoord, 1); 
 
-       //get average solution
-       TYPE elemSol = 0;
-       TYPE nodeSol;
-       for ( UInt k=0; k<surfConnect.GetSize(); k++) {
-       solhelp->Get(solType, surfConnect[k]-1,0, nodeSol);
-       elemSol += nodeSol;
-       }
-       elemSol /= (Double)surfConnect.GetSize();
+        //scale the gardient
+        tempGrad *= factor;
 
-       // get the conjugate complex value
-       elemSol = std::conj(elemSol);
+        for(UInt iDim = 0; iDim < dim_; iDim++ ) {
+          vel[elemIt.GetPos()*dim_ + iDim] += tempGrad[iDim];
+        }
+      }
+      //      std::cout << "elIdx: " << elIdx << std::endl;
+    }
+    //    std::cout << "elIdxEnd: " << elIdx << std::endl;
+    delete gradOp;
+    
+  }
 
-       pdeElemNum = eqnMap_->Mesh2PdeElem(ptVolElem->elemNum);
-       //pdeElemNum = eqnMap_->Mesh2PdeElem(actSurfElem->elemNum);
-
-       if ( formulation_ == ACOU_PRESSURE ) {
-       elemPower = multVal * gradNormal * elemSol / density;
-       }
-       else {
-       elemPower = multVal * density * gradNormal * elemSol;
-       }
-
-       //take the real part and multiply it with surface
-       elemPower *= area;
-
-       actVal[regionIt.GetPos()] += elemPower;
-
-       }
-
-       }
-
-       delete gradOp;
-
-
-       } **/
 
 
   // ***********************************************************************
@@ -2638,30 +2668,30 @@ namespace CoupledField {
         availResults_.insert( res2 );
         results_.Push_back( res2 );
 
-//         if( subType_ == "3d" ) {
-//           // === scalar auxillary variable ===
-//           shared_ptr<ResultInfo> res3(new ResultInfo); 
-//           res3->resultType = ACOU_PMLAUXSCALAR;
-//           res3->dofNames = "psi";
-//           res3->unit = "";
-//           if ( approxType == "lagrange" ) {
-//             shared_ptr<AnsatzFct> fct(new LagrangeFct);
-//             res3->definedOn = ResultInfo::NODE;
-//             res3->fctType = fct;
-//           } else {
-//             UInt order = myParam_->Get("order")->AsUInt();
+        if( subType_ == "3d" && isAPML == false ) {
+          // === scalar auxillary variable ===
+          shared_ptr<ResultInfo> res3(new ResultInfo); 
+          res3->resultType = ACOU_PMLAUXSCALAR;
+          res3->dofNames = "psi";
+          res3->unit = "";
+          if ( approxType == "lagrange" ) {
+            shared_ptr<AnsatzFct> fct(new LagrangeFct);
+            res3->definedOn = ResultInfo::NODE;
+            res3->fctType = fct;
+          } else {
+            UInt order = myParam_->Get("order")->As<UInt>();
             
-//             // Create new resultDof object
-//             shared_ptr<LegendreFct> fct(new LegendreFct);
-//             fct->SetIsoOrder( order );
-//             //fct->order_ = order;
-//             res3->definedOn = ResultInfo::PFEM;
-//             res3->fctType = fct;
-//           }
-//           res3->entryType = ResultInfo::SCALAR;
-//           availResults_.insert( res3 );
-//           results_.Push_back( res3 );  
-//         }
+            // Create new resultDof object
+            shared_ptr<LegendreFct> fct(new LegendreFct);
+            fct->SetIsoOrder( order );
+            //fct->order_ = order;
+            res3->definedOn = ResultInfo::PFEM;
+            res3->fctType = fct;
+          }
+          res3->entryType = ResultInfo::SCALAR;
+          availResults_.insert( res3 );
+          results_.Push_back( res3 );  
+        }
       }
     }
 
@@ -2776,6 +2806,16 @@ namespace CoupledField {
     force->definedOn = ResultInfo::SURF_ELEM;
     force->fctType = shared_ptr<ConstFct>(new ConstFct() );
     availResults_.insert( force );
+
+    // === ACOU_ENERGY ===
+    shared_ptr<ResultInfo> energy(new ResultInfo);
+    energy->resultType = ACOU_ENERGY;
+    energy->dofNames = "";
+    energy->unit = "Ws";
+    energy->entryType = ResultInfo::SCALAR;
+    energy->definedOn = ResultInfo::REGION;
+    energy->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert( energy );
 
     // ===================================
     // Check for non-conforming interfaces
@@ -2895,6 +2935,37 @@ namespace CoupledField {
 
     //get maximal damping factor (saturation)
     actNode->GetValue( "dampFactorMax", dampFactorMax );
+  }
+
+  void AcousticPDE::PreparePDE4Computation()  {
+    //computation of acoustic energy in case of pressure formulation
+
+    ResultMap::iterator it = resultLists_.begin();
+
+    bool isAcouEnergy = false;
+    // iterate over all results
+    for( ; it != resultLists_.end(); it++ ) {
+      ResultList & actList = it->second;
+
+      // iterate over all solutions for each result type
+      for( UInt i = 0; i < actList.GetSize(); i++ ) {
+        if ( actList[i]->GetResultInfo()->resultType == ACOU_ENERGY 
+             && formulation_ == ACOU_PRESSURE ) {
+          isAcouEnergy = true;
+        }
+      }
+    }
+
+    if ( isAcouEnergy ) { 
+      // get memory to store acoustic particle velocity
+      RegionIdType actRegion;
+      std::map<RegionIdType, BaseMaterial*>::iterator it;
+      for ( it = materials_.begin(); it != materials_.end(); it++ ) {
+        actRegion = it->first;
+        acouParticleVelocity_[actRegion].Resize(numElems_*dim_);
+        acouParticleVelocity_[actRegion].Init();
+      }
+    }
   }
 
 } // end of namespace
