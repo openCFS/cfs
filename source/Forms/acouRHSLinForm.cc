@@ -115,7 +115,7 @@ namespace CoupledField {
         intNode->GetValue("restartFileMode", restartFileMode_, ParamNode::PASS);
         
         // verbosity of warnings
-        tmpNode = intNode->Get("nodeWARNs", ParamNode::PASS);
+        tmpNode = intNode->Get("nodeWarnings", ParamNode::PASS);
         if (tmpNode) {
           std::string dispStr = tmpNode->Get("display")->As<std::string>();
           if (dispStr == "verbose")
