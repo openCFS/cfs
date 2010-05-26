@@ -2420,7 +2420,6 @@ namespace CoupledField {
 
     //some help variables
     Vector<TYPE> gradVal(dim_);
-    TYPE elemEnergy;
 
     // convert result object
     Result<TYPE> &  actRes =
@@ -2435,7 +2434,7 @@ namespace CoupledField {
     // Loop over regions
     for( regionIt.Begin(); !regionIt.IsEnd(); regionIt++ ) {
       // get material parameters
-      Double density, compressibility, c0;
+      Double density, compressibility;
       materials_[regionIt.GetRegion()]
         ->GetScalar(density,DENSITY,Global::REAL);
       materials_[regionIt.GetRegion()]
@@ -2449,7 +2448,6 @@ namespace CoupledField {
       RegionIdType actRegion = regionIt.GetRegion();
       Vector<Double>& acouVel = acouParticleVelocity_[actRegion];
 
-      TYPE energy = 0.0;
       for ( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
         BaseFE * ptElem = elemIt.GetElem()->ptElem;
         ptElem->SetAnsatzFct( results_[0]->fctType );
