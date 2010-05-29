@@ -227,8 +227,6 @@ namespace CoupledField {
       InitTimeStepping();
     }
 
-    needSolPrev_ = false;
-
     // activate direct coupling information
     // and initialize all single pdes
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
@@ -240,8 +238,9 @@ namespace CoupledField {
 
       // check if single PDE really needs previous solution
       if ( singlePDEs_[i]->BelongsPDE2PiezoHyst() 
-           || singlePDEs_[i]->BelongsPDE2MicroPiezo() ) 
+           || singlePDEs_[i]->BelongsPDE2MicroPiezo() ) {
         needSolPrev_ = true;
+      }
     }
 
     // Get information about number of dirichlet values,

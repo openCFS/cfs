@@ -3229,23 +3229,24 @@ namespace CoupledField {
       if ( !nonLinNode )
         return false;
 
-      PtrParamNode regionListNode;
-      if(cplNode->Has("regionList") )
-        regionListNode = cplNode->Get("regionList");
-      
-      if(!regionListNode->HasByVal("region", "name", regionName));
+      PtrParamNode regionNode;
+      if (  (*couplings)[idx]->GetParamNode()->
+            Get("regionList")->HasByVal("region", "name", regionName) ) {
+        regionNode = (*couplings)[idx]->GetParamNode()->
+          Get("regionList")->GetByVal("region", "name", regionName);
+      }
+      if( !regionNode)
         return false;
 
       // check for nonLin Id
       std::string nonLinId;
-      PtrParamNode regionNode = regionListNode->GetByVal("region", "name", regionName);
       regionNode->GetValue("nonLinId", nonLinId, ParamNode::PASS);
 
       if (nonLinId == "" )
         return false;
 
       // check for micro-piezo
-       isMicroPiezo = nonLinNode->HasByVal("piezoMicroHF", "id", nonLinId);
+      isMicroPiezo = nonLinNode->HasByVal("piezoMicroHF", "id", nonLinId);
       return isMicroPiezo;
     }
 
@@ -3270,7 +3271,7 @@ namespace CoupledField {
       if ( IsRegionMicroPiezo( regionName ) ) 
       	isMicroPiezo = true;	
     }
-    
+    //    std::cout << "PDE belongs to MicroPiezo" << std::endl;
     return isMicroPiezo;
   }
   
