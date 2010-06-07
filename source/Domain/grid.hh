@@ -87,6 +87,16 @@ namespace CoupledField
     // =======================================================================
     //@{ \name General Grid Information
 
+    //! Return dimension of mesh
+
+        //! Returns the geometrical dimension of the mesh. Currently only
+        //! two- and three-dimensional meshes are supported.
+        virtual UInt GetDim() = 0;
+
+        //! Return if grid uses quadratic elements
+        virtual bool IsQuadratic() = 0;
+
+        
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     //+++++++++++++++++++++++++++ NODE INFORMATION +++++++++++++++++++++++++++
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -99,17 +109,9 @@ namespace CoupledField
     virtual void SetNodeCoordinate(const UInt numNode, const Vector<Double> & rfPoint)
     { EXCEPTION( "Not implemented" ); }
 
-    //! Return dimension of mesh
-
-    //! Returns the geometrical dimension of the mesh. Currently only
-    //! two- and three-dimensional meshes are supported.
-    virtual UInt GetDim() = 0;
-
+    
     //! Returns the maximum node number in the finite element grid.
     virtual UInt GetNumNodes() = 0;
-
-    //! Return if grid uses quadratic elements
-    virtual bool IsQuadratic() = 0;
 
     //! Get coordinates of node with global number inode
     //! \param rfPoint (out) coordinates of point 3D
@@ -192,6 +194,9 @@ namespace CoupledField
     //! Return number of elements of a given type
     //! \param type Type of finite element (LINE, TRIA, ...)
     virtual UInt GetNumElemOfType( Elem::FEType type ) = 0;
+    
+    //! Return number of element of a given dimension
+    virtual UInt GetNumElemOfDim( UInt dim ) = 0;
 
     //! Returns the total number of volume elements in the finite element grid
     virtual UInt GetNumVolElems() = 0;

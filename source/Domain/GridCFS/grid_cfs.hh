@@ -86,6 +86,9 @@ namespace CoupledField
     //! Return number of elements of a given type
     //! \param type Type of finite element (LINE, TRIA, ...)
     UInt GetNumElemOfType( Elem::FEType type );
+    
+    //! Return number of element of a given dimension
+    UInt GetNumElemOfDim( UInt dim );
 
     //! Return dimension of mesh
 

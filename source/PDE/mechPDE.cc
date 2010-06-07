@@ -109,6 +109,11 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
                  <<  pdename_ <<  "' does not fit to problem  geometry '"
                  << probGeo << "'"; );
     }
+    
+    // Sanity check: 3D can only be computed if 3D elements are present
+    if( subType_ == "3d" && ptgrid_->GetNumElemOfDim(3) == 0 ) {
+      EXCEPTION("Can not calculate 3D mechanics without 3D elements in the grid!");
+    }
 
     //check for prestressing
     //    ReadPreStressing();

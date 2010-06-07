@@ -790,6 +790,41 @@ namespace CoupledField {
   UInt GridCFS::GetNumElemOfType( Elem::FEType type ) {
     return numElemTypes_[type];
   }
+  
+  UInt GridCFS::GetNumElemOfDim( UInt dim ) {
+
+    UInt numElems = 0;
+    switch(dim) {
+      case 1:
+        numElems = numElemTypes_[Elem::LINE2]
+                 + numElemTypes_[Elem::LINE3];
+        break;
+      case 2:
+        numElems = numElemTypes_[Elem::TRIA3]
+                 + numElemTypes_[Elem::TRIA6]
+                 + numElemTypes_[Elem::QUAD4]
+                 + numElemTypes_[Elem::QUAD8]
+                 + numElemTypes_[Elem::QUAD9];
+        break;
+      case 3:
+        numElems = numElemTypes_[Elem::TET4]
+                 + numElemTypes_[Elem::TET10]
+                 + numElemTypes_[Elem::HEXA8]
+                 + numElemTypes_[Elem::HEXA20]
+                 + numElemTypes_[Elem::HEXA27]
+                 + numElemTypes_[Elem::PYRA5]
+                 + numElemTypes_[Elem::PYRA13]
+                 + numElemTypes_[Elem::WEDGE6]
+                 + numElemTypes_[Elem::WEDGE15];
+                                 
+                                                      
+        break;
+      default:
+        EXCEPTION("Grid can only have dimension up to 33!");
+        break;
+    }
+    return numElems;
+  }
 
   void GridCFS::AddNodes(const UInt numNodes)
   {
