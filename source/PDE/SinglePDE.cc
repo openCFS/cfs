@@ -2187,17 +2187,24 @@ namespace CoupledField {
 
         for ( UInt dof = 0; dof < ptCoupling_->GetInputDof(i); dof++ ) {
           for ( UInt j = 0; j < nodes->GetSize();
-                j++, couplingBCsCounter_++) {
+                j++,couplingBCsCounter_++ ) {
 
             eqnNr = eqnMap_->GetNodeEqn( (*nodes)[j], dof+1 );
 
             if (eqnNr==0) {
-              EXCEPTION( "The specified coupling node has no equation number" );
+              // In this case, we can not perform the coupling
+              // The best would be to inform the user ONCE, that some nodes
+              // can not couple. To accomplish this, we would need some way
+              // to remember the warning we have already issued
+              //EXCEPTION( "Coupling node " << (*nodes)[j] << " has a "
+              //           << "zero equation number, so no Dirichlet BC "
+              //           << "can be assigned" );
         //        std::cerr << "node=" << *nodes)[j]
-            }
-
+            } else {
             algsys_->SetDirichlet( pdeId_, eqnNr,
                                    help[dof+j*couplingDof] );
+            
+            }
           }
         }
         break;
@@ -2976,11 +2983,13 @@ namespace CoupledField {
         inner[1][i] = - largeVal;
       }
 
-      // Determine list of propagation regions (= all regions except the PML)
+      // Determine list of propagation regions (= all region except PML regions)
       StdVector<RegionIdType> propRegions;
       bool hasRealPropRegion = false;
       for (UInt isd = 0; isd < subdoms_.GetSize(); isd++) {
-        if ( subdoms_[isd] != actRegion ) {
+        RegionIdType aRegion = subdoms_[isd];
+        if ( aRegion != actRegion 
+         && dampingList_[aRegion] != PML ) {
           hasRealPropRegion = true;
           propRegions.Push_back( subdoms_[isd]);
         }
