@@ -94,7 +94,7 @@
     </xsd:annotation>
 
     <xsd:sequence>
-      <xsd:element name="keyword" minOccurs="1" maxOccurs="unbounded"
+      <xsd:element name="keyword" minOccurs="0" maxOccurs="unbounded"
                    type="DT_DocAllowedKeywords"/>
     </xsd:sequence>
   </xsd:complexType>
@@ -109,6 +109,8 @@
 
     <xsd:restriction base="xsd:string">
       <xsd:enumeration value="abc"/>
+      <xsd:enumeration value="acoustic"/>
+      <xsd:enumeration value="mechanic-acoustic"/>
       <xsd:enumeration value="aeroacoustics"/>
       <xsd:enumeration value="complex material parameters"/>
       <xsd:enumeration value="damping"/>
