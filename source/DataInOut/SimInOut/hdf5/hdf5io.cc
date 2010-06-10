@@ -493,8 +493,16 @@ hsize_t H5IO::maxChunkSize_= 100;
         EXCEPTION( "Could not convert data for attribute '"
                    << name << "' of type " << typeid(TYPE).name() );
       }
-      H5::Attribute attr = obj.createAttribute( name, stdType,
-                                                space, create_plist );
+			
+			// if an attribute already exists, we have to open it, instead of create
+			// so we can now call WriteAttribute multiple times
+      H5::Attribute attr;
+      try{
+        attr = obj.openAttribute( name );
+      }catch(H5:: Exception&){
+        attr = obj.createAttribute( name, stdType,
+            space, create_plist );
+      }
 
       // write attribute
       attr.write( nativeType, conv.GetOutBufferPtr() );

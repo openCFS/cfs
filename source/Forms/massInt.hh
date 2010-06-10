@@ -25,7 +25,14 @@ namespace CoupledField
     // Calculation of element matrix
     void CalcElementMatrix( Matrix<Double>& elemMat,
                             EntityIterator& ent1, 
-                            EntityIterator& ent2 );
+                            EntityIterator& ent2,
+                            const DesignElement::Type direction);
+    
+    void CalcElementMatrix( Matrix<Double>& elemMat,
+                            EntityIterator& ent1, 
+                            EntityIterator& ent2) {
+      CalcElementMatrix(elemMat, ent1, ent2, DesignElement::NO_DERIVATIVE);
+    }
       
     //! Sets a multiplicative factor for element matrix
     void SetSecondFactor( const std::string& factor )
@@ -44,6 +51,8 @@ namespace CoupledField
 
     virtual void MassMultiDofZero(Matrix<Double>& massMultDofZero, 
                                   const Matrix<Double>& massMatSingleDof);
+    
+    double GetErsatzMaterialMass(const Elem* elem, DesignElement::Type direction);
   
   private:
 

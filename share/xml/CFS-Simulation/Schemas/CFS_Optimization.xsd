@@ -22,7 +22,20 @@
           <xsd:attribute name="design" use="optional" type="xsd:boolean" default="false"/>
           <xsd:attribute name="designGradient" use="optional" type="xsd:boolean" default="false"/>
         </xsd:complexType>
-      </xsd:element>      
+      </xsd:element>
+      
+      <xsd:element name="firstStepStatic" minOccurs="0" maxOccurs="1">
+        <xsd:complexType>
+          <xsd:attribute name="weight" use="optional" default="0.5">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:double">
+                <xsd:minInclusive value="0.0"/>
+                <xsd:maxInclusive value="1.0"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:attribute>
+        </xsd:complexType>
+      </xsd:element>
       
       <!-- Costfunction is mandatory and includes optional stoppingRule values
         <costFunction type="compliance" task="minimize" stoppingRule="relative" value="1e-3" queue="2"/> -->
@@ -161,10 +174,15 @@
                   <xsd:element name="elecPotential" minOccurs="0" maxOccurs="unbounded" type="DT_ElecLoad"/>
                   <!-- here the quantity attribute shall be set in the probem file. Default is acouPressure! -->
                   <xsd:element name="acoustic" minOccurs="0" maxOccurs="unbounded" type="DT_AcousticLoad"/>
-                  <xsd:element name="acousticNearField" minOccurs="0" maxOccurs="1">
+                  <xsd:element name="energyFlux" minOccurs="0" maxOccurs="1">
                     <xsd:complexType>
                       <xsd:sequence>
-                        <xsd:element name="surfRegion" type="DT_DomainSurface" minOccurs="1" maxOccurs="1"/>
+                        <xsd:element name="surfRegion" maxOccurs="1" minOccurs="1">
+                          <xsd:complexType>
+                            <xsd:attribute name="name" type="xsd:token" use="required"/>
+                            <xsd:attribute name="neighborRegion" type="xsd:token" use="required"/>
+                          </xsd:complexType>
+                        </xsd:element>
                       </xsd:sequence>
                     </xsd:complexType>
                   </xsd:element>
@@ -211,9 +229,14 @@
       </xsd:element>
       
       <!-- constraint: e.g. <constraint type="volume" value="0.5"/> optional -->
-      <xsd:element name="constraint" minOccurs="0" maxOccurs="10">
+      <xsd:element name="constraint" minOccurs="0" maxOccurs="unbounded">
         <xsd:complexType>
           <xsd:sequence>
+            <xsd:element name="factor" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:attribute name="omega_omega" type="xsd:boolean" default="false" use="optional"/>
+              </xsd:complexType>              
+            </xsd:element>
             <!-- entry is a special element for performing homogenization -->
             <xsd:element name="tensor" type="DT_MechElastTensor" minOccurs="0" maxOccurs="1"/>
             <!-- the tensor can optionally be specified by emod and poisson ratio -->
@@ -530,8 +553,55 @@
                         <!-- every regularization needs to define the type explicitly -->
                         <xsd:element name="filter" minOccurs="1">
                           <xsd:complexType>
+                            
+                            <!-- optional sub element for target sensitivity filter -->
+                            <xsd:sequence>
+                              <xsd:element name="sensitivity" minOccurs="0" maxOccurs="1">
+                                <xsd:complexType>
+                                  <xsd:attribute name="type">
+                                    <xsd:simpleType>
+                                      <xsd:restriction base="xsd:token"> 
+                                        <xsd:enumeration value="sigmund"/>
+                                        <xsd:enumeration value="sharp_sigmund"/>
+                                        <xsd:enumeration value="borrvall"/>
+                                        <xsd:enumeration value="plain"/>
+                                        <xsd:enumeration value="sharp_plain"/>
+                                      </xsd:restriction>
+                                    </xsd:simpleType>
+                                  </xsd:attribute>
+                                </xsd:complexType>
+                              </xsd:element>
+                              
+                              <!-- optional sub element for target design filter -->
+                              <xsd:element name="density" minOccurs="0" maxOccurs="1">
+                                <xsd:complexType>
+                                  <xsd:attribute name="type" use="optional" default="standard">
+                                    <xsd:simpleType>
+                                      <xsd:restriction base="xsd:token">
+                                        <xsd:enumeration value="standard"/>
+                                        <xsd:enumeration value="heaviside"/>
+                                        <xsd:enumeration value="mod_heaviside"/>
+                                      </xsd:restriction>
+                                    </xsd:simpleType>
+                                  </xsd:attribute>
+                                  <!-- the parameter for max, for the Kreisselmeier and Steinhauser approx -->
+                                  <xsd:attribute name="beta" type="xsd:float" use="optional" default="-1.0"/>
+                                </xsd:complexType>
+                              </xsd:element>
+                            </xsd:sequence>
+
+                            <!-- define for sensitivity or design filtering -->
+                            <xsd:attribute name="type" use="optional" default="sensitivity">
+                              <xsd:simpleType>
+                                <xsd:restriction base="xsd:token">
+                                  <xsd:enumeration value="sensitivity"/>
+                                  <xsd:enumeration value="density"/>
+                                </xsd:restriction>
+                              </xsd:simpleType>
+                            </xsd:attribute>
+
                             <!-- we might be of type radius or neighbours -->
-                            <xsd:attribute name="type" use="required">
+                            <xsd:attribute name="neighborhood" use="required">
                               <xsd:simpleType>  
                                 <xsd:restriction base="xsd:token">
                                   <xsd:enumeration value="radius"/>
@@ -543,8 +613,17 @@
                             
                             <xsd:attribute name="value" use="required" type="xsd:float" />
                             
-                            <!-- her we can give a desing type -->
-                            <xsd:attribute name="design" use="optional" type="DT_Design" default="density" />
+                            
+                            <!-- how the distance affects the weighting.  -->
+                            <xsd:attribute name="contribution" use="optional" default="linear">
+                              <xsd:simpleType>
+                                <xsd:restriction base="xsd:token">
+                                  <xsd:enumeration value="linear"/>
+                                  <xsd:enumeration value="constant"/>
+                                </xsd:restriction>
+                              </xsd:simpleType>
+                            </xsd:attribute>
+                            
                           </xsd:complexType>
                         </xsd:element>
                       </xsd:sequence>
@@ -597,6 +676,7 @@
                 <xsd:attribute name="region" use="optional" type="xsd:token" default="all"/>
                 <xsd:attribute name="constant" use="optional" type="xsd:boolean" default="false"/>
                 <xsd:attribute name="scale" use="optional" type="xsd:boolean" default="false"/>
+                <xsd:attribute name="adapt_lower" use="optional" type="xsd:boolean" default="false"/>
               </xsd:complexType>
             </xsd:element>
             
@@ -627,7 +707,6 @@
                   <xsd:simpleType>
                     <xsd:restriction base="xsd:token">
                       <xsd:enumeration value="design"/>
-                      <xsd:enumeration value="physicalMechDesign"/>
                       <xsd:enumeration value="designTimesCostGradient"/>
                       <xsd:enumeration value="costGradient"/>
                       <xsd:enumeration value="maxSlope"/>
@@ -915,7 +994,7 @@
       <xsd:enumeration value="gap"/>
       <xsd:enumeration value="tychonoff"/>
       <xsd:enumeration value="temperature"/>
-      <xsd:enumeration value="acousticNearField"/>
+      <xsd:enumeration value="energyFlux"/>
       <xsd:enumeration value="multiObjective"/>
     </xsd:restriction>
   </xsd:simpleType>
@@ -944,7 +1023,7 @@
   </xsd:complexType>
   
 
-    <xsd:complexType name="DT_MechElastIsotropic">
+  <xsd:complexType name="DT_MechElastIsotropic">
     <xsd:sequence>
       <xsd:element name="real" type="DT_MechElastIsotrRealImag"/>
       <xsd:element name="imag" type="DT_MechElastIsotrRealImag" minOccurs="0"/>
@@ -1020,6 +1099,5 @@
     </xsd:restriction>
   </xsd:simpleType>
   
-
 </xsd:schema>
 

@@ -18,6 +18,7 @@
 #include "DataInOut/Logging/cfslog.hh"
 #include "MatVec/basematrix.hh"
 #include "MatVec/stdmatrix.hh"
+#include "Utils/nodestoresol.hh"
 #include "OLAS/algsys/basesystem.hh"
 #include "boost/lexical_cast.hpp"
 
@@ -102,7 +103,7 @@ double PiezoSIMP::CalcElecEnergy(Excitation& excite)
   
   // traverse over our elements
   // create an element list to gain the iterator in the loop
-  ElemList elemList(domain->GetGrid());
+  ElemList elemList(grid);
   
   double sum = 0.0;
   
@@ -160,7 +161,7 @@ void PiezoSIMP::ConstructAdjointRHS(Excitation& excite, Objective* cost)
 
   // traverse over our elements
   // create an element list to gain the iterator in the loop
-  ElemList elemList(domain->GetGrid());
+  ElemList elemList(grid);
 
   shared_ptr<EqnMap> eqn_map = elec->GetEqnMap();
 
@@ -216,6 +217,7 @@ void PiezoSIMP::CalcObjectiveGradient(Excitation& excite, Objective* cost)
     factor *= 0.5; // no break! -> J = 0.5 p^T K_pp p
   case Objective::OUTPUT:
   case Objective::DYNAMIC_OUTPUT:
+  case Objective::ENERGY_FLUX:
   case Objective::GLOBAL_DYNAMIC_COMPLIANCE:
   {
     LOG_DBG2(simp) << "PS::CalcObjectiveGradient(idx=" << excite.index << ") factor = "
@@ -240,10 +242,16 @@ void PiezoSIMP::CalcObjectiveGradient(Excitation& excite, Objective* cost)
     for(unsigned int i = 0; i < design->design.GetSize(); i++)
     {
       DesignElement::Type dt = design->design[i];
-      TransferFunction*   tf = NULL;
-      int                 res_idx = -1; // we can write the details as special resul by the detail
       // we allow NULL for the transfer functions,
       // then the gradient is 0 what is done via Reset!
+      TransferFunction*   tf = NULL;
+      int                 res_idx = -1; // we can write the details as special resul by the detail
+
+      // the standard adjoint solution (u1 in the gradient)
+      Solution* adj = adjoint.Get(excite);
+      // the solution (u2 in the gradient)
+      Solution* sol = forward.Get(excite);
+
       
       // sol^T A' sol^* only for elec energy = p^T K_pp' p (real) or p^T K_pp' p^* (harmonic)
       // we solve <K_pp p, p> as K_pp is real and symmetric. Hence the inner product makes p^* in the harmonic case!
@@ -252,32 +260,32 @@ void PiezoSIMP::CalcObjectiveGradient(Excitation& excite, Objective* cost)
         // p^T K_pp' p^*
         tf = design->GetTransferFunction(dt, ELEC, true);
         res_idx = GetSpecialResultIndex(ELEC, ELEC, CONJ_QUAD);
-        CalcU1KU2(tf, forward.Get(excite)->elem[ELEC], ELEC, forward.Get(excite)->elem[ELEC], elec_rhs, factor, CONJ_QUAD, cost, NULL, res_idx);
+        CalcU1KU2(tf, sol->elem[ELEC], ELEC, sol->elem[ELEC], elec_rhs, factor, CONJ_QUAD, cost, NULL, res_idx);
       }
       
       // lambda_u * K_uu' * u
       tf = design->GetTransferFunction(dt, MECH, false); // we allow NULL
       res_idx = GetSpecialResultIndex(MECH, MECH);
       if(tf != NULL)
-        CalcU1KU2(tf, adjoint.Get(excite)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], mech_rhs, factor, STANDARD, cost, NULL, res_idx);
+        CalcU1KU2(tf, adj->elem[MECH], MECH, sol->elem[MECH], mech_rhs, factor, STANDARD, cost, NULL, res_idx);
 
       // lambda_u * K_up' * p
       tf = design->GetTransferFunction(dt, PIEZO_COUPLING, false);
       res_idx = GetSpecialResultIndex(MECH, ELEC);
       if(tf != NULL)
-        CalcU1KU2(tf, adjoint.Get(excite)->elem[MECH], PIEZO_COUPLING, forward.Get(excite)->elem[ELEC], mech_rhs, factor, STANDARD, cost, NULL, res_idx);
+        CalcU1KU2(tf, adj->elem[MECH], PIEZO_COUPLING, sol->elem[ELEC], mech_rhs, factor, STANDARD, cost, NULL, res_idx);
 
       // lambda_p * (K_up^T)' * u
       tf = design->GetTransferFunction(dt, PIEZO_COUPLING, false);
       res_idx = GetSpecialResultIndex(ELEC, MECH);
       if(tf != NULL)
-        CalcU1KU2(tf, adjoint.Get(excite)->elem[ELEC], PIEZO_COUPLING, forward.Get(excite)->elem[MECH], elec_rhs, factor, STANDARD, cost, NULL, res_idx);
+        CalcU1KU2(tf, adj->elem[ELEC], PIEZO_COUPLING, sol->elem[MECH], elec_rhs, factor, STANDARD, cost, NULL, res_idx);
 
       // lambda_p * K_pp' * p
       tf = design->GetTransferFunction(dt, ELEC, false);
       res_idx = GetSpecialResultIndex(ELEC, ELEC);
       if(tf != NULL)
-        CalcU1KU2(tf, adjoint.Get(excite)->elem[ELEC], ELEC, forward.Get(excite)->elem[ELEC], elec_rhs, factor, STANDARD, cost, NULL, res_idx);
+        CalcU1KU2(tf, adj->elem[ELEC], ELEC, sol->elem[ELEC], elec_rhs, factor, STANDARD, cost, NULL, res_idx);
     }
   }
   break;
@@ -291,17 +299,17 @@ template <class T>
 void PiezoSIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative)
 {
   TransferFunction* tf = design->GetTransferFunction(de->GetType(), app);
-  double factor = derivative ? tf->Derivative(de) : tf->Transform(de);
+  double factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
 
   Matrix<T>& out = dynamic_cast<Matrix<T>& >(*mat_out);
 
   switch(app)
   {
   case ELEC:
-    if(calcMode == STANDARD)
-      Assign(out, piezo_mat_->ElecStiffness(de->elem, -1), factor); // we need the -K_pp matrix
     if(calcMode == CONJ_QUAD)
       Assign(out, piezo_mat_->ElecStiffness(de->elem, 1), factor); // we need the K_pp matrix
+    else // STANDARD and GRAD_N
+      Assign(out, piezo_mat_->ElecStiffness(de->elem, -1), factor); // we need the -K_pp matrix
     break;
 
   case PIEZO_COUPLING:
@@ -323,7 +331,6 @@ void PiezoSIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* mat
 
   LOG_DBG2(simp) << "PiezoSIMP::SetElementK elem: " << de->elem->elemNum << " app: " << application.ToString(app) << " factor: " << factor;
 }
-
 
 
 

@@ -62,7 +62,7 @@ void SIMP::PostInit()
       {
         if(structure_ == NULL)
           structure_ = new DesignStructure(this);
-        structure_->SetFilters(list[i]);
+        structure_->SetFilters(list[i], this->optInfoNode);
       }
     }
     else
@@ -110,9 +110,9 @@ void SIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* mat_out,
   {
     const Matrix<double> &mechStiffness = mech_mat_->MechStiffness(de->elem);
     
-    // Find the transferfunction for K (e.g. DENSITY, MECH)
+    // Find the transfer function for K (e.g. DENSITY, MECH)
     TransferFunction* tf = design->GetTransferFunction(de->GetType(), app);
-    double k_factor = derivative ? tf->Derivative(de) : tf->Transform(de);
+    double k_factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
 
     // copy from real mechStiffness to potential complex out and factor the derivative
     Assign(out, mechStiffness, k_factor);
@@ -156,9 +156,7 @@ void SIMP::AddMassToStiffness(double m_factor, DesignElement* de, Matrix<complex
   // do we have damping (C = alpha*M+beta*K) -> this is pure imaginary!
   RegionIdType regionId = de->elem->regionId;
   
-  const std::map<RegionIdType,DampingType>& dlist(dynamic_cast<MechPDE*>(pde)->GetDampingList());
-  if(dlist.find(regionId) != dlist.end()
-      && dlist.find(regionId)->second == RAYLEIGH)
+  if(pde->GetDamping(regionId) == RAYLEIGH)
   {
     // we need a math parser (is an unsigned int)
     unsigned int handle = domain->GetMathParser()->GetNewHandle();
@@ -225,10 +223,6 @@ void SIMP::CalcObjectiveGradient(Excitation& excite, Objective* cost)
     // synthesis of compliant mechanism: As our adjoint PDE
     // c' = l K' u
     CalcU1KU2(tf, adjoint.Get(excite)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, weight, STANDARD, cost, NULL);
-    break;
-
-  case Objective::ACOU_NEAR_FIELD:
-    // TODO
     break;
 
   default:

@@ -28,17 +28,22 @@ namespace CoupledField
        * </ul> */
       typedef enum { NO_TYPE = -1, SIMP_TYPE, IDENTITY, RAMP, FIXED, FULL } Type;
     
-      /** applies the transformation */
-      double Transform(const DesignElement* de) const;
+      /** applies the transformation
+       * @param de containts the design value
+       * @param access if SMART and the filter is accordingly defined the filtered design is the base for penalization*/
+      double Transform(const DesignElement* de, DesignElement::Access access = DesignElement::PLAIN, double external_value = -13.456) const;
 
-      /** applies the first derivative of the transformation */
-      double Derivative(const DesignElement* de) const;
+      /** applies the first derivative of the transformation
+       * @see Transform() */
+      double Derivative(const DesignElement* de, DesignElement::Access access = DesignElement::PLAIN) const;
      
       Optimization::Application GetApplication() { return application_; }
       
       DesignElement::Type GetDesign() { return design_; }
       
       Type GetType() { return type_; }
+      
+      double GetParam() { return param_; }
 
       /** @return true for SIMP with p != 1 and RAMP != 0 */
       bool IsPenalized() const;

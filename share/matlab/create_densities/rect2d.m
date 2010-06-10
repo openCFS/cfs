@@ -14,16 +14,16 @@ xml_file = fopen(filename, 'w');
 fprintf(xml_file, '<?xml version="1.0"?>\n  <cfsErsatzMaterial>\n    <header>\n    <design constant="false" initial="0.5" lower="1e-3" name="density" region="mech" scale="false" upper="1"/>\n    <transferFunction application="mech" design="density" param="1" type="simp"/>\n  </header>\n\n');
 
 ###############################
-#fprintf(xml_file, '<set id="full">\n');
-#  for x = 1:512000;
-#    # number of current element
-#    fprintf(xml_file, '  <element nr="%d" type="density" design="1.0"/>\n', x);
-#  endfor
-#fprintf(xml_file, '</set>\n\n');
-#
+fprintf(xml_file, '<set id="full">\n');
+  for x = 1:sx*sy;
+    # number of current element
+    fprintf(xml_file, '  <element nr="%d" type="density" design="1.0"/>\n', x);
+  endfor
+fprintf(xml_file, '</set>\n\n');
+
 #fprintf(xml_file, '</cfsErsatzMaterial>\n');
 #fclose(xml_file);
-#
+
 #exit
 ###############################
 # width of element
@@ -38,7 +38,7 @@ ceny = uy/2;
 # maximal distance of any element to the center
 # = distance of element 1 to the center
 dmax = sqrt((cenx - 0.5*w)^2 + (ceny - 0.5*h)^2);
-dmin = 0.05;
+dmin = 0.001;
 
 fprintf(xml_file, '<set id="center">\n');
 for y = 1:sy;
@@ -214,6 +214,78 @@ for y = 1:sy;
 			endif
 		endif
 
+    fprintf(xml_file, '  <element nr="%d" type="density" design="%g"/>\n', num, v);
+  endfor
+endfor
+fprintf(xml_file, '</set>\n\n');
+
+fprintf(xml_file, '<set id="random2">\n');
+for y = 1:sy;
+  for x = 1:sx;
+    # number of current element
+    num = (y - 1) * sx + x;
+
+		if(x == 1 || x == sx || y == 1 || y == sy)
+			v = 1;
+		else
+			v = rand();
+      # do not use dmin here, material might get too weak
+			if(v < 0.1)
+				v = dmin;
+			endif
+		endif
+
+    fprintf(xml_file, '  <element nr="%d" type="density" design="%g"/>\n', num, v);
+  endfor
+endfor
+fprintf(xml_file, '</set>\n\n');
+
+fprintf(xml_file, '<set id="circle">\n');
+rad = sqrt((1.0-0.38)/pi);
+for y = 1:sy;
+    # center y of current element
+    cy = (y - 1) * h + 0.5*h;
+  for x = 1:sx;
+    # number of current element
+    num = (y - 1) * sx + x;
+
+    # center x of current element
+    cx = (x - 1) * w + 0.5*w;
+
+    # distance of current center to center of rect
+    dist = sqrt((cenx - cx)^2 + (ceny - cy)^2);
+
+    if dist > rad
+      v = 1.0;
+    else
+      v = dmin; 
+    end
+    fprintf(xml_file, '  <element nr="%d" type="density" design="%g"/>\n', num, v);
+  endfor
+endfor
+fprintf(xml_file, '</set>\n\n');
+
+fprintf(xml_file, '<set id="donut">\n');
+rad1 = 0.5;
+rad2 = 0.4;
+for y = 1:sy;
+    # center y of current element
+    cy = (y - 1) * h + 0.5*h;
+  for x = 1:sx;
+    # number of current element
+    num = (y - 1) * sx + x;
+
+    # center x of current element
+    cx = (x - 1) * w + 0.5*w;
+
+    # distance of current center to center of rect
+    dist = sqrt((cenx - cx)^2 + (ceny - cy)^2);
+
+    if dist > rad2 && dist < rad1
+      v = 1.0;
+    else
+      v = dmin; 
+    end
     fprintf(xml_file, '  <element nr="%d" type="density" design="%g"/>\n', num, v);
   endfor
 endfor

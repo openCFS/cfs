@@ -326,6 +326,9 @@ namespace CoupledField {
     //! Return position
     UInt GetPos() const { return pos_; }
     
+    /** The total size */
+    UInt GetSize() const { return size_; }
+
     //! This method returns for each type of unknown a characteristic string 
     
     //! This method resturn the following information (as string) for the 

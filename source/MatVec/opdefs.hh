@@ -154,6 +154,17 @@ namespace CoupledField {
     return fabs(a);
   }
 
+  template<>
+  inline Double Abs<Integer> (Integer a){
+    return abs(a);
+  }
+
+  /** this is the reason why we cannot use std::abs() as there is no definition and the compiler complaines :( */
+  template<>
+  inline Double Abs<UInt> (UInt a){
+    return a;
+  }
+
   //! Specialize Abs to compute modulus of a Complex variable
   template<>
   inline Double Abs<Complex>(Complex a) {

@@ -43,6 +43,14 @@ namespace CoupledField
     
     //! substracts -Ku from RHS
     virtual void SubstractStiffnessFromRHS(Vector<Double>& actSol);
+    
+    Double GetNewmarkBeta(){
+      return beta_;
+    }
+    
+    Double GetNewmarkGamma(){
+      return gamma_;
+    }
 
 
   private:

@@ -8,7 +8,6 @@
 #include "Domain/grid.hh"
 #include "Elements/basefe.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "boost/lexical_cast.hpp"
 #include "boost/date_time/posix_time/posix_time.hpp"
@@ -27,7 +26,9 @@ DECLARE_LOG(del)
 DEFINE_LOG(del, "designElement")
 
 // the static enum
-Enum<DesignElement::Filter>         DesignElement::filter;
+Enum<Filter::Type>                  Filter::type;
+Enum<Filter::Density>               Filter::density;
+Enum<Filter::Sensitivity>           Filter::sensitivity;
 Enum<DesignElement::Type>           DesignElement::type;
 Enum<DesignElement::ValueSpecifier> DesignElement::valueSpecifier;
 Enum<DesignElement::Access>         DesignElement::access;
@@ -52,22 +53,20 @@ void BaseDesignElement::PostInit(int objectives, int constraints)
 
 
 /** Get the gradient values for either objective or constraint */
-double BaseDesignElement::GetGradient(const Objective* f, const Condition* g) const
+double BaseDesignElement::GetPlainGradient(const Objective* f, const Condition* g) const
 {
-  assert(!(f != NULL && g != NULL));
+  assert(f == NULL || g == NULL);
 
-  // g != NULL -> Constraint
-  // f != NULL -> explicit objective including penalty
-  // g == NULL && f == NULL -> summed f (including penalty)
   if(g != NULL) return constraintGradient[g->GetIndex()];
   if(f != NULL) return costGradient[f->GetIndex()];
+
   return SumObjectiveGradient();
 }
 
 /** Sum app the old value (get and set together) */
 void BaseDesignElement::AddGradient(const Objective* f, const Condition* g, double value)
 {
-  assert(!(f != NULL && g != NULL));
+  assert(f == NULL || g == NULL);
   LOG_DBG3(del) << "AddGradient: f=" << (f == NULL ? "null" : f->type.ToString(f->GetType()))
                 << " g=" << (g == NULL ? "null" : g->ToString()) << " val=" << value
                 << " penalty " << (f != NULL ? boost::lexical_cast<std::string>(f->GetPenalty()) : "-")
@@ -115,6 +114,7 @@ DesignElement::DesignElement(PtrParamNode pn, Elem* elem) : BaseDesignElement()
 {
   Init();
   this->elem = elem;
+  this->specialResult.Resize(9, 0.0);
 
 
   // it is a little slow to perform this code for every DesignElement but the
@@ -185,34 +185,43 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
     case OPT_RESULT_1:
       out[0] = specialResult[0];
       break;
-      
     case OPT_RESULT_2:
       out[0] = specialResult[1];
       break;
-      
     case OPT_RESULT_3:
       out[0] = specialResult[2];
       break;
-
     case OPT_RESULT_4:
       out[0] = specialResult[3];
       break;
-
     case OPT_RESULT_5:
       out[0] = specialResult[4];
       break;
-
     case OPT_RESULT_6:
       out[0] = specialResult[5];
       break;
-      
+    case OPT_RESULT_7:
+      out[0] = specialResult[6];
+      break;
+    case OPT_RESULT_8:
+      out[0] = specialResult[7];
+      break;
+    case OPT_RESULT_9:
+      out[0] = specialResult[8];
+      break;
+
     default: throw Exception("solution type not handled");
     }
   }
   else
   {
     if(dofs == 1)
-      out[0] = GetValue(rd.value, rd.access);
+    {
+      if(rd.solutionType == PHYSICAL_PSEUDO_DENSITY)
+        out[0] = GetPhysicalDesign();
+      else
+        out[0] = GetValue(rd.value, rd.access);
+    }
     else
     {
       throw Exception("we only have one dof, only scalar values");
@@ -221,35 +230,59 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
   return;
 }
 
-double DesignElement::GetValue(ValueSpecifier vs, Access access) const
+double DesignElement::GetValue(ValueSpecifier vs, Access access, Condition* g) const
 {
-  double val = 0.0;
-  // we are silent if one wants filtering and it is not possible // todo: info
-  if(simp == NULL || access == PLAIN)
-    val = GetValue(vs);
-  else
-    val = simp->GetFilteredValue(vs, false);
+  // pessimistic assumption :)
+  bool sens_filter = false;
+  bool design_filter = false;
+  bool design_filter_grad = false;
 
-  //LOG_DBG3(del) << elem->elemNum << " GetValue(" << valueSpecifier.ToString(vs) << ", "
-  //              << access << " -> " << val;
+  if(access == SMART && simp != NULL && simp->filter.type_ != Filter::NO_FILTERING)
+  {
+    Filter& f = simp->filter;
+    if(f.type_ == Filter::DENSITY)
+    {
+      if(vs == DesignElement::DESIGN)
+        design_filter = true;
+      if(vs == DesignElement::COST_GRADIENT) // TODO also check for separate costs! not only sum!
+        design_filter_grad = true;
+      if(vs == DesignElement::CONSTRAINT_GRADIENT)
+        design_filter_grad = g->ForDensityFiltering();
+    }
+    else
+    {
+      if(vs == DesignElement::COST_GRADIENT)// TODO also check for separate costs! not only sum!
+        sens_filter = true;
+      if(vs == DesignElement::CONSTRAINT_GRADIENT)
+        sens_filter = g->ForSensitivityFiltering();
+    }
+  }
+
+  // we are silent if one wants filtering and it is not possible
+  double val = 0.0;
+  if(sens_filter)
+    val = simp->GetSensitivityFilteredValue(vs, g);
+  if(design_filter)
+    val = simp->GetDensityFilteredValue(vs, g, simp->filter.density_);
+  if(design_filter_grad)
+    val = simp->GetDensityFilteredGradient(vs, g);
+  if(!sens_filter && !design_filter && !design_filter_grad)
+    val = GetPlainValue(vs, g);
+
+  LOG_DBG3(del) << "GV: " << elem->elemNum << " (" << valueSpecifier.ToString(vs) << ", "
+                << (access == PLAIN ? "plain" : "smart") << ", " << (g == NULL ? "null" : g->ToString())
+                << ") sf=" << sens_filter << " df=" << design_filter << " dfg=" << design_filter_grad << " -> " << val;
   return val;
 }
 
 
-double DesignElement::GetValue(ValueSpecifier sp) const
+double DesignElement::GetPlainValue(ValueSpecifier sp, Condition* g) const
 {
   // validate first:
   switch(sp)
   {
   case DESIGN:                return design;
-  case PHYSICAL_MECH_DESIGN:
-    {
-      // C++ is amazing :((
-      const TransferFunction* tf = const_cast<const TransferFunction*>(space_->GetTransferFunction(type_, ErsatzMaterial::MECH, true));
-      return tf->Transform(this);
-    }
 
-  case DESIGN_COST_GRADIENT:  return design * SumObjectiveGradient();
   case COST_GRADIENT:         return SumObjectiveGradient();
   case WEIGHT:
     if(simp == NULL) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to SIMP");
@@ -260,6 +293,9 @@ double DesignElement::GetValue(ValueSpecifier sp) const
     return simp->neighborhood.GetSize();
 
   case CONSTRAINT_GRADIENT:
+    assert(g != NULL);
+    return constraintGradient[g->GetIndex()];
+
   case MAX_SLOPE:
   case CHECKERBOARD:
     assert(false); // should be covered before by special result index
@@ -276,27 +312,26 @@ double DesignElement::GetValue(ValueSpecifier sp) const
 }
 
 
-double DesignElement::GetObjectiveGradient(Access access) const
-{
-  double val = 0;
-
-  if(simp == NULL || access == PLAIN)
-    val = GetValue(COST_GRADIENT);
-  else
-    // see the filter definition for gradients in the
-    // 99-lines paper why we use here "design TIMES cost_gradient"
-    val = simp->GetFilteredValue(COST_GRADIENT, true);
-
-  LOG_DBG2(del) << elem->elemNum << " GetObjectiveGradient() -> " << val;
-  return val;
-}
-
 double DesignElement::GetDesign(Access access) const
 {
-  if(simp == NULL || access == PLAIN)
-    return design;
-  else
-    return simp->GetFilteredValue(DESIGN, false);
+  return GetValue(DESIGN, access);
+}
+
+double DesignElement::GetDesign() const
+{
+  EXCEPTION("use DesignElement::GetDesign(Access)");
+}
+
+double DesignElement::GetPhysicalDesign() const
+{
+  TransferFunction* tf = space_->GetTransferFunction(type_, ErsatzMaterial::ToApp(type_), true);
+
+  return tf->Transform(this, SMART);
+
+  //const TransferFunction* tf = const_cast<const TransferFunction*>(space_->GetTransferFunction(type_, ErsatzMaterial::MECH, true));
+ // return tf->Transform(this);
+
+  // we need the transder function
 }
 
 
@@ -324,10 +359,22 @@ std::string DesignElement::ToString(DesignElement* de)
 
 void DesignElement::SetEnums()
 {
-  filter.SetName("DesignElement::Filter");
-  filter.Add(RADIUS, "radius");
-  filter.Add(VOLUME_RADIUS, "volumeRadius");
-  filter.Add(MAX_EDGE, "maxEdge");
+  Filter::type.SetName("Filter::Type");
+  Filter::type.Add(Filter::NO_FILTERING, "no_filtering");
+  Filter::type.Add(Filter::SENSITIVITY, "sensitivity");
+  Filter::type.Add(Filter::DENSITY, "density");
+
+  Filter::sensitivity.SetName("Filter::Sensitivity");
+  Filter::sensitivity.Add(Filter::PLAIN, "plain");
+  Filter::sensitivity.Add(Filter::SHARP_PLAIN, "sharp_plain");
+  Filter::sensitivity.Add(Filter::SIGMUND, "sigmund");
+  Filter::sensitivity.Add(Filter::SHARP_SIGMUND, "sharp_sigmund");
+  Filter::sensitivity.Add(Filter::BORRVALL, "borrvall");
+
+  Filter::density.SetName("Filter::Density");
+  Filter::density.Add(Filter::STANDARD, "standard");
+  Filter::density.Add(Filter::HEAVISIDE, "heaviside");
+  Filter::density.Add(Filter::MOD_HEAVISIDE, "mod_heaviside");
 
   type.SetName("DesignElement::Type");
   type.Add(TENSOR_TRACE, "tensor_trace");
@@ -349,8 +396,6 @@ void DesignElement::SetEnums()
 
   valueSpecifier.SetName("DesignElement::ValueSpecifier");
   valueSpecifier.Add(DESIGN, "design");
-  valueSpecifier.Add(PHYSICAL_MECH_DESIGN, "physicalMechDesign");
-  valueSpecifier.Add(DESIGN_COST_GRADIENT, "designTimesCostGradient");
   valueSpecifier.Add(COST_GRADIENT, "costGradient");
   valueSpecifier.Add(CONSTRAINT_GRADIENT, "constraintGradient");
   valueSpecifier.Add(MAX_SLOPE, "maxSlope");
@@ -399,48 +444,229 @@ void DesignElement::SetEnums()
 SIMPElement::SIMPElement(DesignElement* base)
 {
   this->de_ = base;
-  this->filter = false;
+  this->filter = Filter();
   this->weight  = 1.0;
 }
 
-
-
-double SIMPElement::GetFilteredValue(DesignElement::ValueSpecifier sp, bool design_weighted) const
+double SIMPElement::CalcWeightSum(bool include_this) const
 {
-  // We filter over this element and the neighbours.
+  double res = 0.0;
 
-  double factor_sum = 0.0;
-  double weight_sum = 0.0;
+  for(unsigned int i = 0, n = neighborhood.GetSize(); i < n; i++)
+    res += neighborhood[i].weight;
 
-  for(UInt i = 0; i < neighborhood.GetSize(); i++)
+  if(include_this)
+    res += this->weight;
+
+  return res;
+}
+
+
+double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp, Condition* g) const
+{
+  // We filter over this element and the neighbors.
+  assert(de_->simp != NULL);
+
+  Filter* f = &de_->simp->filter;
+  assert(f->type_ == Filter::SENSITIVITY);
+
+  // See Filter::Sensitivity: w = weight, p is density, f' is cost gradient
+  // Sigmund  = sum_i w(x_i) * p_i * f_i' / p_e * sum_i w(x_i)
+  // Sharp Sigmund  = sum_i (i=e ? 1:0 : w(x_i)) * p_i * f_i' / p_e * sum_i w(x_i) + "bug" in normalized weighting
+  // Borrvall = sum_i w(x_i) * p_i * f_i' / sum_i p_i * w(x_i)
+  // plain    = sum_i w(x_i) * f_i' / sum_i w(x_i)
+  // sharp plain = plain, just the filter is setup with normalized weights with a "bug"
+
+  // factor design in numerator (SIGMUND and BORRVALL) for densitiy filtering the value is any in
+  bool numerator_design = f->sensitivity_ != Filter::PLAIN && f->sensitivity_ != Filter::SHARP_PLAIN;
+  // factor design in denominator sum (BORRVALL)
+  bool denominator_design = f->sensitivity_ == Filter::BORRVALL;
+  // weight the denominator by this design (SIGMUND)
+  bool sigmund_denominator = f->sensitivity_ == Filter::SIGMUND || f->sensitivity_ == Filter::SHARP_SIGMUND;
+  // short-cut for fake in Sharp Sigmund: i=e ? 1:0 : w(x_i)
+  bool cheat_this_weight = f->sensitivity_ == Filter::SHARP_SIGMUND || f->sensitivity_ == Filter::SHARP_PLAIN;
+
+  LOG_DBG3(del) << "FGV: el=" << de_->elem->elemNum
+                << " sp=" << DesignElement::valueSpecifier.ToString(sp)
+                << " dens=" << Filter::density.ToString(f->density_)
+                << " numerator_design=" << numerator_design
+                << " denominator_design=" << denominator_design
+                << " sigmund_denominator=" << sigmund_denominator
+                << " cheat_this_weight=" << cheat_this_weight;
+
+
+  double numerator = 0.0;
+  double denominator = 0.0;
+
+  // mathematically the neighborhood includes this element, but this is not in the structure
+  for(int i = -1, ni = (int) neighborhood.GetSize(); i < ni; i++)
   {
-    const NeighbourElement& ne = neighborhood[i];
-    double des_weight = design_weighted ?  ne.neighbour->GetDesign(DesignElement::PLAIN) : 1.0;
-    double factor = ne.weight * ne.neighbour->GetValue(sp) * des_weight;
-    factor_sum += factor;
-    weight_sum += ne.weight;
-    LOG_DBG3(del) << de_->elem->elemNum << ": neighbour " << ne.neighbour->elem->elemNum 
-    << " weight = " << ne.weight
-    << " des_weight " << des_weight
-    << " value = " << ne.neighbour->GetValue(sp);
+    const NeighbourElement* ne = i == -1 ? NULL : &neighborhood[i];
+    const DesignElement* de = i == -1 ? this->de_ : ne->neighbour;
+
+    double w = i == -1 ?  this->weight : ne->weight;
+    double nw = cheat_this_weight && i == -1 ? 1.0 : w;
+    double v = de->GetPlainValue(sp, g);
+    double x = de->GetPlainValue(DesignElement::DESIGN); // cheap if not used
+
+    double numerator_summand   = nw * v * (numerator_design ? x : 1.0);
+    double denominator_summand = w * (denominator_design ? x : 1.0);
+
+    numerator   += numerator_summand;
+    denominator += denominator_summand;
+
+    LOG_DBG3(del) << "FGV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
+                  << " w= " << w  << " nw=" << nw << " x=" << x << " v=" << v << " ns=" << numerator_summand
+                  << " ds=" << denominator_summand << " num=" << numerator << " den=" << denominator;
   }
-  // add our part :)
-  double des_weight = design_weighted ? de_->GetDesign(DesignElement::PLAIN) : 1.0;
 
-  LOG_DBG3(del) << de_->elem->elemNum << ": factor_sum = " << factor_sum << " + " << de_->GetValue(sp)
-  << " weight_sum = " << weight_sum << " + " << weight << " -> "
-  << ((factor_sum+(de_->GetValue(sp)*des_weight))/((weight_sum+weight)*des_weight)) << " instead of " << de_->GetValue(sp);
+  if(sigmund_denominator)
+    denominator *= de_->GetDesign(DesignElement::PLAIN);
 
-  factor_sum += de_->GetValue(sp) * des_weight;
-  weight_sum += this->weight;
+  LOG_DBG3(del) << "FGV: el=" << de_->elem->elemNum << ": result=" << numerator
+                << "/" << denominator << " -> " << (numerator / denominator);
 
-  // in the 99-lines paper this is inverse of this_value
-  double result = factor_sum / (weight_sum * des_weight);
-
-  return result;
-}  
+  return numerator / denominator;
+}
 
 
+double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Condition* g, Filter::Density fd) const
+{
+  // We filter over this element and the neighbors.
+  assert(de_->simp != NULL);
+
+  Filter* f = &de_->simp->filter;
+  assert(f->type_ == Filter::DENSITY);
+  assert(sp == DesignElement::DESIGN);
+
+  // All equations from Sigmund; Morphology based black and white filters for topology optimization; 2007
+  // p = rho. P is filtered rho (rho tilde)
+  // P = sum_(i in N_e) w(x_i) p_i / sum_(i in N_e) w(x_i)
+
+  double numerator = 0.0;
+  double denominator = 0.0;
+
+  // mathematically the neighborhood includes this element, but this is not in the structure
+  for(int i = -1, ni = (int) neighborhood.GetSize(); i < ni; i++)
+  {
+    const NeighbourElement* ne = i == -1 ? NULL : &neighborhood[i];
+    const DesignElement* de = i == -1 ? this->de_ : ne->neighbour;
+
+    double w = i == -1 ?  this->weight : ne->weight;
+    double x = de->GetPlainValue(DesignElement::DESIGN); // cheap if not used
+
+    numerator   += w * x;
+    denominator += w;
+
+    LOG_DBG3(del) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
+                  << " w= " << w  << " p=" << x << " num=" << numerator << " den=" << denominator;
+  }
+
+  double p_filt = numerator / denominator;
+
+  LOG_DBG3(del) << "GDFV: el=" << de_->elem->elemNum << " filtered_density=" << p_filt;
+
+  assert(fd == Filter::STANDARD || fd == Filter::HEAVISIDE || fd == Filter::MOD_HEAVISIDE);
+
+  // do we need to post proc?
+  if(fd != Filter::STANDARD)
+  {
+    double b = f->beta_;
+    assert(b >= 0.0 && b < 2000);
+    // make sure we are within the bounds
+    double ub = this->de_->GetUpperBound();
+    double lb = this->de_->GetLowerBound();
+
+    double constant = 0, first = 0, second = 0;
+
+    if(fd == Filter::HEAVISIDE)
+    {
+      constant = 1.0;
+      first    = -1.0 * std::exp(-1.0 * b * p_filt);
+      second   = p_filt * std::exp(-1.0 * b);
+    }
+    if(fd == Filter::MOD_HEAVISIDE)
+    {
+      constant = 0.0;
+      first    = std::exp(-1.0 * b * (1.0 - p_filt));
+      second   = -1.0 * (1.0 - p_filt) * std::exp(-1.0 * b);
+    }
+
+    p_filt = (ub-lb) * (constant + first + second) + lb;
+
+    assert(p_filt <= ub);
+    assert(p_filt >= lb);
+
+    LOG_DBG3(del) << "GDFV: el=" << de_->elem->elemNum << " b=" << b << " lb=" << lb << " (ub-lb)=" << (ub-lb)
+                  << " c=" << constant << " +1st=" << first << " +2nd=" << second << " =" << (constant + first + second)
+                  << " -> " << p_filt;
+  }
+
+  LOG_DBG3(del) << "GDFV: el=" << de_->elem->elemNum << " design=" << Filter::density.ToString(f->density_)
+                << ": plain=" << this->de_->GetPlainValue(DesignElement::DESIGN) << " -> "<< p_filt;
+
+  return p_filt;
+}
+
+
+double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp, Condition* g) const
+{
+  // We filter over this element and the neighbors.
+  assert(de_->simp != NULL);
+  Filter& f = de_->simp->filter;
+  assert(f.type_ == Filter::DENSITY);
+  assert(sp == DesignElement::COST_GRADIENT || sp == DesignElement::CONSTRAINT_GRADIENT);
+  assert((sp == DesignElement::COST_GRADIENT && g == NULL) || (sp == DesignElement::CONSTRAINT_GRADIENT && g != NULL));
+  assert(g == NULL || g->ForDensityFiltering());
+
+  // Density filtering for gradient is (Sigmund; Morphology-based black and white filters for topology optimization; 2007; eqn (35). (36)
+  // p is rho and P is rho filtered! d f/d p_e = sum_i(in N_e) d f/d P_i * d P_i/d p_e with d P_i/d p_e = w(x_e)/ sum_j(in N_i) w(x_j)
+  // note, that the stored value is already v = d f/d P_i
+
+  LOG_DBG3(del) << "GDFG: el=" << de_->elem->elemNum
+                << " sp=" << DesignElement::valueSpecifier.ToString(sp)
+                << " g=" << (g != NULL ? Condition::type.ToString(g->GetType()) : "null");
+
+  double sum = 0.0;
+
+  // mathematically the neighborhood includes this element, but this is not in the structure
+  for(int i = -1, ni = (int) neighborhood.GetSize(); i < ni; i++)
+  {
+    const NeighbourElement* ne = i == -1 ? NULL : &neighborhood[i];
+    const DesignElement* de = i == -1 ? this->de_ : ne->neighbour;
+
+    double v = de->GetPlainValue(sp, g); // d f/d P_i
+    double h = 1.0; // for not-standard filters this is the additional derivative
+    double x_n = 0.0;
+
+    if(f.density_ != Filter::STANDARD)
+    {
+      double b = f.beta_;
+
+      // we need the filtered density -> but the real filtered value!!
+      x_n = de->simp->GetDensityFilteredValue(DesignElement::DESIGN, g, Filter::STANDARD);
+      // general scaling
+      h = de->GetUpperBound() - de->GetLowerBound();
+
+      if(f.density_ == Filter::HEAVISIDE)
+        h *= b * exp(-b * x_n) + exp(-1.0*b);
+      if(f.density_ == Filter::MOD_HEAVISIDE)
+        h *= b * exp(b*(x_n-1.0)) + exp(-1.0*b);
+    }
+
+    double w = i == -1 ? this->weight : ne->weight;
+    double w_sum = de->simp->CalcWeightSum(true);
+
+    double summand = v * h * w / w_sum;
+    sum += summand;
+
+    LOG_DBG3(del) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
+                  << " v= " << v  << " h=" << h << " w=" << w << " x_n=" << x_n << " w_sum=" << w_sum
+                  << " summand=" << summand << " sum=" << sum;
+  }
+
+  return sum;
+}
 
 void SIMPElement::Dump()
 {

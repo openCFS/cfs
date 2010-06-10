@@ -13,7 +13,6 @@
 
 // headers for Paramhandling
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/CFSOLASParams.hh"
 #include "Driver/assemble.hh"
 
@@ -200,6 +199,22 @@ namespace CoupledField {
     pn = param->GetByVal("sequenceStep", "index", sequenceStep_, ParamNode::PASS);
     linSysNode = pn->Get("linearSystems", ParamNode::INSERT);
     pn = linSysNode->GetByVal("system", "name", sysName, ParamNode::INSERT);
+    
+    // If no system with the specified name could be found in XML file
+    // we just generate a new ParamNode.
+    WARN("Check, if <linearSystems> node is created properly");
+    //    if(!pn) {
+//      
+//      
+//      linSysNode->GetChildren().Push_back(PtrParamNode(new ParamNode());
+//      pn = linSysNode->GetChildren().Last();
+//      pn->SetName("system");
+//      pn->GetChildren().Push_back(new ParamNode());
+//      PtrParamNode nameNode = pn->GetChildren().Last();
+//      nameNode->SetName("name");
+//      nameNode->SetValue(sysName);
+//    }
+    
     return pn;
   }
 
@@ -237,7 +252,14 @@ namespace CoupledField {
     */ 
     return coeff;
   }
-  
+
+  DampingType StdPDE::GetDamping(RegionIdType reg_id) const
+  {
+    std::map<RegionIdType,DampingType>::const_iterator it = dampingList_.find(reg_id);
+
+    return it != dampingList_.end() ? it->second : NONE;
+  }
+
 
   // real valued method (for TRANSIENT and STATIC)
   void StdPDE::GetSolVecOfElement( Vector<Double>& elemSol,

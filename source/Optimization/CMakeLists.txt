@@ -2,7 +2,7 @@ SET(OPTIMIZATION_SRCS  Function.cc DesignElement.cc DesignSpace.cc Optimization.
                       TransferFunction.cc Condition.cc Objective.cc OptimalityCondition.cc EvaluateOnly.cc
                       BaseOptimizer.cc ShapeGrad.cc LevelSet.cc ParamMat.cc DesignMaterial.cc ShapeOptimizer.cc
                       TopGrad.cc OptimizationMaterial.cc GradientCheck.cc ShapeOpt.cc ShapeDesign.cc
-                      DesignStructure.cc)
+                      DesignStructure.cc Filter.cc)
 
 # Just redefine __builtin_isnan to ::isnan for Intel compiler for
 # OptimalityCondition.cc

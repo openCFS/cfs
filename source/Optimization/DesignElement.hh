@@ -5,6 +5,7 @@
 #include "Domain/elem.hh"
 #include "Utils/tools.hh"
 #include "MatVec/vector.hh"
+#include "Optimization/Filter.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField
@@ -91,8 +92,8 @@ class BaseDesignElement
 {
 public:
 
-  /** types for GetFilteredValue() */
-  typedef enum { DESIGN, PHYSICAL_MECH_DESIGN, DESIGN_COST_GRADIENT, COST_GRADIENT, CONSTRAINT_GRADIENT, WEIGHT, OBJECTIVE, NUM_NEIGHBOURS,
+  /** types for GetValue() and for the optimization results in the xml file */
+  typedef enum { DESIGN, COST_GRADIENT, CONSTRAINT_GRADIENT, WEIGHT, OBJECTIVE, NUM_NEIGHBOURS,
     LEVEL_SET_VALUE, LEVEL_SET_STATE, TOPGRAD_VALUE, SHAPEGRAD_VALUE, SHAPEGRAD_NODE_VALUE,
     MAX_SLOPE, /* the max(abs()) of the 2 * dim slope constraints for each element */
     CHECKERBOARD, /* the max value per element */
@@ -103,19 +104,13 @@ public:
   /** Allows to set the design element. */
   void SetDesign(double value) { this->design = value; }
 
-  /** Return the design value */
-  double GetDesign() const { return(this->design); }
+  /** Return the design value.
+   * In the derived DesignElement() the instance is overloaded and invalidated! */
+  virtual double GetDesign() const { return(this->design); }
 
   /** Get the gradient values for either objective or constraint.
-   * @param f if given the the objective inclusive penalty. If NULL and g is NULL then the sum over the objectives
-   * @param g if given the constraint
-   * @param f, g or sum f */
-  double GetGradient(const Objective* f, const Condition* g) const;
-
-  /** Get the gradien values with summed objective gradients
-   * @param objectives if given then the values of all gradiens with the penalties from objective are returned
-   * @param g if given as the other GetGradient() */
-  double GetGradient(const StdVector<Objective*> objectives, const Condition* g) const;
+   * if neither f nor g is given the objective gradient sum is returned */
+  double GetPlainGradient(const Objective* f, const Condition* g) const;
 
   /** Sum app the old value (get and set together) */
   void AddGradient(const Objective* f, const Condition* g, double value);
@@ -182,24 +177,21 @@ public:
 
   ~DesignElement();
 
-   /** Is only required once - there is no need to hold the pointer private */
+   /** We might need thr transfer functions! */
   static void SetDesignSpace(DesignSpace* space)
   {
     space_ = space;
   }
 
-  /** This defines how to acces variables (design, objective_gradient, ...),
+  static DesignSpace* GetDesignSpace()
+  {
+    return space_;
+  }
+
+
+  /** This defines how to access variables (design, objective_gradient, ...),
    *  PLAIN is the value and SMART does a filtering if enabled otherwise also as PLAIN */
   typedef enum { PLAIN, SMART } Access;
-
-  /** Filter types we have
-   * <ul>
-   *   <li>RADIUS: this is the implementation following Sigmund in the 99lines paper.
-   *               The drawback is the discretization dependency.</li>
-   *   <li>VOLUME_RADIUS: The radius is *value* times square/cube edge length where the
-   *               square/cube has the volume of the element</li>
-   * </ul> */
-  typedef enum { NO_FILTER, RADIUS, VOLUME_RADIUS, MAX_EDGE } Filter;
 
   /** The type of this design element, influences the Get*Bound() methods.
    * By definition the design elements are stored in the ordering of the type!! */
@@ -213,35 +205,33 @@ public:
      * For the PiezoSIMP case:
      * COST_GRADIENT/MECH_MECH ... as ErsatzMaterial::CalcU1KU2() Parameters. QUAD is calcMode
      * or it does the very special purpose symmetry for the ValueSpecifier */
-    typedef enum { NONE, SYMMETRY, FINITE_DIFF_COST_GRADIENT, ERROR_COST_GRADIENT, MECH_MECH, ELEC_ELEC, ELEC_ELEC_QUAD, ELEC_MECH, MECH_ELEC,
-      COMPLIANCE, VOLUME, PENALIZED_VOLUME, GAP, TRACKING, HOMOGENIZATION_TRACKING, POISSONS_RATIO, YOUNGS_MODULUS, TYCHONOFF, GREYNESS, REALVOLUME} Detail;
+    typedef enum { NONE, SYMMETRY, FINITE_DIFF_COST_GRADIENT, ERROR_COST_GRADIENT,
+      MECH_MECH, ELEC_ELEC, ELEC_ELEC_QUAD, ELEC_MECH, MECH_ELEC,
+      COMPLIANCE, VOLUME, PENALIZED_VOLUME, GAP, TRACKING, HOMOGENIZATION_TRACKING,
+      POISSONS_RATIO, YOUNGS_MODULUS, TYCHONOFF, GREYNESS, REALVOLUME} Detail;
 
     /** Gets the design element
      * @param access if plain the rho value if SMART and filtering is enabled the filtered value */
     double GetDesign(Access access) const;
 
+    /** Gives the physical design, which is penalized and filtered if we have density filtering.
+     * Therefore there is no access as we are implicit SMART */
+    double GetPhysicalDesign() const;
+
+    /** Overloads the original BaseDesignElement() method and invalidates it to force the access version */
+    double GetDesign() const;
+
     /** Checks out specialResult[]!
      * @param dofs 1 for scalar values */
     void GetValue(ResultDescription& rd, StdVector<double>& out, unsigned int dofs) const;
 
-    /** This is a generic getter. <p>
-     * <p>Note, that GetObjectiveGradient(SMART) gives different values than
-     * GetValue(COST_GRADIENT, SMART)!!! because of an necessary multiplication by
-     * the densities of the element in the filter.!</p>
-     * </p>Not that this works no to CONSTRAINT_GRADIENT as there is also and index required! */
-    double GetValue(ValueSpecifier vs, Access access) const;
+    /** This method decides if either GetFilteredValue() or GetPlainValue() is to be returned.
+     * @param g mandatory for vs = CONSTRAINT_GRADIENT only */
+    double GetValue(ValueSpecifier vs, Access access, Condition* g = NULL) const;
 
-    /** internal helper to get the value by type */
-    double GetValue(ValueSpecifier valueSpecifier) const;
-
-    /** Gets the gradient of the cost function w.r.t. the design element.
-     * <p>Note, that in the SMART case, the filtering is done with a multiplication by the desing value!
-     * In other words, speaking of GetValue():
-     * <ul><li>GetObjectiveGradient(PLAIN) = GetValue(COST_GRADIENT, PLAIN)</li>
-     *     <li>GetObjectiveGradient(SMART) = GetValue(DESIGN_COST_GRADIENT, SMART)</li></ul>
-     * </p>
-     * @param access if plain the rho value if SMART and filtering is enabled the filtered value */
-    double GetObjectiveGradient(Access access) const;
+    /** internal helper to get the value by type
+     * @param g for sp = CONSTRAINT_GRADIENT only */
+    double GetPlainValue(ValueSpecifier valueSpecifier, Condition* g = NULL) const;
 
     /** Initilize the Enum. Currently called by Optimization::CreateInstance() */
     void static SetEnums();
@@ -264,9 +254,7 @@ public:
      * result description in XML: See DesignSpace::GetSpecialResultIndex()
      * <result id="optResult_2" design="density" access="plain" value="costGradient" />
      * <result id="optResult_3" design="density" access="plain" value="objective" /> */
-    double specialResult[6];
-
-    static Enum<Filter> filter;
+    Vector<double> specialResult;
 
     static Enum<Type> type;
 
@@ -292,6 +280,7 @@ public:
     Point* GetLocation();
 
 private:
+
   /** Here we share the base initialization for the constructors */
   void Init();
 
@@ -318,24 +307,36 @@ public:
   /** Base init of element */
   SIMPElement(DesignElement* base);
 
-  /** does the core for GetDesign(). GetObjectiveGradient(), ... */
-  double GetFilteredValue(DesignElement::ValueSpecifier valueSpecifier, bool design_weighted) const;
+  /** Does sensitvity filtering
+   * @param g @see GetPlainValue() */
+  double GetSensitivityFilteredValue(DesignElement::ValueSpecifier valueSpecifier, Condition* g) const;
 
-  /** Neigborhood is element and precalculated distance */
+  /** Does design filtering.
+   * @param fd eithe the filter.density_ property of this element or explicitly Filter::STANDARD */
+  double GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Condition* g, Filter::Density fd) const;
+
+  /** only for sensitivities for density filtering.
+   * See Sigmund; Morpology-based black and white filters for topology optimization; 2007; (35) and (36) */
+  double GetDensityFilteredGradient(DesignElement::ValueSpecifier sp, Condition* g) const;
+
+  /** Sums up the weights of the neighbors and optionally the own element */
+  double CalcWeightSum(bool include_this) const;
+
+  /** Neighborhood is element and pre-calculated distance */
   struct NeighbourElement
   {
   public:
     /** read the variable */
     DesignElement* neighbour;
 
-    /** precalculated weight by distance - to be multiplied with the density! */
+    /** pre-calculated weight: radius - distanance and >= 0 */
     double        weight;
 
     /** the distance in domain dimensions! */
     double        distance;
   };
 
-  /** The weight of THIS element to be summed to 1.0 with all neighbor weights */
+  /** The weight of THIS element which is radius */
   double weight;
 
   /** The neighbors if filter otherwise empty.
@@ -346,8 +347,8 @@ public:
   /** for debugging. Sums the weights of all neighbors, ... */
   void Dump();
 
-  /** Do filtering? */
-  bool filter;
+  /** The complete filter settings */
+  Filter filter;
 
 private:
 

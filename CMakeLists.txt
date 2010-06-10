@@ -36,7 +36,7 @@ PROJECT(CFS C CXX Fortran)
 # CFS version number.  Simply the last modification date
 #-----------------------------------------------------------------------------
 SET(CFS_VERSION_YEAR "10")
-SET(CFS_VERSION_MONTH "05")
+SET(CFS_VERSION_MONTH "06")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
@@ -531,6 +531,7 @@ ENDIF(USE_SCRIPTING_TCL)
 
 IF(USE_MESH)
   SUBDIRS(source/DataInOut/SimInOut/AnsysFile)
+  SUBDIRS(source/DataInOut/SimInOut/internalMesh)
 ENDIF(USE_MESH)
 
 IF(USE_GMV)
@@ -565,6 +566,7 @@ ENDIF(USE_ANSYSRST)
 
 SUBDIRS(source/DataInOut/SimInOut/TextOutput)
 SUBDIRS(source/DataInOut/SimInOut/InfoResultOutput)
+SUBDIRS(source/DataInOut/SimInOut/Streaming)
 SUBDIRS(source/Domain)
 SUBDIRS(source/Domain/GridCFS)
 SUBDIRS(source/Driver)

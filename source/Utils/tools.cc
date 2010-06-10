@@ -279,4 +279,78 @@ namespace CoupledField {
     return 0;
   }
 
+  VTKStructuredPoints::VTKStructuredPoints(Integer i, Integer j, Integer k, const std::string& scalars, const std::string& vectors)
+  {
+    assert(i > 0 && j > 0 && k > 0);
+
+    i_max = i;
+    j_max = j;
+    k_max = k;
+
+    data_.Resize(i);
+    for(Integer x = 0; x < i_max; x++)
+    {
+      data_[x].Resize(j_max);
+      for(Integer y = 0; y < j_max; y++)
+        data_[x][y].Resize(k_max);
+    }
+
+    scalar_label_ = scalars;
+    vector_label_ = vectors;
+  }
+
+  void VTKStructuredPoints::Set(Integer i, Integer j, Integer k, const Double value)
+  {
+    data_[i][j][k].first = value;
+  }
+
+  void VTKStructuredPoints::Set(Integer i, Integer j, Integer k, const Point& value)
+  {
+    data_[i][j][k].second = value;
+  }
+
+  void VTKStructuredPoints::Set(Integer i, Integer j, Integer k, const Vector<Double>& value)
+  {
+    assert(value.GetSize() == 2 || value.GetSize() == 3);
+    Point& p = data_[i][j][k].second;
+    p[0] = value[0];
+    p[1] = value[1];
+    p[2] = value.GetSize() == 2 ? 0.0 : value[2];
+  }
+
+
+  void VTKStructuredPoints::Write(std::ostream& out) const
+  {
+    out << "# vtk DataFile Version 2.0\n"
+        << "VTK Structured Points from CFS\n"
+        << "ASCII\n"
+        << "DATASET STRUCTURED_POINTS\n"
+        << "DIMENSIONS " << i_max << " " << j_max << " " << k_max << "\n"
+        << "ASPECT_RATIO 1 1 1\n"
+        << "ORIGIN 0 0 0\n"
+        << "POINT_DATA " << (i_max * j_max * k_max) << "\n";
+
+    if(scalar_label_ != "")
+    {
+      out << "SCALARS " << scalar_label_ << " float\n"
+          << "LOOKUP_TABLE default\n";
+      for(Integer k = 0; k < k_max; k++)
+        for(Integer j = 0; j < j_max; j++)
+          for(Integer i = 0; i < i_max; i++)
+            out << data_[i][j][k].first << "\n";
+    }
+
+    if(vector_label_ != "")
+    {
+      out << "VECTORS " << vector_label_ << " float\n";
+      for(Integer k = 0; k < k_max; k++)
+        for(Integer j = 0; j < j_max; j++)
+          for(Integer i = 0; i < i_max; i++)
+          {
+            const Point& vec = data_[i][j][k].second;
+            out << vec[0] << " " << vec[1] << " " << vec[2] << "\n";
+          }
+    }
+  }
+
 }// namespace CoupledField

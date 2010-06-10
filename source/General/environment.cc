@@ -503,6 +503,7 @@ namespace CoupledField {
       break;
 
     case MECH_DISPLACEMENT:
+    case LUMPED_MECH_DISPLACEMENT:
       return "m";
       break;
 
@@ -523,6 +524,7 @@ namespace CoupledField {
       break;
 
     case MECH_PSEUDO_DENSITY:
+    case PHYSICAL_PSEUDO_DENSITY:
       return "";
       break;
 
@@ -1671,6 +1673,7 @@ namespace CoupledField {
     SolutionTypeEnum.SetName("SolutionTypeEnum");
     //mechanics
     SolutionTypeEnum.Add(MECH_DISPLACEMENT, "mechDisplacement");
+    SolutionTypeEnum.Add(LUMPED_MECH_DISPLACEMENT, "lumpedMechDisplacement");
     SolutionTypeEnum.Add(MECH_ACCELERATION, "mechAcceleration");
     SolutionTypeEnum.Add(MECH_VELOCITY, "mechVelocity");
     SolutionTypeEnum.Add(MECH_FORCE, "mechForce");
@@ -1681,6 +1684,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_DEF_VOLUME, "volumeAboveDefSurf");
     SolutionTypeEnum.Add(MECH_RHS_LOAD, "mechRhsLoad");
     SolutionTypeEnum.Add(MECH_PSEUDO_DENSITY, "mechPseudoDensity");
+    SolutionTypeEnum.Add(PHYSICAL_PSEUDO_DENSITY, "physicalPseudoDensity");
     SolutionTypeEnum.Add(MECH_SHAPE, "mechShape");
     //electrostatics
     SolutionTypeEnum.Add(ELEC_POTENTIAL, "elecPotential");
@@ -1764,6 +1768,13 @@ namespace CoupledField {
     SolutionTypeEnum.Add(OPT_RESULT_9, "optResult_9");
     // independent
     SolutionTypeEnum.Add(LAGRANGE_MULT, "LagrangeMultiplier");
+    // evaluates the spacial gradient of the solution at the nodes.
+    // common for all PDEs, no unit
+    SolutionTypeEnum.Add(GRAD_ACOU_SOLUTION, "gradAcousticSolution"); // independent on acoustic formulation
+    SolutionTypeEnum.Add(GRAD_X_DISPLACEMENT, "gradXDisplacement"); // node property!
+    SolutionTypeEnum.Add(GRAD_Y_DISPLACEMENT, "gradYDisplacement"); // node property!
+    SolutionTypeEnum.Add(GRAD_Z_DISPLACEMENT, "gradZDisplacement"); // node property!
+    SolutionTypeEnum.Add(GRAD_ELEC_POTENTIAL, "gradElecPotential");
   
     feMatrixType.Add( NOTYPE, "no FE matrix" );
     feMatrixType.Add( SYSTEM, "system matrix" );
@@ -1774,7 +1785,6 @@ namespace CoupledField {
     feMatrixType.Add( AUXILIARY, "auxiliary matrix" );
     
     MAX_NUM_FE_MATRICES = feMatrixType.map.size() - 1;    
-
   }
   
   Enum<SolutionType> SolutionTypeEnum;

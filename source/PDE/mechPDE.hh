@@ -54,9 +54,6 @@ namespace CoupledField
                                   RegionIdType regionId,
                                   bool reducedInt=false);
 
-    /** Returns the protected damping list - don't alter! */
-    const std::map<RegionIdType,DampingType>& GetDampingList() { return dampingList_; }
-
     // ======================================================
     // COUPLING SECTION
     // ======================================================
@@ -121,11 +118,21 @@ namespace CoupledField
     void DefinePolarizationMatrixIntegrators(const Vector<Double> &vals,
         std::set<LinearFormContext*> *linForms, const int num);
 
+    /** @see virtual SinglePDE::GetNativeSolutionType() */
+    SolutionType GetNativeSolutionType() const { return MECH_DISPLACEMENT; }
+
+    /** @see virtual SinglePDE::GetNativeDOF() */
+    virtual UInt GetNativeDOF() const { return dim_; }
+
   protected:
 
     // ======================================================
     // POSTPROCESSING METHODS
     // ======================================================
+
+    /** map nodal results to element results */
+    template <class TYPE>
+    void CalcLumpedDisplacement(shared_ptr<BaseResult> result);
 
     void CalcHomogenizedTensor(shared_ptr<BaseResult> base_result);
 

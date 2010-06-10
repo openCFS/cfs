@@ -98,24 +98,18 @@ namespace CoupledField
 
     //! Return maximum number of nodes
   
-    //! Returns the maximum node number in the finite element grid.
-    UInt GetNumNodes();
-
     virtual void AddNodes(const UInt numNodes);
       
-
     virtual void SetNodeCoordinate(const UInt inode, const Point & rfPoint);
       
     virtual void SetNodeCoordinate(const UInt numNode, const Vector<Double> & rfPoint);
       
 
-    //! Returns the number of nodes contained in given region
-    UInt GetNumNodes( const StdVector<RegionIdType> & regions );
+    /** @see Grid::GetNumNodes() */
+    UInt GetNumNodes(RegionIdType reg_id = ALL_REGIONS) const;
 
     //! Returns the number of nodes in the given nodelist
-    UInt GetNumNodes( const std::string & nodesName );
-
-
+    UInt GetNumNodes( const std::string & nodesName ) const;
 
     virtual void AddElems(UInt nElems);
       
@@ -129,23 +123,23 @@ namespace CoupledField
                              RegionIdType & region,
                              UInt* connect) const;
 
-    //! Returns the total number of elements in the grid
-    UInt GetNumElems();
+    /** @see Grid::GetNumElems() */
+    UInt GetNumElems(RegionIdType = ALL_REGIONS) const;
     
     //! Return maximum number of elements 
-  
-    //! Returns the total number of volume elements in the  grid
-    UInt GetNumVolElems();
 
-    //! Returns the total number of volume elements in the  grid
-    UInt GetNumSurfElems();
+    /** @see Grid::GetNumVolElems() */
+    UInt GetNumVolElems(RegionIdType = ALL_REGIONS) const;
+
+    /** @see Grid::GetNumVolElems() */
+    UInt GetNumSurfElems(RegionIdType = ALL_REGIONS) const;
   
     //! Returns number of element contained in one region
 
     //! Returns the number of element, which belong to a list of given
     //! regions.
     //! \param regions (in) contains the regionIds of 
-    UInt GetNumElems( const StdVector<RegionIdType> & regions );
+    UInt GetNumElems(const StdVector<RegionIdType> & regions) const;
   
     //! Get list with names of all named nodes
     

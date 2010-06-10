@@ -29,7 +29,6 @@ public:
     data[2]=z;
   }
 
-
   //!destructor
   ~Point() {}
 

@@ -15,6 +15,7 @@ namespace CoupledField
 
   class BaseDriver;
   class InfoNode;
+  class AdjointParameters;
 
   //! Base class for solution of a single step
 
@@ -36,7 +37,7 @@ namespace CoupledField
      * @param analysis_id references the "base" analysis step. 
      *        is the the info/OLAS/process/step element and required the attribute
      *        "analysis_id" to be set!. In the non-lin case subelements are created. */
-    virtual void SolveStepStatic(PtrParamNode analysis_id, const bool reAssembleMatrices = true) = 0;
+    virtual void SolveStepStatic(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL, const bool reAssembleMatrices = true) = 0;
 
     //! routine for acttions after the SolveStep-method
     virtual void PostStepStatic()  = 0;
@@ -51,7 +52,7 @@ namespace CoupledField
 
     /** base method for solving one transient step
      * @param analysis_id @see SolveStepStatic() */
-    virtual void SolveStepTrans(PtrParamNode analysis_id) = 0;
+    virtual void SolveStepTrans(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL, const bool reAssembleMatrices = true) = 0;
 
     //! base method for solving one transient step with slicing method
     virtual void SolveStepTrans4Slice()
@@ -148,6 +149,10 @@ namespace CoupledField
     //! Set number of time steps
     virtual void SetNumTimeSteps( UInt numTimeStep ) {
       numTimeStep_ = numTimeStep;
+    };
+    
+    virtual void ReInit(){
+      EXCEPTION("NOT IMPLEMENTED HERE");
     };
     
   protected:

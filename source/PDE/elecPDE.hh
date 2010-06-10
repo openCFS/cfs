@@ -109,6 +109,12 @@ namespace CoupledField
     void DefinePolarizationMatrixIntegrators(const Vector<Double> &vals,
         std::set<LinearFormContext*> *linForms, const int num);
 
+    /** @see virtual SinglePDE::GetNativeSolutionType() */
+    SolutionType GetNativeSolutionType() const { return ELEC_POTENTIAL; }
+
+    /** @see virtual SinglePDE::GetNativeDOF() */
+    virtual UInt GetNativeDOF() const { return 1; }
+
   protected:
 
     //! SubType of electrostatic section

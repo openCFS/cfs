@@ -53,11 +53,8 @@ namespace CoupledField {
                                                   shared_ptr<ResultInfo> result) 
   {
     
-    EfieldOp_ =  new GradientFieldOp<Double>(ptGrid, ptPDE, 
-                                             eqnMap, *sol_, 
-                                             ELEC_POTENTIAL, 
-                                             result, isaxi_, 
-                                             coordUpdate_);
+    EfieldOp_ =  new GradientFieldOp<Double>(ptGrid, ptPDE, eqnMap, *sol_,
+                                             result->fctType, isaxi_, coordUpdate_);
   }
 
 

@@ -22,7 +22,6 @@
 #include "Driver/transientdriver.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/resultHandler.hh"
 
 #include "OLAS/algsys/sbmsystem.hh"

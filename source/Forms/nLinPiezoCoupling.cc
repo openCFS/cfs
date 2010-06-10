@@ -70,11 +70,8 @@ namespace CoupledField {
                                              shared_ptr<ResultInfo> result) 
   {
 
-    EfieldOp_ =  new GradientFieldOp<Double>(ptGrid, ptPDE, 
-                                             eqnMap, *sol2_, 
-                                             ELEC_POTENTIAL, 
-                                             result, isaxi_, 
-                                             coordUpdate_);
+    EfieldOp_ =  new GradientFieldOp<Double>(ptGrid, ptPDE, eqnMap, *sol2_,
+                                             result->fctType, isaxi_, coordUpdate_);
 
     if (  isHysteresis_ ) {
       // get direction of polarization

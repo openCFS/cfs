@@ -194,9 +194,9 @@ namespace CoupledField {
     // not all solvers are switched to ParamNode yet
     PtrParamNode base = solverInfo_ != NULL ? solverInfo_ : info->Get("OLAS/legacySolver", ParamNode::APPEND);
     setupTimer_ = new Timer();
-    base->Get(ParamNode::SUMMARY)->Get("setup")->SetValue( setupTimer_ );
+    base->Get(ParamNode::SUMMARY)->Get("setup/timer")->SetValue( setupTimer_ );
     solveTimer_ = new Timer();
-    base->Get(ParamNode::SUMMARY)->Get("solve")->SetValue( solveTimer_ );
+    base->Get(ParamNode::SUMMARY)->Get("solve/timer")->SetValue( solveTimer_ );
   }
 
   void BaseSolver::CheckParameter(PtrParamNode out, char** val, const char* param_name)

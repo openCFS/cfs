@@ -240,6 +240,22 @@ namespace CoupledField {
     // =====================================================================
     DefineAvailResults();
 
+    // we have enough data for output -> move if you want more output    // output to info-file
+    // for(std::map<RegionIdType,DampingType>::const_iterator it = dampingList_.begin(); it != dampingList_.end(); it++)
+    //   std::cout << "pde:" << pdename_ << " key=" << it->first << " load=" << it->second << std::endl;
+
+    PtrParamNode in = infoNode_->Get(ParamNode::HEADER);
+    for(UInt i = 0; i < subdoms_.GetSize(); i++ )
+    {
+      PtrParamNode in_ = in->Get("region", ParamNode::APPEND);
+      in_->Get("name")->SetValue(domain->GetGrid()->GetRegion().ToString(subdoms_[i]));
+
+      std::string fuck_e2s;
+      Enum2String(GetDamping(subdoms_[i]), fuck_e2s);
+      in_->Get("damping")->SetValue(fuck_e2s);
+    }
+
+
     // =====================================================================
     // initialize EQN-object and Storeresults class
     // =====================================================================
@@ -266,7 +282,7 @@ namespace CoupledField {
         }
       }
       usePenalty_ = aux == "penalty" ? true : false;
-      infoNode_->Get(ParamNode::HEADER)->Get("idbc")->Get("handling of IDBCs")->SetValue(aux);
+      infoNode_->Get(ParamNode::HEADER)->Get("idbc")->Get("handling_of_IDBCs")->SetValue(aux);
     }
 
     //determine which kind of equationmap will be needed
@@ -3363,4 +3379,241 @@ namespace CoupledField {
 
      }
    }
+
+   template <class TYPE>
+   void SinglePDE::CalcElemGradMatrix(const Elem* elem, const StdVector<UInt>& wanted, UInt dof,
+                                          shared_ptr<AnsatzFct> fctType, Matrix<TYPE>& q_mat)
+   {
+     assert(dof >= 1 && dof <= 3);
+
+     const StdVector<UInt>& connect = elem->connect;
+
+     q_mat.Resize(connect.GetSize(), connect.GetSize());
+     q_mat.Init();
+
+     assert(wanted.GetSize() <= connect.GetSize());
+
+     // what ever it means, it is copy&paste from GradientFieldOp
+     elem->ptElem->SetAnsatzFct(fctType);
+     UInt nShFnc = elem->ptElem->GetNumFncs(fctType);
+     assert(nShFnc = connect.GetSize());
+
+     Matrix<Double> glob_coords;
+     domain->GetGrid()->GetElemNodesCoord(glob_coords, connect);
+     assert(glob_coords.GetNumRows() == dim_);
+     assert(glob_coords.GetNumCols() == connect.GetSize());
+
+     const Matrix<Double>& loc_coords = elem->ptElem->GetLocalCornerCoords();
+     assert(loc_coords.GetNumCols() == glob_coords.GetNumCols());
+     assert(loc_coords.GetNumRows() == glob_coords.GetNumRows());
+     Vector<Double> local(dim_);
+
+     // traverse of all desired nodes of the element to set up the matrix
+     for(UInt entry = 0; entry < connect.GetSize(); entry++)
+     {
+       // make a check the all wanted nodes are within the element nodes
+       assert(entry >= wanted.GetSize() || connect.Contains(wanted[entry]));
+
+       // do we want this node(number) ?
+       UInt nn = connect[entry];
+       if(!wanted.Contains(nn))
+         continue;
+
+       // current local node of reference element
+       for(UInt d = 0; d < dim_; d++)
+         local[d] = loc_coords[d][entry];
+
+
+       Matrix<Double> glob_grad;
+       elem->ptElem->GetGlobDerivShFnc(glob_grad, local, glob_coords, elem);
+
+       // copy the global gradient to the right row
+       for(UInt j=0; j < nShFnc; j++)
+         q_mat[entry][j] = -1.0 * glob_grad[j][dof-1];
+     }
+     LOG_DBG3(pde) << "CEGM: el=" << elem->elemNum << " dof=" << dof << " w=" << wanted.ToString();
+     LOG_DBG3(pde) << "CEGM: el=" << elem->elemNum << " q=" << q_mat.ToString(0, true);
+   }
+
+
+   template <class TYPE>
+   void SinglePDE::CalcGradNodeSolution(const Elem* elem, shared_ptr<AnsatzFct> fctType, UInt dof, StdVector<Vector<TYPE> >& grad_out, Vector<TYPE>* elem_data)
+   {
+     Vector<TYPE> gradVal(dim_);
+
+     // the constructor is really cheap
+     GradientFieldOp<TYPE>* gradOp = NULL;
+     // do we hace the elem_data provided case or the PDE solution case?
+     if(elem_data != NULL)
+       gradOp = new GradientFieldOp<TYPE>(ptgrid_, this, fctType, isaxi_);
+     else
+     {
+       NodeStoreSol<TYPE>& nss = dynamic_cast<NodeStoreSol<TYPE>&>(*sol_);
+       gradOp = new GradientFieldOp<TYPE>(ptgrid_, this, eqnMap_, nss, fctType, isaxi_);
+     }
+
+     // every node (with its dof-component) gets its gradient
+     grad_out.Resize(elem->connect.GetSize());
+
+     ElemList list(ptgrid_);
+     list.SetElement(elem);
+     EntityIterator it = list.GetIterator();
+
+     // loop over all element nodes
+     const Matrix<Double>& nodes = elem->ptElem->GetLocalCornerCoords();
+     Vector<Double> localCoord(dim_);
+
+     for(UInt n = 0; n < nodes.GetNumCols(); n++)
+     {
+       // current node of reference element
+       for(UInt d = 0; d < dim_; d++)
+         localCoord[d] = nodes[d][n];
+
+       gradOp->CalcElemGradField(gradVal, it, localCoord, 1.0, dof, elem_data);
+
+       grad_out[n] = gradVal;
+
+       LOG_DBG3(pde) << "CGENS: el=" << elem->elemNum << " n=" << n << " lc=" << localCoord.ToString() << " grad=" << gradVal.ToString();
+     }
+
+     delete gradOp;
+   }
+
+
+   template <class TYPE>
+   void SinglePDE::CalcGradNodeSolution(shared_ptr<EntityList> list,  UInt dof, StdVector<Vector<TYPE> >& nodal_grad, StdVector<UInt>& counter)
+   {
+     Grid* grid = domain->GetGrid();
+
+     assert(list->GetType() == EntityList::ELEM_LIST);
+
+     // reserve space for all nodal gradients, even if our list is small compared to *all* nodes!
+     nodal_grad.Resize(grid->GetNumNodes() + 1); // nodes are 1 based!
+     for(UInt i = 0, in = nodal_grad.GetSize(); i < in; i++)
+       nodal_grad[i].Init(0.0); // might be reused - clean
+
+     // the counter is a helper, as parameter to be reused for performance reasons
+     counter.Resize(grid->GetNumNodes() + 1);
+     counter.Init(0.0);
+
+     EntityIterator it = list->GetIterator();
+
+     // this are the nodal gradients of a single element
+     StdVector<Vector<TYPE> > elem_grads;
+     // initial resize
+     it.Begin();
+     elem_grads.Resize(it.GetElem()->connect.GetSize());
+
+     // loop over all elements
+     for (it.Begin(); !it.IsEnd(); it++ )
+     {
+       const Elem* elem = it.GetElem();
+       // simple regular elements check
+       assert(elem->connect.GetSize() == elem_grads.GetSize());
+
+       CalcGradNodeSolution(elem, elem->ptElem->GetAnsatzFct(), dof, elem_grads); // full data
+
+       // map results on nodes -> nodal_grad is node number and not equation based based!
+       for(UInt n = 0, nn = elem->connect.GetSize(); n < nn; n++)
+       {
+         UInt node = elem->connect[n];
+         // prepare the vector if it was not initialized before to add. size is dim_ or dim^2 for displacement
+         nodal_grad[node].Resize(elem_grads[n].GetSize());
+         nodal_grad[node] += elem_grads[n];
+         counter[node]++;
+       }
+     }
+
+     // normalize
+     for(UInt i = 0, in = nodal_grad.GetSize(); i < in; i++)
+       if(counter[i] > 0)
+         nodal_grad[i] /= (double) counter[i];
+   }
+
+
+   template<class TYPE>
+   void SinglePDE::CalcGradSolution(shared_ptr<BaseResult> res, UInt dof)
+   {
+     Grid* grid = domain->GetGrid();
+     shared_ptr<ResultInfo> ri = res->GetResultInfo();
+     // as a NodeStoreSolution we get nodes, but we need elements to calculate the gradient
+     // efficiently.
+     if(res->GetEntityList()->GetDefineType() != EntityList::REGION)
+       EXCEPTION(ri->resultName + " needs to be defined on regions only!");
+     assert(ri->entryType == ResultInfo::VECTOR || ri->entryType == ResultInfo::TENSOR);
+     assert(ri->definedOn == ResultInfo::NODE);
+     assert(res->GetEntityList()->GetType() == EntityList::NODE_LIST);
+
+     // we therefore assume that a regions was given which can be extracted and then the elements
+     // are gained by the region
+     std::string name = res->GetEntityList()->GetName();
+
+     shared_ptr<EntityList> list = grid->GetEntityList(EntityList::ELEM_LIST, name, EntityList::REGION);
+     assert(list->GetSize() > 0);
+
+     // evaluate the gradients
+     // this gets the gradients and stores them global node number wise
+     StdVector<Vector<TYPE> > nodal_grad;
+     // helper which gets also the huge size of nodal_grad
+     StdVector<unsigned int> counter;
+
+     CalcGradNodeSolution(list, dof, nodal_grad, counter);
+
+     // the target data storage
+     Vector<TYPE>& out = dynamic_cast<Result<TYPE>&>(*(res)).GetVector();
+     // vectors are stored by their components. 0 based from the node list!
+     const UInt dofs = ri->dofNames.GetSize();
+     assert((ri->entryType == ResultInfo::TENSOR && dofs == dim_ * dim_) || dofs == dim_);
+     out.Resize(res->GetEntityList()->GetSize() * dofs);
+
+     EntityIterator it = res->GetEntityList()->GetIterator();
+
+     for(it.Begin(); !it.IsEnd(); it++)
+     {
+       const UInt node = it.GetNode();
+       const UInt idx = it.GetPos();
+       Vector<TYPE>& grad = nodal_grad[node];
+       assert(grad.GetSize() == dofs);
+       assert(counter[node] != 0);
+
+       for(UInt d = 0; d < dofs; d++)
+         out[idx*dofs + d] = grad[d];
+     }
+   }
+
 } // end of namespace
+
+// explicit template instantiation for GCC compiler
+#ifdef __GNUC__
+
+
+template
+void SinglePDE::CalcGradNodeSolution<Complex>(
+    shared_ptr<EntityList> list,
+    UInt dof,
+    StdVector<Vector<Complex> >& nodal_grad,
+    StdVector<UInt>& counter);
+
+template
+void SinglePDE::CalcGradNodeSolution<Complex>(
+    const Elem* elem,
+    shared_ptr<AnsatzFct> fctType,
+    UInt dof,
+    StdVector<Vector<Complex> >& grad_out,
+    Vector<Complex>* elem_data);
+
+template
+void SinglePDE::CalcElemGradMatrix<Complex>(
+    const Elem* elem,
+    const StdVector<UInt>& wanted,
+    UInt dof,
+    shared_ptr<AnsatzFct> fctType,
+    Matrix<Complex>& q_mat);
+
+template
+void SinglePDE::CalcGradSolution<Complex>(shared_ptr<BaseResult> res, UInt dof);
+
+template
+void SinglePDE::CalcGradSolution<Double>(shared_ptr<BaseResult> res, UInt dof);
+
+#endif

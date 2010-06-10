@@ -39,7 +39,6 @@ cmake_modules/configure_def_headers.cmake -text
 cmake_modules/distro.cmake -text
 cmake_modules/platform_defaults.cmake -text
 cmake_modules/platform_defaults_altix.cmake -text
-cmake_modules/platform_defaults_eamc067.cmake -text
 cmake_modules/platform_defaults_lse.cmake -text
 cmake_modules/platform_defaults_mac.cmake -text
 cmake_modules/platform_defaults_rom.cmake -text
@@ -346,6 +345,7 @@ share/scripts/CMakeLists.txt svneol=native#text/plain
 share/scripts/IdentifyCCompiler.c svneol=native#text/plain
 share/scripts/IdentifyCXXCompiler.cpp svneol=native#text/plain
 share/scripts/IdentifyFortranCompiler.F90 -text
+share/scripts/IdentifyFortranCompiler.s -text
 share/scripts/cfs -text
 share/scripts/cfs-testsuite-extractor.py -text
 share/scripts/cfs_utils.py -text
@@ -365,9 +365,10 @@ share/scripts/log.py -text
 share/scripts/log.tcl svneol=native#text/x-tcl
 share/scripts/macsysinfo.scpt -text
 share/scripts/optimization_tools.py -text
-share/scripts/parameter_study_tools.py -text
 share/scripts/printElemMatVec.py -text
 share/scripts/printElemMatVec.tcl svneol=native#text/x-tcl
+share/scripts/probe_ilupack_parameters.py -text
+share/scripts/voidmesh.pl -text
 share/scripts/xmlreplace.py -text
 share/xml/CFS-Material/CFS_Material.xsd -text svneol=unset#text/xml
 share/xml/CFS-Material/Examples/mat.xml svneol=native#text/xml
@@ -536,6 +537,9 @@ source/DataInOut/SimInOut/GiD/simOutGiD.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimInOut/InfoResultOutput/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/InfoResultOutput/SimOutputInfo.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/InfoResultOutput/SimOutputInfo.hh svneol=native#text/x-c%2B%2Bhdr
+source/DataInOut/SimInOut/Streaming/CMakeLists.txt -text
+source/DataInOut/SimInOut/Streaming/SimOutputStreaming.cc -text
+source/DataInOut/SimInOut/Streaming/SimOutputStreaming.hh -text
 source/DataInOut/SimInOut/TextOutput/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/TextOutput/textSimOutput.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/TextOutput/textSimOutput.hh svneol=native#text/x-c%2B%2Bhdr
@@ -574,6 +578,9 @@ source/DataInOut/SimInOut/hdf5/simInputHDF5.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/hdf5/simInputHDF5.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimInOut/hdf5/simOutputHDF5.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/hdf5/simOutputHDF5.hh svneol=native#text/x-c%2B%2Bhdr
+source/DataInOut/SimInOut/internalMesh/CMakeLists.txt -text
+source/DataInOut/SimInOut/internalMesh/internalMesh.cc -text
+source/DataInOut/SimInOut/internalMesh/internalMesh.hh -text
 source/DataInOut/WriteInfo.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/WriteInfo.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/XMLMaterialHandler.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1157,6 +1164,8 @@ source/Optimization/ErsatzMaterial.cc -text
 source/Optimization/ErsatzMaterial.hh -text
 source/Optimization/EvaluateOnly.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/EvaluateOnly.hh svneol=native#text/x-c%2B%2Bhdr
+source/Optimization/Filter.cc -text
+source/Optimization/Filter.hh -text
 source/Optimization/Function.cc -text
 source/Optimization/Function.hh -text
 source/Optimization/GradientCheck.cc svneol=native#text/x-c%2B%2Bsrc

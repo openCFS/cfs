@@ -40,7 +40,7 @@ class Function
       CONJUGATE_COMPLIANCE,      /*!< (u, F conj(u)) as DYNAMIC_OUTPUT with trace of L is f */
       GLOBAL_DYNAMIC_COMPLIANCE, /*!< (u, I conj(u)) as DYNAMIC_OUTPUT with L is I (everywhere) */
       ELEC_ENERGY,               /*!< p^T K_pp p or p^T K_pp p^* */
-      ACOU_NEAR_FIELD,           /*!< -Re{j*w*psi^T L grad_n psi^*} */
+      ENERGY_FLUX,               /*!< Re{j*w*u^T L grad_n u^*} */
 
       // This is objective and constraint together
       COMPLIANCE,                /*!< (u,f) the opposite of stiffness */
@@ -83,7 +83,6 @@ class Function
     /** Get the parameter, if it was set */
     double GetParameter() const
     {
-      assert(parameter_ != -1.0);
       return parameter_;
     }
 
@@ -104,17 +103,27 @@ class Function
      * the design variable with applied transfer function - hence as the FEM/physics sees the design.
      * One could call this penalized but physical is more exact and includes also density filtering.
      * The label becomes the appendix physical and the calculations are by interpolated values. */
-    bool IsPhysical() const
-    {
-      return physical_;
-    }
+    bool IsPhysical() const { return physical_; }
 
+    /** Shall harmonic optimization multiply with omega^2.
+    * This makes "u L conj(u)" to actually calc "v L conj(v)" with v = du/dt. -> approximatates sound intensity */
+    bool FactorOmegaOmega() const { return omega_omega_; }
 
     /** Shall/must we evaluate this objective only of the last excitation? */
     bool DoEvaluateOnce() const { return evaluateOnce_; }
 
     /** Requires an objective homogenization */
     bool IsHomogenization() const;
+
+    /** Is this function sensitive for density filtering?
+     * This implies the gradient with post differentiation.
+     * The function does *NOT* know if design filtering is enabled!
+     * Volume is always sensitive - physical is for penalization! */
+    bool ForDensityFiltering() const;
+
+    /** If we would do sensitivity filtering, do it also for this function?
+     * @see ForDensityFiltering() */
+    bool ForSensitivityFiltering() const;
 
     /** the tensor exists only in the homogenization constraint case */
     Matrix<double>& GetTensor() { return tensor_; }
@@ -158,6 +167,12 @@ class Function
     /** this index is the position in the Optimization list and is used to
      * identify the constraint gradient in DesignElement. Only relevant for type = active */
     int index_;
+
+    /** @see FactorOmegaOmega() */
+    bool omega_omega_;
+
+    bool harmonic_;
+
 };
 
 } // namespace

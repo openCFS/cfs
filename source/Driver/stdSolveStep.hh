@@ -52,10 +52,10 @@ namespace CoupledField
     virtual void PreStepStatic();
  
     /** base method for solving one static step */
-    virtual void SolveStepStatic(PtrParamNode analysis_id, const bool reAssembleMatrices = true);
+    virtual void SolveStepStatic(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL, const bool reAssembleMatrices = true);
 
     /** @see SolveStepStatic() */ 
-    virtual void StepStaticLin(PtrParamNode analysis_id, const bool reAssembleMatrices = true);
+    virtual void StepStaticLin(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL, const bool reAssembleMatrices = true);
 
     //! solves for one nonlinear static step 
     virtual void StepStaticNonLin(PtrParamNode analysis_id);
@@ -72,10 +72,10 @@ namespace CoupledField
     //virtual void PredictorStep(){;};
 
     //! base method for solving one transient step 
-    virtual void SolveStepTrans(PtrParamNode analysis_id);
+    virtual void SolveStepTrans(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL, const bool reAssembleMatrics = true);
 
     //! solves for one linear transient step 
-    virtual void StepTransLin(PtrParamNode analysis_id);
+    virtual void StepTransLin(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL, const bool reAssembleMatrices = true);
 
     //! solves for one nonlinear transient step 
     virtual void StepTransNonLin(PtrParamNode analysis_id);
@@ -171,7 +171,8 @@ namespace CoupledField
     Hysteresis * GetHystOperator(UInt iSD) {
       return hyst_[iSD];
     };
-
+    
+    void ReInit();
 
   protected:
 

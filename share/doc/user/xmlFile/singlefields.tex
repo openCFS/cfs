@@ -334,6 +334,15 @@ acoustic potential, because this would need integration. A combination, which
 does work, is formulation in acoustic potential and results in acoustic
 pressure. This will be discussed in the next section.
 
+A summary of the acoustic nodal results follows:
+\begin{xatlist} {Acoustic \xel{nodeResult} result types}
+\xat{type} & \xatv{acouPotential} & Nodal solution for \xatv{acouPotential} formulation \\
+           & \xatv{acouPotentialD1} & First time derivative for \xatv{acouPotential} formulation \\
+           & \xatv{acouPotentialD2} & Second time derivative for \xatv{acouPotential} formulation \\
+           & \xatv{acouRhsLoad} & Excitation for problem when a load is given \\
+           & \xatv{acouPressure} & Nodal solution for \xatv{acouPressure} formulation
+\end{xatlist}
+
 \subsection{Element Result}
 
 Because $p = \rho \partial \psi / \partial t$, and we can only assign a certain

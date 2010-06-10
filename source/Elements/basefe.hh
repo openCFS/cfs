@@ -50,12 +50,17 @@ namespace CoupledField
                           UInt dof = 1 );
 
 
-    //! Get local coordinates of element corners
-    /*!
-      \param lCornerCoords (output) local coordinates of element corners
-    */
-    virtual void GetLocalCornerCoords(Matrix<Double>& lCornerCoords)
-    { lCornerCoords = LCornerCoords_;};
+    /** Get local coordinates of element corners
+     *  @param lCornerCoords (output) local coordinates of element corners */
+    void GetLocalCornerCoords(Matrix<Double>& lCornerCoords) const {
+      lCornerCoords = LCornerCoords_;
+    }
+
+    /** Get local coordinates of element corners
+     * @see other GetLocalCornerCoords() */
+    const Matrix<Double>&  GetLocalCornerCoords() const {
+      return LCornerCoords_;
+    }
 
 
     //! Get the global coordinate for a given local one

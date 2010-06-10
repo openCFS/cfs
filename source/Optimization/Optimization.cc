@@ -20,13 +20,13 @@
 #include "Driver/basedriver.hh"
 #include "Driver/harmonicDriver.hh"
 #include "Driver/singleDriver.hh"
+#include "Driver/stdSolveStep.hh"
 #include "PDE/StdPDE.hh"
 #include "PDE/SinglePDE.hh"
 #include "PDE/mechPDE.hh"
 #include "PDE/elecPDE.hh" // for polarization matrix, see class TopGrad
 #include "Domain/domain.hh"
 #include "Domain/grid.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/resultHandler.hh"
@@ -71,6 +71,7 @@ Optimization::Optimization()
   this->currentIteration = 0; // a 1 or 0 can make a lot of difference! 0 is initial design!
   this->problemSolvedCounter = 0;
   this->problemWithinIteration = 0;
+  this->grid = domain->GetGrid();
 
   // inject the driver and tell him that we do optimization
   BaseDriver* driver = domain->GetDriver();
@@ -79,6 +80,14 @@ Optimization::Optimization()
 
   optInfoNode = info->Get("optimization");   // store our info results here
   PtrParamNode pn = param->Get("optimization"); // read our parameters from the xml file
+  
+  // in transient optimization one can specify the initial value as a solution to a static problem and a weight for it (just in tracking)
+  firstStepStatic = pn->Has("firstStepStatic");
+  if(firstStepStatic){
+    otherStepWeight = 1.0 - pn->Get("firstStepStatic")->Get("weight")->As<Double>();
+  }else{
+    otherStepWeight = 1.0;
+  }
 
   // the tool to solve the optimization problem
   optimizer_ = optimizer.Parse(pn->Get("optimizer")->Get("type")->As<std::string>());
@@ -230,7 +239,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::REALVOLUME, "realvolume");
   Function::type.Add(Function::TRACKING, "tracking");
   Function::type.Add(Function::ELEC_ENERGY, "elecEnergy");
-  Function::type.Add(Function::ACOU_NEAR_FIELD, "acousticNearField");
+  Function::type.Add(Function::ENERGY_FLUX, "energyFlux");
   Function::type.Add(Function::HOMOGENIZATION_TENSOR, "homTensor");
   Function::type.Add(Function::HOMOGENIZATION_TRACKING, "homTracking");
   Function::type.Add(Function::POISSONS_RATIO, "poissonsRatio");
@@ -295,6 +304,22 @@ void Optimization::SetEnums()
   MultipleExcitation::type.Add(MultipleExcitation::POLARIZATION_MATRIX, "polarizationMatrix");
 }
 
+bool Optimization::IsTransient() const{
+  return(domain->GetDriver()->GetAnalysisType() == BasePDE::TRANSIENT);
+}
+
+double Optimization::GetStepWeight(unsigned int ts) const{
+  if(IsFirstTransientStepStatic()){
+    if(ts == 0){
+      unsigned int nts = domain->GetDriver()->GetNumSteps();
+      return((1.0 - otherStepWeight) * nts);
+    }else{
+      return(otherStepWeight);
+    }
+  }else{
+    return(1.0);
+  }
+}
 
 bool Optimization::DoStopOptimization()
 {
@@ -382,6 +407,9 @@ Optimization* Optimization::CreateInstance()
   default: throw Exception("Optimization not implemented");
   }
   
+  // we have to do this, as PostInitSecond does already run CalcObjective/Gradient
+  domain->SetOptimization(opt);
+  
   // second initialization phase, constructs material
   opt->PostInit();
   // third initialization phase, constructs optimizer
@@ -394,10 +422,14 @@ void Optimization::SolveProblem()
 {
   // one driver is one multisequence step. We do this stuff here
   // and call the driver->StoreResults() multiple times f
+  
+  ResultHandler* rh = NULL;
 
-  ResultHandler* rh = domain->GetResultHandler();
-  unsigned int mss = domain->GetDriver()->GetActSequenceStep();
-  rh->BeginMultiSequenceStep(mss, BasePDE::TRANSIENT, 999); // max steps is high
+  if(!IsTransient()){ // transient optimization saves results in a different way
+    rh = domain->GetResultHandler();
+    unsigned int mss = domain->GetDriver()->GetActSequenceStep();
+    rh->BeginMultiSequenceStep(mss, BasePDE::TRANSIENT, 999); // max steps is high
+  }
 
   Exception* e = NULL;
   try
@@ -409,20 +441,20 @@ void Optimization::SolveProblem()
     e = new Exception(ex);
   }
 
-  // do the finally - try to write results even if the optimizer broke down
-  FinalizeStoreResults(); // when we have strides the results are written
-  rh->FinishMultiSequenceStep();
-  rh->Finalize();
+  if(!IsTransient()){ // transient optimization saves results in a different way
+    // do the finally - try to write results even if the optimizer broke down
+    FinalizeStoreResults(); // when we have strides the results are written
+    rh->FinishMultiSequenceStep();
+    rh->Finalize();
+  }
   if(e != NULL) throw *e;
   delete e;
 }
-
-
-PtrParamNode Optimization::CreateAdjointAnalysisIdNode()
+PtrParamNode Optimization::CreateAdjointAnalysisIdNode(std::string child_name)
 {
   BaseDriver* driver = domain->GetDriver();
   PtrParamNode base = driver->GetAnalysisId();
-  PtrParamNode in = driver->CreateAnalysisIdChild(base, "adjoint");
+  PtrParamNode in = driver->CreateAnalysisIdChild(base, child_name);
   
   return in;
 }
@@ -442,10 +474,17 @@ void Optimization::SolveStateProblem(Excitation* excite)
   {
     reAssembleMatrices = false;
   }
+  
+  if(IsTransient() && problemSolvedCounter > 0){ // transient optimization always has a mech pde
+    SinglePDE* mech = domain->GetSinglePDE("mechanic");
+    mech->ReReadResults();
+    design->AppendOptimizationResults(mech);
+    mech->GetSolveStep()->ReInit();
+  }
                                          
   // Do not store the results. This is to be done in CommitIteration
   if(!harmonic || excite == NULL) 
-    driver->SolveProblem(false, analysis_id, reAssembleMatrices);
+    driver->SolveProblem(IsTransient(), analysis_id, false, reAssembleMatrices); // static and transient optimization
   else
     dynamic_cast<HarmonicDriver*>(driver)->ComputeFrequencyStep(excite->f_link->step, analysis_id);
 
@@ -453,6 +492,29 @@ void Optimization::SolveStateProblem(Excitation* excite)
   problemWithinIteration++;
 }
 
+void Optimization::SolveAdjointProblem(Excitation* excite, Objective* cost){
+  // does almost the same as SolveStateProblem now, but passing, that we want the adjoint to be solved
+  BaseDriver* driver = domain->GetDriver();
+  
+  AdjointParameters adjointParams(cost, excite);
+  
+  if(IsTransient()){
+    SinglePDE* mech = domain->GetSinglePDE("mechanic");
+    mech->GetSolveStep()->ReInit();
+  }
+
+  // Do not store the results. This is adjoint.
+  if(!harmonic) 
+    driver->SolveProblem(false, CreateAdjointAnalysisIdNode(), &adjointParams, false); // static and transient optimization
+  else
+      EXCEPTION("Harmonic adjoint not implemented!");
+}
+
+void Optimization::SolveAdjointProblems(Excitation* excite){
+  for(unsigned int o = 0; o < objectives.data.GetSize(); ++o){
+    SolveAdjointProblem(excite, objectives.data[o]);
+  }
+}
 
 double Optimization::CalcSymmetry(DesignElement::Type de, DesignElement::ValueSpecifier vs, DesignElement::Access access)
 {
@@ -513,7 +575,9 @@ void Optimization::StoreResults(double step_val)
   // and might do nothing
 
   // this will write the CFS result and history file
-  domain->GetDriver()->StoreResults(step_val == -1 ? currentIteration : step_val);
+  if(!IsTransient()){ // transient optimization saves results in a different way
+    domain->GetDriver()->StoreResults(step_val == -1 ? currentIteration : step_val);
+  }
 }
 
 void Optimization::FinalizeStoreResults()
@@ -703,6 +767,7 @@ Excitation::Excitation()
 
 void Excitation::Apply()
 {
+  domain->GetOptimization()->applied_excitation = this;
   Assemble* a = domain->GetBasePDE()->getPDE_assemble();
   if(apply_linForms){
     a->SetLoads(loads);
@@ -721,7 +786,7 @@ double Excitation::GetOmega()
   return 2 * M_PI * frequency;
 }
 
-double Excitation::GetFactor(Objective* cost)
+double Excitation::GetFactor(Function* cost)
 {
   double factor = 1.0; // default
   
@@ -734,7 +799,7 @@ double Excitation::GetFactor(Objective* cost)
   return factor;
 }
 
-double Excitation::GetWeightedFactor(Objective* cost)
+double Excitation::GetWeightedFactor(Function* cost)
 {
   return normalized_weight * GetFactor(cost);
 }

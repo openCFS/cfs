@@ -51,7 +51,7 @@ void GradientCheck::SolveProblem()
   // solve the original problem once!!
   optimization->SolveStateProblem();
   double curr_obj = optimization->CalcObjective();
-
+  optimization->SolveAdjointProblems();
   optimization->CalcObjectiveGradient(NULL);
 
   // store here the finite difference value
@@ -79,17 +79,20 @@ void GradientCheck::SolveProblem()
     PtrParamNode cg = in->Get("costGradient");
 
     finite[i] = PerformFiniteDifferenceEval(de, curr_obj, cg);
-    analytical[i] = de->GetValue(DesignElement::COST_GRADIENT);
+    analytical[i] = de->GetValue(DesignElement::COST_GRADIENT, DesignElement::PLAIN);
     error[i] = finite[i] != 0.0 ? ((finite[i] - analytical[i]) / finite[i])
         : std::numeric_limits<double>::max();
 
     cg->Get("grad")->SetValue(analytical[i]);
     cg->Get("fd_grad")->SetValue(finite[i]);
     cg->Get("diff")->SetValue(finite[i] - analytical[i]);
-    if (finite[i] != 0.0)
+    if (finite[i] != 0.0) {
       cg->Get("error")->SetValue((finite[i] - analytical[i]) / finite[i]);
-    else
+      cg->Get("factor")->SetValue(analytical[i] / finite[i]);
+    } else {
       cg->Get("error")->SetValue("finite difference is zero");
+      cg->Get("factor")->SetValue("finite difference is zero");
+    }
   }
 
   // write the stuff -> The PDE solution is slighly wrong!
@@ -201,13 +204,13 @@ double GradientCheck::PerformFiniteDifferenceEval(DesignElement* de,
 <<  "PFDE: elem=" << de->elem->elemNum << " x_org=" << x_org
   << " order=" << order << " x_eval_1=" << x_eval_1 << " x_dir_1=" << x_dir_1 << " f_x1=" << f_x1
   << " x_eval_2=" << x_eval_2 << " x_dir_2=" << x_dir_2 << " f_x2=" << f_x2
-  << " fd=" << fd << " f_grad=" << de->GetObjectiveGradient(DesignElement::PLAIN);
+  << " fd=" << fd << " f_grad=" << de->GetValue(DesignElement::COST_GRADIENT, DesignElement::PLAIN);
 
   // eventually store value
   if(finite_diff_result_index_ != -1)
   de->specialResult[finite_diff_result_index_] = fd;
   if(error_result_index_ != -1)
-  de->specialResult[error_result_index_] = (fd - de->GetObjectiveGradient(DesignElement::PLAIN)) / fd;
+  de->specialResult[error_result_index_] = (fd - de->GetValue(DesignElement::COST_GRADIENT, DesignElement::PLAIN)) / fd;
 
   return fd;
 }

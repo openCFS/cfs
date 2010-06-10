@@ -404,7 +404,7 @@ namespace CoupledField {
       //   Linear wave equation
       // ********************************************************************
 
-      // Check for Perfectly matchec layers
+      // Check for Perfectly matched layers
       if ( dampingList_[actRegion] == PML ) {
         //read data for PML layer
 
@@ -1816,6 +1816,13 @@ namespace CoupledField {
       }
       break;
 
+    case GRAD_ACOU_SOLUTION:
+      if(isComplex_)
+        CalcGradSolution<Complex>(result);
+      else
+        CalcGradSolution<Double>(result);
+      break;
+
     case ACOU_ENERGY:
       if( isComplex_ ) {
         //        CalcAcouEnergy<Complex>( result );
@@ -1830,7 +1837,7 @@ namespace CoupledField {
       break;
 
     default:
-      WARN( "Resulttype not computable by acoustic PDE" );
+      WARN( "Result type not computable by acoustic PDE" );
     }
   }
 
@@ -1998,8 +2005,7 @@ namespace CoupledField {
     // Create operator for gradient computation of solution
     NodeStoreSol<TYPE> * solhelp = dynamic_cast<NodeStoreSol<TYPE>*>(sol_);
     GradientFieldOp<TYPE> * gradOp =
-      new GradientFieldOp<TYPE>(ptgrid_, this, eqnMap_, *solhelp,
-                                formulation_, results_[0], isaxi_);
+      new GradientFieldOp<TYPE>(ptgrid_, this, eqnMap_, *solhelp, results_[0]->fctType, isaxi_);
 
     // get data from result object and resize its vector
     Result<TYPE> & actRes = dynamic_cast<Result<TYPE>&>(*vals);
@@ -2066,7 +2072,6 @@ namespace CoupledField {
     //some help variables
     Vector<Double> lCoordSurf, lCoordVol, normal;
     Vector<TYPE> gradVal(dim_);
-    Vector<TYPE> elemIntensity(dim_);
     BaseFE * ptSurfElemFE, * ptVolElemFE;
 
     // Create vector with interpolation coordinate.
@@ -2079,7 +2084,7 @@ namespace CoupledField {
     NodeStoreSol<TYPE> * solhelp = dynamic_cast<NodeStoreSol<TYPE>*>(sol_);
     GradientFieldOp<TYPE> * gradOp =
       new GradientFieldOp<TYPE>(ptgrid_, this, eqnMap_, *solhelp,
-                                solType, results_[0], isaxi_);
+                                results_[0]->fctType, isaxi_);
 
     Result<TYPE> & actRes = dynamic_cast<Result<TYPE>&>(*vals);
     EntityIterator it = actRes.GetEntityList()->GetIterator();
@@ -2127,6 +2132,9 @@ namespace CoupledField {
     delete gradOp;
 
   }
+
+
+
 
   template <class TYPE>
   void AcousticPDE::CalcAcouSurfIntensity( shared_ptr<BaseResult> vals ) {
@@ -2282,7 +2290,7 @@ namespace CoupledField {
     // Create operator for gradient computation of solution
     GradientFieldOp<TYPE> * gradOp =
       new GradientFieldOp<TYPE>(ptgrid_, this, eqnMap_, *solhelp,
-                                solType, results_[0], isaxi_);
+                                results_[0]->fctType, isaxi_);
 
     // convert result object
     Result<TYPE> &  actRes =
@@ -2524,7 +2532,7 @@ namespace CoupledField {
     // Create operator for gradient computation of solution
     GradientFieldOp<Double> * gradOp =
       new GradientFieldOp<Double>(ptgrid_, this, eqnMap_, solhelp,
-                                ACOU_PRESSURE, results_[0], isaxi_);
+                                results_[0]->fctType, isaxi_);
 
     // convert result object
     Result<Double> &  actRes =
@@ -2574,8 +2582,8 @@ namespace CoupledField {
   // ***********************************************************************
   //   Obtain information on desired output quantities from parameter file
   // ***********************************************************************
-  void AcousticPDE::DefineAvailResults() {
-
+  void AcousticPDE::DefineAvailResults()
+  {
     // === NODE POTENTIAL / PRESSURE (Primary Unknown) ===
     // check if problem is lagrange or legendre
     std::string approxType = myParam_->Get("type")->As<std::string>();
@@ -2751,15 +2759,7 @@ namespace CoupledField {
     // === ACOU_SURFINTENSITY ===
     shared_ptr<ResultInfo> intens(new ResultInfo);
     intens->resultType = ACOU_SURFINTENSITY;
-    if( dim_ == 3 ) {
-      intens->dofNames = "x", "y", "z";
-    } else {
-      if (isaxi_ ) {
-        intens->dofNames = "r", "z";
-      } else {
-        intens->dofNames = "x", "y";
-      }
-    }
+    intens->SetVectorDOFs(dim_, isaxi_);
     intens->unit = "W/m^2";
     intens->entryType = ResultInfo::VECTOR;
     intens->definedOn = ResultInfo::SURF_ELEM;
@@ -2769,15 +2769,7 @@ namespace CoupledField {
     // === ACOU_INTENSITY ===
     shared_ptr<ResultInfo> intensity(new ResultInfo);
     intensity->resultType = ACOU_INTENSITY;
-    if( dim_ == 3 ) {
-      intensity->dofNames = "x", "y", "z";
-    } else {
-      if (isaxi_ ) {
-        intensity->dofNames = "r", "z";
-      } else {
-        intensity->dofNames = "x", "y";
-      }
-    }
+    intensity->SetVectorDOFs(dim_, isaxi_);
     intensity->unit = "W/m^2";
     intensity->entryType = ResultInfo::VECTOR;
     intensity->definedOn = ResultInfo::ELEMENT;
@@ -2804,6 +2796,16 @@ namespace CoupledField {
     force->definedOn = ResultInfo::SURF_ELEM;
     force->fctType = shared_ptr<ConstFct>(new ConstFct() );
     availResults_.insert( force );
+
+    // ==== GRAD_ACOU_SOLUTION ===
+    shared_ptr<ResultInfo> grad_sol(new ResultInfo);
+    grad_sol->resultType = GRAD_ACOU_SOLUTION;
+    grad_sol->SetVectorDOFs(dim_, isaxi_);
+    grad_sol->unit = "";
+    grad_sol->entryType = ResultInfo::VECTOR;
+    grad_sol->definedOn = ResultInfo::NODE;
+    grad_sol->fctType = shared_ptr<ConstFct>(new ConstFct() ); // ??? - copy and paste! !?
+    availResults_.insert( grad_sol );
 
     // === ACOU_ENERGY ===
     shared_ptr<ResultInfo> energy(new ResultInfo);

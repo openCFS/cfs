@@ -10,6 +10,7 @@
 #include "stdSolveStep.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/programOptions.hh"
 #include "PDE/StdPDE.hh"
 //#include "PDE/pdememento.hh"
 #include "Domain/domain.hh"
@@ -55,7 +56,7 @@ namespace CoupledField {
   // *****************
   //   Solve problem
   // *****************
-  void StaticDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id, const bool reAssembleMatrices)
+  void StaticDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id, AdjointParameters* adjointParams, const bool reAssembleMatrices)
   {
     // Set current value of time step and time step size in the mathParser
     domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
@@ -69,7 +70,9 @@ namespace CoupledField {
     // store such that special steps can add non-lin stuff and optimization adjoints
     if(given_analysis_id == NULL)
     {
-      analysis_id_ = driverNode->Get(ParamNode::PROCESS)->Get("step", ParamNode::APPEND);
+      // do we really want to create a new entry? Might blast up the output
+      ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
+      analysis_id_ = driverNode->Get(ParamNode::PROCESS)->Get("step", at);
       analysis_id_->Get("analysis_id")->SetValue("0");
     }
     else
@@ -82,7 +85,7 @@ namespace CoupledField {
     ptPDE_->GetSolveStep()->SetActTime(0.0);
     ptPDE_->GetSolveStep()->SetActStep(1);
     ptPDE_->GetSolveStep()->PreStepStatic();
-    ptPDE_->GetSolveStep()->SolveStepStatic(analysis_id_, reAssembleMatrices);
+    ptPDE_->GetSolveStep()->SolveStepStatic(analysis_id_, adjointParams, reAssembleMatrices);
     ptPDE_->GetSolveStep()->PostStepStatic();
 
     // in optimization we write the results via StoreResults() because

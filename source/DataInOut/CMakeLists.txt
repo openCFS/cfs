@@ -33,6 +33,7 @@ SET(TARGET_LL
   materials
   simouttext
   simoutinfo
+  simoutstreaming
   ${BOOST_PROGRAM_OPTIONS_LIB}
   ${BOOST_FILESYSTEM_LIB}
   ${BOOST_SYSTEM_LIB}

@@ -26,6 +26,16 @@ void ParamMat::SetElementK(DesignElement* de, Application app, DenseMatrix* mat_
 {
   // this is only called from CalcU1KU2 which is only used in derivative calculation (compliance, tracking, volume)
   // therefore we always return a derivative, de indicating which
+  // for transient problems, this does also need to return the derivative of the mass matrix
   Matrix<double>& out = dynamic_cast<Matrix<double>& >(*mat_out);
-  out = mech_mat_->MechStiffness(de->elem, de->GetType());
+  switch(app){
+  case MECH:
+    out = mech_mat_->MechStiffness(de->elem, de->GetType());
+    break;
+  case MASS:
+    out = mech_mat_->MechMass(de->elem, de->GetType());
+    break;
+  default:
+    Exception("Only mech and mass matrix are available for paramMat");
+  }
 }

@@ -240,7 +240,7 @@ namespace CoupledField {
     }
 
     // Assume that everything will go well
-    PtrParamNode out = olasInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
+    PtrParamNode out = olasInfo_->Get(ParamNode::PROCESS)->Get("solver");
     out->Get("solutionIsOkay")->SetValue(true);
 
     // Now modifiy the right-hand side vector
@@ -1008,9 +1008,11 @@ namespace CoupledField {
 
     for ( it = matFactors.begin(); it != matFactors.end(); it++ )
     {
+#ifdef NDEBUG
       string tmp;
       Enum2String( (*it).first, tmp );
       LOG_DBG(stdSys) << " matFactor: " << tmp << ":" << (*it).second;
+#endif
       if (sysmat_[(*it).first] != NULL  && (*it).second != 0.0 )
         sys->Add((*it).second, *sysmat_[(*it).first] );
     }

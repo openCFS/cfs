@@ -14,6 +14,7 @@ namespace fs = boost::filesystem;
 #include "MatVec/scrs_matrix.hh"
 
 #include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/programOptions.hh"
 
 #include "def_use_pardiso.hh"
 #include "pardisosolver.hh"
@@ -754,7 +755,8 @@ extern "C" {
                              << "-----------------------";
 
     // Create Report (no sensible things to write for direct solvers yet)
-    PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
+    ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
+    PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", at);
     out->Get("numIter")->SetValue(-1);
     out->Get("finalNorm")->SetValue(-1.0);
   }

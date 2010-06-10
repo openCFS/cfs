@@ -29,7 +29,7 @@ namespace CoupledField
     virtual std::string ToString(const int level, const bool newline) const = 0;
     
     /** @see Matrix::ToXML() */
-    virtual std::string ToXML(int offset = 0) const = 0;
+    virtual std::string ToXMLFormat(const std::string& name, const int offset) const = 0;
   };
 } // namespace
 #endif

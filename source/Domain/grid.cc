@@ -91,10 +91,11 @@ namespace CoupledField
     barycenters = false;
   }
 
-  RegionIdType Grid::AddRegion(const std::string& name)
+  RegionIdType Grid::AddRegion(const std::string& name, bool reg)
   {
     RegionData rd;
     rd.name = name;
+    rd.regular = reg;
     rd.id   = regionData.GetSize();
     regionData.Push_back(rd);
     region_.Add(rd.id, rd.name);
@@ -155,6 +156,16 @@ namespace CoupledField
   {
     return surfRegionIds_.GetSize();
   }
+
+  UInt Grid::GetNumNodes(const StdVector<RegionIdType>& regions) const
+  {
+    UInt numNodes = 0;
+
+    for (UInt i=0; i < regions.GetSize(); i++)
+      numNodes += GetNumNodes(regions[i]);
+    return numNodes;
+  }
+
 
   bool Grid::IsRegionRegular(StdVector<RegionIdType>& regions) const
   {

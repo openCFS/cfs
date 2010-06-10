@@ -722,6 +722,7 @@
       <xsd:enumeration value="acouPotentialD1"/>
       <xsd:enumeration value="acouPotentialD2"/>
       <xsd:enumeration value="acouRhsLoad"/>
+      <xsd:enumeration value="gradAcousticSolution"/>
     </xsd:restriction>
   </xsd:simpleType>
 

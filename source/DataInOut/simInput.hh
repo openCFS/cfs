@@ -66,6 +66,7 @@ namespace CoupledField
     //! Constructor with name of mesh-file
       SimInput(std::string fileName, PtrParamNode inputNode ) :
           fileName_(fileName),
+          mi_(NULL),
           myParam_(inputNode)
       {};
 
@@ -156,14 +157,15 @@ namespace CoupledField
     virtual void GetNumMultiSequenceSteps( std::map<UInt, BasePDE::AnalysisType>& analysis,
                                            std::map<UInt, UInt>& numSteps,
                                            bool isHistory = false ) {
-      EXCEPTION( "Not implemented in base class" );
+      analysis.clear();
+      numSteps.clear();
     }
 
     //! Obtain list with result types in each sequence step
     virtual void GetResultTypes( UInt sequenceStep, 
                                  StdVector<shared_ptr<ResultInfo> >& infos,
                                  bool isHistory = false ) {
-      EXCEPTION( "Not implemented in base class" );
+      infos.Clear();
     }
     
     //! Return list with time / frequency values and step for a given result
@@ -171,7 +173,7 @@ namespace CoupledField
                                 shared_ptr<ResultInfo> info,
                                 std::map<UInt, Double>& steps,
                                 bool isHistory = false ) {
-      EXCEPTION( "Not implemented in base class" );
+      steps.clear();
     }
     
     //! Return entitylist the result is defined on
@@ -179,7 +181,7 @@ namespace CoupledField
                                     shared_ptr<ResultInfo> info,
                                     StdVector<shared_ptr<EntityList> >& list,
                                     bool isHistory = false) {
-      EXCEPTION( "Not implemented in base class" );
+      list.Clear();
     }
     
     //! Fill pre-initialized results object with values of specified step

@@ -102,9 +102,6 @@ namespace CoupledField {
     //! Returns the resultInfo related to the specified solutionType
     virtual shared_ptr<ResultInfo> GetResultInfo( SolutionType solType );
 
-    //! return pointer to vector with subdomains, on which we calculate the PDE
-    virtual StdVector<RegionIdType> * getSDsPDE()
-    { return &subdoms_;}
 
     virtual AnalysisType GetAnalysisType() {
       return analysistype_;
@@ -348,6 +345,10 @@ namespace CoupledField {
     
     //! List of inhomogeneous Neumann boundary conditions
     const InBcList& GetINBCList() { return inBcs_; }
+
+    /** Give the damping type by region.
+     * @return NONE if no damping in map! */
+    DampingType GetDamping(RegionIdType reg_id) const;
 
     //@}
       

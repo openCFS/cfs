@@ -119,6 +119,10 @@ void SnOpt::Init()
 
   LOG_TRACE(snopt) << "get_bounds_info";
   GetBounds(n, &xlow[0], &xupp[0], nF - 1, &Flow[1], &Fupp[1]);
+  
+  //for(unsigned int i = 0; i < Flow.size(); ++i)
+    //std::cout << "Flow[" << i << "] = " << Flow[i] << ", Fupp[" << i << "] = " << Fupp[i] << std::endl;
+  
   optimization->GetDesign()->WriteBoundsToExtern(&xlow[0], &xupp[0]);
   
   gradhelper.Resize(std::max(n, nG - n), 0.0);
@@ -406,26 +410,58 @@ void SnOpt::SetSnOptOptions()
 {
   LOG_TRACE(snopt) << "SetSnOptOptions";
   
-  // check for maximization instead of minimization
-  if(optimization->objectives.DoMaximize())
-    SetIntegerValue("maximize", 1);
+  const int minItLimit(900000);
+  
+  // must make sure these options are set
+  bool setMinorItLimit(false);
+  bool setItLimit(false);
   
   // additionally, set the number of major iterations
   SetIntegerValue("major_iterations_limit", optimization->GetMaxIterations());
+  
+  // snopt is a little bit of a resource hog, but we do not care
+  // set superbasics_limit to maximum (which might be a gross overestimation,
+  // but being told that the limit is too small after waiting 38 hours is just
+  // plain stupid)
+  SetIntegerValue("superbasics_limit", n);
 
   // check for optional parameters from xml
   if(optimizer_pn_ != NULL)
   {
     ParamNodeList list;
+    list = optimizer_pn_->GetListByVal("option", "type", "integer");
     
-    list = optimizer_pn_->Get("option")->Get("type")->GetList("integer");
     for(unsigned int i = 0; i < list.GetSize(); i++)
-      SetIntegerValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<Integer>());
+    {
+      string name(list[i]->Get("name")->As<std::string>());
+      int value(list[i]->Get("value")->As<int>());
+      
+      if(name == "superbasics_limit")
+        EXCEPTION("superbasics_limit is set automatically, do not specify in xml-file!");
+      
+      if(name == "minor_iterations_limit")
+      {
+        value = value < minItLimit ? minItLimit : value;
+        setMinorItLimit = true;
+      }
+      
+      if(name == "iterations_limit")
+      {
+        value = value < minItLimit ? minItLimit : value;
+        setItLimit = true;
+      }
+      
+      SetIntegerValue(name, value);
+    }
     
-    list = optimizer_pn_->Get("option")->Get("type")->GetList("real");
+    list = optimizer_pn_->GetListByVal("option", "type", "real");
+    
     for(unsigned int i = 0; i < list.GetSize(); i++)
-      SetNumericValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<Double>());
+      SetNumericValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<double>());
   }
+  
+  if(!setMinorItLimit) SetIntegerValue("minor_iterations_limit", minItLimit);
+  if(!setItLimit) SetIntegerValue("iterations_limit", minItLimit);
 }
 
 void SnOpt::initJacobians()
@@ -462,6 +498,8 @@ void SnOpt::initJacobians()
   }
   ++cstr;
 
+  LOG_DBG3(snopt) << "Flow.size() = " << Flow.size() << ", Fupp.size() = " << Fupp.size();
+  
   for(int c = 0, nc = optimization->constraints.view->GetNumberOfActiveConstraints(); c < nc; c++)
   {
     Condition* g = optimization->constraints.view->Get(c);
@@ -562,10 +600,6 @@ void SnOpt::SetIntegerValue(const std::string& key, int value)
   else if(key == "minor_print_level")
   {
     option = "Minor print level";
-  }
-  else if(key == "maximize")
-  {
-    option = "Maximize";
   }
   else if(key == "print_frequency")
   {

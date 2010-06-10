@@ -12,7 +12,6 @@
 #include "Domain/domain.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/resultHandler.hh"
 
 namespace CoupledField {
@@ -63,11 +62,15 @@ namespace CoupledField {
   // *****************
   //   Solve problem
   // *****************
-  void EigenFrequencyDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id, const bool reAssembleMatrices) {
+  void EigenFrequencyDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id, AdjointParameters* adjointParams, const bool reAssembleMatrices) {
     // options not implemented
     assert(write_results == true);
-    assert(given_analysis_id == NULL); // not implemented yet
     
+    if(given_analysis_id == NULL)
+      analysis_id_ = driverNode->Get(ParamNode::PROCESS);
+    else
+      analysis_id_ = given_analysis_id;
+
     ResultHandler* resHandler = domain->GetResultHandler();
 
     // ------------------------------

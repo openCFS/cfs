@@ -63,6 +63,9 @@ public:
    *        frequencies and calculate the mono-harmonic objective. Only EvaluateOnly shall use this
    *        parameter. */
   void SolveStateProblem(Excitation* ev_only_excite = NULL);
+  
+  /** This solves all Adjoint problems */
+  void SolveAdjointProblems(Excitation* ev_only_excite = NULL);
 
   /** Calculates the constraint(s) */
   double CalcConstraint(Condition* constraint = NULL);
@@ -79,6 +82,10 @@ public:
   /** Have all design elements the same size? -> same local element matrices */
   bool IsDomainStructured() { return assume_constant_element_matrices_; } 
   
+  /** Helper to convert from natural solution/design to application
+   * @param DesignElement::DENSITY -> MECH, DesignElement::POLARIZATION -> ELEC */
+  static Application ToApp(DesignElement::Type dt);
+
   /** Helper that converts from mechPDE to MECH and elecPDE to ELEC, ...
    * @throws if neither mechPDE nor elecPDE
    *  @see ToPDE()
@@ -97,7 +104,7 @@ public:
   BaseForm* GetForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator);
   
   /** Types of ersatz material optimization methods, the strings are read from the xml file */
-  typedef enum { SIMP_METHOD, PARAM_MAT, SHAPE_GRAD, NO_METHOD, SHAPE_OPT, SHAPE_PARAM_MAT, HOMOGENIZATION_METHOD} Method;
+  typedef enum { NO_METHOD, SIMP_METHOD, PARAM_MAT, SHAPE_GRAD, SHAPE_OPT, SHAPE_PARAM_MAT} Method;
   
   static Enum<Method> method;
 
@@ -229,24 +236,19 @@ protected:
     /** post init wen em is valid */
     void Init(ErsatzMaterial* em);
 
-    /** For all but ACOU_NEAR_FIELD STANDARD is enough */
-    enum Key { STANDARD = 0, GRAD = 1 };
-
-    /** The solution is identified by excitation index (0-based) and key.
-     * (The key might also be a timestep?) */
-    Solution* Get(Excitation& excitation, Key key = STANDARD);
-
-    Solution* Get(int excitation_index, Key key = STANDARD);
+    /** The solution is identified by excitation index (0-based) and timestep. */
+    Solution* Get(Excitation& excitation, unsigned int timestep = 0);
+    
+    Solution* Get(int excitation_index, unsigned int timestep = 0);
 
     /** Vector for averaging over multiple excitations */
-    SingleVector* GetMultiple(Key key = STANDARD);
+    SingleVector* GetMultiple(unsigned int timestep = 0);
 
   private:
 
-    /** Contain the exitations and summarized multiple data for one problem.
+    /** Contain the excitations and summarized multiple data for one problem.
      * For almost all cases there is only one problem.
-     * Only for acoustic near field problems we have the STANDARD and the GRAD problem.
-     * Also transient problems are of this kind. */
+     * Transient problems are of this kind. */
     struct Unit
     {
       Unit(); // only for compiler
@@ -262,9 +264,8 @@ protected:
       SingleVector* multiple;
     };
 
-    /** @see Unit()
-     * @Bastian Key could be changed to int or anything else */
-    std::map<Key, Unit*> data_;
+    /** @see Unit() */
+    StdVector<Unit*> data_;
 
     ErsatzMaterial* em_;
   };
@@ -294,8 +295,8 @@ protected:
   enum CalcMode 
   {
     STANDARD = 0, /*!< add u1^T (K' u2  - f') or2 * Re{ u1^T (K' u2 - f')} in the harmonic case  */
-    CONJ_QUAD     /*!< add <u, K' u> which is in the real case as STANDARD 
-                    and for the harmonic case u^T K' u^* (conj. complex). u1 = u2 = u!! */ 
+    CONJ_QUAD    /*!< add <u, K' u> which is in the real case as STANDARD
+                       and for the harmonic case u^T K' u^* (conj. complex). u1 = u2 = u!! */
   };
   
   
@@ -340,6 +341,7 @@ protected:
     throw Exception("not implemented");
   }
 
+
   /** Get the ErsatzMaterialTensor as the Tensor itself, not the stiffness matrix
    * @param mat holds the tensor
    * @param elem the Element for which the tensor should be returned
@@ -350,10 +352,11 @@ protected:
   /** This is an extension to SolveStateProblem() where the forward problem is solved and stored.
    * Depending on the objective function SolveAdjointProblem() is called to additionally solve and store the
    * adjoint problem.
-   * It works for both (mechanical) SIMP and PiezoSIMP. */
-  void SolveAdjointProblem(Excitation& excite, Objective* cost)  {
-    if(harmonic) SolveAdjointProblem<std::complex<double> >(excite, cost);
-            else SolveAdjointProblem<double>(excite, cost);
+   * It works for both (mechanical) SIMP and PiezoSIMP. 
+   * gradient is used to calculate some adjoints only for gradient calculations, some for function evaluations */
+  void SolveAdjointProblem(Excitation& excite, Objective* cost, bool gradient)  {
+    if(harmonic) SolveAdjointProblem<std::complex<double> >(excite, cost, gradient);
+            else SolveAdjointProblem<double>(excite, cost, gradient);
   }
 
   /** Determines the selection vector by a "pseudo loading" for output like objectives.
@@ -422,10 +425,24 @@ protected:
    * @param constraint if set calculate as given constraint, if null calculate as objective
    * @param solveproblem solve the tracking problem, e.g. shapeopt does solve the same problem already
    * @return invalid in derivative case*/
-  virtual double CalcTracking(Excitation& excite, Objective* f, Condition* g,  bool derivative, bool solveproblem = true);
+  virtual double CalcTracking(Excitation& excite, Objective* f, Condition* g,  bool derivative);
   
-  /** Calculate the acoustic near field objective. Is implicit harmonic. Assumes forward.Get(excite, GRAD) exists! */
-  double CalcAcouNearField(Excitation& excite, Objective* f);
+  /** Calculate the energy flux through a surface region: 1/2*Re{j*u^T Q u^*} where
+   * Q is the grad operator in z direction. Only for acoustic but easy to extend!*/
+  double CalcEnergyFlux(Excitation& excite, Objective* f);
+
+  /** This is a helper with the common part for CalcEnergyFlux and the adjoint RHS.
+   * Determines the global vector Q*u^* or (Q - Q^T)^T*u^* in the adjoint case.
+   * @param f the cost function as we need the ParamNode
+   * @param u_glob the complete equation index global solution vector
+   * @param adjoint switch action
+   * @param q_u_glob output depending on adjoint flag. see u_glob */
+  void SetEnergyFluxVector(Function* f, const Vector<std::complex<double> >& u_glob, bool adjoint, Vector<std::complex<double> >& q_u_glob);
+
+  /** Find the node numbers which are common from a surface element and a volume element.
+   * This maps from a surface element to the volume element.
+   * @param common_nodes e.g. a center surface element node is lost on a 20-hex-volume element */
+  void FindCommonNodes(const SurfElem* se, const Elem* vol, StdVector<unsigned int>& common_nodes) const;
 
   /** does the substep of solving K z = Proj(u - u0) for z */
   void SolveTrackingProblem(Excitation& excite, bool designelem = true, bool gridelem = false);
@@ -468,6 +485,11 @@ protected:
    * PiezoSIMP does it simply in the constructor */
   virtual void SetPDEs();
 
+  /** Calculates the continuous Kreisselmeier and Steinhauser max approxmiation for two values. */
+  double CalcMaxApproximation(double left, double right, double beta) const;
+
+  /** @see CalcMaxApproximation() */
+  double CalcMinApproximation(double left, double right, double beta) const;
 
   /** Here we store the solution of the problem. Multiple solutions for multiple loadcases */
   Solutions forward;
@@ -483,11 +505,6 @@ protected:
 
   /** The assemble class for our PDE */
   Assemble* assemble_;
-
-  /** Here we store the solution of the tracking subproblem.
-   * (This subproblem is solved for gradient calculation.)
-   * (It is not saved per excitation but overwritten with every excitation.) */
-  Solution* tracking_;
 
   /** true, if assuming regular grid, and only optimizing density, not DesignMaterial */
   bool assume_constant_element_matrices_;
@@ -507,6 +524,18 @@ protected:
 
   /** This is just a shortcut for the actual dimensions (2 or 3) */
   const unsigned int dim;
+
+  /** Store the results from the forward/adjoint problem. Handles multiple excitations
+   * @param read_sol store solution (maybe one would only like to save rhs)
+   * @param read_rhs is only interesting for the forward problem
+   * @param save_sol set this in the adjoint problem -> see Solution::Read()
+   * @param comment is just to LOG_DBG */
+  virtual void StorePDESolution(Excitation &excite, UInt timestep, Solutions& solutions, bool read_sol, bool read_rhs, bool save_sol, const std::string& comment);
+  
+  virtual void TimeStepCalculated(UInt timeStep, AdjointParameters* adjParams);
+  
+  virtual void RhsCalculated(AdjointParameters* adjParams);
+
 
 private:
 
@@ -528,12 +557,22 @@ private:
   double CalcObjective(Excitation& excite, Objective* cost);
   
   /** Creates the pseudo density node and stores the header */
-  PtrParamNode CreateExportDesign(const std::string& filename, ParamNodeList& des, ParamNodeList& tfs);
+  PtrParamNode CreateExportDesign(const std::string& filename, ParamNodeList& des, ParamNodeList& tfs, PtrParamNode regularize);
 
   /** See the non-template version for documentation! */
   template <class T>
   double CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1,
       Application k, StdVector<SingleVector*>& u2, SurfaceRef* ref, double factor, CalcMode calcMode, Objective* f, Condition* g, int res_idx);
+
+  /** Calculates a scalar product of two vectors and the derivative of the right hand side newmark update,
+   * used for transient optimization derivative calculation
+   * @param excite excitation to consider
+   * @param forward first vector
+   * @param adjoint second vector
+   * @param factor factor to multiply the value by (can be excitation weight)
+   * @param f objective the result is to be stored with
+   * @param g constraint the result is to be stored with */
+  void CalcNewmarkDerivative(Excitation& excite, Solutions& forward, Solutions& adjoint, double factor, Objective* f, Condition* g);
 
   /** Handles sensitive RHS, e.g. when we have sensitive Neuman boundary condition (elect surface charge).
    * SurfaceRef is  given to CalcU1KU2 and this method does from \f$<l,K'u-f'>\f$ the \f$-f'\f$ part.
@@ -544,26 +583,13 @@ private:
 
   /** This solves the adjoint problem problem only and stores all relevant data. Calls SetAndSolveAdjointRHS() */
   template <class T>
-  void SolveAdjointProblem(Excitation& excite, Objective* cost);
-
-  /** The both adjoint problems for acoustic near field optimization */
-  void SolveAcouNearFieldAdjointProblems(Excitation& excite);
-
-  /** Store the results from the forward/adjoint problem. Handles multiple excitations
-   * @param read_rhs is only interesting for the forward problem
-   * @param save_sol set this in the adjoint problem -> see Solution::Read()
-   * @param comment is just to LOG_DBG
-   * @param key makes excite precise */
-  void StorePDESolution(Excitation &excite, Solutions& solutions, bool read_rhs, bool save_sol, const std::string& comment, Solutions::Key key = Solutions::STANDARD);
-
-  /** For ACOU_NEAR_FIELD we need grad_n psi (acoustic potential). For the second adjoint rhs we need the
-   * grad_n of the first adjoint solution. Hence both time the same bussiness.
-   * We use a feature from AcousticPDE which evalutes the grad on the surface element center. Then we apply
-   * the normal scalard product and interpolate to nodal values.
-   * @param grad_n for grad_n_psi forward.Get(excite, Solutions::GRAD)->GetComplexVector(Solution::RAW_VECTOR);
-   * @param sel for the objective adjoint.Get(excite)->GetComplexVector(Solution::SEL_VECTOR)
-   *            for the rhs of the second adjoint the information is not needed any more. */
-  void PostProcAcouNearFieldSolution(Excitation &excite, Vector<std::complex<double> >& grad_n, Vector<std::complex<double> >& sel);
+  void SolveAdjointProblem(Excitation& excite, Objective* cost, bool gradient);
+  
+  /** Set the rhs for the adjoint equation, called by assemble */
+  virtual void SetAdjointRhs(AdjointParameters* adjointParams);
+  
+  /** Set the rhs for the tracking adjoint */
+  void SetTrackingAdjointRhs(Excitation& excite, int ts);
 
   /** Takes care for making CFS solving the adjoint PDE. Sets the rhs as  adjoint[excite.index]->rhs[MECH] */
   template <class T>
@@ -572,7 +598,7 @@ private:
   /** Helper for CommitIteration. Appends or replaces a design line */
   void SetCurrentExportDesign();
 
-  /** Stores the IDBC and sets the to HDBC for calculating the adjoint PDE
+  /** Stores the IDBC and sets the to HDBC for calculating the adjoint PDE. Also applies
    * @return this are the original IDBC values for RestHDBC*/
   StdVector<pair<SinglePDE*, IdBcList> > SetHDBC();
 
@@ -602,8 +628,9 @@ private:
    * @return the max norm of all individual constraint values. */
   double CalcSlopeConstraint(Condition* g, bool derivative);
 
-  /** This is a meassure for checkerboards.
-   * Whithin each element, for all dimensions we check if we are inbetween the 'left' and 'right' neighbors. */
+  /** This is a measure for checkerboards.
+   * Whithin each element, for all dimensions we check if we are in between the 'left' and 'right' neighbors.
+   * approximations are used  */
   double CalcCheckerboard(Condition* g, bool derivative);
 
   /** IntegrateDesignVariables() can do a lot, but no one wants to extend it to hande the derivative
@@ -649,9 +676,6 @@ private:
 
   /** When we optimize output we store here the nodes */
   LoadList output_nodes_;
-
-  /** This are the surface regions for acoustic near field optimization */
-  shared_ptr<BaseResult> acou_near_field_elems_;
 
   /** do we perform homogenization induced by any of the objective or constraints? */
   bool homogenization_;

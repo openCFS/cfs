@@ -16,7 +16,6 @@
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/MaterialHandler.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
 #include "DataInOut/programOptions.hh"
 #include "DataInOut/simInput.hh"
@@ -31,6 +30,7 @@
 #include "DataInOut/resultHandler.hh"
 #include "Optimization/Optimization.hh"
 #include "Optimization/DesignSpace.hh"
+#include "Optimization/DesignStructure.hh"
 #include "PDE/acousticPDE.hh"
 #include "PDE/elecPDE.hh"
 #include "PDE/mechPDE.hh"
@@ -117,7 +117,7 @@ void Domain::CreateGrid()
   for (gridIt = gridInputs_.begin(); gridIt != gridInputs_.end(); ++gridIt)
   {
 
-    std::cout << "++ Reading mesh ... "; // endl after check for regularity
+    std::cout << "++ Reading mesh ... " << std::flush; // endl after check for regularity
 
     std::string gridId = gridIt->first;
     if ((gridId != "default") && (gridInputs_.size() == 1))
@@ -976,7 +976,7 @@ void Domain::ResetPDEs()
 void Domain::ReadErsatzMaterial(PtrParamNode pn)
 {
   // perhaps Optimization has already called the SetEnums
-  if (DesignElement::filter.map.empty())
+  if (DesignElement::type.map.empty())
     DesignElement::SetEnums();
   if (Objective::type.map.empty())
     Optimization::SetEnums();
@@ -1005,24 +1005,32 @@ void Domain::ReadErsatzMaterial(PtrParamNode pn)
   }
 
   if (!ersatzMaterial)
-  { // only if the designspace does not already exist (created by optimization)
+  { // only if the design space does not already exist (created by optimization)
     // the header is like
     // <header>
     //   <design name="density" initial="1.0"/>
     //   ...
     //   <transferFunction type="simp" application="mech" design="density" param="1.0"/>
     //   ..
+    //   <regularization type="filter">
+    //    <filter contribution="linear" neighborhood="maxEdge" type="density" value="1.7"/>
+    //   </regularization>
     // </header>
 
     // the design set consists of entries like
-    // <element nr="401" type="density" design="0.886466" gradient="-7.56246e-09" filt_grad="-7.56246e-09"/>
-    // only the combination nr and type is unique. E.g. in piezo we have types density and polarization
+    // <element nr="401" type="density" design="0.886466" physical="0.800454" />
+    // only the combination nr and type is unique. E.g. in piezo we might have types density and polarization
     ParamNodeList des = xml->Get("header")->GetList("design");
     ParamNodeList tfs = xml->Get("header")->GetList("transferFunction");
+    PtrParamNode  reg = xml->Get("header/regularization/filter", ParamNode::PASS);
     ParamNodeList res(0); // empty
 
     // create the design space -> data has initial values!
-    ersatzMaterial = new DesignSpace(regionIds, des, tfs, res);
+    ersatzMaterial = new DesignSpace(regionIds, des, tfs, res, ErsatzMaterial::SIMP_METHOD);
+    ersatzMaterial->PostInit(0, 0); // no objectives, no constraints
+    // is cheap - for density filtering
+    DesignStructure filter(ersatzMaterial, regionIds);
+    if(reg) filter.SetFilters(reg, info->Get("ersatzMaterial"));
 
     ersatzMaterial->ToInfo(info->Get("ersatzMaterial")->Get(ParamNode::HEADER));
   }
@@ -1074,8 +1082,7 @@ void Domain::ReadErsatzMaterial(PtrParamNode pn)
 
 }
 
-bool Domain::GetErsatzMaterial(const Elem* elem, const BaseForm* form,
-    double& result)
+bool Domain::GetErsatzMaterial(const Elem* elem, const BaseForm* form, double& result)
 {
   // is the stuff active at all? and don't we use ParamMat
   if (ersatzMaterial == NULL || HasErsatzMaterialTensor())
@@ -1109,6 +1116,12 @@ bool Domain::HasErsatzMaterialTensor()
 {
   return ersatzMaterial == NULL ? false
       : ersatzMaterial->HasErsatzMaterialTensor();
+}
+
+bool Domain::HasErsatzMaterialMass()
+{
+  return ersatzMaterial == NULL ? false
+      : ersatzMaterial->HasErsatzMaterialMass();
 }
 
 // *************

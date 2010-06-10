@@ -71,8 +71,9 @@ void ShapeGrad::GetElementSolution(Vector<double> &vecforward, Vector<double> &v
   case MECH:
     {
       // set element solution to matrix
+      // use forward as adjoint because it is selfadjoint anyway (and make sign mistake!)
       node_store_sol->GetElemSolutionAsMatrix(elem_sol_forward_matrix, it, 0, forward.Get(idx)->GetVector(Solution::RAW_VECTOR));
-      node_store_sol->GetElemSolutionAsMatrix(elem_sol_adjoint_matrix, it, 0, adjoint.Get(idx)->GetVector(Solution::RAW_VECTOR));
+      node_store_sol->GetElemSolutionAsMatrix(elem_sol_adjoint_matrix, it, 0, forward.Get(idx)->GetVector(Solution::RAW_VECTOR));
 
       BaseMaterial* material = pde->getPDEMaterialData()[regionIds[idx]];
   

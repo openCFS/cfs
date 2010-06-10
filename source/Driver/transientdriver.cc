@@ -19,9 +19,11 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "PDE/StdPDE.hh"
 #include "PDE/pdememento.hh"
+#include "PDE/SinglePDE.hh"
 #include "Domain/domain.hh"
 #include "DataInOut/resultHandler.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "Optimization/Optimization.hh"
 
 using std::cout;
 using std::endl;
@@ -86,27 +88,36 @@ namespace CoupledField {
     InitializePDEs();
   }
     
-  void TransientDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id, 
-                                     const bool reAssembleMatrices) 
+  void TransientDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id, AdjointParameters* adjointParams, const bool reAssembleMatrices) 
   {
-    // options not implemented
-    assert(write_results == true);
-
     // notify resultHandler about beginning of new sequence step 
     ResultHandler * resHandler = domain->GetResultHandler();
 
+    int direction = adjointParams ? -1 : 1; // for adjoint the time is backwards
     UInt startStep = restartStep_ + 1;
-    Double  steptime  = startStep * firstdt_;
-    UInt nextRestart  = restartStep_ + restartIncr_ ;
+    UInt endStep = restartStep_ + numstep_;
+    Double  steptime  = firstdt_ * (adjointParams ? endStep : startStep);
+    UInt nextRestart  = restartStep_ + restartIncr_ * direction;
     Double  dt = firstdt_;
     bool haltFlag=false;
+    bool isFirstStep = true;
+    
+    Optimization* optimization = domain->GetOptimization();
 
     Double timeStepPercent = (double)numstep_/10;
     Double percentCounter = timeStepPercent;
+    if(direction < 0){
+      percentCounter = (double)numstep_ - timeStepPercent;
+    }
   
-    resHandler->BeginMultiSequenceStep( sequenceStep_,
-                                        analysis_,
-                                        numstep_+restartStep_-startStep+1 );
+    if(write_results){
+      resHandler->BeginMultiSequenceStep( sequenceStep_,
+                                          analysis_,
+                                          numstep_+restartStep_-startStep+1 );
+      if(optimization != NULL){ // we have to save everytime to a new multisequencestep
+        sequenceStep_++;
+      }
+    }
   
     ptPDE_->WriteGeneralPDEdefines();
 
@@ -127,7 +138,8 @@ namespace CoupledField {
 
     //---------------------------------------------------------------------------
     // Outer loop over all timesteps
-    for (actTimeStep_ = startStep; actTimeStep_ <= numstep_+restartStep_; actTimeStep_++) {
+    
+    for (actTimeStep_ = adjointParams ? endStep : startStep; actTimeStep_ <= endStep && actTimeStep_ >= startStep; actTimeStep_ += direction) {
       LOG_DBG(trans_driver) << "loop over timestep " << actTimeStep_;
       // check for a HALTCFS File
       // if there exist a file with name HALTCFS in the executing directory
@@ -150,34 +162,40 @@ namespace CoupledField {
 
       // Determine when to write logging information on terminal
       bool log = false;
-      if(numstep_ <= 50)
-        log = true;
-      if(numstep_ > 50 && numstep_ <= 500 && actTimeStep_ % 10) 
-        log = true;
-      if(numstep_ > 500 && (double) actTimeStep_ >= percentCounter) {
-        log = true;
-        percentCounter += timeStepPercent;
-      }
-      
-      if(log)
-      {
-        if(progOpts->IsQuiet())
-          cout << ptPDE_->GetName() << ": Time step " << actTimeStep_ << " time " << steptime << endl; 
-        else
-          // write std::out info    
-          cout << endl << ptPDE_->GetName() << ": Time step " 
-                    << actTimeStep_ <<" ======================= " << endl;
+      if(optimization != NULL){
+        cout << ".";
+      }else{
+        if(numstep_ <= 50)
+          log = true;
+        if(numstep_ > 50 && numstep_ <= 500 && ! (actTimeStep_ % 10)) // every tenth step, not all but the tenth  
+          log = true;
+        if(numstep_ > 500 && ( (direction > 0 &&  (double) actTimeStep_ >= percentCounter) || (direction < 0 && (double) actTimeStep_ <= percentCounter) ) ){
+          log = true;
+          percentCounter += timeStepPercent * direction;
+        }
+
+        if(log)
+        {
+          if(progOpts->IsQuiet())
+            cout << ptPDE_->GetName() << ": Time step " << actTimeStep_ << " time " << steptime << endl; 
+          else
+            // write std::out info    
+            cout << endl << ptPDE_->GetName() << ": Time step " 
+            << actTimeStep_ <<" ======================= " << endl;
+        }
       }
       
       if(given_analysis_id == NULL)
       {
-        analysis_id_ = driverNode->Get(ParamNode::PROCESS)->Get("step", ParamNode::APPEND); 
+        // do we really want to create a new entry? Might blast up the output
+        ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
+        analysis_id_ = driverNode->Get(ParamNode::PROCESS)->Get("step", at);
         analysis_id_->Get("analysis_id")->SetValue(actTimeStep_);
       }
       else
       {
-        analysis_id_ = given_analysis_id;
-        assert(analysis_id_->Has("analysis_id"));
+        assert(given_analysis_id->Has("analysis_id"));
+        analysis_id_ = CreateAnalysisIdChild(given_analysis_id, given_analysis_id->Get("analysis_id")->As<std::string>(), actTimeStep_, "step", actTimeStep_);
       }
       analysis_id_->Get("step")->SetValue(actTimeStep_);
       analysis_id_->Get("value")->SetValue(steptime);
@@ -186,12 +204,19 @@ namespace CoupledField {
       ptPDE_->GetSolveStep()->SetActTime(steptime);
       ptPDE_->GetSolveStep()->SetActStep(actTimeStep_);
       ptPDE_->GetSolveStep()->PreStepTrans();
-      ptPDE_->GetSolveStep()->SolveStepTrans(analysis_id_);
+      ptPDE_->GetSolveStep()->SolveStepTrans(analysis_id_, adjointParams, isFirstStep);
       ptPDE_->GetSolveStep()->PostStepTrans();
-      // writing results in output-file(s)
-      resHandler->BeginStep( actTimeStep_, steptime );
-      ptPDE_->WriteResultsInFile(actTimeStep_, steptime );
-      resHandler->FinishStep( );
+      
+      if(optimization != NULL){
+        optimization->TimeStepCalculated(actTimeStep_, adjointParams);
+      }
+      
+      if(write_results){
+        // writing results in output-file(s)
+        resHandler->BeginStep( actTimeStep_, steptime );
+        ptPDE_->WriteResultsInFile(actTimeStep_, steptime );
+        resHandler->FinishStep( );
+      }
 
       // writing current PDE-state into the restart-file
       if (restartIncr_ >= 1){
@@ -200,7 +225,7 @@ namespace CoupledField {
                     << actTimeStep_ <<" *********** " << std::endl;      
           
           ptPDE_->WriteRestart( );
-          nextRestart+=restartIncr_;
+          nextRestart+=restartIncr_ * direction;
         }
       }
       if (haltFlag) {
@@ -211,13 +236,19 @@ namespace CoupledField {
         ptPDE_->WriteRestart( );
       }    
 
-      steptime+=dt;        
+      steptime+=dt*direction;
+      isFirstStep = false;
+    }
+    if(optimization){
+      cout << endl;
     }
 
     // notify resultHandler about finishing of current sequence step
-    if(!isPartOfSequence_ ) {
+    if(!isPartOfSequence_ && write_results) {
       resHandler->FinishMultiSequenceStep();
-      resHandler->Finalize();
+      if(optimization == NULL){ // in transient-optimization, finalization may only occur after the last iteration
+        resHandler->Finalize();
+      }
     }
     
   }

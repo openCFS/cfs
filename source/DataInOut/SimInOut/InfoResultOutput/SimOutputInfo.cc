@@ -58,7 +58,6 @@ void SimOutputInfo::AddResult(shared_ptr<BaseResult> br)
 {
 
   shared_ptr<ResultInfo> ri = br->GetResultInfo();
-
   // we'll get either a real or complex result set
   Vector<Double>*  d_vec = NULL;
   Vector<Complex>* c_vec = NULL;
@@ -74,7 +73,8 @@ void SimOutputInfo::AddResult(shared_ptr<BaseResult> br)
   for(it.Begin(); !it.IsEnd(); it++) 
   {
     PtrParamNode in = br->GetInfoNode()->Get("item", ParamNode::APPEND);
-    in->Get("analysis_id")->SetValue(domain->GetDriver()->GetAnalysisId()->Get("analysis_id")->As<std::string>());
+    in->Get("step")->SetValue(actStep_);
+    in->Get("step_val")->SetValue(actStepVal_);
 
     // print value(s)
     StdVector<string>& dofs = ri->dofNames; 
@@ -84,7 +84,9 @@ void SimOutputInfo::AddResult(shared_ptr<BaseResult> br)
       if(br->GetEntryType() ==  BaseMatrix::DOUBLE)
         in_->SetValue((*d_vec)[it.GetPos() * dofs.GetSize() + i]);
       else
+      {
         in_->SetValue((*c_vec)[it.GetPos() * dofs.GetSize() + i]);
+      }
     }
     if(ri->unit != "") in->Get("unit")->SetValue(ri->unit);
 

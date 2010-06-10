@@ -224,7 +224,7 @@ namespace CoupledField
        return values_;
      }
 
-     /** Service function for the maxSloüe visualization */
+     /** Service function for the maxSlope visualization */
      double GetMaxElementSlope(unsigned int element) const;
 
      /** overloads ToString() to add local information if in local mode. For debug logging */
@@ -248,21 +248,19 @@ namespace CoupledField
 
      /** the mapping from a relative slope constraint number (0-based) to the actual
       * constraint. This allows to remove constraints for elements which have no (full)
-      * neighborbood */
+      * neighborhood */
      struct Identifier
      {
        /** default constructor for StdVector() */
        Identifier() {}
 
-       Identifier(unsigned int element_idx, VicinityElement::Neighbour neighbor, int sign)
+       Identifier(unsigned int element_idx, VicinityElement::Neighbour neighbor)
        {
          this->element_idx = element_idx;
          this->neighbor = neighbor;
-         this->sign = sign;
        }
        unsigned int element_idx; // this represents DesignSpace::data[element_idx]
        VicinityElement::Neighbour neighbor; // only X_P, Y_P (,Z_P);
-       int sign; // -1 for X_N, 1 for X_P
      };
 
      /** Elements with no full neighborhood are not stored. If they would be stored

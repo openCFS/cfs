@@ -723,6 +723,25 @@ namespace CoupledField {
   }
 
 
+  Integer EqnMap::SearchNode(Integer eqn, UInt dof)
+  {
+    // First check, if more than one type of results are defined
+    assert(nodeEqns_.size() == 1);
+
+    Matrix<Integer> const& map = (nodeEqns_.begin())->second;
+
+    // expensive!
+    for(UInt i = 0, n = map.GetNumRows(); i < n; i++)
+      if(map[i][dof - 1] == eqn)
+      {
+        Integer glob = mesh2PdeNode_.Find(i + 1); // local nodes are 1 based!
+        assert(glob > -1);
+        return glob + 1;
+      }
+
+    EXCEPTION("cannot find global node number for equation " << eqn << " dof " << dof);
+  }
+
   void EqnMap::GetNodeEqn( const StdVector<UInt>& nodeNrs,
       StdVector<Integer>& eqnNrs ) {
     // First check, if more than one type of results are defined
@@ -1270,13 +1289,27 @@ namespace CoupledField {
             // Check first node, which is contained in the PDE, i.e. has a
             // non zero local node number.
             UInt startIndex = 0;
-            while ( mesh2PdeNode_[slaveNodes[startIndex]-1] < 0) {
+
+            // TODO: the first test in the while header was introduced to get periodic boundary
+            // conditions working for problems where all elements with small pseudo density 
+            // are put into a second region
+            // For some reason in this case the mesh2PdeNode_-vector seems to only contain 
+            // negative values.
+            // Doing this check against slaveNodes.GetSize here and later in STEP 6b
+            // the simulation runs and also seems to yield useable results.
+            // However, this is not the nice way of doing things and this might also 
+            // lead to some errors in the calculation
+            // I have marked all lines corresponding to this change with the marker
+            // SECOND_REGION_INDEX_CHECK
+            while (startIndex < slaveNodes.GetSize() && mesh2PdeNode_[slaveNodes[startIndex]-1] < 0) {
               WARN("EqnMap::CalcNodalEquations: Constraint node "
                    << "nr. " << slaveNodes[startIndex]
                    << " is not contained in any of the regions for this PDE");
 
               startIndex++;
             }
+            // SECOND_REGION_INDEX_CHECK: if statements and consequent decrement of startIndex
+            if(startIndex == slaveNodes.GetSize()) --startIndex;
             
             // NOTE: at the moment we assume that slave and master nodes
             // are the same, therefore we start with the second node
@@ -1485,8 +1518,14 @@ namespace CoupledField {
             // Check first node, which is contained in the PDE, i.e. has a
             // non zero local node number.
             UInt startIndex = 0;
-            while ( mesh2PdeNode_[slaveNodes[startIndex]-1] < 0) 
+
+            // SECOND_REGION_INDEX_CHECK: first part of while header, before the &&
+            while (startIndex < slaveNodes.GetSize()-1 && mesh2PdeNode_[slaveNodes[startIndex]-1] < 0) 
               startIndex++;
+
+            // SECOND_REGION_INDEX_CHECK: if statements and consequent decrement of startIndex
+            if(startIndex == slaveNodes.GetSize()) --startIndex;
+
             UInt masterNode = slaveNodes[startIndex];
 
             // assign the master node/dof a equation number

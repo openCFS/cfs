@@ -32,6 +32,10 @@ namespace CoupledField {
     //! initialization
     //! \param rhsSIze total number of entries in the rhs vector
     virtual void Init( Double dt, UInt rhsSize ) = 0;
+    
+    void ReInit(){
+      Init(dt_, rhsSize_);
+    }
 
     virtual void setSubSteps( UInt subSteps )
     {EXCEPTION("Error not implemented!");};
@@ -99,6 +103,12 @@ namespace CoupledField {
     virtual Double GetNewmarkBeta() { 
       EXCEPTION( "Not implemented here" );
       return -1.0;
+    }
+    
+    //! get gamma coefficient from Newmark time stepping scheme
+    virtual Double GetNewmarkGamma() {
+      EXCEPTION("Not implemented here");
+      return(-1.0);
     }
 
     //! set gamma coefficient from Trapezoidal time stepping scheme

@@ -192,9 +192,7 @@ namespace CoupledField {
     // Determines gradient of electric potential, i.e. E=\grad \phi
     GradientFieldOp<TYPE> * FieldOp2
       = new GradientFieldOp<TYPE>(ptGrid_, pde2_, eqnMap2_,
-                                  *solhelp2, ELEC_POTENTIAL,
-                                  results2_[0],
-                                  isaxi_);
+                                  *solhelp2, results2_[0]->fctType, isaxi_);
 
     // Determines linear Strain S=Bu, i.e.
     //  partial derivates of mechanical displacement
@@ -330,8 +328,7 @@ namespace CoupledField {
      // Determines gradient of electric potential, i.e. E=\grad \phi
      GradientFieldOp<TYPE> * FieldOp2
        = new GradientFieldOp<TYPE>(ptGrid_, pde2_, eqnMap2_,
-                                   *solhelp2, ELEC_POTENTIAL,
-                                   results2_[0], isaxi_);
+                                   *solhelp2, results2_[0]->fctType, isaxi_);
 
 
      // ------ Calculation of the electric field and linear stresses ------
@@ -532,9 +529,7 @@ namespace CoupledField {
     // Determines gradient of electric potential, i.e. E=\grad \phi
     GradientFieldOp<Double> * ElecFieldOp
       = new GradientFieldOp<Double>( ptGrid_, pde2_, eqnMap2_,
-                                     *solElec, ELEC_POTENTIAL,
-                                     results2_[0],
-                                     isaxi_);
+                                     *solElec, results2_[0]->fctType, isaxi_);
 
     // Determines linear Strain S=Bu, i.e.
     //  partial derivates of mechanical displacement
@@ -732,9 +727,7 @@ namespace CoupledField {
     // Determines gradient of electric potential, i.e. E=\grad \phi
     GradientFieldOp<Double> * FieldOp2
       = new GradientFieldOp<Double>(ptGrid_, pde2_, eqnMap2_,
-                                  *solhelp2, ELEC_POTENTIAL,
-                                  results2_[0],
-                                  isaxi_);
+                                  *solhelp2, results2_[0]->fctType, isaxi_);
 
     // Determines linear Strain S=Bu, i.e.
     //  partial derivates of mechanical displacement

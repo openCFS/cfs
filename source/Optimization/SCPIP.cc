@@ -7,7 +7,6 @@
 #include "Utils/StdVector.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
 
 using namespace CoupledField;
 
@@ -155,7 +154,7 @@ void SCPIP::SetConstraintSparsityPattern()
   for(int c = 0, nc = optimization->constraints.view->GetNumberOfActiveConstraints(); c < nc; c++)
   {
     Condition* g = optimization->constraints.view->Get(c);
-    if(g->GetBound() != Condition::EQUAL)
+    if(g->GetBound() != Condition::EQUAL || g->GetType() == Condition::SLOPE)
     {
       assert(active[ie] == 1 || active[ie] == 0);
       if(active[ie] == 1)

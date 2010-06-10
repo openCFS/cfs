@@ -151,8 +151,8 @@ namespace CoupledField {
     //!                       \c [nodeNr]
     //! \param nodeNames (output) vector containing the corresponding
     //!                           node names 
-    void GetNamedNodes( std::vector<StdVector<UInt> > & nodes,
-                        std::vector<std::string> & nodeNames );
+    void GetNamedNodes(StdVector<StdVector<UInt> > & nodes,
+                       StdVector<std::string> & nodeNames );
 
     //! Read all named elements
 
@@ -162,8 +162,8 @@ namespace CoupledField {
     //!                       \c [elemNr]
     //! \param elemNames (output) vector containing the corresponding
     //!                           element names 
-    void GetNamedElems( std::vector<StdVector<UInt> > & elems,
-                        std::vector<std::string> & elemNames );
+    void GetNamedElems(StdVector<StdVector<UInt> > &elems,
+                       StdVector<std::string> &elemNames );
     //@}
     /*
 
@@ -190,37 +190,6 @@ namespace CoupledField {
     // GENERAL SOLUTION INFORMATION
     // =========================================================================
     //@{ \name General Solution Information
-    //! Return multisequence steps and their analysistypes
-    virtual void GetNumMultiSequenceSteps( std::map<UInt, BasePDE::AnalysisType>& analysis,
-                                           std::map<UInt, UInt>& numSteps,
-                                           bool isHistory = false ) {
-      analysis.clear();
-      numSteps.clear();
-    }
-    
-    //! Obtain list with result types in each sequence step
-    virtual void GetResultTypes( UInt sequenceStep, 
-                                 StdVector<shared_ptr<ResultInfo> >& infos,
-                                 bool isHistory = false ) {
-      infos.Clear();
-    }
-    
-    //! Return list with time / frequency values and step for a given result
-    virtual void GetStepValues( UInt sequenceStep,
-                                shared_ptr<ResultInfo> info,
-                                std::map<UInt, Double>& steps,
-                                bool isHistory = false ) {
-      steps.clear();
-    }
-    
-    //! Return entitylist the result is defined on
-    virtual void GetResultEntities( UInt sequenceStep,
-                                    shared_ptr<ResultInfo> info,
-                                    StdVector<shared_ptr<EntityList> >& list,
-                                    bool isHistory = false) {
-      list.Clear();
-    }
-    
     //! Fill pre-initialized results object with values of specified step
     virtual void GetResult( UInt sequenceStep,
                             UInt stepValue,

@@ -238,9 +238,35 @@ int CFS::Run()
 
     timer->Stop();
     if(!progOpts->IsQuiet()) cout << endl; // conditional empty line
-    cout << ">> Total time: wall clock: '" << timer->GetWallTime()
-              << "s' CPU time: '" << timer->GetCPUTime() << "s'" << endl << endl;
+    
+    cout << ">> Total time: wall clock: '";
+    
+    const int walltime(timer->GetWallTime());
+    const int cputime(timer->GetCPUTime());
 
+    if(walltime > 120.0) 
+    {
+      const int wallmin(walltime / 60.0);
+      const int cpumin(cputime / 60.0);
+      if(wallmin > 60.0)
+      {
+        cout << wallmin / 60 << "h " << (wallmin % 60) 
+             << "m' CPU time: '" << cpumin / 60 << "h " << (cpumin % 60) << "m'"; 
+      }
+      else
+      {
+        cout << wallmin << "m " << (walltime % 60) 
+             << "s' CPU time: '" << cpumin << "m " << (cputime % 60) << "s'"; 
+      }
+    }
+    else
+    {
+      cout << walltime << "s' CPU time: '" 
+           << cputime << "s'";
+    }
+    
+    cout << endl << endl;
+      
     // write the info object
     info->Get("status")->SetValue("finished"); // overwrite 'running'
     info->Get(ParamNode::SUMMARY)->Get("memory/final")->SetValue(MemoryUsage(false)); 

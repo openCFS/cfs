@@ -15,6 +15,8 @@ using boost::lexical_cast;
 
 Function::Function(PtrParamNode pn)
 {
+  this->harmonic_    = BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType());
+
   this->pn = pn;
 
   this->type_ = type.Parse(pn->Get("type")->As<std::string>());
@@ -26,8 +28,12 @@ Function::Function(PtrParamNode pn)
 
   this->parameter_ = pn->Has("parameter") ? pn->Get("parameter")->As<double>() : 0.0;
 
-  bool tensor_ok = ReadTensor(pn, this->tensor_); // is save and sets default
+  this->omega_omega_ = pn->Has("factor") ? pn->Get("factor/omega_omega")->As<bool>() : false;
+  if(!harmonic_ && omega_omega_)
+    throw Exception("It makes no sense to set costFunction/factor/omega_omega in static optimization");
 
+  bool tensor_ok = ReadTensor(pn, this->tensor_); // is save and sets default
+  
   if(type_ == HOMOGENIZATION_TRACKING && !tensor_ok)
    EXCEPTION("A 'tensor' element is mandatory  for 'homTracking'");
 
@@ -41,10 +47,10 @@ Function::Function(PtrParamNode pn)
       throw Exception("a 'tensor' is mandatory for homogenization tracking");
   }
 
-  if(pn->Has("parameter") && type_ != PENALIZED_VOLUME && type_ != GAP)
+  if(pn->Has("parameter") && type_ != PENALIZED_VOLUME && type_ != GAP && type_ != CHECKERBOARD)
    throw Exception("function '" + type.ToString(type_) + "' does not accept 'parameter' attribute");
 
-  if(!pn->Has("parameter") && (type_ == PENALIZED_VOLUME || type_ == GAP))
+  if(!pn->Has("parameter") && (type_ == PENALIZED_VOLUME || type_ == GAP || type_ == CHECKERBOARD))
    throw Exception("function '" + type.ToString(type_) + "' requires the 'parameter' attribute");
 
   if(physical_ && !(type_ == VOLUME || type_ == GREYNESS))
@@ -78,7 +84,7 @@ Function::Function(PtrParamNode pn)
     case COMPLIANCE:
     case OUTPUT:
     case DYNAMIC_OUTPUT:
-    case ACOU_NEAR_FIELD:
+    case ENERGY_FLUX:
     case TRACKING:
     case ABS_DYN_OUTPUT_SQUARED:
     case CONJUGATE_COMPLIANCE:
@@ -95,15 +101,18 @@ bool Function::ReadTensor(PtrParamNode pn, Matrix<double>& matrix)
   matrix.Resize(1,1); // minimal size, as 0,0 is not defined.
 
   // sanity checks
-  if(!pn->Has("tensor") && !pn->Has("isotropic")) return false;
+  if(!pn->Has("tensor") && !pn->Has("isotropic")) 
+    return false;
+
   if(pn->Has("tensor") && pn->Has("isotropic"))
     EXCEPTION("please specify either <tensor> or <isotropic>, not both");
+  
+  bool tensor_read(false);
 
   // check for tensor element
   PtrParamNode tens = pn->Get("tensor", ParamNode::PASS);
   if(tens != NULL)
   {
-
     int dim = tens->Get("dim1")->As<int>();
     if(dim != 3 && dim != 6)
       EXCEPTION("The Voigt 'tensor' for homogenizations needs to be 3x3 or 6x6");
@@ -119,6 +128,8 @@ bool Function::ReadTensor(PtrParamNode pn, Matrix<double>& matrix)
     // check for a scaling factor
     const double factor(tens->Get("factor")->As<double>());
     if(factor != 1.0) matrix *= factor;
+
+    tensor_read = true;
   }
 
   tens = pn->Get("isotropic", ParamNode::PASS);
@@ -128,9 +139,20 @@ bool Function::ReadTensor(PtrParamNode pn, Matrix<double>& matrix)
     double poisson = tens->Get("real")->Get("poissonNumber")->As<double>();
 
     MechanicMaterial::CalcIsotropicStiffnessTensorFromEAndPoisson(matrix, emod, poisson, domain->GetGrid()->GetDim());
-  }
 
-  return true;
+    tensor_read = true;
+  }
+  
+  if(tensor_read)
+  {
+    // output the target tensor to xml-file
+    // to get a reference and be able to do quick checks
+    PtrParamNode in_mat = info->Get("target_tensor");
+    in_mat->SetType(ParamNode::ELEMENT);
+    in_mat->Get("tensor")->SetValue(matrix);
+  }
+  
+  return tensor_read;
 }
 
 void Function::ParseCoord(PtrParamNode pn, std::pair<int, int>& coord)
@@ -167,4 +189,56 @@ bool Function::IsHomogenization() const
     default:
       return false;
   }
+}
+
+bool Function::ForDensityFiltering() const
+{
+  switch(type_)
+  {
+  case MULTI_OBJECTIVE:
+    EXCEPTION("Invalid query: " << type.ToString(type_));
+
+  default:
+    return true; // actually true for almost all!
+  }
+}
+
+bool Function::ForSensitivityFiltering() const
+{
+  switch(type_)
+  {
+  // pure objective
+  case OUTPUT:
+  case DYNAMIC_OUTPUT:
+  case ABS_DYN_OUTPUT_SQUARED:
+  case CONJUGATE_COMPLIANCE:
+  case GLOBAL_DYNAMIC_COMPLIANCE:
+  case ELEC_ENERGY:
+  case ENERGY_FLUX:
+  // objective and constraint
+  case COMPLIANCE:
+  case TRACKING:
+  case HOMOGENIZATION_TENSOR:
+  case HOMOGENIZATION_TRACKING:
+  case POISSONS_RATIO:
+  case YOUNGS_MODULUS:
+  case TEMPERATURE:
+    return true;
+
+  case VOLUME:
+  case PENALIZED_VOLUME:
+  case GAP:
+  case TYCHONOFF:
+  case GREYNESS:
+  case REALVOLUME:
+  case SLOPE:
+  case CHECKERBOARD:
+    return false;
+
+  case ISOTROPY:
+  case MULTI_OBJECTIVE:
+    EXCEPTION("Invalid query: " << type.ToString(type_));
+  }
+
+  EXCEPTION("can never reach! Stupid C++");
 }

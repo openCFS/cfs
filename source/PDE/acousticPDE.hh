@@ -92,6 +92,13 @@ namespace CoupledField {
     template <class TYPE>
     void CalcGradSurfaceElement( shared_ptr<BaseResult> vals, SolutionType solType, bool apply_normal, StdVector<Vector<TYPE> >& grad_out );
 
+    /** @see virtual SinglePDE::GetNativeSolutionType()
+     *  @return depending on the formulation: ACOU_POTENTIAL or ACOU_PRESSURE. */
+    SolutionType GetNativeSolutionType() const { return formulation_; }
+
+    /** @see virtual SinglePDE::GetNativeDOF() */
+    virtual UInt GetNativeDOF() const { return 1; }
+
   protected:
 
     // ========================

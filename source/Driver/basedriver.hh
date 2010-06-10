@@ -17,6 +17,7 @@ namespace CoupledField
   class WriteResults;
   class ResultHandler;
   class InfoNode;
+  class AdjointParameters;
 
   //! Base class for driving classes where we implemented time-stepping
   class BaseDriver
@@ -43,9 +44,7 @@ namespace CoupledField
      * @param write_results if false nothing is written to the output files
      * @param analysis_id if given is *set* as current and used.
      * @see StoreResults(double) */
-    virtual void SolveProblem(bool write_results = true, 
-                              PtrParamNode analysis_id = PtrParamNode(), 
-                              const bool reAssembleMatrices = true) = 0;
+    virtual void SolveProblem(bool write_results = true, PtrParamNode analysis_id = PtrParamNode(), AdjointParameters* adjointParams = NULL, const bool reAssembleMatrices = true) = 0;
     
     /** Only of interest for optimization, where one might not want to generate
      * output (gid, hdf5, gmv, ...) for every forward solution. 
@@ -100,6 +99,9 @@ namespace CoupledField
   
     /** Identification of the driver */
     virtual DriverClass GetDriverClass() = 0;
+    
+    /** Is called by optimization to know number of needed result vectors */
+    virtual UInt GetNumSteps() {return 1; }
  
   protected:
     

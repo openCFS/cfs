@@ -11,6 +11,7 @@
 #include "Utils/StdVector.hh"
 #include "General/exception.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/programOptions.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/resultHandler.hh"
 #include "Driver/driver_header.hh"
@@ -54,7 +55,9 @@ void BaseDriver::PrintSeqMeshes()
 PtrParamNode BaseDriver::CreateAnalysisId(const std::string& child_name, int child_id, 
                                        const std::string& child_2_name, int child_2_id)
 {
-  PtrParamNode child = driverNode->Get(ParamNode::PROCESS)->Get("step", ParamNode::APPEND);
+  // do we really want to create a new entry? Might blast up the output
+  ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
+  PtrParamNode child = driverNode->Get(ParamNode::PROCESS)->Get("step", at);
   child->Get("analysis_id")->SetValue(ConcatAnalysisId(child, child_name, child_id, child_2_name, child_2_id));
   return child;
 }

@@ -1,0 +1,9 @@
+SET(SIMOUTSTREAMING_SRCS SimOutputStreaming.cc)
+
+ADD_LIBRARY(simoutstreaming STATIC ${SIMOUTSTREAMING_SRCS})
+
+SET(TARGET_LL
+  datainout
+)
+
+TARGET_LINK_LIBRARIES(simoutstreaming ${TARGET_LL})

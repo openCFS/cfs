@@ -863,7 +863,7 @@ namespace CoupledField {
 
 
     // Assume that everything will go well
-    PtrParamNode out = olasInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
+    PtrParamNode out = olasInfo_->Get(ParamNode::PROCESS)->Get("solver");
     out->Get("solutionIsOkay")->SetValue(true);
 
     // Now modifiy the right-hand side vector

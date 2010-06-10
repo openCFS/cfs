@@ -201,12 +201,59 @@ namespace CoupledField
     
     void SavePrevSolution( const Double * ptSol, UInt size );
 
+    /** Return the native solution type, MECH_DISPLACEMENT, ... */
+    virtual SolutionType GetNativeSolutionType() const { EXCEPTION("not implemented"); }
+
+    /** Return the number of dofs of the native solution type, MECH_DISPLACEMENT, ...
+     * @return 1 or the number of dimensions (displacement) */
+    virtual UInt GetNativeDOF() const { EXCEPTION("not implemented"); }
+
+
     //@}
 
     /** do the actual reading of loads, this is also called from optimization 
      * @param bcNode paramnode that has "regionLoad" nodes as children 
      * @param pressSurf StdVector containing the RegionLoads */
     void ReadRegionLoadsFromXML(PtrParamNode bcNode, std::map<RegionIdType, RegionLoad>& regionLoads_);
+    
+    /** reread the results, this is needed in transient optimization, so that the results are re registered for the new multisequencestep 
+     */
+    void ReReadResults(){
+      ReadStoreResults();
+      ReadSpecialResults();
+    }
+
+    /** Calculate the element gradient matrix for all nodal positions of the matrix where only the
+     * dof component of the gradient is stored. This matrix just needs to be multiplied with the element
+     * solution vector.
+     * @param elem a volume element
+     * @param wanted which nodes of the element shall be considered. elem->connect for all!
+     *        Only the nodenumbers are of interest, not the ordering
+     * @param dof which dof of the gradient to use (1 based)
+     * @param fctType do we use non LAGRANGE?
+     * @param q_mat will be resized to (elem nodes)^2 with rows for all wanted nodes */
+    template <class TYPE>
+    void CalcElemGradMatrix(const Elem* elem, const StdVector<UInt>& wanted, UInt dof,
+                               shared_ptr<AnsatzFct> fctType, Matrix<TYPE>& q_mat);
+
+    /** Calculate the gradient of all nodes of a single element based on the elements ansatz functions.
+     * Strictly the gradient is only defined in the interior of the element, so for multiple elements
+     * you need to average and know what you are doing!
+     * @param dof mechDisplacement has x=1,y=2(,z=3) solution per node. Select the node. 1 for scalar results (potential)
+     * @param grad_out will resized to the number of nodes of the element, will get the gradients of size dim.
+     * @param elem_data the element solution of NULL if the current OLAS solution vector shall be used!*/
+    template <class TYPE>
+    void CalcGradNodeSolution(const Elem* elem, shared_ptr<AnsatzFct> fctType, UInt dof,
+                                 StdVector<Vector<TYPE> >& grad_out, Vector<TYPE>* elem_data = NULL);
+
+
+    /** Calculate the nodal gradients for several elements, does averaging.
+     *  @param list needs to be a ELEM_LIST
+     *  @param dof mechDisplacement has x=1,y=2(,z=3) solution per node. Select the node. 1 for scalar results (potential)
+     *  @param nodal_grad by the *global* node numbers of the elements the averaged gradients are written.
+     *  @param counter is internally needed but as parameter can be reused. Is resized to global number of nodes */
+    template <class TYPE>
+    void CalcGradNodeSolution(shared_ptr<EntityList> list, UInt dof, StdVector<Vector<TYPE> >& nodal_grad, StdVector<UInt>& counter);
 
   protected:
 
@@ -230,8 +277,13 @@ namespace CoupledField
     // INITIALIZATION METHODS
     // ======================================================
 
-    //! define all computable results
-    virtual void DefineAvailResults() {};  
+    /** define all computable results. */
+    virtual void DefineAvailResults() { };
+
+    /** The gradSolution is common for (almost) all PDEs.
+     * @param dof for mech displacement, 1 = grad of x displacement, ... */
+    template<class TYPE>
+    void CalcGradSolution(shared_ptr<BaseResult> res, UInt dof = 1);
 
     //! Obtain information on desired output quantities from parameter file
     //! This method is used to query the parameter handling object for the
@@ -245,8 +297,8 @@ namespace CoupledField
     //! define all (bilinearform) integrators needed for this pde
     virtual void DefineIntegrators( )=0;
 
-    //! Trigger calculation of results
-    virtual void CalcResults( shared_ptr<BaseResult> result ) {};
+    /** Trigger calculation of results. */
+    virtual void CalcResults( shared_ptr<BaseResult> result ) { };
 
     //! read damping information
     virtual void ReadDampingInformation( ){

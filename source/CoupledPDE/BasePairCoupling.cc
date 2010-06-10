@@ -4,8 +4,6 @@
 
 #include "BasePairCoupling.hh"
 
-
-#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh" 
 #include "PDE/SinglePDE.hh"
 #include "Domain/domain.hh"

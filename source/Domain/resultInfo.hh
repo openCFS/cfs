@@ -58,6 +58,7 @@ namespace CoupledField {
     ResultInfo& operator=( const ResultInfo& data );
 
 
+
     // =======================================================================
     // D A T A    M E M B E R S 
     // =======================================================================
@@ -67,6 +68,9 @@ namespace CoupledField {
 
     //! General string representation of result
     std::string resultName;
+
+    /** Helper to set dof names for vector. Sets to x, y (,z) or r, z */
+    void SetVectorDOFs(UInt dim, bool is_axi);
 
     //! Number of degrees of freedoms
     StdVector<std::string> dofNames;

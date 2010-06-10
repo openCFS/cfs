@@ -15,6 +15,7 @@
 #include "MatVec/crs_matrix.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/programOptions.hh"
 #include "Utils/StdVector.hh"
 #include "CholMod.hh"
 
@@ -93,7 +94,9 @@ void CholMod<T>::SetMatrix(const BaseMatrix &base_mat)
 template<typename T>
 void CholMod<T>::Setup(BaseMatrix &sysMat, PtrParamNode analysis_id)
 {
-  PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("setup", ParamNode::APPEND);
+  // do we really want to create a new entry? Might blast up the output
+  ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
+  PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("setup", at);
   out->Get("analysis_id")->SetValue(analysis_id->Get("analysis_id"));
   
   LOG_TRACE2(cholmod) <<  "Setup: matrix -> " << sysMat.ToString();
@@ -126,7 +129,7 @@ void CholMod<T>::Setup(BaseMatrix &sysMat, PtrParamNode analysis_id)
     u = CHOLMOD_MAXMETHODS+1;
   }
   for(int i = 0; i < u; ++i){
-    PtrParamNode m = out->Get("method", ParamNode::APPEND);
+    PtrParamNode m = out->Get("method");
     m->Get("id")->SetValue(i);
     m->Get("lnz")->SetValue(common_.method[i].lnz);
     m->Get("fl")->SetValue(common_.method[i].fl);
@@ -137,8 +140,10 @@ void CholMod<T>::Setup(BaseMatrix &sysMat, PtrParamNode analysis_id)
 template<typename T>
 void CholMod<T>::Solve(const BaseMatrix &base_mat, const BasePrecond &base_precond, 
     const BaseVector &base_rhs,  BaseVector &base_sol, PtrParamNode analysis_id)
+
 {
-  PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
+  ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
+  PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", at);
   out->Get("analysis_id")->SetValue(analysis_id->Get("analysis_id"));
   
   // the preconditioner sets the matrix
@@ -165,7 +170,7 @@ void CholMod<T>::Solve(const BaseMatrix &base_mat, const BasePrecond &base_preco
   cholmod_dense* sol = cholmod_solve(CHOLMOD_A, fact_, rhs, &common_);
   TestException("solve");
 
-  free(rhs); // free the container again
+  delete rhs; // free the container again
 
   // we gain the solution pointer and copy back the result
   T* sol_ptr = dynamic_cast<Vector<T>&> (base_sol).GetPointer();

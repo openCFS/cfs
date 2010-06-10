@@ -13,7 +13,6 @@
 #include "Driver/assemble.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/resultHandler.hh"
 #include "DataInOut/programOptions.hh"
@@ -202,7 +201,7 @@ namespace CoupledField
   // ****************
   //   SolveProblem
   // ****************
-  void HarmonicDriver::SolveProblem(bool write_results, PtrParamNode analysis_id, const bool reAssembleMatrices)
+  void HarmonicDriver::SolveProblem(bool write_results, PtrParamNode analysis_id, AdjointParameters* adjointParams, const bool reAssembleMatrices)
   {
     // in harmonics one cannot extraxt the result writing to StoreResults() as
     // we have multiple frequencies. (exceptions is optimization)

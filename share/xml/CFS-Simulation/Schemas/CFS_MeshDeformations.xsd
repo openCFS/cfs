@@ -16,7 +16,7 @@
                                     <xsd:attribute name="direction" use="required">
                                         <xsd:simpleType>
                                             <xsd:restriction base="xsd:nonNegativeInteger">
-                                                <xsd:maxInclusive value="3"/>
+                                                <xsd:maxInclusive value="2"/>
                                             </xsd:restriction>
                                         </xsd:simpleType>
                                     </xsd:attribute>
@@ -24,7 +24,16 @@
                                 </xsd:complexType>
                             </xsd:element>
                         </xsd:sequence>
-                        <xsd:attribute name="numberofparameters" use="required" type="xsd:nonNegativeInteger"/>
+                        <xsd:attribute name="parameters" use="required" type="xsd:nonNegativeInteger"/>
+                        <xsd:attribute name="nodes" use="required" type="xsd:positiveInteger"/>
+                        <xsd:attribute name="dim" use="required">
+                            <xsd:simpleType>
+                                <xsd:restriction base="xsd:positiveInteger">
+                                    <xsd:minInclusive value="2"/>
+                                    <xsd:maxInclusive value="3"/>
+                                </xsd:restriction>
+                            </xsd:simpleType>
+                        </xsd:attribute>
                     </xsd:complexType>
                     <xsd:unique name="uNodeParamDirection">
                         <xsd:selector xpath="cfs:deformation"/>

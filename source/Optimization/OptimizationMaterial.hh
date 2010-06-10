@@ -74,8 +74,9 @@ public:
 
   /** Get the ElementMass Matrix for this element, this is the region constant version
    * @param elem the Element for which the Matrix should be returned
+   * @param direction if given, calculate derivative of mass Matrix instead
    * @return a pointer to the Element Mass Matrix*/
-  const Matrix<double>& MechMass(Elem* elem);
+  const Matrix<double>& MechMass(Elem* elem, const DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
   
 protected:  
   /** The mechanical element stiffness matrix is constant */

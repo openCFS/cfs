@@ -96,10 +96,11 @@ namespace CoupledField
     /** Combines a design_in with an objective */
     struct DesignMemory
     {
-      explicit DesignMemory(int id, double val) : design_id(id), value(val) {}
+      explicit DesignMemory(int id, double val) : design_id(id), value(val), gradient_design_id(id) {}
       int design_id;
       /** is either the objective or a scaling */
       double value;
+      int gradient_design_id;
     };
     
     

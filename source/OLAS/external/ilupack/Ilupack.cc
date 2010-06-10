@@ -15,6 +15,7 @@
 #include "MatVec/crs_matrix.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/programOptions.hh"
 #include "Utils/StdVector.hh"
 #include "Ilupack.hh"
 
@@ -132,7 +133,9 @@ void Ilupack<T>::SetMatrix(const BaseMatrix &base_mat)
 template<typename T>
 void Ilupack<T>::Setup(BaseMatrix &sysMat, PtrParamNode analysis_id)
 {
-  PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("setup", ParamNode::APPEND);
+  // do we really want to create a new entry? Might blast up the output
+  ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
+  PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("setup", at);
   out->Get("analysis_id")->SetValue(analysis_id->Get("analysis_id"));
   
   // determine the matrix type. Symmetric/nonsymmetric, positive definite, ...
@@ -210,7 +213,8 @@ template<typename T>
 void Ilupack<T>::Solve(const BaseMatrix &base_mat, const BasePrecond &base_precond, 
     const BaseVector &base_rhs,  BaseVector &base_sol, PtrParamNode analysis_id)
 {
-  PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
+  ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
+  PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", at);
   out->Get("analysis_id")->SetValue(analysis_id->Get("analysis_id"));
   
   // the preconditioner sets the ilupack matrix

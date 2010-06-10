@@ -23,7 +23,6 @@
 #include "Driver/assemble.hh"
 #include "newmark.hh"
 #include "newmarkFracDampMech.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/resultHandler.hh"
@@ -1788,8 +1787,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     }
   }
 
-  void MechPDE::DefineAvailResults() {
-
+  void MechPDE::DefineAvailResults()
+  {
     // Check for subType
     StdVector<std::string> dispDofNames, stressDofNames;
     usePlatePenaltyDof_ = false;
@@ -1930,16 +1929,40 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     energy->fctType = shared_ptr<ConstFct>(new ConstFct() );
     availResults_.insert( energy );
 
-    // === PSEUDO DENSITY for simp ===
-    shared_ptr<ResultInfo> pseudoDensity(new ResultInfo);
-    pseudoDensity->resultType = MECH_PSEUDO_DENSITY;
-    pseudoDensity->dofNames = "";
-    pseudoDensity->unit = "";
-    pseudoDensity->entryType = ResultInfo::SCALAR;
-    pseudoDensity->definedOn = ResultInfo::ELEMENT;
-    pseudoDensity->fctType = shared_ptr<ConstFct>(new ConstFct() );
-    availResults_.insert( pseudoDensity );
+    // === LUMPED_MECHANIC DISPLACEMENT ===
+    shared_ptr<ResultInfo> elem_disp(new ResultInfo);
+    elem_disp->resultType = LUMPED_MECH_DISPLACEMENT;
+    elem_disp->dofNames = dispDofNames;
+    elem_disp->unit = "m";
+    if(subType_ != "flatShell") {
+      elem_disp->entryType = ResultInfo::VECTOR;
+    } else {
+      elem_disp->entryType = ResultInfo::TENSOR;
+    }
+    elem_disp->definedOn = ResultInfo::ELEMENT;
+    elem_disp->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert(elem_disp);
+
+    // === PSEUDO DENSITY for SIMP ===
+    shared_ptr<ResultInfo> mechPD(new ResultInfo);
+    mechPD->resultType = MECH_PSEUDO_DENSITY;
+    mechPD->dofNames = "";
+    mechPD->unit = "";
+    mechPD->entryType = ResultInfo::SCALAR;
+    mechPD->definedOn = ResultInfo::ELEMENT;
+    mechPD->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert( mechPD );
+
+    shared_ptr<ResultInfo> pysicalPD(new ResultInfo);
+    pysicalPD->resultType = PHYSICAL_PSEUDO_DENSITY;
+    pysicalPD->dofNames = "";
+    pysicalPD->unit = "";
+    pysicalPD->entryType = ResultInfo::SCALAR;
+    pysicalPD->definedOn = ResultInfo::ELEMENT;
+    pysicalPD->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert( pysicalPD );
     
+
     // === SHAPE offset ===
     shared_ptr<ResultInfo> shape(new ResultInfo);
     shape->resultType = MECH_SHAPE;
@@ -1961,6 +1984,35 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     homogenTensor->fctType = shared_ptr<ConstFct>(new ConstFct() );
     availResults_.insert(homogenTensor);
 
+
+    // gradDisplacement as a nodal property
+    // TODO a method would reduce the copy and paste!
+    shared_ptr<ResultInfo> grad_x_displ(new ResultInfo);
+    grad_x_displ->resultType = GRAD_X_DISPLACEMENT;
+    grad_x_displ->SetVectorDOFs(dim_, isaxi_);
+    grad_x_displ->unit = "m/m";
+    grad_x_displ->entryType = ResultInfo::VECTOR;
+    grad_x_displ->definedOn = ResultInfo::NODE;
+    grad_x_displ->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert(grad_x_displ);
+
+    shared_ptr<ResultInfo> grad_y_displ(new ResultInfo);
+    grad_y_displ->resultType = GRAD_Y_DISPLACEMENT;
+    grad_y_displ->SetVectorDOFs(dim_, isaxi_);
+    grad_y_displ->unit = "m/m";
+    grad_y_displ->entryType = ResultInfo::VECTOR;
+    grad_y_displ->definedOn = ResultInfo::NODE;
+    grad_y_displ->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert(grad_y_displ);
+
+    shared_ptr<ResultInfo> grad_z_displ(new ResultInfo);
+    grad_z_displ->resultType = GRAD_Z_DISPLACEMENT;
+    grad_z_displ->SetVectorDOFs(dim_, isaxi_);
+    grad_z_displ->unit = "m/m";
+    grad_z_displ->entryType = ResultInfo::VECTOR;
+    grad_z_displ->definedOn = ResultInfo::NODE;
+    grad_z_displ->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert(grad_z_displ);
 
     // === OPT_RESULT_1/2/3 ===
     // this is added via the optimization stuff in DesignSpace.
@@ -2038,6 +2090,45 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
   }
 
+  template <class TYPE>
+  void MechPDE::CalcLumpedDisplacement(shared_ptr<BaseResult> base_result)
+  {
+    Result<TYPE>& res = dynamic_cast<Result<TYPE>&>(*base_result);
+
+    EntityIterator it = res.GetEntityList()->GetIterator();
+    assert(it.GetType() == EntityList::ELEM_LIST);
+
+    Vector<TYPE>& val = res.GetVector();
+    val.Resize(res.GetEntityList()->GetSize() * dim_);
+
+    shared_ptr<ResultInfo> resinfo = GetResultInfo(MECH_DISPLACEMENT);
+    ElemList single_elem(domain->GetGrid());
+    Vector<TYPE> elem_sol;
+
+    // traverse the elements
+    for(it.Begin(); !it.IsEnd(); it++)
+    {
+      const Elem* elem = it.GetElem();
+
+      single_elem.SetElement(elem);
+
+      GetSolVecOfElement(elem_sol, single_elem.GetIterator(), resinfo);
+      assert(elem_sol.GetSize() == dim_ * elem->connect.GetSize());
+
+      // traverse first over the dimension
+      for(UInt d = 0; d < dim_; d++)
+      {
+        TYPE sum = 0.0;
+
+        // traverse local node results
+        for(UInt idx = d; idx < elem_sol.GetSize(); idx += dim_)
+          sum += elem_sol[idx];
+
+        val[it.GetPos() * dim_ + d] = sum / (TYPE) elem->connect.GetSize();
+      }
+    }
+  }
+
   void MechPDE::CalcResults( shared_ptr<BaseResult> result ) {
 
     switch (result->GetResultInfo()->resultType ) {
@@ -2048,6 +2139,13 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       } else {
         ExtractResult<Double>( result, sol_ );
       }
+      break;
+
+    case LUMPED_MECH_DISPLACEMENT:
+      if(isComplex_)
+        CalcLumpedDisplacement<Complex>(result);
+      else
+        CalcLumpedDisplacement<Double>(result);
       break;
 
     case MECH_VELOCITY:
@@ -2099,6 +2197,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       break;
 
     case MECH_PSEUDO_DENSITY:
+    case PHYSICAL_PSEUDO_DENSITY:
       if(domain->GetErsatzMaterial(false) == NULL) // no excpetion
         result->Init();
       else
@@ -2127,9 +2226,23 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       domain->GetErsatzMaterial()->ExtractResults(result, isComplex_);
       break;
 
+    case GRAD_X_DISPLACEMENT:
+      if(isComplex_) CalcGradSolution<Complex>(result, 1);
+                else CalcGradSolution<Double>(result, 1);
+      break;
+
+    case GRAD_Y_DISPLACEMENT:
+      if(isComplex_) CalcGradSolution<Complex>(result, 2);
+                else CalcGradSolution<Double>(result, 2);
+      break;
+
+    case GRAD_Z_DISPLACEMENT:
+      if(isComplex_) CalcGradSolution<Complex>(result, 3);
+                else CalcGradSolution<Double>(result, 3);
+      break;
 
     default:
-      WARN( "Resulttype not computable by mechanic PDE" );
+      WARN( "Result type not computable by mechanic PDE" );
     }
   }
 
@@ -2444,7 +2557,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       for(unsigned int c = 0; c < tcols; ++c)
         vals[r * trows + c] = tensor[r][c];
   }
-
 
   template <class TYPE>
   void MechPDE::CalcEnergy( shared_ptr<BaseResult> vals )

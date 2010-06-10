@@ -14,7 +14,6 @@
 
 #include "Elements/elements_header.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "General/exception.hh"
@@ -706,8 +705,10 @@ namespace CoupledField {
 
     }
 
+    // in case of internalMesh the region is already marked as regular
+    // so we can skip the test here
     for(unsigned int i = 0; i < regionData.GetSize(); i++)
-      regionData[i].regular = CheckForRegularRegion(i);
+      regionData[i].regular = (regionData[i].regular || CheckForRegularRegion(i));
 
     isInitialized_ = true;
 
@@ -878,43 +879,28 @@ namespace CoupledField {
   }
 
 
-  UInt GridCFS::GetNumNodes(){
-    return numNodes_;
-  }
+  UInt GridCFS::GetNumNodes(RegionIdType reg_id) const
+  {
+    if(reg_id == ALL_REGIONS)
+      return numNodes_;
 
-
-  UInt GridCFS::GetNumNodes( const StdVector<RegionIdType> & regions ) {
-
-    UInt numNodes = 0;
     Integer index = 0;
 
-    for ( UInt i=0; i<regions.GetSize(); i++ ) {
+    // look in volume regions
+    index = volRegionIds_.Find(reg_id);
+    if(index != -1)
+      return volElemNodes_[index].size();
 
-      // look in volume regions
-      index = volRegionIds_.Find(regions[i]);
-      if ( index != -1 ) {
-        numNodes += volElemNodes_[index].size();
-      } else {
+    // look in surface regions
+    index = surfRegionIds_.Find(reg_id);
+    if(index != -1)
+      return surfElemNodes_[index].size();
 
-        // look in surface regions
-        index = surfRegionIds_.Find(regions[i]);
-        if ( index != -1 ) {
-          numNodes += surfElemNodes_[index].size();
-        } else {
-          EXCEPTION("GridCFS: The region with id '" << regions[i]
-                    << "' was not found in the grid!" );
-        }
-      }
-    }
-
-    return numNodes;
-
+    EXCEPTION("The region with id '" << reg_id << "' is unknown");
   }
 
 
-
-
-  UInt GridCFS::GetNumNodes( const std::string & nodesName ) {
+  UInt GridCFS::GetNumNodes( const std::string & nodesName ) const {
 
     UInt numNodes = 0;
     Integer index = namedNodeNames_.Find(nodesName);
@@ -930,79 +916,67 @@ namespace CoupledField {
   }
 
 
-  UInt GridCFS::GetNumElems() {
-    return numElems_;
-  }
 
 
-  UInt GridCFS::GetNumSurfElems() {
+  UInt GridCFS::GetNumSurfElems(RegionIdType reg_id) const
+  {
+    if(reg_id != ALL_REGIONS)
+    {
+      assert(regionData[reg_id].id == reg_id);
+      assert(regionData[reg_id].type == SURFACE_REGION);
+      return surfElems_[regionData[reg_id].type_idx].GetSize();
+    }
 
     UInt numSurfElems = 0;
 
-    for (UInt i=0; i<surfElems_.GetSize(); i++) {
+    for (UInt i=0; i < surfElems_.GetSize(); i++)
       numSurfElems += surfElems_[i].GetSize();
-    }
 
     return numSurfElems;
   }
 
 
-  UInt GridCFS::GetNumVolElems() {
+  UInt GridCFS::GetNumVolElems(RegionIdType reg_id) const
+  {
+    if(reg_id != ALL_REGIONS)
+    {
+      assert(regionData[reg_id].id == reg_id);
+      assert(regionData[reg_id].type == VOLUME_REGION);
+      return volElems_[regionData[reg_id].type_idx].GetSize();
+    }
 
     UInt numVolElems = 0;
 
-    for (UInt i=0; i<volElems_.GetSize(); i++) {
+    for (UInt i=0; i < volElems_.GetSize(); i++)
       numVolElems += volElems_[i].GetSize();
-    }
 
     return numVolElems;
   }
 
+  UInt GridCFS::GetNumElems(RegionIdType reg_id) const
+  {
+    if(reg_id == ALL_REGIONS)
+      return numElems_;
 
-  UInt GridCFS::GetNumElems( const StdVector<RegionIdType> & regions ){
+    if(regionData[reg_id].type == VOLUME_REGION)
+      return GetNumVolElems(reg_id);
+    else
+      return GetNumSurfElems(reg_id);
+  }
 
-
+  UInt GridCFS::GetNumElems(const StdVector<RegionIdType> & regions) const
+  {
     UInt numElems = 0;
-    Integer index = 0;
 
-    for ( UInt i=0; i<regions.GetSize(); i++ ) {
-
-
-      // check if region Id is ALL_REGIONS
-      if ( regions[i] == ALL_REGIONS ) {
-
-        // iterate over all volume elements
-        for ( UInt i = 0; i < volElems_.GetSize(); i++) {
-          numElems += volElems_[index].GetSize();
-        }
-
-        // iterate over all surface elements
-        for ( UInt i = 0; i < surfElems_.GetSize(); i++) {
-          numElems += surfElems_[index].GetSize();
-        }
-
-      } else {
-
-
-        // look in volume regions
-        index = volRegionIds_.Find(regions[i]);
-        if ( index != -1 ) {
-          numElems += volElems_[index].GetSize();
-        } else {
-
-          // look in surface regions
-          index = surfRegionIds_.Find(regions[i]);
-          if ( index != -1 ) {
-            numElems += surfElems_[index].GetSize();
-          } else {
-            EXCEPTION( "GridCFS: The region with id '" << regions[i]
-                       << "' was not found in the grid!" );
-          }
-        }
-      }
+    for (UInt i=0; i < regions.GetSize(); i++)
+    {
+      assert(regionData[regions[i]].id == regions[i]);
+      if(regionData[regions[i]].type == SURFACE_REGION)
+        numElems += GetNumSurfElems(regions[i]);
+      else
+        numElems += GetNumVolElems(regions[i]);
     }
     return numElems;
-
   }
 
 
@@ -1955,8 +1929,9 @@ namespace CoupledField {
       in_->Get("id")->SetValue(rd.id);
       in_->Get("type")->SetValue(rd.type == VOLUME_REGION ? "volume" : "surface");
       in_->Get("regular")->SetValue(rd.regular);
-      in_->Get("homogeneous")->SetValue(rd.homogeneous);
-      // TODO: it would be nice to add the number of elements per region 
+      in_->Get("hom")->SetValue(rd.homogeneous);
+      in_->Get("nodes")->SetValue(GetNumNodes(rd.id));
+      in_->Get("elems")->SetValue(GetNumElems(rd.id));
     }
 
     list = in->Get("namedNodes");

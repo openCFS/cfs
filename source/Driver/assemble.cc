@@ -21,6 +21,7 @@
 #include "OLAS/algsys/basesystem.hh"
 #include "Utils/Timer.hh"
 #include "DataInOut/Scripting/cfsmessenger.hh"
+#include "Optimization/Optimization.hh"
 
 namespace CoupledField
 {
@@ -58,7 +59,7 @@ namespace CoupledField
 
     // the timer object is used in every AssembleMatrices() call
     timer_ = new Timer();
-    info->Get("analysis")->Get(ParamNode::SUMMARY)->Get("assemble")->SetValue(timer_);
+    info->Get("analysis")->Get(ParamNode::SUMMARY)->Get("assemble/timer")->SetValue(timer_);
 
     // Initialize scripting interface
     RegisterFunctions();
@@ -492,14 +493,30 @@ namespace CoupledField
   }
 
   
-  void Assemble::AssembleLinRHS()
+  void Assemble::AssembleLinRHS(AdjointParameters* adjointParams)
   {
-    AssembleRHSLinForms(false );
-    AssembleRHSLoads();
+    Optimization* opt = domain->GetOptimization();
+    if(adjointParams != NULL && opt != NULL){
+      opt->SetAdjointRhs(adjointParams);
+    }else{
+      AssembleRHSLinForms(false );
+      AssembleRHSLoads();
+      if(opt != NULL){
+        opt->RhsCalculated(adjointParams);
+      }
+    }
   }
 
-  void Assemble::AssembleNonLinRHS() {
-    AssembleRHSLinForms(true );
+  void Assemble::AssembleNonLinRHS(AdjointParameters* adjointParams) {
+    Optimization* opt = domain->GetOptimization();
+    if(adjointParams != NULL && opt != NULL){
+      domain->GetOptimization()->SetAdjointRhs(adjointParams);
+    }else{
+      AssembleRHSLinForms(true );
+      if(opt != NULL){
+        opt->RhsCalculated(adjointParams);
+      }
+    }
   }
 
   void Assemble::AssembleRHSLinForms(bool nonLin ) {

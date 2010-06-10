@@ -254,6 +254,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="elecPotential"/>
       <xsd:enumeration value="elecRhsLoad"/>
+      <xsd:enumeration value="gradElecPotential"/>
     </xsd:restriction>
   </xsd:simpleType>
 

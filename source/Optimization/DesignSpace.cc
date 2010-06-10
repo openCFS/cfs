@@ -18,6 +18,8 @@
 
 using namespace CoupledField;
 
+using std::complex;
+
 // declare class specific logging stream
 DECLARE_LOG(designSpace)
 DEFINE_LOG(designSpace, "designSpace")
@@ -25,6 +27,8 @@ DEFINE_LOG(designSpace, "designSpace")
 // declare class specific logging stream
 DECLARE_LOG(ersatz)
 DEFINE_LOG(ersatz, "ersatzMaterialFactor")
+
+
 
 DesignSpace::DesignSpace(StdVector<RegionIdType>& regionIds, ParamNodeList &pn_design, ParamNodeList &trans_in, ParamNodeList &result, ErsatzMaterial::Method method)
 {
@@ -51,6 +55,9 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& regionIds, ParamNodeList &pn_d
 
   // read the elements
   elements_ = domain->GetGrid()->GetNumElems(regionIds);
+  
+  // should we adapt the lower bound of the design variable to the penalty exponent of the transfer function? 
+  bool adapt_lower(false);
 
   // number of different designs
   unsigned int nd = 0;
@@ -109,6 +116,11 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& regionIds, ParamNodeList &pn_d
 
         std::string design_reg = curr_design_pn->Get("region")->As<std::string>();
 
+        // there is no default for adapt_lower in the load ersatz material case
+        adapt_lower = false;
+        if(curr_design_pn->Has("adapt_lower"))
+          adapt_lower = curr_design_pn->Get("adapt_lower")->As<bool>();
+        
         for(unsigned int r = 0; r < regionIds.GetSize(); r++)
         {
           domain->GetGrid()->GetElems(elems, regionIds[r]);
@@ -132,6 +144,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& regionIds, ParamNodeList &pn_d
             if(curr_design_pn->Get("constant")->As<bool>()){ // we have a constant densign-value on that region
               regions_[r].constant = true;
             }
+            
             if(curr_design_pn->Get("scale")->As<bool>()){
               double upper = curr_design_pn->Get("upper")->As<double>();
               double lower = curr_design_pn->Get("lower")->As<double>();
@@ -142,11 +155,12 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& regionIds, ParamNodeList &pn_d
             double initial = curr_design_pn->Get("initial")->As<double>();
             LOG_DBG2(designSpace) << "add design " << dt << ":" << DesignElement::type.ToString(dt)
               << " initial=" << initial;
-
+                        
             for(unsigned int e = 0; e < n; e++)
             {
               DesignElement de(curr_design_pn, elems[e]);
               de.SetDesign(initial);
+              
               data.Push_back(de);
 
               // append rucksack :)
@@ -183,7 +197,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& regionIds, ParamNodeList &pn_d
 
       transfer.Reserve(trans_in.GetSize());
       if(trans_in.GetSize() < nd)
-        throw Exception("less transferFunctions than design variable types is inveasible");
+        throw Exception("less transferFunctions than design variable types is infeasible");
 
       for(unsigned int i = 0; i < trans_in.GetSize(); i++)
         transfer.Push_back(TransferFunction(trans_in[i], design.GetSize() == 1 ? design[0] : DesignElement::NO_TYPE));
@@ -197,6 +211,19 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& regionIds, ParamNodeList &pn_d
     resultDescriptions.Push_back(ResultDescription(result[i]));
   
   bimattensor_ = Matrix<double>();
+  
+  if(adapt_lower)
+  {
+    // get the param from the transfer function
+    const double par(1.0/GetTransferFunction(DesignElement::DENSITY, Optimization::MECH)->GetParam());
+    
+    // adapt lower bound of density
+    for(unsigned int e = 0, n = data.GetSize(); e < n; ++e)
+    {
+      DesignElement &curr_de = data[e];
+      curr_de.SetLowerBound(std::pow(curr_de.GetLowerBound(), par));
+    }
+  }
 }
 
 DesignSpace::~DesignSpace(){
@@ -352,7 +379,7 @@ int DesignSpace::GetSpecialResultIndex(DesignElement::Type design, DesignElement
     }
   }
 
-  return -1; // the specified tripel was not specified such in xml
+  return -1; // the specified triple was not specified such in xml
 }
 
 
@@ -398,7 +425,7 @@ double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, Optimizat
     TransferFunction* tf = GetTransferFunction(dt, applic, false);
     // multiply our transfer function
     if(tf != NULL) {
-      double transformed = tf->Transform(de);
+      double transformed = tf->Transform(de, DesignElement::SMART); // handles design filtering
       LOG_DBG3(ersatz) << "ErsatzMaterial for " << de->elem->elemNum << "/"
                        << Optimization::application.ToString(applic) << " for "
                        << DesignElement::type.ToString(dt) << ": "
@@ -413,20 +440,56 @@ double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, Optimizat
   return result;
 }
 
-bool DesignSpace::GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction){
+bool DesignSpace::CollectMaterialParametersForElement(const Elem* elem){
   int base = Find(elem, false);
   if(base < 0){
     return(false);
   }
-  // collect all parameters
+  
   for(unsigned int index = base; index < data.GetSize(); index += elements_){
     DesignElement* de = &data[index];
     designMaterial->SetParameter(de->GetType(), de->GetDesign(DesignElement::PLAIN));
   }
-  // get the Material-Tensor
-  designMaterial->GetMaterialTensor(t, subTensor, direction);
   return(true);
 }
+
+bool DesignSpace::GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction){
+  // collect all parameters
+  if(CollectMaterialParametersForElement(elem)){
+    designMaterial->GetMaterialTensor(t, subTensor, direction);
+    return(true);
+  }
+  return(false);
+}
+
+double DesignSpace::GetErsatzMaterialMass(const Elem* elem, DesignElement::Type direction){
+  // collect all parameters
+  if(CollectMaterialParametersForElement(elem)){
+    return(designMaterial->GetMaterialMass(direction));
+  }
+  return(1.0);
+}
+
+TransferFunction* DesignSpace::GetTransferFunction(DesignElement* de)
+{
+  TransferFunction* res = NULL;
+
+  for(unsigned int i = 0; i < transfer.GetSize(); i++)
+  {
+    if(transfer[i].GetDesign() == de->GetType() || transfer[i].GetDesign() == DesignElement::DEFAULT)
+    {
+      if(res != NULL)
+        EXCEPTION("Cannot determine unique transfer function for " << de->ToString());
+      res = &transfer[i];
+    }
+  }
+
+  if(res == NULL)
+    EXCEPTION("None of the " << transfer.GetSize() << " tranfer functions matches " << de->ToString());
+
+  return res;
+}
+
 
 TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, Optimization::Application application, bool throw_exception)
 {
@@ -437,13 +500,13 @@ TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, O
   for(unsigned int i = 0; i < transfer.GetSize(); i++)
   {
     TransferFunction* tf = &transfer[i];
-    if(tf->GetDesign() == design && tf->GetApplication() == application)
+    if(tf->GetApplication() != application)
+      continue;
+    if(tf->GetDesign() == design)
+      return tf;
+    if(this->design.GetSize() == 1 && design == DesignElement::DEFAULT)
       return tf;
   }
-
-  // nothing found, another chance
-  if(transfer.GetSize() == 1 && design == DesignElement::DEFAULT) // kind of dangerous without application check!!
-    return &transfer[0];
 
   if(!throw_exception) return NULL;
   else throw Exception("the desired transfer function for design '" + DesignElement::type.ToString(design)
@@ -558,7 +621,7 @@ void DesignSpace::WriteSparseGradientToExtern(StdVector<double>& out, DesignElem
   for(unsigned int i = 0; i < sparsity.GetSize(); i++)
   {
     assert(out.InWindow(base + i));
-    out[base + i] = data[sparsity[i]].GetGradient(NULL, g) * scaling;
+    out[base + i] = data[sparsity[i]].GetValue(vs, access, g) * scaling;
   }
 }
 
@@ -566,8 +629,7 @@ void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignEleme
 {
   // this does now do reordering as gradients are reordered in the optimizer
   // must be set in the constructor! might be trivial volume fraction or from file!!
-  bool cost_grad = vs == DesignElement::COST_GRADIENT;
-  assert(!(cost_grad && g != NULL));
+  assert(!(vs == DesignElement::COST_GRADIENT && g != NULL));
 
   unsigned int n = out.window.GetStart(); // to grow up to the total number of design variables
 
@@ -586,7 +648,7 @@ void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignEleme
         for(unsigned int s = base + regions_[r].base; s < region_elements; s++)
         {
           assert(out.InWindow(n));
-          out[n] += (cost_grad ? data[s].GetValue(vs, access) : data[s].GetGradient(NULL, g)) * scaling;
+          out[n] += data[s].GetValue(vs, access, g) * scaling;
         }
         n++;
       }
@@ -595,7 +657,7 @@ void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignEleme
         for(unsigned int s = base + regions_[r].base; s < region_elements; s++)
         {
           assert(out.InWindow(n));
-          out[n++] = (cost_grad ? data[s].GetValue(vs, access) : data[s].GetGradient(NULL, g)) * scaling;
+          out[n++] = data[s].GetValue(vs, access, g) * scaling;
         }
       }
     }
@@ -767,3 +829,124 @@ int DesignSpace::FindRegion(RegionIdType regionId){
   }
   return -1;
 }
+
+
+template <class T>
+void DesignSpace::ExtractResults(shared_ptr<BaseResult> base_result)
+{
+  // our results are up to now scalar!
+  Result<T>& result = dynamic_cast<Result<T> &>(*base_result);
+
+  // the description of the result
+  shared_ptr<ResultInfo> ri = result.GetResultInfo();
+
+  // Work with a result description. This is either a result description from the
+  // xml file or when using the "predefined" *_PSEUDO_* we set it here.
+  ResultDescription def;
+  // set the defaults to be maybe replaced by a resultDescription
+  def.solutionType = ri->resultType;
+  // this is clearly nonsense if the result/solution type is OPT_RESULT_*
+  def.design = ri->resultType == ELEC_PSEUDO_POLARIZATION ? DesignElement::POLARIZATION : DesignElement::DENSITY;
+  // somehow critical! but only for density filtering, if at all.
+  def.access = ri->resultType == PHYSICAL_PSEUDO_DENSITY ? DesignElement::SMART : DesignElement::PLAIN;
+  def.value  = DesignElement::DESIGN;
+
+  ResultDescription& descr = def;
+  // ignore defaults if there is a result description for the OPT_RESULT_* case
+  for(unsigned int i = 0; i < resultDescriptions.GetSize(); i++)
+    if(resultDescriptions[i].solutionType == ri->resultType)
+      descr = resultDescriptions[i];
+
+  if(ri->definedOn == ResultInfo::NODE)
+    FillNodeResults(result, def);
+  else
+    FillElementResults(result, def);
+}
+
+template <class T>
+void DesignSpace::FillNodeResults(Result<T>& result, ResultDescription& descr)
+{
+  Vector<T>& actSol = result.GetVector();
+  actSol.Resize(result.GetEntityList()->GetSize());
+  EntityIterator it = result.GetEntityList()->GetIterator();
+
+  for(it.Begin(); !it.IsEnd(); it++ )
+  {
+    unsigned int node = it.GetNode();
+
+    actSol[it.GetPos()] = GetNodalValue(node, descr.value);
+  }
+}
+
+template <class T>
+void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr)
+{
+  Vector<T>& result_data = result.GetVector();
+
+  // this is our entity result, a scalar or a vector of dim 2/3
+  unsigned int dofs = result.GetResultInfo()->dofNames.GetSize();
+  assert(dofs >= 1 && dofs <= 3);
+  StdVector<double> result_value(dofs);
+
+
+  // search where in data we are
+  int base = FindDesign(descr.design);
+
+  // loop over elements from result. We have to do it this way as the the connection
+  // of design element and result element is the element(->elemeNum) but we cannot
+  // search in the result for an element.
+  EntityIterator it = result.GetEntityList()->GetIterator();
+
+  // set the result as we need it
+  result_data.Resize(result.GetEntityList()->GetSize() * dofs);
+
+
+  for ( it.Begin(); !it.IsEnd(); it++ )
+  {
+    // for elements not in the design region we set to one
+    for(unsigned int i = 0; i < dofs; i++)
+      result_value[i] = 1.0;
+
+    if(FindRegion(it.GetElem()->regionId) >= 0)
+    {
+      // note that the index is from the first design set!
+      unsigned int base_index = Find(it.GetElem()->elemNum);
+      // base=0 is first!
+      unsigned int data_index = (base * elements_) + base_index;
+      DesignElement& de = data[data_index];
+      de.GetValue(descr, result_value, dofs);
+
+#ifdef CHECK_INDEX
+      if(de.elem->elemNum != it.GetElem()->elemNum)
+        EXCEPTION("mixed up indices:" << de.elem->elemNum << "!=" << it.GetElem()->elemNum
+            << " base_index=" << base_index << " data_index=" << data_index << " it.Pos()=" << it.GetPos());
+#endif
+    }
+    for(unsigned int i = 0; i < dofs; i++)
+      result_data[it.GetPos() * dofs + i] = result_value[i];
+  }
+}
+
+// explicit template instantiation for GCC compiler
+#ifdef __GNUC__
+
+
+template
+void DesignSpace::ExtractResults<double>(shared_ptr<BaseResult> base_result);
+
+template
+void DesignSpace::ExtractResults<complex<double> >(shared_ptr<BaseResult> base_result);
+
+template
+void DesignSpace::FillNodeResults<double>(Result<double>& result, ResultDescription& descr);
+
+template
+void DesignSpace::FillNodeResults<complex<double> >(Result<complex<double> >& result, ResultDescription& descr);
+
+template
+void DesignSpace::FillElementResults<double>(Result<double>& result, ResultDescription& descr);
+
+template
+void DesignSpace::FillElementResults<complex<double> >(Result<complex<double> >& result, ResultDescription& descr);
+
+#endif

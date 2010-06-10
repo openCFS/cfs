@@ -6,6 +6,8 @@
 #include <fstream>
 
 #include "massInt.hh"
+#include "Domain/domain.hh"
+#include "Optimization/DesignSpace.hh"
 
 #include "DataInOut/Logging/cfslog.hh"
 
@@ -39,7 +41,8 @@ namespace CoupledField {
 
   void MassInt::CalcElementMatrix( Matrix<Double>& elemMat,
                                    EntityIterator& ent1, 
-                                   EntityIterator& ent2  )  {
+                                   EntityIterator& ent2,
+                                   DesignElement::Type direction)  {
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
@@ -61,6 +64,10 @@ namespace CoupledField {
     elemMat.Init();
 
     Double factor = mParser_->Eval( mHandle_ );
+
+    double f = GetErsatzMaterialMass(ent1.GetElem(), direction);
+    if(f != 1.0) factor *= f;
+    
 
     if (diagMass_ ) {
       Double mass = 0.0;
@@ -106,11 +113,6 @@ namespace CoupledField {
       elemMat = multDofMass;
     }
 
-    // for the harmonic topology optimization case (or load ersatz material)
-    double density = GetErsatzMaterialFactor(ent1.GetElem());
-    LOG_DBG3(forms) << GetName() << "::CalcElementMatrix(" << ent1.GetElem()->elemNum  
-                    << ") -> density=" << density;    
-    if(density != 1.0) elemMat *= density;
   }
 
   void MassInt::MassMultiDof(Matrix<Double>& massMultDof, 
@@ -124,10 +126,14 @@ namespace CoupledField {
     massMultDof.Resize(nrDofsPerNode_*singleDofSize);
     massMultDof.Init();
     
-    for (i=0; i < singleDofSize; i++)
-      for (j=0; j < singleDofSize; j++)
-        for (actDof=0; actDof < nrDofs; actDof++)
-          massMultDof[i*nrDofs + actDof][j*nrDofs + actDof] = massMatSingleDof[i][j]; 
+    for (i=0; i < singleDofSize; i++) {
+      for (j=0; j < singleDofSize; j++) {
+        double v = massMatSingleDof[i][j];
+        for (actDof=0; actDof < nrDofs; actDof++) {
+          massMultDof[i*nrDofs + actDof][j*nrDofs + actDof] = v; 
+        }
+      }
+    }
   }
 
 
@@ -148,6 +154,18 @@ namespace CoupledField {
             massMultDofZero[i*nrDofsPerNode_ + actDof][j*nrDofsPerNode_ + actDof] = 
               massMatSingleDof[i][j]; 
           }
+  }
+  
+  double MassInt::GetErsatzMaterialMass(const Elem* elem, DesignElement::Type direction){
+    // now check whether we have Param Mat, density is ignored then!!! 
+    if(elem != NULL && domain->HasErsatzMaterialMass()){
+      return domain->GetErsatzMaterial()->GetErsatzMaterialMass(elem, direction);
+    }else{
+      // for the harmonic topology optimzation case (or load ersatz material)
+      double density = GetErsatzMaterialFactor(elem);
+      LOG_DBG3(forms) << GetName() << "::CalcElementMatrix(" << elem->elemNum << ") -> density=" << density;    
+      return density;
+    }
   }
   
 } // end namespace CoupledField

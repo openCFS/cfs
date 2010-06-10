@@ -32,7 +32,7 @@ namespace CoupledField
 
   //----------------------- STATIC--------------------------------------------
 
-  void IterSolveStep::SolveStepStatic(PtrParamNode analysis_id, const bool reAssembleMatrices)
+  void IterSolveStep::SolveStepStatic(PtrParamNode analysis_id, AdjointParameters* adjointParams, const bool reAssembleMatrices)
   {
   
     SingleVector *val, *oldVal;
@@ -64,7 +64,7 @@ namespace CoupledField
         rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
         rPDE_.PDEs_[i]->GetSolveStep()->PreStepStatic();
         rPDE_.PDEs_[i]->CalcInputCoupling();
-        rPDE_.PDEs_[i]->GetSolveStep()->SolveStepStatic(analysis_id);
+        rPDE_.PDEs_[i]->GetSolveStep()->SolveStepStatic(analysis_id, adjointParams, reAssembleMatrices);
         rPDE_.PDEs_[i]->GetSolveStep()->PostStepStatic();
         rPDE_.PDEs_[i]->CalcOutputCoupling();
         
@@ -108,7 +108,7 @@ namespace CoupledField
 
 
   //----------------------- TRANSIENT-----------------------------------------
-  void IterSolveStep::SolveStepTrans(PtrParamNode analysis_id)
+  void IterSolveStep::SolveStepTrans(PtrParamNode analysis_id, AdjointParameters* adjointParams, const bool reAssembleMatrices)
   {
 
     UInt iter = 0;
@@ -178,7 +178,7 @@ namespace CoupledField
         rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
         rPDE_.PDEs_[i]->GetSolveStep()->PreStepTrans();
         rPDE_.PDEs_[i]->CalcInputCoupling();
-        rPDE_.PDEs_[i]->GetSolveStep()->SolveStepTrans(analysis_id);
+        rPDE_.PDEs_[i]->GetSolveStep()->SolveStepTrans(analysis_id, adjointParams, reAssembleMatrices);
 
         rPDE_.PDEs_[i]->CalcOutputCoupling();
               

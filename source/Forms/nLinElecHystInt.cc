@@ -115,10 +115,7 @@ namespace CoupledField {
 				 shared_ptr<ResultInfo> result) {
     
     EfieldOp_ =  new GradientFieldOp<Double>(ptGrid, ptPDE, 
-					     eqnMap, *sol_, 
-					     ELEC_POTENTIAL, 
-					     result, isaxi_, 
-					     coordUpdate_);
+					     eqnMap, *sol_, result->fctType, isaxi_, coordUpdate_);
     std::string str;
     ptMaterial->GetScalar(str, P_DIRECTION);
     Directions dir;

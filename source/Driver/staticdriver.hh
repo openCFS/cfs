@@ -29,9 +29,7 @@ namespace CoupledField {
     void Init();
 
     /** @see BaseDriver::SolveProblem(double) */  
-    void SolveProblem(bool write_results = true, 
-                      PtrParamNode analysis_id = PtrParamNode(), 
-                      const bool reAssembleMatrices = true);
+    void SolveProblem(bool write_results = true, PtrParamNode analysis_id = PtrParamNode(), AdjointParameters* adjointParams = NULL, const bool reAssembleMatrices = true);
         
     /** @see BaseDriver::StoreResults(double) */  
     void StoreResults(double step_val);

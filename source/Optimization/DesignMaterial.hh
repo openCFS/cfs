@@ -38,29 +38,11 @@ namespace CoupledField {
     /** Set a parameter for the parametric material optimization */
     void SetParameter(const DesignElement::Type p, const double value);
     
-    /** Calculate the elasticity tensor from the given material parameters */
-    void GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor);
-    
     /** Calculate the derivative tensor from the given material parameters */
-    void GetMaterialTensorDerivative(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
+    void GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
     
-    /** initialize the tensor with zeros */
-    void ZeroTensor(Matrix<double>& t, SubTensorType subTensor);
-    
-    /** put the entries of the transversal_isotropic tensor at the right places */
-    void SetTransIsoTensor(Matrix<double>& t, SubTensorType subTensor, double iD, double inD, double iG, double oD, double onD, double oG);
-    
-    /** put the entries of the isotropic tensor at the right places */
-    void SetIsoTensor(Matrix<double>& t, SubTensorType subTensor, double D, double nD, double G);
-    
-    /** Conveniance method */
-    void GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction){
-      if(direction == DesignElement::NO_DERIVATIVE){
-        GetMaterialTensor(t, subTensor);
-      }else{
-        GetMaterialTensorDerivative(t, subTensor, direction);
-      }
-    }
+    /** retrieve rel. mass of element (tensor trace) or derivative thereof */
+    double GetMaterialMass(DesignElement::Type direction);
     
     void static SetEnums();
     
@@ -72,6 +54,48 @@ namespace CoupledField {
     Type type_;   
     static Enum<TransIsoType> transIsoType;
     TransIsoType transIsoType_;
+    
+    unsigned int dim;
+    
+  private:
+    /* note that most of these functions are called really often, so inlining is used */
+
+    /** Calculate the Isotropic tensor */
+    inline void GetIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
+
+    /** Calculate the Lame Tensor */
+    inline void GetLameMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
+
+    /** Calculate the Trans-Iso Tensor */
+    inline void GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
+    
+
+    /** initialize the tensor with zeros */
+    inline void ZeroTensor(Matrix<double>& t, SubTensorType subTensor);
+    
+    /** put the entries of the transversal_isotropic tensor at the right places */
+    inline void SetTransIsoTensor(Matrix<double>& t, SubTensorType subTensor, double iD, double inD, double iG, double oD, double onD, double oG);
+    
+    /** put the entries of the isotropic tensor at the right places */
+    inline void SetIsoTensor(Matrix<double>& t, SubTensorType subTensor, double D, double nD, double G);
+    
+
+    /** Calculate the mass isotropic case */
+    inline double GetIsoMaterialMass(DesignElement::Type direction);    
+    
+    /** Calculate the mass lame case */
+    inline double GetLameMaterialMass(DesignElement::Type direction);
+    
+    /** Calculate the mass trans-iso case */
+    inline double GetTransIsoMaterialMass(DesignElement::Type direction);
+    
+
+    /** Get the trans-iso mass (tensor trace) out of the corresponding tensor entries */
+    inline double GetTransIsoMass(double iD, double iG, double oD, double oG);
+    
+    /** Get the isotropic mass (tensor trace) out of the corresponding tensor entries */
+    inline double GetIsoMass(double D, double G);
+
   };
 
 } // namespace

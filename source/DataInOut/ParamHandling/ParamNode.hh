@@ -94,14 +94,16 @@ namespace CoupledField
     
     /** Possible node types
      * UNDEF: In most cases we do not care about the type of the paramnode,
-     *        so UNDEF is a valid statte. Only when converting a node to an XML
+     *        so UNDEF is a valid state. Only when converting a node to an XML
      *        structure, we have to convert it to another type
      * ELEMENT: This node represents a XML element
      * ATTRIBUTE: This node represents a XML attribute
      * COMMENT: This node represents just a comment without syntactical meaning.
      *          Note: Comment-nodes are not allowed to have children!
+     * SELF_XML: Complex elements like Timer or Matrix which create an
+     *           xml string by themselves.
      */
-    typedef enum { UNDEF, ELEMENT, ATTRIBUTE, COMMENT } NodeType;
+    typedef enum { UNDEF, ELEMENT, ATTRIBUTE, COMMENT, SELF_XML } NodeType;
     
     /** The default constructor
      * @param type Type of the node (defaults to UNDEF)
@@ -122,12 +124,19 @@ namespace CoupledField
     /** Set the type of the current node */
     void SetType(const NodeType type) { this->type_ = type; }
     
-    //@{
-    /** Set the value */
+    /** Set a valid value (native type, Timer* and Matrix and Vector instances and pointers.
+     * Any other type which has no special SetValue() implementation is lost!! */
     void SetValue(const boost::any& value);
+
     void SetValue( const char* value);
-    //@}
     
+    /** Special version which handles the precision of the value. See implementation note! */
+    void SetValue(const double, const int precision);
+
+    /** Set a ParamNode to an expandable InfoNode. Works recursively
+     * @param overwrite_name if the the name of the parent node should be used */
+    void SetValue(PtrParamNode node, bool overwrite_name);
+
     /** Creates a sub-node with the content */
     void SetComment(const std::string& string);
       
@@ -305,8 +314,9 @@ namespace CoupledField
     * M I S C    M E T H O D S
     ************************************************************************/
 
-    /** returns name and value, and child summary information */
-    void ToString(std::string& ret ) const;
+    /** returns name and value, and child summary information
+     * @param depth if the elemen is matrix type the depth is mandatory for Matrix::ToXMLFormat(name, depth) */
+    void ToString(std::string& ret, int depth ) const;
     
     /** Prints this as xml element to the stream. Builds a tree. Shall no be directly
      * called for an attribute.
@@ -349,17 +359,18 @@ namespace CoupledField
     * automatically an ParamNode::name_ value out of caption_
     * @param in might contain spaces, e.g. "Number of iterations"
     * @return for this example 'NumberOfIterations' */
-    void ToValidLabel(const std::string& in,
-                      std::string& out) const;
+    std::string ToValidLabel(const std::string& in) const;
 
     /** Determine recursively the suitable type for nodes. This method
      * iterates recursively over all nodes and determines for all nodes, which 
-     * have a type UNDEF a suitable type (ELEMENT, ATTRIBUTE)
-     */ 
+     * have a type UNDEF a suitable type (ELEMENT, ATTRIBUTE) */
     void AdjustElementType();
 
     /** The real content (attribute or simple type content */
     boost::any value_;
+
+    /** the precision for numerical values, to be optionally set! */
+    int precision_;
 
     /** The name of the xml element/ attribute */
     std::string name_;

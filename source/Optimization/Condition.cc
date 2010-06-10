@@ -31,7 +31,7 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
            DesignElement::type.Parse(pn->Get("design")->As<std::string>());
 
   // the bound value is called value in the problem file!
-  // there must not  be a value when a homogenization tensor is give->As<std::string>()n
+  // there must not  be a value when a homogenization tensor is given
   this->boundValue_ = pn->Has("value") ? pn->Get("value")->As<double>() : -1.0;
 
   // special handling of scaling
@@ -62,7 +62,7 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
     {
     case HOMOGENIZATION_TENSOR:
     case HOMOGENIZATION_TRACKING:
-      if(!pn->Has("tensor") && !pn->Has("value"))
+      if(!pn->Has("tensor") && !pn->Has("value") && !pn->Has("isotropic"))
         throw Exception("Neither value nor tensor is given for constraint '" + type.ToString(type_) + "'");
       break;
 
@@ -79,6 +79,10 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
         throw Exception("No value given for constraint '" + type.ToString(type_) + "'");
     }
   }
+  
+  // snopt makes a difference between linear and nonlinear constraints!
+  if(type_ == VOLUME)
+    linear_ = true;
 }
 
 bool Condition::ReadCoord(PtrParamNode pn)
@@ -110,7 +114,7 @@ void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list)
   {
     // there has been a extensive test in the constructor
     // do we need to blow-up?
-    if(!g->ReadCoord(pn))
+    if(!g->ReadCoord(pn)) // this is done if coord="all" is given in xml!
     {
       // the first entry is this constraint
       // for the conversion of the indices see Thesis from Ole Sigmund, p 30 and book of Manfred
@@ -128,6 +132,9 @@ void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list)
         //g = g->AppendSubCondition(list, 3,2); // no covered by Sigmund
 
         g = g->AppendSubCondition(list, 3,3); // 4. 1212 // would be 6,6 according to book
+        
+        g = g->AppendSubCondition(list, 1,3); // 4. 1122
+        g = g->AppendSubCondition(list, 2,3); // 5. 2233
       }
       else
       {
@@ -138,6 +145,20 @@ void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list)
         g = g->AppendSubCondition(list, 6,6); // 7. 1212
         g = g->AppendSubCondition(list, 5,5); // 8. 1313
         g = g->AppendSubCondition(list, 4,4); // 9. 2323
+        
+        g = g->AppendSubCondition(list, 1,4);
+        g = g->AppendSubCondition(list, 1,5);
+        g = g->AppendSubCondition(list, 1,6);
+        g = g->AppendSubCondition(list, 2,4);
+        g = g->AppendSubCondition(list, 2,5);
+        g = g->AppendSubCondition(list, 2,6);
+        g = g->AppendSubCondition(list, 3,4);
+        g = g->AppendSubCondition(list, 3,5);
+        g = g->AppendSubCondition(list, 3,6);
+        
+        g = g->AppendSubCondition(list, 4,5);
+        g = g->AppendSubCondition(list, 4,6);
+        g = g->AppendSubCondition(list, 5,6);
       }
     }
   }
@@ -334,6 +355,7 @@ std::string Condition::ToString() const
 void Condition::ToInfo(PtrParamNode in) const
 {
   in->Get("type")->SetValue(type.ToString(type_));
+  in->Get("mode")->SetValue(observation_ ? "observation" : "constraint");
   in->Get("design")->SetValue(DesignElement::type.ToString(design));
   if(IsActive())
   {
@@ -356,6 +378,9 @@ void Condition::ToInfo(PtrParamNode in) const
 
   if(IsHomogenization() && !objective_scaling_ && !blown_up_) // warn only the first time!
     in->Get(ParamNode::WARNING)->SetValue("Doing homogenization without 'objective' scaling constraint '" + type.ToString(type_) + "'");
+
+  if(harmonic_)
+    in->Get("factor/omega_omega")->SetValue(omega_omega_);
 }
 
 bool Condition::IsForRegion(RegionIdType regionId)
@@ -370,8 +395,8 @@ SlopeCondition::SlopeCondition(PtrParamNode pn) : Condition(pn)
   dim_ = domain->GetGrid()->GetDim();
   linear_ = true;
 
-  if(bound_ != UPPER_BOUND && IsActive())
-    throw Exception("Slope constraint needs to be 'upper' bound");
+  if((bound_ == UPPER_BOUND || bound_ == LOWER_BOUND) && IsActive())
+    throw Exception("Slope constraints bound type must not be specified!");
 
   if(pn->Has("parameter")) // set in base class
     throw Exception("Parameter for slope constraint specified, but not required");
@@ -381,12 +406,12 @@ void SlopeCondition::PostInit(DesignSpace* space)
 {
   space_ = space;
 
-  virtual_elem_map_.Reserve(2 * space->GetNumberOfElements() * dim_);
+  virtual_elem_map_.Reserve(space->GetNumberOfElements() * dim_);
 
   // traverse all elements and check for full neighborhood
   int base  = space->FindDesign(design);
   int elems = space->GetNumberOfElements();
-  for(int e = base * elems; e < (base + 1) * elems; e++)
+  for(int e = base * elems, ss = (base + 1) * elems; e < ss; ++e)
   {
     DesignElement& de = space->data[e];
 
@@ -400,14 +425,10 @@ void SlopeCondition::PostInit(DesignSpace* space)
 
     if(full)
     {
-      virtual_elem_map_.Push_back(Identifier(e, VicinityElement::X_P, 1));
-      virtual_elem_map_.Push_back(Identifier(e, VicinityElement::X_P, -1));
-      virtual_elem_map_.Push_back(Identifier(e, VicinityElement::Y_P, 1));
-      virtual_elem_map_.Push_back(Identifier(e, VicinityElement::Y_P, -1));
-      if(dim_ == 3) {
-        virtual_elem_map_.Push_back(Identifier(e, VicinityElement::Z_P, 1));
-        virtual_elem_map_.Push_back(Identifier(e, VicinityElement::Z_P, -1));
-      }
+      virtual_elem_map_.Push_back(Identifier(e, VicinityElement::X_P));
+      virtual_elem_map_.Push_back(Identifier(e, VicinityElement::Y_P));
+      if(dim_ == 3)
+        virtual_elem_map_.Push_back(Identifier(e, VicinityElement::Z_P));
     }
   }
 
@@ -435,15 +456,6 @@ int SlopeCondition::GetCurrentVirtualNeighbor() const
   LOG_DBG3(conditions) << "SC:curVirNeigh: cvi =" << current_view_index_ << " -> neigh=" << virtual_elem_map_[idx].neighbor;
 
   return virtual_elem_map_[idx].neighbor;
-}
-
-int SlopeCondition::GetCurrentVirtualSign() const
-{
-  assert(IsLocal());
-
-  unsigned int idx = current_view_index_ - index_;
-
-  return virtual_elem_map_[idx].sign;
 }
 
 StdVector<unsigned int>& SlopeCondition::GetSparsityPattern()
@@ -498,12 +510,11 @@ void SlopeCondition::SetValue(double val)
 
 double SlopeCondition::GetMaxElementSlope(unsigned int element) const
 {
-  int size = 2 * dim_;
-  int base = element * size;
+  int base = element * dim_;
 
   double max = 0.0;
 
-  for(int i = 1; i < size; i++)
+  for(int i = 1; i < dim_; i++)
     max = std::max(max, abs(values_[base + i]));
 
   return max;
@@ -517,8 +528,7 @@ std::string SlopeCondition::ToString() const
 
   if(IsLocal())
     ss << "_ve=" << GetCurrentVirtualElement()
-       << "_vn=" << GetCurrentVirtualNeighbor()
-       << "_vs=" << GetCurrentVirtualSign();
+       << "_vn=" << GetCurrentVirtualNeighbor();
 
   return ss.str();
 }
@@ -607,7 +617,6 @@ void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure
 
   if(!list.IsEmpty())
   {
-
     InitSlopeConstraint(list[0], space, structure);
     view->Refresh(); // inform about the news
   }
@@ -636,7 +645,7 @@ void ConditionContainer::InitSlopeConstraint(Condition* g_in, DesignSpace* space
 {
   SlopeCondition* g = dynamic_cast<SlopeCondition*>(g_in);
 
-  PtrParamNode in = info_->Get("constraint")->Get("type")->Get(g->type.ToString(g->GetType()));
+  PtrParamNode in = info_->Get("constraint")->Get(g->type.ToString(g->GetType()));
 
   // the design elements require the vicinity element to be set which holds the direct
   // neighbors. Is save to call several times
@@ -742,7 +751,6 @@ void ConditionContainer::VirtualView::Done()
   if(slope_index_ == -1)
     return; // nothing to do
 
-  int dim = domain->GetGrid()->GetDim();
   SlopeCondition* slope = dynamic_cast<SlopeCondition*>(container_->all[slope_index_]);
 
   // set global result
@@ -757,13 +765,15 @@ void ConditionContainer::VirtualView::Done()
     // elements with no full neighborhood don't exist as constraint, therefore loop twice
     for(unsigned int e = 0; e < data.GetSize(); e++)
       data[e].specialResult[idx] = 0.0; // initialize
-
+    
+    int dim = domain->GetGrid()->GetDim();
+    
     // constraints -> note we have full neighborhood!
-    for(int i = 0, ni = slope->GetData().GetSize(); i < ni; i += dim * 2)
+    for(int i = 0, ni = slope->GetData().GetSize(); i < ni; i += dim)
     {
       slope->SetCurrentViewIndex(i + slope->GetIndex());
       int elem_idx = slope->GetCurrentVirtualElement();
-      data[elem_idx].specialResult[idx] = slope->GetMaxElementSlope(i / (dim * 2));
+      data[elem_idx].specialResult[idx] = slope->GetMaxElementSlope(i/dim);
     }
   }
 

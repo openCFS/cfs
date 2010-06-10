@@ -54,8 +54,7 @@ public:
   void Init();
 
   //! Main method, where harmonic analysis is implemented.
-  void SolveProblem(bool write_results = true, PtrParamNode analysis_id = PtrParamNode(),
-                    const bool reAssembleMatrices = true);
+  void SolveProblem(bool write_results = true, PtrParamNode analysis_id = PtrParamNode(), AdjointParameters* adjointParams = NULL, const bool reAssembleMatrices = true);
 
   /** This allows optimization to handle the individual frequency steps, e.g. to compute
    * objective values. Internally this is is a service function for SolveProblem()

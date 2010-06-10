@@ -642,9 +642,16 @@ namespace CoupledField {
        else     
          domain->GetErsatzMaterial()->ExtractResults(res, isComplex_);
        break;
-       
+
+     case GRAD_ELEC_POTENTIAL:
+       if(isComplex_)
+         CalcGradSolution<Complex>(res);
+       else
+         CalcGradSolution<Double>(res);
+       break;
+
      default:
-       WARN( "Resulttype not computable by electric PDE" );
+       WARN( "Result type not computable by electric PDE" );
      }
      
    }
@@ -659,7 +666,7 @@ namespace CoupledField {
     GradientFieldOp<TYPE> * FieldOp = 
       new GradientFieldOp<TYPE>(ptgrid_, this, 
                                 eqnMap_, solhelp, 
-                                ELEC_POTENTIAL, results_[0],isaxi_);
+                                results_[0]->fctType,isaxi_);
     Result<TYPE> &  actSol = 
       dynamic_cast<Result<TYPE>&>(*sol);
     EntityIterator it = actSol.GetEntityList()->GetIterator();
@@ -737,8 +744,7 @@ namespace CoupledField {
 
     GradientFieldOp<Double> * FieldOp = 
       new GradientFieldOp<Double>(ptgrid_,this, eqnMap_,
- 				  *solhelp, ELEC_POTENTIAL, 
- 				  results_[0], isaxi_);
+ 				  *solhelp, results_[0]->fctType, isaxi_);
   
     Vector<Double> LCoord, Efield, vecE, vecP;
     Double Ecomp, Pval;
@@ -821,7 +827,7 @@ namespace CoupledField {
     // Create operator for electric flux density and charge calculation
     GradientFieldOp<TYPE> * dFieldOp = 
       new GradientFieldOp<TYPE>(ptgrid_, this, eqnMap_, *solhelp,
-                                ELEC_POTENTIAL, results_[0], isaxi_);
+                                results_[0]->fctType, isaxi_);
     ElecChargeOp<TYPE> * chargeOp = 
       new ElecChargeOp<TYPE>(ptgrid_, this, eqnMap_, results_[0], isaxi_ );
     
@@ -1169,16 +1175,6 @@ namespace CoupledField {
 
   void ElecPDE::DefineAvailResults() {
     
-    // Determine vectorial dofNames
-    StdVector<std::string> vecDofNames;
-    if( isaxi_) {
-      vecDofNames = "r", "z";
-    } else if (dim_ == 2) {
-      vecDofNames = "x", "y";
-    } else {
-      vecDofNames = "x", "y", "z";
-    }
-    
     // Electric Potential
 
     // check if problem is lagrange or legendre
@@ -1277,7 +1273,7 @@ namespace CoupledField {
     // create new resultDof object
     shared_ptr<ResultInfo> res ( new ResultInfo );
     res->resultType = ELEC_FIELD_INTENSITY;
-    res->dofNames = vecDofNames;
+    res->SetVectorDOFs(dim_, isaxi_);
     res->unit = "V/m";
     res->definedOn = ResultInfo::ELEMENT;
     res->entryType = ResultInfo::VECTOR;
@@ -1286,7 +1282,7 @@ namespace CoupledField {
     // Electric Flux Density
     shared_ptr<ResultInfo> flux ( new ResultInfo );
     flux->resultType = ELEC_FLUX_DENSITY;
-    flux->dofNames = vecDofNames;
+    flux->SetVectorDOFs(dim_, isaxi_);
     flux->unit = "C/m^2";
     flux->definedOn = ResultInfo::ELEMENT;
     flux->entryType = ResultInfo::VECTOR;
@@ -1315,7 +1311,7 @@ namespace CoupledField {
     pol->resultType = ELEC_POLARIZATION;
     pol->definedOn = ResultInfo::ELEMENT;
     pol->entryType = ResultInfo::VECTOR;
-    pol->dofNames = vecDofNames;
+    pol->SetVectorDOFs(dim_, isaxi_);
     pol->unit = "C/m^2";
     availResults_.insert( pol );
 
@@ -1327,7 +1323,17 @@ namespace CoupledField {
     pseudoPol->dofNames = "";
     pseudoPol->unit = "";
     availResults_.insert( pseudoPol );
-   
+
+    // grad elec potential
+    shared_ptr<ResultInfo> grad_sol(new ResultInfo);
+    grad_sol->resultType = GRAD_ELEC_POTENTIAL;
+    grad_sol->SetVectorDOFs(dim_, isaxi_);
+    grad_sol->unit = "V/m";
+    grad_sol->entryType = ResultInfo::VECTOR;
+    grad_sol->definedOn = ResultInfo::NODE;
+    grad_sol->fctType = shared_ptr<ConstFct>(new ConstFct() ); // ??? - copy and paste! !?
+    availResults_.insert( grad_sol );
+
     // ===================================
     // Check for non-conforming interfaces
     // ===================================

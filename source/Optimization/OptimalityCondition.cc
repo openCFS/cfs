@@ -121,6 +121,7 @@ void OptimalityCondition::SolveProblem()
   {
     // calc gradients to store the results in data[element]...
     // the gradients are based for the calculation of the next iteration
+    optimization->SolveAdjointProblems();
     optimization->CalcObjectiveGradient(NULL);
     
     // reset values of the constraint gradients
@@ -381,7 +382,7 @@ void OptimalityCondition::CalcNextExtremizeIteration()
     DesignElement* de = &data[i];
     // rho_e is the old rho
     double rho_e = de->GetDesign(DesignElement::PLAIN);   
-    double obj_grad = de->GetObjectiveGradient(DesignElement::SMART);
+    double obj_grad = de->GetValue(DesignElement::COST_GRADIENT, DesignElement::SMART);
     
     // next is density times b_e which is compared with box constraints and move limit
     double next = rho_e + (obj_grad > 0 ? move_limit_ : -1.0 * move_limit_);        
@@ -395,7 +396,7 @@ void OptimalityCondition::CalcNextExtremizeIteration()
     if(upper <= next) evaluate_tmp_[i] =upper;
     
     LOG_DBG3(oc) << "CalcNextExtremizeIteration:" << de->elem->elemNum << " obj_grad=" << obj_grad
-                 << "(" << de->GetObjectiveGradient(DesignElement::PLAIN) << ")" << " old= " << rho_e 
+                 << "(" << de->GetValue(DesignElement::COST_GRADIENT, DesignElement::PLAIN) << ")" << " old= " << rho_e
                  << " next=" << next << " lower=" << lower << " upper=" << upper << " new=" << evaluate_tmp_[i];
   }
   
@@ -435,7 +436,7 @@ double OptimalityCondition::Evaluate(double lambda)
      double rho_e = de->GetDesign(DesignElement::PLAIN);   
     
      // if filter is enabled we use the filtered value otherwise the plain one
-     double smart_obj_grad = de->GetObjectiveGradient(DesignElement::SMART);
+     double smart_obj_grad = de->GetValue(DesignElement::COST_GRADIENT, DesignElement::SMART);
      double b_e = -1.0 * smart_obj_grad;
 
      // ill posed problems have a problem here!  
@@ -446,7 +447,7 @@ double OptimalityCondition::Evaluate(double lambda)
      // for piezo we might become negative lambdas -> cut the positive!
      b_e = lambda >= 0.0 ? std::max(0.0, b_e) : std::min(0.0, b_e);
      
-     b_e /= (lambda * de->GetGradient(NULL, g));
+     b_e /= (lambda * de->GetValue(DesignElement::CONSTRAINT_GRADIENT, DesignElement::SMART, g));
      
      // next is density times b_e which is compared with box constraints and move limit
      double next = rho_e * std::pow(b_e, oc_damping_);        
@@ -460,9 +461,10 @@ double OptimalityCondition::Evaluate(double lambda)
      if(upper <= next) evaluate_tmp_[i] =upper;
      
      LOG_DBG3(oc) << "Evaluate:" << de->elem->elemNum << " obj_grad=" << smart_obj_grad
-                  << "(" << de->GetObjectiveGradient(DesignElement::PLAIN) << ")" << " const_grad="
-                  << de->GetGradient(NULL, g) << " old= " << rho_e << " next=" << next
-                  << " lower=" << lower << " upper=" << upper << " new=" << evaluate_tmp_[i];
+                  << "(" << de->GetValue(DesignElement::COST_GRADIENT, DesignElement::PLAIN) << ")"
+                  << " const_grad=" << de->GetValue(DesignElement::CONSTRAINT_GRADIENT, DesignElement::SMART, g)
+                  << " old= " << rho_e << " next=" << next << " lower=" << lower
+                  << " upper=" << upper << " new=" << evaluate_tmp_[i];
    }
    
    // store the new values in the design variables

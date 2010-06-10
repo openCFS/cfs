@@ -728,7 +728,7 @@ namespace CoupledField {
    template<typename T>
    std::ostream & operator<<(std::ostream &out, const Vector<T> &vc)
    {
-     out << vc.ToString( 0, '\n' );
+     out << vc.ToString(0, '\n' );
      return out;
    }
 

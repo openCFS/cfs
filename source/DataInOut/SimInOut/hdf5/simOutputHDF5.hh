@@ -105,6 +105,12 @@ namespace CoupledField {
     //! Write file meta information
     void WriteFileInfoHeader(); 
     
+    //! Create/Open the file
+    void OpenFile(bool truncate);
+    
+    //! Close the file
+    void CloseFile();
+    
 
   private:
     
@@ -240,7 +246,8 @@ namespace CoupledField {
     //! Map with step values for each hist result
     std::map<std::string, StdVector<Double> > histResultStepVal_;
     
-    
+    //! Filename, so it can be used for reopening the file
+    std::string currFileName_;
     
     //@}
     

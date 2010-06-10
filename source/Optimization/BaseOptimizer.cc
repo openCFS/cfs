@@ -171,7 +171,7 @@ BaseOptimizer::BaseOptimizer(Optimization* opt, PtrParamNode pn) :
   optimizer_pn_(pn)
 {
   this->timer_ =  new Timer();
-  info_->Get(ParamNode::SUMMARY)->SetValue(this->timer_ );
+  info_->Get(ParamNode::SUMMARY)->Get("timer")->SetValue(this->timer_ );
 }
 
 BaseOptimizer::~BaseOptimizer()
@@ -293,6 +293,11 @@ bool BaseOptimizer::EvalGradObjective(int n, const double* x, bool cfs_scale, St
     need_eval = false;
     // only done in debug
     assert(close(design_.value, optimization->CalcObjective()));
+  }
+  
+  if(new_design != design_.gradient_design_id){ // the adjoints have to be recalculated
+    optimization->SolveAdjointProblems();
+    design_.gradient_design_id = new_design;
   }
   
   LOG_DBG2(optimizer) << "EvalGradObjective: call CalcObjectiveGradient()";
@@ -433,8 +438,13 @@ void BaseOptimizer::GetBounds(int n, double* x_l, double* x_u, int m, double* g_
     Condition* g = optimization->constraints.view->Get(i);
     // handle as in IPOPT 
     g_l[i] = g_u[i] = g->GetBoundValue();
-    if(g->GetBound() == Condition::LOWER_BOUND) g_u[i] =  GetInfBound();
-    if(g->GetBound() == Condition::UPPER_BOUND) g_l[i] = -GetInfBound();
+    if(g->GetType() == Condition::SLOPE)
+      g_l[i] *= -1.0;
+    else
+    {
+      if(g->GetBound() == Condition::LOWER_BOUND) g_u[i] =  GetInfBound();
+      if(g->GetBound() == Condition::UPPER_BOUND) g_l[i] = -GetInfBound();
+    }
   }
   optimization->constraints.view->Done(); // reset slope constraint to global mode
   

@@ -41,10 +41,6 @@ class Objective : public Function
 
     double GetPenalty() const { return penalty_; }
 
-    /** Shall harmonic optimization multiply with omega^2.
-    * This makes "u L conj(u)" to actually calc "v L conj(v)" with v = du/dt. -> approximatates sound intensity */
-    bool FactorOmegaOmega() const { return omega_omega_; }
-
     /** gathered by some of the costFunction attributes in XML, the defaults are in the XML-Schema */
     class StoppingRule
     {
@@ -70,11 +66,6 @@ class Objective : public Function
 
     /** This vector stores the cost functions of the iterations. Written in GetObjective() */
     StdVector<double> history_;
-
-    /** @see FactorOmegaOmega() */
-    bool omega_omega_;
-
-    bool harmonic_;
 
     /** by default 1.0 if not multiObjective */
     double penalty_;

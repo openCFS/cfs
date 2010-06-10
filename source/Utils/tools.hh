@@ -171,6 +171,43 @@ namespace CoupledField {
    * @return the memory in KBytes or 0 if there was a problem */
   int MemoryUsage(bool peak);
 
+  /** A simple helper to write structured VTK point data in the
+      legacy ASCII. pre-XML format. */
+  class VTKStructuredPoints
+  {
+  public:
+    /** Number of points in x, y and z-direction, each > 1.
+     * The implementation is not optimized for large data sets!
+     * @param scalars label of the scalars set "" if there are no scalars
+     * @param vectors label for vector data or "" if there are none. */
+    VTKStructuredPoints(Integer i, Integer j, Integer k, const std::string& scalars, const std::string& vectors);
+
+    /** There is 0 or 1 scalar set possible, depending on the scalars label in the constructor.
+     * You can make a template if you want it more complicated.*/
+    void Set(Integer i, Integer j, Integer k, const Double value);
+
+    /** @see the other Set() */
+    void Set(Integer i, Integer j, Integer k, const Point& value);
+
+    /** @param value must be of size 2 or 3 */
+    void Set(Integer i, Integer j, Integer k, const Vector<Double>& value);
+
+    /** checks if the data is completely set */
+    void Write(std::ostream& out) const;
+
+  private:
+
+    // our 3D structure of a pair with scalar and Point for the data
+    StdVector<StdVector<StdVector<std::pair<Double, Point> > > > data_;
+
+    std::string scalar_label_;
+    std::string vector_label_;
+
+    Integer i_max;
+    Integer j_max;
+    Integer k_max;
+  };
+
 } // end of CoupledField
 
 #endif

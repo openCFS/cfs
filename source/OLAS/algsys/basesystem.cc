@@ -18,7 +18,6 @@
 #include "OLAS/solver/basesolver.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
 
 
 namespace CoupledField {

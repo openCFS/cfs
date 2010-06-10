@@ -7,6 +7,7 @@
 #include "General/defs.hh"
 #include "General/exception.hh"
 #include "Utils/StdVector.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField 
 {
@@ -125,6 +126,14 @@ typedef std::multimap<int, std::string> EnumMap;
           return map.find(static_cast<Integer>(key)) != map.end();
         }
         
+        /** Unfortunately, the following code gives link errors :(
+         *  Uses the string represenation of the ParamNode value and calls
+         * @see Parse(const std::string&) */
+        // T Parse(const PtrParamNode& pn) const
+        // {
+        //  return Parse(pn->AsConst<std::string>());
+        // }
+
         /** converts the string representation to the type.
          * You can use isValid() first to avoid the exceptzion  
          * @throw an exception if the string is not found. */
@@ -133,6 +142,7 @@ typedef std::multimap<int, std::string> EnumMap;
           EnumMap::const_iterator it, end;
           it = map.begin();
           end = map.end();
+
             
           for( ; it != end; it++)
           {

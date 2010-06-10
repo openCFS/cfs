@@ -79,16 +79,12 @@ namespace CoupledField {
 
     // electric field operator
     EfieldOp_ =  new GradientFieldOp<Double>(ptGrid, ptPDE2Elec, 
-                                             eqnMapElec, *solElec_, 
-                                             ELEC_POTENTIAL, 
-                                             resultElec, isaxi_, 
+                                             eqnMapElec, *solElec_, resultElec->fctType, isaxi_,
                                              coordUpdate_);
 
     // electric field operator with previous solution
     EfieldPrevOp_ =  new GradientFieldOp<Double>(ptGrid, ptPDE2Elec, 
-                                                 eqnMapElec, *solPrevElec_, 
-                                                 ELEC_POTENTIAL, 
-                                                 resultElec, isaxi_, 
+                                                 eqnMapElec, *solPrevElec_, resultElec->fctType, isaxi_,
                                                  coordUpdate_);
 
     // mechanical strain operator
@@ -216,15 +212,11 @@ namespace CoupledField {
 
     // electric field operator
     EfieldOp_ =  new GradientFieldOp<Double>(ptGrid, ptPDE2Elec, 
-                                             eqnMapElec, *solElec_, 
-                                             ELEC_POTENTIAL, 
-                                             resultElec, isaxi_, 
+                                             eqnMapElec, *solElec_, resultElec->fctType, isaxi_,
                                              coordUpdate_);
     // electric field operator
     EfieldPrevOp_ =  new GradientFieldOp<Double>(ptGrid, ptPDE2Elec, 
-                                                 eqnMapElec, *solPrevElec_, 
-                                                 ELEC_POTENTIAL, 
-                                                 resultElec, isaxi_, 
+                                                 eqnMapElec, *solPrevElec_, resultElec->fctType, isaxi_,
                                                  coordUpdate_);
 
     // mechanical strain operator
@@ -337,15 +329,11 @@ namespace CoupledField {
 
     // electric field operator
     EfieldOp_ =  new GradientFieldOp<Double>(ptGrid, ptPDE2Elec, 
-                                             eqnMapElec, *solElec_, 
-                                             ELEC_POTENTIAL, 
-                                             resultElec, isaxi_, 
+                                             eqnMapElec, *solElec_, resultElec->fctType, isaxi_,
                                              coordUpdate_);
     // electric field operator
     EfieldPrevOp_ =  new GradientFieldOp<Double>(ptGrid, ptPDE2Elec, 
-                                                 eqnMapElec, *solPrevElec_, 
-                                                 ELEC_POTENTIAL, 
-                                                 resultElec, isaxi_, 
+                                                 eqnMapElec, *solPrevElec_, resultElec->fctType, isaxi_,
                                                  coordUpdate_);
 
     // mechanical strain operator

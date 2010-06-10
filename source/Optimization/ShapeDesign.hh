@@ -15,7 +15,7 @@ namespace CoupledField{
     ShapeDesign(StdVector<RegionIdType>& regionIds, ParamNodeList& design, ParamNodeList& transfer, ParamNodeList& result,
         ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
 
-    virtual ~ShapeDesign() {};
+    virtual ~ShapeDesign();
 
     /** Overwrite the virtual base function.
      * We have always a non-regular grid for SHAPE_OPT and SHAPE_PARAM_MAT */
@@ -76,7 +76,7 @@ namespace CoupledField{
 
     /** deformation-dependency tensor (3rd order)
      * for every node in grid this is a matrix, with dim rows and nshapeparams_ columns */
-    StdVector<Matrix<double> > nodedeformations_;
+    StdVector<Matrix<double>* > nodedeformations_;
 
     UInt dim_;
     

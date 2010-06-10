@@ -7,7 +7,9 @@
 /iccomp
 /nomkl
 /openmp
+/rel-openmp
 /release
 share/doc/developer/DoxygenConfig/doxy-config
+share/doc/developer/DoxygenConfig/footer.html
 share/doc/developer/makedoc.sh
 share/doc/user/makedoc.sh

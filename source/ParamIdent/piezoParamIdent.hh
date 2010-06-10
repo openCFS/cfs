@@ -33,7 +33,6 @@ class PiezoPDE;
 class PiezoCoupling;
 class DirectCoupledPDE;
 
-
   //! Driver class for an inverse problem:
   //! The identification of material parameters in a piezoelectric body.
   class piezoParamIdent : public SingleDriver
@@ -60,9 +59,7 @@ class DirectCoupledPDE;
     void Init();
 
     //! Starts parameter identification
-    void SolveProblem(bool write_results = true, 
-                      PtrParamNode given_analysis_id = PtrParamNode(), 
-                      const bool reAssembleMatrices = true);
+    void SolveProblem(bool write_results = true, PtrParamNode given_analysis_id = PtrParamNode(), AdjointParameters* adjointParams = NULL, const bool reAssembleMatrices = true);
 
   protected:
     //! Calculates the parameter to soution map F(p^k) at Newton iteration step k

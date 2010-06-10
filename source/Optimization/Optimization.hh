@@ -20,6 +20,24 @@ namespace CoupledField
    class Excitation;
    class LinearFormContext;
 
+   /** This is a simple class used as a parameter to SetAdjointRhs called by assemble */
+   class AdjointParameters {
+   public:
+     AdjointParameters(Objective* o, Excitation* e) {
+       objective = o;
+       excite = e;
+     }
+     Objective* GetObjective() {
+       return objective;
+     }
+     Excitation* GetExcitation() {
+       return excite;
+     }
+   private:
+     Objective* objective;
+     Excitation* excite;
+   };
+   
   /** This is a general optimization object. The optimiziation loop is around
    *  domain->GetDriver()->SolveProblem() and as such general. Note convention,
    * that Optimization solves an optimization problem and an Optimizer is the
@@ -101,6 +119,18 @@ namespace CoupledField
         /** Evaluates the state problem, does not increment the iteration counter.
          * @param excite provide for multiharmonic steps */
         virtual void SolveStateProblem(Excitation* excite = NULL);
+        
+        /** Solves the Adjoint problem, for given excite and objective
+         * This does the real work
+         * @param excite multi-excitation
+         * @param cost multi-objective */
+        virtual void SolveAdjointProblem(Excitation* excite, Objective* cost);
+        
+        /** Solves all adjoint problems */
+        virtual void SolveAdjointProblems(Excitation* excite = NULL);
+        
+        /** Sets the rhs for the adjoint, called by assemle */
+        virtual void SetAdjointRhs(AdjointParameters* adjointParams) = 0;
 
         /** The maximal number of iterations */
         int GetMaxIterations() { return maxIterations; }
@@ -127,7 +157,17 @@ namespace CoupledField
 
         /** are we in the harmonic case? */
         bool IsHarmonic() const { return harmonic; }
-
+        
+        /** are we in transient optimization? */
+        bool IsTransient() const;
+        
+        /** in transient, first step can be static, so that start displacement can depend on material parameters */
+        bool IsFirstTransientStepStatic() const {return firstStepStatic; };
+        
+        /** in transient, first step can be static and have a different weight for the objective, this is the weight
+         * converted so that it just has to be multiplied */
+        double GetStepWeight(unsigned int ts) const;
+        
         /** This struct stores the multiple excitation Information. It contains the
          * same defaults as the xml schema as the whole element is optional. */
         class MultipleExcitation
@@ -187,6 +227,15 @@ namespace CoupledField
          * and several virtual views on that */
         ConditionContainer constraints;
 
+        /** The applied excitation */
+        Excitation* applied_excitation;
+        
+        /** is called from transientDriver after each time step is finished, to store the solution */
+        virtual void TimeStepCalculated(UInt timeStep, AdjointParameters* adjParams) = 0;
+        
+        /** is called from assemble, after the calculation of the right-hand side, to get the rhs without Update from Newmark */
+        virtual void RhsCalculated(AdjointParameters* adjParams) = 0;
+
       protected:
         /** Set up the optimization system e.g. prepare the domain for optimization. called
          * exclusively by CreateInstance() -> don't forget to call PostInit() afterwards! */
@@ -194,7 +243,7 @@ namespace CoupledField
 
         /** Appends to the current analysis_id of the driver a child and
          * sets analysis_id and excite accordingly */
-        PtrParamNode CreateAdjointAnalysisIdNode();
+        PtrParamNode CreateAdjointAnalysisIdNode(std::string child_name = "adjoint");
         
         /** This tells the driver to store the last solved problem (gid, ...). Called in
          * CommitIteration(). For PiezoSIMP we can save more often and there this method
@@ -248,7 +297,7 @@ namespace CoupledField
 
         /** Our MultipleExcitation objecte - by default disabled */
         MultipleExcitation* multiple_excitation;
-
+        
         /** The actual kind of optimizer.  */
         Optimizer optimizer_;
 
@@ -264,6 +313,15 @@ namespace CoupledField
 
         /** are we harmonic or static? */
         bool harmonic;
+        
+        /** is the first step static */
+        bool firstStepStatic;
+        
+        /** if the first step is static, this weight specifies how much the other steps add to the functional */
+        double otherStepWeight;
+
+        /** shortcut to domain->GetGrid() */
+        Grid* grid;
 
       private:
         /** CommitIteration() does not necessary store the results when we have a stride
@@ -328,10 +386,10 @@ namespace CoupledField
     void Apply();
 
     /** Find the fixed factor, does ignore weighting and does not apply it. */
-    double GetFactor(Objective* cost);
+    double GetFactor(Function* cost);
 
     /** Returns GetFactor() * normalized_weight */
-    double GetWeightedFactor(Objective* cost);
+    double GetWeightedFactor(Function* cost);
     
     /** Gets the current omege =  2 * pi * f */
     double GetOmega();

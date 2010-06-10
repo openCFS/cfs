@@ -107,7 +107,7 @@ namespace CoupledField
 
 
   template<class TYPE>
-  std::string Matrix<TYPE>::ToXML(int n_offset) const
+  std::string Matrix<TYPE>::ToXMLFormat(const std::string& name, int n_offset) const
   {
     std::string offset(n_offset, ' ');
 
@@ -115,7 +115,7 @@ namespace CoupledField
 
     bool is_complex = boost::is_same<TYPE, std::complex<double> >::value;
 
-    os << "<tensor dim1=\"" << size_row_ << "\" dim2=\"" << size_col_ << "\">";
+    os << "<" << name << " dim1=\"" << size_row_ << "\" dim2=\"" << size_col_ << "\">";
     os << std::endl << offset << "  " << (is_complex ? "<complex>" : "<real>");
 
     for(unsigned int r = 0; r < size_row_; ++r)
@@ -131,7 +131,7 @@ namespace CoupledField
       }
     }
     os << std::endl << offset << "  " << (is_complex ? "</complex>" : "</real>");
-    os << std::endl << offset << "</tensor>";
+    os << std::endl << offset << "</" << name << ">";
 
     return os.str();
   }

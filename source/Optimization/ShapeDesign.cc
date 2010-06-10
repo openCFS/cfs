@@ -14,6 +14,13 @@ ShapeDesign::ShapeDesign(StdVector<RegionIdType>& regionIds, ParamNodeList& desi
   alsomatopt_ = method == ErsatzMaterial::SHAPE_PARAM_MAT;
 }
 
+ShapeDesign::~ShapeDesign(){
+  unsigned int n = nodedeformations_.GetSize(); 
+  for(unsigned int i = 0; i < n; ++i){
+    delete nodedeformations_[i];
+  }
+}
+
 void ShapeDesign::Configure(PtrParamNode pn, int objectives, int constraints){
   // done as in domain.cc Domain::ReadErsatzMaterial
   /* it would be nicer to use the schema to check, but this takes over 8 hours on a 3D example 
@@ -33,19 +40,17 @@ void ShapeDesign::Configure(PtrParamNode pn, int objectives, int constraints){
   if((unsigned int)meshdefs->Get("dim")->As<Integer>() > dim_){ // one can specify fewer dimensions as in 3D usually only 2D movements are needed
     EXCEPTION("The dimension of the mesh deformation file is higher than the current problem!");
   }
-  nodedeformations_.Reserve(numnodes);
-  Matrix<double> empty; // an empty matrix
-  for(unsigned int i = 0; i < numnodes; i++){
-    nodedeformations_.Push_back(empty);
-  }
+  nodedeformations_.Resize(numnodes, NULL);
   for(unsigned int i = 0; i < deformations.GetSize(); i++){
     PtrParamNode deformation = deformations[i];
     unsigned int node = deformation->Get("node")->As<Integer>();
-    Matrix<double>& m = nodedeformations_[node-1]; // Nodes are numbered in the xml corresponding to the mesh, but we have 0-based index here
-    if(m.GetNumRows() == 0){ // resize if first param for this node
-      m.Resize(dim_, nshapeparams_);
-      m.Init(); // this initializes with 0.0
+    Matrix<double>* pm = nodedeformations_[node-1]; // Nodes are numbered in the xml corresponding to the mesh, but we have 0-based index here
+    if(pm == NULL){ // resize if first param for this node
+      pm = new Matrix<double>(dim_, nshapeparams_);
+      pm->Init(); // this initializes with 0.0
+      nodedeformations_[node-1] = pm;
     }
+    Matrix<double>& m = *pm;
     unsigned int param = deformation->Get("param")->As<Integer>();
     unsigned int direction = deformation->Get("direction")->As<Integer>();
     double value = deformation->Get("value")->As<Double>();
@@ -107,8 +112,9 @@ void ShapeDesign::UpdateCoordinates(){
   Grid* grd = domain->GetGrid();
   int n = grd->GetNumNodes();
   for(int i = 0; i < n; i++){
-    Matrix<double>& nodedefs = nodedeformations_[i]; // dim_ x nshapeparams_
-    if(nodedefs.GetNumRows() > 0){ // if this node is dependent on any parameters at all
+    Matrix<double>* pnodedefs = nodedeformations_[i];
+    if(pnodedefs != NULL){ // if this node is dependent on any parameters at all
+      Matrix<double>& nodedefs = *pnodedefs; // dim_ x nshapeparams_
       Point p; // p = nodedefs * shapeparams
       for(unsigned int j = 0; j < dim_; j++) {
         double v = nodedefs[j][0] * shapeparams_[0].GetDesign();
@@ -122,12 +128,12 @@ void ShapeDesign::UpdateCoordinates(){
   }
 }
 
-int ShapeDesign::WriteDesignToExtern(double* space_out, bool scaling) const {
+int ShapeDesign::WriteDesignToExtern(double* space_out, bool scale) const {
   for(unsigned int i=0; i < nshapeparams_; i++){
     space_out[i] = shapeparams_[i].GetDesign() / scaling;
   }
   if(alsomatopt_){
-    DesignSpace::WriteDesignToExtern(space_out + nshapeparams_, scaling);
+    DesignSpace::WriteDesignToExtern(space_out + nshapeparams_, scale);
   }
   return(design_id);
 }
@@ -159,8 +165,9 @@ void ShapeDesign::WriteDenseGradientToExtern(StdVector<double>& out, DesignEleme
 void ShapeDesign::WriteShapeGradientToExtern(StdVector<double>& out, Condition* g) const {
   unsigned int base = out.window.GetStart();
   assert(nshapeparams_ <= out.window.GetSize());
-  for(unsigned int i=0; i < nshapeparams_; i++){
-    out[base + i] = shapeparams_[i].GetGradient(NULL, g) * scaling;
+  for(unsigned int i=0; i < nshapeparams_; i++)
+  {
+    out[base + i] = shapeparams_[i].GetPlainGradient(NULL, g) * scaling;
   }
 }
 
@@ -191,7 +198,7 @@ unsigned int ShapeDesign::GetNumberOfVariables() const {
 
 bool ShapeDesign::IsElemDependentAtAll(const StdVector<UInt>& connect){
   for(UInt k = 0; k < connect.GetSize(); ++k){
-    if(nodedeformations_[connect[k]-1].GetNumRows() > 0){
+    if(nodedeformations_[connect[k]-1] != NULL){
       return(true);
     }
   }
@@ -202,8 +209,9 @@ bool ShapeDesign::GetElemNodesCoordDerivative(Matrix<Double> & coordMat, const S
   bool allIsZero = true;
   coordMat.Resize(dim_, connect.GetSize());
   for (UInt k=0; k < connect.GetSize(); k++) {
-    Matrix<double>& nodedefs = nodedeformations_[connect[k]-1]; // complete deformation matrix of this node
-    if(nodedefs.GetNumRows() > 0){ // if this node is dependent on any parameters at all
+    Matrix<double>* pnodedefs = nodedeformations_[connect[k]-1];
+    if(pnodedefs != NULL){ // if this node is dependent on any parameters at all
+      Matrix<double>& nodedefs = *pnodedefs; // complete deformation matrix of this node
       // we have to extract the parameter-th column
       for (UInt actDim=0; actDim < dim_; actDim++) {
         double d = nodedefs[actDim][parameter];

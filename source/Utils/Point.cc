@@ -73,5 +73,4 @@ std::string Point::ToString() const
    return os.str();
 }
 
-
 }

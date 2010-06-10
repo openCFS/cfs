@@ -151,15 +151,20 @@ namespace CoupledField {
                   const ResultInfo& result, const EntityIterator& it,
                   UInt dof ) const;
     
-    //! Mpa combination of result, entity and dof to single equation number
+    //! Map combination of result, entity and dof to single equation number
     virtual Integer GetEqn( const ResultInfo& result, 
                     const EntityIterator& it, UInt dof ) const;
 
     //! Name mapping function for obtaining a nodal equation
     virtual Integer GetNodeEqn( const ResultInfo& result, UInt nodeNr, UInt dof );
 
-    //! Name mapping function for obtaining a nodal equation
+    /** Name mapping function for obtaining a nodal equation
+     @param dof 1 based! */
     virtual Integer GetNodeEqn( UInt nodeNr, UInt dof );
+
+    /** An expensive reverse of GetNodeEqn().
+     * So expensive that it should be only used for debugging */
+    Integer SearchNode(Integer eqn, UInt dof);
 
     virtual void GetNodeEqn( const StdVector<UInt>& nodeNrs, 
                      StdVector<Integer>& eqnNrs );

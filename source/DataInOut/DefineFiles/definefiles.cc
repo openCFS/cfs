@@ -26,6 +26,7 @@
 
 #ifdef USE_MESH
 #include "DataInOut/SimInOut/AnsysFile/simInputMESH.hh"
+#include "DataInOut/SimInOut/internalMesh/internalMesh.hh"
 #endif
 
 #ifdef USE_GMV_INPUT
@@ -61,6 +62,7 @@
 
 #include "DataInOut/SimInOut/TextOutput/textSimOutput.hh"
 #include "DataInOut/SimInOut/InfoResultOutput/SimOutputInfo.hh"
+#include "DataInOut/SimInOut/Streaming/SimOutputStreaming.hh"
 
 #include "DataInOut/XMLMaterialHandler.hh"
 
@@ -240,6 +242,17 @@ void DefineInOutFiles::CreateSimInputFiles(std::map<std::string, shared_ptr<
       EXCEPTION( "No support for UNV input file format." );
 #endif // USE_UNV
     }
+    else if (informat == "internal")
+    {
+#ifdef USE_MESH
+      if (meshFile.empty())
+        meshFile = simName + ".mesh";
+      inFiles[actId] = 
+          shared_ptr<SimInput> (new InternalMesh(meshFile, actNode));
+#else
+      EXCEPTION( "No support for internalMesh input file format." );
+#endif // USE_MESH
+    }
     else
     {
       EXCEPTION( "Wrong format for input file. Please, check your data!" );
@@ -295,7 +308,6 @@ void DefineInOutFiles::CreateSimOutputFiles(std::map<std::string, shared_ptr<
     {
 #ifdef USE_UNV
       out[actId] = shared_ptr<SimOutput> (new SimOutputUnv(simName, actNode));
-      continue;
 #else
       EXCEPTION( "No support for UNV output file format." );
 #endif
@@ -325,7 +337,6 @@ void DefineInOutFiles::CreateSimOutputFiles(std::map<std::string, shared_ptr<
     {
 #ifdef USE_GMV_OUTPUT
       out[actId] = shared_ptr<SimOutput> (new SimOutputGMV(simName, actNode));
-      continue;
 #else
       EXCEPTION( "No support for GMV output file format." );
 #endif
@@ -335,7 +346,6 @@ void DefineInOutFiles::CreateSimOutputFiles(std::map<std::string, shared_ptr<
     {
 #ifdef USE_HDF5
       out[actId] = shared_ptr<SimOutput> (new SimOutputHDF5(simName, actNode));
-      continue;
 #else
       EXCEPTION( "No support for HDF5 output file format." );
 #endif
@@ -346,7 +356,6 @@ void DefineInOutFiles::CreateSimOutputFiles(std::map<std::string, shared_ptr<
 #ifdef USE_ANSYSRST
       out[actId] =
       shared_ptr<SimOutput>( new SimOutputRST( simName, actNode ) );
-      continue;
 #else
       EXCEPTION( "No support for ANSYS RST output file format." );
 #endif
@@ -355,14 +364,18 @@ void DefineInOutFiles::CreateSimOutputFiles(std::map<std::string, shared_ptr<
     if (actFormat == "text")
     {
       out[actId] = shared_ptr<SimOutput> (new SimOutputText(simName, actNode));
-      continue;
     }
     
     if (actFormat == "info")
     {
       out[actId] = shared_ptr<SimOutput> (new SimOutputInfo(actNode));
-      continue;
     }
+
+    if (actFormat == "streaming")
+    {
+      out[actId] = shared_ptr<SimOutput> (new SimOutputStreaming(actNode));
+    }
+
   }
 }
 

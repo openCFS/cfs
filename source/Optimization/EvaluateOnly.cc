@@ -44,6 +44,8 @@ void EvaluateOnly::SolveProblem()
 
     optimization->CalcObjective();
     // calc gradients, they might be stored in store results!
+    // gradients might need adjoints
+    optimization->SolveAdjointProblems();
     optimization->CalcObjectiveGradient(NULL);
     
     for(int c = 0; c < optimization->constraints.view->GetNumberOfTotalConstraints(); c++)

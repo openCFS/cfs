@@ -16,14 +16,18 @@ class Timer;
 {
 public:
 
-  /** Very cheap, the work is done by Initialize() only on SetFilter() or ExtendPeriodicNeighborhood)=
-   * @param simp refers to the data and has pde reference for bcs. */
+  /** Very cheap, the work is done by Initialize() only on SetFilter() or ExtendPeriodicNeighborhood() */
   DesignStructure(ErsatzMaterial* em);
+
+  /** Alternative constructor when no ErsatzMaterial* is available (load ersatz material),
+   * then periodic b.c.s are not set */
+  DesignStructure(DesignSpace* space, StdVector<RegionIdType>& regions);
 
   /** This is the actual, expensive action. It sets the filters for all
    * relevant design elements of simp->design.data
-   * @param pn our parameter section of the filer, includes design name  */
-  void SetFilters(PtrParamNode pn);
+   * @param pn our parameter section of the filer, includes design name
+   * @param info where to write (in HEADER) the information */
+  void SetFilters(PtrParamNode pn, PtrParamNode info);
 
   /** Do we have periodic BC. */
   bool IsPeriodic() const { return periodic; }
@@ -38,13 +42,28 @@ public:
 
 private:
 
+  /** The common Constructor, does much less than Initialize() */
+  void Constructor();
+
+  /** Filter types we have
+   * <ul>
+   *   <li>RADIUS: this is the implementation following Sigmund in the 99lines paper.
+   *               The drawback is the discretization dependency.</li>
+   *   <li>VOLUME_RADIUS: The radius is *value* times square/cube edge length where the
+   *               square/cube has the volume of the element</li>
+   *   <li>MAX_EDGE: The largest edge size, discretization independent and preferable</li>
+   * </ul>
+   * This does not tell if we have design or sensitivity filtering! */
+  typedef enum { NO_FILTER = -1, RADIUS, VOLUME_RADIUS, MAX_EDGE } FilterSpace;
+
+
   /** The actual constructor, initializes for SetFilter() and ExtendPeriodicNeighborhood() on
    * the fly! The time is not recorded!
    * @see initialized_ */
   void Initialize();
 
   /** Helper for InitFilter(). Call only once if regular! */
-  double FindFilterRadius(DesignElement::Filter filter, DesignElement* de) const;
+  double FindFilterRadius(FilterSpace filter, DesignElement* de) const;
 
   /** Almost copy and paste to the version with common */
   bool ExtendPeriodicNeighborhood(Elem* elem, StdVector<std::pair<Elem*, int> >& neighbors);
@@ -86,6 +105,17 @@ private:
   /** Helper for LOG_DBG() */
   std::string ToString(StdVector<SIMPElement::NeighbourElement>& data);
 
+  /** the way of the weighting in the filter. CONSTANT e.g. for MAX filter */
+  enum Contribution { LINEAR, CONSTANT };
+
+  /** Parameter for filter */
+  Contribution contribution_;
+
+  Enum<FilterSpace> filterSpace;
+
+  /** actual filter space setting */
+  FilterSpace filter_space_;
+
   /** the filter value */
   double value;
 
@@ -95,8 +125,8 @@ private:
   /** is the grid regular? */
   bool regular;
 
-  /** our filter mode */
-  DesignElement::Filter filter;
+  /** The reference filter setting */
+  Filter filter_;
 
   /** This maps the periodic boundaries.
    * Nodes which are not part of a periodic b.c. have an empty vector.
@@ -122,6 +152,9 @@ private:
 
   /** is Initialize() called yet? */
   bool initialized_;
+
+  DesignSpace* space;
+  StdVector<RegionIdType> regions;
 };
 
 

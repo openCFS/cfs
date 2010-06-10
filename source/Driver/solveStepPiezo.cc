@@ -59,7 +59,7 @@ namespace CoupledField {
 
   // time is used for a series of static calculations
   // don't get confused with REAL transient simulations!
-  void SolveStepPiezo::SolveStepTrans(PtrParamNode analysis_id) {
+  void SolveStepPiezo::SolveStepTrans(PtrParamNode analysis_id, AdjointParameters* adjointParams, const bool reAssembleMatrices) {
 
 
     if (isHyst_) {
@@ -73,7 +73,7 @@ namespace CoupledField {
     }
 
     else {
-      StepTransLin(analysis_id);
+      StepTransLin(analysis_id, adjointParams, reAssembleMatrices);
     }
 
   }
@@ -224,8 +224,7 @@ namespace CoupledField {
 
     GradientFieldOp<Double> * FieldOp = 
       new GradientFieldOp<Double>(ptgrid_, pdeElec, pdeElec->GetEqnMap(),
-                                  *sol, ELEC_POTENTIAL, 
-                                  results[0], isaxi_);
+                                  *sol, results[0]->fctType, isaxi_);
 
     std::map<RegionIdType, BaseMaterial*> elecMat = 
       pdeElec->getPDEMaterialData();
@@ -282,8 +281,7 @@ namespace CoupledField {
     
     GradientFieldOp<Double> * FieldOp = 
       new GradientFieldOp<Double>(ptgrid_, &PDE_, eqnMap_,
-                                  *solhelp, ELEC_POTENTIAL, 
-                                  results_[0],isaxi_);
+                                  *solhelp, results_[0]->fctType,isaxi_);
 
     Vector<Double> LCoord, Efield;
     Double Ecomp, Pval, Dval, dE, dD, eps;

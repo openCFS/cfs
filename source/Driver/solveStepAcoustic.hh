@@ -28,7 +28,7 @@ namespace CoupledField
     //! solves for one nonlinear transient step 
     void StepTransNonLin(PtrParamNode analysis_id);
 
-    void StepTransLin(PtrParamNode analysis_id);
+    void StepTransLin(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL, const bool reAssembleMatrices = true);
     
 
     //! compute nonlinear part of RHS

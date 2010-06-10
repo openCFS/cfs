@@ -25,11 +25,20 @@ namespace CoupledField {
 
     virtual double CalcCompliance(Excitation& excite, Objective* f, Condition* constraint, bool derivative);
 
-    virtual double CalcTracking(Excitation& excite, Objective* f, Condition* constraint, bool derivative, bool solveproblem = true);
+    virtual double CalcTracking(Excitation& excite, Objective* f, Condition* constraint, bool derivative);
 
     ShapeDesign* shapedesign;
+    
+  protected:
+    /** Store the results from the forward/adjoint problem. Handles multiple excitations
+     * @param read_sol only if true do s.th. if false just pass on to ersatzmaterial
+     * @param read_rhs is only interesting for the forward problem
+     * @param save_sol set this in the adjoint problem -> see Solution::Read()
+     * @param comment is just to LOG_DBG */
+    virtual void StorePDESolution(Excitation &excite, UInt timestep, Solutions& solutions, bool read_sol, bool read_rhs, bool save_sol, const std::string& comment);
 
   private:
+
     bool alsomatopt_;
   };
 

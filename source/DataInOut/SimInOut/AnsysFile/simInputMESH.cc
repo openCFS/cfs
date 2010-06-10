@@ -18,13 +18,12 @@ namespace CoupledField {
         SimInput(fileName, inputNode)
   {
     capabilities_.insert( SimInput::MESH);
-    
-    mi_ = NULL;
   }
 
 
-  SimInputMESH::~SimInputMESH() {
-    inFile_.close() ;
+  SimInputMESH::~SimInputMESH()
+  {
+    inFile_.close();
   }
 
 
@@ -58,55 +57,26 @@ namespace CoupledField {
     GetCoordinates( coords );
 
     for(UInt i=0; i<numNodes; i++)
-    {
-      Point p;
-
-      p[0] = coords[i*3+0];
-      p[1] = coords[i*3+1];
-      p[2] = coords[i*3+2];
-
-      mi_->SetNodeCoordinate(i+1, p);
-    }
+      mi_->SetNodeCoordinate(i+1, Point(coords[i*3+0], coords[i*3+1], coords[i*3+2]));
 
     // Get Regions
-    std::vector<std::string> regionNames;
-    std::vector<UInt> dims;
+    StdVector<std::string> regionNames;
     StdVector<std::string> names;
-    std::vector<UInt> d;
     StdVector<Integer> ids;
 
     GetRegionNamesOfDim(names, 1);
     for(UInt i = 0; i < names.GetSize(); i++)
-    {
-      regionNames.push_back(names[i]);
-    }
+      regionNames.Push_back(names[i]);
     
-    //    regionNames.insert(regionNames.begin(), names.begin(), 
-    //                       names.end());
-    d.assign(names.GetSize(), 1);
-    dims.insert(dims.begin(), d.begin(), d.end());
-
     GetRegionNamesOfDim(names, 2);
     for(UInt i = 0; i < names.GetSize(); i++)
-    {
-      regionNames.push_back(names[i]);
-    }
-    //    regionNames.insert(regionNames.end(), names.begin(), 
-    //                       names.end());
-    d.assign(names.GetSize(), 2);
-    dims.insert(dims.end(), d.begin(), d.end());
+      regionNames.Push_back(names[i]);
 
     if(GetDim() == 3)
     {
       GetRegionNamesOfDim(names, 3);
       for(UInt i = 0; i < names.GetSize(); i++)
-      {
-        regionNames.push_back(names[i]);
-      }
-      //      regionNames.insert(regionNames.end(), names.begin(), 
-      //                         names.end());
-      d.assign(names.GetSize(), 3);
-      dims.insert(dims.end(), d.begin(), d.end());
+        regionNames.Push_back(names[i]);
     }
 
     mi_->AddRegions(regionNames, ids);
@@ -173,35 +143,25 @@ namespace CoupledField {
       }
     }
 
-    // Get Named Nodes
-    std::vector<StdVector<UInt> > indices;
-    std::vector< std::string > nodeNames;
 
-    GetNodeNames( names );
-    //    indices.resize(names.GetSize());
-    GetNamedNodes( indices, nodeNames );
+    // Get Named Nodes
+    StdVector<StdVector<UInt> > indices;
 
     names.Clear();
-    for(UInt i = 0; i<nodeNames.size(); i++)
-      names.Push_back(nodeNames[i]);
+    GetNamedNodes(indices, names);
 
-    for(UInt i = 0; i<nodeNames.size(); i++)
+    for(UInt i = 0; i < names.GetSize(); ++i)
       mi_->AddNamedNodes(names[i], indices[i]);
 
+
     // Get Named Elements
-    std::vector< std::string > elemNames;
-
-    GetElemNames( names );
-    indices.clear();
-    GetNamedElems( indices, elemNames );
-
     names.Clear();
-    for(UInt i = 0; i<elemNames.size(); i++)
-      names.Push_back(elemNames[i]);
+    indices.Clear();
+    
+    GetNamedElems(indices, names);
 
-    for(UInt i = 0; i<elemNames.size(); i++) {
+    for(UInt i = 0; i < names.GetSize(); ++i)
       mi_->AddNamedElems(names[i], indices[i]);
-    }
 
   }
 
@@ -288,9 +248,9 @@ namespace CoupledField {
 
 
     ///////////////////////////////////////////////////////
+    /*
     std::vector<std::string> strs;
     std::vector<std::string>::iterator it, end;
-    /*
       GetNodeNames( strs );
       std::cout << "Named Nodes: " << std::endl;
       it = strs.begin();
@@ -602,10 +562,9 @@ namespace CoupledField {
     elemDimReadIn_[dim-1] = true;
   }
 
-  void SimInputMESH::GetNamedNodes( std::vector<StdVector<UInt> > & nodes,
-                                 std::vector<std::string> & nodeNames ) {
-
-    
+  void SimInputMESH::GetNamedNodes(StdVector<StdVector<UInt> > &nodes,
+                                   StdVector<std::string> &nodeNames )
+  {
     std::string::size_type pos=0;
     std::string::size_type lineEndPos =0;
     std::string lastName = "";
@@ -653,20 +612,20 @@ namespace CoupledField {
           
           // find the associated level
 
-          std::vector<std::string>::iterator it, end;
+          StdVector<std::string>::iterator it, end;
                 
-          end = nodeNames.end();
+          end = nodeNames.End();
 
-          it = std::find(nodeNames.begin(), end, str);
+          it = std::find(nodeNames.Begin(), end, str);
                 
           if ( it == end ) {
-            nodeNames.push_back(str);
-            nodes.push_back( StdVector<UInt>() );
-            lastIndex = nodes.size()-1; 
+            nodeNames.Push_back(str);
+            nodes.Push_back( StdVector<UInt>() );
+            lastIndex = nodes.GetSize()-1; 
           }
           else
           {
-            lastIndex = std::distance(nodeNames.begin(), it);
+            lastIndex = std::distance(nodeNames.Begin(), it);
           }
         }
         
@@ -684,9 +643,9 @@ namespace CoupledField {
     } // end for
   }
 
-  void SimInputMESH::GetNamedElems( std::vector<StdVector<UInt> > & elems,
-                                    std::vector<std::string> & elemNames ) {
-    
+  void SimInputMESH::GetNamedElems(StdVector<StdVector<UInt> > & elems,
+                                   StdVector<std::string> & elemNames)
+  {  
     std::string::size_type pos=0;
     std::string::size_type lineEndPos =0;
     std::string lastName = "";
@@ -726,19 +685,19 @@ namespace CoupledField {
         lastName = str;
         
         // find the associated level
-        std::vector<std::string>::iterator it, end;
+        StdVector<std::string>::iterator it, end;
                 
-        end = elemNames.end();
+        end = elemNames.End();
 
-        it = std::find(elemNames.begin(), end, str);
+        it = std::find(elemNames.Begin(), end, str);
                 
         if ( it == end ) {
-          elemNames.push_back(str);
-          elems.push_back( StdVector<UInt>() );
-          lastIndex = elems.size()-1; 
+          elemNames.Push_back(str);
+          elems.Push_back( StdVector<UInt>() );
+          lastIndex = elems.GetSize()-1; 
         }
         else {
-          lastIndex = std::distance(elemNames.begin(), it);
+          lastIndex = std::distance(elemNames.Begin(), it);
         }
       }
       

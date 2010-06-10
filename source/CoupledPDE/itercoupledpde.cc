@@ -10,7 +10,6 @@
 #include "PDE/SinglePDE.hh"
 #include "Driver/iterSolveStep.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField
 {

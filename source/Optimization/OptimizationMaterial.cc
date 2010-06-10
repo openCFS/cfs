@@ -53,7 +53,9 @@ void OptimizationMaterial::GetElementMatrix(BaseForm* form, Matrix<double>& out,
   form->CalcElementMatrix(out,const_cast<EntityIterator&>(it), const_cast<EntityIterator&>(it), direction);
 
   // in piezoelectricity K_pp is -1.0* BDB
-  out *= factor;
+  if(factor != 1.0){
+    out *= factor;
+  }
 
   LOG_DBG3(om) << "CalcElemMatrix for " << form->GetName() << " factor=" << factor << " -> " << out.ToString();
 
@@ -86,16 +88,16 @@ OptMechMat::OptMechMat(ErsatzMaterial* em) : OptimizationMaterial(em)
 
 const Matrix<double>& OptMechMat::MechStiffness(Elem* elem, DesignElement::Type direction)
 {
-  if(!opt->IsDomainStructured())
+  if(!opt->IsDomainStructured() || direction != DesignElement::NO_DERIVATIVE)
     GetElementMatrix(opt->GetForm(elem->regionId, mech, mech, "linElastInt"), mechStiffness_map[elem->regionId], elem, direction);
 
   return mechStiffness_map[elem->regionId];
 }
 
-const Matrix<double>& OptMechMat::MechMass(Elem* elem)
+const Matrix<double>& OptMechMat::MechMass(Elem* elem, DesignElement::Type direction)
 {
-  if(!opt->IsDomainStructured())
-    GetElementMatrix(opt->GetForm(elem->regionId, mech, mech, "MassInt"), mechMass_map[elem->regionId], elem);
+  if(!opt->IsDomainStructured() || direction != DesignElement::NO_DERIVATIVE)
+    GetElementMatrix(opt->GetForm(elem->regionId, mech, mech, "MassInt"), mechMass_map[elem->regionId], elem, direction);
 
   return mechMass_map[elem->regionId];
 }

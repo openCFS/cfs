@@ -2,6 +2,7 @@
 import libxml2
 import math
 import os
+import string
 
 # replace a single xpath value -> must exsit once!
 # xml is a xpathContext: doc = libxml2.parseFile("params.xml") -> xml = doc.xpathNewContext()
@@ -11,7 +12,7 @@ def replace(xml, path, value):
   if  len(res) == 0:
     raise RuntimeError(path + " not found")
   if len(res) > 1:
-    raise RuntimeError(path + " has " + len(res) + " hits")
+    raise RuntimeError(path + " has " + str(len(res)) + " hits")
   data = res[0]
   data.setContent(value)
   return    
@@ -22,7 +23,8 @@ def xpath(xml, path):
   if  len(res) == 0:
     raise RuntimeError(path + " not found")
   if len(res) > 1:
-    raise RuntimeError(path + " has " + len(res) + " hits")
+    str(res)
+    raise RuntimeError(path + " has " + str(len(res)) + " hits")
   data = res[0]
   return data.getContent()    
 
@@ -35,14 +37,20 @@ def dump(xml, path):
   for i in res:
     print str(i) + ": " + i.getContent()
   
-  
-  
 # mimic conditional operator
 def cond(test, trueval, falseval):
   if test:
     return trueval
   else:
     return falseval
+
+# covert a complex number "(a,b)" to two gnuplot compatible strings "a \t b" 
+# -> remove brackets and replace the comma by a tab, nothing else
+# return the string for gnuplot printing
+def toGnuPlot(complex_string):
+  ret = string.lstrip(complex_string, "(")
+  ret = string.rstrip(ret, ")")
+  return string.replace(ret, ",", "\t")
 
 # execute cmd and rais error when not 0
 def execute(cmd):

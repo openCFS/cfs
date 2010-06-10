@@ -14,10 +14,6 @@ Objective::Objective(PtrParamNode pn, PtrParamNode pn_type, unsigned int idx)
 
   // the current value -> check <Get/Set>Value() when altering the presets!
   this->index_       = idx;
-  this->harmonic_    = BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType());
-  this->omega_omega_ = pn->Has("factor") ? pn->Get("factor")->Get("omega_omega")->As<bool>() : false;
-  if(!harmonic_ && omega_omega_)
-    throw Exception("It makes no sense to set costFunction/factor/omega_omega in static optimization");
 
   this->penalty_ = pn_type->Has("penalty") ? pn_type->Get("penalty")->As<Double>() : 1.0;
 
@@ -28,7 +24,11 @@ Objective::Objective(PtrParamNode pn, PtrParamNode pn_type, unsigned int idx)
   coord.first = -1;
   coord.second = -1;
   if(pn_type->Has("coord"))
+  {
+    if(pn_type->Get("coord")->As<std::string>() == "all" && type_ == HOMOGENIZATION_TENSOR)
+      EXCEPTION("homogenization tensor as objective does not support coord='all'!");
     ParseCoord(pn_type, coord);
+  }
 
   this->pn = pn;
 }

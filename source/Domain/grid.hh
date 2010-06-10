@@ -110,8 +110,8 @@ namespace CoupledField
     { EXCEPTION( "Not implemented" ); }
 
     
-    //! Returns the maximum node number in the finite element grid.
-    virtual UInt GetNumNodes() = 0;
+    //! Returns the maximum node number in the finite element grid or of a special region
+    virtual UInt GetNumNodes(RegionIdType = ALL_REGIONS) const = 0;
 
     //! Get coordinates of node with global number inode
     //! \param rfPoint (out) coordinates of point 3D
@@ -188,8 +188,9 @@ namespace CoupledField
     { EXCEPTION( "Not implemented" ); }
 
 
-    //! Returns the total number of elements in the grid
-    virtual UInt GetNumElems() = 0;
+    /* Returns the total number of elements in the grid or of a special region.
+     @param reg_id ALL_REGIONS or a volume or surface region id */
+    virtual UInt GetNumElems(RegionIdType = ALL_REGIONS) const = 0;
 
     //! Return number of elements of a given type
     //! \param type Type of finite element (LINE, TRIA, ...)
@@ -198,11 +199,12 @@ namespace CoupledField
     //! Return number of element of a given dimension
     virtual UInt GetNumElemOfDim( UInt dim ) = 0;
 
-    //! Returns the total number of volume elements in the finite element grid
-    virtual UInt GetNumVolElems() = 0;
+    /** Returns the number of volume elements for a special region or all regions
+     * @param reg_id if ALL_REGIONS then all volume regions are summed up */
+    virtual UInt GetNumVolElems(RegionIdType = ALL_REGIONS) const = 0;
 
-    //! Returns the total number of surface elements in the grid
-    virtual UInt GetNumSurfElems() = 0;
+    /** @see GetNumVolElems() */
+    virtual UInt GetNumSurfElems(RegionIdType = ALL_REGIONS) const = 0;
 
     //! Get element with given element number
 
@@ -269,7 +271,7 @@ namespace CoupledField
     /** Adds a region name.
      * Is written to region and regionData but the rest of regionData is only set by FinishInit()
      * @return id the new index within regionData */
-    RegionIdType AddRegion(const std::string& regionName);
+    RegionIdType AddRegion(const std::string& regionName, bool regular = false);
 
     //! NC_SIMON: Add a new Surface region to the grid
     //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
@@ -328,8 +330,7 @@ namespace CoupledField
                                    & surfRegions );
 
     //! Returns the number of nodes contained in given region
-    virtual UInt GetNumNodes( const StdVector<RegionIdType>
-                              & regions ) = 0;
+    UInt GetNumNodes(const StdVector<RegionIdType>& regions) const;
 
     //! Get list of nodes contained in a region
 
@@ -345,8 +346,7 @@ namespace CoupledField
     //! Returns the number of element, which belong to a list of given
     //! regions.
     //! \param regions (in) contains the regionIds of
-    virtual UInt GetNumElems( const StdVector<RegionIdType>
-                              & regions ) = 0;
+    virtual UInt GetNumElems(const StdVector<RegionIdType>& regions) const = 0;
 
 
     virtual UInt GetMaxNumNodesPerElem()
@@ -453,7 +453,7 @@ namespace CoupledField
     { EXCEPTION( "Not implemented" ); }
 
     //! Returns the number of nodes in the given nodelist
-    virtual UInt GetNumNodes( const std::string & nodesName ) = 0;
+    virtual UInt GetNumNodes(const std::string & nodesName) const = 0;
 
     //! Get list of nodes by their name
 

@@ -793,7 +793,7 @@ namespace CoupledField {
 #endif
   
     // choose either external data or if not given use own one 
-    const Vector<TYPE>& data = ext_data == NULL ? const_cast<Vector<TYPE>&>(data_) : dynamic_cast<const Vector<TYPE>&>(*ext_data);  
+    const Vector<TYPE>& data = ext_data == NULL ? data_ : dynamic_cast<const Vector<TYPE>&>(*ext_data);  
     
     Matrix<TYPE> & temp = dynamic_cast<Matrix<TYPE>&>(elemSol);
     StdVector<Integer> eqns;

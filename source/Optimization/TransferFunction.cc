@@ -2,7 +2,6 @@
 #include "Optimization/DesignElement.hh"
 #include "Optimization/TransferFunction.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "General/exception.hh"
 #include "Utils/StdVector.hh"
@@ -91,9 +90,10 @@ std::string TransferFunction::ToString()
   return os.str();   
 }
 
-double TransferFunction::Transform(const DesignElement* de) const
+double TransferFunction::Transform(const DesignElement* de, DesignElement::Access access, double external_value) const
 {
-  double value = de->GetDesign(DesignElement::PLAIN);
+  assert(!(external_value != -13.456 && access == DesignElement::SMART));
+  double value = external_value == -13.456 ? de->GetValue(DesignElement::DESIGN, access) : external_value;
   double result;
   switch(type_)
   {
@@ -130,9 +130,9 @@ double TransferFunction::Transform(const DesignElement* de) const
   return result;
 }     
 
-double TransferFunction::Derivative(const DesignElement* de) const
+double TransferFunction::Derivative(const DesignElement* de, DesignElement::Access access) const
 {
-  double value = de->GetDesign(DesignElement::PLAIN);
+  double value = de->GetValue(DesignElement::DESIGN, access);
 
   #ifdef CHECK_INDEX
     if(de->GetType() != design_) throw Exception("type missmatch");

@@ -46,11 +46,11 @@ namespace CoupledField {
 
   // time is used for a series of static calculations
   // don't get confused with REAL transient simulations!
-  void SolveStepElec::SolveStepStatic(PtrParamNode analysis_id) {
+  void SolveStepElec::SolveStepStatic(PtrParamNode analysis_id, AdjointParameters* adjointParams, const bool reAssembleMatrices) {
     if ( isHyst_ ) 
       StepStaticNonLinEpsDiff(analysis_id);
     else 
-      StepStaticLin(analysis_id);
+      StepStaticLin(analysis_id, adjointParams, reAssembleMatrices);
   }
 
 
@@ -187,8 +187,7 @@ namespace CoupledField {
 
     GradientFieldOp<Double> * FieldOp = 
       new GradientFieldOp<Double>(ptgrid_, &PDE_, eqnMap_,
-                                  *solhelp, ELEC_POTENTIAL, 
-                                  results_[0], isaxi_);
+                                  *solhelp, results_[0]->fctType, isaxi_);
 
     Vector<Double> LCoord, Efield;
     Double Ecomp;

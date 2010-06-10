@@ -21,6 +21,7 @@ namespace CoupledField {
   class TimeFunc;
   class Timer;
   class StdPDE;
+  class AdjointParameters;
 
   //! Class for assembling element/entities matrices and RHS vectors
   class Assemble : public Scriptable {
@@ -59,10 +60,10 @@ namespace CoupledField {
     void CalcMinMaxStrain();
     
     //! Trigger assembly of all linear right hand side terms
-    void AssembleLinRHS();
+    void AssembleLinRHS(AdjointParameters* adjointParams = NULL);
 
     //! Trigger assenbly of all non-linear right hand side terms
-    void AssembleNonLinRHS();
+    void AssembleNonLinRHS(AdjointParameters* adjointParams = NULL);
 
     //! Assemble nodal load values of right hand side
     void AssembleRHSLoads();

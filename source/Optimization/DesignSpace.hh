@@ -27,7 +27,7 @@ namespace CoupledField
   class DesignSpace
   {
     public:
-     /** Constructor for SIMP type Optimization - there we lay on a region which containts also n# elements
+     /** Constructor for SIMP type Optimization - there we lay on a region which contains also n# elements
       * @param result the result description list  */
      DesignSpace(StdVector<RegionIdType>& regionIds, ParamNodeList& design, ParamNodeList& transfer, ParamNodeList& result,
          ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
@@ -78,6 +78,11 @@ namespace CoupledField
      {
        return designMaterial != NULL;
      }
+     
+     /** Returns true if optimization does provide a mass, currently density is not handled by this */
+     bool HasErsatzMaterialMass(){
+       return designMaterial != NULL;
+     }
 
      /** Calculates the corresponding ErsatzMaterialTensor for the given element
       * @param t holds the resulting MaterialTensor
@@ -87,10 +92,19 @@ namespace CoupledField
       * @param direction if !=DEFAULT calculate derivative of Tensor instead of Tensor 
       * @returns whether the given element is subject to optimization and the tensor therefore could be retrieved */
      bool GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction);
+     
+     /** Calculates the corresponding Mass for the given element, this is usually tensor trace
+      * @param elem Element
+      * @param direction if !=NO_DERIVATIVE calculate the derivative instead of value
+      */
+     double GetErsatzMaterialMass(const Elem* elem, DesignElement::Type direction);
 
      /** This gets back a uniquely defined transfer function.
       * @param throw_exception if false NULL is returned when nothing is found! */
      TransferFunction* GetTransferFunction(DesignElement::Type design, Optimization::Application application, bool throw_exception = true);
+
+     /** Try to determine the transfer function from the design element uniquely */
+     TransferFunction* GetTransferFunction(DesignElement* de);
 
      /**<p>check the optResult_1/2/3 from the optimization/simp/result elementes against
       * element results in the pde and conditionally add it as store results to the pde.</p>
@@ -216,7 +230,8 @@ namespace CoupledField
       * @return 0, 1, 2 is the index (optResult_x+1) for DesignElement::specialResult_[]. -1 if no
       * result is specified in XML */
      int GetSpecialResultIndex(DesignElement::Type design, DesignElement::ValueSpecifier value,
-                               DesignElement::Detail detail = DesignElement::NONE, DesignElement::Access access = DesignElement::PLAIN);
+                                  DesignElement::Detail detail = DesignElement::NONE,
+                                  DesignElement::Access access = DesignElement::PLAIN);
 
      /** Dumps the design space */
      std::string ToString();
@@ -249,9 +264,14 @@ namespace CoupledField
      virtual void WriteDenseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
                                 DesignElement::Access access, Condition* g = NULL, bool scaling = true) const;
 
-     /** This number indentifies the design space. It is always incremented if ReadDesignFromExtern() reads
+     /** This number identifies the design space. It is always incremented if ReadDesignFromExtern() reads
       * a different design */
      int design_id;
+
+     /** Sets all Material Parameters in designMaterial for given element
+      * @param elem the element to be considered
+      */
+     bool CollectMaterialParametersForElement(const Elem* elem);
 
    private:
      /** Extracts a nodal value */
@@ -309,102 +329,6 @@ namespace CoupledField
      bool all_regions_regular_;
   };
 
-
-  /** somehow this has to be in the header file, otherwise it doesn't link :( */
-  template <class T>
-  void DesignSpace::ExtractResults(shared_ptr<BaseResult> base_result)
-  {
-    // our results are up to now scalar!
-    Result<T>& result = dynamic_cast<Result<T> &>(*base_result);
-
-    // the description of the result
-    shared_ptr<ResultInfo> ri = result.GetResultInfo();
-
-    // Work with a result description. This is either a result description from the
-    // xml file or when using the "predefined" *_PSEUDO_* we set it here.
-    ResultDescription def;
-    // set the defaults to be maybe replaced by a resultDescription
-    def.solutionType = ri->resultType;
-    // this is clearly nonsense if the result/solution tyoe is OPT_RESULT_1/2/3
-    def.design = ri->resultType == MECH_PSEUDO_DENSITY ? DesignElement::DENSITY : DesignElement::POLARIZATION;
-    def.access = DesignElement::PLAIN;
-    def.value  = DesignElement::DESIGN;
-
-    ResultDescription& descr = def;
-    // ignore defaults if there is a result description for the OPT_RESULT_1/2/3 case
-    for(unsigned int i = 0; i < resultDescriptions.GetSize(); i++)
-      if(resultDescriptions[i].solutionType == ri->resultType)
-        descr = resultDescriptions[i];
-
-    if(ri->definedOn == ResultInfo::NODE)
-      FillNodeResults(result, def);
-    else
-      FillElementResults(result, def);
-  }
-
-  template <class T>
-  void DesignSpace::FillNodeResults(Result<T>& result, ResultDescription& descr)
-  {
-    Vector<T>& actSol = result.GetVector();
-    actSol.Resize(result.GetEntityList()->GetSize());
-    EntityIterator it = result.GetEntityList()->GetIterator();
-
-    for(it.Begin(); !it.IsEnd(); it++ )
-    {
-      unsigned int node = it.GetNode();
-
-      actSol[it.GetPos()] = GetNodalValue(node, descr.value);
-    }
-  }
-
-  template <class T>
-  void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr)
-  {
-    Vector<T>& result_data = result.GetVector();
-
-    // this is our entity result, a scalar or a vector of dim 2/3
-    unsigned int dofs = result.GetResultInfo()->dofNames.GetSize();
-    assert(dofs >= 1 && dofs <= 3);
-    StdVector<double> result_value(dofs);
-
-
-    // search where in data we are
-    int base = FindDesign(descr.design);
-
-    // loop over elements from result. We have to do it this way as the the connection
-    // of design element and result element is the element(->elemeNum) but we cannot
-    // search in the result for an element.
-    EntityIterator it = result.GetEntityList()->GetIterator();
-
-    // set the result as we need it
-    result_data.Resize(result.GetEntityList()->GetSize() * dofs);
-
-
-    for ( it.Begin(); !it.IsEnd(); it++ )
-    {
-      // for elements not in the design region we set to one
-      for(unsigned int i = 0; i < dofs; i++)
-        result_value[i] = 1.0;
-
-      if(FindRegion(it.GetElem()->regionId) >= 0)
-      {
-        // note that the index is from the first design set!
-        unsigned int base_index = Find(it.GetElem()->elemNum);
-        // base=0 is first!
-        unsigned int data_index = (base * elements_) + base_index;
-        DesignElement& de = data[data_index];
-        de.GetValue(descr, result_value, dofs);
-
-#ifdef CHECK_INDEX
-        if(de.elem->elemNum != it.GetElem()->elemNum)
-          EXCEPTION("mixed up indices:" << de.elem->elemNum << "!=" << it.GetElem()->elemNum
-              << " base_index=" << base_index << " data_index=" << data_index << " it.Pos()=" << it.GetPos());
-#endif
-      }
-      for(unsigned int i = 0; i < dofs; i++)
-        result_data[it.GetPos() * dofs + i] = result_value[i];
-    }
-  }
 
 
 

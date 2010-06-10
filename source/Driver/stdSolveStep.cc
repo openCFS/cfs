@@ -15,6 +15,7 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Utils/result.hh"
 #include "Driver/singleDriver.hh"
+#include "Optimization/Optimization.hh"
 
 #include "OLAS/algsys/basesystem.hh"
 
@@ -101,25 +102,25 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::SolveStepStatic(PtrParamNode analysis_id, const bool reAssembleMatrices) {
+  void StdSolveStep::SolveStepStatic(PtrParamNode analysis_id, AdjointParameters* adjointParams, const bool reAssembleMatrices) {
 
     if (nonLin_) {
       StepStaticNonLin(analysis_id);
     }
     else {
-      StepStaticLin(analysis_id, reAssembleMatrices);
+      StepStaticLin(analysis_id, adjointParams, reAssembleMatrices);
     }
   }
 
 
-  void StdSolveStep::StepStaticLin(PtrParamNode analysis_id, const bool reAssembleMatrices) {
+  void StdSolveStep::StepStaticLin(PtrParamNode analysis_id, AdjointParameters* adjointParams, const bool reAssembleMatrices) {
 
     if(reAssembleMatrices)
       assemble_->AssembleMatrices();
 
     // The RHS-sources and boundary conditions
     // have to be reassembled each time
-    assemble_->AssembleLinRHS();
+    assemble_->AssembleLinRHS(adjointParams);
     PDE_.SetBCs();
 
     // store rhs vector back to PDE
@@ -285,7 +286,7 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::SolveStepTrans(PtrParamNode analysis_id) {
+  void StdSolveStep::SolveStepTrans(PtrParamNode analysis_id, AdjointParameters* adjointParams, const bool reAssembleMatrices) {
 
 
     // do a nonlinear material time step
@@ -301,15 +302,15 @@ namespace CoupledField {
     }
     // do a linear time step
     else {
-      StepTransLin(analysis_id);
+      StepTransLin(analysis_id, adjointParams, reAssembleMatrices);
     }
   }
 
 
-  void StdSolveStep::StepTransLin(PtrParamNode analysis_id) 
+  void StdSolveStep::StepTransLin(PtrParamNode analysis_id, AdjointParameters* adjointParams, const bool reAssembleMatrices) 
   {
     //account for RHS
-    assemble_->AssembleLinRHS();
+    assemble_->AssembleLinRHS(adjointParams);
     PDE_.ComputeRHS( actTime_ );
 
     // store rhs vector back to PDE
@@ -320,6 +321,14 @@ namespace CoupledField {
     UInt& iterCoupledCounter = PDE_.GetIterCoupledCounter();
     bool isIterCoupled    = PDE_.IsIterCoupled();
 
+    if(domain->GetOptimization() && domain->GetOptimization()->IsFirstTransientStepStatic()){
+      if(actStep_ == 2 && adjointParams == NULL){ // reset everything but the solution after the first step
+        PDE_.getTimeStepping()->ReInit();
+      }
+      if(actStep_ == 1 && adjointParams != NULL){ // reset everything before first step backwards
+        ReInit();
+      }
+    }
 
     // perform predictor step: if we have an iterative coupled
     // PDE-system, we should perform the predictor state just
@@ -330,10 +339,19 @@ namespace CoupledField {
       TS_alg_->Predictor(solHelp);
     }
 
-    assemble_->AssembleMatrices();
+    if(reAssembleMatrices){
+      assemble_->AssembleMatrices();
+    }
 
-    if (assemble_->IsMatrixUpdated() ) {
-      algsys_->ConstructEffectiveMatrix(matrix_factor_);
+    if (assemble_->IsMatrixUpdated() ) { //todo: this is always true at least in optimization (note, that if this is fixed, FirstStaticStep need to call ConstructEffectiveMatrix for step 1 and 2
+      if(domain->GetOptimization() && domain->GetOptimization()->IsFirstTransientStepStatic() && actStep_ == 1){ // calculate first step static, and the adjoint will also be static
+        double t = matrix_factor_[MASS];
+        matrix_factor_[MASS] = 0.0;
+        algsys_->ConstructEffectiveMatrix(matrix_factor_);
+        matrix_factor_[MASS] = t;
+      }else{
+        algsys_->ConstructEffectiveMatrix(matrix_factor_);
+      }
     }
 
 
@@ -1249,7 +1267,10 @@ namespace CoupledField {
     *cla << "     Incremental error       " << incrementalErr << std::endl;
   }
 
-
+  void StdSolveStep::ReInit(){
+    dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector()).Init();
+    PDE_.getTimeStepping()->ReInit();
+  }
 
 } // end of namespace
 

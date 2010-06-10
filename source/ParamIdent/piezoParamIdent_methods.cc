@@ -165,8 +165,8 @@ namespace CoupledField {
       if(writeResults_==true){
         resHandler->BeginStep(fstep+1, actFreq );
         ptPDE_->WriteResultsInFile(fstep, actFreq);
+        resHandler->FinishStep();
       }
-      resHandler->FinishStep();
 
       if (CalcImpedanceCurve_==true) {
 
@@ -306,7 +306,7 @@ namespace CoupledField {
     F_hat_.Resize(nrMeasuredData_);
     F_hat_.Init();
 
-    ResultHandler * resHandler = domain->GetResultHandler();
+//    ResultHandler * resHandler = domain->GetResultHandler();
 
     // see comment within calcImpedanceCurve()
     PtrParamNode base = driverNode->Get(ParamNode::PROCESS);
@@ -331,7 +331,7 @@ namespace CoupledField {
       ptPDE_->GetSolveStep()->SetActStep(fstep);
       ptPDE_->GetSolveStep()->PreStepHarmonic();
       ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id);
-      resHandler->FinishStep();
+//      resHandler->FinishStep();
 
       //////////////////////////////////////////////////////////
       //Retrieves & stores Solution for further calculations  //
@@ -470,7 +470,7 @@ namespace CoupledField {
     analysis_id->Get("analysis_id")->SetValue(ss.str());
     analysis_id->Get("value")->SetValue(frequency);
     
-    ResultHandler * resHandler = domain->GetResultHandler();
+//    ResultHandler * resHandler = domain->GetResultHandler();
 
     domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
         "f", UInt(frequency));
@@ -485,7 +485,7 @@ namespace CoupledField {
     ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id);
     ptPDE_->GetSolveStep()->PostStepHarmonic();
 
-    resHandler->FinishStep();
+//    resHandler->FinishStep();
 
     //////////////////////////////////////////////////////////
     //Retrieves & stores Solution for further calculations  //

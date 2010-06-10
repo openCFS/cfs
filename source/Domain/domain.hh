@@ -178,6 +178,9 @@ namespace CoupledField
      /** Returns true, if optimization does provide a complete tensor */
      bool HasErsatzMaterialTensor();
      
+     /** Returns true, if optimization does provide a mass value */
+     bool HasErsatzMaterialMass();
+     
      /** Gets the Material Tensor for the given element in the current iteration, or its derivative */
 //     void GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction);
      

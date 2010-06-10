@@ -70,11 +70,11 @@ double Timer::GetCPUTime() const
 }
 
 
-string Timer::ToXML() const
+string Timer::ToXMLFormat(const string& name) const
 {
   std::ostringstream os;
 
-  os << "<timer";
+  os << "<" << name;
   os << " wall=\"" << GetWallTime() << "\"";
   os << " cpu=\"" << GetCPUTime() << "\"";
   os << " calls=\"" << calls_ << "\"";

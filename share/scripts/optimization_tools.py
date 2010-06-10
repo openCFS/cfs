@@ -1,10 +1,13 @@
+# -*- coding: utf-8 -*-
 # This collects some tool routines for optimization
 
 import libxml2
 import numpy
 import math
+import os
 
 from cfs_utils import *
+from distutils.command.build_scripts import first_line_re
 
 ## Reads a cubic (3D) density.xml file as 3D NDArray
 # @param filename from which the last 'set' is used
@@ -163,4 +166,282 @@ def enlarge_matrix(data, times_x, times_y = 1, times_z = 1):
               setNDArrayEntry(res, dim, x_base + i, y_base + j, z_base + k, val)
 
   return res                     
-                     
+              
+## asuming a regular 2d grid this function takes a density-file input
+# and writes a finer version of it, where every element density is just
+# spread to 4 elements
+# element 1 density get written to elements 1,2,5,6 for a 2x2 infile
+# @param infile the density file with the densities to be blown upper
+# @param outfile name of the output file
+def refine_density(infile, outfile):
+  doc = libxml2.parseFile(infile)
+  xml = doc.xpathNewContext()
+  # read the design attributes from the last set
+  res = xml.xpathEval("//set[last()]/element/@design")
+
+  # validation
+  if len(res) == 0:
+    raise RuntimeError("found no elements in the last 'set' of '" + filename + "'")
+
+  out = open(outfile, "w")
+  out.write('<?xml version="1.0"?>\n')
+  out.write('<cfsErsatzMaterial>\n')
+
+  # get header from old density file
+  bla = xml.xpathEval("//header")
+  for i in bla:
+    out.write(str(i) + "\n")
+
+  out.write('<set id="refined">\n')
+
+  new=[0]*4*len(res)
+  print len(new)
+
+  num=int(math.sqrt(len(res)))
+
+  for r in range(num):
+    for c in range(num):
+      val =  res[r*num + c].getContent()
+
+      start = 4*r*num + 2*c
+      new[start + 0] = val
+      new[start + 1] = val
+      new[start + 0 + 2*num] = val
+      new[start + 1 + 2*num] = val
+
+  for i in range(len(new)):
+    out.write('  <element nr="' + str(i+1)   + '" type="density" design="' + str(new[i]) + '"/>\n')
+
+  out.write('</set>\n')
+  out.write('</cfsErsatzMaterial>\n')
+  out.close()
+
+  return
+
+## asuming a regular grid 3d this function takes a density-file input
+# and writes a finer version of it, where every element density is just
+# spread to 8 elements
+# @see 2d version above
+# @param infile the density file with the densities to be blown upper
+# @param outfile name of the output file
+def refine_density_3d(infile, outfile):
+  doc = libxml2.parseFile(infile)
+  xml = doc.xpathNewContext()
+  # read the design attributes from the last set
+  res = xml.xpathEval("//set[last()]/element/@design")
+
+  # validation
+  if len(res) == 0:
+    raise RuntimeError("found no elements in the last 'set' of '" + filename + "'")
+
+  out = open(outfile, "w")
+  out.write('<?xml version="1.0"?>\n')
+  out.write('<cfsErsatzMaterial>\n')
+
+  # get header from old density file
+  bla = xml.xpathEval("//header")
+  for i in bla:
+    out.write(str(i) + "\n")
+
+  out.write('<set id="refined">\n')
+
+  new=[0]*8*len(res)
+
+  num=int(math.pow(len(res), 1.0/3.0))
+  num2=int(math.pow(num, 2))
+
+  print str(len(new)) + ' ' + str(num) + ' ' + str(num2)
+
+  for r in range(num):
+    for c in range(num):
+      for s in range(num):
+        index = s*num2 + r*num + c
+        val =  res[index].getContent()
+
+        start = 8*s*num2 + 4*r*num + 2*c
+        new[start + 0] = val
+        new[start + 1] = val
+        new[start + 0 + 2*num] = val
+        new[start + 1 + 2*num] = val
+
+        start = start + 4*num2
+        new[start + 0] = val
+        new[start + 1] = val
+        new[start + 0 + 2*num] = val
+        new[start + 1 + 2*num] = val
+
+  for i in range(len(new)):
+    out.write('  <element nr="' + str(i+1)   + '" type="density" design="' + str(new[i]) + '"/>\n')
+
+  out.write('</set>\n')
+  out.write('</cfsErsatzMaterial>\n')
+  out.close()
+
+  return
+
+# Assuming there is a sequence of CFS runs by a paramerer study. This method finds the closes
+# valid run
+# @param filename: the filename with a special key for the running number. e.g. 'j_near_f_$_ah_60.info.xml'
+# @param key: the key withing filename, here $
+# @param start: the first number to search for the file (inclusive!)
+# @param stop: the last number to check (inclusive). Smaller or larger start!
+# @return: the number within start and end 
+# @raise exception: if no info.xml with status 'finished' found    
+def find_closes_info_xml(filename, key, start, end):
+  checked = 0
+  failed  = 0
+  # we can search upwards or downwards
+  direction = cond(end < start, -1, 1)
+  for i in range(start, end + direction, direction):
+    name = string.replace(filename, key, str(i))
+    
+    print  "check " + name + "\n"
+    
+    if not os.path.exists(name):
+      continue
+    
+    doc = libxml2.parseFile(name)
+    xml = doc.xpathNewContext()
+    
+    status = xpath(xml, "/cfsInfo/@status")
+    print "file " + name + " has status " + status
+
+    if status == "finished":
+      return i
+    else:
+      failed = failed + 1
+    
+    checked = checked + 1
+    
+  raise RuntimeError("Could not find close info.xml to '" + filename + "': from " + str(checked) + " files " + str(failed) + " were not finished")
+
+# this is a helper strucht for readLumpedMechDisplacement
+class LumpedMechDisplacement:
+  def __init__(self, elemNum, x, y, z):
+    self.elemNum = elemNum
+    self.x       = x
+    self.y       = y
+    self.z       = z
+    
+  def toString(self):
+    return "elem=" + str(self.elemNum) + " x=" + str(self.x) + ", " + str(self.y) + ", " + str(self.z) 
+
+
+# read the info.xml file and extracts the lumpedMechDisplacement from an eigenfrequency analysis
+# @param info_xml the file name
+# @param region the region name
+# @return an list of tuples. the first item is the frequency, the next is a list of  LumpedMechDisplacement elements.
+#        Multiple frequencies are not possible but the last one is used.
+def readLumpedMechDisplacement(info_xml, region):
+  doc = libxml2.parseFile(info_xml)
+  xml = doc.xpathNewContext()
+  # detect multiple eigenfrequencies
+  last_freq = "-1.0"
+  result = []
+  for step in range(0,5000):
+    xpath_base = "//result[@data='lumpedMechDisplacement'][@location='" + region + "']/item[@step='" + str(step) + "']"
+    res = xml.xpathEval(xpath_base + "/@step_val")
+    if len(res) == 0 or res[0].getContent() == last_freq:
+      continue
+    last_freq = res[0].getContent()
+    item = []
+    item.append(float(last_freq))
+    # read data
+    e = xml.xpathEval(xpath_base + "/@id")
+    x = xml.xpathEval(xpath_base + "/@x")
+    y = xml.xpathEval(xpath_base + "/@y")
+    z = xml.xpathEval(xpath_base + "/@z")
+    # assume len(res) = len(x) = len(y), eventually also len(z)
+    data = []
+    for i in range(len(e)):
+      e_val = int(e[i].getContent())
+      x_val = float(x[i].getContent())
+      y_val = float(y[i].getContent())
+      z_val = cond(len(z) == 0, 0.0, float(z[i].getContent()))
+      data.append(LumpedMechDisplacement(e_val, x_val, y_val, z_val))
+    item.append(data)
+    result.append(item)
+  return result  
+
+# create an interpolated density file from a readLumpedMechDisplacement() result for positive z displacement.
+# below the first frequency we assume full material, obove the highest frequency an exception is thrown
+# @param data is the result from readLumpedMechDisplacement
+# @param f the frequency to interpolate
+# @param density_file the filename where the density file is written to
+def interpolateLumpedMechDisplacementAsDensity(data, f, density_file):
+  # find upper and lower frequency
+  lower = 0.0
+  upper = -1.0
+  
+  # the data array of interest
+  lower_data = [] # stays empty if f is below first eigenfrequency, assume 1.0 values then
+  upper_data = []
+  
+  for i in range(len(data)):
+    test = data[i][0]
+    if test < f:
+      lower = test
+      continue 
+    else:
+      upper  = test
+      upper_data = data[i][1]
+      if i > 0:
+        lower_data = data[i-1][1]
+      break
+  if upper == -1.0:
+    raise RuntimeError("Cannot find frequency " + str(f) + " within lumpedMechDisplacement data set from f=" + str(data[0][0]) + " to f=" + str(data[len(data)-1][0]))
+
+  # determine interpolation parameter, normalized to 1
+  beta = (f - lower) / (upper - lower)
+  alpha = 1.0 - beta
+  print "f=" + str(f) + " lower=" + str(lower) + " upper=" + str(upper) + " alpha=" + str(alpha) + " beta=" + str(beta) + "\n"
+
+  # preliminary result, before normalizing to 1.0
+  tmp = []
+  # we don't know if the positive or negative real parts dominates. the firs mode has the same sign which might be neg
+  max_v = -1e30   
+  min_v = +1e30
+  for i in range(len(upper_data)):
+    lower_value = 1.0 # there is no read condition operator in python :( 
+    if len(lower_data) > 0:
+      lower_value = lower_data[i].z
+    upper_value = upper_data[i].z
+    v = alpha * lower_value + beta * upper_value
+    # print "lv=" + str(lower_value) + " uv=" + str(upper_value) + " v=" + str(v) + "\n"
+    tmp.append(v)
+    max_v = cond(v > max_v, v, max_v)
+    min_v = cond(v < min_v, v, min_v)
+    
+  # normalize and eliminate the right values
+  for i in range(len(tmp)):
+    if abs(max_v) >= abs(min_v) and max_v > 0:
+      # print "a max=" + str(max_v) + " min=" + str(min_v) + " t=" + str(tmp[i]) + " -> " + str(cond(tmp[i] > 0, tmp[i] / max_v, 0.0)) + "\n" 
+      tmp[i] = cond(tmp[i] > 0, tmp[i] / max_v, 0.0)
+    else:
+      # print "b max=" + str(max_v) + " min=" + str(min_v) + " t=" + str(tmp[i]) + " -> " + str(cond(tmp[i] < 0, tmp[i] / min_v, 0.0)) + "\n"      
+      tmp[i] = cond(tmp[i] < 0, tmp[i] / min_v, 0.0)
+    if tmp[i] < 0.0 or tmp[i] > 1.0:
+      raise RuntimeError("invalid density " + str(tmp[i]))
+    # prevent 0
+    if tmp[i] < 1e-7:
+      tmp[i] = 1e-7
+      
+  # write the stuff    
+  out = open(density_file, "w")
+  out.write('<?xml version="1.0"?>\n')
+  out.write('<cfsErsatzMaterial>\n')
+  out.write('  <header>\n')
+  out.write('    <design initial="0.5" lower="1e-3" name="density" upper="1"/>\n')
+  out.write('    <transferFunction application="mech" design="density" param="1" type="simp"/>\n')
+  out.write('  </header>\n')
+  out.write('  <set id="f_' + str(f) + '_' + str(alpha) + '*' + str(lower) + '+' + str(beta) + '*' + str(upper) + '_min_' + str(min_v) + '_max_' + str(max_v) + '">\n')
+  for i in range(len(tmp)):
+    out.write('    <element nr="' + str(upper_data[i].elemNum) + '" type="density" design="' + str(tmp[i]) + '"/>\n')
+  
+  out.write('  </set>\n')
+
+  out.write(' </cfsErsatzMaterial>\n')
+  out.close()
+    
+   
+    

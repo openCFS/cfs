@@ -39,8 +39,10 @@ class Timer
    * (e.g. OpenMP MKL) is used */
   double GetCPUTime() const;
 
-  /** This writes the attribes for ParamNode::ToFile() */
-  std::string ToXML() const;
+  /** This writes writes a xml element with time attributes for ParamNode::ToFile().
+   * @param name is used for "<name wall='xx' .../>
+   *        This is the name of the param element in in->Get("timer")->SetValue(timer) */
+  std::string ToXMLFormat(const std::string& name) const;
   
   /** static function; converts a boost time interval
    *  to a formatted string suitable for command line output 
