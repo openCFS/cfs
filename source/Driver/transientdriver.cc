@@ -195,7 +195,7 @@ namespace CoupledField {
       else
       {
         assert(given_analysis_id->Has("analysis_id"));
-        analysis_id_ = CreateAnalysisIdChild(given_analysis_id, given_analysis_id->Get("analysis_id")->As<std::string>(), actTimeStep_, "step", actTimeStep_);
+        analysis_id_ = CreateAnalysisIdChild(given_analysis_id, "step", actTimeStep_);
       }
       analysis_id_->Get("step")->SetValue(actTimeStep_);
       analysis_id_->Get("value")->SetValue(steptime);
