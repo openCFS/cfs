@@ -345,7 +345,6 @@ share/scripts/CMakeLists.txt svneol=native#text/plain
 share/scripts/IdentifyCCompiler.c svneol=native#text/plain
 share/scripts/IdentifyCXXCompiler.cpp svneol=native#text/plain
 share/scripts/IdentifyFortranCompiler.F90 -text
-share/scripts/IdentifyFortranCompiler.s -text
 share/scripts/cfs -text
 share/scripts/cfs-testsuite-extractor.py -text
 share/scripts/cfs_utils.py -text
