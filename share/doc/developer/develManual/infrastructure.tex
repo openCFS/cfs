@@ -1,0 +1,61 @@
+\chapter{Software Infrastructure}
+
+\section{Versioncontrolsystem Subversion}
+
+Subversion is a  free/open source version control system,  which manages files
+and  directories, and  the changes  made to  them, over  time. This  allows to
+recover older versions and to have different developing branches \cite{svn}.
+
+\section{CMake Build System}
+
+CMake is  a family of platform  independent tools designed to  build, test and
+package  software  \cite{cmake,  Schroeder2004,  Martin2007a}.  It  is  mainly
+targeted towards C,  C++ or Fortran projects. Instead  of writing Makefiles or
+autoconf/automake scripts  on Unix or  Visual Studio projects on  Windows, one
+just  needs to maintain  platform independent  configuration files  from which
+CMake will  generate the  previously mentioned projects  for the  native build
+environments.
+
+\section{CFSDEPS}
+
+ When  developing a  general purpose  finite element  code a  lot  of external
+libraries (e.g.   BLAS, LAPACK, ARPACK, Metis\ldots)  have to be  pulled in if
+the wheel  is not  to be reinvented.  Many of  these libraries are  present on
+modern-day Linux/Unix distributions.  If a library is however not available it
+has to  be built  from source. If  more than  the standard GNU  compiler suite
+should be supported it is  almost certain that incompatibilities with prebuilt
+system  libraries  will   arise.  Therefore  we  decided  to   build  all  our
+dependencies  in an  automated  script  based manner.  The  scripts fetch  the
+sources from the web, unpack  them, perform checksum checks, patch, configure,
+build   and   install   the   libraries.    This   way   we   obtain   maximum
+platform-independence  while   having  a  well-documented   and  SVN-versioned
+description of how to build external packages. The necessity for automatically
+building external packages has also been recognized by the CMake developers in
+the     meantime     and      is     supported     since     version     2.8.0
+(cf. \cite{BuildExtPackages})
+
+\section{CTest}
+
+In order to  keep the quality of  a software project high it  is imparative to
+perform manual and automated tests.  The necessary tests can be specified also
+in the same  simple CMake syntax.  Every user should run  those tests before a
+commit of  changes or additional software code.  This way it can  be made sure
+that all the old features are still working at least on the user's platform.
+
+
+\section{CDash}
+
+This is an  open source, web-based software testing  server, which aggregates,
+analyzes and displays the results of software testing processes submitted from
+different clients \cite{cdash}.  We use it to gather information about nightly
+builds  on various  platforms. This  way we  can track  down errors  which are
+platform-dependent (e.g. 32 bit vs.  64 bit) more efficiently.
+
+
+\section{Trac}
+
+This  tool  is  an  enhanced  wiki  and issue  tracking  system  for  software
+development projects. Therewith, we can discuss different issues, fix the next
+development  steps   by  assigning   tickets,  browse  the   {\sf  Subversion}
+repository, can look at the changes been made between different versions, etc.
+\cite{trac}

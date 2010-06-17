@@ -1,0 +1,82 @@
+\documentclass[12pt]{report}
+%
+\usepackage{ifpdf}
+
+%
+%
+\usepackage{../../auxilliaries/LaTeX/lsepaper}
+\usepackage{ifthen}
+\usepackage[utf8]{inputenc}
+\usepackage{subfigure}
+\usepackage{amssymb}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{booktabs}
+\newcommand{\otoprule}{\midrule[\heavyrulewidth]}
+%
+% =============================================================================
+% PDF STUFF
+% =============================================================================
+%
+\ifpdf
+\typeout{--> PDF: Output mode detected}
+\typeout{--> PDF: Setting general document info}
+
+\usepackage{graphicx}
+\graphicspath{{./pics/}}
+\DeclareGraphicsExtensions{.jpg,.pdf,.png}
+\usepackage{thumbpdf}
+\usepackage[pdftex,bookmarks=true]{hyperref}
+\hypersetup{pdfpagemode=UseThumbs}
+\hypersetup{colorlinks=true}
+\hypersetup{linkcolor=red}
+\hypersetup{citecolor=blue}
+
+\hypersetup{pdfauthor=cfs-devel}
+\hypersetup{pdftitle={CFS++ --- XML Reference Manual}}
+\hypersetup{pdfsubject={User's Guide}}
+\else
+\usepackage{graphicx}
+\DeclareGraphicsExtensions{.jpg,.pdf,.png}
+\graphicspath{{./pics/}}
+\fi
+
+\usepackage[percent]{overpic}
+%
+% =============================================================================
+%
+\include{mycommands}
+\include{pygmentize}
+%
+% =============================================================================
+\begin{document}
+% =============================================================================
+%
+%
+\LSETITLE{CFS++ -- Developer's Manual}{\hspace{1em}}{\hspace{1em}}
+%
+%
+\tableofcontents
+%
+%
+\clearpage
+\pagestyle{headings}
+\pagenumbering{arabic}
+%
+%
+\include{introduction}
+\include{quickstart}
+\include{infrastructure}
+\include{concepts}
+\include{howtos}
+\include{tools}
+
+\addcontentsline{toc}{chapter}{Bibliography}
+\bibliographystyle{alpha}
+\bibliography{develManual}
+
+%
+%
+% =============================================================================
+\end{document}
+% =============================================================================

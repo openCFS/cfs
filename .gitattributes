@@ -252,6 +252,28 @@ share/doc/developer/Protokolle/Treffen_14_04_2005.pdf -text svneol=unset#applica
 share/doc/developer/Protokolle/Treffen_16_11_2005.pdf -text svneol=unset#application/pdf
 share/doc/developer/Protokolle/Treffen_25_09_2007.pdf -text svneol=unset#application/pdf
 share/doc/developer/Protokolle/Treffen_27_07_2005.pdf -text svneol=unset#application/pdf
+share/doc/developer/develManual/concepts.tex -text
+share/doc/developer/develManual/develManual.bib -text
+share/doc/developer/develManual/develManual.cfg -text
+share/doc/developer/develManual/develManual.tex -text
+share/doc/developer/develManual/howtos.tex -text
+share/doc/developer/develManual/html/banner.png -text
+share/doc/developer/develManual/html/next.png -text
+share/doc/developer/develManual/html/prev.png -text
+share/doc/developer/develManual/html/up.png -text
+share/doc/developer/develManual/infrastructure.tex -text
+share/doc/developer/develManual/introduction.tex -text
+share/doc/developer/develManual/mycommands.tex -text
+share/doc/developer/develManual/pics/ansys.png -text
+share/doc/developer/develManual/pics/cfs-logo.png -text
+share/doc/developer/develManual/pics/gid.png -text
+share/doc/developer/develManual/pics/gmsh.png -text
+share/doc/developer/develManual/pics/gmv.png -text
+share/doc/developer/develManual/pics/paraview.png -text
+share/doc/developer/develManual/quickstart.tex -text
+share/doc/developer/develManual/sources/hdf5_file_format.xml -text
+share/doc/developer/develManual/sources/pygmentize.sh -text
+share/doc/developer/develManual/tools.tex -text
 share/doc/developer/makedoc.sh.in -text
 share/doc/user/CMakeLists.txt svneol=native#text/plain
 share/doc/user/makedoc.sh.in -text
