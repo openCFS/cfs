@@ -56,6 +56,11 @@ FILE(WRITE "${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake"
   set(CTEST_DROP_SITE_CDASH TRUE)"
 )
 
+EXEC_PROGRAM("${CTEST_SOURCE_DIRECTORY}/share/scripts/distro.sh"
+  ARGS -u
+  OUTPUT_VARIABLE CFS_ARCH_STR
+  RETURN_VALUE RETVAL)
+
 #-----------------------------------------------------------------------------
 # Specify that we want to do an experimental build without updating the CFS++
 # working copy. I.e. we leave away the ExperimentalUpdate step between
@@ -90,9 +95,11 @@ SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
 SET(CTEST_INITIAL_CACHE
   "BUILD_TESTING:BOOL=ON
    DEBUG:BOOL=OFF
+   BUILDNAME:STRING=${CFS_ARCH_STR} GCC/Intel Fortran
    TESTSUITE_DIR:STRING=$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_NIGHTLY
    CFS_DEPS_ROOT:PATH=$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPS_NIGHTLY
    CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPSCACHE
+   USE_ANSYSRST:BOOL=ON
    USE_GMV_INPUT:BOOL=ON
    USE_GMSH:BOOL=ON
    USE_PYTHON:BOOL=ON
@@ -101,6 +108,7 @@ SET(CTEST_INITIAL_CACHE
    CPLREADER:BOOL=ON
    USE_SCPIP:BOOL=ON")
 
+#-----------------------------------------------------------------------------
 # Set the following environment variables for the test run. This can be used
 # to specifiy the compilers and that all messages should be output in English
 # language, so that CTest may properly parse them.
@@ -108,7 +116,7 @@ SET(CTEST_INITIAL_CACHE
 SET(CTEST_ENVIRONMENT
   "CC=gcc"
   "CXX=g++"
-  "FC=gfortran"
+  "FC=ifort"
   "LC_MESSAGES=C"
   "LC_ALL=C"
   "LANG=C"

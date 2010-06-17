@@ -479,7 +479,7 @@ ENDIF(USE_INTERPOLATION)
 #-----------------------------------------------------------------------------
 # Make sure the linker can find the CFS base libraries once it is built.
 #-----------------------------------------------------------------------------
-LINK_DIRECTORIES(${CFSDEPS_LIBRARY_DIR} ${CFS_BINARY_DIR}/lib)
+LINK_DIRECTORIES(${CFSDEPS_LIBRARY_DIR} ${LIBRARY_OUTPUT_PATH})
 
 #-----------------------------------------------------------------------------
 # Recurse into the "source" subdirectory.  This does not actually

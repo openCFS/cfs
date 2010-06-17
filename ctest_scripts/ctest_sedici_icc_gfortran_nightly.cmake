@@ -56,6 +56,11 @@ FILE(WRITE "${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake"
   set(CTEST_DROP_SITE_CDASH TRUE)"
 )
 
+EXEC_PROGRAM("${CTEST_SOURCE_DIRECTORY}/share/scripts/distro.sh"
+  ARGS -u
+  OUTPUT_VARIABLE CFS_ARCH_STR
+  RETURN_VALUE RETVAL)
+
 #-----------------------------------------------------------------------------
 # Specify that we want to do an experimental build without updating the CFS++
 # working copy. I.e. we leave away the ExperimentalUpdate step between
@@ -90,6 +95,7 @@ SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
 SET(CTEST_INITIAL_CACHE
   "BUILD_TESTING:BOOL=ON
    DEBUG:BOOL=OFF
+   BUILDNAME:STRING=${CFS_ARCH_STR} ICC/GNU Fortran
    TESTSUITE_DIR:STRING=$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_NIGHTLY
    CFS_DEPS_ROOT:PATH=$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPS_NIGHTLY
    CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPSCACHE
@@ -110,7 +116,7 @@ SET(CTEST_INITIAL_CACHE
 SET(CTEST_ENVIRONMENT
   "CC=icc"
   "CXX=icpc"
-  "FC=ifort"
+  "FC=gfortran"
   "LC_MESSAGES=C"
   "LC_ALL=C"
   "LANG=C"

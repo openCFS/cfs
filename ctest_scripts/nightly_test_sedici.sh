@@ -46,19 +46,25 @@ function UpdateWorkingCopy {
     PREV_REV=$(svn st --xml --verbose $WCDIR | xsltproc CFSDEPS_NIGHTLY/utils/xslt/cfsdepsrev.xslt -)
     if [ ! "$?" = 0 ]; then PREV_REV="-1"; fi
 
-    change-svn-wc-format.py $WCDIR "1.5" --verbose
+    change-svn-wc-format.py $WCDIR "1.5" # --verbose
 
     if [ ! -d "$WCDIR/.svn" ]; then
 	svn co $REPOS $WCDIR
+	if [ $? != 0 ]; then
+	    SubmitErrorToCDash $FUNCNAME "Failed to checkout working copy $WCDIR." "Failed to checkout working copy $WCDIR." $LINENO
+	fi
     else
 	svn up $WCDIR
+	if [ $? != 0 ]; then
+	    SubmitErrorToCDash $FUNCNAME "Failed to update working copy $WCDIR." "Failed to update working copy $WCDIR." $LINENO
+	fi
     fi
 
     # Get current revision for working copy
     CURRENT_REV=$(svn st --xml --verbose $WCDIR | xsltproc CFSDEPS_NIGHTLY/utils/xslt/cfsdepsrev.xslt -)
     if [ ! "$?" = 0 ]; then CURRENT_REV="-1"; fi
 
-    change-svn-wc-format.py $WCDIR "1.5" --verbose
+    change-svn-wc-format.py $WCDIR "1.5" # --verbose
 
     # Account for 90 seconds reconnect timeout of the lse10 firewall.
     sleep 120
@@ -67,9 +73,8 @@ function UpdateWorkingCopy {
 function PerformTest {
     TESTNAME=$1;
 
-    if [ "$DAYOFWEEK" = "3" ]; then
-# && [ "$TESTNAME" = "sedici_gcc_nightly" ]; then
-        ADDITIONAL_SED_ARG="s/CPLREADER:BOOL\=ON/CPLREADER:BOOL\=ON\n   BUILD_PARAVIEW=ON/g"
+    if [ "$DAYOFWEEK" = "3" -a "$TESTNAME" = "sedici_gcc_ifort_nightly" ]; then
+        ADDITIONAL_SED_ARG="s/CPLREADER:BOOL\=ON/CPLREADER:BOOL\=ON\n   BUILD_PARAVIEW:BOOL=ON/g"
     else
         ADDITIONAL_SED_ARG="s///g"
     fi
@@ -103,16 +108,113 @@ function PerformTest {
     fi
 
     ctest -V -S ctest_scripts/ctest_script.cmake
+    if [ $? != 0 ]; then
+        SubmitErrorToCDash $FUNCNAME "CTest run for $TESTNAME failed." "CTest run for $TESTNAME failed." $LINENO
+    fi
 
     if [ -d $TESTDIR/CFS_BUILD_NIGHTLY/paraview ]; then
-       cp -a $TESTDIR/CFS_BUILD_NIGHTLY/paraview /opt/pckg/paraview-3.6.1
+       cp -a $TESTDIR/CFS_BUILD_NIGHTLY/paraview /opt/pckg/paraview-weekly
        rm -rf $TESTDIR/CFS_BUILD_NIGHTLY/paraview
+       SubmitErrorToCDash $FUNCNAME "ParaView built." "ParaView built." $LINENO       
     fi
 
     cd $TESTDIR
     tar cvzf cfs_build_$TESTNAME.tgz CFS_BUILD_NIGHTLY
 }
 
+function SubmitErrorToCDash {
+    BUILDSCRIPT=$(basename "$0");
+    SITE=$HOSTNAME;
+    BUILDNAME="ATTENTION: $BUILDSCRIPT";
+    NOTENAME=$1;
+    NOTE="$2";
+    ERROR="$3";
+    LOGLINE="$4";
+    NOTETEMPFILE="$(mktemp).xml"
+    BUILDFILE="$NOTETEMPFILE"
+    BUILDSTAMP="$(date '+%Y%m%d-%H%M')-Nightly"
+    
+    echo $SITE
+    echo $BUILDNAME
+    echo $NOTENAME
+    echo $NOTE
+    echo $NOTETEMPFILE
+    
+    echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" > $BUILDFILE
+    echo "<Site BuildName=\"$BUILDNAME\"" >> $BUILDFILE
+    echo "      BuildStamp=\"$BUILDSTAMP\"" >> $BUILDFILE
+    echo "      Name=\"$SITE\"" >> $BUILDFILE
+    echo "      Generator=\"$BUILDSCRIPT\"    OSName=\"Linux\"" >> $BUILDFILE
+    echo "      Hostname=\"$SITE\">" >> $BUILDFILE
+#    echo "        OSRelease=\"2.6.31.12-0.1-default\"" >> $BUILDFILE
+#    echo "        OSVersion=\"#1 SMP 2010-01-27 08:20:11 +0100\"" >> $BUILDFILE
+#    echo "        OSPlatform=\"x86_64\"" >> $BUILDFILE
+#    echo "        Is64Bits=\"1\"" >> $BUILDFILE
+#    echo "        VendorString=\"AuthenticAMD\"" >> $BUILDFILE
+#    echo "        VendorID=\"Advanced Micro Devices\"" >> $BUILDFILE
+#    echo "        FamilyID=\"16\"" >> $BUILDFILE
+#    echo "        ModelID=\"4\"" >> $BUILDFILE
+#    echo "        ProcessorCacheSize=\"512\"" >> $BUILDFILE
+#    echo "        NumberOfLogicalCPU=\"16\"" >> $BUILDFILE
+#    echo "        NumberOfPhysicalCPU=\"16\"" >> $BUILDFILE
+#    echo "        TotalVirtualMemory=\"2047\"" >> $BUILDFILE
+#    echo "        TotalPhysicalMemory=\"32239\"" >> $BUILDFILE
+#    echo "        LogicalProcessorsPerPhysical=\"1\"" >> $BUILDFILE
+#    echo "        ProcessorClockFrequency=\"2511.53\">" >> $BUILDFILE
+    echo "  <Build>" >> $BUILDFILE
+#    echo "    <StartDateTime>Mar 29 02:23 CEST</StartDateTime>" >> $BUILDFILE
+#    echo "    <StartBuildTime>1269822221</StartBuildTime>" >> $BUILDFILE
+    echo "    <StartDateTime>" >> $BUILDFILE
+    date '+%b %d %R %Z' >> $BUILDFILE
+    echo "    </StartDateTime>" >> $BUILDFILE
+#    echo "    <StartBuildTime>" >> $BUILDFILE
+#    date '+%N' >> $BUILDFILE
+#    echo "    </StartBuildTime>" >> $BUILDFILE
+
+    echo "    <BuildCommand>$BUILDSCRIPT</BuildCommand>" >> $BUILDFILE
+    echo "    <Error>" >> $BUILDFILE
+    echo "      <BuildLogLine>$LOGLINE</BuildLogLine>" >> $BUILDFILE
+    echo "      <Text>" >> $BUILDFILE
+    echo "      $ERROR" >> $BUILDFILE
+    echo "      </Text>" >> $BUILDFILE
+    echo "      <Precontext/>" >> $BUILDFILE
+    echo "      <Postcontext/>" >> $BUILDFILE
+    echo "      <RepeatCount>0</RepeatCount>" >> $BUILDFILE
+    echo "    </Error>" >> $BUILDFILE
+    echo "    <Log Encoding=\"base64\" Compression=\"/bin/gzip\"/>" >> $BUILDFILE
+#    echo "    <EndDateTime>Mar 29 02:52 CEST</EndDateTime>" >> $BUILDFILE
+#    echo "    <EndBuildTime>1269823955</EndBuildTime>" >> $BUILDFILE
+    echo "    <EndDateTime>" >> $BUILDFILE
+    date '+%b %d %R %Z' >> $BUILDFILE
+    echo "    </EndDateTime>" >> $BUILDFILE
+    echo "    <ElapsedMinutes>0</ElapsedMinutes>" >> $BUILDFILE
+    echo "  </Build>" >> $BUILDFILE
+    echo "</Site>" >> $BUILDFILE
+
+    curl -T "{$BUILDFILE}" http://rom/cdash/submit.php?project=CFS
+
+    echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" > $NOTETEMPFILE
+    echo "<?xml-stylesheet type=\"text/xsl\" href=\"Dart/Source/Server/XSL/Build.xsl <file:///Dart/Source/Server/XSL/Build.xsl> \"?>" >> $NOTETEMPFILE
+    echo "<Site BuildName=\"$BUILDNAME\" BuildStamp=\"$BUILDSTAMP\" Name=\"$SITE\" Generator=\"$BUILDSCRIPT\">" >> $NOTETEMPFILE
+    echo "  <Notes>" >> $NOTETEMPFILE
+    echo "    <Note Name=\"$NOTENAME\">" >> $NOTETEMPFILE
+    echo -n "      <DateTime>" >> $NOTETEMPFILE
+    date '+%b %d %R %Z' >> $NOTETEMPFILE
+    echo "</DateTime>" >> $NOTETEMPFILE
+    echo "      <Text>" >> $NOTETEMPFILE
+
+    echo "$NOTE" >> $NOTETEMPFILE
+    echo "      </Text>" >> $NOTETEMPFILE
+    echo "    </Note>" >> $NOTETEMPFILE
+
+    echo "  </Notes>" >> $NOTETEMPFILE
+    echo "</Site>" >> $NOTETEMPFILE
+
+    # Submit machine specific version of Notes.xml to dash board
+    curl -T "{$NOTETEMPFILE}" http://rom/cdash/submit.php?project=CFS
+    
+    rm -f $NOTETEMPFILE
+}
 
 # Remove previous CFSDEPSCACHE directory and make sure that ACML sources
 # get copied to the newly created one.
@@ -165,17 +267,21 @@ cp $DEVDIR/LOCAL_LIBS/GotoBLAS-1.26.tar.gz CFSDEPSCACHE/sources/gotoblas
 # Copy PARDISO libs to CFSDEPSCACHE/source/pardiso
 mkdir -p CFSDEPSCACHE/sources/pardiso
 cp $DEVDIR/LOCAL_LIBS/libpardiso_* CFSDEPSCACHE/sources/pardiso
+#cp $DEVDIR/LOCAL_LIBS/license.pdf CFSDEPSCACHE/sources/pardiso
 
-# Copy whole CFSDEPS tree to /opt/pckg/CFSDEPS. This should make sure that
-# we allways have a current CFSDEPS present on the machine.
+# Copy whole CFSDEPS tree to /opt/pckg/CFSDEPS. This should make sure tha
 # rm -rf /opt/pckg/CFSDEPS/* /opt/pckg/CFSDEPS/.svn
 # cp -a CFSDEPS_NIGHTLY/* CFSDEPS_NIGHTLY/.svn /opt/pckg/CFSDEPS
 
-
-# Change into CFS++ source directory and execute CTest for GCC.
+# Determine distribution string
 DISTRO=$($TESTDIR/CFS_TRUNK_NIGHTLY/share/scripts/distro.sh -u)
 
-PerformTest "sedici_gcc_nightly"
+# Source Intel scripts to get environment variables
+source /opt/intel/Compiler/11.0/081/bin/iccvars.sh intel64
+source /opt/intel/Compiler/11.0/081/bin/ifortvars.sh intel64
+
+# Change into CFS++ source directory and execute CTest for GCC.
+PerformTest "sedici_gcc_ifort_nightly"
 
 CFSBIN="$TESTDIR/CFS_BUILD_NIGHTLY/bin/$DISTRO/cfsbin"
 CFSTOOLBIN="$TESTDIR/CFS_BUILD_NIGHTLY/bin/$DISTRO/cfstoolbin"
@@ -192,9 +298,6 @@ CPLREADER="$TESTDIR/CFS_BUILD_NIGHTLY/bin/$DISTRO/cplreader"
 #fi
 
 # Change into CFS++ source directory and execute CTest for ICC.
-source /opt/intel/Compiler/11.0/081/bin/iccvars.sh intel64
-source /opt/intel/Compiler/11.0/081/bin/ifortvars.sh intel64
-
 PerformTest "sedici_icc_nightly"
 
 if [ -f $CFSBIN ] && [ -f $CFSTOOLBIN ] && [ -f $CPLREADER ]; then
