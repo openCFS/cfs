@@ -2,6 +2,7 @@
 #define IPOPT_HH_
 
 #include "Utils/StdVector.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 // references to the lib
 #include "coin/IpTNLP.hpp"
@@ -13,7 +14,6 @@ namespace CoupledField
     
 class Optimization;
 class BaseOptimizer;
-class ParamNode;
 
 using namespace Ipopt;
 

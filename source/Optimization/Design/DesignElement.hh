@@ -5,7 +5,7 @@
 #include "Domain/elem.hh"
 #include "Utils/tools.hh"
 #include "MatVec/vector.hh"
-#include "Optimization/Filter.hh"
+#include "Optimization/Design/Filter.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField

@@ -6,7 +6,7 @@
 #include "MatVec/vector.hh"
 #include "Driver/harmonicDriver.hh"
 #include "Domain/bcs.hh"
-#include "Optimization/DesignElement.hh"
+#include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Condition.hh"
 #include "Optimization/Objective.hh"
 

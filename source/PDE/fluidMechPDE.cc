@@ -30,7 +30,7 @@
 #include "Domain/ansatzFct.hh"
 #include "Driver/solveStepFluidMech.hh"
 #include "Utils/SmoothSpline.hh"
-#include "Optimization/DesignSpace.hh"
+#include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/SIMP.hh"
 
 #ifdef USE_SCRIPTING

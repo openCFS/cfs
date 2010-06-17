@@ -29,8 +29,8 @@
 #include "DataInOut/Scripting/cfsmessenger.hh"
 #include "DataInOut/resultHandler.hh"
 #include "Optimization/Optimization.hh"
-#include "Optimization/DesignSpace.hh"
-#include "Optimization/DesignStructure.hh"
+#include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Design/DesignStructure.hh"
 #include "PDE/acousticPDE.hh"
 #include "PDE/elecPDE.hh"
 #include "PDE/mechPDE.hh"
@@ -1050,9 +1050,18 @@ void Domain::ReadErsatzMaterial(PtrParamNode pn)
 
   // check the the dimensions! the number of design variables comes from the regions and designs
   if (ersatzMaterial->data.GetSize() != elems.GetSize())
-    EXCEPTION("ErsatzMaterialFile '" << pn->Get("file")->As<std::string>() << "' has " << elems.GetSize()
-        << " entries, the mesh has "<< ersatzMaterial->data.GetSize() << " design elements");
-
+  {  
+    if(domain->GetGrid()->GetNumElems() == elems.GetSize())
+      std::cout << "\033[01;31m" << "Warning:" << "\033[0m" << std::endl
+                << "the number of elements in the region you are trying to read the densities into is not equal to"
+                << " the number of elements in the density-file but matches the number of all elements!"
+                << " We ignore this... I hope you know what you are doing!"
+                << std::endl;
+    else
+      EXCEPTION("ErsatzMaterialFile '" << pn->Get("file")->As<std::string>() << "' has " << elems.GetSize()
+          << " entries, the mesh has "<< ersatzMaterial->data.GetSize() << " design elements");
+  }
+  
   // check if we ignore the element numbers
   bool ignore_numbers = pn->Get("ignore_element_numbers")->As<bool>();
   if (ignore_numbers && region_list.GetSize() != 1)
@@ -1067,7 +1076,7 @@ void Domain::ReadErsatzMaterial(PtrParamNode pn)
 
     // replace the value of the DesignElement
     DesignElement* de = ignore_numbers ? &(ersatzMaterial->data[e])
-        : ersatzMaterial->Find(nr, dt);
+        : ersatzMaterial->Find(nr, dt, false);
     // it should be possible to specify less regions then specified during optimization and saving of results
     // if the element can not be found (e.g. lying in a not specified region) it is not set
     if (de != NULL)

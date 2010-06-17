@@ -7,7 +7,7 @@
 
 #include "bdbInt.hh"
 #include "DataInOut/Logging/cfslog.hh"
-#include "Optimization/DesignElement.hh"
+#include "Optimization/Design/DesignElement.hh"
 
 
 namespace CoupledField {

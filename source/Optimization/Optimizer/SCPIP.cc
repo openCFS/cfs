@@ -1,6 +1,6 @@
-#include "Optimization/SCPIP.hh"
-#include "Optimization/DesignElement.hh"
-#include "Optimization/DesignSpace.hh"
+#include "Optimization/Optimizer/SCPIP.hh"
+#include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Optimization.hh"
 #include "Optimization/Condition.hh"
 #include "General/exception.hh"
@@ -107,25 +107,25 @@ void SCPIP::SolveProblem()
       break;
     case Subproblem_Max_Iter:
       in->Get("converged")->SetValue("no");
-      in->Get("reason")->SetValue("SCPIP: subproblem max iter");
+      in->Get("reason/msg")->SetValue("SCPIP: subproblem max iter");
       break;
     case LineSearch_Max_Iter:
       in->Get("converged")->SetValue("no");
-      in->Get("reason")->SetValue("SCPIP: linesearch max iter");
+      in->Get("reason/msg")->SetValue("SCPIP: linesearch max iter");
       break;
     case Maximum_Iterations_Exceeded:
       in->Get("converged")->SetValue("no"); 
-      in->Get("reason")->SetValue("Maximum iterations exceeded");
+      in->Get("reason/msg")->SetValue("Maximum iterations exceeded");
       break;
     
     case Gradients_Return_False:
       in->Get("converged")->SetValue("no"); 
-      in->Get("reason")->SetValue("Gradients return false");        
+      in->Get("reason/msg")->SetValue("Gradients return false");        
       break;
       
     default:
       in->Get("converged")->SetValue("no");
-      in->Get("reason")->SetValue(ToString(status));
+      in->Get("reason/msg")->SetValue(ToString(status));
       throw Exception(ToString(status));
     }
     
@@ -154,7 +154,7 @@ void SCPIP::SetConstraintSparsityPattern()
   for(int c = 0, nc = optimization->constraints.view->GetNumberOfActiveConstraints(); c < nc; c++)
   {
     Condition* g = optimization->constraints.view->Get(c);
-    if(g->GetBound() != Condition::EQUAL || g->GetType() == Condition::SLOPE)
+    if(g->GetBound() != Condition::EQUAL)
     {
       assert(active[ie] == 1 || active[ie] == 0);
       if(active[ie] == 1)

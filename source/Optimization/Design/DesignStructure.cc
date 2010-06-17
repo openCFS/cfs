@@ -1,5 +1,5 @@
-#include "Optimization/DesignStructure.hh"
-#include "Optimization/DesignSpace.hh"
+#include "Optimization/Design/DesignStructure.hh"
+#include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/SIMP.hh"
 #include "Domain/domain.hh"
 #include "Domain/grid.hh"
@@ -557,6 +557,8 @@ void DesignStructure::AppendNeighbors(Elem* check,
                                            const StdVector<unsigned int>& constraints, int min_common,
                                            StdVector<std::pair<Elem*, int> >& out)
 {
+  if(check == NULL) return;
+  
   StdVector<std::pair<Elem*, int> >& source = *(check->neighborhood);
 
   // check all elements

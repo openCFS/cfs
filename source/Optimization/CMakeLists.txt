@@ -1,63 +1,29 @@
-SET(OPTIMIZATION_SRCS  Function.cc DesignElement.cc DesignSpace.cc Optimization.cc PiezoSIMP.cc ErsatzMaterial.cc SIMP.cc 
-                      TransferFunction.cc Condition.cc Objective.cc OptimalityCondition.cc EvaluateOnly.cc
-                      BaseOptimizer.cc ShapeGrad.cc LevelSet.cc ParamMat.cc DesignMaterial.cc ShapeOptimizer.cc
-                      TopGrad.cc OptimizationMaterial.cc GradientCheck.cc ShapeOpt.cc ShapeDesign.cc
-                      DesignStructure.cc Filter.cc)
+SET(OPTIMIZATION_SRCS Function.cc Optimization.cc PiezoSIMP.cc ErsatzMaterial.cc SIMP.cc 
+                      TransferFunction.cc Condition.cc Objective.cc 
+                      ShapeGrad.cc LevelSet.cc ParamMat.cc 
+                      TopGrad.cc OptimizationMaterial.cc ShapeOpt.cc )
+
+ADD_DEFINITIONS(-DUSE_4_CFS)
 
 # Just redefine __builtin_isnan to ::isnan for Intel compiler for
 # OptimalityCondition.cc
 IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
-    GET_SOURCE_FILE_PROPERTY(OPTCONDFLAGS OptimalityCondition.cc
+    GET_SOURCE_FILE_PROPERTY(OPTCONDFLAGS Optimizer/OptimalityCondition.cc
         COMPILE_FLAGS)
     #    MESSAGE("OPTCONDFLAGS ${OPTCONDFLAGS}")
     IF(OPTCONDFLAGS STREQUAL NOTFOUND)
       SET(OPTCONDFLAGS "")
     ENDIF(OPTCONDFLAGS STREQUAL NOTFOUND)
 
-    SET_SOURCE_FILES_PROPERTIES(OptimalityCondition.cc
+    SET_SOURCE_FILES_PROPERTIES(Optimizer/OptimalityCondition.cc
       PROPERTIES COMPILE_FLAGS "${OPTCONDFLAGS} -D__builtin_isnan=::isnan")
 ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
-
-IF(USE_IPOPT)
-   SET(TARGET_LL
-    ipopt 
-    gfortranbegin 
-    gcc_s)
-
-   INCLUDE_DIRECTORIES(${IPOPT_INCLUDE_DIR})
-   
-   SET( OPTIMIZATION_SRCS
-    ${OPTIMIZATION_SRCS}
-    IPOPT.cc)
-ENDIF(USE_IPOPT)
-
-IF(USE_SCPIP)
-   SET(TARGET_LL
-    ${TARGET_LL}
-    ${SCPIP_LIBRARY}
-    ${CFS_FORTRAN_LIBS})
-
-   # SCPIPBase is also the open source project C++SCPIP.
-   # With this definition the file lives in both worlds! 
-   ADD_DEFINITIONS(-DUSE_4_CFS)
-   
-   SET( OPTIMIZATION_SRCS
-    ${OPTIMIZATION_SRCS}
-    SCPIP.cc SCPIPBase.cc)
-ENDIF(USE_SCPIP)
-
-IF(USE_SNOPT)
-   SET(TARGET_LL
-    ${TARGET_LL}
-    ${SNOPT_LIBRARY}
-    ${CFS_FORTRAN_LIBS})
-   
-   SET(OPTIMIZATION_SRCS ${OPTIMIZATION_SRCS} SnOptInterface.cc SnOpt.cc)
-ENDIF(USE_SNOPT)
 
 ADD_LIBRARY(optimization STATIC ${OPTIMIZATION_SRCS})
 
 SET(TARGET_LL
+  optimizer
+  design
   ${TARGET_LL}
   domain
   forms
@@ -72,6 +38,7 @@ IF(USE_XERCES)
     ${XERCES_LIBRARY}
   )
 ENDIF(USE_XERCES)
+
 
 TARGET_LINK_LIBRARIES(optimization ${TARGET_LL})
 

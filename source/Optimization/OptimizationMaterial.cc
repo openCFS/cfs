@@ -6,7 +6,7 @@
 #include "PDE/heatCondPDE.hh"
 #include "Optimization/OptimizationMaterial.hh"
 #include "Optimization/ErsatzMaterial.hh"
-#include "Optimization/DesignSpace.hh"
+#include "Optimization/Design/DesignSpace.hh"
 #include "DataInOut/Logging/cfslog.hh"
 
 using namespace CoupledField;

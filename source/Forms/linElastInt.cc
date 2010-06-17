@@ -7,9 +7,9 @@
 
 #include "linElastInt.hh"
 #include "DataInOut/Logging/cfslog.hh"
-#include "Optimization/DesignElement.hh"
 #include "Domain/domain.hh"
-#include "Optimization/DesignSpace.hh"
+#include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/DesignSpace.hh"
 
 using namespace CoupledField;
 

@@ -6,14 +6,14 @@
 #include "Optimization/Optimization.hh"
 #include "Optimization/SIMP.hh"
 #include "Optimization/PiezoSIMP.hh"
-#include "Optimization/DesignElement.hh"
-#include "Optimization/DesignSpace.hh"
-#include "Optimization/OptimalityCondition.hh"
+#include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Optimizer/OptimalityCondition.hh"
 #include "Optimization/LevelSet.hh"
-#include "Optimization/EvaluateOnly.hh"
-#include "Optimization/ShapeOptimizer.hh"
+#include "Optimization/Optimizer/EvaluateOnly.hh"
+#include "Optimization/Optimizer/ShapeOptimizer.hh"
 #include "Optimization/ShapeGrad.hh"
-#include "Optimization/GradientCheck.hh"
+#include "Optimization/Optimizer/GradientCheck.hh"
 #include "Optimization/ParamMat.hh"
 #include "Optimization/OptimizationMaterial.hh"
 #include "Driver/assemble.hh"
@@ -37,13 +37,13 @@
 
 // IPOPT, SCPIP and SnOpt are not necessarily linked
 #ifdef USE_IPOPT
-  #include "Optimization/IPOPTHolder.hh"
+  #include "Optimization/Optimizer/IPOPTHolder.hh"
 #endif
 #ifdef USE_SCPIP
-  #include "Optimization/SCPIP.hh"
+  #include "Optimization/Optimizer/SCPIP.hh"
 #endif
 #ifdef USE_SNOPT
-  #include "Optimization/SnOpt.hh"
+  #include "Optimization/Optimizer/SnOpt.hh"
 #endif
 
 using namespace CoupledField;
@@ -243,7 +243,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::HOMOGENIZATION_TENSOR, "homTensor");
   Function::type.Add(Function::HOMOGENIZATION_TRACKING, "homTracking");
   Function::type.Add(Function::POISSONS_RATIO, "poissonsRatio");
-  Function::type.Add(Function::YOUNGS_MODULUS, "homYoungsModulus");
+  Function::type.Add(Function::YOUNGS_MODULUS, "youngsModulus");
   Function::type.Add(Function::TYCHONOFF, "tychonoff");
   Function::type.Add(Function::TEMPERATURE, "temperature");
   Function::type.Add(Function::GREYNESS, "greyness");
@@ -330,7 +330,7 @@ bool Optimization::DoStopOptimization()
     bool good = fs::remove("HALTOPT");
     if(!good) throw new Exception("Could not remove file 'HALTOPT' after detection");
     in->Get("converged")->SetValue("no");
-    in->Get("reason")->SetValue("Detected file 'HALTOPT'");
+    in->Get("reason/msg")->SetValue("Detected file 'HALTOPT'");
     return true;
   }
   
@@ -350,9 +350,9 @@ bool Optimization::DoStopOptimization()
 
   // the relative values for the whole queue are smaller than the requirement -> we are done! :)
   in->Get("converged")->SetValue("practically");
-  in->Get("reason")->SetValue("Too small change in objective function");
-  in->Get("reason")->Get("queue")->SetValue(cost->stop.queue);
-  in->Get("reason")->Get("relative")->SetValue(cost->stop.value);
+  in->Get("reason/msg")->SetValue("Too small change in objective function");
+  in->Get("reason/queue")->SetValue(cost->stop.queue);
+  in->Get("reason/relative")->SetValue(cost->stop.value);
   return true;
 }
 

@@ -1,4 +1,4 @@
-#include "Optimization/Filter.hh"
+#include "Optimization/Design/Filter.hh"
 
 using namespace CoupledField;
 

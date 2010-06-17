@@ -1,5 +1,5 @@
 #include "Optimization/ParamMat.hh"
-#include "Optimization/DesignSpace.hh"
+#include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/OptimizationMaterial.hh"
 
 using namespace CoupledField;

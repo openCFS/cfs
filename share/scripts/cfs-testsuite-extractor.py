@@ -278,7 +278,8 @@ testcases, sum = {2})'.format(count, count_undoc, count + count_undoc)
 # autotags
 autotags = ['Homogenization', 'Scpip', 'Snopt', 'OptimalityCondition',
             'Coupled', 'Acoustic', 'Mechanic',
-            'ExportLinSys']
+            'ExportLinSys', 'MultiObjective',
+            'Cholmod', 'Ilupack', 'Pardiso']
 
 os.chdir(htmldocdir)
 filename = 'index_tags.html'
@@ -324,6 +325,18 @@ for tag in autotags:
 
     if(tag == 'ExportLinSys'):
       r = xml.xpathEval('//cfs:exportLinSys')
+
+    if(tag == 'MultiObjective'):
+      r = xml.xpathEval('//cfs:costFunction[@type=\'multiObjective\']')
+
+    if(tag == 'Cholmod'):
+      r = xml.xpathEval('//cfs:solver[@type=\'cholmod\']')
+
+    if(tag == 'Ilupack'):
+      r = xml.xpathEval('//cfs:solver[@type=\'ilupack\']')
+
+    if(tag == 'Pardiso'):
+      r = xml.xpathEval('//cfs:solver[@type=\'pardiso\']')
 
     if(not r == [] and os.path.isfile(htmldocdir + '/docu/' + filename)):
       nicename = filename.replace(splitchar, ' - ').title().rsplit('.', 1)[0]

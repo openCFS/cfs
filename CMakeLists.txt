@@ -581,6 +581,8 @@ SUBDIRS(source/ParamIdent)
 SUBDIRS(source/PDE)
 SUBDIRS(source/Utils)
 SUBDIRS(source/Utils/mathParser)
+SUBDIRS(source/Optimization/Optimizer)
+SUBDIRS(source/Optimization/Design)
 SUBDIRS(source/Optimization)
 SUBDIRS(source/main)
 

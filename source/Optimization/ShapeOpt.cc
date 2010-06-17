@@ -1,11 +1,11 @@
 #include "Optimization/ShapeOpt.hh"
-#include "Optimization/ShapeDesign.hh"
+#include "Optimization/Design/ShapeDesign.hh"
 #include "Domain/domain.hh"
 #include "Domain/grid.hh"
 #include "Forms/linElastInt.hh"
 #include "Forms/linPressureInt.hh"
 #include "PDE/mechPDE.hh"
-#include "Optimization/DesignElement.hh"
+#include "Optimization/Design/DesignElement.hh"
 #include "Driver/assemble.hh"
 
 using namespace CoupledField;

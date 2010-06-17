@@ -1,6 +1,6 @@
 #include "Optimization/Optimization.hh"
-#include "Optimization/BaseOptimizer.hh"
-#include "Optimization/DesignSpace.hh"
+#include "Optimization/Optimizer/BaseOptimizer.hh"
+#include "Optimization/Design/DesignSpace.hh"
 #include "General/exception.hh"
 #include "Utils/StdVector.hh"
 #include "DataInOut/Logging/cfslog.hh"
@@ -251,14 +251,15 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
     need_eval = false;
   }
 
-  timer_->Start();
-
   double ret = cfs_scale ? objective->scaling.value * design_.value : design_.value;
 
   LOG_DBG(optimizer) << "EvalObjective: x_avg=" << Average(x, n) 
                      << " std_dev=" << StandardDeviation(x, n) 
                      << " is_new=" << need_eval << " -> " << design_.value
                      << " scaled=" << ret;
+  
+  timer_->Start();
+  
   return ret;
 }
 
@@ -266,7 +267,7 @@ bool BaseOptimizer::EvalGradObjective(int n, const double* x, bool cfs_scale, St
 {
   assert(optimization->GetDesign()->GetNumberOfVariables() == (unsigned int) n);
 
-  timer_->Start();
+  timer_->Stop();
 
   // set the design and see if it is a new one
   int new_design = optimization->GetDesign()->ReadDesignFromExtern(x);
@@ -322,11 +323,11 @@ bool BaseOptimizer::EvalGradObjective(int n, const double* x, bool cfs_scale, St
     for(int i = 0; i < n; i++)
       grad_f[i] *= objective->scaling.value;
 
-  timer_->Stop();
-
   LOG_DBG(optimizer) << "EvalGradObjective: cfs_scale=" << cfs_scale << " design=" << design_.design_id
                      << " need_eval=" << need_eval << " -> grad.scale=" << objective->scaling.value
                      << " grad.opt_scaling=" << objective->opt_scaling.value;
+
+  timer_->Start();
   
   return !restart_requested;
 }
@@ -334,8 +335,9 @@ bool BaseOptimizer::EvalGradObjective(int n, const double* x, bool cfs_scale, St
 void BaseOptimizer::EvalConstraints(int n, const double* x, int m, bool cfs_scale, double* g_val)
 {
   assert(m == optimization->constraints.view->GetNumberOfActiveConstraints());
-  timer_->Start();
 
+  timer_->Stop();
+  
   // we overwrite the design space, but we do this all the time - especially before eval_f
   optimization->GetDesign()->ReadDesignFromExtern(x); 
      
@@ -362,12 +364,14 @@ void BaseOptimizer::EvalConstraints(int n, const double* x, int m, bool cfs_scal
   }
   optimization->constraints.view->Done(); // reset slope constraint to global mode
 
-  timer_->Stop();
+  timer_->Start();
 }
 
 int BaseOptimizer::EvalGradConstraints(Condition* g, int start, bool cfs_scale,
     StdVector<double>& values, GradientType grtype)
 {
+  timer_->Stop();
+  
   // always initialize the window!!
   int nnz(0); 
   values.window.Set(start, nnz);
@@ -392,13 +396,16 @@ int BaseOptimizer::EvalGradConstraints(Condition* g, int start, bool cfs_scale,
       }
     }
   }
+  
+  timer_->Start();
+  
   return nnz;
 }
 
 void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentries, bool cfs_scale,
       StdVector<double>& values, GradientType grtype)
 {
-  timer_->Start();
+  timer_->Stop();
 
   // note, that we have dense gradients!
   // iterate over the gradients
@@ -420,12 +427,14 @@ void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentr
 
   assert(start == nentries);
 
-  timer_->Stop();
+  timer_->Start();
 }
 
-void BaseOptimizer::GetBounds(int n, double* x_l, double* x_u, int m, double* g_l, double* g_u){
-  
+void BaseOptimizer::GetBounds(int n, double* x_l, double* x_u, int m, double* g_l, double* g_u)
+{
   assert(n == (int) optimization->GetDesign()->GetNumberOfVariables());
+
+  timer_->Stop();
   
   optimization->GetDesign()->WriteBoundsToExtern(x_l,x_u);
 
@@ -438,7 +447,8 @@ void BaseOptimizer::GetBounds(int n, double* x_l, double* x_u, int m, double* g_
     Condition* g = optimization->constraints.view->Get(i);
     // handle as in IPOPT 
     g_l[i] = g_u[i] = g->GetBoundValue();
-    if(g->GetType() == Condition::SLOPE)
+    
+    if(g->GetType() == Condition::SLOPE && g->slopes_double == false)
       g_l[i] *= -1.0;
     else
     {
@@ -448,4 +458,5 @@ void BaseOptimizer::GetBounds(int n, double* x_l, double* x_u, int m, double* g_
   }
   optimization->constraints.view->Done(); // reset slope constraint to global mode
   
+  timer_->Start();
 }

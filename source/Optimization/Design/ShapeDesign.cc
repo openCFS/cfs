@@ -1,4 +1,4 @@
-#include "Optimization/ShapeDesign.hh"
+#include "Optimization/Design/ShapeDesign.hh"
 #include "Utils/tools.hh"
 #include "Domain/domain.hh"
 #include "Domain/grid.hh"

@@ -1,6 +1,6 @@
-#include "Optimization/GradientCheck.hh"
+#include "Optimization/Optimizer/GradientCheck.hh"
 #include "Optimization/Optimization.hh"
-#include "Optimization/DesignSpace.hh"
+#include "Optimization/Design/DesignSpace.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Driver/harmonicDriver.hh"
 #include "Domain/domain.hh"

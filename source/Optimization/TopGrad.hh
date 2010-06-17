@@ -2,8 +2,8 @@
 #define TOPGRAD_HH_
 
 #include "Optimization/ShapeGrad.hh"
-#include "Optimization/ShapeOptimizer.hh"
-#include "Optimization/DesignElement.hh"
+#include "Optimization/Optimizer/ShapeOptimizer.hh"
+#include "Optimization/Design/DesignElement.hh"
 #include "General/environment.hh"
 
 #include <boost/shared_ptr.hpp>

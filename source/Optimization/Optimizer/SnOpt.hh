@@ -1,7 +1,7 @@
 #ifndef SNOPT_HH_
 #define SNOPT_HH_
 
-#include "Optimization/BaseOptimizer.hh"
+#include "Optimization/Optimizer/BaseOptimizer.hh"
 
 #include <string>
 #include <vector>
@@ -10,6 +10,7 @@ namespace CoupledField
 {
 class Optimization;
 class ParamNode;
+class Timer;
 
 using std::vector;
 using std::string;
@@ -43,10 +44,13 @@ private:
   /** mainly calls sninit_ (which must be called prior to anything else from snopt)
    *  and resizes the data vectors according to the problem dimensions
    *  Also set snopt options to values defined in xml */
-  void Init();
+  inline void Init();
 
   /** Does as the name suggests: calls snopta_ to solve the optimization problem */ 
   void SolveProblem();
+  
+  /** put some interesting information into the info.xml file */
+  void InfoXMLOutput();
   
   /** set problem parameters */
   inline bool get_nlp_info();
@@ -145,34 +149,11 @@ private:
    *  to really end the optimization! */
   bool stop;
  
-  /** reports the result of the call to snOptA. Here is a summary of possible values:
-  0  - Optimal solution found, i.e., the primal and dual infeasibilities are negligible.
-  1  - The problem is infeasible.
-  2  - The problem is unbounded (or badly scaled).
-  3  - Too many iterations.
-  4  - Feasible solution, but the requested accuracy in the dual infeasibilities could
-       not be achieved.
-  5  - The Superbasics limit is too small.
-  6  - Termination has been requested by the user.
-  7  - usrfun seems to be giving incorrect objective derivatives.
-  8  - usrfun seems to be giving incorrect constraint derivatives.
-  9  - The current point cannot be improved.
-  10 - Numerical error in trying to satisfy the linear constraints (or the linearized
-       nonlinear constraints). The basis is very ill-conditioned.
-  11 - The user signaled undeﬁned functions, but no recovery was possible.
-  20 - Not enough storage for the basis factorization.
-  21 - Error in basis package.
-  22 - The basis is singular after several attempts to factorize it (and add slacks
-       where necessary).
-  30 - An OLD BASIS ﬁle had dimensions that did not match the current problem.
-  32 - System error. Wrong number of basic variables.
-  40 - Some input arguments have invalid values.
-  41 - The work arrays each must have at least 500 elements.
-  42 - Not enough 8-character workspace to solve the problem.
-  43 - Not enough integer workspace to solve the problem.
-  44 - Not enough real workspace to solve the problem.
-  */
+  /** reports the result of the call to snOptA */
   int INFO;
+  
+  /** return value of snopta */
+  int EXIT;
   
   const int ObjRow; // which row of F do we use as objective? -> by definition, it will be 1! NOTE: Me must add one to mesh with fortran
   double ObjAdd; // add this value to objective when outputting
@@ -213,6 +194,11 @@ private:
  
   /** interface for eval_grad_f and eval_jac_g requires a StdVector */
   StdVector<double> gradhelper;
+  
+  /** Timer for SnOpt */ 
+  Timer *timer_;
+  /** Timer for callback function */ 
+  Timer *timer_callback_;
 };
 
 } // end of namespace

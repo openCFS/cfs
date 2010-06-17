@@ -1,6 +1,6 @@
 #include "Optimization/ShapeGrad.hh"
-#include "Optimization/DesignSpace.hh"
-#include "Optimization/DesignElement.hh"
+#include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Design/DesignElement.hh"
 #include "Optimization/OptimizationMaterial.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "Domain/domain.hh"

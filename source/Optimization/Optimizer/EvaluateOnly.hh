@@ -1,7 +1,7 @@
 #ifndef EVALUATEONLY_HH_
 #define EVALUATEONLY_HH_
 
-#include "Optimization/BaseOptimizer.hh"
+#include "Optimization/Optimizer/BaseOptimizer.hh"
 
 namespace CoupledField
 {

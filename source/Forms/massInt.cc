@@ -7,7 +7,7 @@
 
 #include "massInt.hh"
 #include "Domain/domain.hh"
-#include "Optimization/DesignSpace.hh"
+#include "Optimization/Design/DesignSpace.hh"
 
 #include "DataInOut/Logging/cfslog.hh"
 

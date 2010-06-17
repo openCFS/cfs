@@ -1,8 +1,8 @@
 #ifndef SCPIP_HH_
 #define SCPIP_HH_
 
-#include "Optimization/SCPIPBase.hh"
-#include "Optimization/BaseOptimizer.hh"
+#include "Optimization/Optimizer/SCPIPBase.hh"
+#include "Optimization/Optimizer/BaseOptimizer.hh"
 
 namespace CoupledField
 {

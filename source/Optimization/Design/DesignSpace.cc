@@ -1,9 +1,10 @@
-#include "Optimization/DesignSpace.hh"
-#include "Optimization/DesignElement.hh"
+#include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/ShapeDesign.hh"
 #include "Optimization/TransferFunction.hh"
 #include "Optimization/Condition.hh"
-#include "Optimization/BaseOptimizer.hh"
-#include "Optimization/ShapeOptimizer.hh"
+#include "Optimization/Optimizer/BaseOptimizer.hh"
+#include "Optimization/Optimizer/ShapeOptimizer.hh"
 #include "Optimization/LevelSet.hh"
 #include "General/exception.hh"
 #include "General/Enum.hh"
@@ -14,7 +15,6 @@
 #include "Utils/StdVector.hh"
 #include "PDE/SinglePDE.hh"
 #include "DataInOut/Logging/cfslog.hh"
-#include "Optimization/ShapeDesign.hh"
 
 using namespace CoupledField;
 

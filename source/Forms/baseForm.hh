@@ -11,7 +11,7 @@
 #include "Domain/surfElem.hh"
 #include "Materials/baseMaterial.hh"
 #include "Domain/entityList.hh"
-#include "Optimization/DesignElement.hh"
+#include "Optimization/Design/DesignElement.hh"
 
 #ifndef INTEGLIB
 #include "Utils/mathParser/mathParser.hh"

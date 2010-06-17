@@ -36,7 +36,7 @@
 #include "Utils/SmoothSpline.hh"
 #include "Utils/hysteresis.hh"
 #include "Utils/preisach.hh"
-#include "Optimization/DesignSpace.hh"
+#include "Optimization/Design/DesignSpace.hh"
 
 #ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh" 

@@ -2,7 +2,7 @@
 #define SHAPEOPT_HH_
 
 #include "Optimization/ParamMat.hh"
-#include "Optimization/ShapeDesign.hh"
+#include "Optimization/Design/ShapeDesign.hh"
 
 namespace CoupledField {
 

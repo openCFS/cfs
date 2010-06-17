@@ -1,7 +1,7 @@
 #ifndef GRADIENTCHECK_HH_
 #define GRADIENTCHECK_HH_
 
-#include "Optimization/BaseOptimizer.hh"
+#include "Optimization/Optimizer/BaseOptimizer.hh"
 
 namespace CoupledField
 {

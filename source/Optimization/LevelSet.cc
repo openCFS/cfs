@@ -1,7 +1,7 @@
 #include "Optimization/LevelSet.hh"
 #include "Optimization/Optimization.hh"
 #include "Optimization/ShapeGrad.hh"
-#include "Optimization/DesignSpace.hh"
+#include "Optimization/Design/DesignSpace.hh"
 #include "Domain/domain.hh"
 #include "Domain/elem.hh"
 #include "Domain/grid.hh"

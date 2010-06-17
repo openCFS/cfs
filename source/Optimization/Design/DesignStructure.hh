@@ -1,7 +1,7 @@
 #ifndef DESIGNSTRUCTURE_HH_
 #define DESIGNSTRUCTURE_HH_
 
-#include "Optimization/DesignElement.hh"
+#include "Optimization/Design/DesignElement.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField

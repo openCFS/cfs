@@ -1,7 +1,7 @@
 #ifndef OPTIMALITYCONDITION_HH_
 #define OPTIMALITYCONDITION_HH_
 
-#include "Optimization/BaseOptimizer.hh"
+#include "Optimization/Optimizer/BaseOptimizer.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "MatVec/vector.hh"
 #include "General/Enum.hh"

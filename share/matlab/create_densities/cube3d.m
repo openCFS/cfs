@@ -1,4 +1,4 @@
-function cube3d(sx, sy, sz, ux, uy, uz, vol, filename)
+function cube3d(sx, sy, sz, ux, uy, uz, filename)
 # parameters:
 # sx = steps in x direction
 # sy = steps in y direction
@@ -51,8 +51,6 @@ for z = 1:sz;
       dist = sqrt((cenx - cx)^2 + (ceny - cy)^2 + (cenz - cz)^2);
 
       v = dist/dmax;
-      # assume 0.58 as normal volume
-      v *= vol;
       if v < dmin 
         v = dmin; 
       end

@@ -3,9 +3,9 @@
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Optimization/TransferFunction.hh"
-#include "Optimization/DesignElement.hh"
+#include "Optimization/Design/DesignElement.hh"
 #include "Optimization/ErsatzMaterial.hh"
-#include "Optimization/DesignMaterial.hh"
+#include "Optimization/Design/DesignMaterial.hh"
 #include "Forms/baseForm.hh"
 #include "General/Enum.hh"
 

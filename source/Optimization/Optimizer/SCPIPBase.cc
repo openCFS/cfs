@@ -1,8 +1,8 @@
 #include <cassert>
 
 #ifdef USE_4_CFS
-  #include "Optimization/scpip30.hh"
-  #include "Optimization/SCPIPBase.hh"
+  #include "Optimization/Optimizer/scpip30.hh"
+  #include "Optimization/Optimizer/SCPIPBase.hh"
   #include "General/exception.hh"
   #include "DataInOut/Logging/cfslog.hh"
 

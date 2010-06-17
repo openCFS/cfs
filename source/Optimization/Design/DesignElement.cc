@@ -1,7 +1,7 @@
 #include "General/exception.hh"
-#include "Optimization/DesignElement.hh"
-#include "Optimization/DesignSpace.hh"
-#include "Optimization/DesignStructure.hh"
+#include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Design/DesignStructure.hh"
 #include "Optimization/Condition.hh"
 #include "Optimization/Objective.hh"
 #include "Domain/domain.hh"
@@ -12,7 +12,7 @@
 #include "boost/lexical_cast.hpp"
 #include "boost/date_time/posix_time/posix_time.hpp"
 #include "Optimization/LevelSet.hh"
-#include "Optimization/ShapeOptimizer.hh"
+#include "Optimization/Optimizer/ShapeOptimizer.hh"
 #include "Utils/Timer.hh"
 
 using namespace std;
@@ -434,7 +434,7 @@ void DesignElement::SetEnums()
   detail.Add(TRACKING, "tracking");
   detail.Add(HOMOGENIZATION_TRACKING, "homTracking");
   detail.Add(POISSONS_RATIO, "poissonsRatio");
-  detail.Add(YOUNGS_MODULUS, "homYoungsModulus");
+  detail.Add(YOUNGS_MODULUS, "youngsModulus");
   detail.Add(TYCHONOFF, "tychonoff");
   detail.Add(GREYNESS, "greyness");
 
@@ -767,7 +767,7 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
       grid->GetNodeCoordinate(neigh_elem_point, candidate->connect[0]);
       // the spacing allows to identify periodic elements
       int idx = FindRelativeNeighborLocation(this_elem_point, neigh_elem_point, spacing);
-      ve_data[idx] = space->Find(candidate->elemNum, de.GetType());
+      ve_data[idx] = space->Find(candidate->elemNum, de.GetType(), false);
     }
   }
  }

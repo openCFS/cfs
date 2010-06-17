@@ -1,6 +1,6 @@
 #ifndef LEVELSET_HH_
 #define LEVELSET_HH_
-#include "Optimization/DesignElement.hh"
+#include "Optimization/Design/DesignElement.hh"
 
 #include <vector>
 #include <string>

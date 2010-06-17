@@ -1,7 +1,7 @@
 #ifndef SHAPEDESIGN_HH_
 #define SHAPEDESIGN_HH_
 
-#include "Optimization/DesignSpace.hh"
+#include "Optimization/Design/DesignSpace.hh"
 
 namespace CoupledField{
   /** This adds the functionality needed for Shape Optimization to the DesignSpace:

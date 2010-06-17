@@ -1,9 +1,9 @@
 #include "Optimization/IPOPT.hh"
-#include "Optimization/DesignElement.hh"
-#include "Optimization/DesignSpace.hh"
+#include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Optimization.hh"
 #include "Optimization/Condition.hh"
-#include "Optimization/BaseOptimizer.hh"
+#include "Optimization/Optimizer/BaseOptimizer.hh"
 #include "General/exception.hh"
 #include "Utils/StdVector.hh"
 #include "DataInOut/Logging/cfslog.hh"
@@ -24,12 +24,10 @@ IPOPT::IPOPT(Optimization* optimization, BaseOptimizer* base, PtrParamNode pn)
   LOG_TRACE(ipopt) << "Initialize IPOPT";
   this->optimization_ = optimization;
   this->base_ = base;
-  this->optimizer_pn_ = pn;
-  // reduce to our actual ParamNode
-  PtrParamNode pn_ipopt = optimizer_pn_->Get(Optimization::optimizer.ToString(Optimization::IPOPT_SOLVER), false);
+  this->optimizer_pn_ = pn->Get(Optimization::optimizer.ToString(Optimization::IPOPT_SOLVER), ParamNode::PASS);
   
-  double manual_scaling = pn_ipopt != NULL && pn_ipopt->Has("option", "name", "obj_scaling_factor") ?
-      pn_ipopt->Get("option", "name", "obj_scaling_factor")->Get("value")->As<Double>() : 1.0;
+  double manual_scaling = optimizer_pn_ != NULL && optimizer_pn_->Has("obj_scaling_factor") ?
+      optimizer_pn_->Get("obj_scaling_factor")->Get("value")->As<Double>() : 1.0;
   base->PostInit(manual_scaling);
   Init();
 }
@@ -60,7 +58,7 @@ void IPOPT::Init()
   // do scaling via get_scaling_parameters() only if we do constraint scaling 
   // otherwise IPOPT is strange
   bool g_scale = false;
-  for(unsigned int i = 0; i < optimization_->constraints.view->GetNumberOfActiveConstraints(); i++)
+  for(int i = 0; i < optimization_->constraints.view->GetNumberOfActiveConstraints(); i++)
     if(optimization_->constraints.view->Get(i)->manual_scaling_value != 1.0) g_scale = true;
 
   if(g_scale)
@@ -74,22 +72,21 @@ void IPOPT::Init()
     if(base_->objective->scaling.value != 1.0)
       app->Options()->SetNumericValue("obj_scaling_factor", base_->objective->scaling.value);
   }
-
-  // reduce to our actual ParamNode
-  PtrParamNode pn_ipopt = optimizer_pn_->Get(Optimization::optimizer.ToString(Optimization::IPOPT_SOLVER), false);
-  
+    
   // check for optional paramters
-  if(pn_ipopt != NULL)
+  if(optimizer_pn_ != NULL)
   {
-    ParamNodeList list = pn_ipopt->GetList("option", "type", "string");
+    ParamNodeList list;
+    list = optimizer_pn_->GetListByVal("option", "type", "string");
+    
     for(unsigned int i = 0; i < list.GetSize(); i++)
       app->Options()->SetStringValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<std::string>());
 
-    list = pn_ipopt->GetList("option", "type", "integer");
+    list = optimizer_pn_->GetListByVal("option", "type", "integer");
     for(unsigned int i = 0; i < list.GetSize(); i++)
       app->Options()->SetIntegerValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<Integer>());
 
-    list = pn_ipopt->GetList("option", "type", "real");
+    list = optimizer_pn_->GetListByVal("option", "type", "real");
     for(unsigned int i = 0; i < list.GetSize(); i++)
     {
       // do not set obj_scaling_factor -> it is set via get_scaling_parameters() or before with maximation factor
@@ -107,7 +104,7 @@ void IPOPT::SolveProblem()
 {
   ApplicationReturnStatus status = app->OptimizeTNLP(this);
 
-  PtrParamNode in = optimization_->optParamNode->Get(ParamNode::SUMMARY)->Get("break");
+  PtrParamNode in = base_->info_->Get(ParamNode::SUMMARY, ParamNode::PASS)->Get("break");
   
   if (status == Solve_Succeeded) {
     // Retrieve some statistics about the solve
@@ -125,17 +122,17 @@ void IPOPT::SolveProblem()
   {
     case NonIpopt_Exception_Thrown:
       in->Get("converged")->SetValue("no");
-      in->Get("reason")->SetValue("non IPOPT exception occured");
+      in->Get("reason/msg")->SetValue("non IPOPT exception occured");
       throw Exception("IPOPT stopped due to non-IPOPT exception. Try again with '-f'.");
          
     case Restoration_Failed:
       in->Get("converged")->SetValue("no");
-      in->Get("reason")->SetValue("IPOPT: 'Restautation failed'");
+      in->Get("reason/msg")->SetValue("IPOPT: 'Restautation failed'");
       throw Exception("IPOPT stopped with 'Restautation failed'");  
          
     case Insufficient_Memory:
       in->Get("converged")->SetValue("no");
-      in->Get("reason")->SetValue("IPOPT: insufficient memory");
+      in->Get("reason/msg")->SetValue("IPOPT: insufficient memory");
      throw Exception("IPOPT reports insufficient memory.");
          
     case Invalid_Number_Detected:
@@ -143,15 +140,15 @@ void IPOPT::SolveProblem()
 
     case Maximum_Iterations_Exceeded:
       in->Get("converged")->SetValue("no");
-      in->Get("reason")->SetValue("Maximum iterations exceeded");
+      in->Get("reason/msg")->SetValue("Maximum iterations exceeded");
       
     default:
       // positive is warning
       // Maximum_Iterations_Exceeded == -1
       if(status < Maximum_Iterations_Exceeded) {
         in->Get("converged")->SetValue("no");
-        in->Get("reason")->SetValue("IPOPT: error");
-        in->Get("reason")->Get("error")->SetValue(status);
+        in->Get("reason/msg")->SetValue("IPOPT: error");
+        in->Get("reason/error")->SetValue(status);
         EXCEPTION("IPOPT reported error " << status);
       }
       // else is no bad error and exits this void method :)  
@@ -243,7 +240,7 @@ bool IPOPT::eval_grad_f(Index n, const Number* x, bool new_x, Number* grad_f)
   // TODO: do better :)
   StdVector<double> tmp(n);
 
-  bool ok = base_->EvalGradObjective(n, x, false, grad_f);
+  bool ok = base_->EvalGradObjective(n, x, false, tmp);
 
   for(unsigned int i = 0; i < tmp.GetSize(); i++)
     grad_f[i] = tmp[i];
@@ -356,12 +353,13 @@ bool IPOPT::get_scaling_parameters(Number& obj_scaling, bool& use_x_scaling,
 
   for(int i = 0; i < m; i++)
   {
-    Condition* g = &optimization_->constraints.view->GetNumberOfActiveConstraints(i);
+    Condition* g = optimization_->constraints.view->Get(i);
     g_scaling[i] = g->DoObjectiveScaling() ? obj_scaling : g->manual_scaling_value;
     if(g_scaling[i] != 1.0) use_g_scaling = true;
 
     LOG_TRACE(ipopt) << "get_scaling_parameters: g=" << g->type.ToString(g->GetType()) << " scaling=" << g_scaling[i];
   }
+  optimization_->constraints.view->Done();
 
   // note, that when use_g_scaling = false we have a different IPOPT behavior than with
   // not calling get_scaling_parameters().

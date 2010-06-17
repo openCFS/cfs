@@ -5,6 +5,7 @@ import libxml2
 import numpy
 import math
 import os
+from lxml import etree
 
 from cfs_utils import *
 from distutils.command.build_scripts import first_line_re
@@ -12,35 +13,53 @@ from distutils.command.build_scripts import first_line_re
 ## Reads a cubic (3D) density.xml file as 3D NDArray
 # @param filename from which the last 'set' is used
 def read_cubic_density(filename):
-  doc = libxml2.parseFile(filename)
-  xml = doc.xpathNewContext()
-  # read the design attributes from the last set
-  res = xml.xpathEval("//set[last()]/element/@design")
-      
-  # validation
-  if len(res) == 0:
-    raise RuntimeError("found no elements in the last 'set' of '" + filename + "'")
-  raw_size = pow(len(res), (1.0/3.0)) 
-  size = int(round(raw_size))
+  vals = read_density_as_vector(filename)
 
-  if abs(size - raw_size) > 0.0001:
-    raise RuntimeError("last set has " + str(len(res)) + " elements which appears to be not cubic")
+  length = len(vals)
+  size=int(math.pow(length+1, 1.0/3.0))
+  print "length = " + str(length) + ', size = ' + str(size) + '^3'
+  
+  if math.pow(size, 3) == length:
+    print "calculated length seems to be okay"
+  else:
+    raise RuntimeError("last set has " + str(length) + " elements which appears to be wrong")
 
   # parse data to array
-  data = numpy.zeros((size, size, size))
-
+  ret = numpy.zeros((size, size, size))
+  
   # copy data from linear list
   for i in range(size):
     for j in range(size):
       for k in range(size):
         idx = int(i * size * size + j * size + k)
-        # if idx < 0 or idx >= len(res):
-        #  raise RuntimeError("idx " + str(idx) + " is not within " + str(len(res)) + " stupid!")
-        # print str(idx) + " -> " + str(res[idx].getContent())
-        data[i, j, k]  = float(res[idx].getContent()) 
+        ret[i, j, k] = vals[idx]
+        
+  print "have " + str(ret.shape) + " values"
 
-  return data  
-
+  return ret
+  
+## Reads a density.xml file as vector
+# @param filename from which the last 'set' is used
+def read_density_as_vector(filename):
+  tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
+  
+  root = tree.getroot()
+  sett = root.xpath("//set[last()]")[0]
+  print "reading set with id = " + sett.get("id")
+  
+  length = len(sett)
+  
+  counter = 0
+  vals=[0]*length
+  for element in sett:
+    # traverse the elements and get the design
+    vals[counter] = float(element.get("design"))
+    counter = counter + 1
+  
+  print "found " + str(length) + " elements, read " + str(counter) + " elements"
+  
+  return vals
+  
 ## write the data to a density.xml file
 # @param data_inp a ndata array of dim 2 or three or a list of data
 # @param setname_inp the name of the set or a list of setnames
@@ -174,10 +193,7 @@ def enlarge_matrix(data, times_x, times_y = 1, times_z = 1):
 # @param infile the density file with the densities to be blown upper
 # @param outfile name of the output file
 def refine_density(infile, outfile):
-  doc = libxml2.parseFile(infile)
-  xml = doc.xpathNewContext()
-  # read the design attributes from the last set
-  res = xml.xpathEval("//set[last()]/element/@design")
+  res = read_density_as_vector(infile)
 
   # validation
   if len(res) == 0:
@@ -188,20 +204,20 @@ def refine_density(infile, outfile):
   out.write('<cfsErsatzMaterial>\n')
 
   # get header from old density file
-  bla = xml.xpathEval("//header")
-  for i in bla:
-    out.write(str(i) + "\n")
-
+  header = extract_old_header(infile)
+  out.write(header)
+  
   out.write('<set id="refined">\n')
 
   new=[0]*4*len(res)
-  print len(new)
+  print "length of new vector = " + str(len(new))
 
-  num=int(math.sqrt(len(res)))
+  num=int(math.sqrt(len(res)+1))
+  print "copying " + str(num) + "^2 values"
 
   for r in range(num):
     for c in range(num):
-      val =  res[r*num + c].getContent()
+      val =  res[r*num + c]
 
       start = 4*r*num + 2*c
       new[start + 0] = val
@@ -225,10 +241,7 @@ def refine_density(infile, outfile):
 # @param infile the density file with the densities to be blown upper
 # @param outfile name of the output file
 def refine_density_3d(infile, outfile):
-  doc = libxml2.parseFile(infile)
-  xml = doc.xpathNewContext()
-  # read the design attributes from the last set
-  res = xml.xpathEval("//set[last()]/element/@design")
+  res = read_density_as_vector(infile)
 
   # validation
   if len(res) == 0:
@@ -239,24 +252,25 @@ def refine_density_3d(infile, outfile):
   out.write('<cfsErsatzMaterial>\n')
 
   # get header from old density file
-  bla = xml.xpathEval("//header")
-  for i in bla:
-    out.write(str(i) + "\n")
-
+  header = extract_old_header(infile)
+  out.write(header)
+  
   out.write('<set id="refined">\n')
 
   new=[0]*8*len(res)
+  print "length of new vector = " + str(len(new))
 
-  num=int(math.pow(len(res), 1.0/3.0))
+  num=int(math.pow(len(res)+1, 1.0/3.0))
   num2=int(math.pow(num, 2))
-
-  print str(len(new)) + ' ' + str(num) + ' ' + str(num2)
+  
+  print "copying " + str(num) + "^3 values"
+  print 'length of new vector = ' + str(len(new))
 
   for r in range(num):
     for c in range(num):
       for s in range(num):
         index = s*num2 + r*num + c
-        val =  res[index].getContent()
+        val =  res[index]
 
         start = 8*s*num2 + 4*r*num + 2*c
         new[start + 0] = val
@@ -313,7 +327,80 @@ def find_closes_info_xml(filename, key, start, end):
     
     checked = checked + 1
     
-  raise RuntimeError("Could not find close info.xml to '" + filename + "': from " + str(checked) + " files " + str(failed) + " were not finished")
+  raise RuntimeError("Could not find close info.xml to '" + filename + "': from " + str(checked) + " files " + str(failed) + " were not finished")       
+
+
+# a function to restore missing element information in a density file 
+# the element density information of the old file is read in and for missing 
+# element numbers, the lower density from the parameter "lower" is restored
+# @infile density file with missing element information
+# @outfile file where the restored information is to be written 
+# @targetlength how many elements does the target file have?
+#    WARNING: this assumes that the first element number is 1!
+# @lower the value of the lower density of the missing elements
+def restore_lower_densities(infile, outfile, targetlength, lower):
+  header = extract_old_header(infile)
+
+  infi = open(infile, "r")
+  counter = 0 
+
+  out = open(outfile, "w")
+  out.write('<?xml version="1.0"?>\n')
+  out.write('<cfsErsatzMaterial>\n')
+  out.write(header)
+  out.write('\n<set id="restored">\n')
+
+  for event, element in etree.iterparse(infi):
+    if element.tag == "element":
+      # traverse the elements
+      # first we get the number and the design
+      nr = int(element.get("nr")) 
+      design = float(element.get("design"))
+      counter = counter + 1 
+      # if we didn't skip anything, just take the values and go for it
+      if nr == counter:
+        out.write('  <element nr="' + str(counter)   + '" type="density" design="' + str(design) + '"/>\n')
+      else:
+        # we missed some entries: restore them to lower bound
+        missing = nr - counter
+        for n in range(missing):
+          out.write('  <element nr="' + str(counter)   + '" type="density" design="' + str(lower) + '"/>\n')
+          counter = counter + 1 
+
+        # the one design is missing, must insert here
+        counter = nr
+        out.write('  <element nr="' + str(counter)   + '" type="density" design="' + str(design) + '"/>\n')
+
+  infi.close()
+
+  # finished everything except one: if there are some elements missing 
+  # at the end, we have to insert them too!
+  if counter < targetlength:
+    missing = targetlength - counter
+    counter = counter + 1 
+    for n in range(missing):
+      out.write('  <element nr="' + str(counter)   + '" type="density" design="' + str(lower) + '"/>\n')
+      counter = counter + 1 
+
+
+  out.write('</set>\n')
+  out.write('</cfsErsatzMaterial>\n')
+  out.close()
+  return
+
+# sometimes when writing a new density file it is good to preserve the old header information 
+# this function returns the header of a density file 
+# @param infile the density file containing the header
+def extract_old_header(infile):
+  infi = open(infile, "r")
+  for event, element in etree.iterparse(infi):
+    if element.tag == "header":
+      print "found header"
+      # we use the header from the original file
+      header = etree.tostring(element)
+  infi.close()
+  return header
+
 
 # this is a helper strucht for readLumpedMechDisplacement
 class LumpedMechDisplacement:
@@ -442,6 +529,4 @@ def interpolateLumpedMechDisplacementAsDensity(data, f, density_file):
 
   out.write(' </cfsErsatzMaterial>\n')
   out.close()
-    
-   
     

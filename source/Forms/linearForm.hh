@@ -20,6 +20,7 @@ namespace CoupledField
 {
   // forward class declaration
   class CoordSystem;
+  class linElastInt;
 
 
   /// base class class for calculation right hand side
@@ -278,6 +279,9 @@ namespace CoupledField
 
     //!
     SubTensorType subTensorType_;
+    
+    //! linElastInt pointer
+    linElastInt *bilinearStiff_;
   };
 
 
@@ -707,6 +711,9 @@ namespace CoupledField
 
       //! tensor type (plane_strain, full)
       SubTensorType subTensorType_;
+      
+      //! linElastInt pointer
+      linElastInt *bilinearStiff_;
     };
 
 } // end of namespace

@@ -5,9 +5,9 @@
 #include <fstream>
 
 #include "Optimization/SIMP.hh"
-#include "Optimization/DesignSpace.hh"
-#include "Optimization/DesignElement.hh"
-#include "Optimization/DesignStructure.hh"
+#include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/DesignStructure.hh"
 #include "Optimization/OptimizationMaterial.hh"
 #include "Domain/domain.hh"
 #include "Domain/surfElem.hh"
@@ -2339,6 +2339,16 @@ double ErsatzMaterial::CalcSlopeConstraint(Condition* g, bool derivative)
   int            neigh_num  = slope->GetCurrentVirtualNeighbor(); // 0, 2 (,4)
   DesignElement* neigh      = de->vicinity->GetNeighbour((VicinityElement::Neighbour) neigh_num);
   
+  bool case_a(false);
+  if(g->slopes_double)
+  {
+    // the abs(slope) is done by two inequality constraints. Therefore the 2 * dim
+    // a) x_i+1 - x_i <= c*h
+    // b) -x_i+1 + x_i <= c*h was x_i+1 - x_i >= -c*h
+    assert(slope->GetCurrentVirtualSign() == 1 || slope->GetCurrentVirtualSign() == -1);
+    case_a = slope->GetCurrentVirtualSign() == 1;
+  }
+  // else
   // the abs(slope) is done by two inequality constraints
   // -c*h <= x_i+1 - x_i <= c*h
   // we use the upper and lower bounds from snopt
@@ -2359,13 +2369,23 @@ double ErsatzMaterial::CalcSlopeConstraint(Condition* g, bool derivative)
     // ErsatzMaterial::CalcConstraintGradient
     design->data[neigh_idx].Reset(DesignElement::CONSTRAINT_GRADIENT, g);
     design->data[de_idx].Reset(DesignElement::CONSTRAINT_GRADIENT, g);
-    
-    design->data[neigh_idx].AddGradient(NULL, g, 1.0);
-    design->data[de_idx].AddGradient(NULL, g, -1.0);
+
+    if(slope->slopes_double)
+    {
+      design->data[neigh_idx].AddGradient(NULL, g, case_a ? 1.0 : -1.0);
+      design->data[de_idx].AddGradient(NULL, g, case_a ? -1.0 : 1.0);
+    }
+    else
+    {
+      design->data[neigh_idx].AddGradient(NULL, g, 1.0);
+      design->data[de_idx].AddGradient(NULL, g, -1.0);
+    }
 
     LOG_DBG2(em) << "CSC: grad ce=" << slope->GetCurrentVirtualElement()
                  << " cn=" << slope->GetCurrentVirtualNeighbor()
-                 << " ov=-1.0";
+                 << " cs=" << slope->GetCurrentVirtualSign()
+                 << " ov=" << (case_a ? -1.0 : 1.0)
+                 << " nv=" << (case_a ? 1.0 : -1.0);
   }
   else
   {
@@ -2373,9 +2393,14 @@ double ErsatzMaterial::CalcSlopeConstraint(Condition* g, bool derivative)
     double other_val = neigh->GetValue(DesignElement::DESIGN, DesignElement::PLAIN);
 
     double res = other_val - own_val;
-
+    if(slope->slopes_double)
+    {
+      res = case_a ? other_val - own_val : -1.0 * other_val + own_val;
+    }
+    
     LOG_DBG2(em) << "CSC: ce=" << slope->GetCurrentVirtualElement()
                  << " cn=" << slope->GetCurrentVirtualNeighbor()
+                 << " cs=" << slope->GetCurrentVirtualSign()
                  << " ov=" << own_val << " nv=" << other_val << " -> " << res;
     return res;
   }

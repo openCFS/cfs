@@ -28,7 +28,7 @@
 #include "Driver/stdSolveStep.hh"
 #include "Driver/assemble.hh"
 #include "CoupledPDE/pdecoupling.hh"
-#include "Optimization/DesignSpace.hh"
+#include "Optimization/Design/DesignSpace.hh"
 
 
 namespace CoupledField {

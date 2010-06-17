@@ -1,11 +1,12 @@
-#include "Optimization/SnOptInterface.hh"
-#include "Optimization/SnOpt.hh"
+#include "Optimization/Optimizer/SnOptInterface.hh"
+#include "Optimization/Optimizer/SnOpt.hh"
 #include "Optimization/Optimization.hh"
-#include "Optimization/DesignSpace.hh"
+#include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Condition.hh"
 #include "General/exception.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Utils/Timer.hh"
 
 
 namespace CoupledField
@@ -67,18 +68,20 @@ SnOpt::SnOpt(Optimization* opt, PtrParamNode pn) :
 {
   LOG_TRACE(snopt) << "Initialize SnOpt";
   
+  timer_ = new Timer();
+  info_->Get(ParamNode::SUMMARY)->Get("snopt_timer")->SetValue(timer_ );
+  timer_callback_ = new Timer();
+  info_->Get(ParamNode::SUMMARY)->Get("snopt_callback_timer")->SetValue(timer_callback_ );
+  
   static_snopt = this;
   
-  PostInit(1.0); // BaseOptimizer
+  BaseOptimizer::PostInit(1.0);
   
   Init();
 }
 
 SnOpt::~SnOpt()
 {
-  LOG_TRACE(snopt) << "number of function evaluations = " << f_evals;
-  LOG_TRACE(snopt) << "number of gradient evaluations = " << g_evals;
-  
   snclose_(&iPrint);
 }
 
@@ -169,7 +172,9 @@ void SnOpt::SolveProblem()
     assert(jAvar.size() == 0);
   }
   
-  snopta_(
+  timer_->Start();
+  
+  EXIT = snopta_(
       &Start, &nF, &n, &nxname, &nFname,
       &ObjAdd, &ObjRow, Prob, SnOpt_C_Callback,
       &iAfun[0], &jAvar[0], &lenA, &nA, &A[0],
@@ -181,10 +186,43 @@ void SnOpt::SolveProblem()
       &cw[0], &lencw, &iw[0], &leniw, &rw[0], &lenrw,
       npname, 8*nxname, 8*nFname, 8*lencw, 8*lencw
   );
-    
-  LOG_TRACE(snopt) << "INFO = " << INFO << ", nS = " << nS;
+  
+  timer_->Stop();
+  
+  InfoXMLOutput();
   
   optimization->CommitIteration();
+}
+
+void SnOpt::InfoXMLOutput()
+{
+  info_->Get(ParamNode::SUMMARY)->Get("snopt_exit")->Get("exit")->SetValue(EXIT);
+  info_->Get(ParamNode::SUMMARY)->Get("snopt_exit")->Get("info")->SetValue(INFO);
+  
+  std::string exitstring;
+  switch(INFO)
+  {
+  case 1:
+    exitstring = "optimality conditions satisfied";
+    break;
+  case 3:
+    exitstring = "requested accuracy could not be achieved";
+    break;
+  case 11:
+    exitstring = "infeasible linear constraints";
+    break;
+  case 13:
+    exitstring = "nonlinear infeasibilities minimized";
+    break;
+  case 32:
+    exitstring = "major iteration limit reached";
+    break;
+  default:
+    exitstring = "not yet documented";
+  }
+  info_->Get(ParamNode::SUMMARY)->Get("snopt_exit")->Get("string")->SetValue(exitstring);
+  info_->Get(ParamNode::SUMMARY)->Get("function_evaluations")->Get("f_evals")->SetValue(f_evals);
+  info_->Get(ParamNode::SUMMARY)->Get("function_evaluations")->Get("g_evals")->SetValue(g_evals);
 }
 
 int SnOpt::Callback(int* Status, const int n,
@@ -192,6 +230,9 @@ int SnOpt::Callback(int* Status, const int n,
     int* needG, int* nG, double* G,
     char* cu, int* lencu, int* iu, int* leniu, double* ru, int* lenru)
 {
+  timer_->Stop();
+  timer_callback_->Start();
+  
   LOG_TRACE(snopt) << "Callback";
 
   // if we want to stop, we have to set Status to a value < -1!
@@ -245,6 +286,9 @@ int SnOpt::Callback(int* Status, const int n,
     // yet to find a way to get the iteration counter from snopt...
     optimization->CommitIteration();
   }
+  
+  timer_callback_->Stop();
+  timer_->Start();
   
   // everything went okay
   return 0;
@@ -537,6 +581,8 @@ void SnOpt::initJacobians()
     // increment constraint counter
     ++cstr;
   }
+  
+  optimization->constraints.view->Done();
 
   assert(index <= nG);
   assert(indexlin <= nA);

@@ -9,7 +9,7 @@
 #include <Forms/bdbInt.hh>
 #include <Materials/baseMaterial.hh>
 #include <General/environment.hh>
-#include "Optimization/DesignElement.hh"
+#include "Optimization/Design/DesignElement.hh"
 
 namespace CoupledField {
   

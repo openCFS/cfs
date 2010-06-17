@@ -1,5 +1,5 @@
-#include "Optimization/DesignSpace.hh"
-#include "Optimization/DesignElement.hh"
+#include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Design/DesignElement.hh"
 #include "Optimization/TransferFunction.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"

@@ -2,7 +2,7 @@
 #define CONDITION_HH_
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "Optimization/DesignElement.hh"
+#include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Function.hh"
 #include "MatVec/vector.hh"
 
@@ -111,6 +111,10 @@ namespace CoupledField
         * E11-E12-2E33 = E11-E12-E33-E33 = 0 are generated. Then coord is 2 or 4 entries.
         * Note, that the entries are 1-based!!! */
        StdVector<pair<int, int> > coords;
+       
+       /** do we treat slope constraints as one contraint with upper and lower bound or as
+        * two separate constraints? */
+       bool slopes_double;
 
     protected:
       /** Reads the coord attribute and sets the coord pair if value is not 'all'
@@ -220,7 +224,7 @@ namespace CoupledField
      void SetValue(double val);
 
      /** Gives  ErsatzMaterial::CalcSlopeConstraint() the data */
-     Vector<double>& GetData() {
+     StdVector<double>& GetData() {
        return values_;
      }
 
@@ -238,7 +242,7 @@ namespace CoupledField
      /** Store the constraint values. The base value_ contains the max norm value
       * Size is number of constraints times dim.
       * Note, that this is a linear constraint and the gradients are constants!  */
-     Vector<double> values_;
+     StdVector<double> values_;
 
      /** To be set via SetCurrentViewIndex(). Negative if not initialized. */
      int current_view_index_;
@@ -252,15 +256,20 @@ namespace CoupledField
      struct Identifier
      {
        /** default constructor for StdVector() */
-       Identifier() {}
+       Identifier() : sign(-1000) {}
 
-       Identifier(unsigned int element_idx, VicinityElement::Neighbour neighbor)
+       Identifier(unsigned int el_idx, VicinityElement::Neighbour nei, int si = -1000)
        {
-         this->element_idx = element_idx;
-         this->neighbor = neighbor;
+         this->element_idx = el_idx;
+         this->neighbor = nei;
+         this->sign = si;
        }
        unsigned int element_idx; // this represents DesignSpace::data[element_idx]
        VicinityElement::Neighbour neighbor; // only X_P, Y_P (,Z_P);
+       
+       /** sign is only needed if we treat slope constraints as two separate constraints
+        *  in case we do not do this, sign will be -1000, else -1 for X_N, 1 for X_P */
+       int sign;
      };
 
      /** Elements with no full neighborhood are not stored. If they would be stored

@@ -1,5 +1,5 @@
 #include "Optimization/Condition.hh"
-#include "Optimization/DesignSpace.hh"
+#include "Optimization/Design/DesignSpace.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
 #include "DataInOut/Logging/cfslog.hh"
@@ -19,7 +19,7 @@ DECLARE_LOG(conditions)
 Enum<Condition::Bound> Condition::bound;
 
 
-Condition::Condition(PtrParamNode pn) : Function(pn)
+Condition::Condition(PtrParamNode pn) : Function(pn), slopes_double(false)
 {
   volume_fraction = 0.0;
   special_result_idx = -1;
@@ -381,6 +381,12 @@ void Condition::ToInfo(PtrParamNode in) const
 
   if(harmonic_)
     in->Get("factor/omega_omega")->SetValue(omega_omega_);
+  
+  if(type_ == SLOPE)
+  {
+    in->Get("slopes_double")->SetValue(slopes_double);
+    in->Get("slopes_linear")->SetValue(linear_);
+  }
 }
 
 bool Condition::IsForRegion(RegionIdType regionId)
@@ -394,9 +400,19 @@ SlopeCondition::SlopeCondition(PtrParamNode pn) : Condition(pn)
   space_ = NULL;
   dim_ = domain->GetGrid()->GetDim();
   linear_ = true;
-
-  if((bound_ == UPPER_BOUND || bound_ == LOWER_BOUND) && IsActive())
-    throw Exception("Slope constraints bound type must not be specified!");
+  
+  if(pn->Has("slopes_double"))
+    slopes_double = pn->Get("slopes_double")->As<bool>();
+  
+  if(pn->Has("slopes_linear"))
+      linear_ = pn->Get("slopes_linear")->As<bool>();
+  
+  if(bound_ != UPPER_BOUND && IsActive())
+  {
+    std::cout << "\033[01;31m" << "Warning:" << "\033[0m"
+              << " changing slope bound type to 'upperBound'!" << std::endl;
+    bound_ = UPPER_BOUND;
+  }
 
   if(pn->Has("parameter")) // set in base class
     throw Exception("Parameter for slope constraint specified, but not required");
@@ -406,7 +422,10 @@ void SlopeCondition::PostInit(DesignSpace* space)
 {
   space_ = space;
 
-  virtual_elem_map_.Reserve(space->GetNumberOfElements() * dim_);
+  if(slopes_double)
+    virtual_elem_map_.Reserve(2 * space->GetNumberOfElements() * dim_);
+  else
+    virtual_elem_map_.Reserve(space->GetNumberOfElements() * dim_);
 
   // traverse all elements and check for full neighborhood
   int base  = space->FindDesign(design);
@@ -425,10 +444,25 @@ void SlopeCondition::PostInit(DesignSpace* space)
 
     if(full)
     {
-      virtual_elem_map_.Push_back(Identifier(e, VicinityElement::X_P));
-      virtual_elem_map_.Push_back(Identifier(e, VicinityElement::Y_P));
-      if(dim_ == 3)
-        virtual_elem_map_.Push_back(Identifier(e, VicinityElement::Z_P));
+      if(slopes_double)
+      {
+        virtual_elem_map_.Push_back(Identifier(e, VicinityElement::X_P,  1));
+        virtual_elem_map_.Push_back(Identifier(e, VicinityElement::X_P, -1));
+        virtual_elem_map_.Push_back(Identifier(e, VicinityElement::Y_P,  1));
+        virtual_elem_map_.Push_back(Identifier(e, VicinityElement::Y_P, -1));
+        if(dim_ == 3)
+        {
+          virtual_elem_map_.Push_back(Identifier(e, VicinityElement::Z_P,  1));
+          virtual_elem_map_.Push_back(Identifier(e, VicinityElement::Z_P, -1));
+        }
+      }
+      else
+      {
+        virtual_elem_map_.Push_back(Identifier(e, VicinityElement::X_P));
+        virtual_elem_map_.Push_back(Identifier(e, VicinityElement::Y_P));
+        if(dim_ == 3)
+          virtual_elem_map_.Push_back(Identifier(e, VicinityElement::Z_P));
+      }
     }
   }
 
@@ -457,6 +491,19 @@ int SlopeCondition::GetCurrentVirtualNeighbor() const
 
   return virtual_elem_map_[idx].neighbor;
 }
+
+int SlopeCondition::GetCurrentVirtualSign() const
+{
+  assert(IsLocal()); 
+
+  unsigned int idx = current_view_index_ - index_;
+
+  // if we call this function, the sign must be meaningful
+  assert(slopes_double ? virtual_elem_map_[idx].sign != -1000 : true);
+  
+  return virtual_elem_map_[idx].sign;
+}
+
 
 StdVector<unsigned int>& SlopeCondition::GetSparsityPattern()
 {
@@ -510,14 +557,16 @@ void SlopeCondition::SetValue(double val)
 
 double SlopeCondition::GetMaxElementSlope(unsigned int element) const
 {
-  int base = element * dim_;
+  int size(dim_);
+  if(slopes_double) size *= 2;
+  
+  int base = element * size;
 
-  double max = 0.0;
+  double maxval = 0.0;
+  for(int i = 0; i < size; ++i)
+    maxval = std::max(maxval, std::abs(values_[base + i]));
 
-  for(int i = 1; i < dim_; i++)
-    max = std::max(max, abs(values_[base + i]));
-
-  return max;
+  return maxval;
 }
 
 std::string SlopeCondition::ToString() const
@@ -528,7 +577,9 @@ std::string SlopeCondition::ToString() const
 
   if(IsLocal())
     ss << "_ve=" << GetCurrentVirtualElement()
-       << "_vn=" << GetCurrentVirtualNeighbor();
+       << "_vn=" << GetCurrentVirtualNeighbor()
+       << "_double=" << slopes_double
+       << "_vs=" << GetCurrentVirtualSign();
 
   return ss.str();
 }
@@ -754,7 +805,12 @@ void ConditionContainer::VirtualView::Done()
   SlopeCondition* slope = dynamic_cast<SlopeCondition*>(container_->all[slope_index_]);
 
   // set global result
-  slope->SetValue(slope->GetData().NormMax());
+  double ret(0.0); 
+  unsigned int size(slope->GetData().GetSize());
+  for(unsigned int i = 0; i < size; ++i) 
+    ret = std::max(ret, std::abs(slope->GetData()[i]));
+  
+  slope->SetValue(ret);
 
   // check for special result.
   int idx = container_->space_->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::MAX_SLOPE);
@@ -766,14 +822,16 @@ void ConditionContainer::VirtualView::Done()
     for(unsigned int e = 0; e < data.GetSize(); e++)
       data[e].specialResult[idx] = 0.0; // initialize
     
-    int dim = domain->GetGrid()->GetDim();
+    int offset(domain->GetGrid()->GetDim());
+    if(slope->slopes_double)
+      offset *= 2;
     
     // constraints -> note we have full neighborhood!
-    for(int i = 0, ni = slope->GetData().GetSize(); i < ni; i += dim)
+    for(int i = 0, ni = slope->GetData().GetSize(); i < ni; i += offset)
     {
       slope->SetCurrentViewIndex(i + slope->GetIndex());
       int elem_idx = slope->GetCurrentVirtualElement();
-      data[elem_idx].specialResult[idx] = slope->GetMaxElementSlope(i/dim);
+      data[elem_idx].specialResult[idx] = slope->GetMaxElementSlope(i/offset);
     }
   }
 

@@ -2,9 +2,9 @@
 #include <fstream>
 #include <cmath>
 
-#include "Optimization/OptimalityCondition.hh"
-#include "Optimization/DesignSpace.hh"
-#include "Optimization/DesignElement.hh"
+#include "Optimization/Optimizer/OptimalityCondition.hh"
+#include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Design/DesignElement.hh"
 #include "General/exception.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
@@ -178,7 +178,7 @@ void OptimalityCondition::SolveProblem()
   if(iter >= max_iter-1) 
   {
     in->Get("converged")->SetValue("no");
-    in->Get("reason")->SetValue("Maximum iterations exceeded");
+    in->Get("reason/msg")->SetValue("Maximum iterations exceeded");
     std::cout << " max iterations reached" << std::endl;
   }
   assert(in->GetChildren().GetSize() > 0);

@@ -1,4 +1,4 @@
-#include "Optimization/SnOptInterface.hh"
+#include "Optimization/Optimizer/SnOptInterface.hh"
 
 extern "C"
 {

@@ -6,7 +6,7 @@
 #define FILE_BDBINT
 
 #include "baseForm.hh"
-#include "Optimization/DesignElement.hh" 
+#include "Optimization/Design/DesignElement.hh" 
 
 namespace CoupledField {
 

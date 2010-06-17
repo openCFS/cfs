@@ -2,7 +2,7 @@
 #define OPTMATERIAL_HH_
 
 #include "General/Enum.hh"
-#include "Optimization/DesignElement.hh"
+#include "Optimization/Design/DesignElement.hh"
 
 namespace CoupledField 
 {
