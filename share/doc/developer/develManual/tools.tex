@@ -5,6 +5,33 @@
 \subsection{Pre-Processors}
 \subsubsection{ANSYS}
 \subsubsection{GiD}
+\paragraph{GiD im Batchmodus}
+
+\noindent Wie ruf ich denn ein nacs gid script von der kommandozeile auf?
+
+\begin{enumerate}
+   \item{Erzeuge ein TCL-File example.bch (Endung bch wichtig) mit folgendem Inhalt: \input{gid_batch}}
+   \item{Starte dann GiD mittels: {\tt gid -p NACS -n2 -b example.bch}}
+\end{enumerate}
+
+\noindent und los gehts! Sollte  irgendwas nicht funktionieren, dann kannst Du
+erst mal einen Blick in das batch file werfen:
+
+\noindent Utilities $\rightarrow$ Tools $\rightarrow$ Read Batch Window ...
+
+\noindent und dann mittels des File  Dialoges das Batch File auswählen und mit
+dem Button See File... den Inhalt anzeigen lassen
+
+\paragraph{GiD Passwortserver auf rom}
+\begin{itemize}
+\item{Alle wichtigen Lizenzinformationen liegen auf rom:/usr/local/passerver/lic\_info\_rom.txt}
+\item{Eine Anleitung zur Installation des Passwortservers liegt in rom:/usr/local/passerver/gidlicinst.pdf }
+\item{Port 7073 in der Firewall freischalten}
+\item{Folgendes Shellscript nach /etc/init.d/gidpasserver speichern: \input{gid_pw_server}}
+\item{Skript in den Bootprozess aufnehmen mit: {\tt insserv /etc/init.d/gidpasserver} }
+\end{itemize}
+
+
 \subsubsection{Gmsh}
 
 GMSH \cite{Geuzaine2009,GmshWebSite} (simple  Meshes erzeugen, einziges Format
@@ -29,13 +56,77 @@ Mac (ANSYS und GiD sind alles andere als frei)
   Meshgenerierung für TiberCAD & \url{http://www.tibercad.org/documentation/ tutorial/list} \\
   Gmsh GUI Tutorial I & \url{http://ffep.sourceforge.net/Download/ gui\_tutorial.pdf}\\
   Gmsh GUI Tutorial II & \url{http://www.geuz.org/gmsh/doc/gui\_tutorial\_2/ gui\_tutorial\_2.pdf}\\
+  Demo Gmsh - Step import - Msh export & \url{http://vimeo.com/3287369}\\
   \bottomrule
 \end{tabular} 
 \end{table}
 
+The  Gmsh scripting language  shares the  same syntax  with the  C programming
+language. Here we present a simple example where every geometrical entity will
+be mapped  to exactly  one finite  element.  This is  achieved by  setting the
+characteristic length  of the geometry nodes  to a value larger  than the edge
+length of the geometrical entities.  The grid achieved therewith has been used
+to test the crosspoint identification code.
+
+\input{gmsh_cp_test}
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.4\textwidth]{pics/gmsh_cp_test}
+%    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
+  \end{overpic}
+  \caption{Crosspoint test geometry in Gmsh}
+  \label{fig:gmsh_cp_test}
+\end{figure}%
+%
+
+The script presented here just generates the geometry. The Meshing needs to be
+done  by switching  to  {\it Mesh}  mode in  the  GUI and  then clicking  {\it
+2D}.  This will  generate a  mesh of  first order  elements. To  get quadratic
+elements one needs  to click on {\it Second order}.  Afterwards one just needs
+to click on {\it Save} or {\it File} $\rightarrow$ {\it Save Mesh}.
+
+The same thing may be achieved from the command line using the following command:
+\begin{verbatim}
+gmsh -2 -o output.msh -format msh2 -bin -nopopup -noview input.geo
+\end{verbatim}
+
+It  is  very important  to  assign the  elements  to  physical entities  ({\tt
+Physical Surface}  or {\tt Physical Volume}). Otherwise  elements of different
+dimensions  (e.g. triangles  and tetras)  may end  up in  the same  region for
+CFS++.  In such a  case CFS++  will obviously  complain! The  textual argument
+given to  {\tt Physical Surface} or  {\tt Physical Volume} will  be the region
+name for CFS++.
+
+\noindent Creating a mesh from an image:
+\input{gmsh_mesh_from_pic}
+
+\newpage
+
 \subsection{Post-Processors}
 
 \subsubsection{ANSYS}
+
+The main source  of documentation for post-processing in  ANSYS Classic is the
+{\it  Basic Analysis  Guide -  Chapter 5.  The General  Postprocessor (POST1)}
+which can be  found in the ANSYS online help.  A modelling and post-processing
+guide               can               also              be               found
+here\footnote{\url{http://www-old.hallf.kth.se/\~mart/Demo\_Ansys\_classic.pdf}}.
+One  Example  in CADFEM  Service  Newsletter  6/2003 (Ergebnisbeurteilung  bei
+symmetrischen
+Modellen)\footnote{\url{http://www.cadfem.at/fileadmin/files/9\_service\_newsletter/2003/0306/Newsletter\_06\_2003.pdf}}
+
+The mapping  from CFS++ result  types to ANSYS  results is done in  the method
+{\tt    void    AnsysBinlibIfaceGeneral::MapInternal2ANSYSNodeDof(SolutionType
+solType)}                    in                    the                    file
+{\tt source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceGeneral.cc}.
+
+\textcolor{red}{ATTENTION:  It has  been found,  that there  exists  a problem
+whenever the grid from CFS++ contains quadratic pyramid elements. This problem
+manifests itself  as a  segfault of  ANSYS Classic. The  same input  file does
+however not cause  a problem for the CFX post-processor.  This behavior can be
+reproduced by the test suite case {\tt TESTSUIT/cfstool/hdf5\_to\_rst}, where the {\tt
+.rst} file {\tt results\_rst/refelems\_ms1.rst} exhibits this behavior.}
 
 Plot    nodal   solution   elecPot    on   .rst    from   test    suite   case
 {\tt CFS\_TESTSUITE/TESTSUIT/cfstool/ hdf5\_to\_rst/results\_rst}
@@ -56,7 +147,7 @@ Results Button (left-most colorful one)
 
 For plotting element results use the {\tt plesol} command.
 
-\begin{figure}
+\begin{figure}[htb]
   \centering
   \begin{overpic}[grid,tics=10,width=0.5\textwidth]{pics/ansys}
     \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
@@ -77,10 +168,99 @@ wpoffs,,,-0.3
 /cplane,1
 plnsol,volt
 \end{verbatim}%
+%
+To show elements colored by region and the according region number (which is encoded as material MAT in .rst) and afterwards select the elements with MAT=4 the following sequence of commands may be used (cf. Fig. \ref{fig:ansys_eplo_mat}):
+%
+\begin{verbatim}
+/POST1  
+INRES,ALL   
+FILE,'chargeaxi_ms1','rst','.' 
+SET,FIRST
+/PNUM,MAT,1
+eplo
+esel,s,mat,,4
+elist
+\end{verbatim}%
+%
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.5\textwidth]{pics/ansys_eplo_mat}
+%    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
+  \end{overpic}
+  \caption{Element plot with material numbers}
+  \label{fig:ansys_eplo_mat}
+\end{figure}%
 
+To get information about available result sets, one can write the following sequence of commands
+%
+\begin{verbatim}
+/POST1  
+INRES,ALL   
+FILE,'pml3d_ms1','rst','.' 
+SET,list,2
+\end{verbatim}%
+%
+which will produce the following output
+%
+\begin{verbatim}
+  *****  INDEX OF DATA SETS ON RESULTS FILE  *****
+
+   SET   TIME/FREQ    LOAD STEP   SUBSTEP  CUMULATIVE
+     1  119.37             1         1         1
+    pml3d step: 1, frequency: 119.366, real                                 
+
+     2  119.37             1         1         1 (IMAGINARY)
+    pml3d step: 1, frequency: 119.366, imag
+\end{verbatim}%
+%
+Therefore to display the imaginary part of the solution the following sequence
+of commands can be used (cf. Fig. \ref{fig:ansys_pml3d})
+%
+\begin{verbatim}
+% Select imaginary part of first load step
+set,1,,,1
+plnsol,pres
+% Select real part of first load step
+set,1,,,0
+plnsol,pres
+\end{verbatim}%
+%
+Whether the  real/imag parts or  the abs/phase parts  of a complex  result are
+saved in  the {\tt .rst} file depends  on the settings made  in the simulation
+{\tt .xml} file.
+
+\begin{figure}[htb] 
+  \centering 
+  \subfloat[Real part.]{
+    \label{fig:ansys_pml3d_real}
+    \includegraphics[width=6cm]{pics/ansys_pml3d_real} }
+  \qquad
+  \subfloat[Imaginary part.]{
+    \label{fig:ansys_pml3d_imag}
+    \includegraphics[width=6cm]{pics/ansys_pml3d_imag}
+  } 
+  \caption{Contour plots of acoustic pressure for acoustic pml3d testsuite example.}
+  \label{fig:ansys_pml3d}
+\end{figure}
+
+While debugging the  ANSYS {\tt .rst} output writer it  was often necessary to
+dump the {\tt .rst} file within ANSYS. This can be achieved using the follwing
+sequence of commands.
+%
+\begin{verbatim}
+/AUX2   
+FORM,LONG   
+FILEAUX2,'chargeaxi_ms1','rst',' '  
+DUMP,ALL
+\end{verbatim}
+%
+In the ANSYS GUI the same  functionality can be reached via File $\rightarrow$
+List $\rightarrow$ Binary Files...
+
+\newpage
 \subsubsection{GiD}
 
-\begin{figure}
+\begin{figure}[htb] 
   \centering
   \begin{overpic}[grid,tics=10,width=0.5\textwidth]{pics/gid}
     \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
@@ -89,21 +269,59 @@ plnsol,volt
   \label{fig:gid}
 \end{figure}%
 
+\newpage
 \subsubsection{Gmsh}
 
-\begin{figure}
+\begin{figure}[htb] 
   \centering
-  \begin{overpic}[grid,tics=10,width=0.5\textwidth]{pics/gmsh}
+  \begin{overpic}[grid,tics=10,width=0.3\textwidth]{pics/gmsh}
     \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
   \end{overpic}
   \caption{Postprocessing with Gmsh}
   \label{fig:gmsh}
 \end{figure}%
 %
+Postprocessing in  Gmsh is  mainly done by  using Plugins  (Menu $\rightarrow$
+Tools  $\rightarrow$ Plugins).  Fig.  \ref{fig:gmsh_cutplanes} shows  two cuts
+through the electrostatic  man dataset, the settings for  one of the cutplanes
+and the visibility settings.
+%
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.95\textwidth]{pics/gmsh_cutplanes}
+%    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
+  \end{overpic}
+  \caption{Postprocessing using cutplanes and visibility settings in Gmsh}
+  \label{fig:gmsh_cutplanes}
+\end{figure}%
+%
+The CFS++  entities (regions,  named nodes and  named elements) are  mapped to
+physical   entities  in   Gmsh   (cf.  the   Visibility   browser  window   in
+Fig. \ref{fig:gmsh_cutplanes}).
 
+Further Links for postprocessing in Gmsh:
+
+\begin{table}[tb]
+\centering
+\begin{minipage}{18cc}\caption{Gmsh Postprocessing Tutorials}
+\label{tab:gmsh_postproc}
+\end{minipage}
+\par\medskip\noindent
+\begin{tabular}{ll}
+  \toprule
+  {\bf Tutorial} & {\bf URL} \\ \otoprule
+  Gmsh Screencast: Postprocessing Basics & \url{http://geuz.org/gmsh/screencasts/} \\
+  Einfache Datendarstellung mit Views & \url{http://www.femcfd.com/gmsh-postprocessing-view.html} \\
+  Erste Eindrücke beim Postprocessing mit Gmsh 2.2 & \url{http://www.femcfd.com/gmsh-bietet-gutes-postprocessing.html} \\
+  gmshFoam in OpenFOAM Wiki & \url{http://openfoamwiki.net/index.php/Contrib_gmshFoam} \\
+  \bottomrule
+\end{tabular} 
+\end{table}
+
+\newpage
 \subsubsection{ParaView}
 
-\begin{figure}
+\begin{figure}[htb] 
   \centering
   \begin{overpic}[grid,tics=10,width=0.5\textwidth]{pics/paraview}
     \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
@@ -112,9 +330,10 @@ plnsol,volt
   \label{fig:paraview}
 \end{figure}%
 
+\newpage
 \subsubsection{GMV}
 
-\begin{figure}
+\begin{figure}[htb] 
   \centering
   \begin{overpic}[grid,tics=10,width=0.5\textwidth]{pics/gmv}
     \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
@@ -122,5 +341,15 @@ plnsol,volt
   \caption{Postprocessing with General Mesh Viewer (GMV)}
   \label{fig:gmv}
 \end{figure}%
+
+\noindent File $\rightarrow$ Read GMV File  $\rightarrow$ New Simulation
+
+\noindent Display $\rightarrow$ Cells $\rightarrow$ Select $\rightarrow$ Select On Materials and Flags $\rightarrow$ Man  $\rightarrow$ Apply
+
+\noindent Cells dialogue  $\rightarrow$ Color By: $\rightarrow$ Node Field  $\rightarrow$ Cells dialogue: Apply
+
+\noindent Cells dialogue  $\rightarrow$ Shaded $\rightarrow$ Apply
+
+\noindent Menu: Calculate $\rightarrow$ Cutplanes $\rightarrow$ 1 NONE $\rightarrow$ (1,0,-0.3), (0,1,-0.3), (0,0,-0.3) $\rightarrow$ Add
 
 \subsection{General}

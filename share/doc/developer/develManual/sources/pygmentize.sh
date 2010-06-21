@@ -25,3 +25,7 @@ function Pygmentize {
 }
 
 Pygmentize hdf5_file_format.xml hdf5_file_format.tex
+Pygmentize crosspoint_test.c gmsh_cp_test.tex
+Pygmentize photo.c gmsh_mesh_from_pic.tex
+Pygmentize gid_batch.tcl gid_batch.tex
+Pygmentize gid_pw_server.sh gid_pw_server.tex
