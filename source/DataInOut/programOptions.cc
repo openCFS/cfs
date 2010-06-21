@@ -21,7 +21,6 @@
 #include <def_use_interpolation.hh>
 #include <def_use_tcl.hh>
 #include <def_xmlschema.hh>
-#include <def_use_ansysrst.hh>
 
 #include "programOptions.hh"
 #include "coloredConsole.hh"
@@ -733,11 +732,9 @@ namespace CoupledField {
 
     out << endl;
 
-#ifdef USE_ANSYSCRT
+#ifdef USE_ANSYSRST
     out << "USE_ANSYSRST:          "
         << fg_blue << "YES" << fg_reset << endl;
-    out << "CFS_ANSYS_VERSION:    "
-        << fg_blue << CFS_ANSYS_VERSION << fg_reset << endl;
 #else
     out << "USE_ANSYSRST:          "
         << fg_blue << "NO" << fg_reset << endl;

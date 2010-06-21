@@ -111,10 +111,12 @@ namespace CoupledField {
     void CheckParameter(PtrParamNode out, Enum<E>* en, int* val, const char* param_name)
     {
       PtrParamNode tmp = out->Get(param_name);
+
       tmp->Get("default")->SetValue(en->ToString(static_cast<E>(*val)));
       if (xml_ && xml_->Has(param_name))
       {
-        *val = en->Parse(xml_->Get(param_name)->As<std::string>());
+        PtrParamNode tmp2 = xml_->Get(param_name);
+        *val = en->Parse( tmp2->As<std::string>() );
         tmp->Get("set")->SetValue(en->ToString(static_cast<E>(*val)));
       }
     }

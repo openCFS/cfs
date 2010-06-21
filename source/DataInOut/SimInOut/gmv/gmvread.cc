@@ -1047,7 +1047,7 @@ int ignore_me;
      #ifdef WIN32
         std::sprintf(buffer, "%s%c%s", gmv_base_dir.c_str(), '\\', charptr);
      #else
-        std::sprintf(buffer, "%s%c%s", gmv_base_dir.c_str(), '/', charptr);
+        sprintf(buffer, "%s%c%s", gmv_base_dir.c_str(), '/', charptr);
      #endif
         charptr = buffer;
 
@@ -1102,7 +1102,7 @@ int ignore_me;
  #ifdef WIN32
     std::sprintf(buffer, "%s%c%s", gmv_base_dir.c_str(), '\\', charptr);
  #else
-    std::sprintf(buffer, "%s%c%s", gmv_base_dir.c_str(), '/', charptr);
+    sprintf(buffer, "%s%c%s", gmv_base_dir.c_str(), '/', charptr);
  #endif
 
     charptr = buffer;

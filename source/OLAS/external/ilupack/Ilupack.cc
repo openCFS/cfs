@@ -309,7 +309,8 @@ void Ilupack<T>::DetermineMatrixType(BaseMatrix &sysMat, PtrParamNode out)
 
   if (xml_ != NULL && xml_->Has("matrix"))
   {
-    matrix_ = matrix.Parse(xml_->Get("matrix")->As<std::string>());
+    PtrParamNode pn = xml_->Get("matrix");
+    matrix_ = matrix.Parse( pn->As<std::string>() );
     // plausibility check -- killme: what is with hermitian?
     if (mst != BaseMatrix::SPARSE_SYM && matrix_ != GNL)
       EXCEPTION("Matrix storrage is unsymmetric, so given ilupack_matrix is invalid: '" << matrix.ToString(matrix_) << "'");

@@ -201,7 +201,8 @@ void CholMod<T>::InitParameters()
   ParamNodeList mList = out->GetList("method");
   for(unsigned int i = 0; i < mList.GetSize(); ++i){
     PtrParamNode m = static_cast<PtrParamNode>(mList[i]);
-    int idx = m->Get("id")->As<Integer>();
+    PtrParamNode pn = m->Get("id");
+    int idx = pn->As<Integer>();
     CheckParameter(m, &common_.method[idx].prune_dense,"prune_dense");
     CheckParameter(m, &common_.method[idx].prune_dense2, "prune_dense2");
     CheckParameter(m, &common_.method[idx].nd_oksep, "nd_oksep");
