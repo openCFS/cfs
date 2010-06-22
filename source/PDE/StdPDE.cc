@@ -202,7 +202,7 @@ namespace CoupledField {
     
     // If no system with the specified name could be found in XML file
     // we just generate a new ParamNode.
-    WARN("Check, if <linearSystems> node is created properly");
+    //WARN("Check, if <linearSystems> node is created properly");
     //    if(!pn) {
 //      
 //      
