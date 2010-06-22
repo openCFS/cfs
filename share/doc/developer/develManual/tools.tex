@@ -10,7 +10,7 @@
 \noindent Wie ruf ich denn ein nacs gid script von der kommandozeile auf?
 
 \begin{enumerate}
-   \item{Erzeuge ein TCL-File example.bch (Endung bch wichtig) mit folgendem Inhalt: \input{gid_batch}}
+   \item{Erzeuge ein TCL-File example.bch (Endung bch wichtig) mit folgendem Inhalt: \input{pygmentized/gid_batch}}
    \item{Starte dann GiD mittels: {\tt gid -p NACS -n2 -b example.bch}}
 \end{enumerate}
 
@@ -27,7 +27,7 @@ dem Button See File... den Inhalt anzeigen lassen
 \item{Alle wichtigen Lizenzinformationen liegen auf rom:/usr/local/passerver/lic\_info\_rom.txt}
 \item{Eine Anleitung zur Installation des Passwortservers liegt in rom:/usr/local/passerver/gidlicinst.pdf }
 \item{Port 7073 in der Firewall freischalten}
-\item{Folgendes Shellscript nach /etc/init.d/gidpasserver speichern: \input{gid_pw_server}}
+\item{Folgendes Shellscript nach /etc/init.d/gidpasserver speichern: \input{pygmentized/gid_pw_server}}
 \item{Skript in den Bootprozess aufnehmen mit: {\tt insserv /etc/init.d/gidpasserver} }
 \end{itemize}
 
@@ -68,7 +68,7 @@ characteristic length  of the geometry nodes  to a value larger  than the edge
 length of the geometrical entities.  The grid achieved therewith has been used
 to test the crosspoint identification code.
 
-\input{gmsh_cp_test}
+\input{pygmentized/gmsh_cp_test}
 
 \begin{figure}[htb] 
   \centering
@@ -99,7 +99,7 @@ given to  {\tt Physical Surface} or  {\tt Physical Volume} will  be the region
 name for CFS++.
 
 \noindent Creating a mesh from an image:
-\input{gmsh_mesh_from_pic}
+\input{pygmentized/gmsh_mesh_from_pic}
 
 \newpage
 
@@ -329,6 +329,51 @@ Further Links for postprocessing in Gmsh:
   \caption{Postprocessing with ParaView}
   \label{fig:paraview}
 \end{figure}%
+
+\paragraph{Computing analytical fields using Programmable Filter and SciPy }
+
+This  piece of  code  can be  used  to compute  the  analytical solution  (cf.
+\cite{Triebenbacher2006},    Section    5.2    and    test    suite    example
+{\tt TESTSUITE/singlefield/acoustics/l2d\_nmg})  of  a  sound radiating  cylinder  by
+making use  of a Hankel function  from SciPy. Whereby the  the following SciPy
+code            (cf.             SciPy            special            functions
+docu\footnote{\url{http://docs.scipy.org/doc/scipy-0.7.x/reference/tutorial/special.html}},
+Treatment             of             complex            numbers             in
+Python\footnote{\url{http://docs.python.org/tutorial/introduction.html}})
+
+\input{pygmentized/pv_scipy_hankel1}
+
+\noindent is equivalent to the following Matlab/Octave code
+
+\input{pygmentized/pv_matlab_besselh}
+
+\noindent The following  code will produce a new  nodal result 'AnalyticalSol'
+but also shows how to access the current time step and previous nodal results.
+For the  treatment of  element based results  or vector/tensor  results please
+refer                      to                      the                     VTK
+documentation\footnote{\url{http://www.vtk.org/doc/nightly/html/classvtkDataSet.html},\\\url{http://www.vtk.org/doc/nightly/html/classvtkDataArray.html}}
+
+\input{pygmentized/pv_analytical_sol}
+
+\paragraph{ParaView Python Scripting}
+
+\begin{table}[htb]
+\centering
+\begin{minipage}{18cc}\caption{Resources for ParaView Python Scripting}
+\label{tab:pv_python_scripting}
+\end{minipage}
+\par\medskip\noindent
+\begin{tabular}{ll}
+  \toprule
+  {\bf Description} & {\bf URL} \\ \otoprule
+  Python Programmable Filter & \url{http://www.cmake.org/Wiki/Python\_Programmable\_Filter} \\
+  Examples for Python Programmable Filters and Sources & \url{http://www.itk.org/Wiki/Here\_are\_some\_more\_examples\_of\_simple\_ParaView\_3\_python\_filters.} \\
+  Time Dependent Processing in a Parallel Pipeline Architecture \cite{Biddiscombe2007} & \url{http://www.computer.org/portal/web/csdl/doi/10.1109/TVCG.2007.70600} \\
+  ParaView Python Scripting Basics & \url{http://www.cmake.org/Wiki/ParaView/Python\_Scripting} \\
+  \bottomrule
+\end{tabular} 
+\end{table}
+
 
 \newpage
 \subsubsection{GMV}

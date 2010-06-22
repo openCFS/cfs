@@ -281,6 +281,9 @@ share/doc/developer/develManual/sources/gid_batch.tcl svneol=native#text/plain
 share/doc/developer/develManual/sources/gid_pw_server.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/hdf5_file_format.xml -text
 share/doc/developer/develManual/sources/photo.c svneol=native#text/plain
+share/doc/developer/develManual/sources/pv_analytical_sol.py -text
+share/doc/developer/develManual/sources/pv_matlab_besselh.m -text
+share/doc/developer/develManual/sources/pv_scipy_hankel1.py -text
 share/doc/developer/develManual/sources/pygmentize.sh -text
 share/doc/developer/develManual/tools.tex -text
 share/doc/developer/makedoc.sh.in -text

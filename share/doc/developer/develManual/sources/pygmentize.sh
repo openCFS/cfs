@@ -1,7 +1,7 @@
 #!/bin/sh
 
 SOURCES_DIR=$1
-DEST_DIR=$2
+DEST_DIR="$2/pygmentized"
 STYLE=tango
 OPTIONS="-f latex -O linenos=True,linenostep=5,style=$STYLE"
 PYG=pygmentize
@@ -20,6 +20,10 @@ function Pygmentize {
   INPUT=$1
   OUTPUT=$2
  
+  if [ ! -d $DEST_DIR ]; then
+      mkdir -p $DEST_DIR
+  fi
+
   $PYG $OPTIONS $SOURCES_DIR/$INPUT > $DEST_DIR/dummy.tex
   cat $DEST_DIR/dummy.tex | sed 's/commandchars/frame=lines,framesep=2mm,fontsize=\\\small,commandchars/' > $DEST_DIR/$OUTPUT
 }
@@ -29,3 +33,7 @@ Pygmentize crosspoint_test.c gmsh_cp_test.tex
 Pygmentize photo.c gmsh_mesh_from_pic.tex
 Pygmentize gid_batch.tcl gid_batch.tex
 Pygmentize gid_pw_server.sh gid_pw_server.tex
+Pygmentize pv_analytical_sol.py pv_analytical_sol.tex
+Pygmentize pv_scipy_hankel1.py pv_scipy_hankel1.tex
+Pygmentize pv_matlab_besselh.m pv_matlab_besselh.tex
+
