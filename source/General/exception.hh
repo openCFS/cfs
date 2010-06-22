@@ -5,6 +5,7 @@
 #ifndef FILE_CFS_EXCEPTION_HH
 #define FILE_CFS_EXCEPTION_HH
 
+#include <boost/function.hpp>
 #include <string>
 #include <sstream>
 #include <exception>
@@ -73,8 +74,14 @@ namespace CoupledField {
     Exception( const Exception& exc ) throw ();
 
     //! Destructor
-        virtual ~Exception() throw();
+    virtual ~Exception() throw();
 
+    //! Set callback method for exceptions
+    static void SetCallbackEx(boost::function<void (Exception& x)> cb );
+
+    //! Set callback method for warning
+    static void SetCallbackWarn(boost::function<void (Exception& x)> cb );
+    
     //! Return message with file name and line number
     virtual const char * what() const throw ();
 
@@ -89,7 +96,10 @@ namespace CoupledField {
 
     //! Generate a segfault or not
     static bool segfault_;
-
+    
+    
+    
+    
   private:
     /** common init method */
     void init( const Exception* reason,
@@ -110,6 +120,12 @@ namespace CoupledField {
     //! Line number where the exeption occured
     unsigned int lineNum_;
 
+    //! callback function for exception level
+    static boost::function<void(Exception& x)>  exCallback_;
+
+    //! callback functions for warning level
+    static boost::function<void (Exception& x)> warnCallback_;
+    
     //! The exception which lead to the current exception
     Exception* reason_;
 

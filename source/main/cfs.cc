@@ -60,6 +60,27 @@ int main(int argc, const char **argv)
   return ret;
 }
 
+void PrintWarning(CoupledField::Exception& ex ) {
+  
+  // Print warning on command line
+ std::string msg = ex.GetMsg();
+ std::string fileName = ex.GetFileName();
+ UInt lineNum = ex.GetLineNum();
+ 
+  std::cerr << "\n "
+      << fg_blue << "WARNING:" << fg_reset << "\n "
+      << msg << endl;
+  std::cerr << "\n(" << fileName << ", Line " 
+            << lineNum  << ")\n\n";
+  
+  // Print warning also to info xml
+  PtrParamNode warn = info->Get("warning",ParamNode::INSERT);
+  warn->Get("lineNum")->SetValue(lineNum);
+  warn->Get("fileName")->SetValue(fileName);
+  warn->Get("message")->SetValue(msg);
+}
+    
+
 CFS::CFS(int argc, const char **argv)
 {
 
@@ -95,6 +116,9 @@ CFS::CFS(int argc, const char **argv)
   
   // Get information about exception handling
   Exception::segfault_ = progOpts->GetForceSegFault();
+  
+  // Register callback function with exception class for warning
+  Exception::SetCallbackWarn(&PrintWarning);
 
   // Set global Enums, the rest is set by the classes
   SetGlobalEnums();
