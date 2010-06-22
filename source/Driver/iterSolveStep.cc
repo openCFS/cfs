@@ -63,7 +63,13 @@ namespace CoupledField
         rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime_);
         rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
         rPDE_.PDEs_[i]->GetSolveStep()->PreStepStatic();
+        try {
         rPDE_.PDEs_[i]->CalcInputCoupling();
+        } catch( Exception& ex ) {
+          RETHROW_EXCEPTION(ex, "Could not calculate input coupling for PDE '"
+                            << rPDE_.PDEs_[i]->GetName() << "'");
+        }
+        
         rPDE_.PDEs_[i]->GetSolveStep()->SolveStepStatic(analysis_id, adjointParams, reAssembleMatrices);
         rPDE_.PDEs_[i]->GetSolveStep()->PostStepStatic();
         rPDE_.PDEs_[i]->CalcOutputCoupling();
