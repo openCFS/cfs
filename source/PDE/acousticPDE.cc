@@ -406,8 +406,19 @@ namespace CoupledField {
 
       // Check for Perfectly matched layers
       if ( dampingList_[actRegion] == PML ) {
+        
+        // check if we are axi-symmetric: At the moment
+        // PML damping is not working "perfectly" for 
+        // axisymmetric setups
+        if( isaxi_ ) {
+          WARN("PML damping for axi-symmetric setup does not yet "
+               << "work 'perfectly'! \nSpurious reflections can occur, "
+               << "so you might consider using absorbing boundary "
+               << "conditions instead!" );
+              
+        }
+        
         //read data for PML layer
-
         //type of PML damping
         std::string dampingTypePML;
         
