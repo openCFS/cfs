@@ -2,6 +2,7 @@
 
 SOURCES_DIR=$1
 DEST_DIR="$2/pygmentized"
+ATTACH_DIR="$2/attachments"
 STYLE=tango
 OPTIONS="-f latex -O linenos=True,linenostep=5,style=$STYLE"
 PYG=pygmentize
@@ -23,9 +24,15 @@ function Pygmentize {
   if [ ! -d $DEST_DIR ]; then
       mkdir -p $DEST_DIR
   fi
+  if [ ! -d $ATTACH_DIR ]; then
+      mkdir -p $ATTACH_DIR
+  fi
 
   $PYG $OPTIONS $SOURCES_DIR/$INPUT > $DEST_DIR/dummy.tex
   cat $DEST_DIR/dummy.tex | sed 's/commandchars/frame=lines,framesep=2mm,fontsize=\\\small,commandchars/' > $DEST_DIR/$OUTPUT
+  
+  ATTACHFILE=$(echo $OUTPUT | sed 's/\.tex/\.txt/')
+  cp $SOURCES_DIR/$INPUT "$ATTACH_DIR/$ATTACHFILE"
 }
 
 Pygmentize hdf5_file_format.xml hdf5_file_format.tex

@@ -27,7 +27,10 @@ dem Button See File... den Inhalt anzeigen lassen
 \item{Alle wichtigen Lizenzinformationen liegen auf rom:/usr/local/passerver/lic\_info\_rom.txt}
 \item{Eine Anleitung zur Installation des Passwortservers liegt in rom:/usr/local/passerver/gidlicinst.pdf }
 \item{Port 7073 in der Firewall freischalten}
-\item{Folgendes Shellscript nach /etc/init.d/gidpasserver speichern: \input{pygmentized/gid_pw_server}}
+\item{Folgendes Shellscript nach /etc/init.d/gidpasserver speichern:
+  \input{pygmentized/gid_pw_server}
+  \attachfile[icon=PushPin,description={openSUSE Init script for GiD license server.},mimetype=text/plain]{attachments/gid_pw_server.txt}
+}
 \item{Skript in den Bootprozess aufnehmen mit: {\tt insserv /etc/init.d/gidpasserver} }
 \end{itemize}
 
@@ -69,6 +72,7 @@ length of the geometrical entities.  The grid achieved therewith has been used
 to test the crosspoint identification code.
 
 \input{pygmentized/gmsh_cp_test}
+\attachfile[icon=PushPin,description={Gmsh input script for crosspoint mesh.},mimetype=text/plain]{attachments/gmsh_cp_test.txt}
 
 \begin{figure}[htb] 
   \centering
@@ -100,6 +104,7 @@ name for CFS++.
 
 \noindent Creating a mesh from an image:
 \input{pygmentized/gmsh_mesh_from_pic}
+\attachfile[icon=PushPin,description={Gmsh input script for generating a mesh from an image.},mimetype=text/plain]{attachments/gmsh_mesh_from_pic.txt}
 
 \newpage
 
@@ -354,6 +359,7 @@ refer                      to                      the                     VTK
 documentation\footnote{\url{http://www.vtk.org/doc/nightly/html/classvtkDataSet.html},\\\url{http://www.vtk.org/doc/nightly/html/classvtkDataArray.html}}
 
 \input{pygmentized/pv_analytical_sol}
+\attachfile[icon=PushPin,description={ParaView Programmable Filter script for computing analytical solution.},mimetype=text/plain]{attachments/pv_analytical_sol.txt}
 
 \paragraph{ParaView Python Scripting}
 

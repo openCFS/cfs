@@ -275,6 +275,9 @@ share/doc/developer/develManual/pics/gmsh_cp_test.png -text svneol=unset#image/p
 share/doc/developer/develManual/pics/gmsh_cutplanes.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/gmv.png -text
 share/doc/developer/develManual/pics/paraview.png -text
+share/doc/developer/develManual/pics/pdf_attach_acroread.png -text
+share/doc/developer/develManual/pics/pdf_attach_foxit.png -text
+share/doc/developer/develManual/pics/pdf_attach_okular.png -text
 share/doc/developer/develManual/quickstart.tex -text
 share/doc/developer/develManual/sources/crosspoint_test.c svneol=native#text/plain
 share/doc/developer/develManual/sources/gid_batch.tcl svneol=native#text/plain
