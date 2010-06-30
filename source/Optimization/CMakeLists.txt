@@ -5,20 +5,6 @@ SET(OPTIMIZATION_SRCS Function.cc Optimization.cc PiezoSIMP.cc ErsatzMaterial.cc
 
 ADD_DEFINITIONS(-DUSE_4_CFS)
 
-# Just redefine __builtin_isnan to ::isnan for Intel compiler for
-# OptimalityCondition.cc
-IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
-    GET_SOURCE_FILE_PROPERTY(OPTCONDFLAGS Optimizer/OptimalityCondition.cc
-        COMPILE_FLAGS)
-    #    MESSAGE("OPTCONDFLAGS ${OPTCONDFLAGS}")
-    IF(OPTCONDFLAGS STREQUAL NOTFOUND)
-      SET(OPTCONDFLAGS "")
-    ENDIF(OPTCONDFLAGS STREQUAL NOTFOUND)
-
-    SET_SOURCE_FILES_PROPERTIES(Optimizer/OptimalityCondition.cc
-      PROPERTIES COMPILE_FLAGS "${OPTCONDFLAGS} -D__builtin_isnan=::isnan")
-ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
-
 ADD_LIBRARY(optimization STATIC ${OPTIMIZATION_SRCS})
 
 SET(TARGET_LL
