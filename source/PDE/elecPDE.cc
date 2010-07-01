@@ -1152,7 +1152,7 @@ namespace CoupledField {
   }
   
   void ElecPDE::DefinePolarizationMatrixIntegrators(const Vector<Double> &vals,
-      std::set<LinearFormContext*> *linForms, const int num)
+      StdVector<LinearFormContext*> *linForms, const int num)
   {
     LinearForm * polRHSElec = new PiezoPolarizationMatrixElecRHSInt(vals, num);
     
@@ -1168,7 +1168,7 @@ namespace CoupledField {
     linRhs->SetResult(results_[0], entlist);
     
     if(linForms != NULL)
-      linForms->insert(linRhs);
+      linForms->Push_back(linRhs);
     else
       assemble_->AddLinearForm(linRhs);
   }

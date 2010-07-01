@@ -380,7 +380,7 @@ namespace CoupledField
 
     /** default constructor for StdVector() */
     Excitation();
-
+    
     /** This method makes the current load active.
      * For multiple frequencies it does nothing. The actual frequency is choosen by default. */
     void Apply();
@@ -405,12 +405,14 @@ namespace CoupledField
     
     void ReadTestStrain(const Vector<double>& vec);
     
+    void AddLinFormsFromAssemble();
+    
     /** set correct values of pol_rhs for calculation of polarization matrix */
     void SetPolarizationMatrixRHS(const Vector<double> &mechp,
         const Vector<double> &elecp, const int num);
 
     /** return pointer to linForms, used by Shape-Optimization */
-    std::set<LinearFormContext*>* GetLinForms() { return &linForms; }
+    StdVector<LinearFormContext*>& GetLinForms() { return *linForms; }
 
     /** the index of this excitation in the excitations array. If -1 something went wront */
     int index;
@@ -420,11 +422,7 @@ namespace CoupledField
     LoadList loads;
     
     /** For static optimization with different pressure or regionLoads */
-    std::set<LinearFormContext*> linForms;
-    
-    /** if linForms are to be applied 
-     * set true in multiple load/pressure/regionLoad per load-case or tracking */
-    bool apply_linForms;
+    StdVector<LinearFormContext*>* linForms;
     
     /** Different possible trackings for tracking objective */
     TrackingList trackings;

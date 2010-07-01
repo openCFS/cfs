@@ -750,9 +750,14 @@ string ErsatzMaterial::GetIterationFrequency()
 }
 
 
+BiLinFormContext* ErsatzMaterial::GetFormContext(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator)
+{
+  return(assemble_->GetBiLinForm(regionId, pde1, pde2, integrator));
+}
+
 BaseForm* ErsatzMaterial::GetForm(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator)
 {
-  return assemble_->GetBiLinForm(regionId, pde1, pde2, integrator)->GetIntegrator();
+  return(GetFormContext(regionId, pde1, pde2, integrator)->GetIntegrator());
 }
 
 double ErsatzMaterial::CalcObjective()
@@ -971,6 +976,9 @@ void ErsatzMaterial::CalcNewmarkDerivative(Excitation& excite, Solutions& forwar
   double gamma = pde->getTimeStepping()->GetNewmarkGamma();
   double beta = pde->getTimeStepping()->GetNewmarkBeta();
   
+  MathParser * parser = domain->GetMathParser();
+  unsigned int mathParserHandle = parser->GetNewHandle();
+
   assert(domain->HasErsatzMaterialTensor()); // this is not implemented for SIMP
   
   Matrix<double> dK(1, 1), dM(1, 1);
@@ -984,8 +992,25 @@ void ErsatzMaterial::CalcNewmarkDerivative(Excitation& excite, Solutions& forwar
       DesignElement* de = &design->data[base + e];
       SetElementK(de, MECH, dynamic_cast<DenseMatrix*>(&dK), STANDARD, true);
       SetElementK(de, MASS, dynamic_cast<DenseMatrix*>(&dM), STANDARD, true);
+      
+      // The damping matrix is alpha * Mass + beta * Stiffness, so it's derivative is also alpha * dMass + beta * dStiffness
+      // We need to get alpha and beta, from the integrators
+      RegionIdType regionId = de->elem->regionId;
+      BiLinFormContext* linElastIntCtxt = GetFormContext(regionId, pde, pde, "linElastInt");
+      BiLinFormContext* linMassIntCtxt = GetFormContext(regionId, pde, pde, "MassInt");
+      double dampingAlpha = 0.0; double dampingBeta = 0.0;
+      if(linElastIntCtxt->GetSecDestMat() != NOTYPE){
+        parser->SetExpr(mathParserHandle, linElastIntCtxt->GetSecMatFac());
+        dampingBeta = parser->Eval(mathParserHandle);
+      }
+      if(linMassIntCtxt->GetSecDestMat() != NOTYPE){
+        parser->SetExpr(mathParserHandle, linMassIntCtxt->GetSecMatFac());
+        dampingAlpha = parser->Eval(mathParserHandle);
+      }
+      
       double vK = 0.0;
       double vM = 0.0;
+      double vC = 0.0;
       for(unsigned int t = 0; t < timesteps; ++t){ // loop over all time steps in u
         Vector<double>& u_vec = dynamic_cast<Vector<double>& >(*forward.Get(excite, t)->elem[MECH][e]);
         dKu = dK * u_vec;
@@ -996,25 +1021,32 @@ void ErsatzMaterial::CalcNewmarkDerivative(Excitation& excite, Solutions& forwar
         vK -= dvK;
         double dvM = p_vecd * dMu;
         vM -= dvM;
+        double dvC = (gamma / (beta * dt) ) * ( dampingAlpha * dvM + dampingBeta * dvK);
+        vC -= dvC;
         double u = 1.0; double upp = 1.0 / (beta*dt*dt); double up = upp * gamma * dt;
         if(t == 0 && IsFirstTransientStepStatic()){ // reset up and upp as in simulation (StdSolveStep)
           upp = 0.0;
           up = 0.0;
           vM = 0.0; // reset the mass part for the first step
+          vC = 0.0;
         }
         for(unsigned int tp = t+1; tp < timesteps; ++tp){ // loop over all time steps in p
           Vector<double>& p_vec = dynamic_cast<Vector<double>& >(*adjoint.Get(excite, tp)->elem[MECH][e]);
           // these are the scalar factors for the parts of the derivative of F
           double ut = u +  (up + 0.5*upp*(1.0-2.0*beta)*dt ) *dt;
           double upt = up + (1.0 - gamma) * dt * upp;
-          double tvM = ut * (p_vec * dMu);
+          double pdMu = p_vec * dMu;
+          double tvM = ut * pdMu;
           vM += tvM;
+          double pdKu = p_vec * dKu;
+          double tvC = ( gamma * ut / (beta * dt) - upt ) * (dampingAlpha * pdMu + dampingBeta * pdKu);
+          vC += tvC;
           u = 0.0;
           upp = (u - ut) / (beta * dt * dt);
           up = (upt + upp * gamma * dt);
         }
       }
-      de->AddGradient(f, g, factor * (vK + vM / (beta * dt * dt)) );
+      de->AddGradient(f, g, factor * (vK + vM / (beta * dt * dt) + vC) );
     }
   }
 }
@@ -1520,7 +1552,6 @@ double ErsatzMaterial::CalcCompliance(Excitation& excite, Objective* f, Conditio
       result += sp * excite.GetFactor(func) * GetStepWeight(ts);
       LOG_DBG(em) << "CalcCompliance(): result=" << result << " sp=" << sp << " u=" << u.ToString() << " func=" << func->ToString();
     }
-    result /= timesteps;
   }
   return result;
 }
@@ -1609,17 +1640,17 @@ void ErsatzMaterial::SetAdjointRhs(AdjointParameters* adjointParams){
   case Objective::TRACKING:
     SetTrackingAdjointRhs(excite, ts);
     break;
-  case Objective::COMPLIANCE: // adjoint has the original rhs, but time walks backwards
+  case Objective::COMPLIANCE: // adjoint has the original rhs (scaled with weight per timestep), but time walks backwards
+  {
     assemble_->AssembleLinRHS(NULL);
-    if(IsFirstTransientStepStatic()){
-      Vector<Double> rhs;
-      assemble_->GetAlgSys()->GetRHSVal(rhs);
-      double w = GetStepWeight(ts) / nts;
-      for(unsigned int i = 0; i < rhs.GetSize(); ++i){
-        rhs[i] *= w;
-      }
-      assemble_->GetAlgSys()->InitRHS(rhs);
+    Vector<Double> rhs;
+    assemble_->GetAlgSys()->GetRHSVal(rhs);
+    double w = GetStepWeight(ts);
+    for(unsigned int i = 0; i < rhs.GetSize(); ++i){
+      rhs[i] *= w;
     }
+    assemble_->GetAlgSys()->InitRHS(rhs);
+  }
     break;
   
   default:
@@ -1632,6 +1663,11 @@ void ErsatzMaterial::SetAdjointRhs(AdjointParameters* adjointParams){
     double gamma = pde->getTimeStepping()->GetNewmarkGamma();
     double beta = pde->getTimeStepping()->GetNewmarkBeta();
     Vector<Double> coeffMass;
+    Vector<Double> coeffDamping;
+    // look up, whether the damping matrix exists
+    std::set<FEMatrixType> matTypes;    
+    assemble_->GetAlgSys()->GetFEMatrixTypes(matTypes);
+    bool damping = ( matTypes.find(CoupledField::DAMPING) != matTypes.end() );
     double u = 1.0; double upp = 1.0 / (beta*dt*dt); double up = upp * gamma * dt;
     upp = 0.0;
     up = 0.0;
@@ -1640,8 +1676,12 @@ void ErsatzMaterial::SetAdjointRhs(AdjointParameters* adjointParams){
       double ut = u +  (up + 0.5*upp*(1.0-2.0*beta)*dt ) *dt;
       double upt = up + (1.0 - gamma) * dt * upp;
       // now we have the factor ut / (beta * dt * dt) for the mass matrix
-      coeffMass = p_vec * (ut / (beta * dt * dt)); 
+      coeffMass = p_vec * (ut / (beta * dt * dt));
       assemble_->GetAlgSys()->UpdateRHS(CoupledField::MASS, coeffMass);
+      if(damping){
+        coeffDamping = p_vec * (ut * gamma / (beta * dt) - upt);
+        assemble_->GetAlgSys()->UpdateRHS(CoupledField::DAMPING, coeffDamping);
+      }
       u = 0.0;
       upp = (u - ut) / (beta * dt * dt);
       up = (upt + upp * gamma * dt);      
@@ -1842,7 +1882,7 @@ double ErsatzMaterial::CalcTracking(Excitation& excite, Objective* f, Condition*
     // calculate gradient z^T k_i u
     // note that in multiple excitations case (this is always now), we do sum this up
     TransferFunction* tf = design->GetTransferFunction(DesignElement::DENSITY, MECH, false);
-    double factor = excite.GetWeightedFactor(f) / timesteps; // note timesteps is 1 in non-transient case
+    double factor = excite.GetWeightedFactor(f);
     
     if(IsTransient()){
       // this computes the complete derivative of the Newmark scheme, up to now, all objectives/constraints can be handled like that
@@ -1866,7 +1906,7 @@ double ErsatzMaterial::CalcTracking(Excitation& excite, Objective* f, Condition*
     
     double dt = 0.0;
     if(IsTransient()){
-      dynamic_cast<TransientDriver*>(domain->GetDriver())->GetDeltaT();
+      dt = dynamic_cast<TransientDriver*>(domain->GetDriver())->GetDeltaT();
     }
     parser->SetValue(MathParser::GLOB_HANDLER, "dt", dt);
     
@@ -1876,6 +1916,7 @@ double ErsatzMaterial::CalcTracking(Excitation& excite, Objective* f, Condition*
       parser->SetValue(MathParser::GLOB_HANDLER, "t", dt*(ts+1));
       parser->SetValue(MathParser::GLOB_HANDLER, "step", ts+1);
 
+      double v = 0.0;
       for(unsigned int l=0; l < excite.trackings.GetSize(); l++){
         TrackingBc const & actTrack = *(excite.trackings[l]);
         EntityIterator it = actTrack.entities->GetIterator();
@@ -1887,12 +1928,12 @@ double ErsatzMaterial::CalcTracking(Excitation& excite, Objective* f, Condition*
           const double uref = parser->Eval(mathParserHandle);
           const int eqnr = eqnMap->GetNodeEqn(it.GetNode(), dof) - 1; // equation numbers are 1 based, the vector u is 0 based
           const double uact = eqnr>=0 ? u[eqnr] : 0.0;
-          val += (uact - uref) * (uact - uref);
+          v += (uact - uref) * (uact - uref);
         }
       }
-      val *= GetStepWeight(ts);
+      val += v * GetStepWeight(ts);
     }
-    return 0.5 * val / timesteps;
+    return 0.5 * val;
   }
 }
 

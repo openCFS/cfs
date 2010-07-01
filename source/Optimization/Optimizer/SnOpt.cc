@@ -60,6 +60,7 @@ SnOpt::SnOpt(Optimization* opt, PtrParamNode pn) :
   Start(0),          // start with a cold start
   stop(false),     // snopt is a little bit hard to kill, so we need a stopper
   INFO(0),
+  EXIT(0),
   ObjRow(1),      // objective row, must be 1!!
   ObjAdd(0.0),
   optimizer_pn_(pn->Get(Optimization::optimizer.ToString(Optimization::SNOPT_SOLVER), ParamNode::PASS)),
@@ -220,6 +221,7 @@ void SnOpt::InfoXMLOutput()
   default:
     exitstring = "not yet documented";
   }
+  
   info_->Get(ParamNode::SUMMARY)->Get("snopt_exit")->Get("string")->SetValue(exitstring);
   info_->Get(ParamNode::SUMMARY)->Get("function_evaluations")->Get("f_evals")->SetValue(f_evals);
   info_->Get(ParamNode::SUMMARY)->Get("function_evaluations")->Get("g_evals")->SetValue(g_evals);

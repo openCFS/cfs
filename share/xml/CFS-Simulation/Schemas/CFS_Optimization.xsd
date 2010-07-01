@@ -360,6 +360,8 @@
                             <xsd:enumeration value="convergence_criteria"/>
                             <!-- integer type -->
                             <xsd:enumeration value="maximum_linesearch_function_calls"/>
+                            <xsd:enumeration value="spstrat"/>
+                            <xsd:enumeration value="linsys"/>
                             <!-- real type -->
                             <xsd:enumeration value="max_kuhn_tucker_constraint_violation"/>
                             <xsd:enumeration value="infinity"/>

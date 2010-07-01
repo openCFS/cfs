@@ -1088,7 +1088,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     DefineSprings();
   }
   
-  void MechPDE::DefinePressureIntegrators(StdVector<shared_ptr<EntityList> >& pressSurf, StdVector<std::string>& pressVals, StdVector<std::string>& pressPhase, std::set<LinearFormContext*>* linForms){
+  void MechPDE::DefinePressureIntegrators(StdVector<shared_ptr<EntityList> >& pressSurf, StdVector<std::string>& pressVals, StdVector<std::string>& pressPhase, StdVector<LinearFormContext*>* linForms){
     for (UInt actSF = 0; actSF < pressSurf.GetSize(); actSF++) {
 
       LinearSurfForm * rhsSrcSurf = 
@@ -1101,7 +1101,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       pressRhs->SetPtPde( this );
       pressRhs->SetResult( results_[0], pressSurf[actSF] );
       if(linForms != NULL){
-        linForms->insert(pressRhs);
+        linForms->Push_back(pressRhs);
       }else{
         assemble_->AddLinearForm( pressRhs );
       }
@@ -1113,7 +1113,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     
   }
   
-  void MechPDE::DefineTestStrainIntegrators(const Vector<Double> &vals, std::set<LinearFormContext*>* linForms)
+  void MechPDE::DefineTestStrainIntegrators(const Vector<Double> &vals, StdVector<LinearFormContext*>* linForms)
   {
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     for(it = materials_.begin(); it != materials_.end(); it++)
@@ -1136,7 +1136,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
       if(linForms != NULL)
       {
-        linForms->insert(linRhs);
+        linForms->Push_back(linRhs);
       }
       else
       {
@@ -1146,7 +1146,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
   }
   
   void MechPDE::DefinePolarizationMatrixIntegrators(const Vector<Double> &vals,
-      std::set<LinearFormContext*> *linForms, const int num)
+      StdVector<LinearFormContext*> *linForms, const int num)
   {
     
     LinearForm * polRHSMech = new PiezoPolarizationMatrixMechRHSInt(vals, num);
@@ -1163,12 +1163,12 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     linRhs->SetResult(results_[0], entlist);
     
     if(linForms != NULL)
-      linForms->insert(linRhs);
+      linForms->Push_back(linRhs);
     else
       assemble_->AddLinearForm(linRhs);
   }
   
-  void MechPDE::DefineRegionLoadIntegrators(std::map<RegionIdType, RegionLoad>& regionLoads, std::set<LinearFormContext*>* linForms){
+  void MechPDE::DefineRegionLoadIntegrators(std::map<RegionIdType, RegionLoad>& regionLoads, StdVector<LinearFormContext*>* linForms){
     VolForceInt * forceInt;
     std::map<RegionIdType, RegionLoad>::iterator loadIt = regionLoads.begin();
     if (regionLoads.size() != 0 ) {
@@ -1185,7 +1185,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       forceContext->SetPtPde(this);
       forceContext->SetResult( results_[0], actSDList );
       if(linForms != NULL){
-        linForms->insert(forceContext);
+        linForms->Push_back(forceContext);
       }else{
         assemble_->AddLinearForm( forceContext );
       }

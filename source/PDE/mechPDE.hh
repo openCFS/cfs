@@ -91,18 +91,18 @@ namespace CoupledField
      * @param pressVals as returned from ReadPressureLoadsFromXML
      * @param pressPhase as returned from ReadPressureLoadsFromXML
      * @param linForms set to append linear Forms to, if NULL use assemble_ */
-    void DefinePressureIntegrators(StdVector<shared_ptr<EntityList> >& pressSurf, StdVector<std::string>& pressVals, StdVector<std::string>& pressPhase, std::set<LinearFormContext*>* linForms = NULL);
+    void DefinePressureIntegrators(StdVector<shared_ptr<EntityList> >& pressSurf, StdVector<std::string>& pressVals, StdVector<std::string>& pressPhase, StdVector<LinearFormContext*>* linForms = NULL);
     
     /** add the integrators for the test strains for homogenization to the linear forms, similar as in multiple load case;
      * called from Excitation::ReadLoads 
      * @param vals contains the values from the xml material parameters
      * @param linForms set to append linear Forms to, if NULL use assemble_ */
-    void DefineTestStrainIntegrators(const Vector<Double> &vals, std::set<LinearFormContext*> *linForms = NULL);
+    void DefineTestStrainIntegrators(const Vector<Double> &vals, StdVector<LinearFormContext*>* linForms = NULL);
     
     /** export of methods to generate Linear Forms used in multiload-cases by optimization 
      * @param regionLoads as returned from ReadRegionLoadsFromXML
      * @param linForms set to append linear Forms to, if NULL use assemble_ */
-    void DefineRegionLoadIntegrators(std::map<RegionIdType, RegionLoad>& regionLoads, std::set<LinearFormContext*>* linForms = NULL);
+    void DefineRegionLoadIntegrators(std::map<RegionIdType, RegionLoad>& regionLoads, StdVector<LinearFormContext*>* linForms = NULL);
 
     /** Does the actual reading of pressure loads, also called from optimization 
      * @param bcNode paramnode that has "pressure" nodes as children 
@@ -116,7 +116,7 @@ namespace CoupledField
       * @param vals contains the values from the xml test strains
       * @param linForms set to append linear Forms to, if NULL use assemble_ */
     void DefinePolarizationMatrixIntegrators(const Vector<Double> &vals,
-        std::set<LinearFormContext*> *linForms, const int num);
+        StdVector<LinearFormContext*> *linForms, const int num);
 
     /** @see virtual SinglePDE::GetNativeSolutionType() */
     SolutionType GetNativeSolutionType() const { return MECH_DISPLACEMENT; }

@@ -96,6 +96,13 @@ public:
    * @see ToApp()*/
   SinglePDE* ToPDE(Application app, bool throw_exception = true) const;
 
+  /** Helper which extracts the FormContext from assemble using the optimization region
+   * @param regionId the corresponding region
+   * @param pde1 the first pde (e.g. mech)
+   * @param pde2 this is either the same as pde1 or the coupling partner
+   * @param integrator there is no nice enum yet :( e.g. linElastInt, MechInt, ... */
+  BiLinFormContext* GetFormContext(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator);
+
   /** Helper which extracts the Form from assemble using the optimization region
    * @param regionId the corresponding region
    * @param pde1 the first pde (e.g. mech)

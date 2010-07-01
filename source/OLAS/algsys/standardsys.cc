@@ -294,13 +294,16 @@ namespace CoupledField {
       sol_->Export((base+"_intial_guess.vec").c_str());
 
     LOG_TRACE2(stdSys) << "before solve: euclidian norm of initial guess = " << sol_->NormL2();
+    LOG_DBG3(stdSys) << "initial guess = " << sol_->ToString();
     LOG_DBG(stdSys) << "euclidian norm of rhs = " << rhs_->NormL2();
+    LOG_DBG3(stdSys) << "rhs = " << rhs_->ToString();
 
     // ---------------------------
     // This is the expensize part! solve the system
     solver_->Solve( *sysmat_[SYSTEM], *precond_, *rhs_, *sol_, analysis_id);
 
     LOG_TRACE2(stdSys) << "after solve: euclidian norm of solution = " << sol_->NormL2();
+    LOG_DBG3(stdSys) << "after solve: solution = " << sol_->ToString();
 
     if(els && els->Get("solution")->As<std::string>() != "no")
       sol_->Export((base+".sol.vec").c_str());
@@ -1008,7 +1011,7 @@ namespace CoupledField {
 
     for ( it = matFactors.begin(); it != matFactors.end(); it++ )
     {
-#ifdef NDEBUG
+#ifndef NDEBUG
       string tmp;
       Enum2String( (*it).first, tmp );
       LOG_DBG(stdSys) << " matFactor: " << tmp << ":" << (*it).second;

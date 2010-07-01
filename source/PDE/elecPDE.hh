@@ -107,7 +107,7 @@ namespace CoupledField
      * @param vals contains the values from the xml test strains
      * @param linForms set to append linear Forms to, if NULL use assemble_ */
     void DefinePolarizationMatrixIntegrators(const Vector<Double> &vals,
-        std::set<LinearFormContext*> *linForms, const int num);
+        StdVector<LinearFormContext*> *linForms, const int num);
 
     /** @see virtual SinglePDE::GetNativeSolutionType() */
     SolutionType GetNativeSolutionType() const { return ELEC_POTENTIAL; }

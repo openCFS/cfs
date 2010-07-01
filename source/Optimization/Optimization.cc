@@ -309,15 +309,15 @@ bool Optimization::IsTransient() const{
 }
 
 double Optimization::GetStepWeight(unsigned int ts) const{
+  unsigned int nts = domain->GetDriver()->GetNumSteps();
   if(IsFirstTransientStepStatic()){
     if(ts == 0){
-      unsigned int nts = domain->GetDriver()->GetNumSteps();
-      return((1.0 - otherStepWeight) * nts);
+      return((1.0 - otherStepWeight));
     }else{
-      return(otherStepWeight);
+      return(otherStepWeight / (nts-1));
     }
   }else{
-    return(1.0);
+    return(1.0 / nts);
   }
 }
 
@@ -761,18 +761,24 @@ Excitation::Excitation()
   this->f_link = NULL;
   this->weight = 1.0;
   this->normalized_weight = 1.0;
-  this->apply_linForms = false;
+  linForms = new StdVector<LinearFormContext*>();  
+  AddLinFormsFromAssemble();
 }
 
+void Excitation::AddLinFormsFromAssemble(){
+  // all already set linear Forms
+  StdVector<LinearFormContext*>& assLinForms = domain->GetBasePDE()->getPDE_assemble()->GetLinForms();
+  for(unsigned int i = 0; i < assLinForms.GetSize(); ++i){
+    linForms->Push_back(assLinForms[i]);
+  }
+}
 
 void Excitation::Apply()
 {
   domain->GetOptimization()->applied_excitation = this;
   Assemble* a = domain->GetBasePDE()->getPDE_assemble();
-  if(apply_linForms){
-    a->SetLoads(loads);
-    a->SetLinForms(linForms);
-  }else if(! loads.IsEmpty()){
+  a->SetLinForms(linForms); // this works always, if not used just a copy of assembles linearForms
+  if(! loads.IsEmpty()){
     a->SetLoads(loads);
   }
   // a frequency cannot really be applied but has to be used as parameter
@@ -830,65 +836,42 @@ void Excitation::ReadTrackings(PtrParamNode ts){
 
 void Excitation::ReadLoads(PtrParamNode ls)
 {
-  apply_linForms = true;
-  
   // loads
   loads.Clear();
   MechPDE* mech = (MechPDE*)domain->GetSinglePDE("mechanic");
   mech->ReadLoads(ls->GetList("load"), loads);
 
-  linForms.clear();
-  
   // pressures
   StdVector<shared_ptr<EntityList> > pressSurf;
   StdVector<std::string> pressVals;
   StdVector<std::string> pressPhase;
   mech->ReadPressureLoadsFromXML(ls, pressSurf, pressVals, pressPhase);
-  mech->DefinePressureIntegrators(pressSurf, pressVals, pressPhase, &linForms);
+  mech->DefinePressureIntegrators(pressSurf, pressVals, pressPhase, linForms);
   
   // regionLoads
   std::map<RegionIdType, SinglePDE::RegionLoad> regionLoads;
   mech->ReadRegionLoadsFromXML(ls, regionLoads);
-  mech->DefineRegionLoadIntegrators(regionLoads, &linForms);
-  
-  // all already set linear Forms
-  std::set<LinearFormContext*>* assLinForms = domain->GetBasePDE()->getPDE_assemble()->GetLinForms();
-  linForms.insert(assLinForms->begin(), assLinForms->end());
+  mech->DefineRegionLoadIntegrators(regionLoads, linForms);
 }
 
 void Excitation::ReadTestStrain(const Vector<double>& vec)
 {
-  apply_linForms = true;
-
   this->test_strain = vec;
 
   loads.Clear();
-  linForms.clear();
   MechPDE* mech = dynamic_cast<MechPDE*>(domain->GetSinglePDE("mechanic"));
-  mech->DefineTestStrainIntegrators(vec, &linForms);
-
-  // all already set linear Forms
-  std::set<LinearFormContext*>* assLinForms = domain->GetBasePDE()->getPDE_assemble()->GetLinForms();
-  linForms.insert(assLinForms->begin(), assLinForms->end());
+  mech->DefineTestStrainIntegrators(vec, linForms);
 }
 
 void Excitation::SetPolarizationMatrixRHS(const Vector<double>& mechp,
     const Vector<double>& elecp, const int num)
 {
-  apply_linForms = true;
-
   loads.Clear();
-  linForms.clear();
-  
   MechPDE* mech = dynamic_cast<MechPDE*>(domain->GetSinglePDE("mechanic"));
-  mech->DefinePolarizationMatrixIntegrators(mechp, &linForms, num);
+  mech->DefinePolarizationMatrixIntegrators(mechp, linForms, num);
   
   ElecPDE* elec = dynamic_cast<ElecPDE*>(domain->GetSinglePDE("electrostatic"));
-  elec->DefinePolarizationMatrixIntegrators(elecp, &linForms, num);
-  
-  // all already set linear Forms
-  std::set<LinearFormContext*>* assLinForms = domain->GetBasePDE()->getPDE_assemble()->GetLinForms();
-  linForms.insert(assLinForms->begin(), assLinForms->end());
+  elec->DefinePolarizationMatrixIntegrators(elecp, linForms, num);
 }
 
 Optimization::Log::Log()

@@ -162,6 +162,29 @@ int SCPIPBase::SolveProblem(bool fromWarmstart)
     int spiwdim = spiw.GetSize();
     int spdwdim = spdw.GetSize();
 
+    LOG_DBG3(scpip_base) << "before call to scpip: n = " << n << ", mie = " << mie << ", meq = " << meq
+        << ", iemax = " << iemax << ", eqmax = " << eqmax << ", initial guess = " << x.ToString()
+        << ", lower bounds = " << x_l.ToString() << ", upper bounds = " << x_u.ToString()
+        << ", function value = " << f_org << ", inequality constraints = " << h_org.ToString() << ", equality constraints = " << g_org.ToString()
+        << ", gradient = " << df.ToString() << ", lagrange multipliers (ineq.) = " << y_ie.ToString() << ", lagrange multipliers (eq.) = " << y_eq.ToString()
+        << ", lagrange multipliers (l.b.) = " << y_l.ToString() << ", lagrange multipliers (u.b.) = " << y_u.ToString()
+        << ", icntl = " << icntl.ToString() << ", rcntl = " << rcntl.ToString()
+        << ", info = " << info.ToString() << ", rinfo = " << rinfo.ToString()
+        << ", nout = " << nout << ", r_scp = " << r_scp.ToString() << ", r_dim = " << rdim
+        << ", r_sub = " << r_sub.ToString() << ", r_subdim = " << rsubdim
+        << ", i_scp = " << i_scp.ToString() << ", i_dim = " << idim
+        << ", i_sub = " << i_sub.ToString() << ", i_subdim = " << isubdim
+        << ", active = " << active.ToString() 
+        << ", mode = " << mode << ", ierr = " << ierr 
+        << ", iern = " << iern.ToString() << ", iecn = " << iecn.ToString() << ", iederv = " << iederv.ToString()
+        << ", ielpar = " << ielpar << ", ieleng = " << ieleng
+        << ", eqrn = " << eqrn.ToString() << ", eqcn = " << eqcn.ToString() << ", eqcoef = " << eqcoef.ToString()
+        << ", eqlpar = " << eqlpar << ", eqleng = " << eqleng
+        << ", mactiv = " << mactiv
+        << ", spiw = " << spiw.ToString() << ", spiwdim = " << spiwdim
+        << ", spdw = " << spdw.ToString() << ", spdwdim = " << spdwdim
+        << ", spstrat = " << spstrat << ", linsys = " << linsys;
+    
     scpip30_(&n, &mie, &meq, &iemax, &eqmax, x.GetPointer(), x_l.GetPointer(), x_u.GetPointer(),
              &f_org, h_org.GetPointer(), g_org.GetPointer(), df.GetPointer(),
              y_ie.GetPointer(), y_eq.GetPointer(), y_l.GetPointer(), y_u.GetPointer(),
@@ -171,6 +194,29 @@ int SCPIPBase::SolveProblem(bool fromWarmstart)
              &mode, &ierr, iern.GetPointer(), iecn.GetPointer(), iederv.GetPointer(), &ielpar, &ieleng,
              eqrn.GetPointer(), eqcn.GetPointer(), eqcoef.GetPointer(), &eqlpar, &eqleng,
              &mactiv, spiw.GetPointer(), &spiwdim, spdw.GetPointer(), &spdwdim, &spstrat, &linsys);
+    
+    LOG_DBG3(scpip_base) << "after call to scpip: n = " << n << ", mie = " << mie << ", meq = " << meq
+        << ", iemax = " << iemax << ", eqmax = " << eqmax << ", initial guess = " << x.ToString()
+        << ", lower bounds = " << x_l.ToString() << ", upper bounds = " << x_u.ToString()
+        << ", function value = " << f_org << ", inequality constraints = " << h_org.ToString() << ", equality constraints = " << g_org.ToString()
+        << ", gradient = " << df.ToString() << ", lagrange multipliers (ineq.) = " << y_ie.ToString() << ", lagrange multipliers (eq.) = " << y_eq.ToString()
+        << ", lagrange multipliers (l.b.) = " << y_l.ToString() << ", lagrange multipliers (u.b.) = " << y_u.ToString()
+        << ", icntl = " << icntl.ToString() << ", rcntl = " << rcntl.ToString()
+        << ", info = " << info.ToString() << ", rinfo = " << rinfo.ToString()
+        << ", nout = " << nout << ", r_scp = " << r_scp.ToString() << ", r_dim = " << rdim
+        << ", r_sub = " << r_sub.ToString() << ", r_subdim = " << rsubdim
+        << ", i_scp = " << i_scp.ToString() << ", i_dim = " << idim
+        << ", i_sub = " << i_sub.ToString() << ", i_subdim = " << isubdim
+        << ", active = " << active.ToString() 
+        << ", mode = " << mode << ", ierr = " << ierr 
+        << ", iern = " << iern.ToString() << ", iecn = " << iecn.ToString() << ", iederv = " << iederv.ToString()
+        << ", ielpar = " << ielpar << ", ieleng = " << ieleng
+        << ", eqrn = " << eqrn.ToString() << ", eqcn = " << eqcn.ToString() << ", eqcoef = " << eqcoef.ToString()
+        << ", eqlpar = " << eqlpar << ", eqleng = " << eqleng
+        << ", mactiv = " << mactiv
+        << ", spiw = " << spiw.ToString() << ", spiwdim = " << spiwdim
+        << ", spdw = " << spdw.ToString() << ", spdwdim = " << spdwdim
+        << ", spstrat = " << spstrat << ", linsys = " << linsys;
 
     LOG_TRACE(scpip_base) << "scpip30 returns: ierr=" << ierr << " info[20-1]=" << info[20-1];
 
@@ -434,32 +480,53 @@ void SCPIPBase::AllocateProblem()
   //           2*N+3*IEMAX+2*EQMAX+IELPAR
   i_sub.Resize(2*n+3*iemax+2*eqmax+ielpar, 0);
 
-  // "dynamic" working arrays. We assume linsys=1 or 2
-  assert(linsys == 1 || linsys == 2);
+
   int spiwdim = 1;
-  int spdwdim = -1;
+  int spdwdim = 1;
   
   switch(spstrat)
   {
+    case 0:
+      linsys = 0;
+      break;
     case 1:
-      spdwdim = std::max((mactiv + meq) * (mactiv + meq), 1);
-      if(linsys == 2)
-      {
-        spiwdim = 5 * (n * mie + n * meq) + 2 * n + 1;
-        spdwdim = 10 * n * (mie + meq);
+      switch(linsys){
+      case 1:
+        spiwdim = 1;
+        assert(meq < 16); // would be more than 4GB
+        spdwdim = 1 << (2*meq);
+        break;
+      case 2:
+        spiwdim = 136 * (ieleng + eqleng) + 32 * (mie + meq) + 3*n + 22;
+        spdwdim = 70 * (ieleng + eqleng) + 2*(mie + meq);  // estimation is 10 * (ieleng + eqleng), this is too small usually
+        break;
+      case 3:
+        spiwdim = 1;
+        spdwdim = 1;
+        break;
+      default:
+        throw Exception("SCPIP: linsys not handled");
       }
       break;
     case 2:
-      // scpip does not support spstrat == 2 && linsys == 2
-      // assert(linsys == 1);
-      spdwdim = n * n; // big!!
+      switch(linsys){
+      case 1:
+        spdwdim = 1;
+        spiwdim = n*n;
+        break;
+      case 2:
+        throw Exception("SCPIP: spstart / linsys combination not supported");
+      case 3:
+        spiwdim = 1;
+        spdwdim = 1;
+        break;
+      default:
+        throw Exception("SCPIP: linsys not handled");
+      }
       break;
     default:
       throw Exception("spstrat not handled");
   }
-  
-  // set at least to one, or else we cannot call GetPointer() in call to scpip
-  if(spdwdim <= 0) spdwdim = 1;
   
   spdw.Resize(spdwdim, 0.0);
   spiw.Resize(spiwdim, 0);
@@ -470,6 +537,7 @@ void SCPIPBase::AllocateDynamic()
   if((int) spiw.GetSize() != info[6-1])
   {
     std::cout << "SCPIP: request to change spiwdim from " << spiw.GetSize() << " to " << info[6-1] << std::endl;
+    spiw.Resize(2*info[6-1], 0); // X
     spiw.Resize(info[6-1], 0);
   }
   if((int) spdw.GetSize() != info[7-1])

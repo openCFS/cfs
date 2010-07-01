@@ -252,10 +252,10 @@ bool SurfaceRef::Init(DesignSpace* design, Optimization::Application app)
   // check if we have a form with the application name
   LinearSurfForm* form = NULL;
   LinearFormContext* actContext = NULL;
-  std::set<LinearFormContext*>* forms =
-    domain->GetSinglePDE("mechanic")->getPDE_assemble()->GetLinForms();
+  StdVector<LinearFormContext*>* forms =
+    &(domain->GetSinglePDE("mechanic")->getPDE_assemble()->GetLinForms());
 
-  for(std::set<LinearFormContext*>::iterator it = forms->begin(); it != forms->end(); it++)
+  for(StdVector<LinearFormContext*>::iterator it = forms->Begin(); it != forms->End(); it++)
   {
     // get integrator
     actContext = *it;

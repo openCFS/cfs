@@ -527,16 +527,20 @@ int DesignSpace::ReadDesignFromExtern(const double* space)
       if(regions_[r].constant){
         const double v = space[s] * scaling + translation;
         for(unsigned int d = base + regions_[r].base; d < u; d++){
-          if(!new_design && data[d].GetDesign(DesignElement::PLAIN) != v)
+          if(!new_design && data[d].GetDesign(DesignElement::PLAIN) != v) {
             new_design = true;
+          }
+          LOG_DBG3(designSpace) << "ReadDesignFromExtern: setting design (constant region): data[" << d << "] = " << v;
           data[d].SetDesign(v);
         } // for d
         s++; // only advance after having set all element of this region to the corresponding value
       }else{
         for(unsigned int d = base + regions_[r].base; d < u; d++){
           double v = space[s] * scaling + translation;
-          if(!new_design && data[d].GetDesign(DesignElement::PLAIN) != v)
+          if(!new_design && data[d].GetDesign(DesignElement::PLAIN) != v) {
             new_design = true;
+          }
+          LOG_DBG3(designSpace) << "ReadDesignFromExtern: setting design: data[" << d << "] = " << v;
           data[d].SetDesign(v);
           s++; // advance in every step
         } // for d
@@ -562,10 +566,12 @@ int DesignSpace::WriteDesignToExtern(double* space, bool scaling) const
       const double rscaling = scaling ? 1.0 / scale_design[des][r] : 1.0;
       const double translation = scaling ? translate_design[des][r] : 0.0;
       if(regions_[r].constant){
+        LOG_DBG3(designSpace) << "WriteDesignToExtern: constant region " << r << " design[" << base + regions_[r].base << "]=" << data[base + regions_[r].base].GetDesign(DesignElement::PLAIN);
         space[d++] = (data[base + regions_[r].base].GetDesign(DesignElement::PLAIN) - translation) * rscaling;
       }else{
         const unsigned int u = base + regions_[r].base + regions_[r].elements;
         for(unsigned int s = base + regions_[r].base; s < u; s++){
+          LOG_DBG3(designSpace) << "WriteDesignToExtern: non-constant region " << r << " design[" << s << "]=" << data[s].GetDesign(DesignElement::PLAIN);
           space[d++] = (data[s].GetDesign(DesignElement::PLAIN) - translation) * rscaling;
         }
       } // if/else constant
@@ -649,7 +655,9 @@ void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignEleme
         {
           assert(out.InWindow(n));
           out[n] += data[s].GetValue(vs, access, g) * scaling;
+          LOG_DBG3(designSpace) << "WriteDenseGradientToExtern: constant region " << r << " design[" << s << "]=" << data[s].GetValue(vs, access, g);
         }
+        LOG_DBG3(designSpace) << "WriteDenseGradientToExtern: constant region " << r << " sum = " << out[n] / scaling;
         n++;
       }
       else
@@ -657,6 +665,7 @@ void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignEleme
         for(unsigned int s = base + regions_[r].base; s < region_elements; s++)
         {
           assert(out.InWindow(n));
+          LOG_DBG3(designSpace) << "WriteDenseGradientToExtern: non-constant region " << r << " design[" << s << "]=" << data[s].GetValue(vs, access, g);
           out[n++] = data[s].GetValue(vs, access, g) * scaling;
         }
       }

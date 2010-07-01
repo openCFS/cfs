@@ -102,18 +102,18 @@ namespace CoupledField {
     void SetLoads(LoadList& new_loads) { loads_ = new_loads; }
     
     /** Overwrites the linearForms to implement the multi-load optimization */
-    void SetLinForms(std::set<LinearFormContext*>& linForms) { linForms_ = linForms; }
+    void SetLinForms(StdVector<LinearFormContext*>* linForms) { linForms_ = linForms; }
 
     /** Returns the algebraic system
      * TODO check if really used */
     BaseSystem* GetAlgSys() { return algsys_; }
 
     /** Returns the bilinear forms list for Shape Optimization does need to loop these as assemble does */
-    std::set<BiLinFormContext*>* GetBiLinForms() { return &biLinForms_; }
+    StdVector<BiLinFormContext*>& GetBiLinForms() { return *biLinForms_; }
     
 
     /** Returns the linear forms list for external modification */
-    std::set<LinearFormContext*>* GetLinForms() { return &linForms_; }
+    StdVector<LinearFormContext*>& GetLinForms() { return *linForms_; }
 
   protected:
 
@@ -190,10 +190,10 @@ namespace CoupledField {
     std::map<FEMatrixType,FEMatrixType> matrixMap_;
 
     //! List of bilinear integrator contexts
-    std::set<BiLinFormContext*> biLinForms_;
+    StdVector<BiLinFormContext*>* biLinForms_;
 
     //! List of linear integrator contexts
-    std::set<LinearFormContext*> linForms_;
+    StdVector<LinearFormContext*>* linForms_;
 
     //! Map with flags if FE matrix has to be reassembled
     std::map<FEMatrixType, bool> matReassemble_;

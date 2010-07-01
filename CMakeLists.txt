@@ -293,9 +293,6 @@ IF(DEBUG)
 ELSE(DEBUG)
   SET(CMAKE_BUILD_TYPE "RELEASE" CACHE STRING
     "Only DEBUG and RELEASE types are valid." FORCE)
-  SET(ENABLE_PROFILING OFF CACHE BOOL
-    "Turn on profiling (DEBUG only)."FORCE)
-  MARK_AS_ADVANCED(ENABLE_PROFILING)
   
   #---------------------------------------------------------------------------
   # Activate expression templates (in RELEASE mode)

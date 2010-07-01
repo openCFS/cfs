@@ -39,6 +39,9 @@ namespace CoupledField
     isFirstTime_ = true;
     matrixUpdated_ = false;
     maxTimeDerivOrder_ = maxTimeDerivOrder;
+    
+    biLinForms_ = new StdVector<BiLinFormContext*>();
+    linForms_ = new StdVector<LinearFormContext*>();
 
     // Calculate matrix map from general matrix types to analysis
     // specific ones
@@ -68,20 +71,18 @@ namespace CoupledField
   Assemble::~Assemble() {
 
     // Delete bilinear contexts
-    std::set<BiLinFormContext*>::iterator biLinIt;
-
-    for( biLinIt = biLinForms_.begin();
-         biLinIt != biLinForms_.end(); biLinIt++ ) {
-      delete *biLinIt;
+    for(unsigned int i = 0; i < biLinForms_->GetSize(); ++i){
+      delete (*biLinForms_)[i];
     }
+    
+    delete biLinForms_;
 
     // Delete linear contexts
-    std::set<LinearFormContext*>::iterator linIt;
-
-    for( linIt = linForms_.begin();
-         linIt != linForms_.end(); linIt++ ) {
-      delete *linIt;
+    for(unsigned int i = 0; i < linForms_->GetSize(); ++i){
+      delete (*linForms_)[i];
     }
+    
+    delete linForms_;
   }
 
   BiLinFormContext* Assemble::GetBiLinForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2,  const std::string& integrator)
@@ -92,8 +93,8 @@ namespace CoupledField
      BiLinFormContext* result = NULL;
 
      // iterate over all descriptors
-     std::set<BiLinFormContext*>::iterator iter;
-     for (iter = biLinForms_.begin(); iter != biLinForms_.end(); iter++)
+     StdVector<BiLinFormContext*>::iterator iter;
+     for (iter = biLinForms_->Begin(); iter != biLinForms_->End(); iter++)
      {
        // we are wrong if the region does not match
        if((*iter)->GetFirstEntities()->GetName() != region) continue;
@@ -155,7 +156,7 @@ namespace CoupledField
     if( mappedFEType != NOTYPE ) {
 
       // Store bilinear form
-      biLinForms_.insert( biLinContext );
+      biLinForms_->Push_back( biLinContext );
 
       // Pass needed matrix type to algebraic system
       PdeIdType id1 = biLinContext->GetFirstPde()->GetPDEId();
@@ -186,7 +187,7 @@ namespace CoupledField
     // assert that some entites are set
     assert( linContext->GetEntities() != NULL );
 
-    linForms_.insert( linContext );
+    linForms_->Push_back( linContext );
 
   }
 
@@ -203,9 +204,9 @@ namespace CoupledField
     PdeIdType id1, id2;
 
     // iterate over all descriptors
-    std::set<BiLinFormContext*>::iterator formsIt;
-    for ( formsIt = biLinForms_.begin();
-          formsIt != biLinForms_.end(); formsIt++ ) {
+    StdVector<BiLinFormContext*>::iterator formsIt;
+    for ( formsIt = biLinForms_->Begin();
+          formsIt != biLinForms_->End(); formsIt++ ) {
 
       // get integrator
       BiLinFormContext & actContext = **formsIt;
@@ -311,9 +312,9 @@ namespace CoupledField
     MathParser * parser = domain->GetMathParser();
 
     // iterate over all descriptors
-    std::set<BiLinFormContext*>::iterator formsIt;
-    for ( formsIt = biLinForms_.begin();
-          formsIt != biLinForms_.end(); formsIt++ ) {
+    StdVector<BiLinFormContext*>::iterator formsIt;
+    for ( formsIt = biLinForms_->Begin();
+          formsIt != biLinForms_->End(); formsIt++ ) {
       // get integrator
       BiLinFormContext & actContext = **formsIt;
 
@@ -462,9 +463,9 @@ namespace CoupledField
 
   void Assemble::CalcMinMaxStrain() {
     // iterate over all descriptors
-    std::set<BiLinFormContext*>::iterator formsIt;
-    for ( formsIt = biLinForms_.begin(); 
-          formsIt != biLinForms_.end(); formsIt++ ) {
+    StdVector<BiLinFormContext*>::iterator formsIt;
+    for ( formsIt = biLinForms_->Begin(); 
+          formsIt != biLinForms_->End(); formsIt++ ) {
       
       // get integrator
       BiLinFormContext & actContext = **formsIt;
@@ -523,11 +524,11 @@ namespace CoupledField
 
     StdVector<Integer> eqnVec;
     PdeIdType pdeId;
-    std::set<LinearFormContext*>::iterator formsIt;
+    StdVector<LinearFormContext*>::iterator formsIt;
 
     // iterate over all descriptors
-    for ( formsIt = linForms_.begin();
-          formsIt != linForms_.end();
+    for ( formsIt = linForms_->Begin();
+          formsIt != linForms_->End();
           formsIt++ ) {
 
       // get integrator
@@ -732,8 +733,8 @@ namespace CoupledField
     PtrParamNode list = in->Get("matrixBiLinearForms");
 
     // iterate over all descriptors
-    std::set<BiLinFormContext*>::iterator it;
-    for ( it = biLinForms_.begin(); it != biLinForms_.end(); it++ )
+    StdVector<BiLinFormContext*>::iterator it;
+    for ( it = biLinForms_->Begin(); it != biLinForms_->End(); it++ )
     {
       // get integrator
       BiLinFormContext & context = **it;
@@ -768,8 +769,8 @@ namespace CoupledField
     list = in->Get("rhsLinearForms");
 
     // iterate over all descriptors
-    std::set<LinearFormContext*>::iterator linIt;
-    for (linIt = linForms_.begin(); linIt != linForms_.end(); linIt++)
+    StdVector<LinearFormContext*>::iterator linIt;
+    for (linIt = linForms_->Begin(); linIt != linForms_->End(); linIt++)
     {
       PtrParamNode form = list->Get("linearForm", ParamNode::APPEND);
 
@@ -805,9 +806,9 @@ namespace CoupledField
     matReassemble_.clear();
 
     // iterate over all bilinearforms
-    std::set<BiLinFormContext*>::iterator it;
+    StdVector<BiLinFormContext*>::iterator it;
 
-    for( it = biLinForms_.begin(); it != biLinForms_.end(); it++ )
+    for( it = biLinForms_->Begin(); it != biLinForms_->End(); it++ )
     {
       BiLinFormContext & actContext = **it;
 
@@ -954,7 +955,7 @@ namespace CoupledField
 
     // Run over all bilinearform contexts
     std::map<FEMatrixType, bool> isSymmetric;
-    std::set<BiLinFormContext*>::iterator it;
+    StdVector<BiLinFormContext*>::iterator it;
 
     // Assume at the beginning that all matrices are symmetric
     isSymmetric[SYSTEM] = true;
@@ -969,7 +970,7 @@ namespace CoupledField
 
 
     // iterate over all bilinear forms
-    for( it = biLinForms_.begin(); it != biLinForms_.end(); it++ ) {
+    for( it = biLinForms_->Begin(); it != biLinForms_->End(); it++ ) {
 
       BiLinFormContext & actCt = (**it);
 

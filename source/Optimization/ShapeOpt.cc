@@ -18,15 +18,15 @@ ShapeOpt::ShapeOpt() : ParamMat() {
   alsomatopt_ = shapedesign->AlsoMatOpt();
 
   // all (bi)linear forms need to use updated coordinates
-  std::set<BiLinFormContext*>* biLinForms = assemble_->GetBiLinForms();
-  for(std::set<BiLinFormContext*>::iterator iBiLinForm = biLinForms->begin(); iBiLinForm != biLinForms->end(); iBiLinForm++){
-    (*iBiLinForm)->GetIntegrator()->SetUseCoordUpdate(true);
+  StdVector<BiLinFormContext*>& biLinForms = assemble_->GetBiLinForms();
+  for(unsigned int i = 0; i < biLinForms.GetSize(); ++i){
+    biLinForms[i]->GetIntegrator()->SetUseCoordUpdate(true);
   }
   // set the linearForms used in multiple excitations, note that this does contain all linearforms (some even several times)
   for(unsigned int i = 0; i < excitations.GetSize(); i++){
-    std::set<LinearFormContext*>* linForms = excitations[i].GetLinForms();
-    for(std::set<LinearFormContext*>::iterator iForm = linForms->begin(); iForm != linForms->end(); iForm++){
-      (*iForm)->GetIntegrator()->SetUseCoordUpdate(true);
+    StdVector<LinearFormContext*>& linForms = excitations[i].GetLinForms();
+    for(unsigned int j = 0; j < linForms.GetSize(); ++j){
+      linForms[j]->GetIntegrator()->SetUseCoordUpdate(true);
     }
   }
 }
@@ -190,9 +190,9 @@ void ShapeOpt::CalcMinusU1dKU2(StdVector<SingleVector*>& u1, StdVector<SingleVec
   Matrix<double> A3;
   Matrix<double> A4;
   
-  std::set<BiLinFormContext*>* biLinForms = assemble_->GetBiLinForms();
-  for(std::set<BiLinFormContext*>::iterator iBiLinForm = biLinForms->begin(); iBiLinForm != biLinForms->end(); iBiLinForm++){ // loop over all linElastInt bilinear forms (as assemble does)
-    BiLinFormContext* biLinForm = *iBiLinForm;
+  StdVector<BiLinFormContext*>& biLinForms = assemble_->GetBiLinForms();
+  for(unsigned int i = 0; i < biLinForms.GetSize(); ++i){ // loop over all linElastInt bilinear forms (as assemble does)
+    BiLinFormContext* biLinForm = biLinForms[i];
     if(biLinForm->GetFirstPde()->GetName() != pde->GetName()) continue;
     if(biLinForm->GetSecondPde()->GetName() != pde->GetName()) continue;
     if(biLinForm->GetIntegrator()->GetName() != "linElastInt") continue;
@@ -297,9 +297,9 @@ void ShapeOpt::CalcUdF(Excitation& excite, StdVector<SingleVector*>& u, Objectiv
   Vector<Double> vec1(3), vec2(3), dvec1(3), dvec2(3);
   
   unsigned int dim = grd->GetDim();
-  std::set<LinearFormContext*>* linForms = excite.GetLinForms();
-  for(std::set<LinearFormContext*>::iterator iLinForm = linForms->begin(); iLinForm != linForms->end(); iLinForm++){ // loop over all pressure linear forms (as assemble does)
-    LinearFormContext* linForm = *iLinForm;
+  StdVector<LinearFormContext*>& linForms = excite.GetLinForms();
+  for(unsigned int i = 0; i < linForms.GetSize(); ++i){ // loop over all pressure linear forms (as assemble does)
+    LinearFormContext* linForm = linForms[i];
     if(linForm->GetPde()->GetName() != pde->GetName()) continue;
     if(linForm->GetIntegrator()->GetName() != "PressureLinForm") continue;
     PressureLinForm* form = (PressureLinForm*)(linForm->GetIntegrator());
@@ -419,9 +419,7 @@ double ShapeOpt::CalcCompliance(Excitation& excite, Objective* f, Condition* con
 double ShapeOpt::CalcTracking(Excitation& excite, Objective* f, Condition* constraint, bool derivative){
   if(derivative){
 
-//    adjoint.Get(excite)->Read(Solution::GRIDELEM_VECTORS, pde, MECH);
     StdVector<SingleVector*>& z = adjoint.Get(excite)->gridelem[MECH];
-//    forward.Get(excite)->Read(Solution::GRIDELEM_VECTORS, pde, MECH);
     StdVector<SingleVector*>& u = forward.Get(excite)->gridelem[MECH];
     
     // the derivative of tracking w.r.t. shape is: - z' dA/dShape u + z dF/dShape 

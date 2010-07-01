@@ -345,10 +345,13 @@ namespace CoupledField {
 
     if (assemble_->IsMatrixUpdated() ) { //todo: this is always true at least in optimization (note, that if this is fixed, FirstStaticStep need to call ConstructEffectiveMatrix for step 1 and 2
       if(domain->GetOptimization() && domain->GetOptimization()->IsFirstTransientStepStatic() && actStep_ == 1){ // calculate first step static, and the adjoint will also be static
-        double t = matrix_factor_[MASS];
+        double tMass = matrix_factor_[MASS];        
+        double tDamp = matrix_factor_[DAMPING];
         matrix_factor_[MASS] = 0.0;
+        matrix_factor_[DAMPING] = 0.0;
         algsys_->ConstructEffectiveMatrix(matrix_factor_);
-        matrix_factor_[MASS] = t;
+        matrix_factor_[MASS] = tMass;
+        matrix_factor_[DAMPING] = tDamp;
       }else{
         algsys_->ConstructEffectiveMatrix(matrix_factor_);
       }

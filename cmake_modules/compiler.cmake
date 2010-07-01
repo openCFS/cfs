@@ -82,10 +82,6 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
     SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment")
     SET(CHECK_MEM_ALLOC 1)
 
-    IF(CFS_PROFILING)
-      SET(CFS_PROF_FLAGS "-pg")
-    ENDIF(CFS_PROFILING)
-
   ELSE(DEBUG)
 
     SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment")
@@ -126,6 +122,10 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
       
   ENDIF(DEBUG)
   
+  IF(PROFILING)
+    SET(CFS_PROF_FLAGS "-pg")
+  ENDIF(PROFILING)
+
   IF(COVERAGE)
     SET(CFS_C_FLAGS "-fprofile-arcs -ftest-coverage ${CFS_C_FLAGS}")
     SET(CFS_CXX_FLAGS "-fprofile-arcs -ftest-coverage ${CFS_CXX_FLAGS}")
@@ -179,9 +179,6 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
     SET(CFS_C_FLAGS "-g -ansi -w1 -Wcheck -Werror ${CFS_C_FLAGS}")
     SET(CHECK_MEM_ALLOC 1)
 
-    IF(CFS_PROFILING)
-      SET(CFS_PROF_FLAGS "-pg")
-    ENDIF(CFS_PROFILING)
   ELSE(DEBUG)
     SET(CFS_C_FLAGS "-O3 -ansi -w0 -Werror ${CFS_C_FLAGS}")
     SET(CFS_SUPPRESSIONS "-wd1125,654,980 -Wno-unknown-pragmas -Wno-comment")
@@ -195,6 +192,9 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
     ENDIF(CFS_CXX_COMPILER_VER MATCHES "11\\.")
   ENDIF(DEBUG)
 
+  IF(PROFILING)
+    SET(PROF_FLAGS "-pg")
+  ENDIF(PROFILING)
   #---------------------------------------------------------------------------
   # Disable warnings about hidden overriden functions of base classes,
   # unknown pragmas (openmp, etc.) and multiline comments.
@@ -207,6 +207,9 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
     SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -fno-builtin-std::basic_istream::get")
     SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -fno-builtin-std::max")
   ENDIF(CFS_CXX_COMPILER_VER MATCHES "11\\.")
+  
+  # The intel compiler might not know the function __builtin_isnan (and isinf), so redirect that to isnan
+  SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -D__builtin_isnan=isnan -D__builtin_isinf=isinf")
 
 ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
 

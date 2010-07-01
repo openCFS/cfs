@@ -152,7 +152,7 @@ private:
   /** reports the result of the call to snOptA */
   int INFO;
   
-  /** return value of snopta */
+  /** return value of snOptA */
   int EXIT;
   
   const int ObjRow; // which row of F do we use as objective? -> by definition, it will be 1! NOTE: Me must add one to mesh with fortran

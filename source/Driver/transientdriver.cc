@@ -164,6 +164,7 @@ namespace CoupledField {
       bool log = false;
       if(optimization != NULL){
         cout << ".";
+        cout.flush();
       }else{
         if(numstep_ <= 50)
           log = true;

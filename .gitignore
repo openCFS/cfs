@@ -5,8 +5,10 @@
 /debug
 /icc
 /iccomp
+/intel
 /nomkl
 /openmp
+/profile
 /rel-openmp
 /release
 share/doc/developer/DoxygenConfig/doxy-config
@@ -14,3 +16,4 @@ share/doc/developer/DoxygenConfig/footer.html
 share/doc/developer/makedoc.sh
 share/doc/user/makedoc.sh
 share/scripts/IdentifyFortranCompiler.s
+/valgrind
