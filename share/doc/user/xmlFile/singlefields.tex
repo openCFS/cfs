@@ -459,7 +459,7 @@ useful in a transient simulation that begins after the flow field has had some
 time to develop turbulence. In this case, immediately switching on the full
 source term can lead to numerical errors. A ramp function has proven to give
 much better results. A commonly used ramp is
-\verb|if( t lt T; sin(2*pi*t/(4*T))^2; 1)|, where \texttt{T} must be replaced
+\verb|if( t lt T, sin(2*pi*t/(4*T))^2, 1)|, where \texttt{T} must be replaced
 with the time duration of the ramp.
 
 The \xel{asyncSteps} element tackles that fact that time steps in CFD are
