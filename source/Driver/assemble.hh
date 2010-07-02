@@ -71,6 +71,9 @@ namespace CoupledField {
     // ======================================================
     //  MISCELLANEOUS METHODS
     // ======================================================
+    
+    //! Tell Assemble to Reassemble all the matrices the next time (done on init and from Optimization)
+    void SetAllReassemble(){ CheckNonLinearities(true); }
 
     //! Query if resulting matrix will be symmetric
     bool IsFEMatSymmetric( FEMatrixType matType = SYSTEM );
@@ -151,7 +154,8 @@ namespace CoupledField {
 
     //! Check which integrator is non-linear due to solution-dependent
     //! non-linearities or updated lagrangian formulation
-    void CheckNonLinearities();
+    //! if setall is set, set all to be reassembled, called from SetAllReassemble (on Init or from Optimization)
+    void CheckNonLinearities(bool setall = false);
 
     // ======================================================
     // SCRIPTING SECTION

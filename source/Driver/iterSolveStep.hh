@@ -34,7 +34,7 @@ namespace CoupledField
     virtual void PreStepStatic()  {;};
  
     /** base method for solving one static step */
-    virtual void SolveStepStatic(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL, const bool reAssembleMatrices = true);
+    virtual void SolveStepStatic(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL);
 
     //! routine for acttions after the SolveStep-method
     virtual void PostStepStatic() {;}
@@ -47,7 +47,7 @@ namespace CoupledField
 
 
     //! base method for solving one transient step 
-    virtual void SolveStepTrans(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL, const bool reAssembleMatrices = true);
+    virtual void SolveStepTrans(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL);
     
     //! routine for actions after the SolveStep-method
     virtual void PostStepTrans() {;};

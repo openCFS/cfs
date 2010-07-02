@@ -189,7 +189,7 @@ piezoParamIdent::~piezoParamIdent() {
     inMechMess_.close();
 }
 
-void piezoParamIdent::SolveProblem(bool write_results, PtrParamNode given_analysis_id, AdjointParameters* adjointParams, const bool reAssembleMatrices) {
+void piezoParamIdent::SolveProblem(bool write_results, PtrParamNode given_analysis_id, AdjointParameters* adjointParams) {
 
   ResultHandler * resHandler = domain->GetResultHandler();
   InitializePDEs();

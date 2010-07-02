@@ -4,6 +4,8 @@
 #include "Optimization/TopGrad.hh"
 #include "Optimization/LevelSet.hh"
 #include "Utils/Timer.hh"
+#include "PDE/basePDE.hh"
+#include "Driver/assemble.hh"
 
 namespace CoupledField
 {
@@ -81,12 +83,16 @@ void ShapeOptimizer::SolveProblem()
     assert(ptrLS_ != NULL);
   }
 
+  domain->GetBasePDE()->getPDE_assemble()->SetAllReassemble(); // tell assemble, design has changed    
   optimization->SolveStateProblem();
 
   while(curr_iter <= max_iter && !optimization->DoStopOptimization())
   {
     // in every iteration we need to solve the state problem again
-    if(curr_iter > 0) optimization->SolveStateProblem();
+    if(curr_iter > 0){
+      domain->GetBasePDE()->getPDE_assemble()->SetAllReassemble();    
+      optimization->SolveStateProblem();
+    }
     
     if(dynamic_cast<ErsatzMaterial*>(optimization)->ToPDE(Optimization::MECH, false) != NULL)
     {

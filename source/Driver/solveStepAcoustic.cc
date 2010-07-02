@@ -226,7 +226,7 @@ namespace CoupledField {
     }
   }
 
-  void SolveStepAcoustic::StepTransLin(PtrParamNode analysis_id, AdjointParameters* adjointParams, const bool reAssembleMatrices) {
+  void SolveStepAcoustic::StepTransLin(PtrParamNode analysis_id, AdjointParameters* adjointParams) {
     if(justInterpolate_) {
       //account for RHS
       assemble_->AssembleLinRHS(adjointParams);
@@ -238,7 +238,7 @@ namespace CoupledField {
       PDE_.SaveRHS( rhs.GetPointer(), rhs.GetSize());
     }
     else {
-      StdSolveStep::StepTransLin(analysis_id, adjointParams, reAssembleMatrices);
+      StdSolveStep::StepTransLin(analysis_id, adjointParams);
     }
   }
 

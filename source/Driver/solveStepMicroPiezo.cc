@@ -60,7 +60,7 @@ namespace CoupledField {
 
 
 
-  void SolveStepMicroPiezo::SolveStepTrans(PtrParamNode analysis_id, AdjointParameters* adjointParams, const bool reAssembleMatrices) {
+  void SolveStepMicroPiezo::SolveStepTrans(PtrParamNode analysis_id, AdjointParameters* adjointParams) {
 
     StepTransNonLin(analysis_id);
 

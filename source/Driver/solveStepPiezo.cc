@@ -59,7 +59,7 @@ namespace CoupledField {
 
   // time is used for a series of static calculations
   // don't get confused with REAL transient simulations!
-  void SolveStepPiezo::SolveStepTrans(PtrParamNode analysis_id, AdjointParameters* adjointParams, const bool reAssembleMatrices) {
+  void SolveStepPiezo::SolveStepTrans(PtrParamNode analysis_id, AdjointParameters* adjointParams) {
 
 
     if (isHyst_) {
@@ -73,7 +73,7 @@ namespace CoupledField {
     }
 
     else {
-      StepTransLin(analysis_id, adjointParams, reAssembleMatrices);
+      StepTransLin(analysis_id, adjointParams);
     }
 
   }

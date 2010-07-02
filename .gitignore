@@ -4,8 +4,8 @@
 /compile
 /debug
 /icc
+/iccdebug
 /iccomp
-/intel
 /nomkl
 /openmp
 /profile

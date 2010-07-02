@@ -201,7 +201,7 @@ namespace CoupledField
   // ****************
   //   SolveProblem
   // ****************
-  void HarmonicDriver::SolveProblem(bool write_results, PtrParamNode analysis_id, AdjointParameters* adjointParams, const bool reAssembleMatrices)
+  void HarmonicDriver::SolveProblem(bool write_results, PtrParamNode analysis_id, AdjointParameters* adjointParams)
   {
     // in harmonics one cannot extraxt the result writing to StoreResults() as
     // we have multiple frequencies. (exceptions is optimization)

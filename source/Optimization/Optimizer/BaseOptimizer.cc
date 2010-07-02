@@ -5,6 +5,10 @@
 #include "Utils/StdVector.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "Utils/Timer.hh"
+#include "Domain/domain.hh"
+#include "PDE/basePDE.hh"
+#include "Driver/assemble.hh"
+
 
 #include <sstream>
 #include <cmath>
@@ -236,6 +240,9 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
   {
     design_.design_id = new_design;
     need_eval = true;
+    
+    // tell assemble, the design has changed
+    domain->GetBasePDE()->getPDE_assemble()->SetAllReassemble();    
 
     // does a lot of work.
     optimization->SolveStateProblem();
@@ -263,43 +270,31 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
   return ret;
 }
 
-bool BaseOptimizer::EvalGradObjective(int n, const double* x, bool cfs_scale, StdVector<double>& grad_f)
-{
-  assert(optimization->GetDesign()->GetNumberOfVariables() == (unsigned int) n);
+bool BaseOptimizer::SolveAdjointProblemsIfNeeded(int n, const double* x, bool cfs_scale){
+  // The function has to be evaluated before the gradient can be computed
+  // This is true most times, as usually the rhs of the adjoint problem depends on the solution
+  // On the other hand, it is called be the Optimizer before usually and so generates no cost. (But one cannot rely on this behaviour.)
+  EvalObjective(n, x, cfs_scale);
 
   timer_->Stop();
-
-  // set the design and see if it is a new one
-  int new_design = optimization->GetDesign()->ReadDesignFromExtern(x);
   
-  LOG_DBG2(optimizer) << "EvalGradObjective() external design_id=" << new_design << " design.design_id=" << design_.design_id;
+  bool need_eval = design_.design_id != design_.gradient_design_id; 
   
-  // do we have a valid value?
-  bool need_eval = true;
-
-  // new evaluation necessary?
-  if(new_design != design_.design_id)
-  {
-    need_eval = true;
-
-    // does a lot of work.
-    optimization->SolveStateProblem();
-
-    // set a proper objective - should be cheap and might be read from EvalObjective()!
-    design_.value = optimization->CalcObjective();
-    design_.design_id = new_design;
-  }    
-  else
-  {
-    need_eval = false;
-    // only done in debug
-    assert(close(design_.value, optimization->CalcObjective()));
-  }
-  
-  if(new_design != design_.gradient_design_id){ // the adjoints have to be recalculated
+  if(need_eval){ // the adjoints have to be recalculated
     optimization->SolveAdjointProblems();
-    design_.gradient_design_id = new_design;
+    design_.gradient_design_id = design_.design_id;
   }
+  
+  timer_->Start();
+  
+  return(need_eval);  
+}
+
+bool BaseOptimizer::EvalGradObjective(int n, const double* x, bool cfs_scale, StdVector<double>& grad_f)
+{
+  bool need_eval = SolveAdjointProblemsIfNeeded(n, x, cfs_scale);
+  
+  timer_->Stop();
   
   LOG_DBG2(optimizer) << "EvalGradObjective: call CalcObjectiveGradient()";
   // calc our gradient - it is not stored anywhere
@@ -336,11 +331,12 @@ void BaseOptimizer::EvalConstraints(int n, const double* x, int m, bool cfs_scal
 {
   assert(m == optimization->constraints.view->GetNumberOfActiveConstraints());
 
+  // Before the constraints can be calculated it might be the case, that the forward problem needs recalculation
+  // if it does not, this does not cost more than reading the design
+  EvalObjective(n, x, cfs_scale);
+  
   timer_->Stop();
   
-  // we overwrite the design space, but we do this all the time - especially before eval_f
-  optimization->GetDesign()->ReadDesignFromExtern(x); 
-     
   // iterate over all constraints
   for(int i = 0; i < m; i++)
   {
@@ -405,6 +401,8 @@ int BaseOptimizer::EvalGradConstraints(Condition* g, int start, bool cfs_scale,
 void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentries, bool cfs_scale,
       StdVector<double>& values, GradientType grtype)
 {
+  SolveAdjointProblemsIfNeeded(n, x, cfs_scale);
+  
   timer_->Stop();
 
   // note, that we have dense gradients!

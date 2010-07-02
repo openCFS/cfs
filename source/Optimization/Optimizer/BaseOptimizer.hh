@@ -5,6 +5,7 @@
 #include <string>
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
+
 namespace CoupledField
 {
   class Optimization;
@@ -177,6 +178,8 @@ namespace CoupledField
     /** helper function for snopt-optimizer which separates linear and nonlinear constraint gradients */
     int EvalGradConstraints(Condition* g, int start, bool cfs_scale, 
         StdVector<double>& values, GradientType grtype = ALL);
+    
+    bool SolveAdjointProblemsIfNeeded(int n, const double* x, bool cfs_scale);
     
     /** Here we store the objective value for a design. */
     DesignMemory design_;

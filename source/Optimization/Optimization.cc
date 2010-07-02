@@ -469,12 +469,6 @@ void Optimization::SolveStateProblem(Excitation* excite)
   PtrParamNode analysis_id = excite == NULL ? driver->CreateAnalysisId("iter", currentIteration)
                                          : driver->CreateAnalysisId("iter", currentIteration, "excite", excite->index);
   
-  bool reAssembleMatrices = true;
-  if(excite != NULL && excite->index > 0)
-  {
-    reAssembleMatrices = false;
-  }
-  
   if(IsTransient() && problemSolvedCounter > 0){ // transient optimization always has a mech pde
     SinglePDE* mech = domain->GetSinglePDE("mechanic");
     mech->ReReadResults();
@@ -484,7 +478,7 @@ void Optimization::SolveStateProblem(Excitation* excite)
                                          
   // Do not store the results. This is to be done in CommitIteration
   if(!harmonic || excite == NULL) 
-    driver->SolveProblem(IsTransient(), analysis_id, false, reAssembleMatrices); // static and transient optimization
+    driver->SolveProblem(IsTransient(), analysis_id, false); // static and transient optimization
   else
     dynamic_cast<HarmonicDriver*>(driver)->ComputeFrequencyStep(excite->f_link->step, analysis_id);
 
@@ -505,7 +499,7 @@ void Optimization::SolveAdjointProblem(Excitation* excite, Objective* cost){
 
   // Do not store the results. This is adjoint.
   if(!harmonic) 
-    driver->SolveProblem(false, CreateAdjointAnalysisIdNode(), &adjointParams, false); // static and transient optimization
+    driver->SolveProblem(false, CreateAdjointAnalysisIdNode(), &adjointParams); // static and transient optimization
   else
       EXCEPTION("Harmonic adjoint not implemented!");
 }

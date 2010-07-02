@@ -121,19 +121,6 @@ ErsatzMaterial::ErsatzMaterial() :
   // Get the assemble class
   assemble_ = pde->getPDE_assemble();
 
-  // manipulate the PDE (the integrator of its bilinear form) such that
-  // it is set up with the new density values in the optimization loops
-  for(unsigned int r=0; r < regionIds.GetSize(); r++){
-    if(pde->GetName() == "mechanic")
-    {
-      GetForm(regionIds[r], pde, pde, "linElastInt")->SetSolDependent(true);
-      if(harmonic || IsTransient())
-        GetForm(regionIds[r], pde, pde, "MassInt")->SetSolDependent(true);
-    }
-    if(pde->GetName() == "heatConduction")
-      GetForm(regionIds[r], pde, pde, "LaplaceInt")->SetSolDependent(true);
-  }
-
   // check our constraints, the shall have only valid designs
   for(unsigned int i = 0; i < constraints.all.GetSize();  i++)
   {

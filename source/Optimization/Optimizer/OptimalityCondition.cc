@@ -8,6 +8,9 @@
 #include "General/exception.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "Domain/domain.hh"
+#include "PDE/basePDE.hh"
+#include "Driver/assemble.hh"
 
 using namespace CoupledField;
 using std::abs;
@@ -111,6 +114,7 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNod
 void OptimalityCondition::SolveProblem()
 {
   // solve the state problem first
+  domain->GetBasePDE()->getPDE_assemble()->SetAllReassemble(); // tell assemble that the Design has changed    
   optimization->SolveStateProblem();
 
   // start with iteration 0 which is the initial design
@@ -161,6 +165,7 @@ void OptimalityCondition::SolveProblem()
     }
     
     // solve the state problem for the new design vector
+    domain->GetBasePDE()->getPDE_assemble()->SetAllReassemble();    
     optimization->SolveStateProblem();
 
     // calc the objective for the logging in CommitIteration(),

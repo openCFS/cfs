@@ -33,7 +33,7 @@ namespace CoupledField
     void PreStepTrans();
 
     //! base method for solving one transient step 
-    void SolveStepTrans(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL, const bool reAssembleMatrices = true);
+    void SolveStepTrans(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL);
 
     //! solves for one nonlinear transient step (with hysteresis) 
     void StepTransNonLinEpsDiff(PtrParamNode analysis_id);

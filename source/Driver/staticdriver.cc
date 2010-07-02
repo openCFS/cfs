@@ -56,7 +56,7 @@ namespace CoupledField {
   // *****************
   //   Solve problem
   // *****************
-  void StaticDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id, AdjointParameters* adjointParams, const bool reAssembleMatrices)
+  void StaticDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id, AdjointParameters* adjointParams)
   {
     // Set current value of time step and time step size in the mathParser
     domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
@@ -85,7 +85,7 @@ namespace CoupledField {
     ptPDE_->GetSolveStep()->SetActTime(0.0);
     ptPDE_->GetSolveStep()->SetActStep(1);
     ptPDE_->GetSolveStep()->PreStepStatic();
-    ptPDE_->GetSolveStep()->SolveStepStatic(analysis_id_, adjointParams, reAssembleMatrices);
+    ptPDE_->GetSolveStep()->SolveStepStatic(analysis_id_, adjointParams);
     ptPDE_->GetSolveStep()->PostStepStatic();
 
     // in optimization we write the results via StoreResults() because

@@ -88,7 +88,7 @@ namespace CoupledField {
     InitializePDEs();
   }
     
-  void TransientDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id, AdjointParameters* adjointParams, const bool reAssembleMatrices) 
+  void TransientDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id, AdjointParameters* adjointParams) 
   {
     // notify resultHandler about beginning of new sequence step 
     ResultHandler * resHandler = domain->GetResultHandler();
@@ -100,7 +100,6 @@ namespace CoupledField {
     UInt nextRestart  = restartStep_ + restartIncr_ * direction;
     Double  dt = firstdt_;
     bool haltFlag=false;
-    bool isFirstStep = true;
     
     Optimization* optimization = domain->GetOptimization();
 
@@ -205,7 +204,7 @@ namespace CoupledField {
       ptPDE_->GetSolveStep()->SetActTime(steptime);
       ptPDE_->GetSolveStep()->SetActStep(actTimeStep_);
       ptPDE_->GetSolveStep()->PreStepTrans();
-      ptPDE_->GetSolveStep()->SolveStepTrans(analysis_id_, adjointParams, isFirstStep);
+      ptPDE_->GetSolveStep()->SolveStepTrans(analysis_id_, adjointParams);
       ptPDE_->GetSolveStep()->PostStepTrans();
       
       if(optimization != NULL){
@@ -238,7 +237,6 @@ namespace CoupledField {
       }    
 
       steptime+=dt*direction;
-      isFirstStep = false;
     }
     if(optimization){
       cout << endl;

@@ -28,9 +28,9 @@ ENDIF(COMMAND CMAKE_POLICY)
 # The name of our project is "CFS".  CMakeLists files in this
 # project can refer to the root source directory of the project as
 # ${CFS_SOURCE_DIR} and to the root binary directory of the project
-# as ${CFS_BINARY_DIR}. We use C, C++ and Fortran as languages.
+# as ${CFS_BINARY_DIR}.
 #-----------------------------------------------------------------------------
-PROJECT(CFS C CXX Fortran)
+PROJECT(CFS NONE)
 
 #-----------------------------------------------------------------------------
 # CFS version number.  Simply the last modification date
@@ -62,6 +62,13 @@ SET(CFS_BUILD_USER "$ENV{USER}"
 # Set default values according to environment or platform
 #-----------------------------------------------------------------------------
 INCLUDE("cmake_modules/platform_defaults.cmake")
+
+#-----------------------------------------------------------------------------
+#  We use C, C++ and Fortran as languages.
+#-----------------------------------------------------------------------------
+ENABLE_LANGUAGE("C")
+ENABLE_LANGUAGE("CXX")
+ENABLE_LANGUAGE("Fortran")
 
 #-----------------------------------------------------------------------------
 # Switch on/off external libraries and other options for compile
@@ -232,7 +239,11 @@ SET(XMLSCHEMA "${CFS_SOURCE_DIR}/share/xml" CACHE STRING
 # Specify path to CFS++ testsuite. If this path exists, CTest compatible
 # test cases will be generated in the current binary directory.
 #-----------------------------------------------------------------------------
-SET(TESTSUITE_DIR "TESTSUITE_DIR_NOT_FOUND" CACHE STRING
+IF(NOT TESTSUITE_DIR_DEFAULT)
+  SET(TESTSUITE_DIR_DEFAULT "TESTSUITE_DIR_NOT_FOUND")
+ENDIF(NOT TESTSUITE_DIR_DEFAULT) 
+
+SET(TESTSUITE_DIR "${TESTSUITE_DIR_DEFAULT}" CACHE STRING
   "Path where the CFS++ testsuite is located.")
 
 IF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")

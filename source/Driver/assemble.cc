@@ -47,16 +47,6 @@ namespace CoupledField
     // specific ones
     CreateMatrixMap();
 
-    // Initialize reassemble-map
-    // Note: in the beginning all matrices have to be "re-"assembled
-    // which means the destination matrices have to be cleared and
-    // initialized. After the first "AssmebleMatrices" call the
-    // correct values for reassembling are determined
-    matReassemble_[STIFFNESS] = true;
-    matReassemble_[DAMPING] = true;
-    matReassemble_[MASS] = true;
-    matReassemble_[AUXILIARY] = true;
-
     // Obtain a new mathParser handler
     mHandle_ = domain->GetMathParser()->GetNewHandle();
 
@@ -84,7 +74,7 @@ namespace CoupledField
     
     delete linForms_;
   }
-
+  
   BiLinFormContext* Assemble::GetBiLinForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2,  const std::string& integrator)
   {
      // the EntityList has the region name as name but not the id
@@ -297,7 +287,8 @@ namespace CoupledField
     matrixUpdated_ = false;
 
     // Temporary: Check each time for non-linearities
-    CheckNonLinearities();
+    // On first Assembly, assemble all matrices for each BilinearForm
+    CheckNonLinearities(isFirstTime_);
 
     // Init all matrices, which have to be reassembled
     std::map<FEMatrixType, bool>::iterator it;
@@ -332,7 +323,7 @@ namespace CoupledField
 
       // If assemble was already called and the current destination
       // matrix must not be reassembled -> continue with next iterator
-      if( isFirstTime_ == false && matReassemble_[destMat] == false ) {
+      if( matReassemble_[destMat] == false ) {
          continue;
       }
 
@@ -457,6 +448,10 @@ namespace CoupledField
 
     // Change flag
     isFirstTime_ = false;
+    
+    // We have assembled all matrices, we will not do so next time
+    // except: CheckNonLinearities sets one of these, or Optimization does
+    matReassemble_.clear();
 
     timer_->Stop();
   }
@@ -801,10 +796,7 @@ namespace CoupledField
   }
 
 
-  void Assemble::CheckNonLinearities() {
-    // Clear reassemble mat
-    matReassemble_.clear();
-
+  void Assemble::CheckNonLinearities(bool setall) {
     // iterate over all bilinearforms
     StdVector<BiLinFormContext*>::iterator it;
 
@@ -812,7 +804,7 @@ namespace CoupledField
     {
       BiLinFormContext & actContext = **it;
 
-      if(actContext.IsNonLin() || analysisType_ == BasePDE::HARMONIC)
+      if(actContext.IsNonLin() || analysisType_ == BasePDE::HARMONIC || setall)
       {
         matReassemble_[actContext.GetDestMat()] = true;
         if ( actContext.GetSecDestMat() != NOTYPE )

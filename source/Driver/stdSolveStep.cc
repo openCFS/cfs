@@ -102,21 +102,20 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::SolveStepStatic(PtrParamNode analysis_id, AdjointParameters* adjointParams, const bool reAssembleMatrices) {
+  void StdSolveStep::SolveStepStatic(PtrParamNode analysis_id, AdjointParameters* adjointParams) {
 
     if (nonLin_) {
       StepStaticNonLin(analysis_id);
     }
     else {
-      StepStaticLin(analysis_id, adjointParams, reAssembleMatrices);
+      StepStaticLin(analysis_id, adjointParams);
     }
   }
 
 
-  void StdSolveStep::StepStaticLin(PtrParamNode analysis_id, AdjointParameters* adjointParams, const bool reAssembleMatrices) {
+  void StdSolveStep::StepStaticLin(PtrParamNode analysis_id, AdjointParameters* adjointParams) {
 
-    if(reAssembleMatrices)
-      assemble_->AssembleMatrices();
+    assemble_->AssembleMatrices();
 
     // The RHS-sources and boundary conditions
     // have to be reassembled each time
@@ -138,7 +137,7 @@ namespace CoupledField {
     // recalc the preconditioner eventually
     algsys_->BuildInDirichlet();
 
-    if( assemble_->IsMatrixUpdated() && reAssembleMatrices ) {
+    if( assemble_->IsMatrixUpdated() ) {
       algsys_->SetupPrecond();
 
       algsys_->SetupSolver(analysis_id);
@@ -286,7 +285,7 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::SolveStepTrans(PtrParamNode analysis_id, AdjointParameters* adjointParams, const bool reAssembleMatrices) {
+  void StdSolveStep::SolveStepTrans(PtrParamNode analysis_id, AdjointParameters* adjointParams) {
 
 
     // do a nonlinear material time step
@@ -302,12 +301,12 @@ namespace CoupledField {
     }
     // do a linear time step
     else {
-      StepTransLin(analysis_id, adjointParams, reAssembleMatrices);
+      StepTransLin(analysis_id, adjointParams);
     }
   }
 
 
-  void StdSolveStep::StepTransLin(PtrParamNode analysis_id, AdjointParameters* adjointParams, const bool reAssembleMatrices) 
+  void StdSolveStep::StepTransLin(PtrParamNode analysis_id, AdjointParameters* adjointParams) 
   {
     //account for RHS
     assemble_->AssembleLinRHS(adjointParams);
@@ -339,24 +338,27 @@ namespace CoupledField {
       TS_alg_->Predictor(solHelp);
     }
 
-    if(reAssembleMatrices){
-      assemble_->AssembleMatrices();
-    }
+    assemble_->AssembleMatrices();
+    bool effectiveMatrixUpdated = false;
 
-    if (assemble_->IsMatrixUpdated() ) { //todo: this is always true at least in optimization (note, that if this is fixed, FirstStaticStep need to call ConstructEffectiveMatrix for step 1 and 2
-      if(domain->GetOptimization() && domain->GetOptimization()->IsFirstTransientStepStatic() && actStep_ == 1){ // calculate first step static, and the adjoint will also be static
-        double tMass = matrix_factor_[MASS];        
-        double tDamp = matrix_factor_[DAMPING];
-        matrix_factor_[MASS] = 0.0;
-        matrix_factor_[DAMPING] = 0.0;
-        algsys_->ConstructEffectiveMatrix(matrix_factor_);
-        matrix_factor_[MASS] = tMass;
-        matrix_factor_[DAMPING] = tDamp;
-      }else{
-        algsys_->ConstructEffectiveMatrix(matrix_factor_);
-      }
+    // calculate first step static, and the adjoint will also be static and restore the parameters after that
+    if(domain->GetOptimization() && domain->GetOptimization()->IsFirstTransientStepStatic() && actStep_ == 1){
+      double tMass = matrix_factor_[MASS];        
+      double tDamp = matrix_factor_[DAMPING];
+      matrix_factor_[MASS] = 0.0;
+      matrix_factor_[DAMPING] = 0.0;
+      algsys_->ConstructEffectiveMatrix(matrix_factor_);
+      matrix_factor_[MASS] = tMass;
+      matrix_factor_[DAMPING] = tDamp;
+      effectiveMatrixUpdated = true;
+    }else if(assemble_->IsMatrixUpdated() || (domain->GetOptimization() && domain->GetOptimization()->IsFirstTransientStepStatic() && actStep_ == 2 && adjointParams == NULL) ){
+      // we have to construct the effective matrix in 2 cases
+      // either, the matrix was updated
+      // or we have the second step after the first step had been static (the time runs forward, not in adjoint case)
+      // but we must not construct it again, if we just did for the static step
+      algsys_->ConstructEffectiveMatrix(matrix_factor_);
+      effectiveMatrixUpdated = true;
     }
-
 
     // update Right Hand Side
     TS_alg_->UpdateRHS();
@@ -365,7 +367,7 @@ namespace CoupledField {
     PDE_.SetBCs();
     algsys_->BuildInDirichlet();
 
-    if (assemble_->IsMatrixUpdated() ) {
+    if( effectiveMatrixUpdated ){
       algsys_->SetupPrecond( );
       algsys_->SetupSolver(analysis_id);
     }
