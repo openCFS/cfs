@@ -209,7 +209,7 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   ENDIF(CFS_CXX_COMPILER_VER MATCHES "11\\.")
   
   # The intel compiler might not know the function __builtin_isnan (and isinf), so redirect that to isnan
-  SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -D__builtin_isnan=isnan -D__builtin_isinf=isinf")
+  SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -D__builtin_isnan=::isnan -D__builtin_isinf=::isinf")
 
 ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
 

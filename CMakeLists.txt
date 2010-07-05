@@ -28,9 +28,9 @@ ENDIF(COMMAND CMAKE_POLICY)
 # The name of our project is "CFS".  CMakeLists files in this
 # project can refer to the root source directory of the project as
 # ${CFS_SOURCE_DIR} and to the root binary directory of the project
-# as ${CFS_BINARY_DIR}.
+# as ${CFS_BINARY_DIR}. We use C, C++ and Fortran as languages.
 #-----------------------------------------------------------------------------
-PROJECT(CFS NONE)
+PROJECT(CFS C CXX Fortran)
 
 #-----------------------------------------------------------------------------
 # CFS version number.  Simply the last modification date
@@ -62,13 +62,6 @@ SET(CFS_BUILD_USER "$ENV{USER}"
 # Set default values according to environment or platform
 #-----------------------------------------------------------------------------
 INCLUDE("cmake_modules/platform_defaults.cmake")
-
-#-----------------------------------------------------------------------------
-#  We use C, C++ and Fortran as languages.
-#-----------------------------------------------------------------------------
-ENABLE_LANGUAGE("C")
-ENABLE_LANGUAGE("CXX")
-ENABLE_LANGUAGE("Fortran")
 
 #-----------------------------------------------------------------------------
 # Switch on/off external libraries and other options for compile
