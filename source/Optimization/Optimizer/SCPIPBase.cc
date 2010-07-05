@@ -493,8 +493,7 @@ void SCPIPBase::AllocateProblem()
       switch(linsys){
       case 1:
         spiwdim = 1;
-        assert(meq < 16); // would be more than 4GB
-        spdwdim = 1 << (2*meq);
+        spdwdim = std::max(4*(meq)*(meq),1);
         break;
       case 2:
         spiwdim = 136 * (ieleng + eqleng) + 32 * (mie + meq) + 3*n + 22;
