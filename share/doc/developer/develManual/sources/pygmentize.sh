@@ -43,4 +43,8 @@ Pygmentize gid_pw_server.sh gid_pw_server.tex
 Pygmentize pv_analytical_sol.py pv_analytical_sol.tex
 Pygmentize pv_scipy_hankel1.py pv_scipy_hankel1.tex
 Pygmentize pv_matlab_besselh.m pv_matlab_besselh.tex
+Pygmentize icem_to_ansys.in.txt icem_to_ansys.in.tex
+Pygmentize Pfeifenfussmodell_modificated_swept.in.txt Pfeifenfussmodell_modificated_swept.in.tex
+Pygmentize mkmesh.txt mkmesh.tex
+Pygmentize mkmesh.mlib.txt mkmesh.mlib.tex
 

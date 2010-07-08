@@ -1,5 +1,61 @@
 \chapter{Quickstart Guide}
 
 \section{List of external packages which need to be installed from distro}
+
+The list of  required packages depends on the  operating system and especially
+for  Linux based  OSes  on the  distribution.   We give  here  the  commands
+required  for installing  the required  packages from  the command  line.  The
+package lists are provided for some of the OSes most often in use by the CFS++
+developers. If you  should use a different distribution you  should be able to
+figure out the required packages quite easily.
+
+\subsection{OpenSUSE (11.2)}
+
+\begin{verbatim} 
+sudo zypper install subversion gcc gcc-c++ gcc-fortran automake autoconf \
+                    cmake perl-base graphviz texlive-latex texlive-tex4ht \
+                    python-pygments doxygen tcl-devel python-devel git-svn  
+\end{verbatim}
+
+\noindent If  some package  is not available  from the  standard repositories,
+there   is  a   good  chance   to  find   it  at   openSUSE   software  search
+\url{http://software.opensuse.org/search}   or  one   of  the   other  package
+repositories like PackMan (\url{http://packman.links2linux.org}).
+
+\noindent Checking which package provides an already installed file:
+\begin{verbatim}
+rpm -q --whatprovides /usr/bin/g++
+\end{verbatim}
+
+\subsection{Ubuntu (10.04)}
+
+\begin{verbatim}
+sudo apt-get install subversion gcc g++ gfortran automake autoconf cmake \
+                     perl-base graphviz texlive-latex-base tex4ht \
+                     python-pygments doxygen tcl-dev python-dev git-svn
+\end{verbatim} 
+
+\begin{verbatim}
+ln -s /usr/include/python2.6 /usr/include/python
+\end{verbatim}
+
+\noindent Checking which package provides an already installed file:
+\begin{verbatim}
+dpkg -S /usr/bin/g++
+\end{verbatim}
+
+\subsection{Mac OS X (10.5)}
+
+\begin{itemize}
+\item XCode - \url{http://developer.apple.com/technologies/tools/xcode.html}
+\item MacPorts - \url{http://www.macports.org}
+\item CMake - \url{http://www.cmake.org}
+\item g++, tcl, etc. from MacPorts cf. \url{http://pc.freeshell.org/comp/macbook}
+\end{itemize} 
+
 \section{Obtaining the Sources}
+\section{Configuring the Build Tree}
+
+Describe structure of source and build trees here, too.
+
 \section{Building a Binary}

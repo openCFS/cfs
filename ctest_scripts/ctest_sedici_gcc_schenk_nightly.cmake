@@ -45,15 +45,16 @@ FILE(WRITE "${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake"
   ## Then modify the CMakeLists.txt file in the root directory of your
   ## project to incorporate the testing dashboard.
   ## # The following are required to uses Dart and the Cdash dashboard
-  # ENABLE_TESTING()
-  # INCLUDE(Dart)
+  ##   ENABLE_TESTING()
+  ##   INCLUDE(CTest)
   set(CTEST_PROJECT_NAME \"CFS\")
   set(CTEST_NIGHTLY_START_TIME \"00:00:00 CET\")
 
   set(CTEST_DROP_METHOD \"http\")
-  set(CTEST_DROP_SITE \"rom\")
+  set(CTEST_DROP_SITE \"lse17.e-technik.uni-erlangen.de:2000\")
   set(CTEST_DROP_LOCATION \"/cdash/submit.php?project=CFS\")
-  set(CTEST_DROP_SITE_CDASH TRUE)"
+  set(CTEST_DROP_SITE_CDASH TRUE)
+  "
 )
 
 EXEC_PROGRAM("${CTEST_SOURCE_DIRECTORY}/share/scripts/distro.sh"
