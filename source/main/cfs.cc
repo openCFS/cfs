@@ -47,7 +47,6 @@
 #include "DataInOut/Scripting/cfsmessenger.hh"
 #endif
 
-
 using namespace CoupledField;
 using namespace std;
 
