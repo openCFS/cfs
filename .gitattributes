@@ -44,6 +44,7 @@ cmake_modules/platform_defaults_mac.cmake -text
 cmake_modules/platform_defaults_rom.cmake -text
 cmake_modules/platform_defaults_sedici.cmake -text
 cmake_modules/platform_defaults_woody.cmake -text
+ctest_scripts/CTestConfig.cmake -text
 ctest_scripts/README.txt svneol=native#text/plain
 ctest_scripts/ctest_lse10_start_update.cmake -text
 ctest_scripts/ctest_mac_gcc_experimental.cmake -text
@@ -52,6 +53,8 @@ ctest_scripts/ctest_rom_gcc_experimental.cmake -text
 ctest_scripts/ctest_rom_gcc_nightly.cmake -text
 ctest_scripts/ctest_rom_icc_experimental.cmake -text
 ctest_scripts/ctest_rom_icc_nightly.cmake -text
+ctest_scripts/ctest_rom_update_cfsdeps.cmake -text
+ctest_scripts/ctest_rom_update_testsuite.cmake -text
 ctest_scripts/ctest_sedici_gcc_acml_nightly.cmake -text
 ctest_scripts/ctest_sedici_gcc_gotoblas_nightly.cmake -text
 ctest_scripts/ctest_sedici_gcc_ifort_nightly.cmake -text

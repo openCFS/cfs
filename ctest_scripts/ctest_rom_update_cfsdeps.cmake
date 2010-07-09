@@ -32,8 +32,15 @@
 #-----------------------------------------------------------------------------
 # Set source and binary directories on rom
 #-----------------------------------------------------------------------------
-SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TRUNK_NIGHTLY")
-SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_BUILD_NIGHTLY")
+SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPS_NIGHTLY")
+SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPS_NIGHTLY")
+
+#-----------------------------------------------------------------------------
+# Set site name and build name
+#-----------------------------------------------------------------------------
+set(CTEST_SITE "$ENV{HOSTNAME}")
+set(CTEST_BUILD_NAME "CFSDEPS_NIGHTLY")
+
 
 #-----------------------------------------------------------------------------
 # Specify that we want to do an experimental build without updating the CFS++
@@ -49,13 +56,16 @@ SET(CTEST_COMMAND  "\"${CTEST_EXECUTABLE_NAME}\"")
 #-----------------------------------------------------------------------------
 SET(CTEST_CMAKE_COMMAND  "\"${CMAKE_EXECUTABLE_NAME}\"")
 
-
-FIND_PROGRAM(CTEST_SVN_COMMAND NAMES svn)
-
 #-----------------------------------------------------------------------------
 # Since this is the first test in the night, we have to make sure that
 # the source directory is available by checking it out if the directory does
 # not previously exist.
+#-----------------------------------------------------------------------------
+
+FIND_PROGRAM(CTEST_SVN_COMMAND NAMES svn)
+
+#-----------------------------------------------------------------------------
+# If the source directory does not exist perform a checkout
 #-----------------------------------------------------------------------------
 IF(NOT EXISTS "${CTEST_SOURCE_DIRECTORY}")
   SET(REPO "https://lse17.e-technik.uni-erlangen.de:2001/svn/cfsdeps/trunk")
@@ -79,29 +89,7 @@ EXECUTE_PROCESS(COMMAND ${CMAKE_EXECUTABLE_NAME} -E copy_if_different CTestConfi
 #-----------------------------------------------------------------------------
 # Start out with an empty binary directory.
 #-----------------------------------------------------------------------------
-SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
-
-#-----------------------------------------------------------------------------
-# Enter the following values into the initial cache
-# ${CTEST_BINARY_DIRECTORY}/CMakeCache.txt before starting the configure
-# run.
-#-----------------------------------------------------------------------------
-SET(CTEST_INITIAL_CACHE
-  "BUILD_TESTING:BOOL=ON
-   DEBUG:BOOL=OFF
-   TESTSUITE_DIR:STRING=$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_NIGHTLY
-   CFS_DEPS_ROOT:PATH=$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPS_NIGHTLY
-   CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPSCACHE
-   USE_GMV_INPUT:BOOL=ON
-   USE_GMSH:BOOL=ON   
-   USE_ANSYSRST:BOOL=ON
-   USE_PYTHON:BOOL=ON
-   USE_TCL:BOOL=ON
-   USE_INTERPOLATION:BOOL=ON
-   CPLREADER:BOOL=ON
-   USE_SCPIP:BOOL=ON
-   USE_CHOLMOD:BOOL=ON")
-
+SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY FALSE)
 
 #-----------------------------------------------------------------------------
 # Set the following environment variables for the test run. This can be used
@@ -109,20 +97,15 @@ SET(CTEST_INITIAL_CACHE
 # language, so that CTest may properly parse them.
 #-----------------------------------------------------------------------------
 SET(CTEST_ENVIRONMENT
-  "CC=icc"
-  "CXX=icpc"
-  "FC=ifort"
+  "CC=gcc"
+  "CXX=g++"
+  "FC=gfortran"
   "LC_MESSAGES=C"
   "LC_ALL=C"
   "LANG=C"
   "LANGUAGE=C"
-  "CPLREADER_PERF_SUITE=/media/CFD_Data/cplreader_performance_suite"
   )
 
-SET(CTEST_CMAKE_GENERATOR "Unix Makefiles")
-
 CTEST_START(Nightly)
-CTEST_CONFIGURE()
-CTEST_BUILD()
-CTEST_TEST()
+CTEST_UPDATE(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE res)
 CTEST_SUBMIT()

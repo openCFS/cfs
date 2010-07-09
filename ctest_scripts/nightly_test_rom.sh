@@ -1,11 +1,8 @@
 #!/bin/sh
 
 # This script is run by the following entry in /etc/crontab on rom
-# 30    1 * * *   strieben /home/users/strieben/Documents/dev/nightly_cfs_test.sh > /home/users/strieben/Documents/dev/nightly_cfs_test.log 2>&1
 #
-# The Ubuntu VBox which is started by the current script will be turned
-# off by the following line.
-# 30   13 * * *   strieben VBoxManage --nologo controlvm 'Ubuntu 8.04' poweroff >> /home/users/strieben/Documents/dev/ubuntu804.log
+# 30    1 * * *   strieben /home/strieben/Documents/dev/nightly_cfs_test.sh > /home/strieben/Documents/dev/nightly_cfs_test.log 2>&1
 
 echo "`basename $0` started on `date`"
 echo "-----------------------------------------------------------------------------"
@@ -24,9 +21,6 @@ TESTDIR="$DEVDIR/NIGHTLY"
 # Directory is writeable by strieben.
 DESTDIR=/opt/pckg/cfs_nightly
 
-# Set ssh environment for Subversion
-export SVN_SSH="ssh -i $DEVDIR/svn_id_dsa_cfstestuser_klu -l svn -p 22022 -q"
-
 # Extend system path by /opt/pckg/bin
 export PATH=/opt/pckg/bin:$PATH
 
@@ -38,30 +32,14 @@ echo "DAYOFWEEK $DAYOFWEEK"
 mkdir -p $TESTDIR
 cd $TESTDIR
 
-function UpdateWorkingCopy {
-    REPOS=$1
-    WCDIR=$2
+function GetWorkingCopyRev {
+    WCDIR=$1
     
     # Get previous revision for CFSDEPS
-    PREV_REV=$(svn st --xml --verbose $WCDIR | xsltproc CFSDEPS_NIGHTLY/utils/xslt/cfsdepsrev.xslt -)
-    if [ ! "$?" = 0 ]; then PREV_REV="-1"; fi
+    WC_REV=$(svn st --xml --verbose $WCDIR | xsltproc $TESTDIR/CFSDEPS_NIGHTLY/utils/xslt/cfsdepsrev.xslt -)
+    if [ ! "$?" = 0 ]; then WC_REV="-1"; fi
 
-    change-svn-wc-format.py $WCDIR "1.5" --verbose
-
-    if [ ! -d "$WCDIR/.svn" ]; then
-	svn co $REPOS $WCDIR
-    else
-	svn up $WCDIR
-    fi
-
-    # Get current revision for CFS++
-    CURRENT_REV=$(svn st --xml --verbose $WCDIR | xsltproc CFSDEPS_NIGHTLY/utils/xslt/cfsdepsrev.xslt -)
-    if [ ! "$?" = 0 ]; then CURRENT_REV="-1"; fi
-
-    change-svn-wc-format.py $WCDIR "1.5" --verbose
-
-    # Account for 90 seconds reconnect timeout of the lse10 firewall.
-    sleep 120
+    change-svn-wc-format.py $WCDIR "1.5" # --verbose
 }
 
 function PerformTest {
@@ -69,29 +47,7 @@ function PerformTest {
 
     cd $TESTDIR/CFS_TRUNK_NIGHTLY
 
-    if [ ! "$CFS_CURRENT_REV" = "$CFS_PREV_REV" ]; then
-        # If revision for CFS++ has changed start with an empty build directory
-	cat ctest_scripts/ctest_$TESTNAME.cmake > ctest_scripts/ctest_script.cmake
-    else
-        # If revision for CFS++ has not changed reuse old build directory
-	cat ctest_scripts/ctest_$TESTNAME.cmake | sed 's/EMPTY_BINARY_DIRECTORY TRUE/EMPTY_BINARY_DIRECTORY FALSE/g'> ctest_scripts/ctest_script.cmake
-	cd $TESTDIR
-
-        # Make sure old build directory gets removed
-	rm -rf CFS_BUILD_NIGHTLY
-	if [ -r cfs_build_$TESTNAME.tgz ]; then
-	    tar xvzf cfs_build_$TESTNAME.tgz
-
-	    # Remove old libs if CFSDEPS have changed
-	    if [ ! "$CFSDEPS_CURRENT_REV" = "$CFSDEPS_PREV_REV" ]; then
-		rm -rf CFS_BUILD_NIGHTLY/include
-		rm -rf CFS_BUILD_NIGHTLY/lib64
-	    fi
-	fi
-
-	
-	cd $TESTDIR/CFS_TRUNK_NIGHTLY
-    fi
+    cat ctest_scripts/ctest_$TESTNAME.cmake > ctest_scripts/ctest_script.cmake
 
     ctest -V -S ctest_scripts/ctest_script.cmake
 
@@ -106,29 +62,21 @@ if [ "$DAYOFWEEK" = "7" ]; then
     rm -rf $TESTDIR/cfs_build_*.tgz
 fi
 
-# Either checkout out or update CFS++ trunk working copy. Subversion update
-# had some strange problems if performed by CTest.
-TRUNK_REPO="svn+ssh://131.188.140.10/software/CFS++/trunk"
-UpdateWorkingCopy "$TRUNK_REPO" "CFS_TRUNK_NIGHTLY"
-CFS_PREV_REV=$PREV_REV;
-CFS_CURRENT_REV=$CURRENT_REV;
-echo "CFS_PREV_REV $CFS_PREV_REV"
-echo "CFS_CURRENT_REV $CFS_CURRENT_REV"
+# Checkout or update CFSDEPS
+cd $TESTDIR/CFS_TRUNK_NIGHTLY
+GetWorkingCopyRev $TESTDIR/CFSDEPS_NIGHTLY
+CFSDEPS_PREV_REV=$WC_REV;
+ctest -V -S ctest_scripts/ctest_rom_update_cfsdeps.cmake
+GetWorkingCopyRev $TESTDIR/CFSDEPS_NIGHTLY
+CFSDEPS_CURRENT_REV=$WC_REV;
 
-DEPS_REPO="svn+ssh://131.188.140.10/software/cfsdeps/trunk"
-UpdateWorkingCopy "$DEPS_REPO" "CFSDEPS_NIGHTLY"
-CFSDEPS_PREV_REV=$PREV_REV;
-CFSDEPS_CURRENT_REV=$CURRENT_REV;
-echo "CFSDEPS_PREV_REV $CFSDEPS_PREV_REV"
-echo "CFSDEPS_CURRENT_REV $CFSDEPS_CURRENT_REV"
-
-# Either checkout out or update CFS++ test suite trunk working copy.
-SUITE_REPO="svn+ssh://131.188.140.10/software/CFS++_TEST/trunk"
-UpdateWorkingCopy "SUITE_REPO" "CFS_TESTSUITE_NIGHTLY"
-TESTSUITE_PREV_REV=$PREV_REV;
-TESTSUITE_CURRENT_REV=$CURRENT_REV;
-echo "TESTSUITE_PREV_REV $TESTSUITE_PREV_REV"
-echo "TESTSUITE_CURRENT_REV $TESTSUITE_CURRENT_REV"
+# Checkout or update test suite
+cd $TESTDIR/CFS_TRUNK_NIGHTLY
+GetWorkingCopyRev $TESTDIR/CFS_TESTSUITE_NIGHTLY
+TESTSUITE_PREV_REV=$WC_REV;
+ctest -V -S ctest_scripts/ctest_rom_update_cfsdeps.cmake
+GetWorkingCopyRev $TESTDIR/CFS_TESTSUITE_NIGHTLY
+TESTSUITE_CURRENT_REV=$WC_REV;
 
 # Remove cache directory if CFSDEPS have changed
 if [ ! "$CFSDEPS_CURRENT_REV" = "$CFSDEPS_PREV_REV" ]; then
@@ -137,6 +85,8 @@ if [ ! "$CFSDEPS_CURRENT_REV" = "$CFSDEPS_PREV_REV" ]; then
     cp /opt/pckg/CFSDEPSCACHE/sources/acml/*.tgz $TESTDIR/CFSDEPSCACHE/sources/acml
 fi
 
+cd $TESTDIR
+
 # Copy sources of SCPIP to CFSDEPS_NIGHTLY/scpip
 # cp $DEVDIR/scpip.tar.bz2 CFSDEPS_NIGHTLY/scpip
 
@@ -144,7 +94,6 @@ fi
 # we allways have a current CFSDEPS present on the machine.
 rm -rf /opt/pckg/CFSDEPS/* /opt/pckg/CFSDEPS/.svn
 cp -a CFSDEPS_NIGHTLY/* CFSDEPS_NIGHTLY/.svn /opt/pckg/CFSDEPS
-
 
 # Pack directories for Ubuntu VBox
 tar cvzf CFS_NIGHTLY.tgz CFS_TESTSUITE_NIGHTLY CFSDEPS_NIGHTLY CFS_TRUNK_NIGHTLY
@@ -179,6 +128,22 @@ if [ -f $CFSBIN ] && [ -f $CFSTOOLBIN ] && [ -f $CPLREADER ]; then
     cp -a $TESTDIR/CFS_BUILD_NIGHTLY/share $DESTDIR/trunk_gcc
     cp -a $TESTDIR/CFS_TRUNK_NIGHTLY/share/matlab $DESTDIR/trunk_gcc/share
 fi
+
+# Update CFS docu for rom webpage
+cd "$TESTDIR/CFS_BUILD_NIGHTLY"      && \
+make doc-devel > /dev/null 2>&1      && \
+make doc-user > /dev/null 2>&1       && \
+make doc-user-html > /dev/null 2>&1;
+
+cp -a "$TESTDIR/CFS_TRUNK_NIGHTLY/share/doc/developer/html" "/srv/www/htdocs/cfsDocu/devel"
+cp -a "$TESTDIR/CFS_TRUNK_NIGHTLY/share/doc/user/xmlFile/html" "/srv/www/htdocs/cfsDocu/user"
+
+cd /srv/www/htdocs/cfsDocu/xmlManual/                  && \
+svn up > /dev/null 2>&1                                && \
+pdflatex -halt-on-error cfsManual.tex > /dev/null 2>&1 && \
+pdflatex -halt-on-error cfsManual.tex > /dev/null 2>&1 && \
+./buildhtml > /dev/null 2>&1
+
 
 # Change into CFS++ source directory and execute CTest for ICC.
 source /opt/intel/Compiler/11.1/069/bin/iccvars.sh intel64
