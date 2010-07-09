@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 SOURCES_DIR=$1
 DEST_DIR="$2/pygmentized"
