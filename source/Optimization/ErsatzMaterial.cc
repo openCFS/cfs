@@ -640,11 +640,18 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   {
     PtrParamNode in = iter->Get("homogenizedTensor");
     in->Get("norm_L2")->SetValue(homogenizedTensor.NormL2());
-    in = in->Get("isotropy");
-    in->Get("err")->SetValue(MechanicMaterial::CalcIsotropyError(homogenizedTensor, false));
-    in->Get("err_normed")->SetValue(MechanicMaterial::CalcIsotropyError(homogenizedTensor, true));
-    in->Get("poissons_ratio")->SetValue(MechanicMaterial::CalcIsotropicPoissonsRatio(homogenizedTensor));
-    in->Get("E")->SetValue(MechanicMaterial::CalcIsotropicYoungsModulus(homogenizedTensor));
+
+    PtrParamNode iso = in->Get("isotropy");
+    iso->Get("err")->SetValue(MechanicMaterial::CalcIsotropyError(homogenizedTensor, false));
+    iso->Get("err_normed")->SetValue(MechanicMaterial::CalcIsotropyError(homogenizedTensor, true));
+    iso->Get("poissons_ratio")->SetValue(MechanicMaterial::CalcIsotropicPoissonsRatio(homogenizedTensor));
+    iso->Get("E")->SetValue(MechanicMaterial::CalcIsotropicYoungsModulus(homogenizedTensor));
+
+    PtrParamNode orth = in->Get("orthotropy");
+    StdVector<std::pair<string, double> > ortho = MechanicMaterial::CalcOrthotropeProperties(homogenizedTensor);
+    for(unsigned int i = 0; i < ortho.GetSize(); i++)
+      orth->Get(ortho[i].first)->SetValue(ortho[i].second);
+
     in->Get("tensor")->SetValue(new Matrix<double>(homogenizedTensor));
   }
 
