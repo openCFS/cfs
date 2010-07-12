@@ -265,6 +265,8 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
                      << " is_new=" << need_eval << " -> " << design_.value
                      << " scaled=" << ret;
   
+  LOG_DBG3(optimizer) << "x=" << StdVector<double>::ToString(n, x);
+
   timer_->Start();
   
   return ret;
@@ -446,7 +448,7 @@ void BaseOptimizer::GetBounds(int n, double* x_l, double* x_u, int m, double* g_
     // handle as in IPOPT 
     g_l[i] = g_u[i] = g->GetBoundValue();
     
-    if(g->GetType() == Condition::SLOPE && g->slopes_double == false)
+    if(g->GetType() == Condition::SLOPE && g->GetLocality() == Function::NEXT)
       g_l[i] *= -1.0;
     else
     {

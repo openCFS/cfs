@@ -150,12 +150,6 @@ Optimization::~Optimization()
   delete multiple_excitation; multiple_excitation = NULL;
 }
 
-void Optimization::PostInit()
-{
-  if(param->Has("loadErsatzMaterial")) { // if loadErsatzMaterial is used with optimization specifying a starting point, we have to load it here, before scaling ist done
-    domain->ReadErsatzMaterial(param->Get("loadErsatzMaterial"));
-  }
-}
 
 void Optimization::PostInitSecond()
 {
@@ -250,6 +244,11 @@ void Optimization::SetEnums()
   Function::type.Add(Function::ISOTROPY, "isotropy");
   Function::type.Add(Function::SLOPE, "slope");
   Function::type.Add(Function::CHECKERBOARD, "checkerboard");
+
+  Function::locality.SetName("Function::Locality");
+  Function::locality.Add(Function::DEFAULT, "default");
+  Function::locality.Add(Function::NEXT, "next");
+  Function::locality.Add(Function::NEXT_BIDIR, "next_bidir");
 
   Condition::bound.SetName("Constraint::Bound");
   Condition::bound.Add(Condition::EQUAL, "equal");
@@ -668,10 +667,10 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   // For any iteration we need to evaluate the observe constraints
   // A problem are the slope constraints, they need to be evaluated in local mode
   // and Done() forms the global result
-  for(unsigned int i = 0, m = constraints.view->GetNumberOfTotalConstraints(); currentIteration == 0 && i < m; i++)
+  for(unsigned int i = 0, m = constraints.view->GetNumberOfTotalConstraints(); i < m; i++)
   {
     Condition* g = constraints.view->Get(i); // traverse in local mode
-    if(g->GetValue() == -1.0)
+    if(g->GetValue() == -1.0 || g->IsObservation())
       CalcConstraint(g);
   }
   constraints.view->Done(); // we have now a global slope constraint value
@@ -679,8 +678,6 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
   {
     Condition* g = constraints.all[i]; // Now traverse in global mode
-    if(g->IsObservation())
-      CalcConstraint(g); // would not be evaluated otherwise, don't check for -1.0
 
     double value = g->GetValue();
     if(g->delta_logging) value = value - g->GetBoundValue();

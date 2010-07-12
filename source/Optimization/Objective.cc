@@ -1,3 +1,5 @@
+#include "Optimization/Design/DesignStructure.hh"
+#include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Objective.hh"
 #include "Optimization/Condition.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -41,6 +43,14 @@ std::string Objective::GetName() const
     return type.ToString(type_) + "E" + lexical_cast<std::string>(coord.first) + lexical_cast<std::string>(coord.first);
 }
 
+
+void Objective::ToInfo(PtrParamNode info)
+{
+  Function::ToInfo(info);
+  if(tensor_.GetNumRows() > 1)
+    info->Get("tensor")->SetValue(new Matrix<double>(tensor_));
+
+}
 
 ObjectiveContainer::ObjectiveContainer()
 {
@@ -87,33 +97,33 @@ void ObjectiveContainer::Read(PtrParamNode obj_node)
   }
 }
 
-
-void ObjectiveContainer::ToInfo(PtrParamNode in) const
+void ObjectiveContainer::PostProc(DesignSpace* space, DesignStructure* structure)
 {
-  bool mo = data.GetSize() > 1;
-  if(mo)
+  for(unsigned int i = 0; i < data.GetSize(); i++)
+  {
+    data[i]->PostProc(space, structure);
+  }
+}
+
+void ObjectiveContainer::ToInfo(PtrParamNode in)
+{
+  if(data.GetSize() > 1)
   {
     PtrParamNode m = in->Get("multiObjective");
     for(unsigned int i = 0; i < data.GetSize(); i++)
     {
       PtrParamNode o = m->Get("objective", ParamNode::APPEND);
       Objective* f = data[i];
-      o->Get("type")->SetValue(f->GetName());
+      f->ToInfo(o);
       o->Get("penalty")->SetValue(f->penalty_);
-      o->Get("evaluate")->SetValue(f->evaluateOnce_ ? "once" : "always");
     }
   }
   else
   {
-    in->Get("type")->SetValue(data[0]->GetName());
-    in->Get("evaluate")->SetValue(data[0]->evaluateOnce_ ? "once" : "always");
+    data[0]->ToInfo(in);
   }
 
   in->Get("task")->SetValue(minimize_ ? "minimize" : "maximize");
-  if(data[0]->harmonic_)
-    in->Get("factor")->Get("omega_omega")->SetValue(data[0]->omega_omega_);
-  if(data[0]->tensor_.GetNumRows() > 1)
-    in->Get("tensor")->SetValue(new Matrix<double>(data[0]->tensor_));
 }
 
 

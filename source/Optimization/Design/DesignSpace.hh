@@ -170,6 +170,9 @@ namespace CoupledField
       * temporarily disabled via DisableTransferFunctions() */
      void EnableTransferFunctions();
 
+     /** throws also in release mode an exception if there is more than one design */
+     void AssertOneDesignOnly();
+
      /** Service method to find our index in the design vector
       * @return -1 if not throw_exception and not found */
      int FindDesign(DesignElement::Type dt, bool throw_exception = true);

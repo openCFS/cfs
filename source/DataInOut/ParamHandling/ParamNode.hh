@@ -17,6 +17,8 @@
 namespace CoupledField
 {
   class ParamNode;
+  class Timer;
+  
   /** Definitions of pointers, using boost::shared_ptr */
   typedef boost::shared_ptr<ParamNode> PtrParamNode;
   typedef StdVector<boost::shared_ptr<ParamNode> > ParamNodeList;
@@ -328,7 +330,7 @@ namespace CoupledField
      * Note: This is just a temporary solution, until we move the serialization of the 
      * ParamNode to the WriteInfo class 
      */
-    void ToFile( const std::string& name = std::string());
+    void ToFile( const std::string& name = std::string(), bool force = false);
 
     /** This is a recursive Dump of the tree to std::cout
     * @param level start with 0, is used for ident */
@@ -391,6 +393,17 @@ namespace CoupledField
     
     /** cache variable for last Get() result */
     int lastresultidx_;
+   
+  private:
+    /** write_timer restricts the number of times the info.xml file is written
+     *  if not enough time has passed, the file is not written
+     *  this only affects ParamNode::ToFile()
+     *  writing can be force via new parameter of ToFile */
+    Timer *write_timer_;
+    /** how often the file is actually written */
+    unsigned int write_counter_;
+    /** how often we rejected writing the info.xml-file */
+    unsigned int reject_counter_;
   }; 
 
 

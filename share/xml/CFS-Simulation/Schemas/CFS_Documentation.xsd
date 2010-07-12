@@ -94,7 +94,7 @@
     </xsd:annotation>
 
     <xsd:sequence>
-      <xsd:element name="keyword" minOccurs="0" maxOccurs="unbounded"
+      <xsd:element name="keyword" minOccurs="1" maxOccurs="unbounded"
                    type="DT_DocAllowedKeywords"/>
     </xsd:sequence>
   </xsd:complexType>

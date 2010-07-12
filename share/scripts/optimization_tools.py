@@ -398,6 +398,7 @@ def extract_old_header(infile):
       print "found header"
       # we use the header from the original file
       header = etree.tostring(element)
+      break
   infi.close()
   return header
 
@@ -529,4 +530,50 @@ def interpolateLumpedMechDisplacementAsDensity(data, f, density_file):
 
   out.write(' </cfsErsatzMaterial>\n')
   out.close()
-    
+
+
+# helper for external use - create a 2D "window"
+# strength is the size of the window in fraction. .5 is maximum
+# return 2d array
+def make2DWindow(divider, strength, lower):
+  ret = numpy.zeros((divider, divider))
+  
+  if strength <= 0.01 or strength > 0.48:
+    raise RuntimeError("invalid strength")
+  
+  #fraction
+  f = strength
+  # counter fraction
+  cf = 1.0 - f
+  
+  for ii in range(divider):
+    for jj in range(divider):
+      i = float(ii)
+      j = float(jj)
+  
+      ip = i / (divider-1)
+      jp = j / (divider-1)
+      
+      #print str(ip) + " - " + str(jp) + " f " + str(f) + " cf " + str(cf)
+      if ip > f and ip < cf and jp > f and jp < cf:
+        ret[i][j] = lower
+      else:
+        ret[i][j] = 1.0
+
+  return ret    
+      
+# extrudes an 2D array to the third dimenstion
+def extrude(data_2d):
+  edge = data_2d.shape[0] 
+  if edge <> data_2d.shape[1]:
+    raise RuntimeException("require quadratic input")
+  
+  ret = numpy.zeros((edge, edge, edge))
+  
+  for i in range(edge):
+    for j in range(edge):
+      val = data_2d[i][j]
+      for k in range(edge):
+        ret[i][k][j] = val
+        
+  return ret

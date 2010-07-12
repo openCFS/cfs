@@ -382,6 +382,12 @@ int DesignSpace::GetSpecialResultIndex(DesignElement::Type design, DesignElement
   return -1; // the specified triple was not specified such in xml
 }
 
+void DesignSpace::AssertOneDesignOnly()
+{
+  if(design.GetSize() != 1)
+    throw Exception("A feature relies on a single design only!");
+}
+
 
 int DesignSpace::FindDesign(DesignElement::Type dt, bool throw_exception)
 {

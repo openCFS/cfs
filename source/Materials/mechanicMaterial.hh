@@ -112,6 +112,23 @@ namespace CoupledField {
     static void CalcComplexIsotropicStiffnessTensor(Matrix<Complex>& out,
         const Complex &lambda, const Complex &mu, UInt dim);
 
+    /** Calculates orthotrope Youngs moduli
+     * @return a vector with 2 or 3 entries E_1, E_2 (, E_3) */
+    static StdVector<double> CalcOrthotropeYoungsModulus(const Matrix<double>& tensor);
+
+    /** Calculates orthotrope Youngs moduli
+     * @return a vector with 2 or 6 entries v_21, v_12 or v_32, v_31, v_21, v_23, v_13, v_12 */
+    static StdVector<double> CalcOrthotropePoissonsRatio(const Matrix<double>& tensor);
+
+    /** Calculates the orthotrope error.
+     * Is only an informal heuristic. Sums up the values where there should be zero plus the balances */
+    static double CalcOrthotropeError(const Matrix<double>& tensor);
+
+
+    /** Calculates orthotrope material properties and gives them with a readable string.
+     * @return first a description with underliner, then the value */
+    static StdVector<std::pair<std::string, double> > CalcOrthotropeProperties(const Matrix<double>& tensor);
+
   private:
 
 

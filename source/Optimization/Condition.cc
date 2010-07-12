@@ -1,5 +1,6 @@
 #include "Optimization/Condition.hh"
 #include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Design/DesignStructure.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
 #include "DataInOut/Logging/cfslog.hh"
@@ -19,12 +20,11 @@ DECLARE_LOG(conditions)
 Enum<Condition::Bound> Condition::bound;
 
 
-Condition::Condition(PtrParamNode pn) : Function(pn), slopes_double(false)
+Condition::Condition(PtrParamNode pn) : Function(pn)
 {
   volume_fraction = 0.0;
   special_result_idx = -1;
   blown_up_ = false;
-  linear_ = false;
   index_ = -1; // to be set by ConditionContainer::Read()
   bound_ = bound.Parse(pn->Get("bound")->As<std::string>());
   design = !pn->Has("design") ? DesignElement::DEFAULT :
@@ -80,9 +80,11 @@ Condition::Condition(PtrParamNode pn) : Function(pn), slopes_double(false)
     }
   }
   
-  // snopt makes a difference between linear and nonlinear constraints!
-  if(type_ == VOLUME)
-    linear_ = true;
+
+  linear_ = type_ == VOLUME || type_ == SLOPE ? true : false;
+  //  snopt only makes a difference between linear and nonlinear constraints!
+  if(pn->Has("linear"))
+    linear_ = pn->Get("linear")->As<bool>();
 }
 
 bool Condition::ReadCoord(PtrParamNode pn)
@@ -352,9 +354,10 @@ std::string Condition::ToString() const
 }
 
 
-void Condition::ToInfo(PtrParamNode in) const
+void Condition::ToInfo(PtrParamNode in)
 {
-  in->Get("type")->SetValue(type.ToString(type_));
+  Function::ToInfo(in);
+
   in->Get("mode")->SetValue(observation_ ? "observation" : "constraint");
   in->Get("design")->SetValue(DesignElement::type.ToString(design));
   if(IsActive())
@@ -376,17 +379,15 @@ void Condition::ToInfo(PtrParamNode in) const
   else
     in->Get("delta_logging")->SetValue(delta_logging);
 
-  if(IsHomogenization() && !objective_scaling_ && !blown_up_) // warn only the first time!
-    in->Get(ParamNode::WARNING)->SetValue("Doing homogenization without 'objective' scaling constraint '" + type.ToString(type_) + "'");
+  // TODO somehow scaling does not work ??
+  // if(IsHomogenization() && !objective_scaling_ && !blown_up_) // warn only the first time!
+  //  in->Get(ParamNode::WARNING)->SetValue("Doing homogenization without 'objective' scaling constraint '" + type.ToString(type_) + "'");
 
-  if(harmonic_)
-    in->Get("factor/omega_omega")->SetValue(omega_omega_);
-  
-  if(type_ == SLOPE)
-  {
-    in->Get("slopes_double")->SetValue(slopes_double);
-    in->Get("slopes_linear")->SetValue(linear_);
-  }
+  if(!observation_)
+    in->Get("linear")->SetValue(linear_);
+
+  if(locality_ != DEFAULT)
+    in->Get("local")->SetValue(locality.ToString(locality_));
 }
 
 bool Condition::IsForRegion(RegionIdType regionId)
@@ -397,18 +398,10 @@ bool Condition::IsForRegion(RegionIdType regionId)
 SlopeCondition::SlopeCondition(PtrParamNode pn) : Condition(pn)
 {
   current_view_index_ = -1;
-  space_ = NULL;
-  dim_ = domain->GetGrid()->GetDim();
-  linear_ = true;
-  
-  if(pn->Has("slopes_double"))
-    slopes_double = pn->Get("slopes_double")->As<bool>();
-  
-  if(pn->Has("slopes_linear"))
-      linear_ = pn->Get("slopes_linear")->As<bool>();
   
   if(bound_ != UPPER_BOUND && IsActive())
   {
+    // TODO: Use InfoNode Warning!
     std::cout << "\033[01;31m" << "Warning:" << "\033[0m"
               << " changing slope bound type to 'upperBound'!" << std::endl;
     bound_ = UPPER_BOUND;
@@ -416,59 +409,17 @@ SlopeCondition::SlopeCondition(PtrParamNode pn) : Condition(pn)
 
   if(pn->Has("parameter")) // set in base class
     throw Exception("Parameter for slope constraint specified, but not required");
+
+  // cheat knowledge about optimizer, only snopt has box-constraints
+  bool snopt = param->Get("optimization/optimizer/type")->As<std::string>() == "snopt";
+  Locality use = locality_;
+  if(locality_ == DEFAULT && snopt)  use = NEXT_BIDIR;
+  if(locality_ == DEFAULT && !snopt) use = NEXT;
+  if(locality_ == NEXT_BIDIR && !snopt)
+    throw Exception("The optimizer has no bounds for constraints: your choice for 'local' is invalid");
+  locality_ = use;
 }
 
-void SlopeCondition::PostInit(DesignSpace* space)
-{
-  space_ = space;
-
-  if(slopes_double)
-    virtual_elem_map_.Reserve(2 * space->GetNumberOfElements() * dim_);
-  else
-    virtual_elem_map_.Reserve(space->GetNumberOfElements() * dim_);
-
-  // traverse all elements and check for full neighborhood
-  int base  = space->FindDesign(design);
-  int elems = space->GetNumberOfElements();
-  for(int e = base * elems, ss = (base + 1) * elems; e < ss; ++e)
-  {
-    DesignElement& de = space->data[e];
-
-    // do we have a full neighborhood? All or none as in the original paper
-    bool full = true;
-    if(de.vicinity->design[VicinityElement::X_P] == NULL) full = false;
-    if(de.vicinity->design[VicinityElement::Y_P] == NULL) full = false;
-    if(dim_ == 3 && de.vicinity->design[VicinityElement::Z_P] == NULL) full = false;
-
-    LOG_DBG2(conditions) << "SC:PI e_num=" << de.elem->elemNum << " vicinity=" << de.vicinity->ToString() << " full=" << full;
-
-    if(full)
-    {
-      if(slopes_double)
-      {
-        virtual_elem_map_.Push_back(Identifier(e, VicinityElement::X_P,  1));
-        virtual_elem_map_.Push_back(Identifier(e, VicinityElement::X_P, -1));
-        virtual_elem_map_.Push_back(Identifier(e, VicinityElement::Y_P,  1));
-        virtual_elem_map_.Push_back(Identifier(e, VicinityElement::Y_P, -1));
-        if(dim_ == 3)
-        {
-          virtual_elem_map_.Push_back(Identifier(e, VicinityElement::Z_P,  1));
-          virtual_elem_map_.Push_back(Identifier(e, VicinityElement::Z_P, -1));
-        }
-      }
-      else
-      {
-        virtual_elem_map_.Push_back(Identifier(e, VicinityElement::X_P));
-        virtual_elem_map_.Push_back(Identifier(e, VicinityElement::Y_P));
-        if(dim_ == 3)
-          virtual_elem_map_.Push_back(Identifier(e, VicinityElement::Z_P));
-      }
-    }
-  }
-
-  // needs to be set prior CalcSlopeConstraint() as the optimizers need the size
-  values_.Resize(virtual_elem_map_.GetSize(), 0.0);
-}
 
 unsigned int SlopeCondition::GetCurrentVirtualElement() const
 {
@@ -476,9 +427,9 @@ unsigned int SlopeCondition::GetCurrentVirtualElement() const
 
   unsigned int idx = current_view_index_ - index_;
 
-  LOG_DBG3(conditions) << "SC:curVirEle: cvi=" << current_view_index_ << " -> idx=" << virtual_elem_map_[idx].element_idx;
+  LOG_DBG3(conditions) << "SC:curVirEle: cvi=" << current_view_index_ << " -> idx=" << local->virtual_elem_map[idx].element_idx;
 
-  return virtual_elem_map_[idx].element_idx;
+  return local->virtual_elem_map[idx].element_idx;
 }
 
 int SlopeCondition::GetCurrentVirtualNeighbor() const
@@ -487,9 +438,9 @@ int SlopeCondition::GetCurrentVirtualNeighbor() const
 
   unsigned int idx = current_view_index_ - index_;
 
-  LOG_DBG3(conditions) << "SC:curVirNeigh: cvi =" << current_view_index_ << " -> neigh=" << virtual_elem_map_[idx].neighbor;
+  LOG_DBG3(conditions) << "SC:curVirNeigh: cvi =" << current_view_index_ << " -> neigh=" << local->virtual_elem_map[idx].neighbor;
 
-  return virtual_elem_map_[idx].neighbor;
+  return local->virtual_elem_map[idx].neighbor;
 }
 
 int SlopeCondition::GetCurrentVirtualSign() const
@@ -499,9 +450,9 @@ int SlopeCondition::GetCurrentVirtualSign() const
   unsigned int idx = current_view_index_ - index_;
 
   // if we call this function, the sign must be meaningful
-  assert(slopes_double ? virtual_elem_map_[idx].sign != -1000 : true);
+  assert((locality_ != NEXT_BIDIR && local->virtual_elem_map[idx].sign != -1000) || locality_ == NEXT_BIDIR);
   
-  return virtual_elem_map_[idx].sign;
+  return local->virtual_elem_map[idx].sign;
 }
 
 
@@ -520,8 +471,8 @@ StdVector<unsigned int>& SlopeCondition::GetSparsityPattern()
 
   // we have two entries. sort them
   int own_idx = GetCurrentVirtualElement();
-  DesignElement* other_elem = space_->data[own_idx].vicinity->design[GetCurrentVirtualNeighbor()];
-  int other_idx = space_->Find(other_elem);
+  DesignElement* other_elem = local->space->data[own_idx].vicinity->design[GetCurrentVirtualNeighbor()];
+  int other_idx = local->space->Find(other_elem);
 
   // as we have X_P, Y_P and Z_P neighbors the sorting could be right but better invest 1e-9 sec
   sparsity_[0] = own_idx < other_idx ? own_idx : other_idx;
@@ -538,7 +489,7 @@ StdVector<unsigned int>& SlopeCondition::GetSparsityPattern()
 double SlopeCondition::GetValue() const
 {
   if(IsLocal())
-    return values_[current_view_index_ - index_];
+    return local->values[current_view_index_ - index_];
   else
     return value_;
 }
@@ -547,7 +498,7 @@ void SlopeCondition::SetValue(double val)
 {
   if(IsLocal())
   {
-    values_[current_view_index_ - index_] = val;
+    local->values[current_view_index_ - index_] = val;
     value_ = -1.0; // invalidated
   }
   else
@@ -557,14 +508,13 @@ void SlopeCondition::SetValue(double val)
 
 double SlopeCondition::GetMaxElementSlope(unsigned int element) const
 {
-  int size(dim_);
-  if(slopes_double) size *= 2;
+  int size = local->GetElememtDimension();
   
   int base = element * size;
 
   double maxval = 0.0;
   for(int i = 0; i < size; ++i)
-    maxval = std::max(maxval, std::abs(values_[base + i]));
+    maxval = std::max(maxval, std::abs(local->values[base + i]));
 
   return maxval;
 }
@@ -578,7 +528,7 @@ std::string SlopeCondition::ToString() const
   if(IsLocal())
     ss << "_ve=" << GetCurrentVirtualElement()
        << "_vn=" << GetCurrentVirtualNeighbor()
-       << "_double=" << slopes_double
+       << "_local=" << locality.ToString(locality_)
        << "_vs=" << GetCurrentVirtualSign();
 
   return ss.str();
@@ -636,19 +586,6 @@ void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure
     if(all[i]->HasDenseJacobian())
       all[i]->SetDenseSparsityPattern(space);
   
-  // make a warning for penalized material when using penalized volumes
-  // TODO this check works not for penalizedVolume as objective!
-  StdVector<Condition*> list = GetList(Condition::PENALIZED_VOLUME, DesignElement::DEFAULT, false);
-  if(!list.IsEmpty())
-  {
-    for(unsigned int i = 0; i < space->transfer.GetSize(); i++)
-      if(space->transfer[i].IsPenalized())
-      {
-        PtrParamNode in = info_->Get("constraint")->Get("type")->Get(Function::type.ToString(list[0]->GetType()));
-        in->Get(ParamNode::WARNING)->SetValue("transfer function '" + space->transfer[i].ToString() + " seems also to penalize");
-      }
-  }
-
   // check for special result index if there was a <result> for value=constraintGradient
   for(unsigned int i = 0; i < all.GetSize(); i++)
   {
@@ -663,52 +600,18 @@ void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure
     } // -1 for else by default in constructor
   }
 
-  // check if we have a slope constraint -
-  list = GetList(Condition::SLOPE, DesignElement::DEFAULT, false);
-
-  if(!list.IsEmpty())
+  for(unsigned int i = 0; i < all.GetSize(); i++)
   {
-    InitSlopeConstraint(list[0], space, structure);
-    view->Refresh(); // inform about the news
+    all[i]->PostProc(space, structure);
   }
 
-  // check if we have a checkerboard - up to now a simple meassure
-  list = GetList(Condition::CHECKERBOARD, DesignElement::DEFAULT, false); // must not be active
-
-  if(!list.IsEmpty())
-  {
-    assert(list[0]->IsObservation());
-    VicinityElement::Init(space, structure);
-    assert(space->IsRegular()); // VicinityElements work only on a regular grid
-  }
+  view->Refresh(); // inform about the news if the slopes created a lot of virtual objectives!
 }
 
 void ConditionContainer::ToInfo(PtrParamNode in)
 {
   for(unsigned int i = 0; i < all.GetSize(); i++)
     all[i]->ToInfo(in->Get("constraint", ParamNode::APPEND));
-
-  // save for later use in InitSlopeConstraint()
-  info_ = in;
-}
-
-void ConditionContainer::InitSlopeConstraint(Condition* g_in, DesignSpace* space, DesignStructure* structure)
-{
-  SlopeCondition* g = dynamic_cast<SlopeCondition*>(g_in);
-
-  PtrParamNode in = info_->Get("constraint")->Get(g->type.ToString(g->GetType()));
-
-  // the design elements require the vicinity element to be set which holds the direct
-  // neighbors. Is save to call several times
-  VicinityElement::Init(space, structure);
-
-  assert(space->IsRegular()); // VicinityElements work only on a regular grid
-
-  g->PostInit(space);
-
-  in->Get("bound_value")->SetValue(g->GetBoundValue());
-  in->Get("active_size")->SetValue(g->GetData().GetSize());
-
 }
 
 StdVector<Condition*> ConditionContainer::GetList(Condition::Type type, DesignElement::Type design, bool only_active)
@@ -765,11 +668,11 @@ void ConditionContainer::VirtualView::Refresh()
 
   virtual_active_size_ = container_->active.GetSize();
   // replace the global slope by many local slopes -> if it is initialized!
-  if(slope != NULL && slope->IsActive() && slope->GetConstraintSize() > 0)
+  if(slope != NULL && slope->IsLocalInitialized() && slope->IsActive() && slope->GetConstraintSize() > 0)
     virtual_active_size_ += slope->GetConstraintSize() -1;
 
   virtual_total_size_ = container_->all.GetSize();
-  if(slope != NULL && slope->GetConstraintSize() > 0)
+  if(slope != NULL && slope->IsLocalInitialized() && slope->GetConstraintSize() > 0)
     virtual_total_size_ += slope->GetConstraintSize() -1;
 }
 
@@ -803,12 +706,12 @@ void ConditionContainer::VirtualView::Done()
     return; // nothing to do
 
   SlopeCondition* slope = dynamic_cast<SlopeCondition*>(container_->all[slope_index_]);
-
+  StdVector<double>& data = slope->GetLocal()->values;
   // set global result
   double ret(0.0); 
-  unsigned int size(slope->GetData().GetSize());
+  unsigned int size(data.GetSize());
   for(unsigned int i = 0; i < size; ++i) 
-    ret = std::max(ret, std::abs(slope->GetData()[i]));
+    ret = std::max(ret, std::abs(data[i]));
   
   slope->SetValue(ret);
 
@@ -822,12 +725,10 @@ void ConditionContainer::VirtualView::Done()
     for(unsigned int e = 0; e < data.GetSize(); e++)
       data[e].specialResult[idx] = 0.0; // initialize
     
-    int offset(domain->GetGrid()->GetDim());
-    if(slope->slopes_double)
-      offset *= 2;
+    int offset = slope->GetLocal()->GetElememtDimension();
     
     // constraints -> note we have full neighborhood!
-    for(int i = 0, ni = slope->GetData().GetSize(); i < ni; i += offset)
+    for(int i = 0, ni = data.GetSize(); i < ni; i += offset)
     {
       slope->SetCurrentViewIndex(i + slope->GetIndex());
       int elem_idx = slope->GetCurrentVirtualElement();

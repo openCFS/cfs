@@ -41,6 +41,9 @@ class Objective : public Function
 
     double GetPenalty() const { return penalty_; }
 
+    /** overloads Function::ToInfo() */
+    void ToInfo(PtrParamNode info);
+
     /** gathered by some of the costFunction attributes in XML, the defaults are in the XML-Schema */
     class StoppingRule
     {
@@ -81,6 +84,9 @@ public:
 
   ~ObjectiveContainer();
 
+  /** Calls Function::PostProc() */
+  void PostProc(DesignSpace* space, DesignStructure* structure);
+
   /** actual constructor */
   void Read(PtrParamNode obj_node);
 
@@ -100,7 +106,8 @@ public:
   /** current values go to history */
   void PushBackHistory();
 
-  void ToInfo(PtrParamNode in) const;
+  /** Calls Objective::ToInfo() */
+  void ToInfo(PtrParamNode in);
 
   bool DoMinimize() const { return minimize_; }
   bool DoMaximize() const { return !minimize_; }

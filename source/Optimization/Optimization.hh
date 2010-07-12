@@ -258,7 +258,7 @@ namespace CoupledField
 
         /** PostInit is to be called after the constructor. 
          * PostInit  does not really solve something. */
-        virtual void PostInit();
+        virtual void PostInit() {};
 
         /** This is the second phase of post initialization. It creates the Optimizer tools */
         virtual void PostInitSecond();

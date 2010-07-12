@@ -6,17 +6,22 @@
 import libxml2
 import numpy
 import math
-from parameter_study_tools import *
+from optimization_tools import *
 
 # we assume a unit cube (2D/3D) 
 # edge discretization
-divider = 5
-vol_list = ["0.2"]
-dim = 3
+divider = 5 
+vol_list = ["0.6"]
+dim = 2 
 # what is the maximal order (1 is linar, 2 quadratic, ...)
-order = 1
+order = 6 
 # the maximal number of spheres as edge basis (1*1, 2*2, 3*3, .., or 1*1*1, 2*2*2, 3*3.3, ...)
 edge = 1
+
+
+
+
+   
 
 # there shall be a predefined class somewhere, I just didn't find it
 class Coordinate:
@@ -46,7 +51,7 @@ class Coordinate:
     
   def toString(self):
     return str(self.x) + ", " + str(self.y) + ", " + str(self.z) 
-       
+
 
 # helper: return numpy.ndarray element with 2/3D tolerance
 # if dim = 3 the k entry is ignored
@@ -205,3 +210,5 @@ def create_density_file(dim, divider,  vol, max_edge, max_order):
   
 for vol in vol_list:  
   create_density_file(dim, divider, float(vol), edge, order)  
+
+

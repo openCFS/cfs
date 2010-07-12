@@ -1,4 +1,5 @@
 function [ density] = createdens( nodes, elements, bVoid, circles, cylinders )
+disp('create density information');
 
 nelements = size(elements,1);
 
@@ -54,6 +55,7 @@ end % end of circles
 
     
 if( ncyl > 0 )
+  fprintf('found %d cylinders\n', ncyl);
   cylinders2 = zeros(ncyl, 5);
 
   % walk over all cylinders

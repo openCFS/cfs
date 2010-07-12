@@ -88,6 +88,10 @@ namespace CoupledField
     std::string GetScriptFileStr() const;
 #endif
 
+    /** Return the optional ersatz  material density file
+     * @return "" if nothing given. */
+    std::string GetErsatzMaterialStr() const;
+
     //! Return path to XML schema file
 
     //! This method can be used to query the path to the XML schema file

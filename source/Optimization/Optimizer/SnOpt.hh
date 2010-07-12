@@ -103,6 +103,16 @@ private:
    *  linesearch_tolerance: \in [0, 1], default 0.9, higher is less accurate
    */
   void SetNumericValue(const std::string& key, double value);
+  
+  /** Helper function for setting a string valued option 
+   *  currently known options are: 
+   *  qpsolver: can be one of Cholesky, CG, QN 
+   *    from the snopt-manual: 
+   *      - Cholesky: most robust, but expensive if number of superbasics is large
+   *      - CG: good for large number of degrees of freedom (superbasics > 2000)
+   *      - QN: good if number of major iterations is small and superbasics is large
+   */
+  void SetStringValue(const std::string& key, const std::string& value);
 
   /** number of function evaluations */
   int f_evals;

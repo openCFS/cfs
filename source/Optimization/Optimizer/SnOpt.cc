@@ -236,6 +236,7 @@ int SnOpt::Callback(int* Status, const int n,
   timer_callback_->Start();
   
   LOG_TRACE(snopt) << "Callback";
+  LOG_DBG3(snopt) << "Callback: needF=" << *needF << " needG=" << *needG << " x=" << StdVector<double>::ToString(n, x);
 
   // if we want to stop, we have to set Status to a value < -1!
   if(optimization->DoStopOptimization() || stop)
@@ -357,8 +358,8 @@ bool SnOpt::eval_grad_f(int n, const double* x, double* grad_f)
 
   for(int i = 0; i < n; i++)
   {
-    //LOG_DBG3(snopt) <<   "old grad_f[" << i << "] = " << grad_f[i] 
-    //                << ", new grad_f[" << i << "] = " << gradhelper[i];
+    LOG_DBG3(snopt) <<   "old grad_f[" << i << "] = " << grad_f[i]
+                    << ", new grad_f[" << i << "] = " << gradhelper[i];
     grad_f[i] = gradhelper[i];
   }
 
@@ -369,11 +370,11 @@ bool SnOpt::eval_g(int n, const double* x, int m, double* g)
 {
   LOG_TRACE(snopt) << "eval_g";
   
-  //for(int i = 0; i < m; i++) LOG_DBG3(snopt) <<   "old G[" << i << "] = " << g[i]; 
+  for(int i = 0; i < m; i++) LOG_DBG3(snopt) <<   "old G[" << i << "] = " << g[i];
 
   EvalConstraints(n, x, m, true, g);
   
-  //for(int i = 0; i < m; i++) LOG_DBG3(snopt) <<   "new G[" << i << "] = " << g[i]; 
+  for(int i = 0; i < m; i++) LOG_DBG3(snopt) <<   "new G[" << i << "] = " << g[i];
 
   return true;
 }
@@ -393,7 +394,7 @@ bool SnOpt::eval_jac_g(int n, const double* x, int m, int nele_jac, double* pG)
   
   for(int i = 0; i < nele_jac; i++)
   {
-    // LOG_DBG3(snopt) <<   "old grad_G[" << i << "] = " << pG[i] << ", new grad_G[" << i << "] = " << gradhelper[i];
+    LOG_DBG3(snopt) <<   "old grad_G[" << i << "] = " << pG[i] << ", new grad_G[" << i << "] = " << gradhelper[i];
     pG[i] = gradhelper[i];
   }
 
@@ -504,6 +505,11 @@ void SnOpt::SetSnOptOptions()
     
     for(unsigned int i = 0; i < list.GetSize(); i++)
       SetNumericValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<double>());
+    
+    list = optimizer_pn_->GetListByVal("option", "type", "string");
+    
+    for(unsigned int i = 0; i < list.GetSize(); i++)
+      SetStringValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<std::string>());
   }
   
   if(!setMinorItLimit) SetIntegerValue("minor_iterations_limit", minItLimit);
@@ -669,7 +675,7 @@ void SnOpt::SetIntegerValue(const std::string& key, int value)
     assert(INFO == 0);
   }
   else // nothing found
-    EXCEPTION("trying to set an snopt-option that is unknown!");
+    EXCEPTION("trying to set an snopt-option (int) that is unknown!");
 }
 
 void SnOpt::SetNumericValue(const std::string& key, double value)
@@ -704,7 +710,31 @@ void SnOpt::SetNumericValue(const std::string& key, double value)
     assert(INFO == 0);
   }
   else // nothing found
-    EXCEPTION("trying to set an snopt-option that is unknown!");
+    EXCEPTION("trying to set an snopt-option (real) that is unknown!");
+}
+
+void SnOpt::SetStringValue(const std::string& key, const std::string& value)
+{
+  string option;
+
+  if(key == "qpsolver")
+  {
+    option = "QPSolver ";
+    option.append(value);
+  }
+  
+  if(!option.empty())
+  {
+    LOG_TRACE(snopt) << "adjusted " << key;
+    // set the option
+    snset_(option.c_str(), &iPrint, &iSumm, &INFO,
+        &cw[0], &lencw, &iw[0], &leniw, &rw[0], &lenrw, option.size(), 8*lencw );
+
+    // check INFO, if after setting an option INFO > 0 we have had an error!
+    assert(INFO == 0);
+  }
+  else // nothing found
+    EXCEPTION("trying to set an snopt-option (string) that is unknown!");
 }
 
 } // namespace

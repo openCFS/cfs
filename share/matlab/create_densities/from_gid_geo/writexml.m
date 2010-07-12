@@ -1,4 +1,5 @@
 function writexml( filename, elements, density )
+disp('writing xml file');
 
 xml_file = fopen(filename, 'w');
 

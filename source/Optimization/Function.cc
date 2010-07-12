@@ -1,16 +1,22 @@
 #include "Optimization/Function.hh"
 #include "Optimization/Condition.hh"
 #include "Optimization/Objective.hh"
+#include "Optimization/Design/DesignSpace.hh"
 #include "General/exception.hh"
 #include "General/environment.hh"
 #include "Domain/domain.hh"
 #include "Domain/grid.hh"
 #include "Materials/mechanicMaterial.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
+#include "DataInOut/Logging/cfslog.hh"
 
+DECLARE_LOG(ofunc)
+DEFINE_LOG(ofunc, "opt_func")
 
-// instantiation of the static elements
+// instantiation of the static elements is in Optimization::SetEnums()
 Enum<Function::Type> Function::type;
+Enum<Function::Locality> Function::locality;
+
 using boost::lexical_cast;
 
 Function::Function(PtrParamNode pn)
@@ -18,8 +24,10 @@ Function::Function(PtrParamNode pn)
   this->harmonic_    = BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType());
 
   this->pn = pn;
+  this->local = NULL;
 
   this->type_ = type.Parse(pn->Get("type")->As<std::string>());
+  this->locality_ = locality.Parse(pn->Get("local")->As<std::string>());
 
   // function value to be evaluated
   this->value_ = -1.0;
@@ -75,6 +83,7 @@ Function::Function(PtrParamNode pn)
     case POISSONS_RATIO:
     case YOUNGS_MODULUS:
     case SLOPE:
+    case GLOBAL_SLOPE:
     case ISOTROPY:
     case CHECKERBOARD:
       this->evaluateOnce_ = true;
@@ -93,7 +102,11 @@ Function::Function(PtrParamNode pn)
     case TEMPERATURE:
       this->evaluateOnce_ = false; // standard case
   }
+}
 
+Function::~Function()
+{
+  if(local != NULL) { delete local; local = NULL; }
 }
 
 bool Function::ReadTensor(PtrParamNode pn, Matrix<double>& matrix)
@@ -160,6 +173,15 @@ void Function::ParseCoord(PtrParamNode pn, std::pair<int, int>& coord)
   std::string val = pn->Get("coord")->As<std::string>();
   coord.first  = lexical_cast<unsigned int>(val.at(0));
   coord.second = lexical_cast<unsigned int>(val.at(1));
+}
+
+void Function::ToInfo(PtrParamNode info)
+{
+  info_ = info;
+  info->Get("type")->SetValue(type.ToString(type_));
+  if(harmonic_)
+    info->Get("omega_omega")->SetValue(omega_omega_);
+
 }
 
 std::string Function::ToString() const
@@ -232,6 +254,7 @@ bool Function::ForSensitivityFiltering() const
   case GREYNESS:
   case REALVOLUME:
   case SLOPE:
+  case GLOBAL_SLOPE:
   case CHECKERBOARD:
     return false;
 
@@ -241,4 +264,101 @@ bool Function::ForSensitivityFiltering() const
   }
 
   EXCEPTION("can never reach! Stupid C++");
+}
+
+
+void Function::PostProc(DesignSpace* space, DesignStructure* structure)
+{
+  // pre-init step
+  switch(type_)
+  {
+  case CHECKERBOARD:
+  case SLOPE:
+  case GLOBAL_SLOPE:
+    assert(space->IsRegular()); // VicinityElements work only on a regular grid
+    // the design elements require the vicinity element to be set which holds the direct
+    // neighbors. Is save to call several times
+    VicinityElement::Init(space, structure);
+    InitLocal(space);
+
+    if(type_ == SLOPE)
+      info_->Get("active_size")->SetValue(local->values.GetSize());
+
+    break;
+
+  case PENALIZED_VOLUME:
+    for(unsigned int i = 0; i < space->transfer.GetSize(); i++)
+      if(space->transfer[i].IsPenalized())
+        info_->Get(ParamNode::WARNING)->SetValue("transfer function '" + space->transfer[i].ToString() + " seems also to penalize");
+
+  default: // do nothing
+    break;
+  }
+}
+
+Function::Local* Function::InitLocal(DesignSpace* space)
+{
+  if(local == NULL) local = new Local(this, space);
+  return local;
+}
+
+Function::Local::Local(Function* func, DesignSpace* space)
+{
+  this->space = space;
+  this->func_ = func;
+
+  assert(func->locality_ == Function::NEXT_BIDIR || func->locality_ == Function::NEXT);
+
+  bool both = func->locality_ == Function::NEXT;
+  unsigned int  dim  = domain->GetGrid()->GetDim();
+
+  element_dimension_ = dim * (both ? 2.0 : 1.0);
+
+  virtual_elem_map.Reserve(element_dimension_ * space->GetNumberOfElements());
+
+  // traverse all elements and check for full neighborhood
+  space->AssertOneDesignOnly();
+  int elems = space->GetNumberOfElements();
+  for(int e = 0, ss = elems; e < ss; ++e)
+  {
+    DesignElement& de = space->data[e];
+
+    // do we have a full neighborhood? All or none as in the original paper
+    bool full = true;
+    if(de.vicinity->design[VicinityElement::X_P] == NULL) full = false;
+    if(de.vicinity->design[VicinityElement::Y_P] == NULL) full = false;
+    if(dim == 3 && de.vicinity->design[VicinityElement::Z_P] == NULL) full = false;
+
+    LOG_DBG2(ofunc) << "Local::Local e_num=" << de.elem->elemNum << " vicinity=" << de.vicinity->ToString() << " full=" << full;
+
+    if(full)
+    {
+      // for the slope constraint bounding box no sign is necessary!
+      if(!both)
+      {
+        virtual_elem_map.Push_back(Identifier(e, VicinityElement::X_P));
+        virtual_elem_map.Push_back(Identifier(e, VicinityElement::Y_P));
+        if(dim == 3)
+          virtual_elem_map.Push_back(Identifier(e, VicinityElement::Z_P));
+      }
+
+      if(both)
+      {
+        virtual_elem_map.Push_back(Identifier(e, VicinityElement::X_P, 1));
+        virtual_elem_map.Push_back(Identifier(e, VicinityElement::X_P, -1));
+
+        virtual_elem_map.Push_back(Identifier(e, VicinityElement::Y_P, 1));
+        virtual_elem_map.Push_back(Identifier(e, VicinityElement::Y_P, -1));
+
+        if(dim == 3)
+        {
+          virtual_elem_map.Push_back(Identifier(e, VicinityElement::Z_P, 1));
+          virtual_elem_map.Push_back(Identifier(e, VicinityElement::Z_P, -1));
+        }
+      }
+    }
+  }
+
+  // needs to be set prior CalcSlopeConstraint() as the optimizers need the size
+  values.Resize(virtual_elem_map.GetSize(), -1.0);
 }

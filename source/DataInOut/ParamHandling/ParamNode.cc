@@ -34,8 +34,10 @@ PtrParamNode param;
 PtrParamNode info;
 
 ParamNode::ParamNode(ActionType defaultAction, NodeType type) :
-  precision_(5), name_(""), type_(type), defaultAction_(defaultAction), lastresultidx_(-1)
+  precision_(5), name_(""), type_(type), defaultAction_(defaultAction),
+  lastresultidx_(-1), write_counter_(0), reject_counter_(0)
 {
+  write_timer_ = new Timer();
 }
 
 ParamNode::~ParamNode()
@@ -842,9 +844,8 @@ void ParamNode::ToXML(std::ostream& os, int depth)
   }
 }
 
-void ParamNode::ToFile(const std::string& filename)
-{
-
+void ParamNode::ToFile(const std::string& filename, bool force)
+{ 
   // determine correct filename (if not given)
   std::string myFileName;
   if (!filename.empty())
@@ -853,15 +854,32 @@ void ParamNode::ToFile(const std::string& filename)
   }
   else
   {
+    write_timer_->Start();
+    
+    // only really write the file if at least a certain amount of time has passed since last write
+    // or if forced
+    if(!force && write_timer_->GetWallTime() < 2.0)
+    {
+      ++reject_counter_;
+      return;
+    }
+
+    write_timer_->ResetStart();    
+    ++write_counter_;
+    
     myFileName = progOpts->GetSimName() + ".info.xml";
   }
   // write preamble
 
   std::ofstream info_file(myFileName.c_str());
   info_file << "<?xml version=\"1.0\"?>" << std::endl;
+  
   // store how often we are written -> if the number is too high one should cancel some ToFile() calls
   //    if(writeCounter_.count(filename_) == 0) writeCounter_[filename_] = 0;
   //    Get("writeCounter")->SetValue(++writeCounter_[filename_]);
+  // just for info.xml put write counter to info.xml
+  Get("infoWriteCounter")->SetValue(write_counter_);
+  Get("infoRejectCounter")->SetValue(reject_counter_);
 
   // First we determine the type of nodes
   AdjustElementType();

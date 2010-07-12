@@ -4,6 +4,8 @@
 #include "General/Enum.hh"
 #include "MatVec/matrix.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Optimization/Design/DesignElement.hh"
+
 
 using std::pair;
 
@@ -12,8 +14,9 @@ namespace CoupledField
 {
 class Condition;
 class Objective;
+class DesignSpace;
 
-/** A Function is the (abstact) base class of Objective and Condition (which is a constraint but the name was
+/** A Function is the (abstract) base class of Objective and Condition (which is a constraint but the name was
  * already used)
  */
 class Function
@@ -24,11 +27,14 @@ class Function
     Function() {};
     
     /** virtual dtor because base class */
-    virtual ~Function() {};
+    virtual ~Function();
 
     /** A Function is too stupid to do any useful - it is just a common base to avoid code dupliciy
      * @param pn our own element */
     Function(PtrParamNode pn);
+
+    /** PostProc called be the containers */
+    void PostProc(DesignSpace* space, DesignStructure* structure);
 
     /** Different function types - some only objective, some only constraint some both */
     typedef enum {
@@ -56,6 +62,7 @@ class Function
       YOUNGS_MODULUS,            /*!< Young's Modulus (E) within homogenization */
       TYCHONOFF,                 /*!< int(|| design ||^2) is a regularization form material opt. */
       TEMPERATURE,               /*!< for optimization of poisson and heat conduction pde */
+      GLOBAL_SLOPE,              /*!< different implementation from local slopes */
 
       // This is constraint only!
       GREYNESS,                  /*!< inaccurate - best for observation only */
@@ -70,6 +77,17 @@ class Function
 
     /** See ToString() for string conversion! */
     Type GetType() const { return type_; }
+
+    /** The local type -> essentially slope */
+    typedef enum {
+      DEFAULT,
+      NEXT,         /*!< x_i and x_i+1 */
+      NEXT_BIDIR    /*!< x_i and x_i+1 plus x_i+1 and x_i for classical slope */
+    } Locality;
+
+    static Enum<Locality> locality;
+
+    Locality GetLocality() const { return locality_; }
 
     /** The real label might be an extended type string. E.g. by "physical_".
      * Check if better use this than type.ToString(GetType()).
@@ -131,22 +149,100 @@ class Function
     /** index within all objectives for design element gradient */
     int GetIndex() const { return index_; }
 
-    /** Here we store our ParamNode such we can more easily access it in ErsatzMaterial */
-    PtrParamNode pn;
-
     /** Read the tensor if it is given, otherwise sets to 1.1
      * @param pn might contain a "tensor" child
      * @param matrix where to store the data
      * @return true if the tensor was read */
     static bool ReadTensor(PtrParamNode pn, Matrix<double>& matrix);
 
+
+    /** A function can be be a local function when it is calculated by the local neighborhood state.
+     * This does NOT mean, that the function may not be a global function, e.g. when a the L2 norm
+     * of the local information is used!
+     * Due to the (current) separation of Objective and Condition the local function property is not
+     * a derived "is local property" but it "has the local property". Very similar to the DesignElement
+     * structure. */
+    class Local
+    {
+    public:
+
+      /** Initialized the neighborhood */
+      Local(Function* func, DesignSpace* space);
+
+      /** Number of identifiers per design element. Usually dim or dim *2, ... */
+      int GetElememtDimension() const { return element_dimension_; }
+
+      /** the mapping from a relative slope constraint number (0-based) to the actual
+       * constraint. This allows to remove constraints for elements which have no (full)
+       * neighborhood */
+      struct Identifier
+      {
+        /** default constructor for StdVector() */
+        Identifier() : sign(-1000) {}
+
+        Identifier(unsigned int el_idx, VicinityElement::Neighbour nei, int si = -1000)
+        {
+          this->element_idx = el_idx;
+          this->neighbor = nei;
+          this->sign = si;
+        }
+        unsigned int element_idx; // this represents DesignSpace::data[element_idx]
+        VicinityElement::Neighbour neighbor; // only X_P, Y_P (,Z_P);
+
+        /** sign is only needed if we treat slope constraints as two separate constraints
+         *  in case we do not do this, sign will be -1000, else -1 for X_N, 1 for X_P */
+        int sign;
+      };
+
+      /** Elements with no full neighborhood are not stored. If they would be stored
+       * we could easily calculate the virtual element number.
+       * This vector maps from the relative virtual constraint number (0 based)
+       * to the relative element index (also 0-based). If we have all periodic b.c.
+       * then this is a 1:1 mapping, otherwise this list is smaller than 2*dim*n by
+       * 2*dim<not full neighborhood> */
+      StdVector<Identifier> virtual_elem_map;
+
+      /** We need the design space to access the values */
+      DesignSpace* space;
+
+      /** Store the local values. */
+      StdVector<double> values;
+
+    private:
+      Function* func_;
+
+      /** @see GetElementDimension() */
+      int element_dimension_;
+    };
+
+
+    /** Is local already initialized? Can only be done late when the design is present
+     * Do no confuse with SlopeCondition::IsLocal()
+     * @return for non-local functions always false */
+    bool IsLocalInitialized() { return local != NULL; }
+
+    /** Give the local information. Check by IsLocalInitialized() */
+    Local* GetLocal() { return local; }
+
+    /** We also store here the info ptr. When overload, call also this. */
+    virtual void ToInfo(PtrParamNode info);
+
+    /** Here we store our ParamNode such we can more easily access it in ErsatzMaterial */
+    PtrParamNode pn;
+
   protected:
+
+    /** Is reentrant save. Initialize the local variable
+     * @return either a new Local or the old one */
+    Local* InitLocal(DesignSpace* space);
     
     /** extract the "coord" element and parse it to coord */
     static void ParseCoord(PtrParamNode pn, std::pair<int, int>& coord);
 
     /** The actual kind of cost function. */
     Type type_;
+
+    Locality locality_;
 
     /** for HOMOGENIZATION_TRACKING this is the target tensor. */
     Matrix<double> tensor_;
@@ -173,7 +269,14 @@ class Function
 
     bool harmonic_;
 
+    /** Do we have local information? E.G. (global) slopes */
+    Local* local;
+
+    /** Here we store our info node */
+    PtrParamNode info_;
+
 };
+
 
 } // namespace
 

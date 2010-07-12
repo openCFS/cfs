@@ -291,6 +291,27 @@ for y = 1:sy;
 endfor
 fprintf(xml_file, '</set>\n\n');
 
+fprintf(xml_file, '<set id="frame">\n');
+# frame should be 10 percent of width
+xframe = 0.1 * sx;
+yframe = 0.1 * sy;
+
+for y = 1:sy;
+  for x = 1:sx;
+    # number of current element
+    num = (y - 1) * sx + x;
+
+		if(x < xframe || x > sx-xframe || y < yframe || y > sy - yframe)
+			v = 1;
+		else
+		  v = dmin;
+		end
+
+    fprintf(xml_file, '  <element nr="%d" type="density" design="%g"/>\n', num, v);
+  endfor
+endfor
+fprintf(xml_file, '</set>\n\n');
+
 fprintf(xml_file, '</cfsErsatzMaterial>\n');
 fclose(xml_file);
 

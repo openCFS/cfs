@@ -22,8 +22,8 @@
 #include <def_use_tcl.hh>
 #include <def_xmlschema.hh>
 
-#include "programOptions.hh"
-#include "coloredConsole.hh"
+#include "DataInOut/programOptions.hh"
+#include "DataInOut/coloredConsole.hh"
 
 #include <sstream>
 #include <cstdlib>
@@ -150,6 +150,9 @@ namespace CoupledField {
 
       ( "schemaRoot,s", po::value<string>(),
         "path to XML schema definitions (env CFS_SCHEMA_ROOT)")
+
+      ( "ersatz,x", po::value<string>(),
+        "name of ersatz material density file")
 
       ( "restart,r",
         "read restart file of previous simulation run" )
@@ -359,6 +362,14 @@ namespace CoupledField {
     } else {
       return fs::path();
     }
+  }
+
+  string ProgramOptions::GetErsatzMaterialStr() const
+  {
+    if(varMap_.count("ersatz") != 0)
+      return varMap_["ersatz"].as<string>();
+    else
+      return "";
   }
 
   string ProgramOptions::GetScriptFileStr() const

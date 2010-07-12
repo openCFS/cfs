@@ -8,6 +8,7 @@
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignStructure.hh"
+#include "Optimization/Design/DensityFile.hh"
 #include "Optimization/OptimizationMaterial.hh"
 #include "Domain/domain.hh"
 #include "Domain/surfElem.hh"
@@ -59,6 +60,7 @@ ErsatzMaterial::ErsatzMaterial() :
   volume_fraction_ = 0.0;
   structure_ = NULL;
   pde = NULL;
+  densityFile = NULL;
 
   pn = param->Get("optimization")->Get("ersatzMaterial");
 
@@ -102,13 +104,10 @@ ErsatzMaterial::ErsatzMaterial() :
 
   // optionally write the densities to an xml file
   if(pn->Has("export"))
-  {
-    std::string name = pn->Get("export/file")->As<std::string>();
-    if(name == "[problem]") name = progOpts->GetSimName() + ".density.xml";
-    exportDesign = CreateExportDesign(name, design_list, transfer_list, pn->Get("SIMP/regularization", ParamNode::PASS));
-    exportDesignAllIterations = pn->Get("export/save")->As<std::string>() == "all";
-    exportDesignFinallyOnly   = pn->Get("export/write")->As<std::string>() == "finally";
-  }
+    densityFile = new DensityFile(design, pn->Get("export"),
+                                  design_list,
+                                  transfer_list,
+                                  pn->Get("SIMP/regularization", ParamNode::PASS));
 
   // we assume always to have either a mechanic or heatcond pde.
   SetPDEs();
@@ -136,7 +135,6 @@ ErsatzMaterial::ErsatzMaterial() :
 
   }
 
-
   // give the domain this data, s.th. the ersatz material approach is applied
   domain->SetErsatzMaterial(design);
 
@@ -152,15 +150,7 @@ ErsatzMaterial::ErsatzMaterial() :
 ErsatzMaterial::~ErsatzMaterial()
 {
   // if write to file close the xml envelope and the file
-  if(exportDesign != NULL)
-  {
-    if(exportDesignFinallyOnly) { // in CommitIteration or here?
-      std::string name = pn->Get("export/file")->As<std::string>();
-      if(name == "[problem]") name = progOpts->GetSimName() + ".density.xml";
-      exportDesign->ToFile( name); 
-    }
-    exportDesign.reset();
-  }
+  if(densityFile != NULL) { delete densityFile; densityFile = NULL; }
 
   delete material;
 
@@ -180,6 +170,8 @@ void ErsatzMaterial::PostInit()
   design->PostInit(objectives.data.GetSize(), constraints.all.GetSize());
   // post init slope constraints when the design is there
   constraints.PostProc(design, structure_);
+  // same for the objectives
+  objectives.PostProc(design, structure_);
 
   // number of design variables in shape optimization is only known here
   // make a copy of the old iteration to calculate the move
@@ -274,7 +266,11 @@ void ErsatzMaterial::PostInit()
     optInfoNode->Get(ParamNode::HEADER)->Get("material")->SetValue(OptimizationMaterial::system.ToString(material->GetSystem()));
   }
 
-  Optimization::PostInit();
+  // if loadErsatzMaterial is used with optimization specifying a starting point,
+  // we have to load it here, before scaling is done.
+  if(DensityFile::NeedLoadErsatzMaterial())
+    DensityFile::ReadErsatzMaterial(design);
+
 }
 
 
@@ -586,27 +582,6 @@ void ErsatzMaterial::NormalizeMultipleExcitations()
   }
 }
 
-PtrParamNode ErsatzMaterial::CreateExportDesign(const std::string& filename,
-                                                    ParamNodeList& des, ParamNodeList& tfs, PtrParamNode regularize)
-{
-   PtrParamNode in = PtrParamNode(new ParamNode(ParamNode::INSERT));
-   in->SetName("cfsErsatzMaterial");
-
-   // write header
-   PtrParamNode in_ = in->Get("header");
-   
-   for(unsigned int i = 0; i < des.GetSize(); i++)
-     in_->Get("dummy", ParamNode::APPEND)->SetValue(des[i], true); // name is overwritten
-
-   for(unsigned int i = 0; i < tfs.GetSize(); i++)
-     in_->Get("dummy", ParamNode::APPEND)->SetValue(tfs[i], true);
-
-   if(regularize)
-     in_->Get("dummy")->SetValue(regularize, true);
-
-   return in;
-
-}
 
 void ErsatzMaterial::StoreResults(double step_val)
 {
@@ -673,53 +648,13 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     in->Get("tensor")->SetValue(new Matrix<double>(homogenizedTensor));
   }
 
-  if(exportDesign != NULL)
-  {
-    SetCurrentExportDesign(); // appends or replaces
-    if(!exportDesignFinallyOnly) { // here or on destructor
-      std::string name = pn->Get("export/file")->As<std::string>();
-      if(name == "[problem]") name = progOpts->GetSimName() + ".density.xml";
-      exportDesign->ToFile(name);
-    }
-  }
+  if(densityFile != NULL)
+    densityFile->SetCurrent(currentIteration - 1); // the counter was already incremented!
 
   return iter;
 }
 
-void ErsatzMaterial::SetCurrentExportDesign()
-{
-  PtrParamNode in = exportDesign->Get("set", exportDesignAllIterations ? ParamNode::APPEND : ParamNode::INSERT);
-  // add the entry, note that the iteration counter was incremented in base implementation
-  in->Get("id")->SetValue(currentIteration-1);
 
-  // the loop can be quite long. When it is fille already, ParamNode::Get() is cached
-  // but when it is filled it would search. Do it faster!
-
-  // even for !exportDesignAllIterations in is empty in the first commit
-
-  ParamNodeList& list = in->GetChildren();
-
-  const unsigned int bias = 1; // there one "id" element as first element
-
-  assert(list.GetSize() == bias || list.GetSize() == design->data.GetSize() + bias);
-  assert(list[0]->GetName() == "id");
-
-  bool append = list.GetSize() == bias;
-  assert(!(exportDesignAllIterations && ! append));
-
-  if(append)
-    list.Resize(design->data.GetSize() + 1);
-
-  for(unsigned int i = 0, s = design->data.GetSize(); i < s; ++i)
-  {
-    DesignElement* de = &design->data[i];
-    PtrParamNode el = append ? in->SetNewChild("element", i + bias) : list[i + bias];
-    el->Get("nr")->SetValue(de->elem->elemNum);
-    el->Get("type")->SetValue(DesignElement::type.ToString(de->GetType()));
-    el->Get("design")->SetValue(de->GetDesign(DesignElement::PLAIN), 11);
-    el->Get("physical")->SetValue(de->GetPhysicalDesign(), 11);
-  }
-}
 
 string ErsatzMaterial::GetIterationFrequency()
 {
@@ -839,6 +774,13 @@ double ErsatzMaterial::CalcObjective(Excitation& excite, Objective* cost)
     else
     {
       std::cout << "Homogenized Tensor: " << std::endl << hom_tensor.ToString(0, true);
+
+      std::cout << "Orthotrope properties: ";
+      StdVector<std::pair<string, double> > ortho = MechanicMaterial::CalcOrthotropeProperties(hom_tensor);
+      for(unsigned int i = 0; i < ortho.GetSize(); i++)
+        std::cout << " " << ortho[i].first << "=" << ortho[i].second;
+      std::cout << "\n";
+
       return hom_tensor.NormL2();
     }
   }
@@ -1244,8 +1186,15 @@ double ErsatzMaterial::CalcConstraint(Condition* g, bool derivative, StdVector<d
 
     case Condition::HOMOGENIZATION_TRACKING:
     {
-      double diff = g->GetTensor().DiffNormL2(CalcHomogenizedTensor());
-      result = 0.5 * diff * diff;
+      if(derivative)
+      {
+        CalcHomogenizedTrackingGradient(g->GetTensor(), CalcHomogenizedTensor(), NULL, g);
+      }
+      else
+      {
+        double diff = g->GetTensor().DiffNormL2(CalcHomogenizedTensor());
+        result = 0.5 * diff * diff;
+      }
       break;
     }
 
@@ -2368,7 +2317,7 @@ double ErsatzMaterial::CalcSlopeConstraint(Condition* g, bool derivative)
   DesignElement* neigh      = de->vicinity->GetNeighbour((VicinityElement::Neighbour) neigh_num);
   
   bool case_a(false);
-  if(g->slopes_double)
+  if(g->GetLocality() != Function::NEXT_BIDIR)
   {
     // the abs(slope) is done by two inequality constraints. Therefore the 2 * dim
     // a) x_i+1 - x_i <= c*h
@@ -2398,7 +2347,7 @@ double ErsatzMaterial::CalcSlopeConstraint(Condition* g, bool derivative)
     design->data[neigh_idx].Reset(DesignElement::CONSTRAINT_GRADIENT, g);
     design->data[de_idx].Reset(DesignElement::CONSTRAINT_GRADIENT, g);
 
-    if(slope->slopes_double)
+    if(slope->GetLocality() != Function::NEXT_BIDIR)
     {
       design->data[neigh_idx].AddGradient(NULL, g, case_a ? 1.0 : -1.0);
       design->data[de_idx].AddGradient(NULL, g, case_a ? -1.0 : 1.0);
@@ -2415,13 +2364,13 @@ double ErsatzMaterial::CalcSlopeConstraint(Condition* g, bool derivative)
                  << " ov=" << (case_a ? -1.0 : 1.0)
                  << " nv=" << (case_a ? 1.0 : -1.0);
   }
-  else
+  else // non derivative case
   {
     double own_val   = de->GetValue(DesignElement::DESIGN, DesignElement::PLAIN);
     double other_val = neigh->GetValue(DesignElement::DESIGN, DesignElement::PLAIN);
 
     double res = other_val - own_val;
-    if(slope->slopes_double)
+    if(slope->GetLocality() != Function::NEXT_BIDIR)
     {
       res = case_a ? other_val - own_val : -1.0 * other_val + own_val;
     }

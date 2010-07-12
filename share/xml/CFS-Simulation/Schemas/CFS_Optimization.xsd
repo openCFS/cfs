@@ -22,7 +22,7 @@
           <xsd:attribute name="design" use="optional" type="xsd:boolean" default="false"/>
           <xsd:attribute name="designGradient" use="optional" type="xsd:boolean" default="false"/>
         </xsd:complexType>
-      </xsd:element>
+      </xsd:element>      
       
       <xsd:element name="firstStepStatic" minOccurs="0" maxOccurs="1">
         <xsd:complexType>
@@ -57,6 +57,8 @@
                       <xsd:attribute name="type" type="DT_Objective" use="required"/>
                       <xsd:attribute name="penalty" type="xsd:float" use="required"/>
                       <xsd:attribute name="coord" use="optional" type="DT_HomTensorEntries"/>
+                      <!-- about the locality of functions. E.g. slopes, which can be box constrained for snopt only -->
+                      <xsd:attribute name="local" use="optional" default="default" type="DT_Function_Local"/>
                     </xsd:complexType>
                   </xsd:element>
                 </xsd:sequence>
@@ -230,7 +232,10 @@
             mechanical/static loads and multiple harmonic frequencies. 
             The corresponding element is optional -->
           <xsd:attribute name="multiple_excitation" type="xsd:boolean" use="optional" default="false" />
-          
+
+          <!-- about the locality of functions. E.g. slopes, which can be box constrained for snopt only -->
+          <xsd:attribute name="local" use="optional" default="default" type="DT_Function_Local"/>
+
         </xsd:complexType>
       </xsd:element>
       
@@ -264,6 +269,7 @@
                 <xsd:enumeration value="youngsModulus"/>
                 <xsd:enumeration value="isotropy"/>
                 <xsd:enumeration value="slope"/>
+                <xsd:enumeration value="globalSlope"/>
                 <xsd:enumeration value="checkerboard"/>
               </xsd:restriction>
             </xsd:simpleType>
@@ -307,11 +313,12 @@
           <xsd:attribute name="coord" use="optional" type="DT_HomTensorEntries"/>
           <!-- Shall for logging the value or the difference to value be printed? -->
           <xsd:attribute name="log_delta" use="optional" default="false" type="xsd:boolean"/>
-          <!-- slopes are either treated as upper-lower constraints (i. e. one constraint with 
-          an upper and a lower bound) or as two separate constraints (this is important for scpip) -->
-          <xsd:attribute name="slopes_double" use="optional" default="false" type="xsd:boolean"/>
+          
+          <!-- about the locality of functions. E.g. slopes, which can be box constrained for snopt only -->
+          <xsd:attribute name="local" use="optional" default="default" type="DT_Function_Local"/>
+          
           <!-- slopes can be treated linearly by snopt or nonlinearly -->
-          <xsd:attribute name="slopes_linear" use="optional" default="true" type="xsd:boolean"/>
+          <xsd:attribute name="linear" use="optional" type="xsd:boolean"/>
         </xsd:complexType>
       </xsd:element>
 
@@ -423,6 +430,8 @@
                             <xsd:enumeration value="major_feasibility_tolerance"/>
                             <xsd:enumeration value="minor_feasibility_tolerance"/>
                             <xsd:enumeration value="linesearch_tolerance"/>
+                            <!-- string options -->
+                            <xsd:enumeration value="qpsolver"/>
                           </xsd:restriction>
                         </xsd:simpleType>
                       </xsd:attribute>
@@ -1053,6 +1062,7 @@
       <xsd:enumeration value="tychonoff"/>
       <xsd:enumeration value="temperature"/>
       <xsd:enumeration value="energyFlux"/>
+      <xsd:enumeration value="globalSlope"/>
       <xsd:enumeration value="multiObjective"/>
     </xsd:restriction>
   </xsd:simpleType>
@@ -1156,6 +1166,16 @@
       <xsd:enumeration value="youngsModulus"/>
     </xsd:restriction>
   </xsd:simpleType>
+  
+  <!-- local attribute for constraints and objectives -->
+  <xsd:simpleType name="DT_Function_Local">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="default"/>
+      <xsd:enumeration value="next"/>
+      <xsd:enumeration value="next_bidir"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
   
 </xsd:schema>
 

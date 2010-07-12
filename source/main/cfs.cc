@@ -207,7 +207,7 @@ CFS::~CFS()
 #endif
 
   // flush last information.
-  info->ToFile();
+  info->ToFile(std::string(), true);
   
   // TEMPORARY: Just for debug purpose
 //  std::cout << "Info tree:\n"

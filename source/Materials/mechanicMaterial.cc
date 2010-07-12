@@ -9,7 +9,8 @@
 #include <math.h>
 #include <limits.h>
 #include <string>
-#include <boost/bind.hpp>
+#include <boost/bind.hpp> // TODO what do we need bind here?? - Fabian
+#include <boost/lexical_cast.hpp>
 
 #include "mechanicMaterial.hh"
 #include "Domain/domain.hh"
@@ -772,6 +773,136 @@ namespace CoupledField
     }
     
   }
-  
+
+  StdVector<double> MechanicMaterial::CalcOrthotropeYoungsModulus(const Matrix<double>& tensor)
+  {
+    Matrix<double> D;
+    tensor.Invert(D);
+
+    UInt dim = tensor.GetNumRows() == 3 ? 2 : 3; // rank is 3 or 6
+
+    StdVector<double> res(dim);
+
+    for(UInt i = 0; i < dim; i++)
+      res[i] = 1.0/D[i][i];
+
+    return res;
+  }
+
+  StdVector<double> MechanicMaterial::CalcOrthotropePoissonsRatio(const Matrix<double>& tensor)
+  {
+    Matrix<double> D;
+    tensor.Invert(D);
+
+    UInt dim = tensor.GetNumRows() == 3 ? 2 : 3; // rank is 3 or 6
+
+    StdVector<double> res;
+    StdVector<double> E = CalcOrthotropeYoungsModulus(tensor);
+
+    if(dim == 2)
+    {
+      res.Push_back(-1.0 * D[1-1][2-1] * E[2-1]); // v_21
+      res.Push_back(-1.0 * D[2-1][1-1] * E[1-1]); // v_12
+    }
+    if(dim == 3)
+    {
+      res.Push_back(-1.0 * D[2-1][3-1] * E[3-1]); // v_32
+      res.Push_back(-1.0 * D[1-1][3-1] * E[3-1]); // v_31
+      res.Push_back(-1.0 * D[1-1][2-1] * E[2-1]); // v_21
+      res.Push_back(-1.0 * D[3-1][2-1] * E[2-1]); // v_23
+      res.Push_back(-1.0 * D[3-1][1-1] * E[1-1]); // v_13
+      res.Push_back(-1.0 * D[2-1][1-1] * E[1-1]); // v_12
+    }
+
+    return res;
+  }
+
+  double MechanicMaterial::CalcOrthotropeError(const Matrix<double>& tensor)
+  {
+
+
+    Matrix<double> D;
+    tensor.Invert(D);
+
+    StdVector<double> E = CalcOrthotropeYoungsModulus(tensor);
+    StdVector<double> v = CalcOrthotropeYoungsModulus(tensor);
+
+    double err = 0.0;
+    if(tensor.GetNumRows() == 3)
+    {
+       err += abs(D[3-1][2-1]);
+       err += abs(D[3-1][1-1]);
+       err += abs(abs(E[0]*v[1]) - abs(E[1]*v[0]));
+    }
+    else
+    {
+      for(UInt r = 1; r <= 5; r++)
+        for(UInt c = 4; c <= 6; c++)
+        {
+          // only above the diagonal
+          if(r >= c) continue;
+          err += abs(D[r-1][c-1]);
+        }
+      err += abs(abs(E[0]*v[2]) - abs(E[1]*v[5]));  // E_1 v_21 = E_2 v_12
+      err += abs(abs(E[1]*v[0]) - abs(E[2]*v[3]));  // E_2 v_32 = E_3 v_23
+      err += abs(abs(E[2]*v[1]) - abs(E[0]*v[4]));  // E_3 v_13 = E_1 v_31
+    }
+
+    return err;
+  }
+
+  StdVector<std::pair<std::string, double> > MechanicMaterial::CalcOrthotropeProperties(
+      const Matrix<double>& tensor)
+  {
+    Matrix<double> D;
+    tensor.Invert(D);
+
+    UInt dim = tensor.GetNumRows() == 3 ? 2 : 3; // rank 3 or 6
+
+    StdVector<std::pair<std::string, double> > res;
+
+    StdVector<double> E = CalcOrthotropeYoungsModulus(tensor);
+
+    res.Push_back(std::make_pair("E_1", E[0]));
+    res.Push_back(std::make_pair("E_2", E[1]));
+    if(dim == 3)
+      res.Push_back(std::make_pair("E_3", E[2]));
+
+    StdVector<double> v = CalcOrthotropePoissonsRatio(tensor);
+
+    if(dim == 2)
+    {
+      res.Push_back(std::make_pair("v_21", v[0]));
+      res.Push_back(std::make_pair("v_12", v[1]));
+    }
+    else
+    {
+      res.Push_back(std::make_pair("v_32", v[0]));
+      res.Push_back(std::make_pair("v_31", v[1]));
+      res.Push_back(std::make_pair("v_21", v[2]));
+      res.Push_back(std::make_pair("v_23", v[3]));
+      res.Push_back(std::make_pair("v_13", v[4]));
+      res.Push_back(std::make_pair("v_12", v[5]));
+    }
+
+    if(dim == 2)
+    {
+      res.Push_back(std::make_pair("G_12", 1.0 / D[3-1][3-1]));
+    }
+    else
+    {
+      res.Push_back(std::make_pair("G_23", 1.0 / D[4-1][4-1]));
+      res.Push_back(std::make_pair("G_13", 1.0 / D[5-1][5-1]));
+      res.Push_back(std::make_pair("G_12", 1.0 / D[6-1][6-1]));
+    }
+
+    double err = CalcOrthotropeError(tensor);
+    res.Push_back(std::make_pair("err", err));
+
+    return res;
+  }
+
+
+
   
 } // end of namespace

@@ -2,7 +2,6 @@
 #define CONDITION_HH_
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Function.hh"
 #include "MatVec/vector.hh"
 
@@ -64,8 +63,8 @@ namespace CoupledField
         * Contains the virtual element for slope */
        virtual std::string ToString() const;
 
-       /** log to info.xml */
-       void ToInfo(PtrParamNode in) const;
+       /** log to info.xml. Overloads Function::ToInfo() */
+       void ToInfo(PtrParamNode in);
        
        /** Shall the scaling be linked to the objective scaling */
        bool DoObjectiveScaling() const { return objective_scaling_; }
@@ -112,10 +111,6 @@ namespace CoupledField
         * Note, that the entries are 1-based!!! */
        StdVector<pair<int, int> > coords;
        
-       /** do we treat slope constraints as one contraint with upper and lower bound or as
-        * two separate constraints? */
-       bool slopes_double;
-
     protected:
       /** Reads the coord attribute and sets the coord pair if value is not 'all'
        * @return false if 'all' and the coord pair is not set */
@@ -183,10 +178,11 @@ namespace CoupledField
 
      /** The number of slope constraints. */
      unsigned int GetConstraintSize() const {
-       return values_.GetSize();
+       return local->values.GetSize();
      }
 
-     /** The local mode has current_view_index_ set. For -1 we are in global mode */
+     /** The local mode has current_view_index_ set. For -1 we are in global mode.
+      * Do no confuse with Function::IsLocalInitialized() */
      bool IsLocal() const {
        return current_view_index_ != -1;
      }
@@ -223,11 +219,6 @@ namespace CoupledField
      /** Overloaded to set the local blown up values if in local mode.  */
      void SetValue(double val);
 
-     /** Gives  ErsatzMaterial::CalcSlopeConstraint() the data */
-     StdVector<double>& GetData() {
-       return values_;
-     }
-
      /** Service function for the maxSlope visualization */
      double GetMaxElementSlope(unsigned int element) const;
 
@@ -236,49 +227,8 @@ namespace CoupledField
 
    private:
 
-     /** We need the design space to access the values */
-     DesignSpace* space_;
-
-     /** Store the constraint values. The base value_ contains the max norm value
-      * Size is number of constraints times dim.
-      * Note, that this is a linear constraint and the gradients are constants!  */
-     StdVector<double> values_;
-
      /** To be set via SetCurrentViewIndex(). Negative if not initialized. */
      int current_view_index_;
-
-     /** domain->GetGrid()->GetDim() */
-     int dim_;
-
-     /** the mapping from a relative slope constraint number (0-based) to the actual
-      * constraint. This allows to remove constraints for elements which have no (full)
-      * neighborhood */
-     struct Identifier
-     {
-       /** default constructor for StdVector() */
-       Identifier() : sign(-1000) {}
-
-       Identifier(unsigned int el_idx, VicinityElement::Neighbour nei, int si = -1000)
-       {
-         this->element_idx = el_idx;
-         this->neighbor = nei;
-         this->sign = si;
-       }
-       unsigned int element_idx; // this represents DesignSpace::data[element_idx]
-       VicinityElement::Neighbour neighbor; // only X_P, Y_P (,Z_P);
-       
-       /** sign is only needed if we treat slope constraints as two separate constraints
-        *  in case we do not do this, sign will be -1000, else -1 for X_N, 1 for X_P */
-       int sign;
-     };
-
-     /** Elements with no full neighborhood are not stored. If they would be stored
-      * we could easily calculate the virtual element number.
-      * This vector maps from the relative virtual constraint number (0 based)
-      * to the relative element index (also 0-based). If we have all periodic b.c.
-      * then this is a 1:1 mapping, otherwise this list is smaller than 2*dim*n by
-      * 2*dim<not full neighborhood> */
-     StdVector<Identifier> virtual_elem_map_;
    };
 
    /** This is a container for the conditions within Optimization.
@@ -379,14 +329,8 @@ namespace CoupledField
 
    private:
 
-     /** Postprocess the slope constraint in SIMP. */
-     void InitSlopeConstraint(Condition* g, DesignSpace* space, DesignStructure* structure);
-
      /** Helper */
      StdVector<Condition*> GetList(Condition::Type type, DesignElement::Type design, bool only_active);
-
-     /** We store the info from ToInfo() to extend id on PostProc() */
-     PtrParamNode info_;
 
      /** save for maxSlope output */
      DesignSpace* space_;

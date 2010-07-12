@@ -367,8 +367,18 @@ share/matlab/create_densities/from_gid_geo/RelativeCoordinate.m -text
 share/matlab/create_densities/from_gid_geo/computebox.m -text
 share/matlab/create_densities/from_gid_geo/createcylinders.m -text
 share/matlab/create_densities/from_gid_geo/createdens.m -text
+share/matlab/create_densities/from_gid_geo/density-script-jan-auxetic-90grad.m -text
+share/matlab/create_densities/from_gid_geo/density-script-jan-cube.m -text
+share/matlab/create_densities/from_gid_geo/density-script-jan-diamond.m -text
 share/matlab/create_densities/from_gid_geo/dns/density.xml -text
 share/matlab/create_densities/from_gid_geo/example-jan.txt -text
+share/matlab/create_densities/from_gid_geo/geo/auxetic-40grad.geo -text
+share/matlab/create_densities/from_gid_geo/geo/auxetic-50grad.geo -text
+share/matlab/create_densities/from_gid_geo/geo/auxetic-60grad.geo -text
+share/matlab/create_densities/from_gid_geo/geo/auxetic-75grad.geo -text
+share/matlab/create_densities/from_gid_geo/geo/auxetic-88grad.geo -text
+share/matlab/create_densities/from_gid_geo/geo/auxetic-90grad.geo -text
+share/matlab/create_densities/from_gid_geo/geo/auxetic-95grad.geo -text
 share/matlab/create_densities/from_gid_geo/geo/auxetic-eps-0.5.geo -text
 share/matlab/create_densities/from_gid_geo/geo/auxetic-eps-1.0.geo -text
 share/matlab/create_densities/from_gid_geo/geo/auxetic-eps0.5.geo -text
@@ -1203,6 +1213,8 @@ source/Optimization/CMakeLists.txt -text
 source/Optimization/Condition.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/Condition.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/Design/CMakeLists.txt -text
+source/Optimization/Design/DensityFile.cc -text
+source/Optimization/Design/DensityFile.hh -text
 source/Optimization/Design/DesignElement.cc -text
 source/Optimization/Design/DesignElement.hh -text
 source/Optimization/Design/DesignMaterial.cc -text

@@ -23,17 +23,18 @@ class SurfElem;
 class SurfaceRef;
 class OptimizationMaterial;
 class DesignStructure;
+class DensityFile;
 
-template <class TYPE> class StdVector;
-template <class TYPE> class Vector;
-template <class TYPE> class Matrix;
+template<class TYPE> class StdVector;
+template<class TYPE> class Vector;
+template<class TYPE> class Matrix;
 
 /** Base for optimization where the design variable is correlated to finite elements.
  * The classical case is SIMP, where one optimizes for a pseudo density. The sub-classes
  * extend this idea to more complex stuff.
  * Here the common stuff is kept as solving the adjoint pde and calculating the objective.
  * The implementation of gradients, ... is for the subclasses. */
-class ErsatzMaterial : public Optimization
+class ErsatzMaterial: public Optimization
 {
 public:
   /** Up to now w/o parameters */
@@ -55,7 +56,6 @@ public:
    * If filtering is enabled, this is automatically filtered. */
   void CalcObjectiveGradient(StdVector<double>* grad_out);
 
-
   /** This solves and stores the forward problem. Eventually the adjoint problem is called
    * implicitly.
    * Processes multiple excitations.
@@ -63,7 +63,7 @@ public:
    *        frequencies and calculate the mono-harmonic objective. Only EvaluateOnly shall use this
    *        parameter. */
   void SolveStateProblem(Excitation* ev_only_excite = NULL);
-  
+
   /** This solves all Adjoint problems */
   void SolveAdjointProblems(Excitation* ev_only_excite = NULL);
 
@@ -71,7 +71,8 @@ public:
   double CalcConstraint(Condition* constraint = NULL);
 
   /** The jacobian of the gradient here as a vector with only one constraint! */
-  void CalcConstraintGradient(Condition* constraint = NULL, StdVector<double>* grad_out = NULL);
+  void CalcConstraintGradient(Condition* constraint = NULL,
+      StdVector<double>* grad_out = NULL);
 
   /** Here we also write the density files */
   PtrParamNode CommitIteration(bool keep_iteration_number = false);
@@ -80,8 +81,11 @@ public:
   virtual void PostInit();
 
   /** Have all design elements the same size? -> same local element matrices */
-  bool IsDomainStructured() { return assume_constant_element_matrices_; } 
-  
+  bool IsDomainStructured()
+  {
+    return assume_constant_element_matrices_;
+  }
+
   /** Helper to convert from natural solution/design to application
    * @param DesignElement::DENSITY -> MECH, DesignElement::POLARIZATION -> ELEC */
   static Application ToApp(DesignElement::Type dt);
@@ -101,18 +105,23 @@ public:
    * @param pde1 the first pde (e.g. mech)
    * @param pde2 this is either the same as pde1 or the coupling partner
    * @param integrator there is no nice enum yet :( e.g. linElastInt, MechInt, ... */
-  BiLinFormContext* GetFormContext(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator);
+  BiLinFormContext* GetFormContext(RegionIdType regionId, StdPDE* pde1,
+      StdPDE* pde2, const std::string& integrator);
 
   /** Helper which extracts the Form from assemble using the optimization region
    * @param regionId the corresponding region
    * @param pde1 the first pde (e.g. mech)
    * @param pde2 this is either the same as pde1 or the coupling partner
    * @param integrator there is no nice enum yet :( e.g. linElastInt, MechInt, ... */
-  BaseForm* GetForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator);
-  
+  BaseForm* GetForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2,
+      const std::string& integrator);
+
   /** Types of ersatz material optimization methods, the strings are read from the xml file */
-  typedef enum { NO_METHOD, SIMP_METHOD, PARAM_MAT, SHAPE_GRAD, SHAPE_OPT, SHAPE_PARAM_MAT} Method;
-  
+  typedef enum
+  {
+    NO_METHOD, SIMP_METHOD, PARAM_MAT, SHAPE_GRAD, SHAPE_OPT, SHAPE_PARAM_MAT
+  } Method;
+
   static Enum<Method> method;
 
   /** The order of the pdes is not defined, Therefore we use the map
@@ -147,7 +156,10 @@ protected:
 
     ~Solution();
 
-    typedef enum { ELEMENT_VECTORS, RAW_VECTOR, RHS_VECTOR, SEL_VECTOR,  GRIDELEM_VECTORS } StorageType;
+    typedef enum
+    {
+      ELEMENT_VECTORS, RAW_VECTOR, RHS_VECTOR, SEL_VECTOR, GRIDELEM_VECTORS
+    } StorageType;
 
     /** Copies the solution for the pde in our own storage.
      * In the ELEMENT_VECTORS case make sure, that the solution is in the PDE!
@@ -159,55 +171,59 @@ protected:
      *        "SaveSolution()" in the pde such that we can extract it element wise.
      *        Only relevant for st = ELEMENT_VECTORS
      * @return NULL if st = ELEMENT_VECTOR, otherwise it is the vector */
-    SingleVector* Read(StorageType st, StdPDE* pde, Application app = NO_APP, bool save_sol = false)
+    SingleVector* Read(StorageType st, StdPDE* pde, Application app = NO_APP,
+        bool save_sol = false)
     {
-      if(em_->harmonic) return Read<std::complex<double> >(st, pde, app, save_sol);
-                   else return Read<double>(st, pde, app, save_sol);
+      if (em_->harmonic)
+        return Read<std::complex<double> > (st, pde, app, save_sol);
+      else
+        return Read<double> (st, pde, app, save_sol);
     }
 
     /** Writes the solution (raw vector) back to the pde */
     void Write(StdPDE* pde)
     {
-      if(em_->harmonic) Write<std::complex<double> >(pde);
-      else Write<double>(pde);
+      if (em_->harmonic)
+        Write<std::complex<double> > (pde);
+      else
+        Write<double> (pde);
     }
 
     static void Write(StdPDE* pde, SingleVector* vec);
-
 
     /** return an existing nodal vector.
      * As the type is not known we cannot create on the fly.
      * @param st RHS_VECTOR, RAW_VECTOR, SEL_VECTOR
      * asser() if vector exists (debug mode, NULL in release) */
     SingleVector* GetVector(StorageType st);
-    
+
     /** return (eventually create) a nodal vector.
      *  creates what is desired when the vector does not exist yet and hence always return a vector.
      * @see GetVector() */
-    Vector<double>&                GetRealVector(StorageType st);
+    Vector<double>& GetRealVector(StorageType st);
 
     /** @see GetRealVector() */
     Vector<std::complex<double> >& GetComplexVector(StorageType st);
-    
+
     /** This is an element wise storage of the solution
      * the Application shall be MECH or ELEC */
-    std::map<Application, StdVector<SingleVector* > > elem;
+    std::map<Application, StdVector<SingleVector*> > elem;
 
     /** This is an element wise storage of the solution
      * considering all elements from the grid instead of all design elements only
      * needed by shape optimization */
-    std::map<Application, StdVector<SingleVector* > > gridelem;
-
+    std::map<Application, StdVector<SingleVector*> > gridelem;
 
   private:
-    template <class T>
-    SingleVector* Read(StorageType st, StdPDE* pde, Application app, bool save_sol = false);
+    template<class T>
+    SingleVector* Read(StorageType st, StdPDE* pde, Application app,
+        bool save_sol = false);
 
-    template <class T>
+    template<class T>
     void Write(StdPDE* pde);
 
     /** common helper for the Get*Vector() stuff */
-    template <class T>
+    template<class T>
     SingleVector* GetVector(StorageType st, bool create);
 
     /** This is the algsys solution vector. */
@@ -245,7 +261,7 @@ protected:
 
     /** The solution is identified by excitation index (0-based) and timestep. */
     Solution* Get(Excitation& excitation, unsigned int timestep = 0);
-    
+
     Solution* Get(int excitation_index, unsigned int timestep = 0);
 
     /** Vector for averaging over multiple excitations */
@@ -291,22 +307,22 @@ protected:
     EXCEPTION("not implemented here";)
   }
 
-
   /** switches to the proper constraint, also for gradient case.
    * @param design if not gradient ignored
    * @param grad_out only for gradient and even then optional if not for extern optimizer
    * @return not defined in the gradient case */
-  double CalcConstraint(Condition* constraint, bool gradient, StdVector<double>* grad_out = NULL);
+  double CalcConstraint(Condition* constraint, bool gradient,
+      StdVector<double>* grad_out = NULL);
 
   /** This are the modes for CalcU1KU2(). */
-  enum CalcMode 
+  enum CalcMode
   {
     STANDARD = 0, /*!< add u1^T (K' u2  - f') or2 * Re{ u1^T (K' u2 - f')} in the harmonic case  */
-    CONJ_QUAD    /*!< add <u, K' u> which is in the real case as STANDARD
-                       and for the harmonic case u^T K' u^* (conj. complex). u1 = u2 = u!! */
+    CONJ_QUAD
+  /*!< add <u, K' u> which is in the real case as STANDARD
+   and for the harmonic case u^T K' u^* (conj. complex). u1 = u2 = u!! */
   };
-  
-  
+
   /** Calculate the sum of  \f$ l^T K'u - f'\f$ or \f$ 2 Re{l^T K'u} - f'\f$ or \f$ <K'l,u> - f'\f$.
    * This is controlled via CalcMode. 
 
@@ -327,43 +343,52 @@ protected:
    * @param f if set then an objective gradient with the set index is stored
    * @param g as f for constrained gradient
    * @param res_idx store in de->specialResult. use ErsatzMaterial::GetSpecialResultIndex() -1 is no special result*/
-  double CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1, Application k,
-      StdVector<SingleVector*>& u2, SurfaceRef* rhs,
-      double factor, CalcMode calcMode, Objective* f, Condition* g, int res_idx = -1)
+  double CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1,
+      Application k, StdVector<SingleVector*>& u2, SurfaceRef* rhs,
+      double factor, CalcMode calcMode, Objective* f, Condition* g,
+      int res_idx = -1)
   {
-    if(harmonic) return CalcU1KU2<std::complex<double> >(tf, u1, k, u2, rhs, factor, calcMode, f, g, res_idx);
-            else return CalcU1KU2<double>(tf, u1, k, u2, rhs, factor, calcMode, f, g, res_idx);
+    if (harmonic)
+      return CalcU1KU2<std::complex<double> > (tf, u1, k, u2, rhs, factor,
+          calcMode, f, g, res_idx);
+    else
+      return CalcU1KU2<double> (tf, u1, k, u2, rhs, factor, calcMode, f, g,
+          res_idx);
   }
 
   /** Helper calling CalcU1KU2()
    * If there is a result with value='costGradient' or 'constraintGradient' it is checked for detail='mech_mech',
    * 'elec_elec', 'elec_elec_quad', 'elec_mech', 'mech_elec' */
-  int GetSpecialResultIndex(Application app1, Application app2, CalcMode calcMode = STANDARD, Condition* constraint = NULL);
+  int GetSpecialResultIndex(Application app1, Application app2,
+      CalcMode calcMode = STANDARD, Condition* constraint = NULL);
 
   /** This is a helper for CalcU1KU2 to determine the "K" which in most cases includes a
    * derivative. It also includes mechanical damping and mass matrix via AddMassToStiffness().
    * The templated stuff is private, as C++ does not allow virtual templates. */
-  virtual void SetElementK(DesignElement* de, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative = true)
+  virtual void SetElementK(DesignElement* de, Application app,
+      DenseMatrix* out, CalcMode calcMode, bool derivative = true)
   {
     throw Exception("not implemented");
   }
-
 
   /** Get the ErsatzMaterialTensor as the Tensor itself, not the stiffness matrix
    * @param mat holds the tensor
    * @param elem the Element for which the tensor should be returned
    * @param direction if given return derivative in that direction*/
-  void GetErsatzMaterialTensor(Matrix<double>& mat, Elem* elem, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+  void GetErsatzMaterialTensor(Matrix<double>& mat, Elem* elem,
+      DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
 
-  
   /** This is an extension to SolveStateProblem() where the forward problem is solved and stored.
    * Depending on the objective function SolveAdjointProblem() is called to additionally solve and store the
    * adjoint problem.
    * It works for both (mechanical) SIMP and PiezoSIMP. 
    * gradient is used to calculate some adjoints only for gradient calculations, some for function evaluations */
-  void SolveAdjointProblem(Excitation& excite, Objective* cost, bool gradient)  {
-    if(harmonic) SolveAdjointProblem<std::complex<double> >(excite, cost, gradient);
-            else SolveAdjointProblem<double>(excite, cost, gradient);
+  void SolveAdjointProblem(Excitation& excite, Objective* cost, bool gradient)
+  {
+    if (harmonic)
+      SolveAdjointProblem<std::complex<double> > (excite, cost, gradient);
+    else
+      SolveAdjointProblem<double> (excite, cost, gradient);
   }
 
   /** Determines the selection vector by a "pseudo loading" for output like objectives.
@@ -376,14 +401,12 @@ protected:
    * This is for output loads or general real/complex rhs. */
   virtual void ConstructAdjointRHS(Excitation& excite, Objective* cost);
 
-
   /** overwrite this method for own objectives. Does not set excite.cost! 
    * Includes the factor (e.g. omega^2) as this is part of the objective function
    * but does not include the weighting. Note that CalcObjectiveGradient uses
    * Excitation::GetWeightedFactor().
    * Not to be called for objectives with evaluate only once for earlier excitations! */
   virtual double CalcObjective(Excitation& excite, Objective* cost);
-
 
   /** calculates the integral over a design variable (note that volume is a special case of this (with all standard values) @see CalcVolume
    * regularization is using this usually with normalized = true, scale = true, square = true, factor = "the regularization parameter"
@@ -394,17 +417,19 @@ protected:
    * @param normalized see CalcVolume
    * @param scale calculate the integral over the scaled design variable (<design scale="true">), i.e. the variable as in the optimizer
    * @param square calculate the integral over the square of the DesignVariable */
-  virtual double IntegrateDesignVariable(Objective* f, Condition* g, bool derivative, DesignElement::Type dtype,
-      bool normalized = true, bool scale = false, double exponent = 1.0);
-  
+  virtual double IntegrateDesignVariable(Objective* f, Condition* g,
+      bool derivative, DesignElement::Type dtype, bool normalized = true,
+      bool scale = false, double exponent = 1.0);
+
   /** Handles the Volume constraint. Has a constraint and constraint derivative mode
    * @param derivative if false the return value is calculated. Otherwise the value in
    *                   the design element is set.
    * @param constraint if set, calculate as given constraint, if null calculate as objective
    * @param grad_out if derivative is set and grad_out is not null it is set.
    * @param normalized if set use normalized "volume" i.e. sum(design * area) / sum(area) for each element, else only sum(design * area)
-   * @return invalid in derivative case*/ 
-  virtual double CalcVolume(Objective* f, Condition* g, bool derivative, bool normalized = true);
+   * @return invalid in derivative case*/
+  virtual double CalcVolume(Objective* f, Condition* g, bool derivative,
+      bool normalized = true);
 
   /** Handles the Compliance constraint/objective. Has a objective, objective derivative,
    * constraint and constraint derivative mode
@@ -415,13 +440,14 @@ protected:
    * @param constraint if set calculate as given constraint, if null calculate as objective
    * @param grad_out if derivative is set and grad_out is not null it is set.
    * @return invalid in derivative case*/
-  virtual double CalcCompliance(Excitation& excite, Objective* f, Condition* g, bool derivative);
+  virtual double CalcCompliance(Excitation& excite, Objective* f, Condition* g,
+      bool derivative);
 
   /** Calculates the objective only, no derivative */
   double CalcGlobalDynamicCompliance(Excitation& excite, Objective* f);
 
   /** Calculates <l,u> or <conj(u) L, u> where l/L is adjoint[idx]->rhs */
-  template <class T>
+  template<class T>
   double CalcOutputObjective(Excitation& excite, Objective* f);
 
   /** Handles the Tracking constraint/objective. Has a objective, objective derivative, 
@@ -432,8 +458,9 @@ protected:
    * @param constraint if set calculate as given constraint, if null calculate as objective
    * @param solveproblem solve the tracking problem, e.g. shapeopt does solve the same problem already
    * @return invalid in derivative case*/
-  virtual double CalcTracking(Excitation& excite, Objective* f, Condition* g,  bool derivative);
-  
+  virtual double CalcTracking(Excitation& excite, Objective* f, Condition* g,
+      bool derivative);
+
   /** Calculate the energy flux through a surface region: 1/2*Re{j*u^T Q u^*} where
    * Q is the grad operator in z direction. Only for acoustic but easy to extend!*/
   double CalcEnergyFlux(Excitation& excite, Objective* f);
@@ -444,21 +471,25 @@ protected:
    * @param u_glob the complete equation index global solution vector
    * @param adjoint switch action
    * @param q_u_glob output depending on adjoint flag. see u_glob */
-  void SetEnergyFluxVector(Function* f, const Vector<std::complex<double> >& u_glob, bool adjoint, Vector<std::complex<double> >& q_u_glob);
+  void SetEnergyFluxVector(Function* f,
+      const Vector<std::complex<double> >& u_glob, bool adjoint, Vector<
+          std::complex<double> >& q_u_glob);
 
   /** Find the node numbers which are common from a surface element and a volume element.
    * This maps from a surface element to the volume element.
    * @param common_nodes e.g. a center surface element node is lost on a 20-hex-volume element */
-  void FindCommonNodes(const SurfElem* se, const Elem* vol, StdVector<unsigned int>& common_nodes) const;
+  void FindCommonNodes(const SurfElem* se, const Elem* vol, StdVector<
+      unsigned int>& common_nodes) const;
 
   /** does the substep of solving K z = Proj(u - u0) for z */
-  void SolveTrackingProblem(Excitation& excite, bool designelem = true, bool gridelem = false);
+  void SolveTrackingProblem(Excitation& excite, bool designelem = true,
+      bool gridelem = false);
 
   /** converts the teststrain vector in voigt notation to the corresponding matrix
    * @param matrix output
    * @param vec input */
   void SetTestStrainMatrix(Matrix<double> &matrix, const Vector<double> &vec);
-  
+
   /** takes the result of the test strain computations and calculates the homogenized 
    *  material tensor (see Bendsoe/Sigmund: Topology Optimization, p. 122ff.
    *  It must be called only for the last excitation when all test strains are known.
@@ -470,8 +501,9 @@ protected:
    * @param target E^* what we want
    * @param hom the pre calculated tensor E^H
    * @param g the HOMOGENIZATION_TRACKING or NULL if for objective function */
-  void CalcHomogenizedTrackingGradient(const Matrix<double>& target, const Matrix<double>& hom, Objective* f, Condition* g);
-  
+  void CalcHomogenizedTrackingGradient(const Matrix<double>& target,
+      const Matrix<double>& hom, Objective* f, Condition* g);
+
   /** Calculates the gradient if the constraints E^H = E^* where for each interested
    * tensor entry a own HOMOGENIZATION_TENSOR constraint is required.
    * @param derivative this sets d(E^H)/d(rho_e) for the current tensor entry
@@ -486,7 +518,8 @@ protected:
    * @param derivative this sets d(E^H)/d(rho_e) for the current tensor entry
    * @param out_grad of derivative it is resized and the gradients are set otherwise it is untouched
    * @return the E^H tensor entry if !derivative or 0 */
-  double CalcHomogenizedTensorEntry(const std::pair<int, int> entry, bool derivative, StdVector<double>& grad_out);
+  double CalcHomogenizedTensorEntry(const std::pair<int, int> entry,
+      bool derivative, StdVector<double>& grad_out);
 
   /** This is to be overwritten for any case there are other PDEs in ErsatzMaterial::pdes to be set.
    * PiezoSIMP does it simply in the constructor */
@@ -524,6 +557,19 @@ protected:
 
 protected:
 
+  /** Store the results from the forward/adjoint problem. Handles multiple excitations
+   * @param read_sol store solution (maybe one would only like to save rhs)
+   * @param read_rhs is only interesting for the forward problem
+   * @param save_sol set this in the adjoint problem -> see Solution::Read()
+   * @param comment is just to LOG_DBG */
+  virtual void StorePDESolution(Excitation &excite, UInt timestep,
+      Solutions& solutions, bool read_sol, bool read_rhs, bool save_sol,
+      const std::string& comment);
+
+  virtual void TimeStepCalculated(UInt timeStep, AdjointParameters* adjParams);
+
+  virtual void RhsCalculated(AdjointParameters* adjParams);
+
   /** The DesignStructure is required by SIMP for filters and by Condition for slope constraints
    * and checkerboard. They share this element. It can only be created by PostInit(), hence every
    * PostInit() who needs the structure needs to check if it was created before. Deleted by ~EM */
@@ -532,20 +578,10 @@ protected:
   /** This is just a shortcut for the actual dimensions (2 or 3) */
   const unsigned int dim;
 
-  /** Store the results from the forward/adjoint problem. Handles multiple excitations
-   * @param read_sol store solution (maybe one would only like to save rhs)
-   * @param read_rhs is only interesting for the forward problem
-   * @param save_sol set this in the adjoint problem -> see Solution::Read()
-   * @param comment is just to LOG_DBG */
-  virtual void StorePDESolution(Excitation &excite, UInt timestep, Solutions& solutions, bool read_sol, bool read_rhs, bool save_sol, const std::string& comment);
-  
-  virtual void TimeStepCalculated(UInt timeStep, AdjointParameters* adjParams);
-  
-  virtual void RhsCalculated(AdjointParameters* adjParams);
-
+  /** Convenience class for writing the pseudo density file*/
+  DensityFile* densityFile;
 
 private:
-
 
   /** This is a helper for the calculation of the homogenized tensor or the derivative of it.
    * This is the inner of the sum for the homogenized tensor or the derivative formulation
@@ -553,23 +589,23 @@ private:
    * @param u1 the element solution vector
    * @return the product test strain diff * (K or K') * test strain diff
    */
- static double CalcHomogenizedElementProduct(ErsatzMaterial* em, DesignElement* de, bool derivative,
-      Vector<double>& u1, Vector<double>& u2,
-      Matrix<double>& test_strain_matrix_ij, Matrix<double>& test_strain_matrix_kl);
-
+  static double CalcHomogenizedElementProduct(ErsatzMaterial* em,
+      DesignElement* de, bool derivative, Vector<double>& u1,
+      Vector<double>& u2, Matrix<double>& test_strain_matrix_ij,
+      Matrix<double>& test_strain_matrix_kl);
 
   /** This calculates the objective for the given excitation. The result is also stored
    * in excite.cost. It does NOT include theobjective factor (e.g. omega^2) and NOT the weighting */
-  template <class T>
+  template<class T>
   double CalcObjective(Excitation& excite, Objective* cost);
-  
-  /** Creates the pseudo density node and stores the header */
-  PtrParamNode CreateExportDesign(const std::string& filename, ParamNodeList& des, ParamNodeList& tfs, PtrParamNode regularize);
 
   /** See the non-template version for documentation! */
-  template <class T>
-  double CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1,
-      Application k, StdVector<SingleVector*>& u2, SurfaceRef* ref, double factor, CalcMode calcMode, Objective* f, Condition* g, int res_idx);
+  template<class T>
+  double
+      CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1,
+          Application k, StdVector<SingleVector*>& u2, SurfaceRef* ref,
+          double factor, CalcMode calcMode, Objective* f, Condition* g,
+          int res_idx);
 
   /** Calculates a scalar product of two vectors and the derivative of the right hand side newmark update,
    * used for transient optimization derivative calculation
@@ -579,27 +615,29 @@ private:
    * @param factor factor to multiply the value by (can be excitation weight)
    * @param f objective the result is to be stored with
    * @param g constraint the result is to be stored with */
-  void CalcNewmarkDerivative(Excitation& excite, Solutions& forward, Solutions& adjoint, double factor, Objective* f, Condition* g);
+  void CalcNewmarkDerivative(Excitation& excite, Solutions& forward,
+      Solutions& adjoint, double factor, Objective* f, Condition* g);
 
   /** Handles sensitive RHS, e.g. when we have sensitive Neuman boundary condition (elect surface charge).
    * SurfaceRef is  given to CalcU1KU2 and this method does from \f$<l,K'u-f'>\f$ the \f$-f'\f$ part.
    * It checks if any nodes of the design element are part of the surface and
    * substracts for all dof of that node only */
-  template <class T>
-  void SubstractGradSurfaceRHS(DesignElement* de, TransferFunction* tf, SurfaceRef* ref, Vector<T>& in_out);
+  template<class T>
+  void SubstractGradSurfaceRHS(DesignElement* de, TransferFunction* tf,
+      SurfaceRef* ref, Vector<T>& in_out);
 
   /** This solves the adjoint problem problem only and stores all relevant data. Calls SetAndSolveAdjointRHS() */
-  template <class T>
+  template<class T>
   void SolveAdjointProblem(Excitation& excite, Objective* cost, bool gradient);
-  
+
   /** Set the rhs for the adjoint equation, called by assemble */
   virtual void SetAdjointRhs(AdjointParameters* adjointParams);
-  
+
   /** Set the rhs for the tracking adjoint */
   void SetTrackingAdjointRhs(Excitation& excite, int ts);
 
   /** Takes care for making CFS solving the adjoint PDE. Sets the rhs as  adjoint[excite.index]->rhs[MECH] */
-  template <class T>
+  template<class T>
   void SetAndSolveAdjointRHS(Excitation& excite, Objective* cost);
 
   /** Helper for CommitIteration. Appends or replaces a design line */
@@ -642,18 +680,19 @@ private:
 
   /** IntegrateDesignVariables() can do a lot, but no one wants to extend it to hande the derivative
    * case of the gap constraint: volume - penalized volume */
-  void CalcRegularGapConstraint(Objective* f, Condition* g, DesignElement::Type dt);
+  void CalcRegularGapConstraint(Objective* f, Condition* g,
+      DesignElement::Type dt);
 
   /** Homogenization objective/ constraint.
    * Is once evaluate only! */
-  double CalcPoissonsRatioAndYoungsModulus(Objective* cost, Condition* g, bool derivative);
-
+  double CalcPoissonsRatioAndYoungsModulus(Objective* cost, Condition* g,
+      bool derivative);
 
   /** Calculates the product of the (system) surface normal matrix with the solution already in OLAS.
    * Note that we have to use 1 based OLAS vectors as the sparse system matrix is from OLAS .
    * This calculation is done for the adjoint rhs and also for calculate the radiation objective.
    * It shall be cheap enough to calc here twice! */
-  template <class T>
+  template<class T>
   void CalcSurfaceNormalTimesSolution(Vector<T>& olas_prod);
 
   /** Handle multiple excitations (loads/frquencies). By defefinition the size is almost 1, even
@@ -662,24 +701,16 @@ private:
 
   /** Helper for PrepareMultipleExcitations(). Excitations are set with hard coded test strains */
   int SetHomogenizationTestStrains();
-  
+
   /** Helper for PrepareMultipleExcitations(). Excitations are set with hard coded polarization matrix excitations */
   int SetPolarizationMatrixExcitations();
 
   /** For doing adjust weights when doing multiple excitation with meta objective, this method
    * does the job. It requires the cost entries in excitations to be set. 
-   * The \f$w_k^p=const\;\sum w_k = 1\f$ condition is fulfilled here. */ 
+   * The \f$w_k^p=const\;\sum w_k = 1\f$ condition is fulfilled here. */
   void NormalizeMultipleExcitations();
 
-  /** If not NULL we want to export the pseudo densities */
-  PtrParamNode exportDesign;
 
-  /** shall we write the densities for all iterations or overwrite? */
-  bool exportDesignAllIterations;
-
-  /** shall we write the density file each iteration or only in the destructor.
-   * The difference is superfluous file writing .*/
-  bool exportDesignFinallyOnly;
 
   /** When we optimize output we store here the nodes */
   LoadList output_nodes_;

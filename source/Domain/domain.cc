@@ -30,7 +30,7 @@
 #include "DataInOut/resultHandler.hh"
 #include "Optimization/Optimization.hh"
 #include "Optimization/Design/DesignSpace.hh"
-#include "Optimization/Design/DesignStructure.hh"
+#include "Optimization/Design/DensityFile.hh"
 #include "PDE/acousticPDE.hh"
 #include "PDE/elecPDE.hh"
 #include "PDE/mechPDE.hh"
@@ -241,8 +241,8 @@ void Domain::PostInit()
     // check if we simulate with ersatz material - after driver and only if not used with optimization
     // if used with optimization loadErsatzMaterial specifies the starting point for optimization
     // and is loaded from Optimization::PostInit because scaling (and EvalObjectiveGradient) is already done before we reach here
-    if (param->Has("loadErsatzMaterial"))
-      ReadErsatzMaterial(param->Get("loadErsatzMaterial"));
+    if(DensityFile::NeedLoadErsatzMaterial())
+      ersatzMaterial = DensityFile::ReadErsatzMaterial();
   }
 
 }
@@ -971,124 +971,6 @@ void Domain::ResetPDEs()
   numSinglePde_ = 0;
   numDirectCoupledPde_ = 0;
   numIterCoupledStdPde_ = 0;
-}
-
-void Domain::ReadErsatzMaterial(PtrParamNode pn)
-{
-  // perhaps Optimization has already called the SetEnums
-  if (DesignElement::type.map.empty())
-    DesignElement::SetEnums();
-  if (Objective::type.map.empty())
-    Optimization::SetEnums();
-
-  std::cout << "++ Load ersatz material file: '" << pn->Get("file")->As<std::string>() << "'" << std::endl;
-
-  // we read something like <loadErsatzMaterial region="piezo" file="piezo_density.xml" set="last"/>
-  // Initialize our xerces dom parser to handle the external xml file
-  Xerces* xerces = new Xerces(pn->Get("file")->As<std::string>());
-  // set the global ParamNode tree pointer
-  PtrParamNode xml = xerces->CreateParamNodeInstance();
-  // release the xerces ressources, param is not affected
-  delete xerces;
-  // check this file
-  if (xml->Count("set") == 0)
-    throw Exception("There are no design sets in the ersatz material file");
-
-  ParamNodeList region_list = pn->GetList("region");
-  StdVector<RegionIdType> regionIds;
-  for (unsigned int i = 0; i < region_list.GetSize(); i++)
-  {
-    std::string reg = region_list[i]->Get("name")->As<std::string>();
-    if (!GetGrid()->GetRegion().IsValid(reg))
-      throw Exception("region given in loadErsatzMaterial is invalid");
-    regionIds.Push_back(GetGrid()->GetRegion().Parse(reg));
-  }
-
-  if (!ersatzMaterial)
-  { // only if the design space does not already exist (created by optimization)
-    // the header is like
-    // <header>
-    //   <design name="density" initial="1.0"/>
-    //   ...
-    //   <transferFunction type="simp" application="mech" design="density" param="1.0"/>
-    //   ..
-    //   <regularization type="filter">
-    //    <filter contribution="linear" neighborhood="maxEdge" type="density" value="1.7"/>
-    //   </regularization>
-    // </header>
-
-    // the design set consists of entries like
-    // <element nr="401" type="density" design="0.886466" physical="0.800454" />
-    // only the combination nr and type is unique. E.g. in piezo we might have types density and polarization
-    ParamNodeList des = xml->Get("header")->GetList("design");
-    ParamNodeList tfs = xml->Get("header")->GetList("transferFunction");
-    PtrParamNode  reg = xml->Get("header/regularization/filter", ParamNode::PASS);
-    ParamNodeList res(0); // empty
-
-    // create the design space -> data has initial values!
-    ersatzMaterial = new DesignSpace(regionIds, des, tfs, res, ErsatzMaterial::SIMP_METHOD);
-    ersatzMaterial->PostInit(0, 0); // no objectives, no constraints
-    // is cheap - for density filtering
-    DesignStructure filter(ersatzMaterial, regionIds);
-    if(reg) filter.SetFilters(reg, info->Get("ersatzMaterial"));
-
-    ersatzMaterial->ToInfo(info->Get("ersatzMaterial")->Get(ParamNode::HEADER));
-  }
-
-  // find the proper design set. This is either 'first', 'last' or the * in <set id="*"> ...
-  PtrParamNode set;
-  std::string key = pn->Get("set")->As<std::string>();
-  if (key == "first")
-    set = xml->GetList("set")[0];
-  if (key == "last")
-    set = xml->GetList("set").Last();
-  if (set == NULL)
-    set = xml->GetByVal("set", "id", key);
-
-  // read the set and replace the initial values
-  ParamNodeList elems = set->GetList("element");
-
-  // check the the dimensions! the number of design variables comes from the regions and designs
-  if (ersatzMaterial->data.GetSize() != elems.GetSize())
-  {  
-    if(domain->GetGrid()->GetNumElems() == elems.GetSize())
-      std::cout << "\033[01;31m" << "Warning:" << "\033[0m" << std::endl
-                << "the number of elements in the region you are trying to read the densities into is not equal to"
-                << " the number of elements in the density-file but matches the number of all elements!"
-                << " We ignore this... I hope you know what you are doing!"
-                << std::endl;
-    else
-      EXCEPTION("ErsatzMaterialFile '" << pn->Get("file")->As<std::string>() << "' has " << elems.GetSize()
-          << " entries, the mesh has "<< ersatzMaterial->data.GetSize() << " design elements");
-  }
-  
-  // check if we ignore the element numbers
-  bool ignore_numbers = pn->Get("ignore_element_numbers")->As<bool>();
-  if (ignore_numbers && region_list.GetSize() != 1)
-    EXCEPTION("'ignore_element_numbers' in 'loadErsatzMaterial' only allowed for a single region");
-
-  for (unsigned int e = 0; e < elems.GetSize(); e++)
-  {
-    unsigned int nr = elems[e]->Get("nr")->As<Integer>();
-    DesignElement::Type dt = (DesignElement::Type) DesignElement::type.Parse(
-        elems[e]->Get("type")->As<std::string>());
-    double val = elems[e]->Get("design")->As<Double>();
-
-    // replace the value of the DesignElement
-    DesignElement* de = ignore_numbers ? &(ersatzMaterial->data[e])
-        : ersatzMaterial->Find(nr, dt, false);
-    // it should be possible to specify less regions then specified during optimization and saving of results
-    // if the element can not be found (e.g. lying in a not specified region) it is not set
-    if (de != NULL)
-    {
-      // and the region can be set in optimization, thus exist, but not specified here, we should not set as well
-      if (regionIds.Find(de->elem->regionId) >= 0)
-      {
-        de->SetDesign(val);
-      }
-    }
-  }
-
 }
 
 bool Domain::GetErsatzMaterial(const Elem* elem, const BaseForm* form, double& result)
