@@ -707,13 +707,11 @@ void ConditionContainer::VirtualView::Done()
 
   SlopeCondition* slope = dynamic_cast<SlopeCondition*>(container_->all[slope_index_]);
   StdVector<double>& data = slope->GetLocal()->values;
-  // set global result
+  // calculate global result, set only when we are global!
   double ret(0.0); 
   unsigned int size(data.GetSize());
   for(unsigned int i = 0; i < size; ++i) 
     ret = std::max(ret, std::abs(data[i]));
-  
-  slope->SetValue(ret);
 
   // check for special result.
   int idx = container_->space_->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::MAX_SLOPE);
@@ -738,5 +736,7 @@ void ConditionContainer::VirtualView::Done()
 
   // reset local, set to global
   slope->SetCurrentViewIndex(-1);
+  // now we may set a the global value
+  slope->SetValue(ret);
 
 }

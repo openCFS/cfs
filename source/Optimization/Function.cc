@@ -272,9 +272,14 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure)
   // pre-init step
   switch(type_)
   {
+  // locality_ is set for SLOPE only
   case CHECKERBOARD:
-  case SLOPE:
   case GLOBAL_SLOPE:
+    assert(locality_ == DEFAULT || locality_ == NEXT);
+    locality_ = NEXT;
+    // no break!
+
+  case SLOPE:
     assert(space->IsRegular()); // VicinityElements work only on a regular grid
     // the design elements require the vicinity element to be set which holds the direct
     // neighbors. Is save to call several times
@@ -309,6 +314,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
 
   assert(func->locality_ == Function::NEXT_BIDIR || func->locality_ == Function::NEXT);
 
+  // both means we go from x_i to x_i+1 and also from x_i+1 to x_1
   bool both = func->locality_ == Function::NEXT;
   unsigned int  dim  = domain->GetGrid()->GetDim();
 
