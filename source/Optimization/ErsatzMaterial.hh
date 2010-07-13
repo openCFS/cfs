@@ -673,6 +673,11 @@ private:
    * @return the max norm of all individual constraint values. */
   double CalcSlopeConstraint(Condition* g, bool derivative);
 
+  /** Calculates a global slope.
+   * When g_i is the slope function x_i - x_i+1 -c and g_i+1 = x_1+1 - x_i - c
+   * the global slope is sum max(0, g_i)^2, hence we need NEXT_AND_REVERSE locality */
+  double CalcGlobalSlope(Function* c, bool derivative);
+
   /** This is a measure for checkerboards.
    * Whithin each element, for all dimensions we check if we are in between the 'left' and 'right' neighbors.
    * approximations are used  */

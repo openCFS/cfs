@@ -59,6 +59,8 @@
                       <xsd:attribute name="coord" use="optional" type="DT_HomTensorEntries"/>
                       <!-- about the locality of functions. E.g. slopes, which can be box constrained for snopt only -->
                       <xsd:attribute name="local" use="optional" default="default" type="DT_Function_Local"/>
+                      <!-- only the globalSlope has a value and only within multiObjective -->
+                      <xsd:attribute name="boundValue" use="optional" default="0.0" type="xsd:float"/>
                     </xsd:complexType>
                   </xsd:element>
                 </xsd:sequence>
@@ -1172,7 +1174,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="default"/>
       <xsd:enumeration value="next"/>
-      <xsd:enumeration value="next_bidir"/>
+      <xsd:enumeration value="next_and_reverse"/>
     </xsd:restriction>
   </xsd:simpleType>
   

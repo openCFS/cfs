@@ -24,6 +24,9 @@ namespace CoupledField
        /** Helper constructor for AddCondition */
        Condition(PtrParamNode pn);
 
+       /** overwrites Function::IsObjective() */
+       bool IsObjective() const { return false; }
+
        /** Call this method to append a Condition. This calls the actual (private) constructor.
         * Index is set with position of the relevant list.
         * If it is a homogenization constraint there might be a blow up resulting in several
@@ -33,17 +36,9 @@ namespace CoupledField
         * @param observation stuff is added here in observation mode */
        static void AddCondition(PtrParamNode pn, StdVector<Condition*>& constraints);
 
-       /** General constraint bounds */
-       typedef enum { EQUAL, LOWER_BOUND, UPPER_BOUND } Bound;
-
-       static Enum<Bound> bound;
-
        /** Be sure not to mix up with Name! */             
        Bound GetBound() const { return bound_; }
        
-       /** The bound value for inhomogeneous constraints. */
-       double GetBoundValue() const { return boundValue_; }
-
        /** Is this a linear condition? E.g. SnOpt can handle them more efficiently */
        bool IsLinear() const { return linear_; }
 
@@ -131,10 +126,6 @@ namespace CoupledField
       /** To be called by ConditionContainer::PostProc() which is a friend */
       void SetDenseSparsityPattern(DesignSpace* space);
       
-      Bound bound_;
-
-      /** the bound value, the value_ attribute contains the function value */
-      double boundValue_;
 
       bool delta_logging_ignored_;
 

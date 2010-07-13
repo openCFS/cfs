@@ -16,6 +16,9 @@ DEFINE_LOG(ofunc, "opt_func")
 // instantiation of the static elements is in Optimization::SetEnums()
 Enum<Function::Type> Function::type;
 Enum<Function::Locality> Function::locality;
+// instantiation of the static elements
+Enum<Function::Bound> Function::bound;
+
 
 using boost::lexical_cast;
 
@@ -27,10 +30,17 @@ Function::Function(PtrParamNode pn)
   this->local = NULL;
 
   this->type_ = type.Parse(pn->Get("type")->As<std::string>());
-  this->locality_ = locality.Parse(pn->Get("local")->As<std::string>());
 
   // function value to be evaluated
   this->value_ = -1.0;
+
+  // boundValue only for globalSlope
+  this->boundValue_ = pn->Has("boundValue") ? pn->Get("boundValue")->As<double>() : 0.0;
+  if(boundValue_ != 0.0 && type_ != GLOBAL_SLOPE)
+    throw Exception("'boundValue' not valid for this objective");
+  if(type_ == GLOBAL_SLOPE && (boundValue_ <= 0.0 || boundValue_ > 1.0))
+    throw Exception("'boundValue' for '" + type.ToString(type_) + "' needs to be in (0 , 1]");
+  this->bound_ = UPPER_BOUND; // is the value for globalSlope, otherwise not of interest
 
   this->physical_ = pn->Has("physical") ? pn->Get("physical")->As<bool>() : false;
 
@@ -102,6 +112,40 @@ Function::Function(PtrParamNode pn)
     case TEMPERATURE:
       this->evaluateOnce_ = false; // standard case
   }
+
+  // set locality
+  this->locality_ = locality.Parse(pn->Get("local")->As<std::string>());
+  Locality user = locality_; // default or set by user
+  bool snopt = param->Get("optimization/optimizer/type")->As<std::string>() == "snopt";
+
+  switch(type_)
+  {
+  case SLOPE:
+    if(user == DEFAULT && snopt)  locality_ = NEXT;
+    if(user == DEFAULT && !snopt) locality_ = NEXT_AND_REVERSE;
+    if(!snopt && locality_ != NEXT_AND_REVERSE)
+      throw Exception("The optimizer has no bounds for constraints: your choice for 'local' is invalid");
+    if(locality_ != NEXT && locality_ != NEXT_AND_REVERSE)
+      throw Exception("Invalid choice for 'local' in slope constraint");
+    break;
+
+  case CHECKERBOARD:
+    if(locality_ != NEXT && locality_ != DEFAULT)
+      throw Exception("Invalid choice for 'local' with " + type.ToString(type_));
+    locality_ = NEXT;
+    break;
+
+  case GLOBAL_SLOPE:
+    if(locality_ != NEXT && locality_ != DEFAULT)
+      throw Exception("Invalid choice for 'local' with " + type.ToString(type_));
+    locality_ = NEXT_AND_REVERSE;
+    break;
+
+
+  default: // no locality
+    break;
+  }
+
 }
 
 Function::~Function()
@@ -272,13 +316,8 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure)
   // pre-init step
   switch(type_)
   {
-  // locality_ is set for SLOPE only
   case CHECKERBOARD:
   case GLOBAL_SLOPE:
-    assert(locality_ == DEFAULT || locality_ == NEXT);
-    locality_ = NEXT;
-    // no break!
-
   case SLOPE:
     assert(space->IsRegular()); // VicinityElements work only on a regular grid
     // the design elements require the vicinity element to be set which holds the direct
@@ -312,10 +351,10 @@ Function::Local::Local(Function* func, DesignSpace* space)
   this->space = space;
   this->func_ = func;
 
-  assert(func->locality_ == Function::NEXT_BIDIR || func->locality_ == Function::NEXT);
+  assert(func->locality_ == Function::NEXT_AND_REVERSE || func->locality_ == Function::NEXT);
 
-  // both means we go from x_i to x_i+1 and also from x_i+1 to x_1
-  bool both = func->locality_ == Function::NEXT;
+  // both means we go from x_i to x_i+1 and also from x_i+1 to x_1, which is different for NEXT
+  bool both = func->locality_ == Function::NEXT_AND_REVERSE;
   unsigned int  dim  = domain->GetGrid()->GetDim();
 
   element_dimension_ = dim * (both ? 2.0 : 1.0);

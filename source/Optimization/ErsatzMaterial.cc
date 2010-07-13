@@ -762,6 +762,9 @@ double ErsatzMaterial::CalcObjective(Excitation& excite, Objective* cost)
   case Objective::GAP: // volume - penalized volume
     return CalcVolume(cost, NULL, false, true);
 
+  case Objective::GLOBAL_SLOPE:
+    return CalcGlobalSlope(cost, false);
+
   case Objective::GLOBAL_DYNAMIC_COMPLIANCE:
     return CalcGlobalDynamicCompliance(excite, cost);
 
@@ -846,6 +849,9 @@ void ErsatzMaterial::CalcObjectiveGradient(StdVector<double>* grad_out)
         case Objective::GAP: // volume - penalized volume
           CalcVolume(cost, NULL, true, true);
           break;
+
+        case Objective::GLOBAL_SLOPE:
+          CalcGlobalSlope(cost, true);
 
         case Objective::TYCHONOFF:
           IntegrateDesignVariable(cost, NULL, true, DesignElement::NO_TYPE, true, true, 2.0);
@@ -1178,6 +1184,9 @@ double ErsatzMaterial::CalcConstraint(Condition* g, bool derivative, StdVector<d
     case Condition::GREYNESS:
          result = CalcGreyness(g, derivative);
          break;
+
+    case Condition::GLOBAL_SLOPE:
+         result = CalcGlobalSlope(g, derivative);
 
     case Condition::SLOPE:
          result = CalcSlopeConstraint(g, derivative);
@@ -2324,7 +2333,7 @@ double ErsatzMaterial::CalcSlopeConstraint(Condition* g, bool derivative)
   DesignElement* neigh      = de->vicinity->GetNeighbour((VicinityElement::Neighbour) neigh_num);
   
   bool case_a(false);
-  if(g->GetLocality() != Function::NEXT_BIDIR)
+  if(g->GetLocality() == Function::NEXT_AND_REVERSE)
   {
     // the abs(slope) is done by two inequality constraints. Therefore the 2 * dim
     // a) x_i+1 - x_i <= c*h
@@ -2333,7 +2342,7 @@ double ErsatzMaterial::CalcSlopeConstraint(Condition* g, bool derivative)
     case_a = slope->GetCurrentVirtualSign() == 1;
   }
   // else
-  // the abs(slope) is done by two inequality constraints
+  // the abs(slope) is done by one constraint
   // -c*h <= x_i+1 - x_i <= c*h
   // we use the upper and lower bounds from snopt
 
@@ -2354,7 +2363,7 @@ double ErsatzMaterial::CalcSlopeConstraint(Condition* g, bool derivative)
     design->data[neigh_idx].Reset(DesignElement::CONSTRAINT_GRADIENT, g);
     design->data[de_idx].Reset(DesignElement::CONSTRAINT_GRADIENT, g);
 
-    if(slope->GetLocality() != Function::NEXT_BIDIR)
+    if(slope->GetLocality() == Function::NEXT_AND_REVERSE)
     {
       design->data[neigh_idx].AddGradient(NULL, g, case_a ? 1.0 : -1.0);
       design->data[de_idx].AddGradient(NULL, g, case_a ? -1.0 : 1.0);
@@ -2377,7 +2386,7 @@ double ErsatzMaterial::CalcSlopeConstraint(Condition* g, bool derivative)
     double other_val = neigh->GetValue(DesignElement::DESIGN, DesignElement::PLAIN);
 
     double res = other_val - own_val;
-    if(slope->GetLocality() != Function::NEXT_BIDIR)
+    if(slope->GetLocality() == Function::NEXT_AND_REVERSE)
     {
       res = case_a ? other_val - own_val : -1.0 * other_val + own_val;
     }
@@ -2391,6 +2400,66 @@ double ErsatzMaterial::CalcSlopeConstraint(Condition* g, bool derivative)
   return -1.0; // derivative
 }
 
+
+double ErsatzMaterial::CalcGlobalSlope(Function* c, bool derivative)
+{
+  // the neighborhoods are already defined by Local!
+  StdVector<Function::Local::Identifier>& vem = c->GetLocal()->virtual_elem_map;
+  StdVector<double>&                     val = c->GetLocal()->values;
+
+  assert(c->GetLocality() == Function::NEXT_AND_REVERSE);
+  assert(c->GetBoundValue() > 0.0);
+
+  // evaluate the function values, which is
+  // max(0, x_i - x_i+1 - c) and max(0,x_i+1 - x_i - c)
+  double res = 0.0;
+  for(unsigned int i = 0; i < vem.GetSize(); i++)
+  {
+    Function::Local::Identifier& id = vem[i];
+    DesignElement& de = design->data[id.element_idx];
+    double mine  = de.GetDesign(DesignElement::SMART);
+    double other = de.vicinity->GetNeighbour(id.neighbor)->GetDesign(DesignElement::SMART);
+
+    assert(id.sign == 1 || id.sign == -1);
+    double v = max(0.0, id.sign * (mine - other) - c->GetBoundValue());
+
+    val[i] = v;
+    res += v*v; // we sum up the squares
+    LOG_DBG2(em) << "CGS: i=" << i << " de=" << de.elem->elemNum << " sign=" << id.sign << " mine=" << mine
+                 << " other=" << other << " bound=" << c->GetBoundValue() << " v=" << v << " -> " << res;
+  }
+
+  if(!derivative) return res;
+  // the gradient g/x_i = 0 or 2 * (x_i+1 - x_i - c) * -1 or 2 * (x_i - x_i+1 - c) * 1
+  // in the non-periodic case is the number of functions per design variable not constant,
+  // e.g. the most upper right design has no slope constraint.
+
+  // we need this pointers, note that C++ makes NULL for an invalid dynamic cast
+  Objective* f = dynamic_cast<Objective*>(c);
+  Condition* g = dynamic_cast<Condition*>(c);
+  assert((f == NULL && g != NULL) || (f != NULL && g == NULL));
+
+  for(unsigned int i = 0; i < vem.GetSize(); i++)
+  {
+    Function::Local::Identifier& id = vem[i];
+    DesignElement* mine  = &(design->data[id.element_idx]);
+    DesignElement* other = mine->vicinity->GetNeighbour(id.neighbor);
+
+    double v = val[i];
+    // do we have a gradient?
+    if(v > 0.0)
+    {
+      double grad = 2.0 * v * id.sign;
+      mine->AddGradient(f, g, grad);
+      other->AddGradient(f, g, -1.0 * grad);
+    }
+    LOG_DBG2(em) << "CGS: i=" << i << " mine=" << mine->elem->elemNum << " other=" << other->elem->elemNum
+                 << " sign=" << id.sign << " v=" << v << " grad=" << (2.0 * v * id.sign);
+
+  }
+
+  return 0.0; // gradient case has no information
+}
 
 double ErsatzMaterial::CalcCheckerboard(Condition* g, bool derivative)
 {
@@ -2689,6 +2758,7 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation& excite, Objective* cost, bo
     case Objective::YOUNGS_MODULUS:
     case Objective::TYCHONOFF:
     case Objective::VOLUME:
+    case Objective::GLOBAL_SLOPE:
     case Objective::PENALIZED_VOLUME:
     case Objective::GAP:
     case Objective::TEMPERATURE:

@@ -78,16 +78,22 @@ class Function
     /** See ToString() for string conversion! */
     Type GetType() const { return type_; }
 
-    /** The local type -> essentially slope */
+    /** The local type, essentially important for slopes. There should be no need to set
+     * it as user. */
     typedef enum {
-      DEFAULT,
-      NEXT,         /*!< x_i and x_i+1 */
-      NEXT_BIDIR    /*!< x_i and x_i+1 plus x_i+1 and x_i for classical slope */
+      DEFAULT,           /*!< Function::PostProc() finds proper value */
+      NEXT,              /*!< x_i and x_i+1 */
+      NEXT_AND_REVERSE   /*!< x_i and x_i+1 plus x_i+1 and x_i for classical slope */
     } Locality;
 
     static Enum<Locality> locality;
 
     Locality GetLocality() const { return locality_; }
+
+    /** usually for constraints plus globalSlope for objective */
+    typedef enum { EQUAL, LOWER_BOUND, UPPER_BOUND } Bound;
+
+    static Enum<Bound> bound;
 
     /** The real label might be an extended type string. E.g. by "physical_".
      * Check if better use this than type.ToString(GetType()).
@@ -98,24 +104,20 @@ class Function
      * little helper. asserts that only of function is set. */
     static Function* GetFunction(Objective* f, Condition* g);
 
-    /** Get the parameter, if it was set */
-    double GetParameter() const
-    {
-      return parameter_;
-    }
+    /** are we objective of condition/constraint */
+    virtual bool IsObjective() const = 0;
 
+    /** Get the parameter, if it was set */
+    double GetParameter() const { return parameter_;  }
+
+    /** The bound value for inhomogeneous constraints. */
+    double GetBoundValue() const { return boundValue_; }
 
     /** The evaluates function values. -1.0 if not set. */
-    virtual double GetValue() const
-    {
-      return value_;
-    }
+    virtual double GetValue() const { return value_; }
 
     /** overloaded in SlopeCondition */
-    virtual void SetValue(double val)
-    {
-      value_ = val;
-    }
+    virtual void SetValue(double val) { value_ = val; }
 
     /** Some functions can have a physical counterpart. Which means e.g. for volume or greyness
      * the design variable with applied transfer function - hence as the FEM/physics sees the design.
@@ -249,6 +251,13 @@ class Function
 
     /** The current function value */
     double value_;
+
+    /** Bound stuff for condition and globalSlope also for objective */
+    Bound bound_;
+
+    /** the bound value, the value_ attribute contains the function value */
+    double boundValue_;
+
 
     /** Some special functions use a parameter: slope constraint and penalized volume */
     double parameter_;

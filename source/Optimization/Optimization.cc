@@ -243,17 +243,18 @@ void Optimization::SetEnums()
   Function::type.Add(Function::GREYNESS, "greyness");
   Function::type.Add(Function::ISOTROPY, "isotropy");
   Function::type.Add(Function::SLOPE, "slope");
+  Function::type.Add(Function::GLOBAL_SLOPE, "globalSlope");
   Function::type.Add(Function::CHECKERBOARD, "checkerboard");
 
   Function::locality.SetName("Function::Locality");
   Function::locality.Add(Function::DEFAULT, "default");
   Function::locality.Add(Function::NEXT, "next");
-  Function::locality.Add(Function::NEXT_BIDIR, "next_bidir");
+  Function::locality.Add(Function::NEXT_AND_REVERSE, "next_and_reverse");
 
-  Condition::bound.SetName("Constraint::Bound");
-  Condition::bound.Add(Condition::EQUAL, "equal");
-  Condition::bound.Add(Condition::LOWER_BOUND, "lowerBound");
-  Condition::bound.Add(Condition::UPPER_BOUND, "upperBound");
+  Function::bound.SetName("Function::Bound");
+  Function::bound.Add(Function::EQUAL, "equal");
+  Function::bound.Add(Function::LOWER_BOUND, "lowerBound");
+  Function::bound.Add(Function::UPPER_BOUND, "upperBound");
 
   optimizer.SetName("Optimization::Optimizer");
   optimizer.Add(OPTIMALITY_CONDITION, "optimalityCondition");

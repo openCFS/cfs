@@ -16,9 +16,6 @@ using namespace CoupledField;
 
 DECLARE_LOG(conditions)
 
-// instantiation of the static elements
-Enum<Condition::Bound> Condition::bound;
-
 
 Condition::Condition(PtrParamNode pn) : Function(pn)
 {
@@ -410,14 +407,6 @@ SlopeCondition::SlopeCondition(PtrParamNode pn) : Condition(pn)
   if(pn->Has("parameter")) // set in base class
     throw Exception("Parameter for slope constraint specified, but not required");
 
-  // cheat knowledge about optimizer, only snopt has box-constraints
-  bool snopt = param->Get("optimization/optimizer/type")->As<std::string>() == "snopt";
-  Locality use = locality_;
-  if(locality_ == DEFAULT && snopt)  use = NEXT_BIDIR;
-  if(locality_ == DEFAULT && !snopt) use = NEXT;
-  if(locality_ == NEXT_BIDIR && !snopt)
-    throw Exception("The optimizer has no bounds for constraints: your choice for 'local' is invalid");
-  locality_ = use;
 }
 
 
@@ -450,7 +439,7 @@ int SlopeCondition::GetCurrentVirtualSign() const
   unsigned int idx = current_view_index_ - index_;
 
   // if we call this function, the sign must be meaningful
-  assert((locality_ != NEXT_BIDIR && local->virtual_elem_map[idx].sign != -1000) || locality_ == NEXT_BIDIR);
+  assert((locality_ == NEXT && local->virtual_elem_map[idx].sign != -1000) || locality_ == NEXT_AND_REVERSE);
   
   return local->virtual_elem_map[idx].sign;
 }

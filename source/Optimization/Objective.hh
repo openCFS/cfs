@@ -27,6 +27,9 @@ class Objective : public Function
     
     virtual ~Objective() {};
 
+    /** overwrites Function::IsObjective() */
+    bool IsObjective() const { return true; }
+
     /** The name eventually enriched by the coord information for HOMOGENIZATION_TENSOR */
     std::string GetName() const;
 
