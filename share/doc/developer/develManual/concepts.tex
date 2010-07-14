@@ -5,6 +5,87 @@
 \section{FESpace}
 \section{Bilinear Forms}
 \section{Elements}
+
+\begin{figure}[htb] 
+  \centering 
+  \begin{overpic}[grid,tics=10,scale=0.7]{pics/cfs_elem_types}
+    \put(7,96){\sf {\textcolor{blue}{TRIA3}}, {\textcolor{red}{TRIA6}}}
+    \put(6,78){\sf {\small 1}}
+    \put(19.5,78){\sf {\small 2}}
+    \put(5,94){\sf {\small 3}}
+    \put(12.5,78){\sf {\small 4}}
+    \put(13.7,87){\sf {\small 5}}
+    \put(5,87){\sf {\small 6}}
+
+    \put(30,90.5){\sf {\textcolor{blue}{LINE2}}, {\textcolor{red}{LINE3}}}
+    \put(28.3,86.3){\sf {\small 1}}
+    \put(41.5,83.5){\sf {\small 2}}
+    \put(34.5,85){\sf {\small 3}}
+
+    \put(46,96){\sf {\textcolor{blue}{QUAD4}}, {\textcolor{red}{QUAD8}}, {\textcolor{green}{QUAD9}}}
+    \put(49.2,78){\sf {\small 1}}
+    \put(65.5,78){\sf {\small 2}}
+    \put(65.5,93.5){\sf {\small 3}}
+    \put(49.2,93.3){\sf {\small 4}}
+
+    \put(57.5,78){\sf {\small 5}}
+    \put(65.5,86.5){\sf {\small 6}}
+    \put(57.2,92){\sf {\small 7}}
+    \put(49.2,86.5){\sf {\small 8}}
+    \put(58.5,86.5){\sf {\small 9}}
+
+    \put(12,68){\sf {\textcolor{blue}{TET4}}, {\textcolor{red}{TET10}}}
+    \put(11,49){\sf {\small 1}}
+    \put(21,41){\sf {\small 2}}
+    \put(24,55.5){\sf {\small 3}}
+    \put(9.5,66){\sf {\small 4}}
+
+    \put(15.5,45.5){\sf {\small 5}}
+    \put(23.5,49){\sf {\small 6}}
+    \put(18,54.5){\sf {\small 7}}
+
+    \put(9.5,57.5){\sf {\small 8}}
+    \put(17,56){\sf {\small 9}}
+    \put(18.5,60){\sf {\small 10}}
+
+    \put(40,72){\sf {\textcolor{blue}{HEXA8}}, {\textcolor{red}{HEXA20}}, {\textcolor{green}{HEXA27}}}
+    \put(43.5,45){\sf {\small 1}}
+    \put(62,43.5){\sf {\small 2}}
+    \put(65,54){\sf {\small 3}}
+    \put(50.5,56.5){\sf {\small 4}}
+
+    \put(40,65){\sf {\small 5}}
+    \put(62,63){\sf {\small 6}}
+    \put(65.5,68.5){\sf {\small 7}}
+    \put(48,70){\sf {\small 8}}
+
+    \put(53,44){\sf {\small 9}}
+    \put(64,49.5){\sf {\small 10}}
+    \put(56,56){\sf {\small 11}}
+    \put(48,53){\sf {\small 12}}
+
+    \put(52,64){\sf {\small 13}}
+    \put(65,67){\sf {\small 14}}
+    \put(57,69){\sf {\small 15}}
+    \put(46,67){\sf {\small 16}}
+
+    \put(42,55){\sf {\small 17}}
+    \put(63,53.5){\sf {\small 18}}
+    \put(65,61){\sf {\small 19}}
+    \put(51,62){\sf {\small 20}}
+
+
+    \put(8,37){\sf {\textcolor{blue}{WEDGE6}}, {\textcolor{red}{WEDGE15}}}
+
+    \put(43,33){\sf {\textcolor{blue}{PYRA5}}, {\textcolor{red}{PYRA13}}}
+
+    \put(56,16){\textcolor{red}{\sf {\tiny \shortstack[c]{Edit options for\\3D, 2D and 1D elements}}}}
+    \put(66,27){\textcolor{red}{\sf {\tiny \shortstack[c]{Set element type\\to MESH200}}}}
+  \end{overpic}
+  \caption{Available element types in CFS++.}
+  \label{fig:cfs_elem_types}
+\end{figure}
+
 \section{Input/Output IDs vs. Grid IDs}
 \section{Mortar FEM Implementation}
 \section{Parameter Handling}

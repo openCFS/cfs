@@ -74,7 +74,7 @@ CFSDEPS_CURRENT_REV=$WC_REV;
 cd $TESTDIR/CFS_TRUNK_NIGHTLY
 GetWorkingCopyRev $TESTDIR/CFS_TESTSUITE_NIGHTLY
 TESTSUITE_PREV_REV=$WC_REV;
-ctest -V -S ctest_scripts/ctest_rom_update_cfsdeps.cmake
+ctest -V -S ctest_scripts/ctest_rom_update_testsuite.cmake
 GetWorkingCopyRev $TESTDIR/CFS_TESTSUITE_NIGHTLY
 TESTSUITE_CURRENT_REV=$WC_REV;
 

@@ -9,7 +9,7 @@ package lists are provided for some of the OSes most often in use by the CFS++
 developers. If you  should use a different distribution you  should be able to
 figure out the required packages quite easily.
 
-\subsection{OpenSUSE (11.2)}
+\subsection{openSUSE (11.2)}
 
 \begin{verbatim} 
 sudo zypper install subversion gcc gcc-c++ gcc-fortran automake autoconf \
@@ -53,9 +53,28 @@ dpkg -S /usr/bin/g++
 \item g++, tcl, etc. from MacPorts cf. \url{http://pc.freeshell.org/comp/macbook}
 \end{itemize} 
 
+\subsection{Windows (only applies to NACS/[CFS | NACS]DEPS)}
+
+\begin{itemize}
+\item Visual Studio (Express) \url{http://www.microsoft.com/express/}
+\item Platform SDK \url{http://en.wikipedia.org/wiki/Microsoft_Windows_SDK}
+\item Subversion \url{http://tortoisesvn.tigris.org/}
+\item UnxUtils - \url{http://unxutils.sourceforge.net/}
+\item CMake - \url{http://www.cmake.org}
+\item Perl \url{http://www.activestate.com/activeperl}
+\item Python \url{http://www.activestate.com/activepython}
+\item etc.
+\end{itemize} 
+
+Pre-installed   VBoxes  containg   all  required   packages  are   located  at
+(Klagenfurt)
+{\tt qnap:/share//AM\_Data/Software/NACS\_Windows\_Development\_VBOXes/[WINXP*\&nacs\_dev*\&local*]}.
+
 \section{Obtaining the Sources}
 \section{Configuring the Build Tree}
 
 Describe structure of source and build trees here, too.
 
 \section{Building a Binary}
+
+\section{Generating a Project for Eclipse}
