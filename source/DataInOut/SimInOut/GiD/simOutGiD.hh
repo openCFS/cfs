@@ -127,6 +127,9 @@ namespace CoupledField
     //! Flag indicating if only grid is printed
     bool printGridOnly_;
     
+    //! Flag indicating if grid was already written
+    bool gridWritten_;
+    
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

@@ -51,6 +51,7 @@ namespace CoupledField {
     isAscii_ = true;
     groupEigenFreqs_ = true;
     printGridOnly_ = false;
+    gridWritten_ = false;
 
     // Determine, if binary result file should be written
     isAscii_ = !(myParam_->Get("binaryFormat")->As<bool>() );
@@ -86,6 +87,10 @@ namespace CoupledField {
 
     LOG_TRACE(simOutputGiD) << "Writing mesh";
 
+    // Leave, if grid was already written
+    if(gridWritten_) 
+      return;
+    
     // open mesh file (only needed in ASCII case
     if ( isAscii_ == true) {
       std::string meshFileName = fileName_ + ".post.msh";
@@ -125,7 +130,7 @@ namespace CoupledField {
 //      GiD_ClosePostResultFile();
 //    }
 
-
+    gridWritten_ = true;
     LOG_TRACE(simOutputGiD)<< "Finished writing of mesh" << std::endl;
 
   }
@@ -593,12 +598,17 @@ namespace CoupledField {
     // This can happen e.g. in an eigenfrequency analysis, where there maybe
     // more than one mode shape associated with an frequency. We count the 
     // number of occurences, to include it in the the resultname.
-    if( std::abs(actStepVal_) > EPS ) {
-      if( std::abs(actStepVal_ - lastStepVal_) / actStepVal_ < 1e-4) {
-        lastStepRepeated_++;
-      } else {
-        lastStepRepeated_ = 0;
+    
+    if( actAnalysis_ == BasePDE::EIGENFREQUENCY ) {
+      if( std::abs(actStepVal_) > EPS ) {
+        if( std::abs(actStepVal_ - lastStepVal_) / actStepVal_ < 1e-4) {
+          lastStepRepeated_++;
+        } else {
+          lastStepRepeated_ = 0;
+        }
       }
+    } else {
+      lastStepRepeated_ = 0;
     }
     resultMap_.clear();
   }
