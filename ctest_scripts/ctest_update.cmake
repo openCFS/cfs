@@ -30,35 +30,25 @@
 #-----------------------------------------------------------------------------
 
 #-----------------------------------------------------------------------------
-# Set source and binary directories on rom
+# Set site name and build name
 #-----------------------------------------------------------------------------
-SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TRUNK_NIGHTLY")
-SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_BUILD_NIGHTLY")
+set(CTEST_SITE "${CFS_BUILD_HOST}")
+set(CTEST_BUILD_NAME "${BUILDNAME}")
 
 #-----------------------------------------------------------------------------
-# Copy CDash server configuration file to source dir.
+# Set the following environment variables for the test run. This can be used
+# to specifiy the compilers and that all messages should be output in English
+# language, so that CTest may properly parse them.
 #-----------------------------------------------------------------------------
-EXECUTE_PROCESS(COMMAND ${CMAKE_EXECUTABLE_NAME} -E copy_if_different CTestConfig.cmake ${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake)
-
-EXEC_PROGRAM("${CTEST_SOURCE_DIRECTORY}/share/scripts/distro.sh"
-  ARGS -u
-  OUTPUT_VARIABLE CFS_ARCH_STR
-  RETURN_VALUE RETVAL)
+SET(ENV{LC_MESSAGES} "C")
+SET(ENV{LC_ALL} "C")
+SET(ENV{LANG} "C")
+SET(ENV{LANGUAGE} "C")
 
 #-----------------------------------------------------------------------------
-# Specify that we want to do an experimental build without updating the CFS++
-# working copy. I.e. we leave away the ExperimentalUpdate step between
-# ExperimentalStart and ExperimentalConfigure. The Subversion update gets
-# done by simon on mac before the the test scripts on rom get executed.
+# Set CTest command
 #-----------------------------------------------------------------------------
 SET(CTEST_COMMAND  "\"${CTEST_EXECUTABLE_NAME}\"")
-SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyStart")
-SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyConfigure")
-SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyBuild")
-SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyTest")
-SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlySubmit")
-SET(CTEST_COMMAND "${CTEST_COMMAND} -A ${CTEST_BINARY_DIRECTORY}/CMakeCache.txt")
-#SET(CTEST_COMMAND "${CTEST_COMMAND} -R torque3d")
 
 #-----------------------------------------------------------------------------
 # Use CMake (cmake) executable corresponding to CTest executable used to run
@@ -67,38 +57,39 @@ SET(CTEST_COMMAND "${CTEST_COMMAND} -A ${CTEST_BINARY_DIRECTORY}/CMakeCache.txt"
 SET(CTEST_CMAKE_COMMAND  "\"${CMAKE_EXECUTABLE_NAME}\"")
 
 #-----------------------------------------------------------------------------
+# Since this is the first test in the night, we have to make sure that
+# the source directory is available by checking it out if the directory does
+# not previously exist.
+#-----------------------------------------------------------------------------
+
+FIND_PROGRAM(CTEST_SVN_COMMAND NAMES svn)
+
+#-----------------------------------------------------------------------------
+# If the source directory does not exist perform a checkout
+#-----------------------------------------------------------------------------
+IF(NOT EXISTS "${CTEST_SOURCE_DIRECTORY}")
+  EXECUTE_PROCESS(COMMAND ${CMAKE_EXECUTABLE_NAME} -E make_directory ${CTEST_SOURCE_DIRECTORY})
+  EXECUTE_PROCESS(COMMAND ${CMAKE_EXECUTABLE_NAME} -E copy CTestConfig.cmake ${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake)
+  SET(CTEST_CHECKOUT_COMMAND "${CTEST_SVN_COMMAND} --username ${USER} co ${REPO} ${CTEST_SOURCE_DIRECTORY}")
+ENDIF(NOT EXISTS "${CTEST_SOURCE_DIRECTORY}")
+
+#-----------------------------------------------------------------------------
+# Either way, we have to update the working copy
+#-----------------------------------------------------------------------------
+SET(CTEST_UPDATE_TYPE "svn")
+SET(CTEST_UPDATE_COMMAND "${CTEST_SVN_COMMAND}")
+SET(CTEST_UPDATE_OPTIONS "--username ${USER} up ${CTEST_SOURCE_DIRECTORY}")
+
+#-----------------------------------------------------------------------------
+# Copy CDash server configuration file to source dir.
+#-----------------------------------------------------------------------------
+EXECUTE_PROCESS(COMMAND ${CMAKE_EXECUTABLE_NAME} -E copy_if_different CTestConfig.cmake ${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake)
+
+#-----------------------------------------------------------------------------
 # Start out with an empty binary directory.
 #-----------------------------------------------------------------------------
-SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
+SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY FALSE)
 
-#-----------------------------------------------------------------------------
-# Enter the following values into the initial cache
-# ${CTEST_BINARY_DIRECTORY}/CMakeCache.txt before starting the configure
-# run.
-#-----------------------------------------------------------------------------
-SET(CTEST_INITIAL_CACHE
-  "BUILD_TESTING:BOOL=ON
-   BUILDNAME:STRING=${CFS_ARCH_STR} GCC ACML 
-   DEBUG:BOOL=OFF
-   TESTSUITE_DIR:STRING=$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_NIGHTLY
-   CFS_DEPS_ROOT:PATH=$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPS_NIGHTLY
-   CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPSCACHE
-   CFS_PARDISO:STRING=SCHENK
-   CFS_BLAS_LAPACK:STRING=ACML
-   USE_PYTHON:BOOL=ON
-   USE_SCPIP:BOOL=ON")
-
-# Set the following environment variables for the test run. This can be used
-# to specifiy the compilers and that all messages should be output in English
-# language, so that CTest may properly parse them.
-#-----------------------------------------------------------------------------
-SET(CTEST_ENVIRONMENT
-  "CC=gcc"
-  "CXX=g++"
-  "FC=gfortran"
-  "LC_MESSAGES=C"
-  "LC_ALL=C"
-  "LANG=C"
-  "LANGUAGE=C"
-  "PARDISO_LIC_PATH=$ENV{HOME}/Documents/dev/pardiso/keys/sedici"
-  )
+CTEST_START(Nightly)
+CTEST_UPDATE(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE res)
+CTEST_SUBMIT()

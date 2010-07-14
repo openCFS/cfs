@@ -21,9 +21,6 @@ TESTDIR="$DEVDIR/NIGHTLY"
 # Directory is writeable by strieben.
 DESTDIR=/opt/pckg/cfs_nightly
 
-# Set ssh environment for Subversion
-export SVN_SSH="ssh -i $DEVDIR/svn_id_dsa_cfstestuser_klu -l svn -p 22022 -q"
-
 # Extend system path by /opt/pckg/bin
 export PATH=/opt/pckg/bin:$PATH
 
@@ -38,36 +35,14 @@ echo "DAYOFWEEK $DAYOFWEEK"
 mkdir -p $TESTDIR
 cd $TESTDIR
 
-function UpdateWorkingCopy {
-    REPOS=$1
-    WCDIR=$2
+function GetWorkingCopyRev {
+    WCDIR=$1
     
-    # Get previous revision for working copy 
-    PREV_REV=$(svn st --xml --verbose $WCDIR | xsltproc CFSDEPS_NIGHTLY/utils/xslt/cfsdepsrev.xslt -)
-    if [ ! "$?" = 0 ]; then PREV_REV="-1"; fi
+    # Get previous revision for CFSDEPS
+    WC_REV=$(svn st --xml --verbose $WCDIR | xsltproc $TESTDIR/CFSDEPS_NIGHTLY/utils/xslt/cfsdepsrev.xslt -)
+    if [ ! "$?" = 0 ]; then WC_REV="-1"; fi
 
-    change-svn-wc-format.py $WCDIR "1.5" # --verbose
-
-    if [ ! -d "$WCDIR/.svn" ]; then
-	svn co $REPOS $WCDIR
-	if [ $? != 0 ]; then
-	    SubmitErrorToCDash $FUNCNAME "Failed to checkout working copy $WCDIR." "Failed to checkout working copy $WCDIR." $LINENO
-	fi
-    else
-	svn up $WCDIR
-	if [ $? != 0 ]; then
-	    SubmitErrorToCDash $FUNCNAME "Failed to update working copy $WCDIR." "Failed to update working copy $WCDIR." $LINENO
-	fi
-    fi
-
-    # Get current revision for working copy
-    CURRENT_REV=$(svn st --xml --verbose $WCDIR | xsltproc CFSDEPS_NIGHTLY/utils/xslt/cfsdepsrev.xslt -)
-    if [ ! "$?" = 0 ]; then CURRENT_REV="-1"; fi
-
-    change-svn-wc-format.py $WCDIR "1.5" # --verbose
-
-    # Account for 90 seconds reconnect timeout of the lse10 firewall.
-    sleep 120
+    change-svn-wc-format.py $WCDIR "1.5" --force # --verbose
 }
 
 function PerformTest {
@@ -81,45 +56,16 @@ function PerformTest {
 
     cd $TESTDIR/CFS_TRUNK_NIGHTLY
 
-    if [ ! "$CFS_CURRENT_REV" = "$CFS_PREV_REV" ]; then
-        # If revision for CFS++ has changed start with an empty build directory
-	cat ctest_scripts/ctest_$TESTNAME.cmake > ctest_scripts/ctest_script.cmake
-    else
-        # If revision for CFS++ has not changed reuse old build directory
-	cat ctest_scripts/ctest_$TESTNAME.cmake | sed \
-	-e 's/EMPTY_BINARY_DIRECTORY TRUE/EMPTY_BINARY_DIRECTORY FALSE/g' \
-	-e "$ADDITIONAL_SED_ARG" > ctest_scripts/ctest_script.cmake
-	cd $TESTDIR
+    cat ctest_scripts/ctest_$TESTNAME.cmake | sed "$ADDITIONAL_SED_ARG" > ctest_scripts/ctest_script.cmake
 
-        # Make sure old build directory gets removed
-	rm -rf CFS_BUILD_NIGHTLY
-	if [ -r cfs_build_$TESTNAME.tgz ]; then
-	    tar xvzf cfs_build_$TESTNAME.tgz
-
-	    # Remove old libs if CFSDEPS have changed
-	    if [ ! "$CFSDEPS_CURRENT_REV" = "$CFSDEPS_PREV_REV" ]; then
-		rm -rf CFS_BUILD_NIGHTLY/include
-		rm -rf CFS_BUILD_NIGHTLY/lib64
-	    fi
-	fi
-
-	
-	cd $TESTDIR/CFS_TRUNK_NIGHTLY
-    fi
+    rm -rf $TESTDIR/CFS_BUILD_NIGHTLY
 
     ctest -V -S ctest_scripts/ctest_script.cmake
-    if [ $? != 0 ]; then
-        SubmitErrorToCDash $FUNCNAME "CTest run for $TESTNAME failed." "CTest run for $TESTNAME failed." $LINENO
-    fi
-
-    if [ -d $TESTDIR/CFS_BUILD_NIGHTLY/paraview ]; then
-       cp -a $TESTDIR/CFS_BUILD_NIGHTLY/paraview /opt/pckg/paraview-weekly
-       rm -rf $TESTDIR/CFS_BUILD_NIGHTLY/paraview
-       SubmitErrorToCDash $FUNCNAME "ParaView built." "ParaView built." $LINENO       
-    fi
 
     cd $TESTDIR
     tar cvzf cfs_build_$TESTNAME.tgz CFS_BUILD_NIGHTLY
+    
+    rm -rf CFS_BUILD_NIGHTLY
 }
 
 function SubmitErrorToCDash {
@@ -191,7 +137,7 @@ function SubmitErrorToCDash {
     echo "  </Build>" >> $BUILDFILE
     echo "</Site>" >> $BUILDFILE
 
-    curl -T "{$BUILDFILE}" http://rom/cdash/submit.php?project=CFS
+    curl -T "{$BUILDFILE}" http://lse17.e-technik.uni-erlangen.de:2000/cdash/submit.php?project=CFS
 
     echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" > $NOTETEMPFILE
     echo "<?xml-stylesheet type=\"text/xsl\" href=\"Dart/Source/Server/XSL/Build.xsl <file:///Dart/Source/Server/XSL/Build.xsl> \"?>" >> $NOTETEMPFILE
@@ -211,14 +157,22 @@ function SubmitErrorToCDash {
     echo "</Site>" >> $NOTETEMPFILE
 
     # Submit machine specific version of Notes.xml to dash board
-    curl -T "{$NOTETEMPFILE}" http://rom/cdash/submit.php?project=CFS
+    curl -T "{$NOTETEMPFILE}" http://lse17.e-technik.uni-erlangen.de:2000/cdash/submit.php?project=CFS
     
     rm -f $NOTETEMPFILE
+    
+    exit 1;
 }
 
 # Remove previous CFSDEPSCACHE directory and make sure that ACML sources
 # get copied to the newly created one.
 if [ "$DAYOFWEEK" = "7" ]; then
+    tar cvzf $TESTDIR/last_weeks_cfs_trunk_nightly.tgz $TESTDIR/CFS_TRUNK_NIGHTLY
+    rm -rf $TESTDIR/CFS_TRUNK_NIGHTLY
+    tar cvzf $TESTDIR/last_weeks_cfsdeps_nightly.tgz $TESTDIR/CFSDEPS_NIGHTLY
+    rm -rf $TESTDIR/CFSDEPS_NIGHTLY
+    tar cvzf $TESTDIR/last_weeks_cfs_testsuite_nightly.tgz $TESTDIR/CFS_TESTSUITE_NIGHTLY
+    rm -rf $TESTDIR/CFS_TESTSUITE_NIGHTLY
     rm -rf $TESTDIR/CFSDEPSCACHE
     mkdir -p $TESTDIR/CFSDEPSCACHE/sources/acml
     cp /opt/pckg/CFSDEPSCACHE/sources/acml/*.tgz $TESTDIR/CFSDEPSCACHE/sources/acml
@@ -226,29 +180,36 @@ if [ "$DAYOFWEEK" = "7" ]; then
     rm -rf $TESTDIR/cfs_build_*.tgz
 fi
 
-# Either checkout out or update CFS++ trunk working copy. Subversion update
-# had some strange problems if performed by CTest.
-TRUNK_REPO="svn+ssh://131.188.140.10/software/CFS++/trunk"
-UpdateWorkingCopy "$TRUNK_REPO" "CFS_TRUNK_NIGHTLY"
-CFS_PREV_REV=$PREV_REV;
-CFS_CURRENT_REV=$CURRENT_REV;
-echo "CFS_PREV_REV $CFS_PREV_REV"
-echo "CFS_CURRENT_REV $CFS_CURRENT_REV"
+# Checkout or update CFSDEPS
+cd $TESTDIR/CFS_TRUNK_NIGHTLY/ctest_scripts
+GetWorkingCopyRev $TESTDIR/CFSDEPS_NIGHTLY
+CFSDEPS_PREV_REV=$WC_REV;
+# Due to the fact, that CTest generates non-zero return values
+# even if no error occured we do not check for that condition (cf. 
+# http://public.kitware.com/Bug/bug_view_page.php?bug_id=8277&history=1).
+# Instead we delete all working copies on Sunday (DAYOFWEEK=7) to
+# make sure we get a fresh start from time to time.
+ctest -V -S ctest_update_cfsdeps_klu.cmake
+#|| \
+#  SubmitErrorToCDash "ctest_update_cfsdeps_klu.cmake" "Update of CFSDEPS_NIGHTLY failed." "ctest_update_cfsdeps_klu.cmake: Update of CFSDEPS failed."
+GetWorkingCopyRev $TESTDIR/CFSDEPS_NIGHTLY
+CFSDEPS_CURRENT_REV=$WC_REV;
 
-DEPS_REPO="svn+ssh://131.188.140.10/software/cfsdeps/trunk"
-UpdateWorkingCopy "$DEPS_REPO" "CFSDEPS_NIGHTLY"
-CFSDEPS_PREV_REV=$PREV_REV;
-CFSDEPS_CURRENT_REV=$CURRENT_REV;
-echo "CFSDEPS_PREV_REV $CFSDEPS_PREV_REV"
-echo "CFSDEPS_CURRENT_REV $CFSDEPS_CURRENT_REV"
+# Checkout or update CFS++
+cd $TESTDIR/CFS_TRUNK_NIGHTLY/ctest_scripts
+GetWorkingCopyRev $TESTDIR/CFS_TRUNK_NIGHTLY
+CFS_PREV_REV=$WC_REV;
+ctest -V -S ctest_update_cfs_klu.cmake
+GetWorkingCopyRev $TESTDIR/CFS_TRUNK_NIGHTLY
+CFS_CURRENT_REV=$WC_REV;
 
-# Either checkout out or update CFS++ test suite trunk working copy.
-SUITE_REPO="svn+ssh://131.188.140.10/software/CFS++_TEST/trunk"
-UpdateWorkingCopy "SUITE_REPO" "CFS_TESTSUITE_NIGHTLY"
-TESTSUITE_PREV_REV=$PREV_REV;
-TESTSUITE_CURRENT_REV=$CURRENT_REV;
-echo "TESTSUITE_PREV_REV $TESTSUITE_PREV_REV"
-echo "TESTSUITE_CURRENT_REV $TESTSUITE_CURRENT_REV"
+# Checkout or update test suite
+cd $TESTDIR/CFS_TRUNK_NIGHTLY/ctest_scripts
+GetWorkingCopyRev $TESTDIR/CFS_TESTSUITE_NIGHTLY
+TESTSUITE_PREV_REV=$WC_REV;
+ctest -V -S ctest_update_testsuite_klu.cmake
+GetWorkingCopyRev $TESTDIR/CFS_TESTSUITE_NIGHTLY
+TESTSUITE_CURRENT_REV=$WC_REV;
 
 # Remove cache directory if CFSDEPS have changed
 if [ ! "$CFSDEPS_CURRENT_REV" = "$CFSDEPS_PREV_REV" ]; then
@@ -256,6 +217,8 @@ if [ ! "$CFSDEPS_CURRENT_REV" = "$CFSDEPS_PREV_REV" ]; then
     mkdir -p $TESTDIR/CFSDEPSCACHE/sources/acml
     cp /opt/pckg/CFSDEPSCACHE/sources/acml/*.tgz $TESTDIR/CFSDEPSCACHE/sources/acml
 fi
+
+cd $TESTDIR
 
 # Copy sources of SCPIP to CFSDEPS_NIGHTLY/scpip
 # cp $DEVDIR/scpip.tar.bz2 CFSDEPS_NIGHTLY/scpip
@@ -265,8 +228,8 @@ mkdir -p CFSDEPSCACHE/sources/gotoblas
 cp $DEVDIR/LOCAL_LIBS/GotoBLAS-1.26.tar.gz CFSDEPSCACHE/sources/gotoblas
 
 # Copy PARDISO libs to CFSDEPSCACHE/source/pardiso
-mkdir -p CFSDEPSCACHE/sources/pardiso
-cp $DEVDIR/LOCAL_LIBS/libpardiso_* CFSDEPSCACHE/sources/pardiso
+#mkdir -p CFSDEPSCACHE/sources/pardiso
+#cp $DEVDIR/LOCAL_LIBS/libpardiso_* CFSDEPSCACHE/sources/pardiso
 #cp $DEVDIR/LOCAL_LIBS/license.pdf CFSDEPSCACHE/sources/pardiso
 
 # Copy whole CFSDEPS tree to /opt/pckg/CFSDEPS. This should make sure tha

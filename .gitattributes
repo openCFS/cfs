@@ -68,10 +68,12 @@ ctest_scripts/ctest_ubuntu804_icc100_nightly.cmake -text
 ctest_scripts/ctest_ubuntu804_icc101_nightly.cmake -text
 ctest_scripts/ctest_ubuntu804_icc110_nightly.cmake -text
 ctest_scripts/ctest_ubuntu804_icc91_nightly.cmake -text
+ctest_scripts/ctest_update.cmake -text
+ctest_scripts/ctest_update_cfs_klu.cmake -text
+ctest_scripts/ctest_update_cfsdeps_klu.cmake -text
+ctest_scripts/ctest_update_testsuite_klu.cmake -text
 ctest_scripts/experimental_test_mac.sh svneol=native#text/plain
 ctest_scripts/known_to_fail_gcc34.txt svneol=native#text/plain
-ctest_scripts/nightly_svn_update.sh svneol=native#text/plain
-ctest_scripts/nightly_svn_update_lse10.sh -text
 ctest_scripts/nightly_test_rom.sh -text
 ctest_scripts/nightly_test_sedici.sh -text
 ctest_scripts/nightly_test_ubuntu804.sh -text

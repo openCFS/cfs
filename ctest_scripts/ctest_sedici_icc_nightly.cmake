@@ -36,47 +36,45 @@ SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TRUNK_NIGHTLY")
 SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_BUILD_NIGHTLY")
 
 #-----------------------------------------------------------------------------
-# Place CTestConfig.cmake file for project CFS on CDash server rom into
-# CTEST_SOURCE_DIRECTORY.
-#-----------------------------------------------------------------------------
-FILE(WRITE "${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake"
-  "
-  ## This file should be placed in the root directory of your project.
-  ## Then modify the CMakeLists.txt file in the root directory of your
-  ## project to incorporate the testing dashboard.
-  ## # The following are required to uses Dart and the Cdash dashboard
-  ##   ENABLE_TESTING()
-  ##   INCLUDE(CTest)
-  set(CTEST_PROJECT_NAME \"CFS\")
-  set(CTEST_NIGHTLY_START_TIME \"00:00:00 CET\")
-
-  set(CTEST_DROP_METHOD \"http\")
-  set(CTEST_DROP_SITE \"lse17.e-technik.uni-erlangen.de:2000\")
-  set(CTEST_DROP_LOCATION \"/cdash/submit.php?project=CFS\")
-  set(CTEST_DROP_SITE_CDASH TRUE)
-  "
-)
-
-#-----------------------------------------------------------------------------
 # Specify that we want to do an experimental build without updating the CFS++
 # working copy. I.e. we leave away the ExperimentalUpdate step between
 # ExperimentalStart and ExperimentalConfigure. The Subversion update gets
 # done by simon on mac before the the test scripts on rom get executed.
 #-----------------------------------------------------------------------------
 SET(CTEST_COMMAND  "\"${CTEST_EXECUTABLE_NAME}\"")
-SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyStart")
-SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyConfigure")
-SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyBuild")
-SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyTest")
-SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlySubmit")
-SET(CTEST_COMMAND "${CTEST_COMMAND} -A ${CTEST_BINARY_DIRECTORY}/CMakeCache.txt")
-#SET(CTEST_COMMAND "${CTEST_COMMAND} -R torque3d")
 
 #-----------------------------------------------------------------------------
 # Use CMake (cmake) executable corresponding to CTest executable used to run
 # this script.
 #-----------------------------------------------------------------------------
 SET(CTEST_CMAKE_COMMAND  "\"${CMAKE_EXECUTABLE_NAME}\"")
+
+
+FIND_PROGRAM(CTEST_SVN_COMMAND NAMES svn)
+
+#-----------------------------------------------------------------------------
+# Since this is the first test in the night, we have to make sure that
+# the source directory is available by checking it out if the directory does
+# not previously exist.
+#-----------------------------------------------------------------------------
+IF(NOT EXISTS "${CTEST_SOURCE_DIRECTORY}")
+  SET(REPO "https://lse17.e-technik.uni-erlangen.de:2001/svn/CFS++/trunk")
+  SET(USER "testuser-klu")
+
+  SET(CTEST_CHECKOUT_COMMAND "${CTEST_SVN_COMMAND} --username ${USER} co ${REPO} ${CTEST_SOURCE_DIRECTORY}")
+ENDIF(NOT EXISTS "${CTEST_SOURCE_DIRECTORY}")
+
+#-----------------------------------------------------------------------------
+# Either way, we have to update the working copy
+#-----------------------------------------------------------------------------
+SET(CTEST_UPDATE_TYPE "svn")
+SET(CTEST_UPDATE_COMMAND "${CTEST_SVN_COMMAND}")
+SET(CTEST_UPDATE_OPTIONS "--username testuser-klu up ${CTEST_SOURCE_DIRECTORY}")
+
+#-----------------------------------------------------------------------------
+# Copy CDash server configuration file to source dir.
+#-----------------------------------------------------------------------------
+EXECUTE_PROCESS(COMMAND ${CMAKE_EXECUTABLE_NAME} -E copy_if_different CTestConfig.cmake ${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake)
 
 #-----------------------------------------------------------------------------
 # Start out with an empty binary directory.
@@ -118,3 +116,12 @@ SET(CTEST_ENVIRONMENT
   "LANGUAGE=C"
   "CPLREADER_PERF_SUITE=/media/CFD_Data/cplreader_performance_suite"
   )
+
+SET(CTEST_CMAKE_GENERATOR "Unix Makefiles")
+
+CTEST_START(Nightly)
+CTEST_UPDATE(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE res)
+CTEST_CONFIGURE()
+CTEST_BUILD()
+CTEST_TEST()
+CTEST_SUBMIT()
