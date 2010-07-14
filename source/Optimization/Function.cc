@@ -16,8 +16,6 @@ DEFINE_LOG(ofunc, "opt_func")
 // instantiation of the static elements is in Optimization::SetEnums()
 Enum<Function::Type> Function::type;
 Enum<Function::Locality> Function::locality;
-// instantiation of the static elements
-Enum<Function::Bound> Function::bound;
 
 
 using boost::lexical_cast;
@@ -33,14 +31,6 @@ Function::Function(PtrParamNode pn)
 
   // function value to be evaluated
   this->value_ = -1.0;
-
-  // boundValue only for globalSlope
-  this->boundValue_ = pn->Has("boundValue") ? pn->Get("boundValue")->As<double>() : 0.0;
-  if(boundValue_ != 0.0 && type_ != GLOBAL_SLOPE)
-    throw Exception("'boundValue' not valid for this objective");
-  if(type_ == GLOBAL_SLOPE && (boundValue_ <= 0.0 || boundValue_ > 1.0))
-    throw Exception("'boundValue' for '" + type.ToString(type_) + "' needs to be in (0 , 1]");
-  this->bound_ = UPPER_BOUND; // is the value for globalSlope, otherwise not of interest
 
   this->physical_ = pn->Has("physical") ? pn->Get("physical")->As<bool>() : false;
 
@@ -65,11 +55,22 @@ Function::Function(PtrParamNode pn)
       throw Exception("a 'tensor' is mandatory for homogenization tracking");
   }
 
-  if(pn->Has("parameter") && type_ != PENALIZED_VOLUME && type_ != GAP && type_ != CHECKERBOARD)
-   throw Exception("function '" + type.ToString(type_) + "' does not accept 'parameter' attribute");
+  // check parameter
+  switch(type_)
+  {
+  case PENALIZED_VOLUME:
+  case GAP:
+  case CHECKERBOARD:
+  case GLOBAL_SLOPE:
+    if(!pn->Has("parameter"))
+      throw Exception("function '" + type.ToString(type_) + "' requires the 'parameter' attribute");
+    break;
 
-  if(!pn->Has("parameter") && (type_ == PENALIZED_VOLUME || type_ == GAP || type_ == CHECKERBOARD))
-   throw Exception("function '" + type.ToString(type_) + "' requires the 'parameter' attribute");
+  default:
+    if(pn->Has("parameter"))
+      throw Exception("function '" + type.ToString(type_) + "' does not accept 'parameter' attribute");
+  }
+
 
   if(physical_ && !(type_ == VOLUME || type_ == GREYNESS))
     throw Exception("'physical' not defined for '" + type.ToString(type_) + "'");
@@ -406,4 +407,15 @@ Function::Local::Local(Function* func, DesignSpace* space)
 
   // needs to be set prior CalcSlopeConstraint() as the optimizers need the size
   values.Resize(virtual_elem_map.GetSize(), -1.0);
+}
+
+double Function::Local::Identifier::CalcSlope(const DesignSpace* design) const
+{
+  const DesignElement& de = design->data[this->element_idx];
+  double mine  = de.GetDesign(DesignElement::SMART);
+  double other = de.vicinity->GetNeighbour(this->neighbor)->GetDesign(DesignElement::SMART);
+
+  double s = this->sign == -1 ? -1.0 : 1.0;
+
+  return s * (mine - other);
 }

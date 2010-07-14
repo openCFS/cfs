@@ -251,10 +251,10 @@ void Optimization::SetEnums()
   Function::locality.Add(Function::NEXT, "next");
   Function::locality.Add(Function::NEXT_AND_REVERSE, "next_and_reverse");
 
-  Function::bound.SetName("Function::Bound");
-  Function::bound.Add(Function::EQUAL, "equal");
-  Function::bound.Add(Function::LOWER_BOUND, "lowerBound");
-  Function::bound.Add(Function::UPPER_BOUND, "upperBound");
+  Condition::bound.SetName("Condition::Bound");
+  Condition::bound.Add(Condition::EQUAL, "equal");
+  Condition::bound.Add(Condition::LOWER_BOUND, "lowerBound");
+  Condition::bound.Add(Condition::UPPER_BOUND, "upperBound");
 
   optimizer.SetName("Optimization::Optimizer");
   optimizer.Add(OPTIMALITY_CONDITION, "optimalityCondition");

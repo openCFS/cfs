@@ -60,7 +60,7 @@
                       <!-- about the locality of functions. E.g. slopes, which can be box constrained for snopt only -->
                       <xsd:attribute name="local" use="optional" default="default" type="DT_Function_Local"/>
                       <!-- only the globalSlope has a value and only within multiObjective -->
-                      <xsd:attribute name="boundValue" use="optional" default="0.0" type="xsd:float"/>
+                      <xsd:attribute name="parameter" use="optional" type="xsd:float"/>
                     </xsd:complexType>
                   </xsd:element>
                 </xsd:sequence>

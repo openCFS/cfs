@@ -16,6 +16,8 @@ using namespace CoupledField;
 
 DECLARE_LOG(conditions)
 
+// instantiation of the static elements
+Enum<Condition::Bound> Condition::bound;
 
 Condition::Condition(PtrParamNode pn) : Function(pn)
 {
@@ -82,6 +84,38 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   //  snopt only makes a difference between linear and nonlinear constraints!
   if(pn->Has("linear"))
     linear_ = pn->Get("linear")->As<bool>();
+
+  // check bound
+  switch(type_)
+  {
+  case SLOPE:
+  case GLOBAL_SLOPE:
+    if(bound_ != UPPER_BOUND && IsActive())
+      bound_ = UPPER_BOUND; // detected in PostProc() and warning is given
+    break;
+
+  default:
+    break;
+  }
+}
+
+void Condition::PostProc(DesignSpace* space, DesignStructure* structure)
+{
+  // note, meanwhile we have info_ set! but not yet in the constructor
+  Function::PostProc(space, structure);
+
+  // did we change the bound?
+  switch(type_)
+  {
+  case SLOPE:
+  case GLOBAL_SLOPE:
+    if(pn->Get("bound")->As<std::string>() != bound.ToString(bound_) && IsActive())
+      info_->Get(ParamNode::WARNING)->SetValue("changed bound for '" + type.ToString(type_) + "' to 'upperBound'");
+    break;
+
+  default:
+    break;
+  }
 }
 
 bool Condition::ReadCoord(PtrParamNode pn)
@@ -395,18 +429,6 @@ bool Condition::IsForRegion(RegionIdType regionId)
 SlopeCondition::SlopeCondition(PtrParamNode pn) : Condition(pn)
 {
   current_view_index_ = -1;
-  
-  if(bound_ != UPPER_BOUND && IsActive())
-  {
-    // TODO: Use InfoNode Warning!
-    std::cout << "\033[01;31m" << "Warning:" << "\033[0m"
-              << " changing slope bound type to 'upperBound'!" << std::endl;
-    bound_ = UPPER_BOUND;
-  }
-
-  if(pn->Has("parameter")) // set in base class
-    throw Exception("Parameter for slope constraint specified, but not required");
-
 }
 
 
@@ -439,7 +461,7 @@ int SlopeCondition::GetCurrentVirtualSign() const
   unsigned int idx = current_view_index_ - index_;
 
   // if we call this function, the sign must be meaningful
-  assert((locality_ == NEXT && local->virtual_elem_map[idx].sign != -1000) || locality_ == NEXT_AND_REVERSE);
+  assert((locality_ == NEXT_AND_REVERSE && local->virtual_elem_map[idx].sign != -1000) || locality_ == NEXT);
   
   return local->virtual_elem_map[idx].sign;
 }
@@ -494,19 +516,6 @@ void SlopeCondition::SetValue(double val)
     value_ = val; // only for Done() allowed!!
 }
 
-
-double SlopeCondition::GetMaxElementSlope(unsigned int element) const
-{
-  int size = local->GetElememtDimension();
-  
-  int base = element * size;
-
-  double maxval = 0.0;
-  for(int i = 0; i < size; ++i)
-    maxval = std::max(maxval, std::abs(local->values[base + i]));
-
-  return maxval;
-}
 
 std::string SlopeCondition::ToString() const
 {
@@ -695,31 +704,31 @@ void ConditionContainer::VirtualView::Done()
     return; // nothing to do
 
   SlopeCondition* slope = dynamic_cast<SlopeCondition*>(container_->all[slope_index_]);
-  StdVector<double>& data = slope->GetLocal()->values;
+  StdVector<double>& slop_vals = slope->GetLocal()->values;
   // calculate global result, set only when we are global!
   double ret(0.0); 
-  unsigned int size(data.GetSize());
+  unsigned int size(slop_vals.GetSize());
   for(unsigned int i = 0; i < size; ++i) 
-    ret = std::max(ret, std::abs(data[i]));
+    ret = std::max(ret, std::abs(slop_vals[i]));
 
   // check for special result.
   int idx = container_->space_->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::MAX_SLOPE);
   if(idx >= 0)
   {
-    StdVector<DesignElement>& data = container_->space_->data;
+    StdVector<DesignElement>& des_data = container_->space_->data;
 
-    // elements with no full neighborhood don't exist as constraint, therefore loop twice
-    for(unsigned int e = 0; e < data.GetSize(); e++)
-      data[e].specialResult[idx] = 0.0; // initialize
-    
-    int offset = slope->GetLocal()->GetElememtDimension();
-    
-    // constraints -> note we have full neighborhood!
-    for(int i = 0, ni = data.GetSize(); i < ni; i += offset)
+    // we add up the max value and not elements have a slope constraint, therefore reset
+    for(unsigned int e = 0; e < des_data.GetSize(); e++)
+      des_data[e].specialResult[idx] = 0.0; // initialize
+
+    StdVector<Function::Local::Identifier>& vem = slope->GetLocal()->virtual_elem_map;
+
+    for(unsigned int i = 0; i < vem.GetSize(); i++)
     {
-      slope->SetCurrentViewIndex(i + slope->GetIndex());
-      int elem_idx = slope->GetCurrentVirtualElement();
-      data[elem_idx].specialResult[idx] = slope->GetMaxElementSlope(i/offset);
+      Function::Local::Identifier& id = vem[i];
+      DesignElement& de =  container_->space_->data[id.element_idx];
+      double sv = id.CalcSlope(container_->space_);
+      de.specialResult[idx] = std::max(de.specialResult[idx], abs(sv));
     }
   }
 

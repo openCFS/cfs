@@ -27,6 +27,9 @@ namespace CoupledField
        /** overwrites Function::IsObjective() */
        bool IsObjective() const { return false; }
 
+       /** Overwrites and calls Function::PostProc() */
+       void PostProc(DesignSpace* space, DesignStructure* structure);
+
        /** Call this method to append a Condition. This calls the actual (private) constructor.
         * Index is set with position of the relevant list.
         * If it is a homogenization constraint there might be a blow up resulting in several
@@ -36,9 +39,18 @@ namespace CoupledField
         * @param observation stuff is added here in observation mode */
        static void AddCondition(PtrParamNode pn, StdVector<Condition*>& constraints);
 
+       /** usually for constraints plus globalSlope for objective */
+       typedef enum { EQUAL, LOWER_BOUND, UPPER_BOUND } Bound;
+
+       static Enum<Bound> bound;
+
        /** Be sure not to mix up with Name! */             
        Bound GetBound() const { return bound_; }
-       
+
+       /** The bound value for inhomogeneous constraints. */
+       double GetBoundValue() const { return boundValue_; }
+
+
        /** Is this a linear condition? E.g. SnOpt can handle them more efficiently */
        bool IsLinear() const { return linear_; }
 
@@ -75,7 +87,8 @@ namespace CoupledField
        
        /** This is DEFAULT (= applies always) if not defined */
        DesignElement::Type design;
- 
+
+
        /** The scaling is evaluated for external optimizers, not in OC!
         * This is the manual set scaling value - in objective_scaling_ case this value is ignored! */
        double manual_scaling_value;
@@ -126,6 +139,12 @@ namespace CoupledField
       /** To be called by ConditionContainer::PostProc() which is a friend */
       void SetDenseSparsityPattern(DesignSpace* space);
       
+
+      /** Bound stuff for condition and globalSlope also for objective */
+      Bound bound_;
+
+      /** the bound value, the value_ attribute contains the function value */
+      double boundValue_;
 
       bool delta_logging_ignored_;
 
@@ -209,9 +228,6 @@ namespace CoupledField
 
      /** Overloaded to set the local blown up values if in local mode.  */
      void SetValue(double val);
-
-     /** Service function for the maxSlope visualization */
-     double GetMaxElementSlope(unsigned int element) const;
 
      /** overloads ToString() to add local information if in local mode. For debug logging */
      std::string ToString() const;

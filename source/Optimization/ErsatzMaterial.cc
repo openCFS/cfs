@@ -1187,6 +1187,7 @@ double ErsatzMaterial::CalcConstraint(Condition* g, bool derivative, StdVector<d
 
     case Condition::GLOBAL_SLOPE:
          result = CalcGlobalSlope(g, derivative);
+         break;
 
     case Condition::SLOPE:
          result = CalcSlopeConstraint(g, derivative);
@@ -2408,7 +2409,7 @@ double ErsatzMaterial::CalcGlobalSlope(Function* c, bool derivative)
   StdVector<double>&                     val = c->GetLocal()->values;
 
   assert(c->GetLocality() == Function::NEXT_AND_REVERSE);
-  assert(c->GetBoundValue() > 0.0);
+  assert(c->GetParameter() > 0.0);
 
   // evaluate the function values, which is
   // max(0, x_i - x_i+1 - c) and max(0,x_i+1 - x_i - c)
@@ -2416,17 +2417,12 @@ double ErsatzMaterial::CalcGlobalSlope(Function* c, bool derivative)
   for(unsigned int i = 0; i < vem.GetSize(); i++)
   {
     Function::Local::Identifier& id = vem[i];
-    DesignElement& de = design->data[id.element_idx];
-    double mine  = de.GetDesign(DesignElement::SMART);
-    double other = de.vicinity->GetNeighbour(id.neighbor)->GetDesign(DesignElement::SMART);
-
-    assert(id.sign == 1 || id.sign == -1);
-    double v = max(0.0, id.sign * (mine - other) - c->GetBoundValue());
+    double v = max(0.0, id.CalcSlope(design) - c->GetParameter());
 
     val[i] = v;
     res += v*v; // we sum up the squares
-    LOG_DBG2(em) << "CGS: i=" << i << " de=" << de.elem->elemNum << " sign=" << id.sign << " mine=" << mine
-                 << " other=" << other << " bound=" << c->GetBoundValue() << " v=" << v << " -> " << res;
+    LOG_DBG2(em) << "CGS: i=" << i << " de=" << design->data[id.element_idx].elem->elemNum << " sign=" << id.sign
+                 << " slope=" << id.CalcSlope(design) << " bound=" << c->GetParameter() << " v=" << v << " -> " << res;
   }
 
   if(!derivative) return res;

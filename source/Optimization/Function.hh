@@ -34,7 +34,7 @@ class Function
     Function(PtrParamNode pn);
 
     /** PostProc called be the containers */
-    void PostProc(DesignSpace* space, DesignStructure* structure);
+    virtual void PostProc(DesignSpace* space, DesignStructure* structure);
 
     /** Different function types - some only objective, some only constraint some both */
     typedef enum {
@@ -90,10 +90,6 @@ class Function
 
     Locality GetLocality() const { return locality_; }
 
-    /** usually for constraints plus globalSlope for objective */
-    typedef enum { EQUAL, LOWER_BOUND, UPPER_BOUND } Bound;
-
-    static Enum<Bound> bound;
 
     /** The real label might be an extended type string. E.g. by "physical_".
      * Check if better use this than type.ToString(GetType()).
@@ -109,9 +105,6 @@ class Function
 
     /** Get the parameter, if it was set */
     double GetParameter() const { return parameter_;  }
-
-    /** The bound value for inhomogeneous constraints. */
-    double GetBoundValue() const { return boundValue_; }
 
     /** The evaluates function values. -1.0 if not set. */
     virtual double GetValue() const { return value_; }
@@ -188,6 +181,10 @@ class Function
           this->neighbor = nei;
           this->sign = si;
         }
+
+        /** calculates the slope identified by this neighbor. When sign is not set assumes sign=1 */
+        double CalcSlope(const DesignSpace* design) const;
+
         unsigned int element_idx; // this represents DesignSpace::data[element_idx]
         VicinityElement::Neighbour neighbor; // only X_P, Y_P (,Z_P);
 
@@ -251,12 +248,6 @@ class Function
 
     /** The current function value */
     double value_;
-
-    /** Bound stuff for condition and globalSlope also for objective */
-    Bound bound_;
-
-    /** the bound value, the value_ attribute contains the function value */
-    double boundValue_;
 
 
     /** Some special functions use a parameter: slope constraint and penalized volume */
