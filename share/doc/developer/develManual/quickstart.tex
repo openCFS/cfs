@@ -70,7 +70,20 @@ Pre-installed   VBoxes  containg   all  required   packages  are   located  at
 (Klagenfurt)
 {\tt qnap:/share//AM\_Data/Software/NACS\_Windows\_Development\_VBOXes/[WINXP*\&nacs\_dev*\&local*]}.
 
+\newpage
 \section{Obtaining the Sources}
+
+Once the software needed for  CFS++ development from the distribution has been
+installed, the  next step is to  checkout the source code  from the Subversion
+repository. All  necessary steps are given in  the shell script at  the end of
+this  section. We  first  create  a directory  structure  for our  development
+resources. Next  we obtain the  sources from the  server. Note, that  upon the
+first connection you will have  to accept the server's certificate permanently
+(p) and decide, wether you wish to save your password locally.
+
+\input{pygmentized/qs_obtain_sources.tex}
+\attachfile[icon=PushPin,description={Shell script for obtaining CFS++ sources.},mimetype=text/plain]{attachments/qs_obtain_sources.txt}
+
 \section{Configuring the Build Tree}
 
 Describe structure of source and build trees here, too.

@@ -79,6 +79,9 @@ this surface. In the end we write out our new HDF5 file.
 \noindent APDL script for surface/volume meshing based solely on existing elements:
 \attachfile[icon=PushPin,description={ANSYS surf./vol. meshing script.},mimetype=text/plain]{attachments/ansys_surf_vol_mesh.txt}
 
+\noindent  For creating volume  meshes from  surface meshes  in Gmsh  refer to
+Sec. \ref{sec:gmsh_surf_vol_mesh}.
+
 
 \subsubsection{Export of ICEM Meshes to ANSYS and Modification of Element Types}
 
@@ -221,6 +224,14 @@ name for CFS++.
 \input{pygmentized/gmsh_mesh_from_pic}
 \attachfile[icon=PushPin,description={Gmsh input script for generating a mesh from an image.},mimetype=text/plain]{attachments/gmsh_mesh_from_pic.txt}
 
+\subsubsection{Create Volume and Surface Mesh from Surface Mesh of Closed Body}
+\label{sec:gmsh_surf_vol_mesh}
+
+A  similar technique  for  generating  volume meshes  from  surface meshes  as
+described in  Sec. \ref{sec:ansys_surf_vol_mesh} is also possible  in Gmsh. An
+example  describing  this technique  can  be found  in  the  test suite  ({\tt
+TESTSUIT/cfstool/gmsh\_to\_hdf5/man.geo})
+
 \newpage
 
 \section{Post-Processors}
@@ -247,6 +258,19 @@ manifests itself  as a  segfault of  ANSYS Classic. The  same input  file does
 however not cause  a problem for the CFX post-processor.  This behavior can be
 reproduced by the test suite case {\tt TESTSUIT/cfstool/hdf5\_to\_rst}, where the {\tt
 .rst} file {\tt results\_rst/refelems\_ms1.rst} exhibits this behavior.}
+
+\textcolor{red}{ATTENTION AGAIN:  At the moment, the ANSYS  .rst writer within
+cfs/cfstool  just  works,  if  the  binaries  are started  out  of  the  build
+directory. This is because of the fact, that the ANSYS writer loads the shared
+library for  interfacing to a  certain version of  the ANSYS libbin.so  from a
+hard coded location inside the build build directory. Therefore a segfault may
+occur  if  the binaries  are  used outside  this  directory.  Use {\tt  strace
+bin/OPENSUSE\_11.2\_I386/cfsbin simname}  to track  down  this behaviour.}
+
+\textcolor{red}{Another  source of  problems  are the  cfs  and cfstool  start
+scripts, which have been taken from  NACS and depend upon an installed version
+of ANSYS.  For CFS++ no  installed ANSYS is required and the LD\_LIBRARY\_PATH
+could be set to the library path of the build directory.}
 
 Plot    nodal   solution   elecPot    on   .rst    from   test    suite   case
 {\tt CFS\_TESTSUITE/TESTSUIT/cfstool/ hdf5\_to\_rst/results\_rst}
@@ -539,13 +563,35 @@ compiled already and will issue an error if this is not the case.
 selection
 \end{itemize}
 
+\subsubsection{Displaying elements of certain element type}
+
+\begin{itemize}
+\item Cf. to Sec. \ref{sec:cfs_element_types} for the integer ids of the CFS++
+element types
+\item Create a Threshold Filter and set the Scalars attribute to 'elemTypes'
+\item Set lower and upper threshold according to the desired element types and click Apply
+\end{itemize}
+
+
+\subsubsection{Labeling or selecting by original elem/node numbers}
+
+\begin{itemize}
+\item In the  process of reading the HDF5 file VTK  gets different indices for
+nodes and elements than CFS++
+\item Therefore node  and element dataset are created  containing the original
+node and element numbers (origNodeNumbers and origElemNumbers)
+\item These datasets may be used while selecting (View $\rightarrow$ Selection
+Inspector $\rightarrow$  threshold based,  element/node labels) or  to extract
+subsets using the threshold filter
+\end{itemize}
+
 \subsubsection{Animating harmonic/eigenfrequency results}
 
 \begin{itemize}
 \item Select frequency step from 'Time/Freq Step' slider
 \item Check 'Transient fields from harm./eigen. data' in HDF5 reader properties tab
 \item E.g. color by 'Resultname-mode at XXX Hz' or apply further filters
-\item Set number of frames in View $\rightarrow$ Animation Inspector
+\item Set number of frames in View $\rightarrow$ Animation View
 \item Click on play button
 \item To save the animation go to File $\rightarrow$ Save Animation
 \end{itemize}

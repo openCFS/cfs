@@ -48,15 +48,15 @@ function GetWorkingCopyRev {
 function PerformTest {
     TESTNAME=$1;
 
-    if [ "$DAYOFWEEK" = "3" -a "$TESTNAME" = "sedici_gcc_ifort_nightly" ]; then
-        ADDITIONAL_SED_ARG="s/CPLREADER:BOOL\=ON/CPLREADER:BOOL\=ON\n   BUILD_PARAVIEW:BOOL=ON/g"
-    else
-        ADDITIONAL_SED_ARG="s///g"
-    fi
-
     cd $TESTDIR/CFS_TRUNK_NIGHTLY
 
-    cat ctest_scripts/ctest_$TESTNAME.cmake | sed "$ADDITIONAL_SED_ARG" > ctest_scripts/ctest_script.cmake
+    # Let's build ParaView every Wednesday
+    if [ "$DAYOFWEEK" = "3" -a "$TESTNAME" = "sedici_gcc_ifort_nightly" ]; then
+        ADDITIONAL_SED_ARG="s/CPLREADER:BOOL\=ON/CPLREADER:BOOL\=ON\n   BUILD_PARAVIEW:BOOL=ON/g"
+        cat ctest_scripts/ctest_$TESTNAME.cmake | sed $ADDITIONAL_SED_ARG > ctest_scripts/ctest_script.cmake
+    else
+        cat ctest_scripts/ctest_$TESTNAME.cmake > ctest_scripts/ctest_script.cmake
+    fi
 
     rm -rf $TESTDIR/CFS_BUILD_NIGHTLY
 
@@ -232,10 +232,6 @@ cp $DEVDIR/LOCAL_LIBS/GotoBLAS-1.26.tar.gz CFSDEPSCACHE/sources/gotoblas
 #cp $DEVDIR/LOCAL_LIBS/libpardiso_* CFSDEPSCACHE/sources/pardiso
 #cp $DEVDIR/LOCAL_LIBS/license.pdf CFSDEPSCACHE/sources/pardiso
 
-# Copy whole CFSDEPS tree to /opt/pckg/CFSDEPS. This should make sure tha
-# rm -rf /opt/pckg/CFSDEPS/* /opt/pckg/CFSDEPS/.svn
-# cp -a CFSDEPS_NIGHTLY/* CFSDEPS_NIGHTLY/.svn /opt/pckg/CFSDEPS
-
 # Determine distribution string
 DISTRO=$($TESTDIR/CFS_TRUNK_NIGHTLY/share/scripts/distro.sh -u)
 
@@ -246,23 +242,18 @@ source /opt/intel/Compiler/11.0/081/bin/ifortvars.sh intel64
 # Change into CFS++ source directory and execute CTest for GCC.
 PerformTest "sedici_gcc_ifort_nightly"
 
-CFSBIN="$TESTDIR/CFS_BUILD_NIGHTLY/bin/$DISTRO/cfsbin"
-CFSTOOLBIN="$TESTDIR/CFS_BUILD_NIGHTLY/bin/$DISTRO/cfstoolbin"
-CPLREADER="$TESTDIR/CFS_BUILD_NIGHTLY/bin/$DISTRO/cplreader"
-#if [ -f $CFSBIN ] && [ -f $CFSTOOLBIN ] && [ -f $CPLREADER ]; then
-#    # Copy binaries to /opt/pckg/cfs_nightly
-#    rm -rf $DESTDIR/trunk_gcc
-#    mkdir $DESTDIR/trunk_gcc
-#    cp -a $TESTDIR/CFS_BUILD_NIGHTLY/bin $DESTDIR/trunk_gcc
-#    cp -a $TESTDIR/CFS_BUILD_NIGHTLY/lib64 $DESTDIR/trunk_gcc
-#    cp -a $TESTDIR/CFS_BUILD_NIGHTLY/share $DESTDIR/trunk_gcc
-#    cp -a $TESTDIR/CFS_TRUNK_NIGHTLY/share/matlab $DESTDIR/trunk_gcc/share
-#    
-#fi
+# Let's copy the ParaView binaries to /opt/pckg
+if [ "$DAYOFWEEK" = "3" -a -d "$TESTDIR/CFS_BUILD_NIGHTLY/paraview"]; then
+    cp -a $TESTDIR/CFS_BUILD_NIGHTLY/paraview/* /opt/pckg/paraview-weekly
+fi
 
 # Change into CFS++ source directory and execute CTest for ICC.
 PerformTest "sedici_icc_nightly"
 
+# Copy the nightly Intel binaries for sedici to /opt/pckg
+CFSBIN="$TESTDIR/CFS_BUILD_NIGHTLY/bin/$DISTRO/cfsbin"
+CFSTOOLBIN="$TESTDIR/CFS_BUILD_NIGHTLY/bin/$DISTRO/cfstoolbin"
+CPLREADER="$TESTDIR/CFS_BUILD_NIGHTLY/bin/$DISTRO/cplreader"
 if [ -f $CFSBIN ] && [ -f $CFSTOOLBIN ] && [ -f $CPLREADER ]; then
     # Copy binaries to /opt/pckg/cfs_nightly
     ICC_SEDICI_DIR=$DESTDIR/trunk_icc_sedici
@@ -284,20 +275,6 @@ PerformTest "sedici_gcc_acml_nightly"
 PerformTest "sedici_gcc_gotoblas_nightly"
 PerformTest "sedici_icc_gfortran_nightly"
 
-
-# cd $TESTDIR
-# rm -rf $TESTDIR/CFSDEPSCACHE/precompiled
-# cd $TESTDIR/CFS_TRUNK_NIGHTLY
-# ctest -V -S ctest_scripts/ctest_sedici_gcc44_nightly.cmake
-# rm -rf $TESTDIR/bin
-# mkdir $TESTDIR/bin
-# cd $TESTDIR/bin
-# ln -s /usr/bin/gcc-4.4 gcc
-# ln -s /usr/bin/g++-4.4 g++
-# ln -s /usr/bin/gfortran-4.4 gfortran
-# export PATH=$TESTDIR/bin:$PATH
-# cd $TESTDIR/CFS_TRUNK_NIGHTLY
-# ctest -V -S ctest_scripts/ctest_sedici_icc_gcc44_nightly.cmake
 
 echo "-----------------------------------------------------------------------------"
 echo "`basename $0` finished on `date`"

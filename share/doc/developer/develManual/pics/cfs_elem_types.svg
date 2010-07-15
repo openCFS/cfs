@@ -24,7 +24,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -171,14 +171,14 @@
      xlink:href="file:///home/users/strieben/Documents/dev/NIGHTLY/CFS_TRUNK_NIGHTLY/share/doc/developer/develManual/pics/elems_quad.png" />
   <image
      y="733.4538"
-     x="420.73816"
+     x="380.73816"
      id="image4857"
      height="191.18811"
      width="246.57521"
      xlink:href="file:///home/users/strieben/Documents/dev/NIGHTLY/CFS_TRUNK_NIGHTLY/share/doc/developer/develManual/pics/elems_pyra.png" />
   <image
      y="347.09549"
-     x="114.07389"
+     x="174.07388"
      id="image4999"
      height="254.37045"
      width="139.90375"
@@ -192,14 +192,14 @@
      xlink:href="file:///home/users/strieben/Documents/dev/NIGHTLY/CFS_TRUNK_NIGHTLY/share/doc/developer/develManual/pics/elems_tria.png" />
   <image
      y="319.30026"
-     x="434.4895"
+     x="374.4895"
      id="image4694"
      height="262.16568"
      width="249.03688"
      xlink:href="file:///home/users/strieben/Documents/dev/NIGHTLY/CFS_TRUNK_NIGHTLY/share/doc/developer/develManual/pics/elems_hexa.png" />
   <image
      y="690.01459"
-     x="118.90231"
+     x="158.90231"
      id="image5180"
      height="264.62732"
      width="136.21129"

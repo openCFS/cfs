@@ -6,10 +6,12 @@
 \section{Bilinear Forms}
 \section{Elements}
 
+\label{sec:cfs_element_types}
+
 \begin{figure}[htb] 
   \centering 
-  \begin{overpic}[grid,tics=10,scale=0.7]{pics/cfs_elem_types}
-    \put(7,96){\sf {\textcolor{blue}{TRIA3}}, {\textcolor{red}{TRIA6}}}
+  \begin{overpic}[scale=0.7]{pics/cfs_elem_types}
+    \put(4.5,96){\sf {\textcolor{blue}{TRIA3}} (4), {\textcolor{red}{TRIA6}} (5)}
     \put(6,78){\sf {\small 1}}
     \put(19.5,78){\sf {\small 2}}
     \put(5,94){\sf {\small 3}}
@@ -17,12 +19,16 @@
     \put(13.7,87){\sf {\small 5}}
     \put(5,87){\sf {\small 6}}
 
-    \put(30,90.5){\sf {\textcolor{blue}{LINE2}}, {\textcolor{red}{LINE3}}}
+    \put(-6.5,86.2){{\sf {\tiny \shortstack[c]{1 = (0 0 0), 2 = (1 0 0),\\3 = (0 1 0), 4 = (0.5 0 0)\\5 = (0.5 0.5 0),\\6 = (0 0.5 0)}}}}
+
+    \put(27,90.5){\sf {\textcolor{blue}{LINE2}} (2), {\textcolor{red}{LINE3}} (3)}
     \put(28.3,86.3){\sf {\small 1}}
     \put(41.5,83.5){\sf {\small 2}}
     \put(34.5,85){\sf {\small 3}}
 
-    \put(46,96){\sf {\textcolor{blue}{QUAD4}}, {\textcolor{red}{QUAD8}}, {\textcolor{green}{QUAD9}}}
+    \put(32,79.5){{\sf {\tiny \shortstack[c]{1 = (-1, 0, 0)\\2 = (1, 0, 0)\\3 = (0, 0, 0)}}}}
+
+    \put(42,96){\sf {\textcolor{blue}{QUAD4} (6)}, {\textcolor{red}{QUAD8}} (7), {\textcolor{green}{QUAD9}} (8)}
     \put(49.2,78){\sf {\small 1}}
     \put(65.5,78){\sf {\small 2}}
     \put(65.5,93.5){\sf {\small 3}}
@@ -34,53 +40,107 @@
     \put(49.2,86.5){\sf {\small 8}}
     \put(58.5,86.5){\sf {\small 9}}
 
-    \put(12,68){\sf {\textcolor{blue}{TET4}}, {\textcolor{red}{TET10}}}
-    \put(11,49){\sf {\small 1}}
-    \put(21,41){\sf {\small 2}}
-    \put(24,55.5){\sf {\small 3}}
-    \put(9.5,66){\sf {\small 4}}
+    \put(68,85){{\sf {\tiny \shortstack[c]{1 = (-1 -1 0), 2 = (1 -1 0),\\3 = (1 1 0), 4 = (-1  1 0),\\5 = (0 -1 0), 6 = (1 0 0),\\7 = (0 1 0), 8 = (-1  0 0),\\9 = (0 0 0)}}}}
 
-    \put(15.5,45.5){\sf {\small 5}}
-    \put(23.5,49){\sf {\small 6}}
-    \put(18,54.5){\sf {\small 7}}
+    \put(5,68){\sf {\textcolor{blue}{TET4}} (9), {\textcolor{red}{TET10}} (10)}
+    \put(17,49){\sf {\small 1}}
+    \put(27,41){\sf {\small 2}}
+    \put(30,55.5){\sf {\small 3}}
+    \put(15.5,66){\sf {\small 4}}
 
-    \put(9.5,57.5){\sf {\small 8}}
-    \put(17,56){\sf {\small 9}}
-    \put(18.5,60){\sf {\small 10}}
+    \put(21.5,45.5){\sf {\small 5}}
+    \put(29.5,49){\sf {\small 6}}
+    \put(24,54.3){\sf {\small 7}}
 
-    \put(40,72){\sf {\textcolor{blue}{HEXA8}}, {\textcolor{red}{HEXA20}}, {\textcolor{green}{HEXA27}}}
-    \put(43.5,45){\sf {\small 1}}
-    \put(62,43.5){\sf {\small 2}}
-    \put(65,54){\sf {\small 3}}
-    \put(50.5,56.5){\sf {\small 4}}
+    \put(15.5,57.5){\sf {\small 8}}
+    \put(23,56){\sf {\small 9}}
+    \put(24.5,60){\sf {\small 10}}
 
-    \put(40,65){\sf {\small 5}}
-    \put(62,63){\sf {\small 6}}
-    \put(65.5,68.5){\sf {\small 7}}
-    \put(48,70){\sf {\small 8}}
+    \put(-2,54){{\sf {\tiny \shortstack[c]{1 = (0 0 0), 2 = (1 0 0), \\3 = (0 1 0), 4 = (0 0 1), \\5 = (0.5 0 0), 6 = (0.5 0.5 0),\\7 = (0 0.5 0), 8 = (0 0 0.5),\\9 = (0.5 0 0.5), 10 = (0 0.5 0.5)}}}}
 
-    \put(53,44){\sf {\small 9}}
-    \put(64,49.5){\sf {\small 10}}
-    \put(56,56){\sf {\small 11}}
-    \put(48,53){\sf {\small 12}}
+    \put(36,72){\sf {\textcolor{blue}{HEXA8}} (11), {\textcolor{red}{HEXA20}} (12), {\textcolor{green}{HEXA27}} (13)}
+    \put(37.5,45.2){\sf {\small 1}}
+    \put(56,43.5){\sf {\small 2}}
+    \put(59,54){\sf {\small 3}}
+    \put(44.5,56.5){\sf {\small 4}}
 
-    \put(52,64){\sf {\small 13}}
-    \put(65,67){\sf {\small 14}}
-    \put(57,69){\sf {\small 15}}
-    \put(46,67){\sf {\small 16}}
+    \put(34,65){\sf {\small 5}}
+    \put(57,63){\sf {\small 6}}
+    \put(59.5,68.7){\sf {\small 7}}
+    \put(42,70){\sf {\small 8}}
 
-    \put(42,55){\sf {\small 17}}
-    \put(63,53.5){\sf {\small 18}}
-    \put(65,61){\sf {\small 19}}
-    \put(51,62){\sf {\small 20}}
+    \put(46,44.5){\sf {\small 9}}
+    \put(57.8,49.5){\sf {\small 10}}
+    \put(50,56){\sf {\small 11}}
+    \put(42,53){\sf {\small 12}}
+
+    \put(46,64.2){\sf {\small 13}}
+    \put(58.5,66){\sf {\small 14}}
+    \put(51,69.5){\sf {\small 15}}
+    \put(38.5,68.2){\sf {\small 16}}
+
+    \put(34.5,55){\sf {\small 17}}
+    \put(56.0,54.5){\sf {\small 18}}
+    \put(59,61){\sf {\small 19}}
+    \put(44.5,61.5){\sf {\small 20}}
+
+    \put(47,54){\sf {\small 21}}
+    \put(58,58){\sf {\small 22}}
+    \put(51.5,61.5){\sf {\small 23}}
+    \put(41.5,59){\sf {\small 24}}
 
 
-    \put(8,37){\sf {\textcolor{blue}{WEDGE6}}, {\textcolor{red}{WEDGE15}}}
+    \put(50,50.5){\sf {\small 25}}
+    \put(49,67){\sf {\small 26}}
+    \put(49.7,58.2){\sf {\small 27}}
 
-    \put(43,33){\sf {\textcolor{blue}{PYRA5}}, {\textcolor{red}{PYRA13}}}
+    \put(64,46){{\sf {\tiny \shortstack[c]{1 = (-1 -1 -1), 2 = (1 -1 -1),\\3 = (1 1 -1), 4 = (-1 1 -1), \\5 = (-1 -1 1), 6 = (1 -1 1), \\7 = (1 1 1), 8 = (-1 1 1), \\9 = (0 -1 -1), 10 = (1 0 -1), \\11 = (0 1 -1), 12 = (-1 0 -1), \\13 = (0 -1 1), 14 = (1 0 1), \\15 = (0 1 1), 16 = (-1 0 1), \\17 = (-1 -1 0), 18 = (1 -1 0), \\19 = (1 1 0), 20 = (-1 1 0), \\21 = (0 -1 0), 22 = (1 0 0), \\23 = (0 1 0), 24 = (-1 0 0), \\25 = (0 0 -1), 26 = (0 0 1),\\27 = (0 0 0) 
+}}}}
 
-    \put(56,16){\textcolor{red}{\sf {\tiny \shortstack[c]{Edit options for\\3D, 2D and 1D elements}}}}
-    \put(66,27){\textcolor{red}{\sf {\tiny \shortstack[c]{Set element type\\to MESH200}}}}
+
+    \put(8,37){\sf {\textcolor{blue}{WEDGE6}} (16), {\textcolor{red}{WEDGE15}} (17)}
+    \put(16.4,9.2){\sf {\small 1}}
+    \put(26.5,7.5){\sf {\small 2}}
+    \put(20.2,18){\sf {\small 3}}
+    \put(13.3,29.8){\sf {\small 4}}
+    \put(28,29){\sf {\small 5}}
+    \put(18.5,35){\sf {\small 6}}
+
+    \put(21,8.5){\sf {\small 7}}
+    \put(24,13.5){\sf {\small 8}}
+    \put(16.8,14){\sf {\small 9}}
+
+    \put(21.5,29.5){\sf {\small 10}}
+    \put(23.3,32){\sf {\small 11}}
+    \put(14,32){\sf {\small 12}}
+
+    \put(13,19.5){\sf {\small 13}}
+    \put(27.3,18.2){\sf {\small 14}}
+    \put(20.5,24.5){\sf {\small 15}}
+
+    \put(-6,16){{\sf {\tiny \shortstack[c]{1 = (1 1 0), 2 = (-1 1 0), \\3 = (-1 -1 0), 4 = (1 -1 0), \\5 = (0 0 1), 6 = (0 1 0), \\7 = (-1 0 0), 8 = (0 -1 0), \\9 = (1 0 0), 10 = (0.5 0.5 0.5), \\11 = (-0.5 0.5 0.5), 12 = (-0.5 -0.5 0.5), \\13 = (0.5 -0.5 0.5)}}}}
+
+    \put(41.5,33){\sf {\textcolor{blue}{PYRA5}} (15), {\textcolor{red}{PYRA13}} (15)}
+    \put(37,14.5){\sf {\small 1}}
+    \put(59.5,10.5){\sf {\small 2}}
+    \put(60.7,25){\sf {\small 3}}
+    \put(41.5,27.5){\sf {\small 4}}
+    \put(51,30.7){\sf {\small 5}}
+
+    \put(48,12.3){\sf {\small 6}}
+    \put(61,19){\sf {\small 7}}
+    \put(52,25){\sf {\small 8}}
+    \put(39.3,23){\sf {\small 9}}
+
+    \put(45,24){\sf {\small 10}}
+    \put(55.5,22.5){\sf {\small 11}}
+    \put(56.5,27.5){\sf {\small 12}}
+    \put(45.5,29.5){\sf {\small 13}}
+
+    \put(64,15){{\sf {\tiny \shortstack[c]{1 = (0 0 -1), 2 = (1 0 -1), \\3 = (0 1 -1), 4 = (0 0 1), \\5 = (1 0 1), 6 = (0 1 1), \\7 = (0.5 0 -1), 8 = (0.5 0.5 -1), \\9 = (0 0.5 -1), 10 = (0.5 0 1), \\11 = (0.5 0.5 1), 12 = (0 0.5 1), \\13 = (0 0 0), 14 = (1 0 0), \\15 = (0 1 0)}}}}
+
+
+
   \end{overpic}
   \caption{Available element types in CFS++.}
   \label{fig:cfs_elem_types}
