@@ -1869,25 +1869,28 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     results_.Push_back( disp );
     availResults_.insert( disp);
 
-    // === MECHANIC VELOCITY ===
-    shared_ptr<ResultInfo> vel(new ResultInfo);
-    vel->resultType = MECH_VELOCITY;
-    vel->dofNames = dispDofNames;
-    vel->unit = "m/s";
-    vel->entryType = disp->entryType;
-    vel->definedOn = disp->definedOn;
-    vel->fctType = disp->fctType;
-    availResults_.insert( vel );
+    if ( (analysistype_ == TRANSIENT) || (analysistype_ == HARMONIC))
+    {
+      // === MECHANIC VELOCITY ===
+      shared_ptr<ResultInfo> vel(new ResultInfo);
+      vel->resultType = MECH_VELOCITY;
+      vel->dofNames = dispDofNames;
+      vel->unit = "m/s";
+      vel->entryType = disp->entryType;
+      vel->definedOn = disp->definedOn;
+      vel->fctType = disp->fctType;
+      availResults_.insert( vel );
 
-    // === MECHANIC ACCELERATION ===
-    shared_ptr<ResultInfo> acc(new ResultInfo);
-    acc->resultType = MECH_ACCELERATION;
-    acc->dofNames = dispDofNames;
-    acc->unit = "m/s^2";
-    acc->entryType = disp->entryType;
-    acc->definedOn = disp->definedOn;
-    acc->fctType = disp->fctType;
-    availResults_.insert( acc );
+      // === MECHANIC ACCELERATION ===
+      shared_ptr<ResultInfo> acc(new ResultInfo);
+      acc->resultType = MECH_ACCELERATION;
+      acc->dofNames = dispDofNames;
+      acc->unit = "m/s^2";
+      acc->entryType = disp->entryType;
+      acc->definedOn = disp->definedOn;
+      acc->fctType = disp->fctType;
+      availResults_.insert( acc );
+    }
 
     // === MECHANIC RHS ===
     shared_ptr<ResultInfo> rhs(new ResultInfo);

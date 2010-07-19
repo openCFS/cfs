@@ -2747,19 +2747,18 @@ namespace CoupledField {
     UInt numDofs = actDof.dofNames.GetSize();
     EntityIterator it = res->GetEntityList()->GetIterator();
 
-    if( res->GetEntryType() == BaseMatrix::DOUBLE ) {
-
-      // === TRANSIENT CASE ===
+    if ( analysistype_ == TRANSIENT )
+    {
       const Vector<Double>& (TimeStepping::*fct) () const;
       switch ( deriv ) {
-      case 1:
-        fct = &TimeStepping::GetDeriv1;
-        break;
-      case 2:
-        fct = &TimeStepping::GetDeriv2;
-        break;
-      default :
-        EXCEPTION( "Only derivatives up to order 2 possible" );
+        case 1:
+          fct = &TimeStepping::GetDeriv1;
+          break;
+        case 2:
+          fct = &TimeStepping::GetDeriv2;
+          break;
+        default :
+          EXCEPTION( "Only derivatives up to order 2 possible" );
       }
 
       const Vector<Double> & solHelp = (TS_alg_->*fct)();
@@ -2781,27 +2780,28 @@ namespace CoupledField {
           }
         }
       }
-    } else {
-      // === HARMONIC CASE ===
+    }
+    else if ( analysistype_ == HARMONIC )
+    {
       Double omega = solveStep_->GetActFreq() * 2 * PI;
 
       // determine correct factor
       Complex factor = Complex(0.0, 0.0);
       switch( deriv ) {
-      case 1:
-        factor = Complex( 0.0, omega );
-        break;
-      case 2:
-        factor = Complex( -omega*omega, 0.0 );
-        break;
-      default :
-        EXCEPTION( "Only derivatives up to order 2 possible" );
+        case 1:
+          factor = Complex( 0.0, omega );
+          break;
+        case 2:
+          factor = Complex( -omega*omega, 0.0 );
+          break;
+        default :
+          EXCEPTION( "Only derivatives up to order 2 possible" );
       }
 
       Vector<Complex> & solHelp =
-        dynamic_cast<Vector<Complex>& > (*solVec_);
+          dynamic_cast<Vector<Complex>& > (*solVec_);
       Vector<Complex> & actSol = dynamic_cast<Result<Complex>&>
-         (*(res)).GetVector();
+          (*(res)).GetVector();
       actSol.Resize( res->GetEntityList()->GetSize() *
                      actDof.dofNames.GetSize() );
 
@@ -2818,7 +2818,14 @@ namespace CoupledField {
           }
         }
       }
-
+    }
+    else
+    {
+      WARN("Cannot compute time derivative '"
+          << res->GetResultInfo()->resultName
+          << "' in a "
+          << BasePDE::analysisType.ToString(analysistype_)
+          << " analysis.");
     }
   }
 
