@@ -69,8 +69,10 @@ void BaseDesignElement::AddGradient(const Objective* f, const Condition* g, doub
   assert(f == NULL || g == NULL);
   LOG_DBG3(del) << "AddGradient: f=" << (f == NULL ? "null" : f->type.ToString(f->GetType()))
                 << " g=" << (g == NULL ? "null" : g->ToString()) << " val=" << value
-                << " penalty " << (f != NULL ? boost::lexical_cast<std::string>(f->GetPenalty()) : "-")
-                << "(old = " <<  (f != NULL ? costGradient[f->GetIndex()] : constraintGradient[g->GetIndex()]) << ")";
+                << " penalty=" << (f != NULL ? boost::lexical_cast<std::string>(f->GetPenalty()) : "-")
+                << " old= " <<  (f != NULL ? costGradient[f->GetIndex()] : constraintGradient[g->GetIndex()])
+                << " add=" << (f != NULL ? value * f->GetPenalty() : value)
+                << " -> " << (f != NULL ? costGradient[f->GetIndex()] + value * f->GetPenalty() : constraintGradient[g->GetIndex()] + value);
   if(f != NULL) costGradient[f->GetIndex()] += value * f->GetPenalty();
            else constraintGradient[g->GetIndex()] += value;
 }

@@ -1187,6 +1187,8 @@
     <!-- if the have a neighborhood, the value. 0.0 disables the type -->
     <xsd:attribute name="neighbor_value" type="xsd:float" use="optional" default="0.0"/>
     
+    <!-- globalSlope and globalCheckerboard might be normalized by number of local constraints -->
+    <xsd:attribute name="normalize" type="xsd:boolean" default="true"/>
   </xsd:complexType>
 
   <!-- neighborhood types -->

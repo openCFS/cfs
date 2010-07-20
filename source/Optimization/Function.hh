@@ -172,6 +172,9 @@ class Function
       /** The the beta value, checks if its set. */
       double GetBeta() const { assert(beta_ != -3.14); return beta_; }
 
+      /** normalize globalSlope, globalCheckerboard, ... by number of local constraints */
+      bool DoNormalizeGlobal() const { return normalize_; }
+
       /** This is to be called from Local::Local() as Function::ToInfo() is called too early */
       void ToInfo(PtrParamNode info);
 
@@ -249,6 +252,9 @@ class Function
       /** Functions based on a relaxed max formulation have beta for the Kreiselmeier/Steinhauser
        * continuation. This is (global) checkerboard. -1 is real max = infinity */
       double beta_;
+
+      /** normalize global function */
+      bool normalize_;
 
       /** @see GetElementDimension() */
       int element_dimension_;

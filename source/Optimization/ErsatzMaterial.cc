@@ -854,6 +854,7 @@ void ErsatzMaterial::CalcObjectiveGradient(StdVector<double>* grad_out)
         case Objective::GLOBAL_SLOPE:
         case Objective::GLOBAL_CHECKERBOARD:
           CalcGlobalFunction(cost, true);
+          break;
 
         case Objective::TYCHONOFF:
           IntegrateDesignVariable(cost, NULL, true, DesignElement::NO_TYPE, true, true, 2.0);
@@ -2358,7 +2359,7 @@ double ErsatzMaterial::CalcGlobalFunction(Function* c, bool derivative)
 
   // we normalize all values by the number of "constraints". Note that it is
   // sufficient for the function value, the gradient is then also right
-  double factor = 1.0/vem.GetSize();
+  double factor = local->DoNormalizeGlobal() ? 1.0/vem.GetSize() : 1.0;
 
   assert(local->GetLocality() == Function::Local::NEXT_AND_REVERSE
       || local->GetLocality() == Function::Local::PREV_NEXT_AND_REVERSE);
@@ -2385,7 +2386,7 @@ double ErsatzMaterial::CalcGlobalFunction(Function* c, bool derivative)
     LOG_DBG2(em) << "CGF: !d c=" << c->type.ToString(c->GetType()) << " i=" << i << " de="
                  << design->data[id.element_idx].elem->elemNum << " sign=" << id.sign
                  << " fv=" << fv << " bound=" << c->GetParameter() << " v=" << v
-                 << " 1/" << (1.0/factor) << "*v*v=" << (factor * v*v) << " -> " << res;
+                 << " local=" << factor << "*v*v=" << (factor * v*v) << " -> " << res;
   }
 
   if(!derivative) return res;
@@ -2411,13 +2412,20 @@ double ErsatzMaterial::CalcGlobalFunction(Function* c, bool derivative)
       for(int n = -1, nn = id.neighbor.GetSize(); n < nn; n++)
       {
         double gv = slope ? id.CalcSlopeGradient(n) : id.CalcCheckerboardGradient(n, design, beta);
-        double grad = 2.0 * v * gv;
+        double grad = factor * 2.0 * v * gv;
         DesignElement* de = id.GetElement(design, n);
         de->AddGradient(f, g, grad);
-        LOG_DBG2(em) << "CGF: derivative c=" <<  c->type.ToString(c->GetType()) << " de="
+        LOG_DBG2(em) << "CGF: derivative c=" <<  c->type.ToString(c->GetType()) << " elem="
                      << design->data[id.element_idx].elem->elemNum << " sign=" << id.sign
-                     << " n=" << n << " gv=" << gv << " grad=" << grad;
+                     << " n=" << n << " curr=" << de->elem->elemNum << " v=" << v << " gv=" << gv
+                     << " grad=" << factor << "*" << (2.0 * v * gv)  << " -> " << grad
+                     << " stored_gv=" << de->GetValue(DesignElement::COST_GRADIENT, DesignElement::SMART);
       }
+    }
+    else
+    {
+      LOG_DBG2(em) << "CFG: derivative c=" <<  c->type.ToString(c->GetType()) << " de="
+          << design->data[id.element_idx].elem->elemNum << " sign=" << id.sign << " v=" << v;
     }
   }
 

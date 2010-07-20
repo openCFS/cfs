@@ -519,7 +519,7 @@ std::string LocalCondition::ToString() const
   ss << Condition::ToString();
 
   if(IsLocal())
-    ss << "cvi_=" << current_view_index_;
+    ss << " cvi=" << current_view_index_;
 
   return ss.str();
 }

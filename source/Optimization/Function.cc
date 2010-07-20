@@ -335,6 +335,8 @@ Function::Local::Local(Function* func, DesignSpace* space)
 
   this->beta_ = pn != NULL && pn->Has("beta") ? pn->Get("beta")->As<double>() : -3.14;
 
+  this->normalize_ = pn != NULL ? pn->Get("normalize")->As<bool>() : true;
+
   // check beta
   switch(ftype)
   {
@@ -460,6 +462,8 @@ void Function::Local::ToInfo(PtrParamNode in)
 {
   in->Get("locality")->SetValue(locality.ToString(locality_));
   in->Get("local_size")->SetValue(virtual_elem_map.GetSize());
+  if(func_->type_ == GLOBAL_SLOPE || func_->type_ == GLOBAL_CHECKERBOARD)
+    in->Get("normalize")->SetValue(normalize_);
 }
 
 Function::Local::Identifier::Identifier(unsigned int el_idx, VicinityElement::Neighbour prev, VicinityElement::Neighbour next, int si)
