@@ -763,7 +763,8 @@ double ErsatzMaterial::CalcObjective(Excitation& excite, Objective* cost)
     return CalcVolume(cost, NULL, false, true);
 
   case Objective::GLOBAL_SLOPE:
-    return CalcGlobalSlope(cost, false);
+  case Objective::GLOBAL_CHECKERBOARD:
+    return CalcGlobalFunction(cost, false);
 
   case Objective::GLOBAL_DYNAMIC_COMPLIANCE:
     return CalcGlobalDynamicCompliance(excite, cost);
@@ -851,7 +852,8 @@ void ErsatzMaterial::CalcObjectiveGradient(StdVector<double>* grad_out)
           break;
 
         case Objective::GLOBAL_SLOPE:
-          CalcGlobalSlope(cost, true);
+        case Objective::GLOBAL_CHECKERBOARD:
+          CalcGlobalFunction(cost, true);
 
         case Objective::TYCHONOFF:
           IntegrateDesignVariable(cost, NULL, true, DesignElement::NO_TYPE, true, true, 2.0);
@@ -1186,11 +1188,12 @@ double ErsatzMaterial::CalcConstraint(Condition* g, bool derivative, StdVector<d
          break;
 
     case Condition::GLOBAL_SLOPE:
-         result = CalcGlobalSlope(g, derivative);
+    case Condition::GLOBAL_CHECKERBOARD:
+         result = CalcGlobalFunction(g, derivative);
          break;
 
     case Condition::SLOPE:
-         result = CalcSlopeConstraint(g, derivative);
+         result = CalcLocalConstraint(g, derivative);
          break;
 
     case Condition::CHECKERBOARD:
@@ -2317,99 +2320,56 @@ double ErsatzMaterial::CalcGreyness(Condition* g, bool derivative)
   return greyness / (double) counter;
 }
 
-double ErsatzMaterial::CalcSlopeConstraint(Condition* g, bool derivative)
+double ErsatzMaterial::CalcLocalConstraint(Condition* g, bool derivative)
 {
-  SlopeCondition* slope = dynamic_cast<SlopeCondition*>(g);
+  LocalCondition* loc_cond = dynamic_cast<LocalCondition*>(g);
 
   // take care, similar logic in SlopeCondition::GetSparsityPattern() !
+  assert(loc_cond->IsLocal());
+
+  // The neighborhood is already determined
+  Function::Local* local = g->GetLocal();
+  assert(local != NULL);
+
+  Function::Local::Identifier& id = loc_cond->GetCurrentVirtualContext();
+
+  double res = -1.0;
   
-  assert(slope->IsLocal());
-
-  // as in Petersson and Sigmund, 1998 we have a constraint only for full X_P, Y_P (, Z_P)
-  // neighborhood.
-
-  unsigned int  de_idx     = slope->GetCurrentVirtualElement();
-  DesignElement* de         = &(design->data[de_idx]);
-  int            neigh_num  = slope->GetCurrentVirtualNeighbor(); // 0, 2 (,4)
-  DesignElement* neigh      = de->vicinity->GetNeighbour((VicinityElement::Neighbour) neigh_num);
-  
-  bool case_a(false);
-  if(g->GetLocality() == Function::NEXT_AND_REVERSE)
-  {
-    // the abs(slope) is done by two inequality constraints. Therefore the 2 * dim
-    // a) x_i+1 - x_i <= c*h
-    // b) -x_i+1 + x_i <= c*h was x_i+1 - x_i >= -c*h
-    assert(slope->GetCurrentVirtualSign() == 1 || slope->GetCurrentVirtualSign() == -1);
-    case_a = slope->GetCurrentVirtualSign() == 1;
-  }
-  // else
-  // the abs(slope) is done by one constraint
-  // -c*h <= x_i+1 - x_i <= c*h
-  // we use the upper and lower bounds from snopt
-
   if(derivative)
   {
-    // the slope constraint is linear so the gradient is constant
-    // furthermore it is dense.
-    // We set it to the position where it belongs to
-
-    // there are two entries per virtual constraint
-
-    // the index of the neighbor element
-    unsigned int neigh_idx = design->Find(neigh);
-    
-    // reset the constraint gradients for this and the neighbour element
-    // this is now necessary because we moved the Reset-function out of
-    // ErsatzMaterial::CalcConstraintGradient
-    design->data[neigh_idx].Reset(DesignElement::CONSTRAINT_GRADIENT, g);
-    design->data[de_idx].Reset(DesignElement::CONSTRAINT_GRADIENT, g);
-
-    if(slope->GetLocality() == Function::NEXT_AND_REVERSE)
-    {
-      design->data[neigh_idx].AddGradient(NULL, g, case_a ? 1.0 : -1.0);
-      design->data[de_idx].AddGradient(NULL, g, case_a ? -1.0 : 1.0);
-    }
-    else
-    {
-      design->data[neigh_idx].AddGradient(NULL, g, 1.0);
-      design->data[de_idx].AddGradient(NULL, g, -1.0);
-    }
-
-    LOG_DBG2(em) << "CSC: grad ce=" << slope->GetCurrentVirtualElement()
-                 << " cn=" << slope->GetCurrentVirtualNeighbor()
-                 << " cs=" << slope->GetCurrentVirtualSign()
-                 << " ov=" << (case_a ? -1.0 : 1.0)
-                 << " nv=" << (case_a ? 1.0 : -1.0);
+    id.EvalGradient(design, local);
   }
-  else // non derivative case
+  else
   {
-    double own_val   = de->GetValue(DesignElement::DESIGN, DesignElement::PLAIN);
-    double other_val = neigh->GetValue(DesignElement::DESIGN, DesignElement::PLAIN);
-
-    double res = other_val - own_val;
-    if(slope->GetLocality() == Function::NEXT_AND_REVERSE)
-    {
-      res = case_a ? other_val - own_val : -1.0 * other_val + own_val;
-    }
-    
-    LOG_DBG2(em) << "CSC: ce=" << slope->GetCurrentVirtualElement()
-                 << " cn=" << slope->GetCurrentVirtualNeighbor()
-                 << " cs=" << slope->GetCurrentVirtualSign()
-                 << " ov=" << own_val << " nv=" << other_val << " -> " << res;
-    return res;
+    res = id.EvalFunction(design, local);
   }
-  return -1.0; // derivative
+  return res;
 }
 
 
-double ErsatzMaterial::CalcGlobalSlope(Function* c, bool derivative)
+double ErsatzMaterial::CalcGlobalFunction(Function* c, bool derivative)
 {
+  LOG_DBG(em) << "CGF c=" << c->type.ToString(c->GetType()) << " derivative=" << derivative;
+  Function::Local* local = c->GetLocal();
+  assert(local != NULL);
   // the neighborhoods are already defined by Local!
-  StdVector<Function::Local::Identifier>& vem = c->GetLocal()->virtual_elem_map;
-  StdVector<double>&                     val = c->GetLocal()->values;
+  StdVector<Function::Local::Identifier>& vem = local->virtual_elem_map;
+  StdVector<double>&                     val = local->values;
 
-  assert(c->GetLocality() == Function::NEXT_AND_REVERSE);
+  // we normalize all values by the number of "constraints". Note that it is
+  // sufficient for the function value, the gradient is then also right
+  double factor = 1.0/vem.GetSize();
+
+  assert(local->GetLocality() == Function::Local::NEXT_AND_REVERSE
+      || local->GetLocality() == Function::Local::PREV_NEXT_AND_REVERSE);
   assert(c->GetParameter() > 0.0);
+
+  assert(c->GetType() == Function::GLOBAL_SLOPE || c->GetType() == Function::GLOBAL_CHECKERBOARD);
+  bool slope   = c->GetType() == Function::GLOBAL_SLOPE;
+  bool chkrbrd = c->GetType() == Function::GLOBAL_CHECKERBOARD;
+
+  // only necessary for checkerboard
+  double beta = chkrbrd ? local->GetBeta() : 0.0;
 
   // evaluate the function values, which is
   // max(0, x_i - x_i+1 - c) and max(0,x_i+1 - x_i - c)
@@ -2417,12 +2377,15 @@ double ErsatzMaterial::CalcGlobalSlope(Function* c, bool derivative)
   for(unsigned int i = 0; i < vem.GetSize(); i++)
   {
     Function::Local::Identifier& id = vem[i];
-    double v = max(0.0, id.CalcSlope(design) - c->GetParameter());
+    double fv = id.EvalFunction(design, local);
+    double v = max(0.0, fv - c->GetParameter());
 
     val[i] = v;
-    res += v*v; // we sum up the squares
-    LOG_DBG2(em) << "CGS: i=" << i << " de=" << design->data[id.element_idx].elem->elemNum << " sign=" << id.sign
-                 << " slope=" << id.CalcSlope(design) << " bound=" << c->GetParameter() << " v=" << v << " -> " << res;
+    res += factor * v*v; // we sum up the normalized squares
+    LOG_DBG2(em) << "CGF: !d c=" << c->type.ToString(c->GetType()) << " i=" << i << " de="
+                 << design->data[id.element_idx].elem->elemNum << " sign=" << id.sign
+                 << " fv=" << fv << " bound=" << c->GetParameter() << " v=" << v
+                 << " 1/" << (1.0/factor) << "*v*v=" << (factor * v*v) << " -> " << res;
   }
 
   if(!derivative) return res;
@@ -2435,23 +2398,27 @@ double ErsatzMaterial::CalcGlobalSlope(Function* c, bool derivative)
   Condition* g = dynamic_cast<Condition*>(c);
   assert((f == NULL && g != NULL) || (f != NULL && g == NULL));
 
-  for(unsigned int i = 0; i < vem.GetSize(); i++)
-  {
-    Function::Local::Identifier& id = vem[i];
-    DesignElement* mine  = &(design->data[id.element_idx]);
-    DesignElement* other = mine->vicinity->GetNeighbour(id.neighbor);
+  assert(vem.GetSize() == val.GetSize());
 
-    double v = val[i];
+  for(int j = 0; j < (int) vem.GetSize(); j++)
+  {
+    Function::Local::Identifier& id = vem[j];
+
+    double v = val[j];
     // do we have a gradient?
     if(v > 0.0)
     {
-      double grad = 2.0 * v * id.sign;
-      mine->AddGradient(f, g, grad);
-      other->AddGradient(f, g, -1.0 * grad);
+      for(int n = -1, nn = id.neighbor.GetSize(); n < nn; n++)
+      {
+        double gv = slope ? id.CalcSlopeGradient(n) : id.CalcCheckerboardGradient(n, design, beta);
+        double grad = 2.0 * v * gv;
+        DesignElement* de = id.GetElement(design, n);
+        de->AddGradient(f, g, grad);
+        LOG_DBG2(em) << "CGF: derivative c=" <<  c->type.ToString(c->GetType()) << " de="
+                     << design->data[id.element_idx].elem->elemNum << " sign=" << id.sign
+                     << " n=" << n << " gv=" << gv << " grad=" << grad;
+      }
     }
-    LOG_DBG2(em) << "CGS: i=" << i << " mine=" << mine->elem->elemNum << " other=" << other->elem->elemNum
-                 << " sign=" << id.sign << " v=" << v << " grad=" << (2.0 * v * id.sign);
-
   }
 
   return 0.0; // gradient case has no information
@@ -2469,7 +2436,7 @@ double ErsatzMaterial::CalcCheckerboard(Condition* g, bool derivative)
   int idx = design->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::CHECKERBOARD);
 
   // parameter for Kreisselmeier Steinhauser min/max approximation. Negative value for exaxt min/max!!
-  double beta = g->GetParameter();
+  double beta = g->GetLocal()->GetBeta();
 
   // loop over all elements
   unsigned int base  = design->FindDesign(g->design);
@@ -2523,27 +2490,7 @@ double ErsatzMaterial::CalcCheckerboard(Condition* g, bool derivative)
   return sum / div;
 }
 
-double ErsatzMaterial::CalcMaxApproximation(double left, double right, double beta) const
-{
-  assert(beta > 0);
 
-  // the continuous Kreisselmeier and Steinhauser max approximation taken
-  // from Sigmund; Morphology-based black and white filters for topology optimization; 2007
-  // x = log ( sum(exp(beta * x_i)) / sum 1 ) / beta
-
-  return std::log(0.5 * (std::exp(left * beta) + std::exp(right * beta))) / beta;
-}
-
-
-double ErsatzMaterial::CalcMinApproximation(double left, double right, double beta) const
-{
-  assert(beta > 0);
-  assert(right > 0 && left > 0);
-
-  // see comment in CalcMaxApproximation()
-
-  return 1.0 - std::log(0.5 * (std::exp((1.0 - left) * beta) + std::exp((1.0 - right) * beta))) / beta;
-}
 
 
 void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_exite)
@@ -2755,6 +2702,7 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation& excite, Objective* cost, bo
     case Objective::TYCHONOFF:
     case Objective::VOLUME:
     case Objective::GLOBAL_SLOPE:
+    case Objective::GLOBAL_CHECKERBOARD:
     case Objective::PENALIZED_VOLUME:
     case Objective::GAP:
     case Objective::TEMPERATURE:

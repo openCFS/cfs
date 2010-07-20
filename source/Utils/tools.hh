@@ -171,6 +171,12 @@ namespace CoupledField {
    * @return the memory in KBytes or 0 if there was a problem */
   int MemoryUsage(bool peak);
 
+  /** Calculates the continuous Kreisselmeier and Steinhauser max approxmiation for two values. */
+  double CalcMaxApproximation(double left, double right, double beta);
+
+  /** @see CalcMaxApproximation() */
+  double CalcMinApproximation(double left, double right, double beta);
+
   /** A simple helper to write structured VTK point data in the
       legacy ASCII. pre-XML format. */
   class VTKStructuredPoints

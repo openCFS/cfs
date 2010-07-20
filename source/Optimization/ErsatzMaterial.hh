@@ -525,12 +525,6 @@ protected:
    * PiezoSIMP does it simply in the constructor */
   virtual void SetPDEs();
 
-  /** Calculates the continuous Kreisselmeier and Steinhauser max approxmiation for two values. */
-  double CalcMaxApproximation(double left, double right, double beta) const;
-
-  /** @see CalcMaxApproximation() */
-  double CalcMinApproximation(double left, double right, double beta) const;
-
   /** Here we store the solution of the problem. Multiple solutions for multiple loadcases */
   Solutions forward;
 
@@ -663,20 +657,15 @@ private:
    * @return invalid in derivative case*/
   double CalcGreyness(Condition* g, bool derivative);
 
-  /** Evaluates the special slope constraint which blows virtully up to dim * n constraints
-   * The dim * n constraint values are stored within the special SlopeCondition..
-   * Every element has 2 * dim constraints. This hold for periodic bc and inner element.
-   * In other cases the "missing" constraints for the to-right, -upper, and -back elements
-   * hold trivially fulfilled constant constraints. This is different to the paper
-   * "Petersson, Sigmund; Slope Constrained Topology Optimization; 1998" where they have
-   * 2(n_x-1)(n_y-1) constraints but have no periodic bc.
-   * @return the max norm of all individual constraint values. */
-  double CalcSlopeConstraint(Condition* g, bool derivative);
+  /** Evaluates virtually blown up local constraints based on the Function::Local neighborhood.
+   * E.g. slope and mole. Note, that there are also the globalized variants.
+   * @see CalcGlobalFunction() */
+  double CalcLocalConstraint(Condition* g, bool derivative);
 
-  /** Calculates a global slope.
+  /** Calculates globalized local functions. globalSlope and globalCheckerboard.
    * When g_i is the slope function x_i - x_i+1 -c and g_i+1 = x_1+1 - x_i - c
    * the global slope is sum max(0, g_i)^2, hence we need NEXT_AND_REVERSE locality */
-  double CalcGlobalSlope(Function* c, bool derivative);
+  double CalcGlobalFunction(Function* c, bool derivative);
 
   /** This is a measure for checkerboards.
    * Whithin each element, for all dimensions we check if we are in between the 'left' and 'right' neighbors.

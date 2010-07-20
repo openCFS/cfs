@@ -27,6 +27,9 @@ namespace CoupledField
        /** overwrites Function::IsObjective() */
        bool IsObjective() const { return false; }
 
+       /** to be overwritten in LocalCondition */
+       virtual bool IsLocalCondition() const { return false; }
+
        /** Overwrites and calls Function::PostProc() */
        void PostProc(DesignSpace* space, DesignStructure* structure);
 
@@ -165,15 +168,24 @@ namespace CoupledField
       bool linear_;
    };
 
-   /** This specialization is kind of a super constraint as it handles the 2*dim*n slope conditions
-    * where n is the number of design elements. See ErsatzMaterial::CalcSlopeConstraint() for documentation */
-   class SlopeCondition : public Condition
+   /** This handles local constraints which exist only virtually - hence the optimizer sees them but
+    * within optimization (e.g. log output) it is save to traverse all (real) elements.
+    * The key element is the ConditionContainer() and the virtual local mode.
+    * Examples are slope conditions and mole.
+    * It is based on the local neighborhood information within Function::Local. Note, that there
+    * are also global local functions like globalSlope using the Function::Local information. Only
+    * when the neighborhood is used as local constraint with potentially many thousands elements,
+    * this specialization of Condition is used. */
+   class LocalCondition : public Condition
    {
    public:
      /** Helper constructor for AddCondition */
-     SlopeCondition(PtrParamNode pn);
+     LocalCondition(PtrParamNode pn);
      
-     virtual ~SlopeCondition() {};
+     virtual ~LocalCondition() {};
+
+     /** overwrites Condition::IsLocalCondition() */
+     bool IsLocalCondition() const { return true;}
 
      /** PostInit when we have the design space */
      void PostInit(DesignSpace* space);
@@ -192,7 +204,7 @@ namespace CoupledField
      }
 
      /** The local mode has current_view_index_ set. For -1 we are in global mode.
-      * Do no confuse with Function::IsLocalInitialized() */
+      * Do no confuse with Function::IsLocalCondition() */
      bool IsLocal() const {
        return current_view_index_ != -1;
      }
@@ -206,21 +218,14 @@ namespace CoupledField
       * or 2 indices */
      StdVector<unsigned int>& GetSparsityPattern();
 
-     /** The "center" element index within the design space referenced by current_view_index_.
-      * There are 2*dim constraints for each of this virtual elements.
-      * @see GetCurrentVirtualIndex() */
-     unsigned int GetCurrentVirtualElement() const;
+     /** This is the local context currently requested by the optimizer */
+     Function::Local::Identifier& GetCurrentVirtualContext();
 
-     /** The index within the current virtual element as positive VicinityElement::Neighbour.
-         @return 0, 2 (,4) = X_P, Y_P (, Z_P)
-         @see GetCurrentVirtualSign() */
-     int GetCurrentVirtualNeighbor() const;
+     /** Calculates the mean |value|  */
+     double CalcMeanValue() const;
 
-     /** It is not possible to constraint abs(slope), hence there are always two consecutive
-      * constraints: slope(this, X_P), -slope(this, X_P), slope(this,Y_P), -slope(this, Y_P), ...
-      * @return -1 or 1
-      * @see ErsatzMaterial::CalcSlopeConstraint() */
-     int GetCurrentVirtualSign() const;
+     /** Calculates the max |value| */
+     double CalcMaxValue() const;
 
      /** Overloads the base method. If in special mode element value is returned. Otherwise
       * the max norm is returned (calculated on the fly */

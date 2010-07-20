@@ -437,6 +437,8 @@ void DesignElement::SetEnums()
   detail.Add(YOUNGS_MODULUS, "youngsModulus");
   detail.Add(TYCHONOFF, "tychonoff");
   detail.Add(GREYNESS, "greyness");
+  detail.Add(GLOBAL_SLOPE, "globalSlope");
+  detail.Add(GLOBAL_CHECKERBOARD, "globalCheckerboard");
 
 }
 
