@@ -5,6 +5,7 @@
 #include "MatVec/matrix.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/DesignStructure.hh"
 
 
 using std::pair;
@@ -70,7 +71,8 @@ class Function
       REALVOLUME,
       ISOTROPY,                  /*!< blow up to several HOMOGENITATION_TENSOR constraints with different coords */
       SLOPE,                     /*!< Implementation of a grad rho constraint */
-      CHECKERBOARD               /*!< Meassure for the checkerboard, up to now only observe! */
+      CHECKERBOARD,              /*!< Measure for the checkerboard, up to now only observe! */
+      MOLE                       /*!< Feature size control from T. Poulsen */
     } Type;
 
     /** to convert string/enum for this type */
@@ -153,6 +155,8 @@ class Function
       /** Initialized the neighborhood */
       Local(Function* func, DesignSpace* space);
 
+      ~Local();
+
       /** Number of identifiers per design element. Usually dim or dim *2, ... */
       int GetElememtDimension() const { return element_dimension_; }
 
@@ -162,7 +166,8 @@ class Function
         DEFAULT,               /*!< Function::PostProc() finds proper value */
         NEXT,                  /*!< x_i and x_i+1 */
         NEXT_AND_REVERSE,      /*!< x_i and x_i+1 plus x_i+1 PLUS the x_i for classical slope */
-        PREV_NEXT_AND_REVERSE  /*!< x_i-1 and x_i+1 with different sign for checkerboard */
+        PREV_NEXT_AND_REVERSE, /*!< x_i-1 and x_i+1 with different sign for checkerboard */
+        DEG_45_STAR            /*!< Different notation. prev_next but also diagonals */
       } Locality;
 
       static Enum<Locality> locality;
@@ -190,6 +195,9 @@ class Function
 
         /** @param prev if NONE neighbor is size 1 otherwise size two */
         Identifier(unsigned int el_idx, VicinityElement::Neighbour prev, VicinityElement::Neighbour next, int si = NO_SIGN);
+
+        /** Identifier when we have a neighborgood defined by a radius - eg mole */
+        Identifier(unsigned int el_idx, StdVector<VicinityElement::Neighbour> buddies, int si = NO_SIGN);
 
         /** Gives the design element.
          * @param neigh_idx for -1 for the own element, otherwise the neighbor */
@@ -219,7 +227,7 @@ class Function
         double CalcCheckerboardGradient(int neigh_idx, DesignSpace* design, double beta);
 
         unsigned int element_idx; // this represents DesignSpace::data[element_idx]
-        StdVector<VicinityElement::Neighbour> neighbor; // only X_P, Y_P (,Z_P);
+        StdVector<VicinityElement::Neighbour> neighbor; // only X_P, Y_P (,Z_P); or mixtures for diagonals
 
         /** sign is only needed if we treat slope constraints as two separate constraints
          *  in case we do not do this, sign will be -1000, else -1 for X_N, 1 for X_P */
@@ -244,6 +252,33 @@ class Function
     private:
       /** Service method for the constructor */
       void SetupVirtualElementMap();
+
+      /** Special implementation for DEG_45_STAR locality */
+      void SetupStarLocalityElementMap();
+
+      /** small helper to determine the number of neighbors in each (diagonal)
+       * direction if we use a neighborhood. Parses the whole stuff */
+      struct NeighborhoodStructure
+      {
+      public:
+        NeighborhoodStructure(Local* local, PtrParamNode local_node);
+
+        /** number of element in the X_P, Y_P or Z_P direction. Total length is (2* X_P + 1) */
+        StdVector<unsigned int> orthogonal;
+
+        /** the diagonal size in elements. For 2D only one diagonal */
+        StdVector<unsigned int> diagonal;
+
+        /** writes the stuff. E.g. in a sub-element */
+        void ToInfo(PtrParamNode info);
+
+      private:
+        double radius;
+        double value;
+        DesignStructure::FilterSpace fs;
+      };
+
+      NeighborhoodStructure* structure_;
 
       Function* func_;
 

@@ -434,7 +434,7 @@ namespace CoupledField
      * @param edges_out array with index 0 for x, ... Is resized to dim (2 or 3) */
     virtual void GetEdgeLength(Matrix<Double> &ptCoord, StdVector<Double>& edges_out) 
     { 
-      EXCEPTION("GetMaxMinEdgeLength not implemented");
+      EXCEPTION("GetEdgeLength not implemented");
     }
     
     

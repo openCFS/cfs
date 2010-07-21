@@ -41,8 +41,18 @@ public:
   /** Gives the number of not NULL entries. */
   int GetNumberOfEntries() const;
 
-  /** This are indices for the entries to design */
-  enum Neighbour {X_P = 0, X_N = 1, Y_P = 2, Y_N = 3, Z_P = 4, Z_N = 5, NONE = -1};
+  /** This are indices for the entries to design. The Diagonals are used in Function::Local::Identifier */
+  enum Neighbour {X_P = 0, X_N = 1, Y_P = 2, Y_N = 3, Z_P = 4, Z_N = 5, NONE = -1,
+                  X_P_Y_P = 6, X_P_Y_N, X_N_Y_P, X_N_Y_N };
+
+  /** Helper which translates X_P and X_N to 0, Y_P and Y_N to 1, Z_P and Z_N to 2. Nothing else! */
+  static int ToMainAxis(Neighbour neigh)
+  {
+    if(neigh == X_P || neigh == X_N) return 0;
+    if(neigh == Y_P || neigh == Y_N) return 1;
+    assert(neigh == Z_P || neigh == Z_N);
+    return 2;
+  }
 
   /** Gives the neighbor elements */
   DesignElement* GetNeighbour(Neighbour idx) { return design[idx]; }

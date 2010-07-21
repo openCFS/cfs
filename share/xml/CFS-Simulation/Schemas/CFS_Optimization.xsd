@@ -276,6 +276,8 @@
                 <xsd:enumeration value="globalSlope"/>
                 <xsd:enumeration value="checkerboard"/>
                 <xsd:enumeration value="globalCheckerboard"/>
+                <xsd:enumeration value="mole"/>
+                <xsd:enumeration value="globalMole"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -1057,6 +1059,7 @@
       <xsd:enumeration value="energyFlux"/>
       <xsd:enumeration value="globalSlope"/>
       <xsd:enumeration value="globalCheckerboard"/>
+      <xsd:enumeration value="globalMole"/>
       <xsd:enumeration value="multiObjective"/>
     </xsd:restriction>
   </xsd:simpleType>
@@ -1160,6 +1163,7 @@
       <xsd:enumeration value="youngsModulus"/>
       <xsd:enumeration value="globalSlope"/>
       <xsd:enumeration value="globalCheckerboard"/>
+      <xsd:enumeration value="globalMole"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -1182,7 +1186,7 @@
     <xsd:attribute name="beta" type="xsd:float" use="optional"/>
 
     <!-- the neighborhood type for mole and the simp/regularization/filters -->
-    <xsd:attribute name="neighbor_type" type="DT_Neighbood" use="optional"/>
+    <xsd:attribute name="neighbor_type" type="DT_Neighbood" use="optional" default="maxEdge"/>
 
     <!-- if the have a neighborhood, the value. 0.0 disables the type -->
     <xsd:attribute name="neighbor_value" type="xsd:float" use="optional" default="0.0"/>

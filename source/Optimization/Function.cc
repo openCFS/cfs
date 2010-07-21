@@ -100,6 +100,7 @@ Function::Function(PtrParamNode pn)
     case ISOTROPY:
     case CHECKERBOARD:
     case GLOBAL_CHECKERBOARD:
+    case MOLE:
       this->evaluateOnce_ = true;
       break;
 
@@ -274,6 +275,7 @@ bool Function::ForSensitivityFiltering() const
   case GLOBAL_SLOPE:
   case CHECKERBOARD:
   case GLOBAL_CHECKERBOARD:
+  case MOLE:
     return false;
 
   case ISOTROPY:
@@ -368,6 +370,12 @@ Function::Local::Local(Function* func, DesignSpace* space)
       throw Exception("Invalid choice for 'local' in slope constraint");
     break;
 
+  case GLOBAL_SLOPE:
+    if(locality_ != NEXT && locality_ != DEFAULT)
+      throw Exception("Invalid choice for 'local' with " + fname);
+    locality_ = NEXT_AND_REVERSE;
+    break;
+
   case CHECKERBOARD:
   case GLOBAL_CHECKERBOARD:
     if(locality_ != PREV_NEXT_AND_REVERSE && locality_ != DEFAULT)
@@ -375,10 +383,10 @@ Function::Local::Local(Function* func, DesignSpace* space)
     locality_ = PREV_NEXT_AND_REVERSE;
     break;
 
-  case GLOBAL_SLOPE:
-    if(locality_ != NEXT && locality_ != DEFAULT)
+  case MOLE:
+    if(locality_ != DEG_45_STAR && locality_ != DEFAULT)
       throw Exception("Invalid choice for 'local' with " + fname);
-    locality_ = NEXT_AND_REVERSE;
+    locality_ = DEG_45_STAR;
     break;
 
   default: // no locality
@@ -387,13 +395,28 @@ Function::Local::Local(Function* func, DesignSpace* space)
   }
 
   // this is actually pure constructor work, just extracted to handle function size
-  SetupVirtualElementMap();
+  if(locality_ == DEG_45_STAR)
+  {
+    if(!pn->Get("local"))
+      throw Exception("subelement 'local' with neighborhood information mandatory for '" + fname + "'");
+    structure_ = new NeighborhoodStructure(this, pn->Get("local"));
+    SetupStarLocalityElementMap();
+  }
+  else
+  {
+    SetupVirtualElementMap();
+  }
 
   // needs to be set prior CalcSlopeConstraint() as the optimizers need the size
   values.Resize(virtual_elem_map.GetSize(), -1.0);
 
   // Function::ToInfo() was already called, hence we hace the node
   ToInfo(func->info_);
+}
+
+Function::Local::~Local()
+{
+  if(structure_ != NULL) { delete structure_; structure_ = NULL; }
 }
 
 void Function::Local::SetupVirtualElementMap()
@@ -458,12 +481,134 @@ void Function::Local::SetupVirtualElementMap()
   }
 }
 
+void Function::Local::SetupStarLocalityElementMap()
+{
+  unsigned int dim  = domain->GetGrid()->GetDim();
+  assert(locality_ == DEG_45_STAR);
+  assert(structure_ != NULL);
+  NeighborhoodStructure* struc = structure_;
+
+  element_dimension_ = dim == 2 ? 4 : 13; // see paper
+  virtual_elem_map.Reserve(element_dimension_ * space->GetNumberOfElements());
+
+  space->AssertOneDesignOnly(); // can be extended we use the design from the conditon
+  int elems = space->GetNumberOfElements();
+  for(int e = 0, ss = elems; e < ss; ++e)
+  {
+    DesignElement* de = &(space->data[e]);
+    DesignElement* curr = de;
+
+    // do we have a full neighborhood? All or none
+    bool full = true;
+
+    // we only need to check orthogonal
+    assert(VicinityElement::X_P == 0);
+    for(int dir = VicinityElement::X_P; dir <= (dim == 2 ? VicinityElement::Y_N : VicinityElement::Z_N); dir++)
+    {
+      curr = de;
+      for(unsigned int n = 0, nn = struc->orthogonal[VicinityElement::ToMainAxis((VicinityElement::Neighbour) dir)]; n < nn && full; n++)
+      {
+        curr = curr->vicinity->design[dir];
+        if(curr == NULL) full = false;
+      }
+    }
+
+    if(!full) continue;
+    // orthogonal first
+    StdVector<VicinityElement::Neighbour> buddies;
+
+    unsigned int n = struc->orthogonal[0];
+    for(unsigned int i = 0; i < n; i++)  buddies.Push_back(VicinityElement::X_N);
+    for(unsigned int i = 0; i < n; i++)  buddies.Push_back(VicinityElement::X_P);
+    virtual_elem_map.Push_back(Identifier(e, buddies));
+
+    buddies.Resize(0);
+    n = struc->orthogonal[1];
+    for(unsigned int i = 0; i < n; i++)  buddies.Push_back(VicinityElement::Y_N);
+    for(unsigned int i = 0; i < n; i++)  buddies.Push_back(VicinityElement::Y_P);
+    virtual_elem_map.Push_back(Identifier(e, buddies));
+
+    if(dim == 3)
+    {
+      buddies.Resize(0);
+      n = struc->orthogonal[2];
+      for(unsigned int i = 0; i < n; i++)  buddies.Push_back(VicinityElement::Z_N);
+      for(unsigned int i = 0; i < n; i++)  buddies.Push_back(VicinityElement::Z_P);
+      virtual_elem_map.Push_back(Identifier(e, buddies));
+    }
+
+    // first diagonal
+    n = struc->diagonal[0];
+    for(unsigned int i = 0; i < n; i++)  buddies.Push_back(VicinityElement::Y_N);
+    for(unsigned int i = 0; i < n; i++)  buddies.Push_back(VicinityElement::Y_P);
+
+    if(dim == 3)
+    {
+      assert(false);
+    }
+
+  }
+}
+
+
 void Function::Local::ToInfo(PtrParamNode in)
 {
   in->Get("locality")->SetValue(locality.ToString(locality_));
   in->Get("local_size")->SetValue(virtual_elem_map.GetSize());
   if(func_->type_ == GLOBAL_SLOPE || func_->type_ == GLOBAL_CHECKERBOARD)
     in->Get("normalize")->SetValue(normalize_);
+  if(structure_ != NULL)
+    structure_->ToInfo(in->Get("neighborhood"));
+}
+
+Function::Local::NeighborhoodStructure::NeighborhoodStructure(Local* local, PtrParamNode pn)
+{
+  unsigned int dim = domain->GetGrid()->GetDim();
+  // sample design element -> assume regular grid
+  DesignElement& de = local->space->data[0];
+
+  value = pn->Get("neighbor_value")->As<double>();
+  fs = DesignStructure::filterSpace.Parse(pn->Get("neighbor_type")->As<std::string>());
+  radius = DesignStructure::FindFilterRadius(fs, &de, value);
+
+  // find the orthogonal dimensions based on radius
+  Matrix<double>  coords;
+  domain->GetGrid()->GetElemNodesCoord(coords, de.elem->connect, false );
+  StdVector<double> edges;
+  de.elem->ptElem->GetEdgeLength(coords, edges);
+
+  assert(edges.GetSize() == dim);
+  orthogonal.Resize(dim);
+  for(unsigned int i = 0; i < edges.GetSize(); i++)
+    orthogonal[i] = (int) ((radius / edges[0]) + 0.5); // proper rounding
+
+  // validate
+  for(unsigned int i = 0; i < orthogonal.GetSize(); i++)
+    if(orthogonal[i] == 0)
+      throw Exception("your local neighbor radius for '" + Function::type.ToString(local->func_->GetType()) + "' is too small");
+
+  // now diagonal
+  if(dim == 2)
+  {
+    double diag = std::sqrt(edges[0] * edges[0] + edges[1] * edges[1]);
+    diagonal.Resize(1);
+    diagonal[0] = (int) ((radius / diag) + 0.5);
+  }
+  else
+  {
+    assert(false);
+  }
+}
+
+void Function::Local::NeighborhoodStructure::ToInfo(PtrParamNode in)
+{
+  in->Get("type")->SetValue(DesignStructure::filterSpace.ToString(fs));
+  in->Get("value")->SetValue(value);
+  in->Get("radius")->SetValue(radius);
+  in->Get("x_elems")->SetValue(orthogonal[0] * 2 + 1);
+  in->Get("y_elems")->SetValue(orthogonal[1] * 2 + 1);
+  if(orthogonal.GetSize() == 3)
+    in->Get("z_elems")->SetValue(orthogonal[2] * 2 + 1);
 }
 
 Function::Local::Identifier::Identifier(unsigned int el_idx, VicinityElement::Neighbour prev, VicinityElement::Neighbour next, int si)
@@ -480,6 +625,13 @@ Function::Local::Identifier::Identifier(unsigned int el_idx, VicinityElement::Ne
 
   this->neighbor[has_prev ? 1 : 0] = next;
 
+  this->sign = si;
+}
+
+Function::Local::Identifier::Identifier(unsigned int el_idx, StdVector<VicinityElement::Neighbour> buddies, int si)
+{
+  this->element_idx = el_idx;
+  this->neighbor = buddies;
   this->sign = si;
 }
 

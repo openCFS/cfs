@@ -8,6 +8,7 @@
 #include "Optimization/PiezoSIMP.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Design/DesignStructure.hh"
 #include "Optimization/Optimizer/OptimalityCondition.hh"
 #include "Optimization/LevelSet.hh"
 #include "Optimization/Optimizer/EvaluateOnly.hh"
@@ -252,6 +253,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::GLOBAL_SLOPE, "globalSlope");
   Function::type.Add(Function::CHECKERBOARD, "checkerboard");
   Function::type.Add(Function::GLOBAL_CHECKERBOARD, "globalCheckerboard");
+  Function::type.Add(Function::MOLE, "mole");
 
   Function::Local::locality.SetName("Function::Local::Locality");
   Function::Local::locality.Add(Function::Local::DEFAULT, "default");
@@ -263,6 +265,11 @@ void Optimization::SetEnums()
   Condition::bound.Add(Condition::EQUAL, "equal");
   Condition::bound.Add(Condition::LOWER_BOUND, "lowerBound");
   Condition::bound.Add(Condition::UPPER_BOUND, "upperBound");
+
+  DesignStructure::filterSpace.SetName("DesignStructure::FilterSpace");
+  DesignStructure::filterSpace.Add(DesignStructure::RADIUS, "radius");
+  DesignStructure::filterSpace.Add(DesignStructure::VOLUME_RADIUS, "volumeRadius");
+  DesignStructure::filterSpace.Add(DesignStructure::MAX_EDGE, "maxEdge");
 
   optimizer.SetName("Optimization::Optimizer");
   optimizer.Add(OPTIMALITY_CONDITION, "optimalityCondition");
