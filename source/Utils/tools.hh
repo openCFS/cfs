@@ -172,10 +172,19 @@ namespace CoupledField {
   int MemoryUsage(bool peak);
 
   /** Calculates the continuous Kreisselmeier and Steinhauser max approxmiation for two values. */
-  double CalcMaxApproximation(double left, double right, double beta);
+  double SmoothMax(double left, double right, double beta);
 
   /** @see CalcMaxApproximation() */
-  double CalcMinApproximation(double left, double right, double beta);
+  double SmoothMin(double left, double right, double beta);
+
+  /** Calculates an approximation of the abs function:A(x) = sqrt(x^2 + eps^2) - eps
+   * As used in Poulsen; A new scheme for imposing a minimum length scale in topology optimization; 2003
+   * @param eps small, e.g. 10% of x */
+  double SmoothAbs(double x, double eps);
+
+  /** derivative of
+   * @see CalcAbsApproximation() */
+  double DerivSmoothAbs(double x, double eps);
 
   /** A simple helper to write structured VTK point data in the
       legacy ASCII. pre-XML format. */

@@ -452,11 +452,10 @@ StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
 
     // we shall sort the indices
   std::list<unsigned int> indices;
-  indices.push_back(id.element_idx);
-  for(unsigned int i = 0; i < id.neighbor.GetSize(); i++)
+  for(int i = -1 ; i < (int) id.neighbor.GetSize(); i++)
   {
-    DesignElement* de = id.GetElement(local->space, i);
-    int other_idx = local->space->Find(de); // has some simple speed-up
+    DesignElement* de = id.GetElement(i);
+    int other_idx = local->space->Find(de); // needs to be fast!
     indices.push_back(other_idx);
   }
 
@@ -474,7 +473,7 @@ double LocalCondition::CalcMeanValue() const
 {
   double sum = 0.0;
   for(unsigned int i = 0, n = local->virtual_elem_map.GetSize(); i < n; i++)
-    sum += std::abs(local->virtual_elem_map[i].EvalFunction(local->space, local));
+    sum += std::abs(local->virtual_elem_map[i].EvalFunction(local));
   return sum / local->virtual_elem_map.GetSize();
 }
 
@@ -483,7 +482,7 @@ double LocalCondition::CalcMaxValue() const
   double max = 0.0;
   for(unsigned int i = 0, n = local->virtual_elem_map.GetSize(); i < n; i++)
   {
-    double v = std::abs(local->virtual_elem_map[i].EvalFunction(local->space, local));
+    double v = std::abs(local->virtual_elem_map[i].EvalFunction(local));
     max = std::max(max, v);
   }
 
@@ -712,9 +711,9 @@ void ConditionContainer::VirtualView::Done()
     for(unsigned int i = 0; i < vem.GetSize(); i++)
     {
       Function::Local::Identifier& id = vem[i];
-      DesignElement& de =  container_->space_->data[id.element_idx];
-      double sv = id.CalcSlope(container_->space_);
-      de.specialResult[idx] = std::max(de.specialResult[idx], abs(sv));
+      DesignElement* de =  id.element;
+      double sv = id.CalcSlope();
+      de->specialResult[idx] = std::max(de->specialResult[idx], abs(sv));
     }
   }
 

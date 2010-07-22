@@ -254,6 +254,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::CHECKERBOARD, "checkerboard");
   Function::type.Add(Function::GLOBAL_CHECKERBOARD, "globalCheckerboard");
   Function::type.Add(Function::MOLE, "mole");
+  Function::type.Add(Function::GLOBAL_MOLE, "globalMole");
 
   Function::Local::locality.SetName("Function::Local::Locality");
   Function::Local::locality.Add(Function::Local::DEFAULT, "default");

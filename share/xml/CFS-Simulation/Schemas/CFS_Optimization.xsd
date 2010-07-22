@@ -1182,8 +1182,11 @@
       </xsd:simpleType>
     </xsd:attribute>
     
-    <!-- the parameter for max, for the Kreisselmeier and Steinhauser approx. (global) checkerboard only -->
+    <!-- the parameter for max/min, for the Kreisselmeier and Steinhauser approx. (global) checkerboard only -->
     <xsd:attribute name="beta" type="xsd:float" use="optional"/>
+
+    <!-- relaxation parameter for abs smoothing in (global) model constraint -->
+    <xsd:attribute name ="eps" type="xsd:float" use="optional"/>
 
     <!-- the neighborhood type for mole and the simp/regularization/filters -->
     <xsd:attribute name="neighbor_type" type="DT_Neighbood" use="optional" default="maxEdge"/>

@@ -1194,6 +1194,7 @@ double ErsatzMaterial::CalcConstraint(Condition* g, bool derivative, StdVector<d
          break;
 
     case Condition::SLOPE:
+    case Condition::MOLE:
          result = CalcLocalConstraint(g, derivative);
          break;
 
@@ -2338,11 +2339,11 @@ double ErsatzMaterial::CalcLocalConstraint(Condition* g, bool derivative)
   
   if(derivative)
   {
-    id.EvalGradient(design, local);
+    id.EvalGradient(local);
   }
   else
   {
-    res = id.EvalFunction(design, local);
+    res = id.EvalFunction(local);
   }
   return res;
 }
@@ -2355,81 +2356,36 @@ double ErsatzMaterial::CalcGlobalFunction(Function* c, bool derivative)
   assert(local != NULL);
   // the neighborhoods are already defined by Local!
   StdVector<Function::Local::Identifier>& vem = local->virtual_elem_map;
-  StdVector<double>&                     val = local->values;
 
-  // we normalize all values by the number of "constraints". Note that it is
-  // sufficient for the function value, the gradient is then also right
-  double factor = local->DoNormalizeGlobal() ? 1.0/vem.GetSize() : 1.0;
-
-  assert(local->GetLocality() == Function::Local::NEXT_AND_REVERSE
-      || local->GetLocality() == Function::Local::PREV_NEXT_AND_REVERSE);
-  assert(c->GetParameter() > 0.0);
-
-  assert(c->GetType() == Function::GLOBAL_SLOPE || c->GetType() == Function::GLOBAL_CHECKERBOARD);
-  bool slope   = c->GetType() == Function::GLOBAL_SLOPE;
-  bool chkrbrd = c->GetType() == Function::GLOBAL_CHECKERBOARD;
-
-  // only necessary for checkerboard
-  double beta = chkrbrd ? local->GetBeta() : 0.0;
-
-  // evaluate the function values, which is
-  // max(0, x_i - x_i+1 - c) and max(0,x_i+1 - x_i - c)
-  double res = 0.0;
-  for(unsigned int i = 0; i < vem.GetSize(); i++)
+  if(!derivative)
   {
-    Function::Local::Identifier& id = vem[i];
-    double fv = id.EvalFunction(design, local);
-    double v = max(0.0, fv - c->GetParameter());
+    // evaluate the function values, which is
+    // max(0, x_i - x_i+1 - c) and max(0,x_i+1 - x_i - c)
+    double res = 0.0;
+    for(unsigned int i = 0; i < vem.GetSize(); i++)
+    {
+      Function::Local::Identifier& id = vem[i];
+      double fv = id.EvalFunction(local);
+      res += fv;
+      LOG_DBG2(em) << "CGF: !d c=" << c->type.ToString(c->GetType()) << " i=" << i << " de="
+                   << id.element->elem->elemNum << " sign=" << id.sign << " fv=" << fv  << " -> " << res;
+    }
 
-    val[i] = v;
-    res += factor * v*v; // we sum up the normalized squares
-    LOG_DBG2(em) << "CGF: !d c=" << c->type.ToString(c->GetType()) << " i=" << i << " de="
-                 << design->data[id.element_idx].elem->elemNum << " sign=" << id.sign
-                 << " fv=" << fv << " bound=" << c->GetParameter() << " v=" << v
-                 << " local=" << factor << "*v*v=" << (factor * v*v) << " -> " << res;
+    return res;
   }
-
-  if(!derivative) return res;
-  // the gradient g/x_i = 0 or 2 * (x_i+1 - x_i - c) * -1 or 2 * (x_i - x_i+1 - c) * 1
-  // in the non-periodic case is the number of functions per design variable not constant,
-  // e.g. the most upper right design has no slope constraint.
-
-  // we need this pointers, note that C++ makes NULL for an invalid dynamic cast
-  Objective* f = dynamic_cast<Objective*>(c);
-  Condition* g = dynamic_cast<Condition*>(c);
-  assert((f == NULL && g != NULL) || (f != NULL && g == NULL));
-
-  assert(vem.GetSize() == val.GetSize());
-
-  for(int j = 0; j < (int) vem.GetSize(); j++)
+  else
   {
-    Function::Local::Identifier& id = vem[j];
+    // the gradient g/x_i = 0 or 2 * (x_i+1 - x_i - c) * -1 or 2 * (x_i - x_i+1 - c) * 1
+    // in the non-periodic case is the number of functions per design variable not constant,
+    // e.g. the most upper right design has no slope constraint.
+    for(int j = 0; j < (int) vem.GetSize(); j++)
+    {
+      Function::Local::Identifier& id = vem[j];
+      id.EvalGradient(local);
+    }
 
-    double v = val[j];
-    // do we have a gradient?
-    if(v > 0.0)
-    {
-      for(int n = -1, nn = id.neighbor.GetSize(); n < nn; n++)
-      {
-        double gv = slope ? id.CalcSlopeGradient(n) : id.CalcCheckerboardGradient(n, design, beta);
-        double grad = factor * 2.0 * v * gv;
-        DesignElement* de = id.GetElement(design, n);
-        de->AddGradient(f, g, grad);
-        LOG_DBG2(em) << "CGF: derivative c=" <<  c->type.ToString(c->GetType()) << " elem="
-                     << design->data[id.element_idx].elem->elemNum << " sign=" << id.sign
-                     << " n=" << n << " curr=" << de->elem->elemNum << " v=" << v << " gv=" << gv
-                     << " grad=" << factor << "*" << (2.0 * v * gv)  << " -> " << grad
-                     << " stored_gv=" << de->GetValue(DesignElement::COST_GRADIENT, DesignElement::SMART);
-      }
-    }
-    else
-    {
-      LOG_DBG2(em) << "CFG: derivative c=" <<  c->type.ToString(c->GetType()) << " de="
-          << design->data[id.element_idx].elem->elemNum << " sign=" << id.sign << " v=" << v;
-    }
+    return 0.0; // gradient case has no information
   }
-
-  return 0.0; // gradient case has no information
 }
 
 double ErsatzMaterial::CalcCheckerboard(Condition* g, bool derivative)
@@ -2470,12 +2426,12 @@ double ErsatzMaterial::CalcCheckerboard(Condition* g, bool derivative)
 
         // "Heaviside"(rho_i - max( rho_i-1, rho_i+1)
         // double smaller = std::max(0.0, own - std::max(left, right));
-        double max_left_right = beta < 0 ? std::max(left, right) : CalcMaxApproximation(left, right, beta);
+        double max_left_right = beta < 0 ? std::max(left, right) : SmoothMax(left, right, beta);
         double smaller = std::max(0.0, own - max_left_right);
 
         // "Heaviside"(min( rho_i-1, rho_i+1) - rho_i)
         // double larger = std::max(0.0, std::min(left, right) - own);
-        double min_left_right = beta < 0 ? std::min(left, right) : CalcMinApproximation(left, right, beta);
+        double min_left_right = beta < 0 ? std::min(left, right) : SmoothMin(left, right, beta);
         double larger = std::max(0.0, min_left_right - own);
 
         elem_max = std::max(elem_max, larger + smaller);

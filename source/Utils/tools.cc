@@ -281,7 +281,7 @@ namespace CoupledField {
 
 
 
-  double CalcMaxApproximation(double left, double right, double beta)
+  double SmoothMax(double left, double right, double beta)
   {
     assert(beta > 0);
 
@@ -293,7 +293,7 @@ namespace CoupledField {
   }
 
 
-  double CalcMinApproximation(double left, double right, double beta)
+  double SmoothMin(double left, double right, double beta)
   {
     assert(beta > 0);
     assert(right > 0 && left > 0);
@@ -302,6 +302,20 @@ namespace CoupledField {
 
     return 1.0 - std::log(0.5 * (std::exp((1.0 - left) * beta) + std::exp((1.0 - right) * beta))) / beta;
   }
+
+  double SmoothAbs(double x, double eps)
+  {
+    assert(eps >= 0);
+    return std::sqrt(x*x + eps*eps) - eps;
+  }
+
+  double DerivSmoothAbs(double x, double eps)
+  {
+    assert(eps >= 0);
+    assert(abs(x) + eps > 0);
+    return x / std::sqrt(x*x + eps*eps);
+  }
+
 
   VTKStructuredPoints::VTKStructuredPoints(Integer i, Integer j, Integer k, const std::string& scalars, const std::string& vectors)
   {

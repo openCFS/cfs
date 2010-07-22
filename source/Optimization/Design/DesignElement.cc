@@ -841,6 +841,36 @@ VicinityElement::Neighbour VicinityElement::FindRelativeNeighborLocation(Point& 
   return res;
 }
 
+DesignElement* VicinityElement::GetNeighbour(DesignElement* base, Neighbour idx, int n, bool throw_exception)
+{
+  assert(n > 0);
+
+  for(int i = 0; i < n; i++)
+  {
+    base = base->vicinity->GetNeighbour(idx);
+    if(base == NULL)
+    {
+      if(throw_exception)
+        EXCEPTION("no neighbor in " << idx << " direction " << i << " elements ways for element " << base->ToString())
+      else
+        return NULL;
+    }
+  }
+  return base;
+}
+
+bool VicinityElement::HasNeighbor(DesignElement* base, Neighbour idx, int n)
+{
+  assert(n > 0);
+
+  for(int i = 0; i < n; i++)
+  {
+    base = base->vicinity->GetNeighbour(idx);
+    if(base == NULL) return false;
+  }
+  return true;
+}
+
 
 int VicinityElement::GetNumberOfEntries() const
 {

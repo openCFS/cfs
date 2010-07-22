@@ -65,6 +65,7 @@ class Function
       TEMPERATURE,               /*!< for optimization of poisson and heat conduction pde */
       GLOBAL_SLOPE,              /*!< different implementation from local slopes */
       GLOBAL_CHECKERBOARD,       /*!< same globalization as with global slope */
+      GLOBAL_MOLE,               /*!< see mole */
 
       // This is constraint only!
       GREYNESS,                  /*!< inaccurate - best for observation only */
@@ -174,8 +175,12 @@ class Function
 
       Locality GetLocality() const { return locality_; }
 
-      /** The the beta value, checks if its set. */
+      /** The beta value for smoothing min/max, checks if its set. */
       double GetBeta() const { assert(beta_ != -3.14); return beta_; }
+
+      /** The eps value form smoothing abs, checks if its set. */
+      double GetEps() const { assert(eps_ >= 0); return eps_; }
+
 
       /** normalize globalSlope, globalCheckerboard, ... by number of local constraints */
       bool DoNormalizeGlobal() const { return normalize_; }
@@ -188,31 +193,38 @@ class Function
        * neighborhood */
       struct Identifier
       {
+      public:
         const static int NO_SIGN;
 
         /** default constructor for StdVector() */
         Identifier() : sign(NO_SIGN) {}
 
         /** @param prev if NONE neighbor is size 1 otherwise size two */
-        Identifier(unsigned int el_idx, VicinityElement::Neighbour prev, VicinityElement::Neighbour next, int si = NO_SIGN);
+        Identifier(DesignElement* elem, DesignElement* prev, DesignElement* next, int si = NO_SIGN);
 
         /** Identifier when we have a neighborgood defined by a radius - eg mole */
-        Identifier(unsigned int el_idx, StdVector<VicinityElement::Neighbour> buddies, int si = NO_SIGN);
+        Identifier(DesignElement* elem, StdVector<DesignElement*> buddies, int si = NO_SIGN);
 
-        /** Gives the design element.
-         * @param neigh_idx for -1 for the own element, otherwise the neighbor */
-        DesignElement* GetElement(DesignSpace* design, int neigh_idx);
+        /** Returns the element
+         * @param idx == -1 for elem, otherwise form neighbors */
+        DesignElement* GetElement(int idx) {
+          return idx == -1 ? element : neighbor[idx];
+        }
+
+        const DesignElement* GetElement(int idx) const {
+          return const_cast<const DesignElement*>(idx == -1 ? element : neighbor[idx]);
+        }
 
         /** Service function. Calculates the actual objective, based on function->type */
-        double EvalFunction(const DesignSpace* design, const Local* local) const;
+        double EvalFunction(const Local* local) const;
 
         /** Service function. Calculates all gradients for this and the neighbors. Only for real local function!.
          * It does the proper constraint_gradient reset first! */
-        void EvalGradient(DesignSpace* design, const Local* local);
+        void EvalGradient(const Local* local);
 
         /** calculates the slope identified by this neighbor. When sign is not set assumes sign=1.
          * "Petersson, Sigmund; Slope Constrained Topology Optimization; 1998" */
-        double CalcSlope(const DesignSpace* design) const;
+        double CalcSlope() const;
 
         /** calculate the slope gradient for a given element
          * @param neigh_idx for -1 for the own element, otherwise the neighbor */
@@ -220,19 +232,24 @@ class Function
 
         /** calculates the checkerboard value. The sign determines if the smaller or larger value is evaluated
          * @param beta < 0 is real max, otherwise it is a Kreiselmeier Steinhauser approximation */
-        double CalcCheckerboard(const DesignSpace* design, double beta) const;
+        double CalcCheckerboard(double beta) const;
 
         /** calculates the gradient for the checkerbord
          * @see CalcSlopeGradient() */
-        double CalcCheckerboardGradient(int neigh_idx, DesignSpace* design, double beta);
+        double CalcCheckerboardGradient(int neigh_idx, double beta);
 
-        unsigned int element_idx; // this represents DesignSpace::data[element_idx]
-        StdVector<VicinityElement::Neighbour> neighbor; // only X_P, Y_P (,Z_P); or mixtures for diagonals
+        double CalcMole(double eps) const;
+        double CalcMoleGradient(int neigh_idx, double eps);
+
+        DesignElement* element; // this represents DesignSpace::data[element_idx]
+        StdVector<DesignElement*> neighbor;
 
         /** sign is only needed if we treat slope constraints as two separate constraints
          *  in case we do not do this, sign will be -1000, else -1 for X_N, 1 for X_P */
         int sign;
-
+      private:
+        /** to be reused */
+        static StdVector<double> tmp;
       };
 
       /** Elements with no full neighborhood are not stored. If they would be stored
@@ -287,6 +304,9 @@ class Function
       /** Functions based on a relaxed max formulation have beta for the Kreiselmeier/Steinhauser
        * continuation. This is (global) checkerboard. -1 is real max = infinity */
       double beta_;
+
+      /** relaxation parameter to smooth abs by A(x) = sqrt(x^2 + eps^2) - eps. For (global) mole only */
+      double eps_;
 
       /** normalize global function */
       bool normalize_;
