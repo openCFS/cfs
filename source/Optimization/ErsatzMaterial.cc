@@ -1189,17 +1189,15 @@ double ErsatzMaterial::CalcConstraint(Condition* g, bool derivative, StdVector<d
          break;
 
     case Condition::GLOBAL_SLOPE:
+    case Condition::GLOBAL_MOLE:
     case Condition::GLOBAL_CHECKERBOARD:
          result = CalcGlobalFunction(g, derivative);
          break;
 
     case Condition::SLOPE:
     case Condition::MOLE:
-         result = CalcLocalConstraint(g, derivative);
-         break;
-
     case Condition::CHECKERBOARD:
-         result = CalcCheckerboard(g, derivative);
+         result = CalcLocalConstraint(g, derivative);
          break;
 
     case Condition::HOMOGENIZATION_TENSOR:
@@ -2387,73 +2385,6 @@ double ErsatzMaterial::CalcGlobalFunction(Function* c, bool derivative)
     return 0.0; // gradient case has no information
   }
 }
-
-double ErsatzMaterial::CalcCheckerboard(Condition* g, bool derivative)
-{
-  assert(!derivative);
-
-  // global result
-  double sum = 0.0;
-  int    div = 0; // divider to normalize sum
-
-  // store as special result?
-  int idx = design->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::CHECKERBOARD);
-
-  // parameter for Kreisselmeier Steinhauser min/max approximation. Negative value for exaxt min/max!!
-  double beta = g->GetLocal()->GetBeta();
-
-  // loop over all elements
-  unsigned int base  = design->FindDesign(g->design);
-  unsigned int elems = design->GetNumberOfElements();
-  for(unsigned int e = base * elems; e < (base + 1) * elems; e++)
-  {
-    DesignElement&   de  = design->data[e];
-    VicinityElement* vic = de.vicinity;
-
-    // this value
-    double own = de.GetPlainValue(DesignElement::DESIGN);
-    double elem_max = 0.0;
-
-    for(unsigned int d = 0; d < dim; d++)
-    {
-      VicinityElement::Neighbour left_idx  = (VicinityElement::Neighbour) (d*2 + 1); // VicinityElement::X_N, Y_N(, Z_N)
-      VicinityElement::Neighbour right_idx = (VicinityElement::Neighbour) (d*2);    // VicinityElement::X_P, Y_P(, Z_P)
-
-      if(vic->HasNeighbor(left_idx) && vic->HasNeighbor(right_idx))
-      {
-        double left  = vic->GetNeighbour(left_idx)->GetPlainValue(DesignElement::DESIGN);
-        double right = vic->GetNeighbour(right_idx)->GetPlainValue(DesignElement::DESIGN);
-
-        // "Heaviside"(rho_i - max( rho_i-1, rho_i+1)
-        // double smaller = std::max(0.0, own - std::max(left, right));
-        double max_left_right = beta < 0 ? std::max(left, right) : SmoothMax(left, right, beta);
-        double smaller = std::max(0.0, own - max_left_right);
-
-        // "Heaviside"(min( rho_i-1, rho_i+1) - rho_i)
-        // double larger = std::max(0.0, std::min(left, right) - own);
-        double min_left_right = beta < 0 ? std::min(left, right) : SmoothMin(left, right, beta);
-        double larger = std::max(0.0, min_left_right - own);
-
-        elem_max = std::max(elem_max, larger + smaller);
-
-        LOG_DBG2(em) << "CalcCheckerboard: e=" << de.elem->elemNum << " dim=" << d << " own=" << own
-                     << " left=" << left << " right=" << right << " smaller=" << smaller
-                     << " larger=" << larger << " elem_max=" << elem_max
-                     << " sum=" << sum << " KS_max(" << g->GetParameter() << ")=" << max_left_right
-                     << " KS_min=" << min_left_right;
-      }
-
-      if(idx > 0)
-        design->data[e].specialResult[idx] = elem_max;
-
-      sum += elem_max;
-      div++;
-    }
-  }
-
-  return sum / div;
-}
-
 
 
 

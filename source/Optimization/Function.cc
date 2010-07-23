@@ -301,14 +301,15 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure)
   case CHECKERBOARD:
   case GLOBAL_SLOPE:
   case SLOPE:
+  case GLOBAL_MOLE:
+  case MOLE:
     assert(space->IsRegular()); // VicinityElements work only on a regular grid
     // the design elements require the vicinity element to be set which holds the direct
     // neighbors. Is save to call several times
     VicinityElement::Init(space, structure);
     InitLocal(space);
 
-    if(type_ == SLOPE || type_ == GLOBAL_SLOPE)
-      info_->Get("active_size")->SetValue(local->values.GetSize());
+    info_->Get("subconstraints")->SetValue(local->values.GetSize());
 
     break;
 
@@ -341,38 +342,21 @@ Function::Local::Local(Function* func, DesignSpace* space)
   // read xml parameters -> might be null valued!
   PtrParamNode pn = func->pn->Get("local", ParamNode::PASS);
 
-  this->beta_ = pn != NULL && pn->Has("beta") ? pn->Get("beta")->As<double>() : -3.14;
-  this->beta_ = pn != NULL && pn->Has("eps") ? pn->Get("eps")->As<double>() : -3.14;
+  this->beta_  = pn != NULL && pn->Has("beta") ? pn->Get("beta")->As<double>() : -3.14;
+  this->eps_   = pn != NULL && pn->Has("eps") ? pn->Get("eps")->As<double>() : -3.14;
+  this->power_ = pn != NULL && pn->Has("power") ? pn->Get("power")->As<double>() : 2.0;
 
   this->normalize_ = pn != NULL ? pn->Get("normalize")->As<bool>() : true;
 
-  // check beta
-  switch(ftype)
-  {
-  case CHECKERBOARD:
-  case GLOBAL_CHECKERBOARD:
-    if(pn == NULL || !pn->Has("beta"))
-      throw Exception("function '" + fname + "' requires the 'beta' attribute in a 'local' element");
-    break;
+  this->globalized_ = ftype == GLOBAL_CHECKERBOARD || ftype == GLOBAL_MOLE || ftype == GLOBAL_SLOPE ? true : false;
 
-  default:
-    if(pn != NULL && pn->Has("beta"))
-      throw Exception("function '" + fname + "' does not accept 'beta' attribute");
-  }
+  // check beta
+  if((ftype == CHECKERBOARD || ftype == GLOBAL_CHECKERBOARD) && (pn == NULL || !pn->Has("beta")))
+    throw Exception("function '" + fname + "' requires the 'beta' attribute in a 'local' element");
 
   // check eps
-  switch(ftype)
-  {
-  case MOLE:
-  case GLOBAL_MOLE:
-    if(pn == NULL || !pn->Has("eps"))
-      throw Exception("function '" + fname + "' requires the 'eps' attribute in a 'local' element");
-    break;
-
-  default:
-    if(pn != NULL && pn->Has("eps"))
-      throw Exception("function '" + fname + "' does not accept 'eps' attribute");
-  }
+  if((ftype == MOLE || ftype == GLOBAL_MOLE) && (pn == NULL || !pn->Has("eps")))
+    throw Exception("function '" + fname + "' requires the 'eps' attribute in a 'local' element");
 
   // set locality
   this->locality_ = pn != NULL && pn->Has("locality") ?
@@ -405,6 +389,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
     break;
 
   case MOLE:
+  case GLOBAL_MOLE:
     if(locality_ != DEG_45_STAR && locality_ != DEFAULT)
       throw Exception("Invalid choice for 'local' with " + fname);
     locality_ = DEG_45_STAR;
@@ -418,9 +403,9 @@ Function::Local::Local(Function* func, DesignSpace* space)
   // this is actually pure constructor work, just extracted to handle function size
   if(locality_ == DEG_45_STAR)
   {
-    if(!pn->Get("local"))
+    if(!pn)
       throw Exception("subelement 'local' with neighborhood information mandatory for '" + fname + "'");
-    structure_ = new NeighborhoodStructure(this, pn->Get("local"));
+    structure_ = new NeighborhoodStructure(this, pn);
     SetupStarLocalityElementMap();
   }
   else
@@ -525,8 +510,10 @@ void Function::Local::SetupStarLocalityElementMap()
     assert(VicinityElement::X_P == 0);
     for(int dir = VicinityElement::X_P; dir <= (dim == 2 ? VicinityElement::Y_N : VicinityElement::Z_N); dir++)
     {
-      unsigned int n = struc->orthogonal[VicinityElement::ToMainAxis( (VicinityElement::Neighbour) dir )];
-      if(!VicinityElement::HasNeighbor(de, (VicinityElement::Neighbour) dir, n));
+      int a = VicinityElement::ToMainAxis( (VicinityElement::Neighbour) dir );
+      unsigned int n = struc->orthogonal[a];
+      assert(n > 0);
+      if(!VicinityElement::HasNeighbor(de, (VicinityElement::Neighbour) dir, n))
         full = false;
     }
 
@@ -536,15 +523,16 @@ void Function::Local::SetupStarLocalityElementMap()
 
     for(int dir = VicinityElement::X_P; dir <= (dim == 2 ? VicinityElement::Y_N : VicinityElement::Z_N); dir += 2)
     {
-      VicinityElement::Neighbour pos = (VicinityElement::Neighbour) (dir +1);
-      VicinityElement::Neighbour neg = (VicinityElement::Neighbour) dir;
+      VicinityElement::Neighbour pos = (VicinityElement::Neighbour) dir;
+      VicinityElement::Neighbour neg = (VicinityElement::Neighbour) (dir + 1);
       unsigned int a = VicinityElement::ToMainAxis(pos);
       unsigned int n = struc->orthogonal[a];
 
+      buddies.Resize(0);
       for(unsigned int i = n; i > 0; i--)  buddies.Push_back(VicinityElement::GetNeighbour(de, neg, i));
       for(unsigned int i = 1; i <= n; i++) buddies.Push_back(VicinityElement::GetNeighbour(de, pos, i));
       virtual_elem_map.Push_back(Identifier(de, buddies));
-      LOG_DBG3(func) << "L:SSLEM: de=" << de->ToString() << " dir=" << dir << " pos=" << pos << " neg=" << neg << " a=" << a << " n=" << n << " buddies=" << buddies.ToString();
+      LOG_DBG3(func) << "L:SSLEM: de=" << de->ToString() << " dir=" << dir << " pos=" << pos << " neg=" << neg << " a=" << a << " n=" << n << " buddies=" << DesignElement::ToString(buddies);
     }
 
     // diagonal
@@ -555,29 +543,48 @@ void Function::Local::SetupStarLocalityElementMap()
     // double dx = struc->orthogonal[0] / (double) struc->orthogonal[1];
     // double dy = struc->orthogonal[1] / (double) struc->orthogonal[0];
     // TODO!! we assume dx = dy for simplicity!!! :( Do it better and smarter!!
-    for(int i = n; i > 0; i--)
+    for(int dir = 0; dir <= 1; dir++)
     {
-      DesignElement* tmp = VicinityElement::GetNeighbour(de, VicinityElement::X_N, i);
-      buddies.Push_back(VicinityElement::GetNeighbour(tmp, VicinityElement::Y_N, i));
-    }
-    for(unsigned int i = 1; i <= n; i++)
-    {
-      DesignElement* tmp = VicinityElement::GetNeighbour(de, VicinityElement::X_P, i);
-      buddies.Push_back(VicinityElement::GetNeighbour(tmp, VicinityElement::Y_P, i));
+      buddies.Resize(0);
+      for(int i = n; i > 0; i--)
+      {
+        DesignElement* tmp = VicinityElement::GetNeighbour(de, VicinityElement::X_N, i);
+        buddies.Push_back(VicinityElement::GetNeighbour(tmp, dir == 0 ? VicinityElement::Y_N : VicinityElement::Y_P, i));
+      }
+      for(unsigned int i = 1; i <= n; i++)
+      {
+        DesignElement* tmp = VicinityElement::GetNeighbour(de, VicinityElement::X_P, i);
+        buddies.Push_back(VicinityElement::GetNeighbour(tmp, dir == 0 ? VicinityElement::Y_P : VicinityElement::Y_N, i));
+      }
+      virtual_elem_map.Push_back(Identifier(de, buddies));
+      LOG_DBG3(func) << "L:SSLEM: de=" << de->ToString() << " dir=" << dir << " buddies=" << DesignElement::ToString(buddies);
     }
     // no 3D implemented yet
     assert(dim != 3);
   }
 
+  if(virtual_elem_map.GetSize() == 0)
+    throw Exception("Mesh is too small for a single '" + Function::type.ToString(func_->type_) + "' constraint");
 }
 
 
 void Function::Local::ToInfo(PtrParamNode in)
 {
+  Function::Type ft = func_->type_;
   in->Get("locality")->SetValue(locality.ToString(locality_));
   in->Get("local_size")->SetValue(virtual_elem_map.GetSize());
-  if(func_->type_ == GLOBAL_SLOPE || func_->type_ == GLOBAL_CHECKERBOARD)
+
+  if(IsGlobalized())
+  {
     in->Get("normalize")->SetValue(normalize_);
+    in->Get("power")->SetValue(power_);
+  }
+  if(ft == CHECKERBOARD || ft == GLOBAL_CHECKERBOARD)
+    in->Get("beta")->SetValue(beta_);
+
+  if(ft == MOLE || ft == GLOBAL_MOLE)
+    in->Get("eps")->SetValue(eps_);
+
   if(structure_ != NULL)
     structure_->ToInfo(in->Get("neighborhood"));
 }
@@ -601,7 +608,10 @@ Function::Local::NeighborhoodStructure::NeighborhoodStructure(Local* local, PtrP
   assert(edges.GetSize() == dim);
   orthogonal.Resize(dim);
   for(unsigned int i = 0; i < edges.GetSize(); i++)
+  {
     orthogonal[i] = (int) ((radius / edges[0]) + 0.5); // proper rounding
+    LOG_DBG(func) << "L:NS:NS orthogonal[" << i << "]: radius=" << radius << " edge=" << edges[i] << " -> " << orthogonal[i];
+  }
 
   // validate
   for(unsigned int i = 0; i < orthogonal.GetSize(); i++)
@@ -614,6 +624,7 @@ Function::Local::NeighborhoodStructure::NeighborhoodStructure(Local* local, PtrP
     double diag = std::sqrt(edges[0] * edges[0] + edges[1] * edges[1]);
     diagonal.Resize(1);
     diagonal[0] = (int) ((radius / diag) + 0.5);
+    LOG_DBG(func) << "L:NS:NS diagonal[0]: radius=" << radius << " diag=" << diag << " -> " << diagonal[0];
   }
   else
   {
@@ -700,10 +711,10 @@ double Function::Local::Identifier::EvalFunction(const Local* local) const
 
     double v = std::max(0.0, fv - f->GetParameter());
 
-    double res = factor * v*v;
+    double res = factor * std::pow(v, local->GetPower());
 
     LOG_DBG2(func) << "L:I:EF: global! bound=" << f->GetParameter() << " factor=" << factor
-                   << " power=" << (v*v) << " -> " << res;
+                   << " power=" << std::pow(v, local->GetPower()) << " -> " << res;
 
     return res;
   }
@@ -725,10 +736,10 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
   LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
                      << element->elem->elemNum << " sign=" << sign;
 
+
   // are we global? If so, we need the function value and don't need to to anything if
   // this function value is zero
   double fv = 0.0;
-  bool global = true;
   // we need the real function values, EvalFunction would give the one for global!!
   switch(ft)
   {
@@ -742,14 +753,15 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
     fv = std::max(0.0, CalcMole(local->eps_) - funct->GetParameter());
     break;
   default:
-    global = false;
+    break;
   }
-  if(global && fv == 0.0)
+  if(local->IsGlobalized() && fv == 0.0)
   {
     LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
                    << element->elem->elemNum << " sign=" << sign << " fv=0.0 -> return immediately";
     return;
   }
+  assert(local->IsGlobalized() || g != NULL); // only constraints are local
 
   for(int n = -1, nn = neighbor.GetSize(); n < nn; n++)
   {
@@ -781,11 +793,11 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
                    << " curr=" << GetElement(n)->elem->elemNum << " gv=" << gv;
 
     // post process the globalized functions
-    if(global)
+    if(local->IsGlobalized())
     {
       double factor = local->DoNormalizeGlobal() ? 1.0/local->virtual_elem_map.GetSize() : 1.0;
 
-      gv = factor * 2.0 * fv * gv;
+      gv = factor * local->GetPower() * std::pow(fv, local->GetPower() - 1.0) * gv;
       LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
                      << element->elem->elemNum << " sign=" << sign << " n=" << n
                      << " curr=" << GetElement(n)->elem->elemNum << " gv=" << gv
@@ -793,6 +805,13 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
     }
 
     DesignElement* de = GetElement(n);
+
+    if(!local->IsGlobalized())
+    {
+      // reset the constraint data. Note, as we are local, there are no side effects by elements
+      de->Reset(DesignElement::CONSTRAINT_GRADIENT, g);
+    }
+
     de->AddGradient(f, g, gv);
     LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
                    << element->elem->elemNum << " sign=" << sign << " n=" << n
@@ -909,19 +928,32 @@ double Function::Local::Identifier::CalcMole(double eps) const
   // make sequence of data
   tmp.Resize(0); // is static and keeps capacity
   for(unsigned int i = 0; i < neighbor.GetSize() / 2; i++)
+  {
     tmp.Push_back(GetElement(i)->GetDesign(DesignElement::SMART));
+    LOG_DBG3(func) << "L:I:CalcMole de=" << element->ToString() << " other=" << GetElement(i)->ToString() << " v=" << tmp.Last();
+  }
 
   tmp.Push_back(element->GetDesign(DesignElement::SMART));
+  LOG_DBG3(func) << "L:I:CalcMole de=" << element->ToString() << " other=" << element->ToString() << " v=" << tmp.Last();
 
   for(unsigned int i = neighbor.GetSize() / 2; i < neighbor.GetSize(); i++)
-      tmp.Push_back(GetElement(i)->GetDesign(DesignElement::SMART));
+  {
+    tmp.Push_back(GetElement(i)->GetDesign(DesignElement::SMART));
+    LOG_DBG3(func) << "L:I:CalcMole de=" << element->ToString() << " other=" << GetElement(i)->ToString() << " v=" << tmp.Last();
+  }
 
   assert(tmp.GetSize() == neighbor.GetSize() + 1);
 
   double sum = 0.0;
   for(unsigned int i = 0; i < tmp.GetSize() - 1; i++)
+  {
     sum += SmoothAbs(tmp[i+1] - tmp[i], eps);
-  double result = sum - SmoothAbs(tmp[0] - tmp.Last(), eps);
+    LOG_DBG3(func) << "L:I:CalcMole de=" << element->ToString() << " i=" << i << "|" << tmp[i+1] << " - " << tmp[i] << "|="
+                   << (std::abs(tmp[i+1] - tmp[i])) << " smoothed=" << SmoothAbs(tmp[i+1] - tmp[i], eps) << " sum=" << sum;
+  }
+  double result = sum - SmoothAbs(tmp.Last() - tmp[0], eps);
+  LOG_DBG3(func) << "L:I:CalcMole de=" << element->ToString() << " bound=|" << tmp.Last() << " - " << tmp[0] << "| smoothed="
+                 << SmoothAbs(tmp.Last() - tmp[0], eps) << " -> " << result;
   return result;
 }
 
@@ -947,10 +979,28 @@ double Function::Local::Identifier::CalcMoleGradient(int neigh_idx, double eps)
   int idx = neigh_idx == -1 ? half : neigh_idx < (int) half ?  neigh_idx : neigh_idx + 1;
   assert(idx >= 0 && idx < (int) tmp.GetSize());
 
+  double res = 0.0;
+
   if(idx == 0)
-    return DerivSmoothAbs(tmp.Last() - tmp[0], eps) - DerivSmoothAbs(tmp[1] - tmp[0], eps);
-  if(idx == (int) tmp.GetSize() - 1)
-    return DerivSmoothAbs(tmp.Last() - tmp[idx-1], eps) - DerivSmoothAbs(tmp.Last() - tmp[0], eps);
+  {
+    res = DerivSmoothAbs(tmp.Last() - tmp[0], eps) - DerivSmoothAbs(tmp[1] - tmp[0], eps);
+    LOG_DBG3(func) << "L:I:CalcMoleGrad de=" << element->ToString() << " neigh_idx=" << neigh_idx << " idx=" << idx << " tmp=" << tmp.ToString()
+                   << " DA(" << tmp.Last() << "-" << tmp[0] << ") - DA(" << tmp[1] << "-" << tmp[0] << ") -> " << res;
+
+  }
+  else if(idx == (int) tmp.GetSize() - 1)
+  {
+    res = DerivSmoothAbs(tmp.Last() - tmp[idx-1], eps) - DerivSmoothAbs(tmp.Last() - tmp[0], eps);
+    LOG_DBG3(func) << "L:I:CalcMoleGrad de=" << element->ToString() << " neigh_idx=" << neigh_idx << " idx=" << idx << " tmp=" << tmp.ToString()
+                   << " DA(" << tmp.Last() << "-" << tmp[idx-1] << ") - DA(" << tmp.Last() << "-" << tmp[0] << ") -> " << res;
+
+  }
   else
-    return DerivSmoothAbs(tmp[idx] - tmp[idx-1], eps) - DerivSmoothAbs(tmp[idx+1] + tmp[idx], eps);
+  {
+    res = DerivSmoothAbs(tmp[idx] - tmp[idx-1], eps) - DerivSmoothAbs(tmp[idx+1] - tmp[idx], eps);
+    LOG_DBG3(func) << "L:I:CalcMoleGrad de=" << element->ToString() << " neigh_idx=" << neigh_idx << " idx=" << idx << " tmp=" << tmp.ToString()
+                   << " DA(" << tmp[idx] << "-" << tmp[idx-1] << ") - DA(" << tmp[idx+1] << "-" << tmp[idx] << ") -> " << res;
+  }
+
+  return res;
 }

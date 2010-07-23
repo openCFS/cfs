@@ -667,11 +667,6 @@ private:
    * the global slope is sum max(0, g_i)^2, hence we need NEXT_AND_REVERSE locality */
   double CalcGlobalFunction(Function* c, bool derivative);
 
-  /** This is a measure for checkerboards.
-   * Whithin each element, for all dimensions we check if we are in between the 'left' and 'right' neighbors.
-   * approximations are used  */
-  double CalcCheckerboard(Condition* g, bool derivative);
-
   /** IntegrateDesignVariables() can do a lot, but no one wants to extend it to hande the derivative
    * case of the gap constraint: volume - penalized volume */
   void CalcRegularGapConstraint(Objective* f, Condition* g,

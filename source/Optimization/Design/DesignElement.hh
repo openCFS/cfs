@@ -68,7 +68,7 @@ public:
 
 
   /** dump method for logging */
-  std::string ToString();
+  std::string ToString() const;
 
   /** Contains the next neighbors (only +/- x,y(,z) and not diagonal.
    * Ordered as +x, -x, +y, -y (+z, -z). As the elements are DesignElements only within this region.
@@ -114,6 +114,7 @@ public:
     LEVEL_SET_VALUE, LEVEL_SET_STATE, TOPGRAD_VALUE, SHAPEGRAD_VALUE, SHAPEGRAD_NODE_VALUE,
     MAX_SLOPE, /* the max(abs()) of the 2 * dim slope constraints for each element */
     CHECKERBOARD, /* the max value per element */
+    MAX_MOLE, /* the max mole value */
     LEVEL_SET_GRAD_XP, LEVEL_SET_GRAD_XN, LEVEL_SET_GRAD_YP, LEVEL_SET_GRAD_YN, LEVEL_SET_GRAD_ZP, LEVEL_SET_GRAD_ZN } ValueSpecifier;
 
   BaseDesignElement();
@@ -259,11 +260,14 @@ public:
     /** Write key values as attributes */
     void ToInfo(PtrParamNode in) const;
 
-    std::string ToString() { return ToString(this); }
+    std::string ToString() const { return ToString(this); }
 
     /** makes a short dump, handles NULL */
-    static std::string ToString(DesignElement* de);
+    static std::string ToString(const DesignElement* de);
     
+    /** helper for LOG output */
+    static std::string ToString(StdVector<DesignElement*>& vec);
+
     /** to make the class polymorphic and we can dynamic_cast<> it */
     /** Pointer to the element of the region, paramter for integration, ... */
     Elem*  elem;

@@ -79,8 +79,8 @@ namespace CoupledField
        /** Shall the scaling be linked to the objective scaling */
        bool DoObjectiveScaling() const { return objective_scaling_; }
 
-       /** Is the gradient dense or sparse. Only the slope is sparse! */
-       bool HasDenseJacobian() const { return type_ != SLOPE; }
+       /** Is the gradient dense or sparse. Only local conditions are sparse */
+       bool HasDenseJacobian() const { return !IsLocalCondition();  }
        
        /** Gives the sparsity pattern of the jacobian. It gives the sorted, 0-based indices which have
         * values. For the dens case this is 0, 1, ... m.
@@ -166,6 +166,10 @@ namespace CoupledField
 
       /** Conditions mark themself as (non) linear -> no power in the design variable, ...*/
       bool linear_;
+
+      /** this is the virtual base index of this condition w.r.t. all conditions.
+       * For normal condition this is simple the virtual index, for local conditions this is the base*/
+      int virtual_base_index_;
    };
 
    /** This handles local constraints which exist only virtually - hence the optimizer sees them but
@@ -289,8 +293,9 @@ namespace CoupledField
 
 
      private:
-       /** -1 if there is no slope constraint. Used by Get() */
-       int slope_index_;
+       /** This are the real condition indices of local conditions. Sorted. Used to calculate and navigate in the virtual
+        * condition space */
+       StdVector<unsigned int> local_cond_index_;
 
        ConditionContainer* container_;
 
@@ -316,12 +321,15 @@ namespace CoupledField
      void ToInfo(PtrParamNode in);
 
      /** Searches in active constraints only!
-     *  @param design NO_TYPE ignores this criteria. DEFAULT would be problematic for
+      *  @param design NO_TYPE ignores this criteria. DEFAULT would be problematic for
       *                this purpose as it is a valid value
       * @return check active flag! Not NULL! */
-     Condition* Get(Condition::Type type = Condition::VOLUME, DesignElement::Type design = DesignElement::NO_TYPE);
+     Condition* Get(Condition::Type type = Condition::VOLUME, DesignElement::Type design = DesignElement::NO_TYPE)
+     {
+       return Get(type, design, true, true);
+     }
 
-     /** query before Get() throws ans exception */
+     /** query before Get() throws an exception */
      bool Has(Condition::Type type = Condition::VOLUME, DesignElement::Type design = DesignElement::NO_TYPE);
 
      /** All external optimizers should only work with this view.
@@ -340,6 +348,8 @@ namespace CoupledField
      StdVector<Condition*> observe;
 
    private:
+
+     Condition* Get(Condition::Type type, DesignElement::Type design, bool only_active, bool throw_exception);
 
      /** Helper */
      StdVector<Condition*> GetList(Condition::Type type, DesignElement::Type design, bool only_active);

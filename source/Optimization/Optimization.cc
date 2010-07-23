@@ -261,6 +261,7 @@ void Optimization::SetEnums()
   Function::Local::locality.Add(Function::Local::NEXT, "next");
   Function::Local::locality.Add(Function::Local::NEXT_AND_REVERSE, "next_and_reverse");
   Function::Local::locality.Add(Function::Local::PREV_NEXT_AND_REVERSE, "prev_next_and_reverse");
+  Function::Local::locality.Add(Function::Local::DEG_45_STAR, "45_deg_star");
 
   Condition::bound.SetName("Condition::Bound");
   Condition::bound.Add(Condition::EQUAL, "equal");

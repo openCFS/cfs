@@ -181,6 +181,11 @@ class Function
       /** The eps value form smoothing abs, checks if its set. */
       double GetEps() const { assert(eps_ >= 0); return eps_; }
 
+      /** The power for the globalized local sum( max(0, g_i(x) - c)^p) */
+      double GetPower() const { return power_; }
+
+      /** is globalied local? */
+      bool IsGlobalized() const { return globalized_; }
 
       /** normalize globalSlope, globalCheckerboard, ... by number of local constraints */
       bool DoNormalizeGlobal() const { return normalize_; }
@@ -308,8 +313,14 @@ class Function
       /** relaxation parameter to smooth abs by A(x) = sqrt(x^2 + eps^2) - eps. For (global) mole only */
       double eps_;
 
+      /** power for globalization */
+      double power_;
+
       /** normalize global function */
       bool normalize_;
+
+      /** are we a local condition or globalized (condition or objective) */
+      bool globalized_;
 
       /** @see GetElementDimension() */
       int element_dimension_;
