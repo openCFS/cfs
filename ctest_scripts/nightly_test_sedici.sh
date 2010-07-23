@@ -164,14 +164,19 @@ function SubmitErrorToCDash {
     exit 1;
 }
 
+cd $TESTDIR
+
 # Remove previous CFSDEPSCACHE directory and make sure that ACML sources
 # get copied to the newly created one.
 if [ "$DAYOFWEEK" = "7" ]; then
-    tar cvzf $TESTDIR/last_weeks_cfs_trunk_nightly.tgz $TESTDIR/CFS_TRUNK_NIGHTLY
+    mkdir -p update
+    cp CFS_TRUNK_NIGHTLY/ctest_scripts/ctest_update* update
+    cp CFS_TRUNK_NIGHTLY/ctest_scripts/CTestConfig.cmake update
+    tar cvzf $TESTDIR/last_weeks_cfs_trunk_nightly.tgz CFS_TRUNK_NIGHTLY
     rm -rf $TESTDIR/CFS_TRUNK_NIGHTLY
-    tar cvzf $TESTDIR/last_weeks_cfsdeps_nightly.tgz $TESTDIR/CFSDEPS_NIGHTLY
+    tar cvzf $TESTDIR/last_weeks_cfsdeps_nightly.tgz CFSDEPS_NIGHTLY
     rm -rf $TESTDIR/CFSDEPS_NIGHTLY
-    tar cvzf $TESTDIR/last_weeks_cfs_testsuite_nightly.tgz $TESTDIR/CFS_TESTSUITE_NIGHTLY
+    tar cvzf $TESTDIR/last_weeks_cfs_testsuite_nightly.tgz CFS_TESTSUITE_NIGHTLY
     rm -rf $TESTDIR/CFS_TESTSUITE_NIGHTLY
     rm -rf $TESTDIR/CFSDEPSCACHE
     mkdir -p $TESTDIR/CFSDEPSCACHE/sources/acml
@@ -181,7 +186,7 @@ if [ "$DAYOFWEEK" = "7" ]; then
 fi
 
 # Checkout or update CFSDEPS
-cd $TESTDIR/CFS_TRUNK_NIGHTLY/ctest_scripts
+cd $TESTDIR/update
 GetWorkingCopyRev $TESTDIR/CFSDEPS_NIGHTLY
 CFSDEPS_PREV_REV=$WC_REV;
 # Due to the fact, that CTest generates non-zero return values
@@ -196,15 +201,18 @@ GetWorkingCopyRev $TESTDIR/CFSDEPS_NIGHTLY
 CFSDEPS_CURRENT_REV=$WC_REV;
 
 # Checkout or update CFS++
-cd $TESTDIR/CFS_TRUNK_NIGHTLY/ctest_scripts
+cd $TESTDIR/update
 GetWorkingCopyRev $TESTDIR/CFS_TRUNK_NIGHTLY
 CFS_PREV_REV=$WC_REV;
 ctest -V -S ctest_update_cfs_klu.cmake
+mkdir -p $TESTDIR/update
+cp $TESTDIR/CFS_TRUNK_NIGHTLY/ctest_scripts/ctest_update* $TESTDIR/update
+cp $TESTDIR/CFS_TRUNK_NIGHTLY/ctest_scripts/CTestConfig.cmake $TESTDIR/update
 GetWorkingCopyRev $TESTDIR/CFS_TRUNK_NIGHTLY
 CFS_CURRENT_REV=$WC_REV;
 
 # Checkout or update test suite
-cd $TESTDIR/CFS_TRUNK_NIGHTLY/ctest_scripts
+cd $TESTDIR/update
 GetWorkingCopyRev $TESTDIR/CFS_TESTSUITE_NIGHTLY
 TESTSUITE_PREV_REV=$WC_REV;
 ctest -V -S ctest_update_testsuite_klu.cmake

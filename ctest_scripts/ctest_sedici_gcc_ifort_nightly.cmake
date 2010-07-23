@@ -36,86 +36,35 @@ SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TRUNK_NIGHTLY")
 SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_BUILD_NIGHTLY")
 
 #-----------------------------------------------------------------------------
+# Copy CDash server configuration file to source dir.
+#-----------------------------------------------------------------------------
+EXECUTE_PROCESS(COMMAND ${CMAKE_EXECUTABLE_NAME} -E copy_if_different CTestConfig.cmake ${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake)
+
+EXEC_PROGRAM("${CTEST_SOURCE_DIRECTORY}/share/scripts/distro.sh"
+  ARGS -u
+  OUTPUT_VARIABLE CFS_ARCH_STR
+  RETURN_VALUE RETVAL)
+
+#-----------------------------------------------------------------------------
 # Specify that we want to do an experimental build without updating the CFS++
 # working copy. I.e. we leave away the ExperimentalUpdate step between
 # ExperimentalStart and ExperimentalConfigure. The Subversion update gets
 # done by simon on mac before the the test scripts on rom get executed.
 #-----------------------------------------------------------------------------
 SET(CTEST_COMMAND  "\"${CTEST_EXECUTABLE_NAME}\"")
+SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyStart")
+SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyConfigure")
+SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyBuild")
+SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyTest")
+SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlySubmit")
+SET(CTEST_COMMAND "${CTEST_COMMAND} -A ${CTEST_BINARY_DIRECTORY}/CMakeCache.txt")
+#SET(CTEST_COMMAND "${CTEST_COMMAND} -R torque3d")
 
 #-----------------------------------------------------------------------------
 # Use CMake (cmake) executable corresponding to CTest executable used to run
 # this script.
 #-----------------------------------------------------------------------------
 SET(CTEST_CMAKE_COMMAND  "\"${CMAKE_EXECUTABLE_NAME}\"")
-
-#-----------------------------------------------------------------------------
-# Set the following environment variables for the test run. This can be used
-# to specifiy the compilers and that all messages should be output in English
-# language, so that CTest may properly parse them.
-#-----------------------------------------------------------------------------
-SET(ENV{CC} "gcc")
-SET(ENV{CXX} "g++")
-SET(ENV{FC} "ifort")
-SET(ENV{LC_MESSAGES} "C")
-SET(ENV{LC_ALL} "C")
-SET(ENV{LANG} "C")
-SET(ENV{LANGUAGE} "C")
-SET(ENV{CPLREADER_PERF_SUITE} "/media/CFD_Data/cplreader_performance_suite")
-
-SET(CMD "rm -rf ${CTEST_BINARY_DIRECTORY} &&")
-SET(CMD "${CMD} mkdir -p ${CTEST_BINARY_DIRECTORY}/CMakeFiles &&")
-SET(CMD "${CMD} perl ${CTEST_SOURCE_DIRECTORY}/share/scripts/identify_compiler.pl")
-SET(CMD "${CMD} $ENV{CXX} ${CTEST_SOURCE_DIRECTORY}/share/scripts/IdentifyCXXCompiler.cpp")
-SET(CMD "${CMD} cmake > ${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.cmake")
-
-EXEC_PROGRAM("${CMD}"
-  ARGS
-  OUTPUT_VARIABLE CXX_COMPILER_INFO
-  RETURN_VALUE RETVAL)
-
-INCLUDE(${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.cmake)
-
-EXEC_PROGRAM("${CTEST_SOURCE_DIRECTORY}/share/scripts/distro.sh -u"
-  ARGS
-  OUTPUT_VARIABLE ARCH_STR
-  RETURN_VALUE RETVAL)
-
-#MESSAGE("${CXX_ID} ${CXX_VERSION} ${CXX_GCC_VERSION}")
-#MESSAGE("${ARCH_STR}")
-
-SET(BUILDTYPE "RELEASE")
-SET(BUILDNAME "${ARCH_STR} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
-
-SITE_NAME(CFS_BUILD_HOST)
-set(CTEST_SITE "${CFS_BUILD_HOST}")
-set(CTEST_BUILD_NAME "${BUILDNAME}")
-
-#-----------------------------------------------------------------------------
-# Since this is the first test in the night, we have to make sure that
-# the source directory is available by checking it out if the directory does
-# not previously exist.
-#-----------------------------------------------------------------------------
-FIND_PROGRAM(SVN_COMMAND NAMES svn)
-
-IF(NOT EXISTS "${CTEST_SOURCE_DIRECTORY}")
-  SET(REPO "https://lse17.e-technik.uni-erlangen.de:2001/svn/CFS++/trunk")
-  SET(USER "testuser-klu")
-
-  SET(CTEST_CHECKOUT_COMMAND "${SVN_COMMAND} --username ${USER} co ${REPO} ${CTEST_SOURCE_DIRECTORY}")
-ENDIF(NOT EXISTS "${CTEST_SOURCE_DIRECTORY}")
-
-#-----------------------------------------------------------------------------
-# Either way, we have to update the working copy
-#-----------------------------------------------------------------------------
-SET(CTEST_UPDATE_TYPE "svn")
-SET(CTEST_UPDATE_COMMAND "${SVN_COMMAND}")
-#SET(CTEST_UPDATE_OPTIONS "--username testuser-klu up ${CTEST_SOURCE_DIRECTORY}")
-
-#-----------------------------------------------------------------------------
-# Copy CDash server configuration file to source dir.
-#-----------------------------------------------------------------------------
-EXECUTE_PROCESS(COMMAND ${CMAKE_EXECUTABLE_NAME} -E copy_if_different CTestConfig.cmake ${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake)
 
 #-----------------------------------------------------------------------------
 # Start out with an empty binary directory.
@@ -130,7 +79,7 @@ SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
 SET(CTEST_INITIAL_CACHE
   "BUILD_TESTING:BOOL=ON
    DEBUG:BOOL=OFF
-   BUILDNAME:STRING=${ARCH_STR} GCC/Intel Fortran
+   BUILDNAME:STRING=${CFS_ARCH_STR} GCC/Intel Fortran
    TESTSUITE_DIR:STRING=$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_NIGHTLY
    CFS_DEPS_ROOT:PATH=$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPS_NIGHTLY
    CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPSCACHE
@@ -143,24 +92,19 @@ SET(CTEST_INITIAL_CACHE
    CPLREADER:BOOL=ON
    USE_SCPIP:BOOL=ON")
 
-SET(CTEST_CMAKE_GENERATOR "Unix Makefiles")
+#-----------------------------------------------------------------------------
+# Set the following environment variables for the test run. This can be used
+# to specifiy the compilers and that all messages should be output in English
+# language, so that CTest may properly parse them.
+#-----------------------------------------------------------------------------
+SET(CTEST_ENVIRONMENT
+  "CC=gcc"
+  "CXX=g++"
+  "FC=ifort"
+  "LC_MESSAGES=C"
+  "LC_ALL=C"
+  "LANG=C"
+  "LANGUAGE=C"
+  "CPLREADER_PERF_SUITE=/media/CFD_Data/cplreader_performance_suite"
+  )
 
-message("Start dashboard...")
-ctest_start(Nightly)
-#ctest_start(Experimental)
-#message("  Update")
-#ctest_update(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE res)
-FILE(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeCache.txt" ${CTEST_INITIAL_CACHE})
-message("  Configure")
-ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-# Configure twice so that CFX and OpenFOAM dependencies get built
-ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-#message("read custom files after configure")
-#ctest_read_custom_files("${CTEST_BINARY_DIRECTORY}")
-message("  Build")
-ctest_build(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-message("  Test")
-ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-message("  Submit")
-ctest_submit(RETURN_VALUE res)
-message("  All done")
