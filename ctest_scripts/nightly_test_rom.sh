@@ -159,7 +159,7 @@ cd $TESTDIR
 
 # Remove previous CFSDEPSCACHE directory and make sure that ACML sources
 # get copied to the newly created one.
-if [ "$DAYOFWEEK" = "7" ]; then
+if [ "$DAYOFWEEK" = "2" ]; then
     mkdir -p update
     cp CFS_TRUNK_NIGHTLY/ctest_scripts/ctest_update* update
     cp CFS_TRUNK_NIGHTLY/ctest_scripts/CTestConfig.cmake update
@@ -172,6 +172,17 @@ if [ "$DAYOFWEEK" = "7" ]; then
     rm -rf $TESTDIR/CFSDEPSCACHE
     rm -rf $TESTDIR/cfs_build_*.tgz
 fi
+
+# Copy current version of update scripts from server to update directory
+mkdir -p $TESTDIR/update
+cd $TESTDIR/update
+FILES="ctest_update.cmake ctest_update_cfs_klu.cmake ctest_update_cfsdeps_klu.cmake ctest_update_testsuite_klu.cmake CTestConfig.cmake"
+for FILE in $FILES; do
+  wget --http-user=testuser-klu --http-password=$CFS_TESTUSER_PW \
+       --no-check-certificate \
+       https://lse17.e-technik.uni-erlangen.de:2001/svn/CFS++/trunk/ctest_scripts/$FILE
+done
+
 
 # Checkout or update CFSDEPS
 cd $TESTDIR/update
@@ -193,9 +204,6 @@ cd $TESTDIR/update
 GetWorkingCopyRev $TESTDIR/CFS_TRUNK_NIGHTLY
 CFS_PREV_REV=$WC_REV;
 ctest -V -S ctest_update_cfs_klu.cmake
-mkdir -p $TESTDIR/update
-cp $TESTDIR/CFS_TRUNK_NIGHTLY/ctest_scripts/ctest_update* $TESTDIR/update
-cp $TESTDIR/CFS_TRUNK_NIGHTLY/ctest_scripts/CTestConfig.cmake $TESTDIR/update
 GetWorkingCopyRev $TESTDIR/CFS_TRUNK_NIGHTLY
 CFS_CURRENT_REV=$WC_REV;
 
