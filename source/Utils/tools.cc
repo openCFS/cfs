@@ -279,6 +279,44 @@ namespace CoupledField {
     return 0;
   }
 
+
+
+  double SmoothMax(double left, double right, double beta)
+  {
+    assert(beta > 0);
+
+    // the continuous Kreisselmeier and Steinhauser max approximation taken
+    // from Sigmund; Morphology-based black and white filters for topology optimization; 2007
+    // x = log ( sum(exp(beta * x_i)) / sum 1 ) / beta
+
+    return std::log(0.5 * (std::exp(left * beta) + std::exp(right * beta))) / beta;
+  }
+
+
+  double SmoothMin(double left, double right, double beta)
+  {
+    assert(beta > 0);
+    assert(right > 0 && left > 0);
+
+    // see comment in CalcMaxApproximation()
+
+    return 1.0 - std::log(0.5 * (std::exp((1.0 - left) * beta) + std::exp((1.0 - right) * beta))) / beta;
+  }
+
+  double SmoothAbs(double x, double eps)
+  {
+    assert(eps >= 0);
+    return std::sqrt(x*x + eps*eps) - eps;
+  }
+
+  double DerivSmoothAbs(double x, double eps)
+  {
+    assert(eps >= 0);
+    assert(abs(x) + eps > 0);
+    return x / std::sqrt(x*x + eps*eps);
+  }
+
+
   VTKStructuredPoints::VTKStructuredPoints(Integer i, Integer j, Integer k, const std::string& scalars, const std::string& vectors)
   {
     assert(i > 0 && j > 0 && k > 0);
@@ -352,5 +390,9 @@ namespace CoupledField {
           }
     }
   }
+
+
+
+
 
 }// namespace CoupledField

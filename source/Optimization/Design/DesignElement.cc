@@ -69,8 +69,10 @@ void BaseDesignElement::AddGradient(const Objective* f, const Condition* g, doub
   assert(f == NULL || g == NULL);
   LOG_DBG3(del) << "AddGradient: f=" << (f == NULL ? "null" : f->type.ToString(f->GetType()))
                 << " g=" << (g == NULL ? "null" : g->ToString()) << " val=" << value
-                << " penalty " << (f != NULL ? boost::lexical_cast<std::string>(f->GetPenalty()) : "-")
-                << "(old = " <<  (f != NULL ? costGradient[f->GetIndex()] : constraintGradient[g->GetIndex()]) << ")";
+                << " penalty=" << (f != NULL ? boost::lexical_cast<std::string>(f->GetPenalty()) : "-")
+                << " old= " <<  (f != NULL ? costGradient[f->GetIndex()] : constraintGradient[g->GetIndex()])
+                << " add=" << (f != NULL ? value * f->GetPenalty() : value)
+                << " -> " << (f != NULL ? costGradient[f->GetIndex()] + value * f->GetPenalty() : constraintGradient[g->GetIndex()] + value);
   if(f != NULL) costGradient[f->GetIndex()] += value * f->GetPenalty();
            else constraintGradient[g->GetIndex()] += value;
 }
@@ -175,9 +177,10 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
   // check for special result
   if(    rd.value == OBJECTIVE
       || (rd.value == COST_GRADIENT && rd.detail != NONE)
-      || rd.value == MAX_SLOPE
       || rd.value == CONSTRAINT_GRADIENT
-      || rd.value == CHECKERBOARD)
+      || rd.value == MAX_SLOPE
+      || rd.value == CHECKERBOARD
+      || rd.value == MAX_MOLE)
   {
     if(dofs != 1) throw Exception("special results is only defined for scalar values");
     switch(rd.solutionType)
@@ -297,6 +300,7 @@ double DesignElement::GetPlainValue(ValueSpecifier sp, Condition* g) const
     return constraintGradient[g->GetIndex()];
 
   case MAX_SLOPE:
+  case MAX_MOLE:
   case CHECKERBOARD:
     assert(false); // should be covered before by special result index
 
@@ -342,7 +346,7 @@ void DesignElement::ToInfo(PtrParamNode in) const
   in->Get("lowerBound")->SetValue(lower_);
 }
 
-std::string DesignElement::ToString(DesignElement* de)
+std::string DesignElement::ToString(const DesignElement* de)
 {
   if(de == NULL) return "null";
 
@@ -354,6 +358,17 @@ std::string DesignElement::ToString(DesignElement* de)
   }
   else ss << boost::lexical_cast<std::string>(de->elem->elemNum);
   
+  return ss.str();
+}
+
+std::string DesignElement::ToString(StdVector<DesignElement*>& vec)
+{
+  std::stringstream ss;
+  ss << "[";
+  for(unsigned int i = 0; i < vec.GetSize(); i++)
+    ss << ToString(vec[i]) << (i < vec.GetSize() - 1 ? "," : "");
+  ss << "]";
+
   return ss.str();
 }
 
@@ -400,6 +415,7 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(CONSTRAINT_GRADIENT, "constraintGradient");
   valueSpecifier.Add(MAX_SLOPE, "maxSlope");
   valueSpecifier.Add(CHECKERBOARD, "checkerboard");
+  valueSpecifier.Add(MAX_MOLE, "maxMole");
   valueSpecifier.Add(WEIGHT, "weight");
   valueSpecifier.Add(OBJECTIVE, "objective");
   valueSpecifier.Add(NUM_NEIGHBOURS, "neighbours");
@@ -437,6 +453,8 @@ void DesignElement::SetEnums()
   detail.Add(YOUNGS_MODULUS, "youngsModulus");
   detail.Add(TYCHONOFF, "tychonoff");
   detail.Add(GREYNESS, "greyness");
+  detail.Add(GLOBAL_SLOPE, "globalSlope");
+  detail.Add(GLOBAL_CHECKERBOARD, "globalCheckerboard");
 
 }
 
@@ -837,6 +855,39 @@ VicinityElement::Neighbour VicinityElement::FindRelativeNeighborLocation(Point& 
   return res;
 }
 
+DesignElement* VicinityElement::GetNeighbour(DesignElement* base, Neighbour idx, int n, bool throw_exception)
+{
+  assert(n > 0);
+
+  DesignElement* tmp  = base;
+  for(int i = 0; i < n; i++)
+  {
+    tmp = tmp->vicinity->GetNeighbour(idx);
+    if(tmp == NULL)
+    {
+      LOG_DBG3(del) << "VE:GN base=" << base->ToString() << " idx=" << idx << " n=" << n << " max neighbor=" << i;
+      if(throw_exception)
+        EXCEPTION("no neighbor in " << idx << " direction " << i << " elements ways for element " << tmp->ToString())
+      else
+        return NULL;
+    }
+  }
+  LOG_DBG3(del) << "VE:GN base=" << base->ToString() << " idx=" << idx << " n=" << n << " -> " << (tmp != NULL ? tmp->ToString() : "null");
+  return tmp;
+}
+
+bool VicinityElement::HasNeighbor(DesignElement* base, Neighbour idx, int n)
+{
+  assert(n > 0);
+
+  for(int i = 0; i < n; i++)
+  {
+    base = base->vicinity->GetNeighbour(idx);
+    if(base == NULL) return false;
+  }
+  return true;
+}
+
 
 int VicinityElement::GetNumberOfEntries() const
 {
@@ -847,7 +898,7 @@ int VicinityElement::GetNumberOfEntries() const
   return count;
 }
 
-string VicinityElement::ToString()
+string VicinityElement::ToString() const
 {
   stringstream ss;
   ss << "(";

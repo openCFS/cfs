@@ -5,6 +5,7 @@
 #include "MatVec/matrix.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/DesignStructure.hh"
 
 
 using std::pair;
@@ -34,7 +35,7 @@ class Function
     Function(PtrParamNode pn);
 
     /** PostProc called be the containers */
-    void PostProc(DesignSpace* space, DesignStructure* structure);
+    virtual void PostProc(DesignSpace* space, DesignStructure* structure);
 
     /** Different function types - some only objective, some only constraint some both */
     typedef enum {
@@ -63,13 +64,16 @@ class Function
       TYCHONOFF,                 /*!< int(|| design ||^2) is a regularization form material opt. */
       TEMPERATURE,               /*!< for optimization of poisson and heat conduction pde */
       GLOBAL_SLOPE,              /*!< different implementation from local slopes */
+      GLOBAL_CHECKERBOARD,       /*!< same globalization as with global slope */
+      GLOBAL_MOLE,               /*!< see mole */
 
       // This is constraint only!
       GREYNESS,                  /*!< inaccurate - best for observation only */
       REALVOLUME,
       ISOTROPY,                  /*!< blow up to several HOMOGENITATION_TENSOR constraints with different coords */
       SLOPE,                     /*!< Implementation of a grad rho constraint */
-      CHECKERBOARD               /*!< Meassure for the checkerboard, up to now only observe! */
+      CHECKERBOARD,              /*!< Measure for the checkerboard, up to now only observe! */
+      MOLE                       /*!< Feature size control from T. Poulsen */
     } Type;
 
     /** to convert string/enum for this type */
@@ -78,16 +82,6 @@ class Function
     /** See ToString() for string conversion! */
     Type GetType() const { return type_; }
 
-    /** The local type -> essentially slope */
-    typedef enum {
-      DEFAULT,
-      NEXT,         /*!< x_i and x_i+1 */
-      NEXT_BIDIR    /*!< x_i and x_i+1 plus x_i+1 and x_i for classical slope */
-    } Locality;
-
-    static Enum<Locality> locality;
-
-    Locality GetLocality() const { return locality_; }
 
     /** The real label might be an extended type string. E.g. by "physical_".
      * Check if better use this than type.ToString(GetType()).
@@ -98,24 +92,17 @@ class Function
      * little helper. asserts that only of function is set. */
     static Function* GetFunction(Objective* f, Condition* g);
 
-    /** Get the parameter, if it was set */
-    double GetParameter() const
-    {
-      return parameter_;
-    }
+    /** are we objective of condition/constraint */
+    virtual bool IsObjective() const = 0;
 
+    /** Get the parameter, if it was set */
+    double GetParameter() const { return parameter_;  }
 
     /** The evaluates function values. -1.0 if not set. */
-    virtual double GetValue() const
-    {
-      return value_;
-    }
+    virtual double GetValue() const { return value_; }
 
     /** overloaded in SlopeCondition */
-    virtual void SetValue(double val)
-    {
-      value_ = val;
-    }
+    virtual void SetValue(double val) { value_ = val; }
 
     /** Some functions can have a physical counterpart. Which means e.g. for volume or greyness
      * the design variable with applied transfer function - hence as the FEM/physics sees the design.
@@ -169,29 +156,105 @@ class Function
       /** Initialized the neighborhood */
       Local(Function* func, DesignSpace* space);
 
+      ~Local();
+
       /** Number of identifiers per design element. Usually dim or dim *2, ... */
       int GetElememtDimension() const { return element_dimension_; }
+
+      /** The local type, essentially important for slopes. There should be no need to set
+       * it as user. */
+      typedef enum {
+        DEFAULT,               /*!< Function::PostProc() finds proper value */
+        NEXT,                  /*!< x_i and x_i+1 */
+        NEXT_AND_REVERSE,      /*!< x_i and x_i+1 plus x_i+1 PLUS the x_i for classical slope */
+        PREV_NEXT_AND_REVERSE, /*!< x_i-1 and x_i+1 with different sign for checkerboard */
+        DEG_45_STAR            /*!< Different notation. prev_next but also diagonals */
+      } Locality;
+
+      static Enum<Locality> locality;
+
+      Locality GetLocality() const { return locality_; }
+
+      /** The beta value for smoothing min/max, checks if its set. */
+      double GetBeta() const { assert(beta_ != -3.14); return beta_; }
+
+      /** The eps value form smoothing abs, checks if its set. */
+      double GetEps() const { assert(eps_ >= 0); return eps_; }
+
+      /** The power for the globalized local sum( max(0, g_i(x) - c)^p) */
+      double GetPower() const { return power_; }
+
+      /** is globalied local? */
+      bool IsGlobalized() const { return globalized_; }
+
+      /** normalize globalSlope, globalCheckerboard, ... by number of local constraints */
+      bool DoNormalizeGlobal() const { return normalize_; }
+
+      /** This is to be called from Local::Local() as Function::ToInfo() is called too early */
+      void ToInfo(PtrParamNode info);
 
       /** the mapping from a relative slope constraint number (0-based) to the actual
        * constraint. This allows to remove constraints for elements which have no (full)
        * neighborhood */
       struct Identifier
       {
-        /** default constructor for StdVector() */
-        Identifier() : sign(-1000) {}
+      public:
+        const static int NO_SIGN;
 
-        Identifier(unsigned int el_idx, VicinityElement::Neighbour nei, int si = -1000)
-        {
-          this->element_idx = el_idx;
-          this->neighbor = nei;
-          this->sign = si;
+        /** default constructor for StdVector() */
+        Identifier() : sign(NO_SIGN) {}
+
+        /** @param prev if NONE neighbor is size 1 otherwise size two */
+        Identifier(DesignElement* elem, DesignElement* prev, DesignElement* next, int si = NO_SIGN);
+
+        /** Identifier when we have a neighborgood defined by a radius - eg mole */
+        Identifier(DesignElement* elem, StdVector<DesignElement*> buddies, int si = NO_SIGN);
+
+        /** Returns the element
+         * @param idx == -1 for elem, otherwise form neighbors */
+        DesignElement* GetElement(int idx) {
+          return idx == -1 ? element : neighbor[idx];
         }
-        unsigned int element_idx; // this represents DesignSpace::data[element_idx]
-        VicinityElement::Neighbour neighbor; // only X_P, Y_P (,Z_P);
+
+        const DesignElement* GetElement(int idx) const {
+          return const_cast<const DesignElement*>(idx == -1 ? element : neighbor[idx]);
+        }
+
+        /** Service function. Calculates the actual objective, based on function->type */
+        double EvalFunction(const Local* local) const;
+
+        /** Service function. Calculates all gradients for this and the neighbors. Only for real local function!.
+         * It does the proper constraint_gradient reset first! */
+        void EvalGradient(const Local* local);
+
+        /** calculates the slope identified by this neighbor. When sign is not set assumes sign=1.
+         * "Petersson, Sigmund; Slope Constrained Topology Optimization; 1998" */
+        double CalcSlope() const;
+
+        /** calculate the slope gradient for a given element
+         * @param neigh_idx for -1 for the own element, otherwise the neighbor */
+        double CalcSlopeGradient(int neigh_idx) const;
+
+        /** calculates the checkerboard value. The sign determines if the smaller or larger value is evaluated
+         * @param beta < 0 is real max, otherwise it is a Kreiselmeier Steinhauser approximation */
+        double CalcCheckerboard(double beta) const;
+
+        /** calculates the gradient for the checkerbord
+         * @see CalcSlopeGradient() */
+        double CalcCheckerboardGradient(int neigh_idx, double beta);
+
+        double CalcMole(double eps) const;
+        double CalcMoleGradient(int neigh_idx, double eps);
+
+        DesignElement* element; // this represents DesignSpace::data[element_idx]
+        StdVector<DesignElement*> neighbor;
 
         /** sign is only needed if we treat slope constraints as two separate constraints
          *  in case we do not do this, sign will be -1000, else -1 for X_N, 1 for X_P */
         int sign;
+      private:
+        /** to be reused */
+        static StdVector<double> tmp;
       };
 
       /** Elements with no full neighborhood are not stored. If they would be stored
@@ -209,19 +272,61 @@ class Function
       StdVector<double> values;
 
     private:
+      /** Service method for the constructor */
+      void SetupVirtualElementMap();
+
+      /** Special implementation for DEG_45_STAR locality */
+      void SetupStarLocalityElementMap();
+
+      /** small helper to determine the number of neighbors in each (diagonal)
+       * direction if we use a neighborhood. Parses the whole stuff */
+      struct NeighborhoodStructure
+      {
+      public:
+        NeighborhoodStructure(Local* local, PtrParamNode local_node);
+
+        /** number of element in the X_P, Y_P or Z_P direction. Total length is (2* X_P + 1) */
+        StdVector<unsigned int> orthogonal;
+
+        /** the diagonal size in elements. For 2D only one diagonal */
+        StdVector<unsigned int> diagonal;
+
+        /** writes the stuff. E.g. in a sub-element */
+        void ToInfo(PtrParamNode info);
+
+      private:
+        double radius;
+        double value;
+        DesignStructure::FilterSpace fs;
+      };
+
+      NeighborhoodStructure* structure_;
+
       Function* func_;
+
+      Locality locality_;
+
+      /** Functions based on a relaxed max formulation have beta for the Kreiselmeier/Steinhauser
+       * continuation. This is (global) checkerboard. -1 is real max = infinity */
+      double beta_;
+
+      /** relaxation parameter to smooth abs by A(x) = sqrt(x^2 + eps^2) - eps. For (global) mole only */
+      double eps_;
+
+      /** power for globalization */
+      double power_;
+
+      /** normalize global function */
+      bool normalize_;
+
+      /** are we a local condition or globalized (condition or objective) */
+      bool globalized_;
 
       /** @see GetElementDimension() */
       int element_dimension_;
     };
 
-
-    /** Is local already initialized? Can only be done late when the design is present
-     * Do no confuse with SlopeCondition::IsLocal()
-     * @return for non-local functions always false */
-    bool IsLocalInitialized() { return local != NULL; }
-
-    /** Give the local information. Check by IsLocalInitialized() */
+    /** Give the local information. Check for NULL */
     Local* GetLocal() { return local; }
 
     /** We also store here the info ptr. When overload, call also this. */
@@ -242,16 +347,16 @@ class Function
     /** The actual kind of cost function. */
     Type type_;
 
-    Locality locality_;
-
     /** for HOMOGENIZATION_TRACKING this is the target tensor. */
     Matrix<double> tensor_;
 
     /** The current function value */
     double value_;
 
+
     /** Some special functions use a parameter: slope constraint and penalized volume */
     double parameter_;
+
 
     /** Is this type only possible/necessary for the last excitation?
      * Then it is only in that case evaluated and the excitation weight is ignored */
