@@ -179,7 +179,7 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       || (rd.value == COST_GRADIENT && rd.detail != NONE)
       || rd.value == CONSTRAINT_GRADIENT
       || rd.value == MAX_SLOPE
-      || rd.value == CHECKERBOARD
+      || rd.value == MAX_CHECKERBOARD
       || rd.value == MAX_MOLE)
   {
     if(dofs != 1) throw Exception("special results is only defined for scalar values");
@@ -301,7 +301,7 @@ double DesignElement::GetPlainValue(ValueSpecifier sp, Condition* g) const
 
   case MAX_SLOPE:
   case MAX_MOLE:
-  case CHECKERBOARD:
+  case MAX_CHECKERBOARD:
     assert(false); // should be covered before by special result index
 
   case TOPGRAD_VALUE:
@@ -414,7 +414,7 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(COST_GRADIENT, "costGradient");
   valueSpecifier.Add(CONSTRAINT_GRADIENT, "constraintGradient");
   valueSpecifier.Add(MAX_SLOPE, "maxSlope");
-  valueSpecifier.Add(CHECKERBOARD, "checkerboard");
+  valueSpecifier.Add(MAX_CHECKERBOARD, "maxCheckerboard");
   valueSpecifier.Add(MAX_MOLE, "maxMole");
   valueSpecifier.Add(WEIGHT, "weight");
   valueSpecifier.Add(OBJECTIVE, "objective");

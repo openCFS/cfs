@@ -772,7 +772,7 @@
                       <xsd:enumeration value="designTimesCostGradient"/>
                       <xsd:enumeration value="costGradient"/>
                       <xsd:enumeration value="maxSlope"/>
-                      <xsd:enumeration value="checkerboard"/>
+                      <xsd:enumeration value="maxCheckerboard"/>
                       <xsd:enumeration value="maxMole"/>
                       <!-- has details! -->
                       <xsd:enumeration value="constraintGradient"/>

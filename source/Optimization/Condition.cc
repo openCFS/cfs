@@ -730,7 +730,7 @@ void ConditionContainer::VirtualView::Done()
     lc->SetCurrentViewIndex(-1); // reset to global mode
 
     // shall we give the values as special result?
-    DesignElement::ValueSpecifier vs = DesignElement::CHECKERBOARD; // overwrite if necessary
+    DesignElement::ValueSpecifier vs = DesignElement::MAX_CHECKERBOARD; // overwrite if necessary
     if(lc->GetType() == Function::SLOPE)  vs = DesignElement::MAX_SLOPE;
     if(lc->GetType() == Function::MOLE)   vs = DesignElement::MAX_MOLE;
 
@@ -750,7 +750,11 @@ void ConditionContainer::VirtualView::Done()
         Function::Local::Identifier& id = vem[i];
         DesignElement* de =  id.element;
         double sv = id.EvalFunction(lc->local);
-        de->specialResult[idx] = std::max(de->specialResult[idx], abs(sv));
+
+        // in checkerboard we must not use abs
+        double corr = lc->GetType() == Function::CHECKERBOARD ? sv : std::abs(sv);
+
+        de->specialResult[idx] = std::max(de->specialResult[idx], corr);
       }
     }
   }

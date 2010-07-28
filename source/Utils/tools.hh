@@ -174,8 +174,14 @@ namespace CoupledField {
   /** Calculates the continuous Kreisselmeier and Steinhauser max approxmiation for two values. */
   double SmoothMax(double left, double right, double beta);
 
+  /** @param deriv -1 for left or 1 for right value to derive for */
+  double DerivSmoothMax(double left, double right, double beta, int derive);
+
   /** @see CalcMaxApproximation() */
   double SmoothMin(double left, double right, double beta);
+
+  /** @see DerivSmoothMax() */
+  double DerivSmoothMin(double left, double right, double beta, int derive);
 
   /** Calculates an approximation of the abs function:A(x) = sqrt(x^2 + eps^2) - eps
    * As used in Poulsen; A new scheme for imposing a minimum length scale in topology optimization; 2003

@@ -309,8 +309,6 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure)
     VicinityElement::Init(space, structure);
     InitLocal(space);
 
-    info_->Get("subconstraints")->SetValue(local->values.GetSize());
-
     break;
 
   case PENALIZED_VOLUME:
@@ -351,8 +349,13 @@ Function::Local::Local(Function* func, DesignSpace* space)
   this->globalized_ = ftype == GLOBAL_CHECKERBOARD || ftype == GLOBAL_MOLE || ftype == GLOBAL_SLOPE ? true : false;
 
   // check beta
-  if((ftype == CHECKERBOARD || ftype == GLOBAL_CHECKERBOARD) && (pn == NULL || !pn->Has("beta")))
-    throw Exception("function '" + fname + "' requires the 'beta' attribute in a 'local' element");
+  if(ftype == CHECKERBOARD || ftype == GLOBAL_CHECKERBOARD)
+  {
+    if(pn == NULL || !pn->Has("beta"))
+      throw Exception("function '" + fname + "' requires the 'beta' attribute in a 'local' element");
+    if((func->IsObjective() || dynamic_cast<Condition*>(func)->IsActive()) && beta_ < 0)
+      throw Exception("'function '" + fname + "' allows beta=-1 only for condition in observe mode");
+  }
 
   // check eps
   if((ftype == MOLE || ftype == GLOBAL_MOLE) && (pn == NULL || !pn->Has("eps")))
@@ -535,36 +538,73 @@ void Function::Local::SetupStarLocalityElementMap()
       LOG_DBG3(func) << "L:SSLEM: de=" << de->ToString() << " dir=" << dir << " pos=" << pos << " neg=" << neg << " a=" << a << " n=" << n << " buddies=" << DesignElement::ToString(buddies);
     }
 
-    // diagonal
-    // from diagonal we know the number of element.
-    // from orthogonal we know the ratio of dx and dy
-    // -> evalutate how many dx and dy steps we need to identify a diagonal element
-    unsigned int n = struc->diagonal[0];
-    // double dx = struc->orthogonal[0] / (double) struc->orthogonal[1];
-    // double dy = struc->orthogonal[1] / (double) struc->orthogonal[0];
-    // TODO!! we assume dx = dy for simplicity!!! :( Do it better and smarter!!
-    for(int dir = 0; dir <= 1; dir++)
-    {
-      buddies.Resize(0);
-      for(int i = n; i > 0; i--)
-      {
-        DesignElement* tmp = VicinityElement::GetNeighbour(de, VicinityElement::X_N, i);
-        buddies.Push_back(VicinityElement::GetNeighbour(tmp, dir == 0 ? VicinityElement::Y_N : VicinityElement::Y_P, i));
-      }
-      for(unsigned int i = 1; i <= n; i++)
-      {
-        DesignElement* tmp = VicinityElement::GetNeighbour(de, VicinityElement::X_P, i);
-        buddies.Push_back(VicinityElement::GetNeighbour(tmp, dir == 0 ? VicinityElement::Y_P : VicinityElement::Y_N, i));
-      }
-      virtual_elem_map.Push_back(Identifier(de, buddies));
-      LOG_DBG3(func) << "L:SSLEM: de=" << de->ToString() << " dir=" << dir << " buddies=" << DesignElement::ToString(buddies);
-    }
-    // no 3D implemented yet
-    assert(dim != 3);
-  }
+    // In 2D we have 2 diagonals in the xy plane. In 3D also in the xz and the yz plane which makes
+    // 6 diagonals in the planes plus 4 diagonals between the 8 corners. -> 10 diagonals in 3D
 
-  if(virtual_elem_map.GetSize() == 0)
-    throw Exception("Mesh is too small for a single '" + Function::type.ToString(func_->type_) + "' constraint");
+    // we make the assumption, that our elements are almost quadratic, such our diagonals are
+    // simply alternating the directions. The total number of diagonals (we want to describe a
+    // ball and not a cube) is determined by the ball radius and the element diagonals.
+    // start with plane diagonals
+    for(unsigned int d = 0; d < (dim == 2 ? 1 : 3); d++)
+    {
+      unsigned int n = struc->diagonal[d];
+      // within a plane we go zig-zag. First the first axis then the second.
+      // Plus first in negative direction then positive
+      // the planes are xy, xy and yz
+      int axis_first  = d != 2 ? 0 : 1; // xy, xz, yz
+      int axis_second = d == 0 ? 1 : 2; // xy, xz, yz
+
+      // for the first  direction we have the X_N/Y_N elements and the X_P/Y_P elements.
+      // for the second direction we have the X_N/Y_P elements and the X_P/Y_N elements.
+      for(int dir = -1; dir <= 1; dir +=2)
+      {
+        buddies.Resize(0);
+        for(int e = n; e > 0; e--)
+        {
+          DesignElement* tmp = VicinityElement::GetNeighbour(de, VicinityElement::ToNeighbour(axis_first, -1), e);
+          buddies.Push_back(VicinityElement::GetNeighbour(tmp,VicinityElement::ToNeighbour(axis_second, dir), e));
+        }
+        for(unsigned int e = 1; e <= n; e++)
+        {
+          DesignElement* tmp = VicinityElement::GetNeighbour(de, VicinityElement::ToNeighbour(axis_first, 1), e);
+          buddies.Push_back(VicinityElement::GetNeighbour(tmp, VicinityElement::ToNeighbour(axis_second, dir == 1 ? -1 : 1), e));
+        }
+        virtual_elem_map.Push_back(Identifier(de, buddies));
+        LOG_DBG3(func) << "L:SSLEM: diag de=" << de->ToString() << " dir=" << dir << " buddies=" << DesignElement::ToString(buddies);
+      }
+    }
+    if(dim == 3)
+    {
+      // now the four corners
+      // -x -y -z -> +x +y +z
+      // -x -y +z -> +x +y -z
+      // -x +y -z -> +x -y +z
+      // -x +y +z -> +x -y -z
+      assert(struc->diagonal.GetSize() == 4);
+      unsigned int n = struc->diagonal[3];
+      for(int dir_y = -1; dir_y <= 1; dir_y += 2)
+      {
+        for(int dir_z = -1; dir_z <= 1; dir_z += 2)
+        {
+          buddies.Resize(0);
+          for(int e = n; e > 0; e--)
+          {
+            DesignElement* tmp_x = VicinityElement::GetNeighbour(de, VicinityElement::X_N, e);
+            DesignElement* tmp_y = VicinityElement::GetNeighbour(tmp_x, VicinityElement::ToNeighbour(1, dir_y), e);
+            buddies.Push_back(VicinityElement::GetNeighbour(tmp_y, VicinityElement::ToNeighbour(2, dir_z), e));
+          }
+          for(unsigned int e = 1; e <= n; e++)
+          {
+            DesignElement* tmp_x = VicinityElement::GetNeighbour(de, VicinityElement::X_P, e);
+            DesignElement* tmp_y = VicinityElement::GetNeighbour(tmp_x, VicinityElement::ToNeighbour(1, dir_y == 1 ? -1 : 1), e);
+            buddies.Push_back(VicinityElement::GetNeighbour(tmp_y, VicinityElement::ToNeighbour(2, dir_z == 1 ? -1 : 1), e));
+          }
+          virtual_elem_map.Push_back(Identifier(de, buddies));
+          LOG_DBG3(func) << "L:SSLEM: corner de=" << de->ToString() << " dir_y=" << dir_y << " dir_z=" << dir_z << " buddies=" << DesignElement::ToString(buddies);
+        }
+      }
+    }
+  }
 }
 
 
@@ -618,18 +658,24 @@ Function::Local::NeighborhoodStructure::NeighborhoodStructure(Local* local, PtrP
     if(orthogonal[i] == 0)
       throw Exception("your local neighbor radius for '" + Function::type.ToString(local->func_->GetType()) + "' is too small");
 
-  // now diagonal
-  if(dim == 2)
+  // diagonals are xy, xz and yz plane, only xy in 2D
+  for(int i = 0; i < (dim == 2 ? 1 : 3); i++)
   {
-    double diag = std::sqrt(edges[0] * edges[0] + edges[1] * edges[1]);
-    diagonal.Resize(1);
-    diagonal[0] = (int) ((radius / diag) + 0.5);
-    LOG_DBG(func) << "L:NS:NS diagonal[0]: radius=" << radius << " diag=" << diag << " -> " << diagonal[0];
+    int x = i != 2 ? 0 : 1; // xy, xz, yz
+    int y = i == 0 ? 1 : 2; // xy, xz, yz
+    double diag = std::sqrt(edges[x] * edges[x] + edges[y] * edges[y]);
+    diagonal.Push_back((int) ((radius / diag) + 0.5));
+    LOG_DBG(func) << "L:NS:NS diagonal[0]: x=" << x << " y=" << y << " radius="
+                  << radius << " diag=" << diag << " -> " << diagonal[0];
   }
-  else
+  // all 4 "total" diagonals have the same size
+  if(dim == 3)
   {
-    assert(false);
+    double diag = std::sqrt(edges[0] * edges[0] + edges[1] * edges[1] + edges[2] * edges[2]);
+    diagonal.Push_back((int) ((radius / diag) + 0.5));
   }
+
+  assert((dim == 2 && diagonal.GetSize() == 1) || (dim == 3 && diagonal.GetSize() == 4));
 }
 
 void Function::Local::NeighborhoodStructure::ToInfo(PtrParamNode in)
@@ -851,65 +897,57 @@ double Function::Local::Identifier::CalcCheckerboard(double beta) const
   assert(neighbor.GetSize() == 2);
   double prev = neighbor[0]->GetDesign(DesignElement::SMART);
   double next = neighbor[1]->GetDesign(DesignElement::SMART);
-
   assert(sign == 1 || sign == -1);
+  double min_max = 0.0; // min or max
+  double res = 0.0;
+
   if(sign == 1)
   {
     // "Heaviside"(rho_i - max( rho_i-1, rho_i+1)
     // double smaller = std::max(0.0, own - std::max(left, right));
-    double max_left_right = beta < 0 ? std::max(prev, next) : SmoothMax(prev, next, beta);
-    double smaller = std::max(0.0, own - max_left_right);
-    return smaller;
+    min_max = beta < 0 ? std::max(prev, next) : SmoothMax(prev, next, beta);
+    res = own - min_max;
   }
   else
   {
     // "Heaviside"(min( rho_i-1, rho_i+1) - rho_i)
     // double larger = std::max(0.0, std::min(left, right) - own);
-    double min_left_right = beta < 0 ? std::min(prev, next) : SmoothMin(prev, next, beta);
-    double larger = std::max(0.0, min_left_right - own);
-    return larger;
+    min_max = beta < 0 ? std::min(prev, next) : SmoothMin(prev, next, beta);
+    res = min_max - own;
   }
+
+  LOG_DBG3(func) << "L:I:CC de=" << element->ToString() << " sign=" << sign << " own=" << own <<" prev("
+                 << neighbor[0]->ToString() << ")=" << prev << " next(" << neighbor[1]->ToString() << ")="
+                 << next << " smooth=" << min_max << " hard="
+                 << (sign == 1 ? (own - std::max(prev, next)) : (std::min(prev, next) - own))
+                 << " -> " << res;
+  return res;
 }
 
 double Function::Local::Identifier::CalcCheckerboardGradient(int neigh_idx, double beta)
 {
-  double prev_val = GetElement(0)->GetDesign(DesignElement::SMART);
-  double next_val = GetElement(1)->GetDesign(DesignElement::SMART);
+  assert(beta >= 0);
+  // TODO is inefficient as evaluates three times!
+  double prev = GetElement(0)->GetDesign(DesignElement::SMART);
+  double next = GetElement(1)->GetDesign(DesignElement::SMART);
 
-  double exp_prev = 0.0;
-  double exp_next = 0.0;
+  //double fv = CalcCheckerboard(beta);
+  //if(fv == 0.0)
+  //  return 0.0;
 
-  double result = -125.56;
-
-  if(sign == 1)
+  switch(neigh_idx)
   {
-    if(neigh_idx == -1) result = 1.0;
-    else
-    {
-      exp_prev = std::exp(prev_val * beta);
-      exp_next = std::exp(next_val * beta);
-    }
+  case -1: // this element
+    // std::max(0.0, own - max_left_right) or std::max(0.0, min_left_right - own)
+    return sign == 1 ? 1 : -1;
+  case 0: // prev
+    return sign == 1 ? -1.0 * DerivSmoothMax(prev, next, beta, -1) : DerivSmoothMin(prev, next, beta, -1);
+  case 1: // next
+    return sign == 1 ? -1.0 * DerivSmoothMax(prev, next, beta, 1) : DerivSmoothMin(prev, next, beta, 1);
+  default:
+    assert(false);
+    return -1.0;
   }
-  else // sign = -1
-  {
-    if(neigh_idx == -1) result = -1.0;
-    else
-    {
-      exp_prev = std::exp((1.0 - prev_val) * beta);
-      exp_next = std::exp((1.0 - next_val) * beta);
-    }
-  }
-
-  if(neigh_idx == 0)
-    result = -1.0 * exp_prev / (exp_prev + exp_next);
-  if(neigh_idx == 1)
-    result = -1.0 * exp_next / (exp_prev + exp_next);
-
-  LOG_DBG3(func) << "CCG el=" << element->elem->elemNum << " neigh_idx=" << neigh_idx
-                     << " prev_val=" << prev_val << " next_val=" << next_val << " exp_prev=" << exp_prev
-                     << " exp_next=" << exp_next << " result=" << result;
-
-  return result;
 }
 
 double Function::Local::Identifier::CalcMole(double eps) const

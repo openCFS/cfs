@@ -41,6 +41,9 @@ def read_cubic_density(filename):
 ## Reads a density.xml file as vector
 # @param filename from which the last 'set' is used
 def read_density_as_vector(filename):
+  if not os.path.exists(filename):
+    raise RuntimeError("file '" + filename + "' doesn't exist")
+  
   tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
   
   root = tree.getroot()

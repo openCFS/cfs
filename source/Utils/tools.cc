@@ -287,7 +287,7 @@ namespace CoupledField {
 
     // the continuous Kreisselmeier and Steinhauser max approximation taken
     // from Sigmund; Morphology-based black and white filters for topology optimization; 2007
-    // x = log ( sum(exp(beta * x_i)) / sum 1 ) / beta
+    // x = log ( sum(exp(beta * x_i)) / sum 1) / beta
 
     return std::log(0.5 * (std::exp(left * beta) + std::exp(right * beta))) / beta;
   }
@@ -302,6 +302,31 @@ namespace CoupledField {
 
     return 1.0 - std::log(0.5 * (std::exp((1.0 - left) * beta) + std::exp((1.0 - right) * beta))) / beta;
   }
+
+  double DerivSmoothMax(double left, double right, double beta, int derive)
+  {
+    assert(derive == -1 || derive == 1); // left or right
+    double exp_left  = std::exp(left * beta);
+    double exp_right = std::exp(right * beta);
+
+    if(derive == -1)
+      return exp_left / (exp_left + exp_right);
+    else
+      return exp_right / (exp_left + exp_right);
+  }
+
+  double DerivSmoothMin(double left, double right, double beta, int derive)
+  {
+    assert(derive == -1 || derive == 1); // left or right
+    double exp_left  = std::exp((1.0 - left) * beta);
+    double exp_right = std::exp((1.0 - right) * beta);
+
+    if(derive == -1)
+      return exp_left / (exp_left + exp_right);
+    else
+      return exp_right / (exp_left + exp_right);
+  }
+
 
   double SmoothAbs(double x, double eps)
   {
