@@ -88,6 +88,7 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   case SLOPE:
   case GLOBAL_SLOPE:
   case CHECKERBOARD:
+  case OSCILLATION:
     if(bound_ != UPPER_BOUND && IsActive())
       bound_ = UPPER_BOUND; // detected in PostProc() and warning is given
     break;
@@ -108,6 +109,7 @@ void Condition::PostProc(DesignSpace* space, DesignStructure* structure)
   case SLOPE:
   case GLOBAL_SLOPE:
   case CHECKERBOARD:
+  case OSCILLATION:
     if(pn->Get("bound")->As<std::string>() != bound.ToString(bound_) && IsActive())
       info_->Get(ParamNode::WARNING)->SetValue("changed bound for '" + type.ToString(type_) + "' to 'upperBound'");
     break;
@@ -135,7 +137,7 @@ bool Condition::ReadCoord(PtrParamNode pn)
 void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list)
 {
   Type t = type.Parse(pn->Get("type")->As<std::string>());
-  list.Push_back(t == SLOPE || t == MOLE || t == CHECKERBOARD? new LocalCondition(pn) : new Condition(pn));
+  list.Push_back(t == SLOPE || t == MOLE || t == CHECKERBOARD || t == OSCILLATION ? new LocalCondition(pn) : new Condition(pn));
 
   // note that the pointer becomes invalid by AddSubCondition()
   Condition* g = list.Last();
@@ -660,6 +662,8 @@ void ConditionContainer::VirtualView::Refresh()
   if(c != NULL) tmp.push_back(c->GetIndex());
   c = container_->Get(Condition::CHECKERBOARD, DesignElement::NO_TYPE, false, false);
   if(c != NULL) tmp.push_back(c->GetIndex());
+  c = container_->Get(Condition::OSCILLATION, DesignElement::NO_TYPE, false, false);
+  if(c != NULL) tmp.push_back(c->GetIndex());
   c = container_->Get(Condition::MOLE, DesignElement::NO_TYPE, false, false);
   if(c != NULL) tmp.push_back(c->GetIndex());
 
@@ -731,8 +735,9 @@ void ConditionContainer::VirtualView::Done()
 
     // shall we give the values as special result?
     DesignElement::ValueSpecifier vs = DesignElement::MAX_CHECKERBOARD; // overwrite if necessary
-    if(lc->GetType() == Function::SLOPE)  vs = DesignElement::MAX_SLOPE;
-    if(lc->GetType() == Function::MOLE)   vs = DesignElement::MAX_MOLE;
+    if(lc->GetType() == Function::OSCILLATION)  vs = DesignElement::MAX_OSCILLATION;
+    if(lc->GetType() == Function::SLOPE)        vs = DesignElement::MAX_SLOPE;
+    if(lc->GetType() == Function::MOLE)         vs = DesignElement::MAX_MOLE;
 
     int idx = container_->space_->GetSpecialResultIndex(DesignElement::DEFAULT, vs);
     if(idx >= 0)
@@ -752,7 +757,7 @@ void ConditionContainer::VirtualView::Done()
         double sv = id.EvalFunction(lc->local);
 
         // in checkerboard we must not use abs
-        double corr = lc->GetType() == Function::CHECKERBOARD ? sv : std::abs(sv);
+        double corr = lc->GetType() == Function::CHECKERBOARD  || lc->GetType() == Function::OSCILLATION ? sv : std::abs(sv);
 
         de->specialResult[idx] = std::max(de->specialResult[idx], corr);
       }

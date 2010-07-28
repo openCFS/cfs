@@ -764,6 +764,8 @@ double ErsatzMaterial::CalcObjective(Excitation& excite, Objective* cost)
 
   case Objective::GLOBAL_SLOPE:
   case Objective::GLOBAL_CHECKERBOARD:
+  case Objective::GLOBAL_OSCILLATION:
+  case Objective::GLOBAL_MOLE:
     return CalcGlobalFunction(cost, false);
 
   case Objective::GLOBAL_DYNAMIC_COMPLIANCE:
@@ -853,6 +855,8 @@ void ErsatzMaterial::CalcObjectiveGradient(StdVector<double>* grad_out)
 
         case Objective::GLOBAL_SLOPE:
         case Objective::GLOBAL_CHECKERBOARD:
+        case Objective::GLOBAL_MOLE:
+        case Objective::GLOBAL_OSCILLATION:
           CalcGlobalFunction(cost, true);
           break;
 
@@ -1191,12 +1195,14 @@ double ErsatzMaterial::CalcConstraint(Condition* g, bool derivative, StdVector<d
     case Condition::GLOBAL_SLOPE:
     case Condition::GLOBAL_MOLE:
     case Condition::GLOBAL_CHECKERBOARD:
+    case Condition::GLOBAL_OSCILLATION:
          result = CalcGlobalFunction(g, derivative);
          break;
 
     case Condition::SLOPE:
     case Condition::MOLE:
     case Condition::CHECKERBOARD:
+    case Condition::OSCILLATION:
          result = CalcLocalConstraint(g, derivative);
          break;
 
@@ -2598,6 +2604,8 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation& excite, Objective* cost, bo
     case Objective::VOLUME:
     case Objective::GLOBAL_SLOPE:
     case Objective::GLOBAL_CHECKERBOARD:
+    case Objective::GLOBAL_MOLE:
+    case Objective::GLOBAL_OSCILLATION:
     case Objective::PENALIZED_VOLUME:
     case Objective::GAP:
     case Objective::TEMPERATURE:

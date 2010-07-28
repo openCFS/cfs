@@ -276,6 +276,8 @@
                 <xsd:enumeration value="globalSlope"/>
                 <xsd:enumeration value="checkerboard"/>
                 <xsd:enumeration value="globalCheckerboard"/>
+                <xsd:enumeration value="oscillation"/>
+                <xsd:enumeration value="globalOscillation"/>
                 <xsd:enumeration value="mole"/>
                 <xsd:enumeration value="globalMole"/>
               </xsd:restriction>
@@ -773,6 +775,7 @@
                       <xsd:enumeration value="costGradient"/>
                       <xsd:enumeration value="maxSlope"/>
                       <xsd:enumeration value="maxCheckerboard"/>
+                      <xsd:enumeration value="maxOscillation"/>
                       <xsd:enumeration value="maxMole"/>
                       <!-- has details! -->
                       <xsd:enumeration value="constraintGradient"/>
@@ -1060,6 +1063,7 @@
       <xsd:enumeration value="energyFlux"/>
       <xsd:enumeration value="globalSlope"/>
       <xsd:enumeration value="globalCheckerboard"/>
+      <xsd:enumeration value="globalOscillation"/>
       <xsd:enumeration value="globalMole"/>
       <xsd:enumeration value="multiObjective"/>
     </xsd:restriction>
@@ -1179,11 +1183,12 @@
           <xsd:enumeration value="next"/>
           <xsd:enumeration value="next_and_reverse"/>
           <xsd:enumeration value="prev_next_and_reverse"/>
+          <xsd:enumeration value="45_deg_star_and_reverse"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
     
-    <!-- the parameter for max/min, for the Kreisselmeier and Steinhauser approx. (global) checkerboard only -->
+    <!-- the parameter for max/min, for the Kreisselmeier and Steinhauser approx. (global) oscillation only -->
     <xsd:attribute name="beta" type="xsd:float" use="optional"/>
 
     <!-- relaxation parameter for abs smoothing in (global) model constraint -->

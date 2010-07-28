@@ -283,7 +283,8 @@ namespace CoupledField {
 
   double SmoothMax(double left, double right, double beta)
   {
-    assert(beta > 0);
+    assert(beta > 0 || beta == -1.0);
+    if(beta == -1.0) return std::max(left, right);
 
     // the continuous Kreisselmeier and Steinhauser max approximation taken
     // from Sigmund; Morphology-based black and white filters for topology optimization; 2007
@@ -292,20 +293,68 @@ namespace CoupledField {
     return std::log(0.5 * (std::exp(left * beta) + std::exp(right * beta))) / beta;
   }
 
+  double SmoothMax(const StdVector<double>& values, double beta)
+  {
+    assert(beta > 0 || beta == -1.0);
+    assert(values.GetSize() > 0);
+
+    if(beta == -1.0)
+    {
+      double t = values[0];
+      for(unsigned int i = 1, n = values.GetSize(); i < n; i++)
+        t = std::max(t, values[i]);
+      return t;
+    }
+
+    // see  SmoothMax(double left, double right, double beta)
+    // x = log ( sum(exp(beta * x_i)) / sum 1) / beta
+    double sum = 0.0;
+    for(unsigned int i = 0, n = values.GetSize(); i < n; i++)
+      sum += std::exp(values[i] * beta);
+
+    return std::log(sum / (double) values.GetSize()) / beta;
+
+  }
 
   double SmoothMin(double left, double right, double beta)
   {
-    assert(beta > 0);
+    assert(beta > 0 || beta == -1.0);
     assert(right > 0 && left > 0);
 
-    // see comment in CalcMaxApproximation()
+    if(beta == -1.0)
+      return std::min(left, right);
 
+    // see comment in CalcMaxApproximation()
     return 1.0 - std::log(0.5 * (std::exp((1.0 - left) * beta) + std::exp((1.0 - right) * beta))) / beta;
   }
+
+  double SmoothMin(const StdVector<double>& values, double beta)
+  {
+    assert(beta > 0 || beta == -1.0);
+    assert(values.GetSize() > 0);
+    // see  SmoothMax(double left, double right, double beta)
+
+    if(beta == -1.0)
+    {
+      double t = values[0];
+      for(unsigned int i = 1, n = values.GetSize(); i < n; i++)
+        t = std::min(t, values[i]);
+      return t;
+    }
+
+    double sum = 0.0;
+    for(unsigned int i = 0, n = values.GetSize(); i < n; i++)
+      sum += std::exp((1.0 - values[i]) * beta);
+
+    return 1.0 - std::log(sum / (double) values.GetSize()) / beta;
+  }
+
 
   double DerivSmoothMax(double left, double right, double beta, int derive)
   {
     assert(derive == -1 || derive == 1); // left or right
+    assert(beta > 0);
+
     double exp_left  = std::exp(left * beta);
     double exp_right = std::exp(right * beta);
 
@@ -313,6 +362,24 @@ namespace CoupledField {
       return exp_left / (exp_left + exp_right);
     else
       return exp_right / (exp_left + exp_right);
+  }
+
+  double DerivSmoothMax(const StdVector<double>& values, double beta, unsigned int derive)
+  {
+    assert(beta > 0);
+
+    double my_exp = -1.0;
+    double sum = 0.0;
+
+    for(unsigned int i = 0, n = values.GetSize(); i < n; i++)
+    {
+      double v = std::exp(values[i] * beta);
+      sum += v;
+      if(derive == i) my_exp = v; // not derive ist not a window based index
+    }
+    assert(my_exp != -1.0);
+
+    return my_exp / sum;
   }
 
   double DerivSmoothMin(double left, double right, double beta, int derive)
@@ -327,6 +394,21 @@ namespace CoupledField {
       return exp_right / (exp_left + exp_right);
   }
 
+  double DerivSmoothMin(const StdVector<double>& values, double beta, unsigned int derive)
+  {
+    double my_exp = -1.0;
+    double sum = 0.0;
+
+    for(unsigned int i = 0, n = values.GetSize(); i < n; i++)
+    {
+      double v = std::exp((1.0 - values[i]) * beta);
+      sum += v;
+      if(derive == i) my_exp = v;
+    }
+    assert(my_exp != -1.0);
+
+    return my_exp / sum;
+  }
 
   double SmoothAbs(double x, double eps)
   {
@@ -340,7 +422,6 @@ namespace CoupledField {
     assert(abs(x) + eps > 0);
     return x / std::sqrt(x*x + eps*eps);
   }
-
 
   VTKStructuredPoints::VTKStructuredPoints(Integer i, Integer j, Integer k, const std::string& scalars, const std::string& vectors)
   {

@@ -18,7 +18,8 @@ Enum<Function::Type> Function::type;
 Enum<Function::Local::Locality> Function::Local::locality;
 
 // speed up by sharing
-StdVector<double> Function::Local::Identifier::tmp;
+StdVector<double> Function::Local::Identifier::tmp1;
+StdVector<double> Function::Local::Identifier::tmp2;
 
 const int Function::Local::Identifier::NO_SIGN = -1000;
 
@@ -67,18 +68,18 @@ Function::Function(PtrParamNode pn)
   case GAP:
   case GLOBAL_SLOPE:
   case GLOBAL_CHECKERBOARD:
+  case GLOBAL_OSCILLATION:
+  case GLOBAL_MOLE:
     if(!pn->Has("parameter"))
       throw Exception("function '" + type.ToString(type_) + "' requires the 'parameter' attribute");
     break;
 
   default:
-    if(pn->Has("parameter"))
-      throw Exception("function '" + type.ToString(type_) + "' does not accept 'parameter' attribute");
+    break;
   }
 
-
   if(physical_ && !(type_ == VOLUME || type_ == GREYNESS))
-    throw Exception("'physical' not defined for '" + type.ToString(type_) + "'");
+    throw Exception("'physical' is no option for '" + type.ToString(type_) + "'");
 
   // some functions need to be evaluated only once (last) for multiple excitations
   // multiple excitations are:
@@ -105,6 +106,8 @@ Function::Function(PtrParamNode pn)
     case GLOBAL_CHECKERBOARD:
     case MOLE:
     case GLOBAL_MOLE:
+    case OSCILLATION:
+    case GLOBAL_OSCILLATION:
       this->evaluateOnce_ = true;
       break;
 
@@ -281,6 +284,8 @@ bool Function::ForSensitivityFiltering() const
   case GLOBAL_CHECKERBOARD:
   case MOLE:
   case GLOBAL_MOLE:
+  case OSCILLATION:
+  case GLOBAL_OSCILLATION:
     return false;
 
   case ISOTROPY:
@@ -297,12 +302,14 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure)
   // pre-init step
   switch(type_)
   {
-  case GLOBAL_CHECKERBOARD:
   case CHECKERBOARD:
-  case GLOBAL_SLOPE:
+  case GLOBAL_CHECKERBOARD:
   case SLOPE:
-  case GLOBAL_MOLE:
+  case GLOBAL_SLOPE:
   case MOLE:
+  case GLOBAL_MOLE:
+  case OSCILLATION:
+  case GLOBAL_OSCILLATION:
     assert(space->IsRegular()); // VicinityElements work only on a regular grid
     // the design elements require the vicinity element to be set which holds the direct
     // neighbors. Is save to call several times
@@ -346,10 +353,10 @@ Function::Local::Local(Function* func, DesignSpace* space)
 
   this->normalize_ = pn != NULL ? pn->Get("normalize")->As<bool>() : true;
 
-  this->globalized_ = ftype == GLOBAL_CHECKERBOARD || ftype == GLOBAL_MOLE || ftype == GLOBAL_SLOPE ? true : false;
+  this->globalized_ = ftype == GLOBAL_CHECKERBOARD || ftype == GLOBAL_MOLE || ftype == GLOBAL_SLOPE  || ftype == GLOBAL_OSCILLATION ? true : false;
 
   // check beta
-  if(ftype == CHECKERBOARD || ftype == GLOBAL_CHECKERBOARD)
+  if(ftype == CHECKERBOARD || ftype == GLOBAL_CHECKERBOARD || ftype == OSCILLATION || ftype == GLOBAL_OSCILLATION)
   {
     if(pn == NULL || !pn->Has("beta"))
       throw Exception("function '" + fname + "' requires the 'beta' attribute in a 'local' element");
@@ -391,6 +398,13 @@ Function::Local::Local(Function* func, DesignSpace* space)
     locality_ = PREV_NEXT_AND_REVERSE;
     break;
 
+  case OSCILLATION:
+  case GLOBAL_OSCILLATION:
+    if(locality_ != DEG_45_STAR_AND_REVERSE && locality_ !=  PREV_NEXT_AND_REVERSE && locality_ != DEFAULT)
+      throw Exception("Invalid choice for 'local' with " + fname);
+    locality_ = locality_ == DEFAULT ? DEG_45_STAR_AND_REVERSE : locality_;
+    break;
+
   case MOLE:
   case GLOBAL_MOLE:
     if(locality_ != DEG_45_STAR && locality_ != DEFAULT)
@@ -404,7 +418,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
   }
 
   // this is actually pure constructor work, just extracted to handle function size
-  if(locality_ == DEG_45_STAR)
+  if(locality_ == DEG_45_STAR || locality_ == DEG_45_STAR_AND_REVERSE)
   {
     if(!pn)
       throw Exception("subelement 'local' with neighborhood information mandatory for '" + fname + "'");
@@ -415,6 +429,8 @@ Function::Local::Local(Function* func, DesignSpace* space)
   {
     SetupVirtualElementMap();
   }
+
+  if(virtual_elem_map.GetSize() == 0) throw Exception("mesh too small for locality of function '" + fname + "'");
 
   // needs to be set prior CalcSlopeConstraint() as the optimizers need the size
   values.Resize(virtual_elem_map.GetSize(), -1.0);
@@ -493,11 +509,13 @@ void Function::Local::SetupVirtualElementMap()
 void Function::Local::SetupStarLocalityElementMap()
 {
   unsigned int dim  = domain->GetGrid()->GetDim();
-  assert(locality_ == DEG_45_STAR);
+  assert(locality_ == DEG_45_STAR || locality_ == DEG_45_STAR_AND_REVERSE);
   assert(structure_ != NULL);
   NeighborhoodStructure* struc = structure_;
 
-  element_dimension_ = dim == 2 ? 4 : 13; // see paper
+  // the *and* reverse mode? and is to be read as plus
+  bool reverse = locality_ == DEG_45_STAR_AND_REVERSE;
+  element_dimension_ = (dim == 2 ? 4 : 13) * (reverse ? 1 : 2); // see paper
   virtual_elem_map.Reserve(element_dimension_ * space->GetNumberOfElements());
 
   space->AssertOneDesignOnly(); // can be extended we use the design from the conditon
@@ -534,8 +552,11 @@ void Function::Local::SetupStarLocalityElementMap()
       buddies.Resize(0);
       for(unsigned int i = n; i > 0; i--)  buddies.Push_back(VicinityElement::GetNeighbour(de, neg, i));
       for(unsigned int i = 1; i <= n; i++) buddies.Push_back(VicinityElement::GetNeighbour(de, pos, i));
-      virtual_elem_map.Push_back(Identifier(de, buddies));
+
+      virtual_elem_map.Push_back(Identifier(de, buddies, reverse ? -1 : Identifier::NO_SIGN));
       LOG_DBG3(func) << "L:SSLEM: de=" << de->ToString() << " dir=" << dir << " pos=" << pos << " neg=" << neg << " a=" << a << " n=" << n << " buddies=" << DesignElement::ToString(buddies);
+      if(reverse)
+        virtual_elem_map.Push_back(Identifier(de, buddies, 1));
     }
 
     // In 2D we have 2 diagonals in the xy plane. In 3D also in the xz and the yz plane which makes
@@ -569,8 +590,10 @@ void Function::Local::SetupStarLocalityElementMap()
           DesignElement* tmp = VicinityElement::GetNeighbour(de, VicinityElement::ToNeighbour(axis_first, 1), e);
           buddies.Push_back(VicinityElement::GetNeighbour(tmp, VicinityElement::ToNeighbour(axis_second, dir == 1 ? -1 : 1), e));
         }
-        virtual_elem_map.Push_back(Identifier(de, buddies));
+        virtual_elem_map.Push_back(Identifier(de, buddies, reverse ? -1 : Identifier::NO_SIGN));
         LOG_DBG3(func) << "L:SSLEM: diag de=" << de->ToString() << " dir=" << dir << " buddies=" << DesignElement::ToString(buddies);
+        if(reverse)
+          virtual_elem_map.Push_back(Identifier(de, buddies, 1));
       }
     }
     if(dim == 3)
@@ -599,8 +622,10 @@ void Function::Local::SetupStarLocalityElementMap()
             DesignElement* tmp_y = VicinityElement::GetNeighbour(tmp_x, VicinityElement::ToNeighbour(1, dir_y == 1 ? -1 : 1), e);
             buddies.Push_back(VicinityElement::GetNeighbour(tmp_y, VicinityElement::ToNeighbour(2, dir_z == 1 ? -1 : 1), e));
           }
-          virtual_elem_map.Push_back(Identifier(de, buddies));
+          virtual_elem_map.Push_back(Identifier(de, buddies, reverse ? -1 : Identifier::NO_SIGN));
           LOG_DBG3(func) << "L:SSLEM: corner de=" << de->ToString() << " dir_y=" << dir_y << " dir_z=" << dir_z << " buddies=" << DesignElement::ToString(buddies);
+          if(reverse)
+            virtual_elem_map.Push_back(Identifier(de, buddies, 1));
         }
       }
     }
@@ -619,7 +644,7 @@ void Function::Local::ToInfo(PtrParamNode in)
     in->Get("normalize")->SetValue(normalize_);
     in->Get("power")->SetValue(power_);
   }
-  if(ft == CHECKERBOARD || ft == GLOBAL_CHECKERBOARD)
+  if(ft == CHECKERBOARD || ft == GLOBAL_CHECKERBOARD || ft == OSCILLATION || ft == GLOBAL_OSCILLATION)
     in->Get("beta")->SetValue(beta_);
 
   if(ft == MOLE || ft == GLOBAL_MOLE)
@@ -732,6 +757,11 @@ double Function::Local::Identifier::EvalFunction(const Local* local) const
     fv = CalcCheckerboard(local->GetBeta());
     break;
 
+  case OSCILLATION:
+  case GLOBAL_OSCILLATION:
+    fv = CalcOscillation(local->GetBeta());
+    break;
+
   case MOLE:
   case GLOBAL_MOLE:
     fv = CalcMole(local->GetEps());
@@ -749,6 +779,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local) const
   {
   case GLOBAL_SLOPE:
   case GLOBAL_CHECKERBOARD:
+  case GLOBAL_OSCILLATION:
   case GLOBAL_MOLE:
   {
     // we normalize all values by the number of "constraints". Note that it is
@@ -795,6 +826,8 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
   case GLOBAL_CHECKERBOARD:
     fv = std::max(0.0, CalcCheckerboard(local->beta_) - funct->GetParameter());
     break;
+  case GLOBAL_OSCILLATION:
+    fv = std::max(0.0, CalcOscillation(local->beta_) - funct->GetParameter());
   case GLOBAL_MOLE:
     fv = std::max(0.0, CalcMole(local->eps_) - funct->GetParameter());
     break;
@@ -823,6 +856,11 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
     case CHECKERBOARD:
     case GLOBAL_CHECKERBOARD:
       gv = CalcCheckerboardGradient(n, local->beta_);
+      break;
+
+    case OSCILLATION:
+    case GLOBAL_OSCILLATION:
+      gv = CalcOscillationGradient(n, local->beta_);
       break;
 
     case MOLE:
@@ -950,6 +988,95 @@ double Function::Local::Identifier::CalcCheckerboardGradient(int neigh_idx, doub
   }
 }
 
+
+double Function::Local::Identifier::CalcOscillation(double beta) const
+{
+  assert(sign == 1 || sign == -1);
+
+  double own  = element->GetDesign(DesignElement::SMART);
+  // we divide the neighbors in lower and upper
+  unsigned int half = neighbor.GetSize() / 2;
+
+  tmp1.Resize(half);
+  for(unsigned int i = 0; i < half; i++)
+    tmp1[i] = neighbor[i]->GetDesign(DesignElement::SMART);
+  double prev = sign == 1 ? SmoothMax(tmp1, beta) : SmoothMin(tmp1, beta);
+
+  tmp2.Resize(half);
+  for(unsigned int i = 0; i < half; i++)
+    tmp2[i] = neighbor[i + half]->GetDesign(DesignElement::SMART);
+  double next = sign == 1 ? SmoothMax(tmp2, beta) : SmoothMin(tmp2, beta);
+
+  double min_max = 0.0; // min or max
+  double res = 0.0;
+
+  if(sign == 1)
+  {
+    // "Heaviside"(rho_i - max( rho_i-1, rho_i+1)
+    // double smaller = std::max(0.0, own - std::max(left, right));
+    min_max = beta < 0 ? std::max(prev, next) : SmoothMax(prev, next, beta);
+    res = own - min_max;
+  }
+  else
+  {
+    // "Heaviside"(min( rho_i-1, rho_i+1) - rho_i)
+    // double larger = std::max(0.0, std::min(left, right) - own);
+    min_max = beta < 0 ? std::min(prev, next) : SmoothMin(prev, next, beta);
+    res = min_max - own;
+  }
+
+  LOG_DBG3(func) << "L:I:CO de=" << element->ToString() << " neigh=" << DesignElement::ToString(neighbor) << " sign=" << sign << " own=" << own
+                 << " prev=" << prev << " next=" << next << " smooth=" << min_max << " hard="
+                 << (sign == 1 ? (own - std::max(prev, next)) : (std::min(prev, next) - own)) << " -> " << res;
+  return res;
+}
+
+
+double Function::Local::Identifier::CalcOscillationGradient(int neigh_idx, double beta)
+{
+  assert(beta >= 0);
+
+  // the own value is not within the min/max stuff
+  if(neigh_idx == -1)
+    return sign == 1 ? 1 : -1;
+
+  // we divide the neighbors in lower and upper
+  unsigned int half = neighbor.GetSize() / 2;
+
+  tmp1.Resize(half);
+  for(unsigned int i = 0; i < half; i++)
+    tmp1[i] = neighbor[i]->GetDesign(DesignElement::SMART);
+  double prev = sign == 1 ? SmoothMax(tmp1, beta) : SmoothMin(tmp1, beta);
+
+  tmp2.Resize(half);
+  for(unsigned int i = 0; i < half; i++)
+    tmp2[i] = neighbor[i + half]->GetDesign(DesignElement::SMART);
+  double next = sign == 1 ? SmoothMax(tmp2, beta) : SmoothMin(tmp2, beta);
+
+  // sign = -1: min( min(x_0 .. x_half-1), min(x_half .. x_max) ) - own
+  // sign =  1: own - max( max(x_0 .. x_half-1), max(x_half .. x_max) )
+
+  // example derivative for sign = 1: - max'(max(x_0 .. x_half-1), max(x_half .. x_max) * max'(max(x_0 .. x_half-1) * 1
+
+  // are we within prev (-1) or next (1)
+  int side = neigh_idx < (int) half ? -1 : 1;
+
+  // outer is simple
+  double outer = sign == 1 ? DerivSmoothMax(prev, next, beta, side) : DerivSmoothMin(prev, next, beta, side);
+  // we do not handle neighbor.GetSize() == 2 special as the Smooth tools are fast for this special case
+  // inner depends on neigh_idx within the first or the next
+  double inner = 0.0;
+  if(side == -1)
+    inner = sign == 1 ? DerivSmoothMax(tmp1, beta, neigh_idx) : DerivSmoothMin(tmp1, beta, neigh_idx);
+  else
+    inner = sign == 1 ? DerivSmoothMax(tmp2, beta, neigh_idx - half) : DerivSmoothMin(tmp2, beta, neigh_idx - half);
+  assert(neighbor.GetSize() > 2 || close(inner, 1.0));
+
+  return (sign == 1 ? -1.0 : 1.0) * outer * inner;
+}
+
+
+
 double Function::Local::Identifier::CalcMole(double eps) const
 {
   // the neighborhood is even and stars with the most previous element
@@ -964,34 +1091,34 @@ double Function::Local::Identifier::CalcMole(double eps) const
   // the abs are regularized by A(x) = sqrt(x^2 + eps^2) - eps
 
   // make sequence of data
-  tmp.Resize(0); // is static and keeps capacity
+  tmp1.Resize(0); // is static and keeps capacity
   for(unsigned int i = 0; i < neighbor.GetSize() / 2; i++)
   {
-    tmp.Push_back(GetElement(i)->GetDesign(DesignElement::SMART));
-    LOG_DBG3(func) << "L:I:CalcMole de=" << element->ToString() << " other=" << GetElement(i)->ToString() << " v=" << tmp.Last();
+    tmp1.Push_back(GetElement(i)->GetDesign(DesignElement::SMART));
+    LOG_DBG3(func) << "L:I:CalcMole de=" << element->ToString() << " other=" << GetElement(i)->ToString() << " v=" << tmp1.Last();
   }
 
-  tmp.Push_back(element->GetDesign(DesignElement::SMART));
-  LOG_DBG3(func) << "L:I:CalcMole de=" << element->ToString() << " other=" << element->ToString() << " v=" << tmp.Last();
+  tmp1.Push_back(element->GetDesign(DesignElement::SMART));
+  LOG_DBG3(func) << "L:I:CalcMole de=" << element->ToString() << " other=" << element->ToString() << " v=" << tmp1.Last();
 
   for(unsigned int i = neighbor.GetSize() / 2; i < neighbor.GetSize(); i++)
   {
-    tmp.Push_back(GetElement(i)->GetDesign(DesignElement::SMART));
-    LOG_DBG3(func) << "L:I:CalcMole de=" << element->ToString() << " other=" << GetElement(i)->ToString() << " v=" << tmp.Last();
+    tmp1.Push_back(GetElement(i)->GetDesign(DesignElement::SMART));
+    LOG_DBG3(func) << "L:I:CalcMole de=" << element->ToString() << " other=" << GetElement(i)->ToString() << " v=" << tmp1.Last();
   }
 
-  assert(tmp.GetSize() == neighbor.GetSize() + 1);
+  assert(tmp1.GetSize() == neighbor.GetSize() + 1);
 
   double sum = 0.0;
-  for(unsigned int i = 0; i < tmp.GetSize() - 1; i++)
+  for(unsigned int i = 0; i < tmp1.GetSize() - 1; i++)
   {
-    sum += SmoothAbs(tmp[i+1] - tmp[i], eps);
-    LOG_DBG3(func) << "L:I:CalcMole de=" << element->ToString() << " i=" << i << "|" << tmp[i+1] << " - " << tmp[i] << "|="
-                   << (std::abs(tmp[i+1] - tmp[i])) << " smoothed=" << SmoothAbs(tmp[i+1] - tmp[i], eps) << " sum=" << sum;
+    sum += SmoothAbs(tmp1[i+1] - tmp1[i], eps);
+    LOG_DBG3(func) << "L:I:CalcMole de=" << element->ToString() << " i=" << i << "|" << tmp1[i+1] << " - " << tmp1[i] << "|="
+                   << (std::abs(tmp1[i+1] - tmp1[i])) << " smoothed=" << SmoothAbs(tmp1[i+1] - tmp1[i], eps) << " sum=" << sum;
   }
-  double result = sum - SmoothAbs(tmp.Last() - tmp[0], eps);
-  LOG_DBG3(func) << "L:I:CalcMole de=" << element->ToString() << " bound=|" << tmp.Last() << " - " << tmp[0] << "| smoothed="
-                 << SmoothAbs(tmp.Last() - tmp[0], eps) << " -> " << result;
+  double result = sum - SmoothAbs(tmp1.Last() - tmp1[0], eps);
+  LOG_DBG3(func) << "L:I:CalcMole de=" << element->ToString() << " bound=|" << tmp1.Last() << " - " << tmp1[0] << "| smoothed="
+                 << SmoothAbs(tmp1.Last() - tmp1[0], eps) << " -> " << result;
   return result;
 }
 
@@ -1001,43 +1128,43 @@ double Function::Local::Identifier::CalcMoleGradient(int neigh_idx, double eps)
   // three cases for the sensitivity analysis: first, intermediate, last
 
   // sort all values in a sequence -> TODO! optimize and do not copy and pase
-  tmp.Resize(0); // is static and keeps capacity
+  tmp1.Resize(0); // is static and keeps capacity
   for(unsigned int i = 0; i < neighbor.GetSize() / 2; i++)
-    tmp.Push_back(GetElement(i)->GetDesign(DesignElement::SMART));
+    tmp1.Push_back(GetElement(i)->GetDesign(DesignElement::SMART));
 
-  tmp.Push_back(element->GetDesign(DesignElement::SMART));
+  tmp1.Push_back(element->GetDesign(DesignElement::SMART));
 
   for(unsigned int i = neighbor.GetSize() / 2; i < neighbor.GetSize(); i++)
-      tmp.Push_back(GetElement(i)->GetDesign(DesignElement::SMART));
+      tmp1.Push_back(GetElement(i)->GetDesign(DesignElement::SMART));
 
-  assert(tmp.GetSize() == neighbor.GetSize() + 1);
+  assert(tmp1.GetSize() == neighbor.GetSize() + 1);
 
   // correct the index
   unsigned int half = neighbor.GetSize() / 2;
   int idx = neigh_idx == -1 ? half : neigh_idx < (int) half ?  neigh_idx : neigh_idx + 1;
-  assert(idx >= 0 && idx < (int) tmp.GetSize());
+  assert(idx >= 0 && idx < (int) tmp1.GetSize());
 
   double res = 0.0;
 
   if(idx == 0)
   {
-    res = DerivSmoothAbs(tmp.Last() - tmp[0], eps) - DerivSmoothAbs(tmp[1] - tmp[0], eps);
-    LOG_DBG3(func) << "L:I:CalcMoleGrad de=" << element->ToString() << " neigh_idx=" << neigh_idx << " idx=" << idx << " tmp=" << tmp.ToString()
-                   << " DA(" << tmp.Last() << "-" << tmp[0] << ") - DA(" << tmp[1] << "-" << tmp[0] << ") -> " << res;
+    res = DerivSmoothAbs(tmp1.Last() - tmp1[0], eps) - DerivSmoothAbs(tmp1[1] - tmp1[0], eps);
+    LOG_DBG3(func) << "L:I:CalcMoleGrad de=" << element->ToString() << " neigh_idx=" << neigh_idx << " idx=" << idx << " tmp=" << tmp1.ToString()
+                   << " DA(" << tmp1.Last() << "-" << tmp1[0] << ") - DA(" << tmp1[1] << "-" << tmp1[0] << ") -> " << res;
 
   }
-  else if(idx == (int) tmp.GetSize() - 1)
+  else if(idx == (int) tmp1.GetSize() - 1)
   {
-    res = DerivSmoothAbs(tmp.Last() - tmp[idx-1], eps) - DerivSmoothAbs(tmp.Last() - tmp[0], eps);
-    LOG_DBG3(func) << "L:I:CalcMoleGrad de=" << element->ToString() << " neigh_idx=" << neigh_idx << " idx=" << idx << " tmp=" << tmp.ToString()
-                   << " DA(" << tmp.Last() << "-" << tmp[idx-1] << ") - DA(" << tmp.Last() << "-" << tmp[0] << ") -> " << res;
+    res = DerivSmoothAbs(tmp1.Last() - tmp1[idx-1], eps) - DerivSmoothAbs(tmp1.Last() - tmp1[0], eps);
+    LOG_DBG3(func) << "L:I:CalcMoleGrad de=" << element->ToString() << " neigh_idx=" << neigh_idx << " idx=" << idx << " tmp=" << tmp1.ToString()
+                   << " DA(" << tmp1.Last() << "-" << tmp1[idx-1] << ") - DA(" << tmp1.Last() << "-" << tmp1[0] << ") -> " << res;
 
   }
   else
   {
-    res = DerivSmoothAbs(tmp[idx] - tmp[idx-1], eps) - DerivSmoothAbs(tmp[idx+1] - tmp[idx], eps);
-    LOG_DBG3(func) << "L:I:CalcMoleGrad de=" << element->ToString() << " neigh_idx=" << neigh_idx << " idx=" << idx << " tmp=" << tmp.ToString()
-                   << " DA(" << tmp[idx] << "-" << tmp[idx-1] << ") - DA(" << tmp[idx+1] << "-" << tmp[idx] << ") -> " << res;
+    res = DerivSmoothAbs(tmp1[idx] - tmp1[idx-1], eps) - DerivSmoothAbs(tmp1[idx+1] - tmp1[idx], eps);
+    LOG_DBG3(func) << "L:I:CalcMoleGrad de=" << element->ToString() << " neigh_idx=" << neigh_idx << " idx=" << idx << " tmp=" << tmp1.ToString()
+                   << " DA(" << tmp1[idx] << "-" << tmp1[idx-1] << ") - DA(" << tmp1[idx+1] << "-" << tmp1[idx] << ") -> " << res;
   }
 
   return res;

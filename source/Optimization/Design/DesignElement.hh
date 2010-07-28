@@ -124,6 +124,7 @@ public:
     MAX_SLOPE, /* the max(abs()) of the 2 * dim slope constraints for each element */
     MAX_CHECKERBOARD, /* the max value per element */
     MAX_MOLE, /* the max mole value */
+    MAX_OSCILLATION, /* the max value per element */
     LEVEL_SET_GRAD_XP, LEVEL_SET_GRAD_XN, LEVEL_SET_GRAD_YP, LEVEL_SET_GRAD_YN, LEVEL_SET_GRAD_ZP, LEVEL_SET_GRAD_ZN } ValueSpecifier;
 
   BaseDesignElement();
@@ -275,7 +276,7 @@ public:
     static std::string ToString(const DesignElement* de);
     
     /** helper for LOG output */
-    static std::string ToString(StdVector<DesignElement*>& vec);
+    static std::string ToString(const StdVector<DesignElement*>& vec);
 
     /** to make the class polymorphic and we can dynamic_cast<> it */
     /** Pointer to the element of the region, paramter for integration, ... */

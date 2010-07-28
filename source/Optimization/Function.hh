@@ -66,6 +66,7 @@ class Function
       GLOBAL_SLOPE,              /*!< different implementation from local slopes */
       GLOBAL_CHECKERBOARD,       /*!< same globalization as with global slope */
       GLOBAL_MOLE,               /*!< see mole */
+      GLOBAL_OSCILLATION,        /*!< see oscillation */
 
       // This is constraint only!
       GREYNESS,                  /*!< inaccurate - best for observation only */
@@ -73,7 +74,8 @@ class Function
       ISOTROPY,                  /*!< blow up to several HOMOGENITATION_TENSOR constraints with different coords */
       SLOPE,                     /*!< Implementation of a grad rho constraint */
       CHECKERBOARD,              /*!< Measure for the checkerboard, up to now only observe! */
-      MOLE                       /*!< Feature size control from T. Poulsen */
+      MOLE,                      /*!< Feature size control from T. Poulsen */
+      OSCILLATION                /*!< Feature size control by Fabian W. :) */
     } Type;
 
     /** to convert string/enum for this type */
@@ -164,11 +166,12 @@ class Function
       /** The local type, essentially important for slopes. There should be no need to set
        * it as user. */
       typedef enum {
-        DEFAULT,               /*!< Function::PostProc() finds proper value */
-        NEXT,                  /*!< x_i and x_i+1 */
-        NEXT_AND_REVERSE,      /*!< x_i and x_i+1 plus x_i+1 PLUS the x_i for classical slope */
-        PREV_NEXT_AND_REVERSE, /*!< x_i-1 and x_i+1 with different sign for checkerboard */
-        DEG_45_STAR            /*!< Different notation. prev_next but also diagonals */
+        DEFAULT,                 /*!< Function::PostProc() finds proper value */
+        NEXT,                    /*!< x_i and x_i+1 */
+        NEXT_AND_REVERSE,        /*!< x_i and x_i+1 plus x_i+1 PLUS the x_i for classical slope */
+        PREV_NEXT_AND_REVERSE,   /*!< x_i-1 and x_i+1 with different sign for checkerboard */
+        DEG_45_STAR,             /*!< Different notation. prev_next but also diagonals */
+        DEG_45_STAR_AND_REVERSE  /*!< The doubled variant of DEG_45_STAR for oscillation */
       } Locality;
 
       static Enum<Locality> locality;
@@ -246,6 +249,11 @@ class Function
         double CalcMole(double eps) const;
         double CalcMoleGradient(int neigh_idx, double eps);
 
+        /** Oscillation is a feature size control which is by variable radius a generalization of a checkerboard constraint */
+        double CalcOscillation(double beta) const;
+        double CalcOscillationGradient(int neigh_idx, double beta);
+
+
         DesignElement* element; // this represents DesignSpace::data[element_idx]
         StdVector<DesignElement*> neighbor;
 
@@ -254,7 +262,8 @@ class Function
         int sign;
       private:
         /** to be reused */
-        static StdVector<double> tmp;
+        static StdVector<double> tmp1;
+        static StdVector<double> tmp2;
       };
 
       /** Elements with no full neighborhood are not stored. If they would be stored
