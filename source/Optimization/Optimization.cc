@@ -251,8 +251,6 @@ void Optimization::SetEnums()
   Function::type.Add(Function::ISOTROPY, "isotropy");
   Function::type.Add(Function::SLOPE, "slope");
   Function::type.Add(Function::GLOBAL_SLOPE, "globalSlope");
-  Function::type.Add(Function::CHECKERBOARD, "checkerboard");
-  Function::type.Add(Function::GLOBAL_CHECKERBOARD, "globalCheckerboard");
   Function::type.Add(Function::MOLE, "mole");
   Function::type.Add(Function::GLOBAL_MOLE, "globalMole");
   Function::type.Add(Function::OSCILLATION, "oscillation");

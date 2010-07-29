@@ -67,7 +67,6 @@ Function::Function(PtrParamNode pn)
   case PENALIZED_VOLUME:
   case GAP:
   case GLOBAL_SLOPE:
-  case GLOBAL_CHECKERBOARD:
   case GLOBAL_OSCILLATION:
   case GLOBAL_MOLE:
     if(!pn->Has("parameter"))
@@ -102,8 +101,6 @@ Function::Function(PtrParamNode pn)
     case SLOPE:
     case GLOBAL_SLOPE:
     case ISOTROPY:
-    case CHECKERBOARD:
-    case GLOBAL_CHECKERBOARD:
     case MOLE:
     case GLOBAL_MOLE:
     case OSCILLATION:
@@ -280,8 +277,6 @@ bool Function::ForSensitivityFiltering() const
   case REALVOLUME:
   case SLOPE:
   case GLOBAL_SLOPE:
-  case CHECKERBOARD:
-  case GLOBAL_CHECKERBOARD:
   case MOLE:
   case GLOBAL_MOLE:
   case OSCILLATION:
@@ -302,8 +297,6 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure)
   // pre-init step
   switch(type_)
   {
-  case CHECKERBOARD:
-  case GLOBAL_CHECKERBOARD:
   case SLOPE:
   case GLOBAL_SLOPE:
   case MOLE:
@@ -353,10 +346,10 @@ Function::Local::Local(Function* func, DesignSpace* space)
 
   this->normalize_ = pn != NULL ? pn->Get("normalize")->As<bool>() : true;
 
-  this->globalized_ = ftype == GLOBAL_CHECKERBOARD || ftype == GLOBAL_MOLE || ftype == GLOBAL_SLOPE  || ftype == GLOBAL_OSCILLATION ? true : false;
+  this->globalized_ = ftype == GLOBAL_MOLE || ftype == GLOBAL_SLOPE  || ftype == GLOBAL_OSCILLATION ? true : false;
 
   // check beta
-  if(ftype == CHECKERBOARD || ftype == GLOBAL_CHECKERBOARD || ftype == OSCILLATION || ftype == GLOBAL_OSCILLATION)
+  if(ftype == OSCILLATION || ftype == GLOBAL_OSCILLATION)
   {
     if(pn == NULL || !pn->Has("beta"))
       throw Exception("function '" + fname + "' requires the 'beta' attribute in a 'local' element");
@@ -391,13 +384,6 @@ Function::Local::Local(Function* func, DesignSpace* space)
     locality_ = NEXT_AND_REVERSE;
     break;
 
-  case CHECKERBOARD:
-  case GLOBAL_CHECKERBOARD:
-    if(locality_ != PREV_NEXT_AND_REVERSE && locality_ != DEFAULT)
-      throw Exception("Invalid choice for 'local' with " + fname);
-    locality_ = PREV_NEXT_AND_REVERSE;
-    break;
-
   case OSCILLATION:
   case GLOBAL_OSCILLATION:
     if(locality_ != DEG_45_STAR_AND_REVERSE && locality_ !=  PREV_NEXT_AND_REVERSE && locality_ != DEFAULT)
@@ -421,7 +407,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
   if(locality_ == DEG_45_STAR || locality_ == DEG_45_STAR_AND_REVERSE)
   {
     if(!pn)
-      throw Exception("subelement 'local' with neighborhood information mandatory for '" + fname + "'");
+      throw Exception("sub element 'local' with neighborhood information mandatory for '" + fname + "'");
     structure_ = new NeighborhoodStructure(this, pn);
     SetupStarLocalityElementMap();
   }
@@ -644,7 +630,7 @@ void Function::Local::ToInfo(PtrParamNode in)
     in->Get("normalize")->SetValue(normalize_);
     in->Get("power")->SetValue(power_);
   }
-  if(ft == CHECKERBOARD || ft == GLOBAL_CHECKERBOARD || ft == OSCILLATION || ft == GLOBAL_OSCILLATION)
+  if(ft == OSCILLATION || ft == GLOBAL_OSCILLATION)
     in->Get("beta")->SetValue(beta_);
 
   if(ft == MOLE || ft == GLOBAL_MOLE)
@@ -708,10 +694,20 @@ void Function::Local::NeighborhoodStructure::ToInfo(PtrParamNode in)
   in->Get("type")->SetValue(DesignStructure::filterSpace.ToString(fs));
   in->Get("value")->SetValue(value);
   in->Get("radius")->SetValue(radius);
-  in->Get("x_elems")->SetValue(orthogonal[0] * 2 + 1);
-  in->Get("y_elems")->SetValue(orthogonal[1] * 2 + 1);
+
+  StdVector<double> tmp;
+  tmp.Push_back(orthogonal[0] * 2 + 1);
+  tmp.Push_back(orthogonal[1] * 2 + 1);
   if(orthogonal.GetSize() == 3)
-    in->Get("z_elems")->SetValue(orthogonal[2] * 2 + 1);
+    tmp.Push_back(orthogonal[2] * 2 + 1);
+
+  in->Get("orthogonal")->SetValue(tmp.ToString());
+
+  tmp.Resize(0);
+  for(unsigned int i = 0; i < diagonal.GetSize(); i++)
+    tmp.Push_back(diagonal[i] * 2 + 1);
+
+  in->Get("diagonal")->SetValue(tmp.ToString());
 }
 
 Function::Local::Identifier::Identifier(DesignElement* elem, DesignElement* prev, DesignElement* next, int si)
@@ -752,11 +748,6 @@ double Function::Local::Identifier::EvalFunction(const Local* local) const
     fv = CalcSlope();
     break;
 
-  case CHECKERBOARD:
-  case GLOBAL_CHECKERBOARD:
-    fv = CalcCheckerboard(local->GetBeta());
-    break;
-
   case OSCILLATION:
   case GLOBAL_OSCILLATION:
     fv = CalcOscillation(local->GetBeta());
@@ -778,7 +769,6 @@ double Function::Local::Identifier::EvalFunction(const Local* local) const
   switch(f->type_)
   {
   case GLOBAL_SLOPE:
-  case GLOBAL_CHECKERBOARD:
   case GLOBAL_OSCILLATION:
   case GLOBAL_MOLE:
   {
@@ -823,11 +813,9 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
   case GLOBAL_SLOPE:
     fv = std::max(0.0, CalcSlope() - funct->GetParameter());
     break;
-  case GLOBAL_CHECKERBOARD:
-    fv = std::max(0.0, CalcCheckerboard(local->beta_) - funct->GetParameter());
-    break;
   case GLOBAL_OSCILLATION:
     fv = std::max(0.0, CalcOscillation(local->beta_) - funct->GetParameter());
+    break;
   case GLOBAL_MOLE:
     fv = std::max(0.0, CalcMole(local->eps_) - funct->GetParameter());
     break;
@@ -851,11 +839,6 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
     case SLOPE:
     case GLOBAL_SLOPE:
       gv = CalcSlopeGradient(n);
-      break;
-
-    case CHECKERBOARD:
-    case GLOBAL_CHECKERBOARD:
-      gv = CalcCheckerboardGradient(n, local->beta_);
       break;
 
     case OSCILLATION:
@@ -929,65 +912,6 @@ double Function::Local::Identifier::CalcSlopeGradient(int neigh_idx) const
 }
 
 
-double Function::Local::Identifier::CalcCheckerboard(double beta) const
-{
-  double own  = element->GetDesign(DesignElement::SMART);
-  assert(neighbor.GetSize() == 2);
-  double prev = neighbor[0]->GetDesign(DesignElement::SMART);
-  double next = neighbor[1]->GetDesign(DesignElement::SMART);
-  assert(sign == 1 || sign == -1);
-  double min_max = 0.0; // min or max
-  double res = 0.0;
-
-  if(sign == 1)
-  {
-    // "Heaviside"(rho_i - max( rho_i-1, rho_i+1)
-    // double smaller = std::max(0.0, own - std::max(left, right));
-    min_max = beta < 0 ? std::max(prev, next) : SmoothMax(prev, next, beta);
-    res = own - min_max;
-  }
-  else
-  {
-    // "Heaviside"(min( rho_i-1, rho_i+1) - rho_i)
-    // double larger = std::max(0.0, std::min(left, right) - own);
-    min_max = beta < 0 ? std::min(prev, next) : SmoothMin(prev, next, beta);
-    res = min_max - own;
-  }
-
-  LOG_DBG3(func) << "L:I:CC de=" << element->ToString() << " sign=" << sign << " own=" << own <<" prev("
-                 << neighbor[0]->ToString() << ")=" << prev << " next(" << neighbor[1]->ToString() << ")="
-                 << next << " smooth=" << min_max << " hard="
-                 << (sign == 1 ? (own - std::max(prev, next)) : (std::min(prev, next) - own))
-                 << " -> " << res;
-  return res;
-}
-
-double Function::Local::Identifier::CalcCheckerboardGradient(int neigh_idx, double beta)
-{
-  assert(beta >= 0);
-  // TODO is inefficient as evaluates three times!
-  double prev = GetElement(0)->GetDesign(DesignElement::SMART);
-  double next = GetElement(1)->GetDesign(DesignElement::SMART);
-
-  //double fv = CalcCheckerboard(beta);
-  //if(fv == 0.0)
-  //  return 0.0;
-
-  switch(neigh_idx)
-  {
-  case -1: // this element
-    // std::max(0.0, own - max_left_right) or std::max(0.0, min_left_right - own)
-    return sign == 1 ? 1 : -1;
-  case 0: // prev
-    return sign == 1 ? -1.0 * DerivSmoothMax(prev, next, beta, -1) : DerivSmoothMin(prev, next, beta, -1);
-  case 1: // next
-    return sign == 1 ? -1.0 * DerivSmoothMax(prev, next, beta, 1) : DerivSmoothMin(prev, next, beta, 1);
-  default:
-    assert(false);
-    return -1.0;
-  }
-}
-
 
 double Function::Local::Identifier::CalcOscillation(double beta) const
 {
@@ -1000,12 +924,12 @@ double Function::Local::Identifier::CalcOscillation(double beta) const
   tmp1.Resize(half);
   for(unsigned int i = 0; i < half; i++)
     tmp1[i] = neighbor[i]->GetDesign(DesignElement::SMART);
-  double prev = sign == 1 ? SmoothMax(tmp1, beta) : SmoothMin(tmp1, beta);
+  double prev = sign == -1 ? SmoothMax(tmp1, beta) : SmoothMin(tmp1, beta);
 
   tmp2.Resize(half);
   for(unsigned int i = 0; i < half; i++)
     tmp2[i] = neighbor[i + half]->GetDesign(DesignElement::SMART);
-  double next = sign == 1 ? SmoothMax(tmp2, beta) : SmoothMin(tmp2, beta);
+  double next = sign == -1 ? SmoothMax(tmp2, beta) : SmoothMin(tmp2, beta);
 
   double min_max = 0.0; // min or max
   double res = 0.0;
@@ -1046,17 +970,17 @@ double Function::Local::Identifier::CalcOscillationGradient(int neigh_idx, doubl
   tmp1.Resize(half);
   for(unsigned int i = 0; i < half; i++)
     tmp1[i] = neighbor[i]->GetDesign(DesignElement::SMART);
-  double prev = sign == 1 ? SmoothMax(tmp1, beta) : SmoothMin(tmp1, beta);
+  double prev = sign == -1 ? SmoothMax(tmp1, beta) : SmoothMin(tmp1, beta);
 
   tmp2.Resize(half);
   for(unsigned int i = 0; i < half; i++)
     tmp2[i] = neighbor[i + half]->GetDesign(DesignElement::SMART);
-  double next = sign == 1 ? SmoothMax(tmp2, beta) : SmoothMin(tmp2, beta);
+  double next = sign == -1 ? SmoothMax(tmp2, beta) : SmoothMin(tmp2, beta);
 
-  // sign = -1: min( min(x_0 .. x_half-1), min(x_half .. x_max) ) - own
-  // sign =  1: own - max( max(x_0 .. x_half-1), max(x_half .. x_max) )
+  // sign = -1: min( max(x_0 .. x_half-1), max(x_half .. x_max) ) - own
+  // sign =  1: own - max( min(x_0 .. x_half-1), min(x_half .. x_max) )
 
-  // example derivative for sign = 1: - max'(max(x_0 .. x_half-1), max(x_half .. x_max) * max'(max(x_0 .. x_half-1) * 1
+  // example derivative for sign = 1: - max'(min(x_0 .. x_half-1), min(x_half .. x_max) * min'(max(x_0 .. x_half-1) * 1
 
   // are we within prev (-1) or next (1)
   int side = neigh_idx < (int) half ? -1 : 1;
@@ -1067,9 +991,9 @@ double Function::Local::Identifier::CalcOscillationGradient(int neigh_idx, doubl
   // inner depends on neigh_idx within the first or the next
   double inner = 0.0;
   if(side == -1)
-    inner = sign == 1 ? DerivSmoothMax(tmp1, beta, neigh_idx) : DerivSmoothMin(tmp1, beta, neigh_idx);
+    inner = sign == -1 ? DerivSmoothMax(tmp1, beta, neigh_idx) : DerivSmoothMin(tmp1, beta, neigh_idx);
   else
-    inner = sign == 1 ? DerivSmoothMax(tmp2, beta, neigh_idx - half) : DerivSmoothMin(tmp2, beta, neigh_idx - half);
+    inner = sign == -1 ? DerivSmoothMax(tmp2, beta, neigh_idx - half) : DerivSmoothMin(tmp2, beta, neigh_idx - half);
   assert(neighbor.GetSize() > 2 || close(inner, 1.0));
 
   return (sign == 1 ? -1.0 : 1.0) * outer * inner;

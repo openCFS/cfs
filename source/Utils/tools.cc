@@ -13,8 +13,12 @@
 #include "Domain/elem.hh"
 #include "Domain/grid.hh"
 #include "DataInOut/WriteInfo.hh"
+#include "DataInOut/Logging/cfslog.hh"
 #include "General/exception.hh"
 
+
+DECLARE_LOG(tools)
+DEFINE_LOG(tools, "tools")
 
 namespace CoupledField {
 
@@ -298,22 +302,28 @@ namespace CoupledField {
     assert(beta > 0 || beta == -1.0);
     assert(values.GetSize() > 0);
 
+    double res = 0.0;
+
     if(beta == -1.0)
     {
-      double t = values[0];
+      res = values[0];
       for(unsigned int i = 1, n = values.GetSize(); i < n; i++)
-        t = std::max(t, values[i]);
-      return t;
+        res = std::max(res, values[i]);
+    }
+    else
+    {
+      // see  SmoothMax(double left, double right, double beta)
+      // x = log ( sum(exp(beta * x_i)) / sum 1) / beta
+      double sum = 0.0;
+      for(unsigned int i = 0, n = values.GetSize(); i < n; i++)
+        sum += std::exp(values[i] * beta);
+
+      res = std::log(sum / (double) values.GetSize()) / beta;
     }
 
-    // see  SmoothMax(double left, double right, double beta)
-    // x = log ( sum(exp(beta * x_i)) / sum 1) / beta
-    double sum = 0.0;
-    for(unsigned int i = 0, n = values.GetSize(); i < n; i++)
-      sum += std::exp(values[i] * beta);
-
-    return std::log(sum / (double) values.GetSize()) / beta;
-
+    // LOG_DBG3(tools) << "SmoothMax v=" << values.ToString() << " beta=" << beta << " -> " << res;
+    // std::cout << "SmoothMax v=" << values.ToString() << " beta=" << beta << " -> " << res << std::endl;
+    return res;
   }
 
   double SmoothMin(double left, double right, double beta)

@@ -179,7 +179,6 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       || (rd.value == COST_GRADIENT && rd.detail != NONE)
       || rd.value == CONSTRAINT_GRADIENT
       || rd.value == MAX_SLOPE
-      || rd.value == MAX_CHECKERBOARD
       || rd.value == MAX_OSCILLATION
       || rd.value == MAX_MOLE)
   {
@@ -302,7 +301,6 @@ double DesignElement::GetPlainValue(ValueSpecifier sp, Condition* g) const
 
   case MAX_SLOPE:
   case MAX_MOLE:
-  case MAX_CHECKERBOARD:
   case MAX_OSCILLATION:
     assert(false); // should be covered before by special result index
 
@@ -416,7 +414,6 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(COST_GRADIENT, "costGradient");
   valueSpecifier.Add(CONSTRAINT_GRADIENT, "constraintGradient");
   valueSpecifier.Add(MAX_SLOPE, "maxSlope");
-  valueSpecifier.Add(MAX_CHECKERBOARD, "maxCheckerboard");
   valueSpecifier.Add(MAX_OSCILLATION, "maxOscillation");
   valueSpecifier.Add(MAX_MOLE, "maxMole");
   valueSpecifier.Add(WEIGHT, "weight");
