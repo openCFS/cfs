@@ -251,17 +251,24 @@ void Optimization::SetEnums()
   Function::type.Add(Function::ISOTROPY, "isotropy");
   Function::type.Add(Function::SLOPE, "slope");
   Function::type.Add(Function::GLOBAL_SLOPE, "globalSlope");
-  Function::type.Add(Function::CHECKERBOARD, "checkerboard");
-  Function::type.Add(Function::GLOBAL_CHECKERBOARD, "globalCheckerboard");
   Function::type.Add(Function::MOLE, "mole");
   Function::type.Add(Function::GLOBAL_MOLE, "globalMole");
+  Function::type.Add(Function::OSCILLATION, "oscillation");
+  Function::type.Add(Function::GLOBAL_OSCILLATION, "globalOscillation");
 
   Function::Local::locality.SetName("Function::Local::Locality");
   Function::Local::locality.Add(Function::Local::DEFAULT, "default");
   Function::Local::locality.Add(Function::Local::NEXT, "next");
   Function::Local::locality.Add(Function::Local::NEXT_AND_REVERSE, "next_and_reverse");
+  Function::Local::locality.Add(Function::Local::PREV_NEXT, "prev_next");
   Function::Local::locality.Add(Function::Local::PREV_NEXT_AND_REVERSE, "prev_next_and_reverse");
   Function::Local::locality.Add(Function::Local::DEG_45_STAR, "45_deg_star");
+  Function::Local::locality.Add(Function::Local::DEG_45_STAR_AND_REVERSE, "45_deg_star_and_reverse");
+
+  Function::Local::phase.SetName("Function::Local::Phase");
+  Function::Local::phase.Add(Function::Local::BOTH, "both");
+  Function::Local::phase.Add(Function::Local::VOID, "void");
+  Function::Local::phase.Add(Function::Local::MATERIAL, "material");
 
   Condition::bound.SetName("Condition::Bound");
   Condition::bound.Add(Condition::EQUAL, "equal");

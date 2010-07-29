@@ -53,6 +53,15 @@ public:
     return 2;
   }
 
+  /** @axis = 0, 1, 2
+   * @param dir = -1 or 1 */
+  static Neighbour ToNeighbour(int axis, int dir)
+  {
+    assert(axis >= 0 && axis <= 2);
+    assert(dir == -1 || dir == 1);
+    return (Neighbour) (2 * axis + (dir == 1 ? 0 : 1));
+  }
+
   /** Gives the neighbor elements */
   DesignElement* GetNeighbour(Neighbour idx) { return design[idx]; }
 
@@ -113,8 +122,9 @@ public:
   typedef enum { DESIGN, COST_GRADIENT, CONSTRAINT_GRADIENT, WEIGHT, OBJECTIVE, NUM_NEIGHBOURS,
     LEVEL_SET_VALUE, LEVEL_SET_STATE, TOPGRAD_VALUE, SHAPEGRAD_VALUE, SHAPEGRAD_NODE_VALUE,
     MAX_SLOPE, /* the max(abs()) of the 2 * dim slope constraints for each element */
-    CHECKERBOARD, /* the max value per element */
+    MAX_CHECKERBOARD, /* the max value per element */
     MAX_MOLE, /* the max mole value */
+    MAX_OSCILLATION, /* the max value per element */
     LEVEL_SET_GRAD_XP, LEVEL_SET_GRAD_XN, LEVEL_SET_GRAD_YP, LEVEL_SET_GRAD_YN, LEVEL_SET_GRAD_ZP, LEVEL_SET_GRAD_ZN } ValueSpecifier;
 
   BaseDesignElement();
@@ -266,7 +276,7 @@ public:
     static std::string ToString(const DesignElement* de);
     
     /** helper for LOG output */
-    static std::string ToString(StdVector<DesignElement*>& vec);
+    static std::string ToString(const StdVector<DesignElement*>& vec);
 
     /** to make the class polymorphic and we can dynamic_cast<> it */
     /** Pointer to the element of the region, paramter for integration, ... */

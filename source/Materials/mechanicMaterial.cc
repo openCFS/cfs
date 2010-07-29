@@ -825,7 +825,7 @@ namespace CoupledField
     tensor.Invert(D);
 
     StdVector<double> E = CalcOrthotropeYoungsModulus(tensor);
-    StdVector<double> v = CalcOrthotropeYoungsModulus(tensor);
+    StdVector<double> v = CalcOrthotropePoissonsRatio(tensor);
 
     double err = 0.0;
     if(tensor.GetNumRows() == 3)
@@ -845,9 +845,8 @@ namespace CoupledField
         }
       err += abs(abs(E[0]*v[2]) - abs(E[1]*v[5]));  // E_1 v_21 = E_2 v_12
       err += abs(abs(E[1]*v[0]) - abs(E[2]*v[3]));  // E_2 v_32 = E_3 v_23
-      err += abs(abs(E[2]*v[1]) - abs(E[0]*v[4]));  // E_3 v_13 = E_1 v_31
+      err += abs(abs(E[2]*v[4]) - abs(E[0]*v[1]));  // E_3 v_13 = E_1 v_31
     }
-
     return err;
   }
 

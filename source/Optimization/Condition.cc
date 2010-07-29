@@ -87,7 +87,7 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   {
   case SLOPE:
   case GLOBAL_SLOPE:
-  case CHECKERBOARD:
+  case OSCILLATION:
     if(bound_ != UPPER_BOUND && IsActive())
       bound_ = UPPER_BOUND; // detected in PostProc() and warning is given
     break;
@@ -107,7 +107,7 @@ void Condition::PostProc(DesignSpace* space, DesignStructure* structure)
   {
   case SLOPE:
   case GLOBAL_SLOPE:
-  case CHECKERBOARD:
+  case OSCILLATION:
     if(pn->Get("bound")->As<std::string>() != bound.ToString(bound_) && IsActive())
       info_->Get(ParamNode::WARNING)->SetValue("changed bound for '" + type.ToString(type_) + "' to 'upperBound'");
     break;
@@ -135,7 +135,7 @@ bool Condition::ReadCoord(PtrParamNode pn)
 void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list)
 {
   Type t = type.Parse(pn->Get("type")->As<std::string>());
-  list.Push_back(t == SLOPE || t == MOLE || t == CHECKERBOARD? new LocalCondition(pn) : new Condition(pn));
+  list.Push_back(t == SLOPE || t == MOLE || t == OSCILLATION ? new LocalCondition(pn) : new Condition(pn));
 
   // note that the pointer becomes invalid by AddSubCondition()
   Condition* g = list.Last();
@@ -470,10 +470,17 @@ StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
 
 double LocalCondition::CalcMeanValue() const
 {
+  // we sum up only non-zero values
+  int counter = 0;
   double sum = 0.0;
   for(unsigned int i = 0, n = local->virtual_elem_map.GetSize(); i < n; i++)
-    sum += std::abs(local->virtual_elem_map[i].EvalFunction(local));
-  return sum / local->virtual_elem_map.GetSize();
+  {
+    double v = std::abs(local->virtual_elem_map[i].EvalFunction(local));
+    if(IsNoise(v)) continue;
+    sum += v;
+    counter++;
+  }
+  return counter > 0 ? sum / counter : 0.0;
 }
 
 double LocalCondition::CalcMaxValue() const
@@ -516,8 +523,8 @@ std::string LocalCondition::ToString() const
 
   ss << Condition::ToString();
 
-  if(IsLocal())
-    ss << " cvi=" << current_view_index_;
+   if(IsLocal())
+      ss << " cvi=" << current_view_index_;
 
   return ss.str();
 }
@@ -658,8 +665,11 @@ void ConditionContainer::VirtualView::Refresh()
   // search also for observe conditions!
   Condition* c = container_->Get(Condition::SLOPE, DesignElement::NO_TYPE, false, false);
   if(c != NULL) tmp.push_back(c->GetIndex());
-  c = container_->Get(Condition::CHECKERBOARD, DesignElement::NO_TYPE, false, false);
-  if(c != NULL) tmp.push_back(c->GetIndex());
+  // we might combine oscillation for void and material with different sizes
+  StdVector<Condition*> list = container_->GetList(Condition::OSCILLATION, DesignElement::NO_TYPE, false);
+  for(unsigned int i = 0; i < list.GetSize(); i++)
+    tmp.push_back(list[i]->GetIndex());
+
   c = container_->Get(Condition::MOLE, DesignElement::NO_TYPE, false, false);
   if(c != NULL) tmp.push_back(c->GetIndex());
 
@@ -678,12 +688,14 @@ void ConditionContainer::VirtualView::Refresh()
   {
     LocalCondition* lc = dynamic_cast<LocalCondition*>(container_->all[local_cond_index_[i]]);
 
+    // refresh is called multiple times, maybe we are too early
+    if(lc == NULL || lc->GetLocal() == NULL) continue;
+
     // replace the global slope by many local slopes -> if it is initialized!
-    if(lc != NULL && lc->GetLocal() != NULL && lc->IsActive() && lc->GetConstraintSize() > 0)
+    if(lc->IsActive() && lc->GetConstraintSize() > 0)
       virtual_active_size_ += lc->GetConstraintSize() -1; // replace means remove ourselves
 
-    virtual_total_size_ = container_->all.GetSize();
-    if(lc != NULL && lc->GetLocal() != NULL && lc->GetConstraintSize() > 0)
+    if(lc->GetConstraintSize() > 0)
       virtual_total_size_ += lc->GetConstraintSize() -1;
   }
 
@@ -697,6 +709,7 @@ void ConditionContainer::VirtualView::Refresh()
       curr += std::max((int) dynamic_cast<LocalCondition*>(g)->GetConstraintSize(), 1);
     else
       curr++;
+    LOG_DBG2(conditions) << "CC:VV:Refresh() g=" << g->ToString() << " vbi=" << g->virtual_base_index_ << " new curr=" << curr;
   }
   assert(curr == virtual_total_size_);
 }
@@ -730,9 +743,9 @@ void ConditionContainer::VirtualView::Done()
     lc->SetCurrentViewIndex(-1); // reset to global mode
 
     // shall we give the values as special result?
-    DesignElement::ValueSpecifier vs = DesignElement::CHECKERBOARD; // overwrite if necessary
-    if(lc->GetType() == Function::SLOPE)  vs = DesignElement::MAX_SLOPE;
-    if(lc->GetType() == Function::MOLE)   vs = DesignElement::MAX_MOLE;
+    DesignElement::ValueSpecifier vs = DesignElement::MAX_OSCILLATION; // overwrite if necessary
+    if(lc->GetType() == Function::SLOPE)        vs = DesignElement::MAX_SLOPE;
+    if(lc->GetType() == Function::MOLE)         vs = DesignElement::MAX_MOLE;
 
     int idx = container_->space_->GetSpecialResultIndex(DesignElement::DEFAULT, vs);
     if(idx >= 0)
@@ -750,7 +763,11 @@ void ConditionContainer::VirtualView::Done()
         Function::Local::Identifier& id = vem[i];
         DesignElement* de =  id.element;
         double sv = id.EvalFunction(lc->local);
-        de->specialResult[idx] = std::max(de->specialResult[idx], abs(sv));
+
+        // in checkerboard we must not use abs
+        double corr = lc->GetType() == Function::OSCILLATION ? sv : std::abs(sv);
+
+        de->specialResult[idx] = std::max(de->specialResult[idx], corr);
       }
     }
   }

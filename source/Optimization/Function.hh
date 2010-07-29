@@ -64,16 +64,16 @@ class Function
       TYCHONOFF,                 /*!< int(|| design ||^2) is a regularization form material opt. */
       TEMPERATURE,               /*!< for optimization of poisson and heat conduction pde */
       GLOBAL_SLOPE,              /*!< different implementation from local slopes */
-      GLOBAL_CHECKERBOARD,       /*!< same globalization as with global slope */
       GLOBAL_MOLE,               /*!< see mole */
+      GLOBAL_OSCILLATION,        /*!< see oscillation */
 
       // This is constraint only!
       GREYNESS,                  /*!< inaccurate - best for observation only */
       REALVOLUME,
       ISOTROPY,                  /*!< blow up to several HOMOGENITATION_TENSOR constraints with different coords */
       SLOPE,                     /*!< Implementation of a grad rho constraint */
-      CHECKERBOARD,              /*!< Measure for the checkerboard, up to now only observe! */
-      MOLE                       /*!< Feature size control from T. Poulsen */
+      MOLE,                      /*!< Feature size control from T. Poulsen */
+      OSCILLATION                /*!< Feature size control by Fabian W. :) */
     } Type;
 
     /** to convert string/enum for this type */
@@ -164,16 +164,30 @@ class Function
       /** The local type, essentially important for slopes. There should be no need to set
        * it as user. */
       typedef enum {
-        DEFAULT,               /*!< Function::PostProc() finds proper value */
-        NEXT,                  /*!< x_i and x_i+1 */
-        NEXT_AND_REVERSE,      /*!< x_i and x_i+1 plus x_i+1 PLUS the x_i for classical slope */
-        PREV_NEXT_AND_REVERSE, /*!< x_i-1 and x_i+1 with different sign for checkerboard */
-        DEG_45_STAR            /*!< Different notation. prev_next but also diagonals */
+        DEFAULT,                 /*!< Function::PostProc() finds proper value */
+        NEXT,                    /*!< x_i and x_i+1 */
+        NEXT_AND_REVERSE,        /*!< x_i and x_i+1 plus x_i+1 PLUS the x_i for classical slope */
+        PREV_NEXT,
+        PREV_NEXT_AND_REVERSE,   /*!< x_i-1 and x_i+1 with different sign for small oscillation */
+        DEG_45_STAR,             /*!< Different notation. prev_next but also diagonals */
+        DEG_45_STAR_AND_REVERSE  /*!< The doubled variant of DEG_45_STAR for oscillation */
       } Locality;
 
       static Enum<Locality> locality;
 
       Locality GetLocality() const { return locality_; }
+
+      /** The pase for oscillation constraint only to define two constraints with different
+       * feature sizes for material and void */
+      typedef enum {
+        BOTH = -1000, // syn the values with the NO_SIGN, VOID_SIGN and VOID_MATERIAL constants
+        VOID = -1,
+        MATERIAL = 1
+      } Phase;
+
+      static Enum<Phase> phase;
+
+      Phase GetPhase() const { return phase_; }
 
       /** The beta value for smoothing min/max, checks if its set. */
       double GetBeta() const { assert(beta_ != -3.14); return beta_; }
@@ -200,6 +214,10 @@ class Function
       {
       public:
         const static int NO_SIGN;
+        /** alias for sign == -1 to VOID Phase for oscillation only */
+        const static int VOID_SIGN;
+        /** alias for sign == -1 to MATERIAL Phase for oscillation only */
+        const static int MATERIAL_SIGN;
 
         /** default constructor for StdVector() */
         Identifier() : sign(NO_SIGN) {}
@@ -246,6 +264,11 @@ class Function
         double CalcMole(double eps) const;
         double CalcMoleGradient(int neigh_idx, double eps);
 
+        /** Oscillation is a feature size control which is by variable radius a generalization of a checkerboard constraint */
+        double CalcOscillation(double beta) const;
+        double CalcOscillationGradient(int neigh_idx, double beta);
+
+
         DesignElement* element; // this represents DesignSpace::data[element_idx]
         StdVector<DesignElement*> neighbor;
 
@@ -254,7 +277,8 @@ class Function
         int sign;
       private:
         /** to be reused */
-        static StdVector<double> tmp;
+        static StdVector<double> tmp1;
+        static StdVector<double> tmp2;
       };
 
       /** Elements with no full neighborhood are not stored. If they would be stored
@@ -272,11 +296,13 @@ class Function
       StdVector<double> values;
 
     private:
-      /** Service method for the constructor */
-      void SetupVirtualElementMap();
+      /** Service method for the constructor
+       * @param phase see SetupStarLocalityElementMap() */
+      void SetupVirtualElementMap(Phase phase = BOTH);
 
-      /** Special implementation for DEG_45_STAR locality */
-      void SetupStarLocalityElementMap();
+      /** Special implementation for DEG_45_STAR[_AND_REVERSE] locality.
+       * @param phase for oscillation we can separate void and material which is the sign convention */
+      void SetupStarLocalityElementMap(Phase phase = BOTH);
 
       /** small helper to determine the number of neighbors in each (diagonal)
        * direction if we use a neighborhood. Parses the whole stuff */
@@ -315,6 +341,10 @@ class Function
 
       /** power for globalization */
       double power_;
+
+      /** For oscillation we can define if we want the constraint for void, material or both.
+       * Such different feature sized can be defined */
+      Phase phase_;
 
       /** normalize global function */
       bool normalize_;
