@@ -16,12 +16,16 @@ DEFINE_LOG(func, "opt_func")
 // instantiation of the static elements is in Optimization::SetEnums()
 Enum<Function::Type> Function::type;
 Enum<Function::Local::Locality> Function::Local::locality;
+Enum<Function::Local::Phase> Function::Local::phase;
 
 // speed up by sharing
 StdVector<double> Function::Local::Identifier::tmp1;
 StdVector<double> Function::Local::Identifier::tmp2;
 
-const int Function::Local::Identifier::NO_SIGN = -1000;
+// sync the values with Local::Phase
+const int Function::Local::Identifier::NO_SIGN       = -1000;
+const int Function::Local::Identifier::VOID_SIGN     = -1;
+const int Function::Local::Identifier::MATERIAL_SIGN = 1;
 
 using boost::lexical_cast;
 
@@ -208,7 +212,14 @@ void Function::ToInfo(PtrParamNode info)
 
 std::string Function::ToString() const
 {
-  return physical_ ? "physical_" + type.ToString(type_) : type.ToString(type_);
+  // optional for oscillation
+  if(local != NULL && local->GetPhase() != Local::BOTH)
+    return Local::phase.ToString(local->GetPhase()) + "_" + type.ToString(type_);
+
+  if(physical_)
+    return "physical_" + type.ToString(type_);
+
+  return type.ToString(type_);
 }
 
 
@@ -343,6 +354,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
   this->beta_  = pn != NULL && pn->Has("beta") ? pn->Get("beta")->As<double>() : -3.14;
   this->eps_   = pn != NULL && pn->Has("eps") ? pn->Get("eps")->As<double>() : -3.14;
   this->power_ = pn != NULL && pn->Has("power") ? pn->Get("power")->As<double>() : 2.0;
+  this->phase_ = pn != NULL && pn->Has("phase") ? phase.Parse(pn->Get("phase")->As<std::string>()) : BOTH; // only oscillation
 
   this->normalize_ = pn != NULL ? pn->Get("normalize")->As<bool>() : true;
 
@@ -361,6 +373,10 @@ Function::Local::Local(Function* func, DesignSpace* space)
   if((ftype == MOLE || ftype == GLOBAL_MOLE) && (pn == NULL || !pn->Has("eps")))
     throw Exception("function '" + fname + "' requires the 'eps' attribute in a 'local' element");
 
+  // check phase
+  if(phase_ != BOTH && ftype != OSCILLATION && ftype != GLOBAL_OSCILLATION)
+    throw Exception("'phase' may only be set for (global) oscillation");
+
   // set locality
   this->locality_ = pn != NULL && pn->Has("locality") ?
       locality.Parse(pn->Get("locality")->As<std::string>()) : DEFAULT;
@@ -375,26 +391,27 @@ Function::Local::Local(Function* func, DesignSpace* space)
     if(!snopt && locality_ != NEXT_AND_REVERSE)
       throw Exception("The optimizer has no bounds for constraints: your choice for 'local' is invalid");
     if(locality_ != NEXT && locality_ != NEXT_AND_REVERSE)
-      throw Exception("Invalid choice for 'local' in slope constraint");
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     break;
 
   case GLOBAL_SLOPE:
     if(locality_ != NEXT && locality_ != DEFAULT)
-      throw Exception("Invalid choice for 'local' with " + fname);
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = NEXT_AND_REVERSE;
     break;
 
   case OSCILLATION:
   case GLOBAL_OSCILLATION:
-    if(locality_ != DEG_45_STAR_AND_REVERSE && locality_ !=  PREV_NEXT_AND_REVERSE && locality_ != DEFAULT)
-      throw Exception("Invalid choice for 'local' with " + fname);
-    locality_ = locality_ == DEFAULT ? DEG_45_STAR_AND_REVERSE : locality_;
+    if((phase_ == BOTH && locality_ != DEG_45_STAR_AND_REVERSE && locality_ !=  PREV_NEXT_AND_REVERSE && locality_ != DEFAULT)
+      || (phase_ != BOTH && locality_ != DEG_45_STAR && locality_ !=  PREV_NEXT && locality_ != DEFAULT) )
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "' and phase '" + phase.ToString(phase_) + "'");
+    if(locality_ == DEFAULT) locality_ = phase_ == BOTH ? DEG_45_STAR_AND_REVERSE : DEG_45_STAR;
     break;
 
   case MOLE:
   case GLOBAL_MOLE:
     if(locality_ != DEG_45_STAR && locality_ != DEFAULT)
-      throw Exception("Invalid choice for 'local' with " + fname);
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = DEG_45_STAR;
     break;
 
@@ -409,11 +426,11 @@ Function::Local::Local(Function* func, DesignSpace* space)
     if(!pn)
       throw Exception("sub element 'local' with neighborhood information mandatory for '" + fname + "'");
     structure_ = new NeighborhoodStructure(this, pn);
-    SetupStarLocalityElementMap();
+    SetupStarLocalityElementMap(phase_);
   }
   else
   {
-    SetupVirtualElementMap();
+    SetupVirtualElementMap(phase_);
   }
 
   if(virtual_elem_map.GetSize() == 0) throw Exception("mesh too small for locality of function '" + fname + "'");
@@ -430,22 +447,23 @@ Function::Local::~Local()
   if(structure_ != NULL) { delete structure_; structure_ = NULL; }
 }
 
-void Function::Local::SetupVirtualElementMap()
+void Function::Local::SetupVirtualElementMap(Phase ph)
 {
   // we construct locality_ into reverse, prev and next
   // reverse means we have a REVERSE option which makes two constraints with different signs
-  bool reverse = locality_ == NEXT_AND_REVERSE || locality_ == PREV_NEXT_AND_REVERSE;
-  bool prev    = locality_ == PREV_NEXT_AND_REVERSE;
+  int  dim     = domain->GetGrid()->GetDim();
+  bool prev    = locality_ == PREV_NEXT_AND_REVERSE || locality_ == PREV_NEXT;
   bool next    = true; // always
+  bool two_signs = locality_ == NEXT_AND_REVERSE || locality_ == PREV_NEXT_AND_REVERSE;
+  assert((ph == BOTH && two_signs) || (!two_signs && ph != BOTH));
+  // assume ph is set correctly and Phase is in sync with the signs
+  int sign_1 = ph != BOTH ? (int) ph : two_signs ? 1 : Identifier::NO_SIGN;
+  int sign_2 = ph != BOTH ? (int) ph : -1;
 
-  unsigned int  dim  = domain->GetGrid()->GetDim();
-
-  element_dimension_ = dim * (reverse ? 2.0 : 1.0);
+  element_dimension_ = dim * (two_signs ? 2.0 : 1.0);
 
   virtual_elem_map.Reserve(element_dimension_ * space->GetNumberOfElements());
 
-
-  int no_sign = Identifier::NO_SIGN;
 
   // traverse all elements and check for full neighborhood
   space->AssertOneDesignOnly(); // can be extended we use the design from the conditon
@@ -474,37 +492,47 @@ void Function::Local::SetupVirtualElementMap()
 
     if(full)
     {
-      assert(next);
-      // for the slope constraint bounding box no sign is necessary!
-      virtual_elem_map.Push_back(Identifier(de, prev ? ve->GetNeighbour(VicinityElement::X_N) : NULL, ve->GetNeighbour(VicinityElement::X_P), reverse ? 1 : no_sign));
-      if(reverse)
-        virtual_elem_map.Push_back(Identifier(de, prev ? ve->GetNeighbour(VicinityElement::X_N) : NULL, ve->GetNeighbour(VicinityElement::X_P), -1));
+      for(int a = 0; a < dim; a++)
+      {
+        DesignElement* prev_de = prev ? ve->GetNeighbour(VicinityElement::ToNeighbour(a, -1)) : NULL;
+        DesignElement* next_de = ve->GetNeighbour(VicinityElement::ToNeighbour(a, 1));
 
-      virtual_elem_map.Push_back(Identifier(de, prev ? ve->GetNeighbour(VicinityElement::Y_N) : NULL, ve->GetNeighbour(VicinityElement::Y_P), reverse ? 1 : no_sign));
-      if(reverse)
-        virtual_elem_map.Push_back(Identifier(de, prev ? ve->GetNeighbour(VicinityElement::Y_N) : NULL, ve->GetNeighbour(VicinityElement::Y_P), -1));
-
-      if(dim == 3)
-        virtual_elem_map.Push_back(Identifier(de, prev ? ve->GetNeighbour(VicinityElement::Z_N) : NULL, ve->GetNeighbour(VicinityElement::Z_P), reverse ? 1 : no_sign));
-      if(dim == 3 && reverse)
-        virtual_elem_map.Push_back(Identifier(de, prev ? ve->GetNeighbour(VicinityElement::Z_N) : NULL, ve->GetNeighbour(VicinityElement::Z_P), -1));
+        virtual_elem_map.Push_back(Identifier(de, prev_de, next_de, sign_1));
+        if(two_signs)
+          virtual_elem_map.Push_back(Identifier(de, prev_de, next_de, sign_2));
+      }
     }
   }
 }
 
-void Function::Local::SetupStarLocalityElementMap()
+void Function::Local::SetupStarLocalityElementMap(Phase ph)
 {
   unsigned int dim  = domain->GetGrid()->GetDim();
+  // oscillation has with BOTH DEG_45_STAR_AND_REVERSE,
+  // mole has always BOTH and DEG_45_STAR.
+  // oscillation w/o BOTH needs to be DEG_45_STAR
+  Function::Type ft = func_->type_;
+  assert(ft == OSCILLATION || ft == GLOBAL_OSCILLATION || ft == MOLE || ft == GLOBAL_MOLE);
   assert(locality_ == DEG_45_STAR || locality_ == DEG_45_STAR_AND_REVERSE);
+  assert((ph != BOTH && locality_ == DEG_45_STAR) || ph == BOTH);
   assert(structure_ != NULL);
   NeighborhoodStructure* struc = structure_;
 
+  // mole has NO_SIGN and no reverse
+  // oscillation has either the given phase or when BOTH we have to add -1 and 1 as signs
+  int sign_1 = (ft == MOLE || ft == GLOBAL_MOLE) ? Identifier::NO_SIGN : ph == BOTH ? Identifier::VOID_SIGN : ph;
+  // sign_2 is relevant for DEG_45_STAR_AND_REVERSE only
+  int sign_2 = Identifier::MATERIAL_SIGN; // the only possibility: oscillation with BOTH and REVERSE
   // the *and* reverse mode? and is to be read as plus
-  bool reverse = locality_ == DEG_45_STAR_AND_REVERSE;
-  element_dimension_ = (dim == 2 ? 4 : 13) * (reverse ? 1 : 2); // see paper
+  bool two_signs = locality_ == DEG_45_STAR_AND_REVERSE;
+
+  LOG_DBG(func) << "SSLEM: phase=" << phase.ToString(ph) << " ft=" << func_->ToString()
+                << " locality=" << locality.ToString(locality_) << " s1=" << sign_1 << " s2=" << sign_2;
+
+  element_dimension_ = (dim == 2 ? 4 : 13) * (two_signs ? 1 : 2); // see paper
   virtual_elem_map.Reserve(element_dimension_ * space->GetNumberOfElements());
 
-  space->AssertOneDesignOnly(); // can be extended we use the design from the conditon
+  space->AssertOneDesignOnly(); // can be extended we use the design from the condition
   int elems = space->GetNumberOfElements();
   for(int e = 0, ss = elems; e < ss; ++e)
   {
@@ -539,10 +567,11 @@ void Function::Local::SetupStarLocalityElementMap()
       for(unsigned int i = n; i > 0; i--)  buddies.Push_back(VicinityElement::GetNeighbour(de, neg, i));
       for(unsigned int i = 1; i <= n; i++) buddies.Push_back(VicinityElement::GetNeighbour(de, pos, i));
 
-      virtual_elem_map.Push_back(Identifier(de, buddies, reverse ? -1 : Identifier::NO_SIGN));
       LOG_DBG3(func) << "L:SSLEM: de=" << de->ToString() << " dir=" << dir << " pos=" << pos << " neg=" << neg << " a=" << a << " n=" << n << " buddies=" << DesignElement::ToString(buddies);
-      if(reverse)
-        virtual_elem_map.Push_back(Identifier(de, buddies, 1));
+
+      virtual_elem_map.Push_back(Identifier(de, buddies, sign_1));
+      if(two_signs)
+        virtual_elem_map.Push_back(Identifier(de, buddies, sign_2));
     }
 
     // In 2D we have 2 diagonals in the xy plane. In 3D also in the xz and the yz plane which makes
@@ -576,10 +605,12 @@ void Function::Local::SetupStarLocalityElementMap()
           DesignElement* tmp = VicinityElement::GetNeighbour(de, VicinityElement::ToNeighbour(axis_first, 1), e);
           buddies.Push_back(VicinityElement::GetNeighbour(tmp, VicinityElement::ToNeighbour(axis_second, dir == 1 ? -1 : 1), e));
         }
-        virtual_elem_map.Push_back(Identifier(de, buddies, reverse ? -1 : Identifier::NO_SIGN));
+
         LOG_DBG3(func) << "L:SSLEM: diag de=" << de->ToString() << " dir=" << dir << " buddies=" << DesignElement::ToString(buddies);
-        if(reverse)
-          virtual_elem_map.Push_back(Identifier(de, buddies, 1));
+
+        virtual_elem_map.Push_back(Identifier(de, buddies, sign_1));
+        if(two_signs)
+          virtual_elem_map.Push_back(Identifier(de, buddies, sign_2));
       }
     }
     if(dim == 3)
@@ -608,10 +639,12 @@ void Function::Local::SetupStarLocalityElementMap()
             DesignElement* tmp_y = VicinityElement::GetNeighbour(tmp_x, VicinityElement::ToNeighbour(1, dir_y == 1 ? -1 : 1), e);
             buddies.Push_back(VicinityElement::GetNeighbour(tmp_y, VicinityElement::ToNeighbour(2, dir_z == 1 ? -1 : 1), e));
           }
-          virtual_elem_map.Push_back(Identifier(de, buddies, reverse ? -1 : Identifier::NO_SIGN));
+
           LOG_DBG3(func) << "L:SSLEM: corner de=" << de->ToString() << " dir_y=" << dir_y << " dir_z=" << dir_z << " buddies=" << DesignElement::ToString(buddies);
-          if(reverse)
-            virtual_elem_map.Push_back(Identifier(de, buddies, 1));
+
+          virtual_elem_map.Push_back(Identifier(de, buddies, sign_1));
+          if(two_signs)
+            virtual_elem_map.Push_back(Identifier(de, buddies, sign_2));
         }
       }
     }
@@ -631,7 +664,10 @@ void Function::Local::ToInfo(PtrParamNode in)
     in->Get("power")->SetValue(power_);
   }
   if(ft == OSCILLATION || ft == GLOBAL_OSCILLATION)
+  {
     in->Get("beta")->SetValue(beta_);
+    in->Get("phase")->SetValue(phase.ToString(phase_));
+  }
 
   if(ft == MOLE || ft == GLOBAL_MOLE)
     in->Get("eps")->SetValue(eps_);
@@ -731,6 +767,7 @@ Function::Local::Identifier::Identifier(DesignElement* elem, StdVector<DesignEle
 {
   this->element = elem;
   this->neighbor = buddies;
+  assert(si == NO_SIGN || si == -1 || si == 1);
   this->sign = si;
 }
 
@@ -949,7 +986,8 @@ double Function::Local::Identifier::CalcOscillation(double beta) const
     res = min_max - own;
   }
 
-  LOG_DBG3(func) << "L:I:CO de=" << element->ToString() << " neigh=" << DesignElement::ToString(neighbor) << " sign=" << sign << " own=" << own
+  LOG_DBG3(func) << "L:I:CO de=" << element->ToString() << " neigh=" << DesignElement::ToString(neighbor)
+                 << " vals=" << tmp1.ToString() << "; " << tmp2.ToString() << " sign=" << sign << " own=" << own
                  << " prev=" << prev << " next=" << next << " smooth=" << min_max << " hard="
                  << (sign == 1 ? (own - std::max(prev, next)) : (std::min(prev, next) - own)) << " -> " << res;
   return res;

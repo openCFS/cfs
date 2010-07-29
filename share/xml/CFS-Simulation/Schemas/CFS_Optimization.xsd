@@ -1178,7 +1178,9 @@
           <xsd:enumeration value="default"/>
           <xsd:enumeration value="next"/>
           <xsd:enumeration value="next_and_reverse"/>
+          <xsd:enumeration value="prev_next"/>
           <xsd:enumeration value="prev_next_and_reverse"/>
+          <xsd:enumeration value="45_deg_star"/>
           <xsd:enumeration value="45_deg_star_and_reverse"/>
         </xsd:restriction>
       </xsd:simpleType>
@@ -1202,6 +1204,17 @@
     <!-- global functions are actually sum( max(0, g_i(x) - c)^p) where c is the parameter and p is a "norm" -->
     <xsd:attribute name="power" type="xsd:float" use="optional" default="2.0"/>
     
+    <!-- only for the oscillation constraint, defines if applied on void and/or material phase.
+    Requires locality without _AND_REVERSE -->
+    <xsd:attribute name="phase" use="optional" default="both">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="both"/>
+          <xsd:enumeration value="void"/>
+          <xsd:enumeration value="material"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
   </xsd:complexType>
 
   <!-- neighborhood types -->

@@ -480,7 +480,7 @@ double LocalCondition::CalcMeanValue() const
     sum += v;
     counter++;
   }
-  return sum / counter;
+  return counter > 0 ? sum / counter : 0.0;
 }
 
 double LocalCondition::CalcMaxValue() const
@@ -523,8 +523,8 @@ std::string LocalCondition::ToString() const
 
   ss << Condition::ToString();
 
-  if(IsLocal())
-    ss << " cvi=" << current_view_index_;
+   if(IsLocal())
+      ss << " cvi=" << current_view_index_;
 
   return ss.str();
 }
@@ -665,8 +665,11 @@ void ConditionContainer::VirtualView::Refresh()
   // search also for observe conditions!
   Condition* c = container_->Get(Condition::SLOPE, DesignElement::NO_TYPE, false, false);
   if(c != NULL) tmp.push_back(c->GetIndex());
-  c = container_->Get(Condition::OSCILLATION, DesignElement::NO_TYPE, false, false);
-  if(c != NULL) tmp.push_back(c->GetIndex());
+  // we might combine oscillation for void and material with different sizes
+  StdVector<Condition*> list = container_->GetList(Condition::OSCILLATION, DesignElement::NO_TYPE, false);
+  for(unsigned int i = 0; i < list.GetSize(); i++)
+    tmp.push_back(list[i]->GetIndex());
+
   c = container_->Get(Condition::MOLE, DesignElement::NO_TYPE, false, false);
   if(c != NULL) tmp.push_back(c->GetIndex());
 
@@ -685,12 +688,14 @@ void ConditionContainer::VirtualView::Refresh()
   {
     LocalCondition* lc = dynamic_cast<LocalCondition*>(container_->all[local_cond_index_[i]]);
 
+    // refresh is called multiple times, maybe we are too early
+    if(lc == NULL || lc->GetLocal() == NULL) continue;
+
     // replace the global slope by many local slopes -> if it is initialized!
-    if(lc != NULL && lc->GetLocal() != NULL && lc->IsActive() && lc->GetConstraintSize() > 0)
+    if(lc->IsActive() && lc->GetConstraintSize() > 0)
       virtual_active_size_ += lc->GetConstraintSize() -1; // replace means remove ourselves
 
-    virtual_total_size_ = container_->all.GetSize();
-    if(lc != NULL && lc->GetLocal() != NULL && lc->GetConstraintSize() > 0)
+    if(lc->GetConstraintSize() > 0)
       virtual_total_size_ += lc->GetConstraintSize() -1;
   }
 
@@ -704,6 +709,7 @@ void ConditionContainer::VirtualView::Refresh()
       curr += std::max((int) dynamic_cast<LocalCondition*>(g)->GetConstraintSize(), 1);
     else
       curr++;
+    LOG_DBG2(conditions) << "CC:VV:Refresh() g=" << g->ToString() << " vbi=" << g->virtual_base_index_ << " new curr=" << curr;
   }
   assert(curr == virtual_total_size_);
 }
