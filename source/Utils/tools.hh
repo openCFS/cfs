@@ -171,6 +171,38 @@ namespace CoupledField {
    * @return the memory in KBytes or 0 if there was a problem */
   int MemoryUsage(bool peak);
 
+  /** Calculates the continuous Kreisselmeier and Steinhauser max approxmiation for two values.
+   * @param beta -1 is special and makes real max, otherwise beta needs to be > 0 */
+  double SmoothMax(double left, double right, double beta);
+
+  /** Calculates the continuous Kreisselmeier and Steinhauser max approximation for arbitrary values. */
+  double SmoothMax(const StdVector<double>& values, double beta);
+
+  /** @param deriv -1 for left or 1 for right value to derive for */
+  double DerivSmoothMax(double left, double right, double beta, int derive);
+
+  /** @param deriv index within values. */
+  double DerivSmoothMax(const StdVector<double>& values, double beta, unsigned int derive);
+
+  /** @see CalcMaxApproximation() */
+  double SmoothMin(double left, double right, double beta);
+
+  double SmoothMin(const StdVector<double>& values, double beta);
+
+  /** @see DerivSmoothMax() */
+  double DerivSmoothMin(double left, double right, double beta, int derive);
+
+  double DerivSmoothMin(const StdVector<double>& values, double beta, unsigned int derive);
+
+  /** Calculates an approximation of the abs function:A(x) = sqrt(x^2 + eps^2) - eps
+   * As used in Poulsen; A new scheme for imposing a minimum length scale in topology optimization; 2003
+   * @param eps small, e.g. 10% of x */
+  double SmoothAbs(double x, double eps);
+
+  /** derivative of
+   * @see CalcAbsApproximation() */
+  double DerivSmoothAbs(double x, double eps);
+
   /** A simple helper to write structured VTK point data in the
       legacy ASCII. pre-XML format. */
   class VTKStructuredPoints

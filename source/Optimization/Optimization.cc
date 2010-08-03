@@ -8,6 +8,7 @@
 #include "Optimization/PiezoSIMP.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Design/DesignStructure.hh"
 #include "Optimization/Optimizer/OptimalityCondition.hh"
 #include "Optimization/LevelSet.hh"
 #include "Optimization/Optimizer/EvaluateOnly.hh"
@@ -120,7 +121,13 @@ Optimization::Optimization()
   for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
   {
     Condition* g = constraints.all[i];
-    this->log.fileHeader += "\t" + g->ToString();
+    if(!g->IsLocalCondition())
+      this->log.fileHeader += "\t" + g->ToString();
+    else
+    {
+      this->log.fileHeader += "\tmax_" + g->ToString();
+      this->log.fileHeader += "\tmean_" + g->ToString();
+    }
   }
 
   log.Init(pn->Get("log")->As<std::string>(), pn->Get("logging", ParamNode::PASS)); // is fail save
@@ -243,17 +250,35 @@ void Optimization::SetEnums()
   Function::type.Add(Function::GREYNESS, "greyness");
   Function::type.Add(Function::ISOTROPY, "isotropy");
   Function::type.Add(Function::SLOPE, "slope");
-  Function::type.Add(Function::CHECKERBOARD, "checkerboard");
+  Function::type.Add(Function::GLOBAL_SLOPE, "globalSlope");
+  Function::type.Add(Function::MOLE, "mole");
+  Function::type.Add(Function::GLOBAL_MOLE, "globalMole");
+  Function::type.Add(Function::OSCILLATION, "oscillation");
+  Function::type.Add(Function::GLOBAL_OSCILLATION, "globalOscillation");
 
-  Function::locality.SetName("Function::Locality");
-  Function::locality.Add(Function::DEFAULT, "default");
-  Function::locality.Add(Function::NEXT, "next");
-  Function::locality.Add(Function::NEXT_BIDIR, "next_bidir");
+  Function::Local::locality.SetName("Function::Local::Locality");
+  Function::Local::locality.Add(Function::Local::DEFAULT, "default");
+  Function::Local::locality.Add(Function::Local::NEXT, "next");
+  Function::Local::locality.Add(Function::Local::NEXT_AND_REVERSE, "next_and_reverse");
+  Function::Local::locality.Add(Function::Local::PREV_NEXT, "prev_next");
+  Function::Local::locality.Add(Function::Local::PREV_NEXT_AND_REVERSE, "prev_next_and_reverse");
+  Function::Local::locality.Add(Function::Local::DEG_45_STAR, "45_deg_star");
+  Function::Local::locality.Add(Function::Local::DEG_45_STAR_AND_REVERSE, "45_deg_star_and_reverse");
 
-  Condition::bound.SetName("Constraint::Bound");
+  Function::Local::phase.SetName("Function::Local::Phase");
+  Function::Local::phase.Add(Function::Local::BOTH, "both");
+  Function::Local::phase.Add(Function::Local::VOID, "void");
+  Function::Local::phase.Add(Function::Local::MATERIAL, "material");
+
+  Condition::bound.SetName("Condition::Bound");
   Condition::bound.Add(Condition::EQUAL, "equal");
   Condition::bound.Add(Condition::LOWER_BOUND, "lowerBound");
   Condition::bound.Add(Condition::UPPER_BOUND, "upperBound");
+
+  DesignStructure::filterSpace.SetName("DesignStructure::FilterSpace");
+  DesignStructure::filterSpace.Add(DesignStructure::RADIUS, "radius");
+  DesignStructure::filterSpace.Add(DesignStructure::VOLUME_RADIUS, "volumeRadius");
+  DesignStructure::filterSpace.Add(DesignStructure::MAX_EDGE, "maxEdge");
 
   optimizer.SetName("Optimization::Optimizer");
   optimizer.Add(OPTIMALITY_CONDITION, "optimalityCondition");
@@ -673,16 +698,29 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
     if(g->GetValue() == -1.0 || g->IsObservation())
       CalcConstraint(g);
   }
-  constraints.view->Done(); // we have now a global slope constraint value
+  constraints.view->Done();
 
   for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
   {
     Condition* g = constraints.all[i]; // Now traverse in global mode
 
-    double value = g->GetValue();
-    if(g->delta_logging) value = value - g->GetBoundValue();
-    if(out) *out << "\t" << value;
-    iteration->Get(g->ToString())->SetValue(value);
+    if(g->IsLocalCondition())
+    {
+      LocalCondition* local = dynamic_cast<LocalCondition*>(g);
+      double max  = local->CalcMaxValue();
+      double mean = local->CalcMeanValue();
+      if(out)
+        *out << "\tmax_" << local->ToString() << max << "\tmean_" << local->ToString() << mean;
+      iteration->Get("max_" + g->ToString())->SetValue(max);
+      iteration->Get("mean_" + g->ToString())->SetValue(mean);
+    }
+    else
+    {
+      double value = g->GetValue();
+      if(g->delta_logging) value = value - g->GetBoundValue();
+      if(out) *out << "\t" << value;
+      iteration->Get(g->ToString())->SetValue(value);
+    }
   }
 
   if(out && log.design){

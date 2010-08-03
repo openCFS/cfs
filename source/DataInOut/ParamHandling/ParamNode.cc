@@ -4,6 +4,7 @@
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/programOptions.hh"
+#include "DataInOut/coloredConsole.hh"
 #include "General/defs.hh"
 #include "MatVec/matrix.hh"
 #include "MatVec/vector.hh"
@@ -24,7 +25,7 @@ const string ParamNode::HEADER = "header";
 const string ParamNode::PROCESS = "process";
 const string ParamNode::SUMMARY = "summary";
 
-const string ParamNode::WARNING = "warnings";
+const string ParamNode::WARNING = "warning";
 const string ParamNode::ERROR = "error";
 
 /** This is our global pointer of the root ParamNode holding the XML file.
@@ -51,12 +52,18 @@ ParamNode::~ParamNode()
 void ParamNode::SetValue(const boost::any& value)
 {
   this->value_ = value;
+
+  if(this->name_ == WARNING)
+    std::cerr  << std::endl << fg_red << "WARNING: " << boost::any_cast<std::string>(value_)<< fg_reset << std::endl;
 }
 
 void ParamNode::SetValue(const char* value)
 {
   std::string toSet(value);
   this->value_ = toSet;
+
+  if(this->name_ == WARNING)
+    std::cerr  << std::endl << fg_red << "WARNING: " << value << fg_reset << std::endl;
 }
 
 void ParamNode::SetValue(const double value, const int precision)

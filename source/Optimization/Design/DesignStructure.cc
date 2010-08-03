@@ -16,6 +16,8 @@ using namespace CoupledField;
 DECLARE_LOG(ds)
 DEFINE_LOG(ds, "designStructure")
 
+Enum<DesignStructure::FilterSpace> DesignStructure::filterSpace;
+
 DesignStructure::DesignStructure(DesignSpace* space, StdVector<RegionIdType>& regions)
 {
   this->space = space;
@@ -48,10 +50,6 @@ void DesignStructure::Constructor()
 
   value  = -1.0;
 
-  filterSpace.SetName("DesignStructure::FilterSpace");
-  filterSpace.Add(RADIUS, "radius");
-  filterSpace.Add(VOLUME_RADIUS, "volumeRadius");
-  filterSpace.Add(MAX_EDGE, "maxEdge");
 }
 
 
@@ -171,7 +169,7 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
     // independent of the filter type, radius determines the neighborhood
     // via barycenter distance.
     if(!regular || e == 0)  // save calling if possible
-      radius = FindFilterRadius(filter_space_, de);
+      radius = FindFilterRadius(filter_space_, de, value);
 
     // set the filter neighborhood which is determined by radius
     // recursively via element neighbors.
@@ -327,7 +325,7 @@ double DesignStructure::RelaxedDistance(const Elem* base, const Elem* test) cons
 
 /** The is not performance tuned as for almost cases we have regular grids and then this method is
  * only called once. In the other cases - life with it */
-double DesignStructure::FindFilterRadius(FilterSpace space, DesignElement* de) const
+double DesignStructure::FindFilterRadius(FilterSpace space, DesignElement* de, double value)
 {
   Matrix<double>  coords;
   domain->GetGrid()->GetElemNodesCoord(coords, de->elem->connect, false );

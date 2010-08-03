@@ -115,12 +115,14 @@ void ObjectiveContainer::ToInfo(PtrParamNode in)
       PtrParamNode o = m->Get("objective", ParamNode::APPEND);
       Objective* f = data[i];
       f->ToInfo(o);
-      o->Get("penalty")->SetValue(f->penalty_);
+      o->Get("penalty")->SetValue(f->penalty_); // always for multiobjective
     }
   }
   else
   {
     data[0]->ToInfo(in);
+    if(data[0]->GetPenalty() != 1.0) // only when it is set
+      in->Get("penalty")->SetValue(data[0]->GetPenalty());
   }
 
   in->Get("task")->SetValue(minimize_ ? "minimize" : "maximize");

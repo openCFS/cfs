@@ -40,11 +40,6 @@ public:
    * @return false means not periodic and and neighbors is 0 size */
   bool ExtendPeriodicNeighborhood(Elem* elem, int min_common, StdVector<std::pair<Elem*, int> >& neighbors);
 
-private:
-
-  /** The common Constructor, does much less than Initialize() */
-  void Constructor();
-
   /** Filter types we have
    * <ul>
    *   <li>RADIUS: this is the implementation following Sigmund in the 99lines paper.
@@ -56,14 +51,25 @@ private:
    * This does not tell if we have design or sensitivity filtering! */
   typedef enum { NO_FILTER = -1, RADIUS, VOLUME_RADIUS, MAX_EDGE } FilterSpace;
 
+  /** Also to be used in Function::Local */
+  static Enum<FilterSpace> filterSpace;
+
+  /** Helper for DesignStructure::InitFilter() and Function::Local::SetupStarLocalityElementMap.
+   * Call only once if regular as it is not performance tunes! */
+  static double FindFilterRadius(FilterSpace filter, DesignElement* de, double value);
+
+private:
+
+  /** The common Constructor, does much less than Initialize() */
+  void Constructor();
+
+
 
   /** The actual constructor, initializes for SetFilter() and ExtendPeriodicNeighborhood() on
    * the fly! The time is not recorded!
    * @see initialized_ */
   void Initialize();
 
-  /** Helper for InitFilter(). Call only once if regular! */
-  double FindFilterRadius(FilterSpace filter, DesignElement* de) const;
 
   /** Almost copy and paste to the version with common */
   bool ExtendPeriodicNeighborhood(Elem* elem, StdVector<std::pair<Elem*, int> >& neighbors);
@@ -111,7 +117,6 @@ private:
   /** Parameter for filter */
   Contribution contribution_;
 
-  Enum<FilterSpace> filterSpace;
 
   /** actual filter space setting */
   FilterSpace filter_space_;

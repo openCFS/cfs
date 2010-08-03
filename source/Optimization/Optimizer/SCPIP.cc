@@ -215,6 +215,7 @@ int SCPIP::get_sparsity_pattern_size(int m, int* jac_g_dim)
     int local = g->GetSparsityPattern().GetSize();
     jac_g_dim[i] = local;
     nnz += local;
+    LOG_DBG3(scpip) << "gsps: i=" << i << " g=" << g->ToString() << " sps=" << local << " nnz=" << nnz;
   }
   optimization->constraints.view->Done(); // mandatory after traversing the view
 
