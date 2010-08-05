@@ -242,6 +242,9 @@ namespace CoupledField
 
     //! Initialize local coordinate systems as read in from the parameter file
     void CreateCoordinateSystems();
+    
+    //! Register variables of in element <variableList/>
+    void RegisterVariables();
     //@}
   
     // ======================================================
