@@ -698,6 +698,10 @@ void SnOpt::SetNumericValue(const std::string& key, double value)
   {
     option = "Linesearch tolerance";
   }
+  else if(key == "difference_interval")
+  {
+    option = "Difference interval";
+  }
      
   if(!option.empty())
   {

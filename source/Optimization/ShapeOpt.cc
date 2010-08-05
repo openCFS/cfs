@@ -168,10 +168,16 @@ double ShapeOpt::CalcVolume(Objective* f, Condition* constraint, bool derivative
   return 0.0;
 }
 
-void ShapeOpt::CalcMinusU1dKU2(StdVector<SingleVector*>& u1, StdVector<SingleVector*>& u2, Objective* f, Condition* constraint, double w){
+void ShapeOpt::CalcMinusU1dKU2(Solutions& u1, Solutions& u2, Objective* f, Condition* constraint, const Matrix<double>* tensor_diff){
   StdVector<double> der; // solution
   int np = shapedesign->GetNumberOfShapeParameters();
   der.Resize(np, 0);
+  const bool homogenization = tensor_diff != NULL;
+  const unsigned int ex_size(excitations.GetSize());
+  double rcubevol(1.0);
+  if(homogenization){
+    rcubevol = 1.0 / grid->CalcVolumeSpannedByNamedNodes();    
+  }
 
   Grid* grd = domain->GetGrid();
 
@@ -190,6 +196,11 @@ void ShapeOpt::CalcMinusU1dKU2(StdVector<SingleVector*>& u1, StdVector<SingleVec
   Matrix<double> A3;
   Matrix<double> A4;
   
+  Matrix<double> tmp_strain(dim, dim); // homogenization
+  Matrix<double> tmp_displacement;
+  Vector<double> u1diff;
+  Vector<double> u2diff;
+
   StdVector<BiLinFormContext*>& biLinForms = assemble_->GetBiLinForms();
   for(unsigned int i = 0; i < biLinForms.GetSize(); ++i){ // loop over all linElastInt bilinear forms (as assemble does)
     BiLinFormContext* biLinForm = biLinForms[i];
@@ -200,18 +211,14 @@ void ShapeOpt::CalcMinusU1dKU2(StdVector<SingleVector*>& u1, StdVector<SingleVec
     EntityIterator it = biLinForm->GetFirstEntities()->GetIterator();
     for(it.Begin(); !it.IsEnd(); it++){ // loop over all corresponding elements
       const Elem* elem = it.GetElem();
-      if(shapedesign->IsElemDependentAtAll(elem->connect)){ // if this element does not depent on any parameters, we can simply skip all the calculations
+      if(shapedesign->IsElemDependentAtAll(elem->connect)){ // if this element does not depend on any parameters, we can simply skip all the calculations
         int e = elem->elemNum - 1; // index for u and z which are 0-based
         BaseFE* ptelem = elem->ptElem;
         grd->GetElemNodesCoord(CornerCoords, elem->connect, true);
-
         form->ExtractElemInfo(it); // this is needed before calcBMat
 
         form->calcDMat(D, elem, DesignElement::NO_DERIVATIVE);
         const unsigned int dimD(D.GetNumRows());
-
-        Vector<double>& u1elem = dynamic_cast<Vector<double>& >(*u1[e]);
-        Vector<double>& u2elem = dynamic_cast<Vector<double>& >(*u2[e]);
 
         const int nip = ptelem->GetNumIntPoints();
         const Vector<Double> & intWeights = ptelem->GetIntWeights();
@@ -257,15 +264,41 @@ void ShapeOpt::CalcMinusU1dKU2(StdVector<SingleVector*>& u1, StdVector<SingleVec
               const unsigned int r = A4.GetNumRows();
               const unsigned int c = A4.GetNumCols();
               // A5 = ( -tr(J~ dJ) B'DB + reorder(dPhi J~ dJ J~)'DB + B'D reorder(dPhi J~ dJ J~) ), this is not needed completely
-              double v1 = 0.0; // v1 = u1elem' * (A5 * u2elem)
-              for(unsigned int i = 0; i < r; ++i){
-                double v2 = 0.0; // v2 = component i of (A5 * u2elem)
-                for(unsigned int j = 0; j < c; ++j){
-                  v2 += (A4[i][j] + A4[j][i] -trA1 * BDB[i][j]) * u2elem[j];
+              
+              if(!homogenization){
+                for(unsigned int ex = 0; ex < ex_size; ++ex){
+                  Vector<double>& u1elem = dynamic_cast<Vector<double>& >(*u1.Get(ex)->gridelem[MECH][e]);
+                  Vector<double>& u2elem = dynamic_cast<Vector<double>& >(*u2.Get(ex)->gridelem[MECH][e]);
+                  double v1 = 0.0; // v1 = u1elem' * (A5 * u2elem)
+                  for(unsigned int i = 0; i < r; ++i){
+                    double v2 = 0.0; // v2 = component i of (A5 * u2elem)
+                    for(unsigned int j = 0; j < c; ++j){
+                      v2 += (A4[i][j] + A4[j][i] -trA1 * BDB[i][j]) * u2elem[j];
+                    }
+                    v1 += u1elem[i] * v2;
+                  }
+                  der[p] += intWeight * jacdet * v1 * excitations[ex].weight;
                 }
-                v1 += u1elem[i] * v2;
+              }else{ // we calculate homogenization 
+                for(unsigned int ij = 0; ij < ex_size; ++ij){
+                  u1diff = *dynamic_cast<Vector<double>* >(u1.Get(ij)->gridelem[MECH][e]); // assign is needed here
+                  SubtractTestDisplacement(ij, CornerCoords, u1diff, tmp_strain, tmp_displacement);
+                  for(unsigned int kl = ij; kl < ex_size; ++kl){
+                    u2diff = *dynamic_cast<Vector<double>* >(u2.Get(kl)->gridelem[MECH][e]);
+                    SubtractTestDisplacement(kl, CornerCoords, u2diff, tmp_strain, tmp_displacement);
+                    // description see above, is needed twice for SPEED
+                    double v1 = 0.0;
+                    for(unsigned int i = 0; i < r; ++i){
+                      double v2 = 0.0;
+                      for(unsigned int j = 0; j < c; ++j){
+                        v2 += (A4[i][j] + A4[j][i] -trA1 * BDB[i][j]) * u2diff[j];
+                      }
+                      v1 += u1diff[i] * v2;
+                    }
+                    der[p] -= intWeight * jacdet * v1 * (*tensor_diff)[ij][kl] * (ij == kl ? 1.0 : 2.0) * rcubevol; // diagonal is doubled, note homogenization needs PlusUdKu 
+                  }
+                }                
               }
-              der[p] += intWeight * jacdet * v1;
 
             } // if GetElemNodesCoordDerivative
 
@@ -275,7 +308,7 @@ void ShapeOpt::CalcMinusU1dKU2(StdVector<SingleVector*>& u1, StdVector<SingleVec
     } // element loop
   } // biLinForm loop
   
-  shapedesign->AddShapeDerivatives(f, constraint, der, w);
+  shapedesign->AddShapeDerivatives(f, constraint, der, 1.0);
 }
 
 void ShapeOpt::CalcUdF(Excitation& excite, StdVector<SingleVector*>& u, Objective* f, Condition* constraint, double w){
@@ -401,11 +434,12 @@ void ShapeOpt::CalcUdF(Excitation& excite, StdVector<SingleVector*>& u, Objectiv
 
 double ShapeOpt::CalcCompliance(Excitation& excite, Objective* f, Condition* constraint, bool derivative){
   if(derivative){
-    forward.Get(excite)->Read(Solution::GRIDELEM_VECTORS, pde, MECH);
+    // the derivative of tracking w.r.t. shape is: - u' dA/dShape u + 2 u dF/dShape
+    if(excite.index == 0){      
+      CalcMinusU1dKU2(forward, forward, f, constraint);
+    }
+    // this however is done per excite
     StdVector<SingleVector*>& u = forward.Get(excite)->gridelem[MECH];
-    
-    // the derivative of tracking w.r.t. shape is: - u' dA/dShape u + 2 u dF/dShape 
-    CalcMinusU1dKU2(u, u, f, constraint, excite.weight);
     CalcUdF(excite, u, f, constraint, 2*excite.weight);
     if(alsomatopt_){
       ErsatzMaterial::CalcCompliance(excite, f, constraint, true);
@@ -418,12 +452,12 @@ double ShapeOpt::CalcCompliance(Excitation& excite, Objective* f, Condition* con
 
 double ShapeOpt::CalcTracking(Excitation& excite, Objective* f, Condition* constraint, bool derivative){
   if(derivative){
-
-    StdVector<SingleVector*>& z = adjoint.Get(excite)->gridelem[MECH];
+    // the derivative of tracking w.r.t. shape is: - z' dA/dShape u + z dF/dShape
+    if(excite.index == 0){ // CalcMinusU1dKU2 runs over the excitations, this speeds up things a little
+      CalcMinusU1dKU2(adjoint, forward, f, constraint);
+    }
+    // this however is done per excite
     StdVector<SingleVector*>& u = forward.Get(excite)->gridelem[MECH];
-    
-    // the derivative of tracking w.r.t. shape is: - z' dA/dShape u + z dF/dShape 
-    CalcMinusU1dKU2(z, u, f, constraint, excite.weight);
     CalcUdF(excite, u, f, constraint, excite.weight);
     
     if(alsomatopt_){
@@ -435,9 +469,86 @@ double ShapeOpt::CalcTracking(Excitation& excite, Objective* f, Condition* const
   return 0.0;
 }
 
+void ShapeOpt::CalcHomogenizedTrackingGradient(const Matrix<double>& target, const Matrix<double>& hom, Objective* f, Condition* g){
+  Matrix<double> tensor_diff;
+  tensor_diff = hom - target;
+  CalcMinusU1dKU2(forward, forward, f, g, &tensor_diff);
+}
+
+Matrix<double> ShapeOpt::CalcHomogenizedTensor(){
+  const unsigned int ex_size(excitations.GetSize());
+  assert((dim == 2 && ex_size == 3) || (dim == 3 && ex_size == 6));
+  
+  double rcubevol(1.0 / grid->CalcVolumeSpannedByNamedNodes());
+  
+  Matrix<double> result(ex_size, ex_size);
+  result.Init();
+
+  Matrix<double> elemMat;
+  Matrix<double> tmp_strain(dim, dim);
+  Matrix<double> tmp_displacement;
+  Matrix<double> CornerCoords;
+  Vector<double> u1diff;
+  Vector<double> u2diff;
+  Vector<double> Ku;
+  
+  StdVector<BiLinFormContext*>& biLinForms = assemble_->GetBiLinForms();
+  for(unsigned int i = 0; i < biLinForms.GetSize(); ++i){ // loop over all linElastInt bilinear forms (as assemble does)
+    BiLinFormContext* biLinForm = biLinForms[i];
+    if(biLinForm->GetFirstPde()->GetName() != pde->GetName()) continue;
+    if(biLinForm->GetSecondPde()->GetName() != pde->GetName()) continue;
+    if(biLinForm->GetIntegrator()->GetName() != "linElastInt") continue;
+    linElastInt* form = (linElastInt*)(biLinForm->GetIntegrator());
+    EntityIterator it = biLinForm->GetFirstEntities()->GetIterator();
+    for(it.Begin(); !it.IsEnd(); it++){ // loop over all corresponding elements
+      const Elem* elem = it.GetElem();
+      int e = elem->elemNum - 1;
+      grid->GetElemNodesCoord(CornerCoords, elem->connect, true);
+      form->CalcElementMatrix(elemMat, it, it);
+      for(unsigned int ij = 0; ij < ex_size; ++ij){
+        u1diff = *dynamic_cast<Vector<double>* >(forward.Get(ij)->gridelem[MECH][e]);
+        SubtractTestDisplacement(ij, CornerCoords, u1diff, tmp_strain, tmp_displacement);
+        Ku = elemMat * u1diff;
+        for(unsigned int kl = ij; kl < ex_size; ++kl){ // only upper triangle
+          u2diff = *dynamic_cast<Vector<double>* >(forward.Get(kl)->gridelem[MECH][e]);
+          SubtractTestDisplacement(kl, CornerCoords, u2diff, tmp_strain, tmp_displacement);
+          result[ij][kl] += Ku * u2diff;
+        }
+      }
+    } // elem loop
+  }
+  // copy the rest of the tensor and divide the upper triangle (and diag)
+  for(unsigned int ij = 0; ij < ex_size; ++ij){
+    for(unsigned int kl = 0; kl < ex_size; ++kl){
+      if(ij <= kl){
+        result[ij][kl] *= rcubevol;
+      }else{
+        result[ij][kl] = result[kl][ij];
+      }
+    }
+  }
+
+  homogenizedTensor.Assign(result, 1.0);
+
+  return result;
+}
+
 void ShapeOpt::StorePDESolution(Excitation &excite, UInt timestep, Solutions& solutions, bool read_sol, bool read_rhs, bool save_sol, const std::string& comment){
   ParamMat::StorePDESolution(excite, timestep, solutions, read_sol, read_rhs, save_sol, comment);
   if(read_sol){
     solutions.Get(excite)->Read(Solution::GRIDELEM_VECTORS, pde, MECH);
   }
 }
+
+void ShapeOpt::SubtractTestDisplacement(unsigned int idx, Matrix<double>& CornerCoords, Vector<double>& result, Matrix<double>& tmp_strain, Matrix<double>& tmp_displacement){
+  SetTestStrainMatrix(tmp_strain, excitations[idx].test_strain);
+  unsigned int cols = CornerCoords.GetNumCols();
+  tmp_displacement.Resize(dim, cols);
+  tmp_strain.Mult(CornerCoords, tmp_displacement);
+  for(unsigned int out = 0; out < cols; ++out){
+    for(unsigned int in = 0; in < dim; ++in){
+      result[out*dim + in] -= tmp_displacement[in][out];
+    }
+  }
+}
+

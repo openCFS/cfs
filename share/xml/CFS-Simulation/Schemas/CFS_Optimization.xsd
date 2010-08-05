@@ -435,6 +435,7 @@
                             <xsd:enumeration value="major_feasibility_tolerance"/>
                             <xsd:enumeration value="minor_feasibility_tolerance"/>
                             <xsd:enumeration value="linesearch_tolerance"/>
+                            <xsd:enumeration value="difference_interval"/>
                             <!-- string options -->
                             <xsd:enumeration value="qpsolver"/>
                           </xsd:restriction>
@@ -882,6 +883,7 @@
                     <xsd:complexType>
                       <xsd:attribute name="upper" type="xsd:float" default="1.0"/>
                       <xsd:attribute name="lower" type="xsd:float" default="-1.0"/>
+                      <xsd:attribute name="initial" type="xsd:float" default="0.0"/>
                       <xsd:attribute name="scaling" type="xsd:float" default="1.0"/>
                     </xsd:complexType>
                   </xsd:element>
@@ -890,6 +892,7 @@
                       <xsd:attribute name="param" type="xsd:nonNegativeInteger" use="required"/>
                       <xsd:attribute name="upper" type="xsd:float"/>
                       <xsd:attribute name="lower" type="xsd:float"/>
+                      <xsd:attribute name="initial" type="xsd:float"/>
                     </xsd:complexType>
                   </xsd:element>
                 </xsd:sequence>

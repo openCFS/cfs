@@ -60,16 +60,19 @@ void ShapeDesign::Configure(PtrParamNode pn, int objectives, int constraints){
   shapeparams_.Reserve(nshapeparams_);
   double l = -1.0;
   double u = 1.0;
+  double v = 0.0;
   scaling = 1.0;
   if(pn->Has("allShapeParams")){
     l = pn->Get("allShapeParams")->Get("lower")->As<Double>();
     u = pn->Get("allShapeParams")->Get("upper")->As<Double>();
+    v = pn->Get("allShapeParams")->Get("initial")->As<Double>();
     scaling = pn->Get("allShapeParams")->Get("scaling")->As<Double>();
   }
   for(unsigned int i = 0; i < nshapeparams_; i++){
     BaseDesignElement de;
     de.SetLowerBound(l);
     de.SetUpperBound(u);
+    de.SetDesign(v);
     de.PostInit(objectives, constraints);
     shapeparams_.Push_back(de);
   }
@@ -85,7 +88,11 @@ void ShapeDesign::Configure(PtrParamNode pn, int objectives, int constraints){
     if(shapeparams[i]->Has("upper")){
       shapeparams_[p].SetUpperBound(shapeparams[i]->Get("upper")->As<Double>());
     }
+    if(shapeparams[i]->Has("initial")){
+      shapeparams_[p].SetDesign(shapeparams[i]->Get("initial")->As<Double>());
+    }
   }
+  UpdateCoordinates();
 }
 
 int ShapeDesign::ReadDesignFromExtern(const double* space_in){
