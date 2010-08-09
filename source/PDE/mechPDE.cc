@@ -1909,6 +1909,17 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     stress->fctType = shared_ptr<ConstFct>(new ConstFct() );
     availResults_.insert( stress );
 
+    // === MECHANIC VON MISES STRESS (yield criterion, a scalar value)===
+    shared_ptr<ResultInfo> vonMises(new ResultInfo);
+    vonMises->resultType = VON_MISES_STRESS;
+    vonMises->dofNames = "";
+    vonMises->unit =  "";
+    vonMises->entryType = ResultInfo::SCALAR;
+    vonMises->definedOn = ResultInfo::ELEMENT;
+    vonMises->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert( vonMises );
+
+
     // === MECHANIC STRAIN ===
     shared_ptr<ResultInfo> strain(new ResultInfo);
     strain->resultType = MECH_STRAIN;
@@ -2172,6 +2183,13 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       }
       break;
 
+    case VON_MISES_STRESS:
+      if(isComplex_)
+        CalcVonMisesStress<Complex>(result);
+      else
+        CalcVonMisesStress<Double>(result);
+      break;
+
     case MECH_STRAIN:
       if( isComplex_ ) {
         CalcStrains<Complex>( result );
@@ -2296,6 +2314,82 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
     delete stress;
   }
+
+  const Matrix<double>& MechPDE::GetVonMisesMatrix(int dim)
+  {
+    Matrix<double>& m = dim == 2 ? vonMisesMatrix_2d_ : vonMisesMatrix_3d_;
+    if(m.GetNumRows() == 0)
+    {
+      // Kocvara and Stingl; 2007 -> von Mises Stress = stress^T * M * stress
+      if(dim == 2)
+      {
+        m.Resize(3,3);
+        m.Init();
+        m[0][0] = 1.0;
+        m[1][1] = 1.0;
+        m[2][2] = 3.0;
+        m[0][1] = -0.5;
+        m[1][0] = -0.5;
+
+      }
+      else
+      {
+        m.Resize(6,6);
+        m.Init();
+        m[0][0] = 2.0;
+        m[1][1] = 2.0;
+        m[2][2] = 2.0;
+        m[3][3] = 6.0;
+        m[4][4] = 6.0;
+        m[5][5] = 6.0;
+        m[0][1] = -1.0;
+        m[0][2] = -1.0;
+        m[1][2] = -1.0;
+        m[1][0] = -1.0;
+        m[2][0] = -1.0;
+        m[2][1] = -1.0;
+      }
+    }
+    return m;
+  }
+
+
+  template <class TYPE>
+  void MechPDE::CalcVonMisesStress(shared_ptr<BaseResult> res)
+  {
+    // calculate the strains
+    CalcStresses<TYPE>(res);
+
+    // we don't need the entity iterator, only the stresses.
+    // copy the stress result, our result is scalar
+    Result<TYPE> &  actRes = dynamic_cast<Result<TYPE>&>(*res);
+    Vector<TYPE>  stresses = actRes.GetVector(); // copy!
+    Vector<TYPE>& v_m_s = actRes.GetVector();
+    v_m_s.Resize(actRes.GetEntityList()->GetSize()); // make scalar
+
+    assert(stresses.GetSize() / v_m_s.GetSize() == stressDim_);
+
+    // element stress matrix
+    Vector<TYPE> stress(stressDim_);
+
+
+    Matrix<double> m = GetVonMisesMatrix(dim_);
+    Vector<TYPE> tmp;
+
+    LOG_DBG(mechpde) << "CalcVonMisesStess: M=" << m.ToString();
+
+    for(unsigned int e = 0, n = v_m_s.GetSize(); e < n; e++)
+    {
+       for(unsigned s = 0; s < stressDim_; s++)
+         stress[s] = stresses[e * stressDim_ + s];
+
+       tmp = m * stress;
+       v_m_s[e] = stress.Inner(tmp);
+       LOG_DBG2(mechpde) << "CVMS: e=" << 0 << " stress=" << stress.ToString() << " M*stress=" << tmp.ToString()
+                         << " -> " << v_m_s[e];
+    }
+  }
+
 
   template <class TYPE>
   void MechPDE::CalcStrains( shared_ptr<BaseResult> res ) {

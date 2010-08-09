@@ -278,6 +278,8 @@
                 <xsd:enumeration value="globalOscillation"/>
                 <xsd:enumeration value="mole"/>
                 <xsd:enumeration value="globalMole"/>
+                <xsd:enumeration value="jump"/>
+                <xsd:enumeration value="globalJump"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -774,6 +776,7 @@
                       <xsd:enumeration value="maxSlope"/>
                       <xsd:enumeration value="maxOscillation"/>
                       <xsd:enumeration value="maxMole"/>
+                      <xsd:enumeration value="maxJump"/>
                       <!-- has details! -->
                       <xsd:enumeration value="constraintGradient"/>
                       <xsd:enumeration value="weight"/>
@@ -1061,6 +1064,7 @@
       <xsd:enumeration value="globalSlope"/>
       <xsd:enumeration value="globalOscillation"/>
       <xsd:enumeration value="globalMole"/>
+      <xsd:enumeration value="globalJump"/>
       <xsd:enumeration value="multiObjective"/>
     </xsd:restriction>
   </xsd:simpleType>
@@ -1165,6 +1169,7 @@
       <xsd:enumeration value="globalSlope"/>
       <xsd:enumeration value="globalOscillation"/>
       <xsd:enumeration value="globalMole"/>
+      <xsd:enumeration value="globalJump"/>
     </xsd:restriction>
   </xsd:simpleType>
 

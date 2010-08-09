@@ -66,6 +66,7 @@ class Function
       GLOBAL_SLOPE,              /*!< different implementation from local slopes */
       GLOBAL_MOLE,               /*!< see mole */
       GLOBAL_OSCILLATION,        /*!< see oscillation */
+      GLOBAL_JUMP,
 
       // This is constraint only!
       GREYNESS,                  /*!< inaccurate - best for observation only */
@@ -73,7 +74,8 @@ class Function
       ISOTROPY,                  /*!< blow up to several HOMOGENITATION_TENSOR constraints with different coords */
       SLOPE,                     /*!< Implementation of a grad rho constraint */
       MOLE,                      /*!< Feature size control from T. Poulsen */
-      OSCILLATION                /*!< Feature size control by Fabian W. :) */
+      OSCILLATION,               /*!< Feature size control by Fabian W. :) */
+      JUMP                       /*!< Weak greyness control by Fabian W. :) */
     } Type;
 
     /** to convert string/enum for this type */
@@ -170,7 +172,8 @@ class Function
         PREV_NEXT,
         PREV_NEXT_AND_REVERSE,   /*!< x_i-1 and x_i+1 with different sign for small oscillation */
         DEG_45_STAR,             /*!< Different notation. prev_next but also diagonals */
-        DEG_45_STAR_AND_REVERSE  /*!< The doubled variant of DEG_45_STAR for oscillation */
+        DEG_45_STAR_AND_REVERSE, /*!< The doubled variant of DEG_45_STAR for oscillation */
+        BOUNDARY                 /*!< For a neighbor definition the first and last element (JUMP) */
       } Locality;
 
       static Enum<Locality> locality;
@@ -261,6 +264,7 @@ class Function
          * @see CalcSlopeGradient() */
         double CalcCheckerboardGradient(int neigh_idx, double beta);
 
+        /** T. Poulsen's feature size control */
         double CalcMole(double eps) const;
         double CalcMoleGradient(int neigh_idx, double eps);
 
@@ -268,6 +272,9 @@ class Function
         double CalcOscillation(double beta) const;
         double CalcOscillationGradient(int neigh_idx, double beta);
 
+        /** weak formulation of a greyness control */
+        double CalcJump() const;
+        double CalcJumpGradient(int neigh_id) const;
 
         DesignElement* element; // this represents DesignSpace::data[element_idx]
         StdVector<DesignElement*> neighbor;
@@ -303,6 +310,9 @@ class Function
       /** Special implementation for DEG_45_STAR[_AND_REVERSE] locality.
        * @param phase for oscillation we can separate void and material which is the sign convention */
       void SetupStarLocalityElementMap(Phase phase = BOTH);
+
+      /** for a defined neighborhood only the most prev and next element, not this element */
+      void SetupBoundaryElementMap();
 
       /** small helper to determine the number of neighbors in each (diagonal)
        * direction if we use a neighborhood. Parses the whole stuff */

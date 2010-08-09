@@ -256,22 +256,25 @@ protected:
 
     ~Solutions();
 
-    /** post init wen em is valid */
+    /** post init when em is valid */
     void Init(ErsatzMaterial* em);
 
-    /** The solution is identified by excitation index (0-based) and timestep. */
-    Solution* Get(Excitation& excitation, unsigned int timestep = 0);
+    /** The solution is identified by Function, excitation index (0-based) and time step.
+     * @param f the function is NULL for the forward problems, for the adjoints it needs to be given! */
+    Solution* Get(Excitation& excitation, Function* f = NULL, unsigned int timestep = 0);
 
-    Solution* Get(int excitation_index, unsigned int timestep = 0);
+    Solution* Get(int excitation_index,  Function* f = NULL, unsigned int timestep = 0);
 
-    /** Vector for averaging over multiple excitations */
-    SingleVector* GetMultiple(unsigned int timestep = 0);
+    /** Vector for averaging over multiple excitations. Only valid for forward solutions (f = NULL) */
+    SingleVector* GetMultiple(Function* f, unsigned int timestep = 0);
+
+    /** Returns the currently stored functions. Empty for forward */
+    StdVector<Function*> GetFunctions() const;
 
   private:
 
     /** Contain the excitations and summarized multiple data for one problem.
-     * For almost all cases there is only one problem.
-     * Transient problems are of this kind. */
+     * For almost all cases there is only one problem. */
     struct Unit
     {
       Unit(); // only for compiler
@@ -287,8 +290,10 @@ protected:
       SingleVector* multiple;
     };
 
-    /** @see Unit() */
-    StdVector<Unit*> data_;
+    /** Stores the excitation by function and by time stamp.
+     * Stored are units which contains eventually multiple excitations.
+     * @see Unit() */
+    std::map<Function*, StdVector<Unit*> > data_;
 
     ErsatzMaterial* em_;
   };

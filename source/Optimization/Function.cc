@@ -109,6 +109,8 @@ Function::Function(PtrParamNode pn)
     case GLOBAL_MOLE:
     case OSCILLATION:
     case GLOBAL_OSCILLATION:
+    case JUMP:
+    case GLOBAL_JUMP:
       this->evaluateOnce_ = true;
       break;
 
@@ -292,6 +294,8 @@ bool Function::ForSensitivityFiltering() const
   case GLOBAL_MOLE:
   case OSCILLATION:
   case GLOBAL_OSCILLATION:
+  case JUMP:
+  case GLOBAL_JUMP:
     return false;
 
   case ISOTROPY:
@@ -314,6 +318,8 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure)
   case GLOBAL_MOLE:
   case OSCILLATION:
   case GLOBAL_OSCILLATION:
+  case JUMP:
+  case GLOBAL_JUMP:
     assert(space->IsRegular()); // VicinityElements work only on a regular grid
     // the design elements require the vicinity element to be set which holds the direct
     // neighbors. Is save to call several times
@@ -415,21 +421,34 @@ Function::Local::Local(Function* func, DesignSpace* space)
     locality_ = DEG_45_STAR;
     break;
 
+  case JUMP:
+  case GLOBAL_JUMP:
+    if(locality_ != BOUNDARY && locality_ != DEFAULT)
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
+    locality_ = BOUNDARY;
+    break;
+
   default: // no locality
     assert(false);
     break;
   }
 
   // this is actually pure constructor work, just extracted to handle function size
-  if(locality_ == DEG_45_STAR || locality_ == DEG_45_STAR_AND_REVERSE)
+  switch(locality_)
   {
+  case DEG_45_STAR:
+  case DEG_45_STAR_AND_REVERSE:
+  case BOUNDARY:
     if(!pn)
       throw Exception("sub element 'local' with neighborhood information mandatory for '" + fname + "'");
     structure_ = new NeighborhoodStructure(this, pn);
-    SetupStarLocalityElementMap(phase_);
-  }
-  else
-  {
+    if(locality_ == BOUNDARY)
+      SetupBoundaryElementMap();
+    else
+      SetupStarLocalityElementMap(phase_);
+    break;
+
+  default:
     SetupVirtualElementMap(phase_);
   }
 
@@ -651,6 +670,57 @@ void Function::Local::SetupStarLocalityElementMap(Phase ph)
   }
 }
 
+void Function::Local::SetupBoundaryElementMap()
+{
+  unsigned int dim  = domain->GetGrid()->GetDim();
+  // oscillation has with BOTH DEG_45_STAR_AND_REVERSE,
+  // mole has always BOTH and DEG_45_STAR.
+  // oscillation w/o BOTH needs to be DEG_45_STAR
+  assert(structure_ != NULL);
+  NeighborhoodStructure* struc = structure_;
+
+  element_dimension_ = dim * 2; // two boundary "stones" per dimension
+  virtual_elem_map.Reserve(element_dimension_ * space->GetNumberOfElements());
+
+  space->AssertOneDesignOnly(); // can be extended we use the design from the condition
+  int elems = space->GetNumberOfElements();
+  for(int e = 0, ss = elems; e < ss; ++e)
+  {
+    DesignElement* de = &(space->data[e]);
+
+    // do we have a full neighborhood? All or none
+    bool full = true;
+
+    for(int dir = VicinityElement::X_P; dir <= (dim == 2 ? VicinityElement::Y_N : VicinityElement::Z_N); dir++)
+    {
+      int a = VicinityElement::ToMainAxis( (VicinityElement::Neighbour) dir );
+      unsigned int n = struc->orthogonal[a];
+      assert(n > 0);
+      if(!VicinityElement::HasNeighbor(de, (VicinityElement::Neighbour) dir, n))
+        full = false;
+    }
+
+    if(!full) continue;
+
+    for(int dir = VicinityElement::X_P; dir <= (dim == 2 ? VicinityElement::Y_N : VicinityElement::Z_N); dir += 2)
+    {
+      VicinityElement::Neighbour pos = (VicinityElement::Neighbour) dir;
+      VicinityElement::Neighbour neg = (VicinityElement::Neighbour) (dir + 1);
+      unsigned int a = VicinityElement::ToMainAxis(pos);
+      unsigned int n = struc->orthogonal[a];
+
+      DesignElement* prev = VicinityElement::GetNeighbour(de, neg, n);
+      DesignElement* next = VicinityElement::GetNeighbour(de, pos, n);
+
+      LOG_DBG3(func) << "L:SBEM: de=" << de->ToString() << " dir=" << dir << " pos=" << pos << " neg=" << neg << " a=" << a
+                     << " n=" << n << " prev=" << prev << " next=" << next;
+
+      virtual_elem_map.Push_back(Identifier(de, prev, next));
+    }
+  }
+}
+
+
 
 void Function::Local::ToInfo(PtrParamNode in)
 {
@@ -795,6 +865,11 @@ double Function::Local::Identifier::EvalFunction(const Local* local) const
     fv = CalcMole(local->GetEps());
     break;
 
+  case JUMP:
+  case GLOBAL_JUMP:
+    fv = CalcJump();
+    break;
+
   default:
     assert(false);
   }
@@ -808,6 +883,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local) const
   case GLOBAL_SLOPE:
   case GLOBAL_OSCILLATION:
   case GLOBAL_MOLE:
+  case GLOBAL_JUMP:
   {
     // we normalize all values by the number of "constraints". Note that it is
     // sufficient for the function value, the gradient is then also right
@@ -856,6 +932,9 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
   case GLOBAL_MOLE:
     fv = std::max(0.0, CalcMole(local->eps_) - funct->GetParameter());
     break;
+  case GLOBAL_JUMP:
+    fv = std::max(0.0, CalcJump() - funct->GetParameter());
+    break;
   default:
     break;
   }
@@ -886,6 +965,11 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
     case MOLE:
     case GLOBAL_MOLE:
       gv = CalcMoleGradient(n, local->eps_);
+      break;
+
+    case JUMP:
+    case GLOBAL_JUMP:
+      gv = CalcJumpGradient(n);
       break;
 
     default:
@@ -1131,3 +1215,43 @@ double Function::Local::Identifier::CalcMoleGradient(int neigh_idx, double eps)
 
   return res;
 }
+
+double Function::Local::Identifier::CalcJump() const
+{
+  assert(sign == NO_SIGN);
+  assert(neighbor.GetSize() == 2);
+
+  // sin(pi*(x_i-1 - x_+1))^2
+  // no own value!
+  double prev = neighbor[0]->GetDesign(DesignElement::SMART);
+  double next = neighbor[1]->GetDesign(DesignElement::SMART);
+
+  double sin = std::sin(PI*(prev-next));
+
+  LOG_DBG3(func) << "L:I:CJ de=" << element->ToString() << " prev=" << neighbor[0]->ToString() << "/" << prev
+                 << " next=" << neighbor[1]->ToString() << "/" << next << " slope=" << (prev-next)
+                 << " -> sin*sin";
+
+  return sin*sin;
+}
+
+double Function::Local::Identifier::CalcJumpGradient(int neigh_idx) const
+{
+  // g(x)=sin(pi*(x_i-1 - x_+1))^2
+  // d g(x)/d x_i-1 = 2 * sin(pi*(x_i-1 - x_+1)) * cos (pi*(x_i-1 - x_+1)) * PI
+
+  // no own value!
+  if(neigh_idx == -1)
+    return 0.0;
+
+  double prev = neighbor[0]->GetDesign(DesignElement::SMART);
+  double next = neighbor[1]->GetDesign(DesignElement::SMART);
+
+  double slope = prev-next;
+
+  assert(neigh_idx == 0 || neigh_idx == 1);
+  double factor = neigh_idx == 0 ? 1.0 : -1.0;
+
+  return 2.0 * std::sin(PI*slope) * std::cos(PI*slope) * PI * factor;
+}
+

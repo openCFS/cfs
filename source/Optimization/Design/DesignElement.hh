@@ -125,6 +125,7 @@ public:
     MAX_CHECKERBOARD, /* the max value per element */
     MAX_MOLE, /* the max mole value */
     MAX_OSCILLATION, /* the max value per element */
+    MAX_JUMP, /* weak greyness constraint formulation */
     LEVEL_SET_GRAD_XP, LEVEL_SET_GRAD_XN, LEVEL_SET_GRAD_YP, LEVEL_SET_GRAD_YN, LEVEL_SET_GRAD_ZP, LEVEL_SET_GRAD_ZN } ValueSpecifier;
 
   BaseDesignElement();

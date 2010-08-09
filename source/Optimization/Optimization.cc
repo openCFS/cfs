@@ -255,6 +255,8 @@ void Optimization::SetEnums()
   Function::type.Add(Function::GLOBAL_MOLE, "globalMole");
   Function::type.Add(Function::OSCILLATION, "oscillation");
   Function::type.Add(Function::GLOBAL_OSCILLATION, "globalOscillation");
+  Function::type.Add(Function::JUMP, "jump");
+  Function::type.Add(Function::GLOBAL_JUMP, "globalJump");
 
   Function::Local::locality.SetName("Function::Local::Locality");
   Function::Local::locality.Add(Function::Local::DEFAULT, "default");
@@ -264,6 +266,7 @@ void Optimization::SetEnums()
   Function::Local::locality.Add(Function::Local::PREV_NEXT_AND_REVERSE, "prev_next_and_reverse");
   Function::Local::locality.Add(Function::Local::DEG_45_STAR, "45_deg_star");
   Function::Local::locality.Add(Function::Local::DEG_45_STAR_AND_REVERSE, "45_deg_star_and_reverse");
+  Function::Local::locality.Add(Function::Local::BOUNDARY, "boundary");
 
   Function::Local::phase.SetName("Function::Local::Phase");
   Function::Local::phase.Add(Function::Local::BOTH, "both");
@@ -530,7 +533,7 @@ void Optimization::SolveAdjointProblem(Excitation* excite, Objective* cost){
 
 void Optimization::SolveAdjointProblems(Excitation* excite){
   for(unsigned int o = 0; o < objectives.data.GetSize(); ++o){
-    SolveAdjointProblem(excite, objectives.data[o]);
+    SolveAdjointProblem(excite, objectives.data[o]); // virtual! calls ErsatzMaterial implementation
   }
 }
 

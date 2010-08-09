@@ -585,7 +585,46 @@ void ErsatzMaterial::NormalizeMultipleExcitations()
 
 void ErsatzMaterial::StoreResults(double step_val)
 {
-  // check if we have to play with the results, forward is default mode!
+  // sum up multiple
+  bool lumped = multiple_excitation->IsEnabled() && (commitMode_ != EACH_FORWARD && commitMode_ != EACH_ADJOINT);
+  // multiple results
+  bool multi = excitations.GetSize() > 1 && (commitMode_ == EACH_FORWARD && commitMode_ == EACH_ADJOINT);
+  // process forward
+  bool forw = commitMode_ == FORWARD || commitMode_ == BOTH || commitMode_ == EACH_FORWARD;
+  bool adj  = commitMode_ == ADJOINT || commitMode_ == BOTH || commitMode_ == EACH_ADJOINT;
+
+  if(forw)
+  {
+    // either all excitations or the last one only
+    for(unsigned int e = multi ? 0 : excitations.GetSize()-1; e < excitations.GetSize(); e++)
+    {
+      // check for multiple to find out what is actually to be restores
+      for(map<Application, SinglePDE*>::iterator it = pdes.begin(); it != pdes.end(); ++it)
+      {
+        if(lumped)
+          Solution::Write(it->second, forward.GetMultiple()); // todo: later a pde dependency is required
+        else
+          forward.Get(0)->Write(it->second); // todo: currently always the same
+      }
+      // call real implementation in Optimization
+      Optimization::StoreResults(step_val);
+    }
+
+    // check for multiple to find out what is actually to be restores
+    for(map<Application, SinglePDE*>::iterator it = pdes.begin(); it != pdes.end(); ++it)
+    {
+      if(multiple_excitation->IsEnabled())
+        Solution::Write(it->second, forward.GetMultiple()); // todo: later a pde dependency is required
+      else
+        forward.Get(0)->Write(it->second); // todo: currently always the same
+    }
+    // call real implementation in Optimization
+    Optimization::StoreResults(step_val);
+
+    break;
+
+  }
+
   if(commitMode_ == FORWARD || commitMode_ == BOTH)
   {
     // in case of FORWARD this is redundant but it hanldes multiple exitations ans is cheap
@@ -603,19 +642,22 @@ void ErsatzMaterial::StoreResults(double step_val)
   }
   if(commitMode_ == ADJOINT || commitMode_ == BOTH)
   {
-    // "forward" is not possible -> hence it is both_cases or adjoint
-    if(adjoint.Get(0)->GetVector(Solution::RAW_VECTOR) == NULL) EXCEPTION("Adjoint solution cannot be written on 'commit' because there is none");
+    StdVector<Function*> funcs = adjoint.GetFunctions();
+    if(funcs.GetSize() == 0) EXCEPTION("Adjoint solution cannot be written on 'commit' because there is none");
 
-    for(map<Application, SinglePDE*>::iterator it = pdes.begin(); it != pdes.end(); ++it)
+    for(unsigned int f = 0; f < funcs.GetSize(); f++)
     {
-      if(multiple_excitation->IsEnabled())
-        Solution::Write(it->second, adjoint.GetMultiple());
-      else
-        adjoint.Get(0)->Write(it->second);
-    }
+      for(map<Application, SinglePDE*>::iterator it = pdes.begin(); it != pdes.end(); ++it)
+      {
+        if(multiple_excitation->IsEnabled())
+          Solution::Write(it->second, adjoint.GetMultiple(f));
+        else
+          adjoint.Get(0, f)->Write(it->second);
+      }
 
-    step_val = step_val == -1 ? currentIteration + 0.5 : step_val + 0.5;
-    Optimization::StoreResults(step_val);
+      step_val = step_val == -1 ? currentIteration + 0.5 : step_val + 0.5;
+      Optimization::StoreResults(step_val);
+    }
   }
 }
 
@@ -765,6 +807,7 @@ double ErsatzMaterial::CalcObjective(Excitation& excite, Objective* cost)
   case Objective::GLOBAL_SLOPE:
   case Objective::GLOBAL_OSCILLATION:
   case Objective::GLOBAL_MOLE:
+  case Objective::GLOBAL_JUMP:
     return CalcGlobalFunction(cost, false);
 
   case Objective::GLOBAL_DYNAMIC_COMPLIANCE:
@@ -855,6 +898,7 @@ void ErsatzMaterial::CalcObjectiveGradient(StdVector<double>* grad_out)
         case Objective::GLOBAL_SLOPE:
         case Objective::GLOBAL_MOLE:
         case Objective::GLOBAL_OSCILLATION:
+        case Objective::GLOBAL_JUMP:
           CalcGlobalFunction(cost, true);
           break;
 
@@ -1193,12 +1237,14 @@ double ErsatzMaterial::CalcConstraint(Condition* g, bool derivative, StdVector<d
     case Condition::GLOBAL_SLOPE:
     case Condition::GLOBAL_MOLE:
     case Condition::GLOBAL_OSCILLATION:
+    case Condition::GLOBAL_JUMP:
          result = CalcGlobalFunction(g, derivative);
          break;
 
     case Condition::SLOPE:
     case Condition::MOLE:
     case Condition::OSCILLATION:
+    case Condition::JUMP:
          result = CalcLocalConstraint(g, derivative);
          break;
 
@@ -2601,6 +2647,7 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation& excite, Objective* cost, bo
     case Objective::GLOBAL_SLOPE:
     case Objective::GLOBAL_MOLE:
     case Objective::GLOBAL_OSCILLATION:
+    case Objective::GLOBAL_JUMP:
     case Objective::PENALIZED_VOLUME:
     case Objective::GAP:
     case Objective::TEMPERATURE:
@@ -2917,19 +2964,34 @@ ErsatzMaterial::Solutions::Unit::~Unit()
   multiple = NULL;
 }
 
-ErsatzMaterial::Solution* ErsatzMaterial::Solutions::Get(Excitation& excitation, unsigned int timestep)
+ErsatzMaterial::Solution* ErsatzMaterial::Solutions::Get(Excitation& excitation, Function* f, unsigned int timestep)
 {
-  return Get(excitation.index, timestep);
+  return Get(excitation.index, f, timestep);
 }
 
-ErsatzMaterial::Solution* ErsatzMaterial::Solutions::Get(int excitation_index, unsigned int timestep)
+ErsatzMaterial::Solution* ErsatzMaterial::Solutions::Get(int excitation_index, Function* f, unsigned int timestep)
 {
-  return data_[timestep]->data[excitation_index];
+  return data_[f][timestep]->data[excitation_index];
 }
 
-SingleVector* ErsatzMaterial::Solutions::GetMultiple(unsigned int timestep)
+SingleVector* ErsatzMaterial::Solutions::GetMultiple(Function* f, unsigned int timestep)
 {
-  return data_[timestep]->multiple;
+  // must not be called for adjoint problems
+  assert(data_.find(f) != data_.end());
+  return data_[f][timestep]->multiple;
+}
+
+StdVector<Function*> ErsatzMaterial::Solutions::GetFunctions() const
+{
+  StdVector<Function*> result;
+
+  for(map<Function*, StdVector<Unit*> >::const_iterator it = data_.begin(); it != data_.end(); ++it)
+  {
+    if(it->first != NULL)
+      result.Push_back();
+  }
+
+  return result;
 }
 
 ErsatzMaterial::Solution::Solution(ErsatzMaterial* em)

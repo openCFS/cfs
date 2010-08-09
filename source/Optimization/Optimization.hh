@@ -74,7 +74,7 @@ namespace CoupledField
          static Enum<Application> application;
 
          /** the commit mode defines what of the iterations is to be written to gid, ... */
-         typedef enum { FORWARD, ADJOINT, BOTH } CommitMode;
+         typedef enum { FORWARD, ADJOINT, BOTH, EACH_FORWARD, EACH_ADJOINT } CommitMode;
 
          static Enum<CommitMode> commitMode;
          

@@ -180,7 +180,8 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       || rd.value == CONSTRAINT_GRADIENT
       || rd.value == MAX_SLOPE
       || rd.value == MAX_OSCILLATION
-      || rd.value == MAX_MOLE)
+      || rd.value == MAX_MOLE
+      || rd.value == MAX_JUMP)
   {
     if(dofs != 1) throw Exception("special results is only defined for scalar values");
     switch(rd.solutionType)
@@ -302,6 +303,7 @@ double DesignElement::GetPlainValue(ValueSpecifier sp, Condition* g) const
   case MAX_SLOPE:
   case MAX_MOLE:
   case MAX_OSCILLATION:
+  case MAX_JUMP:
     assert(false); // should be covered before by special result index
 
   case TOPGRAD_VALUE:
@@ -416,6 +418,7 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(MAX_SLOPE, "maxSlope");
   valueSpecifier.Add(MAX_OSCILLATION, "maxOscillation");
   valueSpecifier.Add(MAX_MOLE, "maxMole");
+  valueSpecifier.Add(MAX_JUMP, "maxJump");
   valueSpecifier.Add(WEIGHT, "weight");
   valueSpecifier.Add(OBJECTIVE, "objective");
   valueSpecifier.Add(NUM_NEIGHBOURS, "neighbours");
