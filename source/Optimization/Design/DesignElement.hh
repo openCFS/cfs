@@ -20,6 +20,7 @@ class ResultDescription;
 class SIMPElement;
 class VicinityElement;
 class LevelSetElement;
+class Function;
 class Objective;
 class Condition;
 
@@ -139,10 +140,15 @@ public:
 
   /** Get the gradient values for either objective or constraint.
    * if neither f nor g is given the objective gradient sum is returned */
-  double GetPlainGradient(const Objective* f, const Condition* g) const;
+  double GetPlainGradient(const Objective* c, const Condition* g) const;
+
+  double GetPlainGradient(const Function* f) const;
 
   /** Sum app the old value (get and set together) */
-  void AddGradient(const Objective* f, const Condition* g, double value);
+  void AddGradient(const Objective* c, const Condition* g, double value);
+
+  void AddGradient(const Function* f, double value);
+
 
   /** Reset either gradients of the class
    * @param vs either COST_GRADIENT or CONSTRAINT_GRADIENT 

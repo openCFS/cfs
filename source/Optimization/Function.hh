@@ -34,6 +34,9 @@ class Function
      * @param pn our own element */
     Function(PtrParamNode pn);
 
+    /** once we won't have this difference any more */
+    static Function* Cast(Objective* c, Condition* g);
+
     /** PostProc called be the containers */
     virtual void PostProc(DesignSpace* space, DesignStructure* structure);
 

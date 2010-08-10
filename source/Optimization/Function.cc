@@ -135,6 +135,13 @@ Function::~Function()
   if(local != NULL) { delete local; local = NULL; }
 }
 
+Function* Function::Cast(Objective* c, Condition* g)
+{
+  assert((c != NULL && g == NULL) || (c == NULL && g != NULL));
+  assert((c != NULL && dynamic_cast<Function*>(c) != NULL) || (g != NULL && dynamic_cast<Function*>(g) != NULL));
+  return c != NULL ? static_cast<Function*>(c) : static_cast<Function*>(g);
+}
+
 bool Function::ReadTensor(PtrParamNode pn, Matrix<double>& matrix)
 {
   matrix.Resize(1,1); // minimal size, as 0,0 is not defined.

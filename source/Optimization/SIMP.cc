@@ -213,7 +213,7 @@ void SIMP::CalcObjectiveGradient(Excitation& excite, Objective* cost)
   case Objective::GLOBAL_DYNAMIC_COMPLIANCE:
     // synthesis of compliant mechanism: As our adjoint PDE
     // c' = l K' u
-    CalcU1KU2(tf, adjoint.Get(excite)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, weight, STANDARD, cost, NULL);
+    CalcU1KU2(tf, adjoint.Get(excite, cost)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, weight, STANDARD, cost, NULL);
     break;
 
   case Objective::OUTPUT:
@@ -222,7 +222,7 @@ void SIMP::CalcObjectiveGradient(Excitation& excite, Objective* cost)
   case Objective::ABS_DYN_OUTPUT_SQUARED:
     // synthesis of compliant mechanism: As our adjoint PDE
     // c' = l K' u
-    CalcU1KU2(tf, adjoint.Get(excite)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, weight, STANDARD, cost, NULL);
+    CalcU1KU2(tf, adjoint.Get(excite, cost)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, weight, STANDARD, cost, NULL);
     break;
 
   default:

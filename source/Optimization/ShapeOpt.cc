@@ -419,7 +419,7 @@ double ShapeOpt::CalcCompliance(Excitation& excite, Objective* f, Condition* con
 double ShapeOpt::CalcTracking(Excitation& excite, Objective* f, Condition* constraint, bool derivative){
   if(derivative){
 
-    StdVector<SingleVector*>& z = adjoint.Get(excite)->gridelem[MECH];
+    StdVector<SingleVector*>& z = adjoint.Get(excite, f)->gridelem[MECH];
     StdVector<SingleVector*>& u = forward.Get(excite)->gridelem[MECH];
     
     // the derivative of tracking w.r.t. shape is: - z' dA/dShape u + z dF/dShape 
@@ -435,9 +435,9 @@ double ShapeOpt::CalcTracking(Excitation& excite, Objective* f, Condition* const
   return 0.0;
 }
 
-void ShapeOpt::StorePDESolution(Excitation &excite, UInt timestep, Solutions& solutions, bool read_sol, bool read_rhs, bool save_sol, const std::string& comment){
-  ParamMat::StorePDESolution(excite, timestep, solutions, read_sol, read_rhs, save_sol, comment);
+void ShapeOpt::StorePDESolution(Solutions& solutions, Excitation &excite, Function* f, UInt timestep, bool read_sol, bool read_rhs, bool save_sol, const std::string& comment){
+  ParamMat::StorePDESolution(solutions, excite, f, timestep, read_sol, read_rhs, save_sol, comment);
   if(read_sol){
-    solutions.Get(excite)->Read(Solution::GRIDELEM_VECTORS, pde, MECH);
+    solutions.Get(excite, f, timestep)->Read(Solution::GRIDELEM_VECTORS, pde, MECH);
   }
 }

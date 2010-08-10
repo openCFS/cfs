@@ -141,7 +141,7 @@ double PiezoSIMP::CalcElecEnergy(Excitation& excite)
 
 /** Sets -K_pp p or -K_pp p^* for ELEC_ENERGY */
 template <class T>
-void PiezoSIMP::ConstructAdjointRHS(Excitation& excite, Objective* cost)
+void PiezoSIMP::ConstructAdjointRHS(Excitation& excite, Function* f)
 {
   assert(objectives.Has(Objective::ELEC_ENERGY));
   assert(design->design.GetSize() == 1);
@@ -248,9 +248,9 @@ void PiezoSIMP::CalcObjectiveGradient(Excitation& excite, Objective* cost)
       int                 res_idx = -1; // we can write the details as special resul by the detail
 
       // the standard adjoint solution (u1 in the gradient)
-      Solution* adj = adjoint.Get(excite);
+      Solution* adj = adjoint.Get(excite, cost);
       // the solution (u2 in the gradient)
-      Solution* sol = forward.Get(excite);
+      Solution* sol = forward.Get(excite, NULL);
 
       
       // sol^T A' sol^* only for elec energy = p^T K_pp' p (real) or p^T K_pp' p^* (harmonic)

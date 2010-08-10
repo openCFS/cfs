@@ -36,7 +36,13 @@ template<class TYPE> class Matrix;
  * The implementation of gradients, ... is for the subclasses. */
 class ErsatzMaterial: public Optimization
 {
+
+protected:
+  // forward declaration
+  class Solutions;
+
 public:
+
   /** Up to now w/o parameters */
   ErsatzMaterial();
 
@@ -144,7 +150,7 @@ public:
    * MechPDE reads it when "homogenizedTensor" is a region result! */
   Matrix<double> homogenizedTensor;
 
-protected:
+ protected:
 
   /** This class holds the solution of the PDE. It is in a class such that it
    * helps to encapsulate real and complex solutions. Note that the Piezo
@@ -152,6 +158,7 @@ protected:
   class Solution
   {
   public:
+
     Solution(ErsatzMaterial* em);
 
     ~Solution();
@@ -171,25 +178,17 @@ protected:
      *        "SaveSolution()" in the pde such that we can extract it element wise.
      *        Only relevant for st = ELEMENT_VECTORS
      * @return NULL if st = ELEMENT_VECTOR, otherwise it is the vector */
-    SingleVector* Read(StorageType st, StdPDE* pde, Application app = NO_APP,
-        bool save_sol = false)
-    {
-      if (em_->harmonic)
-        return Read<std::complex<double> > (st, pde, app, save_sol);
-      else
-        return Read<double> (st, pde, app, save_sol);
-    }
+    SingleVector* Read(StorageType st, StdPDE* pde, Application app = NO_APP, bool save_sol = false);
 
     /** Writes the solution (raw vector) back to the pde */
-    void Write(StdPDE* pde)
-    {
-      if (em_->harmonic)
-        Write<std::complex<double> > (pde);
-      else
-        Write<double> (pde);
-    }
+    void Write(StdPDE* pde);
 
     static void Write(StdPDE* pde, SingleVector* vec);
+
+    /** average the raw solutions by the excitations.
+     * @param excitations average or solution by one entry only. Is strictly speaking already known
+     * by the em_ parameter but is more explicit this way.  */
+    static void Write(StdPDE* pde, ErsatzMaterial::Solutions& sol, Function* f, int time_step, StdVector<Excitation>& excitations);
 
     /** return an existing nodal vector.
      * As the type is not known we cannot create on the fly.
@@ -222,6 +221,9 @@ protected:
     template<class T>
     void Write(StdPDE* pde);
 
+    template<class T>
+    static void Write(StdPDE* pde, ErsatzMaterial::Solutions& sol, Function* f, int time_step, StdVector<Excitation>& excitations);
+
     /** common helper for the Get*Vector() stuff */
     template<class T>
     SingleVector* GetVector(StorageType st, bool create);
@@ -252,11 +254,13 @@ protected:
   class Solutions
   {
   public:
+    friend class Solution;
+
     Solutions();
 
     ~Solutions();
 
-    /** post init when em is valid */
+    /** init when em is known */
     void Init(ErsatzMaterial* em);
 
     /** The solution is identified by Function, excitation index (0-based) and time step.
@@ -265,19 +269,19 @@ protected:
 
     Solution* Get(int excitation_index,  Function* f = NULL, unsigned int timestep = 0);
 
-    /** Vector for averaging over multiple excitations. Only valid for forward solutions (f = NULL) */
-    SingleVector* GetMultiple(Function* f, unsigned int timestep = 0);
-
     /** Returns the currently stored functions. Empty for forward */
     StdVector<Function*> GetFunctions() const;
 
   private:
 
+    /** On the fly init when the function has not been used before */
+    void Init(Function* f);
+
     /** Contain the excitations and summarized multiple data for one problem.
      * For almost all cases there is only one problem. */
     struct Unit
     {
-      Unit(); // only for compiler
+      Unit() { }; // only for compiler
 
       Unit(ErsatzMaterial* em);
 
@@ -285,9 +289,6 @@ protected:
 
       /* Contains at least one element, more when doing multiple excitations.*/
       StdVector<Solution*> data;
-
-      /** When we want to average this stuff */
-      SingleVector* multiple;
     };
 
     /** Stores the excitation by function and by time stamp.
@@ -297,6 +298,7 @@ protected:
 
     ErsatzMaterial* em_;
   };
+
 
   /** When "commit" is set, we write "forward"/"adjoint" or "both_cases" */
   virtual void StoreResults(double step_val);
@@ -398,13 +400,13 @@ protected:
 
   /** Determines the selection vector by a "pseudo loading" for output like objectives.
    * Stores in adjoint.select. Used by SolveAdjointProblem() */
-  void ConstructSelection(Excitation& excite);
+  void ConstructSelection(Excitation& excite, Function* f);
 
   /** This is helper SolveAdjointProblem().
    * There is a template method (which cannot be virtual) with distinct implementation.
    * Assumes adjont.select is set (by ConstructSelection())
    * This is for output loads or general real/complex rhs. */
-  virtual void ConstructAdjointRHS(Excitation& excite, Objective* cost);
+  virtual void ConstructAdjointRHS(Excitation& excite, Function* f);
 
   /** overwrite this method for own objectives. Does not set excite.cost! 
    * Includes the factor (e.g. omega^2) as this is part of the objective function
@@ -561,9 +563,8 @@ protected:
    * @param read_rhs is only interesting for the forward problem
    * @param save_sol set this in the adjoint problem -> see Solution::Read()
    * @param comment is just to LOG_DBG */
-  virtual void StorePDESolution(Excitation &excite, UInt timestep,
-      Solutions& solutions, bool read_sol, bool read_rhs, bool save_sol,
-      const std::string& comment);
+  virtual void StorePDESolution(Solutions& solutions, Excitation &excite, Function* f,
+      unsigned int timestep, bool read_sol, bool read_rhs, bool save_sol, const std::string& comment);
 
   virtual void TimeStepCalculated(UInt timeStep, AdjointParameters* adjParams);
 
@@ -637,7 +638,7 @@ private:
 
   /** Takes care for making CFS solving the adjoint PDE. Sets the rhs as  adjoint[excite.index]->rhs[MECH] */
   template<class T>
-  void SetAndSolveAdjointRHS(Excitation& excite, Objective* cost);
+  void SetAndSolveAdjointRHS(Excitation& excite, Function* cost);
 
   /** Helper for CommitIteration. Appends or replaces a design line */
   void SetCurrentExportDesign();
@@ -652,8 +653,8 @@ private:
   /** In ErsatzMaterial: Saves the original loads and sets the output nodes as adjoint pde rhs
    * Has distinct implementations for complex and real part.
    * @see virtual ConstructAdjointRHS() */
-  void ConstructRealAdjointRHS(Excitation& excite, Objective* cost);
-  void ConstructComplexAdjointRHS(Excitation& excite, Objective* cost);
+  void ConstructRealAdjointRHS(Excitation& excite, Function* f);
+  void ConstructComplexAdjointRHS(Excitation& excite, Function* f);
 
   /** Calculates the Greyness OR gauss-greyness! and the derivative of the (gauss) greyness.
    * @param derivative if false the return value is calculated. Otherwise the value in
