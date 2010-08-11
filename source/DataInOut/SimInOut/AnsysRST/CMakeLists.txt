@@ -27,6 +27,7 @@ IF(CFS_ARCH STREQUAL "X86_64")
   # Set possible paths for Intel Fortran libraries at LSE and Klagenfurt
   IF(NOT CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")  
     LINK_DIRECTORIES(
+    /opt/intel/fce/10.0.025/lib
     /opt/intel/fce/10.1.015/lib
     /opt/intel/Compiler/11.0/081/lib/intel64
     /opt/intel/Compiler/11.1/069/lib/intel64
