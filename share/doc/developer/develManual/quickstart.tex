@@ -2,12 +2,12 @@
 
 \section{List of external packages which need to be installed from distro}
 
-The list of  required packages depends on the  operating system and especially
-for  Linux based  OSes  on the  distribution.   We give  here  the  commands
-required  for installing  the required  packages from  the command  line.  The
-package lists are provided for some of the OSes most often in use by the CFS++
-developers. If you  should use a different distribution you  should be able to
-figure out the required packages quite easily.
+The  list  of  required  packages  depends on  the  operating  system  and
+especially for  Linux based  OSes on the  distribution.  We give  here the
+commands for installing the required  packages from the command line.  The
+package lists are provided  for some of the OSes most often  in use by the
+CFS++ developers. If  you use a different distribution  you should be able
+to figure out the required packages quite easily.
 
 \subsection{openSUSE (11.2)}
 
@@ -16,6 +16,7 @@ sudo zypper install subversion gcc gcc-c++ gcc-fortran automake autoconf \
                     cmake perl-base graphviz texlive-latex texlive-tex4ht \
                     python-pygments doxygen tcl-devel python-devel git-svn  
 \end{verbatim}
+\todo[inline]{Add packages for ccmake, cmake-gui and javac.}
 
 \noindent If  some package  is not available  from the  standard repositories,
 there   is  a   good  chance   to  find   it  at   openSUSE   software  search
@@ -32,8 +33,10 @@ rpm -q --whatprovides /usr/bin/g++
 \begin{verbatim}
 sudo apt-get install subversion gcc g++ gfortran automake autoconf cmake \
                      perl-base graphviz texlive-latex-base tex4ht \
-                     python-pygments doxygen tcl-dev python-dev git-svn
+                     python-pygments doxygen tcl-dev python-dev git-svn \
+                     cmake-curses-gui cmake-qt-gui
 \end{verbatim} 
+\todo[inline]{Add package for javac.}
 
 \begin{verbatim}
 ln -s /usr/include/python2.6 /usr/include/python
@@ -71,26 +74,58 @@ At the  moment we  only support the  following sub-projects on  Windows: NACS,
 
 Pre-installed   VBoxes  containg   all  required   packages  are   located  at
 (Klagenfurt)
-{\tt qnap:/share//AM\_Data/Software/NACS\_Windows\_Development\_VBOXes/[WINXP*\&nacs\_dev*\&local*]}.
+
+\noindent {\tt qnap:/share//AM\_Data/Software/NACS\_Windows\_Development\_VBOXes/[WINXP*\&nacs\_dev*\&local*]}.
 
 \newpage
 \section{Obtaining the Sources}
 
-Once the software needed for  CFS++ development from the distribution has been
-installed, the  next step is to  checkout the source code  from the Subversion
-repository. All  necessary steps are given in  the shell script at  the end of
-this  section. We  first  create  a directory  structure  for our  development
-resources. Next  we obtain the  sources from the  server. Note, that  upon the
-first connection you will have  to accept the server's certificate permanently
-(p) and decide, wether you wish to save your password locally.
+Once the software  needed for CFS++ development from  the distribution has
+been installed,  the next  step is  to checkout the  source code  from the
+Subversion  \cite{svn} repository. All  necessary steps  are given  in the
+shell  script at  the end  of this  section. We  first create  a directory
+structure for our  development resources. Next we obtain  the sources from
+the server. Note,  that upon the first connection you  will have to accept
+the server's  certificate permanently (p)  and decide, wether you  wish to
+save your password locally.
 
 \input{pygmentized/qs_obtain_sources.tex}
 \attachfile[icon=PushPin,description={Shell script for obtaining CFS++ sources.},mimetype=text/plain]{attachments/qs_obtain_sources.txt}
 
-\section{Configuring the Build Tree}
+Further information  about Subversion can be found  in Sec. \ref{sec:svn}.
 
-Describe structure of source and build trees here, too.
+A nice alternative, especially for working on a laptop, is the distributed
+versioning system Git.  A basic howto for obtaining a  Git working copy of
+the CFS++ sources, some basic commands and pointers to additional material
+are given in Sec. \ref{sec:git}.
 
-\section{Building a Binary}
+\section{Configuring the Build Tree and Building a Binaries}
+
+We use the CMake build  system (cf. Sec. \ref{sec:cmake}) to configure our
+source  tree  for building  on  a wide  range  of  platforms.  Unlike  the
+well-known configure/make/make install methodology from Unix-like systems,
+CMake  supports also  other platforms  like Windows.   It  generates build
+descriptions for  the native development environments  (e.g.  Makefiles on
+Unix and Visual  Studio projects on Windows) from  very simple input files
+in  CMake syntax. Using  CMake, it  is also  possible to  do out-of-source
+builds, which means,  that from a single source  tree multiple build trees
+may generated (e.g. for debug or release executables). By doing dependency
+analysis CMake can also generate Makefiles suitable for parallel builds.
+
+In the following  script we create two empty build  directories. In one of
+them we  will build a debug executable,  whereas in the other  one we will
+build  a  release  executable.   Before  configuring we  set  our  desired
+compilers by creating  new environment variables. After that  we change to
+the  build  directories  and  configure   them.   This  step  may  take  a
+considerable amount of  time for the first time  since a number libraries,
+upon which  CFS++ depends, have to  built first. For this  purpose we also
+have to specify  the location of CFSDEPS to CMake  and where the dowloaded
+sources  and  prebuilt libraries  will  be stored  (CFS\_DEPS\_CACHE\_DIR,
+cf. Sec. \ref{sec:cfsdeps}). We also  specify, that we want to use standard
+Unix make files for building. The  configure step for the debug build will
+be much faster, since the prebuilt libraries from the first step just need
+to be unpacked into the debug directory.
+
+\input{pygmentized/qs_configure_build}
 
 \section{Generating a Project for Eclipse}

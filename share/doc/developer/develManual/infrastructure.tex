@@ -1,12 +1,14 @@
 \chapter{Software Infrastructure}
 
 \section{Version Control System Subversion}
+\label{sec:svn}
 
 Subversion is a  free/open source version control system,  which manages files
 and  directories, and  the changes  made to  them, over  time. This  allows to
 recover older versions and to have different developing branches \cite{svn}.
 
 \subsection{Using Git in Combination with SVN}
+\label{sec:git}
 
 Git\footnote{Git home page: \url{http://git-scm.com}} is a distributed version
 control  system.    It  is  an  alternative  to   the  centralized  Subversion
@@ -49,6 +51,7 @@ committing local changes back to the SVN repository.
 \end{table}
 
 \section{CMake Build System}
+\label{sec:cmake}
 
 CMake is  a family of platform  independent tools designed to  build, test and
 package  software  \cite{cmake,  Schroeder2004,  Martin2007a}.  It  is  mainly
@@ -58,11 +61,16 @@ just  needs to maintain  platform independent  configuration files  from which
 CMake will  generate the  previously mentioned projects  for the  native build
 environments.
 
+\todo[inline]{Describe  structure  of  source  and build  trees,  internal
+  architecture of our CMake  files, interaction with CFSDEPS, howto switch
+  compilers, etc.}
+
 \section{CFSDEPS}
+\label{sec:cfsdeps}
 
  When  developing a  general purpose  finite element  code a  lot  of external
 libraries (e.g.   BLAS, LAPACK, ARPACK, Metis\ldots)  have to be  pulled in if
-the wheel  is not to  be reinvented.  Many  of these libraries are  present on
+the wheel is not to  be reinvented.  Many  of these libraries are  present on
 modern-day Linux/Unix  distributions. If more  than the standard  GNU compiler
 suite should be supported it  is however almost certain that incompatibilities
 with prebuilt system libraries will arise.

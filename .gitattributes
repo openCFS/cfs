@@ -334,6 +334,7 @@ share/doc/developer/develManual/sources/pv_matlab_besselh.m -text
 share/doc/developer/develManual/sources/pv_scipy_hankel1.py -text
 share/doc/developer/develManual/sources/pygmentize.sh -text
 share/doc/developer/develManual/sources/qs_obtain_sources.sh -text
+share/doc/developer/develManual/todonotes.sty svneol=native#text/plain
 share/doc/developer/develManual/tools.tex -text
 share/doc/developer/makedoc.sh.in -text
 share/doc/user/CMakeLists.txt svneol=native#text/plain
