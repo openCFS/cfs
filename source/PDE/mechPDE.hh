@@ -128,6 +128,10 @@ namespace CoupledField
      * @param dim desired dimension. axis is ignored currently :( */
     const Matrix<double>& GetVonMisesMatrix(int dim);
 
+    /** Scalar version of the stresses. Called from Optimization/ErsatzMaterial */
+    template <class TYPE>
+    void CalcVonMisesStress(shared_ptr<BaseResult> res);
+
   protected:
 
     // ======================================================
@@ -147,10 +151,6 @@ namespace CoupledField
     //computes mechanical stresses
     template <class TYPE>
     void CalcStresses(  shared_ptr<BaseResult> vals );
-
-    /** Scalar version of the stresses */
-    template <class TYPE>
-    void CalcVonMisesStress(shared_ptr<BaseResult> res);
 
     //computes mechanical strains
     template <class TYPE>

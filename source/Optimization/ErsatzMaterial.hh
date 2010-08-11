@@ -350,18 +350,8 @@ public:
    * @param f if set then an objective gradient with the set index is stored
    * @param g as f for constrained gradient
    * @param res_idx store in de->specialResult. use ErsatzMaterial::GetSpecialResultIndex() -1 is no special result*/
-  double CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1,
-      Application k, StdVector<SingleVector*>& u2, SurfaceRef* rhs,
-      double factor, CalcMode calcMode, Objective* f, Condition* g,
-      int res_idx = -1)
-  {
-    if (harmonic)
-      return CalcU1KU2<std::complex<double> > (tf, u1, k, u2, rhs, factor,
-          calcMode, f, g, res_idx);
-    else
-      return CalcU1KU2<double> (tf, u1, k, u2, rhs, factor, calcMode, f, g,
-          res_idx);
-  }
+  double CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1, Application k, StdVector<SingleVector*>& u2,
+                     SurfaceRef* rhs, double factor, CalcMode calcMode, Objective* f, Condition* g, int res_idx = -1);
 
   /** Helper calling CalcU1KU2()
    * If there is a result with value='costGradient' or 'constraintGradient' it is checked for detail='mech_mech',
@@ -373,10 +363,7 @@ public:
    * derivative. It also includes mechanical damping and mass matrix via AddMassToStiffness().
    * The templated stuff is private, as C++ does not allow virtual templates. */
   virtual void SetElementK(DesignElement* de, Application app,
-      DenseMatrix* out, CalcMode calcMode, bool derivative = true)
-  {
-    throw Exception("not implemented");
-  }
+      DenseMatrix* out, CalcMode calcMode, bool derivative = true) { throw Exception("not implemented"); }
 
   /** Get the ErsatzMaterialTensor as the Tensor itself, not the stiffness matrix
    * @param mat holds the tensor
@@ -390,13 +377,7 @@ public:
    * adjoint problem.
    * It works for both (mechanical) SIMP and PiezoSIMP. 
    * gradient is used to calculate some adjoints only for gradient calculations, some for function evaluations */
-  void SolveAdjointProblem(Excitation& excite, Objective* cost, bool gradient)
-  {
-    if (harmonic)
-      SolveAdjointProblem<std::complex<double> > (excite, cost, gradient);
-    else
-      SolveAdjointProblem<double> (excite, cost, gradient);
-  }
+  void SolveAdjointProblem(Excitation& excite, Function* f, bool gradient);
 
   /** Determines the selection vector by a "pseudo loading" for output like objectives.
    * Stores in adjoint.select. Used by SolveAdjointProblem() */
@@ -471,6 +452,14 @@ public:
   /** Calculate the energy flux through a surface region: 1/2*Re{j*u^T Q u^*} where
    * Q is the grad operator in z direction. Only for acoustic but easy to extend!*/
   double CalcEnergyFlux(Excitation& excite, Objective* f);
+
+  /** The stress constraints, following Kucvara and Stingl; 2007, are implemented as global local function
+   * (like globalSlope, globalOscillation) such that we can share the globalization techniques. The
+   * element values are calculated here by using MechPDE::CalcVonMisesStress() and Function::Local::Idenitifies::CalcStress()
+   * will decide if the value is used or set to zero or whatever. Therefore Function::Local::Idenitifies::EvalFunction()
+   * gets the result of this method. It is a template to make it easier to work with MechPDE only */
+  template <class TYPE>
+  StdVector<double> CalcStress(Excitation& excite, Function* f);
 
   /** This is a helper with the common part for CalcEnergyFlux and the adjoint RHS.
    * Determines the global vector Q*u^* or (Q - Q^T)^T*u^* in the adjoint case.
@@ -628,7 +617,7 @@ private:
 
   /** This solves the adjoint problem problem only and stores all relevant data. Calls SetAndSolveAdjointRHS() */
   template<class T>
-  void SolveAdjointProblem(Excitation& excite, Objective* cost, bool gradient);
+  void SolveAdjointProblem(Excitation& excite, Function* f, bool gradient);
 
   /** Set the rhs for the adjoint equation, called by assemble */
   virtual void SetAdjointRhs(AdjointParameters* adjointParams);
@@ -670,8 +659,9 @@ private:
 
   /** Calculates globalized local functions. globalSlope and globalCheckerboard.
    * When g_i is the slope function x_i - x_i+1 -c and g_i+1 = x_1+1 - x_i - c
-   * the global slope is sum max(0, g_i)^2, hence we need NEXT_AND_REVERSE locality */
-  double CalcGlobalFunction(Function* c, bool derivative);
+   * the global slope is sum max(0, g_i)^2, hence we need NEXT_AND_REVERSE locality
+   * @param stress only for stress to be set */
+  double CalcGlobalFunction(Function* c, bool derivative, const StdVector<double>* stress = NULL);
 
   /** IntegrateDesignVariables() can do a lot, but no one wants to extend it to hande the derivative
    * case of the gap constraint: volume - penalized volume */

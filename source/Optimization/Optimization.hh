@@ -23,18 +23,18 @@ namespace CoupledField
    /** This is a simple class used as a parameter to SetAdjointRhs called by assemble */
    class AdjointParameters {
    public:
-     AdjointParameters(Objective* o, Excitation* e) {
-       objective = o;
+     AdjointParameters(Function* f, Excitation* e) {
+       function = f;
        excite = e;
      }
-     Objective* GetObjective() {
-       return objective;
+     Function* GetFunction() {
+       return function;
      }
      Excitation* GetExcitation() {
        return excite;
      }
    private:
-     Objective* objective;
+     Function* function;
      Excitation* excite;
    };
    
@@ -124,7 +124,7 @@ namespace CoupledField
          * This does the real work
          * @param excite multi-excitation
          * @param cost multi-objective */
-        virtual void SolveAdjointProblem(Excitation* excite, Objective* cost);
+        virtual void SolveAdjointProblem(Excitation* excite, Function* f);
         
         /** Solves all adjoint problems */
         virtual void SolveAdjointProblems(Excitation* excite = NULL);

@@ -763,6 +763,12 @@ double ErsatzMaterial::CalcObjective(Excitation& excite, Objective* cost)
   case Objective::GAP: // volume - penalized volume
     return CalcVolume(cost, NULL, false, true);
 
+  case Objective::STRESS:
+  {
+    const StdVector<double> data = CalcStress<T>(excite, cost); // copy data!
+    return CalcGlobalFunction(cost, false, &data);
+  }
+
   case Objective::GLOBAL_SLOPE:
   case Objective::GLOBAL_OSCILLATION:
   case Objective::GLOBAL_MOLE:
@@ -1003,6 +1009,18 @@ void ErsatzMaterial::CalcNewmarkDerivative(Excitation& excite, Solutions& forwar
   }
 }
 
+double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1,
+    Application k, StdVector<SingleVector*>& u2, SurfaceRef* rhs,
+    double factor, CalcMode calcMode, Objective* f, Condition* g, int res_idx)
+{
+  if (harmonic)
+    return CalcU1KU2<std::complex<double> > (tf, u1, k, u2, rhs, factor,
+        calcMode, f, g, res_idx);
+  else
+    return CalcU1KU2<double> (tf, u1, k, u2, rhs, factor, calcMode, f, g,
+        res_idx);
+}
+
 template <class T>
 double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1,
                        Application app, StdVector<SingleVector*>& u2,
@@ -1195,6 +1213,13 @@ double ErsatzMaterial::CalcConstraint(Condition* g, bool derivative, StdVector<d
          result = CalcGreyness(g, derivative);
          break;
 
+    case Objective::STRESS: {
+           assert(excitations.GetSize() == 1); // TODO FIME!
+           const StdVector<double> data = CalcStress<double>(excitations[0], g); // copy data!
+           result = CalcGlobalFunction(g, false, &data);
+           break;
+         }
+
     case Condition::GLOBAL_SLOPE:
     case Condition::GLOBAL_MOLE:
     case Condition::GLOBAL_OSCILLATION:
@@ -1293,14 +1318,14 @@ double ErsatzMaterial::IntegrateDesignVariable(Objective* f, Condition* g, bool 
   if( fraction == 0.0 ){
     for(unsigned int d = 0; d < design->design.GetSize(); d++){
       if(allDesignsRelevant || design->design[d] == dtype){
-        const unsigned int base = d * design->elements_;
-        for(unsigned int r = 0; r < design->regions_.GetSize(); r++){
-          if(f != NULL || g->IsForRegion(design->regions_[r].regionId)){
+        const unsigned int base = d * design->elements;
+        for(unsigned int r = 0; r < design->regions.GetSize(); r++){
+          if(f != NULL || g->IsForRegion(design->regions[r].regionId)){
             if(design->IsRegular()){
-              fraction += design->regions_[r].elements;
+              fraction += design->regions[r].elements;
             }else{
-              const unsigned int u = base + design->regions_[r].base + design->regions_[r].elements;
-              for(unsigned int i = base + design->regions_[r].base; i < u; i++){
+              const unsigned int u = base + design->regions[r].base + design->regions[r].elements;
+              for(unsigned int i = base + design->regions[r].base; i < u; i++){
                 DesignElement* de = &design->data[i];
                 grid->GetElemNodesCoord(cornerCoords, de->elem->connect, true);
                 fraction += de->elem->ptElem->CalcVolume(cornerCoords, false);
@@ -1322,14 +1347,14 @@ double ErsatzMaterial::IntegrateDesignVariable(Objective* f, Condition* g, bool 
 
   for(unsigned int d = 0; d < design->design.GetSize(); d++){
     if(allDesignsRelevant || design->design[d] == dtype){
-      const unsigned int base = d * design->elements_;
-      for(unsigned int r = 0; r < design->regions_.GetSize(); r++){
-        if(f != NULL || g->IsForRegion(design->regions_[r].regionId)){
+      const unsigned int base = d * design->elements;
+      for(unsigned int r = 0; r < design->regions.GetSize(); r++){
+        if(f != NULL || g->IsForRegion(design->regions[r].regionId)){
           const double scaling = scale ? design->scale_design[d][r] : 1.0;
           const double rscaling = 1.0 / scaling;
           const double translation = scale ? design->translate_design[d][r] : 0.0;
-          const unsigned int u = base + design->regions_[r].base + design->regions_[r].elements;
-          for(unsigned int i = base + design->regions_[r].base; i < u; i++)
+          const unsigned int u = base + design->regions[r].base + design->regions[r].elements;
+          for(unsigned int i = base + design->regions[r].base; i < u; i++)
           {
             DesignElement* de = &design->data[i];
             // standard or derivative case?
@@ -1601,7 +1626,7 @@ void ErsatzMaterial::SetAdjointRhs(AdjointParameters* adjointParams){
 
   Excitation& excite = *(adjointParams->GetExcitation());
   
-  switch(adjointParams->GetObjective()->GetType()){
+  switch(adjointParams->GetFunction()->GetType()){
   case Objective::TRACKING:
     SetTrackingAdjointRhs(excite, ts);
     break;
@@ -1637,7 +1662,7 @@ void ErsatzMaterial::SetAdjointRhs(AdjointParameters* adjointParams){
     upp = 0.0;
     up = 0.0;
     for(unsigned int t = 1; t < nts; ++t){
-      Vector<Double>& p_vec = adjoint.Get(excite, adjointParams->GetObjective(), t)->GetRealVector(Solution::RAW_VECTOR);
+      Vector<Double>& p_vec = adjoint.Get(excite, adjointParams->GetFunction(), t)->GetRealVector(Solution::RAW_VECTOR);
       double ut = u +  (up + 0.5*upp*(1.0-2.0*beta)*dt ) *dt;
       double upt = up + (1.0 - gamma) * dt * upp;
       // now we have the factor ut / (beta * dt * dt) for the mass matrix
@@ -1653,6 +1678,42 @@ void ErsatzMaterial::SetAdjointRhs(AdjointParameters* adjointParams){
     }
   }
   
+}
+
+template <class TYPE>
+StdVector<double> ErsatzMaterial::CalcStress(Excitation& excite, Function* f)
+{
+  // see comment in header for locality of stress!
+
+  // this gets all data, collected from MechPDE::CalcVonMisesStress()
+  // the MechPDE stuff might be complex by the system
+  assert(design->design.GetSize() == 1);
+  StdVector<double> stresses(design->data.GetSize());
+
+  for(unsigned r = 0; r < design->regions.GetSize(); r++)
+  {
+    // use the method of MechPDE
+    shared_ptr<BaseResult> bs = shared_ptr<BaseResult>(new Result<TYPE>);
+    string region = grid->GetRegion().ToString(design->regions[r].regionId);
+    bs->SetEntityList(grid->GetEntityList(EntityList::ELEM_LIST, region, EntityList::REGION));
+    bs->SetResultInfo(pde->GetResultInfo(MECH_DISPLACEMENT));
+
+    MechPDE* mech = dynamic_cast<MechPDE*>(ToPDE(MECH));
+    mech->CalcVonMisesStress<TYPE>(bs);
+
+    // the data values correlate to the entity list
+    Vector<TYPE>* data = dynamic_cast<Vector<TYPE>* >(bs->GetSingleVector());
+    EntityIterator it = bs->GetEntityList()->GetIterator();
+    assert(it.GetSize() == data->GetSize());
+    for(it.Begin(); !it.IsEnd(); it++)
+    {
+      int idx = design->Find(it.GetElem()->elemNum);
+      stresses[idx] = ((complex<double>) (*data)[idx]).real(); // complicated cast to real :(
+      LOG_DBG2(em) << "CalcStress() r=" << r << " el=" << it.GetElem()->elemNum << " idx=" << idx << " val=" << ((*data)[idx]);
+    }
+  }
+
+  return stresses;
 }
 
 double ErsatzMaterial::CalcEnergyFlux(Excitation& excite, Objective* f)
@@ -2358,7 +2419,7 @@ double ErsatzMaterial::CalcLocalConstraint(Condition* g, bool derivative)
 }
 
 
-double ErsatzMaterial::CalcGlobalFunction(Function* c, bool derivative)
+double ErsatzMaterial::CalcGlobalFunction(Function* c, bool derivative, const StdVector<double>* stress)
 {
   LOG_DBG(em) << "CGF c=" << c->type.ToString(c->GetType()) << " derivative=" << derivative;
   Function::Local* local = c->GetLocal();
@@ -2374,7 +2435,7 @@ double ErsatzMaterial::CalcGlobalFunction(Function* c, bool derivative)
     for(unsigned int i = 0; i < vem.GetSize(); i++)
     {
       Function::Local::Identifier& id = vem[i];
-      double fv = id.EvalFunction(local);
+      double fv = id.EvalFunction(local, stress);
       res += fv;
       LOG_DBG2(em) << "CGF: !d c=" << c->type.ToString(c->GetType()) << " i=" << i << " de="
                    << id.element->elem->elemNum << " sign=" << id.sign << " fv=" << fv  << " -> " << res;
@@ -2423,7 +2484,8 @@ void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_exite)
     for(unsigned int o = 0; o < objectives.data.GetSize(); o++) // Fabian: is this loop needed?
     {
       // call SolveAdjointProblem for all objectives that need it already for function evaluation, not just gradient
-      SolveAdjointProblem(*excite, objectives.data[o], false);
+      // this is actually everything where the RHS of the adjoint is used in the objective (output)
+      SolveAdjointProblem(*excite, objectives.data[o], true);
 
       // when we do multiple excitations with adjusted weights we calculate the objective here
       // to find the best weights. CalcObjective is so cheap, it is done later again by
@@ -2500,7 +2562,7 @@ void ErsatzMaterial::TimeStepCalculated(UInt timeStep, AdjointParameters* adjPar
   if(adjParams == NULL){
     StorePDESolution(forward, *applied_excitation, NULL, timeStep-1, true, false, false, "forward");
   }else{
-    StorePDESolution(adjoint, *applied_excitation, adjParams->GetObjective(), timeStep-1, true, false, false, "adjoint");
+    StorePDESolution(adjoint, *applied_excitation, adjParams->GetFunction(), timeStep-1, true, false, false, "adjoint");
   }
   
 }
@@ -2510,7 +2572,7 @@ void ErsatzMaterial::RhsCalculated(AdjointParameters* adjParams){
     if(adjParams == NULL){
       StorePDESolution(forward, *applied_excitation, NULL, domain->GetDriver()->GetActStep("mech")-1, false, true, false, "forward");
     }else{
-      StorePDESolution(adjoint, *applied_excitation, adjParams->GetObjective(), domain->GetDriver()->GetActStep("mech")-1, false, true, false, "adjoint");
+      StorePDESolution(adjoint, *applied_excitation, adjParams->GetFunction(), domain->GetDriver()->GetActStep("mech")-1, false, true, false, "adjoint");
     }
   }
 }
@@ -2566,57 +2628,67 @@ void ErsatzMaterial::ResetHDBC(StdVector<pair<SinglePDE*, IdBcList> >& org_idbc)
   }
 }
 
+void ErsatzMaterial::SolveAdjointProblem(Excitation& excite, Function* f, bool gradient)
+{
+  if (harmonic)
+    SolveAdjointProblem<std::complex<double> > (excite, f, gradient);
+  else
+    SolveAdjointProblem<double> (excite, f, gradient);
+}
+
+
 template <class T>
-void ErsatzMaterial::SolveAdjointProblem(Excitation& excite, Objective* cost, bool gradient)
+void ErsatzMaterial::SolveAdjointProblem(Excitation& excite, Function* f, bool gradient)
 {
   excite.Apply();
-  switch(cost->GetType())
+  switch(f->GetType())
   {
-    case Objective::HOMOGENIZATION_TENSOR:
-    case Objective::HOMOGENIZATION_TRACKING:
-    case Objective::POISSONS_RATIO:
-    case Objective::YOUNGS_MODULUS:
-    case Objective::TYCHONOFF:
-    case Objective::VOLUME:
-    case Objective::GLOBAL_SLOPE:
-    case Objective::GLOBAL_MOLE:
-    case Objective::GLOBAL_OSCILLATION:
-    case Objective::GLOBAL_JUMP:
-    case Objective::PENALIZED_VOLUME:
-    case Objective::GAP:
-    case Objective::TEMPERATURE:
+    case Function::HOMOGENIZATION_TENSOR:
+    case Function::HOMOGENIZATION_TRACKING:
+    case Function::POISSONS_RATIO:
+    case Function::YOUNGS_MODULUS:
+    case Function::TYCHONOFF:
+    case Function::VOLUME:
+    case Function::GLOBAL_SLOPE:
+    case Function::GLOBAL_MOLE:
+    case Function::GLOBAL_OSCILLATION:
+    case Function::GLOBAL_JUMP:
+    case Function::PENALIZED_VOLUME:
+    case Function::GAP:
+    case Function::TEMPERATURE:
       break; // no adjoint problem to be solved
 
     // these objectives need their adjoint problems only for gradient calculation
-    case Objective::COMPLIANCE:
+    case Function::COMPLIANCE:
       if(IsTransient() && gradient){ // in transient case, everything has an adjoint
-        Optimization::SolveAdjointProblem(&excite, cost);        
+        Optimization::SolveAdjointProblem(&excite, f);        
       }
       break;
-    case Objective::TRACKING:
+    case Function::TRACKING:
       // these objectives need their adjoint problems only for gradient calculation
       if(gradient){
-        Optimization::SolveAdjointProblem(&excite, cost);
+        Optimization::SolveAdjointProblem(&excite, f);
 
         if(!IsTransient()){ // transient solutions are read every timestep
-          StorePDESolution(adjoint, excite, cost, 0, true, false, false, "adjoint");
+          StorePDESolution(adjoint, excite, f, 0, true, false, false, "adjoint");
         }
 
         // write back the solution s.th. CommitIteraion() makes StoreResults() properly.
-        for(map<Application, SinglePDE*>::iterator it = pdes.begin(); it != pdes.end(); ++it)
-          forward.Get(excite)->Write(it->second);
+        //for(map<Application, SinglePDE*>::iterator it = pdes.begin(); it != pdes.end(); ++it)
+        //  forward.Get(excite)->Write(it->second); // TODO killme
+        forward.Get(excite)->Write(pde);
       }
       break;
 
-    case Objective::OUTPUT:
-    case Objective::CONJUGATE_COMPLIANCE:
-    case Objective::ABS_DYN_OUTPUT_SQUARED:
-    case Objective::GLOBAL_DYNAMIC_COMPLIANCE:
-    case Objective::DYNAMIC_OUTPUT:
-    case Objective::ELEC_ENERGY:
-    case Objective::ENERGY_FLUX:
+    case Function::OUTPUT:
+    case Function::CONJUGATE_COMPLIANCE:
+    case Function::ABS_DYN_OUTPUT_SQUARED:
+    case Function::GLOBAL_DYNAMIC_COMPLIANCE:
+    case Function::DYNAMIC_OUTPUT:
+    case Function::ELEC_ENERGY:
+    case Function::ENERGY_FLUX:
     {
-      if(!gradient){
+      if(gradient){
         // these objectives need their adjoint problems for the calculation of the objective value
         // they are directly solved after the StateProblem
         // they are no more solved for gradient calculation (this only works if the optimizer always evaluates the function before the gradient)
@@ -2625,14 +2697,15 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation& excite, Objective* cost, bo
         // the forward problem was already solved and stored !!
 
         // Set the rhs and solve for it
-        SetAndSolveAdjointRHS<T>(excite, cost);
+        SetAndSolveAdjointRHS<T>(excite, f);
 
         // store the stuff -> no rhs but special handling of element results
-        StorePDESolution(adjoint, excite, cost, 0, true, false, true, "adjoint");
+        StorePDESolution(adjoint, excite, f, 0, true, false, true, "adjoint");
 
         // write back the solution s.th. CommitIteraion() makes StoreResults() properly.
-        for(map<Application, SinglePDE*>::iterator it = pdes.begin(); it != pdes.end(); ++it)
-          forward.Get(excite)->Write(it->second);
+        //for(map<Application, SinglePDE*>::iterator it = pdes.begin(); it != pdes.end(); ++it)
+        //  forward.Get(excite)->Write(it->second); // TODO killme
+        forward.Get(excite)->Write(pde);
       }
       break;
     }
@@ -3205,3 +3278,8 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Applic
   throw Exception("false");
 }
 
+#if defined(__GNUC__)
+  template StdVector<double> ErsatzMaterial::CalcStress<double>(Excitation& excite, Function* f);
+  template StdVector<double> ErsatzMaterial::CalcStress<complex<double> >(Excitation& excite, Function* f);
+
+#endif

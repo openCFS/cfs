@@ -73,6 +73,7 @@ Function::Function(PtrParamNode pn)
   case GLOBAL_SLOPE:
   case GLOBAL_OSCILLATION:
   case GLOBAL_MOLE:
+  case STRESS:
     if(!pn->Has("parameter"))
       throw Exception("function '" + type.ToString(type_) + "' requires the 'parameter' attribute");
     break;
@@ -83,50 +84,6 @@ Function::Function(PtrParamNode pn)
 
   if(physical_ && !(type_ == VOLUME || type_ == GREYNESS))
     throw Exception("'physical' is no option for '" + type.ToString(type_) + "'");
-
-  // some functions need to be evaluated only once (last) for multiple excitations
-  // multiple excitations are:
-  // * static load cases
-  // * different frequencies
-  // * several homogenization test strains
-  // * time steps
-  switch(type_)
-  {
-    case VOLUME:
-    case PENALIZED_VOLUME:
-    case GAP:
-    case REALVOLUME:
-    case TYCHONOFF:
-    case GREYNESS:
-    case HOMOGENIZATION_TENSOR:
-    case HOMOGENIZATION_TRACKING:
-    case POISSONS_RATIO:
-    case YOUNGS_MODULUS:
-    case SLOPE:
-    case GLOBAL_SLOPE:
-    case ISOTROPY:
-    case MOLE:
-    case GLOBAL_MOLE:
-    case OSCILLATION:
-    case GLOBAL_OSCILLATION:
-    case JUMP:
-    case GLOBAL_JUMP:
-      this->evaluateOnce_ = true;
-      break;
-
-    case MULTI_OBJECTIVE: // only to make the switch complete
-    case COMPLIANCE:
-    case OUTPUT:
-    case DYNAMIC_OUTPUT:
-    case ENERGY_FLUX:
-    case TRACKING:
-    case ABS_DYN_OUTPUT_SQUARED:
-    case CONJUGATE_COMPLIANCE:
-    case GLOBAL_DYNAMIC_COMPLIANCE:
-    case ELEC_ENERGY:
-    case TEMPERATURE:
-      this->evaluateOnce_ = false; // standard case
-  }
 
 }
 
@@ -239,6 +196,92 @@ Function* Function::GetFunction(Objective* f, Condition* g)
 }
 
 
+bool Function::DoEvaluateOnce() const
+{
+  // some functions need to be evaluated only once (last) for multiple excitations
+  // multiple excitations are:
+  // * static load cases
+  // * different frequencies
+  // * several homogenization test strains
+  // * time steps
+  switch(type_)
+  {
+    case VOLUME:
+    case PENALIZED_VOLUME:
+    case GAP:
+    case REALVOLUME:
+    case TYCHONOFF:
+    case GREYNESS:
+    case HOMOGENIZATION_TENSOR:
+    case HOMOGENIZATION_TRACKING:
+    case POISSONS_RATIO:
+    case YOUNGS_MODULUS:
+    case SLOPE:
+    case GLOBAL_SLOPE:
+    case ISOTROPY:
+    case MOLE:
+    case GLOBAL_MOLE:
+    case OSCILLATION:
+    case GLOBAL_OSCILLATION:
+    case JUMP:
+    case GLOBAL_JUMP:
+      return true;
+
+    case MULTI_OBJECTIVE: // only to make the switch complete
+    case COMPLIANCE:
+    case OUTPUT:
+    case DYNAMIC_OUTPUT:
+    case ENERGY_FLUX:
+    case TRACKING:
+    case ABS_DYN_OUTPUT_SQUARED:
+    case CONJUGATE_COMPLIANCE:
+    case GLOBAL_DYNAMIC_COMPLIANCE:
+    case ELEC_ENERGY:
+    case TEMPERATURE:
+    case STRESS:
+      return false;
+      // no default, hence gcc warns
+  }
+}
+
+bool Function::IsAdjointBased() const
+{
+  switch(type_)
+  {
+    case COMPLIANCE:
+    case TRACKING:
+    case OUTPUT:
+    case CONJUGATE_COMPLIANCE:
+    case ABS_DYN_OUTPUT_SQUARED:
+    case GLOBAL_DYNAMIC_COMPLIANCE:
+    case DYNAMIC_OUTPUT:
+    case ELEC_ENERGY:
+    case ENERGY_FLUX:
+    case STRESS:
+    return true;
+
+  default:
+    return false;
+  }
+}
+
+bool Function::NeedsSelectionVector() const
+{
+  switch(type_)
+  {
+    case OUTPUT:
+//    case CONJUGATE_COMPLIANCE: ??
+    case ABS_DYN_OUTPUT_SQUARED:
+    case DYNAMIC_OUTPUT:
+    case ENERGY_FLUX:
+    return true;
+
+  default:
+    return false;
+  }
+}
+
+
 bool Function::IsHomogenization() const
 {
   switch(type_)
@@ -287,6 +330,7 @@ bool Function::ForSensitivityFiltering() const
   case POISSONS_RATIO:
   case YOUNGS_MODULUS:
   case TEMPERATURE:
+  case STRESS:
     return true;
 
   case VOLUME:
@@ -327,6 +371,7 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure)
   case GLOBAL_OSCILLATION:
   case JUMP:
   case GLOBAL_JUMP:
+  case STRESS:
     assert(space->IsRegular()); // VicinityElements work only on a regular grid
     // the design elements require the vicinity element to be set which holds the direct
     // neighbors. Is save to call several times
@@ -371,7 +416,8 @@ Function::Local::Local(Function* func, DesignSpace* space)
 
   this->normalize_ = pn != NULL ? pn->Get("normalize")->As<bool>() : true;
 
-  this->globalized_ = ftype == GLOBAL_MOLE || ftype == GLOBAL_SLOPE  || ftype == GLOBAL_OSCILLATION ? true : false;
+  this->globalized_ = ftype == GLOBAL_MOLE || ftype == GLOBAL_SLOPE
+                   || ftype == GLOBAL_OSCILLATION || ftype == STRESS ? true : false;
 
   // check beta
   if(ftype == OSCILLATION || ftype == GLOBAL_OSCILLATION)
@@ -435,6 +481,12 @@ Function::Local::Local(Function* func, DesignSpace* space)
     locality_ = BOUNDARY;
     break;
 
+  case STRESS:
+    if(locality_ != ELEMENT && locality_ != DEFAULT)
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
+    locality_ = ELEMENT;
+    break;
+
   default: // no locality
     assert(false);
     break;
@@ -453,6 +505,10 @@ Function::Local::Local(Function* func, DesignSpace* space)
       SetupBoundaryElementMap();
     else
       SetupStarLocalityElementMap(phase_);
+    break;
+
+  case ELEMENT:
+    SetupSingularElementMap();
     break;
 
   default:
@@ -728,6 +784,23 @@ void Function::Local::SetupBoundaryElementMap()
 }
 
 
+void Function::Local::SetupSingularElementMap()
+{
+  // only this element!
+  element_dimension_ = 1; // two boundary "stones" per dimension
+  virtual_elem_map.Reserve(element_dimension_ * space->GetNumberOfElements());
+
+  space->AssertOneDesignOnly();
+
+  StdVector<DesignElement*> empty;
+
+  for(int e = 0, en = space->GetNumberOfElements(); e < en; e++)
+  {
+    DesignElement* de = &(space->data[e]);
+    virtual_elem_map.Push_back(Identifier(de, empty));
+  }
+}
+
 
 void Function::Local::ToInfo(PtrParamNode in)
 {
@@ -849,7 +922,7 @@ Function::Local::Identifier::Identifier(DesignElement* elem, StdVector<DesignEle
 }
 
 
-double Function::Local::Identifier::EvalFunction(const Local* local) const
+double Function::Local::Identifier::EvalFunction(const Local* local, const StdVector<double>* stress) const
 {
   // function value
   double fv = 0.0;
@@ -857,6 +930,10 @@ double Function::Local::Identifier::EvalFunction(const Local* local) const
 
   switch(f->type_)
   {
+  case STRESS:
+    fv = CalcStress(local, stress);
+    break;
+
   case SLOPE:
   case GLOBAL_SLOPE:
     fv = CalcSlope();
@@ -891,6 +968,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local) const
   case GLOBAL_OSCILLATION:
   case GLOBAL_MOLE:
   case GLOBAL_JUMP:
+  case STRESS:
   {
     // we normalize all values by the number of "constraints". Note that it is
     // sufficient for the function value, the gradient is then also right
@@ -1262,3 +1340,11 @@ double Function::Local::Identifier::CalcJumpGradient(int neigh_idx) const
   return 2.0 * std::sin(PI*slope) * std::cos(PI*slope) * PI * factor;
 }
 
+double Function::Local::Identifier::CalcStress(const Local* local, const StdVector<double>* stress) const
+{
+  // so trivial
+  assert(stress != NULL);
+  int idx = local->space->Find(element);
+  LOG_DBG3(func) << "L:I:CS elem=" << element->ToString() << " idx=" << idx << " -> " << (*stress)[idx];
+  return (*stress)[idx];
+}

@@ -280,6 +280,7 @@
                 <xsd:enumeration value="globalMole"/>
                 <xsd:enumeration value="jump"/>
                 <xsd:enumeration value="globalJump"/>
+                <xsd:enumeration value="stress"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -942,7 +943,9 @@
             <xsd:simpleType>
               <xsd:restriction base="xsd:token">
                 <xsd:enumeration value="forward"/>
+                <xsd:enumeration value="each_forward"/>
                 <xsd:enumeration value="adjoint"/>                             
+                <xsd:enumeration value="each_adjoint"/>
                 <xsd:enumeration value="both_cases"/>
               </xsd:restriction>
             </xsd:simpleType>
@@ -1065,6 +1068,7 @@
       <xsd:enumeration value="globalOscillation"/>
       <xsd:enumeration value="globalMole"/>
       <xsd:enumeration value="globalJump"/>
+      <xsd:enumeration value="stress"/>
       <xsd:enumeration value="multiObjective"/>
     </xsd:restriction>
   </xsd:simpleType>
@@ -1170,6 +1174,7 @@
       <xsd:enumeration value="globalOscillation"/>
       <xsd:enumeration value="globalMole"/>
       <xsd:enumeration value="globalJump"/>
+      <xsd:enumeration value="stress"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -1187,6 +1192,7 @@
           <xsd:enumeration value="prev_next_and_reverse"/>
           <xsd:enumeration value="45_deg_star"/>
           <xsd:enumeration value="45_deg_star_and_reverse"/>
+          <xsd:enumeration value="element"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>

@@ -248,6 +248,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::TYCHONOFF, "tychonoff");
   Function::type.Add(Function::TEMPERATURE, "temperature");
   Function::type.Add(Function::GREYNESS, "greyness");
+  Function::type.Add(Function::STRESS, "stress");
   Function::type.Add(Function::ISOTROPY, "isotropy");
   Function::type.Add(Function::SLOPE, "slope");
   Function::type.Add(Function::GLOBAL_SLOPE, "globalSlope");
@@ -267,6 +268,7 @@ void Optimization::SetEnums()
   Function::Local::locality.Add(Function::Local::DEG_45_STAR, "45_deg_star");
   Function::Local::locality.Add(Function::Local::DEG_45_STAR_AND_REVERSE, "45_deg_star_and_reverse");
   Function::Local::locality.Add(Function::Local::BOUNDARY, "boundary");
+  Function::Local::locality.Add(Function::Local::ELEMENT, "element");
 
   Function::Local::phase.SetName("Function::Local::Phase");
   Function::Local::phase.Add(Function::Local::BOTH, "both");
@@ -301,7 +303,9 @@ void Optimization::SetEnums()
   
   ErsatzMaterial::commitMode.SetName("ErsatzMaterial::CommitMode");
   ErsatzMaterial::commitMode.Add(ErsatzMaterial::FORWARD, "forward");
+  ErsatzMaterial::commitMode.Add(ErsatzMaterial::EACH_FORWARD, "each_forward");
   ErsatzMaterial::commitMode.Add(ErsatzMaterial::ADJOINT, "adjoint");
+  ErsatzMaterial::commitMode.Add(ErsatzMaterial::EACH_ADJOINT, "each_adjoint");
   ErsatzMaterial::commitMode.Add(ErsatzMaterial::BOTH, "both_cases");
 
   OptimizationMaterial::system.SetName("OptimizationMaterial::System");
@@ -513,11 +517,11 @@ void Optimization::SolveStateProblem(Excitation* excite)
   problemWithinIteration++;
 }
 
-void Optimization::SolveAdjointProblem(Excitation* excite, Objective* cost){
+void Optimization::SolveAdjointProblem(Excitation* excite, Function* f){
   // does almost the same as SolveStateProblem now, but passing, that we want the adjoint to be solved
   BaseDriver* driver = domain->GetDriver();
   
-  AdjointParameters adjointParams(cost, excite);
+  AdjointParameters adjointParams(f, excite);
   
   if(IsTransient()){
     SinglePDE* mech = domain->GetSinglePDE("mechanic");
@@ -531,10 +535,14 @@ void Optimization::SolveAdjointProblem(Excitation* excite, Objective* cost){
       EXCEPTION("Harmonic adjoint not implemented!");
 }
 
-void Optimization::SolveAdjointProblems(Excitation* excite){
-  for(unsigned int o = 0; o < objectives.data.GetSize(); ++o){
-    SolveAdjointProblem(excite, objectives.data[o]); // virtual! calls ErsatzMaterial implementation
-  }
+void Optimization::SolveAdjointProblems(Excitation* excite)
+{
+  for(unsigned int i = 0; i < objectives.data.GetSize(); ++i)
+    SolveAdjointProblem(excite, objectives.data[i]); // virtual! calls ErsatzMaterial implementation
+
+  // E.g. the stress constraint has an adjoint
+  for(unsigned int i = 0; i < constraints.active.GetSize(); ++i)
+    SolveAdjointProblem(excite, constraints.active[i]);
 }
 
 double Optimization::CalcSymmetry(DesignElement::Type de, DesignElement::ValueSpecifier vs, DesignElement::Access access)

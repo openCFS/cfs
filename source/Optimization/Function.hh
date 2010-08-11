@@ -70,6 +70,7 @@ class Function
       GLOBAL_MOLE,               /*!< see mole */
       GLOBAL_OSCILLATION,        /*!< see oscillation */
       GLOBAL_JUMP,
+      STRESS,                    /*!< global stress constraint: Kocvara and Stingl; 2007. Has adjoint! */
 
       // This is constraint only!
       GREYNESS,                  /*!< inaccurate - best for observation only */
@@ -120,7 +121,14 @@ class Function
     bool FactorOmegaOmega() const { return omega_omega_; }
 
     /** Shall/must we evaluate this objective only of the last excitation? */
-    bool DoEvaluateOnce() const { return evaluateOnce_; }
+    bool DoEvaluateOnce() const;
+
+    /** Requires this function an adjoint solution for the gradient? */
+    bool IsAdjointBased() const;
+
+    /** Requires the function evaluation an selection vector associated to the adjoint RHS?.
+     * Is an important for the solution of the state problem, if partial stuff from the adjoint setup is required. */
+    bool NeedsSelectionVector() const;
 
     /** Requires an objective homogenization */
     bool IsHomogenization() const;
@@ -176,7 +184,8 @@ class Function
         PREV_NEXT_AND_REVERSE,   /*!< x_i-1 and x_i+1 with different sign for small oscillation */
         DEG_45_STAR,             /*!< Different notation. prev_next but also diagonals */
         DEG_45_STAR_AND_REVERSE, /*!< The doubled variant of DEG_45_STAR for oscillation */
-        BOUNDARY                 /*!< For a neighbor definition the first and last element (JUMP) */
+        BOUNDARY,                /*!< For a neighbor definition the first and last element (JUMP) */
+        ELEMENT                  /*!< For stress there is no neighborhood, only the element itself */
       } Locality;
 
       static Enum<Locality> locality;
@@ -244,8 +253,9 @@ class Function
           return const_cast<const DesignElement*>(idx == -1 ? element : neighbor[idx]);
         }
 
-        /** Service function. Calculates the actual objective, based on function->type */
-        double EvalFunction(const Local* local) const;
+        /** Service function. Calculates the actual objective, based on function->type
+         * @param stress only used when the function is stress -> determined by ErsatzMaterial::CalcStress() */
+        double EvalFunction(const Local* local, const StdVector<double>* stress = NULL) const;
 
         /** Service function. Calculates all gradients for this and the neighbors. Only for real local function!.
          * It does the proper constraint_gradient reset first! */
@@ -278,6 +288,10 @@ class Function
         /** weak formulation of a greyness control */
         double CalcJump() const;
         double CalcJumpGradient(int neigh_id) const;
+
+        /** Uses actually the data from MechPDE::CalcVonMisesStress() provided by ErsatzMaterial::CalcStress().
+         * There is no local variant, only the global */
+        double CalcStress(const Local* local, const StdVector<double>* stress) const;
 
         DesignElement* element; // this represents DesignSpace::data[element_idx]
         StdVector<DesignElement*> neighbor;
@@ -316,6 +330,9 @@ class Function
 
       /** for a defined neighborhood only the most prev and next element, not this element */
       void SetupBoundaryElementMap();
+
+      /** trival case form ELEMENT (stress) -> on the element itself */
+      void SetupSingularElementMap();
 
       /** small helper to determine the number of neighbors in each (diagonal)
        * direction if we use a neighborhood. Parses the whole stuff */
@@ -400,10 +417,6 @@ class Function
     /** Some special functions use a parameter: slope constraint and penalized volume */
     double parameter_;
 
-
-    /** Is this type only possible/necessary for the last excitation?
-     * Then it is only in that case evaluated and the excitation weight is ignored */
-    bool evaluateOnce_;
 
     /** @see IsPhysical() */
     bool physical_;
