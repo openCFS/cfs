@@ -36,45 +36,35 @@ SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TRUNK_NIGHTLY")
 SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_BUILD_NIGHTLY")
 
 #-----------------------------------------------------------------------------
+# Copy CDash server configuration file to source dir.
+#-----------------------------------------------------------------------------
+EXECUTE_PROCESS(COMMAND ${CMAKE_EXECUTABLE_NAME} -E copy_if_different CTestConfig.cmake ${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake)
+
+EXEC_PROGRAM("${CTEST_SOURCE_DIRECTORY}/share/scripts/distro.sh"
+  ARGS -u
+  OUTPUT_VARIABLE CFS_ARCH_STR
+  RETURN_VALUE RETVAL)
+
+#-----------------------------------------------------------------------------
 # Specify that we want to do an experimental build without updating the CFS++
 # working copy. I.e. we leave away the ExperimentalUpdate step between
 # ExperimentalStart and ExperimentalConfigure. The Subversion update gets
 # done by simon on mac before the the test scripts on rom get executed.
 #-----------------------------------------------------------------------------
 SET(CTEST_COMMAND  "\"${CTEST_EXECUTABLE_NAME}\"")
+SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyStart")
+SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyConfigure")
+SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyBuild")
+SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyTest")
+SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlySubmit")
+SET(CTEST_COMMAND "${CTEST_COMMAND} -A ${CTEST_BINARY_DIRECTORY}/CMakeCache.txt")
+#SET(CTEST_COMMAND "${CTEST_COMMAND} -R torque3d")
 
 #-----------------------------------------------------------------------------
 # Use CMake (cmake) executable corresponding to CTest executable used to run
 # this script.
 #-----------------------------------------------------------------------------
 SET(CTEST_CMAKE_COMMAND  "\"${CMAKE_EXECUTABLE_NAME}\"")
-
-
-FIND_PROGRAM(CTEST_SVN_COMMAND NAMES svn)
-
-#-----------------------------------------------------------------------------
-# Since this is the first test in the night, we have to make sure that
-# the source directory is available by checking it out if the directory does
-# not previously exist.
-#-----------------------------------------------------------------------------
-IF(NOT EXISTS "${CTEST_SOURCE_DIRECTORY}")
-  SET(REPO "https://lse17.e-technik.uni-erlangen.de:2001/svn/CFS++/trunk")
-  SET(USER "testuser-klu")
-
-  SET(CTEST_CHECKOUT_COMMAND "${CTEST_SVN_COMMAND} --username ${USER} co ${REPO} ${CTEST_SOURCE_DIRECTORY}")
-ENDIF(NOT EXISTS "${CTEST_SOURCE_DIRECTORY}")
-
-#-----------------------------------------------------------------------------
-# Either way, we have to update the working copy
-#-----------------------------------------------------------------------------
-SET(CTEST_UPDATE_TYPE "svn")
-SET(CTEST_UPDATE_COMMAND "${CTEST_SVN_COMMAND}")
-SET(CTEST_UPDATE_OPTIONS "--username testuser-klu up ${CTEST_SOURCE_DIRECTORY}")
-
-#-----------------------------------------------------------------------------
-# Copy CDash server configuration file to source dir.
-#-----------------------------------------------------------------------------
-EXECUTE_PROCESS(COMMAND ${CMAKE_EXECUTABLE_NAME} -E copy_if_different CTestConfig.cmake ${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake)
 
 #-----------------------------------------------------------------------------
 # Start out with an empty binary directory.
@@ -116,12 +106,3 @@ SET(CTEST_ENVIRONMENT
   "LANGUAGE=C"
   "CPLREADER_PERF_SUITE=/media/CFD_Data/cplreader_performance_suite"
   )
-
-SET(CTEST_CMAKE_GENERATOR "Unix Makefiles")
-
-CTEST_START(Nightly)
-CTEST_UPDATE(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE res)
-CTEST_CONFIGURE()
-CTEST_BUILD()
-CTEST_TEST()
-CTEST_SUBMIT()

@@ -264,13 +264,13 @@ int CFS::Run()
     
     cout << ">> Total time: wall clock: '";
     
-    const int walltime(timer->GetWallTime());
-    const int cputime(timer->GetCPUTime());
+    const int walltime((int) timer->GetWallTime());
+    const int cputime((int) timer->GetCPUTime());
 
     if(walltime > 120.0) 
     {
-      const int wallmin(walltime / 60.0);
-      const int cpumin(cputime / 60.0);
+      const int wallmin((int) (walltime / 60.0));
+      const int cpumin((int) (cputime / 60.0));
       if(wallmin > 60.0)
       {
         cout << wallmin / 60 << "h " << (wallmin % 60) 

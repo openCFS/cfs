@@ -51,10 +51,12 @@ function PerformTest {
 
     rm -rf $TESTDIR/CFS_BUILD_NIGHTLY
 
+    echo "Testing cfs_build_$TESTNAME.tgz..."
     ctest -V -S ctest_scripts/ctest_script.cmake
 
     cd $TESTDIR
-    tar cvzf cfs_build_$TESTNAME.tgz CFS_BUILD_NIGHTLY
+    echo "Packaging cfs_build_$TESTNAME.tgz..."
+    tar czf cfs_build_$TESTNAME.tgz CFS_BUILD_NIGHTLY
     
     rm -rf CFS_BUILD_NIGHTLY
 }
@@ -159,30 +161,33 @@ cd $TESTDIR
 
 # Remove previous CFSDEPSCACHE directory and make sure that ACML sources
 # get copied to the newly created one.
-if [ "$DAYOFWEEK" = "2" ]; then
-    mkdir -p update
-    cp CFS_TRUNK_NIGHTLY/ctest_scripts/ctest_update* update
-    cp CFS_TRUNK_NIGHTLY/ctest_scripts/CTestConfig.cmake update
-    tar cvzf $TESTDIR/last_weeks_cfs_trunk_nightly.tgz CFS_TRUNK_NIGHTLY
+if [ "$DAYOFWEEK" = "1" ]; then
+    echo "Packaging last week's CFS_TRUNK_NIGHTLY..."
+    tar czf $TESTDIR/last_weeks_cfs_trunk_nightly.tgz CFS_TRUNK_NIGHTLY
     rm -rf $TESTDIR/CFS_TRUNK_NIGHTLY
-    tar cvzf $TESTDIR/last_weeks_cfsdeps_nightly.tgz CFSDEPS_NIGHTLY
+    echo "Packaging last week's CFSDEPS_NIGHTLY..."
+    tar czf $TESTDIR/last_weeks_cfsdeps_nightly.tgz CFSDEPS_NIGHTLY
     rm -rf $TESTDIR/CFSDEPS_NIGHTLY
-    tar cvzf $TESTDIR/last_weeks_cfs_testsuite_nightly.tgz CFS_TESTSUITE_NIGHTLY
+    echo "Packaging last week's CFS_TESTSUITE_NIGHTLY..."
+    tar czf $TESTDIR/last_weeks_cfs_testsuite_nightly.tgz CFS_TESTSUITE_NIGHTLY
     rm -rf $TESTDIR/CFS_TESTSUITE_NIGHTLY
     rm -rf $TESTDIR/CFSDEPSCACHE
     rm -rf $TESTDIR/cfs_build_*.tgz
 fi
 
+# Source password for test user
+. $HOME/.testuserpw
+
 # Copy current version of update scripts from server to update directory
 mkdir -p $TESTDIR/update
 cd $TESTDIR/update
+rm -f *
 FILES="ctest_update.cmake ctest_update_cfs_klu.cmake ctest_update_cfsdeps_klu.cmake ctest_update_testsuite_klu.cmake CTestConfig.cmake"
 for FILE in $FILES; do
   wget --http-user=testuser-klu --http-password=$CFS_TESTUSER_PW \
        --no-check-certificate \
        https://lse17.e-technik.uni-erlangen.de:2001/svn/CFS++/trunk/ctest_scripts/$FILE
 done
-
 
 # Checkout or update CFSDEPS
 cd $TESTDIR/update
@@ -233,7 +238,8 @@ rm -rf /opt/pckg/CFSDEPS/* /opt/pckg/CFSDEPS/.svn
 cp -a CFSDEPS_NIGHTLY/* CFSDEPS_NIGHTLY/.svn /opt/pckg/CFSDEPS
 
 # Pack directories for Ubuntu VBox
-tar cvzf CFS_NIGHTLY.tgz CFS_TESTSUITE_NIGHTLY CFSDEPS_NIGHTLY CFS_TRUNK_NIGHTLY
+echo "Packaging repositories for Ubuntu VBox..."
+tar czf CFS_NIGHTLY.tgz CFS_TESTSUITE_NIGHTLY CFSDEPS_NIGHTLY CFS_TRUNK_NIGHTLY
 
 # Start Ubuntu 8.04 VBox in background
 VBOX_LOG=$HOME/Documents/dev/ubuntu804.log
@@ -257,7 +263,7 @@ CFSBIN="$TESTDIR/CFS_BUILD_NIGHTLY/bin/$DISTRO/cfsbin"
 CFSTOOLBIN="$TESTDIR/CFS_BUILD_NIGHTLY/bin/$DISTRO/cfstoolbin"
 CPLREADER="$TESTDIR/CFS_BUILD_NIGHTLY/bin/$DISTRO/cplreader"
 if [ -f $CFSBIN ] && [ -f $CFSTOOLBIN ] && [ -f $CPLREADER ]; then
-    # Copy binaries to /opt/pckg/cfs_nightly
+    echo "Copying GCC binaries to /opt/pckg/cfs_nightly..."
     rm -rf $DESTDIR/trunk_gcc
     mkdir $DESTDIR/trunk_gcc
     cp -a $TESTDIR/CFS_BUILD_NIGHTLY/bin $DESTDIR/trunk_gcc
@@ -266,20 +272,17 @@ if [ -f $CFSBIN ] && [ -f $CFSTOOLBIN ] && [ -f $CPLREADER ]; then
     cp -a $TESTDIR/CFS_TRUNK_NIGHTLY/share/matlab $DESTDIR/trunk_gcc/share
 fi
 
-# Update CFS docu for rom webpage
-# cd "$TESTDIR/CFS_BUILD_NIGHTLY"      && \
-# make doc-devel > /dev/null 2>&1      && \
-# make doc-user > /dev/null 2>&1       && \
-# make doc-user-html > /dev/null 2>&1;
 
-# cp -a "$TESTDIR/CFS_TRUNK_NIGHTLY/share/doc/developer/html" "/srv/www/htdocs/cfsDocu/devel"
-# cp -a "$TESTDIR/CFS_TRUNK_NIGHTLY/share/doc/user/xmlFile/html" "/srv/www/htdocs/cfsDocu/user"
+# Copy current version of CFS++ documentation from lse17 to rom for local Wiki
+cd /srv/www/htdocs/cfsDocu
+rm -rf *
+FILES="docu/tutorial/cfsManual.pdf docu/cfs-doc/user/xmlFile/xmlReference.pdf docu/cfs-doc/developer/develManual/develManual.pdf svn/CFS++/trunk/source/cplreader/Documentation/latex/cplreader_docu.pdf"
+for FILE in $FILES; do
+  wget --http-user=testuser-klu --http-password=$CFS_TESTUSER_PW \
+       --no-check-certificate \
+       https://lse17.e-technik.uni-erlangen.de:2001/$FILE
+done
 
-# cd /srv/www/htdocs/cfsDocu/xmlManual/                  && \
-# svn up > /dev/null 2>&1                                && \
-# pdflatex -halt-on-error cfsManual.tex > /dev/null 2>&1 && \
-# pdflatex -halt-on-error cfsManual.tex > /dev/null 2>&1 && \
-# ./buildhtml > /dev/null 2>&1
 
 
 # Change into CFS++ source directory and execute CTest for ICC.
@@ -289,7 +292,7 @@ source /opt/intel/Compiler/11.1/069/bin/ifortvars.sh intel64
 PerformTest "rom_icc_nightly"
 
 if [ -f $CFSBIN ] && [ -f $CFSTOOLBIN ] && [ -f $CPLREADER ]; then
-    # Copy binaries to /opt/pckg/cfs_nightly
+    echo "Copying Intel binaries to /opt/pckg/cfs_nightly..."
     ICC_ROM_DIR=$DESTDIR/trunk_icc_rom
     rm -rf $ICC_ROM_DIR
     mkdir $ICC_ROM_DIR

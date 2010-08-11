@@ -417,7 +417,7 @@ IF(EXISTS "${CFS_SOURCE_DIR}/.git")
     RETURN_VALUE RETVAL)
 ELSE(EXISTS "${CFS_SOURCE_DIR}/.git")
   FILE(READ "${CFS_SOURCE_DIR}/.svn/entries" SVNSTR)
-  STRING(REGEX MATCH "[a-z+]+://[a-zA-Z0-9_+-/@]+" CFS_SUBVERSION_REPOS "${SVNSTR}")
+  STRING(REGEX MATCH "[a-z+]+://[a-zA-Z0-9_+-/@]+:[a-zA-Z0-9_+-/@]+" CFS_SUBVERSION_REPOS "${SVNSTR}")
 ENDIF(EXISTS "${CFS_SOURCE_DIR}/.git")
 
 #-----------------------------------------------------------------------------

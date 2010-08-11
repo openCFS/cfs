@@ -569,7 +569,11 @@ void Optimization::StoreResults(double step_val)
 
   // this will write the CFS result and history file
   if(!IsTransient()){ // transient optimization saves results in a different way
-    domain->GetDriver()->StoreResults(step_val == -1 ? currentIteration : step_val);
+    if(step_val == -1) {
+      domain->GetDriver()->StoreResults(currentIteration, step_val);
+    } else {
+      domain->GetDriver()->StoreResults((UInt)step_val, step_val);
+    }
   }
 }
 

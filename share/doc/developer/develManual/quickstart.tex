@@ -14,9 +14,10 @@ to figure out the required packages quite easily.
 \begin{verbatim} 
 sudo zypper install subversion gcc gcc-c++ gcc-fortran automake autoconf \
                     cmake perl-base graphviz texlive-latex texlive-tex4ht \
-                    python-pygments doxygen tcl-devel python-devel git-svn  
+                    python-pygments doxygen tcl-devel python-devel git-svn \
+                    java-1_6_0-openjdk-devel cmake-gui
 \end{verbatim}
-\todo[inline]{Add packages for ccmake, cmake-gui and javac.}
+\url{https://build.opensuse.org/package/show?package=gmshNightly\&project=home\%3Atsokar}
 
 \noindent If  some package  is not available  from the  standard repositories,
 there   is  a   good  chance   to  find   it  at   openSUSE   software  search
@@ -34,9 +35,8 @@ rpm -q --whatprovides /usr/bin/g++
 sudo apt-get install subversion gcc g++ gfortran automake autoconf cmake \
                      perl-base graphviz texlive-latex-base tex4ht \
                      python-pygments doxygen tcl-dev python-dev git-svn \
-                     cmake-curses-gui cmake-qt-gui
+                     cmake-curses-gui cmake-qt-gui gmsh openjdk-6-jdk
 \end{verbatim} 
-\todo[inline]{Add package for javac.}
 
 \begin{verbatim}
 ln -s /usr/include/python2.6 /usr/include/python

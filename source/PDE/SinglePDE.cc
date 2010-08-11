@@ -3501,7 +3501,7 @@ namespace CoupledField {
 
      // the counter is a helper, as parameter to be reused for performance reasons
      counter.Resize(grid->GetNumNodes() + 1);
-     counter.Init(0.0);
+     counter.Init(0);
 
      EntityIterator it = list->GetIterator();
 

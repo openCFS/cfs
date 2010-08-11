@@ -5,6 +5,7 @@ ADD_LIBRARY(design STATIC ${DESIGN_SRCS})
 
 SET(TARGET_LL
   domain
+  paramh
   ${TARGET_LL}
 )
 

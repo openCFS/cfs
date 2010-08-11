@@ -312,7 +312,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
   bool both = func->locality_ == Function::NEXT;
   unsigned int  dim  = domain->GetGrid()->GetDim();
 
-  element_dimension_ = dim * (both ? 2.0 : 1.0);
+  element_dimension_ = dim * (both ? 2 : 1);
 
   virtual_elem_map.Reserve(element_dimension_ * space->GetNumberOfElements());
 

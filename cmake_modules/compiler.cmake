@@ -203,12 +203,23 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-unknown-pragmas")
   SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-comment")
 
+  #---------------------------------------------------------------------------
+  # The  following flags and  defines are  necessary due  to incompatibilities
+  # with  some versions  of the  GCC runtime  environment. The  problems often
+  # occur in external libraries, most notably Boost. The favored policy should
+  # be,  to fix  those problems  locally  by patching  the external  libraries
+  # instead of  introducing global  flags and defines  for CFS++,  which might
+  # break other stuff.
+  #---------------------------------------------------------------------------
   IF(CFS_CXX_COMPILER_VER MATCHES "11\\.")
     SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -fno-builtin-std::basic_istream::get")
     SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -fno-builtin-std::max")
   ENDIF(CFS_CXX_COMPILER_VER MATCHES "11\\.")
   
-  # The intel compiler might not know the function __builtin_isnan (and isinf), so redirect that to isnan
+  #---------------------------------------------------------------------------
+  # The  intel  compiler might  not  know  the  function __builtin_isnan  (and
+  #  isinf), so redirect that to isnan
+  #---------------------------------------------------------------------------
   SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -D__builtin_isnan=::isnan -D__builtin_isinf=::isinf")
 
 ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
