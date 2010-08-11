@@ -17,12 +17,20 @@ sudo zypper install subversion gcc gcc-c++ gcc-fortran automake autoconf \
                     python-pygments doxygen tcl-devel python-devel git-svn \
                     java-1_6_0-openjdk-devel cmake-gui
 \end{verbatim}
-\url{https://build.opensuse.org/package/show?package=gmshNightly\&project=home\%3Atsokar}
+
+\noindent For openSUSE 11.3 also Gmsh is available:
+
+\begin{verbatim}
+REPO="http://download.opensuse.org/repositories/home:/tsokar/openSUSE_11.3"
+sudo zypper addrepo $REPO Gmsh
+sudo zypper install gmsh
+\end{verbatim}
 
 \noindent If  some package  is not available  from the  standard repositories,
 there   is  a   good  chance   to  find   it  at   openSUSE   software  search
-\url{http://software.opensuse.org/search}   or  one   of  the   other  package
-repositories like PackMan (\url{http://packman.links2linux.org}).
+\url{http://software.opensuse.org/search},      openSUSE     build     service
+\url{https://build.opensuse.org}  or one  of the  other  package repositories
+like PackMan (\url{http://packman.links2linux.org}).
 
 \noindent Checking which package provides an already installed file:
 \begin{verbatim}
