@@ -14,6 +14,8 @@
 #include "DataInOut/programOptions.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
+#include "Utils/biotSavart.hh"
+
 #include "OLAS/algsys/basesystem.hh"
 #include "OLAS/algsys/standardsys.hh"
 
@@ -1143,6 +1145,13 @@ namespace CoupledField {
              // Transform Dirichlet boundary conditions for effmass-formulation
              if (effectiveMass_) {
                val = TS_alg_->DirichletBC4EffMassMatrix(val,eqnNr);
+             }
+             
+             // if Biot-Savart is set (just relevant for magnetics ) we have to correct
+             // the inhomog. Dirichlet values
+             // (watch out for equation number offset!!!)
+             if ( isBiotSavart_ ) {
+               val -= biotSavart_->GetMagVec( eqnNr-1, analysistype_ );
              }
 
              // Case of complex-valued entries

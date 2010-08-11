@@ -49,6 +49,8 @@ namespace CoupledField
     //! define the SoltionStep-Driver
     void DefineSolveStep();
 
+    //! do jobs, before analysis starts
+    void PreparePDE4Computation();
 
     // ======================================================
     // POSTPROCESSING SECTION

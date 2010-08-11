@@ -1393,6 +1393,8 @@ source/Utils/Timer.cc -text
 source/Utils/Timer.hh -text
 source/Utils/baseelemstoresol.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/basenodestoresol.hh svneol=native#text/x-c%2B%2Bhdr
+source/Utils/biotSavart.cc svneol=native#text/x-c%2B%2Bsrc
+source/Utils/biotSavart.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/boost-serialization.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/cartesianCoordSys.cc svneol=native#text/plain
 source/Utils/cartesianCoordSys.hh svneol=native#text/plain
