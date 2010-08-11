@@ -104,9 +104,16 @@ include/def_xmlschema.hh.in -text
 share/MaterialFile/mat.xml svneol=native#text/xml
 share/doc/auxilliaries/LaTeX/lsepaper.sty svneol=native#text/plain
 share/doc/auxilliaries/Pics/cfs-logo.eps -text svneol=unset#application/postscript
+share/doc/auxilliaries/Pics/cfs-logo.pdf -text svneol=unset#application/pdf
 share/doc/auxilliaries/Pics/cfs-logo.png -text svneol=unset#image/png
+share/doc/auxilliaries/Pics/ls_am_klu.eps -text svneol=unset#application/postscript
+share/doc/auxilliaries/Pics/ls_am_klu.pdf -text svneol=unset#application/pdf
+share/doc/auxilliaries/Pics/ls_am_klu.svg -text
 share/doc/auxilliaries/Pics/lse.eps -text svneol=unset#application/postscript
 share/doc/auxilliaries/Pics/lse.png -text svneol=unset#image/png
+share/doc/auxilliaries/Pics/lse_logo.eps -text svneol=unset#application/postscript
+share/doc/auxilliaries/Pics/lse_logo.pdf -text svneol=unset#application/pdf
+share/doc/auxilliaries/Pics/lse_logo.svg -text
 share/doc/auxilliaries/cfs-logo.cdr -text svneol=unset#application/coreldraw
 share/doc/developer/AddDoc/coding-rules/coding_rules.html svneol=native#text/html
 share/doc/developer/AddDoc/coding-rules/coding_rules.tex svneol=native#text/plain
@@ -252,6 +259,7 @@ share/doc/developer/Protokolle/Treffen_14_04_2005.pdf -text svneol=unset#applica
 share/doc/developer/Protokolle/Treffen_16_11_2005.pdf -text svneol=unset#application/pdf
 share/doc/developer/Protokolle/Treffen_25_09_2007.pdf -text svneol=unset#application/pdf
 share/doc/developer/Protokolle/Treffen_27_07_2005.pdf -text svneol=unset#application/pdf
+share/doc/developer/develManual/attachfile.sty svneol=native#text/plain
 share/doc/developer/develManual/concepts.tex -text
 share/doc/developer/develManual/develManual.bib -text
 share/doc/developer/develManual/develManual.cfg -text
@@ -268,10 +276,11 @@ share/doc/developer/develManual/pics/ansys.png -text
 share/doc/developer/develManual/pics/ansys_eplo_mat.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/ansys_pml3d_imag.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/ansys_pml3d_real.png -text svneol=unset#image/png
-share/doc/developer/develManual/pics/cfs-logo.png -text
 share/doc/developer/develManual/pics/cfs_elem_types.pdf -text svneol=unset#unset
 share/doc/developer/develManual/pics/cfs_elem_types.svg -text
+share/doc/developer/develManual/pics/cfsdeps_flowdiag.pdf -text svneol=unset#application/pdf
 share/doc/developer/develManual/pics/cfsdeps_flowdiag.svg -text
+share/doc/developer/develManual/pics/cfsdeps_structure.pdf -text svneol=unset#application/pdf
 share/doc/developer/develManual/pics/cfsdeps_structure.svg -text
 share/doc/developer/develManual/pics/elems_hexa.png -text
 share/doc/developer/develManual/pics/elems_line.png -text
@@ -313,6 +322,7 @@ share/doc/developer/develManual/sources/cplreader_meshgen.xml -text
 share/doc/developer/develManual/sources/crosspoint_test.c svneol=native#text/plain
 share/doc/developer/develManual/sources/gid_batch.tcl svneol=native#text/plain
 share/doc/developer/develManual/sources/gid_pw_server.sh svneol=native#text/plain
+share/doc/developer/develManual/sources/git_checkout_cfs.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/hdf5_file_format.xml -text
 share/doc/developer/develManual/sources/icem_to_ansys.in.txt -text
 share/doc/developer/develManual/sources/lmboot.sh -text

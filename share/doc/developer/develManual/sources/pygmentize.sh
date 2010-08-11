@@ -50,3 +50,4 @@ Pygmentize mkmesh.mlib.txt mkmesh.mlib.tex
 Pygmentize ansys_surf_vol_mesh.txt ansys_surf_vol_mesh.tex
 Pygmentize cplreader_meshgen.xml cplreader_meshgen.tex
 Pygmentize qs_obtain_sources.sh qs_obtain_sources.tex
+Pygmentize git_checkout_cfs.sh git_checkout_cfs.tex
