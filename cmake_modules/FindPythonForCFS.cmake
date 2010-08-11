@@ -13,8 +13,15 @@ SET (PYTHON_POSSIBLE_LIB_PATHS
   /usr/local/lib
 )
 
+SET(PYTHON_NAMES "libpython2.6.so;libpython2.5.a;libpython2.5.so;libpython2.4.a;libpython2.4.so;libpython2.5.dylib")
+
+IF(NOT CFS_DISTRO STREQUAL "UBUNTU")
+  SET(PYTHON_NAMES "libpython2.6.a;${PYTHON_NAMES}")
+ENDIF(NOT CFS_DISTRO STREQUAL "UBUNTU")
+
+
 FIND_FILE(PYTHON_LIBRARY
-  NAMES libpython2.6.a libpython2.6.so libpython2.5.a libpython2.5.so libpython2.4.a libpython2.4.so libpython2.5.dylib
+  NAMES ${PYTHON_NAMES}
   PATHS ${PYTHON_POSSIBLE_LIB_PATHS}
   NO_DEFAULT_PATH
   NO_CMAKE_ENVIRONMENT_PATH
@@ -27,7 +34,6 @@ FIND_FILE(PYTHON_LIBRARY
 # Mark paths of PYTHON libraries as advanced.
 #-------------------------------------------------------------------------------
 MARK_AS_ADVANCED(PYTHON_LIBRARY)
-
 
 #-------------------------------------------------------------------------------
 # Look for PYTHON header.
