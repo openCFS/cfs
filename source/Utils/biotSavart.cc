@@ -195,7 +195,6 @@ DEFINE_LOG(bisa, "biotSavart")
     // start from the beginning
     file.seekg(0,std::ios::beg);
     char* buf;
-    Double  x, y, z;
 
     // read whole file content in one string
     buf = new char[pos_end+1];
@@ -346,7 +345,6 @@ DEFINE_LOG(bisa, "biotSavart")
     magVec.Resize(3);
     magVec.Init();
 
-    Double val;
     Vector<Double> start(dim_), end(dim_);
     Vector<Double> partMagVec(3);
     UInt numPoints = coil.points_.GetSize();
