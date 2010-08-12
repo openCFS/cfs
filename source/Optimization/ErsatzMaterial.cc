@@ -690,167 +690,6 @@ BaseForm* ErsatzMaterial::GetForm(const RegionIdType regionId, StdPDE* pde1, Std
   return(GetFormContext(regionId, pde1, pde2, integrator)->GetIntegrator());
 }
 
-double ErsatzMaterial::CalcObjective()
-{
-  design->WriteDesignToExtern(last_evaluation.GetPointer());
-
-  // in objective.value_ we store the sum over all excitations w/o penalty but with normalization
-  // in excitation.cost we store the sum over all objectives with penalty but w/o normalization
-
-  // reset the objective values such that we can sum up normalized but unpenalized values
-  for(unsigned int o = 0; o < objectives.data.GetSize(); o++)
-    objectives.data[o]->ResetValue();
-
-  double result = 0.0;
-
-  // the multiple excitation case is a special case - for all other cases this is executed once
-  for(unsigned int e = 0; e < excitations.GetSize(); e++)
-  {
-    Excitation& excite = excitations[e];
-    excite.cost = 0.0;
-
-    for(unsigned int o = 0; o < objectives.data.GetSize(); o++)
-    {
-      Objective* f = objectives.data[o];
-
-      // some objectives are only to be evaluated for the last excitation
-      bool last = excite.index == (int) excitations.GetSize() - 1;
-      if(f->DoEvaluateOnce() && !last) continue;
-
-      //double ov = CalcObjective(excite, f); // this is virtual!
-      double ov = CalcFunction(excite, f, false); // this is virtual!
-      excite.cost += ov * f->GetPenalty();
-
-      // we ignore the weight if the evaluation happens only once! TODO why not omega*omega? - Fabian
-      double weight = f->DoEvaluateOnce() ? 1.0 : excite.normalized_weight;
-
-      f->AddValue(ov * weight);
-
-      result += ov * f->GetPenalty() * weight;
-      LOG_DBG(em) << "CalcObjective: ex=" << e << " obj=" << f->type.ToString(f->GetType()) << " ov=" << ov
-                  << " penalty" << f->GetPenalty() << " ex.cost=" << excite.cost << " nw=" << excite.normalized_weight
-                  << " wei=" << weight << " f->val=" << f->GetValue() << " result=" << result;
-    }
-  }
-
-  return result;
-}
-
-double ErsatzMaterial::CalcObjective(Excitation& excite, Objective* cost)
-{
-  if(harmonic) return CalcObjective<std::complex<double> >(excite, cost);
-          else return CalcObjective<double>(excite, cost);
-}
-
-
-template <class T>
-double ErsatzMaterial::CalcObjective(Excitation& excite, Objective* cost)
-{
-  assert(!(excite.index < (int) excitations.GetSize() - 1 && cost->DoEvaluateOnce()));
-
-  switch(cost->GetType())
-  {
-  case Objective::COMPLIANCE:
-    return CalcCompliance(excite, cost, NULL, false);
-
-  case Objective::TRACKING:
-    return CalcTracking(excite, cost, NULL, false);
-
-  case Objective::TYCHONOFF:
-    return IntegrateDesignVariable(cost, NULL, false, DesignElement::NO_TYPE, true, true, 2.0);
-
-  case Objective::VOLUME:
-  case Objective::PENALIZED_VOLUME: // the exponent is as parameter in const
-  case Objective::GAP: // volume - penalized volume
-    return CalcVolume(cost, NULL, false, true);
-
-  case Objective::STRESS:
-  {
-    const StdVector<double> data = CalcStress<T>(excite, cost); // copy data!
-    return CalcGlobalFunction(cost, false, &data);
-  }
-
-  case Objective::GLOBAL_SLOPE:
-  case Objective::GLOBAL_OSCILLATION:
-  case Objective::GLOBAL_MOLE:
-  case Objective::GLOBAL_JUMP:
-    return CalcGlobalFunction(cost, false);
-
-  case Objective::GLOBAL_DYNAMIC_COMPLIANCE:
-    return CalcGlobalDynamicCompliance(excite, cost);
-
-  case Objective::OUTPUT:
-  case Objective::DYNAMIC_OUTPUT:
-  case Objective::CONJUGATE_COMPLIANCE:
-  case Objective::ABS_DYN_OUTPUT_SQUARED:
-    return CalcOutputObjective<T>(excite, cost);
-
-  case Objective::HOMOGENIZATION_TENSOR:
-  {
-    Matrix<double> hom_tensor = CalcHomogenizedTensor();
-    if(cost->HasHomogenizationEntry())
-    {
-      return hom_tensor[cost->coord.first -1][cost->coord.second - 1];
-    }
-    else
-    {
-      std::cout << "Homogenized Tensor: " << std::endl << hom_tensor.ToString(0, true);
-
-      std::cout << "Orthotrope properties: ";
-      StdVector<std::pair<string, double> > ortho = MechanicMaterial::CalcOrthotropeProperties(hom_tensor);
-      for(unsigned int i = 0; i < ortho.GetSize(); i++)
-        std::cout << " " << ortho[i].first << "=" << ortho[i].second;
-      std::cout << "\n";
-
-      return hom_tensor.NormL2();
-    }
-  }
-
-  case Objective::HOMOGENIZATION_TRACKING:
-  {
-    Matrix<double> hom_tensor = CalcHomogenizedTensor();
-    return 0.5 * cost->GetTensor().DiffNormL2(hom_tensor) * cost->GetTensor().DiffNormL2(hom_tensor);
-  }
-
-  case Objective::POISSONS_RATIO:
-  case Objective::YOUNGS_MODULUS:
-    return CalcPoissonsRatioAndYoungsModulus(cost, NULL, false);
-
-  case Objective::ENERGY_FLUX:
-    return CalcEnergyFlux(excite, cost);
-
-  case Objective::TEMPERATURE:
-    return 1.0; // FIXMEHEAT
-
-  default: throw Exception("objective no handled");
-  }
-}
-
-void ErsatzMaterial::CalcObjectiveGradient(StdVector<double>* grad_out)
-{
-  // reset the cost gradients in the design elements and sum them up in a weighted way
-  // to perform multiple loads
-  design->Reset(DesignElement::COST_GRADIENT);
-
-  for(unsigned int obj = 0; obj < objectives.data.GetSize(); obj++)
-  {
-    Objective* cost = objectives.data[obj];
-    // the multiple excitation case is a special case - for all other cases this is executed once
-    for(unsigned int idx = 0; idx < excitations.GetSize(); idx++)
-    {
-      Excitation& excite = excitations[idx];
-      // some objectives are only to be evaluated for the last excitation
-      bool last = excite.index == (int) excitations.GetSize() - 1;
-      if(!last && cost->DoEvaluateOnce()) continue;
-
-      CalcFunction(excite, cost, true);
-    }
-  }
-
-  if(grad_out != NULL)
-    design->WriteGradientToExtern(*grad_out, DesignElement::COST_GRADIENT, DesignElement::SMART);
-}
-
 int ErsatzMaterial::GetSpecialResultIndex(Application app1, Application app2, CalcMode calcMode, Condition* constraint)
 {
   stringstream label;
@@ -1106,19 +945,78 @@ void ErsatzMaterial::SubstractGradSurfaceRHS(DesignElement* de, TransferFunction
   }
 }
 
-/*
-void ErsatzMaterial::CalcConstraintGradient(Condition* g, StdVector<double>* grad_out)
+double ErsatzMaterial::CalcObjective()
 {
-  // assume when we have only one constraint which is not explicitly given, this is not the stress constraint!
-  assert((g == NULL && constraints.active.GetSize() == 1 && constraints.active[0]->DoEvaluateOnce()) || g != NULL);
+  design->WriteDesignToExtern(last_evaluation.GetPointer());
 
-  // need to evaluate for the previous constraints?
-  for(unsigned int i = 0; g != NULL && !g->DoEvaluateOnce() && i < excitations.GetSize() - 1; i++)
-    CalcConstraint(excitations[0], g, true, grad_out);
+  // in objective.value_ we store the sum over all excitations w/o penalty but with normalization
+  // in excitation.cost we store the sum over all objectives with penalty but w/o normalization
 
-  CalcConstraint(excitations.Last(), g, true, grad_out);
+  // reset the objective values such that we can sum up normalized but unpenalized values
+  for(unsigned int o = 0; o < objectives.data.GetSize(); o++)
+    objectives.data[o]->ResetValue();
+
+  double result = 0.0;
+
+  // the multiple excitation case is a special case - for all other cases this is executed once
+  for(unsigned int e = 0; e < excitations.GetSize(); e++)
+  {
+    Excitation& excite = excitations[e];
+    excite.cost = 0.0;
+
+    for(unsigned int o = 0; o < objectives.data.GetSize(); o++)
+    {
+      Objective* f = objectives.data[o];
+
+      // some objectives are only to be evaluated for the last excitation
+      bool last = excite.index == (int) excitations.GetSize() - 1;
+      if(f->DoEvaluateOnce() && !last) continue;
+
+      //double ov = CalcObjective(excite, f); // this is virtual!
+      double ov = CalcFunction(excite, f, false); // this is virtual!
+      excite.cost += ov * f->GetPenalty();
+
+      // we ignore the weight if the evaluation happens only once! TODO why not omega*omega? - Fabian
+      double weight = f->DoEvaluateOnce() ? 1.0 : excite.normalized_weight;
+
+      f->AddValue(ov * weight);
+
+      result += ov * f->GetPenalty() * weight;
+      LOG_DBG(em) << "CalcObjective: ex=" << e << " obj=" << f->type.ToString(f->GetType()) << " ov=" << ov
+                  << " penalty" << f->GetPenalty() << " ex.cost=" << excite.cost << " nw=" << excite.normalized_weight
+                  << " wei=" << weight << " f->val=" << f->GetValue() << " result=" << result;
+    }
+  }
+
+  return result;
 }
-*/
+
+void ErsatzMaterial::CalcObjectiveGradient(StdVector<double>* grad_out)
+{
+  // reset the cost gradients in the design elements and sum them up in a weighted way
+  // to perform multiple loads
+  design->Reset(DesignElement::COST_GRADIENT);
+
+  for(unsigned int obj = 0; obj < objectives.data.GetSize(); obj++)
+  {
+    Objective* cost = objectives.data[obj];
+    // the multiple excitation case is a special case - for all other cases this is executed once
+    for(unsigned int idx = 0; idx < excitations.GetSize(); idx++)
+    {
+      Excitation& excite = excitations[idx];
+      // some objectives are only to be evaluated for the last excitation
+      bool last = excite.index == (int) excitations.GetSize() - 1;
+      if(!last && cost->DoEvaluateOnce()) continue;
+
+      CalcFunction(excite, cost, true);
+    }
+  }
+
+  if(grad_out != NULL)
+    design->WriteGradientToExtern(*grad_out, DesignElement::COST_GRADIENT, DesignElement::SMART);
+}
+
+
 
 double ErsatzMaterial::CalcConstraint(Condition* g)
 {
@@ -1177,107 +1075,6 @@ void ErsatzMaterial::CalcConstraintGradient(Condition* g, StdVector<double>* gra
 }
 
 
-double ErsatzMaterial::CalcConstraint(Excitation& excite, Condition* g, bool derivative, StdVector<double>* grad_out)
-{
-  // Just for access of enums
-  DesignElement de;
-
-  // handle default parameter
-  if(g == NULL)
-  {
-    if(constraints.active.GetSize() != 1)
-      throw Exception("default constraint only valid with exactly one constraint");
-    g = constraints.active[0];
-  }
-  double result = 0.0;
-
-  switch(g->GetType())
-  {
-    case Condition::VOLUME:
-    case Condition::PENALIZED_VOLUME:
-    case Condition::GAP:
-         result = CalcVolume(NULL, g, derivative, true);
-         break;
-
-    case Condition::REALVOLUME:
-         result = CalcVolume(NULL, g, derivative, false);
-         break;
-         
-    case Condition::COMPLIANCE:
-         result = CalcCompliance(excite, NULL, g, derivative);
-         break;
-
-    case Condition::GREYNESS:
-         result = CalcGreyness(g, derivative);
-         break;
-
-    case Objective::STRESS: {
-           const StdVector<double> data = CalcStress<double>(excite, g); // copy data!
-           result = CalcGlobalFunction(g, false, &data);
-           break;
-         }
-
-    case Condition::GLOBAL_SLOPE:
-    case Condition::GLOBAL_MOLE:
-    case Condition::GLOBAL_OSCILLATION:
-    case Condition::GLOBAL_JUMP:
-         result = CalcGlobalFunction(g, derivative);
-         break;
-
-    case Condition::SLOPE:
-    case Condition::MOLE:
-    case Condition::OSCILLATION:
-    case Condition::JUMP:
-         result = CalcLocalConstraint(g, derivative);
-         break;
-
-    case Condition::HOMOGENIZATION_TENSOR:
-         result = CalcHomogenizedTensorConstraint(g, derivative);
-         break;
-
-    case Condition::HOMOGENIZATION_TRACKING:
-    {
-      if(derivative)
-      {
-        CalcHomogenizedTrackingGradient(g->GetTensor(), CalcHomogenizedTensor(), NULL, g);
-      }
-      else
-      {
-        double diff = g->GetTensor().DiffNormL2(CalcHomogenizedTensor());
-        result = 0.5 * diff * diff;
-      }
-      break;
-    }
-
-    case Objective::POISSONS_RATIO:
-    case Objective::YOUNGS_MODULUS:
-          result = CalcPoissonsRatioAndYoungsModulus(NULL, g, derivative);
-          break;
-
-    default:
-      throw Exception("Constraint not implemented", __FILE__, __LINE__);
-  }
-
-  // there is no single scalar value for the gradient
-  if(!derivative)
-    g->SetValue(result);
-
-  // copies from the design element gradient data to a memory array for external optimizers
-  if(grad_out != NULL)
-    design->WriteGradientToExtern(*grad_out, de.CONSTRAINT_GRADIENT, de.SMART, g);
-
-  // if there is a <result ... value="constraintGradient" detail="penalizedVolume/*"
-  if(derivative && g->special_result_idx != -1)
-  {
-    int base = design->FindDesign(g->design);
-    int n    = design->GetNumberOfElements();
-    for(int i = n * base; i < n * (base + 1); i++) // TODO add access!
-      design->data[i].specialResult[g->special_result_idx] = design->data[i].GetPlainGradient(NULL, g);
-  }
-
-  LOG_DBG2(em) << "CalcConstraint " << g->ToString() << " -> " << (derivative ? "derivative" : lexical_cast<std::string>(result));
-  return result;
-}
 
 double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool derivative)
 {
@@ -2652,7 +2449,7 @@ void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_exite)
         if((multiple_excitation->stride < 1 && GetCurrentIteration() == 0) ||
             ((GetCurrentIteration() % multiple_excitation->stride) == 0))
         {
-          excite.cost = CalcObjective(excite, dynamic_cast<Objective*>(funcs[fi])); // TODO to be eventually normalized
+          excite.cost = CalcFunction(excite, funcs[fi], false); // to be normalized
           normalize = true;
         }
       }

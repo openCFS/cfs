@@ -193,12 +193,6 @@ void SIMP::AddMassToStiffness(double m_factor, DesignElement* de, Matrix<complex
                  << " omega: " << omega << " K_img: " << (omega * alpha_k) << " damp_mass: " << damp_mass;
 }
 
-double SIMP::CalcObjective(Excitation& excite, Objective* cost)
-{
-  // we have no own objectives
-  return ErsatzMaterial::CalcObjective(excite, cost);
-}
-  
 
 double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
 {
@@ -234,36 +228,6 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   }
 
   return 0.0; // only derivatives evaluated
-}
-
-void SIMP::CalcObjectiveGradient(Excitation& excite, Objective* cost)
-{
-  TransferFunction* tf = design->GetTransferFunction(DesignElement::DENSITY, MECH, true);
-
-  double weight = excite.GetWeightedFactor(cost);
-  LOG_DBG(simp) << "CalcObjectiveGradient(idx=" << excite.index << ") norm_weight= " <<  excite.normalized_weight
-                << " factor=" << excite.GetFactor(cost) << " weight=" << weight;
-
-  switch(cost->GetType())
-  {
-  case Objective::GLOBAL_DYNAMIC_COMPLIANCE:
-    // synthesis of compliant mechanism: As our adjoint PDE
-    // c' = l K' u
-    CalcU1KU2(tf, adjoint.Get(excite, cost)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, weight, STANDARD, cost, NULL);
-    break;
-
-  case Objective::OUTPUT:
-  case Objective::DYNAMIC_OUTPUT:
-  case Objective::CONJUGATE_COMPLIANCE:
-  case Objective::ABS_DYN_OUTPUT_SQUARED:
-    // synthesis of compliant mechanism: As our adjoint PDE
-    // c' = l K' u
-    CalcU1KU2(tf, adjoint.Get(excite, cost)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, weight, STANDARD, cost, NULL);
-    break;
-
-  default:
-    ErsatzMaterial::CalcObjectiveGradient(excite, cost);
-  }
 }
 
 SurfaceRef::SurfaceRef()

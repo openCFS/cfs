@@ -25,17 +25,6 @@ protected:
    * @see ErsatzMaterial::CalcFunction */
   double CalcFunction(Excitation& excite, Function* f, bool derivative);
 
-  /** overwrite this method for own objectives. */
-  virtual double CalcObjective(Excitation& excite, Objective* cost)
-  {
-    if(cost->GetType() == Objective::ELEC_ENERGY)
-    {
-      return harmonic ? CalcElecEnergy<std::complex<double> >(excite) : CalcElecEnergy<double>(excite); 
-    }
-    else
-      return SIMP::CalcObjective(excite, cost);
-  }
-  
   virtual void ConstructAdjointRHS(Excitation& excite, Function* f)
   {
     if(f->GetType() == Objective::ELEC_ENERGY)
@@ -49,10 +38,6 @@ protected:
     }
   }
   
-  /** Calculates gradients in the form <l, Ku> */
-  void CalcObjectiveGradient(Excitation& excite, Objective* cost);
-
-
 private:
 
   /** Calculate the electrix enegy p^T K_pp p resp. p^T K_pp p^* */  

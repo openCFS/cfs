@@ -305,20 +305,6 @@ public:
   /** @see Optimization::GetIterationFrequency() */
   std::string GetIterationFrequency();
 
-  /** This implements the actual gradient evaluations not handled by
-   *  ErsatzMaterial::CalcObjectiveGradient(StdVector<double>*) itself.
-   * @see CalcObjectiveGradient(StdVector<double>*) the calling method */
-  virtual void CalcObjectiveGradient(Excitation& exite, Objective* cost)
-  {
-    EXCEPTION("not implemented here";)
-  }
-
-  /** switches to the proper constraint, also for gradient case.
-   * @param design if not gradient ignored
-   * @param grad_out only for gradient and even then optional if not for extern optimizer
-   * @return not defined in the gradient case */
-  double CalcConstraint(Excitation& excite, Condition* constraint, bool gradient,  StdVector<double>* grad_out = NULL);
-
   /** This are the modes for CalcU1KU2(). */
   enum CalcMode
   {
@@ -387,13 +373,6 @@ public:
    * Assumes adjont.select is set (by ConstructSelection())
    * This is for output loads or general real/complex rhs. */
   virtual void ConstructAdjointRHS(Excitation& excite, Function* f);
-
-  /** overwrite this method for own objectives. Does not set excite.cost! 
-   * Includes the factor (e.g. omega^2) as this is part of the objective function
-   * but does not include the weighting. Note that CalcObjectiveGradient uses
-   * Excitation::GetWeightedFactor().
-   * Not to be called for objectives with evaluate only once for earlier excitations! */
-  virtual double CalcObjective(Excitation& excite, Objective* cost);
 
   /** calculates the integral over a design variable (note that volume is a special case of this (with all standard values) @see CalcVolume
    * regularization is using this usually with normalized = true, scale = true, square = true, factor = "the regularization parameter"
@@ -586,11 +565,6 @@ private:
       DesignElement* de, bool derivative, Vector<double>& u1,
       Vector<double>& u2, Matrix<double>& test_strain_matrix_ij,
       Matrix<double>& test_strain_matrix_kl);
-
-  /** This calculates the objective for the given excitation. The result is also stored
-   * in excite.cost. It does NOT include theobjective factor (e.g. omega^2) and NOT the weighting */
-  template<class T>
-  double CalcObjective(Excitation& excite, Objective* cost);
 
   /** See the non-template version for documentation! */
   template<class T>
