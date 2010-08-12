@@ -717,10 +717,11 @@ double ErsatzMaterial::CalcObjective()
       bool last = excite.index == (int) excitations.GetSize() - 1;
       if(f->DoEvaluateOnce() && !last) continue;
 
-      double ov = CalcObjective(excite, f); // this is virtual!
+      //double ov = CalcObjective(excite, f); // this is virtual!
+      double ov = CalcFunction(excite, f, false); // this is virtual!
       excite.cost += ov * f->GetPenalty();
 
-      // we ignore the weight if the evaluation happens only once!
+      // we ignore the weight if the evaluation happens only once! TODO why not omega*omega? - Fabian
       double weight = f->DoEvaluateOnce() ? 1.0 : excite.normalized_weight;
 
       f->AddValue(ov * weight);
@@ -842,65 +843,12 @@ void ErsatzMaterial::CalcObjectiveGradient(StdVector<double>* grad_out)
       bool last = excite.index == (int) excitations.GetSize() - 1;
       if(!last && cost->DoEvaluateOnce()) continue;
 
-      switch(cost->GetType())
-      {
-        // Note, that in SIMP case we handle compliance already  in SIMO
-        case Objective::COMPLIANCE:
-          // the multiple load cases implementation for the gradient is in SIMP
-          CalcCompliance(excite, cost, NULL, true);
-          break;
-
-        case Objective::TRACKING:
-          CalcTracking(excite, cost, NULL, true);
-          break;
-
-        case Objective::VOLUME:
-        case Objective::PENALIZED_VOLUME: // penalization is in the parameter
-        case Objective::GAP: // volume - penalized volume
-          CalcVolume(cost, NULL, true, true);
-          break;
-
-        case Objective::GLOBAL_SLOPE:
-        case Objective::GLOBAL_MOLE:
-        case Objective::GLOBAL_OSCILLATION:
-        case Objective::GLOBAL_JUMP:
-          CalcGlobalFunction(cost, true);
-          break;
-
-        case Objective::TYCHONOFF:
-          IntegrateDesignVariable(cost, NULL, true, DesignElement::NO_TYPE, true, true, 2.0);
-          break;
-
-        case Objective::HOMOGENIZATION_TRACKING:
-          CalcHomogenizedTrackingGradient(cost->GetTensor(), CalcHomogenizedTensor(), cost, NULL);
-          break;
-
-        case Objective::HOMOGENIZATION_TENSOR:
-          // if there s no "coord" set it is only meant for evaluateInitialDesign for forward homogenization
-          if(cost->HasHomogenizationEntry())
-          {
-
-            StdVector<double> tmp;
-            CalcHomogenizedTensorEntry(cost->coord, true, tmp);
-            for(unsigned int e = 0, ne = design->GetNumberOfElements(); e < ne; e++)
-              design->data[e].AddGradient(cost, NULL, tmp[e]);
-          }
-          break;
-        
-        case Objective::POISSONS_RATIO:
-        case Objective::YOUNGS_MODULUS:
-          CalcPoissonsRatioAndYoungsModulus(cost, NULL, true);
-          break;
-
-        default:
-          CalcObjectiveGradient(excite, cost);
-      }
+      CalcFunction(excite, cost, true);
     }
   }
 
   if(grad_out != NULL)
     design->WriteGradientToExtern(*grad_out, DesignElement::COST_GRADIENT, DesignElement::SMART);
-
 }
 
 int ErsatzMaterial::GetSpecialResultIndex(Application app1, Application app2, CalcMode calcMode, Condition* constraint)
@@ -1158,6 +1106,7 @@ void ErsatzMaterial::SubstractGradSurfaceRHS(DesignElement* de, TransferFunction
   }
 }
 
+/*
 void ErsatzMaterial::CalcConstraintGradient(Condition* g, StdVector<double>* grad_out)
 {
   // assume when we have only one constraint which is not explicitly given, this is not the stress constraint!
@@ -1169,18 +1118,64 @@ void ErsatzMaterial::CalcConstraintGradient(Condition* g, StdVector<double>* gra
 
   CalcConstraint(excitations.Last(), g, true, grad_out);
 }
+*/
 
 double ErsatzMaterial::CalcConstraint(Condition* g)
 {
   // assume when we have only one constraint which is not explicitly given, this is not the stress constraint!
   assert((g == NULL && constraints.active.GetSize() == 1 && constraints.active[0]->DoEvaluateOnce()) || g != NULL);
 
-  // need to evaluate for the previous constraints?
-  for(unsigned int i = 0; g != NULL && !g->DoEvaluateOnce() && i < excitations.GetSize() - 1; i++)
-    CalcConstraint(excitations[0], g, false);
+  if(g == NULL)
+    g = constraints.active[0];
 
-  return CalcConstraint(excitations.Last(), g, false); // no gradient
+  double result = 0.0;
+
+  for(unsigned int e = 0; e < excitations.GetSize(); e++)
+  {
+    Excitation& excite = excitations[e];
+    // in the evaluate once case only the last excitation
+    bool eval = g->DoEvaluateOnce() && e < excitations.GetSize() - 1 ? false : true;
+    double v = eval ? CalcFunction(excite, g, false) : 0.0;
+    double w = g->DoEvaluateOnce() ? 1.0 : excite.GetFactor(g);
+    result += v * w;
+    LOG_DBG(em) << "CC ex=" << e << " eval=" << eval << " v=" << v << " w=" << w << " -> " << result;
+  }
+
+  g->SetValue(result);
+  return result;
 }
+
+void ErsatzMaterial::CalcConstraintGradient(Condition* g, StdVector<double>* grad_out)
+{
+  // assume when we have only one constraint which is not explicitly given, this is not the stress constraint!
+  assert((g == NULL && constraints.active.GetSize() == 1 && constraints.active[0]->DoEvaluateOnce()) || g != NULL);
+
+  if(g == NULL)
+    g = constraints.active[0];
+
+  // need to evaluate for the previous constraints?
+  for(unsigned int i = 0; !g->DoEvaluateOnce() && i < excitations.GetSize() - 1; i++)
+  {
+    CalcFunction(excitations[i], g, true);
+  }
+
+  CalcFunction(excitations.Last(), g, true);
+
+
+  // copies from the design element gradient data to a memory array for external optimizers
+  if(grad_out != NULL)
+    design->WriteGradientToExtern(*grad_out, DesignElement::CONSTRAINT_GRADIENT, DesignElement::SMART, g);
+
+  // if there is a <result ... value="constraintGradient" detail="penalizedVolume/*"
+  if(g->special_result_idx != -1)
+  {
+    int base = design->FindDesign(g->design);
+    int n    = design->GetNumberOfElements();
+    for(int i = n * base; i < n * (base + 1); i++) // TODO add access!
+      design->data[i].specialResult[g->special_result_idx] = design->data[i].GetPlainGradient(NULL, g);
+  }
+}
+
 
 double ErsatzMaterial::CalcConstraint(Excitation& excite, Condition* g, bool derivative, StdVector<double>* grad_out)
 {
@@ -1302,12 +1297,12 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
          result = CalcVolume(c, g, derivative, true);
          break;
 
-    case Objective::TYCHONOFF:
-         result = IntegrateDesignVariable(c, g, derivative, DesignElement::NO_TYPE, true, true, 2.0);
-         break;
-
     case Function::REALVOLUME:
          result = CalcVolume(c, g, derivative, false);
+         break;
+
+    case Objective::TYCHONOFF:
+         result = IntegrateDesignVariable(c, g, derivative, DesignElement::NO_TYPE, true, true, 2.0);
          break;
 
     case Function::COMPLIANCE:
@@ -1315,8 +1310,8 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
          break;
 
     case Objective::TRACKING:
-          result = CalcTracking(excite, c, g, derivative);
-      break;
+         result = CalcTracking(excite, c, g, derivative);
+         break;
 
     case Function::GREYNESS:
          assert(f == NULL);
@@ -1382,7 +1377,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
     case Function::HOMOGENIZATION_TRACKING:
          if(derivative)
          {
-           CalcHomogenizedTrackingGradient(g->GetTensor(), CalcHomogenizedTensor(), c, g);
+           CalcHomogenizedTrackingGradient(f->GetTensor(), CalcHomogenizedTensor(), c, g);
          }
          else
          {
@@ -1428,10 +1423,6 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
        assert(false); // no valid function
     // no default, gcc warns
   }
-
-  // there is no single scalar value for the gradient
-  if(!derivative)
-    f->SetValue(result);
 
   LOG_DBG2(em) << "CalcFunction " << f->ToString() << " cost=" << f->IsObjective() << " -> " << (derivative ? "derivative" : lexical_cast<std::string>(result));
   return result;

@@ -392,10 +392,10 @@ namespace CoupledField
     void Apply();
 
     /** Find the fixed factor, does ignore weighting and does not apply it. */
-    double GetFactor(Function* cost);
+    double GetFactor(Function* f);
 
     /** Returns GetFactor() * normalized_weight */
-    double GetWeightedFactor(Function* cost);
+    double GetWeightedFactor(Function* f);
     
     /** Gets the current omege =  2 * pi * f */
     double GetOmega();

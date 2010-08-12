@@ -214,11 +214,9 @@ double PiezoSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   switch(f->GetType())
   {
   case Function::ELEC_ENERGY:
-    if(f->IsObjective())
+    if(!derivative)
     {
-      double result = harmonic ? CalcElecEnergy<std::complex<double> >(excite) : CalcElecEnergy<double>(excite);
-      f->SetValue(result);
-      return result;
+      return harmonic ? CalcElecEnergy<std::complex<double> >(excite) : CalcElecEnergy<double>(excite);
     }
     factor *= 0.5; // no break! -> J = 0.5 p^T K_pp p
 
@@ -298,8 +296,9 @@ double PiezoSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
         CalcU1KU2(tf, adj->elem[ELEC], ELEC, sol->elem[ELEC], elec_rhs, factor, STANDARD, f, res_idx);
     }
   }
-  break;
-  default: // return below
+  return 0.0; // we calculated only derivatives
+
+  default: // return below as we don't implement
     break;
   }
   return SIMP::CalcFunction(excite, f, derivative);
