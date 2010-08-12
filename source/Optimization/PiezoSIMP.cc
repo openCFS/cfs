@@ -207,6 +207,106 @@ void PiezoSIMP::ConstructAdjointRHS(Excitation& excite, Function* f)
 }
 
 
+double PiezoSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
+{
+  double factor = excite.GetWeightedFactor(f);
+
+  switch(f->GetType())
+  {
+  case Function::ELEC_ENERGY:
+    if(f->IsObjective())
+    {
+      double result = harmonic ? CalcElecEnergy<std::complex<double> >(excite) : CalcElecEnergy<double>(excite);
+      f->SetValue(result);
+      return result;
+    }
+    factor *= 0.5; // no break! -> J = 0.5 p^T K_pp p
+
+  case Objective::OUTPUT:
+  case Objective::DYNAMIC_OUTPUT:
+  case Objective::ENERGY_FLUX:
+  case Objective::GLOBAL_DYNAMIC_COMPLIANCE:
+  {
+    if(!derivative)
+      return SIMP::CalcFunction(excite, f, derivative);
+
+    LOG_DBG2(simp) << "PS::CF(idx=" << excite.index << ") factor = "
+        << excite.normalized_weight << " * " << excite.GetFactor(f) << " -> " << factor;
+
+    // we see at mechRHS and elecRHS if we have such an excitation
+    SurfaceRef* mech_rhs = mechRHS.valid ? &mechRHS : NULL;
+    SurfaceRef* elec_rhs = elecRHS.valid ? &elecRHS : NULL;
+
+    LOG_TRACE2(simp) << "PS:CalcOutputGradient: output -> sensitive rhs's: "
+        << mechRHS.ToString(1) << ", " << elecRHS.ToString(1);
+
+    // normally the gradient is sol^T A' sol^* + (2 Re) lamda^T K' sol.
+    // 2 Re{...} only in the harmonic case.
+    // lambda = (lambda_u lambda_p)^T
+    // sol    = (u p)^T
+    // K      = first row: S_uu K_up, second row: K_pu K_pp
+    // A      = matrix from objective. Often L or for ElecEnergy K_pp
+
+    // sol = displacement and potential and K = K_uu, K_up, K_up^T, K_pp
+    // we calcualate the 4 individual vec Mat vec via CalcU1KU2() and sum it up
+    for(unsigned int i = 0; i < design->design.GetSize(); i++)
+    {
+      DesignElement::Type dt = design->design[i];
+      // we allow NULL for the transfer functions,
+      // then the gradient is 0 what is done via Reset!
+      TransferFunction*   tf = NULL;
+      int                 res_idx = -1; // we can write the details as special resul by the detail
+
+      // the standard adjoint solution (u1 in the gradient)
+      Solution* adj = adjoint.Get(excite, f);
+      // the solution (u2 in the gradient)
+      Solution* sol = forward.Get(excite, NULL);
+
+
+      // sol^T A' sol^* only for elec energy = p^T K_pp' p (real) or p^T K_pp' p^* (harmonic)
+      // we solve <K_pp p, p> as K_pp is real and symmetric. Hence the inner product makes p^* in the harmonic case!
+      if(f->GetType() == Objective::ELEC_ENERGY)
+      {
+        // p^T K_pp' p^*
+        tf = design->GetTransferFunction(dt, ELEC, true);
+        res_idx = GetSpecialResultIndex(ELEC, ELEC, CONJ_QUAD);
+        CalcU1KU2(tf, sol->elem[ELEC], ELEC, sol->elem[ELEC], elec_rhs, factor, CONJ_QUAD, f, res_idx);
+      }
+
+      // lambda_u * K_uu' * u
+      tf = design->GetTransferFunction(dt, MECH, false); // we allow NULL
+      res_idx = GetSpecialResultIndex(MECH, MECH);
+      if(tf != NULL)
+        CalcU1KU2(tf, adj->elem[MECH], MECH, sol->elem[MECH], mech_rhs, factor, STANDARD, f, res_idx);
+
+      // lambda_u * K_up' * p
+      tf = design->GetTransferFunction(dt, PIEZO_COUPLING, false);
+      res_idx = GetSpecialResultIndex(MECH, ELEC);
+      if(tf != NULL)
+        CalcU1KU2(tf, adj->elem[MECH], PIEZO_COUPLING, sol->elem[ELEC], mech_rhs, factor, STANDARD, f, res_idx);
+
+      // lambda_p * (K_up^T)' * u
+      tf = design->GetTransferFunction(dt, PIEZO_COUPLING, false);
+      res_idx = GetSpecialResultIndex(ELEC, MECH);
+      if(tf != NULL)
+        CalcU1KU2(tf, adj->elem[ELEC], PIEZO_COUPLING, sol->elem[MECH], elec_rhs, factor, STANDARD, f, res_idx);
+
+      // lambda_p * K_pp' * p
+      tf = design->GetTransferFunction(dt, ELEC, false);
+      res_idx = GetSpecialResultIndex(ELEC, ELEC);
+      if(tf != NULL)
+        CalcU1KU2(tf, adj->elem[ELEC], ELEC, sol->elem[ELEC], elec_rhs, factor, STANDARD, f, res_idx);
+    }
+  }
+  break;
+  default: // return below
+    break;
+  }
+  return SIMP::CalcFunction(excite, f, derivative);
+}
+
+
+
 void PiezoSIMP::CalcObjectiveGradient(Excitation& excite, Objective* cost)
 {
   double factor = excite.GetWeightedFactor(cost);
@@ -260,32 +360,32 @@ void PiezoSIMP::CalcObjectiveGradient(Excitation& excite, Objective* cost)
         // p^T K_pp' p^*
         tf = design->GetTransferFunction(dt, ELEC, true);
         res_idx = GetSpecialResultIndex(ELEC, ELEC, CONJ_QUAD);
-        CalcU1KU2(tf, sol->elem[ELEC], ELEC, sol->elem[ELEC], elec_rhs, factor, CONJ_QUAD, cost, NULL, res_idx);
+        CalcU1KU2(tf, sol->elem[ELEC], ELEC, sol->elem[ELEC], elec_rhs, factor, CONJ_QUAD, cost, res_idx);
       }
       
       // lambda_u * K_uu' * u
       tf = design->GetTransferFunction(dt, MECH, false); // we allow NULL
       res_idx = GetSpecialResultIndex(MECH, MECH);
       if(tf != NULL)
-        CalcU1KU2(tf, adj->elem[MECH], MECH, sol->elem[MECH], mech_rhs, factor, STANDARD, cost, NULL, res_idx);
+        CalcU1KU2(tf, adj->elem[MECH], MECH, sol->elem[MECH], mech_rhs, factor, STANDARD, cost, res_idx);
 
       // lambda_u * K_up' * p
       tf = design->GetTransferFunction(dt, PIEZO_COUPLING, false);
       res_idx = GetSpecialResultIndex(MECH, ELEC);
       if(tf != NULL)
-        CalcU1KU2(tf, adj->elem[MECH], PIEZO_COUPLING, sol->elem[ELEC], mech_rhs, factor, STANDARD, cost, NULL, res_idx);
+        CalcU1KU2(tf, adj->elem[MECH], PIEZO_COUPLING, sol->elem[ELEC], mech_rhs, factor, STANDARD, cost, res_idx);
 
       // lambda_p * (K_up^T)' * u
       tf = design->GetTransferFunction(dt, PIEZO_COUPLING, false);
       res_idx = GetSpecialResultIndex(ELEC, MECH);
       if(tf != NULL)
-        CalcU1KU2(tf, adj->elem[ELEC], PIEZO_COUPLING, sol->elem[MECH], elec_rhs, factor, STANDARD, cost, NULL, res_idx);
+        CalcU1KU2(tf, adj->elem[ELEC], PIEZO_COUPLING, sol->elem[MECH], elec_rhs, factor, STANDARD, cost, res_idx);
 
       // lambda_p * K_pp' * p
       tf = design->GetTransferFunction(dt, ELEC, false);
       res_idx = GetSpecialResultIndex(ELEC, ELEC);
       if(tf != NULL)
-        CalcU1KU2(tf, adj->elem[ELEC], ELEC, sol->elem[ELEC], elec_rhs, factor, STANDARD, cost, NULL, res_idx);
+        CalcU1KU2(tf, adj->elem[ELEC], ELEC, sol->elem[ELEC], elec_rhs, factor, STANDARD, cost, res_idx);
     }
   }
   break;

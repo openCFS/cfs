@@ -511,7 +511,10 @@ void Optimization::SolveStateProblem(Excitation* excite)
   if(!harmonic || excite == NULL) 
     driver->SolveProblem(IsTransient(), analysis_id, false); // static and transient optimization
   else
+  {
+    LOG_DBG(opt) << "SSP: harmonic step=" << excite->f_link->step << " f=" << excite->f_link->freq;
     dynamic_cast<HarmonicDriver*>(driver)->ComputeFrequencyStep(excite->f_link->step, analysis_id);
+  }
 
   problemSolvedCounter++;
   problemWithinIteration++;
@@ -537,12 +540,37 @@ void Optimization::SolveAdjointProblem(Excitation* excite, Function* f){
 
 void Optimization::SolveAdjointProblems(Excitation* excite)
 {
-  for(unsigned int i = 0; i < objectives.data.GetSize(); ++i)
-    SolveAdjointProblem(excite, objectives.data[i]); // virtual! calls ErsatzMaterial implementation
+  // solve for objectives and constraints
+  StdVector<Function*> f = GetActiveFunctions();
 
-  // E.g. the stress constraint has an adjoint
-  for(unsigned int i = 0; i < constraints.active.GetSize(); ++i)
-    SolveAdjointProblem(excite, constraints.active[i]);
+  for(unsigned int i = 0; i < f.GetSize(); ++i)
+  {
+    if(f[i]->IsAdjointBased())
+      SolveAdjointProblem(excite, f[i]); // virtual! calls ErsatzMaterial implementation
+  }
+}
+
+StdVector<Function*> Optimization::GetActiveFunctions() const
+{
+  StdVector<Function*> result;
+
+  const unsigned int cn = objectives.data.GetSize();
+  const unsigned int gn = constraints.active.GetSize();
+
+  result.Resize(cn + gn);
+
+  for(unsigned int i = 0; i < cn; i++)
+  {
+    result[i] = objectives.data[i];
+    LOG_DBG2(opt) << "GAF: o=" << result[i]->ToString();
+  }
+  for(unsigned int i = 0; i < gn; i++)
+  {
+    result[cn + i] = constraints.active[i];
+    LOG_DBG2(opt) << "GAF: g=" << result[cn + i]->ToString();
+  }
+
+  return result;
 }
 
 double Optimization::CalcSymmetry(DesignElement::Type de, DesignElement::ValueSpecifier vs, DesignElement::Access access)

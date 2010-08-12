@@ -66,8 +66,8 @@ double BaseDesignElement::GetPlainGradient(const Objective* c, const Condition* 
 /** Get the gradient values for either objective or constraint */
 double BaseDesignElement::GetPlainGradient(const Function* f) const
 {
-  assert(f->IsObjective() && dynamic_cast<const Objective*>(f) != NULL);
-  assert(!f->IsObjective() && dynamic_cast<const Condition*>(f) != NULL);
+  assert(!f->IsObjective() || (f->IsObjective() && dynamic_cast<const Objective*>(f) != NULL));
+  assert( f->IsObjective() || (!f->IsObjective() && dynamic_cast<const Condition*>(f) != NULL));
 
   return GetPlainGradient(f->IsObjective() ? static_cast<const Objective*>(f) : NULL,
                            f->IsObjective() ? NULL : static_cast<const Condition*>(f));
@@ -90,8 +90,8 @@ void BaseDesignElement::AddGradient(const Objective* f, const Condition* g, doub
 
 void BaseDesignElement::AddGradient(const Function* f, double value)
 {
-  assert(f->IsObjective() && dynamic_cast<const Objective*>(f) != NULL);
-  assert(!f->IsObjective() && dynamic_cast<const Condition*>(f) != NULL);
+  assert(!f->IsObjective() || (f->IsObjective() && dynamic_cast<const Objective*>(f) != NULL));
+  assert( f->IsObjective() || (!f->IsObjective() && dynamic_cast<const Condition*>(f) != NULL));
 
   AddGradient(f->IsObjective() ? static_cast<const Objective*>(f) : NULL,
               f->IsObjective() ? NULL : static_cast<const Condition*>(f), value);

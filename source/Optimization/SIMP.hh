@@ -99,6 +99,9 @@ public:
 
 protected:
 
+  /** overwrites the ErsatzMaterial version, is overwritten in PiezoSIMP */
+  virtual double CalcFunction(Excitation& excite, Function* f, bool derivative);
+
   /** overwrite this method for own objectives. */
   virtual double CalcObjective(Excitation& excite, Objective* cost);
   

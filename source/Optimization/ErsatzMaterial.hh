@@ -62,6 +62,12 @@ public:
    * If filtering is enabled, this is automatically filtered. */
   void CalcObjectiveGradient(StdVector<double>* grad_out);
 
+  /** Calculates the constraint(s) for all excitations */
+  double CalcConstraint(Condition* constraint = NULL);
+
+  /** The jacobian of the gradient here as a vector with only one constraint! */
+  void CalcConstraintGradient(Condition* constraint = NULL, StdVector<double>* grad_out = NULL);
+
   /** This solves and stores the forward problem. Eventually the adjoint problem is called
    * implicitly.
    * Processes multiple excitations.
@@ -72,13 +78,6 @@ public:
 
   /** This solves all Adjoint problems */
   void SolveAdjointProblems(Excitation* ev_only_excite = NULL);
-
-  /** Calculates the constraint(s) */
-  double CalcConstraint(Condition* constraint = NULL);
-
-  /** The jacobian of the gradient here as a vector with only one constraint! */
-  void CalcConstraintGradient(Condition* constraint = NULL,
-      StdVector<double>* grad_out = NULL);
 
   /** Here we also write the density files */
   PtrParamNode CommitIteration(bool keep_iteration_number = false);
@@ -318,8 +317,7 @@ public:
    * @param design if not gradient ignored
    * @param grad_out only for gradient and even then optional if not for extern optimizer
    * @return not defined in the gradient case */
-  double CalcConstraint(Condition* constraint, bool gradient,
-      StdVector<double>* grad_out = NULL);
+  double CalcConstraint(Excitation& excite, Condition* constraint, bool gradient,  StdVector<double>* grad_out = NULL);
 
   /** This are the modes for CalcU1KU2(). */
   enum CalcMode
@@ -351,7 +349,7 @@ public:
    * @param g as f for constrained gradient
    * @param res_idx store in de->specialResult. use ErsatzMaterial::GetSpecialResultIndex() -1 is no special result*/
   double CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1, Application k, StdVector<SingleVector*>& u2,
-                     SurfaceRef* rhs, double factor, CalcMode calcMode, Objective* f, Condition* g, int res_idx = -1);
+                     SurfaceRef* rhs, double factor, CalcMode calcMode, Function* f, int res_idx = -1);
 
   /** Helper calling CalcU1KU2()
    * If there is a result with value='costGradient' or 'constraintGradient' it is checked for detail='mech_mech',
@@ -377,11 +375,12 @@ public:
    * adjoint problem.
    * It works for both (mechanical) SIMP and PiezoSIMP. 
    * gradient is used to calculate some adjoints only for gradient calculations, some for function evaluations */
-  void SolveAdjointProblem(Excitation& excite, Function* f, bool gradient);
+  void SolveAdjointProblem(Excitation* excite, Function* f);
 
   /** Determines the selection vector by a "pseudo loading" for output like objectives.
-   * Stores in adjoint.select. Used by SolveAdjointProblem() */
-  void ConstructSelection(Excitation& excite, Function* f);
+   * Stores in adjoint.select. Used by SolveAdjointProblem()
+   * @param alter_rsh false if you want only selection and the system shall not be changed! */
+  void ConstructSelection(Excitation& excite, Function* f, bool alter_rhs);
 
   /** This is helper SolveAdjointProblem().
    * There is a template method (which cannot be virtual) with distinct implementation.
@@ -546,6 +545,11 @@ public:
   OptimizationMaterial* material;
 
 protected:
+  /** Evaluates objective and constraint functiond and gradient.
+   * Overloaded in PiezoSIMP for own objectives.
+   * @param grad_out only used in derivative case
+   * @return zero for derivative */
+  virtual double CalcFunction(Excitation& excite, Function* f, bool derivative);
 
   /** Store the results from the forward/adjoint problem. Handles multiple excitations
    * @param read_sol store solution (maybe one would only like to save rhs)
@@ -593,8 +597,7 @@ private:
   double
       CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1,
           Application k, StdVector<SingleVector*>& u2, SurfaceRef* ref,
-          double factor, CalcMode calcMode, Objective* f, Condition* g,
-          int res_idx);
+          double factor, CalcMode calcMode, Function* f, int res_idx);
 
   /** Calculates a scalar product of two vectors and the derivative of the right hand side newmark update,
    * used for transient optimization derivative calculation
@@ -617,7 +620,7 @@ private:
 
   /** This solves the adjoint problem problem only and stores all relevant data. Calls SetAndSolveAdjointRHS() */
   template<class T>
-  void SolveAdjointProblem(Excitation& excite, Function* f, bool gradient);
+  void SolveAdjointProblem(Excitation* excite, Function* f);
 
   /** Set the rhs for the adjoint equation, called by assemble */
   virtual void SetAdjointRhs(AdjointParameters* adjointParams);
@@ -661,17 +664,15 @@ private:
    * When g_i is the slope function x_i - x_i+1 -c and g_i+1 = x_1+1 - x_i - c
    * the global slope is sum max(0, g_i)^2, hence we need NEXT_AND_REVERSE locality
    * @param stress only for stress to be set */
-  double CalcGlobalFunction(Function* c, bool derivative, const StdVector<double>* stress = NULL);
+  double CalcGlobalFunction(Function* f, bool derivative, const StdVector<double>* stress = NULL);
 
   /** IntegrateDesignVariables() can do a lot, but no one wants to extend it to hande the derivative
    * case of the gap constraint: volume - penalized volume */
-  void CalcRegularGapConstraint(Objective* f, Condition* g,
-      DesignElement::Type dt);
+  void CalcRegularGapConstraint(Objective* f, Condition* g,   DesignElement::Type dt);
 
   /** Homogenization objective/ constraint.
    * Is once evaluate only! */
-  double CalcPoissonsRatioAndYoungsModulus(Objective* cost, Condition* g,
-      bool derivative);
+  double CalcPoissonsRatioAndYoungsModulus(Objective* cost, Condition* g,  bool derivative);
 
   /** Calculates the product of the (system) surface normal matrix with the solution already in OLAS.
    * Note that we have to use 1 based OLAS vectors as the sparse system matrix is from OLAS .

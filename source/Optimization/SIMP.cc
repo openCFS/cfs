@@ -200,6 +200,42 @@ double SIMP::CalcObjective(Excitation& excite, Objective* cost)
 }
   
 
+double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
+{
+  // this implements only the gradients of some functions
+  if(!derivative)
+    return ErsatzMaterial::CalcFunction(excite, f, derivative);
+
+  TransferFunction* tf = design->GetTransferFunction(DesignElement::DENSITY, MECH, true);
+  double weight = excite.GetWeightedFactor(f);
+  LOG_DBG(simp) << "CalcFunction(idx=" << excite.index << ") norm_weight= " <<  excite.normalized_weight
+                << " factor=" << excite.GetFactor(f) << " weight=" << weight;
+
+  // only special derivatives, the rest also EM
+  switch(f->GetType())
+  {
+  case Function::GLOBAL_DYNAMIC_COMPLIANCE:
+    // synthesis of compliant mechanism: As our adjoint PDE
+    // c' = l K' u
+    CalcU1KU2(tf, adjoint.Get(excite, f)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, weight, STANDARD, f);
+    break;
+
+  case Function::OUTPUT:
+  case Function::DYNAMIC_OUTPUT:
+  case Function::CONJUGATE_COMPLIANCE:
+  case Function::ABS_DYN_OUTPUT_SQUARED:
+    // synthesis of compliant mechanism: As our adjoint PDE
+    // c' = l K' u
+    CalcU1KU2(tf, adjoint.Get(excite, f)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, weight, STANDARD, f);
+    break;
+
+  default:
+    return ErsatzMaterial::CalcFunction(excite, f, derivative);
+  }
+
+  return 0.0; // only derivatives evaluated
+}
+
 void SIMP::CalcObjectiveGradient(Excitation& excite, Objective* cost)
 {
   TransferFunction* tf = design->GetTransferFunction(DesignElement::DENSITY, MECH, true);

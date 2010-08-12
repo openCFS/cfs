@@ -21,6 +21,10 @@ public:
 
 protected:
 
+  /** overloads SIMP::CalcFunction()
+   * @see ErsatzMaterial::CalcFunction */
+  double CalcFunction(Excitation& excite, Function* f, bool derivative);
+
   /** overwrite this method for own objectives. */
   virtual double CalcObjective(Excitation& excite, Objective* cost)
   {

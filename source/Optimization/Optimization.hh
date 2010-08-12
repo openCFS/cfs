@@ -126,7 +126,9 @@ namespace CoupledField
          * @param cost multi-objective */
         virtual void SolveAdjointProblem(Excitation* excite, Function* f);
         
-        /** Solves all adjoint problems */
+        /** Traverses all objective and active constraint functions (non local) and calls SolveAdjointProblem()
+         * if the functions needs it
+         * @see Function::IsAdjointBased() */
         virtual void SolveAdjointProblems(Excitation* excite = NULL);
         
         /** Sets the rhs for the adjoint, called by assemle */
@@ -211,9 +213,12 @@ namespace CoupledField
         /** The current multiple excitation state -> check with IsEnabled() */
         MultipleExcitation* GetMultipleExcitation() const { return multiple_excitation; }
 
-
         /** set the (static) enums - if they are used outside optimization, make this method public */
         static void SetEnums();
+
+        /** Returns all active functions. Does not blow up local constraints. Combines objective and constraints.active.
+         * Always creates the list, so use only rarely. */
+        StdVector<Function*> GetActiveFunctions() const;
 
         /** Our base ParamNode pointer, pointing to a plain <optimization> */
         PtrParamNode optInfoNode;
@@ -226,6 +231,7 @@ namespace CoupledField
         /** This contains the constraints in their three forms: standard, hidden and observe
          * and several virtual views on that */
         ConditionContainer constraints;
+
 
         /** The applied excitation */
         Excitation* applied_excitation;

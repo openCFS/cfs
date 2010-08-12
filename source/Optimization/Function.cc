@@ -242,13 +242,15 @@ bool Function::DoEvaluateOnce() const
       return false;
       // no default, hence gcc warns
   }
+  assert(false); // cannot reach
+  return false;
 }
 
 bool Function::IsAdjointBased() const
 {
   switch(type_)
   {
-    case COMPLIANCE:
+    case COMPLIANCE: // only in the transient case
     case TRACKING:
     case OUTPUT:
     case CONJUGATE_COMPLIANCE:
