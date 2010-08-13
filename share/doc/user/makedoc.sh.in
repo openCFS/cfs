@@ -28,6 +28,10 @@ function build {
     echo " Generating XML-REFERENCE document"
     echo "==================================="
 
+    cp @CMAKE_CURRENT_SOURCE_DIR@/../auxilliaries/Pics/ls_am_klu.pdf @CMAKE_CURRENT_SOURCE_DIR@/xmlFile/pics
+    cp @CMAKE_CURRENT_SOURCE_DIR@/../auxilliaries/Pics/cfs-logo.pdf @CMAKE_CURRENT_SOURCE_DIR@/xmlFile/pics
+    cp @CMAKE_CURRENT_SOURCE_DIR@/../auxilliaries/Pics/lse_logo.pdf @CMAKE_CURRENT_SOURCE_DIR@/xmlFile/pics
+
     cd @CMAKE_CURRENT_SOURCE_DIR@/xmlFile
     DOCUMENT=xmlReference
 
