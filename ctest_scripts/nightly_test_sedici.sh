@@ -196,6 +196,26 @@ fi
 # Source password for test user
 . $HOME/.testuserpw
 
+# Write SVN auth file to make sure all upcoming svn commands will work properly.
+SVNFILE="$HOME/.subversion/auth/svn.simple/f4c5d049eb353aa17027f06e57e71d0e"
+echo "K 8" > $SVNFILE
+echo "passtype" >> $SVNFILE
+echo "V 6" >> $SVNFILE
+echo "simple" >> $SVNFILE
+echo "K 8" >> $SVNFILE
+echo "password" >> $SVNFILE
+echo "V 8" >> $SVNFILE
+echo "$CFS_TESTUSER_PW" >> $SVNFILE
+echo "K 15" >> $SVNFILE
+echo "svn:realmstring" >> $SVNFILE
+echo "V 68" >> $SVNFILE
+echo "<https://lse17.e-technik.uni-erlangen.de:2001> Subversion repository" >> $SVNFILE
+echo "K 8" >> $SVNFILE
+echo "username" >> $SVNFILE
+echo "V 12" >> $SVNFILE
+echo "testuser-klu" >> $SVNFILE
+echo "END" >> $SVNFILE
+
 # Copy current version of update scripts from server to update directory
 mkdir -p $TESTDIR/update
 cd $TESTDIR/update
@@ -269,6 +289,9 @@ source /opt/intel/Compiler/11.0/081/bin/ifortvars.sh intel64
 # Change into CFS++ source directory and execute CTest for ICC.
 PerformTest "sedici_icc_nightly"
 
+cd $TESTDIR
+tar xzf cfs_build_sedici_icc_nightly.tgz
+
 # Copy the nightly Intel binaries for sedici to /opt/pckg
 CFSBIN="$TESTDIR/CFS_BUILD_NIGHTLY/bin/$DISTRO/cfsbin"
 CFSTOOLBIN="$TESTDIR/CFS_BUILD_NIGHTLY/bin/$DISTRO/cfstoolbin"
@@ -282,7 +305,11 @@ if [ -f $CFSBIN ] && [ -f $CFSTOOLBIN ] && [ -f $CPLREADER ]; then
     cp -a $TESTDIR/CFS_BUILD_NIGHTLY/lib64 $ICC_SEDICI_DIR
     cp -a $TESTDIR/CFS_BUILD_NIGHTLY/share $ICC_SEDICI_DIR
     cp -a $TESTDIR/CFS_TRUNK_NIGHTLY/share/matlab $ICC_SEDICI_DIR/share
+
+    echo "Submitting GCC binaries to lse17..."
+    curl -u testuser-klu:$CFS_TESTUSER_PW -k -T cfs_build_sedici_icc_nightly.tgz https://lse17.e-technik.uni-erlangen.de:2001/files/nightly-builds/
 fi
+rm -rf CFS_BUILD_NIGHTLY
 
 # Change into CFS++ source directory and execute CTest for Schenk Pardiso
 # using NETLIB, GOTOBLAS and ACML.

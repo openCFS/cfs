@@ -178,6 +178,27 @@ fi
 # Source password for test user
 . $HOME/.testuserpw
 
+# Write SVN auth file to make sure all upcoming svn commands will work properly.
+SVNFILE="$HOME/.subversion/auth/svn.simple/f4c5d049eb353aa17027f06e57e71d0e"
+echo "K 8" > $SVNFILE
+echo "passtype" >> $SVNFILE
+echo "V 6" >> $SVNFILE
+echo "simple" >> $SVNFILE
+echo "K 8" >> $SVNFILE
+echo "password" >> $SVNFILE
+echo "V 8" >> $SVNFILE
+echo "$CFS_TESTUSER_PW" >> $SVNFILE
+echo "K 15" >> $SVNFILE
+echo "svn:realmstring" >> $SVNFILE
+echo "V 68" >> $SVNFILE
+echo "<https://lse17.e-technik.uni-erlangen.de:2001> Subversion repository" >> $SVNFILE
+echo "K 8" >> $SVNFILE
+echo "username" >> $SVNFILE
+echo "V 12" >> $SVNFILE
+echo "testuser-klu" >> $SVNFILE
+echo "END" >> $SVNFILE
+
+
 # Copy current version of update scripts from server to update directory
 mkdir -p $TESTDIR/update
 cd $TESTDIR/update
@@ -259,6 +280,8 @@ DISTRO=$($TESTDIR/CFS_TRUNK_NIGHTLY/share/scripts/distro.sh -u)
 
 PerformTest "rom_gcc_nightly"
 
+cd $TESTDIR
+tar xzf cfs_build_rom_gcc_nightly.tgz
 CFSBIN="$TESTDIR/CFS_BUILD_NIGHTLY/bin/$DISTRO/cfsbin"
 CFSTOOLBIN="$TESTDIR/CFS_BUILD_NIGHTLY/bin/$DISTRO/cfstoolbin"
 CPLREADER="$TESTDIR/CFS_BUILD_NIGHTLY/bin/$DISTRO/cplreader"
@@ -270,8 +293,11 @@ if [ -f $CFSBIN ] && [ -f $CFSTOOLBIN ] && [ -f $CPLREADER ]; then
     cp -a $TESTDIR/CFS_BUILD_NIGHTLY/lib64 $DESTDIR/trunk_gcc
     cp -a $TESTDIR/CFS_BUILD_NIGHTLY/share $DESTDIR/trunk_gcc
     cp -a $TESTDIR/CFS_TRUNK_NIGHTLY/share/matlab $DESTDIR/trunk_gcc/share
-fi
 
+    echo "Submitting GCC binaries to lse17..."
+    curl -u testuser-klu:$CFS_TESTUSER_PW -k -T cfs_build_rom_gcc_nightly.tgz https://lse17.e-technik.uni-erlangen.de:2001/files/nightly-builds/
+fi
+rm -rf CFS_BUILD_NIGHTLY
 
 # Copy current version of CFS++ documentation from lse17 to rom for local Wiki
 cd /srv/www/htdocs/cfsDocu
@@ -291,6 +317,8 @@ source /opt/intel/Compiler/11.1/069/bin/ifortvars.sh intel64
 
 PerformTest "rom_icc_nightly"
 
+cd $TESTDIR
+tar xzf cfs_build_rom_icc_nightly.tgz
 if [ -f $CFSBIN ] && [ -f $CFSTOOLBIN ] && [ -f $CPLREADER ]; then
     echo "Copying Intel binaries to /opt/pckg/cfs_nightly..."
     ICC_ROM_DIR=$DESTDIR/trunk_icc_rom
@@ -303,8 +331,11 @@ if [ -f $CFSBIN ] && [ -f $CFSTOOLBIN ] && [ -f $CPLREADER ]; then
 
     rm -rf /opt/pckg/CFSDEPSCACHE/precompiled/*
     cp -a $TESTDIR/CFSDEPSCACHE/precompiled/* /opt/pckg/CFSDEPSCACHE/precompiled
-fi
 
+    echo "Submitting GCC binaries to lse17..."
+    curl -u testuser-klu:$CFS_TESTUSER_PW -k -T cfs_build_rom_icc_nightly.tgz https://lse17.e-technik.uni-erlangen.de:2001/files/nightly-builds/
+fi
+rm -rf CFS_BUILD_NIGHTLY
 
 echo "-----------------------------------------------------------------------------"
 echo "`basename $0` finished on `date`"
