@@ -208,12 +208,49 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   // only special derivatives, the rest also EM
   switch(f->GetType())
   {
-  case Function::GLOBAL_DYNAMIC_COMPLIANCE:
-    // synthesis of compliant mechanism: As our adjoint PDE
-    // c' = l K' u
-    CalcU1KU2(tf, adjoint.Get(excite, f)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, weight, STANDARD, f);
-    break;
+  case Function::STRESS:
+  {
+    // see comment in ErsatzMaterial::CalcVonMisesStressVector()! it's tricky stuff :(
+    // the gradient is lambda^T *  K' * u + 2 * stress^T * M * (rho^p)' * E_0 * B * u
+    // We compute it for every element and Function::Local::EvalGradient() does the globalization which involves setting to zero
+    // Also the DesignElement::AddGradient() is done in Function::Local::EvalGradient(), hence we fake CalcU1KU2 which does AddGradient(), too
+    StdVector<double> org_gradient(design->data.GetSize()); // save state
+    org_gradient.window.Set(0, org_gradient.GetSize());
+    DesignElement::ValueSpecifier vs = f->IsObjective() ? DesignElement::COST_GRADIENT : DesignElement::CONSTRAINT_GRADIENT;
+    design->WriteGradientToExtern(org_gradient, vs, DesignElement::PLAIN, dynamic_cast<Condition*>(f), false);
+    assert(design->data.GetSize() == org_gradient.GetSize());
 
+    // calc lambda^T *  K' * u
+    CalcU1KU2(tf, adjoint.Get(excite, f)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, weight, STANDARD, f);
+
+    // extract the lambda^T *  K' * u information and reset to org_gradient
+    Vector<double> l_K_u(org_gradient.GetSize());
+    for(unsigned int i = 0; i < org_gradient.GetSize(); i++)
+    {
+      DesignElement* de = &(design->data[i]);
+      l_K_u[i] = de->GetPlainGradient(f) - org_gradient[i];
+      de->Reset(vs, f); // there is no set, so reset and add
+      de->AddGradient(f, org_gradient[i]);
+    }
+
+    // calc  2 * stress^T * M * (rho^p)' * E_0 * B * u
+    Vector<double> von_mises_deriv = CalcVonMisesStressVector(excite, f, false, true);
+    assert(von_mises_deriv.GetSize() == l_K_u.GetSize());
+
+    // an extra vector for the sum
+    Vector<double> grad;
+    grad = von_mises_deriv * weight;
+    grad += l_K_u; // scale with same weight!
+
+    // this does the globalization and AddGradient() by kicking out some element values
+    Vector<double> von_mises_stress = CalcVonMisesStressVector(excite, f, false, false);
+
+    CalcGlobalFunction(f, true, &von_mises_stress, &grad);
+    break;
+  }
+
+
+  case Function::GLOBAL_DYNAMIC_COMPLIANCE:
   case Function::OUTPUT:
   case Function::DYNAMIC_OUTPUT:
   case Function::CONJUGATE_COMPLIANCE:

@@ -1111,12 +1111,12 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
          break;
 
     case Function::GREYNESS:
-         assert(f == NULL);
+         assert(c == NULL);
          result = CalcGreyness(g, derivative);
          break;
 
     case Objective::STRESS: {
-           const StdVector<double> data = CalcStress<double>(excite, f); // copy data!
+           const Vector<double> data = CalcVonMisesStressVector(excite, f, false, false); // copy data for element von Mises stress
            result = CalcGlobalFunction(f, false, &data);
            break;
          }
@@ -1132,7 +1132,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
     case Function::MOLE:
     case Function::OSCILLATION:
     case Function::JUMP:
-         assert(f == NULL);
+         assert(c == NULL);
          result = CalcLocalConstraint(g, derivative);
          break;
 
@@ -1624,41 +1624,135 @@ void ErsatzMaterial::SetAdjointRhs(AdjointParameters* adjointParams){
   
 }
 
-template <class TYPE>
-StdVector<double> ErsatzMaterial::CalcStress(Excitation& excite, Function* f)
+Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Function* f, bool adjoint_rhs, bool grad_contrib)
 {
+  // Kocvara and Stingl; 2007
+  // stress = rho^p E_0 B(ip) * u
+  // von Mises stress per element: sum_ip stress^T * M * stress
+  // rhs w.r.p to one element: 2* sum_ip strees^T * M * rho^p E_0 B(ip)
+  //            if i=j:      + 2 * stress^T * M * (rho^p)' E_0 B(ip) u
+
+  assert((adjoint_rhs && !grad_contrib) || !adjoint_rhs);
+  // adjoint_rhs:   result is raw vector size with summed up 2 * stress^T * M * (rho^p * E_0 * B)
+  // !grad_contrib: result is design size with stress^T * M stress (element von Mises stress)
+  // grad_contrib:  result is design size with 2 * stress^T * M * ( (rho^p)' * E_0 * B * u)
+
   // see comment in header for locality of stress!
 
-  // this gets all data, collected from MechPDE::CalcVonMisesStress()
-  // the MechPDE stuff might be complex by the system
   assert(design->design.GetSize() == 1);
-  StdVector<double> stresses(design->data.GetSize());
 
-  for(unsigned r = 0; r < design->regions.GetSize(); r++)
+  StdVector<SingleVector*>& all_u_elem = forward.Get(excite)->elem[MECH];
+
+  // the result vector is either per design element or the rhs for the adjoint problem
+  Vector<double> result(adjoint_rhs ? forward.Get(excite)->GetVector(Solution::RAW_VECTOR)->GetSize() : design->data.GetSize());
+  result.Init();
+
+  Matrix<double> M = dynamic_cast<MechPDE*>(ToPDE(MECH))->GetVonMisesMatrix(dim);
+  Matrix<double> B;
+  Matrix<double> E; // the material matrix with applied pseudo density
+  Matrix<double> coords;
+
+  assert(design->design.GetSize() == 1); // easy to extend
+  assert(design->regions.GetSize() == 1); // easy to extend
+
+  TransferFunction* tf = design->GetTransferFunction(&(design->data[0]));
+  linElastInt* form = dynamic_cast<linElastInt*>(GetForm(design->GetRegionId(), pde, pde, "linElastInt"));
+
+  Vector<double> stress(dim == 2 ? 3 : 6); // elem stress
+  Vector<double> strain;
+  Vector<double> M_stress;
+  Matrix<double> E_B;
+  Matrix<double> M_E_B;
+  Matrix<double> stress_transp(1, stress.GetSize());
+  Matrix<double> rhs_transp;
+  Vector<double> intPoint;
+  shared_ptr<EqnMap> eqnMap = ToPDE(MECH)->GetEqnMap();
+
+  ElemList elemList(grid);
+
+  for(unsigned int e = 0, en = design->data.GetSize(); e < en; e++)
   {
-    // use the method of MechPDE
-    shared_ptr<BaseResult> bs = shared_ptr<BaseResult>(new Result<TYPE>);
-    string region = grid->GetRegion().ToString(design->regions[r].regionId);
-    bs->SetEntityList(grid->GetEntityList(EntityList::ELEM_LIST, region, EntityList::REGION));
-    bs->SetResultInfo(pde->GetResultInfo(MECH_DISPLACEMENT));
+    DesignElement* de = &design->data[e];
 
-    MechPDE* mech = dynamic_cast<MechPDE*>(ToPDE(MECH));
-    mech->CalcVonMisesStress<TYPE>(bs);
+    grid->GetElemNodesCoord(coords, de->elem->connect, false); // geometric non-lin
 
-    // the data values correlate to the entity list
-    Vector<TYPE>* data = dynamic_cast<Vector<TYPE>* >(bs->GetSingleVector());
-    EntityIterator it = bs->GetEntityList()->GetIterator();
-    assert(it.GetSize() == data->GetSize());
-    for(it.Begin(); !it.IsEnd(); it++)
+    Vector<double>& u_elem = dynamic_cast<Vector<double>& >(*(all_u_elem[e]));
+
+    form->calcDMat(E, de->elem); // has physical density applied
+
+    //form->ExtractElemInfo(it); // it seems to work w/o this
+    de->elem->ptElem->GetCoordMidPoint(intPoint);
+    form->SetIntPoint(intPoint);
+
+    // same numerical results as with  for(int ip = 1, nip = de->elem->ptElem->GetNumIntPoints(); ip <= nip; ip++)
+    form->calcBMatOnly(B, 1, de->elem->ptElem, coords);
+
+    // calc stress
+    strain = B * u_elem; // strain
+    stress = E * strain; // pure stress
+
+    if(adjoint_rhs)
     {
-      int idx = design->Find(it.GetElem()->elemNum);
-      stresses[idx] = ((complex<double>) (*data)[idx]).real(); // complicated cast to real :(
-      LOG_DBG2(em) << "CalcStress() r=" << r << " el=" << it.GetElem()->elemNum << " idx=" << idx << " val=" << ((*data)[idx]);
+      // this is actually 2* von Mises stress with one missing u_elem: 2 * stress^T * M * rho^p * E_0 * B, note the rho^p is already in E
+      E_B = E * B;
+      M_E_B = M * E_B;
+
+      // we have to transpose the stress (3*1 or 6*1) manually :(
+      for(unsigned int si = 0; si < stress.GetSize(); si++)
+        stress_transp[0][si] = stress[si];
+
+      rhs_transp = stress_transp * M_E_B;
+      rhs_transp *= 2.0;
+
+      assert(rhs_transp.GetNumCols() == u_elem.GetSize());
+      assert(rhs_transp.GetNumRows() == 1);
+
+
+      // sum it up to the global rhs vector
+      assert(de->elem->connect.GetSize() * dim == rhs_transp.GetNumCols());
+      for(unsigned int n = 0; n < de->elem->connect.GetSize(); n++)
+      {
+        unsigned int node =  de->elem->connect[n];
+
+        for(unsigned int dof = 1; dof <= dim; dof++)
+        {
+          // fuck 1-based in GetNodeEqn() !!
+          int eqn_nr = eqnMap->GetNodeEqn(node,dof); // ACOUSTIC!
+          // we shall not be in the boundary conditions!
+          assert(eqn_nr >= 0);
+          int eqn_idx = eqn_nr -1; // fuck 1-based!!
+          // don't set the homogeneous dirichlet boundary conditions :)
+          if(eqn_idx >= 0)
+          {
+            result[eqn_idx] += rhs_transp[0][dim * n + (dof-1)];
+
+            LOG_DBG3(em) << "CSV de=" << de->ToString() << " ar=" << adjoint_rhs  << " n=" << n << " node=" << node
+                << " dof=" << dof << " eqn_idx=" << eqn_idx << " idx=" << (dim * n + (dof-1)) << " val="
+                << rhs_transp[0][dim * n + (dof-1)] << " -> " << result[eqn_idx];
+          }
+        }
+      }
+
+    }
+    else
+    {
+      // ("corrected" von Mises stress element results
+      M_stress = M * stress;
+      result[e] = stress.Inner(M_stress);
+
+      // additional factor for grad_contrib. We replace one rho^p by (rho^p)'
+      double correct = grad_contrib ?  2.0 * tf->Derivative(de, DesignElement::SMART) / tf->Transform(de, DesignElement::SMART) : 1.0;
+
+      LOG_DBG2(em) << "CSV de=" << de->ToString() << " gv= " << grad_contrib << " rho=" << de->GetDesign(DesignElement::SMART) << " sMs=" << result[e] << " deriv="
+                   << tf->Derivative(de, DesignElement::SMART) << " trans=" <<  tf->Transform(de, DesignElement::SMART) << " correct=" << correct << " -> " << (correct * result[e]);
+
+      result[e] *= correct;
     }
   }
 
-  return stresses;
+  return result;
 }
+
 
 double ErsatzMaterial::CalcEnergyFlux(Excitation& excite, Objective* f)
 {
@@ -2363,7 +2457,7 @@ double ErsatzMaterial::CalcLocalConstraint(Condition* g, bool derivative)
 }
 
 
-double ErsatzMaterial::CalcGlobalFunction(Function* c, bool derivative, const StdVector<double>* stress)
+double ErsatzMaterial::CalcGlobalFunction(Function* c, bool derivative, const Vector<double>* von_mises_stress, const Vector<double>* von_mises_gradient)
 {
   LOG_DBG(em) << "CGF c=" << c->type.ToString(c->GetType()) << " derivative=" << derivative;
   Function::Local* local = c->GetLocal();
@@ -2379,7 +2473,7 @@ double ErsatzMaterial::CalcGlobalFunction(Function* c, bool derivative, const St
     for(unsigned int i = 0; i < vem.GetSize(); i++)
     {
       Function::Local::Identifier& id = vem[i];
-      double fv = id.EvalFunction(local, stress);
+      double fv = id.EvalFunction(local, von_mises_stress);
       res += fv;
       LOG_DBG2(em) << "CGF: !d c=" << c->type.ToString(c->GetType()) << " i=" << i << " de="
                    << id.element->elem->elemNum << " sign=" << id.sign << " fv=" << fv  << " -> " << res;
@@ -2395,7 +2489,7 @@ double ErsatzMaterial::CalcGlobalFunction(Function* c, bool derivative, const St
     for(int j = 0; j < (int) vem.GetSize(); j++)
     {
       Function::Local::Identifier& id = vem[j];
-      id.EvalGradient(local);
+      id.EvalGradient(local, von_mises_stress, von_mises_gradient);
     }
 
     return 0.0; // gradient case has no information
@@ -2615,8 +2709,6 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
       }
 
       // write back the solution s.th. CommitIteraion() makes StoreResults() properly.
-      //for(map<Application, SinglePDE*>::iterator it = pdes.begin(); it != pdes.end(); ++it)
-      //  forward.Get(excite)->Write(it->second); // TODO killme
       forward.Get(*excite)->Write(pde);
       break;
 
@@ -2627,6 +2719,7 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
     case Function::DYNAMIC_OUTPUT:
     case Function::ELEC_ENERGY:
     case Function::ENERGY_FLUX:
+    case Function::STRESS:
     {
       // these objectives need their adjoint problems for the calculation of the objective value
       // they are directly solved after the StateProblem
@@ -2642,8 +2735,6 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
       StorePDESolution(adjoint, *excite, f, 0, true, false, true, "adjoint");
 
       // write back the solution s.th. CommitIteraion() makes StoreResults() properly.
-      //for(map<Application, SinglePDE*>::iterator it = pdes.begin(); it != pdes.end(); ++it)
-      //  forward.Get(excite)->Write(it->second); // TODO killme
       forward.Get(*excite)->Write(pde);
       break;
     }
@@ -2663,8 +2754,8 @@ void ErsatzMaterial::SetAndSolveAdjointRHS(Excitation& excite, Function* f)
   LoadList org_loads = assemble_->GetLoads();
 
   // set pseudo loads (if there are output nodes)
-  // not used for ENERGY_FLUX
-  ConstructSelection(excite, f, true);
+  if(f->NeedsSelectionVector())
+    ConstructSelection(excite, f, true); // is actually already set for the forward calculation - who cares?
 
   // any adjoint PDE has HDBC instead of IDBC -> will be undone later ResetHDBC()
   StdVector<pair<SinglePDE*, IdBcList> > org_idbc = SetHDBC();
@@ -2712,19 +2803,30 @@ void ErsatzMaterial::ConstructSelection(Excitation& excite, Function* f, bool al
 
 void ErsatzMaterial::ConstructRealAdjointRHS(Excitation& excite, Function* f)
 {
-  // this can only handle static output!
-  assert(f->GetType() == Function::OUTPUT);
+  Vector<double> rhs; // own OLAS vector
 
-  Vector<double>& l = adjoint.Get(excite, f)->GetRealVector(Solution::SEL_VECTOR);
-  // create a own OLAS vector
-
-  Vector<double> rhs(l.GetSize());
-
-  rhs = l * -1.0;
+  switch(f->GetType())
+  {
+  case Function::OUTPUT:
+  {
+    Vector<double>& l = adjoint.Get(excite, f)->GetRealVector(Solution::SEL_VECTOR);
+    rhs.Resize(l.GetSize());
+    rhs = l * -1.0;
+    break;
+  }
+  case Function::STRESS:
+  {
+    rhs = CalcVonMisesStressVector(excite, f, true, false); // gives us exactly what we want
+    break;
+  }
+  default:
+    assert(false);
+    break;
+  }
 
   assemble_->GetAlgSys()->InitRHS(rhs);
   assert(rhs.NormMax() != 0.0);
-  LOG_DBG2(em) << "CARHS<double>: rhs before solving: " << rhs.ToString(1);
+  LOG_DBG2(em) << "CARHS<double>: f=" << f->ToString() << " rhs before solving: " << rhs.ToString(1);
 }
 
 void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
@@ -3225,9 +3327,6 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Applic
 
   throw Exception("false");
 }
-
-template StdVector<double> ErsatzMaterial::CalcStress<double>(Excitation& excite, Function* f);
-template StdVector<double> ErsatzMaterial::CalcStress<complex<double> >(Excitation& excite, Function* f);
 
 // template instantiation stuff
 template double ErsatzMaterial::CalcU1KU2<double>(TransferFunction* tf, StdVector<SingleVector*>& u1,

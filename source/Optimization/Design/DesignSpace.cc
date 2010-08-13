@@ -491,7 +491,7 @@ TransferFunction* DesignSpace::GetTransferFunction(DesignElement* de)
   }
 
   if(res == NULL)
-    EXCEPTION("None of the " << transfer.GetSize() << " tranfer functions matches " << de->ToString());
+    EXCEPTION("None of the " << transfer.GetSize() << " transfer functions matches " << de->ToString());
 
   return res;
 }

@@ -255,11 +255,11 @@ class Function
 
         /** Service function. Calculates the actual objective, based on function->type
          * @param stress only used when the function is stress -> determined by ErsatzMaterial::CalcStress() */
-        double EvalFunction(const Local* local, const StdVector<double>* stress = NULL) const;
+        double EvalFunction(const Local* local, const Vector<double>* stress = NULL) const;
 
         /** Service function. Calculates all gradients for this and the neighbors. Only for real local function!.
          * It does the proper constraint_gradient reset first! */
-        void EvalGradient(const Local* local);
+        void EvalGradient(const Local* local, const Vector<double>* von_mises_stress = NULL,  const Vector<double>* von_mises_grad = NULL);
 
         /** calculates the slope identified by this neighbor. When sign is not set assumes sign=1.
          * "Petersson, Sigmund; Slope Constrained Topology Optimization; 1998" */
@@ -289,9 +289,14 @@ class Function
         double CalcJump() const;
         double CalcJumpGradient(int neigh_id) const;
 
-        /** Uses actually the data from MechPDE::CalcVonMisesStress() provided by ErsatzMaterial::CalcStress().
+        /** Uses actually the data from
+         * @see ErsatzMaterial::CalcVonMisesVector()
          * There is no local variant, only the global */
-        double CalcStress(const Local* local, const StdVector<double>* stress) const;
+        double CalcStress(const Local* local, const Vector<double>* stress) const;
+
+        /** quite tricky :)
+         * @see SIMP::CalcFunction() */
+        double CalcStressGradient(int neigh_idx, const Local* local, const Vector<double>* von_mises_grad) const;
 
         DesignElement* element; // this represents DesignSpace::data[element_idx]
         StdVector<DesignElement*> neighbor;

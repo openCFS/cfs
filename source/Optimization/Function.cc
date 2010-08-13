@@ -924,7 +924,7 @@ Function::Local::Identifier::Identifier(DesignElement* elem, StdVector<DesignEle
 }
 
 
-double Function::Local::Identifier::EvalFunction(const Local* local, const StdVector<double>* stress) const
+double Function::Local::Identifier::EvalFunction(const Local* local, const Vector<double>* von_mises_stress) const
 {
   // function value
   double fv = 0.0;
@@ -933,7 +933,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local, const StdVe
   switch(f->type_)
   {
   case STRESS:
-    fv = CalcStress(local, stress);
+    fv = CalcStress(local, von_mises_stress);
     break;
 
   case SLOPE:
@@ -990,7 +990,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local, const StdVe
   }
 }
 
-void Function::Local::Identifier::EvalGradient(const Local* local)
+void Function::Local::Identifier::EvalGradient(const Local* local, const Vector<double>* von_mises_stress,  const Vector<double>* von_mises_grad)
 {
   // TODO the dynamic_cast might be to slow, check! and do faster by IsObjective()
   // we need this pointers, note that C++ makes NULL for an invalid dynamic cast
@@ -1021,6 +1021,9 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
     break;
   case GLOBAL_JUMP:
     fv = std::max(0.0, CalcJump() - funct->GetParameter());
+    break;
+  case STRESS:
+    fv = std::max(0.0, CalcStress(local, von_mises_stress) - funct->GetParameter());
     break;
   default:
     break;
@@ -1057,6 +1060,10 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
     case JUMP:
     case GLOBAL_JUMP:
       gv = CalcJumpGradient(n);
+      break;
+
+    case STRESS:
+      gv = CalcStressGradient(n, local, von_mises_grad);
       break;
 
     default:
@@ -1342,11 +1349,22 @@ double Function::Local::Identifier::CalcJumpGradient(int neigh_idx) const
   return 2.0 * std::sin(PI*slope) * std::cos(PI*slope) * PI * factor;
 }
 
-double Function::Local::Identifier::CalcStress(const Local* local, const StdVector<double>* stress) const
+double Function::Local::Identifier::CalcStress(const Local* local, const Vector<double>* von_mises_stress) const
 {
   // so trivial
-  assert(stress != NULL);
+  assert(von_mises_stress != NULL);
   int idx = local->space->Find(element);
-  LOG_DBG3(func) << "L:I:CS elem=" << element->ToString() << " idx=" << idx << " -> " << (*stress)[idx];
-  return (*stress)[idx];
+  LOG_DBG3(func) << "L:I:CS elem=" << element->ToString() << " idx=" << idx << " -> " << (*von_mises_stress)[idx];
+  return (*von_mises_stress)[idx];
+}
+
+double Function::Local::Identifier::CalcStressGradient(int neigh_idx, const Local* local, const Vector<double>* von_mises_grad) const
+{
+  // grad: lambda_i * (K_i)' * u_i + 2 * stress^T * M * (rho_i)' * E_0 * B_i * u_i
+  // see SIMP::CalcFunction() !
+  assert(neigh_idx == -1);
+  assert(von_mises_grad != NULL);
+  int idx = local->space->Find(element);
+  LOG_DBG3(func) << "L:I:CSG elem=" << element->ToString() << " idx=" << idx << " -> " << (*von_mises_grad)[idx];
+  return (*von_mises_grad)[idx];
 }

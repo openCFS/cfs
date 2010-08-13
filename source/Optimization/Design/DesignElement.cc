@@ -97,7 +97,7 @@ void BaseDesignElement::AddGradient(const Function* f, double value)
               f->IsObjective() ? NULL : static_cast<const Condition*>(f), value);
 }
 
-void BaseDesignElement::Reset(ValueSpecifier vs, Condition *g)
+void BaseDesignElement::Reset(ValueSpecifier vs, Function*  f)
 {
   switch(vs)
   {
@@ -106,8 +106,8 @@ void BaseDesignElement::Reset(ValueSpecifier vs, Condition *g)
       costGradient[i] = 0.0;
     break;
   case CONSTRAINT_GRADIENT:
-    if(g != NULL)
-      constraintGradient[g->GetIndex()] = 0.0;
+    if(f != NULL)
+      constraintGradient[f->GetIndex()] = 0.0;
     else
       for(unsigned int i = 0; i < constraintGradient.GetSize(); i++)
         constraintGradient[i] = 0.0;
@@ -478,6 +478,7 @@ void DesignElement::SetEnums()
   detail.Add(GREYNESS, "greyness");
   detail.Add(GLOBAL_SLOPE, "globalSlope");
   detail.Add(GLOBAL_CHECKERBOARD, "globalCheckerboard");
+  detail.Add(STRESS, "stress");
 
 }
 

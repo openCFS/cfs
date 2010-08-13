@@ -154,7 +154,7 @@ public:
    * @param vs either COST_GRADIENT or CONSTRAINT_GRADIENT 
    * @param g this should preferably be a Funtion*, but it didn't work and 
    *  it is currently only needed for Condition anyways */
-  void Reset(ValueSpecifier vs, Condition *g = NULL);
+  void Reset(ValueSpecifier vs, Function* f = NULL);
 
   /**  Gets the lower bound of the desing variable -
    * up to now this are defaults by type */
@@ -244,7 +244,7 @@ public:
       MECH_MECH, ELEC_ELEC, ELEC_ELEC_QUAD, ELEC_MECH, MECH_ELEC,
       COMPLIANCE, VOLUME, PENALIZED_VOLUME, GAP, TRACKING, HOMOGENIZATION_TRACKING,
       POISSONS_RATIO, YOUNGS_MODULUS, TYCHONOFF, GREYNESS, REALVOLUME,
-      GLOBAL_SLOPE, GLOBAL_CHECKERBOARD} Detail;
+      GLOBAL_SLOPE, GLOBAL_CHECKERBOARD, STRESS} Detail;
 
     /** Gets the design element
      * @param access if plain the rho value if SMART and filtering is enabled the filtered value */
