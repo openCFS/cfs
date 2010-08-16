@@ -306,11 +306,17 @@ DEFINE_LOG(bisa, "biotSavart")
         // get contribution to actual point from one coil
         ComputeMagVecNormalized( magVec, pCoord, actCoil );
         } catch ( Exception e ) {
-          RETHROW_EXCEPTION(e, "Could not calculate Biot-Savart solution of coil '"
-                            << actCoil.name << "' as node #" << globNodeNr
-                            << " (coords: " << pCoord.ToString() 
-                            << ") is located within the coil!");
-              
+          //RETHROW_EXCEPTION(e, "Could not calculate Biot-Savart solution of coil '"
+          //                  << actCoil.name << "' as node #" << globNodeNr
+          //                  << " (coords: " << pCoord.ToString() 
+          //                  << ") is located within the coil!");
+          //
+          WARN( "Could not calculate Biot-Savart solution of coil '"
+              << actCoil.name << "' as node #" << globNodeNr
+              << " (coords: " << pCoord.ToString() 
+              << ") is located within the coil!: "
+              << e.what() );
+                    
         }
         //store normalized magnetic vector potential
         if ( dim_ == 3 ) {
@@ -405,7 +411,9 @@ DEFINE_LOG(bisa, "biotSavart")
     
     // check, if observer point is located directly on coil 
     if( denom < EPS) {
-      EXCEPTION("Distance from coil to observer is 0!")
+      EXCEPTION("Distance from coil segment ("
+          << start.ToString() << ") <-> (" << end.ToString() 
+          << ") to observer (" << observer.ToString() << ") is 0");
     }
     fac = log((dotProd13 + norm1*norm3)/ denom);
     fac *= mue0/piTimes4;
