@@ -566,10 +566,10 @@ extern "C" {
     {
       sNode->GetValue("IterRefineSteps", iparm_[7], ParamNode::INSERT);
     } else if (iparm_[7] == 0 && mType_ > 10) {
-      std::cerr << "\e[1;33mWarning: Iterative refinement steps is not set!\n" \
+      std::cerr << "\033[1;33mWarning: Iterative refinement steps is not set!\n" \
         << "PARDISO did not set it neither.\n" \
         << "It is advisable for unsymmetric to set it in the xml,\n" \
-        << "since bad pivotisation may result in numerical errors!\e[0m"<< std::endl;
+        << "since bad pivotisation may result in numerical errors!\033[0m"<< std::endl;
     }
     
     // we have to icrement the entries of the col- and row-position arrays
