@@ -19,7 +19,8 @@ TARGET_LINK_LIBRARIES(ResWrHeadTestCC110
   ${BOOST_SYSTEM_LIB}
   -lpthread
   )
-SET_TARGET_PROPERTIES(ResWrHeadTestCC110 PROPERTIES LINKER_LANGUAGE CXX)
+SET_TARGET_PROPERTIES(ResWrHeadTestCC110 PROPERTIES LINKER_LANGUAGE CXX 
+                                                    LINK_FLAGS -Wl,--allow-shlib-undefined)
 
 #ADD_EXECUTABLE(bintst110 ../bintst.F ../bintrd.F ../bintwr.F)
 #TARGET_LINK_LIBRARIES(bintst110 
@@ -38,5 +39,5 @@ TARGET_LINK_LIBRARIES(CFSAnsysBinlibIfaceRev110
   ${CFS_FORTRAN_DYNRT_LIBS}
   )
 
-SET_TARGET_PROPERTIES(CFSAnsysBinlibIfaceRev110 PROPERTIES
-  LINKER_LANGUAGE CXX)
+SET_TARGET_PROPERTIES(CFSAnsysBinlibIfaceRev110 PROPERTIES LINKER_LANGUAGE CXX
+                                                           LINK_FLAGS -Wl,--allow-shlib-undefined)

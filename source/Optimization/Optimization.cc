@@ -477,7 +477,7 @@ void Optimization::SolveStateProblem(Excitation* excite)
                                          
   // Do not store the results. This is to be done in CommitIteration
   if(!harmonic || excite == NULL) 
-    driver->SolveProblem(IsTransient(), analysis_id, false); // static and transient optimization
+    driver->SolveProblem(IsTransient(), analysis_id, NULL); // static and transient optimization
   else
     dynamic_cast<HarmonicDriver*>(driver)->ComputeFrequencyStep(excite->f_link->step, analysis_id);
 
