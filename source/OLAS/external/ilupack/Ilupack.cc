@@ -136,7 +136,8 @@ void Ilupack<T>::Setup(BaseMatrix &sysMat, PtrParamNode analysis_id)
   // do we really want to create a new entry? Might blast up the output
   ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
   PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("setup", at);
-  out->Get("analysis_id")->SetValue(analysis_id->Get("analysis_id"));
+  if(analysis_id != NULL) // TODO only very quick and dirty fix for eigenfrequency analsys
+    out->Get("analysis_id")->SetValue(analysis_id->Get("analysis_id"));
   
   // determine the matrix type. Symmetric/nonsymmetric, positive definite, ...
   // it is optional given in the xml file.
@@ -215,7 +216,8 @@ void Ilupack<T>::Solve(const BaseMatrix &base_mat, const BasePrecond &base_preco
 {
   ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
   PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", at);
-  out->Get("analysis_id")->SetValue(analysis_id->Get("analysis_id"));
+  if(analysis_id != NULL) // TODO
+    out->Get("analysis_id")->SetValue(analysis_id->Get("analysis_id"));
   
   // the preconditioner sets the ilupack matrix
   if (mat.a == NULL)

@@ -36,7 +36,7 @@ PROJECT(CFS C CXX Fortran)
 # CFS version number.  Simply the last modification date
 #-----------------------------------------------------------------------------
 SET(CFS_VERSION_YEAR "10")
-SET(CFS_VERSION_MONTH "07")
+SET(CFS_VERSION_MONTH "09")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 

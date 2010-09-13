@@ -249,6 +249,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::TYCHONOFF, "tychonoff");
   Function::type.Add(Function::TEMPERATURE, "temperature");
   Function::type.Add(Function::GREYNESS, "greyness");
+  Function::type.Add(Function::STRESS, "stress");
   Function::type.Add(Function::ISOTROPY, "isotropy");
   Function::type.Add(Function::SLOPE, "slope");
   Function::type.Add(Function::GLOBAL_SLOPE, "globalSlope");
@@ -256,6 +257,8 @@ void Optimization::SetEnums()
   Function::type.Add(Function::GLOBAL_MOLE, "globalMole");
   Function::type.Add(Function::OSCILLATION, "oscillation");
   Function::type.Add(Function::GLOBAL_OSCILLATION, "globalOscillation");
+  Function::type.Add(Function::JUMP, "jump");
+  Function::type.Add(Function::GLOBAL_JUMP, "globalJump");
 
   Function::Local::locality.SetName("Function::Local::Locality");
   Function::Local::locality.Add(Function::Local::DEFAULT, "default");
@@ -265,6 +268,8 @@ void Optimization::SetEnums()
   Function::Local::locality.Add(Function::Local::PREV_NEXT_AND_REVERSE, "prev_next_and_reverse");
   Function::Local::locality.Add(Function::Local::DEG_45_STAR, "45_deg_star");
   Function::Local::locality.Add(Function::Local::DEG_45_STAR_AND_REVERSE, "45_deg_star_and_reverse");
+  Function::Local::locality.Add(Function::Local::BOUNDARY, "boundary");
+  Function::Local::locality.Add(Function::Local::ELEMENT, "element");
 
   Function::Local::phase.SetName("Function::Local::Phase");
   Function::Local::phase.Add(Function::Local::BOTH, "both");
@@ -299,7 +304,9 @@ void Optimization::SetEnums()
   
   ErsatzMaterial::commitMode.SetName("ErsatzMaterial::CommitMode");
   ErsatzMaterial::commitMode.Add(ErsatzMaterial::FORWARD, "forward");
+  ErsatzMaterial::commitMode.Add(ErsatzMaterial::EACH_FORWARD, "each_forward");
   ErsatzMaterial::commitMode.Add(ErsatzMaterial::ADJOINT, "adjoint");
+  ErsatzMaterial::commitMode.Add(ErsatzMaterial::EACH_ADJOINT, "each_adjoint");
   ErsatzMaterial::commitMode.Add(ErsatzMaterial::BOTH, "both_cases");
 
   OptimizationMaterial::system.SetName("OptimizationMaterial::System");
@@ -505,17 +512,20 @@ void Optimization::SolveStateProblem(Excitation* excite)
   if(!harmonic || excite == NULL) 
     driver->SolveProblem(IsTransient(), analysis_id, false); // static and transient optimization
   else
+  {
+    LOG_DBG(opt) << "SSP: harmonic step=" << excite->f_link->step << " f=" << excite->f_link->freq;
     dynamic_cast<HarmonicDriver*>(driver)->ComputeFrequencyStep(excite->f_link->step, analysis_id);
+  }
 
   problemSolvedCounter++;
   problemWithinIteration++;
 }
 
-void Optimization::SolveAdjointProblem(Excitation* excite, Objective* cost){
+void Optimization::SolveAdjointProblem(Excitation* excite, Function* f){
   // does almost the same as SolveStateProblem now, but passing, that we want the adjoint to be solved
   BaseDriver* driver = domain->GetDriver();
   
-  AdjointParameters adjointParams(cost, excite);
+  AdjointParameters adjointParams(f, excite);
   
   if(IsTransient()){
     SinglePDE* mech = domain->GetSinglePDE("mechanic");
@@ -529,10 +539,39 @@ void Optimization::SolveAdjointProblem(Excitation* excite, Objective* cost){
       EXCEPTION("Harmonic adjoint not implemented!");
 }
 
-void Optimization::SolveAdjointProblems(Excitation* excite){
-  for(unsigned int o = 0; o < objectives.data.GetSize(); ++o){
-    SolveAdjointProblem(excite, objectives.data[o]);
+void Optimization::SolveAdjointProblems(Excitation* excite)
+{
+  // solve for objectives and constraints
+  StdVector<Function*> f = GetActiveFunctions();
+
+  for(unsigned int i = 0; i < f.GetSize(); ++i)
+  {
+    if(f[i]->IsAdjointBased())
+      SolveAdjointProblem(excite, f[i]); // virtual! calls ErsatzMaterial implementation
   }
+}
+
+StdVector<Function*> Optimization::GetActiveFunctions() const
+{
+  StdVector<Function*> result;
+
+  const unsigned int cn = objectives.data.GetSize();
+  const unsigned int gn = constraints.active.GetSize();
+
+  result.Resize(cn + gn);
+
+  for(unsigned int i = 0; i < cn; i++)
+  {
+    result[i] = objectives.data[i];
+    LOG_DBG2(opt) << "GAF: o=" << result[i]->ToString();
+  }
+  for(unsigned int i = 0; i < gn; i++)
+  {
+    result[cn + i] = constraints.active[i];
+    LOG_DBG2(opt) << "GAF: g=" << result[cn + i]->ToString();
+  }
+
+  return result;
 }
 
 double Optimization::CalcSymmetry(DesignElement::Type de, DesignElement::ValueSpecifier vs, DesignElement::Access access)

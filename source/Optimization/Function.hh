@@ -34,6 +34,9 @@ class Function
      * @param pn our own element */
     Function(PtrParamNode pn);
 
+    /** once we won't have this difference any more */
+    static Function* Cast(Objective* c, Condition* g);
+
     /** PostProc called be the containers */
     virtual void PostProc(DesignSpace* space, DesignStructure* structure);
 
@@ -66,6 +69,8 @@ class Function
       GLOBAL_SLOPE,              /*!< different implementation from local slopes */
       GLOBAL_MOLE,               /*!< see mole */
       GLOBAL_OSCILLATION,        /*!< see oscillation */
+      GLOBAL_JUMP,
+      STRESS,                    /*!< global stress constraint: Kocvara and Stingl; 2007. Has adjoint! */
 
       // This is constraint only!
       GREYNESS,                  /*!< inaccurate - best for observation only */
@@ -73,7 +78,8 @@ class Function
       ISOTROPY,                  /*!< blow up to several HOMOGENITATION_TENSOR constraints with different coords */
       SLOPE,                     /*!< Implementation of a grad rho constraint */
       MOLE,                      /*!< Feature size control from T. Poulsen */
-      OSCILLATION                /*!< Feature size control by Fabian W. :) */
+      OSCILLATION,               /*!< Feature size control by Fabian W. :) */
+      JUMP                       /*!< Weak greyness control by Fabian W. :) */
     } Type;
 
     /** to convert string/enum for this type */
@@ -115,7 +121,14 @@ class Function
     bool FactorOmegaOmega() const { return omega_omega_; }
 
     /** Shall/must we evaluate this objective only of the last excitation? */
-    bool DoEvaluateOnce() const { return evaluateOnce_; }
+    bool DoEvaluateOnce() const;
+
+    /** Requires this function an adjoint solution for the gradient? */
+    bool IsAdjointBased() const;
+
+    /** Requires the function evaluation an selection vector associated to the adjoint RHS?.
+     * Is an important for the solution of the state problem, if partial stuff from the adjoint setup is required. */
+    bool NeedsSelectionVector() const;
 
     /** Requires an objective homogenization */
     bool IsHomogenization() const;
@@ -170,7 +183,9 @@ class Function
         PREV_NEXT,
         PREV_NEXT_AND_REVERSE,   /*!< x_i-1 and x_i+1 with different sign for small oscillation */
         DEG_45_STAR,             /*!< Different notation. prev_next but also diagonals */
-        DEG_45_STAR_AND_REVERSE  /*!< The doubled variant of DEG_45_STAR for oscillation */
+        DEG_45_STAR_AND_REVERSE, /*!< The doubled variant of DEG_45_STAR for oscillation */
+        BOUNDARY,                /*!< For a neighbor definition the first and last element (JUMP) */
+        ELEMENT                  /*!< For stress there is no neighborhood, only the element itself */
       } Locality;
 
       static Enum<Locality> locality;
@@ -238,12 +253,13 @@ class Function
           return const_cast<const DesignElement*>(idx == -1 ? element : neighbor[idx]);
         }
 
-        /** Service function. Calculates the actual objective, based on function->type */
-        double EvalFunction(const Local* local) const;
+        /** Service function. Calculates the actual objective, based on function->type
+         * @param stress only used when the function is stress -> determined by ErsatzMaterial::CalcStress() */
+        double EvalFunction(const Local* local, const Vector<double>* stress = NULL) const;
 
         /** Service function. Calculates all gradients for this and the neighbors. Only for real local function!.
          * It does the proper constraint_gradient reset first! */
-        void EvalGradient(const Local* local);
+        void EvalGradient(const Local* local, const Vector<double>* von_mises_stress = NULL,  const Vector<double>* von_mises_grad = NULL);
 
         /** calculates the slope identified by this neighbor. When sign is not set assumes sign=1.
          * "Petersson, Sigmund; Slope Constrained Topology Optimization; 1998" */
@@ -261,6 +277,7 @@ class Function
          * @see CalcSlopeGradient() */
         double CalcCheckerboardGradient(int neigh_idx, double beta);
 
+        /** T. Poulsen's feature size control */
         double CalcMole(double eps) const;
         double CalcMoleGradient(int neigh_idx, double eps);
 
@@ -268,6 +285,18 @@ class Function
         double CalcOscillation(double beta) const;
         double CalcOscillationGradient(int neigh_idx, double beta);
 
+        /** weak formulation of a greyness control */
+        double CalcJump() const;
+        double CalcJumpGradient(int neigh_id) const;
+
+        /** Uses actually the data from
+         * @see ErsatzMaterial::CalcVonMisesVector()
+         * There is no local variant, only the global */
+        double CalcStress(const Local* local, const Vector<double>* stress) const;
+
+        /** quite tricky :)
+         * @see SIMP::CalcFunction() */
+        double CalcStressGradient(int neigh_idx, const Local* local, const Vector<double>* von_mises_grad) const;
 
         DesignElement* element; // this represents DesignSpace::data[element_idx]
         StdVector<DesignElement*> neighbor;
@@ -303,6 +332,12 @@ class Function
       /** Special implementation for DEG_45_STAR[_AND_REVERSE] locality.
        * @param phase for oscillation we can separate void and material which is the sign convention */
       void SetupStarLocalityElementMap(Phase phase = BOTH);
+
+      /** for a defined neighborhood only the most prev and next element, not this element */
+      void SetupBoundaryElementMap();
+
+      /** trival case form ELEMENT (stress) -> on the element itself */
+      void SetupSingularElementMap();
 
       /** small helper to determine the number of neighbors in each (diagonal)
        * direction if we use a neighborhood. Parses the whole stuff */
@@ -387,10 +422,6 @@ class Function
     /** Some special functions use a parameter: slope constraint and penalized volume */
     double parameter_;
 
-
-    /** Is this type only possible/necessary for the last excitation?
-     * Then it is only in that case evaluated and the excitation weight is ignored */
-    bool evaluateOnce_;
 
     /** @see IsPhysical() */
     bool physical_;

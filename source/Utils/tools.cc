@@ -381,6 +381,9 @@ namespace CoupledField {
     double my_exp = -1.0;
     double sum = 0.0;
 
+    if(values.GetSize() == 1)
+      return 1.0;
+
     for(unsigned int i = 0, n = values.GetSize(); i < n; i++)
     {
       double v = std::exp(values[i] * beta);
@@ -408,6 +411,9 @@ namespace CoupledField {
   {
     double my_exp = -1.0;
     double sum = 0.0;
+
+    if(values.GetSize() == 1)
+      return 1.0;
 
     for(unsigned int i = 0, n = values.GetSize(); i < n; i++)
     {

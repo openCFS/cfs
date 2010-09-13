@@ -23,18 +23,18 @@ namespace CoupledField
    /** This is a simple class used as a parameter to SetAdjointRhs called by assemble */
    class AdjointParameters {
    public:
-     AdjointParameters(Objective* o, Excitation* e) {
-       objective = o;
+     AdjointParameters(Function* f, Excitation* e) {
+       function = f;
        excite = e;
      }
-     Objective* GetObjective() {
-       return objective;
+     Function* GetFunction() {
+       return function;
      }
      Excitation* GetExcitation() {
        return excite;
      }
    private:
-     Objective* objective;
+     Function* function;
      Excitation* excite;
    };
    
@@ -74,7 +74,7 @@ namespace CoupledField
          static Enum<Application> application;
 
          /** the commit mode defines what of the iterations is to be written to gid, ... */
-         typedef enum { FORWARD, ADJOINT, BOTH } CommitMode;
+         typedef enum { FORWARD, ADJOINT, BOTH, EACH_FORWARD, EACH_ADJOINT } CommitMode;
 
          static Enum<CommitMode> commitMode;
          
@@ -124,9 +124,11 @@ namespace CoupledField
          * This does the real work
          * @param excite multi-excitation
          * @param cost multi-objective */
-        virtual void SolveAdjointProblem(Excitation* excite, Objective* cost);
+        virtual void SolveAdjointProblem(Excitation* excite, Function* f);
         
-        /** Solves all adjoint problems */
+        /** Traverses all objective and active constraint functions (non local) and calls SolveAdjointProblem()
+         * if the functions needs it
+         * @see Function::IsAdjointBased() */
         virtual void SolveAdjointProblems(Excitation* excite = NULL);
         
         /** Sets the rhs for the adjoint, called by assemle */
@@ -211,9 +213,12 @@ namespace CoupledField
         /** The current multiple excitation state -> check with IsEnabled() */
         MultipleExcitation* GetMultipleExcitation() const { return multiple_excitation; }
 
-
         /** set the (static) enums - if they are used outside optimization, make this method public */
         static void SetEnums();
+
+        /** Returns all active functions. Does not blow up local constraints. Combines objective and constraints.active.
+         * Always creates the list, so use only rarely. */
+        StdVector<Function*> GetActiveFunctions() const;
 
         /** Our base ParamNode pointer, pointing to a plain <optimization> */
         PtrParamNode optInfoNode;
@@ -226,6 +231,7 @@ namespace CoupledField
         /** This contains the constraints in their three forms: standard, hidden and observe
          * and several virtual views on that */
         ConditionContainer constraints;
+
 
         /** The applied excitation */
         Excitation* applied_excitation;
@@ -386,10 +392,10 @@ namespace CoupledField
     void Apply();
 
     /** Find the fixed factor, does ignore weighting and does not apply it. */
-    double GetFactor(Function* cost);
+    double GetFactor(Function* f);
 
     /** Returns GetFactor() * normalized_weight */
-    double GetWeightedFactor(Function* cost);
+    double GetWeightedFactor(Function* f);
     
     /** Gets the current omege =  2 * pi * f */
     double GetOmega();

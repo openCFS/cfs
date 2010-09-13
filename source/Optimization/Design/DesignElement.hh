@@ -20,6 +20,7 @@ class ResultDescription;
 class SIMPElement;
 class VicinityElement;
 class LevelSetElement;
+class Function;
 class Objective;
 class Condition;
 
@@ -125,6 +126,7 @@ public:
     MAX_CHECKERBOARD, /* the max value per element */
     MAX_MOLE, /* the max mole value */
     MAX_OSCILLATION, /* the max value per element */
+    MAX_JUMP, /* weak greyness constraint formulation */
     LEVEL_SET_GRAD_XP, LEVEL_SET_GRAD_XN, LEVEL_SET_GRAD_YP, LEVEL_SET_GRAD_YN, LEVEL_SET_GRAD_ZP, LEVEL_SET_GRAD_ZN } ValueSpecifier;
 
   BaseDesignElement();
@@ -138,16 +140,21 @@ public:
 
   /** Get the gradient values for either objective or constraint.
    * if neither f nor g is given the objective gradient sum is returned */
-  double GetPlainGradient(const Objective* f, const Condition* g) const;
+  double GetPlainGradient(const Objective* c, const Condition* g) const;
+
+  double GetPlainGradient(const Function* f) const;
 
   /** Sum app the old value (get and set together) */
-  void AddGradient(const Objective* f, const Condition* g, double value);
+  void AddGradient(const Objective* c, const Condition* g, double value);
+
+  void AddGradient(const Function* f, double value);
+
 
   /** Reset either gradients of the class
    * @param vs either COST_GRADIENT or CONSTRAINT_GRADIENT 
    * @param g this should preferably be a Funtion*, but it didn't work and 
    *  it is currently only needed for Condition anyways */
-  void Reset(ValueSpecifier vs, Condition *g = NULL);
+  void Reset(ValueSpecifier vs, Function* f = NULL);
 
   /**  Gets the lower bound of the desing variable -
    * up to now this are defaults by type */
@@ -237,7 +244,7 @@ public:
       MECH_MECH, ELEC_ELEC, ELEC_ELEC_QUAD, ELEC_MECH, MECH_ELEC,
       COMPLIANCE, VOLUME, PENALIZED_VOLUME, GAP, TRACKING, HOMOGENIZATION_TRACKING,
       POISSONS_RATIO, YOUNGS_MODULUS, TYCHONOFF, GREYNESS, REALVOLUME,
-      GLOBAL_SLOPE, GLOBAL_CHECKERBOARD} Detail;
+      GLOBAL_SLOPE, GLOBAL_CHECKERBOARD, STRESS} Detail;
 
     /** Gets the design element
      * @param access if plain the rho value if SMART and filtering is enabled the filtered value */

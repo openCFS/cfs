@@ -137,7 +137,7 @@ namespace CoupledField
 
     /** Set a ParamNode to an expandable InfoNode. Works recursively
      * @param overwrite_name if the the name of the parent node should be used */
-    void SetValue(PtrParamNode node, bool overwrite_name);
+    void SetValue(PtrParamNode node, bool overwrite_name = false);
 
     /** Creates a sub-node with the content */
     void SetComment(const std::string& string);

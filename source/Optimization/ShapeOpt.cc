@@ -267,7 +267,8 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& u1, Solutions& u2, Objective* f, Condi
               
               if(!homogenization){
                 for(unsigned int ex = 0; ex < ex_size; ++ex){
-                  Vector<double>& u1elem = dynamic_cast<Vector<double>& >(*u1.Get(ex)->gridelem[MECH][e]);
+                  // Get() requires f exclusively for adjoint solutions.
+                  Vector<double>& u1elem = dynamic_cast<Vector<double>& >(*u1.Get(ex, &u1 == &u2 ? NULL : f)->gridelem[MECH][e]);
                   Vector<double>& u2elem = dynamic_cast<Vector<double>& >(*u2.Get(ex)->gridelem[MECH][e]);
                   double v1 = 0.0; // v1 = u1elem' * (A5 * u2elem)
                   for(unsigned int i = 0; i < r; ++i){
@@ -533,10 +534,11 @@ Matrix<double> ShapeOpt::CalcHomogenizedTensor(){
   return result;
 }
 
-void ShapeOpt::StorePDESolution(Excitation &excite, UInt timestep, Solutions& solutions, bool read_sol, bool read_rhs, bool save_sol, const std::string& comment){
-  ParamMat::StorePDESolution(excite, timestep, solutions, read_sol, read_rhs, save_sol, comment);
+void ShapeOpt::StorePDESolution(Solutions& solutions, Excitation &excite, Function* f, UInt timestep, bool read_sol, bool read_rhs, bool save_sol, const std::string& comment)
+{
+  ParamMat::StorePDESolution(solutions, excite, f, timestep, read_sol, read_rhs, save_sol, comment);
   if(read_sol){
-    solutions.Get(excite)->Read(Solution::GRIDELEM_VECTORS, pde, MECH);
+    solutions.Get(excite, f, timestep)->Read(Solution::GRIDELEM_VECTORS, pde, MECH);
   }
 }
 

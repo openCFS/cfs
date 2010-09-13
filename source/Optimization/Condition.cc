@@ -88,6 +88,7 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   case SLOPE:
   case GLOBAL_SLOPE:
   case OSCILLATION:
+  case JUMP:
     if(bound_ != UPPER_BOUND && IsActive())
       bound_ = UPPER_BOUND; // detected in PostProc() and warning is given
     break;
@@ -108,6 +109,7 @@ void Condition::PostProc(DesignSpace* space, DesignStructure* structure)
   case SLOPE:
   case GLOBAL_SLOPE:
   case OSCILLATION:
+  case JUMP:
     if(pn->Get("bound")->As<std::string>() != bound.ToString(bound_) && IsActive())
       info_->Get(ParamNode::WARNING)->SetValue("changed bound for '" + type.ToString(type_) + "' to 'upperBound'");
     break;
@@ -135,7 +137,7 @@ bool Condition::ReadCoord(PtrParamNode pn)
 void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list)
 {
   Type t = type.Parse(pn->Get("type")->As<std::string>());
-  list.Push_back(t == SLOPE || t == MOLE || t == OSCILLATION ? new LocalCondition(pn) : new Condition(pn));
+  list.Push_back(t == SLOPE || t == MOLE || t == OSCILLATION || t == JUMP ? new LocalCondition(pn) : new Condition(pn));
 
   // note that the pointer becomes invalid by AddSubCondition()
   Condition* g = list.Last();
@@ -665,13 +667,15 @@ void ConditionContainer::VirtualView::Refresh()
   // search also for observe conditions!
   Condition* c = container_->Get(Condition::SLOPE, DesignElement::NO_TYPE, false, false);
   if(c != NULL) tmp.push_back(c->GetIndex());
+  c = container_->Get(Condition::MOLE, DesignElement::NO_TYPE, false, false);
+  if(c != NULL) tmp.push_back(c->GetIndex());
+  c = container_->Get(Condition::JUMP, DesignElement::NO_TYPE, false, false);
+  if(c != NULL) tmp.push_back(c->GetIndex());
+
   // we might combine oscillation for void and material with different sizes
   StdVector<Condition*> list = container_->GetList(Condition::OSCILLATION, DesignElement::NO_TYPE, false);
   for(unsigned int i = 0; i < list.GetSize(); i++)
     tmp.push_back(list[i]->GetIndex());
-
-  c = container_->Get(Condition::MOLE, DesignElement::NO_TYPE, false, false);
-  if(c != NULL) tmp.push_back(c->GetIndex());
 
   tmp.sort();
 
@@ -746,6 +750,7 @@ void ConditionContainer::VirtualView::Done()
     DesignElement::ValueSpecifier vs = DesignElement::MAX_OSCILLATION; // overwrite if necessary
     if(lc->GetType() == Function::SLOPE)        vs = DesignElement::MAX_SLOPE;
     if(lc->GetType() == Function::MOLE)         vs = DesignElement::MAX_MOLE;
+    if(lc->GetType() == Function::JUMP)         vs = DesignElement::MAX_JUMP;
 
     int idx = container_->space_->GetSpecialResultIndex(DesignElement::DEFAULT, vs);
     if(idx >= 0)

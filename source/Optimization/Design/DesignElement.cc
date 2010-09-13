@@ -53,15 +53,26 @@ void BaseDesignElement::PostInit(int objectives, int constraints)
 
 
 /** Get the gradient values for either objective or constraint */
-double BaseDesignElement::GetPlainGradient(const Objective* f, const Condition* g) const
+double BaseDesignElement::GetPlainGradient(const Objective* c, const Condition* g) const
 {
-  assert(f == NULL || g == NULL);
+  assert(c == NULL || g == NULL);
 
   if(g != NULL) return constraintGradient[g->GetIndex()];
-  if(f != NULL) return costGradient[f->GetIndex()];
+  if(c != NULL) return costGradient[c->GetIndex()];
 
   return SumObjectiveGradient();
 }
+
+/** Get the gradient values for either objective or constraint */
+double BaseDesignElement::GetPlainGradient(const Function* f) const
+{
+  assert(!f->IsObjective() || (f->IsObjective() && dynamic_cast<const Objective*>(f) != NULL));
+  assert( f->IsObjective() || (!f->IsObjective() && dynamic_cast<const Condition*>(f) != NULL));
+
+  return GetPlainGradient(f->IsObjective() ? static_cast<const Objective*>(f) : NULL,
+                           f->IsObjective() ? NULL : static_cast<const Condition*>(f));
+}
+
 
 /** Sum app the old value (get and set together) */
 void BaseDesignElement::AddGradient(const Objective* f, const Condition* g, double value)
@@ -77,7 +88,16 @@ void BaseDesignElement::AddGradient(const Objective* f, const Condition* g, doub
            else constraintGradient[g->GetIndex()] += value;
 }
 
-void BaseDesignElement::Reset(ValueSpecifier vs, Condition *g)
+void BaseDesignElement::AddGradient(const Function* f, double value)
+{
+  assert(!f->IsObjective() || (f->IsObjective() && dynamic_cast<const Objective*>(f) != NULL));
+  assert( f->IsObjective() || (!f->IsObjective() && dynamic_cast<const Condition*>(f) != NULL));
+
+  AddGradient(f->IsObjective() ? static_cast<const Objective*>(f) : NULL,
+              f->IsObjective() ? NULL : static_cast<const Condition*>(f), value);
+}
+
+void BaseDesignElement::Reset(ValueSpecifier vs, Function*  f)
 {
   switch(vs)
   {
@@ -86,8 +106,8 @@ void BaseDesignElement::Reset(ValueSpecifier vs, Condition *g)
       costGradient[i] = 0.0;
     break;
   case CONSTRAINT_GRADIENT:
-    if(g != NULL)
-      constraintGradient[g->GetIndex()] = 0.0;
+    if(f != NULL)
+      constraintGradient[f->GetIndex()] = 0.0;
     else
       for(unsigned int i = 0; i < constraintGradient.GetSize(); i++)
         constraintGradient[i] = 0.0;
@@ -180,7 +200,8 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       || rd.value == CONSTRAINT_GRADIENT
       || rd.value == MAX_SLOPE
       || rd.value == MAX_OSCILLATION
-      || rd.value == MAX_MOLE)
+      || rd.value == MAX_MOLE
+      || rd.value == MAX_JUMP)
   {
     if(dofs != 1) throw Exception("special results is only defined for scalar values");
     switch(rd.solutionType)
@@ -302,6 +323,7 @@ double DesignElement::GetPlainValue(ValueSpecifier sp, Condition* g) const
   case MAX_SLOPE:
   case MAX_MOLE:
   case MAX_OSCILLATION:
+  case MAX_JUMP:
     assert(false); // should be covered before by special result index
 
   case TOPGRAD_VALUE:
@@ -421,6 +443,7 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(MAX_SLOPE, "maxSlope");
   valueSpecifier.Add(MAX_OSCILLATION, "maxOscillation");
   valueSpecifier.Add(MAX_MOLE, "maxMole");
+  valueSpecifier.Add(MAX_JUMP, "maxJump");
   valueSpecifier.Add(WEIGHT, "weight");
   valueSpecifier.Add(OBJECTIVE, "objective");
   valueSpecifier.Add(NUM_NEIGHBOURS, "neighbours");
@@ -460,6 +483,7 @@ void DesignElement::SetEnums()
   detail.Add(GREYNESS, "greyness");
   detail.Add(GLOBAL_SLOPE, "globalSlope");
   detail.Add(GLOBAL_CHECKERBOARD, "globalCheckerboard");
+  detail.Add(STRESS, "stress");
 
 }
 
