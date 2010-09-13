@@ -510,7 +510,7 @@ void Optimization::SolveStateProblem(Excitation* excite)
                                          
   // Do not store the results. This is to be done in CommitIteration
   if(!harmonic || excite == NULL) 
-    driver->SolveProblem(IsTransient(), analysis_id, false); // static and transient optimization
+    driver->SolveProblem(IsTransient(), analysis_id, NULL); // static and transient optimization
   else
   {
     LOG_DBG(opt) << "SSP: harmonic step=" << excite->f_link->step << " f=" << excite->f_link->freq;
@@ -634,7 +634,11 @@ void Optimization::StoreResults(double step_val)
 
   // this will write the CFS result and history file
   if(!IsTransient()){ // transient optimization saves results in a different way
-    domain->GetDriver()->StoreResults(step_val == -1 ? currentIteration : step_val);
+    if(step_val == -1) {
+      domain->GetDriver()->StoreResults(currentIteration, step_val);
+    } else {
+      domain->GetDriver()->StoreResults((UInt)step_val, step_val);
+    }
   }
 }
 

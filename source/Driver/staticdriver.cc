@@ -93,7 +93,7 @@ namespace CoupledField {
     if(write_results)
     {
       handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, 1);      
-      StoreResults(1);
+      StoreResults(1,0.0);
       handler_->FinishMultiSequenceStep();
 
       if(!isPartOfSequence_)
@@ -106,12 +106,12 @@ namespace CoupledField {
     }
   }
 
-  void StaticDriver::StoreResults(double step_val)
+  void StaticDriver::StoreResults(UInt stepNum, double step_val)
   {
     assert(analysis_ == BasePDE::STATIC);
 
-    handler_->BeginStep((unsigned int) step_val, step_val);
-    ptPDE_->WriteResultsInFile((unsigned int) step_val, step_val);
+    handler_->BeginStep(stepNum, step_val);
+    ptPDE_->WriteResultsInFile(stepNum, step_val);
     ptPDE_->WriteGeneralPDEdefines();
     handler_->FinishStep();
   }

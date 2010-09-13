@@ -62,7 +62,8 @@ public:
    Double ComputeFrequencyStep(UInt actFreqStep, PtrParamNode analysis_id);
 
    /** This StoreResults meant for Optimization only */
-  void StoreResults(double step_val);
+  void StoreResults(UInt stepNum,
+                    double step_val );
 
   /** This is the list of all frequencies. As long as we have no adaptive
    * frequeceny steps this makes no problem. */

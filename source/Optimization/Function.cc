@@ -544,7 +544,7 @@ void Function::Local::SetupVirtualElementMap(Phase ph)
   int sign_1 = ph != BOTH ? (int) ph : two_signs ? 1 : Identifier::NO_SIGN;
   int sign_2 = ph != BOTH ? (int) ph : -1;
 
-  element_dimension_ = dim * (two_signs ? 2.0 : 1.0);
+  element_dimension_ = dim * (two_signs ? 2 : 1);
 
   virtual_elem_map.Reserve(element_dimension_ * space->GetNumberOfElements());
 

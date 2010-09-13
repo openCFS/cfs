@@ -195,6 +195,15 @@
           <xsd:element name="hermitean" type="DT_CFSBool" minOccurs="0"/>
           <xsd:element name="symStruct" type="DT_CFSBool" minOccurs="0"/>
           <xsd:element name="ordering"  type="DT_PardisoOrdering" minOccurs="0"/>
+          <xsd:element name="IterRefineSteps"  type="xsd:int" minOccurs="0">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Sets the iterative refinement steps. Advisable for non symmetric
+                matrices. See "Solving unsymmetric sparse systems if linear
+                equations with PARDISO" for details. Acts on DPARM(8).
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
           
           <xsd:element name="tol" type="DT_PosFloat" minOccurs="0" default="1e-6">
             <xsd:annotation>

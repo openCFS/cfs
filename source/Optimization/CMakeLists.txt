@@ -11,6 +11,7 @@ SET(TARGET_LL
   optimizer
   design
   ${TARGET_LL}
+  paramh
   domain
   forms
   matvec

@@ -46,15 +46,10 @@ cmake_modules/platform_defaults_sedici.cmake -text
 cmake_modules/platform_defaults_woody.cmake -text
 ctest_scripts/CTestConfig.cmake -text
 ctest_scripts/README.txt svneol=native#text/plain
-ctest_scripts/ctest_lse10_start_update.cmake -text
 ctest_scripts/ctest_mac_gcc_experimental.cmake -text
 ctest_scripts/ctest_mac_icc_experimental.cmake -text
-ctest_scripts/ctest_rom_gcc_experimental.cmake -text
 ctest_scripts/ctest_rom_gcc_nightly.cmake -text
-ctest_scripts/ctest_rom_icc_experimental.cmake -text
 ctest_scripts/ctest_rom_icc_nightly.cmake -text
-ctest_scripts/ctest_rom_update_cfsdeps.cmake -text
-ctest_scripts/ctest_rom_update_testsuite.cmake -text
 ctest_scripts/ctest_sedici_gcc_acml_nightly.cmake -text
 ctest_scripts/ctest_sedici_gcc_gotoblas_nightly.cmake -text
 ctest_scripts/ctest_sedici_gcc_ifort_nightly.cmake -text
@@ -68,10 +63,12 @@ ctest_scripts/ctest_ubuntu804_icc100_nightly.cmake -text
 ctest_scripts/ctest_ubuntu804_icc101_nightly.cmake -text
 ctest_scripts/ctest_ubuntu804_icc110_nightly.cmake -text
 ctest_scripts/ctest_ubuntu804_icc91_nightly.cmake -text
+ctest_scripts/ctest_update.cmake -text
+ctest_scripts/ctest_update_cfs_klu.cmake -text
+ctest_scripts/ctest_update_cfsdeps_klu.cmake -text
+ctest_scripts/ctest_update_testsuite_klu.cmake -text
 ctest_scripts/experimental_test_mac.sh svneol=native#text/plain
 ctest_scripts/known_to_fail_gcc34.txt svneol=native#text/plain
-ctest_scripts/nightly_svn_update.sh svneol=native#text/plain
-ctest_scripts/nightly_svn_update_lse10.sh -text
 ctest_scripts/nightly_test_rom.sh -text
 ctest_scripts/nightly_test_sedici.sh -text
 ctest_scripts/nightly_test_ubuntu804.sh -text
@@ -107,9 +104,16 @@ include/def_xmlschema.hh.in -text
 share/MaterialFile/mat.xml svneol=native#text/xml
 share/doc/auxilliaries/LaTeX/lsepaper.sty svneol=native#text/plain
 share/doc/auxilliaries/Pics/cfs-logo.eps -text svneol=unset#application/postscript
+share/doc/auxilliaries/Pics/cfs-logo.pdf -text svneol=unset#application/pdf
 share/doc/auxilliaries/Pics/cfs-logo.png -text svneol=unset#image/png
+share/doc/auxilliaries/Pics/ls_am_klu.eps -text svneol=unset#application/postscript
+share/doc/auxilliaries/Pics/ls_am_klu.pdf -text svneol=unset#application/pdf
+share/doc/auxilliaries/Pics/ls_am_klu.svg -text
 share/doc/auxilliaries/Pics/lse.eps -text svneol=unset#application/postscript
 share/doc/auxilliaries/Pics/lse.png -text svneol=unset#image/png
+share/doc/auxilliaries/Pics/lse_logo.eps -text svneol=unset#application/postscript
+share/doc/auxilliaries/Pics/lse_logo.pdf -text svneol=unset#application/pdf
+share/doc/auxilliaries/Pics/lse_logo.svg -text
 share/doc/auxilliaries/cfs-logo.cdr -text svneol=unset#application/coreldraw
 share/doc/developer/AddDoc/coding-rules/coding_rules.html svneol=native#text/html
 share/doc/developer/AddDoc/coding-rules/coding_rules.tex svneol=native#text/plain
@@ -259,6 +263,7 @@ share/doc/developer/Protokolle/Treffen_14_04_2005.pdf -text svneol=unset#applica
 share/doc/developer/Protokolle/Treffen_16_11_2005.pdf -text svneol=unset#application/pdf
 share/doc/developer/Protokolle/Treffen_25_09_2007.pdf -text svneol=unset#application/pdf
 share/doc/developer/Protokolle/Treffen_27_07_2005.pdf -text svneol=unset#application/pdf
+share/doc/developer/develManual/attachfile.sty svneol=native#text/plain
 share/doc/developer/develManual/concepts.tex -text
 share/doc/developer/develManual/develManual.bib -text
 share/doc/developer/develManual/develManual.cfg -text
@@ -275,31 +280,56 @@ share/doc/developer/develManual/pics/ansys.png -text
 share/doc/developer/develManual/pics/ansys_eplo_mat.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/ansys_pml3d_imag.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/ansys_pml3d_real.png -text svneol=unset#image/png
-share/doc/developer/develManual/pics/cfs-logo.png -text
+share/doc/developer/develManual/pics/cfs_elem_types.pdf -text svneol=unset#unset
+share/doc/developer/develManual/pics/cfs_elem_types.svg -text
+share/doc/developer/develManual/pics/cfsdeps_flowdiag.pdf -text svneol=unset#application/pdf
+share/doc/developer/develManual/pics/cfsdeps_flowdiag.svg -text
+share/doc/developer/develManual/pics/cfsdeps_structure.pdf -text svneol=unset#application/pdf
+share/doc/developer/develManual/pics/cfsdeps_structure.svg -text
+share/doc/developer/develManual/pics/elems_hexa.png -text
+share/doc/developer/develManual/pics/elems_line.png -text
+share/doc/developer/develManual/pics/elems_pyra.png -text
+share/doc/developer/develManual/pics/elems_quad.png -text
+share/doc/developer/develManual/pics/elems_tet.png -text
+share/doc/developer/develManual/pics/elems_tria.png -text
+share/doc/developer/develManual/pics/elems_wedge.png -text
 share/doc/developer/develManual/pics/gid.png -text
 share/doc/developer/develManual/pics/gmsh.png -text
 share/doc/developer/develManual/pics/gmsh_cp_test.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/gmsh_cutplanes.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/gmv.png -text
-share/doc/developer/develManual/pics/paraview.png -text
-share/doc/developer/develManual/pics/paraview_named_elems_threshold.png -text
-share/doc/developer/develManual/pics/paraview_named_entities.png -text
-share/doc/developer/develManual/pics/paraview_named_nodes_glyph.png -text
-share/doc/developer/develManual/pics/paraview_named_nodes_select_thresh.pdf -text
-share/doc/developer/develManual/pics/paraview_named_nodes_select_threshold.png -text
-share/doc/developer/develManual/pics/paraview_named_nodes_select_threshold.svg -text
+share/doc/developer/develManual/pics/icem_export_ans.pdf -text svneol=unset#unset
+share/doc/developer/develManual/pics/icem_export_ans.svg -text
+share/doc/developer/develManual/pics/icem_export_ansys.png -text
+share/doc/developer/develManual/pics/icem_export_ansys_options.png -text
+share/doc/developer/develManual/pics/icem_export_ansys_opts.pdf -text svneol=unset#unset
+share/doc/developer/develManual/pics/icem_export_ansys_opts.svg -text
 share/doc/developer/develManual/pics/pdf_attach_acroread.png -text
 share/doc/developer/develManual/pics/pdf_attach_foxit.png -text
 share/doc/developer/develManual/pics/pdf_attach_okular.png -text
-share/doc/developer/develManual/pics/vtk_vis_pipeline.pdf -text
-share/doc/developer/develManual/pics/vtk_vis_pipeline.svg -text
+share/doc/developer/develManual/pics/pv/paraview.png -text
+share/doc/developer/develManual/pics/pv/paraview_named_elems_threshold.png -text
+share/doc/developer/develManual/pics/pv/paraview_named_entities.png -text
+share/doc/developer/develManual/pics/pv/paraview_named_nodes_glyph.png -text
+share/doc/developer/develManual/pics/pv/paraview_named_nodes_select_thresh.pdf -text
+share/doc/developer/develManual/pics/pv/paraview_named_nodes_select_threshold.png -text
+share/doc/developer/develManual/pics/pv/paraview_named_nodes_select_threshold.svg -text
+share/doc/developer/develManual/pics/pv/tet_nedelec_shape_func.png -text
+share/doc/developer/develManual/pics/pv/tria_local_global_mapping.png -text
+share/doc/developer/develManual/pics/pv/tria_shape_func.png -text
+share/doc/developer/develManual/pics/pv/vtk_vis_pipeline.pdf -text
+share/doc/developer/develManual/pics/pv/vtk_vis_pipeline.svg -text
 share/doc/developer/develManual/quickstart.tex -text
 share/doc/developer/develManual/sources/Pfeifenfussmodell_modificated_swept.in.txt -text
+share/doc/developer/develManual/sources/ansys_surf_vol_mesh.txt -text
+share/doc/developer/develManual/sources/cplreader_meshgen.xml -text
 share/doc/developer/develManual/sources/crosspoint_test.c svneol=native#text/plain
 share/doc/developer/develManual/sources/gid_batch.tcl svneol=native#text/plain
 share/doc/developer/develManual/sources/gid_pw_server.sh svneol=native#text/plain
+share/doc/developer/develManual/sources/git_checkout_cfs.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/hdf5_file_format.xml -text
 share/doc/developer/develManual/sources/icem_to_ansys.in.txt -text
+share/doc/developer/develManual/sources/lmboot.sh -text
 share/doc/developer/develManual/sources/mkmesh.mlib.txt -text
 share/doc/developer/develManual/sources/mkmesh.txt -text
 share/doc/developer/develManual/sources/photo.c svneol=native#text/plain
@@ -307,6 +337,8 @@ share/doc/developer/develManual/sources/pv_analytical_sol.py -text
 share/doc/developer/develManual/sources/pv_matlab_besselh.m -text
 share/doc/developer/develManual/sources/pv_scipy_hankel1.py -text
 share/doc/developer/develManual/sources/pygmentize.sh -text
+share/doc/developer/develManual/sources/qs_obtain_sources.sh -text
+share/doc/developer/develManual/todonotes.sty svneol=native#text/plain
 share/doc/developer/develManual/tools.tex -text
 share/doc/developer/makedoc.sh.in -text
 share/doc/user/CMakeLists.txt svneol=native#text/plain
@@ -1365,6 +1397,8 @@ source/Utils/Timer.cc -text
 source/Utils/Timer.hh -text
 source/Utils/baseelemstoresol.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/basenodestoresol.hh svneol=native#text/x-c%2B%2Bhdr
+source/Utils/biotSavart.cc svneol=native#text/x-c%2B%2Bsrc
+source/Utils/biotSavart.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/boost-serialization.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/cartesianCoordSys.cc svneol=native#text/plain
 source/Utils/cartesianCoordSys.hh svneol=native#text/plain

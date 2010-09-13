@@ -30,6 +30,10 @@
 namespace CoupledField
 {
 
+  //! forward class declaration
+  class ResultHandler;
+
+
   //! Class representing geometrical entities (elements, nodes, ...) of a
   //! FE simulation.
 
@@ -485,6 +489,10 @@ namespace CoupledField
     /** To be called when all regions are added.
      * Sets the internal element and region structures. */
     virtual void FinishInit() = 0;
+    
+    //! Create result for grid information (local directions etc., Jacobian
+    //! determinant)
+    virtual void CreateGridInformation( ResultHandler* ptRes ) = 0;
 
 
     //@}

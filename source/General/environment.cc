@@ -1776,6 +1776,10 @@ namespace CoupledField {
     SolutionTypeEnum.Add(GRAD_Y_DISPLACEMENT, "gradYDisplacement"); // node property!
     SolutionTypeEnum.Add(GRAD_Z_DISPLACEMENT, "gradZDisplacement"); // node property!
     SolutionTypeEnum.Add(GRAD_ELEC_POTENTIAL, "gradElecPotential");
+    
+    // General (grid related) results
+    SolutionTypeEnum.Add(ELEM_LOC_DIR, "localDirection");
+    SolutionTypeEnum.Add(JACOBIAN, "jacobian");
   
     feMatrixType.Add( NOTYPE, "no FE matrix" );
     feMatrixType.Add( SYSTEM, "system matrix" );

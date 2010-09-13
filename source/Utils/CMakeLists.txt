@@ -1,5 +1,6 @@
 SET(UTILS_SRCS
   ApproxData.cc
+  biotSavart.cc
   cartesianCoordSys.cc
   Coil.cc
   coordSystem.cc

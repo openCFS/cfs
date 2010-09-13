@@ -36,8 +36,8 @@
 \hypersetup{citecolor=blue}
 
 \hypersetup{pdfauthor=cfs-devel}
-\hypersetup{pdftitle={CFS++ --- XML Reference Manual}}
-\hypersetup{pdfsubject={User's Guide}}
+\hypersetup{pdftitle={CFS++ --- Developer's Manual}}
+\hypersetup{pdfsubject={Developer's Guide}}
 \else
 \usepackage{graphicx}
 \DeclareGraphicsExtensions{.jpg,.pdf,.png}
@@ -48,6 +48,9 @@
 
 %% Using  pdflatex one may attach  arbitrary files to the  generated PDF.
 \usepackage{attachfile}
+
+%% Package for entering TODO notes
+\usepackage{todonotes}
 
 %
 % =============================================================================
@@ -71,6 +74,9 @@
 \pagenumbering{arabic}
 %
 %
+
+\listoftodos
+
 \include{introduction}
 \include{quickstart}
 \include{infrastructure}

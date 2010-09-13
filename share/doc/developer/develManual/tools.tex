@@ -7,16 +7,117 @@
 \section{Pre-Processors}
 \subsection{ANSYS}
 
-\begin{enumerate}
-   \item{Document mkmesh/mkhdf5
-       \attachfile[icon=PushPin,description={ANSYS mkmesh and mkhdf5 extension.},mimetype=text/plain]{attachments/mkmesh.mlib.txt}
-       \attachfile[icon=PushPin,description={ANSYS mkmesh AWK script.},mimetype=text/plain]{attachments/mkmesh.txt}
-     }
-   \item{How to modify third party ANSYS /prep7 meshes to write them with mkhdf5
-       \attachfile[icon=PushPin,description={Result of File -> Export -> ANSYS in ICEM CFD.},mimetype=text/plain]{attachments/Pfeifenfussmodell_modificated_swept.in.txt}
-       \attachfile[icon=PushPin,description={ANSYS input script for converting ICEM mesh to mkhdf5 mesh.},mimetype=text/plain]{attachments/icem_to_ansys.in.txt}
-     }
-\end{enumerate}
+\noindent \url{http://www.bauwesen.uni-dortmund.de/nmi/Medienpool/Skripte/ansys-workshop061002.pdf}
+
+\noindent \url{http://www-old.hallf.kth.se/~mart/Demo_Ansys_classic.pdf}
+
+\noindent \url{http://www.me.umn.edu/education/courses/me5341/handouts/essay\%205AC.pdf}
+
+\noindent \url{http://people.civil.aau.dk/~ask/ansys/FEM-ANSYS-Classic-mdl.pdf}
+
+\noindent \url{http://people.civil.aau.dk/~ask/ansys/FEM-ANSYS-Classic-introduction.pdf}
+
+\noindent \url{http://people.civil.aau.dk/~ask/ansys/FEM-ANSYS-Classic-2d-plane-models.pdf}
+
+
+\subsubsection{ANSYS mkmesh/mkhdf5 Interface}
+
+The extensions to ANSYS for writing out the mesh to either the .mesh or to the
+.h5 format  readable by CFS++ are implemented  in part as APDL  scripts and in
+part  by  an  AWK  script  (mkmesh)  or  as  reader  module  within  cplreader
+(mkhdf5).  The  source  code  of  the  extension  can  be  obtained  from  SVN
+\url{https://lse17.e-technik.uni-erlangen.de:2001/svn/mkmesh/trunk/}  or  from
+the attached files in this document.   The following APDL code has to be added
+either to  {\tt \$HOME/start110.ans} or  to {\tt v110/ansys/apdl/start110.ans}
+for the extension to be initialized:
+
+\begin{verbatim}
+! Settings for the mkmesh-Interface
+*ulib,mkmesh,mlib,/opt/pckg/ansys/local
+*abbr,init,*use,init
+\end{verbatim}
+
+\noindent ANSYS APDL extension script for mkmesh/mkhdf5:
+\attachfile[icon=PushPin,description={ANSYS mkmesh and mkhdf5 extension.},mimetype=text/plain]{attachments/mkmesh.mlib.txt}
+
+\noindent AWK script implementing mkmesh:
+\attachfile[icon=PushPin,description={ANSYS mkmesh AWK script.},mimetype=text/plain]{attachments/mkmesh.txt}
+
+\noindent The syntax of the mkhdf5 APDL macro is as follows:
+
+\noindent {\tt mkhdf5,['degen'],['tolerant'],['nodeltemp'],['verbose']}
+
+If  'degen' is  specified  degenerated quadrilaterals  and  hexehedra will  be
+generated  instead  of  triangles,   tetrahedra,  pyramids  and  wedges.   The
+'tolerant' flag admits  gaps in node or element  numbering. The resulting node
+and  element numbers  in the  HDF5 file  may therefore  be different  from the
+numbers in  the ANSYS  mesh. When 'nodeltemp'  is specified,  the intermediate
+files generated  by our interface will not  be deleted once the  HDF5 file has
+been  successfully written. The  'verbose' flag  instructs cplreader  to print
+more information on the console.
+
+
+\subsubsection{Create Volume and Surface Mesh from Surface Mesh of Closed Body}
+\label{sec:ansys_surf_vol_mesh}
+
+Sometimes one  has the problem to create  a volume mesh from  a closed surface
+mesh.   At other  times one  may have  a volume  mesh, but  one  needs surface
+elements at  some surfaces  of this mesh  (e.g. for  Mortar FEM). In  the APDL
+script presented here we show how to do both things.  We create a surface mesh
+of a cuboid using the mesh  generator from cplreader. However any other closed
+surface  mesh which  can be  converted to  a .rst  file by  cfstool  will also
+do. Using cfstool, we convert the surface mesh to .rst format and read it into
+ANSYS  using  /POST1  macros.  We  then  switch  to  /PREP7, load  our  mkhdf5
+interface and create  a volume mesh from the surface  mesh while throwing away
+the old  surface elements. For  ANSYS to know  what new surfaces to  mesh, the
+nodes on this surface have to be selected and also all volume elements next to
+this surface. In the end we write out our new HDF5 file.
+
+\noindent Surface mesh generator script for cplreader:
+\attachfile[icon=PushPin,description={Surface mesh generator script for cplreader.},mimetype=text/plain]{attachments/cplreader_meshgen.txt}
+
+\noindent APDL script for surface/volume meshing based solely on existing elements:
+\attachfile[icon=PushPin,description={ANSYS surf./vol. meshing script.},mimetype=text/plain]{attachments/ansys_surf_vol_mesh.txt}
+
+\noindent  For creating volume  meshes from  surface meshes  in Gmsh  refer to
+Sec. \ref{sec:gmsh_surf_vol_mesh}.
+
+
+\subsubsection{Export of ICEM Meshes to ANSYS and Modification of Element Types}
+
+To export  an ICEM 12 mesh into  ANSYS /PREP7 format go  to File $\rightarrow$
+Export $\rightarrow$ ANSYS. Activate the  Advanced Edit Options and click Edit
+Attributes.  In the  dialogue box set the element type to  MESH200 for all 3D,
+2D and 1D elements (cf. Fig. \ref{fig:icem_export_ansys_opts})
+
+\begin{figure}[htb] 
+  \centering 
+  \subfloat[Export to ANSYS tab.]{
+    \label{fig:icem_export_ansys}
+    \begin{overpic}{pics/icem_export_ans}
+%      \put(10,20){\textcolor{red}{\bf Test}}
+    \end{overpic}
+    }
+  \qquad
+  \subfloat[Element type options.]{
+    \label{fig:icem_element_type_opts}
+    \begin{overpic}{pics/icem_export_ansys_opts}
+      \put(56,16){\textcolor{red}{\sf {\tiny \shortstack[c]{Edit options for\\3D, 2D and 1D elements}}}}
+      \put(66,27){\textcolor{red}{\sf {\tiny \shortstack[c]{Set element type\\to MESH200}}}}
+    \end{overpic}
+  } 
+  \caption{Export options for ANSYS /PREP7 mesh in ICEM.}
+  \label{fig:icem_export_ansys_opts}
+\end{figure}
+
+The exported mesh contains node components (cmlist) and element regions tagged
+by element types (etlist). Please note,  that no pyramids will be written out,
+if the element types are not switched to MESH200.
+
+\attachfile[icon=PushPin,description={Result of File -> Export -> ANSYS in ICEM CFD.},mimetype=text/plain]{attachments/Pfeifenfussmodell_modificated_swept.in.txt}
+
+\noindent How to modify third party ANSYS /prep7 meshes to write them with mkhdf5
+\attachfile[icon=PushPin,description={ANSYS input script for converting ICEM mesh to mkhdf5 mesh.},mimetype=text/plain]{attachments/icem_to_ansys.in.txt}
 
 
 
@@ -87,7 +188,8 @@ characteristic length  of the geometry nodes  to a value larger  than the edge
 length of the geometrical entities.  The grid achieved therewith has been used
 to test the crosspoint identification code.
 
-\input{pygmentized/gmsh_cp_test}
+%\input{pygmentized/gmsh_cp_test}
+\noindent Gmsh input script for generating the crosspoint identification mesh:
 \attachfile[icon=PushPin,description={Gmsh input script for crosspoint mesh.},mimetype=text/plain]{attachments/gmsh_cp_test.txt}
 
 \begin{figure}[htb] 
@@ -122,6 +224,14 @@ name for CFS++.
 \input{pygmentized/gmsh_mesh_from_pic}
 \attachfile[icon=PushPin,description={Gmsh input script for generating a mesh from an image.},mimetype=text/plain]{attachments/gmsh_mesh_from_pic.txt}
 
+\subsubsection{Create Volume and Surface Mesh from Surface Mesh of Closed Body}
+\label{sec:gmsh_surf_vol_mesh}
+
+A  similar technique  for  generating  volume meshes  from  surface meshes  as
+described in  Sec. \ref{sec:ansys_surf_vol_mesh} is also possible  in Gmsh. An
+example  describing  this technique  can  be found  in  the  test suite  ({\tt
+TESTSUIT/cfstool/gmsh\_to\_hdf5/man.geo})
+
 \newpage
 
 \section{Post-Processors}
@@ -148,6 +258,19 @@ manifests itself  as a  segfault of  ANSYS Classic. The  same input  file does
 however not cause  a problem for the CFX post-processor.  This behavior can be
 reproduced by the test suite case {\tt TESTSUIT/cfstool/hdf5\_to\_rst}, where the {\tt
 .rst} file {\tt results\_rst/refelems\_ms1.rst} exhibits this behavior.}
+
+\textcolor{red}{ATTENTION AGAIN:  At the moment, the ANSYS  .rst writer within
+cfs/cfstool  just  works,  if  the  binaries  are started  out  of  the  build
+directory. This is because of the fact, that the ANSYS writer loads the shared
+library for  interfacing to a  certain version of  the ANSYS libbin.so  from a
+hard coded location inside the build build directory. Therefore a segfault may
+occur  if  the binaries  are  used outside  this  directory.  Use {\tt  strace
+bin/OPENSUSE\_11.2\_I386/cfsbin simname}  to track  down  this behaviour.}
+
+\textcolor{red}{Another  source of  problems  are the  cfs  and cfstool  start
+scripts, which have been taken from  NACS and depend upon an installed version
+of ANSYS.  For CFS++ no  installed ANSYS is required and the LD\_LIBRARY\_PATH
+could be set to the library path of the build directory.}
 
 Plot    nodal   solution   elecPot    on   .rst    from   test    suite   case
 {\tt CFS\_TESTSUITE/TESTSUIT/cfstool/ hdf5\_to\_rst/results\_rst}
@@ -342,7 +465,7 @@ Further Links for postprocessing in Gmsh:
 \newpage
 \subsection{ParaView}
 
-Here    is   what    the    official   web    site    says   about    ParaView
+Here    is   what    the    official   web    site    says   about    ParaView\footnote{\url{http://www.cmake.org/Wiki/images/8/88/ParaViewTutorial38.pdf}, \url{http://www.nd.edu/~rich/SC09/docs/tut102/SC09_ParaView_Tutorial_Slides.pdf}}
 \cite{ParaViewWebSite,PVWiki,PVGuide2007}:
 
 \emph{ParaView   is  an   open-source,  multi-platform  data   analysis  and
@@ -357,7 +480,7 @@ analyze datasets of terascale as well as on laptops for smaller data.}
 
 \begin{figure}[htb] 
   \centering
-  \begin{overpic}[width=0.5\textwidth]{pics/paraview}
+  \begin{overpic}[width=0.5\textwidth]{pics/pv/paraview}
 %    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
   \end{overpic}
   \caption{Postprocessing the electrostatic man with ParaView}
@@ -386,14 +509,14 @@ manipulated by filters and is then converted into graphics primitves by mapper
 objects. The visual properties and  the interaction with the latter objects is
 the task of  actors. In the end the graphical objects  are displayed on screen
 or      written      to      files      by     renderers      or      windows.
-Fig.   \label{fig:vtk_vis_pipeline}  depicts  the  stages  of  a  typical  VTK
+Fig.   \ref{fig:vtk_vis_pipeline}  depicts  the  stages  of  a  typical  VTK
 visualization pipeline  and gives  hints where the  CFS++ HDF5 reader  and the
 ParaView application fit in.
 
 \begin{figure}[htb] 
 %  \centering
   \hspace{1.5cm}
-  \begin{overpic}[scale=0.7]{pics/vtk_vis_pipeline}
+  \begin{overpic}[scale=0.7]{pics/pv/vtk_vis_pipeline}
     \put(5,95){\Large \textcolor{black}{\sf VTK Visualization Pipeline}}
     \put(19,83){\textcolor{black}{\sf \shortstack[c]{Sources\\{\scriptsize Provide initial data input}\\{\scriptsize from files or generated}}}}
     \put(6.5,66.5){\textcolor{black}{\sf \shortstack[c]{Filters (Optional)\\{\scriptsize Modify the data in some way,}\\{\scriptsize conversion, reduction, interpolation, merging, \ldots}}}}
@@ -413,7 +536,7 @@ ParaView application fit in.
 The     {\tt     vtkCFSReader}     class     is    implemented     in     {\tt
 CFSDEPS/cfs-hdf5/paraviewPlugin/vtkCFSReader.*}.   It   derives  from  a  {\tt
 vtkMultiBlockDataSetAlgorithm}\footnote{\url{http://www.vtk.org/doc/nightly/html/classvtkMultiBlockDataSetAlgorithm.html}}
-which    is    data    source,     that    can    provide    time    dependent
+which    is   a    data   source,    that   can    provide    time   dependent
 data\footnote{\url{http://www.itk.org/Wiki/images/2/20/IEEE08_Time-In-ParaView.ppt}}
 \cite{Biddiscombe2007} on a number of regions  of the domain.  In our case the
 meshes   in    the   subregions   are    implemented   as   blocks    in   the
@@ -427,23 +550,73 @@ use of  the classes  in hdf5common.cc and  hdf5reader.cc which are  located in
 {\tt CFSDEPS/cfs-hdf5/source/hdf5*.cc}  and which are  meant to be used  as an
 interface  to  our  HDF5  file   structure  also  from  within  CFS++  in  the
 future. Since the classes in the mentioned  files make use of the HDF5 C++ API
-and also function from Boost, the ParaView plugin depends on both libraries at
-the moment.  The  build script for ParaView will check if  both libs have been
-compiled already and will issue an error if this is not the case.
+and also functions  from Boost, the ParaView plugin  depends on both libraries
+at the  moment.  The build  script for ParaView  will check if both  libs have
+been compiled already and will issue an error if this is not the case.
+
+\subsubsection{Selecting which regions to load}
+
+\begin{itemize}
+\item Regions map to blocks
+\item Only selected regions will be loaded into blocks
+\item Extract  Block filter can be  used to further  subdivide refining region
+selection
+\end{itemize}
+
+\subsubsection{Displaying elements of certain element type}
+
+\begin{itemize}
+\item Cf. to Sec. \ref{sec:cfs_element_types} for the integer ids of the CFS++
+element types
+\item Create a Threshold Filter and set the Scalars attribute to 'elemTypes'
+\item Set lower and upper threshold according to the desired element types and click Apply
+\end{itemize}
+
+
+\subsubsection{Labeling or selecting by original elem/node numbers}
+
+\begin{itemize}
+\item In the  process of reading the HDF5 file VTK  gets different indices for
+nodes and elements than CFS++
+\item Therefore node  and element dataset are created  containing the original
+node and element numbers (origNodeNumbers and origElemNumbers)
+\item These datasets may be used while selecting (View $\rightarrow$ Selection
+Inspector $\rightarrow$  threshold based,  element/node labels) or  to extract
+subsets using the threshold filter
+\end{itemize}
+
+\subsubsection{Animating harmonic/eigenfrequency results}
+
+\begin{itemize}
+\item Select frequency step from 'Time/Freq Step' slider
+\item Check 'Transient fields from harm./eigen. data' in HDF5 reader properties tab
+\item E.g. color by 'Resultname-mode at XXX Hz' or apply further filters
+\item Set number of frames in View $\rightarrow$ Animation View
+\item Click on play button
+\item To save the animation go to File $\rightarrow$ Save Animation
+\end{itemize}
+
+The animation time runs from $t = [0\ldots1]$ which corresponds to 0 to $2\pi$
+for the rotating phasor. For harmonic data the real part of the multiplication
+between the rotating  phasor ($\cos(2\pi t) + j\sin(2\pi  t)$) and the complex
+result value at a node or element is computed.  For real-valued eigenfrequency
+results just the cosine (real part)  of the rotating phasor is multiplied with
+the eigen-vector.
+
 
 \subsubsection{Visualizing named nodes and elements}
 
 Our  ParaView plugin provides  access to  named entities  via node  or element
 datasets. In these datasets the actual  named entities are assigned a value of
 one, whereas  all other  nodes or elements  are assigned  a value of  zero. By
-default no named entity datasets will be generated, since there is chance that
-very  many  named   entities  might  exist  and  the   memory  would  then  be
-unnecessarily  cluttered.  The  desired  entities  can be  selected  from  the
+default no  named entity datasets will  be generated, since there  is a chance
+that  very many  named  entities might  exist  and the  memory  would then  be
+unnecessarily  cluttered.   The desired  entities  can  be  selected from  the
 properties tab of the HDF5 plugin (cf. Fig. \ref{fig:pv_named_entities}).
 
 \begin{figure}[htb] 
   \centering
-  \begin{overpic}[width=0.3\textwidth]{pics/paraview_named_entities}
+  \begin{overpic}[width=0.3\textwidth]{pics/pv/paraview_named_entities}
 %    \put(29,4){\textcolor{red}{\sf {\tiny \shortstack[c]{Select named nodes\\in reader properties}}}}
   \end{overpic}
   \caption{Selecting named entity sets in ParaView.}
@@ -460,7 +633,7 @@ filter with spheres as shown in Fig. \ref{pv_named_nodes_glyph}
 
 \begin{figure}[htb] 
   \centering
-  \begin{overpic}[width=0.5\textwidth]{pics/paraview_named_nodes_glyph}
+  \begin{overpic}[width=0.5\textwidth]{pics/pv/paraview_named_nodes_glyph}
 %    \put(29,4){\textcolor{red}{\sf {\tiny \shortstack[c]{Select named nodes\\in reader properties}}}}
   \end{overpic}
   \caption{Dataset colored  by named node  field and nodes marked  with sphere glyphs.}
@@ -473,59 +646,12 @@ first. Afterwards the named node field (fix in this example) may be selected.
 In more  complicated situations  it may become  necessary to first  generate a
 selection of the nodes in order to perform some operations on it (most notably
 generating a  spreadsheet view  on the data  defined on  them or if  2D glyphs
-should be used).  To do so a threshold-based selection has  to be generated by
+should be used).  To do so, a threshold-based selection has to be generated by
 opening the selection inspector (View $\rightarrow$ Selection Inspector)
-
-
-\subsubsection{Computing analytical fields using Programmable Filter and SciPy }
-
-This  piece of  code  can be  used  to compute  the  analytical solution  (cf.
-\cite{Triebenbacher2006},    Section    5.2    and    test    suite    example
-{\tt TESTSUITE/singlefield/acoustics/l2d\_nmg})  of  a  sound radiating  cylinder  by
-making use  of a Hankel function  from SciPy. Whereby the  the following SciPy
-code            (cf.             SciPy            special            functions
-docu\footnote{\url{http://docs.scipy.org/doc/scipy-0.7.x/reference/tutorial/special.html}},
-Treatment             of             complex            numbers             in
-Python\footnote{\url{http://docs.python.org/tutorial/introduction.html}})
-
-\input{pygmentized/pv_scipy_hankel1}
-
-\noindent is equivalent to the following Matlab/Octave code
-
-\input{pygmentized/pv_matlab_besselh}
-
-\noindent The following  code will produce a new  nodal result 'AnalyticalSol'
-but also shows how to access the current time step and previous nodal results.
-For the  treatment of  element based results  or vector/tensor  results please
-refer                      to                      the                     VTK
-documentation\footnote{\url{http://www.vtk.org/doc/nightly/html/classvtkDataSet.html},\\\url{http://www.vtk.org/doc/nightly/html/classvtkDataArray.html}}
-
-\input{pygmentized/pv_analytical_sol}
-\attachfile[icon=PushPin,description={ParaView Programmable Filter script for computing analytical solution.},mimetype=text/plain]{attachments/pv_analytical_sol.txt}
-
-\subsubsection{ParaView Python Scripting}
-
-\begin{table}[htb]
-\centering
-\begin{minipage}{18cc}\caption{Resources for ParaView Python Scripting}
-\label{tab:pv_python_scripting}
-\end{minipage}
-\par\medskip\noindent
-\begin{tabular}{ll}
-  \toprule
-  {\bf Description} & {\bf URL} \\ \otoprule
-  Python Programmable Filter & \url{http://www.cmake.org/Wiki/Python\_Programmable\_Filter} \\
-  Examples for Python Programmable Filters and Sources & \url{http://www.itk.org/Wiki/Here\_are\_some\_more\_examples\_of\_simple\_ParaView\_3\_python\_filters.} \\
-  Time Dependent Processing in a Parallel Pipeline Architecture \cite{Biddiscombe2007} & \url{http://www.computer.org/portal/web/csdl/doi/10.1109/TVCG.2007.70600} \\
-  ParaView Python Scripting Basics & \url{http://www.cmake.org/Wiki/ParaView/Python\_Scripting} \\
-  Composite datasets in VTK (e.g. vtkMultiBlockDataSet) \cite{Geveci2006} & \url{http://www.kitware.com/products/thesource/oct2006.html} \\
-  \bottomrule
-\end{tabular} 
-\end{table}
 
 \begin{figure}[htb] 
   \centering
-  \begin{overpic}[grid,tics=10,width=0.5\textwidth]{pics/paraview_named_nodes_select_thresh}
+  \begin{overpic}[grid,tics=10,width=0.5\textwidth]{pics/pv/paraview_named_nodes_select_thresh}
     \put(29,4){\textcolor{red}{\sf {\tiny \shortstack[c]{Select named nodes\\in reader properties}}}}
     \put(40,52){\textcolor{red}{\sf {\tiny \shortstack[c]{Point selection is\\threshold based}}}}
     \put(40,45){\textcolor{red}{\sf {\tiny \shortstack[c]{Threshold on 'excite'\\data array}}}}
@@ -549,6 +675,131 @@ documentation\footnote{\url{http://www.vtk.org/doc/nightly/html/classvtkDataSet.
   \end{overpic}
   \caption{Generating a threshold based selection on named nodes.}
   \label{fig:pv_named_nodes_thresh_sel}
+\end{figure}%
+
+
+
+\subsubsection{Computing analytical fields using Programmable Filter and SciPy }
+
+This  piece of  code  can be  used  to compute  the  analytical solution  (cf.
+\cite{Triebenbacher2006},   Section   5.2   and   test  suite   example   {\tt
+TESTSUITE/singlefield/acoustics/l2d\_nmg})  of a  sound radiating  cylinder by
+making use  of a Hankel function  from SciPy. Whereby the  the following SciPy
+code            (cf.             SciPy            special            functions
+docu\footnote{\url{http://docs.scipy.org/doc/scipy-0.7.x/reference/tutorial/special.html}},
+Treatment             of             complex            numbers             in
+Python\footnote{\url{http://docs.python.org/tutorial/introduction.html}})
+
+\input{pygmentized/pv_scipy_hankel1}
+
+\noindent is equivalent to the following Matlab/Octave code
+
+\input{pygmentized/pv_matlab_besselh}
+
+\noindent The following  code will produce a new  nodal result 'AnalyticalSol'
+but also shows how to access the current time step and previous nodal results.
+For the  treatment of  element based results  or vector/tensor  results please
+refer                      to                      the                     VTK
+documentation\footnote{\url{http://www.vtk.org/doc/nightly/html/classvtkDataSet.html},\\\url{http://www.vtk.org/doc/nightly/html/classvtkDataArray.html}}
+
+\input{pygmentized/pv_analytical_sol}
+\attachfile[icon=PushPin,description={ParaView Programmable Filter script for computing analytical solution.},mimetype=text/plain]{attachments/pv_analytical_sol.txt}
+
+
+\subsubsection{L2 Norm for transient datasets}
+
+\begin{itemize}
+\item Analytical solution not always best reference solution
+\item Use second simulation on same mesh as reference
+\item Problem: How to subtract fields from each other and compute L2 norm?
+\item  Solution:  Use meshdiff  mode  of  cfstool  to compute  difference  and
+analytical solution script from paraview to compute L2 norm.
+\end{itemize}
+
+
+\subsubsection{ParaView Python Scripting}
+
+Some tips for Python scripting in ParaView:
+
+\begin{itemize}
+\item Open Python Shell under Tools $\rightarrow$ Python Shell
+\item {\tt help(obj|package)} provides help about a certain class or package
+\item By issuing {\tt print obj} the PrintSelf() function of VTK objects gets invoked
+\item Set {\tt obj.DebugOn()} if you want to see some more debug info about VTK objects.
+\end{itemize}
+
+
+\begin{table}[htb]
+\centering
+\begin{minipage}{18cc}\caption{Resources for ParaView Python Scripting}
+\label{tab:pv_python_scripting}
+\end{minipage}
+\par\medskip\noindent
+\begin{tabular}{ll}
+  \toprule
+  {\bf Description} & {\bf URL} \\ \otoprule
+  Python Programmable Filter & \url{http://www.cmake.org/Wiki/Python\_Programmable\_Filter} \\
+  Examples for Python Programmable Filters and Sources & \url{http://www.itk.org/Wiki/Here\_are\_some\_more\_examples\_of\_simple\_ParaView\_3\_python\_filters.} \\
+  Time Dependent Processing in a Parallel Pipeline Architecture \cite{Biddiscombe2007} & \url{http://www.computer.org/portal/web/csdl/doi/10.1109/TVCG.2007.70600} \\
+  ParaView Python Scripting Basics & \url{http://www.cmake.org/Wiki/ParaView/Python\_Scripting} \\
+  Composite datasets in VTK (e.g. vtkMultiBlockDataSet) \cite{Geveci2006} & \url{http://www.kitware.com/products/thesource/oct2006.html} \\
+  Python Scripting for ParaView & \url{http://www.vgtc.org/PDF/slides/2008/visweek/tutorial6_ayachit_python.pdf} \\
+  ParaView Scripting & \url{http://www.itk.org/Wiki/images/7/7c/PV_Vis09_Tut_Python.pdf} \url{http://www.itk.org/Wiki/images/7/7c/PV_Vis09_Tut_Python.pdf} \\
+  \bottomrule
+\end{tabular} 
+\end{table}
+
+
+\subsubsection{Interpolating volume dataset to surfaces}
+
+Since CFS++  only saves the fields on  the regions specified in  the XML file,
+there may  be no field information  available on surface  regions.  To perform
+visualizations on  these surface regions,  the fields have to  be interpolated
+there first.  This may be achieved  by using the Resample  with dataset filter
+and by specifying the surface regions as Input and the volume regions with the
+data on them as Source.
+
+\subsubsection{Extracting surface meshes for further simulations from ParaView}
+
+In order to extract some surface meshes from ParaView for use in CFS++ one can
+save them to  VRML format by using File $\rightarrow$  Export. The VRML format
+can be read in by Gmsh, which in turn can do some further preprocessing to the
+mesh.  The   mesh  generated  by  Gmsh   may  then  be   read  by  cfs/cfstool
+(cf. Sec. \ref{sec:ansys_surf_vol_mesh}).
+
+
+\subsubsection{Visualizing Basis Functions}
+
+\paragraph{Second-Order Triangle}
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.5\textwidth]{pics/pv/tria_shape_func}
+  \end{overpic}
+  \caption{Second-order shape function with colormap and warped by scalar.}
+  \label{fig:pv_tria_shape_func}
+\end{figure}%
+
+\paragraph{Second-Order Pyramid}
+
+\paragraph{Nédélec Tetrehedron}
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.5\textwidth]{pics/pv/tet_nedelec_shape_func}
+  \end{overpic}
+  \caption{First-order Nédélec shape function with colormap and arrow glyphs.}
+  \label{fig:pv_tet_nedelec_shape_func}
+\end{figure}%
+
+\subsubsection{Visualizing Local-to-Global Mapping}
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.7\textwidth]{pics/pv/tria_local_global_mapping}
+  \end{overpic}
+  \caption{Visualization of second-order triangle local to global mapping.}
+  \label{fig:pv_tria_local_global_mapping}
 \end{figure}%
 
 \newpage

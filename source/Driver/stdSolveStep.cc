@@ -14,6 +14,7 @@
 #include "PDE/StdPDE.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Utils/result.hh"
+#include "Utils/biotSavart.hh" 
 #include "Driver/singleDriver.hh"
 #include "Optimization/Optimization.hh"
 
@@ -99,6 +100,15 @@ namespace CoupledField {
       UInt& counter = PDE_.GetIterCoupledCounter();
       counter++;
     }
+    
+    // check for Biot Savart
+    if ( PDE_.IsBiotSavart() ) {
+      Vector<Double> & sol = 
+          dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
+      Vector<Double>& magVecBiotSavart = PDE_.GetBiotSavart()->GetMagVec(false); 
+      sol += magVecBiotSavart;
+    }
+
   }
 
 
@@ -821,6 +831,14 @@ namespace CoupledField {
 
       // Following method is essential for fractional damping model
       TS_alg_->AdvanceTimestep(solHelp);
+    }
+    
+    // check for Biot Savart
+    if ( PDE_.IsBiotSavart() ) {
+      Vector<Double> & sol = 
+          dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
+      Vector<Double>& magVecBiotSavart = PDE_.GetBiotSavart()->GetMagVec(false);
+      sol += magVecBiotSavart;
     }
   }
 
