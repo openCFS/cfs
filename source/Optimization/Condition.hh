@@ -24,6 +24,15 @@ namespace CoupledField
        /** Helper constructor for AddCondition */
        Condition(PtrParamNode pn);
 
+       /** overwrites Function::IsObjective() */
+       bool IsObjective() const { return false; }
+
+       /** to be overwritten in LocalCondition */
+       virtual bool IsLocalCondition() const { return false; }
+
+       /** Overwrites and calls Function::PostProc() */
+       void PostProc(DesignSpace* space, DesignStructure* structure);
+
        /** Call this method to append a Condition. This calls the actual (private) constructor.
         * Index is set with position of the relevant list.
         * If it is a homogenization constraint there might be a blow up resulting in several
@@ -33,16 +42,17 @@ namespace CoupledField
         * @param observation stuff is added here in observation mode */
        static void AddCondition(PtrParamNode pn, StdVector<Condition*>& constraints);
 
-       /** General constraint bounds */
+       /** usually for constraints plus globalSlope for objective */
        typedef enum { EQUAL, LOWER_BOUND, UPPER_BOUND } Bound;
 
        static Enum<Bound> bound;
 
        /** Be sure not to mix up with Name! */             
        Bound GetBound() const { return bound_; }
-       
+
        /** The bound value for inhomogeneous constraints. */
        double GetBoundValue() const { return boundValue_; }
+
 
        /** Is this a linear condition? E.g. SnOpt can handle them more efficiently */
        bool IsLinear() const { return linear_; }
@@ -69,8 +79,8 @@ namespace CoupledField
        /** Shall the scaling be linked to the objective scaling */
        bool DoObjectiveScaling() const { return objective_scaling_; }
 
-       /** Is the gradient dense or sparse. Only the slope is sparse! */
-       bool HasDenseJacobian() const { return type_ != SLOPE; }
+       /** Is the gradient dense or sparse. Only local conditions are sparse */
+       bool HasDenseJacobian() const { return !IsLocalCondition();  }
        
        /** Gives the sparsity pattern of the jacobian. It gives the sorted, 0-based indices which have
         * values. For the dens case this is 0, 1, ... m.
@@ -80,7 +90,8 @@ namespace CoupledField
        
        /** This is DEFAULT (= applies always) if not defined */
        DesignElement::Type design;
- 
+
+
        /** The scaling is evaluated for external optimizers, not in OC!
         * This is the manual set scaling value - in objective_scaling_ case this value is ignored! */
        double manual_scaling_value;
@@ -131,6 +142,8 @@ namespace CoupledField
       /** To be called by ConditionContainer::PostProc() which is a friend */
       void SetDenseSparsityPattern(DesignSpace* space);
       
+
+      /** Bound stuff for condition and globalSlope also for objective */
       Bound bound_;
 
       /** the bound value, the value_ attribute contains the function value */
@@ -153,17 +166,30 @@ namespace CoupledField
 
       /** Conditions mark themself as (non) linear -> no power in the design variable, ...*/
       bool linear_;
+
+      /** this is the virtual base index of this condition w.r.t. all conditions.
+       * For normal condition this is simple the virtual index, for local conditions this is the base*/
+      int virtual_base_index_;
    };
 
-   /** This specialization is kind of a super constraint as it handles the 2*dim*n slope conditions
-    * where n is the number of design elements. See ErsatzMaterial::CalcSlopeConstraint() for documentation */
-   class SlopeCondition : public Condition
+   /** This handles local constraints which exist only virtually - hence the optimizer sees them but
+    * within optimization (e.g. log output) it is save to traverse all (real) elements.
+    * The key element is the ConditionContainer() and the virtual local mode.
+    * Examples are slope conditions and mole.
+    * It is based on the local neighborhood information within Function::Local. Note, that there
+    * are also global local functions like globalSlope using the Function::Local information. Only
+    * when the neighborhood is used as local constraint with potentially many thousands elements,
+    * this specialization of Condition is used. */
+   class LocalCondition : public Condition
    {
    public:
      /** Helper constructor for AddCondition */
-     SlopeCondition(PtrParamNode pn);
+     LocalCondition(PtrParamNode pn);
      
-     virtual ~SlopeCondition() {};
+     virtual ~LocalCondition() {};
+
+     /** overwrites Condition::IsLocalCondition() */
+     bool IsLocalCondition() const { return true;}
 
      /** PostInit when we have the design space */
      void PostInit(DesignSpace* space);
@@ -182,7 +208,7 @@ namespace CoupledField
      }
 
      /** The local mode has current_view_index_ set. For -1 we are in global mode.
-      * Do no confuse with Function::IsLocalInitialized() */
+      * Do no confuse with Function::IsLocalCondition() */
      bool IsLocal() const {
        return current_view_index_ != -1;
      }
@@ -196,21 +222,14 @@ namespace CoupledField
       * or 2 indices */
      StdVector<unsigned int>& GetSparsityPattern();
 
-     /** The "center" element index within the design space referenced by current_view_index_.
-      * There are 2*dim constraints for each of this virtual elements.
-      * @see GetCurrentVirtualIndex() */
-     unsigned int GetCurrentVirtualElement() const;
+     /** This is the local context currently requested by the optimizer */
+     Function::Local::Identifier& GetCurrentVirtualContext();
 
-     /** The index within the current virtual element as positive VicinityElement::Neighbour.
-         @return 0, 2 (,4) = X_P, Y_P (, Z_P)
-         @see GetCurrentVirtualSign() */
-     int GetCurrentVirtualNeighbor() const;
+     /** Calculates the mean |value|  */
+     double CalcMeanValue() const;
 
-     /** It is not possible to constraint abs(slope), hence there are always two consecutive
-      * constraints: slope(this, X_P), -slope(this, X_P), slope(this,Y_P), -slope(this, Y_P), ...
-      * @return -1 or 1
-      * @see ErsatzMaterial::CalcSlopeConstraint() */
-     int GetCurrentVirtualSign() const;
+     /** Calculates the max |value| */
+     double CalcMaxValue() const;
 
      /** Overloads the base method. If in special mode element value is returned. Otherwise
       * the max norm is returned (calculated on the fly */
@@ -218,9 +237,6 @@ namespace CoupledField
 
      /** Overloaded to set the local blown up values if in local mode.  */
      void SetValue(double val);
-
-     /** Service function for the maxSlope visualization */
-     double GetMaxElementSlope(unsigned int element) const;
 
      /** overloads ToString() to add local information if in local mode. For debug logging */
      std::string ToString() const;
@@ -277,8 +293,9 @@ namespace CoupledField
 
 
      private:
-       /** -1 if there is no slope constraint. Used by Get() */
-       int slope_index_;
+       /** This are the real condition indices of local conditions. Sorted. Used to calculate and navigate in the virtual
+        * condition space */
+       StdVector<unsigned int> local_cond_index_;
 
        ConditionContainer* container_;
 
@@ -304,12 +321,15 @@ namespace CoupledField
      void ToInfo(PtrParamNode in);
 
      /** Searches in active constraints only!
-     *  @param design NO_TYPE ignores this criteria. DEFAULT would be problematic for
+      *  @param design NO_TYPE ignores this criteria. DEFAULT would be problematic for
       *                this purpose as it is a valid value
       * @return check active flag! Not NULL! */
-     Condition* Get(Condition::Type type = Condition::VOLUME, DesignElement::Type design = DesignElement::NO_TYPE);
+     Condition* Get(Condition::Type type = Condition::VOLUME, DesignElement::Type design = DesignElement::NO_TYPE)
+     {
+       return Get(type, design, true, true);
+     }
 
-     /** query before Get() throws ans exception */
+     /** query before Get() throws an exception */
      bool Has(Condition::Type type = Condition::VOLUME, DesignElement::Type design = DesignElement::NO_TYPE);
 
      /** All external optimizers should only work with this view.
@@ -328,6 +348,8 @@ namespace CoupledField
      StdVector<Condition*> observe;
 
    private:
+
+     Condition* Get(Condition::Type type, DesignElement::Type design, bool only_active, bool throw_exception);
 
      /** Helper */
      StdVector<Condition*> GetList(Condition::Type type, DesignElement::Type design, bool only_active);

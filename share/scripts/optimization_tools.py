@@ -41,6 +41,9 @@ def read_cubic_density(filename):
 ## Reads a density.xml file as vector
 # @param filename from which the last 'set' is used
 def read_density_as_vector(filename):
+  if not os.path.exists(filename):
+    raise RuntimeError("file '" + filename + "' doesn't exist")
+  
   tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
   
   root = tree.getroot()
@@ -103,6 +106,23 @@ def write_density_file(filename, data_inp, setname_inp):
   out.write(' </cfsErsatzMaterial>\n')
   out.close()
 
+## evaluates the physical volume fraction
+# @param data 2D/3D data
+# @param penalty 1 for no penalty
+def physical_volume(data, penalty):
+
+  dim = data.ndim
+  edge = data.shape[0]
+  vol = 0.0
+  
+  for i in range(edge):
+    for j in range(edge):
+      for k in range(cond(dim == 2, 1, edge)):
+        org = getNDArrayEntry(data, dim, i, j, k)
+        vol = vol + pow(org, penalty)
+        
+  return vol / data.size              
+
 
 ## apply a treshold filter on a 2D/3D matrix
 # @param data original 2D/3D data
@@ -123,6 +143,31 @@ def threshold_filter(data, threshold, min, max):
 
   return res  
 
+
+## threshold towards a given final volume
+# @param data original 2d/3d data
+# @param min niminum final density in the result, ignores penalty, max = 1
+# @param target volume fraction to be reached
+# @param material_penalty penalty to interpret original data
+# @return: the new data array as first value and the threshold as second value
+def auto_threshold_filter(data, min, target, material_penalty):
+  
+  dim = data.ndim
+  edge = data.shape[0]
+  res = numpy.zeros((edge, edge, edge))
+
+  lower = min
+  upper = 1
+  while upper - lower > 1e-14:
+    mid = lower + 0.5 *(upper - lower)
+    val = physical_volume(threshold_filter(data, mid, min, 1), material_penalty)
+    print " lower=" + str(lower) + " mid=" + str(mid) + " upper=" + str(upper) + " val=" + str(val)
+    if val > target:
+      lower = mid
+    else:
+      upper = mid
+  
+  return threshold_filter(data, lower, min, 1), lower   
 
 
 ## rotate a 3d matrix

@@ -53,15 +53,26 @@ void BaseDesignElement::PostInit(int objectives, int constraints)
 
 
 /** Get the gradient values for either objective or constraint */
-double BaseDesignElement::GetPlainGradient(const Objective* f, const Condition* g) const
+double BaseDesignElement::GetPlainGradient(const Objective* c, const Condition* g) const
 {
-  assert(f == NULL || g == NULL);
+  assert(c == NULL || g == NULL);
 
   if(g != NULL) return constraintGradient[g->GetIndex()];
-  if(f != NULL) return costGradient[f->GetIndex()];
+  if(c != NULL) return costGradient[c->GetIndex()];
 
   return SumObjectiveGradient();
 }
+
+/** Get the gradient values for either objective or constraint */
+double BaseDesignElement::GetPlainGradient(const Function* f) const
+{
+  assert(!f->IsObjective() || (f->IsObjective() && dynamic_cast<const Objective*>(f) != NULL));
+  assert( f->IsObjective() || (!f->IsObjective() && dynamic_cast<const Condition*>(f) != NULL));
+
+  return GetPlainGradient(f->IsObjective() ? static_cast<const Objective*>(f) : NULL,
+                           f->IsObjective() ? NULL : static_cast<const Condition*>(f));
+}
+
 
 /** Sum app the old value (get and set together) */
 void BaseDesignElement::AddGradient(const Objective* f, const Condition* g, double value)
@@ -69,13 +80,24 @@ void BaseDesignElement::AddGradient(const Objective* f, const Condition* g, doub
   assert(f == NULL || g == NULL);
   LOG_DBG3(del) << "AddGradient: f=" << (f == NULL ? "null" : f->type.ToString(f->GetType()))
                 << " g=" << (g == NULL ? "null" : g->ToString()) << " val=" << value
-                << " penalty " << (f != NULL ? boost::lexical_cast<std::string>(f->GetPenalty()) : "-")
-                << "(old = " <<  (f != NULL ? costGradient[f->GetIndex()] : constraintGradient[g->GetIndex()]) << ")";
+                << " penalty=" << (f != NULL ? boost::lexical_cast<std::string>(f->GetPenalty()) : "-")
+                << " old= " <<  (f != NULL ? costGradient[f->GetIndex()] : constraintGradient[g->GetIndex()])
+                << " add=" << (f != NULL ? value * f->GetPenalty() : value)
+                << " -> " << (f != NULL ? costGradient[f->GetIndex()] + value * f->GetPenalty() : constraintGradient[g->GetIndex()] + value);
   if(f != NULL) costGradient[f->GetIndex()] += value * f->GetPenalty();
            else constraintGradient[g->GetIndex()] += value;
 }
 
-void BaseDesignElement::Reset(ValueSpecifier vs, Condition *g)
+void BaseDesignElement::AddGradient(const Function* f, double value)
+{
+  assert(!f->IsObjective() || (f->IsObjective() && dynamic_cast<const Objective*>(f) != NULL));
+  assert( f->IsObjective() || (!f->IsObjective() && dynamic_cast<const Condition*>(f) != NULL));
+
+  AddGradient(f->IsObjective() ? static_cast<const Objective*>(f) : NULL,
+              f->IsObjective() ? NULL : static_cast<const Condition*>(f), value);
+}
+
+void BaseDesignElement::Reset(ValueSpecifier vs, Function*  f)
 {
   switch(vs)
   {
@@ -84,8 +106,8 @@ void BaseDesignElement::Reset(ValueSpecifier vs, Condition *g)
       costGradient[i] = 0.0;
     break;
   case CONSTRAINT_GRADIENT:
-    if(g != NULL)
-      constraintGradient[g->GetIndex()] = 0.0;
+    if(f != NULL)
+      constraintGradient[f->GetIndex()] = 0.0;
     else
       for(unsigned int i = 0; i < constraintGradient.GetSize(); i++)
         constraintGradient[i] = 0.0;
@@ -175,9 +197,11 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
   // check for special result
   if(    rd.value == OBJECTIVE
       || (rd.value == COST_GRADIENT && rd.detail != NONE)
-      || rd.value == MAX_SLOPE
       || rd.value == CONSTRAINT_GRADIENT
-      || rd.value == CHECKERBOARD)
+      || rd.value == MAX_SLOPE
+      || rd.value == MAX_OSCILLATION
+      || rd.value == MAX_MOLE
+      || rd.value == MAX_JUMP)
   {
     if(dofs != 1) throw Exception("special results is only defined for scalar values");
     switch(rd.solutionType)
@@ -297,7 +321,9 @@ double DesignElement::GetPlainValue(ValueSpecifier sp, Condition* g) const
     return constraintGradient[g->GetIndex()];
 
   case MAX_SLOPE:
-  case CHECKERBOARD:
+  case MAX_MOLE:
+  case MAX_OSCILLATION:
+  case MAX_JUMP:
     assert(false); // should be covered before by special result index
 
   case TOPGRAD_VALUE:
@@ -334,6 +360,11 @@ double DesignElement::GetPhysicalDesign() const
   // we need the transder function
 }
 
+bool DesignElement::HasPhysicalDesign() const
+{
+  return(type_ == DENSITY || type_ == POLARIZATION);
+}
+
 
 void DesignElement::ToInfo(PtrParamNode in) const
 {
@@ -342,7 +373,7 @@ void DesignElement::ToInfo(PtrParamNode in) const
   in->Get("lowerBound")->SetValue(lower_);
 }
 
-std::string DesignElement::ToString(DesignElement* de)
+std::string DesignElement::ToString(const DesignElement* de)
 {
   if(de == NULL) return "null";
 
@@ -354,6 +385,17 @@ std::string DesignElement::ToString(DesignElement* de)
   }
   else ss << boost::lexical_cast<std::string>(de->elem->elemNum);
   
+  return ss.str();
+}
+
+std::string DesignElement::ToString(const StdVector<DesignElement*>& vec)
+{
+  std::stringstream ss;
+  ss << "[";
+  for(unsigned int i = 0; i < vec.GetSize(); i++)
+    ss << ToString(vec[i]) << (i < vec.GetSize() - 1 ? "," : "");
+  ss << "]";
+
   return ss.str();
 }
 
@@ -399,7 +441,9 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(COST_GRADIENT, "costGradient");
   valueSpecifier.Add(CONSTRAINT_GRADIENT, "constraintGradient");
   valueSpecifier.Add(MAX_SLOPE, "maxSlope");
-  valueSpecifier.Add(CHECKERBOARD, "checkerboard");
+  valueSpecifier.Add(MAX_OSCILLATION, "maxOscillation");
+  valueSpecifier.Add(MAX_MOLE, "maxMole");
+  valueSpecifier.Add(MAX_JUMP, "maxJump");
   valueSpecifier.Add(WEIGHT, "weight");
   valueSpecifier.Add(OBJECTIVE, "objective");
   valueSpecifier.Add(NUM_NEIGHBOURS, "neighbours");
@@ -437,6 +481,9 @@ void DesignElement::SetEnums()
   detail.Add(YOUNGS_MODULUS, "youngsModulus");
   detail.Add(TYCHONOFF, "tychonoff");
   detail.Add(GREYNESS, "greyness");
+  detail.Add(GLOBAL_SLOPE, "globalSlope");
+  detail.Add(GLOBAL_CHECKERBOARD, "globalCheckerboard");
+  detail.Add(STRESS, "stress");
 
 }
 
@@ -837,6 +884,39 @@ VicinityElement::Neighbour VicinityElement::FindRelativeNeighborLocation(Point& 
   return res;
 }
 
+DesignElement* VicinityElement::GetNeighbour(DesignElement* base, Neighbour idx, int n, bool throw_exception)
+{
+  assert(n > 0);
+
+  DesignElement* tmp  = base;
+  for(int i = 0; i < n; i++)
+  {
+    tmp = tmp->vicinity->GetNeighbour(idx);
+    if(tmp == NULL)
+    {
+      LOG_DBG3(del) << "VE:GN base=" << base->ToString() << " idx=" << idx << " n=" << n << " max neighbor=" << i;
+      if(throw_exception)
+        EXCEPTION("no neighbor in " << idx << " direction " << i << " elements ways for element " << tmp->ToString())
+      else
+        return NULL;
+    }
+  }
+  LOG_DBG3(del) << "VE:GN base=" << base->ToString() << " idx=" << idx << " n=" << n << " -> " << (tmp != NULL ? tmp->ToString() : "null");
+  return tmp;
+}
+
+bool VicinityElement::HasNeighbor(DesignElement* base, Neighbour idx, int n)
+{
+  assert(n > 0);
+
+  for(int i = 0; i < n; i++)
+  {
+    base = base->vicinity->GetNeighbour(idx);
+    if(base == NULL) return false;
+  }
+  return true;
+}
+
 
 int VicinityElement::GetNumberOfEntries() const
 {
@@ -847,7 +927,7 @@ int VicinityElement::GetNumberOfEntries() const
   return count;
 }
 
-string VicinityElement::ToString()
+string VicinityElement::ToString() const
 {
   stringstream ss;
   ss << "(";

@@ -20,6 +20,7 @@ class ResultDescription;
 class SIMPElement;
 class VicinityElement;
 class LevelSetElement;
+class Function;
 class Objective;
 class Condition;
 
@@ -41,17 +42,43 @@ public:
   /** Gives the number of not NULL entries. */
   int GetNumberOfEntries() const;
 
-  /** This are indices for the entries to design */
-  enum Neighbour {X_P = 0, X_N = 1, Y_P = 2, Y_N = 3, Z_P = 4, Z_N = 5, NONE = -1};
+  /** This are indices for the entries to design. */
+  enum Neighbour {X_P = 0, X_N = 1, Y_P = 2, Y_N = 3, Z_P = 4, Z_N = 5, NONE = -1 };
+
+  /** Helper which translates X_P and X_N to 0, Y_P and Y_N to 1, Z_P and Z_N to 2. Nothing else! */
+  static int ToMainAxis(Neighbour neigh)
+  {
+    if(neigh == X_P || neigh == X_N) return 0;
+    if(neigh == Y_P || neigh == Y_N) return 1;
+    assert(neigh == Z_P || neigh == Z_N);
+    return 2;
+  }
+
+  /** @axis = 0, 1, 2
+   * @param dir = -1 or 1 */
+  static Neighbour ToNeighbour(int axis, int dir)
+  {
+    assert(axis >= 0 && axis <= 2);
+    assert(dir == -1 || dir == 1);
+    return (Neighbour) (2 * axis + (dir == 1 ? 0 : 1));
+  }
 
   /** Gives the neighbor elements */
   DesignElement* GetNeighbour(Neighbour idx) { return design[idx]; }
 
+  /** Gives far away neighbors.
+   * @param n = 1  is next neighbor */
+  static DesignElement* GetNeighbour(DesignElement* base, Neighbour idx, int n, bool throw_exception = true);
+
   /** convenience to check if the neighbor is NULL */
   bool HasNeighbor(Neighbour idx) const { return design[idx] != NULL; }
 
+  /** @see GetNeighbour(Neighbour idx, int n) */
+  static bool HasNeighbor(DesignElement* base, Neighbour idx, int n);
+
+
   /** dump method for logging */
-  std::string ToString();
+  std::string ToString() const;
 
   /** Contains the next neighbors (only +/- x,y(,z) and not diagonal.
    * Ordered as +x, -x, +y, -y (+z, -z). As the elements are DesignElements only within this region.
@@ -96,7 +123,10 @@ public:
   typedef enum { DESIGN, COST_GRADIENT, CONSTRAINT_GRADIENT, WEIGHT, OBJECTIVE, NUM_NEIGHBOURS,
     LEVEL_SET_VALUE, LEVEL_SET_STATE, TOPGRAD_VALUE, SHAPEGRAD_VALUE, SHAPEGRAD_NODE_VALUE,
     MAX_SLOPE, /* the max(abs()) of the 2 * dim slope constraints for each element */
-    CHECKERBOARD, /* the max value per element */
+    MAX_CHECKERBOARD, /* the max value per element */
+    MAX_MOLE, /* the max mole value */
+    MAX_OSCILLATION, /* the max value per element */
+    MAX_JUMP, /* weak greyness constraint formulation */
     LEVEL_SET_GRAD_XP, LEVEL_SET_GRAD_XN, LEVEL_SET_GRAD_YP, LEVEL_SET_GRAD_YN, LEVEL_SET_GRAD_ZP, LEVEL_SET_GRAD_ZN } ValueSpecifier;
 
   BaseDesignElement();
@@ -111,16 +141,21 @@ public:
 
   /** Get the gradient values for either objective or constraint.
    * if neither f nor g is given the objective gradient sum is returned */
-  double GetPlainGradient(const Objective* f, const Condition* g) const;
+  double GetPlainGradient(const Objective* c, const Condition* g) const;
+
+  double GetPlainGradient(const Function* f) const;
 
   /** Sum app the old value (get and set together) */
-  void AddGradient(const Objective* f, const Condition* g, double value);
+  void AddGradient(const Objective* c, const Condition* g, double value);
+
+  void AddGradient(const Function* f, double value);
+
 
   /** Reset either gradients of the class
    * @param vs either COST_GRADIENT or CONSTRAINT_GRADIENT 
    * @param g this should preferably be a Funtion*, but it didn't work and 
    *  it is currently only needed for Condition anyways */
-  void Reset(ValueSpecifier vs, Condition *g = NULL);
+  void Reset(ValueSpecifier vs, Function* f = NULL);
 
   /**  Gets the lower bound of the desing variable -
    * up to now this are defaults by type */
@@ -209,7 +244,8 @@ public:
     typedef enum { NONE, SYMMETRY, FINITE_DIFF_COST_GRADIENT, ERROR_COST_GRADIENT,
       MECH_MECH, ELEC_ELEC, ELEC_ELEC_QUAD, ELEC_MECH, MECH_ELEC,
       COMPLIANCE, VOLUME, PENALIZED_VOLUME, GAP, TRACKING, HOMOGENIZATION_TRACKING,
-      POISSONS_RATIO, YOUNGS_MODULUS, TYCHONOFF, GREYNESS, REALVOLUME} Detail;
+      POISSONS_RATIO, YOUNGS_MODULUS, TYCHONOFF, GREYNESS, REALVOLUME,
+      GLOBAL_SLOPE, GLOBAL_CHECKERBOARD, STRESS} Detail;
 
     /** Gets the design element
      * @param access if plain the rho value if SMART and filtering is enabled the filtered value */
@@ -218,6 +254,9 @@ public:
     /** Gives the physical design, which is penalized and filtered if we have density filtering.
      * Therefore there is no access as we are implicit SMART */
     double GetPhysicalDesign() const;
+    
+    /** Return whether physical design is reasonable for this DesignElement::Type */
+    bool HasPhysicalDesign() const;
 
     /** Overloads the original BaseDesignElement() method and invalidates it to force the access version */
     double GetDesign() const;
@@ -242,11 +281,14 @@ public:
     /** Write key values as attributes */
     void ToInfo(PtrParamNode in) const;
 
-    std::string ToString() { return ToString(this); }
+    std::string ToString() const { return ToString(this); }
 
     /** makes a short dump, handles NULL */
-    static std::string ToString(DesignElement* de);
+    static std::string ToString(const DesignElement* de);
     
+    /** helper for LOG output */
+    static std::string ToString(const StdVector<DesignElement*>& vec);
+
     /** to make the class polymorphic and we can dynamic_cast<> it */
     /** Pointer to the element of the region, paramter for integration, ... */
     Elem*  elem;

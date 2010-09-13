@@ -99,12 +99,8 @@ public:
 
 protected:
 
-  /** overwrite this method for own objectives. */
-  virtual double CalcObjective(Excitation& excite, Objective* cost);
-  
-  /** Does mech DENSITY gradients, COMPLIANCE is done in ErsatzMaterial */
-  virtual void CalcObjectiveGradient(Excitation& excite, Objective* cost);
-
+  /** overwrites the ErsatzMaterial version, is overwritten in PiezoSIMP */
+  virtual double CalcFunction(Excitation& excite, Function* f, bool derivative);
 
   /** This is a helper for CalcU1KU2 to determine the "K" which in most cases includes a
    * derivative. It also includes mechanical damping and mass matrix via AddMassToStiffness().

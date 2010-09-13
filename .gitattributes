@@ -157,6 +157,10 @@ share/doc/developer/AddDoc/element_types/tria3.dia -text
 share/doc/developer/AddDoc/element_types/tria6.dia -text
 share/doc/developer/AddDoc/numerical_integration/numerical_integration.tex svneol=native#text/plain
 share/doc/developer/AddDoc/splitting.png -text svneol=unset#image/png
+share/doc/developer/AddDoc/technical_ovv/branching.eps -text
+share/doc/developer/AddDoc/technical_ovv/branching.pdf -text
+share/doc/developer/AddDoc/technical_ovv/branching.svg -text
+share/doc/developer/AddDoc/technical_ovv/cfs_overview.tex -text
 share/doc/developer/AddDoc/technical_ovv/cfs_technical.odp -text
 share/doc/developer/CMakeLists.txt svneol=native#text/plain
 share/doc/developer/Concepts/Dof-Mapping/dof-mapping.dia -text

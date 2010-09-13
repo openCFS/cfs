@@ -5,11 +5,10 @@
 /debug
 /icc
 /iccdebug
-/iccomp
+/iccrel
 /nomkl
 /openmp
 /profile
-/rel-openmp
 /release
 share/doc/developer/DoxygenConfig/doxy-config
 share/doc/developer/DoxygenConfig/footer.html

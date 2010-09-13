@@ -1678,6 +1678,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_VELOCITY, "mechVelocity");
     SolutionTypeEnum.Add(MECH_FORCE, "mechForce");
     SolutionTypeEnum.Add(MECH_STRESS, "mechStress");
+    SolutionTypeEnum.Add(VON_MISES_STRESS, "vonMisesStress");
     SolutionTypeEnum.Add(MECH_STRAIN, "mechStrain");
     SolutionTypeEnum.Add(MECH_STRAIN_IRR, "mechStrainIrr");
     SolutionTypeEnum.Add(MECH_ENERGY, "mechEnergy");

@@ -19,13 +19,13 @@ DECLARE_LOG(conditions)
 // instantiation of the static elements
 Enum<Condition::Bound> Condition::bound;
 
-
 Condition::Condition(PtrParamNode pn) : Function(pn)
 {
   volume_fraction = 0.0;
   special_result_idx = -1;
   blown_up_ = false;
   index_ = -1; // to be set by ConditionContainer::Read()
+  virtual_base_index_ = -1;
   bound_ = bound.Parse(pn->Get("bound")->As<std::string>());
   design = !pn->Has("design") ? DesignElement::DEFAULT :
            DesignElement::type.Parse(pn->Get("design")->As<std::string>());
@@ -71,20 +71,52 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
         throw Exception("No value allowed for constraint '" + type.ToString(type_) + "'");
       break; // ok without value
 
-    case CHECKERBOARD:
-      throw Exception("'checkerboard' may only be used in 'observe' mode");
-
     default:
       if(!pn->Has("value"))
         throw Exception("No value given for constraint '" + type.ToString(type_) + "'");
     }
   }
   
-
   linear_ = type_ == VOLUME || type_ == SLOPE ? true : false;
   //  snopt only makes a difference between linear and nonlinear constraints!
   if(pn->Has("linear"))
     linear_ = pn->Get("linear")->As<bool>();
+
+  // check bound
+  switch(type_)
+  {
+  case SLOPE:
+  case GLOBAL_SLOPE:
+  case OSCILLATION:
+  case JUMP:
+    if(bound_ != UPPER_BOUND && IsActive())
+      bound_ = UPPER_BOUND; // detected in PostProc() and warning is given
+    break;
+
+  default:
+    break;
+  }
+}
+
+void Condition::PostProc(DesignSpace* space, DesignStructure* structure)
+{
+  // note, meanwhile we have info_ set! but not yet in the constructor
+  Function::PostProc(space, structure);
+
+  // did we change the bound?
+  switch(type_)
+  {
+  case SLOPE:
+  case GLOBAL_SLOPE:
+  case OSCILLATION:
+  case JUMP:
+    if(pn->Get("bound")->As<std::string>() != bound.ToString(bound_) && IsActive())
+      info_->Get(ParamNode::WARNING)->SetValue("changed bound for '" + type.ToString(type_) + "' to 'upperBound'");
+    break;
+
+  default:
+    break;
+  }
 }
 
 bool Condition::ReadCoord(PtrParamNode pn)
@@ -105,7 +137,7 @@ bool Condition::ReadCoord(PtrParamNode pn)
 void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list)
 {
   Type t = type.Parse(pn->Get("type")->As<std::string>());
-  list.Push_back(t == SLOPE ? new SlopeCondition(pn) : new Condition(pn));
+  list.Push_back(t == SLOPE || t == MOLE || t == OSCILLATION || t == JUMP ? new LocalCondition(pn) : new Condition(pn));
 
   // note that the pointer becomes invalid by AddSubCondition()
   Condition* g = list.Last();
@@ -363,7 +395,7 @@ void Condition::ToInfo(PtrParamNode in)
   if(IsActive())
   {
     in->Get("bound")->SetValue(bound.ToString(bound_));
-    if(type_ != HOMOGENIZATION_TRACKING && type_ != SLOPE)
+    if(type_ != HOMOGENIZATION_TRACKING)
       in->Get("bound_value")->SetValue(boundValue_);
   }
   if(type_ == HOMOGENIZATION_TENSOR)
@@ -385,9 +417,6 @@ void Condition::ToInfo(PtrParamNode in)
 
   if(!observation_)
     in->Get("linear")->SetValue(linear_);
-
-  if(locality_ != DEFAULT)
-    in->Get("local")->SetValue(locality.ToString(locality_));
 }
 
 bool Condition::IsForRegion(RegionIdType regionId)
@@ -395,68 +424,21 @@ bool Condition::IsForRegion(RegionIdType regionId)
   return(region == ALL_REGIONS || region == regionId);
 }
 
-SlopeCondition::SlopeCondition(PtrParamNode pn) : Condition(pn)
+LocalCondition::LocalCondition(PtrParamNode pn) : Condition(pn)
 {
   current_view_index_ = -1;
-  
-  if(bound_ != UPPER_BOUND && IsActive())
-  {
-    // TODO: Use InfoNode Warning!
-    std::cout << "\033[01;31m" << "Warning:" << "\033[0m"
-              << " changing slope bound type to 'upperBound'!" << std::endl;
-    bound_ = UPPER_BOUND;
-  }
-
-  if(pn->Has("parameter")) // set in base class
-    throw Exception("Parameter for slope constraint specified, but not required");
-
-  // cheat knowledge about optimizer, only snopt has box-constraints
-  bool snopt = param->Get("optimization/optimizer/type")->As<std::string>() == "snopt";
-  Locality use = locality_;
-  if(locality_ == DEFAULT && snopt)  use = NEXT_BIDIR;
-  if(locality_ == DEFAULT && !snopt) use = NEXT;
-  if(locality_ == NEXT_BIDIR && !snopt)
-    throw Exception("The optimizer has no bounds for constraints: your choice for 'local' is invalid");
-  locality_ = use;
 }
 
 
-unsigned int SlopeCondition::GetCurrentVirtualElement() const
+Function::Local::Identifier& LocalCondition::GetCurrentVirtualContext()
 {
   assert(IsLocal());
 
-  unsigned int idx = current_view_index_ - index_;
-
-  LOG_DBG3(conditions) << "SC:curVirEle: cvi=" << current_view_index_ << " -> idx=" << local->virtual_elem_map[idx].element_idx;
-
-  return local->virtual_elem_map[idx].element_idx;
+  unsigned int idx = current_view_index_ - virtual_base_index_;
+  return local->virtual_elem_map[idx];
 }
 
-int SlopeCondition::GetCurrentVirtualNeighbor() const
-{
-  assert(IsLocal());
-
-  unsigned int idx = current_view_index_ - index_;
-
-  LOG_DBG3(conditions) << "SC:curVirNeigh: cvi =" << current_view_index_ << " -> neigh=" << local->virtual_elem_map[idx].neighbor;
-
-  return local->virtual_elem_map[idx].neighbor;
-}
-
-int SlopeCondition::GetCurrentVirtualSign() const
-{
-  assert(IsLocal()); 
-
-  unsigned int idx = current_view_index_ - index_;
-
-  // if we call this function, the sign must be meaningful
-  assert((locality_ != NEXT_BIDIR && local->virtual_elem_map[idx].sign != -1000) || locality_ == NEXT_BIDIR);
-  
-  return local->virtual_elem_map[idx].sign;
-}
-
-
-StdVector<unsigned int>& SlopeCondition::GetSparsityPattern()
+StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
 {
   /* for debug purposes you can enable the dense pattern by commenting out
    * the two lines */
@@ -467,38 +449,69 @@ StdVector<unsigned int>& SlopeCondition::GetSparsityPattern()
   
   assert(IsLocal());
 
-  sparsity_.Resize(2);
+  Function::Local::Identifier& id = GetCurrentVirtualContext();
 
-  // we have two entries. sort them
-  int own_idx = GetCurrentVirtualElement();
-  DesignElement* other_elem = local->space->data[own_idx].vicinity->design[GetCurrentVirtualNeighbor()];
-  int other_idx = local->space->Find(other_elem);
+    // we shall sort the indices
+  std::list<unsigned int> indices;
+  for(int i = -1 ; i < (int) id.neighbor.GetSize(); i++)
+  {
+    DesignElement* de = id.GetElement(i);
+    int other_idx = local->space->Find(de); // needs to be fast!
+    indices.push_back(other_idx);
+  }
 
-  // as we have X_P, Y_P and Z_P neighbors the sorting could be right but better invest 1e-9 sec
-  sparsity_[0] = own_idx < other_idx ? own_idx : other_idx;
-  sparsity_[1] = own_idx > other_idx ? own_idx : other_idx;
-  
-  LOG_DBG3(conditions) << "SC:GetSparPat: current_view_index_=" << current_view_index_ 
-                       << " g[0]=" << (sparsity_.IsEmpty() ? "-1" : lexical_cast<std::string>(sparsity_[0]))
-                       << " g[1]=" << (sparsity_.IsEmpty() ? "-1" : lexical_cast<std::string>(sparsity_[1]));
+  // sort and copy
+  indices.sort();
+  sparsity_.Resize(0); // keeps capacity, hence Push_back is cheap
+  for(std::list<unsigned int>::const_iterator it = indices.begin(); it != indices.end(); ++it)
+    sparsity_.Push_back(*it);
+
+  LOG_DBG3(conditions) << "LC:GSP: current_view_index_=" << current_view_index_ << " -> " << sparsity_.ToString();
   return sparsity_;
 }
 
+double LocalCondition::CalcMeanValue() const
+{
+  // we sum up only non-zero values
+  int counter = 0;
+  double sum = 0.0;
+  for(unsigned int i = 0, n = local->virtual_elem_map.GetSize(); i < n; i++)
+  {
+    double v = std::abs(local->virtual_elem_map[i].EvalFunction(local));
+    if(IsNoise(v)) continue;
+    sum += v;
+    counter++;
+  }
+  return counter > 0 ? sum / counter : 0.0;
+}
+
+double LocalCondition::CalcMaxValue() const
+{
+  double max = 0.0;
+  for(unsigned int i = 0, n = local->virtual_elem_map.GetSize(); i < n; i++)
+  {
+    double v = std::abs(local->virtual_elem_map[i].EvalFunction(local));
+    max = std::max(max, v);
+  }
+
+  return max;
+}
 
 
-double SlopeCondition::GetValue() const
+double LocalCondition::GetValue() const
 {
   if(IsLocal())
-    return local->values[current_view_index_ - index_];
+    return local->values[current_view_index_ - virtual_base_index_];
   else
+    assert(false);
     return value_;
 }
 
-void SlopeCondition::SetValue(double val)
+void LocalCondition::SetValue(double val)
 {
   if(IsLocal())
   {
-    local->values[current_view_index_ - index_] = val;
+    local->values[current_view_index_ - virtual_base_index_] = val;
     value_ = -1.0; // invalidated
   }
   else
@@ -506,30 +519,14 @@ void SlopeCondition::SetValue(double val)
 }
 
 
-double SlopeCondition::GetMaxElementSlope(unsigned int element) const
-{
-  int size = local->GetElememtDimension();
-  
-  int base = element * size;
-
-  double maxval = 0.0;
-  for(int i = 0; i < size; ++i)
-    maxval = std::max(maxval, std::abs(local->values[base + i]));
-
-  return maxval;
-}
-
-std::string SlopeCondition::ToString() const
+std::string LocalCondition::ToString() const
 {
   std::stringstream ss;
 
   ss << Condition::ToString();
 
-  if(IsLocal())
-    ss << "_ve=" << GetCurrentVirtualElement()
-       << "_vn=" << GetCurrentVirtualNeighbor()
-       << "_local=" << locality.ToString(locality_)
-       << "_vs=" << GetCurrentVirtualSign();
+   if(IsLocal())
+      ss << " cvi=" << current_view_index_;
 
   return ss.str();
 }
@@ -637,15 +634,20 @@ bool ConditionContainer::Has(Condition::Type type, DesignElement::Type design)
   return !list.IsEmpty();
 }
 
-Condition* ConditionContainer::Get(Condition::Type type, DesignElement::Type design)
+Condition* ConditionContainer::Get(Condition::Type type, DesignElement::Type design, bool only_active, bool throw_exception)
 {
   // be save and check for uniqueness!
-  StdVector<Condition*> list = GetList(type, design, true);
+  StdVector<Condition*> list = GetList(type, design, only_active);
 
   if(list.GetSize() == 0)
-    throw Exception("no active constraint '" + Condition::type.ToString(type) + "' found");
+  {
+    if(throw_exception)
+      throw Exception("no active constraint '" + Condition::type.ToString(type) + "' found");
+    else
+      return NULL;
+  }
 
-  if(list.GetSize() > 1)
+  if(list.GetSize() > 1 && throw_exception)
     throw Exception("constraint " + Condition::type.ToString(type) + "is not unique");
 
   return list[0];
@@ -659,84 +661,119 @@ ConditionContainer::VirtualView::VirtualView(ConditionContainer* constraints)
 
 void ConditionContainer::VirtualView::Refresh()
 {
-  // set slope_index
-  StdVector<Condition*> list = container_->GetList(Condition::SLOPE, DesignElement::NO_TYPE, false); // also observe
+  // find the indices of LocalConditions, they need to be sorted.
+  std::list<unsigned int> tmp;
 
-  SlopeCondition* slope = list.IsEmpty() ? NULL :dynamic_cast<SlopeCondition*>(list[0]);
+  // search also for observe conditions!
+  Condition* c = container_->Get(Condition::SLOPE, DesignElement::NO_TYPE, false, false);
+  if(c != NULL) tmp.push_back(c->GetIndex());
+  c = container_->Get(Condition::MOLE, DesignElement::NO_TYPE, false, false);
+  if(c != NULL) tmp.push_back(c->GetIndex());
+  c = container_->Get(Condition::JUMP, DesignElement::NO_TYPE, false, false);
+  if(c != NULL) tmp.push_back(c->GetIndex());
 
-  slope_index_ = slope == NULL ? -1 : slope->GetIndex();
+  // we might combine oscillation for void and material with different sizes
+  StdVector<Condition*> list = container_->GetList(Condition::OSCILLATION, DesignElement::NO_TYPE, false);
+  for(unsigned int i = 0; i < list.GetSize(); i++)
+    tmp.push_back(list[i]->GetIndex());
 
+  tmp.sort();
+
+  // copy sorted
+  local_cond_index_.Resize(0);
+  for(std::list<unsigned int>::iterator it = tmp.begin(); it != tmp.end(); ++it)
+    local_cond_index_.Push_back(*it);
+
+  // determine the virtual sizes for the container
   virtual_active_size_ = container_->active.GetSize();
-  // replace the global slope by many local slopes -> if it is initialized!
-  if(slope != NULL && slope->IsLocalInitialized() && slope->IsActive() && slope->GetConstraintSize() > 0)
-    virtual_active_size_ += slope->GetConstraintSize() -1;
-
   virtual_total_size_ = container_->all.GetSize();
-  if(slope != NULL && slope->IsLocalInitialized() && slope->GetConstraintSize() > 0)
-    virtual_total_size_ += slope->GetConstraintSize() -1;
+
+  for(unsigned int i = 0; i < local_cond_index_.GetSize(); i++)
+  {
+    LocalCondition* lc = dynamic_cast<LocalCondition*>(container_->all[local_cond_index_[i]]);
+
+    // refresh is called multiple times, maybe we are too early
+    if(lc == NULL || lc->GetLocal() == NULL) continue;
+
+    // replace the global slope by many local slopes -> if it is initialized!
+    if(lc->IsActive() && lc->GetConstraintSize() > 0)
+      virtual_active_size_ += lc->GetConstraintSize() -1; // replace means remove ourselves
+
+    if(lc->GetConstraintSize() > 0)
+      virtual_total_size_ += lc->GetConstraintSize() -1;
+  }
+
+  // set the virtual base indices
+  int curr = 0;
+  for(unsigned int i = 0; i < container_->all.GetSize(); i++)
+  {
+    Condition* g = container_->all[i];
+    g->virtual_base_index_ = curr;
+    if(g->IsLocalCondition() && g->GetLocal() != NULL) // does not need to be initialized yet
+      curr += std::max((int) dynamic_cast<LocalCondition*>(g)->GetConstraintSize(), 1);
+    else
+      curr++;
+    LOG_DBG2(conditions) << "CC:VV:Refresh() g=" << g->ToString() << " vbi=" << g->virtual_base_index_ << " new curr=" << curr;
+  }
+  assert(curr == virtual_total_size_);
 }
 
 Condition* ConditionContainer::VirtualView::Get(int view_index)
 {
-  // simple case: no slope or before slope
-  if(slope_index_ == -1 || view_index < slope_index_)
-    return container_->all[view_index];
+  StdVector<Condition*>& all = container_->all;;
+  assert(all.GetSize() > 0);
 
-  SlopeCondition* slope = dynamic_cast<SlopeCondition*>(container_->all[slope_index_]);
+  // traverse the conditions, if we are above virtual_base_index we gone one too far
+  Condition* g = NULL;
+  for(unsigned int i = 0; g == NULL && i < all.GetSize()-1; i++)
+    if(all[i+1]->virtual_base_index_ > view_index) // we are right if the next is too far
+      g = all[i];
+  if(g == NULL) g = all.Last();
+  assert(g->virtual_base_index_ <= view_index);
 
-  // after_slope index is the first constraint after slope
-  int next = slope_index_ + slope->GetConstraintSize();
-  // are we within
-  if(view_index < next)
+  if(g->IsLocalCondition())
   {
-    assert(slope->GetIndex() == slope_index_);
-    // tell the slope what is actually requested
-    slope->SetCurrentViewIndex(view_index);
-    return slope;
+    dynamic_cast<LocalCondition*>(g)->SetCurrentViewIndex(view_index);
   }
 
-  // no - we want a constraint after the slope. Add 1 as the slop consists in the container of one entry
-  int corrected = view_index - slope->GetConstraintSize() + 1;
-  return container_->all[corrected];
+  return g;
 }
 
 void ConditionContainer::VirtualView::Done()
 {
-  if(slope_index_ == -1)
-    return; // nothing to do
-
-  SlopeCondition* slope = dynamic_cast<SlopeCondition*>(container_->all[slope_index_]);
-  StdVector<double>& data = slope->GetLocal()->values;
-  // set global result
-  double ret(0.0); 
-  unsigned int size(data.GetSize());
-  for(unsigned int i = 0; i < size; ++i) 
-    ret = std::max(ret, std::abs(data[i]));
-  
-  slope->SetValue(ret);
-
-  // check for special result.
-  int idx = container_->space_->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::MAX_SLOPE);
-  if(idx >= 0)
+  for(unsigned int g = 0; g < local_cond_index_.GetSize(); g++) // no local conditions, nothing to do
   {
-    StdVector<DesignElement>& data = container_->space_->data;
+    LocalCondition* lc = dynamic_cast<LocalCondition*>(container_->all[local_cond_index_[g]]);
+    lc->SetCurrentViewIndex(-1); // reset to global mode
 
-    // elements with no full neighborhood don't exist as constraint, therefore loop twice
-    for(unsigned int e = 0; e < data.GetSize(); e++)
-      data[e].specialResult[idx] = 0.0; // initialize
-    
-    int offset = slope->GetLocal()->GetElememtDimension();
-    
-    // constraints -> note we have full neighborhood!
-    for(int i = 0, ni = data.GetSize(); i < ni; i += offset)
+    // shall we give the values as special result?
+    DesignElement::ValueSpecifier vs = DesignElement::MAX_OSCILLATION; // overwrite if necessary
+    if(lc->GetType() == Function::SLOPE)        vs = DesignElement::MAX_SLOPE;
+    if(lc->GetType() == Function::MOLE)         vs = DesignElement::MAX_MOLE;
+    if(lc->GetType() == Function::JUMP)         vs = DesignElement::MAX_JUMP;
+
+    int idx = container_->space_->GetSpecialResultIndex(DesignElement::DEFAULT, vs);
+    if(idx >= 0)
     {
-      slope->SetCurrentViewIndex(i + slope->GetIndex());
-      int elem_idx = slope->GetCurrentVirtualElement();
-      data[elem_idx].specialResult[idx] = slope->GetMaxElementSlope(i/offset);
+      StdVector<DesignElement>& des_data = container_->space_->data;
+
+      // we add up the max value and not elements have a slope constraint, therefore reset
+      for(unsigned int e = 0; e < des_data.GetSize(); e++)
+        des_data[e].specialResult[idx] = 0.0; // initialize
+
+      StdVector<Function::Local::Identifier>& vem = lc->GetLocal()->virtual_elem_map;
+
+      for(unsigned int i = 0; i < vem.GetSize(); i++)
+      {
+        Function::Local::Identifier& id = vem[i];
+        DesignElement* de =  id.element;
+        double sv = id.EvalFunction(lc->local);
+
+        // in checkerboard we must not use abs
+        double corr = lc->GetType() == Function::OSCILLATION ? sv : std::abs(sv);
+
+        de->specialResult[idx] = std::max(de->specialResult[idx], corr);
+      }
     }
   }
-
-  // reset local, set to global
-  slope->SetCurrentViewIndex(-1);
-
 }

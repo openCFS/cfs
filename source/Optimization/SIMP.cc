@@ -193,41 +193,78 @@ void SIMP::AddMassToStiffness(double m_factor, DesignElement* de, Matrix<complex
                  << " omega: " << omega << " K_img: " << (omega * alpha_k) << " damp_mass: " << damp_mass;
 }
 
-double SIMP::CalcObjective(Excitation& excite, Objective* cost)
-{
-  // we have no own objectives
-  return ErsatzMaterial::CalcObjective(excite, cost);
-}
-  
 
-void SIMP::CalcObjectiveGradient(Excitation& excite, Objective* cost)
+double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
 {
+  // this implements only the gradients of some functions
+  if(!derivative)
+    return ErsatzMaterial::CalcFunction(excite, f, derivative);
+
   TransferFunction* tf = design->GetTransferFunction(DesignElement::DENSITY, MECH, true);
+  double weight = excite.GetWeightedFactor(f);
+  LOG_DBG(simp) << "CalcFunction(idx=" << excite.index << ") norm_weight= " <<  excite.normalized_weight
+                << " factor=" << excite.GetFactor(f) << " weight=" << weight;
 
-  double weight = excite.GetWeightedFactor(cost);
-  LOG_DBG(simp) << "CalcObjectiveGradient(idx=" << excite.index << ") norm_weight= " <<  excite.normalized_weight
-                << " factor=" << excite.GetFactor(cost) << " weight=" << weight;
-
-  switch(cost->GetType())
+  // only special derivatives, the rest also EM
+  switch(f->GetType())
   {
-  case Objective::GLOBAL_DYNAMIC_COMPLIANCE:
-    // synthesis of compliant mechanism: As our adjoint PDE
-    // c' = l K' u
-    CalcU1KU2(tf, adjoint.Get(excite)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, weight, STANDARD, cost, NULL);
-    break;
+  case Function::STRESS:
+  {
+    // see comment in ErsatzMaterial::CalcVonMisesStressVector()! it's tricky stuff :(
+    // the gradient is lambda^T *  K' * u + 2 * stress^T * M * (rho^p)' * E_0 * B * u
+    // We compute it for every element and Function::Local::EvalGradient() does the globalization which involves setting to zero
+    // Also the DesignElement::AddGradient() is done in Function::Local::EvalGradient(), hence we fake CalcU1KU2 which does AddGradient(), too
+    StdVector<double> org_gradient(design->data.GetSize()); // save state
+    org_gradient.window.Set(0, org_gradient.GetSize());
+    DesignElement::ValueSpecifier vs = f->IsObjective() ? DesignElement::COST_GRADIENT : DesignElement::CONSTRAINT_GRADIENT;
+    design->WriteGradientToExtern(org_gradient, vs, DesignElement::PLAIN, dynamic_cast<Condition*>(f), false);
+    assert(design->data.GetSize() == org_gradient.GetSize());
 
-  case Objective::OUTPUT:
-  case Objective::DYNAMIC_OUTPUT:
-  case Objective::CONJUGATE_COMPLIANCE:
-  case Objective::ABS_DYN_OUTPUT_SQUARED:
+    // calc lambda^T *  K' * u
+    CalcU1KU2(tf, adjoint.Get(excite, f)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, weight, STANDARD, f);
+
+    // extract the lambda^T *  K' * u information and reset to org_gradient
+    Vector<double> l_K_u(org_gradient.GetSize());
+    for(unsigned int i = 0; i < org_gradient.GetSize(); i++)
+    {
+      DesignElement* de = &(design->data[i]);
+      l_K_u[i] = de->GetPlainGradient(f) - org_gradient[i];
+      de->Reset(vs, f); // there is no set, so reset and add
+      de->AddGradient(f, org_gradient[i]);
+    }
+
+    // calc  2 * stress^T * M * (rho^p)' * E_0 * B * u
+    Vector<double> von_mises_deriv = CalcVonMisesStressVector(excite, f, false, true);
+    assert(von_mises_deriv.GetSize() == l_K_u.GetSize());
+
+    // an extra vector for the sum
+    Vector<double> grad;
+    grad = von_mises_deriv * weight;
+    grad += l_K_u; // scale with same weight!
+
+    // this does the globalization and AddGradient() by kicking out some element values
+    Vector<double> von_mises_stress = CalcVonMisesStressVector(excite, f, false, false);
+
+    CalcGlobalFunction(f, true, &von_mises_stress, &grad);
+    break;
+  }
+
+
+  case Function::GLOBAL_DYNAMIC_COMPLIANCE:
+  case Function::OUTPUT:
+  case Function::DYNAMIC_OUTPUT:
+  case Function::CONJUGATE_COMPLIANCE:
+  case Function::ABS_DYN_OUTPUT_SQUARED:
     // synthesis of compliant mechanism: As our adjoint PDE
     // c' = l K' u
-    CalcU1KU2(tf, adjoint.Get(excite)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, weight, STANDARD, cost, NULL);
+    CalcU1KU2(tf, adjoint.Get(excite, f)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, weight, STANDARD, f);
     break;
 
   default:
-    ErsatzMaterial::CalcObjectiveGradient(excite, cost);
+    return ErsatzMaterial::CalcFunction(excite, f, derivative);
   }
+
+  return 0.0; // only derivatives evaluated
 }
 
 SurfaceRef::SurfaceRef()

@@ -8,6 +8,7 @@
 #include "Optimization/PiezoSIMP.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Design/DesignStructure.hh"
 #include "Optimization/Optimizer/OptimalityCondition.hh"
 #include "Optimization/LevelSet.hh"
 #include "Optimization/Optimizer/EvaluateOnly.hh"
@@ -120,7 +121,13 @@ Optimization::Optimization()
   for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
   {
     Condition* g = constraints.all[i];
-    this->log.fileHeader += "\t" + g->ToString();
+    if(!g->IsLocalCondition())
+      this->log.fileHeader += "\t" + g->ToString();
+    else
+    {
+      this->log.fileHeader += "\tmax_" + g->ToString();
+      this->log.fileHeader += "\tmean_" + g->ToString();
+    }
   }
 
   log.Init(pn->Get("log")->As<std::string>(), pn->Get("logging", ParamNode::PASS)); // is fail save
@@ -199,14 +206,15 @@ void Optimization::PostInitSecond()
 
     default: throw Exception("optimizer not implemented");
   }
+  unsigned int n = design->GetNumberOfVariables();
   if (this->log.design) {
-    for (unsigned int i = 0; i < design->GetNumberOfVariables(); i++) {
+    for (unsigned int i = 0; i < n; ++i) {
       this->log.fileHeader += "\t";
       this->log.fileHeader += "design";
     }
   }
   if (this->log.designGradient) {
-    for (unsigned int i = 0; i < design->GetNumberOfVariables(); i++) {
+    for (unsigned int i = 0; i < n; ++i) {
       this->log.fileHeader += "\t";
       this->log.fileHeader += "designGradient";
     }
@@ -241,19 +249,42 @@ void Optimization::SetEnums()
   Function::type.Add(Function::TYCHONOFF, "tychonoff");
   Function::type.Add(Function::TEMPERATURE, "temperature");
   Function::type.Add(Function::GREYNESS, "greyness");
+  Function::type.Add(Function::STRESS, "stress");
   Function::type.Add(Function::ISOTROPY, "isotropy");
   Function::type.Add(Function::SLOPE, "slope");
-  Function::type.Add(Function::CHECKERBOARD, "checkerboard");
+  Function::type.Add(Function::GLOBAL_SLOPE, "globalSlope");
+  Function::type.Add(Function::MOLE, "mole");
+  Function::type.Add(Function::GLOBAL_MOLE, "globalMole");
+  Function::type.Add(Function::OSCILLATION, "oscillation");
+  Function::type.Add(Function::GLOBAL_OSCILLATION, "globalOscillation");
+  Function::type.Add(Function::JUMP, "jump");
+  Function::type.Add(Function::GLOBAL_JUMP, "globalJump");
 
-  Function::locality.SetName("Function::Locality");
-  Function::locality.Add(Function::DEFAULT, "default");
-  Function::locality.Add(Function::NEXT, "next");
-  Function::locality.Add(Function::NEXT_BIDIR, "next_bidir");
+  Function::Local::locality.SetName("Function::Local::Locality");
+  Function::Local::locality.Add(Function::Local::DEFAULT, "default");
+  Function::Local::locality.Add(Function::Local::NEXT, "next");
+  Function::Local::locality.Add(Function::Local::NEXT_AND_REVERSE, "next_and_reverse");
+  Function::Local::locality.Add(Function::Local::PREV_NEXT, "prev_next");
+  Function::Local::locality.Add(Function::Local::PREV_NEXT_AND_REVERSE, "prev_next_and_reverse");
+  Function::Local::locality.Add(Function::Local::DEG_45_STAR, "45_deg_star");
+  Function::Local::locality.Add(Function::Local::DEG_45_STAR_AND_REVERSE, "45_deg_star_and_reverse");
+  Function::Local::locality.Add(Function::Local::BOUNDARY, "boundary");
+  Function::Local::locality.Add(Function::Local::ELEMENT, "element");
 
-  Condition::bound.SetName("Constraint::Bound");
+  Function::Local::phase.SetName("Function::Local::Phase");
+  Function::Local::phase.Add(Function::Local::BOTH, "both");
+  Function::Local::phase.Add(Function::Local::VOID, "void");
+  Function::Local::phase.Add(Function::Local::MATERIAL, "material");
+
+  Condition::bound.SetName("Condition::Bound");
   Condition::bound.Add(Condition::EQUAL, "equal");
   Condition::bound.Add(Condition::LOWER_BOUND, "lowerBound");
   Condition::bound.Add(Condition::UPPER_BOUND, "upperBound");
+
+  DesignStructure::filterSpace.SetName("DesignStructure::FilterSpace");
+  DesignStructure::filterSpace.Add(DesignStructure::RADIUS, "radius");
+  DesignStructure::filterSpace.Add(DesignStructure::VOLUME_RADIUS, "volumeRadius");
+  DesignStructure::filterSpace.Add(DesignStructure::MAX_EDGE, "maxEdge");
 
   optimizer.SetName("Optimization::Optimizer");
   optimizer.Add(OPTIMALITY_CONDITION, "optimalityCondition");
@@ -273,7 +304,9 @@ void Optimization::SetEnums()
   
   ErsatzMaterial::commitMode.SetName("ErsatzMaterial::CommitMode");
   ErsatzMaterial::commitMode.Add(ErsatzMaterial::FORWARD, "forward");
+  ErsatzMaterial::commitMode.Add(ErsatzMaterial::EACH_FORWARD, "each_forward");
   ErsatzMaterial::commitMode.Add(ErsatzMaterial::ADJOINT, "adjoint");
+  ErsatzMaterial::commitMode.Add(ErsatzMaterial::EACH_ADJOINT, "each_adjoint");
   ErsatzMaterial::commitMode.Add(ErsatzMaterial::BOTH, "both_cases");
 
   OptimizationMaterial::system.SetName("OptimizationMaterial::System");
@@ -479,17 +512,20 @@ void Optimization::SolveStateProblem(Excitation* excite)
   if(!harmonic || excite == NULL) 
     driver->SolveProblem(IsTransient(), analysis_id, NULL); // static and transient optimization
   else
+  {
+    LOG_DBG(opt) << "SSP: harmonic step=" << excite->f_link->step << " f=" << excite->f_link->freq;
     dynamic_cast<HarmonicDriver*>(driver)->ComputeFrequencyStep(excite->f_link->step, analysis_id);
+  }
 
   problemSolvedCounter++;
   problemWithinIteration++;
 }
 
-void Optimization::SolveAdjointProblem(Excitation* excite, Objective* cost){
+void Optimization::SolveAdjointProblem(Excitation* excite, Function* f){
   // does almost the same as SolveStateProblem now, but passing, that we want the adjoint to be solved
   BaseDriver* driver = domain->GetDriver();
   
-  AdjointParameters adjointParams(cost, excite);
+  AdjointParameters adjointParams(f, excite);
   
   if(IsTransient()){
     SinglePDE* mech = domain->GetSinglePDE("mechanic");
@@ -503,10 +539,39 @@ void Optimization::SolveAdjointProblem(Excitation* excite, Objective* cost){
       EXCEPTION("Harmonic adjoint not implemented!");
 }
 
-void Optimization::SolveAdjointProblems(Excitation* excite){
-  for(unsigned int o = 0; o < objectives.data.GetSize(); ++o){
-    SolveAdjointProblem(excite, objectives.data[o]);
+void Optimization::SolveAdjointProblems(Excitation* excite)
+{
+  // solve for objectives and constraints
+  StdVector<Function*> f = GetActiveFunctions();
+
+  for(unsigned int i = 0; i < f.GetSize(); ++i)
+  {
+    if(f[i]->IsAdjointBased())
+      SolveAdjointProblem(excite, f[i]); // virtual! calls ErsatzMaterial implementation
   }
+}
+
+StdVector<Function*> Optimization::GetActiveFunctions() const
+{
+  StdVector<Function*> result;
+
+  const unsigned int cn = objectives.data.GetSize();
+  const unsigned int gn = constraints.active.GetSize();
+
+  result.Resize(cn + gn);
+
+  for(unsigned int i = 0; i < cn; i++)
+  {
+    result[i] = objectives.data[i];
+    LOG_DBG2(opt) << "GAF: o=" << result[i]->ToString();
+  }
+  for(unsigned int i = 0; i < gn; i++)
+  {
+    result[cn + i] = constraints.active[i];
+    LOG_DBG2(opt) << "GAF: g=" << result[cn + i]->ToString();
+  }
+
+  return result;
 }
 
 double Optimization::CalcSymmetry(DesignElement::Type de, DesignElement::ValueSpecifier vs, DesignElement::Access access)
@@ -677,16 +742,29 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
     if(g->GetValue() == -1.0 || g->IsObservation())
       CalcConstraint(g);
   }
-  constraints.view->Done(); // we have now a global slope constraint value
+  constraints.view->Done();
 
   for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
   {
     Condition* g = constraints.all[i]; // Now traverse in global mode
 
-    double value = g->GetValue();
-    if(g->delta_logging) value = value - g->GetBoundValue();
-    if(out) *out << "\t" << value;
-    iteration->Get(g->ToString())->SetValue(value);
+    if(g->IsLocalCondition())
+    {
+      LocalCondition* local = dynamic_cast<LocalCondition*>(g);
+      double max  = local->CalcMaxValue();
+      double mean = local->CalcMeanValue();
+      if(out)
+        *out << "\tmax_" << local->ToString() << max << "\tmean_" << local->ToString() << mean;
+      iteration->Get("max_" + g->ToString())->SetValue(max);
+      iteration->Get("mean_" + g->ToString())->SetValue(mean);
+    }
+    else
+    {
+      double value = g->GetValue();
+      if(g->delta_logging) value = value - g->GetBoundValue();
+      if(out) *out << "\t" << value;
+      iteration->Get(g->ToString())->SetValue(value);
+    }
   }
 
   if(out && log.design){
