@@ -360,6 +360,11 @@ double DesignElement::GetPhysicalDesign() const
   // we need the transder function
 }
 
+bool DesignElement::HasPhysicalDesign() const
+{
+  return(type_ == DENSITY || type_ == POLARIZATION);
+}
+
 
 void DesignElement::ToInfo(PtrParamNode in) const
 {

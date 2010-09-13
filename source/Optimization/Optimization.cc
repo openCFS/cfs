@@ -206,14 +206,15 @@ void Optimization::PostInitSecond()
 
     default: throw Exception("optimizer not implemented");
   }
+  unsigned int n = design->GetNumberOfVariables();
   if (this->log.design) {
-    for (unsigned int i = 0; i < design->GetNumberOfVariables(); i++) {
+    for (unsigned int i = 0; i < n; ++i) {
       this->log.fileHeader += "\t";
       this->log.fileHeader += "design";
     }
   }
   if (this->log.designGradient) {
-    for (unsigned int i = 0; i < design->GetNumberOfVariables(); i++) {
+    for (unsigned int i = 0; i < n; ++i) {
       this->log.fileHeader += "\t";
       this->log.fileHeader += "designGradient";
     }

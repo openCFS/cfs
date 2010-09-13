@@ -2305,8 +2305,8 @@ double ErsatzMaterial::CalcHomogenizedElementProduct(ErsatzMaterial* obj, Design
 
   // coordinates of "this" element
   Matrix<double> tmp_mat;
-  // coordinates of current element, not updated lagrangian
-  domain->GetGrid()->GetElemNodesCoord(tmp_mat, de->elem->connect, false);
+  // coordinates of current element
+  domain->GetGrid()->GetElemNodesCoord(tmp_mat, de->elem->connect, true);
 
   Matrix<double> u1_tmp;
   u1_tmp = test_strain_matrix_ij * tmp_mat;

@@ -472,14 +472,14 @@ public:
    *  material tensor (see Bendsoe/Sigmund: Topology Optimization, p. 122ff.
    *  It must be called only for the last excitation when all test strains are known.
    *  Writes the tensor to info.log */
-  Matrix<double> CalcHomogenizedTensor();
+  virtual Matrix<double> CalcHomogenizedTensor();
 
   /** Calculates the gradient of the homogenization tracking. When J = 0.5 * || E^* - E^H ||^2
    * the this calulates -1 (E^* - E^H) * d(E^H)/d(rho_e) using a matrix scalar product
    * @param target E^* what we want
    * @param hom the pre calculated tensor E^H
    * @param g the HOMOGENIZATION_TRACKING or NULL if for objective function */
-  void CalcHomogenizedTrackingGradient(const Matrix<double>& target,
+  virtual void CalcHomogenizedTrackingGradient(const Matrix<double>& target,
       const Matrix<double>& hom, Objective* f, Condition* g);
 
   /** Calculates the gradient if the constraints E^H = E^* where for each interested

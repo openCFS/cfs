@@ -239,7 +239,9 @@ void DensityFile::SetCurrent(int current_iteration)
     el->Get("nr")->SetValue(de->elem->elemNum);
     el->Get("type")->SetValue(DesignElement::type.ToString(de->GetType()));
     el->Get("design")->SetValue(de->GetDesign(DesignElement::PLAIN), 11);
-    el->Get("physical")->SetValue(de->GetPhysicalDesign(), 11);
+    if(de->HasPhysicalDesign()){
+      el->Get("physical")->SetValue(de->GetPhysicalDesign(), 11);
+    }
   }
 
   // do we need to write?
