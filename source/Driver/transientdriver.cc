@@ -63,7 +63,16 @@ namespace CoupledField {
     
     // Get time stepping information from parameter object
     myNode->GetValue( "numSteps", numstep_ );
-    myNode->GetValue( "deltaT", firstdt_ );
+    
+    // for the evaluation of deltaT, we make use of math Parser to
+    // allow variable definitions of time step size
+    std::string dtString;
+    myNode->GetValue( "deltaT", dtString );
+    MathParser & mp = *(domain->GetMathParser());
+    MathParser::HandleType handle = mp.GetNewHandle();
+    mp.SetExpr(handle,dtString);
+    firstdt_ = mp.Eval(handle);
+    mp.ReleaseHandle(handle);
 
     // Get save increment for restart file (optional)
     myNode->GetValue( "writeRestartInc", restartIncr_, ParamNode::PASS );

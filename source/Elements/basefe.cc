@@ -94,7 +94,8 @@ namespace CoupledField
 
     // step2: multiply shape fncs for each dimension with according matrix entries
     globCoord.Resize(coordMat.GetNumRows());
-    coordMat.Mult(shFnc,globCoord);
+    globCoord = coordMat * shFnc;
+    //coordMat.Mult(shFnc,globCoord);
   }
 
   void BaseFE::Global2LocalCoords(Matrix<Double> & localCoords,

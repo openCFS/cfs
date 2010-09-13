@@ -39,7 +39,7 @@ function GetWorkingCopyRev {
     WC_REV=$(svn st --xml --verbose $WCDIR | xsltproc $TESTDIR/CFSDEPS_NIGHTLY/utils/xslt/cfsdepsrev.xslt -)
     if [ ! "$?" = 0 ]; then WC_REV="-1"; fi
 
-    change-svn-wc-format.py $WCDIR "1.5" # --verbose
+    change-svn-wc-format.py $WCDIR "1.5" --force # --verbose
 }
 
 function PerformTest {
@@ -49,32 +49,195 @@ function PerformTest {
 
     cat ctest_scripts/ctest_$TESTNAME.cmake > ctest_scripts/ctest_script.cmake
 
+    rm -rf $TESTDIR/CFS_BUILD_NIGHTLY
+
+    echo "Testing cfs_build_$TESTNAME.tgz..."
     ctest -V -S ctest_scripts/ctest_script.cmake
 
     cd $TESTDIR
-    tar cvzf cfs_build_$TESTNAME.tgz CFS_BUILD_NIGHTLY
+    echo "Packaging cfs_build_$TESTNAME.tgz..."
+    tar czf cfs_build_$TESTNAME.tgz CFS_BUILD_NIGHTLY
+    
+    rm -rf CFS_BUILD_NIGHTLY
 }
 
+function SubmitErrorToCDash {
+    BUILDSCRIPT=$(basename "$0");
+    SITE=$HOSTNAME;
+    BUILDNAME="ATTENTION: $BUILDSCRIPT";
+    NOTENAME=$1;
+    NOTE="$2";
+    ERROR="$3";
+    LOGLINE="$4";
+    NOTETEMPFILE="$(mktemp).xml"
+    BUILDFILE="$NOTETEMPFILE"
+    BUILDSTAMP="$(date '+%Y%m%d-%H%M')-Nightly"
+    
+    echo $SITE
+    echo $BUILDNAME
+    echo $NOTENAME
+    echo $NOTE
+    echo $NOTETEMPFILE
+    
+    echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" > $BUILDFILE
+    echo "<Site BuildName=\"$BUILDNAME\"" >> $BUILDFILE
+    echo "      BuildStamp=\"$BUILDSTAMP\"" >> $BUILDFILE
+    echo "      Name=\"$SITE\"" >> $BUILDFILE
+    echo "      Generator=\"$BUILDSCRIPT\"    OSName=\"Linux\"" >> $BUILDFILE
+    echo "      Hostname=\"$SITE\">" >> $BUILDFILE
+#    echo "        OSRelease=\"2.6.31.12-0.1-default\"" >> $BUILDFILE
+#    echo "        OSVersion=\"#1 SMP 2010-01-27 08:20:11 +0100\"" >> $BUILDFILE
+#    echo "        OSPlatform=\"x86_64\"" >> $BUILDFILE
+#    echo "        Is64Bits=\"1\"" >> $BUILDFILE
+#    echo "        VendorString=\"AuthenticAMD\"" >> $BUILDFILE
+#    echo "        VendorID=\"Advanced Micro Devices\"" >> $BUILDFILE
+#    echo "        FamilyID=\"16\"" >> $BUILDFILE
+#    echo "        ModelID=\"4\"" >> $BUILDFILE
+#    echo "        ProcessorCacheSize=\"512\"" >> $BUILDFILE
+#    echo "        NumberOfLogicalCPU=\"16\"" >> $BUILDFILE
+#    echo "        NumberOfPhysicalCPU=\"16\"" >> $BUILDFILE
+#    echo "        TotalVirtualMemory=\"2047\"" >> $BUILDFILE
+#    echo "        TotalPhysicalMemory=\"32239\"" >> $BUILDFILE
+#    echo "        LogicalProcessorsPerPhysical=\"1\"" >> $BUILDFILE
+#    echo "        ProcessorClockFrequency=\"2511.53\">" >> $BUILDFILE
+    echo "  <Build>" >> $BUILDFILE
+#    echo "    <StartDateTime>Mar 29 02:23 CEST</StartDateTime>" >> $BUILDFILE
+#    echo "    <StartBuildTime>1269822221</StartBuildTime>" >> $BUILDFILE
+    echo "    <StartDateTime>" >> $BUILDFILE
+    date '+%b %d %R %Z' >> $BUILDFILE
+    echo "    </StartDateTime>" >> $BUILDFILE
+#    echo "    <StartBuildTime>" >> $BUILDFILE
+#    date '+%N' >> $BUILDFILE
+#    echo "    </StartBuildTime>" >> $BUILDFILE
 
-# Remove previous CFSDEPSCACHE directory and remove prebuilt archives
-if [ "$DAYOFWEEK" = "7" ]; then
+    echo "    <BuildCommand>$BUILDSCRIPT</BuildCommand>" >> $BUILDFILE
+    echo "    <Error>" >> $BUILDFILE
+    echo "      <BuildLogLine>$LOGLINE</BuildLogLine>" >> $BUILDFILE
+    echo "      <Text>" >> $BUILDFILE
+    echo "      $ERROR" >> $BUILDFILE
+    echo "      </Text>" >> $BUILDFILE
+    echo "      <Precontext/>" >> $BUILDFILE
+    echo "      <Postcontext/>" >> $BUILDFILE
+    echo "      <RepeatCount>0</RepeatCount>" >> $BUILDFILE
+    echo "    </Error>" >> $BUILDFILE
+    echo "    <Log Encoding=\"base64\" Compression=\"/bin/gzip\"/>" >> $BUILDFILE
+#    echo "    <EndDateTime>Mar 29 02:52 CEST</EndDateTime>" >> $BUILDFILE
+#    echo "    <EndBuildTime>1269823955</EndBuildTime>" >> $BUILDFILE
+    echo "    <EndDateTime>" >> $BUILDFILE
+    date '+%b %d %R %Z' >> $BUILDFILE
+    echo "    </EndDateTime>" >> $BUILDFILE
+    echo "    <ElapsedMinutes>0</ElapsedMinutes>" >> $BUILDFILE
+    echo "  </Build>" >> $BUILDFILE
+    echo "</Site>" >> $BUILDFILE
+
+    curl -T "{$BUILDFILE}" http://lse17.e-technik.uni-erlangen.de:2000/cdash/submit.php?project=CFS
+
+    echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" > $NOTETEMPFILE
+    echo "<?xml-stylesheet type=\"text/xsl\" href=\"Dart/Source/Server/XSL/Build.xsl <file:///Dart/Source/Server/XSL/Build.xsl> \"?>" >> $NOTETEMPFILE
+    echo "<Site BuildName=\"$BUILDNAME\" BuildStamp=\"$BUILDSTAMP\" Name=\"$SITE\" Generator=\"$BUILDSCRIPT\">" >> $NOTETEMPFILE
+    echo "  <Notes>" >> $NOTETEMPFILE
+    echo "    <Note Name=\"$NOTENAME\">" >> $NOTETEMPFILE
+    echo -n "      <DateTime>" >> $NOTETEMPFILE
+    date '+%b %d %R %Z' >> $NOTETEMPFILE
+    echo "</DateTime>" >> $NOTETEMPFILE
+    echo "      <Text>" >> $NOTETEMPFILE
+
+    echo "$NOTE" >> $NOTETEMPFILE
+    echo "      </Text>" >> $NOTETEMPFILE
+    echo "    </Note>" >> $NOTETEMPFILE
+
+    echo "  </Notes>" >> $NOTETEMPFILE
+    echo "</Site>" >> $NOTETEMPFILE
+
+    # Submit machine specific version of Notes.xml to dash board
+    curl -T "{$NOTETEMPFILE}" http://lse17.e-technik.uni-erlangen.de:2000/cdash/submit.php?project=CFS
+    
+    rm -f $NOTETEMPFILE
+    
+    exit 1;
+}
+
+cd $TESTDIR
+
+# Remove previous CFSDEPSCACHE directory and make sure that ACML sources
+# get copied to the newly created one.
+if [ "$DAYOFWEEK" = "1" ]; then
+    echo "Packaging last week's CFS_TRUNK_NIGHTLY..."
+    tar czf $TESTDIR/last_weeks_cfs_trunk_nightly.tgz CFS_TRUNK_NIGHTLY
+    rm -rf $TESTDIR/CFS_TRUNK_NIGHTLY
+    echo "Packaging last week's CFSDEPS_NIGHTLY..."
+    tar czf $TESTDIR/last_weeks_cfsdeps_nightly.tgz CFSDEPS_NIGHTLY
+    rm -rf $TESTDIR/CFSDEPS_NIGHTLY
+    echo "Packaging last week's CFS_TESTSUITE_NIGHTLY..."
+    tar czf $TESTDIR/last_weeks_cfs_testsuite_nightly.tgz CFS_TESTSUITE_NIGHTLY
+    rm -rf $TESTDIR/CFS_TESTSUITE_NIGHTLY
     rm -rf $TESTDIR/CFSDEPSCACHE
     rm -rf $TESTDIR/cfs_build_*.tgz
 fi
 
+# Source password for test user
+. $HOME/.testuserpw
+
+# Write SVN auth file to make sure all upcoming svn commands will work properly.
+SVNFILE="$HOME/.subversion/auth/svn.simple/f4c5d049eb353aa17027f06e57e71d0e"
+echo "K 8" > $SVNFILE
+echo "passtype" >> $SVNFILE
+echo "V 6" >> $SVNFILE
+echo "simple" >> $SVNFILE
+echo "K 8" >> $SVNFILE
+echo "password" >> $SVNFILE
+echo "V 8" >> $SVNFILE
+echo "$CFS_TESTUSER_PW" >> $SVNFILE
+echo "K 15" >> $SVNFILE
+echo "svn:realmstring" >> $SVNFILE
+echo "V 68" >> $SVNFILE
+echo "<https://lse17.e-technik.uni-erlangen.de:2001> Subversion repository" >> $SVNFILE
+echo "K 8" >> $SVNFILE
+echo "username" >> $SVNFILE
+echo "V 12" >> $SVNFILE
+echo "testuser-klu" >> $SVNFILE
+echo "END" >> $SVNFILE
+
+
+# Copy current version of update scripts from server to update directory
+mkdir -p $TESTDIR/update
+cd $TESTDIR/update
+rm -f *
+FILES="ctest_update.cmake ctest_update_cfs_klu.cmake ctest_update_cfsdeps_klu.cmake ctest_update_testsuite_klu.cmake CTestConfig.cmake"
+for FILE in $FILES; do
+  wget --http-user=testuser-klu --http-password=$CFS_TESTUSER_PW \
+       --no-check-certificate \
+       https://lse17.e-technik.uni-erlangen.de:2001/svn/CFS++/trunk/ctest_scripts/$FILE
+done
+
 # Checkout or update CFSDEPS
-cd $TESTDIR/CFS_TRUNK_NIGHTLY
+cd $TESTDIR/update
 GetWorkingCopyRev $TESTDIR/CFSDEPS_NIGHTLY
 CFSDEPS_PREV_REV=$WC_REV;
-ctest -V -S ctest_scripts/ctest_rom_update_cfsdeps.cmake
+# Due to the fact, that CTest generates non-zero return values
+# even if no error occured we do not check for that condition (cf. 
+# http://public.kitware.com/Bug/bug_view_page.php?bug_id=8277&history=1).
+# Instead we delete all working copies on Sunday (DAYOFWEEK=7) to
+# make sure we get a fresh start from time to time.
+ctest -V -S ctest_update_cfsdeps_klu.cmake
+#|| \
+#  SubmitErrorToCDash "ctest_update_cfsdeps_klu.cmake" "Update of CFSDEPS_NIGHTLY failed." "ctest_update_cfsdeps_klu.cmake: Update of CFSDEPS failed."
 GetWorkingCopyRev $TESTDIR/CFSDEPS_NIGHTLY
 CFSDEPS_CURRENT_REV=$WC_REV;
 
+# Checkout or update CFS++
+cd $TESTDIR/update
+GetWorkingCopyRev $TESTDIR/CFS_TRUNK_NIGHTLY
+CFS_PREV_REV=$WC_REV;
+ctest -V -S ctest_update_cfs_klu.cmake
+GetWorkingCopyRev $TESTDIR/CFS_TRUNK_NIGHTLY
+CFS_CURRENT_REV=$WC_REV;
+
 # Checkout or update test suite
-cd $TESTDIR/CFS_TRUNK_NIGHTLY
+cd $TESTDIR/update
 GetWorkingCopyRev $TESTDIR/CFS_TESTSUITE_NIGHTLY
 TESTSUITE_PREV_REV=$WC_REV;
-ctest -V -S ctest_scripts/ctest_rom_update_cfsdeps.cmake
+ctest -V -S ctest_update_testsuite_klu.cmake
 GetWorkingCopyRev $TESTDIR/CFS_TESTSUITE_NIGHTLY
 TESTSUITE_CURRENT_REV=$WC_REV;
 
@@ -96,7 +259,8 @@ rm -rf /opt/pckg/CFSDEPS/* /opt/pckg/CFSDEPS/.svn
 cp -a CFSDEPS_NIGHTLY/* CFSDEPS_NIGHTLY/.svn /opt/pckg/CFSDEPS
 
 # Pack directories for Ubuntu VBox
-tar cvzf CFS_NIGHTLY.tgz CFS_TESTSUITE_NIGHTLY CFSDEPS_NIGHTLY CFS_TRUNK_NIGHTLY
+echo "Packaging repositories for Ubuntu VBox..."
+tar czf CFS_NIGHTLY.tgz CFS_TESTSUITE_NIGHTLY CFSDEPS_NIGHTLY CFS_TRUNK_NIGHTLY
 
 # Start Ubuntu 8.04 VBox in background
 VBOX_LOG=$HOME/Documents/dev/ubuntu804.log
@@ -116,33 +280,35 @@ DISTRO=$($TESTDIR/CFS_TRUNK_NIGHTLY/share/scripts/distro.sh -u)
 
 PerformTest "rom_gcc_nightly"
 
+cd $TESTDIR
+tar xzf cfs_build_rom_gcc_nightly.tgz
 CFSBIN="$TESTDIR/CFS_BUILD_NIGHTLY/bin/$DISTRO/cfsbin"
 CFSTOOLBIN="$TESTDIR/CFS_BUILD_NIGHTLY/bin/$DISTRO/cfstoolbin"
 CPLREADER="$TESTDIR/CFS_BUILD_NIGHTLY/bin/$DISTRO/cplreader"
 if [ -f $CFSBIN ] && [ -f $CFSTOOLBIN ] && [ -f $CPLREADER ]; then
-    # Copy binaries to /opt/pckg/cfs_nightly
+    echo "Copying GCC binaries to /opt/pckg/cfs_nightly..."
     rm -rf $DESTDIR/trunk_gcc
     mkdir $DESTDIR/trunk_gcc
     cp -a $TESTDIR/CFS_BUILD_NIGHTLY/bin $DESTDIR/trunk_gcc
     cp -a $TESTDIR/CFS_BUILD_NIGHTLY/lib64 $DESTDIR/trunk_gcc
     cp -a $TESTDIR/CFS_BUILD_NIGHTLY/share $DESTDIR/trunk_gcc
     cp -a $TESTDIR/CFS_TRUNK_NIGHTLY/share/matlab $DESTDIR/trunk_gcc/share
+
+    echo "Submitting GCC binaries to lse17..."
+    curl -u testuser-klu:$CFS_TESTUSER_PW -k -T cfs_build_rom_gcc_nightly.tgz https://lse17.e-technik.uni-erlangen.de:2001/files/nightly-builds/
 fi
+rm -rf CFS_BUILD_NIGHTLY
 
-# Update CFS docu for rom webpage
-cd "$TESTDIR/CFS_BUILD_NIGHTLY"      && \
-make doc-devel > /dev/null 2>&1      && \
-make doc-user > /dev/null 2>&1       && \
-make doc-user-html > /dev/null 2>&1;
+# Copy current version of CFS++ documentation from lse17 to rom for local Wiki
+cd /srv/www/htdocs/cfsDocu
+rm -rf *
+FILES="docu/tutorial/cfsManual.pdf docu/cfs-doc/user/xmlFile/xmlReference.pdf docu/cfs-doc/developer/develManual/develManual.pdf svn/CFS++/trunk/source/cplreader/Documentation/latex/cplreader_docu.pdf"
+for FILE in $FILES; do
+  wget --http-user=testuser-klu --http-password=$CFS_TESTUSER_PW \
+       --no-check-certificate \
+       https://lse17.e-technik.uni-erlangen.de:2001/$FILE
+done
 
-cp -a "$TESTDIR/CFS_TRUNK_NIGHTLY/share/doc/developer/html" "/srv/www/htdocs/cfsDocu/devel"
-cp -a "$TESTDIR/CFS_TRUNK_NIGHTLY/share/doc/user/xmlFile/html" "/srv/www/htdocs/cfsDocu/user"
-
-cd /srv/www/htdocs/cfsDocu/xmlManual/                  && \
-svn up > /dev/null 2>&1                                && \
-pdflatex -halt-on-error cfsManual.tex > /dev/null 2>&1 && \
-pdflatex -halt-on-error cfsManual.tex > /dev/null 2>&1 && \
-./buildhtml > /dev/null 2>&1
 
 
 # Change into CFS++ source directory and execute CTest for ICC.
@@ -151,8 +317,10 @@ source /opt/intel/Compiler/11.1/069/bin/ifortvars.sh intel64
 
 PerformTest "rom_icc_nightly"
 
+cd $TESTDIR
+tar xzf cfs_build_rom_icc_nightly.tgz
 if [ -f $CFSBIN ] && [ -f $CFSTOOLBIN ] && [ -f $CPLREADER ]; then
-    # Copy binaries to /opt/pckg/cfs_nightly
+    echo "Copying Intel binaries to /opt/pckg/cfs_nightly..."
     ICC_ROM_DIR=$DESTDIR/trunk_icc_rom
     rm -rf $ICC_ROM_DIR
     mkdir $ICC_ROM_DIR
@@ -163,8 +331,11 @@ if [ -f $CFSBIN ] && [ -f $CFSTOOLBIN ] && [ -f $CPLREADER ]; then
 
     rm -rf /opt/pckg/CFSDEPSCACHE/precompiled/*
     cp -a $TESTDIR/CFSDEPSCACHE/precompiled/* /opt/pckg/CFSDEPSCACHE/precompiled
-fi
 
+    echo "Submitting GCC binaries to lse17..."
+    curl -u testuser-klu:$CFS_TESTUSER_PW -k -T cfs_build_rom_icc_nightly.tgz https://lse17.e-technik.uni-erlangen.de:2001/files/nightly-builds/
+fi
+rm -rf CFS_BUILD_NIGHTLY
 
 echo "-----------------------------------------------------------------------------"
 echo "`basename $0` finished on `date`"

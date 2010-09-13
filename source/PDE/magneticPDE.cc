@@ -26,6 +26,7 @@
 #include "Domain/ansatzFct.hh"
 #include "Driver/assemble.hh"
 #include "Utils/coordSystem.hh"
+#include "Utils/biotSavart.hh"
 #include "Utils/mathParser/mathParser.hh"
 
 #ifdef USE_SCRIPTING
@@ -103,7 +104,22 @@ DEFINE_LOG(magpde, "magpde")
 
   void MagPDE::ReadSpecialBCs() {
 
-
+    // -----------------------------------
+    //  Check for Biot-Savart formulation
+    // -----------------------------------
+    PtrParamNode bsNode = myParam_->Get("biotSavart", ParamNode::PASS );
+    if( bsNode ) {
+      
+      // check, if we have transient simulation
+      if( analysistype_ == BasePDE::TRANSIENT ) {
+        EXCEPTION("Biot-Savart is currently just implemented for static /"
+                  << "harmonic simulations!" );
+      }
+      biotSavart_ = 
+          shared_ptr<BiotSavart>(new BiotSavart(BiotSavart::VEC_POT));
+      isBiotSavart_ = true;
+    }
+    
     // --------------------------------------------------------------------
     //   Get information about coils and open files for measurement coils
     // --------------------------------------------------------------------
@@ -113,7 +129,6 @@ DEFINE_LOG(magpde, "magpde")
     // Check for permanent magnets
     // -----------------------------
     ReadMagnets();
- 
   }
   
 
@@ -575,6 +590,14 @@ DEFINE_LOG(magpde, "magpde")
       solveStep_ = new SolveStepMagHyst(*this);
     else 
       solveStep_ = new StdSolveStep(*this);
+  }
+  void MagPDE::PreparePDE4Computation()
+  {
+    if ( isBiotSavart_ ) {
+      PtrParamNode bsNode = myParam_->Get("biotSavart", ParamNode::PASS );
+      biotSavart_->Init( bsNode, ptgrid_, eqnMap_ );
+      //biotSavart_->ComputeBiotSavartField();
+    }
   }
 
 

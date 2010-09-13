@@ -32,7 +32,8 @@ namespace CoupledField {
     void SolveProblem(bool write_results = true, PtrParamNode analysis_id = PtrParamNode(), AdjointParameters* adjointParams = NULL);
         
     /** @see BaseDriver::StoreResults(double) */  
-    void StoreResults(double step_val);
+    void StoreResults(UInt stepNum,
+                      double step_val);
 
   protected:
     //! Number of steps before a restart file is stored

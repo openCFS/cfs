@@ -153,7 +153,8 @@ namespace CoupledField {
                OPT_RESULT_7, OPT_RESULT_8, OPT_RESULT_9,
                LAGRANGE_MULT, THERMOMECH_FORCE, THERMOELEC_FORCE,
                GRAD_ACOU_SOLUTION, GRAD_ELEC_POTENTIAL,
-               GRAD_X_DISPLACEMENT, GRAD_Y_DISPLACEMENT, GRAD_Z_DISPLACEMENT // nodal gradients
+               GRAD_X_DISPLACEMENT, GRAD_Y_DISPLACEMENT, GRAD_Z_DISPLACEMENT, // nodal gradients
+               ELEM_LOC_DIR, JACOBIAN
                } SolutionType;
 
                extern Enum<SolutionType> SolutionTypeEnum;

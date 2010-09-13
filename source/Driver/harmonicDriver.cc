@@ -281,13 +281,13 @@ namespace CoupledField
   }
 
 
-  void HarmonicDriver::StoreResults(double step_val)
+  void HarmonicDriver::StoreResults(UInt stepNum, double step_val)
   {
     assert(analysis_ == BasePDE::HARMONIC);
 
     // Write results into output-file(s)
-    handler_->BeginStep((unsigned int) step_val, step_val);
-    ptPDE_->WriteResultsInFile((unsigned int) step_val, step_val);
+    handler_->BeginStep(stepNum, step_val);
+    ptPDE_->WriteResultsInFile(stepNum, step_val);
     handler_->FinishStep( );
   }
 

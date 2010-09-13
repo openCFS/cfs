@@ -212,7 +212,7 @@ namespace CoupledField {
       
       delete evs;
       // in the end prevent-relcaulation of evs by re-setting the value for CalcConditionNumber
-      xml_->Get("matrix")->Get("calcConditionNumber")->SetValue( false );
+      xml_->Get("matrix")->Get("calcConditionNumber")->SetValue( boost::any(false) );
     }
    
     // If the penalty formulation is used and we have inhomogeneous

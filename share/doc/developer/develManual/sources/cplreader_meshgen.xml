@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Run: cplreader --type GENGRIDS --name surf_mesh --xmlfile THIS_FILES_NAME -->
+
+<cplreaderOptions>
+    <type name="GENGRIDS">
+        <elementType name="HEXA8"/>
+        <samplingIntervalls>
+            <!-- Define intervals by using either absolute or incremental coordinates -->
+            <coordinates axis="x">
+                <coord type="absolute"> 0.0e-0 </coord>
+                <coord type="increment"> 1e-1 </coord>
+            </coordinates>
+            <coordinates axis="y">
+                <coord type="absolute"> 0.0e-0 </coord>
+                <coord type="increment"> 1.0e-1 </coord>
+            </coordinates>
+            <coordinates axis="z">
+                <coord type="absolute"> 0.0e-3 </coord>
+                <coord type="increment"> 2e-2 </coord>
+            </coordinates>
+        </samplingIntervalls>
+        <intervallElements>
+            <elements axis="x">
+                <elems>5</elems>
+            </elements>
+            <elements axis="y">
+                <elems>7</elems>
+            </elements>
+            <elements axis="z">
+                <elems>2</elems>
+            </elements>
+        </intervallElements>
+        <regions>
+            <!-- Define regions by selecting volumes, surfaces and line -->
+           <region name="myregion">
+              <prelimRegion> surf_bottom_1_1_1 </prelimRegion>
+               <prelimRegion> surf_top_1_1_1 </prelimRegion>
+               <prelimRegion> surf_left_1_1_1 </prelimRegion>
+               <prelimRegion> surf_right_1_1_1 </prelimRegion>
+               <prelimRegion> surf_front_1_1_1 </prelimRegion>
+               <prelimRegion> surf_back_1_1_1 </prelimRegion>
+           </region>
+        </regions>
+                
+    </type>
+</cplreaderOptions>

@@ -1,12 +1,57 @@
 \chapter{Software Infrastructure}
 
-\section{Versioncontrolsystem Subversion}
+\section{Version Control System Subversion}
+\label{sec:svn}
 
 Subversion is a  free/open source version control system,  which manages files
 and  directories, and  the changes  made to  them, over  time. This  allows to
 recover older versions and to have different developing branches \cite{svn}.
 
+\subsection{Using Git in Combination with SVN}
+\label{sec:git}
+
+Git\footnote{Git home page: \url{http://git-scm.com}} is a distributed version
+control  system.    It  is  an  alternative  to   the  centralized  Subversion
+system. The main difference is, that there may also exist a central repository
+for Git but the local working  copies of this central repository are clones of
+it and are therefore repositories themselves. On these local repositories, all
+operations  for which  an interaction  with  the central  repository would  be
+necessary using SVN (e.g. committing changes, creating a branch, etc.)  may be
+performed  locally. The  local  repository  has to  be  synchronized with  the
+central one at some points  in time.  This philosophy is therefore well-suited
+for  working on  laptops for  example. Fortunately  there exists  also  a link
+between SVN  and Git  which allows cloning  of a  central SVN repository  to a
+local   Git  repository.   Table   \ref{tab:git_materials}  contains   further
+references concerning Git.
+
+The following script shows a typical sequence of commands for obtaining a copy
+of the  source code, updating the  working copy, committing  local changes and
+committing local changes back to the SVN repository.
+
+\input{pygmentized/git_checkout_cfs}
+
+\begin{table}[tb]
+\centering
+\begin{minipage}{18cc}\caption{Git resources on the web.}
+\label{tab:git_materials}
+\end{minipage}
+\par\medskip\noindent
+\begin{tabular}{ll}
+  \toprule
+  {\bf Description} & {\bf URL} \\ \otoprule
+  Howto use Git and svn together & \url{http://flavio.castelli.name/howto_use_git_with_svn} \\
+  Git in combination with SVN & \url{http://git.or.cz/course/svn.html} \\
+  Git/SVN Howtos on Amarok Devel Site & \url{http://amaroklive.com/wiki/Development/Git} \\
+  Professional Git (Book) & \url{http://progit.org/book/} \\
+  Git Magic (Book) & \url{http://www-cs-students.stanford.edu/ ~blynn/gitmagic/index.html} \\
+  Git Reference & \url{http://gitref.org/index.html} \\
+  Reference Sheet & \url{http://cheat.errtheblog.com/s/git} \\
+  \bottomrule
+\end{tabular} 
+\end{table}
+
 \section{CMake Build System}
+\label{sec:cmake}
 
 CMake is  a family of platform  independent tools designed to  build, test and
 package  software  \cite{cmake,  Schroeder2004,  Martin2007a}.  It  is  mainly
@@ -16,23 +61,61 @@ just  needs to maintain  platform independent  configuration files  from which
 CMake will  generate the  previously mentioned projects  for the  native build
 environments.
 
+\todo[inline]{Describe  structure  of  source  and build  trees,  internal
+  architecture of our CMake  files, interaction with CFSDEPS, howto switch
+  compilers, etc.}
+
 \section{CFSDEPS}
+\label{sec:cfsdeps}
 
  When  developing a  general purpose  finite element  code a  lot  of external
 libraries (e.g.   BLAS, LAPACK, ARPACK, Metis\ldots)  have to be  pulled in if
-the wheel  is not  to be reinvented.  Many of  these libraries are  present on
-modern-day Linux/Unix distributions.  If a library is however not available it
-has to  be built  from source. If  more than  the standard GNU  compiler suite
-should be supported it is  almost certain that incompatibilities with prebuilt
-system  libraries  will   arise.  Therefore  we  decided  to   build  all  our
-dependencies  in an  automated  script  based manner.  The  scripts fetch  the
+the wheel is not to  be reinvented.  Many  of these libraries are  present on
+modern-day Linux/Unix  distributions. If more  than the standard  GNU compiler
+suite should be supported it  is however almost certain that incompatibilities
+with prebuilt system libraries will arise.
+
+ On  Windows, not  all  of the  libraries  may be  readily available.  Another
+problem which arises if the Visual C++ compilers are used, is that there exist
+a number  of different  C and C++  runtime environments (static  vs.  dynamic,
+single-threaded  vs. multi-threaded,  debug vs.  release, etc...).   A library
+compiled and linked  against one runtime environment, must  not be linked with
+libraries built against a different one.  Moreover, 64-bit libraries are still
+rare to find.
+
+Due to all of the aforementioned  problems, a library may not be available and
+it  has to  be  built from  source.  Therefore  we  decided to  build all  our
+dependencies  in an  automated script  based  manner.  The  scripts fetch  the
 sources from the web, unpack  them, perform checksum checks, patch, configure,
-build   and   install   the   libraries.    This   way   we   obtain   maximum
-platform-independence  while   having  a  well-documented   and  SVN-versioned
-description of how to build external packages. The necessity for automatically
-building external packages has also been recognized by the CMake developers in
-the     meantime     and      is     supported     since     version     2.8.0
+build and  install the libraries (cf.  Fig. \ref{fig:cfsdeps_flowdiag}).  This
+way we obtain maximum platform-independence while having a well-documented and
+SVN-versioned description of how to build external packages. The necessity for
+automatically building external packages has also been recognized by the CMake
+developers   in  the   meantime   and  is   supported   since  version   2.8.0
 (cf. \cite{BuildExtPackages})
+
+The   current  hierarchical   structure  of   the  CFSDEPS   is   depicted  in
+Fig.  \ref{fig:cfsdeps_structure} while  the  sequence of  actions during  the
+build of an individual package is depicted in Fig. \ref{fig:cfsdeps_flowdiag}.
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=1.0\textwidth]{pics/cfsdeps_structure}
+%    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
+  \end{overpic}
+  \caption{Structure and supported platforms of CFSDEPS.}
+  \label{fig:cfsdeps_structure}
+\end{figure}%
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.55\textwidth]{pics/cfsdeps_flowdiag}
+%    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
+  \end{overpic}
+  \caption{Actions taken during the build of a package.}
+  \label{fig:cfsdeps_flowdiag}
+\end{figure}%
+
 
 \section{CTest}
 
@@ -42,6 +125,8 @@ in the same  simple CMake syntax.  Every user should run  those tests before a
 commit of  changes or additional software code.  This way it can  be made sure
 that all the old features are still working at least on the user's platform.
 
+\textcolor{red}{PLEASE NOTE:  The user name  and password for the  Ubuntu 8.04
+VBox on rom are 'user' and 'user'.}
 
 \section{CDash}
 

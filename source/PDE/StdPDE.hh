@@ -27,6 +27,7 @@ namespace CoupledField {
   class MixedEqnMap;
   class EqnMap;
   class ParamNode;
+  class BiotSavart;
   
   //! Base class for all single-field and direct-coupled problems
 
@@ -136,6 +137,16 @@ namespace CoupledField {
     virtual bool GetIsaxi() {
       return isaxi_;
     }
+    
+    //! Return Biot-Savart object
+    shared_ptr<BiotSavart> GetBiotSavart() {
+      return biotSavart_;
+    };
+
+    //! check, if Biot-Savart is set
+    bool IsBiotSavart() {
+      return isBiotSavart_;
+    };
 
     //! Return pointer to paramNode of current pde
     PtrParamNode GetParamNode() { return myParam_; }
@@ -571,7 +582,11 @@ namespace CoupledField {
     bool fracDamping_; //!< true: fractional damping model
     UInt fracMemory_;     //!< number of old time steps to be saved (for fractional damping)
     
-
+    //! object, handling the computation by Biot-Savart fundamental field
+    shared_ptr<BiotSavart> biotSavart_;
+        
+    //! excitation computed by Biot-Savart
+    bool isBiotSavart_;
 
     //! type of interpolation (for fractional damping)
     InterpolType inType_;

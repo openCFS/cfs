@@ -555,6 +555,22 @@ extern "C" {
       
       iparm_[31] = 1;
     }
+
+    /* The facotrisation algorithm in pardiso rows/columns which have the about
+     * the same magnitude and structure into one supernode. This may cause
+     * numerical errors due to pivotisation, the iterative refine step remedies
+     * this. (see O.Schenk et al "Solving unsymmetric sparse systems of linear
+     * equations with PARDISO")
+     */
+    if (sNode->Has("IterRefineSteps"))
+    {
+      sNode->GetValue("IterRefineSteps", iparm_[7], ParamNode::INSERT);
+    } else if (iparm_[7] == 0 && mType_ > 10) {
+      std::cerr << "\033[1;33mWarning: Iterative refinement steps is not set!\n" \
+        << "PARDISO did not set it neither.\n" \
+        << "It is advisable for unsymmetric to set it in the xml,\n" \
+        << "since bad pivotisation may result in numerical errors!\033[0m"<< std::endl;
+    }
     
     // we have to icrement the entries of the col- and row-position arrays
     // by one, so that the first col and first row start with index 1 (and

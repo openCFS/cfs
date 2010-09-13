@@ -130,6 +130,7 @@ public:
     LEVEL_SET_GRAD_XP, LEVEL_SET_GRAD_XN, LEVEL_SET_GRAD_YP, LEVEL_SET_GRAD_YN, LEVEL_SET_GRAD_ZP, LEVEL_SET_GRAD_ZN } ValueSpecifier;
 
   BaseDesignElement();
+  virtual ~BaseDesignElement() {};
 
   /** Allows to set the design element. */
   void SetDesign(double value) { this->design = value; }
@@ -210,7 +211,7 @@ public:
    * @param space to output 'penalizedDesign' the pointer is needed to find the transfer function*/
   DesignElement(PtrParamNode pn, Elem* elem);
 
-  ~DesignElement();
+  virtual ~DesignElement();
 
    /** We might need thr transfer functions! */
   static void SetDesignSpace(DesignSpace* space)

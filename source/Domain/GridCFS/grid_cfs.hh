@@ -69,6 +69,10 @@ namespace CoupledField
 
     virtual void FinishInit();
     
+    //! Create result for grid information (local directions etc., Jacobian
+    //! determinant)
+    void CreateGridInformation( ResultHandler* ptRes );
+
     //@}
 
 
