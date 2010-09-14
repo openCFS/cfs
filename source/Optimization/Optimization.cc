@@ -70,6 +70,7 @@ Optimization::Optimization()
   this->baseOptimizer_ = NULL;
   this->harmonic = BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType());
   this->currentIteration = 0; // a 1 or 0 can make a lot of difference! 0 is initial design!
+  this->writeCounter_ = 0;
   this->problemSolvedCounter = 0;
   this->problemWithinIteration = 0;
   this->grid = domain->GetGrid();
@@ -633,12 +634,14 @@ void Optimization::StoreResults(double step_val)
   // and might do nothing
 
   // this will write the CFS result and history file
-  if(!IsTransient()){ // transient optimization saves results in a different way
+  if(!IsTransient())
+  { // transient optimization saves results in a different way
     if(step_val == -1) {
-      domain->GetDriver()->StoreResults(currentIteration, step_val);
+      domain->GetDriver()->StoreResults(writeCounter_, currentIteration);
     } else {
-      domain->GetDriver()->StoreResults((UInt)step_val, step_val);
+      domain->GetDriver()->StoreResults(writeCounter_, step_val);
     }
+    writeCounter_++;
   }
 }
 
