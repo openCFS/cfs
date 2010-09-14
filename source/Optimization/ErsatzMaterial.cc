@@ -584,12 +584,14 @@ void ErsatzMaterial::StoreResults(double step_val)
 {
   CommitMode cm = commitMode_;
 
+  double real_step = step_val != -1 ? step_val : currentIteration;
+
   if(cm == EACH_FORWARD)
   {
     for(unsigned int e = 0; e < excitations.GetSize(); e++) {
       forward.Get(e)->Write(pde);
       // call real implementation in Optimization. sum up in excitation fractions up to smaller 0.5
-      Optimization::StoreResults(step_val + (0.5 / excitations.GetSize()) * e);
+      Optimization::StoreResults(real_step + (0.5 / excitations.GetSize()) * e);
     }
   }
 
@@ -602,20 +604,21 @@ void ErsatzMaterial::StoreResults(double step_val)
   StdVector<Function*> funcs = adjoint.GetFunctions();
   for(unsigned int fi = 0; fi < funcs.GetSize(); fi++)
   {
+    LOG_DBG(em) << "StoreResults(" << step_val << ") rs=" << real_step << " adjoint_function=" << funcs[fi]->ToString();
     if(cm == EACH_ADJOINT)
     {
       for(unsigned int e = 0; excitations.GetSize(); e++) {
         adjoint.Get(e, funcs[fi])->Write(pde);
         // call real implementation in Optimization. sum up in excitation fractions up to smaller 0.5
         double index = (excitations.GetSize() * funcs.GetSize()) * (fi * funcs.GetSize()) * e;
-        Optimization::StoreResults(step_val + 0.5 + (0.5 / index));
+        Optimization::StoreResults(real_step + 0.5 + (0.5 / index));
       }
     }
 
     if(cm == ADJOINT || cm == BOTH) {
       // sum up if there are more excitations
       Solution::Write(pde, adjoint, funcs[fi], 0, excitations); // TODO no time step set!
-      Optimization::StoreResults(step_val + 0.5 + (0.5 / funcs.GetSize()) * fi);
+      Optimization::StoreResults(real_step + 0.5 + (0.5 / funcs.GetSize()) * fi);
     }
   }
 }
@@ -1702,7 +1705,7 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
         stress_transp[0][si] = stress[si];
 
       rhs_transp = stress_transp * M_E_B;
-      rhs_transp *= 2.0;
+      rhs_transp *= -2.0;
 
       assert(rhs_transp.GetNumCols() == u_elem.GetSize());
       assert(rhs_transp.GetNumRows() == 1);
@@ -3026,11 +3029,11 @@ ErsatzMaterial::Solution* ErsatzMaterial::Solutions::Get(Excitation& excitation,
 
 ErsatzMaterial::Solution* ErsatzMaterial::Solutions::Get(int excitation_index, Function* f, unsigned int timestep)
 {
-   assert((&(em_->adjoint) == this && f != NULL) || (&(em_->forward) == this && f == NULL));
+  assert((&(em_->adjoint) == this && f != NULL) || (&(em_->forward) == this && f == NULL));
   // do we have to init first?
   if(data_.find(f) == data_.end())
     Init(f);
-
+  assert(data_.find(f) != data_.end());
   return data_[f][timestep]->data[excitation_index];
 }
 
@@ -3040,8 +3043,9 @@ StdVector<Function*> ErsatzMaterial::Solutions::GetFunctions() const
 
   for(map<Function*, StdVector<Unit*> >::const_iterator it = data_.begin(); it != data_.end(); ++it)
   {
+    LOG_DBG2(em) << "GetFunctions(): f=" << (it->first == NULL ? "NULL" : it->first->ToString());
     if(it->first != NULL)
-      result.Push_back();
+      result.Push_back(it->first);
   }
 
   return result;
@@ -3118,6 +3122,7 @@ void ErsatzMaterial::Solution::Write(StdPDE* pde, Solutions& sol, Function* f, i
   }
   else
   {
+    assert(f != NULL && sol.data_.find(f) != sol.data_.end());
     Solutions::Unit* unit = sol.data_[f][time_step];
     assert(unit->data.GetSize() == excitations.GetSize());
 

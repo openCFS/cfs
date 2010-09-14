@@ -290,6 +290,7 @@ namespace CoupledField
          * @see problemSolvedCounter. */
         int currentIteration;
 
+
         /** This checks how often the state problem is solved. This is not necessary equal
          * to the iterations, e.g. for line search of an external optimizer. Incremented by
          * SolveStateProblem(). */
@@ -365,6 +366,9 @@ namespace CoupledField
 
         /** Keeps all logging relevant stuff */
         Log log;
+
+        /** counts the written steps, which can be higher than currentIteration if adjoints or multiples are written */
+        int writeCounter_;
 
         /** When did we store the last result via CommitIteration() due to stride */
         int lastStoredResult_;
