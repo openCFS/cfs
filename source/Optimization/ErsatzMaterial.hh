@@ -443,6 +443,11 @@ public:
    * @return a vector of element size or rhs size */
   Vector<double> CalcVonMisesStressVector(Excitation& excite, Function* f, bool adjoint_rhs, bool grad_contrib);
 
+  /** Calculates the gradient of the globalization of the von mises value.
+   * Needed for the construction of the adjoint RHS and for the von mises gradient */
+  Vector<double> CalcVonMisesStressGlobalizationFactor(Excitation& excite, Function* f);
+
+
   /** This is a helper with the common part for CalcEnergyFlux and the adjoint RHS.
    * Determines the global vector Q*u^* or (Q - Q^T)^T*u^* in the adjoint case.
    * @param f the cost function as we need the ParamNode
@@ -506,10 +511,8 @@ public:
   /** Calculates globalized local functions. globalSlope and globalCheckerboard.
    * When g_i is the slope function x_i - x_i+1 -c and g_i+1 = x_1+1 - x_i - c
    * the global slope is sum max(0, g_i)^2, hence we need NEXT_AND_REVERSE locality
-   * @param von_mises_stress set only for f == STRESS for derivative and not derivative
-   * @param von_mises_grad set only for f == STRESS and derivative */
-  double CalcGlobalFunction(Function* f, bool derivative, const Vector<double>* von_mises_stress = NULL, const Vector<double>* von_mises_grad = NULL);
-
+   * @param von_mises_stress set only for f == STRESS for derivative and not derivative */
+  double CalcGlobalFunction(Function* f, bool derivative, const Vector<double>* von_mises_stress = NULL);
 
   /** Here we store the solution of the problem. Multiple solutions for multiple loadcases */
   Solutions forward;

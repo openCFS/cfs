@@ -543,12 +543,13 @@ void Optimization::SolveAdjointProblem(Excitation* excite, Function* f){
 void Optimization::SolveAdjointProblems(Excitation* excite)
 {
   // solve for objectives and constraints
-  StdVector<Function*> f = GetActiveFunctions();
+  StdVector<Function*> ff = GetActiveFunctions();
 
-  for(unsigned int i = 0; i < f.GetSize(); ++i)
+  for(unsigned int i = 0; i < ff.GetSize(); ++i)
   {
-    if(f[i]->IsAdjointBased())
-      SolveAdjointProblem(excite, f[i]); // virtual! calls ErsatzMaterial implementation
+    Function* f = ff[i];
+    if(f->IsAdjointBased())
+      SolveAdjointProblem(excite, f); // virtual! calls ErsatzMaterial implementation
   }
 }
 

@@ -1635,6 +1635,7 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
   // rhs w.r.p to one element: 2* sum_ip strees^T * M * rho^p E_0 B(ip)
   //            if i=j:      + 2 * stress^T * M * (rho^p)' E_0 B(ip) u
 
+  LOG_DBG2(em) << "CVMSV: excite=" << excite.index << " adjont=" << adjoint_rhs << " grad_contrib=" << grad_contrib;
   assert((adjoint_rhs && !grad_contrib) || !adjoint_rhs);
   // adjoint_rhs:   result is raw vector size with summed up 2 * stress^T * M * (rho^p * E_0 * B)
   // !grad_contrib: result is design size with stress^T * M stress (element von Mises stress)
@@ -1673,6 +1674,10 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
 
   ElemList elemList(grid);
 
+  // in the adjoint case we need alpha which is the gradient of the globalization function
+  Vector<double> alpha;
+  if(adjoint_rhs) alpha = CalcVonMisesStressGlobalizationFactor(excite, f);
+
   for(unsigned int e = 0, en = design->data.GetSize(); e < en; e++)
   {
     DesignElement* de = &design->data[e];
@@ -1707,9 +1712,15 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
       rhs_transp = stress_transp * M_E_B;
       rhs_transp *= -2.0;
 
+      // there is a factor from the globalization function, which is the gradient of the glob function(func_val)
+      rhs_transp *= alpha[e];
+
+
       assert(rhs_transp.GetNumCols() == u_elem.GetSize());
       assert(rhs_transp.GetNumRows() == 1);
 
+      LOG_DBG2(em) << "CVMSV de=" << de->ToString() << " ar=" << adjoint_rhs  << " alpha=" << alpha[e]
+                   << " rhs_transp=" << rhs_transp.ToString();
 
       // sum it up to the global rhs vector
       assert(de->elem->connect.GetSize() * dim == rhs_transp.GetNumCols());
@@ -1729,7 +1740,7 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
           {
             result[eqn_idx] += rhs_transp[0][dim * n + (dof-1)];
 
-            LOG_DBG3(em) << "CSV de=" << de->ToString() << " ar=" << adjoint_rhs  << " n=" << n << " node=" << node
+            LOG_DBG3(em) << "CVMSV de=" << de->ToString() << " ar=" << adjoint_rhs  << " n=" << n << " node=" << node
                 << " dof=" << dof << " eqn_idx=" << eqn_idx << " idx=" << (dim * n + (dof-1)) << " val="
                 << rhs_transp[0][dim * n + (dof-1)] << " -> " << result[eqn_idx];
           }
@@ -1746,12 +1757,43 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
       // additional factor for grad_contrib. We replace one rho^p by (rho^p)'
       double correct = grad_contrib ?  2.0 * tf->Derivative(de, DesignElement::SMART) / tf->Transform(de, DesignElement::SMART) : 1.0;
 
-      LOG_DBG2(em) << "CSV de=" << de->ToString() << " gv= " << grad_contrib << " rho=" << de->GetDesign(DesignElement::SMART) << " sMs=" << result[e] << " deriv="
+      LOG_DBG2(em) << "CVMSV de=" << de->ToString() << " gv= " << grad_contrib << " rho=" << de->GetDesign(DesignElement::SMART) << " sMs=" << result[e] << " deriv="
                    << tf->Derivative(de, DesignElement::SMART) << " trans=" <<  tf->Transform(de, DesignElement::SMART) << " correct=" << correct << " -> " << (correct * result[e]);
 
       result[e] *= correct;
     }
   }
+
+  return result;
+}
+
+
+Vector<double> ErsatzMaterial::CalcVonMisesStressGlobalizationFactor(Excitation& excite, Function* f)
+{
+  assert(f->GetType() == Function::STRESS);
+
+  const Function::Local* local = f->GetLocal();
+  assert(local != NULL);
+
+  const Vector<double> stress = CalcVonMisesStressVector(excite, f, false, false);
+  Vector<double> result(stress.GetSize());
+
+  // this is a complicated way to calc element wise power*max(0,stress)^(power-1) but that way
+  // we are open for further globalization functions and it is not that expensive
+
+  const StdVector<Function::Local::Identifier>& vem = local->virtual_elem_map;
+
+  for(unsigned int i = 0; i < vem.GetSize(); i++)
+  {
+    const Function::Local::Identifier& id = vem[i];
+    assert(id.neighbor.GetSize() == 0);
+    double gfv = id.EvalFunction(local, &stress, true);
+    int idx = design->Find(id.element);
+    result[idx] = gfv;
+  }
+
+  LOG_DBG2(em) << "CVMSGF ex=" << excite.index << " stress=" << stress.ToString();
+  LOG_DBG2(em) << "CVMSGF ex=" << excite.index << " alpha=" << result.ToString();
 
   return result;
 }
@@ -2460,7 +2502,7 @@ double ErsatzMaterial::CalcLocalConstraint(Condition* g, bool derivative)
 }
 
 
-double ErsatzMaterial::CalcGlobalFunction(Function* c, bool derivative, const Vector<double>* von_mises_stress, const Vector<double>* von_mises_gradient)
+double ErsatzMaterial::CalcGlobalFunction(Function* c, bool derivative, const Vector<double>* von_mises_stress)
 {
   LOG_DBG(em) << "CGF c=" << c->type.ToString(c->GetType()) << " derivative=" << derivative;
   Function::Local* local = c->GetLocal();
@@ -2492,7 +2534,7 @@ double ErsatzMaterial::CalcGlobalFunction(Function* c, bool derivative, const Ve
     for(int j = 0; j < (int) vem.GetSize(); j++)
     {
       Function::Local::Identifier& id = vem[j];
-      id.EvalGradient(local, von_mises_stress, von_mises_gradient);
+      id.EvalGradient(local);
     }
 
     return 0.0; // gradient case has no information

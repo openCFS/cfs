@@ -418,8 +418,20 @@ Function::Local::Local(Function* func, DesignSpace* space)
 
   this->normalize_ = pn != NULL ? pn->Get("normalize")->As<bool>() : true;
 
-  this->globalized_ = ftype == GLOBAL_MOLE || ftype == GLOBAL_SLOPE
-                   || ftype == GLOBAL_OSCILLATION || ftype == STRESS ? true : false;
+  switch(ftype)
+  {
+  case GLOBAL_JUMP:
+  case GLOBAL_MOLE:
+  case GLOBAL_OSCILLATION:
+  case GLOBAL_SLOPE:
+  case STRESS:
+    this->globalized_ = true;
+    break;
+
+  default:
+    this->globalized_ = false;
+    break;
+  }
 
   // check beta
   if(ftype == OSCILLATION || ftype == GLOBAL_OSCILLATION)
@@ -924,7 +936,7 @@ Function::Local::Identifier::Identifier(DesignElement* elem, StdVector<DesignEle
 }
 
 
-double Function::Local::Identifier::EvalFunction(const Local* local, const Vector<double>* von_mises_stress) const
+double Function::Local::Identifier::EvalFunction(const Local* local, const Vector<double>* von_mises_stress, bool grad_glob) const
 {
   // function value
   double fv = 0.0;
@@ -978,10 +990,14 @@ double Function::Local::Identifier::EvalFunction(const Local* local, const Vecto
 
     double v = std::max(0.0, fv - f->GetParameter());
 
-    double res = factor * std::pow(v, local->GetPower());
+    double p = local->GetPower();
+
+    double res = grad_glob ? p * std::pow(v, p-1.0) : std::pow(v, p);
+
+    res *= factor;
 
     LOG_DBG2(func) << "L:I:EF: global! bound=" << f->GetParameter() << " factor=" << factor
-                   << " power=" << std::pow(v, local->GetPower()) << " -> " << res;
+                   << "grad_glob=" << grad_glob << " power=" << std::pow(v, local->GetPower()) << " -> " << res;
 
     return res;
   }
@@ -990,7 +1006,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local, const Vecto
   }
 }
 
-void Function::Local::Identifier::EvalGradient(const Local* local, const Vector<double>* von_mises_stress,  const Vector<double>* von_mises_grad)
+void Function::Local::Identifier::EvalGradient(const Local* local)
 {
   // TODO the dynamic_cast might be to slow, check! and do faster by IsObjective()
   // we need this pointers, note that C++ makes NULL for an invalid dynamic cast
@@ -1003,32 +1019,11 @@ void Function::Local::Identifier::EvalGradient(const Local* local, const Vector<
   LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
                      << element->elem->elemNum << " sign=" << sign;
 
+  // are we global? then we don't do anything if the globalization function gives zero
+  // this applies the gradient of the globalization function (max(0, fv)^2)
+  double grad_glob_fv = local->IsGlobalized() ? EvalFunction(local) : 0.0;
 
-  // are we global? If so, we need the function value and don't need to to anything if
-  // this function value is zero
-  double fv = 0.0;
-  // we need the real function values, EvalFunction would give the one for global!!
-  switch(ft)
-  {
-  case GLOBAL_SLOPE:
-    fv = std::max(0.0, CalcSlope() - funct->GetParameter());
-    break;
-  case GLOBAL_OSCILLATION:
-    fv = std::max(0.0, CalcOscillation(local->beta_) - funct->GetParameter());
-    break;
-  case GLOBAL_MOLE:
-    fv = std::max(0.0, CalcMole(local->eps_) - funct->GetParameter());
-    break;
-  case GLOBAL_JUMP:
-    fv = std::max(0.0, CalcJump() - funct->GetParameter());
-    break;
-  case STRESS:
-    fv = std::max(0.0, CalcStress(local, von_mises_stress) - funct->GetParameter());
-    break;
-  default:
-    break;
-  }
-  if(local->IsGlobalized() && fv == 0.0)
+  if(local->IsGlobalized() && grad_glob_fv == 0.0)
   {
     LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
                    << element->elem->elemNum << " sign=" << sign << " fv=0.0 -> return immediately";
@@ -1063,7 +1058,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local, const Vector<
       break;
 
     case STRESS:
-      gv = CalcStressGradient(n, local, von_mises_grad);
+      assert(false); // in SIMP::CalcVonMisesStressGradient() only!
       break;
 
     default:
@@ -1077,13 +1072,13 @@ void Function::Local::Identifier::EvalGradient(const Local* local, const Vector<
     // post process the globalized functions
     if(local->IsGlobalized())
     {
-      double factor = local->DoNormalizeGlobal() ? 1.0/local->virtual_elem_map.GetSize() : 1.0;
+//      double factor = local->DoNormalizeGlobal() ? 1.0/local->virtual_elem_map.GetSize() : 1.0;
 
-      gv = factor * local->GetPower() * std::pow(fv, local->GetPower() - 1.0) * gv;
+      gv  *= grad_glob_fv;
       LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
                      << element->elem->elemNum << " sign=" << sign << " n=" << n
-                     << " curr=" << GetElement(n)->elem->elemNum << " gv=" << gv
-                     << " bound! factor=" << factor << " fv=" << fv << " new gv=" << gv;
+                     << " curr=" << GetElement(n)->elem->elemNum
+                     << " bound! grad_glob_gv=" << grad_glob_fv << " new gv=" << gv;
     }
 
     DesignElement* de = GetElement(n);
@@ -1356,15 +1351,4 @@ double Function::Local::Identifier::CalcStress(const Local* local, const Vector<
   int idx = local->space->Find(element);
   LOG_DBG3(func) << "L:I:CS elem=" << element->ToString() << " idx=" << idx << " -> " << (*von_mises_stress)[idx];
   return (*von_mises_stress)[idx];
-}
-
-double Function::Local::Identifier::CalcStressGradient(int neigh_idx, const Local* local, const Vector<double>* von_mises_grad) const
-{
-  // grad: lambda_i * (K_i)' * u_i + 2 * stress^T * M * (rho_i)' * E_0 * B_i * u_i
-  // see SIMP::CalcFunction() !
-  assert(neigh_idx == -1);
-  assert(von_mises_grad != NULL);
-  int idx = local->space->Find(element);
-  LOG_DBG3(func) << "L:I:CSG elem=" << element->ToString() << " idx=" << idx << " -> " << (*von_mises_grad)[idx];
-  return (*von_mises_grad)[idx];
 }

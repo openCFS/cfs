@@ -254,12 +254,15 @@ class Function
         }
 
         /** Service function. Calculates the actual objective, based on function->type
+         * @param grad_glob only active when globalized. Not the globalization but the grad of the globalization
+         *                  is applied, but based on the function evaluation, not the function gradient!
          * @param stress only used when the function is stress -> determined by ErsatzMaterial::CalcStress() */
-        double EvalFunction(const Local* local, const Vector<double>* stress = NULL) const;
+        double EvalFunction(const Local* local, const Vector<double>* stress = NULL, bool grad_glob = false) const;
 
         /** Service function. Calculates all gradients for this and the neighbors. Only for real local function!.
+         * Note, that the von Mises Stress gradient is NOT calculated here but in SIMP::CalcVonMisesStressGradient()!
          * It does the proper constraint_gradient reset first! */
-        void EvalGradient(const Local* local, const Vector<double>* von_mises_stress = NULL,  const Vector<double>* von_mises_grad = NULL);
+        void EvalGradient(const Local* local);
 
         /** calculates the slope identified by this neighbor. When sign is not set assumes sign=1.
          * "Petersson, Sigmund; Slope Constrained Topology Optimization; 1998" */
@@ -272,9 +275,6 @@ class Function
         /** calculates the checkerboard value. The sign determines if the smaller or larger value is evaluated
          * @param beta < 0 is real max, otherwise it is a Kreiselmeier Steinhauser approximation */
         double CalcCheckerboard(double beta) const;
-
-        /** calculates the gradient for the checkerbord
-         * @see CalcSlopeGradient() */
         double CalcCheckerboardGradient(int neigh_idx, double beta);
 
         /** T. Poulsen's feature size control */
@@ -291,12 +291,9 @@ class Function
 
         /** Uses actually the data from
          * @see ErsatzMaterial::CalcVonMisesVector()
-         * There is no local variant, only the global */
+         * There is no local variant, only the global.
+         * There is no CalcStressGradient() but SIMP::CalcVonMisesStressGradient()  */
         double CalcStress(const Local* local, const Vector<double>* stress) const;
-
-        /** quite tricky :)
-         * @see SIMP::CalcFunction() */
-        double CalcStressGradient(int neigh_idx, const Local* local, const Vector<double>* von_mises_grad) const;
 
         DesignElement* element; // this represents DesignSpace::data[element_idx]
         StdVector<DesignElement*> neighbor;
