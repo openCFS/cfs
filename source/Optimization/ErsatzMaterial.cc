@@ -1787,7 +1787,7 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressGlobalizationFactor(Excitation&
   {
     const Function::Local::Identifier& id = vem[i];
     assert(id.neighbor.GetSize() == 0);
-    double gfv = id.EvalFunction(local, &stress, true);
+    double gfv = id.EvalFunction(local, true, &stress);
     int idx = design->Find(id.element);
     result[idx] = gfv;
   }
@@ -2518,7 +2518,7 @@ double ErsatzMaterial::CalcGlobalFunction(Function* c, bool derivative, const Ve
     for(unsigned int i = 0; i < vem.GetSize(); i++)
     {
       Function::Local::Identifier& id = vem[i];
-      double fv = id.EvalFunction(local, von_mises_stress);
+      double fv = id.EvalFunction(local, false, von_mises_stress);
       res += fv;
       LOG_DBG2(em) << "CGF: !d c=" << c->type.ToString(c->GetType()) << " i=" << i << " de="
                    << id.element->elem->elemNum << " sign=" << id.sign << " fv=" << fv  << " -> " << res;

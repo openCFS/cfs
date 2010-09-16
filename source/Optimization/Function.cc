@@ -936,7 +936,7 @@ Function::Local::Identifier::Identifier(DesignElement* elem, StdVector<DesignEle
 }
 
 
-double Function::Local::Identifier::EvalFunction(const Local* local, const Vector<double>* von_mises_stress, bool grad_glob) const
+double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_glob, const Vector<double>* von_mises_stress) const
 {
   // function value
   double fv = 0.0;
@@ -997,7 +997,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local, const Vecto
     res *= factor;
 
     LOG_DBG2(func) << "L:I:EF: global! bound=" << f->GetParameter() << " factor=" << factor
-                   << "grad_glob=" << grad_glob << " power=" << std::pow(v, local->GetPower()) << " -> " << res;
+                   << " grad_glob=" << grad_glob << " power=" << std::pow(v, local->GetPower()) << " -> " << res;
 
     return res;
   }
@@ -1021,7 +1021,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
 
   // are we global? then we don't do anything if the globalization function gives zero
   // this applies the gradient of the globalization function (max(0, fv)^2)
-  double grad_glob_fv = local->IsGlobalized() ? EvalFunction(local) : 0.0;
+  double grad_glob_fv = local->IsGlobalized() ? EvalFunction(local, true) : 0.0;
 
   if(local->IsGlobalized() && grad_glob_fv == 0.0)
   {

@@ -257,7 +257,7 @@ class Function
          * @param grad_glob only active when globalized. Not the globalization but the grad of the globalization
          *                  is applied, but based on the function evaluation, not the function gradient!
          * @param stress only used when the function is stress -> determined by ErsatzMaterial::CalcStress() */
-        double EvalFunction(const Local* local, const Vector<double>* stress = NULL, bool grad_glob = false) const;
+        double EvalFunction(const Local* local, bool grad_glob = false, const Vector<double>* stress = NULL) const;
 
         /** Service function. Calculates all gradients for this and the neighbors. Only for real local function!.
          * Note, that the von Mises Stress gradient is NOT calculated here but in SIMP::CalcVonMisesStressGradient()!
