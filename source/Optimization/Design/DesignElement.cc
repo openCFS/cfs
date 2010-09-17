@@ -789,9 +789,11 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
     de.vicinity = new VicinityElement();
     // here we store the neighbors in a sorted way
     StdVector<DesignElement*>& ve_data = de.vicinity->design; // has proper size of NULLs
-    // set the reference point of this element
-    grid->GetNodeCoordinate(this_elem_point, de.elem->connect[0]);
 
+    // set the reference point of this element. It is not save to use always the node with the same index
+    // as gid, e.g. in the L-model changes the node order!
+    grid->GetElemNodesCoord(coords, de.elem->connect, false); // geometric non-lin
+    de.elem->ptElem->CalcBarycenter(coords, this_elem_point);
 
     // reference case
     StdVector<std::pair<Elem*, int> >& neighbors = *(de.elem->neighborhood);
@@ -810,11 +812,13 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
       if(neighbors[n].second < common) continue;
       // now we have to find the relative position of candidate
       Elem* candidate = neighbors[n].first;
-      // the reference point of the candidate
-      grid->GetNodeCoordinate(neigh_elem_point, candidate->connect[0]);
+      // the reference point of the candidate, see comment above
+      grid->GetElemNodesCoord(coords, candidate->connect, false); // geometric non-lin
+      de.elem->ptElem->CalcBarycenter(coords, neigh_elem_point);
       // the spacing allows to identify periodic elements
       int idx = FindRelativeNeighborLocation(this_elem_point, neigh_elem_point, spacing);
       ve_data[idx] = space->Find(candidate->elemNum, de.GetType(), false);
+      LOG_DBG2(del) << "VE:Init elem=" << de.elem->elemNum << " idx=" << idx << " dat=" << ve_data[idx];
     }
   }
  }

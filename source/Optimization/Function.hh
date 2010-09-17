@@ -319,7 +319,11 @@ class Function
       DesignSpace* space;
 
       /** Store the local values. */
-      StdVector<double> values;
+      Vector<double> values;
+
+      /** Here ErsatzMaterial::CalcGlobalFunction() stores the number of the active (non-zero)
+       * functions to be used in Optimization::LogFileLine() -> just a service */
+      int infeasible;
 
     private:
       /** Service method for the constructor

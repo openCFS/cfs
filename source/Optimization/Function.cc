@@ -403,6 +403,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
   this->space = space;
   this->func_ = func;
   this->structure_ = NULL;
+  this->infeasible = 0;
 
   // shortcuts
   Function::Type ftype = func->GetType();
@@ -551,7 +552,7 @@ void Function::Local::SetupVirtualElementMap(Phase ph)
   bool prev    = locality_ == PREV_NEXT_AND_REVERSE || locality_ == PREV_NEXT;
   bool next    = true; // always
   bool two_signs = locality_ == NEXT_AND_REVERSE || locality_ == PREV_NEXT_AND_REVERSE;
-  assert((ph == BOTH && two_signs) || (!two_signs && ph != BOTH));
+  // assert((ph == BOTH && two_signs) || (!two_signs && ph != BOTH));
   // assume ph is set correctly and Phase is in sync with the signs
   int sign_1 = ph != BOTH ? (int) ph : two_signs ? 1 : Identifier::NO_SIGN;
   int sign_2 = ph != BOTH ? (int) ph : -1;

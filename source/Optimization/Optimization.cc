@@ -731,10 +731,15 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   if(harmonic) iteration->Get("frequency")->SetValue(GetIterationFrequency());
 
   for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
-    iteration->Get(Objective::type.ToString(objectives.data[i]->GetType()))->SetValue(objectives.data[i]->GetValue());
+  {
+    Function* f = objectives.data[i];
+    iteration->Get(f->type.ToString(f->GetType()))->SetValue(f->GetValue());
+    if(f->GetLocal() != NULL)
+      iteration->Get("infeasible_" + f->type.ToString(f->GetType()))->SetValue(f->GetLocal()->infeasible);
+  }
 
   iteration->Get("change")->SetValue(change);
-  iteration->Get("problemsSolved")->SetValue(problemSolvedCounter);
+  // iteration->Get("problemsSolved")->SetValue(problemSolvedCounter);
 
   // For iteration 0 we want also the constraint values but they were not evaluated.
   // For any iteration we need to evaluate the observe constraints
@@ -768,6 +773,9 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
       if(g->delta_logging) value = value - g->GetBoundValue();
       if(out) *out << "\t" << value;
       iteration->Get(g->ToString())->SetValue(value);
+      // don't report for local, they should be almost always feasible for MMA, ...
+      if(g->GetLocal() != NULL )
+        iteration->Get("infeasible_" + g->ToString())->SetValue(g->GetLocal()->infeasible);
     }
   }
 

@@ -53,6 +53,8 @@ namespace CoupledField
        /** The bound value for inhomogeneous constraints. */
        double GetBoundValue() const { return boundValue_; }
 
+       /** Little helper to check if the bounds are violated (up to an eps) */
+       bool IsFeasible() const;
 
        /** Is this a linear condition? E.g. SnOpt can handle them more efficiently */
        bool IsLinear() const { return linear_; }
@@ -63,7 +65,7 @@ namespace CoupledField
        /** active not in a active set optimization sense but !observation */
        bool IsActive() const { return !IsObservation(); }
        
-       /** Only the slope constraint in local mode is virtual */
+       /** Only the local constraint in local mode are virtual */
        virtual bool IsVirtual() const { return false; }
 
        /** Check whether condition should be calculated for given region */
@@ -200,6 +202,12 @@ namespace CoupledField
       *        Set back to -1 after traversing! */
      void SetCurrentViewIndex(int view_index) {
        current_view_index_ = view_index;
+     }
+
+     /** The relative position within this local constraints
+      * @return starts from 0 */
+     int GetCurrentRelativePosition() const {
+       return current_view_index_ - virtual_base_index_;
      }
 
      /** The number of slope constraints. */

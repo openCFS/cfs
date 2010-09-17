@@ -371,6 +371,26 @@ StdVector<unsigned int>& Condition::GetSparsityPattern()
   return sparsity_;
 }
 
+bool Condition::IsFeasible() const
+{
+  double diff = GetValue() - boundValue_; // handles also local constraints!
+
+  switch(bound_)
+  {
+    case EQUAL:
+      return std::abs(diff) < 1e-4;
+
+    case LOWER_BOUND:
+      return diff + 1e-4 > 0;
+
+    case UPPER_BOUND:
+      return diff - 1e-4 < 0;
+  }
+
+  assert(false);
+  return false;
+}
+
 std::string Condition::ToString() const
 {
   std::ostringstream os;
@@ -771,6 +791,7 @@ void ConditionContainer::VirtualView::Done()
 
         // in checkerboard we must not use abs
         double corr = lc->GetType() == Function::OSCILLATION ? sv : std::abs(sv);
+
 
         de->specialResult[idx] = std::max(de->specialResult[idx], corr);
       }

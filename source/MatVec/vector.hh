@@ -259,6 +259,9 @@ template<typename T> class ElemStoreSol;
     /** Calculates the max-norm (of the real part) */ 
     Double NormMax() const; 
     
+    /** Count the number of non-zero entries */
+    Integer CountNonZero() const;
+
     //! Create scalar product of vector and second one
     template <typename T2>
     PROMOTE(T,T2)  operator*( const Vector<T2> & x ) const;

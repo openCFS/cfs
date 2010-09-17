@@ -100,7 +100,13 @@ ErsatzMaterial::ErsatzMaterial() :
   // make basic loggings
   design->ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("designSpace"));
 
-  assume_constant_element_matrices_ = design->IsRegular() && method_ != ErsatzMaterial::PARAM_MAT;
+  // the L-mesh of the stress constraint benchmark is meshed by gid with different positions of
+  // element nodes, such that one cannot use the same element materix, even if the grid is regular
+  // therefore the attribute enforce_unstructured
+  assume_constant_element_matrices_ = design->IsRegular() && method_ != ErsatzMaterial::PARAM_MAT
+                                      && !pn->Get("enforce_unstructured")->As<bool>();
+  LOG_TRACE2(em) << "EM:EM: const_mat=" << assume_constant_element_matrices_ << " reg=" << design->IsRegular()
+                 << " PARAM_MAT=" << (method_ == ErsatzMaterial::PARAM_MAT) << " enforce_unstr=" << pn->Get("enforce_unstructured")->As<bool>();
 
   // optionally write the densities to an xml file
   if(pn->Has("export"))
@@ -857,6 +863,7 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>&
 
       DesignElement* de = &design->data[e + base];
 
+      LOG_DBG3(em) << "nodes:" << e << ": " << de->elem->connect.ToString();
       LOG_DBG3(em) << "u1:" << e << ": " << u1_vec.ToString();
       LOG_DBG3(em) << "u2:" << e << ": " << u2_vec.ToString();
 
@@ -1688,7 +1695,9 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
 
     form->calcDMat(E, de->elem); // has physical density applied
 
-    //form->ExtractElemInfo(it); // it seems to work w/o this
+    elemList.SetElement(de->elem);
+    EntityIterator it = elemList.GetIterator();
+    form->ExtractElemInfo(it);
     de->elem->ptElem->GetCoordMidPoint(intPoint);
     form->SetIntPoint(intPoint);
 
@@ -2502,10 +2511,10 @@ double ErsatzMaterial::CalcLocalConstraint(Condition* g, bool derivative)
 }
 
 
-double ErsatzMaterial::CalcGlobalFunction(Function* c, bool derivative, const Vector<double>* von_mises_stress)
+double ErsatzMaterial::CalcGlobalFunction(Function* f, bool derivative, const Vector<double>* von_mises_stress)
 {
-  LOG_DBG(em) << "CGF c=" << c->type.ToString(c->GetType()) << " derivative=" << derivative;
-  Function::Local* local = c->GetLocal();
+  LOG_DBG(em) << "CGF c=" << f->type.ToString(f->GetType()) << " derivative=" << derivative;
+  Function::Local* local = f->GetLocal();
   assert(local != NULL);
   // the neighborhoods are already defined by Local!
   StdVector<Function::Local::Identifier>& vem = local->virtual_elem_map;
@@ -2515,13 +2524,16 @@ double ErsatzMaterial::CalcGlobalFunction(Function* c, bool derivative, const Ve
     // evaluate the function values, which is
     // max(0, x_i - x_i+1 - c) and max(0,x_i+1 - x_i - c)
     double res = 0.0;
+    local->infeasible = 0;
+
     for(unsigned int i = 0; i < vem.GetSize(); i++)
     {
       Function::Local::Identifier& id = vem[i];
       double fv = id.EvalFunction(local, false, von_mises_stress);
       res += fv;
-      LOG_DBG2(em) << "CGF: !d c=" << c->type.ToString(c->GetType()) << " i=" << i << " de="
-                   << id.element->elem->elemNum << " sign=" << id.sign << " fv=" << fv  << " -> " << res;
+      if(fv > 0) local->infeasible++;
+      LOG_DBG2(em) << "CGF: !d c=" << f->type.ToString(f->GetType()) << " i=" << i << " de="
+                   << id.element->elem->elemNum << " sign=" << id.sign << " fv=" << fv  << " infeasible=" << local->infeasible << " -> " << res;
     }
 
     return res;
@@ -2870,8 +2882,8 @@ void ErsatzMaterial::ConstructRealAdjointRHS(Excitation& excite, Function* f)
   }
 
   assemble_->GetAlgSys()->InitRHS(rhs);
-  assert(rhs.NormMax() != 0.0);
-  LOG_DBG2(em) << "CARHS<double>: f=" << f->ToString() << " rhs before solving: " << rhs.ToString(1);
+  // assert(rhs.NormMax() != 0.0);
+  LOG_DBG2(em) << "CARHS<double>: f=" << f->ToString() << " rhs before solving: " << rhs.ToString(1) << " max_norm=" << rhs.NormMax();
 }
 
 void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
