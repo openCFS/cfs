@@ -10,6 +10,39 @@ from lxml import etree
 from cfs_utils import *
 from distutils.command.build_scripts import first_line_re
 
+## Read an arbitrary density file as NDArray
+# Uses the <mesh x="30" y="20" z="1"/> element in the header of the density file
+def read_density(filename):
+  vals = read_density_as_vector(filename)
+
+  tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
+  root = tree.getroot()
+  x = int(root.xpath("//mesh/@x")[0])
+  y = int(root.xpath("//mesh/@y")[0])
+  z = int(root.xpath("//mesh/@z")[0])
+  
+  dim = cond(z > 1, 3, 2)
+  
+  if not x*y*z == len(vals):
+    raise RuntimeError("density mesh information x=" + str(x) + " y=" + str(y) + " z=" + str(z)\
+                        + " does not match " + str(len(vals)) + " elements in " + filename) 
+
+  ret = 0
+  if dim == 2:
+    ret = numpy.zeros((x, y))
+  else:
+    ret = numpy.zeros((x, y, z))
+  
+  # copy data from linear list
+  for k in range(z):
+    for j in range(y):
+      for i in range(x):
+        idx = int(x*y*k + x*j + i)
+        # print "i=" + str(i) + " j=" + str(j) + " k=" + str(k) + " idx=" + str(idx)
+        setNDArrayEntry(ret, dim, i, j, k, vals[idx])
+        
+  return ret
+
 ## Reads a cubic (3D) density.xml file as 3D NDArray
 # @param filename from which the last 'set' is used
 def read_cubic_density(filename):
@@ -59,22 +92,14 @@ def read_density_as_vector(filename):
     vals[counter] = float(element.get("design"))
     counter = counter + 1
   
-  print "found " + str(length) + " elements, read " + str(counter) + " elements"
+  # print "found " + str(length) + " elements, read " + str(counter) + " elements"
   
   return vals
   
 ## write the data to a density.xml file
-# @param data_inp a ndata array of dim 2 or three or a list of data
+# @param data_inp a ndata array (2D or 3D) or a list of data
 # @param setname_inp the name of the set or a list of setnames
 def write_density_file(filename, data_inp, setname_inp):
-  out = open(filename, "w")
-  out.write('<?xml version="1.0"?>\n')
-  out.write('<cfsErsatzMaterial>\n')
-  out.write('  <header>\n')
-  out.write('    <design initial="0.5" lower="1e-3" name="density" region="mech" upper="1"/>\n')
-  out.write('    <transferFunction application="mech" design="density" param="1" type="simp"/>\n')
-  out.write('  </header>\n')
- 
   # check if we deal with lists or not
   data_list = []
   setname_list = []
@@ -84,20 +109,43 @@ def write_density_file(filename, data_inp, setname_inp):
   else:
     data_list.append(data_inp)
     setname_list.append(setname_inp)
+
+  out = open(filename, "w")
+  out.write('<?xml version="1.0"?>\n')
+  out.write('<cfsErsatzMaterial>\n')
+  out.write('  <header>\n')
+
+  data    = data_list[0]
+  x = data.shape[0]
+  y = data.shape[1]
+  z = 1
+  if data.ndim >= 3:
+    z = data.shape[2]
+  out.write('    <mesh x="' + str(x) + '" y="' + str(y) + '" z="' + str(z) + '"/>\n')  
+  out.write('    <design initial="0.5" lower="1e-3" name="density" region="mech" upper="1"/>\n')
+  out.write('    <transferFunction application="mech" design="density" param="1" type="simp"/>\n')
+  out.write('  </header>\n')
+
  
   for i in range(len(data_list)):
     data    = data_list[i]
     setname = setname_list[i]
     out.write('  <set id="' + setname + '">\n')
-    edge = data.shape[0] # be careful!
+    dim = data.ndim
+    x = data.shape[0]
+    y = 1 # unfortunately there is no real conditional operator :(
+    if dim >= 2:
+      y = data.shape[1]
+    z = 1
+    if dim >= 3:
+      z = data.shape[2]  
     counter = 1
 
-    dim = data.ndim 
-
-    for i in range(edge):
-      for j in range(edge):
-        for k in range(cond(dim == 2, 1, edge)):
+    for k in range(z):
+      for j in range(y):
+        for i in range(x):    
            val = getNDArrayEntry(data, dim, i, j, k)
+           # print " i=" + str(i) + " j=" + str(j) + " k=" + str(k) + " idx=" + str(counter)
            out.write('    <element nr="' + str(counter) + '" type="density" design="' + str(val) + '"/>\n')
            counter = counter + 1       
          
@@ -131,12 +179,20 @@ def physical_volume(data, penalty):
 def threshold_filter(data, threshold, min, max):
   
   dim = data.ndim
-  edge = data.shape[0]
-  res = numpy.zeros((edge, edge, edge))
+
+  x = data.shape[0]
+  y = 1 # unfortunately there is no real conditional operator :(
+  if dim >= 2:
+    y = data.shape[1]
+  z = 1
+  if dim >= 3:
+    z = data.shape[2]  
+
+  res = data
   
-  for i in range(edge):
-    for j in range(edge):
-      for k in range(cond(dim == 2, 1, edge)):
+  for i in range(x):
+    for j in range(y):
+      for k in range(z):
         org = getNDArrayEntry(data, dim, i, j, k)
         val = cond(org < threshold, min, max)
         setNDArrayEntry(res, dim, i, j, k, val)        

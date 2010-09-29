@@ -2387,9 +2387,11 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
          stress[s] = stresses[e * stressDim_ + s];
 
        tmp = m * stress;
-       v_m_s[e] = stress.Inner(tmp);
+       TYPE squared = stress.Inner(tmp);
+
+       v_m_s[e] = std::sqrt(squared);
        LOG_DBG2(mechpde) << "CVMS: e=" << 0 << " stress=" << stress.ToString() << " M*stress=" << tmp.ToString()
-                         << " -> " << v_m_s[e];
+                         << " squared=" << squared << "-> " << v_m_s[e];
     }
   }
 

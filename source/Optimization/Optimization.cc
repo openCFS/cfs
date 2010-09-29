@@ -323,6 +323,7 @@ void Optimization::SetEnums()
   application.Add(PIEZO_COUPLING, "piezoCoupling");
   application.Add(PRESSURE, "pressure");
   application.Add(CHARGE_DENSITY, "chargeDensity");
+  application.Add(STRESS, "stress");
 
   LevelSet::Action::type.SetName("LevelSet::Action::Type");
   LevelSet::Action::type.Add(LevelSet::Action::SIGNED_DISTANCE_FIELD, "signedDistanceField");

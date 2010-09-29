@@ -62,7 +62,7 @@ namespace CoupledField
 
          /** Where we apply the transformation.
           * A subset of the values are PDE identifiers for ToPDE() and ToApp(). */
-         typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, HEAT, ACOUSTIC, NO_APP} Application;
+         typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, HEAT, ACOUSTIC, STRESS, NO_APP} Application;
 
          /** Not the optimization problem but the solver! */
          typedef enum { OPTIMALITY_CONDITION, IPOPT_SOLVER, SCPIP_SOLVER, SNOPT_SOLVER, SHAPE_SOLVER, 

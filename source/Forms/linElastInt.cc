@@ -195,12 +195,21 @@ void linElastInt::calcBMatOnly(Matrix<double> &bMat, Vector<double>& intPoint,
 }
 
 
-void linElastInt::calcDMat(Matrix<Double> & dMat, const Elem* elem, const DesignElement::Type direction)
+void linElastInt::calcDMat(Matrix<Double> & dMat, const Elem* elem, const DesignElement::Type direction, double force_factor)
 {
   GetErsatzMaterialTensor(dMat, elem, direction);
   //ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,matDataType_,subTensorType_);
+
+  // this is for topology optimization only
+  assert(!(elem != NULL && force_factor != 0.0));
   
-  Double density = elem != NULL ? GetErsatzMaterialFactor(elem) : 1.0;
+  Double density = 1.0;
+
+  if(elem != NULL)
+    density = GetErsatzMaterialFactor(elem);
+  if(force_factor != 0.0)
+    density = force_factor;
+
   if(density != 1.0)
   {
     dMat *= density;

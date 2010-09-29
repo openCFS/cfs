@@ -1666,7 +1666,9 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
   assert(design->design.GetSize() == 1); // easy to extend
   assert(design->regions.GetSize() == 1); // easy to extend
 
-  TransferFunction* tf = design->GetTransferFunction(&(design->data[0]));
+  // the are special transfer functions for the stress
+  TransferFunction* tf = design->GetTransferFunction(DesignElement::DENSITY, STRESS);
+
   linElastInt* form = dynamic_cast<linElastInt*>(GetForm(design->GetRegionId(), pde, pde, "linElastInt"));
 
   Vector<double> stress(dim == 2 ? 3 : 6); // elem stress
@@ -1685,6 +1687,9 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
   Vector<double> alpha;
   if(adjoint_rhs) alpha = CalcVonMisesStressGlobalizationFactor(excite, f);
 
+  // output of penalized von mises stresses? Only used in !adjoint_rhs and !grad_contrib
+  int res_idx = design->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::PENALIZED_STRESS);
+
   for(unsigned int e = 0, en = design->data.GetSize(); e < en; e++)
   {
     DesignElement* de = &design->data[e];
@@ -1693,7 +1698,8 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
 
     Vector<double>& u_elem = dynamic_cast<Vector<double>& >(*(all_u_elem[e]));
 
-    form->calcDMat(E, de->elem); // has physical density applied
+    // apply our own physical densities!
+    form->calcDMat(E, NULL, DesignElement::DENSITY, tf->Transform(de, DesignElement::SMART));
 
     elemList.SetElement(de->elem);
     EntityIterator it = elemList.GetIterator();
@@ -1759,12 +1765,22 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
     }
     else
     {
-      // ("corrected" von Mises stress element results
+      // normal and "corrected" von Mises stress element results
+      double correct = 1.0;
       M_stress = M * stress;
       result[e] = stress.Inner(M_stress);
 
-      // additional factor for grad_contrib. We replace one rho^p by (rho^p)'
-      double correct = grad_contrib ?  2.0 * tf->Derivative(de, DesignElement::SMART) / tf->Transform(de, DesignElement::SMART) : 1.0;
+      if(!grad_contrib)
+      {
+        // output von mises stress?
+        if(res_idx != -1)
+          de->specialResult[res_idx] = result[e];
+      }
+      else
+      {
+        // additional factor for grad_contrib. We replace one rho^p by (rho^p)'
+        correct = 2.0 * tf->Derivative(de, DesignElement::SMART) / tf->Transform(de, DesignElement::SMART);
+      }
 
       LOG_DBG2(em) << "CVMSV de=" << de->ToString() << " gv= " << grad_contrib << " rho=" << de->GetDesign(DesignElement::SMART) << " sMs=" << result[e] << " deriv="
                    << tf->Derivative(de, DesignElement::SMART) << " trans=" <<  tf->Transform(de, DesignElement::SMART) << " correct=" << correct << " -> " << (correct * result[e]);

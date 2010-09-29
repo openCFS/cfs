@@ -6,10 +6,14 @@
 #include "DataInOut/ParamHandling/Xerces.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/programOptions.hh"
+#include "DataInOut/Logging/cfslog.hh"
 #include "Domain/domain.hh"
 
 using namespace CoupledField;
 using std::string;
+
+DECLARE_LOG(density)
+DEFINE_LOG(density, "density")
 
 DensityFile::DensityFile(DesignSpace* designSpace,
                             PtrParamNode export_pn,
@@ -95,8 +99,8 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
   }
   else
   {
-    if(grid->GetNumRegions() != 1)
-      throw Exception("can only load single region meshes with 'ersatz' command line option");
+    if(grid->GetNumVolRegions() != 1)
+      throw Exception("can only load single volume region meshes with 'ersatz' command line option");
     regionIds.Push_back(0);
   }
 
@@ -194,6 +198,26 @@ PtrParamNode DensityFile::Create(ParamNodeList& des, ParamNodeList& tfs, PtrPara
 
    // write header
    PtrParamNode in_ = in->Get("header");
+
+   LOG_TRACE(density) << "Create: regular=" << this->ersatzMaterial_->IsRegular();
+
+   if(this->ersatzMaterial_->IsRegular())
+   {
+     DesignElement& de = ersatzMaterial_->data[0];
+     Matrix<double> coords;
+     domain->GetGrid()->GetElemNodesCoord(coords, de.elem->connect, false );
+     StdVector<double> edges;
+     de.elem->ptElem->GetEdgeLength(coords, edges);
+
+     Point dim;
+     domain->GetGrid()->CalcVolumeSpannedByNamedNodes(&dim);
+
+     LOG_TRACE(density) << " dim=" << dim.ToString() << " edges=" << edges.ToString();
+     PtrParamNode mesh = in_->Get("mesh");
+     mesh->Get("x")->SetValue(dim.data[0] / edges[0]);
+     mesh->Get("y")->SetValue(dim.data[1] / edges[1]);
+     mesh->Get("z")->SetValue(domain->GetGrid()->GetDim() == 3 ? dim.data[2] / edges[2]: 1);
+   }
 
    for(unsigned int i = 0; i < des.GetSize(); i++)
      in_->Get("dummy", ParamNode::APPEND)->SetValue(des[i], true); // name is overwritten

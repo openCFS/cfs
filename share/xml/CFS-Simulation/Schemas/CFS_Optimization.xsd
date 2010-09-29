@@ -660,6 +660,9 @@
                                       </xsd:restriction>
                                     </xsd:simpleType>
                                   </xsd:attribute>
+                                  
+                                  <!-- the heaviside filters require beta -->
+                                  <xsd:attribute name="beta" type="xsd:float" use="optional"/>
                                 </xsd:complexType>
                               </xsd:element>
                             </xsd:sequence>
@@ -779,6 +782,10 @@
                       <xsd:enumeration value="maxOscillation"/>
                       <xsd:enumeration value="maxMole"/>
                       <xsd:enumeration value="maxJump"/>
+                      <!-- for stress constraints a transferFunciton penalizes low density
+                        stresses, here they can be visualized. The element vonMisesStress
+                        result gives the physical one -->
+                      <xsd:enumeration value="penalizedStress"/>
                       <!-- has details! -->
                       <xsd:enumeration value="constraintGradient"/>
                       <xsd:enumeration value="weight"/>
@@ -1024,6 +1031,7 @@
           <xsd:enumeration value="piezoCoupling"/>
           <xsd:enumeration value="pressure"/>          
           <xsd:enumeration value="chargeDensity"/>                    
+          <xsd:enumeration value="stress"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
