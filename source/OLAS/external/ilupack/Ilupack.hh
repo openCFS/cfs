@@ -86,6 +86,8 @@ namespace CoupledField
      integer            (*perm0)();
      integer            (*perm)();
      integer            (*permf)();
+     integer            isreal;
+     integer            issingle;
   } ;
   
   

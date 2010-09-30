@@ -463,8 +463,8 @@
           <xsd:element name="ordering" maxOccurs="1" minOccurs="0">
             <xsd:simpleType>  
               <xsd:restriction base="xsd:token">
-                <xsd:enumeration value="metisE"/>
-                <xsd:enumeration value="metisN"/>
+                <xsd:enumeration value="metise"/>
+                <xsd:enumeration value="metisn"/>
                 <xsd:enumeration value="amd"/>
                 <xsd:enumeration value="rcm"/>
                 <xsd:enumeration value="amf"/>
@@ -530,6 +530,17 @@
                 </xsd:attribute>
                 <xsd:attribute name="maxIter" type="xsd:nonNegativeInteger" default="500" use="optional"/>
                 <xsd:attribute name="residualTol" type="xsd:double" default="1e-8" use="optional"/>  
+                <xsd:attribute name="nrestart" type="xsd:nonNegativeInteger" use="optional">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      Number of steps before GMRES is restarted.
+                      The iterative solver uses restarted GMRES (resp. fGMRES).
+                      By default, the ilupack intern default value is taken.
+                      Note that a smaller number reduces the memory, while a larger number
+                      can improve the convergence
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:attribute>
               </xsd:complexType>
             </xsd:element>  <!-- end of engine -->
             
