@@ -5,6 +5,7 @@
 #include "Driver/harmonicDriver.hh"
 #include "Domain/domain.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "Driver/assemble.hh"
 
 using namespace CoupledField;
 
@@ -158,6 +159,7 @@ double GradientCheck::PerformFiniteDifferenceEval(DesignElement* de,
   if (order == 1 || x_dir_1 == 1)
   {
     de->SetDesign(x_eval_1);
+    domain->GetBasePDE()->getPDE_assemble()->SetAllReassemble(); // tell assemble design has changed    
     optimization->SolveStateProblem();
     f_x1 = optimization->CalcObjective();
   }
@@ -167,12 +169,14 @@ double GradientCheck::PerformFiniteDifferenceEval(DesignElement* de,
   if (order == 2 && x_dir_2 == 1)
   {
     de->SetDesign(x_eval_2);
+    domain->GetBasePDE()->getPDE_assemble()->SetAllReassemble(); // tell assemble design has changed    
     optimization->SolveStateProblem(); // expensive
     f_x2 = optimization->CalcObjective();
   }
 
   // reset design
   de->SetDesign(x_org);
+  domain->GetBasePDE()->getPDE_assemble()->SetAllReassemble(); // tell assemble design has changed    
 
   if (order == 1)
   {

@@ -143,6 +143,7 @@ ErsatzMaterial::ErsatzMaterial() :
 
   // forward and adjoint are initialized in PostInit()
   forward.Init(this);
+  forward.SetIsForward(true);
   adjoint.Init(this);
 
   // check for multiple loadcases (might be frequencies)
@@ -2976,6 +2977,8 @@ void ErsatzMaterial::GetErsatzMaterialTensor(Matrix<double>& mat, Elem* elem, De
 ErsatzMaterial::Solutions::Solutions()
 {
   this->em_ = NULL;
+  forward_data_ = NULL;
+  isForward = false;
 }
 
 ErsatzMaterial::Solutions::~Solutions()
@@ -3029,12 +3032,21 @@ ErsatzMaterial::Solution* ErsatzMaterial::Solutions::Get(Excitation& excitation,
 
 ErsatzMaterial::Solution* ErsatzMaterial::Solutions::Get(int excitation_index, Function* f, unsigned int timestep)
 {
-  assert((&(em_->adjoint) == this && f != NULL) || (&(em_->forward) == this && f == NULL));
-  // do we have to init first?
-  if(data_.find(f) == data_.end())
-    Init(f);
-  assert(data_.find(f) != data_.end());
-  return data_[f][timestep]->data[excitation_index];
+  if(isForward){ // if this is true, f is ignored and forward_data_ is used to avoid one map access
+    if(forward_data_ == NULL){
+      if(data_.find(NULL) == data_.end()){
+        Init((Function*)NULL);
+      }
+      forward_data_ = &data_[NULL];
+    }
+    return((*forward_data_)[timestep]->data[excitation_index]);
+  }else{
+    // do we have to init first?
+    if(data_.find(f) == data_.end())
+      Init(f);
+    assert(data_.find(f) != data_.end());
+    return data_[f][timestep]->data[excitation_index];
+  }
 }
 
 StdVector<Function*> ErsatzMaterial::Solutions::GetFunctions() const
@@ -3122,7 +3134,7 @@ void ErsatzMaterial::Solution::Write(StdPDE* pde, Solutions& sol, Function* f, i
   }
   else
   {
-    assert(f != NULL && sol.data_.find(f) != sol.data_.end());
+    assert(f == NULL || sol.data_.find(f) != sol.data_.end()); // if f != NULL it has to be in the map
     Solutions::Unit* unit = sol.data_[f][time_step];
     assert(unit->data.GetSize() == excitations.GetSize());
 

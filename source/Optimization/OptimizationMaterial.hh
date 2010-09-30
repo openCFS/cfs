@@ -47,7 +47,7 @@ public:
    * @param out here the element stiffness matrix written. e.h. K_uu which is \int B E B
    * @param elem if not given the first design element is used, otherwise the provided one
    * @param factor in piezoelectricity K_pp is -1* BDBInt */
-  void GetElementMatrix(BaseForm* form, Matrix<double>& out, Elem* elem = NULL,
+  void GetElementMatrix(BaseForm* form, Matrix<double>& out, const Elem* elem = NULL,
                         const DesignElement::Type direction = DesignElement::NO_DERIVATIVE, double factor = 1.0);
   
 protected:
@@ -70,13 +70,13 @@ public:
    * @param elem the Element for which the Matrix should be returned
    * @param direction if given, calculate derivative of Stiffness Matrix instead
    * @return a pointer to the Element Stiffness Matrix*/
-  const Matrix<double>& MechStiffness(Elem* elem, const DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+  const Matrix<double>& MechStiffness(const Elem* elem, const DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
 
   /** Get the ElementMass Matrix for this element, this is the region constant version
    * @param elem the Element for which the Matrix should be returned
    * @param direction if given, calculate derivative of mass Matrix instead
    * @return a pointer to the Element Mass Matrix*/
-  const Matrix<double>& MechMass(Elem* elem, const DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+  const Matrix<double>& MechMass(const Elem* elem, const DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
   
 protected:  
   /** The mechanical element stiffness matrix is constant */
