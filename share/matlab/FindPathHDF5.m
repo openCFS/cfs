@@ -94,14 +94,7 @@ for group=1:number_of_groups
           group_name = actgroup3.Name;
 
           cmpstr = sprintf('/Results/Mesh/MultiStep_%d', multistep);
-          if strcmp(group_name, cmpstr)
-%            sprintf('We have found the multistep %d group', multistep)
-            basepath = cmpstr;
-            found = 3;
-            break
-          end
-
-          cmpstr = sprintf('/Results/Mesh/MultiStep %d', multistep);
+%         if anybody reads this line, he gets a beer from me (zoerner)
           if strcmp(group_name, cmpstr)
 %            sprintf('We have found the multistep %d group', multistep)
             basepath = cmpstr;
@@ -147,15 +140,6 @@ for mstepgroup=1:nmstepgroups
     found = 4;
     break
   end
-
-  cmpstr = sprintf('%s/Step %d', basepath, step);
-  if strcmp(group_name, cmpstr)
-%    sprintf('We have found the Step %d group', step)
-    stepname = sprintf('Step %d', step);
-    found = 4;
-    break
-  end
-
 end
 
 if found < 4
