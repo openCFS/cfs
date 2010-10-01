@@ -61,8 +61,7 @@ namespace CoupledField {
     driverNode->Get("sequenceStep")->SetValue(sequenceStep);
     driverNode->Get(ParamNode::HEADER)->Get("unit")->SetValue("s");
     
-    // Get time stepping information from parameter object
-    myNode->GetValue( "numSteps", numstep_ );
+   
     
     // for the evaluation of deltaT, we make use of math Parser to
     // allow variable definitions of time step size
@@ -72,6 +71,13 @@ namespace CoupledField {
     MathParser::HandleType handle = mp.GetNewHandle();
     mp.SetExpr(handle,dtString);
     firstdt_ = mp.Eval(handle);
+    
+    // Get time stepping information from parameter object
+    std::string numStepString;
+    myNode->GetValue( "numSteps", numStepString);
+    mp.SetExpr(handle,numStepString);
+    numstep_ = mp.Eval(handle);
+    
     mp.ReleaseHandle(handle);
 
     // Get save increment for restart file (optional)
