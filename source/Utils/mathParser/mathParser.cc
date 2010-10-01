@@ -12,6 +12,7 @@
 #include "DataInOut/ResultCache.hh"
 #include "Domain/domain.hh"
 #include "Utils/coordSystem.hh"
+#include "Utils/mathfunctions.hh"
 
 
 namespace CoupledField {
@@ -317,7 +318,14 @@ namespace CoupledField {
     parser.DefineFun("locCoord3D", MathParser::LocCoord3D, false );
     parser.DefineFun("input", ResultCache::GetResult, false);
 
-
+    // Register signal generating functions
+    parser.DefineFun("sinBurst", SinBurst, false );
+    parser.DefineFun("fadeIn", FadeIn, false );
+    parser.DefineFun("spike", Spike, false );
+    //parser.DefineFun("cosPulseComb", CosPulseComb, false );
+    //parser.DefineFun("squareBurst", SquarePulse, false );
+    parser.DefineFun("gauss", Gauss, false );
+    
     // Register factory for dynamic variable registering
     //parser.SetVarFactory( AddVariable );
 
@@ -522,28 +530,35 @@ namespace CoupledField {
   Double MathParser::LocCoord3D( const char * coordSysId, 
                                  Double dof,
                                  Double x, Double y, Double z ) {
+
+    // check for the correct coordinate components
+    if( dof < 1 || dof > 3 ) {
+      EXCEPTION( "The coordinate component for a 3D system can just be 1,2 or 3");
+    }
     CoordSystem * cosy = domain->GetCoordSystem(coordSysId);
     Vector<Double> loc(3), glob(3);
     loc[0] = x;
     loc[1] = y;
     loc[2] = z;
     cosy->Global2LocalCoord(loc, glob);
-    
-    return loc[(UInt)dof];
+    return loc[(UInt)dof-1];
   }
 
   
   Double MathParser::LocCoord2D( const char * coordSysId, 
                                  Double dof,
                                  Double x, Double y) {
-
+    // check for the correct coordinate components
+    if( dof < 1 || dof > 2 ) {
+      EXCEPTION( "The coordinate component for a 2D system can just be 1 or 2");
+    }
     CoordSystem * cosy = domain->GetCoordSystem(coordSysId);
     Vector<Double> loc(2), glob(2);
     loc[0] = x;
     loc[1] = y;
     cosy->Global2LocalCoord(loc, glob);
     
-    return loc[(UInt)dof];
+    return loc[(UInt)dof-1];
   }
   
   

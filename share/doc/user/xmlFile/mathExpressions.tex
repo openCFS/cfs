@@ -1,5 +1,4 @@
-\chapter{Mathematical Expressions}
-\label{chap:MathExpr}
+\chapter{Mathematical Expressions} \label{chap:MathExpr}
 For many values (boundary conditions, load values) it is possible not
 only to prescribe a constant value but also a complex mathematical
 expression. CFS++ utilizes for this a customized version of the {\em
@@ -110,8 +109,249 @@ variable would create a new one, initialized with zero.
     possible. }
 \end{table}
 \clearpage
+\section{Defining own variables}
+%
+In addition to the built-in predefined variables, the user can define own
+variables within the \xel{variableList}-element of the \xel{domain}-section:
+\begin{xmllisting}
+<domain>
+  <variableList>
+    <var name="freq" value="1e6"/>     <!-- excitation frequency -->
+    <var name="c"    value="1500"/>    <!-- average speed of sound -->
+  </variableList>
+  <regionList>
+   ...
+</domain>
+\end{xmllisting}
+The registered variables get defined in the global scope and can be used in any
+expression, which gets parsed by the mathParser. Note however, that the
+variables must evaluate to a constant, i.e. it is NOT allowed to define a
+variable like
+\begin{xmllisting}
+ <!-- NOT ALLOWED -->
+ <var name="time" value="5*t"/>
+\end{xmllisting}
+as this would NOT evaluate to a constant!
+%
+\section{CFS custom variables}
+%
+Also CFS++ itself registers some variables related to the current simulation
+which can be used in mathematical expressions (see
+the following table).
+\begin{table}[ht]
+\begin{center}
+ \caption{CFS specific variables}
+ \vspace{0.5cm}
+  \begin{tabular}{lp{0.4\textwidth}p{0.4\textwidth}}
+    \toprule \rowcolor{darkgrey}
+     name & value & occurrence \\
+    \midrule
+    \xatv{t}     & Current time value       & \xel{transient} analysis \\
+    \xatv{dt}    & Time step size $\Delta t$& \xel{transient}
+analysis \\
+    \xatv{f}     & Current frequency value  & \xel{harmonic} analysis \\
+    \xatv{step}  & Current time/frequency step  &
+\xel{harmonic},\xel{transient} analysis \\
+    \xatv{$x$}, \xatv{$y$}, \xatv{$z$} & Global coordinate of current  node /
+element & boundary conditions and loads \\
+    \xatv{r}, \xatv{phi}, \xatv{z} & Current local coordinate value & regionLoad
+    with cylindrical coordinate system \\
+    \bottomrule
+  \end{tabular}
+\end{center}
+\end{table}
+%
+\clearpage
 \section{CFS custom functions}
+%
+\subsection{\texttt{spike}}
+Generates a short spike signal of a given duration (see
+Fig. \ref{fig:signalSpike}) starting from 0.
+%
+\begin{figure}[h!]
+ \begin{center}
+   \includegraphics[width=8cm]{pics/sigSpike.png}
+ \end{center}
+  \caption{Example for spike signal: \xatv{spike(1,t-2)}}
+  \label{fig:signalSpike}
+\end{figure}
+%
+\begin{mathFunc}
+{spike(duration, timeval)}
+ \param{duration} &  Duration of the spike in $s$.\\
+ \param{timeval} & Time parameter at which function gets evaluated.
+           Usually the time variable \xatv{$t$} is used.
+\end{mathFunc}
+%
+\subsection{\texttt{fadeIn}}
+%
+This function is used to perform a fadein of an excitation (see Fig.
+\ref{fig:signalFade}).
+The returned value is between zero and one and has to be
+used as envelope of the excitation signal.
+%
+\begin{figure}[h!]
+ \begin{center}
+   \includegraphics[width=8cm]{pics/sigFade.png}
+ \end{center}
+  \caption{Comparison of 3 fadeIn signals: $sin^2$-based (red), $exp$-based
+(green) and $exp^2$-based (blue).}
+  \label{fig:signalFade}
+\end{figure}
+%
+\begin{mathFunc}
+{fadeIn(duration, mode, timeval) }
+ \param{duration} &  The amount of time for which the fade in
+operation is performed in $s$.\\
+\param{mode} & Three different implementation exist for
+the envelope of the fade in process:
+\begin{itemize}
+\item 1: using a $sin^2$ formulation
+\item 2: using an exponential formulation $exp$
+\item 3: using a squared exponential formulation $exp^2$
+\end{itemize} \\
+\param{timeval} & Time parameter at which function gets evaluated.
+           Usually the time variable \xatv{$t$} is used.
+\end{mathFunc}
+%
+\subsection{\texttt{sinBurst}}
+%
+Creates data for a sine burst signal. A sine burst signal
+denotes a sine that will be active during a certain amount
+of time until it will be deactivated (see Fig. \ref{fig:signalSinBurst}).
+Additionally, a fade-in/out can be applied, according to the $sin^2$ method of
+the \texttt{fadeIn} to reduce the higher harmonics of the signal (see Fig.
+\ref{fig:signalSinBurstFade}).
+\begin{figure}[h!]
+ \begin{center}
+   \includegraphics[width=8cm]{pics/sigSinBurst.png}
+ \end{center}
+  \caption{Sine burst without fade-In: \xatv{sinBurst(1,6,0,0,t)}}
+  \label{fig:signalSinBurst}
+\end{figure}
+\begin{figure}[h!]
+ \begin{center}
+   \includegraphics[width=8cm]{pics/sigSinBurstFade.png}
+ \end{center}
+  \caption{Sine burst with 2 periods of fade-in/out: \xatv{sinBurst(1,6,2,2,t)}}
+  \label{fig:signalSinBurstFade}
+\end{figure}
+\begin{mathFunc}
+{sinBurst(freq, nperiods, nfadein, nfadeout, timeval)}
+\param{freq} &  Frequency of the sine pulse.\\
+\param{nperiods} &  Total number of periods of the pulse.\\
+\param{nfadein} &  Specifies the number of periods that will be
+used for the transient process. This will realize a kind of "soft" transient
+process that will reduce the higher harmonics of the resulting signal.\\
+\param{nfadeout} &  Specifies the number of periods that will be
+used for the decay process. This will realize a kind of "soft" decay process
+that will reduce the higher harmonics of the resulting
+signal. \\
+\param{timeval} & Time parameter at which function gets evaluated.
+           Usually the time variable \xatv{$t$} is used.
+\end{mathFunc}
+%
+\subsection{\texttt{gauss}}
+Generates a Gaussian curve, which is either normalized to a maximum value of 1
+or to having an area of 1.
+%
+\begin{mathFunc}
+{gauss(mue, sigma, normval, timeval)}
+\param{mue} & Mean value of Gauss curve.\\
+\param{sigma} & Variance of Gauss curve.\\
+\param{normval} & Type of normalization:
+\begin{itemize}
+\item 0: Maximum of curve gets normalized to 1
+\item 1: Area of curve gets normalized to 1
+\end{itemize} \\
+\param{timeval} & Time parameter at which function gets evaluated.
+           Usually the time variable \xatv{$t$} is used.
+\end{mathFunc}
+
+\subsection{\texttt{locCoord2D}}
+\label{sec:mathFunc-locCoord2D}
+%
+This function returns for a point in a 2D cartesian coordinate system one
+component of a local coordinate system, as defined in the
+\xel{coordSysList}-section of the \xel{domain}-element (for details, see
+\ref{sec:coordSys}). This can be used, e.g. to define loads / dirichlet boundary
+conditions depending on polar / cylindrical coordinates.
+%
+\begin{mathFunc}
+{locCoord2D(coordsysid, component, x, y)}
+\param{coordsysid} & Id string of the referred coordinate system.\\
+\param{component} & Coordinate component of the local coordinate system,
+which can be either 1 or 2 in 2D. For a polar coordinate system,
+1=$r$-direction and 2=$\varphi$-direction.\\
+\param{x} & $x$-coordinate of the Cartesian point. For \xel{load} and
+\xel{dirichletInhom} boundary conditions, it can be literally replaced by
+\xatv{x}. \\
+\param{y} & $y$-coordinate of the Cartesian point. For \xel{load} and
+\xel{dirichletInhom} boundary conditions, it can be literally replaced by
+\xatv{y}.
+\end{mathFunc}
+In the following example, a cylindrical coordinate system with id \xatv{mid} is
+defined. A Dirichlet boundary condition is applied, with a value varying with
+the angle $\varphi$ (second component in a polar coordinate system). 
+\begin{xmllisting}
+<domain>
+  <coordSysList>
+    <polar id="mid">
+      <origin x="0" y="0"/>
+      <rAxis x="1" y="0"/>
+    </polar>
+  </coordSysList>
+</domain>
+....
+<dirichletInhom name=".." value="locCoord('mid',2,x,y)"/>
+\end{xmllisting}
+%
+\subsection{\texttt{locCoord3D}}
+%
+Similar to the function \texttt{locCoord2D} (see
+\ref{sec:mathFunc-locCoord2D}), this method can be used for local 3-dimensional
+coordinate systems (e.g. cylindrical or spherical).
+%
+\begin{mathFunc}
+{locCoord3D(coordsysid, component, x, y,z)}
+\param{coordsysid} & Id string of the referred coordinate system.\\
+\param{component} & Coordinate component of the local coordinate system,
+which can be either 1, 2 or in 3D. For a cylindrical coordinate system,
+1=$r$-direction, 2=$\varphi$-direction and 3=$z$-direction.\\
+\param{x} & $x$-coordinate of the Cartesian point. For \xel{load} and
+\xel{dirichletInhom} boundary conditions, it can be literally replaced by
+\xatv{x}. \\
+\param{y} & $y$-coordinate of the Cartesian point. For \xel{load} and
+\xel{dirichletInhom} boundary conditions, it can be literally replaced by
+\xatv{y}.\\
+\param{z} & $z$-coordinate of the Cartesian point. For \xel{load} and
+\xel{dirichletInhom} boundary conditions, it can be literally replaced by
+\xatv{z}.
+\end{mathFunc}
+%
 \subsection{\texttt{sample1D}}
+This function can be used to read in and interpolate values of a 2-column
+formatted text file. This can be used e.g. to prescribe
+space/time/frequency-dependent boundary or load conditions.
+%
+\begin{mathFunc}
+{sampled1D(filename, interpolation, sampleval)}
+\param{filename} & Name of the file to be read (any path in the filename is
+taken relative to the location of the .xml-file). The file must consist of
+exactly 2 columns, which are separated by any whitespace (space, tab). \\
+\param{interpolation} & There are 3 different methods for interpolating the
+sampled values:
+\begin{itemize}
+ \item 0: Nearest neighbor is taken (i.e. no interpolation at all)
+ \item 1: Linear interpolation
+ \item 2: Cubic spline interpolation
+\end{itemize} \\
+\param{sampleval} & Denotes the sample value (value of the 1st column ), for
+which a value in the 2nd column is seeked. In most cases either the current
+time \xatv{t} or a coordinate component (\xatv{x},\xatv{y}, \xatv{z}) may be
+used.
+\end{mathFunc}
+%
 We can subscribe boundary conditions with values read in from sample files.
 The notation is as follows:
 \begin{xmllisting}
@@ -121,15 +361,11 @@ The notation is as follows:
 </bcsAndLoads>
 \end{xmllisting}
 Sample data (2$^{nd}$ column) is read in from the files x\_amplitude.dat and
-x\_phase.dat. Please note the type of quotes used!!!!
-\newline
-
-\noindent
-x specifies the direction, where the sample data is applied.
-2 means cubic spline interpolation between sample values. 
-Could also be 0=nearest neighbour, or 1=linear interpolation.
-
+x\_phase.dat depending on the current $x$-coordinate and gets interpolated using
+cubic spline interpolation. Please note the type of quotes used!!!!
+%
 \subsection{\texttt{input}}
+%
 The \xel{input} element can be used to read in data on a whole region from
 hdf5 files (of a previous simulation run). It takes as arguments the input ID
 and the number of the multisequence step (which should be 1 in almost any
@@ -155,47 +391,18 @@ The region name, quantity, and time/frequency step (if applicable) are
 determined automatically and not passed as arguments. Therefore it is required
 to use exactly same mesh as the previous simulation, i.e.\
 interpolation onto a different mesh is not supported.
-
+%
+\begin{mathFunc}
+{input(fileid, sequencestep)}
+\param{fileid} & Id of the \xel{hdf5}-input reader.\\
+\param{sequencestep} & Multisequencestep to be used for reading in the values.
+\end{mathFunc}
+%
 The \texttt{input} function is currently available only for inhomogeneous
-Dirichlet boundary conditions, but may be supported for other BCs in the future.
+Dirichlet boundary conditions, but may be supported for other BCs in the
+future.
 
-\begin{table}[htb]
-\begin{center}
-\caption{CFS specific functions}
-\vspace{0.5cm}
-  \begin{tabular}{lll}
-    \toprule
-    name & \# of args. & description \\
-    \midrule
-    \texttt{input}      & 2 & read data for a whole region from a hdf5 file \\
-    \texttt{sample1D}   & 3 & interpolation of boundary condition values
-    from sample data files \\
-    \bottomrule
-  \end{tabular}
-\end{center} 
-\end{table}
 
-\section{CFS custom variables}
-In addition to the built-in variables, CFS++ registers additionally allow
-some variables, which can be used in the mathematical expression (see
-the following table).
-\begin{table}[ht]
-\begin{center}
- \caption{CFS specific variables}
- \vspace{0.5cm}
-  \begin{tabular}{lll}
-    \toprule
-     name & value & occurrence \\
-    \midrule
-    \myverb#t#     & Current time value       & \xel{transient} analysis \\
-    \myverb#f#     & Current frequency value  & \xel{harmonic} analysis \\
-    \myverb$x y z$ & Current global coordinate value & boundary conditions
-    e.g:load \\ \myverb#r phi z# & Current local coordinate value & regionLoad
-    with cylindrical coordinate system \\
-    \bottomrule
-  \end{tabular}
-\end{center}
-\end{table}
 
 \section{Examples}
 If one wants to prescribe a linear space dependent load, the following can be
@@ -218,7 +425,7 @@ To define a variable with a sine of 1 kHz one can simply write:
 \end{xmllisting}
 The variable \xatv{t} reflects the current time value in a transient
 simulation.
-Of couse one can also combine space- and time dependency:
+Of course one can also combine space- and time dependency:
 \begin{xmllisting}
 <bcsAndLoads>
   <dirichletInhom name="bcNode" value="10 * x * sin(2 * pi * 1e3 * t)"/>
