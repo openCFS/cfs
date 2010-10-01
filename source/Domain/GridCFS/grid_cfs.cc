@@ -2995,6 +2995,7 @@ namespace CoupledField {
   void GridCFS::CorrectElementConnectivities() {
     Matrix<Double> coordMat;
     Vector<Double> localCoord;
+    std::set<const Elem*> corrElems, failedElems;
     
     for(UInt i=0; i<numElems_; i++)
     {
@@ -3013,9 +3014,43 @@ namespace CoupledField {
       try { 
         el->ptElem->CalcJacobianDet(localCoord, coordMat, el);
       } catch (Exception& ex) {
+        try {
         el->CorrectConnectivity();
+        // at this point, we can be sure that the element connectivity
+        // was adjusted correctly
+        corrElems.insert(el);
+        } catch (Exception& ex) {
+          // at this point, the correction failed e.g. due to a missing
+          // implementation or a totally weird element connectivity.
+          failedElems.insert(el);
+        }
       }
     }    
+    // if some elements were successfully reoriented, issue warning
+    if(corrElems.size() > 0 ) {
+      std::stringstream out;
+      out << "The following elements have a wrong orientation and "
+          << "were re-oriented:\n";
+      std::set<const Elem*>::iterator it = corrElems.begin();
+      for( ; it != corrElems.end(); it++  ) {
+        out << (*it)->elemNum << ", ";
+      }
+      out << "\n\nPlease check your mesh!\n";
+      WARN( out.str().c_str() );
+    }
+
+    // if some elements could not be reoriented, generate exception
+    if(failedElems.size() > 0 ) {
+      std::stringstream out;
+      out << "The following elements have a wrong orientation and "
+          << "could NOT be re-oriented:\n";
+      std::set<const Elem*>::iterator it = failedElems.begin();
+      for( ; it != failedElems.end(); it++  ) {
+        out << (*it)->elemNum << ", ";
+      }
+      out << "\n\nPlease check your mesh!\n";
+      EXCEPTION( out.str() );
+    }
   }
 
 } // end namespace
