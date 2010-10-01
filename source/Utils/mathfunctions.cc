@@ -88,9 +88,12 @@ namespace CoupledField {
   Double Spike( Double duration, Double t ) {
     Double ret=0.0, riseT=duration/2;
 
+    
     if (t <= duration)
       ret = (t <= riseT) ? t/riseT : 2.0-t/riseT;
-
+    
+    if (t < 0 )
+       ret = 0.0;
     return ret;
   }
 
