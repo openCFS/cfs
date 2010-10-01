@@ -37,6 +37,7 @@ namespace CoupledField {
     
     isGeneralized_ = false;
     shiftAndInvert_ = false;
+    logging_ = false;
   }
 
   ArpackEigenSolver::~ArpackEigenSolver() {
@@ -82,7 +83,7 @@ namespace CoupledField {
     // Check 'which'-settings regarding the type of eigenvalues searched for
     std::string whichString = "LM";
     PtrParamNode sNode;
-    sNode = xml_->Get("arpack", ParamNode::INSERT);
+    sNode = xml_->Get("eigenSolver")->Get("arpack", ParamNode::INSERT);
     sNode->GetValue("which", whichString, ParamNode::INSERT);
     
     which_ = new char[whichString.size()+1];
@@ -112,7 +113,13 @@ namespace CoupledField {
 
     // Check trace settings
     arpackSolver_->DebugOff();
-
+    if( sNode->Has("logging") ) {
+      if (sNode->Get("logging")->As<bool>()  == true ) {
+        logging_ = true;
+        arpackSolver_->DebugOn();
+      }
+    }
+    
     // Print log-info about EigenSolver
     PrintInfo();
 
@@ -171,7 +178,7 @@ namespace CoupledField {
 
     // Check 'which'-settings regarding the type of eigenvalues searched for
     PtrParamNode sNode;
-    sNode = xml_->Get("arpack", ParamNode::INSERT );
+    sNode = xml_->Get("eigenSolver")->Get("arpack", ParamNode::INSERT );
     std::string whichString = "LM";
     sNode->GetValue("which", whichString, ParamNode::INSERT );
     
@@ -202,6 +209,13 @@ namespace CoupledField {
 
     // Check trace settings
     arpackSolver_->DebugOff();
+    if( sNode->Has("logging") ) {
+      if (sNode->Get("logging")->As<bool>()  == true ) {
+        arpackSolver_->DebugOn();
+        logging_ = true;
+      }
+    }
+    
 
     // Print log-info about EigenSolver
     PrintInfo();
@@ -469,8 +483,7 @@ namespace CoupledField {
            << arpackSolver_->GetNcv() << "\n";
 
     // Trace settings
-    bool logging = false;
-    if ( logging ) {
+    if ( logging_ ) {
       (*cla) << " Logging activated\n";
     }
     (*cla) << " -------------------------------------------------------"
