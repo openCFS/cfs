@@ -57,10 +57,12 @@ namespace CoupledField {
     algSysType_          = STANDARD_SYSTEM;
 
     // Initialize pointer to finite-element matrices
-    NEWARRAY( sysmat_, StdMatrix*, MAX_NUM_FE_MATRICES );
-    for ( UInt i = 0; i < MAX_NUM_FE_MATRICES; i++ ) {
-      sysmat_[i] = NULL;
-    }
+    sysmat_[SYSTEM]     = NULL;
+    sysmat_[STIFFNESS]  = NULL;
+    sysmat_[DAMPING]    = NULL;
+    sysmat_[CONVECTION] = NULL;
+    sysmat_[MASS]       = NULL;
+    sysmat_[AUXILIARY]  = NULL;
 
     if ( usingPenalty_ ) {
       assembleDirichletToSysMat_ = true;
@@ -84,10 +86,12 @@ namespace CoupledField {
     delete eigenValues_;
 
     // Delete finite-element matrices
-    for ( UInt i = 1; i < MAX_NUM_FE_MATRICES; i++ ) {
-      delete sysmat_[i];
+    std::map<FEMatrixType, StdMatrix*>::iterator iter;
+    for (iter = sysmat_.begin(); iter != sysmat_.end(); ++iter)
+    {
+      delete iter->second;
     }
-    delete [] ( sysmat_ );
+    sysmat_.clear();
 
     // After matrices we may delete the pattern pool
     delete patternPool_;
@@ -1091,7 +1095,7 @@ namespace CoupledField {
   //   Print
   // *********
   void StandardSystem::Print( FEMatrixType matrix_id) const {
-    *cla << sysmat_[matrix_id]->ToString();
+    *cla << sysmat_.find(matrix_id)->second->ToString();
   }
 
   // **********
@@ -1099,7 +1103,7 @@ namespace CoupledField {
   // **********
   void StandardSystem::Export( FEMatrixType type, char *filename,
                                char *comment ) const {
-    sysmat_[type]->Export( filename, comment );
+    sysmat_.find(type)->second->Export( filename, comment );
   }
 
 
