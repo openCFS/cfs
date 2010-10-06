@@ -251,6 +251,35 @@ signal. \\
            Usually the time variable \xatv{$t$} is used.
 \end{mathFunc}
 %
+\subsection{\texttt{squareBurst}}
+%
+Create data for a square burst signal, which can either be unipolar or bipolar
+(see Fig. \ref{fig:signalSquareBurst} ).
+\begin{figure}[h!]
+ \begin{center}
+   \includegraphics[width=8cm]{pics/sigSquareBurst.png}
+ \end{center}
+  \caption{Unipolar square burst.}
+  \label{fig:signalSquareBurst}
+\end{figure}
+%
+\begin{mathFunc}
+{squareBurst(freq, nperdios, bipolar, pwidth, rtime, timeval )}
+\param{freq} &  Frequency of the rectangular signal.\\
+\param{nperiods} &  Total number of periods of the pulse.\\
+\param{bipolar} & Switch for generating bipolar / unipolar signal
+\begin{itemize}
+ \item 0: unipolar signal ($ 0 \leq y \leq 1$)
+ \item 1: bipolar signal ($ -1 \leq y \leq 1$)
+\end{itemize} \\
+\param{pwidth} & Pulse width of the signal in percent ($0 \leq pw \leq 100$). \\
+\param{rtime} & Defines the rise time of the square burst. It denotes the time
+                in seconds that the pulse will take to change from low to
+                high level. \\
+\param{timeval} & Time parameter at which function gets evaluated.
+           Usually the time variable \xatv{$t$} is used.
+\end{mathFunc}
+%
 \subsection{\texttt{gauss}}
 Generates a Gaussian curve, which is either normalized to a maximum value of 1
 or to having an area of 1.

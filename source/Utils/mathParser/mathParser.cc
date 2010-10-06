@@ -323,7 +323,7 @@ namespace CoupledField {
     parser.DefineFun("fadeIn", FadeIn, false );
     parser.DefineFun("spike", Spike, false );
     //parser.DefineFun("cosPulseComb", CosPulseComb, false );
-    //parser.DefineFun("squareBurst", SquarePulse, false );
+    parser.DefineFun("squareBurst", SquarePulse, false );
     parser.DefineFun("gauss", Gauss, false );
     
     // Register factory for dynamic variable registering

@@ -384,6 +384,7 @@ share/doc/user/xmlFile/pics/sigFade.png -text svneol=unset#image/png
 share/doc/user/xmlFile/pics/sigSinBurst.png -text svneol=unset#image/png
 share/doc/user/xmlFile/pics/sigSinBurstFade.png -text svneol=unset#image/png
 share/doc/user/xmlFile/pics/sigSpike.png -text svneol=unset#image/png
+share/doc/user/xmlFile/pics/sigSquareBurst.png -text svneol=unset#image/png
 share/doc/user/xmlFile/pics/signals.cdr -text svneol=unset#application/coreldraw
 share/doc/user/xmlFile/pics/small_filter.jpg -text svneol=unset#image/jpeg
 share/doc/user/xmlFile/singlefields.tex svneol=native#text/plain
