@@ -1,3 +1,5 @@
+#include "Optimization/Optimization.hh"
+#include "Optimization/Excitation.hh"
 #include "Optimization/Function.hh"
 #include "Optimization/Condition.hh"
 #include "Optimization/Objective.hh"
@@ -41,10 +43,12 @@ Function::Function(PtrParamNode pn)
   // function value to be evaluated
   this->value_ = -1.0;
 
+  // -2 is unset, -1 is all, >= 0 the excitation index
+  SetExcitation();
+
   this->physical_ = pn->Has("physical") ? pn->Get("physical")->As<bool>() : false;
 
   this->parameter_ = pn->Has("parameter") ? pn->Get("parameter")->As<double>() : 0.0;
-
 
   this->omega_omega_ = pn->Has("factor") ? pn->Get("factor/omega_omega")->As<bool>() : false;
   if(!harmonic_ && omega_omega_)
@@ -176,7 +180,7 @@ void Function::ToInfo(PtrParamNode info)
     info->Get("parameter")->SetValue(parameter_);
 }
 
-std::string Function::ToString() const
+std::string Function::ToString(MultipleExcitation* me) const
 {
   // optional for oscillation
   if(local != NULL && local->GetPhase() != Local::BOTH)
@@ -196,9 +200,9 @@ Function* Function::GetFunction(Objective* f, Condition* g)
 }
 
 
-bool Function::DoEvaluateOnce() const
+void Function::SetExcitation(int excite_index)
 {
-  // some functions need to be evaluated only once (last) for multiple excitations
+  // some functions need to be evaluated only once (first) for multiple excitations
   // multiple excitations are:
   // * static load cases
   // * different frequencies
@@ -225,7 +229,9 @@ bool Function::DoEvaluateOnce() const
     case GLOBAL_OSCILLATION:
     case JUMP:
     case GLOBAL_JUMP:
-      return true;
+      assert(excite_index == -2);
+      excite_ = 0; // once only at the first excitation
+      break;
 
     case MULTI_OBJECTIVE: // only to make the switch complete
     case COMPLIANCE:
@@ -238,12 +244,32 @@ bool Function::DoEvaluateOnce() const
     case GLOBAL_DYNAMIC_COMPLIANCE:
     case ELEC_ENERGY:
     case TEMPERATURE:
+      assert(excite_index == -2);
+      excite_ = -1; // all excitations
+      break;
+
     case STRESS:
-      return false;
-      // no default, hence gcc warns
+      excite_ = excite_index == -2 ? -1 : excite_index;
+      break;
   }
-  assert(false); // cannot reach
-  return false;
+}
+
+/** Shall/must we evaluate this objective at this excitation?
+ * Stress constraints in homogenization are triggered for a single constraint only. */
+bool Function::DoEvaluate(const Excitation* excite) const
+{
+  if(DoEvaluateAlways())
+    return true;
+
+  return excite->index == excite_;
+}
+
+bool Function::IsExcitationSensitive() const
+{
+  if(type_ == STRESS)
+    return true;
+  else
+    return false;
 }
 
 bool Function::IsAdjointBased() const

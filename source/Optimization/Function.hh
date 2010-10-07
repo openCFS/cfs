@@ -16,6 +16,8 @@ namespace CoupledField
 class Condition;
 class Objective;
 class DesignSpace;
+class Excitation;
+class MultipleExcitation;
 
 /** A Function is the (abstract) base class of Objective and Condition (which is a constraint but the name was
  * already used)
@@ -91,8 +93,9 @@ class Function
 
     /** The real label might be an extended type string. E.g. by "physical_".
      * Check if better use this than type.ToString(GetType()).
-     * Is overloaded in Condition */
-    virtual std::string ToString() const;
+     * Is overloaded in Condition
+     * @param me is for Condition */
+    virtual std::string ToString(MultipleExcitation* me = NULL) const;
 
     /** for historical reasons there are Condition and Objective pointers used concurrently. This is a
      * little helper. asserts that only of function is set. */
@@ -120,8 +123,18 @@ class Function
     * This makes "u L conj(u)" to actually calc "v L conj(v)" with v = du/dt. -> approximatates sound intensity */
     bool FactorOmegaOmega() const { return omega_omega_; }
 
-    /** Shall/must we evaluate this objective only of the last excitation? */
-    bool DoEvaluateOnce() const;
+    /** Shall/must we evaluate this objective at this excitation?
+     * Stress constraints in homogenization are triggered for a single constraint only. */
+    void SetExcitation(int excite_index = -2);
+
+    /** Evaluate at this excitation? */
+    bool DoEvaluate(const Excitation* excite) const;
+
+    /** Evaluate for all excitations if there are multiple? */
+    bool DoEvaluateAlways() const { return excite_ == -1; }
+
+    /** Are we generally excitation sensitive? E.g. stress */
+    bool IsExcitationSensitive() const;
 
     /** Requires this function an adjoint solution for the gradient? */
     bool IsAdjointBased() const;
@@ -430,6 +443,10 @@ class Function
     /** this index is the position in the Optimization list and is used to
      * identify the constraint gradient in DesignElement. Only relevant for type = active */
     int index_;
+
+    /** Excitation index for evaluation. -1 for all excitations. Most interesting for stress constraints.
+     * -2 is for unset! */
+    int excite_;
 
     /** @see FactorOmegaOmega() */
     bool omega_omega_;

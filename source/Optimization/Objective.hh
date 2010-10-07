@@ -8,6 +8,7 @@
 namespace CoupledField
 {
 class ObjectiveContainer;
+class MultipleExcitation;
 
 /** We combine the cost function in a set to handle multiple of it.
  * It contains static const elements (and  working stuff).
@@ -88,7 +89,7 @@ public:
   ~ObjectiveContainer();
 
   /** Calls Function::PostProc() */
-  void PostProc(DesignSpace* space, DesignStructure* structure);
+  void PostProc(DesignSpace* space, DesignStructure* structure, MultipleExcitation* me);
 
   /** actual constructor */
   void Read(PtrParamNode obj_node);

@@ -23,8 +23,8 @@ ShapeOpt::ShapeOpt() : ParamMat() {
     biLinForms[i]->GetIntegrator()->SetUseCoordUpdate(true);
   }
   // set the linearForms used in multiple excitations, note that this does contain all linearforms (some even several times)
-  for(unsigned int i = 0; i < excitations.GetSize(); i++){
-    StdVector<LinearFormContext*>& linForms = excitations[i].GetLinForms();
+  for(unsigned int i = 0; i < me->excitations.GetSize(); i++){
+    StdVector<LinearFormContext*>& linForms = me->excitations[i].GetLinForms();
     for(unsigned int j = 0; j < linForms.GetSize(); ++j){
       linForms[j]->GetIntegrator()->SetUseCoordUpdate(true);
     }
@@ -173,7 +173,7 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& u1, Solutions& u2, Objective* f, Condi
   int np = shapedesign->GetNumberOfShapeParameters();
   der.Resize(np, 0);
   const bool homogenization = tensor_diff != NULL;
-  const unsigned int ex_size(excitations.GetSize());
+  const unsigned int ex_size(me->excitations.GetSize());
   double rcubevol(1.0);
   if(homogenization){
     rcubevol = 1.0 / grid->CalcVolumeSpannedByNamedNodes();    
@@ -278,7 +278,7 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& u1, Solutions& u2, Objective* f, Condi
                     }
                     v1 += u1elem[i] * v2;
                   }
-                  der[p] += intWeight * jacdet * v1 * excitations[ex].weight;
+                  der[p] += intWeight * jacdet * v1 * me->excitations[ex].weight;
                 }
               }else{ // we calculate homogenization 
                 for(unsigned int ij = 0; ij < ex_size; ++ij){
@@ -477,7 +477,7 @@ void ShapeOpt::CalcHomogenizedTrackingGradient(const Matrix<double>& target, con
 }
 
 Matrix<double> ShapeOpt::CalcHomogenizedTensor(){
-  const unsigned int ex_size(excitations.GetSize());
+  const unsigned int ex_size(me->excitations.GetSize());
   assert((dim == 2 && ex_size == 3) || (dim == 3 && ex_size == 6));
   
   double rcubevol(1.0 / grid->CalcVolumeSpannedByNamedNodes());
@@ -543,7 +543,7 @@ void ShapeOpt::StorePDESolution(Solutions& solutions, Excitation &excite, Functi
 }
 
 void ShapeOpt::SubtractTestDisplacement(unsigned int idx, Matrix<double>& CornerCoords, Vector<double>& result, Matrix<double>& tmp_strain, Matrix<double>& tmp_displacement){
-  SetTestStrainMatrix(tmp_strain, excitations[idx].test_strain);
+  SetTestStrainMatrix(tmp_strain, me->excitations[idx].test_strain);
   unsigned int cols = CornerCoords.GetNumCols();
   tmp_displacement.Resize(dim, cols);
   tmp_strain.Mult(CornerCoords, tmp_displacement);

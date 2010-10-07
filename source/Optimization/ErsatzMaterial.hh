@@ -4,6 +4,7 @@
 #include <map>
 
 #include "Optimization/Optimization.hh"
+#include "Optimization/Excitation.hh"
 #include "Domain/bcs.hh"
 #include "Utils/result.hh"
 #include "MatVec/vector.hh"
@@ -136,10 +137,6 @@ public:
 
   /** This is simple one SinglePDE from pdes. */
   SinglePDE* pde;
-
-  /** Here we have the set of excitations. Only relevant for the multiple excitations
-   * case (multiple loads or frequencies) */
-  StdVector<Excitation> excitations;
 
   /** The region to optimize */
   StdVector<RegionIdType> regionIds;

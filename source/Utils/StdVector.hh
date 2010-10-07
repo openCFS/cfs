@@ -253,11 +253,13 @@ namespace CoupledField {
     void Push_back(const TYPE & y = TYPE() );
 
     //! Delete element from vector on position pos
-    void Erase (const unsigned int pos);
+    void Erase(const unsigned int pos);
 
     //! Delete elements from position pos1 to pos2, on pos1, pos2 too
-    void Erase (const unsigned int pos1, const unsigned int pos2);
+    void Erase(const unsigned int pos1, const unsigned int pos2);
 
+    /** Insert the element at the given position, anything form that position on is moved one back */
+    void Insert(const unsigned int pos, const TYPE& dat);
 
     //! Return the position number of element x in the vector
 

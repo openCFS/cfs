@@ -9,6 +9,7 @@ namespace CoupledField
 {
    class DesignSpace;
    class ConditionContainer;
+   class MultipleExcitation;
 
    /** our constraint criteria. Can be filled directly from XML */
    class Condition : public Function
@@ -73,7 +74,7 @@ namespace CoupledField
 
        /** This is a nice statement for output which adds delta_logging and details for result output.
         * Contains the virtual element for slope */
-       virtual std::string ToString() const;
+       virtual std::string ToString(MultipleExcitation* me = NULL) const;
 
        /** log to info.xml. Overloads Function::ToInfo() */
        void ToInfo(PtrParamNode in);
@@ -172,6 +173,18 @@ namespace CoupledField
       /** this is the virtual base index of this condition w.r.t. all conditions.
        * For normal condition this is simple the virtual index, for local conditions this is the base*/
       int virtual_base_index_;
+
+    private:
+
+      /** Helper for AddCondition() */
+      static void AddIsotropyConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g);
+
+      /** Helper for AddCondition() */
+      static void AddHomogenizationTensorConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g);
+
+      /** if in list a stress constraint is found, it is enlarged by the excitations and each is associated
+       * to an own excitation */
+      static void AddExcitationStressConstraints(StdVector<Condition*>& list, MultipleExcitation* me);
    };
 
    /** This handles local constraints which exist only virtually - hence the optimizer sees them but
@@ -247,7 +260,7 @@ namespace CoupledField
      void SetValue(double val);
 
      /** overloads ToString() to add local information if in local mode. For debug logging */
-     std::string ToString() const;
+     std::string ToString(MultipleExcitation* me = NULL) const;
 
    private:
 
@@ -319,10 +332,15 @@ namespace CoupledField
       * @see PostProc() */
      void Read(ParamNodeList pn_cond);
 
+     /** Set up the all vector, does a (re)-indexing of all constraints and sets up/ refreshes the
+      * virtual view. Call any time when the number of constraints has been changed. Save for first-time
+      * call, is then a setup */
+     void Refresh();
+
      /** The slope constraints can only be initialized when the design exists.
       * Requires ToInfo() to be called prior such that we can do the info output to the stored info
       * @structure is from ErsatzMaterial */
-     void PostProc(DesignSpace* space, DesignStructure* structure);
+     void PostProc(DesignSpace* space, DesignStructure* structure, MultipleExcitation* me);
 
      /** Log the head information. The InfoNode is stored such that PostProc can do the info output
       * if already set. */
