@@ -314,6 +314,10 @@ share/doc/developer/develManual/pics/pv/paraview_named_nodes_glyph.png -text
 share/doc/developer/develManual/pics/pv/paraview_named_nodes_select_thresh.pdf -text
 share/doc/developer/develManual/pics/pv/paraview_named_nodes_select_threshold.png -text
 share/doc/developer/develManual/pics/pv/paraview_named_nodes_select_threshold.svg -text
+share/doc/developer/develManual/pics/pv/pv_xi_eta.pdf -text svneol=unset#application/pdf
+share/doc/developer/develManual/pics/pv/pv_xi_eta.svg -text
+share/doc/developer/develManual/pics/pv/pv_xi_eta_mapped.png -text svneol=unset#image/png
+share/doc/developer/develManual/pics/pv/pv_xi_eta_reference.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/pv/tet_nedelec_shape_func.png -text
 share/doc/developer/develManual/pics/pv/tria_local_global_mapping.png -text
 share/doc/developer/develManual/pics/pv/tria_shape_func.png -text
@@ -336,6 +340,8 @@ share/doc/developer/develManual/sources/photo.c svneol=native#text/plain
 share/doc/developer/develManual/sources/pv_analytical_sol.py -text
 share/doc/developer/develManual/sources/pv_matlab_besselh.m -text
 share/doc/developer/develManual/sources/pv_scipy_hankel1.py -text
+share/doc/developer/develManual/sources/pv_tria_local_global_mapping.py -text
+share/doc/developer/develManual/sources/pv_xi_eta.py -text
 share/doc/developer/develManual/sources/pygmentize.sh -text
 share/doc/developer/develManual/sources/qs_obtain_sources.sh -text
 share/doc/developer/develManual/todonotes.sty svneol=native#text/plain

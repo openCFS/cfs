@@ -52,3 +52,5 @@ Pygmentize cplreader_meshgen.xml cplreader_meshgen.tex
 Pygmentize qs_obtain_sources.sh qs_obtain_sources.tex
 Pygmentize git_checkout_cfs.sh git_checkout_cfs.tex
 Pygmentize qs_configure_build.sh qs_configure_build.tex
+Pygmentize pv_tria_local_global_mapping.py pv_tria_local_global_mapping.tex
+Pygmentize pv_xi_eta.py pv_xi_eta.tex

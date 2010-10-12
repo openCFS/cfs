@@ -1,6 +1,7 @@
 \chapter{Quickstart Guide}
 
 \section{List of external packages which need to be installed from distro}
+\label{sec:list_of_ext_packages}
 
 The  list  of  required  packages  depends on  the  operating  system  and
 especially for  Linux based  OSes on the  distribution.  We give  here the
@@ -137,3 +138,43 @@ to be unpacked into the debug directory.
 \input{pygmentized/qs_configure_build}
 
 \section{Generating a Project for Eclipse}
+
+\section{Obtaining Pre-/Postprocessors}
+
+\subsection{GiD} GiD  may be  downloaded along with  a free  one-month license
+from    \url{http://gid.cimne.upc.es/download/official-versions}.    The   GiD
+preprocessing    script    extension    for    CFS++   is    available    from
+\url{https://lse17.e-technik.uni-erlangen.de:2001/svn/CAESAR.gid/trunk}. CFS++
+can write the GiD postprocessing format, therefore data can be opened directly
+in GiD.  Please note, that  the license servers at  Erlangen (131.188.140.136)
+and Klagenfurt (rom, 143.205.120.86) only provide licenses for versions 9.x.
+
+\subsection{Gmsh}  If  you  have  installed  the  packages  provided  in  Sec.
+\ref{sec:list_of_ext_packages} you should  already have Gmsh installed.  Since
+CFS++ can  read the Gmsh  mesh format and  write into the  Gmsh postprocessing
+format, no additional extensions are required. The official Gmsh download site
+is \url{http://geuz.org/gmsh/#Download}.
+
+\subsection{ANSYS}  An ANSYS  APDL preprocessing  extension is  available from
+\url{https://lse17.e-technik.uni-erlangen.de:2001/svn/mkmesh/trunk}         for
+generating  ASCII  based mesh  files  readable  by  CFS++.  An  extension  for
+generating  HDF5  mesh   files  based  on  cplreader  is   presented  in  Sec.
+\ref{sec:ansys_mkmesh_mkhdf5}.   CFS++  can   write  ANSYS  result  files  for
+postprocessing if the USE\_ANSYSRST configuration  option in CMake is set to ON.
+
+\subsection{ParaView} A ParaView plugin for reading CFS++'s native HDF5 format
+is provided. It  will be built along ParaView,  if BUILD\_PARAVIEW is switched
+ON in the CMake build environment of CFS++. Building ParaView will take a long
+time, since also Qt4 must be built for it.
+
+\subsection{Others} The GMV postprocessor  is not publicly available any more,
+but is still installed at Erlangen and Klagenfurt.
+
+The  hdfview  HDF5   viewer  may  be  built  from   source  by  switching  the
+BUILD\_HDFVIEW CMake configuration option ON.
+
+HDF5 command line tools get built along CFS++ in any case and are available in
+CFS\_BUILD\_DIR/bin/DISTRO.
+
+Matlab can also  read and write HDF5 files and is  available in Klagenfurt and
+Erlangen.

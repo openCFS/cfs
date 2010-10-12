@@ -21,7 +21,7 @@
 
 
 \subsubsection{ANSYS mkmesh/mkhdf5 Interface}
-
+\label{sec:ansys_mkmesh_mkhdf5}
 The extensions to ANSYS for writing out the mesh to either the .mesh or to the
 .h5 format  readable by CFS++ are implemented  in part as APDL  scripts and in
 part  by  an  AWK  script  (mkmesh)  or  as  reader  module  within  cplreader
@@ -260,17 +260,9 @@ reproduced by the test suite case {\tt TESTSUIT/cfstool/hdf5\_to\_rst}, where th
 .rst} file {\tt results\_rst/refelems\_ms1.rst} exhibits this behavior.}
 
 \textcolor{red}{ATTENTION AGAIN:  At the moment, the ANSYS  .rst writer within
-cfs/cfstool  just  works,  if  the  binaries  are started  out  of  the  build
-directory. This is because of the fact, that the ANSYS writer loads the shared
-library for  interfacing to a  certain version of  the ANSYS libbin.so  from a
-hard coded location inside the build build directory. Therefore a segfault may
-occur  if  the binaries  are  used outside  this  directory.  Use {\tt  strace
-bin/OPENSUSE\_11.2\_I386/cfsbin simname}  to track  down  this behaviour.}
-
-\textcolor{red}{Another  source of  problems  are the  cfs  and cfstool  start
-scripts, which have been taken from  NACS and depend upon an installed version
-of ANSYS.  For CFS++ no  installed ANSYS is required and the LD\_LIBRARY\_PATH
-could be set to the library path of the build directory.}
+cfs/cfstool is  hardwired in the  startup scripts to  the version 11.0  of the
+ANSYS libbin.so.  If a different version of  the libbin.so has to  be used the
+startup scripts have to be changed.}
 
 Plot    nodal   solution   elecPot    on   .rst    from   test    suite   case
 {\tt CFS\_TESTSUITE/TESTSUIT/cfstool/ hdf5\_to\_rst/results\_rst}
@@ -465,7 +457,9 @@ Further Links for postprocessing in Gmsh:
 \newpage
 \subsection{ParaView}
 
-Here    is   what    the    official   web    site    says   about    ParaView\footnote{\url{http://www.cmake.org/Wiki/images/8/88/ParaViewTutorial38.pdf}, \url{http://www.nd.edu/~rich/SC09/docs/tut102/SC09_ParaView_Tutorial_Slides.pdf}}
+Here     is     what     the      official     web     site     says     about
+ParaView\footnote{\url{http://www.cmake.org/Wiki/images/8/88/ParaViewTutorial38.pdf},
+\url{http://www.nd.edu/~rich/SC09/docs/tut102/SC09_ParaView_Tutorial_Slides.pdf}}
 \cite{ParaViewWebSite,PVWiki,PVGuide2007}:
 
 \emph{ParaView   is  an   open-source,  multi-platform  data   analysis  and
@@ -578,7 +572,7 @@ element types
 \begin{itemize}
 \item In the  process of reading the HDF5 file VTK  gets different indices for
 nodes and elements than CFS++
-\item Therefore node  and element dataset are created  containing the original
+\item Therefore node and element  datasets are created containing the original
 node and element numbers (origNodeNumbers and origElemNumbers)
 \item These datasets may be used while selecting (View $\rightarrow$ Selection
 Inspector $\rightarrow$  threshold based,  element/node labels) or  to extract
@@ -794,6 +788,28 @@ mesh.  The   mesh  generated  by  Gmsh   may  then  be   read  by  cfs/cfstool
 
 \subsubsection{Visualizing Local-to-Global Mapping}
 
+Local-to-Global  Mapping visualisieren:  In diesem  Beispiel wird  ein Dreieck
+mithilfe   der  sechs   serendipity  Ansatzfunktionen   auf  ein   Achtel  der
+Kugeloberfläche projeziert, wie in Fig. \ref{fig:pv_tria_local_global_mapping}
+gezeigt.  Es wird dabei  ganz klar,  dass die  Oberfläche dadurch  nicht exakt
+wiedergegeben werden kann! Nur die Knoten liegen auf der Oberfläche.
+
+\begin{itemize}
+\item File $\rightarrow$ Open $\rightarrow$ CFS\_TESTSUITE/TESTSUIT/refelems/TRIA3.h5
+\item Extract Surface Filter
+\item Subdivide Filter (wenn nötig mehrmals)
+\item Programmable Filter \attachfile[icon=PushPin,description={Visualization
+of   triangle mapped to sphere.},mimetype=text/plain]{attachments/pv_tria_local_global_mapping.txt}
+\item Visualize 'MapVector' with Glyph filter (ScaleMode: Vector, Edit: On, Set Scale Factor: 1)
+\item transparente Kugel über Sphere Source
+\end{itemize}
+
+Hernach  kann man  die Fläche  des  gemappten Elements  ausrechnen (z.B.   zur
+Überprüfung von Jacobi Determinanten)  indem man über einen IntegrateVariables
+Filter alle Variablen aufintegrieren lässt. Das Ergebnis bekommt man dann wenn
+man  in dem  neuen  Spreadsheet  View auf  Attribute  $\rightarrow$ Cell  Data
+umschaltet. Dort gibt es eine Spalte Area.
+
 \begin{figure}[htb] 
   \centering
   \begin{overpic}[width=0.7\textwidth]{pics/pv/tria_local_global_mapping}
@@ -801,6 +817,38 @@ mesh.  The   mesh  generated  by  Gmsh   may  then  be   read  by  cfs/cfstool
   \caption{Visualization of second-order triangle local to global mapping.}
   \label{fig:pv_tria_local_global_mapping}
 \end{figure}%
+
+In order to better understand the properties of the local-to-global mapping it
+is  sometimes   helpful,  to  visualize  how   the  local  $\boldsymbol{\xi}$,
+$\boldsymbol{\eta}$ and $\boldsymbol{\zeta}$  basis vectors get transformed to
+the global  coordinate system (cf. Fig.  \ref{fig:pv_xi_eta}).  The vectors to
+be visualized  are indeed the three  column vectors of the  Jacobian matrix of
+the  local  to global  mapping  (cf.   \cite{Kaltenbacher2007}  p.  30).   The
+following  attached script \attachfile[icon=PushPin,description={Visualization
+of   mapped   basis  vectors.},mimetype=text/plain]{attachments/pv_xi_eta.txt}
+extends  the  script  from  the  first  paragraph  of  this  section  for  the
+calculation of the mapped basis vectors for a four-node quadrilateral element.
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}{pics/pv/pv_xi_eta}
+  \end{overpic}
+  \caption{Visualization    of    mapped    $\boldsymbol{\xi}$-   (red)    and
+$\boldsymbol{\eta}$-vectors  (yellow).   The  global  element  is  colored  by
+Jacobian determinant.}
+  \label{fig:pv_xi_eta}
+\end{figure}%
+
+The corresponding visualization pipeline should contain the following items:
+
+\begin{itemize}
+\item Load QUAD4.h5 dataset from TESTSUITE/refelems
+\item Apply Delaunay2D filter
+\item Apply Subdivide filter
+\item Apply Programmable filter and enter the given script
+\item Visualize computed vectors with Glyph filter
+\end{itemize}
+
 
 \newpage
 \subsection{GMV}
