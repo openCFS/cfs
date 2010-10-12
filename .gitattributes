@@ -276,16 +276,36 @@ share/doc/developer/develManual/html/up.png -text
 share/doc/developer/develManual/infrastructure.tex -text
 share/doc/developer/develManual/introduction.tex -text
 share/doc/developer/develManual/mycommands.tex -text
+share/doc/developer/develManual/pics/Bar-def.png -text svneol=unset#image/png
+share/doc/developer/develManual/pics/Bar-undef.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/ansys.png -text
 share/doc/developer/develManual/pics/ansys_eplo_mat.png -text svneol=unset#image/png
+share/doc/developer/develManual/pics/ansys_heatsink.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/ansys_pml3d_imag.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/ansys_pml3d_real.png -text svneol=unset#image/png
+share/doc/developer/develManual/pics/ansys_trans_pyras.png -text svneol=unset#image/png
+share/doc/developer/develManual/pics/ccivis.pdf -text svneol=unset#application/pdf
+share/doc/developer/develManual/pics/ccivis.svg -text
+share/doc/developer/develManual/pics/ccivis1.png -text svneol=unset#image/png
+share/doc/developer/develManual/pics/ccivis2.png -text svneol=unset#image/png
+share/doc/developer/develManual/pics/ccivis_hdfview.png -text svneol=unset#image/png
+share/doc/developer/develManual/pics/cfs_devel_cdash.png -text svneol=unset#image/png
+share/doc/developer/develManual/pics/cfs_devel_server.pdf -text svneol=unset#application/pdf
+share/doc/developer/develManual/pics/cfs_devel_server.png -text svneol=unset#image/png
+share/doc/developer/develManual/pics/cfs_devel_server.svg -text
+share/doc/developer/develManual/pics/cfs_devel_trac.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/cfs_elem_types.pdf -text svneol=unset#unset
 share/doc/developer/develManual/pics/cfs_elem_types.svg -text
 share/doc/developer/develManual/pics/cfsdeps_flowdiag.pdf -text svneol=unset#application/pdf
 share/doc/developer/develManual/pics/cfsdeps_flowdiag.svg -text
+share/doc/developer/develManual/pics/cfsdeps_interdependency_graph.dot -text
+share/doc/developer/develManual/pics/cfsdeps_interdependency_graph.pdf -text svneol=unset#application/pdf
 share/doc/developer/develManual/pics/cfsdeps_structure.pdf -text svneol=unset#application/pdf
 share/doc/developer/develManual/pics/cfsdeps_structure.svg -text
+share/doc/developer/develManual/pics/cfspp_orcan.png -text svneol=unset#image/png
+share/doc/developer/develManual/pics/cfspp_workshop.pdf -text svneol=unset#application/pdf
+share/doc/developer/develManual/pics/cfspp_workshop.svg -text
+share/doc/developer/develManual/pics/cfx_gmsh_man_model.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/elems_hexa.png -text
 share/doc/developer/develManual/pics/elems_line.png -text
 share/doc/developer/develManual/pics/elems_pyra.png -text
@@ -299,15 +319,22 @@ share/doc/developer/develManual/pics/gmsh_cp_test.png -text svneol=unset#image/p
 share/doc/developer/develManual/pics/gmsh_cutplanes.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/gmsh_wing_spline.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/gmv.png -text
+share/doc/developer/develManual/pics/gridlib_render_modi.pdf -text svneol=unset#application/pdf
+share/doc/developer/develManual/pics/gridlib_render_modi.svg -text
+share/doc/developer/develManual/pics/gridlib_slice.pdf -text svneol=unset#application/pdf
+share/doc/developer/develManual/pics/gridlib_slice.svg -text
 share/doc/developer/develManual/pics/icem_export_ans.pdf -text svneol=unset#unset
 share/doc/developer/develManual/pics/icem_export_ans.svg -text
 share/doc/developer/develManual/pics/icem_export_ansys.png -text
 share/doc/developer/develManual/pics/icem_export_ansys_options.png -text
 share/doc/developer/develManual/pics/icem_export_ansys_opts.pdf -text svneol=unset#unset
 share/doc/developer/develManual/pics/icem_export_ansys_opts.svg -text
+share/doc/developer/develManual/pics/machete.png -text svneol=unset#image/png
+share/doc/developer/develManual/pics/nacs_win.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/pdf_attach_acroread.png -text
 share/doc/developer/develManual/pics/pdf_attach_foxit.png -text
 share/doc/developer/develManual/pics/pdf_attach_okular.png -text
+share/doc/developer/develManual/pics/planet-terror.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/pv/paraview.png -text
 share/doc/developer/develManual/pics/pv/paraview_named_elems_threshold.png -text
 share/doc/developer/develManual/pics/pv/paraview_named_entities.png -text
@@ -324,9 +351,11 @@ share/doc/developer/develManual/pics/pv/tria_local_global_mapping.png -text
 share/doc/developer/develManual/pics/pv/tria_shape_func.png -text
 share/doc/developer/develManual/pics/pv/vtk_vis_pipeline.pdf -text
 share/doc/developer/develManual/pics/pv/vtk_vis_pipeline.svg -text
+share/doc/developer/develManual/pics/software-process.png -text svneol=unset#image/png
 share/doc/developer/develManual/quickstart.tex -text
 share/doc/developer/develManual/sources/Pfeifenfussmodell_modificated_swept.in.txt -text
 share/doc/developer/develManual/sources/ansys_surf_vol_mesh.txt -text
+share/doc/developer/develManual/sources/ansys_transitional_pyra.txt svneol=native#text/plain
 share/doc/developer/develManual/sources/cplreader_meshgen.xml -text
 share/doc/developer/develManual/sources/crosspoint_test.c svneol=native#text/plain
 share/doc/developer/develManual/sources/gid_batch.tcl svneol=native#text/plain
@@ -337,15 +366,23 @@ share/doc/developer/develManual/sources/hdf5_file_format.xml -text
 share/doc/developer/develManual/sources/icem_to_ansys.in.txt -text
 share/doc/developer/develManual/sources/kreuzinger.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/lmboot.sh -text
+share/doc/developer/develManual/sources/mac_devel_setup.sh svneol=native#text/plain
+share/doc/developer/develManual/sources/macports_installed_pckgs.txt svneol=native#text/plain
 share/doc/developer/develManual/sources/mkmesh.mlib.txt -text
 share/doc/developer/develManual/sources/mkmesh.txt -text
+share/doc/developer/develManual/sources/mpcci_reactivate_lse24_lic.txt svneol=native#text/plain
+share/doc/developer/develManual/sources/nacs_win.txt -text svneol=native#text/plain
+share/doc/developer/develManual/sources/nacs_win_build_howto.txt svneol=native#text/plain
 share/doc/developer/develManual/sources/photo.c svneol=native#text/plain
+share/doc/developer/develManual/sources/platform_defaults_mac.cmake -text
 share/doc/developer/develManual/sources/pv_analytical_sol.py -text
 share/doc/developer/develManual/sources/pv_matlab_besselh.m -text
 share/doc/developer/develManual/sources/pv_scipy_hankel1.py -text
 share/doc/developer/develManual/sources/pv_tria_local_global_mapping.py -text
+share/doc/developer/develManual/sources/pv_trial_local_global_mapping.py -text
 share/doc/developer/develManual/sources/pv_xi_eta.py -text
 share/doc/developer/develManual/sources/pygmentize.sh -text
+share/doc/developer/develManual/sources/qs_configure_build.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/qs_obtain_sources.sh -text
 share/doc/developer/develManual/todonotes.sty svneol=native#text/plain
 share/doc/developer/develManual/tools.tex -text

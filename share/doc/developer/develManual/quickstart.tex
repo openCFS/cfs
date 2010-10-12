@@ -1,14 +1,26 @@
 \chapter{Quickstart Guide}
 
+This  quickstart guide  is meant  to help  a new  CFS++ developer  to  get the
+necessary environment running  on his machine for doing  CFS++ development. We
+start with the  required software packages from the  operating system software
+distribution services  and give the  required commands to install  them. After
+that we describe how to get the CFS++ sources from the development server.  In
+the next  section we  describe how the  source tree  has to be  configured for
+building binaries.  We also mention how  to generate projects  for Eclipse. An
+important point  while doing  FEM development is  pre- and  postprocessing. We
+therefore also  describe how to obtain  the pre- and  postprocessors which are
+supported by CFS++.  In the last section we give hints  on what other chapters
+and sections are a good further reading for users with different interests.
+
 \section{List of external packages which need to be installed from distro}
 \label{sec:list_of_ext_packages}
 
-The  list  of  required  packages  depends on  the  operating  system  and
-especially for  Linux based  OSes on the  distribution.  We give  here the
-commands for installing the required  packages from the command line.  The
-package lists are provided  for some of the OSes most often  in use by the
-CFS++ developers. If  you use a different distribution  you should be able
-to figure out the required packages quite easily.
+The list of  required packages depends on the  operating system and especially
+for  Linux based  OSes on  the distribution.   We give  here the  commands for
+installing the required packages from the command line.  The package lists are
+provided for some  of the OSes most  often in use by the  CFS++ developers. If
+you use a different distribution you should be able to figure out the required
+packages quite easily.
 
 \subsection{openSUSE (11.2)}
 
@@ -16,7 +28,8 @@ to figure out the required packages quite easily.
 sudo zypper install subversion gcc gcc-c++ gcc-fortran automake autoconf \
                     cmake perl-base graphviz texlive-latex texlive-tex4ht \
                     python-pygments doxygen tcl-devel python-devel git-svn \
-                    java-1_6_0-openjdk-devel cmake-gui
+                    java-1_6_0-openjdk-devel cmake-gui xorg-x11-libXt-devel \
+                    diffutils patch zip xorg-x11-libXp
 \end{verbatim}
 
 \noindent For openSUSE 11.3 also Gmsh is available:
@@ -44,7 +57,8 @@ rpm -q --whatprovides /usr/bin/g++
 sudo apt-get install subversion gcc g++ gfortran automake autoconf cmake \
                      perl-base graphviz texlive-latex-base tex4ht \
                      python-pygments doxygen tcl-dev python-dev git-svn \
-                     cmake-curses-gui cmake-qt-gui gmsh openjdk-6-jdk
+                     cmake-curses-gui cmake-qt-gui gmsh openjdk-6-jdk \
+                     patch diffutils zip libxt-dev libxp6
 \end{verbatim} 
 
 \begin{verbatim}
@@ -56,14 +70,43 @@ ln -s /usr/include/python2.6 /usr/include/python
 dpkg -S /usr/bin/g++
 \end{verbatim}
 
+\subsection{Fedora (13)}
+
+\noindent As root user enter the following:
+\begin{verbatim}
+yum install subversion gcc gcc-c++ gcc-gfortran automake autoconf cmake \
+            perl graphviz texlive-latex tetex-tex4ht \
+            python-pygments doxygen tcl-devel python-devel git-svn \
+            cmake-gui java-1.6.0-openjdk-devel \
+            patch diffutils zip libXt-devel libXp
+\end{verbatim} 
+
+\noindent Checking which package provides an already installed file:
+\begin{verbatim}
+rpm -q --whatprovides /usr/bin/g++
+\end{verbatim}
+
+
 \subsection{Mac OS X (10.5)}
 
 \begin{itemize}
 \item XCode - \url{http://developer.apple.com/technologies/tools/xcode.html}
 \item MacPorts - \url{http://www.macports.org}
 \item CMake - \url{http://www.cmake.org}
-\item g++, tcl, etc. from MacPorts cf. \url{http://pc.freeshell.org/comp/macbook}
+\item g++, tcl,  etc. from MacPorts \attachfile[icon=PushPin,description={List
+of                   packages                  installed                  from
+MacPorts.},mimetype=text/plain]{attachments/mac_ports_installed_pckgs.txt}
+cf. \url{http://pc.freeshell.org/comp/macbook}
+\item For Fortran go to \url{http://www.macresearch.org/gfortran-leopard}. Also
+visit \url{http://hpc.sourceforge.net/}.
+\item Building a cross compiler for Mac OS X on Linux: \url{http://devs.openttd.org/~truebrain/compile-farm/apple-darwin9.txt}
 \end{itemize} 
+
+Here  is a shell  script \attachfile[icon=PushPin,description={Shell  script for
+setting         up        a         Mac        OS         X        development
+machine.},mimetype=text/plain]{attachments/mac_devel_setup.txt} , which guides
+you through the setup process of a Mac OS X development machine. It was tested
+on Snow Leopard.
 
 \subsection{Windows (XP, Vista, 7)}
 
@@ -85,6 +128,11 @@ Pre-installed   VBoxes  containg   all  required   packages  are   located  at
 (Klagenfurt)
 
 \noindent {\tt qnap:/share//AM\_Data/Software/NACS\_Windows\_Development\_VBOXes/[WINXP*\&nacs\_dev*\&local*]}.
+
+Refer   to   the   howto  \attachfile[icon=PushPin,description={NACS   Windows
+development           howto           on           dedicated           Virtual
+Boxes.},mimetype=text/plain]{attachments/nacs_win_build_howto.txt} for getting
+these up and running.
 
 \newpage
 \section{Obtaining the Sources}
@@ -108,36 +156,54 @@ versioning system Git.  A basic howto for obtaining a  Git working copy of
 the CFS++ sources, some basic commands and pointers to additional material
 are given in Sec. \ref{sec:git}.
 
-\section{Configuring the Build Tree and Building a Binaries}
+\section{Configuring the Build Tree and Building Binaries}
 
-We use the CMake build  system (cf. Sec. \ref{sec:cmake}) to configure our
-source  tree  for building  on  a wide  range  of  platforms.  Unlike  the
-well-known configure/make/make install methodology from Unix-like systems,
-CMake  supports also  other platforms  like Windows.   It  generates build
-descriptions for  the native development environments  (e.g.  Makefiles on
-Unix and Visual  Studio projects on Windows) from  very simple input files
-in  CMake syntax. Using  CMake, it  is also  possible to  do out-of-source
-builds, which means,  that from a single source  tree multiple build trees
-may generated (e.g. for debug or release executables). By doing dependency
-analysis CMake can also generate Makefiles suitable for parallel builds.
+We  use the CMake  build system  (cf. Sec.  \ref{sec:cmake}) to  configure our
+source tree for building on a  wide range of platforms.  Unlike the well-known
+configure/make/make install methodology from Unix-like systems, CMake supports
+also other  platforms like Windows.   It generates build descriptions  for the
+native  development environments (e.g.   Makefiles on  Unix and  Visual Studio
+projects  on Windows)  from very  simple input  files in  CMake  syntax. Using
+CMake, it is also possible to  do out-of-source builds, which means, that from
+a single  source tree multiple  build trees may  generated (e.g. for  debug or
+release  executables). By doing  dependency analysis  CMake can  also generate
+Makefiles suitable for parallel builds.
 
-In the following  script we create two empty build  directories. In one of
-them we  will build a debug executable,  whereas in the other  one we will
-build  a  release  executable.   Before  configuring we  set  our  desired
-compilers by creating  new environment variables. After that  we change to
-the  build  directories  and  configure   them.   This  step  may  take  a
-considerable amount of  time for the first time  since a number libraries,
-upon which  CFS++ depends, have to  built first. For this  purpose we also
-have to specify  the location of CFSDEPS to CMake  and where the dowloaded
-sources  and  prebuilt libraries  will  be stored  (CFS\_DEPS\_CACHE\_DIR,
-cf. Sec. \ref{sec:cfsdeps}). We also  specify, that we want to use standard
-Unix make files for building. The  configure step for the debug build will
-be much faster, since the prebuilt libraries from the first step just need
-to be unpacked into the debug directory.
+In the following script we create  two empty build directories. In one of them
+we will  build a debug executable,  whereas in the  other one we will  build a
+release  executable.   Before configuring  we  set  our  desired compilers  by
+creating  new  environment  variables.  After  that we  change  to  the  build
+directories and configure  them.  This step may take  a considerable amount of
+time for  the first time since  a number libraries, upon  which CFS++ depends,
+have to built first. For this purpose  we also have to specify the location of
+CFSDEPS to CMake  and where the dowloaded sources  and prebuilt libraries will
+be  stored  (CFS\_DEPS\_CACHE\_DIR,   cf.  Sec.  \ref{sec:cfsdeps}).  We  also
+specify,  that we  want to  use  standard Unix  make files  for building.  The
+configure step  for the debug  build will be  much faster, since  the prebuilt
+libraries  from  the first  step  just  need to  be  unpacked  into the  debug
+directory.
 
 \input{pygmentized/qs_configure_build}
 
 \section{Generating a Project for Eclipse}
+
+The only  difference from the  procedure for generating Makfiles  described in
+the section  above, is  that we  need to specify  a different  generator while
+configuring the build tree with CMake. We do this by saying:
+\begin{verbatim}
+cmake -DDEBUG:BOOL=ON \ 
+      -DCFS_DEPS_ROOT:PATH=$DEVDIR/CFSDEPS \ 
+      -DCFS_DEPS_CACHE_DIR:PATH=$DEVDIR/CFSDEPSCACHE \ 
+      -G "Eclipse CDT4 - Unix Makefiles" 
+      $DEVDIR/CFS_TRUNK
+\end{verbatim}
+
+Now we have generated the two  files {\tt .cproject} and {\tt .project} in the
+directory {\tt \$DEVDIR/build/debug}  in addition to the Unix  make files.  In
+Eclipse (with  the CDT extension) we have  to import our new  project by doing
+the   following  steps:  File   $\rightarrow$  Import   $\rightarrow$  General
+$\rightarrow$  Existing  Project  into  Workspace  $\rightarrow$  Select  Root
+Directory {\tt \$DEVDIR/build/debug}.
 
 \section{Obtaining Pre-/Postprocessors}
 
@@ -146,31 +212,55 @@ from    \url{http://gid.cimne.upc.es/download/official-versions}.    The   GiD
 preprocessing    script    extension    for    CFS++   is    available    from
 \url{https://lse17.e-technik.uni-erlangen.de:2001/svn/CAESAR.gid/trunk}. CFS++
 can write the GiD postprocessing format, therefore data can be opened directly
-in GiD.  Please note, that  the license servers at  Erlangen (131.188.140.136)
-and Klagenfurt (rom, 143.205.120.86) only provide licenses for versions 9.x.
+in GiD.  Please  note, that the license servers  at Erlangen (131.188.140.136)
+and  Klagenfurt  (rom,  143.205.120.86)  only provide  licenses  for  versions
+9.x. In  order to register GiD,  start GiD, go to  Help $\rightarrow$ Register
+GiD $\rightarrow$ select sysinfo for local host $\rightarrow$ enter IP address
+of license server. For an introduction to modeling refer to the chapter 'Basic
+Steps of Modeling in GiD' in \cite{Simkovics2010}.
 
 \subsection{Gmsh}  If  you  have  installed  the  packages  provided  in  Sec.
 \ref{sec:list_of_ext_packages} you should  already have Gmsh installed.  Since
 CFS++ can  read the Gmsh  mesh format and  write into the  Gmsh postprocessing
-format, no additional extensions are required. The official Gmsh download site
-is \url{http://geuz.org/gmsh/#Download}.
+format if USE\_GMSH is switched ON, no additional extensions are required. The 
+official Gmsh download site is \url{http://geuz.org/gmsh/#Download}.
 
-\subsection{ANSYS}  An ANSYS  APDL preprocessing  extension is  available from
-\url{https://lse17.e-technik.uni-erlangen.de:2001/svn/mkmesh/trunk}         for
+\subsection{ANSYS} An ANSYS Classic  APDL preprocessing extension is available
+from  \url{https://lse17.e-technik.uni-erlangen.de:2001/svn/mkmesh/trunk}  for
 generating  ASCII  based mesh  files  readable  by  CFS++.  An  extension  for
-generating  HDF5  mesh   files  based  on  cplreader  is   presented  in  Sec.
-\ref{sec:ansys_mkmesh_mkhdf5}.   CFS++  can   write  ANSYS  result  files  for
-postprocessing if  the USE\_ANSYSRST configuration  option in CMake is  set to
-ON. This is the case  for the nightly built executables ({\tt cfs\_nightly\_*,
-cfstool\_nightly\_*}) in Klagenfurt.
+generating  HDF5 mesh  files based  on cplreader  (cf.  Sec.  \ref{cplreader},
+\cite{cplreadermanual} ) is  presented in Sec.  \ref{sec:ansys_mkmesh_mkhdf5}.
+CFS++ can  write ANSYS  result files for  postprocessing if  the USE\_ANSYSRST
+configuration option in CMake  is set to ON. This is the  case for the nightly
+built    executables   ({\tt    cfs\_nightly\_*,    cfstool\_nightly\_*})   in
+Klagenfurt. For an introduction to  modeling refer to the chapter 'Basic Steps
+of Modeling in ANSYS' in \cite{Simkovics2010}.
+
+\textcolor{red}{ATTENTION:  The  ANSYS  Classic  GUI  requires  the  OpenMotif
+library libXm.so.3.  Most modern Linux distributions, except openSUSE (package
+name:  openmotif22-libs),  ship  with   LessTif.   On  Ubuntu  the  multiverse
+repositories have  to be activated  in {\tt /etc/apt/sources.list}.   Then the
+package  libmotif3  can be  installed.   Linking  the  libXm.so.2 provided  by
+LessTif to libXm.so.3  does not work! In Klagenfurt we  solved this problem by
+setting the library load path in our  own start scripts to a path containing a
+valid libXm.so.3.}
+
 
 \subsection{ParaView} A ParaView plugin for reading CFS++'s native HDF5 format
 is provided. It  will be built along ParaView,  if BUILD\_PARAVIEW is switched
 ON in the CMake build environment of CFS++. Building ParaView will take a long
-time, since also Qt4 must be built for it.
+time, since also Qt4  must be built for it. Prebuilt binaries  for a number of
+platforms  along  with  a few  sample  datasets  can  be  found on  the  CFS++
+development                              server                             at
+\url{https://lse17.e-technik.uni-erlangen.de:2001/files/precompiled/Paraview}. A
+good   starting   point   for    the   ParaView   newbie   is   the   tutorial
+\url{http://www.paraview.org/Wiki/images/8/88/ParaViewTutorial38.pdf}.
 
-\subsection{Others} The GMV postprocessor  is not publicly available any more,
-but is still installed at Erlangen and Klagenfurt.
+\subsection{Others}  The  GMV\footnote{\url{http://www.generalmeshviewer.com}}
+postprocessor is  not publicly available any  more, but is  still installed at
+Erlangen and Klagenfurt.   It may be obtained also  from the CFS++ development
+server                                                                       at
+\url{https://lse17.e-technik.uni-erlangen.de:2001/files/precompiled/GMV}.
 
 The  hdfview  HDF5   viewer  may  be  built  from   source  by  switching  the
 BUILD\_HDFVIEW CMake configuration option ON.
@@ -180,3 +270,40 @@ CFS\_BUILD\_DIR/bin/DISTRO.
 
 Matlab can also  read and write HDF5 files and is  available in Klagenfurt and
 Erlangen.
+
+\section{The CFS++  Development Server}
+
+All necessary resources (e.g. Subversion  server, Trac, CDash, etc.) for doing
+CFS++ development have been installed  on common a dedicated server machine at
+Erlangen.  Also a web server is running there, which serves as a portal to the
+different       services.        It        can       be       reached       at
+\url{https://lse17.e-technik.uni-erlangen.de:2001}. In this section we briefly
+describe the services offered by the server.
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.8\textwidth]{pics/cfs_devel_server}
+  \end{overpic}
+  \caption{Home page of CFS++ development server with links to different services.}
+  \label{fig:cfs_devel_server}
+\end{figure}%
+
+Figure \ref{fig:cfs_devel_server} shows the home page of the server along with
+the pages for the Trac system  (cf. Sec. \ref{sec:trac}) and the CDash nightly
+build  dashboard  (cf.  Sec.   \ref{sec:cdash}).   Furthermore the  Subversion
+repository  can be browsed  online using  the SVN  link.  Nightly  built CFS++
+manuals, Doxygen  documentation and  other documents related  to CFS++  can be
+accessed via the  Documentation link. Under File Management  the developer can
+find  nightly  built and  other  pre-built  CFS++  executables. Also  GMV  and
+ParaView  executables  for different  platforms  can  be  found there.   Users
+registered as administrators  may change the server settings  by accessing the
+Administration link.
+
+
+\section{Next Steps}
+
+\todo[inline]{Write  about  which  further  directions  to  go.  Is  the  user
+interested  in making  a new  lib available  in CFSDEPS?  Is he  interested in
+implementing  new PDEs,  writers  etc.  Then point  him  to the  corresponding
+sections. Also  describe a continuous  path for reading  if the user  wants to
+learn every detail about CFS++.}

@@ -1,8 +1,70 @@
 \chapter{Tools}
 
 \section{Internal}
+
 \subsection{cfstool}
+\label{sec:cfs_tool}
+
+The cfstool is a small  utility executable which can convert between different
+supported file  formats, do comparisons  between different HDF5  result files,
+compute difference fields from input fields,  etc. It is therefore used in the
+tests of the CFS++ testsuite. The  build of cfstool is switched off by default
+(CFSTOOL=OFF).  If  a  test suite  path  is  specified  in  CMake it  will  be
+automatically activated.
+
+\noindent For online documentation:
+\begin{verbatim}
+cfstool --help
+\end{verbatim}
+
+\noindent Table \ref{tab:cfstool_conversions} shows  which file formats can be
+converted into each other.
+
+\begin{table}[htb]
+\centering
+\begin{minipage}{18cc}\caption{Supported file format conversions (columns: output, rows: input).}
+\label{tab:cfstool_conversions}
+\end{minipage}
+\par\medskip\noindent
+\begin{minipage}{18cc}
+\centering
+\begin{tabular}{lccccc}
+  \toprule
+            & {\bf .h5} & {\bf .post.* } & {\bf .gmv} & {\bf .rst}    & {\bf .msh}   \\ % & {\bf .mesh}    \\
+            &           & {\bf (GiD)}    &            & {\bf (ANSYS)} & {\bf (Gmsh)} \\ \otoprule %& {\bf (mkmesh)} \\ \otoprule
+  {\bf .h5} & yes & yes & yes & yes & yes \\
+%  {\bf .post.*} & no & no & no & no & no & no  \\
+  {\bf .gmv}\footnote{Just one time step.} & yes & yes & yes & yes & yes  \\
+%  {\bf .rst} & no & no & no & no & no & no  \\
+  {\bf .mesh} & yes & yes & yes & yes & yes \\
+  {\bf .msh}\footnote{Just mesh.} & yes & yes & yes & yes & yes \\
+  \bottomrule
+\end{tabular} 
+\end{minipage}
+\end{table}
+
+\noindent Please note, that .h5, .gmv, and .msh can be converted back to their
+own format.  But  only the HDF5 format can do the  whole round-trip with mesh,
+field  data and  history data,  whereas the  other formats  are  restricted to
+either just the  mesh (Gmsh) or to  a single time step (GMV).  Also note, that
+the GiD  formats and the  ANSYS .rst format  are pure output  formats, whereas
+.mesh is a pure input format.
+
 \subsection{cplreader}
+\label{sec:cplreader}
+
+The build of  cplreader is switched off by  default (CPLREADER=OFF). Switch it
+ON at your will.
+
+\noindent For online documentation:
+\begin{verbatim}
+cplreader --help
+\end{verbatim}
+
+\noindent For the PDF manual \cite{cplreadermanual}:
+\begin{verbatim}
+cplreader --docu PDF
+\end{verbatim}
 
 \section{Pre-Processors}
 \subsection{ANSYS}
@@ -82,6 +144,36 @@ this surface. In the end we write out our new HDF5 file.
 \noindent  For creating volume  meshes from  surface meshes  in Gmsh  refer to
 Sec. \ref{sec:gmsh_surf_vol_mesh}.
 
+\subsubsection{Creating Transitional Pyramid Elements and Wedges by Extrusion}
+
+If you want to  mesh a model which contains hexas and  tetras or wedges with a
+conforming                              mesh                              (cf.
+\url{http://www.andrew.cmu.edu/user/sowen/hextet/hextotet2.htm}),  you have to
+use transitional pyramids as Fig.  \ref{fig:ansys_trans_pyras} shows.  Here is
+the    script    \attachfile[icon=PushPin,description={Creating   transitional
+pyramids                                                                     in
+ANSYS.},mimetype=text/plain]{attachments/ansys_transitional_pyra.txt},    which
+has been  used to  generate this  mesh. Also refer  to sections  Mesh Controls
+$\rightarrow$  Creating  Transitional  Pyramid  Elements  and  Solid  Modeling
+$\rightarrow$ Extruding Volumes in \cite{ANSYSModeling}.
+
+\begin{figure}[htb] 
+  \centering 
+  \subfloat[Complex model containing hexas, pyras and tetras.]{
+    \label{fig:ansys_heatsink}
+    \begin{overpic}[height=4.5cm]{pics/ansys_heatsink}
+    \end{overpic}
+    }
+  \qquad
+  \subfloat[Mesh containing hexas, transitional pyramids, tetras and wedges.]{
+    \label{fig:ansys_trans_pyras}
+    \begin{overpic}[height=4.5cm]{pics/ansys_trans_pyras}
+    \end{overpic}
+  } 
+  \caption{Examples for transitional pyramids.}
+  \label{fig:ansys_pyras}
+\end{figure}
+
 
 \subsubsection{Export of ICEM Meshes to ANSYS and Modification of Element Types}
 
@@ -119,6 +211,64 @@ if the element types are not switched to MESH200.
 \noindent How to modify third party ANSYS /prep7 meshes to write them with mkhdf5
 \attachfile[icon=PushPin,description={ANSYS input script for converting ICEM mesh to mkhdf5 mesh.},mimetype=text/plain]{attachments/icem_to_ansys.in.txt}
 
+\subsubsection{Creating an Input Mesh for ANSYS CFX from Gmsh}
+
+For doing comparative  studies between ANSYS CFX and  OpenFOAM it is obviously
+desirable  to  use  the  same   meshes.   Since  OpenFOAM  supports  the  Gmsh
+preprocessor and  ANSYS CFX does not,  a few intermediate  steps are necessary
+for converting the meshes. We assume  in this example, that we want to convert
+the       man      model       from      the       CFS++       test      suite
+(i.e. TESTSUITE/cfstool/gmsh\_to\_hdf5).  First we need to convert the mesh to
+ANSYS .rst format to start ANSYS Classic by issuing
+
+\begin{verbatim}
+cfstool -m convert -f 'input.msh output.rst'
+cd results_rst
+ansys
+\end{verbatim}
+
+\noindent Inside ANSYS  we load the .rst file by  using the following sequence
+of APDL commands.
+
+\begin{verbatim}
+/post1  
+INRES,ALL   
+file,'output_grid'   
+set,first
+\end{verbatim}
+
+\noindent To make the mesh regions  available as named entities to CFX we have
+to select  by material  and assign the  elements to components.  Afterwards we
+write a .cdb file which CFX-Pre can read.
+
+\begin{verbatim}
+/PREP7  
+esel,s,mat,,2
+cm,Bottom,elem  
+esel,s,mat,,3   
+cm,Fluid,elem   
+esel,s,mat,,4   
+cm,Front,elem   
+esel,s,mat,,5   
+cm,Man,elem 
+esel,s,mat,,6   
+cm,Back,elem
+esel,s,mat,,7   
+cm,Front,elem   
+allsel
+cdwrite,all 
+\end{verbatim}
+
+In CFX-Pre the  mesh file may then be  imported by doing a right  click on Mesh
+$\rightarrow$ Import Mesh and choosing the .cdb extension in the file dialog.
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.6\textwidth]{pics/cfx_gmsh_man_model}
+  \end{overpic}
+  \caption{Model of the man inside CFX-Pre.}
+  \label{fig:cfx_gmsh_man_model}
+\end{figure}%
 
 
 \subsection{GiD}
@@ -169,7 +319,7 @@ dem Button See File... den Inhalt anzeigen lassen
 
 \subsection{Gmsh}
 
-GMSH \cite{Geuzaine2009,GmshWebSite} (simple  Meshes erzeugen, einziges Format
+GMSH \cite{Geuzaine2009,GmshWebSite, Gmsh2008} (simple  Meshes erzeugen, einziges Format
 ausser HDF5  und GMV (auch UNV), das  CFS++ sowohl lesen (HDF5  Gitter und Daten,
 GMV: Gitter, GMSH: Gitter) als  auch schreiben (HDF5,GMV,GMSH Gitter und Daten und
 Named Enitities)  kann), Vorteil: Absolut  frei verfügbar für  Windows, Linux,
@@ -184,14 +334,15 @@ Mac (ANSYS und GiD sind alles andere als frei)
 \begin{tabular}{ll}
   \toprule
   {\bf Tutorial} & {\bf URL} \\ \otoprule
-  Meshgenerierung für Dolfyn & \url{http://www.dolfyn.net/dolfyn/gmsh/tutorial00.html} \\
-  AMCG Tutorial & \url{http://amcg.ese.ic.ac.uk/ index.php?title=Local:Gmsh_tutorial} \\
-  Introduction to Gmsh & \url{http://perso.uclouvain.be/vincent.legat/ teaching/documents/meca2170-jfr-notes-v1.0.pdf} \\
+  Meshgenerierung für Dolfyn & \leavevmode \url{http://www.dolfyn.net/dolfyn/gmsh/tutorial00.html} \\
+  AMCG Tutorial & \leavevmode \url{http://amcg.ese.ic.ac.uk/index.php?title=Local:Gmsh_tutorial} \\
+  Introduction to Gmsh & \url{http://perso.uclouvain.be/vincent.legat/teaching/documents/meca2170-jfr-notes-v1.0.pdf}{Introduction to Gmsh} \\
   Gmsh screencasts & \url{http://www.geuz.org/gmsh/screencasts/} \\
-  Meshgenerierung für TiberCAD & \url{http://www.tibercad.org/documentation/ tutorial/list} \\
-  Gmsh GUI Tutorial I & \url{http://ffep.sourceforge.net/Download/ gui\_tutorial.pdf}\\
-  Gmsh GUI Tutorial II & \url{http://www.geuz.org/gmsh/doc/gui\_tutorial\_2/ gui\_tutorial\_2.pdf}\\
+  Meshgenerierung für TiberCAD & \url{http://www.tibercad.org/documentation/tutorial/list} \\
+  Gmsh GUI Tutorial I & \url{http://ffep.sourceforge.net/Download/gui\_tutorial.pdf}\\
+  Gmsh GUI Tutorial II & \url{http://www.geuz.org/gmsh/doc/gui\_tutorial\_2/gui\_tutorial\_2.pdf}\\
   Demo Gmsh - Step import - Msh export & \url{http://vimeo.com/3287369}\\
+  .geo Demos from Gmsh source & \url{http://dtk.inria.fr/num3sis/num3sis-plugins/trees/master/gmsh/gmsh/demos}\\
   \bottomrule
 \end{tabular} 
 \end{table}
@@ -621,6 +772,32 @@ Inspector $\rightarrow$  threshold based,  element/node labels) or  to extract
 subsets using the threshold filter
 \end{itemize}
 
+\subsubsection{Plotting Element Results on Cell Centers}
+
+If element data should be displayed one has two options:
+
+\begin{itemize}
+\item For filters like isosurface or glyph point data is required. Therefore a
+CellDataToPointData has to  be applied which interpolates the  element data to
+nodes.
+
+\item The  more correct  option is to  directly display  the data in  the cell
+center, for which it actually was  computed. This can be achieved by using the
+CellCenters filter and by switching on Vertex Cells. The output of this filter
+are nodes  with the previous  element results as  nodal results. One  can then
+e.g. apply glyph visualizations.
+\end{itemize}
+
+\begin{itemize}
+\item In the  process of reading the HDF5 file VTK  gets different indices for
+nodes and elements than CFS++
+\item Therefore node and element  datasets are created containing the original
+node and element numbers (origNodeNumbers and origElemNumbers)
+\item These datasets may be used while selecting (View $\rightarrow$ Selection
+Inspector $\rightarrow$  threshold based,  element/node labels) or  to extract
+subsets using the threshold filter
+\end{itemize}
+
 \subsubsection{Animating harmonic/eigenfrequency results}
 
 \begin{itemize}
@@ -893,7 +1070,28 @@ The corresponding visualization pipeline should contain the following items:
 
 
 \newpage
-\subsection{GMV}
+\subsection{General Mesh Viewer (GMV)}
+
+GMV  is An  easy to  use, 3D-scientific  visualization tool  designed  to view
+simulation data from any kind of structured or unstructured mesh.
+
+\noindent It has the following features:
+\begin{itemize}
+    \item Read and display cell geometry
+    \item Display nodes, cells, surfaces and particle tracers
+    \item Isosurface and cutplane interpolation of grid data
+    \item Ability to isolate a cell or groups of cells for closer analysis
+    \item A wide variety of animation options
+    \item A flight mode for interactive fly-throughs of the simulation
+    \item Many convenience features for high qualit video production
+    \item (A highly intuitive and well behaved user interface)
+    \item Visualizes data from any current or future 3-D simulation 
+\end{itemize}
+
+GMV is free software  but not open source (Terms of use)  and was developed at
+the Los Alamos  National Laboratory. It is however  not publicly available any
+more  but it  can still  be downloaded  from the  CFS++ development  server at
+\url{https://lse17.e-technik.uni-erlangen.de:2001/files/precompiled/GMV}.
 
 \begin{figure}[htb] 
   \centering
@@ -913,5 +1111,229 @@ The corresponding visualization pipeline should contain the following items:
 \noindent Cells dialogue  $\rightarrow$ Shaded $\rightarrow$ Apply
 
 \noindent Menu: Calculate $\rightarrow$ Cutplanes $\rightarrow$ 1 NONE $\rightarrow$ (1,0,-0.3), (0,1,-0.3), (0,0,-0.3) $\rightarrow$ Add
+
+\noindent The current GMV  version is located in {\tt /home/data/programs/bin}
+in Erlangen and in {\tt /opt/pckg/bin} in Klagenfurt.
+
+\noindent Currently there are three binaries:
+
+\begin{itemize}
+    \item gmv:  This is the basic version  of gmv which is  linked against the
+MESA library. This version uses only  software rendering and should run on any
+platform, although is may be slow for big problems.
+    \item  gmv-ogl:   This  version  links  dynamically   against  the  OpenGL
+libraries. Therefore it allows very fast rendering even for big result files /
+meshes. If no OpenGL-compatible hardware is found, it switches to gmv software
+rendering, which is even slower than the MESA-version.
+    \item gmv-batch:  As the name indicates,  this version runs  only in batch
+mode with no GUI. It is statically  linked against the MESA library and can be
+used on any  hardware to perform off-screen rendering  of gmv-imput files. The
+pictures are written in SGI RGB format.
+\end{itemize}
+
+\subsubsection{Viewing CFS++ meshes / results}
+
+GMV is able to visualize almost all data provided by CFS++. Some of them are
+
+\begin{itemize}
+    \item Mixed volume and surface mesh viewing: GMV can display not only pure
+3D  / 2D  meshes,  but also  surfaces  meshes, which  are  used for  interface
+coupling or boundary conditions (absorbing  BCs). By default, all elements (3D
+and 2D) are shown when loading a GMV file. The surface elements are treated as
+normal materials  within GMV.  They can  be switched on  / off  under 'Display
+$\rightarrow$ Nodes / Cells $\rightarrow$ Select (button) $\rightarrow$ Select
+On 'Materials and Flags '
+    \item  Displaying  named nodes  (boundary  nodes):  Named nodes  (boundary
+nodes,  history nodes)  can be  visualized  by '  Display $\rightarrow$  Nodes
+$\rightarrow$ Select (button) $\rightarrow$ Select On 'Node Groups '. It might
+also be  advisable to increase the  size of nodes under  ' Ctl-2 $\rightarrow$
+Point Size ' in order to recognize the nodes in the mesh.
+    \item  Visualizing  scalar  /  vector  data: Scalar  data  can  either  be
+visualized as continuous color mapping  (' Display $\rightarrow$ Nodes / Cells
+$\rightarrow$  Color by  'Node  / Cell  field'  '), contour  plots ('  Display
+$\rightarrow$  Cells  $\rightarrow$  Contour'  ) and  isosurfaces/-volumes  ('
+Calculate $\rightarrow$ Isosurfaces  / Isovolume '). Vector data  has first to
+be  defined   by  its  components   in  the  according  submenus   ('  Display
+$\rightarrow$ Nodes  / Cells $\rightarrow$ Vectors  $\rightarrow$ Build Vector
+').
+\end{itemize}
+
+One big advantage of GMV is, that the node and element numbering is consistent
+with the original  numbering in ANSYS. Therefore it very  useful to verify the
+geometry and elements of a model.
+
+There are many other possibilities to combine different results, calculate new
+quantities from the given ones or select only a subset of elements / nodes for
+visualizing.  For further  information refer  to the  GMV  pdf-manual.
+
+\subsubsection{Generation of deformed geometries}
+
+Although GMV is  very good in visualizing scalar and  vector data with contour
+plots, isosurfaces  and glyphs,  it has unfortunately  no built-in  ability to
+visualize deformed geometries  as it is known from  famous other visualization
+tools like CFSPP, Capapost or ANSYS.  This situation will not change in future
+versions  of GMV,  since at  LANL there  is no  need for  visualizing deformed
+meshes.
+
+The only  possibilty is to  re-write gmv files with  mechanical displacements,
+where   the   displacements   are   added   to  the   nodal   coordinates   as
+offsets.  Fortunately, there  exists a  GMV wrriter/reader-library,  which was
+used for the  program gmv-addDisp. It can be  used to read in a  GMV file, add
+the displacements  as offset to the  nodal coordinates and write  a new result
+file with a new name. The program is also located in /home/data/programs/bin.
+
+\noindent The syntax is as follows:
+\begin{verbatim}
+  gmv-addDisp [in-filename] [out-filename] [relative/absolute] [factor]
+\end{verbatim}
+
+\noindent with the following parameters
+
+\begin{itemize}
+    \item in-filename: Name of the input gmv file
+    \item out-filename: Name of the resulting deformed gmv file
+    \item relative/absolute:  Indicates if  relative (= 1)  or absolute  (= 0)
+scaling  should be  used.  For relative  scaling,  factor is  relative to  the
+bounding box of the geometry
+    \item factor: Scaling factor for the nodal displacements
+\end{itemize}
+
+A example run, where a given file  bar.gmv is deformed by a relative factor of
+10\% and written to the new file def-bar.gmv, would look like this:
+
+\begin{verbatim}
+user@lse90: gmv-addDisp bar.gmv def-bar.gmv 1 0.1
+
+Determine bounding box.
+Maximum displacement: 5.568630e-08
+Abs. Factor: 2.514083e+07
+Converting nodev.
+Converting cells.
+Converting materials.
+Converting groups.
+Converting variables.
+Converting problem time.
+Converting cycle number.
+Success!
+user@lse90:
+\end{verbatim}
+
+\begin{figure}[htb] 
+  \centering 
+  \subfloat[Undeformed bar.]{
+    \label{fig:gmv_def_bar}
+    \includegraphics[width=6cm]{pics/Bar-undef} }
+  \qquad
+  \subfloat[Deformed bar.]{
+    \label{fig:gmv_undef_bar}
+    \includegraphics[width=6cm]{pics/Bar-def}
+  } 
+  \caption{The  maximum deformation  of  the bar  can  be also  seen from  the
+output.}
+  \label{fig:gmv_bars}
+\end{figure}
+
+For  a larger  number of  files the  script gmv-deform.sh  can be  used, which
+iterates over a given list of GMV files and creates deformed output files with
+the prefix def-. Therefore an absolute factor has to be provided:
+
+\begin{verbatim}
+  gmv-deform.sh [absolute factor] '[list of GMV files]'
+\end{verbatim}
+
+NOTE: Don't  forget to put the  ' ' around  the filenames in order  to prevent
+filename-expansion by the shell!
+
+\subsubsection{Generation of animations / movies}
+
+GMV  can  not  directly  create  a  movie or  animation,  but  there  are  two
+possibilities to create a sequence of images:
+
+\begin{itemize}
+    \item Under ' File $\rightarrow$ Read GMV File $\rightarrow$ Auto Read - Same Simulation ' one can load sequentially a series of GMV input files and display them. If the checkbox Auto Snapshots is activated, the pictures are written in the SGI RGB format. Note, that during the rendering, the GMV window has to be completely visible, since the snapshot function uses some of the X-system internal functions.
+    \item Another way of making image sequences is to use the script gmv-animate.sh.
+\end{itemize}
+
+\noindent This script  is also located in /home/data/programs/bin.  It is used
+like:
+
+\begin{verbatim}
+  gmv-render.sh '[gmv files]' [attribute file] [x-dim] [y-dim] [output file name]
+\end{verbatim}
+
+\noindent The parameters are as follows:
+
+\begin{itemize}
+    \item gmv files: List of input .gmv-files.
+    \item  attribute file:  GMV  .attr-file with  display  options. This  file
+stores  the  current  viewing  settings  of GMV,  like  e.g.  current  viewing
+perspective, data  limits, active  materials and quantity.  It can  be written
+from within GMV with File $\rightarrow$ Put attributes.
+    \item x-dim: x-dimension of result image (e.g. 900)
+    \item y-dim: y-dimension of result image (e.g. 700)
+    \item output file  name: Base name of output files.  The output files have
+the sequence number plus '.rgb' as suffix.
+\end{itemize}
+
+NOTE: Don't forget  to put the '  'around the input gmv filenames  in order to
+prevent filename-expansion by the shell!
+
+This script  reads in each .gmv-input  file and uses the  perspective and data
+provided in the  attribute-file to create a .rgb-image.  Therefore it uses the
+gmv-batch binary, which has to be included in the search path.
+
+Some Remarks:
+
+\begin{itemize}
+    \item It is advisable to adjust  the data limits of the current visualized
+field in GMV  by ' Ctl-2 $\rightarrow$ Data  Limits $\rightarrow$ Node/Element
+field ' to  maximum of the whole sequence  in order to have a  fixed color bar
+over the whole range.
+    \item Sometimes, if one visualizes a deformed structure, some of the outer
+elements get  clipped, since  the GMV attribute  file also  stores information
+about the bounding  box of the geometry. One  way to prevent this is  to use a
+smaller deformation factor.
+\end{itemize}
+
+So now we  have a sequence of .rgb  files. There exist many tools  to create a
+movie or  animation from a series of  images. Here, two tools  from the famous
+ImageMagick  library are  used as  an example:  animate and  convert.  One big
+advantage of this library is its  large number of supported image formats (see
+also  man ImageMagick).  It can  directly read  the .rgb  files  without prior
+conversion.
+
+\subsubsection{Using 'animate'}
+
+The tool animate takes as input a  list of images, which are then displayed as
+animation. The tool  itself can be only used for viewing  purposes but not for
+creating a movie. The pictures are shown in an infinite loop. The speed can be
+varied by the keys '$<$' and '$>$'.
+
+To view for example all pictures of the deformed bar, one would use
+
+\begin{verbatim}
+  animate def-bar*.rgb
+\end{verbatim}
+
+For further information see man animate.
+
+\subsubsection{Using 'convert'}
+
+One way to create a movie is the tool convert. Although its main purpose is to
+convert  pictures from  different formats,  it can  also be  used  to generate
+simple .mpg movies. Therefore convert firstly creates temporary jpg images and
+afterwards uses  the tool  mpeg2encode to  create a movie.  This tool  is also
+located in /home/data/programs/bin and its  location has to be included in the
+search path in order to work correctly with convert.
+
+\noindent A typical call to convert looks like this:
+
+\begin{verbatim}
+  convert -delay 20 *.rgb movie.mpg
+\end{verbatim}
+
+\noindent  The parameter  -delay  controls the  delay  between two  subsequent
+images in the movie. The list  of command line parameter is almost endless and
+can be seen by man convert.
 
 \section{General}
