@@ -154,4 +154,17 @@
 \subsection{Setting Parameters Using Python and TCL Scripts}
 \section{HDF5 File Format}
 \input{pygmentized/hdf5_file_format}
+
+\subsection{Fortran Code for Writing  HDF5 Files} During a planned cooperation
+with  a guy named  Kreuzinger, a  demonstration program  for writing  an early
+version of our  HDF5 files has been developed  (not completely compatible with
+the current specification).  For the case  that someone may still have use for
+it,     the     corresponding    CMake     project     is    attached     here
+\attachfile[icon=PushPin,description={Fortran   code  for  writing   an  older
+version  of our  HDF5 files.},mimetype=text/plain]{attachments/kreuzinger.txt}
+in the form of a shell archive (extract via: {\tt sh kreuzinger.txt}).  Please
+note  that  the  HDF5  library   (1.6.x)  has  to  be  compiled  with  Fortran
+support. The one from CFSDEPS does  not have Fortran support!  Also, all paths
+are hardcoded into the CMakeLists.txt files and need to be adjusted.
+
 \section{Migration of Software Repositories}

@@ -55,3 +55,4 @@ Pygmentize qs_configure_build.sh qs_configure_build.tex
 Pygmentize pv_tria_local_global_mapping.py pv_tria_local_global_mapping.tex
 Pygmentize pv_xi_eta.py pv_xi_eta.tex
 Pygmentize gmsh_wing_points.cpp gmsh_wing_points.tex
+Pygmentize kreuzinger.sh kreuzinger.tex
