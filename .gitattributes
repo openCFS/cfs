@@ -297,6 +297,7 @@ share/doc/developer/develManual/pics/gid.png -text
 share/doc/developer/develManual/pics/gmsh.png -text
 share/doc/developer/develManual/pics/gmsh_cp_test.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/gmsh_cutplanes.png -text svneol=unset#image/png
+share/doc/developer/develManual/pics/gmsh_wing_spline.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/gmv.png -text
 share/doc/developer/develManual/pics/icem_export_ans.pdf -text svneol=unset#unset
 share/doc/developer/develManual/pics/icem_export_ans.svg -text
@@ -331,6 +332,7 @@ share/doc/developer/develManual/sources/crosspoint_test.c svneol=native#text/pla
 share/doc/developer/develManual/sources/gid_batch.tcl svneol=native#text/plain
 share/doc/developer/develManual/sources/gid_pw_server.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/git_checkout_cfs.sh svneol=native#text/plain
+share/doc/developer/develManual/sources/gmsh_wing_points.cpp svneol=native#text/plain
 share/doc/developer/develManual/sources/hdf5_file_format.xml -text
 share/doc/developer/develManual/sources/icem_to_ansys.in.txt -text
 share/doc/developer/develManual/sources/lmboot.sh -text

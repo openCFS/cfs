@@ -122,6 +122,21 @@ if the element types are not switched to MESH200.
 
 
 \subsection{GiD}
+
+\subsubsection{Installing   the  GiD   CFS++   Pre-processing  Extension}   The
+preprocessing extension can be obtained  from the CFS++ development server. It
+has to be  installed into the problem types subdirectory of  GiD e.g. by using
+the following sequence of commands:
+
+\begin{verbatim}
+cd gid-9.0.2-x86_64/problemtypes
+svn co https://lse17.e-technik.uni-erlangen.de:2001/svn/CAESAR.gid/trunk CAESAR.gid
+cd ..
+
+# Start GiD using CAESER problem type.
+./gid -p CAESAR
+\end{verbatim}
+
 \subsubsection{GiD im Batchmodus}
 
 \noindent Wie ruf ich denn ein nacs gid script von der kommandozeile auf?
@@ -231,6 +246,33 @@ A  similar technique  for  generating  volume meshes  from  surface meshes  as
 described in  Sec. \ref{sec:ansys_surf_vol_mesh} is also possible  in Gmsh. An
 example  describing  this technique  can  be found  in  the  test suite  ({\tt
 TESTSUIT/cfstool/gmsh\_to\_hdf5/man.geo})
+
+\subsubsection{Recreate  Geometry  from  Point  Sets  or  Meshes}  The  method
+previously described for generating volume  meshes from surface meshes has the
+disadvantage, that  in areas  where there exist  very small  surface elements,
+only  very  small volume  elements  may  be created.   This  may  have a  very
+detrimental  influence on  the quality  of the  resulting mesh.   In  order to
+overcome this  problem it is often  necessary to first  recreate some geometry
+from  the given meshes  or point  sets. Therefore  one should  create geometry
+points (e.g. Point(1) = \{1, 1, 0\} in a text editor) from the grid points and
+then   generate   new   geometrical   entities   based   on   these.    Figure
+\ref{fig:gmsh_wing_spline} shows  this concept for an aircraft  wing for which
+only  the points  were given  \attachfile[icon=PushPin,description={Gmsh input
+points                    for                    an                   aircraft
+wing.},mimetype=text/plain]{attachments/gmsh_wing_points.txt}   and  which  is
+modelled  by connecting  the points  with  splines. This  is necessary,  since
+connecting the points with line  elements would result in very small elements,
+where the points are closely spaced.
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.7\textwidth]{pics/gmsh_wing_spline}
+%    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
+  \end{overpic}
+  \caption{Connecting wing points using splines.}
+  \label{fig:gmsh_wing_spline}
+\end{figure}%
+
 
 \newpage
 

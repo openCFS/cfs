@@ -449,6 +449,23 @@ viewing ADF (STARCCM+) files.
 
 \noindent Project Homepage: \url{http://www.cgns.org}
 
+If support for further commercial  post-processors should be required in CFS++
+the  CGNS format  should  be used  for  this purpose.  The  list of  supported
+postprocessors includes:
+
+\begin{itemize}
+\item Visit \url{https://wci.llnl.gov/codes/visit/FAQ.html#12}
+\item VTK indirect through OpenFOAM: \url{http://openfoam.cfd-online.com/forum/messages/1/1040.html?1172148211}
+\item Mayavi only VTK formats: \url{http://code.enthought.com/projects/mayavi/}
+\item Allgemein: \url{http://www.grc.nasa.gov/WWW/cgns/minutes/telecon_mar00.html},
+\url{http://www.grc.nasa.gov/WWW/cgns/overview/applications.html}
+\item FieldView: \url{http://www.ilight.com/solvers.php}
+\item Ensight: \url{http://www.ensight.com/ensight-features.html}
+\item Tecplot: \url{http://www.tecplot.com/showcase/contours/article.aspx?issue=1&article=4}
+\item CFX-Post: \url{http://www.ansys.com/products/cfx/cfx-post-features.asp}
+\end{itemize}
+
+
 \subsubsection{gidpost}  GiDpost:  a C  /  C++  /  Fortran library  to  create
 postprocess files for GiD
 
@@ -503,7 +520,16 @@ used in CFS++. There exist several implementations of BLAS/LAPACK.
 \item GotoBLAS (optimized against TLS misses)
 \item MKL (Intel)
 \item Netlib (reference implementation, not optimized)
-\item ATLAS (not supported directly by CFS++/CMake) 
+\item Veclib (Native, optimized implementation on Mac OS X)
+\end{itemize}
+
+Further implementations not directly supported by CFS++/CMake include:
+\begin{itemize}
+\item Automatically Tuned Linear Algebra Software (ATLAS) \url{http://math-atlas.sourceforge.net/}
+\item SGI Scientific Computing Software Library (SCSL) \url{http://www.sgi.com/products/software/irix/scsl.html}
+\item IMSL Numerical Libraries von Visual Numerics \url{http://www.vni.com/products/imsl/}
+\item IBM Engineering Scientific Subroutine Library (ESSL) and Parallel ESSL \url{http://www-03.ibm.com/systems/p/software/essl/index.html}
+\item LAPACK for Windows \url{http://icl.cs.utk.edu/lapack-for-windows/}
 \end{itemize}
 
 In  CMake   one  can  switch  between  the   different  implementations  using
