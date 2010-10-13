@@ -535,7 +535,6 @@ namespace CoupledField {
         }
 
         // write header to file
-        WARN("Write additional information about node / element to header");
         std::ofstream & actFile = *outFiles[it.GetPos()];
         actFile << cmChar_ << " Result: '" << actInfo.resultName 
                 << "' on " << entTypeString << "(s) '" 
