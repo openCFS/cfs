@@ -126,6 +126,10 @@ namespace CoupledField {
         
     //! Offset for step value in case of multisequence analysis
     Double stepValOffset_;
+    
+    //! Flag, if node / element numbers in file names should be numbered
+    //! based on global node / element number or consecutively
+    bool globalNumbering_;
   };
 }
 

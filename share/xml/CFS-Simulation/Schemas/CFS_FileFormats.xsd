@@ -439,6 +439,23 @@
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
+    <xsd:attribute name="entityNumbering" default="global">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Determines the naming scheme for text files of nodes / element
+          results: In case of 'global' numbering, the text files contain the
+          global node / element number. In case of 'consecutive', the text
+          files of a node / element list get enumerated from 1 on based on a 
+          consecutive numbering.
+        </xsd:documentation>
+      </xsd:annotation>
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="global"/>
+          <xsd:enumeration value="consecutive"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
     <xsd:attribute name="id" type="xsd:token" default="txt"/>
   </xsd:complexType>
   

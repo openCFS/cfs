@@ -33,6 +33,7 @@ namespace CoupledField {
     coordSys_ = NULL;
     stepNumOffset_ = 0;
     stepValOffset_ = 0.0;
+    globalNumbering_ = true;
 
     capabilities_.insert( HISTORY );
 
@@ -55,6 +56,16 @@ namespace CoupledField {
         collecType_ = TIMEFREQ;
       if( outputNode->Get("fileCollect")->As<std::string>() == "altogether" )
         collecType_ = ALTOGETHER;
+    }
+    
+    // Get type of entity numbering
+    if( outputNode ) {
+      std::string numType;
+      outputNode->GetValue( "entityNumbering", numType, ParamNode::EX );
+      if( numType == "global" ) 
+        globalNumbering_ = true;
+      else
+        globalNumbering_ = false;
     }
   }
 
@@ -122,7 +133,7 @@ namespace CoupledField {
   
   void SimOutputText::FinishStep( ) {
 
-    // call correct function accordint fileCollectionType
+    // call correct function according to  fileCollectionType
     if( collecType_ == TIMEFREQ ) {
       WriteStepCollectTimeFreq();
     } else if ( collecType_ == ALTOGETHER ) {
@@ -430,6 +441,13 @@ namespace CoupledField {
     
     std::string entityString, entTypeString;
     ResultInfo::Enum2String( actInfo.definedOn, entTypeString );
+    
+    // hard coded case for pfem: in this case we assume also nodal values
+    // to have the same name for nodal history values in the low order and
+    // high order case.
+    if( actInfo.definedOn == ResultInfo::PFEM ) {
+      ResultInfo::Enum2String( ResultInfo::NODE, entTypeString );
+    }
 
     
     // =========================
@@ -444,14 +462,37 @@ namespace CoupledField {
       outFiles.Resize( list->GetSize() );
       EntityIterator it = list->GetIterator();
 
-      for( it.Begin(); !it.IsEnd(); it++ ) {
+      UInt entityNum = 1;
+      for( it.Begin(); !it.IsEnd(); it++, entityNum++ ) {
 
-        entityString = it.GetIdString();
-        if(list->GetType() == EntityList::NODE_LIST){
-          //ok so it seems we have history nodes.
-          //lets add the name of the nodelist to the filename
-          entityString += "-" + list->GetName();
+        std::string idString = it.GetIdString();
+        std::string numString = lexical_cast<std::string>(entityNum);
+
+        // now we have to switch the naming scheme
+        switch (list->GetType() ) {
+          case EntityList::NODE_LIST:
+          case EntityList::ELEM_LIST:
+          case EntityList::SURF_ELEM_LIST:
+            // check naming scheme
+            if( !globalNumbering_ ) {
+              entityString = numString; // local numbering 
+            } else {
+              entityString = idString; // global node / element number
+            }
+            entityString += "-" + list->GetName();
+            break;
+          default:
+            entityString = idString;
         }
+        
+        //entityString = it.GetIdString();
+        //entityString = lexical_cast<std::string>(entityNum);
+//        
+//        if(list->GetType() == EntityList::NODE_LIST){
+//          //ok so it seems we have history nodes.
+//          //lets add the name of the nodelist to the filename
+//          entityString += "-" + list->GetName();
+//        }
 //        switch( actInfo.definedOn ) {
 //          
 //        case ResultInfo::NODE:
@@ -494,10 +535,23 @@ namespace CoupledField {
         }
 
         // write header to file
+        WARN("Write additional information about node / element to header");
         std::ofstream & actFile = *outFiles[it.GetPos()];
         actFile << cmChar_ << " Result: '" << actInfo.resultName 
                 << "' on " << entTypeString << "(s) '" 
-                << list->GetName() << "'\n" << cmChar_ << "\n" << cmChar_;
+                << list->GetName() << "'";
+        
+        // now we have to switch the naming scheme
+        switch (list->GetType() ) {
+          case EntityList::NODE_LIST:
+          case EntityList::ELEM_LIST:
+          case EntityList::SURF_ELEM_LIST:
+            actFile << " number #" << it.GetIdString();
+            break;
+          default:
+            break;
+        }
+        actFile << "\n" << cmChar_;
         
         if( res->GetEntryType() == BaseMatrix::DOUBLE ) {
           actFile << " t (s)  ";        
