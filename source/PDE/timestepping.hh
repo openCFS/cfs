@@ -96,6 +96,7 @@ namespace CoupledField {
      * Returns the time step timeStepType as a vector
      * @param timeStepType The time step which is demanded
      * @retrun The vector of a particular time step
+     * @throws exception if time step has not been set
      */
     virtual const Vector<Double>& GetOld(TIMEStepType timeStepType)
     {
@@ -122,6 +123,7 @@ namespace CoupledField {
      * Returns the dervative as a vector
      * @param derivType The time step which is demanded
      * @retrun The vector of a particular derivative
+     * @throws exception if derivative has not been set
      */
     virtual const Vector<Double>& GetDeriv(DERIVType derivType)
     {
@@ -134,6 +136,11 @@ namespace CoupledField {
       return iter->second;
     }
 
+    /**
+     * Checks if time step exists
+     * @param timeStepType the time step you want
+     * @return true or false
+     */
     virtual bool is_SolTimeStep_set(TIMEStepType timeStepType)
     {
       std::map<TIMEStepType, Vector<Double> >::iterator iter = \
@@ -145,6 +152,11 @@ namespace CoupledField {
       return true;
     }
 
+    /**
+     * Checks if derivative exists
+     * @param derivType the time step you want
+     * @return true or false
+     */
     virtual bool is_Deriv_set(DERIVType derivType)
     {
       std::map<DERIVType, Vector<Double> >::iterator iter = \
