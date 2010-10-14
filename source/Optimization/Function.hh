@@ -124,8 +124,9 @@ class Function
     bool FactorOmegaOmega() const { return omega_omega_; }
 
     /** Shall/must we evaluate this objective at this excitation?
-     * Stress constraints in homogenization are triggered for a single constraint only. */
-    void SetExcitation(int excite_index = -2);
+     * Stress constraints in homogenization are triggered for a single constraint only.
+     * @param excite_index -2 is uninitialized/auto, -1 is always */
+    void SetExcitation(MultipleExcitation* me, int excite_index = -2);
 
     /** Evaluate at this excitation? */
     bool DoEvaluate(const Excitation* excite) const;

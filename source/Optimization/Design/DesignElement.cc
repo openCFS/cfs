@@ -204,6 +204,7 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       || rd.value == PENALIZED_STRESS)
   {
     if(dofs != 1) throw Exception("special results is only defined for scalar values");
+    // note, that on EACH_FORWARD/ADJOINT we need excitation based results
     switch(rd.solutionType)
     {
     case OPT_RESULT_1:

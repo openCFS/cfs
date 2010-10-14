@@ -366,16 +366,16 @@ void Condition::AddExcitationStressConstraints(StdVector<Condition*>& list, Mult
     }
   }
 
-  // are the stress constraints?
+  // are there stress constraints?
   if(idx == -1) return;
 
   Condition& g = *(list[idx]);
-  g.SetExcitation(me->excitations[0].index);
+  g.SetExcitation(me, me->excitations[0].index);
 
   for(unsigned int e = 1; e < me->excitations.GetSize(); e++)
   {
     Condition* tmp = new Condition(g);
-    tmp->SetExcitation(me->excitations[e].index);
+    tmp->SetExcitation(me, me->excitations[e].index);
 
     list.Insert(idx + e, tmp);
   }
@@ -456,7 +456,7 @@ std::string Condition::ToString(MultipleExcitation* me) const
 
   // e.g. stresses are extended for every excitation
   if(type_ == STRESS && me != NULL && me->IsEnabled())
-    os << "_" << excite_; // change to excite label
+    os << "_" << me->excitations[excite_].label; // change to excite label
 
   return os.str();  
 }
@@ -692,6 +692,7 @@ void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure
   for(unsigned int i = 0; i < all.GetSize(); i++)
   {
     all[i]->PostProc(space, structure);
+    all[i]->SetExcitation(me);
   }
 
   // for stress constraints with multiple excitation we insert additional stress constraints for

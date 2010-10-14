@@ -661,23 +661,6 @@ private:
   template<class T>
   void CalcSurfaceNormalTimesSolution(Vector<T>& olas_prod);
 
-  /** Handle multiple excitations (loads/frquencies). By defefinition the size is almost 1, even
-   * if there is no load (e.g. static piezo with inhomgeneous Dirichlet BC. */
-  void PrepareMultipleExcitations();
-
-  /** Helper for PrepareMultipleExcitations(). Excitations are set with hard coded test strains */
-  int SetHomogenizationTestStrains();
-
-  /** Helper for PrepareMultipleExcitations(). Excitations are set with hard coded polarization matrix excitations */
-  int SetPolarizationMatrixExcitations();
-
-  /** For doing adjust weights when doing multiple excitation with meta objective, this method
-   * does the job. It requires the cost entries in excitations to be set. 
-   * The \f$w_k^p=const\;\sum w_k = 1\f$ condition is fulfilled here. */
-  void NormalizeMultipleExcitations();
-
-
-
   /** When we optimize output we store here the nodes */
   LoadList output_nodes_;
 

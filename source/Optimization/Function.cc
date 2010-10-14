@@ -44,7 +44,7 @@ Function::Function(PtrParamNode pn)
   this->value_ = -1.0;
 
   // -2 is unset, -1 is all, >= 0 the excitation index
-  SetExcitation();
+  this->excite_ = -1;
 
   this->physical_ = pn->Has("physical") ? pn->Get("physical")->As<bool>() : false;
 
@@ -200,8 +200,10 @@ Function* Function::GetFunction(Objective* f, Condition* g)
 }
 
 
-void Function::SetExcitation(int excite_index)
+void Function::SetExcitation(MultipleExcitation* me, int excite_index)
 {
+  assert(me != NULL && me->excitations.GetSize() > 0);
+
   // some functions need to be evaluated only once (first) for multiple excitations
   // multiple excitations are:
   // * static load cases
@@ -229,8 +231,8 @@ void Function::SetExcitation(int excite_index)
     case GLOBAL_OSCILLATION:
     case JUMP:
     case GLOBAL_JUMP:
-      assert(excite_index == -2);
-      excite_ = 0; // once only at the first excitation
+      assert(excite_index < 0);
+      excite_ = me->excitations.GetSize() - 1; // once only at the last excitation
       break;
 
     case MULTI_OBJECTIVE: // only to make the switch complete
@@ -244,7 +246,7 @@ void Function::SetExcitation(int excite_index)
     case GLOBAL_DYNAMIC_COMPLIANCE:
     case ELEC_ENERGY:
     case TEMPERATURE:
-      assert(excite_index == -2);
+      assert(excite_index < 0);
       excite_ = -1; // all excitations
       break;
 

@@ -263,7 +263,7 @@ namespace CoupledField {
   void StdVector<TYPE>::Insert(const unsigned int pos, const TYPE& dat)
   {
 #ifdef CHECK_INDEX
-    if (pos >=size_) EXCEPTION( "Invalid index for Insert" );
+    if (pos > size_) EXCEPTION( "Invalid index for Insert" );
 #endif
 
     Resize(size_ + 1);

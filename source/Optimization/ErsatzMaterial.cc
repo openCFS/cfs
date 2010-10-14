@@ -152,7 +152,7 @@ ErsatzMaterial::ErsatzMaterial() :
   adjoint.Init(this);
 
   // check for multiple loadcases (might be frequencies)
-  PrepareMultipleExcitations();
+  me->PrepareMultipleExcitations(pde, optInfoNode, harmonic, optimizer_ == EVALUATE_INITIAL_DESIGN);
 }
 
 ErsatzMaterial::~ErsatzMaterial()
@@ -276,317 +276,15 @@ void ErsatzMaterial::PostInit()
   if(DensityFile::NeedLoadErsatzMaterial())
     DensityFile::ReadErsatzMaterial(design);
 
-}
-
-
-void ErsatzMaterial::PrepareMultipleExcitations()
-{
-  StdVector<Excitation>& exs = me->excitations;
-  // by definition, we always have at least one excitation.
-  // This does not necessarily need to ba a load (but might be voltage, pressure, ...)
-  exs.Resize(1);
-  exs[0].index = 0;
-
-  PtrParamNode pncf = param->Get("optimization")->Get("costFunction");
-
-  // the actual multipleExcitation description is read in Optimization as part of
-  // objective function block
-
-  int num_freq  = !harmonic ? 0 : dynamic_cast<HarmonicDriver*>(domain->GetDriver())->freqs.GetSize();
-  int num_loads = assemble_->GetLoads().GetSize(); // to be faked later for homogenization test strains
-
-  ParamNodeList pnexcitations;
-
-  double weight_sum = 0.0;
-
   // plausibility check for homogenization
   if(homogenization_ && (!me->IsEnabled() || !me->DoHomogenization()))
     throw Exception("A homogenization objective/constraint is set but no homogenization test strain excitation");
   if(me->IsEnabled() && me->DoHomogenization() && !homogenization_)
     throw Exception("No homogenization objective/constraint for homogenization test strain excitation");
 
-  // initialize data and do simple plausibilty check. Note that also 1 is "multiple"
-  if(me->IsEnabled())
-  {
-    // either every single load is an excitation (Fabian's way) (done before)
-    // or allow combinations of loads, pressures, regionLoads and trackings in one excitation (Bastian) (only non-harmonic) (this is done here)
-    if(!harmonic && pncf->Has("multipleExcitation/excitations"))
-    {
-      pnexcitations = pncf->Get("multipleExcitation/excitations")->GetChildren();
-      num_loads = pnexcitations.GetSize();
-    }
-
-    // decide if we have multiple loads or multiple frequencies
-    // we cannot do both!
-    if(num_freq > 1 && num_loads > 1)
-      throw Exception("Cannot to concurrent multiple excitations for multiple loads and multiple frequencies");
-
-    // sets and resizes excitations with strain loads
-    if(me->DoHomogenization())
-    {
-      num_loads = SetHomogenizationTestStrains();
-      weight_sum = 1; // all 0 but the first 1
-    }
-
-    // sets and resizes excitations with polarization matrix loads
-    if(me->DoPolarizationMatrix())
-    {
-      // FIXME: maybe more sanity checks needed
-      assert(!me->DoHomogenization()); // cannot do both
-      
-      num_loads = SetPolarizationMatrixExcitations();
-      weight_sum = 1; // all 0 but the last 1
-    }
-    
-    // the following is validated by above and 1 frequency and 0 loads is harmless
-    if(num_freq > 1)  exs.Resize(num_freq);
-    if(num_loads > 1) exs.Resize(num_loads); // redundant for homogenization
-
-    // we average the solutions(s) only for output.
-    // In the calculations we average the individual calculations
-  }
-
-
-  // read in tracking parameters from XML, for the first and only load
-  if(pncf->Has("trackings")){
-    exs[0].ReadTrackings(pncf->Get("trackings"));
-  }
-
-  // this sets the first and only excitation even when we have multiple harmonic forward case
-  // but not multiple excitations. Then only the first frquency is called.
-  // Fills the excitations list with the data provided in the xml file as problem description
-  if(harmonic)
-  {
-    HarmonicDriver* hd = dynamic_cast<HarmonicDriver*>(domain->GetDriver());
-
-    for(unsigned int i = 0; i < exs.GetSize(); i++)
-    {
-      exs[i].index = i;
-      exs[i].frequency = hd->freqs[i].freq;
-      exs[i].weight    = hd->freqs[i].weight;
-      exs[i].f_link    = &hd->freqs[i];
-
-      weight_sum += exs[i].weight;
-    }
-  }
-  if(!harmonic && me->IsEnabled()) // multiple loads case
-  {
-    MathParser * parser = domain->GetMathParser();
-    unsigned int handle = parser->GetNewHandle();
-
-    if(pnexcitations.GetSize() > 0)
-    { //
-      for(unsigned int i = 0; i < exs.GetSize(); i++)
-      {
-        parser->SetExpr(handle, pnexcitations[i]->Get("weight")->As<std::string>());
-        const double weight = parser->Eval(handle);
-        exs[i].weight = weight;
-        weight_sum += weight;
-
-        if(pnexcitations[i]->Has("trackings")){
-          exs[i].ReadTrackings(pnexcitations[i]->Get("trackings"));
-        }
-        exs[i].ReadLoads(pnexcitations[i]->Get("loads"));
-      }
-
-    }
-    if(pnexcitations.GetSize() == 0 
-        && !me->DoHomogenization()
-        && !me->DoPolarizationMatrix())
-    {
-      LoadList loads = assemble_->GetLoads();
-
-      for(unsigned int i = 0; i < exs.GetSize(); i++)
-      {
-        if(num_loads > (int) i)
-        {
-          exs[i].loads.Push_back(loads[i]);
-
-          parser->SetExpr(handle, loads[i]->weight);
-          const double weight = parser->Eval(handle);
-          exs[i].weight = weight;
-
-          weight_sum += weight;
-        }
-      }
-    }
-
-    parser->ReleaseHandle(handle);
-  }
-
-  // output summary
-  // -------------------
-
-  // calc the inital normalized_weight and print info.
-
-  // for many concurrent mechanical loads do no print information
-  if(me->IsEnabled() || harmonic)
-  {
-    PtrParamNode in = optInfoNode->Get(ParamNode::HEADER)->Get("excitations");
-
-    if(!me->IsEnabled() && num_freq > 1 && optimizer_ != EVALUATE_INITIAL_DESIGN)
-    {
-      stringstream ss;
-      ss << "Solve only for 1. frequency (" << exs[0].frequency << "Hz) of "
-         << num_freq << " as multiple excitations are disabled";
-      in->Get(ParamNode::WARNING)->SetValue(ss.str());
-    }
-
-    // communicate what we have but also normalize the weights!
-    for(unsigned int i = 0; i < exs.GetSize(); i++)
-    {
-      Excitation& ex = exs[i];
-      ex.index = i;
-
-      ex.normalized_weight = ex.weight / weight_sum;
-
-      PtrParamNode exin = in->Get("excitation", ParamNode::APPEND);
-      exin->Get("index")->SetValue(ex.index);
-      if(! ex.loads.IsEmpty())
-        ex.loads[0]->ToInfo(exin->Get("load"));
-      if(ex.frequency >= 0.0)
-        exin->Get("frequency")->SetValue(ex.frequency);
-      if(ex.test_strain.GetSize() > 0)
-        exin->Get("testStrain")->SetValue(ex.test_strain.ToString());
-    }
-  }
 }
 
 
-int ErsatzMaterial::SetHomogenizationTestStrains()
-{
-  assert(homogenization_);
-
-  double ts[6][6] =  { {1.0, 0.0, 0.0, 0.0, 0.0, 0.0 },
-                        {0.0, 1.0, 0.0, 0.0, 0.0, 0.0 },
-                        {0.0, 0.0, 1.0, 0.0, 0.0, 0.0 },
-                        {0.0, 0.0, 0.0, 1.0, 0.0, 0.0 },
-                        {0.0, 0.0, 0.0, 0.0, 1.0, 0.0 },
-                        {0.0, 0.0, 0.0, 0.0, 0.0, 1.0 } };
-
-  Vector<double> vec;
-
-  int cases = dim == 2 ? 3 : 6;
-  me->excitations.Resize(cases);
-
-  for(int i = 0, cnt = 0; i < 6; ++i)
-  {
-    // in 2D only 0, 1 and 5
-    if(dim == 2 && (i == 2 || i == 3 || i == 4)) continue;
-
-    vec.Fill(ts[i], 6);
-
-    me->excitations[cnt].ReadTestStrain(vec);
-    // The homogenized tensor can only be evaluated for the last excitation!
-    me->excitations[cnt].weight = i < cases-1 ? 0.0 : 1.0;
-    ++cnt;
-  }
-
-  return me->excitations.GetSize();
-}
-
-int ErsatzMaterial::SetPolarizationMatrixExcitations()
-{
-  // collect all necessary data
-  int dim = grid->GetDim();
-  int dim1 = dim == 3 ? 6 : 3;
-  // int dim2 = dim == 3 ? 3 : 2;
-  
-  // read material information from xml-file
-  // check for tensor element
-  PtrParamNode pol = param->Get("polarizationMatrix");
-  Matrix<double> mechmatrix;
-  Matrix<double> elecmatrix;
-  Matrix<double> couplmatrix;
-  
-  mechmatrix.Resize(dim1, dim1);
-  elecmatrix.Resize(dim, dim);
-  couplmatrix.Resize(dim1, dim);
-  
-  ParamTools::AsTensor<double>(pol->Get("mechTensor/real"), dim1, dim1, mechmatrix);
-  ParamTools::AsTensor<double>(pol->Get("elecTensor/real"), dim, dim, elecmatrix);
-  ParamTools::AsTensor<double>(pol->Get("couplingTensor/real"), dim1, dim, couplmatrix);
-
-  const int cases(dim == 2 ? 5 : 9);
-  me->excitations.Resize(cases);
-
-  // decompose the vector with the material parameters into the
-  // part for mech and the one for elec
-  Vector<double> mechpart(dim1, 0.0);
-  Vector<double> elecpart(dim, 0.0);
-  
-  for(int i = 0; i < cases; ++i)
-  {
-    // this must be the entry of A^0
-    if(i < cases - dim)
-    {
-      for(int n = 0; n < dim1; ++n)
-        mechpart[n] = mechmatrix[n][i];
-      for(int n = 0; n < dim; ++n)
-        elecpart[n] = couplmatrix[i][n];
-    }
-    else
-    {
-      for(int n = 0; n < dim1; ++n)
-        mechpart[n] = couplmatrix[n][i];
-      for(int n = 0; n < dim; ++n)
-        elecpart[n] = elecmatrix[i][n];
-    }
-
-    me->excitations[i].SetPolarizationMatrixRHS(mechpart, elecpart, i);
-    // The homogenized tensor can only be evaluated for the last excitation!
-    me->excitations[i].weight = i < cases-1 ? 0.0 : 1.0;
-  }
-
-  return cases;
-}
-
-
-void ErsatzMaterial::NormalizeMultipleExcitations()
-{
-  if(!me->IsEnabled()) return;
-
-  const unsigned int exsi(me->excitations.GetSize());
-  if(me->DoAdjustWeights())
-  {
-    // find best cost
-    double best;
-    if(objectives.DoMaximize())
-    {
-      best = numeric_limits<double>::min();
-      for(unsigned int i = 0; i < exsi; i++) best = max(best, me->excitations[i].cost);
-    }
-    else
-    {
-      best = numeric_limits<double>::max();
-      for(unsigned int i = 0; i < exsi; i++) best = min(best, me->excitations[i].cost);
-    }
-
-    for(unsigned int i = 0; i < exsi; i++)
-    {
-      // this is for "best_value": We push (weight the gradient) the worst result most to equalize/over-/undercompensate
-      // the algorithm is the foolowing: w_k^p J_k = const -> we define w_k' for J_k = J_best to be one.
-      // By this we can compute all w_k'. The we sum up all w_k' to sum_w_k' and get w_k = w_k'/sum_w_k'
-      double t = objectives.DoMaximize() ? best / me->excitations[i].cost : me->excitations[i].cost / best;
-      t = std::pow(t, 1.0/me->damping); // fails for negative quotient with damping < 0
-      me->excitations[i].weight = min(t, me->max_gain);;
-      LOG_DBG(em) << "NormalizeMultipleExcitations: excitation[" << i << "] best: "
-      << best << " gain: " << t << " weight: " << me->excitations[i].weight;
-    }
-  }
-
-  // normalize
-  double weight_sum = 0.0;
-
-  for(unsigned int i = 0; i < exsi; i++)
-    weight_sum += me->excitations[i].weight;
-
-  for(unsigned int i = 0; i < exsi; i++)
-  {
-    me->excitations[i].normalized_weight = me->excitations[i].weight / weight_sum;
-    LOG_DBG(em) << "NormalizeMultipleExcitations: excitation[" << i << "].normalized_weight <- " << me->excitations[i].normalized_weight;
-  }
-}
 
 
 void ErsatzMaterial::StoreResults(double step_val)
@@ -1775,7 +1473,7 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
 
       if(!grad_contrib)
       {
-        // output von mises stress?
+        // output von mises stress? Note, that this is excitation specific!
         if(res_idx != -1)
           de->specialResult[res_idx] = result[e];
       }
@@ -2628,7 +2326,7 @@ void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_exite)
 
   // we need only to normalize when the properties have changed. This also reflects the stride
   if(normalize)
-    NormalizeMultipleExcitations();
+    me->NormalizeMultipleExcitations(&objectives);
 }
 
 void ErsatzMaterial::SolveAdjointProblems(Excitation* ev_only_exite)

@@ -11,8 +11,10 @@
 namespace CoupledField
 {
 
+class ObjectiveContainer;
 class Function;
 class LinearFormContext;
+class SinglePDE;
 
 typedef LoadBc TrackingBc;
 
@@ -34,16 +36,13 @@ public:
   void Apply();
 
   /** Find the fixed factor, does ignore weighting and does not apply it. */
-  double GetFactor(Function* f);
+  double GetFactor(Function* f) const;
 
   /** Returns GetFactor() * normalized_weight */
-  double GetWeightedFactor(Function* f);
+  double GetWeightedFactor(Function* f) const;
 
   /** Gets the current omege =  2 * pi * f */
-  double GetOmega();
-
-  /** @return omega^2 */
-  double GetOmegaOmega();
+  double GetOmega() const;
 
   /** read the tracking node list from XML */
   void ReadTrackings(PtrParamNode ts);
@@ -88,6 +87,10 @@ public:
   /** this is the normalized weight (sum of all weights of all excitations is 1) */
   double normalized_weight;
 
+  /** A label denoting the excitation, depends on kind */
+  std::string label;
+
+
   /** Here we store the calculated objective value, including costFunction/factor
    * to enable metaObjective. In the Optimization::cost struct we store a copy/average */
   double cost;
@@ -102,6 +105,7 @@ public:
   /** for the calculation of the polarization matrix for the piezo topology gradient
    *  contains the rhs-values, length is 5 for 2D, 9 for 3D (mech + elec) */
   Vector<double> pol_rhs;
+
 };
 
 /** This struct stores the multiple excitation Information. It contains the
@@ -115,37 +119,53 @@ public:
 
   void ToInfo(PtrParamNode in) const;
 
-  typedef enum { NO_TYPE, FIXED_WEIGHT, META_OBJECTIVE, HOMOGENIZATION_TEST_STRAINS,
-    POLARIZATION_MATRIX } Type;
+  typedef enum { NO_TYPE, FIXED_WEIGHT, META_OBJECTIVE, HOMOGENIZATION_TEST_STRAINS, POLARIZATION_MATRIX } Type;
 
-    static Enum<Type> type;
-    /** Do we do multiple excitation at all? */
-    bool IsEnabled() const { return multiple_excitation_; }
+  static Enum<Type> type;
+  /** Do we do multiple excitation at all? */
+  bool IsEnabled() const { return multiple_excitation_; }
 
-    /** Dow we do adjust weigts */
-    bool DoAdjustWeights() const { return type_ == META_OBJECTIVE; }
+  /** Handle multiple excitations (loads/frquencies). By defefinition the size is almost 1, even
+   * if there is no load (e.g. static piezo with inhomgeneous Dirichlet BC. */
+  void PrepareMultipleExcitations(SinglePDE* pde, PtrParamNode optInfoNode, bool harmonic, bool eval_inital_design);
 
-    bool DoHomogenization() const { return type_ == HOMOGENIZATION_TEST_STRAINS; }
+  /** Dow we do adjust weigts */
+  bool DoAdjustWeights() const { return type_ == META_OBJECTIVE; }
 
-    bool DoPolarizationMatrix() const { return type_ == POLARIZATION_MATRIX; }
+  bool DoHomogenization() const { return type_ == HOMOGENIZATION_TEST_STRAINS; }
 
-    /** Here we have the set of excitations. Only relevant for the multiple excitations
-     * case (multiple loads or frequencies). Set e.g. by ErsatzMaterial */
-    StdVector<Excitation> excitations;
+  bool DoPolarizationMatrix() const { return type_ == POLARIZATION_MATRIX; }
 
-    /** The stride for adjust weights: 1 = every iteration, 2 = every second ... */
-    int stride;
+  /** For doing adjust weights when doing multiple excitation with meta objective, this method
+   * does the job. It requires the cost entries in excitations to be set.
+   * The \f$w_k^p=const\;\sum w_k = 1\f$ condition is fulfilled here. */
+  void NormalizeMultipleExcitations(ObjectiveContainer* objectives);
 
-    /** the maximal span between the largest (1) and smallest weight as factor */
-    double max_gain;
+  /** Here we have the set of excitations. Only relevant for the multiple excitations
+   * case (multiple loads or frequencies). Set e.g. by ErsatzMaterial */
+  StdVector<Excitation> excitations;
 
-    /** The exponent d in w_k^p J_k = const */
-    double damping;
+  /** The stride for adjust weights: 1 = every iteration, 2 = every second ... */
+  int stride;
+
+  /** the maximal span between the largest (1) and smallest weight as factor */
+  double max_gain;
+
+  /** The exponent d in w_k^p J_k = const */
+  double damping;
 
 private:
-    /** do we do multiple excitation at all? */
-    bool multiple_excitation_;
-    Type type_;
+
+  /** Helper for PrepareMultipleExcitations(). Excitations are set with hard coded test strains */
+  int SetHomogenizationTestStrains();
+
+  /** Helper for PrepareMultipleExcitations(). Excitations are set with hard coded polarization matrix excitations
+   * @param param where polarizationMatrix can be found */
+  int SetPolarizationMatrixExcitations(PtrParamNode param);
+
+  /** do we do multiple excitation at all? */
+  bool multiple_excitation_;
+  Type type_;
 };
 
 
