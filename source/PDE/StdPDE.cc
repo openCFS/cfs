@@ -75,13 +75,13 @@ namespace CoupledField {
   const Vector<Double>& StdPDE::getS1() const {
   
     if ( TS_alg_ != NULL ) {
-      return TS_alg_->GetDeriv1();
+      return TS_alg_->GetDeriv(FIRST_DERIV);
     }
     else {
       EXCEPTION( pdename_ << ":getS1: No timestepping defined for this PDE" );
 
       // Only a dummy line for compiler
-      return TS_alg_->GetDeriv1();      
+      return TS_alg_->GetDeriv(FIRST_DERIV);      
     }
   }
   
@@ -90,26 +90,26 @@ namespace CoupledField {
     
     
     if ( TS_alg_ != NULL ) {
-      return TS_alg_->GetDeriv2();
+      return TS_alg_->GetDeriv(SECOND_DERIV);
     }
     else {
       EXCEPTION( pdename_ << ":getS2: No timestepping defined for this PDE" );
 
       // Only a dummy line for compiler
-      return TS_alg_->GetDeriv2();
+      return TS_alg_->GetDeriv(SECOND_DERIV);
     }
   }
 
   const Vector<Double>& StdPDE::getOld1() const {
 
     if ( TS_alg_ != NULL ) {
-      return TS_alg_->GetOld1();
+      return TS_alg_->GetOld(TIMESTEP_1);
     }
     else {
       EXCEPTION( pdename_ << ":getOld1: No timestepping defined for this PDE");
 
       // Only a dummy line for compiler
-      return TS_alg_->GetOld1();
+      return TS_alg_->GetOld(TIMESTEP_1);
     }
   }
 

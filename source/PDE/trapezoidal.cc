@@ -36,24 +36,27 @@ namespace CoupledField
     
     dt_ = dt;
     rhsSize_ = rhsSize;
+    Vector<Double> dummyVec;
+    dummyVec.Resize(rhsSize_);
+    dummyVec.Init();
     
     CalcParameters(dt_);
 
     matrix_factors_[STIFFNESS] = 1.0;
-    matrix_factors_[MASS] = a1_;
+    matrix_factors_[MASS] = sol_timeStepCoeff_[CORRECTOR_1];
 
     //not used matrices
     matrix_factors_[CONVECTION] = 0.0; 
     matrix_factors_[DAMPING] = 0.0;       
 
     //get the memory
-    if( !isDeriv1Set_ ) {
-      solderiv1_.Resize(rhsSize_);  
-      solderiv1_.Init();
+    if ( !is_Deriv_set(FIRST_DERIV) )
+    {
+      solDeriv_vec_[FIRST_DERIV] = dummyVec;
     }
-    if( !isDeriv2Set_ ) {
-      solderiv2_.Resize(rhsSize_);
-      solderiv2_.Init();
+    if ( !is_Deriv_set(SECOND_DERIV) )
+    {
+      solDeriv_vec_[SECOND_DERIV] = dummyVec;
     }
 
     solpred_.Resize(rhsSize_); 
@@ -64,7 +67,7 @@ namespace CoupledField
   void Trapezoidal::Predictor(Vector<Double>& solold)
   {
 
-    solpred_ = solold + solderiv1_*a0_;
+    solpred_ = solold + solDeriv_vec_[FIRST_DERIV]*sol_timeStepCoeff_[PREDICTOR_1];
   }
 
 
@@ -74,7 +77,7 @@ namespace CoupledField
     Vector<Double> coeffMass;
 
     // mass part
-    coeffMass = solpred_*a1_;
+    coeffMass = solpred_*sol_timeStepCoeff_[CORRECTOR_1];
     algsys_->UpdateRHS(MASS,coeffMass);
   }
 
@@ -85,7 +88,7 @@ namespace CoupledField
     Vector<Double> coeffMass;
 
     // mass part
-    coeffMass = (solpred_ - actSol) *a1_;
+    coeffMass = (solpred_ - actSol) *sol_timeStepCoeff_[CORRECTOR_1];
     algsys_->UpdateRHS(MASS,coeffMass);
   }
 
@@ -93,17 +96,17 @@ namespace CoupledField
   void Trapezoidal::Corrector(Vector<Double>& solnew)
   {
 
-    solderiv1_ = (solnew - solpred_)*a1_;
+    solDeriv_vec_[FIRST_DERIV] = (solnew - solpred_)*sol_timeStepCoeff_[CORRECTOR_1];
   }
 
   void Trapezoidal::CalcParameters(Double dt)
   {
 
     //for predictors
-    a0_ = (1-gamma_)*dt_;
+    sol_timeStepCoeff_[PREDICTOR_1] = (1-gamma_)*dt_;
 
     //for correctors, matrices
-    a1_ = 1.0/(gamma_*dt_);
+    sol_timeStepCoeff_[CORRECTOR_1] = 1.0/(gamma_*dt_);
   }
 
 
@@ -132,7 +135,7 @@ namespace CoupledField
     
     CalcParameters(dt_);
 
-    matrix_factors_[STIFFNESS] = a1_;
+    matrix_factors_[STIFFNESS] = sol_timeStepCoeff_[CORRECTOR_1];
     matrix_factors_[MASS] = 1.0;
 
     //not used matrices
@@ -143,8 +146,8 @@ namespace CoupledField
     sol_.Resize(rhsSize_);
     sol_.Init();
 
-    solderiv1_.Resize(rhsSize_);
-    solderiv1_.Init();
+    solDeriv_vec_[FIRST_DERIV].Resize(rhsSize_);
+    solDeriv_vec_[FIRST_DERIV].Init();
 
     solpred_.Resize(rhsSize_); 
     solpred_.Init();
@@ -154,7 +157,7 @@ namespace CoupledField
 
   void TrapezoidalEffMass::Predictor(Vector<Double>& solold)
   {
-    solpred_ = solold + solderiv1_*a0_;
+    solpred_ = solold + solDeriv_vec_[FIRST_DERIV]*sol_timeStepCoeff_[PREDICTOR_1];
   }
 
 
@@ -179,8 +182,8 @@ namespace CoupledField
   {
     // after solving the algebraic system of equation, we obtain as solution
     // the 1st time derivative: vNew .. 1st time derivative
-    sol_ = solpred_ + vNew * a1_;
-    solderiv1_ = vNew;
+    sol_ = solpred_ + vNew * sol_timeStepCoeff_[CORRECTOR_1];
+    solDeriv_vec_[FIRST_DERIV] = vNew;
 
     //now overwrite the solution with the physical quantity itself
     vNew = sol_;
@@ -190,10 +193,10 @@ namespace CoupledField
   {
 
     //for predictors
-    a0_ = (1-gamma_)*dt;
+    sol_timeStepCoeff_[PREDICTOR_1] = (1-gamma_)*dt;
 
     //for correctors, matrices
-    a1_ = (gamma_*dt);
+    sol_timeStepCoeff_[CORRECTOR_1] = (gamma_*dt);
   }
 
 
@@ -202,7 +205,7 @@ namespace CoupledField
 
     Double velVal;
 
-    velVal = (val- solpred_[eq-1]) / a1_;
+    velVal = (val- solpred_[eq-1]) / sol_timeStepCoeff_[CORRECTOR_1];
     return velVal;
   }
 

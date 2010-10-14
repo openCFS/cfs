@@ -20,6 +20,7 @@ namespace CoupledField
   Newmark::Newmark(BaseSystem * algebraicsystem, PtrParamNode systemNode )
     :TimeStepping(algebraicsystem )
   {
+    std::cerr << __LINE__ << " " << ":" << __FILE__ << " : " << std::endl;
 
     // Default values for beta and gamma are:
     //   beta  = 0.25
@@ -51,6 +52,9 @@ namespace CoupledField
   void Newmark::Init( Double dt, UInt rhsSize ) {
 
     rhsSize_ = rhsSize;
+    Vector<Double> dummyVec;
+    dummyVec.Resize(rhsSize_);
+    dummyVec.Init();
 
     // Calculate parameters and store it in matrix_factors
     dt_ = dt;
@@ -59,30 +63,46 @@ namespace CoupledField
     CalcParameters(dt_);
         
     matrix_factors_[STIFFNESS] = (1.0 + alpha_);
-    matrix_factors_[MASS] = 1.0*a2_;   
+    matrix_factors_[MASS] = 1.0*sol_timeStepCoeff_[CORRECTOR_1];   
     matrix_factors_[CONVECTION] = 0.0; 
-    matrix_factors_[DAMPING] = 1.0*a4_;
-
-    if( !isSolTN1Set_){
-      sol_tn_1_.Resize(rhsSize_);
-      sol_tn_1_.Init();
-    }
+    matrix_factors_[DAMPING] = 1.0*sol_timeStepCoeff_[COEFFRHS];
 
     //get the memory
-    if( !isDeriv1Set_ ) {
-      solderiv1_.Resize(rhsSize_);
-      solderiv1_.Init();
+    if ( !is_SolTimeStep_set(TIMESTEP_1) )
+    {
+      sol_timeStepVec_[TIMESTEP_1] = dummyVec;
     }
-    if( !isDeriv2Set_ ) {
-      solderiv2_.Resize(rhsSize_);
-      solderiv2_.Init();
+    if ( !is_Deriv_set(FIRST_DERIV) )
+    {
+      solDeriv_vec_[FIRST_DERIV] = dummyVec;
     }
+    if ( !is_Deriv_set(SECOND_DERIV) )
+    {
+      solDeriv_vec_[SECOND_DERIV] = dummyVec;
+    }
+
 
     solpred_.Resize(rhsSize_);
     solpred_.Init();
     solderiv1pred_.Resize(rhsSize_);
     solderiv1pred_.Init();
 
+  }
+  
+  void Newmark::ReInit(){
+    std::map<TIMEStepType, Vector<Double> >::iterator iterTime = sol_timeStepVec_.begin();
+    std::map<DERIVType, Vector<Double> >::iterator iterDeriv = solDeriv_vec_.begin();
+    for (;iterTime != sol_timeStepVec_.end(); ++iterTime)
+    {
+      iterTime->second.Init();
+    }
+    for (;iterDeriv != solDeriv_vec_.end(); ++iterDeriv)
+    {
+      iterDeriv->second.Init();
+    }
+
+    solpred_.Init();
+    solderiv1pred_.Init();
   }
 
   void Newmark::setSubSteps(  UInt subSteps ) {
@@ -91,9 +111,9 @@ namespace CoupledField
     CalcParameters(dt_);
         
     matrix_factors_[STIFFNESS] = (1.0 + alpha_);
-    matrix_factors_[MASS] = 1.0*a2_;   
+    matrix_factors_[MASS] = 1.0*sol_timeStepCoeff_[CORRECTOR_1];   
     matrix_factors_[CONVECTION] = 0.0; 
-    matrix_factors_[DAMPING] = 1.0*a4_;
+    matrix_factors_[DAMPING] = 1.0*sol_timeStepCoeff_[COEFFRHS];
 
     solpredSAVE_ = solpred_;
     solderiv1predSAVE_ = solderiv1pred_;
@@ -105,9 +125,9 @@ namespace CoupledField
     CalcParameters(dt_);
         
     matrix_factors_[STIFFNESS] = (1.0 + alpha_);
-    matrix_factors_[MASS] = 1.0*a2_;   
+    matrix_factors_[MASS] = 1.0*sol_timeStepCoeff_[CORRECTOR_1];   
     matrix_factors_[CONVECTION] = 0.0; 
-    matrix_factors_[DAMPING] = 1.0*a4_;
+    matrix_factors_[DAMPING] = 1.0*sol_timeStepCoeff_[COEFFRHS];
 
     solpred_ = solpredSAVE_;
     solderiv1pred_ = solderiv1predSAVE_;
@@ -116,8 +136,10 @@ namespace CoupledField
   void Newmark::Predictor(Vector<Double>& solold)
   {
 
-    solpred_ = solold + solderiv1_*dt_ + solderiv2_*a0_;
-    solderiv1pred_ = solderiv1_ + solderiv2_*a1_;
+    solpred_ = solold + solDeriv_vec_[FIRST_DERIV] * dt_ \
+      + solDeriv_vec_[SECOND_DERIV] * sol_timeStepCoeff_[PREDICTOR_1];
+    solderiv1pred_ = solDeriv_vec_[FIRST_DERIV] 
+      + solDeriv_vec_[SECOND_DERIV] * sol_timeStepCoeff_[PREDICTOR_2];
  
   }
 
@@ -127,14 +149,14 @@ namespace CoupledField
     Vector<Double> coeffMass;
 
     // mass part
-    coeffMass = solpred_*a2_;
+    coeffMass = solpred_*sol_timeStepCoeff_[CORRECTOR_1];
     algsys_->UpdateRHS(MASS,coeffMass);
 
     // damping part
     if ( FeMatrixPresent( DAMPING ) ) {
       Vector<Double> coeffDamp;
         
-      coeffDamp = -solderiv1pred_ + solpred_*a4_;
+      coeffDamp = -solderiv1pred_ + solpred_*sol_timeStepCoeff_[COEFFRHS];
       algsys_->UpdateRHS(DAMPING,coeffDamp);
     }
 
@@ -161,7 +183,7 @@ namespace CoupledField
 
     // mass part
     Vector<Double> coeffMass;
-    coeffMass = (solpred_ - actSol) * a2_;
+    coeffMass = (solpred_ - actSol) * sol_timeStepCoeff_[CORRECTOR_1];
     algsys_->UpdateRHS(MASS, coeffMass);
 
 
@@ -169,7 +191,7 @@ namespace CoupledField
     if ( FeMatrixPresent( DAMPING ) ) {
       Vector<Double> coeffDamp;
         
-      coeffDamp = -solderiv1pred_ + (solpred_-actSol)*a4_;
+      coeffDamp = -solderiv1pred_ + (solpred_-actSol)*sol_timeStepCoeff_[COEFFRHS];
       algsys_->UpdateRHS(DAMPING,coeffDamp);
     }
 
@@ -185,10 +207,10 @@ namespace CoupledField
   void Newmark::Corrector(Vector<Double>& solnew)
   {
 
-    solderiv2_ = (solnew - solpred_) * a2_;
-    solderiv1_ = solderiv1pred_ + solderiv2_*a3_;
+    solDeriv_vec_[SECOND_DERIV] = (solnew - solpred_) * sol_timeStepCoeff_[CORRECTOR_1];
+    solDeriv_vec_[FIRST_DERIV] = solderiv1pred_ + solDeriv_vec_[SECOND_DERIV]*sol_timeStepCoeff_[CORRECTOR_2];
 
-    sol_tn_1_=solnew;
+    sol_timeStepVec_[TIMESTEP_1]=solnew;
   }
 
 
@@ -197,15 +219,15 @@ namespace CoupledField
   {
 
     //for predictors
-    a0_ = 0.5*(1-2.0*beta_)*dt_*dt_;
-    a1_ = (1-gamma_)*dt_;
+    sol_timeStepCoeff_[PREDICTOR_1] = 0.5*(1-2.0*beta_)*dt_*dt_;
+    sol_timeStepCoeff_[PREDICTOR_2] = (1-gamma_)*dt_;
 
     //for correctors, matrices
-    a2_ = 1.0/(beta_*dt_*dt_);
-    a3_ = gamma_*dt_;
+    sol_timeStepCoeff_[CORRECTOR_1] = 1.0/(beta_*dt_*dt_);
+    sol_timeStepCoeff_[CORRECTOR_2] = gamma_*dt_;
 
     //for RHS, Matrices
-    a4_ = (1+alpha_) * gamma_ / (beta_*dt_);
+    sol_timeStepCoeff_[COEFFRHS] = (1+alpha_) * gamma_ / (beta_*dt_);
   }
 
 
@@ -250,6 +272,9 @@ namespace CoupledField
     std::cout<<"Newmark uses Effective Mass Formulation " <<std::endl;
 
     rhsSize_ = rhsSize;
+    Vector<Double> dummyVec;
+    dummyVec.Resize(rhsSize_);
+    dummyVec.Init();
 
     
     // Calculate parameters and store it in matrix_factors
@@ -260,11 +285,11 @@ namespace CoupledField
       matrix_factors_[MASS] = 1.0; 
     }
     else {
-      matrix_factors_[STIFFNESS] = 1.0*a2_;
+      matrix_factors_[STIFFNESS] = 1.0*sol_timeStepCoeff_[CORRECTOR_1];
       matrix_factors_[MASS] = 1.0;
       matrix_factors_[CONVECTION] = 0.0;
       
-      matrix_factors_[DAMPING] = 1.0*a3_; 
+      matrix_factors_[DAMPING] = 1.0*sol_timeStepCoeff_[CORRECTOR_2]; 
     }
 
     //get the memory
@@ -273,14 +298,13 @@ namespace CoupledField
     solpred_.Resize(rhsSize_);
     solpred_.Init();
 
-    if( !isDeriv1Set_ ) {
-      solderiv1_.Resize(rhsSize_);
-      solderiv1_.Init();
+    if ( !is_Deriv_set(FIRST_DERIV) )
+    {
+      solDeriv_vec_[FIRST_DERIV] = dummyVec;
     }
-
-    if( !isDeriv2Set_ ) {
-      solderiv2_.Resize(rhsSize_);
-      solderiv2_.Init();
+    if ( !is_Deriv_set(SECOND_DERIV) )
+    {
+      solDeriv_vec_[SECOND_DERIV] = dummyVec;
     }
 
   
@@ -293,8 +317,10 @@ namespace CoupledField
   void NewmarkEffMass::Predictor(Vector<Double>& solold)
   {
 
-    solpred_ = sol_ + solderiv1_*dt_ + solderiv2_*a0_;
-    solderiv1pred_ = solderiv1_ + solderiv2_*a1_;
+    solpred_ = sol_ + solDeriv_vec_[FIRST_DERIV] * dt_ \
+      + solDeriv_vec_[SECOND_DERIV]*sol_timeStepCoeff_[PREDICTOR_1];
+    solderiv1pred_ = solDeriv_vec_[FIRST_DERIV] \
+      + solDeriv_vec_[SECOND_DERIV]*sol_timeStepCoeff_[PREDICTOR_2];
 
 
   }
@@ -304,9 +330,9 @@ namespace CoupledField
 
     // after solving the algebraic system of equation, we obtain as solution
     // the 2nd time derivative: aNew .. 2nd second time derivative
-    sol_ = solpred_ + aNew * a2_;
-    solderiv1_ = solderiv1pred_ + aNew*a3_;
-    solderiv2_ = aNew;
+    sol_ = solpred_ + aNew * sol_timeStepCoeff_[CORRECTOR_1];
+    solDeriv_vec_[FIRST_DERIV] = solderiv1pred_ + aNew * sol_timeStepCoeff_[CORRECTOR_2];
+    solDeriv_vec_[SECOND_DERIV] = aNew;
 
     //now overwrite the solution with the physical quantity itself
     aNew = sol_;
@@ -335,12 +361,12 @@ namespace CoupledField
   {
 
     //for predictors
-    a0_ = 0.5*dt_*dt_*(1-2*beta_);
-    a1_ = (1-gamma_)*dt_;
+    sol_timeStepCoeff_[PREDICTOR_1] = 0.5*dt_*dt_*(1-2*beta_);
+    sol_timeStepCoeff_[PREDICTOR_2] = (1-gamma_)*dt_;
   
     //for correctors, matrices
-    a2_ = beta_*dt_*dt_;
-    a3_ = gamma_*dt_;
+    sol_timeStepCoeff_[CORRECTOR_1] = beta_*dt_*dt_;
+    sol_timeStepCoeff_[CORRECTOR_2] = gamma_*dt_;
   
   }
 
@@ -349,7 +375,7 @@ namespace CoupledField
 
     Double accval;
 
-    accval = (val- solpred_[eq-1]) / a2_;
+    accval = (val- solpred_[eq-1]) / sol_timeStepCoeff_[CORRECTOR_1];
     return accval;
   }
 

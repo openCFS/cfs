@@ -1769,19 +1769,19 @@ namespace CoupledField {
       break;
 
     case ACOU_POTENTIAL_DERIV_1:
-      ExtractDerivResult( result, 1 );
+      ExtractDerivResult( result, FIRST_DERIV );
       break;
 
     case ACOU_POTENTIAL_DERIV_2:
-      ExtractDerivResult( result, 2 );
+      ExtractDerivResult( result, SECOND_DERIV );
       break;
 
     case ACOU_PRESSURE_DERIV_1:
-      ExtractDerivResult( result, 1 );
+      ExtractDerivResult( result, FIRST_DERIV );
       break;
 
     case ACOU_PRESSURE_DERIV_2:
-      ExtractDerivResult( result, 2 );
+      ExtractDerivResult( result, SECOND_DERIV );
       break;
 
     case ACOU_RHS_LOAD:

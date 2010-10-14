@@ -2163,11 +2163,11 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       break;
 
     case MECH_VELOCITY:
-      ExtractDerivResult( result, 1 );
+      ExtractDerivResult( result, FIRST_DERIV );
       break;
 
     case MECH_ACCELERATION:
-      ExtractDerivResult( result, 2 );
+      ExtractDerivResult( result, SECOND_DERIV );
       break;
 
     case MECH_RHS_LOAD:

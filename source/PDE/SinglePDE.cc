@@ -2400,11 +2400,11 @@ namespace CoupledField {
               (*values)[numDofs*pos+iDof] = solReal[abs(eqns[iDof])-1];
               if( analysistype_ == TRANSIENT ) {
                 deriv1[numDofs*pos+iDof] =
-                  TS_alg_->GetDeriv1()[(abs(eqns[iDof])-1)];
+                  TS_alg_->GetDeriv(FIRST_DERIV)[(abs(eqns[iDof])-1)];
                 deriv2[numDofs*pos+iDof] =
-                    TS_alg_->GetDeriv2()[(abs(eqns[iDof]-1))];
+                    TS_alg_->GetDeriv(SECOND_DERIV)[(abs(eqns[iDof]-1))];
                   tn_1[numDofs*pos+iDof] =
-                    TS_alg_->GetOld1()[(abs(eqns[iDof]-1))];
+                    TS_alg_->GetOld(TIMESTEP_1)[(abs(eqns[iDof]-1))];
               }
             } else {
               (*values)[numDofs*pos+iDof] = 0.0;
@@ -2516,22 +2516,22 @@ namespace CoupledField {
 
 
       Vector<Double> solDeriv1, solDeriv2, solTn_1;
-      if( TS_alg_->GetDeriv1().GetSize() != 0 ) {
-        solDeriv1 = TS_alg_->GetDeriv1();
+      if( TS_alg_->GetDeriv(FIRST_DERIV).GetSize() != 0 ) {
+        solDeriv1 = TS_alg_->GetDeriv(FIRST_DERIV);
       } else {
         solDeriv1.Resize( solVec.GetSize() );
         solDeriv1.Init();
       }
 
-      if( TS_alg_->GetDeriv2().GetSize() != 0 ) {
-        solDeriv2 = TS_alg_->GetDeriv2();
+      if( TS_alg_->GetDeriv(SECOND_DERIV).GetSize() != 0 ) {
+        solDeriv2 = TS_alg_->GetDeriv(SECOND_DERIV);
       } else {
         solDeriv2.Resize( solVec.GetSize() );
         solDeriv2.Init();
       }
 
-      if( TS_alg_->GetOld1().GetSize() != 0 ) {
-        solTn_1 = TS_alg_->GetOld1();
+      if( TS_alg_->is_SolTimeStep_set(TIMESTEP_1) ) {
+        solTn_1 = TS_alg_->GetOld(TIMESTEP_1);
       } else {
         solTn_1.Resize( solVec.GetSize() );
         solTn_1.Init();
@@ -2584,8 +2584,8 @@ namespace CoupledField {
 
         // pass derivatives to timestepping algorithm
         if( analysistype_ == TRANSIENT ) {
-          TS_alg_->SetDeriv1( solDeriv1 );
-          TS_alg_->SetDeriv2( solDeriv2 );
+          TS_alg_->SetDeriv( solDeriv1, FIRST_DERIV );
+          TS_alg_->SetDeriv( solDeriv2, SECOND_DERIV );
         }
 
       } else {
@@ -2635,9 +2635,9 @@ namespace CoupledField {
 
         // pass derivatives to timestepping algorithm
         if( needDeriv ) {
-          TS_alg_->SetDeriv1( solDeriv1 );
-          TS_alg_->SetDeriv2( solDeriv2 );
-          TS_alg_->SetOld1( solTn_1 );
+          TS_alg_->SetDeriv( solDeriv1, FIRST_DERIV );
+          TS_alg_->SetDeriv( solDeriv2, SECOND_DERIV );
+          TS_alg_->SetOld( solTn_1, TIMESTEP_1 );
         }
       }
     } else if ( analysistype_ == HARMONIC ) {
@@ -2747,7 +2747,7 @@ namespace CoupledField {
 
   }
 
-  void SinglePDE::ExtractDerivResult( shared_ptr<BaseResult> res, UInt deriv ) {
+  void SinglePDE::ExtractDerivResult( shared_ptr<BaseResult> res, DERIVType derivType ) {
 
     StdVector<Integer> eqnNums;
 
@@ -2758,19 +2758,7 @@ namespace CoupledField {
 
     if ( analysistype_ == TRANSIENT )
     {
-      const Vector<Double>& (TimeStepping::*fct) () const;
-      switch ( deriv ) {
-        case 1:
-          fct = &TimeStepping::GetDeriv1;
-          break;
-        case 2:
-          fct = &TimeStepping::GetDeriv2;
-          break;
-        default :
-          EXCEPTION( "Only derivatives up to order 2 possible" );
-      }
-
-      const Vector<Double> & solHelp = (TS_alg_->*fct)();
+      const Vector<Double> & solHelp = TS_alg_->GetDeriv(derivType);
       Vector<Double> & actSol = (dynamic_cast<Result<Double>&>
                                  (*(res))).GetVector();
       actSol.Resize( res->GetEntityList()->GetSize() *
@@ -2796,11 +2784,11 @@ namespace CoupledField {
 
       // determine correct factor
       Complex factor = Complex(0.0, 0.0);
-      switch( deriv ) {
-        case 1:
+      switch( derivType ) {
+        case FIRST_DERIV:
           factor = Complex( 0.0, omega );
           break;
-        case 2:
+        case SECOND_DERIV:
           factor = Complex( -omega*omega, 0.0 );
           break;
         default :

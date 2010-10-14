@@ -16,79 +16,54 @@ namespace CoupledField
   Bdf2 :: Bdf2( BaseSystem * algebraicsystem)
     :TimeStepping( algebraicsystem )
   {
-
     // Commented out the warning, since defaults are not bad at all and the 
     // average student user gets not disturbed by any warnings
     //check if integration parameters are defined in conf-file
     //Info->WARN( "Bdf2: Using defaults for gamma!" );
     firstTime_=true;
-
   }
 
   Bdf2 :: ~Bdf2()
   {
   }
 
-  void Bdf2::Init( Double dt, UInt rhsSize ) {
+  void Bdf2::Init( Double dt, UInt rhsSize )
+  {
     dt_ = dt;
     rhsSize_ = rhsSize;
+    Vector<Double> dummyVec;
+    dummyVec.Resize(rhsSize_);
+    dummyVec.Init();
     
     CalcParameters(dt_);
 
     matrix_factors_[STIFFNESS] = 1.0; //dt_*2.0/3.0
-    matrix_factors_[MASS] = 3.0/(2.0*dt_); // 1.0
+    sol_timeStepCoeff_[COEFFRHS] = 3.0 / (2.0*dt_); // 1.0
+    matrix_factors_[MASS] = sol_timeStepCoeff_[COEFFRHS]; // 1.0
 
     //not used matrices
     matrix_factors_[CONVECTION] = 0.0; 
     matrix_factors_[DAMPING] = 0.0;       
 
-    if( !isSolTN1Set_){
-      sol_tn_1_.Resize(rhsSize_);
-      sol_tn_1_.Init();
+    if ( !is_SolTimeStep_set(TIMESTEP_1) )
+    {
+      sol_timeStepVec_[TIMESTEP_1] = dummyVec;
     }
-
-    sol_tn_2_.Resize(rhsSize_);
-    sol_tn_2_.Init();
-
-    //get the memory
-    if( !isDeriv1Set_ ) {
-      solderiv1_.Resize(rhsSize_);  
-      solderiv1_.Init();
+    if ( !is_SolTimeStep_set(TIMESTEP_2) )
+    {
+      sol_timeStepVec_[TIMESTEP_2] = dummyVec;
     }
-    if( !isDeriv2Set_ ) {
-      solderiv2_.Resize(rhsSize_);
-      solderiv2_.Init();
+    if ( !is_Deriv_set(FIRST_DERIV) )
+    {
+      solDeriv_vec_[FIRST_DERIV] = dummyVec;
     }
-
-//     solpred_.Resize(rhsSize_); 
-//     solpred_.Init();
   }
 
 
   void Bdf2::Predictor(Vector<Double>& solold)
   {
-    //std::cout << "solderiv1_\n" << solderiv1_ << std::endl;
-    //if(firstTime_){
-      //use old values from restart file; currently hard coded
-      //for bdf2 solderiv1_ and solderiv2_ doesnot contain derivatives!!!!
-      //sol_tn_2_ = solderiv2_; //see corrector
-      //sol_tn_1_ = solold;
-      //sol_tn_2_ = solold;
-      //sol_tn_1_ = solold;
-
-      //firstTime_=false;
-      //std::cerr << "*\n";
-    //}
-    //else{
-    sol_tn_2_ = sol_tn_1_;
-    sol_tn_1_ = solold;
-      //std::cerr << ".\n";
-    //}
-    //std::cout << "\n Bdf2 Pred sol_tn_1_: \n" << sol_tn_1_ << std::endl;
-    //std::cout << "\n Bdf2 Pred sol_tn_2_: \n" << sol_tn_2_ << std::endl;
-    //LOG_DBG(bdf2) << "\n Pred sol_tn_1_: \n" << sol_tn_1_ << std::endl;
-    //LOG_DBG(bdf2) << "\n Pred sol_tn_2_: \n" << sol_tn_2_ << std::endl;
-
+    sol_timeStepVec_[TIMESTEP_2] = sol_timeStepVec_[TIMESTEP_1];
+    sol_timeStepVec_[TIMESTEP_1] = solold;
   }
 
 
@@ -97,7 +72,8 @@ namespace CoupledField
     Vector<Double> coeffMass;
 
     // mass part
-    coeffMass = (sol_tn_1_*a0_) - (sol_tn_2_*a1_);
+    coeffMass = (sol_timeStepVec_[TIMESTEP_1] * sol_timeStepCoeff_[TIMESTEP_1]) \
+                - (sol_timeStepVec_[TIMESTEP_2] * sol_timeStepCoeff_[TIMESTEP_2]);
     algsys_->UpdateRHS(MASS,coeffMass);
     LOG_DBG(bdf2) << "\n coeffMass: \n" << coeffMass << std::endl;
   }
@@ -119,11 +95,11 @@ namespace CoupledField
   void Bdf2 :: CalcParameters(Double dt)
   {
     //for u_{n-1}
-    a0_ = 2.0/dt_;
+    sol_timeStepCoeff_[TIMESTEP_1] = 2.0/dt_;
     //a0_ = 4.0/3.0;
 
     //for u_{n-2}
-    a1_ = 1.0/(2.0*dt_);
+    sol_timeStepCoeff_[TIMESTEP_2] = 1.0/(2.0*dt_);
     //a1_ = 1.0/3.0;
   }
 

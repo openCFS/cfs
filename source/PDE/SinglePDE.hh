@@ -459,7 +459,7 @@ namespace CoupledField
     //! Copy the time derivative of the solution to a solution objet
 
     //! This method fills the given result objects
-    void ExtractDerivResult( shared_ptr<BaseResult> res, UInt deriv );
+    void ExtractDerivResult( shared_ptr<BaseResult> res, DERIVType derivType );
 
     //! Copy the linear rhs from the internal vector to a solution object
     template<class TYPE>

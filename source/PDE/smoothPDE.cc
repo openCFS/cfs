@@ -304,10 +304,10 @@ namespace CoupledField {
       }
       break;
     case SMOOTH_VELOCITY:
-      ExtractDerivResult( res, 1 );
+      ExtractDerivResult( res, FIRST_DERIV );
       break;
     case GRID_VELOCITY:
-        ExtractDerivResult( res, 1 );
+        ExtractDerivResult( res, FIRST_DERIV );
       break;
     default:
       WARN( "Resulttype not computable by smoothing PDE" );
