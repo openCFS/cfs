@@ -47,14 +47,8 @@ namespace CoupledField
     
     //! compute parameters for multiplication
     void CalcParameters(Double dt);
-   
-    //! integration parameter
-    Double gamma_;  
-
     bool firstTime_;
 
-    //! predictor of solution
-    Vector<Double> solpred_;
   };
 
 #ifdef DOXYGEN_DETAILED_DOC
