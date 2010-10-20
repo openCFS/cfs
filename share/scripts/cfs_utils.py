@@ -136,4 +136,31 @@ def setNDArrayEntry(data, dim, i, j, k, value):
     return
   raise " cannot handle dimension " + str(dim)
 
+## returns the x, y, and z dimension of a ndarray. z=1 for 2d 
+# call x, y, z = getDim(data)
+def getDim(data):
+  x = data.shape[0]
+  y = data.shape[1]
+  z = 1
+  if data.ndim >= 3:
+    z = data.shape[2]
+  return x, y, z
 
+## finds a value in an ndarray
+# @param silent if True -1,-1,-1 is returned, otherwise an error
+# @return the coordinates x, y, z or an error, see silent
+def findInNDArray(data, value, silent=False):
+  x, y, z = getDim(data)
+  for i in range(x):
+    for j in range(y):
+      for k in range(z):
+        if data[i, j, k] == value:
+          return i, j, k
+ 
+  if not silent:
+    raise RuntimeError(" value'" + str(value) + "' not found in data with x=" + str(x) + " y=" + str(y) + " z=" + str(z))
+  else:
+    return -1, -1, -1
+        
+        
+        
