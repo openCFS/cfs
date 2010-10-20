@@ -161,6 +161,19 @@ def findInNDArray(data, value, silent=False):
     raise RuntimeError(" value'" + str(value) + "' not found in data with x=" + str(x) + " y=" + str(y) + " z=" + str(z))
   else:
     return -1, -1, -1
-        
-        
-        
+
+## checks the status of a CFS problem run by the info.xml file
+# @param problem string without '.info.xml' 
+# return 'not_found', 'running', 'finished', 'aborted'. 'cannot_determine'
+def check_cfs_status(problem):        
+  if os.path.exists(problem + ".info.xml"):
+    try:
+      doc = libxml2.parseFile(problem + ".info.xml")
+      xml = doc.xpathNewContext()
+      status = xpath(xml, "//cfsInfo/@status")
+      return status
+    except RuntimeError:
+      return "cannot_determine"
+  else:
+    return "not_found"
+     
