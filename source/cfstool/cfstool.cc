@@ -395,7 +395,17 @@ namespace CFSTool {
        std::map<UInt, UInt> numSteps;
        input1->GetNumMultiSequenceSteps( types, numSteps, isHistory );
 
-       std::cout << "\nFound " << types.size() << " sequence step(s)\n";
+       std::cout << "\nFound " << types.size() << " sequence step(s) in '" << inFile1 << "'\n";
+       std::map<UInt, BasePDE::AnalysisType> types2;
+       std::map<UInt, UInt> numSteps2;
+       input2->GetNumMultiSequenceSteps( types2, numSteps2, isHistory );
+       std::cout << "\nFound " << types2.size() << " sequence step(s) in '" << inFile2 << "'\n";
+       
+       if(types.size() != types2.size()){
+         std::cout << "'" << inFile1 << "' and '" << inFile2
+            << "' have different number of sequence steps!\n";
+         exit(EXIT_FAILURE);
+       }
 
        // iterate over all Sequence Steps
        Double maxDiff = 0.0;
@@ -481,6 +491,12 @@ namespace CFSTool {
 
            // iterate over all results
            for( UInt iRes = 0; iRes < inResults2.GetSize(); iRes++) {
+             
+             if(numSteps[actMsStep] != numSteps2[actMsStep]){
+               std::cout << "'" << inFile1 << "' has " << numSteps[actMsStep] << " and '" << inFile2
+                  << "' has " << numSteps2[actMsStep] << " time steps!\n";
+               exit(EXIT_FAILURE);
+             }
 
              maxResVec2[iRes] = 0.0;
              // iterate over all time steps

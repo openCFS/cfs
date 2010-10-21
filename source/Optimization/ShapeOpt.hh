@@ -18,10 +18,10 @@ namespace CoupledField {
     virtual double CalcVolume(Objective* f, Condition* g, bool derivative, bool normalized = true);
 
     /** Calculate part of the derivative u1 dK/dShape u2 of compliance and tracking w.r.t. shape */
-    void CalcMinusU1dKU2(Solutions& u1, Solutions& u2, Objective* f, Condition* constraint, const Matrix<double>* tensor_diff = NULL);
+    void CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective* f, Condition* constraint, const Matrix<double>* tensor_diff = NULL);
     
     /** Calculate part of the derivative u dF/dShape of compliance and tracking w.r.t. shape */
-    void CalcUdF(Excitation& excite, StdVector<SingleVector*>& u, Objective* f, Condition* constraint, double w);
+    void CalcUdF(Solutions& adjoint, Objective* f, Condition* constraint, double w = 1.0);
 
     virtual double CalcCompliance(Excitation& excite, Objective* f, Condition* constraint, bool derivative);
 

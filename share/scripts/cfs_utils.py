@@ -172,7 +172,7 @@ def check_cfs_status(problem):
       xml = doc.xpathNewContext()
       status = xpath(xml, "//cfsInfo/@status")
       return status
-    except RuntimeError:
+    except:
       return "cannot_determine"
   else:
     return "not_found"

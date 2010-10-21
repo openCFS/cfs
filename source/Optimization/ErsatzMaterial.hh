@@ -267,7 +267,13 @@ public:
 
     /** Returns the currently stored functions. Empty for forward */
     StdVector<Function*> GetFunctions() const;
-
+    
+    /** Return whether this is the Solution of the forward problem */
+    bool IsForward(){ return(isForward); };
+    
+    /** Set whether this Solution is the Solution of the forward problem */
+    void SetIsForward(bool forward){ isForward = forward; };
+    
   private:
 
     /** On the fly init when the function has not been used before */
@@ -291,6 +297,12 @@ public:
      * Stored are units which contains eventually multiple excitations.
      * @see Unit() */
     std::map<Function*, StdVector<Unit*> > data_;
+    
+    // if this Solutions is forward, it does not use the value in function in Get
+    bool isForward;
+    
+    // Pointer to data[NULL] to speed up things
+    StdVector<Unit*>* forward_data_;
 
     ErsatzMaterial* em_;
   };
