@@ -1,3 +1,4 @@
+#include "Optimization/Excitation.hh"
 #include "Optimization/Design/DesignStructure.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Objective.hh"
@@ -97,11 +98,12 @@ void ObjectiveContainer::Read(PtrParamNode obj_node)
   }
 }
 
-void ObjectiveContainer::PostProc(DesignSpace* space, DesignStructure* structure)
+void ObjectiveContainer::PostProc(DesignSpace* space, DesignStructure* structure, MultipleExcitation* me)
 {
   for(unsigned int i = 0; i < data.GetSize(); i++)
   {
     data[i]->PostProc(space, structure);
+    data[i]->SetExcitation(me);
   }
 }
 

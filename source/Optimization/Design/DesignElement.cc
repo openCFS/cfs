@@ -138,7 +138,6 @@ DesignElement::DesignElement(PtrParamNode pn, Elem* elem) : BaseDesignElement()
   this->elem = elem;
   this->specialResult.Resize(9, 0.0);
 
-
   // it is a little slow to perform this code for every DesignElement but the
   // implementations are rater fast and it should be not measurable in the end
   type_ = type.Parse(pn->Get("name")->As<std::string>());
@@ -201,9 +200,11 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       || rd.value == MAX_SLOPE
       || rd.value == MAX_OSCILLATION
       || rd.value == MAX_MOLE
-      || rd.value == MAX_JUMP)
+      || rd.value == MAX_JUMP
+      || rd.value == PENALIZED_STRESS)
   {
     if(dofs != 1) throw Exception("special results is only defined for scalar values");
+    // note, that on EACH_FORWARD/ADJOINT we need excitation based results
     switch(rd.solutionType)
     {
     case OPT_RESULT_1:
@@ -324,6 +325,7 @@ double DesignElement::GetPlainValue(ValueSpecifier sp, Condition* g) const
   case MAX_MOLE:
   case MAX_OSCILLATION:
   case MAX_JUMP:
+  case PENALIZED_STRESS:
     assert(false); // should be covered before by special result index
 
   case TOPGRAD_VALUE:
@@ -444,6 +446,7 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(MAX_OSCILLATION, "maxOscillation");
   valueSpecifier.Add(MAX_MOLE, "maxMole");
   valueSpecifier.Add(MAX_JUMP, "maxJump");
+  valueSpecifier.Add(PENALIZED_STRESS, "penalizedStress");
   valueSpecifier.Add(WEIGHT, "weight");
   valueSpecifier.Add(OBJECTIVE, "objective");
   valueSpecifier.Add(NUM_NEIGHBOURS, "neighbours");
@@ -753,6 +756,11 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
   if(!space->IsRegular())
     throw Exception("A regular design domain is required to use VicinityElements");
 
+  // eventually the barycenters are already calculated, we need them to identify the orientation
+  // we will need the barycenters in FindNeibhborhood()
+  for(unsigned int i = 0; i < space->regions.GetSize(); i++)
+    grid->SetElementBarycenters(space->regions[i].regionId, false); // no updated coordinates
+
   // let CFS find the neighborhood of *all* elements. With some luck this was done
   // anyway already and we get it for free
   // This does not include periodic b.c. neighbors, this is done by structure
@@ -772,12 +780,6 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
   domain->GetGrid()->GetElemNodesCoord(coords, elem->connect);
   elem->ptElem->GetEdgeLength(coords, spacing);
 
-
-  // We have to compare this element with the neighbors to do the sorting we restrict
-  // ourself to the first node of the elements
-  Point this_elem_point;
-  Point neigh_elem_point;
-
   // in the periodic case the neighborhood is enlarged
   StdVector<std::pair<Elem*, int> > enlarged_data;
 
@@ -789,9 +791,6 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
     de.vicinity = new VicinityElement();
     // here we store the neighbors in a sorted way
     StdVector<DesignElement*>& ve_data = de.vicinity->design; // has proper size of NULLs
-    // set the reference point of this element
-    grid->GetNodeCoordinate(this_elem_point, de.elem->connect[0]);
-
 
     // reference case
     StdVector<std::pair<Elem*, int> >& neighbors = *(de.elem->neighborhood);
@@ -810,11 +809,18 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
       if(neighbors[n].second < common) continue;
       // now we have to find the relative position of candidate
       Elem* candidate = neighbors[n].first;
-      // the reference point of the candidate
-      grid->GetNodeCoordinate(neigh_elem_point, candidate->connect[0]);
+
+      LOG_DBG3(del) << "VE:Init elem=" << de.elem->elemNum << " e.bc=" << de.elem->barycenter.ToString() << " e.dim=" << de.elem->ptElem->GetDim()
+                    << " n=" << n << " o.el=" << candidate->elemNum << " o.bc=" << candidate->barycenter.ToString() << " o.dim=" << candidate->ptElem->GetDim();
+
+      // if the neighbor is a surface element we don't want to play with it
+      if(de.elem->ptElem->GetDim() != candidate->ptElem->GetDim())
+        continue;
+
       // the spacing allows to identify periodic elements
-      int idx = FindRelativeNeighborLocation(this_elem_point, neigh_elem_point, spacing);
+      int idx = FindRelativeNeighborLocation(de.elem->barycenter, candidate->barycenter, spacing);
       ve_data[idx] = space->Find(candidate->elemNum, de.GetType(), false);
+      LOG_DBG2(del) << "VE:Init elem=" << de.elem->elemNum << " idx=" << idx << " dat=" << ve_data[idx];
     }
   }
  }

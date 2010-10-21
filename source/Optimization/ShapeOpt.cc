@@ -25,8 +25,8 @@ ShapeOpt::ShapeOpt() : ParamMat() {
     biLinForms[i]->GetIntegrator()->SetUseCoordUpdate(true);
   }
   // set the linearForms used in multiple excitations, note that this does contain all linearforms (some even several times)
-  for(unsigned int i = 0; i < excitations.GetSize(); i++){
-    StdVector<LinearFormContext*>& linForms = excitations[i].GetLinForms();
+  for(unsigned int i = 0; i < me->excitations.GetSize(); i++){
+    StdVector<LinearFormContext*>& linForms = me->excitations[i].GetLinForms();
     for(unsigned int j = 0; j < linForms.GetSize(); ++j){
       linForms[j]->GetIntegrator()->SetUseCoordUpdate(true);
     }
@@ -175,7 +175,7 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
   int np = shapedesign->GetNumberOfShapeParameters();
   der.Resize(np, 0);
   const bool homogenization = tensor_diff != NULL;
-  const unsigned int ex_size(excitations.GetSize());
+  const unsigned int ex_size(me->excitations.GetSize());
   double rcubevol(1.0);
   if(homogenization){
     rcubevol = 1.0 / grid->CalcVolumeSpannedByNamedNodes();    
@@ -340,7 +340,7 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
                       } // loop over timesteps
                       vM /= beta * dt * dt;
                     } // if transient
-                    der[p] += intWeight * jacdet * excitations[ex].weight * (vK + vM + vC );
+                    der[p] += intWeight * jacdet * me->excitations[ex].weight * (vK + vM + vC );
                   } // loop over timesteps 
                 } // loop over excitations
               }else{ // we calculate homogenization 
@@ -377,7 +377,7 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
 
 void ShapeOpt::CalcUdF(Solutions& adjoint, Objective* f, Condition* constraint, double w){
   int np(shapedesign->GetNumberOfShapeParameters());
-  const unsigned int ex_size(excitations.GetSize());
+  const unsigned int ex_size(me->excitations.GetSize());
   UInt timesteps(domain->GetDriver()->GetNumSteps());
 
   StdVector<double> der; // solution
@@ -411,7 +411,7 @@ void ShapeOpt::CalcUdF(Solutions& adjoint, Objective* f, Condition* constraint, 
       parser->SetValue(MathParser::GLOB_HANDLER, "step", t+1);
       Solution* u = adjoint.Get(ex, f, t);
       
-      Excitation& excite = excitations[ex];
+      Excitation& excite = me->excitations[ex];
       
       StdVector<LinearFormContext*>& linForms = excite.GetLinForms();
       for(unsigned int i = 0; i < linForms.GetSize(); ++i){ // loop over all pressure linear forms (as assemble does)
@@ -520,7 +520,7 @@ void ShapeOpt::CalcUdF(Solutions& adjoint, Objective* f, Condition* constraint, 
 double ShapeOpt::CalcCompliance(Excitation& excite, Objective* f, Condition* constraint, bool derivative){
   if(derivative){
     // the derivative of tracking w.r.t. shape is: - u' dA/dShape u + 2 u dF/dShape
-    if(excite.index == (int) excitations.GetSize() - 1){      
+    if(excite.index == (int) me->excitations.GetSize() - 1){
       CalcMinusU1dKU2(forward, forward, f, constraint); // todo: Is this correct for transient?
       CalcUdF(IsTransient() ? adjoint : forward, f, constraint, 2.0); // in Transient case the system is not self-adjoint any more
     }
@@ -537,7 +537,7 @@ double ShapeOpt::CalcCompliance(Excitation& excite, Objective* f, Condition* con
 double ShapeOpt::CalcTracking(Excitation& excite, Objective* f, Condition* constraint, bool derivative){
   if(derivative){
     // the derivative of tracking w.r.t. shape is: - z' dA/dShape u + z dF/dShape
-    if(excite.index == (int) excitations.GetSize() - 1){ // CalcMinusU1dKU2 runs over the excitations, this speeds up things a little
+    if(excite.index == (int) me->excitations.GetSize() - 1){ // CalcMinusU1dKU2 runs over the excitations, this speeds up things a little
       CalcMinusU1dKU2(forward, adjoint, f, constraint);
       CalcUdF(adjoint, f, constraint);
     }
@@ -558,7 +558,7 @@ void ShapeOpt::CalcHomogenizedTrackingGradient(const Matrix<double>& target, con
 }
 
 Matrix<double> ShapeOpt::CalcHomogenizedTensor(){
-  const unsigned int ex_size(excitations.GetSize());
+  const unsigned int ex_size(me->excitations.GetSize());
   assert((dim == 2 && ex_size == 3) || (dim == 3 && ex_size == 6));
   
   double rcubevol(1.0 / grid->CalcVolumeSpannedByNamedNodes());
@@ -623,7 +623,7 @@ void ShapeOpt::StorePDESolution(Solutions& solutions, Excitation &excite, Functi
 }
 
 void ShapeOpt::SubtractTestDisplacement(unsigned int idx, Matrix<double>& CornerCoords, Vector<double>& result, Matrix<double>& tmp_strain, Matrix<double>& tmp_displacement){
-  SetTestStrainMatrix(tmp_strain, excitations[idx].test_strain);
+  SetTestStrainMatrix(tmp_strain, me->excitations[idx].test_strain);
   unsigned int cols = CornerCoords.GetNumCols();
   tmp_displacement.Resize(dim, cols);
   tmp_strain.Mult(CornerCoords, tmp_displacement);
