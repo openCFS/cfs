@@ -215,7 +215,8 @@ def auto_threshold_filter(data, min, target, material_penalty):
   while upper - lower > 1e-14:
     mid = lower + 0.5 *(upper - lower)
     val = physical_volume(threshold_filter(data, mid, min, 1), material_penalty)
-    print " lower=" + str(lower) + " mid=" + str(mid) + " upper=" + str(upper) + " val=" + str(val)
+    print " lower=%15.15g mid=%15.15g upper=%15.15g val=%15.15g " % (lower , mid , upper , val)
+    # print " lower=" + str(lower) + " mid=" + str(mid) + " upper=" + str(upper) + " val=" + str(val)
     if val > target:
       lower = mid
     else:
@@ -289,7 +290,7 @@ def enlarge_matrix(data, times_x, times_y = 1, times_z = 1):
 # @param infile the density file with the densities to be blown upper
 # @param outfile name of the output file
 # @param returns also the new ndata array
-def refine_density_files(infile, outfile):
+def refine_density(infile, outfile):
   org = read_density(infile)
 
   x, y, z = getDim(org)

@@ -165,7 +165,7 @@ def findInNDArray(data, value, silent=False):
 ## checks the status of a CFS problem run by the info.xml file
 # @param problem string without '.info.xml' 
 # return 'not_found', 'running', 'finished', 'aborted'. 'cannot_determine'
-def check_cfs_status(problem):        
+def check_cfs_status(problem):
   if os.path.exists(problem + ".info.xml"):
     try:
       doc = libxml2.parseFile(problem + ".info.xml")
