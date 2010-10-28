@@ -261,11 +261,11 @@ namespace CoupledField {
         	sol_->NodeSolutionToCoupling(*values,*couplingnodes);
         }
         else if (quantity == SMOOTH_VELOCITY) {
-        	solDeriv1_.SetAlgSysVector(getS1());     
+        	solDeriv1_.SetAlgSysVector(getDeriv(FIRST_DERIV));     
         	solDeriv1_.NodeSolutionToCoupling((*values),*couplingnodes);
         }
         else if (quantity == GRID_VELOCITY) {
-        	solDeriv1_.SetAlgSysVector(getS1());
+        	solDeriv1_.SetAlgSysVector(getDeriv(SECOND_DERIV));
         	solDeriv1_.NodeSolutionToCoupling((*values),*couplingnodes);
         }
 

@@ -752,7 +752,7 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
       sol.Init(); 
       
       if (  analysistype_ == TRANSIENT) {
-        const Vector<Double> & sol_der1 = getS1();
+        const Vector<Double> & sol_der1 = getDeriv(FIRST_DERIV);
         
         for( UInt i = 0; i < eqns.GetSize(); i++ ) {
           if ( eqns[i] != 0 ) {

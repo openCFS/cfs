@@ -1350,7 +1350,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 				  if (quantity == MECH_VELOCITY)
 				  {
 					  ptCoupling_->GetOutputNodes(i, couplingnodes);
-					  solDeriv1_.SetAlgSysVector(getS1());
+					  solDeriv1_.SetAlgSysVector(getDeriv(FIRST_DERIV));
 					  solDeriv1_.NodeSolutionToCoupling(*values, *couplingnodes);
 				  }
 
@@ -1473,7 +1473,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 				  sol_->GetAlgSysVector(gSol );
 
 				  if(firstTime_){
-					  sol_tn_1_.SetAlgSysVector(getOld1());
+					  sol_tn_1_.SetAlgSysVector(getOld(TIMESTEP_1));
 					  sol_tn_1_.GetAlgSysVector(gSolOld_ );
 
 					  firstTime_=false;
@@ -1528,7 +1528,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 				  EXCEPTION("MECH_VELOCITY must be of type NODE");
 
 			  ptCoupling_->GetOutputNodes(interfaceVelCoupl, couplingnodes);
-			  solDeriv1_.SetAlgSysVector(getS1());
+			  solDeriv1_.SetAlgSysVector(getDeriv(FIRST_DERIV));
 			  solDeriv1_.NodeSolutionToCoupling((*velValues), *couplingnodes);
 		  }
 
