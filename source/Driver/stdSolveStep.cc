@@ -825,13 +825,11 @@ namespace CoupledField {
   void StdSolveStep::PostStepTrans( ) {
 
 
-    if ( PDE_.GetFracDamping() ) {
-      Vector<Double> & solHelp =
-        dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
+    Vector<Double> & solHelp =
+      dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
 
-      // Following method is essential for fractional damping model
-      TS_alg_->AdvanceTimestep(solHelp);
-    }
+    // Following method is essential for fractional damping model
+    TS_alg_->AdvanceTimestep(solHelp);
     
     // check for Biot Savart
     if ( PDE_.IsBiotSavart() ) {

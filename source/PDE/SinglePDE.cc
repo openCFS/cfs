@@ -30,6 +30,7 @@
 
 // header for Materialhandling
 #include "DataInOut/MaterialHandler.hh"
+#include "Domain/GridCFS/grid_cfs.hh"
 
 // header for Solvestep and assemble
 #include "Driver/stdSolveStep.hh"
@@ -124,7 +125,6 @@ namespace CoupledField {
     infoNode_ = base == NULL ? info->Get("PDE")->Get(pdename_) : base->Get(pdename_);
     infoNode_->Get(ParamNode::HEADER)->Get("sequenceStep")->SetValue(sequenceStep);
 
-    StdVector<RegionIdType> allIDs;
     LOG_TRACE(pde) << pdename_ << ": Starting Initialization";
 
 
@@ -1982,7 +1982,6 @@ namespace CoupledField {
         IncorporateMemento();
       }
     }
-
   }
 
 
@@ -2276,79 +2275,271 @@ namespace CoupledField {
   }
 
 
- void SinglePDE::WriteRestart( ) {
+  void SinglePDE::WriteRestart()
+  {
+    // prepare output file
+    shared_ptr<SimOutput> restartOutFile;
+    Grid* grid = domain->GetGrid();
+    const std::string simName = progOpts->GetSimName();
+    std::string restartFileName = simName+"_"+pdename_+".restart";
+    PtrParamNode h5Node (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
+    PtrParamNode eFiles (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
+    eFiles->SetName("externalFiles");
+    eFiles->SetValue( "false" );
+    h5Node->AddChildNode(eFiles);
+    restartOutFile = shared_ptr<SimOutput>(new SimOutputHDF5(restartFileName, h5Node));
+    restartOutFile->Init(grid, true);
 
-   if (pdename_=="mechanic" || pdename_=="acoustic"
-	   || pdename_=="fluidMech" || pdename_=="smooth") {
-     std::string simName = progOpts->GetSimName();
-
-     // create name of output file
-     std::string restartFileName = simName+"_"+pdename_+".restart";
-
-     std::ofstream writeTo(restartFileName.c_str(), std::ios::binary);
-     
-     if( !writeTo.good() ) {
-       EXCEPTION( "Could not write to restart file '" << restartFileName
-                  << "'!" );
-     }
-
-#if 0
-     // START OF HDF5 SERIALIZATION DEMO!
-     H5::H5File* h5file = new H5::H5File( std::string("SinglePDE.h5").c_str(), H5F_ACC_TRUNC );
-
-     boost::archive::hdf5_oarchive ho(h5file);
-     // test compression
-     ho.set_compression(6);
-     //     ho << BOOST_SERIALIZATION_NVP(temp);
-     ho << BOOST_SERIALIZATION_NVP(simName);
-     std::vector<UInt> test(3);
-     test[0] = 5;
-     test[1] = 17;
-     test[2] = 894;
-     // ho << BOOST_SERIALIZATION_NVP(test);
-     delete h5file;
-     // END OF HDF5 SERIALIZATION DEMO!
-#endif
-
-     boost::archive::binary_oarchive outArchive(writeTo);
-     GetMemento(memento_);
-     PDEMemento const & temp = *memento_;
-     outArchive << temp;
-     writeTo.close();
-   } else {
-     EXCEPTION( "Restart functionality only for "
-                << "mechanic and acoustic tested" );
-   }
-
-
- }
-
-  void SinglePDE::ReadRestart(UInt &startStep ) {
-
-    if (pdename_=="mechanic" || pdename_=="acoustic"
- 	   || pdename_=="fluidMech" || pdename_=="smooth") {
-      std::string simName = progOpts->GetSimName();
-      std::string restartFileName = simName+"_"+pdename_+".restart";
-
-      std::ifstream readRestart(restartFileName.c_str(), std::ios_base::in );
-      if( !readRestart.good() ) {
-        EXCEPTION( "Could not open restart file '" << restartFileName << "'!" );
-      }
-      boost::archive::binary_iarchive inArchive( readRestart );
-
-      shared_ptr<PDEMemento> myMemento (new PDEMemento );
-      inArchive >> *myMemento;
-      readRestart.close();
-      SetMemento( myMemento, false );
-
-      startStep = myMemento->GetRestartStep();
-    } else  {
-      EXCEPTION( "Restart functionality only for "
-                 << "mechanic and acoustic tested" );
+    // time stepping variables
+    const Double& dt = TS_alg_->GetTimeStep();
+    Double timeTmp;
+    UInt lastTimeStep = domain->GetSingleDriver()->GetActStep(pdename_);
+    if (isComplex_)
+    {
+      EXCEPTION("restart file for harmonic results not implemented");
     }
 
+    shared_ptr<EntityList> entList;
+    ResultMap::iterator it = resultLists_.begin();
+
+    // time stepping vectors in which the results will be stored to write out
+    Vector<Double> solutionTmp;
+    std::map<TIMEStepType, StdVector<shared_ptr<BaseResult> > > outResults;
+    std::map<DERIVType, StdVector<shared_ptr<BaseResult> > > outResults_deriv;
+    std::map<TIMEStepType, Vector<Double> > TsMap = TS_alg_->GetTimeStepMap();
+    /* the number of time steps needed for the algorithm
+     * INFO: TIMESTEP_0 is the new time step */
+    UInt numTimeSteps = TsMap.size();
+    if (TS_alg_->is_SolTimeStep_set(TIMESTEP_0))
+      --numTimeSteps;
+    if (numTimeSteps > lastTimeStep)
+    {
+      EXCEPTION("not enough time steps done to create a feasible restart");
+    }
+
+    // collect all necessary data
+    for (; it != resultLists_.end(); it++)
+    {
+      ResultList & actList = it->second;
+      // iterate over all solutions for each result type
+      for (UInt i = 0; i < actList.GetSize(); ++i)
+      {
+        shared_ptr<ResultInfo> actResultInfo = actList[i]->GetResultInfo();
+        entList = actList[i]->GetEntityList();
+
+        shared_ptr<BaseResult> outResult;
+        outResult = shared_ptr<BaseResult>(new Result<Double>());
+        outResult->SetResultInfo( actResultInfo );
+        outResult->SetEntityList( entList );
+        solutionTmp = TS_alg_->GetOld(TIMESTEP_1);
+        ExtractResult<Double>(outResult, solutionTmp);
+        if (outResults.find(TIMESTEP_1) == outResults.end())
+        {
+          StdVector<shared_ptr<BaseResult> > tmp;
+          outResults[TIMESTEP_1] = tmp;
+        }
+        outResults[TIMESTEP_1].Push_back(outResult);
+        restartOutFile->RegisterResult( outResult, \
+            lastTimeStep - numTimeSteps +1, 1, lastTimeStep, false );
+
+        /* go over all time step except TIMESTEP_1*/
+        std::map<TIMEStepType, Vector<Double> >::iterator itTs = TsMap.begin();
+        for (; itTs != TsMap.end(); ++itTs)
+        {
+          TIMEStepType timeStepType = itTs->first;
+          if (timeStepType == TIMESTEP_0 || timeStepType == TIMESTEP_1)
+          {
+            continue;
+          }
+          shared_ptr<BaseResult> outResult;
+          outResult = shared_ptr<BaseResult>(new Result<Double>());
+          outResult->SetResultInfo( actResultInfo );
+          outResult->SetEntityList( entList );
+
+          solutionTmp = TS_alg_->GetOld(timeStepType);
+          ExtractResult<Double>(outResult, solutionTmp);
+          if (outResults.find(timeStepType) == outResults.end())
+          {
+            StdVector<shared_ptr<BaseResult> > tmp;
+            outResults[timeStepType] = tmp;
+          }
+          outResults[timeStepType].Push_back(outResult);
+        }
+
+        /* go over all derivatives */
+        std::map<DERIVType, Vector<Double> >& DerivMap = TS_alg_->GetDeriveMap();
+        std::map<DERIVType, Vector<Double> >::iterator itDeriv = DerivMap.begin();
+        for (; itDeriv != DerivMap.end(); ++itDeriv)
+        {
+          DERIVType derivType = itDeriv->first;
+          shared_ptr<BaseResult> outResult_solDeriv;
+          outResult_solDeriv = shared_ptr<BaseResult>(new Result<Double>());
+          shared_ptr<ResultInfo> actResultInfo_deriv(new ResultInfo);
+          *actResultInfo_deriv = *actList[i]->GetResultInfo();
+
+          outResult_solDeriv->SetResultInfo( actResultInfo_deriv );
+          outResult_solDeriv->SetEntityList( entList );
+          solutionTmp = TS_alg_->GetDeriv(derivType);
+          ExtractResult<Double>(outResult_solDeriv, \
+              solutionTmp);
+
+          const SolutionType& tmpSolType = \
+            TS_alg_->mapDerivToSolutionType(actResultInfo_deriv->resultType, derivType);
+          actResultInfo_deriv->resultType = tmpSolType;
+          actResultInfo_deriv->resultName = SolutionTypeEnum.ToString(tmpSolType);
+
+          outResult_solDeriv->SetResultInfo( actResultInfo_deriv );
+          if (outResults_deriv.find(derivType) == outResults_deriv.end())
+          {
+            StdVector<shared_ptr<BaseResult> > tmp;
+            outResults_deriv[derivType] = tmp;
+          }
+          outResults_deriv[derivType].Push_back(outResult_solDeriv);
+          restartOutFile->RegisterResult( outResult_solDeriv, \
+              lastTimeStep - numTimeSteps +1, 1, lastTimeStep, false );
+        }
+      }
+    }
+
+    // start the real storring of the files
+    restartOutFile->BeginMultiSequenceStep(1, analysistype_, lastTimeStep);
+    UInt timeStepTypeAsInt = numTimeSteps;
+    for (UInt i = lastTimeStep - timeStepTypeAsInt; i <= lastTimeStep; ++i)
+    {
+      timeTmp = solveStep_->GetActTime() -  (timeStepTypeAsInt -1) * dt;
+      restartOutFile->BeginStep(lastTimeStep - timeStepTypeAsInt +1, timeTmp);
+      writeOutTimeStep(restartOutFile, outResults[(TIMEStepType)timeStepTypeAsInt]);
+      if (timeStepTypeAsInt == TIMESTEP_1)
+      {
+        std::map<DERIVType, StdVector<shared_ptr<BaseResult> > >::iterator itDerivRes = \
+          outResults_deriv.begin();
+        for (; itDerivRes != outResults_deriv.end(); ++itDerivRes)
+        {
+          writeOutTimeStep(restartOutFile, itDerivRes->second);
+        }
+      }
+      restartOutFile->FinishStep();
+      timeStepTypeAsInt -= 1;
+    }
+
+    restartOutFile->FinishMultiSequenceStep();
+    restartOutFile->Finalize();
   }
 
+  void SinglePDE::ReadRestart(UInt &startStep)
+  {
+    /* initialisation for data reading */
+    std::string simName = progOpts->GetSimName();
+    std::string restartFileName = "results_hdf5/"+simName+"_"+pdename_+".restart.h5";
+    PtrParamNode h5Node (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
+    PtrParamNode eFiles (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
+    eFiles->SetName("externalFiles");
+    eFiles->SetValue( "false" );
+    h5Node->AddChildNode(eFiles);
+    shared_ptr<SimInput> input;
+    input = shared_ptr<SimInput>(new SimInputHDF5(restartFileName, h5Node));
+    // read in mesh of input
+    input->InitModule();
+    UInt dim = input->GetDim();
+    Grid* ptGrid = new GridCFS(dim);
+    input->ReadMesh(ptGrid);
+    ptGrid->FinishInit();
+
+    std::map<UInt, BasePDE::AnalysisType> types;
+    std::map<UInt, UInt> numMultiSteps;
+    const bool isHistory = false;
+    input->GetNumMultiSequenceSteps( types, numMultiSteps, isHistory );
+    const UInt lastMultiStep = numMultiSteps.size();
+    if (lastMultiStep != 1)
+    {
+      EXCEPTION("Restart can not handle multiple multistep!")
+    }
+    const UInt lastTimeStep = numMultiSteps[lastMultiStep] -1;
+    startStep = lastTimeStep;
+    std::map<TIMEStepType, Vector<Double> > TsMap = TS_alg_->GetTimeStepMap();
+    // collect all necessary data
+    Vector<Double> tmpVec;
+    SolutionType tmpResType;
+
+    StdVector<shared_ptr<BaseResult> > inResults;
+
+    ResultMap::iterator it = resultLists_.begin();
+    shared_ptr<EntityList> entList;
+    std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps;
+    for (; it != resultLists_.end(); it++)
+    {
+      ResultList & actList = it->second;
+      // iterate over all solutions for each result type
+      for (UInt i = 0; i < actList.GetSize(); ++i)
+      {
+        shared_ptr<ResultInfo> actResultInfo = actList[i]->GetResultInfo();
+        input->GetStepValues( lastMultiStep, actResultInfo,
+            resultSteps[actResultInfo], false);
+
+        // iterate over all regions
+        StdVector<shared_ptr<EntityList> > regions;
+        input->GetResultEntities(lastMultiStep, actResultInfo, regions, isHistory);
+        for (UInt iRegion = 0; iRegion < regions.GetSize(); iRegion++)
+        {
+          // generate new result object and add it to output writer
+          shared_ptr<BaseResult > inResult;
+          if (types[1] != BasePDE::HARMONIC)
+          {
+            inResult  = shared_ptr<BaseResult>( new Result<Double>() );
+          } else {
+            EXCEPTION("restarting over harmonic results ist not implemented");
+          }
+          inResult->SetEntityList( regions[iRegion] );
+          inResult->SetResultInfo( actResultInfo );
+          tmpResType = actResultInfo->resultType;
+
+          /* read in all time steps */
+          std::map<TIMEStepType, Vector<Double> >::iterator itTs = TsMap.begin();
+          for (; itTs != TsMap.end(); ++itTs)
+          {
+            TIMEStepType timeStepType = itTs->first;
+            if (timeStepType == TIMESTEP_0)
+            {
+              continue;
+            }
+            input->GetResult(lastMultiStep, lastTimeStep - timeStepType +1, \
+                inResult, isHistory);
+            tmpVec = TS_alg_->GetOld(timeStepType);
+            InsertResult<Double>(tmpVec, inResult);
+            if (timeStepType == TIMESTEP_1)
+            {
+              sol_->SetAlgSysVector(tmpVec);
+            }
+            TS_alg_->SetOld(tmpVec, timeStepType);
+          }
+
+          /* read in all derivatives steps */
+          std::map<DERIVType, Vector<Double> >& DerivMap = TS_alg_->GetDeriveMap();
+          std::map<DERIVType, Vector<Double> >::iterator itDeriv = DerivMap.begin();
+          for (; itDeriv != DerivMap.end(); ++itDeriv)
+          {
+            DERIVType derivType = itDeriv->first;
+            shared_ptr<ResultInfo> actResultInfo_deriv(new ResultInfo);
+            *actResultInfo_deriv = *actList[i]->GetResultInfo();
+            SolutionType tmpSolType = \
+              TS_alg_->mapDerivToSolutionType(actResultInfo_deriv->resultType, derivType);
+
+            actResultInfo_deriv->resultType = tmpSolType;
+            actResultInfo_deriv->resultName = SolutionTypeEnum.ToString(tmpSolType);
+
+            inResult->SetResultInfo( actResultInfo_deriv );
+            input->GetResult(lastMultiStep, lastTimeStep, inResult, isHistory);
+
+            /* revert the changes from actResultInfo_deriv */
+            inResult->SetResultInfo( actResultInfo);
+            tmpVec = TS_alg_->GetDeriv(derivType);
+            InsertResult<Double>(tmpVec, inResult);
+            TS_alg_->SetDeriv(tmpVec, derivType);
+          }
+        }
+      }
+    }
+  }
 
   void SinglePDE::GetMemento( shared_ptr<PDEMemento>& memento) {
 
@@ -2699,20 +2890,20 @@ namespace CoupledField {
   }
 
   template<class TYPE>
-  void SinglePDE::ExtractResult( shared_ptr<BaseResult> res,
-                                 BaseNodeStoreSol * ptStoreSol ) {
-
+  void SinglePDE::ExtractResult( shared_ptr<BaseResult> toBaseResult,
+                                 BaseNodeStoreSol* ptStoreSol )
+  {
     StdVector<Integer> eqnNums;
-    ResultInfo & actDof = *(res->GetResultInfo() );
+    ResultInfo& actDof = *(toBaseResult->GetResultInfo() );
     UInt numDofs = actDof.dofNames.GetSize();
 
-    Vector<TYPE> & solHelp =
+    Vector<TYPE>& solHelp =
       dynamic_cast<NodeStoreSol<TYPE>&> ( *ptStoreSol ).GetAlgSysVector();
 
-    EntityIterator it = res->GetEntityList()->GetIterator();
+    EntityIterator it = toBaseResult->GetEntityList()->GetIterator();
     Vector<TYPE> & actSol = dynamic_cast<Result<TYPE>&>
-      (*(res)).GetVector();
-    actSol.Resize( res->GetEntityList()->GetSize() *
+      (*toBaseResult).GetVector();
+    actSol.Resize( toBaseResult->GetEntityList()->GetSize() *
                    actDof.dofNames.GetSize() );
 
     actSol.Init();
@@ -2746,6 +2937,69 @@ namespace CoupledField {
     }
 
   }
+  // Instantiate functions
+  template void SinglePDE::ExtractResult<Double>( shared_ptr<BaseResult> res,
+                                                  BaseNodeStoreSol* ptStoreSol );
+  template void SinglePDE::ExtractResult<Complex>( shared_ptr<BaseResult> res,
+                                                  BaseNodeStoreSol* ptStoreSol );
+
+  template<class TYPE>
+  void SinglePDE::ExtractResult( shared_ptr<BaseResult> toBaseStore,
+                                 const Vector<TYPE>& fromVec )
+  {
+    StdVector<Integer> eqnNums;
+    ResultInfo& actDof = *(toBaseStore->GetResultInfo() );
+    UInt numDofs = actDof.dofNames.GetSize();
+
+    EntityIterator it = toBaseStore->GetEntityList()->GetIterator();
+    Vector<TYPE>& actSol = dynamic_cast<Result<TYPE>&> (*toBaseStore).GetVector();
+    actSol.Resize( toBaseStore->GetEntityList()->GetSize() *
+                   actDof.dofNames.GetSize() );
+
+    actSol.Init();
+    for ( it.Begin(); !it.IsEnd(); it++ )
+    {
+      // get equation numbers
+      eqnMap_->GetEqns( eqnNums, actDof, it );
+      //check for discontinuous results and compute the average if necessary
+      if (actDof.fctType->IsDiscontinuous()){
+        //Compute the number of discontinuous dofs
+        UInt numDisNodes = eqnNums.GetSize() / numDofs;
+        Double factor = 1.0 / numDisNodes;
+        for ( UInt iNode = 0; iNode < numDisNodes; iNode++ )
+        {
+          for ( UInt iDof = 0; iDof < numDofs; iDof++ )
+          {
+            if ( eqnNums[iDof] != 0 )
+            {
+              actSol[it.GetPos()*numDofs+iDof] += \
+                fromVec[abs(eqnNums[(iNode*numDofs) + iDof])-1] * factor;
+            } else {
+              actSol[it.GetPos()*numDofs+iDof] += 0.0;
+            }
+          }
+        }
+      } else {
+        for ( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ )
+        {
+          if ( eqnNums[iDof] != 0 )
+          {
+            actSol[it.GetPos()*numDofs+iDof] = fromVec[abs(eqnNums[iDof])-1];
+          } else {
+            actSol[it.GetPos()*numDofs+iDof] = 0.0;
+          }
+        }
+      }
+    }
+
+  }
+  // Instantiate functions
+  template
+  void SinglePDE::ExtractResult<Double>( shared_ptr<BaseResult> toBaseStore,
+                                 const Vector<Double>& fromVec );
+  template
+  void SinglePDE::ExtractResult<Complex>( shared_ptr<BaseResult> toBaseStore,
+                                 const Vector<Complex>& fromVec );
 
   void SinglePDE::ExtractDerivResult( shared_ptr<BaseResult> res, DERIVType derivType ) {
 
@@ -2826,11 +3080,6 @@ namespace CoupledField {
     }
   }
 
-  // Instantiate functions
-  template void SinglePDE::ExtractResult<Double>( shared_ptr<BaseResult> res,
-                                                  BaseNodeStoreSol * ptStoreSol );
-  template void SinglePDE::ExtractResult<Complex>( shared_ptr<BaseResult> res,
-                                                   BaseNodeStoreSol * ptStoreSol );
   template<class TYPE>
   void SinglePDE::ExtractRhsResult( shared_ptr<BaseResult> res,
                                     shared_ptr<ResultInfo> eqnResultInfo ) {
@@ -2869,6 +3118,58 @@ namespace CoupledField {
   template void
   SinglePDE::ExtractRhsResult<Complex>( shared_ptr<BaseResult> res,
                                         shared_ptr<ResultInfo> eqnResultInfo );
+
+  template<class TYPE>
+  void SinglePDE::InsertResult( Vector<TYPE>& toVec,
+                                shared_ptr<BaseResult> fromBaseResult)
+  {
+    StdVector<Integer> eqnNums;
+    ResultInfo & actDof = *(fromBaseResult->GetResultInfo() );
+    UInt numDofs = actDof.dofNames.GetSize();
+
+    EntityIterator it = fromBaseResult->GetEntityList()->GetIterator();
+    Vector<TYPE> & actSol = dynamic_cast<Result<TYPE>&>
+      (*(fromBaseResult)).GetVector();
+
+    for (it.Begin(); !it.IsEnd(); it++)
+    {
+      // get equation numbers
+      eqnMap_->GetEqns( eqnNums, actDof, it );
+      //check for discontinuous results and compute the average if necessary
+      if (actDof.fctType->IsDiscontinuous())
+      {
+        //Compute the number of discontinuous dofs
+        UInt numDisNodes = eqnNums.GetSize() / numDofs;
+        Double numDisNodesDouble = (Double)numDisNodes;
+        for ( UInt iNode = 0; iNode < numDisNodes; iNode++ )
+        {
+          for ( UInt iDof = 0; iDof < numDofs; iDof++ )
+          {
+            if ( eqnNums[iDof] != 0 )
+            {
+              toVec[abs(eqnNums[(iNode*numDofs) + iDof])-1] += \
+                actSol[it.GetPos()*numDofs+iDof] * numDisNodesDouble;
+            }
+          }
+        }
+      } else {
+        for ( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ )
+        {
+          if ( eqnNums[iDof] != 0 )
+          {
+            toVec[abs(eqnNums[iDof])-1] = actSol[it.GetPos()*numDofs+iDof];
+          }
+        }
+      }
+    }
+  }
+  // Instantiate functions
+  template
+  void SinglePDE::InsertResult<Double>( Vector<Double>& toVec,
+                                shared_ptr<BaseResult> fromBaseResult);
+  template
+  void SinglePDE::InsertResult<Complex>( Vector<Complex>& toVec,
+                                shared_ptr<BaseResult> fromBaseResult);
 
   // ======================================================
   // SCRIPTING SECTION
@@ -3385,8 +3686,9 @@ namespace CoupledField {
    }
 
    template <class TYPE>
-   void SinglePDE::CalcElemGradMatrix(const Elem* elem, const StdVector<UInt>& wanted, UInt dof,
-                                          shared_ptr<AnsatzFct> fctType, Matrix<TYPE>& q_mat)
+   void SinglePDE::CalcElemGradMatrix(const Elem* elem, \
+       const StdVector<UInt>& wanted, UInt dof, \
+       shared_ptr<AnsatzFct> fctType, Matrix<TYPE>& q_mat)
    {
      assert(dof >= 1 && dof <= 3);
 
@@ -3585,6 +3887,21 @@ namespace CoupledField {
      }
    }
 
+  inline void SinglePDE::writeOutTimeStep(shared_ptr<SimOutput>& outFile, \
+      StdVector<shared_ptr<BaseResult> >& outResults)
+  {
+    for( UInt iRes = 0; iRes < outResults.GetSize(); iRes++)
+    {
+      try {
+        outFile->AddResult(outResults[iRes]);
+      } catch (Exception& ex ) {
+        std::cerr <<  "\nResult '" << outResults[iRes]->GetResultInfo()->resultName
+          << "' in MsStep: " << 1 << ", step: " << 1
+          << " could not be converted:\n\n";
+        std::cerr << ex.what() << std::endl;
+      }
+    }
+  }
 } // end of namespace
 
 // explicit template instantiation for GCC compiler

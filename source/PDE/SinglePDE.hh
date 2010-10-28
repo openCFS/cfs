@@ -16,6 +16,8 @@
 #include "Utils/elemstoresol.hh"
 #include "Domain/bcs.hh"
 #include "Utils/result.hh"
+#include "DataInOut/SimInOut/hdf5/simOutputHDF5.hh"
+#include "DataInOut/SimInOut/hdf5/simInputHDF5.hh"
 
 namespace CoupledField
 {
@@ -451,10 +453,14 @@ namespace CoupledField
     //@{
     //! \name Attributes connected to storing information
     
+    //! Copy the solution from a vector to a BaseNodeStoreSol object
+    template<class TYPE>
+    void ExtractResult( shared_ptr<BaseResult> toBaseStore, \
+                                   const Vector<TYPE>& fromVec );
     //! Copy the solution from a nodeStoresolution object to a solution object
     template<class TYPE>
-    void ExtractResult( shared_ptr<BaseResult> res,
-                        BaseNodeStoreSol * ptStoreSol );
+    void ExtractResult( shared_ptr<BaseResult> toBaseResult,
+                        BaseNodeStoreSol* ptStoreSol );
 
     //! Copy the time derivative of the solution to a solution objet
 
@@ -465,6 +471,11 @@ namespace CoupledField
     template<class TYPE>
     void ExtractRhsResult( shared_ptr<BaseResult> res, 
                            shared_ptr<ResultInfo> eqnResultInfo );
+    //! Copy the solution from a solution object to a nodeStoresolution object
+    //! So the oposite way if ExtractResult.
+    template<class TYPE>
+    void InsertResult( Vector<TYPE> &resVec,
+                       shared_ptr<BaseResult> res );
 
     //! Set containing the types of possible results
     ResultSet availResults_;
@@ -530,6 +541,12 @@ namespace CoupledField
     //@}
     
   private:
+    /** write out results for restart
+     * @param outFile the file to write to
+     * @param outResults the results to write
+     */
+    inline void writeOutTimeStep(shared_ptr<SimOutput>& outFile, \
+        StdVector<shared_ptr<BaseResult> >& outResults);
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

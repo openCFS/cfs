@@ -171,14 +171,29 @@ namespace CoupledField {
     /**
      * Gives back the coefficients needed for the time stepping algorithm.
      * The coefficient vector has length zero if it has not been set.
-     * @return returns a vector of the time stepping coefficients with the first
-     * entry ([0]) belonging to the last time step, the next entry ([1]) to the
-     * time step before etc.
+     * @return returns a map of the time stepping coefficients 
      * @warning The coefficients are not set in every time stepping algorithms
      */
     virtual const std::map<TIMEStepType, Double>& GetCoefficients() const
     {
       return sol_timeStepCoeff_;
+    }
+
+    /**
+     * Gives back the derivatives
+     * @return returns a map of the derivatives
+     */
+    virtual std::map<TIMEStepType, Vector<Double> >& GetTimeStepMap()
+    {
+      return sol_timeStepVec_;
+    }
+    /**
+     * Gives back the derivatives
+     * @return returns a map of the derivatives
+     */
+    virtual std::map<DERIVType, Vector<Double> >& GetDeriveMap()
+    {
+      return solDeriv_vec_;
     }
 
     //! set the time step
@@ -211,6 +226,7 @@ namespace CoupledField {
       EXCEPTION( "DirichletBC4EffMassMatrix not implemented" );
       return -1.0;
     }
+    SolutionType mapDerivToSolutionType(const SolutionType solType, const DERIVType derivType) const;
 
   protected:
 

@@ -62,8 +62,6 @@ namespace CoupledField
 
   void Bdf2::Predictor(Vector<Double>& solold)
   {
-    sol_timeStepVec_[TIMESTEP_2] = sol_timeStepVec_[TIMESTEP_1];
-    sol_timeStepVec_[TIMESTEP_1] = solold;
   }
 
 
@@ -90,6 +88,16 @@ namespace CoupledField
     //std::cout << "\n Bdf2 Cor solderiv2_: \n" << solderiv2_ << std::endl;
     //LOG_DBG(bdf2) << "\n Cor solnew: \n" << solnew << std::endl;
     //LOG_DBG(bdf2) << "\n Cor solderiv2_: \n" << solderiv2_ << std::endl;
+  }
+
+  void Bdf2::AdvanceTimestep(Vector<Double>& solnew)
+  {
+    // TODO: were should the derivative be calculated??? Necessary only for
+    // calculating acoustics
+    //solderiv1_ =  (solnew - sol_tn_1_) * (1.0/dt_);
+
+    sol_timeStepVec_[TIMESTEP_2] = sol_timeStepVec_[TIMESTEP_1];
+    sol_timeStepVec_[TIMESTEP_1] = solnew;
   }
 
   void Bdf2 :: CalcParameters(Double dt)

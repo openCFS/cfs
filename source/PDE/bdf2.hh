@@ -39,6 +39,8 @@ namespace CoupledField
     //! perform an update to RHS
     void UpdateRHS();
 
+    void AdvanceTimestep(Vector<Double>& solnew);
+
     //! Substract Stiffness from RHS
     virtual void SubstractStiffnessFromRHS(Vector<Double>& actSol)
     {;};

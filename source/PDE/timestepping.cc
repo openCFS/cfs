@@ -38,6 +38,68 @@ namespace CoupledField {
       return false;
     }
   }
+
+  SolutionType
+  TimeStepping::mapDerivToSolutionType(const SolutionType solType, const DERIVType derivType) const
+  {
+    SolutionType retSolType = NO_SOLUTION_TYPE;
+    switch (derivType)
+    {
+      case FIRST_DERIV:
+        switch (solType)
+        {
+          case FLUIDMECH_VELOCITY:
+            retSolType = FLUIDMECH_VELOCITY_DERIV_1;
+            break;
+          case FLUIDMECH_PRESSURE:
+            retSolType = FLUIDMECH_PRESSURE_DERIV_1;
+            break;
+          case MECH_DISPLACEMENT:
+            retSolType = MECH_DISPLACEMENT_DERIV_1;
+            break;
+          case ACOU_PRESSURE:
+            retSolType = ACOU_PRESSURE_DERIV_1;
+            break;
+          case ACOU_POTENTIAL:
+            retSolType = ACOU_POTENTIAL_DERIV_1;
+            break;
+          case BUBBLE_RADIUS:
+            retSolType = BUBBLE_RADIUS_DERIV_1;
+            break;
+          default:
+            EXCEPTION("not implemented for that deriv: " \
+                << SolutionTypeEnum.ToString(solType));
+        }
+        break;
+      case SECOND_DERIV:
+        switch (solType)
+        {
+          case FLUIDMECH_VELOCITY:
+            retSolType = FLUIDMECH_VELOCITY_DERIV_2;
+            break;
+          case FLUIDMECH_PRESSURE:
+            retSolType = FLUIDMECH_PRESSURE_DERIV_2;
+            break;
+          case MECH_DISPLACEMENT:
+            retSolType = MECH_DISPLACEMENT_DERIV_2;
+            break;
+          case ACOU_PRESSURE:
+            retSolType = ACOU_PRESSURE_DERIV_2;
+            break;
+          case ACOU_POTENTIAL:
+            retSolType = ACOU_POTENTIAL_DERIV_2;
+            break;
+          default:
+            EXCEPTION("not implemented for that deriv: " \
+                << SolutionTypeEnum.ToString(solType));
+        }
+        break;
+      default:
+        EXCEPTION("not implemented for that deriv: " \
+            << SolutionTypeEnum.ToString(solType));
+    }
+    return retSolType;
+  }
      
 
 
