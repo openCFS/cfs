@@ -88,22 +88,44 @@ namespace CoupledField {
     // Delete algebraic system only if
     // PDE is not direct coupled
     if ( isDirectCoupled_ == false ) {
-      if ( needsAlgsys_ && (algsys_ != NULL))
+      if ( needsAlgsys_ && (algsys_ != NULL)) {
         delete algsys_;
-      if (solveStep_) delete solveStep_;
-      if (TS_alg_) delete TS_alg_;
-      if (assemble_) delete assemble_;
+        algsys_ = NULL;
+      }
+      if (solveStep_) {
+        delete solveStep_;
+        solveStep_ = NULL;
+      }
+      if (TS_alg_) {
+        delete TS_alg_;
+        TS_alg_ = NULL;
+      }
+      if (assemble_) { 
+        delete assemble_;
+        assemble_ = NULL;
+      }
     }
 
 
-    if (sol_) delete sol_;
+    if (sol_) {
+      delete sol_;
+      sol_ = NULL;
+    }
     if( !isDirectCoupled_ ) {
-      if (solVec_) delete solVec_;
-      if (rhsVec_) delete rhsVec_;
+      if (solVec_) {
+        delete solVec_;
+        solVec_ = NULL;
+      }
+      if (rhsVec_) {
+        delete rhsVec_;
+        rhsVec_ = NULL;
+      }
     }
 
-    if ( needSolPrev_ && (solPrev_ != NULL))
+    if ( needSolPrev_ && (solPrev_ != NULL)) {
       delete solPrev_;
+      solPrev_ = NULL;
+    }
 
 
     std::map<RegionIdType, BaseMaterial*>::iterator it;
@@ -1887,6 +1909,7 @@ namespace CoupledField {
       RegionIdType actRegionId = subdoms_[i];
       if ((materials_.find(actRegionId) == matEnd)
           && (compositeMaterials_.find(actRegionId) == compEnd)) {
+        region = ptgrid_->GetRegion().ToString(actRegionId);
         EXCEPTION("Region '" << region << "' has no material assigned.");
       }
     }
