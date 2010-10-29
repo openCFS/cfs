@@ -20,7 +20,6 @@ namespace CoupledField
   Newmark::Newmark(BaseSystem * algebraicsystem, PtrParamNode systemNode )
     :TimeStepping(algebraicsystem )
   {
-    std::cerr << __LINE__ << " " << ":" << __FILE__ << " : " << std::endl;
 
     // Default values for beta and gamma are:
     //   beta  = 0.25
