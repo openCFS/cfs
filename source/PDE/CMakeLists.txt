@@ -45,8 +45,14 @@ SET(TARGET_LL
   paramh
   matvec
   utils
-  ${BOOST_SERIALIZATION_HDF5_LIB}
 )
+
+IF(USE_HDF5)
+  SET(TARGET_LL
+    ${TARGET_LL}
+    siminouthdf5
+    )
+ENDIF(USE_HDF5)
 
 IF(USE_MPCCI)
   SET(TARGET_LL
