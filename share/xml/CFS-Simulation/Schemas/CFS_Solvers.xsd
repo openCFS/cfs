@@ -195,6 +195,20 @@
           <xsd:element name="hermitean" type="DT_CFSBool" minOccurs="0"/>
           <xsd:element name="symStruct" type="DT_CFSBool" minOccurs="0"/>
           <xsd:element name="ordering"  type="DT_PardisoOrdering" minOccurs="0"/>
+          
+          <xsd:element name="outOfCore" type="xsd:int" minOccurs="0" default="0">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en"> Switch on out-of-core (OOC) mode of Pardiso. With
+                OOC Pardiso uses virtual memory to solve big problems which exceed the size of
+                system RAM. It comes at a performance penalty however since data has to be swapped
+                to the hard disk. By default it is set to off (0). If this parameter is set to 1
+                Pardiso decides wether or not to use OOC. If this parameter is 2 OOC is forced on.
+                To set options for OOC (e.g. MKL_PARDISO_OOC_MAX_CORE_SIZE = 250) create a file
+                pardiso_ooc.cfg in your working directory. Acts on IPARM(60).
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          
           <xsd:element name="IterRefineSteps"  type="xsd:int" minOccurs="0">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">

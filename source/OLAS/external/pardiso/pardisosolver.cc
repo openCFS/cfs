@@ -68,7 +68,7 @@ extern "C" {
       case INPUT_INCONSISTENT:
         return "Input inconsistent.";
       case NOT_ENOUGH_MEMORY:
-        return "Not enough memory.";
+        return "Not enough memory. Try to switch to out-of-core mode if using MKL.";
       case REORDERING_PROBLEM:
         return "Reordering problem.";
       case ZERO_PIVOT:
@@ -79,6 +79,8 @@ extern "C" {
         return "Diagonal matrix problem.";
       case INT_OVERFLOW:
         return "32-bit integer overflow problem.";
+      case NOT_ENOUGH_OOC_MEM:
+        return "Not enough memory for out-of-core. Try increasing MKL_PARDISO_OOC_MAX_CORE_SIZE in ./pardiso_ooc.cfg.";
       case NO_LIC_FILE:
         {
           std::string msg;
@@ -418,7 +420,7 @@ extern "C" {
     // has not changed
     if ( facSymbolic ) {
       LOG_TRACE(pardisoSolver) << " Calling pardisoinit";
-      
+
 #if PARDISO_API_VER == 4
       Integer error = 0;
       F77_FUNC(pardisoinit) ( &pt_[0],  &mType_, &mSolver_, &iparm_[0], &dparm_[0], &error);
@@ -430,6 +432,7 @@ extern "C" {
 #if PARDISO_API_VER == 3
       F77_FUNC(pardisoinit) ( &pt_[0], &mType_, &iparm_[0] );
 #endif
+
     }
 
 
@@ -545,6 +548,19 @@ extern "C" {
       msgLvl_ = 1;
     }
 
+    // Switch on out-of-core
+    if (sNode->Has("outOfCore"))
+    {
+      sNode->GetValue("outOfCore", iparm_[59], ParamNode::INSERT);
+    } else 
+    {
+      if(std::string(CFS_PARDISO) != "MKL") 
+      {
+        WARN( "The value of outOfCore has no effect for " << CFS_PARDISO << ".\n"
+              << "Switch to MKL if want to use out-of-core memory." );
+      }
+    }
+
     // Switch to iterative solver
     if(mSolver_) {
 #if PARDISO_API_VER == 3
@@ -566,10 +582,10 @@ extern "C" {
     {
       sNode->GetValue("IterRefineSteps", iparm_[7], ParamNode::INSERT);
     } else if (iparm_[7] == 0 && mType_ > 10) {
-      std::cerr << "\033[1;33mWarning: Iterative refinement steps is not set!\n" \
-        << "PARDISO did not set it neither.\n" \
-        << "It is advisable for unsymmetric to set it in the xml,\n" \
-        << "since bad pivotisation may result in numerical errors!\033[0m"<< std::endl;
+      WARN( "Iterative refinement steps is not set!\n" 
+            << "PARDISO did not set it neither.\n"
+            << "It is advisable for unsymmetric to set it in the xml,\n"
+            << "since bad pivotisation may result in numerical errors!" );
     }
     
     // we have to icrement the entries of the col- and row-position arrays
@@ -612,7 +628,7 @@ extern "C" {
       // Check return status
       if ( errorFlag != NO_ERROR ) {
         EXCEPTION( "Error occured during symbolic factorization:\n"
-                   << GetErrorString(errorFlag) );
+                   << GetErrorString(errorFlag));
       }
       else {
         LOG_TRACE(pardisoSolver) << "done";
