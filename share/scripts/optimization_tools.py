@@ -3,6 +3,7 @@
 
 import libxml2
 import numpy
+import numpy.linalg
 import math
 import os
 from lxml import etree
@@ -12,6 +13,7 @@ from distutils.command.build_scripts import first_line_re
 
 ## Read an arbitrary density file as NDArray
 # Uses the <mesh x="30" y="20" z="1"/> element in the header of the density file
+# if not the whole domain is design domain, the data is read as 1D array
 # param elemnr if False the design is read, otherwise nr
 def read_density(filename, elemnr=False):
   vals = read_density_as_vector(filename, elemnr)
@@ -21,26 +23,38 @@ def read_density(filename, elemnr=False):
   x = int(root.xpath("//mesh/@x")[0])
   y = int(root.xpath("//mesh/@y")[0])
   z = int(root.xpath("//mesh/@z")[0])
-  
-  dim = cond(z > 1, 3, 2)
+
+  # density files where not the whole domain is design domain are read and re-written
+  # as 1D arrays
+  dim = cond(y > 1, cond(z > 1, 3, 2), 1)
+  ret = 0
      
-  if not x*y*z == len(vals):
+  if len(vals) > x*y*z:
     raise RuntimeError("density mesh information x=" + str(x) + " y=" + str(y) + " z=" + str(z)\
                         + " does not match " + str(len(vals)) + " elements in " + filename) 
+  if len(vals) == x*y*z:
+    # full array!
+    if dim == 2:
+      ret = numpy.zeros((x, y))
+    else:
+      ret = numpy.zeros((x, y, z))
 
-  ret = 0
-  if dim == 2:
-    ret = numpy.zeros((x, y))
-  else:
-    ret = numpy.zeros((x, y, z))
+    # copy data from linear list
+    for k in range(z):
+      for j in range(y):
+        for i in range(x):
+          idx = int(x*y*k + x*j + i)
+          # print "i=" + str(i) + " j=" + str(j) + " k=" + str(k) + " idx=" + str(idx)
+          setNDArrayEntry(ret, i, j, k, vals[idx])
+
   
-  # copy data from linear list
-  for k in range(z):
-    for j in range(y):
-      for i in range(x):
-        idx = int(x*y*k + x*j + i)
-        # print "i=" + str(i) + " j=" + str(j) + " k=" + str(k) + " idx=" + str(idx)
-        setNDArrayEntry(ret, dim, i, j, k, vals[idx])
+  if len(vals) < x*y*z:
+    # we need to be 1D
+    x = len(vals)
+    ret = numpy.zeros((x))
+    for i in range(x):
+      ret[i] = vals[i]    
+  
         
   return ret
 
@@ -101,7 +115,7 @@ def read_density_as_vector(filename, elemnr=False):
   return vals
   
 ## write the data to a density.xml file
-# @param data_inp a ndata array (2D or 3D) or a list of data
+# @param data_inp a ndata array (1D, 2D or 3D) or a list of data
 # @param setname_inp the name of the set or a list of setnames
 def write_density_file(filename, data_inp, setname_inp):
   # check if we deal with lists or not
@@ -120,11 +134,7 @@ def write_density_file(filename, data_inp, setname_inp):
   out.write('  <header>\n')
 
   data    = data_list[0]
-  x = data.shape[0]
-  y = data.shape[1]
-  z = 1
-  if data.ndim >= 3:
-    z = data.shape[2]
+  x, y, z = getDim(data)
   out.write('    <mesh x="' + str(x) + '" y="' + str(y) + '" z="' + str(z) + '"/>\n')  
   out.write('    <design initial="0.5" lower="1e-3" name="density" region="mech" upper="1"/>\n')
   out.write('    <transferFunction application="mech" design="density" param="1" type="simp"/>\n')
@@ -136,19 +146,13 @@ def write_density_file(filename, data_inp, setname_inp):
     setname = setname_list[i]
     out.write('  <set id="' + setname + '">\n')
     dim = data.ndim
-    x = data.shape[0]
-    y = 1 # unfortunately there is no real conditional operator :(
-    if dim >= 2:
-      y = data.shape[1]
-    z = 1
-    if dim >= 3:
-      z = data.shape[2]  
+    x, y, z = getDim(data)
     counter = 1
 
     for k in range(z):
       for j in range(y):
         for i in range(x):    
-           val = getNDArrayEntry(data, dim, i, j, k)
+           val = getNDArrayEntry(data, i, j, k)
            # print " i=" + str(i) + " j=" + str(j) + " k=" + str(k) + " idx=" + str(counter)
            out.write('    <element nr="' + str(counter) + '" type="density" design="' + str(val) + '"/>\n')
            counter = counter + 1       
@@ -174,13 +178,13 @@ def physical_volume(data, penalty):
   for i in range(x):
     for j in range(y):
       for k in range(z):
-        org = getNDArrayEntry(data, dim, i, j, k)
+        org = getNDArrayEntry(data, i, j, k)
         vol = vol + pow(org, penalty)
         
   return vol / data.size              
 
 
-## apply a treshold filter on a 2D/3D matrix
+## apply a threshold filter on a 2D/3D matrix
 # @param data original 2D/3D data
 # @param treshold all smaller threshold becomes min, otherwise max
 # @return a new data array 
@@ -190,12 +194,15 @@ def threshold_filter(data, threshold, min, max):
   x, y, z = getDim(data)
   res = numpy.copy(data)
     
+  # handle the case that threshold is smaller than min
+  barrier = cond(threshold < min, min, threshold)
+    
   for i in range(x):
     for j in range(y):
       for k in range(z):
-        org = getNDArrayEntry(data, dim, i, j, k)
-        val = cond(org < threshold, min, max)
-        setNDArrayEntry(res, dim, i, j, k, val)        
+        org = getNDArrayEntry(data, i, j, k)
+        val = cond(org < barrier, min, max)
+        setNDArrayEntry(res, i, j, k, val)        
 
   return res  
 
@@ -224,6 +231,62 @@ def auto_threshold_filter(data, min, target, material_penalty):
   
   return threshold_filter(data, lower, min, 1), lower   
 
+## interpolates a floating point coordinate within an numpy.array
+# @param data an numpy.array
+# @param position an arbitrary 2D/ 3D array from where we want to get the data
+# @param quiet error if the data does not exist or evaluate periodic
+# @param periodic if data does not exist it is extended periodically or default_val is taken
+# @param default_value
+def interpolate(data, position, quiet=False, periodic=True, default_value=0.001):
+
+  #this is the corrected position pointer
+  corrected = numpy.copy(position)
+  
+  for i in range(len(position)):
+    x = int(position[i])
+    # are we in the correct data range?
+    if x > 0 and x < data.shape[i]:
+      corrected[i] = int(x)
+      continue
+    if not quiet:
+      raise RuntimeError("position " + str(b) + " not within data " + str(data.shape))
+    if not periodic:
+      return default_value
+    # periodic case
+    if x < 0:
+      corrected[i] = data.shape[i] + x
+    else:
+      corrected[i] = x - data.shape[i]
+  
+  if len(corrected) == 2:
+    val = data[corrected[0], corrected[1]]
+  else:
+    val = data[corrected[0], corrected[1], corrected[2]]    
+
+  return val 
+
+## rotates an ndarray by an arbitrary rotation matrix
+# for all intermediate materials there will be data with no origin,
+# these data is considered periodic
+def rotate(data, rot):
+  result = numpy.copy(data)
+  x, y, z = getDim(data)
+  
+  center = [x * 0.5, y * 0.5, z * 0.5]
+  
+  for i in range(x):
+    for j in range(y):
+      for k in range(z):
+        # algorithm for each target point rotate backwards to the original point
+        target = [i-center[0], j - center[1], k - center[2]]
+        brt = numpy.dot(rot.T, target) # back_rot_target
+        # denormalize the center
+        origin = brt + center
+        # print "rotate " + str(target) + " back to " + str(brt) + " -> " + str(origin) 
+        val = interpolate(data, origin, quiet=True, periodic=True)
+        setNDArrayEntry(result, i, j, k, val) 
+         
+  return result       
 
 ## rotate a 3d matrix
 # exchange x and y
@@ -236,8 +299,8 @@ def rotate_matrix_x_y(data):
   for i in range(edge):
     for j in range(edge):
       for k in range(cond(dim == 2, 1, edge)):
-        val = getNDArrayEntry(data, dim, i, j, k)
-        setNDArrayEntry(res, dim, j, i, k, val)        
+        val = getNDArrayEntry(data, i, j, k)
+        setNDArrayEntry(res, j, i, k, val)        
 
   return res  
 
@@ -252,8 +315,8 @@ def rotate_matrix_x_z(data):
   for i in range(edge):
     for j in range(edge):
       for k in range(cond(dim == 2, 1, edge)):
-        val = getNDArrayEntry(data, dim, i, j, k)
-        setNDArrayEntry(res, dim, k, j, i, val)        
+        val = getNDArrayEntry(data, i, j, k)
+        setNDArrayEntry(res, k, j, i, val)        
 
   return res
 
@@ -281,8 +344,8 @@ def enlarge_matrix(data, times_x, times_y = 1, times_z = 1):
         for i in range(x_edge):
           for j in range(y_edge):
             for k in range(z_edge):
-              val = getNDArrayEntry(data, dim, i, j, k)
-              setNDArrayEntry(res, dim, x_base + i, y_base + j, z_base + k, val)
+              val = getNDArrayEntry(data, i, j, k)
+              setNDArrayEntry(res, x_base + i, y_base + j, z_base + k, val)
 
   return res                     
 
@@ -301,24 +364,24 @@ def refine_density(infile, outfile):
   for i in range(x):
     for j in range(y):
       for k in range(z):
-        val = getNDArrayEntry(org, dim, i, j, k)
+        val = getNDArrayEntry(org, i, j, k)
         # in 2D the z-component is ignored and we set the value twice
-        setNDArrayEntry(out, dim, i*2 + 0, j*2 + 0, k*2 + 0, val)
-        setNDArrayEntry(out, dim, i*2 + 0, j*2 + 0, k*2 + 1, val)
-        setNDArrayEntry(out, dim, i*2 + 0, j*2 + 1, k*2 + 0, val)
-        setNDArrayEntry(out, dim, i*2 + 0, j*2 + 1, k*2 + 1, val)
-        setNDArrayEntry(out, dim, i*2 + 1, j*2 + 0, k*2 + 0, val)
-        setNDArrayEntry(out, dim, i*2 + 1, j*2 + 0, k*2 + 1, val)
-        setNDArrayEntry(out, dim, i*2 + 1, j*2 + 1, k*2 + 0, val)
-        setNDArrayEntry(out, dim, i*2 + 1, j*2 + 1, k*2 + 1, val)
+        setNDArrayEntry(out, i*2 + 0, j*2 + 0, k*2 + 0, val)
+        setNDArrayEntry(out, i*2 + 0, j*2 + 0, k*2 + 1, val)
+        setNDArrayEntry(out, i*2 + 0, j*2 + 1, k*2 + 0, val)
+        setNDArrayEntry(out, i*2 + 0, j*2 + 1, k*2 + 1, val)
+        setNDArrayEntry(out, i*2 + 1, j*2 + 0, k*2 + 0, val)
+        setNDArrayEntry(out, i*2 + 1, j*2 + 0, k*2 + 1, val)
+        setNDArrayEntry(out, i*2 + 1, j*2 + 1, k*2 + 0, val)
+        setNDArrayEntry(out, i*2 + 1, j*2 + 1, k*2 + 1, val)
         
   write_density_file(outfile, out, "refined")
   return out 
 
-# Assuming there is a sequence of CFS runs by a paramerer study. This method finds the closes
+# Assuming there is a sequence of CFS runs by a parameter study. This method finds the closes
 # valid run
 # @param filename: the filename with a special key for the running number. e.g. 'j_near_f_$_ah_60.info.xml'
-# @param key: the key withing filename, here $
+# @param key: the key within filename, here $
 # @param start: the first number to search for the file (inclusive!)
 # @param stop: the last number to check (inclusive). Smaller or larger start!
 # @return: the number within start and end 

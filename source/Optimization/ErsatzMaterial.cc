@@ -1345,6 +1345,12 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
   // rhs w.r.p to one element: 2* sum_ip strees^T * M * rho^p E_0 B(ip)
   //            if i=j:      + 2 * stress^T * M * (rho^p)' E_0 B(ip) u
 
+  // we follow the qp-relaxation: Bruggi 2008, actually going back to Duysinx and Bendsoe 1998
+  // The idea of the qp-relaxion is, that the stress is calculated based on the standard simp penalization (p).
+  // To have vanishing constraints for vanishing stress we divide by rho^q (stress).
+  // In this implementation we make a new penalization and apply it to the stress, this is easier as we
+  // need no chain rule for the derivative. Clearly works only if the mech and stress transfer functions are simp.
+
   LOG_DBG2(em) << "CVMSV: excite=" << excite.index << " adjont=" << adjoint_rhs << " grad_contrib=" << grad_contrib;
   assert((adjoint_rhs && !grad_contrib) || !adjoint_rhs);
   // adjoint_rhs:   result is raw vector size with summed up 2 * stress^T * M * (rho^p * E_0 * B)
@@ -1369,8 +1375,14 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
   assert(design->design.GetSize() == 1); // easy to extend
   assert(design->regions.GetSize() == 1); // easy to extend
 
-  // the are special transfer functions for the stress
-  TransferFunction* tf = design->GetTransferFunction(DesignElement::DENSITY, STRESS);
+  // the are special transfer functions for the stress (q) as relaxation and the fem simulation (p). See above!
+  TransferFunction* tf_p = design->GetTransferFunction(DesignElement::DENSITY, MECH);
+  TransferFunction* tf_q = design->GetTransferFunction(DesignElement::DENSITY, STRESS);
+
+  if(tf_q->GetType() != TransferFunction::SIMP_TYPE || tf_p->GetType() != TransferFunction::SIMP_TYPE)
+    throw Exception("Stress constraints are currently only implemented for simp type transfer functions in 'mech' and 'stress'.");
+  TransferFunction qp(NO_APP, TransferFunction::SIMP_TYPE, tf_p->GetParam() - tf_q->GetParam(), tf_p->GetDesign());
+  LOG_DBG2(em) << "CVMSV: p=" << tf_p->GetParam() << " q=" << tf_q->GetParam() << " qp=" << qp.GetParam();
 
   linElastInt* form = dynamic_cast<linElastInt*>(GetForm(design->GetRegionId(), pde, pde, "linElastInt"));
 
@@ -1402,7 +1414,7 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
     Vector<double>& u_elem = dynamic_cast<Vector<double>& >(*(all_u_elem[e]));
 
     // apply our own physical densities!
-    form->calcDMat(E, NULL, DesignElement::DENSITY, tf->Transform(de, DesignElement::SMART));
+    form->calcDMat(E, NULL, DesignElement::DENSITY, qp.Transform(de, DesignElement::SMART));
 
     elemList.SetElement(de->elem);
     EntityIterator it = elemList.GetIterator();
@@ -1481,11 +1493,11 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
       else
       {
         // additional factor for grad_contrib. We replace one rho^p by (rho^p)'
-        correct = 2.0 * tf->Derivative(de, DesignElement::SMART) / tf->Transform(de, DesignElement::SMART);
+        correct = 2.0 * qp.Derivative(de, DesignElement::SMART) / qp.Transform(de, DesignElement::SMART);
       }
 
       LOG_DBG2(em) << "CVMSV de=" << de->ToString() << " gv= " << grad_contrib << " rho=" << de->GetDesign(DesignElement::SMART) << " sMs=" << result[e] << " deriv="
-                   << tf->Derivative(de, DesignElement::SMART) << " trans=" <<  tf->Transform(de, DesignElement::SMART) << " correct=" << correct << " -> " << (correct * result[e]);
+                   << qp.Derivative(de, DesignElement::SMART) << " trans=" <<  qp.Transform(de, DesignElement::SMART) << " correct=" << correct << " -> " << (correct * result[e]);
 
       result[e] *= correct;
     }

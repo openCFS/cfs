@@ -772,8 +772,8 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
       double value = g->GetValue();
       if(g->delta_logging) value = value - g->GetBoundValue();
       if(out) *out << "\t" << value;
-      // excitation sensitive constraints are printed in the excitation list
-      if(!g->IsExcitationSensitive())
+      // excitation sensitive constraints are printed in the excitation list if there is one
+      if(!g->IsExcitationSensitive() || me->excitations.GetSize() < 2)
       {
         iteration->Get(g->ToString(me))->SetValue(value);
         // don't report for local, they should be almost always feasible for MMA, ...

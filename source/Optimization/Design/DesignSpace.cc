@@ -135,17 +135,19 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& regionIds, ParamNodeList &pn_d
             regions[r].constant = false;
           }
 
-          if(design_reg == "all" || design_reg == reg){
+          if(design_reg == "all" || design_reg == reg)
+          {
             int di = design.Find(dt);
             if(!region_design[r*nd + di]){
               throw Exception("Design/Region combination given twice!");
             }
             region_design[r*nd + di] = false;
-            if(curr_design_pn->Get("constant")->As<bool>()){ // we have a constant densign-value on that region
+            if(curr_design_pn->Has("constant") && curr_design_pn->Get("constant")->As<bool>()){
+              // we have a constant densign-value on that region
               regions[r].constant = true;
             }
             
-            if(curr_design_pn->Get("scale")->As<bool>()){
+            if(curr_design_pn->Has("scale") && curr_design_pn->Get("scale")->As<bool>()){
               double upper = curr_design_pn->Get("upper")->As<double>();
               double lower = curr_design_pn->Get("lower")->As<double>();
               scale_design[di][r] = (upper - lower);
@@ -252,6 +254,15 @@ void DesignSpace::PostInit(int objectives, int constraints)
     data[i].PostInit(objectives, constraints);
 }
 
+bool DesignSpace::Contains(const RegionIdType reg) const
+{
+  for(unsigned int i = 0, n = regions.GetSize(); i < n; i++)
+    if(regions[i].regionId == reg)
+      return true;
+
+  return false;
+}
+
 void DesignSpace::SetDesignMaterial(PtrParamNode dm){
   if(transfer.GetSize() > 0)
     throw Exception("designmaterial can not be given when using transferFunctions");
@@ -321,6 +332,7 @@ ResultInfo* DesignSpace::GetResultInfo(ResultDescription& rd)
   // I hate it!!! :(
   ri->resultType = (SolutionType) rd.solutionType;
 
+  // in info.xml result output the " (" is replaced by "_("!
   ri->resultName = DesignElement::valueSpecifier.ToString(rd.value) + "_"
                    + (rd.detail != DesignElement::NONE ? (DesignElement::detail.ToString(rd.detail) + "_") : "")
                    + DesignElement::type.ToString(rd.design) + " ("

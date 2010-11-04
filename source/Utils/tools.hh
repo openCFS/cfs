@@ -139,9 +139,9 @@ namespace CoupledField {
   void Assign(Matrix<Complex>& target, const Matrix<Double>&  other, const Complex factor);
   void Assign(Matrix<Complex>& target, const Matrix<Double>&  other, const Double factor);
 
+  /** makes sure the string is a valid xml element and attribute name */
+  std::string ToValidXML(const std::string& input);
 
-  /// prints formatted header including name, version, date
-  void PrintCFSHeader(std::ostream & out);
 
   /** Calculates the L2 norm of a array. This is for cases where we
    * don't use one of our vectors. E.g. with IPOPT */

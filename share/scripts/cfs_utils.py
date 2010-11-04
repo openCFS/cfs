@@ -117,30 +117,36 @@ class Coordinate:
     return str(self.x) + ", " + str(self.y) + ", " + str(self.z) 
        
 
-# helper: return numpy.ndarray element with 2/3D tolerance
-# if dim = 3 the k entry is ignored
-def getNDArrayEntry(data, dim, i, j, k):
-  if dim == 3:
+# extracts an entry, if data is of lower dimension, the indices are ignored
+def getNDArrayEntry(data, i, j, k):
+  if data.ndim == 3:
     return data[i,j,k]
-  if dim == 2:
+  if data.ndim == 2:
     return data[i, j]
-  raise " cannot handle dimension " + str(dim)
+  if data.ndim == 1:
+    return data[i]
+  raise RuntimeError("cannot handle dimension")
     
 # see getNDArrayEntry(data, dim, i, j, k)
-def setNDArrayEntry(data, dim, i, j, k, value):
-  if dim == 3:
+def setNDArrayEntry(data, i, j, k, value):
+  if data.ndim == 3:
     data[i,j,k] = value
     return
-  if dim == 2:
+  if data.ndim == 2:
     data[i, j] = value
     return
-  raise " cannot handle dimension " + str(dim)
+  if data.ndim == 1:
+    data[i] = value
+    return
+  raise RuntimeError("cannot handle dimension")
 
 ## returns the x, y, and z dimension of a ndarray. z=1 for 2d 
 # call x, y, z = getDim(data)
 def getDim(data):
   x = data.shape[0]
-  y = data.shape[1]
+  y = 1
+  if data.ndim >= 2:
+    y = data.shape[1]
   z = 1
   if data.ndim >= 3:
     z = data.shape[2]

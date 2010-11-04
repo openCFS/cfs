@@ -256,6 +256,9 @@ namespace CoupledField
      
      StdVector<DesignRegion> regions;
 
+     /** stupid find function */
+     bool Contains(const RegionIdType reg) const;
+
      /** save parameters for scaling the design to [0..1] in the optimizer: 
       * our design = scaling * optimizer_design + translation 
       * given for every design, for every region */

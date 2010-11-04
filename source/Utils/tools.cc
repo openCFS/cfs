@@ -5,7 +5,9 @@
 #include <fstream>
 #include <iostream>
 #include <math.h>
+#include <algorithm>
 #include <boost/tokenizer.hpp>
+#include <boost/algorithm/string/classification.hpp>
 
 #include "tools.hh"
 #include "MatVec/matrix.hh"
@@ -148,6 +150,13 @@ namespace CoupledField {
     }
 
     return area;
+  }
+
+  std::string ToValidXML(const std::string& input)
+  {
+    std::string out = input;
+    std::replace_if(out.begin(), out.end(), boost::is_any_of(", |"), '_');
+    return out;
   }
 
 
