@@ -1135,14 +1135,27 @@
   <xsd:simpleType name="DT_HomTensorEntries">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="all"/>
-      <!-- The four positions for reduced 2D -->
       <xsd:enumeration value="11"/>
-      <xsd:enumeration value="22"/>
-      <xsd:enumeration value="33"/>
       <xsd:enumeration value="12"/>
-      <!-- These nodes are of interest for observation in 2D -->
-      <xsd:enumeration value="21"/>
-      <!-- There are 9 reduced positions for 3D -->
+      <xsd:enumeration value="13"/>
+      <xsd:enumeration value="14"/>
+      <xsd:enumeration value="15"/>
+      <xsd:enumeration value="16"/>
+      <xsd:enumeration value="22"/>
+      <xsd:enumeration value="23"/>
+      <xsd:enumeration value="24"/>
+      <xsd:enumeration value="25"/>
+      <xsd:enumeration value="26"/>
+      <xsd:enumeration value="33"/>
+      <xsd:enumeration value="34"/>
+      <xsd:enumeration value="35"/>
+      <xsd:enumeration value="36"/>
+      <xsd:enumeration value="44"/>
+      <xsd:enumeration value="45"/>
+      <xsd:enumeration value="46"/>
+      <xsd:enumeration value="55"/>
+      <xsd:enumeration value="56"/>
+      <xsd:enumeration value="66"/>
     </xsd:restriction>
   </xsd:simpleType>
   
