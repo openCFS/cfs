@@ -57,14 +57,19 @@ namespace CoupledField
 
   void PseudoTS::Predictor(Vector<Double>& solold)
   {
-    sol_timeStepVec_[TIMESTEP_2] = sol_timeStepVec_[TIMESTEP_1];
-    sol_timeStepVec_[TIMESTEP_1] = solold;
   }
 
   void PseudoTS::Corrector(Vector<Double>& solnew)
   {
-    solDeriv_vec_[FIRST_DERIV] = (solnew*3.0 - sol_timeStepVec_[TIMESTEP_1] * 4.0 \
-        + sol_timeStepVec_[TIMESTEP_2] )/(dt_*2.0);
+  }
+
+  void PseudoTS::AdvanceTimestep(Vector<Double>& solnew)
+  {
+    const Double inv_dt_2 = 1.0 / ( dt_ * 2.0);
+    solDeriv_vec_[FIRST_DERIV] = (solnew * 3.0 - sol_timeStepVec_[TIMESTEP_1] * 4.0 + \
+        sol_timeStepVec_[TIMESTEP_2] ) * inv_dt_2;
+    sol_timeStepVec_[TIMESTEP_2] = sol_timeStepVec_[TIMESTEP_1];
+    sol_timeStepVec_[TIMESTEP_1] = solnew;
   }
 
 } // end of namespace
