@@ -918,7 +918,7 @@ namespace CoupledField
       matrixMap_[STIFFNESS] = STIFFNESS;
       matrixMap_[DAMPING]   = DAMPING;
       matrixMap_[MASS]      = MASS;
-      matrixMap_[AUXILIARY] = NOTYPE;
+      matrixMap_[AUXILIARY] = AUXILIARY;
       break;
 
     case BasePDE::HARMONIC:
@@ -954,6 +954,7 @@ namespace CoupledField
     isSymmetric[MASS] = true;
     isSymmetric[STIFFNESS] = true;
     isSymmetric[DAMPING] = true;
+    isSymmetric[AUXILIARY] = true;
     
     // set collecting all result types
     

@@ -1,49 +1,40 @@
-#ifndef FILE_FLUIDMECHOPTMASSINT
-#define FILE_FLUIDMECHOPTMASSINT
+#ifndef FILE_FLUIDMECHMASSFULLNEWTONINT
+#define FILE_FLUIDMECHMASSFULLNEWTONINT
 
 #include "fluidMechInt.hh"
 
 namespace CoupledField
 {
 
-//**************************************************************************************************************************
-//***************** Stabilized FEM ****************************************************************************************
-//**************************************************************************************************************************
+//**********************************************************
+//************** Newton Stabilized FEM ****************
+//**********************************************************
 
-  /// Class for calculation the contribution of the convective term in non conservative form to the element stiffness matrix
-  /// in 2D Plane
-  class FluidMechPlaneMassInt_UV : public FluidMechInt {
-public:
-  FluidMechPlaneMassInt_UV(Double density, Double kinematicViscosity,Matrix<Double> & stabilParams, bool movingMesh, std::string stabilType);
-  virtual ~FluidMechPlaneMassInt_UV();
-  void CalcElementMatrix( Matrix<Double>& elemMat, EntityIterator& ent1, EntityIterator& ent2 );
-protected:    
-  Matrix<Double> & stabilParams_;
-};
-//***************************************************
-class FluidMechPlaneMassInt_UQ : public FluidMechInt {
-public:
-  FluidMechPlaneMassInt_UQ(Double density,Double kinematicViscosity,Matrix<Double> & stabilParams, bool movingMesh, std::string stabilType);
-  virtual ~FluidMechPlaneMassInt_UQ();
-  void CalcElementMatrix( Matrix<Double>& elemMat, EntityIterator& ent1, EntityIterator& ent2 );
-protected:    
-  Matrix<Double> & stabilParams_;
+class FluidMechPlaneMassNewtonInt_UV : public FluidMechInt
+{
+  public:
+    FluidMechPlaneMassNewtonInt_UV(Double density,
+        Double kinematicViscosity,Matrix<Double> & stabilParams,
+        bool movingMesh, std::string stabilType);
+    virtual ~FluidMechPlaneMassNewtonInt_UV();
+    void CalcElementMatrix( Matrix<Double>& elemMat, EntityIterator& ent1, EntityIterator& ent2 );
+
+  protected:
+    Matrix<Double> & stabilParams_;
 };
 
+class FluidMechPlaneMassNewtonInt_UQ : public FluidMechInt
+{
+  public:
+    FluidMechPlaneMassNewtonInt_UQ(Double density,
+        Double kinematicViscosity,Matrix<Double> & stabilParams,
+        bool movingMesh, std::string stabilType);
+    virtual ~FluidMechPlaneMassNewtonInt_UQ();
+    void CalcElementMatrix( Matrix<Double>& elemMat, EntityIterator& ent1, EntityIterator& ent2 );
 
-//**************************************************************************************************************************
-//***************** mixed FEM **********************************************************************************************
-//**************************************************************************************************************************
-class FluidMechPlaneMixedMassInt_UV : public FluidMechInt {
-public:
-FluidMechPlaneMixedMassInt_UV(Double density, Double kinematicViscosity,Matrix<Double> & stabilParams, bool movingMesh, std::string stabilType="none");
-virtual ~FluidMechPlaneMixedMassInt_UV();
-void CalcElementMatrix( Matrix<Double>& elemMat, EntityIterator& ent1, EntityIterator& ent2 );
-protected:    
-Matrix<Double> & stabilParams_;
+  protected:
+    Matrix<Double> & stabilParams_;
 };
 
-
-}
-
-#endif // FILE_FLUIDMECHOPTMASSINT
+} // namespace
+#endif // FILE_FLUIDMECHMASSFULLNEWTONINT

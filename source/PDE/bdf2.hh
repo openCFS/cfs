@@ -39,6 +39,7 @@ namespace CoupledField
     //! perform an update to RHS
     void UpdateRHS();
 
+    //! perform calculations at end of timestep (set the new timestep)
     void AdvanceTimestep(Vector<Double>& solnew);
 
     //! Substract Stiffness from RHS

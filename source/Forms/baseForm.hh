@@ -12,6 +12,7 @@
 #include "Materials/baseMaterial.hh"
 #include "Domain/entityList.hh"
 #include "Optimization/Design/DesignElement.hh"
+#include "PDE/timestepping.hh"
 
 #ifndef INTEGLIB
 #include "Utils/mathParser/mathParser.hh"
@@ -198,6 +199,12 @@ namespace CoupledField
     
 #endif
 
+    /**
+     * Set Timestepping for non linear solvers
+     * @param ts_alg the time stepping algorithm
+     */
+    void setTimeStepping(TimeStepping* const ts_alg) { TS_alg_ = ts_alg;};
+
   protected:
 
     /** Gets the factor for dMat to perform the ersatz material ansatz.
@@ -210,6 +217,18 @@ namespace CoupledField
      * @return 1.0 if nothing is to be done or a factor */ 
     virtual Double GetErsatzMaterialFactor(const Elem* elem); 
 
+    /**
+     * Get Timestepping for non linear solvers
+     * @return
+     */
+    const TimeStepping* getTimeStepping() const
+    {
+      if (TS_alg_ == NULL)
+      {
+        EXCEPTION("Time stepping is not set!");
+      }
+      return TS_alg_;
+    };
     //! pointer to reference element
     BaseFE  * ptelem;   
 
@@ -294,6 +313,10 @@ namespace CoupledField
 
   private:
 
+    /**
+     * Needed for some integrators
+     */
+    TimeStepping* TS_alg_;
     //! Should we delete the material data object?
     bool delMatDataAtEnd_;
 
