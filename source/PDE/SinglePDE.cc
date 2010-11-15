@@ -2466,7 +2466,10 @@ namespace CoupledField {
     UInt dim = input->GetDim();
     Grid* ptGrid = new GridCFS(dim);
     input->ReadMesh(ptGrid);
-    ptGrid->FinishInit();
+    // FinishInit() does not work if we have named nodes which are added by
+    // coords. This is a not so dirty work around
+    *ptGrid = *ptgrid_;
+    /* ptGrid->FinishInit(); */
 
     std::map<UInt, BasePDE::AnalysisType> types;
     std::map<UInt, UInt> numMultiSteps;
