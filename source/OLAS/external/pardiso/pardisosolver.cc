@@ -551,14 +551,12 @@ extern "C" {
     // Switch on out-of-core
     if (sNode->Has("outOfCore"))
     {
-      sNode->GetValue("outOfCore", iparm_[59], ParamNode::INSERT);
-    } else 
-    {
       if(std::string(CFS_PARDISO) != "MKL") 
       {
         WARN( "The value of outOfCore has no effect for " << CFS_PARDISO << ".\n"
               << "Switch to MKL if want to use out-of-core memory." );
       }
+      sNode->GetValue("outOfCore", iparm_[59], ParamNode::INSERT);
     }
 
     // Switch to iterative solver
