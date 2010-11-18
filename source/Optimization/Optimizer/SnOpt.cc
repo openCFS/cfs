@@ -6,6 +6,7 @@
 #include "General/exception.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Utils/tools.hh"
 #include "Utils/Timer.hh"
 
 
@@ -69,6 +70,7 @@ SnOpt::SnOpt(Optimization* opt, PtrParamNode pn) :
 {
   LOG_TRACE(snopt) << "Initialize SnOpt";
   
+  perform_commit_itteration_ = false; // we want to perform commit iteration only after the first function eval.
   timer_ = new Timer();
   info_->Get(ParamNode::SUMMARY)->Get("snopt_timer")->SetValue(timer_ );
   timer_callback_ = new Timer();
@@ -143,13 +145,6 @@ void SnOpt::SolveProblem()
   
   // this must always be called AFTER sninit!!!
   AdjustWorkArrayMemory();
-
-  // before doing anything, we save the current state
-  if(optimization->GetCurrentIteration() == 0)
-  {
-    optimization->SolveStateProblem();
-    optimization->CommitIteration();
-  }
 
   // this is needed for the call to snopt, but has no effect in our case
   int npname(5);
@@ -235,8 +230,17 @@ int SnOpt::Callback(int* Status, const int n,
   timer_->Stop();
   timer_callback_->Start();
   
-  LOG_TRACE(snopt) << "Callback";
-  LOG_DBG3(snopt) << "Callback: needF=" << *needF << " needG=" << *needG << " x=" << StdVector<double>::ToString(n, x);
+  LOG_DBG(snopt) << "Callback: needF=" << *needF << " needG=" << *needG << " x_avg = " << Average(x, n) << " x_std_dev = " << StandardDeviation(x, n);
+  LOG_DBG3(snopt) << " x=" << StdVector<double>::ToString(n, x);
+
+  // when the last call was a gradient eval we interpret this as major and do a commit
+  // with the OLD design and it's function evaluations. But only if there was really a change between the last commit.
+  // the special cases are the first iteration if setupLinearConstraints() had a feasible design or on the last commit.
+  if(perform_commit_itteration_ && !optimization->GetDesign()->CompareDesign(x))
+  {
+    optimization->CommitIteration();
+    perform_commit_itteration_ = false; // to be reset when enough functions evaluations have been done
+  }
 
   // if we want to stop, we have to set Status to a value < -1!
   if(optimization->DoStopOptimization() || stop)
@@ -285,9 +289,9 @@ int SnOpt::Callback(int* Status, const int n,
     
     eval_jac_g(n, x, nonlin_constraints, *nG - n, G + n);
     
-    // for every call to the gradient we also commit the iteration, because we have
-    // yet to find a way to get the iteration counter from snopt...
-    optimization->CommitIteration();
+    // when the linear constraints are not fulfilled there will immediately be gradient evaluation as the
+    // first snopt action and we do not want to loose the initial design in the output.
+    perform_commit_itteration_ = true; // done on the next Callback() call
   }
   
   timer_callback_->Stop();
@@ -610,6 +614,11 @@ void SnOpt::setupLinearConstraints()
   EvalGradConstraints(n, &x[0], optimization->constraints.view->GetNumberOfActiveConstraints(), nA,
       true, lincon, BaseOptimizer::LINEAR);
   
+  // we have just evaluated the state problem, commit the (initial) iteration as snopt might
+  // evaluate in its's callback already an updated  design
+  perform_commit_itteration_ = true;
+  // optimization->CommitIteration();
+
   for(int i = 0; i < nA; i++)
   {
     A[i] = lincon[i];

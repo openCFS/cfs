@@ -532,6 +532,7 @@ TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, O
                         + "' is not contained");
 }
 
+
 int DesignSpace::ReadDesignFromExtern(const double* space)
 {
   bool new_design = false;
@@ -573,6 +574,37 @@ int DesignSpace::ReadDesignFromExtern(const double* space)
 int DesignSpace::ReadDesignFromExtern(const StdVector<double>& space)
 {
   return ReadDesignFromExtern(space.GetPointer());
+}
+
+
+bool DesignSpace::CompareDesign(const double* space)
+{
+  unsigned int s = 0;
+  for(unsigned int des = 0; des < design.GetSize(); des++){
+    const unsigned int base = des * elements;
+    for(unsigned int r = 0; r < regions.GetSize(); r++){
+      const double scaling = scale_design[des][r];
+      const double translation = translate_design[des][r];
+      const unsigned int u = base + regions[r].base + regions[r].elements;
+      if(regions[r].constant){
+        const double v = space[s] * scaling + translation;
+        for(unsigned int d = base + regions[r].base; d < u; d++){
+          if(data[d].GetDesign(DesignElement::PLAIN) != v)
+            return false;
+        } // for d
+        s++; // only advance after having set all element of this region to the corresponding value
+      }else{
+        for(unsigned int d = base + regions[r].base; d < u; d++){
+          double v = space[s] * scaling + translation;
+          if(data[d].GetDesign(DesignElement::PLAIN) != v)
+            return false;
+          s++; // advance in every step
+        } // for d
+      } // if/else constant
+    } // for r
+  } // for des
+  assert(s == DesignSpace::GetNumberOfVariables());
+  return true;
 }
 
 int DesignSpace::WriteDesignToExtern(double* space, bool scaling) const

@@ -76,34 +76,6 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
   if (xml->Count("set") == 0)
     throw Exception("There are no design sets in the ersatz material file");
 
-  // check if we ignore the element numbers
-  bool ignore_numbers = pn != NULL ? pn->Get("ignore_element_numbers")->As<bool>() : false;
-
-  // the region list is either from the loadErsatzMaterial element or if not given
-  // and the command line argument is used there must be only a single region
-  StdVector<RegionIdType> regionIds;
-
-  if(pn != NULL)
-  {
-    ParamNodeList region_list = pn->GetList("region");
-    for (unsigned int i = 0; i < region_list.GetSize(); i++)
-    {
-      string reg = region_list[i]->Get("name")->As<string>();
-      if (!grid->GetRegion().IsValid(reg))
-        throw Exception("region given in loadErsatzMaterial is invalid");
-      regionIds.Push_back(grid->GetRegion().Parse(reg));
-    }
-
-    if (ignore_numbers && region_list.GetSize() != 1)
-      EXCEPTION("'ignore_element_numbers' in 'loadErsatzMaterial' only allowed for a single region");
-  }
-  else
-  {
-    if(grid->GetNumVolRegions() != 1)
-      throw Exception("can only load single volume region meshes with 'ersatz' command line option");
-    regionIds.Push_back(0);
-  }
-
   // find the proper design set. This is either 'first', 'last' or the * in <set id="*"> ...
   PtrParamNode set;
   string key = cmd ? "last" : pn->Get("set")->As<string>();
@@ -117,22 +89,33 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
   // finish the output as we have now the set information
   std::cout << "/'" << set->Get("id")->As<string>() + "'" << std::endl;
 
-  if (!ersatzMaterial)
-  { // only if the design space does not already exist (created by optimization)
-    // the header is like
-    // <header>
-    //   <design name="density" initial="1.0"/>
-    //   ...
-    //   <transferFunction type="simp" application="mech" design="density" param="1.0"/>
-    //   ..
-    //   <regularization type="filter">
-    //    <filter contribution="linear" neighborhood="maxEdge" type="density" value="1.7"/>
-    //   </regularization>
-    // </header>
+  // read the set and replace the initial values for the optimization
+  ParamNodeList elems = set->GetList("element");
+  bool force_region = pn != NULL && pn->Has("force_region");
 
-    // the design set consists of entries like
-    // <element nr="401" type="density" design="0.886466" physical="0.800454" />
-    // only the combination nr and type is unique. E.g. in piezo we might have types density and polarization
+  if(!ersatzMaterial)
+  {
+    // only if the design space does not already exist (created by optimization)
+    // the regions are normally implicitly defined by the element numbers. The excpetion
+    // is force_region from <loadErsatzMaterial>
+    StdVector<RegionIdType> regionIds;
+
+    // check if we ignore the element numbers
+    if(force_region)
+    {
+      regionIds.Push_back(grid->GetRegion().Parse(pn->Get("force_region")->As<string>()));
+    }
+    else
+    {
+      // find the regions by ourselves
+      for(unsigned int e = 0; e < elems.GetSize(); e++)
+      {
+        unsigned int nr = elems[e]->Get("nr")->As<unsigned int>();
+        if(!regionIds.Contains(grid->GetElem(nr)->regionId))
+          regionIds.Push_back(grid->GetElem(nr)->regionId);
+      }
+    }
+
     ParamNodeList des = xml->Get("header")->GetList("design");
     ParamNodeList tfs = xml->Get("header")->GetList("transferFunction");
     PtrParamNode  reg = xml->Get("header/regularization/filter", ParamNode::PASS);
@@ -148,43 +131,38 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
     ersatzMaterial->ToInfo(info->Get("ersatzMaterial")->Get(ParamNode::HEADER));
   }
 
-  // read the set and replace the initial values
-  ParamNodeList elems = set->GetList("element");
 
   // check the the dimensions! the number of design variables comes from the regions and designs
   if (ersatzMaterial->data.GetSize() != elems.GetSize())
   {
     if(grid->GetNumElems() == elems.GetSize())
-      std::cout << "\033[01;31m" << "Warning:" << "\033[0m" << std::endl
-                << "the number of elements in the region you are trying to read the densities into is not equal to"
-                << " the number of elements in the density-file but matches the number of all elements!"
-                << " We ignore this... I hope you know what you are doing!"
-                << std::endl;
+    {
+      string msg = "the number of elements in the region you are trying to read the densities into is not equal to"\
+                  " the number of elements in the density-file but matches the number of all elements!";
+      info->Get("ersatzMaterial")->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue(msg);
+    }
     else
-      EXCEPTION("ErsatzMaterialFile '" << file << "' has " << elems.GetSize()
-          << " entries, the mesh has "<< ersatzMaterial->data.GetSize() << " design elements");
+      throw Exception("ErsatzMaterialFile '" + file + "' has " + boost::lexical_cast<string>(elems.GetSize())
+                       +" entries, the mesh has "+boost::lexical_cast<string>(ersatzMaterial->data.GetSize())
+                       +" design elements");
   }
 
   for (unsigned int e = 0; e < elems.GetSize(); e++)
   {
-    unsigned int nr = elems[e]->Get("nr")->As<Integer>();
-    DesignElement::Type dt = (DesignElement::Type) DesignElement::type.Parse(
-        elems[e]->Get("type")->As<string>());
-    double val = elems[e]->Get("design")->As<Double>();
+    // the design set consists of entries like
+    // <element nr="401" type="density" design="0.886466" physical="0.800454" />
+    // only the combination nr and type is unique. E.g. in piezo we might have types density and polarization
+
+    unsigned int nr = elems[e]->Get("nr")->As<unsigned int>();
+    DesignElement::Type dt = (DesignElement::Type) DesignElement::type.Parse(elems[e]->Get("type")->As<string>());
+    double val = elems[e]->Get("design")->As<double>();
 
     // replace the value of the DesignElement
-    DesignElement* de = ignore_numbers ? &(ersatzMaterial->data[e])
-        : ersatzMaterial->Find(nr, dt, false);
-    // it should be possible to specify less regions then specified during optimization and saving of results
-    // if the element can not be found (e.g. lying in a not specified region) it is not set
-    if (de != NULL)
-    {
-      // and the region can be set in optimization, thus exist, but not specified here, we should not set as well
-      if (regionIds.Find(de->elem->regionId) >= 0)
-      {
-        de->SetDesign(val);
-      }
-    }
+    DesignElement* de = force_region ? &(ersatzMaterial->data[e]) : ersatzMaterial->Find(nr, dt, true);
+
+    // note, that there was code which did em->Find(nr, dt, false) and then added
+    // if(de !=NULL && regionIds.Find(de->elem->regionId) >= 0) de->SetDesign(val);
+    de->SetDesign(val);
   }
 
   return ersatzMaterial;

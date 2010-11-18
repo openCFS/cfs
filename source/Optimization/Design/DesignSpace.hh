@@ -132,6 +132,9 @@ namespace CoupledField
      virtual int ReadDesignFromExtern(const double* space_in);
      int ReadDesignFromExtern(const StdVector<double>& space);
      
+     /** Compare the design with the present. Does not change anything!
+      * @return true if the designs are equal and ReadDesignFromExtern() would give the old design id */
+     virtual bool CompareDesign(const double* space_in);
            
      /** gives the initial guess (for the design space) 
       * @param space_out to this array of GetDesignSpaceSize() the initial guess is wrtitten to.
@@ -231,6 +234,9 @@ namespace CoupledField
        assert(regions.GetSize() == 1);
        return regions[0].regionId;
      }
+
+     /** returns the current design id */
+     int GetCurrentDesignId() const { return design_id; }
 
      /** We can define results in the optimization part: <pre>
       * <result id="optResult_2" design="density" access="plain" value="costGradient"  />

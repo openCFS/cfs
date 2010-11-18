@@ -667,7 +667,7 @@ PtrParamNode Optimization::CommitIteration(bool keep_iteration_number)
 
   // this writes the most current solved forward problem via the driver to gid or whatever
   bool store = currentIteration == 0 || commitStride == 1 || (commitStride > 0 && currentIteration % commitStride == 0);
-  LOG_TRACE2(opt) << "CommitIteration " << currentIteration << " ojective=" << objectives.GetHistoryValue() << " store=" << store;
+  LOG_TRACE2(opt) << "CommitIteration " << currentIteration << " objective=" << objectives.GetHistoryValue() << " store=" << store;
   if(store)
   {
     StoreResults();

@@ -1850,27 +1850,9 @@ void ErsatzMaterial::SetTestStrainMatrix(Matrix<double> &matrix, const Vector<do
 {
   assert(matrix.GetNumCols() == dim);
   assert(matrix.GetNumRows() == dim);
-
-/*
- * suggested by Fabian S.
- *   matrix[0][0] = vec[0];
-  matrix[1][1] = vec[1];
-  matrix[0][1] = 0.5 * vec[5]; // Voigt notation!
-  matrix[1][0] = 0.5 * vec[5]; // this is 0 because of the symmetry
-  if(dim == 3)
-  {
-    matrix[2][2] = vec[2];
-    matrix[1][2] = 0.5 * vec[3];
-    matrix[2][1] = 0.5 * vec[3]; // symmetry again
-
-    matrix[0][2] = 0.5 * vec[4];
-    matrix[2][0] = 0.5 * vec[4]; // symmetry again
-  }
-*/
-
   matrix[0][0] = vec[0];
   matrix[1][1] = vec[1];
-  matrix[0][1] = vec[5]; // voigt notation!
+  matrix[0][1] = vec[5]; // Voigt notation!
   matrix[1][0] = 0.0; // because of symmetry we need factor 0.5
 
   if(dim == 3)

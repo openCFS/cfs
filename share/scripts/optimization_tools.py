@@ -50,41 +50,16 @@ def read_density(filename, elemnr=False):
   
   if len(vals) < x*y*z:
     # we need to be 1D
+    print "read density file '" + filename + "' with " + str(len(vals)) + " element smaller x=" + str(x) \
+         + " y=" + str(y) + " z=" + str(z) + " mesh as " + cond(elemnr, "elem nr", "design")
     x = len(vals)
     ret = numpy.zeros((x))
     for i in range(x):
       ret[i] = vals[i]    
-  
         
   return ret
 
-## Reads a cubic (3D) density.xml file as 3D NDArray
-# @param filename from which the last 'set' is used
-def read_cubic_density(filename):
-  vals = read_density_as_vector(filename)
 
-  length = len(vals)
-  size=int(math.pow(length+1, 1.0/3.0))
-  print "length = " + str(length) + ', size = ' + str(size) + '^3'
-  
-  if math.pow(size, 3) == length:
-    print "calculated length seems to be okay"
-  else:
-    raise RuntimeError("last set has " + str(length) + " elements which appears to be wrong")
-
-  # parse data to array
-  ret = numpy.zeros((size, size, size))
-  
-  # copy data from linear list
-  for i in range(size):
-    for j in range(size):
-      for k in range(size):
-        idx = int(i * size * size + j * size + k)
-        ret[i, j, k] = vals[idx]
-        
-  print "have " + str(ret.shape) + " values"
-
-  return ret
   
 ## Reads a density.xml file as vector
 # @param filename from which the last 'set' is used
@@ -117,7 +92,9 @@ def read_density_as_vector(filename, elemnr=False):
 ## write the data to a density.xml file
 # @param data_inp a ndata array (1D, 2D or 3D) or a list of data
 # @param setname_inp the name of the set or a list of setnames
-def write_density_file(filename, data_inp, setname_inp):
+# @param elemnr if set, the element number is taken from this elemnr ndarray.
+#               The data can be obtained from read_density(...,elemnr=True)
+def write_density_file(filename, data_inp, setname_inp, elemnr=None):
   # check if we deal with lists or not
   data_list = []
   setname_list = []
@@ -147,15 +124,18 @@ def write_density_file(filename, data_inp, setname_inp):
     out.write('  <set id="' + setname + '">\n')
     dim = data.ndim
     x, y, z = getDim(data)
-    counter = 1
+    nr = 1
 
     for k in range(z):
       for j in range(y):
         for i in range(x):    
            val = getNDArrayEntry(data, i, j, k)
-           # print " i=" + str(i) + " j=" + str(j) + " k=" + str(k) + " idx=" + str(counter)
-           out.write('    <element nr="' + str(counter) + '" type="density" design="' + str(val) + '"/>\n')
-           counter = counter + 1       
+           if elemnr <> None:
+             nr = int(getNDArrayEntry(elemnr, i, j ,k))
+           
+           # print " i=" + str(i) + " j=" + str(j) + " k=" + str(k) + " idx=" + str(nr)
+           out.write('    <element nr="' + str(nr) + '" type="density" design="' + str(val) + '"/>\n')
+           nr = nr + 1       
          
     out.write('  </set>\n')
 
