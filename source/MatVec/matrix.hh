@@ -376,15 +376,14 @@ namespace CoupledField
     }
     
     
-    //@}
-#else
-    
     //! Return number of rows
     inline unsigned int rows() const { return size_row_; }
     
     //! Return number of columns
     inline unsigned int cols() const { return size_col_; }
-
+    
+    //@}
+#else
     // =======================================================================
     // MATHEMATICAL OPERATORS
     // =======================================================================

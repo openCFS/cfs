@@ -168,15 +168,15 @@ protected:
   inline void AddSubMatrix(const Matrix<Double>& mat, \
       const Matrix<Double>& subMat, const UInt& startRow, const UInt& startCol)
   {
-    const UInt& numRows = subMat.rows();
-    const UInt& numCols = subMat.cols();
+    const UInt& numRows = subMat.GetNumRows();
+    const UInt& numCols = subMat.GetNumCols();
 #ifdef CHECK_INITIALIZED
-    if (subMat.rows() == 0 || subMat.cols() == 0 || mat.cols() == 0 || mat.rows() == 0 ) 
+    if (subMat.GetNumRows() == 0 || subMat.GetNumCols() == 0 || mat.GetNumCols() == 0 || mat.GetNumRows() == 0 ) 
       EXCEPTION("undefined matrix" );
 #endif
   
 #ifdef CHECK_INDEX
-    if ((subMat.rows() + startRow > mat.rows()) || (subMat.cols() + startCol > mat.cols()) )
+    if ((subMat.GetNumRows() + startRow > mat.GetNumRows()) || (subMat.GetNumCols() + startCol > mat.GetNumCols()) )
       EXCEPTION("Submatrix to be read is to large!");
 #endif
 
