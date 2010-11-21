@@ -3646,9 +3646,8 @@ namespace CoupledField {
 
 
    VolForceInt * SinglePDE::RegionLoad::GetIntegrator() {
-     VolForceInt * forceInt = new VolForceInt( value.GetSize(),
-    		 																				phase,
-    		 																				isAxi_);
+
+     VolForceInt * forceInt = new VolForceInt( value.GetSize(), phase, isAxi_); 
 
      // Check, if type is "unit"
      bool isUnit;
