@@ -214,7 +214,7 @@
               <xsd:documentation xml:lang="en">
                 Sets the iterative refinement steps. Advisable for non symmetric
                 matrices. See "Solving unsymmetric sparse systems if linear
-                equations with PARDISO" for details. Acts on DPARM(8).
+                equations with PARDISO" for details. Acts on IPARM(8).
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
