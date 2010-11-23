@@ -193,6 +193,11 @@ void MultipleExcitation::PrepareMultipleExcitations(SinglePDE* pde, PtrParamNode
   // output summary
   // -------------------
 
+  // finally verify that the labels are set
+  for(unsigned int i = 0; i < excitations.GetSize(); i++)
+    if(excitations[i].label == "")
+      excitations[i].label = lexical_cast<string>(i);
+
   // calc the inital normalized_weight and print info.
 
   // for many concurrent mechanical loads do no print information
@@ -218,6 +223,7 @@ void MultipleExcitation::PrepareMultipleExcitations(SinglePDE* pde, PtrParamNode
 
       PtrParamNode exin = in->Get("excitation", ParamNode::APPEND);
       exin->Get("index")->SetValue(ex.index);
+      exin->Get("label")->SetValue(ex.label);
       if(! ex.loads.IsEmpty())
         ex.loads[0]->ToInfo(exin->Get("load"));
       if(ex.frequency >= 0.0)
@@ -227,10 +233,6 @@ void MultipleExcitation::PrepareMultipleExcitations(SinglePDE* pde, PtrParamNode
     }
   }
 
-  // finally verify that the labels are set
-  for(unsigned int i = 0; i < excitations.GetSize(); i++)
-    if(excitations[i].label == "")
-      excitations[i].label = lexical_cast<string>(i);
 }
 
 

@@ -210,7 +210,7 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   {
   case Function::STRESS:
   {
-    CalcVonMisesStressGradient(excite, f, tf, weight);
+    CalcVonMisesStressGradient(excite, f, tf);
     break;
   }
 
@@ -233,13 +233,15 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
 }
 
 
-void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferFunction* tf, double weight)
+void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferFunction* tf)
 {
 	// see comment in ErsatzMaterial::CalcVonMisesStressVector()! it's tricky stuff :(
   // For the function we pack the stuff in Function::Local, for the gradient we do it here as the computation are too far
   // away from the other local gradient compuations.
   //
 	// the gradient is lambda^T *  K' * u + alpha * 2 * stress^T * M * (rho^p)' * E_0 * B * u
+  //
+  // we do NOT weight!
 
   // alpha is from the globalization which is in the form sum max(0, g_i-c)^p and alpha is p*max(0, g_i-c)^(p-1) where g_i is the vonMisesStress
   Vector<double> alpha = CalcVonMisesStressGlobalizationFactor(excite, f);
@@ -250,13 +252,15 @@ void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferF
   assert(appendix.GetSize() == alpha.GetSize());
 
   // calc lambda^T *  K' * u -> this already stores the results by AddGradient()!
-  CalcU1KU2(tf, adjoint.Get(excite, f)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, weight, STANDARD, f);
+  CalcU1KU2(tf, adjoint.Get(excite, f)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, 1.0, STANDARD, f);
 
   // add the appendix stuff
   for(unsigned int i = 0; i < design->data.GetSize(); i++)
 	{
     DesignElement& de = design->data[i];
 		de.AddGradient(f, alpha[i] * appendix[i]);
+		LOG_DBG2(simp) << "CVMSG: f=" << f->ToString() << " de=" << de.elem->elemNum << " alpha=" << alpha[i] << "* app=" << appendix[i] << " ="
+		               << alpha[i] * appendix[i] << " -> " << de.GetPlainGradient(f);
 	}
 }
 

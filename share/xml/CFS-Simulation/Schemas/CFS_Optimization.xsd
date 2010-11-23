@@ -824,6 +824,30 @@
                 <!-- These are optional parameters for value=objective or specialResult -->
                 <xsd:attribute name="detail" use="optional" default="none" type="result_detail"/>
                 
+                <!-- optional excitation parameter, can be used for penalized stress which is excitation dep. -->
+                <xsd:attribute name="excitation" use="optional" default="">
+                  <xsd:simpleType>
+                    <xsd:restriction base="xsd:string">
+                      <xsd:enumeration value=""/>
+                      <xsd:enumeration value="x"/>
+                      <xsd:enumeration value="y"/>
+                      <xsd:enumeration value="z"/>
+                      <xsd:enumeration value="xy"/>
+                      <xsd:enumeration value="xz"/>
+                      <xsd:enumeration value="yz"/>
+                      <xsd:enumeration value="0"/>
+                      <xsd:enumeration value="1"/>
+                      <xsd:enumeration value="2"/>
+                      <xsd:enumeration value="3"/>
+                      <xsd:enumeration value="4"/>
+                      <xsd:enumeration value="5"/>
+                      <xsd:enumeration value="6"/>
+                      <xsd:enumeration value="7"/>
+                      <xsd:enumeration value="8"/>
+                      <xsd:enumeration value="9"/>                      
+                    </xsd:restriction>
+                  </xsd:simpleType>
+                </xsd:attribute>
               </xsd:complexType>
             </xsd:element>
             

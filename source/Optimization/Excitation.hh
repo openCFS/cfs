@@ -90,7 +90,6 @@ public:
   /** A label denoting the excitation, depends on kind */
   std::string label;
 
-
   /** Here we store the calculated objective value, including costFunction/factor
    * to enable metaObjective. In the Optimization::cost struct we store a copy/average */
   double cost;

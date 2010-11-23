@@ -429,6 +429,9 @@ public:
 
   /** An optional detail for values COST_GRADIENT and OBJECTIVE in PiezoSIMP case */
   DesignElement::Detail detail;
+
+  /** An optional excitation label */
+  std::string excitation;
 };
 
 

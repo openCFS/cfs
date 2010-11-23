@@ -964,6 +964,7 @@ ResultDescription::ResultDescription()
   access = DesignElement::PLAIN;
   value  = DesignElement::DESIGN;
   design = DesignElement::DEFAULT;
+  excitation = "";
 }
 
 ResultDescription::ResultDescription(PtrParamNode pn)
@@ -979,4 +980,6 @@ ResultDescription::ResultDescription(PtrParamNode pn)
   value = DesignElement::valueSpecifier.Parse(pn->Get("value")->As<std::string>());
 
   detail = DesignElement::detail.Parse(pn->Get("detail")->As<std::string>());
+
+  excitation = pn->Get("excitation")->As<std::string>();
 }

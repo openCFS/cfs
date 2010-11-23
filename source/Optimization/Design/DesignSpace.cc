@@ -336,8 +336,8 @@ ResultInfo* DesignSpace::GetResultInfo(ResultDescription& rd)
   ri->resultName = DesignElement::valueSpecifier.ToString(rd.value) + "_"
                    + (rd.detail != DesignElement::NONE ? (DesignElement::detail.ToString(rd.detail) + "_") : "")
                    + DesignElement::type.ToString(rd.design) + " ("
-                   + DesignElement::access.ToString(rd.access) + ")";
-
+                   + DesignElement::access.ToString(rd.access) + ")"
+                   + (rd.excitation != "" ? ("_ex_" + rd.excitation) : "");
 
   ri->unit = "";
 
@@ -368,12 +368,12 @@ ResultInfo* DesignSpace::GetResultInfo(ResultDescription& rd)
 }
 
 int DesignSpace::GetSpecialResultIndex(DesignElement::Type design, DesignElement::ValueSpecifier value,
-                                       DesignElement::Detail detail, DesignElement::Access access)
+                                       DesignElement::Detail detail, DesignElement::Access access, const std::string& excitation)
 {
   for(unsigned int i = 0; i < resultDescriptions.GetSize(); i++)
   {
     const ResultDescription& rd = resultDescriptions[i];
-    if(rd.design != design || rd.value != value || rd.detail != detail || rd.access != access) continue;
+    if(rd.design != design || rd.value != value || rd.detail != detail || rd.access != access || rd.excitation != excitation) continue;
 
     // we are right.
     switch(rd.solutionType)

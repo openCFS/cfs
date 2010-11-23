@@ -245,7 +245,8 @@ namespace CoupledField
       * result is specified in XML */
      int GetSpecialResultIndex(DesignElement::Type design, DesignElement::ValueSpecifier value,
                                   DesignElement::Detail detail = DesignElement::NONE,
-                                  DesignElement::Access access = DesignElement::PLAIN);
+                                  DesignElement::Access access = DesignElement::PLAIN,
+                                  const std::string& excitation = "");
 
      /** Dumps the design space */
      std::string ToString();

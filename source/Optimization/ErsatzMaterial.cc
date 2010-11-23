@@ -1403,7 +1403,7 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
   if(adjoint_rhs) alpha = CalcVonMisesStressGlobalizationFactor(excite, f);
 
   // output of penalized von mises stresses? Only used in !adjoint_rhs and !grad_contrib
-  int res_idx = design->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::PENALIZED_STRESS);
+  int res_idx = design->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::PENALIZED_STRESS, DesignElement::NONE, DesignElement::PLAIN, excite.label);
 
   for(unsigned int e = 0, en = design->data.GetSize(); e < en; e++)
   {
@@ -1488,7 +1488,10 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
       {
         // output von mises stress? Note, that this is excitation specific!
         if(res_idx != -1)
+        {
           de->specialResult[res_idx] = result[e];
+          LOG_DBG3(em) << "CVMSV:sr de=" << de->ToString() << " si=" << res_idx << " v=" << result[e];
+        }
       }
       else
       {
