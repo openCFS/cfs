@@ -1441,11 +1441,11 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 					  if (aitkenOmega_ > omegaMax)
 						  aitkenOmega_=omegaMax;
 					  oldDelta_ = actDelta_;
+                                          Info->PrintF( pdename_," Relaxation Parameter according to Aitken= %e\n",aitkenOmega_);
 				  }
 
 				  fixedOmega_ = displFac_;
 
-				  Info->PrintF( pdename_," Relaxation Parameter according to Aitken= %e\n",aitkenOmega_);
 				  Info->PrintF( pdename_," Fixed Relaxation Parameter= %e\n",fixedOmega_);
 
 
