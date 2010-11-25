@@ -68,6 +68,7 @@ cplreader --docu PDF
 
 \section{Pre-Processors}
 \subsection{ANSYS}
+\label{sec:ansys_pre}
 
 \noindent \url{http://www.bauwesen.uni-dortmund.de/nmi/Medienpool/Skripte/ansys-workshop061002.pdf}
 
@@ -318,12 +319,13 @@ dem Button See File... den Inhalt anzeigen lassen
 
 
 \subsection{Gmsh}
+\label{sec:gmsh_pre}
 
-GMSH \cite{Geuzaine2009,GmshWebSite, Gmsh2008} (simple  Meshes erzeugen, einziges Format
-ausser HDF5  und GMV (auch UNV), das  CFS++ sowohl lesen (HDF5  Gitter und Daten,
-GMV: Gitter, GMSH: Gitter) als  auch schreiben (HDF5,GMV,GMSH Gitter und Daten und
-Named Enitities)  kann), Vorteil: Absolut  frei verfügbar für  Windows, Linux,
-Mac (ANSYS und GiD sind alles andere als frei)
+GMSH   \cite{Geuzaine2009,GmshWebSite,  Gmsh2008}  (simple   Meshes  erzeugen,
+einziges Format ausser  HDF5 und GMV (auch UNV), das  CFS++ sowohl lesen (HDF5
+Gitter und Daten, GMV: Gitter, GMSH: Gitter) als auch schreiben (HDF5,GMV,GMSH
+Gitter und Daten  und Named Enitities) kann), Vorteil:  Absolut frei verfügbar
+für Windows, Linux, Mac (ANSYS und GiD sind alles andere als frei)
 
 \begin{table}[tb]
 \centering
@@ -430,6 +432,7 @@ where the points are closely spaced.
 \section{Post-Processors}
 
 \subsection{ANSYS}
+\label{sec:ansys_post}
 
 The main source  of documentation for post-processing in  ANSYS Classic is the
 {\it  Basic Analysis  Guide -  Chapter 5.  The General  Postprocessor (POST1)}
@@ -600,6 +603,7 @@ List $\rightarrow$ Binary Files...
 
 \newpage
 \subsection{Gmsh}
+\label{sec:gmsh_post}
 
 \begin{figure}[htb] 
   \centering
@@ -649,6 +653,7 @@ Further Links for postprocessing in Gmsh:
 
 \newpage
 \subsection{ParaView}
+\label{sec:paraview}
 
 Here     is     what     the      official     web     site     says     about
 ParaView\footnote{\url{http://www.cmake.org/Wiki/images/8/88/ParaViewTutorial38.pdf},
@@ -1098,9 +1103,89 @@ script.
   \label{fig:pv_tex_map}
 \end{figure}
 
+\subsubsection{Calculation of Some Aeroacoustic Variables}
+
+Given a flow field from a  CFD simulation (e.g. obtained through cplreader) it
+may  be  of interest  to  calculate secondary  variables  in  order to  better
+evaluate its  properties.  Such properties  for example include  the vorticity
+$\mathbf{w} = \nabla \times  \mathbf{v}$ and the divergence $div(\mathbf{v}) =
+\nabla \cdot \mathbf{v}$ of the flow field.  These quantities may be evaluated
+by using the Compute Derivatives filter while specifying the fluidMechVelocity
+as  input vector.   It  will  compute the  component-wise  derivatives of  the
+velocity vector as an element result in the following manner:
+
+\begin{displaymath}
+  \begin{pmatrix} 
+    \mathtt{VectorGradient\_0} & \mathtt{VectorGradient\_1} & \mathtt{VectorGradient\_2}\\
+    \mathtt{VectorGradient\_3} & \mathtt{VectorGradient\_4} & \mathtt{VectorGradient\_5}\\
+    \mathtt{VectorGradient\_6} & \mathtt{VectorGradient\_7} & \mathtt{VectorGradient\_8}
+  \end{pmatrix} = 
+  \begin{pmatrix} 
+    \frac{\partial v_x}{\partial x} & \frac{\partial v_x}{\partial y} & \frac{\partial v_x}{\partial z}\\
+    \frac{\partial v_y}{\partial x} & \frac{\partial v_y}{\partial y} & \frac{\partial v_y}{\partial z}\\
+    \frac{\partial v_z}{\partial x} & \frac{\partial v_z}{\partial y} & \frac{\partial v_z}{\partial z}
+  \end{pmatrix}
+\end{displaymath}
+
+From the Vector  Gradient the vorticity can be obtained  by using a Calculator
+filter with the following formula while choosing cell data as attribute mode.
+
+\begin{verbatim}
+( VectorGradient_5 - VectorGradient_7) * iHat +
+(-VectorGradient_2 + VectorGradient_6) * jHat +
+( VectorGradient_1 - VectorGradient_3) * kHat
+\end{verbatim}
+
+Whereas the divergence may be computed by the formula
+\begin{verbatim}
+VectorGradient_0 + VectorGradient_4 + VectorGradient_8
+\end{verbatim}
+
+The  Lamb  vector $\mathbf{L}  =  \mathbf{w}  \times  \mathbf{v}$ is  also  of
+interest in  aeroacoustics. Since the velocity  field is defined  on points it
+has to  be interpolated  to cells  first by using  a Point  Data to  Cell Data
+filter. Then the Lamb vector can be computed by the formula
+
+\begin{verbatim}
+( (-VectorGradient_2 + VectorGradient_6) * fluidMechVelocity_Z -
+  ( VectorGradient_1 - VectorGradient_3) * fluidMechVelocity_Y   ) * iHat +
+(-( VectorGradient_5 - VectorGradient_7) * fluidMechVelocity_Z + 
+  ( VectorGradient_1 - VectorGradient_3) * fluidMechVelocity_X   ) * jHat +
+( ( VectorGradient_5 - VectorGradient_7) * fluidMechVelocity_Y + 
+  (-VectorGradient_2 + VectorGradient_6) * fluidMechVelocity_X   ) * kHat
+\end{verbatim}
+
+Another  interesting quantity in  aeroacoustic research  is the  divergence of
+Lighthill's tensor $\nabla \cdot T_{ij} \approx \nabla \cdot \rho v_i v_j$ for
+low Mach number  flows.  According to Sec.  3.6. FE  evaluation of the acoustic
+source term  in \cite{Escobar2007} the  computation of this  quantity involves
+spatial  derivatives of  the velocity  vector field  as well  as  the velocity
+vector itself.   Therefore the  velocity vector field  has to  interpolated to
+cells first by  using the Point Data  to Cell Data filter. Once  this has been
+accomplished  a Calculator  filter in  cell  data mode  can be  used with  the
+following formula.
+
+\begin{verbatim}
+( 2 * fluidMechVelocity_X * VectorGradient_0 + 
+      fluidMechVelocity_Y * VectorGradient_1 +
+      fluidMechVelocity_X * VectorGradient_4 +
+      fluidMechVelocity_Z * VectorGradient_2 +
+      fluidMechVelocity_X * VectorGradient_8   ) * iHat +
+(     fluidMechVelocity_Y * VectorGradient_0 +
+      fluidMechVelocity_X * VectorGradient_3 + 
+  2 * fluidMechVelocity_Y * VectorGradient_4 + 
+      fluidMechVelocity_Z * VectorGradient_5 +
+      fluidMechVelocity_Y * VectorGradient_8   ) * jHat +
+(     fluidMechVelocity_Z * VectorGradient_0 +
+      fluidMechVelocity_X * VectorGradient_6 +
+      fluidMechVelocity_Z * VectorGradient_4 +
+      fluidMechVelocity_Y * VectorGradient_7 +
+  2 * fluidMechVelocity_Z * VectorGradient_8   ) * kHat
+\end{verbatim}
 
 \newpage
 \subsection{General Mesh Viewer (GMV)}
+\label{sec:gmv}
 
 GMV  is An  easy to  use, 3D-scientific  visualization tool  designed  to view
 simulation data from any kind of structured or unstructured mesh.

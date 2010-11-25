@@ -225,16 +225,19 @@ CFS++ can  read the Gmsh  mesh format and  write into the  Gmsh postprocessing
 format if USE\_GMSH is switched ON, no additional extensions are required. The 
 official Gmsh download site is \url{http://geuz.org/gmsh/#Download}.
 
+Please  refer  to  sections  \ref{sec:gmsh_pre}  and  \ref{sec:gmsh_post}  for
+informations about pre- and postprocessing  of CFS++ meshes and results and to
+Sec. \ref{sec:cfs_tool} for the possible ways of data conversion.
+
+
 \subsection{ANSYS} An ANSYS Classic  APDL preprocessing extension is available
 from  \url{https://lse17.e-technik.uni-erlangen.de:2001/svn/mkmesh/trunk}  for
 generating  ASCII  based mesh  files  readable  by  CFS++.  An  extension  for
-generating  HDF5 mesh  files based  on cplreader  (cf.  Sec.  \ref{cplreader},
+generating  HDF5 mesh files  based on  cplreader (cf.   Sec.  \ref{cplreader},
 \cite{cplreadermanual} ) is  presented in Sec.  \ref{sec:ansys_mkmesh_mkhdf5}.
 CFS++ can  write ANSYS  result files for  postprocessing if  the USE\_ANSYSRST
 configuration option in CMake  is set to ON. This is the  case for the nightly
-built    executables   ({\tt    cfs\_nightly\_*,    cfstool\_nightly\_*})   in
-Klagenfurt. For an introduction to  modeling refer to the chapter 'Basic Steps
-of Modeling in ANSYS' in \cite{Simkovics2010}.
+built executables ({\tt cfs\_nightly\_*, cfstool\_nightly\_*}) in Klagenfurt.
 
 \textcolor{red}{ATTENTION:  The  ANSYS  Classic  GUI  requires  the  OpenMotif
 library libXm.so.3.  Most modern Linux distributions, except openSUSE (package
@@ -245,6 +248,12 @@ LessTif to libXm.so.3  does not work! In Klagenfurt we  solved this problem by
 setting the library load path in our  own start scripts to a path containing a
 valid libXm.so.3.}
 
+For an introduction to modeling refer  to the chapter 'Basic Steps of Modeling
+in   ANSYS'   in  \cite{Simkovics2010}.   Please   also   refer  to   sections
+\ref{sec:ansys_pre} and  \ref{sec:ansys_post} for informations  about pre- and
+postprocessing of CFS++ meshes and  results and to Sec. \ref{sec:cfs_tool} for
+the possible ways of data conversion.
+
 
 \subsection{ParaView} A ParaView plugin for reading CFS++'s native HDF5 format
 is provided. It  will be built along ParaView,  if BUILD\_PARAVIEW is switched
@@ -254,22 +263,30 @@ platforms  along  with  a few  sample  datasets  can  be  found on  the  CFS++
 development                              server                             at
 \url{https://lse17.e-technik.uni-erlangen.de:2001/files/precompiled/Paraview}. A
 good   starting   point   for    the   ParaView   newbie   is   the   tutorial
-\url{http://www.paraview.org/Wiki/images/8/88/ParaViewTutorial38.pdf}.
+\url{http://www.paraview.org/Wiki/images/8/88/ParaViewTutorial38.pdf}.   Please
+refer to Sec. \ref{sec:paraview}  for further details about the implementation
+of the CFS++ HDF5 plugin  and some advanced visualization techniques involving
+data from CFS++.
 
 \subsection{Others}  The  GMV\footnote{\url{http://www.generalmeshviewer.com}}
 postprocessor is  not publicly available any  more, but is  still installed at
 Erlangen and Klagenfurt.   It may be obtained also  from the CFS++ development
 server                                                                       at
-\url{https://lse17.e-technik.uni-erlangen.de:2001/files/precompiled/GMV}.
+\url{https://lse17.e-technik.uni-erlangen.de:2001/files/precompiled/GMV}. Also
+refer to Sec. \ref{sec:gmv} for an introduction on using GMV.
 
-The  hdfview  HDF5   viewer  may  be  built  from   source  by  switching  the
-BUILD\_HDFVIEW CMake configuration option ON.
+The  hdfview  HDF5 viewer\footnote{\url{http://www.hdfgroup.org/hdf-java-html/hdfview}}
+may be built  from source by switching the  BUILD\_HDFVIEW CMake configuration
+option ON.
 
-HDF5 command line tools get built along CFS++ in any case and are available in
-CFS\_BUILD\_DIR/bin/DISTRO.
+HDF5                                command                               line
+tools\footnote{\url{http://www.hdfgroup.org/products/hdf5_tools/\#h5dist}} get
+built along CFS++ in any case and are available in CFS\_BUILD\_DIR/bin/DISTRO.
 
-Matlab can also  read and write HDF5 files and is  available in Klagenfurt and
-Erlangen.
+Matlab        can        also         read        and        write        HDF5
+files\footnote{\url{http://www.mathworks.com/help/techdoc/ref/hdf5.html},
+\url{http://www.scipy.org/Cookbook/hdf5_in_Matlab}}   and   is  available   in
+Klagenfurt and Erlangen.
 
 \section{The CFS++  Development Server}
 

@@ -429,6 +429,48 @@ note = {\url{http://dx.doi.org/10.1137/050637649}, \url{http://fgb.informatik.un
   url = {http://www.kitware.com/products/books/CMakeBook.html},
 }
 
+@PHDTHESIS{Escobar2007,
+  author = {Max Escobar},
+  title = {Finite Element Simulation of Flow-Induced Noise using Lighthill’s
+	Acoustic Analogy},
+  school = {University Erlangen-Nuremberg},
+  year = {2007},
+  abstract = {The main focus of the present work is the numerical simulation of
+	flow-induced noise using the Finite Element method (FEM). The CAA
+	methodology introduced in this thesis follows a hybrid approach using
+	the weak formulation of Lighthill's acoustic analogy. Therefore,
+	the flow-induced noise is computed in a coupled two-step procedure.
+	First of all, results from an incompressible unsteady flow simulation
+	capable to resolve the turbulent scales responsible for the noise
+	generation are used to compute acoustic source terms directly on
+	the fine fluid grid. As a second step, after conservative interpolation
+	of the acoustic nodal sources to the acoustic grid, the acoustic
+	propagation is computed using the Finite Element method. The Finite
+	Element derivation of the aeroacoustic problem is obtained by performing
+	a volume discretization of the weak formulation of Lighthill's inhomogeneous
+	wave equation. Therewith, reflections and diffraction of the generated
+	acoustic waves due to the presence of solid/elastic bodies are implicitly
+	taken into account. Unsteady flow computations following LES (Large
+	Eddy Simulation) and SAS (Scale Adaptive Simulation) turbulence modelling
+	approaches are used for the evaluation of the acoustic sources. For
+	the validation of the implementation, numerical results of the acoustic
+	pressure for the test case of a co-rotating vortex pair are compared
+	against the corresponding analytical far-field solution. The applicability
+	of the coupled numerical scheme is demonstrated by means of 2D and
+	3D examples, in both the time and frequency domain. Results from
+	a 2D example of the flow-induced noise from a square cylinder is
+	used to perform qualitative analyses and to estimate appropriate
+	parameters to be able to perform 3D numerical simulations in an efficient
+	way while preserving a good accuracy of the acoustic results. Finally,
+	results are presented from 3D simulations of the noise generated
+	by wall-mounted cylinders with two different geometry profiles.},
+  file = {:thesis/diss_flowinducednoise.pdf:PDF},
+  owner = {strieben},
+  timestamp = {2007.10.09},
+  url = {http://www.opus.ub.uni-erlangen.de/opus/volltexte/2007/672/},
+  note = {\url{http://www.opus.ub.uni-erlangen.de/opus/volltexte/2007/672/}}
+}
+
 @Misc{cplreadermanual,
   title =        {{CPLREADER - A CFD Data Reader and Acoustic Source Term Generator for CFS++}},
   author = 	 {{Max Escobar and Jens Grabinger and Simon Triebenbacher and Stefan Zörner}},
@@ -567,4 +609,10 @@ The National Aeronautics and Space Administration is developing the Earth Observ
   year = {2005},
   note = {\url{http://www1.ansys.com/customer/content/documentation/100/ansys/gmod100.pdf}},
   timestamp = {2010.09.22}
+}
+
+@Misc{DFGGuidelines,
+  title =        {{DFG-Vordruck 1.02 - Merkblatt für Anträge auf Sachbeihilfen mit Leitfaden für die Antragstellung}},
+  year  =        {2010},
+  note  =        {\url{http://www.dfg.de/download/programme/emmy_noether_programm/antragstellung/1_02/1_02.pdf}},
 }
