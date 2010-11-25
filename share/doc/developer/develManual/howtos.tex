@@ -100,6 +100,46 @@ $ fusermount -u home_mac
 
 \section{Debugging using Eclipse, Totalview, gdb}
 \section{CFS++ Coding Style}
+
+There is no very strict coding style for CFS++. The main points which have been agreed upon are
+\begin{itemize}
+  \item No tabs only spaces.
+  \item The indentation width is two characters.
+  \item Source encoding is UTF-8.
+\end{itemize}
+
+\subsection{Settings for Emacs}
+
+The following attached shell archive
+\attachfile[icon=PushPin,description={Emacs settings.},mimetype=text/plain]{attachments/emacs_settings.txt}
+implements the CFS++ policies for Emacs. It also contains modes for editing CMake files, gnuplot files and ANSYS APDL input scripts. It also features the CUA mode, which contains keyboard shortcuts which are more consistent with oder editors (e.g. Ctrl+C for copying). Some changes to the Lisp scripts may be necessary to get them working with XEmacs.
+
+\subsection{Settings for Eclipse}
+
+The necessary settings in Eclipse can be made by accessing Window $\rightarrow$ Preferences $\rightarrow$ General $\rightarrow$ Editors and Workspace (c.f Fig. \ref{fig:eclipse_cfs_settings}).
+\begin{figure}[htb] 
+  \centering 
+  \subfloat[Editor settings.]{
+    \label{fig:eclipse_editor_settings}
+    \begin{overpic}[height=5cm]{pics/eclipse_editor_settings}
+%      \put(10,20){\textcolor{red}{\bf Test}}
+    \end{overpic}
+    }
+  \qquad
+  \subfloat[Workspace settings.]{
+    \label{fig:eclipse_workspace_settings}
+    \begin{overpic}[height=5cm]{pics/eclipse_workspace_settings}
+    \end{overpic}
+  } 
+  \caption{Settings for CFS++ in Eclipse.}
+  \label{fig:eclipse_cfs_settings}
+\end{figure}
+
+For convenience the corresponding settings files are attached here
+\attachfile[icon=PushPin,description={Eclipse editor settings.},mimetype=text/plain]{attachments/org.eclipse.ui.editors.prefs.txt}
+\attachfile[icon=PushPin,description={Eclipse workspace settings.},mimetype=text/plain]{attachments/org.eclipse.core.resources.prefs.txt}. The have to copied to the workspace/.metadata/.plugins/org.eclipse.core.runtime/.settings directory and must be renamed to \*.prefs.
+
+
 \section{Implementing a new PDE}
 \section{Implementing a new solver}
 \section{Implementing a new time stepping scheme}

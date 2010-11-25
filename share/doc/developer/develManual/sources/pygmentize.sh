@@ -64,3 +64,6 @@ Pygmentize nacs_win.txt nacs_win.tex
 Pygmentize nacs_win_build_howto.txt nacs_win_build_howto.tex
 Pygmentize ansys_transitional_pyra.txt ansys_transitional_pyra.tex
 Pygmentize mpcci_reactivate_lse24_lic.txt mpcci_reactivate_lse24_lic.tex
+Pygmentize org.eclipse.ui.editors.prefs org.eclipse.ui.editors.prefs.tex
+Pygmentize org.eclipse.core.resources.prefs org.eclipse.core.resources.prefs.tex
+Pygmentize emacs_settings.sh emacs_settings.tex

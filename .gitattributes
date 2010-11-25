@@ -360,6 +360,7 @@ share/doc/developer/develManual/sources/ansys_surf_vol_mesh.txt -text
 share/doc/developer/develManual/sources/ansys_transitional_pyra.txt svneol=native#text/plain
 share/doc/developer/develManual/sources/cplreader_meshgen.xml -text
 share/doc/developer/develManual/sources/crosspoint_test.c svneol=native#text/plain
+share/doc/developer/develManual/sources/emacs_settings.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/gid_batch.tcl svneol=native#text/plain
 share/doc/developer/develManual/sources/gid_pw_server.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/git_checkout_cfs.sh svneol=native#text/plain
@@ -375,6 +376,8 @@ share/doc/developer/develManual/sources/mkmesh.txt -text
 share/doc/developer/develManual/sources/mpcci_reactivate_lse24_lic.txt svneol=native#text/plain
 share/doc/developer/develManual/sources/nacs_win.txt -text svneol=native#text/plain
 share/doc/developer/develManual/sources/nacs_win_build_howto.txt svneol=native#text/plain
+share/doc/developer/develManual/sources/org.eclipse.core.resources.prefs -text
+share/doc/developer/develManual/sources/org.eclipse.ui.editors.prefs -text
 share/doc/developer/develManual/sources/photo.c svneol=native#text/plain
 share/doc/developer/develManual/sources/platform_defaults_mac.cmake -text
 share/doc/developer/develManual/sources/pv_analytical_sol.py -text
