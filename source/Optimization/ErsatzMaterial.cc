@@ -345,7 +345,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       PtrParamNode info = iter->Get("excitation", ParamNode::APPEND);
       info->Get("index")->SetValue(excite.index);
       info->Get("objective")->SetValue(excite.cost);
-      info->Get("normalized_weight")->SetValue(excite.normalized_weight);
+      info->Get("objective_weight")->SetValue(excite.normalized_weight);
       for(unsigned int c = 0; c < constraints.all.GetSize(); c++)
       {
         Condition* g = constraints.all[c];
@@ -898,8 +898,8 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
 
     case Function::POISSONS_RATIO:
     case Function::YOUNGS_MODULUS:
-          result = CalcPoissonsRatioAndYoungsModulus(c, g, derivative);
-          break;
+         result = CalcPoissonsRatioAndYoungsModulus(c, g, derivative);
+         break;
 
     case Function::GLOBAL_DYNAMIC_COMPLIANCE:
           assert(!derivative); // SIMP!

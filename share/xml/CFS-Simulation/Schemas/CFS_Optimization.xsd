@@ -327,7 +327,32 @@
           <!-- slopes can be treated linearly by snopt or nonlinearly -->
           <xsd:attribute name="linear" use="optional" type="xsd:boolean"/>
           
+          <!-- for a stress constraint we can define the excitation by its label. The enumaration
+               can be easy extended here as we do a string compare with the excitation label in the code -->
+          <xsd:attribute name="excitation" use="optional" default="all">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:string">
+                <xsd:enumeration value="all"/>
+                <xsd:enumeration value="x"/>
+                <xsd:enumeration value="y"/>
+                <xsd:enumeration value="z"/>
+                <xsd:enumeration value="yz"/>
+                <xsd:enumeration value="xz"/>
+                <xsd:enumeration value="xy"/>
+                <xsd:enumeration value="0"/>
+                <xsd:enumeration value="1"/>
+                <xsd:enumeration value="2"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:attribute>
         </xsd:complexType>
+        
+        <xsd:unique name="opt_unique_constraint">
+          <xsd:selector xpath="cfs:constraint"/>
+          <xsd:field xpath="@type"/>
+          <xsd:field xpath="@mode"/>
+          <xsd:field xpath="@excitation"/>
+        </xsd:unique>        
       </xsd:element>
 
       <!-- optimizer: e.g. <optimizer type="optimialityCondition" maxIterations="20"/> mandatory -->
@@ -606,7 +631,7 @@
             </xsd:simpleType>
           </xsd:attribute>
           <!-- A constraint value is always scalar -->
-          <xsd:attribute name="maxIterations" use="optional" type="xsd:nonNegativeInteger" default="20"/>
+          <xsd:attribute name="maxIterations" use="optional" type="xsd:nonNegativeInteger" />
         </xsd:complexType>
       </xsd:element>
       

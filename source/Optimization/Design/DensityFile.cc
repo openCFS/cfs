@@ -96,7 +96,7 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
   if(!ersatzMaterial)
   {
     // only if the design space does not already exist (created by optimization)
-    // the regions are normally implicitly defined by the element numbers. The excpetion
+    // the regions are normally implicitly defined by the element numbers. The exception
     // is force_region from <loadErsatzMaterial>
     StdVector<RegionIdType> regionIds;
 

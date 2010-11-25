@@ -59,6 +59,18 @@ void MultipleExcitation::ToInfo(PtrParamNode in) const
     in->Get("type")->SetValue(type.ToString(type_));
 }
 
+Excitation* MultipleExcitation::GetExcitation(const std::string& label, bool quiet)
+{
+  for(unsigned int i = 0; i < excitations.GetSize(); i++)
+    if(excitations[i].label == label)
+      return &(excitations[i]);
+
+  if(quiet)
+    return NULL;
+  else
+    throw Exception("None of the " + lexical_cast<string>(excitations.GetSize()) + " excitations has a label '" + label + "'");
+}
+
 
 void MultipleExcitation::PrepareMultipleExcitations(SinglePDE* pde, PtrParamNode optInfoNode, bool harmonic, bool eval_inital_design)
 {
@@ -246,6 +258,13 @@ int MultipleExcitation::SetHomogenizationTestStrains()
                         {0.0, 0.0, 0.0, 0.0, 0.0, 1.0 } };
 
   Vector<double> vec;
+
+  // excitations.Resize(1);
+  // Excitation& ex = excitations[0];
+  // vec.Fill(ts[0], 6);
+  // ex.ReadTestStrain(vec);
+  // ex.weight = 1.0;
+  // if(true) return 1;
 
   unsigned int dim = domain->GetGrid()->GetDim();
 

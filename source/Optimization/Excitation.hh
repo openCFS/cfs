@@ -81,10 +81,12 @@ public:
   /** For multiharmonic excitation. -1.0 by default */
   double frequency;
 
-  /** this is the weight from the xml file */
+  /** this is the weight from the xml file.
+   * @see normalized_weight */
   double weight;
 
-  /** this is the normalized weight (sum of all weights of all excitations is 1) */
+  /** this is the normalized weight (sum of all weights of all excitations is 1).
+   * Note that for functions with a single excitation (e.g. stress, volume) it shall be 1 */
   double normalized_weight;
 
   /** A label denoting the excitation, depends on kind */
@@ -134,6 +136,10 @@ public:
   bool DoHomogenization() const { return type_ == HOMOGENIZATION_TEST_STRAINS; }
 
   bool DoPolarizationMatrix() const { return type_ == POLARIZATION_MATRIX; }
+
+  /** Search for the excitation label.
+   * @param quiet if true NULL is returned when the label is not found instead of an exception */
+  Excitation* GetExcitation(const std::string& label, bool quiet = false);
 
   /** For doing adjust weights when doing multiple excitation with meta objective, this method
    * does the job. It requires the cost entries in excitations to be set.

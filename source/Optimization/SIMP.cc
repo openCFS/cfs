@@ -243,6 +243,9 @@ void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferF
   //
   // we do NOT weight!
 
+  for(unsigned int i = 0; i < design->data.GetSize(); i++)
+    LOG_DBG2(simp) << "CVMSG: f=" << f->ToString(this->me) << " de=" << design->data[i].elem->elemNum << " org=" << design->data[i].GetPlainGradient(f);
+
   // alpha is from the globalization which is in the form sum max(0, g_i-c)^p and alpha is p*max(0, g_i-c)^(p-1) where g_i is the vonMisesStress
   Vector<double> alpha = CalcVonMisesStressGlobalizationFactor(excite, f);
   assert(alpha.GetSize() == design->data.GetSize());
@@ -250,6 +253,7 @@ void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferF
   // 2 * stress^T * M * (rho^p)' * E_0 * B * u can be obtained with a special attributes
   Vector<double> appendix = CalcVonMisesStressVector(excite, f, false, true);
   assert(appendix.GetSize() == alpha.GetSize());
+
 
   // calc lambda^T *  K' * u -> this already stores the results by AddGradient()!
   CalcU1KU2(tf, adjoint.Get(excite, f)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, 1.0, STANDARD, f);
@@ -259,7 +263,7 @@ void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferF
 	{
     DesignElement& de = design->data[i];
 		de.AddGradient(f, alpha[i] * appendix[i]);
-		LOG_DBG2(simp) << "CVMSG: f=" << f->ToString() << " de=" << de.elem->elemNum << " alpha=" << alpha[i] << "* app=" << appendix[i] << " ="
+		LOG_DBG2(simp) << "CVMSG: f=" << f->ToString(this->me) << " de=" << de.elem->elemNum << " alpha=" << alpha[i] << "* app=" << appendix[i] << " ="
 		               << alpha[i] * appendix[i] << " -> " << de.GetPlainGradient(f);
 	}
 }
