@@ -373,7 +373,10 @@ int DesignSpace::GetSpecialResultIndex(DesignElement::Type design, DesignElement
   for(unsigned int i = 0; i < resultDescriptions.GetSize(); i++)
   {
     const ResultDescription& rd = resultDescriptions[i];
-    if(rd.design != design || rd.value != value || rd.detail != detail || rd.access != access || rd.excitation != excitation) continue;
+    // two step check
+    if(rd.design != design || rd.value != value || rd.detail != detail || rd.access != access) continue;
+    // second check
+    if(rd.excitation != "" && rd.excitation != excitation) continue;
 
     // we are right.
     switch(rd.solutionType)

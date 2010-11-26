@@ -548,7 +548,7 @@ void Optimization::SolveAdjointProblems(Excitation* excite)
   for(unsigned int i = 0; i < ff.GetSize(); ++i)
   {
     Function* f = ff[i];
-    if(f->IsAdjointBased())
+    if(f->IsAdjointBased() && f->DoEvaluate(excite))
       SolveAdjointProblem(excite, f); // virtual! calls ErsatzMaterial implementation
   }
 }

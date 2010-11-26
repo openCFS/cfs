@@ -121,7 +121,7 @@ ErsatzMaterial::ErsatzMaterial() :
   harmonic = BasePDE::IsComplex(pde->GetAnalysisType());
 
   if(homogenization_ && !pde->HasPeriodicBC())
-    EXCEPTION("homogenization requires periodic boundary conditions");
+   throw Exception("homogenization requires periodic boundary conditions");
 
   // Get the assemble class
   assemble_ = pde->getPDE_assemble();

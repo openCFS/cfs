@@ -642,3 +642,9 @@ def extrude(data_2d):
         ret[i][k][j] = val
         
   return ret
+
+# do an ascii print of the density data
+def ascii_print(data, threshold):
+  x, y, z = getDim(data)
+  assert()
+  
