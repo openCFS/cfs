@@ -2113,7 +2113,8 @@ namespace CoupledField {
     
     list = in->Get("coordinateSystems");
 
-    if(progOpts->DoExportGrid())
+    // in the cfstool case progOpts is not set
+    if(progOpts != NULL && progOpts->DoExportGrid())
     {
       PtrParamNode nl = in->Get("grid/nodeList");
       // Setup large array to resolve zero to many node names
@@ -2148,12 +2149,13 @@ namespace CoupledField {
           elem_names[nn[n]-1].Push_back(s);
       }
 
+      PtrParamNode rl = in->Get("grid/regionList");
       for(unsigned int r = 0; r < regionData.GetSize(); r++)
       {
         RegionData& rd = regionData[r];
         SetElementBarycenters(rd.id, false);
-        PtrParamNode reg = in->Get("grid/regionList/region", ParamNode::APPEND);
-        reg->Get("name", ParamNode::APPEND)->SetValue(rd.name);
+        PtrParamNode reg = rl->Get("region", ParamNode::APPEND);
+        reg->Get("name")->SetValue(rd.name);
         const StdVector<Elem*>& elems = rd.type == VOLUME_REGION ? volElems_[rd.type_idx] : surfElems_[rd.type_idx];
         for(unsigned int e = 0, n = elems.GetSize(); e < n; e++)
         {

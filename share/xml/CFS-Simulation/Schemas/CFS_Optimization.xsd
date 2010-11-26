@@ -631,7 +631,7 @@
             </xsd:simpleType>
           </xsd:attribute>
           <!-- A constraint value is always scalar -->
-          <xsd:attribute name="maxIterations" use="optional" type="xsd:nonNegativeInteger" />
+          <xsd:attribute name="maxIterations" use="required" type="xsd:nonNegativeInteger" />
         </xsd:complexType>
       </xsd:element>
       

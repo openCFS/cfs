@@ -14,15 +14,21 @@ from distutils.command.build_scripts import first_line_re
 ## Read an arbitrary density file as NDArray
 # Uses the <mesh x="30" y="20" z="1"/> element in the header of the density file
 # if not the whole domain is design domain, the data is read as 1D array
-# param elemnr if False the design is read, otherwise nr
-def read_density(filename, elemnr=False):
+# @param elemnr if False the design is read, otherwise nr
+# @param x, y, z optional mesh size in case it is not given in the density file. Note, the smallest number is 1, not 0!!
+def read_density(filename, elemnr=False, x = None, y = None, z = None):
   vals = read_density_as_vector(filename, elemnr)
 
   tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
   root = tree.getroot()
-  x = int(root.xpath("//mesh/@x")[0])
-  y = int(root.xpath("//mesh/@y")[0])
-  z = int(root.xpath("//mesh/@z")[0])
+  if x == None:
+    x = int(root.xpath("//mesh/@x")[0])
+  if y == None:  
+    y = int(root.xpath("//mesh/@y")[0])
+  if z == None:
+    z = int(root.xpath("//mesh/@z")[0])
+
+  assert(x > 0 and y > 0 and z > 0)  
 
   # density files where not the whole domain is design domain are read and re-written
   # as 1D arrays
@@ -141,6 +147,35 @@ def write_density_file(filename, data_inp, setname_inp, elemnr=None):
 
   out.write(' </cfsErsatzMaterial>\n')
   out.close()
+
+
+## replaces the element numbers by new element numbers.
+# @param org ndarray of element numbers from read_density(,elemnr=True)
+# @param map element mapping as tupel list from cfs_grid.map_elements()
+# @return again an ndarray which can be used as parameter for write_density_file()
+def apply_elmennr_mapping(org, map):
+  x, y, z = getDim(org)
+  assert(x*y*z == len(map))
+
+  result = numpy.zeros((x, y, z))
+
+  for k in range(z):
+    for j in range(y):
+      for i in range(x):    
+         val = getNDArrayEntry(org, i, j, k)
+         # be save and search n^2 -> if too slow make it faster :)
+         found = False
+         for p in range(len(map)):
+           if val == map[p][0]:
+             setNDArrayEntry(result, i, j, k, int(map[p][1]))
+             found = True
+             break
+         if not found:
+           raise RuntimeException("could not find elemnr=" + str(val) + " from x=" + str(val) + " y=" + str(y) + " z=" + str(z))
+            
+  return result
+  
+
 
 ## evaluates the physical volume fraction
 # @param data 2D/3D data

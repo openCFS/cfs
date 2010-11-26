@@ -106,6 +106,10 @@ class Coordinate:
     self.y = j / float(div) + 0.5 / div 
     self.z = k / float(div) + 0.5 / div 
 
+  # export to arry for numerical stuff
+  def toArray(self):
+    return [self.x, self.y, self.z]
+
   # other is also Coordinate
   def dist(self, other):
     return math.sqrt((self.x - other.x)**2 + (self.y - other.y)**2 + (self.z - other.z)**2)  

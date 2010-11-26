@@ -79,7 +79,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& regionIds, ParamNodeList &pn_d
         && method !=ErsatzMaterial::SHAPE_GRAD)
     {
       if(elements == 0) throw Exception("empty regions");
-      if(nd == 0) throw Exception("no designs given");
+      if(nd == 0) throw Exception("no designs types given.");
     }
   }
   else // 'standard' SIMP case

@@ -447,6 +447,7 @@ share/scripts/IdentifyCXXCompiler.cpp svneol=native#text/plain
 share/scripts/IdentifyFortranCompiler.F90 -text
 share/scripts/cfs -text
 share/scripts/cfs-testsuite-extractor.py -text
+share/scripts/cfs_grid.py -text
 share/scripts/cfs_utils.py -text
 share/scripts/cfstool -text
 share/scripts/common.sh svneol=native#text/plain
