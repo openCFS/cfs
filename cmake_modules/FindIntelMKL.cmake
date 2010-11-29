@@ -13,6 +13,7 @@ SET (MKL_POSSIBLE_PATHS
   /opt/intel/Compiler/11.0/081/mkl
   /opt/intel/Compiler/11.0/074/mkl
   /opt/intel/mkl/10.0.5.025
+  /home/data/programs/intel/Compiler/11.0/081/mkl
   /home/data/programs/intel/mkl/10.0.5.025
   /opt/intel/mkl/9.1.023
   /opt/intel/mkl/9.1.021
@@ -218,7 +219,7 @@ ELSE(CFS_MKL_VERSION LESS 10)
   IF(USE_OPENMP AND
      CFS_CXX_COMPILER_NAME STREQUAL "GCC")
     # Using OpenMP and GCC: We should not need libiomp5.a in this case
-    SET(MKL_BLAS_LIB "-Wl,--start-group;${MKL_BLAS_LIB};-Wl,--end-group;-lpthread")
+    SET(MKL_BLAS_LIB "-Wl,--start-group;${MKL_BLAS_LIB};${MKL_LIB_IOMP};-Wl,--end-group;-lpthread")
   ELSE(USE_OPENMP AND
        CFS_CXX_COMPILER_NAME STREQUAL "GCC") 
     # In all other cases we need libiomp5.a
