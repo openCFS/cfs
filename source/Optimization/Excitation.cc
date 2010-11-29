@@ -9,7 +9,6 @@
 #include "Domain/grid.hh"
 #include "PDE/StdPDE.hh"
 #include "PDE/SinglePDE.hh"
-#include "PDE/mechPDE.hh"
 #include "PDE/elecPDE.hh" // for polarization matrix, see class TopGrad
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
@@ -250,15 +249,6 @@ void MultipleExcitation::PrepareMultipleExcitations(SinglePDE* pde, PtrParamNode
 
 int MultipleExcitation::SetHomogenizationTestStrains()
 {
-  double ts[6][6] =  { {1.0, 0.0, 0.0, 0.0, 0.0, 0.0 },
-                        {0.0, 1.0, 0.0, 0.0, 0.0, 0.0 },
-                        {0.0, 0.0, 1.0, 0.0, 0.0, 0.0 },
-                        {0.0, 0.0, 0.0, 1.0, 0.0, 0.0 },
-                        {0.0, 0.0, 0.0, 0.0, 1.0, 0.0 },
-                        {0.0, 0.0, 0.0, 0.0, 0.0, 1.0 } };
-
-  Vector<double> vec;
-
   // excitations.Resize(1);
   // Excitation& ex = excitations[0];
   // vec.Fill(ts[0], 6);
@@ -271,23 +261,20 @@ int MultipleExcitation::SetHomogenizationTestStrains()
   int cases = dim == 2 ? 3 : 6;
   excitations.Resize(cases);
 
-  for(int i = 0, cnt = 0; i < 6; ++i)
+  assert((int) MechPDE::X == 0);
+  assert((int) MechPDE::XY == 5);
+
+  for(int i = 0, cnt = 0; i < 6; i++)
   {
+    MechPDE::TestStrain ts = (MechPDE::TestStrain) i;
     Excitation& ex = excitations[cnt];
 
     // in 2D only 0, 1 and 5
     if(dim == 2 && (i == 2 || i == 3 || i == 4)) continue;
 
-    if(i == 0) ex.label = "x";
-    if(i == 1) ex.label = "y";
-    if(i == 2) ex.label = "z";
-    if(i == 3) ex.label = "yz";
-    if(i == 4) ex.label = "xz";
-    if(i == 5) ex.label = "xy";
+    ex.label = MechPDE::testStrain.ToString(ts);
 
-    vec.Fill(ts[i], 6);
-
-    ex.ReadTestStrain(vec);
+    ex.ReadTestStrain(ts);
     // The homogenized tensor can only be evaluated for the last excitation!
     ex.weight = i < cases-1 ? 0.0 : 1.0;
     ++cnt;
@@ -502,13 +489,14 @@ void Excitation::ReadLoads(PtrParamNode ls)
   mech->DefineRegionLoadIntegrators(regionLoads, linForms);
 }
 
-void Excitation::ReadTestStrain(const Vector<double>& vec)
+void Excitation::ReadTestStrain(MechPDE::TestStrain ts)
 {
-  this->test_strain = vec;
+  MechPDE* mech = dynamic_cast<MechPDE*>(domain->GetSinglePDE("mechanic"));
 
   loads.Clear();
-  MechPDE* mech = dynamic_cast<MechPDE*>(domain->GetSinglePDE("mechanic"));
-  mech->DefineTestStrainIntegrators(vec, linForms);
+
+  this->test_strain = mech->CalcTestStrainVector(ts);
+  mech->DefineTestStrainIntegrator(ts, linForms);
 }
 
 void Excitation::SetPolarizationMatrixRHS(const Vector<double>& mechp,

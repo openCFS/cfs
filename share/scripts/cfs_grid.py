@@ -11,6 +11,22 @@ from lxml import etree
 
 from cfs_utils import *
 
+# this is an example application to process a structural optimization result on an acoustic grid.
+#
+# as the written density file does not contain the design and filter specification you need an
+# optimization with e.g. evaluateInitialDesign
+# 
+# from optimization_tools import *
+# from cfs_grid import *
+# s = read_elements("piezo_grid.info.xml", "piezo")
+# t = read_elements("acoustic_fine_grid.info.xml", "piezo")
+# m = map_elements(s, t)
+# o_d = read_density("struct.density.xml", False, 30, 30, 1)
+# o_n = read_density("struct.density.xml", True, 30, 30, 1)
+# r = apply_elmennr_mapping(o_n, m)
+# write_density_file("shifted_struct.density.xml", o_d, "last", r)
+
+
 
 ## Element type
 class Element:
@@ -94,3 +110,4 @@ def find_corners(elements):
   
   return lower, upper       
     
+        

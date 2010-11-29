@@ -22,10 +22,13 @@ namespace CoupledField
 
   public:
 
-    //!  Constructor. here we read integration parameters
-    /*!
-      \param aGrid pointer to grid
-    */
+    /** constants for test-strains, used for homogenization. We depend on the int values! */
+    typedef enum { X=0, Y=1, Z=2, YZ=3, XZ=4, XY=5 } TestStrain;
+
+    static Enum<TestStrain> testStrain;
+
+    /** Constructor. here we read integration parameters
+     * @param aGrid pointer to grid */
     MechPDE( Grid *aGrid, PtrParamNode paramNode );
 
     //!  Deconstructor
@@ -93,11 +96,14 @@ namespace CoupledField
      * @param linForms set to append linear Forms to, if NULL use assemble_ */
     void DefinePressureIntegrators(StdVector<shared_ptr<EntityList> >& pressSurf, StdVector<std::string>& pressVals, StdVector<std::string>& pressPhase, StdVector<LinearFormContext*>* linForms = NULL);
     
-    /** add the integrators for the test strains for homogenization to the linear forms, similar as in multiple load case;
-     * called from Excitation::ReadLoads 
-     * @param vals contains the values from the xml material parameters
+    /** Add the integrators for the test strains for homogenization to the linear forms, similar as in multiple load case;
+     * called from Excitation::ReadLoads or Excitation::SetHomogenizationTestStrains() (optimization)
+     * @param test is an enum
      * @param linForms set to append linear Forms to, if NULL use assemble_ */
-    void DefineTestStrainIntegrators(const Vector<Double> &vals, StdVector<LinearFormContext*>* linForms = NULL);
+    void DefineTestStrainIntegrator(const TestStrain test, StdVector<LinearFormContext*>* linForms = NULL);
+
+    /** small helper which translates the test strain code on a vector of size 6 with one entry 1.0, the other zero */
+    static Vector<Double> CalcTestStrainVector(TestStrain ts);
     
     /** export of methods to generate Linear Forms used in multiload-cases by optimization 
      * @param regionLoads as returned from ReadRegionLoadsFromXML
@@ -267,6 +273,9 @@ namespace CoupledField
     //! read in the domains with prestressing
     void ReadPreStressing();
 
+    /** checks and processes the xml file for test strain, to do kind of manual (mathematical) homogenization */
+    void ReadTestStrains();
+
     //! read in surface stress boundary conditions
     void ReadSurfStress();
     
@@ -331,9 +340,6 @@ namespace CoupledField
     //! prestress-values: numSubdoms x 3
     std::map< RegionIdType, Vector<Double> > preStressVal_;
     
-    //! prestrain-values: numSubdoms x 3
-    Vector<Double> preStrainVal_;
-
      //@{ \name Attributes related to post-processing
 
      //! Contains mechanic velocity

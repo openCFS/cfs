@@ -46,6 +46,8 @@ namespace CoupledField {
 DECLARE_LOG(mechpde)
 DEFINE_LOG(mechpde, "mechpde")
 
+/** the static test strain enum mapping */
+Enum<MechPDE::TestStrain> MechPDE::testStrain;
 
 MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     :SinglePDE( aptgrid, paramNode ) {
@@ -976,10 +978,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     //RHS-part
     DefinePressureIntegrators(pressSurf_, pressVals_, pressPhase_);
     
-    // make sure not to call with empty vector!
-    if(preStrainVal_.GetSize() > 0)
-      DefineTestStrainIntegrators(preStrainVal_);
-    
     // Add integrator for surface stresses
     std::map<RegionIdType,SurfStress>::iterator  stressIt;
     for( stressIt = surfStresses_.begin();
@@ -1086,6 +1084,9 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
     // Define Springs
     DefineSprings();
+
+    // this is a very easy function, it checks if it is designed and adds itself in case
+    ReadTestStrains();
   }
   
   void MechPDE::DefinePressureIntegrators(StdVector<shared_ptr<EntityList> >& pressSurf, StdVector<std::string>& pressVals, StdVector<std::string>& pressPhase, StdVector<LinearFormContext*>* linForms){
@@ -1113,8 +1114,10 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     
   }
   
-  void MechPDE::DefineTestStrainIntegrators(const Vector<Double> &vals, StdVector<LinearFormContext*>* linForms)
+  void MechPDE::DefineTestStrainIntegrator(const TestStrain test, StdVector<LinearFormContext*>* linForms)
   {
+    Vector<double> vals = CalcTestStrainVector(test);
+
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     for(it = materials_.begin(); it != materials_.end(); it++)
     {
@@ -1145,6 +1148,15 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     }
   }
   
+  Vector<Double> MechPDE::CalcTestStrainVector(TestStrain ts)
+  {
+    // the test strain vector is of size six with one value 1.0 and the others 0.0
+    Vector<double> vals(6, 0.0);
+    vals[ts] = 1.0;
+    return vals;
+  }
+
+
   void MechPDE::DefinePolarizationMatrixIntegrators(const Vector<Double> &vals,
       StdVector<LinearFormContext*> *linForms, const int num)
   {
@@ -2532,8 +2544,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
   //   Query parameter object for information about prestressing
   // ********************************************************
   void MechPDE::ReadPreStressing() {
-
-
     // Check, if any prestressing boundary condition is present
     PtrParamNode bcsNode = myParam_->Get("bcsAndLoads", ParamNode::PASS );
     if( !bcsNode) return;
@@ -2569,6 +2579,23 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       preStressList_[actRegion] = "RHS";
       preStressVal_[actRegion] = stress;
 
+    }
+  }
+
+  void MechPDE::ReadTestStrains()
+  {
+    // Check, if any prestressing boundary condition is present
+    PtrParamNode bcsNode = myParam_->Get("bcsAndLoads", ParamNode::PASS );
+    if(!bcsNode) return;
+
+    ParamNodeList tsn = bcsNode->GetList("testStrain");
+
+    for (UInt i = 0; i < tsn.GetSize(); i++)
+    {
+       TestStrain ts = testStrain.Parse(tsn[i]->Get("strain")->As<std::string>());
+       if(dim_ == 2 && (ts == Z || ts == XZ || ts == YZ))
+          throw Exception("test strain '" + testStrain.ToString(ts) + "' invalid for 2D");
+       DefineTestStrainIntegrator(ts);
     }
   }
 

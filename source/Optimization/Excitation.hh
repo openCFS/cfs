@@ -6,6 +6,7 @@
 #include "MatVec/vector.hh"
 #include "Domain/bcs.hh"
 #include "Driver/harmonicDriver.hh"
+#include "PDE/mechPDE.hh"
 
 
 namespace CoupledField
@@ -50,7 +51,7 @@ public:
   /** read the loads from XML */
   void ReadLoads(PtrParamNode ls);
 
-  void ReadTestStrain(const Vector<double>& vec);
+  void ReadTestStrain(MechPDE::TestStrain ts);
 
   void AddLinFormsFromAssemble();
 
