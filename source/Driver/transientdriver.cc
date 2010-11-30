@@ -75,7 +75,7 @@ namespace CoupledField {
     std::string numStepString;
     myNode->GetValue( "numSteps", numStepString);
     mp.SetExpr(handle,numStepString);
-    numstep_ = mp.Eval(handle);
+    numstep_ = UInt( mp.Eval(handle) );
     
     mp.ReleaseHandle(handle);
 
