@@ -63,6 +63,7 @@ public:
         {
             int res = pthread_mutexattr_destroy(&attr);
             assert(res == 0);
+            if(res == 0) res = 0; // This is for preventing unused variable warning
         }
         if (res != 0)
             throw std::runtime_error("could not create mutex");
