@@ -239,7 +239,7 @@ void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferF
   // For the function we pack the stuff in Function::Local, for the gradient we do it here as the computation are too far
   // away from the other local gradient compuations.
   //
-	// the gradient is lambda^T *  K' * u + alpha * 2 * stress^T * M * (rho^p)' * E_0 * B * u
+	// the gradient is lambda^T * ( K' * u - f')  + alpha * 2 * stress^T * M * (rho^p)' * E_0 * B * u
   //
   // we do NOT weight!
 
@@ -268,21 +268,21 @@ void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferF
 	}
 }
 
-SurfaceRef::SurfaceRef()
+DesignDependentRHS::DesignDependentRHS()
 {
   valid = false;
   app   = Optimization::NO_APP;
   vec = NULL;
 }
 
-SurfaceRef::~SurfaceRef()
+DesignDependentRHS::~DesignDependentRHS()
 {
   valid = false;
   if(vec != NULL) { delete vec; vec = NULL; }
 }
 
 template <class T>
-bool SurfaceRef::Init(DesignSpace* design, Optimization::Application app)
+bool DesignDependentRHS::Init(DesignSpace* design, Optimization::Application app)
 {
   assert(app == Optimization::CHARGE_DENSITY || app == Optimization::PRESSURE);
   std::string name = app == Optimization::CHARGE_DENSITY ? "LinNeumannInt" : "PressureLinForm";
@@ -334,7 +334,7 @@ bool SurfaceRef::Init(DesignSpace* design, Optimization::Application app)
   assert(vec == NULL);
   // copy the first nodes dofs
   Vector<T>* vt = new Vector<T>(dof);
-  // vec is the base SingleVector which has no abstact operators overloaded
+  // vec is the base SingleVector which has no abstract operators overloaded
   vec = vt;
   for(int i = 0; i < dof; i++) (*vt)[i] = full[i];
 
@@ -362,7 +362,7 @@ bool SurfaceRef::Init(DesignSpace* design, Optimization::Application app)
 }
 
 
-std::string SurfaceRef::ToString(int level)
+std::string DesignDependentRHS::ToString(int level)
 {
   std::ostringstream os;
   os << "valid=" << valid;
@@ -386,6 +386,6 @@ std::string SurfaceRef::ToString(int level)
 
   // Explicit template instantiation
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-template bool SurfaceRef::Init<Double>(DesignSpace* design, Optimization::Application app);
-template bool SurfaceRef::Init<Complex>(DesignSpace* design, Optimization::Application app);
+template bool DesignDependentRHS::Init<double>(DesignSpace* design, Optimization::Application app);
+template bool DesignDependentRHS::Init<complex<double> >(DesignSpace* design, Optimization::Application app);
 #endif

@@ -61,7 +61,7 @@ private:
   void SetElementK(DesignElement* de, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative = true);
 
   /** The electric rhs, real or complex */
-  SurfaceRef elecRHS;
+  DesignDependentRHS elecRHS;
   
   /** shortcut to our pde, is also in ErsatzMaterial::pdes */
   ElecPDE* elec;

@@ -42,12 +42,13 @@ template <class TYPE> class Matrix;
  * a vector (displacement).
  * We use the design variable from the (volume) element and kind of project it
  * on the rhs which comes from the surface excitation. One has to check all volume
- * nodes if they are part of the surface. */
-class SurfaceRef
+ * nodes if they are part of the surface.
+ * Note, that test strain excitation is handled directly by CalcU1KU2() */
+class DesignDependentRHS
 {
 public:
-  SurfaceRef();
-  ~SurfaceRef();
+  DesignDependentRHS();
+  ~DesignDependentRHS();
 
   /** This is kind of constructor. The return value/status is reflected in valid.
    * @param app is either PRESSURE or CHARGE_DENSITY
@@ -111,7 +112,7 @@ protected:
   virtual void SetElementK(DesignElement* de, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative = true);
 
   /** the mechanical element rhs, complex or real */
-  SurfaceRef mechRHS;
+  DesignDependentRHS mechRHS;
 
 private:
 

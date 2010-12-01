@@ -515,7 +515,7 @@ void ErsatzMaterial::CalcNewmarkDerivative(Excitation& excite, Solutions& forwar
 }
 
 double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1,
-    Application k, StdVector<SingleVector*>& u2, SurfaceRef* rhs,
+    Application k, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs,
     double factor, CalcMode calcMode, Function* f, int res_idx)
 {
   if (harmonic)
@@ -527,7 +527,7 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>&
 template <class T>
 double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1,
                        Application app, StdVector<SingleVector*>& u2,
-                       SurfaceRef* rhs, double factor, CalcMode calcMode, Function* f, int res_idx)
+                       DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f, int res_idx)
 {
   LOG_DBG2(em) << "CalcU1KU2(): tf=" << (tf ? tf->ToString() : "NULL") << " #u1=" << u1.GetSize()
                  << " app=" << application.ToString(app) << " #u2=" << u2.GetSize() << " calcMode="
@@ -587,7 +587,9 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>&
 
       // u1^T (K' u2 - f') -> calc "- f'"
       assert(!(calcMode == CONJ_QUAD && rtf != NULL)); // no sensitive rhs here!
+      assert(!(rtf != NULL && IsStrainExcitedSystem()));
       if(rtf != NULL) SubstractGradSurfaceRHS(de, rtf, rhs, mat_vec);
+      if(IsStrainExcitedSystem()) SubstractGradStrainRHS(de, tf, mat_vec);
       LOG_DBG3(em) << "-f': " << mat_vec.ToString();
 
       // u1^T(K' u2 - f') -> calc "u1^T *" or <u1, *> 
@@ -618,9 +620,33 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>&
   return sum;
 }
 
+template <class T>
+void ErsatzMaterial::SubstractGradStrainRHS(DesignElement* de, TransferFunction* tf, Vector<T>& in_out)
+{
+  // OptMechMat is base for any further child!
+  const Vector<double>& vec = dynamic_cast<OptMechMat*>(material)->MechStrainRHS(de->elem);
+  double factor = tf->Derivative(de, DesignElement::SMART);
+  Assign(in_out, vec, -1.0 * factor);
+}
+
+
+bool ErsatzMaterial::IsStrainExcitedSystem() const
+{
+  // this shall not be called to often, hence we don't cache
+  if(homogenization_) return true;
+
+  StdVector<LinearFormContext*>& lf = assemble_->GetLinForms();
+
+  // ignore the regions!!
+  for(unsigned int i = 0; i < lf.GetSize(); i++)
+    if(lf[i]->GetIntegrator()->GetName() == "AddStrainRHSInt")
+      return true;
+
+  return false;
+}
 
 template <class T>
-void ErsatzMaterial::SubstractGradSurfaceRHS(DesignElement* de, TransferFunction* tf, SurfaceRef* ref, Vector<T>& in_out)
+void ErsatzMaterial::SubstractGradSurfaceRHS(DesignElement* de, TransferFunction* tf, DesignDependentRHS* ref, Vector<T>& in_out)
 {
   // we have to find the nodes which are common between de->elem
   // and the surface element which is one dimension smaller
@@ -658,11 +684,11 @@ void ErsatzMaterial::SubstractGradSurfaceRHS(DesignElement* de, TransferFunction
       // for all design nodes common with the surface directly the entries
       for(int d = 0; d < dof; d++)
         in_out[n*dof + d] -= factor * rhs[d];
-      LOG_DBG3(em) << "... -" << factor << "*" << rhs.ToString()
-                     << " -> " << in_out.ToString();
+      LOG_DBG3(em) << "... -" << factor << "*" << rhs.ToString() << " -> " << in_out.ToString();
     }
   }
 }
+
 
 double ErsatzMaterial::CalcObjective()
 {
@@ -3116,8 +3142,8 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Applic
 // template instantiation stuff
 template double ErsatzMaterial::CalcU1KU2<double>(TransferFunction* tf, StdVector<SingleVector*>& u1,
     Application app, StdVector<SingleVector*>& u2,
-    SurfaceRef* rhs, double factor, CalcMode calcMode, Function* f, int res_idx);
+    DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f, int res_idx);
 
 template double ErsatzMaterial::CalcU1KU2<std::complex<double> >(TransferFunction* tf, StdVector<SingleVector*>& u1,
     Application app, StdVector<SingleVector*>& u2,
-    SurfaceRef* rhs, double factor, CalcMode calcMode, Function* f,  int res_idx);
+    DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f,  int res_idx);

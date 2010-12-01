@@ -139,6 +139,10 @@ namespace CoupledField {
   void Assign(Matrix<Complex>& target, const Matrix<Double>&  other, const Complex factor);
   void Assign(Matrix<Complex>& target, const Matrix<Double>&  other, const Double factor);
 
+  void Assign(Vector<Double>& target, const Vector<Double>& other, const Double factor);
+  void Assign(Vector<Complex>& target, const Vector<Complex>& other, const Double factor);
+  void Assign(Vector<Complex>& target, const Vector<Double>& other, const Double factor);
+
   /** makes sure the string is a valid xml element and attribute name */
   std::string ToValidXML(const std::string& input);
 

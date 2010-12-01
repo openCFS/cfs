@@ -266,6 +266,31 @@ namespace CoupledField {
         target[r][c] = factor * other[r][c];
   }
 
+  void Assign(Vector<Double>& target, const Vector<Double>& other, const Double factor)
+  {
+    UInt n = other.GetSize();
+    target.Resize(n);
+    for(UInt i = 0; i < n; i++)
+        target[i] = factor * other[i];
+  }
+
+  void Assign(Vector<Complex>& target, const Vector<Complex>& other, const Double factor)
+  {
+    UInt n = other.GetSize();
+    target.Resize(n);
+    for(UInt i = 0; i < n; i++)
+        target[i] = factor * other[i];
+  }
+
+  void Assign(Vector<Complex>& target, const Vector<Double>& other, const Double factor)
+  {
+    UInt n = other.GetSize();
+    target.Resize(n);
+    for(UInt i = 0; i < n; i++)
+        target[i] = factor * other[i];
+  }
+
+
   int MemoryUsage(bool peak)
   {
     // if the file dows not exist we return 0
