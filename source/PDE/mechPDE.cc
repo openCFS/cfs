@@ -1148,11 +1148,23 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     }
   }
   
-  Vector<Double> MechPDE::CalcTestStrainVector(TestStrain ts)
+  Vector<Double> MechPDE::CalcTestStrainVector(TestStrain ts, bool reduced)
   {
     // the test strain vector is of size six with one value 1.0 and the others 0.0
-    Vector<double> vals(6, 0.0);
-    vals[ts] = 1.0;
+    Vector<double> vals;
+
+    if(dim_ == 2 && reduced)
+    {
+      assert(ts == MechPDE::X || ts == MechPDE::Y || ts == MechPDE::XY);
+      vals.Resize(3, 0.0);
+      vals[ts == MechPDE::XY ? MechPDE::Z : ts] = 1.0; // xy goes to the third element: z
+    }
+    else
+    {
+      vals.Resize(6, 0.0);
+      vals[ts] = 1.0;
+    }
+
     return vals;
   }
 

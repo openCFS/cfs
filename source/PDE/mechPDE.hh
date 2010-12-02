@@ -23,7 +23,7 @@ namespace CoupledField
   public:
 
     /** constants for test-strains, used for homogenization. We depend on the int values! */
-    typedef enum { X=0, Y=1, Z=2, YZ=3, XZ=4, XY=5 } TestStrain;
+    typedef enum { NOT_SET=-1, X=0, Y=1, Z=2, YZ=3, XZ=4, XY=5 } TestStrain;
 
     static Enum<TestStrain> testStrain;
 
@@ -102,8 +102,9 @@ namespace CoupledField
      * @param linForms set to append linear Forms to, if NULL use assemble_ */
     void DefineTestStrainIntegrator(const TestStrain test, StdVector<LinearFormContext*>* linForms = NULL);
 
-    /** small helper which translates the test strain code on a vector of size 6 with one entry 1.0, the other zero */
-    static Vector<Double> CalcTestStrainVector(TestStrain ts);
+    /** small helper which translates the test strain code on a vector of size 3/6 with one entry 1.0, the other zero
+     * @param reduced in 2d case the result size is 3 otherwise 6 as it is always in 6 */
+    Vector<Double> CalcTestStrainVector(TestStrain ts, bool reduced = false);
     
     /** export of methods to generate Linear Forms used in multiload-cases by optimization 
      * @param regionLoads as returned from ReadRegionLoadsFromXML

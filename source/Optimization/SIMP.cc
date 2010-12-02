@@ -237,7 +237,7 @@ void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferF
 {
 	// see comment in ErsatzMaterial::CalcVonMisesStressVector()! it's tricky stuff :(
   // For the function we pack the stuff in Function::Local, for the gradient we do it here as the computation are too far
-  // away from the other local gradient compuations.
+  // away from the other local gradient computations.
   //
 	// the gradient is lambda^T * ( K' * u - f')  + alpha * 2 * stress^T * M * (rho^p)' * E_0 * B * u
   //
@@ -254,9 +254,10 @@ void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferF
   Vector<double> appendix = CalcVonMisesStressVector(excite, f, false, true);
   assert(appendix.GetSize() == alpha.GetSize());
 
-
+  DesignDependentRHS rhs;
+  rhs.Init<double>(Optimization::STRESS, MechPDE::testStrain.Parse(excite.label));
   // calc lambda^T *  K' * u -> this already stores the results by AddGradient()!
-  CalcU1KU2(tf, adjoint.Get(excite, f)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, 1.0, STANDARD, f);
+  CalcU1KU2(tf, adjoint.Get(excite, f)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], &rhs, 1.0, STANDARD, f);
 
   // add the appendix stuff
   for(unsigned int i = 0; i < design->data.GetSize(); i++)
@@ -270,9 +271,11 @@ void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferF
 
 DesignDependentRHS::DesignDependentRHS()
 {
-  valid = false;
-  app   = Optimization::NO_APP;
-  vec = NULL;
+  valid       = false;
+  app         = Optimization::NO_APP;
+  vec         = NULL;
+  elem        = NULL;
+  test_strain = MechPDE::NOT_SET;
 }
 
 DesignDependentRHS::~DesignDependentRHS()
@@ -286,6 +289,7 @@ bool DesignDependentRHS::Init(DesignSpace* design, Optimization::Application app
 {
   assert(app == Optimization::CHARGE_DENSITY || app == Optimization::PRESSURE);
   std::string name = app == Optimization::CHARGE_DENSITY ? "LinNeumannInt" : "PressureLinForm";
+
 
   // check if we have a form with the application name
   LinearSurfForm* form = NULL;
@@ -304,7 +308,7 @@ bool DesignDependentRHS::Init(DesignSpace* design, Optimization::Application app
     }
   }
 
-  LOG_DBG(simp) << "SurfaceRef::Init(app = " << Optimization::application.ToString(app) << ") -> form = "
+  LOG_DBG(simp) << "DesignDependentRHS::Init(app = " << Optimization::application.ToString(app) << ") -> form = "
                   << (form != NULL ? form->GetName() : "NULL");
 
   // form is not necessary defined int the xml file!
@@ -355,9 +359,19 @@ bool DesignDependentRHS::Init(DesignSpace* design, Optimization::Application app
     eit++;
   }
 
-  LOG_DBG(simp) << "SurfaceRef::Init -> " << ToString(1);
-  LOG_DBG2(simp) << "SurfaceRef::Init -> " << ToString(0);
+  LOG_DBG(simp) << "DesignDependentRHS::Init -> " << ToString(1);
+  LOG_DBG2(simp) << "DesignDependentRHS::Init -> " << ToString(0);
 
+  return true;
+}
+
+
+template <class T>
+bool DesignDependentRHS::Init(Optimization::Application app, MechPDE::TestStrain test_strain)
+{
+  assert(app == Optimization::STRESS);
+  this->app = app;
+  this->test_strain = test_strain;
   return true;
 }
 

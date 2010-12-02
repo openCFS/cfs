@@ -600,9 +600,18 @@ private:
           Application k, StdVector<SingleVector*>& u2, DesignDependentRHS* ref,
           double factor, CalcMode calcMode, Function* f, int res_idx);
 
-  /** Called by CalcU1KU2 on IfStrainExcitedSystem() */
+  /** Handles sensitive RHS, e.g. when we have sensitive Neuman boundary condition (elect surface charge).
+      * SurfaceRef is  given to CalcU1KU2 and this method does from \f$<l,K'u-f'>\f$ the \f$-f'\f$ part.
+      * It checks if any nodes of the design element are part of the surface and
+      * substracts for all dof of that node only */
+  template<class T>
+  void SubtractGradSurfaceRHS(DesignElement* de, TransferFunction* tf, DesignDependentRHS* ref, Vector<T>& in_out);
+
+
+  /** Called by CalcU1KU2 on IfStrainExcitedSystem()
+   * @param rhs might be null but if not takes the test_strain. */
   template <class T>
-  void SubstractGradStrainRHS(DesignElement* de, TransferFunction* tf, Vector<T>& in_out);
+  void SubtractGradStrainRHS(DesignElement* de, TransferFunction* tf, DesignDependentRHS* rhs, Vector<T>& in_out);
 
 
   /** Calculates a scalar product of two vectors and the derivative of the right hand side newmark update,
@@ -615,14 +624,6 @@ private:
    * @param g constraint the result is to be stored with */
   void CalcNewmarkDerivative(Excitation& excite, Solutions& forward,
       Solutions& adjoint, double factor, Objective* f, Condition* g);
-
-  /** Handles sensitive RHS, e.g. when we have sensitive Neuman boundary condition (elect surface charge).
-   * SurfaceRef is  given to CalcU1KU2 and this method does from \f$<l,K'u-f'>\f$ the \f$-f'\f$ part.
-   * It checks if any nodes of the design element are part of the surface and
-   * substracts for all dof of that node only */
-  template<class T>
-  void SubstractGradSurfaceRHS(DesignElement* de, TransferFunction* tf,
-      DesignDependentRHS* ref, Vector<T>& in_out);
 
   /** This solves the adjoint problem problem only and stores all relevant data. Calls SetAndSolveAdjointRHS() */
   template<class T>

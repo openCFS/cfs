@@ -42,15 +42,15 @@ void OptimizationMaterial::GetElementMatrix(BaseForm* form, Matrix<double>& out,
   LOG_DBG3(om) << "CalcElemMatrix for " << form->GetName() << " factor=" << factor << " -> " << out.ToString();
 }
 
-void OptimizationMaterial::GetElementVector(LinearForm* form, Vector<double>& out, const Elem* elem)
+void OptimizationMaterial::GetElementVector(LinearForm* form, Vector<double>& out, const Elem* elem, const Vector<double>* ts)
 {
-  GetElementEntity(form, NULL, &out, elem);
+  GetElementEntity(form, NULL, &out, elem,DesignElement::NO_DERIVATIVE, ts);
 
   LOG_DBG3(om) << "CalcElemVector for " << form->GetName() << " -> " << out.ToString();
 }
 
 
-void OptimizationMaterial::GetElementEntity(BaseForm* form, Matrix<double>* mat_out, Vector<double>* vec_out, const Elem* elem, DesignElement::Type direction)
+void OptimizationMaterial::GetElementEntity(BaseForm* form, Matrix<double>* mat_out, Vector<double>* vec_out, const Elem* elem, DesignElement::Type direction, const Vector<double>* ts)
 {
   // create an element list to gain the iterator in the loop
   ElemList elemList(domain->GetGrid());
@@ -78,8 +78,16 @@ void OptimizationMaterial::GetElementEntity(BaseForm* form, Matrix<double>* mat_
   }
   else
   {
-    LinearForm* lf = dynamic_cast<LinearForm*>(form);
-    lf->CalcElemVector(*vec_out, const_cast<EntityIterator&>(it));
+    if(form->GetName() == "AddStrainRHSInt")
+    {
+      AddStrainRHSInt* lf = dynamic_cast<AddStrainRHSInt*>(form);
+      lf->CalcElemVector(*vec_out, const_cast<EntityIterator&>(it), ts);
+    }
+    else
+    {
+      LinearForm* lf = dynamic_cast<LinearForm*>(form);
+      lf->CalcElemVector(*vec_out, const_cast<EntityIterator&>(it));
+    }
   }
 
   // enable again our transfer functions
@@ -118,13 +126,22 @@ const Matrix<double>& OptMechMat::MechStiffness(const Elem* elem, DesignElement:
 }
 
 
-const Vector<double>& OptMechMat::MechStrainRHS(const Elem* elem)
+const Vector<double>& OptMechMat::MechStrainRHS(const Elem* elem, MechPDE::TestStrain testStrain)
 {
   // in homogenization we always set/replace the actual AddStrainRHSInt which contains the current test strain,
   // therefore we do not cache!
   SinglePDE* pde = opt->ToPDE(Optimization::MECH);
   LinearForm* lf = pde->getPDE_assemble()->GetLinearForm(opt->GetDesign()->GetRegionId(), pde, "AddStrainRHSInt")->GetIntegrator();
-  GetElementVector(lf, mechStrainRHS, elem);
+  // this is really inefficient -> but won't cost to much! the vector is created too often!
+  if(testStrain != MechPDE::NOT_SET)
+  {
+    Vector<double> ts = mech->CalcTestStrainVector(testStrain, true);
+    GetElementVector(lf, mechStrainRHS, elem, &ts);
+  }
+  else
+  {
+    GetElementVector(lf, mechStrainRHS, elem);
+  }
 
   return mechStrainRHS;
 }

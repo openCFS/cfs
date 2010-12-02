@@ -52,7 +52,7 @@ public:
                         const DesignElement::Type direction = DesignElement::NO_DERIVATIVE, double factor = 1.0);
   
   /** Very similar to GetElementMatrix() but for the vector, e.g. for rhs linear forms */
-  void GetElementVector(LinearForm* form, Vector<double>& out, const Elem* elem = NULL);
+  void GetElementVector(LinearForm* form, Vector<double>& out, const Elem* elem = NULL, const Vector<double>* ts = NULL);
 
 protected:
   StdVector<RegionIdType>& regionIds;
@@ -66,7 +66,7 @@ private:
 
   /** This is the common implementation for GetElementMatrix() and GetElementVector() */
   void GetElementEntity(BaseForm* form, Matrix<double>* mat_out, Vector<double>* vec_out, const Elem* elem = NULL,
-                        const DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+                        const DesignElement::Type direction = DesignElement::NO_DERIVATIVE, const Vector<double>* ts = NULL);
   
 };
 
@@ -88,8 +88,9 @@ public:
    * @return a pointer to the Element Mass Matrix*/
   const Matrix<double>& MechMass(const Elem* elem, const DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
   
-  /** The the rhs-contribution for full material for the current test strain. There is no caching! */
-  const Vector<double>& MechStrainRHS(const Elem* elem);
+  /** The the rhs-contribution for full material for the current test strain. There is no caching!
+   * @param testStrain optional value, otherwise the current set excitation set. You need it for homogenization! */
+  const Vector<double>& MechStrainRHS(const Elem* elem, MechPDE::TestStrain testStrain = MechPDE::NOT_SET);
 
 protected:  
   /** The mechanical element stiffness matrix is constant */

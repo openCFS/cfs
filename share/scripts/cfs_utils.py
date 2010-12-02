@@ -44,6 +44,18 @@ def cond(test, trueval, falseval):
   else:
     return falseval
 
+## apparently python has to string to bool casting
+def toBool(string):
+  c = string[0].upper()
+  return c == "T" or c == "Y"
+
+## transform the number to the significant digits. 
+# done slowly by strings conversion as an /10.0 might lead to artefacts .:(
+def digits(value, decimal_place):
+  format = "%." + str(decimal_place) + "f"
+  string = format % value
+  return float(string) 
+
 # covert a complex number "(a,b)" to two gnuplot compatible strings "a \t b" 
 # -> remove brackets and replace the comma by a tab, nothing else
 # return the string for gnuplot printing

@@ -588,8 +588,11 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>&
       // u1^T (K' u2 - f') -> calc "- f'"
       assert(!(calcMode == CONJ_QUAD && rtf != NULL)); // no sensitive rhs here!
       assert(!(rtf != NULL && IsStrainExcitedSystem()));
-      if(rtf != NULL) SubstractGradSurfaceRHS(de, rtf, rhs, mat_vec);
-      if(IsStrainExcitedSystem()) SubstractGradStrainRHS(de, tf, mat_vec);
+
+      if(rtf != NULL) SubtractGradSurfaceRHS(de, rtf, rhs, mat_vec);
+      if(IsStrainExcitedSystem()) SubtractGradStrainRHS(de, tf, rhs, mat_vec);
+
+
       LOG_DBG3(em) << "-f': " << mat_vec.ToString();
 
       // u1^T(K' u2 - f') -> calc "u1^T *" or <u1, *> 
@@ -621,12 +624,21 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>&
 }
 
 template <class T>
-void ErsatzMaterial::SubstractGradStrainRHS(DesignElement* de, TransferFunction* tf, Vector<T>& in_out)
+void ErsatzMaterial::SubtractGradStrainRHS(DesignElement* de, TransferFunction* tf, DesignDependentRHS* rhs, Vector<T>& in_out)
 {
+  assert(rhs == NULL || (rhs->app == Optimization::STRESS && rhs->test_strain != MechPDE::NOT_SET));
+  MechPDE::TestStrain ts = rhs != NULL ? rhs->test_strain : MechPDE::NOT_SET;
+
   // OptMechMat is base for any further child!
-  const Vector<double>& vec = dynamic_cast<OptMechMat*>(material)->MechStrainRHS(de->elem);
+  const Vector<double>& vec = dynamic_cast<OptMechMat*>(material)->MechStrainRHS(de->elem, ts);
+
   double factor = tf->Derivative(de, DesignElement::SMART);
-  Assign(in_out, vec, -1.0 * factor);
+  // LOG_DBG3(em) << "SGSR: de=" << de->elem->elemNum << " in_out=" << in_out.ToString();
+  // LOG_DBG3(em) << "SGSR: de=" << de->elem->elemNum << "    vec=" << vec.ToString();
+  // LOG_DBG3(em) << "SGSR: de=" << de->elem->elemNum << "    val=" << de->GetDesign(DesignElement::PLAIN) << " drho=" << factor;
+
+  in_out.Add(-1.0 * factor, vec); // -1.0 as we want to subtract!
+  // LOG_DBG3(em) << "SGSR: de=" << de->elem->elemNum << "     ->=" << in_out.ToString();
 }
 
 
@@ -646,14 +658,13 @@ bool ErsatzMaterial::IsStrainExcitedSystem() const
 }
 
 template <class T>
-void ErsatzMaterial::SubstractGradSurfaceRHS(DesignElement* de, TransferFunction* tf, DesignDependentRHS* ref, Vector<T>& in_out)
+void ErsatzMaterial::SubtractGradSurfaceRHS(DesignElement* de, TransferFunction* tf, DesignDependentRHS* ref, Vector<T>& in_out)
 {
   // we have to find the nodes which are common between de->elem
   // and the surface element which is one dimension smaller
 
   // not all elements do necessary lay on a surface and then not all nodes
   assert(ref != NULL && ref->valid);
-
 
   // nodes (numbers) of our design element
   StdVector<unsigned int>& de_nodes = de->elem->connect;
@@ -674,7 +685,7 @@ void ErsatzMaterial::SubstractGradSurfaceRHS(DesignElement* de, TransferFunction
     it = ref->nodes.find(de_nodes[n]);
     if(it != ref->nodes.end())
     {
-      LOG_DBG3(em) << "SubstractGradSurfaceRHS : node " << n << " is common with elem "
+      LOG_DBG3(em) << "SubtractGradSurfaceRHS : node " << n << " is common with elem "
                      << *it << " in surface: K'u = " << in_out.ToString();
 
       // find the the sensitivity of the rhs w.r.t the design volume element!
@@ -1516,7 +1527,7 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
         if(res_idx != -1)
         {
           de->specialResult[res_idx] = result[e];
-          LOG_DBG3(em) << "CVMSV:sr de=" << de->ToString() << " si=" << res_idx << " v=" << result[e];
+          LOG_DBG3(em) << "CVMSV:sr de=" << de->ToString() << " res_idx=" << res_idx << " v=" << result[e];
         }
       }
       else

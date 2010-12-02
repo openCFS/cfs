@@ -3,6 +3,7 @@
 
 #include "Optimization/ErsatzMaterial.hh"
 #include "Domain/bcs.hh"
+#include "PDE/mechPDE.hh"
 #include "MatVec/SingleVector.hh"
 #include "MatVec/vector.hh"
 #include "MatVec/matrix.hh"
@@ -13,7 +14,6 @@ namespace CoupledField
 {
 class StdPDE;
 class SinglePDE;
-class MechPDE;
 class ElecPDE;
 class BaseForm;
 class BiLinFormContext;
@@ -43,7 +43,8 @@ template <class TYPE> class Matrix;
  * We use the design variable from the (volume) element and kind of project it
  * on the rhs which comes from the surface excitation. One has to check all volume
  * nodes if they are part of the surface.
- * Note, that test strain excitation is handled directly by CalcU1KU2() */
+ * Note, that test strain excitation is handled directly by CalcU1KU2() but for homogenization
+ * this object is used to indicate the excitation/test_strain. */
 class DesignDependentRHS
 {
 public:
@@ -56,6 +57,12 @@ public:
   template <class T>
   bool Init(DesignSpace* design, Optimization::Application app);
 
+  /** In this mode the test strain is kept.
+   * @param app needs to be STRESS
+   * @param test_strain taken from the excitation by MechPDE::testStrain.Parse(excitation.label) */
+  template <class T>
+  bool Init(Optimization::Application app, MechPDE::TestStrain test_strain);
+
   /** kind of inhom Neumbann. From Init() */
   Optimization::Application app;
 
@@ -67,6 +74,9 @@ public:
 
   /** This is out reference element */
   const SurfElem*  elem;
+
+  /** this holds the test_strain when the proper Init() was called, otherwise NOT_SET */
+  MechPDE::TestStrain test_strain;
 
   /** This are all node numbers of all surface elements in question. We have
    * to check with the volume element nodes, if they are part of the surface
