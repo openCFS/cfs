@@ -2343,11 +2343,15 @@ namespace CoupledField {
     // collect all necessary data
     for (; it != resultLists_.end(); it++)
     {
-      ResultList & actList = it->second;
+      ResultList& actList = it->second;
       // iterate over all solutions for each result type
       for (UInt i = 0; i < actList.GetSize(); ++i)
       {
         shared_ptr<ResultInfo> actResultInfo = actList[i]->GetResultInfo();
+        if (TS_alg_->isDeriv(actResultInfo->resultType))
+        {
+          continue; // do not get result if it is a derivative of another reult
+        }
         entList = actList[i]->GetEntityList();
 
         shared_ptr<BaseResult> outResult;
@@ -2403,8 +2407,7 @@ namespace CoupledField {
           outResult_solDeriv->SetResultInfo( actResultInfo_deriv );
           outResult_solDeriv->SetEntityList( entList );
           solutionTmp = TS_alg_->GetDeriv(derivType);
-          ExtractResult<Double>(outResult_solDeriv, \
-              solutionTmp);
+          ExtractResult<Double>(outResult_solDeriv, solutionTmp);
 
           const SolutionType& tmpSolType = \
             TS_alg_->mapDerivToSolutionType(actResultInfo_deriv->resultType, derivType);
@@ -2485,7 +2488,6 @@ namespace CoupledField {
     std::map<TIMEStepType, Vector<Double> > TsMap = TS_alg_->GetTimeStepMap();
     // collect all necessary data
     Vector<Double> tmpVec;
-    SolutionType tmpResType;
 
     StdVector<shared_ptr<BaseResult> > inResults;
 
@@ -2499,6 +2501,10 @@ namespace CoupledField {
       for (UInt i = 0; i < actList.GetSize(); ++i)
       {
         shared_ptr<ResultInfo> actResultInfo = actList[i]->GetResultInfo();
+        if (TS_alg_->isDeriv(actResultInfo->resultType))
+        {
+          continue; // do not get result if it is a derivative of another reult
+        }
         input->GetStepValues( lastMultiStep, actResultInfo,
             resultSteps[actResultInfo], false);
 
@@ -2517,7 +2523,6 @@ namespace CoupledField {
           }
           inResult->SetEntityList( regions[iRegion] );
           inResult->SetResultInfo( actResultInfo );
-          tmpResType = actResultInfo->resultType;
 
           /* read in all time steps */
           std::map<TIMEStepType, Vector<Double> >::iterator itTs = TsMap.begin();

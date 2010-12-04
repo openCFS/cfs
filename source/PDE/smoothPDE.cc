@@ -265,7 +265,7 @@ namespace CoupledField {
         	solDeriv1_.NodeSolutionToCoupling((*values),*couplingnodes);
         }
         else if (quantity == GRID_VELOCITY) {
-        	solDeriv1_.SetAlgSysVector(getDeriv(SECOND_DERIV));
+        	solDeriv1_.SetAlgSysVector(getDeriv(FIRST_DERIV));
         	solDeriv1_.NodeSolutionToCoupling((*values),*couplingnodes);
         }
 

@@ -49,10 +49,6 @@ namespace CoupledField
     {
       solDeriv_vec_[FIRST_DERIV] = dummyVec;
     }
-    if ( !is_Deriv_set(SECOND_DERIV) )
-    {
-      solDeriv_vec_[SECOND_DERIV] = dummyVec;
-    }
   }
 
   void PseudoTS::Predictor(Vector<Double>& solold)

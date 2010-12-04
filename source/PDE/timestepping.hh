@@ -226,7 +226,26 @@ namespace CoupledField {
       EXCEPTION( "DirichletBC4EffMassMatrix not implemented" );
       return -1.0;
     }
-    SolutionType mapDerivToSolutionType(const SolutionType solType, const DERIVType derivType) const;
+    /**
+     * returns the solution type of the wanted derivative
+     * @param solType The solution type from which the name of the first/second
+     * drivative is wanted
+     * @param derivType The derivative of the solution type from which we want
+     * the name (solution type)
+     * @return Returns the name of the derivative of a solution type
+     */
+    SolutionType mapDerivToSolutionType(const SolutionType solType, \
+        const DERIVType derivType) const;
+    /**
+     * Checks if a solution type is actually a derivative of a nother solution.
+     * @param solType The type to check if is a derivative
+     * @return True or false if the solution type is actually a derivative of a
+     * calculated solution type
+     * @warning The function may return false negatives, meaning it maybe that a
+     * derivative may not be recognised as such. So check it if it supports
+     * your derivative.
+     */
+    bool isDeriv(const SolutionType solType) const;
 
   protected:
 
