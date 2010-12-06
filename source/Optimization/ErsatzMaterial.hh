@@ -364,7 +364,7 @@ public:
    * @param direction if given return derivative in that direction*/
   void GetErsatzMaterialTensor(Matrix<double>& mat, Elem* elem,
       DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
-
+  
   /** This is an extension to SolveStateProblem() where the forward problem is solved and stored.
    * Depending on the objective function SolveAdjointProblem() is called to additionally solve and store the
    * adjoint problem.

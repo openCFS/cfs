@@ -24,16 +24,7 @@ namespace CoupledField {
     
     /** constructor, reads in DesignMaterial from XML
      * @param pn pointer to PtrParamNode */ 
-    DesignMaterial(PtrParamNode pn);
-    
-    /** returns the numbers of parameters requiered for this material */
-    unsigned int RequiredParameters();    
-    
-    /** returns the number of required designs for this material 
-     * note: no checking except the number is currently performed */
-    unsigned int RequiredDesigns(){
-      return RequiredParameters() - nparams_;
-    }
+    DesignMaterial(PtrParamNode pn, StdVector<DesignElement::Type>& design);
     
     /** Set a parameter for the parametric material optimization */
     void SetParameter(const DesignElement::Type p, const double value);
@@ -44,11 +35,29 @@ namespace CoupledField {
     /** retrieve rel. mass of element (tensor trace) or derivative thereof */
     double GetMaterialMass(DesignElement::Type direction);
     
+    /** return whether mass is also a design (else it is calculated from tensor) */
+    bool MassIsDesign(){
+      return massIsDesign_;
+    }
+    
+    /** return whether damping is also design */
+    bool DampingIsDesign(){
+      return dampingIsDesign_;
+    }
+    
+    /** retrieve damping parameters for element or derivative */
+    bool GetMaterialDamping(double& alpha, double& beta, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+    
     void static SetEnums();
     
   protected:
     std::map<DesignElement::Type, double> params_;
-    unsigned int nparams_;
+   
+    /** mass is considered an independent design */
+    bool massIsDesign_;
+    
+    /** damping is also optimized */
+    bool dampingIsDesign_;
     
     static Enum<Type> type;
     Type type_;   
@@ -56,6 +65,12 @@ namespace CoupledField {
     TransIsoType transIsoType_;
     
     unsigned int dim;
+    
+    /** returns the numbers of parameters required for this material */
+    unsigned int RequiredParameters();    
+    
+    /** Check whether all required designs are available */
+    bool CheckRequiredDesigns(StdVector<DesignElement::Type>& design);
     
   private:
     /* note that most of these functions are called really often, so inlining is used */

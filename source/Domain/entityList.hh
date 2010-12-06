@@ -52,6 +52,8 @@ namespace CoupledField {
     //! which can be either the name of the Region, the elements or the
     //! nodes contained.
     virtual std::string GetName() const = 0;
+    
+    virtual RegionIdType GetRegion() const { return -1; }
 
     //! Return pointer to grid.
     Grid* GetGrid() const { return grid_; }
