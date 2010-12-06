@@ -114,6 +114,8 @@ namespace CoupledField
                                       const Matrix<Double>& NodaldTijdxj,
                                       const Matrix<Double>& NodalVal,
                                       Vector<Double>& elemvec,
+                                      Vector<Double>& nodalLoadDensity,
+                                      Vector<Double>& divLHTensor,
                                       Double density)
   {
 #ifdef TRACE
@@ -123,7 +125,7 @@ namespace CoupledField
     if(!ptElem_)
       return;
 
-    linearLoad_->CalcElemVec4QuadwithVel(coordMat,  NodalVal, elemvec, ptElem_, density);
+    linearLoad_->CalcElemVec4QuadwithVel(coordMat,  NodalVal, elemvec, nodalLoadDensity, divLHTensor, ptElem_, density);
   }
 
 

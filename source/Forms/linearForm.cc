@@ -1261,6 +1261,8 @@ namespace CoupledField {
   void LinearFlowNoiseInt::CalcElemVec4QuadwithVel(const Matrix<Double>& ptCoord,
                                                    const Matrix<Double> & NodalVel,
                                                    Vector<Double> & Result,
+                                                   Vector<Double> & nodalLoadDensity,
+                                                   Vector<Double>& divLHTensor,
                                                    const Elem* elem,
                                                    Double density)
   {
@@ -1291,8 +1293,11 @@ namespace CoupledField {
     //    Double density=1.0;
 
     Result.Resize(n);
-    for (Integer i=0; i<n; i++)
-      Result[i]=0.0;
+    nodalLoadDensity.Resize(n);
+    for (Integer i=0; i<n; i++) {
+      Result[i] = 0.0;
+      nodalLoadDensity[i] = 0.0;
+    }
 
     Vector<Double> partResult;
     partResult.Resize(n);
@@ -1300,6 +1305,8 @@ namespace CoupledField {
     Vector<Double> helpVec;
     helpVec.Resize(dimelem);
 
+    Double volume = 0.0;
+    divLHTensor.Init(0.0);
     
     // Loop over all integration points 
     for(Integer actInt=1; actInt <= l; actInt++)
@@ -1317,43 +1324,50 @@ namespace CoupledField {
       VelDerAtIP = NodalVel * xiDx;
 
       helpVec[0] = 2.0 * VelAtIP[0] * VelDerAtIP[0][0] 
-                                                    + VelAtIP[1] *  VelDerAtIP[0][1] 
-                                                                                  + VelAtIP[0] *  VelDerAtIP[1][1];
+                       + VelAtIP[1] * VelDerAtIP[0][1]
+                       + VelAtIP[0] * VelDerAtIP[1][1];
+                       
       if (dimelem == 3)
       {
-        helpVec[0] += VelAtIP[2] *  VelDerAtIP[0][2]
-                                                  + VelAtIP[0] *  VelDerAtIP[2][2]; 
+        helpVec[0] +=    VelAtIP[2] * VelDerAtIP[0][2]
+                       + VelAtIP[0] * VelDerAtIP[2][2]; 
       }
 
 
       helpVec[1] = 2.0 * VelAtIP[1] * VelDerAtIP[1][1] 
-                                                    + VelAtIP[0] *  VelDerAtIP[1][0] 
-                                                                                  + VelAtIP[1] *  VelDerAtIP[0][0]; 
+                       + VelAtIP[0] * VelDerAtIP[1][0] 
+                       + VelAtIP[1] * VelDerAtIP[0][0]; 
       if (dimelem == 3)
       {
-        helpVec[1] += VelAtIP[1] *  VelDerAtIP[2][2]
-          + VelAtIP[2] *  VelDerAtIP[1][2]; 
+        helpVec[1] +=    VelAtIP[1] * VelDerAtIP[2][2]
+                       + VelAtIP[2] * VelDerAtIP[1][2]; 
       }
 
 
       if (dimelem == 3)
       {
         helpVec[2] = 2.0 * VelAtIP[2] * VelDerAtIP[2][2] 
-                         + VelAtIP[0] *  VelDerAtIP[2][0] 
-                         + VelAtIP[2] *  VelDerAtIP[0][0]
-                         + VelAtIP[1] *  VelDerAtIP[2][1]
-                         + VelAtIP[2] *  VelDerAtIP[1][1]; 
+                         + VelAtIP[0] * VelDerAtIP[2][0] 
+                         + VelAtIP[2] * VelDerAtIP[0][0]
+                         + VelAtIP[1] * VelDerAtIP[2][1]
+                         + VelAtIP[2] * VelDerAtIP[1][1]; 
       }
 
-
       helpVec *= density;
-
+      divLHTensor += (helpVec * jacDet * intWeights[actInt-1]);
+       
       // Multiplication with the derivatives of the shape functions
       partResult  = xiDx * helpVec;
       partResult *= jacDet * intWeights[actInt-1];
       //std::cout<<"JacDet= "<<jacDet<<std::endl;
       Result     += partResult;
+      nodalLoadDensity = Result;
+      
+      volume += jacDet * intWeights[actInt-1];
     }
+
+    nodalLoadDensity *= 1/volume;
+    divLHTensor *= 1/volume;
 
   } // end of method
 

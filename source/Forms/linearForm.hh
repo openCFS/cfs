@@ -334,7 +334,8 @@ namespace CoupledField
 
     /// Calculation of vector of right hand side using nodal velocity values
     void CalcElemVec4QuadwithVel(const Matrix<Double>& ptCoord, const Matrix<Double> & NodalVel,
-                                 Vector<Double> & Result, const Elem* elem, Double density);
+                                 Vector<Double> & Result, Vector<Double> & nodalLoadDensity,
+                                 Vector<Double>& divLHTensor, const Elem* elem, Double density);
 
     
     /// Extraction of element velocity values from total flowdata matrix to a matrix (connecth, dim)

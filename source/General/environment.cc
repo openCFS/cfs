@@ -398,6 +398,14 @@ namespace CoupledField {
       return "kg m^-3 s^-2";
       break;
 
+    case ACOU_RHS_LOAD_DENSITY:
+      return "kg m^-6 s^-2";
+      break;
+
+    case ACOU_DIV_LH_TENSOR:
+      return "kg m^-2 s^-2";
+      break;
+      
     case ACOU_SURFINTENSITY:
       return "W/m^2";
       break;
@@ -1715,6 +1723,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_POTENTIAL_DERIV_1, "acouPotentialD1");
     SolutionTypeEnum.Add(ACOU_POTENTIAL_DERIV_2, "acouPotentialD2");
     SolutionTypeEnum.Add(ACOU_RHS_LOAD, "acouRhsLoad");
+    SolutionTypeEnum.Add(ACOU_RHS_LOAD_DENSITY, "acouRhsLoadDensity");
+    SolutionTypeEnum.Add(ACOU_DIV_LH_TENSOR, "acouDivLighthillTensor");
     SolutionTypeEnum.Add(ACOU_RHSVAL, "acouRHSval");
     SolutionTypeEnum.Add(ACOUSURF_RHSVAL, "acouSurfRHSval");
     SolutionTypeEnum.Add(ACOU_BUBBLE_RHS_VAL, "acouBubbleRhsVal");
