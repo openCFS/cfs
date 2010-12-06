@@ -83,6 +83,11 @@ namespace CoupledField
      bool HasErsatzMaterialMass(){
        return designMaterial != NULL;
      }
+     
+     /** Returns true if optimization also provides damping parameters for Rayleigh-Damping (alpha, beta) */
+     bool HasErsatzMaterialDamping(){
+       return(designMaterial != NULL && designMaterial->DampingIsDesign());
+     }
 
      /** Calculates the corresponding ErsatzMaterialTensor for the given element
       * @param t holds the resulting MaterialTensor
@@ -98,6 +103,18 @@ namespace CoupledField
       * @param direction if !=NO_DERIVATIVE calculate the derivative instead of value
       */
      double GetErsatzMaterialMass(const Elem* elem, DesignElement::Type direction);
+     
+     /** Get the ErsatzMaterialDampingParameters
+      * @param alpha Damping Parameter alpha
+      * @param beta Damping Parameter beta
+      * @param elem the Element for which the parameters should be returned
+      * @param direction if given return derivative in that direction
+      * @return whether DampingParameters are optimized at all  */
+     bool GetErsatzMaterialDamping(double& alpha, double& beta, const Elem* elem,
+         DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+     
+     /** Get the correct Damping parameter, alpha for Mass, beta for Stiffness */
+     bool GetErsatzMaterialDampingParameterForIntegrator(const Elem* elem, BaseForm* integrator, double& param);
 
      /** This gets back a uniquely defined transfer function.
       * @param throw_exception if false NULL is returned when nothing is found! */
@@ -291,7 +308,7 @@ namespace CoupledField
       * @param elem the element to be considered
       */
      bool CollectMaterialParametersForElement(const Elem* elem);
-
+     
    private:
      /** Extracts a nodal value */
      double GetNodalValue(unsigned int nodeNumber, DesignElement::ValueSpecifier vs);

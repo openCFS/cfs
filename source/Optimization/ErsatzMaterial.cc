@@ -447,39 +447,53 @@ void ErsatzMaterial::CalcNewmarkDerivative(Excitation& excite, Solutions& forwar
   Matrix<double> dK(1, 1), dM(1, 1);
   Vector<double> dKu(0), dMu(0);
 
+  // this is only caching, access using the double maps for every get slows down this procedure by about 50% for 200 timesteps
+  StdVector<StdVector<SingleVector*>*> forwards;
+  StdVector<StdVector<SingleVector*>*> adjoints;
+  forwards.Resize(timesteps);
+  adjoints.Resize(timesteps);
+  for(unsigned int t = 0; t < timesteps; ++t){
+    forwards[t] = &forward.Get(excite, NULL, t)->elem[MECH];
+    adjoints[t] = &adjoint.Get(excite, f, t)->elem[MECH];
+  }
+
   // the outer most loop is over all elements, so element matrices can be reused as much as possible
   int upper = design->data.GetSize();
   int elements = design->GetNumberOfElements();
   for(int base = 0; base < upper; base += elements) { // loop over all designs
     for(int e = 0 ; e < elements; ++e) { // loop over all elements
       DesignElement* de = &design->data[base + e];
-      SetElementK(de, MECH, dynamic_cast<DenseMatrix*>(&dK), STANDARD, true);
-      SetElementK(de, MASS, dynamic_cast<DenseMatrix*>(&dM), STANDARD, true);
+      bool notDampingElement = de->GetType() != DesignElement::DAMPINGALPHA && de->GetType() != DesignElement::DAMPINGBETA;
+      SetElementK(de, MECH, dynamic_cast<DenseMatrix*>(&dK), STANDARD, notDampingElement);
+      SetElementK(de, MASS, dynamic_cast<DenseMatrix*>(&dM), STANDARD, notDampingElement);
       
       // The damping matrix is alpha * Mass + beta * Stiffness, so it's derivative is also alpha * dMass + beta * dStiffness
       // We need to get alpha and beta, from the integrators
-      RegionIdType regionId = de->elem->regionId;
-      BiLinFormContext* linElastIntCtxt = GetFormContext(regionId, pde, pde, "linElastInt");
-      BiLinFormContext* linMassIntCtxt = GetFormContext(regionId, pde, pde, "MassInt");
+      // if we get Damping Information from the DesignSpace, we use that, else we use the "traditional" one
       double dampingAlpha = 0.0; double dampingBeta = 0.0;
-      if(linElastIntCtxt->GetSecDestMat() != NOTYPE){
-        parser->SetExpr(mathParserHandle, linElastIntCtxt->GetSecMatFac());
-        dampingBeta = parser->Eval(mathParserHandle);
-      }
-      if(linMassIntCtxt->GetSecDestMat() != NOTYPE){
-        parser->SetExpr(mathParserHandle, linMassIntCtxt->GetSecMatFac());
-        dampingAlpha = parser->Eval(mathParserHandle);
+      if(!design->GetErsatzMaterialDamping(dampingAlpha, dampingBeta, de->elem, notDampingElement ? DesignElement::NO_DERIVATIVE : de->GetType())){
+        RegionIdType regionId = de->elem->regionId;
+        BiLinFormContext* linElastIntCtxt = GetFormContext(regionId, pde, pde, "linElastInt");
+        BiLinFormContext* linMassIntCtxt = GetFormContext(regionId, pde, pde, "MassInt");
+        if(linElastIntCtxt->GetSecDestMat() != NOTYPE){
+          parser->SetExpr(mathParserHandle, linElastIntCtxt->GetSecMatFac());
+          dampingBeta = parser->Eval(mathParserHandle);
+        }
+        if(linMassIntCtxt->GetSecDestMat() != NOTYPE){
+          parser->SetExpr(mathParserHandle, linMassIntCtxt->GetSecMatFac());
+          dampingAlpha = parser->Eval(mathParserHandle);
+        }
       }
       
       double vK = 0.0;
       double vM = 0.0;
       double vC = 0.0;
       for(unsigned int t = 0; t < timesteps; ++t){ // loop over all time steps in u
-        Vector<double>& u_vec = dynamic_cast<Vector<double>& >(*forward.Get(excite, NULL, t)->elem[MECH][e]);
+        Vector<double>& u_vec = dynamic_cast<Vector<double>& >(*(*forwards[t])[e]);
         dKu = dK * u_vec;
         dMu = dM * u_vec;
         // the dA part
-        Vector<double>& p_vecd = dynamic_cast<Vector<double>& >(*adjoint.Get(excite, f, t)->elem[MECH][e]);
+        Vector<double>& p_vecd = dynamic_cast<Vector<double>& >(*(*adjoints[t])[e]);
         double dvK = p_vecd * dKu;
         vK -= dvK;
         double dvM = p_vecd * dMu;
@@ -494,7 +508,7 @@ void ErsatzMaterial::CalcNewmarkDerivative(Excitation& excite, Solutions& forwar
           vC = 0.0;
         }
         for(unsigned int tp = t+1; tp < timesteps; ++tp){ // loop over all time steps in p
-          Vector<double>& p_vec = dynamic_cast<Vector<double>& >(*adjoint.Get(excite, f, tp)->elem[MECH][e]);
+          Vector<double>& p_vec = dynamic_cast<Vector<double>& >(*(*adjoints[tp])[e]);
           // these are the scalar factors for the parts of the derivative of F
           double ut = u +  (up + 0.5*upp*(1.0-2.0*beta)*dt ) *dt;
           double upt = up + (1.0 - gamma) * dt * upp;
@@ -509,9 +523,14 @@ void ErsatzMaterial::CalcNewmarkDerivative(Excitation& excite, Solutions& forwar
           up = (upt + upp * gamma * dt);
         }
       }
-      de->AddGradient(c, g, factor * (vK + vM / (beta * dt * dt) + vC) );
+      double v = vC;
+      if(notDampingElement){ // dA/dDamp = K/dDamp + M/dDamp + C/dDamp = 0 + 0 + C/dDamp 
+        v += vK + vM / (beta * dt * dt);
+      }      
+      de->AddGradient(c, g, factor * v );
     }
   }
+  parser->ReleaseHandle(mathParserHandle);
 }
 
 double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1,
@@ -626,7 +645,7 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>&
 template <class T>
 void ErsatzMaterial::SubtractGradStrainRHS(DesignElement* de, TransferFunction* tf, DesignDependentRHS* rhs, Vector<T>& in_out)
 {
-  assert(rhs == NULL || (rhs->app == Optimization::STRESS && rhs->test_strain != MechPDE::NOT_SET));
+  assert(rhs == NULL || rhs->app == Optimization::STRESS);
   MechPDE::TestStrain ts = rhs != NULL ? rhs->test_strain : MechPDE::NOT_SET;
 
   // OptMechMat is base for any further child!
@@ -1124,30 +1143,40 @@ double ErsatzMaterial::CalcVolume(Objective* f, Condition* g, bool derivative, b
   DesignElement::Type des  = g == NULL ? DesignElement::DEFAULT : g->design;
 
   // parameter is form the base function
-  Function::Type func = f != NULL ? f->GetType() : g->GetType();
-  double        exp  = f != NULL ? f->GetParameter() : g->GetParameter();
+  Function* func = Function::GetFunction(f, g);
 
-  switch(func)
+  switch(func->GetType())
   {
   case Function::VOLUME:
-    return IntegrateDesignVariable(f, g, derivative, des, normalized, false, 1.0); // no scaling, exponent=1
+  {
+    double exp = 1.0;
+    if(func->IsPhysical())
+    {
+      TransferFunction* tf = design->GetTransferFunction(des, MECH);
+      if(tf->GetType() != TransferFunction::SIMP_TYPE)
+        throw Exception("physical volume as constraint function only possible with SIMP.");
+      // exp = tf->GetParam();
+      exp = 1.0;
+    }
+    return IntegrateDesignVariable(f, g, derivative, des, normalized, false, exp); // no scaling, exponent=1
+  }
 
   case Function::PENALIZED_VOLUME:
   case Function::REALVOLUME:
-    return IntegrateDesignVariable(f, g, derivative, des, normalized, false, exp);
+    return IntegrateDesignVariable(f, g, derivative, des, normalized, false, func->GetParameter());
 
   case Function::GAP:
   {
     if(!derivative)
     {
       double vol = IntegrateDesignVariable(f, g, false, des, normalized, false, 1.0);
-      double pen = IntegrateDesignVariable(f, g, false, des, normalized, false, exp);
+      double pen = IntegrateDesignVariable(f, g, false, des, normalized, false, func->GetParameter());
       return vol - pen;
     }
     else
     {
       if(!design->IsRegular())
-        throw Exception(Function::type.ToString(func) + " only implemented for regular grids");
+        throw Exception(Function::type.ToString(func->GetType()) + " only implemented for regular grids");
 
       CalcRegularGapConstraint(f, g, des);
       return -1.0;
@@ -1203,7 +1232,7 @@ double ErsatzMaterial::CalcCompliance(Excitation& excite, Objective* f, Conditio
   // note for the derivative case gradients are summed up (with weights)
   assert(f != NULL || g != NULL);
   assert(f == NULL || g == NULL);
-  Function* func = f != NULL ? dynamic_cast<Function*>(f) : dynamic_cast<Function*>(g);
+  Function* func = Function::GetFunction(f, g);
   double result = 0.0;
   if(derivative)
   {
@@ -1757,6 +1786,7 @@ void ErsatzMaterial::SetTrackingAdjointRhs(Excitation& excite, int ts){
     }
   }
   assemble_->GetAlgSys()->InitRHS(rhs);
+  parser->ReleaseHandle(mathParserHandle);
 }
 
 double ErsatzMaterial::CalcTracking(Excitation& excite, Objective* c, Condition* g, bool derivative)
@@ -1823,6 +1853,7 @@ double ErsatzMaterial::CalcTracking(Excitation& excite, Objective* c, Condition*
       }
       val += v * GetStepWeight(ts);
     }
+    parser->ReleaseHandle(mathParserHandle);
     return 0.5 * val;
   }
 }

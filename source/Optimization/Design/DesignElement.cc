@@ -432,6 +432,9 @@ void DesignElement::SetEnums()
   type.Add(EMODULISO, "emodul-iso");
   type.Add(POISSONISO, "poisson-iso");
   type.Add(GMODUL, "gmodul");
+  type.Add(MASS, "mass");
+  type.Add(DAMPINGALPHA, "damping-alpha");
+  type.Add(DAMPINGBETA, "damping-beta");
   type.Add(UNITY, "unity");
 
   access.SetName("DesignElement::Access");

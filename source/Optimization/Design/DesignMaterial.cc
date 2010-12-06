@@ -6,33 +6,82 @@ using namespace CoupledField;
 Enum<DesignMaterial::Type>      DesignMaterial::type;
 Enum<DesignMaterial::TransIsoType> DesignMaterial::transIsoType;
 
-DesignMaterial::DesignMaterial(PtrParamNode pn){
+DesignMaterial::DesignMaterial(PtrParamNode pn, StdVector<DesignElement::Type>& design){
   type_ = type.Parse(pn->Get("type")->As<std::string>());
   
   dim = domain->GetGrid()->GetDim();
   
+  transIsoType_ = transIsoType.Parse(pn->Get("isoplane")->As<std::string>());
+  
+  massIsDesign_ = pn->Get("optimizeMass")->As<bool>();
+  
+  dampingIsDesign_ = pn->Get("optimizeDamping")->As<bool>();
+
+  // collect all designs here, to check whether all are given
+  unsigned int r = RequiredParameters();
+  StdVector<DesignElement::Type> d;
+  d.Reserve(r);
+  // copy the ones from DesignSpace
+  for(unsigned int i=0; i < design.GetSize(); ++i){
+    d.Push_back(design[i]);
+  }
   // read non-design parameters
   ParamNodeList params = pn->GetList("param");
-  nparams_ = 0;
   for(unsigned int i=0; i < params.GetSize(); i++){
-    SetParameter(DesignElement::type.Parse(params[i]->Get("name")->As<std::string>()), params[i]->Get("value")->As<Double>());
-    nparams_++;
+    DesignElement::Type dt = DesignElement::type.Parse(params[i]->Get("name")->As<std::string>());
+    SetParameter(dt, params[i]->Get("value")->As<Double>());
+    if(d.Find(dt) < 0){
+      d.Push_back(dt);
+    }
   }
-
-  transIsoType_ = transIsoType.Parse(pn->Get("isoplane")->As<std::string>());
+  if(!CheckRequiredDesigns(d)){
+    throw Exception("Not all Parameters for chosen DesignMaterial given");
+  }else if(design.GetSize() > r){ // design.GetSize() < r is impossible as CheckRequiredDesigns passed  
+    WARN("There are designs specified that are not used!");
+  }
 }
 
 unsigned int DesignMaterial::RequiredParameters(){
+  unsigned int r = MassIsDesign() ? 1 : 0;
+  if(DampingIsDesign()){
+    r += 2;
+  }
   switch(type_){
   case ISOTROPIC:
-    return 2;
   case LAME_ISOTROPIC:
-    return 2;
+    return r+2;
   case TRANSVERSAL_ISOTROPIC:
   case TRANSVERSAL_ISOTROPIC_BOXED:
-    return 5;
+    return r+5;
   default:
-    throw Exception("DesignMaterial Type not implemented yet");
+    throw Exception("DesignMaterial Type not implemented yet (RequiredParameters)");
+  }
+}
+
+bool DesignMaterial::CheckRequiredDesigns(StdVector<DesignElement::Type>& design){
+  if(MassIsDesign() && design.Find(DesignElement::MASS) < 0){
+    return(false);
+  }
+  if(DampingIsDesign() 
+      && (design.Find(DesignElement::DAMPINGALPHA) < 0 || design.Find(DesignElement::DAMPINGBETA) < 0) ){ 
+    return(false);
+  }
+  switch(type_){
+  case ISOTROPIC:
+    return(design.Find(DesignElement::EMODUL) >=0
+        && design.Find(DesignElement::POISSON) >= 0);
+  case LAME_ISOTROPIC:
+    return(design.Find(DesignElement::LAMELAMBDA) >= 0 
+        && design.Find(DesignElement::LAMEMU) >= 0);
+  case TRANSVERSAL_ISOTROPIC:
+  case TRANSVERSAL_ISOTROPIC_BOXED:
+    return(design.Find(DesignElement::EMODULISO) >= 0 
+        && design.Find(DesignElement::POISSONISO) >= 0 
+        && design.Find(DesignElement::EMODUL) >= 0 
+        && design.Find(DesignElement::POISSON) >= 0 
+        && design.Find(DesignElement::GMODUL) >= 0);
+  default:
+    throw Exception("DesignMaterial Type not implemented yet (CheckRequiredDesigns)");
   }
 }
 
@@ -211,7 +260,9 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
   case DesignElement::GMODUL:
     dG3 = 1.0;
     break;
-  default:;
+  default:
+    ZeroTensor(t, subTensor);
+    return;
   } // switch(direction)
   double dc = -dnu-2.0*dn3;
   double df = ( dE - E*dnu/(1.0+nu) - E*dc/c ) / ((1.0+nu)*c);
@@ -289,7 +340,8 @@ double DesignMaterial::GetTransIsoMaterialMass(DesignElement::Type direction){
   case DesignElement::GMODUL:
     dG3 = 1.0;
     break;
-  default:;
+  default:
+    return(0.0);
   } // switch(direction)
   double dc = -dnu-2.0*dn3;
   double df = ( dE - E*dnu/(1.0+nu) - E*dc/c ) / ((1.0+nu)*c);
@@ -408,17 +460,53 @@ void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTenso
 }
 
 double DesignMaterial::GetMaterialMass(DesignElement::Type direction){
-  switch(type_){
-  case ISOTROPIC:
-    return(GetIsoMaterialMass(direction));
-  case LAME_ISOTROPIC: // LAME_ISOTROPIC
-    return(GetLameMaterialMass(direction));
-  case TRANSVERSAL_ISOTROPIC:
-  case TRANSVERSAL_ISOTROPIC_BOXED:
-    return(GetTransIsoMaterialMass(direction));
-  default: // case default
-    throw Exception("DesignMaterial Type not implemented yet");
-  }  
+  if(massIsDesign_){
+    switch(direction){
+    case DesignElement::MASS:
+      return(1.0);
+    case DesignElement::NO_DERIVATIVE:
+      return(params_[DesignElement::MASS]);
+    default:
+      return(0.0);
+    }
+  }else{
+    switch(type_){
+    case ISOTROPIC:
+      return(GetIsoMaterialMass(direction));
+    case LAME_ISOTROPIC: // LAME_ISOTROPIC
+      return(GetLameMaterialMass(direction));
+    case TRANSVERSAL_ISOTROPIC:
+    case TRANSVERSAL_ISOTROPIC_BOXED:
+      return(GetTransIsoMaterialMass(direction));
+    default: // case default
+      throw Exception("DesignMaterial Type not implemented yet");
+    }
+  }
+}
+
+bool DesignMaterial::GetMaterialDamping(double& alpha, double& beta, DesignElement::Type direction){
+  if(DampingIsDesign()){
+    switch(direction){
+    case DesignElement::DAMPINGALPHA:
+      alpha = 1.0;
+      beta = 0.0;
+      break;
+    case DesignElement::DAMPINGBETA:
+      alpha = 0.0;
+      beta = 1.0;
+      break;
+    case DesignElement::NO_DERIVATIVE:
+      alpha = params_[DesignElement::DAMPINGALPHA];
+      beta = params_[DesignElement::DAMPINGBETA];
+      break;
+    default:
+      alpha = 0.0;
+      beta = 0.0;
+    }
+    return(true);
+  }else{
+    return(false);
+  }
 }
 
 void DesignMaterial::SetEnums(){

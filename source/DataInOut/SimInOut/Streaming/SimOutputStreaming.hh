@@ -43,6 +43,9 @@ namespace CoupledField
     /** Mesh results are node and cell results */
     void AddResult( shared_ptr<BaseResult> sol );
 
+    /** Used for calculating size of Http Content Length */
+    UInt GetContentLength();
+
     /** Called by the Http Client.
      * @param out here the data has to be written, the wrapping is done by Client */
     void Transmit(std::ostream& out);
@@ -89,6 +92,9 @@ namespace CoupledField
 
     /** this is a number or http which is equivalent to 80 */
     std::string port_;
+    
+    /** this is the path on the server the POST is sent to */
+    std::string path_;
   };
 }
 

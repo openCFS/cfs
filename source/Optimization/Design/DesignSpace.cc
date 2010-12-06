@@ -268,9 +268,7 @@ void DesignSpace::SetDesignMaterial(PtrParamNode dm){
     throw Exception("designmaterial can not be given when using transferFunctions");
   transfer.Push_back(TransferFunction()); // create an identity transfer function
   DesignMaterial::SetEnums();
-  designMaterial = new DesignMaterial(dm);
-  if(designMaterial->RequiredDesigns() != design.GetSize())
-    throw Exception("number of required designs not correct");
+  designMaterial = new DesignMaterial(dm, design);  
 }
 
 void DesignSpace::AppendOptimizationResults(SinglePDE* pde)
@@ -489,6 +487,22 @@ double DesignSpace::GetErsatzMaterialMass(const Elem* elem, DesignElement::Type 
     return(designMaterial->GetMaterialMass(direction));
   }
   return(1.0);
+}
+
+bool DesignSpace::GetErsatzMaterialDamping(double& alpha, double& beta, const Elem* elem, DesignElement::Type direction){
+  if(CollectMaterialParametersForElement(elem)){
+    return(designMaterial->GetMaterialDamping(alpha, beta, direction));
+  }
+  return(false);
+}
+
+bool DesignSpace::GetErsatzMaterialDampingParameterForIntegrator(const Elem* elem, BaseForm* form, double& param){
+  if(CollectMaterialParametersForElement(elem)){
+    double dummy = 0.0;
+    if(form->GetName() == "MassInt") return(designMaterial->GetMaterialDamping(param, dummy));
+    if(form->GetName() == "linElastInt") return(designMaterial->GetMaterialDamping(dummy, param));
+  }
+  return(false);
 }
 
 TransferFunction* DesignSpace::GetTransferFunction(DesignElement* de)

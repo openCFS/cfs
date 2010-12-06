@@ -930,6 +930,8 @@
                           </xsd:restriction>
                         </xsd:simpleType>
                       </xsd:attribute>
+                      <xsd:attribute name="optimizeMass" type="xsd:boolean" use="optional" default="false"/>
+                      <xsd:attribute name="optimizeDamping" type="xsd:boolean" use="optional" default="false"/>
                     </xsd:complexType>              
                   </xsd:element>
                 </xsd:sequence>
@@ -1104,6 +1106,9 @@
       <xsd:enumeration value="poisson-iso"/>
       <xsd:enumeration value="gmodul"/>
       <xsd:enumeration value="unity"/>
+      <xsd:enumeration value="mass"/>
+      <xsd:enumeration value="damping-alpha"/>
+      <xsd:enumeration value="damping-beta"/>
     </xsd:restriction>
   </xsd:simpleType>
 

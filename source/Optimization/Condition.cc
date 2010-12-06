@@ -118,6 +118,9 @@ void Condition::PostProc(DesignSpace* space, DesignStructure* structure)
   default:
     break;
   }
+
+  if(type_ == VOLUME && physical_ && !observation_)
+    info_->Get(ParamNode::WARNING)->SetValue("a physical volume constraint should make no sense");
 }
 
 bool Condition::ReadCoord(PtrParamNode pn)

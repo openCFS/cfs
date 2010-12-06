@@ -61,7 +61,7 @@ public:
    * @param app needs to be STRESS
    * @param test_strain taken from the excitation by MechPDE::testStrain.Parse(excitation.label) */
   template <class T>
-  bool Init(Optimization::Application app, MechPDE::TestStrain test_strain);
+  bool Init(Optimization::Application app, std::string excite_label);
 
   /** kind of inhom Neumbann. From Init() */
   Optimization::Application app;

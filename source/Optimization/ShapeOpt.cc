@@ -216,6 +216,21 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
   Matrix<double> tmp_displacement;
   Vector<double> u1diff;
   Vector<double> u2diff;
+  
+  //caching (see CalcNewmarkDerivative for why)
+  StdVector<StdVector<StdVector<SingleVector*>* > > forwards;
+  StdVector<StdVector<StdVector<SingleVector*>* > > adjoints;
+  forwards.Resize(ex_size);
+  adjoints.Resize(ex_size);
+  for(unsigned int e = 0; e < ex_size; ++e){
+    forwards[e].Resize(timesteps);
+    adjoints[e].Resize(timesteps);
+    for(unsigned int t = 0; t < timesteps; ++t){
+      forwards[e][t] = &forward.Get(e, f, t)->gridelem[MECH];
+      adjoints[e][t] = &adjoint.Get(e, f, t)->gridelem[MECH];
+    }
+  }
+  
 
   StdVector<BiLinFormContext*>& biLinForms = assemble_->GetBiLinForms();
   for(unsigned int i = 0; i < biLinForms.GetSize(); ++i){ // loop over all linElastInt bilinear forms (as assemble does)
@@ -304,13 +319,15 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
               
               if(!homogenization){
                 for(unsigned int ex = 0; ex < ex_size; ++ex){
+                  StdVector<StdVector<SingleVector*>* >& forward_ex = forwards[ex];
+                  StdVector<StdVector<SingleVector*>* >& adjoint_ex = adjoints[ex];
                   double vK = 0.0;
                   double vM = 0.0;
                   double vC = 0.0;
                   for(unsigned int t = 0; t < timesteps; ++t){ // loop over all timesteps in u1
                     // Get() requires f exclusively for adjoint solutions.
-                    Vector<double>& u_vec = dynamic_cast<Vector<double>& >(*forward.Get(ex, f, t)->gridelem[MECH][e]);
-                    Vector<double>& p_vecd = dynamic_cast<Vector<double>& >(*adjoint.Get(ex, f, t)->gridelem[MECH][e]);
+                    Vector<double>& u_vec = dynamic_cast<Vector<double>& >(*(*forward_ex[t])[e]);
+                    Vector<double>& p_vecd = dynamic_cast<Vector<double>& >(*(*adjoint_ex[t])[e]);
                     dKu = dK * u_vec;
                     double dvK = p_vecd * dKu;
                     vK += dvK;
@@ -325,7 +342,7 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
                         upp = 0.0; up = 0.0; vM = 0.0; vC = 0.0;
                       }
                       for(unsigned int tp = t+1; tp < timesteps; ++tp){
-                        Vector<double>& p_vec = dynamic_cast<Vector<double>& >(*adjoint.Get(ex, f, tp)->gridelem[MECH][e]);
+                        Vector<double>& p_vec = dynamic_cast<Vector<double>& >(*(*adjoint_ex[tp])[e]);
                         double ut = u * (up * 0.5*upp*(1.0-2.0*beta)*dt ) *dt;
                         double upt = up + (1.0 - gamma) * dt * upp;
                         double pdMu = p_vec * dMu;
@@ -345,10 +362,10 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
                 } // loop over excitations
               }else{ // we calculate homogenization 
                 for(unsigned int ij = 0; ij < ex_size; ++ij){
-                  u1diff = *dynamic_cast<Vector<double>* >(forward.Get(ij)->gridelem[MECH][e]); // assign is needed here
+                  u1diff = *dynamic_cast<Vector<double>* >((*forwards[ij][0])[e]); // assign is needed here
                   SubtractTestDisplacement(ij, CornerCoords, u1diff, tmp_strain, tmp_displacement);
                   for(unsigned int kl = ij; kl < ex_size; ++kl){
-                    u2diff = *dynamic_cast<Vector<double>* >(adjoint.Get(kl)->gridelem[MECH][e]);
+                    u2diff = *dynamic_cast<Vector<double>* >((*adjoints[kl][0])[e]);
                     SubtractTestDisplacement(kl, CornerCoords, u2diff, tmp_strain, tmp_displacement);
                     // description see above, is needed twice for SPEED
                     double v1 = 0.0;
@@ -373,6 +390,8 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
   } // biLinForm loop
   
   shapedesign->AddShapeDerivatives(f, constraint, der, 1.0);
+  
+  parser->ReleaseHandle(mathParserHandle);
 }
 
 void ShapeOpt::CalcUdF(Solutions& adjoint, Objective* f, Condition* constraint, double w){
@@ -410,6 +429,7 @@ void ShapeOpt::CalcUdF(Solutions& adjoint, Objective* f, Condition* constraint, 
       parser->SetValue(MathParser::GLOB_HANDLER, "t", dt*(t+1)); // GetPressureFactor uses this
       parser->SetValue(MathParser::GLOB_HANDLER, "step", t+1);
       Solution* u = adjoint.Get(ex, f, t);
+      StdVector<SingleVector*>* u_vec = &u->gridelem[MECH];
       
       Excitation& excite = me->excitations[ex];
       
@@ -426,7 +446,7 @@ void ShapeOpt::CalcUdF(Solutions& adjoint, Objective* f, Condition* constraint, 
           BaseFE* ptelem = elem->ptElem;
           grd->GetElemNodesCoord(CornerCoords, elem->connect, true);
 
-          Vector<double>& uelem = dynamic_cast<Vector<double>& >(*u->gridelem[MECH][e]);
+          Vector<double>& uelem = dynamic_cast<Vector<double>& >(*(*u_vec)[e]);
           double pres = form->GetPressureFactor(elem);
           grd->CalcSurfNormal(normal, *elem, true);
 

@@ -255,7 +255,7 @@ void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferF
   assert(appendix.GetSize() == alpha.GetSize());
 
   DesignDependentRHS rhs;
-  rhs.Init<double>(Optimization::STRESS, MechPDE::testStrain.Parse(excite.label));
+  rhs.Init<double>(Optimization::STRESS, excite.label);
   // calc lambda^T *  K' * u -> this already stores the results by AddGradient()!
   CalcU1KU2(tf, adjoint.Get(excite, f)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], &rhs, 1.0, STANDARD, f);
 
@@ -367,11 +367,11 @@ bool DesignDependentRHS::Init(DesignSpace* design, Optimization::Application app
 
 
 template <class T>
-bool DesignDependentRHS::Init(Optimization::Application app, MechPDE::TestStrain test_strain)
+bool DesignDependentRHS::Init(Optimization::Application app, std::string excite_label)
 {
   assert(app == Optimization::STRESS);
   this->app = app;
-  this->test_strain = test_strain;
+  this->test_strain = MechPDE::testStrain.IsValid(excite_label) ? MechPDE::testStrain.Parse(excite_label) : MechPDE::NOT_SET;
   return true;
 }
 
