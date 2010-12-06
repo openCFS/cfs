@@ -118,6 +118,9 @@ void Condition::PostProc(DesignSpace* space, DesignStructure* structure)
   default:
     break;
   }
+
+  if(type_ == VOLUME && physical_ && !observation_)
+    info_->Get(ParamNode::WARNING)->SetValue("a physical volume constraint should make no sense");
 }
 
 bool Condition::ReadCoord(PtrParamNode pn)
@@ -355,21 +358,26 @@ void Condition::AddExcitationStressConstraints(StdVector<Condition*>& list, Mult
   // no multiple excitations, no additional stress constraints
   if(!me->IsEnabled()) return;
 
-  // we blow up the list, we assume only a single stress constraint within the original list!
-  int idx = -1;
+  // do we need to blow up the list? This is the case when there is stress constraint with
+  // the default excitation attribute all which is Function::excite_ = -1.
+  // Otherwise we rely on the opt_unique_constraint xsd:unique constraint
+  int blow_up = -1;
   for(unsigned int i = 0; i < list.GetSize(); i++)
   {
     if(list[i]->GetType() == STRESS)
     {
-      if(idx != -1) throw Exception("can only have one stress constraint");
-      idx = i;
+      if(list[i]->DoEvaluateAlways())
+        blow_up = i;
+      else
+        if(blow_up != -1)
+          throw Exception("You cannot mix stress constraints with excitation and with default 'all' excitation");
     }
   }
 
-  // are there stress constraints?
-  if(idx == -1) return;
+  // are there stress constraints to blow up?
+  if(blow_up == -1) return;
 
-  Condition& g = *(list[idx]);
+  Condition& g = *(list[blow_up]);
   g.SetExcitation(me, me->excitations[0].index);
 
   for(unsigned int e = 1; e < me->excitations.GetSize(); e++)
@@ -377,7 +385,7 @@ void Condition::AddExcitationStressConstraints(StdVector<Condition*>& list, Mult
     Condition* tmp = new Condition(g);
     tmp->SetExcitation(me, me->excitations[e].index);
 
-    list.Insert(idx + e, tmp);
+    list.Insert(blow_up + e, tmp);
   }
 }
 

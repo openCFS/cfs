@@ -27,6 +27,19 @@ TransferFunction::TransferFunction()
   param_ = 0.0;
 }
 
+
+TransferFunction::TransferFunction(Optimization::Application app, TransferFunction::Type tf_type, double param, DesignElement::Type design)
+{
+  assert(type.map.size() > 0);
+
+  this->type_ = tf_type;
+  this->orgType_ = NO_TYPE;
+  this->application_ = app;
+  this->design_ = design;
+  this->param_ = param;
+}
+
+
 TransferFunction::TransferFunction(PtrParamNode pn, DesignElement::Type default_design)
 {
   // initialize the static Enum the first time
@@ -53,6 +66,8 @@ TransferFunction::TransferFunction(PtrParamNode pn, DesignElement::Type default_
     throw Exception("transfer functions for 'polarization' can only be '" 
         + Optimization::application.ToString(Optimization::PIEZO_COUPLING) + "'");
 }
+
+
 
 void TransferFunction::ToInfo(PtrParamNode in) const
 {

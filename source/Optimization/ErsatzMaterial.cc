@@ -121,7 +121,7 @@ ErsatzMaterial::ErsatzMaterial() :
   harmonic = BasePDE::IsComplex(pde->GetAnalysisType());
 
   if(homogenization_ && !pde->HasPeriodicBC())
-    EXCEPTION("homogenization requires periodic boundary conditions");
+   throw Exception("homogenization requires periodic boundary conditions");
 
   // Get the assemble class
   assemble_ = pde->getPDE_assemble();
@@ -345,7 +345,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       PtrParamNode info = iter->Get("excitation", ParamNode::APPEND);
       info->Get("index")->SetValue(excite.index);
       info->Get("objective")->SetValue(excite.cost);
-      info->Get("normalized_weight")->SetValue(excite.normalized_weight);
+      info->Get("objective_weight")->SetValue(excite.normalized_weight);
       for(unsigned int c = 0; c < constraints.all.GetSize(); c++)
       {
         Condition* g = constraints.all[c];
@@ -534,7 +534,7 @@ void ErsatzMaterial::CalcNewmarkDerivative(Excitation& excite, Solutions& forwar
 }
 
 double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1,
-    Application k, StdVector<SingleVector*>& u2, SurfaceRef* rhs,
+    Application k, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs,
     double factor, CalcMode calcMode, Function* f, int res_idx)
 {
   if (harmonic)
@@ -546,7 +546,7 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>&
 template <class T>
 double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1,
                        Application app, StdVector<SingleVector*>& u2,
-                       SurfaceRef* rhs, double factor, CalcMode calcMode, Function* f, int res_idx)
+                       DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f, int res_idx)
 {
   LOG_DBG2(em) << "CalcU1KU2(): tf=" << (tf ? tf->ToString() : "NULL") << " #u1=" << u1.GetSize()
                  << " app=" << application.ToString(app) << " #u2=" << u2.GetSize() << " calcMode="
@@ -606,7 +606,12 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>&
 
       // u1^T (K' u2 - f') -> calc "- f'"
       assert(!(calcMode == CONJ_QUAD && rtf != NULL)); // no sensitive rhs here!
-      if(rtf != NULL) SubstractGradSurfaceRHS(de, rtf, rhs, mat_vec);
+      assert(!(rtf != NULL && IsStrainExcitedSystem()));
+
+      if(rtf != NULL) SubtractGradSurfaceRHS(de, rtf, rhs, mat_vec);
+      if(IsStrainExcitedSystem()) SubtractGradStrainRHS(de, tf, rhs, mat_vec);
+
+
       LOG_DBG3(em) << "-f': " << mat_vec.ToString();
 
       // u1^T(K' u2 - f') -> calc "u1^T *" or <u1, *> 
@@ -637,16 +642,48 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>&
   return sum;
 }
 
+template <class T>
+void ErsatzMaterial::SubtractGradStrainRHS(DesignElement* de, TransferFunction* tf, DesignDependentRHS* rhs, Vector<T>& in_out)
+{
+  assert(rhs == NULL || rhs->app == Optimization::STRESS);
+  MechPDE::TestStrain ts = rhs != NULL ? rhs->test_strain : MechPDE::NOT_SET;
+
+  // OptMechMat is base for any further child!
+  const Vector<double>& vec = dynamic_cast<OptMechMat*>(material)->MechStrainRHS(de->elem, ts);
+
+  double factor = tf->Derivative(de, DesignElement::SMART);
+  // LOG_DBG3(em) << "SGSR: de=" << de->elem->elemNum << " in_out=" << in_out.ToString();
+  // LOG_DBG3(em) << "SGSR: de=" << de->elem->elemNum << "    vec=" << vec.ToString();
+  // LOG_DBG3(em) << "SGSR: de=" << de->elem->elemNum << "    val=" << de->GetDesign(DesignElement::PLAIN) << " drho=" << factor;
+
+  in_out.Add(-1.0 * factor, vec); // -1.0 as we want to subtract!
+  // LOG_DBG3(em) << "SGSR: de=" << de->elem->elemNum << "     ->=" << in_out.ToString();
+}
+
+
+bool ErsatzMaterial::IsStrainExcitedSystem() const
+{
+  // this shall not be called to often, hence we don't cache
+  if(homogenization_) return true;
+
+  StdVector<LinearFormContext*>& lf = assemble_->GetLinForms();
+
+  // ignore the regions!!
+  for(unsigned int i = 0; i < lf.GetSize(); i++)
+    if(lf[i]->GetIntegrator()->GetName() == "AddStrainRHSInt")
+      return true;
+
+  return false;
+}
 
 template <class T>
-void ErsatzMaterial::SubstractGradSurfaceRHS(DesignElement* de, TransferFunction* tf, SurfaceRef* ref, Vector<T>& in_out)
+void ErsatzMaterial::SubtractGradSurfaceRHS(DesignElement* de, TransferFunction* tf, DesignDependentRHS* ref, Vector<T>& in_out)
 {
   // we have to find the nodes which are common between de->elem
   // and the surface element which is one dimension smaller
 
   // not all elements do necessary lay on a surface and then not all nodes
   assert(ref != NULL && ref->valid);
-
 
   // nodes (numbers) of our design element
   StdVector<unsigned int>& de_nodes = de->elem->connect;
@@ -667,7 +704,7 @@ void ErsatzMaterial::SubstractGradSurfaceRHS(DesignElement* de, TransferFunction
     it = ref->nodes.find(de_nodes[n]);
     if(it != ref->nodes.end())
     {
-      LOG_DBG3(em) << "SubstractGradSurfaceRHS : node " << n << " is common with elem "
+      LOG_DBG3(em) << "SubtractGradSurfaceRHS : node " << n << " is common with elem "
                      << *it << " in surface: K'u = " << in_out.ToString();
 
       // find the the sensitivity of the rhs w.r.t the design volume element!
@@ -677,11 +714,11 @@ void ErsatzMaterial::SubstractGradSurfaceRHS(DesignElement* de, TransferFunction
       // for all design nodes common with the surface directly the entries
       for(int d = 0; d < dof; d++)
         in_out[n*dof + d] -= factor * rhs[d];
-      LOG_DBG3(em) << "... -" << factor << "*" << rhs.ToString()
-                     << " -> " << in_out.ToString();
+      LOG_DBG3(em) << "... -" << factor << "*" << rhs.ToString() << " -> " << in_out.ToString();
     }
   }
 }
+
 
 double ErsatzMaterial::CalcObjective()
 {
@@ -917,8 +954,8 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
 
     case Function::POISSONS_RATIO:
     case Function::YOUNGS_MODULUS:
-          result = CalcPoissonsRatioAndYoungsModulus(c, g, derivative);
-          break;
+         result = CalcPoissonsRatioAndYoungsModulus(c, g, derivative);
+         break;
 
     case Function::GLOBAL_DYNAMIC_COMPLIANCE:
           assert(!derivative); // SIMP!
@@ -1106,30 +1143,40 @@ double ErsatzMaterial::CalcVolume(Objective* f, Condition* g, bool derivative, b
   DesignElement::Type des  = g == NULL ? DesignElement::DEFAULT : g->design;
 
   // parameter is form the base function
-  Function::Type func = f != NULL ? f->GetType() : g->GetType();
-  double        exp  = f != NULL ? f->GetParameter() : g->GetParameter();
+  Function* func = Function::GetFunction(f, g);
 
-  switch(func)
+  switch(func->GetType())
   {
   case Function::VOLUME:
-    return IntegrateDesignVariable(f, g, derivative, des, normalized, false, 1.0); // no scaling, exponent=1
+  {
+    double exp = 1.0;
+    if(func->IsPhysical())
+    {
+      TransferFunction* tf = design->GetTransferFunction(des, MECH);
+      if(tf->GetType() != TransferFunction::SIMP_TYPE)
+        throw Exception("physical volume as constraint function only possible with SIMP.");
+      // exp = tf->GetParam();
+      exp = 1.0;
+    }
+    return IntegrateDesignVariable(f, g, derivative, des, normalized, false, exp); // no scaling, exponent=1
+  }
 
   case Function::PENALIZED_VOLUME:
   case Function::REALVOLUME:
-    return IntegrateDesignVariable(f, g, derivative, des, normalized, false, exp);
+    return IntegrateDesignVariable(f, g, derivative, des, normalized, false, func->GetParameter());
 
   case Function::GAP:
   {
     if(!derivative)
     {
       double vol = IntegrateDesignVariable(f, g, false, des, normalized, false, 1.0);
-      double pen = IntegrateDesignVariable(f, g, false, des, normalized, false, exp);
+      double pen = IntegrateDesignVariable(f, g, false, des, normalized, false, func->GetParameter());
       return vol - pen;
     }
     else
     {
       if(!design->IsRegular())
-        throw Exception(Function::type.ToString(func) + " only implemented for regular grids");
+        throw Exception(Function::type.ToString(func->GetType()) + " only implemented for regular grids");
 
       CalcRegularGapConstraint(f, g, des);
       return -1.0;
@@ -1185,7 +1232,7 @@ double ErsatzMaterial::CalcCompliance(Excitation& excite, Objective* f, Conditio
   // note for the derivative case gradients are summed up (with weights)
   assert(f != NULL || g != NULL);
   assert(f == NULL || g == NULL);
-  Function* func = f != NULL ? dynamic_cast<Function*>(f) : dynamic_cast<Function*>(g);
+  Function* func = Function::GetFunction(f, g);
   double result = 0.0;
   if(derivative)
   {
@@ -1364,6 +1411,12 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
   // rhs w.r.p to one element: 2* sum_ip strees^T * M * rho^p E_0 B(ip)
   //            if i=j:      + 2 * stress^T * M * (rho^p)' E_0 B(ip) u
 
+  // we follow the qp-relaxation: Bruggi 2008, actually going back to Duysinx and Bendsoe 1998
+  // The idea of the qp-relaxion is, that the stress is calculated based on the standard simp penalization (p).
+  // To have vanishing constraints for vanishing stress we divide by rho^q (stress).
+  // In this implementation we make a new penalization and apply it to the stress, this is easier as we
+  // need no chain rule for the derivative. Clearly works only if the mech and stress transfer functions are simp.
+
   LOG_DBG2(em) << "CVMSV: excite=" << excite.index << " adjont=" << adjoint_rhs << " grad_contrib=" << grad_contrib;
   assert((adjoint_rhs && !grad_contrib) || !adjoint_rhs);
   // adjoint_rhs:   result is raw vector size with summed up 2 * stress^T * M * (rho^p * E_0 * B)
@@ -1388,8 +1441,14 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
   assert(design->design.GetSize() == 1); // easy to extend
   assert(design->regions.GetSize() == 1); // easy to extend
 
-  // the are special transfer functions for the stress
-  TransferFunction* tf = design->GetTransferFunction(DesignElement::DENSITY, STRESS);
+  // the are special transfer functions for the stress (q) as relaxation and the fem simulation (p). See above!
+  TransferFunction* tf_p = design->GetTransferFunction(DesignElement::DENSITY, MECH);
+  TransferFunction* tf_q = design->GetTransferFunction(DesignElement::DENSITY, STRESS);
+
+  if(tf_q->GetType() != TransferFunction::SIMP_TYPE || tf_p->GetType() != TransferFunction::SIMP_TYPE)
+    throw Exception("Stress constraints are currently only implemented for simp type transfer functions in 'mech' and 'stress'.");
+  TransferFunction qp(NO_APP, TransferFunction::SIMP_TYPE, tf_p->GetParam() - tf_q->GetParam(), tf_p->GetDesign());
+  LOG_DBG2(em) << "CVMSV: p=" << tf_p->GetParam() << " q=" << tf_q->GetParam() << " qp=" << qp.GetParam();
 
   linElastInt* form = dynamic_cast<linElastInt*>(GetForm(design->GetRegionId(), pde, pde, "linElastInt"));
 
@@ -1410,7 +1469,7 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
   if(adjoint_rhs) alpha = CalcVonMisesStressGlobalizationFactor(excite, f);
 
   // output of penalized von mises stresses? Only used in !adjoint_rhs and !grad_contrib
-  int res_idx = design->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::PENALIZED_STRESS);
+  int res_idx = design->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::PENALIZED_STRESS, DesignElement::NONE, DesignElement::PLAIN, excite.label);
 
   for(unsigned int e = 0, en = design->data.GetSize(); e < en; e++)
   {
@@ -1421,7 +1480,7 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
     Vector<double>& u_elem = dynamic_cast<Vector<double>& >(*(all_u_elem[e]));
 
     // apply our own physical densities!
-    form->calcDMat(E, NULL, DesignElement::DENSITY, tf->Transform(de, DesignElement::SMART));
+    form->calcDMat(E, NULL, DesignElement::DENSITY, qp.Transform(de, DesignElement::SMART));
 
     elemList.SetElement(de->elem);
     EntityIterator it = elemList.GetIterator();
@@ -1495,16 +1554,19 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
       {
         // output von mises stress? Note, that this is excitation specific!
         if(res_idx != -1)
+        {
           de->specialResult[res_idx] = result[e];
+          LOG_DBG3(em) << "CVMSV:sr de=" << de->ToString() << " res_idx=" << res_idx << " v=" << result[e];
+        }
       }
       else
       {
         // additional factor for grad_contrib. We replace one rho^p by (rho^p)'
-        correct = 2.0 * tf->Derivative(de, DesignElement::SMART) / tf->Transform(de, DesignElement::SMART);
+        correct = 2.0 * qp.Derivative(de, DesignElement::SMART) / qp.Transform(de, DesignElement::SMART);
       }
 
       LOG_DBG2(em) << "CVMSV de=" << de->ToString() << " gv= " << grad_contrib << " rho=" << de->GetDesign(DesignElement::SMART) << " sMs=" << result[e] << " deriv="
-                   << tf->Derivative(de, DesignElement::SMART) << " trans=" <<  tf->Transform(de, DesignElement::SMART) << " correct=" << correct << " -> " << (correct * result[e]);
+                   << qp.Derivative(de, DesignElement::SMART) << " trans=" <<  qp.Transform(de, DesignElement::SMART) << " correct=" << correct << " -> " << (correct * result[e]);
 
       result[e] *= correct;
     }
@@ -1859,27 +1921,9 @@ void ErsatzMaterial::SetTestStrainMatrix(Matrix<double> &matrix, const Vector<do
 {
   assert(matrix.GetNumCols() == dim);
   assert(matrix.GetNumRows() == dim);
-
-/*
- * suggested by Fabian S.
- *   matrix[0][0] = vec[0];
-  matrix[1][1] = vec[1];
-  matrix[0][1] = 0.5 * vec[5]; // Voigt notation!
-  matrix[1][0] = 0.5 * vec[5]; // this is 0 because of the symmetry
-  if(dim == 3)
-  {
-    matrix[2][2] = vec[2];
-    matrix[1][2] = 0.5 * vec[3];
-    matrix[2][1] = 0.5 * vec[3]; // symmetry again
-
-    matrix[0][2] = 0.5 * vec[4];
-    matrix[2][0] = 0.5 * vec[4]; // symmetry again
-  }
-*/
-
   matrix[0][0] = vec[0];
   matrix[1][1] = vec[1];
-  matrix[0][1] = vec[5]; // voigt notation!
+  matrix[0][1] = vec[5]; // Voigt notation!
   matrix[1][0] = 0.0; // because of symmetry we need factor 0.5
 
   if(dim == 3)
@@ -3140,8 +3184,8 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Applic
 // template instantiation stuff
 template double ErsatzMaterial::CalcU1KU2<double>(TransferFunction* tf, StdVector<SingleVector*>& u1,
     Application app, StdVector<SingleVector*>& u2,
-    SurfaceRef* rhs, double factor, CalcMode calcMode, Function* f, int res_idx);
+    DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f, int res_idx);
 
 template double ErsatzMaterial::CalcU1KU2<std::complex<double> >(TransferFunction* tf, StdVector<SingleVector*>& u1,
     Application app, StdVector<SingleVector*>& u2,
-    SurfaceRef* rhs, double factor, CalcMode calcMode, Function* f,  int res_idx);
+    DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f,  int res_idx);

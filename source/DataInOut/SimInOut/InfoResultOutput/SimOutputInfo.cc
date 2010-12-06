@@ -40,7 +40,7 @@ void SimOutputInfo::RegisterResult(shared_ptr<BaseResult> br, UInt saveBegin, UI
    // create new
    in = in->Get("result", ParamNode::APPEND);
    br->SetInfoNode(in);
-   in->Get("data")->SetValue(ri->resultName);
+   in->Get("data")->SetValue(ToValidXML(ri->resultName));
    in->Get("location")->SetValue(br->GetEntityList()->GetName());
    string loc_type;
    ResultInfo::Enum2String(ri->definedOn, loc_type);

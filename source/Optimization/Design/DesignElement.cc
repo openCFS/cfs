@@ -813,12 +813,17 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
       // now we have to find the relative position of candidate
       Elem* candidate = neighbors[n].first;
 
-      LOG_DBG3(del) << "VE:Init elem=" << de.elem->elemNum << " e.bc=" << de.elem->barycenter.ToString() << " e.dim=" << de.elem->ptElem->GetDim()
-                    << " n=" << n << " o.el=" << candidate->elemNum << " o.bc=" << candidate->barycenter.ToString() << " o.dim=" << candidate->ptElem->GetDim();
+      LOG_DBG3(del) << "VE:Init elem=" << de.elem->elemNum << " e.bc=" << de.elem->barycenter.ToString() << " e.dim="
+                    << de.elem->ptElem->GetDim() << " e.r=" << de.elem->regionId << " n=" << n << " o.el=" << candidate->elemNum
+                    << " o.bc=" << candidate->barycenter.ToString() << " o.dim=" << candidate->ptElem->GetDim() << " o.r=" << candidate->regionId;
 
       // if the neighbor is a surface element we don't want to play with it
       if(de.elem->ptElem->GetDim() != candidate->ptElem->GetDim())
         continue;
+      // same if the region does not match. E.g. if there is fixed region not subject to optimization, e.g. bruggi_two_bar
+      if((de.elem->regionId != candidate->regionId) && (space->regions.GetSize() == 1 || !space->Contains(candidate->regionId)))
+        continue;
+      assert(space->regions.GetSize() == 1); // extend for multi-region
 
       // the spacing allows to identify periodic elements
       int idx = FindRelativeNeighborLocation(de.elem->barycenter, candidate->barycenter, spacing);
@@ -962,6 +967,7 @@ ResultDescription::ResultDescription()
   access = DesignElement::PLAIN;
   value  = DesignElement::DESIGN;
   design = DesignElement::DEFAULT;
+  excitation = "";
 }
 
 ResultDescription::ResultDescription(PtrParamNode pn)
@@ -977,4 +983,6 @@ ResultDescription::ResultDescription(PtrParamNode pn)
   value = DesignElement::valueSpecifier.Parse(pn->Get("value")->As<std::string>());
 
   detail = DesignElement::detail.Parse(pn->Get("detail")->As<std::string>());
+
+  excitation = pn->Get("excitation")->As<std::string>();
 }

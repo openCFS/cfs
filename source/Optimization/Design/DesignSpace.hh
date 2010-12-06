@@ -149,6 +149,9 @@ namespace CoupledField
      virtual int ReadDesignFromExtern(const double* space_in);
      int ReadDesignFromExtern(const StdVector<double>& space);
      
+     /** Compare the design with the present. Does not change anything!
+      * @return true if the designs are equal and ReadDesignFromExtern() would give the old design id */
+     virtual bool CompareDesign(const double* space_in);
            
      /** gives the initial guess (for the design space) 
       * @param space_out to this array of GetDesignSpaceSize() the initial guess is wrtitten to.
@@ -249,6 +252,9 @@ namespace CoupledField
        return regions[0].regionId;
      }
 
+     /** returns the current design id */
+     int GetCurrentDesignId() const { return design_id; }
+
      /** We can define results in the optimization part: <pre>
       * <result id="optResult_2" design="density" access="plain" value="costGradient"  />
       * <result id="optResult_3" design="density" access="plain" value="objective" /></pre>
@@ -256,7 +262,8 @@ namespace CoupledField
       * result is specified in XML */
      int GetSpecialResultIndex(DesignElement::Type design, DesignElement::ValueSpecifier value,
                                   DesignElement::Detail detail = DesignElement::NONE,
-                                  DesignElement::Access access = DesignElement::PLAIN);
+                                  DesignElement::Access access = DesignElement::PLAIN,
+                                  const std::string& excitation = "");
 
      /** Dumps the design space */
      std::string ToString();
@@ -272,6 +279,9 @@ namespace CoupledField
      };
      
      StdVector<DesignRegion> regions;
+
+     /** stupid find function */
+     bool Contains(const RegionIdType reg) const;
 
      /** save parameters for scaling the design to [0..1] in the optimizer: 
       * our design = scaling * optimizer_design + translation 

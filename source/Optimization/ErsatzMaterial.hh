@@ -21,7 +21,7 @@ class Condition;
 class Assemble;
 class TransferFunction;
 class SurfElem;
-class SurfaceRef;
+class DesignDependentRHS;
 class OptimizationMaterial;
 class DesignStructure;
 class DensityFile;
@@ -344,7 +344,7 @@ public:
    * @param g as f for constrained gradient
    * @param res_idx store in de->specialResult. use ErsatzMaterial::GetSpecialResultIndex() -1 is no special result*/
   double CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1, Application k, StdVector<SingleVector*>& u2,
-                     SurfaceRef* rhs, double factor, CalcMode calcMode, Function* f, int res_idx = -1);
+                     DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f, int res_idx = -1);
 
   /** Helper calling CalcU1KU2()
    * If there is a result with value='costGradient' or 'constraintGradient' it is checked for detail='mech_mech',
@@ -566,6 +566,9 @@ protected:
 
   virtual void RhsCalculated(AdjointParameters* adjParams);
 
+  /** Is the current system test strain excitated? True for special test case and homogenization */
+  bool IsStrainExcitedSystem() const;
+
   /** The DesignStructure is required by SIMP for filters and by Condition for slope constraints
    * and checkerboard. They share this element. It can only be created by PostInit(), hence every
    * PostInit() who needs the structure needs to check if it was created before. Deleted by ~EM */
@@ -594,8 +597,22 @@ private:
   template<class T>
   double
       CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1,
-          Application k, StdVector<SingleVector*>& u2, SurfaceRef* ref,
+          Application k, StdVector<SingleVector*>& u2, DesignDependentRHS* ref,
           double factor, CalcMode calcMode, Function* f, int res_idx);
+
+  /** Handles sensitive RHS, e.g. when we have sensitive Neuman boundary condition (elect surface charge).
+      * SurfaceRef is  given to CalcU1KU2 and this method does from \f$<l,K'u-f'>\f$ the \f$-f'\f$ part.
+      * It checks if any nodes of the design element are part of the surface and
+      * substracts for all dof of that node only */
+  template<class T>
+  void SubtractGradSurfaceRHS(DesignElement* de, TransferFunction* tf, DesignDependentRHS* ref, Vector<T>& in_out);
+
+
+  /** Called by CalcU1KU2 on IfStrainExcitedSystem()
+   * @param rhs might be null but if not takes the test_strain. */
+  template <class T>
+  void SubtractGradStrainRHS(DesignElement* de, TransferFunction* tf, DesignDependentRHS* rhs, Vector<T>& in_out);
+
 
   /** Calculates a scalar product of two vectors and the derivative of the right hand side newmark update,
    * used for transient optimization derivative calculation
@@ -607,14 +624,6 @@ private:
    * @param g constraint the result is to be stored with */
   void CalcNewmarkDerivative(Excitation& excite, Solutions& forward,
       Solutions& adjoint, double factor, Objective* f, Condition* g);
-
-  /** Handles sensitive RHS, e.g. when we have sensitive Neuman boundary condition (elect surface charge).
-   * SurfaceRef is  given to CalcU1KU2 and this method does from \f$<l,K'u-f'>\f$ the \f$-f'\f$ part.
-   * It checks if any nodes of the design element are part of the surface and
-   * substracts for all dof of that node only */
-  template<class T>
-  void SubstractGradSurfaceRHS(DesignElement* de, TransferFunction* tf,
-      SurfaceRef* ref, Vector<T>& in_out);
 
   /** This solves the adjoint problem problem only and stores all relevant data. Calls SetAndSolveAdjointRHS() */
   template<class T>

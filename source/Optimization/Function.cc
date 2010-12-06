@@ -251,7 +251,16 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
       break;
 
     case STRESS:
-      excite_ = excite_index == -2 ? -1 : excite_index;
+      // there might be the optional excitation index set
+      if(pn->Get("excitation")->As<std::string>() == "all")
+      {
+        excite_ = excite_index == -2 ? -1 : excite_index;
+      }
+      else
+      {
+        assert(excite_index == -2); // assert there is no conflict
+        excite_ = me->GetExcitation(pn->Get("excitation")->As<std::string>())->index;
+      }
       break;
   }
 }
@@ -264,6 +273,11 @@ bool Function::DoEvaluate(const Excitation* excite) const
     return true;
 
   return excite->index == excite_;
+}
+
+bool Function::DoEvaluateAlways() const
+{
+  return excite_ == -1;
 }
 
 bool Function::IsExcitationSensitive() const

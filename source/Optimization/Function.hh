@@ -132,7 +132,7 @@ class Function
     bool DoEvaluate(const Excitation* excite) const;
 
     /** Evaluate for all excitations if there are multiple? */
-    bool DoEvaluateAlways() const { return excite_ == -1; }
+    bool DoEvaluateAlways() const;
 
     /** Are we generally excitation sensitive? E.g. stress */
     bool IsExcitationSensitive() const;

@@ -333,6 +333,10 @@ BOOST_LOG_DECL void write_msg(default_log_manager & , logger & l, const logging_
     if ( manager_impl().s_destroyed)
         return;
 
+   // for(unsigned int i = 0; i < msg.size(); i++)
+   //   if((msg[i] < 0x20 || msg[i] > 0x7f) && msg[i] != 0x0a)
+   //     std::cout << "write_msg: has character " << (int) msg[i] << " at pos " << i << " in: " << msg << std::endl;
+
     // we're caching - if loggers have not been initialized yet...
     if ( manager_impl().m_caching)
         cache_msg( l, msg, lvl);

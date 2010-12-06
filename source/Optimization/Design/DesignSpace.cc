@@ -79,7 +79,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& regionIds, ParamNodeList &pn_d
         && method !=ErsatzMaterial::SHAPE_GRAD)
     {
       if(elements == 0) throw Exception("empty regions");
-      if(nd == 0) throw Exception("no designs given");
+      if(nd == 0) throw Exception("no designs types given.");
     }
   }
   else // 'standard' SIMP case
@@ -135,17 +135,19 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& regionIds, ParamNodeList &pn_d
             regions[r].constant = false;
           }
 
-          if(design_reg == "all" || design_reg == reg){
+          if(design_reg == "all" || design_reg == reg)
+          {
             int di = design.Find(dt);
             if(!region_design[r*nd + di]){
               throw Exception("Design/Region combination given twice!");
             }
             region_design[r*nd + di] = false;
-            if(curr_design_pn->Get("constant")->As<bool>()){ // we have a constant densign-value on that region
+            if(curr_design_pn->Has("constant") && curr_design_pn->Get("constant")->As<bool>()){
+              // we have a constant densign-value on that region
               regions[r].constant = true;
             }
             
-            if(curr_design_pn->Get("scale")->As<bool>()){
+            if(curr_design_pn->Has("scale") && curr_design_pn->Get("scale")->As<bool>()){
               double upper = curr_design_pn->Get("upper")->As<double>();
               double lower = curr_design_pn->Get("lower")->As<double>();
               scale_design[di][r] = (upper - lower);
@@ -252,6 +254,15 @@ void DesignSpace::PostInit(int objectives, int constraints)
     data[i].PostInit(objectives, constraints);
 }
 
+bool DesignSpace::Contains(const RegionIdType reg) const
+{
+  for(unsigned int i = 0, n = regions.GetSize(); i < n; i++)
+    if(regions[i].regionId == reg)
+      return true;
+
+  return false;
+}
+
 void DesignSpace::SetDesignMaterial(PtrParamNode dm){
   if(transfer.GetSize() > 0)
     throw Exception("designmaterial can not be given when using transferFunctions");
@@ -319,11 +330,12 @@ ResultInfo* DesignSpace::GetResultInfo(ResultDescription& rd)
   // I hate it!!! :(
   ri->resultType = (SolutionType) rd.solutionType;
 
+  // in info.xml result output the " (" is replaced by "_("!
   ri->resultName = DesignElement::valueSpecifier.ToString(rd.value) + "_"
                    + (rd.detail != DesignElement::NONE ? (DesignElement::detail.ToString(rd.detail) + "_") : "")
                    + DesignElement::type.ToString(rd.design) + " ("
-                   + DesignElement::access.ToString(rd.access) + ")";
-
+                   + DesignElement::access.ToString(rd.access) + ")"
+                   + (rd.excitation != "" ? ("_ex_" + rd.excitation) : "");
 
   ri->unit = "";
 
@@ -354,12 +366,15 @@ ResultInfo* DesignSpace::GetResultInfo(ResultDescription& rd)
 }
 
 int DesignSpace::GetSpecialResultIndex(DesignElement::Type design, DesignElement::ValueSpecifier value,
-                                       DesignElement::Detail detail, DesignElement::Access access)
+                                       DesignElement::Detail detail, DesignElement::Access access, const std::string& excitation)
 {
   for(unsigned int i = 0; i < resultDescriptions.GetSize(); i++)
   {
     const ResultDescription& rd = resultDescriptions[i];
+    // two step check
     if(rd.design != design || rd.value != value || rd.detail != detail || rd.access != access) continue;
+    // second check
+    if(rd.excitation != "" && rd.excitation != excitation) continue;
 
     // we are right.
     switch(rd.solutionType)
@@ -534,6 +549,7 @@ TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, O
                         + "' is not contained");
 }
 
+
 int DesignSpace::ReadDesignFromExtern(const double* space)
 {
   bool new_design = false;
@@ -575,6 +591,37 @@ int DesignSpace::ReadDesignFromExtern(const double* space)
 int DesignSpace::ReadDesignFromExtern(const StdVector<double>& space)
 {
   return ReadDesignFromExtern(space.GetPointer());
+}
+
+
+bool DesignSpace::CompareDesign(const double* space)
+{
+  unsigned int s = 0;
+  for(unsigned int des = 0; des < design.GetSize(); des++){
+    const unsigned int base = des * elements;
+    for(unsigned int r = 0; r < regions.GetSize(); r++){
+      const double scaling = scale_design[des][r];
+      const double translation = translate_design[des][r];
+      const unsigned int u = base + regions[r].base + regions[r].elements;
+      if(regions[r].constant){
+        const double v = space[s] * scaling + translation;
+        for(unsigned int d = base + regions[r].base; d < u; d++){
+          if(data[d].GetDesign(DesignElement::PLAIN) != v)
+            return false;
+        } // for d
+        s++; // only advance after having set all element of this region to the corresponding value
+      }else{
+        for(unsigned int d = base + regions[r].base; d < u; d++){
+          double v = space[s] * scaling + translation;
+          if(data[d].GetDesign(DesignElement::PLAIN) != v)
+            return false;
+          s++; // advance in every step
+        } // for d
+      } // if/else constant
+    } // for r
+  } // for des
+  assert(s == DesignSpace::GetNumberOfVariables());
+  return true;
 }
 
 int DesignSpace::WriteDesignToExtern(double* space, bool scaling) const
