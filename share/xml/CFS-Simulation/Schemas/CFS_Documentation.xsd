@@ -114,6 +114,7 @@
       <xsd:enumeration value="mechanic-acoustic"/>
       <xsd:enumeration value="piezo"/>
       <xsd:enumeration value="thermo-mechanic"/>
+      <xsd:enumeration value="biot-savart"/>
         
       <xsd:enumeration value="abc"/>
       <xsd:enumeration value="acoustic"/>

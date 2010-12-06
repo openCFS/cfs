@@ -124,6 +124,14 @@ namespace CoupledField
     /** @see virtual SinglePDE::GetNativeDOF() */
     virtual UInt GetNativeDOF() const { return dim_; }
 
+    /** return the von Mises matrix (stress^T * M * stress = von Mises Stress)
+     * @param dim desired dimension. axis is ignored currently :( */
+    const Matrix<double>& GetVonMisesMatrix(int dim);
+
+    /** Scalar version of the stresses. Called from Optimization/ErsatzMaterial */
+    template <class TYPE>
+    void CalcVonMisesStress(shared_ptr<BaseResult> res);
+
   protected:
 
     // ======================================================
@@ -349,6 +357,10 @@ namespace CoupledField
     //! Flag indicating use of penalty dof for plate formulation
     bool usePlatePenaltyDof_;
 
+    /** static matrix which allows the calculation of the von Mises Stress from the stresses in 2D.
+     * See Kocvara and Stingl; 2007 */
+    Matrix<double> vonMisesMatrix_2d_;
+    Matrix<double> vonMisesMatrix_3d_;
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

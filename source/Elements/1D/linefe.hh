@@ -90,32 +90,6 @@ namespace CoupledField
                                   const Matrix<Double> & CornerCoords,
                                   const Elem* elem );
 
-    //! calculates the Inverse Jacobian Matrix at an arbitrary local point
-    /*!
-      \param JInv (output) Inverse Jacobian Matrix 
-      \f[ J^{-1} = \left( \begin{array}{cc} \xi_{x} \end{array}\right)\f]
-      \param LCoord (input) Local coorindates of evaluation point
-      \param CornerCoords (input) Coordinates of element corners
-      \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \end{array} \right) \f] 
-    */
-    virtual void CalcInvJacobian(Matrix<Double> & JInv,
-                                 const Vector<Double> & LCoord,
-                                 const Matrix<Double> & CornerCoords,
-                                 const Elem* elem );
-  
-    //! Calculates the Inverse Jacobian Matrix at integration point ip
-    /*!
-      \param JInv (output) Inverse Jacobian Matrix 
-      \f[ J^{-1} = \left( \begin{array}{c} \xi_{x} \end{array}\right)\f]
-      \param ip (input) Integration point
-      \param CornerCoords (input) Coordinates of element corners
-      \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots  \end{array} \right) \f] 
-    */
-    virtual void CalcInvJacobianAtIp(Matrix<Double> & JInv,
-                                     const UInt ip,
-                                     const Matrix<Double> & CornerCoords,
-                                     const Elem* elem );
-
     //! Returns wether a given local coordinate is
     //! within this element
     //! \param localCoords (input) local coordinates

@@ -53,15 +53,26 @@ void BaseDesignElement::PostInit(int objectives, int constraints)
 
 
 /** Get the gradient values for either objective or constraint */
-double BaseDesignElement::GetPlainGradient(const Objective* f, const Condition* g) const
+double BaseDesignElement::GetPlainGradient(const Objective* c, const Condition* g) const
 {
-  assert(f == NULL || g == NULL);
+  assert(c == NULL || g == NULL);
 
   if(g != NULL) return constraintGradient[g->GetIndex()];
-  if(f != NULL) return costGradient[f->GetIndex()];
+  if(c != NULL) return costGradient[c->GetIndex()];
 
   return SumObjectiveGradient();
 }
+
+/** Get the gradient values for either objective or constraint */
+double BaseDesignElement::GetPlainGradient(const Function* f) const
+{
+  assert(!f->IsObjective() || (f->IsObjective() && dynamic_cast<const Objective*>(f) != NULL));
+  assert( f->IsObjective() || (!f->IsObjective() && dynamic_cast<const Condition*>(f) != NULL));
+
+  return GetPlainGradient(f->IsObjective() ? static_cast<const Objective*>(f) : NULL,
+                           f->IsObjective() ? NULL : static_cast<const Condition*>(f));
+}
+
 
 /** Sum app the old value (get and set together) */
 void BaseDesignElement::AddGradient(const Objective* f, const Condition* g, double value)
@@ -77,7 +88,16 @@ void BaseDesignElement::AddGradient(const Objective* f, const Condition* g, doub
            else constraintGradient[g->GetIndex()] += value;
 }
 
-void BaseDesignElement::Reset(ValueSpecifier vs, Condition *g)
+void BaseDesignElement::AddGradient(const Function* f, double value)
+{
+  assert(!f->IsObjective() || (f->IsObjective() && dynamic_cast<const Objective*>(f) != NULL));
+  assert( f->IsObjective() || (!f->IsObjective() && dynamic_cast<const Condition*>(f) != NULL));
+
+  AddGradient(f->IsObjective() ? static_cast<const Objective*>(f) : NULL,
+              f->IsObjective() ? NULL : static_cast<const Condition*>(f), value);
+}
+
+void BaseDesignElement::Reset(ValueSpecifier vs, Function*  f)
 {
   switch(vs)
   {
@@ -86,8 +106,8 @@ void BaseDesignElement::Reset(ValueSpecifier vs, Condition *g)
       costGradient[i] = 0.0;
     break;
   case CONSTRAINT_GRADIENT:
-    if(g != NULL)
-      constraintGradient[g->GetIndex()] = 0.0;
+    if(f != NULL)
+      constraintGradient[f->GetIndex()] = 0.0;
     else
       for(unsigned int i = 0; i < constraintGradient.GetSize(); i++)
         constraintGradient[i] = 0.0;
@@ -117,7 +137,6 @@ DesignElement::DesignElement(PtrParamNode pn, Elem* elem) : BaseDesignElement()
   Init();
   this->elem = elem;
   this->specialResult.Resize(9, 0.0);
-
 
   // it is a little slow to perform this code for every DesignElement but the
   // implementations are rater fast and it should be not measurable in the end
@@ -180,9 +199,12 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       || rd.value == CONSTRAINT_GRADIENT
       || rd.value == MAX_SLOPE
       || rd.value == MAX_OSCILLATION
-      || rd.value == MAX_MOLE)
+      || rd.value == MAX_MOLE
+      || rd.value == MAX_JUMP
+      || rd.value == PENALIZED_STRESS)
   {
     if(dofs != 1) throw Exception("special results is only defined for scalar values");
+    // note, that on EACH_FORWARD/ADJOINT we need excitation based results
     switch(rd.solutionType)
     {
     case OPT_RESULT_1:
@@ -302,6 +324,8 @@ double DesignElement::GetPlainValue(ValueSpecifier sp, Condition* g) const
   case MAX_SLOPE:
   case MAX_MOLE:
   case MAX_OSCILLATION:
+  case MAX_JUMP:
+  case PENALIZED_STRESS:
     assert(false); // should be covered before by special result index
 
   case TOPGRAD_VALUE:
@@ -408,6 +432,9 @@ void DesignElement::SetEnums()
   type.Add(EMODULISO, "emodul-iso");
   type.Add(POISSONISO, "poisson-iso");
   type.Add(GMODUL, "gmodul");
+  type.Add(MASS, "mass");
+  type.Add(DAMPINGALPHA, "damping-alpha");
+  type.Add(DAMPINGBETA, "damping-beta");
   type.Add(UNITY, "unity");
 
   access.SetName("DesignElement::Access");
@@ -421,6 +448,8 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(MAX_SLOPE, "maxSlope");
   valueSpecifier.Add(MAX_OSCILLATION, "maxOscillation");
   valueSpecifier.Add(MAX_MOLE, "maxMole");
+  valueSpecifier.Add(MAX_JUMP, "maxJump");
+  valueSpecifier.Add(PENALIZED_STRESS, "penalizedStress");
   valueSpecifier.Add(WEIGHT, "weight");
   valueSpecifier.Add(OBJECTIVE, "objective");
   valueSpecifier.Add(NUM_NEIGHBOURS, "neighbours");
@@ -460,6 +489,7 @@ void DesignElement::SetEnums()
   detail.Add(GREYNESS, "greyness");
   detail.Add(GLOBAL_SLOPE, "globalSlope");
   detail.Add(GLOBAL_CHECKERBOARD, "globalCheckerboard");
+  detail.Add(STRESS, "stress");
 
 }
 
@@ -729,6 +759,11 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
   if(!space->IsRegular())
     throw Exception("A regular design domain is required to use VicinityElements");
 
+  // eventually the barycenters are already calculated, we need them to identify the orientation
+  // we will need the barycenters in FindNeibhborhood()
+  for(unsigned int i = 0; i < space->regions.GetSize(); i++)
+    grid->SetElementBarycenters(space->regions[i].regionId, false); // no updated coordinates
+
   // let CFS find the neighborhood of *all* elements. With some luck this was done
   // anyway already and we get it for free
   // This does not include periodic b.c. neighbors, this is done by structure
@@ -748,12 +783,6 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
   domain->GetGrid()->GetElemNodesCoord(coords, elem->connect);
   elem->ptElem->GetEdgeLength(coords, spacing);
 
-
-  // We have to compare this element with the neighbors to do the sorting we restrict
-  // ourself to the first node of the elements
-  Point this_elem_point;
-  Point neigh_elem_point;
-
   // in the periodic case the neighborhood is enlarged
   StdVector<std::pair<Elem*, int> > enlarged_data;
 
@@ -765,9 +794,6 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
     de.vicinity = new VicinityElement();
     // here we store the neighbors in a sorted way
     StdVector<DesignElement*>& ve_data = de.vicinity->design; // has proper size of NULLs
-    // set the reference point of this element
-    grid->GetNodeCoordinate(this_elem_point, de.elem->connect[0]);
-
 
     // reference case
     StdVector<std::pair<Elem*, int> >& neighbors = *(de.elem->neighborhood);
@@ -786,11 +812,18 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
       if(neighbors[n].second < common) continue;
       // now we have to find the relative position of candidate
       Elem* candidate = neighbors[n].first;
-      // the reference point of the candidate
-      grid->GetNodeCoordinate(neigh_elem_point, candidate->connect[0]);
+
+      LOG_DBG3(del) << "VE:Init elem=" << de.elem->elemNum << " e.bc=" << de.elem->barycenter.ToString() << " e.dim=" << de.elem->ptElem->GetDim()
+                    << " n=" << n << " o.el=" << candidate->elemNum << " o.bc=" << candidate->barycenter.ToString() << " o.dim=" << candidate->ptElem->GetDim();
+
+      // if the neighbor is a surface element we don't want to play with it
+      if(de.elem->ptElem->GetDim() != candidate->ptElem->GetDim())
+        continue;
+
       // the spacing allows to identify periodic elements
-      int idx = FindRelativeNeighborLocation(this_elem_point, neigh_elem_point, spacing);
+      int idx = FindRelativeNeighborLocation(de.elem->barycenter, candidate->barycenter, spacing);
       ve_data[idx] = space->Find(candidate->elemNum, de.GetType(), false);
+      LOG_DBG2(del) << "VE:Init elem=" << de.elem->elemNum << " idx=" << idx << " dat=" << ve_data[idx];
     }
   }
  }

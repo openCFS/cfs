@@ -1,3 +1,5 @@
+#include "Optimization/Optimization.hh"
+#include "Optimization/Excitation.hh"
 #include "Optimization/Function.hh"
 #include "Optimization/Condition.hh"
 #include "Optimization/Objective.hh"
@@ -41,10 +43,12 @@ Function::Function(PtrParamNode pn)
   // function value to be evaluated
   this->value_ = -1.0;
 
+  // -2 is unset, -1 is all, >= 0 the excitation index
+  this->excite_ = -1;
+
   this->physical_ = pn->Has("physical") ? pn->Get("physical")->As<bool>() : false;
 
   this->parameter_ = pn->Has("parameter") ? pn->Get("parameter")->As<double>() : 0.0;
-
 
   this->omega_omega_ = pn->Has("factor") ? pn->Get("factor/omega_omega")->As<bool>() : false;
   if(!harmonic_ && omega_omega_)
@@ -73,6 +77,7 @@ Function::Function(PtrParamNode pn)
   case GLOBAL_SLOPE:
   case GLOBAL_OSCILLATION:
   case GLOBAL_MOLE:
+  case STRESS:
     if(!pn->Has("parameter"))
       throw Exception("function '" + type.ToString(type_) + "' requires the 'parameter' attribute");
     break;
@@ -84,53 +89,18 @@ Function::Function(PtrParamNode pn)
   if(physical_ && !(type_ == VOLUME || type_ == GREYNESS))
     throw Exception("'physical' is no option for '" + type.ToString(type_) + "'");
 
-  // some functions need to be evaluated only once (last) for multiple excitations
-  // multiple excitations are:
-  // * static load cases
-  // * different frequencies
-  // * several homogenization test strains
-  // * time steps
-  switch(type_)
-  {
-    case VOLUME:
-    case PENALIZED_VOLUME:
-    case GAP:
-    case REALVOLUME:
-    case TYCHONOFF:
-    case GREYNESS:
-    case HOMOGENIZATION_TENSOR:
-    case HOMOGENIZATION_TRACKING:
-    case POISSONS_RATIO:
-    case YOUNGS_MODULUS:
-    case SLOPE:
-    case GLOBAL_SLOPE:
-    case ISOTROPY:
-    case MOLE:
-    case GLOBAL_MOLE:
-    case OSCILLATION:
-    case GLOBAL_OSCILLATION:
-      this->evaluateOnce_ = true;
-      break;
-
-    case MULTI_OBJECTIVE: // only to make the switch complete
-    case COMPLIANCE:
-    case OUTPUT:
-    case DYNAMIC_OUTPUT:
-    case ENERGY_FLUX:
-    case TRACKING:
-    case ABS_DYN_OUTPUT_SQUARED:
-    case CONJUGATE_COMPLIANCE:
-    case GLOBAL_DYNAMIC_COMPLIANCE:
-    case ELEC_ENERGY:
-    case TEMPERATURE:
-      this->evaluateOnce_ = false; // standard case
-  }
-
 }
 
 Function::~Function()
 {
   if(local != NULL) { delete local; local = NULL; }
+}
+
+Function* Function::Cast(Objective* c, Condition* g)
+{
+  assert((c != NULL && g == NULL) || (c == NULL && g != NULL));
+  assert((c != NULL && dynamic_cast<Function*>(c) != NULL) || (g != NULL && dynamic_cast<Function*>(g) != NULL));
+  return c != NULL ? static_cast<Function*>(c) : static_cast<Function*>(g);
 }
 
 bool Function::ReadTensor(PtrParamNode pn, Matrix<double>& matrix)
@@ -210,7 +180,7 @@ void Function::ToInfo(PtrParamNode info)
     info->Get("parameter")->SetValue(parameter_);
 }
 
-std::string Function::ToString() const
+std::string Function::ToString(MultipleExcitation* me) const
 {
   // optional for oscillation
   if(local != NULL && local->GetPhase() != Local::BOTH)
@@ -227,6 +197,118 @@ Function* Function::GetFunction(Objective* f, Condition* g)
 {
   assert(!(f != NULL && g != NULL) || (f == NULL && g == NULL));
   return f != NULL ? dynamic_cast<Function*>(f) : dynamic_cast<Function*>(g);
+}
+
+
+void Function::SetExcitation(MultipleExcitation* me, int excite_index)
+{
+  assert(me != NULL && me->excitations.GetSize() > 0);
+
+  // some functions need to be evaluated only once (first) for multiple excitations
+  // multiple excitations are:
+  // * static load cases
+  // * different frequencies
+  // * several homogenization test strains
+  // * time steps
+  switch(type_)
+  {
+    case VOLUME:
+    case PENALIZED_VOLUME:
+    case GAP:
+    case REALVOLUME:
+    case TYCHONOFF:
+    case GREYNESS:
+    case HOMOGENIZATION_TENSOR:
+    case HOMOGENIZATION_TRACKING:
+    case POISSONS_RATIO:
+    case YOUNGS_MODULUS:
+    case SLOPE:
+    case GLOBAL_SLOPE:
+    case ISOTROPY:
+    case MOLE:
+    case GLOBAL_MOLE:
+    case OSCILLATION:
+    case GLOBAL_OSCILLATION:
+    case JUMP:
+    case GLOBAL_JUMP:
+      assert(excite_index < 0);
+      excite_ = me->excitations.GetSize() - 1; // once only at the last excitation
+      break;
+
+    case MULTI_OBJECTIVE: // only to make the switch complete
+    case COMPLIANCE:
+    case OUTPUT:
+    case DYNAMIC_OUTPUT:
+    case ENERGY_FLUX:
+    case TRACKING:
+    case ABS_DYN_OUTPUT_SQUARED:
+    case CONJUGATE_COMPLIANCE:
+    case GLOBAL_DYNAMIC_COMPLIANCE:
+    case ELEC_ENERGY:
+    case TEMPERATURE:
+      assert(excite_index < 0);
+      excite_ = -1; // all excitations
+      break;
+
+    case STRESS:
+      excite_ = excite_index == -2 ? -1 : excite_index;
+      break;
+  }
+}
+
+/** Shall/must we evaluate this objective at this excitation?
+ * Stress constraints in homogenization are triggered for a single constraint only. */
+bool Function::DoEvaluate(const Excitation* excite) const
+{
+  if(DoEvaluateAlways())
+    return true;
+
+  return excite->index == excite_;
+}
+
+bool Function::IsExcitationSensitive() const
+{
+  if(type_ == STRESS)
+    return true;
+  else
+    return false;
+}
+
+bool Function::IsAdjointBased() const
+{
+  switch(type_)
+  {
+    case COMPLIANCE: // only in the transient case
+    case TRACKING:
+    case OUTPUT:
+    case CONJUGATE_COMPLIANCE:
+    case ABS_DYN_OUTPUT_SQUARED:
+    case GLOBAL_DYNAMIC_COMPLIANCE:
+    case DYNAMIC_OUTPUT:
+    case ELEC_ENERGY:
+    case ENERGY_FLUX:
+    case STRESS:
+    return true;
+
+  default:
+    return false;
+  }
+}
+
+bool Function::NeedsSelectionVector() const
+{
+  switch(type_)
+  {
+    case OUTPUT:
+//    case CONJUGATE_COMPLIANCE: ??
+    case ABS_DYN_OUTPUT_SQUARED:
+    case DYNAMIC_OUTPUT:
+    case ENERGY_FLUX:
+    return true;
+
+  default:
+    return false;
+  }
 }
 
 
@@ -278,6 +360,7 @@ bool Function::ForSensitivityFiltering() const
   case POISSONS_RATIO:
   case YOUNGS_MODULUS:
   case TEMPERATURE:
+  case STRESS:
     return true;
 
   case VOLUME:
@@ -292,6 +375,8 @@ bool Function::ForSensitivityFiltering() const
   case GLOBAL_MOLE:
   case OSCILLATION:
   case GLOBAL_OSCILLATION:
+  case JUMP:
+  case GLOBAL_JUMP:
     return false;
 
   case ISOTROPY:
@@ -314,6 +399,9 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure)
   case GLOBAL_MOLE:
   case OSCILLATION:
   case GLOBAL_OSCILLATION:
+  case JUMP:
+  case GLOBAL_JUMP:
+  case STRESS:
     assert(space->IsRegular()); // VicinityElements work only on a regular grid
     // the design elements require the vicinity element to be set which holds the direct
     // neighbors. Is save to call several times
@@ -343,6 +431,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
   this->space = space;
   this->func_ = func;
   this->structure_ = NULL;
+  this->infeasible = 0;
 
   // shortcuts
   Function::Type ftype = func->GetType();
@@ -358,7 +447,20 @@ Function::Local::Local(Function* func, DesignSpace* space)
 
   this->normalize_ = pn != NULL ? pn->Get("normalize")->As<bool>() : true;
 
-  this->globalized_ = ftype == GLOBAL_MOLE || ftype == GLOBAL_SLOPE  || ftype == GLOBAL_OSCILLATION ? true : false;
+  switch(ftype)
+  {
+  case GLOBAL_JUMP:
+  case GLOBAL_MOLE:
+  case GLOBAL_OSCILLATION:
+  case GLOBAL_SLOPE:
+  case STRESS:
+    this->globalized_ = true;
+    break;
+
+  default:
+    this->globalized_ = false;
+    break;
+  }
 
   // check beta
   if(ftype == OSCILLATION || ftype == GLOBAL_OSCILLATION)
@@ -415,21 +517,44 @@ Function::Local::Local(Function* func, DesignSpace* space)
     locality_ = DEG_45_STAR;
     break;
 
+  case JUMP:
+  case GLOBAL_JUMP:
+    if(locality_ != BOUNDARY && locality_ != DEFAULT)
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
+    locality_ = BOUNDARY;
+    break;
+
+  case STRESS:
+    if(locality_ != ELEMENT && locality_ != DEFAULT)
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
+    locality_ = ELEMENT;
+    break;
+
   default: // no locality
     assert(false);
     break;
   }
 
   // this is actually pure constructor work, just extracted to handle function size
-  if(locality_ == DEG_45_STAR || locality_ == DEG_45_STAR_AND_REVERSE)
+  switch(locality_)
   {
+  case DEG_45_STAR:
+  case DEG_45_STAR_AND_REVERSE:
+  case BOUNDARY:
     if(!pn)
       throw Exception("sub element 'local' with neighborhood information mandatory for '" + fname + "'");
     structure_ = new NeighborhoodStructure(this, pn);
-    SetupStarLocalityElementMap(phase_);
-  }
-  else
-  {
+    if(locality_ == BOUNDARY)
+      SetupBoundaryElementMap();
+    else
+      SetupStarLocalityElementMap(phase_);
+    break;
+
+  case ELEMENT:
+    SetupSingularElementMap();
+    break;
+
+  default:
     SetupVirtualElementMap(phase_);
   }
 
@@ -455,12 +580,12 @@ void Function::Local::SetupVirtualElementMap(Phase ph)
   bool prev    = locality_ == PREV_NEXT_AND_REVERSE || locality_ == PREV_NEXT;
   bool next    = true; // always
   bool two_signs = locality_ == NEXT_AND_REVERSE || locality_ == PREV_NEXT_AND_REVERSE;
-  assert((ph == BOTH && two_signs) || (!two_signs && ph != BOTH));
+  // assert((ph == BOTH && two_signs) || (!two_signs && ph != BOTH));
   // assume ph is set correctly and Phase is in sync with the signs
   int sign_1 = ph != BOTH ? (int) ph : two_signs ? 1 : Identifier::NO_SIGN;
   int sign_2 = ph != BOTH ? (int) ph : -1;
 
-  element_dimension_ = dim * (two_signs ? 2.0 : 1.0);
+  element_dimension_ = dim * (two_signs ? 2 : 1);
 
   virtual_elem_map.Reserve(element_dimension_ * space->GetNumberOfElements());
 
@@ -651,6 +776,74 @@ void Function::Local::SetupStarLocalityElementMap(Phase ph)
   }
 }
 
+void Function::Local::SetupBoundaryElementMap()
+{
+  unsigned int dim  = domain->GetGrid()->GetDim();
+  // oscillation has with BOTH DEG_45_STAR_AND_REVERSE,
+  // mole has always BOTH and DEG_45_STAR.
+  // oscillation w/o BOTH needs to be DEG_45_STAR
+  assert(structure_ != NULL);
+  NeighborhoodStructure* struc = structure_;
+
+  element_dimension_ = dim * 2; // two boundary "stones" per dimension
+  virtual_elem_map.Reserve(element_dimension_ * space->GetNumberOfElements());
+
+  space->AssertOneDesignOnly(); // can be extended we use the design from the condition
+  int elems = space->GetNumberOfElements();
+  for(int e = 0, ss = elems; e < ss; ++e)
+  {
+    DesignElement* de = &(space->data[e]);
+
+    // do we have a full neighborhood? All or none
+    bool full = true;
+
+    for(int dir = VicinityElement::X_P; dir <= (dim == 2 ? VicinityElement::Y_N : VicinityElement::Z_N); dir++)
+    {
+      int a = VicinityElement::ToMainAxis( (VicinityElement::Neighbour) dir );
+      unsigned int n = struc->orthogonal[a];
+      assert(n > 0);
+      if(!VicinityElement::HasNeighbor(de, (VicinityElement::Neighbour) dir, n))
+        full = false;
+    }
+
+    if(!full) continue;
+
+    for(int dir = VicinityElement::X_P; dir <= (dim == 2 ? VicinityElement::Y_N : VicinityElement::Z_N); dir += 2)
+    {
+      VicinityElement::Neighbour pos = (VicinityElement::Neighbour) dir;
+      VicinityElement::Neighbour neg = (VicinityElement::Neighbour) (dir + 1);
+      unsigned int a = VicinityElement::ToMainAxis(pos);
+      unsigned int n = struc->orthogonal[a];
+
+      DesignElement* prev = VicinityElement::GetNeighbour(de, neg, n);
+      DesignElement* next = VicinityElement::GetNeighbour(de, pos, n);
+
+      LOG_DBG3(func) << "L:SBEM: de=" << de->ToString() << " dir=" << dir << " pos=" << pos << " neg=" << neg << " a=" << a
+                     << " n=" << n << " prev=" << prev << " next=" << next;
+
+      virtual_elem_map.Push_back(Identifier(de, prev, next));
+    }
+  }
+}
+
+
+void Function::Local::SetupSingularElementMap()
+{
+  // only this element!
+  element_dimension_ = 1; // two boundary "stones" per dimension
+  virtual_elem_map.Reserve(element_dimension_ * space->GetNumberOfElements());
+
+  space->AssertOneDesignOnly();
+
+  StdVector<DesignElement*> empty;
+
+  for(int e = 0, en = space->GetNumberOfElements(); e < en; e++)
+  {
+    DesignElement* de = &(space->data[e]);
+    virtual_elem_map.Push_back(Identifier(de, empty));
+  }
+}
+
 
 void Function::Local::ToInfo(PtrParamNode in)
 {
@@ -772,7 +965,7 @@ Function::Local::Identifier::Identifier(DesignElement* elem, StdVector<DesignEle
 }
 
 
-double Function::Local::Identifier::EvalFunction(const Local* local) const
+double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_glob, const Vector<double>* von_mises_stress) const
 {
   // function value
   double fv = 0.0;
@@ -780,6 +973,10 @@ double Function::Local::Identifier::EvalFunction(const Local* local) const
 
   switch(f->type_)
   {
+  case STRESS:
+    fv = CalcStress(local, von_mises_stress);
+    break;
+
   case SLOPE:
   case GLOBAL_SLOPE:
     fv = CalcSlope();
@@ -795,6 +992,11 @@ double Function::Local::Identifier::EvalFunction(const Local* local) const
     fv = CalcMole(local->GetEps());
     break;
 
+  case JUMP:
+  case GLOBAL_JUMP:
+    fv = CalcJump();
+    break;
+
   default:
     assert(false);
   }
@@ -808,6 +1010,8 @@ double Function::Local::Identifier::EvalFunction(const Local* local) const
   case GLOBAL_SLOPE:
   case GLOBAL_OSCILLATION:
   case GLOBAL_MOLE:
+  case GLOBAL_JUMP:
+  case STRESS:
   {
     // we normalize all values by the number of "constraints". Note that it is
     // sufficient for the function value, the gradient is then also right
@@ -815,10 +1019,14 @@ double Function::Local::Identifier::EvalFunction(const Local* local) const
 
     double v = std::max(0.0, fv - f->GetParameter());
 
-    double res = factor * std::pow(v, local->GetPower());
+    double p = local->GetPower();
+
+    double res = grad_glob ? p * std::pow(v, p-1.0) : std::pow(v, p);
+
+    res *= factor;
 
     LOG_DBG2(func) << "L:I:EF: global! bound=" << f->GetParameter() << " factor=" << factor
-                   << " power=" << std::pow(v, local->GetPower()) << " -> " << res;
+                   << " grad_glob=" << grad_glob << " power=" << std::pow(v, local->GetPower()) << " -> " << res;
 
     return res;
   }
@@ -840,26 +1048,11 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
   LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
                      << element->elem->elemNum << " sign=" << sign;
 
+  // are we global? then we don't do anything if the globalization function gives zero
+  // this applies the gradient of the globalization function (max(0, fv)^2)
+  double grad_glob_fv = local->IsGlobalized() ? EvalFunction(local, true) : 0.0;
 
-  // are we global? If so, we need the function value and don't need to to anything if
-  // this function value is zero
-  double fv = 0.0;
-  // we need the real function values, EvalFunction would give the one for global!!
-  switch(ft)
-  {
-  case GLOBAL_SLOPE:
-    fv = std::max(0.0, CalcSlope() - funct->GetParameter());
-    break;
-  case GLOBAL_OSCILLATION:
-    fv = std::max(0.0, CalcOscillation(local->beta_) - funct->GetParameter());
-    break;
-  case GLOBAL_MOLE:
-    fv = std::max(0.0, CalcMole(local->eps_) - funct->GetParameter());
-    break;
-  default:
-    break;
-  }
-  if(local->IsGlobalized() && fv == 0.0)
+  if(local->IsGlobalized() && grad_glob_fv == 0.0)
   {
     LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
                    << element->elem->elemNum << " sign=" << sign << " fv=0.0 -> return immediately";
@@ -888,6 +1081,15 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
       gv = CalcMoleGradient(n, local->eps_);
       break;
 
+    case JUMP:
+    case GLOBAL_JUMP:
+      gv = CalcJumpGradient(n);
+      break;
+
+    case STRESS:
+      assert(false); // in SIMP::CalcVonMisesStressGradient() only!
+      break;
+
     default:
       assert(false);
     }
@@ -899,13 +1101,13 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
     // post process the globalized functions
     if(local->IsGlobalized())
     {
-      double factor = local->DoNormalizeGlobal() ? 1.0/local->virtual_elem_map.GetSize() : 1.0;
+//      double factor = local->DoNormalizeGlobal() ? 1.0/local->virtual_elem_map.GetSize() : 1.0;
 
-      gv = factor * local->GetPower() * std::pow(fv, local->GetPower() - 1.0) * gv;
+      gv  *= grad_glob_fv;
       LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
                      << element->elem->elemNum << " sign=" << sign << " n=" << n
-                     << " curr=" << GetElement(n)->elem->elemNum << " gv=" << gv
-                     << " bound! factor=" << factor << " fv=" << fv << " new gv=" << gv;
+                     << " curr=" << GetElement(n)->elem->elemNum
+                     << " bound! grad_glob_gv=" << grad_glob_fv << " new gv=" << gv;
     }
 
     DesignElement* de = GetElement(n);
@@ -1130,4 +1332,52 @@ double Function::Local::Identifier::CalcMoleGradient(int neigh_idx, double eps)
   }
 
   return res;
+}
+
+double Function::Local::Identifier::CalcJump() const
+{
+  assert(sign == NO_SIGN);
+  assert(neighbor.GetSize() == 2);
+
+  // sin(pi*(x_i-1 - x_+1))^2
+  // no own value!
+  double prev = neighbor[0]->GetDesign(DesignElement::SMART);
+  double next = neighbor[1]->GetDesign(DesignElement::SMART);
+
+  double sin = std::sin(PI*(prev-next));
+
+  LOG_DBG3(func) << "L:I:CJ de=" << element->ToString() << " prev=" << neighbor[0]->ToString() << "/" << prev
+                 << " next=" << neighbor[1]->ToString() << "/" << next << " slope=" << (prev-next)
+                 << " -> sin*sin";
+
+  return sin*sin;
+}
+
+double Function::Local::Identifier::CalcJumpGradient(int neigh_idx) const
+{
+  // g(x)=sin(pi*(x_i-1 - x_+1))^2
+  // d g(x)/d x_i-1 = 2 * sin(pi*(x_i-1 - x_+1)) * cos (pi*(x_i-1 - x_+1)) * PI
+
+  // no own value!
+  if(neigh_idx == -1)
+    return 0.0;
+
+  double prev = neighbor[0]->GetDesign(DesignElement::SMART);
+  double next = neighbor[1]->GetDesign(DesignElement::SMART);
+
+  double slope = prev-next;
+
+  assert(neigh_idx == 0 || neigh_idx == 1);
+  double factor = neigh_idx == 0 ? 1.0 : -1.0;
+
+  return 2.0 * std::sin(PI*slope) * std::cos(PI*slope) * PI * factor;
+}
+
+double Function::Local::Identifier::CalcStress(const Local* local, const Vector<double>* von_mises_stress) const
+{
+  // so trivial
+  assert(von_mises_stress != NULL);
+  int idx = local->space->Find(element);
+  LOG_DBG3(func) << "L:I:CS elem=" << element->ToString() << " idx=" << idx << " -> " << (*von_mises_stress)[idx];
+  return (*von_mises_stress)[idx];
 }

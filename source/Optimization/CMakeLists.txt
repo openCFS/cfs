@@ -1,5 +1,5 @@
 SET(OPTIMIZATION_SRCS Function.cc Optimization.cc PiezoSIMP.cc ErsatzMaterial.cc SIMP.cc 
-                      TransferFunction.cc Condition.cc Objective.cc 
+                      TransferFunction.cc Condition.cc Objective.cc Excitation.cc
                       ShapeGrad.cc LevelSet.cc ParamMat.cc 
                       TopGrad.cc OptimizationMaterial.cc ShapeOpt.cc )
 
@@ -11,6 +11,7 @@ SET(TARGET_LL
   optimizer
   design
   ${TARGET_LL}
+  paramh
   domain
   forms
   matvec

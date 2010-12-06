@@ -181,6 +181,9 @@ namespace CoupledField
      /** Returns true, if optimization does provide a mass value */
      bool HasErsatzMaterialMass();
      
+     /** Return true, if optimization does provide damping parameters */
+     bool HasErsatzMaterialDamping();
+     
      /** Gets the Material Tensor for the given element in the current iteration, or its derivative */
 //     void GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction);
      
@@ -242,6 +245,9 @@ namespace CoupledField
 
     //! Initialize local coordinate systems as read in from the parameter file
     void CreateCoordinateSystems();
+    
+    //! Register variables of in element <variableList/>
+    void RegisterVariables();
     //@}
   
     // ======================================================

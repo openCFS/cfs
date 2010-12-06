@@ -565,6 +565,31 @@ Needed elements have to be defined by the keyword \xel{elems}.
 In the next section, local coordinate systems can be defined (see section.
 \ref{sec:coordSys}.
 
+\subsection{Creation of Additional Geometric Entities}
+Additional nodes and elements can be defined by their geometrical information. This convenience function
+is especially of interest when GiD is used as mesh generator. We give the exampes for nodes, the procedure for elements is identical.
+
+A single entity is defined in the following example. The closest node to the given coordinate is assigned the name.
+\begin{xmllisting}
+<nodeList>
+  <nodes name="tip">
+    <coord x="1.5" y="0.0"/>
+  </nodes>
+</nodeList>
+\end{xmllisting}
+Arbitrary ranges of entities can be defined similar: 
+\begin{xmllisting}
+<nodeList>
+  <nodes name="support">
+    <list>
+      <freeCoord  comp="x" start="0.9" stop="1.0" inc="0.01"/>
+      <fixedCoord comp="y" value="0.4"/>
+    </list>
+  </nodes>
+</nodeList>
+\end{xmllisting}
+Every node is captures if the \xat{inc} value is sufficiently small.
+
 
 \section{Coordinate Systems}
 \label{sec:coordSys}

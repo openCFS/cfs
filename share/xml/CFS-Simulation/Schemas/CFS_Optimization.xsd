@@ -278,6 +278,9 @@
                 <xsd:enumeration value="globalOscillation"/>
                 <xsd:enumeration value="mole"/>
                 <xsd:enumeration value="globalMole"/>
+                <xsd:enumeration value="jump"/>
+                <xsd:enumeration value="globalJump"/>
+                <xsd:enumeration value="stress"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -657,6 +660,9 @@
                                       </xsd:restriction>
                                     </xsd:simpleType>
                                   </xsd:attribute>
+                                  
+                                  <!-- the heaviside filters require beta -->
+                                  <xsd:attribute name="beta" type="xsd:float" use="optional"/>
                                 </xsd:complexType>
                               </xsd:element>
                             </xsd:sequence>
@@ -775,6 +781,11 @@
                       <xsd:enumeration value="maxSlope"/>
                       <xsd:enumeration value="maxOscillation"/>
                       <xsd:enumeration value="maxMole"/>
+                      <xsd:enumeration value="maxJump"/>
+                      <!-- for stress constraints a transferFunciton penalizes low density
+                        stresses, here they can be visualized. The element vonMisesStress
+                        result gives the physical one -->
+                      <xsd:enumeration value="penalizedStress"/>
                       <!-- has details! -->
                       <xsd:enumeration value="constraintGradient"/>
                       <xsd:enumeration value="weight"/>
@@ -870,6 +881,8 @@
                           </xsd:restriction>
                         </xsd:simpleType>
                       </xsd:attribute>
+                      <xsd:attribute name="optimizeMass" type="xsd:boolean" use="optional" default="false"/>
+                      <xsd:attribute name="optimizeDamping" type="xsd:boolean" use="optional" default="false"/>
                     </xsd:complexType>              
                   </xsd:element>
                 </xsd:sequence>
@@ -931,6 +944,10 @@
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>               
+
+          <!-- the L-mesh of the stress constraint benchmark is meshed by gid with different positions of
+               element nodes, such that one cannot use the same element materix, even if the grid is regular -->
+          <xsd:attribute name="enforce_unstructured" default="false" type="xsd:boolean" use="optional"/>                                     
                                      
         </xsd:complexType>
       </xsd:element>
@@ -942,7 +959,9 @@
             <xsd:simpleType>
               <xsd:restriction base="xsd:token">
                 <xsd:enumeration value="forward"/>
+                <xsd:enumeration value="each_forward"/>
                 <xsd:enumeration value="adjoint"/>                             
+                <xsd:enumeration value="each_adjoint"/>
                 <xsd:enumeration value="both_cases"/>
               </xsd:restriction>
             </xsd:simpleType>
@@ -1014,6 +1033,7 @@
           <xsd:enumeration value="piezoCoupling"/>
           <xsd:enumeration value="pressure"/>          
           <xsd:enumeration value="chargeDensity"/>                    
+          <xsd:enumeration value="stress"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
@@ -1037,6 +1057,9 @@
       <xsd:enumeration value="poisson-iso"/>
       <xsd:enumeration value="gmodul"/>
       <xsd:enumeration value="unity"/>
+      <xsd:enumeration value="mass"/>
+      <xsd:enumeration value="damping-alpha"/>
+      <xsd:enumeration value="damping-beta"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -1064,6 +1087,8 @@
       <xsd:enumeration value="globalSlope"/>
       <xsd:enumeration value="globalOscillation"/>
       <xsd:enumeration value="globalMole"/>
+      <xsd:enumeration value="globalJump"/>
+      <xsd:enumeration value="stress"/>
       <xsd:enumeration value="multiObjective"/>
     </xsd:restriction>
   </xsd:simpleType>
@@ -1168,6 +1193,8 @@
       <xsd:enumeration value="globalSlope"/>
       <xsd:enumeration value="globalOscillation"/>
       <xsd:enumeration value="globalMole"/>
+      <xsd:enumeration value="globalJump"/>
+      <xsd:enumeration value="stress"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -1185,6 +1212,7 @@
           <xsd:enumeration value="prev_next_and_reverse"/>
           <xsd:enumeration value="45_deg_star"/>
           <xsd:enumeration value="45_deg_star_and_reverse"/>
+          <xsd:enumeration value="element"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>

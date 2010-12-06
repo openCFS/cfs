@@ -110,15 +110,22 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
       IF(CFS_GCC43_OPT_SWITCHES)
         SET(CFS_OPT_FLAGS "${CFS_GCC43_OPT_SWITCHES}")
       ENDIF(CFS_GCC43_OPT_SWITCHES)
-      
-      IF(CFS_BLAS_LAPACK STREQUAL "ACML" AND CFS_ARCH STREQUAL "X86_64")
-        SET(CFS_OPT_FLAGS "${CFS_OPT_FLAGS} -mveclibabi=acml")
-      ENDIF(CFS_BLAS_LAPACK STREQUAL "ACML" AND CFS_ARCH STREQUAL "X86_64")
     ENDIF(CFS_CXX_COMPILER_VER EQUAL "4.3")
 
-    IF(CFS_CXX_COMPILER_VER EQUAL "4.4")
+    IF(CFS_CXX_COMPILER_VER VERSION_GREATER "4.2" AND
+       CFS_BLAS_LAPACK STREQUAL "ACML" AND
+       CFS_ARCH STREQUAL "X86_64")
+      SET(CFS_OPT_FLAGS "${CFS_OPT_FLAGS} -mveclibabi=acml")
+    ENDIF(CFS_CXX_COMPILER_VER VERSION_GREATER "4.2" AND
+          CFS_BLAS_LAPACK STREQUAL "ACML" AND
+          CFS_ARCH STREQUAL "X86_64")
+
+
+    IF(CFS_CXX_COMPILER_VER VERSION_EQUAL "4.4" OR
+       CFS_CXX_COMPILER_VER VERSION_GREATER "4.4")
         SET(CFS_OPT_FLAGS "${CFS_OPT_FLAGS} -mtune=native -march=native")
-    ENDIF(CFS_CXX_COMPILER_VER EQUAL "4.4")
+    ENDIF(CFS_CXX_COMPILER_VER VERSION_EQUAL "4.4" OR
+          CFS_CXX_COMPILER_VER VERSION_GREATER "4.4")
       
   ENDIF(DEBUG)
   
@@ -139,9 +146,8 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
   IF(NOT USE_INTERPOLATION)
     SET(CFS_C_FLAGS "-pedantic ${CFS_C_FLAGS}")
   ELSE(NOT USE_INTERPOLATION)
-    SET(CFS_C_FLAGS "-frounding-math")
+    SET(CFS_C_FLAGS "-frounding-math ${CFS_C_FLAGS}")
   ENDIF(NOT USE_INTERPOLATION)
-
 
 ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
 
@@ -203,12 +209,23 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-unknown-pragmas")
   SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-comment")
 
+  #---------------------------------------------------------------------------
+  # The  following flags and  defines are  necessary due  to incompatibilities
+  # with  some versions  of the  GCC runtime  environment. The  problems often
+  # occur in external libraries, most notably Boost. The favored policy should
+  # be,  to fix  those problems  locally  by patching  the external  libraries
+  # instead of  introducing global  flags and defines  for CFS++,  which might
+  # break other stuff.
+  #---------------------------------------------------------------------------
   IF(CFS_CXX_COMPILER_VER MATCHES "11\\.")
     SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -fno-builtin-std::basic_istream::get")
     SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -fno-builtin-std::max")
   ENDIF(CFS_CXX_COMPILER_VER MATCHES "11\\.")
   
-  # The intel compiler might not know the function __builtin_isnan (and isinf), so redirect that to isnan
+  #---------------------------------------------------------------------------
+  # The  intel  compiler might  not  know  the  function __builtin_isnan  (and
+  #  isinf), so redirect that to isnan
+  #---------------------------------------------------------------------------
   SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -D__builtin_isnan=::isnan -D__builtin_isinf=::isinf")
 
 ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
@@ -229,18 +246,10 @@ IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
   #-----------------------------------------------------------------------------
   IF(CFS_FORTRAN_COMPILER_VER MATCHES "11\\." AND
       NOT CFS_DISTRO STREQUAL "MACOSX")
-    IF(CFS_ARCH STREQUAL "I386")
-      SET(LD "ia32")
-    ENDIF(CFS_ARCH STREQUAL "I386")
-    IF(CFS_ARCH STREQUAL "X86_64")
-      SET(LD "intel64")
-    ENDIF(CFS_ARCH STREQUAL "X86_64")
-    IF(CFS_ARCH STREQUAL "IA64")
-      SET(LD "ia64")
-    ENDIF(CFS_ARCH STREQUAL "IA64")
-    
-    STRING(REGEX REPLACE "bin/${LD}/ifort" "lib/${LD}" IFORT_LIB_PATH
+
+    STRING(REGEX REPLACE "bin/(.*)/ifort" "lib/\\1" IFORT_LIB_PATH
 	"${CMAKE_Fortran_COMPILER}")
+
   ENDIF(CFS_FORTRAN_COMPILER_VER MATCHES "11\\." AND
     NOT CFS_DISTRO STREQUAL "MACOSX")
 

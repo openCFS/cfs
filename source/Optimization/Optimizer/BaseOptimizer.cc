@@ -344,6 +344,21 @@ void BaseOptimizer::EvalConstraints(int n, const double* x, int m, bool cfs_scal
   {
     Condition* g = optimization->constraints.view->Get(i);
     double org = optimization->CalcConstraint(g);
+
+    // do a complicated detection of local conditions handle the Local::active counter for logging
+    if(g->IsLocalCondition())
+    {
+      assert(dynamic_cast<LocalCondition*>(g) != NULL);
+      assert(g->GetLocal() != NULL);
+
+      // reset the active counter for the first element
+      if(static_cast<LocalCondition*>(g)->GetCurrentRelativePosition() == 0)
+        g->GetLocal()->infeasible = 0;
+
+      if(!g->IsFeasible())
+        g->GetLocal()->infeasible++;
+    }
+
     double manual_scaling = 1.0;
     double objective_scaling = 1.0;
     if(cfs_scale)
@@ -360,7 +375,7 @@ void BaseOptimizer::EvalConstraints(int n, const double* x, int m, bool cfs_scal
                         << " ->" << val;
     g_val[i] = val;
   }
-  optimization->constraints.view->Done(); // reset slope constraint to global mode
+  optimization->constraints.view->Done(); // reset local constraint to global mode
 
   timer_->Start();
 }

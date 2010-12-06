@@ -163,6 +163,7 @@ elif [ "${OS}" = "Linux" ] ; then
 			    "jaunty") PSEUDONAME="Jaunty Jackalope";; # 9.04
 			    "karmic") PSEUDONAME="Karmic Koala";; # 9.10
                             "lucid") PSEUDONAME="Lucid Lynx";; # 10.04
+                            "maverick") PSEUDONAME="Maverick Meerkat";; # 10.10
 	                 esac;;
 		    "knoppix")
 			DIST=Knoppix;

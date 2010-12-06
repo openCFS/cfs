@@ -100,7 +100,13 @@ ErsatzMaterial::ErsatzMaterial() :
   // make basic loggings
   design->ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("designSpace"));
 
-  assume_constant_element_matrices_ = design->IsRegular() && method_ != ErsatzMaterial::PARAM_MAT;
+  // the L-mesh of the stress constraint benchmark is meshed by gid with different positions of
+  // element nodes, such that one cannot use the same element materix, even if the grid is regular
+  // therefore the attribute enforce_unstructured
+  assume_constant_element_matrices_ = design->IsRegular() && method_ != ErsatzMaterial::PARAM_MAT
+                                      && !pn->Get("enforce_unstructured")->As<bool>();
+  LOG_TRACE2(em) << "EM:EM: const_mat=" << assume_constant_element_matrices_ << " reg=" << design->IsRegular()
+                 << " PARAM_MAT=" << (method_ == ErsatzMaterial::PARAM_MAT) << " enforce_unstr=" << pn->Get("enforce_unstructured")->As<bool>();
 
   // optionally write the densities to an xml file
   if(pn->Has("export"))
@@ -142,9 +148,12 @@ ErsatzMaterial::ErsatzMaterial() :
   design->AppendOptimizationResults(pde);
 
   // forward and adjoint are initialized in PostInit()
+  forward.Init(this);
+  forward.SetIsForward(true);
+  adjoint.Init(this);
 
   // check for multiple loadcases (might be frequencies)
-  PrepareMultipleExcitations();
+  me->PrepareMultipleExcitations(pde, optInfoNode, harmonic, optimizer_ == EVALUATE_INITIAL_DESIGN);
 }
 
 ErsatzMaterial::~ErsatzMaterial()
@@ -166,12 +175,14 @@ void ErsatzMaterial::PostInit()
   if(structure_ == NULL)
     structure_ = new DesignStructure(this);
 
-  // the constraints size is known and the shapeDesign constructor is finished -> PostInit design
-  design->PostInit(objectives.data.GetSize(), constraints.all.GetSize());
   // post init slope constraints when the design is there
-  constraints.PostProc(design, structure_);
+  constraints.PostProc(design, structure_, GetMultipleExcitation());
   // same for the objectives
-  objectives.PostProc(design, structure_);
+  objectives.PostProc(design, structure_, GetMultipleExcitation());
+
+  // the constraints size is only now known and the shapeDesign constructor is finished -> PostInit design
+  design->PostInit(objectives.data.GetSize(), constraints.all.GetSize());
+
 
   // number of design variables in shape optimization is only known here
   // make a copy of the old iteration to calculate the move
@@ -179,11 +190,6 @@ void ErsatzMaterial::PostInit()
 
   // note the difference between function evaluations (line search) and iterations!
   last_evaluation.Resize(design->GetNumberOfVariables());
-
-  // for simplicity we always store forward and adjoint and have a multiple object
-  forward.Init(this);
-  adjoint.Init(this); // it's cheap - even if not used
-
 
   for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
   {
@@ -271,351 +277,57 @@ void ErsatzMaterial::PostInit()
   if(DensityFile::NeedLoadErsatzMaterial())
     DensityFile::ReadErsatzMaterial(design);
 
-}
-
-
-void ErsatzMaterial::PrepareMultipleExcitations()
-{
-  // by definition, we always have at least one excitation.
-  // This does not necessarily need to ba a load (but might be voltage, pressure, ...)
-  excitations.Resize(1);
-  excitations[0].index = 0;
-
-  PtrParamNode pncf = param->Get("optimization")->Get("costFunction");
-
-  // the actual multipleExcitation description is read in Optimization as part of
-  // objective function block
-
-  int num_freq  = !harmonic ? 0 : dynamic_cast<HarmonicDriver*>(domain->GetDriver())->freqs.GetSize();
-  int num_loads = assemble_->GetLoads().GetSize(); // to be faked later for homogenization test strains
-
-  ParamNodeList pnexcitations;
-
-  double weight_sum = 0.0;
-
   // plausibility check for homogenization
-  if(homogenization_ && (!multiple_excitation->IsEnabled() || !multiple_excitation->DoHomogenization()))
+  if(homogenization_ && (!me->IsEnabled() || !me->DoHomogenization()))
     throw Exception("A homogenization objective/constraint is set but no homogenization test strain excitation");
-  if(multiple_excitation->IsEnabled() && multiple_excitation->DoHomogenization() && !homogenization_)
+  if(me->IsEnabled() && me->DoHomogenization() && !homogenization_)
     throw Exception("No homogenization objective/constraint for homogenization test strain excitation");
 
-  // initialize data and do simple plausibilty check. Note that also 1 is "multiple"
-  if(multiple_excitation->IsEnabled())
-  {
-    // either every single load is an excitation (Fabian's way) (done before)
-    // or allow combinations of loads, pressures, regionLoads and trackings in one excitation (Bastian) (only non-harmonic) (this is done here)
-    if(!harmonic && pncf->Has("multipleExcitation/excitations"))
-    {
-      pnexcitations = pncf->Get("multipleExcitation/excitations")->GetChildren();
-      num_loads = pnexcitations.GetSize();
-    }
-
-    // decide if we have multiple loads or multiple frequencies
-    // we cannot do both!
-    if(num_freq > 1 && num_loads > 1)
-      throw Exception("Cannot to concurrent multiple excitations for multiple loads and multiple frequencies");
-
-    // sets and resizes excitations with strain loads
-    if(multiple_excitation->DoHomogenization())
-    {
-      num_loads = SetHomogenizationTestStrains();
-      weight_sum = 1; // all 0 but the last 1
-    }
-
-    // sets and resizes excitations with polarization matrix loads
-    if(multiple_excitation->DoPolarizationMatrix())
-    {
-      // FIXME: maybe more sanity checks needed
-      assert(!multiple_excitation->DoHomogenization()); // cannot do both
-      
-      num_loads = SetPolarizationMatrixExcitations();
-      weight_sum = 1; // all 0 but the last 1
-    }
-    
-    // the following is validated by above and 1 frequency and 0 loads is harmless
-    if(num_freq > 1)  excitations.Resize(num_freq);
-    if(num_loads > 1) excitations.Resize(num_loads); // redundant for homogenization
-
-    // we average the solutions(s) only for output.
-    // In the calculations we average the individual calculations
-  }
-
-
-  // read in tracking parameters from XML, for the first and only load
-  if(pncf->Has("trackings")){
-    excitations[0].ReadTrackings(pncf->Get("trackings"));
-  }
-
-  // this sets the first and only excitation even when we have multiple harmonic forward case
-  // but not multiple excitations. Then only the first frquency is called.
-  // Fills the excitations list with the data provided in the xml file as problem description
-  if(harmonic)
-  {
-    HarmonicDriver* hd = dynamic_cast<HarmonicDriver*>(domain->GetDriver());
-
-    for(unsigned int i = 0; i < excitations.GetSize(); i++)
-    {
-      excitations[i].index = i;
-      excitations[i].frequency = hd->freqs[i].freq;
-      excitations[i].weight    = hd->freqs[i].weight;
-      excitations[i].f_link    = &hd->freqs[i];
-
-      weight_sum += excitations[i].weight;
-    }
-  }
-  if(!harmonic && multiple_excitation->IsEnabled()) // multiple loads case
-  {
-    MathParser * parser = domain->GetMathParser();
-    unsigned int handle = parser->GetNewHandle();
-
-    if(pnexcitations.GetSize() > 0)
-    { //
-      for(unsigned int i = 0; i < excitations.GetSize(); i++)
-      {
-        parser->SetExpr(handle, pnexcitations[i]->Get("weight")->As<std::string>());
-        const double weight = parser->Eval(handle);
-        excitations[i].weight = weight;
-        weight_sum += weight;
-
-        if(pnexcitations[i]->Has("trackings")){
-          excitations[i].ReadTrackings(pnexcitations[i]->Get("trackings"));
-        }
-        excitations[i].ReadLoads(pnexcitations[i]->Get("loads"));
-      }
-
-    }
-    if(pnexcitations.GetSize() == 0 
-        && !multiple_excitation->DoHomogenization()
-        && !multiple_excitation->DoPolarizationMatrix())
-    {
-      LoadList loads = assemble_->GetLoads();
-
-      for(unsigned int i = 0; i < excitations.GetSize(); i++)
-      {
-        if(num_loads > (int) i)
-        {
-          excitations[i].loads.Push_back(loads[i]);
-
-          parser->SetExpr(handle, loads[i]->weight);
-          const double weight = parser->Eval(handle);
-          excitations[i].weight = weight;
-
-          weight_sum += weight;
-        }
-      }
-    }
-
-    parser->ReleaseHandle(handle);
-  }
-
-  // output summary
-  // -------------------
-
-  // calc the inital normalized_weight and print info.
-
-  // for many concurrent mechanical loads do no print information
-  if(multiple_excitation->IsEnabled() || harmonic)
-  {
-    PtrParamNode in = optInfoNode->Get(ParamNode::HEADER)->Get("excitations");
-
-    if(!multiple_excitation->IsEnabled() && num_freq > 1 && optimizer_ != EVALUATE_INITIAL_DESIGN)
-    {
-      stringstream ss;
-      ss << "Solve only for 1. frequency (" << excitations[0].frequency << "Hz) of "
-         << num_freq << " as multiple excitations are disabled";
-      in->Get(ParamNode::WARNING)->SetValue(ss.str());
-    }
-
-    // communicate what we have but also normalize the weights!
-    for(unsigned int i = 0; i < excitations.GetSize(); i++)
-    {
-      Excitation& ex = excitations[i];
-      ex.index = i;
-
-      ex.normalized_weight = ex.weight / weight_sum;
-
-      PtrParamNode exin = in->Get("excitation", ParamNode::APPEND);
-      exin->Get("index")->SetValue(ex.index);
-      if(! ex.loads.IsEmpty())
-        ex.loads[0]->ToInfo(exin->Get("load"));
-      if(ex.frequency >= 0.0)
-        exin->Get("frequency")->SetValue(ex.frequency);
-      if(ex.test_strain.GetSize() > 0)
-        exin->Get("testStrain")->SetValue(ex.test_strain.ToString());
-    }
-  }
 }
 
 
-int ErsatzMaterial::SetHomogenizationTestStrains()
-{
-  assert(homogenization_);
-
-  double ts[6][6] =  { {1.0, 0.0, 0.0, 0.0, 0.0, 0.0 },
-                        {0.0, 1.0, 0.0, 0.0, 0.0, 0.0 },
-                        {0.0, 0.0, 1.0, 0.0, 0.0, 0.0 },
-                        {0.0, 0.0, 0.0, 1.0, 0.0, 0.0 },
-                        {0.0, 0.0, 0.0, 0.0, 1.0, 0.0 },
-                        {0.0, 0.0, 0.0, 0.0, 0.0, 1.0 } };
-
-  Vector<double> vec;
-
-  int cases = dim == 2 ? 3 : 6;
-  excitations.Resize(cases);
-
-  for(int i = 0, cnt = 0; i < 6; ++i)
-  {
-    // in 2D only 0, 1 and 5
-    if(dim == 2 && (i == 2 || i == 3 || i == 4)) continue;
-
-    vec.Fill(ts[i], 6);
-
-    excitations[cnt].ReadTestStrain(vec);
-    // The homogenized tensor can only be evaluated for the last excitation!
-    excitations[cnt].weight = i < cases-1 ? 0.0 : 1.0;
-    ++cnt;
-  }
-
-  return excitations.GetSize();
-}
-
-int ErsatzMaterial::SetPolarizationMatrixExcitations()
-{
-  // collect all necessary data
-  int dim = grid->GetDim();
-  int dim1 = dim == 3 ? 6 : 3;
-  // int dim2 = dim == 3 ? 3 : 2;
-  
-  // read material information from xml-file
-  // check for tensor element
-  PtrParamNode pol = param->Get("polarizationMatrix");
-  Matrix<double> mechmatrix;
-  Matrix<double> elecmatrix;
-  Matrix<double> couplmatrix;
-  
-  mechmatrix.Resize(dim1, dim1);
-  elecmatrix.Resize(dim, dim);
-  couplmatrix.Resize(dim1, dim);
-  
-  ParamTools::AsTensor<double>(pol->Get("mechTensor/real"), dim1, dim1, mechmatrix);
-  ParamTools::AsTensor<double>(pol->Get("elecTensor/real"), dim, dim, elecmatrix);
-  ParamTools::AsTensor<double>(pol->Get("couplingTensor/real"), dim1, dim, couplmatrix);
-
-  const int cases(dim == 2 ? 5 : 9);
-  excitations.Resize(cases);
-
-  // decompose the vector with the material parameters into the
-  // part for mech and the one for elec
-  Vector<double> mechpart(dim1, 0.0);
-  Vector<double> elecpart(dim, 0.0);
-  
-  for(int i = 0; i < cases; ++i)
-  {
-    // this must be the entry of A^0
-    if(i < cases - dim)
-    {
-      for(int n = 0; n < dim1; ++n)
-        mechpart[n] = mechmatrix[n][i];
-      for(int n = 0; n < dim; ++n)
-        elecpart[n] = couplmatrix[i][n];
-    }
-    else
-    {
-      for(int n = 0; n < dim1; ++n)
-        mechpart[n] = couplmatrix[n][i];
-      for(int n = 0; n < dim; ++n)
-        elecpart[n] = elecmatrix[i][n];
-    }
-
-    excitations[i].SetPolarizationMatrixRHS(mechpart, elecpart, i);
-    // The homogenized tensor can only be evaluated for the last excitation!
-    excitations[i].weight = i < cases-1 ? 0.0 : 1.0;
-  }
-
-  return cases;
-}
-
-
-void ErsatzMaterial::NormalizeMultipleExcitations()
-{
-  if(!multiple_excitation->IsEnabled()) return;
-
-  const unsigned int exsi(excitations.GetSize());
-  if(multiple_excitation->DoAdjustWeights())
-  {
-    // find best cost
-    double best;
-    if(objectives.DoMaximize())
-    {
-      best = numeric_limits<double>::min();
-      for(unsigned int i = 0; i < exsi; i++) best = max(best, excitations[i].cost);
-    }
-    else
-    {
-      best = numeric_limits<double>::max();
-      for(unsigned int i = 0; i < exsi; i++) best = min(best, excitations[i].cost);
-    }
-
-    for(unsigned int i = 0; i < exsi; i++)
-    {
-      // this is for "best_value": We push (weight the gradient) the worst result most to equalize/over-/undercompensate
-      // the algorithm is the foolowing: w_k^p J_k = const -> we define w_k' for J_k = J_best to be one.
-      // By this we can compute all w_k'. The we sum up all w_k' to sum_w_k' and get w_k = w_k'/sum_w_k'
-      double t = objectives.DoMaximize() ? best / excitations[i].cost : excitations[i].cost / best;
-      t = std::pow(t, 1.0/multiple_excitation->damping); // fails for negative quotient with damping < 0
-      excitations[i].weight = min(t, multiple_excitation->max_gain);;
-      LOG_DBG(em) << "NormalizeMultipleExcitations: excitation[" << i << "] best: "
-      << best << " gain: " << t << " weight: " << excitations[i].weight;
-    }
-  }
-
-  // normalize
-  double weight_sum = 0.0;
-
-  for(unsigned int i = 0; i < exsi; i++)
-    weight_sum += excitations[i].weight;
-
-  for(unsigned int i = 0; i < exsi; i++)
-  {
-    excitations[i].normalized_weight = excitations[i].weight / weight_sum;
-    LOG_DBG(em) << "NormalizeMultipleExcitations: excitation[" << i << "].normalized_weight <- " << excitations[i].normalized_weight;
-  }
-}
 
 
 void ErsatzMaterial::StoreResults(double step_val)
 {
-  // check if we have to play with the results, forward is default mode!
-  if(commitMode_ == FORWARD || commitMode_ == BOTH)
-  {
-    // in case of FORWARD this is redundant but it hanldes multiple exitations ans is cheap
+  CommitMode cm = commitMode_;
 
-    // check for multiple to find out what is actually to be restores
-    for(map<Application, SinglePDE*>::iterator it = pdes.begin(); it != pdes.end(); ++it)
-    {
-      if(multiple_excitation->IsEnabled())
-        Solution::Write(it->second, forward.GetMultiple()); // todo: later a pde dependency is required
-      else
-        forward.Get(0)->Write(it->second); // todo: currently always the same
+  double real_step = step_val != -1 ? step_val : currentIteration;
+
+  if(cm == EACH_FORWARD)
+  {
+    for(unsigned int e = 0; e < me->excitations.GetSize(); e++) {
+      forward.Get(e)->Write(pde);
+      // call real implementation in Optimization. sum up in excitation fractions up to smaller 0.5
+      Optimization::StoreResults(real_step + (0.5 / me->excitations.GetSize()) * e);
     }
-    // call real implementation in Optimization
+  }
+
+  if(cm == FORWARD || cm == BOTH) {
+    Solution::Write(pde, forward, NULL, 0, me->excitations); // no function for forward, no time step
     Optimization::StoreResults(step_val);
   }
-  if(commitMode_ == ADJOINT || commitMode_ == BOTH)
-  {
-    // "forward" is not possible -> hence it is both_cases or adjoint
-    if(adjoint.Get(0)->GetVector(Solution::RAW_VECTOR) == NULL) EXCEPTION("Adjoint solution cannot be written on 'commit' because there is none");
 
-    for(map<Application, SinglePDE*>::iterator it = pdes.begin(); it != pdes.end(); ++it)
+  // over all functions, mostly only one or none
+  StdVector<Function*> funcs = adjoint.GetFunctions();
+  for(unsigned int fi = 0; fi < funcs.GetSize(); fi++)
+  {
+    LOG_DBG(em) << "StoreResults(" << step_val << ") rs=" << real_step << " adjoint_function=" << funcs[fi]->ToString();
+    if(cm == EACH_ADJOINT)
     {
-      if(multiple_excitation->IsEnabled())
-        Solution::Write(it->second, adjoint.GetMultiple());
-      else
-        adjoint.Get(0)->Write(it->second);
+      for(unsigned int e = 0; me->excitations.GetSize(); e++) {
+        adjoint.Get(e, funcs[fi])->Write(pde);
+        // call real implementation in Optimization. sum up in excitation fractions up to smaller 0.5
+        double index = (me->excitations.GetSize() * funcs.GetSize()) * (fi * funcs.GetSize()) * e;
+        Optimization::StoreResults(real_step + 0.5 + (0.5 / index));
+      }
     }
 
-    step_val = step_val == -1 ? currentIteration + 0.5 : step_val + 0.5;
-    Optimization::StoreResults(step_val);
+    if(cm == ADJOINT || cm == BOTH) {
+      // sum up if there are more excitations
+      Solution::Write(pde, adjoint, funcs[fi], 0, me->excitations); // TODO no time step set!
+      Optimization::StoreResults(real_step + 0.5 + (0.5 / funcs.GetSize()) * fi);
+    }
   }
 }
 
@@ -625,14 +337,21 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   // will write the cfs results and the log file
   PtrParamNode iter = Optimization::CommitIteration(keep_iteration_number);
   // add our multiple excitation stuff here (only in info.xml, this would be to complex for dat
-  if(multiple_excitation->IsEnabled())
+  if(me->IsEnabled())
   {
-    for(unsigned int i = 0; i < excitations.GetSize(); i++)
+    for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
     {
-      PtrParamNode e = iter->Get("excitation", ParamNode::APPEND);
-      e->Get("index")->SetValue(excitations[i].index);
-      e->Get("objective")->SetValue(excitations[i].cost);
-      e->Get("normalized_weight")->SetValue(excitations[i].normalized_weight);
+      Excitation& excite = me->excitations[e];
+      PtrParamNode info = iter->Get("excitation", ParamNode::APPEND);
+      info->Get("index")->SetValue(excite.index);
+      info->Get("objective")->SetValue(excite.cost);
+      info->Get("normalized_weight")->SetValue(excite.normalized_weight);
+      for(unsigned int c = 0; c < constraints.all.GetSize(); c++)
+      {
+        Condition* g = constraints.all[c];
+        if(g->IsExcitationSensitive() && g->DoEvaluate(&excite))
+          info->Get(g->ToString(me))->SetValue(g->GetValue());
+      }
     }
   }
 
@@ -669,7 +388,7 @@ string ErsatzMaterial::GetIterationFrequency()
 
   // make clear, when doing *real* multiple excitations, that this is no single
   // frequency result
-  if(multiple_excitation->IsEnabled() && excitations.GetSize() > 1) return "(mult)";
+  if(me->IsEnabled() && me->excitations.GetSize() > 1) return "(mult)";
 
   double frequency = dynamic_cast<HarmonicDriver*>(domain->GetDriver())->GetActFreq();
   // as we control the fractional digits, we do not use lexical_cast<string>
@@ -687,211 +406,6 @@ BiLinFormContext* ErsatzMaterial::GetFormContext(const RegionIdType regionId, St
 BaseForm* ErsatzMaterial::GetForm(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator)
 {
   return(GetFormContext(regionId, pde1, pde2, integrator)->GetIntegrator());
-}
-
-double ErsatzMaterial::CalcObjective()
-{
-  design->WriteDesignToExtern(last_evaluation.GetPointer());
-
-  // in objective.value_ we store the sum over all excitations w/o penalty but with normalization
-  // in excitation.cost we store the sum over all objectives with penalty but w/o normalization
-
-  // reset the objective values such that we can sum up normalized but unpenalized values
-  for(unsigned int o = 0; o < objectives.data.GetSize(); o++)
-    objectives.data[o]->ResetValue();
-
-  double result = 0.0;
-
-  // the multiple excitation case is a special case - for all other cases this is executed once
-  for(unsigned int e = 0; e < excitations.GetSize(); e++)
-  {
-    Excitation& excite = excitations[e];
-    excite.cost = 0.0;
-
-    for(unsigned int o = 0; o < objectives.data.GetSize(); o++)
-    {
-      Objective* f = objectives.data[o];
-
-      // some objectives are only to be evaluated for the last excitation
-      bool last = excite.index == (int) excitations.GetSize() - 1;
-      if(f->DoEvaluateOnce() && !last) continue;
-
-      double ov = CalcObjective(excite, f); // this is virtual!
-      excite.cost += ov * f->GetPenalty();
-
-      // we ignore the weight if the evaluation happens only once!
-      double weight = f->DoEvaluateOnce() ? 1.0 : excite.normalized_weight;
-
-      f->AddValue(ov * weight);
-
-      result += ov * f->GetPenalty() * weight;
-      LOG_DBG(em) << "CalcObjective: ex=" << e << " obj=" << f->type.ToString(f->GetType()) << " ov=" << ov
-                  << " penalty" << f->GetPenalty() << " ex.cost=" << excite.cost << " nw=" << excite.normalized_weight
-                  << " wei=" << weight << " f->val=" << f->GetValue() << " result=" << result;
-    }
-  }
-
-  return result;
-}
-
-double ErsatzMaterial::CalcObjective(Excitation& excite, Objective* cost)
-{
-  if(harmonic) return CalcObjective<std::complex<double> >(excite, cost);
-          else return CalcObjective<double>(excite, cost);
-}
-
-
-template <class T>
-double ErsatzMaterial::CalcObjective(Excitation& excite, Objective* cost)
-{
-  assert(!(excite.index < (int) excitations.GetSize() - 1 && cost->DoEvaluateOnce()));
-
-  switch(cost->GetType())
-  {
-  case Objective::COMPLIANCE:
-    return CalcCompliance(excite, cost, NULL, false);
-
-  case Objective::TRACKING:
-    return CalcTracking(excite, cost, NULL, false);
-
-  case Objective::TYCHONOFF:
-    return IntegrateDesignVariable(cost, NULL, false, DesignElement::NO_TYPE, true, true, 2.0);
-
-  case Objective::VOLUME:
-  case Objective::PENALIZED_VOLUME: // the exponent is as parameter in const
-  case Objective::GAP: // volume - penalized volume
-    return CalcVolume(cost, NULL, false, true);
-
-  case Objective::GLOBAL_SLOPE:
-  case Objective::GLOBAL_OSCILLATION:
-  case Objective::GLOBAL_MOLE:
-    return CalcGlobalFunction(cost, false);
-
-  case Objective::GLOBAL_DYNAMIC_COMPLIANCE:
-    return CalcGlobalDynamicCompliance(excite, cost);
-
-  case Objective::OUTPUT:
-  case Objective::DYNAMIC_OUTPUT:
-  case Objective::CONJUGATE_COMPLIANCE:
-  case Objective::ABS_DYN_OUTPUT_SQUARED:
-    return CalcOutputObjective<T>(excite, cost);
-
-  case Objective::HOMOGENIZATION_TENSOR:
-  {
-    Matrix<double> hom_tensor = CalcHomogenizedTensor();
-    if(cost->HasHomogenizationEntry())
-    {
-      return hom_tensor[cost->coord.first -1][cost->coord.second - 1];
-    }
-    else
-    {
-      std::cout << "Homogenized Tensor: " << std::endl << hom_tensor.ToString(0, true);
-
-      std::cout << "Orthotrope properties: ";
-      StdVector<std::pair<string, double> > ortho = MechanicMaterial::CalcOrthotropeProperties(hom_tensor);
-      for(unsigned int i = 0; i < ortho.GetSize(); i++)
-        std::cout << " " << ortho[i].first << "=" << ortho[i].second;
-      std::cout << "\n";
-
-      return hom_tensor.NormL2();
-    }
-  }
-
-  case Objective::HOMOGENIZATION_TRACKING:
-  {
-    Matrix<double> hom_tensor = CalcHomogenizedTensor();
-    return 0.5 * cost->GetTensor().DiffNormL2(hom_tensor) * cost->GetTensor().DiffNormL2(hom_tensor);
-  }
-
-  case Objective::POISSONS_RATIO:
-  case Objective::YOUNGS_MODULUS:
-    return CalcPoissonsRatioAndYoungsModulus(cost, NULL, false);
-
-  case Objective::ENERGY_FLUX:
-    return CalcEnergyFlux(excite, cost);
-
-  case Objective::TEMPERATURE:
-    return 1.0; // FIXMEHEAT
-
-  default: throw Exception("objective no handled");
-  }
-}
-
-void ErsatzMaterial::CalcObjectiveGradient(StdVector<double>* grad_out)
-{
-  // reset the cost gradients in the design elements and sum them up in a weighted way
-  // to perform multiple loads
-  design->Reset(DesignElement::COST_GRADIENT);
-
-  for(unsigned int obj = 0; obj < objectives.data.GetSize(); obj++)
-  {
-    Objective* cost = objectives.data[obj];
-    // the multiple excitation case is a special case - for all other cases this is executed once
-    for(unsigned int idx = 0; idx < excitations.GetSize(); idx++)
-    {
-      Excitation& excite = excitations[idx];
-      // some objectives are only to be evaluated for the last excitation
-      bool last = excite.index == (int) excitations.GetSize() - 1;
-      if(!last && cost->DoEvaluateOnce()) continue;
-
-      switch(cost->GetType())
-      {
-        // Note, that in SIMP case we handle compliance already  in SIMO
-        case Objective::COMPLIANCE:
-          // the multiple load cases implementation for the gradient is in SIMP
-          CalcCompliance(excite, cost, NULL, true);
-          break;
-
-        case Objective::TRACKING:
-          CalcTracking(excite, cost, NULL, true);
-          break;
-
-        case Objective::VOLUME:
-        case Objective::PENALIZED_VOLUME: // penalization is in the parameter
-        case Objective::GAP: // volume - penalized volume
-          CalcVolume(cost, NULL, true, true);
-          break;
-
-        case Objective::GLOBAL_SLOPE:
-        case Objective::GLOBAL_MOLE:
-        case Objective::GLOBAL_OSCILLATION:
-          CalcGlobalFunction(cost, true);
-          break;
-
-        case Objective::TYCHONOFF:
-          IntegrateDesignVariable(cost, NULL, true, DesignElement::NO_TYPE, true, true, 2.0);
-          break;
-
-        case Objective::HOMOGENIZATION_TRACKING:
-          CalcHomogenizedTrackingGradient(cost->GetTensor(), CalcHomogenizedTensor(), cost, NULL);
-          break;
-
-        case Objective::HOMOGENIZATION_TENSOR:
-          // if there s no "coord" set it is only meant for evaluateInitialDesign for forward homogenization
-          if(cost->HasHomogenizationEntry())
-          {
-
-            StdVector<double> tmp;
-            CalcHomogenizedTensorEntry(cost->coord, true, tmp);
-            for(unsigned int e = 0, ne = design->GetNumberOfElements(); e < ne; e++)
-              design->data[e].AddGradient(cost, NULL, tmp[e]);
-          }
-          break;
-        
-        case Objective::POISSONS_RATIO:
-        case Objective::YOUNGS_MODULUS:
-          CalcPoissonsRatioAndYoungsModulus(cost, NULL, true);
-          break;
-
-        default:
-          CalcObjectiveGradient(excite, cost);
-      }
-    }
-  }
-
-  if(grad_out != NULL)
-    design->WriteGradientToExtern(*grad_out, DesignElement::COST_GRADIENT, DesignElement::SMART);
-
 }
 
 int ErsatzMaterial::GetSpecialResultIndex(Application app1, Application app2, CalcMode calcMode, Condition* constraint)
@@ -914,10 +428,12 @@ int ErsatzMaterial::GetSpecialResultIndex(Application app1, Application app2, Ca
   return index;
 }
 
-void ErsatzMaterial::CalcNewmarkDerivative(Excitation& excite, Solutions& forward, Solutions& adjoint, double factor, Objective* f, Condition* g){
+void ErsatzMaterial::CalcNewmarkDerivative(Excitation& excite, Solutions& forward, Solutions& adjoint, double factor, Objective* c, Condition* g){
   // this calculates p^T (dF - dA) u
   // where p is solution of adjoint, dF is derivative of newmark update, dA is derivative of system matrix, u is solution of forward problem
   
+  Function* f = Function::Cast(c, g);
+
   UInt timesteps = domain->GetDriver()->GetNumSteps();
   double dt = dynamic_cast<TransientDriver*>(domain->GetDriver())->GetDeltaT();
   double gamma = pde->getTimeStepping()->GetNewmarkGamma();
@@ -931,39 +447,53 @@ void ErsatzMaterial::CalcNewmarkDerivative(Excitation& excite, Solutions& forwar
   Matrix<double> dK(1, 1), dM(1, 1);
   Vector<double> dKu(0), dMu(0);
 
+  // this is only caching, access using the double maps for every get slows down this procedure by about 50% for 200 timesteps
+  StdVector<StdVector<SingleVector*>*> forwards;
+  StdVector<StdVector<SingleVector*>*> adjoints;
+  forwards.Resize(timesteps);
+  adjoints.Resize(timesteps);
+  for(unsigned int t = 0; t < timesteps; ++t){
+    forwards[t] = &forward.Get(excite, NULL, t)->elem[MECH];
+    adjoints[t] = &adjoint.Get(excite, f, t)->elem[MECH];
+  }
+
   // the outer most loop is over all elements, so element matrices can be reused as much as possible
   int upper = design->data.GetSize();
   int elements = design->GetNumberOfElements();
   for(int base = 0; base < upper; base += elements) { // loop over all designs
     for(int e = 0 ; e < elements; ++e) { // loop over all elements
       DesignElement* de = &design->data[base + e];
-      SetElementK(de, MECH, dynamic_cast<DenseMatrix*>(&dK), STANDARD, true);
-      SetElementK(de, MASS, dynamic_cast<DenseMatrix*>(&dM), STANDARD, true);
+      bool notDampingElement = de->GetType() != DesignElement::DAMPINGALPHA && de->GetType() != DesignElement::DAMPINGBETA;
+      SetElementK(de, MECH, dynamic_cast<DenseMatrix*>(&dK), STANDARD, notDampingElement);
+      SetElementK(de, MASS, dynamic_cast<DenseMatrix*>(&dM), STANDARD, notDampingElement);
       
       // The damping matrix is alpha * Mass + beta * Stiffness, so it's derivative is also alpha * dMass + beta * dStiffness
       // We need to get alpha and beta, from the integrators
-      RegionIdType regionId = de->elem->regionId;
-      BiLinFormContext* linElastIntCtxt = GetFormContext(regionId, pde, pde, "linElastInt");
-      BiLinFormContext* linMassIntCtxt = GetFormContext(regionId, pde, pde, "MassInt");
+      // if we get Damping Information from the DesignSpace, we use that, else we use the "traditional" one
       double dampingAlpha = 0.0; double dampingBeta = 0.0;
-      if(linElastIntCtxt->GetSecDestMat() != NOTYPE){
-        parser->SetExpr(mathParserHandle, linElastIntCtxt->GetSecMatFac());
-        dampingBeta = parser->Eval(mathParserHandle);
-      }
-      if(linMassIntCtxt->GetSecDestMat() != NOTYPE){
-        parser->SetExpr(mathParserHandle, linMassIntCtxt->GetSecMatFac());
-        dampingAlpha = parser->Eval(mathParserHandle);
+      if(!design->GetErsatzMaterialDamping(dampingAlpha, dampingBeta, de->elem, notDampingElement ? DesignElement::NO_DERIVATIVE : de->GetType())){
+        RegionIdType regionId = de->elem->regionId;
+        BiLinFormContext* linElastIntCtxt = GetFormContext(regionId, pde, pde, "linElastInt");
+        BiLinFormContext* linMassIntCtxt = GetFormContext(regionId, pde, pde, "MassInt");
+        if(linElastIntCtxt->GetSecDestMat() != NOTYPE){
+          parser->SetExpr(mathParserHandle, linElastIntCtxt->GetSecMatFac());
+          dampingBeta = parser->Eval(mathParserHandle);
+        }
+        if(linMassIntCtxt->GetSecDestMat() != NOTYPE){
+          parser->SetExpr(mathParserHandle, linMassIntCtxt->GetSecMatFac());
+          dampingAlpha = parser->Eval(mathParserHandle);
+        }
       }
       
       double vK = 0.0;
       double vM = 0.0;
       double vC = 0.0;
       for(unsigned int t = 0; t < timesteps; ++t){ // loop over all time steps in u
-        Vector<double>& u_vec = dynamic_cast<Vector<double>& >(*forward.Get(excite, t)->elem[MECH][e]);
+        Vector<double>& u_vec = dynamic_cast<Vector<double>& >(*(*forwards[t])[e]);
         dKu = dK * u_vec;
         dMu = dM * u_vec;
         // the dA part
-        Vector<double>& p_vecd = dynamic_cast<Vector<double>& >(*adjoint.Get(excite, t)->elem[MECH][e]);
+        Vector<double>& p_vecd = dynamic_cast<Vector<double>& >(*(*adjoints[t])[e]);
         double dvK = p_vecd * dKu;
         vK -= dvK;
         double dvM = p_vecd * dMu;
@@ -978,7 +508,7 @@ void ErsatzMaterial::CalcNewmarkDerivative(Excitation& excite, Solutions& forwar
           vC = 0.0;
         }
         for(unsigned int tp = t+1; tp < timesteps; ++tp){ // loop over all time steps in p
-          Vector<double>& p_vec = dynamic_cast<Vector<double>& >(*adjoint.Get(excite, tp)->elem[MECH][e]);
+          Vector<double>& p_vec = dynamic_cast<Vector<double>& >(*(*adjoints[tp])[e]);
           // these are the scalar factors for the parts of the derivative of F
           double ut = u +  (up + 0.5*upp*(1.0-2.0*beta)*dt ) *dt;
           double upt = up + (1.0 - gamma) * dt * upp;
@@ -993,15 +523,30 @@ void ErsatzMaterial::CalcNewmarkDerivative(Excitation& excite, Solutions& forwar
           up = (upt + upp * gamma * dt);
         }
       }
-      de->AddGradient(f, g, factor * (vK + vM / (beta * dt * dt) + vC) );
+      double v = vC;
+      if(notDampingElement){ // dA/dDamp = K/dDamp + M/dDamp + C/dDamp = 0 + 0 + C/dDamp 
+        v += vK + vM / (beta * dt * dt);
+      }      
+      de->AddGradient(c, g, factor * v );
     }
   }
+  parser->ReleaseHandle(mathParserHandle);
+}
+
+double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1,
+    Application k, StdVector<SingleVector*>& u2, SurfaceRef* rhs,
+    double factor, CalcMode calcMode, Function* f, int res_idx)
+{
+  if (harmonic)
+    return CalcU1KU2<std::complex<double> > (tf, u1, k, u2, rhs, factor, calcMode, f, res_idx);
+  else
+    return CalcU1KU2<double> (tf, u1, k, u2, rhs, factor, calcMode, f, res_idx);
 }
 
 template <class T>
 double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1,
                        Application app, StdVector<SingleVector*>& u2,
-                       SurfaceRef* rhs, double factor, CalcMode calcMode, Objective* f, Condition* g, int res_idx)
+                       SurfaceRef* rhs, double factor, CalcMode calcMode, Function* f, int res_idx)
 {
   LOG_DBG2(em) << "CalcU1KU2(): tf=" << (tf ? tf->ToString() : "NULL") << " #u1=" << u1.GetSize()
                  << " app=" << application.ToString(app) << " #u2=" << u2.GetSize() << " calcMode="
@@ -1046,6 +591,7 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>&
 
       DesignElement* de = &design->data[e + base];
 
+      LOG_DBG3(em) << "nodes:" << e << ": " << de->elem->connect.ToString();
       LOG_DBG3(em) << "u1:" << e << ": " << u1_vec.ToString();
       LOG_DBG3(em) << "u2:" << e << ": " << u2_vec.ToString();
 
@@ -1077,10 +623,10 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>&
       if(harmonic && calcMode != CONJ_QUAD) this_value *= 2 * ((complex<double>) sp).real(); // 2 * Re{...}
                                       else this_value *= ((complex<double>) sp).real(); // CONJ_QUAD or real STANDARD
 
-      de->AddGradient(f, g, this_value);
+      de->AddGradient(f, this_value);
 
       LOG_DBG3(em) << "CU1Ku2:" << de->elem->elemNum << " <l,K'*u-f'>  = "
-                   << sp << " -> " << this_value << " sum = " << de->GetPlainGradient(f,g);
+                   << sp << " -> " << this_value << " sum = " << de->GetPlainGradient(f);
 
       sum += this_value;
 
@@ -1091,14 +637,6 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>&
   return sum;
 }
 
-// template instantiation stuff
-template double ErsatzMaterial::CalcU1KU2<double>(TransferFunction* tf, StdVector<SingleVector*>& u1,
-                       Application app, StdVector<SingleVector*>& u2,
-                       SurfaceRef* rhs, double factor, CalcMode calcMode, Objective* f, Condition* g, int res_idx);
-
-template double ErsatzMaterial::CalcU1KU2<std::complex<double> >(TransferFunction* tf, StdVector<SingleVector*>& u1,
-                       Application app, StdVector<SingleVector*>& u2,
-                       SurfaceRef* rhs, double factor, CalcMode calcMode, Objective* f, Condition* g,  int res_idx);
 
 template <class T>
 void ErsatzMaterial::SubstractGradSurfaceRHS(DesignElement* de, TransferFunction* tf, SurfaceRef* ref, Vector<T>& in_out)
@@ -1145,110 +683,280 @@ void ErsatzMaterial::SubstractGradSurfaceRHS(DesignElement* de, TransferFunction
   }
 }
 
-void ErsatzMaterial::CalcConstraintGradient(Condition* g, StdVector<double>* grad_out)
+double ErsatzMaterial::CalcObjective()
 {
-  CalcConstraint(g, true, grad_out);
-}
+  design->WriteDesignToExtern(last_evaluation.GetPointer());
 
-double ErsatzMaterial::CalcConstraint(Condition* constraint)
-{
-  return CalcConstraint(constraint, false); // no gradient
-}
+  // in objective.value_ we store the sum over all excitations w/o penalty but with normalization
+  // in excitation.cost we store the sum over all objectives with penalty but w/o normalization
 
-double ErsatzMaterial::CalcConstraint(Condition* g, bool derivative, StdVector<double>* grad_out)
-{
-  // Just for access of enums
-  DesignElement de;
+  // reset the objective values such that we can sum up normalized but unpenalized values
+  for(unsigned int o = 0; o < objectives.data.GetSize(); o++)
+    objectives.data[o]->ResetValue();
 
-  // handle default parameter
-  if(g == NULL)
-  {
-    if(constraints.active.GetSize() != 1)
-      throw Exception("default constraint only valid with exactly one constraint");
-    g = constraints.active[0];
-  }
   double result = 0.0;
 
-  switch(g->GetType())
+  // the multiple excitation case is a special case - for all other cases this is executed once
+  for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
   {
-    case Condition::VOLUME:
-    case Condition::PENALIZED_VOLUME:
-    case Condition::GAP:
-         result = CalcVolume(NULL, g, derivative, true);
-         break;
+    Excitation& excite = me->excitations[e];
+    excite.cost = 0.0;
 
-    case Condition::REALVOLUME:
-         result = CalcVolume(NULL, g, derivative, false);
-         break;
-         
-    case Condition::COMPLIANCE:
-         assert(excitations.GetSize() == 1);
-         result = CalcCompliance(excitations[0], NULL, g, derivative);
-         break;
-
-    case Condition::GREYNESS:
-         result = CalcGreyness(g, derivative);
-         break;
-
-    case Condition::GLOBAL_SLOPE:
-    case Condition::GLOBAL_MOLE:
-    case Condition::GLOBAL_OSCILLATION:
-         result = CalcGlobalFunction(g, derivative);
-         break;
-
-    case Condition::SLOPE:
-    case Condition::MOLE:
-    case Condition::OSCILLATION:
-         result = CalcLocalConstraint(g, derivative);
-         break;
-
-    case Condition::HOMOGENIZATION_TENSOR:
-         result = CalcHomogenizedTensorConstraint(g, derivative);
-         break;
-
-    case Condition::HOMOGENIZATION_TRACKING:
+    for(unsigned int o = 0; o < objectives.data.GetSize(); o++)
     {
-      if(derivative)
-      {
-        CalcHomogenizedTrackingGradient(g->GetTensor(), CalcHomogenizedTensor(), NULL, g);
-      }
-      else
-      {
-        double diff = g->GetTensor().DiffNormL2(CalcHomogenizedTensor());
-        result = 0.5 * diff * diff;
-      }
-      break;
+      Objective* f = objectives.data[o];
+
+      // some objectives are only to be evaluated for the last excitation
+      if(!f->DoEvaluate(&excite)) continue;
+
+      //double ov = CalcObjective(excite, f); // this is virtual!
+      double ov = CalcFunction(excite, f, false); // this is virtual!
+      excite.cost += ov * f->GetPenalty();
+
+      // we ignore the weight if the evaluation happens only once! TODO why not omega*omega? - Fabian
+      double weight = !f->DoEvaluateAlways() ? 1.0 : excite.normalized_weight;
+
+      f->AddValue(ov * weight);
+
+      result += ov * f->GetPenalty() * weight;
+      LOG_DBG(em) << "CalcObjective: ex=" << e << " obj=" << f->type.ToString(f->GetType()) << " ov=" << ov
+                  << " penalty" << f->GetPenalty() << " ex.cost=" << excite.cost << " nw=" << excite.normalized_weight
+                  << " wei=" << weight << " f->val=" << f->GetValue() << " result=" << result;
     }
-
-    case Objective::POISSONS_RATIO:
-    case Objective::YOUNGS_MODULUS:
-          result = CalcPoissonsRatioAndYoungsModulus(NULL, g, derivative);
-          break;
-
-    default:
-      throw Exception("Constraint not implemented", __FILE__, __LINE__);
   }
 
-  // there is no single scalar value for the gradient
-  if(!derivative)
-    g->SetValue(result);
+  return result;
+}
+
+void ErsatzMaterial::CalcObjectiveGradient(StdVector<double>* grad_out)
+{
+  // reset the cost gradients in the design elements and sum them up in a weighted way
+  // to perform multiple loads
+  design->Reset(DesignElement::COST_GRADIENT);
+
+  for(unsigned int obj = 0; obj < objectives.data.GetSize(); obj++)
+  {
+    Objective* cost = objectives.data[obj];
+    // the multiple excitation case is a special case - for all other cases this is executed once
+    for(unsigned int idx = 0; idx < me->excitations.GetSize(); idx++)
+    {
+      Excitation& excite = me->excitations[idx];
+      // some objectives are only to be evaluated for the last excitation
+      if(!cost->DoEvaluate(&excite)) continue;
+
+      CalcFunction(excite, cost, true);
+    }
+  }
+
+  if(grad_out != NULL)
+    design->WriteGradientToExtern(*grad_out, DesignElement::COST_GRADIENT, DesignElement::SMART);
+}
+
+
+
+double ErsatzMaterial::CalcConstraint(Condition* g)
+{
+  // assume when we have only one constraint which is not explicitly given, this is not the stress constraint!
+  assert((g == NULL && constraints.active.GetSize() == 1 && constraints.active[0]->DoEvaluateAlways()) || g != NULL);
+
+  if(g == NULL)
+    g = constraints.active[0];
+
+  double result = 0.0;
+
+  for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
+  {
+    Excitation& excite = me->excitations[e];
+    // in the evaluate once case only the last excitation
+    double v = g->DoEvaluate(&excite) ? CalcFunction(excite, g, false) : 0.0;
+    double w = g->DoEvaluateAlways() ? excite.GetFactor(g) : 1.0;
+    result += v * w;
+    LOG_DBG(em) << "CC ex=" << e << " eval=" << g->DoEvaluate(&excite) << " v=" << v << " w=" << w << " -> " << result;
+  }
+
+  g->SetValue(result);
+  return result;
+}
+
+void ErsatzMaterial::CalcConstraintGradient(Condition* g, StdVector<double>* grad_out)
+{
+  // assume when we have only one constraint which is not explicitly given, this is not the stress constraint!
+  assert((g == NULL && constraints.active.GetSize() == 1 && !constraints.active[0]->DoEvaluateAlways()) || g != NULL);
+
+  if(g == NULL)
+    g = constraints.active[0];
+
+  for(unsigned int i = 0; i < me->excitations.GetSize(); i++)
+  {
+    if(g->DoEvaluate(&me->excitations[i]))
+      CalcFunction(me->excitations[i], g, true);
+  }
 
   // copies from the design element gradient data to a memory array for external optimizers
   if(grad_out != NULL)
-    design->WriteGradientToExtern(*grad_out, de.CONSTRAINT_GRADIENT, de.SMART, g);
+    design->WriteGradientToExtern(*grad_out, DesignElement::CONSTRAINT_GRADIENT, DesignElement::SMART, g);
 
   // if there is a <result ... value="constraintGradient" detail="penalizedVolume/*"
-  if(derivative && g->special_result_idx != -1)
+  if(g->special_result_idx != -1)
   {
     int base = design->FindDesign(g->design);
     int n    = design->GetNumberOfElements();
     for(int i = n * base; i < n * (base + 1); i++) // TODO add access!
       design->data[i].specialResult[g->special_result_idx] = design->data[i].GetPlainGradient(NULL, g);
   }
+}
 
-  LOG_DBG2(em) << "CalcConstraint " << g->ToString() << " -> " << (derivative ? "derivative" : lexical_cast<std::string>(result));
+
+
+double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool derivative)
+{
+  assert(f != NULL);
+
+  // for legacy reasions there is also the difference between Objective and Condition, to be replaced once
+  Objective* c = f->IsObjective() ? dynamic_cast<Objective*>(f) : NULL;
+  Condition* g = f->IsObjective() ? NULL : dynamic_cast<Condition*>(f);
+
+  double result = 0.0; // stays  for the derivative
+
+  switch(f->GetType())
+  {
+    case Function::VOLUME:
+    case Function::PENALIZED_VOLUME:
+    case Function::GAP:
+         result = CalcVolume(c, g, derivative, true);
+         break;
+
+    case Function::REALVOLUME:
+         result = CalcVolume(c, g, derivative, false);
+         break;
+
+    case Objective::TYCHONOFF:
+         result = IntegrateDesignVariable(c, g, derivative, DesignElement::NO_TYPE, true, true, 2.0);
+         break;
+
+    case Function::COMPLIANCE:
+         result = CalcCompliance(excite, c, g, derivative);
+         break;
+
+    case Objective::TRACKING:
+         result = CalcTracking(excite, c, g, derivative);
+         break;
+
+    case Function::GREYNESS:
+         assert(c == NULL);
+         result = CalcGreyness(g, derivative);
+         break;
+
+    case Objective::STRESS: {
+           const Vector<double> data = CalcVonMisesStressVector(excite, f, false, false); // copy data for element von Mises stress
+           result = CalcGlobalFunction(f, false, &data);
+           break;
+         }
+
+    case Function::GLOBAL_SLOPE:
+    case Function::GLOBAL_MOLE:
+    case Function::GLOBAL_OSCILLATION:
+    case Function::GLOBAL_JUMP:
+         result = CalcGlobalFunction(f, derivative);
+         break;
+
+    case Function::SLOPE:
+    case Function::MOLE:
+    case Function::OSCILLATION:
+    case Function::JUMP:
+         assert(c == NULL);
+         result = CalcLocalConstraint(g, derivative);
+         break;
+
+    case Function::HOMOGENIZATION_TENSOR:
+          if(c != NULL && derivative && c->HasHomogenizationEntry())
+          {
+            // if there s no "coord" set it is only meant for evaluateInitialDesign for forward homogenization
+            StdVector<double> tmp;
+            CalcHomogenizedTensorEntry(c->coord, true, tmp);
+            for(unsigned int e = 0, ne = design->GetNumberOfElements(); e < ne; e++)
+              design->data[e].AddGradient(c, NULL, tmp[e]);
+          }
+          if(c != NULL && !derivative)
+          {
+            Matrix<double> hom_tensor = CalcHomogenizedTensor();
+            if(c->HasHomogenizationEntry())
+            {
+              result = hom_tensor[c->coord.first -1][c->coord.second - 1];
+            }
+            else
+            {
+              std::cout << "Homogenized Tensor: " << std::endl << hom_tensor.ToString(0, true);
+
+              std::cout << "Orthotrope properties: ";
+              StdVector<std::pair<string, double> > ortho = MechanicMaterial::CalcOrthotropeProperties(hom_tensor);
+              for(unsigned int i = 0; i < ortho.GetSize(); i++)
+                std::cout << " " << ortho[i].first << "=" << ortho[i].second;
+              std::cout << "\n";
+
+              result = hom_tensor.NormL2();
+            }
+          }
+          if(g != NULL)
+          {
+            result = CalcHomogenizedTensorConstraint(g, derivative);
+          }
+          break;
+
+    case Function::HOMOGENIZATION_TRACKING:
+         if(derivative)
+         {
+           CalcHomogenizedTrackingGradient(f->GetTensor(), CalcHomogenizedTensor(), c, g);
+         }
+         else
+         {
+           double diff = f->GetTensor().DiffNormL2(CalcHomogenizedTensor());
+           result = 0.5 * diff * diff;
+         }
+         break;
+
+    case Function::POISSONS_RATIO:
+    case Function::YOUNGS_MODULUS:
+          result = CalcPoissonsRatioAndYoungsModulus(c, g, derivative);
+          break;
+
+    case Function::GLOBAL_DYNAMIC_COMPLIANCE:
+          assert(!derivative); // SIMP!
+          result = CalcGlobalDynamicCompliance(excite, c);
+          break;
+
+     case Function::OUTPUT:
+     case Function::DYNAMIC_OUTPUT:
+     case Function::CONJUGATE_COMPLIANCE:
+     case Function::ABS_DYN_OUTPUT_SQUARED:
+          assert(!derivative); // SIMP!
+          if(harmonic)
+            result = CalcOutputObjective<complex<double> >(excite, c);
+          else
+            result = CalcOutputObjective<double>(excite, c);
+          break;
+
+     case Function::ENERGY_FLUX:
+           assert(!derivative);
+           result = CalcEnergyFlux(excite, c);
+           break;
+
+     case Function::TEMPERATURE:
+           break; // FIXMEHEAT
+
+     case Function::ELEC_ENERGY:
+       assert(false); // shall be handled before
+
+     case Function::ISOTROPY:
+     case Function::MULTI_OBJECTIVE:
+       assert(false); // no valid function
+    // no default, gcc warns
+  }
+
+  LOG_DBG2(em) << "CalcFunction " << f->ToString() << " cost=" << f->IsObjective() << " -> " << (derivative ? "derivative" : lexical_cast<std::string>(result));
   return result;
 }
+
 
 double ErsatzMaterial::IntegrateDesignVariable(Objective* f, Condition* g, bool derivative,
     DesignElement::Type dtype, bool normalized, bool scale, double exponent)
@@ -1286,14 +994,14 @@ double ErsatzMaterial::IntegrateDesignVariable(Objective* f, Condition* g, bool 
   if( fraction == 0.0 ){
     for(unsigned int d = 0; d < design->design.GetSize(); d++){
       if(allDesignsRelevant || design->design[d] == dtype){
-        const unsigned int base = d * design->elements_;
-        for(unsigned int r = 0; r < design->regions_.GetSize(); r++){
-          if(f != NULL || g->IsForRegion(design->regions_[r].regionId)){
+        const unsigned int base = d * design->elements;
+        for(unsigned int r = 0; r < design->regions.GetSize(); r++){
+          if(f != NULL || g->IsForRegion(design->regions[r].regionId)){
             if(design->IsRegular()){
-              fraction += design->regions_[r].elements;
+              fraction += design->regions[r].elements;
             }else{
-              const unsigned int u = base + design->regions_[r].base + design->regions_[r].elements;
-              for(unsigned int i = base + design->regions_[r].base; i < u; i++){
+              const unsigned int u = base + design->regions[r].base + design->regions[r].elements;
+              for(unsigned int i = base + design->regions[r].base; i < u; i++){
                 DesignElement* de = &design->data[i];
                 grid->GetElemNodesCoord(cornerCoords, de->elem->connect, true);
                 fraction += de->elem->ptElem->CalcVolume(cornerCoords, false);
@@ -1315,14 +1023,14 @@ double ErsatzMaterial::IntegrateDesignVariable(Objective* f, Condition* g, bool 
 
   for(unsigned int d = 0; d < design->design.GetSize(); d++){
     if(allDesignsRelevant || design->design[d] == dtype){
-      const unsigned int base = d * design->elements_;
-      for(unsigned int r = 0; r < design->regions_.GetSize(); r++){
-        if(f != NULL || g->IsForRegion(design->regions_[r].regionId)){
+      const unsigned int base = d * design->elements;
+      for(unsigned int r = 0; r < design->regions.GetSize(); r++){
+        if(f != NULL || g->IsForRegion(design->regions[r].regionId)){
           const double scaling = scale ? design->scale_design[d][r] : 1.0;
           const double rscaling = 1.0 / scaling;
           const double translation = scale ? design->translate_design[d][r] : 0.0;
-          const unsigned int u = base + design->regions_[r].base + design->regions_[r].elements;
-          for(unsigned int i = base + design->regions_[r].base; i < u; i++)
+          const unsigned int u = base + design->regions[r].base + design->regions[r].elements;
+          for(unsigned int i = base + design->regions[r].base; i < u; i++)
           {
             DesignElement* de = &design->data[i];
             // standard or derivative case?
@@ -1493,7 +1201,7 @@ double ErsatzMaterial::CalcCompliance(Excitation& excite, Objective* f, Conditio
       // where p is solution of adjoint, dF is derivative of newmark update, dA is derivative of system matrix, u is solution of forward problem
       CalcNewmarkDerivative(excite, forward, adjoint, factor, f, g);
     }else{
-      CalcU1KU2(tf, forward.Get(excite)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, -factor, STANDARD, f, g);
+      CalcU1KU2(tf, forward.Get(excite)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, -factor, STANDARD, func);
     }
   }
   else
@@ -1503,8 +1211,8 @@ double ErsatzMaterial::CalcCompliance(Excitation& excite, Objective* f, Conditio
     for(unsigned int ts = 0; ts < timesteps; ++ts){ // this formulation works for transient as well as static cases, integral over time
       // compliance is easier computed using f^T u on nodes with force
       // to avoid any work for assembling force again, we simply calculate solution times rhs from the system
-      Vector<double>& u = forward.Get(excite, ts)->GetRealVector(Solution::RAW_VECTOR);
-      Vector<double>& rhs = forward.Get(excite, ts)->GetRealVector(Solution::RHS_VECTOR);
+      Vector<double>& u = forward.Get(excite, NULL, ts)->GetRealVector(Solution::RAW_VECTOR);
+      Vector<double>& rhs = forward.Get(excite, NULL, ts)->GetRealVector(Solution::RHS_VECTOR);
       double sp = 0.0;
       u.Inner(rhs, sp);
       result += sp * excite.GetFactor(func) * GetStepWeight(ts);
@@ -1523,8 +1231,8 @@ double ErsatzMaterial::CalcOutputObjective(Excitation& excite, Objective* cost)
   // We always take l from rhs and don't store it explicitly.
   // Note that one has to use the algsys RHS! The PDE RHS is still from the
   // forward simulation!
-  Vector<T>& u = dynamic_cast<Vector<T> & >(*(forward.Get(excite)->GetVector(Solution::RAW_VECTOR)));
-  Vector<T>& l = dynamic_cast<Vector<T> & >(*(adjoint.Get(excite)->GetVector(Solution::SEL_VECTOR)));
+  Vector<T>& u = dynamic_cast<Vector<T> & >(*(forward.Get(excite, NULL)->GetVector(Solution::RAW_VECTOR)));
+  Vector<T>& l = dynamic_cast<Vector<T> & >(*(adjoint.Get(excite, cost)->GetVector(Solution::SEL_VECTOR)));
   assert(u.GetSize() == l.GetSize());
 
   LOG_DBG2(em) << "OUPTUT: adjoint sel (l): " << l.ToString(1);
@@ -1594,7 +1302,7 @@ void ErsatzMaterial::SetAdjointRhs(AdjointParameters* adjointParams){
 
   Excitation& excite = *(adjointParams->GetExcitation());
   
-  switch(adjointParams->GetObjective()->GetType()){
+  switch(adjointParams->GetFunction()->GetType()){
   case Objective::TRACKING:
     SetTrackingAdjointRhs(excite, ts);
     break;
@@ -1612,7 +1320,7 @@ void ErsatzMaterial::SetAdjointRhs(AdjointParameters* adjointParams){
     break;
   
   default:
-    EXCEPTION("adjoint RHS not known for Objective");
+    EXCEPTION("adjoint RHS not known for Objective " + adjointParams->GetFunction()->ToString());
   }
   
   // if the first step is static, we have to readjust the right hand side for ts == 0. Note that the transientDriver/solveStep does no rhs update any more
@@ -1630,7 +1338,7 @@ void ErsatzMaterial::SetAdjointRhs(AdjointParameters* adjointParams){
     upp = 0.0;
     up = 0.0;
     for(unsigned int t = 1; t < nts; ++t){
-      Vector<Double>& p_vec = adjoint.Get(excite, t)->GetRealVector(Solution::RAW_VECTOR);
+      Vector<Double>& p_vec = adjoint.Get(excite, adjointParams->GetFunction(), t)->GetRealVector(Solution::RAW_VECTOR);
       double ut = u +  (up + 0.5*upp*(1.0-2.0*beta)*dt ) *dt;
       double upt = up + (1.0 - gamma) * dt * upp;
       // now we have the factor ut / (beta * dt * dt) for the mass matrix
@@ -1647,6 +1355,195 @@ void ErsatzMaterial::SetAdjointRhs(AdjointParameters* adjointParams){
   }
   
 }
+
+Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Function* f, bool adjoint_rhs, bool grad_contrib)
+{
+  // Kocvara and Stingl; 2007
+  // stress = rho^p E_0 B(ip) * u
+  // von Mises stress per element: sum_ip stress^T * M * stress
+  // rhs w.r.p to one element: 2* sum_ip strees^T * M * rho^p E_0 B(ip)
+  //            if i=j:      + 2 * stress^T * M * (rho^p)' E_0 B(ip) u
+
+  LOG_DBG2(em) << "CVMSV: excite=" << excite.index << " adjont=" << adjoint_rhs << " grad_contrib=" << grad_contrib;
+  assert((adjoint_rhs && !grad_contrib) || !adjoint_rhs);
+  // adjoint_rhs:   result is raw vector size with summed up 2 * stress^T * M * (rho^p * E_0 * B)
+  // !grad_contrib: result is design size with stress^T * M stress (element von Mises stress)
+  // grad_contrib:  result is design size with 2 * stress^T * M * ( (rho^p)' * E_0 * B * u)
+
+  // see comment in header for locality of stress!
+
+  assert(design->design.GetSize() == 1);
+
+  StdVector<SingleVector*>& all_u_elem = forward.Get(excite)->elem[MECH];
+
+  // the result vector is either per design element or the rhs for the adjoint problem
+  Vector<double> result(adjoint_rhs ? forward.Get(excite)->GetVector(Solution::RAW_VECTOR)->GetSize() : design->data.GetSize());
+  result.Init();
+
+  Matrix<double> M = dynamic_cast<MechPDE*>(ToPDE(MECH))->GetVonMisesMatrix(dim);
+  Matrix<double> B;
+  Matrix<double> E; // the material matrix with applied pseudo density
+  Matrix<double> coords;
+
+  assert(design->design.GetSize() == 1); // easy to extend
+  assert(design->regions.GetSize() == 1); // easy to extend
+
+  // the are special transfer functions for the stress
+  TransferFunction* tf = design->GetTransferFunction(DesignElement::DENSITY, STRESS);
+
+  linElastInt* form = dynamic_cast<linElastInt*>(GetForm(design->GetRegionId(), pde, pde, "linElastInt"));
+
+  Vector<double> stress(dim == 2 ? 3 : 6); // elem stress
+  Vector<double> strain;
+  Vector<double> M_stress;
+  Matrix<double> E_B;
+  Matrix<double> M_E_B;
+  Matrix<double> stress_transp(1, stress.GetSize());
+  Matrix<double> rhs_transp;
+  Vector<double> intPoint;
+  shared_ptr<EqnMap> eqnMap = ToPDE(MECH)->GetEqnMap();
+
+  ElemList elemList(grid);
+
+  // in the adjoint case we need alpha which is the gradient of the globalization function
+  Vector<double> alpha;
+  if(adjoint_rhs) alpha = CalcVonMisesStressGlobalizationFactor(excite, f);
+
+  // output of penalized von mises stresses? Only used in !adjoint_rhs and !grad_contrib
+  int res_idx = design->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::PENALIZED_STRESS);
+
+  for(unsigned int e = 0, en = design->data.GetSize(); e < en; e++)
+  {
+    DesignElement* de = &design->data[e];
+
+    grid->GetElemNodesCoord(coords, de->elem->connect, false); // geometric non-lin
+
+    Vector<double>& u_elem = dynamic_cast<Vector<double>& >(*(all_u_elem[e]));
+
+    // apply our own physical densities!
+    form->calcDMat(E, NULL, DesignElement::DENSITY, tf->Transform(de, DesignElement::SMART));
+
+    elemList.SetElement(de->elem);
+    EntityIterator it = elemList.GetIterator();
+    form->ExtractElemInfo(it);
+    de->elem->ptElem->GetCoordMidPoint(intPoint);
+    form->SetIntPoint(intPoint);
+
+    // same numerical results as with  for(int ip = 1, nip = de->elem->ptElem->GetNumIntPoints(); ip <= nip; ip++)
+    form->calcBMatOnly(B, 1, de->elem->ptElem, coords);
+
+    // calc stress
+    strain = B * u_elem; // strain
+    stress = E * strain; // pure stress
+
+    if(adjoint_rhs)
+    {
+      // this is actually 2* von Mises stress with one missing u_elem: 2 * stress^T * M * rho^p * E_0 * B, note the rho^p is already in E
+      E_B = E * B;
+      M_E_B = M * E_B;
+
+      // we have to transpose the stress (3*1 or 6*1) manually :(
+      for(unsigned int si = 0; si < stress.GetSize(); si++)
+        stress_transp[0][si] = stress[si];
+
+      rhs_transp = stress_transp * M_E_B;
+      rhs_transp *= -2.0;
+
+      // there is a factor from the globalization function, which is the gradient of the glob function(func_val)
+      rhs_transp *= alpha[e];
+
+
+      assert(rhs_transp.GetNumCols() == u_elem.GetSize());
+      assert(rhs_transp.GetNumRows() == 1);
+
+      LOG_DBG2(em) << "CVMSV de=" << de->ToString() << " ar=" << adjoint_rhs  << " alpha=" << alpha[e]
+                   << " rhs_transp=" << rhs_transp.ToString();
+
+      // sum it up to the global rhs vector
+      assert(de->elem->connect.GetSize() * dim == rhs_transp.GetNumCols());
+      for(unsigned int n = 0; n < de->elem->connect.GetSize(); n++)
+      {
+        unsigned int node =  de->elem->connect[n];
+
+        for(unsigned int dof = 1; dof <= dim; dof++)
+        {
+          // fuck 1-based in GetNodeEqn() !!
+          int eqn_nr = std::abs(eqnMap->GetNodeEqn(node,dof)); // map periodic bc to the master equation
+          assert(eqn_nr >= 0);
+          int eqn_idx = eqn_nr -1; // fuck 1-based!!
+          // don't set the homogeneous dirichlet boundary conditions :)
+          if(eqn_idx >= 0)
+          {
+            result[eqn_idx] += rhs_transp[0][dim * n + (dof-1)];
+
+            LOG_DBG3(em) << "CVMSV de=" << de->ToString() << " ar=" << adjoint_rhs  << " n=" << n << " node=" << node
+                << " dof=" << dof << " eqn_idx=" << eqn_idx << " idx=" << (dim * n + (dof-1)) << " val="
+                << rhs_transp[0][dim * n + (dof-1)] << " -> " << result[eqn_idx];
+          }
+        }
+      }
+
+    }
+    else
+    {
+      // normal and "corrected" von Mises stress element results
+      double correct = 1.0;
+      M_stress = M * stress;
+      result[e] = stress.Inner(M_stress);
+
+      if(!grad_contrib)
+      {
+        // output von mises stress? Note, that this is excitation specific!
+        if(res_idx != -1)
+          de->specialResult[res_idx] = result[e];
+      }
+      else
+      {
+        // additional factor for grad_contrib. We replace one rho^p by (rho^p)'
+        correct = 2.0 * tf->Derivative(de, DesignElement::SMART) / tf->Transform(de, DesignElement::SMART);
+      }
+
+      LOG_DBG2(em) << "CVMSV de=" << de->ToString() << " gv= " << grad_contrib << " rho=" << de->GetDesign(DesignElement::SMART) << " sMs=" << result[e] << " deriv="
+                   << tf->Derivative(de, DesignElement::SMART) << " trans=" <<  tf->Transform(de, DesignElement::SMART) << " correct=" << correct << " -> " << (correct * result[e]);
+
+      result[e] *= correct;
+    }
+  }
+
+  return result;
+}
+
+
+Vector<double> ErsatzMaterial::CalcVonMisesStressGlobalizationFactor(Excitation& excite, Function* f)
+{
+  assert(f->GetType() == Function::STRESS);
+
+  const Function::Local* local = f->GetLocal();
+  assert(local != NULL);
+
+  const Vector<double> stress = CalcVonMisesStressVector(excite, f, false, false);
+  Vector<double> result(stress.GetSize());
+
+  // this is a complicated way to calc element wise power*max(0,stress)^(power-1) but that way
+  // we are open for further globalization functions and it is not that expensive
+
+  const StdVector<Function::Local::Identifier>& vem = local->virtual_elem_map;
+
+  for(unsigned int i = 0; i < vem.GetSize(); i++)
+  {
+    const Function::Local::Identifier& id = vem[i];
+    assert(id.neighbor.GetSize() == 0);
+    double gfv = id.EvalFunction(local, true, &stress);
+    int idx = design->Find(id.element);
+    result[idx] = gfv;
+  }
+
+  LOG_DBG2(em) << "CVMSGF ex=" << excite.index << " stress=" << stress.ToString();
+  LOG_DBG2(em) << "CVMSGF ex=" << excite.index << " alpha=" << result.ToString();
+
+  return result;
+}
+
 
 double ErsatzMaterial::CalcEnergyFlux(Excitation& excite, Objective* f)
 {
@@ -1791,7 +1688,7 @@ void ErsatzMaterial::FindCommonNodes(const SurfElem* se, const Elem* vol, StdVec
 
 void ErsatzMaterial::SetTrackingAdjointRhs(Excitation& excite, int ts){
   // this is for the static and for the transient case.
-  Vector<double>& u = forward.Get(excite, ts)->GetRealVector(Solution::RAW_VECTOR); // Tracking is only implemented for non-harmonic
+  Vector<double>& u = forward.Get(excite, NULL, ts)->GetRealVector(Solution::RAW_VECTOR); // Tracking is only implemented for non-harmonic
   LOG_DBG3(em) << "SolveTrackingProblem: displacement vector: (" << u.GetSize() << ") " << u.ToString();
 
   shared_ptr<EqnMap> eqnMap = pde->GetEqnMap();
@@ -1827,10 +1724,13 @@ void ErsatzMaterial::SetTrackingAdjointRhs(Excitation& excite, int ts){
     }
   }
   assemble_->GetAlgSys()->InitRHS(rhs);
+  parser->ReleaseHandle(mathParserHandle);
 }
 
-double ErsatzMaterial::CalcTracking(Excitation& excite, Objective* f, Condition* g, bool derivative)
+double ErsatzMaterial::CalcTracking(Excitation& excite, Objective* c, Condition* g, bool derivative)
 {
+  Function* f = Function::Cast(c, g);
+
   UInt timesteps = domain->GetDriver()->GetNumSteps();
   if(derivative){
     // calculate the tracking functional gradient, which is z^T k_i u,
@@ -1840,15 +1740,15 @@ double ErsatzMaterial::CalcTracking(Excitation& excite, Objective* f, Condition*
     // calculate gradient z^T k_i u
     // note that in multiple excitations case (this is always now), we do sum this up
     TransferFunction* tf = design->GetTransferFunction(DesignElement::DENSITY, MECH, false);
-    double factor = excite.GetWeightedFactor(f);
+    double factor = excite.GetWeightedFactor(c);
     
     if(IsTransient()){
       // this computes the complete derivative of the Newmark scheme, up to now, all objectives/constraints can be handled like that
       // as the derivative of all objectives/constraint is calculated p^T (dF - dA) u 
       // where p is solution of adjoint, dF is derivative of newmark update, dA is derivative of system matrix, u is solution of forward problem
-      CalcNewmarkDerivative(excite, forward, adjoint, factor, f, g);
+      CalcNewmarkDerivative(excite, forward, adjoint, factor, c, g);
     }else{
-      CalcU1KU2(tf, adjoint.Get(excite)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, -factor, STANDARD, f, g);
+      CalcU1KU2(tf, adjoint.Get(excite, f)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, -factor, STANDARD, f);
     }
     return 0.0;
   }else{
@@ -1869,7 +1769,7 @@ double ErsatzMaterial::CalcTracking(Excitation& excite, Objective* f, Condition*
     parser->SetValue(MathParser::GLOB_HANDLER, "dt", dt);
     
     for(unsigned int ts = 0; ts < timesteps; ++ts){ // this formulation works for transient as well as static cases, integral over time
-      Vector<double>& u = forward.Get(excite, ts)->GetRealVector(Solution::RAW_VECTOR); // Tracking is only implemented for non-harmonic
+      Vector<double>& u = forward.Get(excite, NULL, ts)->GetRealVector(Solution::RAW_VECTOR); // Tracking is only implemented for non-harmonic
       LOG_DBG3(em) << "CalcTracking: displacement vector: (" << u.GetSize() << ") " << u.ToString();
       parser->SetValue(MathParser::GLOB_HANDLER, "t", dt*(ts+1));
       parser->SetValue(MathParser::GLOB_HANDLER, "step", ts+1);
@@ -1891,6 +1791,7 @@ double ErsatzMaterial::CalcTracking(Excitation& excite, Objective* f, Condition*
       }
       val += v * GetStepWeight(ts);
     }
+    parser->ReleaseHandle(mathParserHandle);
     return 0.5 * val;
   }
 }
@@ -1996,7 +1897,7 @@ Matrix<double> ErsatzMaterial::CalcHomogenizedTensor()
 {
   const double cube_vol(grid->CalcVolumeSpannedByNamedNodes());
 
-  unsigned int ex_size = excitations.GetSize();
+  unsigned int ex_size = me->excitations.GetSize();
   assert((dim == 2 && ex_size == 3) || (dim == 3 && ex_size == 6));
 
   Matrix<double> test_strain_matrix_ij(dim, dim);
@@ -2007,7 +1908,7 @@ Matrix<double> ErsatzMaterial::CalcHomogenizedTensor()
 
   for(unsigned int ij = 0; ij < ex_size; ++ij)
   {
-    SetTestStrainMatrix(test_strain_matrix_ij, excitations[ij].test_strain);
+    SetTestStrainMatrix(test_strain_matrix_ij, me->excitations[ij].test_strain);
     StdVector<SingleVector*> &u1 = forward.Get(ij)->elem[MECH]; // equal to \chi^{ij}
 
     for(unsigned int kl = 0; kl < ex_size; ++kl)
@@ -2020,7 +1921,7 @@ Matrix<double> ErsatzMaterial::CalcHomogenizedTensor()
         continue;
       }
 
-      SetTestStrainMatrix(test_strain_matrix_kl, excitations[kl].test_strain);
+      SetTestStrainMatrix(test_strain_matrix_kl, me->excitations[kl].test_strain);
       StdVector<SingleVector*> &u2 = forward.Get(kl)->elem[MECH]; // equal to \chi^{kl}
 
       // loop over elements. In the gradient case not summed up
@@ -2051,7 +1952,7 @@ void ErsatzMaterial::CalcHomogenizedTrackingGradient(const Matrix<double>& targe
   Matrix<double> diff_tensor;
   diff_tensor = target - hom;
 
-  const unsigned int ex_size(excitations.GetSize());
+  const unsigned int ex_size(me->excitations.GetSize());
   assert((dim == 2 && ex_size == 3) || (dim == 3 && ex_size == 6));
 
   Matrix<double> test_strain_matrix_ij(dim, dim);
@@ -2068,7 +1969,7 @@ void ErsatzMaterial::CalcHomogenizedTrackingGradient(const Matrix<double>& targe
 
     for(unsigned int ij = 0; ij < ex_size; ++ij)
     {
-      SetTestStrainMatrix(test_strain_matrix_ij, excitations[ij].test_strain);
+      SetTestStrainMatrix(test_strain_matrix_ij, me->excitations[ij].test_strain);
       StdVector<SingleVector*> &u1 = forward.Get(ij)->elem[MECH]; // equal to \chi^{ij}
       Vector<double>& u1_vec = dynamic_cast<Vector<double>& >(*u1[e]);
 
@@ -2082,7 +1983,7 @@ void ErsatzMaterial::CalcHomogenizedTrackingGradient(const Matrix<double>& targe
           continue;
         }
 
-        SetTestStrainMatrix(test_strain_matrix_kl, excitations[kl].test_strain);
+        SetTestStrainMatrix(test_strain_matrix_kl, me->excitations[kl].test_strain);
         StdVector<SingleVector*> &u2 = forward.Get(kl)->elem[MECH]; // equal to \chi^{kl}
         Vector<double>& u2_vec = dynamic_cast<Vector<double>& >(*u2[e]);
 
@@ -2139,7 +2040,7 @@ double ErsatzMaterial::CalcHomogenizedTensorEntry(const std::pair<int, int> entr
 {
   const double cube_vol(grid->CalcVolumeSpannedByNamedNodes());
 
-  assert((dim == 2 && excitations.GetSize() == 3) || (dim == 3 && excitations.GetSize() == 6));
+  assert((dim == 2 && me->excitations.GetSize() == 3) || (dim == 3 && me->excitations.GetSize() == 6));
 
   Matrix<double> test_strain_matrix_ij(dim, dim);
   Matrix<double> test_strain_matrix_kl(dim, dim);
@@ -2147,10 +2048,10 @@ double ErsatzMaterial::CalcHomogenizedTensorEntry(const std::pair<int, int> entr
   const unsigned int ij = entry.first - 1;
   const unsigned int kl = entry.second - 1;
 
-  SetTestStrainMatrix(test_strain_matrix_ij, excitations[ij].test_strain);
+  SetTestStrainMatrix(test_strain_matrix_ij, me->excitations[ij].test_strain);
   StdVector<SingleVector*> &u1 = forward.Get(ij)->elem[MECH]; // equal to \chi^{ij}
 
-  SetTestStrainMatrix(test_strain_matrix_kl, excitations[kl].test_strain);
+  SetTestStrainMatrix(test_strain_matrix_kl, me->excitations[kl].test_strain);
   StdVector<SingleVector*> &u2 = forward.Get(kl)->elem[MECH]; // equal to \chi^{kl}
 
   double result = 0.0;
@@ -2349,10 +2250,10 @@ double ErsatzMaterial::CalcLocalConstraint(Condition* g, bool derivative)
 }
 
 
-double ErsatzMaterial::CalcGlobalFunction(Function* c, bool derivative)
+double ErsatzMaterial::CalcGlobalFunction(Function* f, bool derivative, const Vector<double>* von_mises_stress)
 {
-  LOG_DBG(em) << "CGF c=" << c->type.ToString(c->GetType()) << " derivative=" << derivative;
-  Function::Local* local = c->GetLocal();
+  LOG_DBG(em) << "CGF c=" << f->type.ToString(f->GetType()) << " derivative=" << derivative;
+  Function::Local* local = f->GetLocal();
   assert(local != NULL);
   // the neighborhoods are already defined by Local!
   StdVector<Function::Local::Identifier>& vem = local->virtual_elem_map;
@@ -2362,13 +2263,16 @@ double ErsatzMaterial::CalcGlobalFunction(Function* c, bool derivative)
     // evaluate the function values, which is
     // max(0, x_i - x_i+1 - c) and max(0,x_i+1 - x_i - c)
     double res = 0.0;
+    local->infeasible = 0;
+
     for(unsigned int i = 0; i < vem.GetSize(); i++)
     {
       Function::Local::Identifier& id = vem[i];
-      double fv = id.EvalFunction(local);
+      double fv = id.EvalFunction(local, false, von_mises_stress);
       res += fv;
-      LOG_DBG2(em) << "CGF: !d c=" << c->type.ToString(c->GetType()) << " i=" << i << " de="
-                   << id.element->elem->elemNum << " sign=" << id.sign << " fv=" << fv  << " -> " << res;
+      if(fv > 0) local->infeasible++;
+      LOG_DBG2(em) << "CGF: !d c=" << f->type.ToString(f->GetType()) << " i=" << i << " de="
+                   << id.element->elem->elemNum << " sign=" << id.sign << " fv=" << fv  << " infeasible=" << local->infeasible << " -> " << res;
     }
 
     return res;
@@ -2392,44 +2296,50 @@ double ErsatzMaterial::CalcGlobalFunction(Function* c, bool derivative)
 
 void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_exite)
 {
-  forward.GetMultiple()->Init();
-  adjoint.GetMultiple()->Init();
-
   // if ev_only_exite is set we use the given excitation
   // -> it shall not coincide
-  assert(!(ev_only_exite != NULL && multiple_excitation->IsEnabled()));
+  assert(!(ev_only_exite != NULL && me->IsEnabled()));
 
   // shall we normalize afterwards?
   bool normalize = false;
 
-  for(unsigned int e = 0; e < excitations.GetSize(); e++)
+  // we have to check objectives and active (non local) constraints
+  StdVector<Function*> funcs = GetActiveFunctions();
+
+  for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
   {
-    Excitation* excite = ev_only_exite != NULL ? ev_only_exite : &excitations[e];
-    excite->Apply();
+    Excitation& excite = ev_only_exite != NULL ? *ev_only_exite : me->excitations[e];
+    excite.Apply();
 
     // this is true for all problem types
-    Optimization::SolveStateProblem(excite);
+    Optimization::SolveStateProblem(&excite);
     if(!IsTransient()){ // transient solutions are read per timestep
-      StorePDESolution(*excite, 0, forward, true, true, false, "forward");
+      StorePDESolution(forward, excite, NULL, 0, true, true, false, "forward");
     }
 
-    // check our objectives if there is an adoint problem to solve
-    for(unsigned int o = 0; o < objectives.data.GetSize(); o++) // Fabian: is this loop needed?
+    for(unsigned fi = 0; fi < funcs.GetSize(); fi++)
     {
-      // call SolveAdjointProblem for all objectives that need it already for function evaluation, not just gradient
-      SolveAdjointProblem(*excite, objectives.data[o], false);
+      // some functions need the selection vector for function evaluation, e.g. output
+      if(funcs[fi]->NeedsSelectionVector())
+        ConstructSelection(excite, funcs[fi], false); // don't change the rhs of the system but restore
+
+      // in the harmonic case the system matrix depends on the frequency. Hence we have to
+      // use the current assembly and factorization to solve the adjoint problem.
+      // Note, that SolveAdointProblem*s*() must not be called, it would overwrite the adjoints with wrong results
+      if(harmonic && me->excitations.GetSize() > 1)
+        SolveAdjointProblem(&excite, funcs[fi]);
 
       // when we do multiple excitations with adjusted weights we calculate the objective here
       // to find the best weights. CalcObjective is so cheap, it is done later again by
       // the optimizer but then the weights are set
-      if(multiple_excitation->DoAdjustWeights())
+      if(me->DoAdjustWeights())
       {
         // in the first iteration we adjust the weights
         // stride = 0 is only the first time
-        if((multiple_excitation->stride < 1 && GetCurrentIteration() == 0) ||
-            ((GetCurrentIteration() % multiple_excitation->stride) == 0))
+        if((me->stride < 1 && GetCurrentIteration() == 0) ||
+            ((GetCurrentIteration() % me->stride) == 0))
         {
-          excite->cost = CalcObjective(*excite, objectives.data[o]); // to be eventually normalized
+          excite.cost = CalcFunction(excite, funcs[fi], false); // to be normalized
           normalize = true;
         }
       }
@@ -2438,26 +2348,32 @@ void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_exite)
 
   // we need only to normalize when the properties have changed. This also reflects the stride
   if(normalize)
-    NormalizeMultipleExcitations();
+    me->NormalizeMultipleExcitations(&objectives);
 }
 
-void ErsatzMaterial::SolveAdjointProblems(Excitation* ev_only_exite){
+void ErsatzMaterial::SolveAdjointProblems(Excitation* ev_only_exite)
+{
   // solve all adjoints needed for gradient calculation
-  assert(!(ev_only_exite != NULL && multiple_excitation->IsEnabled()));
+  assert(!(ev_only_exite != NULL && me->IsEnabled()));
 
-  for(unsigned int e = 0; e < excitations.GetSize(); ++e){
-    Excitation* excite = ev_only_exite != NULL ? ev_only_exite : &excitations[e];
-    // is applied in SolveAdjointProblem
+  // in the harmonic multiple frequency case me must not solve for the adjoints, as
+  // only in the forward problems the matrix is reassembled and the system factorized
+  if(!harmonic || me->excitations.GetSize() == 1)
+  {
+    for(unsigned int e = 0; e < me->excitations.GetSize(); ++e)
+    {
+      Excitation* excite = ev_only_exite != NULL ? ev_only_exite : &me->excitations[e];
 
-    for(unsigned int o = 0; o < objectives.data.GetSize(); ++o){
-      SolveAdjointProblem(*excite, objectives.data[o], true);
+      // processs all functions and call SolveAdjointProblem() if the function requires it
+      Optimization::SolveAdjointProblems(excite);
     }
   }
 }
 
-void ErsatzMaterial::StorePDESolution(Excitation &excite, UInt timestep, Solutions& solutions, bool read_sol, bool read_rhs, bool save_sol, const std::string& comment)
+void ErsatzMaterial::StorePDESolution(Solutions& solutions, Excitation &excite, Function* f, unsigned int timestep,
+                                      bool read_sol, bool read_rhs, bool save_sol, const std::string& comment)
 {
-  Solution& sol = *(solutions.Get(excite, timestep));
+  Solution& sol = *(solutions.Get(excite, f, timestep));
 
   SingleVector* raw = NULL; // last result = every result for multiple solutions
 
@@ -2483,33 +2399,6 @@ void ErsatzMaterial::StorePDESolution(Excitation &excite, UInt timestep, Solutio
       LOG_DBG2(em) << ss.str() << " rhs: " << sol.GetVector(Solution::RHS_VECTOR)->ToString();
     }
   }
-
-  // currently all pdes have the same raw vector, therefore we use the last one here.
-  if(multiple_excitation->IsEnabled() && read_sol) // do not do this, if just read rhs
-  {
-    // check for very first call, then multiple has no size yet
-    if(solutions.GetMultiple()->GetSize() == 0)
-    {
-      solutions.GetMultiple()->Resize(raw->GetSize());
-      solutions.GetMultiple()->Init();
-    }
-
-    // add the current solution in a weighted sense to the multiple solution vector
-    if(harmonic)
-    {
-      complex<double> w = complex<double>(excite.normalized_weight);
-      dynamic_cast<Vector<Complex>*>(solutions.GetMultiple())->Add(w, dynamic_cast<Vector<Complex>&>(*raw));
-    }
-    else
-    {
-      double w = excite.normalized_weight;
-      dynamic_cast<Vector<double>*>(solutions.GetMultiple())->Add(w, dynamic_cast<Vector<double>&>(*raw));
-    }
-
-    // TODO: This does not work any more since SingleVector::Add(Double Complex a, const SingleVector &vec) is no child of Vector<T>::Add(T a, const SingleVector &vec)
-    //    solutions.multiple->Add(excite.normalized_weight, *raw);
-    LOG_DBG2(em) << "StorePDESolution: multiple= " << solutions.GetMultiple()->ToString();
-  }
 }
 
 void ErsatzMaterial::TimeStepCalculated(UInt timeStep, AdjointParameters* adjParams){
@@ -2518,9 +2407,9 @@ void ErsatzMaterial::TimeStepCalculated(UInt timeStep, AdjointParameters* adjPar
   
   // drivers start counting steps with 1
   if(adjParams == NULL){
-    StorePDESolution(*applied_excitation, timeStep-1, forward, true, false, false, "forward");
+    StorePDESolution(forward, *applied_excitation, NULL, timeStep-1, true, false, false, "forward");
   }else{
-    StorePDESolution(*applied_excitation, timeStep-1, adjoint, true, false, false, "adjoint");
+    StorePDESolution(adjoint, *applied_excitation, adjParams->GetFunction(), timeStep-1, true, false, false, "adjoint");
   }
   
 }
@@ -2528,9 +2417,9 @@ void ErsatzMaterial::TimeStepCalculated(UInt timeStep, AdjointParameters* adjPar
 void ErsatzMaterial::RhsCalculated(AdjointParameters* adjParams){
   if(IsTransient()){ // only in transient case this is needed
     if(adjParams == NULL){
-      StorePDESolution(*applied_excitation, domain->GetDriver()->GetActStep("mech")-1, forward, false, true, false, "forward");
+      StorePDESolution(forward, *applied_excitation, NULL, domain->GetDriver()->GetActStep("mech")-1, false, true, false, "forward");
     }else{
-      StorePDESolution(*applied_excitation, domain->GetDriver()->GetActStep("mech")-1, adjoint, false, true, false, "adjoint");
+      StorePDESolution(adjoint, *applied_excitation, adjParams->GetFunction(), domain->GetDriver()->GetActStep("mech")-1, false, true, false, "adjoint");
     }
   }
 }
@@ -2586,73 +2475,63 @@ void ErsatzMaterial::ResetHDBC(StdVector<pair<SinglePDE*, IdBcList> >& org_idbc)
   }
 }
 
-template <class T>
-void ErsatzMaterial::SolveAdjointProblem(Excitation& excite, Objective* cost, bool gradient)
+void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
 {
-  excite.Apply();
-  switch(cost->GetType())
+  if (harmonic)
+    SolveAdjointProblem<std::complex<double> > (excite, f);
+  else
+    SolveAdjointProblem<double> (excite, f);
+}
+
+
+template <class T>
+void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
+{
+  excite->Apply();
+  switch(f->GetType())
   {
-    case Objective::HOMOGENIZATION_TENSOR:
-    case Objective::HOMOGENIZATION_TRACKING:
-    case Objective::POISSONS_RATIO:
-    case Objective::YOUNGS_MODULUS:
-    case Objective::TYCHONOFF:
-    case Objective::VOLUME:
-    case Objective::GLOBAL_SLOPE:
-    case Objective::GLOBAL_MOLE:
-    case Objective::GLOBAL_OSCILLATION:
-    case Objective::PENALIZED_VOLUME:
-    case Objective::GAP:
-    case Objective::TEMPERATURE:
-      break; // no adjoint problem to be solved
-
     // these objectives need their adjoint problems only for gradient calculation
-    case Objective::COMPLIANCE:
-      if(IsTransient() && gradient){ // in transient case, everything has an adjoint
-        Optimization::SolveAdjointProblem(&excite, cost);        
+    case Function::COMPLIANCE:
+      if(IsTransient()){ // in transient case, everything has an adjoint
+        Optimization::SolveAdjointProblem(excite, f);
       }
       break;
-    case Objective::TRACKING:
+    case Function::TRACKING:
       // these objectives need their adjoint problems only for gradient calculation
-      if(gradient){
-        Optimization::SolveAdjointProblem(&excite, cost);
+      Optimization::SolveAdjointProblem(excite, f);
 
-        if(!IsTransient()){ // transient solutions are read every timestep
-          StorePDESolution(excite, 0, adjoint, true, false, false, "adjoint");
-        }
-
-        // write back the solution s.th. CommitIteraion() makes StoreResults() properly.
-        for(map<Application, SinglePDE*>::iterator it = pdes.begin(); it != pdes.end(); ++it)
-          forward.Get(excite)->Write(it->second);
+      if(!IsTransient()){ // transient solutions are read every timestep
+        StorePDESolution(adjoint, *excite, f, 0, true, false, false, "adjoint");
       }
+
+      // write back the solution s.th. CommitIteraion() makes StoreResults() properly.
+      forward.Get(*excite)->Write(pde);
       break;
 
-    case Objective::OUTPUT:
-    case Objective::CONJUGATE_COMPLIANCE:
-    case Objective::ABS_DYN_OUTPUT_SQUARED:
-    case Objective::GLOBAL_DYNAMIC_COMPLIANCE:
-    case Objective::DYNAMIC_OUTPUT:
-    case Objective::ELEC_ENERGY:
-    case Objective::ENERGY_FLUX:
+    case Function::OUTPUT:
+    case Function::CONJUGATE_COMPLIANCE:
+    case Function::ABS_DYN_OUTPUT_SQUARED:
+    case Function::GLOBAL_DYNAMIC_COMPLIANCE:
+    case Function::DYNAMIC_OUTPUT:
+    case Function::ELEC_ENERGY:
+    case Function::ENERGY_FLUX:
+    case Function::STRESS:
     {
-      if(!gradient){
-        // these objectives need their adjoint problems for the calculation of the objective value
-        // they are directly solved after the StateProblem
-        // they are no more solved for gradient calculation (this only works if the optimizer always evaluates the function before the gradient)
-        // when doing linesearch, this slows down optimization if solution is only needed for gradient
+      // these objectives need their adjoint problems for the calculation of the objective value
+      // they are directly solved after the StateProblem
+      // they are no more solved for gradient calculation (this only works if the optimizer always evaluates the function before the gradient)
+      // when doing linesearch, this slows down optimization if solution is only needed for gradient
 
-        // the forward problem was already solved and stored !!
+      // the forward problem was already solved and stored !!
 
-        // Set the rhs and solve for it
-        SetAndSolveAdjointRHS<T>(excite, cost);
+      // Set the rhs and solve for it
+      SetAndSolveAdjointRHS<T>(*excite, f);
 
-        // store the stuff -> no rhs but special handling of element results
-        StorePDESolution(excite, 0, adjoint, true, false, true, "adjoint");
+      // store the stuff -> no rhs but special handling of element results
+      StorePDESolution(adjoint, *excite, f, 0, true, false, true, "adjoint");
 
-        // write back the solution s.th. CommitIteraion() makes StoreResults() properly.
-        for(map<Application, SinglePDE*>::iterator it = pdes.begin(); it != pdes.end(); ++it)
-          forward.Get(excite)->Write(it->second);
-      }
+      // write back the solution s.th. CommitIteraion() makes StoreResults() properly.
+      forward.Get(*excite)->Write(pde);
       break;
     }
 
@@ -2664,21 +2543,21 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation& excite, Objective* cost, bo
 
 
 template <class T>
-void ErsatzMaterial::SetAndSolveAdjointRHS(Excitation& excite, Objective* cost)
+void ErsatzMaterial::SetAndSolveAdjointRHS(Excitation& excite, Function* f)
 {
   // the adjoint RHS might be an output stuff, then the loads are changed.
   // save and restore them in any case.
   LoadList org_loads = assemble_->GetLoads();
 
   // set pseudo loads (if there are output nodes)
-  // not used for ENERGY_FLUX
-  ConstructSelection(excite);
+  if(f->NeedsSelectionVector())
+    ConstructSelection(excite, f, true); // is actually already set for the forward calculation - who cares?
 
   // any adjoint PDE has HDBC instead of IDBC -> will be undone later ResetHDBC()
   StdVector<pair<SinglePDE*, IdBcList> > org_idbc = SetHDBC();
 
   // set the adjoint rhs
-  ConstructAdjointRHS(excite, cost);
+  ConstructAdjointRHS(excite, f);
 
   // calculate adjoint problem
   assemble_->GetAlgSys()->Solve(CreateAdjointAnalysisIdNode());
@@ -2689,8 +2568,13 @@ void ErsatzMaterial::SetAndSolveAdjointRHS(Excitation& excite, Objective* cost)
   assemble_->SetLoads(org_loads);
 }
 
-void ErsatzMaterial::ConstructSelection(Excitation& excite)
+void ErsatzMaterial::ConstructSelection(Excitation& excite, Function* f, bool alter_rhs)
 {
+  // in SolveStateProblem() the clean variant for the objective
+  LoadList org_loads;
+  if(!alter_rhs)
+    org_loads = assemble_->GetLoads();
+
   // overwrite the assemble loads with "pseudo loads"s loads
   assemble_->SetLoads(output_nodes_);
 
@@ -2703,48 +2587,63 @@ void ErsatzMaterial::ConstructSelection(Excitation& excite)
   // save the "pseudo loading" which is the selection as the rhs for the adjoint
   // This is exactly what has been constructed. Not that for an adjoint RHS it needs
   // post processing.
-  adjoint.Get(excite)->Read(Solution::SEL_VECTOR, pde);
+  adjoint.Get(excite, f)->Read(Solution::SEL_VECTOR, pde);
 
-  LOG_DBG2(em) << "ConstructSelection: excite=" << excite.index << " sel=" << adjoint.Get(excite)->GetVector(Solution::SEL_VECTOR)->ToString(1);
+  if(!alter_rhs)
+    assemble_->SetLoads(org_loads);
+
+  LOG_DBG2(em) << "ConstructSelection: excite=" << excite.index << " f=" << f->ToString() << " alter=" << alter_rhs
+               << " sel=" << adjoint.Get(excite, f)->GetVector(Solution::SEL_VECTOR)->ToString(1);
 }
 
 
-void ErsatzMaterial::ConstructRealAdjointRHS(Excitation& excite, Objective* cost)
+void ErsatzMaterial::ConstructRealAdjointRHS(Excitation& excite, Function* f)
 {
-  // this can only handle static output!
-  assert(cost->GetType() == Objective::OUTPUT);
+  Vector<double> rhs; // own OLAS vector
 
-  Vector<double>& l = adjoint.Get(excite)->GetRealVector(Solution::SEL_VECTOR);
-  // create a own OLAS vector
-
-  Vector<double> rhs(l.GetSize());
-
-  rhs = l * -1.0;
+  switch(f->GetType())
+  {
+  case Function::OUTPUT:
+  {
+    Vector<double>& l = adjoint.Get(excite, f)->GetRealVector(Solution::SEL_VECTOR);
+    rhs.Resize(l.GetSize());
+    rhs = l * -1.0;
+    break;
+  }
+  case Function::STRESS:
+  {
+    rhs = CalcVonMisesStressVector(excite, f, true, false); // gives us exactly what we want
+    break;
+  }
+  default:
+    assert(false);
+    break;
+  }
 
   assemble_->GetAlgSys()->InitRHS(rhs);
-  assert(rhs.NormMax() != 0.0);
-  LOG_DBG2(em) << "CARHS<double>: rhs before solving: " << rhs.ToString(1);
+  // assert(rhs.NormMax() != 0.0);
+  LOG_DBG2(em) << "CARHS<double>: f=" << f->ToString() << " rhs before solving: " << rhs.ToString(1) << " max_norm=" << rhs.NormMax();
 }
 
-void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Objective* cost)
+void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
 {
   // we handle only complex cases
   Vector<complex<double> >& u = forward.Get(excite)->GetComplexVector(Solution::RAW_VECTOR);
-  Vector<complex<double> >& l = adjoint.Get(excite)->GetComplexVector(Solution::SEL_VECTOR);
+  Vector<complex<double> >& l = adjoint.Get(excite, f)->GetComplexVector(Solution::SEL_VECTOR);
 
   // create a OLAS vector
-  Vector<complex<double> >& rhs = adjoint.Get(excite)->GetComplexVector(Solution::RHS_VECTOR);
+  Vector<complex<double> >& rhs = adjoint.Get(excite, f)->GetComplexVector(Solution::RHS_VECTOR);
   rhs.Resize(u.GetSize());
 
-  switch(cost->GetType())
+  switch(f->GetType())
   {
-  case Objective::DYNAMIC_OUTPUT:       // rhs is from "output loads" and set in adjoint...rhs
+  case Function::DYNAMIC_OUTPUT:       // rhs is from "output loads" and set in adjoint...rhs
     // the correct conjugate_output case is -L * u*, always complex!
     for(unsigned int i = 0; i < rhs.GetSize(); i++)
       rhs[i] = -1.0 * l[i] * std::conj(u[i]);
     break;
 
-  case Objective::ABS_DYN_OUTPUT_SQUARED: // J = Re{<u,l>}^2 + Im{<u,l>}^2 .
+  case Function::ABS_DYN_OUTPUT_SQUARED: // J = Re{<u,l>}^2 + Im{<u,l>}^2 .
   {
     // RHS = -0.5 * (2*<u_R,l> l - j 2*<u_I,l> l)
     //     = - <u_R,l> l + j <u_I,l> l
@@ -2757,7 +2656,7 @@ void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Objective* c
       rhs[i] = complex<double>(-1.0 * ul.real() * l[i].real(), ul.imag() * l[i].real());
 
   }
-  case Objective::CONJUGATE_COMPLIANCE: // rhs is from original excitation, we stored it in forward...rhs
+  case Function::CONJUGATE_COMPLIANCE: // rhs is from original excitation, we stored it in forward...rhs
   {
     forward.Get(excite)->Read(Solution::RHS_VECTOR, pde); // set
     Vector<complex<double> >& org_rhs = forward.Get(excite)->GetComplexVector(Solution::RHS_VECTOR); // read
@@ -2769,16 +2668,15 @@ void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Objective* c
     break;
   }
 
-
-  case Objective::GLOBAL_DYNAMIC_COMPLIANCE:
+  case Function::GLOBAL_DYNAMIC_COMPLIANCE:
     // S lambda = -conj(u);
     for(int i = 0, n = u.GetSize(); i < n; ++i)
       rhs[i] = -1.0 * std::conj(u[i]);
     break;
 
-  case Objective::ENERGY_FLUX:
+  case Function::ENERGY_FLUX:
     // reuse the RHS vector space
-    SetEnergyFluxVector(cost, u, true, rhs);
+    SetEnergyFluxVector(f, u, true, rhs);
     // 0.25 * j* omega * (Q-Q^T)^T * u^* where 0.25 is 0.5 from standard ajoint formulation and 0.5 from objective
     for(unsigned int i = 0, n = rhs.GetSize(); i < n; i++)
       rhs[i] = complex<double>(0, 0.25) * excite.GetOmega() * rhs[i];
@@ -2790,15 +2688,16 @@ void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Objective* c
 
   assemble_->GetAlgSys()->InitRHS(rhs);
   assert(rhs.NormMax() != 0.0);
-  LOG_DBG2(em) << "CARHS<complex>: rhs before solving: " << rhs.ToString(1);
+  LOG_DBG2(em) << "CARHS<complex>: f=" << domain->GetDriver()->GetActStep(pde->GetName())
+               << " rhs before solving: " << rhs.ToString(1);
 }
 
 
-void ErsatzMaterial::ConstructAdjointRHS(Excitation& excite, Objective* cost)
+void ErsatzMaterial::ConstructAdjointRHS(Excitation& excite, Function* f)
 {
   // cannot be inlined due to linker problems
-  if(harmonic) ConstructComplexAdjointRHS(excite, cost);
-          else ConstructRealAdjointRHS(excite, cost);
+  if(harmonic) ConstructComplexAdjointRHS(excite, f);
+          else ConstructRealAdjointRHS(excite, f);
 }
 
 void ErsatzMaterial::SetPDEs()
@@ -2870,39 +2769,43 @@ void ErsatzMaterial::GetErsatzMaterialTensor(Matrix<double>& mat, Elem* elem, De
 ErsatzMaterial::Solutions::Solutions()
 {
   this->em_ = NULL;
+  forward_data_ = NULL;
+  isForward = false;
 }
 
 ErsatzMaterial::Solutions::~Solutions()
 {
-  for(unsigned int ts = 0; ts < data_.GetSize(); ++ts){
-    delete data_[ts];
+  StdVector<Function*> funcs = GetFunctions();
+  for(unsigned int fi = 0; fi < funcs.GetSize(); fi++)
+  {
+    StdVector<Unit*>& list = data_[funcs[fi]];
+    for(unsigned int ts = 0; ts < list.GetSize(); ++ts)
+      delete list[ts];
   }
 }
 
 void ErsatzMaterial::Solutions::Init(ErsatzMaterial* em)
 {
   this->em_ = em;
-  data_.Resize(domain->GetDriver()->GetNumSteps());
-  for(unsigned int ts = 0; ts < domain->GetDriver()->GetNumSteps(); ++ts){
-    data_[ts] = new Unit(em);
-  }
 }
 
-ErsatzMaterial::Solutions::Unit::Unit()
+void ErsatzMaterial::Solutions::Init(Function* f)
 {
-  multiple = NULL;
+  assert(em_ != NULL);
+
+  StdVector<Unit*>& list = data_[f];
+  list.Resize(domain->GetDriver()->GetNumSteps());
+
+  for(unsigned int ts = 0; ts < domain->GetDriver()->GetNumSteps(); ++ts)
+    list[ts] = new Unit(em_);
 }
+
 
 ErsatzMaterial::Solutions::Unit::Unit(ErsatzMaterial* em)
 {
-  data.Resize(em->excitations.GetSize());
+  data.Resize(em->me->excitations.GetSize());
   for(unsigned int i=0; i < data.GetSize(); i++)
     data[i] = new Solution(em);
-
-  if(em->IsHarmonic())
-    multiple = new Vector<complex<double> >();
-  else
-    multiple = new Vector<double>();
 }
 
 ErsatzMaterial::Solutions::Unit::~Unit()
@@ -2912,24 +2815,44 @@ ErsatzMaterial::Solutions::Unit::~Unit()
     delete data[i];
     data[i] = NULL;
   }
-
-  delete multiple;
-  multiple = NULL;
 }
 
-ErsatzMaterial::Solution* ErsatzMaterial::Solutions::Get(Excitation& excitation, unsigned int timestep)
+ErsatzMaterial::Solution* ErsatzMaterial::Solutions::Get(Excitation& excitation, Function* f, unsigned int timestep)
 {
-  return Get(excitation.index, timestep);
+  return Get(excitation.index, f, timestep);
 }
 
-ErsatzMaterial::Solution* ErsatzMaterial::Solutions::Get(int excitation_index, unsigned int timestep)
+ErsatzMaterial::Solution* ErsatzMaterial::Solutions::Get(int excitation_index, Function* f, unsigned int timestep)
 {
-  return data_[timestep]->data[excitation_index];
+  if(isForward){ // if this is true, f is ignored and forward_data_ is used to avoid one map access
+    if(forward_data_ == NULL){
+      if(data_.find(NULL) == data_.end()){
+        Init((Function*)NULL);
+      }
+      forward_data_ = &data_[NULL];
+    }
+    return((*forward_data_)[timestep]->data[excitation_index]);
+  }else{
+    // do we have to init first?
+    if(data_.find(f) == data_.end())
+      Init(f);
+    assert(data_.find(f) != data_.end());
+    return data_[f][timestep]->data[excitation_index];
+  }
 }
 
-SingleVector* ErsatzMaterial::Solutions::GetMultiple(unsigned int timestep)
+StdVector<Function*> ErsatzMaterial::Solutions::GetFunctions() const
 {
-  return data_[timestep]->multiple;
+  StdVector<Function*> result;
+
+  for(map<Function*, StdVector<Unit*> >::const_iterator it = data_.begin(); it != data_.end(); ++it)
+  {
+    LOG_DBG2(em) << "GetFunctions(): f=" << (it->first == NULL ? "NULL" : it->first->ToString());
+    if(it->first != NULL)
+      result.Push_back(it->first);
+  }
+
+  return result;
 }
 
 ErsatzMaterial::Solution::Solution(ErsatzMaterial* em)
@@ -2957,6 +2880,23 @@ ErsatzMaterial::Solution::~Solution()
   }
 }
 
+SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Application app, bool save_sol)
+{
+  if (em_->harmonic)
+    return Read<std::complex<double> > (st, pde, app, save_sol);
+  else
+    return Read<double> (st, pde, app, save_sol);
+}
+
+/** Writes the solution (raw vector) back to the pde */
+void ErsatzMaterial::Solution::Write(StdPDE* pde)
+{
+  if (em_->harmonic)
+    Write<std::complex<double> >(pde);
+  else
+    Write<double>(pde);
+}
+
 template <class T>
 void ErsatzMaterial::Solution::Write(StdPDE* pde)
 {
@@ -2968,11 +2908,46 @@ void ErsatzMaterial::Solution::Write(StdPDE* pde)
   pde->SaveSolution(ptr, raw->GetSize());
 }
 
+
+void ErsatzMaterial::Solution::Write(StdPDE* pde, Solutions& sol, Function* f, int time_step, StdVector<Excitation>& excitations)
+{
+  if(BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType()))
+    Write<complex<double> >(pde, sol, f, time_step, excitations);
+  else
+    Write<double>(pde, sol, f, time_step, excitations);
+}
+
+template <class T>
+void ErsatzMaterial::Solution::Write(StdPDE* pde, Solutions& sol, Function* f, int time_step, StdVector<Excitation>& excitations)
+{
+  if(excitations.GetSize() == 1)
+  {
+    sol.Get(0, f)->Write(pde);
+  }
+  else
+  {
+    assert(f == NULL || sol.data_.find(f) != sol.data_.end()); // if f != NULL it has to be in the map
+    Solutions::Unit* unit = sol.data_[f][time_step];
+    assert(unit->data.GetSize() == excitations.GetSize());
+
+    Vector<T> sum(unit->data[0]->raw->GetSize());
+    sum.Init();
+
+    for(unsigned int ex = 0; ex < excitations.GetSize(); ex ++)
+    {
+      Solution* s =unit->data[ex];
+      sum.Add((T) excitations[ex].normalized_weight, *(s->raw));
+    }
+    Write(pde, &sum);
+  }
+}
+
+
 void ErsatzMaterial::Solution::Write(StdPDE* pde, SingleVector* vec)
 {
   // we are static
   bool harmonic = BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType());
-
+  LOG_DBG2(em) << "S:W pde=" << pde->GetName() << " h=" << harmonic << " vec=" << vec->ToString();
   if(harmonic)
   {
     Vector<complex<double> >& sol = dynamic_cast<Vector<complex<double> >& >(*vec);
@@ -3162,3 +3137,11 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Applic
   throw Exception("false");
 }
 
+// template instantiation stuff
+template double ErsatzMaterial::CalcU1KU2<double>(TransferFunction* tf, StdVector<SingleVector*>& u1,
+    Application app, StdVector<SingleVector*>& u2,
+    SurfaceRef* rhs, double factor, CalcMode calcMode, Function* f, int res_idx);
+
+template double ErsatzMaterial::CalcU1KU2<std::complex<double> >(TransferFunction* tf, StdVector<SingleVector*>& u1,
+    Application app, StdVector<SingleVector*>& u2,
+    SurfaceRef* rhs, double factor, CalcMode calcMode, Function* f,  int res_idx);

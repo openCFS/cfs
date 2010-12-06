@@ -36,26 +36,14 @@ SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TRUNK_NIGHTLY")
 SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_BUILD_NIGHTLY")
 
 #-----------------------------------------------------------------------------
-# Place CTestConfig.cmake file for project CFS on CDash server rom into
-# CTEST_SOURCE_DIRECTORY.
+# Copy CDash server configuration file to source dir.
 #-----------------------------------------------------------------------------
-FILE(WRITE "${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake"
-  "
-  ## This file should be placed in the root directory of your project.
-  ## Then modify the CMakeLists.txt file in the root directory of your
-  ## project to incorporate the testing dashboard.
-  ## # The following are required to uses Dart and the Cdash dashboard
-  ##   ENABLE_TESTING()
-  ##   INCLUDE(CTest)
-  set(CTEST_PROJECT_NAME \"CFS\")
-  set(CTEST_NIGHTLY_START_TIME \"00:00:00 CET\")
+EXECUTE_PROCESS(COMMAND ${CMAKE_EXECUTABLE_NAME} -E copy_if_different CTestConfig.cmake ${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake)
 
-  set(CTEST_DROP_METHOD \"http\")
-  set(CTEST_DROP_SITE \"lse17.e-technik.uni-erlangen.de:2000\")
-  set(CTEST_DROP_LOCATION \"/cdash/submit.php?project=CFS\")
-  set(CTEST_DROP_SITE_CDASH TRUE)
-  "
-)
+EXEC_PROGRAM("${CTEST_SOURCE_DIRECTORY}/share/scripts/distro.sh"
+  ARGS -u
+  OUTPUT_VARIABLE CFS_ARCH_STR
+  RETURN_VALUE RETVAL)
 
 #-----------------------------------------------------------------------------
 # Specify that we want to do an experimental build without updating the CFS++

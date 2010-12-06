@@ -20,6 +20,7 @@
 #include "Utils/coordSystem.hh"
 #include "Utils/mathParser/mathParser.hh"
 #include "Domain/domain.hh"
+#include "DataInOut/resultHandler.hh"
 
 namespace CoupledField {
 
@@ -721,6 +722,170 @@ namespace CoupledField {
 
     // print information to file
     ToInfo(info->Get(ParamNode::HEADER)->Get("domain")); 
+  }
+  
+  void GridCFS::CreateGridInformation( ResultHandler* ptRes ) {
+    
+    // This method crates a "dummy" multisequence step, in
+    // wchich some grid-information rsults are created:
+    // - Local directions (xi,eta,zeta) of elements
+    // - Jacobian determinant
+    
+    // Register results
+    shared_ptr<BaseResult> sol;
+    shared_ptr<EntityList> ent;
+    
+    // create result descriptions
+    Vector<Double> locDir_xi(dim_), locDir_eta(dim_), locDir_zeta(dim_);
+    shared_ptr<ResultInfo> locDir1( new ResultInfo );
+    shared_ptr<ResultInfo> locDir2( new ResultInfo );
+    shared_ptr<ResultInfo> locDir3( new ResultInfo );
+    shared_ptr<ResultInfo> jacRes( new ResultInfo );
+
+    StdVector<std::string> dirVec (dim_);
+    if( dim_ == 3 ) {
+      dirVec = "x", "y", "z";
+    } else {
+      dirVec = "x", "y";
+    }
+    // 1) Local directions
+    locDir1->resultType = ELEM_LOC_DIR;
+    locDir1->resultName = "xi";
+    locDir1->definedOn = ResultInfo::ELEMENT;
+    locDir1->entryType = ResultInfo::VECTOR;
+    locDir1->dofNames = dirVec;
+    locDir_xi[0] = 1.0;
+    locDir1->unit = "";
+    
+    locDir2->resultType = ELEM_LOC_DIR;
+    locDir2->resultName = "eta";
+    locDir2->definedOn = ResultInfo::ELEMENT;
+    locDir2->entryType = ResultInfo::VECTOR;
+    locDir2->dofNames = dirVec;
+    locDir_eta[1] = 1.0;
+    locDir2->unit = "";
+    
+    if (dim_ == 3 )  {
+      locDir3->resultType = ELEM_LOC_DIR;
+      locDir3->resultName = "zeta";
+      locDir3->definedOn = ResultInfo::ELEMENT;
+      locDir3->entryType = ResultInfo::VECTOR;
+      locDir3->dofNames = dirVec;
+      locDir_zeta[2] = 1.0;
+      locDir3->unit = "";
+    }
+    // 2) Jacobian Determinanat
+    jacRes->resultType = JACOBIAN;
+    jacRes->resultName = "Jacobian";
+    jacRes->definedOn = ResultInfo::ELEMENT;
+    jacRes->entryType = ResultInfo::SCALAR;
+    jacRes->dofNames = "";
+    jacRes->unit = "";
+    
+    
+    // loop over all regions
+    StdVector<std::string> outDest;
+    outDest.Push_back("");
+    StdVector<shared_ptr<BaseResult> > resultList;
+    for ( UInt i = 0, numRegions = volRegionIds_.GetSize();
+        i < numRegions; i++) {
+      
+      // get elements
+      ent = GetEntityList( EntityList::ELEM_LIST, region_.ToString(volRegionIds_[i]),
+                           EntityList::REGION );
+      
+      // create result objects
+      sol = shared_ptr<BaseResult> (new Result<Double>());
+      sol->SetEntityList(ent);
+      sol->SetResultInfo(jacRes);
+      ptRes->RegisterResult( sol, 0,1,1,outDest,"",true,false);
+      resultList.Push_back(sol);
+
+      sol = shared_ptr<BaseResult> (new Result<Double>());
+      sol->SetEntityList(ent);
+      sol->SetResultInfo(locDir1);
+      ptRes->RegisterResult( sol, 0,1,1,outDest,"",true,false);
+      resultList.Push_back(sol);
+
+      sol = shared_ptr<BaseResult> (new Result<Double>());
+      sol->SetEntityList(ent);
+      sol->SetResultInfo(locDir2);
+      ptRes->RegisterResult( sol, 0,1,1,outDest,"",true,false);
+      resultList.Push_back(sol);
+
+
+      if( dim_ == 3 ) {
+        sol = shared_ptr<BaseResult> (new Result<Double>());
+        sol->SetEntityList(ent);
+        sol->SetResultInfo(locDir3);
+        ptRes->RegisterResult( sol, 0,1,1,outDest,"",true,false);
+        resultList.Push_back(sol);
+      }
+    }
+    
+    // begin writing of results
+    ptRes->BeginMultiSequenceStep( 0, BasePDE::STATIC, 1);
+    ptRes->BeginStep(0,0);
+    
+    Matrix<Double> actCoord, jac, jacInv, jacInvT;
+    Vector<Double> midPoint, globVec, actLocDir;
+    Double jacDet;
+    
+    for( UInt i = 0; i < resultList.GetSize(); ++i ) {
+      
+      // fetch result object
+      Result<Double> &  actSol = 
+          dynamic_cast<Result<Double>&>(*resultList[i]);
+      EntityIterator it = actSol.GetEntityList()->GetIterator();
+      Vector<Double> & actVal = actSol.GetVector();
+      actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
+
+      // check, which result is required
+      bool isJacobian = false;
+      if (actSol.GetResultInfo()->resultName == "xi") {
+        actLocDir = locDir_xi;
+      } else  if (actSol.GetResultInfo()->resultName == "eta") {
+        actLocDir = locDir_eta;
+      } else  if (actSol.GetResultInfo()->resultName == "zeta") {
+        actLocDir = locDir_zeta;
+      } else {
+        isJacobian = true;
+      }
+      
+      if (!isJacobian ) {
+        // loop over elements
+        for ( it.Begin(); !it.IsEnd(); it++ ) {
+
+          const Elem * ptElem = it.GetElem();
+          ptElem->ptElem->GetCoordMidPoint( midPoint);
+          GetElemNodesCoord( actCoord, ptElem->connect, false );
+          ptElem->ptElem->CalcJacobian( jac, midPoint, actCoord, ptElem );
+
+          // calculate for every element jacobian and map "local" direction vector
+          jac.Invert( jacInv );
+          globVec = Transpose(jacInv) * actLocDir;
+          globVec /= globVec.NormL2();
+          for(UInt iDim = 0; iDim < dim_; iDim++ ) {
+            actVal[it.GetPos()*dim_ + iDim] = globVec[iDim];
+          }
+        }
+      } else {
+        // loop over elements
+        for ( it.Begin(); !it.IsEnd(); it++ ) {
+
+          const Elem * ptElem = it.GetElem();
+          ptElem->ptElem->GetCoordMidPoint( midPoint);
+          GetElemNodesCoord( actCoord, ptElem->connect, false );
+          ptElem->ptElem->CalcJacobian( jac, midPoint, actCoord, ptElem );
+          jac.Determinant(jacDet);
+            actVal[it.GetPos()] = jacDet;
+        }
+      }
+      ptRes->UpdateResult(resultList[i]);
+    }
+
+    ptRes->FinishStep();
+    ptRes->FinishMultiSequenceStep();
   }
 
   bool GridCFS::CheckForRegularRegion(RegionIdType reg)

@@ -29,7 +29,7 @@ OptimizationMaterial::~OptimizationMaterial()
 }
 
 
-void OptimizationMaterial::GetElementMatrix(BaseForm* form, Matrix<double>& out, Elem* elem, DesignElement::Type direction, double factor)
+void OptimizationMaterial::GetElementMatrix(BaseForm* form, Matrix<double>& out, const Elem* elem, DesignElement::Type direction, double factor)
 {
   // create an element list to gain the iterator in the loop
   ElemList elemList(domain->GetGrid());
@@ -86,7 +86,7 @@ OptMechMat::OptMechMat(ErsatzMaterial* em) : OptimizationMaterial(em)
 }
 
 
-const Matrix<double>& OptMechMat::MechStiffness(Elem* elem, DesignElement::Type direction)
+const Matrix<double>& OptMechMat::MechStiffness(const Elem* elem, DesignElement::Type direction)
 {
   if(!opt->IsDomainStructured() || direction != DesignElement::NO_DERIVATIVE)
     GetElementMatrix(opt->GetForm(elem->regionId, mech, mech, "linElastInt"), mechStiffness_map[elem->regionId], elem, direction);
@@ -94,7 +94,7 @@ const Matrix<double>& OptMechMat::MechStiffness(Elem* elem, DesignElement::Type 
   return mechStiffness_map[elem->regionId];
 }
 
-const Matrix<double>& OptMechMat::MechMass(Elem* elem, DesignElement::Type direction)
+const Matrix<double>& OptMechMat::MechMass(const Elem* elem, DesignElement::Type direction)
 {
   if(!opt->IsDomainStructured() || direction != DesignElement::NO_DERIVATIVE)
     GetElementMatrix(opt->GetForm(elem->regionId, mech, mech, "MassInt"), mechMass_map[elem->regionId], elem, direction);

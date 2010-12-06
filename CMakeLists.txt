@@ -36,7 +36,7 @@ PROJECT(CFS C CXX Fortran)
 # CFS version number.  Simply the last modification date
 #-----------------------------------------------------------------------------
 SET(CFS_VERSION_YEAR "10")
-SET(CFS_VERSION_MONTH "07")
+SET(CFS_VERSION_MONTH "09")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
@@ -417,7 +417,7 @@ IF(EXISTS "${CFS_SOURCE_DIR}/.git")
     RETURN_VALUE RETVAL)
 ELSE(EXISTS "${CFS_SOURCE_DIR}/.git")
   FILE(READ "${CFS_SOURCE_DIR}/.svn/entries" SVNSTR)
-  STRING(REGEX MATCH "[a-z+]+://[a-zA-Z0-9_+-/@]+" CFS_SUBVERSION_REPOS "${SVNSTR}")
+  STRING(REGEX MATCH "[a-z+]+://[a-zA-Z0-9_+-/@]+:[a-zA-Z0-9_+-/@]+" CFS_SUBVERSION_REPOS "${SVNSTR}")
 ENDIF(EXISTS "${CFS_SOURCE_DIR}/.git")
 
 #-----------------------------------------------------------------------------

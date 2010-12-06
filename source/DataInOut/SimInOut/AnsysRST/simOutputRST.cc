@@ -101,22 +101,34 @@ namespace CoupledField {
                 << sstr.str());
     }
     
-    sstr.clear(); sstr.str("");
-    sstr << CFS_ANSYS_LD_PATH << sysPathSep_ << revisionDLLMap[requestedRev];
     std::string machineId = archMachIdMap[CFS_ARCH];
+
+    // First try to load the binlib interface DLL from the LD_LIBRARY_PATH
+    sstr.clear(); sstr.str("");
+    sstr << revisionDLLMap[requestedRev];
 
     // Load the dynamic library with the high-pass filter class
     dynLibrary_ = 
       DynamicLoader::loadObjectFile(sstr.str().c_str(), RTLD_NOW);
     if(dynLibrary_ == NULL) {
-      EXCEPTION("Couldn't load the dynamic library '" << sstr.str() 
-                << "'.\n"
-                << "Please make sure you have the necessary paths:\n"
-                << "'" << CFS_ANSYS_LD_PATH << "'\n and"
-                << "'ansys/vXXX/ansys/syslib/" << machineId << "' and\n"
-                << "'ansys/vXXX/ansys/customize/misc/" << machineId << "'\n"
-                << "in your LD_LIBRARY_PATH variable!");
+
+      // Now try to load from builtin library path.
+      sstr.clear(); sstr.str("");
+      sstr << CFS_ANSYS_LD_PATH << sysPathSep_ << revisionDLLMap[requestedRev];
+
+      dynLibrary_ = 
+        DynamicLoader::loadObjectFile(sstr.str().c_str(), RTLD_NOW);
+      if(dynLibrary_ == NULL) {
+        EXCEPTION("Couldn't load the dynamic library '" << sstr.str() 
+                  << "'.\n"
+                  << "Please make sure you have the necessary paths:\n"
+                  << "'" << CFS_ANSYS_LD_PATH << "'\n and"
+                  << "'ansys/vXXX/ansys/syslib/" << machineId << "' and\n"
+                  << "'ansys/vXXX/ansys/customize/misc/" << machineId << "'\n"
+                  << "in your LD_LIBRARY_PATH variable!");
+      }
     }
+
     // Load a HighPassBinlibIface_ object
     binlibIface_ = 
       dynamic_cast<AnsysBinlibIface*>(dynLibrary_->newObject("AnsysBinlibIfaceGeneral", 0, NULL));

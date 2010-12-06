@@ -16,6 +16,8 @@ namespace CoupledField
 class Condition;
 class Objective;
 class DesignSpace;
+class Excitation;
+class MultipleExcitation;
 
 /** A Function is the (abstract) base class of Objective and Condition (which is a constraint but the name was
  * already used)
@@ -33,6 +35,9 @@ class Function
     /** A Function is too stupid to do any useful - it is just a common base to avoid code dupliciy
      * @param pn our own element */
     Function(PtrParamNode pn);
+
+    /** once we won't have this difference any more */
+    static Function* Cast(Objective* c, Condition* g);
 
     /** PostProc called be the containers */
     virtual void PostProc(DesignSpace* space, DesignStructure* structure);
@@ -66,6 +71,8 @@ class Function
       GLOBAL_SLOPE,              /*!< different implementation from local slopes */
       GLOBAL_MOLE,               /*!< see mole */
       GLOBAL_OSCILLATION,        /*!< see oscillation */
+      GLOBAL_JUMP,
+      STRESS,                    /*!< global stress constraint: Kocvara and Stingl; 2007. Has adjoint! */
 
       // This is constraint only!
       GREYNESS,                  /*!< inaccurate - best for observation only */
@@ -73,7 +80,8 @@ class Function
       ISOTROPY,                  /*!< blow up to several HOMOGENITATION_TENSOR constraints with different coords */
       SLOPE,                     /*!< Implementation of a grad rho constraint */
       MOLE,                      /*!< Feature size control from T. Poulsen */
-      OSCILLATION                /*!< Feature size control by Fabian W. :) */
+      OSCILLATION,               /*!< Feature size control by Fabian W. :) */
+      JUMP                       /*!< Weak greyness control by Fabian W. :) */
     } Type;
 
     /** to convert string/enum for this type */
@@ -85,8 +93,9 @@ class Function
 
     /** The real label might be an extended type string. E.g. by "physical_".
      * Check if better use this than type.ToString(GetType()).
-     * Is overloaded in Condition */
-    virtual std::string ToString() const;
+     * Is overloaded in Condition
+     * @param me is for Condition */
+    virtual std::string ToString(MultipleExcitation* me = NULL) const;
 
     /** for historical reasons there are Condition and Objective pointers used concurrently. This is a
      * little helper. asserts that only of function is set. */
@@ -114,8 +123,26 @@ class Function
     * This makes "u L conj(u)" to actually calc "v L conj(v)" with v = du/dt. -> approximatates sound intensity */
     bool FactorOmegaOmega() const { return omega_omega_; }
 
-    /** Shall/must we evaluate this objective only of the last excitation? */
-    bool DoEvaluateOnce() const { return evaluateOnce_; }
+    /** Shall/must we evaluate this objective at this excitation?
+     * Stress constraints in homogenization are triggered for a single constraint only.
+     * @param excite_index -2 is uninitialized/auto, -1 is always */
+    void SetExcitation(MultipleExcitation* me, int excite_index = -2);
+
+    /** Evaluate at this excitation? */
+    bool DoEvaluate(const Excitation* excite) const;
+
+    /** Evaluate for all excitations if there are multiple? */
+    bool DoEvaluateAlways() const { return excite_ == -1; }
+
+    /** Are we generally excitation sensitive? E.g. stress */
+    bool IsExcitationSensitive() const;
+
+    /** Requires this function an adjoint solution for the gradient? */
+    bool IsAdjointBased() const;
+
+    /** Requires the function evaluation an selection vector associated to the adjoint RHS?.
+     * Is an important for the solution of the state problem, if partial stuff from the adjoint setup is required. */
+    bool NeedsSelectionVector() const;
 
     /** Requires an objective homogenization */
     bool IsHomogenization() const;
@@ -170,7 +197,9 @@ class Function
         PREV_NEXT,
         PREV_NEXT_AND_REVERSE,   /*!< x_i-1 and x_i+1 with different sign for small oscillation */
         DEG_45_STAR,             /*!< Different notation. prev_next but also diagonals */
-        DEG_45_STAR_AND_REVERSE  /*!< The doubled variant of DEG_45_STAR for oscillation */
+        DEG_45_STAR_AND_REVERSE, /*!< The doubled variant of DEG_45_STAR for oscillation */
+        BOUNDARY,                /*!< For a neighbor definition the first and last element (JUMP) */
+        ELEMENT                  /*!< For stress there is no neighborhood, only the element itself */
       } Locality;
 
       static Enum<Locality> locality;
@@ -238,10 +267,14 @@ class Function
           return const_cast<const DesignElement*>(idx == -1 ? element : neighbor[idx]);
         }
 
-        /** Service function. Calculates the actual objective, based on function->type */
-        double EvalFunction(const Local* local) const;
+        /** Service function. Calculates the actual objective, based on function->type
+         * @param grad_glob only active when globalized. Not the globalization but the grad of the globalization
+         *                  is applied, but based on the function evaluation, not the function gradient!
+         * @param stress only used when the function is stress -> determined by ErsatzMaterial::CalcStress() */
+        double EvalFunction(const Local* local, bool grad_glob = false, const Vector<double>* stress = NULL) const;
 
         /** Service function. Calculates all gradients for this and the neighbors. Only for real local function!.
+         * Note, that the von Mises Stress gradient is NOT calculated here but in SIMP::CalcVonMisesStressGradient()!
          * It does the proper constraint_gradient reset first! */
         void EvalGradient(const Local* local);
 
@@ -256,11 +289,9 @@ class Function
         /** calculates the checkerboard value. The sign determines if the smaller or larger value is evaluated
          * @param beta < 0 is real max, otherwise it is a Kreiselmeier Steinhauser approximation */
         double CalcCheckerboard(double beta) const;
-
-        /** calculates the gradient for the checkerbord
-         * @see CalcSlopeGradient() */
         double CalcCheckerboardGradient(int neigh_idx, double beta);
 
+        /** T. Poulsen's feature size control */
         double CalcMole(double eps) const;
         double CalcMoleGradient(int neigh_idx, double eps);
 
@@ -268,6 +299,15 @@ class Function
         double CalcOscillation(double beta) const;
         double CalcOscillationGradient(int neigh_idx, double beta);
 
+        /** weak formulation of a greyness control */
+        double CalcJump() const;
+        double CalcJumpGradient(int neigh_id) const;
+
+        /** Uses actually the data from
+         * @see ErsatzMaterial::CalcVonMisesVector()
+         * There is no local variant, only the global.
+         * There is no CalcStressGradient() but SIMP::CalcVonMisesStressGradient()  */
+        double CalcStress(const Local* local, const Vector<double>* stress) const;
 
         DesignElement* element; // this represents DesignSpace::data[element_idx]
         StdVector<DesignElement*> neighbor;
@@ -293,7 +333,11 @@ class Function
       DesignSpace* space;
 
       /** Store the local values. */
-      StdVector<double> values;
+      Vector<double> values;
+
+      /** Here ErsatzMaterial::CalcGlobalFunction() stores the number of the active (non-zero)
+       * functions to be used in Optimization::LogFileLine() -> just a service */
+      int infeasible;
 
     private:
       /** Service method for the constructor
@@ -303,6 +347,12 @@ class Function
       /** Special implementation for DEG_45_STAR[_AND_REVERSE] locality.
        * @param phase for oscillation we can separate void and material which is the sign convention */
       void SetupStarLocalityElementMap(Phase phase = BOTH);
+
+      /** for a defined neighborhood only the most prev and next element, not this element */
+      void SetupBoundaryElementMap();
+
+      /** trival case form ELEMENT (stress) -> on the element itself */
+      void SetupSingularElementMap();
 
       /** small helper to determine the number of neighbors in each (diagonal)
        * direction if we use a neighborhood. Parses the whole stuff */
@@ -388,16 +438,16 @@ class Function
     double parameter_;
 
 
-    /** Is this type only possible/necessary for the last excitation?
-     * Then it is only in that case evaluated and the excitation weight is ignored */
-    bool evaluateOnce_;
-
     /** @see IsPhysical() */
     bool physical_;
 
     /** this index is the position in the Optimization list and is used to
      * identify the constraint gradient in DesignElement. Only relevant for type = active */
     int index_;
+
+    /** Excitation index for evaluation. -1 for all excitations. Most interesting for stress constraints.
+     * -2 is for unset! */
+    int excite_;
 
     /** @see FactorOmegaOmega() */
     bool omega_omega_;

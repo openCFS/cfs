@@ -300,6 +300,18 @@ namespace CoupledField {
     return ret; 
   }  
 
+  template<typename T>
+  Integer Vector<T>::CountNonZero() const
+  {
+    Integer count = 0;
+
+    for(unsigned int i = 0; i < size_; i++)
+      if(data_[i] != T())
+        count++;
+
+    return count;
+  }
+
 
   // *******************************************
   //   Same as the BLAS functions of that name

@@ -10,6 +10,40 @@ from lxml import etree
 from cfs_utils import *
 from distutils.command.build_scripts import first_line_re
 
+## Read an arbitrary density file as NDArray
+# Uses the <mesh x="30" y="20" z="1"/> element in the header of the density file
+# param elemnr if False the design is read, otherwise nr
+def read_density(filename, elemnr=False):
+  vals = read_density_as_vector(filename, elemnr)
+
+  tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
+  root = tree.getroot()
+  x = int(root.xpath("//mesh/@x")[0])
+  y = int(root.xpath("//mesh/@y")[0])
+  z = int(root.xpath("//mesh/@z")[0])
+  
+  dim = cond(z > 1, 3, 2)
+     
+  if not x*y*z == len(vals):
+    raise RuntimeError("density mesh information x=" + str(x) + " y=" + str(y) + " z=" + str(z)\
+                        + " does not match " + str(len(vals)) + " elements in " + filename) 
+
+  ret = 0
+  if dim == 2:
+    ret = numpy.zeros((x, y))
+  else:
+    ret = numpy.zeros((x, y, z))
+  
+  # copy data from linear list
+  for k in range(z):
+    for j in range(y):
+      for i in range(x):
+        idx = int(x*y*k + x*j + i)
+        # print "i=" + str(i) + " j=" + str(j) + " k=" + str(k) + " idx=" + str(idx)
+        setNDArrayEntry(ret, dim, i, j, k, vals[idx])
+        
+  return ret
+
 ## Reads a cubic (3D) density.xml file as 3D NDArray
 # @param filename from which the last 'set' is used
 def read_cubic_density(filename):
@@ -40,7 +74,8 @@ def read_cubic_density(filename):
   
 ## Reads a density.xml file as vector
 # @param filename from which the last 'set' is used
-def read_density_as_vector(filename):
+# @param elemnr if False the design is read on true nr
+def read_density_as_vector(filename, elemnr=False):
   if not os.path.exists(filename):
     raise RuntimeError("file '" + filename + "' doesn't exist")
   
@@ -48,33 +83,27 @@ def read_density_as_vector(filename):
   
   root = tree.getroot()
   sett = root.xpath("//set[last()]")[0]
-  print "reading set with id = " + sett.get("id")
+  # print "reading set with id = " + sett.get("id")
   
   length = len(sett)
   
+  attribute = cond(elemnr, "nr", "design")
+  # print "check for attribute " + attribute
   counter = 0
   vals=[0]*length
   for element in sett:
     # traverse the elements and get the design
-    vals[counter] = float(element.get("design"))
+    vals[counter] = float(element.get(attribute))
     counter = counter + 1
   
-  print "found " + str(length) + " elements, read " + str(counter) + " elements"
+  # print "found " + str(length) + " elements, read " + str(counter) + " elements"
   
   return vals
   
 ## write the data to a density.xml file
-# @param data_inp a ndata array of dim 2 or three or a list of data
+# @param data_inp a ndata array (2D or 3D) or a list of data
 # @param setname_inp the name of the set or a list of setnames
 def write_density_file(filename, data_inp, setname_inp):
-  out = open(filename, "w")
-  out.write('<?xml version="1.0"?>\n')
-  out.write('<cfsErsatzMaterial>\n')
-  out.write('  <header>\n')
-  out.write('    <design initial="0.5" lower="1e-3" name="density" region="mech" upper="1"/>\n')
-  out.write('    <transferFunction application="mech" design="density" param="1" type="simp"/>\n')
-  out.write('  </header>\n')
- 
   # check if we deal with lists or not
   data_list = []
   setname_list = []
@@ -84,20 +113,43 @@ def write_density_file(filename, data_inp, setname_inp):
   else:
     data_list.append(data_inp)
     setname_list.append(setname_inp)
+
+  out = open(filename, "w")
+  out.write('<?xml version="1.0"?>\n')
+  out.write('<cfsErsatzMaterial>\n')
+  out.write('  <header>\n')
+
+  data    = data_list[0]
+  x = data.shape[0]
+  y = data.shape[1]
+  z = 1
+  if data.ndim >= 3:
+    z = data.shape[2]
+  out.write('    <mesh x="' + str(x) + '" y="' + str(y) + '" z="' + str(z) + '"/>\n')  
+  out.write('    <design initial="0.5" lower="1e-3" name="density" region="mech" upper="1"/>\n')
+  out.write('    <transferFunction application="mech" design="density" param="1" type="simp"/>\n')
+  out.write('  </header>\n')
+
  
   for i in range(len(data_list)):
     data    = data_list[i]
     setname = setname_list[i]
     out.write('  <set id="' + setname + '">\n')
-    edge = data.shape[0] # be careful!
+    dim = data.ndim
+    x = data.shape[0]
+    y = 1 # unfortunately there is no real conditional operator :(
+    if dim >= 2:
+      y = data.shape[1]
+    z = 1
+    if dim >= 3:
+      z = data.shape[2]  
     counter = 1
 
-    dim = data.ndim 
-
-    for i in range(edge):
-      for j in range(edge):
-        for k in range(cond(dim == 2, 1, edge)):
+    for k in range(z):
+      for j in range(y):
+        for i in range(x):    
            val = getNDArrayEntry(data, dim, i, j, k)
+           # print " i=" + str(i) + " j=" + str(j) + " k=" + str(k) + " idx=" + str(counter)
            out.write('    <element nr="' + str(counter) + '" type="density" design="' + str(val) + '"/>\n')
            counter = counter + 1       
          
@@ -105,6 +157,27 @@ def write_density_file(filename, data_inp, setname_inp):
 
   out.write(' </cfsErsatzMaterial>\n')
   out.close()
+
+## evaluates the physical volume fraction
+# @param data 2D/3D data
+# @param penalty 1 for no penalty
+def physical_volume(data, penalty):
+
+  dim = data.ndim
+  x = data.shape[0]
+  y = data.shape[1]
+  z = 1
+  if dim >= 3:
+    z = data.shape[2]
+  vol = 0.0
+  
+  for i in range(x):
+    for j in range(y):
+      for k in range(z):
+        org = getNDArrayEntry(data, dim, i, j, k)
+        vol = vol + pow(org, penalty)
+        
+  return vol / data.size              
 
 
 ## apply a treshold filter on a 2D/3D matrix
@@ -114,18 +187,42 @@ def write_density_file(filename, data_inp, setname_inp):
 def threshold_filter(data, threshold, min, max):
   
   dim = data.ndim
-  edge = data.shape[0]
-  res = numpy.zeros((edge, edge, edge))
-  
-  for i in range(edge):
-    for j in range(edge):
-      for k in range(cond(dim == 2, 1, edge)):
+  x, y, z = getDim(data)
+  res = numpy.copy(data)
+    
+  for i in range(x):
+    for j in range(y):
+      for k in range(z):
         org = getNDArrayEntry(data, dim, i, j, k)
         val = cond(org < threshold, min, max)
         setNDArrayEntry(res, dim, i, j, k, val)        
 
   return res  
 
+
+## threshold towards a given final volume
+# @param data original 2d/3d data
+# @param min niminum final density in the result, ignores penalty, max = 1
+# @param target volume fraction to be reached
+# @param material_penalty penalty to interpret original data
+# @return: the new data array as first value and the threshold as second value
+def auto_threshold_filter(data, min, target, material_penalty):
+  
+  res = numpy.copy(data)
+
+  lower = min
+  upper = 1
+  while upper - lower > 1e-14:
+    mid = lower + 0.5 *(upper - lower)
+    val = physical_volume(threshold_filter(data, mid, min, 1), material_penalty)
+    print " lower=%15.15g mid=%15.15g upper=%15.15g val=%15.15g " % (lower , mid , upper , val)
+    # print " lower=" + str(lower) + " mid=" + str(mid) + " upper=" + str(upper) + " val=" + str(val)
+    if val > target:
+      lower = mid
+    else:
+      upper = mid
+  
+  return threshold_filter(data, lower, min, 1), lower   
 
 
 ## rotate a 3d matrix
@@ -188,113 +285,35 @@ def enlarge_matrix(data, times_x, times_y = 1, times_z = 1):
               setNDArrayEntry(res, dim, x_base + i, y_base + j, z_base + k, val)
 
   return res                     
-              
-## asuming a regular 2d grid this function takes a density-file input
-# and writes a finer version of it, where every element density is just
-# spread to 4 elements
-# element 1 density get written to elements 1,2,5,6 for a 2x2 infile
+
+## handles arbitrary 2d and 3d density files, doubles in each dimension 
 # @param infile the density file with the densities to be blown upper
 # @param outfile name of the output file
+# @param returns also the new ndata array
 def refine_density(infile, outfile):
-  res = read_density_as_vector(infile)
+  org = read_density(infile)
 
-  # validation
-  if len(res) == 0:
-    raise RuntimeError("found no elements in the last 'set' of '" + filename + "'")
+  x, y, z = getDim(org)
+  dim = org.ndim
+  # we cannot handle 3D density files with z is one layer as these are identified as 2D :(
+  out = numpy.zeros((x*2, y*2, cond(z == 1, 1, z*2)))
 
-  out = open(outfile, "w")
-  out.write('<?xml version="1.0"?>\n')
-  out.write('<cfsErsatzMaterial>\n')
-
-  # get header from old density file
-  header = extract_old_header(infile)
-  out.write(header)
-  
-  out.write('<set id="refined">\n')
-
-  new=[0]*4*len(res)
-  print "length of new vector = " + str(len(new))
-
-  num=int(math.sqrt(len(res)+1))
-  print "copying " + str(num) + "^2 values"
-
-  for r in range(num):
-    for c in range(num):
-      val =  res[r*num + c]
-
-      start = 4*r*num + 2*c
-      new[start + 0] = val
-      new[start + 1] = val
-      new[start + 0 + 2*num] = val
-      new[start + 1 + 2*num] = val
-
-  for i in range(len(new)):
-    out.write('  <element nr="' + str(i+1)   + '" type="density" design="' + str(new[i]) + '"/>\n')
-
-  out.write('</set>\n')
-  out.write('</cfsErsatzMaterial>\n')
-  out.close()
-
-  return
-
-## asuming a regular grid 3d this function takes a density-file input
-# and writes a finer version of it, where every element density is just
-# spread to 8 elements
-# @see 2d version above
-# @param infile the density file with the densities to be blown upper
-# @param outfile name of the output file
-def refine_density_3d(infile, outfile):
-  res = read_density_as_vector(infile)
-
-  # validation
-  if len(res) == 0:
-    raise RuntimeError("found no elements in the last 'set' of '" + filename + "'")
-
-  out = open(outfile, "w")
-  out.write('<?xml version="1.0"?>\n')
-  out.write('<cfsErsatzMaterial>\n')
-
-  # get header from old density file
-  header = extract_old_header(infile)
-  out.write(header)
-  
-  out.write('<set id="refined">\n')
-
-  new=[0]*8*len(res)
-  print "length of new vector = " + str(len(new))
-
-  num=int(math.pow(len(res)+1, 1.0/3.0))
-  num2=int(math.pow(num, 2))
-  
-  print "copying " + str(num) + "^3 values"
-  print 'length of new vector = ' + str(len(new))
-
-  for r in range(num):
-    for c in range(num):
-      for s in range(num):
-        index = s*num2 + r*num + c
-        val =  res[index]
-
-        start = 8*s*num2 + 4*r*num + 2*c
-        new[start + 0] = val
-        new[start + 1] = val
-        new[start + 0 + 2*num] = val
-        new[start + 1 + 2*num] = val
-
-        start = start + 4*num2
-        new[start + 0] = val
-        new[start + 1] = val
-        new[start + 0 + 2*num] = val
-        new[start + 1 + 2*num] = val
-
-  for i in range(len(new)):
-    out.write('  <element nr="' + str(i+1)   + '" type="density" design="' + str(new[i]) + '"/>\n')
-
-  out.write('</set>\n')
-  out.write('</cfsErsatzMaterial>\n')
-  out.close()
-
-  return
+  for i in range(x):
+    for j in range(y):
+      for k in range(z):
+        val = getNDArrayEntry(org, dim, i, j, k)
+        # in 2D the z-component is ignored and we set the value twice
+        setNDArrayEntry(out, dim, i*2 + 0, j*2 + 0, k*2 + 0, val)
+        setNDArrayEntry(out, dim, i*2 + 0, j*2 + 0, k*2 + 1, val)
+        setNDArrayEntry(out, dim, i*2 + 0, j*2 + 1, k*2 + 0, val)
+        setNDArrayEntry(out, dim, i*2 + 0, j*2 + 1, k*2 + 1, val)
+        setNDArrayEntry(out, dim, i*2 + 1, j*2 + 0, k*2 + 0, val)
+        setNDArrayEntry(out, dim, i*2 + 1, j*2 + 0, k*2 + 1, val)
+        setNDArrayEntry(out, dim, i*2 + 1, j*2 + 1, k*2 + 0, val)
+        setNDArrayEntry(out, dim, i*2 + 1, j*2 + 1, k*2 + 1, val)
+        
+  write_density_file(outfile, out, "refined")
+  return out 
 
 # Assuming there is a sequence of CFS runs by a paramerer study. This method finds the closes
 # valid run

@@ -4,6 +4,7 @@
 #include <map>
 
 #include "Optimization/Optimization.hh"
+#include "Optimization/Excitation.hh"
 #include "Optimization/SIMP.hh"
 #include "Optimization/PiezoSIMP.hh"
 #include "Optimization/Design/DesignElement.hh"
@@ -25,14 +26,12 @@
 #include "PDE/StdPDE.hh"
 #include "PDE/SinglePDE.hh"
 #include "PDE/mechPDE.hh"
-#include "PDE/elecPDE.hh" // for polarization matrix, see class TopGrad
 #include "Domain/domain.hh"
 #include "Domain/grid.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/resultHandler.hh"
 #include "DataInOut/programOptions.hh"
-#include "General/exception.hh"
 #include <boost/filesystem.hpp>
 #include "Optimization/ShapeOpt.hh"
 
@@ -61,7 +60,7 @@ Enum<Optimization::Optimizer>        Optimization::optimizer;
 Enum<Optimization::Application>      Optimization::application;
 Enum<Optimization::CommitMode>       Optimization::commitMode;
 
-Enum<Optimization::MultipleExcitation::Type>  Optimization::MultipleExcitation::type;
+
 
 Optimization::Optimization()
 {
@@ -70,6 +69,7 @@ Optimization::Optimization()
   this->baseOptimizer_ = NULL;
   this->harmonic = BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType());
   this->currentIteration = 0; // a 1 or 0 can make a lot of difference! 0 is initial design!
+  this->writeCounter_ = 0;
   this->problemSolvedCounter = 0;
   this->problemWithinIteration = 0;
   this->grid = domain->GetGrid();
@@ -106,9 +106,9 @@ Optimization::Optimization()
 
   // multiple excitations are are toggled via attribute. Only if enabled we read the optional element
   // actually part of costFunction - but we store in Optimization itself!
-  bool me = pn->Get("costFunction")->Get("multiple_excitation")->As<bool>();
-  this->multiple_excitation = new MultipleExcitation(me, me ? pn->Get("costFunction")->Get("multipleExcitation", ParamNode::PASS) : PtrParamNode());
-  if(me) this->multiple_excitation->ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("multipleExcitations"));
+  bool dme = pn->Get("costFunction")->Get("multiple_excitation")->As<bool>();
+  this->me = new MultipleExcitation(dme, dme ? pn->Get("costFunction")->Get("multipleExcitation", ParamNode::PASS) : PtrParamNode());
+  if(dme) this->me->ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("multipleExcitations"));
 
   // slope constraints to be processed in SIMP -> Constraints::PostProc
   ParamNodeList list = pn->GetList("constraint");
@@ -154,7 +154,7 @@ Optimization::~Optimization()
 {
   delete design; design = NULL;
   delete baseOptimizer_; baseOptimizer_ = NULL;
-  delete multiple_excitation; multiple_excitation = NULL;
+  delete me; me = NULL;
 }
 
 
@@ -249,6 +249,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::TYCHONOFF, "tychonoff");
   Function::type.Add(Function::TEMPERATURE, "temperature");
   Function::type.Add(Function::GREYNESS, "greyness");
+  Function::type.Add(Function::STRESS, "stress");
   Function::type.Add(Function::ISOTROPY, "isotropy");
   Function::type.Add(Function::SLOPE, "slope");
   Function::type.Add(Function::GLOBAL_SLOPE, "globalSlope");
@@ -256,6 +257,8 @@ void Optimization::SetEnums()
   Function::type.Add(Function::GLOBAL_MOLE, "globalMole");
   Function::type.Add(Function::OSCILLATION, "oscillation");
   Function::type.Add(Function::GLOBAL_OSCILLATION, "globalOscillation");
+  Function::type.Add(Function::JUMP, "jump");
+  Function::type.Add(Function::GLOBAL_JUMP, "globalJump");
 
   Function::Local::locality.SetName("Function::Local::Locality");
   Function::Local::locality.Add(Function::Local::DEFAULT, "default");
@@ -265,6 +268,8 @@ void Optimization::SetEnums()
   Function::Local::locality.Add(Function::Local::PREV_NEXT_AND_REVERSE, "prev_next_and_reverse");
   Function::Local::locality.Add(Function::Local::DEG_45_STAR, "45_deg_star");
   Function::Local::locality.Add(Function::Local::DEG_45_STAR_AND_REVERSE, "45_deg_star_and_reverse");
+  Function::Local::locality.Add(Function::Local::BOUNDARY, "boundary");
+  Function::Local::locality.Add(Function::Local::ELEMENT, "element");
 
   Function::Local::phase.SetName("Function::Local::Phase");
   Function::Local::phase.Add(Function::Local::BOTH, "both");
@@ -299,7 +304,9 @@ void Optimization::SetEnums()
   
   ErsatzMaterial::commitMode.SetName("ErsatzMaterial::CommitMode");
   ErsatzMaterial::commitMode.Add(ErsatzMaterial::FORWARD, "forward");
+  ErsatzMaterial::commitMode.Add(ErsatzMaterial::EACH_FORWARD, "each_forward");
   ErsatzMaterial::commitMode.Add(ErsatzMaterial::ADJOINT, "adjoint");
+  ErsatzMaterial::commitMode.Add(ErsatzMaterial::EACH_ADJOINT, "each_adjoint");
   ErsatzMaterial::commitMode.Add(ErsatzMaterial::BOTH, "both_cases");
 
   OptimizationMaterial::system.SetName("OptimizationMaterial::System");
@@ -315,13 +322,14 @@ void Optimization::SetEnums()
   application.Add(PIEZO_COUPLING, "piezoCoupling");
   application.Add(PRESSURE, "pressure");
   application.Add(CHARGE_DENSITY, "chargeDensity");
+  application.Add(STRESS, "stress");
 
   LevelSet::Action::type.SetName("LevelSet::Action::Type");
   LevelSet::Action::type.Add(LevelSet::Action::SIGNED_DISTANCE_FIELD, "signedDistanceField");
   LevelSet::Action::type.Add(LevelSet::Action::TRIVIAL_HOLE, "trivialHole");
   LevelSet::Action::type.Add(LevelSet::Action::DO_SHAPE_STEP, "shapeStep");
 
-  MultipleExcitation::type.SetName("Optimization::MultipleExcitation::Type");
+  MultipleExcitation::type.SetName("MultipleExcitation::Type");
   MultipleExcitation::type.Add(MultipleExcitation::NO_TYPE, "no_type");
   MultipleExcitation::type.Add(MultipleExcitation::FIXED_WEIGHT, "fixed_weights");
   MultipleExcitation::type.Add(MultipleExcitation::META_OBJECTIVE, "meta_objective");
@@ -503,19 +511,22 @@ void Optimization::SolveStateProblem(Excitation* excite)
                                          
   // Do not store the results. This is to be done in CommitIteration
   if(!harmonic || excite == NULL) 
-    driver->SolveProblem(IsTransient(), analysis_id, false); // static and transient optimization
+    driver->SolveProblem(IsTransient(), analysis_id, NULL); // static and transient optimization
   else
+  {
+    LOG_DBG(opt) << "SSP: harmonic step=" << excite->f_link->step << " f=" << excite->f_link->freq;
     dynamic_cast<HarmonicDriver*>(driver)->ComputeFrequencyStep(excite->f_link->step, analysis_id);
+  }
 
   problemSolvedCounter++;
   problemWithinIteration++;
 }
 
-void Optimization::SolveAdjointProblem(Excitation* excite, Objective* cost){
+void Optimization::SolveAdjointProblem(Excitation* excite, Function* f){
   // does almost the same as SolveStateProblem now, but passing, that we want the adjoint to be solved
   BaseDriver* driver = domain->GetDriver();
   
-  AdjointParameters adjointParams(cost, excite);
+  AdjointParameters adjointParams(f, excite);
   
   if(IsTransient()){
     SinglePDE* mech = domain->GetSinglePDE("mechanic");
@@ -529,10 +540,40 @@ void Optimization::SolveAdjointProblem(Excitation* excite, Objective* cost){
       EXCEPTION("Harmonic adjoint not implemented!");
 }
 
-void Optimization::SolveAdjointProblems(Excitation* excite){
-  for(unsigned int o = 0; o < objectives.data.GetSize(); ++o){
-    SolveAdjointProblem(excite, objectives.data[o]);
+void Optimization::SolveAdjointProblems(Excitation* excite)
+{
+  // solve for objectives and constraints
+  StdVector<Function*> ff = GetActiveFunctions();
+
+  for(unsigned int i = 0; i < ff.GetSize(); ++i)
+  {
+    Function* f = ff[i];
+    if(f->IsAdjointBased())
+      SolveAdjointProblem(excite, f); // virtual! calls ErsatzMaterial implementation
   }
+}
+
+StdVector<Function*> Optimization::GetActiveFunctions() const
+{
+  StdVector<Function*> result;
+
+  const unsigned int cn = objectives.data.GetSize();
+  const unsigned int gn = constraints.active.GetSize();
+
+  result.Resize(cn + gn);
+
+  for(unsigned int i = 0; i < cn; i++)
+  {
+    result[i] = objectives.data[i];
+    LOG_DBG2(opt) << "GAF: o=" << result[i]->ToString();
+  }
+  for(unsigned int i = 0; i < gn; i++)
+  {
+    result[cn + i] = constraints.active[i];
+    LOG_DBG2(opt) << "GAF: g=" << result[cn + i]->ToString();
+  }
+
+  return result;
 }
 
 double Optimization::CalcSymmetry(DesignElement::Type de, DesignElement::ValueSpecifier vs, DesignElement::Access access)
@@ -594,8 +635,14 @@ void Optimization::StoreResults(double step_val)
   // and might do nothing
 
   // this will write the CFS result and history file
-  if(!IsTransient()){ // transient optimization saves results in a different way
-    domain->GetDriver()->StoreResults(step_val == -1 ? currentIteration : step_val);
+  if(!IsTransient())
+  { // transient optimization saves results in a different way
+    if(step_val == -1) {
+      domain->GetDriver()->StoreResults(writeCounter_, currentIteration);
+    } else {
+      domain->GetDriver()->StoreResults(writeCounter_, step_val);
+    }
+    writeCounter_++;
   }
 }
 
@@ -684,10 +731,15 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   if(harmonic) iteration->Get("frequency")->SetValue(GetIterationFrequency());
 
   for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
-    iteration->Get(Objective::type.ToString(objectives.data[i]->GetType()))->SetValue(objectives.data[i]->GetValue());
+  {
+    Function* f = objectives.data[i];
+    iteration->Get(f->type.ToString(f->GetType()))->SetValue(f->GetValue());
+    if(f->GetLocal() != NULL)
+      iteration->Get("infeasible_" + f->type.ToString(f->GetType()))->SetValue(f->GetLocal()->infeasible);
+  }
 
   iteration->Get("change")->SetValue(change);
-  iteration->Get("problemsSolved")->SetValue(problemSolvedCounter);
+  // iteration->Get("problemsSolved")->SetValue(problemSolvedCounter);
 
   // For iteration 0 we want also the constraint values but they were not evaluated.
   // For any iteration we need to evaluate the observe constraints
@@ -720,7 +772,14 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
       double value = g->GetValue();
       if(g->delta_logging) value = value - g->GetBoundValue();
       if(out) *out << "\t" << value;
-      iteration->Get(g->ToString())->SetValue(value);
+      // excitation sensitive constraints are printed in the excitation list
+      if(!g->IsExcitationSensitive())
+      {
+        iteration->Get(g->ToString(me))->SetValue(value);
+        // don't report for local, they should be almost always feasible for MMA, ...
+        if(g->GetLocal() != NULL )
+          iteration->Get("infeasible_" + g->ToString())->SetValue(g->GetLocal()->infeasible);
+      }
     }
   }
 
@@ -747,162 +806,6 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
 }
 
 
-Optimization::MultipleExcitation::MultipleExcitation(bool multiple, PtrParamNode pn)
-{
-  // set defaults
-  this->stride = 1;
-  this->damping = 1.0;
-  this->max_gain = 1e4;
-  this->multiple_excitation_ = multiple;
-  this->type_ = NO_TYPE; // to be eventually overwritten soon
-
-  // if disabled, we don't read anything
-  if(!multiple || pn == NULL) return;
-
-  this->type_ = type.Parse(pn->Get("type")->As<std::string>());
-
-  // adjust defaults
-  if(pn->Has("adjustWeights")) {
-    this->stride   = pn->Get("adjustWeights")->Get("stride")->As<Integer>();
-    this->max_gain = pn->Get("adjustWeights")->Get("max_gain")->As<Double>();
-    this->damping  = pn->Get("adjustWeights")->Get("damping")->As<Double>();
-  }
-}
-
-void Optimization::MultipleExcitation::ToInfo(PtrParamNode in) const
-{
-  if(!multiple_excitation_) return;
-
-  if(type_ == META_OBJECTIVE)  {
-    PtrParamNode in_ = in->Get("metaObjective");
-    in_->Get("type")->SetValue("best_value");
-    in_->Get("damping")->SetValue(damping);
-    in_->Get("stride")->SetValue(stride);
-    in_->Get("max_gain")->SetValue(max_gain);
-  } else
-    in->Get("type")->SetValue(type.ToString(type_));
-}
-
-
-Excitation::Excitation()
-{
-  this->index = -1; // must be updated
-  this->frequency = -1.0;
-  this->f_link = NULL;
-  this->weight = 1.0;
-  this->normalized_weight = 1.0;
-  linForms = new StdVector<LinearFormContext*>();  
-  AddLinFormsFromAssemble();
-}
-
-void Excitation::AddLinFormsFromAssemble(){
-  // all already set linear Forms
-  StdVector<LinearFormContext*>& assLinForms = domain->GetBasePDE()->getPDE_assemble()->GetLinForms();
-  for(unsigned int i = 0; i < assLinForms.GetSize(); ++i){
-    linForms->Push_back(assLinForms[i]);
-  }
-}
-
-void Excitation::Apply()
-{
-  domain->GetOptimization()->applied_excitation = this;
-  Assemble* a = domain->GetBasePDE()->getPDE_assemble();
-  a->SetLinForms(linForms); // this works always, if not used just a copy of assembles linearForms
-  if(! loads.IsEmpty()){
-    a->SetLoads(loads);
-  }
-  // a frequency cannot really be applied but has to be used as parameter
-  // in the driver call
-}
-
-double Excitation::GetOmega()
-{
-  if(frequency < 0.0)
-    EXCEPTION("No frequency given");
-  return 2 * M_PI * frequency;
-}
-
-double Excitation::GetFactor(Function* cost)
-{
-  double factor = 1.0; // default
-  
-  if(cost->FactorOmegaOmega())
-  {
-    if(frequency < 0.0) EXCEPTION("No frequency given");
-    factor *= 4 * M_PI * M_PI * frequency * frequency;
-  }
-  
-  return factor;
-}
-
-double Excitation::GetWeightedFactor(Function* cost)
-{
-  return normalized_weight * GetFactor(cost);
-}
-
-void Excitation::ReadTrackings(PtrParamNode ts){
-  StdPDE* mech = domain->GetStdPDE("mechanic");
-  trackings.Clear();
-  ParamNodeList tracking_list = ts->GetChildren();
-  for(unsigned int i = 0; i < tracking_list.GetSize(); i++){
-    std::string name, dof, value;
-    dof = "";
-    tracking_list[i]->GetValue("name", name);
-    tracking_list[i]->GetValue("dof", dof, ParamNode::PASS);
-    tracking_list[i]->GetValue("value", value);
-    shared_ptr<LoadBc> actLoad( new LoadBc );
-    shared_ptr<EntityList> actList = domain->GetGrid()->GetEntityList( EntityList::NODE_LIST, name, EntityList::NAMED_NODES );
-    actLoad->entities = actList;
-    actLoad->eqnMap = mech->GetEqnMap();
-    if ( dof == "" ) {
-      actLoad->dof = 1;
-    } else {
-      actLoad->dof = mech->GetResultInfo(MECH_DISPLACEMENT)->GetDofIndex(dof);
-    }
-    actLoad->value = value;
-    trackings.Push_back(actLoad);
-  }
-}
-
-void Excitation::ReadLoads(PtrParamNode ls)
-{
-  // loads
-  loads.Clear();
-  MechPDE* mech = (MechPDE*)domain->GetSinglePDE("mechanic");
-  mech->ReadLoads(ls->GetList("load"), loads);
-
-  // pressures
-  StdVector<shared_ptr<EntityList> > pressSurf;
-  StdVector<std::string> pressVals;
-  StdVector<std::string> pressPhase;
-  mech->ReadPressureLoadsFromXML(ls, pressSurf, pressVals, pressPhase);
-  mech->DefinePressureIntegrators(pressSurf, pressVals, pressPhase, linForms);
-  
-  // regionLoads
-  std::map<RegionIdType, SinglePDE::RegionLoad> regionLoads;
-  mech->ReadRegionLoadsFromXML(ls, regionLoads);
-  mech->DefineRegionLoadIntegrators(regionLoads, linForms);
-}
-
-void Excitation::ReadTestStrain(const Vector<double>& vec)
-{
-  this->test_strain = vec;
-
-  loads.Clear();
-  MechPDE* mech = dynamic_cast<MechPDE*>(domain->GetSinglePDE("mechanic"));
-  mech->DefineTestStrainIntegrators(vec, linForms);
-}
-
-void Excitation::SetPolarizationMatrixRHS(const Vector<double>& mechp,
-    const Vector<double>& elecp, const int num)
-{
-  loads.Clear();
-  MechPDE* mech = dynamic_cast<MechPDE*>(domain->GetSinglePDE("mechanic"));
-  mech->DefinePolarizationMatrixIntegrators(mechp, linForms, num);
-  
-  ElecPDE* elec = dynamic_cast<ElecPDE*>(domain->GetSinglePDE("electrostatic"));
-  elec->DefinePolarizationMatrixIntegrators(elecp, linForms, num);
-}
 
 Optimization::Log::Log()
 {

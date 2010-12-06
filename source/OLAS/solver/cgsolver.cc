@@ -221,7 +221,7 @@ namespace CoupledField {
       out->Get("solutionIsOkay")->SetValue(true);
     }
     else {
-      out->Get("solutionIsOkay")->SetValue(false);
+      out->Get("solutionIsOkay")->SetValue(boost::any(false));
     }
 
   }

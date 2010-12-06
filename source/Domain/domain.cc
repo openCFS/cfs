@@ -206,17 +206,29 @@ void Domain::CreateGrid()
 
   // Call the nonmatching grid intersection calculation
   gridMap_["default"]->InitNonmatchingInterfaces();
+  
+  
 
   if (!progOpts->GetPrintGrid() == true)
   {
     // Initialize resultHandler
     resultHandler_->Init(gridMap_["default"], false);
+    
+    // print grid information to result file if requested
+    if(param->Get("domain")->Get("printGridInfo")->As<bool>() ) {
+      gridMap_["default"]->CreateGridInformation(resultHandler_);
+    }
+    
   }
 
 }
 
 void Domain::PostInit()
 {
+  
+  // Register user defined variables
+  RegisterVariables();
+  
   // set up the driver first
   // SetDriver extracts the SingleDriver which is what CreateInstance returns
   // but in the case of an MultiSequenceDriver the SingeDriver is NULL up to init.
@@ -244,7 +256,7 @@ void Domain::PostInit()
     if(DensityFile::NeedLoadErsatzMaterial())
       ersatzMaterial = DensityFile::ReadErsatzMaterial();
   }
-
+  
 }
 
 // **************
@@ -857,7 +869,6 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep)
 
 void Domain::CreateCoordinateSystems()
 {
-
   PtrParamNode in = info->Get(ParamNode::HEADER)->Get("domain");
   in = in->Get("coordinateSystems", ParamNode::APPEND);
   
@@ -912,6 +923,27 @@ void Domain::CreateCoordinateSystems()
   }
 }
 
+void Domain::RegisterVariables() 
+{
+  PtrParamNode varListNode = param->Get("domain")
+      ->Get("variableList", ParamNode::PASS);
+  if( varListNode ) {
+   ParamNodeList & varNodes = varListNode->GetChildren();
+   ParamNodeList::iterator it = varNodes.Begin();
+   std::string varName, valString;
+   MathParser::HandleType handle;
+   handle = mathParser_.GetNewHandle();
+   Double value = 0.0;
+   for(; it != varNodes.End(); it++ ) {
+     (*it)->GetValue("name", varName);
+     (*it)->GetValue("value", valString);
+     mathParser_.SetExpr(handle, valString);
+     value = mathParser_.Eval(handle);
+     mathParser_.SetValue(MathParser::GLOB_HANDLER, varName, value);
+   }
+   mathParser_.ReleaseHandle(handle);
+  }
+}
 // *************
 //   SetDriver
 // *************
@@ -1013,6 +1045,10 @@ bool Domain::HasErsatzMaterialMass()
 {
   return ersatzMaterial == NULL ? false
       : ersatzMaterial->HasErsatzMaterialMass();
+}
+
+bool Domain::HasErsatzMaterialDamping(){
+  return(ersatzMaterial != NULL && ersatzMaterial->HasErsatzMaterialDamping());
 }
 
 // *************

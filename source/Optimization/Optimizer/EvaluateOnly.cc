@@ -33,7 +33,7 @@ void EvaluateOnly::SolveProblem()
     // we do multiple excitations only when end > 1. Otherwise it is unused
     if(end > 1)
     {
-      Excitation& excite = dynamic_cast<ErsatzMaterial*>(optimization)->excitations[0];
+      Excitation& excite = optimization->GetMultipleExcitation()->excitations[0];
       excite.index = 0; // we solve always at the same position
       excite.f_link = &hd->freqs[i];
       excite.frequency = excite.f_link->freq;

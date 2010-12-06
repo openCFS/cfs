@@ -22,6 +22,7 @@
 #include "Utils/Timer.hh"
 #include "DataInOut/Scripting/cfsmessenger.hh"
 #include "Optimization/Optimization.hh"
+#include "Optimization/Design/DesignSpace.hh"
 
 namespace CoupledField
 {
@@ -78,7 +79,7 @@ namespace CoupledField
   BiLinFormContext* Assemble::GetBiLinForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2,  const std::string& integrator)
   {
      // the EntityList has the region name as name but not the id
-     std::string region = domain->GetGrid()->GetRegion().ToString(regionId);
+//     std::string region = domain->GetGrid()->GetRegion().ToString(regionId);
 
      BiLinFormContext* result = NULL;
 
@@ -87,10 +88,13 @@ namespace CoupledField
      for (iter = biLinForms_->Begin(); iter != biLinForms_->End(); iter++)
      {
        // we are wrong if the region does not match
-       if((*iter)->GetFirstEntities()->GetName() != region) continue;
+//       if((*iter)->GetFirstEntities()->GetName() != region) continue;
+       if((*iter)->GetFirstEntities()->GetRegion() != regionId) continue;
        // when pde1 is given we compare it by name and continue if the names are different
-       if(pde1 != NULL && (*iter)->GetFirstPde()->GetName() != pde1->GetName()) continue;
-       if(pde2 != NULL && (*iter)->GetSecondPde()->GetName() != pde2->GetName()) continue;
+//       if(pde1 != NULL && (*iter)->GetFirstPde()->GetName() != pde1->GetName()) continue;
+       if((*iter)->GetFirstPde() != pde1) continue;
+//       if(pde2 != NULL && (*iter)->GetSecondPde()->GetName() != pde2->GetName()) continue;
+       if((*iter)->GetSecondPde() != pde2) continue;
        if((*iter)->GetIntegrator()->GetName() != integrator) continue;
 
        // we come here because we had no contradiction - check for uniqueness
@@ -100,8 +104,10 @@ namespace CoupledField
        result = *iter;
      }
 
-     if(result == NULL)
+     if(result == NULL){
+       std::string region = domain->GetGrid()->GetRegion().ToString(regionId);
        EXCEPTION("BiLinFormContext '" << integrator << "' at region '" << region << "' not found");
+     }
      return result;
   }
 
@@ -406,8 +412,13 @@ namespace CoupledField
           else
             InsertMatrix( destMat, actContext, elemMatrix, eqnVec1, eqnVec2, pdeId1, pdeId2);
 
-          // Check for secondary matrix type
-          if (secDestMat != NOTYPE ) {
+          // if optimization provides Damping Parameters, we use them, and ignore everything else
+          double secMatFacOpt = 0.0;
+          if(domain->HasErsatzMaterialDamping() && 
+              domain->GetErsatzMaterial()->GetErsatzMaterialDampingParameterForIntegrator(it1.GetElem(), form, secMatFacOpt)){
+            elemMatrix *= secMatFacOpt; // only in non-complex case, complex is not known in ParamMat
+            InsertMatrix(DAMPING, actContext, elemMatrix, eqnVec1, eqnVec2, pdeId1, pdeId2);
+          }else if (secDestMat != NOTYPE ) { // Check for secondary matrix type
 
             Double dampFactor = 1.0;
             if ( actContext.getPtDamplayer() != NULL ) {

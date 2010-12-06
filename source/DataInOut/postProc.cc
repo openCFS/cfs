@@ -597,6 +597,18 @@ namespace CoupledField {
           mParser_->SetCoordinates(  rHandles_[outDof],
                                      *(domain->GetCoordSystem()),
                                      coords );
+        } else if (outIt.GetType() == EntityList::ELEM_LIST) {
+          Vector<Double> elemLocCoord, locCoord, globCoord;
+          Matrix<Double> cornerCoords;
+          ptGrid_->GetElemNodesCoord( cornerCoords, outIt.GetElem()->connect, false);
+          BaseFE * ptelem = outIt.GetElem()->ptElem;
+
+          ptelem->GetCoordMidPoint( elemLocCoord );
+          ptelem->Local2GlobalCoord(globCoord, elemLocCoord,  
+                                    cornerCoords, outIt.GetElem() );
+          mParser_->SetCoordinates(  rHandles_[outDof],
+                                              *(domain->GetCoordSystem()),
+                                              globCoord );
         }
         
         // Register current input values for dofNames
@@ -646,6 +658,18 @@ namespace CoupledField {
           mParser_->SetCoordinates( iHandles_[outDof],
                                     *(domain->GetCoordSystem()),
                                     coords );
+        } else if (outIt.GetType() == EntityList::ELEM_LIST) {
+          Vector<Double> elemLocCoord, locCoord, globCoord;
+          Matrix<Double> cornerCoords;
+          ptGrid_->GetElemNodesCoord( cornerCoords, outIt.GetElem()->connect, false);
+          BaseFE * ptelem = outIt.GetElem()->ptElem;
+
+          ptelem->GetCoordMidPoint( elemLocCoord );
+          ptelem->Local2GlobalCoord(globCoord, elemLocCoord,  
+                                    cornerCoords, outIt.GetElem() );
+          mParser_->SetCoordinates(  rHandles_[outDof],
+                                     *(domain->GetCoordSystem()),
+                                     globCoord );
         }
         
         // Register current input values for dofNames

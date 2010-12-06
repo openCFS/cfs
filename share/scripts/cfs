@@ -114,7 +114,11 @@ SetANSYSParameters()
 	    ANS_ARCH=linia32;
 	    LIB=/lib ;;
 	X86_64)
-	    ANS_ARCH=linop64;
+	    if [ "$SUBARCH" = "OPTERON" ]; then
+		ANS_ARCH=linop64;
+	    else
+		ANS_ARCH=linem64t;
+	    fi
 	    LIB=/lib64 ;;
 	IA64)
 	    ANS_ARCH=linia64;
@@ -133,19 +137,19 @@ SetANSYSParameters()
         fi
     fi
 
-    if [ ! -d "$ANSYS_ROOT_DIR" ]
-    then
+#    if [ ! -d "$ANSYS_ROOT_DIR" ]
+#    then
+#
+#
+#	echo "Cannot find root directory of ANSYS:"
+#	echo "  $ANSYS_ROOT_DIR"
+#	echo "Please set either environment variable ANSYS_ROOT_DIR"
+#	echo "or edit $HOME/.nacsrc."
+#	exit 1
+#    fi
 
 
-	echo "Cannot find root directory of ANSYS:"
-	echo "  $ANSYS_ROOT_DIR"
-	echo "Please set either environment variable ANSYS_ROOT_DIR"
-	echo "or edit $HOME/.nacsrc."
-	exit 1
-    fi
-
-
-    export LD_LIBRARY_PATH=$LIB:$ANSYS_ROOT_DIR/ansys/syslib/$ANS_ARCH:$ANSYS_ROOT_DIR/ansys/customize/misc/$ANS_ARCH:$LD_LIBRARY_PATH
+    export LD_LIBRARY_PATH=$CFS_ROOT_DIR$LIB/$ARCH_STR:$CFS_ROOT_DIR$LIB/$ARCH_STR/v110/$ANS_ARCH:$ANSYS_ROOT_DIR/ansys/syslib/$ANS_ARCH:$ANSYS_ROOT_DIR/ansys/customize/misc/$ANS_ARCH:$LD_LIBRARY_PATH
 }
 
 SetGIDParameters()
@@ -188,7 +192,7 @@ then
     unset ANSYS_ROOT_DIR_TEMP
 fi
 
-CFS_DIST_TYPE="GID"
+CFS_DIST_TYPE="ANSYS"
 
 if [ "$CFS_DIST_TYPE" = "" ]
 then 

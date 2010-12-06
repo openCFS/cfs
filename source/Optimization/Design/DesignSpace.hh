@@ -83,6 +83,11 @@ namespace CoupledField
      bool HasErsatzMaterialMass(){
        return designMaterial != NULL;
      }
+     
+     /** Returns true if optimization also provides damping parameters for Rayleigh-Damping (alpha, beta) */
+     bool HasErsatzMaterialDamping(){
+       return(designMaterial != NULL && designMaterial->DampingIsDesign());
+     }
 
      /** Calculates the corresponding ErsatzMaterialTensor for the given element
       * @param t holds the resulting MaterialTensor
@@ -98,6 +103,18 @@ namespace CoupledField
       * @param direction if !=NO_DERIVATIVE calculate the derivative instead of value
       */
      double GetErsatzMaterialMass(const Elem* elem, DesignElement::Type direction);
+     
+     /** Get the ErsatzMaterialDampingParameters
+      * @param alpha Damping Parameter alpha
+      * @param beta Damping Parameter beta
+      * @param elem the Element for which the parameters should be returned
+      * @param direction if given return derivative in that direction
+      * @return whether DampingParameters are optimized at all  */
+     bool GetErsatzMaterialDamping(double& alpha, double& beta, const Elem* elem,
+         DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+     
+     /** Get the correct Damping parameter, alpha for Mass, beta for Stiffness */
+     bool GetErsatzMaterialDampingParameterForIntegrator(const Elem* elem, BaseForm* integrator, double& param);
 
      /** This gets back a uniquely defined transfer function.
       * @param throw_exception if false NULL is returned when nothing is found! */
@@ -187,13 +204,18 @@ namespace CoupledField
       * @exception throw_region_exception suppresses only exceptions on non-matching regions! */
      int Find(const Elem* elem, bool throw_region_exception);
 
+     /** finds the index of the design element in design.data for the element.
+      * Is very fast O(1) */
+     int Find(unsigned int elemNum, bool throw_exception = true);
+
+
      /** Finds the index of this design element within the data set.
       * Is rather fast O(1) for few design types.
       * @return -1 if nothing found and not throw_exception */
      int Find(const DesignElement* de, bool throw_exception = true);
 
      /** When we have more design types this is a divisor of data.GetSieze() */
-     unsigned int GetNumberOfElements() { return elements_; }
+     unsigned int GetNumberOfElements() { return elements; }
 
      /** The number of optimization variables over all regions. Counts every time.
       * Takes constant regions into account - hence can be smaller than the number of elements even for
@@ -223,8 +245,8 @@ namespace CoupledField
      /** Might be nonsense if our constructor is no simp or ersatz material one! */
      int GetRegionId()
      {
-       assert(regions_.GetSize() == 1);
-       return regions_[0].regionId;
+       assert(regions.GetSize() == 1);
+       return regions[0].regionId;
      }
 
      /** We can define results in the optimization part: <pre>
@@ -249,7 +271,7 @@ namespace CoupledField
        bool constant;
      };
      
-     StdVector<DesignRegion> regions_;
+     StdVector<DesignRegion> regions;
 
      /** save parameters for scaling the design to [0..1] in the optimizer: 
       * our design = scaling * optimizer_design + translation 
@@ -259,9 +281,10 @@ namespace CoupledField
 
      /** for SIMP type constructor we have a number of elements,
       * data size = num of design * num region elements */
-     unsigned int elements_;
+     unsigned int elements;
 
-   protected:
+    protected:
+
 
      /** handles design and region reordering */
      virtual void WriteDenseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
@@ -275,7 +298,7 @@ namespace CoupledField
       * @param elem the element to be considered
       */
      bool CollectMaterialParametersForElement(const Elem* elem);
-
+     
    private:
      /** Extracts a nodal value */
      double GetNodalValue(unsigned int nodeNumber, DesignElement::ValueSpecifier vs);
@@ -297,9 +320,6 @@ namespace CoupledField
       *         The deletion of the object is the duty of the caller (or shared pointer) */
      ResultInfo* GetResultInfo(ResultDescription& rd);
 
-     /** finds the index of the design element in design.data for the element.
-      * Is very fast O(1) */
-     int Find(unsigned int elemNum, bool throw_exception = true);
 
      /** as regionIds_ does not exist as StdVector anymore, a simple replacement for regionIds_.Find() */
      int FindRegion(RegionIdType regionId);

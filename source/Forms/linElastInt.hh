@@ -73,15 +73,16 @@ namespace CoupledField {
      * Note, that most forms implement this method in the non-SIMP variant with no
      * elem parameter but the BDBInt uses calcDMat with the elem parameter.
      * Therefore all direct childs of this class should either give calcDMat(dMat, elem)
-     * or provide a a variant that class the non-elem version.
+     * or provide a variant of that class the non-elem version.
      * Take care! This is error prone!! 
      * For ParamMat case, if direction is NO_DERIVATIVE, we fall back to the 2 parameter 
      * call (in bdbInt::CalcElementMatrix), so that child classes may also only implement 2 paramater version
      * if no ParamMat optimization is needed
-     * @param direction if !=  DesignElement::NO_DERIVATIVE calculate derivative instead*/ 
-    virtual void calcDMat( Matrix<Double> &dMat, const Elem* elem, const DesignElement::Type direction);
+     * @param direction if !=  DesignElement::NO_DERIVATIVE calculate derivative instead
+     * @param force_factor if set no pseudo density factor is applied but the force_factor (for direction = DENSITY) */
+    void calcDMat( Matrix<Double> &dMat, const Elem* elem, const DesignElement::Type direction, double force_factor = 0.0);
 
-    /** see calcDMat(Matrix<Double>, const Elem*, const DesignElement::Type) */
+    /** see calcDMat(Matrix<Double>, const Elem*, const DesignElement::Type, force_factor) */
     virtual void calcDMat( Matrix<Double> &dMat, const Elem* elem){
       calcDMat( dMat, elem, DesignElement::NO_DERIVATIVE);
     }

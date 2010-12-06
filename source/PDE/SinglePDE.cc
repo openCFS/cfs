@@ -14,6 +14,8 @@
 #include "DataInOut/programOptions.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
+#include "Utils/biotSavart.hh"
+
 #include "OLAS/algsys/basesystem.hh"
 #include "OLAS/algsys/standardsys.hh"
 
@@ -1143,6 +1145,13 @@ namespace CoupledField {
              // Transform Dirichlet boundary conditions for effmass-formulation
              if (effectiveMass_) {
                val = TS_alg_->DirichletBC4EffMassMatrix(val,eqnNr);
+             }
+             
+             // if Biot-Savart is set (just relevant for magnetics ) we have to correct
+             // the inhomog. Dirichlet values
+             // (watch out for equation number offset!!!)
+             if ( isBiotSavart_ ) {
+               val -= biotSavart_->GetMagVec( eqnNr-1, analysistype_ );
              }
 
              // Case of complex-valued entries
@@ -2747,19 +2756,18 @@ namespace CoupledField {
     UInt numDofs = actDof.dofNames.GetSize();
     EntityIterator it = res->GetEntityList()->GetIterator();
 
-    if( res->GetEntryType() == BaseMatrix::DOUBLE ) {
-
-      // === TRANSIENT CASE ===
+    if ( analysistype_ == TRANSIENT )
+    {
       const Vector<Double>& (TimeStepping::*fct) () const;
       switch ( deriv ) {
-      case 1:
-        fct = &TimeStepping::GetDeriv1;
-        break;
-      case 2:
-        fct = &TimeStepping::GetDeriv2;
-        break;
-      default :
-        EXCEPTION( "Only derivatives up to order 2 possible" );
+        case 1:
+          fct = &TimeStepping::GetDeriv1;
+          break;
+        case 2:
+          fct = &TimeStepping::GetDeriv2;
+          break;
+        default :
+          EXCEPTION( "Only derivatives up to order 2 possible" );
       }
 
       const Vector<Double> & solHelp = (TS_alg_->*fct)();
@@ -2781,27 +2789,28 @@ namespace CoupledField {
           }
         }
       }
-    } else {
-      // === HARMONIC CASE ===
+    }
+    else if ( analysistype_ == HARMONIC )
+    {
       Double omega = solveStep_->GetActFreq() * 2 * PI;
 
       // determine correct factor
       Complex factor = Complex(0.0, 0.0);
       switch( deriv ) {
-      case 1:
-        factor = Complex( 0.0, omega );
-        break;
-      case 2:
-        factor = Complex( -omega*omega, 0.0 );
-        break;
-      default :
-        EXCEPTION( "Only derivatives up to order 2 possible" );
+        case 1:
+          factor = Complex( 0.0, omega );
+          break;
+        case 2:
+          factor = Complex( -omega*omega, 0.0 );
+          break;
+        default :
+          EXCEPTION( "Only derivatives up to order 2 possible" );
       }
 
       Vector<Complex> & solHelp =
-        dynamic_cast<Vector<Complex>& > (*solVec_);
+          dynamic_cast<Vector<Complex>& > (*solVec_);
       Vector<Complex> & actSol = dynamic_cast<Result<Complex>&>
-         (*(res)).GetVector();
+          (*(res)).GetVector();
       actSol.Resize( res->GetEntityList()->GetSize() *
                      actDof.dofNames.GetSize() );
 
@@ -2818,7 +2827,14 @@ namespace CoupledField {
           }
         }
       }
-
+    }
+    else
+    {
+      WARN("Cannot compute time derivative '"
+          << res->GetResultInfo()->resultName
+          << "' in a "
+          << BasePDE::analysisType.ToString(analysistype_)
+          << " analysis.");
     }
   }
 
@@ -3494,7 +3510,7 @@ namespace CoupledField {
 
      // the counter is a helper, as parameter to be reused for performance reasons
      counter.Resize(grid->GetNumNodes() + 1);
-     counter.Init(0.0);
+     counter.Init(0);
 
      EntityIterator it = list->GetIterator();
 

@@ -350,6 +350,20 @@
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_Domain">
     <xsd:sequence>
+      <!-- Variable list -->
+      <xsd:element name="variableList" minOccurs="0" maxOccurs="1">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="var">
+              <xsd:complexType>
+                <xsd:attribute name="name" type="xsd:token" use="required"/>
+                <xsd:attribute name="value" type="xsd:token" use="required"/>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      
       <!-- Region list -->
       <xsd:element name="regionList" minOccurs="0" maxOccurs="1">
         <xsd:complexType>
@@ -437,6 +451,9 @@
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
+    <!-- Flag for printing grid information -->
+    <xsd:attribute name="printGridInfo" type="DT_CFSBool" use="optional" 
+      default="no"/>
   </xsd:complexType>
 
  

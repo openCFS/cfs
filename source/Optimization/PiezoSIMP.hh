@@ -21,34 +21,23 @@ public:
 
 protected:
 
-  /** overwrite this method for own objectives. */
-  virtual double CalcObjective(Excitation& excite, Objective* cost)
+  /** overloads SIMP::CalcFunction()
+   * @see ErsatzMaterial::CalcFunction */
+  double CalcFunction(Excitation& excite, Function* f, bool derivative);
+
+  virtual void ConstructAdjointRHS(Excitation& excite, Function* f)
   {
-    if(cost->GetType() == Objective::ELEC_ENERGY)
+    if(f->GetType() == Objective::ELEC_ENERGY)
     {
-      return harmonic ? CalcElecEnergy<std::complex<double> >(excite) : CalcElecEnergy<double>(excite); 
-    }
-    else
-      return SIMP::CalcObjective(excite, cost);
-  }
-  
-  virtual void ConstructAdjointRHS(Excitation& excite, Objective* cost)
-  {
-    if(cost->GetType() == Objective::ELEC_ENERGY)
-    {
-      if(harmonic) ConstructAdjointRHS<std::complex<double> >(excite, cost);
-              else ConstructAdjointRHS<double>(excite, cost);
+      if(harmonic) ConstructAdjointRHS<std::complex<double> >(excite, f);
+              else ConstructAdjointRHS<double>(excite, f);
     }
     else
     {
-      SIMP::ConstructAdjointRHS(excite, cost); // EM
+      SIMP::ConstructAdjointRHS(excite, f); // EM
     }
   }
   
-  /** Calculates gradients in the form <l, Ku> */
-  void CalcObjectiveGradient(Excitation& excite, Objective* cost);
-
-
 private:
 
   /** Calculate the electrix enegy p^T K_pp p resp. p^T K_pp p^* */  
@@ -57,7 +46,7 @@ private:
 
   /** Sets -K_pp p or -K_pp p^* */
   template <class T>
-  void ConstructAdjointRHS(Excitation& excite, Objective* cost);
+  void ConstructAdjointRHS(Excitation& excite, Function* cost);
   
   
   /** This is our part for CalcU1KU2() -> This set the matrix derivatives form ELEC and

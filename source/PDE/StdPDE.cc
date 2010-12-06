@@ -54,6 +54,7 @@ namespace CoupledField {
     solVecPrev_(NULL),
     fracDamping_(false),
     fracMemory_(0),
+    isBiotSavart_(false),
     inType_(NOTUSED),
     isIncrFormulation_(false),
     updatedLagrangeForm_(false),

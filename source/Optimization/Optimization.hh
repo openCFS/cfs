@@ -4,8 +4,6 @@
 #include "General/Enum.hh"
 #include "Utils/StdVector.hh"
 #include "MatVec/vector.hh"
-#include "Driver/harmonicDriver.hh"
-#include "Domain/bcs.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Condition.hh"
 #include "Optimization/Objective.hh"
@@ -18,23 +16,23 @@ namespace CoupledField
    class BaseOptimizer;
    class SinglePDE;
    class Excitation;
-   class LinearFormContext;
+   class MultipleExcitation;
 
    /** This is a simple class used as a parameter to SetAdjointRhs called by assemble */
    class AdjointParameters {
    public:
-     AdjointParameters(Objective* o, Excitation* e) {
-       objective = o;
+     AdjointParameters(Function* f, Excitation* e) {
+       function = f;
        excite = e;
      }
-     Objective* GetObjective() {
-       return objective;
+     Function* GetFunction() {
+       return function;
      }
      Excitation* GetExcitation() {
        return excite;
      }
    private:
-     Objective* objective;
+     Function* function;
      Excitation* excite;
    };
    
@@ -62,7 +60,7 @@ namespace CoupledField
 
          /** Where we apply the transformation.
           * A subset of the values are PDE identifiers for ToPDE() and ToApp(). */
-         typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, HEAT, ACOUSTIC, NO_APP} Application;
+         typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, HEAT, ACOUSTIC, STRESS, NO_APP} Application;
 
          /** Not the optimization problem but the solver! */
          typedef enum { OPTIMALITY_CONDITION, IPOPT_SOLVER, SCPIP_SOLVER, SNOPT_SOLVER, SHAPE_SOLVER, 
@@ -74,7 +72,7 @@ namespace CoupledField
          static Enum<Application> application;
 
          /** the commit mode defines what of the iterations is to be written to gid, ... */
-         typedef enum { FORWARD, ADJOINT, BOTH } CommitMode;
+         typedef enum { FORWARD, ADJOINT, BOTH, EACH_FORWARD, EACH_ADJOINT } CommitMode;
 
          static Enum<CommitMode> commitMode;
          
@@ -124,9 +122,11 @@ namespace CoupledField
          * This does the real work
          * @param excite multi-excitation
          * @param cost multi-objective */
-        virtual void SolveAdjointProblem(Excitation* excite, Objective* cost);
+        virtual void SolveAdjointProblem(Excitation* excite, Function* f);
         
-        /** Solves all adjoint problems */
+        /** Traverses all objective and active constraint functions (non local) and calls SolveAdjointProblem()
+         * if the functions needs it
+         * @see Function::IsAdjointBased() */
         virtual void SolveAdjointProblems(Excitation* excite = NULL);
         
         /** Sets the rhs for the adjoint, called by assemle */
@@ -168,52 +168,15 @@ namespace CoupledField
          * converted so that it just has to be multiplied */
         double GetStepWeight(unsigned int ts) const;
         
-        /** This struct stores the multiple excitation Information. It contains the
-         * same defaults as the xml schema as the whole element is optional. */
-        class MultipleExcitation
-        {
-        public:
-          /** @param enabled comes from the attribute.
-           * @param pn if NULL only the defaults are set */
-          MultipleExcitation(bool enabled, PtrParamNode pn);
-
-          void ToInfo(PtrParamNode in) const;
-
-          typedef enum { NO_TYPE, FIXED_WEIGHT, META_OBJECTIVE, HOMOGENIZATION_TEST_STRAINS,
-                         POLARIZATION_MATRIX } Type;
-
-          static Enum<Type> type;
-          /** Do we do multiple excitation at all? */
-          bool IsEnabled() const { return multiple_excitation_; }
-
-          /** Dow we do adjust weigts */
-          bool DoAdjustWeights() const { return type_ == META_OBJECTIVE; }
-
-          bool DoHomogenization() const { return type_ == HOMOGENIZATION_TEST_STRAINS; }
-          
-          bool DoPolarizationMatrix() const { return type_ == POLARIZATION_MATRIX; }
-
-          /** The stride for adjust weights: 1 = every iteration, 2 = every second ... */
-          int stride;
-
-          /** the maximal span between the largest (1) and smallest weight as factor */
-          double max_gain;
-
-          /** The exponent d in w_k^p J_k = const */
-          double damping;
-
-        private:
-          /** do we do multiple excitation at all? */
-          bool multiple_excitation_;
-          Type type_;
-        };
-
         /** The current multiple excitation state -> check with IsEnabled() */
-        MultipleExcitation* GetMultipleExcitation() const { return multiple_excitation; }
-
+        MultipleExcitation* GetMultipleExcitation() const { return me; }
 
         /** set the (static) enums - if they are used outside optimization, make this method public */
         static void SetEnums();
+
+        /** Returns all active functions. Does not blow up local constraints. Combines objective and constraints.active.
+         * Always creates the list, so use only rarely. */
+        StdVector<Function*> GetActiveFunctions() const;
 
         /** Our base ParamNode pointer, pointing to a plain <optimization> */
         PtrParamNode optInfoNode;
@@ -226,6 +189,7 @@ namespace CoupledField
         /** This contains the constraints in their three forms: standard, hidden and observe
          * and several virtual views on that */
         ConditionContainer constraints;
+
 
         /** The applied excitation */
         Excitation* applied_excitation;
@@ -284,6 +248,7 @@ namespace CoupledField
          * @see problemSolvedCounter. */
         int currentIteration;
 
+
         /** This checks how often the state problem is solved. This is not necessary equal
          * to the iterations, e.g. for line search of an external optimizer. Incremented by
          * SolveStateProblem(). */
@@ -296,7 +261,7 @@ namespace CoupledField
         int maxIterations;
 
         /** Our MultipleExcitation objecte - by default disabled */
-        MultipleExcitation* multiple_excitation;
+        MultipleExcitation* me;
         
         /** The actual kind of optimizer.  */
         Optimizer optimizer_;
@@ -360,100 +325,14 @@ namespace CoupledField
         /** Keeps all logging relevant stuff */
         Log log;
 
+        /** counts the written steps, which can be higher than currentIteration if adjoints or multiples are written */
+        int writeCounter_;
+
         /** When did we store the last result via CommitIteration() due to stride */
         int lastStoredResult_;
 
         /** This holds our optimer instance. */
         BaseOptimizer* baseOptimizer_;
-  };
-
-  typedef LoadBc TrackingBc;
-
-  typedef LoadList TrackingList;
-
-  /** For multiple loads (compliance or multiple frequency optimization) we use
-   * the summarized term multiple excitations. This object encapsulates the such a excitation.
-   * This excitations are weighted.  */
-  class Excitation
-  {
-  public:
-
-    /** default constructor for StdVector() */
-    Excitation();
-    
-    /** This method makes the current load active.
-     * For multiple frequencies it does nothing. The actual frequency is choosen by default. */
-    void Apply();
-
-    /** Find the fixed factor, does ignore weighting and does not apply it. */
-    double GetFactor(Function* cost);
-
-    /** Returns GetFactor() * normalized_weight */
-    double GetWeightedFactor(Function* cost);
-    
-    /** Gets the current omege =  2 * pi * f */
-    double GetOmega();
-
-    /** @return omega^2 */
-    double GetOmegaOmega();
-    
-    /** read the tracking node list from XML */
-    void ReadTrackings(PtrParamNode ts);
-    
-    /** read the loads from XML */
-    void ReadLoads(PtrParamNode ls);
-    
-    void ReadTestStrain(const Vector<double>& vec);
-    
-    void AddLinFormsFromAssemble();
-    
-    /** set correct values of pol_rhs for calculation of polarization matrix */
-    void SetPolarizationMatrixRHS(const Vector<double> &mechp,
-        const Vector<double> &elecp, const int num);
-
-    /** return pointer to linForms, used by Shape-Optimization */
-    StdVector<LinearFormContext*>& GetLinForms() { return *linForms; }
-
-    /** the index of this excitation in the excitations array. If -1 something went wront */
-    int index;
-
-    /** For static/monoharmonic optimization with different load-cases. Now allowing also multiple loads in one case.
-     * empty and apply_linForms=false if not applicable */
-    LoadList loads;
-    
-    /** For static optimization with different pressure or regionLoads */
-    StdVector<LinearFormContext*>* linForms;
-    
-    /** Different possible trackings for tracking objective */
-    TrackingList trackings;
-
-    /** This is a link to the Frequency description from the harmonic driver.
-     * It is used for calling the HarmonicDriver to solve the problems */
-    HarmonicDriver::Frequency* f_link;
-
-    /** For multiharmonic excitation. -1.0 by default */
-    double frequency;
-
-    /** this is the weight from the xml file */
-    double weight;
-
-    /** this is the normalized weight (sum of all weights of all excitations is 1) */
-    double normalized_weight;
-
-    /** Here we store the calculated objective value, including costFunction/factor
-     * to enable metaObjective. In the Optimization::cost struct we store a copy/average */
-    double cost;
-
-    /** Here we might store the "original" (@see objective) gradient for analysis/output */
-    StdVector<double> cost_gradient;
-    
-    /** for the calculation of a homogenized material tensor, we use the test 
-     * strains defined in ErsatzMaterial::SetHomogenizationTestStrains() */
-    Vector<double> test_strain;
-    
-    /** for the calculation of the polarization matrix for the piezo topology gradient
-     *  contains the rhs-values, length is 5 for 2D, 9 for 3D (mech + elec) */
-    Vector<double> pol_rhs;
   };
 
 } // namespace
