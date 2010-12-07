@@ -548,7 +548,7 @@ void Optimization::SolveAdjointProblems(Excitation* excite)
   for(unsigned int i = 0; i < ff.GetSize(); ++i)
   {
     Function* f = ff[i];
-    if(f->IsAdjointBased())
+    if(f->IsAdjointBased() && f->DoEvaluate(excite))
       SolveAdjointProblem(excite, f); // virtual! calls ErsatzMaterial implementation
   }
 }
@@ -667,7 +667,7 @@ PtrParamNode Optimization::CommitIteration(bool keep_iteration_number)
 
   // this writes the most current solved forward problem via the driver to gid or whatever
   bool store = currentIteration == 0 || commitStride == 1 || (commitStride > 0 && currentIteration % commitStride == 0);
-  LOG_TRACE2(opt) << "CommitIteration " << currentIteration << " ojective=" << objectives.GetHistoryValue() << " store=" << store;
+  LOG_TRACE2(opt) << "CommitIteration " << currentIteration << " objective=" << objectives.GetHistoryValue() << " store=" << store;
   if(store)
   {
     StoreResults();
@@ -772,8 +772,8 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
       double value = g->GetValue();
       if(g->delta_logging) value = value - g->GetBoundValue();
       if(out) *out << "\t" << value;
-      // excitation sensitive constraints are printed in the excitation list
-      if(!g->IsExcitationSensitive())
+      // excitation sensitive constraints are printed in the excitation list if there is one
+      if(!g->IsExcitationSensitive() || me->excitations.GetSize() < 2)
       {
         iteration->Get(g->ToString(me))->SetValue(value);
         // don't report for local, they should be almost always feasible for MMA, ...

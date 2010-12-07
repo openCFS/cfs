@@ -233,6 +233,7 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
 
   // set the design and see if it is a new one
   int new_design = optimization->GetDesign()->ReadDesignFromExtern(x);
+  LOG_DBG(optimizer) << " set new design: avg " <<  Average(x, n)  << " std_dev = " << StandardDeviation(x, n) << " -> " << new_design;
 
   bool need_eval;
   

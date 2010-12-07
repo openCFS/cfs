@@ -327,7 +327,32 @@
           <!-- slopes can be treated linearly by snopt or nonlinearly -->
           <xsd:attribute name="linear" use="optional" type="xsd:boolean"/>
           
+          <!-- for a stress constraint we can define the excitation by its label. The enumaration
+               can be easy extended here as we do a string compare with the excitation label in the code -->
+          <xsd:attribute name="excitation" use="optional" default="all">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:string">
+                <xsd:enumeration value="all"/>
+                <xsd:enumeration value="x"/>
+                <xsd:enumeration value="y"/>
+                <xsd:enumeration value="z"/>
+                <xsd:enumeration value="yz"/>
+                <xsd:enumeration value="xz"/>
+                <xsd:enumeration value="xy"/>
+                <xsd:enumeration value="0"/>
+                <xsd:enumeration value="1"/>
+                <xsd:enumeration value="2"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:attribute>
         </xsd:complexType>
+        
+        <xsd:unique name="opt_unique_constraint">
+          <xsd:selector xpath="cfs:constraint"/>
+          <xsd:field xpath="@type"/>
+          <xsd:field xpath="@mode"/>
+          <xsd:field xpath="@excitation"/>
+        </xsd:unique>        
       </xsd:element>
 
       <!-- optimizer: e.g. <optimizer type="optimialityCondition" maxIterations="20"/> mandatory -->
@@ -606,7 +631,7 @@
             </xsd:simpleType>
           </xsd:attribute>
           <!-- A constraint value is always scalar -->
-          <xsd:attribute name="maxIterations" use="optional" type="xsd:nonNegativeInteger" default="20"/>
+          <xsd:attribute name="maxIterations" use="required" type="xsd:nonNegativeInteger" />
         </xsd:complexType>
       </xsd:element>
       
@@ -824,6 +849,30 @@
                 <!-- These are optional parameters for value=objective or specialResult -->
                 <xsd:attribute name="detail" use="optional" default="none" type="result_detail"/>
                 
+                <!-- optional excitation parameter, can be used for penalized stress which is excitation dep. -->
+                <xsd:attribute name="excitation" use="optional" default="">
+                  <xsd:simpleType>
+                    <xsd:restriction base="xsd:string">
+                      <xsd:enumeration value=""/>
+                      <xsd:enumeration value="x"/>
+                      <xsd:enumeration value="y"/>
+                      <xsd:enumeration value="z"/>
+                      <xsd:enumeration value="xy"/>
+                      <xsd:enumeration value="xz"/>
+                      <xsd:enumeration value="yz"/>
+                      <xsd:enumeration value="0"/>
+                      <xsd:enumeration value="1"/>
+                      <xsd:enumeration value="2"/>
+                      <xsd:enumeration value="3"/>
+                      <xsd:enumeration value="4"/>
+                      <xsd:enumeration value="5"/>
+                      <xsd:enumeration value="6"/>
+                      <xsd:enumeration value="7"/>
+                      <xsd:enumeration value="8"/>
+                      <xsd:enumeration value="9"/>                      
+                    </xsd:restriction>
+                  </xsd:simpleType>
+                </xsd:attribute>
               </xsd:complexType>
             </xsd:element>
             
@@ -1140,14 +1189,27 @@
   <xsd:simpleType name="DT_HomTensorEntries">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="all"/>
-      <!-- The four positions for reduced 2D -->
       <xsd:enumeration value="11"/>
-      <xsd:enumeration value="22"/>
-      <xsd:enumeration value="33"/>
       <xsd:enumeration value="12"/>
-      <!-- These nodes are of interest for observation in 2D -->
-      <xsd:enumeration value="21"/>
-      <!-- There are 9 reduced positions for 3D -->
+      <xsd:enumeration value="13"/>
+      <xsd:enumeration value="14"/>
+      <xsd:enumeration value="15"/>
+      <xsd:enumeration value="16"/>
+      <xsd:enumeration value="22"/>
+      <xsd:enumeration value="23"/>
+      <xsd:enumeration value="24"/>
+      <xsd:enumeration value="25"/>
+      <xsd:enumeration value="26"/>
+      <xsd:enumeration value="33"/>
+      <xsd:enumeration value="34"/>
+      <xsd:enumeration value="35"/>
+      <xsd:enumeration value="36"/>
+      <xsd:enumeration value="44"/>
+      <xsd:enumeration value="45"/>
+      <xsd:enumeration value="46"/>
+      <xsd:enumeration value="55"/>
+      <xsd:enumeration value="56"/>
+      <xsd:enumeration value="66"/>
     </xsd:restriction>
   </xsd:simpleType>
   

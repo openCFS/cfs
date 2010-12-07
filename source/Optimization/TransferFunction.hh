@@ -11,6 +11,16 @@ namespace CoupledField
   class TransferFunction
   {
     public:
+    /** The transfer functions for a design-variable x:
+     * <ul>
+     * <li>SIMP_TPYE: tf(x) = x^param, tf'(x)=param*x^(param-1)</li>
+     * <li>IDENTIT: tf(x) = x, tf'(x)=1</li>
+     * <li>RAMP: ... very slow :(</li>
+     * <li>FIXED: tf(x) = param == 0 ? 1.0 : param, tf'(x)=0</li>
+     * <li>FULL:  td(x) = 1, tf'(x)=0</li>
+     * </ul> */
+    typedef enum { NO_TYPE = -1, SIMP_TYPE, IDENTITY, RAMP, FIXED, FULL } Type;
+
       /** dummy function for StdVector */
       TransferFunction();
     
@@ -18,15 +28,9 @@ namespace CoupledField
        * @param default_type if no design is given in the xml file use the default_type but checks for NO_TYPE */
       TransferFunction(PtrParamNode pn, DesignElement::Type default_type = DesignElement::NO_TYPE);
      
-      /** The transfer functions for a design-variable x:
-       * <ul>
-       * <li>SIMP_TPYE: tf(x) = x^param, tf'(x)=param*x^(param-1)</li>
-       * <li>IDENTIT: tf(x) = x, tf'(x)=1</li>
-       * <li>RAMP: ... very slow :(</li>
-       * <li>FIXED: tf(x) = param == 0 ? 1.0 : param, tf'(x)=0</li>
-       * <li>FULL:  td(x) = 1, tf'(x)=0</li>
-       * </ul> */
-      typedef enum { NO_TYPE = -1, SIMP_TYPE, IDENTITY, RAMP, FIXED, FULL } Type;
+      /** E.G. for the stresses we temporarily construct a own transfer function */
+      TransferFunction(Optimization::Application app, TransferFunction::Type tf_type, double param, DesignElement::Type design = DesignElement::NO_TYPE);
+
     
       /** applies the transformation
        * @param de containts the design value

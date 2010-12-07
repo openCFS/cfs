@@ -205,6 +205,12 @@ private:
   /** interface for eval_grad_f and eval_jac_g requires a StdVector */
   StdVector<double> gradhelper;
   
+  /** We do not know when the major iterations and define it as the last function evaluation
+   * before a new gradient step is evaluated. Such we can do the CommitIteration() only "post mortem" :(
+   * This is therefore the "static" helper to be used in Callback(). */
+  bool perform_commit_itteration_;
+
+
   /** Timer for SnOpt */ 
   Timer *timer_;
   /** Timer for callback function */ 

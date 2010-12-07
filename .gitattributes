@@ -446,12 +446,14 @@ share/scripts/IdentifyCXXCompiler.cpp svneol=native#text/plain
 share/scripts/IdentifyFortranCompiler.F90 -text
 share/scripts/cfs -text
 share/scripts/cfs-testsuite-extractor.py -text
+share/scripts/cfs_grid.py -text
 share/scripts/cfs_utils.py -text
 share/scripts/cfstool -text
 share/scripts/common.sh svneol=native#text/plain
 share/scripts/cplreader -text
 share/scripts/create_density.py -text
 share/scripts/distro.sh svneol=native#text/plain
+share/scripts/gid_screenshots.py -text
 share/scripts/h5tool -text
 share/scripts/hdf5_aux.sh.in -text
 share/scripts/hdf5_concat.sh.in -text

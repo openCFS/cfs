@@ -695,9 +695,12 @@ namespace CoupledField
       /// destructor
       virtual ~AddStrainRHSInt();
       
-      /// Calculation of vector of right hand side 
-      void CalcElemVector(Vector<double> & result, EntityIterator& ent);
-      
+      /** overwrites the virtual base function */
+      void CalcElemVector(Vector<double> & result, EntityIterator& ent) { CalcElemVector(result, ent, NULL); }
+
+      /** Calculation of the RHS.
+       * @param test_strain optional, overwrites the value addStrainVec set in the constructor */
+      void CalcElemVector(Vector<double> & result, EntityIterator& ent, const Vector<Double>* test_strain = NULL);
       
     protected:
       /// returns nr. of degrees of freedom

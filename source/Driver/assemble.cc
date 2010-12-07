@@ -76,7 +76,7 @@ namespace CoupledField
     delete linForms_;
   }
   
-  BiLinFormContext* Assemble::GetBiLinForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2,  const std::string& integrator)
+  BiLinFormContext* Assemble::GetBiLinForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2,  const std::string& integrator, bool silent)
   {
      // the EntityList has the region name as name but not the id
 //     std::string region = domain->GetGrid()->GetRegion().ToString(regionId);
@@ -104,14 +104,40 @@ namespace CoupledField
        result = *iter;
      }
 
-     if(result == NULL){
+     if(result == NULL && !silent)
+     {
        std::string region = domain->GetGrid()->GetRegion().ToString(regionId);
        EXCEPTION("BiLinFormContext '" << integrator << "' at region '" << region << "' not found");
      }
      return result;
   }
 
+  LinearFormContext* Assemble::GetLinearForm(RegionIdType regionId, StdPDE* pde,  const std::string& integrator, bool silent)
+  {
+     // the EntityList has the region name as name but not the id
+     std::string region = domain->GetGrid()->GetRegion().ToString(regionId);
 
+     LinearFormContext* result = NULL;
+
+     // iterate over all descriptors
+     for(UInt i = 0; i < linForms_->GetSize(); i++)
+     {
+       // we are wrong if the region does not match
+       LinearFormContext* lfc = (*linForms_)[i];
+       if(lfc->GetEntities()->GetName() != region) continue;
+       // when pde1 is given we compare it by name and continue if the names are different
+       if(lfc->GetPde()->GetName() != pde->GetName()) continue;
+       if(lfc->GetIntegrator()->GetName() != integrator) continue;
+
+       // we come here because we had no contradiction - check for uniqueness
+       if(result != NULL) throw Exception("parameters not unique!");
+       result = lfc;
+     }
+
+     if(result == NULL && !silent)
+       EXCEPTION("LinearFormContext '" << integrator << "' at region '" << region << "' not found");
+     return result;
+  }
 
   void Assemble::AddBiLinearForm( BiLinFormContext* biLinContext ) {
 

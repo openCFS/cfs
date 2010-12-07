@@ -115,6 +115,18 @@ int ShapeDesign::ReadDesignFromExtern(const double* space_in){
   return(design_id);
 }
 
+bool ShapeDesign::CompareDesign(const double* space_in)
+{
+  for(unsigned int i=0; i < nshapeparams_; i++)
+  {
+    double v = space_in[i] * scaling;
+    if(v != shapeparams_[i].GetDesign())
+      return false;
+  }
+
+  return true;
+}
+
 void ShapeDesign::UpdateCoordinates(){
   Grid* grd = domain->GetGrid();
   int n = grd->GetNumNodes();

@@ -44,6 +44,18 @@ def cond(test, trueval, falseval):
   else:
     return falseval
 
+## apparently python has to string to bool casting
+def toBool(string):
+  c = string[0].upper()
+  return c == "T" or c == "Y"
+
+## transform the number to the significant digits. 
+# done slowly by strings conversion as an /10.0 might lead to artefacts .:(
+def digits(value, decimal_place):
+  format = "%." + str(decimal_place) + "f"
+  string = format % value
+  return float(string) 
+
 # covert a complex number "(a,b)" to two gnuplot compatible strings "a \t b" 
 # -> remove brackets and replace the comma by a tab, nothing else
 # return the string for gnuplot printing
@@ -106,6 +118,10 @@ class Coordinate:
     self.y = j / float(div) + 0.5 / div 
     self.z = k / float(div) + 0.5 / div 
 
+  # export to arry for numerical stuff
+  def toArray(self):
+    return [self.x, self.y, self.z]
+
   # other is also Coordinate
   def dist(self, other):
     return math.sqrt((self.x - other.x)**2 + (self.y - other.y)**2 + (self.z - other.z)**2)  
@@ -117,30 +133,36 @@ class Coordinate:
     return str(self.x) + ", " + str(self.y) + ", " + str(self.z) 
        
 
-# helper: return numpy.ndarray element with 2/3D tolerance
-# if dim = 3 the k entry is ignored
-def getNDArrayEntry(data, dim, i, j, k):
-  if dim == 3:
+# extracts an entry, if data is of lower dimension, the indices are ignored
+def getNDArrayEntry(data, i, j, k):
+  if data.ndim == 3:
     return data[i,j,k]
-  if dim == 2:
+  if data.ndim == 2:
     return data[i, j]
-  raise " cannot handle dimension " + str(dim)
+  if data.ndim == 1:
+    return data[i]
+  raise RuntimeError("cannot handle dimension")
     
 # see getNDArrayEntry(data, dim, i, j, k)
-def setNDArrayEntry(data, dim, i, j, k, value):
-  if dim == 3:
+def setNDArrayEntry(data, i, j, k, value):
+  if data.ndim == 3:
     data[i,j,k] = value
     return
-  if dim == 2:
+  if data.ndim == 2:
     data[i, j] = value
     return
-  raise " cannot handle dimension " + str(dim)
+  if data.ndim == 1:
+    data[i] = value
+    return
+  raise RuntimeError("cannot handle dimension")
 
 ## returns the x, y, and z dimension of a ndarray. z=1 for 2d 
 # call x, y, z = getDim(data)
 def getDim(data):
   x = data.shape[0]
-  y = data.shape[1]
+  y = 1
+  if data.ndim >= 2:
+    y = data.shape[1]
   z = 1
   if data.ndim >= 3:
     z = data.shape[2]

@@ -163,6 +163,9 @@ namespace CoupledField {
       ( "printGrid,g",
         "read grid from input and write it to output file" )
 
+      ( "exportGrid,G",
+        "export the grid to the info.xml file, best with -g")
+
       ( "writeSkeleton,w",
         "write skeleton of XML file for subsequent simulation" )
 
@@ -443,6 +446,10 @@ namespace CoupledField {
     return (varMap_.count( "printGrid") > 0);
   }
 
+  bool ProgramOptions::DoExportGrid() const
+  {
+    return varMap_.count("exportGrid") > 0;
+  }
 
   bool ProgramOptions::GetRestart() const
   {

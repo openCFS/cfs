@@ -1,4 +1,6 @@
+#include "Driver/assemble.hh"
 #include "Forms/baseForm.hh"
+#include "Forms/linearForm.hh"
 #include "Forms/linElecInt.hh"
 #include "Domain/domain.hh"
 #include "PDE/mechPDE.hh"
@@ -31,6 +33,25 @@ OptimizationMaterial::~OptimizationMaterial()
 
 void OptimizationMaterial::GetElementMatrix(BaseForm* form, Matrix<double>& out, const Elem* elem, DesignElement::Type direction, double factor)
 {
+  GetElementEntity(form, &out, NULL, elem, direction);
+  // in piezoelectricity K_pp is -1.0* BDB
+  if(factor != 1.0){
+    out *= factor;
+  }
+
+  LOG_DBG3(om) << "CalcElemMatrix for " << form->GetName() << " factor=" << factor << " -> " << out.ToString();
+}
+
+void OptimizationMaterial::GetElementVector(LinearForm* form, Vector<double>& out, const Elem* elem, const Vector<double>* ts)
+{
+  GetElementEntity(form, NULL, &out, elem,DesignElement::NO_DERIVATIVE, ts);
+
+  LOG_DBG3(om) << "CalcElemVector for " << form->GetName() << " -> " << out.ToString();
+}
+
+
+void OptimizationMaterial::GetElementEntity(BaseForm* form, Matrix<double>* mat_out, Vector<double>* vec_out, const Elem* elem, DesignElement::Type direction, const Vector<double>* ts)
+{
   // create an element list to gain the iterator in the loop
   ElemList elemList(domain->GetGrid());
 
@@ -49,15 +70,25 @@ void OptimizationMaterial::GetElementMatrix(BaseForm* form, Matrix<double>& out,
 
   const EntityIterator& it = elemList.GetIterator();
 
-  // get our element stiffness matrix -> it could be saved over the iteration loops!
-  form->CalcElementMatrix(out,const_cast<EntityIterator&>(it), const_cast<EntityIterator&>(it), direction);
-
-  // in piezoelectricity K_pp is -1.0* BDB
-  if(factor != 1.0){
-    out *= factor;
+  assert(mat_out == NULL || vec_out == NULL);
+  if(mat_out != NULL)
+  {
+    // get our element stiffness matrix -> it could be saved over the iteration loops!
+    form->CalcElementMatrix(*mat_out, const_cast<EntityIterator&>(it), const_cast<EntityIterator&>(it), direction);
   }
-
-  LOG_DBG3(om) << "CalcElemMatrix for " << form->GetName() << " factor=" << factor << " -> " << out.ToString();
+  else
+  {
+    if(form->GetName() == "AddStrainRHSInt")
+    {
+      AddStrainRHSInt* lf = dynamic_cast<AddStrainRHSInt*>(form);
+      lf->CalcElemVector(*vec_out, const_cast<EntityIterator&>(it), ts);
+    }
+    else
+    {
+      LinearForm* lf = dynamic_cast<LinearForm*>(form);
+      lf->CalcElemVector(*vec_out, const_cast<EntityIterator&>(it));
+    }
+  }
 
   // enable again our transfer functions
   opt->GetDesign()->EnableTransferFunctions();
@@ -92,6 +123,27 @@ const Matrix<double>& OptMechMat::MechStiffness(const Elem* elem, DesignElement:
     GetElementMatrix(opt->GetForm(elem->regionId, mech, mech, "linElastInt"), mechStiffness_map[elem->regionId], elem, direction);
 
   return mechStiffness_map[elem->regionId];
+}
+
+
+const Vector<double>& OptMechMat::MechStrainRHS(const Elem* elem, MechPDE::TestStrain testStrain)
+{
+  // in homogenization we always set/replace the actual AddStrainRHSInt which contains the current test strain,
+  // therefore we do not cache!
+  SinglePDE* pde = opt->ToPDE(Optimization::MECH);
+  LinearForm* lf = pde->getPDE_assemble()->GetLinearForm(opt->GetDesign()->GetRegionId(), pde, "AddStrainRHSInt")->GetIntegrator();
+  // this is really inefficient -> but won't cost to much! the vector is created too often!
+  if(testStrain != MechPDE::NOT_SET)
+  {
+    Vector<double> ts = mech->CalcTestStrainVector(testStrain, true);
+    GetElementVector(lf, mechStrainRHS, elem, &ts);
+  }
+  else
+  {
+    GetElementVector(lf, mechStrainRHS, elem);
+  }
+
+  return mechStrainRHS;
 }
 
 const Matrix<double>& OptMechMat::MechMass(const Elem* elem, DesignElement::Type direction)

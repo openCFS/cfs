@@ -121,6 +121,10 @@ namespace CoupledField
     //! parameter file.
     bool GetPrintGrid() const;
 
+    /** exports the grid to the info.xml file.
+     * Might get really big!! */
+    bool DoExportGrid() const;
+
     //! Return Restart flag
 
     //! This method can be used to query the status of the restart flag.
