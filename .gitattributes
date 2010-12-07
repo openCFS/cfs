@@ -289,6 +289,7 @@ share/doc/developer/develManual/pics/ccivis.svg -text
 share/doc/developer/develManual/pics/ccivis1.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/ccivis2.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/ccivis_hdfview.png -text svneol=unset#image/png
+share/doc/developer/develManual/pics/ccmake.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/cfs_devel_cdash.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/cfs_devel_server.pdf -text svneol=unset#application/pdf
 share/doc/developer/develManual/pics/cfs_devel_server.png -text svneol=unset#image/png
@@ -306,6 +307,7 @@ share/doc/developer/develManual/pics/cfspp_orcan.png -text svneol=unset#image/pn
 share/doc/developer/develManual/pics/cfspp_workshop.pdf -text svneol=unset#application/pdf
 share/doc/developer/develManual/pics/cfspp_workshop.svg -text
 share/doc/developer/develManual/pics/cfx_gmsh_man_model.png -text svneol=unset#image/png
+share/doc/developer/develManual/pics/cmake-gui.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/eclipse_editor_settings.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/eclipse_workspace_settings.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/elems_hexa.png -text

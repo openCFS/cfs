@@ -101,13 +101,269 @@ targeted towards C,  C++ or Fortran projects. Instead  of writing Makefiles or
 autoconf/automake scripts  on Unix or  Visual Studio projects on  Windows, one
 just  needs to maintain  platform independent  configuration files  from which
 CMake will  generate the  previously mentioned projects  for the  native build
-environments.
+environments. A lot of introductory and advanced material can be found on the
+CMake Wiki \url{http://www.cmake.org/Wiki/CMake}.
 
 \todo[inline]{Describe  structure  of  source  and build  trees,  internal
   architecture of our CMake  files, interaction with CFSDEPS, howto switch
   compilers, etc.}
 
+Manually compiling a program does make sense if you only have one source file or for confirming that you supplied the right parameters to your compiler. For programs which consist of many different source files this task becomes cumbersome and error-prone. Therefore build systems have been developed which relieve the programmer of this job. The duty of the programmer just consists of specifying in a so-called make file what source files a program depends upon and how (compiler, options... ) the source files should be compiled. The standard build tool on Linux systems is GNU make. Writing make files for large software systems is again a very complex task. Getting all dependencies right can become a bold venture. Another disadvantage is the fact that make files are quite static. This means that parameters which might change for different build types must be queried from the environment.
+
+A remedy for this problem are auto configuration systems like GNU autoconf/automake or CMake (http://www.cmake.org). Knowing the source file dependencies, such systems query the environment for platform dependent features, external libraries, etc. and generate a custom make file tailored for a certain build type. The obvious advantage is that these systems know how to write make files correctly and how to get dependencies right. A second point which makes this systems interesting is the fact that once a description of the build process has been specified for them, they can be used to generate make projects for different platforms.
+
+In the new trunk version of CFS++ CMake has been implemented as build system. This brings a number of advantages:
+
+\begin{itemize}
+    \item OLAS/CFS++ have been merged. That means there is no more need to get the dependencies on externel libraries right. They will be set once and for all!
+    \item The \#defines (e.g. USE\_LAPACK, XMLSCHEMA) have been moved from the command line of the compiler to special headers. This means that exactly those parts of the code are rebuilt that a certain \#define really affects.
+    \item Due to the fact that CMake takes care about the dependencies, parallel builds are back on the road!
+    \item There is no more use for the imprecise MACHINE environment variable. The build architecture will be determined during the configuration process of the build tree.
+    \item Source tree and build tree are now different things. When doing an out-of-source build the source tree will not be cluttered with thousands of object files any more. 
+\end{itemize}
+
+\subsection{The source tree}
+
+At first we assume we have checked out CFS++ to let's say
+
+\begin{verbatim}
+$HOME/MY_CFS
+\end{verbatim}
+
+This directory will be called source tree or CFS\_SOURCE\_DIR from now on. The directory has the following structure
+
+\begin{verbatim}
+$HOME/MY_CFS
+|-- CMakeLists.txt
+|-- cmake_modules                                                                               
+|-- ctest_scripts                                                                               
+|-- include                                                                                     
+|-- share                                                                                       
+|   |-- MaterialFile                                                                            
+|   |-- doc                                                                                     
+|   |-- matlab                                                                                  
+|   |-- scripts                                                                                 
+|   |-- xml                                                                                     
+|   `-- xsl                                                                                     
+`-- source                                                                                      
+    |-- CoupledPDE                                                                              
+    |-- DataInOut                                                                               
+    |-- Domain                                                                                  
+    |-- Driver                                                                                  
+    |-- Elements                                                                                
+    |-- Estimator                                                                               
+    |-- Forms                                                                                   
+    |-- General
+    |-- MatVec
+    |-- Materials
+    |-- MpCCIcpl
+    |-- ODEDescr
+    |-- ODESolve
+    |-- OLAS
+    |-- Optimization
+    |-- PDE
+    |-- ParamIdent
+    |-- Utils
+    |-- cfstool
+    |-- cplreader
+    `-- main
+\end{verbatim}
+
+
+This structure has been harmonized with the directory structure of NACS. The main directory contains the CMakeLists.txt file and it's accompanying cmake\_modules subdirectory. The CMakeLists.txt contains the main project description and handles searching for external libs and the traversal of the many subdirectories during the build. The files in cmake\_modules are meant to aid the main CMakeLists.txt in doing its job. The scripts in this directory are used to determine the distro, the compiler and to write the configuration variables to individual headers from the include directory. The CMake scripts in ctest\_scripts are meant for nightly testing using CTest/CDash. The actual C/C++/Fortran sources are located in the source directory. The share directory contains auxilliary scripts, Matlab scripts and the users' and developers' documentation and concepts.
+
+\subsection{The build process}
+
+The build process consists of three main steps:
+
+\begin{itemize}
+    \item Setting environment variables for compilers or paths (e.g. CC, CXX, FC, CFS\_DEPS\_ROOT,...) and creation of build directory
+    \item Configuring the current build directory (e.g. ccmake SOURCE\_DIR)
+    \item Building the source using make (e.g. make -j4) 
+\end{itemize}
+
+In the following subsections the steps will be described further
+
+\subsubsection{Setting up the build directory and environment variables}
+
+To build CFS++ we first create a build directory
+
+\begin{verbatim}
+$HOME/MY_CFS_BUILD
+\end{verbatim}
+
+Before configuring the current build directory we need to specify which compilers we want to use and where certain required directories are. The compilers (C, C++ and Fortran 95) will be set by specifying
+
+\begin{verbatim}
+export CC=gcc; export CXX=g++; export FC=gfortran
+\end{verbatim}
+
+for example.
+
+Please note that once a build directory has been configured with a certain set of compilers it not advisable or even impossible to switch to a different set of compilers. This is due to the fact, that CMake generates a lot of flags tailored for each compiler. If you want to use a different compiler either create a new build directory or delete all contents of a build directory.
+
+For systems for which no default paths exist it is also mandatory to specify the following environment variables
+
+\begin{verbatim}
+export CFS_DEPS_ROOT=PATH_TO_CFSDEPS
+export CFS_DEPS_CACHE_DIR=PATH_WHERE_SOURCES_AND_PRECOMPILED_LIBS_SHOULD_GO
+\end{verbatim}
+
+At LSE it is just necessary to specify the compilers since the CFSDEPS from
+
+\begin{verbatim}
+     https://lse17.e-technik.uni-erlangen.de:2001/svn/cfsdeps/trunk
+\end{verbatim}
+
+should be available at /home/data/libraries/CFSDEPS and the cache directory resides at /home/data/libraries/CFSDEPSCACHE.
+\subsubsection{Configuring the build tree}
+
+Next we change into the build tree.
+
+\begin{verbatim}
+cd $HOME/MY_CFS_BUILD
+\end{verbatim}
+
+There we call
+
+\begin{verbatim}
+/home/data/programs/cmake/bin/ccmake $HOME/MY_CFS
+\end{verbatim}
+
+Then a GUI pops up and we press 'c' two times to configure.
+
+Please note: it might be a good idea to add the CMake executable to the path.
+
+Please note: instead of using environment variables, it is also possible to specify locations of compilers and other things to CMake on the command line.
+
+\begin{verbatim}
+ccmake -DCMAKE_C_COMPILER:PATH=/usr/bin/gcc \
+       -DCMAKE_CXX_COMPILER:PATH=/usr/bin/g++ \
+       -DCMAKE_Fortran_COMPILER:PATH=/usr/bin/gfortran \
+       -DCFS_DEPS_ROOT:PATH=/home/data/libraries/CFSDEPS \
+       -DCFS_DEPS_CACHE_DIR:PATH=$HOME/CFSDEPSCACHE $HOME/MYCFS
+\end{verbatim}
+
+The ccmake or cmake-gui GUIs should look now something like Fig. \ref{fig:ccmake_cmake_guis}. 
+
+\begin{figure}[htb] 
+  \centering 
+  \subfloat[Text-based ccmake GUI.]{
+    \label{fig:ccmake_gui}
+    \begin{overpic}[height=5cm]{pics/ccmake}
+    \end{overpic}
+    }
+  \qquad
+  \subfloat[Qt4 cmake-gui GUI.]{
+    \label{fig:cmake_gui}
+    \begin{overpic}[height=5cm]{pics/cmake-gui}
+    \end{overpic}
+  } 
+  \caption{CMake GUIs for the same source and build directories.}
+  \label{fig:ccmake_cmake_guis}
+\end{figure}
+
+To alter an option move the cursor there with the arrow keys and press 'Enter'. Then the On/Off?  options change automatically and the text in text fields can be edited. If the change is OK press 'Esc'. Note: that changing options may require another configure run. At this point we can generate the Makefiles by pressing 'g'. This puts us back to the command line.
+
+\subsubsection{Building the sources}
+
+where we can type
+
+\begin{verbatim}
+make (-jX)
+\end{verbatim}
+
+to build CFS++. Using the -j option tells make to use X processors for parallel compilation. Building CFS++ now takes around 10-15 minutes for a serial build. The temporary static libraries will end up in
+
+\begin{verbatim}
+$HOME/MY_CFS_BUILD/lib(64)
+\end{verbatim}
+
+and the cfs start shell script can be found in
+
+\begin{verbatim}
+$HOME/MY_CFS_BUILD/bin/cfs
+\end{verbatim}
+
+\subsection{Advanced Options}
+
+\subsubsection{Looking at the Compiler/Linker Command Line}
+
+CMake hides the command line of the compiler by default. To see it you have to set
+
+\begin{verbatim}
+export VERBOSE=1
+\end{verbatim}
+
+If you don't need it anymore set
+
+\begin{verbatim}
+unset VERBOSE
+\end{verbatim}
+
+\subsubsection{Specifying a different compiler}
+
+A compiler can only be specified to CMake the first time a build tree is configured. This is due to the fact, that CMake recognizes certain compilers and internally sets some flags specific to that compilers. If the tree has been previously configured it is best to do a
+
+\begin{verbatim}
+make clean; rm CMakeCache.txt
+\end{verbatim}
+
+This should leave the build tree clean enough to configure with a different compiler. This can be done afterwards by either using
+
+\begin{verbatim}
+export CXX="mycompiler"; ccmake $HOME/MY_CFS
+\end{verbatim}
+
+or
+
+\begin{verbatim}
+export CMAKE_CXX_COMPILER="mycompiler"; ccmake $HOME/MY_CFS
+\end{verbatim}
+
+For GNU compilers the variables to set are:
+
+\begin{verbatim}
+export CC=gcc
+export CXX=g++
+export FC=gfortran
+\end{verbatim}
+
+For intel compilers the variables to set are:
+
+\begin{verbatim}
+export CC=icc
+export CXX=icpc
+export FC=ifort
+\end{verbatim}
+
+For OpenSUSE >= 11.x (cf. Sec. \ref{sec:compiler_compat_matrix})
+
+\begin{verbatim}
+source /home/data/programs/intel/Compiler/11.0/081/bin/iccvars.sh intel64
+source /home/data/programs/intel/Compiler/11.0/081/bin/ifortvars.sh intel64
+\end{verbatim}
+
+or
+
+\begin{verbatim}
+source /home/data/programs/intel/Compiler/11.0/081/bin/iccvars.sh ia32
+source /home/data/programs/intel/Compiler/11.0/081/bin/ifortvars.sh ia32
+\end{verbatim}
+
+For OpenSUSE < 11.x
+
+\begin{verbatim}
+source /home/data/programs/intel/cc(e for 64Bit!)/COMPILER_VERSION/bin/iccvars.sh
+source /home/data/programs/intel/fc(e for 64Bit!)/COMPILER_VERSION/bin/ifortvars.sh
+\end{verbatim}
+
+
+\todo[inline]{Put                           info                          from
+\url{https://lse17.e-technik.uni-erlangen.de:2001/trac/wiki/CMake} here.}
+
 \subsection{Compiler Compatibility Matrix}
+\label{sec:compiler_compat_matrix}
 
 Since the  Intel compiler relies  on the GNU  runtime on Linux/Mac and  on the
 Microsoft runtime  on Windows certain compatibility problems  due to different
@@ -185,6 +441,11 @@ user's home directory.  The defaults in the latter files  override the ones in
 the former ones. Here is an example for such a defaults file:
 
 \input{pygmentized/platform_defaults_mac}
+
+\subsection{Building Matlab Extensions Using CMake}
+A howto article about building Matlab extensions using CMake can be found at 
+\url{http://www.cmake.org/Wiki/CMake:MatlabMex}.
+
 
 \subsection{Alternatives to CMake}
 Available alternatives to CMake include:

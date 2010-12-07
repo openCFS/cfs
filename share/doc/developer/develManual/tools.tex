@@ -1112,7 +1112,8 @@ $\mathbf{w} = \nabla \times  \mathbf{v}$ and the divergence $div(\mathbf{v}) =
 \nabla \cdot \mathbf{v}$ of the flow field.  These quantities may be evaluated
 by using the Compute Derivatives filter while specifying the fluidMechVelocity
 as  input vector.   It  will  compute the  component-wise  derivatives of  the
-velocity vector as an element result in the following manner:
+velocity    vector    as    an     element    result    in    the    following
+manner\footnote{\url{http://www.vtk.org/gitweb?p=VTK.git;a=blob;f=Graphics/vtkCellDerivatives.cxx},\url{http://www.vtk.org/doc/release/5.6/html/a00263.html\#ff3d8332e9d7d556a9d2e9f91173d068}}:
 
 \begin{displaymath}
   \begin{pmatrix} 
@@ -1121,9 +1122,9 @@ velocity vector as an element result in the following manner:
     \mathtt{VectorGradient\_6} & \mathtt{VectorGradient\_7} & \mathtt{VectorGradient\_8}
   \end{pmatrix} = 
   \begin{pmatrix} 
-    \frac{\partial v_x}{\partial x} & \frac{\partial v_x}{\partial y} & \frac{\partial v_x}{\partial z}\\
-    \frac{\partial v_y}{\partial x} & \frac{\partial v_y}{\partial y} & \frac{\partial v_y}{\partial z}\\
-    \frac{\partial v_z}{\partial x} & \frac{\partial v_z}{\partial y} & \frac{\partial v_z}{\partial z}
+    \frac{\partial v_x}{\partial x} & \frac{\partial v_y}{\partial x} & \frac{\partial v_z}{\partial x}\\
+    \frac{\partial v_x}{\partial y} & \frac{\partial v_y}{\partial y} & \frac{\partial v_z}{\partial y}\\
+    \frac{\partial v_x}{\partial z} & \frac{\partial v_y}{\partial z} & \frac{\partial v_z}{\partial z}
   \end{pmatrix}
 \end{displaymath}
 
@@ -1131,9 +1132,9 @@ From the Vector  Gradient the vorticity can be obtained  by using a Calculator
 filter with the following formula while choosing cell data as attribute mode.
 
 \begin{verbatim}
-( VectorGradient_5 - VectorGradient_7) * iHat +
-(-VectorGradient_2 + VectorGradient_6) * jHat +
-( VectorGradient_1 - VectorGradient_3) * kHat
+( VectorGradient_7 - VectorGradient_5) * iHat +
+(-VectorGradient_6 + VectorGradient_2) * jHat +
+( VectorGradient_3 - VectorGradient_1) * kHat
 \end{verbatim}
 
 Whereas the divergence may be computed by the formula
@@ -1147,12 +1148,12 @@ has to  be interpolated  to cells  first by using  a Point  Data to  Cell Data
 filter. Then the Lamb vector can be computed by the formula
 
 \begin{verbatim}
-( (-VectorGradient_2 + VectorGradient_6) * fluidMechVelocity_Z -
-  ( VectorGradient_1 - VectorGradient_3) * fluidMechVelocity_Y   ) * iHat +
-(-( VectorGradient_5 - VectorGradient_7) * fluidMechVelocity_Z + 
-  ( VectorGradient_1 - VectorGradient_3) * fluidMechVelocity_X   ) * jHat +
-( ( VectorGradient_5 - VectorGradient_7) * fluidMechVelocity_Y + 
-  (-VectorGradient_2 + VectorGradient_6) * fluidMechVelocity_X   ) * kHat
+( (-VectorGradient_6 + VectorGradient_2) * fluidMechVelocity_Z -
+  ( VectorGradient_3 - VectorGradient_1) * fluidMechVelocity_Y   ) * iHat +
+(-( VectorGradient_7 - VectorGradient_5) * fluidMechVelocity_Z + 
+  ( VectorGradient_3 - VectorGradient_1) * fluidMechVelocity_X   ) * jHat +
+( ( VectorGradient_7 - VectorGradient_5) * fluidMechVelocity_Y + 
+  (-VectorGradient_6 + VectorGradient_2) * fluidMechVelocity_X   ) * kHat
 \end{verbatim}
 
 Another  interesting quantity in  aeroacoustic research  is the  divergence of
@@ -1167,19 +1168,19 @@ following formula.
 
 \begin{verbatim}
 ( 2 * fluidMechVelocity_X * VectorGradient_0 + 
-      fluidMechVelocity_Y * VectorGradient_1 +
+      fluidMechVelocity_Y * VectorGradient_3 +
       fluidMechVelocity_X * VectorGradient_4 +
-      fluidMechVelocity_Z * VectorGradient_2 +
+      fluidMechVelocity_Z * VectorGradient_6 +
       fluidMechVelocity_X * VectorGradient_8   ) * iHat +
 (     fluidMechVelocity_Y * VectorGradient_0 +
-      fluidMechVelocity_X * VectorGradient_3 + 
+      fluidMechVelocity_X * VectorGradient_1 + 
   2 * fluidMechVelocity_Y * VectorGradient_4 + 
-      fluidMechVelocity_Z * VectorGradient_5 +
+      fluidMechVelocity_Z * VectorGradient_7 +
       fluidMechVelocity_Y * VectorGradient_8   ) * jHat +
 (     fluidMechVelocity_Z * VectorGradient_0 +
-      fluidMechVelocity_X * VectorGradient_6 +
+      fluidMechVelocity_X * VectorGradient_2 +
       fluidMechVelocity_Z * VectorGradient_4 +
-      fluidMechVelocity_Y * VectorGradient_7 +
+      fluidMechVelocity_Y * VectorGradient_5 +
   2 * fluidMechVelocity_Z * VectorGradient_8   ) * kHat
 \end{verbatim}
 
