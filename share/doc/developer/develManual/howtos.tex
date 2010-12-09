@@ -142,10 +142,167 @@ For convenience the corresponding settings files are attached here
 \attachfile[icon=PushPin,description={Eclipse workspace settings.},mimetype=text/plain]{attachments/org.eclipse.core.resources.prefs.txt}. The have to copied to the workspace/.metadata/.plugins/org.eclipse.core.runtime/.settings directory and must be renamed to \*.prefs.
 
 
-\section{Implementing a new PDE}
-\section{Implementing a new solver}
-\section{Implementing a new time stepping scheme}
-\section{Implementing new readers/writers}
+\section{First Time Implementing}
+This chapter is for first time coders, who want to get acquainted with the
+structure of CFS++, how the Finite Element method is structured into C++
+classes. We start off with the structure itself and the idea behind it and then
+by example explain how to start off implementing. But first some general hints
+for starting to implement:
+\begin{itemize}
+  \item First start off by getting to know the helper programs: svn (see
+    \ref{sec:svn}), cmake (see \ref{sec:cmake}), etc. 
+  \item Do not be scared, just start off implementing. You can not really
+    destroy CFS++ since we use subversion. This is the only way to learn,
+    talking to CFS++ coders will not help much since talking about the
+    procedures in the code and really seeing how it is done are two separate
+    things.
+  \item The code is kept in relative good shape, lets keep it that way. Keep
+    to the object oriented idea and write well readable code.
+  \item CFS++ is big, you can not know everything, so think abstract. If you
+    want to implement a new time stepping do not worry on how the mass-,
+    stiffness matrix or other components are calculated. You just need to know
+    that they are there and how to get them.
+  \item For your first implementation clear your schedule at least for a week.
+    Do not do other stuff on the side.
+  \item Keep a sophisticated coder around you, who knows CFS++. Buy him beer and
+    be nice to him.
+\end{itemize}
+\subsection{The CFS++ Structure}
+If you ask a CFS++ coder how the code is structured he will tell you about
+forms, pde, drivers etc. For the first time the names are often confusing and
+everybody has their own idea of how to structure and name method. But
+(allegedly) a lot of thought has been put into it so lets look at it by
+regarding the Finite Element method.\\
+So lets look at an equation and have a look were which part is being handled.
+For that we take a pseudo equation 
+\begin{equation}
+  \int\limits_\Omega \frac{d}{dt}u\psi dx 
+  +\int\limits_\Omega\nabla u\cdot\psi dx =
+  \int\limits_\Omega f\psi dx
+  \label{eq:pseudoFe}
+\end{equation}
+with the unknown $u$, the test function $\psi$ and the right hand side $f$. This
+should cover the most import features, like mass-, stiffness matrix and time
+derivative. So lets look at each part in detail, how it is implemented and were
+it can be found. Looking at it discrete it would look like
+\begin{equation}
+  \int\limits_\Omega \frac{1}{\delta t}u_i^{n+1}\phi_i\psi_j dx 
+  -\int\limits_\Omega \frac{1}{\delta t}u_i^n\phi_i\psi_j dx 
+  +\int\limits_\Omega\nabla u_i^{n+1}\phi_i\cdot\psi_j dx =
+  \int\limits_\Omega f_i^{n+1}\psi_j dx\qquad\forall i,j
+  \label{eq:pseudoFeDisc}
+\end{equation}
+for a simple explicit Euler scheme to discretise the time step. $n$ are the time
+steps, with time step size $\delta t$ and $i$ are the discrete nodes.
+In matrix vector notation it would be
+\begin{equation}
+  \frac{1}{\delta t}\mathbf{M}\mathbf{u}^{n+1} + \mathbf{Ku}^{n+1}
+  =\frac{1}{\delta t}\mathbf{Mu}^n + \mathbf{F}
+  \label{eq:pseudoFeMtx}
+\end{equation}
+\subsubsection{Forms}
+\label{sssec:forms}
+To calculate the entries of the matrices in \eqref{eq:pseudoFeMtx} the bilinear
+forms need to be calculated as
+\begin{equation}
+  \int\limits_{\Omega_e} \phi_i\cdot\psi_j dx
+  \label{eq:bilinForm}
+\end{equation}
+at element $e$. This is an entry of the mass matrix entry of
+\eqref{eq:pseudoFeDisc}. The time step size $\delta t$ is handled separately by
+the time stepping algorithm (see section \ref{sssec:timeStep}) Form can be found in the directory 
+\texttt{CFS++/source/Forms}. These are filled with all different kind of forms
+which names already give some information and to which PDE it belongs. As it is
+object orientated a \texttt{baseForm.*} can be found with the main methods. Most
+import is the \texttt{CalcElemMatrix(\ldots)} method which calculates
+\eqref{eq:bilinForm}, the matrix entries from one element.
+To implement \eqref{eq:bilinearForm} into this method:
+\begin{itemize}
+  \item get integration points -- the element class will help
+  \item loop over all integration points
+  \item get test function -- the element class will help
+  \item get integration weights -- the element class will help
+  \item multiply $\psi_i$ with $\psi_i$
+  \item store result in element matrix
+\end{itemize}
+\subsubsection{Time Stepping}
+\label{sssec:timeStep}
+The time stepping is called after the assembly. It calculates
+\eqref{eq:pseudoFeMtx} to
+\begin{equation}
+  \mathbf{Ax}=\mathbf{b}.
+  \label{eq:Axb}
+\end{equation}
+So it needs the time step size and the matrices (in this case mass and
+stiffness). It may need some additional solution types, like old time steps,
+derivatives, etc. -- these need to be initialised in the constructor. Further
+parameters from the xml-simulation file can be gathered (see CFS++/source/PDE/newmark.cc) as
+example.
+In an \texttt{Init()} step necessary variables will be set. Like the matrix
+factors, in the case of \eqref{eq:pseudoFeMtx} the stiffness matrix gets the
+factor $1$, mass matrix $0$ and unused matrices like the damping matrix are set
+to $0$. See General/environment.hh for a list of matrix types.
+
+Some hints on the methods
+\begin{description}
+  \item[Predictor] For methods which need a predictor
+  \item[Corrector] For methods which need a corrector
+  \item[{\color{red} AdvanceTimestep}] After this method the solution vector
+    should hold the new solution. The last time step vector should also hold the
+    new solution. That way everything is prepared for the next time step. The
+    reason is that other methods depend on this guarantee (Restart file writing).
+\end{description}
+The newmark scheme \texttt{CFS++/source/PDE/newmark.*} has most features and still is easy to
+read so a good start to read yourself into.
+
+\subsubsection{PDE}
+\label{sssec:pde}
+The PDEs located in \texttt{CFS++/source/PDE} is an interface between user and
+the method itself. Example of information that is gathered
+\begin{itemize}
+  \item Is it plane, 3d, axi \ldots?
+  \item Is it linear, nonlinear \ldots ?
+  \item Is it a moving mesh \ldots?
+  \item what non linear solver should be used?
+  \item \ldots
+\end{itemize}
+Now, not every PDE support them all, and not all PDEs need this information. What
+options can be set are given in the xml-Schemes.
+
+Important here is the method \texttt{DefineIntegrators} which gathers all
+integrator which are necessary. It gathers the forms, which in our case have
+been implemented in section \ref{sssec:forms}. This are added into the assemble
+object.\\
+One special note. If you have a PDE with multiple physical variable
+(Navier-Stokes; pressure and velocity) the assmeble object needs to know at
+which position in the matrix the bilinear form is to be set. Lets look at
+\begin{equation}
+  \left(\begin{array}{cc}
+    A_{11} & A_{12}\\
+    A_{21} & A_{22}
+  \end{array}\right)
+  \left(\begin{array}{c}
+    u_1\\
+    u_2
+  \end{array}\right)=f
+\end{equation}
+in which the result is split into two vectors $u_1$ and $u_2$ which are coupled
+by the matrix entries $A_{12}$ and $A_{21}$. Each of the sub matrices may be
+different bilinear forms and this can be set by
+\begin{verbatim}
+    actStiffContext_UV->SetResults( results_[#1],results_[#2],actSDList, actSDList);
+\end{verbatim}
+Were \texttt{\#1} sets the matrix block in vertical direction and \texttt{\#2} in horizontal
+direction. \texttt{actStiffContext} is a \texttt{BiLinFormContext} object which
+gets the form and after further initialisation is then stored into the assemble
+object.
+
+
+\subsection{First implementation by example}
+\subsection{Implementing a new PDE}
+\subsection{Implementing a new solver}
+\subsection{Implementing a new time stepping scheme}
+\subsection{Implementing new readers/writers}
 \section{Write Debug Output to Log Files}
 \url{https://lse17.e-technik.uni-erlangen.de:2001/trac/wiki/Logging}
 
