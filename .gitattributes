@@ -290,6 +290,8 @@ share/doc/developer/develManual/pics/ccivis1.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/ccivis2.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/ccivis_hdfview.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/ccmake.png -text svneol=unset#image/png
+share/doc/developer/develManual/pics/cfs_calcStructure.pdf -text
+share/doc/developer/develManual/pics/cfs_calcStructure.svg -text
 share/doc/developer/develManual/pics/cfs_devel_cdash.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/cfs_devel_server.pdf -text svneol=unset#application/pdf
 share/doc/developer/develManual/pics/cfs_devel_server.png -text svneol=unset#image/png
@@ -297,6 +299,8 @@ share/doc/developer/develManual/pics/cfs_devel_server.svg -text
 share/doc/developer/develManual/pics/cfs_devel_trac.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/cfs_elem_types.pdf -text svneol=unset#unset
 share/doc/developer/develManual/pics/cfs_elem_types.svg -text
+share/doc/developer/develManual/pics/cfs_setPdeStructure.pdf -text
+share/doc/developer/develManual/pics/cfs_setPdeStructure.svg -text
 share/doc/developer/develManual/pics/cfsdeps_flowdiag.pdf -text svneol=unset#application/pdf
 share/doc/developer/develManual/pics/cfsdeps_flowdiag.svg -text
 share/doc/developer/develManual/pics/cfsdeps_interdependency_graph.dot -text

@@ -200,6 +200,33 @@ In matrix vector notation it would be
   =\frac{1}{\delta t}\mathbf{Mu}^n + \mathbf{F}
   \label{eq:pseudoFeMtx}
 \end{equation}
+Figure~\ref{fig:cfs_calcStructure} schematically shows the most import classes and
+methods which are needed to calculate the PDE. There are more calculations
+involve but for sake of abstraction this covers the main features.
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=1.0\textwidth]{pics/cfs_calcStructure}
+%    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
+  \end{overpic}
+  \caption{Main structure of how a PDE is implemented and which classes are
+  necessary.}
+  \label{fig:cfs_calcStructure}
+\end{figure}%
+Registration and setting up the PDE are done in different routines and it should
+be regarded separately. The reason is to only do one thing either to read in
+values or to use values but not worry about how they got there, otherwise it
+will get to complex and confusing. This interface between the xml-File and CFS++
+is sketched in Fig.~\ref{fig:cfs_setPdeStructure}.
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=1.0\textwidth]{pics/cfs_setPdeStructure}
+%    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
+  \end{overpic}
+  \caption{Main structure of where data from the xml-file is read to use in the
+  PDE.}
+  \label{fig:cfs_setPdeStructure}
+\end{figure}%
+
 \subsubsection{Forms}
 \label{sssec:forms}
 To calculate the entries of the matrices in \eqref{eq:pseudoFeMtx} the bilinear
