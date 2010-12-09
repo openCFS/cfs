@@ -15,7 +15,7 @@
    id="svg20083"
    version="1.1"
    inkscape:version="0.46+devel r22705"
-   sodipodi:docname="cfs_setPdeStructure.svg"
+   sodipodi:docname="cfs_setPdeStructure.pdf"
    inkscape:export-filename="/home/users/strieben/mac/cfsdeps_structure.png"
    inkscape:export-xdpi="72.024033"
    inkscape:export-ydpi="72.024033">
@@ -27,7 +27,7 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.8842105"
-     inkscape:cx="317.41447"
+     inkscape:cx="347.8796"
      inkscape:cy="156.41538"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
@@ -3849,10 +3849,10 @@
          x="439.94049"
          y="470.32709" /></text>
     <rect
-       ry="0.71908617"
+       ry="2.3476052"
        y="328.35358"
        x="282.45831"
-       height="38.452374"
+       height="125.53571"
        width="194.52382"
        id="rect10635"
        style="color:#000000;fill:#cccccc;fill-opacity:1;stroke:none;stroke-width:10;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate" />
@@ -3865,7 +3865,19 @@
          y="354.38171"
          x="314.31683"
          id="tspan20391-28-32"
-         sodipodi:role="line">&lt;nonlinear&gt;</tspan></text>
+         sodipodi:role="line">&lt;non linear&gt;</tspan><tspan
+         y="384.4595"
+         x="314.31683"
+         sodipodi:role="line"
+         id="tspan17542">&lt;static&gt;</tspan><tspan
+         y="414.53729"
+         x="314.31683"
+         sodipodi:role="line"
+         id="tspan17544">&lt;transient&gt;</tspan><tspan
+         y="444.61511"
+         x="314.31683"
+         sodipodi:role="line"
+         id="tspan17546">&lt;harmonic&gt;</tspan></text>
     <g
        transform="translate(203.57144,-23.750001)"
        id="g11542">
@@ -4052,5 +4064,17 @@
          id="tspan17327"
          x="420.71429"
          y="36.849464" /></text>
+    <text
+       xml:space="preserve"
+       style="font-size:10px;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Times New Roman;-inkscape-font-specification:Times New Roman"
+       x="72.380959"
+       y="220.59384"
+       id="text17538"
+       sodipodi:linespacing="125%"
+       transform="translate(282.45831,119.33699)"><tspan
+         sodipodi:role="line"
+         id="tspan17540"
+         x="72.380959"
+         y="220.59384" /></text>
   </g>
 </svg>
