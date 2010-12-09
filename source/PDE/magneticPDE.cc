@@ -18,7 +18,7 @@
 #include "Forms/nonConformingInt.hh"
 #include "Forms/nLincurlCurlNodeInt.hh"
 #include "Forms/laplaceInt.hh"
-#include "Forms/linElecInt.hh"
+#include "Forms/linGradBDBInt.hh"
 #include "Forms/linearForm.hh"
 #include "Forms/massInt.hh"
 #include "trapezoidal.hh"
@@ -403,7 +403,7 @@ DEFINE_LOG(magpde, "magpde")
         // the scalar potential
         // Note: this integrator is not passed to the assemble class.
         // It is only needed later for calculating the eddy current density
-        linElecInt * elecBiLin = new linElecInt( actMat,
+        linGradBDBInt * elecBiLin = new linGradBDBInt( actMat, ELEC_PERMITTIVITY,
                                                  FULL, true );
         pdeBilinearForms_[actRegion][elecBiLin->GetName()] = elecBiLin;
       }
@@ -1733,9 +1733,9 @@ DEFINE_LOG(magpde, "magpde")
     
       // Get electric bilinear form for regions with non-zero
       // conductivity
-      linElecInt* elecBiLin = 
-        dynamic_cast<linElecInt*>
-        (pdeBilinearForms_[actRegionId]["linElecInt"]);
+      linGradBDBInt* elecBiLin = 
+        dynamic_cast<linGradBDBInt*>
+        (pdeBilinearForms_[actRegionId]["linGradBDBInt"]);
       
          // case 1: dummy integration point
       if( ip == 0 ) {

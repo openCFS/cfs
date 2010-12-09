@@ -468,7 +468,6 @@ DEFINE_LOG(bisa, "biotSavart")
 ////#include "Forms/nonConformingInt.hh"
 ////#include "Forms/nLincurlCurlNodeInt.hh"
 ////#include "Forms/laplaceInt.hh"
-////#include "Forms/linElecInt.hh"
 ////#include "Forms/linearForm.hh"
 ////#include "Forms/massInt.hh"
 ////#include "trapezoidal.hh"

@@ -92,7 +92,7 @@ namespace CoupledField {
      * @param regionId guess what!
      * @param pde1 this is the first pde
      * @param pde2 the second pde, note the order -> see debug file.
-     * @param integ the integrator: linElastInt, MassInt, linElecInt, linPiezoCoupling
+     * @param integ the integrator, e.g. linElastInt, MassInt, linElecInt, linPiezoCoupling
      * @return the defined context, never NULL
      * @exception error when nothing found or not unique specification */
     BiLinFormContext* GetBiLinForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator);

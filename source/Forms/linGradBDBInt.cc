@@ -6,7 +6,7 @@
 #include <fstream>
 
 #include "General/environment.hh"
-#include "linElecInt.hh"
+#include "linGradBDBInt.hh"
 #include "DataInOut/Logging/cfslog.hh"
 
 DECLARE_LOG(forms)
@@ -17,7 +17,7 @@ namespace CoupledField {
   // ============
   //   calcBMat
   // ============
-  void linElecInt::calcBMat( Matrix<Double> &bMat, UInt ip,
+  void linGradBDBInt::calcBMat( Matrix<Double> &bMat, UInt ip,
 			     Matrix<Double> &ptCoord ) {
 
 
@@ -44,9 +44,9 @@ namespace CoupledField {
       // B of the BDB product evaluated at the k-th node of the finite
       // element. 
       for( UInt actNode = 0; actNode < numFncs; actNode++ ) {
-	bMat[0][actNode] = xiDx[actNode][0];
-	bMat[1][actNode] = xiDx[actNode][1];
-	bMat[2][actNode] = xiDx[actNode][2];
+        bMat[0][actNode] = xiDx[actNode][0];
+        bMat[1][actNode] = xiDx[actNode][1];
+        bMat[2][actNode] = xiDx[actNode][2];
       }
     }
     else  {
@@ -61,20 +61,20 @@ namespace CoupledField {
       }
     }
 
-    
+
 // 	Matrix<Double> auxbMat;
 // 	auxbMat.Init();
 // 	bMat.Transpose (auxbMat);
-//     std::cerr << "linElecInt::bMat transpose = \n" << auxbMat << std::endl;
+//     std::cerr << "linGradBDBInt::bMat transpose = \n" << auxbMat << std::endl;
   }
 
 
   // ============
   //   calcDMat
   // ============
-  void linElecInt::calcDMat( Matrix<Double> &dMat, const Elem* elem) 
+  void linGradBDBInt::calcDMat( Matrix<Double> &dMat, const Elem* elem) 
   {
-    ptMaterial->GetTensor(dMat,ELEC_PERMITTIVITY,matDataType_,subTensorType_);
+    ptMaterial->GetTensor(dMat,matType_,matDataType_,subTensorType_);
     dMat *= mParser_->Eval( mHandle_ );
 
     Double density = elem != NULL ? GetErsatzMaterialFactor(elem) : 1.0;
@@ -85,7 +85,7 @@ namespace CoupledField {
   }
 
 
-  void linElecInt::SetFactor( const std::string& factor ) {
+  void linGradBDBInt::SetFactor( const std::string& factor ) {
     
     mParser_->SetExpr( mHandle_, factor );
   }
@@ -96,12 +96,14 @@ namespace CoupledField {
   // ================
 
 
-  linElecInt::linElecInt(BaseMaterial* matData, SubTensorType type,
-                         bool coordUpdate ) 
-    : BDBInt(matData, type, coordUpdate ) {
+  linGradBDBInt::linGradBDBInt(BaseMaterial* matData,
+                               MaterialType matType,
+                               SubTensorType type,
+                               bool coordUpdate ) 
+  : BDBInt(matData, type, coordUpdate ) {
 
-
-    name_ = "linElecInt";
+    matType_ = matType;
+    name_ = "linGradBDBInt";
     if ( type == FULL ) {
       dim_ = 3;
     }

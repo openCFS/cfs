@@ -716,7 +716,8 @@ namespace CoupledField {
       {
         PtrParamNode lin = mag->Get("magneticPermeability")->Get("linear");
         double eps = 1e-10;
-        
+     
+        // === ISOTROPIC ===
         if(lin->Has("isotropic"))
         {
           if(lin->Get("isotropic")->As<Double>() < eps)
@@ -724,6 +725,7 @@ namespace CoupledField {
           material->SetScalar(lin->Get("isotropic")->As<Double>(), MAG_PERMEABILITY, Global::REAL );
         }
   
+        // === ORTHOTROPIC ===
         if(lin->Has("orthotropic"))
         {
           PtrParamNode ortho = lin->Get("orthotropic");
@@ -757,6 +759,28 @@ namespace CoupledField {
           if (permOrtho_1 == true && permOrtho_2 == true && permOrtho_3 == true)
             material->SetSymmetryType(BaseMaterial::ORTHOTROPIC);
         } // end of linear orthotropic
+        
+        // === TENSOR / GENERAL ===
+        if(lin->Has("tensor")) {
+          
+          Matrix<Double> muTensor(3,3);
+          
+          // read permeability tensor (real part)
+          if(lin->GetByVal("tensor", std::string("dim1"), "3")->Has("real")) {
+            PtrParamNode tens = 
+                lin->GetByVal("tensor", std::string("dim1"),"3" )->Get("real");
+            ParamTools::AsTensor<double>(tens, 3, 3, muTensor); 
+            material->SetTensor(muTensor, MAG_PERMEABILITY, Global::REAL);
+          }
+          
+          // read permeability tensor (imaginary part)
+          if(lin->GetByVal("tensor", std::string("dim1"), "3")->Has("imag")) {
+            PtrParamNode tens = 
+                lin->GetByVal("tensor", std::string("dim1"),"3" )->Get("imag");
+            ParamTools::AsTensor<double>(tens, 3, 3, muTensor);
+            material->SetTensor(muTensor, MAG_PERMEABILITY, Global::IMAG);
+          }
+        } // tensor
       } // end of linear
 
       // we know only nonlinear isotropic material

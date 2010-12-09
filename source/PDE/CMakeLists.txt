@@ -19,6 +19,7 @@ SET(PDE_SRCS
   heatCondPDE.cc
   magEdgePDE.cc
   magneticPDE.cc
+  magneticScalarPDE.cc
   mechPDE.cc
   mixedEqnMap.cc
   mpcciPDE.cc

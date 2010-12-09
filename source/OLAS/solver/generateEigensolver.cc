@@ -59,7 +59,7 @@ namespace CoupledField {
 
 #ifdef USE_ARPACK
     case BaseEigenSolver::ARPACK:
-      retSolver = new ArpackEigenSolver( xml, eigenInfo, eigenInfo );
+      retSolver = new ArpackEigenSolver( solverXML, eigenInfo, eigenInfo );
       (*cla) << " GenerateEigenSolver: Generated ARPACK Eigensolver"
              << std::endl;
       break;

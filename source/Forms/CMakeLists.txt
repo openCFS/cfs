@@ -24,7 +24,7 @@ SET(FORMS_SRCS
   laplaceInt.cc
   linearForm.cc
   linElastInt.cc
-  linElecInt.cc
+  linGradBDBInt.cc
   linNeumannInt.cc
   linPiezoCoupling.cc
   linPressureInt.cc

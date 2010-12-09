@@ -489,6 +489,10 @@ namespace CoupledField {
     case MAG_POTENTIAL:
       return "Vs/m";
       break;
+      
+    case MAG_SCALAR_POTENTIAL:
+      return "A";
+      break;
 
     case MAG_RHS_LOAD:
       return "Am";
@@ -651,16 +655,16 @@ namespace CoupledField {
       out = "noMaterial";
       break;
     case MAG_PERMEABILITY:
-      out = "Magnetic_permability";
+      out = "Magnetic_permeability";
       break;
     case MAG_PERMEABILITY_1:
-      out = "Magnetic_permability_1";
+      out = "Magnetic_permeability_1";
       break;
     case MAG_PERMEABILITY_2:
-      out = "Magnetic_permability_2";
+      out = "Magnetic_permeability_2";
       break;
     case MAG_PERMEABILITY_3:
-      out = "Magnetic_permability_3";
+      out = "Magnetic_permeability_3";
       break;
     case MAG_RELUCTIVITY:
       out = "Magnetic_reluctivity";
@@ -769,6 +773,9 @@ namespace CoupledField {
       break;
     case HEAT_CONDUCTIVITY_TENSOR:
       out = "HeatConductivity_Tensor";
+      break;
+    case MAGNETOSTRICTION_TENSOR:
+      out = "Magnetostriction_Tensor";
       break;
     case HEAT_CAPACITY:
       out = "HeatCapacity";
@@ -1006,6 +1013,9 @@ namespace CoupledField {
     else if ( in == "HeatConductivity_Tensor" ) {
       out = HEAT_CONDUCTIVITY_TENSOR;
     }
+    else if ( in == "Magnetostriction_Tensor" ) {
+          out = MAGNETOSTRICTION_TENSOR;
+        }
     else if ( in == "HeatCapacity" ) {
       out = HEAT_CAPACITY;
     }
@@ -1741,6 +1751,7 @@ namespace CoupledField {
 
     //magnetics
     SolutionTypeEnum.Add(MAG_POTENTIAL, "magPotential");
+    SolutionTypeEnum.Add(MAG_SCALAR_POTENTIAL, "magScalarPotential");
     SolutionTypeEnum.Add(MAG_FLUX_DENSITY, "magFluxDensity");
     SolutionTypeEnum.Add(MAG_POTENTIAL_DIV, "magPotentialDiv");
     SolutionTypeEnum.Add(MAG_HFIELD, "magHfield");

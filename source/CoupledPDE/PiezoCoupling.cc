@@ -20,7 +20,7 @@
 #include "Forms/nLinPiezoMicro.hh"
 #include "Forms/nLinPiezoMicroRHS.hh"
 #include "Forms/nLinPiezoCoupling.hh"
-#include "Forms/linElecInt.hh"
+#include "Forms/linGradBDBInt.hh"
 #include "Forms/FlatShellPiezoInt.hh"
 #include "Utils/ApproxData.hh"
 #include "Utils/SmoothSpline.hh"

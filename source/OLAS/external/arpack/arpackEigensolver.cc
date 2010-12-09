@@ -210,7 +210,9 @@ namespace CoupledField {
     // Check trace settings
     arpackSolver_->DebugOff();
     if( sNode->Has("logging") ) {
-      if (sNode->Get("logging")->As<bool>()  == true ) {
+      sNode->GetValue("logging", logging_);
+      if (logging_) {
+        std::cerr << "Activating debuggin\n";
         arpackSolver_->DebugOn();
         logging_ = true;
       }
@@ -360,6 +362,9 @@ namespace CoupledField {
     arpackSolver_ = new ArpackSolver();
 
     PtrParamNode sNode;
+    std::cerr << "parameter node of Arpack is\n";
+    std::string out;
+    xml_->ToString(out, 0);
     sNode = xml_->Get("arpack", ParamNode::INSERT);
 
     // Set additional parameters for tolerance, number of Arnoldi vectors and
@@ -373,6 +378,8 @@ namespace CoupledField {
     Integer numVec = -1;
     sNode->GetValue("numVec", numVec, ParamNode::INSERT);
 
+    
+    
     // set mode: we look at both ends of the spectrum for eigenvalues
     std::string whichString = "BE";
     which_ = new char[whichString.size()+1];
@@ -394,9 +401,19 @@ namespace CoupledField {
     if (numVec > 0)
       arpackSolver_->SetNumVectors(numVec);
 
+
     // Check trace settings
     arpackSolver_->DebugOff();
 
+    if( sNode->Has("logging") ) {
+      sNode->GetValue("logging", logging_);
+      if (logging_) {
+        std::cerr << "Activating debuggin\n";
+        arpackSolver_->DebugOn();
+        logging_ = true;
+      }
+    }
+    
     // Print log-info about EigenSolver
     PrintInfo();
 

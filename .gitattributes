@@ -574,6 +574,7 @@ share/xml/CFS-Simulation/Schemas/CFS_PDEfluidMech.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEheatConduction.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEmagedge.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEmagnetic.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_PDEmagneticScalar.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEmechanic.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEmpcci.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEsmooth.xsd svneol=native#text/xml
@@ -987,8 +988,8 @@ source/Forms/laplaceInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/laplaceInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/linElastInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/linElastInt.hh svneol=native#text/x-c%2B%2Bhdr
-source/Forms/linElecInt.cc -text svneol=unset#text/x-c%2B%2Bsrc
-source/Forms/linElecInt.hh -text svneol=unset#text/x-c%2B%2Bhdr
+source/Forms/linGradBDBInt.cc -text svneol=unset#text/x-c%2B%2Bsrc
+source/Forms/linGradBDBInt.hh -text svneol=unset#text/x-c%2B%2Bhdr
 source/Forms/linHeatCondInt.cc -text
 source/Forms/linHeatCondInt.hh -text
 source/Forms/linNeumannInt.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1412,6 +1413,8 @@ source/PDE/magEdgePDE.cc -text
 source/PDE/magEdgePDE.hh -text
 source/PDE/magneticPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/magneticPDE.hh svneol=native#text/x-c%2B%2Bhdr
+source/PDE/magneticScalarPDE.cc svneol=native#text/x-c%2B%2Bsrc
+source/PDE/magneticScalarPDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/mechPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/mechPDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/mixedEqnMap.cc -text
