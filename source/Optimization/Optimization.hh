@@ -152,7 +152,8 @@ namespace CoupledField
         virtual PtrParamNode CommitIteration(bool keep_iteraton_number = false);
 
         /** the break condition for the optimization loop.
-         * Checks the stopping rule from the XML file an searches for an HALTOPT file.  */
+         * Checks the stopping rule from the XML file an searches for an HALTOPT file.
+         * Shall be called after CommitIteration() ! */
         virtual bool DoStopOptimization();
 
         /** are we in the harmonic case? */
@@ -273,9 +274,6 @@ namespace CoupledField
         /** Here we keep the last iterations design space */
         Vector<double>  last_iteration;
 
-        /** Here we keep the last evaluation design space */
-        Vector<double>  last_evaluation;
-
         /** are we harmonic or static? */
         bool harmonic;
         
@@ -298,7 +296,7 @@ namespace CoupledField
         class Log
         {
         public:
-          /** Sets to meaningul defaults (don not much :) ) */
+          /** Sets to meaningful defaults (don not much :) ) */
           Log();
 
           /** Closes the file */

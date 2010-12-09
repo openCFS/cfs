@@ -183,14 +183,6 @@ void ErsatzMaterial::PostInit()
   // the constraints size is only now known and the shapeDesign constructor is finished -> PostInit design
   design->PostInit(objectives.data.GetSize(), constraints.all.GetSize());
 
-
-  // number of design variables in shape optimization is only known here
-  // make a copy of the old iteration to calculate the move
-  last_iteration.Resize(design->GetNumberOfVariables());
-
-  // note the difference between function evaluations (line search) and iterations!
-  last_evaluation.Resize(design->GetNumberOfVariables());
-
   for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
   {
     Objective* cost = objectives.data[i];
@@ -722,8 +714,6 @@ void ErsatzMaterial::SubtractGradSurfaceRHS(DesignElement* de, TransferFunction*
 
 double ErsatzMaterial::CalcObjective()
 {
-  design->WriteDesignToExtern(last_evaluation.GetPointer());
-
   // in objective.value_ we store the sum over all excitations w/o penalty but with normalization
   // in excitation.cost we store the sum over all objectives with penalty but w/o normalization
 

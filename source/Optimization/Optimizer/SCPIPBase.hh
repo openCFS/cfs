@@ -173,7 +173,7 @@
     /** This containts the most important exit states. Make it readable with ToString().
      * It resembles the notation of IPOPT but clearly not the numbering */
     typedef enum { Solve_Succeeded = 0, Maximum_Iterations_Exceeded = 1, LineSearch_Max_Iter = 22, 
-      Subproblem_Max_Iter = 31, User_Requested_Stop = 1024,
+      Infeasible = 23, Subproblem_Max_Iter = 31, User_Requested_Stop = 1024,
       Gradients_Return_False = 1025} StateCode; 
 
       /** This is convenient class serving status/info values like IPOPT does it */

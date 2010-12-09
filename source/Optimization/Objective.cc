@@ -10,6 +10,8 @@
 
 using namespace CoupledField;
 
+Enum<ObjectiveContainer::StoppingRule::Type>  ObjectiveContainer::StoppingRule::type;
+
 Objective::Objective(PtrParamNode pn, PtrParamNode pn_type, unsigned int idx)
  : Function(pn_type)
 {
@@ -19,10 +21,6 @@ Objective::Objective(PtrParamNode pn, PtrParamNode pn_type, unsigned int idx)
   this->index_       = idx;
 
   this->penalty_ = pn_type->Has("penalty") ? pn_type->Get("penalty")->As<Double>() : 1.0;
-
-  // currently we have only relative implemented up to now!
-  stop.value = pn->Has("stopping") ? pn->Get("stopping/value")->As<Double>() : 1e-5;
-  stop.queue = pn->Has("stopping") ? pn->Get("stopping/queue")->As<Integer>() : 5; // is >= 1!
 
   coord.first = -1;
   coord.second = -1;
@@ -53,8 +51,26 @@ void Objective::ToInfo(PtrParamNode info)
 
 }
 
+ObjectiveContainer::StoppingRule::StoppingRule()
+{
+  // sync with XSL defaults!
+  value = 1e-3;
+  queue = 5;
+  type_ = DESIGN_CHANGE;
+}
+
+void ObjectiveContainer::StoppingRule::Init(PtrParamNode pn)
+{
+  if(pn == NULL) return;
+
+  type_ = type.Parse(pn->Get("type")->As<std::string>());
+  value = pn->Get("value")->As<Double>();
+  queue = pn->Get("queue")->As<Integer>();
+}
+
 ObjectiveContainer::ObjectiveContainer()
 {
+  last_design_ = -121354;
 }
 
 
@@ -72,6 +88,9 @@ void ObjectiveContainer::Read(PtrParamNode obj_node)
 
   // depending on the costFunction attribute type we read the multiObjective list.
   bool mo = Objective::type.Parse(obj_node->Get("type")->As<std::string>()) == Objective::MULTI_OBJECTIVE;
+
+  // set to default if it is not set
+  stop.Init(obj_node->Get("stopping", ParamNode::PASS));
 
   if(!mo)
   {
@@ -174,3 +193,20 @@ void ObjectiveContainer::PushBackHistory()
     data[i]->history_.Push_back(data[i]->value_);
 }
 
+void ObjectiveContainer::PushBackDesign(const DesignSpace* space)
+{
+  // don't push back if the design is the same -> e.g. last commit after convergence
+  if(space->GetCurrentDesignId() == last_design_) return;
+
+  // save this iteration - we need a temporary copy to calculate the distance
+  Vector<double> curr_design(space->GetNumberOfVariables());
+  space->WriteDesignToExtern(curr_design.GetPointer());
+
+  // first iteration?
+  double change = last_iteration_.GetSize() == 0 ? curr_design.NormMax() : curr_design.NormMax(last_iteration_);
+  last_iteration_ = curr_design;
+
+  design_change.Push_back(change);
+
+  last_design_ = space->GetCurrentDesignId();
+}

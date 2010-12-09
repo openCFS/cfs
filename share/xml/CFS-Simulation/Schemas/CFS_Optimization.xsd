@@ -68,17 +68,18 @@
             </xsd:element>
             <xsd:element name="stopping" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
-                <!-- optional stopping rule.  -->
-                <xsd:attribute name="rule" use="optional" default="relative">
+                <!-- type of stopping criteria  -->
+                <xsd:attribute name="type" use="optional" default="designChange">
                   <xsd:simpleType>
                     <xsd:restriction base="xsd:token">
-                      <xsd:enumeration value="relative"/>
+                      <xsd:enumeration value="designChange"/>
+                      <xsd:enumeration value="relativeCostChange"/>
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>
                 
                 <!-- optional to give the stopping rule value.  -->
-                <xsd:attribute name="value" use="optional"  type="xsd:float" default="1e-5"/>
+                <xsd:attribute name="value" use="optional"  type="xsd:float" default="1e-3"/>
                 
                 <!-- optinoal to give the stopping rule queue lenght, this is for how many steps the criteria has to hold.  -->
                 <xsd:attribute name="queue" use="optional" type="xsd:positiveInteger" default="5"/>
@@ -293,7 +294,7 @@
           <!-- one can scale value and gradient by a constant or link to the objective scaling -->
           <xsd:attribute name="scaling" use="optional" type="xsd:token" default="1.0" />
           <!-- optional to give the type - default is equal -->
-          <xsd:attribute name="bound" use="optional" default="equal">
+          <xsd:attribute name="bound" use="optional">
             <xsd:simpleType>
               <xsd:restriction base="xsd:token">
                 <xsd:enumeration value="equal"/>

@@ -27,19 +27,26 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   blown_up_ = false;
   index_ = -1; // to be set by ConditionContainer::Read()
   virtual_base_index_ = -1;
-  bound_ = bound.Parse(pn->Get("bound")->As<std::string>());
-  design = !pn->Has("design") ? DesignElement::DEFAULT :
-           DesignElement::type.Parse(pn->Get("design")->As<std::string>());
 
+
+  observation_ = pn->Get("mode")->As<std::string>() == "observation";
+
+  // the bound value is mandatory when we have a constraint
+  if(!observation_ && !pn->Has("bound") && type_ != ISOTROPY)
+    throw Exception("bound type for constraint '" + type.ToString(type_) + "' mandatory");
+  bound_ = pn->Has("bound") ? bound.Parse(pn->Get("bound")->As<std::string>()) : EQUAL;
   // the bound value is called value in the problem file!
   // there must not  be a value when a homogenization tensor is given
   this->boundValue_ = pn->Has("value") ? pn->Get("value")->As<double>() : -1.0;
+
+  design = !pn->Has("design") ? DesignElement::DEFAULT :
+           DesignElement::type.Parse(pn->Get("design")->As<std::string>());
+
 
   // special handling of scaling
   objective_scaling_ = pn->Get("scaling")->As<std::string>() == "objective";
   manual_scaling_value = objective_scaling_ ? -1.0 : pn->Get("scaling")->As<double>();
 
-  observation_ = pn->Get("mode")->As<std::string>() == "observation";
 
   delta_logging_ignored_ = false;
   delta_logging = pn->Get("log_delta")->As<bool>();
@@ -83,20 +90,6 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   if(pn->Has("linear"))
     linear_ = pn->Get("linear")->As<bool>();
 
-  // check bound
-  switch(type_)
-  {
-  case SLOPE:
-  case GLOBAL_SLOPE:
-  case OSCILLATION:
-  case JUMP:
-    if(bound_ != UPPER_BOUND && IsActive())
-      bound_ = UPPER_BOUND; // detected in PostProc() and warning is given
-    break;
-
-  default:
-    break;
-  }
 }
 
 void Condition::PostProc(DesignSpace* space, DesignStructure* structure)
@@ -104,20 +97,6 @@ void Condition::PostProc(DesignSpace* space, DesignStructure* structure)
   // note, meanwhile we have info_ set! but not yet in the constructor
   Function::PostProc(space, structure);
 
-  // did we change the bound?
-  switch(type_)
-  {
-  case SLOPE:
-  case GLOBAL_SLOPE:
-  case OSCILLATION:
-  case JUMP:
-    if(pn->Get("bound")->As<std::string>() != bound.ToString(bound_) && IsActive())
-      info_->Get(ParamNode::WARNING)->SetValue("changed bound for '" + type.ToString(type_) + "' to 'upperBound'");
-    break;
-
-  default:
-    break;
-  }
 
   if(type_ == VOLUME && physical_ && !observation_)
     info_->Get(ParamNode::WARNING)->SetValue("a physical volume constraint should make no sense");
