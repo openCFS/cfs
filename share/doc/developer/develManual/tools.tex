@@ -1452,4 +1452,24 @@ search path in order to work correctly with convert.
 images in the movie. The list  of command line parameter is almost endless and
 can be seen by man convert.
 
+\subsubsection{Extracting Vector Graphics of Slices}
+
+GMV is the only postprocessor which does not generate triangle meshes during a
+mesh slice  operation. This means that slicing  a hexa in the  middle does not
+produce  two  triangles but  one  quadrilateral. This  is  even  the case  for
+quadratic elements.   This is important  for demonstrating the structure  of a
+mesh.   In order  to export  this data  to vector  format (postscript)  do the
+following.
+
+\begin{itemize}
+  \item Generate a cutplane as explained above.
+  \item Switch of Faces in Display $\rightarrow$ Cells dialogue
+  \item Switch  on Edges in  Cutplanes $\rightarrow$ Cutplane  X $\rightarrow$
+Options dialogue
+  \item Save snapshot by going to File $\rightarrow$ Snapshot $\rightarrow$ PS
+Lines $\rightarrow$ Snap
+\end{itemize}
+
+GMV may however crash during the operation, due to OpenGL problems.
+
 \section{General}

@@ -72,6 +72,23 @@ committing local changes back to the SVN repository.
 
 \input{pygmentized/git_checkout_cfs}
 
+\subsubsection{Git Local Branches}
+
+\todo[inline]{Properly describe making and managing local branches:}
+
+\begin{itemize}
+\item {\tt git checkout local\_branch}
+\item make changes
+\item stash changes: {\tt git stash}
+\item list items in stash {\tt git stash list}
+\item go back to master branch: {\tt git checkout master}
+\item get latest svn revision on master branch: {\tt git svn rebase}
+\item go back to local branch: {\tt git checkout local\_branch}
+\item merge latest svn revision from master to local branch: {\tt git merge master}
+\item get local changes from stash back to local\_branch: {\tt git stash pop stash\@\{0\}}
+\end{itemize}
+
+
 \begin{table}[tb]
 \centering
 \begin{minipage}{18cc}\caption{Git resources on the web.}
@@ -1289,6 +1306,64 @@ The  central dashboard  for  CFS++ is  located  on the  development server  at
 
 \todo[inline]{Write   about  nightly  builds   in  Klagenfurt   and  Erlangen,
 ctest scripts, VBoxes etc.}
+
+\subsection{Changing the EMail Preferences for Users}
+
+In order for users to receive emails about failed tests, the user needs to be
+associated to  a given  project. This can  be achieved  by adding the  user to
+project  in the  CDash 'Manage  Project  Users' window  in the  administration
+section (cf. Fig. \ref{fig:cdash_project_roles}).
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.55\textwidth]{pics/cdash_project_roles}
+%    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
+  \end{overpic}
+  \caption{CDash project roles screen.}
+  \label{fig:cdash_project_roles}
+\end{figure}%
+
+The user is also allowed to choose for himself, in what circumstance he wishes
+to receive mail. He can make this setting in the 'Edit Subscription' window of
+the project settings. Under 'EMail Preference' he can choose from the settings
+given in Tab. \ref{tab:cdash_email_prefs}. 
+
+\begin{table}[tb]
+\centering
+\begin{minipage}{18cc}\caption{CDash email preferences.}
+\label{tab:cdash_email_prefs}
+\end{minipage}
+\par\medskip\noindent
+\begin{tabular}{lc}
+  \toprule
+  {\bf Preference Setting} & {\bf Value of emailtype} \\ \otoprule
+  No email & 0 \\
+  Email me when {\bf my checkins} are breaking the dashboard & 1 \\
+  Email me when checkins are breaking {\bf nightly} dashboard & 2 \\
+  Email me when {\bf any builds} are breaking the dashboard & 3 \\
+  \bottomrule
+\end{tabular} 
+\end{table}
+
+Within CDash only the user himself  can make these settings.  In order for the
+administrator to  change the settings, he  has to log in  using phpMyAdmin and
+change    the    table    'user2project'    from    the    'cdash'    database
+(cf.   Fig.    \ref{fig:cdash_user2project}).    The   settings    from   Tab.
+\ref{tab:cdash_email_prefs}  correspond  to  the  'emailtype' column  in  this
+table. The other two settings \emph{Email me when my checkins are fixing build
+errors,  warnings or tests}  and \emph{Email  me when  expected sites  are not
+submitting} correspond  to the columns  'emailsuccess' and 'emailmissingsites'
+respectively.  A value of 0 in these columns corresponds to off, and a setting
+of 1 to on.
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.55\textwidth]{pics/cdash_emailtype}
+%    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
+  \end{overpic}
+  \caption{The CDash 'user2project' table in phpMyAdmin.}
+  \label{fig:cdash_user2project}
+\end{figure}%
 
 
 \section{Trac}
