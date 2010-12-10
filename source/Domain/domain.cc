@@ -54,6 +54,7 @@
 #include "CoupledPDE/AcouMechCoupling.hh"
 #include "CoupledPDE/ThermoMechCoupling.hh"
 #include "CoupledPDE/ThermoElectricCoupling.hh"
+#include "CoupledPDE/magStrictCoupling.hh"
 
 // Include driver
 #include "Driver/basedriver.hh"
@@ -774,6 +775,19 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep)
       coupling = new PiezoCoupling(pde1, pde2, pairNodes[i]);
 
     }
+    // *** magnetostriction Coupling *** 
+    else if ( couplingName == "magnetoStrictionDirect" ) {
+
+      pde1 = GetSinglePDE( "mechanic" );
+      pde2 = GetSinglePDE( "magneticScalar" );
+
+      // in the case of  Mag-Mech coupling, the magnetic field
+      // entries have to be multiplied by -1
+      dynamic_cast<MagScalarPDE*>(pde2)->SetMagStrictCoupling();
+      coupling = new MagStrictCoupling( pde1, pde2, pairNodes[i] );
+
+    }
+    
     // *** ACOU-MECH Coupling ***
     else if (couplingName == "acouMechDirect")
     {

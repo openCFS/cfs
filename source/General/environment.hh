@@ -192,7 +192,8 @@ namespace CoupledField {
   typedef enum{FULL, PLANE_STRAIN, PLANE_STRESS, PLANE, AXI} SubTensorType;
 
   typedef enum{ NO_CLASS, ELECTROMAGNETIC, ELECTROSTATIC, FLUID, FLOW,
-                MECHANIC, PIEZO, THERMIC, PYROELECTRIC, THERMOELASTIC } MaterialClass;
+                MECHANIC, PIEZO, THERMIC, PYROELECTRIC, THERMOELASTIC,
+                MAGNETOSTRICTIVE } MaterialClass;
 
 
   typedef enum{ noCurve, magBH } ApproxMaterialCurves;

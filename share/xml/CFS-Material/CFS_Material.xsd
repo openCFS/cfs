@@ -22,6 +22,7 @@
   <xsd:include schemaLocation="Schemas/CFS_MATpiezo.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_MATpyroelectric.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_MATthermoelastic.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_MATmagStrict.xsd"/>
   
   <!-- ******************************************************************* -->
   <!--   Include further definitions -->
@@ -48,7 +49,9 @@
               <xsd:element name="heatConduction" type="DT_MatHeatConduction"
 	        minOccurs="0" maxOccurs="1"/>
               <xsd:element name="magnetic" type="DT_MatMagnetic"
-	        minOccurs="0" maxOccurs="1"/>
+              minOccurs="0" maxOccurs="1"/>
+              <xsd:element name="magnetoStrictive" type="DT_MatMagStrict"
+                minOccurs="0" maxOccurs="1"/>
               <xsd:element name="piezo" type="DT_MatPiezo"
 	        minOccurs="0" maxOccurs="1"/>
 			  <xsd:element name="pyroelectric" type="DT_MatPyroelectric"

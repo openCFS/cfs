@@ -144,6 +144,11 @@ namespace CoupledField {
 
   }
 
+  
+  void MagScalarPDE::SetMagStrictCoupling() {
+    isMagnetostrictiveCoupled_ = true;
+  }
+  
   void MagScalarPDE::DefineIntegrators() {
 
     

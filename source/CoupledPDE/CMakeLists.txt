@@ -8,7 +8,9 @@ SET(COUPLED_PDE_SRCS
   PiezoCoupling.cc
   AcouMechCoupling.cc
   ThermoMechCoupling.cc
-  ThermoElectricCoupling.cc)
+  ThermoElectricCoupling.cc
+  magStrictCoupling.cc
+  )
 
 ADD_LIBRARY(coupledpde STATIC ${COUPLED_PDE_SRCS})
 

@@ -8,7 +8,7 @@ ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
 SET(MATERIALS_SRCS acousticMaterial.cc baseMaterial.cc
   electroMagneticMaterial.cc electrostaticMaterial.cc flowMaterial.cc
   heatMaterial.cc mechanicMaterial.cc piezoMaterial.cc
-  thermoelasticMaterial.cc pyroelectricMaterial.cc magstrictMaterial.cc)
+  thermoelasticMaterial.cc pyroelectricMaterial.cc magStrictMaterial.cc)
 # MaterialData.cc is removed (?)
 
 ADD_LIBRARY(materials STATIC ${MATERIALS_SRCS})

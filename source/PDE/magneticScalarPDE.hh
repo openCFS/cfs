@@ -60,10 +60,18 @@ namespace CoupledField
 
     //! Calculate result for given result class
     void CalcResults( shared_ptr<BaseResult> result );
-
+    
     // ======================================================
     // COUPLING SECTION
     // ======================================================
+    
+    //! Turn the magnetostriction coupling on
+
+    //! Triggers the correct assembly of the magnetic block in a 
+    //! magnetostrictive-coupled simulation, because the coupled magnetic block
+    //! is negative compared to the normal one
+    void SetMagStrictCoupling();
+
 
     //! Initalize PDE coupling
     void InitCoupling(PDECoupling * Coupling);

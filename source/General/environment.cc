@@ -1210,6 +1210,9 @@ namespace CoupledField {
     case THERMOELASTIC:
       out = "thermoelastic";
       break;
+    case MAGNETOSTRICTIVE:
+      out = "magnetoStrictive";
+      break;
 
     default:
       EXCEPTION("No conversion found for your 'MaterialClass'" );
@@ -1246,11 +1249,14 @@ namespace CoupledField {
     else if ( in == "thermic" ) {
       out = THERMIC;
     }
-	else if ( in == "pyroelectric" ) {
+    else if ( in == "pyroelectric" ) {
       out = PYROELECTRIC;
     }
-	else if ( in == "thermoelastic" ) {
+    else if ( in == "thermoelastic" ) {
       out = THERMOELASTIC;
+    }
+    else if ( in == "magnetoStrictive" ) {
+      out = MAGNETOSTRICTIVE;
     }
     else {
       EXCEPTION( "'" << in << "' cannot be converted into an '"

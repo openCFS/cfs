@@ -66,6 +66,7 @@ SET(FORMS_SRCS
   fluidMechStiffInt.cc
   nLinPiezoMicro.cc
   nLinPiezoMicroRHS.cc
+  linMagStrictInt.cc
   )
 
 ADD_LIBRARY(forms STATIC ${FORMS_SRCS})

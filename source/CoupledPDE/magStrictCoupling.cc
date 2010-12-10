@@ -1,0 +1,172 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+
+#include "magStrictCoupling.hh"
+
+#include "Driver/assemble.hh"
+#include "Materials/baseMaterial.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/WriteInfo.hh"
+
+// integrator (bi-)linear forms
+#include "Forms/linMagStrictInt.hh"
+#include "PDE/SinglePDE.hh"
+
+namespace CoupledField {
+
+
+  // ***************
+  //   Constructor
+  // ***************
+  MagStrictCoupling::MagStrictCoupling( SinglePDE *pde1, SinglePDE *pde2,
+                                        PtrParamNode paramNode  )
+    : BasePairCoupling( pde1, pde2, paramNode ) {
+
+
+    couplingName_ = "magnetostriction";
+    materialClass_ = MAGNETOSTRICTIVE;
+
+    // determine subtype from mechanic pde
+    pde1_->GetParamNode()->GetValue( "subType", subType_ );
+  }
+
+
+  // **************
+  //   Destructor
+  // **************
+  MagStrictCoupling::~MagStrictCoupling() {
+  }
+
+
+  // ***************
+  //   CalcResults
+  // ***************
+  void MagStrictCoupling::CalcResults( shared_ptr<BaseResult> result ) {
+
+    switch (result->GetResultInfo()->resultType ) {
+      case MAG_FLUX_DENSITY:
+        if ( isComplex_ ) {
+          CalcBField<Complex>( result );
+        } else{
+          CalcBField<Double>( result );
+        }
+        break;
+
+      case MECH_STRESS:
+        if ( isComplex_ ) {
+          CalcStress<Complex>( result );
+        } else {
+          CalcStress<Double>( result );
+
+        }
+        break;
+
+      default:
+        WARN("Result type not computable by magnmechanic coupling");
+    }
+  }
+
+  template<class TYPE>
+  void MagStrictCoupling::CalcBField( shared_ptr<BaseResult> result ) {
+    EXCEPTION("Not yet implemented" );
+  }
+  
+  template<class TYPE>
+  void MagStrictCoupling::CalcStress( shared_ptr<BaseResult> result ) {
+    EXCEPTION("Not yet implemented" );
+  }
+
+
+  // *********************
+  //   DefineIntegrators
+  // *********************
+  void MagStrictCoupling::DefineIntegrators() {
+
+    Global::ComplexPart matType = Global::REAL;
+    RegionIdType actRegion;
+    BaseMaterial * actSDMat = NULL;
+
+    // get material from magnetostatics
+    std::map<RegionIdType, BaseMaterial*> magMat =
+      pde2_->getPDEMaterialData();
+
+
+    // Define integrators for "standard" materials
+    std::map<RegionIdType, BaseMaterial*>::iterator it;
+    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
+      // Set current region and material
+      actRegion = it->first;
+      actSDMat = it->second;
+      matType = Global::REAL;
+
+      // determine the tenstor type
+      SubTensorType tensorType;
+      String2Enum(subType_,tensorType);
+
+      // create new entity list
+      shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
+      actSDList->SetRegion( actRegion );
+
+      // ==== Define Stiffness integrator K_U\Phi =======
+      BiLinFormContext *actContextStiff = NULL;
+      BaseForm *bilinearStiff = new LinMagStrictInt(materials_[actRegion], tensorType);
+      bilinearStiff->SetMatDataType( matType );
+      actContextStiff = new BiLinFormContext( bilinearStiff, STIFFNESS  );
+
+
+      // We also need to set the transposed of the coupling
+      // matrix to the lower diagonal side
+      actContextStiff->SetCounterPart( true );
+      actContextStiff->SetEntryType( matType );
+      actContextStiff->SetPtPdes( pde1_, pde2_ );  // PDE1: MECH, PDE2: Mag)
+      actContextStiff->SetResults( results1_[0], results2_[0],
+                                   actSDList, actSDList );
+      assemble_->AddBiLinearForm( actContextStiff );
+    }
+  }
+
+
+  void MagStrictCoupling::DefineAvailResults() {
+
+   // Check for subType
+    StdVector<std::string> stressDofNames, vecDofNames;
+    if( subType_ == "3d" ) {
+      stressDofNames = "xx", "yy", "zz", "yz", "xz", "xy";
+      vecDofNames = "x", "y", "z";
+
+    } else if( subType_ == "planeStrain" ) {
+      stressDofNames = "xx", "yy", "xy";
+      vecDofNames = "x", "y";
+
+    } else if( subType_ == "planeStress" ) {
+      stressDofNames = "xx", "yy", "xy";
+      vecDofNames = "x", "y";
+
+    } else if( subType_ == "axi" ) {
+      stressDofNames = "rr", "zz", "rz", "phiphi";
+      vecDofNames = "r", "z";
+
+    }
+
+    // === MECHANIC STRESS ===
+    shared_ptr<ResultInfo> stress(new ResultInfo);
+    stress->resultType = MECH_STRESS;
+    stress->dofNames = stressDofNames;
+    stress->unit = "N/m^2";
+    stress->entryType = ResultInfo::TENSOR;
+    stress->definedOn = ResultInfo::ELEMENT;
+    stress->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert( stress );
+
+    // === MAGNETIC FLUX DENSITY ===
+    shared_ptr<ResultInfo> flux(new ResultInfo);
+    flux->resultType = MAG_FLUX_DENSITY;
+    flux->dofNames = vecDofNames;
+    flux->unit = "Vs/m^2";
+    flux->definedOn = ResultInfo::ELEMENT;
+    flux->entryType = ResultInfo::VECTOR;
+    flux->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert( flux );
+  }
+}

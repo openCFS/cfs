@@ -67,11 +67,15 @@ namespace CoupledField {
     //! \param matName Name of the material to be read
     void ReadThermoelastic(BaseMaterial *material, PtrParamNode pn);
 
-
     //! Reads pyroelectric material.
     //! \param material Material object to be filled with data
     //! \param matName Name of the material to be read
     void ReadPyroelectric(BaseMaterial *material, PtrParamNode pn);
+    
+    //! Reads magnetostrictive material
+    //! \param material Material object to be filled with data
+    //! \param matName Name of the material to be read
+    void ReadMagStrict(BaseMaterial *material, PtrParamNode pn);
 
   };
   
