@@ -380,6 +380,7 @@
     <xsd:attribute name="host" type="xsd:token" default="localhost"/>
     <xsd:attribute name="port" type="xsd:nonNegativeInteger" default="8888"/>
     <xsd:attribute name="path" type="xsd:token" use="required"/>
+    <xsd:attribute name="silent" type="xsd:boolean" use="optional"/>
   </xsd:complexType>  
 
 
