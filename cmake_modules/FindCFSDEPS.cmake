@@ -90,6 +90,7 @@ INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindBzip2.cmake")
 #-------------------------------------------------------------------------------
 IF(USE_HDF5)
   INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindHDF5.cmake")
+  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindCfs-hdf5.cmake")
 ENDIF(USE_HDF5)
 
 #-------------------------------------------------------------------------------

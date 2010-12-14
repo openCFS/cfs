@@ -11,6 +11,7 @@ cmake_modules/FindBzip2.cmake -text
 cmake_modules/FindCFSDEPS.cmake -text
 cmake_modules/FindCFXCust.cmake -text
 cmake_modules/FindCGAL.cmake -text
+cmake_modules/FindCfs-hdf5.cmake -text
 cmake_modules/FindFortranLibs.cmake -text
 cmake_modules/FindGiDpost.cmake -text
 cmake_modules/FindGotoBLAS.cmake -text
