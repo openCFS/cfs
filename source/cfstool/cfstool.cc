@@ -1039,54 +1039,73 @@ int main(int argc, char** argv)
     std::string param_mode = param->Get("mode")->As<std::string>();
 
     // get filenames from parameter
-    std::vector<std::string> param_files;
-    typedef boost::tokenizer< boost::char_separator<char> > Tok;
-    boost::char_separator<char> sep(";| ");
+    std::string inputFile = param->Get("inputFile")->As<std::string>();
+    std::string compareFile = param->Get("compareFile")->As<std::string>();
+    std::string outputFile = param->Get("outputFile")->As<std::string>();
 
     // Initialize vector with output fields
-    Tok tokenizer(param->Get("files")->As<std::string>(), sep);
-    std::copy(tokenizer.begin(), tokenizer.end(),
-              std::back_inserter(param_files));
-    UInt num_files = param_files.size();
-    if (param_files.size() >= 1)
+    UInt num_files = 0;
+    if (inputFile != "")
+    {
+      ++num_files;
+      if (compareFile != "")
+      {
+        ++num_files;
+        if (outputFile != "")
+        {
+          ++num_files;
+        }
+      }
+    }
+    if (inputFile != "")
     {
       // This is necessary to run, but I do not know what it is for
       info = PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT));
-      infoFileName = param_mode + "_" + param_files[0] + ".info.xml";
+      infoFileName = param_mode + "_" + inputFile + ".info.xml";
       info->SetName("cfsInfo"); 
     }
 
     if (param_mode == "calcAverage")
     {
+      if (outputFile != "")
+      {
+        EXCEPTION( "Two many arguments, please only provide two files. (in- and output file)" );
+      }
+      outputFile = compareFile;
       if (num_files != 2)
       {
-        EXCEPTION( "Please provide <infFile> and <outFile>" );
+        EXCEPTION( "Please provide a reference file and output File" );
       }
-      CFSTool::calcAverage(param_files[0], param_files[1]);
+      CFSTool::calcAverage(inputFile, outputFile);
     } else if (param_mode == "convert") {
+      if (outputFile != "")
+      {
+        EXCEPTION( "Two many arguments, please only provide two files. (in- and output file)" );
+      }
+      outputFile = compareFile;
       if (num_files != 2)
       {
         EXCEPTION( "Please provide <infFile> and <outFile>" );
       }
-      CFSTool::Convert( param_files[0], param_files[1] );
+      CFSTool::Convert( inputFile, outputFile );
     } else if (param_mode == "scalardiff") {
       Double tolerance = param->Get("eps")->As<Double>();
       if (num_files != 2)
       {
-        EXCEPTION( "Please provide <infFile1> and <inFile2>" );
+        EXCEPTION( "Please provide <inFile1> and <inFile2>" );
       }
       Double maxDiffMesh = 0.0, maxDiffHist = 0.0;
       std::cout << "Checking for mesh results:\n"
         << "==========================";
-      maxDiffMesh = CFSTool::Diff( param_files[0], param_files[1], "", \
+      maxDiffMesh = CFSTool::Diff( inputFile, compareFile, "", \
                                   true, false, maxDiffResultName);
       std::cout << "Checking for history results:\n"
         << "=============================";
-      maxDiffHist = CFSTool::Diff( param_files[0], param_files[1], "", \
+      maxDiffHist = CFSTool::Diff( inputFile, compareFile, "", \
                                   true, true, maxDiffResultName );
       Double maxDiff = std::max( maxDiffMesh, maxDiffHist );
       if( maxDiff > tolerance ) {
-        std::cout << "'" << param_files[0] << "' and '" << param_files[1]
+        std::cout << "'" << inputFile << "' and '" << compareFile
           << "' have maximum difference " << maxDiff
           << " at '" << maxDiffResultName << "'\n";
         exit(EXIT_FAILURE);
@@ -1097,18 +1116,18 @@ int main(int argc, char** argv)
     } else if (param_mode == "meshdiff") {
       if (num_files != 3)
       {
-        EXCEPTION( "Please provide <infFile1>, <inFile2> and <outFile>" );
+        EXCEPTION( "Please provide <inFile1>, <inFile2> and <outFile>" );
       }
       Double maxDiff = 0.0;
-      maxDiff = CFSTool::Diff( param_files[0], param_files[1], param_files[2], \
+      maxDiff = CFSTool::Diff( inputFile, compareFile, outputFile, \
                                 false, false, maxDiffResultName);
     } else if (param_mode == "meshdiffnormed") {
       if (num_files != 3)
       {
-        EXCEPTION( "Please provide <infFile1>, <inFile2> and <outFile>" );
+        EXCEPTION( "Please provide <inFile1>, <inFile2> and <outFile>" );
       }
       Double maxDiff = 0.0;
-      maxDiff = CFSTool::Diff( param_files[0], param_files[1], param_files[2], \
+      maxDiff = CFSTool::Diff( inputFile, compareFile, outputFile, \
                                 true, false, maxDiffResultName);
     } else {
       EXCEPTION( "No such mode: " << param_mode <<". See help for available modes" );
