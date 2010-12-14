@@ -72,6 +72,7 @@ namespace CoupledField {
     // the the requested material class: <mechanical>
     pn = pn->Get(strMatClass);  
    
+    try {
     if ( matClass == PIEZO ) {
       material = new PiezoMaterial();
       ReadPiezo( material, pn);
@@ -117,6 +118,10 @@ namespace CoupledField {
     }
     // Finalize setup of material
     material->Finalize();
+    } catch (Exception& ex ) {
+      RETHROW_EXCEPTION(ex, "Could not load material '" << matName  
+                        << "' of class '" << matClass << "'" );
+    }
 
     return material;
   }
@@ -710,6 +715,11 @@ namespace CoupledField {
 //**********************************************************************
   void XMLMaterialHandler::ReadMagnetic(BaseMaterial *material, PtrParamNode mag)
   {
+    // flags for symmetry type
+    bool isIsotropic = false;
+    bool isOrthotropic = false;
+    bool isTensor = false;
+    
     // read electric conductivity
     if(mag->Has("electricConductivity"))
       material->SetScalar(mag->Get("electricConductivity")->As<Double>(), MAG_CONDUCTIVITY, Global::REAL);
@@ -728,6 +738,7 @@ namespace CoupledField {
           if(lin->Get("isotropic")->As<Double>() < eps)
             EXCEPTION("Magnetic permeability is near zero. Check material database");
           material->SetScalar(lin->Get("isotropic")->As<Double>(), MAG_PERMEABILITY, Global::REAL );
+          isIsotropic = true;
         }
   
         // === ORTHOTROPIC ===
@@ -762,7 +773,7 @@ namespace CoupledField {
         
           // check, if there is an orthotropic permeability!!
           if (permOrtho_1 == true && permOrtho_2 == true && permOrtho_3 == true)
-            material->SetSymmetryType(BaseMaterial::ORTHOTROPIC);
+            isOrthotropic = true;
         } // end of linear orthotropic
         
         // === TENSOR / GENERAL ===
@@ -776,6 +787,7 @@ namespace CoupledField {
                 lin->GetByVal("tensor", std::string("dim1"),"3" )->Get("real");
             ParamTools::AsTensor<double>(tens, 3, 3, muTensor); 
             material->SetTensor(muTensor, MAG_PERMEABILITY, Global::REAL);
+            isTensor = true;
           }
           
           // read permeability tensor (imaginary part)
@@ -787,6 +799,22 @@ namespace CoupledField {
           }
         } // tensor
       } // end of linear
+      
+      // Try to determine, if a unique symmetry type can be obtained
+      if( isIsotropic && !isOrthotropic && !isTensor ) {
+        material->SetSymmetryType(BaseMaterial::ISOTROPIC);
+      
+      } else if( !isIsotropic && isOrthotropic && !isTensor ) {
+        material->SetSymmetryType(BaseMaterial::ORTHOTROPIC );
+      
+      } else if( !isIsotropic && !isOrthotropic && isTensor ) {
+        material->SetSymmetryType(BaseMaterial::GENERAL );
+      
+      } else {
+        EXCEPTION("Could not determine unique material symmetry. "
+            "Please ensure, that only ONE of isotropic, orthotropic or"
+            "the material tensor of the permeability are given!")
+      }
 
       // we know only nonlinear isotropic material
       if(mag->Get("magneticPermeability")->Has("nonlinear") && 

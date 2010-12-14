@@ -11,7 +11,10 @@
 
 // integrator (bi-)linear forms
 #include "Forms/linMagStrictInt.hh"
+#include "Forms/linearForm.hh"
 #include "PDE/SinglePDE.hh"
+#include "PDE/mechPDE.hh"
+#include "PDE/magneticScalarPDE.hh"
 
 namespace CoupledField {
 
@@ -69,12 +72,12 @@ namespace CoupledField {
 
   template<class TYPE>
   void MagStrictCoupling::CalcBField( shared_ptr<BaseResult> result ) {
-    EXCEPTION("Not yet implemented" );
+    EXCEPTION("Not yet implemented. Merge from implementation of Ni Yunyun" );
   }
   
   template<class TYPE>
   void MagStrictCoupling::CalcStress( shared_ptr<BaseResult> result ) {
-    EXCEPTION("Not yet implemented" );
+    EXCEPTION("Not yet implemented. Merge from implementation of Ni Yunyun") ;
   }
 
 
@@ -83,6 +86,11 @@ namespace CoupledField {
   // *********************
   void MagStrictCoupling::DefineIntegrators() {
 
+    
+    // perform explicit cast of PDEs
+    MechPDE *mechPDE = dynamic_cast<MechPDE*>(pde1_);
+    MagScalarPDE * magPDE = dynamic_cast<MagScalarPDE*>(pde2_);
+    
     Global::ComplexPart matType = Global::REAL;
     RegionIdType actRegion;
     BaseMaterial * actSDMat = NULL;
@@ -119,10 +127,24 @@ namespace CoupledField {
       // matrix to the lower diagonal side
       actContextStiff->SetCounterPart( true );
       actContextStiff->SetEntryType( matType );
-      actContextStiff->SetPtPdes( pde1_, pde2_ );  // PDE1: MECH, PDE2: Mag)
+      actContextStiff->SetPtPdes( mechPDE, magPDE );  // PDE1: MECH, PDE2: Mag)
       actContextStiff->SetResults( results1_[0], results2_[0],
                                    actSDList, actSDList );
       assemble_->AddBiLinearForm( actContextStiff );
+      
+      // ==== Add BiotSavart- Mech Coupling RHS === 
+      // Only add integ
+      shared_ptr<BiotSavart> bs =  magPDE->GetBiotSavart(); 
+      if( bs ) {
+        BiotSavartMechCouplingInt * bsInt = 
+            new BiotSavartMechCouplingInt( materials_[actRegion], tensorType,
+                                           bs, isaxi_ );
+        LinearFormContext * linRhs = new LinearFormContext( bsInt);
+        linRhs->SetPtPde( pde1_ );//mechanical
+        linRhs->SetResult( results1_[0], actSDList );
+        assemble_->AddLinearForm( linRhs );
+      }
+      
     }
   }
 

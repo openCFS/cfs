@@ -59,9 +59,14 @@
 		      <xsd:element name="dirichletInhom" type="DT_MagneticScalarID"/>
 		      <xsd:element name="neumannInhom" type="DT_MagneticScalarIN"/>
 		      <xsd:element name="constraint" type="DT_MagneticScalarCS"/>
+                <xsd:element name="biotSavartBoundary" type="DT_MagneticScalarBsBoundary"  />
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
+
+          <!-- Section for specifying the Biot-Savart Law (optional) -->
+          <xsd:element name="biotSavart" type="DT_BiotSavartCoil" 
+            minOccurs="0" maxOccurs="1"/>
 
           <!-- Section for specifying non-linear parameters (optional) -->
           <xsd:element name="nonLinear" type="DT_NonLinParams" minOccurs="0"/>
@@ -173,6 +178,15 @@
     </xsd:complexContent>
   </xsd:complexType>
 
+  <!-- Element type for pressure loads -->
+  <!-- We derive it by extending the base type -->
+  <xsd:complexType name="DT_MagneticScalarBsBoundary">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BCBasic">
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
 
   <!-- ******************************************************************* -->
   <!--   Definition of syntax for specifying output quantities of CFS -->

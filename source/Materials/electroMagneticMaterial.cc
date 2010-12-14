@@ -51,8 +51,10 @@ namespace CoupledField
   }
 
   ElectroMagneticMaterial::~ElectroMagneticMaterial() {
-
-
+  }
+  
+  void ElectroMagneticMaterial::Finalize() {
+    ComputeFullMuTensor();
   }
 
   void ElectroMagneticMaterial::SetScalar(const std::string& param, MaterialType matType) {
@@ -750,6 +752,42 @@ namespace CoupledField
     //       std::cout << " Hval = " << Xout << "  Bval=" << Yin << "  Bact=" << Bact << std::endl;
     //   }
 
+  }
+  
+  void ElectroMagneticMaterial::ComputeFullMuTensor() {
+
+    Matrix<Complex> muTensor(3,3);
+    Complex mu1, mu2, mu3, isoMu;
+    
+    // depending on symmetry, calculate full 3x3 permeability tensor
+    switch(symmetryType_) {
+      
+      case GENERAL:
+        // in this case we have already the full permeability tensor
+        break;
+        
+      case ISOTROPIC:
+        GetScalar( isoMu, MAG_PERMEABILITY, Global::COMPLEX );
+        muTensor[0][0] = isoMu;
+        muTensor[1][1] = isoMu;
+        muTensor[2][2] = isoMu;
+        SetTensor( muTensor, MAG_PERMEABILITY, Global::COMPLEX );
+        break;
+        
+      case ORTHOTROPIC:
+        
+        GetScalar( mu1, MAG_PERMEABILITY_1, Global::COMPLEX );
+        GetScalar( mu2, MAG_PERMEABILITY_1, Global::COMPLEX );
+        GetScalar( mu3, MAG_PERMEABILITY_1, Global::COMPLEX );
+        muTensor[0][0] = mu1;
+        muTensor[1][1] = mu2;
+        muTensor[2][2] = mu3;
+        SetTensor( muTensor, MAG_PERMEABILITY, Global::COMPLEX );
+        break;
+      default:
+        EXCEPTION( "Calculation of full permeability matrix for symmetryType '"
+            << symmetryType_ << "' not implemented!" );
+    }
   }
 
 }

@@ -12,7 +12,7 @@
 
 #include "Forms/linGradBDBInt.hh"
 #include "Forms/linNeumannInt.hh"
-#include "Forms/mixedInt.hh"//added for surf form
+#include "Forms/linBiotSavartSurfInt.hh"
 #include "Forms/gradfieldop.hh"
 #include "General/defs.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -23,6 +23,7 @@
 #include "CoupledPDE/pdecoupling.hh"
 #include "Domain/ansatzFct.hh"
 #include "Driver/assemble.hh"
+#include "Utils/biotSavart.hh"
 
 #include "Forms/linearForm.hh"// for RHS
 
@@ -194,8 +195,11 @@ namespace CoupledField {
       shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
       actSDList->SetRegion( actRegion );
 
-      // --- standard real-valued stiffness integrator ---
-      linGradBDBInt *  linMagForm = new linGradBDBInt( actSDMat, MAG_PERMEABILITY,tensorType,upLagrangeForm);
+      //==============================================================================
+      //  LINEAR STIFFNESS INTEGRATOR
+      //==============================================================================
+      linGradBDBInt *  linMagForm = new linGradBDBInt( actSDMat, MAG_PERMEABILITY,
+                                                       tensorType, upLagrangeForm );
       linMagForm->SetFactor( factor );
 
       BiLinFormContext * stiffIntDescr = new BiLinFormContext(linMagForm, STIFFNESS );
@@ -204,153 +208,108 @@ namespace CoupledField {
       stiffIntDescr->SetResults( results_[0], results_[0],actSDList, actSDList );
 
       assemble_->AddBiLinearForm( stiffIntDescr );
-      LOG_DBG2(magnetopde) <<"bilinearform add result 1";
 
       // Give result to equation numbering class 
       eqnMap_->AddResult( *results_[0], actSDList );
-          
 
- 
-          //==============================================================================     
-          // ToDO: Additional section for Biot-Savart excitation
-          //==============================================================================    
-//           if(isBiotSavart_){
-//              LOG_DBG2(magnetopde) <<"bisa_.dim_: "<<bisa_.dim_;//called by regions             
-////               LinearForm * rhsSource;
-//              //should think about the 3d case
-//               MagSourceInt *rhsSource = new MagSourceInt(actSDMat,bisa_,false, upLagrangeForm); 
-//               // if the pde is magnetostrictive-coupled, the magnetic entries have to multiplied with -1
-//               rhsSource->SetFactor(factor);
-//               LinearFormContext * rhsContext = new LinearFormContext( rhsSource );
-//               rhsContext->SetPtPde( this );
-//               rhsContext->SetResult( results_[0], actSDList );
-//               assemble_->AddLinearForm( rhsContext );   
-//               // Give result to equation numbering class  //should it be here or above?
-//              eqnMap_->AddResult( *results_[0], actSDList );
-//           }     
-              
-           
-//          if(isMagnetostrictiveCoupled_){          
-////             LinearForm * rhsextra = new linMagnetostrictionInt(actSDMat,bisa_,false, upLagrangeForm);  
-//             LinearForm * rhsextra = new MagnetoCouplingRHSInt(actSDMat,bisa_,false, upLagrangeForm); 
-//             LinearFormContext * rhsContextSpecial = new LinearFormContext( rhsextra );
-//             rhsContextSpecial->SetPtPde( this );
-//             rhsContextSpecial->SetResult( results_[0], actSDList );
-//             assemble_->AddLinearForm( rhsContextSpecial );   
-//             // Give result to equation numbering class  //should it be here or above?
-//            eqnMap_->AddResult( *results_[0], actSDList );
-//       
-//          }
-//          
+      //==============================================================================     
+      // Additional section for Biot-Savart excitation
+      //==============================================================================    
+      
+      // 1) Standard volume integrator
+      if( biotSavart_ ) {
+        BiotSavartSourceInt *rhsSource  = 
+            new BiotSavartSourceInt( actSDMat, tensorType, 
+                                     biotSavart_,false, upLagrangeForm); 
+        // if the pde is magnetostrictive-coupled, the magnetic entries 
+        // have to get multiplied with -1
+        rhsSource->SetFactor(factor);        
+
+        LinearFormContext * rhsContext = new LinearFormContext( rhsSource );
+        rhsContext->SetPtPde( this );
+        rhsContext->SetResult( results_[0], actSDList );
+        assemble_->AddLinearForm( rhsContext );   
+        // Give result to equation numbering class  //should it be here or above?
+        eqnMap_->AddResult( *results_[0], actSDList );
+      }     
     }
+    //==============================================================================     
+    // Additional section for Biot-Savart surface integrator
+    //==============================================================================
 
-//    // **********************************************************************
-//    //  Surf bilinear Form
-//    // **********************************************************************        
-//      
-//        
-//        std::map<RegionIdType,ListInfo>::iterator  BCsIt;
-//        UInt actSD=0;
-//        for( BCsIt = surfinfo_.begin();BCsIt != surfinfo_.end(); BCsIt++ ) {
-//         
-////        for (UInt actSD = 0; actSD < conBCs_.GetSize(); actSD++) {
-//
-//           shared_ptr<SurfElemList> surfElems( new SurfElemList(ptgrid_ ) );             
-////           shared_ptr<ElemList> volElems( new ElemList(ptgrid_ ) );
-//
-//           surfElems->SetRegion(BCsIt->second.surface);
-////           volElems->SetRegion(actRegion );
-//           
-//           ContinuityBCsInt * bilinear_surf = new ContinuityBCsInt(dim_,surfElems,isaxi_);
-//           bilinear_surf->SetMaterial(actSDMat);
-//           std::cout<<"act regionId:"<<actRegion<<std::endl;
-//           BiLinFormContext * surfContext = new BiLinFormContext( bilinear_surf, STIFFNESS,true );//for eqns assembling
-//           std::cout<<"act regionId:"<<BCsIt->second.region<<std::endl;
-//           surfContext->SetVolumeNeighbor(BCsIt->second.region );
-//           std::cout<<"bilinearform add result 2"<<std::endl;
-//           surfContext->SetPtPdes(this, this); 
-//           std::cout<<"bilinearform add result 3"<<std::endl;
-//           surfContext->SetResults( results_[0], results_[0],conBCs_[actSD], conBCs_[actSD] );
-//           std::cout<<"bilinearform add result 4"<<std::endl;
-//           assemble_->AddBiLinearForm( surfContext );
-//           std::cout<<"bilinearform add result 5"<<std::endl;
-//           // Give result to equation numbering class
-//           eqnMap_->AddResult( *results_[0], conBCs_[actSD] );
-//           actSD++;
-//           
-//         }
-//    
-//    // **********************************************************************
-//             //  Surf RHS
-//             // **********************************************************************
-//             for( UInt iBc = 0; iBc < inBcs_.GetSize(); iBc++ ) {
-//
-//               // get current Bc
-//               InhomNeumannBc const & actBc = *inBcs_[iBc];
-//
-//               ContinuityRHS *ContinuityBC = new ContinuityRHS(isaxi_ ,bisa_);
-//               ContinuityBC->SetMaterial(actSDMat);
-//               // if the pde is magnetostrictive-coupled, the magnetic entries have to multiplied with -1
-//               ContinuityBC->SetFactor(factor);
-//   //          ContinuityBC->SetVoluInfo( materials_ );
-//               LinearFormContext * BcContext =new LinearFormContext( ContinuityBC );
-//               BcContext->SetPtPde( this );
-//   //--------------Reference----------------
-//   //            pressRhs->SetResult( results_[0], pressSurf_[actSF] );
-//   //           assemble_->AddLinearForm( pressRhs );
-//   //           // Give entities and result to equation numbering class
-//   //           // and solution class
-//   //           eqnMap_->AddResult( *results_[0], pressSurf_[actSF] );
-//   //            
-//               BcContext->SetResult( actBc.result, actBc.entities );
-//               assemble_->AddLinearForm( BcContext );
-//
-//               // Give result to equation numbering class
-//               eqnMap_->AddResult( *actBc.result, actBc.entities );
-//             }
-//              //==============================================================================  
-//
-//    
-  
+    if(biotSavart_) {
+      for( UInt i = 0; i < biotSavartBoundary_.GetSize(); i++ ) {
+
+        // define boundary integrator
+        LinBiotSavartSurfInt * bsInt = new LinBiotSavartSurfInt( biotSavart_, isaxi_);
+        
+        // set correct factor in magnetostrictive coupled case
+        bsInt->SetFactor(factor); 
+        bsInt->SetVoluInfo(materials_);
+        LinearFormContext * surfContext = new LinearFormContext( bsInt );
+        surfContext->SetResult(results_[0], biotSavartBoundary_[i]);
+        surfContext->SetPtPde( this );
+        
+        assemble_->AddLinearForm(surfContext);
+        eqnMap_->AddResult( *results_[0], biotSavartBoundary_[0]);
+      } // loop over biotSavartBoundary
+    } // if BiotSavart
   }
-  
 
   void MagScalarPDE::DefineSolveStep() {
     solveStep_ = new StdSolveStep(*this);
   }
+  
+  void MagScalarPDE::PreparePDE4Computation() {
+     if ( biotSavart_ ) {
+       PtrParamNode bsNode = myParam_->Get("biotSavart", ParamNode::PASS );
+       biotSavart_->Init( bsNode, ptgrid_, eqnMap_ );
+     }
+   }
 
-  void MagScalarPDE::ReadSpecialBCs( ) 
-  {
-//    // ***************************************************************
-//    //   continuity boundary conditions
-//    // ***************************************************************
-//
-//    continuityBC_ = false;
-//    ParamNode * bcNode = myParam_->Get( "bcsAndLoads", false );
-//    if( bcNode ) {
-//      StdVector<ParamNode*> contiBCNodes = bcNode->GetList( "neumannInhom" );
-//
-//      for( UInt i = 0; i < contiBCNodes.GetSize(); i++ ) {
-//        std::string interfaceName = contiBCNodes[i]->Get("name")->AsString();
-//        std::string regionName = contiBCNodes[i]->Get("region")->AsString();
-//        // create new surface stress definition
-//        ListInfo actinfo;
-//        actinfo.surface = ptgrid_->RegionNameToId(interfaceName);
-//        actinfo.region = ptgrid_->RegionNameToId(regionName);
-//        conBCs_.Push_back( ptgrid_->GetEntityList( EntityList::SURF_ELEM_LIST,interfaceName, EntityList::REGION ) );
-//        continuityBC_= true;
-//        
-//        // add surface info definition
-//        RegionIdType regionId =  ptgrid_->RegionNameToId( interfaceName );
-//        surfinfo_[regionId] = actinfo;
-//        
-//        Info->PrintF( pdename_,"Apply continuity Boundary Conditions on surfaceRegion '%s'\n",interfaceName.c_str() );
-//      
-//      }
-//    }
-//    LOG_DBG2(magnetopde) << "MagScalarPDE::ReadSpecialBCs()" ;
-//   
-//    LOG_DBG2(magnetopde)<<"conBCs_.GetSize():"<<conBCs_.GetSize();
+  void MagScalarPDE::ReadSpecialBCs( )  {
+    // -----------------------------------
+    //  Check for Biot-Savart formulation
+    // -----------------------------------
+    PtrParamNode bsNode = myParam_->Get("biotSavart", ParamNode::PASS );
+    if( bsNode ) {
+
+      // check, if we have transient simulation
+      if( analysistype_ == BasePDE::TRANSIENT ) {
+        EXCEPTION( "Biot-Savart is currently just implemented for static /"
+            << "harmonic simulations!" );
+      }
+      biotSavart_ = 
+          shared_ptr<BiotSavart>(new BiotSavart());
+      
+      // Set formulation to H-field 
+      biotSavart_->SetFormulation(BiotSavart::MAG_FIELD_STRENGTH);
+    
+      // Warning: do NOT set the flag "isBiotSavart_", because
+      // this would trigger in the solveStep class the 
+      // additional contribution of H to the solution vector, which
+      // just makes sense for the vector potential formulation
+    }
+    
+    
+    // ***************************************************************
+    //   Biot Savart boundary conditions
+    // ***************************************************************
+    PtrParamNode  bcNode = myParam_->Get( "bcsAndLoads", ParamNode::PASS );
+    if( bcNode ) {
+      ParamNodeList boundNodes = bcNode->GetList( "biotSavartBoundary" );
+
+      for( UInt i = 0; i < boundNodes.GetSize(); i++ ) {
+        std::string interfaceName = boundNodes[i]->Get("name")->As<std::string>();
+        // create new surface stress definition
+        biotSavartBoundary_.Push_back( ptgrid_->GetEntityList( EntityList::SURF_ELEM_LIST,interfaceName, EntityList::REGION ) );
+
+        // add surface info definition
+        Info->PrintF( pdename_,"Apply continuity Boundary Conditions on surfaceRegion '%s'\n",
+                      interfaceName.c_str() );
+
+      }
+    }
   }
   
   
@@ -438,9 +397,11 @@ namespace CoupledField {
     Vector<Double> globCoord,Hbiot,lCoord;
     Vector<TYPE> tempH;
     tempH.Resize(dim_);
+    tempH.Init();
     Hbiot.Resize(dim_);
+    Hbiot.Init();
     NodeStoreSol<TYPE> & solhelp = dynamic_cast<NodeStoreSol<TYPE>&>(*sol_);
-//    std::cerr<< "sol_ is " << solVec_ << std::endl;
+    
     GradientFieldOp<TYPE> * FieldOp = 
         new GradientFieldOp<TYPE>(ptgrid_,this,eqnMap_, solhelp, 
                                   results_[0]->fctType,false);
@@ -452,26 +413,21 @@ namespace CoupledField {
     
     // loop over elements
     for ( it.Begin(); !it.IsEnd(); it++ ) {      
+      Hbiot.Init();
       it.GetElem()->ptElem->GetCoordMidPoint(lCoord);
       
-      LOG_DBG2(magnetopde) <<"---Debug Part---lCoord---:"<<lCoord;
       ptgrid_->GetElemNodesCoord( CornerCoords, it.GetElem()->connect,true );
       it.GetElem()->ptElem->Local2GlobalCoord( globCoord, lCoord, CornerCoords,it.GetElem());      
-      LOG_DBG2(magnetopde) <<"---Debug Part---globCoord---:"<<globCoord;             
       FieldOp->CalcElemGradField( tempH, it, lCoord, 1);       
-      LOG_DBG2(magnetopde) <<"tempH :"<<tempH<<"---end--";
-      
-      if(isBiotSavart_){
-      WARN("Biot Savart is not yet implemented");
+
+      // if Biot-Savart coils are present, add contribution
+      if( biotSavart_ ) {
+        biotSavart_->CalcFieldAtPoint(Hbiot, globCoord );
       }
+
       // loop over dofs
       for(UInt iDim = 0; iDim < dim_; iDim++ ) {
-        if(isBiotSavart_) {          
-//          actVal[it.GetPos()*dim_ + iDim] = Hbiot[iDim];//only biot savart source case
-          actVal[it.GetPos()*dim_ + iDim] = tempH[iDim]+ Hbiot[iDim];
-          
-        }
-        else actVal[it.GetPos()*dim_ + iDim] = tempH[iDim];
+        actVal[it.GetPos()*dim_ + iDim] = tempH[iDim]+ Hbiot[iDim];
       }
     }
     delete FieldOp;

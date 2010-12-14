@@ -22,6 +22,8 @@ namespace CoupledField {
   
   //! This class implements the direct magnetostrictive coupling 
   //! between the mechanic and magnetic PDE.
+  //! \note: Up to now, only the coupling of the magnetic scalar PDE
+  //! is defined. The vector-potential case should be integrated as well.
   class MagStrictCoupling : public BasePairCoupling
   {
   public:

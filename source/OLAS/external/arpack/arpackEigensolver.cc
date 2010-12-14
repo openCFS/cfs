@@ -114,9 +114,10 @@ namespace CoupledField {
     // Check trace settings
     arpackSolver_->DebugOff();
     if( sNode->Has("logging") ) {
-      if (sNode->Get("logging")->As<bool>()  == true ) {
-        logging_ = true;
+      sNode->GetValue("logging", logging_);
+      if (logging_) {
         arpackSolver_->DebugOn();
+        logging_ = true;
       }
     }
     
@@ -212,7 +213,6 @@ namespace CoupledField {
     if( sNode->Has("logging") ) {
       sNode->GetValue("logging", logging_);
       if (logging_) {
-        std::cerr << "Activating debuggin\n";
         arpackSolver_->DebugOn();
         logging_ = true;
       }
@@ -404,11 +404,9 @@ namespace CoupledField {
 
     // Check trace settings
     arpackSolver_->DebugOff();
-
     if( sNode->Has("logging") ) {
       sNode->GetValue("logging", logging_);
       if (logging_) {
-        std::cerr << "Activating debuggin\n";
         arpackSolver_->DebugOn();
         logging_ = true;
       }

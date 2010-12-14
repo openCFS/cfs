@@ -14,10 +14,10 @@ namespace CoupledField
   class BaseResult;
   class ResultHandler;
   
-  //! Magnetic Field PDE using the total magnetic scalar potential
+  //! Magnetic Field PDE using the reduced magnetic scalar potential
   
   //! This class implements the magnetostatic field problem by utilizing
-  //! the total scalar magnetic potential. The class does not consider
+  //! the reduced scalar magnetic potential. The class does not consider
   //! any time derivatives, i.e. eddy currents. The excitation of the magnetic
   //! field can either be incorporated using Dirichlet boundary conditions
   //! of by defining e.g. piecewise current sticks, using the law of
@@ -53,6 +53,9 @@ namespace CoupledField
 
     //! Read special boundary conditions
     void ReadSpecialBCs();
+    
+    //! do jobs, before analysis starts
+      void PreparePDE4Computation();
 
     // ======================================================
     // POSTPROCESSING SECTION
@@ -123,6 +126,8 @@ namespace CoupledField
     //! flag for Magnetostriction-coupling
     bool isMagnetostrictiveCoupled_; 
 
+    //! boundary surfaces, on which Biot-Savart integrator gets evaluated
+    StdVector<shared_ptr<EntityList> > biotSavartBoundary_;
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

@@ -112,11 +112,12 @@ DEFINE_LOG(magpde, "magpde")
       
       // check, if we have transient simulation
       if( analysistype_ == BasePDE::TRANSIENT ) {
-        EXCEPTION("Biot-Savart is currently just implemented for static /"
-                  << "harmonic simulations!" );
+        EXCEPTION( "Biot-Savart is currently just implemented for static /"
+                   << "harmonic simulations!" );
       }
       biotSavart_ = 
-          shared_ptr<BiotSavart>(new BiotSavart(BiotSavart::VEC_POT));
+          shared_ptr<BiotSavart>(new BiotSavart());
+      biotSavart_->SetFormulation(BiotSavart::VEC_POT);
       isBiotSavart_ = true;
     }
     

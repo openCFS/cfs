@@ -13,6 +13,8 @@
 #include "Domain/domain.hh"
 #include "DataInOut/resultHandler.hh"
 #include "Utils/SmoothSpline.hh"
+#include "Utils/biotSavart.hh"
+#include "linMagStrictInt.hh"
 
 namespace CoupledField {
 
@@ -2495,6 +2497,172 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
 
       partElemVec *= jacDet * intWeights[aIP-1];
       elemVec += partElemVec;
+    }
+  }
+  // =============================================================================
+  // MagSourceInt (RHS integrator for Biot-Savart coil of magnetic Scalar PDE)
+  // =============================================================================
+
+  //! Calculates the RHS for Biot-Savart coils for scalar potential formulation
+
+  //! This class implements the RHS excitation for a magnetic-scalar formulation
+  //! of the magnetic field. The integrator calcualates
+  //! \f [ \int \nabla N_a (\mu - \mu_0) \mathbf{H}_s d\Omega \f ]
+  BiotSavartSourceInt::
+  BiotSavartSourceInt( BaseMaterial* matData,
+                       SubTensorType tensorType,
+                       shared_ptr<BiotSavart>& bs,
+                       bool isaxi, bool coordUpdate ) 
+  : LinearForm( matData ) {
+    name_ = "BiotSavartSourceInt";
+    isaxi_ = isaxi;
+    coordUpdate_ = coordUpdate;
+    biotSavart_ = bs;
+    mParser_->SetExpr(mHandle_, "1.0");
+    subTensorType_ = tensorType; 
+  }
+
+  BiotSavartSourceInt::~BiotSavartSourceInt() {
+
+  }
+  
+  void BiotSavartSourceInt::SetFactor( const std::string& factor ) {
+    mParser_->SetExpr(mHandle_, factor);
+  }
+
+  void BiotSavartSourceInt::CalcElemVector( Vector<Double> & elemVec,
+                                            EntityIterator& ent ) {
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
+
+    Matrix<Double> permeability;
+    const Double mu0=1.25664e-06;
+
+    ptMaterial->GetTensor(permeability,MAG_PERMEABILITY,
+                          Global::REAL, subTensorType_ );
+    
+    
+
+    // as we add the contribution of the Biot-Savart field afterwards in
+    // the magnetic scalar potential PDE, we just calculate for the "difference",
+    // i.e. we have to subtract mu_0 from the permeability here.
+    UInt muSize = permeability.GetNumRows();
+    for( UInt i = 0; i < muSize; i++ ) {
+      permeability[i][i] -= mu0;
+    }
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    const UInt nrIntPts = ptelem->GetNumIntPoints();
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();
+    const Vector<Double> * intPoints = ptelem->GetIntPoints();
+
+    Vector<Double> ShpFncAtIp, helpVec, CoordAtIP, hField, bField;
+    Matrix<Double> xiDx;
+
+    elemVec.Resize(numFncs);
+    elemVec.Init(0);  
+    helpVec.Resize(numFncs);
+    helpVec.Init(0);
+
+    Double jacDet = 0.0;
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {     
+
+      // get the derivative of the global shape function 
+      ptelem->GetGlobDerivShFncAtIp( xiDx, actIntPt, ptCoord_, 
+                                     jacDet, ent.GetElem() );
+      ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+                                 ptCoord_, ent.GetElem() );
+      
+      // Calculate source field H_s using Biot-Savart's law
+      biotSavart_->CalcFieldAtPoint(hField, CoordAtIP );
+      bField = (permeability * hField);
+      helpVec = xiDx * bField;
+      helpVec *=  intWeights[actIntPt-1] * jacDet;
+      elemVec += helpVec   ;           
+    }
+    // multiply element vector by factor (e.g. -1 due to magnetostrictive 
+    // coupling)
+    elemVec *= mParser_->Eval( mHandle_ );//for the magnetostriction coupling case
+  }
+
+  // ============================================================================
+  // BiotSavarMechCouplingRHSInt
+  // =============================================================================
+  BiotSavartMechCouplingInt::
+  BiotSavartMechCouplingInt( BaseMaterial* matData,
+                             SubTensorType type,
+                             shared_ptr<BiotSavart> & bs,
+                             bool isaxi,
+                             bool coordUpdate )
+  : LinearForm( matData ) {
+    
+    name_ = "BiotSavartMechCouplingInt";
+    subTensorType_ = type;
+    isaxi_ = false;
+    biotSavart_ = bs;
+    
+    // create new magnetostriction bilinear form
+    magStrictForm_ = new LinMagStrictInt( ptMaterial, subTensorType_ );
+  }
+
+  BiotSavartMechCouplingInt::~BiotSavartMechCouplingInt() {
+    delete magStrictForm_;
+  }
+
+  void BiotSavartMechCouplingInt::CalcElemVector( Vector<Double> & elemVec,
+                                                  EntityIterator& ent ) {
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    const UInt nrIntPts = ptelem->GetNumIntPoints();
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+    const Vector<Double> * intPoints = ptelem->GetIntPoints();
+    Double jacDet;
+    Matrix<Double> aMat, dMat, bMatTrans,aMatTrans;
+    Matrix<Double> baMat, elemMat;
+
+    elemMat.Resize( numFncs * magStrictForm_->getNumDofsA(), 
+                    numFncs * magStrictForm_->getNumDofsB() ); 
+    elemMat.Init();
+
+    elemVec.Resize( numFncs * magStrictForm_->getNumDofsA());
+    elemVec.Init(0);
+
+    // compute the correct material tensor
+    Vector<Double> lCoord, hField;
+    Vector<Double>  ShpFncAtIp;
+
+    magStrictForm_->ExtractElemInfo( ent );
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {     
+
+      // Setup the A matrix for current integration point
+      magStrictForm_->calcAMat( aMat, actIntPt, ptCoord_ );
+      magStrictForm_->calcDMat( dMat,ent.GetElem());
+      // Compute Jacobian for integration point
+      jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_,ent.GetElem() );
+
+      ptelem->Local2GlobalCoord( lCoord, intPoints[actIntPt-1],ptCoord_, ent.GetElem() );
+      
+      biotSavart_->CalcFieldAtPoint( hField, lCoord );
+      ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt, ent.GetElem() );
+
+      if( isaxi_ ) {
+        EXCEPTION("axi-symmetric implementation missing");
+      }
+      jacDet *= intWeights[actIntPt-1];
+      baMat = aMat * dMat;
+      //aMat.Mult( dMat, abMat );
+
+      // We now compute  B^T * D * H_{s} and scale it by the determinant
+      // of the Jacobian 
+      for ( UInt i = 0; i < baMat.GetNumRows(); i++ ) {
+        for ( UInt j = 0; j < baMat.GetNumCols(); j++ ) {
+          elemVec[i] +=  baMat[i][j]*hField[j]*ShpFncAtIp[j]*jacDet;
+        }
+      }
+
     }
   }
 } // end of namespace

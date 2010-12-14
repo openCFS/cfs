@@ -2078,7 +2078,8 @@ namespace CoupledField {
   }
 
   template <class TYPE>
-  void AcousticPDE::CalcGradSurfaceElement( shared_ptr<BaseResult> vals, SolutionType solType, bool apply_normal, StdVector<Vector<TYPE> >& grad_out )
+  void AcousticPDE::CalcGradSurfaceElement( shared_ptr<BaseResult> vals, SolutionType solType,
+                                            bool apply_normal, StdVector<Vector<TYPE> >& grad_out )
   {
     //some help variables
     Vector<Double> lCoordSurf, lCoordVol, normal;
@@ -2136,7 +2137,9 @@ namespace CoupledField {
 
       grad_out[it.GetPos()] = gradVal;
 
-      LOG_DBG3(acoupde) << "CGSE: se=" << actSurfElem->elemNum << " lCoordVol=" << lCoordVol.ToString() << " grad=" << gradVal.ToString();
+      LOG_DBG3(acoupde) << "CGSE: se=" << actSurfElem->elemNum 
+                        << " lCoordVol=" << lCoordVol.ToString() 
+                        << " grad=" << gradVal.ToString();
 
     }
 
@@ -2229,7 +2232,9 @@ namespace CoupledField {
       }
       elemSol /= (Double)surfConnect.GetSize();
 
-      LOG_DBG3(acoupde) << "CASI: se=" << actSurfElem->elemNum << " grad=" << gradVal.ToString() << " elemSol=" << elemSol;
+      LOG_DBG3(acoupde) << "CASI: se=" << actSurfElem->elemNum 
+                        << " grad=" << gradVal.ToString() 
+                        << " elemSol=" << elemSol;
 
       // get the conjugate complex value
       elemSol = std::conj(elemSol);

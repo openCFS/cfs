@@ -1173,7 +1173,7 @@ namespace CoupledField {
              // the inhomog. Dirichlet values
              // (watch out for equation number offset!!!)
              if ( isBiotSavart_ ) {
-               val -= biotSavart_->GetMagVec( eqnNr-1, analysistype_ );
+               val -= biotSavart_->CalcFieldSingleEqn( eqnNr-1 );
              }
 
              // Case of complex-valued entries
@@ -2738,25 +2738,29 @@ namespace CoupledField {
 
 
       Vector<Double> solDeriv1, solDeriv2, solTn_1;
-      if( TS_alg_->GetDeriv(FIRST_DERIV).GetSize() != 0 ) {
-        solDeriv1 = TS_alg_->GetDeriv(FIRST_DERIV);
-      } else {
-        solDeriv1.Resize( solVec.GetSize() );
-        solDeriv1.Init();
-      }
+      
+     // we need derivatives only if we have transient analysis
+      if( analysistype_ == TRANSIENT ) {
+        if( TS_alg_->GetDeriv(FIRST_DERIV).GetSize() != 0 ) {
+          solDeriv1 = TS_alg_->GetDeriv(FIRST_DERIV);
+        } else {
+          solDeriv1.Resize( solVec.GetSize() );
+          solDeriv1.Init();
+        }
 
-      if( TS_alg_->GetDeriv(SECOND_DERIV).GetSize() != 0 ) {
-        solDeriv2 = TS_alg_->GetDeriv(SECOND_DERIV);
-      } else {
-        solDeriv2.Resize( solVec.GetSize() );
-        solDeriv2.Init();
-      }
+        if( TS_alg_->GetDeriv(SECOND_DERIV).GetSize() != 0 ) {
+          solDeriv2 = TS_alg_->GetDeriv(SECOND_DERIV);
+        } else {
+          solDeriv2.Resize( solVec.GetSize() );
+          solDeriv2.Init();
+        }
 
-      if( TS_alg_->is_SolTimeStep_set(TIMESTEP_1) ) {
-        solTn_1 = TS_alg_->GetOld(TIMESTEP_1);
-      } else {
-        solTn_1.Resize( solVec.GetSize() );
-        solTn_1.Init();
+        if( TS_alg_->is_SolTimeStep_set(TIMESTEP_1) ) {
+          solTn_1 = TS_alg_->GetOld(TIMESTEP_1);
+        } else {
+          solTn_1.Resize( solVec.GetSize() );
+          solTn_1.Init();
+        }
       }
 
       

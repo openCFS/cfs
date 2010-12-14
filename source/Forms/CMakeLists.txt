@@ -23,6 +23,7 @@ SET(FORMS_SRCS
   gradfieldop.cc
   laplaceInt.cc
   linearForm.cc
+  linBiotSavartSurfInt.cc
   linElastInt.cc
   linGradBDBInt.cc
   linNeumannInt.cc

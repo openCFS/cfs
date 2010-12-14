@@ -372,7 +372,9 @@ namespace CoupledField {
      for ( it.Begin(); !it.IsEnd(); it++ ) {
 
        // Determine, which volume element is the right neighbour for the
-       // calculation
+       // calculation:
+       // We assume the normal to point out of the surface element into the
+       // direction of the neighboring electric volume element.
        if ( neighbor ==
             it.GetSurfElem()->ptVolElem1->regionId ) {
          ptVolElem = it.GetSurfElem()->ptVolElem1;

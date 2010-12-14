@@ -105,7 +105,8 @@ namespace CoupledField {
     if ( PDE_.IsBiotSavart() ) {
       Vector<Double> & sol = 
           dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
-      Vector<Double>& magVecBiotSavart = PDE_.GetBiotSavart()->GetMagVec(false); 
+      Vector<Double>& magVecBiotSavart = 
+          PDE_.GetBiotSavart()->CalcFieldAllEqns(false); 
       sol += magVecBiotSavart;
     }
 
@@ -835,7 +836,8 @@ namespace CoupledField {
     if ( PDE_.IsBiotSavart() ) {
       Vector<Double> & sol = 
           dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
-      Vector<Double>& magVecBiotSavart = PDE_.GetBiotSavart()->GetMagVec(false);
+      Vector<Double>& magVecBiotSavart = 
+          PDE_.GetBiotSavart()->CalcFieldAllEqns(false);
       sol += magVecBiotSavart;
     }
   }
