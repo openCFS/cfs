@@ -254,7 +254,7 @@ namespace CoupledField
 
   void Xerces::EventHandler::error(const SAXParseException &event)
   {
-    EXCEPTION("Error parsing the xml file'" << xerces_->file_
+    EXCEPTION("Error parsing the xml file' " << xerces_->file_
               << "' in line " << event.getLineNumber() << ", column "
               << event.getColumnNumber() << std::endl << "-> '"
               << XMLString::transcode(event.getMessage()) << "'"

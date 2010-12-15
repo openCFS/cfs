@@ -16,14 +16,13 @@
 #include <Utils/ApproxData.hh>
 #include <Forms/bdbInt.hh>
 #include <Forms/gradfieldop.hh>
-#include <Forms/linElecInt.hh>
+#include <Forms/linGradBDBInt.hh>
 
 
 namespace CoupledField {
 
   class PiezoCoupling;
   class LinElastInt;
-  //  class linElecInt;
 
 
   class nLinMicroPiezoCouple : public linPiezoCoupling {
@@ -224,7 +223,7 @@ namespace CoupledField {
 
 
   //! electric stiffnes bilinear form in case of piezoelectric micro-model
-  class nLinMicroPiezoElec : public linElecInt {
+  class nLinMicroPiezoElec : public linGradBDBInt {
 
     
   public:

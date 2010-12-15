@@ -120,6 +120,8 @@ namespace CoupledField {
         GiD_BeginGaussPoint( "mid-3D", GiD_Quadrilateral, NULL, 1, 1, 1);
         GiD_EndGaussPoint();
       }
+      GiD_BeginGaussPoint( "mid-3D", GiD_Linear, NULL, 1, 0, 1);
+      GiD_EndGaussPoint();
     }
 
     // close mesh file (only needed in ASCII case)

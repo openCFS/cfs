@@ -15,19 +15,25 @@
 namespace CoupledField{
 
   //! Class implementing fundamental solution of magnetic field in air.
+  
+  //! This class can calculate either the magnetic vector potential A or the
+  //! magnetic field strength H using the law of Biot-Savart. 
+  //! The definition of the coils is specified using so-called current sticks,
+  //! i.e. piece-wise straight, infinite thin current carrying lines.
+  //! The definition of the coil is read in from an external text file. 
   class BiotSavart {
 
 public:
    
     //! Typedef for formulation
-    typedef enum {VEC_POT, SCALAR_POT} FormulationType;
+    typedef enum {UNDEF, VEC_POT, MAG_FIELD_STRENGTH} FormulationType;
     
     // =======================================================================
     // CONSTRUCTION AND INTIIALIZATION
     // =======================================================================
 
     //! Constructor
-    BiotSavart( FormulationType type );
+    BiotSavart( );
 
     //! Desturctor
     ~BiotSavart();
@@ -39,32 +45,30 @@ public:
     //! Generate visual representation of current sticks in grid
     void GenGridRepresentation();
     
+    //! Set formulation for the Biot Savart class (can be changed at any time)
+    void SetFormulation( FormulationType formulation );
+    
     //! Return type of formulation
     FormulationType GetFormulation() {
       return formulation_;
     }
     
     // =======================================================================
-    // VECTOR POTENTIAL FORMULATION
+    //  CALCULATION / ACCESS METHODS
     // =======================================================================
     
-    //! Returns the current magnetic vector potential value
-    Double GetMagVec( UInt eqn, BasePDE::AnalysisType analysis );
-
-    //! Returns the normalized vector potential
-    Vector<Double>& GetMagVec(bool normalized );
+    //! Get field for all equations
+    Vector<Double>& CalcFieldAllEqns( bool normalized );
     
-    //! Return 1st time derivative of magnetic vector potentential
-    Vector<Double>& GetMagVecDeriv1();
+    //! Get derivative of field on all local nodes
+    Vector<Double>& CalcFieldDeriv1AllEqns(FormulationType type);
     
-    // =======================================================================
-    // SCALAR POTENTIAL FORMULATION
-    // =======================================================================
+    //! Get field for one single equation
+    Double CalcFieldSingleEqn( UInt eqn ); 
     
-    //! Calculates the magnetic field H at the given midpoints.
-    void CalcH( Vector<Double>& HField,Vector<Double>& intPoint);
-    
-
+    //! Get field for arbitrary observer point
+    void CalcFieldAtPoint( Vector<Double>& hField, 
+                           const Vector<Double>& observer );
     
   private:
 
@@ -77,8 +81,8 @@ public:
       //! Store points of coil 
       StdVector<Vector<Double> > points_;
 
-      //! Normalized vector potential for all nodes 
-      Vector<Double> magVecNormalized_;
+      //! Normalized field for all nodes 
+      Vector<Double> fieldNormalized_;
 
       //! Handle for MathParser object
       MathParser::HandleType mHandle_;
@@ -88,14 +92,18 @@ public:
     //! Read in data from file
     void ReadFile(std::string fileName, BsCoil& coil ); 
     
-    //! compute the magnetic vector potential
-    void ComputeBiotSavartField();
+    //! Computes the field (A/H) according to Biot-Savart for one point / coil
     
-    //! computes the magnetic vector potential according to Biot-Savart
-    void ComputeMagVecNormalized( Vector<Double>& magVec, 
-                                  const Vector<Double>& observer,
-                                  const BsCoil& coil );
-
+    //! This method computes the contribution of ONE single coil for the 
+    //! field (A/H) for one observer point. 
+    void ComputeFieldNormalized( Vector<Double>& field, 
+                                 const Vector<Double>& observer,
+                                 const BsCoil& coil );
+    
+    // =======================================================================
+    // VECTOR POTENTIAL FORMULATION
+    // =======================================================================
+    
     //! Compute vector potential according to Biot-Savart along an arc
     void ArcIntegralVecPot( Vector<Double>& partMagVec, 
                             const Vector<Double>& observer,
@@ -115,7 +123,20 @@ public:
     //! Kernel for vector potential evaluation
     void KernelVecPot( const Vector<Double>& observer, Vector<Double>& p,
                        Vector<Double>& dir, Vector<Double>& kernelVP);
+    
+    // =======================================================================
+    // SCALAR POTENTIAL FORMULATION
+    // =======================================================================
 
+    //! Compute H-field according to Biot-Savart along a straight line
+
+    //! Compute contribution of Biot-Savart field of a current stick, i.e. a
+    //! straight line to the magnetic field strength H for a given observer 
+    //! point
+    void LineIntegralHField( Vector<Double>& partMagVec, 
+                             const Vector<Double>& observer,
+                             const Vector<Double>& start, 
+                             const Vector<Double>& end );
    
     //! Computes the new time loading value (needed?)
     void SetTimeFncValue();
@@ -124,9 +145,29 @@ public:
     //! Formulation of magnetic field
     FormulationType formulation_;
     
+    //! Pointer to function for evaluating the H/A-field of a single coil-segment
+    
+    //! This function pointer is used to point to a generic function, which 
+    //! calculates on of the following quantities per coil-segment:
+    //! - line integral for vector potential A
+    //! - arc integral for vector potential A
+    //! - line integral for magnetic field strength H
+    //! - arc integral for magnetic field strength H
+    void (BiotSavart::*ptSegmentFunc_)( Vector<Double>&,
+                                        const Vector<Double>&,
+                                        const Vector<Double>&, 
+                                        const Vector<Double>& );
+    
     //! Dimension of problem
     UInt dim_;// for 2D case , it will not call the view function currently
         
+    
+    //! Number of vector components
+    
+    //! This variable will be set depending on the formulation and the grid
+    //! dimension.   
+    UInt numVecComponents_;
+    
     //! Flag if normalized field is already computed
     bool fieldIsComputed_;
     
@@ -136,8 +177,8 @@ public:
     //! List of current sticks
     StdVector<BsCoil> coils_;    
     
-    //! Magnetic vector potential for current time step 
-    Vector<Double> magVec_;
+    //! Field (A / H) for current time step 
+    Vector<Double> field_;
     
     //! Parameter node
     PtrParamNode myParam_;
@@ -147,8 +188,6 @@ public:
     
     //! Pointer to grid
     Grid * ptGrid_;
-    
-    
 
   };
 

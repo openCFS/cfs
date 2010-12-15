@@ -668,12 +668,47 @@ namespace CoupledField
     // Fill acouRhsLoad field with zeros
     std::fill(acouRhsField.begin(), acouRhsField.end(), 0);
 
+    
+    FlowDataPartStruct& fdps3 = flowData[ACOU_RHS_LOAD_DENSITY];
+    fdps3.isActive = true; // all partitions have results
+    fdps3.definedOn = ResultInfo::NODE; // nodes
+    if(fdps3.dofNames.empty())
+      fdps3.dofNames.push_back("-");
+    fdps3.unit = MapSolTypeToUnit(ACOU_RHS_LOAD_DENSITY);
+    fdps3.resultName = "acouRhsLoadDensity";
+    fdps3.data.resize(numRegionNodes_[regionIdx]);
+    fdps3.entryType = ResultInfo::SCALAR;
+    std::vector<Double>& acouRhsDensityField = fdps3.data;
+
+    // Fill acouRhsLoadDensity field with zeros
+    std::fill(acouRhsDensityField.begin(), acouRhsDensityField.end(), 0);
+
     int nElems = ptFileReader_->GetNumElems(regionIdx);
+    
+    FlowDataPartStruct& fdps4 = flowData[ACOU_DIV_LH_TENSOR];
+    fdps4.isActive = true; // all partitions have results
+    fdps4.definedOn = ResultInfo::ELEMENT; // elements
+    if(fdps4.dofNames.empty()) {
+      fdps4.dofNames.push_back("x");
+      fdps4.dofNames.push_back("y");
+      if(dim_ == 3)
+        fdps4.dofNames.push_back("z");        
+    }
+    fdps4.unit = MapSolTypeToUnit(ACOU_DIV_LH_TENSOR);
+    fdps4.resultName = "acouDivLighthillTensor";
+    fdps4.data.resize(nElems * dim_);
+    fdps4.entryType = ResultInfo::VECTOR;
+    std::vector<Double>& acouDivLighthillTensor = fdps4.data;
+
+    // Fill acouDivLighthillTensor field with zeros
+    std::fill(acouDivLighthillTensor.begin(), acouDivLighthillTensor.end(), 0);
 
     Matrix<Double> coordMat;
     Matrix<Double> nodaldTijdxj;
     Matrix<Double> nodalVel;
     Vector<Double> elemVec;
+    Vector<Double> nodalLoadDensity;
+    Vector<Double> divLHTensor(dim_);
 
     Elem::FEType elemType;
     UInt numElemNodes;
@@ -711,8 +746,8 @@ namespace CoupledField
       }
 
       try {
-        ptElemIntegr_[elemType]->PerformIntegration( coordMat, nodaldTijdxj,
-                                                     nodalVel, elemVec, density);
+        ptElemIntegr_[elemType]->PerformIntegration( coordMat, nodaldTijdxj, nodalVel,
+                                                     elemVec, nodalLoadDensity, divLHTensor, density);
       } catch (CoupledField::Exception &ex)
       {
         std::cerr << "WARN: An Exception occurred during source term "
@@ -758,7 +793,14 @@ namespace CoupledField
 #endif
 
         acouRhsField[idx] -= elemVec[n];
+        acouRhsDensityField[idx] -= nodalLoadDensity[n];
       }
+      
+      // Add contributions of elements
+      for( UInt n=0; n < dim_; n++)
+      {
+        acouDivLighthillTensor[i*dim_ + n] = divLHTensor[n];
+      }      
     }
 
     std::cout << "done." << std::endl;

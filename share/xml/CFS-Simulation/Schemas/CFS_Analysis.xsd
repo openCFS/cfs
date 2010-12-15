@@ -83,7 +83,7 @@
     <xsd:complexContent>
       <xsd:extension base="DT_AnalysisBasic">
         <xsd:sequence>
-          <xsd:element name="numSteps" type="xsd:nonNegativeInteger"/>
+          <xsd:element name="numSteps" type="xsd:token"/>
           <xsd:element name="deltaT" type="xsd:token"/>
           <xsd:element name="timeDataFile" minOccurs="0"
             maxOccurs="unbounded">

@@ -152,6 +152,7 @@ namespace CoupledField {
       PREORDERING_FAILED = -6,
       DIAGONAL_MATRIX = -7,
       INT_OVERFLOW = -8,
+      NOT_ENOUGH_OOC_MEM = -9,
       NO_LIC_FILE = -10,
       LIC_EXPIRED = -11,
       WRONG_USER_OR_HOSTNAME = -12,

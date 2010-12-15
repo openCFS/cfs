@@ -28,6 +28,8 @@ namespace CoupledField
                             const Matrix<Double>& NodaldTijdxj,
                             const Matrix<Double>& NodalVal,
                             Vector<Double>& elemvec,
+                            Vector<Double>& nodalLoadDensity,
+                            Vector<Double>& divLHTensor,
                             Double density);
 
     void ComputeFromCombustionTij(const Matrix<Double> & coordMat,

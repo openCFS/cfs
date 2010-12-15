@@ -5,133 +5,89 @@
 
 namespace CoupledField
 {
+/**********************************************************
+ * ************* Stabilized NewtonFEM ****************
+ **********************************************************
+ */
 
-
-//**************************************************************************************************************************
-//***************** Stabilized FEM ****************************************************************************************
-//**************************************************************************************************************************
-class FluidMechPlaneStiffInt_UV : public FluidMechInt
+class FluidMechPlaneStiffNewtonInt_UV : public FluidMechInt
 {
-public:	
+  public:
+    FluidMechPlaneStiffNewtonInt_UV(Double density, \
+        Double kinematicViscosity,Matrix<Double> & stabilParams, \
+        bool movingMesh, std::string stabilType);
+    virtual ~FluidMechPlaneStiffNewtonInt_UV();
+    void CalcElementMatrix( Matrix<Double>& elemMat, EntityIterator& ent1, EntityIterator& ent2 );
 
-  FluidMechPlaneStiffInt_UV(Double density, Double kinematicViscosity,Matrix<Double> & stabilParams, bool movingMesh, std::string stabilType);
-
-  virtual ~FluidMechPlaneStiffInt_UV();
-  
-  void CalcElementMatrix( Matrix<Double>& elemMat, EntityIterator& ent1, EntityIterator& ent2 );
-
-protected:    
-  Matrix<Double> & stabilParams_;
+  protected:
+    Matrix<Double>& stabilParams_;
 };
 
-
-//**************************************************************************************************************************
-class FluidMechPlaneStiffInt_PQ : public FluidMechInt
+class FluidMechPlaneStiffNewtonInt_PV : public FluidMechInt
 {
-public:
+  public:
+    FluidMechPlaneStiffNewtonInt_PV(Double density, \
+        Double kinematicViscosity,Matrix<Double> & stabilParams, \
+        bool movingMesh, std::string stabilType);
+    virtual ~FluidMechPlaneStiffNewtonInt_PV();
+    void CalcElementMatrix( Matrix<Double>& elemMat, EntityIterator& ent1, EntityIterator& ent2 );
 
-  FluidMechPlaneStiffInt_PQ(Double density, Double kinematicViscosity, Matrix<Double> & stabilParams, bool movingMesh, std::string stabilType);
-
-  virtual ~FluidMechPlaneStiffInt_PQ();
-
-  void CalcElementMatrix( Matrix<Double>& elemMat, EntityIterator& ent1, EntityIterator& ent2 );
-
-protected:    
-  Matrix<Double> & stabilParams_;
+  protected:
+    Matrix<Double>& stabilParams_;
 };
 
-
-//**************************************************************************************************************************
-class FluidMechPlaneStiffInt_UQ : public FluidMechInt
+class FluidMechPlaneStiffNewtonInt_UQ : public FluidMechInt
 {
-public:
+  public:
+    FluidMechPlaneStiffNewtonInt_UQ(Double density, \
+        Double kinematicViscosity, Matrix<Double> & stabilParams, \
+        bool movingMesh, std::string stabilType);
+    virtual ~FluidMechPlaneStiffNewtonInt_UQ();
+    void CalcElementMatrix( Matrix<Double>& elemMat, EntityIterator& ent1, EntityIterator& ent2 );
 
-  FluidMechPlaneStiffInt_UQ(Double density, Double kinematicViscosity, Matrix<Double> & stabilParams, bool movingMesh, std::string stabilType);
-  
-  virtual ~FluidMechPlaneStiffInt_UQ();
-
-  void CalcElementMatrix( Matrix<Double>& elemMat, EntityIterator& ent1, EntityIterator& ent2 );
-
-protected:    
-  Matrix<Double> & stabilParams_;
+  protected:    
+    Matrix<Double> & stabilParams_;
 };
 
-//**************************************************************************************************************************
-class FluidMechPlaneStiffInt_PV : public FluidMechInt
+class FluidMechPlaneStiffNewtonInt_PQ : public FluidMechInt
 {
-public:
-  FluidMechPlaneStiffInt_PV(Double density, Double kinematicViscosity, Matrix<Double> & stabilParams, bool movingMesh, std::string stabilType);
-  virtual ~FluidMechPlaneStiffInt_PV();
-  void CalcElementMatrix( Matrix<Double>& elemMat, EntityIterator& ent1, EntityIterator& ent2 );
-protected:    
-  Matrix<Double> & stabilParams_;
+  public:
+    FluidMechPlaneStiffNewtonInt_PQ(Double density, \
+        Double kinematicViscosity, Matrix<Double> & stabilParams, \
+        bool movingMesh, std::string stabilType);
+    virtual ~FluidMechPlaneStiffNewtonInt_PQ();
+    void CalcElementMatrix( Matrix<Double>& elemMat, EntityIterator& ent1, EntityIterator& ent2 );
+
+  protected:    
+    Matrix<Double> & stabilParams_;
 };
 
-
-//**************************************************************************************************************************
-//***************** mixed FEM **********************************************************************************************
-//**************************************************************************************************************************
-class FluidMechPlaneMixedStiffInt_UV : public FluidMechInt
+class FluidMechPlaneIntNewton_RhsUV : public FluidMechInt
 {
-public:	
+  public:
+    FluidMechPlaneIntNewton_RhsUV(Double density, \
+        Double kinematicViscosity,Matrix<Double> & stabilParams, \
+        bool movingMesh, std::string stabilType);
+    virtual ~FluidMechPlaneIntNewton_RhsUV();
+    void CalcElementMatrix( Matrix<Double>& elemMat, EntityIterator& ent1, EntityIterator& ent2 );
 
-  FluidMechPlaneMixedStiffInt_UV(Double density, Double kinematicViscosity,Matrix<Double> & stabilParams, bool movingMesh, std::string stabilType="none");
-
-  virtual ~FluidMechPlaneMixedStiffInt_UV();
-  
-  void CalcElementMatrix( Matrix<Double>& elemMat, EntityIterator& ent1, EntityIterator& ent2 );
-
-protected:    
-  Matrix<Double> & stabilParams_;
+  protected:
+    Matrix<Double>& stabilParams_;
 };
 
-
-//**************************************************************************************************************************
-class FluidMechPlaneMixedStiffInt_UQ : public FluidMechInt
+class FluidMechPlaneIntNewton_RhsUQ : public FluidMechInt
 {
-public:
+  public:
+    FluidMechPlaneIntNewton_RhsUQ(Double density, \
+        Double kinematicViscosity,Matrix<Double> & stabilParams, \
+        bool movingMesh, std::string stabilType);
+    virtual ~FluidMechPlaneIntNewton_RhsUQ();
+    void CalcElementMatrix( Matrix<Double>& elemMat, EntityIterator& ent1, EntityIterator& ent2 );
 
-  FluidMechPlaneMixedStiffInt_UQ(Double density, Double kinematicViscosity, Matrix<Double> & stabilParams, bool movingMesh, std::string stabilType="none");
-  
-  virtual ~FluidMechPlaneMixedStiffInt_UQ();
-
-  void CalcElementMatrix( Matrix<Double>& elemMat, EntityIterator& ent1, EntityIterator& ent2 );
-
-protected:    
-  Matrix<Double> & stabilParams_;
+  protected:
+    Matrix<Double>& stabilParams_;
 };
 
-//**************************************************************************************************************************
-class FluidMechPlaneMixedStiffInt_PV : public FluidMechInt
-{
-public:
-  FluidMechPlaneMixedStiffInt_PV(Double density, Double kinematicViscosity, Matrix<Double> & stabilParams, bool movingMesh, std::string stabilType="none");
-  virtual ~FluidMechPlaneMixedStiffInt_PV();
-  void CalcElementMatrix( Matrix<Double>& elemMat, EntityIterator& ent1, EntityIterator& ent2 );
-protected:    
-  Matrix<Double> & stabilParams_;
-};
+} // namespace
+#endif //FILE_FLUIDMECHSTIFFINT
 
-
-
-//   /// Class for calculation the contribution to the element stiffness matrix in 3D
-// class FluidMech3DLaplNonConsStiffInt : public FluidMechInt
-// {
-// public:
-//   /// Constructor
-//   FluidMech3DLaplNonConsStiffInt(Double density, Double dynamicViscosity, Double kinematicViscosity);
-
-//   /// 
-//   virtual ~FluidMech3DLaplNonConsStiffInt();
-
-//   /// Calculation of stiffmess matrix
-//   void CalcElementMatrix( Matrix<Double>& elemMat,
-//                           EntityIterator& ent1, 
-//                           EntityIterator& ent2 );
-// protected:    
-// };
-
-
-}
-
-#endif // FILE_FLUIDMECHSTIFFINT

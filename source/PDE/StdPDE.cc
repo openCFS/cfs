@@ -72,45 +72,20 @@ namespace CoupledField {
     
   }
 
-  const Vector<Double>& StdPDE::getS1() const {
+  const Vector<Double>& StdPDE::getDeriv(DERIVType derivType) const {
   
-    if ( TS_alg_ != NULL ) {
-      return TS_alg_->GetDeriv1();
+    if ( TS_alg_ == NULL ) {
+      EXCEPTION( pdename_ << ":getDeriv: No derivative defined for this PDE" );
     }
-    else {
-      EXCEPTION( pdename_ << ":getS1: No timestepping defined for this PDE" );
-
-      // Only a dummy line for compiler
-      return TS_alg_->GetDeriv1();      
-    }
+    return TS_alg_->GetDeriv(derivType);
   }
   
-  
-  const Vector<Double>& StdPDE::getS2() const {
-    
-    
-    if ( TS_alg_ != NULL ) {
-      return TS_alg_->GetDeriv2();
-    }
-    else {
-      EXCEPTION( pdename_ << ":getS2: No timestepping defined for this PDE" );
+  const Vector<Double>& StdPDE::getOld(TIMEStepType timeStepType) const {
 
-      // Only a dummy line for compiler
-      return TS_alg_->GetDeriv2();
+    if ( TS_alg_ == NULL ) {
+      EXCEPTION( pdename_ << ":getOld: No time stepping defined for this PDE");
     }
-  }
-
-  const Vector<Double>& StdPDE::getOld1() const {
-
-    if ( TS_alg_ != NULL ) {
-      return TS_alg_->GetOld1();
-    }
-    else {
-      EXCEPTION( pdename_ << ":getOld1: No timestepping defined for this PDE");
-
-      // Only a dummy line for compiler
-      return TS_alg_->GetOld1();
-    }
+    return TS_alg_->GetOld(timeStepType);
   }
 
   bool StdPDE::HasPeriodicBC()
@@ -325,7 +300,7 @@ namespace CoupledField {
     sol.Init( 0.0 ); 
     
     if (  analysistype_ == TRANSIENT) {
-      const Vector<Double> & sol_der1 = getS1();
+      const Vector<Double> & sol_der1 = getDeriv(FIRST_DERIV);
         
       for( UInt i = 0; i < eqns.GetSize(); i++ ) {
         if ( eqns[i] != 0 ) {
@@ -385,7 +360,7 @@ namespace CoupledField {
     sol.Init( 0.0 );
     
     if ( analysistype_ == TRANSIENT ) {
-      const Vector<Double> & sol_der2 = getS2();
+      const Vector<Double> & sol_der2 = getDeriv(SECOND_DERIV);
       for( UInt i = 0; i < eqns.GetSize(); i++ ) {
         if ( eqns[i] != 0 ) {
           sol[i] = sol_der2[abs(eqns[i])-1];

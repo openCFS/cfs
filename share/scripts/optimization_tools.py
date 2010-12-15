@@ -678,8 +678,6 @@ def extrude(data_2d):
         
   return ret
 
-
-
 # checks if file is a valid density file
 # simple and stupid check, maybe better version in the future
 # @param infile the density file to be checked

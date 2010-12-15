@@ -70,8 +70,7 @@ namespace CoupledField {
     entryType = data.entryType;
     definedOn = data.definedOn;
     fctType = data.fctType;
-    
-    EXCEPTION( "In operator ResultInfo::operator=\n" );
+    return *this;
   }
 
 

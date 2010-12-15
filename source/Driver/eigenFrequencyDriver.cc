@@ -87,15 +87,19 @@ namespace CoupledField {
     UInt numConverged = 0;
     ptPDE_->WriteGeneralPDEdefines();
     BaseSolveStep* step = ptPDE_->GetSolveStep();
-    if(isQuadratic_) {
-      numConverged = step->CalcEigenFrequencies( dynamic_cast<Vector<Complex>& >(*eigenFreqs),
-                                                 errBounds,numFreq_, freqShift_ );
-      PrintResult<Double>(eigenFreqs, errBounds, resHandler, numConverged);
-    }
-    else  {
-      numConverged = step->CalcEigenFrequencies( dynamic_cast<Vector<Double>& >(*eigenFreqs),
-                                                 errBounds,numFreq_, freqShift_ );
-      PrintResult<Double>(eigenFreqs, errBounds, resHandler, numConverged);
+    try {
+      if(isQuadratic_) {
+        numConverged = step->CalcEigenFrequencies( dynamic_cast<Vector<Complex>& >(*eigenFreqs),
+                                                   errBounds,numFreq_, freqShift_ );
+        PrintResult<Double>(eigenFreqs, errBounds, resHandler, numConverged);
+      }
+      else  {
+        numConverged = step->CalcEigenFrequencies( dynamic_cast<Vector<Double>& >(*eigenFreqs),
+                                                   errBounds,numFreq_, freqShift_ );
+        PrintResult<Double>(eigenFreqs, errBounds, resHandler, numConverged);
+      } 
+    } catch (Exception &ex ) {
+      RETHROW_EXCEPTION(ex, "Could not calculate eigenfrequencies of setup");
     }
     
     // notify resultHandler about finishing of current sequence step
@@ -112,6 +116,20 @@ namespace CoupledField {
   {
     Vector<T>& eigenFreqs = dynamic_cast<Vector<T>&>(*freq_ptr);
     
+    // If no frequency at all converged, just leave
+    if( numConverged == 0) {
+      WARN( "No eigenfrequency converged, so no output will be written to "
+            "the result files." );
+      return;
+    }
+    
+    // Issue warning, if number of converged eigenvalues differs from
+    // number of requested ones
+    if( numConverged != numFreq_ ) {
+      WARN( "Only " << numConverged << " eigenfrequencies of " 
+            << numFreq_ << " converged. To improve convergence, either "
+            << "reduce the number of eigenfrequencies or the tolerance." );
+    }
     
     // notify resultHandler about beginning of new sequence step
     resHandler->BeginMultiSequenceStep( sequenceStep_,

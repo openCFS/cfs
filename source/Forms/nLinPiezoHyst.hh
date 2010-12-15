@@ -15,7 +15,7 @@
 #include <Utils/ApproxData.hh>
 #include <Forms/bdbInt.hh>
 #include <Forms/gradfieldop.hh>
-#include <Forms/linElecInt.hh>
+#include <Forms/linGradBDBInt.hh>
 
 
 namespace CoupledField {
@@ -147,7 +147,7 @@ namespace CoupledField {
 
 
   //! electric stiffnes bilinear form in case of piezoelectric hysteresis
-  class nLinPiezoHystElec : public linElecInt {
+  class nLinPiezoHystElec : public linGradBDBInt {
 
     
   public:

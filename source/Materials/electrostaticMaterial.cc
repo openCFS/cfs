@@ -84,24 +84,24 @@ namespace CoupledField
 
       Complex val;
       if ( dataType == Global::REAL ) {
-	val = Complex ( param, 0.0 );
+        val = Complex ( param, 0.0 );
       }
       else if (dataType == Global::IMAG ) {
-	val = Complex ( 0.0, param );
-	isComplex_.insert( matType );
+        val = Complex ( 0.0, param );
+        isComplex_.insert( matType );
       }
       else {
-	std::string msg = "SetScalar-Double";
-	dataTypeNotAllowed4SetGet ( dataType, msg );
+        std::string msg = "SetScalar-Double";
+        dataTypeNotAllowed4SetGet ( dataType, msg );
       }
-      
+
       scalarParams_[matType] = val;
     }
   }
 
 
   void ElectroStaticMaterial::SetScalar( Complex param, MaterialType matType, 
-					 Global::ComplexPart dataType ) {
+                                         Global::ComplexPart dataType ) {
 
 
     //check, if allowed
@@ -114,24 +114,24 @@ namespace CoupledField
 
       Complex val;
       if ( dataType == Global::REAL ) {
-	val = param.real();
+        val = param.real();
       }
       else if (dataType == Global::IMAG ) {
-	val = param.imag();
-	isComplex_.insert( matType );
+        val = param.imag();
+        isComplex_.insert( matType );
       }
       else if ( dataType == Global::COMPLEX ) {
-	val = param;
-	isComplex_.insert( matType );
+        val = param;
+        isComplex_.insert( matType );
       }
-      
+
       scalarParams_[matType] = val;
     }
   }
 
 
   void ElectroStaticMaterial::SetTensor(const Matrix<Double>& param, MaterialType matType, 
-					 Global::ComplexPart dataType ) {
+                                        Global::ComplexPart dataType ) {
     
 
     //check, if allowed
@@ -142,37 +142,37 @@ namespace CoupledField
     else {
       isSet_.insert( matType );
       if ( dataType == Global::REAL || dataType == Global::IMAG ) {
-	if ( tensorParams_[matType].GetNumRows() == 0 ) {
-	  tensorParams_[matType].Resize( param.GetNumRows(), param.GetNumCols() );
+        if ( tensorParams_[matType].GetNumRows() == 0 ) {
+          tensorParams_[matType].Resize( param.GetNumRows(), param.GetNumCols() );
           tensorParams_[matType].Init();
-	}
-	if ( tensorParamsOrig_[matType].GetNumRows() == 0 ) {
-	  tensorParamsOrig_[matType].Resize( param.GetNumRows(), param.GetNumCols() );
+        }
+        if ( tensorParamsOrig_[matType].GetNumRows() == 0 ) {
+          tensorParamsOrig_[matType].Resize( param.GetNumRows(), param.GetNumCols() );
           tensorParamsOrig_[matType].Init();
-	}
+        }
 
-	tensorParams_[matType].SetPart( dataType, param );
-	tensorParamsOrig_[matType].SetPart( dataType, param );
+        tensorParams_[matType].SetPart( dataType, param );
+        tensorParamsOrig_[matType].SetPart( dataType, param );
 
-	// to be consistent to old structure
-	if ( dataType == Global::REAL ) {
-	  scalarParams_[matType] = Complex( param[2][2], 0.0);
-	}
-	else {
-	  scalarParams_[matType] = Complex( 0.0, param[2][2]);
-	  isComplex_.insert( matType );
-	}
+        // to be consistent to old structure
+        if ( dataType == Global::REAL ) {
+          scalarParams_[matType] = Complex( param[2][2], 0.0);
+        }
+        else {
+          scalarParams_[matType] = Complex( 0.0, param[2][2]);
+          isComplex_.insert( matType );
+        }
       }
       else {
-	std::string msg = "SetTensor-Double";
-	dataTypeNotAllowed4SetGet ( dataType, msg );
+        std::string msg = "SetTensor-Double";
+        dataTypeNotAllowed4SetGet ( dataType, msg );
       }
     }
   }
 
   void ElectroStaticMaterial::SetTensor(const Matrix<Complex>& param, MaterialType matType, 
-					 Global::ComplexPart dataType ) {
-    
+                                        Global::ComplexPart dataType ) {
+
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
@@ -183,22 +183,22 @@ namespace CoupledField
       isSet_.insert( matType );
 
       if ( dataType != Global::COMPLEX ) {
-	std::string msg = "SetTensor with Matrix<Complex>";
-	setMakesNoSense( dataType, msg );
+        std::string msg = "SetTensor with Matrix<Complex>";
+        setMakesNoSense( dataType, msg );
       }
       else {
-	tensorParams_[matType]     = param;
-	tensorParamsOrig_[matType] = param;
-	// to be consistent to old structure
-	scalarParams_[matType] = param[2][2];
-	isComplex_.insert( matType );
+        tensorParams_[matType]     = param;
+        tensorParamsOrig_[matType] = param;
+        // to be consistent to old structure
+        scalarParams_[matType] = param[2][2];
+        isComplex_.insert( matType );
       }
     }    
   }
 
 
   void ElectroStaticMaterial::GetScalar( std::string& param, 
-					 MaterialType matType) const {
+                                         MaterialType matType) const {
 
 
     stringMap::const_iterator pos;
@@ -215,7 +215,7 @@ namespace CoupledField
 
 
   void ElectroStaticMaterial::GetScalar( Double& param, MaterialType matType, 
-					   Global::ComplexPart dataType ) const {
+                                         Global::ComplexPart dataType ) const {
 
 
     scalarMap::const_iterator pos;
@@ -228,21 +228,21 @@ namespace CoupledField
     else {
       Complex val = pos->second;
       if ( dataType == Global::REAL ) {
-	param = val.real();
+        param = val.real();
       }
       else if ( dataType == Global::IMAG ) {
-	param = val.imag();
+        param = val.imag();
       }
       else {
-	std::string msg = "GetScalar-Double";
-	dataTypeNotAllowed4SetGet( dataType, msg );
+        std::string msg = "GetScalar-Double";
+        dataTypeNotAllowed4SetGet( dataType, msg );
       }
     }    
   }
 
 
   void ElectroStaticMaterial::GetScalar( Complex& param, MaterialType matType, 
-					 Global::ComplexPart dataType ) const {
+                                         Global::ComplexPart dataType ) const {
 
 
 
@@ -256,41 +256,41 @@ namespace CoupledField
     else {
       Complex val = pos->second;
       if ( dataType == Global::REAL ) {
-	Complex valReal = Complex (val.real(), 0.0);
-	param = valReal;
+        Complex valReal = Complex (val.real(), 0.0);
+        param = valReal;
       }
       else if ( dataType == Global::IMAG ) {
-	Complex valImag = Complex (0.0, val.imag());
-	param = valImag;
+        Complex valImag = Complex (0.0, val.imag());
+        param = valImag;
       }
       else if ( dataType == Global::COMPLEX ) {
-	param = val;
+        param = val;
       }
     }    
   }
 
- 
+
 
   void ElectroStaticMaterial::GetScalar( Integer& param, MaterialType matType)  const {
-    
-    
-     integerMap::const_iterator pos;
-     pos = integerParams_.find( matType );
-     std::string value;
-    
-     if ( pos == integerParams_.end() ) {
-       std::string dim = "scalar";
-       matTypeNotInDataBase( matType, dim );
-     }
-     else {
-       param=pos->second;
-     }
-   } 
+
+
+    integerMap::const_iterator pos;
+    pos = integerParams_.find( matType );
+    std::string value;
+
+    if ( pos == integerParams_.end() ) {
+      std::string dim = "scalar";
+      matTypeNotInDataBase( matType, dim );
+    }
+    else {
+      param=pos->second;
+    }
+  } 
 
   void ElectroStaticMaterial::GetTensor( Matrix<Double>& param, 
-					 MaterialType matType, 
-					 Global::ComplexPart dataType,
-					 SubTensorType subTensor) const {
+                                         MaterialType matType, 
+                                         Global::ComplexPart dataType,
+                                         SubTensorType subTensor) const {
 
 
     tensorMap::const_iterator pos;
@@ -303,28 +303,28 @@ namespace CoupledField
     else {
       Matrix<Complex> matTensor;
       if ( subTensor == FULL ) {
-    	  matTensor = pos->second;
-    	  
+        matTensor = pos->second;
+
       }
       else {
-	ComputeSubTensor(matTensor, matType, subTensor);
+        ComputeSubTensor(matTensor, matType, subTensor);
       }
-      
+
       if ( dataType == Global::REAL || dataType == Global::IMAG) {
-	param = matTensor.GetPart( dataType );
+        param = matTensor.GetPart( dataType );
       }
       else {
-	std::string msg = "GetTensor-Double";
-	dataTypeNotAllowed4SetGet( dataType, msg );
+        std::string msg = "GetTensor-Double";
+        dataTypeNotAllowed4SetGet( dataType, msg );
       }
     }
   }
 
   void ElectroStaticMaterial::GetTensor( Matrix<Complex>& param, 
-					 MaterialType matType, 
-					 Global::ComplexPart dataType,
-					 SubTensorType subTensor) const {
-    
+                                         MaterialType matType, 
+                                         Global::ComplexPart dataType,
+                                         SubTensorType subTensor) const {
+
 
     tensorMap::const_iterator pos;
     pos = tensorParams_.find( matType );
@@ -336,29 +336,29 @@ namespace CoupledField
     else {
       Matrix<Complex> matTensor;
       if ( subTensor == FULL ) {
-	matTensor = pos->second;
+        matTensor = pos->second;
       }
       else {
-	ComputeSubTensor(matTensor, matType, subTensor);
+        ComputeSubTensor(matTensor, matType, subTensor);
       }
 
       if ( dataType == Global::REAL || dataType == Global::IMAG) {
-	Matrix<Double> help; 
-	help = matTensor.GetPart( dataType );
-	param.Resize( matTensor.GetNumRows(), matTensor.GetNumCols() );
-	param.SetPart( dataType, help );
+        Matrix<Double> help; 
+        help = matTensor.GetPart( dataType );
+        param.Resize( matTensor.GetNumRows(), matTensor.GetNumCols() );
+        param.SetPart( dataType, help );
       }
       else if ( dataType == Global::COMPLEX ) {
-	param = matTensor;
+        param = matTensor;
       }
     }
   }
-  
+
 
 
   void ElectroStaticMaterial::ComputeSubTensor(Matrix<Complex>& matMatrix,
-					       MaterialType matType, 
-					       SubTensorType subTensor) const {
+                                               MaterialType matType, 
+                                               SubTensorType subTensor) const {
 
 
     tensorMap::const_iterator pos;
@@ -368,7 +368,7 @@ namespace CoupledField
     matMatrix.Resize(2,2);
     matMatrix.Init();
     pos->second.GetSubMatrix(matMatrix, 0, 0);
-    
+
 
   }
 
@@ -383,7 +383,7 @@ namespace CoupledField
     Double Ycurrent = hyst_->computeValueAndUpdate(Xval, idx);
 
     //    std::cout << "epsDiff: " << " Xval=" << Xval << "  Yval=" << Ycurrent << std::endl;
- 
+
     //compute differential material parameter
     Double dX = Xval - Xprevious_[idx];
     Double dY = Ycurrent -Yprevious_[idx];
@@ -398,7 +398,7 @@ namespace CoupledField
 
     return matDiff;
   }
-  
+
 
   void ElectroStaticMaterial::SetPreviousHystVal( UInt nrElem, Double Xval ) {
 
@@ -413,7 +413,7 @@ namespace CoupledField
 
     UInt idx    = globalElem2Local_[nrElem];
     Double Yval = hyst_->computeValueAndUpdate( Xval, idx );
-    
+
     return Yval;
   }
 

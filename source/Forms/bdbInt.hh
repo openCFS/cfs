@@ -63,7 +63,7 @@ namespace CoupledField {
     /** Implement this in your form to return your actual physical tensor.
      * Note, BDBInt and ADBInt use calcDMat(Matrix<Double>, const Elem*)
      * which calls overwritten methods of this method but linElastInt,
-     * linElecInt and linPiezoCoupling have calcDMat(Matrix<Double>, const Elem*)
+     * linGradInt and linPiezoCoupling have calcDMat(Matrix<Double>, const Elem*)
      * implementations. This means, that all direct childs of these three
      * classes must provive a own version of calcDMat with the elem parameter!
      * @see calcDMat(Matrix<Double>, Elem*, Double&) */

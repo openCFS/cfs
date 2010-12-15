@@ -57,11 +57,6 @@ namespace CoupledField
     //! integration parameter
     Double gamma_;  
 
-    //@{
-    //! coefficients from Trapezoidal method
-    Double a0_,a1_,a2_,a3_,a4_,a5_,a6_,a7_;
-    //@}
-
     //! predictor of solution
     Vector<Double> solpred_;
   };
@@ -108,11 +103,6 @@ namespace CoupledField
    
     //! integration parameter
     Double gamma_;  
-
-    //@{
-    //! coefficients from Trapezoidal method
-    Double a0_,a1_,a2_,a3_,a4_,a5_,a6_,a7_;
-    //@}
 
     //! predictor of solution
     Vector<Double> sol_, solpred_, solderiv1_;

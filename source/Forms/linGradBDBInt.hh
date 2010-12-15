@@ -2,8 +2,8 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#ifndef FILE_LIN_ELEC_INT
-#define FILE_LIN_ELEC_INT
+#ifndef FILE_LIN_GRAD_BDB_INT
+#define FILE_LIN_GRAD_BDB_INT
 
 #include <Elements/basefe.hh>
 #include <Forms/bdbInt.hh>
@@ -13,12 +13,13 @@
 namespace CoupledField {
 
 
-  //! Class describing the general BDB operator for electrostatic
+  //! Specialized BDB-Integrator with gradient operator as B-differential operator
 
-  //! The main objective of this class is to implement the pure vitual
-  //! methods of the BDBInt parent class for the case of a linear 
-  //! electrostatic simulation.
-  class linElecInt : public BDBInt {
+  //! This class implements the BDB-integrator, where the B-operator is the 
+  //! gradient operator and the D-tensor can be set variable.
+  //! It is used e.g. for the electrostatic problem, as well as the magnetic
+  //! scalar problem for calculating the stiffness matrix.
+  class linGradBDBInt : public BDBInt {
     
   public:
 
@@ -29,11 +30,13 @@ namespace CoupledField {
     //@{ \name Construction and destruction
 
     //! Constructor with material data
-    linElecInt( BaseMaterial* matData, SubTensorType type = FULL,
-                bool geoUpdate = false );
+    linGradBDBInt( BaseMaterial* matData,
+                   MaterialType matType,
+                   SubTensorType type = FULL,
+                   bool geoUpdate = false );
 
     //! Destructor
-    ~linElecInt() {
+    ~linGradBDBInt() {
 
     }
     //@}
@@ -58,7 +61,7 @@ namespace CoupledField {
     }
 
     //! Query material type for \f$D\f$ tensor
-    MaterialType getDMaterialType() { return ELEC_PERMITTIVITY; }
+    MaterialType getDMaterialType() { return matType_; }
 
     //! Returns nr. of degrees of freedom
     UInt getNrDofs() {
@@ -74,6 +77,9 @@ namespace CoupledField {
     
     //! dimension
     UInt dim_;
+    
+    //! material type of D-matrix/tensor
+    MaterialType matType_;
 
   };
 

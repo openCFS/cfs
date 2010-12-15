@@ -20,7 +20,7 @@
 #include "Forms/nLinPiezoMicro.hh"
 #include "Forms/nLinPiezoMicroRHS.hh"
 #include "Forms/nLinPiezoCoupling.hh"
-#include "Forms/linElecInt.hh"
+#include "Forms/linGradBDBInt.hh"
 #include "Forms/FlatShellPiezoInt.hh"
 #include "Utils/ApproxData.hh"
 #include "Utils/SmoothSpline.hh"
@@ -337,7 +337,6 @@ namespace CoupledField {
      TYPE charge = 0.0;
      Elem * ptVolElem;
      BaseFE * ptSurfElemFE, * ptVolElemFE;
-     SurfElem * ptSurfElem = NULL;
 
      StdVector<Elem*> elemssd;
      StdVector<SurfElem*> surfElems;
@@ -373,7 +372,9 @@ namespace CoupledField {
      for ( it.Begin(); !it.IsEnd(); it++ ) {
 
        // Determine, which volume element is the right neighbour for the
-       // calculation
+       // calculation:
+       // We assume the normal to point out of the surface element into the
+       // direction of the neighboring electric volume element.
        if ( neighbor ==
             it.GetSurfElem()->ptVolElem1->regionId ) {
          ptVolElem = it.GetSurfElem()->ptVolElem1;
@@ -403,8 +404,8 @@ namespace CoupledField {
        if ( regionIndex == -1 ) {
          EXCEPTION( "PiezoPDE:CalcCharges The region with Name "
                     << ptGrid_->GetRegion().ToString(ptVolElem->regionId)
-                    << " of surface element Nr. " << ptSurfElem->elemNum
-                    << "is not contained in my set of regions!." );
+                    << " of surface element Nr. " << it.GetSurfElem()->elemNum
+                    << " is not contained in my set of regions!." );
        }
 
        BaseMaterial* matPiezo  = materials_[ptVolElem->regionId];

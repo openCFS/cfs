@@ -398,6 +398,14 @@ namespace CoupledField {
       return "kg m^-3 s^-2";
       break;
 
+    case ACOU_RHS_LOAD_DENSITY:
+      return "kg m^-6 s^-2";
+      break;
+
+    case ACOU_DIV_LH_TENSOR:
+      return "kg m^-2 s^-2";
+      break;
+      
     case ACOU_SURFINTENSITY:
       return "W/m^2";
       break;
@@ -480,6 +488,10 @@ namespace CoupledField {
 
     case MAG_POTENTIAL:
       return "Vs/m";
+      break;
+      
+    case MAG_SCALAR_POTENTIAL:
+      return "A";
       break;
 
     case MAG_RHS_LOAD:
@@ -643,16 +655,16 @@ namespace CoupledField {
       out = "noMaterial";
       break;
     case MAG_PERMEABILITY:
-      out = "Magnetic_permability";
+      out = "Magnetic_permeability";
       break;
     case MAG_PERMEABILITY_1:
-      out = "Magnetic_permability_1";
+      out = "Magnetic_permeability_1";
       break;
     case MAG_PERMEABILITY_2:
-      out = "Magnetic_permability_2";
+      out = "Magnetic_permeability_2";
       break;
     case MAG_PERMEABILITY_3:
-      out = "Magnetic_permability_3";
+      out = "Magnetic_permeability_3";
       break;
     case MAG_RELUCTIVITY:
       out = "Magnetic_reluctivity";
@@ -761,6 +773,9 @@ namespace CoupledField {
       break;
     case HEAT_CONDUCTIVITY_TENSOR:
       out = "HeatConductivity_Tensor";
+      break;
+    case MAGNETOSTRICTION_TENSOR:
+      out = "Magnetostriction_Tensor";
       break;
     case HEAT_CAPACITY:
       out = "HeatCapacity";
@@ -998,6 +1013,9 @@ namespace CoupledField {
     else if ( in == "HeatConductivity_Tensor" ) {
       out = HEAT_CONDUCTIVITY_TENSOR;
     }
+    else if ( in == "Magnetostriction_Tensor" ) {
+          out = MAGNETOSTRICTION_TENSOR;
+        }
     else if ( in == "HeatCapacity" ) {
       out = HEAT_CAPACITY;
     }
@@ -1192,6 +1210,9 @@ namespace CoupledField {
     case THERMOELASTIC:
       out = "thermoelastic";
       break;
+    case MAGNETOSTRICTIVE:
+      out = "magnetoStrictive";
+      break;
 
     default:
       EXCEPTION("No conversion found for your 'MaterialClass'" );
@@ -1228,11 +1249,14 @@ namespace CoupledField {
     else if ( in == "thermic" ) {
       out = THERMIC;
     }
-	else if ( in == "pyroelectric" ) {
+    else if ( in == "pyroelectric" ) {
       out = PYROELECTRIC;
     }
-	else if ( in == "thermoelastic" ) {
+    else if ( in == "thermoelastic" ) {
       out = THERMOELASTIC;
+    }
+    else if ( in == "magnetoStrictive" ) {
+      out = MAGNETOSTRICTIVE;
     }
     else {
       EXCEPTION( "'" << in << "' cannot be converted into an '"
@@ -1673,6 +1697,7 @@ namespace CoupledField {
     SolutionTypeEnum.SetName("SolutionTypeEnum");
     //mechanics
     SolutionTypeEnum.Add(MECH_DISPLACEMENT, "mechDisplacement");
+    SolutionTypeEnum.Add(MECH_DISPLACEMENT_DERIV_2, "mechDisplacement_deriv2");
     SolutionTypeEnum.Add(LUMPED_MECH_DISPLACEMENT, "lumpedMechDisplacement");
     SolutionTypeEnum.Add(MECH_ACCELERATION, "mechAcceleration");
     SolutionTypeEnum.Add(MECH_VELOCITY, "mechVelocity");
@@ -1714,6 +1739,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_POTENTIAL_DERIV_1, "acouPotentialD1");
     SolutionTypeEnum.Add(ACOU_POTENTIAL_DERIV_2, "acouPotentialD2");
     SolutionTypeEnum.Add(ACOU_RHS_LOAD, "acouRhsLoad");
+    SolutionTypeEnum.Add(ACOU_RHS_LOAD_DENSITY, "acouRhsLoadDensity");
+    SolutionTypeEnum.Add(ACOU_DIV_LH_TENSOR, "acouDivLighthillTensor");
     SolutionTypeEnum.Add(ACOU_RHSVAL, "acouRHSval");
     SolutionTypeEnum.Add(ACOUSURF_RHSVAL, "acouSurfRHSval");
     SolutionTypeEnum.Add(ACOU_BUBBLE_RHS_VAL, "acouBubbleRhsVal");
@@ -1730,6 +1757,7 @@ namespace CoupledField {
 
     //magnetics
     SolutionTypeEnum.Add(MAG_POTENTIAL, "magPotential");
+    SolutionTypeEnum.Add(MAG_SCALAR_POTENTIAL, "magScalarPotential");
     SolutionTypeEnum.Add(MAG_FLUX_DENSITY, "magFluxDensity");
     SolutionTypeEnum.Add(MAG_POTENTIAL_DIV, "magPotentialDiv");
     SolutionTypeEnum.Add(MAG_HFIELD, "magHfield");
@@ -1747,6 +1775,10 @@ namespace CoupledField {
     //fluidMech
     SolutionTypeEnum.Add(FLUIDMECH_VELOCITY, "fluidMechVelocity");
     SolutionTypeEnum.Add(FLUIDMECH_PRESSURE, "fluidMechPressure");
+    SolutionTypeEnum.Add(FLUIDMECH_VELOCITY_DERIV_1, "fluidMechVelocity_deriv1");
+    SolutionTypeEnum.Add(FLUIDMECH_PRESSURE_DERIV_1, "fluidMechPressure_deriv1");
+    SolutionTypeEnum.Add(FLUIDMECH_VELOCITY_DERIV_2, "fluidMechVelocity_deriv2");
+    SolutionTypeEnum.Add(FLUIDMECH_PRESSURE_DERIV_2, "fluidMechPressure_deriv2");
     SolutionTypeEnum.Add(FLUIDMECH_FORCE, "fluidMechForce");
     SolutionTypeEnum.Add(FLUIDMECH_DENSITY, "fluidMechDensity");
     SolutionTypeEnum.Add(FLUIDMECH_TKE, "fluidMechTKE");

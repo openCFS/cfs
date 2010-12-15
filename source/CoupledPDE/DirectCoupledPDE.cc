@@ -49,9 +49,18 @@ namespace CoupledField {
 
     // The following cannot easily be deleted by StdPDE from which we inherit
     // them, since SinglePDE also inherits them.
-    delete algsys_;
-    delete solveStep_;
-    delete TS_alg_;
+    if( algsys_ ) {
+      delete algsys_;
+      algsys_ = NULL;
+    }
+    if( solveStep_ ) {
+      delete solveStep_;
+      solveStep_ = NULL;
+    }
+    if( TS_alg_ ){
+      delete TS_alg_;
+      TS_alg_ = NULL;
+    }
 
     // Delete BasePairCoupling objects
     for ( UInt i = 0; i < couplings_.GetSize(); i++ ) {
@@ -59,12 +68,24 @@ namespace CoupledField {
     }
     couplings_.Clear();
 
-    delete solVec_;
-    delete rhsVec_;
-    if ( needSolPrev_ )
+    if( solVec_ ) {
+      delete solVec_;
+      solVec_ = NULL;
+    }
+    if( rhsVec_ ) {
+      delete rhsVec_;
+      rhsVec_ = NULL;
+    }
+    if ( needSolPrev_ ) {
       delete solVecPrev_;
+      solVecPrev_ = NULL;
+    }
     
-    if(assemble_) delete assemble_;    
+    
+    if(assemble_) {
+      delete assemble_;
+      assemble_ = NULL;
+    }
   }
 
 
@@ -227,11 +248,15 @@ namespace CoupledField {
     }
 
     // activate direct coupling information
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+      singlePDEs_[i]->SetDirectCoupling();
+    }
+    
+    // activate direct coupling information
     // and initialize all single pdes
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
       singlePDEs_[i]->algsys_ = algsys_;
       singlePDEs_[i]->assemble_ = assemble_;
-      singlePDEs_[i]->SetDirectCoupling();
       // Initialize all SinglePDEs
       singlePDEs_[i]->Init( sequenceStep, infoNode_);
 

@@ -170,5 +170,25 @@
     </xsd:restriction>
   </xsd:simpleType>
 
+  <!-- ******************************************************************* -->
+  <!--   Data type for defining a coil by means of current Sticks --> 
+  <!--   using the law of Biot-Savart -->
+  <!-- ******************************************************************* -->
+  
+  <xsd:complexType name="DT_BiotSavartCoil">      
+    <xsd:sequence>
+      <xsd:element name="coil" minOccurs="1" maxOccurs="unbounded">
+        <xsd:complexType>
+          <xsd:attribute name="name" type="xsd:token" use="required"/>
+          <xsd:attribute name="file" type="xsd:token" use="required"/>
+          <xsd:attribute name="value" type="xsd:token" use="optional" default="1"/>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence> 
+    <xsd:attribute name="showInGrid" type="DT_CFSBool" default="yes"/>
+    
+    
+  </xsd:complexType>
+
 </xsd:schema>
 
