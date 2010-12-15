@@ -678,8 +678,32 @@ def extrude(data_2d):
         
   return ret
 
+# checks if file is a valid density file
+# simple and stupid check, maybe better version in the future
+# @param infile the density file to be checked
+def is_valid_density_file(infile):
+  ersatzfound = False
+  headerfound = False
+  setfound = False
+
+  infi = open(infile, "r")
+  for event, element in etree.iterparse(infi):
+    if element.tag == "cfsErsatzMaterial":
+      ersatzfound = True
+    if element.tag == "header":
+      headerfound = True
+    if element.tag == "set":
+      setfound = True
+
+    # if all is found, then we break
+    if ersatzfound and headerfound and setfound:
+      break
+  infi.close()
+
+  return ersatzfound and headerfound and setfound
+
+
 # do an ascii print of the density data
 def ascii_print(data, threshold):
   x, y, z = getDim(data)
   assert()
-  

@@ -10,7 +10,8 @@ using namespace CoupledField;
 using std::string;
 
 SimOutputStreaming::SimOutputStreaming(PtrParamNode outputNode) :
-  SimOutput("", outputNode)
+  SimOutput("", outputNode),
+  silent_(false)
 {
   formatName_ = "streaming";
   capabilities_.insert(MESH_RESULTS);
@@ -18,6 +19,9 @@ SimOutputStreaming::SimOutputStreaming(PtrParamNode outputNode) :
   host_ = outputNode->Get("host")->As<string>();
   port_ = outputNode->Get("port")->As<string>();
   path_ = outputNode->Get("path")->As<string>();
+
+  if(outputNode->Has("silent"))
+    silent_ = outputNode->Get("silent")->As<bool>();
 
   info_root = info->Get("streaming")->Get(ParamNode::PROCESS); // TODO!
 }
@@ -70,13 +74,12 @@ void SimOutputStreaming::FinishStep()
   results_.Clear();
 }
 
-UInt SimOutputStreaming::GetContentLength(){
+UInt SimOutputStreaming::GetContentLength()
+{
   UInt v = 40;
-  for(UInt r = 0; r < results_.GetSize(); ++r){
-    shared_ptr<BaseResult> sol = results_[r];
-    shared_ptr<ResultInfo> resInfo = sol->GetResultInfo();
-    std::string resultName = resInfo->resultName;
-    if(resultName != "mechPseudoDensity") continue;
+  for(UInt r = 0, s = results_.GetSize(); r < s; ++r){
+    if(results_[r]->GetResultInfo()->resultName != "physicalPseudoDensity")
+      continue;
     Vector<Double>& resultVec = dynamic_cast<Result<Double>&>(*results_[r]).GetVector();
     v += resultVec.GetSize() * 7; 
   }
@@ -98,7 +101,7 @@ void SimOutputStreaming::Transmit(std::ostream& out)
     //std::cout << "result: " << resultName << std::endl;
     // UInt numDOFs = resInfo->dofNames.GetSize();
 
-    if(resultName != "mechPseudoDensity") continue;
+    if(resultName != "physicalPseudoDensity") continue;
     Vector<Double>& resultVec = dynamic_cast<Result<Double>&>(*sol).GetVector();
     out << "Densities: "; 
     out.width(8);
@@ -135,7 +138,9 @@ SimOutputStreaming::Client::Client(boost::asio::io_service& io_service,
 
 //    request_stream << "\r\n\r\n";
 
-    std::cout << " try to connect " << server << " port " << port << std::endl;
+    if(!base->silent_)
+      std::cout << " try to connect " << server << " port " << port << std::endl;
+
     // Start an asynchronous resolve to translate the server and service names
     // into a list of endpoints.
     tcp::resolver::query query(server, port); // we use http anyway

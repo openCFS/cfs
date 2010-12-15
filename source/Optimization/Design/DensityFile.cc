@@ -91,6 +91,7 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
 
   // read the set and replace the initial values for the optimization
   ParamNodeList elems = set->GetList("element");
+  const unsigned int elsize(elems.GetSize());
   bool force_region = pn != NULL && pn->Has("force_region");
 
   if(!ersatzMaterial)
@@ -108,7 +109,7 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
     else
     {
       // find the regions by ourselves
-      for(unsigned int e = 0; e < elems.GetSize(); e++)
+      for(unsigned int e = 0; e < elsize; ++e)
       {
         unsigned int nr = elems[e]->Get("nr")->As<unsigned int>();
         if(!regionIds.Contains(grid->GetElem(nr)->regionId))
@@ -135,7 +136,7 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
   // check the the dimensions! the number of design variables comes from the regions and designs
   if (ersatzMaterial->data.GetSize() != elems.GetSize())
   {
-    if(grid->GetNumElems() == elems.GetSize())
+    if(grid->GetNumElems() == elsize)
     {
       string msg = "the number of elements in the region you are trying to read the densities into is not equal to"\
                   " the number of elements in the density-file but matches the number of all elements!";
@@ -147,7 +148,7 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
                        +" design elements");
   }
 
-  for (unsigned int e = 0; e < elems.GetSize(); e++)
+  for (unsigned int e = 0; e < elsize; ++e)
   {
     // the design set consists of entries like
     // <element nr="401" type="density" design="0.886466" physical="0.800454" />
@@ -197,10 +198,10 @@ PtrParamNode DensityFile::Create(ParamNodeList& des, ParamNodeList& tfs, PtrPara
      mesh->Get("z")->SetValue(domain->GetGrid()->GetDim() == 3 ? dim.data[2] / edges[2]: 1);
    }
 
-   for(unsigned int i = 0; i < des.GetSize(); i++)
+   for(unsigned int i = 0, s = des.GetSize(); i < s; ++i)
      in_->Get("dummy", ParamNode::APPEND)->SetValue(des[i], true); // name is overwritten
 
-   for(unsigned int i = 0; i < tfs.GetSize(); i++)
+   for(unsigned int i = 0, s = tfs.GetSize(); i < s; ++i)
      in_->Get("dummy", ParamNode::APPEND)->SetValue(tfs[i], true);
 
    if(regularize)

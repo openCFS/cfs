@@ -102,14 +102,14 @@ void BaseDesignElement::Reset(ValueSpecifier vs, Function*  f)
   switch(vs)
   {
   case COST_GRADIENT:
-    for(unsigned int i = 0; i < costGradient.GetSize(); i++)
+    for(unsigned int i = 0, s = costGradient.GetSize(); i < s; ++i)
       costGradient[i] = 0.0;
     break;
   case CONSTRAINT_GRADIENT:
     if(f != NULL)
       constraintGradient[f->GetIndex()] = 0.0;
     else
-      for(unsigned int i = 0; i < constraintGradient.GetSize(); i++)
+      for(unsigned int i = 0, s = constraintGradient.GetSize(); i < s; ++i)
         constraintGradient[i] = 0.0;
     break;
   default:
@@ -120,7 +120,7 @@ void BaseDesignElement::Reset(ValueSpecifier vs, Function*  f)
 double BaseDesignElement::SumObjectiveGradient() const
 {
   double result = 0.0;
-  for(unsigned int i = 0; i < costGradient.GetSize(); i++)
+  for(unsigned int i = 0, s = costGradient.GetSize(); i < s; ++i)
     result += costGradient[i];
 
   return result;
@@ -394,8 +394,8 @@ std::string DesignElement::ToString(const StdVector<DesignElement*>& vec)
 {
   std::stringstream ss;
   ss << "[";
-  for(unsigned int i = 0; i < vec.GetSize(); i++)
-    ss << ToString(vec[i]) << (i < vec.GetSize() - 1 ? "," : "");
+  for(unsigned int i = 0, s = vec.GetSize(); i < s; ++i)
+    ss << ToString(vec[i]) << (i < s - 1 ? "," : "");
   ss << "]";
 
   return ss.str();
@@ -761,7 +761,7 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
 
   // eventually the barycenters are already calculated, we need them to identify the orientation
   // we will need the barycenters in FindNeibhborhood()
-  for(unsigned int i = 0; i < space->regions.GetSize(); i++)
+  for(unsigned int i = 0, s = space->regions.GetSize(); i < s; i++)
     grid->SetElementBarycenters(space->regions[i].regionId, false); // no updated coordinates
 
   // let CFS find the neighborhood of *all* elements. With some luck this was done
