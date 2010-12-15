@@ -999,6 +999,26 @@ Schenk2006b, Schenk2007}. Needed by ipopt and (ilupack).
 
 \noindent Project Homepage: \url{http://pardiso-project.org}
 
+To put it frankly, Pardiso, being a closed source project, is a software engineering nightmare! That is due to three main facts:
+
+\begin{description}
+  \item[Licensing]
+    \subitem The Pardiso of Schenk introduces a new license policy with every second version or so. For example, version 4.0 had a license duration of one year. Version 4.1 has a duration of just one month instead! This is the reason for the next point.
+    \subitem License files are not portable across different versions. A license file valid for version 4.0 is not valid for version 4.1 anymore, since it would break the 4.1 license policy. That means that every Pardiso user has to re-request a license file every month. This is especially tedious, if automated nightly test are to be performed.
+  \item[Non-backward compatible API]
+    \subitem The API of the pardisoinit\_ and pardiso\_ functions changed from version 3.x (as in MKL) to version 4.x, but no backward compatible replacements have been provided.
+    \subitem There is no decent way of obtaining the API version from a binary library of Pardiso. There exists no API function for querying the API version and no C or Fortran headers are provided, which would contain that information.
+    \subitem The only way of obtaining the version information is to link a version 3 or 4 source to a given library and to check according to buffer overflows or segfaults which API is correct (cf. cmake\_modules/CheckPardisoAPIVersion.cmake). This way of testing is remarkably dirty, unstable and not guaranteed to work with future versions.
+    \subitem Due to the fact, that we also support MKL, the check is obligatory, since MKL still has API version 3. If only one version of the API would be supported in our source (cf. sources/OLAS/external/pardiso/pardisosolver.cc), linking against a different library could provoke undefined bahaviour or even segfaults.
+  \item[Distribution policy]
+    \subitem Old versions of libraries get removed from the download servers, whenever a new version is released. This means, that one has no chance of obtaining a library for a given license file, if a new release has been made. This problem is still somehow acceptable for a closed source library like Pardiso, but it is still very annoying since it breaks automated tests.
+    \subitem The set of supported platforms changes from release to release. It is absolutely not understandable what the policy for supported platforms is. The support for Mac OS X has been dropped from 4.0 to the initial release of 4.1 for example. Also the compiler versions (GCC, Intel) change from release to release and only one GCC version is supported per release. On the other hand the GCC version for 32-bit and 64-bit Linux is different for example. In conclusion it would appear that they build their libraries by hand and do not even have a certain platform policy.
+\end{description}
+
+Due to the aforementioned reasons the build\_pardiso.pl script needs to be modified with every new release. Fortunately the libraries all share the same base URL, at least for a given release. Therefore just the BASE\_URL and the SLIB (serial lib) and PLIB (parallel lib) variables need to be changed for the different platforms for a new release.
+
+In order for the configuration tests to work, a proper license file (pardiso.lic) has to be obtained and the environment variable PARDISO\_LIC\_PATH has to set to the path containing it.
+
 \subsubsection{qt4} Qt Cross-Platform Application Framework. Needed by ParaView.
 
 \noindent Project Homepage: \url{http://www.qtsoftware.com/downloads/opensource}
