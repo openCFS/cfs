@@ -11,7 +11,7 @@
 
 #include "elecPDE.hh"
 
-#include "Forms/linElecInt.hh"
+#include "Forms/linGradBDBInt.hh"
 #include "Forms/linNeumannInt.hh"
 #include "Forms/nLinElecHystInt.hh"
 #include "Forms/nLinElecMaterial.hh"
@@ -261,8 +261,9 @@ namespace CoupledField {
         else {
 
           // --- standard real-valued stiffness integrator ---
-          linElecInt *  linElecForm = new linElecInt( actSDMat, tensorType,
-                                                      upLagrangeForm );
+          linGradBDBInt *  linElecForm = 
+              new linGradBDBInt( actSDMat, ELEC_PERMITTIVITY, 
+                                 tensorType, upLagrangeForm );
           linElecForm->SetFactor( factor );
           
           BiLinFormContext * stiffIntDescr = 
@@ -280,8 +281,10 @@ namespace CoupledField {
           if( complexMatData_[actRegion] == true ) {
             Global::ComplexPart matType = Global::IMAG; 
 
-            linElecInt * linElecFormC  = new 
-                linElecInt( materials_[actRegion], tensorType,
+            linGradBDBInt * linElecFormC  = new 
+                linGradBDBInt( materials_[actRegion], 
+                               ELEC_PERMITTIVITY,
+                               tensorType,
                             upLagrangeForm);
             linElecFormC->SetFactor( factor );
             linElecFormC->SetMatDataType(matType);
@@ -843,7 +846,9 @@ namespace CoupledField {
     // loop over all surface elements
     for ( it.Begin(); !it.IsEnd(); it++ ) {
       // Determine, which volume element is the right neighbour for the 
-      // calculation
+      // calculation:
+      // We assume the normal to point out of the surface element into the
+      // direction of the neighboring electric volume element.
       if ( surfNeighborRegions_[res] ==
            it.GetSurfElem()->ptVolElem1->regionId) {
         ptVolElem = it.GetSurfElem()->ptVolElem1;
@@ -973,8 +978,9 @@ namespace CoupledField {
       actSDList.SetRegion( regionIt.GetRegion() );
       EntityIterator elemIt = actSDList.GetIterator();
       
-      linElecInt * bilinear_stiff = 
-        new linElecInt(materials_[regionIt.GetRegion()],tensorType);
+      linGradBDBInt * bilinear_stiff = 
+        new linGradBDBInt(materials_[regionIt.GetRegion()],ELEC_PERMITTIVITY,
+                          tensorType);
 
       // Loop over elements
       energy = 0;

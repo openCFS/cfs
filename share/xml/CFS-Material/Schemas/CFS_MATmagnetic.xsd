@@ -39,9 +39,33 @@
   <!-- ******************************************************************* -->
   <xsd:complexType name="DT_LinMagnPermeability">
     <xsd:choice>
+      <xsd:element name="tensor" type="DT_MagTensor"/>
       <xsd:element name="isotropic" type="DT_NonNegFloat"/>
       <xsd:element name="orthotropic" type="DT_MagOrthotropic"/>
     </xsd:choice>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of general tensor linear magnetic permeability-->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_MagTensor">
+    <xsd:sequence>
+      <xsd:element name="real">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="9"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+      <xsd:element name="imag" minOccurs="0">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="9"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+    </xsd:sequence>
+    <xsd:attribute name="dim1" type="xsd:nonNegativeInteger" use="required"/>
   </xsd:complexType>
   
   <!-- ******************************************************************* -->

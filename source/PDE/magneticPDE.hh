@@ -152,7 +152,7 @@ namespace CoupledField
     
     //! vector containing regionIds of non-conforming interfaces
     StdVector<RegionIdType> ncIFaces_;
-
+    
     // =======================================================================
     //   HELPER METHODS FOR CALCULATING AUXILIARY QUANTITIES 
     // =======================================================================

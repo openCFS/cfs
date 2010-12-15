@@ -562,7 +562,7 @@ namespace CoupledField
     //! removes IDBS Information from algebraic system
     void RemoveIDBCInfoFromMatrix() const; 
 
-    StdMatrix* GetSysMat(FEMatrixType type = SYSTEM)const {return sysmat_[type];}
+    StdMatrix* GetSysMat(FEMatrixType type = SYSTEM)const {return sysmat_.find(type)->second;}
     SingleVector *GetSolVec(){return sol_;}
     SingleVector *GetRhsVec(){return rhs_;}
 
@@ -575,7 +575,7 @@ namespace CoupledField
 
     //! Pointer to the systemmatrix (sysmat[1])
     //! and the partial matrices (mass, stiffnes, ...)
-    StdMatrix** sysmat_;
+    std::map<FEMatrixType, StdMatrix*> sysmat_;
 
     //! Pointer to solution vector
     SingleVector *sol_;

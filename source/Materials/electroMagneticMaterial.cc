@@ -51,8 +51,10 @@ namespace CoupledField
   }
 
   ElectroMagneticMaterial::~ElectroMagneticMaterial() {
-    
-
+  }
+  
+  void ElectroMagneticMaterial::Finalize() {
+    ComputeFullMuTensor();
   }
 
   void ElectroMagneticMaterial::SetScalar(const std::string& param, MaterialType matType) {
@@ -70,7 +72,7 @@ namespace CoupledField
 
 
   void ElectroMagneticMaterial::SetScalar( Double param, MaterialType matType, 
-					   Global::ComplexPart dataType ) {
+                                           Global::ComplexPart dataType ) {
 
 
     //check, if allowed
@@ -83,27 +85,27 @@ namespace CoupledField
 
       Complex val;
       if ( dataType == Global::REAL ) {
-	val = Complex ( param, 0.0 );
+        val = Complex ( param, 0.0 );
       }
       else if (dataType == Global::IMAG ) {
-	val = Complex ( 0.0, param );
-	isComplex_.insert( matType );
+        val = Complex ( 0.0, param );
+        isComplex_.insert( matType );
       }
       else {
-	std::string msg = "SetScalar-Double";
-	dataTypeNotAllowed4SetGet ( dataType, msg );
+        std::string msg = "SetScalar-Double";
+        dataTypeNotAllowed4SetGet ( dataType, msg );
       }
-      
+
       scalarParams_[matType] = val;
     }
 
     //check for permeability
     if ( matType == MAG_PERMEABILITY ) {
       if ( param < 1.255e-6 ) {
-	      EXCEPTION("Mag. permeability cannot be smaller then the one of vacuum" );
+        EXCEPTION("Mag. permeability cannot be smaller then the one of vacuum" );
       }
       else {
-	     scalarParams_[MAG_RELUCTIVITY] = Complex( 1.0/param, 0.0 );
+        scalarParams_[MAG_RELUCTIVITY] = Complex( 1.0/param, 0.0 );
       }
     }
 
@@ -111,7 +113,7 @@ namespace CoupledField
 
 
   void ElectroMagneticMaterial::SetScalar( Complex param, MaterialType matType, 
-					   Global::ComplexPart dataType ) {
+                                           Global::ComplexPart dataType ) {
 
 
     //check, if allowed
@@ -124,36 +126,36 @@ namespace CoupledField
 
       Complex val;
       if ( dataType == Global::REAL ) {
-	val = param.real();
+        val = param.real();
       }
       else if (dataType == Global::IMAG ) {
-	val = param.imag();
-	isComplex_.insert( matType );
+        val = param.imag();
+        isComplex_.insert( matType );
       }
       else if ( dataType == Global::COMPLEX ) {
-	val = param;
-	isComplex_.insert( matType );
+        val = param;
+        isComplex_.insert( matType );
       }
-      
+
       scalarParams_[matType] = val;
     }
 
     //check for permeability
     if ( matType == MAG_PERMEABILITY ) {
       if ( param.real() < 1.255e-6 ) {
-	EXCEPTION("Mag. permeability cannot be smaller then the one of vacuum" );
+        EXCEPTION("Mag. permeability cannot be smaller then the one of vacuum" );
       }
       else {
-	scalarParams_[MAG_RELUCTIVITY] = 1.0/param;
+        scalarParams_[MAG_RELUCTIVITY] = 1.0/param;
       }
     }
-  
+
   }
 
 
   void ElectroMagneticMaterial::SetTensor(const Matrix<Double>& param, MaterialType matType, 
-					   Global::ComplexPart dataType ) {
-    
+                                          Global::ComplexPart dataType ) {
+
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
@@ -163,37 +165,37 @@ namespace CoupledField
     else {
       isSet_.insert( matType );
       if ( dataType == Global::REAL || dataType == Global::IMAG ) {
-	if ( tensorParams_[matType].GetNumRows() == 0 ) {
-	  tensorParams_[matType].Resize( param.GetNumRows(), param.GetNumCols() );
+        if ( tensorParams_[matType].GetNumRows() == 0 ) {
+          tensorParams_[matType].Resize( param.GetNumRows(), param.GetNumCols() );
           tensorParams_[matType].Init();
-	}
-	if ( tensorParamsOrig_[matType].GetNumRows() == 0 ) {
-	  tensorParamsOrig_[matType].Resize( param.GetNumRows(), param.GetNumCols() );
+        }
+        if ( tensorParamsOrig_[matType].GetNumRows() == 0 ) {
+          tensorParamsOrig_[matType].Resize( param.GetNumRows(), param.GetNumCols() );
           tensorParamsOrig_[matType].Init();
-	}
+        }
 
-	tensorParams_[matType].SetPart( dataType, param );
-	tensorParamsOrig_[matType].SetPart( dataType, param );
+        tensorParams_[matType].SetPart( dataType, param );
+        tensorParamsOrig_[matType].SetPart( dataType, param );
 
-	// to be consistent to old structure
-	if ( dataType == Global::REAL ) {
-	  scalarParams_[matType] = Complex( param[2][2], 0.0);
-	}
-	else {
-	  scalarParams_[matType] = Complex( 0.0, param[2][2]);
-	  isComplex_.insert( matType );
-	}
+        // to be consistent to old structure
+        if ( dataType == Global::REAL ) {
+          scalarParams_[matType] = Complex( param[2][2], 0.0);
+        }
+        else {
+          scalarParams_[matType] = Complex( 0.0, param[2][2]);
+          isComplex_.insert( matType );
+        }
       }
       else {
-	std::string msg = "SetTensor-Double";
-	dataTypeNotAllowed4SetGet ( dataType, msg );
+        std::string msg = "SetTensor-Double";
+        dataTypeNotAllowed4SetGet ( dataType, msg );
       }
     }
   }
 
   void ElectroMagneticMaterial::SetTensor(const Matrix<Complex>& param, MaterialType matType, 
-					   Global::ComplexPart dataType ) {
-    
+                                          Global::ComplexPart dataType ) {
+
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
@@ -204,13 +206,13 @@ namespace CoupledField
       isSet_.insert( matType );
 
       if ( dataType != Global::COMPLEX ) {
-	std::string msg = "SetTensor with Matrix<Complex>";
-	setMakesNoSense( dataType, msg );
+        std::string msg = "SetTensor with Matrix<Complex>";
+        setMakesNoSense( dataType, msg );
       }
       else {
-	tensorParams_[matType]     = param;
-	tensorParamsOrig_[matType] = param;
-	isComplex_.insert( matType );
+        tensorParams_[matType]     = param;
+        tensorParamsOrig_[matType] = param;
+        isComplex_.insert( matType );
       }
     }
 
@@ -222,7 +224,7 @@ namespace CoupledField
 
 
   void ElectroMagneticMaterial::GetScalar( Double& param, MaterialType matType, 
-					   Global::ComplexPart dataType ) const {
+                                           Global::ComplexPart dataType ) const {
 
 
     scalarMap::const_iterator pos;
@@ -235,20 +237,20 @@ namespace CoupledField
     else {
       Complex val = pos->second;
       if ( dataType == Global::REAL ) {
-	param = val.real();
+        param = val.real();
       }
       else if ( dataType == Global::IMAG ) {
-	param = val.imag();
+        param = val.imag();
       }
       else {
-	std::string msg = "GetScalar-Double";
-	dataTypeNotAllowed4SetGet( dataType, msg );
+        std::string msg = "GetScalar-Double";
+        dataTypeNotAllowed4SetGet( dataType, msg );
       }
     }
   }
 
   void ElectroMagneticMaterial::GetScalar( Complex& param, MaterialType matType, 
-					   Global::ComplexPart dataType ) const {
+                                           Global::ComplexPart dataType ) const {
 
 
     scalarMap::const_iterator pos;
@@ -261,24 +263,24 @@ namespace CoupledField
     else {
       Complex val = pos->second;
       if ( dataType == Global::REAL ) {
-	Complex valReal = Complex (val.real(), 0.0);
-	param = valReal;
+        Complex valReal = Complex (val.real(), 0.0);
+        param = valReal;
       }
       else if ( dataType == Global::IMAG ) {
-	Complex valImag = Complex (0.0, val.imag());
-	param = valImag;
+        Complex valImag = Complex (0.0, val.imag());
+        param = valImag;
       }
       else if ( dataType == Global::COMPLEX ) {
-	param = val;
+        param = val;
       }
     }
   }
 
   void ElectroMagneticMaterial::GetTensor( Matrix<Double>& param, 
-					   MaterialType matType, 
-					   Global::ComplexPart dataType,
-					   SubTensorType subTensor) const {
-    
+                                           MaterialType matType, 
+                                           Global::ComplexPart dataType,
+                                           SubTensorType subTensor) const {
+
 
 
     tensorMap::const_iterator pos;
@@ -291,27 +293,27 @@ namespace CoupledField
     else {
       Matrix<Complex> matTensor;
       if ( subTensor == FULL ) {
-	matTensor = pos->second;
+        matTensor = pos->second;
       }
       else {
-	ComputeSubTensor(matTensor, matType, subTensor);
+        ComputeSubTensor(matTensor, matType, subTensor);
       }
 
       if ( dataType == Global::REAL || dataType == Global::IMAG) {
-	param = matTensor.GetPart( dataType );
+        param = matTensor.GetPart( dataType );
       }
       else {
-	std::string msg = "GetTensor-Double";
-	dataTypeNotAllowed4SetGet( dataType, msg );
+        std::string msg = "GetTensor-Double";
+        dataTypeNotAllowed4SetGet( dataType, msg );
       }
     }
   }
 
   void ElectroMagneticMaterial::GetTensor( Matrix<Complex>& param, 
-					   MaterialType matType, 
-					   Global::ComplexPart dataType,
-					   SubTensorType subTensor) const {
-    
+                                           MaterialType matType, 
+                                           Global::ComplexPart dataType,
+                                           SubTensorType subTensor) const {
+
 
     tensorMap::const_iterator pos;
     pos = tensorParams_.find( matType );
@@ -323,28 +325,28 @@ namespace CoupledField
     else {
       Matrix<Complex> matTensor;
       if ( subTensor == FULL ) {
-	matTensor = pos->second;
+        matTensor = pos->second;
       }
       else {
-	ComputeSubTensor(matTensor, matType, subTensor);
+        ComputeSubTensor(matTensor, matType, subTensor);
       }
 
       if ( dataType == Global::REAL || dataType == Global::IMAG) {
-	Matrix<Double> help; 
-	help = matTensor.GetPart( dataType );
-	param.Resize( matTensor.GetNumRows(), matTensor.GetNumCols() );
-	param.SetPart( dataType, help );
+        Matrix<Double> help; 
+        help = matTensor.GetPart( dataType );
+        param.Resize( matTensor.GetNumRows(), matTensor.GetNumCols() );
+        param.SetPart( dataType, help );
       }
       else if ( dataType == Global::COMPLEX ) {
-	param = matTensor;
+        param = matTensor;
       }
     }
   }
-  
-  
+
+
   void ElectroMagneticMaterial::ComputeSubTensor(Matrix<Complex>& matMatrix,
-						 MaterialType matType, 
-						 SubTensorType subTensor) const {
+                                                 MaterialType matType, 
+                                                 SubTensorType subTensor) const {
 
 
     tensorMap::const_iterator pos;
@@ -398,7 +400,7 @@ namespace CoupledField
       hyst_ = NULL;
 
       std::cout << "computeHystInverse: " << computeHystInverse_  
-                << " isHystInverse: " << isHystInverse_ << std::endl;  
+          << " isHystInverse: " << isHystInverse_ << std::endl;  
 
       GetScalar(Xsat_, X_SATURATION, Global::REAL);
       GetScalar(Ysat_, Y_SATURATION, Global::REAL);
@@ -411,14 +413,14 @@ namespace CoupledField
       vecHyst_ = new Hysteresis* [dim_];
       vecHyst_[0] = new Preisach(numElemSD, Xsat_, Ysat_, weights, isVirgin);
       vecHyst_[1] = new Preisach(numElemSD, Xsat_, Ysat_, weights, isVirgin);
-  
+
       // set map: global to local element number
       EntityIterator it = actSDList->GetIterator();
       UInt iel = 0;
       UInt globalElNr;
       for ( it.Begin(); !it.IsEnd(); it++, iel++) {
-	globalElNr = it.GetElem()->elemNum;
-	globalElem2Local_[globalElNr] = iel;
+        globalElNr = it.GetElem()->elemNum;
+        globalElem2Local_[globalElNr] = iel;
       }
     }
 
@@ -520,8 +522,8 @@ namespace CoupledField
       ComputeInverseScalar( idx, 1, valVec[1], Xcurrent[1] );
       Ycurrent[0] = vecHyst_[0]->computeValueAndUpdate(Xcurrent[0], idx);
       Ycurrent[1] = vecHyst_[1]->computeValueAndUpdate(Xcurrent[1], idx);
-//       Ycurrent[0] = valVec[0];
-//       Ycurrent[1] = valVec[1];
+      //       Ycurrent[0] = valVec[0];
+      //       Ycurrent[1] = valVec[1];
     }
     else {
       Xcurrent[0] = valVec[0];
@@ -605,7 +607,7 @@ namespace CoupledField
       matDiff = ( dX[0] * dY[0] + dX[1] * dY[1] ) / dB;
       //matDiff = ( dX[1] * dY[1] ) / dB;
     }
-    
+
     //    std::cout << "dB=" << dB  <<  "  dnu=" << matDiff << std::endl << std::endl;
     //    std::cout << "  dnu=" << matDiff << std::endl << std::endl;
 
@@ -621,7 +623,7 @@ namespace CoupledField
                                                       Vector<Double>& out ) {
 
     UInt idx = globalElem2Local_[nrElem];
-    
+
     //    std::cout << "elNr=" << nrElem << "  idx=" << idx << std::endl;
 
     if ( isHystInverse_ ) {
@@ -642,7 +644,7 @@ namespace CoupledField
 
     UInt idx = globalElem2Local_[nrElem];
 
-     if ( isHystInverse_ ) {
+    if ( isHystInverse_ ) {
       Val[0] = vecHyst_[0]->getValue( idx );
       Val[1] = vecHyst_[1]->getValue( idx );
     }
@@ -672,8 +674,8 @@ namespace CoupledField
 
   void ElectroMagneticMaterial::ComputeInverseScalar( UInt idxEl, UInt comp, Double Yin, 
                                                       Double& Xout ) {
-    
-    
+
+
     Double eps = 1e-3;
     Double  dH = vecHyst_[0]->GetIncX();
 
@@ -685,11 +687,11 @@ namespace CoupledField
     else {
       Double Hs, Ho, Hu, Hact, Bs, Bact, dB;
       bool found = false;
-      
+
       //compute starting values
       Hs = vecXact_[comp][idxEl];
       Bs = vecHyst_[comp]->computeValueAndUpdate( Hs, idxEl, false); 
-      
+
       std::cout << "Start Bs: " << Bs << "  Hs=" << Hs <<  std::endl;
       if  ( abs(Bs - Yin) < eps ) {
         found = true;
@@ -717,23 +719,23 @@ namespace CoupledField
           dB   = Bact - Yin;
         } while ( dB < 0 ); 
       }
-      
+
       if ( found == false ) {
         std::cout << "Do iter: Bin=" << Yin << "  Bs=" << std::endl;
         do {
           Hact = ( Ho + Hu ) * 0.5;
           Bact = vecHyst_[comp]->computeValueAndUpdate( Hact, idxEl, false); 
           dB   = Bact - Yin;
-          
+
           if ( dB < 0 ) 
             Hu = Hact;
           else 
             Ho = Hact;
-          
+
           std::cout << "newB =" << Bact << "  Hact=" << Hact << "  Ho=" << Ho << "   Hu=" << Hu << std::endl; 
-          
+
         } while ( abs(dB) > eps && abs(Ho-Hu) > abs(Ho)*1e-4 );
-        
+
         Xout = Hact;
       }
     }
@@ -744,12 +746,48 @@ namespace CoupledField
     // update
     //vecHyst_[comp]->updateMinMaxList( Xout, idxEl );
 
-//     if ( found ) 
-//       std::cout << " Hval = " << Xout << "  Bval=" << Yin << "   Bs=" << Bs << std::endl;
-//     else
-//       std::cout << " Hval = " << Xout << "  Bval=" << Yin << "  Bact=" << Bact << std::endl;
-//   }
+    //     if ( found ) 
+    //       std::cout << " Hval = " << Xout << "  Bval=" << Yin << "   Bs=" << Bs << std::endl;
+    //     else
+    //       std::cout << " Hval = " << Xout << "  Bval=" << Yin << "  Bact=" << Bact << std::endl;
+    //   }
 
+  }
+  
+  void ElectroMagneticMaterial::ComputeFullMuTensor() {
+
+    Matrix<Complex> muTensor(3,3);
+    Complex mu1, mu2, mu3, isoMu;
+    
+    // depending on symmetry, calculate full 3x3 permeability tensor
+    switch(symmetryType_) {
+      
+      case GENERAL:
+        // in this case we have already the full permeability tensor
+        break;
+        
+      case ISOTROPIC:
+        GetScalar( isoMu, MAG_PERMEABILITY, Global::COMPLEX );
+        muTensor[0][0] = isoMu;
+        muTensor[1][1] = isoMu;
+        muTensor[2][2] = isoMu;
+        SetTensor( muTensor, MAG_PERMEABILITY, Global::COMPLEX );
+        break;
+        
+      case ORTHOTROPIC:
+        
+        GetScalar( mu1, MAG_PERMEABILITY_1, Global::COMPLEX );
+        GetScalar( mu2, MAG_PERMEABILITY_1, Global::COMPLEX );
+        GetScalar( mu3, MAG_PERMEABILITY_1, Global::COMPLEX );
+        muTensor[0][0] = mu1;
+        muTensor[1][1] = mu2;
+        muTensor[2][2] = mu3;
+        SetTensor( muTensor, MAG_PERMEABILITY, Global::COMPLEX );
+        break;
+      default:
+        EXCEPTION( "Calculation of full permeability matrix for symmetryType '"
+            << symmetryType_ << "' not implemented!" );
+    }
   }
 
 }

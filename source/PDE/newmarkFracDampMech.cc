@@ -79,6 +79,9 @@ namespace CoupledField {
     dt_ = dt;
     rhsSize_ = rhsSize;
     CalcParameters(dt_);
+    Vector<Double> dummyVec;
+    dummyVec.Resize(rhsSize_);
+    dummyVec.Init();
 
     //elastModule_ = 1.0;  
     //elastModule_ = 658.2;  
@@ -103,14 +106,13 @@ namespace CoupledField {
 
 
     // get the memory
-    if( !isDeriv1Set_ ) {
-      solderiv1_.Resize(rhsSize_);  
-      solderiv1_.Init();
+    if ( !is_Deriv_set(FIRST_DERIV) )
+    {
+      solDeriv_vec_[FIRST_DERIV] = dummyVec;
     }
-
-    if( !isDeriv2Set_ ) {
-      solderiv2_.Resize(rhsSize_);  
-      solderiv2_.Init();
+    if ( !is_Deriv_set(SECOND_DERIV) )
+    {
+      solDeriv_vec_[SECOND_DERIV] = dummyVec;
     }
   
 
@@ -157,8 +159,8 @@ namespace CoupledField {
 	numTrueValues_++;
     }
 
-    solpred_ = solold + solderiv1_*dt_ + solderiv2_*a0_;
-    solderiv1pred_ = solderiv1_ + solderiv2_*a1_;
+    solpred_ = solold + solDeriv_vec_[FIRST_DERIV]*dt_ + solDeriv_vec_[SECOND_DERIV]*a0_;
+    solderiv1pred_ = solDeriv_vec_[FIRST_DERIV] + solDeriv_vec_[SECOND_DERIV]*a1_;
   }
 
 
@@ -330,8 +332,8 @@ namespace CoupledField {
   void NewmarkFracDampMech::Corrector(Vector<Double>& solnew)
   {
 
-    solderiv2_ = (solnew - solpred_) * a2_;
-    solderiv1_ = solderiv1pred_ + solderiv2_*a3_;
+    solDeriv_vec_[SECOND_DERIV] = (solnew - solpred_) * a2_;
+    solDeriv_vec_[FIRST_DERIV] = solderiv1pred_ + solDeriv_vec_[SECOND_DERIV]*a3_;
 
     Integer numEQNs = eqnMap_->GetNumEqns();
     StdVector<UInt> connecth, connect_PDE;

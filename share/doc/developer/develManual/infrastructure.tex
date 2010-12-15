@@ -7,6 +7,48 @@ Subversion is a  free/open source version control system,  which manages files
 and  directories, and  the changes  made to  them, over  time. This  allows to
 recover older versions and to have different developing branches \cite{svn}.
 
+\subsection{Working Copy Messed up by Newer Version of SVN Executable}
+
+The svn executable  silently updates the internal format  of the working copy,
+when performing  certain operations  (e.g. add, etc.).  Therefore one  may run
+into the problem, that a shared working copy is accessed by different versions
+of SVN  and the older  svn executables complain,  that they cannot  access the
+working copy any more.  There are two possible solutions for this problem.
+
+First,  one  can  re-adjust  the  working  copy  version  by  using  the  {\tt
+change-svn-wc-format.py}                                                 script
+(cf. \url{http://subversion.tigris.org/faq.html#working-copy-format-change}).
+
+The  second  possibility is  to  completely  abandon  the official  Subversion
+executables and to use  the latest SVNKit from \url{http://svnkit.com/}, which
+is a  pure Java  package and  which supports the  latest working  copy format.
+Just  put its  jsvn executable  on the  PATH before  starting the  CMake build
+process of CFS++.
+
+\subsection{Relocating a Working Copy}
+
+During  the  switch of  our  SVN  repository from  lse10  to  lse17 it  became
+necessary to switch a number of local working copies to the new location. Here
+is how to conveniently perform this operation:
+
+\begin{itemize}
+\item go to the working copy directory
+\item issue: {\tt OLD\_REPO=\$(cat .svn/entries | grep 'CFS++/trunk')}
+\item issue: {\tt svn --relocate \$OLD\_REPO https://lse17.e-technik.uni-erlangen.de:2001/svn/CFS++/trunk}
+\item repeat analogue steps for CFSDEPS and testsuite
+\end{itemize}
+
+\subsection{Subversion  Inside  Eclipse}  \todo[inline]{Write something  about
+installing and using Subclipse resp. Subversive}
+
+\noindent \url{http://www.eclipse.org/subversive/}
+
+\noindent \url{http://www.polarion.com/products/svn/subversive.php}
+
+\noindent \url{http://www.ibm.com/developerworks/webservices/library/ws-WIDdev/#N102AB}
+
+\noindent \url{http://www.ibm.com/developerworks/opensource/library/os-ecl-subversion/}
+
 \subsection{Using Git in Combination with SVN}
 \label{sec:git}
 
@@ -29,6 +71,23 @@ of the  source code, updating the  working copy, committing  local changes and
 committing local changes back to the SVN repository.
 
 \input{pygmentized/git_checkout_cfs}
+
+\subsubsection{Git Local Branches}
+
+\todo[inline]{Properly describe making and managing local branches:}
+
+\begin{itemize}
+\item {\tt git checkout local\_branch}
+\item make changes
+\item stash changes: {\tt git stash}
+\item list items in stash {\tt git stash list}
+\item go back to master branch: {\tt git checkout master}
+\item get latest svn revision on master branch: {\tt git svn rebase}
+\item go back to local branch: {\tt git checkout local\_branch}
+\item merge latest svn revision from master to local branch: {\tt git merge master}
+\item get local changes from stash back to local\_branch: {\tt git stash pop stash\@\{0\}}
+\end{itemize}
+
 
 \begin{table}[tb]
 \centering
@@ -59,11 +118,370 @@ targeted towards C,  C++ or Fortran projects. Instead  of writing Makefiles or
 autoconf/automake scripts  on Unix or  Visual Studio projects on  Windows, one
 just  needs to maintain  platform independent  configuration files  from which
 CMake will  generate the  previously mentioned projects  for the  native build
-environments.
+environments. A lot of introductory and advanced material can be found on the
+CMake Wiki \url{http://www.cmake.org/Wiki/CMake}.
 
 \todo[inline]{Describe  structure  of  source  and build  trees,  internal
   architecture of our CMake  files, interaction with CFSDEPS, howto switch
   compilers, etc.}
+
+Manually compiling a program does make sense if you only have one source file or for confirming that you supplied the right parameters to your compiler. For programs which consist of many different source files this task becomes cumbersome and error-prone. Therefore build systems have been developed which relieve the programmer of this job. The duty of the programmer just consists of specifying in a so-called make file what source files a program depends upon and how (compiler, options... ) the source files should be compiled. The standard build tool on Linux systems is GNU make. Writing make files for large software systems is again a very complex task. Getting all dependencies right can become a bold venture. Another disadvantage is the fact that make files are quite static. This means that parameters which might change for different build types must be queried from the environment.
+
+A remedy for this problem are auto configuration systems like GNU autoconf/automake or CMake (http://www.cmake.org). Knowing the source file dependencies, such systems query the environment for platform dependent features, external libraries, etc. and generate a custom make file tailored for a certain build type. The obvious advantage is that these systems know how to write make files correctly and how to get dependencies right. A second point which makes this systems interesting is the fact that once a description of the build process has been specified for them, they can be used to generate make projects for different platforms.
+
+In the new trunk version of CFS++ CMake has been implemented as build system. This brings a number of advantages:
+
+\begin{itemize}
+    \item OLAS/CFS++ have been merged. That means there is no more need to get the dependencies on externel libraries right. They will be set once and for all!
+    \item The \#defines (e.g. USE\_LAPACK, XMLSCHEMA) have been moved from the command line of the compiler to special headers. This means that exactly those parts of the code are rebuilt that a certain \#define really affects.
+    \item Due to the fact that CMake takes care about the dependencies, parallel builds are back on the road!
+    \item There is no more use for the imprecise MACHINE environment variable. The build architecture will be determined during the configuration process of the build tree.
+    \item Source tree and build tree are now different things. When doing an out-of-source build the source tree will not be cluttered with thousands of object files any more. 
+\end{itemize}
+
+\subsection{The source tree}
+
+At first we assume we have checked out CFS++ to let's say
+
+\begin{verbatim}
+$HOME/MY_CFS
+\end{verbatim}
+
+This directory will be called source tree or CFS\_SOURCE\_DIR from now on. The directory has the following structure
+
+\begin{verbatim}
+$HOME/MY_CFS
+|-- CMakeLists.txt
+|-- cmake_modules                                                                               
+|-- ctest_scripts                                                                               
+|-- include                                                                                     
+|-- share                                                                                       
+|   |-- MaterialFile                                                                            
+|   |-- doc                                                                                     
+|   |-- matlab                                                                                  
+|   |-- scripts                                                                                 
+|   |-- xml                                                                                     
+|   `-- xsl                                                                                     
+`-- source                                                                                      
+    |-- CoupledPDE                                                                              
+    |-- DataInOut                                                                               
+    |-- Domain                                                                                  
+    |-- Driver                                                                                  
+    |-- Elements                                                                                
+    |-- Estimator                                                                               
+    |-- Forms                                                                                   
+    |-- General
+    |-- MatVec
+    |-- Materials
+    |-- MpCCIcpl
+    |-- ODEDescr
+    |-- ODESolve
+    |-- OLAS
+    |-- Optimization
+    |-- PDE
+    |-- ParamIdent
+    |-- Utils
+    |-- cfstool
+    |-- cplreader
+    `-- main
+\end{verbatim}
+
+
+This structure has been harmonized with the directory structure of NACS. The main directory contains the CMakeLists.txt file and it's accompanying cmake\_modules subdirectory. The CMakeLists.txt contains the main project description and handles searching for external libs and the traversal of the many subdirectories during the build. The files in cmake\_modules are meant to aid the main CMakeLists.txt in doing its job. The scripts in this directory are used to determine the distro, the compiler and to write the configuration variables to individual headers from the include directory. The CMake scripts in ctest\_scripts are meant for nightly testing using CTest/CDash. The actual C/C++/Fortran sources are located in the source directory. The share directory contains auxilliary scripts, Matlab scripts and the users' and developers' documentation and concepts.
+
+\subsection{The build process}
+
+The build process consists of three main steps:
+
+\begin{itemize}
+    \item Setting environment variables for compilers or paths (e.g. CC, CXX, FC, CFS\_DEPS\_ROOT,...) and creation of build directory
+    \item Configuring the current build directory (e.g. ccmake SOURCE\_DIR)
+    \item Building the source using make (e.g. make -j4) 
+\end{itemize}
+
+In the following subsections the steps will be described further
+
+\subsubsection{Setting up the build directory and environment variables}
+
+To build CFS++ we first create a build directory
+
+\begin{verbatim}
+$HOME/MY_CFS_BUILD
+\end{verbatim}
+
+Before configuring the current build directory we need to specify which compilers we want to use and where certain required directories are. The compilers (C, C++ and Fortran 95) will be set by specifying
+
+\begin{verbatim}
+export CC=gcc; export CXX=g++; export FC=gfortran
+\end{verbatim}
+
+for example.
+
+Please note that once a build directory has been configured with a certain set of compilers it not advisable or even impossible to switch to a different set of compilers. This is due to the fact, that CMake generates a lot of flags tailored for each compiler. If you want to use a different compiler either create a new build directory or delete all contents of a build directory.
+
+For systems for which no default paths exist it is also mandatory to specify the following environment variables
+
+\begin{verbatim}
+export CFS_DEPS_ROOT=PATH_TO_CFSDEPS
+export CFS_DEPS_CACHE_DIR=PATH_WHERE_SOURCES_AND_PRECOMPILED_LIBS_SHOULD_GO
+\end{verbatim}
+
+At LSE it is just necessary to specify the compilers since the CFSDEPS from
+
+\begin{verbatim}
+     https://lse17.e-technik.uni-erlangen.de:2001/svn/cfsdeps/trunk
+\end{verbatim}
+
+should be available at /home/data/libraries/CFSDEPS and the cache directory resides at /home/data/libraries/CFSDEPSCACHE.
+\subsubsection{Configuring the build tree}
+
+Next we change into the build tree.
+
+\begin{verbatim}
+cd $HOME/MY_CFS_BUILD
+\end{verbatim}
+
+There we call
+
+\begin{verbatim}
+/home/data/programs/cmake/bin/ccmake $HOME/MY_CFS
+\end{verbatim}
+
+Then a GUI pops up and we press 'c' two times to configure.
+
+Please note: it might be a good idea to add the CMake executable to the path.
+
+Please note: instead of using environment variables, it is also possible to specify locations of compilers and other things to CMake on the command line.
+
+\begin{verbatim}
+ccmake -DCMAKE_C_COMPILER:PATH=/usr/bin/gcc \
+       -DCMAKE_CXX_COMPILER:PATH=/usr/bin/g++ \
+       -DCMAKE_Fortran_COMPILER:PATH=/usr/bin/gfortran \
+       -DCFS_DEPS_ROOT:PATH=/home/data/libraries/CFSDEPS \
+       -DCFS_DEPS_CACHE_DIR:PATH=$HOME/CFSDEPSCACHE $HOME/MYCFS
+\end{verbatim}
+
+The ccmake or cmake-gui GUIs should look now something like Fig. \ref{fig:ccmake_cmake_guis}. 
+
+\begin{figure}[htb] 
+  \centering 
+  \subfloat[Text-based ccmake GUI.]{
+    \label{fig:ccmake_gui}
+    \begin{overpic}[height=5cm]{pics/ccmake}
+    \end{overpic}
+    }
+  \qquad
+  \subfloat[Qt4 cmake-gui GUI.]{
+    \label{fig:cmake_gui}
+    \begin{overpic}[height=5cm]{pics/cmake-gui}
+    \end{overpic}
+  } 
+  \caption{CMake GUIs for the same source and build directories.}
+  \label{fig:ccmake_cmake_guis}
+\end{figure}
+
+To alter an option move the cursor there with the arrow keys and press 'Enter'. Then the On/Off?  options change automatically and the text in text fields can be edited. If the change is OK press 'Esc'. Note: that changing options may require another configure run. At this point we can generate the Makefiles by pressing 'g'. This puts us back to the command line.
+
+\subsubsection{Building the sources}
+
+where we can type
+
+\begin{verbatim}
+make (-jX)
+\end{verbatim}
+
+to build CFS++. Using the -j option tells make to use X processors for parallel compilation. Building CFS++ now takes around 10-15 minutes for a serial build. The temporary static libraries will end up in
+
+\begin{verbatim}
+$HOME/MY_CFS_BUILD/lib(64)
+\end{verbatim}
+
+and the cfs start shell script can be found in
+
+\begin{verbatim}
+$HOME/MY_CFS_BUILD/bin/cfs
+\end{verbatim}
+
+\subsection{Advanced Options}
+
+\subsubsection{Looking at the Compiler/Linker Command Line}
+
+CMake hides the command line of the compiler by default. To see it you have to set
+
+\begin{verbatim}
+export VERBOSE=1
+\end{verbatim}
+
+If you don't need it anymore set
+
+\begin{verbatim}
+unset VERBOSE
+\end{verbatim}
+
+\subsubsection{Specifying a different compiler}
+
+A compiler can only be specified to CMake the first time a build tree is configured. This is due to the fact, that CMake recognizes certain compilers and internally sets some flags specific to that compilers. If the tree has been previously configured it is best to do a
+
+\begin{verbatim}
+make clean; rm CMakeCache.txt
+\end{verbatim}
+
+This should leave the build tree clean enough to configure with a different compiler. This can be done afterwards by either using
+
+\begin{verbatim}
+export CXX="mycompiler"; ccmake $HOME/MY_CFS
+\end{verbatim}
+
+or
+
+\begin{verbatim}
+export CMAKE_CXX_COMPILER="mycompiler"; ccmake $HOME/MY_CFS
+\end{verbatim}
+
+For GNU compilers the variables to set are:
+
+\begin{verbatim}
+export CC=gcc
+export CXX=g++
+export FC=gfortran
+\end{verbatim}
+
+For intel compilers the variables to set are:
+
+\begin{verbatim}
+export CC=icc
+export CXX=icpc
+export FC=ifort
+\end{verbatim}
+
+For OpenSUSE >= 11.x (cf. Sec. \ref{sec:compiler_compat_matrix})
+
+\begin{verbatim}
+source /home/data/programs/intel/Compiler/11.0/081/bin/iccvars.sh intel64
+source /home/data/programs/intel/Compiler/11.0/081/bin/ifortvars.sh intel64
+\end{verbatim}
+
+or
+
+\begin{verbatim}
+source /home/data/programs/intel/Compiler/11.0/081/bin/iccvars.sh ia32
+source /home/data/programs/intel/Compiler/11.0/081/bin/ifortvars.sh ia32
+\end{verbatim}
+
+For OpenSUSE < 11.x
+
+\begin{verbatim}
+source /home/data/programs/intel/cc(e for 64Bit!)/COMPILER_VERSION/bin/iccvars.sh
+source /home/data/programs/intel/fc(e for 64Bit!)/COMPILER_VERSION/bin/ifortvars.sh
+\end{verbatim}
+
+
+\todo[inline]{Put                           info                          from
+\url{https://lse17.e-technik.uni-erlangen.de:2001/trac/wiki/CMake} here.}
+
+\subsection{Compiler Compatibility Matrix}
+\label{sec:compiler_compat_matrix}
+
+Since the  Intel compiler relies  on the GNU  runtime on Linux/Mac and  on the
+Microsoft runtime  on Windows certain compatibility problems  due to different
+versions may occur. 
+
+\paragraph{Intel \&  GNU Compilers}  The following compatibility  matrix shows
+which versions of  the compilers are compatible for  building CFS++. The Intel
+compiler will by default determine the GNU runtime environment by checking the
+first  gcc executable  it can  find  on the  PATH (cf.   \cite{IntelGNUCompat,
+IntelWhitePapers}).  The  build system will  automatically issue an  error, if
+the user tries to  compile using the Intel compiler with a  too new version of
+the  GNU  compiler, which  is  not supported  by  the  Intel compiler.   Table
+\ref{tab:compiler_compat_gnu_intel} shows the compatible compiler versions.
+
+
+\begin{table}[htb]
+\centering
+\begin{minipage}{18cc}\caption{Compatibility  between  GNU  (rows)  and  Intel
+(columns) compilers on Linux/Mac.}
+\label{tab:compiler_compat_gnu_intel}
+\end{minipage}
+\par\medskip\noindent
+\begin{minipage}{18cc}
+\centering
+\begin{tabular}{lllllll}
+  \toprule
+            & {\bf 9.1} & {\bf 10.0} & {\bf 10.1} & {\bf 11.0} & {\bf 11.1} & {\bf 11.2}\\ \otoprule
+  {\bf 3.4} & yes & yes & yes & yes & yes & yes \\
+  {\bf 4.0} & yes & yes & yes & yes & yes & yes  \\
+  {\bf 4.1} & yes & yes & yes & yes & yes & yes  \\
+  {\bf 4.2} & no & no & yes & yes & yes & yes  \\
+  {\bf 4.3} & no & no & no & no & yes & yes  \\
+  {\bf 4.4} & no & no & no & no & yes\footnote{Not officially, but due to our patches.} & ? \\
+  {\bf 4.5} & no & no & no & no & ?\footnote{Never tested.} & ? \\
+  \bottomrule
+\end{tabular} 
+\end{minipage}
+\end{table}
+
+\noindent The  GNU version  which an Intel  compiler actually supports  can be
+queried by the following commands:
+\begin{verbatim}
+echo 'int main() { }' | icc -dD -E - | grep GNUC
+\end{verbatim}
+
+\noindent It may also be adjusted by using the following switch:
+\begin{verbatim}
+echo 'int main() { }' | icc -dD -E -gcc-version=340 - | grep GNUC
+\end{verbatim}
+
+\noindent Without the final grep one  sees all the builtin defines. This works
+also  for other compilers.  The CFSDEPS  use this  mechanism to  determine, if
+problems are about to occur.
+
+\subsection{Using  a Platform-specific Defaults  File}  Our CMake  system is  mainly
+tailored for the usage at the two departments at Erlangen and Klagenfurt. That
+means, that many  default paths to libraries and other  build settings are set
+to valid values for machines at these two locations.  If a user wants to build
+CFS++ on his/her laptop where  libraries are installed in different locations,
+he/she  has to  either set  the corresponding  paths by  hand or  he/she would
+specify a defaults file for the  laptop.  Another example of the usefulness of
+this  approach is  the fact,  that only  the guys  doing optimization  need to
+switch  on the  support  for their  libraries  (i.e.  USE\_IPOPT,  USE\_SNOPT,
+USE\_SCPIP) but other people do not need those.
+
+The    inclusion   of    user-defined    defaults   is    handled   by    {\tt
+cmake\_modules/platform\_defaults.cmake}.   At first  the global  defaults are
+set. After that we check if we are on some specific machines, most notably the
+ones at RRZE.  After  that, we check if there is a  machine specific file {\tt
+cmake\_modules/platform\_defaults\_\$\{CFS\_BUILD\_HOST\}.cmake} available for
+the   current   build  host.    Finally,   we   look   for  the   files   {\tt
+\$ENV\{HOME\}/.cfs\_platform\_defaults.cmake}             and             {\tt
+\$ENV\{HOME\}/.cfs\_platform\_defaults\_\$\{CFS\_BUILD\_HOST\}.cmake}  in  the
+user's home directory.  The defaults in the latter files  override the ones in
+the former ones. Here is an example for such a defaults file:
+
+\input{pygmentized/platform_defaults_mac}
+
+\subsection{Building Matlab Extensions Using CMake}
+A howto article about building Matlab extensions using CMake can be found at 
+\url{http://www.cmake.org/Wiki/CMake:MatlabMex}.
+
+
+\subsection{Alternatives to CMake}
+Available alternatives to CMake include:
+\begin{description}
+\item[GNU Autotools] \url{http://www.gnu.org/software/autoconf/} \url{http://www.gnu.org/software/automake/automake.html} \url{http://www.gnu.org/software/libtool/libtool.html} \url{http://sourceware.org/autobook/}
+\item[(B)Jam] \url{http://www.perforce.com/jam/jam.html} \url{http://www.boost.org/users/download/boost_jam_3_1_18}
+\item[Scons] \url{http://www.scons.org/}
+\item[Waf] \url{http://code.google.com/p/waf/}
+\item[FBuild] \url{http://sourceforge.net/projects/fbuild/}
+\item[Fabricate] \url{http://code.google.com/p/fabricate/}
+\item[Tup] \url{http://gittup.org/tup/}
+\end{description}
+
+A    comparison    of    different    build   systems    is    available    at
+\url{http://www.scons.org/wiki/SconsVsOtherBuildTools}
+
+A         comparative         benchmark         is        available         at
+\url{http://retropaganda.info/~bohan/work/sf/psycle/branches/bohan/wonderbuild/benchmarks/time.xml}
+
 
 \section{CFSDEPS}
 \label{sec:cfsdeps}
@@ -87,16 +505,20 @@ Due to all of the aforementioned  problems, a library may not be available and
 it  has to  be  built from  source.  Therefore  we  decided to  build all  our
 dependencies  in an  automated script  based  manner.  The  scripts fetch  the
 sources from the web, unpack  them, perform checksum checks, patch, configure,
-build and  install the libraries (cf.  Fig. \ref{fig:cfsdeps_flowdiag}).  This
+build and install the  libraries (cf.  Fig. \ref{fig:cfsdeps_flowdiag}).  This
 way we obtain maximum platform-independence while having a well-documented and
-SVN-versioned description of how to build external packages. The necessity for
-automatically building external packages has also been recognized by the CMake
-developers   in  the   meantime   and  is   supported   since  version   2.8.0
+SVN-versioned description of how to  build external packages. This approach is
+not un-common among  other big software projects. To name  a few examples, the
+VTK  \cite{VTKWebSite}  ships  with  and  builds libjpeg,  libtiff,  zlib  and
+others. OpenFOAM\footnote{\url{http://www.openfoam.com/}} even builds it's own
+GCC  and VisIt\footnote{\url{https://wci.llnl.gov/codes/visit/}} automatically
+builds  a  number of  external  I/O  libs.   The necessity  for  automatically
+building external packages has also been recognized by the CMake developers in
+the     meantime     and      is     supported     since     version     2.8.0
 (cf. \cite{BuildExtPackages})
 
 The   current  hierarchical   structure  of   the  CFSDEPS   is   depicted  in
-Fig.  \ref{fig:cfsdeps_structure} while  the  sequence of  actions during  the
-build of an individual package is depicted in Fig. \ref{fig:cfsdeps_flowdiag}.
+Fig.  \ref{fig:cfsdeps_structure}.
 
 \begin{figure}[htb] 
   \centering
@@ -107,6 +529,129 @@ build of an individual package is depicted in Fig. \ref{fig:cfsdeps_flowdiag}.
   \label{fig:cfsdeps_structure}
 \end{figure}%
 
+\subsection{Instructions}
+
+Since March 2009  we use the CFSDEPS system taken from  NACS for building most
+of the  depencencies of  CFS++ from source.  The Subversion repository  can be
+found at
+
+\noindent \url{https://lse17.e-technik.uni-erlangen.de:2001/svn/cfsdeps/trunk}
+
+The Perl based  build mechanism has been inspired from  the Python based build
+system
+Emerge\footnote{\url{http://www.gentoo.org/doc/en/handbook/handbook-x86.xml?part=2&chap=1}}
+of  Gentoo\footnote{\url{http://www.gentoo.org/}}  and  the TCL  based  system
+MacPorts\footnote{\url{http://www.macports.org/}} for external packages on Mac
+OS X.  We used  Perl since it  runs on  all supported platforms  (Linux/Mac OS
+X/Windows) and has been part of the testsuite scripts from the beginning.
+
+Building mostly  everything from  source has the  advantage that we  can apply
+patches for different compilers (GNU/Intel), different distributions or Unices
+(openSUSE/Ubuntu/Mac OS  X) and different architectures  (x86, x86\_64, ia64),
+without having to  rely on system libraries which  have exhibited some serious
+bugs in the  past. This way we can  build upon a well tested  set of libraries
+where  we  can  fix bugs  as  we  find  them.   Supporting a  different  Linux
+distribution consists merely of just fixing a few minor bugs which might occur
+in  the build  process. Another  advantage is  the ability  to  apply compiler
+optimizations  not   only  to   CFS++  itself  but   also  on   the  dependent
+libraries. And last but not least:  since the build mechanism is borrowed from
+NACS an easy transition  of the features from CFS++ to NACS  and the other way
+around  should  be  possible.  Even  building  most  of  the libs  on  Windows
+(32-bit/64-bit) should work out of the box.
+
+One of  the main ideas behind  CFSDEPS is that while  implementing the scripts
+for  building a  package from  source the  developer implicitly  documents the
+necessary  steps for  building a  library for  a given  platform. This  way it
+becomes  transparent how a  lib was  built.  This  is not  given, if  a single
+developer builds the library on his own machine and puts it on a network share
+for others to use.  He certainly cannot  remember what he did after a year and
+almost certainly errors will occur when trying to use his prebuilt binaries on
+other platforms. This was however the way things were done before CFSDEPS.
+
+Another key idea  of CFSDEPS is to have a slim  SVN repository only consisting
+of  the  build  scripts,  checksum  files  and patches  needed  to  build  the
+packages. This way  it is possible to build CFSDEPS/CFS++  by just getting the
+SVN  working copies  of both  projects  and not  having to  copy around  large
+collections  of prebuilt  libraries.  A  build machine  has  therefore minimal
+requirements for installed packages  (CMake, Perl, C/C++ and Fortran compilers
+and some  standard build  tools). The  idea of a  slim repository  is somewhat
+counteracted by the inclusion of some  binary libs for which no source code is
+available (ANSYS  and CFX customization) and  by the inclusion  of some closed
+source archives (ILUPACK and SCPIP).  This compromise has been made however to
+ensure a high  level of portability without having to  get these archives from
+some installation directories or their authors.
+
+Inspite of  all the  blessings of  compiling from source  one should  not keep
+quiet about  some disadvantages. We  have to stick  to a certain version  of a
+library to be  able to patch its  bugs. This means that we  cannot allways use
+the latest version.  This is okay as  long as none of the  latest features are
+required.  Another disadvantage  is  that we  have  to build  CFSDEPS even  if
+developer packages of the libraries are already available on a system.
+
+Not  all libraries  can  be built  from source  since  some of  them are  only
+available in binary form (Pardiso  through MKL). Nonetheless there exist build
+scripts for most  of them which pack the libraries  for certain platforms into
+archives.
+
+There is  also ParaView which has been  extended by the feature  to read CFS++
+HDF5  files and  OpenFOAM output  files.  It  gets also  built from  source by
+CFSDEPS. Building of  Qt4 from source is also required and  takes an awful lot
+of time.
+
+\subsubsection{How CFSDEPS work}
+
+The CFSDEPS mechanism is directly  integrated into the CMake configure process
+of CFS++  (cf.  cmake\_modules/FindCFSDEPS.cmake  and the files  included from
+there).       The     CMake      macro      BUILD\_EXTLIB     (defined      in
+cmake\_modules/CFS\_macros.cmake) looks for a certain  file which is part of a
+library (e.g.  include/hdf5.h) in the current CFS\_BUILD\_DIR directory and in
+the case  that it is missing  triggers the build script  for the corresponding
+library.   It will supply  the build  script with  the path  to the  Perl file
+CFS\_BUILD\_DIR/tmp/build\_vars.pl  which  has  been previously  generated  by
+FindCFSDEPS.cmake and contains informations like the compiler to be used. What
+kinds  of other information  it contains  is documented  in its  template file
+CFS\_DEPS\_ROOT/build\_vars.pl.in.
+
+Once the control has  been handed over to the build script  it will first look
+for a zipped  archive with precompiled binaries for the  library.  The name of
+this  archive  consists  of  a  combination of  the  operating  system  distro
+(e.g. OPENSUSE,  UBUNTU, MACOSX, WINXP),  the operating system  version (11.0,
+8.10,  10.5.6,  5.1.2016), the  architecture  (I386,  X86\_64,  IA64) and  the
+compiler (GCC,  ICC, IFORT...). If the  Subversion working copy  of CFSDEPS in
+CFS\_DEPS\_ROOT has  not been  modified the archives  will be searched  for in
+CFS\_DEPS\_CACHE\_DIR/precompiled/CFSDEPS\_revREVISION  where revision  is the
+maximal revision number (as returned by 'svn status -v --xml CFS\_DEPS\_ROOT')
+of all files in the CFS\_DEPS\_ROOT. If the working copy has been modified the
+precompiled  archives  will  be  searched  in  CFS\_BINARY\_DIR/tmp  since  no
+precompiled binaries  of a modified  and assumably buggy CFSDEPS  working copy
+should be placed into a global CFS\_DEPS\_CACHE\_DIR.  If a proper precompiled
+archive can be found it gets extracted into CFS\_BUILD\_DIR.
+
+If  no such  precompiled archive  can be  found the  build script  will  go on
+looking     for      the     source      code     of     a      library     in
+CFS\_DEPS\_CACHE\_DIR/sources/libname.  If it cannot  find the  source archive
+there it will (in most cases)  download the archive from an appropriate server
+and  check  its  integrity using  an  MD5  checksum.  This integrity  test  is
+performed even if the archive has already been there.
+
+If  the  integrity check  passed  the build  script  will  change its  working
+directory to  CFS\_BUILD\_DIR/tmp/build, which  has been already  generated by
+the build script.  There the source code archive will  be unpacked and patches
+depending on OS, platform and  compiler will be applied before configuring and
+building the  library sources. The build is  commenced in such a  way that the
+results (headers, libraries and binaries)  will end up in the previously empty
+directory  CFS\_BUILD\_DIR/tmp/stage.  There  an exact  copy of  the directory
+structure of CFS\_BINARY\_DIR gets built  up just containing the files for the
+library currently  built. A last step  before the stage  directory gets zipped
+and stored either in CFS\_DEPS\_CACHE\_DIR/precompiled/CFSDEPS\_revREVISION or
+CFS\_BUILD\_DIR/tmp  is  the  inclusion  of  the  library's  license  file  in
+stage/licenses.
+
+After that the build dir will be  deleted and the just now built zip file gets
+extracted to CFS\_BUILD\_DIR.  This concludes Perl part of  the build process.
+The sequence of actions during the  build of an individual package is depicted
+in Fig. \ref{fig:cfsdeps_flowdiag}.
+
 \begin{figure}[htb] 
   \centering
   \begin{overpic}[width=0.55\textwidth]{pics/cfsdeps_flowdiag}
@@ -115,6 +660,542 @@ build of an individual package is depicted in Fig. \ref{fig:cfsdeps_flowdiag}.
   \caption{Actions taken during the build of a package.}
   \label{fig:cfsdeps_flowdiag}
 \end{figure}%
+
+Directory structure of CFS\_BUILD\_DIR:
+
+\begin{verbatim}
+CFS_BUILD_DIR
+|-- bin
+|   `-- OPENSUSE_11.0_X86_64
+|-- include
+|-- lib64
+|   `-- OPENSUSE_11.0_X86_64
+|-- licenses
+|-- share
+`-- tmp
+    |-- build
+    `-- stage
+        |-- bin
+        |   `-- OPENSUSE_11.0_X86_64
+        |-- include
+        |-- lib64
+        |   `-- OPENSUSE_11.0_X86_64
+        |-- licenses
+        `-- share
+\end{verbatim}
+
+Directory structure of CFSDEPS:
+
+\begin{verbatim}
+CFSDEPS
+|-- acml
+|-- amd
+|   |-- build_amd.pl
+|   `-- amd.md5
+|-- arpack
+|-- boost
+|-- build_common.pl
+|-- build_vars.pl.in
+|-- bzip2
+|-- cgal
+|-- gidpost
+|-- gmp
+|-- gotoblas
+|-- hdf5
+|-- lapack
+|-- metis
+|-- mpfr
+|-- muparser
+|-- paraview
+|   `-- CFS-HDF5
+|       |-- doc
+|       |-- paraviewPlugin
+|       `-- source
+|-- pardiso
+|-- qt4
+|-- scpip
+|-- utils
+|   |-- docs
+|   |-- perl
+|   |-- xml
+|   `-- xslt
+|-- xerces
+`-- zlib
+\end{verbatim}
+
+
+Directory structure of CFSDEPSCACHE:
+
+\begin{verbatim}
+CFSDEPSCACHE
+|-- precompiled
+|   `-- CFSDEPS\_rev8953
+`-- sources
+    |-- acml
+    |-- amd
+    |   |-- AMD-2.2.0.tar.gz
+    |   `-- UFconfig-3.2.0.tar.gz
+    |-- arpack
+    |-- boost
+    |   |-- boost-jam-3.1.17.tgz
+    |   `-- boost\_1\_35\_0.tar.bz2
+    |-- bzip2
+    |-- cgal
+    |-- gidpost
+    |-- gmp
+    |-- gotoblas
+    |-- hdf5
+    |-- lapack
+    |-- metis
+    |-- mpfr
+    |-- muparser
+    |-- paraview
+    |-- pardiso
+    |-- xerces
+    `-- zlib
+\end{verbatim}
+
+
+\subsubsection{Tips}
+\begin{itemize}
+\item To get  started you should have  at least Perl, CMake 2.6  and a working
+set of gcc, g++ and gfortran on your machine.
+
+\item Everytime  the working  copy in CFS\_DEPS\_ROOT  gets updated and  a new
+build     directory    of     CFS    is     created    all     libraries    in
+CFS\_DEPS\_CACHE\_DIR/precompiled  have  to  be  rebuilt  since  the  revision
+changed. This may take a long time.  If you know what libraries did not change
+just      copy       the      corresponding      zipped       archives      to
+CFS\_DEPS\_CACHE\_DIR/precompiled/CFSDEPS\_revNEWREVISION.
+
+\item If you know  what you are doing you may also  prevent the build process,
+by unzipping older precompiled archives into CFS\_BUILD\_DIR by hand.
+
+\item If you  just want to do a  clean rebuild of your CFS build  tree, do not
+delete  the whole  build tree,  but only  CMakeCache.txt. Then  the previously
+built/extracted CFSDEPS libraries are still present.
+
+\item If  you wish  to modify  a build script  in CFSDEPS  make sure  the file
+searched for  by the  BUILD\_EXTLIB CMake  macro gets deleted  as well  as the
+precompiled archive in CFS\_BUILD\_DIR/tmp before doing a CMake reconfigure.
+
+\item   A   log   file   of    the   build   process   will   be   stored   in
+CFS\_BUILD\_DIR/tmp/build\_libname.log. If a build fails CMake will direct you
+there for an error analysis.
+
+\item CFSDEPS can  also be built by hand outside of  CMake. You should specify
+proper values for the  environment variables PREFIX (=CFS\_BUILD\_DIR in CMake
+environment),    DISTRO\_SCRIPT   (=CFS\_SOURCE\_DIR/share/scripts/distro.sh),
+CFS\_DEPS\_CACHE\_DIR (does  not have to  exist previously), CC  (C compiler),
+CXX  (C++ compiler),  FC  (Fortran compiler).  You  can then  build using  the
+libname.pl scripts.
+\end{itemize}
+
+
+
+\subsection{Description of the Contents of CFSDEPS}
+
+\subsubsection{acml}  AMD Core Math  Library (ACML)  provides BLAS  and LAPACK
+(cf. Sec \ref{sec:blas_lapack}) tuned for AMD CPUs.
+
+\noindent Project Homepage: \url{http://developer.amd.com/cpu/Libraries/acml}
+
+Since  there exists  no public  download  server for  the AMD  ACML the  files
+acml-4-2-0-*.tgz have to be  placed in CFS\_DEPS\_CACHE\_DIR/sources/acml for the
+build scripts to  find them. You need a user account  for AMD Developer Center
+to download these files.
+
+\subsubsection{amd}  Routines for reordering  sparse matrices.  It is  part of
+SuiteSparse (cf. Sec. \ref{sec:suitesparse})
+
+\subsubsection{ansys\_custom}  ANSYS Classic  I/O Library  for reading/writing
+.rst files.  These libraries are taken from the ANSYS binary distributions for
+different platforms.
+
+\noindent          Propgrammer's           Manual          for          ANSYS:
+\url{http://www1.ansys.com/customer/content/documentation/110/ansys/aprog110.pdf}
+
+\noindent          Guide to Interfacing with ANSYS:
+\url{http://www1.ansys.com/customer/content/documentation/100/ansys/p_int_2188.pdf}
+
+\subsubsection{arpack} ARnoldi  PACKage - ARPACK is a  collection of Fortran77
+subroutines designed to solve large scale eigenvalue problems.
+
+\noindent Project Homepage: \url{http://www.caam.rice.edu/software/ARPACK/}
+
+\subsubsection{boost}  Boost provides free  peer-reviewed portable  C++ source
+libraries. Needed by Botan and CGAL.
+
+\noindent Project Homepage: \url{http://www.boost.org}
+
+\subsubsection{bzip2} bzip2  is a freely available,  patent free, high-quality
+data compressor. It  typically compresses files to within 10\%  to 15\% of the
+best available techniques (the  PPM family of statistical compressors), whilst
+being  around  twice   as  fast  at  compression  and   six  times  faster  at
+decompression.  Needed by Boost.
+
+\noindent Project Homepage: \url{http://www.bzip.org}
+
+\subsubsection{ccmio} libccmio (CD adapco I/O Lib) Needed for STARCCM+ reader.
+
+\noindent Project Homepage: \url{http://www.cd-adapco.com}
+
+\subsubsection{cfs-hdf5}   Library  for   reading  and   writing   CFS++  HDF5
+files. Also contains the ParaView plugin.
+
+\subsubsection{cfx\_custom} ANSYS CFX I/O  Library.  These libraries are taken
+from the ANSYS CFX binary distributions for different platforms.
+
+\noindent ANSYS CFX Reference Guide: \url{http://www1.ansys.com/customer/content/documentation/120/cfx/xref.pdf}
+
+\noindent CFX-5 Solver and Solver Manager: \url{http://hikwww2.fzk.de/hik/orga/hlr/AIX/software/cfx/books/CFX5_Solver.pdf}
+
+\subsubsection{cgal}  Computational Geometry Algorithms  Library. Is  used for
+conservative  source term  interpolation  for CAA,  neighborhood searches  for
+Mortar FEM and intersection calculations for Mortar FEM.
+
+\noindent Project Homepage: \url{http://www.cgal.org/}
+
+\subsubsection{cgns}  CFD  General  Notation  System (CGNS).  Needed  for  ADF
+routines  by STARCCM+  reader.  Also provides  a  GUI similar  to hdfview  for
+viewing ADF (STARCCM+) files.
+
+\noindent Project Homepage: \url{http://www.cgns.org}
+
+If support for further commercial  post-processors should be required in CFS++
+the  CGNS format  should  be used  for  this purpose.  The  list of  supported
+postprocessors includes:
+
+\begin{itemize}
+\item Visit \url{https://wci.llnl.gov/codes/visit/FAQ.html#12}
+\item VTK indirect through OpenFOAM: \url{http://openfoam.cfd-online.com/forum/messages/1/1040.html?1172148211}
+\item Mayavi only VTK formats: \url{http://code.enthought.com/projects/mayavi/}
+\item Allgemein: \url{http://www.grc.nasa.gov/WWW/cgns/minutes/telecon_mar00.html},
+\url{http://www.grc.nasa.gov/WWW/cgns/overview/applications.html}
+\item FieldView: \url{http://www.ilight.com/solvers.php}
+\item Ensight: \url{http://www.ensight.com/ensight-features.html}
+\item Tecplot: \url{http://www.tecplot.com/showcase/contours/article.aspx?issue=1&article=4}
+\item CFX-Post: \url{http://www.ansys.com/products/cfx/cfx-post-features.asp}
+\end{itemize}
+
+
+\subsubsection{gidpost}  GiDpost:  a C  /  C++  /  Fortran library  to  create
+postprocess files for GiD
+
+\noindent Project Homepage: \url{http://gid.cimne.upc.es/gid-plus/tools/gidpost}
+ 
+\subsubsection{gmp} GNU MP Bignum Library. Needed by MPFR and CGAL.
+
+\noindent Project Homepage: \url{http://gmplib.org}
+
+\subsubsection{gotoblas} Optimized Replacement for BLAS/LAPACK
+
+\noindent                           Project                          Homepage:
+\url{http://www.tacc.utexas.edu/resources/software/#blas},
+\url{http://www.tacc.utexas.edu/resources/software/gotoblasfaq.php}
+
+\subsubsection{hdf5}  Library  for  reading  and writing  hierarchical  binary
+files. Needed by Boost for serialization (only experimental) and hdfview.
+
+\noindent Project Homepage: \url{http://www.hdfgroup.org/HDF5/}
+
+\subsubsection{hdfview}
+hdfview is a Java application for viewing and modifying HDF5 files.
+
+\noindent Project Homepage: \url{http://www.hdfgroup.org/hdf-java-html/hdfview/}
+
+\subsubsection{ilupack} ILUPACK is a package for preconditioners and iterative
+solvers developed by Matthias Bollhöfer. He provided us with his sources which
+get built by  our build scripts.  At the moment  (8.4.2009) the integration in
+CFS++ is not working. Fabian Wein has to fix it. For latest infos consult Trac
+or ask Simon Triebenbacher or Fabian Wein.
+
+\noindent Project Homepage: \url{http://www-public.tu-bs.de/~bolle/ilupack/}
+
+\subsubsection{ipopt}
+Ipopt (Interior  Point OPTimizer, pronounced I-P-Opt) is  a software package
+for large-scale nonlinear optimization.
+
+\noindent Project Homepage: \url{https://projects.coin-or.org/Ipopt}
+
+\subsubsection{ivread}
+
+IVREAD is a FORTRAN90 program which  reads a 3D graphics file and converts the
+information to another format.
+
+IVREAD  was originally  written to  read SGI  Inventor 3D  graphics  files and
+convert them to  Digistar VLA format.  Since then, the  program has evolved to
+allow  the  input and  output  of  a number  of  different  formats. The  most
+interesting   ones  for   a  CFS++   user  or   developer  are   the  Geomview
+(\url{http://www.geomview.org}) .off format which  can be produced by CGAL and
+the .stl format  for surface geometries. both formats can  be read by ParaView
+an Gmsh.
+
+\noindent Project Homepage: \url{http://people.sc.fsu.edu/~jburkardt/f_src/ivread/ivread.html}
+
+\subsubsection{lapack}
+\label{sec:blas_lapack}
+
+Provides the  BLAS (Basic Linear  Algebra Library) and LAPACK  (Linear Algebra
+PACKage) reference implementation from Netlib (\url{http://www.netlib.org/lapack/}
+\url{http://www.netlib.org/blas/}).
+
+The libraries  Pardiso (direct solver),  BLAS and LAPACK (linear  algebra) are
+used in CFS++. There exist several implementations of BLAS/LAPACK.
+
+\begin{itemize}
+\item ACML (AMD)
+\item GotoBLAS (optimized against TLS misses)
+\item MKL (Intel)
+\item Netlib (reference implementation, not optimized)
+\item Veclib (Native, optimized implementation on Mac OS X)
+\end{itemize}
+
+Further implementations not directly supported by CFS++/CMake include:
+\begin{itemize}
+\item Automatically Tuned Linear Algebra Software (ATLAS) \url{http://math-atlas.sourceforge.net/}
+\item SGI Scientific Computing Software Library (SCSL) \url{http://www.sgi.com/products/software/irix/scsl.html}
+\item IMSL Numerical Libraries von Visual Numerics \url{http://www.vni.com/products/imsl/}
+\item IBM Engineering Scientific Subroutine Library (ESSL) and Parallel ESSL \url{http://www-03.ibm.com/systems/p/software/essl/index.html}
+\item LAPACK for Windows \url{http://icl.cs.utk.edu/lapack-for-windows/}
+\end{itemize}
+
+In  CMake   one  can  switch  between  the   different  implementations  using
+CFS\_BLAS\_LAPACK. The available implementations of Pardiso include:
+
+\begin{itemize}
+\item Olaf Schenk (reference and development)
+\item MKL (commercial with out-of-core support) 
+\end{itemize}
+
+The CMake variable  CFS\_PARDISO may be used to switch between  them. If MKL is
+chosen, CFS\_BLAS\_LAPACK will be forced to MKL.
+
+\subsubsection{metis}  METIS  - Serial  Graph  Partitioning and  Fill-reducing
+Matrix Ordering.  Needed by Ilupack.
+
+\noindent Project Homepage: \url{http://glaros.dtc.umn.edu/gkhome/views/metis}
+
+\subsubsection{mpfr}  Multiple   precision  floating-point  computations  with
+correct rounding.  Needed by CGAL.
+
+\noindent Project Homepage: \url{http://mpfrlib.org}
+
+\subsubsection{muparser} muParser - a fast math parser library
+
+\noindent Project Homepage: \url{http://muparser.sourceforge.net/}
+
+A possible alternative is Function Parser \url{http://warp.povusers.org/FunctionParser/}
+
+\subsubsection{paraview} 
+
+Universal Postprocessing  Tool. Due  to our patches  ParaView can  read native
+CFS++ HDF5 files, openFOAM results, .off files from CGAL and many others.
+
+\noindent Project Homepage: \url{http://www.paraview.org}
+
+\subsubsection{pardiso}  PARallel DIrect  SOlver\cite{Schenk2004, Schenk2006a,
+Schenk2006b, Schenk2007}. Needed by ipopt and (ilupack).
+
+\noindent Project Homepage: \url{http://pardiso-project.org}
+
+To put it frankly, Pardiso, being a closed source project, is a software engineering nightmare! That is due to three main facts:
+
+\begin{description}
+  \item[Licensing]
+    \subitem The Pardiso of Schenk introduces a new license policy with every second version or so. For example, version 4.0 had a license duration of one year. Version 4.1 has a duration of just one month instead! This is the reason for the next point.
+    \subitem License files are not portable across different versions. A license file valid for version 4.0 is not valid for version 4.1 anymore, since it would break the 4.1 license policy. That means that every Pardiso user has to re-request a license file every month. This is especially tedious, if automated nightly test are to be performed.
+  \item[Non-backward compatible API]
+    \subitem The API of the pardisoinit\_ and pardiso\_ functions changed from version 3.x (as in MKL) to version 4.x, but no backward compatible replacements have been provided.
+    \subitem There is no decent way of obtaining the API version from a binary library of Pardiso. There exists no API function for querying the API version and no C or Fortran headers are provided, which would contain that information.
+    \subitem The only way of obtaining the version information is to link a version 3 or 4 source to a given library and to check according to buffer overflows or segfaults which API is correct (cf. cmake\_modules/CheckPardisoAPIVersion.cmake). This way of testing is remarkably dirty, unstable and not guaranteed to work with future versions.
+    \subitem Due to the fact, that we also support MKL, the check is obligatory, since MKL still has API version 3. If only one version of the API would be supported in our source (cf. sources/OLAS/external/pardiso/pardisosolver.cc), linking against a different library could provoke undefined bahaviour or even segfaults.
+  \item[Distribution policy]
+    \subitem Old versions of libraries get removed from the download servers, whenever a new version is released. This means, that one has no chance of obtaining a library for a given license file, if a new release has been made. This problem is still somehow acceptable for a closed source library like Pardiso, but it is still very annoying since it breaks automated tests.
+    \subitem The set of supported platforms changes from release to release. It is absolutely not understandable what the policy for supported platforms is. The support for Mac OS X has been dropped from 4.0 to the initial release of 4.1 for example. Also the compiler versions (GCC, Intel) change from release to release and only one GCC version is supported per release. On the other hand the GCC version for 32-bit and 64-bit Linux is different for example. In conclusion it would appear that they build their libraries by hand and do not even have a certain platform policy.
+\end{description}
+
+Due to the aforementioned reasons the build\_pardiso.pl script needs to be modified with every new release. Fortunately the libraries all share the same base URL, at least for a given release. Therefore just the BASE\_URL and the SLIB (serial lib) and PLIB (parallel lib) variables need to be changed for the different platforms for a new release.
+
+In order for the configuration tests to work, a proper license file (pardiso.lic) has to be obtained and the environment variable PARDISO\_LIC\_PATH has to set to the path containing it.
+
+\subsubsection{qt4} Qt Cross-Platform Application Framework. Needed by ParaView.
+
+\noindent Project Homepage: \url{http://www.qtsoftware.com/downloads/opensource}
+
+\subsubsection{scpip} SCPIP  is an optimization library  by Christian Zillober
+{cf.                           \cite{Zillober2002}                         and
+\url{http://www.mathematik.uni-wuerzburg.de/~zillober/index-e.html}}.     Since
+there  exists a  non-disclosure agreement  between  him and  Fabian Wein,  the
+sources  of SCPIP  are not  part  of the  CFSDEPS Subversion  project. A  file
+scpip.tar.bz2 containing the sources has to be copied to CFS\_DEPS\_ROOT/scpip
+so that the build may commence. Ask Fabian Wein to do this for you.
+
+\subsubsection{snopt}  SNOPT  (invented  by  Philip Gill,  Walter  Murray  and
+Michael Saunders)  is a software package for  solving large-scale optimization
+problems  (linear and  nonlinear  programs). It  is  especially effective  for
+nonlinear   problems  whose   functions   and  gradients   are  expensive   to
+evaluate. The functions should be smooth but need not be convex.
+
+\noindent Project Homepage: \url{http://www.sbsi-sol-optimize.com/index.htm}
+
+\subsubsection{suitesparse}
+\label{sec:suitesparse}
+
+SuiteSparse  is  a single  archive  that contains  all  packages  that I  have
+authored or  co-authored that  are available  at this site.  This gives  you a
+simple way of  getting and installing all of  my software packages. Currently,
+this includes:
+
+\begin{itemize}
+\item AMD: symmetric approximate minimum degree
+\item BTF: permutation to block triangular form
+\item CAMD: symmetric approximate minimum degree
+\item CCOLAMD: constrained column approximate minimum degree
+\item COLAMD: column approximate minimum degree
+\item CHOLMOD: sparse supernodal Cholesky factorization and update/downdate
+\item CSparse: a concise sparse matrix package
+\item CXSparse: an extended version of CSparse
+\item KLU: sparse LU factorization, for circuit simulation
+\item LDL: a simple $\textrm{LDL}^T$ factorization
+\item UMFPACK: sparse multifrontal LU factorization
+\item RBio: MATLAB toolbox for reading/writing sparse matrices
+\item UFconfig: common configuration for all but CSparse
+\item LINFACTOR: solve Ax=b using LU or CHOL
+\item MESHND: 2D and 3D mesh generation and nested dissection
+\item SSMULT: sparse matrix times sparse matrix
+\item SuiteSparseQR: multifrontal sparse QR 
+\end{itemize}
+
+\noindent Project Homepage: \url{http://www.cise.ufl.edu/research/sparse/SuiteSparse/}
+
+\subsubsection{taucs}  
+TAUCS a library of sparse linear solvers. It is needed by some algorithms from
+CGAL.
+
+\noindent Project Homepage: \url{http://www.tau.ac.il/~stoledo/taucs/}
+
+\subsubsection{xerces}  Xerces-C++ is  a validating  XML parser  written  in a
+portable subset of C++.
+
+\noindent Project Homepage: \url{http://xerces.apache.org/xerces-c/}
+
+\subsubsection{zlib} A Massively Spiffy Yet Delicately Unobtrusive Compression
+Library Needed by Botan, HDF5 and libxml2.
+
+\noindent Project Homepage: \url{http://www.zlib.net/}
+
+\subsection{Other Libraries CFS++ Depends Upon}
+\subsubsection{Python \& TCL}
+
+The  scripting  languages Python  and/or  TCL may  be  used  to call  external
+functions at  certain predefined  hook points  in CFS++. We  do not  build the
+libraries   from  source.   They  need   to   be  installed   on  the   system
+(cf. Sec. \ref{sec:list_of_ext_packages}).
+
+\subsubsection{MKL}
+
+The versions  9.x and 10.x are supported  by CFS++ at the  moment.  The search
+code is  defined in cmake\_modules/FindIntelMKL.cmake. For  all common systems
+(lseXX, altix, woody,  etc.)  all search paths are  predefined there.  MKL 9.x
+will only  be used  if version 10.x  is not  available, or if  the environment
+variable  MKL\_ROOT\_DIR  has  been  set  to its  path  prior  to  configuring
+CFS++. The setting of this  environment variable also precedes the settings of
+MKL\_ROOT\_DIR\_DEFAULT         which          gets         defined         in
+cmake\_modules/platform\_defaults\_*.cmake.
+
+The  path   given  in  MKL\_ROOT\_DIR   should  point  to  a   directory  like
+/opt/intel/mkl/10.0.5.025   in  the   case   of  a   standalone   MKL  or   to
+/opt/intel/Compiler/11.0/081/mkl in the case where  MKL is a part of the Intel
+11.x compiler suite.
+
+The  OpenMP  version of  MKL  will  be used  no  matter  what  the setting  of
+USE\_OPENMP in  CMake is. This means that  CFS++ would try to  use the maximum
+number of processors  available on a machine to do  linear algebra. To prevent
+this,  the CFS++  start script  bin/cfs (share/scripts/cfs)  will set  the the
+environment variables OMP\_NUM\_THREADS and MKL\_NUM\_THREADS to 1 by default,
+if  none of  them have  been set  to a  different value  previously.   If only
+MKL\_NUM\_THREADS has not  been set previously it will be set  to the value of
+OMP\_NUM\_THREADS. To check this do the following before running CFS++
+
+export CFS\_SCRIPT\_DEBUG=1
+
+The cfs script will issue a warning if OMP\_NUM\_THREADS and MKL\_NUM\_THREADS
+are set to a different value.
+
+ATTENTION: Please keep in mind that CFS++  will try to use all processors of a
+machine, if the bin/ARCH\_STRING/cfsbin binary is used directly!
+
+\subsubsection{Latex,  Graphviz  and  Doxygen } The  documentation  of  CFS++
+consists  of  user  documentation  (XML Manual)  and  developer  documentation
+(Doxygen HTML, etc.). To be able  to build the docs the corresponding packages
+have to be installed on the system (cf. Sec. \ref{sec:list_of_ext_packages}).
+
+\newpage
+\subsection{Interdependency Graph}
+\begin{sidewaysfigure}[ht]
+\centering
+  \includegraphics[keepaspectratio=true,width=23cm]{pics/cfsdeps_interdependency_graph}
+  \caption{Interdepencies  between the  packages in  CFSDEPS.  Diamonds depict
+executables,  ellipses depict members  of CFSDEPS,  empty boxes  depict system
+libraries  and  filled  grey   boxes  depict  libraries  for  which  different
+implementations exist.}
+\label{fig:cfsdeps_interdep}
+\end{sidewaysfigure}
+
+\subsection{Strategies for Fixing Build Problems on new Compiler Versions}
+
+By  default the  compiler switches  for CFS++  are set  to a  very restrictive
+setting concerning  warnings and  errors. Warnings in  the code  are therefore
+treated as errors, as they usually indicate portability problems. We have done
+this to force some more discipline out of the developers and to make sure that
+the code stays in a compilable and maintainable state.
+
+The drawback  of this decision is, that  the same strict rules  are applied to
+headers from  the external libraries in  CFSDEPS. This can cause  trouble if a
+new  compiler version interprets  the C++  standard in  a stricter  manner and
+complains about  problems, which  have not been  problems before.   Because of
+this,  it becomes  sometimes necessary  to fix  such problems  in the  code of
+external libs.  We prefer to apply our  fixes to the external  libs instead of
+switching off special warnings in the  build flags for CFS++, since the latter
+approach would weaken our strict rules for clean code.
+
+The most notable problems which can occur include the following:
+\begin{itemize}
+\item Warnings occuring in external headers (e.g. Boost headers).
+\item Linker problems due to  builtin/intrinsic functions of GCC which are not
+available  in   Intel  compilers  (cf.    \cite{WikiIntrinsic,  GCCExtensions,
+MSVCIntrinsics}  and  Intrinsics   Reference  and  the  Building  Applications
+$\rightarrow$    gcc   Compatibility   $\rightarrow$    gcc   Interoperability
+$\rightarrow$ gcc Built-in Functions section in \cite{IntelCOnlineDoc}).
+\item Build problems in our own code.
+\item  Problems occuring due  to changed  console output  of the  command line
+utilities used by the CFSDEPS  build scripts. (fix: change regular expressions
+in CFSDEPS/utils/perl/ checkforcmdlinetools.pl)
+\item Problems due  to missing command line tools  (fix: install packages from
+distro).
+\item Problems due  to changed Subversion working copy  formats (fix: put jsvn
+from latest SVNKit \url{http://svnkit.com/} on PATH).
+\end{itemize}
+
+\subsubsection{Fix problem in build directory and create patches for CFSDEPS}
+\url{https://svn.boost.org/trac/boost/wiki/Guidelines/WarningsGuidelines}
+\url{https://svn.boost.org/trac/boost/wiki/WarningFixes}
+
+Generating a patch:
+\begin{verbatim}
+\$ diff -uNr orig.txt new.txt > CFSDEPS/boost/boost_my_change.patch
+\end{verbatim}
+
+\subsubsection{GNU  Compilers}  \todo[inline]{Write  some  informations  about
+fixing  build problems  on GNU  compilers.  E.g. mention  Boost warnings  wiki
+page.}
+\subsubsection{Microsoft  Compilers}   \todo[inline]{Write  some  informations
+about  fixing build  problems on  Visual Studio  compilers. E.g.  mention MSDN
+page.}
+\subsubsection{Intel  Compilers} \todo[inline]{Write  some  informations about
+fixing build problems on Intel  compilers. Mention that Intel uses GNU runtime
+on Linux/Mac and Microsoft runtime on Windows.}
 
 
 \section{CTest}
@@ -128,7 +1209,111 @@ that all the old features are still working at least on the user's platform.
 \textcolor{red}{PLEASE NOTE:  The user name  and password for the  Ubuntu 8.04
 VBox on rom are 'user' and 'user'.}
 
+\subsection{Stepping through the CFS++ testsuite with CTest}
+
+It is now possible to step through the test cases in the CFS++ testsuite using
+the CTest system.  CTest is an  extension to CMake which provides a convenient
+framework for defining software  tests (cf. \cite{Martin2010}). In conjunction
+with CDash  (cf. Sec. \ref{sec:cdash})  automated dashboards can  be generated
+from  nightly builds of  a software  for example,  or even  unit tests  can be
+generated.
+
+\subsubsection{Necessary settings in ccmake GUI for using the testsuite}
+
+The only thing which  needs to be specified in CMake for  CFS++ is the path to
+the testsuite. Therefore set TESTSUITE\_DIR  to the location of your testsuite
+and run configure.  If the CFSTOOL is OFF it will be switched on automatically
+since it is required for the diffs in the testsuite.
+
+Once the binary tree has been  configured build CFS++ as usual. Since you have
+chosen to configure a testsuite  directory an additional directory will appear
+in        the       CFS++        build        directory.        If        e.g.
+TESTSUITE\_DIR=/home/local/lse/user/MyTestsuite then you  will see a directory
+MyTestsuite. Now change into this directory and issue:
+
+\begin{verbatim}
+$ ctest
+Start processing tests
+Test project /home/local/lse/strieben/CFS_BUILD/TRUNK_RELEASE_GCC/CFS_TESTSUITE_HDF5
+  1/ 94 Testing coupledfield_acouheat_transien***Failed
+  2/ 94 Testing coupledfield_elecmech_dielec2h***Failed
+  3/ 94 Testing coupledfield_elecmech_dielec2v   Passed
+  4/ 94 Testing coupledfield_elecmech_spring2d   Passed
+  5/ 94 Testing coupledfield_elecmech_spring2d***Failed
+  6/ 94 Testing coupledfield_elecmech_spring2d   Passed
+  7/ 94 Testing coupledfield_elecmech_spring2d   Passed
+  8/ 94 Testing coupledfield_elecmechacou-dire   Passed
+  9/ 94 Testing coupledfield_elecmechacou-dire   Passed
+ 10/ 94 Testing coupledfield_magmech_permaMS     Passed
+ 11/ 94 Testing coupledfield_magmech_plate2d     Passed
+
+ ...
+
+ 90/ 94 Testing singlefield_mechanics_rhombicP   Passed
+ 91/ 94 Testing singlefield_mechanics_ringAxiL   Passed
+ 92/ 94 Testing singlefield_mechanics_waveExpl   Passed
+ 93/ 94 Testing singlefield_mechanics_waveexpl***Failed
+ 94/ 94 Testing singlefield_stokesFluid_channe***Failed
+
+89% tests passed, 10 tests failed out of 94
+
+The following tests FAILED:
+          1 - coupledfield_acouheat_transientHarmonic2d (Failed)
+          2 - coupledfield_elecmech_dielec2horizontal (Failed)
+          5 - coupledfield_elecmech_spring2dInterfaceF (Failed)
+         35 - singlefield_acoustics_bubble (Failed)
+         36 - singlefield_acoustics_channel2dMixed (Failed)
+         49 - singlefield_electrostatics_bar2dadapt (Failed)
+         55 - singlefield_heatConduction_transslab2d (Failed)
+         84 - singlefield_mechanics_membrane3d (Failed)
+         93 - singlefield_mechanics_waveexplicit (Failed)
+         94 - singlefield_stokesFluid_channel2D (Failed)
+Errors while running CTest
+\end{verbatim}
+
+This is a typical output of CTest.  If you want to see what CTest is currently
+doing just specify:
+
+\begin{verbatim}
+$ ctest -V
+\end{verbatim}
+
+For further command line options (e.g. for just doing certain tests or leaving
+certain        tests       away)        refer        to       the        CTest
+Wiki\footnote{\url{http://www.cmake.org/Wiki/CMake_Testing_With_CTest\#Running_Individual_Tests}}
+or type
+
+\begin{verbatim}
+ctest --help
+\end{verbatim}
+
+\subsection{Adding test cases to the testsuit}
+
+To   add   a  test   case   just   specify   another  SUBDIRS()   command   in
+\$\{TESTSUIT\_DIR\}/CMakeLists.txt and copy the CMakeLists.txt from one of the
+other subdirectories to the new subdirectory. Make sure that the filenames are
+written   in  the   same  way   like  their   containing   subdirectory  (e.g.
+\$\{TESTSUIT\_DIR\}/optimization/piezosimp/output\_idbc/:  output\_idbc is the
+subdirectory  and  the  files  have  to  be  named  like  output\_idbc.xml  or
+output\_idbc.mesh).    There   also   have   to   be   two   reference   files
+\{SUBDIR\_NAME\}.plot.ref.dat  and  \{SUBDIR\_NAME\}.h5ref. Afterwards  ccmake
+has to be called in the desired directory as follows:
+
+\begin{verbatim}
+${CFS_BUILD_DIR}/cfs-test> ccmake .
+\end{verbatim}
+
+Press [c] to configure the CMakeCache.txt file. Was it configured successfully
+one can press  [g] to update the  makefile for ctest. Now the  TESTSUIT can be
+executed:
+
+\begin{verbatim}
+ctest [-R SELECTED_PART]
+\end{verbatim}
+
+
 \section{CDash}
+\label{sec:cdash}
 
 This is an  open source, web-based software testing  server, which aggregates,
 analyzes and displays the results of software testing processes submitted from
@@ -136,11 +1321,79 @@ different clients \cite{cdash}.  We use it to gather information about nightly
 builds  on various  platforms. This  way we  can track  down errors  which are
 platform-dependent (e.g. 32 bit vs.  64 bit) more efficiently.
 
+The  central dashboard  for  CFS++ is  located  on the  development server  at
+\url{https://lse17.e-technik.uni-erlangen.de:2001/cdash}.
+
+\todo[inline]{Write   about  nightly  builds   in  Klagenfurt   and  Erlangen,
+ctest scripts, VBoxes etc.}
+
+\subsection{Changing the EMail Preferences for Users}
+
+In order for users to receive emails about failed tests, the user needs to be
+associated to  a given  project. This can  be achieved  by adding the  user to
+project  in the  CDash 'Manage  Project  Users' window  in the  administration
+section (cf. Fig. \ref{fig:cdash_project_roles}).
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.55\textwidth]{pics/cdash_project_roles}
+%    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
+  \end{overpic}
+  \caption{CDash project roles screen.}
+  \label{fig:cdash_project_roles}
+\end{figure}%
+
+The user is also allowed to choose for himself, in what circumstance he wishes
+to receive mail. He can make this setting in the 'Edit Subscription' window of
+the project settings. Under 'EMail Preference' he can choose from the settings
+given in Tab. \ref{tab:cdash_email_prefs}. 
+
+\begin{table}[tb]
+\centering
+\begin{minipage}{18cc}\caption{CDash email preferences.}
+\label{tab:cdash_email_prefs}
+\end{minipage}
+\par\medskip\noindent
+\begin{tabular}{lc}
+  \toprule
+  {\bf Preference Setting} & {\bf Value of emailtype} \\ \otoprule
+  No email & 0 \\
+  Email me when {\bf my checkins} are breaking the dashboard & 1 \\
+  Email me when checkins are breaking {\bf nightly} dashboard & 2 \\
+  Email me when {\bf any builds} are breaking the dashboard & 3 \\
+  \bottomrule
+\end{tabular} 
+\end{table}
+
+Within CDash only the user himself  can make these settings.  In order for the
+administrator to  change the settings, he  has to log in  using phpMyAdmin and
+change    the    table    'user2project'    from    the    'cdash'    database
+(cf.   Fig.    \ref{fig:cdash_user2project}).    The   settings    from   Tab.
+\ref{tab:cdash_email_prefs}  correspond  to  the  'emailtype' column  in  this
+table. The other two settings \emph{Email me when my checkins are fixing build
+errors,  warnings or tests}  and \emph{Email  me when  expected sites  are not
+submitting} correspond  to the columns  'emailsuccess' and 'emailmissingsites'
+respectively.  A value of 0 in these columns corresponds to off, and a setting
+of 1 to on.
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.55\textwidth]{pics/cdash_emailtype}
+%    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
+  \end{overpic}
+  \caption{The CDash 'user2project' table in phpMyAdmin.}
+  \label{fig:cdash_user2project}
+\end{figure}%
+
 
 \section{Trac}
+\label{sec:trac}
 
 This  tool  is  an  enhanced  wiki  and issue  tracking  system  for  software
 development projects. Therewith, we can discuss different issues, fix the next
 development  steps   by  assigning   tickets,  browse  the   {\sf  Subversion}
 repository, can look at the changes been made between different versions, etc.
 \cite{trac}
+
+The  Trac  system   for  CFS++  is  located  on   the  development  server  at
+\url{https://lse17.e-technik.uni-erlangen.de:2001/trac}.

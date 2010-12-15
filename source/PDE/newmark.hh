@@ -25,6 +25,9 @@ namespace CoupledField
     //! initilization
     //! \param rhsSize total number of entries in the rhs vector
     void Init( Double dt, UInt rhsSize );
+    
+    //! Reinitialize (set all vectors to zero)
+    void ReInit();
 
     void setSubSteps( UInt subSteps );
     void resetDeltaT( );
@@ -62,11 +65,6 @@ namespace CoupledField
     //@{
     //! integration parameters
     Double alpha_, gamma_, beta_, nu_;  
-    //@}
-
-    //@{
-    //! coefficients from Newmark method
-    Double a0_,a1_,a2_,a3_,a4_,a5_,a6_,a7_;
     //@}
 
     //! predictor for nodal solution
@@ -124,11 +122,6 @@ namespace CoupledField
     //@{
     //! integration parameters
     Double alpha_, gamma_, beta_, nu_;
-    //@}
-    
-    //@{
-    //! coefficients from Newmark method
-    Double a0_,a1_,a2_,a3_,a4_,a5_,a6_,a7_; 
     //@}
 
     //! nodal solution

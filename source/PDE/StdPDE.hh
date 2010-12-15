@@ -115,14 +115,13 @@ namespace CoupledField {
       return false;
     }
   
-    //! return pointer to vector with first derivative of solution
-    virtual const Vector<Double> & getS1() const;
-  
-    //! return pointer to vector with second derivative of solution
-    virtual const Vector<Double> & getS2() const;
+    //! @return pointer to vector of derivative of solution
+    //! @param derivType the type of derivative you want
+    virtual const Vector<Double> & getDeriv(DERIVType derivType) const;
 
-    //! return pointer to vector with last solution
-    virtual const Vector<Double> & getOld1() const;
+    //! @return pointer to vector of time step
+    //! @param timeStepType type if time step you want
+    virtual const Vector<Double> & getOld(TIMEStepType timeStepType) const;
     
 
     //! Also for fractional damping model do obtain

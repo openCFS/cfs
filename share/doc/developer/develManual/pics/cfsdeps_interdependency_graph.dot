@@ -1,0 +1,79 @@
+digraph unix {
+	size="6,6";
+	node [color=black]; "ansys_custom"; "Boost"; "HDF5"; "GiDpost"; "ARPACK"; "CGAL"; "TAUCS"; "Metis"; "ILUPACK"; "IPOPT"; "muparser"; "SCPIP"; "SNOPT"; "Xerces"; "SuiteSparse"; "cfx_custom"; "VTK"; "Netlib"; "ACML (Opteron)"; "GotoBLAS"; "MPFR"; "GMP"; "Qt4"; "cfs-hdf5"; "zlib"; "bzip2"; "Schenk" "ccmio"; "cgns";
+	node [shape=box]; "Python"; "TCL"; "Java JDK"; "MKL"; "VecLib (Mac)";
+	node [color=grey, style=filled]; "BLAS/LAPACK"; "Pardiso";
+	node [shape=diamond, color=lightgrey, style=filled]; "CFS++"; "cplreader"; "cfstool"; "hdfview"; "ParaView"; "ivread";
+
+
+	"CFS++" -> "ansys_custom"
+	"CFS++" -> "Boost"
+	"CFS++" -> "HDF5"
+	"CFS++" -> "BLAS/LAPACK"
+	"CFS++" -> "Pardiso"
+	"CFS++" -> "GiDpost"
+	"CFS++" -> "ARPACK"
+	"CFS++" -> "Python"
+	"CFS++" -> "CGAL"
+	"CFS++" -> "TCL"
+	"CFS++" -> "Metis"
+	"CFS++" -> "ILUPACK"
+	"CFS++" -> "IPOPT"
+	"CFS++" -> "muparser"
+	"CFS++" -> "SCPIP"
+	"CFS++" -> "SNOPT"
+	"CFS++" -> "Xerces"
+	"CFS++" -> "SuiteSparse"
+	
+	"cplreader" -> "cfx_custom"
+	"cplreader" -> "HDF5"
+	"cplreader" -> "VTK"
+	"cplreader" -> "ccmio"
+	"cplreader" -> "cgns"
+	"cplreader" -> "Xerces"
+	"cplreader" -> "muparser"
+
+	"cfstool" -> "GiDpost"
+	"cfstool" -> "ansys_custom"
+	"cfstool" -> "Boost"
+	"cfstool" -> "HDF5"
+
+	"BLAS/LAPACK" -> "Netlib";
+	"BLAS/LAPACK" -> "MKL";
+	"BLAS/LAPACK" -> "ACML (Opteron)";
+	"BLAS/LAPACK" -> "GotoBLAS";
+	"GotoBLAS" -> "Netlib"
+	"BLAS/LAPACK" -> "VecLib (Mac)";
+	"CGAL" -> "BLAS/LAPACK";
+	"CGAL" -> "Boost";
+	"TAUCS" -> "BLAS/LAPACK";
+	"TAUCS" -> "Metis";
+	"CGAL" -> "TAUCS";
+	"CGAL" -> "MPFR";
+	"MPFR" -> "GMP";
+	"CGAL" -> "Qt4";
+	"CGAL" -> "ivread";
+	"ParaView" -> "Qt4";
+	"ParaView" -> "cfs-hdf5";
+	"cfs-hdf5" -> "HDF5";
+	"ParaView" -> "Boost";
+	"ParaView" -> "Python";
+	"Boost" -> "zlib";
+	"Boost" -> "bzip2";
+	"Boost" -> "HDF5";
+	"HDF5" -> "zlib";
+	"Pardiso" -> "Schenk";
+	"Pardiso" -> "MKL";
+	"Pardiso" -> "BLAS/LAPACK";
+	"ILUPACK" -> "SuiteSparse";
+	"ILUPACK" -> "BLAS/LAPACK";
+	"ILUPACK" -> "Metis";
+	"ARPACK" -> "BLAS/LAPACK";
+	
+	"hdfview" -> "HDF5"
+	"hdfview" -> "Java JDK"
+
+	"IPOPT" -> "Schenk"
+
+}
+

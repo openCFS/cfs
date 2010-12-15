@@ -39,9 +39,22 @@ namespace CoupledField
     // because the fluid can therin be determined staionary or instationary
     bool isInstationary_;
     bool isTrapezoidal_;
-    bool isNewton_;
     Vector<Double>  oldVel_, oldSol_;
 
+    inline Double NormL2(const Vector<Double>& vec) const
+    {
+      Double result(0.0);
+      const UInt endLoop = vec.GetSize();
+
+#pragma omp parallel for reduction(+:result)
+      for(UInt k = 0; k < endLoop; ++k)
+      {
+        const Double* const dataPtr = &vec[k];
+        result += (*dataPtr) * (*dataPtr);
+      }
+
+      return std::sqrt(result);
+    }
   };
 
 } // end of namespace

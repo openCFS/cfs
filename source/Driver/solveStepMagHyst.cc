@@ -44,7 +44,7 @@ namespace CoupledField {
     algsys_->GetSolutionVal( prevSol );      
 
     //get previous 1st order derivative of solution
-    prevSolDeriv = TS_alg_->GetDeriv1();
+    prevSolDeriv = TS_alg_->GetDeriv(FIRST_DERIV);
 
     // perform predictor step
     if ( TS_alg_== NULL ) {

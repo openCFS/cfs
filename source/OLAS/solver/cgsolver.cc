@@ -74,6 +74,7 @@ namespace CoupledField {
       sNode->GetValue("maxIter", maxiter, ParamNode::INSERT);
       sNode->GetValue("tol", eps, ParamNode::INSERT);
       sNode->GetValue("resDirectly", tmp, ParamNode::INSERT);
+      sNode->GetValue("logging", logging, ParamNode::INSERT);
     } 
     if ( tmp <= 0 ) {
       EXCEPTION( "CGSolver::CGSolver: The current value of "
