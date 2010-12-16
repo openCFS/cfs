@@ -562,6 +562,9 @@ namespace CoupledField
 
   double MechanicMaterial::CalcIsotropicPoissonsRatio(const Matrix<double>& tensor)
   {
+    // isotropic values are calculated differently than orthotropic values
+    // as a result, the values can differ significantly from the orthotropic ones
+    // if the isotropy-error is positive (this is also true for small isotropy-errors!)
     double E11 = tensor[0][0];
     double E12 = tensor[0][1];
 
@@ -571,6 +574,7 @@ namespace CoupledField
 
   double MechanicMaterial::CalcIsotropicYoungsModulus(const Matrix<double>& tensor)
   {
+    // see comment in MechanicMaterial::CalcIsotropicPoissonsRatio
     double E11 = tensor[0][0];
     double v = CalcIsotropicPoissonsRatio(tensor);
 

@@ -296,6 +296,9 @@ int SnOpt::Callback(int* Status, const int n,
   
   timer_callback_->Stop();
   timer_->Start();
+
+  // flush the output
+  cout << std::flush;
   
   // everything went okay
   return 0;
