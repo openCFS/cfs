@@ -102,14 +102,14 @@ void BaseDesignElement::Reset(ValueSpecifier vs, Function*  f)
   switch(vs)
   {
   case COST_GRADIENT:
-    for(unsigned int i = 0; i < costGradient.GetSize(); i++)
+    for(unsigned int i = 0, s = costGradient.GetSize(); i < s; ++i)
       costGradient[i] = 0.0;
     break;
   case CONSTRAINT_GRADIENT:
     if(f != NULL)
       constraintGradient[f->GetIndex()] = 0.0;
     else
-      for(unsigned int i = 0; i < constraintGradient.GetSize(); i++)
+      for(unsigned int i = 0, s = constraintGradient.GetSize(); i < s; ++i)
         constraintGradient[i] = 0.0;
     break;
   default:
@@ -120,7 +120,7 @@ void BaseDesignElement::Reset(ValueSpecifier vs, Function*  f)
 double BaseDesignElement::SumObjectiveGradient() const
 {
   double result = 0.0;
-  for(unsigned int i = 0; i < costGradient.GetSize(); i++)
+  for(unsigned int i = 0, s = costGradient.GetSize(); i < s; ++i)
     result += costGradient[i];
 
   return result;
@@ -137,7 +137,6 @@ DesignElement::DesignElement(PtrParamNode pn, Elem* elem) : BaseDesignElement()
   Init();
   this->elem = elem;
   this->specialResult.Resize(9, 0.0);
-
 
   // it is a little slow to perform this code for every DesignElement but the
   // implementations are rater fast and it should be not measurable in the end
@@ -201,9 +200,11 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       || rd.value == MAX_SLOPE
       || rd.value == MAX_OSCILLATION
       || rd.value == MAX_MOLE
-      || rd.value == MAX_JUMP)
+      || rd.value == MAX_JUMP
+      || rd.value == PENALIZED_STRESS)
   {
     if(dofs != 1) throw Exception("special results is only defined for scalar values");
+    // note, that on EACH_FORWARD/ADJOINT we need excitation based results
     switch(rd.solutionType)
     {
     case OPT_RESULT_1:
@@ -324,6 +325,7 @@ double DesignElement::GetPlainValue(ValueSpecifier sp, Condition* g) const
   case MAX_MOLE:
   case MAX_OSCILLATION:
   case MAX_JUMP:
+  case PENALIZED_STRESS:
     assert(false); // should be covered before by special result index
 
   case TOPGRAD_VALUE:
@@ -392,8 +394,8 @@ std::string DesignElement::ToString(const StdVector<DesignElement*>& vec)
 {
   std::stringstream ss;
   ss << "[";
-  for(unsigned int i = 0; i < vec.GetSize(); i++)
-    ss << ToString(vec[i]) << (i < vec.GetSize() - 1 ? "," : "");
+  for(unsigned int i = 0, s = vec.GetSize(); i < s; ++i)
+    ss << ToString(vec[i]) << (i < s - 1 ? "," : "");
   ss << "]";
 
   return ss.str();
@@ -430,6 +432,9 @@ void DesignElement::SetEnums()
   type.Add(EMODULISO, "emodul-iso");
   type.Add(POISSONISO, "poisson-iso");
   type.Add(GMODUL, "gmodul");
+  type.Add(MASS, "mass");
+  type.Add(DAMPINGALPHA, "damping-alpha");
+  type.Add(DAMPINGBETA, "damping-beta");
   type.Add(UNITY, "unity");
 
   access.SetName("DesignElement::Access");
@@ -444,6 +449,7 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(MAX_OSCILLATION, "maxOscillation");
   valueSpecifier.Add(MAX_MOLE, "maxMole");
   valueSpecifier.Add(MAX_JUMP, "maxJump");
+  valueSpecifier.Add(PENALIZED_STRESS, "penalizedStress");
   valueSpecifier.Add(WEIGHT, "weight");
   valueSpecifier.Add(OBJECTIVE, "objective");
   valueSpecifier.Add(NUM_NEIGHBOURS, "neighbours");
@@ -753,6 +759,11 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
   if(!space->IsRegular())
     throw Exception("A regular design domain is required to use VicinityElements");
 
+  // eventually the barycenters are already calculated, we need them to identify the orientation
+  // we will need the barycenters in FindNeibhborhood()
+  for(unsigned int i = 0, s = space->regions.GetSize(); i < s; i++)
+    grid->SetElementBarycenters(space->regions[i].regionId, false); // no updated coordinates
+
   // let CFS find the neighborhood of *all* elements. With some luck this was done
   // anyway already and we get it for free
   // This does not include periodic b.c. neighbors, this is done by structure
@@ -772,12 +783,6 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
   domain->GetGrid()->GetElemNodesCoord(coords, elem->connect);
   elem->ptElem->GetEdgeLength(coords, spacing);
 
-
-  // We have to compare this element with the neighbors to do the sorting we restrict
-  // ourself to the first node of the elements
-  Point this_elem_point;
-  Point neigh_elem_point;
-
   // in the periodic case the neighborhood is enlarged
   StdVector<std::pair<Elem*, int> > enlarged_data;
 
@@ -789,9 +794,6 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
     de.vicinity = new VicinityElement();
     // here we store the neighbors in a sorted way
     StdVector<DesignElement*>& ve_data = de.vicinity->design; // has proper size of NULLs
-    // set the reference point of this element
-    grid->GetNodeCoordinate(this_elem_point, de.elem->connect[0]);
-
 
     // reference case
     StdVector<std::pair<Elem*, int> >& neighbors = *(de.elem->neighborhood);
@@ -810,11 +812,23 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
       if(neighbors[n].second < common) continue;
       // now we have to find the relative position of candidate
       Elem* candidate = neighbors[n].first;
-      // the reference point of the candidate
-      grid->GetNodeCoordinate(neigh_elem_point, candidate->connect[0]);
+
+      LOG_DBG3(del) << "VE:Init elem=" << de.elem->elemNum << " e.bc=" << de.elem->barycenter.ToString() << " e.dim="
+                    << de.elem->ptElem->GetDim() << " e.r=" << de.elem->regionId << " n=" << n << " o.el=" << candidate->elemNum
+                    << " o.bc=" << candidate->barycenter.ToString() << " o.dim=" << candidate->ptElem->GetDim() << " o.r=" << candidate->regionId;
+
+      // if the neighbor is a surface element we don't want to play with it
+      if(de.elem->ptElem->GetDim() != candidate->ptElem->GetDim())
+        continue;
+      // same if the region does not match. E.g. if there is fixed region not subject to optimization, e.g. bruggi_two_bar
+      if((de.elem->regionId != candidate->regionId) && (space->regions.GetSize() == 1 || !space->Contains(candidate->regionId)))
+        continue;
+      assert(space->regions.GetSize() == 1); // extend for multi-region
+
       // the spacing allows to identify periodic elements
-      int idx = FindRelativeNeighborLocation(this_elem_point, neigh_elem_point, spacing);
+      int idx = FindRelativeNeighborLocation(de.elem->barycenter, candidate->barycenter, spacing);
       ve_data[idx] = space->Find(candidate->elemNum, de.GetType(), false);
+      LOG_DBG2(del) << "VE:Init elem=" << de.elem->elemNum << " idx=" << idx << " dat=" << ve_data[idx];
     }
   }
  }
@@ -953,6 +967,7 @@ ResultDescription::ResultDescription()
   access = DesignElement::PLAIN;
   value  = DesignElement::DESIGN;
   design = DesignElement::DEFAULT;
+  excitation = "";
 }
 
 ResultDescription::ResultDescription(PtrParamNode pn)
@@ -968,4 +983,6 @@ ResultDescription::ResultDescription(PtrParamNode pn)
   value = DesignElement::valueSpecifier.Parse(pn->Get("value")->As<std::string>());
 
   detail = DesignElement::detail.Parse(pn->Get("detail")->As<std::string>());
+
+  excitation = pn->Get("excitation")->As<std::string>();
 }

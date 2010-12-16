@@ -30,6 +30,9 @@ namespace CoupledField{
      * the rest may be other design parameters */
     int ReadDesignFromExtern(const double* space_in);
 
+    /** overwrites DesignSpace::CompareDesign() */
+    bool CompareDesign(const double* space_in);
+
     /** applies the calculated design variables to the node offsets */
     void UpdateCoordinates();
 

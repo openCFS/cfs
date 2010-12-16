@@ -83,6 +83,11 @@ namespace CoupledField
      bool HasErsatzMaterialMass(){
        return designMaterial != NULL;
      }
+     
+     /** Returns true if optimization also provides damping parameters for Rayleigh-Damping (alpha, beta) */
+     bool HasErsatzMaterialDamping(){
+       return(designMaterial != NULL && designMaterial->DampingIsDesign());
+     }
 
      /** Calculates the corresponding ErsatzMaterialTensor for the given element
       * @param t holds the resulting MaterialTensor
@@ -98,6 +103,18 @@ namespace CoupledField
       * @param direction if !=NO_DERIVATIVE calculate the derivative instead of value
       */
      double GetErsatzMaterialMass(const Elem* elem, DesignElement::Type direction);
+     
+     /** Get the ErsatzMaterialDampingParameters
+      * @param alpha Damping Parameter alpha
+      * @param beta Damping Parameter beta
+      * @param elem the Element for which the parameters should be returned
+      * @param direction if given return derivative in that direction
+      * @return whether DampingParameters are optimized at all  */
+     bool GetErsatzMaterialDamping(double& alpha, double& beta, const Elem* elem,
+         DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+     
+     /** Get the correct Damping parameter, alpha for Mass, beta for Stiffness */
+     bool GetErsatzMaterialDampingParameterForIntegrator(const Elem* elem, BaseForm* integrator, double& param);
 
      /** This gets back a uniquely defined transfer function.
       * @param throw_exception if false NULL is returned when nothing is found! */
@@ -132,6 +149,9 @@ namespace CoupledField
      virtual int ReadDesignFromExtern(const double* space_in);
      int ReadDesignFromExtern(const StdVector<double>& space);
      
+     /** Compare the design with the present. Does not change anything!
+      * @return true if the designs are equal and ReadDesignFromExtern() would give the old design id */
+     virtual bool CompareDesign(const double* space_in);
            
      /** gives the initial guess (for the design space) 
       * @param space_out to this array of GetDesignSpaceSize() the initial guess is wrtitten to.
@@ -232,6 +252,9 @@ namespace CoupledField
        return regions[0].regionId;
      }
 
+     /** returns the current design id */
+     int GetCurrentDesignId() const { return design_id; }
+
      /** We can define results in the optimization part: <pre>
       * <result id="optResult_2" design="density" access="plain" value="costGradient"  />
       * <result id="optResult_3" design="density" access="plain" value="objective" /></pre>
@@ -239,7 +262,8 @@ namespace CoupledField
       * result is specified in XML */
      int GetSpecialResultIndex(DesignElement::Type design, DesignElement::ValueSpecifier value,
                                   DesignElement::Detail detail = DesignElement::NONE,
-                                  DesignElement::Access access = DesignElement::PLAIN);
+                                  DesignElement::Access access = DesignElement::PLAIN,
+                                  const std::string& excitation = "");
 
      /** Dumps the design space */
      std::string ToString();
@@ -255,6 +279,9 @@ namespace CoupledField
      };
      
      StdVector<DesignRegion> regions;
+
+     /** stupid find function */
+     bool Contains(const RegionIdType reg) const;
 
      /** save parameters for scaling the design to [0..1] in the optimizer: 
       * our design = scaling * optimizer_design + translation 
@@ -281,7 +308,7 @@ namespace CoupledField
       * @param elem the element to be considered
       */
      bool CollectMaterialParametersForElement(const Elem* elem);
-
+     
    private:
      /** Extracts a nodal value */
      double GetNodalValue(unsigned int nodeNumber, DesignElement::ValueSpecifier vs);

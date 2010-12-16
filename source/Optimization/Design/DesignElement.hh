@@ -127,6 +127,7 @@ public:
     MAX_MOLE, /* the max mole value */
     MAX_OSCILLATION, /* the max value per element */
     MAX_JUMP, /* weak greyness constraint formulation */
+    PENALIZED_STRESS, /* stess with own transfer function */
     LEVEL_SET_GRAD_XP, LEVEL_SET_GRAD_XN, LEVEL_SET_GRAD_YP, LEVEL_SET_GRAD_YN, LEVEL_SET_GRAD_ZP, LEVEL_SET_GRAD_ZN } ValueSpecifier;
 
   BaseDesignElement();
@@ -231,7 +232,7 @@ public:
 
   /** The type of this design element, influences the Get*Bound() methods.
    * By definition the design elements are stored in the ordering of the type!! */
-  typedef enum { UNITY = -5, NO_DERIVATIVE = -4, TENSOR_TRACE = -3, DEFAULT = -2, NO_TYPE = -1, DENSITY = 0, POLARIZATION = 1, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO, GMODUL} Type;
+  typedef enum { UNITY = -5, NO_DERIVATIVE = -4, TENSOR_TRACE = -3, DEFAULT = -2, NO_TYPE = -1, DENSITY = 0, POLARIZATION = 1, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO, GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA} Type;
 
 
     /** This specifies result details for various ValueSpecifier/Detail combinations:
@@ -428,6 +429,9 @@ public:
 
   /** An optional detail for values COST_GRADIENT and OBJECTIVE in PiezoSIMP case */
   DesignElement::Detail detail;
+
+  /** An optional excitation label */
+  std::string excitation;
 };
 
 

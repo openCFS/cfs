@@ -22,6 +22,7 @@
 #include "Utils/Timer.hh"
 #include "DataInOut/Scripting/cfsmessenger.hh"
 #include "Optimization/Optimization.hh"
+#include "Optimization/Design/DesignSpace.hh"
 
 namespace CoupledField
 {
@@ -75,10 +76,10 @@ namespace CoupledField
     delete linForms_;
   }
   
-  BiLinFormContext* Assemble::GetBiLinForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2,  const std::string& integrator)
+  BiLinFormContext* Assemble::GetBiLinForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2,  const std::string& integrator, bool silent)
   {
      // the EntityList has the region name as name but not the id
-     std::string region = domain->GetGrid()->GetRegion().ToString(regionId);
+//     std::string region = domain->GetGrid()->GetRegion().ToString(regionId);
 
      BiLinFormContext* result = NULL;
 
@@ -87,10 +88,13 @@ namespace CoupledField
      for (iter = biLinForms_->Begin(); iter != biLinForms_->End(); iter++)
      {
        // we are wrong if the region does not match
-       if((*iter)->GetFirstEntities()->GetName() != region) continue;
+//       if((*iter)->GetFirstEntities()->GetName() != region) continue;
+       if((*iter)->GetFirstEntities()->GetRegion() != regionId) continue;
        // when pde1 is given we compare it by name and continue if the names are different
-       if(pde1 != NULL && (*iter)->GetFirstPde()->GetName() != pde1->GetName()) continue;
-       if(pde2 != NULL && (*iter)->GetSecondPde()->GetName() != pde2->GetName()) continue;
+//       if(pde1 != NULL && (*iter)->GetFirstPde()->GetName() != pde1->GetName()) continue;
+       if((*iter)->GetFirstPde() != pde1) continue;
+//       if(pde2 != NULL && (*iter)->GetSecondPde()->GetName() != pde2->GetName()) continue;
+       if((*iter)->GetSecondPde() != pde2) continue;
        if((*iter)->GetIntegrator()->GetName() != integrator) continue;
 
        // we come here because we had no contradiction - check for uniqueness
@@ -100,12 +104,40 @@ namespace CoupledField
        result = *iter;
      }
 
-     if(result == NULL)
+     if(result == NULL && !silent)
+     {
+       std::string region = domain->GetGrid()->GetRegion().ToString(regionId);
        EXCEPTION("BiLinFormContext '" << integrator << "' at region '" << region << "' not found");
+     }
      return result;
   }
 
+  LinearFormContext* Assemble::GetLinearForm(RegionIdType regionId, StdPDE* pde,  const std::string& integrator, bool silent)
+  {
+     // the EntityList has the region name as name but not the id
+     std::string region = domain->GetGrid()->GetRegion().ToString(regionId);
 
+     LinearFormContext* result = NULL;
+
+     // iterate over all descriptors
+     for(UInt i = 0; i < linForms_->GetSize(); i++)
+     {
+       // we are wrong if the region does not match
+       LinearFormContext* lfc = (*linForms_)[i];
+       if(lfc->GetEntities()->GetName() != region) continue;
+       // when pde1 is given we compare it by name and continue if the names are different
+       if(lfc->GetPde()->GetName() != pde->GetName()) continue;
+       if(lfc->GetIntegrator()->GetName() != integrator) continue;
+
+       // we come here because we had no contradiction - check for uniqueness
+       if(result != NULL) throw Exception("parameters not unique!");
+       result = lfc;
+     }
+
+     if(result == NULL && !silent)
+       EXCEPTION("LinearFormContext '" << integrator << "' at region '" << region << "' not found");
+     return result;
+  }
 
   void Assemble::AddBiLinearForm( BiLinFormContext* biLinContext ) {
 
@@ -406,8 +438,13 @@ namespace CoupledField
           else
             InsertMatrix( destMat, actContext, elemMatrix, eqnVec1, eqnVec2, pdeId1, pdeId2);
 
-          // Check for secondary matrix type
-          if (secDestMat != NOTYPE ) {
+          // if optimization provides Damping Parameters, we use them, and ignore everything else
+          double secMatFacOpt = 0.0;
+          if(domain->HasErsatzMaterialDamping() && 
+              domain->GetErsatzMaterial()->GetErsatzMaterialDampingParameterForIntegrator(it1.GetElem(), form, secMatFacOpt)){
+            elemMatrix *= secMatFacOpt; // only in non-complex case, complex is not known in ParamMat
+            InsertMatrix(DAMPING, actContext, elemMatrix, eqnVec1, eqnVec2, pdeId1, pdeId2);
+          }else if (secDestMat != NOTYPE ) { // Check for secondary matrix type
 
             Double dampFactor = 1.0;
             if ( actContext.getPtDamplayer() != NULL ) {

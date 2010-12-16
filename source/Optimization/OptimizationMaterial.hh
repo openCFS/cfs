@@ -12,6 +12,7 @@ class ElecPDE;
 class MechPDE;
 class HeatCondPDE;
 class BaseForm;
+class LinearForm;
 
 /** For Optimization problems does this class provide an interface to the actual physics.
  * While ErsatzMaterial itself contains a vector of pdes and the solutions for these
@@ -47,9 +48,12 @@ public:
    * @param out here the element stiffness matrix written. e.h. K_uu which is \int B E B
    * @param elem if not given the first design element is used, otherwise the provided one
    * @param factor in piezoelectricity K_pp is -1* BDBInt */
-  void GetElementMatrix(BaseForm* form, Matrix<double>& out, Elem* elem = NULL,
+  void GetElementMatrix(BaseForm* form, Matrix<double>& out, const Elem* elem = NULL,
                         const DesignElement::Type direction = DesignElement::NO_DERIVATIVE, double factor = 1.0);
   
+  /** Very similar to GetElementMatrix() but for the vector, e.g. for rhs linear forms */
+  void GetElementVector(LinearForm* form, Vector<double>& out, const Elem* elem = NULL, const Vector<double>* ts = NULL);
+
 protected:
   StdVector<RegionIdType>& regionIds;
 
@@ -57,6 +61,12 @@ protected:
   
   // what we are;
   System system_;
+
+private:
+
+  /** This is the common implementation for GetElementMatrix() and GetElementVector() */
+  void GetElementEntity(BaseForm* form, Matrix<double>* mat_out, Vector<double>* vec_out, const Elem* elem = NULL,
+                        const DesignElement::Type direction = DesignElement::NO_DERIVATIVE, const Vector<double>* ts = NULL);
   
 };
 
@@ -70,14 +80,18 @@ public:
    * @param elem the Element for which the Matrix should be returned
    * @param direction if given, calculate derivative of Stiffness Matrix instead
    * @return a pointer to the Element Stiffness Matrix*/
-  const Matrix<double>& MechStiffness(Elem* elem, const DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+  const Matrix<double>& MechStiffness(const Elem* elem, const DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
 
   /** Get the ElementMass Matrix for this element, this is the region constant version
    * @param elem the Element for which the Matrix should be returned
    * @param direction if given, calculate derivative of mass Matrix instead
    * @return a pointer to the Element Mass Matrix*/
-  const Matrix<double>& MechMass(Elem* elem, const DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+  const Matrix<double>& MechMass(const Elem* elem, const DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
   
+  /** The the rhs-contribution for full material for the current test strain. There is no caching!
+   * @param testStrain optional value, otherwise the current set excitation set. You need it for homogenization! */
+  const Vector<double>& MechStrainRHS(const Elem* elem, MechPDE::TestStrain testStrain = MechPDE::NOT_SET);
+
 protected:  
   /** The mechanical element stiffness matrix is constant */
   std::map<RegionIdType, Matrix<double> > mechStiffness_map;
@@ -85,6 +99,9 @@ protected:
   /** The mechanical element mass matrix is also constant. Only for harmonic! */
   std::map<RegionIdType, Matrix<double> > mechMass_map;
   
+  /** We do not cache the vectors but always precalculate them */
+  Vector<double> mechStrainRHS;
+
   MechPDE* mech;
 };
 

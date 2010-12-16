@@ -3,6 +3,7 @@
 
 #include "Optimization/ErsatzMaterial.hh"
 #include "Domain/bcs.hh"
+#include "PDE/mechPDE.hh"
 #include "MatVec/SingleVector.hh"
 #include "MatVec/vector.hh"
 #include "MatVec/matrix.hh"
@@ -13,7 +14,6 @@ namespace CoupledField
 {
 class StdPDE;
 class SinglePDE;
-class MechPDE;
 class ElecPDE;
 class BaseForm;
 class BiLinFormContext;
@@ -42,18 +42,26 @@ template <class TYPE> class Matrix;
  * a vector (displacement).
  * We use the design variable from the (volume) element and kind of project it
  * on the rhs which comes from the surface excitation. One has to check all volume
- * nodes if they are part of the surface. */
-class SurfaceRef
+ * nodes if they are part of the surface.
+ * Note, that test strain excitation is handled directly by CalcU1KU2() but for homogenization
+ * this object is used to indicate the excitation/test_strain. */
+class DesignDependentRHS
 {
 public:
-  SurfaceRef();
-  ~SurfaceRef();
+  DesignDependentRHS();
+  ~DesignDependentRHS();
 
   /** This is kind of constructor. The return value/status is reflected in valid.
    * @param app is either PRESSURE or CHARGE_DENSITY
    * @return true if the linear form was found and the variables are init. */
   template <class T>
   bool Init(DesignSpace* design, Optimization::Application app);
+
+  /** In this mode the test strain is kept.
+   * @param app needs to be STRESS
+   * @param test_strain taken from the excitation by MechPDE::testStrain.Parse(excitation.label) */
+  template <class T>
+  bool Init(Optimization::Application app, std::string excite_label);
 
   /** kind of inhom Neumbann. From Init() */
   Optimization::Application app;
@@ -66,6 +74,9 @@ public:
 
   /** This is out reference element */
   const SurfElem*  elem;
+
+  /** this holds the test_strain when the proper Init() was called, otherwise NOT_SET */
+  MechPDE::TestStrain test_strain;
 
   /** This are all node numbers of all surface elements in question. We have
    * to check with the volume element nodes, if they are part of the surface
@@ -102,13 +113,16 @@ protected:
   /** overwrites the ErsatzMaterial version, is overwritten in PiezoSIMP */
   virtual double CalcFunction(Excitation& excite, Function* f, bool derivative);
 
+  /** Calculate the Stress gradient. The weight is always 1 as the stress needs to be per excitation */
+  void CalcVonMisesStressGradient(Excitation& excite, Function* f,  TransferFunction* tf);
+
   /** This is a helper for CalcU1KU2 to determine the "K" which in most cases includes a
    * derivative. It also includes mechanical damping and mass matrix via AddMassToStiffness().
    * The templated stuff is private, as C++ does not allow virtual templates. */
   virtual void SetElementK(DesignElement* de, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative = true);
 
   /** the mechanical element rhs, complex or real */
-  SurfaceRef mechRHS;
+  DesignDependentRHS mechRHS;
 
 private:
 

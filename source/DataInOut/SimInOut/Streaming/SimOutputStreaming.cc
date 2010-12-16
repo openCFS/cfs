@@ -10,13 +10,18 @@ using namespace CoupledField;
 using std::string;
 
 SimOutputStreaming::SimOutputStreaming(PtrParamNode outputNode) :
-  SimOutput("", outputNode)
+  SimOutput("", outputNode),
+  silent_(false)
 {
   formatName_ = "streaming";
   capabilities_.insert(MESH_RESULTS);
 
   host_ = outputNode->Get("host")->As<string>();
   port_ = outputNode->Get("port")->As<string>();
+  path_ = outputNode->Get("path")->As<string>();
+
+  if(outputNode->Has("silent"))
+    silent_ = outputNode->Get("silent")->As<bool>();
 
   info_root = info->Get("streaming")->Get(ParamNode::PROCESS); // TODO!
 }
@@ -64,13 +69,28 @@ void SimOutputStreaming::AddResult( shared_ptr<BaseResult> sol)
 void SimOutputStreaming::FinishStep()
 {
   boost::asio::io_service io_service;
-  Client client(io_service, host_, port_, "/hallo.html", this);
+  Client client(io_service, host_, port_, path_, this);
   io_service.run();
   results_.Clear();
 }
 
+UInt SimOutputStreaming::GetContentLength()
+{
+  UInt v = 40;
+  for(UInt r = 0, s = results_.GetSize(); r < s; ++r){
+    if(results_[r]->GetResultInfo()->resultName != "physicalPseudoDensity")
+      continue;
+    Vector<Double>& resultVec = dynamic_cast<Result<Double>&>(*results_[r]).GetVector();
+    v += resultVec.GetSize() * 7; 
+  }
+  return(v + 2);
+}
+
 void SimOutputStreaming::Transmit(std::ostream& out)
 {
+  out << "Iteration: "; 
+  out.width(8);
+  out << actStep_ << std::endl;
   for(UInt r = 0; r < results_.GetSize(); r++)
   {
     shared_ptr<BaseResult> sol = results_[r];
@@ -81,12 +101,16 @@ void SimOutputStreaming::Transmit(std::ostream& out)
     //std::cout << "result: " << resultName << std::endl;
     // UInt numDOFs = resInfo->dofNames.GetSize();
 
-    if(resultName != "mechPseudoDensity") continue;
+    if(resultName != "physicalPseudoDensity") continue;
     Vector<Double>& resultVec = dynamic_cast<Result<Double>&>(*sol).GetVector();
+    out << "Densities: "; 
+    out.width(8);
+    out << resultVec.GetSize() << std::endl;
 
+    out.setf(std::ios::fixed);
+    out.precision(4); // we need to be below 16K for the current reader or reading might break
     for(UInt d = 0; d < resultVec.GetSize(); d++)
     {
-      out.precision(4); // we need to be below 16K for the current reader or reading might break
       out << resultVec[d] << std::endl;
     }
 
@@ -103,16 +127,20 @@ SimOutputStreaming::Client::Client(boost::asio::io_service& io_service,
     // server will close the socket after transmitting the response. This will
     // allow us to treat all data up until the EOF as the content.
     std::ostream request_stream(&request_);
-    request_stream << "POST " << path << " HTTP/1.0\r\n";
+    request_stream << "POST " << path << " HTTP/1.1\r\n";
     request_stream << "Host: " << server << "\r\n";
     request_stream << "Accept: */*\r\n";
-    request_stream << "Connection: close\r\n\r\n";
+    request_stream << "Connection: close\r\n";
+    request_stream << "Content-Length: " << base->GetContentLength() << "\r\n";
+    request_stream << "Content-Type: text/plain\r\n\r\n";
 
     base->Transmit(request_stream);
 
-    request_stream << "\r\n\r\n";
+//    request_stream << "\r\n\r\n";
 
-    std::cout << " try to connect " << server << " port " << port << std::endl;
+    if(!base->silent_)
+      std::cout << " try to connect " << server << " port " << port << std::endl;
+
     // Start an asynchronous resolve to translate the server and service names
     // into a list of endpoints.
     tcp::resolver::query query(server, port); // we use http anyway
@@ -227,8 +255,8 @@ void SimOutputStreaming::Client::handle_read_headers(const boost::system::error_
       //std::cout << "\n";
 
       // Write whatever content we already have to output.
-      //if (response_.size() > 0)
-      //  std::cout << &response_;
+      if (response_.size() > 0)
+        std::cout << &response_;
 
       // Start reading remaining data until EOF.
       boost::asio::async_read(socket_, response_,

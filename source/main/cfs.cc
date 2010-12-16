@@ -146,7 +146,7 @@ CFS::CFS(int argc, const char **argv)
   if(!hostname_.empty())
     env->Get("host")->SetValue(hostname_);
   
-
+  info->ToFile();
 
   // =========================================================================
   // GENERATE CENTRAL MESSENGER OBJECT

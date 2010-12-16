@@ -13,10 +13,14 @@
 #include "Domain/domain.hh"
 #include "DataInOut/resultHandler.hh"
 #include "Utils/SmoothSpline.hh"
+#include "DataInOut/Logging/cfslog.hh"
 #include "Utils/biotSavart.hh"
 #include "linMagStrictInt.hh"
 
 namespace CoupledField {
+
+DECLARE_LOG(linForm)
+DEFINE_LOG(linForm, "linForm")
 
   LinearForm::LinearForm( BaseMaterial* matData) : BaseForm( matData )
   {}
@@ -2424,6 +2428,7 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
       elemVec +=  partElemVec;
     }
     //    std::cout << "\n  Forcfe:\n" <<  elemVec << std::endl;
+
   }
 
   
@@ -2467,8 +2472,10 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
     delete bilinearStiff_;
   }
 
-  void AddStrainRHSInt::CalcElemVector(Vector<double> &elemVec, EntityIterator &ent)
+  void AddStrainRHSInt::CalcElemVector(Vector<double> &elemVec, EntityIterator &ent, const Vector<Double>* test_strain)
   {
+    assert(test_strain == NULL || ((domain->GetGrid()->GetDim() == 2 && test_strain->GetSize() == 3) || test_strain->GetSize() == 6));
+
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo(ent);
     ptelem->SetAnsatzFct(ansatzFct1_);
@@ -2482,7 +2489,10 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
     Matrix<double> dMat;
     bilinearStiff_->calcDMat(dMat, ent.GetElem());
     Vector<double> stress;
-    stress = dMat * addStrain_;
+    if(test_strain != NULL)
+      stress = dMat * (*test_strain);
+    else
+      stress = dMat * addStrain_;
 
     elemVec.Resize(ptelem->GetNumNodes() * ptelem->GetDim(), 0.0);
     Matrix<double> linBMat;
@@ -2498,6 +2508,9 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
       partElemVec *= jacDet * intWeights[aIP-1];
       elemVec += partElemVec;
     }
+
+    LOG_DBG2(linForm) << "AddStrainRHSInt:CEV el=" << ent.GetElem()->elemNum << " -> " << elemVec.ToString();
+
   }
   // =============================================================================
   // MagSourceInt (RHS integrator for Biot-Savart coil of magnetic Scalar PDE)

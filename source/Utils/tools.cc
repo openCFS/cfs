@@ -5,7 +5,9 @@
 #include <fstream>
 #include <iostream>
 #include <math.h>
+#include <algorithm>
 #include <boost/tokenizer.hpp>
+#include <boost/algorithm/string/classification.hpp>
 
 #include "tools.hh"
 #include "MatVec/matrix.hh"
@@ -150,6 +152,13 @@ namespace CoupledField {
     return area;
   }
 
+  std::string ToValidXML(const std::string& input)
+  {
+    std::string out = input;
+    std::replace_if(out.begin(), out.end(), boost::is_any_of(", |"), '_');
+    return out;
+  }
+
 
   Double NormL2(const Double* data, const UInt size)
   {
@@ -256,6 +265,31 @@ namespace CoupledField {
       for(UInt c = 0; c < ocols; ++c)
         target[r][c] = factor * other[r][c];
   }
+
+  void Assign(Vector<Double>& target, const Vector<Double>& other, const Double factor)
+  {
+    UInt n = other.GetSize();
+    target.Resize(n);
+    for(UInt i = 0; i < n; i++)
+        target[i] = factor * other[i];
+  }
+
+  void Assign(Vector<Complex>& target, const Vector<Complex>& other, const Double factor)
+  {
+    UInt n = other.GetSize();
+    target.Resize(n);
+    for(UInt i = 0; i < n; i++)
+        target[i] = factor * other[i];
+  }
+
+  void Assign(Vector<Complex>& target, const Vector<Double>& other, const Double factor)
+  {
+    UInt n = other.GetSize();
+    target.Resize(n);
+    for(UInt i = 0; i < n; i++)
+        target[i] = factor * other[i];
+  }
+
 
   int MemoryUsage(bool peak)
   {

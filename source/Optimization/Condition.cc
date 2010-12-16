@@ -1,3 +1,4 @@
+#include "Optimization/Excitation.hh"
 #include "Optimization/Condition.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/DesignStructure.hh"
@@ -117,6 +118,9 @@ void Condition::PostProc(DesignSpace* space, DesignStructure* structure)
   default:
     break;
   }
+
+  if(type_ == VOLUME && physical_ && !observation_)
+    info_->Get(ParamNode::WARNING)->SetValue("a physical volume constraint should make no sense");
 }
 
 bool Condition::ReadCoord(PtrParamNode pn)
@@ -137,6 +141,7 @@ bool Condition::ReadCoord(PtrParamNode pn)
 void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list)
 {
   Type t = type.Parse(pn->Get("type")->As<std::string>());
+
   list.Push_back(t == SLOPE || t == MOLE || t == OSCILLATION || t == JUMP ? new LocalCondition(pn) : new Condition(pn));
 
   // note that the pointer becomes invalid by AddSubCondition()
@@ -145,194 +150,245 @@ void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list)
 
   // homogenization are special constraints which constraints which "blow up" to more constraints
   if(g->type_ == HOMOGENIZATION_TENSOR)
-  {
-    // there has been a extensive test in the constructor
-    // do we need to blow-up?
-    if(!g->ReadCoord(pn)) // this is done if coord="all" is given in xml!
-    {
-      // the first entry is this constraint
-      // for the conversion of the indices see Thesis from Ole Sigmund, p 30 and book of Manfred
-      // p 42 (first edition)
-      g->coords.Resize(1);
-      g->coords[0].first = 1;      // 1. ijkl = 1111
-      g->coords[0].second = 1;
-      g->boundValue_ = g->tensor_[1-1][1-1]; // one-based!
-      g = g->AppendSubCondition(list, 2,2); // 2. 2222
-      if(domain->GetGrid()->GetDim() == 2)
-      {
-        g = g->AppendSubCondition(list, 1,2); // 3. 1122
+    AddHomogenizationTensorConstraints(pn, list, g);
 
-        //g = g->AppendSubCondition(list, 3,1); // no covered by Sigmund
-        //g = g->AppendSubCondition(list, 3,2); // no covered by Sigmund
-
-        g = g->AppendSubCondition(list, 3,3); // 4. 1212 // would be 6,6 according to book
-        
-        g = g->AppendSubCondition(list, 1,3); // 4. 1122
-        g = g->AppendSubCondition(list, 2,3); // 5. 2233
-      }
-      else
-      {
-        g = g->AppendSubCondition(list, 3,3); // 3. 3333
-        g = g->AppendSubCondition(list, 1,2); // 4. 1122
-        g = g->AppendSubCondition(list, 1,3); // 5. 1133
-        g = g->AppendSubCondition(list, 2,3); // 6. 2233
-        g = g->AppendSubCondition(list, 6,6); // 7. 1212
-        g = g->AppendSubCondition(list, 5,5); // 8. 1313
-        g = g->AppendSubCondition(list, 4,4); // 9. 2323
-        
-        g = g->AppendSubCondition(list, 1,4);
-        g = g->AppendSubCondition(list, 1,5);
-        g = g->AppendSubCondition(list, 1,6);
-        g = g->AppendSubCondition(list, 2,4);
-        g = g->AppendSubCondition(list, 2,5);
-        g = g->AppendSubCondition(list, 2,6);
-        g = g->AppendSubCondition(list, 3,4);
-        g = g->AppendSubCondition(list, 3,5);
-        g = g->AppendSubCondition(list, 3,6);
-        
-        g = g->AppendSubCondition(list, 4,5);
-        g = g->AppendSubCondition(list, 4,6);
-        g = g->AppendSubCondition(list, 5,6);
-      }
-    }
-  }
   // isotropy is a special constraint which blows up special tensor entry constraints
   if(g->type_ == ISOTROPY)
+    AddIsotropyConstraints(pn, list, g);
+}
+
+
+void Condition::AddIsotropyConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g)
+{
+  // isotropy is a special constraint which blows up special tensor entry constraints
+  assert(g->GetType() == ISOTROPY);
+
+  if(pn->Has("coord"))
+    throw Exception("don't use attribute 'coord' for constraint 'isotropy'");
+
+  if(g->bound_ != EQUAL)
+    throw Exception("the 'isotropy' constraint requires equality constraint type");
+
+  // become an HOMOGENIZATION_TENSOR constraint!
+  g->type_ = HOMOGENIZATION_TENSOR;
+
+  if(domain->GetGrid()->GetDim() == 2)
   {
-    if(pn->Has("coord"))
-      throw Exception("don't use attribute 'coord' for constraint 'isotropy'");
+    // E11 - E22 = 0
+    assert(g->coords.GetSize() == 0);
+    g->boundValue_ = 0;
+    g->coords.Push_back(std::make_pair(1,1));
+    g->coords.Push_back(std::make_pair(2,2));
 
-    if(g->bound_ != EQUAL)
-      throw Exception("the 'isotropy' constraint requires equality constraint type");
+    // E11 - E12 - 2E33 = E11 - E12 - E33 - E33 = 0
+    g = g->AppendSubCondition(list);
+    g->coords.Clear(); // the copy constructor above copies old stuff
+    g->coords.Push_back(std::make_pair(1,1));
+    g->coords.Push_back(std::make_pair(1,2));
+    g->coords.Push_back(std::make_pair(3,3));
+    g->coords.Push_back(std::make_pair(3,3));
 
-    // become an HOMOGENIZATION_TENSOR constraint!
-    g->type_ = HOMOGENIZATION_TENSOR;
+    // E13 = 0
+    g = g->AppendSubCondition(list);
+    g->coords.Clear();
+    g->coords.Push_back(std::make_pair(1,3));
 
+    // E23 = 0
+    g = g->AppendSubCondition(list);
+    g->coords.Clear();
+    g->coords.Push_back(std::make_pair(2,3));
+  }
+  else
+  {
+    // non-shear diagonal is constant
+    // E11 = E22 = E33 -> E11 - E22 = 0, E22 - E33 = 0
+    assert(g->coords.GetSize() == 0);
+    g->boundValue_ = 0;
+    g->coords.Push_back(std::make_pair(1,1));
+    g->coords.Push_back(std::make_pair(2,2));
+
+    g = g->AppendSubCondition(list);
+    g->coords.Clear();
+    g->coords.Push_back(std::make_pair(2,2));
+    g->coords.Push_back(std::make_pair(3,3));
+
+    // upper non-shear triangle is constant
+    // E12 = E13 = E23 -> E12 - E13 = 0, E13 - E23 = 0
+    g = g->AppendSubCondition(list);
+    g->coords.Clear();
+    g->coords.Push_back(std::make_pair(1,2));
+    g->coords.Push_back(std::make_pair(1,3));
+
+    g = g->AppendSubCondition(list);
+    g->coords.Clear();
+    g->coords.Push_back(std::make_pair(1,3));
+    g->coords.Push_back(std::make_pair(2,3));
+
+    // shear diagonal is constant
+    // E44 = E55 = E66 -> E44 - E55 = 0, E55 - E66 = 0
+    g = g->AppendSubCondition(list);
+    g->coords.Clear();
+    g->coords.Push_back(std::make_pair(4,4));
+    g->coords.Push_back(std::make_pair(5,5));
+
+    g = g->AppendSubCondition(list);
+    g->coords.Clear();
+    g->coords.Push_back(std::make_pair(5,5));
+    g->coords.Push_back(std::make_pair(6,6));
+
+    // relationship of the three unique values
+    // E11 - E12 - 2E66 = E11 - E12 - E66 - E66 = 0
+    g = g->AppendSubCondition(list);
+    g->coords.Clear(); // the copy constructor above copies old stuff
+    g->coords.Push_back(std::make_pair(1,1));
+    g->coords.Push_back(std::make_pair(1,2));
+    g->coords.Push_back(std::make_pair(6,6));
+    g->coords.Push_back(std::make_pair(6,6));
+
+    // the rest is zero
+    // E14 = E15 = E16 = E24 = E25 = E26 = E34 = E35 = E36 = E45 = E46 = E56 = 0
+    g = g->AppendSubCondition(list);
+    g->coords.Clear();
+    g->coords.Push_back(std::make_pair(1,4));
+
+    g = g->AppendSubCondition(list);
+    g->coords.Clear();
+    g->coords.Push_back(std::make_pair(1,5));
+
+    g = g->AppendSubCondition(list);
+    g->coords.Clear();
+    g->coords.Push_back(std::make_pair(1,6));
+
+    g = g->AppendSubCondition(list);
+    g->coords.Clear();
+    g->coords.Push_back(std::make_pair(2,4));
+
+    g = g->AppendSubCondition(list);
+    g->coords.Clear();
+    g->coords.Push_back(std::make_pair(2,5));
+
+    g = g->AppendSubCondition(list);
+    g->coords.Clear();
+    g->coords.Push_back(std::make_pair(2,6));
+
+    g = g->AppendSubCondition(list);
+    g->coords.Clear();
+    g->coords.Push_back(std::make_pair(3,4));
+
+    g = g->AppendSubCondition(list);
+    g->coords.Clear();
+    g->coords.Push_back(std::make_pair(3,5));
+
+    g = g->AppendSubCondition(list);
+    g->coords.Clear();
+    g->coords.Push_back(std::make_pair(3,6));
+
+    g = g->AppendSubCondition(list);
+    g->coords.Clear();
+    g->coords.Push_back(std::make_pair(4,5));
+
+    g = g->AppendSubCondition(list);
+    g->coords.Clear();
+    g->coords.Push_back(std::make_pair(4,6));
+
+    g = g->AppendSubCondition(list);
+    g->coords.Clear();
+    g->coords.Push_back(std::make_pair(5,6));
+  }
+}
+
+
+void Condition::AddHomogenizationTensorConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g)
+{
+  // homogenization are special constraints which constraints which "blow up" to more constraints
+  assert(g->GetType() == HOMOGENIZATION_TENSOR);
+  // there has been a extensive test in the constructor
+  // do we need to blow-up?
+  if(!g->ReadCoord(pn)) // this is done if coord="all" is given in xml!
+  {
+    // the first entry is this constraint
+    // for the conversion of the indices see Thesis from Ole Sigmund, p 30 and book of Manfred
+    // p 42 (first edition)
+    g->coords.Resize(1);
+    g->coords[0].first = 1;      // 1. ijkl = 1111
+    g->coords[0].second = 1;
+    g->boundValue_ = g->tensor_[1-1][1-1]; // one-based!
+    g = g->AppendSubCondition(list, 2,2); // 2. 2222
     if(domain->GetGrid()->GetDim() == 2)
     {
-      // E11 - E22 = 0
-      assert(g->coords.GetSize() == 0);
-      g->boundValue_ = 0;
-      g->coords.Push_back(std::make_pair(1,1));
-      g->coords.Push_back(std::make_pair(2,2));
+      g = g->AppendSubCondition(list, 1,2); // 3. 1122
 
-      // E11 - E12 - 2E33 = E11 - E12 - E33 - E33 = 0
-      g = g->AppendSubCondition(list);
-      g->coords.Clear(); // the copy constructor above copies old stuff
-      g->coords.Push_back(std::make_pair(1,1));
-      g->coords.Push_back(std::make_pair(1,2));
-      g->coords.Push_back(std::make_pair(3,3));
-      g->coords.Push_back(std::make_pair(3,3));
+      //g = g->AppendSubCondition(list, 3,1); // no covered by Sigmund
+      //g = g->AppendSubCondition(list, 3,2); // no covered by Sigmund
 
-      // E13 = 0
-      g = g->AppendSubCondition(list);
-      g->coords.Clear();
-      g->coords.Push_back(std::make_pair(1,3));
+      g = g->AppendSubCondition(list, 3,3); // 4. 1212 // would be 6,6 according to book
 
-      // E23 = 0
-      g = g->AppendSubCondition(list);
-      g->coords.Clear();
-      g->coords.Push_back(std::make_pair(2,3));
+      g = g->AppendSubCondition(list, 1,3); // 4. 1122
+      g = g->AppendSubCondition(list, 2,3); // 5. 2233
     }
     else
     {
-      // non-shear diagonal is constant
-      // E11 = E22 = E33 -> E11 - E22 = 0, E22 - E33 = 0
-      assert(g->coords.GetSize() == 0);
-      g->boundValue_ = 0;
-      g->coords.Push_back(std::make_pair(1,1));
-      g->coords.Push_back(std::make_pair(2,2));
+      g = g->AppendSubCondition(list, 3,3); // 3. 3333
+      g = g->AppendSubCondition(list, 1,2); // 4. 1122
+      g = g->AppendSubCondition(list, 1,3); // 5. 1133
+      g = g->AppendSubCondition(list, 2,3); // 6. 2233
+      g = g->AppendSubCondition(list, 6,6); // 7. 1212
+      g = g->AppendSubCondition(list, 5,5); // 8. 1313
+      g = g->AppendSubCondition(list, 4,4); // 9. 2323
 
-      g = g->AppendSubCondition(list);
-      g->coords.Clear();
-      g->coords.Push_back(std::make_pair(2,2));
-      g->coords.Push_back(std::make_pair(3,3));
+      g = g->AppendSubCondition(list, 1,4);
+      g = g->AppendSubCondition(list, 1,5);
+      g = g->AppendSubCondition(list, 1,6);
+      g = g->AppendSubCondition(list, 2,4);
+      g = g->AppendSubCondition(list, 2,5);
+      g = g->AppendSubCondition(list, 2,6);
+      g = g->AppendSubCondition(list, 3,4);
+      g = g->AppendSubCondition(list, 3,5);
+      g = g->AppendSubCondition(list, 3,6);
 
-      // upper non-shear triangle is constant
-      // E12 = E13 = E23 -> E12 - E13 = 0, E13 - E23 = 0
-      g = g->AppendSubCondition(list);
-      g->coords.Clear();
-      g->coords.Push_back(std::make_pair(1,2));
-      g->coords.Push_back(std::make_pair(1,3));
-
-      g = g->AppendSubCondition(list);
-      g->coords.Clear();
-      g->coords.Push_back(std::make_pair(1,3));
-      g->coords.Push_back(std::make_pair(2,3));
-
-      // shear diagonal is constant
-      // E44 = E55 = E66 -> E44 - E55 = 0, E55 - E66 = 0
-      g = g->AppendSubCondition(list);
-      g->coords.Clear();
-      g->coords.Push_back(std::make_pair(4,4));
-      g->coords.Push_back(std::make_pair(5,5));
-
-      g = g->AppendSubCondition(list);
-      g->coords.Clear();
-      g->coords.Push_back(std::make_pair(5,5));
-      g->coords.Push_back(std::make_pair(6,6));
-
-      // relationship of the three unique values
-      // E11 - E12 - 2E66 = E11 - E12 - E66 - E66 = 0
-      g = g->AppendSubCondition(list);
-      g->coords.Clear(); // the copy constructor above copies old stuff
-      g->coords.Push_back(std::make_pair(1,1));
-      g->coords.Push_back(std::make_pair(1,2));
-      g->coords.Push_back(std::make_pair(6,6));
-      g->coords.Push_back(std::make_pair(6,6));
-
-      // the rest is zero
-      // E14 = E15 = E16 = E24 = E25 = E26 = E34 = E35 = E36 = E45 = E46 = E56 = 0
-      g = g->AppendSubCondition(list);
-      g->coords.Clear();
-      g->coords.Push_back(std::make_pair(1,4));
-
-      g = g->AppendSubCondition(list);
-      g->coords.Clear();
-      g->coords.Push_back(std::make_pair(1,5));
-
-      g = g->AppendSubCondition(list);
-      g->coords.Clear();
-      g->coords.Push_back(std::make_pair(1,6));
-
-      g = g->AppendSubCondition(list);
-      g->coords.Clear();
-      g->coords.Push_back(std::make_pair(2,4));
-
-      g = g->AppendSubCondition(list);
-      g->coords.Clear();
-      g->coords.Push_back(std::make_pair(2,5));
-
-      g = g->AppendSubCondition(list);
-      g->coords.Clear();
-      g->coords.Push_back(std::make_pair(2,6));
-
-      g = g->AppendSubCondition(list);
-      g->coords.Clear();
-      g->coords.Push_back(std::make_pair(3,4));
-
-      g = g->AppendSubCondition(list);
-      g->coords.Clear();
-      g->coords.Push_back(std::make_pair(3,5));
-
-      g = g->AppendSubCondition(list);
-      g->coords.Clear();
-      g->coords.Push_back(std::make_pair(3,6));
-
-      g = g->AppendSubCondition(list);
-      g->coords.Clear();
-      g->coords.Push_back(std::make_pair(4,5));
-
-      g = g->AppendSubCondition(list);
-      g->coords.Clear();
-      g->coords.Push_back(std::make_pair(4,6));
-
-      g = g->AppendSubCondition(list);
-      g->coords.Clear();
-      g->coords.Push_back(std::make_pair(5,6));
+      g = g->AppendSubCondition(list, 4,5);
+      g = g->AppendSubCondition(list, 4,6);
+      g = g->AppendSubCondition(list, 5,6);
     }
   }
 }
+
+void Condition::AddExcitationStressConstraints(StdVector<Condition*>& list, MultipleExcitation* me)
+{
+  // no multiple excitations, no additional stress constraints
+  if(!me->IsEnabled()) return;
+
+  // do we need to blow up the list? This is the case when there is stress constraint with
+  // the default excitation attribute all which is Function::excite_ = -1.
+  // Otherwise we rely on the opt_unique_constraint xsd:unique constraint
+  int blow_up = -1;
+  for(unsigned int i = 0; i < list.GetSize(); i++)
+  {
+    if(list[i]->GetType() == STRESS)
+    {
+      if(list[i]->DoEvaluateAlways())
+        blow_up = i;
+      else
+        if(blow_up != -1)
+          throw Exception("You cannot mix stress constraints with excitation and with default 'all' excitation");
+    }
+  }
+
+  // are there stress constraints to blow up?
+  if(blow_up == -1) return;
+
+  Condition& g = *(list[blow_up]);
+  g.SetExcitation(me, me->excitations[0].index);
+
+  for(unsigned int e = 1; e < me->excitations.GetSize(); e++)
+  {
+    Condition* tmp = new Condition(g);
+    tmp->SetExcitation(me, me->excitations[e].index);
+
+    list.Insert(blow_up + e, tmp);
+  }
+}
+
 
 Condition* Condition::AppendSubCondition(StdVector<Condition*>& list)
 {
@@ -371,17 +427,45 @@ StdVector<unsigned int>& Condition::GetSparsityPattern()
   return sparsity_;
 }
 
-std::string Condition::ToString() const
+bool Condition::IsFeasible() const
+{
+  double diff = GetValue() - boundValue_; // handles also local constraints!
+
+  switch(bound_)
+  {
+    case EQUAL:
+      return std::abs(diff) < 1e-4;
+
+    case LOWER_BOUND:
+      return diff + 1e-4 > 0;
+
+    case UPPER_BOUND:
+      return diff - 1e-4 < 0;
+  }
+
+  assert(false);
+  return false;
+}
+
+std::string Condition::ToString(MultipleExcitation* me) const
 {
   std::ostringstream os;
   
   if(delta_logging) os << "delta_";
+
   os << Function::ToString(); // includes physical
+
   if(design != DesignElement::DEFAULT)
     os << "_(" << DesignElement::type.ToString(design) << ")";
+
   if(type_ == HOMOGENIZATION_TENSOR)
     for(unsigned int i = 0; i < coords.GetSize(); i++)
       os << "_" << coords[i].first << coords[i].second;
+
+  // e.g. stresses are extended for every excitation
+  if(type_ == STRESS && me != NULL && me->IsEnabled())
+    os << "_" << me->excitations[excite_].label; // change to excite label
+
   return os.str();  
 }
 
@@ -503,7 +587,6 @@ double LocalCondition::GetValue() const
   if(IsLocal())
     return local->values[current_view_index_ - virtual_base_index_];
   else
-    assert(false);
     return value_;
 }
 
@@ -519,7 +602,7 @@ void LocalCondition::SetValue(double val)
 }
 
 
-std::string LocalCondition::ToString() const
+std::string LocalCondition::ToString(MultipleExcitation* me) const
 {
   std::stringstream ss;
 
@@ -542,6 +625,12 @@ ConditionContainer::ConditionContainer()
 ConditionContainer::~ConditionContainer()
 {
   delete(view);
+
+  //for(unsigned int i = 0; i < active.GetSize(); i++)
+  //  delete active[i];
+
+  //for(unsigned int i = 0; i < observe.GetSize(); i++)
+  //  delete observe[i];
 }
 
 void ConditionContainer::Read(ParamNodeList pn_list)
@@ -558,6 +647,13 @@ void ConditionContainer::Read(ParamNodeList pn_list)
   }
 
   // process the virtual containers
+  Refresh(); // Save for first time call
+}
+
+void ConditionContainer::Refresh()
+{
+  // process the virtual containers
+  all.Resize(0); // when we do it again.
   all.Reserve(active.GetSize() + observe.GetSize());
 
   for(unsigned int i = 0; i < active.GetSize(); i++)
@@ -570,11 +666,15 @@ void ConditionContainer::Read(ParamNodeList pn_list)
   for(unsigned int i = 0; i < all.GetSize(); i++)
     all[i]->index_ = i;
 
-  view = new VirtualView(this);
+  if(view == NULL)
+    view = new VirtualView(this);
+
+  view->Refresh();
 }
 
 
-void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure)
+
+void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure, MultipleExcitation* me)
 {
   this->space_ = space;
 
@@ -600,9 +700,15 @@ void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure
   for(unsigned int i = 0; i < all.GetSize(); i++)
   {
     all[i]->PostProc(space, structure);
+    all[i]->SetExcitation(me);
   }
 
-  view->Refresh(); // inform about the news if the slopes created a lot of virtual objectives!
+  // for stress constraints with multiple excitation we insert additional stress constraints for
+  // the specific excitations. This cannot be done in all.
+  Condition::AddExcitationStressConstraints(active, me);
+  Condition::AddExcitationStressConstraints(observe, me);
+
+  Refresh(); // inform about the news if the slopes created a lot of virtual objectives!
 }
 
 void ConditionContainer::ToInfo(PtrParamNode in)
@@ -771,6 +877,7 @@ void ConditionContainer::VirtualView::Done()
 
         // in checkerboard we must not use abs
         double corr = lc->GetType() == Function::OSCILLATION ? sv : std::abs(sv);
+
 
         de->specialResult[idx] = std::max(de->specialResult[idx], corr);
       }

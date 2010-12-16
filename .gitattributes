@@ -503,6 +503,7 @@ share/matlab/create_densities/from_gid_geo/readgidmesh.m -text
 share/matlab/create_densities/from_gid_geo/readmesh.m -text
 share/matlab/create_densities/from_gid_geo/writexml.m -text
 share/matlab/create_densities/from_gid_geo/writexml2d.m -text
+share/matlab/create_densities/orthox.m -text
 share/matlab/create_densities/rect2d.m -text
 share/matlab/exec.m -text
 share/matlab/mminfo.m svneol=native#text/plain
@@ -515,12 +516,14 @@ share/scripts/IdentifyCXXCompiler.cpp svneol=native#text/plain
 share/scripts/IdentifyFortranCompiler.F90 -text
 share/scripts/cfs -text
 share/scripts/cfs-testsuite-extractor.py -text
+share/scripts/cfs_grid.py -text
 share/scripts/cfs_utils.py -text
 share/scripts/cfstool -text
 share/scripts/common.sh svneol=native#text/plain
 share/scripts/cplreader -text
 share/scripts/create_density.py -text
 share/scripts/distro.sh svneol=native#text/plain
+share/scripts/gid_screenshots.py -text
 share/scripts/h5tool -text
 share/scripts/hdf5_aux.sh.in -text
 share/scripts/hdf5_concat.sh.in -text
@@ -1344,6 +1347,8 @@ source/Optimization/Design/ShapeDesign.cc -text
 source/Optimization/Design/ShapeDesign.hh -text
 source/Optimization/ErsatzMaterial.cc -text
 source/Optimization/ErsatzMaterial.hh -text
+source/Optimization/Excitation.cc -text
+source/Optimization/Excitation.hh -text
 source/Optimization/Function.cc -text
 source/Optimization/Function.hh -text
 source/Optimization/LevelSet.cc -text

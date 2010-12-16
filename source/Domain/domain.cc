@@ -1065,6 +1065,10 @@ bool Domain::HasErsatzMaterialMass()
       : ersatzMaterial->HasErsatzMaterialMass();
 }
 
+bool Domain::HasErsatzMaterialDamping(){
+  return(ersatzMaterial != NULL && ersatzMaterial->HasErsatzMaterialDamping());
+}
+
 // *************
 //   PrintGrid
 // *************

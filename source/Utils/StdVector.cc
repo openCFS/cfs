@@ -233,14 +233,11 @@ namespace CoupledField {
   // *********
   template<class TYPE> void StdVector<TYPE>::Erase( const unsigned int pos ) {
 #ifdef CHECK_INITIALIZED
-    if (size_ == 0) {
-      EXCEPTION( "Vector: Undefined Vector in function Erase" );
-    }
+    if (size_ == 0) EXCEPTION( "Vector: Undefined Vector in function Erase" );
 #endif
 
 #ifdef CHECK_INDEX
-    if (pos >=size_) 
-      EXCEPTION( "Invalid index for cut" );
+    if (pos >=size_) EXCEPTION( "Invalid index for Erase" );
 #endif
 
     if(pos == size_ - 1) // erasing last position
@@ -249,13 +246,11 @@ namespace CoupledField {
       return;
     }
     
-    unsigned int i;
- 
     TYPE * help=new TYPE[size_-1];
     
-    for (i=0; i < pos; i++) 
+    for(unsigned int i=0; i < pos; i++)
       help[i] = data_[i];
-    for (i=pos+1; i < size_; i++) 
+    for(unsigned int i=pos+1; i < size_; i++)
       help[i-1] = data_[i];
  
     delete [] data_; 
@@ -264,6 +259,20 @@ namespace CoupledField {
     capacity_ = size_;
   }
 
+  template<class TYPE>
+  void StdVector<TYPE>::Insert(const unsigned int pos, const TYPE& dat)
+  {
+#ifdef CHECK_INDEX
+    if (pos > size_) EXCEPTION( "Invalid index for Insert" );
+#endif
+
+    Resize(size_ + 1);
+
+    for(unsigned int i = size_-1; i > pos; i--)
+      data_[i] = data_[i-1];
+
+    data_[pos] = dat;
+  }
 
   template<class TYPE>
   void StdVector<TYPE>::Erase(const unsigned int pos1, const unsigned int pos2)

@@ -4,6 +4,7 @@
 #include <map>
 
 #include "Optimization/Optimization.hh"
+#include "Optimization/Excitation.hh"
 #include "Domain/bcs.hh"
 #include "Utils/result.hh"
 #include "MatVec/vector.hh"
@@ -20,7 +21,7 @@ class Condition;
 class Assemble;
 class TransferFunction;
 class SurfElem;
-class SurfaceRef;
+class DesignDependentRHS;
 class OptimizationMaterial;
 class DesignStructure;
 class DensityFile;
@@ -136,10 +137,6 @@ public:
 
   /** This is simple one SinglePDE from pdes. */
   SinglePDE* pde;
-
-  /** Here we have the set of excitations. Only relevant for the multiple excitations
-   * case (multiple loads or frequencies) */
-  StdVector<Excitation> excitations;
 
   /** The region to optimize */
   StdVector<RegionIdType> regionIds;
@@ -270,7 +267,13 @@ public:
 
     /** Returns the currently stored functions. Empty for forward */
     StdVector<Function*> GetFunctions() const;
-
+    
+    /** Return whether this is the Solution of the forward problem */
+    bool IsForward(){ return(isForward); };
+    
+    /** Set whether this Solution is the Solution of the forward problem */
+    void SetIsForward(bool forward){ isForward = forward; };
+    
   private:
 
     /** On the fly init when the function has not been used before */
@@ -294,6 +297,12 @@ public:
      * Stored are units which contains eventually multiple excitations.
      * @see Unit() */
     std::map<Function*, StdVector<Unit*> > data_;
+    
+    // if this Solutions is forward, it does not use the value in function in Get
+    bool isForward;
+    
+    // Pointer to data[NULL] to speed up things
+    StdVector<Unit*>* forward_data_;
 
     ErsatzMaterial* em_;
   };
@@ -335,7 +344,7 @@ public:
    * @param g as f for constrained gradient
    * @param res_idx store in de->specialResult. use ErsatzMaterial::GetSpecialResultIndex() -1 is no special result*/
   double CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1, Application k, StdVector<SingleVector*>& u2,
-                     SurfaceRef* rhs, double factor, CalcMode calcMode, Function* f, int res_idx = -1);
+                     DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f, int res_idx = -1);
 
   /** Helper calling CalcU1KU2()
    * If there is a result with value='costGradient' or 'constraintGradient' it is checked for detail='mech_mech',
@@ -355,7 +364,7 @@ public:
    * @param direction if given return derivative in that direction*/
   void GetErsatzMaterialTensor(Matrix<double>& mat, Elem* elem,
       DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
-
+  
   /** This is an extension to SolveStateProblem() where the forward problem is solved and stored.
    * Depending on the objective function SolveAdjointProblem() is called to additionally solve and store the
    * adjoint problem.
@@ -443,6 +452,11 @@ public:
    * @return a vector of element size or rhs size */
   Vector<double> CalcVonMisesStressVector(Excitation& excite, Function* f, bool adjoint_rhs, bool grad_contrib);
 
+  /** Calculates the gradient of the globalization of the von mises value.
+   * Needed for the construction of the adjoint RHS and for the von mises gradient */
+  Vector<double> CalcVonMisesStressGlobalizationFactor(Excitation& excite, Function* f);
+
+
   /** This is a helper with the common part for CalcEnergyFlux and the adjoint RHS.
    * Determines the global vector Q*u^* or (Q - Q^T)^T*u^* in the adjoint case.
    * @param f the cost function as we need the ParamNode
@@ -506,10 +520,8 @@ public:
   /** Calculates globalized local functions. globalSlope and globalCheckerboard.
    * When g_i is the slope function x_i - x_i+1 -c and g_i+1 = x_1+1 - x_i - c
    * the global slope is sum max(0, g_i)^2, hence we need NEXT_AND_REVERSE locality
-   * @param von_mises_stress set only for f == STRESS for derivative and not derivative
-   * @param von_mises_grad set only for f == STRESS and derivative */
-  double CalcGlobalFunction(Function* f, bool derivative, const Vector<double>* von_mises_stress = NULL, const Vector<double>* von_mises_grad = NULL);
-
+   * @param von_mises_stress set only for f == STRESS for derivative and not derivative */
+  double CalcGlobalFunction(Function* f, bool derivative, const Vector<double>* von_mises_stress = NULL);
 
   /** Here we store the solution of the problem. Multiple solutions for multiple loadcases */
   Solutions forward;
@@ -554,6 +566,9 @@ protected:
 
   virtual void RhsCalculated(AdjointParameters* adjParams);
 
+  /** Is the current system test strain excitated? True for special test case and homogenization */
+  bool IsStrainExcitedSystem() const;
+
   /** The DesignStructure is required by SIMP for filters and by Condition for slope constraints
    * and checkerboard. They share this element. It can only be created by PostInit(), hence every
    * PostInit() who needs the structure needs to check if it was created before. Deleted by ~EM */
@@ -582,8 +597,22 @@ private:
   template<class T>
   double
       CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1,
-          Application k, StdVector<SingleVector*>& u2, SurfaceRef* ref,
+          Application k, StdVector<SingleVector*>& u2, DesignDependentRHS* ref,
           double factor, CalcMode calcMode, Function* f, int res_idx);
+
+  /** Handles sensitive RHS, e.g. when we have sensitive Neuman boundary condition (elect surface charge).
+      * SurfaceRef is  given to CalcU1KU2 and this method does from \f$<l,K'u-f'>\f$ the \f$-f'\f$ part.
+      * It checks if any nodes of the design element are part of the surface and
+      * substracts for all dof of that node only */
+  template<class T>
+  void SubtractGradSurfaceRHS(DesignElement* de, TransferFunction* tf, DesignDependentRHS* ref, Vector<T>& in_out);
+
+
+  /** Called by CalcU1KU2 on IfStrainExcitedSystem()
+   * @param rhs might be null but if not takes the test_strain. */
+  template <class T>
+  void SubtractGradStrainRHS(DesignElement* de, TransferFunction* tf, DesignDependentRHS* rhs, Vector<T>& in_out);
+
 
   /** Calculates a scalar product of two vectors and the derivative of the right hand side newmark update,
    * used for transient optimization derivative calculation
@@ -595,14 +624,6 @@ private:
    * @param g constraint the result is to be stored with */
   void CalcNewmarkDerivative(Excitation& excite, Solutions& forward,
       Solutions& adjoint, double factor, Objective* f, Condition* g);
-
-  /** Handles sensitive RHS, e.g. when we have sensitive Neuman boundary condition (elect surface charge).
-   * SurfaceRef is  given to CalcU1KU2 and this method does from \f$<l,K'u-f'>\f$ the \f$-f'\f$ part.
-   * It checks if any nodes of the design element are part of the surface and
-   * substracts for all dof of that node only */
-  template<class T>
-  void SubstractGradSurfaceRHS(DesignElement* de, TransferFunction* tf,
-      SurfaceRef* ref, Vector<T>& in_out);
 
   /** This solves the adjoint problem problem only and stores all relevant data. Calls SetAndSolveAdjointRHS() */
   template<class T>
@@ -660,23 +681,6 @@ private:
    * It shall be cheap enough to calc here twice! */
   template<class T>
   void CalcSurfaceNormalTimesSolution(Vector<T>& olas_prod);
-
-  /** Handle multiple excitations (loads/frquencies). By defefinition the size is almost 1, even
-   * if there is no load (e.g. static piezo with inhomgeneous Dirichlet BC. */
-  void PrepareMultipleExcitations();
-
-  /** Helper for PrepareMultipleExcitations(). Excitations are set with hard coded test strains */
-  int SetHomogenizationTestStrains();
-
-  /** Helper for PrepareMultipleExcitations(). Excitations are set with hard coded polarization matrix excitations */
-  int SetPolarizationMatrixExcitations();
-
-  /** For doing adjust weights when doing multiple excitation with meta objective, this method
-   * does the job. It requires the cost entries in excitations to be set. 
-   * The \f$w_k^p=const\;\sum w_k = 1\f$ condition is fulfilled here. */
-  void NormalizeMultipleExcitations();
-
-
 
   /** When we optimize output we store here the nodes */
   LoadList output_nodes_;

@@ -232,8 +232,8 @@ double PiezoSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
         << excite.normalized_weight << " * " << excite.GetFactor(f) << " -> " << factor;
 
     // we see at mechRHS and elecRHS if we have such an excitation
-    SurfaceRef* mech_rhs = mechRHS.valid ? &mechRHS : NULL;
-    SurfaceRef* elec_rhs = elecRHS.valid ? &elecRHS : NULL;
+    DesignDependentRHS* mech_rhs = mechRHS.valid ? &mechRHS : NULL;
+    DesignDependentRHS* elec_rhs = elecRHS.valid ? &elecRHS : NULL;
 
     LOG_TRACE2(simp) << "PS:CalcOutputGradient: output -> sensitive rhs's: "
         << mechRHS.ToString(1) << ", " << elecRHS.ToString(1);

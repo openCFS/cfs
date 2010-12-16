@@ -210,42 +210,7 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   {
   case Function::STRESS:
   {
-    // see comment in ErsatzMaterial::CalcVonMisesStressVector()! it's tricky stuff :(
-    // the gradient is lambda^T *  K' * u + 2 * stress^T * M * (rho^p)' * E_0 * B * u
-    // We compute it for every element and Function::Local::EvalGradient() does the globalization which involves setting to zero
-    // Also the DesignElement::AddGradient() is done in Function::Local::EvalGradient(), hence we fake CalcU1KU2 which does AddGradient(), too
-    StdVector<double> org_gradient(design->data.GetSize()); // save state
-    org_gradient.window.Set(0, org_gradient.GetSize());
-    DesignElement::ValueSpecifier vs = f->IsObjective() ? DesignElement::COST_GRADIENT : DesignElement::CONSTRAINT_GRADIENT;
-    design->WriteGradientToExtern(org_gradient, vs, DesignElement::PLAIN, dynamic_cast<Condition*>(f), false);
-    assert(design->data.GetSize() == org_gradient.GetSize());
-
-    // calc lambda^T *  K' * u
-    CalcU1KU2(tf, adjoint.Get(excite, f)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, weight, STANDARD, f);
-
-    // extract the lambda^T *  K' * u information and reset to org_gradient
-    Vector<double> l_K_u(org_gradient.GetSize());
-    for(unsigned int i = 0; i < org_gradient.GetSize(); i++)
-    {
-      DesignElement* de = &(design->data[i]);
-      l_K_u[i] = de->GetPlainGradient(f) - org_gradient[i];
-      de->Reset(vs, f); // there is no set, so reset and add
-      de->AddGradient(f, org_gradient[i]);
-    }
-
-    // calc  2 * stress^T * M * (rho^p)' * E_0 * B * u
-    Vector<double> von_mises_deriv = CalcVonMisesStressVector(excite, f, false, true);
-    assert(von_mises_deriv.GetSize() == l_K_u.GetSize());
-
-    // an extra vector for the sum
-    Vector<double> grad;
-    grad = von_mises_deriv * weight;
-    grad += l_K_u; // scale with same weight!
-
-    // this does the globalization and AddGradient() by kicking out some element values
-    Vector<double> von_mises_stress = CalcVonMisesStressVector(excite, f, false, false);
-
-    CalcGlobalFunction(f, true, &von_mises_stress, &grad);
+    CalcVonMisesStressGradient(excite, f, tf);
     break;
   }
 
@@ -267,24 +232,64 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   return 0.0; // only derivatives evaluated
 }
 
-SurfaceRef::SurfaceRef()
+
+void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferFunction* tf)
 {
-  valid = false;
-  app   = Optimization::NO_APP;
-  vec = NULL;
+	// see comment in ErsatzMaterial::CalcVonMisesStressVector()! it's tricky stuff :(
+  // For the function we pack the stuff in Function::Local, for the gradient we do it here as the computation are too far
+  // away from the other local gradient computations.
+  //
+	// the gradient is lambda^T * ( K' * u - f')  + alpha * 2 * stress^T * M * (rho^p)' * E_0 * B * u
+  //
+  // we do NOT weight!
+
+  for(unsigned int i = 0; i < design->data.GetSize(); i++)
+    LOG_DBG2(simp) << "CVMSG: f=" << f->ToString(this->me) << " de=" << design->data[i].elem->elemNum << " org=" << design->data[i].GetPlainGradient(f);
+
+  // alpha is from the globalization which is in the form sum max(0, g_i-c)^p and alpha is p*max(0, g_i-c)^(p-1) where g_i is the vonMisesStress
+  Vector<double> alpha = CalcVonMisesStressGlobalizationFactor(excite, f);
+  assert(alpha.GetSize() == design->data.GetSize());
+
+  // 2 * stress^T * M * (rho^p)' * E_0 * B * u can be obtained with a special attributes
+  Vector<double> appendix = CalcVonMisesStressVector(excite, f, false, true);
+  assert(appendix.GetSize() == alpha.GetSize());
+
+  DesignDependentRHS rhs;
+  rhs.Init<double>(Optimization::STRESS, excite.label);
+  // calc lambda^T *  K' * u -> this already stores the results by AddGradient()!
+  CalcU1KU2(tf, adjoint.Get(excite, f)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], &rhs, 1.0, STANDARD, f);
+
+  // add the appendix stuff
+  for(unsigned int i = 0; i < design->data.GetSize(); i++)
+	{
+    DesignElement& de = design->data[i];
+		de.AddGradient(f, alpha[i] * appendix[i]);
+		LOG_DBG2(simp) << "CVMSG: f=" << f->ToString(this->me) << " de=" << de.elem->elemNum << " alpha=" << alpha[i] << "* app=" << appendix[i] << " ="
+		               << alpha[i] * appendix[i] << " -> " << de.GetPlainGradient(f);
+	}
 }
 
-SurfaceRef::~SurfaceRef()
+DesignDependentRHS::DesignDependentRHS()
+{
+  valid       = false;
+  app         = Optimization::NO_APP;
+  vec         = NULL;
+  elem        = NULL;
+  test_strain = MechPDE::NOT_SET;
+}
+
+DesignDependentRHS::~DesignDependentRHS()
 {
   valid = false;
   if(vec != NULL) { delete vec; vec = NULL; }
 }
 
 template <class T>
-bool SurfaceRef::Init(DesignSpace* design, Optimization::Application app)
+bool DesignDependentRHS::Init(DesignSpace* design, Optimization::Application app)
 {
   assert(app == Optimization::CHARGE_DENSITY || app == Optimization::PRESSURE);
   std::string name = app == Optimization::CHARGE_DENSITY ? "LinNeumannInt" : "PressureLinForm";
+
 
   // check if we have a form with the application name
   LinearSurfForm* form = NULL;
@@ -303,7 +308,7 @@ bool SurfaceRef::Init(DesignSpace* design, Optimization::Application app)
     }
   }
 
-  LOG_DBG(simp) << "SurfaceRef::Init(app = " << Optimization::application.ToString(app) << ") -> form = "
+  LOG_DBG(simp) << "DesignDependentRHS::Init(app = " << Optimization::application.ToString(app) << ") -> form = "
                   << (form != NULL ? form->GetName() : "NULL");
 
   // form is not necessary defined int the xml file!
@@ -333,7 +338,7 @@ bool SurfaceRef::Init(DesignSpace* design, Optimization::Application app)
   assert(vec == NULL);
   // copy the first nodes dofs
   Vector<T>* vt = new Vector<T>(dof);
-  // vec is the base SingleVector which has no abstact operators overloaded
+  // vec is the base SingleVector which has no abstract operators overloaded
   vec = vt;
   for(int i = 0; i < dof; i++) (*vt)[i] = full[i];
 
@@ -354,14 +359,24 @@ bool SurfaceRef::Init(DesignSpace* design, Optimization::Application app)
     eit++;
   }
 
-  LOG_DBG(simp) << "SurfaceRef::Init -> " << ToString(1);
-  LOG_DBG2(simp) << "SurfaceRef::Init -> " << ToString(0);
+  LOG_DBG(simp) << "DesignDependentRHS::Init -> " << ToString(1);
+  LOG_DBG2(simp) << "DesignDependentRHS::Init -> " << ToString(0);
 
   return true;
 }
 
 
-std::string SurfaceRef::ToString(int level)
+template <class T>
+bool DesignDependentRHS::Init(Optimization::Application app, std::string excite_label)
+{
+  assert(app == Optimization::STRESS);
+  this->app = app;
+  this->test_strain = MechPDE::testStrain.IsValid(excite_label) ? MechPDE::testStrain.Parse(excite_label) : MechPDE::NOT_SET;
+  return true;
+}
+
+
+std::string DesignDependentRHS::ToString(int level)
 {
   std::ostringstream os;
   os << "valid=" << valid;
@@ -385,6 +400,6 @@ std::string SurfaceRef::ToString(int level)
 
   // Explicit template instantiation
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-template bool SurfaceRef::Init<Double>(DesignSpace* design, Optimization::Application app);
-template bool SurfaceRef::Init<Complex>(DesignSpace* design, Optimization::Application app);
+template bool DesignDependentRHS::Init<double>(DesignSpace* design, Optimization::Application app);
+template bool DesignDependentRHS::Init<complex<double> >(DesignSpace* design, Optimization::Application app);
 #endif

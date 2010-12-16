@@ -196,6 +196,30 @@ for z = 1:sz;
 end
 fprintf(xml_file, '</set>\n\n');
 
+fprintf(xml_file, '<set id="orthox">\n');
+'orthox'
+for z = 1:sz;
+  for y = 1:sy;
+    for x = 1:sx;
+      v = 0.001;
+      # number of current element
+      num = (z - 1) * sx * sy + (y - 1) * sx + x;
+      if (x == floor(sx/2))
+        if (y == floor(sy/2)) || (z == floor(sz/2))
+          v = 1.0;
+        end
+      end
+      if y < (sy/2+3) && z < (sz/2+3)
+        if y > (sy/2-3) && z > (sz/2-3)
+          v = 1.0;
+        end
+      end
+      fprintf(xml_file, '  <element nr="%d" type="density" design="%g"/>\n', num, v);
+    end
+  end
+end
+fprintf(xml_file, '</set>\n\n');
+
 fprintf(xml_file, '</cfsErsatzMaterial>\n');
 fclose(xml_file);
 
