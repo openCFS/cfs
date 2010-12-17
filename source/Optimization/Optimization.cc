@@ -233,6 +233,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::OUTPUT, "output");
   Function::type.Add(Function::DYNAMIC_OUTPUT, "dynamicOutput");
   Function::type.Add(Function::ABS_DYN_OUTPUT_SQUARED, "absDynamicOutputSquared");
+  Function::type.Add(Function::DISPLACED_VOLUME, "displacedVolume");
   Function::type.Add(Function::GLOBAL_DYNAMIC_COMPLIANCE, "globalDynamicCompliance");
   Function::type.Add(Function::CONJUGATE_COMPLIANCE, "conjugateCompliance");
   Function::type.Add(Function::VOLUME, "volume");

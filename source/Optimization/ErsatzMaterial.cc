@@ -220,6 +220,7 @@ void ErsatzMaterial::PostInit()
       case Objective::OUTPUT:
       case Objective::DYNAMIC_OUTPUT:
       case Objective::ABS_DYN_OUTPUT_SQUARED:
+      case Objective::DISPLACED_VOLUME:
       {
         PtrParamNode output = cost->pn->Get("output");
 
@@ -956,6 +957,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
      case Function::DYNAMIC_OUTPUT:
      case Function::CONJUGATE_COMPLIANCE:
      case Function::ABS_DYN_OUTPUT_SQUARED:
+     case Function::DISPLACED_VOLUME:
           assert(!derivative); // SIMP!
           if(harmonic)
             result = CalcOutputObjective<complex<double> >(excite, c);
@@ -1301,6 +1303,13 @@ double ErsatzMaterial::CalcOutputObjective(Excitation& excite, Objective* cost)
       break;
     }
 
+    case Function::DISPLACED_VOLUME:
+    {
+      // |<u,l>|
+      T ul = u.Inner(l);
+      result = std::abs(ul);
+      LOG_DBG2(em) << "output |<u,l>| = |" << ul << "| -> " << result;
+    }
 
     case Objective::DYNAMIC_OUTPUT:
     case Objective::CONJUGATE_COMPLIANCE:
@@ -1653,6 +1662,9 @@ void ErsatzMaterial::SetEnergyFluxVector(Function* f, const Vector<complex<doubl
   // this contains an element B (grad_n) matrix to be applied with the solution.
   Matrix<complex<double> > q_mat;
 
+  // surface normal
+  Vector<double> normal;
+
   // traverse our surface elements
   EntityIterator it = sel->GetIterator();
   for(it.Begin(); !it.IsEnd(); it++)
@@ -1671,7 +1683,9 @@ void ErsatzMaterial::SetEnergyFluxVector(Function* f, const Vector<complex<doubl
 
     // determine selected element grad_n matrix (includes selection defined by surface elements)
     // the matrix is squared but for non-common nodes entries it is zero
-    mypde->CalcElemGradMatrix(vol, common_nodes, 3, vol->ptElem->GetAnsatzFct(), q_mat); // z-direction!
+    grid->CalcSurfNormal(normal, *se);
+    LOG_DBG2(em) << "SEFV: se=" << se->elemNum << " normal=" << normal.ToString() << " relevant_direction=" << Point::GetCartesianOrientation(&normal) + 1;
+    mypde->CalcElemGradMatrix(vol, common_nodes, Point::GetCartesianOrientation(&normal) + 1, vol->ptElem->GetAnsatzFct(), q_mat); // x, y, z-direction -> 1-based!! :(
 
     for(unsigned int n = 0; n < vol->connect.GetSize(); n++)
     {
@@ -2545,6 +2559,7 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
     case Function::OUTPUT:
     case Function::CONJUGATE_COMPLIANCE:
     case Function::ABS_DYN_OUTPUT_SQUARED:
+    case Function::DISPLACED_VOLUME:
     case Function::GLOBAL_DYNAMIC_COMPLIANCE:
     case Function::DYNAMIC_OUTPUT:
     case Function::ELEC_ENERGY:
@@ -2665,6 +2680,9 @@ void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
   Vector<complex<double> >& u = forward.Get(excite)->GetComplexVector(Solution::RAW_VECTOR);
   Vector<complex<double> >& l = adjoint.Get(excite, f)->GetComplexVector(Solution::SEL_VECTOR);
 
+  LOG_DBG2(em) << "AdjustComplexAdjointRHS: u = " << u.ToString();
+  LOG_DBG2(em) << "AdjustComplexAdjointRHS: l = " << l.ToString();
+
   // create a OLAS vector
   Vector<complex<double> >& rhs = adjoint.Get(excite, f)->GetComplexVector(Solution::RHS_VECTOR);
   rhs.Resize(u.GetSize());
@@ -2688,8 +2706,25 @@ void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
 
     for(unsigned int i = 0; i < rhs.GetSize(); i++)
       rhs[i] = complex<double>(-1.0 * ul.real() * l[i].real(), ul.imag() * l[i].real());
-
+    break;
   }
+
+  case Function::DISPLACED_VOLUME:
+  {
+    // J = |u^T l| = sqrt( <u_R,l>^2 + <u_I,l>^2)
+    // S lambda = - <u^*, l>/ 2*J * l = alpha * l
+
+    complex<double> lu = l.Inner(u); // (u^*)^T l = <l, u>
+    complex<double> ul = u.Inner(l); // J = |u^T l|
+    complex<double> alpha = -0.5 * lu / std::abs(ul);
+
+    LOG_DBG2(em) << "ACARHS: <u,l>=" << ul << " <l,u>=" << lu << " alpha=" << alpha;
+
+    for(unsigned int i = 0; i < rhs.GetSize(); i++)
+      rhs[i] = alpha * l[i];
+    break;
+  }
+
   case Function::CONJUGATE_COMPLIANCE: // rhs is from original excitation, we stored it in forward...rhs
   {
     forward.Get(excite)->Read(Solution::RHS_VECTOR, pde); // set

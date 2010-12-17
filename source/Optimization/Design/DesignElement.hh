@@ -355,9 +355,11 @@ public:
    * @param g @see GetPlainValue() */
   double GetSensitivityFilteredValue(DesignElement::ValueSpecifier valueSpecifier, Condition* g) const;
 
-  /** Does design filtering.
-   * @param fd eithe the filter.density_ property of this element or explicitly Filter::STANDARD */
-  double GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Condition* g, Filter::Density fd) const;
+  /** Does design filtering. */
+  double GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Filter::Density fd) const;
+
+  /** Helper for GetDensityFilteredValue() */
+  double CalcHeaviside(double input_value) const;
 
   /** only for sensitivities for density filtering.
    * See Sigmund; Morpology-based black and white filters for topology optimization; 2007; (35) and (36) */
@@ -387,6 +389,9 @@ public:
    * The element itself is NOT part of the neighborhood!
    * @see DesignStructure::DesignStructure() */
   StdVector<NeighbourElement> neighborhood;
+
+  /** string representation for logging, includes neighborhood */
+  std::string ToString() const;
 
   /** for debugging. Sums the weights of all neighbors, ... */
   void Dump();

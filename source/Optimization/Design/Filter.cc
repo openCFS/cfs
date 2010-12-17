@@ -1,13 +1,52 @@
 #include "Optimization/Design/Filter.hh"
+#include "Optimization/Design/DesignSpace.hh"
 
 using namespace CoupledField;
 
 Filter::Filter()
 {
-  type_        = NO_FILTERING;
-  sensitivity_ = SIGMUND;
-  density_     = STANDARD;
-  beta_        = -1.0;
+  type_          = NO_FILTERING;
+  sensitivity_   = SIGMUND;
+  density_       = STANDARD;
+  beta_          = -1.0;
+  heaviside_corr = -1.0;
 }
 
 
+void Filter::SetBeta(double val, const DesignSpace* space)
+{
+  beta_ = val;
+  // is there a need to set heavside_corr?
+  if(type_ != DENSITY || density_ != HEAVISIDE) return;
+
+  double lb = space->data[0].GetLowerBound();
+  // we assume a constant lower bound, if this is not he case we need another implementation
+  for(unsigned int i = 0, n = space->data.GetSize(); i < n; i++)
+    assert(space->data[i].GetLowerBound() == lb);
+
+  DesignElement de = DesignElement();
+  de.simp = new SIMPElement(&de);
+  de.simp->filter = *this;
+  de.elem = space->data[0].elem;
+  de.SetLowerBound(lb);
+  de.SetDesign(lb);
+
+  // find haviside_corr by a simple bisection (results in 0.2 ... 0.99999)
+  double lower = 1e-6;
+  double upper = 2.0;
+  while(upper - lower > 1e-6) // so close that it doesn't matter in the end which value [lower:upper] is best
+  {
+    double mid = 0.5 * (upper + lower);
+    de.simp->filter.heaviside_corr = 0.5 * (upper + mid);
+    double err_u = lb - de.simp->CalcHeaviside(lb);
+    de.simp->filter.heaviside_corr = 0.5 * (mid + lower);
+    double err_l = lb - de.simp->CalcHeaviside(lb);
+    if(std::abs(err_u) < std::abs(err_l))
+      lower = mid;
+    else
+      upper = mid;
+    // std::cout << "hc=" << de.simp->filter.heaviside_corr << " lower=" << lower << " beta=" << de.simp->filter.GetBeta() << " upper=" << upper << " err_l=" << err_l << " err_u=" << err_u;
+  }
+
+  this->heaviside_corr = de.simp->filter.heaviside_corr;
+}

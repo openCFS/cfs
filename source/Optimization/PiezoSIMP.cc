@@ -220,10 +220,12 @@ double PiezoSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
     }
     factor *= 0.5; // no break! -> J = 0.5 p^T K_pp p
 
+  // TODO make it smarter to evaluate the functions as piezo functions and not mech functions!
   case Objective::OUTPUT:
   case Objective::DYNAMIC_OUTPUT:
   case Objective::ENERGY_FLUX:
   case Objective::GLOBAL_DYNAMIC_COMPLIANCE:
+  case Objective::DISPLACED_VOLUME:
   {
     if(!derivative)
       return SIMP::CalcFunction(excite, f, derivative);

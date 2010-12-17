@@ -49,6 +49,7 @@ class Function
       OUTPUT,                    /*!< Re(u,l) maximize solution where vector l is not 0 */
       DYNAMIC_OUTPUT,            /*!< (u, L conj(u)) as OUTPUT but complex */
       ABS_DYN_OUTPUT_SQUARED,    /*!< |<u,l>|^2 = | sum u_l |^2 = < sum u_l, sum u_l> harmonic */
+      DISPLACED_VOLUME,          /*!< |<u,l>|, harmonic */
       CONJUGATE_COMPLIANCE,      /*!< (u, F conj(u)) as DYNAMIC_OUTPUT with trace of L is f */
       GLOBAL_DYNAMIC_COMPLIANCE, /*!< (u, I conj(u)) as DYNAMIC_OUTPUT with L is I (everywhere) */
       ELEC_ENERGY,               /*!< p^T K_pp p or p^T K_pp p^* */

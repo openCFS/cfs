@@ -77,7 +77,8 @@ private:
   /** This is a helper for InitFilter(). It is recursive!.
    * See implementation for docu. */
   void FindNeighborhood(DesignElement* base, double radius,
-                          StdVector<std::pair<Elem*, int> >& buddies,
+                          StdVector<std::pair<Elem*, int> >& initial,
+                          StdVector<std::pair<Elem*, int> >& expandable,
                           StdVector<SIMPElement::NeighbourElement>& neighbors,
                           StdVector<unsigned int>& too_far);
 
@@ -101,6 +102,9 @@ private:
   /** adds source to out such that no double entries exist.
    * Helper for ExtendPeriodicNeighborhood() */
   void AppendNeighbors(const StdVector<std::pair<Elem*, int> >& source, StdVector<std::pair<Elem*, int> >& out);
+
+  /** add the test pair if it does not exist already in out */
+  void AppendNeighbors(const std::pair<Elem*, int>& test, StdVector<std::pair<Elem*, int> >& out);
 
   /** helper for the common stuff.
    * Almost copy and paste to the other AppendNeighbors() */

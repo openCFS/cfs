@@ -213,6 +213,9 @@ void SnOpt::InfoXMLOutput()
   case 32:
     exitstring = "major iteration limit reached";
     break;
+  case 71:
+    exitstring = "termination during function evaluation - user requested termination";
+    break;
   default:
     exitstring = "not yet documented";
   }

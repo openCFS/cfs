@@ -6,6 +6,8 @@
 namespace CoupledField
 {
 
+class DesignSpace;
+
 /** This is an information container for the Filter which is stored in the DesignElemen!.
  * This does not include filter information used by DesignStructure to initialize the filter.
  * Set in DesignStructure, stored in DesignElement */
@@ -39,11 +41,26 @@ public:
 
   bool Enabled() const { return type_ != NO_FILTERING; }
 
+  double GetBeta() const { return beta_; }
+
+  /** Setting beta triggers the calculation of heaviside_corr.
+   * The other settings need to be set! */
+  void SetBeta(double beta, const DesignSpace* space);
+
   Type        type_;
   Sensitivity sensitivity_;
   Density     density_;
-  // this is the beta parameter for the modified heaviside design filter */
-  double     beta_;
+
+  /** this is the correction parameter for the (not modified) heaviside filter,
+   * such that H(rho_min) = rho_min -> otherwise H(0.001) -> 1 for beta -> inf
+   * the correction value found by bisection on any new beta value */
+  double    heaviside_corr;
+
+private:
+  /** this is the beta parameter for the (modified) heaviside design filter.
+   * Private such that we force setting heaviside_corr on setting beta */
+   double     beta_;
+
 };
 
 }

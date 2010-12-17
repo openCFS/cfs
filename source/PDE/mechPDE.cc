@@ -2537,7 +2537,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     UInt nrSurfNodes = surfEl->GetNumNodes();
 
 
-    //compute average displacedment
+    //compute average displacement
     averageDis = 0;
     for (UInt i=0; i<nrSurfNodes; i++) {
       averageDis += disp[i];

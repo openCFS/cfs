@@ -5,6 +5,7 @@
 
 namespace CoupledField
 {
+template<class TYPE> class Vector;
 
 /** Useful 3D coordinate class.
 * One wonders if this doesn't exist in boost ?? */
@@ -37,6 +38,18 @@ public:
     for(UInt i=0; i<3; i++)
       data[i]=0.0;
   }
+
+  /** Assumes a Cartesian orientation and gives the direction, 0-based!*/
+  int GetCartesianOrientation() const {
+    return GetCartesianOrientation(&data[0]);
+  }
+
+  /** Assumes a Cartesian orientation and gives the direction, 0-based!
+   * @param vec assumed to be of size 3 - pointer because of circular inclusion :(
+   * @return 0-based index of (firt) non-zero index. */
+  static int GetCartesianOrientation(const Vector<double>* vec);
+
+
 
   //!
   Point & operator=(const Point & t);
@@ -98,6 +111,12 @@ public:
   std::string ToString() const;
 
   Double data[3];
+
+private:
+  /** common implementation
+   * @param assume to be of size 3! */
+  static int GetCartesianOrientation(const double* vec);
+
 };
 
 

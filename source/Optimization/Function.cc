@@ -242,6 +242,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case ENERGY_FLUX:
     case TRACKING:
     case ABS_DYN_OUTPUT_SQUARED:
+    case DISPLACED_VOLUME:
     case CONJUGATE_COMPLIANCE:
     case GLOBAL_DYNAMIC_COMPLIANCE:
     case ELEC_ENERGY:
@@ -297,6 +298,7 @@ bool Function::IsAdjointBased() const
     case OUTPUT:
     case CONJUGATE_COMPLIANCE:
     case ABS_DYN_OUTPUT_SQUARED:
+    case DISPLACED_VOLUME:
     case GLOBAL_DYNAMIC_COMPLIANCE:
     case DYNAMIC_OUTPUT:
     case ELEC_ENERGY:
@@ -316,6 +318,7 @@ bool Function::NeedsSelectionVector() const
     case OUTPUT:
 //    case CONJUGATE_COMPLIANCE: ??
     case ABS_DYN_OUTPUT_SQUARED:
+    case DISPLACED_VOLUME:
     case DYNAMIC_OUTPUT:
     case ENERGY_FLUX:
     return true;
@@ -374,6 +377,7 @@ bool Function::ForSensitivityFiltering() const
   case POISSONS_RATIO:
   case YOUNGS_MODULUS:
   case TEMPERATURE:
+  case DISPLACED_VOLUME:
   case STRESS:
     return true;
 
