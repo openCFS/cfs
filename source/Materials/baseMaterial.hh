@@ -244,6 +244,10 @@ namespace CoupledField {
     virtual void InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList, 
                            bool isInverse = false, bool computeInverse = false );
 
+    //Initialize hysteresis
+    virtual void InitVecHyst( UInt numElemSD, shared_ptr<ElemList> actSDList, 
+                              UInt dim );
+
     //! get hysteresis operator
     Hysteresis* getHysteresis() {
       return hyst_;
@@ -266,7 +270,10 @@ namespace CoupledField {
     };
 
     //set values for differential material approach
-  virtual void SetPreviousHystVal( UInt nrElem, Vector<Double>& Xval );
+    virtual void SetPreviousHystVal( UInt nrElem, Vector<Double>& Xval );
+
+    //set values for differential material approach
+    virtual void SetPreviousInvVecHystVal( UInt nrElem, Vector<Double>& Yval );
 
     //! compute scalar differential parameter
     virtual Double ComputeScalarDiffVal( UInt nrElem, Double Xval ) {
@@ -282,6 +289,11 @@ namespace CoupledField {
                                             Vector<Double>& scalarValues ) {
       EXCEPTION( "ComputeScalarDiffValues not implemented" );
     };
+
+    //! compute scalar differential parameter
+    virtual void ComputeDiffVal4InvVecHyst( UInt nrElem, 
+                                            Vector<Double>& Xval,
+                                            Vector<Double>& vecVal );
 
     //! computes the scalar hystereis value
     virtual Double ComputeScalarHystVal( UInt nrElem, Double Xval ) {
@@ -306,8 +318,11 @@ namespace CoupledField {
 
     //! get vector of hysteresis model
     virtual void GetVectorHystVal( UInt nrElem, Vector<Double>& Val ) {
-      EXCEPTION( "GetVectorHystVal not implemented" );
+      EXCEPTION( "ComputeVectorHystVal not implemented" );
     };
+
+    //! get vector of hysteresis model
+    virtual void GetVectorXHystVal( UInt nrElem, Vector<Double>& Val );
 
     //========================== micro-piezoelectric-model: start==================
 
@@ -440,7 +455,16 @@ namespace CoupledField {
     Hysteresis * hyst_;
 
     //! hysteresis object
+    Hysteresis * hystY_;
+
+    //! hysteresis object
+    Hysteresis * hystZ_;
+
+    //! hysteresis object
     Hysteresis** vecHyst_;
+
+    //!
+    UInt dimVecHyst_;
 
     //!
     bool isHystInverse_;
@@ -453,6 +477,12 @@ namespace CoupledField {
 
     Vector<Double> Xprevious_; //! previous Xval in hysteresis
     Vector<Double> Yprevious_; //! previous Yval in hysteresis
+
+    Matrix<Double> vecXprevious_; //! previous Xval in hysteresis
+    Matrix<Double> vecYprevious_; //! previous Yval in hysteresis
+
+    Matrix<Double> actDiffVal4VecHyst_;
+    Matrix<Double> previousDiffVal4VecHyst_;
 
     std::map<UInt, UInt> globalElem2Local_;
 

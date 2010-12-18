@@ -132,13 +132,58 @@ namespace CoupledField
                                     SubTensorType subTensorType );
 
     //!
-    void ComputeDiffCouplingTensorMicroPiezo( Matrix<Double>& dMat, 
-                                              Vector<Double>& actE,
-                                              Vector<Double>& prevE,
-                                              Vector<Double>& actSirr,
-                                              Vector<Double>& prevSirr,
-                                              SubTensorType subTensorType );
+    void ComputeDiffCouplingTensorMicroPiezoMechEQ( Matrix<Double>& dMat, 
+                                                    Vector<Double>& actE,
+                                                    Vector<Double>& prevE,
+                                                    Vector<Double>& actSirr,
+                                                    Vector<Double>& prevSirr,
+                                                    SubTensorType subTensorType );
 
+    //!
+    void ComputeDiffCouplingTensorMicroPiezoElecEQ( Matrix<Double>& dMat, 
+                                                    Vector<Double>& actStress,
+                                                    Vector<Double>& prevStress,
+                                                    Vector<Double>& actPirr,
+                                                    Vector<Double>& prevPirr,
+                                                    SubTensorType subTensorType );
+
+    //!
+    void ComputeDiffMechTensorMicroPiezo( Matrix<Double>& dMat,
+                                          Vector<Double>& actStress,
+                                          Vector<Double>& prevStress,
+                                          Vector<Double>& actSirr,
+                                          Vector<Double>& prevSirr,
+                                          SubTensorType subTensorType );
+
+    //!
+    void ComputeDiffElecTensorMicroPiezo( Matrix<Double>& dMat,
+                                          Vector<Double>& actElec,
+                                          Vector<Double>& prevElec,
+                                          Vector<Double>& actSirr,
+                                          Vector<Double>& prevSirr,
+                                          SubTensorType subTensorType );
+
+    //!
+    void ComputeEffMechCouplingTensorMicroPiezo( Matrix<Double>& sEffMat,
+                                                 Matrix<Double>& dEffMat,
+                                                 Vector<Double>& actStress,
+                                                 Vector<Double>& prevStress,
+                                                 Vector<Double>& actE,
+                                                 Vector<Double>& prevE,
+                                                 Vector<Double>& actSirr,
+                                                 Vector<Double>& prevSirr,
+                                                 SubTensorType subTensorType );
+
+    //!
+    void ComputeEffElecCouplingTensorMicroPiezo( Matrix<Double>& epsEffMat,
+                                                 Matrix<Double>& dEffMat,
+                                                 Vector<Double>& actStress,
+                                                 Vector<Double>& prevStress,
+                                                 Vector<Double>& actE,
+                                                 Vector<Double>& prevE,
+                                                 Vector<Double>& actPirr,
+                                                 Vector<Double>& prevPirr,
+                                                 SubTensorType subTensorType );
     // Postprocession section
 
     //! computes stresses, strain, i.e. \sigma = cBu + e \grad \phi

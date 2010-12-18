@@ -1034,7 +1034,7 @@ namespace CoupledField
         break;
       
       default: 
-        Double eps = 1e-20;
+        Double eps = 1e-40;
         TYPE pivot;
         TYPE pinv;
 

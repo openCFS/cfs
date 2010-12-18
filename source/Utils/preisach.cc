@@ -71,7 +71,7 @@ namespace CoupledField
     return ( preisachSum_[idx]*YSaturated_ );
   }
 
-  Double Preisach::computeValue(Double Xin, Integer idx, bool overwrite) 
+  Double Preisach::computeValue(Double& Xin, Integer idx, bool overwrite) 
   {
 
     Vector<Double> &stringEl     = strings_[idx];

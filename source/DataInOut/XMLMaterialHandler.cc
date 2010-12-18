@@ -849,27 +849,13 @@ namespace CoupledField {
         material->SetScalar("preisach", HYST_MODEL);
 
         // read E saturation of Preisach hysterese model
-        if(p->Has("eSat"))
-          material->SetScalar(p->Get("eSat")->As<Double>(), X_SATURATION, Global::REAL ); 
+        if(p->Has("hSat"))
+          material->SetScalar(p->Get("hSat")->As<Double>(), X_SATURATION, Global::REAL ); 
  
         // read P saturation of Preisach hysterese model
-        if(p->Has("pSat"))
-          material->SetScalar(p->Get("pSat")->As<Double>(), Y_SATURATION, Global::REAL ); 
+        if(p->Has("bSat"))
+          material->SetScalar(p->Get("bSat")->As<Double>(), Y_SATURATION, Global::REAL ); 
 
-        // read direction of polarization
-        if(p->Has("dirP"))
-        {
-          int dir = p->Get("dirP")->As<Integer>();
-          
-          if(dir == 1) material->SetScalar("X", P_DIRECTION );
-          if(dir == 2) material->SetScalar("Y", P_DIRECTION );
-          if(dir == 3) material->SetScalar("Z", P_DIRECTION );
-          
-          if(dir != 1 && dir != 2 && dir != 3)
-            EXCEPTION(dir << " is valid coordinate direction for electric preisach "
-                      << " hysteresis model polarization");
-        }
-        
         // read weight dimension of Preisach hysterese model for weights
         int dim = -1;
         if(p->Has("dim")) dim = p->Get("dim")->As<Integer>();

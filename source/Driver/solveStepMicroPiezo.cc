@@ -76,6 +76,7 @@ namespace CoupledField {
     UInt iterationCounter=0;
     Double etaLineSearch, residualNorm;
     Double incrementalErrPrev = 1e20;
+    Double incrementalErr;
 
     Vector<Double> newSol( numEqns_ ); 
     Vector<Double> oldSol( numEqns_ );
@@ -126,13 +127,6 @@ namespace CoupledField {
 
     do {
       iterationCounter++;
-      // for every time step write out number of iteration loops to standard out
-//       if (iterationCounter == 1)
-//         std::cout << std::endl << "Time step:   "  << actStep_
-//                   << "  ,Iterations: " << iterationCounter << std::endl;
-//       else 
-//         std::cout << "Iter:  " << iterationCounter << std::endl;
-    
 
 #ifdef DEBUG
       std::cout << std::endl
@@ -157,6 +151,10 @@ namespace CoupledField {
       // setup RHS to incorporate loads and linear-Forms
       assemble_->AssembleLinRHS(); 
 
+      //Vector<Double> RHS;
+      //algsys_->GetRHSVal(RHS);
+      //std::cout << "RHS:\n " << RHS << std::endl;
+
       //perform new assembly
       assemble_->AssembleMatrices();
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
@@ -171,18 +169,15 @@ namespace CoupledField {
       // M*(d2u_n,Ve_n)
       algsys_->UpdateRHS(MASS, solDeriv2Prev);
 
-      // build in the Dirichlet vales in system mmatrix and rhs
+      // build in the Dirichlet vales in system matrix and rhs
       algsys_->BuildInDirichlet();
-
-      //get RHS
-      Vector<Double> RHS;
-      algsys_->GetRHSVal(RHS);
 
       algsys_->SetupSolver(analysis_id);
       algsys_->SetupPrecond();
     
       algsys_->Solve(analysis_id);
       algsys_->GetSolutionVal(newSol); 
+      //std::cout << "new Sol:\n" << newSol << std::endl;
 
 //       //perform a line search
 //       LineSearchPM( newSol, oldSol, solPrev, solDeriv2Prev, etaLineSearch, 
@@ -207,35 +202,38 @@ namespace CoupledField {
       solIncrL2Norm = sqrt(solIncrL2Norm);
       Double actSolL2Norm = newMech.NormL2();
     
-      Double incrementalErr;
       if (actSolL2Norm > 1)
         incrementalErr = solIncrL2Norm / actSolL2Norm;
       else
         incrementalErr = solIncrL2Norm;
  
       etaLineSearch = 1.0;
-      //      if (  incrementalErr > incrementalErrPrev ) {
-        //perform a line search
-        LineSearchPM( newSol, oldSol, solPrev, solDeriv2Prev, etaLineSearch, 
-                      residualNorm );
+//       if (  incrementalErr > incrementalErrPrev ) {
+//         //perform a line search
 
-        //store solution for (n+1)
-        PDE_.SaveSolution( newSol.GetPointer(), newSol.GetSize() );
+//         LineSearchPM( newSol, oldSol, solPrev, solDeriv2Prev, etaLineSearch, 
+//                       residualNorm );
 
-        solIncrL2Norm=0;
-        for (UInt i=0; i<newMech.GetSize(); i++)
-          solIncrL2Norm += (newMech[i]-oldMech[i])*(newMech[i]-oldMech[i]);
+//         //store solution for (n+1)
+//         PDE_.SaveSolution( newSol.GetPointer(), newSol.GetSize() );
+
+//         solIncrL2Norm=0;
+//         for (UInt i=0; i<newMech.GetSize(); i++)
+//           solIncrL2Norm += (newMech[i]-oldMech[i])*(newMech[i]-oldMech[i]);
     
-        solIncrL2Norm = sqrt(solIncrL2Norm);
-        actSolL2Norm = newMech.NormL2();
+//         solIncrL2Norm = sqrt(solIncrL2Norm);
+//         actSolL2Norm = newMech.NormL2();
     
-        if (actSolL2Norm > 1)
-          incrementalErr = solIncrL2Norm / actSolL2Norm;
-        else
-          incrementalErr = solIncrL2Norm;
-        //      }
+//         if (actSolL2Norm > 1)
+//           incrementalErr = solIncrL2Norm / actSolL2Norm;
+//         else
+//           incrementalErr = solIncrL2Norm;
+
+//       }
+
 
       incrementalErrPrev = incrementalErr;
+      residualNorm = incrementalErr;
 
       // output of norms and data
       nonLinLogging_ = true;
@@ -260,6 +258,9 @@ namespace CoupledField {
 //                 << "nonLinearMaxIter_ = "
 //                 << nonLinMaxIter_);
 //     }
+
+    if ( incrementalErr > incStopCrit_ ) 
+      std::cout << "Not converged, norm is: " <<incrementalErr << std::endl; 
 
     //set the current values to the previous for the next time step!
     SetPreviousVals();

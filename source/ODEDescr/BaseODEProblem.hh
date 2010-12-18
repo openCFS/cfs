@@ -40,6 +40,7 @@ namespace CoupledField {
       std::cerr<< "Jacobi method is not yet implemented for this problem" << std::endl;
     }
 
+    virtual void setDynamicCoefficients(Matrix<Double>& coeff ) {;};
 
   };
 

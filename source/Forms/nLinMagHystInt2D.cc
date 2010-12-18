@@ -96,13 +96,13 @@ namespace CoupledField
         }
       }
     }
-    std::cout << "elenMat:\n" << elemMat << std::endl;
+    //std::cout << "elemMat:\n" << elemMat << std::endl;
   }
   
   
   // returns B - matrix for BDB
   void nLinMagHystInt2D::calcMyBMat( Matrix<Double> &bMat, UInt ip,
-                                 Matrix<Double> &ptCoord ) {
+                                     Matrix<Double> &ptCoord ) {
 
 
     const UInt numFncs  = ptelem->GetNumFncs( ansatzFct1_ );
@@ -170,15 +170,14 @@ namespace CoupledField
 
     Vector<Double> scalarVals(2);
 
-    ptMaterial->ComputeScalarDiffValues( elNr, Bfield_, scalarVals );
-    std::cout << "scalarVals:\n" << scalarVals << std::endl;
+    ptMaterial->ComputeDiffVal4InvVecHyst( elNr, Bfield_, scalarVals );
+    //std::cout << "scalarVals:\n" << scalarVals << std::endl;
 
-    dMat[0][0] = 1 + scalarVals[0];
-    dMat[1][1] = 1 + scalarVals[0];
-    dMat[0][1] = scalarVals[1];
-    dMat[1][0] = scalarVals[1];
+    dMat.Init();
+    dMat[0][0] = scalarVals[0];
+    dMat[1][1] = scalarVals[1];
 
-    dMat *=  reluctivity0_;
+    //    dMat *=  reluctivity0_;
     std::cout << "dMat:\n" << dMat << std::endl;
   }
 

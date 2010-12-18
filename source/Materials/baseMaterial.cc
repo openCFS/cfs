@@ -13,6 +13,7 @@
 #include "MatVec/matrix.hh"
 #include "Utils/coordSystem.hh"
 #include "Utils/preisach.hh"
+#include "Utils/simplePreisachInv.hh"
 #include "Domain/entityList.hh"
 #include "Utils/piezoMicroModel.hh"
 #include "Utils/piezoMicroModelBK.hh"
@@ -472,6 +473,160 @@ namespace CoupledField
     Yprevious_.Resize(numElemSD);
     Xprevious_.Init();
     Yprevious_.Init();
+  }
+
+
+  void BaseMaterial::InitVecHyst( UInt numElemSD, shared_ptr<ElemList> actSDList,
+                                  UInt dim ) {
+
+
+    std::string val = stringParams_[HYST_MODEL];
+    if ( val != "preisach" ) {
+      EXCEPTION( "Currently we just support Preisach Hysteresis Model" );
+    }
+    else {
+      isHysteresis_ = true;
+
+      Double Xsat, Ysat;
+      GetScalar(Xsat, X_SATURATION, Global::REAL);
+      GetScalar(Ysat, Y_SATURATION, Global::REAL);
+      Matrix<Double> weights;
+      GetTensor(weights,  PREISACH_WEIGHTS, Global::REAL);
+      bool isVirgin = true; 
+
+      dimVecHyst_ = dim;
+      hyst_ = new SimplePreisachInv(numElemSD, Xsat, Ysat, weights, isVirgin);
+      if ( dim == 2 ) 
+        hystY_ = new SimplePreisachInv(numElemSD, Xsat, Ysat, weights, isVirgin);
+      else if ( dim == 3) {
+        hystY_ = new SimplePreisachInv(numElemSD, Xsat, Ysat, weights, isVirgin);
+        hystZ_ = new SimplePreisachInv(numElemSD, Xsat, Ysat, weights, isVirgin);
+      }
+
+      // set map: global to local element number
+      EntityIterator it = actSDList->GetIterator();
+      UInt iel = 0;
+      UInt globalElNr;
+      for ( it.Begin(); !it.IsEnd(); it++, iel++) {
+	globalElNr = it.GetElem()->elemNum;
+	globalElem2Local_[globalElNr] = iel;
+      }
+    }
+
+    //allocate memory for previous results, needed for the
+    //effective material parameter formulation
+    vecXprevious_.Resize(dim,numElemSD);
+    vecYprevious_.Resize(dim,numElemSD);
+    vecXprevious_.Init();
+    vecYprevious_.Init();
+
+    actDiffVal4VecHyst_.Resize(dim,numElemSD);
+    previousDiffVal4VecHyst_.Resize(dim,numElemSD);
+    Double nu;
+    GetScalar(nu,MAG_RELUCTIVITY,Global::REAL);
+    for (UInt i=0; i<dim; i++)
+      for (UInt j=0; j<numElemSD; j++)
+        previousDiffVal4VecHyst_[i][j] = nu;
+
+  }
+
+  void BaseMaterial::SetPreviousInvVecHystVal( UInt nrElem, Vector<Double>& Yvec) {
+
+    UInt idx = globalElem2Local_[nrElem];
+
+    //set input = xvalue
+    vecXprevious_[0][idx] = hyst_->computeValue( Yvec[0], idx, true );
+    vecXprevious_[1][idx] = hystY_->computeValue( Yvec[1], idx, true );
+    if ( Yvec.GetSize() == 3) 
+      vecXprevious_[2][idx] = hystZ_->computeValue( Yvec[2], idx, true );
+
+    //save output = yvalue
+    vecYprevious_[0][idx] = Yvec[0];
+    hyst_->SetPreviousYval( Yvec[0], idx );
+
+    vecYprevious_[1][idx] = Yvec[1];
+    hystY_->SetPreviousYval( Yvec[1], idx );
+
+    if ( Yvec.GetSize() == 3) {
+      vecYprevious_[2][idx] = Yvec[2];
+      hystZ_->SetPreviousYval( Yvec[2], idx );
+    }
+
+
+    //set act diffValues to previous ones
+    previousDiffVal4VecHyst_[0][idx] = actDiffVal4VecHyst_[0][idx];
+    previousDiffVal4VecHyst_[1][idx] = actDiffVal4VecHyst_[1][idx];
+    if ( Yvec.GetSize() == 3) 
+      previousDiffVal4VecHyst_[2][idx] = actDiffVal4VecHyst_[2][idx];
+
+  }
+
+  void BaseMaterial::ComputeDiffVal4InvVecHyst( UInt nrElem, 
+                                                Vector<Double>& vecVal,
+                                                Vector<Double>& diffVal ) {
+
+    Double xVal, yVal, dX, dY;
+
+    UInt idx = globalElem2Local_[nrElem];
+
+    //x-component
+    yVal = vecVal[0];
+    xVal = hyst_->computeValue( yVal, idx, false );
+
+    dX = xVal - vecXprevious_[0][idx];
+    dY = yVal - vecYprevious_[0][idx];
+
+    if ( (abs(dY) < 1e-12) || (abs(dX) < 1e-10) ) {
+      diffVal[0] = previousDiffVal4VecHyst_[0][idx];
+    }
+    else {
+      diffVal[0] = dX / dY;
+    }
+    actDiffVal4VecHyst_[0][idx] = diffVal[0]; 
+
+    //y-component
+    yVal = vecVal[1];
+    xVal = hystY_->computeValue( yVal, idx, false );
+
+    dX = xVal - vecXprevious_[1][idx];
+    dY = yVal - vecYprevious_[1][idx];
+
+    if ( (abs(dY) < 1e-12) || (abs(dX) < 1e-10) ) {
+      diffVal[1] = previousDiffVal4VecHyst_[1][idx];
+    }
+    else {
+      diffVal[1] = dX / dY;
+    }
+    actDiffVal4VecHyst_[1][idx] = diffVal[1]; 
+
+    if ( vecVal.GetSize() == 3 ) {
+      //y-component
+      yVal = vecVal[2];
+      xVal = hystZ_->computeValue( yVal, idx, false );
+
+      dX = xVal - vecXprevious_[2][idx];
+      dY = yVal - vecYprevious_[2][idx];
+
+      if ( (abs(dY) < 1e-12) || (abs(dX) < 1e-10) ) {
+        diffVal[2] = previousDiffVal4VecHyst_[2][idx];
+      }
+      else {
+        diffVal[2] = dX / dY;
+      }
+      actDiffVal4VecHyst_[2][idx] = diffVal[2]; 
+    }
+
+  }
+
+  void BaseMaterial::GetVectorXHystVal( UInt nrElem, Vector<Double>& Val ) {
+
+    UInt idx = globalElem2Local_[nrElem];
+
+    Val[0] = hyst_->getActXval( idx );
+    Val[1] = hystY_->getActXval( idx );
+    if ( Val.GetSize() == 3 ) 
+      Val[2] = hystZ_->getActXval( idx );
+
   }
 
 

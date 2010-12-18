@@ -24,7 +24,7 @@ namespace CoupledField {
     virtual ~Preisach();
 
     //!
-    Double computeValue(Double xVal, Integer idxElem, bool overwrite = true);
+    Double computeValue(Double& xVal, Integer idxElem, bool overwrite = true);
 
     //!
     Double computeInverseValue(Double xVal, Integer idxElem);
