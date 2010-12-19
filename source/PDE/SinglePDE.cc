@@ -2402,7 +2402,7 @@ namespace CoupledField {
           shared_ptr<BaseResult> outResult_solDeriv;
           outResult_solDeriv = shared_ptr<BaseResult>(new Result<Double>());
           shared_ptr<ResultInfo> actResultInfo_deriv(new ResultInfo);
-          *actResultInfo_deriv = *actList[i]->GetResultInfo();
+          *actResultInfo_deriv = *actResultInfo;
 
           outResult_solDeriv->SetResultInfo( actResultInfo_deriv );
           outResult_solDeriv->SetEntityList( entList );
@@ -2929,8 +2929,8 @@ namespace CoupledField {
                                  BaseNodeStoreSol* ptStoreSol )
   {
     StdVector<Integer> eqnNums;
-    ResultInfo& actDof = *(toBaseResult->GetResultInfo() );
-    UInt numDofs = actDof.dofNames.GetSize();
+    ResultInfo& resInfo = *(toBaseResult->GetResultInfo() );
+    UInt numDofs = resInfo.dofNames.GetSize();
 
     Vector<TYPE>& solHelp =
       dynamic_cast<NodeStoreSol<TYPE>&> ( *ptStoreSol ).GetAlgSysVector();
@@ -2939,30 +2939,36 @@ namespace CoupledField {
     Vector<TYPE> & actSol = dynamic_cast<Result<TYPE>&>
       (*toBaseResult).GetVector();
     actSol.Resize( toBaseResult->GetEntityList()->GetSize() *
-                   actDof.dofNames.GetSize() );
+                   resInfo.dofNames.GetSize() );
 
     actSol.Init();
-    for( it.Begin(); !it.IsEnd(); it++ ) {
-
+    for ( it.Begin(); !it.IsEnd(); it++ )
+    {
       // get equation numbers
-      eqnMap_->GetEqns( eqnNums, actDof, it );
+      eqnMap_->GetEqns( eqnNums, resInfo, it );
       //check for discontinuous results and compute the average if necessary
-      if(actDof.fctType->IsDiscontinuous()){
+      if (resInfo.fctType->IsDiscontinuous())
+      {
         //Compute the number of discontinuous dofs
         UInt numDisNodes = eqnNums.GetSize() / numDofs;
         Double factor = 1.0 / numDisNodes;
-        for( UInt iNode = 0; iNode < numDisNodes; iNode++ ) {
-          for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
-            if( eqnNums[iDof] != 0 ) {
+        for ( UInt iNode = 0; iNode < numDisNodes; iNode++ )
+        {
+          for ( UInt iDof = 0; iDof < numDofs; iDof++ )
+          {
+            if ( eqnNums[iDof] != 0 )
+            {
               actSol[it.GetPos()*numDofs+iDof] += solHelp[abs(eqnNums[(iNode*numDofs) + iDof])-1] * factor;
             } else {
               actSol[it.GetPos()*numDofs+iDof] += 0.0;
             }
           }
         }
-      }else{
-        for( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ) {
-          if( eqnNums[iDof] != 0 ) {
+      } else {
+        for ( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ )
+        {
+          if ( eqnNums[iDof] != 0 )
+          {
             actSol[it.GetPos()*numDofs+iDof] = solHelp[abs(eqnNums[iDof])-1];
           } else {
             actSol[it.GetPos()*numDofs+iDof] = 0.0;
