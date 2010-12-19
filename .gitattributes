@@ -1163,6 +1163,8 @@ source/ODEDescr/LinearKellerMiksis.cc svneol=native#text/plain
 source/ODEDescr/LinearKellerMiksis.hh svneol=native#text/plain
 source/ODEDescr/RPNNP.cc svneol=native#text/plain
 source/ODEDescr/RPNNP.hh svneol=native#text/plain
+source/ODEDescr/piezoSwitch.cc -text
+source/ODEDescr/piezoSwitch.hh -text
 source/ODESolve/BaseODESolver.hh svneol=native#text/plain
 source/ODESolve/CMakeLists.txt svneol=native#text/plain
 source/ODESolve/ODESolver_ExplEuler.cc svneol=native#text/plain
@@ -1522,6 +1524,8 @@ source/Utils/preisach.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/readCFDbinary.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/Utils/result.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/result.hh svneol=native#text/x-c%2B%2Bhdr
+source/Utils/simplePreisachInv.cc -text
+source/Utils/simplePreisachInv.hh -text
 source/Utils/tools.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/tools.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/trivialCartesianCoordSys.cc svneol=native#text/plain
