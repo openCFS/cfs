@@ -379,6 +379,17 @@ source /home/data/programs/intel/fc(e for 64Bit!)/COMPILER_VERSION/bin/ifortvars
 \todo[inline]{Put                           info                          from
 \url{https://lse17.e-technik.uni-erlangen.de:2001/trac/wiki/CMake} here.}
 
+\subsection{Specifics for Intel Compiler}
+
+The Intel 11.1 compiler needs the libstdc++.so.5, which is not available on all
+platforms anymore. Especially on Ubuntu $>=$ 8.04 the corresponding library has
+to be installed by hand (cf.
+\url{http://software.intel.com/en-us/articles/using-intel-compilers-for-linux-with-ubuntu/}).
+
+Also be sure to use the correct GNU compiler in conjunction with the Intel
+compiler, since compatibility issues can arise (cf.
+\ref{sec:compiler_compat_matrix})
+
 \subsection{Compiler Compatibility Matrix}
 \label{sec:compiler_compat_matrix}
 
