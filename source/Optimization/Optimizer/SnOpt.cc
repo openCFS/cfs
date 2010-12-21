@@ -39,9 +39,9 @@ SnOpt::SnOpt(Optimization* opt, PtrParamNode pn) :
   g_evals(0),       // number of gradient evaluations
   nxname(1),
   nFname(1),
-  iSumm(6),         // variable for snoptbase output
-  iPrint(1),       // variable for file output
-  iSpecs(4),        // variable for file output
+  iSumm(6),         // variable for file output, 6 == stdout
+  iPrint(15),       // variable for file output, 6 == stdout
+  iSpecs(1),        // variable for file output
   DerOpt(1),
   minrw(500),
   miniw(500),
@@ -66,14 +66,14 @@ SnOpt::SnOpt(Optimization* opt, PtrParamNode pn) :
   ObjAdd(0.0),
   optimizer_pn_(pn->Get(Optimization::optimizer.ToString(Optimization::SNOPT_SOLVER), ParamNode::PASS)),
   lin_constraints(0),
-  nonlin_constraints(0)
+  nonlin_constraints(0),
+  perform_commit_iteration_(false), // we want to perform commit iteration only after the first function eval.
+  timer_(new Timer()),
+  timer_callback_(new Timer())
 {
   LOG_TRACE(snopt) << "Initialize SnOpt";
   
-  perform_commit_itteration_ = false; // we want to perform commit iteration only after the first function eval.
-  timer_ = new Timer();
   info_->Get(ParamNode::SUMMARY)->Get("snopt_timer")->SetValue(timer_ );
-  timer_callback_ = new Timer();
   info_->Get(ParamNode::SUMMARY)->Get("snopt_callback_timer")->SetValue(timer_callback_ );
   
   static_snopt = this;
@@ -86,6 +86,7 @@ SnOpt::SnOpt(Optimization* opt, PtrParamNode pn) :
 SnOpt::~SnOpt()
 {
   snclose_(&iPrint);
+  snclose_(&iSumm);
 }
 
 void SnOpt::Init()
@@ -107,6 +108,8 @@ void SnOpt::Init()
   // set the optimization options
   // call after get_nlp_info!! 
   SetSnOptOptions();
+  
+  setSnoptOutputFiles();
   
   x.resize(n, 1.0); // start value
   xlow.resize(n, -GetInfBound());
@@ -132,6 +135,21 @@ void SnOpt::Init()
   optimization->GetDesign()->WriteBoundsToExtern(&xlow[0], &xupp[0]);
   
   gradhelper.Resize(std::max(n, nG - n), 0.0);
+}
+
+void SnOpt::setSnoptOutputFiles()
+{
+  //assert(iPrint == 9 || iPrint == 6);
+  char printname[] = "out.printfile";
+  snopenappend_(&iPrint, printname, &INFO, strlen(printname));
+  std::cout << "snopenappend_ for printfile = " << INFO << endl;
+  SetIntegerValue("print_file", iPrint);
+  
+  //assert(iSumm == 4 || iSumm == 6);
+  char summname[] = "out.summfile";
+  snopenappend_(&iSumm, summname, &INFO , strlen(summname));
+  std::cout << "snopenappend_ for summfile = " << INFO << endl;
+  INFO = 0;
 }
 
 void SnOpt::SolveProblem()
@@ -199,19 +217,28 @@ void SnOpt::InfoXMLOutput()
   switch(INFO)
   {
   case 1:
-    exitstring = "optimality conditions satisfied";
+    exitstring = "finished successfully - optimality conditions satisfied";
     break;
   case 3:
-    exitstring = "requested accuracy could not be achieved";
+    exitstring = "finished successfully - requested accuracy could not be achieved";
     break;
   case 11:
-    exitstring = "infeasible linear constraints";
+    exitstring = "the problem appears to be infeasible - infeasible linear constraints";
     break;
   case 13:
-    exitstring = "nonlinear infeasibilities minimized";
+    exitstring = "the problem appears to be infeasible - nonlinear infeasibilities minimized";
+    break;
+  case 31:
+    exitstring = "resource limit error - iteration limit reached";
     break;
   case 32:
-    exitstring = "major iteration limit reached";
+    exitstring = "resource limit error - major iteration limit reached";
+    break;
+  case 41:
+    exitstring = "terminated after numerical difficulties - current point cannot be improved";
+    break;
+  case 71:
+    exitstring = "user requested termination - terminated during function evaluation";
     break;
   default:
     exitstring = "not yet documented";
@@ -236,10 +263,10 @@ int SnOpt::Callback(int* Status, const int n,
   // when the last call was a gradient eval we interpret this as major and do a commit
   // with the OLD design and it's function evaluations. But only if there was really a change between the last commit.
   // the special cases are the first iteration if setupLinearConstraints() had a feasible design or on the last commit.
-  if(perform_commit_itteration_ && !optimization->GetDesign()->CompareDesign(x))
+  if(perform_commit_iteration_ && !optimization->GetDesign()->CompareDesign(x))
   {
     optimization->CommitIteration();
-    perform_commit_itteration_ = false; // to be reset when enough functions evaluations have been done
+    perform_commit_iteration_ = false; // to be reset when enough functions evaluations have been done
   }
 
   // if we want to stop, we have to set Status to a value < -1!
@@ -291,7 +318,7 @@ int SnOpt::Callback(int* Status, const int n,
     
     // when the linear constraints are not fulfilled there will immediately be gradient evaluation as the
     // first snopt action and we do not want to loose the initial design in the output.
-    perform_commit_itteration_ = true; // done on the next Callback() call
+    perform_commit_iteration_ = true; // done on the next Callback() call
   }
   
   timer_callback_->Stop();
@@ -563,11 +590,12 @@ void SnOpt::initJacobians()
   {
     Condition* g = optimization->constraints.view->Get(c);
     const StdVector<unsigned int>& pattern = g->GetSparsityPattern();
-    assert(pattern.GetSize() > 0);
+    const unsigned int patternsize(pattern.GetSize());
+    assert(patternsize > 0);
 
     if(g->IsLinear()) // linear
     {
-      for(unsigned int e = 0; e < pattern.GetSize(); ++e)
+      for(unsigned int e = 0; e < patternsize; ++e)
       {
         iAfun.push_back(cstr);
         jAvar.push_back(pattern[e] + 1);
@@ -582,7 +610,7 @@ void SnOpt::initJacobians()
     else // nonlinear 
     {
       // up to now only dense so we do not need anything
-      for(unsigned int e = 0; e < pattern.GetSize(); ++e)
+      for(unsigned int e = 0; e < patternsize; ++e)
       {
         iGfun.push_back(cstr);
         jGvar.push_back(pattern[e] + 1);
@@ -619,7 +647,7 @@ void SnOpt::setupLinearConstraints()
   
   // we have just evaluated the state problem, commit the (initial) iteration as snopt might
   // evaluate in its's callback already an updated  design
-  perform_commit_itteration_ = true;
+  perform_commit_iteration_ = true;
   // optimization->CommitIteration();
 
   for(int i = 0; i < nA; i++)
@@ -674,6 +702,13 @@ void SnOpt::SetIntegerValue(const std::string& key, int value)
   else if(key == "factorization_frequency")
   {
     option = "Factorization frequency";
+  }
+  else if(key == "print_file")
+  {
+    //option = "Print file";
+    //snseti_(option.c_str(), &value, 0, 0, &INFO,
+            //&cw[0], &lencw, &iw[0], &leniw, &rw[0], &lenrw, option.size(), 8*lencw);
+    return;
   }
   
   if(!option.empty())
