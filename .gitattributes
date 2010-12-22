@@ -1610,6 +1610,9 @@ source/cplreader/FileReaders/ANSYS/FileReader_MKHDF5.cc svneol=native#text/plain
 source/cplreader/FileReaders/ANSYS/FileReader_MKHDF5.hh svneol=native#text/plain
 source/cplreader/FileReaders/ANSYS/FileReader_NACS.cc svneol=native#text/plain
 source/cplreader/FileReaders/ANSYS/FileReader_NACS.hh svneol=native#text/plain
+source/cplreader/FileReaders/CFS++/CMakeLists.txt -text
+source/cplreader/FileReaders/CFS++/FileReader_CfsHdf5.cc -text
+source/cplreader/FileReaders/CFS++/FileReader_CfsHdf5.hh -text
 source/cplreader/FileReaders/CFX/CMakeLists.txt svneol=native#text/plain
 source/cplreader/FileReaders/CFX/CloseFile.F -text
 source/cplreader/FileReaders/CFX/FileReader_CFX.cc svneol=native#text/plain

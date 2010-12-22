@@ -25,6 +25,8 @@ namespace fs=boost::filesystem;
 #include "Settings.hh"
 #include "FileReader.hh"
 
+#include "FileReaders/CFS++/FileReader_CfsHdf5.cc"
+
 #ifdef CPLREADER_ANSYS
 #include "FileReaders/ANSYS/FileReader_MKHDF5.hh"
 #include "FileReaders/ANSYS/FileReader_NACS.hh"
@@ -61,7 +63,7 @@ namespace CoupledField
     std::string type = settings.GetString("type");
 
     std::ostringstream sstr;
-    if(type != "ANSYS" && type != "GENGRIDS")
+    if(type != "ANSYS" && type != "GENGRIDS" && type != "CFS++")
     {
       sstr << settings.GetString("basedir") << "/" << settings.GetString("name");
     }
@@ -162,6 +164,13 @@ namespace CoupledField
 #else
       EXCEPTION("Reading of OPENFOAM files not supported!");
 #endif
+    }
+    if(type == "CFS++")
+    {
+      fileReader.reset(new FileReader_CfsHdf5(settings.GetString("name"),
+                                              0,
+                                              settings.GetInt("numsteps"),
+                                              settings.GetInt("firststep")));
     }
 
     if(!fileReader)

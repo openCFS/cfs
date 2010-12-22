@@ -106,6 +106,7 @@ namespace CoupledField
     ptElemIntegr_[Elem::LINE2]  = new ElemIntegr(Elem::LINE2);
     ptElemIntegr_[Elem::TRIA3]  = new ElemIntegr(Elem::TRIA3);
     ptElemIntegr_[Elem::QUAD4]  = new ElemIntegr(Elem::QUAD4);
+    ptElemIntegr_[Elem::QUAD8]  = new ElemIntegr(Elem::QUAD8);
     ptElemIntegr_[Elem::TET4]   = new ElemIntegr(Elem::TET4);
     ptElemIntegr_[Elem::WEDGE6] = new ElemIntegr(Elem::WEDGE6);
     ptElemIntegr_[Elem::PYRA5]  = new ElemIntegr(Elem::PYRA5);
@@ -173,8 +174,7 @@ namespace CoupledField
       }
     }
     // <-- end scaling
-    ptFileReader_->ReadTopology(topology_,
-                                elemTypes_);
+    ptFileReader_->ReadTopology(topology_, elemTypes_);
 
     // Determine the maximum number of element nodes
     maxNumElemNodes = ptFileReader_->GetMaxNumElemNodes();
@@ -261,25 +261,22 @@ namespace CoupledField
       
       for( ; elemIt != elemEnd; elemIt++ ) 
       {        
-        UInt elemNum = *elemIt;
-        UInt regionDim = regionDims[actRegion];
+        const UInt& elemNum = *elemIt;
+        UInt& regionDim = regionDims[actRegion];
         Elem::FEType elemType = (Elem::FEType) elemTypes_[elemNum-1];
         
         if(!regionDim) 
         {
-          regionDims[actRegion] = Elem::GetElemDim(elemType);
+          regionDim = Elem::GetElemDim(elemType);
         }
-        else
+        if( regionDim != Elem::GetElemDim(elemType) )
         {
-          if( regionDim != Elem::GetElemDim(elemType) )
-          {
-            EXCEPTION("Elements with different dimensions have been "
-                      << "encountered in region '" << (*regionNames.rbegin()) << "'!\n"
-                      << "The error occured while examining element "
-                      << (*elemIt) << ".\n"
-                      << "Please check your mesh file!");
-          }    
-        }
+          EXCEPTION("Elements with different dimensions have been "
+              << "encountered in region '" << (*regionNames.rbegin()) << "'!\n"
+              << "The error occured while examining element "
+              << elemNum << ".\n"
+              << "Please check your mesh file!");
+        }    
       }
       
       // Put all nodes in a partition into a set to get an ordered list
@@ -833,7 +830,9 @@ namespace CoupledField
       idxOutput = it->second * numDOFs;
 
       for(UInt dof=0; dof < numDOFs; dof++ )
+      {
         output[idxOutput+dof] = input[idxInput+dof];
+      }
     }
   }
 
