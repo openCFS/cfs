@@ -39,7 +39,13 @@ void FileReader_CfsHdf5::Init()
   std::map<unsigned int, unsigned int> numSteps;
   std::map<unsigned int, H5CFS::AnalysisType> analysis;
 
-  hdf5Reader_.LoadFile(name_);
+  try
+  {
+    hdf5Reader_.LoadFile(name_);
+  } catch (std::string &strEx) {
+    EXCEPTION(strEx);
+  };
+
   dim_ = hdf5Reader_.GetDim();
   hdf5Reader_.GetRegionNamesOfDim(regionNames_, dim_);
   if (regionNames_.size() != 1)
