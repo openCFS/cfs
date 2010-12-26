@@ -47,20 +47,22 @@ void FileReader_CfsHdf5::Init()
   };
 
   dim_ = hdf5Reader_.GetDim();
-  hdf5Reader_.GetRegionNamesOfDim(regionNames_, dim_);
-  if (regionNames_.size() != 1)
-  {
-    EXCEPTION("only works for one region!");
-  }
+  hdf5Reader_.GetAllRegionNames(regionNames_);
+  numRegions_ = regionNames_.size();
 
   std::vector<std::vector<unsigned int> > connectTmp;
   std::vector<H5CFS::ElemType> elemTypesTmp;
   hdf5Reader_.GetElems(elemTypesTmp, connectTmp);
   std::vector<unsigned int> elemsRegion;
-  hdf5Reader_.GetElemsOfRegion(regionNames_[0], elemsRegion);
-  numElemsPerRegion_.push_back(elemsRegion.size());
+  for (UInt i = 0; i < numRegions_; ++i)
+  {
+    hdf5Reader_.GetElemsOfRegion(regionNames_[i], elemsRegion);
+    numElemsPerRegion_.push_back(elemsRegion.size());
+  }
+
+  // get and check time steps
   hdf5Reader_.GetNumMultiSequenceSteps(analysis, numSteps);
-  if (numSteps.size() != numSteps_)
+  if (numSteps.size() != 1)
   {
     std::cerr << "WARNING: more then one multistep, not implemented."
       << " Will take results from first multistep.";
@@ -69,21 +71,25 @@ void FileReader_CfsHdf5::Init()
   {
     EXCEPTION("Not enough steps in files!");
   }
+  // get time step values
+  std::vector<shared_ptr<H5CFS::ResultInfo> > resInfos;
+  const unsigned int sequenceStep = 1;
+  hdf5Reader_.GetResultTypes(sequenceStep, resInfos);
+  hdf5Reader_.GetStepValues(sequenceStep, resInfos[0], timeStepValues_);
 
-  std::vector<unsigned int>::const_iterator iterElemReg = elemsRegion.begin();
-  if (iterElemReg != elemsRegion.end())
+  // get an check element types
+  if (elemTypesTmp.size() != 0)
   {
-    maxNumElemNodes_ = (UInt)H5CFS::NUM_ELEM_NODES[elemTypesTmp[*iterElemReg]];
-  } else {
-    EXCEPTION("no elements in region" << regionNames_[0]);
-  }
-
-  for (; iterElemReg != elemsRegion.end(); ++iterElemReg)
-  {
-    if (maxNumElemNodes_ != (UInt)H5CFS::NUM_ELEM_NODES[elemTypesTmp[*iterElemReg -1]])
+    maxNumElemNodes_ = (UInt)H5CFS::NUM_ELEM_NODES[elemTypesTmp[0]];
+    for (UInt i = 0; i < elemTypesTmp.size(); ++i)
     {
-      EXCEPTION("Varying element types in region. Not implemented yet!");
+      if (maxNumElemNodes_ < (UInt)H5CFS::NUM_ELEM_NODES[elemTypesTmp[i]])
+      {
+        maxNumElemNodes_ = (UInt)H5CFS::NUM_ELEM_NODES[elemTypesTmp[i]];
+      }
     }
+  } else {
+    EXCEPTION("no elements found!");
   }
 }
 
@@ -91,9 +97,6 @@ void FileReader_CfsHdf5::Init()
 UInt FileReader_CfsHdf5::GetNumRegions()
 {
   return regionNames_.size();
-#if 0 // DEBUG_SZOERNER
-  return (UInt)hdf5Reader_.GetNumRegions();
-#endif
 }
 
 
@@ -120,22 +123,28 @@ void FileReader_CfsHdf5::ReadTopology(std::vector<UInt>& connectivities, \
 {
   std::vector<std::vector<unsigned int> > connectTmp;
   std::vector<H5CFS::ElemType> elemTypesTmp;
-  std::vector<unsigned int> elemsRegion;
   hdf5Reader_.GetElems(elemTypesTmp, connectTmp);
-  hdf5Reader_.GetElemsOfRegion(regionNames_[0], elemsRegion);
 
-  std::vector<unsigned int>::const_iterator iterElemReg = elemsRegion.begin();
+  elemTypes.resize(elemTypesTmp.size());
+  connectivities.resize(connectTmp.size() * maxNumElemNodes_);
+
+  std::vector<std::vector<unsigned int> >::const_iterator iterConnect_lvl1 = connectTmp.begin();
   std::vector<unsigned int>::const_iterator iterConnect_lvl2, iterConnect_lvl2End;
-  for (UInt i = 0; iterElemReg != elemsRegion.end(); ++iterElemReg)
+  for (UInt i = 0, j = 0; iterConnect_lvl1 != connectTmp.end(); ++iterConnect_lvl1, ++i)
   {
-    iterConnect_lvl2 = connectTmp[*iterElemReg -1].begin();
-    iterConnect_lvl2End = connectTmp[*iterElemReg -1].end();
-    for (UInt j = 0; iterConnect_lvl2 != iterConnect_lvl2End; ++iterConnect_lvl2, ++j)
+    iterConnect_lvl2    = iterConnect_lvl1->begin();
+    iterConnect_lvl2End = iterConnect_lvl1->end();
+    for (; iterConnect_lvl2 != iterConnect_lvl2End; ++iterConnect_lvl2)
     {
-      connectivities.push_back(*iterConnect_lvl2);
+      connectivities[j] = *iterConnect_lvl2;
+      ++j;
     }
-    elemTypes.push_back((UInt)elemTypesTmp[*iterElemReg -1]);
-    ++i;
+    while ( j % maxNumElemNodes_ != 0 )
+    {
+      connectivities[j] = 0;
+      ++j;
+    }
+    elemTypes[i] = (UInt)elemTypesTmp[i];
   }
 }
 
@@ -153,10 +162,7 @@ void FileReader_CfsHdf5::GetRegionElements(std::vector<UInt> & regionElements,
   hdf5Reader_.GetElemsOfRegion(regionNames_[regionIdx], regionElementsTmp);
   regionElements.resize(regionElementsTmp.size());
 
-  for (UInt i = 0; i < regionElementsTmp.size(); ++i)
-  {
-    regionElements[i] = i +1;
-  }
+  regionElements = (std::vector<UInt>)regionElementsTmp;
 }
 
 
@@ -170,12 +176,13 @@ void FileReader_CfsHdf5::ReadNodalValues(std::vector<FlowDataType>& nodalFlowDat
   std::vector<shared_ptr<H5CFS::ResultInfo> >::const_iterator iterInfo = infos.begin();
 
   FlowDataPartStruct* fdPtr;
-  iterInfo = infos.begin();
-  for (UInt actRegion = 0; actRegion <= numRegions_; ++actRegion)
+  for (UInt actRegion = 0; actRegion < numRegions_; ++actRegion)
   {
+    iterInfo = infos.begin();
     for (; iterInfo != infos.end(); ++iterInfo)
     {
-      if (requiredResults_[SolutionTypeEnum.Parse((*iterInfo)->name)])
+      if (requiredResults_[SolutionTypeEnum.Parse((*iterInfo)->name)]
+          && (*iterInfo)->listName == regionNames_[actRegion])
       {
         FlowDataType& fd = nodalFlowData[actRegion];
         fdPtr = &fd[SolutionTypeEnum.Parse((*iterInfo)->name)];
@@ -194,6 +201,11 @@ void FileReader_CfsHdf5::ReadNodalValues(std::vector<FlowDataType>& nodalFlowDat
       }
     }
   }
+}
+
+double FileReader_CfsHdf5::GetTimeStep(UInt stepNumber)
+{
+  return timeStepValues_[stepNumber];
 }
 
 } // end of namespace

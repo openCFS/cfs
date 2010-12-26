@@ -43,9 +43,14 @@ namespace CoupledField
     virtual void ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
                                  const std::vector<bool>& activeParts,
                                  const UInt timeStepIdx);
+
+    //! return time step value in seconds
+    virtual double GetTimeStep(UInt stepNumber);
+
   private:
     H5CFS::Hdf5Reader hdf5Reader_;
     std::vector<std::string> regionNames_;
+    std::map<unsigned int, double> timeStepValues_;
   };
 
 

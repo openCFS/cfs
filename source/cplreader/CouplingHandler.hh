@@ -67,6 +67,8 @@ namespace CoupledField
     std::map<UInt, std::vector<UInt> > regionElems_;
     std::map<UInt, std::map<UInt, UInt> > regionNodeIndices_;
     std::vector<UInt> numRegionNodes_;
+    std::map<RegionIdType, UInt > regionDims_;
+    std::map<std::string, std::vector<UInt> > regionNodes_;
 
     UInt dim_;
 
@@ -113,6 +115,78 @@ namespace CoupledField
           }
         }
       }
+    }
+    /**
+     * Find nodes which occur in multiple regions. This is to calculate the
+     * acoustic source correctly for nodes which lie in more than one region
+     * @param regionMapNodes A std::map with a gathering of nodes on each region
+     * @param multiNodes the return value. Return a map showing which node is
+     * multiple on which each and which equation number
+     */
+    inline void findNodeMultiRegion(const std::map<std::string, std::vector<UInt> >& regionMapNodes,
+        std::map<UInt, std::map<std::string, UInt> >& multiNodes)
+    {
+      std::map<std::string, std::vector<UInt> >::const_iterator iterRegionMapNodes = regionMapNodes.begin();
+      std::map<std::string, std::vector<UInt> >::const_iterator iterRegionMapNodes2;
+      /* go over every region */
+      for (; iterRegionMapNodes != regionMapNodes.end(); ++iterRegionMapNodes)
+      {
+        iterRegionMapNodes2 = iterRegionMapNodes;
+        ++iterRegionMapNodes2;
+        /* check every other region */
+        for (; iterRegionMapNodes2 != regionMapNodes.end(); ++iterRegionMapNodes2)
+        {
+          /* nodes of first region */
+          for (UInt i = 0; i < iterRegionMapNodes->second.size(); ++i)
+          {
+            /* nodes of second region */
+            for (UInt j = 0; j < iterRegionMapNodes2->second.size(); ++j)
+            {
+              if (iterRegionMapNodes->second[i] == iterRegionMapNodes2->second[j])
+              {
+                /* take care of doublicate entrie */
+                std::map<std::string, UInt>& regStringVec = multiNodes[iterRegionMapNodes->second[i]];
+                bool region1Registered = false;
+                bool region2Registered = false;
+                std::map<std::string, UInt>::iterator iterRegStringVec = regStringVec.begin();
+                for (; iterRegStringVec != regStringVec.end(); ++iterRegStringVec)
+                {
+                  if (iterRegStringVec->first == iterRegionMapNodes->first)
+                  {
+                    region1Registered = true;
+                  }
+                  if (iterRegStringVec->first == iterRegionMapNodes2->first)
+                  {
+                    region2Registered = true;
+                  }
+                }
+                if ( !region1Registered )
+                {
+                  regStringVec[iterRegionMapNodes->first] = i;
+                }
+                if ( !region2Registered )
+                {
+                  regStringVec[iterRegionMapNodes2->first] = j;
+                }
+              }
+            } //end-for second region nodes
+          }// end-for first region nodes
+        }// end-for second region
+      }// end-for first region
+
+#if 0 // DEBUG_SZOERNER
+      std::map<UInt, std::map<std::string, UInt> >::iterator iterMultiNodes = multiNodes.begin();
+      for (; iterMultiNodes != multiNodes.end(); ++iterMultiNodes)
+      {
+        std::cerr << __LINE__ << " " << ":" << __FILE__ << " iterMultiNodes->first: " <<iterMultiNodes->first<< std::endl;
+        std::map<std::string, UInt>& regStringVec = iterMultiNodes->second;
+        std::map<std::string, UInt>::iterator iterRegStringVec = regStringVec.begin();
+        for (; iterRegStringVec != regStringVec.end(); ++iterRegStringVec)
+        {
+          std::cerr << __LINE__ << " " << ":" << __FILE__ << " iterRegStringVec->first: " <<iterRegStringVec->first<< std::endl;
+        }
+      }
+#endif
     }
   };
 
