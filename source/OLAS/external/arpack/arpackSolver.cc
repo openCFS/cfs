@@ -58,8 +58,6 @@ namespace CoupledField {
       eigenTolerances_ = new Double [numArnoldiVec_];
       eigenVectors_ = new Double [numFreq_*size_];
 
-      DebugOff();
-
   }
 
   void ArpackSolver::SetTolerance(Double tol) {

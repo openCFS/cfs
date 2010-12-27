@@ -1,7 +1,7 @@
 #include "Driver/assemble.hh"
 #include "Forms/baseForm.hh"
 #include "Forms/linearForm.hh"
-#include "Forms/linElecInt.hh"
+#include "Forms/linGradBDBInt.hh"
 #include "Domain/domain.hh"
 #include "PDE/mechPDE.hh"
 #include "PDE/elecPDE.hh"
@@ -164,13 +164,13 @@ OptPiezoMat::OptPiezoMat(ErsatzMaterial* em) :
 
   for(unsigned int r = 0; r < regionIds.GetSize(); r++)
   {
-    // in the piezoelectric case K_pp is set to -K_pp. As we use the linElecInt from a piezoelectric problem this is done!
-    GetElementMatrix(opt->GetForm(regionIds[r], elec, elec, "linElecInt"), elecStiffness_map[regionIds[r]], NULL, DesignElement::NO_DERIVATIVE, -1.0); // see above
-    GetElementMatrix(opt->GetForm(regionIds[r], elec, elec, "linElecInt"), elecStiffness_neg_map[regionIds[r]], NULL, DesignElement::NO_DERIVATIVE, 1.0); // see above
+    // in the piezoelectric case K_pp is set to -K_pp. As we use the linGradBDBInt from a piezoelectric problem this is done!
+    GetElementMatrix(opt->GetForm(regionIds[r], elec, elec, "linGradBDBInt"), elecStiffness_map[regionIds[r]], NULL, DesignElement::NO_DERIVATIVE, -1.0); // see above
+    GetElementMatrix(opt->GetForm(regionIds[r], elec, elec, "linGradBDBInt"), elecStiffness_neg_map[regionIds[r]], NULL, DesignElement::NO_DERIVATIVE, 1.0); // see above
 
     // wrong!!!
-    //GetElementMatrix(opt->GetForm(regionIds[r], elec, elec, "linElecInt"), elecStiffness_map[regionIds[r]], NULL, DesignElement::NO_DERIVATIVE, 1.0); // see above
-    //GetElementMatrix(opt->GetForm(regionIds[r], elec, elec, "linElecInt"), elecStiffness_neg_map[regionIds[r]], NULL, DesignElement::NO_DERIVATIVE, -1.0); // see above
+    //GetElementMatrix(opt->GetForm(regionIds[r], elec, elec, "linGradBDBInt"), elecStiffness_map[regionIds[r]], NULL, DesignElement::NO_DERIVATIVE, 1.0); // see above
+    //GetElementMatrix(opt->GetForm(regionIds[r], elec, elec, "linGradBDBInt"), elecStiffness_neg_map[regionIds[r]], NULL, DesignElement::NO_DERIVATIVE, -1.0); // see above
 
 
     GetElementMatrix(opt->GetForm(regionIds[r], mech, elec, "linPiezoCoupling"), coupledStiffness_map[regionIds[r]]);
@@ -179,10 +179,10 @@ OptPiezoMat::OptPiezoMat(ErsatzMaterial* em) :
 
   // validate that we indeed have the real form
 #ifndef NDEBUG
-  // create a real linElecInt object
+  // create a real linGradBDBInt object
 
   SubTensorType tensor = domain->GetGrid()->GetDim() == 2 ? PLANE_STRAIN : FULL; // assume AXI not possible
-  BaseForm* elec_int =  new linElecInt(elec->getPDEMaterialData()[regionIds[0]], tensor);
+  BaseForm* elec_int =  new linGradBDBInt(elec->getPDEMaterialData()[regionIds[0]], ELEC_PERMITTIVITY, tensor);
 
   ElemList list(domain->GetGrid());
   list.SetRegion(regionIds[0]);
@@ -215,7 +215,7 @@ const Matrix<double>& OptPiezoMat::ElecStiffness(Elem* elem, int factor)
   std::map<RegionIdType, Matrix<double> >& map = factor == 1 ? elecStiffness_map : elecStiffness_neg_map;
   // overwrite the element
   if(!opt->IsDomainStructured())
-    GetElementMatrix(opt->GetForm(elem->regionId, elec, elec, "linElecInt"), map[elem->regionId], NULL, DesignElement::NO_DERIVATIVE, (double) factor);
+    GetElementMatrix(opt->GetForm(elem->regionId, elec, elec, "linGradBDBInt"), map[elem->regionId], NULL, DesignElement::NO_DERIVATIVE, (double) factor);
 
   return map[elem->regionId];
 }

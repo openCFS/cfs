@@ -15,6 +15,19 @@ namespace CoupledField {
 
   // forward class declaration
   class BaseSystem;
+  // typedef of timesteps: the higher the number, the older the time step
+  // these are also used for the coefficient vectors. 
+  // @warning: sol_timeStepVec_ may have different number of entries as
+  // coefficients
+  typedef enum {NO_TIMESTEPTYPE = -1, TIMESTEP_0 = 0, TIMESTEP_1 = 1, \
+    TIMESTEP_2 = 2, \
+    PREDICTOR_1, PREDICTOR_2, \
+    CORRECTOR_1, CORRECTOR_2, \
+    COEFFRHS}
+  TIMEStepType;
+  typedef enum {NO_DERIVTYPE = -1, FIRST_DERIV = 1, SECOND_DERIV = 2}
+  DERIVType;
+
 
   //! Base class for time stepping algorithms
 
@@ -33,8 +46,9 @@ namespace CoupledField {
     //! \param rhsSIze total number of entries in the rhs vector
     virtual void Init( Double dt, UInt rhsSize ) = 0;
     
-    void ReInit(){
-      Init(dt_, rhsSize_);
+    //! Reinitialization (setting all remembered vectors to zero)    
+    virtual void ReInit(){
+      EXCEPTION("Not implemented here!");
     }
 
     virtual void setSubSteps( UInt subSteps )
@@ -68,35 +82,126 @@ namespace CoupledField {
     //! e.g. when fractional damping is used, store current in memory
     virtual void AdvanceTimestep(Vector<Double>& solnew){;};
 
-    //! set vector with first derivative
-    virtual void SetDeriv1(const Vector<Double> & deriv1) {
-      solderiv1_ = deriv1;
-      isDeriv1Set_ = true;}
-  
-    //! set vector with second derivative
-    virtual void SetDeriv2(const Vector<Double> & deriv2) {
-      solderiv2_ = deriv2;
-      isDeriv2Set_ = true; }
+    /**
+     * Sets the time step timeStepType to the value timeStep_vec
+     * @param timeStep_vec The time step which should be set
+     * @param timeStepType Which time step is to be set
+     */
+    virtual void SetOld(const Vector<Double> & timeStep_vec, TIMEStepType timeStepType)
+    {
+      sol_timeStepVec_[timeStepType] = timeStep_vec;
+    }
 
-    //! set vector with second derivative
-    virtual void SetOld1(const Vector<Double> & tn_1) {
-      sol_tn_1_ = tn_1;
-      isSolTN1Set_ = true; }
+    /**
+     * Returns the time step timeStepType as a vector
+     * @param timeStepType The time step which is demanded
+     * @retrun The vector of a particular time step
+     * @throws exception if time step has not been set
+     */
+    virtual const Vector<Double>& GetOld(TIMEStepType timeStepType)
+    {
+      std::map<TIMEStepType, Vector<Double> >::iterator iter = \
+        sol_timeStepVec_.find(timeStepType);
+      if (iter == sol_timeStepVec_.end())
+      {
+        EXCEPTION("Tried to access timeStepType: " << timeStepType << " which is not set!");
+      }
+      return iter->second;
+    }
 
-    //!  return pointer to vector with first derivative of solution
-    virtual const Vector<Double>& GetDeriv1() const { return solderiv1_;}
-  
-    //! return pointer to vector with second derivative of solution
-    virtual const Vector<Double>& GetDeriv2() const { return solderiv2_;}
+    /**
+     * Sets the time step timeStepType to the value timeStep_vec
+     * @param timeStep_vec The time step which should be set
+     * @param timeStepType Which time step is to be set
+     */
+    virtual void SetDeriv(const Vector<Double> & deriv_vec, DERIVType derivType)
+    {
+      solDeriv_vec_[derivType] = deriv_vec;
+    }
 
-    virtual const Vector<Double>& GetOld1() const { return sol_tn_1_;}
+    /**
+     * Returns the dervative as a vector
+     * @param derivType The time step which is demanded
+     * @retrun The vector of a particular derivative
+     * @throws exception if derivative has not been set
+     */
+    virtual const Vector<Double>& GetDeriv(DERIVType derivType)
+    {
+      std::map<DERIVType, Vector<Double> >::iterator iter = \
+        solDeriv_vec_.find(derivType);
+      if (iter == solDeriv_vec_.end())
+      {
+        EXCEPTION("Tried to access derivType: " << derivType << " which is not set!");
+      }
+      return iter->second;
+    }
+
+    /**
+     * Checks if time step exists
+     * @param timeStepType the time step you want
+     * @return true or false
+     */
+    virtual bool is_SolTimeStep_set(TIMEStepType timeStepType)
+    {
+      std::map<TIMEStepType, Vector<Double> >::iterator iter = \
+        sol_timeStepVec_.find(timeStepType);
+      if (iter == sol_timeStepVec_.end())
+      {
+        return false;
+      }
+      return true;
+    }
+
+    /**
+     * Checks if derivative exists
+     * @param derivType the time step you want
+     * @return true or false
+     */
+    virtual bool is_Deriv_set(DERIVType derivType)
+    {
+      std::map<DERIVType, Vector<Double> >::iterator iter = \
+        solDeriv_vec_.find(derivType);
+      if (iter == solDeriv_vec_.end())
+      {
+        return false;
+      }
+      return true;
+    }
+
+    /**
+     * Gives back the coefficients needed for the time stepping algorithm.
+     * The coefficient vector has length zero if it has not been set.
+     * @return returns a map of the time stepping coefficients 
+     * @warning The coefficients are not set in every time stepping algorithms
+     */
+    virtual const std::map<TIMEStepType, Double>& GetCoefficients() const
+    {
+      return sol_timeStepCoeff_;
+    }
+
+    /**
+     * Gives back the derivatives
+     * @return returns a map of the derivatives
+     */
+    virtual std::map<TIMEStepType, Vector<Double> >& GetTimeStepMap()
+    {
+      return sol_timeStepVec_;
+    }
+    /**
+     * Gives back the derivatives
+     * @return returns a map of the derivatives
+     */
+    virtual std::map<DERIVType, Vector<Double> >& GetDeriveMap()
+    {
+      return solDeriv_vec_;
+    }
 
     //! set the time step
     void SetTimeStep(Double dt) 
     { dt_ = dt;};
 
     //! get the time step size
-    Double GetTimeStep() 
+    inline const Double& GetTimeStep() const
     { return dt_;};
 
     //! get beta coefficient from Newmark time stepping scheme
@@ -121,6 +226,26 @@ namespace CoupledField {
       EXCEPTION( "DirichletBC4EffMassMatrix not implemented" );
       return -1.0;
     }
+    /**
+     * returns the solution type of the wanted derivative
+     * @param solType The solution type from which the name of the first/second
+     * drivative is wanted
+     * @param derivType The derivative of the solution type from which we want
+     * the name (solution type)
+     * @return Returns the name of the derivative of a solution type
+     */
+    SolutionType mapDerivToSolutionType(const SolutionType solType, \
+        const DERIVType derivType) const;
+    /**
+     * Checks if a solution type is actually a derivative of a nother solution.
+     * @param solType The type to check if is a derivative
+     * @return True or false if the solution type is actually a derivative of a
+     * calculated solution type
+     * @warning The function may return false negatives, meaning it maybe that a
+     * derivative may not be recognised as such. So check it if it supports
+     * your derivative.
+     */
+    bool isDeriv(const SolutionType solType) const;
 
   protected:
 
@@ -139,18 +264,14 @@ namespace CoupledField {
     //! matrix factors
     std::map<FEMatrixType,Double> matrix_factors_;
 
-    //! first and second time derivative of solution
-    Vector<Double> solderiv1_, solderiv2_, sol_tn_1_, sol_tn_2_;
-
-    //! Flag indicating if 1st derivative was already set from outside
-    bool isDeriv1Set_;
-
-    //! Flag indicating if 2nd derivative was already set from outside
-    bool isDeriv2Set_;
-
-    //! Flag indicating if soltution of last time step is already set due to a restart file
-    bool isSolTN1Set_;
-
+    //! Derivative and time steps stored in a map
+    std::map<TIMEStepType, Vector<Double> > sol_timeStepVec_;
+    std::map<DERIVType, Vector<Double> > solDeriv_vec_;
+    //! coefficient vector for time stepping
+    //! @param sol_timeStepCoeff_, [TIMESTEP_0] is the last calculated time step, [TIMESTEP_1] is the
+    //! time step before that and so forth
+    std::map<TIMEStepType, Double> sol_timeStepCoeff_;
+    
   private:
    
 

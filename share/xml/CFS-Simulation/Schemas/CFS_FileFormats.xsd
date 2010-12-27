@@ -380,6 +380,7 @@
     <xsd:attribute name="host" type="xsd:token" default="localhost"/>
     <xsd:attribute name="port" type="xsd:nonNegativeInteger" default="8888"/>
     <xsd:attribute name="path" type="xsd:token" use="required"/>
+    <xsd:attribute name="silent" type="xsd:boolean" use="optional"/>
   </xsd:complexType>  
 
 
@@ -437,6 +438,23 @@
           <xsd:enumeration value="entity"/>
           <xsd:enumeration value="timeFreq"/>
           <xsd:enumeration value="altogether"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+    <xsd:attribute name="entityNumbering" default="global">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Determines the naming scheme for text files of nodes / element
+          results: In case of 'global' numbering, the text files contain the
+          global node / element number. In case of 'consecutive', the text
+          files of a node / element list get enumerated from 1 on based on a 
+          consecutive numbering.
+        </xsd:documentation>
+      </xsd:annotation>
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="global"/>
+          <xsd:enumeration value="consecutive"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>

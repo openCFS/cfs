@@ -37,7 +37,7 @@ PiezoSIMP::PiezoSIMP()
   for(unsigned int r = 0; r < regionIds.GetSize(); r++)
   {
     GetForm(regionIds[r], pde, elec, "linPiezoCoupling")->SetSolDependent(true);
-    GetForm(regionIds[r], elec, elec, "linElecInt")->SetSolDependent(true);
+    GetForm(regionIds[r], elec, elec, "linGradBDBInt")->SetSolDependent(true);
   }
   // The linear forms (pressure, charge density) are set in SoluctionRef::Init()
 

@@ -127,7 +127,7 @@ The \xel{text} element writes the following data:
 \begin{itemize}
   \item nodes named by \xel{nodeList} within \xel{nodeResult}
   \item elements named by \xel{elementList} within \xel{elementResult}
-  \item integral \xel{regionResult} and \xel{surfRefionResult} results
+  \item integral \xel{regionResult} and \xel{surfRegionResult} results
 \end{itemize}
 
 The same information can also be found in the \textit{info.xml} file.
@@ -139,14 +139,26 @@ The same information can also be found in the \textit{info.xml} file.
 \xat{fileCollect} & \xatv{timeFreq}, \xatv{entity},
 \xatv{altogether} & triggers new files \\ 
 \xat{coordSysId} & \xatv{own-id} & see below \\
+\xat{entityNumbering} & \xatv{global}, \xatv{consecutive} &
+                      see below \\
+
 \bottomrule
 \end{xatlist}
 
-When \xat{fileCollect} is set to \xatv{timeFreq} for evey
+When \xat{fileCollect} is set to \xatv{timeFreq} for every
 timestep/frequency step a new result
 file is created. Together with the \xat{coordSysId} does this allow to
 create acoustic directivity
-patterns. 
+patterns.
+
+The \xat{entityNumbering} attribute determines, how the names of files are
+determined: In case of \xat{fileCollect} = \xatv{entity} (default), the node /
+element number enters the name of the history text file. If \xatv{global}
+numbering is selected (default), the global node / element number is taken. In
+case of \xatv{consecutive}, a local, 1-based numbering for every node / element
+list is taken. This is advantageous, if the history files should have the same
+name, independent of the mesh discretization, where the global node numbers
+change.
 
 \subsubsection{\xel{info}}
 Writes the same node, element and integral data as the \xel{text} writer.

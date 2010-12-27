@@ -645,6 +645,8 @@
             <xsd:element name="region" minOccurs="0" maxOccurs="unbounded">
               <xsd:complexType>
                 <xsd:attribute name="name" use="required" type="xsd:token"/>
+                <!-- bimaterial optimization is optional and per region. The value needs to be found in the material.xml -->
+                <xsd:attribute name="bimaterial" use="optional" type="xsd:token"/>
               </xsd:complexType>              
             </xsd:element>
             <xsd:element name="SIMP" minOccurs="0" maxOccurs="1">

@@ -732,6 +732,7 @@ namespace CoupledField {
     // wchich some grid-information rsults are created:
     // - Local directions (xi,eta,zeta) of elements
     // - Jacobian determinant
+    // - surface element normals
     
     // Register results
     shared_ptr<BaseResult> sol;
@@ -743,6 +744,7 @@ namespace CoupledField {
     shared_ptr<ResultInfo> locDir2( new ResultInfo );
     shared_ptr<ResultInfo> locDir3( new ResultInfo );
     shared_ptr<ResultInfo> jacRes( new ResultInfo );
+    shared_ptr<ResultInfo> surfNormal( new ResultInfo );
 
     StdVector<std::string> dirVec (dim_);
     if( dim_ == 3 ) {
@@ -784,8 +786,16 @@ namespace CoupledField {
     jacRes->dofNames = "";
     jacRes->unit = "";
     
+    // 3) Surface element normals
+    surfNormal->resultType = ELEM_LOC_DIR;
+    surfNormal->resultName = "SurfaceNormal";
+    surfNormal->definedOn = ResultInfo::ELEMENT;
+    surfNormal->entryType = ResultInfo::VECTOR;
+    surfNormal->dofNames = dirVec;
+    surfNormal->unit = "";
+
     
-    // loop over all regions
+    // loop over all volume regions
     StdVector<std::string> outDest;
     outDest.Push_back("");
     StdVector<shared_ptr<BaseResult> > resultList;
@@ -825,6 +835,24 @@ namespace CoupledField {
       }
     }
     
+    // loop over all surface regions
+    StdVector<shared_ptr<BaseResult> > surfResultList;
+    for ( UInt i = 0, numSurfaces = surfRegionIds_.GetSize();
+        i < numSurfaces; i++) {
+
+      // get elements
+      ent = GetEntityList( EntityList::SURF_ELEM_LIST, 
+                           region_.ToString(surfRegionIds_[i]),
+                           EntityList::REGION );
+
+      // create result objects
+      sol = shared_ptr<BaseResult> (new Result<Double>());
+      sol->SetEntityList(ent);
+      sol->SetResultInfo(surfNormal);
+      ptRes->RegisterResult( sol, 0,1,1,outDest,"",true,false);
+      surfResultList.Push_back(sol);
+    }
+    
     // begin writing of results
     ptRes->BeginMultiSequenceStep( 0, BasePDE::STATIC, 1);
     ptRes->BeginStep(0,0);
@@ -833,6 +861,7 @@ namespace CoupledField {
     Vector<Double> midPoint, globVec, actLocDir;
     Double jacDet;
     
+    // loop over all volume region results
     for( UInt i = 0; i < resultList.GetSize(); ++i ) {
       
       // fetch result object
@@ -881,10 +910,34 @@ namespace CoupledField {
           ptElem->ptElem->CalcJacobian( jac, midPoint, actCoord, ptElem );
           jac.Determinant(jacDet);
             actVal[it.GetPos()] = jacDet;
-        }
+        } // loop over elements
       }
       ptRes->UpdateResult(resultList[i]);
-    }
+    } // loop over surface results
+    
+    Vector<Double> normal;
+    // loop over all surface region results
+    for( UInt i = 0; i < surfResultList.GetSize(); ++i ) {
+      // fetch result object
+      Result<Double> &  actSol = 
+          dynamic_cast<Result<Double>&>(*surfResultList[i]);
+      EntityIterator it = actSol.GetEntityList()->GetIterator();
+      Vector<Double> & actVal = actSol.GetVector();
+      actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
+      
+      // loop over surface elements
+      for ( it.Begin(); !it.IsEnd(); it++ ) {
+        const SurfElem * ptElem = it.GetSurfElem();
+        CalcSurfNormal(normal, *ptElem, false );
+        normal *= (Double) ptElem->normalSign;
+        
+        for(UInt iDim = 0; iDim < dim_; iDim++ ) {
+          actVal[it.GetPos()*dim_ + iDim] = normal[iDim];
+        }
+      } // loop over elements
+      
+      ptRes->UpdateResult(surfResultList[i]);
+    } // loop over surface results
 
     ptRes->FinishStep();
     ptRes->FinishMultiSequenceStep();
@@ -2057,7 +2110,6 @@ namespace CoupledField {
         //         }
         myElem->normalSign = 0;
       } else {
-
         CalcSurfNormal( normalUndefSign, *myElem, false );
         CalcSurfNormalOutOfVol( normalDefSign,
                                 *myElem,
@@ -2065,10 +2117,11 @@ namespace CoupledField {
                                 false );
 
 
-        // Check if all entries have the same sign by calulating
+        // Check if all entries have the same sign by calculating
         // a scalar product between both vectors.
-        // If it is positive, they point in the smae direction,
+        // If it is positive, they point in the same direction,
         // otherwise an angle of 180 lies in between.
+        
         sign = normalUndefSign * normalDefSign;
 
         if ( sign > 0.0 ) {
@@ -2233,7 +2286,6 @@ namespace CoupledField {
     }
   }
 
-
   void GridCFS::CalcSurfNormalOutOfVol(Vector<Double> & n,
                                        const Elem & surfElem,
                                        const Elem & volElem,
@@ -2241,88 +2293,73 @@ namespace CoupledField {
   {
 
     //compute normal vector
-    Matrix<Double>  ptVolCoord, ptSurfCoord;
+    Matrix<Double>  ptVolCoord;
 
     // First, calculate undefined normal
     CalcSurfNormal(n, surfElem, updated );
 
-    GetElemNodesCoord(ptSurfCoord, surfElem.connect, updated );
     GetElemNodesCoord(ptVolCoord, volElem.connect, updated );
-
-
     UInt volCorners = volElem.ptElem->GetNumCorners();
-
-    // Check for dimension:
-    // A 2D volume element has only one face
-    // -> we are in 2D
-    if ( n.GetSize() == 2 ) {
-
-      // compute direction
-
-      Integer indexNode1=-1;
-      Integer indexNode2=-1;
-
-      for(UInt actNode=0; actNode < volCorners; actNode++)
-      {
-        if (volElem.connect[actNode] == surfElem.connect[0])
-          indexNode1 = actNode;
-        if (volElem.connect[actNode] == surfElem.connect[1])
-          indexNode2 = actNode;
+    
+    /* Idea:
+     - find a common surface / volume element node
+     - find additional node, which is not common (i.e. lies on the "volume side"
+     - calculate difference vector from  "additional" node to first common
+       one ( = pointing out of  the volume element)
+     - the scalar product of the normal and the difference vector determines
+       the normalSign
+     */
+    
+    // find first common vertex index
+    Integer firstCommonIndex = -1;
+    for (UInt i=0; i<volCorners; i++)
+      if (volElem.connect[i] == surfElem.connect[0]){
+        firstCommonIndex = i;
+        break;
       }
-      // if not clockwise orientation of nodes (difference of node indizes is -1)
-      if (indexNode1==-1 || indexNode2==-1)
-        EXCEPTION("Nodes of neighbouring element not found!" );
-
-
-      // counterclockwise orientation of nodes (difference of node indizes is +1)
-      if ( ( indexNode2-indexNode1  == -1 ||
-             (indexNode2-indexNode1)- (Integer) volCorners == -1 ) ) {
-        n *= -1;
+    
+    // find additional node of the volume node, which is not contained in the
+    // surface element
+    std::set<UInt> volSet, surfSet, diffSet;
+    volSet = std::set<UInt>(volElem.connect.Begin(), volElem.connect.End());
+    surfSet = std::set<UInt>(surfElem.connect.Begin(), surfElem.connect.End());
+    std::set_difference( volSet.begin(), volSet.end(),
+                         surfSet.begin(), surfSet.end(),
+                         std::inserter(diffSet,diffSet.begin()) );
+    
+    Vector<double> diffVec( dim_ );
+    Double scalarProd = 0.0;
+    std::set<UInt>::const_iterator it = diffSet.begin();
+    for( ; it != diffSet.end(); it++ ) {
+      
+      UInt node = *it;
+      
+      // search for volume 
+      UInt index = volElem.connect.Find(node);
+      
+      // calculate difference vector (pointing out of the volume)
+      for( UInt iDim = 0; iDim < dim_; ++iDim ) {
+        diffVec[iDim] =  ptVolCoord[iDim][firstCommonIndex]
+                       - ptVolCoord[iDim][index];
       }
+      // normalize difference vector to 1.0
+      diffVec /= diffVec.NormL2();
 
-      else
-        // counterclockwise orientation of nodes (difference of node indizes is +1)
+      // calculate scalar product
+      scalarProd = diffVec * n;
 
-        if (! (indexNode2-indexNode1 == 1 ||
-               (indexNode2-indexNode1)+volCorners == 1) )
-          EXCEPTION("Nodes of interface don't lie beneath each other in neighbouring element!" );
-    }
-
-    else {
-
-      // compute direction
-
-      // find first common vertex index
-      Integer firstCommonIndex = -1;
-      for (UInt i=0; i<volCorners; i++)
-        if (volElem.connect[i] == surfElem.connect[0]){
-          firstCommonIndex = i;
-          break;
+      // check if scalar product is != 0 (otherwise we may have a degenerated
+      // element, where two nodes lie on the same location)
+      if( std::abs(scalarProd) < EPS ) {
+        // we have to find another node
+        continue;
+      } else {
+        if( scalarProd < 0.0 ) {
+          // original normal vector points into the volume -> reorient
+          n *= -1.0;
         }
-
-      // calculate barycenter of volume element
-      Vector<Double> barycenter(3);
-      for (UInt i=0; i<volCorners; i++){
-        barycenter[0] += ptVolCoord[0][i];
-        barycenter[1] += ptVolCoord[1][i];
-        barycenter[2] += ptVolCoord[2][i];
+        break;
       }
-
-      barycenter /= volCorners;
-
-      // check, if scalar product with vector (going from barycenter to
-      // common edge) and perpendicular vector  are pointing in same direction
-      Vector<Double> innerVec(3);
-      Double product = 0;
-      innerVec[0] = ptVolCoord[0][firstCommonIndex] - barycenter[0];
-      innerVec[1] = ptVolCoord[1][firstCommonIndex] - barycenter[1];
-      innerVec[2] = ptVolCoord[2][firstCommonIndex] - barycenter[2];
-
-      product = innerVec * n;
-      if (product < 0) {
-        n *= -1;
-      }
-
     }
   }
 
@@ -3067,6 +3104,7 @@ namespace CoupledField {
   void GridCFS::CorrectElementConnectivities() {
     Matrix<Double> coordMat;
     Vector<Double> localCoord;
+    std::set<const Elem*> corrElems, failedElems;
     
     for(UInt i=0; i<numElems_; i++)
     {
@@ -3085,9 +3123,43 @@ namespace CoupledField {
       try { 
         el->ptElem->CalcJacobianDet(localCoord, coordMat, el);
       } catch (Exception& ex) {
+        try {
         el->CorrectConnectivity();
+        // at this point, we can be sure that the element connectivity
+        // was adjusted correctly
+        corrElems.insert(el);
+        } catch (Exception& ex) {
+          // at this point, the correction failed e.g. due to a missing
+          // implementation or a totally weird element connectivity.
+          failedElems.insert(el);
+        }
       }
     }    
+    // if some elements were successfully reoriented, issue warning
+    if(corrElems.size() > 0 ) {
+      std::stringstream out;
+      out << "The following elements have a wrong orientation and "
+          << "were re-oriented:\n";
+      std::set<const Elem*>::iterator it = corrElems.begin();
+      for( ; it != corrElems.end(); it++  ) {
+        out << (*it)->elemNum << ", ";
+      }
+      out << "\n\nPlease check your mesh!\n";
+      WARN( out.str().c_str() );
+    }
+
+    // if some elements could not be reoriented, generate exception
+    if(failedElems.size() > 0 ) {
+      std::stringstream out;
+      out << "The following elements have a wrong orientation and "
+          << "could NOT be re-oriented:\n";
+      std::set<const Elem*>::iterator it = failedElems.begin();
+      for( ; it != failedElems.end(); it++  ) {
+        out << (*it)->elemNum << ", ";
+      }
+      out << "\n\nPlease check your mesh!\n";
+      EXCEPTION( out.str() );
+    }
   }
 
 } // end namespace

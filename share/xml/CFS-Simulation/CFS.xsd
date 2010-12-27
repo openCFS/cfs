@@ -17,6 +17,7 @@
   <xsd:include schemaLocation="Schemas/CFS_PDEacoustic.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEacousticMixed.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEmagnetic.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_PDEmagneticScalar.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEmagedge.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEsmooth.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEmpcci.xsd"/>

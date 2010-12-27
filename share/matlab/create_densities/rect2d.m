@@ -41,6 +41,7 @@ dmax = sqrt((cenx - 0.5*w)^2 + (ceny - 0.5*h)^2);
 dmin = 0.001;
 
 fprintf(xml_file, '<set id="center">\n');
+'center'
 for y = 1:sy;
     # center y of current element
     cy = (y - 1) * h + 0.5*h;
@@ -64,6 +65,7 @@ endfor
 fprintf(xml_file, '</set>\n\n');
 
 fprintf(xml_file, '<set id="center-inverted">\n');
+'center-inverted'
 for y = 1:sy;
     # center y of current element
     cy = (y - 1) * h + 0.5*h;
@@ -87,6 +89,7 @@ endfor
 fprintf(xml_file, '</set>\n\n');
 
 fprintf(xml_file, '<set id="vertical">\n');
+'vertical'
 for y = 1:sy;
   for x = 1:sx;
     # center x of current element
@@ -103,6 +106,7 @@ endfor
 fprintf(xml_file, '</set>\n\n');
 
 fprintf(xml_file, '<set id="diagonal">\n');
+'diagonal'
 for y = 1:sy;
     # center y of current element
     cy = (y - 1) * h + 0.5*h;
@@ -124,6 +128,7 @@ endfor
 fprintf(xml_file, '</set>\n\n');
 
 fprintf(xml_file, '<set id="checkerboard">\n');
+'checkerboard'
 needoffset = 0;
 if(mod(sx, 2) == 0)
 	needoffset = 1;
@@ -157,6 +162,7 @@ endfor
 fprintf(xml_file, '</set>\n\n');
 
 fprintf(xml_file, '<set id="vbars">\n');
+'vbars'
 for y = 1:sy;
   for x = 1:sx;
     # number of current element
@@ -178,6 +184,7 @@ endfor
 fprintf(xml_file, '</set>\n\n');
 
 fprintf(xml_file, '<set id="hbars">\n');
+'hbars'
 for y = 1:sy;
   for x = 1:sx;
     # number of current element
@@ -199,6 +206,7 @@ endfor
 fprintf(xml_file, '</set>\n\n');
 
 fprintf(xml_file, '<set id="random">\n');
+'random'
 for y = 1:sy;
   for x = 1:sx;
     # number of current element
@@ -220,6 +228,7 @@ endfor
 fprintf(xml_file, '</set>\n\n');
 
 fprintf(xml_file, '<set id="random2">\n');
+'random2'
 for y = 1:sy;
   for x = 1:sx;
     # number of current element
@@ -241,6 +250,7 @@ endfor
 fprintf(xml_file, '</set>\n\n');
 
 fprintf(xml_file, '<set id="circle">\n');
+'circle'
 rad = sqrt((1.0-0.38)/pi);
 for y = 1:sy;
     # center y of current element
@@ -266,6 +276,7 @@ endfor
 fprintf(xml_file, '</set>\n\n');
 
 fprintf(xml_file, '<set id="donut">\n');
+'donut'
 rad1 = 0.5;
 rad2 = 0.4;
 for y = 1:sy;
@@ -292,6 +303,7 @@ endfor
 fprintf(xml_file, '</set>\n\n');
 
 fprintf(xml_file, '<set id="frame">\n');
+'frame'
 # frame should be 10 percent of width
 xframe = 0.1 * sx;
 yframe = 0.1 * sy;
@@ -306,6 +318,42 @@ for y = 1:sy;
 		else
 		  v = dmin;
 		end
+
+    fprintf(xml_file, '  <element nr="%d" type="density" design="%g"/>\n', num, v);
+  endfor
+endfor
+fprintf(xml_file, '</set>\n\n');
+
+fprintf(xml_file, '<set id="orthox">\n');
+'orthox'
+for y = 1:sy;
+  for x = 1:sx;
+    # number of current element
+    num = (y - 1) * sx + x;
+
+    if(y > sy/2 - sy/10 && y < sy/2 + sy/10)
+      v = 1;
+    else 
+      v = dmin;
+		endif
+
+    fprintf(xml_file, '  <element nr="%d" type="density" design="%g"/>\n', num, v);
+  endfor
+endfor
+fprintf(xml_file, '</set>\n\n');
+
+fprintf(xml_file, '<set id="orthoy">\n');
+'orthoy'
+for y = 1:sy;
+  for x = 1:sx;
+    # number of current element
+    num = (y - 1) * sx + x;
+
+    if(x > sx/2 - sx/10 && x < sx/2 + sx/10)
+      v = 1;
+    else 
+      v = dmin;
+		endif
 
     fprintf(xml_file, '  <element nr="%d" type="density" design="%g"/>\n', num, v);
   endfor

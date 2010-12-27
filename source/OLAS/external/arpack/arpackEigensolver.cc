@@ -37,6 +37,7 @@ namespace CoupledField {
     
     isGeneralized_ = false;
     shiftAndInvert_ = false;
+    logging_ = false;
   }
 
   ArpackEigenSolver::~ArpackEigenSolver() {
@@ -82,7 +83,7 @@ namespace CoupledField {
     // Check 'which'-settings regarding the type of eigenvalues searched for
     std::string whichString = "LM";
     PtrParamNode sNode;
-    sNode = xml_->Get("arpack", ParamNode::INSERT);
+    sNode = xml_->Get("eigenSolver")->Get("arpack", ParamNode::INSERT);
     sNode->GetValue("which", whichString, ParamNode::INSERT);
     
     which_ = new char[whichString.size()+1];
@@ -112,7 +113,14 @@ namespace CoupledField {
 
     // Check trace settings
     arpackSolver_->DebugOff();
-
+    if( sNode->Has("logging") ) {
+      sNode->GetValue("logging", logging_);
+      if (logging_) {
+        arpackSolver_->DebugOn();
+        logging_ = true;
+      }
+    }
+    
     // Print log-info about EigenSolver
     PrintInfo();
 
@@ -171,7 +179,7 @@ namespace CoupledField {
 
     // Check 'which'-settings regarding the type of eigenvalues searched for
     PtrParamNode sNode;
-    sNode = xml_->Get("arpack", ParamNode::INSERT );
+    sNode = xml_->Get("eigenSolver")->Get("arpack", ParamNode::INSERT );
     std::string whichString = "LM";
     sNode->GetValue("which", whichString, ParamNode::INSERT );
     
@@ -202,6 +210,14 @@ namespace CoupledField {
 
     // Check trace settings
     arpackSolver_->DebugOff();
+    if( sNode->Has("logging") ) {
+      sNode->GetValue("logging", logging_);
+      if (logging_) {
+        arpackSolver_->DebugOn();
+        logging_ = true;
+      }
+    }
+    
 
     // Print log-info about EigenSolver
     PrintInfo();
@@ -346,6 +362,9 @@ namespace CoupledField {
     arpackSolver_ = new ArpackSolver();
 
     PtrParamNode sNode;
+    std::cerr << "parameter node of Arpack is\n";
+    std::string out;
+    xml_->ToString(out, 0);
     sNode = xml_->Get("arpack", ParamNode::INSERT);
 
     // Set additional parameters for tolerance, number of Arnoldi vectors and
@@ -359,6 +378,8 @@ namespace CoupledField {
     Integer numVec = -1;
     sNode->GetValue("numVec", numVec, ParamNode::INSERT);
 
+    
+    
     // set mode: we look at both ends of the spectrum for eigenvalues
     std::string whichString = "BE";
     which_ = new char[whichString.size()+1];
@@ -380,9 +401,17 @@ namespace CoupledField {
     if (numVec > 0)
       arpackSolver_->SetNumVectors(numVec);
 
+
     // Check trace settings
     arpackSolver_->DebugOff();
-
+    if( sNode->Has("logging") ) {
+      sNode->GetValue("logging", logging_);
+      if (logging_) {
+        arpackSolver_->DebugOn();
+        logging_ = true;
+      }
+    }
+    
     // Print log-info about EigenSolver
     PrintInfo();
 
@@ -469,8 +498,7 @@ namespace CoupledField {
            << arpackSolver_->GetNcv() << "\n";
 
     // Trace settings
-    bool logging = false;
-    if ( logging ) {
+    if ( logging_ ) {
       (*cla) << " Logging activated\n";
     }
     (*cla) << " -------------------------------------------------------"

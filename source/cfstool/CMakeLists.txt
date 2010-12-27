@@ -1,5 +1,3 @@
-INCLUDE(cfstool_options.cmake)
-
 INCLUDE_DIRECTORIES(
   ${HDF5_INCLUDE_DIR}
   ${CMAKE_CURRENT_BINARY_DIR}
@@ -13,7 +11,7 @@ ENDIF(USE_IPOPT)
 # List of source codes for current target.
 SET(CFSTOOL_SRCS
   cfstool.cc
-  ${CMAKE_CURRENT_BINARY_DIR}/ParamsInit.cc
+  ParamsInit.cc
 )
 
 # Main CFS++ Tool executable target.

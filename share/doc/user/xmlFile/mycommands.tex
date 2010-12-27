@@ -67,6 +67,28 @@ Attribute & Values & Description \\ \midrule} {\\\bottomrule
 \providecommand{\url}[1]{\texttt{#1}}
 
 % ===============================
+%  Mathematical Function 
+% ===============================
+
+% Single parameter
+\newcommand{\param}[1]{{\tt{#1}}}
+
+% Environment for specyfying parameters of mathematical functions
+\newenvironment{mathFunc}[1]
+{
+\begin{samepage}
+\begin{flushleft}
+\begin{minipage}[h!]{\textwidth}
+\vspace*{1em}
+\large \textbf{{\hspace*{1em} #1}}
+\end{minipage}
+\end{flushleft}
+\begin{center}
+\begin{tabular}{lp{0.7\textwidth}}
+\toprule \rowcolor{darkgrey} Parameter & Description \\ \midrule} 
+{\\\bottomrule \end{tabular} \\[0.2ex] \end{center} \end{samepage}}
+
+% ===============================
 %  Mathematical Abbreviations
 % ===============================
 

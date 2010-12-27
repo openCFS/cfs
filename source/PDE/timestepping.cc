@@ -14,12 +14,8 @@ namespace CoupledField {
 
   TimeStepping::TimeStepping(BaseSystem * algebraicsystem )
   {
-
     algsys_  = algebraicsystem;
     rhsSize_ = 0 ;
-    isDeriv1Set_ = false;
-    isDeriv2Set_ = false;
-    isSolTN1Set_ = false;
   }
 
   const std::map<FEMatrixType,Double>  &
@@ -42,7 +38,98 @@ namespace CoupledField {
       return false;
     }
   }
-     
+
+  SolutionType
+  TimeStepping::mapDerivToSolutionType(const SolutionType solType, const DERIVType derivType) const
+  {
+    SolutionType retSolType = NO_SOLUTION_TYPE;
+    switch (derivType)
+    {
+      case FIRST_DERIV:
+        switch (solType)
+        {
+          case FLUIDMECH_VELOCITY:
+            retSolType = FLUIDMECH_VELOCITY_DERIV_1;
+            break;
+          case FLUIDMECH_PRESSURE:
+            retSolType = FLUIDMECH_PRESSURE_DERIV_1;
+            break;
+          case MECH_DISPLACEMENT:
+            retSolType = MECH_VELOCITY;
+            break;
+          case ACOU_PRESSURE:
+            retSolType = ACOU_PRESSURE_DERIV_1;
+            break;
+          case ACOU_POTENTIAL:
+            retSolType = ACOU_POTENTIAL_DERIV_1;
+            break;
+          case BUBBLE_RADIUS:
+            retSolType = BUBBLE_RADIUS_DERIV_1;
+            break;
+          case SMOOTH_DISPLACEMENT:
+            retSolType = SMOOTH_VELOCITY;
+            break;
+          default:
+            EXCEPTION("not implemented for first derivative of: " \
+                << SolutionTypeEnum.ToString(solType));
+        }
+        break;
+      case SECOND_DERIV:
+        switch (solType)
+        {
+          case FLUIDMECH_VELOCITY:
+            retSolType = FLUIDMECH_VELOCITY_DERIV_2;
+            break;
+          case FLUIDMECH_PRESSURE:
+            retSolType = FLUIDMECH_PRESSURE_DERIV_2;
+            break;
+          case MECH_DISPLACEMENT:
+            retSolType = MECH_DISPLACEMENT_DERIV_2;
+            break;
+          case ACOU_PRESSURE:
+            retSolType = ACOU_PRESSURE_DERIV_2;
+            break;
+          case ACOU_POTENTIAL:
+            retSolType = ACOU_POTENTIAL_DERIV_2;
+            break;
+          default:
+            EXCEPTION("not implemented for second derivative of: " \
+                << SolutionTypeEnum.ToString(solType));
+        }
+        break;
+      default:
+        EXCEPTION("not implemented for that deriv: " \
+            << SolutionTypeEnum.ToString(solType));
+    }
+    return retSolType;
+  }
+
+  bool
+  TimeStepping::isDeriv(const SolutionType solType) const
+  {
+    switch (solType)
+    {
+      case MECH_VELOCITY:
+        return true;
+      case SMOOTH_VELOCITY:
+        return true;
+      case BUBBLE_RADIUS_DERIV_1:
+        return true;
+      case ACOU_PRESSURE_DERIV_1:
+        return true;
+      case ACOU_PRESSURE_DERIV_2:
+        return true;
+      case FLUIDMECH_VELOCITY_DERIV_1:
+        return true;
+      case FLUIDMECH_VELOCITY_DERIV_2:
+        return true;
+      case ACOU_POTENTIAL_DERIV_1:
+        return true;
+      default:
+        return false;
+    }
+  }
+
 
 
 } // end of namespace

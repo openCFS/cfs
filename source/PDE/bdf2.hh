@@ -39,6 +39,9 @@ namespace CoupledField
     //! perform an update to RHS
     void UpdateRHS();
 
+    //! perform calculations at end of timestep (set the new timestep)
+    void AdvanceTimestep(Vector<Double>& solnew);
+
     //! Substract Stiffness from RHS
     virtual void SubstractStiffnessFromRHS(Vector<Double>& actSol)
     {;};
@@ -47,19 +50,8 @@ namespace CoupledField
     
     //! compute parameters for multiplication
     void CalcParameters(Double dt);
-   
-    //! integration parameter
-    Double gamma_;  
-
     bool firstTime_;
 
-    //@{
-    //! coefficients from Bdf2 method
-    Double a0_,a1_,a2_,a3_,a4_,a5_,a6_,a7_;
-    //@}
-
-    //! predictor of solution
-    Vector<Double> solpred_;
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

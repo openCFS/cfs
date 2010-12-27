@@ -856,13 +856,22 @@ namespace CoupledField {
 
     const NodeStoreSol<TYPE> & temp = dynamic_cast<const NodeStoreSol<TYPE>&>(x);
   
+    this->data_ = temp.data_;
+
+    this->ptGrid_ = temp.ptGrid_;
+    this->results_ = temp.results_;
+    this->eqnMap_ = temp.eqnMap_;
+    this->elems_ = temp.elems_;
     this->numNodes_ = temp.numNodes_;
     this->numSolutions_ = temp.numSolutions_;
     this->length_ = temp.length_;
+    this->lengthVector_ = temp.lengthVector_;
     this->solTypes_ = temp.solTypes_;
+    this->solTypesName_ = temp.solTypesName_;
     this->solOffset_ = temp.solOffset_;
-    this->solDofs_ = temp.solDofs_; this->totalDofs_ = temp.totalDofs_;
-    this->data_ = temp.data_;
+    this->solDofs_ = temp.solDofs_;
+    this->totalDofs_ = temp.totalDofs_;
+    this->eqnDofs_ = temp.eqnDofs_;
     this->convertedData_ = temp.convertedData_;
  
     return dynamic_cast<BaseNodeStoreSol &> (*this);

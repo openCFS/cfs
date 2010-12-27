@@ -14,6 +14,8 @@
 #include "DataInOut/resultHandler.hh"
 #include "Utils/SmoothSpline.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "Utils/biotSavart.hh"
+#include "linMagStrictInt.hh"
 
 namespace CoupledField {
 
@@ -1265,6 +1267,8 @@ DEFINE_LOG(linForm, "linForm")
   void LinearFlowNoiseInt::CalcElemVec4QuadwithVel(const Matrix<Double>& ptCoord,
                                                    const Matrix<Double> & NodalVel,
                                                    Vector<Double> & Result,
+                                                   Vector<Double> & nodalLoadDensity,
+                                                   Vector<Double>& divLHTensor,
                                                    const Elem* elem,
                                                    Double density)
   {
@@ -1295,8 +1299,11 @@ DEFINE_LOG(linForm, "linForm")
     //    Double density=1.0;
 
     Result.Resize(n);
-    for (Integer i=0; i<n; i++)
-      Result[i]=0.0;
+    nodalLoadDensity.Resize(n);
+    for (Integer i=0; i<n; i++) {
+      Result[i] = 0.0;
+      nodalLoadDensity[i] = 0.0;
+    }
 
     Vector<Double> partResult;
     partResult.Resize(n);
@@ -1304,6 +1311,8 @@ DEFINE_LOG(linForm, "linForm")
     Vector<Double> helpVec;
     helpVec.Resize(dimelem);
 
+    Double volume = 0.0;
+    divLHTensor.Init(0.0);
     
     // Loop over all integration points 
     for(Integer actInt=1; actInt <= l; actInt++)
@@ -1321,43 +1330,50 @@ DEFINE_LOG(linForm, "linForm")
       VelDerAtIP = NodalVel * xiDx;
 
       helpVec[0] = 2.0 * VelAtIP[0] * VelDerAtIP[0][0] 
-                                                    + VelAtIP[1] *  VelDerAtIP[0][1] 
-                                                                                  + VelAtIP[0] *  VelDerAtIP[1][1];
+                       + VelAtIP[1] * VelDerAtIP[0][1]
+                       + VelAtIP[0] * VelDerAtIP[1][1];
+                       
       if (dimelem == 3)
       {
-        helpVec[0] += VelAtIP[2] *  VelDerAtIP[0][2]
-                                                  + VelAtIP[0] *  VelDerAtIP[2][2]; 
+        helpVec[0] +=    VelAtIP[2] * VelDerAtIP[0][2]
+                       + VelAtIP[0] * VelDerAtIP[2][2]; 
       }
 
 
       helpVec[1] = 2.0 * VelAtIP[1] * VelDerAtIP[1][1] 
-                                                    + VelAtIP[0] *  VelDerAtIP[1][0] 
-                                                                                  + VelAtIP[1] *  VelDerAtIP[0][0]; 
+                       + VelAtIP[0] * VelDerAtIP[1][0] 
+                       + VelAtIP[1] * VelDerAtIP[0][0]; 
       if (dimelem == 3)
       {
-        helpVec[1] += VelAtIP[1] *  VelDerAtIP[2][2]
-          + VelAtIP[2] *  VelDerAtIP[1][2]; 
+        helpVec[1] +=    VelAtIP[1] * VelDerAtIP[2][2]
+                       + VelAtIP[2] * VelDerAtIP[1][2]; 
       }
 
 
       if (dimelem == 3)
       {
         helpVec[2] = 2.0 * VelAtIP[2] * VelDerAtIP[2][2] 
-                         + VelAtIP[0] *  VelDerAtIP[2][0] 
-                         + VelAtIP[2] *  VelDerAtIP[0][0]
-                         + VelAtIP[1] *  VelDerAtIP[2][1]
-                         + VelAtIP[2] *  VelDerAtIP[1][1]; 
+                         + VelAtIP[0] * VelDerAtIP[2][0] 
+                         + VelAtIP[2] * VelDerAtIP[0][0]
+                         + VelAtIP[1] * VelDerAtIP[2][1]
+                         + VelAtIP[2] * VelDerAtIP[1][1]; 
       }
 
-
       helpVec *= density;
-
+      divLHTensor += (helpVec * jacDet * intWeights[actInt-1]);
+       
       // Multiplication with the derivatives of the shape functions
       partResult  = xiDx * helpVec;
       partResult *= jacDet * intWeights[actInt-1];
       //std::cout<<"JacDet= "<<jacDet<<std::endl;
       Result     += partResult;
+      nodalLoadDensity = Result;
+      
+      volume += jacDet * intWeights[actInt-1];
     }
+
+    nodalLoadDensity *= 1/volume;
+    divLHTensor *= 1/volume;
 
   } // end of method
 
@@ -2495,5 +2511,171 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
 
     LOG_DBG2(linForm) << "AddStrainRHSInt:CEV el=" << ent.GetElem()->elemNum << " -> " << elemVec.ToString();
 
+  }
+  // =============================================================================
+  // MagSourceInt (RHS integrator for Biot-Savart coil of magnetic Scalar PDE)
+  // =============================================================================
+
+  //! Calculates the RHS for Biot-Savart coils for scalar potential formulation
+
+  //! This class implements the RHS excitation for a magnetic-scalar formulation
+  //! of the magnetic field. The integrator calcualates
+  //! \f [ \int \nabla N_a (\mu - \mu_0) \mathbf{H}_s d\Omega \f ]
+  BiotSavartSourceInt::
+  BiotSavartSourceInt( BaseMaterial* matData,
+                       SubTensorType tensorType,
+                       shared_ptr<BiotSavart>& bs,
+                       bool isaxi, bool coordUpdate ) 
+  : LinearForm( matData ) {
+    name_ = "BiotSavartSourceInt";
+    isaxi_ = isaxi;
+    coordUpdate_ = coordUpdate;
+    biotSavart_ = bs;
+    mParser_->SetExpr(mHandle_, "1.0");
+    subTensorType_ = tensorType; 
+  }
+
+  BiotSavartSourceInt::~BiotSavartSourceInt() {
+
+  }
+  
+  void BiotSavartSourceInt::SetFactor( const std::string& factor ) {
+    mParser_->SetExpr(mHandle_, factor);
+  }
+
+  void BiotSavartSourceInt::CalcElemVector( Vector<Double> & elemVec,
+                                            EntityIterator& ent ) {
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
+
+    Matrix<Double> permeability;
+    const Double mu0=1.25664e-06;
+
+    ptMaterial->GetTensor(permeability,MAG_PERMEABILITY,
+                          Global::REAL, subTensorType_ );
+    
+    
+
+    // as we add the contribution of the Biot-Savart field afterwards in
+    // the magnetic scalar potential PDE, we just calculate for the "difference",
+    // i.e. we have to subtract mu_0 from the permeability here.
+    UInt muSize = permeability.GetNumRows();
+    for( UInt i = 0; i < muSize; i++ ) {
+      permeability[i][i] -= mu0;
+    }
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    const UInt nrIntPts = ptelem->GetNumIntPoints();
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();
+    const Vector<Double> * intPoints = ptelem->GetIntPoints();
+
+    Vector<Double> ShpFncAtIp, helpVec, CoordAtIP, hField, bField;
+    Matrix<Double> xiDx;
+
+    elemVec.Resize(numFncs);
+    elemVec.Init(0);  
+    helpVec.Resize(numFncs);
+    helpVec.Init(0);
+
+    Double jacDet = 0.0;
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {     
+
+      // get the derivative of the global shape function 
+      ptelem->GetGlobDerivShFncAtIp( xiDx, actIntPt, ptCoord_, 
+                                     jacDet, ent.GetElem() );
+      ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+                                 ptCoord_, ent.GetElem() );
+      
+      // Calculate source field H_s using Biot-Savart's law
+      biotSavart_->CalcFieldAtPoint(hField, CoordAtIP );
+      bField = (permeability * hField);
+      helpVec = xiDx * bField;
+      helpVec *=  intWeights[actIntPt-1] * jacDet;
+      elemVec += helpVec   ;           
+    }
+    // multiply element vector by factor (e.g. -1 due to magnetostrictive 
+    // coupling)
+    elemVec *= mParser_->Eval( mHandle_ );//for the magnetostriction coupling case
+  }
+
+  // ============================================================================
+  // BiotSavarMechCouplingRHSInt
+  // =============================================================================
+  BiotSavartMechCouplingInt::
+  BiotSavartMechCouplingInt( BaseMaterial* matData,
+                             SubTensorType type,
+                             shared_ptr<BiotSavart> & bs,
+                             bool isaxi,
+                             bool coordUpdate )
+  : LinearForm( matData ) {
+    
+    name_ = "BiotSavartMechCouplingInt";
+    subTensorType_ = type;
+    isaxi_ = false;
+    biotSavart_ = bs;
+    
+    // create new magnetostriction bilinear form
+    magStrictForm_ = new LinMagStrictInt( ptMaterial, subTensorType_ );
+  }
+
+  BiotSavartMechCouplingInt::~BiotSavartMechCouplingInt() {
+    delete magStrictForm_;
+  }
+
+  void BiotSavartMechCouplingInt::CalcElemVector( Vector<Double> & elemVec,
+                                                  EntityIterator& ent ) {
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    const UInt nrIntPts = ptelem->GetNumIntPoints();
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+    const Vector<Double> * intPoints = ptelem->GetIntPoints();
+    Double jacDet;
+    Matrix<Double> aMat, dMat, bMatTrans,aMatTrans;
+    Matrix<Double> baMat, elemMat;
+
+    elemMat.Resize( numFncs * magStrictForm_->getNumDofsA(), 
+                    numFncs * magStrictForm_->getNumDofsB() ); 
+    elemMat.Init();
+
+    elemVec.Resize( numFncs * magStrictForm_->getNumDofsA());
+    elemVec.Init(0);
+
+    // compute the correct material tensor
+    Vector<Double> lCoord, hField;
+    Vector<Double>  ShpFncAtIp;
+
+    magStrictForm_->ExtractElemInfo( ent );
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {     
+
+      // Setup the A matrix for current integration point
+      magStrictForm_->calcAMat( aMat, actIntPt, ptCoord_ );
+      magStrictForm_->calcDMat( dMat,ent.GetElem());
+      // Compute Jacobian for integration point
+      jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_,ent.GetElem() );
+
+      ptelem->Local2GlobalCoord( lCoord, intPoints[actIntPt-1],ptCoord_, ent.GetElem() );
+      
+      biotSavart_->CalcFieldAtPoint( hField, lCoord );
+      ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt, ent.GetElem() );
+
+      if( isaxi_ ) {
+        EXCEPTION("axi-symmetric implementation missing");
+      }
+      jacDet *= intWeights[actIntPt-1];
+      baMat = aMat * dMat;
+      //aMat.Mult( dMat, abMat );
+
+      // We now compute  B^T * D * H_{s} and scale it by the determinant
+      // of the Jacobian 
+      for ( UInt i = 0; i < baMat.GetNumRows(); i++ ) {
+        for ( UInt j = 0; j < baMat.GetNumCols(); j++ ) {
+          elemVec[i] +=  baMat[i][j]*hField[j]*ShpFncAtIp[j]*jacDet;
+        }
+      }
+
+    }
   }
 } // end of namespace

@@ -200,6 +200,13 @@ ENDIF(USE_BLAS OR USE_LAPACK)
 INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindBoostForCFS.cmake")
 
 #-------------------------------------------------------------------------------
+# Our cfs-hdf5 I/O library depends on Boost, that is why we check for it here.
+#-------------------------------------------------------------------------------
+IF(USE_HDF5)
+  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindCfs-hdf5.cmake")
+ENDIF(USE_HDF5)
+
+#-------------------------------------------------------------------------------
 # If USE_PYTHON option is defined find Python library
 #-------------------------------------------------------------------------------
 IF(USE_PYTHON)

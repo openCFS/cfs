@@ -39,6 +39,9 @@ namespace CoupledField
     //! perform an update to RHS with actual solution (for nonlin calculation)
     void UpdateRHS(Vector<Double>& actSol){;};  
 
+    //! perform calculations at end of timestep (set the new timestep)
+    void AdvanceTimestep(Vector<Double>& solnew);
+
   private:
     //! predictor for nodal solution
     Vector<Double> solold_;

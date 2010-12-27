@@ -135,6 +135,9 @@ namespace CoupledField {
 
     //! Flag for shift-and-invert mode
     bool shiftAndInvert_;
+    
+    //! Flag for use of logging
+    bool logging_;
 
     //! Character string for 'which' setting of  arpack
     char * which_;

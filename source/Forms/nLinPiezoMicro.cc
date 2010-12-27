@@ -294,7 +294,7 @@ namespace CoupledField {
                                           BaseMaterial* matDataMech,
                                           BaseMaterial* matDataElec,                                       
                                           SubTensorType type) 
-    : linElecInt(matDataElec, type){
+    : linGradBDBInt(matDataElec, ELEC_PERMITTIVITY, type){
     
     name_ = "nLinMicroPiezoElec";
     isSolDependent_ = true;

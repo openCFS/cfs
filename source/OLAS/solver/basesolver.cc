@@ -90,7 +90,6 @@ namespace CoupledField {
 
     // Compute norm of initial residual
     resNorm = res.NormL2();
-    std::cerr << "euclid norm of residual is " << resNorm << std::endl;
 
     // Test for the unlikely event, that the inital
     // guess already satisfies the linear system

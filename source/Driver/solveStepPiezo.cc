@@ -92,7 +92,7 @@ namespace CoupledField {
     Vector<Double> solPrev( numEqns_ );
  
     // get second order derivative of previous time step;
-    Vector<Double> solDeriv2Prev = PDE_.getS2();
+    Vector<Double> solDeriv2Prev = PDE_.getDeriv(SECOND_DERIV);
     Vector<Double> coeff;
 
     oldSol.Init(0);

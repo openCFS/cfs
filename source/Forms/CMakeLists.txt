@@ -23,8 +23,9 @@ SET(FORMS_SRCS
   gradfieldop.cc
   laplaceInt.cc
   linearForm.cc
+  linBiotSavartSurfInt.cc
   linElastInt.cc
-  linElecInt.cc
+  linGradBDBInt.cc
   linNeumannInt.cc
   linPiezoCoupling.cc
   linPressureInt.cc
@@ -66,6 +67,7 @@ SET(FORMS_SRCS
   fluidMechStiffInt.cc
   nLinPiezoMicro.cc
   nLinPiezoMicroRHS.cc
+  linMagStrictInt.cc
   )
 
 ADD_LIBRARY(forms STATIC ${FORMS_SRCS})

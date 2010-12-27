@@ -43,7 +43,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& regionIds, ParamNodeList &pn_d
   designMaterial = NULL;
 
   applicationForm.SetName("DesignSpace::ApplicationForm");
-  applicationForm.Add(Optimization::ELEC, "linElecInt");
+  applicationForm.Add(Optimization::ELEC, "linGradBDBInt");
   applicationForm.Add(Optimization::MECH, "linElastInt");
   // We follow for the stress, strain calculation the transfer functions of mech
   applicationForm.Add(Optimization::MECH, "MechStressStrain", false);

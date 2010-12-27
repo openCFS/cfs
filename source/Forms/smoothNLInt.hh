@@ -49,7 +49,7 @@ protected:
   Double exponent_;
   Double elastFactorMax_, elastFactorMin_, eMean_;
 
-  Double ComputeElastFactor( Double & e11, Double & e22, Double & e12 );
+  Double ComputeElastFactor( const Double& e11, const Double& e22, const Double& e12 );
 
   //! returns B - matrix for BDB
   void calcBMat(Matrix<Double> & bMat, 

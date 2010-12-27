@@ -95,6 +95,9 @@ namespace CoupledField
     
     /** this is the path on the server the POST is sent to */
     std::string path_;
+
+    /** should we output more information to the command line? */
+    bool silent_;
   };
 }
 

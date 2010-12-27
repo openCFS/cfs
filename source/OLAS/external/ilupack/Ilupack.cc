@@ -123,6 +123,38 @@ void Ilupack<T>::SetMatrix(const BaseMatrix &base_mat)
   mat.nc = som.GetNumCols();
   mat.nnz = elements;
 
+  mat.issymmetric = 0;
+  mat.isdefinite = 0;
+  mat.ishermitian = 0;
+  mat.isskew = 0;
+  mat.isreal = !isComplex_;
+  mat.issingle = 0;
+  switch(matrix_)
+  {
+    case GNL:
+      break;
+    case PD:
+      mat.issymmetric = 1;
+      mat.isdefinite = 1;
+      if (isComplex_)
+      {
+        mat.ishermitian = 1;
+      }
+      break;
+    case SYM:
+      mat.issymmetric = 1;
+      break;
+    case HER:
+      mat.ishermitian = 1;
+      if (mat.isreal)
+      {
+        throw Exception("ilupack matrix is set to hermitian but not complex");
+      }
+      break;
+    default:
+      throw Exception("matrix type does not exist (SSM and SHR are not implemented yet)");
+  }
+
   LOG_TRACE2(ilupack) << "SetMatrix: allocate: mat_.a<T>=" << elements << " .ia=" << (som.GetNumRows() + 1)
                       << ".ia=" << elements << "; .nr=" << mat.nr << " .nc=" << mat.nc;
   LOG_DBG2(ilupack) << "mat_.ia: " << StdVector<int>::ToString(mat.nr + 1, mat.ia);
@@ -283,13 +315,17 @@ void Ilupack<T>::InitParameters()
   CheckParameter(out, reinterpret_cast<bool*>(&param.matching), "matching");
   CheckParameter(out, &param.ordering, "ordering");
   CheckParameter(out, &param.droptol, "dropTolLU");
-  CheckParameter(out, &param.droptol, "dropTolSchur");
+  CheckParameter(out, &param.droptolS, "dropTolSchur");
   CheckParameter(out, &param.condest, "condest");
   CheckParameter(out, &param.solver, "iterativeSolver/solver");
   CheckParameter(out, &param.restol, "iterativeSolver/residualTol");
   CheckParameter(out, &param.maxit, "iterativeSolver/maxIter");
   CheckParameter(out, &param.elbow, "elbowSpace");
   CheckParameter(out, &param.amg, "amg");
+  if (xml_ != NULL && xml_->Has("iterativeSolver/nrestart"))
+  {
+    CheckParameter(out, &param.nrestart, "iterativeSolver/nrestart");
+  }
   
   // TODO we currently ignore saddle point structures
   param.ind = NULL;

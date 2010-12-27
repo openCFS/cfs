@@ -51,7 +51,7 @@ class mutex {
     mutex & operator = ( const mutex & Not_Implemented);
     mutex( const mutex & From);
 public:
-    mutex() : m_mutex() {
+    mutex() : m_mutex(), m_count(0) {
         pthread_mutexattr_t attr;
         int res = pthread_mutexattr_init(&attr);
         assert(res == 0);
@@ -63,6 +63,7 @@ public:
         {
             int res = pthread_mutexattr_destroy(&attr);
             assert(res == 0);
+            if(res == 0) res = 0; // This is for preventing unused variable warning
         }
         if (res != 0)
             throw std::runtime_error("could not create mutex");

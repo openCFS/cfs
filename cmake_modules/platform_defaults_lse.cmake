@@ -13,7 +13,7 @@ IF(CFS_BUILD_USER STREQUAL "fwein")
     SET(USE_SCPIP_DEFAULT ON)  
 ENDIF(CFS_BUILD_USER STREQUAL "fwein")
 
-SET(MKL_ROOT_DIR_DEFAULT "/home/data/programs/intel/mkl/10.0.5.025")
+SET(MKL_ROOT_DIR_DEFAULT "/home/data/programs/intel/Compiler/11.0/081/mkl")
 
 SET(CFS_DEPS_ROOT_DEFAULT "/home/data/libraries/CFSDEPS")
 SET(CFS_DEPS_CACHE_DIR_DEFAULT "/home/data/libraries/CFSDEPSCACHE")

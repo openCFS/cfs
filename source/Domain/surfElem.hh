@@ -31,7 +31,7 @@ namespace CoupledField
   //! resulting vector will be dependend on the ordering of the connectivity
   //! of the element. Therefore the flag \a normalSign defines a factor
   //! (either 1 or -1) by which the resulting vector has to be multiplied, to
-  //! point in the direction of the first volume element.
+  //! point in the direction OUT of the first volume element.
   //! 
   //! Here is a snipplet of example code to demonstrate the calculation of 
   //! the surface normal:
@@ -49,7 +49,7 @@ namespace CoupledField
   //! \verbatim
   //! normalDefSign = normalUndefSign * surfElem.normalSign;
   //! \endverbatim
-  //! Now \c normalDefSign points in the direction of
+  //! Now \c normalDefSign points in the direction OUT of 
   //! \c surfElem.ptVolElem1 !
 
   struct SurfElem : public Elem
@@ -66,7 +66,7 @@ namespace CoupledField
     // ======================================================
     // GEOMETRICAL INFORMATION
     // ======================================================
-    //@{ \name Geometrical Information
+    //@{ \name Geometry Information
     
     //! Pointer to first volume element
     Elem * ptVolElem1;
@@ -75,6 +75,12 @@ namespace CoupledField
     Elem * ptVolElem2;
     
     //! Flag for indicating direction of surface normal
+    
+    //! If this flag (interpreted as a double) gets multiplied with the
+    //! undefined normal direction, obtained by Grid::CalcSurfNormal(), the
+    //! resulting normal will be oriented OUT of ptVolElem1, i.e. for
+    //! surface element on the boundary (which have just one volume neighbor)
+    //! the resulting normal will point out of the domain. 
     char normalSign;
   
     //@}

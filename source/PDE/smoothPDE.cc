@@ -261,11 +261,11 @@ namespace CoupledField {
         	sol_->NodeSolutionToCoupling(*values,*couplingnodes);
         }
         else if (quantity == SMOOTH_VELOCITY) {
-        	solDeriv1_.SetAlgSysVector(getS1());     
+        	solDeriv1_.SetAlgSysVector(getDeriv(FIRST_DERIV));     
         	solDeriv1_.NodeSolutionToCoupling((*values),*couplingnodes);
         }
         else if (quantity == GRID_VELOCITY) {
-        	solDeriv1_.SetAlgSysVector(getS1());
+        	solDeriv1_.SetAlgSysVector(getDeriv(FIRST_DERIV));
         	solDeriv1_.NodeSolutionToCoupling((*values),*couplingnodes);
         }
 
@@ -304,10 +304,10 @@ namespace CoupledField {
       }
       break;
     case SMOOTH_VELOCITY:
-      ExtractDerivResult( res, 1 );
+      ExtractDerivResult( res, FIRST_DERIV );
       break;
     case GRID_VELOCITY:
-        ExtractDerivResult( res, 1 );
+        ExtractDerivResult( res, FIRST_DERIV );
       break;
     default:
       WARN( "Resulttype not computable by smoothing PDE" );
