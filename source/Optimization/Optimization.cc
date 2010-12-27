@@ -232,8 +232,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::COMPLIANCE, "compliance");
   Function::type.Add(Function::OUTPUT, "output");
   Function::type.Add(Function::DYNAMIC_OUTPUT, "dynamicOutput");
-  Function::type.Add(Function::ABS_DYN_OUTPUT_SQUARED, "absDynamicOutputSquared");
-  Function::type.Add(Function::DISPLACED_VOLUME, "displacedVolume");
+  Function::type.Add(Function::ABS_OUTPUT, "absOutput");
   Function::type.Add(Function::GLOBAL_DYNAMIC_COMPLIANCE, "globalDynamicCompliance");
   Function::type.Add(Function::CONJUGATE_COMPLIANCE, "conjugateCompliance");
   Function::type.Add(Function::VOLUME, "volume");
@@ -252,6 +251,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::GREYNESS, "greyness");
   Function::type.Add(Function::STRESS, "stress");
   Function::type.Add(Function::ISOTROPY, "isotropy");
+  Function::type.Add(Function::ISO_ORTHOTROPY, "iso-orthotropy");
   Function::type.Add(Function::SLOPE, "slope");
   Function::type.Add(Function::GLOBAL_SLOPE, "globalSlope");
   Function::type.Add(Function::MOLE, "mole");

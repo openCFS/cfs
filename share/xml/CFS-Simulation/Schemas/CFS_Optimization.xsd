@@ -273,6 +273,7 @@
                 <xsd:enumeration value="poissonsRatio"/>
                 <xsd:enumeration value="youngsModulus"/>
                 <xsd:enumeration value="isotropy"/>
+                <xsd:enumeration value="iso-orthotropy"/>
                 <xsd:enumeration value="slope"/>
                 <xsd:enumeration value="globalSlope"/>
                 <xsd:enumeration value="oscillation"/>
@@ -1121,8 +1122,7 @@
       <xsd:enumeration value="conjugateCompliance"/>
       <xsd:enumeration value="globalDynamicCompliance"/>
       <xsd:enumeration value="dynamicOutput"/>
-      <xsd:enumeration value="absDynamicOutputSquared"/>
-      <xsd:enumeration value="displacedVolume"/>
+      <xsd:enumeration value="absOutput"/>
       <xsd:enumeration value="tracking"/>
       <xsd:enumeration value="elecEnergy"/>
       <xsd:enumeration value="homTensor"/>

@@ -205,8 +205,6 @@ void ErsatzMaterial::PostInit()
 
       case Objective::DYNAMIC_OUTPUT:
       case Objective::GLOBAL_DYNAMIC_COMPLIANCE:
-      case Objective::ABS_DYN_OUTPUT_SQUARED:
-      case Objective::ENERGY_FLUX:
         if(!harmonic) throw Exception(objective + " is only for harmonic state problems");
         break;
 
@@ -219,8 +217,7 @@ void ErsatzMaterial::PostInit()
     {
       case Objective::OUTPUT:
       case Objective::DYNAMIC_OUTPUT:
-      case Objective::ABS_DYN_OUTPUT_SQUARED:
-      case Objective::DISPLACED_VOLUME:
+      case Objective::ABS_OUTPUT:
       {
         PtrParamNode output = cost->pn->Get("output");
 
@@ -910,7 +907,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
             Matrix<double> hom_tensor = CalcHomogenizedTensor();
             if(c->HasHomogenizationEntry())
             {
-              result = hom_tensor[c->coord.first -1][c->coord.second - 1];
+              result = hom_tensor[get<0>(c->coord)-1][get<1>(c->coord)-1];
             }
             else
             {
@@ -956,8 +953,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
      case Function::OUTPUT:
      case Function::DYNAMIC_OUTPUT:
      case Function::CONJUGATE_COMPLIANCE:
-     case Function::ABS_DYN_OUTPUT_SQUARED:
-     case Function::DISPLACED_VOLUME:
+     case Function::ABS_OUTPUT:
           assert(!derivative); // SIMP!
           if(harmonic)
             result = CalcOutputObjective<complex<double> >(excite, c);
@@ -977,6 +973,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
        assert(false); // shall be handled before
 
      case Function::ISOTROPY:
+     case Function::ISO_ORTHOTROPY:
      case Function::MULTI_OBJECTIVE:
        assert(false); // no valid function
     // no default, gcc warns
@@ -1291,19 +1288,7 @@ double ErsatzMaterial::CalcOutputObjective(Excitation& excite, Objective* cost)
       break;
     }
 
-    case Objective::ABS_DYN_OUTPUT_SQUARED:
-    {
-      // |<u,l>|^2 = Re{<u,l>}^2 + Im{<u,l>}^2 
-      T ul = u.Inner(l);
-      double re_ul = ((complex<double>) ul).real();
-      double im_ul = ((complex<double>) ul).imag();
-      result = re_ul * re_ul + im_ul * im_ul;
-      result *= excite.GetFactor(cost);
-      LOG_DBG2(em) << "output |<u,l>|^2 = Re{<u,l>}^2 + Im{<u,l>}^2: " << re_ul << "^2  + " << im_ul << "^2 -> " << result;
-      break;
-    }
-
-    case Function::DISPLACED_VOLUME:
+    case Function::ABS_OUTPUT:
     {
       // |<u,l>|
       T ul = u.Inner(l);
@@ -1885,9 +1870,9 @@ double ErsatzMaterial::CalcPoissonsRatioAndYoungsModulus(Objective* cost, Condit
   if(derivative)
   {
     StdVector<double> dE11;
-    CalcHomogenizedTensorEntry(make_pair(1,1), true, dE11);
+    CalcHomogenizedTensorEntry(make_tuple(1,1,1.0), true, dE11);
     StdVector<double> dE12;
-    CalcHomogenizedTensorEntry(make_pair(1,2), true, dE12);
+    CalcHomogenizedTensorEntry(make_tuple(1,2,1.0), true, dE12);
 
     const double E11 = hom_tensor[0][0];
     const double E12 = hom_tensor[0][1];
@@ -2057,24 +2042,28 @@ double ErsatzMaterial::CalcHomogenizedTensorConstraint(Condition* g, bool deriva
 
   double result = 0.0;
 
-  // we have the form Exx or Exx-Eyy or Exx-Eyy-Ezz-Ezz for isotropy constraints
+  // we have a list of int,int,double tuples which are added with the double factor.
+  // E11 = <0,0,x>
+
 
   for(unsigned int i = 0; i < g->coords.GetSize(); i++)
   {
-    double t = CalcHomogenizedTensorEntry(g->coords[i], derivative, grad);
+    tuple<int, int, double>& entry = g->coords[i];
+    double t = CalcHomogenizedTensorEntry(entry, derivative, grad);
+    double factor = get<2>(entry);
 
     if(derivative)
     {
       for(int e = 0, ne = design->GetNumberOfElements(); e < ne; ++e)
-        design->data[e].AddGradient(NULL, g, (i == 0 ? 1.0 : -1.0) * grad[e]);
+        design->data[e].AddGradient(NULL, g, factor * grad[e]);
     }
     else
     {
-      result = (i == 0 ? t : result-t);
+      result += factor * t;
 
-      homogenizedTensor[g->coords[i].first - 1][g->coords[i].second - 1] = t;
+      homogenizedTensor[get<0>(entry)-1][get<1>(entry)-1] = t;
       // all tensors are symmetric. Makes reading easier!
-      homogenizedTensor[g->coords[i].second - 1][g->coords[i].first - 1] = t;
+      homogenizedTensor[get<1>(entry)-1][get<0>(entry)-1] = t;
 
       //LOG_DBG(em) << "CHTC: g=" << g->ToString() << " coord=" << i << " ["
       //    << g->coords[i].first << "-1][" << g->coords[i].second << "-1] = " << t;
@@ -2084,7 +2073,7 @@ double ErsatzMaterial::CalcHomogenizedTensorConstraint(Condition* g, bool deriva
   return result;
 }
 
-double ErsatzMaterial::CalcHomogenizedTensorEntry(const std::pair<int, int> entry, bool derivative, StdVector<double>& grad_out)
+double ErsatzMaterial::CalcHomogenizedTensorEntry(const tuple<int, int, double> entry, bool derivative, StdVector<double>& grad_out)
 {
   const double cube_vol(grid->CalcVolumeSpannedByNamedNodes());
 
@@ -2093,8 +2082,8 @@ double ErsatzMaterial::CalcHomogenizedTensorEntry(const std::pair<int, int> entr
   Matrix<double> test_strain_matrix_ij(dim, dim);
   Matrix<double> test_strain_matrix_kl(dim, dim);
 
-  const unsigned int ij = entry.first - 1;
-  const unsigned int kl = entry.second - 1;
+  const unsigned int ij = get<0>(entry) - 1;
+  const unsigned int kl = get<1>(entry) - 1;
 
   SetTestStrainMatrix(test_strain_matrix_ij, me->excitations[ij].test_strain);
   StdVector<SingleVector*> &u1 = forward.Get(ij)->elem[MECH]; // equal to \chi^{ij}
@@ -2558,8 +2547,7 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
 
     case Function::OUTPUT:
     case Function::CONJUGATE_COMPLIANCE:
-    case Function::ABS_DYN_OUTPUT_SQUARED:
-    case Function::DISPLACED_VOLUME:
+    case Function::ABS_OUTPUT:
     case Function::GLOBAL_DYNAMIC_COMPLIANCE:
     case Function::DYNAMIC_OUTPUT:
     case Function::ELEC_ENERGY:
@@ -2695,21 +2683,7 @@ void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
       rhs[i] = -1.0 * l[i] * std::conj(u[i]);
     break;
 
-  case Function::ABS_DYN_OUTPUT_SQUARED: // J = Re{<u,l>}^2 + Im{<u,l>}^2 .
-  {
-    // RHS = -0.5 * (2*<u_R,l> l - j 2*<u_I,l> l)
-    //     = - <u_R,l> l + j <u_I,l> l
-    //     = - Re{<u,l>} l + j Im{<u,l>} l
-    // find the complex scalar product ul <u,l>
-    complex<double> ul = u.Inner(l);
-    LOG_DBG2(em) << "AdjustComplexAdjointRHS: <u,l> = " << ul;
-
-    for(unsigned int i = 0; i < rhs.GetSize(); i++)
-      rhs[i] = complex<double>(-1.0 * ul.real() * l[i].real(), ul.imag() * l[i].real());
-    break;
-  }
-
-  case Function::DISPLACED_VOLUME:
+  case Function::ABS_OUTPUT:
   {
     // J = |u^T l| = sqrt( <u_R,l>^2 + <u_I,l>^2)
     // S lambda = - <u^*, l>/ 2*J * l = alpha * l

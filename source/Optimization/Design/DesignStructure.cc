@@ -23,6 +23,7 @@ DesignStructure::DesignStructure(DesignSpace* space, StdVector<RegionIdType>& re
   this->space = space;
   this->regions = regions;
   this->em = NULL;
+  this->grid = domain->GetGrid();
   Constructor();
 }
 
@@ -31,6 +32,7 @@ DesignStructure::DesignStructure(ErsatzMaterial* em)
   this->space = em->GetDesign();
   this->regions = em->regionIds;
   this->em = em;
+  this->grid = domain->GetGrid();
   Constructor();
 }
 
@@ -38,7 +40,7 @@ void DesignStructure::Constructor()
 {
   initialized_ = false;
 
-  this->dim  = domain->GetGrid()->GetDim();
+  this->dim  = grid->GetDim();
 
   periodic = false;
   if(em != NULL)
@@ -55,8 +57,6 @@ void DesignStructure::Constructor()
 
 void DesignStructure::Initialize()
 {
-  Grid* grid = domain->GetGrid();
-
   // save to be called multiple times. Has all neighbors and the number of common nodes
   grid->FindElementNeighorhood();
 
@@ -164,7 +164,7 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
   double radius = -1.0; // for each element, set only once for regular.
   StdVector<SIMPElement::NeighbourElement> neighbors; // will become element neighborhood
   StdVector<unsigned int> too_far;   // element numbers too far away
-  StdVector<std::pair<Elem*, int> > expandable; // FindNeighborhood() adds here periodic expanded neighbors
+  StdVector<unsigned int> expandable; // FindNeighborhood() adds here periodic expanded neighbors
 
   for(unsigned int e = 0; e < data.GetSize(); e++)
   {
@@ -218,7 +218,7 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
 
 void DesignStructure::FindNeighborhood(DesignElement* base, double radius,
                                       StdVector<std::pair<Elem*, int> >& initial,
-                                      StdVector<std::pair<Elem*, int> >& expandable,
+                                      StdVector<unsigned int>& expandable,
                                       StdVector<SIMPElement::NeighbourElement>& neighbors,
                                       StdVector<unsigned int>& too_far)
 {
@@ -241,11 +241,11 @@ void DesignStructure::FindNeighborhood(DesignElement* base, double radius,
   for(unsigned int e = 0, en = initial.GetSize(); e < en + expandable.GetSize(); e++)
   {
     // we ignore the grade of neighborhood (the int in the pair)
-    Elem* test_elem = e < en ? initial[e].first : expandable[e-en].first;
+    const Elem* test_elem = e < en ? initial[e].first : grid->GetElem(expandable[e-en]);
     unsigned int test = test_elem->elemNum;
 
     // the element might have periodic neighbors
-    if(periodic) ExtendPeriodicNeighborhood(test_elem, expandable);
+    if(periodic) ExtendPeriodicNeighborhood(test_elem, expandable, neighbors, too_far);
 
     if(test == base->elem->elemNum) continue; // we're not a neighbor of ourself
 
@@ -372,7 +372,7 @@ double DesignStructure::FindFilterRadius(FilterSpace space, DesignElement* de, d
 void DesignStructure::SetPeriodicConstraintMapping()
 {
   assert(em != NULL); // is not called otherwise!
-   constraintMapping.Resize(domain->GetGrid()->GetNumNodes() + 1); // 1-based
+   constraintMapping.Resize(grid->GetNumNodes() + 1); // 1-based
 
    ConstraintList glist = em->pde->GetConstraints();
 
@@ -456,7 +456,7 @@ void DesignStructure::SetNodeElemMapping()
 {
   assert(periodic);
 
-  nodeToElem.Resize(domain->GetGrid()->GetNumNodes() + 1,0); // 1-based
+  nodeToElem.Resize(grid->GetNumNodes() + 1,0); // 1-based
 
   StdVector<DesignElement>& data = space->data;
   // traverse all elements
@@ -512,12 +512,14 @@ bool DesignStructure::ExtendPeriodicNeighborhood(Elem* elem, int common, StdVect
   return neighbors.GetSize() > 0;
 }
 
-
-bool DesignStructure::ExtendPeriodicNeighborhood(Elem* elem, StdVector<std::pair<Elem*, int> >& neighbors)
+void DesignStructure::ExtendPeriodicNeighborhood(const Elem* elem,
+                                                 StdVector<unsigned int>& expandable,
+                                                 const StdVector<SIMPElement::NeighbourElement>& identified,
+                                                 const StdVector<unsigned int>& too_far)
 {
   assert(periodic);
 
-  //neighbors.Resize(0);
+  unsigned int org_size = expandable.GetSize();
 
   // check if any of the nodes is a periodic boundary node at all
   for(unsigned int n = 0; n < elem->connect.GetSize(); n++)
@@ -527,49 +529,73 @@ bool DesignStructure::ExtendPeriodicNeighborhood(Elem* elem, StdVector<std::pair
 
     if(others.IsEmpty()) continue;
 
-
     // take one of the elements that share the node.
     for(unsigned int o = 0; o < others.GetSize(); o++)
     {
-      Elem* other_elem = nodeToElem[others[o]];
-      AppendNeighbors(std::make_pair(other_elem, 0), neighbors); // the element itself, the nodes connectivity shall not be necessary!
-      AppendNeighbors(*other_elem->neighborhood, neighbors);     // the elements neighbors
+      const Elem* other_elem = nodeToElem[others[o]];
+      AppendNewElement(other_elem, expandable, identified, too_far); // the element itself, the nodes connectivity shall not be necessary!
+      AppendNewElements(*other_elem->neighborhood, expandable, identified, too_far);     // the elements neighbors
       LOG_DBG3(ds) << "EPN: elem=" << elem->elemNum << " node=" << test << " cm[" << o << "]=" << others[o] << " other_elem=" << other_elem->elemNum;
     }
   }
 
   // add the original neighborhood if there is a periodic case
-  if(neighbors.GetSize() > 0)
-    AppendNeighbors(*elem->neighborhood, neighbors);
+  if(expandable.GetSize() != org_size)
+    AppendNewElements(*elem->neighborhood, expandable, identified, too_far);
 
-  LOG_DBG3(ds) << "EPN: elem=" << elem->elemNum << " #n=" << neighbors.GetSize() << " en=" << neighbors.ToString();
-
-  return neighbors.GetSize() > 0;
+  LOG_DBG3(ds) << "EPN: elem=" << elem->elemNum << " #n=" << expandable.GetSize() << " en=" << expandable.ToString();
 }
 
+
+void DesignStructure::AppendNewElements(const StdVector<std::pair<Elem*, int> >& source,
+    StdVector<unsigned int>& expandable,
+    const StdVector<SIMPElement::NeighbourElement>& identified,
+    const StdVector<unsigned int>& too_far)
+{
+  for(unsigned int s = 0, sn = source.GetSize(); s < sn; s++)
+    AppendNewElement(source[s].first, expandable, identified, too_far);
+}
+
+void DesignStructure::AppendNewElement(const Elem* test,
+                                      StdVector<unsigned int>& expandable,
+                                      const StdVector<SIMPElement::NeighbourElement>& identified,
+                                      const StdVector<unsigned int>& too_far)
+{
+  bool found = false;
+
+  if(expandable.Contains(test->elemNum))
+    found = true;
+
+  if(!found && too_far.Contains(test->elemNum))
+    found = true;
+
+  for(unsigned int o = 0, on = identified.GetSize(); !found && o < on; o++) {
+    if(test->elemNum == identified[o].neighbour->elem->elemNum)
+      found = true;
+  }
+
+  if(!found)
+    expandable.Push_back(test->elemNum);
+}
 
 void DesignStructure::AppendNeighbors(const StdVector<std::pair<Elem*, int> >& source, StdVector<std::pair<Elem*, int> >& out)
 {
   for(unsigned int s = 0, sn = source.GetSize(); s < sn; s++)
-    AppendNeighbors(source[s], out);
-}
-
-void DesignStructure::AppendNeighbors(const std::pair<Elem*, int>& test, StdVector<std::pair<Elem*, int> >& out)
-{
-  bool found = false;
-  for(unsigned int o = 0, on = out.GetSize(); o < on && !found; o++)
   {
-    if(test.first == out[o].first)
-      found = true;
+    bool found = false;
+    for(unsigned int o = 0, on = out.GetSize(); o < on && !found; o++)
+    {
+      if(source[s].first == out[o].first)
+        found = true;
+    }
+    if(!found)
+      out.Push_back(source[s]);
   }
-  if(!found)
-    out.Push_back(test);
 }
-
 
 void DesignStructure::AppendNeighbors(Elem* check,
-                                           const StdVector<unsigned int>& constraints, int min_common,
-                                           StdVector<std::pair<Elem*, int> >& out)
+                                      const StdVector<unsigned int>& constraints, int min_common,
+                                      StdVector<std::pair<Elem*, int> >& out)
 {
   if(check == NULL) return;
   

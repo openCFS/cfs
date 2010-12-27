@@ -216,9 +216,9 @@ void linElastInt::calcDMat(Matrix<Double> & dMat, const Elem* elem, const Design
 
     // check for bimaterial tensor in the design space, set by the SIMP class
     if(domain->GetErsatzMaterial(false) != NULL
-        && domain->GetErsatzMaterial(false)->GetBiMatTensor().GetNumCols() != 0)
+        && domain->GetErsatzMaterial()->GetBiMatTensor().GetNumCols() != 0)
     {
-      Matrix<Double> t(domain->GetErsatzMaterial(false)->GetBiMatTensor());
+      Matrix<Double> t(domain->GetErsatzMaterial()->GetBiMatTensor());
       assert(t.GetNumCols() == dMat.GetNumCols());
       assert(t.GetNumRows() == dMat.GetNumRows());
       t *= (1.0 - density);

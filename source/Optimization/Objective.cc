@@ -22,8 +22,9 @@ Objective::Objective(PtrParamNode pn, PtrParamNode pn_type, unsigned int idx)
 
   this->penalty_ = pn_type->Has("penalty") ? pn_type->Get("penalty")->As<Double>() : 1.0;
 
-  coord.first = -1;
-  coord.second = -1;
+  get<0>(coord) = -1;
+  get<1>(coord) = -1;
+  get<2>(coord) = 1.0;
   if(pn_type->Has("coord"))
   {
     if(pn_type->Get("coord")->As<std::string>() == "all" && type_ == HOMOGENIZATION_TENSOR)
@@ -36,10 +37,10 @@ Objective::Objective(PtrParamNode pn, PtrParamNode pn_type, unsigned int idx)
 
 std::string Objective::GetName() const
 {
-  if(coord.first == -1)
+  if(get<0>(coord) == -1)
     return type.ToString(type_);
   else
-    return type.ToString(type_) + "E" + lexical_cast<std::string>(coord.first) + lexical_cast<std::string>(coord.first);
+    return type.ToString(type_) + "E" + lexical_cast<std::string>(get<0>(coord)) + lexical_cast<std::string>(get<1>(coord));
 }
 
 

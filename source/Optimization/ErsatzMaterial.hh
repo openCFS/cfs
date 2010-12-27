@@ -2,6 +2,7 @@
 #define ERSATZ_MATERIAL_HH_
 
 #include <map>
+#include <boost/tuple/tuple.hpp>
 
 #include "Optimization/Optimization.hh"
 #include "Optimization/Excitation.hh"
@@ -9,6 +10,10 @@
 #include "Utils/result.hh"
 #include "MatVec/vector.hh"
 #include "MatVec/matrix.hh"
+
+
+using boost::tuple;
+
 
 namespace CoupledField
 {
@@ -510,8 +515,7 @@ public:
    * @param derivative this sets d(E^H)/d(rho_e) for the current tensor entry
    * @param out_grad of derivative it is resized and the gradients are set otherwise it is untouched
    * @return the E^H tensor entry if !derivative or 0 */
-  double CalcHomogenizedTensorEntry(const std::pair<int, int> entry,
-      bool derivative, StdVector<double>& grad_out);
+  double CalcHomogenizedTensorEntry(const tuple<int, int, double> entry,  bool derivative, StdVector<double>& grad_out);
 
   /** This is to be overwritten for any case there are other PDEs in ErsatzMaterial::pdes to be set.
    * PiezoSIMP does it simply in the constructor */

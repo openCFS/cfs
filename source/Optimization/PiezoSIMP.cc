@@ -225,7 +225,7 @@ double PiezoSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   case Objective::DYNAMIC_OUTPUT:
   case Objective::ENERGY_FLUX:
   case Objective::GLOBAL_DYNAMIC_COMPLIANCE:
-  case Objective::DISPLACED_VOLUME:
+  case Objective::ABS_OUTPUT:
   {
     if(!derivative)
       return SIMP::CalcFunction(excite, f, derivative);

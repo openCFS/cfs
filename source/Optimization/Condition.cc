@@ -32,7 +32,7 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   observation_ = pn->Get("mode")->As<std::string>() == "observation";
 
   // the bound value is mandatory when we have a constraint
-  if(!observation_ && !pn->Has("bound") && type_ != ISOTROPY)
+  if(!observation_ && !pn->Has("bound") && type_ != ISOTROPY && type_ != ISO_ORTHOTROPY)
     throw Exception("bound type for constraint '" + type.ToString(type_) + "' mandatory");
   bound_ = pn->Has("bound") ? bound.Parse(pn->Get("bound")->As<std::string>()) : EQUAL;
   // the bound value is called value in the problem file!
@@ -75,6 +75,7 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
       break;
 
     case ISOTROPY:
+    case ISO_ORTHOTROPY:
       if(pn->Has("value"))
         throw Exception("No value allowed for constraint '" + type.ToString(type_) + "'");
       break; // ok without value
@@ -133,50 +134,79 @@ void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list)
     AddHomogenizationTensorConstraints(pn, list, g);
 
   // isotropy is a special constraint which blows up special tensor entry constraints
-  if(g->type_ == ISOTROPY)
-    AddIsotropyConstraints(pn, list, g);
+  if(g->type_ == ISOTROPY || g->type_ == ISO_ORTHOTROPY)
+    AddXtropyConstraints(pn, list, g);
 }
 
 
-void Condition::AddIsotropyConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g)
+void Condition::AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g)
 {
   // isotropy is a special constraint which blows up special tensor entry constraints
-  assert(g->GetType() == ISOTROPY);
+  assert(g->GetType() == ISOTROPY || g->GetType() == ISO_ORTHOTROPY);
+
+  // we reset the type, therefore keep it
+  Type org = g->type_;
 
   if(pn->Has("coord"))
-    throw Exception("don't use attribute 'coord' for constraint 'isotropy'");
+    throw Exception("don't use attribute 'coord' for constraint 'isotropy'/'iso-orthotropy'");
 
   if(g->bound_ != EQUAL)
-    throw Exception("the 'isotropy' constraint requires equality constraint type");
+    throw Exception("the 'isotropy'/'iso-orthotropy' constraint requires equality constraint type");
 
   // become an HOMOGENIZATION_TENSOR constraint!
   g->type_ = HOMOGENIZATION_TENSOR;
+
+  // isotropic specific is a condition relating E11, shear and off-diagonal. See Lame-notation in Richter
+  // all constraints in isotropic are equal zero.
+  //
+  // iso-orthotropic is orthotropic with all E, G and all nu equal. E and nu are related but not G
+  // notation:
+  // E = E(1,1) (= E(2,2) = E(3,3))
+  // nu = E(1,2) (= E(1,3) = E(2,3))
+  // G = E(4,4) (= E(5,5) = E(6,6))
+  //
+  // the conditions for iso-orthotropy can be derived from the conditions for
+  // positive definit material matrices. using the leading principal minors
+  // (Hauptminoren) of the matrix, we can derive the following relations that
+  // must be fulfilled:
+  // 1. E > 0
+  // 2. E^2 - nu^2 > 0
+  // 3. E^3 + 2nu^3 - 3nu^2E > 0
+
+  // this is equivalent (to be rigorosly proofed!) to:
+  // 1. E > 0
+  // 2. E > nu
+  // 3. E > -2nu
+  //
+  // this conditions are lower bound conditions!
 
   if(domain->GetGrid()->GetDim() == 2)
   {
     // E11 - E22 = 0
     assert(g->coords.GetSize() == 0);
     g->boundValue_ = 0;
-    g->coords.Push_back(std::make_pair(1,1));
-    g->coords.Push_back(std::make_pair(2,2));
-
-    // E11 - E12 - 2E33 = E11 - E12 - E33 - E33 = 0
-    g = g->AppendSubCondition(list);
-    g->coords.Clear(); // the copy constructor above copies old stuff
-    g->coords.Push_back(std::make_pair(1,1));
-    g->coords.Push_back(std::make_pair(1,2));
-    g->coords.Push_back(std::make_pair(3,3));
-    g->coords.Push_back(std::make_pair(3,3));
+    g->coords.Push_back(make_tuple(1,1,1.0));
+    g->coords.Push_back(make_tuple(2,2,-1.0));
 
     // E13 = 0
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(std::make_pair(1,3));
+    g->coords.Push_back(make_tuple(1,3,1.0));
 
     // E23 = 0
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(std::make_pair(2,3));
+    g->coords.Push_back(make_tuple(2,3,1.0));
+
+    if(org == ISOTROPY)
+    {
+      // E11 - E12 - 2E33 = E11 - E12 - E33 - E33 = 0
+      g = g->AppendSubCondition(list);
+      g->coords.Clear(); // the copy constructor above copies old stuff
+      g->coords.Push_back(make_tuple(1,1,1.0));
+      g->coords.Push_back(make_tuple(1,2,-1.0));
+      g->coords.Push_back(make_tuple(3,3,-2.0));
+    } // else case is common for 2D and 3D
   }
   else
   {
@@ -184,97 +214,121 @@ void Condition::AddIsotropyConstraints(PtrParamNode pn, StdVector<Condition*>& l
     // E11 = E22 = E33 -> E11 - E22 = 0, E22 - E33 = 0
     assert(g->coords.GetSize() == 0);
     g->boundValue_ = 0;
-    g->coords.Push_back(std::make_pair(1,1));
-    g->coords.Push_back(std::make_pair(2,2));
+    g->coords.Push_back(make_tuple(1,1,1.0));
+    g->coords.Push_back(make_tuple(2,2,-1.0));
 
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(std::make_pair(2,2));
-    g->coords.Push_back(std::make_pair(3,3));
+    g->coords.Push_back(make_tuple(2,2,1.0));
+    g->coords.Push_back(make_tuple(3,3,-1.0));
 
     // upper non-shear triangle is constant
     // E12 = E13 = E23 -> E12 - E13 = 0, E13 - E23 = 0
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(std::make_pair(1,2));
-    g->coords.Push_back(std::make_pair(1,3));
+    g->coords.Push_back(make_tuple(1,2,1.0));
+    g->coords.Push_back(make_tuple(1,3,-1.0));
 
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(std::make_pair(1,3));
-    g->coords.Push_back(std::make_pair(2,3));
+    g->coords.Push_back(make_tuple(1,3,1.0));
+    g->coords.Push_back(make_tuple(2,3,-1.0));
 
     // shear diagonal is constant
     // E44 = E55 = E66 -> E44 - E55 = 0, E55 - E66 = 0
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(std::make_pair(4,4));
-    g->coords.Push_back(std::make_pair(5,5));
+    g->coords.Push_back(make_tuple(4,4,1.0));
+    g->coords.Push_back(make_tuple(5,5,-1.0));
 
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(std::make_pair(5,5));
-    g->coords.Push_back(std::make_pair(6,6));
-
-    // relationship of the three unique values
-    // E11 - E12 - 2E66 = E11 - E12 - E66 - E66 = 0
-    g = g->AppendSubCondition(list);
-    g->coords.Clear(); // the copy constructor above copies old stuff
-    g->coords.Push_back(std::make_pair(1,1));
-    g->coords.Push_back(std::make_pair(1,2));
-    g->coords.Push_back(std::make_pair(6,6));
-    g->coords.Push_back(std::make_pair(6,6));
+    g->coords.Push_back(make_tuple(5,5,1.0));
+    g->coords.Push_back(make_tuple(6,6,-1.0));
 
     // the rest is zero
     // E14 = E15 = E16 = E24 = E25 = E26 = E34 = E35 = E36 = E45 = E46 = E56 = 0
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(std::make_pair(1,4));
+    g->coords.Push_back(make_tuple(1,4,1.0));
 
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(std::make_pair(1,5));
+    g->coords.Push_back(make_tuple(1,5,1.0));
 
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(std::make_pair(1,6));
+    g->coords.Push_back(make_tuple(1,6,1.0));
 
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(std::make_pair(2,4));
+    g->coords.Push_back(make_tuple(2,4,1.0));
 
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(std::make_pair(2,5));
+    g->coords.Push_back(make_tuple(2,5,1.0));
 
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(std::make_pair(2,6));
+    g->coords.Push_back(make_tuple(2,6,1.0));
 
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(std::make_pair(3,4));
+    g->coords.Push_back(make_tuple(3,4,1.0));
 
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(std::make_pair(3,5));
+    g->coords.Push_back(make_tuple(3,5,1.0));
 
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(std::make_pair(3,6));
+    g->coords.Push_back(make_tuple(3,6,1.0));
 
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(std::make_pair(4,5));
+    g->coords.Push_back(make_tuple(4,5,1.0));
 
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(std::make_pair(4,6));
+    g->coords.Push_back(make_tuple(4,6,1.0));
 
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(std::make_pair(5,6));
+    g->coords.Push_back(make_tuple(5,6,1.0));
+
+    if(org == ISOTROPY)
+    {
+      // relationship of the three unique values
+      // E11 - E12 - 2E66 = E11 - E12 - E66 - E66 = 0
+      g = g->AppendSubCondition(list);
+      g->coords.Clear(); // the copy constructor above copies old stuff
+      g->coords.Push_back(make_tuple(1,1,1.0));
+      g->coords.Push_back(make_tuple(1,2,-1.0));
+      g->coords.Push_back(make_tuple(6,6,-2.0));
+    }
   }
+  // common for 2D and 3D
+  if(org == ISO_ORTHOTROPY)
+  {
+    // E11 > 0
+    g = g->AppendSubCondition(list);
+    g->bound_ = LOWER_BOUND;
+    g->coords.Clear();
+    g->coords.Push_back(make_tuple(1,1,1.0));
+
+    // E11 > E12 = E11 - E12 > 0
+    g = g->AppendSubCondition(list);
+    g->coords.Clear();
+    g->coords.Push_back(make_tuple(1,1,1.0));
+    g->coords.Push_back(make_tuple(1,2,-1.0));
+
+    // E11 + E12 + E12 > 0
+    g = g->AppendSubCondition(list);
+    g->coords.Clear();
+    g->coords.Push_back(make_tuple(1,1,1.0));
+    g->coords.Push_back(make_tuple(1,2,2.0));
+  }
+
 }
 
 
@@ -290,8 +344,10 @@ void Condition::AddHomogenizationTensorConstraints(PtrParamNode pn, StdVector<Co
     // for the conversion of the indices see Thesis from Ole Sigmund, p 30 and book of Manfred
     // p 42 (first edition)
     g->coords.Resize(1);
-    g->coords[0].first = 1;      // 1. ijkl = 1111
-    g->coords[0].second = 1;
+    tuple<int, int, double>& entry = g->coords[0];
+    get<0>(entry) = 1; // 1. ijkl = 1111
+    get<1>(entry) = 1;
+    get<2>(entry) = 1.0;
     g->boundValue_ = g->tensor_[1-1][1-1]; // one-based!
     g = g->AppendSubCondition(list, 2,2); // 2. 2222
     if(domain->GetGrid()->GetDim() == 2)
@@ -384,8 +440,10 @@ Condition* Condition::AppendSubCondition(StdVector<Condition*>& list, int pos_x,
 {
   Condition* sub = AppendSubCondition(list);
   sub->coords.Resize(1);
-  sub->coords[0].first = pos_x;
-  sub->coords[0].second = pos_y;
+  tuple<int, int, double>& entry = sub->coords[0];
+  get<0>(entry) = pos_x;
+  get<1>(entry) = pos_y;
+  get<2>(entry) = 1.0; // default
   sub->boundValue_ = sub->tensor_[pos_x-1][pos_y-1];
   sub->blown_up_ = true;
   return sub;
@@ -439,14 +497,43 @@ std::string Condition::ToString(MultipleExcitation* me) const
     os << "_(" << DesignElement::type.ToString(design) << ")";
 
   if(type_ == HOMOGENIZATION_TENSOR)
-    for(unsigned int i = 0; i < coords.GetSize(); i++)
-      os << "_" << coords[i].first << coords[i].second;
+    os << ToString(coords);
 
   // e.g. stresses are extended for every excitation
   if(type_ == STRESS && me != NULL && me->IsEnabled())
     os << "_" << me->excitations[excite_].label; // change to excite label
 
   return os.str();  
+}
+
+std::string Condition::ToString(const StdVector<tuple<int, int, double> >& coords)
+{
+  assert(coords.GetSize() > 0);
+  assert(get<2>(coords[0]) == 1.0); // so we don't have to start with a minus
+
+  std::ostringstream os;
+
+  // 11_p12_2m33
+  for(unsigned int i = 0; i < coords.GetSize(); i++)
+  {
+    const tuple<int, int, double>& entry = coords[i];
+    assert(std::floor(get<2>(entry)) - get<2>(entry) == 0.0);
+    int factor = get<2>(entry);
+    assert((i == 0 && factor == 1) || i != 0);
+    if(std::abs(factor) != 1.0)
+      os << factor;
+    if(factor < 0)
+      os << "m";
+    else
+      os << "p";
+
+    os << get<0>(entry) << get<1>(entry);
+
+    if(i < coords.GetSize() - 1)
+      os << "_";
+  }
+
+  return os.str();
 }
 
 
@@ -464,10 +551,7 @@ void Condition::ToInfo(PtrParamNode in)
   }
   if(type_ == HOMOGENIZATION_TENSOR)
   {
-    std::ostringstream os;
-    for(unsigned int i = 0; i < coords.GetSize(); i++)
-      os << (i > 0 ? "_" : "") << coords[i].first << coords[i].second;
-    in->Get("tensor_entry")->SetValue(os.str());
+    in->Get("tensor_entry")->SetValue(ToString(coords));
   }
 
   if(delta_logging_ignored_)

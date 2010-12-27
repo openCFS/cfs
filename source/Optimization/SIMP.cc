@@ -219,8 +219,7 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   case Function::OUTPUT:
   case Function::DYNAMIC_OUTPUT:
   case Function::CONJUGATE_COMPLIANCE:
-  case Function::ABS_DYN_OUTPUT_SQUARED:
-  case Function::DISPLACED_VOLUME:
+  case Function::ABS_OUTPUT:
     // synthesis of compliant mechanism: As our adjoint PDE
     // c' = l K' u
     CalcU1KU2(tf, adjoint.Get(excite, f)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, weight, STANDARD, f);

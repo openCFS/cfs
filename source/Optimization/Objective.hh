@@ -41,7 +41,7 @@ class Objective : public Function
     void ResetValue() { value_ = 0.0; }
 
     /** is a homogenization tensor coord set */
-    bool HasHomogenizationEntry() const { return coord.first != -1; }
+    bool HasHomogenizationEntry() const { return get<0>(coord) != -1; }
 
     double GetPenalty() const { return penalty_; }
 
@@ -49,8 +49,8 @@ class Objective : public Function
     void ToInfo(PtrParamNode info);
 
     /** This defines the optional coord pair for HOMOGENIZATION_TRACKING.
-     *  e.g. (1,1) for tensor entry (0,0). For Condition this is a list! */
-    std::pair<int, int> coord;
+     *  e.g. (1,1) for tensor entry (0,0). For Condition this is a list! The double shall be by default 1.0 */
+    tuple<int, int, double> coord;
 
     /** Here we store our ParamNode such we can more easily access it in ErsatzMaterial */
     PtrParamNode pn;
