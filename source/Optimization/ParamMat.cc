@@ -30,7 +30,7 @@ void ParamMat::SetElementK(DesignElement* de, Application app, DenseMatrix* mat_
   Matrix<double>& out = dynamic_cast<Matrix<double>& >(*mat_out);
   switch(app){
   case MECH:
-    out = mech_mat_->MechStiffness(de->elem, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE);
+    out = mech_mat_->MechStiffness(de->elem, false, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE);
     break;
   case MASS:
     out = mech_mat_->MechMass(de->elem, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE);

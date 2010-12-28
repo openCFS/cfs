@@ -30,7 +30,7 @@ DesignStructure::DesignStructure(DesignSpace* space, StdVector<RegionIdType>& re
 DesignStructure::DesignStructure(ErsatzMaterial* em)
 {
   this->space = em->GetDesign();
-  this->regions = em->regionIds;
+  this->regions = em->GetDesign()->GetRegionIds();
   this->em = em;
   this->grid = domain->GetGrid();
   Constructor();

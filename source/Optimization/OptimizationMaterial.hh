@@ -2,6 +2,7 @@
 #define OPTMATERIAL_HH_
 
 #include "General/Enum.hh"
+#include "General/environment.hh"
 #include "Optimization/Design/DesignElement.hh"
 
 namespace CoupledField 
@@ -30,7 +31,7 @@ public:
   virtual ~OptimizationMaterial();
   
   /** Id of our material class */
-  typedef enum { PIEZO, MECHANIC, HEAT } System;
+  typedef enum { PIEZOCOUPLING, MECH, HEAT } System;
 
   /** Here we store the system enum */
   static Enum<System> system;
@@ -38,10 +39,10 @@ public:
   System GetSystem() const { return system_; }
   
   /** <p>Get the original element matrix (stiffness, mass, ...)
-   * which is constant for all isotripic elements.
+   * which is constant for all isotropic elements.
    * This method is not only for mechanical SIMP but is also used by PiezoSIMP,
    * therefore it is generic.</p>
-   * <p>If no elemen is given, the one from the first design element is used.</p>
+   * <p>If no element is given, the one from the first design element is used.</p>
    * <p>All transfer functions are disabled during this method. Call only for
    * enabled transfer functions (default)</p>
    * @param form to be extracted via GetForm()
@@ -49,13 +50,15 @@ public:
    * @param elem if not given the first design element is used, otherwise the provided one
    * @param factor in piezoelectricity K_pp is -1* BDBInt */
   void GetElementMatrix(BaseForm* form, Matrix<double>& out, const Elem* elem = NULL,
+                        const BaseMaterial* bimaterial = NULL,
                         const DesignElement::Type direction = DesignElement::NO_DERIVATIVE, double factor = 1.0);
   
   /** Very similar to GetElementMatrix() but for the vector, e.g. for rhs linear forms */
-  void GetElementVector(LinearForm* form, Vector<double>& out, const Elem* elem = NULL, const Vector<double>* ts = NULL);
+  void GetElementVector(LinearForm* form, Vector<double>& out, const Elem* elem = NULL,
+                        const BaseMaterial* bimaterial = NULL, const Vector<double>* ts = NULL);
 
 protected:
-  StdVector<RegionIdType>& regionIds;
+  StdVector<RegionIdType> regionIds;
 
   ErsatzMaterial* opt;
   
@@ -66,6 +69,7 @@ private:
 
   /** This is the common implementation for GetElementMatrix() and GetElementVector() */
   void GetElementEntity(BaseForm* form, Matrix<double>* mat_out, Vector<double>* vec_out, const Elem* elem = NULL,
+                        const BaseMaterial* bimaterial = NULL,
                         const DesignElement::Type direction = DesignElement::NO_DERIVATIVE, const Vector<double>* ts = NULL);
   
 };
@@ -78,9 +82,10 @@ public:
   
   /** Get the ElementStiffness Matrix for this element, this is the region constant version
    * @param elem the Element for which the Matrix should be returned
+   * @param bimaterial if true gets the material from the design space by the element's region
    * @param direction if given, calculate derivative of Stiffness Matrix instead
    * @return a pointer to the Element Stiffness Matrix*/
-  const Matrix<double>& MechStiffness(const Elem* elem, const DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+  const Matrix<double>& MechStiffness(const Elem* elem, bool bimaterial = false, const DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
 
   /** Get the ElementMass Matrix for this element, this is the region constant version
    * @param elem the Element for which the Matrix should be returned
@@ -93,8 +98,9 @@ public:
   const Vector<double>& MechStrainRHS(const Elem* elem, MechPDE::TestStrain testStrain = MechPDE::NOT_SET);
 
 protected:  
-  /** The mechanical element stiffness matrix is constant */
-  std::map<RegionIdType, Matrix<double> > mechStiffness_map;
+  /** The mechanical element stiffness matrix is constant.
+   * We store the results for standard (first) and bimaterial (second)  */
+  std::map<RegionIdType, std::pair<Matrix<double>, Matrix<double> > > mechStiffness_map;
 
   /** The mechanical element mass matrix is also constant. Only for harmonic! */
   std::map<RegionIdType, Matrix<double> > mechMass_map;

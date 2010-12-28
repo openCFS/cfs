@@ -19,6 +19,7 @@ namespace CoupledField
   class SinglePDE;
   class Elem;
   class BaseResult;
+  class BaseMaterial;
   class ResultInfo;
   class BaseOptimizer;
 
@@ -29,13 +30,13 @@ namespace CoupledField
     public:
      /** Constructor for SIMP type Optimization - there we lay on a region which contains also n# elements
       * @param result the result description list  */
-     DesignSpace(StdVector<RegionIdType>& regionIds, ParamNodeList& design, ParamNodeList& transfer, ParamNodeList& result,
+     DesignSpace(StdVector<RegionIdType>& regions, ParamNodeList& design, ParamNodeList& transfer, ParamNodeList& result,
          ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
 
      virtual ~DesignSpace();
     
      /** creates the corresponding DesignSpace object depending on the method */
-     static DesignSpace* CreateInstance(StdVector<RegionIdType> regionIds, ParamNodeList& design, ParamNodeList& transfer, ParamNodeList& result,
+     static DesignSpace* CreateInstance(StdVector<RegionIdType> regions, ParamNodeList& design, ParamNodeList& transfer, ParamNodeList& result,
               ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
 
      /** PostInit as usual when not all can be stuffed into the constructor
@@ -271,14 +272,37 @@ namespace CoupledField
      /** Writes summary information about design variables and transfer functions into the node */
      void ToInfo(PtrParamNode in);
      
-     struct DesignRegion{
+     class DesignRegion
+     {
+     public:
+       /** Default constructor as C++ has no defaults :( */
+       DesignRegion();
+
        RegionIdType regionId;
        unsigned int base;
        unsigned int elements;
        bool constant;
+
+       void SetBiMaterial(const std::string& material) { bimaterial_ = material; }
+
+       bool HasBiMaterial() const;
+       /** the material is PDE dependent therefore we create and cache it on the fly. This makes it
+        * easy to be also simple for load ersatz material */
+       const BaseMaterial* GetBiMaterial(const MaterialClass mc);
+
+       void ToInfo(PtrParamNode node) const;
+     private:
+       std::string bimaterial_;
+       StdVector<std::pair<const BaseMaterial*, MaterialClass> > materials_;
      };
      
+     /** trivial find */
+     DesignRegion* GetRegion(RegionIdType id, bool throw_exception = true);
+
      StdVector<DesignRegion> regions;
+
+     /** it is convenient to have such a vector for some functions. Taken from regions! */
+     StdVector<RegionIdType>& GetRegionIds() { return regionIds_; }
 
      /** stupid find function */
      bool Contains(const RegionIdType reg) const;
@@ -360,6 +384,9 @@ namespace CoupledField
      /** are all regions regular.
       * Note, that in the derived design space a irregular grid is assumed! */
      bool all_regions_regular_;
+
+     /** just a cache from regions */
+     StdVector<RegionIdType> regionIds_;
   };
 
 

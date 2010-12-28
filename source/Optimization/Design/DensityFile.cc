@@ -126,7 +126,7 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
     ersatzMaterial = new DesignSpace(regionIds, des, tfs, res, ErsatzMaterial::SIMP_METHOD);
     ersatzMaterial->PostInit(0, 0); // no objectives, no constraints
     // is cheap - for density filtering
-    DesignStructure filter(ersatzMaterial, regionIds);
+    DesignStructure filter(ersatzMaterial, ersatzMaterial->GetRegionIds());
     if(reg) filter.SetFilters(reg, info->Get("ersatzMaterial"));
 
     ersatzMaterial->ToInfo(info->Get("ersatzMaterial")->Get(ParamNode::HEADER));

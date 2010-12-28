@@ -214,16 +214,15 @@ void linElastInt::calcDMat(Matrix<Double> & dMat, const Elem* elem, const Design
   {
     dMat *= density;
 
-    // check for bimaterial tensor in the design space, set by the SIMP class
-    if(domain->GetErsatzMaterial(false) != NULL
-        && domain->GetErsatzMaterial()->GetBiMatTensor().GetNumCols() != 0)
+    const BaseMaterial* bm = domain->GetErsatzBiMaterial(elem,  MECHANIC);
+
+    if(bm != NULL)
     {
-      Matrix<Double> t(domain->GetErsatzMaterial()->GetBiMatTensor());
-      assert(t.GetNumCols() == dMat.GetNumCols());
-      assert(t.GetNumRows() == dMat.GetNumRows());
-      t *= (1.0 - density);
-      dMat +=  t;
-      LOG_DBG3(forms) << "bimaterial tensor = " << t.ToString(1);
+      Matrix<Double> tmp;
+      bm->GetTensor(tmp, MECH_STIFFNESS_TENSOR, matDataType_, subTensorType_);
+      tmp *= (1.0 - density);
+      dMat +=  tmp;
+      LOG_DBG3(forms) << "linElastInt::calcDMat: e=" << elem->elemNum << " bimat=" << tmp.ToString();
     }
   }
   

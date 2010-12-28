@@ -11,6 +11,7 @@
 #include "Domain/domain.hh"
 #include "Domain/grid.hh"
 #include "Domain/resultInfo.hh"
+#include "DataInOut/MaterialHandler.hh"
 #include "Utils/result.hh"
 #include "Utils/StdVector.hh"
 #include "PDE/SinglePDE.hh"
@@ -30,12 +31,16 @@ DEFINE_LOG(ersatz, "ersatzMaterialFactor")
 
 
 
-DesignSpace::DesignSpace(StdVector<RegionIdType>& regionIds, ParamNodeList &pn_design, ParamNodeList &trans_in, ParamNodeList &result, ErsatzMaterial::Method method)
+DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, ParamNodeList &pn_design, ParamNodeList &trans_in, ParamNodeList &result, ErsatzMaterial::Method method)
 {
-  LOG_TRACE(designSpace) << "DesignSpace for regions=" << regionIds << " #designs=" << pn_design.GetSize()
+  LOG_TRACE(designSpace) << "DesignSpace for regions=" << reg_data << " #designs=" << pn_design.GetSize()
                          << " #transferFunctions=" << trans_in.GetSize() << " #results=" << result.GetSize();
-  regions.Resize(regionIds.GetSize());
-  all_regions_regular_ = domain->GetGrid()->IsRegionRegular(regionIds);
+  regions.Resize(reg_data.GetSize());
+
+  // for convenience
+  regionIds_ = reg_data;
+
+  all_regions_regular_ = domain->GetGrid()->IsRegionRegular(regionIds_);
 
   design_id = 0;
   optimizer_ = NULL;
@@ -54,7 +59,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& regionIds, ParamNodeList &pn_d
   applicationForm.Add(Optimization::HEAT, "LaplaceInt");
 
   // read the elements
-  elements = domain->GetGrid()->GetNumElems(regionIds);
+  elements = domain->GetGrid()->GetNumElems(reg_data);
   
   // should we adapt the lower bound of the design variable to the penalty exponent of the transfer function? 
   bool adapt_lower(false);
@@ -89,14 +94,14 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& regionIds, ParamNodeList &pn_d
 
     // check whether all regions have all design variables and all design variables are given in all regions
     StdVector<bool> region_design;
-    region_design.Resize(nd * regionIds.GetSize(), true);
+    region_design.Resize(nd * reg_data.GetSize(), true);
 
     // scaling
     scale_design.Resize(nd);
     translate_design.Resize(nd);
     for(unsigned int d = 0; d < nd; d++){
-      scale_design[d].Resize(regionIds.GetSize(), 1.0);
-      translate_design[d].Resize(regionIds.GetSize(), 0.0);
+      scale_design[d].Resize(reg_data.GetSize(), 1.0);
+      translate_design[d].Resize(reg_data.GetSize(), 0.0);
     }
 
     StdVector<std::string> regNames;
@@ -115,21 +120,21 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& regionIds, ParamNodeList &pn_d
         if(DesignElement::type.Parse(curr_design_pn->Get("name")->As<std::string>()) != dt) continue;
 
         std::string design_reg = curr_design_pn->Get("region")->As<std::string>();
-
+        std::string design_bim = curr_design_pn->Has("bimaterial") ? curr_design_pn->Get("bimaterial")->As<std::string>() : "";
         // there is no default for adapt_lower in the load ersatz material case
         adapt_lower = false;
         if(curr_design_pn->Has("adapt_lower"))
           adapt_lower = curr_design_pn->Get("adapt_lower")->As<bool>();
         
-        for(unsigned int r = 0; r < regionIds.GetSize(); r++)
+        for(unsigned int r = 0; r < reg_data.GetSize(); r++)
         {
-          domain->GetGrid()->GetElems(elems, regionIds[r]);
+          domain->GetGrid()->GetElems(elems, reg_data[r]);
           unsigned int n = elems.GetSize();
-          std::string reg = regNames[regionIds[r]];
+          std::string reg = regNames[reg_data[r]];
 
           // do this only for the first design per region (?)
           if(d == 0){
-            regions[r].regionId = regionIds[r];
+            regions[r].regionId = reg_data[r];
             regions[r].base = r == 0 ? 0 : regions[r-1].base + regions[r-1].elements;
             regions[r].elements = n;
             regions[r].constant = false;
@@ -147,6 +152,9 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& regionIds, ParamNodeList &pn_d
               regions[r].constant = true;
             }
             
+            if(design_bim != "")
+              regions[r].SetBiMaterial(design_bim);
+
             if(curr_design_pn->Has("scale") && curr_design_pn->Get("scale")->As<bool>()){
               double upper = curr_design_pn->Get("upper")->As<double>();
               double lower = curr_design_pn->Get("lower")->As<double>();
@@ -155,9 +163,10 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& regionIds, ParamNodeList &pn_d
             }
 
             double initial = curr_design_pn->Get("initial")->As<double>();
-            LOG_DBG2(designSpace) << "add design " << dt << ":" << DesignElement::type.ToString(dt)
-              << " initial=" << initial;
+            LOG_DBG2(designSpace) << "add design " << dt << ":" << DesignElement::type.ToString(dt)  << " initial=" << initial;
                         
+
+
             for(unsigned int e = 0; e < n; e++)
             {
               DesignElement de(curr_design_pn, elems[e]);
@@ -182,7 +191,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& regionIds, ParamNodeList &pn_d
       }
     }
 
-    for(unsigned int rd=0; rd < nd * regionIds.GetSize(); rd++){
+    for(unsigned int rd=0; rd < nd * reg_data.GetSize(); rd++){
       if(region_design[rd]){
         throw Exception("not all designs given for all regions");
       }
@@ -235,13 +244,13 @@ DesignSpace::~DesignSpace(){
   }
 }
 
-DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> regionIds, ParamNodeList &design, ParamNodeList& transfer, ParamNodeList& result, ErsatzMaterial::Method method){
+DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, ParamNodeList &design, ParamNodeList& transfer, ParamNodeList& result, ErsatzMaterial::Method method){
   switch(method){
   case ErsatzMaterial::SHAPE_OPT:
   case ErsatzMaterial::SHAPE_PARAM_MAT:
-    return new ShapeDesign(regionIds, design, transfer, result, method);
+    return new ShapeDesign(reg_data, design, transfer, result, method);
   default:
-    return new DesignSpace(regionIds, design, transfer, result, method);
+    return new DesignSpace(reg_data, design, transfer, result, method);
   }
 }
 
@@ -852,11 +861,7 @@ void DesignSpace::ToInfo(PtrParamNode in)
 
   PtrParamNode rs = in->Get("regions");
   for(unsigned int i = 0; i < regions.GetSize(); i++)
-  {
-    PtrParamNode r = rs->Get("region", ParamNode::APPEND);
-    r->Get("name")->SetValue(domain->GetGrid()->GetRegion().ToString(regions[i].regionId));
-    r->Get("elements")->SetValue(regions[i].elements);
-  }
+    regions[i].ToInfo(rs->Get("region", ParamNode::APPEND));
 }
 
 
@@ -1001,6 +1006,50 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
     for(unsigned int i = 0; i < dofs; i++)
       result_data[it.GetPos() * dofs + i] = result_value[i];
   }
+}
+
+DesignSpace::DesignRegion* DesignSpace::GetRegion(RegionIdType id, bool throw_exception)
+{
+  for(unsigned int i = 0, n = regions.GetSize(); i < n; i++)
+    if(regions[i].regionId == id)
+      return &regions[i];
+  if(!throw_exception)
+    return NULL;
+  else
+    EXCEPTION("invalid region id");
+}
+
+DesignSpace::DesignRegion::DesignRegion()
+{
+  regionId = -1;
+}
+
+bool DesignSpace::DesignRegion::HasBiMaterial() const
+{
+  return bimaterial_ != "";
+}
+
+const BaseMaterial* DesignSpace::DesignRegion::GetBiMaterial(const MaterialClass mc)
+{
+  assert(bimaterial_ != ""); // check with HasBiMaterial()!
+
+  for(unsigned int i = 0; i < materials_.GetSize(); i++)
+    if(materials_[i].second == mc)
+      return materials_[i].first;
+
+  // apparently first run
+  MaterialHandler* matLoader = domain->GetMaterialHandler();
+  const BaseMaterial* mat = matLoader->LoadMaterial(bimaterial_, mc);
+  materials_.Push_back(std::make_pair(mat, mc));
+
+  return mat;
+}
+
+void DesignSpace::DesignRegion::ToInfo(PtrParamNode node) const
+{
+  node->Get("name")->SetValue(domain->GetGrid()->GetRegion().ToString(regionId));
+  node->Get("elements")->SetValue(elements);
+  node->Get("bimaterial")->SetValue(HasBiMaterial() ? bimaterial_ : "-");
 }
 
 // explicit template instantiation for GCC compiler

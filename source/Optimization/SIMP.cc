@@ -108,7 +108,7 @@ void SIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* mat_out,
   {
   case MECH:
   {
-    const Matrix<double> &mechStiffness = mech_mat_->MechStiffness(de->elem);
+    const Matrix<double>& mechStiffness = mech_mat_->MechStiffness(de->elem, false); // no bimaterial
     
     // Find the transfer function for K (e.g. DENSITY, MECH)
     TransferFunction* tf = design->GetTransferFunction(de->GetType(), app);
@@ -118,6 +118,14 @@ void SIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* mat_out,
     Assign(out, mechStiffness, k_factor);
     // This log is very expensive, it blows up inv_tensor in the debug mode
     //LOG_DBG3(simp) << "SetElementK: org mech " << out.ToString(0);
+
+    if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
+    {
+      const Matrix<double>& bimat = mech_mat_->MechStiffness(de->elem, true); // yes, bimaterial
+      // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
+      k_factor = !derivative ? 1.0 - k_factor : -1.0 *  k_factor;
+      out.Add(k_factor, bimat);
+    }
 
     if(harmonic)
     {

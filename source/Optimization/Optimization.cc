@@ -315,8 +315,8 @@ void Optimization::SetEnums()
   ErsatzMaterial::commitMode.Add(ErsatzMaterial::BOTH, "both_cases");
 
   OptimizationMaterial::system.SetName("OptimizationMaterial::System");
-  OptimizationMaterial::system.Add(OptimizationMaterial::PIEZO, "piezo");
-  OptimizationMaterial::system.Add(OptimizationMaterial::MECHANIC, "mechanic");
+  OptimizationMaterial::system.Add(OptimizationMaterial::PIEZOCOUPLING, "piezo");
+  OptimizationMaterial::system.Add(OptimizationMaterial::MECH, "mechanic");
   OptimizationMaterial::system.Add(OptimizationMaterial::HEAT, "heat");
 
   application.SetName("Optimization::Application");
@@ -432,11 +432,11 @@ Optimization* Optimization::CreateInstance()
   case ErsatzMaterial::SIMP_METHOD:
     switch(OptimizationMaterial::system.Parse(em->Get("material")->As<std::string>()))
     {
-    case OptimizationMaterial::MECHANIC:
+    case OptimizationMaterial::MECH:
       opt = new SIMP();
       break;
       
-    case OptimizationMaterial::PIEZO:
+    case OptimizationMaterial::PIEZOCOUPLING:
       opt = new PiezoSIMP();
       break;
       

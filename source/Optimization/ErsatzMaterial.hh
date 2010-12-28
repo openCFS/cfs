@@ -143,9 +143,6 @@ public:
   /** This is simple one SinglePDE from pdes. */
   SinglePDE* pde;
 
-  /** The region to optimize */
-  StdVector<RegionIdType> regionIds;
-
   /** This is the current homogenized tensor.
    * Evaluated by HOMOGENIZATION_TRACKING and HOMOGENIZED_TENSOR (as objective only).
    * MechPDE reads it when "homogenizedTensor" is a region result! */

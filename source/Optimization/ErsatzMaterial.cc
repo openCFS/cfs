@@ -83,20 +83,23 @@ ErsatzMaterial::ErsatzMaterial() :
   if(region_list.IsEmpty() && (method_ != SHAPE_OPT && method_ != SHAPE_PARAM_MAT))
     EXCEPTION("no region given!");
 
+  StdVector<RegionIdType> regions;
+
   for(unsigned int i=0; i < region_list.GetSize(); i++){
+    // we are compatible with the region attribute and unbounded region elements
     std::string reg = region_list[i]->Has("name") ? region_list[i]->Get("name")->As<std::string>() : region_list[i]->As<std::string>();
+    std::string bimat = region_list[i]->Has("bimaterial") ? region_list[i]->Get("bimaterial")->As<std::string>() : "";
     if(!grid->GetRegion().IsValid(reg))
       throw Exception("region given in ersatzMaterial is invalid");
-    regionIds.Push_back(grid->GetRegion().Parse(reg));
+    regions.Push_back(grid->GetRegion().Parse(reg));
   }
-
 
   // set up the design space elements, note PiezoSIMP have only POLARIZATION
   // this includes the transfer functions!
   ParamNodeList design_list = pn->GetList("design");
   ParamNodeList transfer_list = pn->GetList("transferFunction");
   ParamNodeList result = pn->GetList("result");
-  design = DesignSpace::CreateInstance(regionIds, design_list, transfer_list, result, method_);
+  design = DesignSpace::CreateInstance(regions, design_list, transfer_list, result, method_);
   // make basic loggings
   design->ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("designSpace"));
 
@@ -245,11 +248,11 @@ void ErsatzMaterial::PostInit()
         OptimizationMaterial::system.Parse(pn->Get("material")->As<std::string>());
     switch(system)
     {
-    case OptimizationMaterial::PIEZO:
+    case OptimizationMaterial::PIEZOCOUPLING:
       material = new OptPiezoMat(this);
       break;
 
-    case OptimizationMaterial::MECHANIC:
+    case OptimizationMaterial::MECH:
       material = new OptMechMat(this);
       break;
 

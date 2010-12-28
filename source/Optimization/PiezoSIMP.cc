@@ -34,10 +34,10 @@ PiezoSIMP::PiezoSIMP()
   elec = dynamic_cast<ElecPDE*>(domain->GetSinglePDE("electrostatic"));
   pdes[ELEC] = elec;
 
-  for(unsigned int r = 0; r < regionIds.GetSize(); r++)
+  for(unsigned int r = 0; r < design->GetRegionIds().GetSize(); r++)
   {
-    GetForm(regionIds[r], pde, elec, "linPiezoCoupling")->SetSolDependent(true);
-    GetForm(regionIds[r], elec, elec, "linGradBDBInt")->SetSolDependent(true);
+    GetForm(design->GetRegionIds()[r], pde, elec, "linPiezoCoupling")->SetSolDependent(true);
+    GetForm(design->GetRegionIds()[r], elec, elec, "linGradBDBInt")->SetSolDependent(true);
   }
   // The linear forms (pressure, charge density) are set in SoluctionRef::Init()
 
