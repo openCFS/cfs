@@ -251,7 +251,7 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
         form->calcDMat(D, elem, DesignElement::NO_DERIVATIVE);
         double dampingAlpha = 0.0; double dampingBeta = 0.0;
         if(IsTransient()){
-          M = &mech_mat_->MechMass(elem, DesignElement::NO_DERIVATIVE);
+          M = &mech_mat_->MechMass(elem, false, DesignElement::NO_DERIVATIVE);
           RegionIdType regionId = elem->regionId;
           if(biLinForm->GetSecDestMat() != NOTYPE){
             parser->SetExpr(mathParserHandle, biLinForm->GetSecMatFac());

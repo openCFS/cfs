@@ -19,6 +19,12 @@ namespace CoupledField
     MassInt(const Double aDensity, const UInt nrDofsPerNode=1, 
             bool axi=false, bool coordUpdate = false );
 
+    /** This alternative constructor takes the density value by itself and allows to ensure save
+     * bimaterial optimization */
+    MassInt(BaseMaterial* mat, const MaterialDescriptor& md, const UInt nrDofsPerNode=1,
+            bool axi=false, bool coordUpdate = false );
+
+
     // Destructor
     virtual ~MassInt();
 
@@ -55,10 +61,12 @@ namespace CoupledField
     double GetErsatzMaterialMass(const Elem* elem, DesignElement::Type direction);
   
   private:
-
-    Double density_;          //!< multiplicative value for mass integrator
+    /** commond constructor */
+    void Init(const UInt nrDofsPerNode, bool axi, bool coordUpdate);
+    Double density_;        //!< multiplicative value for mass integrator. Take care and check for md_ set for fresh value!
     UInt nrDofsPerNode_;   //!< degrees of freedom per node
     bool diagMass_;         //<! true, mass matrix is diagonal
+    MaterialDescriptor md_; // to be usef for bimaterial optimization problems
   };
 
 }

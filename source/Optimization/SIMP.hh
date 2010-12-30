@@ -130,8 +130,9 @@ private:
   template <class T>
   void SetElementK(DesignElement* de, Application app, DenseMatrix* out, CalcMode, bool derivative = true);
 
-  /** This is a helper for SetElementK() which adds for MECH in the harmonic case damping and mass */
-  void AddMassToStiffness(double m_factor, DesignElement* de, Matrix<std::complex<double> >& K_in_S_out);
+  /** This is a helper for SetElementK() which adds for MECH in the harmonic case damping and mass
+   * @param bimaterial describes only the material, the factor needs to be set as rho^3 or 1-rho^3 already! */
+  void AddMassToStiffness(double m_factor, DesignElement* de, Matrix<std::complex<double> >& K_in_S_out, bool bimaterial);
 
   /** This is a shortcut to ErsatzMaterial::material */
   OptMechMat* mech_mat_;

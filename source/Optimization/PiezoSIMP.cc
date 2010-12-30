@@ -113,9 +113,9 @@ double PiezoSIMP::CalcElecEnergy(Excitation& excite)
     Vector<T>& p_vec = dynamic_cast<Vector<T>& >(*all_p[i]);
     DesignElement* de = &design->data[i];
 
-    LOG_DBG3(simp) << "CalcElecEnergy: e=" << i << " 'density'=" << tf->Transform(de) << " p=" << p_vec.ToString();
+    LOG_DBG3(simp) << "CalcElecEnergy: e=" << i << " 'density'=" << tf->Transform(de, DesignElement::SMART) << " p=" << p_vec.ToString();
     
-    Assign(mat, piezo_mat_->ElecStiffness(de->elem, 1), tf->Transform(de));
+    Assign(mat, piezo_mat_->ElecStiffness(de->elem, 1), tf->Transform(de, DesignElement::SMART));
     
     LOG_DBG3(simp) << "CalcElecEnergy: mat: " << mat.ToString();
     
@@ -171,7 +171,7 @@ void PiezoSIMP::ConstructAdjointRHS(Excitation& excite, Function* f)
     DesignElement* de = &design->data[e];
 
     // gain +K_pp(rho), the plus because K_pp is only in the piezo -K_pp
-    Assign(mat, piezo_mat_->ElecStiffness(de->elem, 1), tf->Transform(de));
+    Assign(mat, piezo_mat_->ElecStiffness(de->elem, 1), tf->Transform(de, DesignElement::SMART));
 
     // in the complex case with the conjugate complex
     mat.MultInner(p_vec, mat_vec);

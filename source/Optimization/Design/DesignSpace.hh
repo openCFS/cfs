@@ -226,10 +226,6 @@ namespace CoupledField
       * multiple regions. */
      virtual unsigned int GetNumberOfVariables() const;
      
-     /** the tensor exists only if specified as SIMP-option */
-     void SetBiMatTensor(const Matrix<double>& t) { bimattensor_ = t; }
-     const Matrix<double>& GetBiMatTensor() const { return bimattensor_; }
-     
      /** This is our real design data, a set of DesignElements.
       * Size is design.GetSize() * elements */
      StdVector<DesignElement> data;
@@ -288,12 +284,12 @@ namespace CoupledField
        bool HasBiMaterial() const;
        /** the material is PDE dependent therefore we create and cache it on the fly. This makes it
         * easy to be also simple for load ersatz material */
-       const BaseMaterial* GetBiMaterial(const MaterialClass mc);
+       BaseMaterial* GetBiMaterial(const MaterialClass mc);
 
        void ToInfo(PtrParamNode node) const;
      private:
        std::string bimaterial_;
-       StdVector<std::pair<const BaseMaterial*, MaterialClass> > materials_;
+       StdVector<std::pair<BaseMaterial*, MaterialClass> > materials_;
      };
      
      /** trivial find */
@@ -362,11 +358,6 @@ namespace CoupledField
      /** can handle the sparse slope constraint but no reordering as the dense version */
      void WriteSparseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
                                 DesignElement::Access access, Condition* g = NULL, bool scaling = true) const;
-     
-     /** second material tensor for bimaterial optimization, i. e. we do not use material+void
-      *  but material+material2 
-      *  tensor is set by SIMP class */
-     Matrix<double> bimattensor_;
      
      /** We afford a large element number to design index mapping.
       * sorted by the elemNum the design index stored.

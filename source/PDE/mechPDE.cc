@@ -546,7 +546,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
     // help variables for parameter checking
     RegionIdType actRegion;
-    BaseMaterial * actSDMat = NULL;
+    BaseMaterial* actSDMat = NULL;
 
     // volume integrators
 
@@ -828,18 +828,18 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
       if ( !isRegionPML ) {
         BiLinFormContext * actIntDescr = NULL;
-        if ( subType_ != "flatShell" ) {
-
-          double density;
-          actSDMat->GetScalar(density,DENSITY,Global::REAL);
-          MassInt * bilinearMass  = new MassInt(density, dim_, isaxi_);
+        if ( subType_ != "flatShell" )
+        {
+          // we let the integrator obtain the density by itself, this way we can easily ensure that
+          // everything goes right when we do bimaterial topology optimization
+          BaseForm::MaterialDescriptor md(BaseForm::MaterialDescriptor::SCALAR, DENSITY,Global::REAL);
+          MassInt* bilinearMass = new MassInt(actSDMat, md, dim_, isaxi_);
           if ( diagMass_ ) {
             // diagonal mass matrix
             bilinearMass->SetDiagMass();
           }
 
           actIntDescr =  new BiLinFormContext(bilinearMass, MASS );
-
 
         } else {
 

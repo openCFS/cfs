@@ -735,15 +735,6 @@
                     </xsd:complexType>
                   </xsd:element>                 
 
-                  <xsd:element name="bimaterial" minOccurs="0">
-                    <xsd:complexType>
-                      <xsd:sequence>
-                        <!-- this is the tensor for the homogenizationTracking objective -->
-                        <xsd:element name="tensor" type="DT_MechElastTensor" minOccurs="0" maxOccurs="1"/>
-                      </xsd:sequence>
-                    </xsd:complexType>
-                  </xsd:element>                 
-
                 </xsd:sequence>
               </xsd:complexType>
             </xsd:element>

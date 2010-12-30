@@ -70,17 +70,6 @@ void SIMP::PostInit()
       if(simp_pn->Has("regularization"))
         throw Exception("regularization not implemented");
     }
-
-    // check for bimaterial and read tensor if available
-    if(simp_pn->Has("bimaterial"))
-    {
-      Matrix<double> t(3, 3);
-      bool ok = Function::ReadTensor(simp_pn->Get("bimaterial"), t);
-      if(!ok) EXCEPTION("bimaterial specified but no tensor given or incorrect format");
-
-      design->SetBiMatTensor(t);
-      LOG_DBG3(simp) << "bimaterial tensor = " << std::endl << design->GetBiMatTensor().ToString(1);
-    }
   }
   
   if(harmonic) mechRHS.Init<complex<double> >(design, PRESSURE); // in many cases NULL;
@@ -112,7 +101,7 @@ void SIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* mat_out,
     
     // Find the transfer function for K (e.g. DENSITY, MECH)
     TransferFunction* tf = design->GetTransferFunction(de->GetType(), app);
-    double k_factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
+    T k_factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
 
     // copy from real mechStiffness to potential complex out and factor the derivative
     Assign(out, mechStiffness, k_factor);
@@ -124,13 +113,21 @@ void SIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* mat_out,
       const Matrix<double>& bimat = mech_mat_->MechStiffness(de->elem, true); // yes, bimaterial
       // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
       k_factor = !derivative ? 1.0 - k_factor : -1.0 *  k_factor;
-      out.Add(k_factor, bimat);
+      Add(out, k_factor, bimat);
     }
 
     if(harmonic)
     {
       tf = design->GetTransferFunction(de->GetType(), MASS);
-      AddMassToStiffness(tf->Derivative(de), de, dynamic_cast<Matrix<complex<double> >& >(out));
+      double m_factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
+      AddMassToStiffness(m_factor, de, dynamic_cast<Matrix<complex<double> >& >(out), false); // no bimaterial
+
+      if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
+      {
+        // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
+        m_factor = !derivative ? 1.0 - m_factor : -1.0 *  m_factor;
+        AddMassToStiffness(m_factor, de, dynamic_cast<Matrix<complex<double> >& >(out), true); // bimaterial
+      }
     }
     break;
   }
@@ -140,7 +137,7 @@ void SIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* mat_out,
 }
 
 
-void SIMP::AddMassToStiffness(double m_factor, DesignElement* de, Matrix<complex<double> >& K_in_S_out)
+void SIMP::AddMassToStiffness(double m_factor, DesignElement* de, Matrix<complex<double> >& K_in_S_out, bool bimaterial)
 {
   // The result matrix is
   // S = K + i*omega*C - omega^2*M
@@ -153,7 +150,7 @@ void SIMP::AddMassToStiffness(double m_factor, DesignElement* de, Matrix<complex
 
   // change name only
   Matrix<complex<double> >& S = K_in_S_out;
-  const Matrix<double>& M = mech_mat_->MechMass(de->elem);
+  const Matrix<double>& M = mech_mat_->MechMass(de->elem, bimaterial);
   assert(S.GetNumRows() == M.GetNumRows() && S.GetNumCols() == M.GetNumCols());
 
   // find alpha, beta and omega

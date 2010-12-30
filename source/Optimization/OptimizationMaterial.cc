@@ -31,7 +31,7 @@ OptimizationMaterial::~OptimizationMaterial()
 }
 
 
-void OptimizationMaterial::GetElementMatrix(BaseForm* form, Matrix<double>& out, const Elem* elem, const BaseMaterial* bimaterial, DesignElement::Type direction, double factor)
+void OptimizationMaterial::GetElementMatrix(BaseForm* form, Matrix<double>& out, const Elem* elem, BaseMaterial* bimaterial, DesignElement::Type direction, double factor)
 {
   GetElementEntity(form, &out, NULL, elem, bimaterial, direction);
   // in piezoelectricity K_pp is -1.0* BDB
@@ -42,7 +42,7 @@ void OptimizationMaterial::GetElementMatrix(BaseForm* form, Matrix<double>& out,
   LOG_DBG3(om) << "CalcElemMatrix for " << form->GetName() << " factor=" << factor << " -> " << out.ToString();
 }
 
-void OptimizationMaterial::GetElementVector(LinearForm* form, Vector<double>& out, const Elem* elem, const BaseMaterial* bimaterial, const Vector<double>* ts)
+void OptimizationMaterial::GetElementVector(LinearForm* form, Vector<double>& out, const Elem* elem, BaseMaterial* bimaterial, const Vector<double>* ts)
 {
   GetElementEntity(form, NULL, &out, elem, bimaterial, DesignElement::NO_DERIVATIVE, ts);
 
@@ -50,7 +50,7 @@ void OptimizationMaterial::GetElementVector(LinearForm* form, Vector<double>& ou
 }
 
 
-void OptimizationMaterial::GetElementEntity(BaseForm* form, Matrix<double>* mat_out, Vector<double>* vec_out, const Elem* elem, const BaseMaterial* bimaterial,
+void OptimizationMaterial::GetElementEntity(BaseForm* form, Matrix<double>* mat_out, Vector<double>* vec_out, const Elem* elem, BaseMaterial* bimaterial,
                                             DesignElement::Type direction, const Vector<double>* ts)
 {
   // create an element list to gain the iterator in the loop
@@ -73,7 +73,7 @@ void OptimizationMaterial::GetElementEntity(BaseForm* form, Matrix<double>* mat_
 
   if(bimaterial != NULL)
   {
-    form->SetMaterial(const_cast<BaseMaterial*>(bimaterial)); // will hopefully not be altered!
+    form->SetMaterial(bimaterial);
   }
 
   const EntityIterator& it = elemList.GetIterator();
@@ -131,9 +131,16 @@ OptMechMat::OptMechMat(ErsatzMaterial* em) : OptimizationMaterial(em)
 
     if(opt->IsHarmonic())
     {
-      GetElementMatrix(opt->GetForm(reg_id, mech, mech, "MassInt"), mechMass_map[reg_id]);
+      GetElementMatrix(opt->GetForm(reg_id, mech, mech, "MassInt"), mechMass_map[reg_id].first);
       LOG_DBG(om) << "OptMechMat MechMaxx region=" << domain->GetGrid()->GetRegion().ToString(reg_id)
-                  << std::endl << mechMass_map[reg_id].ToString(0,true);
+                  << std::endl << mechMass_map[reg_id].first.ToString(0,true);
+
+      if(dr->HasBiMaterial())
+      {
+        GetElementMatrix(opt->GetForm(reg_id, mech, mech, "MassInt"), mechMass_map[reg_id].second, NULL, dr->GetBiMaterial(MECHANIC));
+        LOG_DBG(om) << "OptMechMat MechMaxx region=" << domain->GetGrid()->GetRegion().ToString(reg_id) << " bimaterial"
+                    << std::endl << mechMass_map[reg_id].second.ToString(0,true);
+      }
     }
   }
 }
@@ -147,7 +154,7 @@ const Matrix<double>& OptMechMat::MechStiffness(const Elem* elem, bool bimateria
       GetElementMatrix(opt->GetForm(elem->regionId, mech, mech, "linElastInt"), mechStiffness_map[elem->regionId].first, elem, NULL, direction);
     else
     {
-      const BaseMaterial* bm = opt->GetDesign()->GetRegion(elem->regionId)->GetBiMaterial(MECHANIC);
+      BaseMaterial* bm = opt->GetDesign()->GetRegion(elem->regionId)->GetBiMaterial(MECHANIC);
       GetElementMatrix(opt->GetForm(elem->regionId, mech, mech, "linElastInt"), mechStiffness_map[elem->regionId].second, elem, bm, direction);
     }
   }
@@ -155,6 +162,21 @@ const Matrix<double>& OptMechMat::MechStiffness(const Elem* elem, bool bimateria
   return !bimaterial ? mechStiffness_map[elem->regionId].first : mechStiffness_map[elem->regionId].second;
 }
 
+const Matrix<double>& OptMechMat::MechMass(const Elem* elem, bool bimaterial, DesignElement::Type direction)
+{
+  if(!opt->IsDomainStructured() || direction != DesignElement::NO_DERIVATIVE)
+  {
+    if(!bimaterial)
+      GetElementMatrix(opt->GetForm(elem->regionId, mech, mech, "MassInt"), mechMass_map[elem->regionId].first, elem, NULL, direction);
+    else
+    {
+      BaseMaterial* bm = opt->GetDesign()->GetRegion(elem->regionId)->GetBiMaterial(MECHANIC);
+      GetElementMatrix(opt->GetForm(elem->regionId, mech, mech, "MassInt"), mechMass_map[elem->regionId].second, elem, bm, direction);
+    }
+  }
+
+  return !bimaterial ? mechMass_map[elem->regionId].first :  mechMass_map[elem->regionId].second;
+}
 
 const Vector<double>& OptMechMat::MechStrainRHS(const Elem* elem, MechPDE::TestStrain testStrain)
 {
@@ -176,13 +198,6 @@ const Vector<double>& OptMechMat::MechStrainRHS(const Elem* elem, MechPDE::TestS
   return mechStrainRHS;
 }
 
-const Matrix<double>& OptMechMat::MechMass(const Elem* elem, DesignElement::Type direction)
-{
-  if(!opt->IsDomainStructured() || direction != DesignElement::NO_DERIVATIVE)
-    GetElementMatrix(opt->GetForm(elem->regionId, mech, mech, "MassInt"), mechMass_map[elem->regionId], elem, NULL, direction);
-
-  return mechMass_map[elem->regionId];
-}
 
 
 OptPiezoMat::OptPiezoMat(ErsatzMaterial* em) :

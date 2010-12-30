@@ -33,7 +33,7 @@ void ParamMat::SetElementK(DesignElement* de, Application app, DenseMatrix* mat_
     out = mech_mat_->MechStiffness(de->elem, false, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE);
     break;
   case MASS:
-    out = mech_mat_->MechMass(de->elem, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE);
+    out = mech_mat_->MechMass(de->elem, false, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE);
     break;
   default:
     Exception("Only mech and mass matrix are available for paramMat");

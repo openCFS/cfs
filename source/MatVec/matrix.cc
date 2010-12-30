@@ -494,7 +494,7 @@ namespace CoupledField
   
   /** Adds the multiple of another matrix */
   template<class TYPE>
-  void Matrix<TYPE>::Add(const TYPE factor, const DenseMatrix & mat)
+  void Matrix<TYPE>::Add(const TYPE factor, const Matrix<TYPE>& mat)
   {
     const Matrix<TYPE>& other_mat = dynamic_cast<const Matrix<TYPE> & >(mat);
 #ifdef CHECK_INITIALIZED
@@ -510,6 +510,7 @@ namespace CoupledField
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
         data_[0][k] += factor * other_mat.data_[0][k];
   }
+
 
   /** Assigns a multiple of another matrix */
   template<class TYPE>

@@ -13,7 +13,27 @@ namespace CoupledField
 {
 
  
+BaseForm::MaterialDescriptor::MaterialDescriptor()
+{
+  this->type = NOT_SET;
+}
 
+BaseForm::MaterialDescriptor::MaterialDescriptor(Type type, MaterialType matType, Global::ComplexPart dataType)
+{
+  this->type = type;
+  this->matType = matType;
+  this->dataType = dataType;
+}
+
+double BaseForm::MaterialDescriptor::GetScalar(BaseMaterial* bm)
+{
+  assert(type == SCALAR);
+  assert(dataType == Global::REAL);
+  // set the density
+  Double val;
+  bm->GetScalar(val,matType,dataType);
+  return val;
+}
 
   BaseForm::BaseForm( BaseMaterial* matData, SubTensorType type, 
                       bool coordUpdate )

@@ -18,14 +18,33 @@ namespace CoupledField {
 
 
 
-  MassInt::MassInt(const Double aDensity,  const UInt nrDofsPerNode, 
-                   bool axi, bool coordUpdate )
-    : BaseForm(NULL), 
-      density_(aDensity), 
-      nrDofsPerNode_(nrDofsPerNode),
-      diagMass_(false)
-      
+  MassInt::MassInt(const Double aDensity, const UInt nrDofsPerNode, bool axi, bool coordUpdate)
+    : BaseForm(NULL)
   {
+    density_ = aDensity;
+    Init(nrDofsPerNode, axi, coordUpdate);
+  }
+
+  MassInt::MassInt(BaseMaterial* mat, const MaterialDescriptor& md, const UInt nrDofsPerNode, bool axi, bool coordUpdate)
+    : BaseForm(mat)
+  {
+    md_ = md;
+    assert(md_.matType == DENSITY);
+    density_ = md_.GetScalar(mat);
+
+    Init(nrDofsPerNode, axi, coordUpdate);
+  }
+
+
+
+  MassInt::~MassInt() {
+  }
+
+
+  void MassInt::Init(const UInt nrDofsPerNode, bool axi, bool coordUpdate)
+  {
+    nrDofsPerNode_ = nrDofsPerNode;
+    diagMass_ = false;
     name_ = "MassInt";
     isaxi_ = axi;
     coordUpdate_ = coordUpdate;
@@ -33,11 +52,6 @@ namespace CoupledField {
     if ( coordUpdate ) 
       isSolDependent_ = true;
   }
-
- 
-  MassInt::~MassInt() {
-  }
-
 
   void MassInt::CalcElementMatrix( Matrix<Double>& elemMat,
                                    EntityIterator& ent1, 
@@ -63,11 +77,31 @@ namespace CoupledField {
     elemMat.Resize(numFncs);
     elemMat.Init();
 
+    // always obtain the material data if we have a MaterialDescriptor to be able to
+    // do bimaterial topology optimization. For matrices we also do it every time!
+    Double density = md_.type == BaseForm::MaterialDescriptor::NOT_SET ? density_ : md_.GetScalar(GetMaterial());
+
+    const Elem* elem = ent1.GetElem();
+    // ErsatzMaterialMass is Bastian's stuff
+    Double top_opt = domain->HasErsatzMaterialMass() ? domain->GetErsatzMaterial()->GetErsatzMaterialMass(elem, direction)
+                                                     : GetErsatzMaterialFactor(elem); // returns 1 of not relevant
+
+    // check for bimaterial optimization
+    BaseMaterial* bm = domain->GetErsatzBiMaterial(elem, MECHANIC);
+    if(bm != NULL && top_opt != 1.0)
+    {
+      assert(md_.type != BaseForm::MaterialDescriptor::NOT_SET);
+      Double density2 = md_.GetScalar(bm);
+
+      density = top_opt * density + (1.0 - top_opt) *  density2;
+    }
+    else if(top_opt != 1.0)
+    {
+      density = top_opt * density;
+    }
+
     Double factor = mParser_->Eval( mHandle_ );
 
-    double f = GetErsatzMaterialMass(ent1.GetElem(), direction);
-    if(f != 1.0) factor *= f;
-    
 
     if (diagMass_ ) {
       Double mass = 0.0;
@@ -77,11 +111,11 @@ namespace CoupledField {
         if (isaxi_) {
           ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
           CoordAtIP = ptCoord_ * shapeFncAtIp;
-          mass += 2 * PI * intWeights[actIntPt-1] * density_ 
+          mass += 2 * PI * intWeights[actIntPt-1] * density
                  * factor * jacDet * CoordAtIP[0];
         }
         else 
-          mass += intWeights[actIntPt-1] * density_ * factor * jacDet;
+          mass += intWeights[actIntPt-1] * density * factor * jacDet;
       }
 
       for ( UInt i=0; i<numFncs; i++ ) 
@@ -98,10 +132,10 @@ namespace CoupledField {
 
         if (isaxi_) {
           CoordAtIP = ptCoord_ * shapeFncAtIp;
-          partElemMat *= 2 * PI * intWeights[actIntPt-1] * density_ * factor* jacDet * CoordAtIP[0];
+          partElemMat *= 2 * PI * intWeights[actIntPt-1] * density * factor* jacDet * CoordAtIP[0];
         }
         else 
-          partElemMat *= intWeights[actIntPt-1] * density_ * factor * jacDet;
+          partElemMat *= intWeights[actIntPt-1] * density * factor * jacDet;
 
         elemMat += partElemMat;
       }

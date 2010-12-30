@@ -35,11 +35,11 @@ namespace CoupledField
       /** applies the transformation
        * @param de containts the design value
        * @param access if SMART and the filter is accordingly defined the filtered design is the base for penalization*/
-      double Transform(const DesignElement* de, DesignElement::Access access = DesignElement::PLAIN, double external_value = -13.456) const;
+      double Transform(const DesignElement* de, DesignElement::Access access, double external_value = -13.456) const;
 
       /** applies the first derivative of the transformation
        * @see Transform() */
-      double Derivative(const DesignElement* de, DesignElement::Access access = DesignElement::PLAIN) const;
+      double Derivative(const DesignElement* de, DesignElement::Access access) const;
      
       Optimization::Application GetApplication() { return application_; }
       

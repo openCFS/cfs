@@ -29,6 +29,30 @@ namespace CoupledField
   {
   public:
 
+    /** For bimaterial optimization it is good to be sure in what 'mode' the forms are initialized.
+     * This is important for MassInt and other scalar forms where the material data is given
+     * as scalar in the constructor.
+     * This struct allows an optional constructor which describes the material such that we can be
+     * sure that we are in a mode we expect. To use the struct is optional!
+     * The scalar value is stored in the standard way*/
+     struct MaterialDescriptor
+     {
+       enum Type { NOT_SET = -1, SCALAR };
+
+       /** The default constructor sets to NOT_SET */
+       MaterialDescriptor();
+
+       MaterialDescriptor(Type type, MaterialType matType, Global::ComplexPart dataType);
+
+       /** extract the value from material if SCALAR, convenience function */
+       double GetScalar(BaseMaterial* bm);
+
+       Type type;
+       MaterialType matType;
+       Global::ComplexPart dataType;
+     };
+
+
     //! Constructor
     BaseForm(BaseMaterial* matData, SubTensorType subTensor = FULL,
              bool coordUpdate = false );

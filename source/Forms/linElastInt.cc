@@ -214,7 +214,7 @@ void linElastInt::calcDMat(Matrix<Double> & dMat, const Elem* elem, const Design
   {
     dMat *= density;
 
-    const BaseMaterial* bm = domain->GetErsatzBiMaterial(elem,  MECHANIC);
+    BaseMaterial* bm = domain->GetErsatzBiMaterial(elem,  MECHANIC);
 
     if(bm != NULL)
     {

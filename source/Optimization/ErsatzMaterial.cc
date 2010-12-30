@@ -701,7 +701,7 @@ void ErsatzMaterial::SubtractGradSurfaceRHS(DesignElement* de, TransferFunction*
                      << *it << " in surface: K'u = " << in_out.ToString();
 
       // find the the sensitivity of the rhs w.r.t the design volume element!
-      double factor = tf->Derivative(de);
+      double factor = tf->Derivative(de, DesignElement::SMART);
 
       // we do not really construct a rhs vector (with some/many zeros) but substract
       // for all design nodes common with the surface directly the entries

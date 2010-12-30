@@ -221,8 +221,6 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, ParamNodeList &pn_de
   for(unsigned int i = 0; i < result.GetSize(); i++)
     resultDescriptions.Push_back(ResultDescription(result[i]));
   
-  bimattensor_ = Matrix<double>();
-  
   if(adapt_lower)
   {
     // get the param from the transfer function
@@ -1029,7 +1027,7 @@ bool DesignSpace::DesignRegion::HasBiMaterial() const
   return bimaterial_ != "";
 }
 
-const BaseMaterial* DesignSpace::DesignRegion::GetBiMaterial(const MaterialClass mc)
+BaseMaterial* DesignSpace::DesignRegion::GetBiMaterial(const MaterialClass mc)
 {
   assert(bimaterial_ != ""); // check with HasBiMaterial()!
 
@@ -1039,7 +1037,7 @@ const BaseMaterial* DesignSpace::DesignRegion::GetBiMaterial(const MaterialClass
 
   // apparently first run
   MaterialHandler* matLoader = domain->GetMaterialHandler();
-  const BaseMaterial* mat = matLoader->LoadMaterial(bimaterial_, mc);
+  BaseMaterial* mat = matLoader->LoadMaterial(bimaterial_, mc);
   materials_.Push_back(std::make_pair(mat, mc));
 
   return mat;

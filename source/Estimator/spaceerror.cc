@@ -298,7 +298,10 @@ namespace CoupledField
         // element system matrix
         BaseFE         * ptBaseFE = Elems[iel]->ptElem;
 
+        assert(false);
+        // the MassInt constructor is definitely nonsense as the first parameter shall be density! - Fabian 12.2010
         BaseForm       * bilinear_mass  = new MassInt(ptBaseFE,1);
+
         Matrix<Double> ptCoord;
         vec_connect = Elems[iel]->connect;
 

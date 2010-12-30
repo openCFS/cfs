@@ -161,7 +161,7 @@ namespace CoupledField
     /** Check for the existence of bi-material.
      * Use as (1-result)*BM with result from GetErsatzMaterial() and add it to the original result*OrgMat
      * @return NULL if no bi-material for this element/region/type or no optimization */
-    const BaseMaterial* GetErsatzBiMaterial(const Elem* elem, const MaterialClass mc);
+    BaseMaterial* GetErsatzBiMaterial(const Elem* elem, const MaterialClass mc);
 
     /** This is set by optimization which holds the data (in a derved form). It
      * is also reset here by the optimization destructor.

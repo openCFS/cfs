@@ -1044,7 +1044,7 @@ bool Domain::GetErsatzMaterial(const Elem* elem, const BaseForm* form, double& r
   return true;
 }
 
-const BaseMaterial* Domain::GetErsatzBiMaterial(const Elem* elem, const MaterialClass mc)
+BaseMaterial* Domain::GetErsatzBiMaterial(const Elem* elem, const MaterialClass mc)
 {
   if(ersatzMaterial == NULL) return NULL;
 
