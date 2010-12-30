@@ -511,12 +511,26 @@ namespace CoupledField
         }//end of for
 
         /* node which live on multiple region need to accumulate the
-         * ACOU_RHS_LOAD*/
+         * ACOU_RHS_LOAD
+         * Here the common nodes of active regions is found */
         if (doCalcMultiNodes)
         {
-          findNodeMultiRegion(regionNodes_, multiNodes);
+          std::map<std::string, std::vector<UInt>* > regionNodesActive;
+          std::map<std::string, std::vector<UInt> >::iterator iterRegionAct = regionNodes_.begin();
+          for (; iterRegionAct != regionNodes_.end(); ++iterRegionAct)
+          {
+            UInt regIdx = 0;
+            while (regionNames[regIdx] != iterRegionAct->first )
+              ++regIdx;
+            if (flowData[regIdx][ACOU_RHS_LOAD].isActive)
+            {
+              regionNodesActive[iterRegionAct->first] = &iterRegionAct->second;
+            }
+          }
+          findNodeMultiRegion(regionNodesActive, multiNodes);
           doCalcMultiNodes = false;
         }
+        /* start the accumulation of ACOU_RHS_LOAD on common nodes */
         std::map<UInt, std::map<std::string, UInt> >::const_iterator iterMultiNodes = multiNodes.begin();
         if (calcSrc)
         {

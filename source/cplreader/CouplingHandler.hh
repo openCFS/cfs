@@ -123,29 +123,40 @@ namespace CoupledField
      * @param multiNodes the return value. Return a map showing which node is
      * multiple on which each and which equation number
      */
-    inline void findNodeMultiRegion(const std::map<std::string, std::vector<UInt> >& regionMapNodes,
+    inline void findNodeMultiRegion(const std::map<std::string, std::vector<UInt>* >& regionMapNodes,
         std::map<UInt, std::map<std::string, UInt> >& multiNodes)
     {
-      std::map<std::string, std::vector<UInt> >::const_iterator iterRegionMapNodes = regionMapNodes.begin();
-      std::map<std::string, std::vector<UInt> >::const_iterator iterRegionMapNodes2;
+      std::map<std::string, std::vector<UInt>* >::const_iterator iterRegionMapNodes = regionMapNodes.begin();
+      std::map<std::string, std::vector<UInt>* >::const_iterator iterRegionMapNodes2;
       /* go over every region */
       for (; iterRegionMapNodes != regionMapNodes.end(); ++iterRegionMapNodes)
       {
+        const std::vector<UInt>& firstRegVec = *iterRegionMapNodes->second;
         iterRegionMapNodes2 = iterRegionMapNodes;
         ++iterRegionMapNodes2;
         /* check every other region */
         for (; iterRegionMapNodes2 != regionMapNodes.end(); ++iterRegionMapNodes2)
         {
-          /* nodes of first region */
-          for (UInt i = 0; i < iterRegionMapNodes->second.size(); ++i)
+          const std::vector<UInt>& secRegVec = *iterRegionMapNodes2->second;
+          /* bigger than 50 billion - sorry hardcoded*/
+          if (firstRegVec.size() * secRegVec.size() > 50000000000)
           {
+            EXCEPTION("You are trying to calculate acoustic sources on multiple regions." << std::endl
+                << "Cplreader needs to find the common interface of these regions," << std::endl
+                << "but since the regions are so big (number of nodes) this will take to long!")
+          }
+          /* nodes of first region */
+          for (UInt i = 0; i < firstRegVec.size(); ++i)
+          {
+            const UInt& firstRegVecElem = firstRegVec[i];
             /* nodes of second region */
-            for (UInt j = 0; j < iterRegionMapNodes2->second.size(); ++j)
+            for (UInt j = 0; j < secRegVec.size(); ++j)
             {
-              if (iterRegionMapNodes->second[i] == iterRegionMapNodes2->second[j])
+              /* find common nodes */
+              if (firstRegVecElem == secRegVec[j])
               {
                 /* take care of doublicate entrie */
-                std::map<std::string, UInt>& regStringVec = multiNodes[iterRegionMapNodes->second[i]];
+                std::map<std::string, UInt>& regStringVec = multiNodes[firstRegVecElem];
                 bool region1Registered = false;
                 bool region2Registered = false;
                 std::map<std::string, UInt>::iterator iterRegStringVec = regStringVec.begin();
@@ -174,19 +185,6 @@ namespace CoupledField
         }// end-for second region
       }// end-for first region
 
-#if 0 // DEBUG_SZOERNER
-      std::map<UInt, std::map<std::string, UInt> >::iterator iterMultiNodes = multiNodes.begin();
-      for (; iterMultiNodes != multiNodes.end(); ++iterMultiNodes)
-      {
-        std::cerr << __LINE__ << " " << ":" << __FILE__ << " iterMultiNodes->first: " <<iterMultiNodes->first<< std::endl;
-        std::map<std::string, UInt>& regStringVec = iterMultiNodes->second;
-        std::map<std::string, UInt>::iterator iterRegStringVec = regStringVec.begin();
-        for (; iterRegStringVec != regStringVec.end(); ++iterRegStringVec)
-        {
-          std::cerr << __LINE__ << " " << ":" << __FILE__ << " iterRegStringVec->first: " <<iterRegStringVec->first<< std::endl;
-        }
-      }
-#endif
     }
   };
 
