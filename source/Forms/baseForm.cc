@@ -15,24 +15,85 @@ namespace CoupledField
  
 BaseForm::MaterialDescriptor::MaterialDescriptor()
 {
-  this->type = NOT_SET;
+  Init(NOT_SET, NO_CLASS, NO_MATERIAL, NO_MATERIAL, Global::INTEGER);
 }
 
-BaseForm::MaterialDescriptor::MaterialDescriptor(Type type, MaterialType matType, Global::ComplexPart dataType)
+
+BaseForm::MaterialDescriptor::MaterialDescriptor(Type type, MaterialClass mat_class, MaterialType mat_1, Global::ComplexPart data_type)
+{
+  Init(type, mat_class, mat_1, NO_MATERIAL, data_type);
+}
+
+
+BaseForm::MaterialDescriptor::MaterialDescriptor(Type type, MaterialClass mat_class, MaterialType mat_1, MaterialType mat_2, Global::ComplexPart data_type)
+{
+  Init(type, mat_class, mat_1, mat_2, data_type);
+}
+
+void BaseForm::MaterialDescriptor::Init(Type type, MaterialClass mat_class, MaterialType mat_1, MaterialType mat_2, Global::ComplexPart data_type)
 {
   this->type = type;
-  this->matType = matType;
-  this->dataType = dataType;
+  this->mat_class = mat_class;
+  this->mat_1 = mat_1;
+  this->mat_2 = mat_2;
+  this->data_type = data_type;
 }
+
 
 double BaseForm::MaterialDescriptor::GetScalar(BaseMaterial* bm)
 {
-  assert(type == SCALAR);
-  assert(dataType == Global::REAL);
-  // set the density
-  Double val;
-  bm->GetScalar(val,matType,dataType);
-  return val;
+  assert(data_type == Global::REAL);
+
+  double result = -1.0;
+  switch(type)
+  {
+  case SCALAR: // mechanic mass, acoustic stiffness
+    assert(mat_1 != NO_MATERIAL);
+    bm->GetScalar(result,mat_1,data_type);
+    break;
+
+  case MAT_1_MAT_1_BY_MAT_2: // acoustic mass
+  {
+    assert(mat_1 != NO_MATERIAL);
+    bm->GetScalar(result,mat_1,data_type);
+    double tmp;
+    assert(mat_2 != NO_MATERIAL);
+    bm->GetScalar(tmp,mat_2,data_type);
+    result = (result * result) / tmp;
+    break;
+  }
+
+  default:
+    assert(false);
+  }
+
+  return result;
+}
+
+
+double BaseForm::MaterialDescriptor::GetErsatzMaterial(BaseForm* form, const Elem* elem, double default_mat_value)
+{
+  // always obtain the material data if we have a MaterialDescriptor to be able to
+  // do bimaterial topology optimization. For matrices we also do it every time!
+  assert((Enabled() && form->GetMaterial() != NULL) || !Enabled());
+  double density = Enabled() ? GetScalar(form->GetMaterial()) : default_mat_value;
+
+  double top_opt = form->GetErsatzMaterialFactor(elem); // returns 1 of not relevant
+
+  // check for bimaterial optimization
+  BaseMaterial* bi_mat = domain->GetErsatzBiMaterial(elem, mat_class);
+  if(bi_mat != NULL && top_opt != 1.0)
+  {
+    double density2 = GetScalar(bi_mat);
+
+    density = top_opt * density + (1.0 - top_opt) *  density2;
+  }
+  if(bi_mat == NULL && top_opt != 1.0)
+  {
+    density = top_opt * density;
+  }
+
+  return density;
 }
 
   BaseForm::BaseForm( BaseMaterial* matData, SubTensorType type, 

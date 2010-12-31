@@ -12,6 +12,7 @@ class ErsatzMaterial;
 class ElecPDE;
 class MechPDE;
 class HeatCondPDE;
+class AcousticPDE;
 class BaseForm;
 class LinearForm;
 
@@ -31,13 +32,27 @@ public:
   virtual ~OptimizationMaterial();
   
   /** Id of our material class */
-  typedef enum { PIEZOCOUPLING, MECH, HEAT } System;
+  typedef enum { PIEZOCOUPLING, MECH, HEAT, ACOUSTIC } System;
+
+  /** calls the proper constructor */
+  static OptimizationMaterial* CreateInstance(System sys, ErsatzMaterial* em);
 
   /** Here we store the system enum */
   static Enum<System> system;
 
   System GetSystem() const { return system_; }
-  
+
+  /** works fine for standard single pde SIMP stuff */
+  virtual const Matrix<double>& Stiffness(const Elem* elem, bool bimaterial = false) {
+    EXCEPTION("overload!");
+  }
+
+  virtual const Matrix<double>& Mass(const Elem* elem, bool bimaterial = false) {
+    EXCEPTION("overload!");
+  }
+
+protected:
+
   /** <p>Get the original element matrix (stiffness, mass, ...)
    * which is constant for all isotropic elements.
    * This method is not only for mechanical SIMP but is also used by PiezoSIMP,
@@ -57,7 +72,6 @@ public:
   void GetElementVector(LinearForm* form, Vector<double>& out, const Elem* elem = NULL,
                         BaseMaterial* bimaterial = NULL, const Vector<double>* ts = NULL);
 
-protected:
   StdVector<RegionIdType> regionIds;
 
   ErsatzMaterial* opt;
@@ -74,11 +88,11 @@ private:
   
 };
 
-class OptMechMat : public OptimizationMaterial
+class MechMat : public OptimizationMaterial
 {
 public:
   
-  OptMechMat(ErsatzMaterial* em);
+  MechMat(ErsatzMaterial* em);
   
   /** Get the ElementStiffness Matrix for this element, this is the region constant version
    * @param elem the Element for which the Matrix should be returned
@@ -87,11 +101,22 @@ public:
    * @return a pointer to the Element Stiffness Matrix*/
   const Matrix<double>& MechStiffness(const Elem* elem, bool bimaterial = false, const DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
 
+  /** overwrites OptimizationMaterial::Stiffness */
+  const Matrix<double>& Stiffness(const Elem* elem, bool bimaterial = false) {
+    return MechStiffness(elem, bimaterial, DesignElement::NO_DERIVATIVE);
+  }
+
   /** Get the ElementMass Matrix for this element, this is the region constant version
    * @param elem the Element for which the Matrix should be returned
    * @param direction if given, calculate derivative of mass Matrix instead
    * @return a pointer to the Element Mass Matrix*/
   const Matrix<double>& MechMass(const Elem* elem,  bool bimaterial = false, const DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+
+  /** overwrites OptimizationMaterial::Mass */
+  const Matrix<double>& Mass(const Elem* elem, bool bimaterial = false) {
+    return MechStiffness(elem, bimaterial, DesignElement::NO_DERIVATIVE);
+  }
+
   
   /** The the rhs-contribution for full material for the current test strain. There is no caching!
    * @param testStrain optional value, otherwise the current set excitation set. You need it for homogenization! */
@@ -112,10 +137,39 @@ protected:
   MechPDE* mech;
 };
 
-class OptPiezoMat : public OptMechMat
+
+class AcouMat : public OptimizationMaterial
 {
 public:
-  OptPiezoMat(ErsatzMaterial* em);
+  AcouMat(ErsatzMaterial* em);
+
+  const Matrix<double>& AcouStiffness(const Elem* elem, bool bimaterial);
+
+  /** overwrites OptimizationMaterial::Stiffness */
+  const Matrix<double>& Stiffness(const Elem* elem, bool bimaterial = false) {
+    return AcouStiffness(elem, bimaterial);
+  }
+
+  const Matrix<double>& AcouMass(const Elem* elem,  bool bimaterial);
+
+  /** overwrites OptimizationMaterial::Mass */
+  const Matrix<double>& Mass(const Elem* elem, bool bimaterial = false) {
+    return AcouStiffness(elem, bimaterial);
+  }
+
+protected:
+
+  std::map<RegionIdType, std::pair<Matrix<double>, Matrix<double> > > acouStiffness_map;
+  std::map<RegionIdType, std::pair<Matrix<double>, Matrix<double> > > acouMass_map;
+
+  AcousticPDE* acou;
+};
+
+
+class PiezoelecMat : public MechMat
+{
+public:
+  PiezoelecMat(ErsatzMaterial* em);
   
   /** Get the elec stiffness matrix $K_{\phi \phi}$ for this element, this is the region constant version.
    * Note, that in piezoelectriciy one usually requires -K_pp, use the the factor -1! 
@@ -150,14 +204,17 @@ private:
   ElecPDE* elec;
 };
 
+
+
 class HeatMat : public OptimizationMaterial
 {
 public:
   HeatMat(ErsatzMaterial* em);
-  
+
 protected:
   HeatCondPDE* heat;
 };
+
 }
 
 

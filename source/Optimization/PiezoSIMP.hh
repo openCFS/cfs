@@ -6,7 +6,7 @@
 namespace CoupledField
 {
 class ElecPDE;
-class OptPiezoMat;
+class PiezoelecMat;
 
 /** Extension from lin elast SIMP to the piezoelectric case */
 class PiezoSIMP : public SIMP
@@ -73,7 +73,7 @@ private:
   double log_elec_simp_;
 
   /** is a cast of the ErsatzMaterial::material attrbiute. Set in PostInit() */
-  OptPiezoMat* piezo_mat_;
+  PiezoelecMat* piezo_mat_;
   
 };
 

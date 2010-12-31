@@ -29,7 +29,7 @@ namespace CoupledField {
     : BaseForm(mat)
   {
     md_ = md;
-    assert(md_.matType == DENSITY);
+    assert(md_.mat_1 == DENSITY);
     density_ = md_.GetScalar(mat);
 
     Init(nrDofsPerNode, axi, coordUpdate);
@@ -77,27 +77,14 @@ namespace CoupledField {
     elemMat.Resize(numFncs);
     elemMat.Init();
 
-    // always obtain the material data if we have a MaterialDescriptor to be able to
-    // do bimaterial topology optimization. For matrices we also do it every time!
-    Double density = md_.type == BaseForm::MaterialDescriptor::NOT_SET ? density_ : md_.GetScalar(GetMaterial());
-
-    const Elem* elem = ent1.GetElem();
-    // ErsatzMaterialMass is Bastian's stuff
-    Double top_opt = domain->HasErsatzMaterialMass() ? domain->GetErsatzMaterial()->GetErsatzMaterialMass(elem, direction)
-                                                     : GetErsatzMaterialFactor(elem); // returns 1 of not relevant
-
-    // check for bimaterial optimization
-    BaseMaterial* bm = domain->GetErsatzBiMaterial(elem, MECHANIC);
-    if(bm != NULL && top_opt != 1.0)
+    // applies topology optimization ersatz material to the density, including bimaterial!
+    Double density = md_.GetErsatzMaterial(this, ent1.GetElem(), density_);
+    // ErsatzMaterialMass is Bastian's stuff and not compatible with MaterialDescriptor::GetErsatzMaterial()
+    if(domain->HasErsatzMaterialMass())
     {
-      assert(md_.type != BaseForm::MaterialDescriptor::NOT_SET);
-      Double density2 = md_.GetScalar(bm);
-
-      density = top_opt * density + (1.0 - top_opt) *  density2;
-    }
-    else if(top_opt != 1.0)
-    {
-      density = top_opt * density;
+      assert(domain->GetErsatzBiMaterial(ent1.GetElem(), md_.mat_class) == NULL);
+      Double top_opt = domain->GetErsatzMaterial()->GetErsatzMaterialMass(ent1.GetElem(), direction);
+      density *= top_opt;
     }
 
     Double factor = mParser_->Eval( mHandle_ );

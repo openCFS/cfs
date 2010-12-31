@@ -22,7 +22,7 @@ class Condition;
 class Assemble;
 class TransferFunction;
 class SurfElem;
-class OptMechMat;
+class MechMat;
 
 template <class TYPE> class StdVector;
 template <class TYPE> class Vector;
@@ -92,7 +92,8 @@ public:
 
 /** Holds a SIMP (Solid Isotropic Material with Penaltization) optimization.
  *  Actually holds the elements of region to optimize, its densities and
- *  global parameters. Also the cost function and does the looping.
+ *  global parameters.
+ *  This is the single pde version, where typically mech is the pde of choice
  *  The Reference is Bendsoe, Sigmund; Topology Optimization; Springer Verlag; 2003.
  *  All page numbers refer to this issue. */
 class SIMP : public ErsatzMaterial
@@ -134,8 +135,6 @@ private:
    * @param bimaterial describes only the material, the factor needs to be set as rho^3 or 1-rho^3 already! */
   void AddMassToStiffness(double m_factor, DesignElement* de, Matrix<std::complex<double> >& K_in_S_out, bool bimaterial);
 
-  /** This is a shortcut to ErsatzMaterial::material */
-  OptMechMat* mech_mat_;
 };
 
 

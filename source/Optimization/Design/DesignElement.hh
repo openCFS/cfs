@@ -232,7 +232,7 @@ public:
 
   /** The type of this design element, influences the Get*Bound() methods.
    * By definition the design elements are stored in the ordering of the type!! */
-  typedef enum { UNITY = -5, NO_DERIVATIVE = -4, TENSOR_TRACE = -3, DEFAULT = -2, NO_TYPE = -1, DENSITY = 0, POLARIZATION = 1, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO, GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA} Type;
+  typedef enum { UNITY = -5, NO_DERIVATIVE = -4, TENSOR_TRACE = -3, DEFAULT = -2, NO_TYPE = -1, DENSITY = 0, POLARIZATION = 1, ACOU_DENSITY = 2, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO, GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA} Type;
 
 
     /** This specifies result details for various ValueSpecifier/Detail combinations:

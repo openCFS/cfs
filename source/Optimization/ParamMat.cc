@@ -18,7 +18,7 @@ void ParamMat::PostInit()
 {
   ErsatzMaterial::PostInit();
   
-  mech_mat_ = dynamic_cast<OptMechMat*>(material); // just set in EM:PostInit()
+  mech_mat_ = dynamic_cast<MechMat*>(material); // just set in EM:PostInit()
   assert(mech_mat_ != NULL);
 }
 

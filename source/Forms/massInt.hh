@@ -66,7 +66,6 @@ namespace CoupledField
     Double density_;        //!< multiplicative value for mass integrator. Take care and check for md_ set for fresh value!
     UInt nrDofsPerNode_;   //!< degrees of freedom per node
     bool diagMass_;         //<! true, mass matrix is diagonal
-    MaterialDescriptor md_; // to be usef for bimaterial optimization problems
   };
 
 }

@@ -32,24 +32,46 @@ namespace CoupledField
     /** For bimaterial optimization it is good to be sure in what 'mode' the forms are initialized.
      * This is important for MassInt and other scalar forms where the material data is given
      * as scalar in the constructor.
-     * This struct allows an optional constructor which describes the material such that we can be
-     * sure that we are in a mode we expect. To use the struct is optional!
-     * The scalar value is stored in the standard way*/
-     struct MaterialDescriptor
+     * This class allows an optional form constructor which describes the material such that we can be
+     * sure that we are in a mode we expect. To use the class is optional!
+     * The scalar material properties are then obtained each time. Eventually BaseMaterial needs a boost.
+     * If the material descriptor is used, the scalard material value from the other constructor is not
+     * used -> see MassInt.
+     * Does not work for tensors but could be extended.
+     * It might be generally a good idea to use the MaterialDescriptor */
+     class MaterialDescriptor
      {
-       enum Type { NOT_SET = -1, SCALAR };
+     public:
+       /** NOT_SET: the material descriptor is not used
+        *  SCALAR: material->GetScalar(mat_1)
+        *  MAT_1_MAT_1_BY_MAT_2: material->GetScalar(mat_1)^2 / material->GetScalar(mat_2) standard acoustic mass */
+       enum Type { NOT_SET = -1, SCALAR = 0, MAT_1_MAT_1_BY_MAT_2};
 
        /** The default constructor sets to NOT_SET */
        MaterialDescriptor();
+       MaterialDescriptor(Type type, MaterialClass mat_class, MaterialType mat_1, Global::ComplexPart dataType);
+       MaterialDescriptor(Type type, MaterialClass mat_class, MaterialType mat_1, MaterialType mat_2, Global::ComplexPart dataType);
 
-       MaterialDescriptor(Type type, MaterialType matType, Global::ComplexPart dataType);
+       /** is the material descriptor set? */
+       bool Enabled() const { return type != NOT_SET; }
 
-       /** extract the value from material if SCALAR, convenience function */
+       /** extract the value from material by type if not NOT_SET, convenience function */
        double GetScalar(BaseMaterial* bm);
 
+       /** Applies the ersatz material factor if it applies, eventually with bimaterial, otherwise the default.
+        * This is NOT the factor but the applied factor!
+        * @param default_mat_value if the material descriptor is not initialized. */
+       double GetErsatzMaterial(BaseForm* form, const Elem* elem, double default_mat_value);
+
        Type type;
-       MaterialType matType;
-       Global::ComplexPart dataType;
+       MaterialType mat_1;
+       MaterialType mat_2;
+
+       MaterialClass mat_class;
+
+       Global::ComplexPart data_type;
+     private:
+       void Init(Type type, MaterialClass mat_class, MaterialType mat_1, MaterialType mat_2, Global::ComplexPart data_type);
      };
 
 
@@ -229,6 +251,9 @@ namespace CoupledField
      */
     void setTimeStepping(TimeStepping* const ts_alg) { TS_alg_ = ts_alg;};
 
+    /** MassInt and LaplaceInt have optional constructors where the material descriptors can be set.*/
+    const MaterialDescriptor& GetMaterialDescriptor() const { return md_; };
+
   protected:
 
     /** Gets the factor for dMat to perform the ersatz material ansatz.
@@ -253,6 +278,7 @@ namespace CoupledField
       }
       return TS_alg_;
     };
+
     //! pointer to reference element
     BaseFE  * ptelem;   
 
@@ -334,6 +360,11 @@ namespace CoupledField
 
     //! second derivative of solution
     NodeStoreSol<Double>* solDeriv2_;
+
+    /** to be used for bimaterial optimization problems or for a more detailed description of the used material.
+     * Makes sense for scalar integrator. For most cases not used
+     * @see MassInt() */
+    MaterialDescriptor md_;
 
   private:
 

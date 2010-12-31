@@ -1754,6 +1754,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_ENERGY, "acouEnergy");
     SolutionTypeEnum.Add(ACOU_PMLAUXVEC,"acouPmlAuxVec");
     SolutionTypeEnum.Add(ACOU_PMLAUXSCALAR, "acouPmlAuxScalar");
+    SolutionTypeEnum.Add(ACOU_PSEUDO_DENSITY, "acouPseudoDensity");
 
     //magnetics
     SolutionTypeEnum.Add(MAG_POTENTIAL, "magPotential");

@@ -114,7 +114,7 @@ void ShapeGrad::PostInit()
   ErsatzMaterial::PostInit();
 
   if(pde->GetName() != "mechanic") return;
-  mech_mat_ = dynamic_cast<OptMechMat*>(material); // just created in PostInit()
+  mech_mat_ = dynamic_cast<MechMat*>(material); // just created in PostInit()
   assert(material != NULL);
 }
 

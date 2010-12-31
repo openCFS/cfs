@@ -985,6 +985,7 @@
                 <xsd:enumeration value="piezo"/>
                 <xsd:enumeration value="mechanic"/>
                 <xsd:enumeration value="heat"/>
+                <xsd:enumeration value="acoustic"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>               
@@ -1071,6 +1072,7 @@
     <xsd:attribute name="application" use="required">
       <xsd:simpleType>  
         <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="acoustic"/>
           <xsd:enumeration value="elec"/>
           <xsd:enumeration value="mech"/>
           <xsd:enumeration value="mass"/>
@@ -1091,6 +1093,7 @@
   <xsd:simpleType name="DT_Design">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="density"/>
+      <xsd:enumeration value="acouDensity"/>
       <xsd:enumeration value="polarization"/>
       <xsd:enumeration value="tensor_trace"/>
       <xsd:enumeration value="emodul"/>

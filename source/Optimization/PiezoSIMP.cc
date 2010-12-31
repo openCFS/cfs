@@ -76,7 +76,7 @@ void PiezoSIMP::PostInit()
   SIMP::PostInit();
 
   // just created in PostInit
-  piezo_mat_ = dynamic_cast<OptPiezoMat*>(material);
+  piezo_mat_ = dynamic_cast<PiezoelecMat*>(material);
   assert(piezo_mat_ != NULL);
 }
 

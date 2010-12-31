@@ -244,24 +244,8 @@ void ErsatzMaterial::PostInit()
   // create Material class
   if(pde != NULL)
   {
-    OptimizationMaterial::System system = 
-        OptimizationMaterial::system.Parse(pn->Get("material")->As<std::string>());
-    switch(system)
-    {
-    case OptimizationMaterial::PIEZOCOUPLING:
-      material = new OptPiezoMat(this);
-      break;
+    material = OptimizationMaterial::CreateInstance(OptimizationMaterial::system.Parse(pn->Get("material")->As<std::string>()), this);
 
-    case OptimizationMaterial::MECH:
-      material = new OptMechMat(this);
-      break;
-
-    case OptimizationMaterial::HEAT:
-      material = new HeatMat(this);
-      break;
-
-    default: assert(false);
-    }
     optInfoNode->Get(ParamNode::HEADER)->Get("material")->SetValue(OptimizationMaterial::system.ToString(material->GetSystem()));
   }
 
@@ -642,7 +626,7 @@ void ErsatzMaterial::SubtractGradStrainRHS(DesignElement* de, TransferFunction* 
   MechPDE::TestStrain ts = rhs != NULL ? rhs->test_strain : MechPDE::NOT_SET;
 
   // OptMechMat is base for any further child!
-  const Vector<double>& vec = dynamic_cast<OptMechMat*>(material)->MechStrainRHS(de->elem, ts);
+  const Vector<double>& vec = dynamic_cast<MechMat*>(material)->MechStrainRHS(de->elem, ts);
 
   double factor = tf->Derivative(de, DesignElement::SMART);
   // LOG_DBG3(em) << "SGSR: de=" << de->elem->elemNum << " in_out=" << in_out.ToString();
@@ -2748,20 +2732,31 @@ void ErsatzMaterial::ConstructAdjointRHS(Excitation& excite, Function* f)
 
 void ErsatzMaterial::SetPDEs()
 {
-  // we either set MECH (almost always) or HEAT -> set the common pde attribute!
-  pde = domain->GetSinglePDE("mechanic", false);
-  if(pde != NULL)
-    pdes[MECH] = pde;
-  else
+  switch(OptimizationMaterial::system.Parse(pn->Get("material")->As<std::string>()))
   {
-    pde = domain->GetSinglePDE("heatConduction", true);
+  case OptimizationMaterial::MECH:
+  case OptimizationMaterial::PIEZOCOUPLING:
+    pde = domain->GetSinglePDE("mechanic");
+    pdes[MECH] = pde;
+    break;
+
+  case OptimizationMaterial::HEAT:
+    pde = domain->GetSinglePDE("heatConduction");
     pdes[HEAT] = pde;
+    break;
+
+  case OptimizationMaterial::ACOUSTIC:
+    pde = domain->GetSinglePDE("acoustic", true);
+    pdes[ACOUSTIC] = pde;
+    break;
+
+  default:
+    assert(false);
   }
 
   // make it more smart when using energy flux for other pdes
   if(objectives.Has(Function::ENERGY_FLUX))
     pdes[ACOUSTIC] = domain->GetSinglePDE("acoustic", true);
-
 
   // ELEC is set in PiezoSIMP()
 }
@@ -2788,6 +2783,8 @@ Optimization::Application ErsatzMaterial::ToApp(DesignElement::Type dt)
   {
   case DesignElement::DENSITY:
     return MECH;
+  case DesignElement::ACOU_DENSITY:
+    return ACOUSTIC;
   case DesignElement::POLARIZATION:
     return ELEC;
   default:
@@ -3060,7 +3057,7 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Applic
   switch(app)
   {
   case NO_APP: // up to now
-    solt = MECH_DISPLACEMENT;
+    solt = dynamic_cast<SinglePDE*>(pde)->GetNativeSolutionType();
     break;
   case MECH:
     solt = MECH_DISPLACEMENT;

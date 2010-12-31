@@ -318,9 +318,11 @@ void Optimization::SetEnums()
   OptimizationMaterial::system.Add(OptimizationMaterial::PIEZOCOUPLING, "piezo");
   OptimizationMaterial::system.Add(OptimizationMaterial::MECH, "mechanic");
   OptimizationMaterial::system.Add(OptimizationMaterial::HEAT, "heat");
+  OptimizationMaterial::system.Add(OptimizationMaterial::ACOUSTIC, "acoustic");
 
   application.SetName("Optimization::Application");
   application.Add(NO_APP, "no_app");
+  application.Add(ACOUSTIC, "acoustic");
   application.Add(MECH, "mech");
   application.Add(MASS, "mass");
   application.Add(ELEC, "elec");
@@ -433,7 +435,9 @@ Optimization* Optimization::CreateInstance()
     switch(OptimizationMaterial::system.Parse(em->Get("material")->As<std::string>()))
     {
     case OptimizationMaterial::MECH:
-      opt = new SIMP();
+    case OptimizationMaterial::ACOUSTIC:
+    case OptimizationMaterial::HEAT:
+      opt = new SIMP(); // generally single PDE!
       break;
       
     case OptimizationMaterial::PIEZOCOUPLING:

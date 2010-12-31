@@ -925,7 +925,21 @@ void DesignSpace::ExtractResults(shared_ptr<BaseResult> base_result)
   // set the defaults to be maybe replaced by a resultDescription
   def.solutionType = ri->resultType;
   // this is clearly nonsense if the result/solution type is OPT_RESULT_*
-  def.design = ri->resultType == ELEC_PSEUDO_POLARIZATION ? DesignElement::POLARIZATION : DesignElement::DENSITY;
+  switch(ri->resultType)
+  {
+  case MECH_PSEUDO_DENSITY:
+  case PHYSICAL_PSEUDO_DENSITY:
+    def.design = DesignElement::DENSITY;
+    break;
+  case ELEC_PSEUDO_POLARIZATION:
+    def.design = DesignElement::POLARIZATION;
+    break;
+  case ACOU_PSEUDO_DENSITY:
+    def.design = DesignElement::ACOU_DENSITY;
+    break;
+  default:
+    assert(false);
+  }
   // somehow critical! but only for density filtering, if at all.
   def.access = ri->resultType == PHYSICAL_PSEUDO_DENSITY ? DesignElement::SMART : DesignElement::PLAIN;
   def.value  = DesignElement::DESIGN;

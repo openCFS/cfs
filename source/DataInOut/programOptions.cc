@@ -907,12 +907,17 @@ namespace CoupledField {
         << endl
         << "09.08, Rasanter Rechner" << endl
         << "  ILUPACK by M. Bollhoefer works again (iterative preconditioner/ solver package)" << endl
-        << "  CHOLMOD (as in MATLAB) is a s.p.d. direct solver, >= 20% faster than Pardiso" << endl
+        << "  CHOLMOD (as in MATLAB) is a s.p.d. direct solver, >= 20% faster than PARDISO" << endl
         << endl
         << "10.07, Optimal Orgasm" << endl
         << "  This shall reflect that CFS++ has become also a strong structural optimization" << endl
         << "  tool - yet the acceptance by engineers could still be optimized (e.g. by more" << endl
-        << "  realistic optimization problems)." << endl;
+        << "  realistic optimization problems)." << endl
+        << endl
+        << "10.10, Prickly Porcupine" << endl
+        << "  No major advance beside taking care that young students are not confronted with" << endl
+        << "  X-rated terms. Luckily they don't hear developers conversation with compilers!." << endl;
+
   }
 
   void ProgramOptions::GetHeaderString(std::ostream & out)

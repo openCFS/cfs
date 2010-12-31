@@ -832,7 +832,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         {
           // we let the integrator obtain the density by itself, this way we can easily ensure that
           // everything goes right when we do bimaterial topology optimization
-          BaseForm::MaterialDescriptor md(BaseForm::MaterialDescriptor::SCALAR, DENSITY,Global::REAL);
+          BaseForm::MaterialDescriptor md(BaseForm::MaterialDescriptor::SCALAR, MECHANIC, DENSITY,Global::REAL);
           MassInt* bilinearMass = new MassInt(actSDMat, md, dim_, isaxi_);
           if ( diagMass_ ) {
             // diagonal mass matrix

@@ -6,6 +6,7 @@
 #include "PDE/mechPDE.hh"
 #include "PDE/elecPDE.hh"
 #include "PDE/heatCondPDE.hh"
+#include "PDE/acousticPDE.hh"
 #include "Optimization/OptimizationMaterial.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Design/DesignSpace.hh"
@@ -28,6 +29,28 @@ OptimizationMaterial::OptimizationMaterial(ErsatzMaterial* em)
 
 OptimizationMaterial::~OptimizationMaterial()
 {
+}
+
+OptimizationMaterial* OptimizationMaterial::CreateInstance(System sys, ErsatzMaterial* em)
+{
+  switch(sys)
+  {
+  case PIEZOCOUPLING:
+    return new PiezoelecMat(em);
+
+  case MECH:
+    return new MechMat(em);
+
+  case HEAT:
+    return new HeatMat(em);
+
+  case ACOUSTIC:
+    return new AcouMat(em);
+
+  default:
+    assert(false);
+    return NULL;
+  }
 }
 
 
@@ -107,7 +130,7 @@ void OptimizationMaterial::GetElementEntity(BaseForm* form, Matrix<double>* mat_
 
 
 
-OptMechMat::OptMechMat(ErsatzMaterial* em) : OptimizationMaterial(em)
+MechMat::MechMat(ErsatzMaterial* em) : OptimizationMaterial(em)
 {
   system_ = MECH;
   mech = dynamic_cast<MechPDE*>(opt->ToPDE(Optimization::MECH));
@@ -146,7 +169,7 @@ OptMechMat::OptMechMat(ErsatzMaterial* em) : OptimizationMaterial(em)
 }
 
 
-const Matrix<double>& OptMechMat::MechStiffness(const Elem* elem, bool bimaterial, DesignElement::Type direction)
+const Matrix<double>& MechMat::MechStiffness(const Elem* elem, bool bimaterial, DesignElement::Type direction)
 {
   if(!opt->IsDomainStructured() || direction != DesignElement::NO_DERIVATIVE)
   {
@@ -162,8 +185,10 @@ const Matrix<double>& OptMechMat::MechStiffness(const Elem* elem, bool bimateria
   return !bimaterial ? mechStiffness_map[elem->regionId].first : mechStiffness_map[elem->regionId].second;
 }
 
-const Matrix<double>& OptMechMat::MechMass(const Elem* elem, bool bimaterial, DesignElement::Type direction)
+const Matrix<double>& MechMat::MechMass(const Elem* elem, bool bimaterial, DesignElement::Type direction)
 {
+  assert(opt->GetForm(elem->regionId, mech, mech, "MassInt")->GetMaterialDescriptor().Enabled());
+
   if(!opt->IsDomainStructured() || direction != DesignElement::NO_DERIVATIVE)
   {
     if(!bimaterial)
@@ -178,7 +203,7 @@ const Matrix<double>& OptMechMat::MechMass(const Elem* elem, bool bimaterial, De
   return !bimaterial ? mechMass_map[elem->regionId].first :  mechMass_map[elem->regionId].second;
 }
 
-const Vector<double>& OptMechMat::MechStrainRHS(const Elem* elem, MechPDE::TestStrain testStrain)
+const Vector<double>& MechMat::MechStrainRHS(const Elem* elem, MechPDE::TestStrain testStrain)
 {
   // in homogenization we always set/replace the actual AddStrainRHSInt which contains the current test strain,
   // therefore we do not cache!
@@ -199,9 +224,76 @@ const Vector<double>& OptMechMat::MechStrainRHS(const Elem* elem, MechPDE::TestS
 }
 
 
+AcouMat::AcouMat(ErsatzMaterial* em) : OptimizationMaterial(em)
+{
+  system_ = ACOUSTIC;
+  acou = dynamic_cast<AcousticPDE*>(opt->ToPDE(Optimization::ACOUSTIC));
+  assert(acou != NULL);
 
-OptPiezoMat::OptPiezoMat(ErsatzMaterial* em) :
-  OptMechMat(em)
+  for(unsigned int r=0; r < regionIds.GetSize(); r++)
+  {
+    RegionIdType reg_id = regionIds[r];
+    DesignSpace::DesignRegion* dr = opt->GetDesign()->GetRegion(reg_id);
+    BaseMaterial* bm = dr->HasBiMaterial() ? dr->GetBiMaterial(FLUID) : NULL;
+
+    GetElementMatrix(opt->GetForm(reg_id, acou, acou, "LaplaceInt"), acouStiffness_map[reg_id].first, NULL, NULL);
+
+    if(dr->HasBiMaterial())
+      GetElementMatrix(opt->GetForm(reg_id, acou, acou, "LaplaceInt"), acouStiffness_map[reg_id].second, NULL, bm);
+
+    if(opt->IsHarmonic())
+    {
+      GetElementMatrix(opt->GetForm(reg_id, acou, acou, "MassInt"), acouMass_map[reg_id].first, NULL, NULL);
+
+      if(dr->HasBiMaterial())
+        GetElementMatrix(opt->GetForm(reg_id, acou, acou, "MassInt"), acouMass_map[reg_id].second, NULL, bm);
+    }
+  }
+}
+
+
+const Matrix<double>& AcouMat::AcouStiffness(const Elem* elem, bool bimaterial)
+{
+  RegionIdType reg_id = elem->regionId;
+
+  if(!opt->IsDomainStructured())
+  {
+    if(!bimaterial)
+      GetElementMatrix(opt->GetForm(reg_id, acou, acou, "LaplaceInt"), acouStiffness_map[reg_id].first, elem, NULL);
+    else
+    {
+      BaseMaterial* bm = opt->GetDesign()->GetRegion(reg_id)->GetBiMaterial(FLUID);
+      GetElementMatrix(opt->GetForm(reg_id, acou, acou, "LaplaceInt"), acouStiffness_map[reg_id].second, elem, bm);
+    }
+  }
+
+  return !bimaterial ? acouStiffness_map[reg_id].first : acouStiffness_map[reg_id].second;
+}
+
+const Matrix<double>& AcouMat::AcouMass(const Elem* elem, bool bimaterial)
+{
+  RegionIdType reg_id = elem->regionId;
+
+  assert(opt->GetForm(reg_id, acou, acou, "MassInt")->GetMaterialDescriptor().Enabled());
+
+  if(!opt->IsDomainStructured())
+  {
+    if(!bimaterial)
+      GetElementMatrix(opt->GetForm(reg_id, acou, acou, "MassInt"), acouMass_map[reg_id].first, elem, NULL);
+    else
+    {
+      BaseMaterial* bm = opt->GetDesign()->GetRegion(reg_id)->GetBiMaterial(FLUID);
+      GetElementMatrix(opt->GetForm(reg_id, acou, acou, "MassInt"), acouMass_map[reg_id].second, elem, bm);
+    }
+  }
+
+  return !bimaterial ? acouMass_map[reg_id].first : acouMass_map[reg_id].second;
+}
+
+
+
+PiezoelecMat::PiezoelecMat(ErsatzMaterial* em) :
+  MechMat(em)
 {
   system_ = PIEZOCOUPLING;
   elec = dynamic_cast<ElecPDE*>(opt->ToPDE(Optimization::ELEC));
@@ -253,7 +345,7 @@ OptPiezoMat::OptPiezoMat(ErsatzMaterial* em) :
 
 }
 
-const Matrix<double>& OptPiezoMat::ElecStiffness(Elem* elem, int factor)
+const Matrix<double>& PiezoelecMat::ElecStiffness(Elem* elem, int factor)
 {
   assert(factor == 1 || factor == -1);
 
@@ -265,7 +357,7 @@ const Matrix<double>& OptPiezoMat::ElecStiffness(Elem* elem, int factor)
   return map[elem->regionId];
 }
 
-const Matrix<double>& OptPiezoMat::CoupledStiffness(Elem* elem)
+const Matrix<double>& PiezoelecMat::CoupledStiffness(Elem* elem)
 {
   if(!opt->IsDomainStructured())
     GetElementMatrix(opt->GetForm(elem->regionId, mech, elec, "linPiezoCoupling"), coupledStiffness_map[elem->regionId]);
@@ -274,7 +366,7 @@ const Matrix<double>& OptPiezoMat::CoupledStiffness(Elem* elem)
 }
 
 
-const Matrix<double>& OptPiezoMat::CoupledStiffnessTransposed(Elem* elem)
+const Matrix<double>& PiezoelecMat::CoupledStiffnessTransposed(Elem* elem)
 {
   if(!opt->IsDomainStructured())
   {

@@ -5,7 +5,7 @@
 
 namespace CoupledField {
 
-class OptMechMat;
+class MechMat;
 
   class ParamMat : public ErsatzMaterial
   {
@@ -26,7 +26,7 @@ class OptMechMat;
     virtual void SetElementK(DesignElement* de, Application app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative);
     
     /** this is a shortcut to the material class */
-    OptMechMat* mech_mat_;
+    MechMat* mech_mat_;
   };
 
 }

@@ -364,7 +364,7 @@ double DesignElement::GetPhysicalDesign() const
 
 bool DesignElement::HasPhysicalDesign() const
 {
-  return(type_ == DENSITY || type_ == POLARIZATION);
+  return(type_ == DENSITY || type_ == POLARIZATION || type_ == ACOU_DENSITY);
 }
 
 
@@ -424,6 +424,7 @@ void DesignElement::SetEnums()
   type.Add(TENSOR_TRACE, "tensor_trace");
   type.Add(DEFAULT, "default");
   type.Add(DENSITY, "density");
+  type.Add(ACOU_DENSITY, "acouDensity");
   type.Add(POLARIZATION, "polarization");
   type.Add(EMODUL, "emodul");
   type.Add(POISSON, "poisson");

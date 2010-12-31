@@ -533,7 +533,7 @@ public:
   /** do we do SIMP or FreeMat or ... */
   Method method_;
 
-  /** this is the optimization->simp XML element */
+  /** this is the optimization->ersatzMaterial XML element */
   PtrParamNode pn;
 
   /** The assemble class for our PDE */
