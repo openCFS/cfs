@@ -139,7 +139,7 @@ namespace CoupledField
         {
           const std::vector<UInt>& secRegVec = *iterRegionMapNodes2->second;
           /* bigger than 50 billion - sorry hardcoded*/
-          if (firstRegVec.size() * secRegVec.size() > 50000000000)
+          if (firstRegVec.size() * secRegVec.size() > 50e9)
           {
             EXCEPTION("You are trying to calculate acoustic sources on multiple regions." << std::endl
                 << "Cplreader needs to find the common interface of these regions," << std::endl
