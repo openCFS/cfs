@@ -155,13 +155,13 @@ MechMat::MechMat(ErsatzMaterial* em) : OptimizationMaterial(em)
     if(opt->IsHarmonic())
     {
       GetElementMatrix(opt->GetForm(reg_id, mech, mech, "MassInt"), mechMass_map[reg_id].first);
-      LOG_DBG(om) << "OptMechMat MechMaxx region=" << domain->GetGrid()->GetRegion().ToString(reg_id)
+      LOG_DBG(om) << "OptMechMat MechMass region=" << domain->GetGrid()->GetRegion().ToString(reg_id)
                   << std::endl << mechMass_map[reg_id].first.ToString(0,true);
 
       if(dr->HasBiMaterial())
       {
         GetElementMatrix(opt->GetForm(reg_id, mech, mech, "MassInt"), mechMass_map[reg_id].second, NULL, dr->GetBiMaterial(MECHANIC));
-        LOG_DBG(om) << "OptMechMat MechMaxx region=" << domain->GetGrid()->GetRegion().ToString(reg_id) << " bimaterial"
+        LOG_DBG(om) << "OptMechMat MechMass region=" << domain->GetGrid()->GetRegion().ToString(reg_id) << " bimaterial"
                     << std::endl << mechMass_map[reg_id].second.ToString(0,true);
       }
     }

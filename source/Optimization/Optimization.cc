@@ -323,6 +323,8 @@ void Optimization::SetEnums()
   application.SetName("Optimization::Application");
   application.Add(NO_APP, "no_app");
   application.Add(ACOUSTIC, "acoustic");
+  application.Add(HEAT, "heat");
+  application.Add(LAPLACE, "laplace");
   application.Add(MECH, "mech");
   application.Add(MASS, "mass");
   application.Add(ELEC, "elec");

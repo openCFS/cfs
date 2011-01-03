@@ -12,6 +12,7 @@ namespace CoupledField
 {
 class Elem;
 class ParamNode;
+class SinglePDE;
 class Condition;
 class DesignSpace;
 class DesignStructure;
@@ -234,6 +235,8 @@ public:
    * By definition the design elements are stored in the ordering of the type!! */
   typedef enum { UNITY = -5, NO_DERIVATIVE = -4, TENSOR_TRACE = -3, DEFAULT = -2, NO_TYPE = -1, DENSITY = 0, POLARIZATION = 1, ACOU_DENSITY = 2, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO, GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA} Type;
 
+  /** Default mapping from the PDE */
+  static Type Default(const SinglePDE* pde);
 
     /** This specifies result details for various ValueSpecifier/Detail combinations:
      * OBJECTIVE/SYMMETRY (check!)

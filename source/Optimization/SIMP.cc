@@ -77,14 +77,14 @@ void SIMP::PostInit()
   ErsatzMaterial::PostInit();
 }
 
-void SIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative)
+void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative)
 {
-  if(harmonic) SetElementK<std::complex<double> >(de, app, out, calcMode, derivative);
-  else SetElementK<double>(de, app, out, calcMode, derivative);
+  if(harmonic) SetElementK<std::complex<double> >(de, tf, app, out, calcMode, derivative);
+  else SetElementK<double>(de, tf, app, out, calcMode, derivative);
 }
 
 template <class T>
-void SIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative)
+void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative)
 {
   Matrix<T>& out = dynamic_cast<Matrix<T>& >(*mat_out);
 
@@ -97,13 +97,12 @@ void SIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* mat_out,
     const Matrix<double>& stiffness = material->Stiffness(de->elem, false); // no bimaterial
     
     // Find the transfer function for K (e.g. DENSITY, MECH)
-    TransferFunction* tf = design->GetTransferFunction(de->GetType(), app);
     T k_factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
 
     // copy from real mechStiffness to potential complex out and factor the derivative
     Assign(out, stiffness, k_factor);
     // This log is very expensive, it blows up inv_tensor in the debug mode
-    //LOG_DBG3(simp) << "SetElementK: org mech " << out.ToString(0);
+    LOG_DBG3(simp) << "SetElementK: K_org=" <<  stiffness.ToString() << " k_factor " << k_factor << " -> " << out.ToString();
 
     if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
     {
@@ -111,6 +110,7 @@ void SIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* mat_out,
       // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
       k_factor = !derivative ? 1.0 - k_factor : -1.0 *  k_factor;
       Add(out, k_factor, bimat);
+      LOG_DBG3(simp) << "SetElementK: K_bi_org=" <<  bimat.ToString() << " k_factor " << k_factor << " -> " << out.ToString();
     }
 
     if(harmonic)
@@ -119,11 +119,15 @@ void SIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* mat_out,
       double m_factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
       AddMassToStiffness(m_factor, de, dynamic_cast<Matrix<complex<double> >& >(out), false); // no bimaterial
 
+      LOG_DBG3(simp) << "SetElementK: m_factor " << m_factor << " -> " << out.ToString();
+
       if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
       {
         // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
         m_factor = !derivative ? 1.0 - m_factor : -1.0 *  m_factor;
         AddMassToStiffness(m_factor, de, dynamic_cast<Matrix<complex<double> >& >(out), true); // bimaterial
+
+        LOG_DBG3(simp) << "SetElementK: m_bi_factor " << m_factor << " -> " << out.ToString();
       }
     }
     break;
@@ -193,19 +197,20 @@ void SIMP::AddMassToStiffness(double m_factor, DesignElement* de, Matrix<complex
       S[r][c] += damp_mass * M[r][c];
 
   LOG_DBG2(simp) << "AddMassToStiffness: m_factor:" << m_factor << " alpha_k: " << alpha_k << " alpha_m: " << alpha_m
-                 << " omega: " << omega << " K_img: " << (omega * alpha_k) << " damp_mass: " << damp_mass;
+                 << " omega: " << omega << " K_img: " << (omega * alpha_k) << " damp_mass: " << damp_mass << " M=" << M.ToString();
 }
 
 
 double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
 {
+  // this app is for the PDE
   Application app = ToApp(pde);
 
   // this implements only the gradients of some functions
   if(!derivative)
     return ErsatzMaterial::CalcFunction(excite, f, derivative);
 
-  TransferFunction* tf = design->GetTransferFunction(DesignElement::DEFAULT, app, true);
+  TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(pde), TransferFunction::Default(pde), true);
   double weight = excite.GetWeightedFactor(f);
   LOG_DBG(simp) << "CalcFunction(idx=" << excite.index << ") norm_weight= " <<  excite.normalized_weight
                 << " factor=" << excite.GetFactor(f) << " weight=" << weight;

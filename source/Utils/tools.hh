@@ -144,7 +144,7 @@ namespace CoupledField {
   void Assign(Vector<Complex>& target, const Vector<Double>& other, const Double factor);
 
   template<class TYPE, class TYPE2>
-  void Add(Matrix<TYPE> out, const TYPE fac, const Matrix<TYPE2>& other)
+  void Add(Matrix<TYPE>& out, const TYPE fac, const Matrix<TYPE2>& other)
   {
    #ifdef CHECK_INDEX
       if(out.GetNumRows() != other.GetNumRows() || out.GetNumCols() != other.GetNumCols())

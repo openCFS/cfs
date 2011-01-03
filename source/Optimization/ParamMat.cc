@@ -22,7 +22,7 @@ void ParamMat::PostInit()
   assert(mech_mat_ != NULL);
 }
 
-void ParamMat::SetElementK(DesignElement* de, Application app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative)
+void ParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative)
 {
   // this is only called from CalcU1KU2 which is only used in derivative calculation (compliance, tracking, volume)
   // therefore we always return a derivative, de indicating which

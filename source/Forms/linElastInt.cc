@@ -210,7 +210,7 @@ void linElastInt::calcDMat(Matrix<Double> & dMat, const Elem* elem, const Design
   if(force_factor != 0.0)
     density = force_factor;
 
-  if(density != 1.0)
+  if(density != 1.0 && elem != NULL)
   {
     dMat *= density;
 

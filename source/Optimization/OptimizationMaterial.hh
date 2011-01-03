@@ -114,7 +114,7 @@ public:
 
   /** overwrites OptimizationMaterial::Mass */
   const Matrix<double>& Mass(const Elem* elem, bool bimaterial = false) {
-    return MechStiffness(elem, bimaterial, DesignElement::NO_DERIVATIVE);
+    return MechMass(elem, bimaterial, DesignElement::NO_DERIVATIVE);
   }
 
   
@@ -154,7 +154,7 @@ public:
 
   /** overwrites OptimizationMaterial::Mass */
   const Matrix<double>& Mass(const Elem* elem, bool bimaterial = false) {
-    return AcouStiffness(elem, bimaterial);
+    return AcouMass(elem, bimaterial);
   }
 
 protected:

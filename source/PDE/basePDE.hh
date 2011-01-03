@@ -74,8 +74,8 @@ namespace CoupledField
     //@{
     //! \name Getter methods
 
-    //! return name of pde
-    virtual std::string GetName() {return pdename_;}
+    /** Name of the PDE, overwritten in the coupled PDE */
+    virtual const std::string& GetName() const { return pdename_; }
     //@}
 
     /** do string/enum conversion via BasePDE::analysisType */

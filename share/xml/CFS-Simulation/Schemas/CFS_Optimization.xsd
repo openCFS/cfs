@@ -1072,7 +1072,8 @@
     <xsd:attribute name="application" use="required">
       <xsd:simpleType>  
         <xsd:restriction base="xsd:token">
-          <xsd:enumeration value="acoustic"/>
+          <!-- acoustic and heat and maybe more ... -->
+          <xsd:enumeration value="laplace"/>
           <xsd:enumeration value="elec"/>
           <xsd:enumeration value="mech"/>
           <xsd:enumeration value="mass"/>

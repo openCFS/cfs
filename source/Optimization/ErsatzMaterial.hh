@@ -101,11 +101,16 @@ public:
    * @param DesignElement::DENSITY -> MECH, DesignElement::POLARIZATION -> ELEC */
   static Application ToApp(DesignElement::Type dt);
 
+  /** Default standard design type (not mass) by PDE */
+  DesignElement::Type ToDesign(const SinglePDE* pde) const;
+
   /** Helper that converts from mechPDE to MECH and elecPDE to ELEC, ...
+   * @param from heat and acoustic the application for the transfer function is laplace, this is indicated by the flag if
+   *        we do not want a marker for the pde but the transfer function. Sorry, very messy !! :((
    * @throws if neither mechPDE nor elecPDE
-   *  @see ToPDE()
+   * @see ToPDE()
    * @see SetPDEs() */
-  Application ToApp(SinglePDE* pde) const;
+  Application ToApp(const SinglePDE* pde) const;
 
   /** Find our PDE in SIMP by application from the pdes map
    * @see ToApp()*/
@@ -357,7 +362,7 @@ public:
   /** This is a helper for CalcU1KU2 to determine the "K" which in most cases includes a
    * derivative. It also includes mechanical damping and mass matrix via AddMassToStiffness().
    * The templated stuff is private, as C++ does not allow virtual templates. */
-  virtual void SetElementK(DesignElement* de, Application app,
+  virtual void SetElementK(DesignElement* de, const TransferFunction* tf, Application app,
       DenseMatrix* out, CalcMode calcMode, bool derivative = true) { throw Exception("not implemented"); }
 
   /** Get the ErsatzMaterialTensor as the Tensor itself, not the stiffness matrix

@@ -434,6 +434,9 @@ void ErsatzMaterial::CalcNewmarkDerivative(Excitation& excite, Solutions& forwar
     adjoints[t] = &adjoint.Get(excite, f, t)->elem[MECH];
   }
 
+  const TransferFunction* ktf = design->GetTransferFunction(DesignElement::DENSITY, MECH);
+  const TransferFunction* mtf = design->GetTransferFunction(DesignElement::DENSITY, MASS);
+
   // the outer most loop is over all elements, so element matrices can be reused as much as possible
   int upper = design->data.GetSize();
   int elements = design->GetNumberOfElements();
@@ -441,8 +444,8 @@ void ErsatzMaterial::CalcNewmarkDerivative(Excitation& excite, Solutions& forwar
     for(int e = 0 ; e < elements; ++e) { // loop over all elements
       DesignElement* de = &design->data[base + e];
       bool notDampingElement = de->GetType() != DesignElement::DAMPINGALPHA && de->GetType() != DesignElement::DAMPINGBETA;
-      SetElementK(de, MECH, dynamic_cast<DenseMatrix*>(&dK), STANDARD, notDampingElement);
-      SetElementK(de, MASS, dynamic_cast<DenseMatrix*>(&dM), STANDARD, notDampingElement);
+      SetElementK(de, ktf, MECH, dynamic_cast<DenseMatrix*>(&dK), STANDARD, notDampingElement);
+      SetElementK(de, mtf, MASS, dynamic_cast<DenseMatrix*>(&dM), STANDARD, notDampingElement);
       
       // The damping matrix is alpha * Mass + beta * Stiffness, so it's derivative is also alpha * dMass + beta * dStiffness
       // We need to get alpha and beta, from the integrators
@@ -573,7 +576,7 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>&
       LOG_DBG3(em) << "u2:" << e << ": " << u2_vec.ToString();
 
       // u1^T (K' u2 - f') -> find "K'"
-      SetElementK(de, app, dynamic_cast<DenseMatrix*>(&mat), calcMode);
+      SetElementK(de, tf, app, dynamic_cast<DenseMatrix*>(&mat), calcMode);
       LOG_DBG3(em) << "mat: " << mat.ToString();
 
       // We generally solve u1^T (K' u2 - f') as u1^T (K' u2 - f')
@@ -2153,7 +2156,8 @@ double ErsatzMaterial::CalcHomogenizedElementProduct(ErsatzMaterial* obj, Design
 
   // reuse tmp_mat as elementK-Matrix
   // Matrix<double> k_mat;
-  obj->SetElementK(de, MECH, &tmp_mat, STANDARD, derivative);
+  TransferFunction* tf = obj->design->GetTransferFunction(DesignElement::DENSITY, MECH);
+  obj->SetElementK(de, tf, MECH, &tmp_mat, STANDARD, derivative);
 
   Vector<double> mat_vec;
   mat_vec = tmp_mat * u1_0;
@@ -2792,8 +2796,17 @@ Optimization::Application ErsatzMaterial::ToApp(DesignElement::Type dt)
   }
 }
 
+DesignElement::Type ErsatzMaterial::ToDesign(const SinglePDE* pde) const
+{
+  if(pde->GetName() == "electrostatic") return DesignElement::POLARIZATION;
+  if(pde->GetName() == "mechanic") return DesignElement::DENSITY;
+  if(pde->GetName() == "acoustic") return DesignElement::ACOU_DENSITY;
 
-Optimization::Application ErsatzMaterial::ToApp(SinglePDE* pde) const
+  throw Exception("invalid");
+}
+
+
+Optimization::Application ErsatzMaterial::ToApp(const SinglePDE* pde) const
 {
   if(pde->GetName() == "electrostatic") return ELEC;
   if(pde->GetName() == "mechanic") return MECH;
@@ -2802,6 +2815,8 @@ Optimization::Application ErsatzMaterial::ToApp(SinglePDE* pde) const
 
   throw Exception("invalid");
 }
+
+
 
 
 void ErsatzMaterial::GetErsatzMaterialTensor(Matrix<double>& mat, Elem* elem, DesignElement::Type direction){

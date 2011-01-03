@@ -310,9 +310,8 @@ double PiezoSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
 
 
 template <class T>
-void PiezoSIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative)
+void PiezoSIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative)
 {
-  TransferFunction* tf = design->GetTransferFunction(de->GetType(), app);
   double factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
 
   Matrix<T>& out = dynamic_cast<Matrix<T>& >(*mat_out);
@@ -339,7 +338,7 @@ void PiezoSIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* mat
 
   default:
     // mech and surface normal matrix are handled in SIMP
-    SIMP::SetElementK(de, app, mat_out, calcMode, derivative);
+    SIMP::SetElementK(de, tf, app, mat_out, calcMode, derivative);
     return; // all calculation done there (or assert!)
   }
 

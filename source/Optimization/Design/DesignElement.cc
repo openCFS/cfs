@@ -9,6 +9,7 @@
 #include "Elements/basefe.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "PDE/SinglePDE.hh"
 #include "boost/lexical_cast.hpp"
 #include "boost/date_time/posix_time/posix_time.hpp"
 #include "Optimization/LevelSet.hh"
@@ -168,6 +169,17 @@ void DesignElement::Init()
   elem            = NULL;
   type_           = NO_TYPE;
 }
+
+
+DesignElement::Type DesignElement::Default(const SinglePDE* pde)
+{
+  if(pde->GetName() == "electrostatic") return POLARIZATION;
+  if(pde->GetName() == "mechanic") return DENSITY;
+  if(pde->GetName() == "acoustic") return ACOU_DENSITY;
+
+  throw Exception("invalid");
+}
+
 
 Point* DesignElement::GetLocation()
 {
@@ -352,7 +364,7 @@ double DesignElement::GetDesign() const
 
 double DesignElement::GetPhysicalDesign() const
 {
-  TransferFunction* tf = space_->GetTransferFunction(type_, ErsatzMaterial::ToApp(type_), true);
+  TransferFunction* tf = space_->GetTransferFunction(type_, TransferFunction::Default(type_), true);
 
   return tf->Transform(this, SMART);
 

@@ -56,7 +56,8 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, ParamNodeList &pn_de
   applicationForm.Add(Optimization::CHARGE_DENSITY, "LinNeumannInt");
   applicationForm.Add(Optimization::PRESSURE, "PressureLinForm");
   applicationForm.Add(Optimization::MASS, "MassInt");
-  applicationForm.Add(Optimization::HEAT, "LaplaceInt");
+  // acoustic and heat
+  applicationForm.Add(Optimization::LAPLACE, "LaplaceInt");
 
   // read the elements
   elements = domain->GetGrid()->GetNumElems(reg_data);
@@ -449,10 +450,11 @@ double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, Optimizat
     // There is not necessary a transfer function -> e.g. polarization
     // is for the piezo only defined on the coupling
     TransferFunction* tf = GetTransferFunction(dt, applic, false);
+    LOG_DBG3(designSpace) << "GEMF: dt=" << DesignElement::type.ToString(dt) << " app=" << Optimization::application.ToString(applic) << " tf found=" << (tf != NULL);
     // multiply our transfer function
     if(tf != NULL) {
       double transformed = tf->Transform(de, DesignElement::SMART); // handles design filtering
-      LOG_DBG3(ersatz) << "ErsatzMaterial for " << de->elem->elemNum << "/"
+      LOG_DBG3(designSpace) << "GEMF: ErsatzMaterial for " << de->elem->elemNum << "/"
                        << Optimization::application.ToString(applic) << " for "
                        << DesignElement::type.ToString(dt) << ": "
                        << TransferFunction::type.ToString(tf->GetType()) << "("
@@ -938,7 +940,8 @@ void DesignSpace::ExtractResults(shared_ptr<BaseResult> base_result)
     def.design = DesignElement::ACOU_DENSITY;
     break;
   default:
-    assert(false);
+    // to be overwritten by the ResultDescription
+    def.design = DesignElement::DENSITY;
   }
   // somehow critical! but only for density filtering, if at all.
   def.access = ri->resultType == PHYSICAL_PSEUDO_DENSITY ? DesignElement::SMART : DesignElement::PLAIN;
