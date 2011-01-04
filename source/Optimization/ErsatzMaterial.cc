@@ -1455,6 +1455,7 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
 
     // apply our own physical densities!
     form->calcDMat(E, NULL, DesignElement::DENSITY, qp.Transform(de, DesignElement::SMART));
+    //LOG_DBG2(em) << "CVMSV de=" << de->ToString() << " E=" << E.ToString();
 
     elemList.SetElement(de->elem);
     EntityIterator it = elemList.GetIterator();

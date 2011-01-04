@@ -44,8 +44,10 @@ namespace CoupledField
      public:
        /** NOT_SET: the material descriptor is not used
         *  SCALAR: material->GetScalar(mat_1)
-        *  MAT_1_MAT_1_BY_MAT_2: material->GetScalar(mat_1)^2 / material->GetScalar(mat_2) standard acoustic mass */
-       enum Type { NOT_SET = -1, SCALAR = 0, MAT_1_MAT_1_BY_MAT_2};
+        *  MINUS_SCALAR: -1 * SCALAR in acoustic-mech coupling case when not pressure formulation
+        *  MAT_1_MAT_1_BY_MAT_2: material->GetScalar(mat_1)^2 / material->GetScalar(mat_2) standard acoustic mass
+        *  MINUS_MAT_1_MAT_1_BY_MAT_2 additional -1 in mech coupling case when not pressure formulation */
+       enum Type { NOT_SET = -1, SCALAR = 0, MINUS_SCALAR, MAT_1_MAT_1_BY_MAT_2, MINUS_MAT_1_MAT_1_BY_MAT_2};
 
        /** The default constructor sets to NOT_SET */
        MaterialDescriptor();

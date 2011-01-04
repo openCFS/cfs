@@ -210,11 +210,11 @@ void linElastInt::calcDMat(Matrix<Double> & dMat, const Elem* elem, const Design
   if(force_factor != 0.0)
     density = force_factor;
 
-  if(density != 1.0 && elem != NULL)
+  if(density != 1.0)
   {
     dMat *= density;
 
-    BaseMaterial* bm = domain->GetErsatzBiMaterial(elem,  MECHANIC);
+    BaseMaterial* bm = elem != NULL ? domain->GetErsatzBiMaterial(elem,  MECHANIC) : NULL;
 
     if(bm != NULL)
     {

@@ -48,11 +48,16 @@ double BaseForm::MaterialDescriptor::GetScalar(BaseMaterial* bm)
   switch(type)
   {
   case SCALAR: // mechanic mass, acoustic stiffness
+  case MINUS_SCALAR: // -1 acoustic in mech coupling case
     assert(mat_1 != NO_MATERIAL);
     bm->GetScalar(result,mat_1,data_type);
+
+    if(type == MINUS_SCALAR)
+      result *= -1.0;
     break;
 
   case MAT_1_MAT_1_BY_MAT_2: // acoustic mass
+  case MINUS_MAT_1_MAT_1_BY_MAT_2: // -1 acoustic mass in coupling case
   {
     assert(mat_1 != NO_MATERIAL);
     bm->GetScalar(result,mat_1,data_type);
@@ -60,6 +65,9 @@ double BaseForm::MaterialDescriptor::GetScalar(BaseMaterial* bm)
     assert(mat_2 != NO_MATERIAL);
     bm->GetScalar(tmp,mat_2,data_type);
     result = (result * result) / tmp;
+
+    if(type == MINUS_MAT_1_MAT_1_BY_MAT_2)
+      result *= -1.0;
     break;
   }
 

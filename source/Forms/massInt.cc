@@ -89,6 +89,7 @@ namespace CoupledField {
 
     Double factor = mParser_->Eval( mHandle_ );
 
+    LOG_DBG3(forms) << GetName() << "::CEM(" << ent1.GetElem()->elemNum << ") density=" << density << " factor=" << factor;
 
     if (diagMass_ ) {
       Double mass = 0.0;
@@ -133,6 +134,8 @@ namespace CoupledField {
       MassMultiDof(multDofMass, elemMat, nrDofsPerNode_);       
       elemMat = multDofMass;
     }
+
+    LOG_DBG3(forms) << GetName() << "::CEM(" << ent1.GetElem()->elemNum << ") density=" << density << " factor=" << factor << " mat=" << elemMat.ToString();
 
   }
 

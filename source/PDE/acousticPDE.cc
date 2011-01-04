@@ -704,7 +704,11 @@ namespace CoupledField {
       else {
         // stiffness integrator
         // ready for bimaterial topology optimization
-        BaseForm::MaterialDescriptor md1(BaseForm::MaterialDescriptor::SCALAR, FLUID, DENSITY,Global::REAL);
+        // if mech coupling case when not pressure formulation we have to do it with -1
+        BaseForm::MaterialDescriptor::Type kdt = density > 0 ? BaseForm::MaterialDescriptor::SCALAR :
+                                                               BaseForm::MaterialDescriptor::MINUS_SCALAR;
+
+        BaseForm::MaterialDescriptor md1(kdt, FLUID, DENSITY,Global::REAL);
         BaseForm* bilinearStiff = new LaplaceInt(materials_[actRegion], md1, isaxi_, updatedLagrangeForm_);
         BiLinFormContext * stiffContext = 
           new BiLinFormContext( bilinearStiff, STIFFNESS );
@@ -715,7 +719,12 @@ namespace CoupledField {
 
         // mass integrator
         // ready for bimaterial topology optimization
-        BaseForm::MaterialDescriptor md2(BaseForm::MaterialDescriptor::MAT_1_MAT_1_BY_MAT_2, FLUID, DENSITY,ACOU_BULK_MODULUS, Global::REAL);
+
+        // if mech coupling case when not pressure formulation we have to do it with -1
+        BaseForm::MaterialDescriptor::Type mdt = density > 0 ? BaseForm::MaterialDescriptor::MAT_1_MAT_1_BY_MAT_2 :
+                                                               BaseForm::MaterialDescriptor::MINUS_MAT_1_MAT_1_BY_MAT_2;
+
+        BaseForm::MaterialDescriptor md2(mdt, FLUID, DENSITY,ACOU_BULK_MODULUS, Global::REAL);
         MassInt* bilinearMass = new MassInt(materials_[actRegion], md2, isaxi_, updatedLagrangeForm_);
 
         if ( diagMass_ ) {
