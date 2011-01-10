@@ -18,11 +18,11 @@ void ParamMat::PostInit()
 {
   ErsatzMaterial::PostInit();
   
-  mech_mat_ = dynamic_cast<OptMechMat*>(material); // just set in EM:PostInit()
+  mech_mat_ = dynamic_cast<MechMat*>(material); // just set in EM:PostInit()
   assert(mech_mat_ != NULL);
 }
 
-void ParamMat::SetElementK(DesignElement* de, Application app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative)
+void ParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative)
 {
   // this is only called from CalcU1KU2 which is only used in derivative calculation (compliance, tracking, volume)
   // therefore we always return a derivative, de indicating which
@@ -30,10 +30,10 @@ void ParamMat::SetElementK(DesignElement* de, Application app, DenseMatrix* mat_
   Matrix<double>& out = dynamic_cast<Matrix<double>& >(*mat_out);
   switch(app){
   case MECH:
-    out = mech_mat_->MechStiffness(de->elem, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE);
+    out = mech_mat_->MechStiffness(de->elem, false, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE);
     break;
   case MASS:
-    out = mech_mat_->MechMass(de->elem, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE);
+    out = mech_mat_->MechMass(de->elem, false, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE);
     break;
   default:
     Exception("Only mech and mass matrix are available for paramMat");

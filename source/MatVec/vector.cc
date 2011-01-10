@@ -275,7 +275,6 @@ namespace CoupledField {
     return TYPE(); 
   } 
 
-
   template<> 
   double Vector<Double>::NormMax() const 
   { 
@@ -299,6 +298,40 @@ namespace CoupledField {
 
     return ret; 
   }  
+
+  template<class TYPE>
+  Double Vector<TYPE>::NormMax(const SingleVector& other) const
+  {
+    EXCEPTION( "Vector<TPYE>::NormMax only defined for TYPE=Complex/Double" );
+    return TYPE();
+  }
+
+  template<>
+  double Vector<Double>::NormMax(const SingleVector& other) const
+  {
+    double ret(0.0);
+    if(size_ == 0) EXCEPTION("empty vector");
+    if(size_ != other.GetSize()) EXCEPTION("incompatible sizes");
+    const Vector<Double>& o = dynamic_cast<const Vector<Double>&>(other);
+    for(unsigned int i = 0; i < size_; ++i)
+      ret = std::max(ret, std::abs(data_[i] - o.data_[i]));
+
+    return ret;
+  }
+
+  template<>
+  double Vector<Complex>::NormMax(const SingleVector& other) const
+  {
+    double ret(0.0);
+    if(size_ == 0) EXCEPTION("empty vector");
+    if(size_ != other.GetSize()) EXCEPTION("incompatible sizes");
+    const Vector<Complex>& o = dynamic_cast<const Vector<Complex>&>(other);
+    for(unsigned int i = 0; i < size_; ++i)
+      ret = std::max(std::abs(ret), std::abs(data_[i].real() - o.data_[i].real()));
+
+    return ret;
+  }
+
 
   template<typename T>
   Integer Vector<T>::CountNonZero() const

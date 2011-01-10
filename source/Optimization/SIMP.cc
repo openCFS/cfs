@@ -39,7 +39,6 @@ DEFINE_LOG(simp, "simp")
 
 SIMP::SIMP() : ErsatzMaterial()
 {
-  mech_mat_ = NULL; // set in PostInit()
 }
 
 SIMP::~SIMP()
@@ -70,69 +69,77 @@ void SIMP::PostInit()
       if(simp_pn->Has("regularization"))
         throw Exception("regularization not implemented");
     }
-
-    // check for bimaterial and read tensor if available
-    if(simp_pn->Has("bimaterial"))
-    {
-      Matrix<double> t(3, 3);
-      bool ok = Function::ReadTensor(simp_pn->Get("bimaterial"), t);
-      if(!ok) EXCEPTION("bimaterial specified but no tensor given or incorrect format");
-
-      design->SetBiMatTensor(t);
-      LOG_DBG3(simp) << "bimaterial tensor = " << std::endl << design->GetBiMatTensor().ToString(1);
-    }
   }
   
   if(harmonic) mechRHS.Init<complex<double> >(design, PRESSURE); // in many cases NULL;
           else mechRHS.Init<double>(design, PRESSURE);
 
   ErsatzMaterial::PostInit();
-  
-  // only after ErsatzMaterial::PostInit();
-  mech_mat_ = dynamic_cast<OptMechMat*>(material);
-  assert(mech_mat_ != NULL);
 }
 
-void SIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative)
+void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative)
 {
-  if(harmonic) SetElementK<std::complex<double> >(de, app, out, calcMode, derivative);
-  else SetElementK<double>(de, app, out, calcMode, derivative);
+  if(harmonic) SetElementK<std::complex<double> >(de, tf, app, out, calcMode, derivative);
+  else SetElementK<double>(de, tf, app, out, calcMode, derivative);
 }
 
 template <class T>
-void SIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative)
+void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative)
 {
   Matrix<T>& out = dynamic_cast<Matrix<T>& >(*mat_out);
+
 
   switch(app)
   {
   case MECH:
+  case ACOUSTIC:
   {
-    const Matrix<double> &mechStiffness = mech_mat_->MechStiffness(de->elem);
+    const Matrix<double>& stiffness = material->Stiffness(de->elem, false); // no bimaterial
     
     // Find the transfer function for K (e.g. DENSITY, MECH)
-    TransferFunction* tf = design->GetTransferFunction(de->GetType(), app);
-    double k_factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
+    T k_factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
 
     // copy from real mechStiffness to potential complex out and factor the derivative
-    Assign(out, mechStiffness, k_factor);
+    Assign(out, stiffness, k_factor);
     // This log is very expensive, it blows up inv_tensor in the debug mode
-    //LOG_DBG3(simp) << "SetElementK: org mech " << out.ToString(0);
+    LOG_DBG3(simp) << "SetElementK: K_org=" <<  stiffness.ToString() << " k_factor " << k_factor << " -> " << out.ToString();
+
+    if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
+    {
+      const Matrix<double>& bimat = material->Stiffness(de->elem, true); // yes, bimaterial
+      // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
+      k_factor = !derivative ? 1.0 - k_factor : -1.0 *  k_factor;
+      Add(out, k_factor, bimat);
+      LOG_DBG3(simp) << "SetElementK: K_bi_org=" <<  bimat.ToString() << " k_factor " << k_factor << " -> " << out.ToString();
+    }
 
     if(harmonic)
     {
       tf = design->GetTransferFunction(de->GetType(), MASS);
-      AddMassToStiffness(tf->Derivative(de), de, dynamic_cast<Matrix<complex<double> >& >(out));
+      double m_factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
+      AddMassToStiffness(m_factor, de, dynamic_cast<Matrix<complex<double> >& >(out), false); // no bimaterial
+
+      LOG_DBG3(simp) << "SetElementK: m_factor " << m_factor << " -> " << out.ToString();
+
+      if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
+      {
+        // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
+        m_factor = !derivative ? 1.0 - m_factor : -1.0 *  m_factor;
+        AddMassToStiffness(m_factor, de, dynamic_cast<Matrix<complex<double> >& >(out), true); // bimaterial
+
+        LOG_DBG3(simp) << "SetElementK: m_bi_factor " << m_factor << " -> " << out.ToString();
+      }
     }
     break;
   }
+
   default:
     assert(false); // other cases should be handled in PiezoSIMP
   } // end switch
 }
 
 
-void SIMP::AddMassToStiffness(double m_factor, DesignElement* de, Matrix<complex<double> >& K_in_S_out)
+void SIMP::AddMassToStiffness(double m_factor, DesignElement* de, Matrix<complex<double> >& K_in_S_out, bool bimaterial)
 {
   // The result matrix is
   // S = K + i*omega*C - omega^2*M
@@ -145,7 +152,7 @@ void SIMP::AddMassToStiffness(double m_factor, DesignElement* de, Matrix<complex
 
   // change name only
   Matrix<complex<double> >& S = K_in_S_out;
-  const Matrix<double>& M = mech_mat_->MechMass(de->elem);
+  const Matrix<double>& M = material->Mass(de->elem, bimaterial);
   assert(S.GetNumRows() == M.GetNumRows() && S.GetNumCols() == M.GetNumCols());
 
   // find alpha, beta and omega
@@ -190,17 +197,20 @@ void SIMP::AddMassToStiffness(double m_factor, DesignElement* de, Matrix<complex
       S[r][c] += damp_mass * M[r][c];
 
   LOG_DBG2(simp) << "AddMassToStiffness: m_factor:" << m_factor << " alpha_k: " << alpha_k << " alpha_m: " << alpha_m
-                 << " omega: " << omega << " K_img: " << (omega * alpha_k) << " damp_mass: " << damp_mass;
+                 << " omega: " << omega << " K_img: " << (omega * alpha_k) << " damp_mass: " << damp_mass << " M=" << M.ToString();
 }
 
 
 double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
 {
+  // this app is for the PDE
+  Application app = ToApp(pde);
+
   // this implements only the gradients of some functions
   if(!derivative)
     return ErsatzMaterial::CalcFunction(excite, f, derivative);
 
-  TransferFunction* tf = design->GetTransferFunction(DesignElement::DENSITY, MECH, true);
+  TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(pde), TransferFunction::Default(pde), true);
   double weight = excite.GetWeightedFactor(f);
   LOG_DBG(simp) << "CalcFunction(idx=" << excite.index << ") norm_weight= " <<  excite.normalized_weight
                 << " factor=" << excite.GetFactor(f) << " weight=" << weight;
@@ -219,10 +229,10 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   case Function::OUTPUT:
   case Function::DYNAMIC_OUTPUT:
   case Function::CONJUGATE_COMPLIANCE:
-  case Function::ABS_DYN_OUTPUT_SQUARED:
+  case Function::ABS_OUTPUT:
     // synthesis of compliant mechanism: As our adjoint PDE
     // c' = l K' u
-    CalcU1KU2(tf, adjoint.Get(excite, f)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, weight, STANDARD, f);
+    CalcU1KU2(tf, adjoint.Get(excite, f)->elem[app], app, forward.Get(excite)->elem[app], NULL, weight, STANDARD, f);
     break;
 
   default:
@@ -294,8 +304,11 @@ bool DesignDependentRHS::Init(DesignSpace* design, Optimization::Application app
   // check if we have a form with the application name
   LinearSurfForm* form = NULL;
   LinearFormContext* actContext = NULL;
-  StdVector<LinearFormContext*>* forms =
-    &(domain->GetSinglePDE("mechanic")->getPDE_assemble()->GetLinForms());
+
+  SinglePDE* mech = domain->GetSinglePDE("mechanic", false);
+  if(mech == NULL) return false // wrong pde -> extend if you need it!
+      ;
+  StdVector<LinearFormContext*>* forms = &(mech->getPDE_assemble()->GetLinForms());
 
   for(StdVector<LinearFormContext*>::iterator it = forms->Begin(); it != forms->End(); it++)
   {
@@ -325,7 +338,7 @@ bool DesignDependentRHS::Init(DesignSpace* design, Optimization::Application app
   form->SetSurfElem(const_cast<SurfElem*>(elem)); // set the internal actElem_ of the form
   Vector<T> full;
   form->CalcElemVector(full,const_cast<EntityIterator&>(eit));
-  // enable again our tranfer functions
+  // enable again our transfer functions
   design->EnableTransferFunctions();
 
 
@@ -349,7 +362,7 @@ bool DesignDependentRHS::Init(DesignSpace* design, Optimization::Application app
         EXCEPTION("RHS values are not the same for each node: " << full.ToString());
 
   // store all node numbers in the sorted set
-  // do at the end such iterater is valid for CalcElemVector()
+  // do at the end such iterator is valid for CalcElemVector()
   eit.Begin();
   while(!eit.IsEnd())
   {

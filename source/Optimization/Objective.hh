@@ -41,30 +41,16 @@ class Objective : public Function
     void ResetValue() { value_ = 0.0; }
 
     /** is a homogenization tensor coord set */
-    bool HasHomogenizationEntry() const { return coord.first != -1; }
+    bool HasHomogenizationEntry() const { return get<0>(coord) != -1; }
 
     double GetPenalty() const { return penalty_; }
 
     /** overloads Function::ToInfo() */
     void ToInfo(PtrParamNode info);
 
-    /** gathered by some of the costFunction attributes in XML, the defaults are in the XML-Schema */
-    class StoppingRule
-    {
-    public:
-      /** stopping rules value */
-      double value;
-
-      /** stopping rule queue length */
-      unsigned int queue;
-    };
-
-    /** This are our stopping rule parameters */
-    StoppingRule stop;
-
     /** This defines the optional coord pair for HOMOGENIZATION_TRACKING.
-     *  e.g. (1,1) for tensor entry (0,0). For Condition this is a list! */
-    std::pair<int, int> coord;
+     *  e.g. (1,1) for tensor entry (0,0). For Condition this is a list! The double shall be by default 1.0 */
+    tuple<int, int, double> coord;
 
     /** Here we store our ParamNode such we can more easily access it in ErsatzMaterial */
     PtrParamNode pn;
@@ -110,15 +96,57 @@ public:
   /** current values go to history */
   void PushBackHistory();
 
+  /** calculate the distance of the current design to the last one and keep the current design */
+  void PushBackDesign(const DesignSpace* space);
+
   /** Calls Objective::ToInfo() */
   void ToInfo(PtrParamNode in);
 
   bool DoMinimize() const { return minimize_; }
   bool DoMaximize() const { return !minimize_; }
 
+  /** the history is calculated, the design change is simply stored! */
+  StdVector<double> design_change;
+
+  /** gathered by some of the costFunction attributes in XML, the defaults are in the XML-Schema */
+  class StoppingRule
+  {
+  public:
+
+    StoppingRule();
+
+    /** @param pn might be NULL */
+    void Init(PtrParamNode pn);
+
+    typedef enum { DESIGN_CHANGE, REL_COST_CHANGE } Type;
+
+    static Enum<Type> type;
+
+    Type GetType() const { return type_; }
+
+    /** stopping rules value */
+    double value;
+
+    /** stopping rule queue length */
+    unsigned int queue;
+
+  private:
+
+    Type type_;
+  };
+
+  /** This are our stopping rule parameters */
+  StoppingRule stop;
+
   StdVector<Objective*> data;
 
 private:
+
+  /** here we keep the last design, exported from DesignSpace - must stay uninitialized! */
+  Vector<double> last_iteration_;
+
+  /** this is the last design id -> for validation! */
+  int last_design_;
 
   /** The task is the direction of a cost function (MINIMIZE, MAXIMIZE) */
   bool minimize_;

@@ -22,7 +22,7 @@ class Condition;
 class Assemble;
 class TransferFunction;
 class SurfElem;
-class OptMechMat;
+class MechMat;
 
 template <class TYPE> class StdVector;
 template <class TYPE> class Vector;
@@ -92,7 +92,8 @@ public:
 
 /** Holds a SIMP (Solid Isotropic Material with Penaltization) optimization.
  *  Actually holds the elements of region to optimize, its densities and
- *  global parameters. Also the cost function and does the looping.
+ *  global parameters.
+ *  This is the single pde version, where typically mech is the pde of choice
  *  The Reference is Bendsoe, Sigmund; Topology Optimization; Springer Verlag; 2003.
  *  All page numbers refer to this issue. */
 class SIMP : public ErsatzMaterial
@@ -118,8 +119,9 @@ protected:
 
   /** This is a helper for CalcU1KU2 to determine the "K" which in most cases includes a
    * derivative. It also includes mechanical damping and mass matrix via AddMassToStiffness().
-   * The templated stuff is private, as C++ does not allow virtual templates. */
-  virtual void SetElementK(DesignElement* de, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative = true);
+   * The templated stuff is private, as C++ does not allow virtual templates.
+   * @param tf for heat and acoustic we canot uniquely identify the transfer function by app therefore give it. */
+  virtual void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative = true);
 
   /** the mechanical element rhs, complex or real */
   DesignDependentRHS mechRHS;
@@ -128,13 +130,12 @@ private:
 
   /** This private, as no virtual templates are possible with C++ */
   template <class T>
-  void SetElementK(DesignElement* de, Application app, DenseMatrix* out, CalcMode, bool derivative = true);
+  void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, CalcMode, bool derivative = true);
 
-  /** This is a helper for SetElementK() which adds for MECH in the harmonic case damping and mass */
-  void AddMassToStiffness(double m_factor, DesignElement* de, Matrix<std::complex<double> >& K_in_S_out);
+  /** This is a helper for SetElementK() which adds for MECH in the harmonic case damping and mass
+   * @param bimaterial describes only the material, the factor needs to be set as rho^3 or 1-rho^3 already! */
+  void AddMassToStiffness(double m_factor, DesignElement* de, Matrix<std::complex<double> >& K_in_S_out, bool bimaterial);
 
-  /** This is a shortcut to ErsatzMaterial::material */
-  OptMechMat* mech_mat_;
 };
 
 

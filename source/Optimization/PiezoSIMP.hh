@@ -6,7 +6,7 @@
 namespace CoupledField
 {
 class ElecPDE;
-class OptPiezoMat;
+class PiezoelecMat;
 
 /** Extension from lin elast SIMP to the piezoelectric case */
 class PiezoSIMP : public SIMP
@@ -51,14 +51,14 @@ private:
   
   /** This is our part for CalcU1KU2() -> This set the matrix derivatives form ELEC and
    * PIEZO_COUPLING ( + transposed) */
-  virtual void SetElementK(DesignElement* de, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative = true)
+  virtual void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative = true)
   {
-    if(harmonic) SetElementK<std::complex<double> >(de, app, out, calcMode, derivative);
-            else SetElementK<double>(de, app, out, calcMode, derivative);
+    if(harmonic) SetElementK<std::complex<double> >(de, tf, app, out, calcMode, derivative);
+            else SetElementK<double>(de, tf, app, out, calcMode, derivative);
   }
 
   template <class T>
-  void SetElementK(DesignElement* de, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative = true);
+  void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative = true);
 
   /** The electric rhs, real or complex */
   DesignDependentRHS elecRHS;
@@ -73,7 +73,7 @@ private:
   double log_elec_simp_;
 
   /** is a cast of the ErsatzMaterial::material attrbiute. Set in PostInit() */
-  OptPiezoMat* piezo_mat_;
+  PiezoelecMat* piezo_mat_;
   
 };
 

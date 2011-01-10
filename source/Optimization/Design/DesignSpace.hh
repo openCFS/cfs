@@ -19,6 +19,7 @@ namespace CoupledField
   class SinglePDE;
   class Elem;
   class BaseResult;
+  class BaseMaterial;
   class ResultInfo;
   class BaseOptimizer;
 
@@ -29,13 +30,13 @@ namespace CoupledField
     public:
      /** Constructor for SIMP type Optimization - there we lay on a region which contains also n# elements
       * @param result the result description list  */
-     DesignSpace(StdVector<RegionIdType>& regionIds, ParamNodeList& design, ParamNodeList& transfer, ParamNodeList& result,
+     DesignSpace(StdVector<RegionIdType>& regions, ParamNodeList& design, ParamNodeList& transfer, ParamNodeList& result,
          ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
 
      virtual ~DesignSpace();
     
      /** creates the corresponding DesignSpace object depending on the method */
-     static DesignSpace* CreateInstance(StdVector<RegionIdType> regionIds, ParamNodeList& design, ParamNodeList& transfer, ParamNodeList& result,
+     static DesignSpace* CreateInstance(StdVector<RegionIdType> regions, ParamNodeList& design, ParamNodeList& transfer, ParamNodeList& result,
               ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
 
      /** PostInit as usual when not all can be stuffed into the constructor
@@ -225,10 +226,6 @@ namespace CoupledField
       * multiple regions. */
      virtual unsigned int GetNumberOfVariables() const;
      
-     /** the tensor exists only if specified as SIMP-option */
-     void SetBiMatTensor(const Matrix<double>& t) { bimattensor_ = t; }
-     const Matrix<double>& GetBiMatTensor() const { return bimattensor_; }
-     
      /** This is our real design data, a set of DesignElements.
       * Size is design.GetSize() * elements */
      StdVector<DesignElement> data;
@@ -271,14 +268,37 @@ namespace CoupledField
      /** Writes summary information about design variables and transfer functions into the node */
      void ToInfo(PtrParamNode in);
      
-     struct DesignRegion{
+     class DesignRegion
+     {
+     public:
+       /** Default constructor as C++ has no defaults :( */
+       DesignRegion();
+
        RegionIdType regionId;
        unsigned int base;
        unsigned int elements;
        bool constant;
+
+       void SetBiMaterial(const std::string& material) { bimaterial_ = material; }
+
+       bool HasBiMaterial() const;
+       /** the material is PDE dependent therefore we create and cache it on the fly. This makes it
+        * easy to be also simple for load ersatz material */
+       BaseMaterial* GetBiMaterial(const MaterialClass mc);
+
+       void ToInfo(PtrParamNode node) const;
+     private:
+       std::string bimaterial_;
+       StdVector<std::pair<BaseMaterial*, MaterialClass> > materials_;
      };
      
+     /** trivial find */
+     DesignRegion* GetRegion(RegionIdType id, bool throw_exception = true);
+
      StdVector<DesignRegion> regions;
+
+     /** it is convenient to have such a vector for some functions. Taken from regions! */
+     StdVector<RegionIdType>& GetRegionIds() { return regionIds_; }
 
      /** stupid find function */
      bool Contains(const RegionIdType reg) const;
@@ -339,11 +359,6 @@ namespace CoupledField
      void WriteSparseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
                                 DesignElement::Access access, Condition* g = NULL, bool scaling = true) const;
      
-     /** second material tensor for bimaterial optimization, i. e. we do not use material+void
-      *  but material+material2 
-      *  tensor is set by SIMP class */
-     Matrix<double> bimattensor_;
-     
      /** We afford a large element number to design index mapping.
       * sorted by the elemNum the design index stored.
       * For multiple designs only for the first (index < elements) is stored.
@@ -360,6 +375,9 @@ namespace CoupledField
      /** are all regions regular.
       * Note, that in the derived design space a irregular grid is assumed! */
      bool all_regions_regular_;
+
+     /** just a cache from regions */
+     StdVector<RegionIdType> regionIds_;
   };
 
 

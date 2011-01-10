@@ -162,11 +162,12 @@ bool Function::ReadTensor(PtrParamNode pn, Matrix<double>& matrix)
   return tensor_read;
 }
 
-void Function::ParseCoord(PtrParamNode pn, std::pair<int, int>& coord)
+void Function::ParseCoord(PtrParamNode pn, tuple<int, int, double>& coord)
 {
   std::string val = pn->Get("coord")->As<std::string>();
-  coord.first  = lexical_cast<unsigned int>(val.at(0));
-  coord.second = lexical_cast<unsigned int>(val.at(1));
+  get<0>(coord) = lexical_cast<unsigned int>(val.at(0));
+  get<1>(coord) = lexical_cast<unsigned int>(val.at(1));
+  get<2>(coord) = 1.0; // default
 }
 
 void Function::ToInfo(PtrParamNode info)
@@ -225,6 +226,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case SLOPE:
     case GLOBAL_SLOPE:
     case ISOTROPY:
+    case ISO_ORTHOTROPY:
     case MOLE:
     case GLOBAL_MOLE:
     case OSCILLATION:
@@ -241,7 +243,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case DYNAMIC_OUTPUT:
     case ENERGY_FLUX:
     case TRACKING:
-    case ABS_DYN_OUTPUT_SQUARED:
+    case ABS_OUTPUT:
     case CONJUGATE_COMPLIANCE:
     case GLOBAL_DYNAMIC_COMPLIANCE:
     case ELEC_ENERGY:
@@ -296,7 +298,7 @@ bool Function::IsAdjointBased() const
     case TRACKING:
     case OUTPUT:
     case CONJUGATE_COMPLIANCE:
-    case ABS_DYN_OUTPUT_SQUARED:
+    case ABS_OUTPUT:
     case GLOBAL_DYNAMIC_COMPLIANCE:
     case DYNAMIC_OUTPUT:
     case ELEC_ENERGY:
@@ -315,7 +317,7 @@ bool Function::NeedsSelectionVector() const
   {
     case OUTPUT:
 //    case CONJUGATE_COMPLIANCE: ??
-    case ABS_DYN_OUTPUT_SQUARED:
+    case ABS_OUTPUT:
     case DYNAMIC_OUTPUT:
     case ENERGY_FLUX:
     return true;
@@ -335,6 +337,7 @@ bool Function::IsHomogenization() const
     case POISSONS_RATIO:
     case YOUNGS_MODULUS:
     case ISOTROPY:
+    case ISO_ORTHOTROPY:
       return true;
 
     default:
@@ -361,7 +364,6 @@ bool Function::ForSensitivityFiltering() const
   // pure objective
   case OUTPUT:
   case DYNAMIC_OUTPUT:
-  case ABS_DYN_OUTPUT_SQUARED:
   case CONJUGATE_COMPLIANCE:
   case GLOBAL_DYNAMIC_COMPLIANCE:
   case ELEC_ENERGY:
@@ -374,6 +376,7 @@ bool Function::ForSensitivityFiltering() const
   case POISSONS_RATIO:
   case YOUNGS_MODULUS:
   case TEMPERATURE:
+  case ABS_OUTPUT:
   case STRESS:
     return true;
 
@@ -394,6 +397,7 @@ bool Function::ForSensitivityFiltering() const
     return false;
 
   case ISOTROPY:
+  case ISO_ORTHOTROPY:
   case MULTI_OBJECTIVE:
     EXCEPTION("Invalid query: " << type.ToString(type_));
   }

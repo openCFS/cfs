@@ -427,7 +427,7 @@ namespace CoupledField
 				    MaterialType matType, 
 				    Global::ComplexPart dataType,
 				    SubTensorType subTensor ) const {	
-    
+
 
     tensorMap::const_iterator pos;
     pos = tensorParams_.find( matType );
@@ -439,25 +439,25 @@ namespace CoupledField
     else {
       Matrix<Complex> matTensor;
       if ( subTensor == FULL ) {
-	matTensor = pos->second;
+        matTensor = pos->second;
       }
       else {
-	ComputeSubTensor(matTensor, matType, subTensor);
+        ComputeSubTensor(matTensor, matType, subTensor);
       }
 
       if ( dataType == Global::REAL || dataType == Global::IMAG) {
-	Matrix<Double> help; 
-	help = matTensor.GetPart( dataType );
-	param.Resize( matTensor.GetNumRows(), matTensor.GetNumCols() );
+        Matrix<Double> help;
+        help = matTensor.GetPart( dataType );
+        param.Resize( matTensor.GetNumRows(), matTensor.GetNumCols() );
         param.Init();
-	param.SetPart( dataType, help );
+        param.SetPart( dataType, help );
       }
       else if ( dataType == Global::COMPLEX ) {
-	param = matTensor;
+        param = matTensor;
       }
     }
   }
-  
+
   void MechanicMaterial::CalcIsotropicStiffnessTensorFromEAndPoisson(Matrix<Double>& out, Double emod, Double poi, UInt dim)
   {
     Complex EModul(emod);

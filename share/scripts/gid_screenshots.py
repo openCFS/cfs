@@ -20,3 +20,6 @@ for file in files:
 
   batch.write("Mescape Results ContourFill physicalPseudoDensity\n")
   batch.write("Mescape View HardCopy png " + os.getcwd() + "/" + problem + "-physical.png\n")
+
+  batch.write("Mescape Results ContourFill mechPseudoDensity\n")
+  batch.write("Mescape View HardCopy png " + os.getcwd() + "/" + problem + "-density.png\n")

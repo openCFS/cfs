@@ -761,7 +761,8 @@ std::string SCPIPBase::ToString(int ierr)
               os << "Linesearch could not find a descent direction within maximum allowed iterations!";
               break;
 
-    case 23:  os << "The norm of the gradient of the lagrangian is close to 0 and the "
+    case Infeasible:
+              os << "The norm of the gradient of the Lagrangian is close to 0 and the "
                  << "maximum of the artificial variables is >= 1. Together it is very likely,"
                  << "that the feasible region is empty!";
               break;

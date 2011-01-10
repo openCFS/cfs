@@ -1,4 +1,5 @@
 #include "Utils/Point.hh"
+#include "MatVec/vector.hh"
 
 namespace CoupledField
 {
@@ -71,6 +72,26 @@ std::string Point::ToString() const
    std::ostringstream os;
    os << "(" << data[0] << ";" << data[1] << ";" << data[2] << ")";
    return os.str();
+}
+
+int  Point::GetCartesianOrientation(const Vector<double>* vec)
+{
+  assert(vec != NULL);
+  assert(vec->GetSize() == 3);
+  return GetCartesianOrientation(vec->GetPointer());
+}
+
+
+int Point::GetCartesianOrientation(const double* vec)
+{
+  assert(  (vec[0] != 0.0 && vec[1] == 0.0 && vec[2] == 0.0)
+         ||(vec[0] == 0.0 && vec[1] != 0.0 && vec[2] == 0.0)
+         ||(vec[0] == 0.0 && vec[1] == 0.0 && vec[2] != 0.0));
+  for(UInt i = 0; i < 3; i++)
+    if(vec[i] != 0)
+      return i;
+
+  EXCEPTION("vector is not Cartesian: " + StdVector<double>::ToString(3, vec));
 }
 
 }

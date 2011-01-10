@@ -30,6 +30,7 @@
 #include "Domain/ansatzFct.hh"
 #include "Driver/assemble.hh"
 #include "Domain/domain.hh"
+#include "Optimization/Design/DesignSpace.hh"
 
 #ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh"
@@ -701,8 +702,14 @@ namespace CoupledField {
         }    
       } // end of PML part
       else {
-        // stiffness integrator 
-        BaseForm * bilinearStiff = new LaplaceInt( density, isaxi_, updatedLagrangeForm_ );        
+        // stiffness integrator
+        // ready for bimaterial topology optimization
+        // if mech coupling case when not pressure formulation we have to do it with -1
+        BaseForm::MaterialDescriptor::Type kdt = density > 0 ? BaseForm::MaterialDescriptor::SCALAR :
+                                                               BaseForm::MaterialDescriptor::MINUS_SCALAR;
+
+        BaseForm::MaterialDescriptor md1(kdt, FLUID, DENSITY,Global::REAL);
+        BaseForm* bilinearStiff = new LaplaceInt(materials_[actRegion], md1, isaxi_, updatedLagrangeForm_);
         BiLinFormContext * stiffContext = 
           new BiLinFormContext( bilinearStiff, STIFFNESS );
 
@@ -711,9 +718,15 @@ namespace CoupledField {
         stiffContext->SetPtPdes( this, this );
 
         // mass integrator
-        coeffmass = density / (c0*c0);
+        // ready for bimaterial topology optimization
 
-        MassInt* bilinearMass  = new MassInt(coeffmass, 1, isaxi_, updatedLagrangeForm_ );
+        // if mech coupling case when not pressure formulation we have to do it with -1
+        BaseForm::MaterialDescriptor::Type mdt = density > 0 ? BaseForm::MaterialDescriptor::MAT_1_MAT_1_BY_MAT_2 :
+                                                               BaseForm::MaterialDescriptor::MINUS_MAT_1_MAT_1_BY_MAT_2;
+
+        BaseForm::MaterialDescriptor md2(mdt, FLUID, DENSITY,ACOU_BULK_MODULUS, Global::REAL);
+        MassInt* bilinearMass = new MassInt(materials_[actRegion], md2, isaxi_, updatedLagrangeForm_);
+
         if ( diagMass_ ) {
           // diagonal mass matrix
           bilinearMass->SetDiagMass();
@@ -1847,6 +1860,13 @@ namespace CoupledField {
       }
       break;
 
+    case ACOU_PSEUDO_DENSITY:
+      if(domain->GetErsatzMaterial(false) == NULL) // no excpetion
+        result->Init();
+      else
+        domain->GetErsatzMaterial()->ExtractResults(result, isComplex_);
+      break;
+
     default:
       WARN( "Result type not computable by acoustic PDE" );
     }
@@ -2832,6 +2852,16 @@ namespace CoupledField {
     energy->definedOn = ResultInfo::REGION;
     energy->fctType = shared_ptr<ConstFct>(new ConstFct() );
     availResults_.insert( energy );
+
+    // === ACOU PSEUDO DENSITY for SIMP ===
+    shared_ptr<ResultInfo> acouPD(new ResultInfo);
+    acouPD->resultType = ACOU_PSEUDO_DENSITY;
+    acouPD->dofNames = "";
+    acouPD->unit = "";
+    acouPD->entryType = ResultInfo::SCALAR;
+    acouPD->definedOn = ResultInfo::ELEMENT;
+    acouPD->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert(acouPD);
 
     // ===================================
     // Check for non-conforming interfaces

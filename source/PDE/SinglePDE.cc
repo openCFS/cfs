@@ -1738,8 +1738,7 @@ namespace CoupledField {
     numRegions = regionNodes.GetSize();
 
     // obtain pointer to materialHandler
-    MaterialHandler * matLoader = NULL;
-    matLoader = domain->GetMaterialHandler();
+    MaterialHandler* matLoader = domain->GetMaterialHandler();
 
 
     // -------------------
@@ -1773,8 +1772,7 @@ namespace CoupledField {
                       "follows\n", material.c_str(), region.c_str(),
                       actRegionId );
         // Read data
-        materials_[actRegionId] = matLoader->
-          LoadMaterial( material, pdematerialclass_ );
+        materials_[actRegionId] = matLoader->LoadMaterial(material, pdematerialclass_);
 
         // Check for local coordinate system
         if( !refCoordSys.empty() ) {

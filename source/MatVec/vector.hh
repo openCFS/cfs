@@ -258,6 +258,10 @@ template<typename T> class ElemStoreSol;
     
     /** Calculates the max-norm (of the real part) */ 
     Double NormMax() const; 
+
+    /** Calculates the max-norm (of the real part) of the vector difference */
+    Double NormMax(const SingleVector& other) const;
+
     
     /** Count the number of non-zero entries */
     Integer CountNonZero() const;

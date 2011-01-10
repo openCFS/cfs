@@ -5,7 +5,7 @@
 
 namespace CoupledField
 {
-class OptMechMat;
+class MechMat;
 class linElastInt;
 
 /** Optimization via ShapeGradient and Level-Set method, not by Parametrization */
@@ -61,7 +61,7 @@ private:
   int max_volume_to_remove_;
 
   /** This is our material shortcut, currently only mechanic. Set in PostInit() */
-  OptMechMat* mech_mat_;
+  MechMat* mech_mat_;
 };
 
 } // namespace

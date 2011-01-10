@@ -105,27 +105,19 @@ void SCPIP::SolveProblem()
       // "break" already set!
       assert(in->GetChildren().GetSize() > 0);
       break;
+
     case Subproblem_Max_Iter:
-      in->Get("converged")->SetValue("no");
-      in->Get("reason/msg")->SetValue("SCPIP: subproblem max iter");
-      break;
     case LineSearch_Max_Iter:
-      in->Get("converged")->SetValue("no");
-      in->Get("reason/msg")->SetValue("SCPIP: linesearch max iter");
-      break;
     case Maximum_Iterations_Exceeded:
-      in->Get("converged")->SetValue("no"); 
-      in->Get("reason/msg")->SetValue("Maximum iterations exceeded");
-      break;
-    
+    case Infeasible:
     case Gradients_Return_False:
       in->Get("converged")->SetValue("no"); 
-      in->Get("reason/msg")->SetValue("Gradients return false");        
+      in->Get("reason/msg")->SetValue("SCPIP: " + ToString(status));
       break;
       
     default:
       in->Get("converged")->SetValue("no");
-      in->Get("reason/msg")->SetValue(ToString(status));
+      in->Get("reason/msg")->SetValue("SCPIP: " + ToString(status));
       throw Exception(ToString(status));
     }
     

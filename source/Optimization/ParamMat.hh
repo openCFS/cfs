@@ -5,7 +5,7 @@
 
 namespace CoupledField {
 
-class OptMechMat;
+class MechMat;
 
   class ParamMat : public ErsatzMaterial
   {
@@ -23,10 +23,10 @@ class OptMechMat;
      * @param de the current DesignElement (this provides the element as well as the direction)
      * @param app is ignored
      * @param outn pointer where the matrix should be stored */
-    virtual void SetElementK(DesignElement* de, Application app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative);
+    virtual void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative);
     
     /** this is a shortcut to the material class */
-    OptMechMat* mech_mat_;
+    MechMat* mech_mat_;
   };
 
 }

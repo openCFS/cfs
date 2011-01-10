@@ -232,7 +232,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::COMPLIANCE, "compliance");
   Function::type.Add(Function::OUTPUT, "output");
   Function::type.Add(Function::DYNAMIC_OUTPUT, "dynamicOutput");
-  Function::type.Add(Function::ABS_DYN_OUTPUT_SQUARED, "absDynamicOutputSquared");
+  Function::type.Add(Function::ABS_OUTPUT, "absOutput");
   Function::type.Add(Function::GLOBAL_DYNAMIC_COMPLIANCE, "globalDynamicCompliance");
   Function::type.Add(Function::CONJUGATE_COMPLIANCE, "conjugateCompliance");
   Function::type.Add(Function::VOLUME, "volume");
@@ -251,6 +251,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::GREYNESS, "greyness");
   Function::type.Add(Function::STRESS, "stress");
   Function::type.Add(Function::ISOTROPY, "isotropy");
+  Function::type.Add(Function::ISO_ORTHOTROPY, "iso-orthotropy");
   Function::type.Add(Function::SLOPE, "slope");
   Function::type.Add(Function::GLOBAL_SLOPE, "globalSlope");
   Function::type.Add(Function::MOLE, "mole");
@@ -281,6 +282,10 @@ void Optimization::SetEnums()
   Condition::bound.Add(Condition::LOWER_BOUND, "lowerBound");
   Condition::bound.Add(Condition::UPPER_BOUND, "upperBound");
 
+  ObjectiveContainer::StoppingRule::type.SetName("ObjectiveContainer::StoppingRule::Type");
+  ObjectiveContainer::StoppingRule::type.Add(ObjectiveContainer::StoppingRule::DESIGN_CHANGE, "designChange");
+  ObjectiveContainer::StoppingRule::type.Add(ObjectiveContainer::StoppingRule::REL_COST_CHANGE, "relativeCostChange");
+
   DesignStructure::filterSpace.SetName("DesignStructure::FilterSpace");
   DesignStructure::filterSpace.Add(DesignStructure::RADIUS, "radius");
   DesignStructure::filterSpace.Add(DesignStructure::VOLUME_RADIUS, "volumeRadius");
@@ -310,12 +315,16 @@ void Optimization::SetEnums()
   ErsatzMaterial::commitMode.Add(ErsatzMaterial::BOTH, "both_cases");
 
   OptimizationMaterial::system.SetName("OptimizationMaterial::System");
-  OptimizationMaterial::system.Add(OptimizationMaterial::PIEZO, "piezo");
-  OptimizationMaterial::system.Add(OptimizationMaterial::MECHANIC, "mechanic");
+  OptimizationMaterial::system.Add(OptimizationMaterial::PIEZOCOUPLING, "piezo");
+  OptimizationMaterial::system.Add(OptimizationMaterial::MECH, "mechanic");
   OptimizationMaterial::system.Add(OptimizationMaterial::HEAT, "heat");
+  OptimizationMaterial::system.Add(OptimizationMaterial::ACOUSTIC, "acoustic");
 
   application.SetName("Optimization::Application");
   application.Add(NO_APP, "no_app");
+  application.Add(ACOUSTIC, "acoustic");
+  application.Add(HEAT, "heat");
+  application.Add(LAPLACE, "laplace");
   application.Add(MECH, "mech");
   application.Add(MASS, "mass");
   application.Add(ELEC, "elec");
@@ -367,25 +376,40 @@ bool Optimization::DoStopOptimization()
     return true;
   }
   
-  // this currently only implements relative stopping rule
-  Objective* cost = objectives.data[0];
+  ObjectiveContainer::StoppingRule& stop = objectives.stop;
 
   // we need a minimum number of iterations to be sure we are in a minimum
   unsigned int hs = objectives.GetHistorySize();
-  if(hs <= cost->stop.queue) return false;
+  if(hs <= stop.queue) return false;
 
-  for(unsigned int i = hs-1; i >= (hs - cost->stop.queue); i--)
+  for(unsigned int i = hs-1; i >= (hs - stop.queue); i--)
   {
-    double delta = objectives.GetHistoryValue(true, i) - objectives.GetHistoryValue(true, i-1);
-    double rel = abs(delta / objectives.GetHistoryValue(true, i));
-    if(rel > cost->stop.value) return false;
+    switch(stop.GetType())
+    {
+      case ObjectiveContainer::StoppingRule::REL_COST_CHANGE:
+      {
+        double delta = objectives.GetHistoryValue(true, i) - objectives.GetHistoryValue(true, i-1);
+        double rel = abs(delta / objectives.GetHistoryValue(true, i));
+        if(rel > stop.value) return false;
+        break;
+      }
+      case ObjectiveContainer::StoppingRule::DESIGN_CHANGE:
+        if(objectives.design_change[i] > stop.value)
+          return false;
+        break;
+    }
   }
 
   // the relative values for the whole queue are smaller than the requirement -> we are done! :)
   in->Get("converged")->SetValue("practically");
-  in->Get("reason/msg")->SetValue("Too small change in objective function");
-  in->Get("reason/queue")->SetValue(cost->stop.queue);
-  in->Get("reason/relative")->SetValue(cost->stop.value);
+
+  if(stop.GetType() == ObjectiveContainer::StoppingRule::REL_COST_CHANGE)
+    in->Get("reason/msg")->SetValue("Too small relative change in objective function");
+  else
+    in->Get("reason/msg")->SetValue("Too small change in design");
+
+  in->Get("reason/value")->SetValue(stop.value);
+  in->Get("reason/queue")->SetValue(stop.queue);
   return true;
 }
 
@@ -412,11 +436,13 @@ Optimization* Optimization::CreateInstance()
   case ErsatzMaterial::SIMP_METHOD:
     switch(OptimizationMaterial::system.Parse(em->Get("material")->As<std::string>()))
     {
-    case OptimizationMaterial::MECHANIC:
-      opt = new SIMP();
+    case OptimizationMaterial::MECH:
+    case OptimizationMaterial::ACOUSTIC:
+    case OptimizationMaterial::HEAT:
+      opt = new SIMP(); // generally single PDE!
       break;
       
-    case OptimizationMaterial::PIEZO:
+    case OptimizationMaterial::PIEZOCOUPLING:
       opt = new PiezoSIMP();
       break;
       
@@ -662,6 +688,9 @@ PtrParamNode Optimization::CommitIteration(bool keep_iteration_number)
   // store the real cost -> not a scaled one
   objectives.PushBackHistory();
 
+  // store the current design and calculate the design change!
+  objectives.PushBackDesign(design);
+
   // eventually set special result
   EvaluateSpecialResults();
 
@@ -674,9 +703,6 @@ PtrParamNode Optimization::CommitIteration(bool keep_iteration_number)
     lastStoredResult_ = currentIteration;
     // see FinalizeStoreResults() !
   }
-
-  // save this iteration
-  design->WriteDesignToExtern(last_iteration.GetPointer());
 
   // also log to info node, append the iteration
   PtrParamNode iteration = optInfoNode->Get(ParamNode::PROCESS)->Get("iteration", ParamNode::APPEND);
@@ -707,14 +733,8 @@ PtrParamNode Optimization::CommitIteration(bool keep_iteration_number)
 
 void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
 {
-  // calculate the relative cost change
-  int hs = objectives.GetHistorySize();
-  double change = 0.0;
-  if(hs >= 2)
-  {
-    double last = objectives.GetHistoryValue(true, hs-1);
-    change = (last - objectives.GetHistoryValue(true, hs-2)) / last;
-  }
+  // the current design as handy vector
+  double change = objectives.design_change.Last();
 
   if(out)
   {
