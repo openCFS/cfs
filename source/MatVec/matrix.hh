@@ -235,8 +235,9 @@ namespace CoupledField
     //! \name Named Arithmetic Operations
     //@{
 
-    //! Add the multiple of another matrix this = fac * mat
-    void Add( const TYPE fac, const DenseMatrix & mat);
+    /** Add the multiple of another matrix this = fac * mat.
+     * If you have mixed types use the tools version of Add */
+    void Add(const TYPE fac, const Matrix<TYPE> & mat);
     
     /** Set this matrix with a multiple of another matric.
      * This and a mixed varian is also a sandalone method in tools. 

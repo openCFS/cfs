@@ -9,6 +9,7 @@
 #include "Elements/basefe.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "PDE/SinglePDE.hh"
 #include "boost/lexical_cast.hpp"
 #include "boost/date_time/posix_time/posix_time.hpp"
 #include "Optimization/LevelSet.hh"
@@ -169,6 +170,17 @@ void DesignElement::Init()
   type_           = NO_TYPE;
 }
 
+
+DesignElement::Type DesignElement::Default(const SinglePDE* pde)
+{
+  if(pde->GetName() == "electrostatic") return POLARIZATION;
+  if(pde->GetName() == "mechanic") return DENSITY;
+  if(pde->GetName() == "acoustic") return ACOU_DENSITY;
+
+  throw Exception("invalid");
+}
+
+
 Point* DesignElement::GetLocation()
 {
   if(location_ != NULL) return location_;
@@ -288,7 +300,7 @@ double DesignElement::GetValue(ValueSpecifier vs, Access access, Condition* g) c
   if(sens_filter)
     val = simp->GetSensitivityFilteredValue(vs, g);
   if(design_filter)
-    val = simp->GetDensityFilteredValue(vs, g, simp->filter.density_);
+    val = simp->GetDensityFilteredValue(vs, simp->filter.density_);
   if(design_filter_grad)
     val = simp->GetDensityFilteredGradient(vs, g);
   if(!sens_filter && !design_filter && !design_filter_grad)
@@ -352,7 +364,7 @@ double DesignElement::GetDesign() const
 
 double DesignElement::GetPhysicalDesign() const
 {
-  TransferFunction* tf = space_->GetTransferFunction(type_, ErsatzMaterial::ToApp(type_), true);
+  TransferFunction* tf = space_->GetTransferFunction(type_, TransferFunction::Default(type_), true);
 
   return tf->Transform(this, SMART);
 
@@ -364,7 +376,7 @@ double DesignElement::GetPhysicalDesign() const
 
 bool DesignElement::HasPhysicalDesign() const
 {
-  return(type_ == DENSITY || type_ == POLARIZATION);
+  return(type_ == DENSITY || type_ == POLARIZATION || type_ == ACOU_DENSITY);
 }
 
 
@@ -424,6 +436,7 @@ void DesignElement::SetEnums()
   type.Add(TENSOR_TRACE, "tensor_trace");
   type.Add(DEFAULT, "default");
   type.Add(DENSITY, "density");
+  type.Add(ACOU_DENSITY, "acouDensity");
   type.Add(POLARIZATION, "polarization");
   type.Add(EMODUL, "emodul");
   type.Add(POISSON, "poisson");
@@ -583,13 +596,11 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
 }
 
 
-double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Condition* g, Filter::Density fd) const
+double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Filter::Density fd) const
 {
   // We filter over this element and the neighbors.
   assert(de_->simp != NULL);
 
-  Filter* f = &de_->simp->filter;
-  assert(f->type_ == Filter::DENSITY);
   assert(sp == DesignElement::DESIGN);
 
   // All equations from Sigmund; Morphology based black and white filters for topology optimization; 2007
@@ -624,43 +635,52 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Co
   // do we need to post proc?
   if(fd != Filter::STANDARD)
   {
-    double b = f->beta_;
-    assert(b >= 0.0 && b < 2000);
-    // make sure we are within the bounds
-    double ub = this->de_->GetUpperBound();
-    double lb = this->de_->GetLowerBound();
+    p_filt = CalcHeaviside(p_filt);
 
-    double constant = 0, first = 0, second = 0;
-
-    if(fd == Filter::HEAVISIDE)
-    {
-      constant = 1.0;
-      first    = -1.0 * std::exp(-1.0 * b * p_filt);
-      second   = p_filt * std::exp(-1.0 * b);
-    }
-    if(fd == Filter::MOD_HEAVISIDE)
-    {
-      constant = 0.0;
-      first    = std::exp(-1.0 * b * (1.0 - p_filt));
-      second   = -1.0 * (1.0 - p_filt) * std::exp(-1.0 * b);
-    }
-
-    p_filt = (ub-lb) * (constant + first + second) + lb;
-
-    assert(p_filt <= ub);
-    assert(p_filt >= lb);
-
-    LOG_DBG3(del) << "GDFV: el=" << de_->elem->elemNum << " b=" << b << " lb=" << lb << " (ub-lb)=" << (ub-lb)
-                  << " c=" << constant << " +1st=" << first << " +2nd=" << second << " =" << (constant + first + second)
-                  << " -> " << p_filt;
+    assert(p_filt <= this->de_->GetUpperBound());
+    assert(p_filt >= 0.99 * this->de_->GetLowerBound()); // relax the assert a little, cause of heaviside correction
   }
 
-  LOG_DBG3(del) << "GDFV: el=" << de_->elem->elemNum << " design=" << Filter::density.ToString(f->density_)
+  LOG_DBG3(del) << "GDFV: el=" << de_->elem->elemNum << " design=" << Filter::density.ToString(de_->simp->filter.density_)
                 << ": plain=" << this->de_->GetPlainValue(DesignElement::DESIGN) << " -> "<< p_filt;
 
   return p_filt;
 }
 
+double SIMPElement::CalcHeaviside(double input_value) const
+{
+  Filter* f = &de_->simp->filter;
+  assert(f->type_ == Filter::DENSITY);
+  assert(f->density_ == Filter::HEAVISIDE || f->density_ == Filter::MOD_HEAVISIDE);
+
+  double b = f->GetBeta();
+  assert(b >= 0.0 && b < 2000);
+
+  if(f->density_ == Filter::HEAVISIDE)
+  {
+    // we apply the correction factor in a way that H(rho_min) = rho_min and H(1) = 1
+    double corr = (1.0 - (1.0 - input_value) * f->heaviside_corr) * input_value;
+    double result = 1.0 - std::exp(-1.0 * b * corr) + corr * std::exp(-1.0 * b);
+
+    LOG_DBG3(del) << "CH: de=" << de_->elem->elemNum << " f=" << f->density.ToString(f->density_)
+                  << " hc=" << f->heaviside_corr << " corr=" << corr << " iv=" << input_value << " -> " << result;
+    return result;
+  }
+  else // if(f->density_ == Filter::MOD_HEAVISIDE)
+  {
+    // make sure we are within the bounds
+    double ub = this->de_->GetUpperBound();
+    double lb = this->de_->GetLowerBound();
+
+    double first    = std::exp(-1.0 * b * (1.0 - input_value));
+    double second   = -1.0 * (1.0 - input_value) * std::exp(-1.0 * b);
+
+    return (ub-lb) * (first + second) + lb;
+
+    //LOG_DBG3(del) << "GDFV: el=" << de_->elem->elemNum << " b=" << b << " lb=" << lb << " (ub-lb)=" << (ub-lb)
+    //              << " c=" << constant << " +1st=" << first << " +2nd=" << second << " =" << (constant + first + second) << " -> " << p_filt;
+  }
+}
 
 double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp, Condition* g) const
 {
@@ -694,17 +714,29 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
 
     if(f.density_ != Filter::STANDARD)
     {
-      double b = f.beta_;
+      double b = f.GetBeta();
 
       // we need the filtered density -> but the real filtered value!!
-      x_n = de->simp->GetDensityFilteredValue(DesignElement::DESIGN, g, Filter::STANDARD);
-      // general scaling
-      h = de->GetUpperBound() - de->GetLowerBound();
+      x_n = de->simp->GetDensityFilteredValue(DesignElement::DESIGN, Filter::STANDARD);
 
       if(f.density_ == Filter::HEAVISIDE)
-        h *= b * exp(-b * x_n) + exp(-1.0*b);
+      {
+        // corr = (1 - (1 - x) * hc) * x;
+        //      = x^2 - hc*x  + x
+        // H = 1 - exp(-b * corr) + corr * exp(-b)
+
+        // let the compiler optimize!
+        double corr  = f.heaviside_corr * x_n * f.heaviside_corr * x_n  -  f.heaviside_corr * x_n + x_n;
+        double dcorr = 2.0 * f.heaviside_corr * x_n - f.heaviside_corr + 1;
+
+        h *= b * dcorr * exp(-b * corr) + dcorr * exp(-1.0*b);
+      }
       if(f.density_ == Filter::MOD_HEAVISIDE)
+      {
+        // general scaling
+        h = de->GetUpperBound() - de->GetLowerBound();
         h *= b * exp(b*(x_n-1.0)) + exp(-1.0*b);
+      }
     }
 
     double w = i == -1 ? this->weight : ne->weight;
@@ -719,6 +751,20 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
   }
 
   return sum;
+}
+
+std::string SIMPElement::ToString() const
+{
+  std::stringstream ss;
+  ss << "el=" << de_->elem->elemNum << " #n=" << neighborhood.GetSize() << "(";
+  for(unsigned int i = 0; i < neighborhood.GetSize(); i++)
+  {
+    ss << " " << neighborhood[i].neighbour->elem->elemNum;
+    //ss << " n_" << neighborhood[i].neighbour->elem->elemNum << "_w=" << neighborhood[i].weight;
+    //ss << " n_" << neighborhood[i].neighbour->elem->elemNum << "_d=" << neighborhood[i].distance;
+  }
+  ss << ")";
+  return ss.str();
 }
 
 void SIMPElement::Dump()

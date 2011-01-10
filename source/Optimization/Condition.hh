@@ -121,10 +121,14 @@ namespace CoupledField
        /** For the homogenization tensor constraint this gives the actual position within the matrix_.
         * The first entry is for homogenization always set.
         * In the case of a "smart" isotropy constraint also E11-E22 = 0 and
-        * E11-E12-2E33 = E11-E12-E33-E33 = 0 are generated. Then coord is 2 or 4 entries.
-        * Note, that the entries are 1-based!!! */
-       StdVector<pair<int, int> > coords;
+        * E11-E12-2E33 = E11-E12-E33-E33 = 0 = (E11,1) + (E12,-1) + (E33,-2) are generated. Then coord is 2 or 3 entries.
+        * Note, that the entries are 1-based!!!
+        * the factor for ErsatzMaterial::CalcHomogenizedTensorEntry() */
+       StdVector<tuple<int, int, double> > coords;
        
+       /** creates an xml attribute name compatible string representation for coords */
+       static std::string ToString(const StdVector<tuple<int, int, double> >&);
+
     protected:
       /** Reads the coord attribute and sets the coord pair if value is not 'all'
        * @return false if 'all' and the coord pair is not set */
@@ -176,8 +180,10 @@ namespace CoupledField
 
     private:
 
-      /** Helper for AddCondition() */
-      static void AddIsotropyConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g);
+      /** Helper for AddCondition().
+       * Adds the conditions for isotropy or iso-orthotropy which is isotropy without fixing the
+       * shear moduli */
+      static void AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g);
 
       /** Helper for AddCondition() */
       static void AddHomogenizationTensorConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g);

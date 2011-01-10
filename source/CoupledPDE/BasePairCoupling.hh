@@ -62,9 +62,8 @@ namespace CoupledField
     // GET / SET METHODS
     // ======================================================
 
-    //! Return coupling name
-    std::string GetName()
-    { return couplingName_; }
+    /** @see BasePDE::GetName() */
+    const std::string& GetName() const { return couplingName_; }
 
     //! Set pointer to algsys
     void SetAlgSys( BaseSystem *algSys)

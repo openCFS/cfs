@@ -1044,6 +1044,18 @@ bool Domain::GetErsatzMaterial(const Elem* elem, const BaseForm* form, double& r
   return true;
 }
 
+BaseMaterial* Domain::GetErsatzBiMaterial(const Elem* elem, const MaterialClass mc)
+{
+  if(ersatzMaterial == NULL) return NULL;
+
+  DesignSpace::DesignRegion* dr = ersatzMaterial->GetRegion(elem->regionId, false); // silent
+
+  if(dr != NULL && dr->HasBiMaterial())
+    return dr->GetBiMaterial(mc);
+
+  return NULL; // nothing found
+}
+
 DesignSpace* Domain::GetErsatzMaterial(bool throw_excpetion)
 {
   if (ersatzMaterial == NULL && throw_excpetion)

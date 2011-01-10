@@ -2,6 +2,7 @@
 #define ERSATZ_MATERIAL_HH_
 
 #include <map>
+#include <boost/tuple/tuple.hpp>
 
 #include "Optimization/Optimization.hh"
 #include "Optimization/Excitation.hh"
@@ -9,6 +10,10 @@
 #include "Utils/result.hh"
 #include "MatVec/vector.hh"
 #include "MatVec/matrix.hh"
+
+
+using boost::tuple;
+
 
 namespace CoupledField
 {
@@ -96,11 +101,16 @@ public:
    * @param DesignElement::DENSITY -> MECH, DesignElement::POLARIZATION -> ELEC */
   static Application ToApp(DesignElement::Type dt);
 
+  /** Default standard design type (not mass) by PDE */
+  DesignElement::Type ToDesign(const SinglePDE* pde) const;
+
   /** Helper that converts from mechPDE to MECH and elecPDE to ELEC, ...
+   * @param from heat and acoustic the application for the transfer function is laplace, this is indicated by the flag if
+   *        we do not want a marker for the pde but the transfer function. Sorry, very messy !! :((
    * @throws if neither mechPDE nor elecPDE
-   *  @see ToPDE()
+   * @see ToPDE()
    * @see SetPDEs() */
-  Application ToApp(SinglePDE* pde) const;
+  Application ToApp(const SinglePDE* pde) const;
 
   /** Find our PDE in SIMP by application from the pdes map
    * @see ToApp()*/
@@ -137,9 +147,6 @@ public:
 
   /** This is simple one SinglePDE from pdes. */
   SinglePDE* pde;
-
-  /** The region to optimize */
-  StdVector<RegionIdType> regionIds;
 
   /** This is the current homogenized tensor.
    * Evaluated by HOMOGENIZATION_TRACKING and HOMOGENIZED_TENSOR (as objective only).
@@ -355,7 +362,7 @@ public:
   /** This is a helper for CalcU1KU2 to determine the "K" which in most cases includes a
    * derivative. It also includes mechanical damping and mass matrix via AddMassToStiffness().
    * The templated stuff is private, as C++ does not allow virtual templates. */
-  virtual void SetElementK(DesignElement* de, Application app,
+  virtual void SetElementK(DesignElement* de, const TransferFunction* tf, Application app,
       DenseMatrix* out, CalcMode calcMode, bool derivative = true) { throw Exception("not implemented"); }
 
   /** Get the ErsatzMaterialTensor as the Tensor itself, not the stiffness matrix
@@ -510,8 +517,7 @@ public:
    * @param derivative this sets d(E^H)/d(rho_e) for the current tensor entry
    * @param out_grad of derivative it is resized and the gradients are set otherwise it is untouched
    * @return the E^H tensor entry if !derivative or 0 */
-  double CalcHomogenizedTensorEntry(const std::pair<int, int> entry,
-      bool derivative, StdVector<double>& grad_out);
+  double CalcHomogenizedTensorEntry(const tuple<int, int, double> entry,  bool derivative, StdVector<double>& grad_out);
 
   /** This is to be overwritten for any case there are other PDEs in ErsatzMaterial::pdes to be set.
    * PiezoSIMP does it simply in the constructor */
@@ -532,7 +538,7 @@ public:
   /** do we do SIMP or FreeMat or ... */
   Method method_;
 
-  /** this is the optimization->simp XML element */
+  /** this is the optimization->ersatzMaterial XML element */
   PtrParamNode pn;
 
   /** The assemble class for our PDE */

@@ -59,8 +59,9 @@ namespace CoupledField
          void SolveProblem();
 
          /** Where we apply the transformation.
-          * A subset of the values are PDE identifiers for ToPDE() and ToApp(). */
-         typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, HEAT, ACOUSTIC, STRESS, NO_APP} Application;
+          * A subset of the values are PDE identifiers for ToPDE() and ToApp().
+          * The heat and acoustic transfer functions are Laplace! */
+         typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, HEAT, ACOUSTIC, LAPLACE, STRESS, NO_APP} Application;
 
          /** Not the optimization problem but the solver! */
          typedef enum { OPTIMALITY_CONDITION, IPOPT_SOLVER, SCPIP_SOLVER, SNOPT_SOLVER, SHAPE_SOLVER, 
@@ -152,7 +153,8 @@ namespace CoupledField
         virtual PtrParamNode CommitIteration(bool keep_iteraton_number = false);
 
         /** the break condition for the optimization loop.
-         * Checks the stopping rule from the XML file an searches for an HALTOPT file.  */
+         * Checks the stopping rule from the XML file an searches for an HALTOPT file.
+         * Shall be called after CommitIteration() ! */
         virtual bool DoStopOptimization();
 
         /** are we in the harmonic case? */
@@ -273,9 +275,6 @@ namespace CoupledField
         /** Here we keep the last iterations design space */
         Vector<double>  last_iteration;
 
-        /** Here we keep the last evaluation design space */
-        Vector<double>  last_evaluation;
-
         /** are we harmonic or static? */
         bool harmonic;
         
@@ -298,7 +297,7 @@ namespace CoupledField
         class Log
         {
         public:
-          /** Sets to meaningul defaults (don not much :) ) */
+          /** Sets to meaningful defaults (don not much :) ) */
           Log();
 
           /** Closes the file */

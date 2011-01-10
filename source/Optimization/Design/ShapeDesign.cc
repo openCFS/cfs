@@ -7,8 +7,8 @@
 
 using namespace CoupledField;
 
-ShapeDesign::ShapeDesign(StdVector<RegionIdType>& regionIds, ParamNodeList& design, ParamNodeList& transfer, ParamNodeList& result, ErsatzMaterial::Method method)
-  : DesignSpace(regionIds, design, transfer, result, method)
+ShapeDesign::ShapeDesign(StdVector<RegionIdType>& regions, ParamNodeList& design, ParamNodeList& transfer, ParamNodeList& result, ErsatzMaterial::Method method)
+  : DesignSpace(regions, design, transfer, result, method)
 {
   dim_ = domain->GetGrid()->GetDim();
   alsomatopt_ = method == ErsatzMaterial::SHAPE_PARAM_MAT;

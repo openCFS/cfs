@@ -360,6 +360,7 @@ namespace CoupledField {
      * @return NONE if no damping in map! */
     DampingType GetDamping(RegionIdType reg_id) const;
 
+    MaterialClass GetMaterialClass() const { return pdematerialclass_; }
     //@}
       
   protected:
