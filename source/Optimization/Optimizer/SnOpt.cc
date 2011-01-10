@@ -10,12 +10,13 @@
 #include "Utils/Timer.hh"
 
 
-namespace CoupledField
-{
-
 // declare class specific logging stream
 DECLARE_LOG(snopt)
 DEFINE_LOG(snopt, "snopt")
+
+
+namespace CoupledField
+{
 
 using std::endl;
 using std::cout;

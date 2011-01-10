@@ -40,7 +40,6 @@
 #include "MatVec/stdmatrix.hh"
 #include "Materials/mechanicMaterial.hh"
 
-using namespace CoupledField;
 using namespace std;
 
 DECLARE_LOG(conditions)
@@ -48,6 +47,9 @@ DEFINE_LOG(conditions, "conditions")
 
 DECLARE_LOG(em)
 DEFINE_LOG(em, "ersatzMaterial")
+
+
+namespace CoupledField {
 
 Enum<ErsatzMaterial::Method> ErsatzMaterial::method;
 
@@ -1868,16 +1870,26 @@ double ErsatzMaterial::CalcPoissonsRatioAndYoungsModulus(Objective* cost, Condit
     const double E11 = hom_tensor[0][0];
     const double E12 = hom_tensor[0][1];
     double grad(0.0);
-    const double denom = (E11 + E12) * (E11 + E12);
+    const double denom = (hom_tensor.GetNumCols() == 6) ? ((E11 + E12) * (E11 + E12)) : (E11 * E11);
     
-    for(unsigned int e = 0, ne = design->GetNumberOfElements(); e < ne; e++)
+    for(unsigned int e = 0, ne = design->GetNumberOfElements(); e < ne; ++e)
     {      
       if(poisson) 
+        // gradient of v is the same for 2D and 3D!
         grad = (dE12[e] * E11 - E12 * dE11[e]);
       else
       {
-        grad  = (E11 * E11 + 2.0 * E11 * E12 + 3.0 * E12 * E12) * dE11[e];
-        grad -= (4.0 * E11 * E12 + 2.0 * E12 * E12) * dE12[e];
+        // again differences for 2D and 3D for the Young's Modulus
+        if(hom_tensor.GetNumCols() == 6)
+        {
+          grad  = (E11 * E11 + 2.0 * E11 * E12 + 3.0 * E12 * E12) * dE11[e];
+          grad -= (4.0 * E11 * E12 + 2.0 * E12 * E12) * dE12[e];
+        }
+        else
+        {
+          grad  = (E11 * E11 + E12 * E12) * dE11[e];
+          grad -= 2.0 * E11 * E12 * dE12[e];
+        }
       }
       
       grad /= denom;
@@ -3204,3 +3216,6 @@ template double ErsatzMaterial::CalcU1KU2<double>(TransferFunction* tf, StdVecto
 template double ErsatzMaterial::CalcU1KU2<std::complex<double> >(TransferFunction* tf, StdVector<SingleVector*>& u1,
     Application app, StdVector<SingleVector*>& u2,
     DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f,  int res_idx);
+
+
+} // end of namespace

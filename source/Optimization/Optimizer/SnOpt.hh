@@ -8,6 +8,7 @@
 
 namespace CoupledField
 {
+
 class Optimization;
 class ParamNode;
 class Timer;
@@ -24,7 +25,7 @@ public:
    * @param pn here we can have options - might be NULL! */
   SnOpt(Optimization* optimization, PtrParamNode pn);
   
-  ~SnOpt();
+  virtual ~SnOpt();
   
   /** translates the snopt call to a call of cfs-functions */
   int Callback(int* Status, const int n,

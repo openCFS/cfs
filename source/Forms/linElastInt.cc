@@ -11,11 +11,11 @@
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
 
-using namespace CoupledField;
-
 DECLARE_LOG(forms)
 DEFINE_LOG(forms, "forms")
 
+
+namespace CoupledField {
 
 // =====================
 //   CalcElementMatrix
@@ -890,3 +890,5 @@ void linElastInt::GetErsatzMaterialTensor(Matrix<double>& t, const Elem* elem, D
     ptMaterial->GetTensor(t, MECH_STIFFNESS_TENSOR, matDataType_, subTensorType_);
   }
 }
+
+} // end of namespace

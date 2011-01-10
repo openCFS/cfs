@@ -562,13 +562,16 @@ namespace CoupledField
 
   double MechanicMaterial::CalcIsotropicPoissonsRatio(const Matrix<double>& tensor)
   {
+    assert(tensor.GetNumCols() == 3 || tensor.GetNumCols() == 6);
+    
     // isotropic values are calculated differently than orthotropic values
     // as a result, the values can differ significantly from the orthotropic ones
     // if the isotropy-error is positive (this is also true for small isotropy-errors!)
     double E11 = tensor[0][0];
     double E12 = tensor[0][1];
 
-    return E12 / (E11 + E12);
+    // we need to distinguish 2D and 3D!
+    return (tensor.GetNumCols() == 6) ? (E12 / (E11 + E12)) : (E12 / E11);
   }
 
 
@@ -576,9 +579,15 @@ namespace CoupledField
   {
     // see comment in MechanicMaterial::CalcIsotropicPoissonsRatio
     double E11 = tensor[0][0];
-    double v = CalcIsotropicPoissonsRatio(tensor);
+    const double v = CalcIsotropicPoissonsRatio(tensor);
 
-    return (E11 * (1.0 + v) * (1.0 - 2.0 * v)) / (1.0 - v);
+    // we need to distinguish 2D and 3D!
+    if(tensor.GetNumCols() == 6)
+      E11 *= (1.0 + v) * (1.0 - 2.0 * v) / (1.0 - v);
+    else
+      E11 *= (1.0 - v*v);
+    
+    return E11;
   }
 
   
