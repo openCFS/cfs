@@ -1870,26 +1870,16 @@ double ErsatzMaterial::CalcPoissonsRatioAndYoungsModulus(Objective* cost, Condit
     const double E11 = hom_tensor[0][0];
     const double E12 = hom_tensor[0][1];
     double grad(0.0);
-    const double denom = (hom_tensor.GetNumCols() == 6) ? ((E11 + E12) * (E11 + E12)) : (E11 * E11);
+    const double denom = (E11 + E12) * (E11 + E12);
     
-    for(unsigned int e = 0, ne = design->GetNumberOfElements(); e < ne; ++e)
+    for(unsigned int e = 0, ne = design->GetNumberOfElements(); e < ne; e++)
     {      
       if(poisson) 
-        // gradient of v is the same for 2D and 3D!
         grad = (dE12[e] * E11 - E12 * dE11[e]);
       else
       {
-        // again differences for 2D and 3D for the Young's Modulus
-        if(hom_tensor.GetNumCols() == 6)
-        {
-          grad  = (E11 * E11 + 2.0 * E11 * E12 + 3.0 * E12 * E12) * dE11[e];
-          grad -= (4.0 * E11 * E12 + 2.0 * E12 * E12) * dE12[e];
-        }
-        else
-        {
-          grad  = (E11 * E11 + E12 * E12) * dE11[e];
-          grad -= 2.0 * E11 * E12 * dE12[e];
-        }
+        grad  = (E11 * E11 + 2.0 * E11 * E12 + 3.0 * E12 * E12) * dE11[e];
+        grad -= (4.0 * E11 * E12 + 2.0 * E12 * E12) * dE12[e];
       }
       
       grad /= denom;

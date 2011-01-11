@@ -427,7 +427,7 @@ namespace CoupledField
 				    MaterialType matType, 
 				    Global::ComplexPart dataType,
 				    SubTensorType subTensor ) const {	
-
+    
 
     tensorMap::const_iterator pos;
     pos = tensorParams_.find( matType );
@@ -439,25 +439,25 @@ namespace CoupledField
     else {
       Matrix<Complex> matTensor;
       if ( subTensor == FULL ) {
-        matTensor = pos->second;
+	matTensor = pos->second;
       }
       else {
-        ComputeSubTensor(matTensor, matType, subTensor);
+	ComputeSubTensor(matTensor, matType, subTensor);
       }
 
       if ( dataType == Global::REAL || dataType == Global::IMAG) {
-        Matrix<Double> help;
-        help = matTensor.GetPart( dataType );
-        param.Resize( matTensor.GetNumRows(), matTensor.GetNumCols() );
+	Matrix<Double> help; 
+	help = matTensor.GetPart( dataType );
+	param.Resize( matTensor.GetNumRows(), matTensor.GetNumCols() );
         param.Init();
-        param.SetPart( dataType, help );
+	param.SetPart( dataType, help );
       }
       else if ( dataType == Global::COMPLEX ) {
-        param = matTensor;
+	param = matTensor;
       }
     }
   }
-
+  
   void MechanicMaterial::CalcIsotropicStiffnessTensorFromEAndPoisson(Matrix<Double>& out, Double emod, Double poi, UInt dim)
   {
     Complex EModul(emod);
@@ -562,32 +562,19 @@ namespace CoupledField
 
   double MechanicMaterial::CalcIsotropicPoissonsRatio(const Matrix<double>& tensor)
   {
-    assert(tensor.GetNumCols() == 3 || tensor.GetNumCols() == 6);
-    
-    // isotropic values are calculated differently than orthotropic values
-    // as a result, the values can differ significantly from the orthotropic ones
-    // if the isotropy-error is positive (this is also true for small isotropy-errors!)
     double E11 = tensor[0][0];
     double E12 = tensor[0][1];
 
-    // we need to distinguish 2D and 3D!
-    return (tensor.GetNumCols() == 6) ? (E12 / (E11 + E12)) : (E12 / E11);
+    return E12 / (E11 + E12);
   }
 
 
   double MechanicMaterial::CalcIsotropicYoungsModulus(const Matrix<double>& tensor)
   {
-    // see comment in MechanicMaterial::CalcIsotropicPoissonsRatio
     double E11 = tensor[0][0];
-    const double v = CalcIsotropicPoissonsRatio(tensor);
+    double v = CalcIsotropicPoissonsRatio(tensor);
 
-    // we need to distinguish 2D and 3D!
-    if(tensor.GetNumCols() == 6)
-      E11 *= (1.0 + v) * (1.0 - 2.0 * v) / (1.0 - v);
-    else
-      E11 *= (1.0 - v*v);
-    
-    return E11;
+    return (E11 * (1.0 + v) * (1.0 - 2.0 * v)) / (1.0 - v);
   }
 
   
