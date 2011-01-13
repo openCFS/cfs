@@ -70,6 +70,19 @@ private:
    * @see initialized_ */
   void Initialize();
 
+  /** finds quite efficiently the neighborhood with an regular grid.
+   * The idea is that by radius and edge size we construct a 2D/3D cube and check every element for distance.
+   * @param neighbors to be reused */
+  void FindRegularNeighborhood(DesignElement* base, double radius, const StdVector<double>& edges, StdVector<SIMPElement::NeighbourElement>& neighbors);
+
+  /** Helper for FindRegularNeighborhood().
+   * Defines an element by the number of (+/-) steps in the main axes
+   * @return NULL if nothing found. Must not be in the periodic case */
+  DesignElement* GetNeighborElement(DesignElement* base, int i_steps, int j_steps, int k_steps);
+
+  /** Helper for the other GetNeighborElement().
+   * Is able to cross periodic boundaries */
+  DesignElement* GetNeighborElement(DesignElement* base, unsigned int steps, VicinityElement::Neighbour dir);
 
   /** extends the periodic neighborhood, but in contrast to the other implementation
    * an element number list is extended */

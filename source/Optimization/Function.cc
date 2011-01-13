@@ -91,6 +91,8 @@ Function::Function(PtrParamNode pn)
 
 }
 
+
+
 Function::~Function()
 {
   if(local != NULL) { delete local; local = NULL; }
@@ -145,7 +147,9 @@ bool Function::ReadTensor(PtrParamNode pn, Matrix<double>& matrix)
     double emod = tens->Get("real")->Get("elasticityModulus")->As<double>();
     double poisson = tens->Get("real")->Get("poissonNumber")->As<double>();
 
-    MechanicMaterial::CalcIsotropicStiffnessTensorFromEAndPoisson(matrix, emod, poisson, domain->GetGrid()->GetDim());
+    Matrix<double> tmp(6,6); // always 3D first
+    MechanicMaterial::CalcIsotropicStiffnessTensorFromEAndPoisson(matrix, emod, poisson);
+    MechanicMaterial::ComputeSubTensor(matrix, domain->GetSinglePDE("mechanic")->GetSubTensorType(), tmp);
 
     tensor_read = true;
   }

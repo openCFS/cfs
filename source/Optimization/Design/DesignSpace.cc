@@ -1044,6 +1044,7 @@ bool DesignSpace::DesignRegion::HasBiMaterial() const
   return bimaterial_ != "";
 }
 
+
 BaseMaterial* DesignSpace::DesignRegion::GetBiMaterial(const MaterialClass mc)
 {
   assert(bimaterial_ != ""); // check with HasBiMaterial()!

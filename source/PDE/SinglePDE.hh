@@ -115,8 +115,8 @@ namespace CoupledField
     PdeIdType GetPDEId()
     { return pdeId_; }
 
-    //! return subtype
-    virtual std::string GetSubType() {return subType_;}
+    /** return sub type. The string is stored internally any we need to convert. :( */
+    SubTensorType GetSubTensorType() const;
 
     //! Set Direct coupling information
     virtual void SetDirectCoupling();

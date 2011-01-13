@@ -571,10 +571,10 @@ double ShapeOpt::CalcTracking(Excitation& excite, Objective* f, Condition* const
   return 0.0;
 }
 
-void ShapeOpt::CalcHomogenizedTrackingGradient(const Matrix<double>& target, const Matrix<double>& hom, Objective* f, Condition* g){
+void ShapeOpt::CalcHomogenizedTrackingGradient(const Matrix<double>& target, const Matrix<double>& hom, Function* f){
   Matrix<double> tensor_diff;
   tensor_diff = hom - target;
-  CalcMinusU1dKU2(forward, forward, f, g, &tensor_diff);
+  CalcMinusU1dKU2(forward, forward, dynamic_cast<Objective*>(f), dynamic_cast<Condition*>(f), &tensor_diff);
 }
 
 Matrix<double> ShapeOpt::CalcHomogenizedTensor(){

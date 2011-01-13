@@ -29,9 +29,6 @@ public:
                           const SubTensorType type = PLANE_STRAIN,
                           Application app = MECH);
 
-  /** Helper function for TopGrad, where we need the SubTensorType */
-  void GetSubTensorType(SubTensorType &stt) const;
-
   StdVector<SingleVector*>& getSolutionVectors(const bool forward_solution = true)
   {
     if(forward_solution)

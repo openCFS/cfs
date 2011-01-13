@@ -166,6 +166,19 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
   StdVector<unsigned int> too_far;   // element numbers too far away
   StdVector<unsigned int> expandable; // FindNeighborhood() adds here periodic expanded neighbors
 
+  // our reference element dimensions for FindRegularNeighborhood()
+  StdVector<double> edges;
+  if(regular)
+  {
+    Matrix<double> coords; // temporary
+    Elem* elem = data[0].elem;
+    domain->GetGrid()->GetElemNodesCoord(coords, elem->connect);
+    elem->ptElem->GetEdgeLength(coords, edges);
+
+    // also initialize the vicinity elements!
+    VicinityElement::Init(space, this);
+  }
+
   for(unsigned int e = 0; e < data.GetSize(); e++)
   {
     DesignElement* de = &data[e];
@@ -184,8 +197,11 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
     expandable.Resize(0); // this is our re-used expandable vector.
 
     LOG_DBG2(ds) << "SF: call FN for " << de->elem->ToString();
-    FindNeighborhood(de, radius, *(de->elem->neighborhood), expandable, neighbors, too_far); // works recursive
-    // save neighborhood
+    if(regular)
+      FindRegularNeighborhood(de, radius, edges, neighbors);
+    else
+      FindNeighborhood(de, radius, *(de->elem->neighborhood), expandable, neighbors, too_far); // works recursive
+    // save neighborhood by copy constructor
     de->simp->neighborhood = neighbors;
     // set own weight
     assert(contribution_ == LINEAR || contribution_ == CONSTANT);
@@ -215,6 +231,161 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
   std::cout << "Filter: avg radius: " << (avg_radius / data.GetSize())
             << " avg neighbourhood: " << (avg_neighbours / data.GetSize()) << std::endl;
 }
+
+void DesignStructure::FindRegularNeighborhood(DesignElement* base, double radius, const StdVector<double>& edges, StdVector<SIMPElement::NeighbourElement>& neighbors)
+{
+  assert(regular);
+  // from the radius define a square/cube and check for every element. The corners are sorted out by distance
+
+  int x = ceil(edges[0] / radius);
+  int y = ceil(edges[1] / radius);
+  int z = dim < 3 ? 0 : ceil(edges[2] / radius) ;
+
+  for(int i = -x; i <= x; i++)
+  {
+    for(int j = -y; j <= y; j++)
+    {
+      for(int k = -z; k <= z; k++) // ensure to enter one time in 2D
+      {
+        DesignElement* other = GetNeighborElement(base, i, j, k);
+        if(other != NULL)
+        {
+          // check the element
+          double distance = RelaxedDistance(base->elem, other->elem);
+          if(distance <= radius)
+          {
+            // value is here a double radius
+            // this is the implementation from Bendsoe/ Sigmund
+            SIMPElement::NeighbourElement ne;
+
+            // map from element number to design
+            ne.neighbour = other;
+
+            // linear or constant weighting. will be normalized in the calling method!
+            assert(contribution_ == LINEAR || contribution_ == CONSTANT);
+            ne.weight = contribution_ == LINEAR ? radius  - distance : 1;
+            ne.distance  = distance;
+            neighbors.Push_back(ne); // cheap
+          }
+        }
+      }
+    }
+  }
+}
+/*
+void DesignStructure::PrepareRegularGrid(StdVector<Matrix<const Elem*> >& regular)
+{
+  StdVector<DesignElement>& data = space->data;
+  // find lower and upper edge
+  double maximal = std::numeric_limits<Double>::max();
+  double minimal = std::numeric_limits<Double>::min();
+
+  Point mins(maximal, maximal, maximal);
+  Point maxs(minimal, minimal, minimal);
+
+  for(unsigned int i = 0, n = data.GetSize();  i < n; i++)
+  {
+    const Elem* elem = data[i].elem;
+    Point& p = elem->barycenter;
+    for(unsigned int d = 0; d < 3; d++)
+    {
+      if(mins.data[d] >  p.data[d]) mins.data[d] =  p.data[d];
+      if(maxs.data[d] <  p.data[d]) maxs.data[d] =  p.data[d];
+    }
+  }
+
+  // our reference element dimensions
+  StdVector<double> edges;
+  Matrix<double> coords; // temporary
+  Elem* elem = data[0].elem;
+  domain->GetGrid()->GetElemNodesCoord(coords, elem->connect);
+  elem->ptElem->GetEdgeLength(coords, edges);
+
+  // prepare the grid
+  int dx = (maxs[0] - mins[0]) / edges[0];
+  int dy = (maxs[1] - mins[1]) / edges[1];
+  int dz = dim > 2 ? (maxs[2] - mins[2]) / edges[2] : 1;
+
+  regular.Resize(dz);
+  for(int i = 0; i < dz; dz++)
+  {
+    regular[i].Resize(dx, dy);
+    regular[i].Init(NULL);
+  }
+
+  // traverse through the design space and add the element number to regular
+  Point dist;
+  for(unsigned int e, n = data.GetSize(); e < n; e++)
+  {
+    const Elem* elem = data[e].elem;
+    elem->barycenter.Dist(mins, dist);
+
+    int x = dist[0] / edges[0];
+    int y = dist[1] / edges[1];
+    int z = dist[2] / edges[2];
+
+    regular[z][x][y] = elem;
+  }
+}
+*/
+DesignElement* DesignStructure::GetNeighborElement(DesignElement* base, int i_steps, int j_steps, int k_steps)
+{
+  DesignElement* other = NULL;
+  other = GetNeighborElement(base, abs(i_steps), i_steps < 0 ? VicinityElement::X_N : VicinityElement::X_P);
+  if(other == NULL) return NULL;
+  other = GetNeighborElement(other, abs(j_steps), j_steps < 0 ? VicinityElement::Y_N : VicinityElement::Y_P);
+  if(other == NULL) return NULL;
+  other = GetNeighborElement(other, abs(k_steps), k_steps < 0 ? VicinityElement::Z_N : VicinityElement::Z_P);
+  return other;
+}
+
+DesignElement* DesignStructure::GetNeighborElement(DesignElement* base, unsigned int steps, VicinityElement::Neighbour dir)
+{
+  DesignElement* other = base;
+
+  for(unsigned int i = 0; i < steps; i++)
+  {
+    if(other->vicinity->HasNeighbor(dir))
+    {
+      other = other->vicinity->GetNeighbour(dir);
+    }
+    else if(!periodic)
+    {
+        return NULL;
+    }
+    else
+    {
+      // we are periodic, hence other is at the boundary and we need the dir neighbor
+      Elem* elem = other->elem;
+
+      for(unsigned int n = 0; n < elem->connect.GetSize(); n++)
+      {
+        unsigned int test = elem->connect[n]; // test node number
+        StdVector<unsigned int>& others = constraintMapping[test];
+        assert(others.GetSize() > 0);
+
+        // take one of the elements that share the node.
+        bool found = false;
+        for(unsigned int o = 0; !found && o < others.GetSize(); o++)
+        {
+          const Elem* other_elem = nodeToElem[others[o]];
+          // make sure it is the element defined by dir
+          unsigned idx = VicinityElement::ToMainAxis(dir);
+          if(close(elem->barycenter[idx], other_elem->barycenter[idx]))
+          {
+            other = space->Find(other_elem->elemNum, base->GetType());
+            found = true;
+          }
+          LOG_DBG3(ds) << "GNE: elem=" << elem->elemNum << " step=" << i << "/" << steps << " dir=" << dir
+                       << " oe=" << other_elem->elemNum << " found=" << found;
+        }
+        assert(found);
+      }
+    }
+  }
+  return other;
+}
+
 
 void DesignStructure::FindNeighborhood(DesignElement* base, double radius,
                                       StdVector<std::pair<Elem*, int> >& initial,
