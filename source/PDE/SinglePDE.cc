@@ -513,6 +513,7 @@ namespace CoupledField {
   SubTensorType SinglePDE::GetSubTensorType() const
   {
     SubTensorType stt;
+    assert(subType_ != "");
     String2Enum(subType_, stt);
     return stt;
   }

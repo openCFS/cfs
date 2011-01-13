@@ -578,7 +578,10 @@ namespace CoupledField
   template<class T>
   void MechanicMaterial::ComputeSubTensor(Matrix<T>& matMatrix, SubTensorType subTensor, const Matrix<T>& mat)
   {
-    if ( subTensor == AXI ) {
+    switch(subTensor)
+    {
+    case AXI:
+    {
       UInt nrElemsAxi = 4;
       matMatrix.Resize( nrElemsAxi, nrElemsAxi );
       matMatrix.Init();
@@ -588,10 +591,12 @@ namespace CoupledField
       for ( UInt i=0; i<nrElemsAxi; i++ )
         for ( UInt j=0; j<nrElemsAxi; j++ )
           matMatrix[i][j] = mat[rowPtr[i]-1][rowPtr[j]-1];
+      break;
     }
-    else if ( subTensor == PLANE_STRAIN ) {
+    case PLANE_STRAIN:
+    {
       UInt nrElems = 3;
-      matMatrix.Resize( nrElems, nrElems    );
+      matMatrix.Resize(nrElems, nrElems);
       matMatrix.Init();
 
       // indices of rows and lines for xy-plane (xx, yy, xy)
@@ -599,8 +604,10 @@ namespace CoupledField
       for ( UInt i=0; i<nrElems; i++ )
         for ( UInt j=0; j<nrElems; j++ )
           matMatrix[i][j] = mat[rowPtr[i]-1][rowPtr[j]-1];
+      break;
     }
-    else if ( subTensor == PLANE_STRESS ) {
+    case PLANE_STRESS:
+    {
       UInt nrElems = 3;
       matMatrix.Resize( nrElems, nrElems );
       matMatrix.Init();
@@ -619,10 +626,14 @@ namespace CoupledField
       matMatrix[2][0] = mat[5][0];
       matMatrix[2][1] = mat[5][1];
       matMatrix[2][2] = mat[5][5];
-
+      break;
     }
-    else {
-      subTensorNotAvailable( NO_MATERIAL, subTensor ); // shall be clear
+    case FULL:
+      matMatrix = mat; // copy as nothing changes
+      break;
+    default:
+      // PLAIN is unspecific
+      subTensorNotAvailable(NO_MATERIAL, subTensor); // shall be clear
     }
   }
  

@@ -220,7 +220,7 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
 
     avg_radius += radius;
     avg_neighbours += de->simp->neighborhood.GetSize();
-    LOG_DBG2(ds) << "SF: final " << de->simp->ToString();
+    LOG_DBG2(ds) << "SF: final " << de->simp->ToString(1);
   }
 
   in->Get("avg_radius")->SetValue(avg_radius / data.GetSize());
@@ -237,9 +237,15 @@ void DesignStructure::FindRegularNeighborhood(DesignElement* base, double radius
   assert(regular);
   // from the radius define a square/cube and check for every element. The corners are sorted out by distance
 
-  int x = ceil(edges[0] / radius);
-  int y = ceil(edges[1] / radius);
-  int z = dim < 3 ? 0 : ceil(edges[2] / radius) ;
+  // the legacy SHARP_PLAIN and SHARP_SIGMUND had the bug, that the weight was not
+  // radius - distance but value - distance. To keep the legacy results we reproduce
+  // the bug. Note, that another bug in SHARP_PLAIN and SHARP_SIGMUND is in normalization
+  // and for SHARP_SIGMUND also in the filtering itself! :(
+  double val_rad = filter_.sensitivity_ == Filter::SHARP_PLAIN || filter_.sensitivity_ == Filter::SHARP_SIGMUND ? value : radius;
+
+  int x = ceil(radius / edges[0]);
+  int y = ceil(radius / edges[1]);
+  int z = dim < 3 ? 0 : ceil(radius / edges[2]);
 
   for(int i = -x; i <= x; i++)
   {
@@ -247,6 +253,9 @@ void DesignStructure::FindRegularNeighborhood(DesignElement* base, double radius
     {
       for(int k = -z; k <= z; k++) // ensure to enter one time in 2D
       {
+        if(i == 0 && j == 0 && k == 0) // don't search for ourself!
+          continue;
+
         DesignElement* other = GetNeighborElement(base, i, j, k);
         if(other != NULL)
         {
@@ -263,7 +272,7 @@ void DesignStructure::FindRegularNeighborhood(DesignElement* base, double radius
 
             // linear or constant weighting. will be normalized in the calling method!
             assert(contribution_ == LINEAR || contribution_ == CONSTANT);
-            ne.weight = contribution_ == LINEAR ? radius  - distance : 1;
+            ne.weight = contribution_ == LINEAR ? val_rad  - distance : 1;
             ne.distance  = distance;
             neighbors.Push_back(ne); // cheap
           }
@@ -345,42 +354,15 @@ DesignElement* DesignStructure::GetNeighborElement(DesignElement* base, unsigned
 
   for(unsigned int i = 0; i < steps; i++)
   {
+    // the periodic bcs are already done by vicinity element!!
     if(other->vicinity->HasNeighbor(dir))
     {
       other = other->vicinity->GetNeighbour(dir);
     }
-    else if(!periodic)
-    {
-        return NULL;
-    }
     else
     {
-      // we are periodic, hence other is at the boundary and we need the dir neighbor
-      Elem* elem = other->elem;
-
-      for(unsigned int n = 0; n < elem->connect.GetSize(); n++)
-      {
-        unsigned int test = elem->connect[n]; // test node number
-        StdVector<unsigned int>& others = constraintMapping[test];
-        assert(others.GetSize() > 0);
-
-        // take one of the elements that share the node.
-        bool found = false;
-        for(unsigned int o = 0; !found && o < others.GetSize(); o++)
-        {
-          const Elem* other_elem = nodeToElem[others[o]];
-          // make sure it is the element defined by dir
-          unsigned idx = VicinityElement::ToMainAxis(dir);
-          if(close(elem->barycenter[idx], other_elem->barycenter[idx]))
-          {
-            other = space->Find(other_elem->elemNum, base->GetType());
-            found = true;
-          }
-          LOG_DBG3(ds) << "GNE: elem=" << elem->elemNum << " step=" << i << "/" << steps << " dir=" << dir
-                       << " oe=" << other_elem->elemNum << " found=" << found;
-        }
-        assert(found);
-      }
+      assert(!periodic);
+      return NULL;
     }
   }
   return other;

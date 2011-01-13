@@ -52,7 +52,7 @@ void EvaluateOnly::SolveProblem()
     {
       Condition* g = optimization->constraints.view->Get(c);
       optimization->CalcConstraint(g);
-      if(g->IsActive()) // not for observation stuff
+      if(!g->IsObservation()) // not for observation stuff
         optimization->CalcConstraintGradient(g);
     }
     optimization->constraints.view->Done(); // reset the slope constraints to global
