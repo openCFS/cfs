@@ -205,11 +205,8 @@ namespace CoupledField
 
   void Newmark::Corrector(Vector<Double>& solnew)
   {
-
     solDeriv_vec_[SECOND_DERIV] = (solnew - solpred_) * sol_timeStepCoeff_[CORRECTOR_1];
     solDeriv_vec_[FIRST_DERIV] = solderiv1pred_ + solDeriv_vec_[SECOND_DERIV]*sol_timeStepCoeff_[CORRECTOR_2];
-
-    sol_timeStepVec_[TIMESTEP_1]=solnew;
   }
 
 
@@ -227,6 +224,11 @@ namespace CoupledField
 
     //for RHS, Matrices
     sol_timeStepCoeff_[COEFFRHS] = (1+alpha_) * gamma_ / (beta_*dt_);
+  }
+
+  void Newmark::AdvanceTimestep(Vector<Double>& solnew)
+  {
+    sol_timeStepVec_[TIMESTEP_1]=solnew;
   }
 
 

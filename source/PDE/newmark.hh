@@ -47,6 +47,9 @@ namespace CoupledField
     //! substracts -Ku from RHS
     virtual void SubstractStiffnessFromRHS(Vector<Double>& actSol);
     
+    //! perform calculations at end of timestep (set the new timestep)
+    void AdvanceTimestep(Vector<Double>& solnew);
+
     Double GetNewmarkBeta(){
       return beta_;
     }
