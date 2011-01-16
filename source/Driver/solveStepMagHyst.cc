@@ -222,69 +222,70 @@ namespace CoupledField {
 
   void SolveStepMagHyst::SetPreviousVals4Hyst() {
   
+    EXCEPTION("Magnetics with hysteresis currently not supported");
 
-    Vector<Double> LCoord, field;
-    UInt pdeElem;
+//     Vector<Double> LCoord, field;
+//     UInt pdeElem;
 
-    for (UInt actSD=0; actSD<subdoms_.GetSize(); actSD++) {
+//     for (UInt actSD=0; actSD<subdoms_.GetSize(); actSD++) {
 
-      RegionIdType actRegion = subdoms_[actSD];
-      Hysteresis* hyst = materialData_[actRegion]->getHysteresis();
+//       RegionIdType actRegion = subdoms_[actSD];
+//       Hysteresis* hyst = materialData_[actRegion]->getHysteresis();
  
-      if ( hyst!= NULL ) {
+//       if ( hyst!= NULL ) {
 
-        CurlCurlNode2DInt *curlOp = new CurlCurlNode2DInt( materialData_[actRegion], isaxi_);
+//         CurlCurlNode2DInt *curlOp = new CurlCurlNode2DInt( materialData_[actRegion], isaxi_);
 
-        ElemList actSDList(ptgrid_ );
-        actSDList.SetRegion( actRegion );
+//         ElemList actSDList(ptgrid_ );
+//         actSDList.SetRegion( actRegion );
 
-        EntityIterator it = actSDList.GetIterator();
-        UInt iel = 0;
-        for ( it.Begin(); !it.IsEnd(); it++, iel++) {
-          //compute the magnetic field intensity
-          it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
+//         EntityIterator it = actSDList.GetIterator();
+//         UInt iel = 0;
+//         for ( it.Begin(); !it.IsEnd(); it++, iel++) {
+//           //compute the magnetic field intensity
+//           it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
 
-          Matrix<Double> CornerCoords;
-          ptgrid_->GetElemNodesCoord( CornerCoords, it.GetElem()->connect, 
-                                      true );
-          // get element solution
-          Vector<Double> elSol;
-          sol_->GetElemSolution(elSol, it);
+//           Matrix<Double> CornerCoords;
+//           ptgrid_->GetElemNodesCoord( CornerCoords, it.GetElem()->connect, 
+//                                       true );
+//           // get element solution
+//           Vector<Double> elSol;
+//           sol_->GetElemSolution(elSol, it);
 
-          Vector<double> field;
-          if( LCoord.GetSize() ==3 ) {
-            field.Resize(3);
-            EXCEPTION("3D magnetic with hysteresis not implemented!");
-          }
-          else {
-            Matrix<Double> bMat;
-            //set element info
-            curlOp->ExtractElemInfo( it );
-            curlOp->SetIntPoint( LCoord );
-            curlOp->calcBMat(bMat, 0, CornerCoords);
-            curlOp->UnsetIntPoint();     
-            field = bMat * elSol;
+//           Vector<double> field;
+//           if( LCoord.GetSize() ==3 ) {
+//             field.Resize(3);
+//             EXCEPTION("3D magnetic with hysteresis not implemented!");
+//           }
+//           else {
+//             Matrix<Double> bMat;
+//             //set element info
+//             curlOp->ExtractElemInfo( it );
+//             curlOp->SetIntPoint( LCoord );
+//             curlOp->calcBMat(bMat, 0, CornerCoords);
+//             curlOp->UnsetIntPoint();     
+//             field = bMat * elSol;
 
-            // Account for curl 
-            Double temp = field[0];
-            if ( isaxi_ ) {
-              field[0] = -field[1];
-              field[1] = temp;
-            } else {
-              field[0] = field[1];
-              field[1] = -temp;
-            }
-          }
+//             // Account for curl 
+//             Double temp = field[0];
+//             if ( isaxi_ ) {
+//               field[0] = -field[1];
+//               field[1] = temp;
+//             } else {
+//               field[0] = field[1];
+//               field[1] = -temp;
+//             }
+//           }
 
-          pdeElem = it.GetElem()->elemNum;
+//           pdeElem = it.GetElem()->elemNum;
 
-          // std::cout << "New Bfield: \n " << field << std::endl << std::endl;
-          //set the values
-          materialData_[actRegion]->SetPreviousInvVecHystVal( pdeElem, field );
-        }
-        delete curlOp;
-      }
-    }
+//           // std::cout << "New Bfield: \n " << field << std::endl << std::endl;
+//           //set the values
+//           materialData_[actRegion]->SetPreviousInvVecHystVal( pdeElem, field );
+//         }
+//         delete curlOp;
+//       }
+//     }
   }
 
 

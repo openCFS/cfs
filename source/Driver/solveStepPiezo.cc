@@ -82,7 +82,7 @@ namespace CoupledField {
   void SolveStepPiezo::StepTransNonLinEpsDiff(PtrParamNode analysis_base) {
 
 
-    //    std::cout << "\n In :StepTransNonLinEpsDiff  \n " << std::endl;
+    //std::cout << "\n In :StepTransNonLinEpsDiff  \n " << std::endl;
  
     bool performOneMoreStep;
     UInt iterationCounter=0;
@@ -272,69 +272,69 @@ namespace CoupledField {
   }
 
 
-  void SolveStepPiezo::ComputeDiffEpsilon() {
+//   void SolveStepPiezo::ComputeDiffEpsilon() {
   
 
-    //we assume, that the actual solution is stored in sol_!
-    NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+//     //we assume, that the actual solution is stored in sol_!
+//     NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
     
-    GradientFieldOp<Double> * FieldOp = 
-      new GradientFieldOp<Double>(ptgrid_, &PDE_, eqnMap_,
-                                  *solhelp, results_[0]->fctType,isaxi_);
+//     GradientFieldOp<Double> * FieldOp = 
+//       new GradientFieldOp<Double>(ptgrid_, &PDE_, eqnMap_,
+//                                   *solhelp, results_[0]->fctType,isaxi_);
 
-    Vector<Double> LCoord, Efield;
-    Double Ecomp, Pval, Dval, dE, dD, eps;
-    UInt comp;
-    UInt pdeElem=1;
+//     Vector<Double> LCoord, Efield;
+//     Double Ecomp, Pval, Dval, dE, dD, eps;
+//     UInt comp;
+//     UInt pdeElem=1;
 
-    for (UInt actSD=0; actSD<subdoms_.GetSize(); actSD++) {
-      ElemList actSDList(domain->GetGrid() );
-      actSDList.SetRegion( subdoms_[actSD] );
-      EntityIterator it = actSDList.GetIterator();
+//     for (UInt actSD=0; actSD<subdoms_.GetSize(); actSD++) {
+//       ElemList actSDList(domain->GetGrid() );
+//       actSDList.SetRegion( subdoms_[actSD] );
+//       EntityIterator it = actSDList.GetIterator();
       
-      //get direction of polarization
-      materialData_[actSD]->GetScalar((Integer&)comp,P_DIRECTION,Global::INTEGER);
-      comp -= 1;
-      UInt iel = 0;
-      for ( it.Begin(); !it.IsEnd(); it++, iel++ ) {
+//       //get direction of polarization
+//       materialData_[actSD]->GetScalar((Integer&)comp,P_DIRECTION,Global::INTEGER);
+//       comp -= 1;
+//       UInt iel = 0;
+//       for ( it.Begin(); !it.IsEnd(); it++, iel++ ) {
         
-        //compute the electric field intensity
-        it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
-        FieldOp->CalcElemGradField( Efield, it, LCoord, 1);
+//         //compute the electric field intensity
+//         it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
+//         FieldOp->CalcElemGradField( Efield, it, LCoord, 1);
 
-        //get correct component of electric field for scalar Preisach model
-        Ecomp = Efield[comp]; //.NormL2(); //[comp]; 
+//         //get correct component of electric field for scalar Preisach model
+//         Ecomp = Efield[comp]; //.NormL2(); //[comp]; 
 
-        //compute polarization
-        //      pdeElem = 0;
-        Pval = hyst_[actSD]->computeValue(Ecomp,pdeElem);
+//         //compute polarization
+//         //      pdeElem = 0;
+//         Pval = hyst_[actSD]->computeValue(Ecomp,pdeElem);
 
-        //      Pval = Ecomp*2e-7;
+//         //      Pval = Ecomp*2e-7;
 
-        //compute dielectric displacement
-        Dval = Pval; //8.85419E-12 * Ecomp + Pval;
+//         //compute dielectric displacement
+//         Dval = Pval; //8.85419E-12 * Ecomp + Pval;
 
-        //compute differential epsilon
-        dE = Ecomp - Eprevious_[pdeElem-1];
-        dD = Dval - Dprevious_[pdeElem-1];
-        if ( (abs(dD) < 1e-12) || (abs(dE) < 1e-10) ) {
-          materialData_[actSD]->GetScalar(eps,ELEC_PERMITTIVITY,Global::REAL);
-          if (eps < 8.854e-12) {
-            eps = 8.854e-12;
-          }
-          epsDiff_[actSD][iel] = eps;
-        }
-        else {
-          epsDiff_[actSD][iel] = dD / dE;
-        }
+//         //compute differential epsilon
+//         dE = Ecomp - Eprevious_[pdeElem-1];
+//         dD = Dval - Dprevious_[pdeElem-1];
+//         if ( (abs(dD) < 1e-12) || (abs(dE) < 1e-10) ) {
+//           materialData_[actSD]->GetScalar(eps,ELEC_PERMITTIVITY,Global::REAL);
+//           if (eps < 8.854e-12) {
+//             eps = 8.854e-12;
+//           }
+//           epsDiff_[actSD][iel] = eps;
+//         }
+//         else {
+//           epsDiff_[actSD][iel] = dD / dE;
+//         }
 
-        pdeElem++;
-      }  
-    }
+//         pdeElem++;
+//       }  
+//     }
 
-    //  std::cout << "EpsDiff: " << epsDiff_ << std::endl;
-  }
+//     //  std::cout << "EpsDiff: " << epsDiff_ << std::endl;
+//   }
 
 
 

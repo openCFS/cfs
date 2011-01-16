@@ -255,9 +255,9 @@ DEFINE_LOG(magpde, "magpde")
 
         if ( regionNonLinType_[actRegion] == HYSTERESIS ) {
 
-          if (is3d_ ) {
-            EXCEPTION("Magnetics with hysteresis in 3D not supported");
-          }
+          //          if (is3d_ ) {
+          EXCEPTION("Magnetics with hysteresis currently not supported");
+            //          }
           
           // hysteresis modeling in this region
           StdVector<Elem*> elemssd;
@@ -1660,24 +1660,25 @@ DEFINE_LOG(magpde, "magpde")
 
 
       if ( regionNonLinType_[actRegionId] == HYSTERESIS ) {
-        std::string bilinearName = "nLinMagHystInt2D";
-        nLinMagHystInt2D* curlHystOp;
-        curlHystOp = dynamic_cast<nLinMagHystInt2D*>(pdeBilinearForms_[actRegionId][bilinearName]);
+        EXCEPTION("Magnetics with hysteresis currently not supported");
+//         std::string bilinearName = "nLinMagHystInt2D";
+//         nLinMagHystInt2D* curlHystOp;
+//         curlHystOp = dynamic_cast<nLinMagHystInt2D*>(pdeBilinearForms_[actRegionId][bilinearName]);
 
-        //set element info      
-        curlHystOp->ExtractElemInfo( it );
+//         //set element info      
+//         curlHystOp->ExtractElemInfo( it );
 
-        // case 1: element midpoint
-        if( ip == 0 ) {
-          Vector<Double> intPoint;
-          it.GetElem()->ptElem->GetCoordMidPoint(intPoint);
-          curlHystOp->SetIntPoint(intPoint);
-          curlHystOp->calcBMat(bMat, 0, CornerCoords);
-          curlHystOp->UnsetIntPoint();     
-        } else {
-          // case2: real integration point
-          curlHystOp->calcBMat(bMat, ip, CornerCoords);
-        }      
+//         // case 1: element midpoint
+//         if( ip == 0 ) {
+//           Vector<Double> intPoint;
+//           it.GetElem()->ptElem->GetCoordMidPoint(intPoint);
+//           curlHystOp->SetIntPoint(intPoint);
+//           curlHystOp->calcBMat(bMat, 0, CornerCoords);
+//           curlHystOp->UnsetIntPoint();     
+//         } else {
+//           // case2: real integration point
+//           curlHystOp->calcBMat(bMat, ip, CornerCoords);
+//         }      
       }
       else {
         CurlCurlNode2DInt* curlOp = NULL;
@@ -1729,8 +1730,9 @@ DEFINE_LOG(magpde, "magpde")
     RegionIdType actRegion = it.GetElem()->regionId;
   
     if ( regionNonLinType_[actRegion] == HYSTERESIS ) {
-      materials_[actRegion]->GetVectorXHystVal( it.GetElem()->elemNum,
-                                               field ); 
+      EXCEPTION("Magnetics with hysteresis currently not supported");
+//       materials_[actRegion]->GetVectorXHystVal( it.GetElem()->elemNum,
+//                                                field ); 
     }
     else if ( regionNonLinType_[actRegion] == PERMEABILITY ) {
       EXCEPTION("CalcHfieldAtIP for nonlinear BH curve not implemented");

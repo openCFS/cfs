@@ -168,17 +168,17 @@ namespace CoupledField
   void nLinMagHystInt2D::calcDMat(Matrix<Double> & dMat, UInt elNr)
   {
 
-    Vector<Double> scalarVals(2);
+    EXCEPTION("Magnetics with hysteresis currently not supported");
 
-    ptMaterial->ComputeDiffVal4InvVecHyst( elNr, Bfield_, scalarVals );
-    //std::cout << "scalarVals:\n" << scalarVals << std::endl;
+//     Vector<Double> scalarVals(2);
 
-    dMat.Init();
-    dMat[0][0] = scalarVals[0];
-    dMat[1][1] = scalarVals[1];
+//     ptMaterial->ComputeDiffVal4InvVecHyst( elNr, Bfield_, scalarVals );
+//     dMat.Init();
+//     dMat[0][0] = scalarVals[0];
+//     dMat[1][1] = scalarVals[1];
 
-    //    dMat *=  reluctivity0_;
-    std::cout << "dMat:\n" << dMat << std::endl;
+//     //    dMat *=  reluctivity0_;
+//     std::cout << "dMat:\n" << dMat << std::endl;
   }
 
   // returns B for postprocessing

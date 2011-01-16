@@ -1,3 +1,4 @@
+
 // -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
@@ -23,30 +24,22 @@ namespace CoupledField {
     //!
     virtual ~Preisach();
 
-    //!
+    //! destructor
     Double computeValue(Double& xVal, Integer idxElem, bool overwrite = true);
 
-    //!
-    Double computeInverseValue(Double xVal, Integer idxElem);
-
-    //!
+    //!computes for xVal a new output value and deletion rules are applied
     Double computeValueAndUpdate(Double xVal, Integer idxElem, 
                                  bool overwrite = true);
 
-    //! 
+    //! returns the current output of the hyst-operator for element idxElem
     Double getValue(  Integer idxElem);
 
-    //! 
+    //! returns the number of stored minima and maxima
     UInt getStringLength( Integer idxElem ) {
       return  StringLenght_[ idxElem];
     };
 
-    //!
-    virtual Double GetIncX() {
-      return dH_;
-    };
-
-    //!
+    //! updates the list of minima and maxima due to new input
     Double updateMinMaxList(Double newX, Integer idxElem, 
                           bool overwrite);
 
@@ -54,49 +47,35 @@ namespace CoupledField {
     void SetTimeStepVal(Double dt) 
     {;};
 
-    //!
-    Double EvalEverett(Double x1, Double x2, Integer idx);
-
-    //!
-    Double everett(Double x1, Double x2);
-
-    //!
-    Double everettPixel(Double x1, Double x2);
-
-    //!
+    //! normalizes the input to Xsaturated_
     Double normalizeInput(Double xInput);
 
-    //!
+    //! normalizes the output to Ysaturated_
     Double normalizeOutput(Double xInput);
-
-
-    //! compute preisach weights;
-    void computePreisachWeights();
 
   protected:
 
+    //! computes  the everett function (area-integration for x1, x2)
+    Double everettPixel(Double x1, Double x2);
+
   private:
 
-    Double Xsaturated_;
-    Double YSaturated_;
-    Double YRemnant_;
+    Double Xsaturated_; //! saturation value for  input
+    Double YSaturated_; //! saturation value for output
 
-    bool isVirgin_;
-    Integer actElem_;
+    bool isVirgin_; //! yes, if starting at zero
 
-    Vector<Double> lastVal_;
-    Vector<Double> preisachSum_;
+    Vector<Double> preisachSum_; //! output value of Preisach operator
 
-    Vector<Double>* strings_;
-    Vector<Double>* helpStrings_;
+    Vector<Double>* strings_; //! irreduceable minima and maxima
+    Vector<Double>* helpStrings_; //! help array for string_
 
-    Vector<UInt> StringLenght_;
-    UInt maxStringLength_;
+    Vector<UInt> StringLenght_; //! number of irreduceable minima and maxima
+    UInt maxStringLength_; //! maximum allowd length for 
 
-    Matrix<Double> preisachWeights_;
+    Matrix<Double> preisachWeights_; //! presach weight function
 
-    Double dH_; 
-    Double eps_;
+    Double eps_; //! accuracy parameter
   };
 
 

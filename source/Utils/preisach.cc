@@ -25,13 +25,10 @@ namespace CoupledField
     }
 
     YSaturated_  = ySat;
-    //    YRemnant_    = xRem;
     isVirgin_    = isVirgin;
 
-    //    std::cout << "xSat: " << Xsaturated_ << "  Ysat=" << YSaturated_ << std::endl;
     preisachWeights_ = preisachWeight;
 
-    lastVal_.Resize(numElem);
     preisachSum_.Resize(numElem);
     preisachSum_.Init(0);
 
@@ -52,10 +49,6 @@ namespace CoupledField
       }
     }
 
-    //for inverse computation
-    dH_ = Xsaturated_ / (Double) (50.0*preisachWeights_.GetNumRows());
-
-    //    computePreisachWeights();
   }
 
   Preisach::~Preisach()
@@ -67,7 +60,6 @@ namespace CoupledField
 
   Double Preisach::getValue( Integer idx ) 
   {
-
     return ( preisachSum_[idx]*YSaturated_ );
   }
 
@@ -82,38 +74,23 @@ namespace CoupledField
     newX = normalizeInput(Xin);
 
     Yval = 0.0;
-    //    if ( actLength < 2 ) {
     if ( abs(abs(newX)+eps_) > abs(stringEl[0]) || actLength == 0 ) {
-      Yval =  everett( -newX, newX );
+      Yval =  everettPixel( -newX, newX );
     }
     else {
-      Yval =  everett(-stringEl[0],stringEl[0]);
+      Yval =  everettPixel(-stringEl[0],stringEl[0]);
       if ( abs(abs(newX)+eps_) > abs(stringEl[actLength-1]) ) {
         for ( UInt i=0; i<actLength-2; i++ ) {
-          Yval +=  2.0*everett(stringEl[i],stringEl[i+1]);
+          Yval +=  2.0*everettPixel(stringEl[i],stringEl[i+1]);
         }
-        Yval +=  2.0*everett(stringEl[actLength-2], newX);
+        Yval +=  2.0*everettPixel(stringEl[actLength-2], newX);
       }
       else {
         for ( UInt i=0; i<actLength-1; i++ ) {
-          Yval +=  2.0*everett(stringEl[i],stringEl[i+1]);
+          Yval +=  2.0*everettPixel(stringEl[i],stringEl[i+1]);
         }
-        Yval +=  2.0*everett(stringEl[actLength-1], newX);
+        Yval +=  2.0*everettPixel(stringEl[actLength-1], newX);
       }
-
-//       if (actLength > 1) {
-//         for ( UInt i=0; i<actLength-2; i++ ) {
-//           Yval +=  2.0*everett(stringEl[i],stringEl[i+1]);
-//         }
-//         Yval +=  everett(stringEl[actLength-2],newX);
-//       }
-//       else {
-//         Yval +=  everett(stringEl[actLength-1],newX);
-//       }
-
-//       std::cout << "\n Strings:\n "; 
-//       for ( UInt i=0; i<actLength; i++)
-//          std::cout <<  stringEl[i] << std::endl;
     }
 
     return ( Yval*YSaturated_ );
@@ -139,15 +116,12 @@ namespace CoupledField
 
     //normalize input
     Double newX = normalizeInput(Xin);
-    // std::cout << "New X: " << newX << std::endl;
 
     Vector<Double> &stringEl     = strings_[idx];
     Vector<Double> &helpStringEl = helpStrings_[idx];
 
     UInt& actLength = StringLenght_[idx];
     UInt stringLength = actLength;
-
-    //std::cout << "New X: " << newX << std::endl;
 
     if ( abs(newX) > abs(abs(stringEl[0]) - eps_) || stringLength == 0 ) {
       stringLength = 1;
@@ -179,13 +153,9 @@ namespace CoupledField
         
         stringLength = stringLength - k + 1;
         
-        //      std::cout << "actLength= " << actLength << std::endl;
-        
         if (overwrite ) {
           //check, if capacity of string-arrays is too less
           if ( stringLength > maxStringLength_ ) {
-            //	std::cout << "Resize array" << std::endl;
-            
             //resize the string-arrays
             maxStringLength_ += (UInt) round( (Double)maxStringLength_ / 2.0 );
             stringEl.Resize(maxStringLength_);
@@ -224,73 +194,20 @@ namespace CoupledField
       actLength = stringLength;
 
       //compute preisach-sum
-      preisachSum_[idx] =  everett(-stringEl[0],stringEl[0]);
+      preisachSum_[idx] =  everettPixel(-stringEl[0],stringEl[0]);
       for ( UInt i=0; i<actLength-1; i++ ) {
-        preisachSum_[idx] +=  2.0*everett(stringEl[i],stringEl[i+1]);
+        preisachSum_[idx] +=  2.0*everettPixel(stringEl[i],stringEl[i+1]);
       }
       newY = preisachSum_[idx]; 
     }
     else {
-      newY = everett(-helpStringEl[0], helpStringEl[0]);
+      newY = everettPixel(-helpStringEl[0], helpStringEl[0]);
       for ( UInt i=0; i<stringLength-1; i++ ) {
-        newY +=  2.0*everett(helpStringEl[i],helpStringEl[i+1]);
+        newY +=  2.0*everettPixel(helpStringEl[i],helpStringEl[i+1]);
       }
     }
 
-//     std::cout << " IDX: " << idx << "  LENGTH: " << actLength 
-//               <<"  newX = " << newX << std::endl;
-//     if ( actLength > 10 ) {
-//       std::cout << "\n Strings:\n "; 
-//       for ( UInt i=0; i<actLength; i++)
-//         std::cout <<  stringEl[i] << std::endl;
-//     }
-
     return newY;
-  }
-
-
-
-  Double Preisach::EvalEverett(Double xVal1, Double xVal2, Integer idx)
-  {
-
-    //normalize input
-    Double X1 = normalizeInput( xVal1 );
-    Double X2 = normalizeInput( xVal2 );
-
-
-    //    std::cout << "StrLength: " <<  StringLenght_[idx] << std::endl;
-    Double pPixel;
-    if (  StringLenght_[idx] < 2 ) {
-      //    Double pPixel =  everettPixel(X1, X2);
-      pPixel =  everett(-X2, X2);
-    }
-    else {
-      pPixel =  everett(X1, X2);
-    }
-
-    //    std::cout << "X1=" << X1 << " X2=" << X2 << " pPixel=" << pPixel << std::endl;
-    pPixel *= YSaturated_;
-
-    return pPixel;
-  }
-
-
-  Double Preisach::everett(Double X1, Double X2)
-  {
-
-//     Double newY;
-//     Double diffX = X2 - X1;
-
-//     if ( diffX > 0) {
-//       newY = 0.25*diffX*diffX;
-//     }
-//     else {
-//       newY = -0.25*diffX*diffX;
-//     }
-    //return newY;
-
-    Double pPixel =  everettPixel(X1, X2);
-    return pPixel;
   }
 
 
@@ -302,12 +219,6 @@ namespace CoupledField
 
     UInt M = preisachWeights_.GetNumRows();
     Double delta = 2.0 / ( (Double) M );
-//     std::cout << "delta=" << delta << std::endl;
-//     std::cout << "e1=" << val1 << "  e2=" << val2 << std::endl;
-//     std::cout << "X1=" << X1 << "  X2=" << X2 << std::endl;
-
-    // we compute the upper left corner within the preisach-domain
-    // alpha > X1; beta < X2;
 
     //compute index for X1 (alpha)
     Integer idx1 = -1;
@@ -315,7 +226,6 @@ namespace CoupledField
     while ( alpha <= X1 ) {
       idx1++;
       alpha += delta;
-      //      std::cout << "idx1=" << idx1 << "  alpha=" << alpha << std::endl;
     }
 
     if (alpha > 1.0) {
@@ -332,9 +242,6 @@ namespace CoupledField
     }
     beta -= delta;
 
-//     std::cout << "idx1=" << idx1 << "  idx2=" << idx2 << std::endl;
-//     std::cout << "alpha=" << alpha << "  beta=" << beta << std::endl;
-
     Double area = 0.0;
     if ( idx1 >= 0 ) {
       UInt start = std::min(idx1,idx2);
@@ -347,13 +254,9 @@ namespace CoupledField
 
       area *= 0.5*delta*delta;
 
-      //      std::cout << "areaToMuch=" << area << std::endl;
-
       //reduce the computed area
       Double diffX1 = alpha - X1;
       Double diffX2 = X2    - beta;
-      //      std::cout << " diffX1=" << diffX1 << "  diffX2=" << diffX2 << std::endl;
-
       Double minusArea;
  
       //check, if we are already on the diagonal!!
@@ -362,13 +265,11 @@ namespace CoupledField
 		      + diffX1 * (delta - 0.5*diffX1)
                       - diffX1*diffX2 
 		     ) * preisachWeights_[idx1][idx2];
-	//	std::cout << "minusArea1end=" << minusArea << std::endl;
       }
       else {
 	minusArea = ( (diffX1+diffX2 )*delta - diffX1*diffX2 ) 
 	  * preisachWeights_[idx1][idx2];
 
-	//	std::cout << "minusArea1=" << minusArea << std::endl;
 	Integer idx = idx1-1;
 	while ( idx > idx2 ) {
 	  minusArea += diffX2 * delta * preisachWeights_[idx][idx2];
@@ -378,9 +279,6 @@ namespace CoupledField
 	minusArea += ( delta*diffX2 - 0.5*diffX2*diffX2 )
 	  * preisachWeights_[idx][idx2]; 
 
-// 	std::cout << "minusArea3=" <<  ( delta*diffX2 - 0.5*diffX2*diffX2 )
-// 	  * preisachWeights_[idx][idx2] << std::endl;
-	
 	idx = idx2 + 1;
 	while ( idx < idx1 ) {
 	  minusArea += diffX1 * delta * preisachWeights_[idx1][idx];
@@ -395,25 +293,12 @@ namespace CoupledField
 
     //sgn-function
     if ( val2 < val1 ) {
-      //      std::cout << "val2 < val1" << std::endl;
       area *= -1.0; 
     }
 
     return area;
   }
 
-
-  void Preisach::computePreisachWeights()
-  {
-
-    UInt dim = 6;
-    preisachWeights_.Resize(dim,dim);
-    for ( UInt i=0; i<dim; i++) {
-      for ( UInt j=0; j<dim; j++) {
-	preisachWeights_[i][j] = 0.5;
-      }
-    }
-  }
 
   Double Preisach::normalizeInput(Double Xin)
   {

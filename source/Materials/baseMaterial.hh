@@ -240,6 +240,7 @@ namespace CoupledField {
     //Initialize approximations of nonlinear curves
     virtual void InitApproxCurves() {;};
 
+    //======================================= Hysteresis methods ============================
     //Initialize hysteresis
     virtual void InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList, 
                            bool isInverse = false, bool computeInverse = false );
@@ -262,38 +263,25 @@ namespace CoupledField {
       return isHysteresis_;
     };
 
-    virtual Double ConvertVec2ScalarWithSign( Vector<Double>& vecVal );
-
-    //set values for differential material approach
+    //set values for differential material approach: scalar hyst
     virtual void SetPreviousHystVal( UInt nrElem, Double Xval ) {
       EXCEPTION( "SetPreviousHystVal not implemented" );
     };
 
-    //set values for differential material approach
-    virtual void SetPreviousHystVal( UInt nrElem, Vector<Double>& Xval );
-
-    //set values for differential material approach
-    virtual void SetPreviousInvVecHystVal( UInt nrElem, Vector<Double>& Yval );
-
-    //! compute scalar differential parameter
-    virtual Double ComputeScalarDiffVal( UInt nrElem, Double Xval ) {
-      EXCEPTION( "ComputeScalarDiffValue not implemented" );
-      return 1.0;
+    //set values for differential material approach: vector-hyst
+    virtual void SetPreviousHystVal( UInt nrElem, Vector<Double>& Xval ) {     
+      EXCEPTION( "SetPreviousHystVal not implemented" );
     };
 
-    //! compute scalar differential parameter
-    virtual Double ComputeScalarDiffVal( UInt nrElem, Vector<Double>& Xval );
 
-    //! compute scalar differential parameters
-    virtual void ComputeScalarDiffValues( UInt nrElem, Vector<Double>& in,
-                                            Vector<Double>& scalarValues ) {
-      EXCEPTION( "ComputeScalarDiffValues not implemented" );
-    };
+//     //! compute scalar differential parameter: scalar hyst
+//     virtual Double ComputeScalarDiffVal( UInt nrElem, Double Xval ) {
+//       EXCEPTION( "ComputeScalarDiffValue not implemented" );
+//       return 1.0;
+//     };
 
-    //! compute scalar differential parameter
-    virtual void ComputeDiffVal4InvVecHyst( UInt nrElem, 
-                                            Vector<Double>& Xval,
-                                            Vector<Double>& vecVal );
+//     //! compute scalar differential parameter: vector hyst
+//     virtual Double ComputeScalarDiffVal( UInt nrElem, Vector<Double>& Xval );
 
     //! computes the scalar hystereis value
     virtual Double ComputeScalarHystVal( UInt nrElem, Double Xval ) {
@@ -301,8 +289,11 @@ namespace CoupledField {
       return 1.0;
     };
 
-    //! computes the scalar hystereis value
-    virtual Double ComputeScalarHystVal( UInt nrElem, Vector<Double>& Xval );
+    //! compute scalar differential parameter
+    virtual Double ComputeScalarDiffVal( UInt nrElem, Double Xval ) {
+      EXCEPTION( "ComputeScalarDiffValue not implemented" );
+      return 1.0;
+    };
 
     //! compute the vector hysteresis values
     virtual void ComputeVectorHystVal( UInt nrElem, Vector<Double>& Xin, 
@@ -310,19 +301,17 @@ namespace CoupledField {
       EXCEPTION( "ComputeVectorHystVal not implemented" );
     };
 
-    //! computes the scalar hystereis value
+    //! get scalar hystereis value
     virtual Double GetScalarHystVal( UInt nrElem );
 
-    //! computes the scalar hystereis value
+    //! get previous scalar hystereis value
     virtual Double GetScalarHystPrevVal( UInt nrElem );
 
-    //! get vector of hysteresis model
+    //! get vector of hysteresis value
     virtual void GetVectorHystVal( UInt nrElem, Vector<Double>& Val ) {
       EXCEPTION( "ComputeVectorHystVal not implemented" );
     };
 
-    //! get vector of hysteresis model
-    virtual void GetVectorXHystVal( UInt nrElem, Vector<Double>& Val );
 
     //========================== micro-piezoelectric-model: start==================
 
@@ -486,7 +475,7 @@ namespace CoupledField {
 
     std::map<UInt, UInt> globalElem2Local_;
 
-    //! yes, ppiezoelectric micro-model is switched on
+    //! yes, piezoelectric micro-model is switched on
     bool isPiezoMicroModel_;	
 
     //! object for piezo-micor-modeling
