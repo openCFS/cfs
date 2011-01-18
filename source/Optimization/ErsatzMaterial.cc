@@ -336,15 +336,16 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   {
     PtrParamNode in = iter->Get("homogenizedTensor");
     in->Get("norm_L2")->SetValue(homogenizedTensor.NormL2());
+    SubTensorType stt = pde->GetSubTensorType();
 
     PtrParamNode iso = in->Get("isotropy");
-    iso->Get("err")->SetValue(MechanicMaterial::CalcIsotropyError(homogenizedTensor, false));
-    iso->Get("err_normed")->SetValue(MechanicMaterial::CalcIsotropyError(homogenizedTensor, true));
-    iso->Get("poissons_ratio")->SetValue(MechanicMaterial::CalcIsotropicPoissonsRatio(homogenizedTensor));
-    iso->Get("E")->SetValue(MechanicMaterial::CalcIsotropicYoungsModulus(homogenizedTensor));
+    iso->Get("err")->SetValue(MechanicMaterial::CalcIsotropyError(homogenizedTensor, pde->GetSubTensorType()));
+    iso->Get("poissons_ratio")->SetValue(MechanicMaterial::CalcIsotropicPoissonsRatio(homogenizedTensor, stt));
+    iso->Get("E")->SetValue(MechanicMaterial::CalcIsotropicYoungsModulus(homogenizedTensor, stt));
 
     PtrParamNode orth = in->Get("orthotropy");
-    StdVector<std::pair<string, double> > ortho = MechanicMaterial::CalcOrthotropeProperties(homogenizedTensor);
+
+    StdVector<std::pair<string, double> > ortho = GetOrthotropeProperties(homogenizedTensor);
     for(unsigned int i = 0; i < ortho.GetSize(); i++)
       orth->Get(ortho[i].first)->SetValue(ortho[i].second);
 
@@ -357,7 +358,14 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   return iter;
 }
 
-
+StdVector<std::pair<string, double> > ErsatzMaterial::GetOrthotropeProperties(const Matrix<double>& tensor)
+{
+  BaseMaterial* bm = GetForm(design->GetRegionId(), pde, pde, "linElastInt")->GetMaterial();
+  Objective vf(Function::VOLUME);
+  double vol = CalcVolume(&vf, NULL, false, true);
+  StdVector<std::pair<string, double> > ortho = MechanicMaterial::CalcOrthotropeProperties(homogenizedTensor, bm, pde->GetSubTensorType(), vol);
+  return ortho;
+}
 
 string ErsatzMaterial::GetIterationFrequency()
 {
@@ -904,7 +912,9 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
               std::cout << "Homogenized Tensor: " << std::endl << hom_tensor.ToString(0, true);
 
               std::cout << "Orthotrope properties: ";
-              StdVector<std::pair<string, double> > ortho = MechanicMaterial::CalcOrthotropeProperties(hom_tensor);
+
+              StdVector<std::pair<string, double> > ortho = GetOrthotropeProperties(hom_tensor);
+
               for(unsigned int i = 0; i < ortho.GetSize(); i++)
                 std::cout << " " << ortho[i].first << "=" << ortho[i].second;
               std::cout << "\n";
@@ -921,7 +931,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
     case Function::HOMOGENIZATION_TRACKING:
          if(derivative)
          {
-           CalcHomogenizedTrackingGradient(f->GetTensor(), CalcHomogenizedTensor(), c, g);
+           CalcHomogenizedTrackingGradient(f->GetTensor(), CalcHomogenizedTensor(), f);
          }
          else
          {
@@ -932,7 +942,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
 
     case Function::POISSONS_RATIO:
     case Function::YOUNGS_MODULUS:
-         result = CalcPoissonsRatioAndYoungsModulus(c, g, derivative);
+         result = CalcPoissonsRatioAndYoungsModulus(f, derivative);
          break;
 
     case Function::GLOBAL_DYNAMIC_COMPLIANCE:
@@ -1157,7 +1167,7 @@ double ErsatzMaterial::CalcVolume(Objective* f, Condition* g, bool derivative, b
       if(!design->IsRegular())
         throw Exception(Function::type.ToString(func->GetType()) + " only implemented for regular grids");
 
-      CalcRegularGapConstraint(f, g, des);
+      CalcRegularGapConstraint(func, des);
       return -1.0;
     }
   }
@@ -1167,7 +1177,7 @@ double ErsatzMaterial::CalcVolume(Objective* f, Condition* g, bool derivative, b
   return -1.0; // cannot happen due to assert
 }
 
-void ErsatzMaterial::CalcRegularGapConstraint(Objective* f, Condition* g, DesignElement::Type dt)
+void ErsatzMaterial::CalcRegularGapConstraint(Function* f, DesignElement::Type dt)
 {
   assert(design->IsRegular());
 
@@ -1175,7 +1185,7 @@ void ErsatzMaterial::CalcRegularGapConstraint(Objective* f, Condition* g, Design
   unsigned int ele = design->GetNumberOfElements();
 
   // exponent for penalized volume
-  const double exp = f != NULL ? g->GetParameter() : g->GetParameter();
+  const double exp = f->GetParameter();
 
   for(unsigned int i = des * ele; i < (des + 1) * ele; i++)
   {
@@ -1187,7 +1197,7 @@ void ErsatzMaterial::CalcRegularGapConstraint(Objective* f, Condition* g, Design
     // normalize
     double grad = (1.0 - pen_grad) / (double) ele;
 
-    de.AddGradient(f, g, grad);
+    de.AddGradient(f,  grad);
   }
 }
 
@@ -1838,22 +1848,14 @@ double ErsatzMaterial::CalcTracking(Excitation& excite, Objective* c, Condition*
   }
 }
 
-double ErsatzMaterial::CalcPoissonsRatioAndYoungsModulus(Objective* cost, Condition* g, bool derivative)
+double ErsatzMaterial::CalcPoissonsRatioAndYoungsModulus(Function* f, bool derivative)
 {
-  assert(cost != NULL || g != NULL); // at least one of them must be given!
-  
-  bool poisson(false);
-  if(cost != NULL)
-  {
-    assert(cost->GetType() == Objective::POISSONS_RATIO || cost->GetType() == Objective::YOUNGS_MODULUS);
-    poisson = cost->GetType() == Objective::POISSONS_RATIO;
-  }
-  else
-  {
-    assert(g->GetType() == Condition::POISSONS_RATIO || g->GetType() == Condition::YOUNGS_MODULUS);
-    poisson = g->GetType() == Condition::POISSONS_RATIO;
-  }
+  assert(f->GetType() == Function::POISSONS_RATIO || f->GetType() == Function::YOUNGS_MODULUS);
 
+  bool poisson = f->GetType() == Function::POISSONS_RATIO;
+  SubTensorType stt = pde->GetSubTensorType();
+  assert(stt == PLANE_STRAIN || stt == PLANE_STRESS || stt == FULL);
+  
   Matrix<double> hom_tensor = CalcHomogenizedTensor();
 
   double result = 0.0;
@@ -1868,29 +1870,37 @@ double ErsatzMaterial::CalcPoissonsRatioAndYoungsModulus(Objective* cost, Condit
     const double E11 = hom_tensor[0][0];
     const double E12 = hom_tensor[0][1];
     double grad(0.0);
-    const double denom = (E11 + E12) * (E11 + E12);
+    const double denom = stt == PLANE_STRESS ? E11 * E11 : (E11 + E12) * (E11 + E12);
     
     for(unsigned int e = 0, ne = design->GetNumberOfElements(); e < ne; e++)
     {      
       if(poisson) 
-        grad = (dE12[e] * E11 - E12 * dE11[e]);
+        grad = (dE12[e] * E11 - E12 * dE11[e]); // same for all cases
       else
       {
-        grad  = (E11 * E11 + 2.0 * E11 * E12 + 3.0 * E12 * E12) * dE11[e];
-        grad -= (4.0 * E11 * E12 + 2.0 * E12 * E12) * dE12[e];
+        if(stt == PLANE_STRESS)
+        {
+          grad  = (E11 * E11 + E12 * E12) * dE11[e];
+          grad -= 2.0 * E11 * E12 * dE12[e];
+        }
+        else
+        {
+          grad  = (E11 * E11 + 2.0 * E11 * E12 + 3.0 * E12 * E12) * dE11[e];
+          grad -= (4.0 * E11 * E12 + 2.0 * E12 * E12) * dE12[e];
+        }
       }
       
       grad /= denom;
 
-      design->data[e].AddGradient(cost, g, grad);
+      design->data[e].AddGradient(f, grad);
     }
   }
   else
   {
     if(poisson)
-      result = MechanicMaterial::CalcIsotropicPoissonsRatio(hom_tensor);
+      result = MechanicMaterial::CalcIsotropicPoissonsRatio(hom_tensor, stt);
     else
-      result = MechanicMaterial::CalcIsotropicYoungsModulus(hom_tensor);
+      result = MechanicMaterial::CalcIsotropicYoungsModulus(hom_tensor, stt);
   }
 
   return result;
@@ -1968,7 +1978,7 @@ Matrix<double> ErsatzMaterial::CalcHomogenizedTensor()
   return result;
 }
 
-void ErsatzMaterial::CalcHomogenizedTrackingGradient(const Matrix<double>& target, const Matrix<double>& hom, Objective* f, Condition* g)
+void ErsatzMaterial::CalcHomogenizedTrackingGradient(const Matrix<double>& target, const Matrix<double>& hom, Function* f)
 {
   const double cube_vol(grid->CalcVolumeSpannedByNamedNodes());
 
@@ -2021,7 +2031,7 @@ void ErsatzMaterial::CalcHomogenizedTrackingGradient(const Matrix<double>& targe
     // (E^* - E^H) * - d(E^H)/d(rho_e) -> therefore the minus !
     double grad = -1.0 * diff_tensor.ScalarProduct(hom_tensor_deriv);
 
-    de->AddGradient(f, g, grad);
+    de->AddGradient(f, grad);
   } // element loop
 }
 

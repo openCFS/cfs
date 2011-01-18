@@ -393,8 +393,9 @@ public:
    * @see DesignStructure::DesignStructure() */
   StdVector<NeighbourElement> neighborhood;
 
-  /** string representation for logging, includes neighborhood */
-  std::string ToString() const;
+  /** string representation for logging, includes neighborhood.
+   * @param level 0 is elements, 1 is with weighting and distance */
+  std::string ToString(int level = 0) const;
 
   /** for debugging. Sums the weights of all neighbors, ... */
   void Dump();

@@ -84,58 +84,54 @@ namespace CoupledField {
 		    SubTensorType = FULL ) const;	
     
     /** Computes the error to an isotropic elasticity tensor.
-     * Considers only the right upper diagonal matrix
-     * 2D: E11-E22 = 0, E11-E12-2E33 = 0, E12 = 0, E23 = 0
-     * @param normed divides every entry by E11
-     * @return always positive as we add only abs(). */
-    static double CalcIsotropyError(const Matrix<double>& tensor, bool normed);
+     * Assume isotropy and calculate E and v, construct E(E,v) and return ||E(E,v) - tensor||_1 */
+    static double CalcIsotropyError(const Matrix<double>& tensor, SubTensorType stt);
 
     /** Compute the Young's modulus out of an isotropic tensor.
      * You might want to check via ComputeIsotropyError() first.
      * Does not check for isotropy but is brute force! */
-    static double CalcIsotropicYoungsModulus(const Matrix<double>& tensor);
+    static double CalcIsotropicYoungsModulus(const Matrix<double>& tensor, SubTensorType subTensor);
 
     /** Compute the Poisson's ratio out of an isotropic tensor.
      * @see ComputeIsotropicYoungsModulus() */
-    static double CalcIsotropicPoissonsRatio(const Matrix<double>& tensor);
+    static double CalcIsotropicPoissonsRatio(const Matrix<double>& tensor, SubTensorType subTensor);
 
-    /** static helper function to calculate real stiffness tensor from elasticity modulus and poisson ratio
-      * in 2D we compute the plain strain state */ 
-    static void CalcIsotropicStiffnessTensorFromEAndPoisson(Matrix<Double>& out, Double emod, Double poisson, UInt dim);
+    /** static helper function to calculate real stiffness tensor from elasticity modulus and Poisson's ratio (3D) */
+    static void CalcIsotropicStiffnessTensorFromEAndPoisson(Matrix<Double>& out, Double emod, Double poisson);
     
-    /** static helper function to calculate real stiffness tensor from lame parameters
-     *  in 2D we compute the plain strain state */
-    static void CalcIsotropicStiffnessTensorFromLame(Matrix<Double>& out, Double lambda, Double mu, UInt dim);
+    /** static helper function to calculate real stiffness tensor from lame parameters (3D) */
+    static void CalcIsotropicStiffnessTensorFromLame(Matrix<Double>& out, Double lambda, Double mu);
     
-    /** static helper function to calculate complex stiffness tensor from lame parameters
-      *  in 2D we compute the plain strain state */
-    static void CalcComplexIsotropicStiffnessTensor(Matrix<Complex>& out,
-        const Complex &lambda, const Complex &mu, UInt dim);
+    /** static helper function to calculate complex stiffness tensor from lame parameters */
+    static void CalcComplexIsotropicStiffnessTensor(Matrix<Complex>& out, Complex lambda, Complex mu);
 
-    /** Calculates orthotrope Youngs moduli
-     * @return a vector with 2 or 3 entries E_1, E_2 (, E_3) */
-    static StdVector<double> CalcOrthotropeYoungsModulus(const Matrix<double>& tensor);
-
-    /** Calculates orthotrope Youngs moduli
-     * @return a vector with 2 or 6 entries v_21, v_12 or v_32, v_31, v_21, v_23, v_13, v_12 */
-    static StdVector<double> CalcOrthotropePoissonsRatio(const Matrix<double>& tensor);
+    /** Computes from a given tensor the sub-type */
+    template<class T>
+    static void ComputeSubTensor(Matrix<T>& matMatrix, SubTensorType subTensor, const Matrix<T>& input);
 
     /** Calculates the orthotrope error.
      * Is only an informal heuristic. Sums up the values where there should be zero plus the balances */
-    static double CalcOrthotropeError(const Matrix<double>& tensor);
-
+    static double CalcOrthotropeError(const Matrix<double>& tensor, BaseMaterial* mat, SubTensorType stt, double vol);
 
     /** Calculates orthotrope material properties and gives them with a readable string.
      * @return first a description with underliner, then the value */
-    static StdVector<std::pair<std::string, double> > CalcOrthotropeProperties(const Matrix<double>& tensor);
+    static StdVector<std::pair<std::string, double> > CalcOrthotropeProperties(const Matrix<double>& tensor, BaseMaterial* mat, SubTensorType stt, double vol);
 
   private:
 
+    /** Calculates orthotrope Youngs moduli. Not for plane_stress!!
+     * @return a vector with 3 entries E_1, E_2, E_3 where E_3 = vol * E_core in 2D */
+    static StdVector<double> CalcOrthotropeYoungsModulus(const Matrix<double>& tensor, BaseMaterial* mat, SubTensorType stt, double vol);
 
-    //! compute the2 correct subTensor (3D, AXI, ..)
-    void ComputeSubTensor(Matrix<Complex>& matMatrix,
-			  MaterialType matType, 
-			  SubTensorType subTensor) const;
+    /** Calculates orthotrope Youngs moduli
+     * in 2D the extensions to 3D are from the plane strain extensions. Works not for plane stress yet
+     * @return a vector with 6 entries  v_21, v_12, v_31, v_13, v_32, v_23 */
+    static StdVector<double> CalcOrthotropePoissonsRatio(const Matrix<double>& tensor, BaseMaterial* mat, SubTensorType stt, double vol);
+
+
+    /** compute the correct subTensor (3D, AXI, ..) from the material */
+    void ComputeSubTensor(Matrix<Complex>& matMatrix, MaterialType matType, SubTensorType subTensor) const;
+
 
     //! Compute elasticity tensor from given parameters
     void ComputeFullStiffTensor();

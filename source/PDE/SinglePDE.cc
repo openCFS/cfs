@@ -510,6 +510,15 @@ namespace CoupledField {
   }
 
 
+  SubTensorType SinglePDE::GetSubTensorType() const
+  {
+    if(subType_ == "") return NO_TENSOR;
+
+    SubTensorType stt;
+    String2Enum(subType_, stt);
+    return stt;
+  }
+
   void SinglePDE::SaveSolution( const Double * ptSol, UInt size ) {
 
     Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVec_);

@@ -26,6 +26,9 @@ class Objective : public Function
      * @param index our position withn the objectives for the design element costGradient */
     Objective(PtrParamNode pn, PtrParamNode pn_type, unsigned int index);
     
+    /** Construct dummy function such that we can calculate the volume */
+    Objective(Type type, double parameter = 0.0, bool physical = false);
+
     virtual ~Objective() {};
 
     /** overwrites Function::IsObjective() */

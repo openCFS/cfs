@@ -329,6 +329,10 @@ namespace CoupledField
     /** does something like (this - other).NormL2().
      * @see NormL2() */
     TYPE DiffNormL2(const Matrix<TYPE>& other) const;
+
+    /** @see NormL2() but L1 norm */
+    TYPE DiffNormL1(const Matrix<TYPE>& other) const;
+
     
     //@}
 

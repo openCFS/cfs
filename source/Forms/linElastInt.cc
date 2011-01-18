@@ -866,6 +866,8 @@ void linElastInt::SetDimensions(SubTensorType type)
   case PLANE:
     EXCEPTION("SubTensorType PLANE not handled by linElastInt::SetDimensions");
     break;
+  default:
+    assert(false);
   }
 }
 

@@ -92,6 +92,7 @@ void OptimizationMaterial::GetElementEntity(BaseForm* form, Matrix<double>* mat_
   if(elem == NULL) elemList.SetElement(opt->GetDesign()->data[0].elem);
               else elemList.SetElement(elem);
 
+  // form needs to be the right one for the region!
   BaseMaterial* org_mat = form->GetMaterial(); // for bimaterial
 
   if(bimaterial != NULL)

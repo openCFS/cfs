@@ -49,8 +49,6 @@ public:
    * @return 0-based index of (firt) non-zero index. */
   static int GetCartesianOrientation(const Vector<double>* vec);
 
-
-
   //!
   Point & operator=(const Point & t);
 
@@ -104,6 +102,15 @@ public:
   //! calculate distance to another point
   Double Dist(const Point& other) const {
     return Point::Dist(*this, other);
+  }
+
+  /** Difference to another point but w/o return value to save memory in loops
+   * dist = this - other */
+  void Dist(const Point& other, Point& dist) const
+  {
+    dist[0] = data[0] - other.data[0];
+    dist[1] = data[1] - other.data[1];
+    dist[2] = data[2] - other.data[2];
   }
 
   /** Lists the content

@@ -17,7 +17,6 @@ class SinglePDE;
 class ElecPDE;
 class BaseForm;
 class BiLinFormContext;
-class BaseMaterial;
 class Condition;
 class Assemble;
 class TransferFunction;

@@ -503,7 +503,7 @@ def extract_old_header(infile):
   return header
 
 
-# this is a helper strucht for readLumpedMechDisplacement
+# this is a helper struct for readLumpedMechDisplacement
 class LumpedMechDisplacement:
   def __init__(self, elemNum, x, y, z):
     self.elemNum = elemNum
@@ -551,11 +551,12 @@ def readLumpedMechDisplacement(info_xml, region):
     result.append(item)
   return result  
 
-# create an interpolated density file from a readLumpedMechDisplacement() result for positive z displacement.
-# below the first frequency we assume full material, obove the highest frequency an exception is thrown
+## create an interpolated density file from a readLumpedMechDisplacement() result for positive z displacement.
+# below the first frequency we assume full material, above the highest frequency an exception is thrown
 # @param data is the result from readLumpedMechDisplacement
 # @param f the frequency to interpolate
 # @param density_file the filename where the density file is written to
+# @return lower, upper, alpha, beta, min, max
 def interpolateLumpedMechDisplacementAsDensity(data, f, density_file):
   # find upper and lower frequency
   lower = 0.0
@@ -586,11 +587,11 @@ def interpolateLumpedMechDisplacementAsDensity(data, f, density_file):
 
   # preliminary result, before normalizing to 1.0
   tmp = []
-  # we don't know if the positive or negative real parts dominates. the firs mode has the same sign which might be neg
+  # we don't know if the positive or negative real parts dominates. the first mode has the same sign which might be neg
   max_v = -1e30   
   min_v = +1e30
   for i in range(len(upper_data)):
-    lower_value = 1.0 # there is no read condition operator in python :( 
+    lower_value = 1.0 # there is no real condition operator in python :( 
     if len(lower_data) > 0:
       lower_value = lower_data[i].z
     upper_value = upper_data[i].z
@@ -602,12 +603,13 @@ def interpolateLumpedMechDisplacementAsDensity(data, f, density_file):
     
   # normalize and eliminate the right values
   for i in range(len(tmp)):
-    if abs(max_v) >= abs(min_v) and max_v > 0:
-      # print "a max=" + str(max_v) + " min=" + str(min_v) + " t=" + str(tmp[i]) + " -> " + str(cond(tmp[i] > 0, tmp[i] / max_v, 0.0)) + "\n" 
-      tmp[i] = cond(tmp[i] > 0, tmp[i] / max_v, 0.0)
-    else:
+  #  if abs(max_v) >= abs(min_v) and max_v > 0:
+  #    # print "a max=" + str(max_v) + " min=" + str(min_v) + " t=" + str(tmp[i]) + " -> " + str(cond(tmp[i] > 0, tmp[i] / max_v, 0.0)) + "\n"
+    max_v = cond(max_v > 0.001, max_v, 0.001) 
+    tmp[i] = cond(tmp[i] > 0, tmp[i] / max_v, 0.0)
+#    else:
       # print "b max=" + str(max_v) + " min=" + str(min_v) + " t=" + str(tmp[i]) + " -> " + str(cond(tmp[i] < 0, tmp[i] / min_v, 0.0)) + "\n"      
-      tmp[i] = cond(tmp[i] < 0, tmp[i] / min_v, 0.0)
+    # tmp[i] = cond(tmp[i] < 0, tmp[i] / min_v, 0.0)
     if tmp[i] < 0.0 or tmp[i] > 1.0:
       raise RuntimeError("invalid density " + str(tmp[i]))
     # prevent 0
@@ -619,7 +621,7 @@ def interpolateLumpedMechDisplacementAsDensity(data, f, density_file):
   out.write('<?xml version="1.0"?>\n')
   out.write('<cfsErsatzMaterial>\n')
   out.write('  <header>\n')
-  out.write('    <design initial="0.5" lower="1e-3" name="density" upper="1"/>\n')
+  out.write('    <design initial="0.5" lower="1e-3" name="density" upper="1" region="all" />\n')
   out.write('    <transferFunction application="mech" design="density" param="1" type="simp"/>\n')
   out.write('  </header>\n')
   out.write('  <set id="f_' + str(f) + '_' + str(alpha) + '*' + str(lower) + '+' + str(beta) + '*' + str(upper) + '_min_' + str(min_v) + '_max_' + str(max_v) + '">\n')
@@ -630,7 +632,9 @@ def interpolateLumpedMechDisplacementAsDensity(data, f, density_file):
 
   out.write(' </cfsErsatzMaterial>\n')
   out.close()
-
+ 
+  return lower, upper, alpha, beta, min_v, max_v
+ 
 
 # helper for external use - create a 2D "window"
 # strength is the size of the window in fraction. .5 is maximum

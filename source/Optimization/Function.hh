@@ -32,12 +32,12 @@ class Function
     /** Dummy constructor for StdVector */
     Function() {};
     
-    /** virtual dtor because base class */
-    virtual ~Function();
-
     /** A Function is too stupid to do any useful - it is just a common base to avoid code dupliciy
      * @param pn our own element */
     Function(PtrParamNode pn);
+
+    /** virtual dtor because base class */
+    virtual ~Function();
 
     /** once we won't have this difference any more */
     static Function* Cast(Objective* c, Condition* g);

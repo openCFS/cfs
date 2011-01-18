@@ -163,8 +163,22 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
   // find simp neighbors for all our elements
   double radius = -1.0; // for each element, set only once for regular.
   StdVector<SIMPElement::NeighbourElement> neighbors; // will become element neighborhood
+
+  // for unstructured neighborhood search
   StdVector<unsigned int> too_far;   // element numbers too far away
-  StdVector<unsigned int> expandable; // FindNeighborhood() adds here periodic expanded neighbors
+
+  // our reference element dimensions for FindRegularNeighborhood()
+  StdVector<double> edges;
+  if(regular)
+  {
+    Matrix<double> coords; // temporary
+    Elem* elem = data[0].elem;
+    domain->GetGrid()->GetElemNodesCoord(coords, elem->connect);
+    elem->ptElem->GetEdgeLength(coords, edges);
+
+    // also initialize the vicinity elements!
+    VicinityElement::Init(space, this);
+  }
 
   for(unsigned int e = 0; e < data.GetSize(); e++)
   {
@@ -181,11 +195,13 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
     // recursively via element neighbors.
     neighbors.Resize(0);
     too_far.Resize(0);
-    expandable.Resize(0); // this is our re-used expandable vector.
 
     LOG_DBG2(ds) << "SF: call FN for " << de->elem->ToString();
-    FindNeighborhood(de, radius, *(de->elem->neighborhood), expandable, neighbors, too_far); // works recursive
-    // save neighborhood
+    if(regular)
+      FindRegularNeighborhood(de, radius, edges, neighbors);
+    else
+      FindUnstructuredNeighborhood(de, radius, *(de->elem->neighborhood), neighbors, too_far); // works recursive
+    // save neighborhood by copy constructor
     de->simp->neighborhood = neighbors;
     // set own weight
     assert(contribution_ == LINEAR || contribution_ == CONSTANT);
@@ -204,7 +220,7 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
 
     avg_radius += radius;
     avg_neighbours += de->simp->neighborhood.GetSize();
-    LOG_DBG2(ds) << "SF: final " << de->simp->ToString();
+    LOG_DBG2(ds) << "SF: final " << de->simp->ToString(0);
   }
 
   in->Get("avg_radius")->SetValue(avg_radius / data.GetSize());
@@ -216,13 +232,10 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
             << " avg neighbourhood: " << (avg_neighbours / data.GetSize()) << std::endl;
 }
 
-void DesignStructure::FindNeighborhood(DesignElement* base, double radius,
-                                      StdVector<std::pair<Elem*, int> >& initial,
-                                      StdVector<unsigned int>& expandable,
-                                      StdVector<SIMPElement::NeighbourElement>& neighbors,
-                                      StdVector<unsigned int>& too_far)
+void DesignStructure::FindRegularNeighborhood(DesignElement* base, double radius, const StdVector<double>& edges, StdVector<SIMPElement::NeighbourElement>& neighbors)
 {
-  LOG_DBG2(ds) << "FN: base= " << base->elem->elemNum << " initial=" << initial.ToString() << " ex=" << expandable.ToString() << " n=" << ToString(neighbors) << " tf=" << too_far.ToString();
+  assert(regular);
+  // from the radius define a square/cube and check for every element. The corners are sorted out by distance
 
   // the legacy SHARP_PLAIN and SHARP_SIGMUND had the bug, that the weight was not
   // radius - distance but value - distance. To keep the legacy results we reproduce
@@ -230,22 +243,101 @@ void DesignStructure::FindNeighborhood(DesignElement* base, double radius,
   // and for SHARP_SIGMUND also in the filtering itself! :(
   double val_rad = filter_.sensitivity_ == Filter::SHARP_PLAIN || filter_.sensitivity_ == Filter::SHARP_SIGMUND ? value : radius;
 
+  int x = ceil(radius / edges[0]);
+  int y = ceil(radius / edges[1]);
+  int z = dim < 3 ? 0 : ceil(radius / edges[2]);
+
+  for(int i = -x; i <= x; i++)
+  {
+    for(int j = -y; j <= y; j++)
+    {
+      for(int k = -z; k <= z; k++) // ensure to enter one time in 2D
+      {
+        if(i == 0 && j == 0 && k == 0) // don't search for ourself!
+          continue;
+
+        DesignElement* other = GetNeighborElement(base, i, j, k);
+        if(other != NULL)
+        {
+          // check the element
+          double distance = RelaxedDistance(base->elem, other->elem);
+          if(distance <= radius)
+          {
+            // value is here a double radius
+            // this is the implementation from Bendsoe/ Sigmund
+            SIMPElement::NeighbourElement ne;
+
+            // map from element number to design
+            ne.neighbour = other;
+
+            // linear or constant weighting. will be normalized in the calling method!
+            assert(contribution_ == LINEAR || contribution_ == CONSTANT);
+            ne.weight = contribution_ == LINEAR ? val_rad  - distance : 1;
+            ne.distance  = distance;
+            neighbors.Push_back(ne); // cheap
+          }
+        }
+      }
+    }
+  }
+}
+
+DesignElement* DesignStructure::GetNeighborElement(DesignElement* base, int i_steps, int j_steps, int k_steps)
+{
+  DesignElement* other = NULL;
+  other = GetNeighborElement(base, abs(i_steps), i_steps < 0 ? VicinityElement::X_N : VicinityElement::X_P);
+  if(other == NULL) return NULL;
+  other = GetNeighborElement(other, abs(j_steps), j_steps < 0 ? VicinityElement::Y_N : VicinityElement::Y_P);
+  if(other == NULL) return NULL;
+  other = GetNeighborElement(other, abs(k_steps), k_steps < 0 ? VicinityElement::Z_N : VicinityElement::Z_P);
+  return other;
+}
+
+DesignElement* DesignStructure::GetNeighborElement(DesignElement* base, unsigned int steps, VicinityElement::Neighbour dir)
+{
+  DesignElement* other = base;
+
+  for(unsigned int i = 0; i < steps; i++)
+  {
+    // the periodic bcs are already done by vicinity element!!
+    if(other->vicinity->HasNeighbor(dir)) {
+      other = other->vicinity->GetNeighbour(dir);
+    }
+    else {
+      assert(!periodic);
+      return NULL;
+    }
+  }
+  return other;
+}
+
+
+void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double radius,
+                                      StdVector<std::pair<Elem*, int> >& initial,
+                                      StdVector<SIMPElement::NeighbourElement>& neighbors,
+                                      StdVector<unsigned int>& too_far)
+{
+  LOG_DBG2(ds) << "FN: base= " << base->elem->elemNum << " initial=" << initial.ToString() << " n=" << ToString(neighbors) << " tf=" << too_far.ToString();
+
+  // the legacy SHARP_PLAIN and SHARP_SIGMUND had the bug, that the weight was not
+  // radius - distance but value - distance. To keep the legacy results we reproduce
+  // the bug. Note, that another bug in SHARP_PLAIN and SHARP_SIGMUND is in normalization
+  // and for SHARP_SIGMUND also in the filtering itself! :(
+  double val_rad = filter_.sensitivity_ == Filter::SHARP_PLAIN || filter_.sensitivity_ == Filter::SHARP_SIGMUND ? value : radius;
+
+  assert(!periodic); // only regular may be periodic!!
+
     // the idea is as follows:
   // * We assume non regular grid.
   // * For an element t we check for all neighbors the distance to center
   // * If a neighbor is close enough we check also the neighbors recursively
   // * check means only, that the neighbors of check are checked!
-  // * for each element we have to check if it has periodic neighbors, note that the original element might
-  //   be in the second line only, we really have to check for "all" elements
   // * Hence buddies might grow (appending only) while traversing
-  for(unsigned int e = 0, en = initial.GetSize(); e < en + expandable.GetSize(); e++)
+  for(unsigned int e = 0, en = initial.GetSize(); e < en; e++)
   {
     // we ignore the grade of neighborhood (the int in the pair)
-    const Elem* test_elem = e < en ? initial[e].first : grid->GetElem(expandable[e-en]);
+    const Elem* test_elem = initial[e].first;
     unsigned int test = test_elem->elemNum;
-
-    // the element might have periodic neighbors
-    if(periodic) ExtendPeriodicNeighborhood(test_elem, expandable, neighbors, too_far);
 
     if(test == base->elem->elemNum) continue; // we're not a neighbor of ourself
 
@@ -283,7 +375,7 @@ void DesignStructure::FindNeighborhood(DesignElement* base, double radius,
 
       // now do the recursive call!!
       // test is in neighbors or too_far, hence the recursive call does't bounce back
-      FindNeighborhood(base, radius, *test_elem->neighborhood, expandable, neighbors, too_far);
+      FindUnstructuredNeighborhood(base, radius, *test_elem->neighborhood, neighbors, too_far);
     }
   }
 }
@@ -512,71 +604,6 @@ bool DesignStructure::ExtendPeriodicNeighborhood(Elem* elem, int common, StdVect
   return neighbors.GetSize() > 0;
 }
 
-void DesignStructure::ExtendPeriodicNeighborhood(const Elem* elem,
-                                                 StdVector<unsigned int>& expandable,
-                                                 const StdVector<SIMPElement::NeighbourElement>& identified,
-                                                 const StdVector<unsigned int>& too_far)
-{
-  assert(periodic);
-
-  unsigned int org_size = expandable.GetSize();
-
-  // check if any of the nodes is a periodic boundary node at all
-  for(unsigned int n = 0; n < elem->connect.GetSize(); n++)
-  {
-    unsigned int test = elem->connect[n];
-    StdVector<unsigned int>& others = constraintMapping[test];
-
-    if(others.IsEmpty()) continue;
-
-    // take one of the elements that share the node.
-    for(unsigned int o = 0; o < others.GetSize(); o++)
-    {
-      const Elem* other_elem = nodeToElem[others[o]];
-      AppendNewElement(other_elem, expandable, identified, too_far); // the element itself, the nodes connectivity shall not be necessary!
-      AppendNewElements(*other_elem->neighborhood, expandable, identified, too_far);     // the elements neighbors
-      LOG_DBG3(ds) << "EPN: elem=" << elem->elemNum << " node=" << test << " cm[" << o << "]=" << others[o] << " other_elem=" << other_elem->elemNum;
-    }
-  }
-
-  // add the original neighborhood if there is a periodic case
-  if(expandable.GetSize() != org_size)
-    AppendNewElements(*elem->neighborhood, expandable, identified, too_far);
-
-  LOG_DBG3(ds) << "EPN: elem=" << elem->elemNum << " #n=" << expandable.GetSize() << " en=" << expandable.ToString();
-}
-
-
-void DesignStructure::AppendNewElements(const StdVector<std::pair<Elem*, int> >& source,
-    StdVector<unsigned int>& expandable,
-    const StdVector<SIMPElement::NeighbourElement>& identified,
-    const StdVector<unsigned int>& too_far)
-{
-  for(unsigned int s = 0, sn = source.GetSize(); s < sn; s++)
-    AppendNewElement(source[s].first, expandable, identified, too_far);
-}
-
-void DesignStructure::AppendNewElement(const Elem* test,
-                                      StdVector<unsigned int>& expandable,
-                                      const StdVector<SIMPElement::NeighbourElement>& identified,
-                                      const StdVector<unsigned int>& too_far)
-{
-  bool found = false;
-
-  if(expandable.Contains(test->elemNum))
-    found = true;
-
-  if(!found && too_far.Contains(test->elemNum))
-    found = true;
-
-  for(unsigned int o = 0, on = identified.GetSize(); !found && o < on; o++) {
-    if(test->elemNum == identified[o].neighbour->elem->elemNum)
-      found = true;
-  }
-
-  if(!found)
-    expandable.Push_back(test->elemNum);
-}
 
 void DesignStructure::AppendNeighbors(const StdVector<std::pair<Elem*, int> >& source, StdVector<std::pair<Elem*, int> >& out)
 {

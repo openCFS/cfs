@@ -70,19 +70,24 @@ private:
    * @see initialized_ */
   void Initialize();
 
+  /** finds quite efficiently the neighborhood with an regular grid.
+   * The idea is that by radius and edge size we construct a 2D/3D cube and check every element for distance.
+   * @param neighbors to be reused */
+  void FindRegularNeighborhood(DesignElement* base, double radius, const StdVector<double>& edges, StdVector<SIMPElement::NeighbourElement>& neighbors);
 
-  /** extends the periodic neighborhood, but in contrast to the other implementation
-   * an element number list is extended */
-  void ExtendPeriodicNeighborhood(const Elem* elem,
-                                  StdVector<unsigned int>& expandable,
-                                  const StdVector<SIMPElement::NeighbourElement>& identified,
-                                  const StdVector<unsigned int>& too_far);
+  /** Helper for FindRegularNeighborhood().
+   * Defines an element by the number of (+/-) steps in the main axes
+   * @return NULL if nothing found. Must not be in the periodic case */
+  DesignElement* GetNeighborElement(DesignElement* base, int i_steps, int j_steps, int k_steps);
+
+  /** Helper for the other GetNeighborElement().
+   * Is able to cross periodic boundaries */
+  DesignElement* GetNeighborElement(DesignElement* base, unsigned int steps, VicinityElement::Neighbour dir);
 
   /** This is a helper for InitFilter(). It is recursive!.
    * See implementation for docu. */
-  void FindNeighborhood(DesignElement* base, double radius,
+  void FindUnstructuredNeighborhood(DesignElement* base, double radius,
                           StdVector<std::pair<Elem*, int> >& initial,
-                          StdVector<unsigned int>& expandable,
                           StdVector<SIMPElement::NeighbourElement>& neighbors,
                           StdVector<unsigned int>& too_far);
 
@@ -101,20 +106,6 @@ private:
 
   /** set vector nodeToElem for periodic only */
   void SetNodeElemMapping();
-
-
-  /** adds source to out such that no double entries exist.
-   * Helper for ExtendPeriodicNeighborhood() */
-  void AppendNewElements(const StdVector<std::pair<Elem*, int> >& source,
-                         StdVector<unsigned int>& expandable,
-                         const StdVector<SIMPElement::NeighbourElement>& identified,
-                         const StdVector<unsigned int>& too_far);
-
-  /** add the test pair if it does not exist already in out */
-  void AppendNewElement(const Elem* test,
-                        StdVector<unsigned int>& expandable,
-                        const StdVector<SIMPElement::NeighbourElement>& identified,
-                        const StdVector<unsigned int>& too_far);
 
   /** append all new stuff */
   void AppendNeighbors(const StdVector<std::pair<Elem*, int> >& source,

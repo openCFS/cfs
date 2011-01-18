@@ -638,7 +638,7 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
     p_filt = CalcHeaviside(p_filt);
 
     assert(p_filt <= this->de_->GetUpperBound());
-    assert(p_filt >= 0.99 * this->de_->GetLowerBound()); // relax the assert a little, cause of heaviside correction
+    assert(p_filt >= 0.7 * this->de_->GetLowerBound()); // relax the assert a little, cause of heaviside correction
   }
 
   LOG_DBG3(del) << "GDFV: el=" << de_->elem->elemNum << " design=" << Filter::density.ToString(de_->simp->filter.density_)
@@ -753,15 +753,18 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
   return sum;
 }
 
-std::string SIMPElement::ToString() const
+std::string SIMPElement::ToString(int level) const
 {
   std::stringstream ss;
   ss << "el=" << de_->elem->elemNum << " #n=" << neighborhood.GetSize() << "(";
   for(unsigned int i = 0; i < neighborhood.GetSize(); i++)
   {
-    ss << " " << neighborhood[i].neighbour->elem->elemNum;
-    //ss << " n_" << neighborhood[i].neighbour->elem->elemNum << "_w=" << neighborhood[i].weight;
-    //ss << " n_" << neighborhood[i].neighbour->elem->elemNum << "_d=" << neighborhood[i].distance;
+    if(level == 0)
+      ss << " " << neighborhood[i].neighbour->elem->elemNum;
+    else {
+      ss << " n_" << neighborhood[i].neighbour->elem->elemNum << "_w=" << neighborhood[i].weight;
+      ss << " n_" << neighborhood[i].neighbour->elem->elemNum << "_d=" << neighborhood[i].distance;
+    }
   }
   ss << ")";
   return ss.str();
