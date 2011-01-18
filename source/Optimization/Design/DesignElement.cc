@@ -638,7 +638,7 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
     p_filt = CalcHeaviside(p_filt);
 
     assert(p_filt <= this->de_->GetUpperBound());
-    assert(p_filt >= 0.99 * this->de_->GetLowerBound()); // relax the assert a little, cause of heaviside correction
+    assert(p_filt >= 0.7 * this->de_->GetLowerBound()); // relax the assert a little, cause of heaviside correction
   }
 
   LOG_DBG3(del) << "GDFV: el=" << de_->elem->elemNum << " design=" << Filter::density.ToString(de_->simp->filter.density_)

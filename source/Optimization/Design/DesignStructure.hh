@@ -84,18 +84,10 @@ private:
    * Is able to cross periodic boundaries */
   DesignElement* GetNeighborElement(DesignElement* base, unsigned int steps, VicinityElement::Neighbour dir);
 
-  /** extends the periodic neighborhood, but in contrast to the other implementation
-   * an element number list is extended */
-  void ExtendPeriodicNeighborhood(const Elem* elem,
-                                  StdVector<unsigned int>& expandable,
-                                  const StdVector<SIMPElement::NeighbourElement>& identified,
-                                  const StdVector<unsigned int>& too_far);
-
   /** This is a helper for InitFilter(). It is recursive!.
    * See implementation for docu. */
-  void FindNeighborhood(DesignElement* base, double radius,
+  void FindUnstructuredNeighborhood(DesignElement* base, double radius,
                           StdVector<std::pair<Elem*, int> >& initial,
-                          StdVector<unsigned int>& expandable,
                           StdVector<SIMPElement::NeighbourElement>& neighbors,
                           StdVector<unsigned int>& too_far);
 
@@ -114,20 +106,6 @@ private:
 
   /** set vector nodeToElem for periodic only */
   void SetNodeElemMapping();
-
-
-  /** adds source to out such that no double entries exist.
-   * Helper for ExtendPeriodicNeighborhood() */
-  void AppendNewElements(const StdVector<std::pair<Elem*, int> >& source,
-                         StdVector<unsigned int>& expandable,
-                         const StdVector<SIMPElement::NeighbourElement>& identified,
-                         const StdVector<unsigned int>& too_far);
-
-  /** add the test pair if it does not exist already in out */
-  void AppendNewElement(const Elem* test,
-                        StdVector<unsigned int>& expandable,
-                        const StdVector<SIMPElement::NeighbourElement>& identified,
-                        const StdVector<unsigned int>& too_far);
 
   /** append all new stuff */
   void AppendNeighbors(const StdVector<std::pair<Elem*, int> >& source,

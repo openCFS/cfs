@@ -115,7 +115,8 @@ namespace CoupledField
     PdeIdType GetPDEId()
     { return pdeId_; }
 
-    /** return sub type. The string is stored internally any we need to convert. :( */
+    /** return sub type. The string is stored internally any we need to convert. :(
+     * @return if StdPDE::subType_ is not set we return NO_TENSOR  */
     SubTensorType GetSubTensorType() const;
 
     //! Set Direct coupling information

@@ -23,6 +23,8 @@ namespace CoupledField {
   {
     density_ = aDensity;
     Init(nrDofsPerNode, axi, coordUpdate);
+
+    LOG_DBG(forms) << "MassInt::MassInt() dens=" << density_ << " dofs=" << nrDofsPerNode << " axi=" << axi;
   }
 
   MassInt::MassInt(BaseMaterial* mat, const MaterialDescriptor& md, const UInt nrDofsPerNode, bool axi, bool coordUpdate)
@@ -33,6 +35,7 @@ namespace CoupledField {
     density_ = md_.GetScalar(mat);
 
     Init(nrDofsPerNode, axi, coordUpdate);
+    LOG_DBG(forms) << "MassInt::MassInt() md! dens=" << density_ << " dofs=" << nrDofsPerNode << " axi=" << axi;
   }
 
 
@@ -89,7 +92,7 @@ namespace CoupledField {
 
     Double factor = mParser_->Eval( mHandle_ );
 
-    LOG_DBG3(forms) << GetName() << "::CEM(" << ent1.GetElem()->elemNum << ") density=" << density << " factor=" << factor;
+    LOG_DBG3(forms) << GetName() << "::CEM(" << ent1.GetElem()->elemNum << ") density=" << density << " factor=" << factor << " diagMass=" << diagMass_;
 
     if (diagMass_ ) {
       Double mass = 0.0;
