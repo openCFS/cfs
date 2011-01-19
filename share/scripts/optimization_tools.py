@@ -556,8 +556,9 @@ def readLumpedMechDisplacement(info_xml, region):
 # @param data is the result from readLumpedMechDisplacement
 # @param f the frequency to interpolate
 # @param density_file the filename where the density file is written to
+# @param mode 'min' or 'max' or 'auto'
 # @return lower, upper, alpha, beta, min, max
-def interpolateLumpedMechDisplacementAsDensity(data, f, density_file):
+def interpolateLumpedMechDisplacementAsDensity(data, f, density_file, mode = "auto"):
   # find upper and lower frequency
   lower = 0.0
   upper = -1.0
@@ -603,13 +604,13 @@ def interpolateLumpedMechDisplacementAsDensity(data, f, density_file):
     
   # normalize and eliminate the right values
   for i in range(len(tmp)):
-  #  if abs(max_v) >= abs(min_v) and max_v > 0:
-  #    # print "a max=" + str(max_v) + " min=" + str(min_v) + " t=" + str(tmp[i]) + " -> " + str(cond(tmp[i] > 0, tmp[i] / max_v, 0.0)) + "\n"
-    max_v = cond(max_v > 0.001, max_v, 0.001) 
-    tmp[i] = cond(tmp[i] > 0, tmp[i] / max_v, 0.0)
-#    else:
-      # print "b max=" + str(max_v) + " min=" + str(min_v) + " t=" + str(tmp[i]) + " -> " + str(cond(tmp[i] < 0, tmp[i] / min_v, 0.0)) + "\n"      
-    # tmp[i] = cond(tmp[i] < 0, tmp[i] / min_v, 0.0)
+    if mode == "max" or (mode == "auto" and abs(max_v) >= abs(min_v) and max_v > 0):
+      print "a max=" + str(max_v) + " min=" + str(min_v) + " t=" + str(tmp[i]) + " -> " + str(cond(tmp[i] > 0, tmp[i] / max_v, 0.0)) + "\n"
+      max_v = cond(max_v > 0.001, max_v, 0.001) 
+      tmp[i] = cond(tmp[i] > 0, tmp[i] / max_v, 0.0)
+    else:
+      print "b max=" + str(max_v) + " min=" + str(min_v) + " t=" + str(tmp[i]) + " -> " + str(cond(tmp[i] < 0, tmp[i] / min_v, 0.0)) + "\n"      
+      tmp[i] = cond(tmp[i] < 0, tmp[i] / min_v, 0.0)
     if tmp[i] < 0.0 or tmp[i] > 1.0:
       raise RuntimeError("invalid density " + str(tmp[i]))
     # prevent 0
