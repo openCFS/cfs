@@ -111,7 +111,7 @@ namespace CoupledField {
 
     /** Calculates the orthotrope error.
      * Is only an informal heuristic. Sums up the values where there should be zero plus the balances */
-    static double CalcOrthotropeError(const Matrix<double>& tensor, BaseMaterial* mat, SubTensorType stt, double vol);
+    static double CalcOrthotropeError(const Matrix<double>& tensor);
 
     /** Calculates orthotrope material properties and gives them with a readable string.
      * @return first a description with underliner, then the value */

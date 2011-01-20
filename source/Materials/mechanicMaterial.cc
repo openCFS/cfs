@@ -14,8 +14,10 @@
 
 #include "mechanicMaterial.hh"
 #include "Domain/domain.hh"
+#include "DataInOut/Logging/cfslog.hh"
 
-
+DECLARE_LOG(mat)
+DEFINE_LOG(mat, "mat")
 
 
 namespace CoupledField
@@ -490,6 +492,12 @@ namespace CoupledField
     // eventually reduce
     Matrix<double> hom;
     ComputeSubTensor(hom, stt, full_hom);
+
+    LOG_DBG(mat) << "MM::CIE E=" << E << " v=" << v << " err=" << hom.DiffNormL1(tensor);
+    LOG_DBG2(mat) << "MM::CIE tensor=" << tensor.ToString(0,1);
+    LOG_DBG2(mat) << "MM::CIE full_hom=" << full_hom.ToString(0,1);
+    LOG_DBG2(mat) << "MM::CIE hom=" << hom.ToString(0,1);
+
     return hom.DiffNormL1(tensor);
   }
 
@@ -752,17 +760,17 @@ namespace CoupledField
       //E1 = 1/(B(1,1) + nusteg^2/rho/Esteg )
       //E2 = 1/(B(2,2) + nusteg^2/rho/Esteg )
       //E3 = rho*Esteg
-      Matrix<Double> tens;
-      mat->GetTensor(tens, MECH_STIFFNESS_TENSOR,Global::REAL, FULL);
       // assert(CalcIsotropyError(tens, stt) < 1e-3);
       // core properties
-      double E = CalcIsotropicYoungsModulus(tens, FULL);
-      double v = CalcIsotropicPoissonsRatio(tens, FULL);
+      // core properties
+      double E_core, v_core;
+      mat->GetScalar(E_core, MECH_EMODULUS, Global::REAL);
+      mat->GetScalar(v_core, MECH_POISSON, Global::REAL);
 
-      double E3 = E * vol;
+      double E3 = E_core * vol;
 
-      res[0] = 1.0 / (D[0][0] + v*v / E3);
-      res[1] = 1.0 / (D[1][1] + v*v / E3);
+      res[0] = 1.0 / (D[0][0] + v_core*v_core / E3);
+      res[1] = 1.0 / (D[1][1] + v_core*v_core / E3);
       res[2] = E3;
     }
 
@@ -790,26 +798,26 @@ namespace CoupledField
 
     case PLANE_STRAIN:
     {
-      Matrix<Double> tens;
-      mat->GetTensor(tens, MECH_STIFFNESS_TENSOR,Global::REAL, FULL);
       // core properties
-      double E_core = CalcIsotropicYoungsModulus(tens, FULL);
-      double v_core = CalcIsotropicPoissonsRatio(tens, FULL);
-      // % the two 2D poisson ratios
-      // v12 = (-B(1,2)-nusteg2/rho/Esteg)*E1
+      double E_core, v_core;
+      mat->GetScalar(E_core, MECH_EMODULUS, Global::REAL);
+      mat->GetScalar(v_core, MECH_POISSON, Global::REAL);
+
+      // % the two 2D poisson ratios and Es have been derived by Bastian and Fabian S.
+      // v12 = (-B(1,2)-nusteg^2/rho/Esteg)*E1
       // v21 = E2/E1*v12
-      double v_12 = (-D[1-1][2-1] - v_core * v_core / E_core) * E[1-1];
-      double v_21 = E[2-1] / (E[1-1] - v_12);
+      double v_12 = (-D[1-1][2-1] - v_core * v_core / E[3-1]) * E[1-1];
+      double v_21 = (E[2-1] / E[1-1]) * v_12;
 
       // % the remaining poisson ratios
       // v13 = E1*nusteg/rho/Esteg
       // v31 = E3/E1*v13
-      double v_13 = E[1-1] * v_core / E_core;
-      double v_31 = E[3-1] / E[1-1] * v_13;
+      double v_13 = E[1-1] * v_core / E[3-1];
+      double v_31 = (E[3-1] / E[1-1]) * v_13;
       // v23 = E2*nusteg/rho/Esteg
       // v32 = E3/E2*v23
-      double v_23 = E[2-1] * v_core / E_core;
-      double v_32 = E[3-1] / E[2-1] * v_23;
+      double v_23 = E[2-1] * v_core / E[3-1];
+      double v_32 = (E[3-1] / E[2-1]) * v_23;
 
       res.Push_back(v_21);
       res.Push_back(v_12);
@@ -827,20 +835,14 @@ namespace CoupledField
     return res;
   }
 
-  double MechanicMaterial::CalcOrthotropeError(const Matrix<double>& tensor, BaseMaterial* mat, SubTensorType stt, double vol)
+  double MechanicMaterial::CalcOrthotropeError(const Matrix<double>& tensor)
   {
-    Matrix<double> D;
-    tensor.Invert(D);
-
-    StdVector<double> E = CalcOrthotropeYoungsModulus(tensor, mat, stt, vol);
-    StdVector<double> v = CalcOrthotropePoissonsRatio(tensor, mat, stt, vol);
-
     // measure zeros in 1-norm
     double err = 0.0;
     if(tensor.GetNumRows() == 3)
     {
-       err += abs(D[3-1][2-1]);
-       err += abs(D[3-1][1-1]);
+       err += abs(tensor[1-1][3-1]);
+       err += abs(tensor[2-1][3-1]);
     }
     else
     {
@@ -850,7 +852,7 @@ namespace CoupledField
         {
           // only above the diagonal
           if(r >= c) continue;
-          err += abs(D[r-1][c-1]);
+          err += abs(tensor[r-1][c-1]);
         }
       }
     }
@@ -892,7 +894,7 @@ namespace CoupledField
       res.Push_back(std::make_pair("G_12", 1.0 / D[6-1][6-1]));
     }
 
-    double err = CalcOrthotropeError(tensor, mat, stt, vol);
+    double err = CalcOrthotropeError(tensor);
     res.Push_back(std::make_pair("err", err));
 
     return res;

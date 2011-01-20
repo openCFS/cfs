@@ -339,9 +339,9 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     SubTensorType stt = pde->GetSubTensorType();
 
     PtrParamNode iso = in->Get("isotropy");
-    iso->Get("err")->SetValue(MechanicMaterial::CalcIsotropyError(homogenizedTensor, pde->GetSubTensorType()));
-    iso->Get("poissons_ratio")->SetValue(MechanicMaterial::CalcIsotropicPoissonsRatio(homogenizedTensor, stt));
     iso->Get("E")->SetValue(MechanicMaterial::CalcIsotropicYoungsModulus(homogenizedTensor, stt));
+    iso->Get("poissons_ratio")->SetValue(MechanicMaterial::CalcIsotropicPoissonsRatio(homogenizedTensor, stt));
+    iso->Get("err")->SetValue(MechanicMaterial::CalcIsotropyError(homogenizedTensor, stt));
 
     PtrParamNode orth = in->Get("orthotropy");
 
@@ -360,11 +360,19 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
 StdVector<std::pair<string, double> > ErsatzMaterial::GetOrthotropeProperties(const Matrix<double>& tensor)
 {
-  BaseMaterial* bm = GetForm(design->GetRegionId(), pde, pde, "linElastInt")->GetMaterial();
-  Objective vf(Function::VOLUME);
-  double vol = CalcVolume(&vf, NULL, false, true);
-  StdVector<std::pair<string, double> > ortho = MechanicMaterial::CalcOrthotropeProperties(homogenizedTensor, bm, pde->GetSubTensorType(), vol);
-  return ortho;
+  if(design->regions.GetSize() > 1)
+  {
+    StdVector<std::pair<string, double> > result;
+    return result; // empty result
+  }
+  else
+  {
+    BaseMaterial* bm = GetForm(design->GetRegionId(), pde, pde, "linElastInt")->GetMaterial();
+    Objective vf(Function::VOLUME, 0.0, true); // physical!
+    double vol = CalcVolume(&vf, NULL, false, true);
+    StdVector<std::pair<string, double> > ortho = MechanicMaterial::CalcOrthotropeProperties(homogenizedTensor, bm, pde->GetSubTensorType(), vol);
+    return ortho;
+  }
 }
 
 string ErsatzMaterial::GetIterationFrequency()
@@ -911,9 +919,16 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
             {
               std::cout << "Homogenized Tensor: " << std::endl << hom_tensor.ToString(0, true);
 
-              std::cout << "Orthotrope properties: ";
+              std::cout << "Isotrope properties: ";
+              SubTensorType stt = pde->GetSubTensorType();
+              std::cout << " E=" << MechanicMaterial::CalcIsotropicYoungsModulus(hom_tensor, stt);
+              std::cout << " v=" << MechanicMaterial::CalcIsotropicYoungsModulus(hom_tensor, stt);
+              std::cout << " err=" << MechanicMaterial::CalcIsotropyError(hom_tensor, stt) << "\n";
 
               StdVector<std::pair<string, double> > ortho = GetOrthotropeProperties(hom_tensor);
+              std::cout << "Orthotrope properties: ";
+              if(ortho.GetSize() == 0)
+                std::cout << " in 2D only for single region\n";
 
               for(unsigned int i = 0; i < ortho.GetSize(); i++)
                 std::cout << " " << ortho[i].first << "=" << ortho[i].second;
