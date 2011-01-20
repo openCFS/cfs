@@ -605,11 +605,12 @@ def interpolateLumpedMechDisplacementAsDensity(data, f, density_file, mode = "au
   # normalize and eliminate the right values
   for i in range(len(tmp)):
     if mode == "max" or (mode == "auto" and abs(max_v) >= abs(min_v) and max_v > 0):
-      print "a max=" + str(max_v) + " min=" + str(min_v) + " t=" + str(tmp[i]) + " -> " + str(cond(tmp[i] / max_v > 1e-7, tmp[i] / max_v, 1e-7)) + "\n"
+      # print "a max=" + str(max_v) + " min=" + str(min_v) + " t=" + str(tmp[i]) + " -> " + str(cond(tmp[i] / max_v > 1e-7, tmp[i] / max_v, 1e-7)) + "\n"
       tmp[i] = cond(tmp[i] / max_v > 1e-7, tmp[i] / max_v, 1e-7)
     else:
-      print "b max=" + str(max_v) + " min=" + str(min_v) + " t=" + str(tmp[i]) + " -> " + str(cond(tmp[i] / min_v > 1e-7, tmp[i] / min_v, 1e-7)) + "\n"      
+      # print "b max=" + str(max_v) + " min=" + str(min_v) + " t=" + str(tmp[i]) + " -> " + str(cond(tmp[i] / min_v > 1e-7, tmp[i] / min_v, 1e-7)) + "\n"      
       tmp[i] = cond(tmp[i] / min_v > 1e-7, tmp[i] / min_v, 1e-7)
+      tmp[i] = cond(tmp[i] > 1.0, 1.0, tmp[i])
     if tmp[i] < 1e-8 or tmp[i] > 1.0:
       raise RuntimeError("invalid density " + str(tmp[i]))
       
