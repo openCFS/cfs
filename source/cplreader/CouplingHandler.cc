@@ -469,7 +469,7 @@ namespace CoupledField
         {
           std::cerr << "CAUGHT EXCEPTION while trying to read nodal values:"
                     << std::endl << ex.what() << std::endl
-                    << "Exiting read time values loop...";
+                    << "Exiting read time values loop..." << std::endl;
           
           readOK = false;
           continue;

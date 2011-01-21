@@ -26,6 +26,7 @@ FileReader_CfsHdf5::FileReader_CfsHdf5(const std::string& name,
   FileReader(name, dim, numFiles),
   hdf5Reader_()
 {
+  firststep_ = startIndex;
 }
 
 
@@ -67,9 +68,11 @@ void FileReader_CfsHdf5::Init()
     std::cerr << "WARNING: more then one multistep, not implemented."
       << " Will take results from first multistep.";
   }
-  if (numSteps[1] < numSteps_)
+  if ((numSteps[1] - firststep_ +1) < numSteps_)
   {
-    EXCEPTION("Not enough steps in files!");
+    EXCEPTION("Not enough steps in files!" << std::endl << \
+        "Last time step in file is:  " << numSteps[1] << std::endl << \
+        "Please check first time step and set it with the option --firststep");
   }
   // get time step values
   std::vector<shared_ptr<H5CFS::ResultInfo> > resInfos;
@@ -170,6 +173,7 @@ void FileReader_CfsHdf5::ReadNodalValues(std::vector<FlowDataType>& nodalFlowDat
                            const std::vector<bool>& activeParts, \
                            const UInt timeStepIdx)
 {
+  UInt timeStepIdxUpdate = firststep_ + timeStepIdx;
   std::vector<shared_ptr<H5CFS::ResultInfo> > infos;
   const unsigned int sequStep = 1;
   hdf5Reader_.GetResultTypes(sequStep, infos);
@@ -196,7 +200,11 @@ void FileReader_CfsHdf5::ReadNodalValues(std::vector<FlowDataType>& nodalFlowDat
         fdPtr->unit = (*iterInfo)->unit;
         fdPtr->resultName = (*iterInfo)->name;
 
-        hdf5Reader_.GetResult(sequStep, timeStepIdx +1, resultPtr);
+        try {
+          hdf5Reader_.GetResult(sequStep, timeStepIdxUpdate, resultPtr);
+        } catch (std::string &strEx) {
+          EXCEPTION(strEx);
+        }
         fdPtr->data = resultPtr->realVals;
       }
     }
