@@ -406,7 +406,7 @@ namespace CoupledField
       while ( ( counter < numFiles ) && readOK)
       {
         stepVal = ptFileReader_->GetTimeStep(counter);
-        stepNum = counter + 1;
+        stepNum = counter + ptFileReader_->GetStartIndex();
         timeStepValues.push_back(stepVal);
         timeStepNumbers.push_back(stepNum);
         

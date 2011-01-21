@@ -23,10 +23,9 @@ FileReader_CfsHdf5::FileReader_CfsHdf5(const std::string& name,
                                    const UInt dim,
                                    const UInt numFiles,
                                    const UInt startIndex) :
-  FileReader(name, dim, numFiles),
+  FileReader(name, dim, numFiles, startIndex),
   hdf5Reader_()
 {
-  firststep_ = startIndex;
 }
 
 
@@ -63,22 +62,35 @@ void FileReader_CfsHdf5::Init()
 
   // get and check time steps
   hdf5Reader_.GetNumMultiSequenceSteps(analysis, numSteps);
-  if (numSteps.size() != 1)
-  {
-    std::cerr << "WARNING: more then one multistep, not implemented."
-      << " Will take results from first multistep.";
-  }
-  if ((numSteps[1] - firststep_ +1) < numSteps_)
-  {
-    EXCEPTION("Not enough steps in files!" << std::endl << \
-        "Last time step in file is:  " << numSteps[1] << std::endl << \
-        "Please check first time step and set it with the option --firststep");
-  }
   // get time step values
   std::vector<shared_ptr<H5CFS::ResultInfo> > resInfos;
   const unsigned int sequenceStep = 1;
   hdf5Reader_.GetResultTypes(sequenceStep, resInfos);
   hdf5Reader_.GetStepValues(sequenceStep, resInfos[0], timeStepValues_);
+
+  if (numSteps.size() != 1)
+  {
+    std::cerr << "WARNING: more then one multistep, not implemented."
+      << " Will take results from first multistep.";
+  }
+  if ((numSteps[1] - startIndex_ +1) < numSteps_)
+  {
+    EXCEPTION("Not enough steps in files!" << std::endl << \
+        "First time step in file is:  " << numSteps[1] - timeStepValues_.size() +1 \
+        << std::endl << \
+        "Last  time step in file is:  " << numSteps[1] << std::endl << \
+        "maximum number of numsptes is:  " << timeStepValues_.size() << std::endl << \
+        "Pleas use options --firststep and --numsteps");
+  }
+  if ( (startIndex_ - 1) < numSteps[1] - timeStepValues_.size())
+  {
+    EXCEPTION("Not enough steps in files!" << std::endl << \
+        "First time step in file is:  " << numSteps[1] - timeStepValues_.size() +1 \
+        << std::endl << \
+        "Last  time step in file is:  " << numSteps[1] << std::endl << \
+        "maximum number of numsptes is:  " << timeStepValues_.size() << std::endl << \
+        "Pleas use options --firststep and --numsteps");
+  }
 
   // get an check element types
   if (elemTypesTmp.size() != 0)
@@ -173,7 +185,7 @@ void FileReader_CfsHdf5::ReadNodalValues(std::vector<FlowDataType>& nodalFlowDat
                            const std::vector<bool>& activeParts, \
                            const UInt timeStepIdx)
 {
-  UInt timeStepIdxUpdate = firststep_ + timeStepIdx;
+  UInt timeStepIdxUpdate = startIndex_ + timeStepIdx;
   std::vector<shared_ptr<H5CFS::ResultInfo> > infos;
   const unsigned int sequStep = 1;
   hdf5Reader_.GetResultTypes(sequStep, infos);
@@ -213,7 +225,7 @@ void FileReader_CfsHdf5::ReadNodalValues(std::vector<FlowDataType>& nodalFlowDat
 
 double FileReader_CfsHdf5::GetTimeStep(UInt stepNumber)
 {
-  return timeStepValues_[stepNumber];
+  return timeStepValues_[stepNumber + startIndex_];
 }
 
 } // end of namespace

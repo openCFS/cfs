@@ -51,7 +51,6 @@ namespace CoupledField
     H5CFS::Hdf5Reader hdf5Reader_;
     std::vector<std::string> regionNames_;
     std::map<unsigned int, double> timeStepValues_;
-    UInt firststep_;
   };
 
 
