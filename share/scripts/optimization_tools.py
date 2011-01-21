@@ -604,6 +604,11 @@ def interpolateLumpedMechDisplacementAsDensity(data, f, density_file, mode = "au
     
   # normalize and eliminate the right values
   for i in range(len(tmp)):
+    if mode == "both":
+      v = tmp[i]
+      max_case = cond(v / max_v > 1e-7, v / max_v, 1e-7) # max_case in [1e-7:1]
+      min_case = cond(v / min_v > 1e-7, v / min_v, 1e-7) # if min_v > 0: min_case >= 1, for min_v < 0 also [1e-7:+1]
+      tmp[i] = cond(v >= 0, max_case, -1.0*min_case) # this is not solid plate for min_v > 0!
     if mode == "max" or (mode == "auto" and abs(max_v) >= abs(min_v) and max_v > 0):
       # print "a max=" + str(max_v) + " min=" + str(min_v) + " t=" + str(tmp[i]) + " -> " + str(cond(tmp[i] / max_v > 1e-7, tmp[i] / max_v, 1e-7)) + "\n"
       tmp[i] = cond(tmp[i] / max_v > 1e-7, tmp[i] / max_v, 1e-7)
