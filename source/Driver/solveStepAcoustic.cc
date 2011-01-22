@@ -37,8 +37,8 @@ namespace CoupledField {
     bool performOneMoreStep;
     UInt iterationCounter=0;
   
-    Vector<Double> newSol(numPDENodes_);
-    Vector<Double> oldSol(numPDENodes_);
+    Vector<Double> newSol(numEqns_);
+    Vector<Double> oldSol(numEqns_);
   
     // just update dirichlet values
     job = 3;
@@ -52,17 +52,21 @@ namespace CoupledField {
       job = 1;
     }  
   
-    NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+    //get actual solution
+    Vector<Double>  solhelp =
+      dynamic_cast<Vector<Double>&>(*(PDE_.GetSolutionVector()));
+
+    //  NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
     //compute predictors
-    TS_alg_->Predictor(solhelp->GetAlgSysVector());
+    TS_alg_->Predictor(solhelp);
 
     // set BCs, if effective mass matrix formulation, values of BCs depend on 
     //  predictors, so predictors have to be computed beforehand
     PDE_.SetBCs();
 
     // set old solution  
-    newSol = solhelp->GetAlgSysVector();
+    newSol = solhelp; //>GetAlgSysVector();
 
     // Update RHS (mass matrix and damping matrix on right hand side)
     TS_alg_->UpdateRHS();
@@ -116,7 +120,7 @@ namespace CoupledField {
       TS_alg_->Corrector(newSol);
 
       //put new solution to sol_
-      sol_->SetAlgSysVector(newSol);  
+      PDE_.SaveSolution( newSol.GetPointer(), newSol.GetSize() );
 
       // compute L2-Norm of error between last incremental solution and
       //   actual incremental solution
