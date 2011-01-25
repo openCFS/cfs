@@ -1310,7 +1310,7 @@ namespace CoupledField {
              // (watch out for equation number offset!!!)
              if ( isBiotSavart_ )
              {
-               val -= biotSavart_->GetMagVec( eqnNr-1, analysistype_ );
+               val -= biotSavart_->CalcFieldSingleEqn( eqnNr-1 );
              }
 
              algsys_->SetDirichlet( pdeId_, eqnNr, val);
@@ -2157,7 +2157,7 @@ namespace CoupledField {
     //algsys_->SetBlockSize( pdeId_, 1 );
 
     UInt numDir = eqnMap_->GetNumInHomDirichletEqns() \
-                  + eqnMap_->GetNumInHomDirichletEqns()
+                  + eqnMap_->GetNumInHomDirichletFileEqns()
                   + numCouplingBcs_;
     algsys_->SetNumDirichletBCs(pdeId_, numDir );
 

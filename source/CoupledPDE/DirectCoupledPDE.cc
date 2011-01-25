@@ -155,7 +155,8 @@ namespace CoupledField {
       if(singlePDEs_[i]->usePenalty_==false){
         // uses elimination of Inhomogeneous DBC
         //std::cout << "Num of Inhomogeneous DBC = "<< eqn->GetNumInHomDirichletEqns () << std::endl;
-        singleUnknowns-=eqn->GetNumInHomDirichletEqns ();
+        singleUnknowns -= eqn->GetNumInHomDirichletEqns();
+        singleUnknowns -= eqn->GetNumInHomDirichletFileEqns();
       }
       //------------------------------------------------
 

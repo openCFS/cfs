@@ -34,6 +34,8 @@ namespace CoupledField {
     typedef std::map<ResultInfo, StdVector<Vector<Integer> > > VecEqnMapType;
     typedef std::map<ResultInfo, HdBcList> ResultHdBcMap;
     typedef std::map<ResultInfo, IdBcList> ResultIdBcMap;
+    typedef std::map<ResultInfo, IdFileBcList> ResultIdFileBcMap;
+    typedef std::map<ResultInfo, IdFileBcList> ResultIdFiBcMap;
     typedef std::map<ResultInfo, ConstraintList> ResultConstraintMap;
     
     //! Constructor
@@ -58,6 +60,9 @@ namespace CoupledField {
         
     //! Set the in-homogeneous boundary conditions
     virtual void SetInhomDirichletBCs( IdBcList& idBcs );
+        
+    //! Set the in-homogeneous boundary conditions
+    virtual void SetInhomDirichFileBCs( IdFileBcList& idFiBcs );
 
     //! Set the constraint conditions
     virtual void SetConstraints( ConstraintList& constraints );
@@ -121,6 +126,18 @@ namespace CoupledField {
     virtual inline UInt GetNumInHomDirichletEqns() const {
       return numIdBcs_;
     }
+    /** Return number of real inhomogeneous Dirichlet boundary conditions which
+     * are read from a file
+     * This method returns the number of 'real' boundary conditions, i.e.
+     * douplets of nodes are already removed, so this number represents
+     * the number of equations, which are not 'free'
+     * @return the number of inhomogeneous Dirichlet boundary conditions which
+     * are read from a file
+     */
+    virtual inline UInt GetNumInHomDirichletFileEqns() const {
+      return numIdFiBcs_;
+    }
+
     //! Return number of constraint slave equations.
 
     //! This method returns the number of equations, which are fixed
@@ -310,6 +327,9 @@ namespace CoupledField {
     //! Number equations with inhomogeneous Dirichelt boundary condition
     UInt numIdBcs_;
 
+    //! Number equations with inhomogeneous Dirichelt boundary condition
+    UInt numIdFiBcs_;
+
     //! Number equations with slave constraint condition
     UInt numCs_;
         
@@ -383,6 +403,9 @@ namespace CoupledField {
     
     //! List of inhomogeneous Dirichlet boundary conditions
     ResultIdBcMap idBcs_;
+    
+    //! List of inhomogeneous Dirichlet boundary conditions
+    ResultIdFileBcMap idFiBcs_;
     
     //! List of constraints
     ResultConstraintMap constraints_;
