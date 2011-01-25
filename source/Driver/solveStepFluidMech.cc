@@ -198,7 +198,6 @@ namespace CoupledField
     {
       iterCoupledCounter++;
     }
-    PDE_.AcouSourceCalc();
   }
 } // end of namespace
 
