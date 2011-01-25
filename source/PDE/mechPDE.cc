@@ -1335,17 +1335,19 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     StdVector<Elem*> * couplingElems = NULL;
     SingleVector * temp_values = NULL;
     Vector<Double> * values;
-    SingleVector *tempDispValues=NULL;
-    SingleVector *tempDispOldValues=NULL;
+    SingleVector *tempDispValues = NULL;
+    SingleVector *tempDispOldValues = NULL;
     StdVector<BaseMaterial*> * materials = NULL;
     StdVector<std::string> outputRegions;
-    UInt interfaceDispCoupl=0, interfaceVelCoupl=0, interfaceForceCoupl=0;
+    UInt interfaceDispCoupl = 0;
+    UInt interfaceVelCoupl = 0;
+    UInt interfaceForceCoupl = 0;
     bool foundDisp = false;
     bool foundVel = false;
     bool foundForce = false;
 
     if (useAitken_ == false)
-      Info->PrintF( "RELAXATION", "Relaxation Factor = %e\n",displFac_);
+      Info->PrintF( "RELAXATION", "Relaxation Factor = %e\n", displFac_);
 
     // at first, check if this PDE is iterative coupled
     if (isIterCoupled_ == false)
@@ -1443,18 +1445,18 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
             Vector<Double> aux1;
             aux1 = (oldDelta_ - actDelta_);
 
-            Double aux2=aux1*actDelta_;
-            Double aux3=aux1*aux1;
-            Double aux4 = aux2/aux3;
+            Double aux2 = aux1 * actDelta_;
+            Double aux3 = aux1 * aux1;
+            Double aux4 = aux2 / aux3;
 
-            aitkenMu_=(aitkenMu_)+((aitkenMu_-1.0)*aux4);
-            if (aitkenMu_ > 1.0-displFac_)
+            aitkenMu_ = (aitkenMu_) + ((aitkenMu_ - 1.0) * aux4);
+            if (aitkenMu_ > 1.0 - displFac_)
               aitkenMu_ = 1.0 - displFac_;
             aitkenOmega_ = 1.0 - aitkenMu_;
             Info->PrintF( pdename_," unbounded relaxation Parameter \
                 according to Aitgken= %e\n",aitkenOmega_);
 
-            Double omegaMax=0.3;
+            Double omegaMax = 0.3;
             if (iterCoupledCounter_ > 5)
               omegaMax = 1.0;
             if (aitkenOmega_ > omegaMax)
