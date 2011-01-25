@@ -170,6 +170,7 @@
         default="1" use="optional" />
         <xsd:attribute name="fsi" type="DT_CFSBool" default="no"/>
         <xsd:attribute name="fsiRelaxationParam" use="optional" type="xsd:token" default="0.5"/>
+        <xsd:attribute name="useAitken" type="DT_CFSBool" default="no"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
