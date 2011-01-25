@@ -89,6 +89,7 @@ SET(CTEST_INITIAL_CACHE
    USE_TCL:BOOL=ON
    USE_INTERPOLATION:BOOL=ON
    CPLREADER:BOOL=ON
+   CPLREADER_OPENFOAM:BOOL=ON
    USE_SCPIP:BOOL=ON")
 
 #-----------------------------------------------------------------------------
