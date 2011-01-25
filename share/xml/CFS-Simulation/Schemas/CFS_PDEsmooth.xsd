@@ -63,6 +63,7 @@
               <xsd:choice maxOccurs="unbounded">
                 <xsd:element name="dirichletHom"   type="DT_SmoothHD"      />
                 <xsd:element name="dirichletInhom" type="DT_SmoothID"      />
+                <xsd:element name="dirichletFileInhom" type="DT_SmoothIdFile"/>
                 <xsd:element name="neumannInhom"   type="DT_SmoothIN"      />
                 <xsd:element name="load"           type="DT_SmoothLoad"    />
                 <xsd:element name="pressure"       type="DT_SmoothPressure"/>
@@ -165,6 +166,16 @@
         <xsd:attribute name="value" type="xsd:token" use="required"/>
         <xsd:attribute name="phase" type="xsd:token" use="optional"
           default="0.0"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for inhomogeneous Dirichlet from file -->
+  <!-- boundary conditions. We derive it by extending the homogeneous case -->
+  <xsd:complexType name="DT_SmoothIdFile">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SmoothHD">
+        <xsd:attribute name="inputId" type="xsd:token" default="default"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

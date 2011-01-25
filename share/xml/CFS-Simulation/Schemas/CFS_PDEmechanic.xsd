@@ -109,6 +109,7 @@
               <xsd:choice minOccurs="0" maxOccurs="unbounded">
                 <xsd:element name="dirichletHom"   type="DT_MechHD"        />
                 <xsd:element name="dirichletInhom" type="DT_MechID"        />
+                <xsd:element name="dirichletFileInhom" type="DT_MechIdFile"/>
                 <xsd:element name="neumannInhom"   type="DT_MechIN"        />
                 <xsd:element name="load"           type="DT_MechLoad"      />
                 <xsd:element name="pressure"       type="DT_MechPressure"  />
@@ -125,7 +126,8 @@
 
             <!-- Experimental: Side constraints on BCs -->
             <xsd:unique name="CS_MechanicBCs">
-              <xsd:selector xpath="cfs:dirichletHom|cfs:dirichletInhom|cfs:neumannInhom"/>
+              <xsd:selector
+                xpath="cfs:dirichletHom|cfs:dirichletInhom|cfs:dirichletFileInhom|cfs:neumannInhom"/>
               <xsd:field xpath="@name"/>
               <xsd:field xpath="@dof"/>
             </xsd:unique>
@@ -408,6 +410,16 @@
         <xsd:attribute name="value" type="xsd:token" use="required"/>
         <xsd:attribute name="phase" type="xsd:token" use="optional"
           default="0.0"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for inhomogeneous Dirichlet from file -->
+  <!-- boundary conditions. We derive it by extending the homogeneous case -->
+  <xsd:complexType name="DT_MechIdFile">
+    <xsd:complexContent>
+      <xsd:extension base="DT_MechHD">
+        <xsd:attribute name="inputId" type="xsd:token" default="default"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
