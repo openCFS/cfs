@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 # This collects some tool routines for optimization
 
+
 import libxml2
 import numpy
 import numpy.linalg
 import math
 import os
-from lxml import etree
+#from lxml import etree
 
 from cfs_utils import *
 from distutils.command.build_scripts import first_line_re
@@ -556,8 +557,9 @@ def readLumpedMechDisplacement(info_xml, region):
 # @param data is the result from readLumpedMechDisplacement
 # @param f the frequency to interpolate
 # @param density_file the filename where the density file is written to
+# @param mode 'min' or 'max' or 'auto'
 # @return lower, upper, alpha, beta, min, max
-def interpolateLumpedMechDisplacementAsDensity(data, f, density_file):
+def interpolateLumpedMechDisplacementAsDensity(data, f, density_file, mode = "auto"):
   # find upper and lower frequency
   lower = 0.0
   upper = -1.0
@@ -603,18 +605,20 @@ def interpolateLumpedMechDisplacementAsDensity(data, f, density_file):
     
   # normalize and eliminate the right values
   for i in range(len(tmp)):
-  #  if abs(max_v) >= abs(min_v) and max_v > 0:
-  #    # print "a max=" + str(max_v) + " min=" + str(min_v) + " t=" + str(tmp[i]) + " -> " + str(cond(tmp[i] > 0, tmp[i] / max_v, 0.0)) + "\n"
-    max_v = cond(max_v > 0.001, max_v, 0.001) 
-    tmp[i] = cond(tmp[i] > 0, tmp[i] / max_v, 0.0)
-#    else:
-      # print "b max=" + str(max_v) + " min=" + str(min_v) + " t=" + str(tmp[i]) + " -> " + str(cond(tmp[i] < 0, tmp[i] / min_v, 0.0)) + "\n"      
-    # tmp[i] = cond(tmp[i] < 0, tmp[i] / min_v, 0.0)
-    if tmp[i] < 0.0 or tmp[i] > 1.0:
+    if mode == "both":
+      v = tmp[i]
+      max_case = cond(v / max_v > 1e-7, v / max_v, 1e-7) # max_case in [1e-7:1]
+      min_case = cond(v / min_v > 1e-7, v / min_v, 1e-7) # if min_v > 0: min_case >= 1, for min_v < 0 also [1e-7:+1]
+      tmp[i] = cond(v >= 0, max_case, -1.0*min_case) # this is not solid plate for min_v > 0!
+    if mode == "max" or (mode == "auto" and abs(max_v) >= abs(min_v) and max_v > 0):
+      # print "a max=" + str(max_v) + " min=" + str(min_v) + " t=" + str(tmp[i]) + " -> " + str(cond(tmp[i] / max_v > 1e-7, tmp[i] / max_v, 1e-7)) + "\n"
+      tmp[i] = cond(tmp[i] / max_v > 1e-7, tmp[i] / max_v, 1e-7)
+    else:
+      # print "b max=" + str(max_v) + " min=" + str(min_v) + " t=" + str(tmp[i]) + " -> " + str(cond(tmp[i] / min_v > 1e-7, tmp[i] / min_v, 1e-7)) + "\n"      
+      tmp[i] = cond(tmp[i] / min_v > 1e-7, tmp[i] / min_v, 1e-7)
+      tmp[i] = cond(tmp[i] > 1.0, 1.0, tmp[i])
+    if tmp[i] < 1e-8 or tmp[i] > 1.0:
       raise RuntimeError("invalid density " + str(tmp[i]))
-    # prevent 0
-    if tmp[i] < 1e-7:
-      tmp[i] = 1e-7
       
   # write the stuff    
   out = open(density_file, "w")

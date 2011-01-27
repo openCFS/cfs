@@ -17,6 +17,7 @@ def replace(xml, path, value):
   data.setContent(value)
   return    
 
+
 # returns an xpath value
 def xpath(xml, path):
   res = xml.xpathEval(path)

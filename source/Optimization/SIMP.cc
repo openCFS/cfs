@@ -31,6 +31,7 @@ using namespace CoupledField;
 
 using std::complex;
 
+
 DECLARE_LOG(conditions)
 
 DECLARE_LOG(simp)

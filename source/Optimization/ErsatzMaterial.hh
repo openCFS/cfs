@@ -371,7 +371,8 @@ public:
   void GetErsatzMaterialTensor(Matrix<double>& mat, Elem* elem,
       DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
 
-  /** Helper that asks MechanicMaterial */
+  /** Helper that asks MechanicMaterial. Works only for a single region.
+   * @return empty if multiple regions */
   StdVector<std::pair<std::string, double> > GetOrthotropeProperties(const Matrix<double>& tensor);
   
   /** This is an extension to SolveStateProblem() where the forward problem is solved and stored.

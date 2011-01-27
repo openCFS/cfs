@@ -96,6 +96,9 @@ namespace CoupledField {
      * @see ComputeIsotropicYoungsModulus() */
     static double CalcIsotropicPoissonsRatio(const Matrix<double>& tensor, SubTensorType subTensor);
 
+    /** @see CalcOrthotropeProperties() */
+    static StdVector<std::pair<std::string, double> > CalcIsotropicProperties(const Matrix<double>& tensor, SubTensorType stt);
+
     /** static helper function to calculate real stiffness tensor from elasticity modulus and Poisson's ratio (3D) */
     static void CalcIsotropicStiffnessTensorFromEAndPoisson(Matrix<Double>& out, Double emod, Double poisson);
     
@@ -111,7 +114,7 @@ namespace CoupledField {
 
     /** Calculates the orthotrope error.
      * Is only an informal heuristic. Sums up the values where there should be zero plus the balances */
-    static double CalcOrthotropeError(const Matrix<double>& tensor, BaseMaterial* mat, SubTensorType stt, double vol);
+    static double CalcOrthotropeError(const Matrix<double>& tensor);
 
     /** Calculates orthotrope material properties and gives them with a readable string.
      * @return first a description with underliner, then the value */
@@ -119,15 +122,18 @@ namespace CoupledField {
 
   private:
 
-    /** Calculates orthotrope Youngs moduli. Not for plane_stress!!
-     * @return a vector with 3 entries E_1, E_2, E_3 where E_3 = vol * E_core in 2D */
+    /** Calculates orthotrope Youngs moduli.
+     * @see CalcOrthotropePoissonsRatio() for the plane strain/ plane stress stuff */
     static StdVector<double> CalcOrthotropeYoungsModulus(const Matrix<double>& tensor, BaseMaterial* mat, SubTensorType stt, double vol);
 
     /** Calculates orthotrope Youngs moduli
-     * in 2D the extensions to 3D are from the plane strain extensions. Works not for plane stress yet
-     * @return a vector with 6 entries  v_21, v_12, v_31, v_13, v_32, v_23 */
+     * 3D: 6 results
+     * 2D: plane strain: 6 results with E3 assumed as core_E*vol
+     * 2D: plane stress: v_21 and v_12
+     * @param mat only for plane strain
+     * @param vol only for plane strain
+     * @return a vector with 2 or 6 entries  v_21, v_12(, v_31, v_13, v_32, v_23) */
     static StdVector<double> CalcOrthotropePoissonsRatio(const Matrix<double>& tensor, BaseMaterial* mat, SubTensorType stt, double vol);
-
 
     /** compute the correct subTensor (3D, AXI, ..) from the material */
     void ComputeSubTensor(Matrix<Complex>& matMatrix, MaterialType matType, SubTensorType subTensor) const;

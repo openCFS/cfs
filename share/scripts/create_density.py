@@ -11,17 +11,12 @@ from optimization_tools import *
 # we assume a unit cube (2D/3D) 
 # edge discretization
 divider = 20 
-vol_list = ["0.5"]
-dim = 2 
+vol_list = ["0.25"]
+dim = 3 
 # what is the maximal order (1 is linar, 2 quadratic, ...)
 order = 6 
 # the maximal number of spheres as edge basis (1*1, 2*2, 3*3, .., or 1*1*1, 2*2*2, 3*3.3, ...)
 edge = 1
-
-
-
-
-   
 
 # there shall be a predefined class somewhere, I just didn't find it
 class Coordinate:

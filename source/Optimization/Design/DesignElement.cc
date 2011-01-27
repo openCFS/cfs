@@ -23,8 +23,8 @@ using boost::posix_time::ptime;
 using boost::posix_time::second_clock;
 using boost::posix_time::microsec_clock;
 
-DECLARE_LOG(del)
-DEFINE_LOG(del, "designElement")
+DECLARE_LOG(desel)
+DEFINE_LOG(desel, "designElement")
 
 // the static enum
 Enum<Filter::Type>                  Filter::type;
@@ -79,7 +79,7 @@ double BaseDesignElement::GetPlainGradient(const Function* f) const
 void BaseDesignElement::AddGradient(const Objective* f, const Condition* g, double value)
 {
   assert(f == NULL || g == NULL);
-  LOG_DBG3(del) << "AddGradient: f=" << (f == NULL ? "null" : f->type.ToString(f->GetType()))
+  LOG_DBG3(desel) << "AddGradient: f=" << (f == NULL ? "null" : f->type.ToString(f->GetType()))
                 << " g=" << (g == NULL ? "null" : g->ToString()) << " val=" << value
                 << " penalty=" << (f != NULL ? boost::lexical_cast<std::string>(f->GetPenalty()) : "-")
                 << " old= " <<  (f != NULL ? costGradient[f->GetIndex()] : constraintGradient[g->GetIndex()])
@@ -199,7 +199,7 @@ Point* DesignElement::GetLocation()
   // a barycenter is simply the average of all coordinates -> location_ gets the Point out
   BaseFE::CalcBarycenter(coords, *location_);
 
-  LOG_DBG3(del) << "DesignElement::GetLocation() find " << location_->ToString() << " for " << ToString();
+  LOG_DBG3(desel) << "DesignElement::GetLocation() find " << location_->ToString() << " for " << ToString();
   return location_;
 }
 
@@ -306,7 +306,7 @@ double DesignElement::GetValue(ValueSpecifier vs, Access access, Condition* g) c
   if(!sens_filter && !design_filter && !design_filter_grad)
     val = GetPlainValue(vs, g);
 
-  LOG_DBG3(del) << "GV: " << elem->elemNum << " (" << valueSpecifier.ToString(vs) << ", "
+  LOG_DBG3(desel) << "GV: " << elem->elemNum << " (" << valueSpecifier.ToString(vs) << ", "
                 << (access == PLAIN ? "plain" : "smart") << ", " << (g == NULL ? "null" : g->ToString())
                 << ") sf=" << sens_filter << " df=" << design_filter << " dfg=" << design_filter_grad << " -> " << val;
   return val;
@@ -552,7 +552,7 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
   // short-cut for fake in Sharp Sigmund: i=e ? 1:0 : w(x_i)
   bool cheat_this_weight = f->sensitivity_ == Filter::SHARP_SIGMUND || f->sensitivity_ == Filter::SHARP_PLAIN;
 
-  LOG_DBG3(del) << "FGV: el=" << de_->elem->elemNum
+  LOG_DBG3(desel) << "FGV: el=" << de_->elem->elemNum
                 << " sp=" << DesignElement::valueSpecifier.ToString(sp)
                 << " dens=" << Filter::density.ToString(f->density_)
                 << " numerator_design=" << numerator_design
@@ -581,7 +581,7 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
     numerator   += numerator_summand;
     denominator += denominator_summand;
 
-    LOG_DBG3(del) << "FGV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
+    LOG_DBG3(desel) << "FGV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
                   << " w= " << w  << " nw=" << nw << " x=" << x << " v=" << v << " ns=" << numerator_summand
                   << " ds=" << denominator_summand << " num=" << numerator << " den=" << denominator;
   }
@@ -589,7 +589,7 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
   if(sigmund_denominator)
     denominator *= de_->GetDesign(DesignElement::PLAIN);
 
-  LOG_DBG3(del) << "FGV: el=" << de_->elem->elemNum << ": result=" << numerator
+  LOG_DBG3(desel) << "FGV: el=" << de_->elem->elemNum << ": result=" << numerator
                 << "/" << denominator << " -> " << (numerator / denominator);
 
   return numerator / denominator;
@@ -607,28 +607,30 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
   // p = rho. P is filtered rho (rho tilde)
   // P = sum_(i in N_e) w(x_i) p_i / sum_(i in N_e) w(x_i)
 
-  double numerator = 0.0;
-  double denominator = 0.0;
-
   // mathematically the neighborhood includes this element, but this is not in the structure
-  for(int i = -1, ni = (int) neighborhood.GetSize(); i < ni; i++)
-  {
-    const NeighbourElement* ne = i == -1 ? NULL : &neighborhood[i];
-    const DesignElement* de = i == -1 ? this->de_ : ne->neighbour;
+  // we initialize numerator and denominator with the values obtained from this element
+  double numerator = this->weight * this->de_->GetPlainValue(DesignElement::DESIGN);
+  double denominator = this->weight;
 
-    double w = i == -1 ?  this->weight : ne->weight;
-    double x = de->GetPlainValue(DesignElement::DESIGN); // cheap if not used
+  for(int i = 0, ni = (int) neighborhood.GetSize(); i < ni; i++)
+  {
+    const NeighbourElement* ne = &neighborhood[i];
+    const DesignElement* de = ne->neighbour;
+
+    double w = ne->weight;
+    //double x = de->GetPlainValue(DesignElement::DESIGN); // cheap if not used
+     double x = de->GetPlainDesignValue();
 
     numerator   += w * x;
     denominator += w;
 
-    LOG_DBG3(del) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
-                  << " w= " << w  << " p=" << x << " num=" << numerator << " den=" << denominator;
+    LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
+                    << " w= " << w  << " p=" << x << " num=" << numerator << " den=" << denominator;
   }
 
   double p_filt = numerator / denominator;
 
-  LOG_DBG3(del) << "GDFV: el=" << de_->elem->elemNum << " filtered_density=" << p_filt;
+  LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " filtered_density=" << p_filt;
 
   assert(fd == Filter::STANDARD || fd == Filter::HEAVISIDE || fd == Filter::MOD_HEAVISIDE);
 
@@ -641,8 +643,8 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
     assert(p_filt >= 0.7 * this->de_->GetLowerBound()); // relax the assert a little, cause of heaviside correction
   }
 
-  LOG_DBG3(del) << "GDFV: el=" << de_->elem->elemNum << " design=" << Filter::density.ToString(de_->simp->filter.density_)
-                << ": plain=" << this->de_->GetPlainValue(DesignElement::DESIGN) << " -> "<< p_filt;
+  LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " design=" << Filter::density.ToString(de_->simp->filter.density_)
+                  << ": plain=" << this->de_->GetPlainValue(DesignElement::DESIGN) << " -> "<< p_filt;
 
   return p_filt;
 }
@@ -662,7 +664,7 @@ double SIMPElement::CalcHeaviside(double input_value) const
     double corr = (1.0 - (1.0 - input_value) * f->heaviside_corr) * input_value;
     double result = 1.0 - std::exp(-1.0 * b * corr) + corr * std::exp(-1.0 * b);
 
-    LOG_DBG3(del) << "CH: de=" << de_->elem->elemNum << " f=" << f->density.ToString(f->density_)
+    LOG_DBG3(desel) << "CH: de=" << de_->elem->elemNum << " f=" << f->density.ToString(f->density_)
                   << " hc=" << f->heaviside_corr << " corr=" << corr << " iv=" << input_value << " -> " << result;
     return result;
   }
@@ -677,7 +679,7 @@ double SIMPElement::CalcHeaviside(double input_value) const
 
     return (ub-lb) * (first + second) + lb;
 
-    //LOG_DBG3(del) << "GDFV: el=" << de_->elem->elemNum << " b=" << b << " lb=" << lb << " (ub-lb)=" << (ub-lb)
+    //LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " b=" << b << " lb=" << lb << " (ub-lb)=" << (ub-lb)
     //              << " c=" << constant << " +1st=" << first << " +2nd=" << second << " =" << (constant + first + second) << " -> " << p_filt;
   }
 }
@@ -696,7 +698,7 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
   // p is rho and P is rho filtered! d f/d p_e = sum_i(in N_e) d f/d P_i * d P_i/d p_e with d P_i/d p_e = w(x_e)/ sum_j(in N_i) w(x_j)
   // note, that the stored value is already v = d f/d P_i
 
-  LOG_DBG3(del) << "GDFG: el=" << de_->elem->elemNum
+  LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum
                 << " sp=" << DesignElement::valueSpecifier.ToString(sp)
                 << " g=" << (g != NULL ? Condition::type.ToString(g->GetType()) : "null");
 
@@ -745,7 +747,7 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
     double summand = v * h * w / w_sum;
     sum += summand;
 
-    LOG_DBG3(del) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
+    LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
                   << " v= " << v  << " h=" << h << " w=" << w << " x_n=" << x_n << " w_sum=" << w_sum
                   << " summand=" << summand << " sum=" << sum;
   }
@@ -853,7 +855,7 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
         neighbors = enlarged_data; // in the non-periodic case there is no need to copy the element data
     }
 
-    LOG_DBG(del) << "VE:Init elem=" << de.elem->elemNum << " neighbors=" << neighbors.ToString();
+    LOG_DBG(desel) << "VE:Init elem=" << de.elem->elemNum << " neighbors=" << neighbors.ToString();
 
     for(unsigned int n = 0; n < neighbors.GetSize(); n++)
     {
@@ -862,7 +864,7 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
       // now we have to find the relative position of candidate
       Elem* candidate = neighbors[n].first;
 
-      LOG_DBG3(del) << "VE:Init elem=" << de.elem->elemNum << " e.bc=" << de.elem->barycenter.ToString() << " e.dim="
+      LOG_DBG3(desel) << "VE:Init elem=" << de.elem->elemNum << " e.bc=" << de.elem->barycenter.ToString() << " e.dim="
                     << de.elem->ptElem->GetDim() << " e.r=" << de.elem->regionId << " n=" << n << " o.el=" << candidate->elemNum
                     << " o.bc=" << candidate->barycenter.ToString() << " o.dim=" << candidate->ptElem->GetDim() << " o.r=" << candidate->regionId;
 
@@ -877,7 +879,7 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
       // the spacing allows to identify periodic elements
       int idx = FindRelativeNeighborLocation(de.elem->barycenter, candidate->barycenter, spacing);
       ve_data[idx] = space->Find(candidate->elemNum, de.GetType(), false);
-      LOG_DBG2(del) << "VE:Init elem=" << de.elem->elemNum << " idx=" << idx << " dat=" << ve_data[idx];
+      LOG_DBG2(desel) << "VE:Init elem=" << de.elem->elemNum << " idx=" << idx << " dat=" << ve_data[idx];
     }
   }
  }
@@ -939,7 +941,7 @@ VicinityElement::Neighbour VicinityElement::FindRelativeNeighborLocation(Point& 
       res = diff[2] < 0 ? Z_P : Z_N;
   }
   
-  LOG_DBG(del) << "VE:FRNL ref =" << ref.ToString() << " other=" << other.ToString() << " -> " << res;
+  LOG_DBG(desel) << "VE:FRNL ref =" << ref.ToString() << " other=" << other.ToString() << " -> " << res;
 
   if(res == NONE)
     EXCEPTION("cannot identify relative neighborhood of " << ref.ToString() << " and " << other.ToString());
@@ -957,14 +959,14 @@ DesignElement* VicinityElement::GetNeighbour(DesignElement* base, Neighbour idx,
     tmp = tmp->vicinity->GetNeighbour(idx);
     if(tmp == NULL)
     {
-      LOG_DBG3(del) << "VE:GN base=" << base->ToString() << " idx=" << idx << " n=" << n << " max neighbor=" << i;
+      LOG_DBG3(desel) << "VE:GN base=" << base->ToString() << " idx=" << idx << " n=" << n << " max neighbor=" << i;
       if(throw_exception)
         EXCEPTION("no neighbor in " << idx << " direction " << i << " elements ways for element " << tmp->ToString())
       else
         return NULL;
     }
   }
-  LOG_DBG3(del) << "VE:GN base=" << base->ToString() << " idx=" << idx << " n=" << n << " -> " << (tmp != NULL ? tmp->ToString() : "null");
+  LOG_DBG3(desel) << "VE:GN base=" << base->ToString() << " idx=" << idx << " n=" << n << " -> " << (tmp != NULL ? tmp->ToString() : "null");
   return tmp;
 }
 
