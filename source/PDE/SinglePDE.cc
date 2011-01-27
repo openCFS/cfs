@@ -2532,7 +2532,9 @@ namespace CoupledField {
         shared_ptr<ResultInfo> actResultInfo = actList[i]->GetResultInfo();
         if (TS_alg_->isDeriv(actResultInfo->resultType))
         {
-          continue; // do not get result if it is a derivative of another reult
+          // do not get result if it is a derivative of another result
+          // derivative will be written later
+          continue;
         }
         entList = actList[i]->GetEntityList();
 
@@ -2612,7 +2614,7 @@ namespace CoupledField {
     // start the real storring of the files
     restartOutFile->BeginMultiSequenceStep(1, analysistype_, lastTimeStep);
     UInt timeStepTypeAsInt = numTimeSteps;
-    for (UInt i = lastTimeStep - timeStepTypeAsInt; i <= lastTimeStep; ++i)
+    for (UInt i = lastTimeStep - timeStepTypeAsInt +1; i <= lastTimeStep; ++i)
     {
       timeTmp = solveStep_->GetActTime() -  (timeStepTypeAsInt -1) * dt;
       restartOutFile->BeginStep(lastTimeStep - timeStepTypeAsInt +1, timeTmp);
@@ -2665,7 +2667,7 @@ namespace CoupledField {
     {
       EXCEPTION("Restart can not handle multiple multistep!")
     }
-    const UInt lastTimeStep = numMultiSteps[lastMultiStep] -1;
+    const UInt lastTimeStep = numMultiSteps[lastMultiStep];
     startStep = lastTimeStep;
     std::map<TIMEStepType, Vector<Double> > TsMap = TS_alg_->GetTimeStepMap();
     // collect all necessary data
@@ -2685,7 +2687,9 @@ namespace CoupledField {
         shared_ptr<ResultInfo> actResultInfo = actList[i]->GetResultInfo();
         if (TS_alg_->isDeriv(actResultInfo->resultType))
         {
-          continue; // do not get result if it is a derivative of another reult
+          // do not get result if it is a derivative of another result
+          // derivative will be fetched later
+          continue;
         }
         input->GetStepValues( lastMultiStep, actResultInfo,
             resultSteps[actResultInfo], false);
@@ -2722,6 +2726,7 @@ namespace CoupledField {
             if (timeStepType == TIMESTEP_1)
             {
               sol_->SetAlgSysVector(tmpVec);
+              algsys_->InitSol(tmpVec);
             }
             TS_alg_->SetOld(tmpVec, timeStepType);
           }
