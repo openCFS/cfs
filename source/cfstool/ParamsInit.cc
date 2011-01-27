@@ -96,7 +96,12 @@ namespace CoupledField
       // if no argument is given print help
       if (vm.count("help") || argc == 1)
       {
-        std::cout << "usage: cfstool --mode MODE --files 'FILE1 FILE2 [FILE3]' [OPTIONS]" << std::endl << std::endl;
+        std::cout << "usage: cfstool --mode MODE [OPTIONS] FILE1 FILE2 [FILE3]" << std::endl << std::endl;
+        std::cout << "Files can be given as positional arguments Examples:" << std::endl;
+        std::cout << "\t$>cfstool -m scalardiff input.h5 referenceFile.h5" << std::endl;
+        std::cout << "\t$>cfstool -m convert input.h5 output.post.bin" << std::endl;
+        std::cout << "\t$>cfstool -m meshdiff input.h5 referenceFile.h5 output.h5" << std::endl;
+        std::cout << "See below if you want to use parameters." << std::endl << std::endl;
         cmdLineOptions.print(std::cout);
         // print out generall help
         std::cout <<

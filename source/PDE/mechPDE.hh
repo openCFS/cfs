@@ -237,11 +237,13 @@ namespace CoupledField
 
     Double displFac_;
     bool useAitken_, FSI_;
-    Double aitkenOmega_, fixedOmega_;
+    Double aitkenOmega_, aitkenOmegaPrevIter_, fixedOmega_;
     Double aitkenMu_;
     Vector<Double> actDelta_, oldDelta_;
     bool firstTime_;
     Vector<Double> gSolOld_;
+
+    Vector<Double> deltaTildeDisplPrevIter_;
 
   private:
 
@@ -368,6 +370,9 @@ namespace CoupledField
      * See Kocvara and Stingl; 2007 */
     Matrix<double> vonMisesMatrix_2d_;
     Matrix<double> vonMisesMatrix_3d_;
+
+    void calcAitkenOmega(const Vector<Double>& displTilde, const Vector<Double>& displPrevIter);
+
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

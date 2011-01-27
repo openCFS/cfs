@@ -419,18 +419,24 @@ namespace CoupledField {
     try {
     resGroup = actMsGroup.openGroup("ResultDescription").
                openGroup( info->resultName );
-    } H5_CATCH( "Could not open resultdescription for result '"
+    } H5_CATCH( "Could not open result description for result '"
                  << info->resultName << "'" );
 
     // read stepValues and stepNumbers
     StdVector<Double> values;
     StdVector<UInt> numbers;
-    H5IO::ReadArray( resGroup, "StepNumbers", numbers );
-    H5IO::ReadArray( resGroup, "StepValues", values );
+    try {
+      H5IO::ReadArray( resGroup, "StepNumbers", numbers );
+    } H5_CATCH( "Could not read step numbers of result '"
+                << info->resultName << "'" );
+    try {
+      H5IO::ReadArray( resGroup, "StepValues", values );
+    } H5_CATCH( "Could not read step values of result '"
+                << info->resultName << "'" );
 
     // sanity check: both vectors need to have the same dimension
     if( values.GetSize() != numbers.GetSize() ) {
-      EXCEPTION( "There are not as many stepnumbers as stepvalues" );
+      EXCEPTION( "There are not as many step numbers as step values" );
     }
 
     // copy to steps-array

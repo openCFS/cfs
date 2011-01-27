@@ -47,7 +47,6 @@ namespace CoupledField {
 
       enum Quantity { DENSITY, PRESSURE, VELOCITY_X, VELOCITY_Y, VELOCITY_Z };
 
-      UInt startIndex_;
       UInt colX_, colY_, colZ_;
       UInt colDens_, colPres_, colVelX_, colVelY_, colVelZ_;
       std::map<UInt, Quantity> col2Quan_;

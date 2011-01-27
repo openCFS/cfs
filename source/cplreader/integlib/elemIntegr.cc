@@ -66,6 +66,13 @@ namespace CoupledField
       ptElem_->faces = 1;
       break;
 
+    case Elem::QUAD8:
+      ptElem_->ptElem = new Quad2FE();
+      ptElem_->connect = 1, 5, 2, 6, 3, 7, 4, 8;
+      ptElem_->edges = 1, 2, 3, 4;
+      ptElem_->faces = 1;
+      break;
+
     case Elem::TET4:
       ptElem_->ptElem = new Tetra1FE();
       ptElem_->connect = 1, 2, 3, 4;

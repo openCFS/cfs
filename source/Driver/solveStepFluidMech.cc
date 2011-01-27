@@ -47,21 +47,16 @@ namespace CoupledField
 
     bool performOneMoreStep = true;
 
-    Vector<Double>  actSol;
-    Vector<Double>  actVelo, actPres, tmpVelo, tmpPres;
+    sol_->GetAlgSysVector(actSol_);
+    sol_->GetGlobalSolVector(FLUIDMECH_VELOCITY,actVelo_);
+    sol_->GetGlobalSolVector(FLUIDMECH_PRESSURE,actPres_);
 
-    sol_->GetAlgSysVector(actSol);
-    sol_->GetGlobalSolVector(FLUIDMECH_VELOCITY,actVelo);
-    sol_->GetGlobalSolVector(FLUIDMECH_PRESSURE,actPres);
+    LOG_DBG2(solvestepfluidmech) << "actVelo_\n" << actVelo_ << std::endl;
 
-    LOG_DBG2(solvestepfluidmech) << "actVelo\n" << actVelo << std::endl;
+    LOG_DBG2(solvestepfluidmech) << "actPres_\n" << actPres_ << std::endl;
 
-    LOG_DBG2(solvestepfluidmech) << "actPres\n" << actPres << std::endl;
-
-    Vector<Double> newSol;
-    Vector<Double> solIncrement, solVelocityInc, solPressureInc;
-    newSol.Resize( numEqns_ );
-    solIncrement.Resize( numEqns_ );
+    newSol_.Resize( numEqns_ );
+    solIncrement_.Resize( numEqns_ );
 
     // perform predictor step
     if ( isInstationary_ )
@@ -72,7 +67,7 @@ namespace CoupledField
       } else {
         if ( isIterCoupled == false || iterCoupledCounter == 0 )
         {
-          TS_alg_->Predictor(actSol);
+          TS_alg_->Predictor(actSol_);
         }
       }
     }
@@ -113,33 +108,33 @@ namespace CoupledField
       algsys_->Solve(analysis_id);
 
       // new solution is NOT only an increment of the full solution =============
-      algsys_->GetSolutionVal( newSol );
-      LOG_DBG(solvestepfluidmech) << "newSol\n" << newSol << std::endl;
+      algsys_->GetSolutionVal( newSol_ );
+      LOG_DBG(solvestepfluidmech) << "newSol_\n" << newSol_ << std::endl;
 
-      sol_->SetAlgSysVector(newSol);
+      sol_->SetAlgSysVector(newSol_);
 
-      sol_->GetGlobalSolVector(FLUIDMECH_VELOCITY,tmpVelo);
-      sol_->GetGlobalSolVector(FLUIDMECH_PRESSURE,tmpPres);
+      sol_->GetGlobalSolVector(FLUIDMECH_VELOCITY,tmpVelo_);
+      sol_->GetGlobalSolVector(FLUIDMECH_PRESSURE,tmpPres_);
 
-      LOG_DBG2(solvestepfluidmech) << "newVelo\n" << tmpVelo << std::endl;
-      LOG_DBG2(solvestepfluidmech) << "newPres\n" << tmpPres << std::endl;
+      LOG_DBG2(solvestepfluidmech) << "newVelo\n" << tmpVelo_ << std::endl;
+      LOG_DBG2(solvestepfluidmech) << "newPres\n" << tmpPres_ << std::endl;
 
-      solVelocityInc = tmpVelo - actVelo;
-      solPressureInc = tmpPres - actPres;
-      solIncrement   = newSol  - actSol;
+      solVelocityInc_ = tmpVelo_ - actVelo_;
+      solPressureInc_ = tmpPres_ - actPres_;
+      solIncrement_   = newSol_  - actSol_;
 
-      actVelo = tmpVelo;
-      actPres = tmpPres;
-      actSol  = newSol;
+      actVelo_ = tmpVelo_;
+      actPres_ = tmpPres_;
+      actSol_  = newSol_;
 
       // calculate incremental error ========================================
-      Double solVelocityIncL2Norm = NormL2(solVelocityInc);
-      Double solPressureIncL2Norm = NormL2(solPressureInc);
-      Double solIncrL2Norm = NormL2(solIncrement);
+      Double solVelocityIncL2Norm = NormL2(solVelocityInc_);
+      Double solPressureIncL2Norm = NormL2(solPressureInc_);
+      Double solIncrL2Norm = NormL2(solIncrement_);
 
-      Double actVeloL2Norm = NormL2(tmpVelo);
-      Double actPresL2Norm = NormL2(tmpPres);
-      Double actSolL2Norm  = NormL2(actSol);
+      Double actVeloL2Norm = NormL2(tmpVelo_);
+      Double actPresL2Norm = NormL2(tmpPres_);
+      Double actSolL2Norm  = NormL2(actSol_);
 
       if (actVeloL2Norm > 1.0)
       {
@@ -194,16 +189,15 @@ namespace CoupledField
 
     if ( isInstationary_ )
     {
-      TS_alg_->Corrector(actSol);
+      TS_alg_->Corrector(actSol_);
     }
 
-    LOG_DBG(solvestepfluidmech) << "actSol\n" << actSol << std::endl;
+    LOG_DBG(solvestepfluidmech) << "actSol_\n" << actSol_ << std::endl;
 
     if ( isIterCoupled )
     {
       iterCoupledCounter++;
     }
-    PDE_.AcouSourceCalc();
   }
 } // end of namespace
 

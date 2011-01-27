@@ -18,7 +18,7 @@ namespace CoupledField
                                      const UInt dim,
                                      const UInt numFiles,
                                      const UInt startIndex) :
-    FileReader(name, dim, numFiles)
+    FileReader(name, dim, numFiles, startIndex)
   {
     std::cout << "FileReader_GENGRIDS " << name << " " << dim << " " << numFiles << std::endl;
   }

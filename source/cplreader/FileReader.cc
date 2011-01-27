@@ -21,10 +21,12 @@ namespace CoupledField
 
   FileReader::FileReader(const std::string& name,
                          const UInt dim,
-                         const UInt numFiles) :
+                         const UInt numFiles,
+                         const UInt startIndex) :
     numRegions_(0),
     dim_(dim),
     numSteps_(numFiles),
+    startIndex_(startIndex),
     maxNumElemNodes_(0)
   {
     Settings& settings = Settings::Instance();
