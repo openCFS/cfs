@@ -6,6 +6,7 @@
 
 namespace CoupledField
 {
+  class SinglePDE;
 
   /** This defines a transfer function, where the standard SIMP is a variant */
   class TransferFunction
@@ -30,17 +31,23 @@ namespace CoupledField
      
       /** E.G. for the stresses we temporarily construct a own transfer function */
       TransferFunction(Optimization::Application app, TransferFunction::Type tf_type, double param, DesignElement::Type design = DesignElement::NO_TYPE);
-
     
       /** applies the transformation
        * @param de containts the design value
        * @param access if SMART and the filter is accordingly defined the filtered design is the base for penalization*/
-      double Transform(const DesignElement* de, DesignElement::Access access = DesignElement::PLAIN, double external_value = -13.456) const;
+      double Transform(const DesignElement* de, DesignElement::Access access, double external_value = -13.456) const;
 
       /** applies the first derivative of the transformation
        * @see Transform() */
-      double Derivative(const DesignElement* de, DesignElement::Access access = DesignElement::PLAIN) const;
-     
+      double Derivative(const DesignElement* de, DesignElement::Access access) const;
+
+      /** Gives the standard, non-mass Application to find the transfer-function. Note that the application for transfer functions
+       * does not coincide with pde application due to the laplace stuff */
+      static Optimization::Application Default(const SinglePDE* pde);
+
+      /** see the other Default */
+      static Optimization::Application Default(DesignElement::Type type);
+
       Optimization::Application GetApplication() { return application_; }
       
       DesignElement::Type GetDesign() { return design_; }

@@ -158,13 +158,12 @@ namespace CoupledField
   }
 
 
-  void  BaseMaterial::subTensorNotAvailable(MaterialType matType, SubTensorType subTensor ) const {
-
+  void BaseMaterial::subTensorNotAvailable(MaterialType matType, SubTensorType subTensor )
+  {
     std::string msg, help1, help2;
     Enum2String(matType, help1);
     Enum2String(subTensor, help2);
-    EXCEPTION( "Subtensor " << help2 <<" not available for material type " 
-               << help1 );
+    EXCEPTION("Subtensor " << help2 <<" not available for material type " << help1);
   }
 
   std::ostream & operator << ( std::ostream & out, const BaseMaterial& matData)

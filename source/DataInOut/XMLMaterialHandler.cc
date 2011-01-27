@@ -57,7 +57,6 @@ namespace CoupledField {
     std::string strMatClass;
 
     Enum2String(matClass,strMatClass);
-    
     if(!parser_->HasByVal("material", "name", matName))
       EXCEPTION("Cannot find material '" << matName << "'");
     

@@ -5,7 +5,7 @@
 
 namespace CoupledField
 {
-class OptMechMat;
+class MechMat;
 class linElastInt;
 
 /** Optimization via ShapeGradient and Level-Set method, not by Parametrization */
@@ -28,9 +28,6 @@ public:
                           const unsigned int e,
                           const SubTensorType type = PLANE_STRAIN,
                           Application app = MECH);
-
-  /** Helper function for TopGrad, where we need the SubTensorType */
-  void GetSubTensorType(SubTensorType &stt) const;
 
   StdVector<SingleVector*>& getSolutionVectors(const bool forward_solution = true)
   {
@@ -61,7 +58,7 @@ private:
   int max_volume_to_remove_;
 
   /** This is our material shortcut, currently only mechanic. Set in PostInit() */
-  OptMechMat* mech_mat_;
+  MechMat* mech_mat_;
 };
 
 } // namespace

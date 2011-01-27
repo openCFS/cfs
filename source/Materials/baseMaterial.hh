@@ -375,7 +375,7 @@ namespace CoupledField {
     void setMakesNoSense(Global::ComplexPart datType, const std::string& msg ) const;
 
     //! Error for not available subtype of tensor
-    void subTensorNotAvailable(MaterialType matType, SubTensorType subTensor) const;
+    static void subTensorNotAvailable(MaterialType matType, SubTensorType subTensor);
 
     //! rotate a tensor
     virtual void PerformRotation( Matrix<Complex>& rotMatrix,  Matrix<Complex>& matMatrix,

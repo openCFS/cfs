@@ -2,6 +2,7 @@
 #define ERSATZ_MATERIAL_HH_
 
 #include <map>
+#include <boost/tuple/tuple.hpp>
 
 #include "Optimization/Optimization.hh"
 #include "Optimization/Excitation.hh"
@@ -10,13 +11,16 @@
 #include "MatVec/vector.hh"
 #include "MatVec/matrix.hh"
 
+
+using boost::tuple;
+
+
 namespace CoupledField
 {
 class StdPDE;
 class SinglePDE;
 class BaseForm;
 class BiLinFormContext;
-class BaseMaterial;
 class Condition;
 class Assemble;
 class TransferFunction;
@@ -96,11 +100,16 @@ public:
    * @param DesignElement::DENSITY -> MECH, DesignElement::POLARIZATION -> ELEC */
   static Application ToApp(DesignElement::Type dt);
 
+  /** Default standard design type (not mass) by PDE */
+  DesignElement::Type ToDesign(const SinglePDE* pde) const;
+
   /** Helper that converts from mechPDE to MECH and elecPDE to ELEC, ...
+   * @param from heat and acoustic the application for the transfer function is laplace, this is indicated by the flag if
+   *        we do not want a marker for the pde but the transfer function. Sorry, very messy !! :((
    * @throws if neither mechPDE nor elecPDE
-   *  @see ToPDE()
+   * @see ToPDE()
    * @see SetPDEs() */
-  Application ToApp(SinglePDE* pde) const;
+  Application ToApp(const SinglePDE* pde) const;
 
   /** Find our PDE in SIMP by application from the pdes map
    * @see ToApp()*/
@@ -137,9 +146,6 @@ public:
 
   /** This is simple one SinglePDE from pdes. */
   SinglePDE* pde;
-
-  /** The region to optimize */
-  StdVector<RegionIdType> regionIds;
 
   /** This is the current homogenized tensor.
    * Evaluated by HOMOGENIZATION_TRACKING and HOMOGENIZED_TENSOR (as objective only).
@@ -355,7 +361,7 @@ public:
   /** This is a helper for CalcU1KU2 to determine the "K" which in most cases includes a
    * derivative. It also includes mechanical damping and mass matrix via AddMassToStiffness().
    * The templated stuff is private, as C++ does not allow virtual templates. */
-  virtual void SetElementK(DesignElement* de, Application app,
+  virtual void SetElementK(DesignElement* de, const TransferFunction* tf, Application app,
       DenseMatrix* out, CalcMode calcMode, bool derivative = true) { throw Exception("not implemented"); }
 
   /** Get the ErsatzMaterialTensor as the Tensor itself, not the stiffness matrix
@@ -364,6 +370,10 @@ public:
    * @param direction if given return derivative in that direction*/
   void GetErsatzMaterialTensor(Matrix<double>& mat, Elem* elem,
       DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+
+  /** Helper that asks MechanicMaterial. Works only for a single region.
+   * @return empty if multiple regions */
+  StdVector<std::pair<std::string, double> > GetOrthotropeProperties(const Matrix<double>& tensor);
   
   /** This is an extension to SolveStateProblem() where the forward problem is solved and stored.
    * Depending on the objective function SolveAdjointProblem() is called to additionally solve and store the
@@ -491,10 +501,9 @@ public:
   /** Calculates the gradient of the homogenization tracking. When J = 0.5 * || E^* - E^H ||^2
    * the this calulates -1 (E^* - E^H) * d(E^H)/d(rho_e) using a matrix scalar product
    * @param target E^* what we want
-   * @param hom the pre calculated tensor E^H
-   * @param g the HOMOGENIZATION_TRACKING or NULL if for objective function */
+   * @param hom the pre calculated tensor E^H */
   virtual void CalcHomogenizedTrackingGradient(const Matrix<double>& target,
-      const Matrix<double>& hom, Objective* f, Condition* g);
+      const Matrix<double>& hom, Function* f);
 
   /** Calculates the gradient if the constraints E^H = E^* where for each interested
    * tensor entry a own HOMOGENIZATION_TENSOR constraint is required.
@@ -510,8 +519,7 @@ public:
    * @param derivative this sets d(E^H)/d(rho_e) for the current tensor entry
    * @param out_grad of derivative it is resized and the gradients are set otherwise it is untouched
    * @return the E^H tensor entry if !derivative or 0 */
-  double CalcHomogenizedTensorEntry(const std::pair<int, int> entry,
-      bool derivative, StdVector<double>& grad_out);
+  double CalcHomogenizedTensorEntry(const tuple<int, int, double> entry,  bool derivative, StdVector<double>& grad_out);
 
   /** This is to be overwritten for any case there are other PDEs in ErsatzMaterial::pdes to be set.
    * PiezoSIMP does it simply in the constructor */
@@ -532,7 +540,7 @@ public:
   /** do we do SIMP or FreeMat or ... */
   Method method_;
 
-  /** this is the optimization->simp XML element */
+  /** this is the optimization->ersatzMaterial XML element */
   PtrParamNode pn;
 
   /** The assemble class for our PDE */
@@ -669,11 +677,11 @@ private:
 
   /** IntegrateDesignVariables() can do a lot, but no one wants to extend it to hande the derivative
    * case of the gap constraint: volume - penalized volume */
-  void CalcRegularGapConstraint(Objective* f, Condition* g,   DesignElement::Type dt);
+  void CalcRegularGapConstraint(Function* f, DesignElement::Type dt);
 
   /** Homogenization objective/ constraint.
    * Is once evaluate only! */
-  double CalcPoissonsRatioAndYoungsModulus(Objective* cost, Condition* g,  bool derivative);
+  double CalcPoissonsRatioAndYoungsModulus(Function* f,  bool derivative);
 
   /** Calculates the product of the (system) surface normal matrix with the solution already in OLAS.
    * Note that we have to use 1 based OLAS vectors as the sparse system matrix is from OLAS .

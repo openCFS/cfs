@@ -1,4 +1,5 @@
 #include "Optimization/Optimizer/EvaluateOnly.hh"
+#include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Optimization.hh"
 #include "Driver/harmonicDriver.hh"
@@ -28,6 +29,12 @@ void EvaluateOnly::SolveProblem()
   HarmonicDriver* hd = dynamic_cast<HarmonicDriver*>(domain->GetDriver());
   int end = optimization->IsHarmonic() && !optimization->GetMultipleExcitation()->IsEnabled() ? hd->freqs.GetSize() : 1;
 
+  // to store the gradient values, we need it to evaluate density filtering
+  StdVector<double> grad(optimization->GetDesign()->GetNumberOfVariables());
+  grad.Init(0.0);
+  // scale the window to the whole data domain
+  grad.window.Set(grad);
+
   for(int i = 0; i < end; i++)
   {
     // we do multiple excitations only when end > 1. Otherwise it is unused
@@ -46,14 +53,14 @@ void EvaluateOnly::SolveProblem()
     // calc gradients, they might be stored in store results!
     // gradients might need adjoints
     optimization->SolveAdjointProblems();
-    optimization->CalcObjectiveGradient(NULL);
+    optimization->CalcObjectiveGradient(&grad);
     
     for(int c = 0; c < optimization->constraints.view->GetNumberOfTotalConstraints(); c++)
     {
       Condition* g = optimization->constraints.view->Get(c);
       optimization->CalcConstraint(g);
-      if(g->IsActive()) // not for observation stuff
-        optimization->CalcConstraintGradient(g);
+      if(!g->IsObservation()) // not for observation stuff
+        optimization->CalcConstraintGradient(g, &grad);
     }
     optimization->constraints.view->Done(); // reset the slope constraints to global
 

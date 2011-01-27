@@ -83,20 +83,23 @@ ErsatzMaterial::ErsatzMaterial() :
   if(region_list.IsEmpty() && (method_ != SHAPE_OPT && method_ != SHAPE_PARAM_MAT))
     EXCEPTION("no region given!");
 
+  StdVector<RegionIdType> regions;
+
   for(unsigned int i=0; i < region_list.GetSize(); i++){
+    // we are compatible with the region attribute and unbounded region elements
     std::string reg = region_list[i]->Has("name") ? region_list[i]->Get("name")->As<std::string>() : region_list[i]->As<std::string>();
+    std::string bimat = region_list[i]->Has("bimaterial") ? region_list[i]->Get("bimaterial")->As<std::string>() : "";
     if(!grid->GetRegion().IsValid(reg))
       throw Exception("region given in ersatzMaterial is invalid");
-    regionIds.Push_back(grid->GetRegion().Parse(reg));
+    regions.Push_back(grid->GetRegion().Parse(reg));
   }
-
 
   // set up the design space elements, note PiezoSIMP have only POLARIZATION
   // this includes the transfer functions!
   ParamNodeList design_list = pn->GetList("design");
   ParamNodeList transfer_list = pn->GetList("transferFunction");
   ParamNodeList result = pn->GetList("result");
-  design = DesignSpace::CreateInstance(regionIds, design_list, transfer_list, result, method_);
+  design = DesignSpace::CreateInstance(regions, design_list, transfer_list, result, method_);
   // make basic loggings
   design->ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("designSpace"));
 
@@ -183,14 +186,6 @@ void ErsatzMaterial::PostInit()
   // the constraints size is only now known and the shapeDesign constructor is finished -> PostInit design
   design->PostInit(objectives.data.GetSize(), constraints.all.GetSize());
 
-
-  // number of design variables in shape optimization is only known here
-  // make a copy of the old iteration to calculate the move
-  last_iteration.Resize(design->GetNumberOfVariables());
-
-  // note the difference between function evaluations (line search) and iterations!
-  last_evaluation.Resize(design->GetNumberOfVariables());
-
   for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
   {
     Objective* cost = objectives.data[i];
@@ -213,8 +208,6 @@ void ErsatzMaterial::PostInit()
 
       case Objective::DYNAMIC_OUTPUT:
       case Objective::GLOBAL_DYNAMIC_COMPLIANCE:
-      case Objective::ABS_DYN_OUTPUT_SQUARED:
-      case Objective::ENERGY_FLUX:
         if(!harmonic) throw Exception(objective + " is only for harmonic state problems");
         break;
 
@@ -227,7 +220,7 @@ void ErsatzMaterial::PostInit()
     {
       case Objective::OUTPUT:
       case Objective::DYNAMIC_OUTPUT:
-      case Objective::ABS_DYN_OUTPUT_SQUARED:
+      case Objective::ABS_OUTPUT:
       {
         PtrParamNode output = cost->pn->Get("output");
 
@@ -251,24 +244,8 @@ void ErsatzMaterial::PostInit()
   // create Material class
   if(pde != NULL)
   {
-    OptimizationMaterial::System system = 
-        OptimizationMaterial::system.Parse(pn->Get("material")->As<std::string>());
-    switch(system)
-    {
-    case OptimizationMaterial::PIEZO:
-      material = new OptPiezoMat(this);
-      break;
+    material = OptimizationMaterial::CreateInstance(OptimizationMaterial::system.Parse(pn->Get("material")->As<std::string>()), this);
 
-    case OptimizationMaterial::MECHANIC:
-      material = new OptMechMat(this);
-      break;
-
-    case OptimizationMaterial::HEAT:
-      material = new HeatMat(this);
-      break;
-
-    default: assert(false);
-    }
     optInfoNode->Get(ParamNode::HEADER)->Get("material")->SetValue(OptimizationMaterial::system.ToString(material->GetSystem()));
   }
 
@@ -359,15 +336,16 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   {
     PtrParamNode in = iter->Get("homogenizedTensor");
     in->Get("norm_L2")->SetValue(homogenizedTensor.NormL2());
+    SubTensorType stt = pde->GetSubTensorType();
+
 
     PtrParamNode iso = in->Get("isotropy");
-    iso->Get("err")->SetValue(MechanicMaterial::CalcIsotropyError(homogenizedTensor, false));
-    iso->Get("err_normed")->SetValue(MechanicMaterial::CalcIsotropyError(homogenizedTensor, true));
-    iso->Get("poissons_ratio")->SetValue(MechanicMaterial::CalcIsotropicPoissonsRatio(homogenizedTensor));
-    iso->Get("E")->SetValue(MechanicMaterial::CalcIsotropicYoungsModulus(homogenizedTensor));
+    StdVector<std::pair<string, double> > isop = MechanicMaterial::CalcIsotropicProperties(homogenizedTensor, stt);
+    for(unsigned int i = 0; i < isop.GetSize(); i++)
+      iso->Get(isop[i].first)->SetValue(isop[i].second);
 
     PtrParamNode orth = in->Get("orthotropy");
-    StdVector<std::pair<string, double> > ortho = MechanicMaterial::CalcOrthotropeProperties(homogenizedTensor);
+    StdVector<std::pair<string, double> > ortho = GetOrthotropeProperties(homogenizedTensor);
     for(unsigned int i = 0; i < ortho.GetSize(); i++)
       orth->Get(ortho[i].first)->SetValue(ortho[i].second);
 
@@ -380,7 +358,22 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   return iter;
 }
 
-
+StdVector<std::pair<string, double> > ErsatzMaterial::GetOrthotropeProperties(const Matrix<double>& tensor)
+{
+  if(design->regions.GetSize() > 1)
+  {
+    StdVector<std::pair<string, double> > result;
+    return result; // empty result
+  }
+  else
+  {
+    BaseMaterial* bm = GetForm(design->GetRegionId(), pde, pde, "linElastInt")->GetMaterial();
+    Objective vf(Function::VOLUME, 0.0, true); // physical!
+    double vol = CalcVolume(&vf, NULL, false, true);
+    StdVector<std::pair<string, double> > ortho = MechanicMaterial::CalcOrthotropeProperties(homogenizedTensor, bm, pde->GetSubTensorType(), vol);
+    return ortho;
+  }
+}
 
 string ErsatzMaterial::GetIterationFrequency()
 {
@@ -457,6 +450,9 @@ void ErsatzMaterial::CalcNewmarkDerivative(Excitation& excite, Solutions& forwar
     adjoints[t] = &adjoint.Get(excite, f, t)->elem[MECH];
   }
 
+  const TransferFunction* ktf = design->GetTransferFunction(DesignElement::DENSITY, MECH);
+  const TransferFunction* mtf = design->GetTransferFunction(DesignElement::DENSITY, MASS);
+
   // the outer most loop is over all elements, so element matrices can be reused as much as possible
   int upper = design->data.GetSize();
   int elements = design->GetNumberOfElements();
@@ -464,8 +460,8 @@ void ErsatzMaterial::CalcNewmarkDerivative(Excitation& excite, Solutions& forwar
     for(int e = 0 ; e < elements; ++e) { // loop over all elements
       DesignElement* de = &design->data[base + e];
       bool notDampingElement = de->GetType() != DesignElement::DAMPINGALPHA && de->GetType() != DesignElement::DAMPINGBETA;
-      SetElementK(de, MECH, dynamic_cast<DenseMatrix*>(&dK), STANDARD, notDampingElement);
-      SetElementK(de, MASS, dynamic_cast<DenseMatrix*>(&dM), STANDARD, notDampingElement);
+      SetElementK(de, ktf, MECH, dynamic_cast<DenseMatrix*>(&dK), STANDARD, notDampingElement);
+      SetElementK(de, mtf, MASS, dynamic_cast<DenseMatrix*>(&dM), STANDARD, notDampingElement);
       
       // The damping matrix is alpha * Mass + beta * Stiffness, so it's derivative is also alpha * dMass + beta * dStiffness
       // We need to get alpha and beta, from the integrators
@@ -596,7 +592,7 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>&
       LOG_DBG3(em) << "u2:" << e << ": " << u2_vec.ToString();
 
       // u1^T (K' u2 - f') -> find "K'"
-      SetElementK(de, app, dynamic_cast<DenseMatrix*>(&mat), calcMode);
+      SetElementK(de, tf, app, dynamic_cast<DenseMatrix*>(&mat), calcMode);
       LOG_DBG3(em) << "mat: " << mat.ToString();
 
       // We generally solve u1^T (K' u2 - f') as u1^T (K' u2 - f')
@@ -649,7 +645,7 @@ void ErsatzMaterial::SubtractGradStrainRHS(DesignElement* de, TransferFunction* 
   MechPDE::TestStrain ts = rhs != NULL ? rhs->test_strain : MechPDE::NOT_SET;
 
   // OptMechMat is base for any further child!
-  const Vector<double>& vec = dynamic_cast<OptMechMat*>(material)->MechStrainRHS(de->elem, ts);
+  const Vector<double>& vec = dynamic_cast<MechMat*>(material)->MechStrainRHS(de->elem, ts);
 
   double factor = tf->Derivative(de, DesignElement::SMART);
   // LOG_DBG3(em) << "SGSR: de=" << de->elem->elemNum << " in_out=" << in_out.ToString();
@@ -708,7 +704,7 @@ void ErsatzMaterial::SubtractGradSurfaceRHS(DesignElement* de, TransferFunction*
                      << *it << " in surface: K'u = " << in_out.ToString();
 
       // find the the sensitivity of the rhs w.r.t the design volume element!
-      double factor = tf->Derivative(de);
+      double factor = tf->Derivative(de, DesignElement::SMART);
 
       // we do not really construct a rhs vector (with some/many zeros) but substract
       // for all design nodes common with the surface directly the entries
@@ -722,8 +718,6 @@ void ErsatzMaterial::SubtractGradSurfaceRHS(DesignElement* de, TransferFunction*
 
 double ErsatzMaterial::CalcObjective()
 {
-  design->WriteDesignToExtern(last_evaluation.GetPointer());
-
   // in objective.value_ we store the sum over all excitations w/o penalty but with normalization
   // in excitation.cost we store the sum over all objectives with penalty but w/o normalization
 
@@ -919,14 +913,23 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
             Matrix<double> hom_tensor = CalcHomogenizedTensor();
             if(c->HasHomogenizationEntry())
             {
-              result = hom_tensor[c->coord.first -1][c->coord.second - 1];
+              result = hom_tensor[get<0>(c->coord)-1][get<1>(c->coord)-1];
             }
             else
             {
               std::cout << "Homogenized Tensor: " << std::endl << hom_tensor.ToString(0, true);
 
+              std::cout << "Isotrope properties: ";
+              SubTensorType stt = pde->GetSubTensorType();
+              std::cout << " E=" << MechanicMaterial::CalcIsotropicYoungsModulus(hom_tensor, stt);
+              std::cout << " v=" << MechanicMaterial::CalcIsotropicYoungsModulus(hom_tensor, stt);
+              std::cout << " err=" << MechanicMaterial::CalcIsotropyError(hom_tensor, stt) << "\n";
+
+              StdVector<std::pair<string, double> > ortho = GetOrthotropeProperties(hom_tensor);
               std::cout << "Orthotrope properties: ";
-              StdVector<std::pair<string, double> > ortho = MechanicMaterial::CalcOrthotropeProperties(hom_tensor);
+              if(ortho.GetSize() == 0)
+                std::cout << " in 2D only for single region\n";
+
               for(unsigned int i = 0; i < ortho.GetSize(); i++)
                 std::cout << " " << ortho[i].first << "=" << ortho[i].second;
               std::cout << "\n";
@@ -943,7 +946,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
     case Function::HOMOGENIZATION_TRACKING:
          if(derivative)
          {
-           CalcHomogenizedTrackingGradient(f->GetTensor(), CalcHomogenizedTensor(), c, g);
+           CalcHomogenizedTrackingGradient(f->GetTensor(), CalcHomogenizedTensor(), f);
          }
          else
          {
@@ -954,7 +957,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
 
     case Function::POISSONS_RATIO:
     case Function::YOUNGS_MODULUS:
-         result = CalcPoissonsRatioAndYoungsModulus(c, g, derivative);
+         result = CalcPoissonsRatioAndYoungsModulus(f, derivative);
          break;
 
     case Function::GLOBAL_DYNAMIC_COMPLIANCE:
@@ -965,7 +968,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
      case Function::OUTPUT:
      case Function::DYNAMIC_OUTPUT:
      case Function::CONJUGATE_COMPLIANCE:
-     case Function::ABS_DYN_OUTPUT_SQUARED:
+     case Function::ABS_OUTPUT:
           assert(!derivative); // SIMP!
           if(harmonic)
             result = CalcOutputObjective<complex<double> >(excite, c);
@@ -985,6 +988,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
        assert(false); // shall be handled before
 
      case Function::ISOTROPY:
+     case Function::ISO_ORTHOTROPY:
      case Function::MULTI_OBJECTIVE:
        assert(false); // no valid function
     // no default, gcc warns
@@ -1178,7 +1182,7 @@ double ErsatzMaterial::CalcVolume(Objective* f, Condition* g, bool derivative, b
       if(!design->IsRegular())
         throw Exception(Function::type.ToString(func->GetType()) + " only implemented for regular grids");
 
-      CalcRegularGapConstraint(f, g, des);
+      CalcRegularGapConstraint(func, des);
       return -1.0;
     }
   }
@@ -1188,7 +1192,7 @@ double ErsatzMaterial::CalcVolume(Objective* f, Condition* g, bool derivative, b
   return -1.0; // cannot happen due to assert
 }
 
-void ErsatzMaterial::CalcRegularGapConstraint(Objective* f, Condition* g, DesignElement::Type dt)
+void ErsatzMaterial::CalcRegularGapConstraint(Function* f, DesignElement::Type dt)
 {
   assert(design->IsRegular());
 
@@ -1196,7 +1200,7 @@ void ErsatzMaterial::CalcRegularGapConstraint(Objective* f, Condition* g, Design
   unsigned int ele = design->GetNumberOfElements();
 
   // exponent for penalized volume
-  const double exp = f != NULL ? g->GetParameter() : g->GetParameter();
+  const double exp = f->GetParameter();
 
   for(unsigned int i = des * ele; i < (des + 1) * ele; i++)
   {
@@ -1208,7 +1212,7 @@ void ErsatzMaterial::CalcRegularGapConstraint(Objective* f, Condition* g, Design
     // normalize
     double grad = (1.0 - pen_grad) / (double) ele;
 
-    de.AddGradient(f, g, grad);
+    de.AddGradient(f,  grad);
   }
 }
 
@@ -1299,18 +1303,13 @@ double ErsatzMaterial::CalcOutputObjective(Excitation& excite, Objective* cost)
       break;
     }
 
-    case Objective::ABS_DYN_OUTPUT_SQUARED:
+    case Function::ABS_OUTPUT:
     {
-      // |<u,l>|^2 = Re{<u,l>}^2 + Im{<u,l>}^2 
+      // |<u,l>|
       T ul = u.Inner(l);
-      double re_ul = ((complex<double>) ul).real();
-      double im_ul = ((complex<double>) ul).imag();
-      result = re_ul * re_ul + im_ul * im_ul;
-      result *= excite.GetFactor(cost);
-      LOG_DBG2(em) << "output |<u,l>|^2 = Re{<u,l>}^2 + Im{<u,l>}^2: " << re_ul << "^2  + " << im_ul << "^2 -> " << result;
-      break;
+      result = std::abs(ul);
+      LOG_DBG2(em) << "output |<u,l>| = |" << ul << "| -> " << result;
     }
-
 
     case Objective::DYNAMIC_OUTPUT:
     case Objective::CONJUGATE_COMPLIANCE:
@@ -1481,6 +1480,7 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
 
     // apply our own physical densities!
     form->calcDMat(E, NULL, DesignElement::DENSITY, qp.Transform(de, DesignElement::SMART));
+    //LOG_DBG2(em) << "CVMSV de=" << de->ToString() << " E=" << E.ToString();
 
     elemList.SetElement(de->elem);
     EntityIterator it = elemList.GetIterator();
@@ -1663,6 +1663,9 @@ void ErsatzMaterial::SetEnergyFluxVector(Function* f, const Vector<complex<doubl
   // this contains an element B (grad_n) matrix to be applied with the solution.
   Matrix<complex<double> > q_mat;
 
+  // surface normal
+  Vector<double> normal;
+
   // traverse our surface elements
   EntityIterator it = sel->GetIterator();
   for(it.Begin(); !it.IsEnd(); it++)
@@ -1681,7 +1684,9 @@ void ErsatzMaterial::SetEnergyFluxVector(Function* f, const Vector<complex<doubl
 
     // determine selected element grad_n matrix (includes selection defined by surface elements)
     // the matrix is squared but for non-common nodes entries it is zero
-    mypde->CalcElemGradMatrix(vol, common_nodes, 3, vol->ptElem->GetAnsatzFct(), q_mat); // z-direction!
+    grid->CalcSurfNormal(normal, *se);
+    LOG_DBG2(em) << "SEFV: se=" << se->elemNum << " normal=" << normal.ToString() << " relevant_direction=" << Point::GetCartesianOrientation(&normal) + 1;
+    mypde->CalcElemGradMatrix(vol, common_nodes, Point::GetCartesianOrientation(&normal) + 1, vol->ptElem->GetAnsatzFct(), q_mat); // x, y, z-direction -> 1-based!! :(
 
     for(unsigned int n = 0; n < vol->connect.GetSize(); n++)
     {
@@ -1858,59 +1863,70 @@ double ErsatzMaterial::CalcTracking(Excitation& excite, Objective* c, Condition*
   }
 }
 
-double ErsatzMaterial::CalcPoissonsRatioAndYoungsModulus(Objective* cost, Condition* g, bool derivative)
+double ErsatzMaterial::CalcPoissonsRatioAndYoungsModulus(Function* f, bool derivative)
 {
-  assert(cost != NULL || g != NULL); // at least one of them must be given!
-  
-  bool poisson(false);
-  if(cost != NULL)
-  {
-    assert(cost->GetType() == Objective::POISSONS_RATIO || cost->GetType() == Objective::YOUNGS_MODULUS);
-    poisson = cost->GetType() == Objective::POISSONS_RATIO;
-  }
-  else
-  {
-    assert(g->GetType() == Condition::POISSONS_RATIO || g->GetType() == Condition::YOUNGS_MODULUS);
-    poisson = g->GetType() == Condition::POISSONS_RATIO;
-  }
+  assert(f->GetType() == Function::POISSONS_RATIO || f->GetType() == Function::YOUNGS_MODULUS);
 
+  SubTensorType stt = pde->GetSubTensorType();
+  assert(stt == PLANE_STRAIN || stt == PLANE_STRESS || stt == FULL);
+  
   Matrix<double> hom_tensor = CalcHomogenizedTensor();
 
   double result = 0.0;
 
   if(derivative)
   {
+    // for iso-orthotropy we use the formulas for isotropy
+    // Poisson's Ratio:
+    // see MechanicMaterial::CalcIsotropicPoissonsRatio()
+    // FULL + PLANE_STRAIN: v = E12 / (E11 + E12)
+    // PLANE_STRESS: v = E12 / E11
+    //
+    // Young's Modulus
+    // see MechanicMaterial::CalcIsotropicYoungsModulus()
+    // FULL + PLANE_STRAIN: E = E11 * (1+v) * (1-2v)/(1-v)
+    // PLANE_STRESS: E = E11 * (1-v^2)
+
     StdVector<double> dE11;
-    CalcHomogenizedTensorEntry(make_pair(1,1), true, dE11);
+    CalcHomogenizedTensorEntry(make_tuple(1,1,1.0), true, dE11);
     StdVector<double> dE12;
-    CalcHomogenizedTensorEntry(make_pair(1,2), true, dE12);
+    CalcHomogenizedTensorEntry(make_tuple(1,2,1.0), true, dE12);
 
     const double E11 = hom_tensor[0][0];
     const double E12 = hom_tensor[0][1];
     double grad(0.0);
-    const double denom = (E11 + E12) * (E11 + E12);
     
     for(unsigned int e = 0, ne = design->GetNumberOfElements(); e < ne; e++)
     {      
-      if(poisson) 
-        grad = (dE12[e] * E11 - E12 * dE11[e]);
-      else
+      if(f->GetType() == f->POISSONS_RATIO && (stt == FULL || stt == PLANE_STRAIN))
+      {
+         grad = (dE12[e] * E11 - E12 * dE11[e]) / ((E11 + E12) * (E11 + E12));
+      }
+      if(f->GetType() == f->POISSONS_RATIO && stt == PLANE_STRESS)
+      {
+        grad = (dE12[e] * E11 - E12 * dE11[e]) / (E11 * E11);
+      }
+      if(f->GetType() == f->YOUNGS_MODULUS && (stt == FULL || stt == PLANE_STRAIN))
       {
         grad  = (E11 * E11 + 2.0 * E11 * E12 + 3.0 * E12 * E12) * dE11[e];
         grad -= (4.0 * E11 * E12 + 2.0 * E12 * E12) * dE12[e];
+        grad /= (E11 + E12) * (E11 + E12);
       }
-      
-      grad /= denom;
-
-      design->data[e].AddGradient(cost, g, grad);
+      if(f->GetType() == f->YOUNGS_MODULUS && stt == PLANE_STRESS)
+      {
+        grad  = (E11 * E11 + E12 * E12) * dE11[e];
+        grad -= 2.0 * E11 * E12 * dE12[e];
+        grad /=  E11 * E11;
+      }
+      design->data[e].AddGradient(f, grad);
     }
   }
   else
   {
-    if(poisson)
-      result = MechanicMaterial::CalcIsotropicPoissonsRatio(hom_tensor);
+    if(f->GetType() == f->POISSONS_RATIO)
+      result = MechanicMaterial::CalcIsotropicPoissonsRatio(hom_tensor, stt);
     else
-      result = MechanicMaterial::CalcIsotropicYoungsModulus(hom_tensor);
+      result = MechanicMaterial::CalcIsotropicYoungsModulus(hom_tensor, stt);
   }
 
   return result;
@@ -1988,7 +2004,7 @@ Matrix<double> ErsatzMaterial::CalcHomogenizedTensor()
   return result;
 }
 
-void ErsatzMaterial::CalcHomogenizedTrackingGradient(const Matrix<double>& target, const Matrix<double>& hom, Objective* f, Condition* g)
+void ErsatzMaterial::CalcHomogenizedTrackingGradient(const Matrix<double>& target, const Matrix<double>& hom, Function* f)
 {
   const double cube_vol(grid->CalcVolumeSpannedByNamedNodes());
 
@@ -2041,7 +2057,7 @@ void ErsatzMaterial::CalcHomogenizedTrackingGradient(const Matrix<double>& targe
     // (E^* - E^H) * - d(E^H)/d(rho_e) -> therefore the minus !
     double grad = -1.0 * diff_tensor.ScalarProduct(hom_tensor_deriv);
 
-    de->AddGradient(f, g, grad);
+    de->AddGradient(f, grad);
   } // element loop
 }
 
@@ -2053,24 +2069,28 @@ double ErsatzMaterial::CalcHomogenizedTensorConstraint(Condition* g, bool deriva
 
   double result = 0.0;
 
-  // we have the form Exx or Exx-Eyy or Exx-Eyy-Ezz-Ezz for isotropy constraints
+  // we have a list of int,int,double tuples which are added with the double factor.
+  // E11 = <0,0,x>
+
 
   for(unsigned int i = 0; i < g->coords.GetSize(); i++)
   {
-    double t = CalcHomogenizedTensorEntry(g->coords[i], derivative, grad);
+    tuple<int, int, double>& entry = g->coords[i];
+    double t = CalcHomogenizedTensorEntry(entry, derivative, grad);
+    double factor = get<2>(entry);
 
     if(derivative)
     {
       for(int e = 0, ne = design->GetNumberOfElements(); e < ne; ++e)
-        design->data[e].AddGradient(NULL, g, (i == 0 ? 1.0 : -1.0) * grad[e]);
+        design->data[e].AddGradient(NULL, g, factor * grad[e]);
     }
     else
     {
-      result = (i == 0 ? t : result-t);
+      result += factor * t;
 
-      homogenizedTensor[g->coords[i].first - 1][g->coords[i].second - 1] = t;
+      homogenizedTensor[get<0>(entry)-1][get<1>(entry)-1] = t;
       // all tensors are symmetric. Makes reading easier!
-      homogenizedTensor[g->coords[i].second - 1][g->coords[i].first - 1] = t;
+      homogenizedTensor[get<1>(entry)-1][get<0>(entry)-1] = t;
 
       //LOG_DBG(em) << "CHTC: g=" << g->ToString() << " coord=" << i << " ["
       //    << g->coords[i].first << "-1][" << g->coords[i].second << "-1] = " << t;
@@ -2080,7 +2100,7 @@ double ErsatzMaterial::CalcHomogenizedTensorConstraint(Condition* g, bool deriva
   return result;
 }
 
-double ErsatzMaterial::CalcHomogenizedTensorEntry(const std::pair<int, int> entry, bool derivative, StdVector<double>& grad_out)
+double ErsatzMaterial::CalcHomogenizedTensorEntry(const tuple<int, int, double> entry, bool derivative, StdVector<double>& grad_out)
 {
   const double cube_vol(grid->CalcVolumeSpannedByNamedNodes());
 
@@ -2089,8 +2109,8 @@ double ErsatzMaterial::CalcHomogenizedTensorEntry(const std::pair<int, int> entr
   Matrix<double> test_strain_matrix_ij(dim, dim);
   Matrix<double> test_strain_matrix_kl(dim, dim);
 
-  const unsigned int ij = entry.first - 1;
-  const unsigned int kl = entry.second - 1;
+  const unsigned int ij = get<0>(entry) - 1;
+  const unsigned int kl = get<1>(entry) - 1;
 
   SetTestStrainMatrix(test_strain_matrix_ij, me->excitations[ij].test_strain);
   StdVector<SingleVector*> &u1 = forward.Get(ij)->elem[MECH]; // equal to \chi^{ij}
@@ -2173,7 +2193,8 @@ double ErsatzMaterial::CalcHomogenizedElementProduct(ErsatzMaterial* obj, Design
 
   // reuse tmp_mat as elementK-Matrix
   // Matrix<double> k_mat;
-  obj->SetElementK(de, MECH, &tmp_mat, STANDARD, derivative);
+  TransferFunction* tf = obj->design->GetTransferFunction(DesignElement::DENSITY, MECH);
+  obj->SetElementK(de, tf, MECH, &tmp_mat, STANDARD, derivative);
 
   Vector<double> mat_vec;
   mat_vec = tmp_mat * u1_0;
@@ -2554,7 +2575,7 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
 
     case Function::OUTPUT:
     case Function::CONJUGATE_COMPLIANCE:
-    case Function::ABS_DYN_OUTPUT_SQUARED:
+    case Function::ABS_OUTPUT:
     case Function::GLOBAL_DYNAMIC_COMPLIANCE:
     case Function::DYNAMIC_OUTPUT:
     case Function::ELEC_ENERGY:
@@ -2675,6 +2696,9 @@ void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
   Vector<complex<double> >& u = forward.Get(excite)->GetComplexVector(Solution::RAW_VECTOR);
   Vector<complex<double> >& l = adjoint.Get(excite, f)->GetComplexVector(Solution::SEL_VECTOR);
 
+  LOG_DBG2(em) << "AdjustComplexAdjointRHS: u = " << u.ToString();
+  LOG_DBG2(em) << "AdjustComplexAdjointRHS: l = " << l.ToString();
+
   // create a OLAS vector
   Vector<complex<double> >& rhs = adjoint.Get(excite, f)->GetComplexVector(Solution::RHS_VECTOR);
   rhs.Resize(u.GetSize());
@@ -2687,19 +2711,22 @@ void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
       rhs[i] = -1.0 * l[i] * std::conj(u[i]);
     break;
 
-  case Function::ABS_DYN_OUTPUT_SQUARED: // J = Re{<u,l>}^2 + Im{<u,l>}^2 .
+  case Function::ABS_OUTPUT:
   {
-    // RHS = -0.5 * (2*<u_R,l> l - j 2*<u_I,l> l)
-    //     = - <u_R,l> l + j <u_I,l> l
-    //     = - Re{<u,l>} l + j Im{<u,l>} l
-    // find the complex scalar product ul <u,l>
-    complex<double> ul = u.Inner(l);
-    LOG_DBG2(em) << "AdjustComplexAdjointRHS: <u,l> = " << ul;
+    // J = |u^T l| = sqrt( <u_R,l>^2 + <u_I,l>^2)
+    // S lambda = - <u^*, l>/ 2*J * l = alpha * l
+
+    complex<double> lu = l.Inner(u); // (u^*)^T l = <l, u>
+    complex<double> ul = u.Inner(l); // J = |u^T l|
+    complex<double> alpha = -0.5 * lu / std::abs(ul);
+
+    LOG_DBG2(em) << "ACARHS: <u,l>=" << ul << " <l,u>=" << lu << " alpha=" << alpha;
 
     for(unsigned int i = 0; i < rhs.GetSize(); i++)
-      rhs[i] = complex<double>(-1.0 * ul.real() * l[i].real(), ul.imag() * l[i].real());
-
+      rhs[i] = alpha * l[i];
+    break;
   }
+
   case Function::CONJUGATE_COMPLIANCE: // rhs is from original excitation, we stored it in forward...rhs
   {
     forward.Get(excite)->Read(Solution::RHS_VECTOR, pde); // set
@@ -2746,20 +2773,31 @@ void ErsatzMaterial::ConstructAdjointRHS(Excitation& excite, Function* f)
 
 void ErsatzMaterial::SetPDEs()
 {
-  // we either set MECH (almost always) or HEAT -> set the common pde attribute!
-  pde = domain->GetSinglePDE("mechanic", false);
-  if(pde != NULL)
-    pdes[MECH] = pde;
-  else
+  switch(OptimizationMaterial::system.Parse(pn->Get("material")->As<std::string>()))
   {
-    pde = domain->GetSinglePDE("heatConduction", true);
+  case OptimizationMaterial::MECH:
+  case OptimizationMaterial::PIEZOCOUPLING:
+    pde = domain->GetSinglePDE("mechanic");
+    pdes[MECH] = pde;
+    break;
+
+  case OptimizationMaterial::HEAT:
+    pde = domain->GetSinglePDE("heatConduction");
     pdes[HEAT] = pde;
+    break;
+
+  case OptimizationMaterial::ACOUSTIC:
+    pde = domain->GetSinglePDE("acoustic", true);
+    pdes[ACOUSTIC] = pde;
+    break;
+
+  default:
+    assert(false);
   }
 
   // make it more smart when using energy flux for other pdes
   if(objectives.Has(Function::ENERGY_FLUX))
     pdes[ACOUSTIC] = domain->GetSinglePDE("acoustic", true);
-
 
   // ELEC is set in PiezoSIMP()
 }
@@ -2786,6 +2824,8 @@ Optimization::Application ErsatzMaterial::ToApp(DesignElement::Type dt)
   {
   case DesignElement::DENSITY:
     return MECH;
+  case DesignElement::ACOU_DENSITY:
+    return ACOUSTIC;
   case DesignElement::POLARIZATION:
     return ELEC;
   default:
@@ -2793,8 +2833,17 @@ Optimization::Application ErsatzMaterial::ToApp(DesignElement::Type dt)
   }
 }
 
+DesignElement::Type ErsatzMaterial::ToDesign(const SinglePDE* pde) const
+{
+  if(pde->GetName() == "electrostatic") return DesignElement::POLARIZATION;
+  if(pde->GetName() == "mechanic") return DesignElement::DENSITY;
+  if(pde->GetName() == "acoustic") return DesignElement::ACOU_DENSITY;
 
-Optimization::Application ErsatzMaterial::ToApp(SinglePDE* pde) const
+  throw Exception("invalid");
+}
+
+
+Optimization::Application ErsatzMaterial::ToApp(const SinglePDE* pde) const
 {
   if(pde->GetName() == "electrostatic") return ELEC;
   if(pde->GetName() == "mechanic") return MECH;
@@ -2803,6 +2852,8 @@ Optimization::Application ErsatzMaterial::ToApp(SinglePDE* pde) const
 
   throw Exception("invalid");
 }
+
+
 
 
 void ErsatzMaterial::GetErsatzMaterialTensor(Matrix<double>& mat, Elem* elem, DesignElement::Type direction){
@@ -3058,7 +3109,7 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Applic
   switch(app)
   {
   case NO_APP: // up to now
-    solt = MECH_DISPLACEMENT;
+    solt = dynamic_cast<SinglePDE*>(pde)->GetNativeSolutionType();
     break;
   case MECH:
     solt = MECH_DISPLACEMENT;

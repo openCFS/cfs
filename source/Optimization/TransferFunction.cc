@@ -3,8 +3,10 @@
 #include "Optimization/TransferFunction.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "PDE/SinglePDE.hh"
 #include "General/exception.hh"
 #include "Utils/StdVector.hh"
+
 
 using namespace CoupledField;
 
@@ -68,6 +70,31 @@ TransferFunction::TransferFunction(PtrParamNode pn, DesignElement::Type default_
 }
 
 
+
+Optimization::Application TransferFunction::Default(const SinglePDE* pde)
+{
+  if(pde->GetName() == "electrostatic") return Optimization::ELEC;
+  if(pde->GetName() == "mechanic") return Optimization::MECH;
+  if(pde->GetName() == "heatConduction") return Optimization::LAPLACE;
+  if(pde->GetName() == "acoustic") return Optimization::LAPLACE;
+  throw Exception("invalid");
+}
+
+/** see the other Default */
+Optimization::Application TransferFunction::Default(DesignElement::Type type)
+{
+  switch(type)
+  {
+  case DesignElement::DENSITY:
+    return Optimization::MECH;
+  case DesignElement::ACOU_DENSITY:
+    return Optimization::LAPLACE;
+  case DesignElement::POLARIZATION:
+    return Optimization::PIEZO_COUPLING;
+  default:
+    throw Exception("invalid");
+  }
+}
 
 void TransferFunction::ToInfo(PtrParamNode in) const
 {

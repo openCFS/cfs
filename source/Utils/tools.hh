@@ -143,6 +143,18 @@ namespace CoupledField {
   void Assign(Vector<Complex>& target, const Vector<Complex>& other, const Double factor);
   void Assign(Vector<Complex>& target, const Vector<Double>& other, const Double factor);
 
+  template<class TYPE, class TYPE2>
+  void Add(Matrix<TYPE>& out, const TYPE fac, const Matrix<TYPE2>& other)
+  {
+   #ifdef CHECK_INDEX
+      if(out.GetNumRows() != other.GetNumRows() || out.GetNumCols() != other.GetNumCols())
+        EXCEPTION("matrices do not match");
+   #endif
+   for(unsigned int r = 0, rn = out.GetNumRows(); r < rn; r++)
+     for(unsigned int c = 0, cn = out.GetNumCols(); c < cn; c++)
+       out[r][c] += fac * other[r][c];
+  }
+
   /** makes sure the string is a valid xml element and attribute name */
   std::string ToValidXML(const std::string& input);
 

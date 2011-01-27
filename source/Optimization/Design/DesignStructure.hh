@@ -70,14 +70,24 @@ private:
    * @see initialized_ */
   void Initialize();
 
+  /** finds quite efficiently the neighborhood with an regular grid.
+   * The idea is that by radius and edge size we construct a 2D/3D cube and check every element for distance.
+   * @param neighbors to be reused */
+  void FindRegularNeighborhood(DesignElement* base, double radius, const StdVector<double>& edges, StdVector<SIMPElement::NeighbourElement>& neighbors);
 
-  /** Almost copy and paste to the version with common */
-  bool ExtendPeriodicNeighborhood(Elem* elem, StdVector<std::pair<Elem*, int> >& neighbors);
+  /** Helper for FindRegularNeighborhood().
+   * Defines an element by the number of (+/-) steps in the main axes
+   * @return NULL if nothing found. Must not be in the periodic case */
+  DesignElement* GetNeighborElement(DesignElement* base, int i_steps, int j_steps, int k_steps);
+
+  /** Helper for the other GetNeighborElement().
+   * Is able to cross periodic boundaries */
+  DesignElement* GetNeighborElement(DesignElement* base, unsigned int steps, VicinityElement::Neighbour dir);
 
   /** This is a helper for InitFilter(). It is recursive!.
    * See implementation for docu. */
-  void FindNeighborhood(DesignElement* base, double radius,
-                          StdVector<std::pair<Elem*, int> >& buddies,
+  void FindUnstructuredNeighborhood(DesignElement* base, double radius,
+                          StdVector<std::pair<Elem*, int> >& initial,
                           StdVector<SIMPElement::NeighbourElement>& neighbors,
                           StdVector<unsigned int>& too_far);
 
@@ -97,16 +107,16 @@ private:
   /** set vector nodeToElem for periodic only */
   void SetNodeElemMapping();
 
+  /** append all new stuff */
+  void AppendNeighbors(const StdVector<std::pair<Elem*, int> >& source,
+                       StdVector<std::pair<Elem*, int> >& out);
 
-  /** adds source to out such that no double entries exist.
-   * Helper for ExtendPeriodicNeighborhood() */
-  void AppendNeighbors(const StdVector<std::pair<Elem*, int> >& source, StdVector<std::pair<Elem*, int> >& out);
-
-  /** helper for the common stuff.
+  /** Potentially appends the element to the neighbor
    * Almost copy and paste to the other AppendNeighbors() */
   void AppendNeighbors(Elem* check,
-                         const StdVector<unsigned int>& constraints, int min_common,
-                         StdVector<std::pair<Elem*, int> >& out);
+                       const StdVector<unsigned int>& constraints,
+                       int min_common,
+                       StdVector<std::pair<Elem*, int> >& out);
 
   /** Helper for LOG_DBG() */
   std::string ToString(StdVector<SIMPElement::NeighbourElement>& data);
@@ -152,6 +162,8 @@ private:
 
   /** shortcut to the grid dimension */
   unsigned int dim;
+
+  Grid* grid;
 
   ErsatzMaterial* em;
 

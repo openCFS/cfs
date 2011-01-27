@@ -213,6 +213,18 @@ void SnOpt::InfoXMLOutput()
   case 32:
     exitstring = "major iteration limit reached";
     break;
+  case 41:
+    exitstring = "current point cannot be improved";
+    break;
+  case 51:
+    exitstring = "incorrect objective derivatives";
+    break;
+  case 52:
+    exitstring = "incorrect constraint derivatives";
+    break;
+  case 71:
+    exitstring = "termination during function evaluation - user requested termination";
+    break;
   default:
     exitstring = "not yet documented";
   }

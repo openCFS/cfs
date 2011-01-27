@@ -15,9 +15,11 @@ class LaplaceInt : public BaseForm
 {
 public:
 
-  /// Constructor
-  LaplaceInt(Double laplVal, bool axi=false, 
-             bool coordUpdate = false );
+  LaplaceInt(Double laplVal, bool axi=false, bool coordUpdate = false);
+
+  /** alternative constructor with MaterialDescriptor, laplVal_ is then not used!
+   * @see MassInt() */
+  LaplaceInt(BaseMaterial* mat, const MaterialDescriptor& md, bool axi=false, bool coordUpdate = false);
 
   /// 
   virtual ~LaplaceInt();

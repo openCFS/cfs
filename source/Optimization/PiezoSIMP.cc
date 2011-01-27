@@ -34,10 +34,10 @@ PiezoSIMP::PiezoSIMP()
   elec = dynamic_cast<ElecPDE*>(domain->GetSinglePDE("electrostatic"));
   pdes[ELEC] = elec;
 
-  for(unsigned int r = 0; r < regionIds.GetSize(); r++)
+  for(unsigned int r = 0; r < design->GetRegionIds().GetSize(); r++)
   {
-    GetForm(regionIds[r], pde, elec, "linPiezoCoupling")->SetSolDependent(true);
-    GetForm(regionIds[r], elec, elec, "linGradBDBInt")->SetSolDependent(true);
+    GetForm(design->GetRegionIds()[r], pde, elec, "linPiezoCoupling")->SetSolDependent(true);
+    GetForm(design->GetRegionIds()[r], elec, elec, "linGradBDBInt")->SetSolDependent(true);
   }
   // The linear forms (pressure, charge density) are set in SoluctionRef::Init()
 
@@ -76,7 +76,7 @@ void PiezoSIMP::PostInit()
   SIMP::PostInit();
 
   // just created in PostInit
-  piezo_mat_ = dynamic_cast<OptPiezoMat*>(material);
+  piezo_mat_ = dynamic_cast<PiezoelecMat*>(material);
   assert(piezo_mat_ != NULL);
 }
 
@@ -113,9 +113,9 @@ double PiezoSIMP::CalcElecEnergy(Excitation& excite)
     Vector<T>& p_vec = dynamic_cast<Vector<T>& >(*all_p[i]);
     DesignElement* de = &design->data[i];
 
-    LOG_DBG3(simp) << "CalcElecEnergy: e=" << i << " 'density'=" << tf->Transform(de) << " p=" << p_vec.ToString();
+    LOG_DBG3(simp) << "CalcElecEnergy: e=" << i << " 'density'=" << tf->Transform(de, DesignElement::SMART) << " p=" << p_vec.ToString();
     
-    Assign(mat, piezo_mat_->ElecStiffness(de->elem, 1), tf->Transform(de));
+    Assign(mat, piezo_mat_->ElecStiffness(de->elem, 1), tf->Transform(de, DesignElement::SMART));
     
     LOG_DBG3(simp) << "CalcElecEnergy: mat: " << mat.ToString();
     
@@ -171,7 +171,7 @@ void PiezoSIMP::ConstructAdjointRHS(Excitation& excite, Function* f)
     DesignElement* de = &design->data[e];
 
     // gain +K_pp(rho), the plus because K_pp is only in the piezo -K_pp
-    Assign(mat, piezo_mat_->ElecStiffness(de->elem, 1), tf->Transform(de));
+    Assign(mat, piezo_mat_->ElecStiffness(de->elem, 1), tf->Transform(de, DesignElement::SMART));
 
     // in the complex case with the conjugate complex
     mat.MultInner(p_vec, mat_vec);
@@ -220,10 +220,12 @@ double PiezoSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
     }
     factor *= 0.5; // no break! -> J = 0.5 p^T K_pp p
 
+  // TODO make it smarter to evaluate the functions as piezo functions and not mech functions!
   case Objective::OUTPUT:
   case Objective::DYNAMIC_OUTPUT:
   case Objective::ENERGY_FLUX:
   case Objective::GLOBAL_DYNAMIC_COMPLIANCE:
+  case Objective::ABS_OUTPUT:
   {
     if(!derivative)
       return SIMP::CalcFunction(excite, f, derivative);
@@ -308,9 +310,8 @@ double PiezoSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
 
 
 template <class T>
-void PiezoSIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative)
+void PiezoSIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative)
 {
-  TransferFunction* tf = design->GetTransferFunction(de->GetType(), app);
   double factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
 
   Matrix<T>& out = dynamic_cast<Matrix<T>& >(*mat_out);
@@ -337,7 +338,7 @@ void PiezoSIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* mat
 
   default:
     // mech and surface normal matrix are handled in SIMP
-    SIMP::SetElementK(de, app, mat_out, calcMode, derivative);
+    SIMP::SetElementK(de, tf, app, mat_out, calcMode, derivative);
     return; // all calculation done there (or assert!)
   }
 

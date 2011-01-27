@@ -14,8 +14,10 @@
 
 #include "mechanicMaterial.hh"
 #include "Domain/domain.hh"
+#include "DataInOut/Logging/cfslog.hh"
 
-
+DECLARE_LOG(mat)
+DEFINE_LOG(mat, "mat")
 
 
 namespace CoupledField
@@ -427,7 +429,7 @@ namespace CoupledField
 				    MaterialType matType, 
 				    Global::ComplexPart dataType,
 				    SubTensorType subTensor ) const {	
-    
+
 
     tensorMap::const_iterator pos;
     pos = tensorParams_.find( matType );
@@ -439,26 +441,26 @@ namespace CoupledField
     else {
       Matrix<Complex> matTensor;
       if ( subTensor == FULL ) {
-	matTensor = pos->second;
+        matTensor = pos->second;
       }
       else {
-	ComputeSubTensor(matTensor, matType, subTensor);
+        ComputeSubTensor(matTensor, matType, subTensor);
       }
 
       if ( dataType == Global::REAL || dataType == Global::IMAG) {
-	Matrix<Double> help; 
-	help = matTensor.GetPart( dataType );
-	param.Resize( matTensor.GetNumRows(), matTensor.GetNumCols() );
+        Matrix<Double> help;
+        help = matTensor.GetPart( dataType );
+        param.Resize( matTensor.GetNumRows(), matTensor.GetNumCols() );
         param.Init();
-	param.SetPart( dataType, help );
+        param.SetPart( dataType, help );
       }
       else if ( dataType == Global::COMPLEX ) {
-	param = matTensor;
+        param = matTensor;
       }
     }
   }
-  
-  void MechanicMaterial::CalcIsotropicStiffnessTensorFromEAndPoisson(Matrix<Double>& out, Double emod, Double poi, UInt dim)
+
+  void MechanicMaterial::CalcIsotropicStiffnessTensorFromEAndPoisson(Matrix<Double>& out, Double emod, Double poi)
   {
     Complex EModul(emod);
     Complex poisson(poi); 
@@ -467,122 +469,88 @@ namespace CoupledField
     Complex LameMu = (EModul)/(Complex(2.0,0)*(Complex(1.0)+poisson));
     
     Matrix<Complex> elasticityTensor;
-    CalcComplexIsotropicStiffnessTensor(elasticityTensor, LameLambda, LameMu, dim);
+    CalcComplexIsotropicStiffnessTensor(elasticityTensor, LameLambda, LameMu);
     out = elasticityTensor.GetPart(Global::REAL);
   }
 
-  void MechanicMaterial::CalcIsotropicStiffnessTensorFromLame(Matrix<Double>& out, Double lambda, Double mu, UInt dim)
+  void MechanicMaterial::CalcIsotropicStiffnessTensorFromLame(Matrix<Double>& out, Double lambda, Double mu)
   { 
     Matrix<Complex> elasticityTensor;
-    CalcComplexIsotropicStiffnessTensor(elasticityTensor, static_cast<Complex>(lambda), static_cast<Complex>(mu), dim);
+    CalcComplexIsotropicStiffnessTensor(elasticityTensor, static_cast<Complex>(lambda), static_cast<Complex>(mu));
     
     out = elasticityTensor.GetPart(Global::REAL);
   }
 
-  double MechanicMaterial::CalcIsotropyError(const Matrix<double>& E, bool normed)
+  double MechanicMaterial::CalcIsotropyError(const Matrix<double>& tensor, SubTensorType stt)
   {
-     assert((E.GetNumRows() == 3 && E.GetNumCols() == 3)
-         || (E.GetNumRows() == 6 && E.GetNumCols() == 6));
+    double v = CalcIsotropicPoissonsRatio(tensor, stt);
+    double E = CalcIsotropicYoungsModulus(tensor, stt);
 
-     bool D3 = E.GetNumRows() == 6;
+    // this is FULL
+    Matrix<double> full_hom;
+    CalcIsotropicStiffnessTensorFromEAndPoisson(full_hom, E, v);
+    // eventually reduce
+    Matrix<double> hom;
+    ComputeSubTensor(hom, stt, full_hom);
 
-     double E11 = E[0][0];
-     double E22 = E[1][1];
-     double E33 = E[2][2];
-     double E44 = D3 ? E[3][3] : 0.0;
-     double E55 = D3 ? E[4][4] : 0.0;
-     double E66 = D3 ? E[5][5] : 0.0;
+    LOG_DBG(mat) << "MM::CIE E=" << E << " v=" << v << " err=" << hom.DiffNormL1(tensor);
+    LOG_DBG2(mat) << "MM::CIE tensor=" << tensor.ToString(0,1);
+    LOG_DBG2(mat) << "MM::CIE full_hom=" << full_hom.ToString(0,1);
+    LOG_DBG2(mat) << "MM::CIE hom=" << hom.ToString(0,1);
 
-     double E12 = E[0][1];
-     double E13 = E[0][2];
-     double E14 = D3 ? E[0][3] : 0.0;
-     double E15 = D3 ? E[0][4] : 0.0;
-     double E16 = D3 ? E[0][5] : 0.0;
-
-     double E23 = E[1][2];
-     double E24 = D3 ? E[1][3] : 0.0;
-     double E25 = D3 ? E[1][4] : 0.0;
-     double E26 = D3 ? E[1][5] : 0.0;
-
-     double E34 = D3 ? E[2][3] : 0.0;
-     double E35 = D3 ? E[2][4] : 0.0;
-     double E36 = D3 ? E[2][5] : 0.0;
-
-     double E45 = D3 ? E[3][4] : 0.0;
-     double E46 = D3 ? E[3][5] : 0.0;
-
-     double E56 = D3 ? E[4][5] : 0.0;
-
-     double result = 0;
-
-     if(!D3)
-     {
-       result =  abs(E11 - E22);          // non-shear diagonal const
-       result += abs(E11 - E12 - 2.0*E33);// combination
-       result += abs(E13);                // rest is zero
-       result += abs(E23);
-     }
-     else
-     {
-       // non-shear diagonal is constant E11 = E22 = E33
-       result =  abs(E11 - E22);
-       result += abs(E22 - E33);
-
-       // upper non-shear triangle is constant
-       // E12 = E13 = E23 -> E12 - E13 = 0, E13 - E23 = 0
-       result += abs(E12 - E13);
-       result += abs(E13 - E23);
-
-       // shear diagonal is constant
-       result += abs(E44 - E55);
-       result += abs(E55 - E66);
-
-       // relationship of the three unique values
-       // E11 - E12 - 2E66 = E11 - E12 - E66 - E66 = 0
-       result += abs(E11 - E12 - E66 - E66);
-
-       // the rest is zero
-       // E14 = E15 = E16 = E24 = E25 = E26 = E34 = E35 = E36 = E45 = E46 = E56 = 0
-       result += abs(E14);
-       result += abs(E15);
-       result += abs(E16);
-       result += abs(E24);
-       result += abs(E25);
-       result += abs(E26);
-       result += abs(E34);
-       result += abs(E35);
-       result += abs(E36);
-       result += abs(E45);
-       result += abs(E46);
-       result += abs(E56);
-     }
-
-     return normed ? result / E11 : result;
+    return hom.DiffNormL1(tensor);
   }
 
-  double MechanicMaterial::CalcIsotropicPoissonsRatio(const Matrix<double>& tensor)
+  double MechanicMaterial::CalcIsotropicPoissonsRatio(const Matrix<double>& tensor, SubTensorType subTensor)
   {
+    assert(tensor.GetNumCols() == 3 || tensor.GetNumCols() == 6);
+
     double E11 = tensor[0][0];
     double E12 = tensor[0][1];
 
-    return E12 / (E11 + E12);
+    switch(subTensor)
+    {
+    case FULL:
+    case PLANE_STRAIN:
+      return E12 / (E11 + E12);
+
+    case PLANE_STRESS:
+      return E12 / E11;
+
+    default:
+      EXCEPTION("fail");
+    }
   }
 
 
-  double MechanicMaterial::CalcIsotropicYoungsModulus(const Matrix<double>& tensor)
+  double MechanicMaterial::CalcIsotropicYoungsModulus(const Matrix<double>& tensor, SubTensorType subTensor)
   {
     double E11 = tensor[0][0];
-    double v = CalcIsotropicPoissonsRatio(tensor);
+    double v = CalcIsotropicPoissonsRatio(tensor, subTensor);
 
-    return (E11 * (1.0 + v) * (1.0 - 2.0 * v)) / (1.0 - v);
+    switch(subTensor)
+    {
+    case FULL:
+    case PLANE_STRAIN:
+      E11 *= (1.0 + v) * (1.0 - 2.0 * v) / (1.0 - v);
+      break;
+
+    case PLANE_STRESS:
+      E11 *= (1.0 - v*v);
+      break;
+
+    default:
+      assert(false);
+    }
+
+    return E11;
   }
 
   
 
-  void MechanicMaterial::CalcComplexIsotropicStiffnessTensor(Matrix<Complex>& out, 
-      const Complex &LameLambda, const Complex &LameMu, UInt dim)
+  void MechanicMaterial::CalcComplexIsotropicStiffnessTensor(Matrix<Complex>& out, Complex LameLambda, Complex LameMu)
   {
-    out.Resize(dim == 2 ? 3 : 6);
+    out.Resize(6);
     out.Init();
         
     out[0][0] = LameLambda + Complex(2.0,0) * LameMu;
@@ -592,33 +560,36 @@ namespace CoupledField
     out[1][0] = LameLambda;
     
     out[2][2] = LameMu;
-    
-    if(dim == 3)
-    {
-      out[0][2] = LameLambda;
-      out[1][2] = LameLambda;
-      out[2][0] = LameLambda;
-      out[2][1] = LameLambda;
 
-      out[2][2] = LameLambda + Complex(2.0,0) * LameMu;
-      out[3][3] = LameMu;
-      out[4][4] = LameMu;
-      out[5][5] = LameMu;
-    }
+    out[0][2] = LameLambda;
+    out[1][2] = LameLambda;
+    out[2][0] = LameLambda;
+    out[2][1] = LameLambda;
+
+    out[2][2] = LameLambda + Complex(2.0,0) * LameMu;
+    out[3][3] = LameMu;
+    out[4][4] = LameMu;
+    out[5][5] = LameMu;
   }
   
 
-  void MechanicMaterial::ComputeSubTensor(Matrix<Complex>& matMatrix,
-					  MaterialType matType, 
-					  SubTensorType subTensor) const {
-
-
+  void MechanicMaterial::ComputeSubTensor(Matrix<Complex>& matMatrix, MaterialType matType, SubTensorType subTensor) const
+  {
     tensorMap::const_iterator pos;
     pos = tensorParams_.find( matType );
 
     Matrix<Complex> const &mat = pos->second;
 
-    if ( subTensor == AXI ) {
+    ComputeSubTensor<Complex>(matMatrix, subTensor, mat);
+  }
+
+  template<class T>
+  void MechanicMaterial::ComputeSubTensor(Matrix<T>& matMatrix, SubTensorType subTensor, const Matrix<T>& mat)
+  {
+    switch(subTensor)
+    {
+    case AXI:
+    {
       UInt nrElemsAxi = 4;
       matMatrix.Resize( nrElemsAxi, nrElemsAxi );
       matMatrix.Init();
@@ -626,27 +597,31 @@ namespace CoupledField
       // indices of rows and lines for xy-plane (rr, zz, rz, phiphi)
       UInt rowPtr[] = {1,2,6,3};  
       for ( UInt i=0; i<nrElemsAxi; i++ )
-	for ( UInt j=0; j<nrElemsAxi; j++ )
-	  matMatrix[i][j] = mat[rowPtr[i]-1][rowPtr[j]-1];
+        for ( UInt j=0; j<nrElemsAxi; j++ )
+          matMatrix[i][j] = mat[rowPtr[i]-1][rowPtr[j]-1];
+      break;
     }
-    else if ( subTensor == PLANE_STRAIN ) {
+    case PLANE_STRAIN:
+    {
       UInt nrElems = 3;
-      matMatrix.Resize( nrElems, nrElems    );
+      matMatrix.Resize(nrElems, nrElems);
       matMatrix.Init();
 
       // indices of rows and lines for xy-plane (xx, yy, xy)
       UInt rowPtr[] = {1,2,6}; 
       for ( UInt i=0; i<nrElems; i++ )
-	for ( UInt j=0; j<nrElems; j++ )
-	  matMatrix[i][j] = mat[rowPtr[i]-1][rowPtr[j]-1];
+        for ( UInt j=0; j<nrElems; j++ )
+          matMatrix[i][j] = mat[rowPtr[i]-1][rowPtr[j]-1];
+      break;
     }
-    else if ( subTensor == PLANE_STRESS ) {
+    case PLANE_STRESS:
+    {
       UInt nrElems = 3;
       matMatrix.Resize( nrElems, nrElems );
       matMatrix.Init();
 
       if ( abs(mat[0][0]) < 1.09E-15 ) {
-	EXCEPTION("Singular material tensor when computing plane stress case" );
+        EXCEPTION("Singular material tensor when computing plane stress case" );
       }
 
       // calculate plane stress matrix for xy-plane
@@ -659,23 +634,14 @@ namespace CoupledField
       matMatrix[2][0] = mat[5][0];
       matMatrix[2][1] = mat[5][1];
       matMatrix[2][2] = mat[5][5];
-
-
-      //explicite computation (old case for yz-plane
-//       matMatrix[0][0] = mat[1][1] - mat[0][1]*mat[1][0]/mat[0][0];
-//       matMatrix[0][1] = mat[1][2] - mat[0][2]*mat[1][0]/mat[0][0];
-//       matMatrix[0][2] = mat[1][3] - mat[0][3]*mat[1][0]/mat[0][0];
-//       matMatrix[1][0] = mat[2][1] - mat[0][1]*mat[2][0]/mat[0][0];
-//       matMatrix[1][1] = mat[2][2] - mat[0][2]*mat[2][0]/mat[0][0];
-//       matMatrix[1][2] = mat[2][3] - mat[0][3]*mat[2][0]/mat[0][0];
-//       matMatrix[2][0] = mat[3][1] - mat[0][1]*mat[3][0]/mat[0][0];
-//       matMatrix[2][1] = mat[3][2] - mat[0][2]*mat[3][0]/mat[0][0];
-//       matMatrix[2][2] = mat[3][3] - mat[0][3]*mat[3][0]/mat[0][0]
-        ;
-      
+      break;
     }
-    else {
-      subTensorNotAvailable( matType, subTensor );
+    case FULL:
+      matMatrix = mat; // copy as nothing changes
+      break;
+    default:
+      // PLAIN is unspecific
+      subTensorNotAvailable(NO_MATERIAL, subTensor); // shall be clear
     }
   }
  
@@ -719,7 +685,7 @@ namespace CoupledField
               (Complex(1.0,0)  - Complex(2.0,0)*poisson));
       Complex LameMu = (EModul)/(Complex(2.0,0)*(Complex(1.0)+poisson));
 
-      CalcComplexIsotropicStiffnessTensor(elasticityTensor, LameLambda, LameMu, 3);
+      CalcComplexIsotropicStiffnessTensor(elasticityTensor, LameLambda, LameMu);
       SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, Global::COMPLEX );
       SetScalar(LameLambda, MECH_LAME_LAMBDA, Global::COMPLEX);
       SetScalar(LameMu, MECH_LAME_MU, Global::COMPLEX);
@@ -774,44 +740,124 @@ namespace CoupledField
     
   }
 
-  StdVector<double> MechanicMaterial::CalcOrthotropeYoungsModulus(const Matrix<double>& tensor)
+  StdVector<double> MechanicMaterial::CalcOrthotropeYoungsModulus(const Matrix<double>& tensor, BaseMaterial* mat, SubTensorType stt, double vol)
   {
     Matrix<double> D;
     tensor.Invert(D);
 
-    UInt dim = tensor.GetNumRows() == 3 ? 2 : 3; // rank is 3 or 6
+    assert(tensor.GetNumRows() == (stt == FULL ? 6 : 3));
+    StdVector<double> res(stt == PLANE_STRESS ? 2 : 3);
 
-    StdVector<double> res(dim);
+    switch(stt)
+    {
+    case FULL:
+      for(UInt i = 0; i < 3; i++)
+        res[i] = 1.0/D[i][i];
+      break;
 
-    for(UInt i = 0; i < dim; i++)
-      res[i] = 1.0/D[i][i];
+    case PLANE_STRAIN:
+    {
+      assert(mat != NULL && vol > 0 && vol <= 1.0);
+      //E1 = 1/(B(1,1) + nusteg^2/rho/Esteg )
+      //E2 = 1/(B(2,2) + nusteg^2/rho/Esteg )
+      //E3 = rho*Esteg
+      // assert(CalcIsotropyError(tens, stt) < 1e-3);
+      // core properties
+      // core properties
+      double E_core, v_core;
+      mat->GetScalar(E_core, MECH_EMODULUS, Global::REAL);
+      mat->GetScalar(v_core, MECH_POISSON, Global::REAL);
 
+      double E3 = E_core * vol;
+
+      res[0] = 1.0 / (D[0][0] + v_core*v_core / E3);
+      res[1] = 1.0 / (D[1][1] + v_core*v_core / E3);
+      res[2] = E3;
+      break;
+    }
+
+    case PLANE_STRESS:
+    {
+      StdVector<double> v = CalcOrthotropePoissonsRatio(tensor, mat, stt, vol);
+      assert(v.GetSize() == 2);
+
+      // E1 = C(1,1) * (1-v12*v21)
+      res[0] = tensor[1-1][1-1] * (1.0 - v[0] * v[1]);
+      // E2 = E1 * (v21/v12)
+      res[1] = res[0] * v[1] * v[0];
+      break;
+    }
+    default:
+      assert(false);
+    }
     return res;
   }
 
-  StdVector<double> MechanicMaterial::CalcOrthotropePoissonsRatio(const Matrix<double>& tensor)
+  StdVector<double> MechanicMaterial::CalcOrthotropePoissonsRatio(const Matrix<double>& tensor, BaseMaterial* mat, SubTensorType stt, double vol)
   {
     Matrix<double> D;
     tensor.Invert(D);
 
-    UInt dim = tensor.GetNumRows() == 3 ? 2 : 3; // rank is 3 or 6
-
     StdVector<double> res;
-    StdVector<double> E = CalcOrthotropeYoungsModulus(tensor);
+    StdVector<double> E; // v_21, v_12, v_31, v_13, v_32, v_23
 
-    if(dim == 2)
+
+
+    switch(stt)
     {
+    case FULL:
+      E = CalcOrthotropeYoungsModulus(tensor, mat, stt, vol); // does the asserts!
       res.Push_back(-1.0 * D[1-1][2-1] * E[2-1]); // v_21
       res.Push_back(-1.0 * D[2-1][1-1] * E[1-1]); // v_12
-    }
-    if(dim == 3)
-    {
-      res.Push_back(-1.0 * D[2-1][3-1] * E[3-1]); // v_32
       res.Push_back(-1.0 * D[1-1][3-1] * E[3-1]); // v_31
-      res.Push_back(-1.0 * D[1-1][2-1] * E[2-1]); // v_21
-      res.Push_back(-1.0 * D[3-1][2-1] * E[2-1]); // v_23
       res.Push_back(-1.0 * D[3-1][1-1] * E[1-1]); // v_13
-      res.Push_back(-1.0 * D[2-1][1-1] * E[1-1]); // v_12
+      res.Push_back(-1.0 * D[2-1][3-1] * E[3-1]); // v_32
+      res.Push_back(-1.0 * D[3-1][2-1] * E[2-1]); // v_23
+      break;
+
+    case PLANE_STRAIN:
+    {
+      E = CalcOrthotropeYoungsModulus(tensor, mat, stt, vol); // does the asserts!
+      // core properties
+      double E_core, v_core;
+      mat->GetScalar(E_core, MECH_EMODULUS, Global::REAL);
+      mat->GetScalar(v_core, MECH_POISSON, Global::REAL);
+
+      // % the two 2D poisson ratios and Es have been derived by Bastian and Fabian S.
+      // v12 = (-B(1,2)-nusteg^2/rho/Esteg)*E1
+      // v21 = E2/E1*v12
+      double v_12 = (-D[1-1][2-1] - v_core * v_core / E[3-1]) * E[1-1];
+      double v_21 = (E[2-1] / E[1-1]) * v_12;
+
+      // % the remaining poisson ratios
+      // v13 = E1*nusteg/rho/Esteg
+      // v31 = E3/E1*v13
+      double v_13 = E[1-1] * v_core / E[3-1];
+      double v_31 = (E[3-1] / E[1-1]) * v_13;
+      // v23 = E2*nusteg/rho/Esteg
+      // v32 = E3/E2*v23
+      double v_23 = E[2-1] * v_core / E[3-1];
+      double v_32 = (E[3-1] / E[2-1]) * v_23;
+
+      res.Push_back(v_21);
+      res.Push_back(v_12);
+      res.Push_back(v_31);
+      res.Push_back(v_13);
+      res.Push_back(v_32);
+      res.Push_back(v_23);
+      break;
+    }
+
+    case PLANE_STRESS:
+      // v21 = c(1,2)/c(1,1)
+      res.Push_back(tensor[1-1][2-1] / tensor[1-1][1-1]);
+
+      // v12 = C(1,2)/C(2,2)
+      res.Push_back(tensor[1-1][2-1] / tensor[2-1][2-1]);
+      break;
+
+    default:
+      assert(false);
     }
 
     return res;
@@ -819,80 +865,76 @@ namespace CoupledField
 
   double MechanicMaterial::CalcOrthotropeError(const Matrix<double>& tensor)
   {
-
-
-    Matrix<double> D;
-    tensor.Invert(D);
-
-    StdVector<double> E = CalcOrthotropeYoungsModulus(tensor);
-    StdVector<double> v = CalcOrthotropePoissonsRatio(tensor);
-
+    // measure zeros in 1-norm
     double err = 0.0;
     if(tensor.GetNumRows() == 3)
     {
-       err += abs(D[3-1][2-1]);
-       err += abs(D[3-1][1-1]);
-       err += abs(abs(E[0]*v[1]) - abs(E[1]*v[0]));
+       err += abs(tensor[1-1][3-1]);
+       err += abs(tensor[2-1][3-1]);
     }
     else
     {
       for(UInt r = 1; r <= 5; r++)
+      {
         for(UInt c = 4; c <= 6; c++)
         {
           // only above the diagonal
           if(r >= c) continue;
-          err += abs(D[r-1][c-1]);
+          err += abs(tensor[r-1][c-1]);
         }
-      err += abs(abs(E[0]*v[2]) - abs(E[1]*v[5]));  // E_1 v_21 = E_2 v_12
-      err += abs(abs(E[1]*v[0]) - abs(E[2]*v[3]));  // E_2 v_32 = E_3 v_23
-      err += abs(abs(E[2]*v[4]) - abs(E[0]*v[1]));  // E_3 v_13 = E_1 v_31
+      }
     }
     return err;
   }
 
-  StdVector<std::pair<std::string, double> > MechanicMaterial::CalcOrthotropeProperties(
-      const Matrix<double>& tensor)
+  StdVector<std::pair<std::string, double> > MechanicMaterial::CalcIsotropicProperties(const Matrix<double>& tensor, SubTensorType stt)
+  {
+    double E = CalcIsotropicYoungsModulus(tensor, stt);
+    double v = CalcIsotropicPoissonsRatio(tensor, stt);
+    double G = E / (2.0 + 2.0*v); // comparing to the tensor gives an idea about the error
+    double err = CalcIsotropyError(tensor, stt);
+
+    StdVector<std::pair<std::string, double> > res;
+    res.Push_back(std::make_pair("E", E));
+    res.Push_back(std::make_pair("v", v));
+    res.Push_back(std::make_pair("G", G));
+    res.Push_back(std::make_pair("err", err));
+
+    return res;
+  }
+
+  StdVector<std::pair<std::string, double> > MechanicMaterial::CalcOrthotropeProperties(const Matrix<double>& tensor, BaseMaterial* mat, SubTensorType stt, double vol)
   {
     Matrix<double> D;
     tensor.Invert(D);
 
-    UInt dim = tensor.GetNumRows() == 3 ? 2 : 3; // rank 3 or 6
-
     StdVector<std::pair<std::string, double> > res;
 
-    StdVector<double> E = CalcOrthotropeYoungsModulus(tensor);
+    StdVector<double> E = CalcOrthotropeYoungsModulus(tensor, mat, stt, vol);
 
     res.Push_back(std::make_pair("E_1", E[0]));
-    res.Push_back(std::make_pair("E_2", E[1]));
-    if(dim == 3)
+    if(stt == FULL || stt == PLANE_STRAIN)  {
+      res.Push_back(std::make_pair("E_2", E[1]));
       res.Push_back(std::make_pair("E_3", E[2]));
-
-    StdVector<double> v = CalcOrthotropePoissonsRatio(tensor);
-
-    if(dim == 2)
-    {
-      res.Push_back(std::make_pair("v_21", v[0]));
-      res.Push_back(std::make_pair("v_12", v[1]));
-    }
-    else
-    {
-      res.Push_back(std::make_pair("v_32", v[0]));
-      res.Push_back(std::make_pair("v_31", v[1]));
-      res.Push_back(std::make_pair("v_21", v[2]));
-      res.Push_back(std::make_pair("v_23", v[3]));
-      res.Push_back(std::make_pair("v_13", v[4]));
-      res.Push_back(std::make_pair("v_12", v[5]));
     }
 
-    if(dim == 2)
-    {
-      res.Push_back(std::make_pair("G_12", 1.0 / D[3-1][3-1]));
+    StdVector<double> v = CalcOrthotropePoissonsRatio(tensor, mat, stt, vol);
+    // v_21=0, v_12=1, v_31=2, v_13=3, v_32=4, v_23=5
+    res.Push_back(std::make_pair("v_21", v[0]));
+    res.Push_back(std::make_pair("v_12", v[1]));
+    if(stt == FULL || stt == PLANE_STRAIN) {
+      res.Push_back(std::make_pair("v_31", v[2]));
+      res.Push_back(std::make_pair("v_13", v[3]));
+      res.Push_back(std::make_pair("v_32", v[4]));
+      res.Push_back(std::make_pair("v_23", v[5]));
     }
-    else
-    {
+
+    if(stt == FULL) {
       res.Push_back(std::make_pair("G_23", 1.0 / D[4-1][4-1]));
       res.Push_back(std::make_pair("G_13", 1.0 / D[5-1][5-1]));
       res.Push_back(std::make_pair("G_12", 1.0 / D[6-1][6-1]));
+    } else {
+      res.Push_back(std::make_pair("G_12", 1.0 / D[3-1][3-1]));
     }
 
     double err = CalcOrthotropeError(tensor);
@@ -901,7 +943,8 @@ namespace CoupledField
     return res;
   }
 
-
+  // required in ErsatzMaterial. The complex version is explictely called here
+  template void MechanicMaterial::ComputeSubTensor<Double>(Matrix<Double>& matMatrix, SubTensorType subTensor, const Matrix<Double>& mat);
 
   
 } // end of namespace

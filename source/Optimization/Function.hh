@@ -1,6 +1,8 @@
 #ifndef FUNCTION_HH_
 #define FUNCTION_HH_
 
+#include <boost/tuple/tuple.hpp>
+
 #include "General/Enum.hh"
 #include "MatVec/matrix.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -8,6 +10,7 @@
 #include "Optimization/Design/DesignStructure.hh"
 
 
+using boost::tuple;
 using std::pair;
 
 
@@ -29,12 +32,12 @@ class Function
     /** Dummy constructor for StdVector */
     Function() {};
     
-    /** virtual dtor because base class */
-    virtual ~Function();
-
     /** A Function is too stupid to do any useful - it is just a common base to avoid code dupliciy
      * @param pn our own element */
     Function(PtrParamNode pn);
+
+    /** virtual dtor because base class */
+    virtual ~Function();
 
     /** once we won't have this difference any more */
     static Function* Cast(Objective* c, Condition* g);
@@ -48,7 +51,7 @@ class Function
       MULTI_OBJECTIVE,           /*!< Special type, not to be evaluated but trigger only */
       OUTPUT,                    /*!< Re(u,l) maximize solution where vector l is not 0 */
       DYNAMIC_OUTPUT,            /*!< (u, L conj(u)) as OUTPUT but complex */
-      ABS_DYN_OUTPUT_SQUARED,    /*!< |<u,l>|^2 = | sum u_l |^2 = < sum u_l, sum u_l> harmonic */
+      ABS_OUTPUT,                /*!< |<u,l>| harmonic is implemented, real valued easy to add */
       CONJUGATE_COMPLIANCE,      /*!< (u, F conj(u)) as DYNAMIC_OUTPUT with trace of L is f */
       GLOBAL_DYNAMIC_COMPLIANCE, /*!< (u, I conj(u)) as DYNAMIC_OUTPUT with L is I (everywhere) */
       ELEC_ENERGY,               /*!< p^T K_pp p or p^T K_pp p^* */
@@ -78,6 +81,7 @@ class Function
       GREYNESS,                  /*!< inaccurate - best for observation only */
       REALVOLUME,
       ISOTROPY,                  /*!< blow up to several HOMOGENITATION_TENSOR constraints with different coords */
+      ISO_ORTHOTROPY,            /*!< relaxed form of isotropy without fixing shear moduli */
       SLOPE,                     /*!< Implementation of a grad rho constraint */
       MOLE,                      /*!< Feature size control from T. Poulsen */
       OSCILLATION,               /*!< Feature size control by Fabian W. :) */
@@ -422,7 +426,7 @@ class Function
     Local* InitLocal(DesignSpace* space);
     
     /** extract the "coord" element and parse it to coord */
-    static void ParseCoord(PtrParamNode pn, std::pair<int, int>& coord);
+    static void ParseCoord(PtrParamNode pn, tuple<int, int, double>& coord);
 
     /** The actual kind of cost function. */
     Type type_;

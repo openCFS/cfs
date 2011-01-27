@@ -12,6 +12,7 @@ namespace CoupledField
 {
 class Elem;
 class ParamNode;
+class SinglePDE;
 class Condition;
 class DesignSpace;
 class DesignStructure;
@@ -175,6 +176,7 @@ public:
   void PostInit(int objectives, int constraints);
 
 protected:
+
   /** The scalar value. Public access only via getter to handle filtering. */
   double design;
 
@@ -232,8 +234,10 @@ public:
 
   /** The type of this design element, influences the Get*Bound() methods.
    * By definition the design elements are stored in the ordering of the type!! */
-  typedef enum { UNITY = -5, NO_DERIVATIVE = -4, TENSOR_TRACE = -3, DEFAULT = -2, NO_TYPE = -1, DENSITY = 0, POLARIZATION = 1, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO, GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA} Type;
+  typedef enum { UNITY = -5, NO_DERIVATIVE = -4, TENSOR_TRACE = -3, DEFAULT = -2, NO_TYPE = -1, DENSITY = 0, POLARIZATION = 1, ACOU_DENSITY = 2, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO, GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA} Type;
 
+  /** Default mapping from the PDE */
+  static Type Default(const SinglePDE* pde);
 
     /** This specifies result details for various ValueSpecifier/Detail combinations:
      * OBJECTIVE/SYMMETRY (check!)
@@ -273,6 +277,9 @@ public:
     /** internal helper to get the value by type
      * @param g for sp = CONSTRAINT_GRADIENT only */
     double GetPlainValue(ValueSpecifier valueSpecifier, Condition* g = NULL) const;
+
+    /** This is only for the Heaviside Filter!! as is so often called there that it makes a real difference! */
+    double GetPlainDesignValue() const { return design; }
 
     /** Initilize the Enum. Currently called by Optimization::CreateInstance() */
     void static SetEnums();
@@ -355,9 +362,11 @@ public:
    * @param g @see GetPlainValue() */
   double GetSensitivityFilteredValue(DesignElement::ValueSpecifier valueSpecifier, Condition* g) const;
 
-  /** Does design filtering.
-   * @param fd eithe the filter.density_ property of this element or explicitly Filter::STANDARD */
-  double GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Condition* g, Filter::Density fd) const;
+  /** Does design filtering. */
+  double GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Filter::Density fd) const;
+
+  /** Helper for GetDensityFilteredValue() */
+  double CalcHeaviside(double input_value) const;
 
   /** only for sensitivities for density filtering.
    * See Sigmund; Morpology-based black and white filters for topology optimization; 2007; (35) and (36) */
@@ -387,6 +396,10 @@ public:
    * The element itself is NOT part of the neighborhood!
    * @see DesignStructure::DesignStructure() */
   StdVector<NeighbourElement> neighborhood;
+
+  /** string representation for logging, includes neighborhood.
+   * @param level 0 is elements, 1 is with weighting and distance */
+  std::string ToString(int level = 0) const;
 
   /** for debugging. Sums the weights of all neighbors, ... */
   void Dump();

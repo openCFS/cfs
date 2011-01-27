@@ -26,17 +26,11 @@ ShapeGrad::ShapeGrad() : ErsatzMaterial(), mech_mat_(NULL)
   }
 }
 
-void ShapeGrad::GetSubTensorType(SubTensorType &stt) const
-{
-  if(pde->GetName() != "mechanic") return;
-  String2Enum(pde->GetSubType(), stt);
-}
-
 void ShapeGrad::GetMaterialParameters(double &lambda, double &mu) const
 {
   if(pde->GetName() != "mechanic") return;
   // TODO: extend for multi-region-optimization if necessary
-  const BaseMaterial* material = pde->getPDEMaterialData()[regionIds[0]];
+  const BaseMaterial* material = pde->getPDEMaterialData()[design->GetRegionIds()[0]];
   material->GetScalar(lambda, MECH_LAME_LAMBDA, Global::REAL);
   material->GetScalar(mu, MECH_LAME_MU, Global::REAL);
   LOG_DBG3(shapeGrad) << "lame parameters:  lambda = " << lambda << ", mu = " << mu;
@@ -75,7 +69,7 @@ void ShapeGrad::GetElementSolution(Vector<double> &vecforward, Vector<double> &v
       node_store_sol->GetElemSolutionAsMatrix(elem_sol_forward_matrix, it, 0, forward.Get(idx)->GetVector(Solution::RAW_VECTOR));
       node_store_sol->GetElemSolutionAsMatrix(elem_sol_adjoint_matrix, it, 0, forward.Get(idx)->GetVector(Solution::RAW_VECTOR));
 
-      BaseMaterial* material = pde->getPDEMaterialData()[regionIds[idx]];
+      BaseMaterial* material = pde->getPDEMaterialData()[design->GetRegionIds()[idx]];
   
       // will contain the calculated strains = partial derivatives of displacement u
       shared_ptr<MechStressStrain<double> > strain(new MechStressStrain<double>(material,type));
@@ -105,7 +99,7 @@ void ShapeGrad::GetElementSolution(Vector<double> &vecforward, Vector<double> &v
 linElastInt* ShapeGrad::getBDBForm()
 {
   if(pde->GetName() != "mechanic") return NULL;
-  return dynamic_cast<linElastInt*>(GetForm(regionIds[0], pde, pde, "linElastInt"));
+  return dynamic_cast<linElastInt*>(GetForm(design->GetRegionIds()[0], pde, pde, "linElastInt"));
 }
 
 
@@ -114,7 +108,7 @@ void ShapeGrad::PostInit()
   ErsatzMaterial::PostInit();
 
   if(pde->GetName() != "mechanic") return;
-  mech_mat_ = dynamic_cast<OptMechMat*>(material); // just created in PostInit()
+  mech_mat_ = dynamic_cast<MechMat*>(material); // just created in PostInit()
   assert(material != NULL);
 }
 

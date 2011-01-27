@@ -251,7 +251,7 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
         form->calcDMat(D, elem, DesignElement::NO_DERIVATIVE);
         double dampingAlpha = 0.0; double dampingBeta = 0.0;
         if(IsTransient()){
-          M = &mech_mat_->MechMass(elem, DesignElement::NO_DERIVATIVE);
+          M = &mech_mat_->MechMass(elem, false, DesignElement::NO_DERIVATIVE);
           RegionIdType regionId = elem->regionId;
           if(biLinForm->GetSecDestMat() != NOTYPE){
             parser->SetExpr(mathParserHandle, biLinForm->GetSecMatFac());
@@ -571,10 +571,10 @@ double ShapeOpt::CalcTracking(Excitation& excite, Objective* f, Condition* const
   return 0.0;
 }
 
-void ShapeOpt::CalcHomogenizedTrackingGradient(const Matrix<double>& target, const Matrix<double>& hom, Objective* f, Condition* g){
+void ShapeOpt::CalcHomogenizedTrackingGradient(const Matrix<double>& target, const Matrix<double>& hom, Function* f){
   Matrix<double> tensor_diff;
   tensor_diff = hom - target;
-  CalcMinusU1dKU2(forward, forward, f, g, &tensor_diff);
+  CalcMinusU1dKU2(forward, forward, dynamic_cast<Objective*>(f), dynamic_cast<Condition*>(f), &tensor_diff);
 }
 
 Matrix<double> ShapeOpt::CalcHomogenizedTensor(){

@@ -494,7 +494,7 @@ namespace CoupledField
   
   /** Adds the multiple of another matrix */
   template<class TYPE>
-  void Matrix<TYPE>::Add(const TYPE factor, const DenseMatrix & mat)
+  void Matrix<TYPE>::Add(const TYPE factor, const Matrix<TYPE>& mat)
   {
     const Matrix<TYPE>& other_mat = dynamic_cast<const Matrix<TYPE> & >(mat);
 #ifdef CHECK_INITIALIZED
@@ -510,6 +510,7 @@ namespace CoupledField
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
         data_[0][k] += factor * other_mat.data_[0][k];
   }
+
 
   /** Assigns a multiple of another matrix */
   template<class TYPE>
@@ -1391,6 +1392,21 @@ namespace CoupledField
     }
 
     return static_cast<TYPE>(std::sqrt(result)); // for compilers
+  }
+
+  template<class TYPE>
+  TYPE Matrix<TYPE>::DiffNormL1(const Matrix<TYPE>& other) const
+  {
+#ifdef CHECK_INITIALIZED
+    if (size_row_ != other.size_row_ || size_col_ != other.size_col_)
+      EXCEPTION("Incompatible matrices");
+#endif
+
+    TYPE result(0);
+    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
+      result += Abs(data_[0][k] - other.data_[0][k]);
+
+    return result;
   }
 
   // Alternate version of symmetry checker, that will report

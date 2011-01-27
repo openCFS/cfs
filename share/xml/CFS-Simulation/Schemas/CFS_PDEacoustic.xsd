@@ -731,6 +731,8 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="acouPressure"/>
       <xsd:enumeration value="acouIntensity"/>
+      <!-- topology optimization -->
+      <xsd:enumeration value="acouPseudoDensity"/>      
     </xsd:restriction>
   </xsd:simpleType>
 
