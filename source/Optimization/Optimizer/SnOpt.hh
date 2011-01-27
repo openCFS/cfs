@@ -48,7 +48,8 @@ private:
   inline void Init();
   
   /** define the file names where snopt writes the output and open the files
-   *  using the snopen_ function defined in SnOptInterface.hh */
+   *  using the snopen_ function defined in SnOptInterface.hh - does not work! problem
+   *  comes from snopt which currently (version 7.2) does not respect the settings properly */
   inline void setSnoptOutputFiles();
 
   /** Does as the name suggests: calls snopta_ to solve the optimization problem */ 

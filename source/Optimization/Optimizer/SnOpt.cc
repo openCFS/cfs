@@ -41,7 +41,7 @@ SnOpt::SnOpt(Optimization* opt, PtrParamNode pn) :
   nxname(1),
   nFname(1),
   iSumm(6),         // variable for file output, 6 == stdout
-  iPrint(15),       // variable for file output, 6 == stdout
+  iPrint(1),       // variable for file output, 6 == stdout
   iSpecs(1),        // variable for file output
   DerOpt(1),
   minrw(500),
@@ -141,15 +141,15 @@ void SnOpt::Init()
 void SnOpt::setSnoptOutputFiles()
 {
   //assert(iPrint == 9 || iPrint == 6);
-  char printname[] = "out.printfile";
-  snopenappend_(&iPrint, printname, &INFO, strlen(printname));
-  std::cout << "snopenappend_ for printfile = " << INFO << endl;
+  //char printname[] = "out.printfile";
+  //snopenappend_(&iPrint, printname, &INFO, strlen(printname));
+  //std::cout << "snopenappend_ for printfile = " << INFO << endl;
   SetIntegerValue("print_file", iPrint);
   
   //assert(iSumm == 4 || iSumm == 6);
-  char summname[] = "out.summfile";
-  snopenappend_(&iSumm, summname, &INFO , strlen(summname));
-  std::cout << "snopenappend_ for summfile = " << INFO << endl;
+  //char summname[] = "out.summfile";
+  //snopenappend_(&iSumm, summname, &INFO , strlen(summname));
+  //std::cout << "snopenappend_ for summfile = " << INFO << endl;
   INFO = 0;
 }
 
