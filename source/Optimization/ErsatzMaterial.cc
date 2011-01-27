@@ -338,13 +338,13 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     in->Get("norm_L2")->SetValue(homogenizedTensor.NormL2());
     SubTensorType stt = pde->GetSubTensorType();
 
+
     PtrParamNode iso = in->Get("isotropy");
-    iso->Get("E")->SetValue(MechanicMaterial::CalcIsotropicYoungsModulus(homogenizedTensor, stt));
-    iso->Get("poissons_ratio")->SetValue(MechanicMaterial::CalcIsotropicPoissonsRatio(homogenizedTensor, stt));
-    iso->Get("err")->SetValue(MechanicMaterial::CalcIsotropyError(homogenizedTensor, stt));
+    StdVector<std::pair<string, double> > isop = MechanicMaterial::CalcIsotropicProperties(homogenizedTensor, stt);
+    for(unsigned int i = 0; i < isop.GetSize(); i++)
+      iso->Get(isop[i].first)->SetValue(isop[i].second);
 
     PtrParamNode orth = in->Get("orthotropy");
-
     StdVector<std::pair<string, double> > ortho = GetOrthotropeProperties(homogenizedTensor);
     for(unsigned int i = 0; i < ortho.GetSize(); i++)
       orth->Get(ortho[i].first)->SetValue(ortho[i].second);
@@ -1867,7 +1867,6 @@ double ErsatzMaterial::CalcPoissonsRatioAndYoungsModulus(Function* f, bool deriv
 {
   assert(f->GetType() == Function::POISSONS_RATIO || f->GetType() == Function::YOUNGS_MODULUS);
 
-  bool poisson = f->GetType() == Function::POISSONS_RATIO;
   SubTensorType stt = pde->GetSubTensorType();
   assert(stt == PLANE_STRAIN || stt == PLANE_STRESS || stt == FULL);
   
@@ -1877,6 +1876,17 @@ double ErsatzMaterial::CalcPoissonsRatioAndYoungsModulus(Function* f, bool deriv
 
   if(derivative)
   {
+    // for iso-orthotropy we use the formulas for isotropy
+    // Poisson's Ratio:
+    // see MechanicMaterial::CalcIsotropicPoissonsRatio()
+    // FULL + PLANE_STRAIN: v = E12 / (E11 + E12)
+    // PLANE_STRESS: v = E12 / E11
+    //
+    // Young's Modulus
+    // see MechanicMaterial::CalcIsotropicYoungsModulus()
+    // FULL + PLANE_STRAIN: E = E11 * (1+v) * (1-2v)/(1-v)
+    // PLANE_STRESS: E = E11 * (1-v^2)
+
     StdVector<double> dE11;
     CalcHomogenizedTensorEntry(make_tuple(1,1,1.0), true, dE11);
     StdVector<double> dE12;
@@ -1885,34 +1895,35 @@ double ErsatzMaterial::CalcPoissonsRatioAndYoungsModulus(Function* f, bool deriv
     const double E11 = hom_tensor[0][0];
     const double E12 = hom_tensor[0][1];
     double grad(0.0);
-    const double denom = stt == PLANE_STRESS ? E11 * E11 : (E11 + E12) * (E11 + E12);
     
     for(unsigned int e = 0, ne = design->GetNumberOfElements(); e < ne; e++)
     {      
-      if(poisson) 
-        grad = (dE12[e] * E11 - E12 * dE11[e]); // same for all cases
-      else
+      if(f->GetType() == f->POISSONS_RATIO && (stt == FULL || stt == PLANE_STRAIN))
       {
-        if(stt == PLANE_STRESS)
-        {
-          grad  = (E11 * E11 + E12 * E12) * dE11[e];
-          grad -= 2.0 * E11 * E12 * dE12[e];
-        }
-        else
-        {
-          grad  = (E11 * E11 + 2.0 * E11 * E12 + 3.0 * E12 * E12) * dE11[e];
-          grad -= (4.0 * E11 * E12 + 2.0 * E12 * E12) * dE12[e];
-        }
+         grad = (dE12[e] * E11 - E12 * dE11[e]) / ((E11 + E12) * (E11 + E12));
       }
-      
-      grad /= denom;
-
+      if(f->GetType() == f->POISSONS_RATIO && stt == PLANE_STRESS)
+      {
+        grad = (dE12[e] * E11 - E12 * dE11[e]) / (E11 * E11);
+      }
+      if(f->GetType() == f->YOUNGS_MODULUS && (stt == FULL || stt == PLANE_STRAIN))
+      {
+        grad  = (E11 * E11 + 2.0 * E11 * E12 + 3.0 * E12 * E12) * dE11[e];
+        grad -= (4.0 * E11 * E12 + 2.0 * E12 * E12) * dE12[e];
+        grad /= (E11 + E12) * (E11 + E12);
+      }
+      if(f->GetType() == f->YOUNGS_MODULUS && stt == PLANE_STRESS)
+      {
+        grad  = (E11 * E11 + E12 * E12) * dE11[e];
+        grad -= 2.0 * E11 * E12 * dE12[e];
+        grad /=  E11 * E11;
+      }
       design->data[e].AddGradient(f, grad);
     }
   }
   else
   {
-    if(poisson)
+    if(f->GetType() == f->POISSONS_RATIO)
       result = MechanicMaterial::CalcIsotropicPoissonsRatio(hom_tensor, stt);
     else
       result = MechanicMaterial::CalcIsotropicYoungsModulus(hom_tensor, stt);

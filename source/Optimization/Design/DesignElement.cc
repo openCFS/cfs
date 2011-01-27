@@ -607,17 +607,19 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
   // p = rho. P is filtered rho (rho tilde)
   // P = sum_(i in N_e) w(x_i) p_i / sum_(i in N_e) w(x_i)
 
-  double numerator = 0.0;
-  double denominator = 0.0;
-
   // mathematically the neighborhood includes this element, but this is not in the structure
-  for(int i = -1, ni = (int) neighborhood.GetSize(); i < ni; i++)
-  {
-    const NeighbourElement* ne = i == -1 ? NULL : &neighborhood[i];
-    const DesignElement* de = i == -1 ? this->de_ : ne->neighbour;
+  // we initialize numerator and denominator with the values obtained from this element
+  double numerator = this->weight * this->de_->GetPlainValue(DesignElement::DESIGN);
+  double denominator = this->weight;
 
-    double w = i == -1 ?  this->weight : ne->weight;
-    double x = de->GetPlainValue(DesignElement::DESIGN); // cheap if not used
+  for(int i = 0, ni = (int) neighborhood.GetSize(); i < ni; i++)
+  {
+    const NeighbourElement* ne = &neighborhood[i];
+    const DesignElement* de = ne->neighbour;
+
+    double w = ne->weight;
+    //double x = de->GetPlainValue(DesignElement::DESIGN); // cheap if not used
+     double x = de->GetPlainDesignValue();
 
     numerator   += w * x;
     denominator += w;

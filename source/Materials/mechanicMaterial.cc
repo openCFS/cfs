@@ -745,16 +745,17 @@ namespace CoupledField
     Matrix<double> D;
     tensor.Invert(D);
 
-    assert((tensor.GetNumRows() == 6 && stt == FULL) || (tensor.GetNumRows() == 3 && stt == PLANE_STRAIN)); // no plain-stress yet!
+    assert(tensor.GetNumRows() == (stt == FULL ? 6 : 3));
+    StdVector<double> res(stt == PLANE_STRESS ? 2 : 3);
 
-    StdVector<double> res(3);
-
-    if(stt == FULL)
+    switch(stt)
     {
-    for(UInt i = 0; i < 3; i++)
-      res[i] = 1.0/D[i][i];
-    }
-    else
+    case FULL:
+      for(UInt i = 0; i < 3; i++)
+        res[i] = 1.0/D[i][i];
+      break;
+
+    case PLANE_STRAIN:
     {
       assert(mat != NULL && vol > 0 && vol <= 1.0);
       //E1 = 1/(B(1,1) + nusteg^2/rho/Esteg )
@@ -772,8 +773,23 @@ namespace CoupledField
       res[0] = 1.0 / (D[0][0] + v_core*v_core / E3);
       res[1] = 1.0 / (D[1][1] + v_core*v_core / E3);
       res[2] = E3;
+      break;
     }
 
+    case PLANE_STRESS:
+    {
+      StdVector<double> v = CalcOrthotropePoissonsRatio(tensor, mat, stt, vol);
+      assert(v.GetSize() == 2);
+
+      // E1 = C(1,1) * (1-v12*v21)
+      res[0] = tensor[1-1][1-1] * (1.0 - v[0] * v[1]);
+      // E2 = E1 * (v21/v12)
+      res[1] = res[0] * v[1] * v[0];
+      break;
+    }
+    default:
+      assert(false);
+    }
     return res;
   }
 
@@ -783,11 +799,14 @@ namespace CoupledField
     tensor.Invert(D);
 
     StdVector<double> res;
-    StdVector<double> E = CalcOrthotropeYoungsModulus(tensor, mat, stt, vol); // does the asserts!
-    // v_21, v_12, v_31, v_13, v_32, v_23
+    StdVector<double> E; // v_21, v_12, v_31, v_13, v_32, v_23
+
+
+
     switch(stt)
     {
     case FULL:
+      E = CalcOrthotropeYoungsModulus(tensor, mat, stt, vol); // does the asserts!
       res.Push_back(-1.0 * D[1-1][2-1] * E[2-1]); // v_21
       res.Push_back(-1.0 * D[2-1][1-1] * E[1-1]); // v_12
       res.Push_back(-1.0 * D[1-1][3-1] * E[3-1]); // v_31
@@ -798,6 +817,7 @@ namespace CoupledField
 
     case PLANE_STRAIN:
     {
+      E = CalcOrthotropeYoungsModulus(tensor, mat, stt, vol); // does the asserts!
       // core properties
       double E_core, v_core;
       mat->GetScalar(E_core, MECH_EMODULUS, Global::REAL);
@@ -827,6 +847,14 @@ namespace CoupledField
       res.Push_back(v_23);
       break;
     }
+
+    case PLANE_STRESS:
+      // v21 = c(1,2)/c(1,1)
+      res.Push_back(tensor[1-1][2-1] / tensor[1-1][1-1]);
+
+      // v12 = C(1,2)/C(2,2)
+      res.Push_back(tensor[1-1][2-1] / tensor[2-1][2-1]);
+      break;
 
     default:
       assert(false);
@@ -859,39 +887,54 @@ namespace CoupledField
     return err;
   }
 
+  StdVector<std::pair<std::string, double> > MechanicMaterial::CalcIsotropicProperties(const Matrix<double>& tensor, SubTensorType stt)
+  {
+    double E = CalcIsotropicYoungsModulus(tensor, stt);
+    double v = CalcIsotropicPoissonsRatio(tensor, stt);
+    double G = E / (2.0 + 2.0*v); // comparing to the tensor gives an idea about the error
+    double err = CalcIsotropyError(tensor, stt);
+
+    StdVector<std::pair<std::string, double> > res;
+    res.Push_back(std::make_pair("E", E));
+    res.Push_back(std::make_pair("v", v));
+    res.Push_back(std::make_pair("G", G));
+    res.Push_back(std::make_pair("err", err));
+
+    return res;
+  }
+
   StdVector<std::pair<std::string, double> > MechanicMaterial::CalcOrthotropeProperties(const Matrix<double>& tensor, BaseMaterial* mat, SubTensorType stt, double vol)
   {
     Matrix<double> D;
     tensor.Invert(D);
-
-    UInt dim = tensor.GetNumRows() == 3 ? 2 : 3; // rank 3 or 6
 
     StdVector<std::pair<std::string, double> > res;
 
     StdVector<double> E = CalcOrthotropeYoungsModulus(tensor, mat, stt, vol);
 
     res.Push_back(std::make_pair("E_1", E[0]));
-    res.Push_back(std::make_pair("E_2", E[1]));
-    res.Push_back(std::make_pair("E_3", E[2]));
+    if(stt == FULL || stt == PLANE_STRAIN)  {
+      res.Push_back(std::make_pair("E_2", E[1]));
+      res.Push_back(std::make_pair("E_3", E[2]));
+    }
 
     StdVector<double> v = CalcOrthotropePoissonsRatio(tensor, mat, stt, vol);
     // v_21=0, v_12=1, v_31=2, v_13=3, v_32=4, v_23=5
     res.Push_back(std::make_pair("v_21", v[0]));
     res.Push_back(std::make_pair("v_12", v[1]));
-    res.Push_back(std::make_pair("v_31", v[2]));
-    res.Push_back(std::make_pair("v_13", v[3]));
-    res.Push_back(std::make_pair("v_32", v[4]));
-    res.Push_back(std::make_pair("v_23", v[5]));
-
-    if(dim == 2)
-    {
-      res.Push_back(std::make_pair("G_12", 1.0 / D[3-1][3-1]));
+    if(stt == FULL || stt == PLANE_STRAIN) {
+      res.Push_back(std::make_pair("v_31", v[2]));
+      res.Push_back(std::make_pair("v_13", v[3]));
+      res.Push_back(std::make_pair("v_32", v[4]));
+      res.Push_back(std::make_pair("v_23", v[5]));
     }
-    else
-    {
+
+    if(stt == FULL) {
       res.Push_back(std::make_pair("G_23", 1.0 / D[4-1][4-1]));
       res.Push_back(std::make_pair("G_13", 1.0 / D[5-1][5-1]));
       res.Push_back(std::make_pair("G_12", 1.0 / D[6-1][6-1]));
+    } else {
+      res.Push_back(std::make_pair("G_12", 1.0 / D[3-1][3-1]));
     }
 
     double err = CalcOrthotropeError(tensor);

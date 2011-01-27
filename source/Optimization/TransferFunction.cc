@@ -90,7 +90,7 @@ Optimization::Application TransferFunction::Default(DesignElement::Type type)
   case DesignElement::ACOU_DENSITY:
     return Optimization::LAPLACE;
   case DesignElement::POLARIZATION:
-    return Optimization::ELEC;
+    return Optimization::PIEZO_COUPLING;
   default:
     throw Exception("invalid");
   }

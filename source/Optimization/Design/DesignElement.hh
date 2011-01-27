@@ -176,6 +176,7 @@ public:
   void PostInit(int objectives, int constraints);
 
 protected:
+
   /** The scalar value. Public access only via getter to handle filtering. */
   double design;
 
@@ -276,6 +277,9 @@ public:
     /** internal helper to get the value by type
      * @param g for sp = CONSTRAINT_GRADIENT only */
     double GetPlainValue(ValueSpecifier valueSpecifier, Condition* g = NULL) const;
+
+    /** This is only for the Heaviside Filter!! as is so often called there that it makes a real difference! */
+    double GetPlainDesignValue() const { return design; }
 
     /** Initilize the Enum. Currently called by Optimization::CreateInstance() */
     void static SetEnums();

@@ -37,11 +37,19 @@ BOOST_LOG_DEFINE_LEVEL(trace2, 1450)
 #define LOG(log_name) BOOST_LOG(log_name)
 
 
+#ifndef NDEBUG
 #define LOG_DBG3(log_name) BOOST_LOGL(log_name,dbg3)
 #define LOG_DBG2(log_name) BOOST_LOGL(log_name,dbg2)
 #define LOG_DBG(log_name) BOOST_LOGL(log_name,dbg)
 #define LOG_TRACE2(log_name) BOOST_LOGL(log_name,trace2)
 #define LOG_TRACE(log_name) BOOST_LOGL(log_name,trace)
+#else
+#define LOG_DBG3(log_name) if(false) std::cout
+#define LOG_DBG2(log_name) if(false) std::cout
+#define LOG_DBG(log_name) if(false) std::cout
+#define LOG_TRACE2(log_name) if(false) std::cout
+#define LOG_TRACE(log_name) if(false) std::cout
+#endif
 
 namespace CoupledField {
   
