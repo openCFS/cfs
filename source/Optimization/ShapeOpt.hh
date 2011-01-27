@@ -27,7 +27,7 @@ namespace CoupledField {
 
     virtual double CalcTracking(Excitation& excite, Objective* f, Condition* constraint, bool derivative);
     
-    virtual void CalcHomogenizedTrackingGradient(const Matrix<double>& target, const Matrix<double>& hom, Objective* f, Condition* g);
+    virtual void CalcHomogenizedTrackingGradient(const Matrix<double>& target, const Matrix<double>& hom, Function* f);
     
     virtual Matrix<double> CalcHomogenizedTensor();
 

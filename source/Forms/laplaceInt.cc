@@ -9,6 +9,10 @@
 #include "Domain/domain.hh"
 #include "Domain/grid.hh"
 
+#include "DataInOut/Logging/cfslog.hh"
+
+DECLARE_LOG(forms)
+
 namespace CoupledField
 {
 
@@ -21,6 +25,8 @@ namespace CoupledField
     coordUpdate_ = coordUpdate;
     if ( coordUpdate )
       isSolDependent_ = true;
+
+    LOG_DBG(forms) << "LaplaceInt::LaplaceInt() val=" << laplVal_ << " axi=" << axi << " solDep=" << isSolDependent_;
   }
 
   LaplaceInt::LaplaceInt(BaseMaterial* mat, const MaterialDescriptor& md, bool axi, bool coordUpdate )
@@ -34,6 +40,8 @@ namespace CoupledField
 
     md_ = md;
     laplVal_ = md_.GetScalar(mat); // we won't use it but do it always again and again :)
+
+    LOG_DBG(forms) << "LaplaceInt::LaplaceInt() md! val=" << laplVal_ << " axi=" << axi << " solDep=" << isSolDependent_;
   }
 
  
@@ -97,6 +105,8 @@ namespace CoupledField
 
         elemMat += partElemMat;
     }
+
+    LOG_DBG3(forms) << "LaplaceInt::CEM el=" << ent1.GetElem()->elemNum << " dens=" << density << " mat=" << elemMat.ToString();
   }
 
 

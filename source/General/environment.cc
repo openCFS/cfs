@@ -1131,6 +1131,9 @@ namespace CoupledField {
   template<>
   void Enum2String<SubTensorType>(const SubTensorType &in, std::string &out) {
     switch(in) {
+    case NO_TENSOR:
+      out = "noTensor";
+      break;
     case PLANE_STRAIN:
       out = "planeStrain";
       break;
@@ -1153,6 +1156,8 @@ namespace CoupledField {
 
   template<>
   void String2Enum<SubTensorType>( const std::string &in, SubTensorType &out ) {
+    if ( in == "noTensor" ) {
+    }
     if ( in == "planeStrain" ) {
       out = PLANE_STRAIN;
     }

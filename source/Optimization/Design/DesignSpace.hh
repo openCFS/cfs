@@ -226,6 +226,11 @@ namespace CoupledField
       * multiple regions. */
      virtual unsigned int GetNumberOfVariables() const;
      
+     /** Find the element with the largest Filter neighborhood, if no filter is used or if the
+      * value is not unique (what should be the case) any suitable is returned.
+      * We do not cache the result, and search all, so use with care. */
+     DesignElement* FindElementWithLargesFilter();
+
      /** This is our real design data, a set of DesignElements.
       * Size is design.GetSize() * elements */
      StdVector<DesignElement> data;
@@ -243,7 +248,7 @@ namespace CoupledField
      StdVector<ResultDescription> resultDescriptions;
 
      /** Might be nonsense if our constructor is no simp or ersatz material one! */
-     int GetRegionId()
+     int GetRegionId() const
      {
        assert(regions.GetSize() == 1);
        return regions[0].regionId;

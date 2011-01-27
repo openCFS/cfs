@@ -31,6 +31,7 @@ using namespace CoupledField;
 
 using std::complex;
 
+
 DECLARE_LOG(conditions)
 
 DECLARE_LOG(simp)
@@ -102,7 +103,7 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
     // copy from real mechStiffness to potential complex out and factor the derivative
     Assign(out, stiffness, k_factor);
     // This log is very expensive, it blows up inv_tensor in the debug mode
-    LOG_DBG3(simp) << "SetElementK: K_org=" <<  stiffness.ToString() << " k_factor " << k_factor << " -> " << out.ToString();
+    // LOG_DBG3(simp) << "SetElementK: K_org=" <<  stiffness.ToString() << " k_factor " << k_factor << " -> " << out.ToString();
 
     if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
     {
@@ -110,7 +111,7 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
       // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
       k_factor = !derivative ? 1.0 - k_factor : -1.0 *  k_factor;
       Add(out, k_factor, bimat);
-      LOG_DBG3(simp) << "SetElementK: K_bi_org=" <<  bimat.ToString() << " k_factor " << k_factor << " -> " << out.ToString();
+      // LOG_DBG3(simp) << "SetElementK: K_bi_org=" <<  bimat.ToString() << " k_factor " << k_factor << " -> " << out.ToString();
     }
 
     if(harmonic)
@@ -119,7 +120,7 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
       double m_factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
       AddMassToStiffness(m_factor, de, dynamic_cast<Matrix<complex<double> >& >(out), false); // no bimaterial
 
-      LOG_DBG3(simp) << "SetElementK: m_factor " << m_factor << " -> " << out.ToString();
+      // LOG_DBG3(simp) << "SetElementK: m_factor " << m_factor << " -> " << out.ToString();
 
       if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
       {
@@ -127,7 +128,7 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
         m_factor = !derivative ? 1.0 - m_factor : -1.0 *  m_factor;
         AddMassToStiffness(m_factor, de, dynamic_cast<Matrix<complex<double> >& >(out), true); // bimaterial
 
-        LOG_DBG3(simp) << "SetElementK: m_bi_factor " << m_factor << " -> " << out.ToString();
+        // LOG_DBG3(simp) << "SetElementK: m_bi_factor " << m_factor << " -> " << out.ToString();
       }
     }
     break;

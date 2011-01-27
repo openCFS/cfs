@@ -2446,6 +2446,7 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
     switch(subTensorType_)
     {
     case PLANE_STRAIN:
+    case PLANE_STRESS: // TODO Verify!
       addStrain_.Resize(3, 0.0);
       addStrain_[0] = strainVec[0];
       addStrain_[1] = strainVec[1];

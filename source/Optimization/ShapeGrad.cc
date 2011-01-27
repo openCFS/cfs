@@ -26,12 +26,6 @@ ShapeGrad::ShapeGrad() : ErsatzMaterial(), mech_mat_(NULL)
   }
 }
 
-void ShapeGrad::GetSubTensorType(SubTensorType &stt) const
-{
-  if(pde->GetName() != "mechanic") return;
-  String2Enum(pde->GetSubType(), stt);
-}
-
 void ShapeGrad::GetMaterialParameters(double &lambda, double &mu) const
 {
   if(pde->GetName() != "mechanic") return;

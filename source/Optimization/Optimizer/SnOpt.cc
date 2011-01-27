@@ -238,6 +238,12 @@ void SnOpt::InfoXMLOutput()
   case 41:
     exitstring = "terminated after numerical difficulties - current point cannot be improved";
     break;
+  case 51:
+    exitstring = "incorrect objective derivatives";
+    break;
+  case 52:
+    exitstring = "incorrect constraint derivatives";
+    break;
   case 71:
     exitstring = "user requested termination - terminated during function evaluation";
     break;

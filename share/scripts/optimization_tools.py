@@ -1,11 +1,12 @@
 # This collects some tool routines for optimization
 
+
 import libxml2
 import numpy
 import numpy.linalg
 import math
 import os
-from lxml import etree
+#from lxml import etree
 
 from cfs_utils import *
 from distutils.command.build_scripts import first_line_re
@@ -508,7 +509,7 @@ def extract_old_header(infile):
   return header
 
 
-# this is a helper strucht for readLumpedMechDisplacement
+# this is a helper struct for readLumpedMechDisplacement
 class LumpedMechDisplacement:
   def __init__(self, elemNum, x, y, z):
     self.elemNum = elemNum
@@ -556,12 +557,14 @@ def readLumpedMechDisplacement(info_xml, region):
     result.append(item)
   return result  
 
-# create an interpolated density file from a readLumpedMechDisplacement() result for positive z displacement.
-# below the first frequency we assume full material, obove the highest frequency an exception is thrown
+## create an interpolated density file from a readLumpedMechDisplacement() result for positive z displacement.
+# below the first frequency we assume full material, above the highest frequency an exception is thrown
 # @param data is the result from readLumpedMechDisplacement
 # @param f the frequency to interpolate
 # @param density_file the filename where the density file is written to
-def interpolateLumpedMechDisplacementAsDensity(data, f, density_file):
+# @param mode 'min' or 'max' or 'auto'
+# @return lower, upper, alpha, beta, min, max
+def interpolateLumpedMechDisplacementAsDensity(data, f, density_file, mode = "auto"):
   # find upper and lower frequency
   lower = 0.0
   upper = -1.0
@@ -591,11 +594,11 @@ def interpolateLumpedMechDisplacementAsDensity(data, f, density_file):
 
   # preliminary result, before normalizing to 1.0
   tmp = []
-  # we don't know if the positive or negative real parts dominates. the firs mode has the same sign which might be neg
+  # we don't know if the positive or negative real parts dominates. the first mode has the same sign which might be neg
   max_v = -1e30   
   min_v = +1e30
   for i in range(len(upper_data)):
-    lower_value = 1.0 # there is no read condition operator in python :( 
+    lower_value = 1.0 # there is no real condition operator in python :( 
     if len(lower_data) > 0:
       lower_value = lower_data[i].z
     upper_value = upper_data[i].z
@@ -607,24 +610,27 @@ def interpolateLumpedMechDisplacementAsDensity(data, f, density_file):
     
   # normalize and eliminate the right values
   for i in range(len(tmp)):
-    if abs(max_v) >= abs(min_v) and max_v > 0:
-      # print "a max=" + str(max_v) + " min=" + str(min_v) + " t=" + str(tmp[i]) + " -> " + str(cond(tmp[i] > 0, tmp[i] / max_v, 0.0)) + "\n" 
-      tmp[i] = cond(tmp[i] > 0, tmp[i] / max_v, 0.0)
+    if mode == "both":
+      v = tmp[i]
+      max_case = cond(v / max_v > 1e-7, v / max_v, 1e-7) # max_case in [1e-7:1]
+      min_case = cond(v / min_v > 1e-7, v / min_v, 1e-7) # if min_v > 0: min_case >= 1, for min_v < 0 also [1e-7:+1]
+      tmp[i] = cond(v >= 0, max_case, -1.0*min_case) # this is not solid plate for min_v > 0!
+    if mode == "max" or (mode == "auto" and abs(max_v) >= abs(min_v) and max_v > 0):
+      # print "a max=" + str(max_v) + " min=" + str(min_v) + " t=" + str(tmp[i]) + " -> " + str(cond(tmp[i] / max_v > 1e-7, tmp[i] / max_v, 1e-7)) + "\n"
+      tmp[i] = cond(tmp[i] / max_v > 1e-7, tmp[i] / max_v, 1e-7)
     else:
-      # print "b max=" + str(max_v) + " min=" + str(min_v) + " t=" + str(tmp[i]) + " -> " + str(cond(tmp[i] < 0, tmp[i] / min_v, 0.0)) + "\n"      
-      tmp[i] = cond(tmp[i] < 0, tmp[i] / min_v, 0.0)
-    if tmp[i] < 0.0 or tmp[i] > 1.0:
+      # print "b max=" + str(max_v) + " min=" + str(min_v) + " t=" + str(tmp[i]) + " -> " + str(cond(tmp[i] / min_v > 1e-7, tmp[i] / min_v, 1e-7)) + "\n"      
+      tmp[i] = cond(tmp[i] / min_v > 1e-7, tmp[i] / min_v, 1e-7)
+      tmp[i] = cond(tmp[i] > 1.0, 1.0, tmp[i])
+    if tmp[i] < 1e-8 or tmp[i] > 1.0:
       raise RuntimeError("invalid density " + str(tmp[i]))
-    # prevent 0
-    if tmp[i] < 1e-7:
-      tmp[i] = 1e-7
       
   # write the stuff    
   out = open(density_file, "w")
   out.write('<?xml version="1.0"?>\n')
   out.write('<cfsErsatzMaterial>\n')
   out.write('  <header>\n')
-  out.write('    <design initial="0.5" lower="1e-3" name="density" upper="1"/>\n')
+  out.write('    <design initial="0.5" lower="1e-3" name="density" upper="1" region="all" />\n')
   out.write('    <transferFunction application="mech" design="density" param="1" type="simp"/>\n')
   out.write('  </header>\n')
   out.write('  <set id="f_' + str(f) + '_' + str(alpha) + '*' + str(lower) + '+' + str(beta) + '*' + str(upper) + '_min_' + str(min_v) + '_max_' + str(max_v) + '">\n')
@@ -635,7 +641,9 @@ def interpolateLumpedMechDisplacementAsDensity(data, f, density_file):
 
   out.write(' </cfsErsatzMaterial>\n')
   out.close()
-
+ 
+  return lower, upper, alpha, beta, min_v, max_v
+ 
 
 # helper for external use - create a 2D "window"
 # strength is the size of the window in fraction. .5 is maximum

@@ -845,6 +845,21 @@ int DesignSpace::Find(const Elem* elem, bool throw_exception)
   EXCEPTION("element " << elem->ToString() << " has no volume element in design region");
 }
 
+DesignElement* DesignSpace::FindElementWithLargesFilter()
+{
+  int max = 0;
+  DesignElement* res = NULL;
+
+  for(unsigned int i = 0, n = data.GetSize(); i < n; i++)
+  {
+    DesignElement* de = &data[i];
+    if(de->simp != NULL && (int) de->simp->neighborhood.GetSize() > max)
+      res = de;
+  }
+
+  return res;
+}
+
 void DesignSpace::ToInfo(PtrParamNode in)
 {
   PtrParamNode tf = in->Get("transferFunctions");
@@ -1043,6 +1058,7 @@ bool DesignSpace::DesignRegion::HasBiMaterial() const
 {
   return bimaterial_ != "";
 }
+
 
 BaseMaterial* DesignSpace::DesignRegion::GetBiMaterial(const MaterialClass mc)
 {

@@ -725,7 +725,7 @@ namespace CoupledField {
                                                                BaseForm::MaterialDescriptor::MINUS_MAT_1_MAT_1_BY_MAT_2;
 
         BaseForm::MaterialDescriptor md2(mdt, FLUID, DENSITY,ACOU_BULK_MODULUS, Global::REAL);
-        MassInt* bilinearMass = new MassInt(materials_[actRegion], md2, isaxi_, updatedLagrangeForm_);
+        MassInt* bilinearMass = new MassInt(materials_[actRegion], md2, 1, isaxi_, updatedLagrangeForm_);
 
         if ( diagMass_ ) {
           // diagonal mass matrix

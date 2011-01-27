@@ -176,6 +176,7 @@ public:
   void PostInit(int objectives, int constraints);
 
 protected:
+
   /** The scalar value. Public access only via getter to handle filtering. */
   double design;
 
@@ -278,6 +279,9 @@ public:
     /** internal helper to get the value by type
      * @param g for sp = CONSTRAINT_GRADIENT only */
     double GetPlainValue(ValueSpecifier valueSpecifier, Condition* g = NULL) const;
+
+    /** This is only for the Heaviside Filter!! as is so often called there that it makes a real difference! */
+    double GetPlainDesignValue() const { return design; }
 
     /** Initilize the Enum. Currently called by Optimization::CreateInstance() */
     void static SetEnums();
@@ -395,8 +399,9 @@ public:
    * @see DesignStructure::DesignStructure() */
   StdVector<NeighbourElement> neighborhood;
 
-  /** string representation for logging, includes neighborhood */
-  std::string ToString() const;
+  /** string representation for logging, includes neighborhood.
+   * @param level 0 is elements, 1 is with weighting and distance */
+  std::string ToString(int level = 0) const;
 
   /** for debugging. Sums the weights of all neighbors, ... */
   void Dump();
