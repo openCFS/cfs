@@ -39,6 +39,7 @@ namespace CoupledField {
 
     numEqns_ = 0;
     numIdBcs_ = 0;
+    numIdFiBcs_ = 0;
     numCs_ = 0;
 
     numLocNodes_ = 0;
@@ -73,6 +74,14 @@ namespace CoupledField {
     for( UInt i = 0; i < idBcs.GetSize(); i++ ) {
       ResultInfo actResult = *(idBcs[i]->result);
       idBcs_[actResult].Push_back( idBcs[i] );
+    }
+  }
+
+  void EqnMap::SetInhomDirichFileBCs( IdFileBcList& idFiBcs ) {
+
+    for( UInt i = 0; i < idFiBcs.GetSize(); i++ ) {
+      ResultInfo actResult = *(idFiBcs[i]->result);
+      idFiBcs_[actResult].Push_back( idFiBcs[i] );
     }
   }
 
@@ -247,6 +256,7 @@ namespace CoupledField {
     // Calc number of 'real equations'
     LOG_DBG(eqnMap) << "#equations: " << numEqns_;
     LOG_DBG(eqnMap) << "#dirichletBcs: " << numIdBcs_;
+    LOG_DBG(eqnMap) << "#dirichletFileBcs: " << numIdFiBcs_;
     LOG_DBG(eqnMap) << "#constraints: " << numCs_;
 
 
@@ -1223,6 +1233,7 @@ namespace CoupledField {
       // for this tpye of result
       ResultHdBcMap::iterator hdBcIt = hdBcs_.find( actRes );
       ResultIdBcMap::iterator idBcIt = idBcs_.find( actRes );
+      ResultIdFileBcMap::iterator idFiBcIt = idFiBcs_.find( actRes );
       ResultConstraintMap::iterator csIt = constraints_.find( actRes );
 
       Matrix<Integer> & actMap = nodeEqns_[actRes];
@@ -1420,6 +1431,51 @@ namespace CoupledField {
           }
         }
 
+        countNodes.Init();
+
+        // Check if any inhom. boundary condition is defined for the current
+        // result
+        if( idFiBcIt != idFiBcs_.end() ) {
+          IdFileBcList const & actIdFiBcList = idFiBcIt->second;
+
+          for ( UInt i = 0; i < actIdFiBcList.GetSize(); i++ ) {
+            StdVector<UInt> nodes;
+            GetNodesOfEntities( nodes, actIdFiBcList[i]->entities );
+            UInt actDof = actIdFiBcList[i]->dof;
+
+            for( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
+
+              if ( mesh2PdeNode_[ nodes[iNode] - 1 ] - 1 < 0 ) {
+                WARN("CalcNodalEquations: Inhom. Dirichlet "
+                     << "node #" << nodes[iNode]
+                     << " is not contained in any of the regions for "
+                     << "this PDE");
+              }
+              else if ( countNodes[mesh2PdeNode_[nodes[iNode]-1]-1]
+                                   [actDof-1] != 0 ) {
+                // 	WARN( "EqnMap::CalcNodalEquations: Inhom. Dirichlet "
+                // 		           << "node #" << nodes[iNode]
+                // 		           << "\nappeared already at least once in the list of "
+                // 		           << "boundary nodes for this Pde!\n Please check, if "
+                // 		           << "this node is defined in more than one level of "
+                // 		           << "boundary nodes!" );
+              }
+              else {
+
+                // only set entry to -1, if entry is not yet an constraint
+                // slave entry or homogeneous dirichlet entry
+                if(  actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] == NO_EQN ) {
+                  actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] = -1;
+                  countNodes[mesh2PdeNode_[nodes[iNode]-1]-1][actDof-1]++;
+
+                  // In any case we have to increment the number of idBC-conditions
+                  numIdFiBcs_++;
+                }
+              }
+            }
+          }
+        }
+
 
 
 
@@ -1481,6 +1537,28 @@ namespace CoupledField {
             StdVector<UInt> nodes;
             GetNodesOfEntities( nodes, actIdBcList[i]->entities );
             UInt actDof = actIdBcList[i]->dof;
+
+            for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
+              // only assign an equation number, if the map contains
+              // a 0. Otherwise, we have already labeled this node
+              Integer locNode = mesh2PdeNode_[nodes[iNode]-1];
+              if( locNode > 0 ) {
+                if(  actMap[locNode-1] [actDof-1]
+                     == -1  ) {
+                  numEqns_++;
+                  actMap[locNode-1] [actDof-1] = numEqns_;
+                }
+              }
+            }
+          }
+        }
+
+        if( idFiBcIt != idFiBcs_.end() ) {
+          IdFileBcList const & actIdFiBcList = idFiBcIt->second;
+          for ( UInt i = 0; i < actIdFiBcList.GetSize(); i++ ) {
+            StdVector<UInt> nodes;
+            GetNodesOfEntities( nodes, actIdFiBcList[i]->entities );
+            UInt actDof = actIdFiBcList[i]->dof;
 
             for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
               // only assign an equation number, if the map contains
@@ -1669,6 +1747,7 @@ namespace CoupledField {
       // for this tpye of result
       ResultHdBcMap::iterator hdBcIt = hdBcs_.find( actRes );
       ResultIdBcMap::iterator idBcIt = idBcs_.find( actRes );
+      ResultIdFileBcMap::iterator idFiBcIt = idFiBcs_.find( actRes );
       ResultConstraintMap::iterator csIt = constraints_.find( actRes );
 
       StdVector<Vector<Integer> > & actMap = elemEqns_[actRes];
@@ -1763,6 +1842,46 @@ namespace CoupledField {
           }
         }
 
+        countElems.Init();
+
+        // Check if any inhom. boundary from file condition is defined for the current
+        // result
+        if( idFiBcIt != idFiBcs_.end() ) {
+          IdFileBcList const & actIdFiBcList = idFiBcIt->second;
+
+          for ( UInt i = 0; i < actIdFiBcList.GetSize(); i++ ) {
+            StdVector<UInt> nodes;
+            EntityIterator elemIt = actIdFiBcList[i]->entities->GetIterator();
+
+            UInt actDof = actIdFiBcList[i]->dof;
+
+            for( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
+              UInt actElem = elemIt.GetElem()->elemNum;
+              if ( mesh2PdeElem_[ actElem - 1 ] - 1 < 0 ) {
+                WARN("CalcElemEquations: Inhom. Dirichlet from File"
+                     << "elem #" << actElem
+                     << " is not contained in any of the regions for "
+                     << "this PDE");
+              }
+              else if ( countElems[mesh2PdeElem_[actElem-1]-1]
+                                   [actDof-1] != 0 ) {
+                WARN("CalcElemEquations: Inhom. Dirichlet from File"
+                     << "elem #" << actElem
+                     << "\nappeared already at least once in the list of "
+                     << "boundary nodes for this Pde!\n Please check, if "
+                     << "this node is defined in more than one level of "
+                     << "boundary nodes!");
+              }
+              else {
+                actMap[mesh2PdeElem_[actElem-1]-1] [actDof-1] = -1;
+                countElems[mesh2PdeElem_[actElem-1]-1][actDof-1]++;
+                // In any case we have to increment the number of idBC-conditions
+                numIdFiBcs_++;
+              }
+            }
+          }
+        }
+
         // ------
         // STEP 4
         // ------
@@ -1825,6 +1944,28 @@ namespace CoupledField {
                   actMap[locElem-1] [actDof-1] = numEqns_;
                 }
                 }
+            }
+          }
+        }
+        locElem = 0;
+        if( idFiBcIt != idFiBcs_.end() ) {
+          IdFileBcList const & actIdFiBcList = idFiBcIt->second;
+
+          for ( UInt i = 0; i < actIdFiBcList.GetSize(); i++ ) {
+            StdVector<UInt> nodes;
+            EntityIterator elemIt = actIdFiBcList[i]->entities->GetIterator();
+
+            UInt actDof = actIdFiBcList[i]->dof;
+
+            for( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
+              UInt actElem = elemIt.GetElem()->elemNum;
+              locElem = mesh2PdeElem_[actElem-1];
+              if( locElem > 0 ) {
+                if(  actMap[locElem-1] [actDof-1] == -1  ) {
+                  numEqns_++;
+                  actMap[locElem-1] [actDof-1] = numEqns_;
+                }
+              }
             }
           }
         }
@@ -2241,7 +2382,7 @@ namespace CoupledField {
     if( usePenalty_ ) {
       return numEqns_;
     } else {
-      return numEqns_ - numIdBcs_;
+      return numEqns_ - numIdBcs_ - numIdFiBcs_;
     }
   }
 

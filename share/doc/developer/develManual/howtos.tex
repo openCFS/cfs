@@ -187,9 +187,9 @@ should cover the most import features, like mass-, stiffness matrix and time
 derivative. So lets look at each part in detail, how it is implemented and were
 it can be found. Looking at it discrete it would look like
 \begin{equation}
-  \int\limits_\Omega \frac{1}{\delta t}u_i^{n+1}\phi_i\psi_j dx 
-  -\int\limits_\Omega \frac{1}{\delta t}u_i^n\phi_i\psi_j dx 
-  +\int\limits_\Omega\nabla u_i^{n+1}\phi_i\cdot\psi_j dx =
+  \int\limits_\Omega \frac{1}{\delta t}u_i^{n+1}\varphi_i\psi_j dx 
+  -\int\limits_\Omega \frac{1}{\delta t}u_i^n\varphi_i\psi_j dx 
+  +\int\limits_\Omega\nabla u_i^{n+1}\varphi_i\cdot\psi_j dx =
   \int\limits_\Omega f_i^{n+1}\psi_j dx\qquad\forall i,j
   \label{eq:pseudoFeDisc}
 \end{equation}
@@ -233,7 +233,7 @@ is sketched in Fig.~\ref{fig:cfs_setPdeStructure}.
 To calculate the entries of the matrices in \eqref{eq:pseudoFeMtx} the bilinear
 forms need to be calculated as
 \begin{equation}
-  \int\limits_{\Omega_e} \phi_i\cdot\psi_j dx
+  \int\limits_{\Omega_e} \varphi_i\cdot\psi_j dx
   \label{eq:bilinForm}
 \end{equation}
 at element $e$. This is an entry of the mass matrix entry of
@@ -244,13 +244,13 @@ which names already give some information and to which PDE it belongs. As it is
 object orientated a \texttt{baseForm.*} can be found with the main methods. Most
 import is the \texttt{CalcElemMatrix(\ldots)} method which calculates
 \eqref{eq:bilinForm}, the matrix entries from one element.
-To implement \eqref{eq:bilinearForm} into this method:
+To implement \eqref{eq:bilinForm} into this method:
 \begin{itemize}
   \item get integration points -- the element class will help
   \item loop over all integration points
   \item get test function -- the element class will help
   \item get integration weights -- the element class will help
-  \item multiply $\psi_i$ with $\psi_i$
+  \item multiply $\psi_i$ with $\varphi_j$
   \item store result in element matrix
 \end{itemize}
 \subsubsection{Time Stepping}
@@ -279,9 +279,15 @@ Some hints on the methods
     should hold the new solution. The last time step vector should also hold the
     new solution. That way everything is prepared for the next time step. The
     reason is that other methods depend on this guarantee (Restart file writing).
+    Basically do:
+    \begin{equation}
+      x_n := x_n+1
+    \end{equation}
+    Do not do this earlier (e.g. Corrector) this may lead to conflicts with
+    Iterative-Coupled problems.
 \end{description}
 The newmark scheme \texttt{CFS++/source/PDE/newmark.*} has most features and still is easy to
-read so a good start to read yourself into.
+read, so a good start to read yourself into.
 
 \subsubsection{PDE}
 \label{sssec:pde}
@@ -299,10 +305,10 @@ options can be set are given in the xml-Schemes.
 
 Important here is the method \texttt{DefineIntegrators} which gathers all
 integrator which are necessary. It gathers the forms, which in our case have
-been implemented in section \ref{sssec:forms}. This are added into the assemble
+been implemented in section \ref{sssec:forms}. These are added into the assemble
 object.\\
 One special note. If you have a PDE with multiple physical variable
-(Navier-Stokes; pressure and velocity) the assmeble object needs to know at
+(Navier-Stokes; pressure and velocity) the assemble object needs to know at
 which position in the matrix the bilinear form is to be set. Lets look at
 \begin{equation}
   \left(\begin{array}{cc}
@@ -321,7 +327,7 @@ different bilinear forms and this can be set by
     actStiffContext_UV->SetResults( results_[#1],results_[#2],actSDList, actSDList);
 \end{verbatim}
 Were \texttt{\#1} sets the matrix block in vertical direction and \texttt{\#2} in horizontal
-direction. \texttt{actStiffContext} is a \texttt{BiLinFormContext} object which
+direction. \texttt{\hyphenation{actStiffContext}} is a \texttt{BiLinFormContext} object which
 gets the form and after further initialisation is then stored into the assemble
 object.
 

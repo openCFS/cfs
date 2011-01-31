@@ -21,7 +21,7 @@ namespace CoupledField {
     virtual ~Hysteresis();
 
     //!
-    virtual Double computeValue(Double xVal, Integer idxElem, bool overwrite = true) {
+    virtual Double computeValue(Double& xVal, Integer idxElem, bool overwrite = true) {
       EXCEPTION( "computeValue not implemented in base-Class" );
       return 0.0;
     };
@@ -34,10 +34,18 @@ namespace CoupledField {
       return 0.0;
     };
 
+    virtual void SetPreviousYval( Double yval, Integer idxElem )  {
+      EXCEPTION( "SetPreviousYval not implemented in base-Class" );
+    };
 
     //! 
     virtual Double getValue(  Integer idxElem) {
       EXCEPTION( "getValue not implemented in base-Class" );
+      return 0.0;
+    }
+
+    virtual Double getActXval ( UInt idxElem ) {
+      EXCEPTION( "getActXval not implemented in base-Class" );
       return 0.0;
     }
 

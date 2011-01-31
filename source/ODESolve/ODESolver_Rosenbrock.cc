@@ -17,12 +17,14 @@
 namespace CoupledField
 {
 void ODESolver_Rosenbrock::Solve( const Double tInit,
-    const Double tStop,
-    StdVector<Double> &yInitOut,
-    BaseODEProblem &myODE,
-    Double &hInit,
-    Double hMin,
-    Double hMax ) {
+                                  const Double tStop,
+                                  StdVector<Double> &yInitOut,
+                                  BaseODEProblem &myODE,
+                                  Double &hInit,
+                                  Double hMin,
+                                  Double hMax ) {
+  eps_ = 1e-4;
+
   // TODO: Check if this is still needed
   //  const Double tiny = 1.0e-30;
   UInt i;
@@ -99,13 +101,15 @@ void ODESolver_Rosenbrock::Solve( const Double tInit,
     }
     if (fabs(hNext) <= hMin){
       //hNext=hMin;
-      EXCEPTION("Step size too small");
+//       std::cerr << "Step size too small, should be: " << fabs(hNext) << std::endl;
+//       std::cerr << "Values of yInit:\n " << yInitOut << std::endl << std::endl;
+//       EXCEPTION("Step size too small");
       successLastSolve_ = false;
     }
     h = hNext;
   }
 
-  EXCEPTION("Too many steps");
+//   EXCEPTION("Too many steps");
 
   successLastSolve_ = false;
 
@@ -132,7 +136,7 @@ void ODESolver_Rosenbrock::RosenbAdaptiveStepsize (StdVector<Double> &y,
 
   // errCon = (Grow/safetyFac_) rasied to the power (1/powergrow)
   Double errCon =  0.012345679;//0.1296;
-  UInt maxTry = 40;
+  UInt maxTry = 80;
 
   Double GAM, A21, A31, A32, C21, C31, C32, C41, C42, C43, B1, B2, B3, B4;
   Double  E1, E2, E3, E4, A2X, A3X;
@@ -251,7 +255,7 @@ void ODESolver_Rosenbrock::RosenbAdaptiveStepsize (StdVector<Double> &y,
     if ( errMax <= 1.0){
       hDid=h;
       hNext=(errMax >errCon? safetyFac_ * h* std::pow(errMax, powerGrow) : Grow*h);
-
+      //std::cout << "NumSteps: " << jtry << std::endl;
       return;
     }
     else{

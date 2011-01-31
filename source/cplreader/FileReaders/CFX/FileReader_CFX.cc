@@ -49,7 +49,7 @@ namespace CoupledField
   FileReader_CFX::FileReader_CFX(const std::string& name,
                                  const UInt dim,
                                  const UInt numFiles) :
-    FileReader(name, dim, numFiles),
+    FileReader(name, dim, numFiles, 1),
     determineFloatDS_(true)
   {
     Settings& settings = Settings::Instance();

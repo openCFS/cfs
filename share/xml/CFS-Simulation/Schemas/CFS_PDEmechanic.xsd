@@ -109,6 +109,7 @@
               <xsd:choice minOccurs="0" maxOccurs="unbounded">
                 <xsd:element name="dirichletHom"   type="DT_MechHD"        />
                 <xsd:element name="dirichletInhom" type="DT_MechID"        />
+                <xsd:element name="dirichletFileInhom" type="DT_MechIdFile"/>
                 <xsd:element name="neumannInhom"   type="DT_MechIN"        />
                 <xsd:element name="load"           type="DT_MechLoad"      />
                 <xsd:element name="pressure"       type="DT_MechPressure"  />
@@ -125,7 +126,8 @@
 
             <!-- Experimental: Side constraints on BCs -->
             <xsd:unique name="CS_MechanicBCs">
-              <xsd:selector xpath="cfs:dirichletHom|cfs:dirichletInhom|cfs:neumannInhom"/>
+              <xsd:selector
+                xpath="cfs:dirichletHom|cfs:dirichletInhom|cfs:dirichletFileInhom|cfs:neumannInhom"/>
               <xsd:field xpath="@name"/>
               <xsd:field xpath="@dof"/>
             </xsd:unique>
@@ -168,6 +170,7 @@
         default="1" use="optional" />
         <xsd:attribute name="fsi" type="DT_CFSBool" default="no"/>
         <xsd:attribute name="fsiRelaxationParam" use="optional" type="xsd:token" default="0.5"/>
+        <xsd:attribute name="useAitken" type="DT_CFSBool" default="no"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -412,6 +415,16 @@
     </xsd:complexContent>
   </xsd:complexType>
 
+  <!-- Element type for inhomogeneous Dirichlet from file -->
+  <!-- boundary conditions. We derive it by extending the homogeneous case -->
+  <xsd:complexType name="DT_MechIdFile">
+    <xsd:complexContent>
+      <xsd:extension base="DT_MechHD">
+        <xsd:attribute name="inputId" type="xsd:token" default="default"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
   <!-- Element type for specifying inhomogeneous neumann conditions -->
   <!-- Identical to that of inhomogeneous Dirichlet case -->
   <xsd:complexType name="DT_MechIN">
@@ -554,6 +567,7 @@
       <xsd:enumeration value="mechStrain"/>
       <xsd:enumeration value="mechStress"/>
       <xsd:enumeration value="vonMisesStress"/>
+      <xsd:enumeration value="vonMisesStrain"/>
       <xsd:enumeration value="lumpedMechDisplacement"/>
       <xsd:enumeration value="mechPseudoDensity"/>
       <xsd:enumeration value="physicalPseudoDensity"/>

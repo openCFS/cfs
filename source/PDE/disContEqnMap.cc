@@ -34,6 +34,7 @@ namespace CoupledField {
 
     numEqns_ = startMap->GetNumEqns();
     numIdBcs_ = startMap->GetNumInHomDirichletEqns();
+    numIdFiBcs_ = startMap->GetNumInHomDirichletFileEqns();
     numCs_ = startMap->GetNumConstraintSlaveEqns();
     
     numLocNodes_ = 0;
@@ -1457,6 +1458,7 @@ namespace CoupledField {
       // for this tpye of result
       ResultHdBcMap::iterator hdBcIt = hdBcs_.find( actRes );
       ResultIdBcMap::iterator idBcIt = idBcs_.find( actRes );
+      ResultIdFileBcMap::iterator idFiBcIt = idFiBcs_.find( actRes );
       ResultConstraintMap::iterator csIt = constraints_.find( actRes );
       
       StdVector<Vector<Integer> > & actMap = elemEqns_[actRes];
@@ -1546,6 +1548,46 @@ namespace CoupledField {
                 countElems[mesh2PdeElem_[actElem-1]-1][actDof-1]++;
                 // In any case we have to increment the number of idBC-conditions
                 numIdBcs_++;
+              }
+            }
+          }
+        }
+
+        countElems.Init();
+
+        // Check if any inhom. boundary condition is defined for the current
+        // result
+        if( idFiBcIt != idFiBcs_.end() ) {
+          IdFileBcList const & actIdFiBcList = idFiBcIt->second;
+
+          for ( UInt i = 0; i < actIdFiBcList.GetSize(); i++ ) {
+            StdVector<UInt> nodes;
+            EntityIterator elemIt = actIdFiBcList[i]->entities->GetIterator();
+
+            UInt actDof = actIdFiBcList[i]->dof;
+
+            for( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
+              UInt actElem = elemIt.GetElem()->elemNum;
+              if ( mesh2PdeElem_[ actElem - 1 ] - 1 < 0 ) {
+                WARN("CalcElemEquations: Inhom. Dirichlet from File"
+                     << "elem #" << actElem
+                     << " is not contained in any of the regions for "
+                     << "this Pde");
+              }
+              else if ( countElems[mesh2PdeElem_[actElem-1]-1]
+                                   [actDof-1] != 0 ) {
+                WARN("CalcElemEquations: Inhom. Dirichlet from File"
+                     << "elem #" << actElem
+                     << "\nappeared already at least once in the list of "
+                     << "boundary nodes for this Pde!\n Please check, if "
+                     << "this node is defined in more than one level of "
+                     << "boundary nodes!");
+              }
+              else {
+                actMap[mesh2PdeElem_[actElem-1]-1] [actDof-1] = -1;
+                countElems[mesh2PdeElem_[actElem-1]-1][actDof-1]++;
+                // In any case we have to increment the number of idBC-conditions
+                numIdFiBcs_++;
               }
             }
           }

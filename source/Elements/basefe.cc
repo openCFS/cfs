@@ -1516,7 +1516,6 @@ namespace CoupledField
     }
 
     EXCEPTION("No default integration found");
-    exit(-1);
   }
 
   void BaseFE::CommonInit(IntegrationMethod method, int order)

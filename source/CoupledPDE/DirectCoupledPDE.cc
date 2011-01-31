@@ -9,6 +9,7 @@
 
 // include solveStep drivers
 #include "Driver/stdSolveStep.hh"
+#include "Driver/solveStepAcoustic.hh"
 #include "Driver/solveStepPiezo.hh"
 #include "Driver/solveStepMicroPiezo.hh"
 #include "Driver/assemble.hh"
@@ -154,7 +155,8 @@ namespace CoupledField {
       if(singlePDEs_[i]->usePenalty_==false){
         // uses elimination of Inhomogeneous DBC
         //std::cout << "Num of Inhomogeneous DBC = "<< eqn->GetNumInHomDirichletEqns () << std::endl;
-        singleUnknowns-=eqn->GetNumInHomDirichletEqns ();
+        singleUnknowns -= eqn->GetNumInHomDirichletEqns();
+        singleUnknowns -= eqn->GetNumInHomDirichletFileEqns();
       }
       //------------------------------------------------
 
@@ -786,7 +788,23 @@ namespace CoupledField {
         isMicroPiezo = true;
     }
 
-    if ( isPiezoHyst )
+    // check, if we have a mechacou-coupling and have
+    // a nonlinear acoustic computation;
+    bool acouPDEisNonlinAndCoupled2Mech = false;
+    if ( couplings_.GetSize() == 1  &&
+         couplings_[0]->GetName() == "acouMechDirect" ) {
+         //check if single PDE is acoustic and is nonlinear
+         for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
+             if ( singlePDEs_[i]->GetName() == "acoustic" &&
+                  singlePDEs_[i]->IsNonLin() ) {
+                  acouPDEisNonlinAndCoupled2Mech = true;
+             }
+         }
+    }
+    if ( acouPDEisNonlinAndCoupled2Mech ) {
+      solveStep_ = new SolveStepAcoustic(*this);
+    }
+    else if ( isPiezoHyst )
       solveStep_ = new SolveStepPiezo(*this);
     else if ( isMicroPiezo )
       solveStep_ = new SolveStepMicroPiezo(*this);

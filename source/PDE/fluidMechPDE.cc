@@ -718,7 +718,8 @@ void FluidMechPDE::CalcOutputCoupling()
   StdVector<Elem*> * couplingElems = NULL;
   StdVector<UInt> * couplingNodes = NULL;
   SingleVector * temp_values = NULL;
-  SingleVector * temp_oldValues = NULL;
+  // TODO: Check if this is still needed
+  //SingleVector * temp_oldValues = NULL;
   //UInt regionCount = 0;
 
   //        Info->PrintF( "FACTORIZATION", "The fluid mechanical forces will be factorized by forceFactor = %e\n",forceFac_);
@@ -734,7 +735,8 @@ void FluidMechPDE::CalcOutputCoupling()
     //gibt einen Solution Type zurück
     quantity = ptCoupling_->GetOutputQuantity(i);
     ptCoupling_->GetOutputValues(i, temp_values);
-    ptCoupling_->GetOutputOldValues(i, temp_oldValues);
+    // TODO: Check if this is still needed
+    // ptCoupling_->GetOutputOldValues(i, temp_oldValues);
 
     // hard coded cast, since coupling is only possible with
     // real valued entries

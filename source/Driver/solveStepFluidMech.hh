@@ -39,7 +39,15 @@ namespace CoupledField
     // because the fluid can therin be determined staionary or instationary
     bool isInstationary_;
     bool isTrapezoidal_;
-    Vector<Double>  oldVel_, oldSol_;
+    Vector<Double> actSol_;
+    Vector<Double> actVelo_;
+    Vector<Double> actPres_;
+    Vector<Double> tmpVelo_;
+    Vector<Double> tmpPres_;
+    Vector<Double> newSol_;
+    Vector<Double> solIncrement_;
+    Vector<Double> solVelocityInc_;
+    Vector<Double> solPressureInc_;
 
     inline Double NormL2(const Vector<Double>& vec) const
     {
@@ -49,8 +57,7 @@ namespace CoupledField
 #pragma omp parallel for reduction(+:result)
       for(UInt k = 0; k < endLoop; ++k)
       {
-        const Double* const dataPtr = &vec[k];
-        result += (*dataPtr) * (*dataPtr);
+        result += vec[k] * vec[k];
       }
 
       return std::sqrt(result);

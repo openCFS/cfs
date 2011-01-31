@@ -8,18 +8,18 @@
 namespace CoupledField
 {
 
-  //! class for time stepping of parabolic PDE: method is Trapezoidal 
+  //! class for time stepping of parabolic PDE: method is Trapezoidal
 
   class Bdf2: public TimeStepping
   {
   public:
     //! constructor
-    //! \param algebraicsystem pointer to algebraic system 
+    //! \param algebraicsystem pointer to algebraic system
     Bdf2(  BaseSystem * algebraicsystem );
 
     //! destructor
     virtual ~Bdf2();
-  
+
     //! initilization
     //! \param rhsSIze total number of entries in the rhs vector
     void Init( Double dt, UInt rhsSize );
@@ -28,9 +28,9 @@ namespace CoupledField
     void Predictor(Vector<Double>& solold);
 
     //! perform predictor step
-    void RelaxedPredictor(Vector<Double>& solold, 
-                          Vector<Double>& solpredRelaxed, 
-                          Vector<Double>& solderiv1predRelaxed, 
+    void RelaxedPredictor(Vector<Double>& solold,
+                          Vector<Double>& solpredRelaxed,
+                          Vector<Double>& solderiv1predRelaxed,
                           Double omega){;};
 
     //! perform corrector step
@@ -47,33 +47,34 @@ namespace CoupledField
     {;};
 
   private:
-    
+
     //! compute parameters for multiplication
     void CalcParameters(Double dt);
     bool firstTime_;
+    Vector<Double> coeffMass_;
 
   };
 
 #ifdef DOXYGEN_DETAILED_DOC
 
   // =========================================================================
-  //     Detailed description of the class 
+  //     Detailed description of the class
   // =========================================================================
 
   //! \class Bdf2
-  //! 
-  //! \purpose 
-  //! 
-  //! \collab 
-  //! 
-  //! \implement 
-  //! 
+  //!
+  //! \purpose
+  //!
+  //! \collab
+  //!
+  //! \implement
+  //!
   //! \status In use.
-  //! 
-  //! \unused 
-  //! 
+  //!
+  //! \unused
+  //!
   //! \improve
-  //! 
+  //!
 
 #endif
 

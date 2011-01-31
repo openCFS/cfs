@@ -37,7 +37,6 @@ namespace CoupledField
   
     SingleVector *val, *oldVal;
     UInt iter = 0;
-    UInt counter = 0;
     bool normsReached = false;
 
 
@@ -51,7 +50,6 @@ namespace CoupledField
                      iter+1);
       }
       
-      counter = 0;
       normsReached = true;
       
       for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
@@ -80,7 +78,7 @@ namespace CoupledField
           rCouplings_[i]->GetOutputValues(k, val);
           rCouplings_[i]->GetOutputOldValues(k, oldVal);
           
-          rPDE_.norms_[counter] = 
+          rPDE_.norms_[i] = 
             CalcNorm(rCouplings_[i]->GetOutputNormType(k), *val, *oldVal);
           
           if (rPDE_.nonLinLogging_) {
@@ -88,10 +86,10 @@ namespace CoupledField
             Info->PrintF(rPDE_.pdename_, " %s : Norm of %s = %g\n", 
                          (rCouplings_[i]->GetPDE()->GetName()).c_str(),
                          (SolutionTypeEnum.ToString(rCouplings_[i]->GetOutputQuantity(k))).c_str(),
-                         rPDE_.norms_[counter]);
+                         rPDE_.norms_[i]);
           }
           
-          if (rPDE_.norms_[counter] > rCouplings_[i]->GetOutputEpsilon(k) && 
+          if (rPDE_.norms_[i] > rCouplings_[i]->GetOutputEpsilon(k) && 
               rCouplings_[i]->GetOutputNormType(k) != NO_NORM)
             normsReached = false;
           
@@ -100,7 +98,6 @@ namespace CoupledField
             dynamic_cast<Vector<Double>&>(*val);
           
         }
-        counter++;            
       } // end of for-loop
       
       iter++;
@@ -109,6 +106,10 @@ namespace CoupledField
         Info->PrintF(rPDE_.pdename_, "\n");
       
     } // end of while-loop
+    if (iter >= rPDE_.maxiter_)
+    {
+      std::cerr << "WARNING: Iterative PDE coupling did not converge";
+    }
     
   }
 

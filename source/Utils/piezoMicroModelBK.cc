@@ -3,7 +3,8 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include "piezoMicroModelBK.hh"
-
+#include "ODEDescr/piezoSwitch.hh"
+#include "ODESolve/ODESolver_Rosenbrock.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
 
@@ -36,6 +37,7 @@ namespace CoupledField{
       dimS_ = 3;
     }
 
+    explicit_ = false;
     InitSwitchingSystem();
   }
 
@@ -94,6 +96,28 @@ namespace CoupledField{
     rotationAngles_[1][13] = 0;
     rotationAngles_[2][13] = PI/4.0 + 3*PI/2.0;
 
+//     numDomain_ =6;
+
+//     // define the rotation anles
+//     rotationAngles_.Resize(dim_,numDomain_);
+//     rotationAngles_[0][0] = 0;
+//     rotationAngles_[1][0] = -PI/2.0;
+//     rotationAngles_[2][0] = 0;
+//     rotationAngles_[0][1] = PI/2.0;
+//     rotationAngles_[1][1] = 0;
+//     rotationAngles_[2][1] = 0;
+//     rotationAngles_[0][2] = 0;
+//     rotationAngles_[1][2] = 0;
+//     rotationAngles_[2][2] = 0;
+//     rotationAngles_[0][3] = 0;
+//     rotationAngles_[1][3] = PI/2.0;
+//     rotationAngles_[2][3] = 0;
+//     rotationAngles_[0][4] = -PI/2.0;
+//     rotationAngles_[1][4] = 0;
+//     rotationAngles_[2][4] = 0;
+//     rotationAngles_[0][5] = PI;
+//     rotationAngles_[1][5] = 0;
+//     rotationAngles_[2][5] = 0;
 
     // get the model parameters
     piezoMat_->GetScalar( sponP0_,  SPON_POLARIZATION, Global::REAL);
@@ -118,6 +142,7 @@ namespace CoupledField{
     Matrix<Double> epsTensor_cStrain, eTensorTrans;
     elecMat_->GetTensor( epsTensor_cStrain, ELEC_PERMITTIVITY, Global::REAL, tensorType_ );
 
+    cTensorOrig_ = cTensor;
     cTensor.Invert(sTensorOrig_);
     dTensorOrig_   = eTensor*sTensorOrig_;
     eTensor.Transpose(eTensorTrans);
@@ -129,7 +154,7 @@ namespace CoupledField{
 
 
     // set the effective tensors (just for correct dimensions)
-    effMechStiffTensor_      = sTensorOrig_;
+    effMechStiffTensor_      = cTensorOrig_;
     effMechComplianceTensor_ = sTensorOrig_;
     effPiezoTensor_          = dTensorOrig_;
     effPermittivityTensor_   = epsTensorOrig_;
@@ -150,6 +175,7 @@ namespace CoupledField{
     Ps_.resize(extents[numDomain_]);
     Ss_.resize(extents[numDomain_]);
     dTensor_.resize(extents[numDomain_]);
+    cTensor_.resize(extents[numDomain_]);
     sTensor_.resize(extents[numDomain_]);
     epsTensor_.resize(extents[numDomain_]);
 
@@ -182,6 +208,9 @@ namespace CoupledField{
       //coupling tensor
       RotateMatrix( dTensorOrig_, dTensor_[i], rotMat );
       //std::cout << "dTensor_: " << i << "\n" << dTensor_[i] << "\n" << std::endl;
+
+      //stiffness tensor
+      RotateMatrix( cTensorOrig_, cTensor_[i], rotMat );
 
       //complicance tensor
       RotateMatrix( sTensorOrig_, sTensor_[i], rotMat );
@@ -223,6 +252,7 @@ namespace CoupledField{
           val = -1.0;
              
         switchingVal_[i][j] = 2.0 * std::acos( val ) / PI;
+        //        std::cout << "switchingVals:" << switchingVal_[i][j] << std::endl;
       }
     }
 
@@ -259,6 +289,10 @@ namespace CoupledField{
       effStrainIrrPrev_[i].Init();
     }
 
+    //define the ODE-Solver
+    ptODEPiezo_ = new PiezoSwitchODE(numDomain_, deltaT_, saturationIdx_);
+    ptODESolver_ = new ODESolver_Rosenbrock();
+    yInitOut_.Resize(numDomain_);
   }
 
   void PiezoMicroModelBK::GetEffectiveTensors( Matrix<Double>& matMechC,
@@ -279,8 +313,8 @@ namespace CoupledField{
     matElec  = effPermittivityTensor_;  //eps-tensor a constant mechanical stress!!
     matPiezo = effPiezoTensor_; // d-Tensor
 
-//     sTensorOrig_.Invert(matMechC);
-//     matMechS = sTensorOrig_;
+    //    sTensorOrig_.Invert(matMechC);
+    //    matMechS = sTensorOrig_;
 //     matPiezo = dTensorOrig_;
 //     if ( previous ) {
 //       Double scale = effElecPolPrev_[elemIdx][2] / sponP0_;
@@ -310,10 +344,23 @@ namespace CoupledField{
 
     if ( recompute ) {
       // 1) compute the volume fractions
-      ComputeVolumeFractionsExplicit( stress, elecField, elemIdx );
+      //std::cout << "stress:\n" << stress << std::endl << std::endl;
+      //std::cout << "eField:\n" << elecField << std::endl << std::endl;
+
+      //ComputeVolumeFractionsExplicit( stress, elecField, elemIdx );
+      if ( meanTemp_ > 300 ) {
+        explicit_ = true;
+        ComputeVolumeFractionsExplicit( stress, elecField, elemIdx );
+      }
+      else {
+        explicit_ = false;
+        ComputeVolumeFractionsImplicit( stress, elecField, elemIdx );
+      }
+
     }
 
     // 2) compute effective tensors
+    effMechStiffTensor_.Init();
     effMechComplianceTensor_.Init();
     effPiezoTensor_.Init();
     effPermittivityTensor_.Init();
@@ -321,21 +368,23 @@ namespace CoupledField{
     for ( UInt i=0; i<numDomain_; i++ ) {
       Matrix<Double>& matd   = dTensor_[i];
       Matrix<Double>& mats   = sTensor_[i];
+      Matrix<Double>& matc   = cTensor_[i];
       Matrix<Double>& mateps = epsTensor_[i];
 
       if ( previous ) {
+        effMechStiffTensor_      += matc * volFracPrev_[elemIdx][i];
         effMechComplianceTensor_ += mats * volFracPrev_[elemIdx][i];
         effPiezoTensor_          += matd * volFracPrev_[elemIdx][i];
         effPermittivityTensor_   += mateps * volFracPrev_[elemIdx][i];
       }
       else {
+        effMechStiffTensor_      += matc * volFracAct_[elemIdx][i];
         effMechComplianceTensor_ += mats * volFracAct_[elemIdx][i];
         effPiezoTensor_          += matd * volFracAct_[elemIdx][i];
         effPermittivityTensor_   += mateps * volFracAct_[elemIdx][i];
       }
     }
 
-    effMechComplianceTensor_.Invert( effMechStiffTensor_ ); 
   }
 
 
@@ -358,8 +407,8 @@ namespace CoupledField{
       effPirr = effElecPolAct_[elemIdx];
       effSirr = effStrainIrrAct_[elemIdx];
     }
-//     effPirr.Init();
-//     effSirr.Init(); 
+//      effPirr.Init();
+//      effSirr.Init(); 
   }
 
   void PiezoMicroModelBK::ComputeEffectiveIrreversibleValues( UInt elemIdx ) {
@@ -370,8 +419,9 @@ namespace CoupledField{
     for ( UInt i=0; i<numDomain_; i++ ) {
       effElecPolAct_[elemIdx]   += Ps_[i] * volFracAct_[elemIdx][i]; 
       effStrainIrrAct_[elemIdx] += Ss_[i] * volFracAct_[elemIdx][i]; 
+      //      std::cout << "VolFrac: " << volFracAct_[elemIdx][i] << std::endl;
     }
-
+    //    std::cout << "Pirr:\n " << effElecPolAct_[elemIdx]  << "\n" << std::endl;
 //     Double cx, cy, cz, len, lenxy;
 //     cx  = effElecPolAct_[elemIdx][0];
 //     cy  = effElecPolAct_[elemIdx][1];
@@ -424,33 +474,78 @@ namespace CoupledField{
                                                           Vector<Double>& elecField, 
                                                           UInt elemIdx ) {
 
-    //    std::cout << "Efield:\n" << elecField << std::endl;
     // 1) Compute the driving forces
     ComputeDrivingForces( stress, elecField, elemIdx);
 
-    // 2) Compute transformation rates
+    // 2) compute volume fractions
+    explicit_ = true;
     ComputeTransformationRates( elemIdx );
-
-    // 3) compute volume fractions
     for ( UInt i=0; i<numDomain_; i++ ) {
       Double deltaVolFrac = 0.0;
       for ( UInt j=0; j<numDomain_; j++ ) {
         deltaVolFrac +=   transformationRates_[elemIdx][j][i] 
                         - transformationRates_[elemIdx][i][j] ;
       }
-      volFracAct_[elemIdx][i] =  volFracPrev_[elemIdx][i] +  deltaT_ * deltaVolFrac;
-      //std::cout << "VolFrac: \n" << volFracAct_[elemIdx][i] << std::endl;
-    }
-    //  std::cout << std::endl;
+      volFracAct_[elemIdx][i] =  volFracPrev_[elemIdx][i] + deltaT_ * deltaVolFrac;
 
+    }
   }
   
+
+  void PiezoMicroModelBK::ComputeVolumeFractionsImplicit( Vector<Double>& stress, 
+                                                          Vector<Double>& elecField, 
+                                                          UInt elemIdx ) {
+
+    //    std::cout << "Efield:\n" << elecField << std::endl;
+    // 1) Compute the driving forces
+    ComputeDrivingForces( stress, elecField, elemIdx);
+
+    // 2) Compute transformation rates
+    explicit_ = false;
+    ComputeTransformationRates( elemIdx );
+
+    // 3) compute volume fractions implicit
+    Matrix<Double> coeffs(numDomain_,numDomain_);
+    for (UInt i=0; i<numDomain_; i++ )
+      for (UInt j=0; j<numDomain_; j++ )
+        coeffs[i][j] = transformationRates_[elemIdx][i][j];
+
+    ptODEPiezo_->setDynamicCoefficients( coeffs );
+    //std::cout << "Coeffs:\n" << coeffs << std::endl;
+
+
+    for (UInt i=0; i<numDomain_; i++ )
+      yInitOut_[i] = volFracPrev_[elemIdx][i];
+
+    Double hInit = deltaT_/10;  
+    ptODESolver_->Solve( 0, deltaT_, yInitOut_, *ptODEPiezo_, hInit,
+                         deltaT_/5000, deltaT_ );
+
+    //
+    bool success = false;
+    Integer numSteps, numBadSteps;
+    ptODESolver_->GetStatus( success, numSteps, numBadSteps );
+
+    if ( success ) {
+      for (UInt i=0; i<numDomain_; i++ )
+        volFracAct_[elemIdx][i] = yInitOut_[i];
+    }
+    else {
+      for (UInt i=0; i<numDomain_; i++ )
+        volFracAct_[elemIdx][i] = volFracPrev_[elemIdx][i];
+    }
+
+    //    std::cout << "VolFracImp: \n " << yInitOut_ << std::endl << std::endl;
+  }
 
   void PiezoMicroModelBK::ComputeDrivingForces( Vector<Double>& stress, 
                                                 Vector<Double>& elecField,
                                                 UInt elemIdx ) {
 
     Double partElec, partMech, partCouple;
+
+//     std::cout << "Stress:\n " << stress << std::endl;
+//     std::cout << "EField:\n " << elecField << std::endl << std::endl;
 
     for ( UInt i=0; i<numDomain_; i++ ) {
       for ( UInt j=0; j<numDomain_; j++ ) {
@@ -463,13 +558,13 @@ namespace CoupledField{
         Vector<Double>& dSs = deltaSponS_[i][j];
         dSs.Inner( stress, partMech );
         driveForcesMech_[elemIdx][i][j] = partMech * scaleDriveForceMech_;
-
         //coupling part
         Vector<Double> vecHelp;
         vecHelp = deltaTensorCoupl_[i][j] * stress;
         vecHelp.Inner( elecField, partCouple );
         driveForcesCouple_[elemIdx][i][j] = partCouple * scaleDriveForceCouple_;
-        // std::cout << "eForce: " << driveForcesElec_[elemIdx][i][j] << std::endl;
+//         std::cout << "eForce: " << driveForcesElec_[elemIdx][i][j] << std::endl;
+//         std::cout << "mForce: " << driveForcesMech_[elemIdx][i][j] << std::endl;
       }
     }
   }
@@ -488,8 +583,8 @@ namespace CoupledField{
         drivingForceCoupleStar = switchingVal_[i][j] * E0_ * sigma0_ * d0Couple_;
 
         //limit the driving forces
-        if ( driveForcesElec_[elemIdx][i][j] > 1.1*drivingForceElecStar ) 
-          driveForcesElec_[elemIdx][i][j] = 1.1*drivingForceElecStar;
+        if ( driveForcesElec_[elemIdx][i][j] > drivingForceElecStar ) 
+          driveForcesElec_[elemIdx][i][j] = drivingForceElecStar;
 
         //compute transformation rates
         if ( abs( switchingVal_[i][j] ) < 1e-10 ) {
@@ -499,45 +594,50 @@ namespace CoupledField{
           //electric part
           exp1 = 1.0 - ( driveForcesElec_[elemIdx][i][j] / drivingForceElecStar );
           val  = std::exp(exp1);
-          transRateElec = rateConst_ * std::pow( val, viscoPlasticIdx_ )
-                                     * std::pow( volFracPrev_[elemIdx][i], saturationIdx_); 
+          transRateElec = rateConst_ * std::pow( val, viscoPlasticIdx_ );
+          if ( explicit_ )
+            transRateElec *= std::pow( volFracPrev_[elemIdx][i], saturationIdx_); 
           //std::cout << "rateElec:" << transRateElec << std::endl;
 
           //mechanical part
           exp1 = 1.0 - ( driveForcesMech_[elemIdx][i][j] / drivingForceMechStar );
           val  = std::exp(exp1);
-          transRateMech = rateConst_ * std::pow( val, viscoPlasticIdx_ )
-                                     * std::pow( volFracPrev_[elemIdx][i], saturationIdx_); 
+          transRateMech = rateConst_ * std::pow( val, viscoPlasticIdx_ );
+          if ( explicit_ )
+            transRateMech *= std::pow( volFracPrev_[elemIdx][i], saturationIdx_); 
           //std::cout << "rateMech:" << transRateMech << std::endl;
 
           //coupling part part
           exp1 = 1.0 - ( driveForcesCouple_[elemIdx][i][j] / drivingForceCoupleStar );
           val  = std::exp(exp1);
-          transRateCouple = rateConst_ * std::pow( val, viscoPlasticIdx_ )
-                                     * std::pow( volFracPrev_[elemIdx][i], saturationIdx_); 
+          transRateCouple = rateConst_ * std::pow( val, viscoPlasticIdx_ );
+          if ( explicit_ )
+            transRateCouple *= std::pow( volFracPrev_[elemIdx][i], saturationIdx_); 
           //std::cout << "rateCouple:" << transRateCouple << std::endl;
+
           //overall rate
           transformationRates_[elemIdx][i][j] = transRateElec + transRateMech + transRateCouple;
-//           std::cout << "i:" << i << "  j:" << j << std::endl;
-//           std::cout << "rateElec:" << transRateElec << std::endl;
+          //std::cout << "rateElec:" << transRateElec << std::endl;
         }
       }
     }
 
     //limit transformation rates, so that volume fractions are not smaller than 0
-    Double part;
-    for ( UInt i=0; i<numDomain_; i++ ) {
-      Double tmp = 0.0;
-      for ( UInt j=0; j<numDomain_; j++ ) {
-        tmp += transformationRates_[elemIdx][i][j];
-      }
-
-      if ( (volFracPrev_[elemIdx][i] - tmp*deltaT_) < 0 ) {
+    if ( explicit_ ) {
+      Double part;
+      for ( UInt i=0; i<numDomain_; i++ ) {
+        Double tmp = 0.0;
         for ( UInt j=0; j<numDomain_; j++ ) {
-          part = volFracPrev_[elemIdx][i] / ( tmp * deltaT_ ); 
-          transformationRates_[elemIdx][i][j] *= part;
+          tmp += transformationRates_[elemIdx][i][j];
         }
-      } 
+        
+        if ( (volFracPrev_[elemIdx][i] - tmp*deltaT_) < 0 ) {
+          for ( UInt j=0; j<numDomain_; j++ ) {
+            part = volFracPrev_[elemIdx][i] / ( tmp * deltaT_ ); 
+            transformationRates_[elemIdx][i][j] *= part;
+          }
+        } 
+      }
     }
 
   }

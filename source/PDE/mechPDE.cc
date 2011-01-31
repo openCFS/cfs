@@ -64,11 +64,12 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
     needSolPrev_ = true;
 
-    firstTime_   = true;
-    useAitken_   = false;
-    //displFac_    = 0.3;
-    displFac_ = myParam_->Get("fsiRelaxationParam")->As<Double>();
-    FSI_=myParam_->Get("fsi")->As<bool>();
+    firstTime_ = true;
+    useAitken_ = myParam_->Get("useAitken")->As<bool>();
+    displFac_  = myParam_->Get("fsiRelaxationParam")->As<Double>();
+    aitkenOmega_ = displFac_;
+    aitkenOmegaPrevIter_ = displFac_;
+    FSI_ = myParam_->Get("fsi")->As<bool>();
 
     // ****************************
     // DETERMINE GEOMETRY
@@ -1335,17 +1336,19 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     StdVector<Elem*> * couplingElems = NULL;
     SingleVector * temp_values = NULL;
     Vector<Double> * values;
-    SingleVector *tempDispValues=NULL;
-    SingleVector *tempDispOldValues=NULL;
+    SingleVector *tempDispValues = NULL;
+    SingleVector *tempDispOldValues = NULL;
     StdVector<BaseMaterial*> * materials = NULL;
     StdVector<std::string> outputRegions;
-    UInt interfaceDispCoupl=0, interfaceVelCoupl=0, interfaceForceCoupl=0;
+    UInt interfaceDispCoupl = 0;
+    UInt interfaceVelCoupl = 0;
+    UInt interfaceForceCoupl = 0;
     bool foundDisp = false;
     bool foundVel = false;
     bool foundForce = false;
 
     if (useAitken_ == false)
-      Info->PrintF( "RELAXATION", "Relaxation Factor = %e\n",displFac_);
+      Info->PrintF( "RELAXATION", "Relaxation Factor = %e\n", displFac_);
 
     // at first, check if this PDE is iterative coupled
     if (isIterCoupled_ == false)
@@ -1430,39 +1433,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
         if ( analysistype_ == TRANSIENT ) 
         {
-          if (useAitken_) 
-          {
-            actDelta_ = DispOldValues - DispValues;
-
-            if (actDelta_.GetSize() != oldDelta_.GetSize())
-            {
-              oldDelta_.Resize(actDelta_.GetSize());
-              oldDelta_.Init();
-            }
-
-            Vector<Double> aux1;
-            aux1 = (oldDelta_ - actDelta_);
-
-            Double aux2=aux1*actDelta_;
-            Double aux3=aux1*aux1;
-            Double aux4 = aux2/aux3;
-
-            aitkenMu_=(aitkenMu_)+((aitkenMu_-1.0)*aux4);
-            if (aitkenMu_ > 1.0-displFac_)
-              aitkenMu_ = 1.0 - displFac_;
-            aitkenOmega_ = 1.0 - aitkenMu_;
-            Info->PrintF( pdename_," unbounded relaxation Parameter \
-                according to Aitgken= %e\n",aitkenOmega_);
-
-            Double omegaMax=0.3;
-            if (iterCoupledCounter_ > 5)
-              omegaMax = 1.0;
-            if (aitkenOmega_ > omegaMax)
-              aitkenOmega_ = omegaMax;
-            oldDelta_ = actDelta_;
-            Info->PrintF( pdename_," Relaxation Parameter according \
-                to Aitken= %e\n",aitkenOmega_);
-          }
 
           fixedOmega_ = displFac_;
           Info->PrintF( pdename_," Fixed Relaxation Parameter= %e\n",fixedOmega_);
@@ -1499,6 +1469,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
           }
           if (useAitken_) 
           {
+            calcAitkenOmega(DispValues, DispOldValues);
             naux1 = gSol * aitkenOmega_;
             naux2 = gSolOld_ * (1.0 - aitkenOmega_);
             gSol = naux1 + naux2;
@@ -1936,6 +1907,18 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     availResults_.insert( vonMises );
 
 
+    // === MECHANIC VON MISES STRAIN (yield criterion, a scalar value)===
+    shared_ptr<ResultInfo> vonMisesStrain(new ResultInfo);
+    vonMisesStrain->resultType = VON_MISES_STRAIN;
+    vonMisesStrain->dofNames = "";
+    vonMisesStrain->unit =  "";
+    vonMisesStrain->entryType = ResultInfo::SCALAR;
+    vonMisesStrain->definedOn = ResultInfo::ELEMENT;
+    vonMisesStrain->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert( vonMisesStrain );
+
+
+
     // === MECHANIC STRAIN ===
     shared_ptr<ResultInfo> strain(new ResultInfo);
     strain->resultType = MECH_STRAIN;
@@ -2201,9 +2184,16 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
     case VON_MISES_STRESS:
       if(isComplex_)
-        CalcVonMisesStress<Complex>(result);
+        CalcVonMises<Complex>(result, MECH_STRESS);
       else
-        CalcVonMisesStress<Double>(result);
+        CalcVonMises<Double>(result, MECH_STRESS);
+      break;
+
+    case VON_MISES_STRAIN:
+      if(isComplex_)
+        CalcVonMises<Complex>(result, MECH_STRAIN);
+      else
+        CalcVonMises<Double>(result, MECH_STRAIN);
       break;
 
     case MECH_STRAIN:
@@ -2281,56 +2271,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
   }
 
 
-  template <class TYPE>
-  void MechPDE::CalcStresses( shared_ptr<BaseResult> res ) {
-
-    //get the correct bilinear form
-    Vector<Double> intPoint;
-
-    //transform the type
-    SubTensorType type;
-    String2Enum(subType_,type);
-
-    Vector<TYPE> elemStress;
-    elemStress.Resize(stressDim_);
-    elemStress.Init(0);
-
-    Result<TYPE> &  actRes =
-      dynamic_cast<Result<TYPE>&>(*res);
-    EntityIterator it = actRes.GetEntityList()->GetIterator();
-
-    Vector<TYPE> & actVal = actRes.GetVector();
-    actVal.Resize( actRes.GetEntityList()->GetSize() * stressDim_ );
-
-    // Fetch material: As we assume, that all elements belong to
-    // one and the same region, we simply take the subdomain of the first
-    // element
-    it.Begin();
-    BaseMaterial* actSDMat = materials_[it.GetElem()->regionId];
-    MechStressStrain<TYPE> *stress = new MechStressStrain<TYPE>(actSDMat,type);
-    stress->SetAnsatzFct( results_[0]->fctType );
-
-    // loop over elements
-    for ( it.Begin(); !it.IsEnd(); it++ ) {
-      it.GetElem()->ptElem->GetCoordMidPoint(intPoint);
-
-      //set element solution
-      Matrix<TYPE> elSol;
-      sol_->GetElemSolutionAsMatrix(elSol, it);
-      stress->SetActElemSol(elSol);
-
-      //calculates the stress
-      stress->SetIntPoint(intPoint);
-      stress->CalcStressVec(elemStress,1,it);
-      stress->UnsetIntPoint();
-      for( UInt iDof = 0; iDof < stressDim_; iDof++ ) {
-        actVal[it.GetPos()*stressDim_ + iDof] = elemStress[iDof];
-      }
-    }
-
-    delete stress;
-  }
-
   const Matrix<double>& MechPDE::GetVonMisesMatrix(int dim)
   {
     Matrix<double>& m = dim == 2 ? vonMisesMatrix_2d_ : vonMisesMatrix_3d_;
@@ -2371,22 +2311,27 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
 
   template <class TYPE>
-  void MechPDE::CalcVonMisesStress(shared_ptr<BaseResult> res)
+  void MechPDE::CalcVonMises(shared_ptr<BaseResult> res, SolutionType ss)
   {
-    // calculate the strains
-    CalcStresses<TYPE>(res);
+    assert(ss == MECH_STRESS || ss == MECH_STRAIN);
+
+    // calculate the stresses/strains
+    if(ss == MECH_STRESS)
+      CalcStresses<TYPE>(res);
+    else
+      CalcStrains<TYPE>(res);
 
     // we don't need the entity iterator, only the stresses.
     // copy the stress result, our result is scalar
     Result<TYPE> &  actRes = dynamic_cast<Result<TYPE>&>(*res);
-    Vector<TYPE>  stresses = actRes.GetVector(); // copy!
+    Vector<TYPE>  stresses_strains = actRes.GetVector(); // copy!
     Vector<TYPE>& v_m_s = actRes.GetVector();
     v_m_s.Resize(actRes.GetEntityList()->GetSize()); // make scalar
 
-    assert(stresses.GetSize() / v_m_s.GetSize() == stressDim_);
+    assert(stresses_strains.GetSize() / v_m_s.GetSize() == stressDim_);
 
     // element stress matrix
-    Vector<TYPE> stress(stressDim_);
+    Vector<TYPE> stress_strain(stressDim_);
 
 
     Matrix<double> m = GetVonMisesMatrix(dim_);
@@ -2397,16 +2342,17 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     for(unsigned int e = 0, n = v_m_s.GetSize(); e < n; e++)
     {
        for(unsigned s = 0; s < stressDim_; s++)
-         stress[s] = stresses[e * stressDim_ + s];
+         stress_strain[s] = stresses_strains[e * stressDim_ + s];
 
-       tmp = m * stress;
-       TYPE squared = stress.Inner(tmp);
+       tmp = m * stress_strain;
+       TYPE squared = stress_strain.Inner(tmp);
 
        v_m_s[e] = std::sqrt(squared);
-       LOG_DBG2(mechpde) << "CVMS: e=" << 0 << " stress=" << stress.ToString() << " M*stress=" << tmp.ToString()
+       LOG_DBG2(mechpde) << "CVMS: e=" << 0 << " stress_strain=" << stress_strain.ToString() << " M*stress_strain=" << tmp.ToString()
                          << " squared=" << squared << "-> " << v_m_s[e];
     }
   }
+
 
 
   template <class TYPE>
@@ -2456,6 +2402,58 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
   }
 
 
+
+  template <class TYPE>
+  void MechPDE::CalcStresses( shared_ptr<BaseResult> res ) {
+
+    // TODO: is almost copy and paste with CalcStrains! unify!!
+
+    //get the correct bilinear form
+    Vector<Double> intPoint;
+
+    //transform the type
+    SubTensorType type;
+    String2Enum(subType_,type);
+
+    Vector<TYPE> elemStress;
+    elemStress.Resize(stressDim_);
+    elemStress.Init(0);
+
+    Result<TYPE> &  actRes =
+      dynamic_cast<Result<TYPE>&>(*res);
+    EntityIterator it = actRes.GetEntityList()->GetIterator();
+
+    Vector<TYPE> & actVal = actRes.GetVector();
+    actVal.Resize( actRes.GetEntityList()->GetSize() * stressDim_ );
+
+    // Fetch material: As we assume, that all elements belong to
+    // one and the same region, we simply take the subdomain of the first
+    // element
+    it.Begin();
+    BaseMaterial* actSDMat = materials_[it.GetElem()->regionId];
+    MechStressStrain<TYPE> *stress = new MechStressStrain<TYPE>(actSDMat,type);
+    stress->SetAnsatzFct( results_[0]->fctType );
+
+    // loop over elements
+    for ( it.Begin(); !it.IsEnd(); it++ ) {
+      it.GetElem()->ptElem->GetCoordMidPoint(intPoint);
+
+      //set element solution
+      Matrix<TYPE> elSol;
+      sol_->GetElemSolutionAsMatrix(elSol, it);
+      stress->SetActElemSol(elSol);
+
+      //calculates the stress
+      stress->SetIntPoint(intPoint);
+      stress->CalcStressVec(elemStress,1,it);
+      stress->UnsetIntPoint();
+      for( UInt iDof = 0; iDof < stressDim_; iDof++ ) {
+        actVal[it.GetPos()*stressDim_ + iDof] = elemStress[iDof];
+      }
+    }
+
+    delete stress;
+  }
 
 
  // ======================================================
@@ -2769,6 +2767,49 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       }
     }
   }
-  
+
+  void MechPDE::calcAitkenOmega(const Vector<Double>& displTilde, const Vector<Double>& displPrevIter)
+  {
+    Vector<Double> aux1;
+
+    if (iterCoupledCounter_ == 1)
+    {
+      if (aitkenOmegaPrevIter_ < displFac_)
+      {
+        aitkenOmegaPrevIter_ = displFac_;
+        aitkenOmega_ = displFac_;
+      }
+
+      deltaTildeDisplPrevIter_  = displTilde;
+      deltaTildeDisplPrevIter_ -= displPrevIter;
+      return;
+    }
+
+    aux1  = displTilde - displPrevIter;
+    aux1 -= deltaTildeDisplPrevIter_;
+
+    Double aux2 = aux1 * deltaTildeDisplPrevIter_;
+    Double aux3 = aux1 * aux1;
+    deltaTildeDisplPrevIter_  = displTilde;
+    deltaTildeDisplPrevIter_ -= displPrevIter;
+    deltaTildeDisplPrevIter_ *= aitkenOmega_;
+
+    if (aux3 == 0)
+    {
+      aitkenOmega_ = aitkenOmegaPrevIter_;
+      EXCEPTION("division by zero: can not find relaxation parameter" << std::endl \
+          << "Cause: previous iteration step and current iteration step do not show any difference" );
+      return;
+    }
+    Double aux4 = aux2 / aux3;
+
+    aitkenOmega_ = - aitkenOmegaPrevIter_ * aux4;
+
+    Info->PrintF( pdename_," Relaxation Parameter according \
+        to Aitken= %e\n",aitkenOmega_);
+
+    aitkenOmegaPrevIter_ = aitkenOmega_;
+  }
+
 
 } // end namespace CoupledField
