@@ -958,6 +958,18 @@ for cplreader include:
 \end{verbatim}
 
 \subsubsection{Special Options}
+\begin{description}
+  \item[{\tt --lhsrc}] Column of Lighthill source term in FASTEST result files
+    (e.g. col1).  If FASTEST already calculated the Lighthill source term, the
+    column in the ASCII file can be specified using this parameter.
+
+  \item[{\tt  --vx, --vy,  --vz}] Columns  of  x, y,  z-velocities in  FASTEST
+    result files (e.g. col2).
+
+  \item[{\tt --pres}] Column of  hydrodynamic pressure in FASTEST result files
+    (e.g. col5).
+\end{description}
+
 \subsubsection{ASCII File Format}
 {\tt .coord}-File Format
 \begin{verbatim}
@@ -1002,6 +1014,10 @@ for cplreader include:
 \newpage
 \subsection{ANSYS CFX}
 \label{sec:cfx}
+
+There exist some  known problems for reading CFX 12.x  files.  Please refer to
+the description of the files section for a workaround.
+
 \subsubsection{Required File Layout}
 \begin{verbatim}
 ./name/
@@ -1014,18 +1030,68 @@ for cplreader include:
 
 All entities 'name' may also be symbolic links.
 
+\subsubsection{Description of the Files}
+
+\begin{description}
+  \item[.def]  The  .def file  contains  the  mesh  with informations  on  its
+    partitioning.  Unfortunately  the   names  of  the  partitions/regions  as
+    specified in CFX and no surface regions can be read from the CFX .def file
+    at  the moment.  This would  be highly  desirable for  specifying standard
+    acoustic absorbing BCs or  for Mortar coupled simulations. A corresponding
+    ticket       has      already       been      submitted       to      Trac
+    (cf. \url{https://lse17.e-technik.uni-erlangen.de:2001/trac/ticket/165}).
+
+  \item[.res] The .res file acts as a  result file as well as restart file for
+    CFX runs.  It  is the only file needed to restart  a CFX computation. This
+    means that, if the frequency  resolution of the harmonic source term field
+    is too  low due to too few  .trn files, one can  always produce additional
+    .trn steps by restarting the CFX  computation from the .res file.  It also
+    contains the mesh  plus the simulation description for the  CFX run in the
+    COMMANDS dataset. The  COMMANDS dataset is comparable to  our .xml file in
+    addition to  our material file. It  contains such information  as the time
+    step size,  which time steps get  written to .trn files  (e.g.  only every
+    second step),  a string  dataset with  the file names  of all  .trn files,
+    material properties,  boundary conditions,  etc.  For later  reference the
+    COMMANDS dataset gets written to  the UserData group of the resulting HDF5
+    file.   Since the  .res file  also  contains the  mesh, one  may create  a
+    symbolic link name.def to name.res, if a .def file is missing.
+
+    It has been  found however that .res files produced  with CFX version 12.x
+    can      cause     problems      with      cplreader     (Trac      ticket
+    \url{https://lse17.e-technik.uni-erlangen.de:2001/trac/ticket/165}).     If
+    this is the case  one can get rid of the problem  by only reading the mesh
+    from the  .def file. The .res file  should be deleted or  renamed for this
+    purpose. The list of .trn files is obtained by cplreader by inspecting the
+    contents  of  'name' subdirectory  instead  of  reading the  corresponding
+    dataset from  the .res file in  this case.  Please note  that the COMMANDS
+    dataset  will  not  be  available  in   the  HDF5  file,  if  no  .res  is
+    present. Therefore the information about time step size has to be obtained
+    in a different manner.
+
+  \item[.trn]  The .trn  files  contain the  actual  field data  for the  time
+    steps. The  cplreader tries to read  as much information  as possible from
+    the  .trn files  if  the  '--outputfields all'  option  is specified.   In
+    addition to  the velocity field which  is required for  the calculation of
+    the Lighthill source term, this  includes the turbulent kinetic energy and
+    density fields.  There  will however be no crash, if  these fields are not
+    present.  If  no --outputfields or  no --calcsrc parameters  are specified
+    nothing but the mesh from the .def file will be read at all.
+\end{description}
+
 \subsubsection{Special Options}
 
 \begin{description}
-\item[--type] The type of input files have to be set to 'CFX'.
+  \item[{\tt --type}] The type of input files have to be set to 'CFX'.
 
-\item[--deffile] You can  specify different '.def' file than  the one given by
-'name'.
+  \item[{\tt --deffile}]  You can specify  different '.def' file than  the one
+    given by 'name.def'.
 
-\item[--trntol] Percentage the file size  of transient files may differ from
-the average file  size of all transient files. If a  transient file is smaller
-than  average size  *  (1 -  trntol)  the corresponding  time  step will  be
-overwritten by the previous one.
+  \item[{\tt --trntol}] Percentage the file size of transient files may differ
+    from the average file size of  all transient files. If a transient file is
+    smaller than average size * (1  - trntol) the corresponding time step will
+    be overwritten by the previous one.  This option has been introduced to be
+    more robust  against damaged  .trn files, which  may result  during faulty
+    data transfers.
 \end{description}
 
 
@@ -1039,6 +1105,7 @@ about which .trn file was mapped  to which timestep. This is useful if corrupt
 .trn  files have  been encountered  which got  replaced by  the  last previous
 non-corrupt .trn file.
 
+\newpage
 \subsubsection{Examples}
 
 Let us assume, that we have got a directory layout like the following:
@@ -1065,10 +1132,9 @@ Let us assume, that we have got a directory layout like the following:
 We first have to rename or relink all entities 'fluid\_001' to 'fluid' so that
 they have consistent  names.  We do not have a  'fluid.def' where the settings
 of  the  CFX  simulation  are  saved.   But  let's  also  assume  you  have  a
-'fluid\_old.def' which has the same grid information in it. Such a '.def' file
-could have been generated by a restarted CFX run. You may also use this '.def'
-file for  reading the grid  information.  Now you  could start reading  in the
-data by issuing:
+'fluid\_old.def' which has the same grid  information in it.  You may also use
+this  '.def' file  for  reading the  grid  information.  Now  you could  start
+reading in the data by issuing:
 
 \begin{verbatim}
 cplreader --type CFX --name fluid --numsteps 11 --timestep 1e-4 \
@@ -1077,8 +1143,8 @@ cplreader --type CFX --name fluid --numsteps 11 --timestep 1e-4 \
 
 This would  read all transient files  except 6.trn which would  be replaced by
 5.trn.  You can even replace the .def  file by the .res file since the grid is
-also saved  in .res.  The transient  files get searched  by cplreader  in this
-case.
+also saved in the .res file.  The transient files get searched by cplreader in
+this case.
 
 Please note that no surface elements will be read by the CFX reader.
 
@@ -1167,6 +1233,7 @@ Node Number, X [ m ], Y [ m ], Velocity u [ m s^-1 ], Velocity v [ m s^-1 ]
 \newpage
 \subsection{OpenFOAM}
 \label{sec:openfoam}
+
 \subsubsection{Required File Layout}
 \begin{verbatim}
 ./name/
@@ -1190,6 +1257,16 @@ Node Number, X [ m ], Y [ m ], Velocity u [ m s^-1 ], Velocity v [ m s^-1 ]
 `-- system
 \end{verbatim}
 
+To inspect the OpenFOAM data before converting it using cplreader you can open
+it  in the  latest  version of  ParaView (3.8.x).  The  file to  be loaded  is
+./name/system/controlDict.  Choose  the  OpenFOAM  reader  from  the  list  of
+available readers.
+
+The OpenFOAM  reader in the  trunk version of  cplreader does not  support the
+latest version of OpenFOAM. For a newer reader developed by Patrick Lorenz and
+Jens                             Grabinger                            checkout
+\url{https://lse17.e-technik.uni-erlangen.de:2001/svn/CFS++/branches/starccm}.
+
 \subsubsection{Special Options}
 
 \subsubsection{Logging} 
@@ -1211,9 +1288,39 @@ available from these files.
 
 \subsubsection{Examples}
 
-Stefan  Zörner  has got  plenty  of  examples.  Or  you  may  have  a look  at
+For examples on  how to start cplreader with OpenFOAM data  you can ask Stefan
+Zörner or look  at the cplreader\_performance\_suite.  You may  have a look at
 /home/lse24/lse/strieben/cplreader\_performance\_suite  (Erlangen)  or on  the
 CFD\_Data NFS share on qnap (Klagenfurt).
+
+\newpage
+\subsection{STARCCM+}
+\label{sec:starccm}
+
+In  order  to   examine  .ccm  files  (which  are   indeed  Boeing  ADF  files
+\url{http://dx.doi.org/10.4271/985565})   the  CGNS  \url{http://www.cgns.org}
+tools (especially adfview  which is similar to hdfview)  from CFSDEPS cgns may
+be  used.   To  view  the  fields  the  VisIt  \url{http://www.llnl.gov/visit}
+postprocessor may be used.
+
+A STARCCM+ reader developed by  Patrick Lorenz and Jens Grabinger is available
+at
+\url{https://lse17.e-technik.uni-erlangen.de:2001/svn/CFS++/branches/starccm}.
+It  does   however  not  read  .ccm   files  but  files  in   the  Field  View
+(\url{http://www.ilight.com}) postprocessing  format.  This decision  has been
+made due to the fact that .ccm files contain polyhedral cells, which cplreader
+cannot handle. The  FieldView files have to be  generated within STARCCM+. You
+may  also contact  Frank  Schäfer \url{mailto:frank.schaefer@de.cd-adapco.com}
+from CD-adapco Nuremberg for further details.
+
+\subsubsection{Required File Layout}
+
+\subsubsection{Special Options}
+
+\subsubsection{Logging} 
+
+\subsubsection{Examples}
+
 
 \newpage
 \section{Other Readers and Mesh Generators}

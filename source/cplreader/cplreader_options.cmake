@@ -86,7 +86,7 @@ ADD_OPTION(name
 ADD_OPTION(type
   string
   CFX
-  "Type of dataset (can be ANSYS | CFX | CFX_EXPORT | FASTEST | OPENFOAM)"
+  "Type of dataset (can be ANSYS | CFS++ | CFX | CFX_EXPORT | FASTEST | OPENFOAM)"
   "Specify the type of dataset to be read: ANSYS see Sec. \\\\ref{sec:ansys},
    CFX see Sec. \\\\ref{sec:cfx}, CFX\\\\_EXPORT see Sec. \\\\ref{sec:cfx-export},
    FASTEST see Sec. \\\\ref{sec:fastest}, OPENFOAM see Sec. \\\\ref{sec:openfoam}."

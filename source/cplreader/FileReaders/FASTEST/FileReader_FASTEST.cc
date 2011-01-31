@@ -22,8 +22,7 @@ namespace CoupledField
                            const UInt dim,
                            const UInt numFiles,
                            const UInt startIndex) :
-        FileReader(name, dim, numFiles),
-        startIndex_(startIndex),
+        FileReader(name, dim, numFiles, startIndex),
         numResults_(0)
     {
       partFmtStr_ = "";

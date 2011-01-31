@@ -41,7 +41,7 @@ namespace CoupledField
   FileReader_OPENFOAM::FileReader_OPENFOAM(const std::string& name,
                                            const UInt dim,
                                            const UInt numFiles) :
-    FileReader(name, dim, numFiles),
+    FileReader(name, dim, numFiles, 1),
     reader_(NULL),
     numElems_(0)
   {

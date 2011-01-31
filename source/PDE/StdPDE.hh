@@ -352,6 +352,10 @@ namespace CoupledField {
     //! List of inhomogeneous Dirichlet boundary conditions
     IdBcList GetIDBCList(){
       return idBcs_;};
+
+    //! List of inhomogeneous Dirichlet boundary conditions read from file
+    IdFileBcList GetIdFiBCList(){
+      return idFiBcs_;};
     
     //! List of inhomogeneous Neumann boundary conditions
     const InBcList& GetINBCList() { return inBcs_; }
@@ -442,6 +446,9 @@ namespace CoupledField {
 
     //! Inhomogeneous Dirichlet boundary conditions
     IdBcList idBcs_;
+    
+    //! Inhomogeneous Dirichlet boundary conditions
+    IdFileBcList idFiBcs_;
     
     //! List of inhomogeneous Neumann boundary conditions
     InBcList inBcs_;

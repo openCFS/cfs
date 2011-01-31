@@ -41,8 +41,8 @@ namespace CoupledField
     //! computes differential permittivity
     void SetPreviousVals4Hyst();
 
-    //! computes differential permittivity
-    void ComputeDiffEpsilon();
+    //  computes differential permittivity
+    //    void ComputeDiffEpsilon();
 
   private:
 

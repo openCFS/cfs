@@ -1162,6 +1162,8 @@ source/ODEDescr/LinearKellerMiksis.cc svneol=native#text/plain
 source/ODEDescr/LinearKellerMiksis.hh svneol=native#text/plain
 source/ODEDescr/RPNNP.cc svneol=native#text/plain
 source/ODEDescr/RPNNP.hh svneol=native#text/plain
+source/ODEDescr/piezoSwitch.cc -text
+source/ODEDescr/piezoSwitch.hh -text
 source/ODESolve/BaseODESolver.hh svneol=native#text/plain
 source/ODESolve/CMakeLists.txt svneol=native#text/plain
 source/ODESolve/ODESolver_ExplEuler.cc svneol=native#text/plain
@@ -1521,6 +1523,8 @@ source/Utils/preisach.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/readCFDbinary.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/Utils/result.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/result.hh svneol=native#text/x-c%2B%2Bhdr
+source/Utils/simplePreisachInv.cc -text
+source/Utils/simplePreisachInv.hh -text
 source/Utils/tools.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/tools.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/trivialCartesianCoordSys.cc svneol=native#text/plain
@@ -1605,6 +1609,9 @@ source/cplreader/FileReaders/ANSYS/FileReader_MKHDF5.cc svneol=native#text/plain
 source/cplreader/FileReaders/ANSYS/FileReader_MKHDF5.hh svneol=native#text/plain
 source/cplreader/FileReaders/ANSYS/FileReader_NACS.cc svneol=native#text/plain
 source/cplreader/FileReaders/ANSYS/FileReader_NACS.hh svneol=native#text/plain
+source/cplreader/FileReaders/CFS++/CMakeLists.txt -text
+source/cplreader/FileReaders/CFS++/FileReader_CfsHdf5.cc -text
+source/cplreader/FileReaders/CFS++/FileReader_CfsHdf5.hh -text
 source/cplreader/FileReaders/CFX/CMakeLists.txt svneol=native#text/plain
 source/cplreader/FileReaders/CFX/CloseFile.F -text
 source/cplreader/FileReaders/CFX/FileReader_CFX.cc svneol=native#text/plain

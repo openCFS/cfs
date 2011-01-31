@@ -16,7 +16,7 @@ namespace CoupledField
   Bdf2 :: Bdf2( BaseSystem * algebraicsystem)
     :TimeStepping( algebraicsystem )
   {
-    // Commented out the warning, since defaults are not bad at all and the 
+    // Commented out the warning, since defaults are not bad at all and the
     // average student user gets not disturbed by any warnings
     //check if integration parameters are defined in conf-file
     //Info->WARN( "Bdf2: Using defaults for gamma!" );
@@ -34,16 +34,17 @@ namespace CoupledField
     Vector<Double> dummyVec;
     dummyVec.Resize(rhsSize_);
     dummyVec.Init();
-    
+    coeffMass_ = dummyVec;
+
     CalcParameters(dt_);
 
     matrix_factors_[STIFFNESS] = 1.0;
 
     //not used matrices
     matrix_factors_[MASS] = 0.0;
-    matrix_factors_[CONVECTION] = 0.0; 
-    matrix_factors_[DAMPING] = 0.0;       
-    matrix_factors_[AUXILIARY] = 0.0;       
+    matrix_factors_[CONVECTION] = 0.0;
+    matrix_factors_[DAMPING] = 0.0;
+    matrix_factors_[AUXILIARY] = 0.0;
 
     if ( !is_SolTimeStep_set(TIMESTEP_1) )
     {
@@ -53,10 +54,11 @@ namespace CoupledField
     {
       sol_timeStepVec_[TIMESTEP_2] = dummyVec;
     }
-    if ( !is_Deriv_set(FIRST_DERIV) )
-    {
-      solDeriv_vec_[FIRST_DERIV] = dummyVec;
-    }
+    /* only needed if direct acoustic is calculated */
+    //if ( !is_Deriv_set(FIRST_DERIV) )
+    //{
+    //  solDeriv_vec_[FIRST_DERIV] = dummyVec;
+    //}
   }
 
 
@@ -72,8 +74,6 @@ namespace CoupledField
 
   void Bdf2::UpdateRHS()
   {
-    Vector<Double> coeffMass;
-
     // mass part
     // the last term occurs due to the newton method
     Vector<Double> currentSol;
@@ -84,10 +84,9 @@ namespace CoupledField
     // the minus occurs due to the newton method
     const Double coeff1 = - sol_timeStepCoeff_[TIMESTEP_1];
     const Double coeff2 = - sol_timeStepCoeff_[TIMESTEP_2];
-    coeffMass  = sol_timeStepVec_[TIMESTEP_1] * coeff1;
-    coeffMass += sol_timeStepVec_[TIMESTEP_2] * coeff2;
-    algsys_->UpdateRHS(MASS, coeffMass);
-    LOG_DBG(bdf2) << "\n coeffMass: \n" << coeffMass << std::endl;
+    coeffMass_  = sol_timeStepVec_[TIMESTEP_1] * coeff1;
+    coeffMass_ += sol_timeStepVec_[TIMESTEP_2] * coeff2;
+    algsys_->UpdateRHS(MASS, coeffMass_);
   }
 
 

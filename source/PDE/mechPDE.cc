@@ -64,11 +64,12 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
     needSolPrev_ = true;
 
-    firstTime_   = true;
-    useAitken_   = false;
-    //displFac_    = 0.3;
-    displFac_ = myParam_->Get("fsiRelaxationParam")->As<Double>();
-    FSI_=myParam_->Get("fsi")->As<bool>();
+    firstTime_ = true;
+    useAitken_ = myParam_->Get("useAitken")->As<bool>();
+    displFac_  = myParam_->Get("fsiRelaxationParam")->As<Double>();
+    aitkenOmega_ = displFac_;
+    aitkenOmegaPrevIter_ = displFac_;
+    FSI_ = myParam_->Get("fsi")->As<bool>();
 
     // ****************************
     // DETERMINE GEOMETRY
@@ -1335,17 +1336,19 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     StdVector<Elem*> * couplingElems = NULL;
     SingleVector * temp_values = NULL;
     Vector<Double> * values;
-    SingleVector *tempDispValues=NULL;
-    SingleVector *tempDispOldValues=NULL;
+    SingleVector *tempDispValues = NULL;
+    SingleVector *tempDispOldValues = NULL;
     StdVector<BaseMaterial*> * materials = NULL;
     StdVector<std::string> outputRegions;
-    UInt interfaceDispCoupl=0, interfaceVelCoupl=0, interfaceForceCoupl=0;
+    UInt interfaceDispCoupl = 0;
+    UInt interfaceVelCoupl = 0;
+    UInt interfaceForceCoupl = 0;
     bool foundDisp = false;
     bool foundVel = false;
     bool foundForce = false;
 
     if (useAitken_ == false)
-      Info->PrintF( "RELAXATION", "Relaxation Factor = %e\n",displFac_);
+      Info->PrintF( "RELAXATION", "Relaxation Factor = %e\n", displFac_);
 
     // at first, check if this PDE is iterative coupled
     if (isIterCoupled_ == false)
@@ -1430,39 +1433,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
         if ( analysistype_ == TRANSIENT ) 
         {
-          if (useAitken_) 
-          {
-            actDelta_ = DispOldValues - DispValues;
-
-            if (actDelta_.GetSize() != oldDelta_.GetSize())
-            {
-              oldDelta_.Resize(actDelta_.GetSize());
-              oldDelta_.Init();
-            }
-
-            Vector<Double> aux1;
-            aux1 = (oldDelta_ - actDelta_);
-
-            Double aux2=aux1*actDelta_;
-            Double aux3=aux1*aux1;
-            Double aux4 = aux2/aux3;
-
-            aitkenMu_=(aitkenMu_)+((aitkenMu_-1.0)*aux4);
-            if (aitkenMu_ > 1.0-displFac_)
-              aitkenMu_ = 1.0 - displFac_;
-            aitkenOmega_ = 1.0 - aitkenMu_;
-            Info->PrintF( pdename_," unbounded relaxation Parameter \
-                according to Aitgken= %e\n",aitkenOmega_);
-
-            Double omegaMax=0.3;
-            if (iterCoupledCounter_ > 5)
-              omegaMax = 1.0;
-            if (aitkenOmega_ > omegaMax)
-              aitkenOmega_ = omegaMax;
-            oldDelta_ = actDelta_;
-            Info->PrintF( pdename_," Relaxation Parameter according \
-                to Aitken= %e\n",aitkenOmega_);
-          }
 
           fixedOmega_ = displFac_;
           Info->PrintF( pdename_," Fixed Relaxation Parameter= %e\n",fixedOmega_);
@@ -1499,6 +1469,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
           }
           if (useAitken_) 
           {
+            calcAitkenOmega(DispValues, DispOldValues);
             naux1 = gSol * aitkenOmega_;
             naux2 = gSolOld_ * (1.0 - aitkenOmega_);
             gSol = naux1 + naux2;
@@ -2769,6 +2740,49 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       }
     }
   }
-  
+
+  void MechPDE::calcAitkenOmega(const Vector<Double>& displTilde, const Vector<Double>& displPrevIter)
+  {
+    Vector<Double> aux1;
+
+    if (iterCoupledCounter_ == 1)
+    {
+      if (aitkenOmegaPrevIter_ < displFac_)
+      {
+        aitkenOmegaPrevIter_ = displFac_;
+        aitkenOmega_ = displFac_;
+      }
+
+      deltaTildeDisplPrevIter_  = displTilde;
+      deltaTildeDisplPrevIter_ -= displPrevIter;
+      return;
+    }
+
+    aux1  = displTilde - displPrevIter;
+    aux1 -= deltaTildeDisplPrevIter_;
+
+    Double aux2 = aux1 * deltaTildeDisplPrevIter_;
+    Double aux3 = aux1 * aux1;
+    deltaTildeDisplPrevIter_  = displTilde;
+    deltaTildeDisplPrevIter_ -= displPrevIter;
+    deltaTildeDisplPrevIter_ *= aitkenOmega_;
+
+    if (aux3 == 0)
+    {
+      aitkenOmega_ = aitkenOmegaPrevIter_;
+      EXCEPTION("division by zero: can not find relaxation parameter" << std::endl \
+          << "Cause: previous iteration step and current iteration step do not show any difference" );
+      return;
+    }
+    Double aux4 = aux2 / aux3;
+
+    aitkenOmega_ = - aitkenOmegaPrevIter_ * aux4;
+
+    Info->PrintF( pdename_," Relaxation Parameter according \
+        to Aitken= %e\n",aitkenOmega_);
+
+    aitkenOmegaPrevIter_ = aitkenOmega_;
+  }
+
 
 } // end namespace CoupledField

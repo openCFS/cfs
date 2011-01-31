@@ -2,46 +2,52 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#ifndef BASE_ODE_Problem_HH
-#define BASE_ODE_Problem_HH
+#ifndef FILE_PIEZOSWITCHODE_HH
+#define FILE_PIEZOSWITCHODE_HH
 
 #include "General/environment.hh"
 #include "Utils/StdVector.hh"
 #include "MatVec/matrix.hh"
+#include "BaseODEProblem.hh"
 
 namespace CoupledField {
 
-  //! Base class from which all ODE problems are derived
-  class BaseODEProblem {
+  //! Base class for piezoelectric switching models
+  class PiezoSwitchODE : public BaseODEProblem {
 
   public:
 
     //! Default Constructor
-    BaseODEProblem() {
-    }
+    PiezoSwitchODE(UInt numberOfODEs, Double initT, Double alpha);
 
     //! Default Destructor
-    virtual ~BaseODEProblem() {
+    virtual ~PiezoSwitchODE() {
     }
+
+    void setDynamicCoefficients(Matrix<Double>& coeff ) {
+      coeffs_ = coeff;
+    };
 
     //! Compute the right hand side for dy/dt=f(t,y)
     //! \param t      Current time step (can also be used as current position)
     //! \param vector y cointains starting values
     //! \param vector dydt contains on return the resulting rhs
-    virtual void CompDeriv(const Double &t,
+    void CompDeriv(const Double &t,
                            const StdVector<Double> &y,
-                           StdVector<Double> &dydt) = 0;
+                           StdVector<Double> &dydt);
 
     //! Compute the Jacobian Matrix of the ode
-    virtual void Jacobi(StdVector<Double> &y,
+    void Jacobi(StdVector<Double> &y,
 			Matrix<Double> &dfdy,
-			Double &t) //= 0;
-    {
-      std::cerr<< "Jacobi method is not yet implemented for this problem" << std::endl;
-    }
-
-    virtual void setDynamicCoefficients(Matrix<Double>& coeff ) {;};
-
+			Double &t);
+    //!
+    UInt numODEs_;
+    //!
+    Double dtPDE_;
+    //!
+    Double alpha_;
+    //!
+    Matrix<Double> coeffs_;
   };
 
 

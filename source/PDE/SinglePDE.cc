@@ -400,6 +400,7 @@ namespace CoupledField {
     LOG_TRACE(pde) << pdename_ << ": Mapping Equations";
     eqnMap_->SetHomoDirichletBCs ( hdBcs_ );
     eqnMap_->SetInhomDirichletBCs( idBcs_ );
+    eqnMap_->SetInhomDirichFileBCs( idFiBcs_ );
     eqnMap_->SetConstraints( constraints_ );
     eqnMap_->Finalize();
 
@@ -617,6 +618,19 @@ namespace CoupledField {
       in->Get("dof")->SetValue(actBc.result->GetDofName(actBc.dof));
       in->Get("value")->SetValue(actBc.value);
       in->Get("phase")->SetValue(actBc.phase);
+    }
+
+    // Inhomogeneous Dirichlet BC read from file
+    base = infoNode_->Get(ParamNode::HEADER)->Get("inhomDirichFileBC");
+
+    for(unsigned int i = 0, in = idFiBcs_.GetSize(); i < in; i++)
+    {
+      InhomDirichFileBc const & actBc = *idFiBcs_[i];
+      EntityList const & actList = *actBc.entities;
+
+      PtrParamNode in = base->GetByVal(actList.listType.ToString(actList.GetType()), "name", actList.GetName());
+      in->Get("dof")->SetValue(actBc.result->GetDofName(actBc.dof));
+      in->Get("inputId")->SetValue(actBc.inputId);
     }
 
     // Inhomogeneous Neumann BC
@@ -1104,7 +1118,6 @@ namespace CoupledField {
      // ---------------------------
 
      Double stepVal, phase = 0.0;
-     StdVector<Double>  val_tfunc_vec, dirVal_vec;
 
      // get step value according to type of analysis
      if (analysistype_ == HARMONIC)
@@ -1207,6 +1220,117 @@ namespace CoupledField {
          }
        }
      }
+
+     // ------------------------------------
+     // INHOMOGENEOUS DIRICHLET BC from File
+     // ------------------------------------
+
+     stepVal = 0.0;
+     phase = 0.0;
+
+     // get step value according to type of analysis
+     if (analysistype_ == HARMONIC)
+       stepVal = solveStep_->GetActFreq();
+     else
+       stepVal = solveStep_->GetActTime();
+
+     for ( UInt i = 0; i < idFiBcs_.GetSize(); i++ )
+     {
+       // Get grip of actual idBC
+       InhomDirichFileBc const & actBc = *(idFiBcs_[i]);
+
+       dof = actBc.dof;
+
+       // Get EntityIterator
+       EntityIterator it = actBc.entities->GetIterator();
+
+       // set info for input function
+       ResultCache::SetInfo(ResultCache::OUT_REAL,
+                            dof,
+                            actBc.entities->GetName(),
+                            actBc.result->resultType,
+                            stepVal);
+
+       UInt step; // time step
+       shared_ptr<BaseResult > dirichletVals;
+
+       /* TODO: szoerner */
+       // Specify that we want to use the current step number.
+       parser->SetExpr( mHandle_, "step" );
+       step = (UInt) parser->Eval(mHandle_);
+
+       ResultHandler* resultHandler = domain->GetResultHandler();
+
+       // Get reference result
+       Result<Double> *result = NULL;
+       try {
+         // Try to read in values from file.
+         dirichletVals = resultHandler->GetResult( actBc.inputId, \
+             1, \
+             step, \
+             actBc.result->resultType, \
+             actBc.entities->GetName() );
+
+         result = dynamic_cast<Result<Double>*>(&(*dirichletVals));
+       } catch (Exception& ex) {
+           RETHROW_EXCEPTION(ex, "reading problem");
+       };
+
+       Vector<Double>& resVec = result->GetVector();
+       UInt numDofs = actBc.result->dofNames.GetSize();
+
+       for ( it.Begin(); !it.IsEnd(); it++ )
+       {
+         try {
+           StdVector<Integer> eqns;
+           eqnMap_->GetEqns( eqns, *actBc.result, it, dof  );
+
+           // loop over all equations for the file-dirichlet conditions
+           for ( UInt iEqn = 0; iEqn < eqns.GetSize(); iEqn++)
+           {
+             eqnNr = eqns[iEqn];
+             UInt eqnNr2 = it.GetPos()*numDofs+dof-1;
+
+             // omit all equations, which are homogeneous dirichlet
+             // boundary condition (0) or constraint slave eqn (<0)
+             if ( eqnNr <= 0 ) continue;
+             val = resVec[eqnNr2];
+
+             // Sanity check. This should not happen, but might appear
+             // in the case that the same node/dof belongs to a region
+             // with hom. and a region with inhom. Dirichlet BCs. This
+             // problem was already encountered!
+             if (eqnNr == 0)
+             {
+               EXCEPTION( "Got eqn number 0 for inhom Dirichlet(File) BC! "
+                          << "Probably you have a node/dof that belongs to both "
+                          << "a region with hom. and one with inhom. Dirichlet BCs."
+                          << " Go check your .mesh file!" );
+             }
+
+             // Transform Dirichlet boundary conditions for effmass-formulation
+             if (effectiveMass_)
+             {
+               val = TS_alg_->DirichletBC4EffMassMatrix(val,eqnNr);
+             }
+             
+             // if Biot-Savart is set (just relevant for magnetics ) we have to correct
+             // the inhomog. Dirichlet values
+             // (watch out for equation number offset!!!)
+             if ( isBiotSavart_ )
+             {
+               val -= biotSavart_->CalcFieldSingleEqn( eqnNr-1 );
+             }
+
+             algsys_->SetDirichlet( pdeId_, eqnNr, val);
+           }
+         } catch (Exception& ex ) {
+           RETHROW_EXCEPTION(ex, pdename_ << ": Could not apply Inhom. Dirichlet boundary condition from file"
+                             << " for nodes '" <<  actBc.entities->GetName()
+                             << "' with value '" << val << "'" );
+         }
+       }
+     }
   }
 
 
@@ -1220,7 +1344,7 @@ namespace CoupledField {
     if( !bcsNode )
       return;
 
-    std::string name, resultName, dof, entType, value, phase;
+    std::string name, resultName, dof, entType, inputId, value, phase;
     EntityList::DefineType defineType;
     shared_ptr<ResultInfo> actResultInfo;
 
@@ -1328,6 +1452,56 @@ namespace CoupledField {
       }
      }
 
+    //=====================================================================
+    // inhomogeneous Dirichlet BC from File
+    // =====================================================================
+
+    // fetch paramnodes for idbc
+    ParamNodeList idbcFiNodes = bcsNode->GetList("dirichletFileInhom");
+
+    // iterate over all parameter nodes
+    for( UInt i = 0; i < idbcFiNodes.GetSize(); i++ ) {
+
+      try {
+        // read parameters
+        dof.clear();
+        idbcFiNodes[i]->GetValue( "name", name );
+        idbcFiNodes[i]->GetValue( "quantity", resultName );
+        idbcFiNodes[i]->GetValue( "dof", dof, ParamNode::PASS );
+        idbcFiNodes[i]->GetValue( "entityType", entType );
+        idbcFiNodes[i]->GetValue( "inputId", inputId );
+
+        // fetch related resultInfo object
+        actResultInfo = GetResultInfo( SolutionTypeEnum.Parse(resultName) );
+
+        // Create inhomogeneous boundary condition
+        shared_ptr<InhomDirichFileBc> actBc ( new InhomDirichFileBc );
+        if( entType == "nodeList" ) {
+          defineType = EntityList::NAMED_NODES;
+        } else {
+          defineType = EntityList::REGION;
+        }
+
+        shared_ptr<EntityList> actList =
+          ptgrid_->GetEntityList( EntityList::listType.Parse(entType),
+                                  name, defineType );
+        actBc->entities = actList;
+        actBc->result = actResultInfo;
+        actBc->eqnMap = eqnMap_;
+        if( dof.empty() ) {
+          actBc->dof = 1;
+        } else {
+          actBc->dof = actResultInfo->GetDofIndex( dof );
+        }
+        actBc->inputId = inputId;
+
+        // add definition
+        idFiBcs_.Push_back( actBc );
+      } catch (Exception & ex ) {
+        RETHROW_EXCEPTION( ex, "Can not create inhomogeneous boundary conditions on '"
+                           << name << "'" );
+      }
+     }
 
     // =====================================================================
     // inhomogeneous Neumann BC
@@ -1989,8 +2163,9 @@ namespace CoupledField {
     // and constraints to the algebraic system
     //algsys_->SetBlockSize( pdeId_, 1 );
 
-    UInt numDir = eqnMap_->GetNumInHomDirichletEqns() +
-      numCouplingBcs_;
+    UInt numDir = eqnMap_->GetNumInHomDirichletEqns() \
+                  + eqnMap_->GetNumInHomDirichletFileEqns()
+                  + numCouplingBcs_;
     algsys_->SetNumDirichletBCs(pdeId_, numDir );
 
     // create matrices and solver object, if PDE is not direct coupled
@@ -2409,7 +2584,7 @@ namespace CoupledField {
           shared_ptr<BaseResult> outResult_solDeriv;
           outResult_solDeriv = shared_ptr<BaseResult>(new Result<Double>());
           shared_ptr<ResultInfo> actResultInfo_deriv(new ResultInfo);
-          *actResultInfo_deriv = *actList[i]->GetResultInfo();
+          *actResultInfo_deriv = *actResultInfo;
 
           outResult_solDeriv->SetResultInfo( actResultInfo_deriv );
           outResult_solDeriv->SetEntityList( entList );
@@ -2936,8 +3111,8 @@ namespace CoupledField {
                                  BaseNodeStoreSol* ptStoreSol )
   {
     StdVector<Integer> eqnNums;
-    ResultInfo& actDof = *(toBaseResult->GetResultInfo() );
-    UInt numDofs = actDof.dofNames.GetSize();
+    ResultInfo& resInfo = *(toBaseResult->GetResultInfo() );
+    UInt numDofs = resInfo.dofNames.GetSize();
 
     Vector<TYPE>& solHelp =
       dynamic_cast<NodeStoreSol<TYPE>&> ( *ptStoreSol ).GetAlgSysVector();
@@ -2946,30 +3121,36 @@ namespace CoupledField {
     Vector<TYPE> & actSol = dynamic_cast<Result<TYPE>&>
       (*toBaseResult).GetVector();
     actSol.Resize( toBaseResult->GetEntityList()->GetSize() *
-                   actDof.dofNames.GetSize() );
+                   resInfo.dofNames.GetSize() );
 
     actSol.Init();
-    for( it.Begin(); !it.IsEnd(); it++ ) {
-
+    for ( it.Begin(); !it.IsEnd(); it++ )
+    {
       // get equation numbers
-      eqnMap_->GetEqns( eqnNums, actDof, it );
+      eqnMap_->GetEqns( eqnNums, resInfo, it );
       //check for discontinuous results and compute the average if necessary
-      if(actDof.fctType->IsDiscontinuous()){
+      if (resInfo.fctType->IsDiscontinuous())
+      {
         //Compute the number of discontinuous dofs
         UInt numDisNodes = eqnNums.GetSize() / numDofs;
         Double factor = 1.0 / numDisNodes;
-        for( UInt iNode = 0; iNode < numDisNodes; iNode++ ) {
-          for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
-            if( eqnNums[iDof] != 0 ) {
+        for ( UInt iNode = 0; iNode < numDisNodes; iNode++ )
+        {
+          for ( UInt iDof = 0; iDof < numDofs; iDof++ )
+          {
+            if ( eqnNums[iDof] != 0 )
+            {
               actSol[it.GetPos()*numDofs+iDof] += solHelp[abs(eqnNums[(iNode*numDofs) + iDof])-1] * factor;
             } else {
               actSol[it.GetPos()*numDofs+iDof] += 0.0;
             }
           }
         }
-      }else{
-        for( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ) {
-          if( eqnNums[iDof] != 0 ) {
+      } else {
+        for ( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ )
+        {
+          if ( eqnNums[iDof] != 0 )
+          {
             actSol[it.GetPos()*numDofs+iDof] = solHelp[abs(eqnNums[iDof])-1];
           } else {
             actSol[it.GetPos()*numDofs+iDof] = 0.0;

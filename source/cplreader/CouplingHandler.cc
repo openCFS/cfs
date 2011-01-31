@@ -106,6 +106,7 @@ namespace CoupledField
     ptElemIntegr_[Elem::LINE2]  = new ElemIntegr(Elem::LINE2);
     ptElemIntegr_[Elem::TRIA3]  = new ElemIntegr(Elem::TRIA3);
     ptElemIntegr_[Elem::QUAD4]  = new ElemIntegr(Elem::QUAD4);
+    ptElemIntegr_[Elem::QUAD8]  = new ElemIntegr(Elem::QUAD8);
     ptElemIntegr_[Elem::TET4]   = new ElemIntegr(Elem::TET4);
     ptElemIntegr_[Elem::WEDGE6] = new ElemIntegr(Elem::WEDGE6);
     ptElemIntegr_[Elem::PYRA5]  = new ElemIntegr(Elem::PYRA5);
@@ -131,7 +132,6 @@ namespace CoupledField
     int numRegions = ptFileReader_->GetNumRegions();
     std::vector<UInt>::iterator it, it2, end;
     std::set<UInt> regionNodeSet;
-    std::vector<UInt> regionNodes;
     UInt maxNumElemNodes = 0;
     std::vector<std::string> regionNames;
 
@@ -173,8 +173,7 @@ namespace CoupledField
       }
     }
     // <-- end scaling
-    ptFileReader_->ReadTopology(topology_,
-                                elemTypes_);
+    ptFileReader_->ReadTopology(topology_, elemTypes_);
 
     // Determine the maximum number of element nodes
     maxNumElemNodes = ptFileReader_->GetMaxNumElemNodes();
@@ -235,16 +234,16 @@ namespace CoupledField
 
 
     std::cout << "Reading mesh done.\nConverting mesh...\n";
-    std::map<RegionIdType, UInt > regionDims;
 
     for (int actRegion=0; actRegion<numRegions; actRegion++)
     {
       // Fill vector with region names
       regionNames.push_back(ptFileReader_->GetRegionName(actRegion));
+      const std::string& actRegionName = regionNames[actRegion];
 
       // Clear temporary containers
       regionNodeSet.clear();
-      regionNodes.clear();
+      regionNodes_[actRegionName].clear();
 
       std::cout << "Writing region " << (*regionNames.rbegin())
                 << "... ";
@@ -261,32 +260,29 @@ namespace CoupledField
       
       for( ; elemIt != elemEnd; elemIt++ ) 
       {        
-        UInt elemNum = *elemIt;
-        UInt regionDim = regionDims[actRegion];
-        Elem::FEType elemType = (Elem::FEType) elemTypes_[elemNum-1];
+        const UInt& elemNum = *elemIt;
+        UInt& regionDim = regionDims_[actRegion];
+        Elem::FEType elemType = (Elem::FEType) elemTypes_[elemNum -1];
         
-        if(!regionDim) 
+        if (!regionDim) 
         {
-          regionDims[actRegion] = Elem::GetElemDim(elemType);
+          regionDim = Elem::GetElemDim(elemType);
         }
-        else
+        if ( regionDim != Elem::GetElemDim(elemType) )
         {
-          if( regionDim != Elem::GetElemDim(elemType) )
-          {
-            EXCEPTION("Elements with different dimensions have been "
-                      << "encountered in region '" << (*regionNames.rbegin()) << "'!\n"
-                      << "The error occured while examining element "
-                      << (*elemIt) << ".\n"
-                      << "Please check your mesh file!");
-          }    
-        }
+          EXCEPTION("Elements with different dimensions have been "
+              << "encountered in region '" << (*regionNames.rbegin()) << "'!\n"
+              << "The error occured while examining element "
+              << elemNum << ".\n"
+              << "Please check your mesh file!");
+        }    
       }
       
       // Put all nodes in a partition into a set to get an ordered list
       UInt idx = 0;
       UInt regionDim = 0;
 
-      CollectElementNodes(regionElems_[actRegion], regionNodes, regionDim);
+      CollectElementNodes(regionElems_[actRegion], regionNodes_[actRegionName], regionDim);
 
       // Write region elements and nodes
       owIt = outputWriters_.begin();
@@ -296,12 +292,12 @@ namespace CoupledField
       {
         (*owIt)->WriteRegion(regionNames[actRegion],
                              regionElems_[actRegion],
-                             regionNodes,
+                             regionNodes_[actRegionName],
                              regionDim);
       }
       
-      it = regionNodes.begin();
-      end = regionNodes.end();
+      it = regionNodes_[actRegionName].begin();
+      end = regionNodes_[actRegionName].end();
 
       numRegionNodes_[actRegion] = std::distance(it, end);
 
@@ -376,6 +372,9 @@ namespace CoupledField
     std::vector<std::string> regionNames;
     std::vector<FlowDataType> flowData(numRegions);
     bool readOK = true;
+    // variable to gather nodes on multiple regions
+    bool doCalcMultiNodes = true;
+    std::map<UInt, std::map<std::string, UInt> > multiNodes;
 
     std::cout << "========================================"
               << "========================================"
@@ -407,7 +406,7 @@ namespace CoupledField
       while ( ( counter < numFiles ) && readOK)
       {
         stepVal = ptFileReader_->GetTimeStep(counter);
-        stepNum = counter + 1;
+        stepNum = counter + ptFileReader_->GetStartIndex();
         timeStepValues.push_back(stepVal);
         timeStepNumbers.push_back(stepNum);
         
@@ -470,7 +469,7 @@ namespace CoupledField
         {
           std::cerr << "CAUGHT EXCEPTION while trying to read nodal values:"
                     << std::endl << ex.what() << std::endl
-                    << "Exiting read time values loop...";
+                    << "Exiting read time values loop..." << std::endl;
           
           readOK = false;
           continue;
@@ -496,7 +495,7 @@ namespace CoupledField
           
           // If the user requests the calculation of the Lighthill
           // source term, follow his order!
-          if(calcSrc)
+          if(calcSrc && regionDims_[actRegion] == dim_)
           {
             // We need fluidMechVelocity for Lighthill source term.
             // This must be adapted for other source term formulations!!
@@ -509,6 +508,64 @@ namespace CoupledField
             CalculateAcouSrcs(actRegion, flowData[actRegion]);
           }
           
+        }//end of for
+
+        /* node which live on multiple region need to accumulate the
+         * ACOU_RHS_LOAD
+         * Here the common nodes of active regions is found */
+        if (doCalcMultiNodes)
+        {
+          std::map<std::string, std::vector<UInt>* > regionNodesActive;
+          std::map<std::string, std::vector<UInt> >::iterator iterRegionAct = regionNodes_.begin();
+          for (; iterRegionAct != regionNodes_.end(); ++iterRegionAct)
+          {
+            UInt regIdx = 0;
+            while (regionNames[regIdx] != iterRegionAct->first )
+              ++regIdx;
+            if (flowData[regIdx][ACOU_RHS_LOAD].isActive)
+            {
+              regionNodesActive[iterRegionAct->first] = &iterRegionAct->second;
+            }
+          }
+          findNodeMultiRegion(regionNodesActive, multiNodes);
+          doCalcMultiNodes = false;
+        }
+        /* start the accumulation of ACOU_RHS_LOAD on common nodes */
+        std::map<UInt, std::map<std::string, UInt> >::const_iterator iterMultiNodes = multiNodes.begin();
+        if (calcSrc)
+        {
+          for (; iterMultiNodes != multiNodes.end(); ++iterMultiNodes)
+          {
+            // calc accumulated values
+            double accumValNodes = 0;
+            std::map<std::string, UInt>::const_iterator iterRegions = iterMultiNodes->second.begin();
+            for (; iterRegions != iterMultiNodes->second.end(); ++iterRegions)
+            {
+              const std::string& regName = iterRegions->first;
+              const UInt& node = iterRegions->second;
+              UInt regIdx = 0;
+              while (regionNames[regIdx] != regName )
+                ++regIdx;
+              if (flowData[regIdx][ACOU_RHS_LOAD].isActive)
+                accumValNodes += flowData[regIdx][ACOU_RHS_LOAD].data[node];
+            }
+            // set accumulated values
+            iterRegions = iterMultiNodes->second.begin();
+            for (; iterRegions != iterMultiNodes->second.end(); ++iterRegions)
+            {
+              const std::string& regName = iterRegions->first;
+              const UInt& node = iterRegions->second;
+              UInt regIdx = 0;
+              while (regionNames[regIdx] != regName )
+                ++regIdx;
+              if (flowData[regIdx][ACOU_RHS_LOAD].isActive)
+                flowData[regIdx][ACOU_RHS_LOAD].data[node] = accumValNodes;
+            }
+          }
+        }// end of nodes on multiple region correction
+
+        for (actRegion = 0; actRegion < numRegions && readOK; actRegion++)
+        {
           owIt = outputWriters_.begin();
           owEnd = outputWriters_.end();
           
@@ -518,7 +575,6 @@ namespace CoupledField
                                    actRegion,
                                    outputFields_);
           }
-          
           
         }//end of for
         
@@ -833,7 +889,9 @@ namespace CoupledField
       idxOutput = it->second * numDOFs;
 
       for(UInt dof=0; dof < numDOFs; dof++ )
+      {
         output[idxOutput+dof] = input[idxInput+dof];
+      }
     }
   }
 

@@ -17,6 +17,7 @@
 #include "Forms/curlCurlNodeInt.hh"
 #include "Forms/nonConformingInt.hh"
 #include "Forms/nLincurlCurlNodeInt.hh"
+#include "Forms/nLinMagHystInt2D.hh"
 #include "Forms/laplaceInt.hh"
 #include "Forms/linGradBDBInt.hh"
 #include "Forms/linearForm.hh"
@@ -254,9 +255,9 @@ DEFINE_LOG(magpde, "magpde")
 
         if ( regionNonLinType_[actRegion] == HYSTERESIS ) {
 
-          if (is3d_ ) {
-            EXCEPTION("Magnetics with hysteresis in 3D not supported");
-          }
+          //          if (is3d_ ) {
+          EXCEPTION("Magnetics with hysteresis currently not supported");
+            //          }
           
           // hysteresis modeling in this region
           StdVector<Elem*> elemssd;
@@ -264,34 +265,48 @@ DEFINE_LOG(magpde, "magpde")
           UInt numElSD =  elemssd.GetSize();
 
           //allocate for hystersis modeling; 
-          bool computeHystInverse = true;
-          bool isHystInverse = false;
-          actMat->InitHyst(numElSD, actSDList, isHystInverse, computeHystInverse);
+          std::cout << "Do vec Hyst!" << std::endl;
+          actMat->InitVecHyst(numElSD, actSDList, dim_);
 
+          BaseForm *curlcurlHyst; 
+          curlcurlHyst = new nLinMagHystInt2D( actMat, isaxi_, upLagrangeForm );
+          curlcurlHyst->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+          
+          BiLinFormContext * stiffContext = 
+            new BiLinFormContext( curlcurlHyst, STIFFNESS );
+          stiffContext->SetPtPdes(this, this);   
+          stiffContext->SetResults( results_[0], results_[0],
+                                    actSDList, actSDList );     
+          assemble_->AddBiLinearForm( stiffContext);
+          
+          
+          //save bilinearForm
+          pdeBilinearForms_[actRegion][curlcurlHyst->GetName()] = curlcurlHyst;
         }
+        else if ( regionNonLinType_[actRegion] == PERMEABILITY ) {
+          //nonlinear permeability!!
+          BaseForm *curlcurlNL; 
+          if( is3d_ ) {
+            curlcurlNL = new nLinCurlCurlNode3DInt( actMat, upLagrangeForm );
+          } else {
+            curlcurlNL = new nLinCurlCurlNode2DInt( actMat, isaxi_, upLagrangeForm );
+          }
+          
+          curlcurlNL->SetNonLinMethod( nonLinMethod_ );      
+          curlcurlNL->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+          
+          BiLinFormContext * stiffContext = 
+            new BiLinFormContext( curlcurlNL, STIFFNESS );
+          stiffContext->SetPtPdes(this, this);   
+          stiffContext->SetResults( results_[0], results_[0],
+                                    actSDList, actSDList );     
+          assemble_->AddBiLinearForm( stiffContext);
+          
+          
+          //save bilinearForm
+          pdeBilinearForms_[actRegion][curlcurlNL->GetName()] = curlcurlNL;
+          
 
-        BaseForm *curlcurlNL; 
-        if( is3d_ ) {
-          curlcurlNL = new nLinCurlCurlNode3DInt( actMat, upLagrangeForm );
-        } else {
-          curlcurlNL = new nLinCurlCurlNode2DInt( actMat, isaxi_, upLagrangeForm );
-        }
-        
-        curlcurlNL->SetNonLinMethod( nonLinMethod_ );      
-        curlcurlNL->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
-        
-        BiLinFormContext * stiffContext = 
-          new BiLinFormContext( curlcurlNL, STIFFNESS );
-        stiffContext->SetPtPdes(this, this);   
-        stiffContext->SetResults( results_[0], results_[0],
-                                  actSDList, actSDList );     
-        assemble_->AddBiLinearForm( stiffContext);
-        
-        
-        //save bilinearForm
-        pdeBilinearForms_[actRegion][curlcurlNL->GetName()] = curlcurlNL;
-        
-        if ( regionNonLinType_[actRegion] == PERMEABILITY ) {
           // nonlinear RHS linearform!!
           LinearForm * rhsSource;
           if ( is3d_ ) {
@@ -301,7 +316,7 @@ DEFINE_LOG(magpde, "magpde")
             rhsSource = new nLinMagNode2D_linFormInt( actMat, isaxi_, 
                                                       upLagrangeForm);
           }
-
+          
           rhsSource->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
           LinearFormContext * rhsContext = 
             new LinearFormContext( rhsSource );
@@ -330,9 +345,9 @@ DEFINE_LOG(magpde, "magpde")
         pdeBilinearForms_[actRegion][curlcurl->GetName()] = curlcurl;
 
 
-        if ( nonLin_ == true ) {
-          // for nonlinear RHS linearform we need linear and nonlinear
-          // subdomains
+        if ( nonLin_ == true && isHysteresis_ == false ) {
+          // we need nonlinear RHS linearform for both linear and nonlinear
+          // subdomains; just in case of material nonlinearity!
           LinearForm * rhsSource;
 
           if ( is3d_ ) {
@@ -1643,30 +1658,52 @@ DEFINE_LOG(magpde, "magpde")
 //       }
 //       else {
 
-      CurlCurlNode2DInt* curlOp = NULL;
-      if ( regionNonLinType_[actRegionId] == HYSTERESIS 
-           ||  regionNonLinType_[actRegionId] == PERMEABILITY ) {
-        std::string bilinearName = "nLinCurlCurlNode2DInt";
-        curlOp = dynamic_cast<nLinCurlCurlNode2DInt*>(pdeBilinearForms_[actRegionId][bilinearName]);
-      } else {
-        curlOp = dynamic_cast<CurlCurlNode2DInt*>
-          (pdeBilinearForms_[actRegionId]["CurlCurlNode2DInt"]);
-      }
 
-      //set element info      
-      curlOp->ExtractElemInfo( it );
-      // case 1: element midpoint
-      if( ip == 0 ) {
-        Vector<Double> intPoint;
-        it.GetElem()->ptElem->GetCoordMidPoint(intPoint);
-        curlOp->SetIntPoint(intPoint);
-        curlOp->calcBMat(bMat, 0, CornerCoords);
-        curlOp->UnsetIntPoint();     
-      } else {
-        // case2: real integration point
-        curlOp->calcBMat(bMat, ip, CornerCoords);
-      }      
-      
+      if ( regionNonLinType_[actRegionId] == HYSTERESIS ) {
+        EXCEPTION("Magnetics with hysteresis currently not supported");
+//         std::string bilinearName = "nLinMagHystInt2D";
+//         nLinMagHystInt2D* curlHystOp;
+//         curlHystOp = dynamic_cast<nLinMagHystInt2D*>(pdeBilinearForms_[actRegionId][bilinearName]);
+
+//         //set element info      
+//         curlHystOp->ExtractElemInfo( it );
+
+//         // case 1: element midpoint
+//         if( ip == 0 ) {
+//           Vector<Double> intPoint;
+//           it.GetElem()->ptElem->GetCoordMidPoint(intPoint);
+//           curlHystOp->SetIntPoint(intPoint);
+//           curlHystOp->calcBMat(bMat, 0, CornerCoords);
+//           curlHystOp->UnsetIntPoint();     
+//         } else {
+//           // case2: real integration point
+//           curlHystOp->calcBMat(bMat, ip, CornerCoords);
+//         }      
+      }
+      else {
+        CurlCurlNode2DInt* curlOp = NULL;
+        if ( regionNonLinType_[actRegionId] == PERMEABILITY ) {
+          std::string bilinearName = "nLinCurlCurlNode2DInt";
+          curlOp = dynamic_cast<nLinCurlCurlNode2DInt*>(pdeBilinearForms_[actRegionId][bilinearName]);
+        } else {
+          curlOp = dynamic_cast<CurlCurlNode2DInt*>
+            (pdeBilinearForms_[actRegionId]["CurlCurlNode2DInt"]);
+        }
+        
+        //set element info      
+        curlOp->ExtractElemInfo( it );
+        // case 1: element midpoint
+        if( ip == 0 ) {
+          Vector<Double> intPoint;
+          it.GetElem()->ptElem->GetCoordMidPoint(intPoint);
+          curlOp->SetIntPoint(intPoint);
+          curlOp->calcBMat(bMat, 0, CornerCoords);
+          curlOp->UnsetIntPoint();     
+        } else {
+          // case2: real integration point
+          curlOp->calcBMat(bMat, ip, CornerCoords);
+        }      
+      }
     
       field = bMat * elSol;
       
@@ -1688,24 +1725,25 @@ DEFINE_LOG(magpde, "magpde")
                                Vector<Double>& field ) {
 
 
-    //first compute flux density
-    CalcFluxDensityAtIP( it, ip, field );
+
 
     RegionIdType actRegion = it.GetElem()->regionId;
   
     if ( regionNonLinType_[actRegion] == HYSTERESIS ) {
-      Vector<Double> bfield = field;
-      materials_[actRegion]->GetVectorHystVal( it.GetElem()->elemNum,
-                                               field ); 
-      //ComputeVectorHystVal( it.GetElem()->elemNum, bfield, field ); 
-      //GetVectorHystVal( it.GetPos(), field );
+      EXCEPTION("Magnetics with hysteresis currently not supported");
+//       materials_[actRegion]->GetVectorXHystVal( it.GetElem()->elemNum,
+//                                                field ); 
     }
     else if ( regionNonLinType_[actRegion] == PERMEABILITY ) {
       EXCEPTION("CalcHfieldAtIP for nonlinear BH curve not implemented");
     }
     else {
+      //first compute flux density
+      CalcFluxDensityAtIP( it, ip, field );
+
       Double reluctivity;
       materials_[actRegion]->GetScalar( reluctivity, MAG_RELUCTIVITY, Global::REAL);
+
       field *= reluctivity;
     }
     

@@ -110,20 +110,21 @@ namespace CoupledField
         Double Babs = B.NormL2();
 
         if ( isHysteresis_ ) {
-          //hysteresis modeling
+          EXCEPTION("Magnetics with hysteresis currently not supported");
+//           //hysteresis modeling
 
-          // Account for curl 
-          Double temp = B[0];
-          if ( isaxi_ ) {
-            B[0] = -B[1];
-            B[1] = temp;
-          } else {
-            B[0] = B[1];
-            B[1] = -temp;
-          }
-          UInt nrEl = ent1.GetElem()->elemNum;
-          reluctivity = ComputeDiffReluctivity( nrEl, B );
-          //std::cout << "Bfield:\n" << B << "\n nu=" << reluctivity << std::endl;
+//           // Account for curl 
+//           Double temp = B[0];
+//           if ( isaxi_ ) {
+//             B[0] = -B[1];
+//             B[1] = temp;
+//           } else {
+//             B[0] = B[1];
+//             B[1] = -temp;
+//           }
+//           UInt nrEl = ent1.GetElem()->elemNum;
+//           reluctivity = ComputeDiffReluctivity( nrEl, B );
+//           //std::cout << "Bfield:\n" << B << "\n nu=" << reluctivity << std::endl;
         }
         else {
           //nonlinear BH curve
@@ -174,9 +175,9 @@ namespace CoupledField
   Double nLinCurlCurlNode2DInt::ComputeDiffReluctivity( UInt nrEl, Vector<Double>& Bvec )
   {
 
-    Double diffRelucVal;
+    Double diffRelucVal = 1.0;
 
-    diffRelucVal = ptMaterial->ComputeScalarDiffVal( nrEl, Bvec );
+    //    diffRelucVal = ptMaterial->ComputeScalarDiffVal( nrEl, Bvec );
 
     if (  diffRelucVal <= 0.0 ) 
       EXCEPTION("Negative effective permeability");

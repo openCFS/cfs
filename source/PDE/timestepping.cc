@@ -84,7 +84,7 @@ namespace CoupledField {
             retSolType = FLUIDMECH_PRESSURE_DERIV_2;
             break;
           case MECH_DISPLACEMENT:
-            retSolType = MECH_DISPLACEMENT_DERIV_2;
+            retSolType = MECH_ACCELERATION;
             break;
           case ACOU_PRESSURE:
             retSolType = ACOU_PRESSURE_DERIV_2;
@@ -111,6 +111,8 @@ namespace CoupledField {
     {
       case MECH_VELOCITY:
         return true;
+      case MECH_ACCELERATION:
+        return true;
       case SMOOTH_VELOCITY:
         return true;
       case BUBBLE_RADIUS_DERIV_1:
@@ -123,10 +125,34 @@ namespace CoupledField {
         return true;
       case FLUIDMECH_VELOCITY_DERIV_2:
         return true;
+      case FLUIDMECH_PRESSURE_DERIV_1:
+        return true;
+      case FLUIDMECH_PRESSURE_DERIV_2:
+        return true;
       case ACOU_POTENTIAL_DERIV_1:
         return true;
       default:
+        break;
+    }
+    switch (solType)
+    {
+      case MECH_DISPLACEMENT:
         return false;
+      case SMOOTH_DISPLACEMENT:
+        return false;
+      case BUBBLE_RADIUS:
+        return false;
+      case ACOU_PRESSURE:
+        return false;
+      case FLUIDMECH_VELOCITY:
+        return false;
+      case FLUIDMECH_PRESSURE:
+        return false;
+      case ACOU_POTENTIAL:
+        return false;
+      default:
+        EXCEPTION("TimeStepping::isDeriv() is not implemented for this solution Type:\n" \
+            << SolutionTypeEnum.ToString(solType))
     }
   }
 

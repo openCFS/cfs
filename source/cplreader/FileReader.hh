@@ -28,7 +28,8 @@ namespace CoupledField
   public:
 
     //! Constructor
-    FileReader(const std::string& name, const UInt dim, const UInt numFiles);
+    FileReader(const std::string& name, const UInt dim, \
+        const UInt numFiles, const UInt startIndex);
 
     //! Deconstructor
     virtual ~FileReader();
@@ -80,6 +81,12 @@ namespace CoupledField
     //! return dimension of grid
     virtual UInt GetDim() { return dim_;}
 
+    //! return first time step number
+    virtual UInt GetStartIndex()
+    {
+      return startIndex_;
+    }
+
     //! Get node groups
     virtual void GetNodeGroups(std::map<std::string,
                                         std::vector<UInt> >& nodeGroups);
@@ -129,6 +136,9 @@ namespace CoupledField
 
     //! Number of time steps
     UInt numSteps_;
+
+    //! First time step
+    UInt startIndex_;
 
     // Maximum number of nodes per element
     UInt maxNumElemNodes_;

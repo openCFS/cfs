@@ -13,6 +13,8 @@
 #include "MatVec/vector.hh"
 #include "General/environment.hh"
 #include "Materials/baseMaterial.hh"
+#include "ODESolve/BaseODESolver.hh" 
+#include "ODEDescr/BaseODEProblem.hh"
 
 typedef boost::multi_array<Matrix<double>, 1> array1_Matrix;
 typedef boost::multi_array<Matrix<double>, 2> array2_Matrix;
@@ -91,6 +93,10 @@ namespace CoupledField {
                                          Vector<Double>& elecField, 
                                          UInt elemIdx );
 
+    //! computes the volume fractions in an explicit way
+    void ComputeVolumeFractionsImplicit( Vector<Double>& stress, 
+                                         Vector<Double>& elecField, 
+                                         UInt elemIdx );
 
     //!
     void ComputeDrivingForces( Vector<Double>& stress, Vector<Double>& elecField,
@@ -150,6 +156,7 @@ namespace CoupledField {
     array1_Vector Ps_;
     array1_Vector Ss_;
     array1_Matrix dTensor_;
+    array1_Matrix cTensor_;
     array1_Matrix sTensor_;
     array1_Matrix epsTensor_;
 
@@ -169,6 +176,7 @@ namespace CoupledField {
     arrayD3 transformationRates_;
 
     Matrix<Double> dTensorOrig_;
+    Matrix<Double> cTensorOrig_;
     Matrix<Double> sTensorOrig_;
     Matrix<Double> epsTensorOrig_;
     Matrix<Double> effMechStiffTensor_;
@@ -183,6 +191,15 @@ namespace CoupledField {
     BaseMaterial* mechMat_;
     BaseMaterial* elecMat_;
 
+    //! Pointer to ODE for piezo switching
+    BaseODEProblem *ptODEPiezo_;
+
+    //! Pointer to the solver class for ode's
+    BaseODESolver *ptODESolver_;
+
+    StdVector<Double> yInitOut_;
+
+    bool explicit_;
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

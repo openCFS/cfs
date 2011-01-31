@@ -4,6 +4,7 @@ SET(ODEDESCR_SRCS
     KellerMiksis.cc
     LinearKellerMiksis.cc
     RPNNP.cc
+    piezoSwitch.cc
    )
 
 ADD_LIBRARY(odedescr STATIC ${ODEDESCR_SRCS})

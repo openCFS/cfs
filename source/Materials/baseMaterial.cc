@@ -13,6 +13,7 @@
 #include "MatVec/matrix.hh"
 #include "Utils/coordSystem.hh"
 #include "Utils/preisach.hh"
+#include "Utils/simplePreisachInv.hh"
 #include "Domain/entityList.hh"
 #include "Utils/piezoMicroModel.hh"
 #include "Utils/piezoMicroModelBK.hh"
@@ -474,91 +475,65 @@ namespace CoupledField
   }
 
 
-  Double BaseMaterial::ConvertVec2ScalarWithSign( Vector<Double> & vecVal ) {
-
-    Double absVal, maxVal;
-    UInt idx;
-
-    absVal = vecVal.NormL2();
-    idx = 0;
-    maxVal = abs( vecVal[0] );
-
-    for ( UInt i=1; i<vecVal.GetSize(); i++ ) {
-      if ( abs(vecVal[i]) > maxVal ) {
-        maxVal = vecVal[i];
-        idx++;
-      }
-    }
-//     if ( vecVal[idx] < 0  )
-//       absVal *= -1.0;
-
-    return absVal;
-  }
+  void BaseMaterial::InitVecHyst( UInt numElemSD, shared_ptr<ElemList> actSDList,
+                                  UInt dim ) {
 
 
-  void BaseMaterial::SetPreviousHystVal( UInt nrElem, Vector<Double>& Xvec) {
-
-    UInt idx = globalElem2Local_[nrElem];
-
-    Double Xval = ConvertVec2ScalarWithSign(Xvec);
-    // first compute the differential material value
-    Xprevious_[idx] = Xval;
-    Yprevious_[idx] = hyst_->computeValue( Xval, idx );
-  }
-
-  Double BaseMaterial::ComputeScalarDiffVal( UInt nrElem, Vector<Double>& Xvec) {
-
-    Double matDiff, eps;
-
-    UInt idx = globalElem2Local_[nrElem];
-
-    Double Xval     = ConvertVec2ScalarWithSign(Xvec);
-    Double Ycurrent = hyst_->computeValue(Xval, idx);
-
-    std::cout << "B=" << Xval << "  H=" << Ycurrent << std::endl;
-    //compute differential material parameter
-    Double dX = Xval - Xprevious_[idx];
-    Double dY = Ycurrent -Yprevious_[idx];
-
-    if ( (abs(dY) < 1e-12) || (abs(dX) < 1e-10) ) {
-      //std::cout << "Use start eps" << std::endl;
-      if ( materialDatabaseName_ == "Electrostatic" )
-        GetScalar(eps,ELEC_PERMITTIVITY,Global::REAL);
-      else if ( materialDatabaseName_ == "Electromagnetics" )
-        GetScalar(eps,MAG_RELUCTIVITY,Global::REAL);
-
-      matDiff = eps;
+    std::string val = stringParams_[HYST_MODEL];
+    if ( val != "preisach" ) {
+      EXCEPTION( "Currently we just support Preisach Hysteresis Model" );
     }
     else {
-      matDiff = dY / dX;
+      isHysteresis_ = true;
+
+      Double Xsat, Ysat;
+      GetScalar(Xsat, X_SATURATION, Global::REAL);
+      GetScalar(Ysat, Y_SATURATION, Global::REAL);
+      Matrix<Double> weights;
+      GetTensor(weights,  PREISACH_WEIGHTS, Global::REAL);
+      bool isVirgin = true; 
+
+      dimVecHyst_ = dim;
+      hyst_ = new SimplePreisachInv(numElemSD, Xsat, Ysat, weights, isVirgin);
+      if ( dim == 2 ) 
+        hystY_ = new SimplePreisachInv(numElemSD, Xsat, Ysat, weights, isVirgin);
+      else if ( dim == 3) {
+        hystY_ = new SimplePreisachInv(numElemSD, Xsat, Ysat, weights, isVirgin);
+        hystZ_ = new SimplePreisachInv(numElemSD, Xsat, Ysat, weights, isVirgin);
+      }
+
+      // set map: global to local element number
+      EntityIterator it = actSDList->GetIterator();
+      UInt iel = 0;
+      UInt globalElNr;
+      for ( it.Begin(); !it.IsEnd(); it++, iel++) {
+	globalElNr = it.GetElem()->elemNum;
+	globalElem2Local_[globalElNr] = iel;
+      }
     }
 
-    
-    std::cout << "dB=" << dX << "  dH=" << dY <<  "  dnu=" << matDiff << std::endl << std::endl;
+    //allocate memory for previous results, needed for the
+    //effective material parameter formulation
+    vecXprevious_.Resize(dim,numElemSD);
+    vecYprevious_.Resize(dim,numElemSD);
+    vecXprevious_.Init();
+    vecYprevious_.Init();
 
-//     GetScalar(eps,MAG_RELUCTIVITY,Global::REAL);
-//     matDiff = eps;
+    actDiffVal4VecHyst_.Resize(dim,numElemSD);
+    previousDiffVal4VecHyst_.Resize(dim,numElemSD);
+    Double nu;
+    GetScalar(nu,MAG_RELUCTIVITY,Global::REAL);
+    for (UInt i=0; i<dim; i++)
+      for (UInt j=0; j<numElemSD; j++)
+        previousDiffVal4VecHyst_[i][j] = nu;
 
-    return matDiff;
-  }
-
-  Double BaseMaterial::ComputeScalarHystVal( UInt nrElem, Vector<Double>& Xvec) {
-
-    UInt idx = globalElem2Local_[nrElem];
-
-    Double Xval = ConvertVec2ScalarWithSign(Xvec);
-    Double Yval = hyst_->computeValue( Xval, idx );
-    
-    return Yval;
   }
 
 
   Double BaseMaterial::GetScalarHystVal( UInt nrElem ) {
 
     UInt idx = globalElem2Local_[nrElem];
-    Double Yval = hyst_->getValue( idx );
-
-    return Yval;
+    return hyst_->getValue( idx );
   }
 
 

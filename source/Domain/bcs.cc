@@ -36,6 +36,9 @@ namespace CoupledField {
   InhomDirichletBc::InhomDirichletBc() {
   }
 
+  InhomDirichFileBc::InhomDirichFileBc() {
+  }
+
   InhomNeumannBc::InhomNeumannBc() {
   }
 
@@ -51,6 +54,20 @@ namespace CoupledField {
   {
     std::stringstream ss;
     ss << HomDirichletBc::ToString() << ", value=" << value << ", phase=" << phase;
+    return ss.str();
+  }
+
+  void InhomDirichFileBc::ToInfo(PtrParamNode in) const
+  {
+    HomDirichletBc::ToInfo(in);
+    in->Get("inputId")->SetValue(inputId);
+  }
+
+
+  std::string InhomDirichFileBc::ToString()
+  {
+    std::stringstream ss;
+    ss << HomDirichletBc::ToString() << ", inputId=" << inputId;
     return ss.str();
   }
 

@@ -34,7 +34,7 @@ is how to conveniently perform this operation:
 \begin{itemize}
 \item go to the working copy directory
 \item issue: {\tt OLD\_REPO=\$(cat .svn/entries | grep 'CFS++/trunk')}
-\item issue: {\tt svn --relocate \$OLD\_REPO https://lse17.e-technik.uni-erlangen.de:2001/svn/CFS++/trunk}
+\item issue: {\tt svn switch --relocate \$OLD\_REPO https://lse17.e-technik.uni-erlangen.de:2001/svn/CFS++/trunk}
 \item repeat analogue steps for CFSDEPS and testsuite
 \end{itemize}
 
@@ -215,7 +215,7 @@ Before configuring the current build directory we need to specify which compiler
 export CC=gcc; export CXX=g++; export FC=gfortran
 \end{verbatim}
 
-for example.
+for example. It is of utmost importance that the correct versions of gcc and g++ are available under these names in the system PATH. This is necessary since other compilers (e.g. Intel) depend on the GNU runtime libraries and by default determine the path to these libraries by checking the gcc and g++ executables in the PATH.
 
 Please note that once a build directory has been configured with a certain set of compilers it not advisable or even impossible to switch to a different set of compilers. This is due to the fact, that CMake generates a lot of flags tailored for each compiler. If you want to use a different compiler either create a new build directory or delete all contents of a build directory.
 
@@ -318,6 +318,14 @@ If you don't need it anymore set
 unset VERBOSE
 \end{verbatim}
 
+\subsubsection{Obtaining a list of available targets}
+
+Once the build tree has been configured a list of make targets can be aquired using
+
+\begin{verbatim}
+make help
+\end{verbatim}
+
 \subsubsection{Specifying a different compiler}
 
 A compiler can only be specified to CMake the first time a build tree is configured. This is due to the fact, that CMake recognizes certain compilers and internally sets some flags specific to that compilers. If the tree has been previously configured it is best to do a
@@ -378,6 +386,17 @@ source /home/data/programs/intel/fc(e for 64Bit!)/COMPILER_VERSION/bin/ifortvars
 
 \todo[inline]{Put                           info                          from
 \url{https://lse17.e-technik.uni-erlangen.de:2001/trac/wiki/CMake} here.}
+
+\subsection{Specifics for Intel Compiler}
+
+The Intel 11.1 compiler needs the libstdc++.so.5, which is not available on all
+platforms anymore. Especially on Ubuntu $>=$ 8.04 the corresponding library has
+to be installed by hand (cf.
+\url{http://software.intel.com/en-us/articles/using-intel-compilers-for-linux-with-ubuntu/}).
+
+Also be sure to use the correct GNU compiler in conjunction with the Intel
+compiler, since compatibility issues can arise (cf.
+\ref{sec:compiler_compat_matrix})
 
 \subsection{Compiler Compatibility Matrix}
 \label{sec:compiler_compat_matrix}

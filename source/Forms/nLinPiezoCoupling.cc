@@ -228,7 +228,7 @@ namespace CoupledField {
       // std::cout << "\n coupling tensor depends on electric polarization \n" << std::endl;
       //      std::cout << "Efield:\n " << Efield << std::endl;
       UInt nrEl = ent1_.GetElem()->elemNum;
-      Double actP = matDataElec_->ComputeScalarHystVal( nrEl, Efield ); //[dirP_] );
+      Double actP = matDataElec_->ComputeScalarHystVal( nrEl, Efield[dirP_] );
       Double scaleFactor = actP / Psat_;
       dMat *= scaleFactor;
       //     std::cout << " scaleFactor= " <<  scaleFactor << std::endl;
