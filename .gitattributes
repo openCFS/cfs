@@ -47,6 +47,8 @@ cmake_modules/platform_defaults_sedici.cmake -text
 cmake_modules/platform_defaults_woody.cmake -text
 ctest_scripts/CTestConfig.cmake -text
 ctest_scripts/README.txt svneol=native#text/plain
+ctest_scripts/ctest_eam_gcc_nightly_debug.cmake -text
+ctest_scripts/ctest_eam_gcc_nightly_release.cmake -text
 ctest_scripts/ctest_mac_gcc_experimental.cmake -text
 ctest_scripts/ctest_mac_icc_experimental.cmake -text
 ctest_scripts/ctest_rom_gcc_nightly.cmake -text
@@ -70,6 +72,7 @@ ctest_scripts/ctest_update_cfsdeps_klu.cmake -text
 ctest_scripts/ctest_update_testsuite_klu.cmake -text
 ctest_scripts/experimental_test_mac.sh svneol=native#text/plain
 ctest_scripts/known_to_fail_gcc34.txt svneol=native#text/plain
+ctest_scripts/nightly_test_eamc080.sh -text
 ctest_scripts/nightly_test_rom.sh -text
 ctest_scripts/nightly_test_sedici.sh -text
 ctest_scripts/nightly_test_ubuntu804.sh -text
