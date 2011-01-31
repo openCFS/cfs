@@ -17,6 +17,8 @@
 #include "PDE/SinglePDE.hh"
 #include "DataInOut/Logging/cfslog.hh"
 
+#include <boost/lexical_cast.hpp>
+
 using namespace CoupledField;
 
 using std::complex;
@@ -164,14 +166,18 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, ParamNodeList &pn_de
             }
 
             double initial = curr_design_pn->Get("initial")->As<double>();
-            LOG_DBG2(designSpace) << "add design " << dt << ":" << DesignElement::type.ToString(dt)  << " initial=" << initial;
+            LOG_DBG2(designSpace) << "add design " << dt << ":" << DesignElement::type.ToString(dt)  
+                                  << " initial=" << boost::lexical_cast<std::string>(initial);
                         
 
 
             for(unsigned int e = 0; e < n; e++)
             {
               DesignElement de(curr_design_pn, elems[e]);
-              de.SetDesign(initial);
+              // simple extension: if the passed value is smaller
+              // than 0.0 (which makes no sense as the element contribution
+              // is always positive), we put a random number -> random initial design
+              de.SetDesign(initial < 0.0 ? ((rand()%100 + 10)/110.0) : initial);
               
               data.Push_back(de);
 

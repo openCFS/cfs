@@ -148,7 +148,7 @@ bool Function::ReadTensor(PtrParamNode pn, Matrix<double>& matrix)
     double poisson = tens->Get("real")->Get("poissonNumber")->As<double>();
 
     Matrix<double> tmp(6,6); // always 3D first
-    MechanicMaterial::CalcIsotropicStiffnessTensorFromEAndPoisson(matrix, emod, poisson);
+    MechanicMaterial::CalcIsotropicStiffnessTensorFromEAndPoisson(tmp, emod, poisson);
     MechanicMaterial::ComputeSubTensor(matrix, domain->GetSinglePDE("mechanic")->GetSubTensorType(), tmp);
 
     tensor_read = true;
