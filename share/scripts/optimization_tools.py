@@ -6,7 +6,7 @@ import numpy
 import numpy.linalg
 import math
 import os
-#from lxml import etree
+from lxml import etree
 
 from cfs_utils import *
 from distutils.command.build_scripts import first_line_re
