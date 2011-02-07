@@ -1349,24 +1349,27 @@ namespace CoupledField {
         if(warnSlaveNodes.size() > 0)
         {
           // see comment above at declaration of warnSlaveNodes (at step 2)
-          std::stringstream outt;
-          std::ostream_iterator<UInt> output( outt, " " );
+          std::stringstream outss;
+          std::ostream_iterator<UInt> output( outss, " " );
           std::copy(warnSlaveNodes.begin(), warnSlaveNodes.end(), output );
           
           std::string outstring("EqnMap::CalcNodalEquations: Constraint nodes with numbers ");
-          outstring.append(outt.str());
+          outstring.append(outss.str());
           outstring.append("are not contained in any of the regions for this PDE");
-          info->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->Get("constraint_warning")->SetValue(outstring);
+          // somehow this does not output to cout...?
+          info->Get("PDE")->Get(ParamNode::WARNING)->Get("constraint_warning")->SetValue(outstring);
           
           // also output to cout
-          WARN(outstring);
+          // using the WARN macro here leads to insertion of the warning into the info.xml twice
+          std::cout << "WARNING: some constraint nodes are not contained in any" << std::endl
+                    << "         of the regions of this PDE (see info.xml for details)" << std::endl;
         }
 
 
         // ------
         // STEP 3
         // ------
-        warnSlaveNodes.clear();
+        warnSlaveNodes.clear(); // see comment above
         Matrix<UInt> countNodes;
         countNodes.Resize( numLocNodes_, dofsPerNode );
         countNodes.Init();
@@ -1404,16 +1407,20 @@ namespace CoupledField {
         if(warnSlaveNodes.size() > 0)
         {
           // see comment above at declaration of warnSlaveNodes (at step 2) 
-          std::stringstream outt;
-          std::ostream_iterator<UInt> output( outt, " " );
+          std::stringstream outss;
+          std::ostream_iterator<UInt> output( outss, " " );
           std::copy(warnSlaveNodes.begin(), warnSlaveNodes.end(), output );
-          std::string outstring("EqnMap::CalcNodalEquations: Homogen. Dirichlet nodes ");
-          outstring.append(outt.str());
-          outstring.append("are not contained in any of the regions for this PDE");
-          info->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->Get("homogen_dirichlet_warning")->SetValue(outstring);          
           
+          std::string outstring("EqnMap::CalcNodalEquations: Homogen. Dirichlet nodes ");
+          outstring.append(outss.str());
+          outstring.append("are not contained in any of the regions for this PDE");
+          // somehow this does not output to cout...?
+          info->Get("PDE")->Get(ParamNode::WARNING)->Get("homogen_dirichlet_warning")->SetValue(outstring);
+                    
           // also output to cout
-          WARN(outstring);
+          // using the WARN macro here leads to insertion of the warning into the info.xml twice
+          std::cout << "WARNING: some homogen. Dirichlet nodes are not contained in any" << std::endl
+                    << "         of the regions of this PDE (see info.xml for details)" << std::endl;
         }
 
 
