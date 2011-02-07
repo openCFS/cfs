@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # This collects some tool routines for optimization
 
 
@@ -7,7 +6,7 @@ import numpy
 import numpy.linalg
 import math
 import os
-#from lxml import etree
+from lxml import etree
 
 from cfs_utils import *
 from distutils.command.build_scripts import first_line_re
@@ -375,7 +374,13 @@ def refine_density(infile, outfile):
   x, y, z = getDim(org)
   dim = org.ndim
   # we cannot handle 3D density files with z is one layer as these are identified as 2D :(
-  out = numpy.zeros((x*2, y*2, cond(z == 1, 1, z*2)))
+  out = numpy.zeros((x*2, y*2))
+
+  # In 3D we need to overwrite with 3D array or else setNDArrayEntry will not work properly
+  if(org.ndim == 3):
+    out = numpy.zeros((x*2, y*2, z*2))
+
+  # print "debug: x=" + str(x) + ", y=" + str(y) + ", z=" + str(z) + ", dim=" + str(dim)
 
   for i in range(x):
     for j in range(y):

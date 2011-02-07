@@ -15,11 +15,10 @@ namespace CoupledField
 {
   using std::string;  
 
-  //! Class, that is derived from class FileType for reading mesh-input data,
-  //! which is produced by Ansys mkmesh-interface. 
+  /** class that generates a mesh inside cfs for regular 
+   * rectangular/ cubic domains */ 
   class InternalMesh : virtual public SimInput 
   {
-
   public:
 
     // =======================================================================
@@ -236,6 +235,8 @@ namespace CoupledField
     //! Pointer to xml tree created from input file
     PtrParamNode xml_;
 
+    /** Info Node base */
+    PtrParamNode info_;
     //@}
 
   };

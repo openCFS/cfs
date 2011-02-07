@@ -22,7 +22,7 @@ namespace CoupledField {
     MechanicMaterial();
 
     //! Destructor
-    ~MechanicMaterial();
+    virtual ~MechanicMaterial();
 
     //! Trigger finalization of mataterial (calculation of rotated matrices)
     void Finalize();

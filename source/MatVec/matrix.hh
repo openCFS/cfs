@@ -79,7 +79,7 @@ namespace CoupledField
     //    Matrix( const Matrix<T2> &  );
 
       //! Destructor
-    ~Matrix( );
+    virtual ~Matrix( );
       
     //! Initialize matrix with a given scalar entry.
 

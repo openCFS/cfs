@@ -40,7 +40,6 @@
 #include "MatVec/stdmatrix.hh"
 #include "Materials/mechanicMaterial.hh"
 
-using namespace CoupledField;
 using namespace std;
 
 DECLARE_LOG(conditions)
@@ -48,6 +47,9 @@ DEFINE_LOG(conditions, "conditions")
 
 DECLARE_LOG(em)
 DEFINE_LOG(em, "ersatzMaterial")
+
+
+namespace CoupledField {
 
 Enum<ErsatzMaterial::Method> ErsatzMaterial::method;
 
@@ -3240,3 +3242,6 @@ template double ErsatzMaterial::CalcU1KU2<double>(TransferFunction* tf, StdVecto
 template double ErsatzMaterial::CalcU1KU2<std::complex<double> >(TransferFunction* tf, StdVector<SingleVector*>& u1,
     Application app, StdVector<SingleVector*>& u2,
     DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f,  int res_idx);
+
+
+} // end of namespace
