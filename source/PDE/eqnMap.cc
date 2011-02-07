@@ -6,6 +6,9 @@
 
 #include <iostream>
 #include <iomanip>
+#include <set>
+#include <sstream>
+
 
 #include "Domain/elem.hh"
 #include "Elements/basefe.hh"
@@ -1279,6 +1282,12 @@ namespace CoupledField {
         // ------
         // STEP 2
         // ------
+        // we use a set here to collect all nodes with warnings about different things
+        // the nodes appear more often, that is why we do not use a StdVector
+        // the problem with the behavior before this change was that for certain problems,
+        // several thousand warnings were issued (up to 15MB of text)
+        // now, we only make one output and save a lot of space and time
+        std::set<UInt> warnSlaveNodes;
 
         // Check if any inhom. constraint is defined for the current
         // result
@@ -1312,38 +1321,52 @@ namespace CoupledField {
             // lead to some errors in the calculation
             // I have marked all lines corresponding to this change with the marker
             // SECOND_REGION_INDEX_CHECK
-            while (startIndex < slaveNodes.GetSize() && mesh2PdeNode_[slaveNodes[startIndex]-1] < 0) {
-              WARN("EqnMap::CalcNodalEquations: Constraint node "
-                   << "nr. " << slaveNodes[startIndex]
-                   << " is not contained in any of the regions for this PDE");
-
-              startIndex++;
+            const UInt slNodesSize(slaveNodes.GetSize());
+            while (startIndex < slNodesSize && mesh2PdeNode_[slaveNodes[startIndex]-1] < 0) 
+            {
+              // insert the node number and increment the index at once!
+              warnSlaveNodes.insert(slaveNodes[startIndex++]);
             }
             // SECOND_REGION_INDEX_CHECK: if statements and consequent decrement of startIndex
-            if(startIndex == slaveNodes.GetSize()) --startIndex;
+            if(startIndex == slNodesSize) --startIndex;
             
             // NOTE: at the moment we assume that slave and master nodes
             // are the same, therefore we start with the second node
             // within the master / slave node array
-            for ( UInt iNode = startIndex+1; 
-                  iNode < slaveNodes.GetSize(); 
-                  iNode++ ) {
+            for ( UInt iNode = startIndex+1; iNode < slNodesSize; ++iNode )
+            {
               Integer localNode = mesh2PdeNode_[slaveNodes[iNode]-1];
               if( localNode > 0) {
                 actMap[localNode-1] [slaveDof-1] = 0;
               } else {
-                WARN("EqnMap::CalcNodalEquations: Constraint node "
-                     << "nr. " << slaveNodes[iNode]
-                     << " is not contained in any of the regions for this PDE");
+                warnSlaveNodes.insert(slaveNodes[iNode]);
               }
             }
           }
+        }
+
+        // output all numbers of missed nodes at once...
+        if(warnSlaveNodes.size() > 0)
+        {
+          // see comment above at declaration of warnSlaveNodes (at step 2)
+          std::stringstream outt;
+          std::ostream_iterator<UInt> output( outt, " " );
+          std::copy(warnSlaveNodes.begin(), warnSlaveNodes.end(), output );
+          
+          std::string outstring("EqnMap::CalcNodalEquations: Constraint nodes with numbers ");
+          outstring.append(outt.str());
+          outstring.append("are not contained in any of the regions for this PDE");
+          info->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->Get("constraint_warning")->SetValue(outstring);
+          
+          // also output to cout
+          WARN(outstring);
         }
 
 
         // ------
         // STEP 3
         // ------
+        warnSlaveNodes.clear();
         Matrix<UInt> countNodes;
         countNodes.Resize( numLocNodes_, dofsPerNode );
         countNodes.Init();
@@ -1355,12 +1378,10 @@ namespace CoupledField {
             GetNodesOfEntities( nodes, actHdBcList[i]->entities );
             UInt actDof = actHdBcList[i]->dof;
 
-            for( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
+            for( UInt iNode = 0, nnodes = nodes.GetSize(); iNode < nnodes; iNode++ ) {
               // Check if homDirichletNode belongs to one of my subdomains
               if ( mesh2PdeNode_[nodes[iNode]-1]-1 < 0 ) {
-                WARN("CalcNodalEquations: Homogen. Dirichlet node "
-                     << "nr. " << nodes[iNode]
-                     << " is not contained in any of the regions for this PDE");
+                warnSlaveNodes.insert(nodes[iNode]);
               }
               else if ( countNodes[mesh2PdeNode_[nodes[iNode]-1]-1]
                                    [actDof-1] != 0 ) {
@@ -1379,7 +1400,21 @@ namespace CoupledField {
           }
         }
 
-
+        // output all numbers of missed nodes at once...
+        if(warnSlaveNodes.size() > 0)
+        {
+          // see comment above at declaration of warnSlaveNodes (at step 2) 
+          std::stringstream outt;
+          std::ostream_iterator<UInt> output( outt, " " );
+          std::copy(warnSlaveNodes.begin(), warnSlaveNodes.end(), output );
+          std::string outstring("EqnMap::CalcNodalEquations: Homogen. Dirichlet nodes ");
+          outstring.append(outt.str());
+          outstring.append("are not contained in any of the regions for this PDE");
+          info->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->Get("homogen_dirichlet_warning")->SetValue(outstring);          
+          
+          // also output to cout
+          WARN(outstring);
+        }
 
 
         // -------
@@ -1634,7 +1669,7 @@ namespace CoupledField {
 
     for( listIt = elemIntMappedList_.begin();
          listIt != elemIntMappedList_.end();
-         listIt++ ) {
+         ++listIt ) {
 
       // Remeber current result and list of elementLists
       const ResultInfo & actRes = listIt->first;
