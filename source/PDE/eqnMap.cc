@@ -1356,13 +1356,8 @@ namespace CoupledField {
           std::string outstring("EqnMap::CalcNodalEquations: Constraint nodes with numbers ");
           outstring.append(outss.str());
           outstring.append("are not contained in any of the regions for this PDE");
-          // somehow this does not output to cout...?
-          info->Get("PDE")->Get(ParamNode::WARNING)->Get("constraint_warning")->SetValue(outstring);
-          
-          // also output to cout
-          // using the WARN macro here leads to insertion of the warning into the info.xml twice
-          std::cout << "WARNING: some constraint nodes are not contained in any" << std::endl
-                    << "         of the regions of this PDE (see info.xml for details)" << std::endl;
+
+          info->Get("PDE")->Get("constraint_warning")->Get(ParamNode::WARNING)->SetValue(outstring);
         }
 
 
@@ -1414,13 +1409,8 @@ namespace CoupledField {
           std::string outstring("EqnMap::CalcNodalEquations: Homogen. Dirichlet nodes ");
           outstring.append(outss.str());
           outstring.append("are not contained in any of the regions for this PDE");
-          // somehow this does not output to cout...?
-          info->Get("PDE")->Get(ParamNode::WARNING)->Get("homogen_dirichlet_warning")->SetValue(outstring);
-                    
-          // also output to cout
-          // using the WARN macro here leads to insertion of the warning into the info.xml twice
-          std::cout << "WARNING: some homogen. Dirichlet nodes are not contained in any" << std::endl
-                    << "         of the regions of this PDE (see info.xml for details)" << std::endl;
+
+          info->Get("PDE")->Get("homogen_dirichlet_warning")->Get(ParamNode::WARNING)->SetValue(outstring);
         }
 
 
