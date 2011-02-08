@@ -156,13 +156,10 @@ namespace CoupledField
     template <class TYPE>
     void CalcEnergy( shared_ptr<BaseResult> vals );
 
-    //computes mechanical stresses
+    /** common implementation for element stresses and strains as vectors
+     * @param ss either MECH_STRESS or MECH_STRAIN */
     template <class TYPE>
-    void CalcStresses(  shared_ptr<BaseResult> vals );
-
-    //computes mechanical strains
-    template <class TYPE>
-    void CalcStrains(  shared_ptr<BaseResult> vals );
+    void CalcStressAndStrain(shared_ptr<BaseResult> vals, SolutionType ss);
 
     //! compute volume above a deformed surface
     template <class TYPE>

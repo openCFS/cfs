@@ -292,7 +292,7 @@ namespace CoupledField {
 //    *cla << newComplexMat->ToString();
 
 
-    exit(-1);
+    EXCEPTION("exit(-1)");
 
     // ... TO BE IMPLEMENTED ...
 
