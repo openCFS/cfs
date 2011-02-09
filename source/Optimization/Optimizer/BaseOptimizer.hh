@@ -112,7 +112,7 @@ namespace CoupledField
      * constraint (therefore multiple instances of Scale). It does not alter the scalar or gradients
      * but it keeps the designs for reuse. Note that an external optimizer might do objective/ scalar
      * constraint evaluations and gradient evaluations for individual design sets! Therefore we store
-     * such many designs. Bu they are small against the full PDE. */
+     * such many designs. But they are small against the full PDE. */
     class Scale
     {
     public:
@@ -144,6 +144,9 @@ namespace CoupledField
       /** The tolerance as fraction before we rescale. 0.0 is only initial autoscale or no autoscale  */
       double tol;
       
+      /** do we do logarithmic scaling */
+      bool logscale;
+
       /** The optimal scaling for the design */
       DesignMemory opt_scaling;
       

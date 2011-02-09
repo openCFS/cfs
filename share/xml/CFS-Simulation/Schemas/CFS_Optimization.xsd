@@ -366,10 +366,12 @@
               <autoscale target="10" tolerance="0.5" manual="1.0"/>-->
             <xsd:element name="autoscale" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
-                <!-- 0.0 is disabled and not allowed -->                
-                <xsd:attribute name="target" use="required" type="xsd:float"/>
+                <!-- 0.0 means no target, but eventually logscaling  -->                
+                <xsd:attribute name="target" use="optional" type="xsd:float" default="0.0"/>
                 <!-- restart optimizer of target is too far. 0.0 is disabled -->
                 <xsd:attribute name="tolerance" use="optional" default="0.0" type="xsd:float"/>
+                <!-- additional, only or not at all: logarithmic scaling/damping -->
+                <xsd:attribute name="logscale" use="optional" type="xsd:boolean" default="false"/>
               </xsd:complexType>
             </xsd:element>
             

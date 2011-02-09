@@ -23,6 +23,7 @@ DEFINE_LOG(optimizer, "optimizer")
 BaseOptimizer::Scale::Scale(BaseOptimizer* base, PtrParamNode autoscale, double manual_scale, bool no_autoscale)
  : target(0.0),
    tol(0.0),
+   logscale(false),
    opt_scaling(DesignMemory(-1, 0.0)),
    scaling(DesignMemory(-1, 0.0)),
    current(DesignMemory(-1, 0.0)),
@@ -34,12 +35,13 @@ BaseOptimizer::Scale::Scale(BaseOptimizer* base, PtrParamNode autoscale, double 
   {
     target = autoscale->Get("target")->As<Double>();
     
-    if(target == 0.0) 
-      throw Exception("A target of 0.0 disabled autoscaling");
     if(manual_scale != 0.0 && manual_scale != 1.0) 
       throw Exception("Don't give explicit objective scaling with autoscale");
 
     tol    = autoscale->Get("tolerance")->As<Double>();
+
+    logscale = autoscale->Get("logscale")->As<bool>();
+
     // Cannot CalcAutoscale() has to be done in PostInit()
   }
   else
@@ -61,19 +63,24 @@ void BaseOptimizer::Scale::PostInit()
 
 void BaseOptimizer::Scale::CalcAutoscale()
 {
-  if(target == 0.0) return;
-  
+  if(target == 0.0)
+  {
+    autoscale_ = false;
+    scaling.value = 1.0;
+    return;
+  }
+
   LOG_DBG(optimizer) << "Scale:CalcAutoscale() enter";
   
   // save the current tolerance and temporarily set to to 0 so we can call common methods
   double tol_save = tol;
   tol = 0.0;
 
-  // We need a double design and gradient array. We use temporay ones  
+  // We need a double design and gradient array. We use temporary ones
  
-  // evalue with the current (initial) design. Use this temporary gradient space
+  // evaluate with the current (initial) design. Use this temporary gradient space
   StdVector<double> grad(base_->optimization->GetDesign()->GetNumberOfVariables());
-  // make a temporary design as a copy from design space to copy it back there :)
+  // make a temporary design as a copy from design space to copy it back there :) - Fabian: what is copied back??
   StdVector<double> data(grad.GetSize());
   // copy the design to our temporary space
   int design_id = base_->optimization->GetDesign()->WriteDesignToExtern(data.GetPointer());
@@ -82,13 +89,13 @@ void BaseOptimizer::Scale::CalcAutoscale()
   bool good = base_->EvalGradObjective(grad.GetSize(), data.GetPointer(), false, grad);
   if(!good) EXCEPTION("internal error"); // needs to be good as tol = set to 0.0;
   assert(opt_scaling.value != 0.0);
+  // reset the tolerance
+  tol = tol_save;
   
   // our new scaling is the optimal scaling for now!
   scaling.design_id = opt_scaling.design_id;
   scaling.value = opt_scaling.value;
   
-  // reset the tolerance
-  tol = tol_save;
   autoscale_ = true;
 
   LOG_TRACE(optimizer) << "Scale::CalcAutoscale(): scale=" << scaling.value << " desing=" 
@@ -259,11 +266,16 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
     need_eval = false;
   }
 
-  double ret = cfs_scale ? objective->scaling.value * design_.value : design_.value;
+  if(objective->logscale && design_.value <= 0.0) EXCEPTION("Cannot do logarithmic autoscale for objective value " << design_.value);
+
+  double sov = objective->logscale ? std::log(design_.value) : design_.value;
+
+  double ret = cfs_scale ? objective->scaling.value * sov : sov;
 
   LOG_DBG(optimizer) << "EvalObjective: x_avg=" << Average(x, n) 
                      << " std_dev=" << StandardDeviation(x, n) 
-                     << " is_new=" << need_eval << " -> " << design_.value
+                     << " is_new=" << need_eval << " -> "
+                     << " ov=" << design_.value << " sov=" << sov
                      << " scaled=" << ret;
   
   LOG_DBG3(optimizer) << "x=" << StdVector<double>::ToString(n, x);
@@ -305,6 +317,14 @@ bool BaseOptimizer::EvalGradObjective(int n, const double* x, bool cfs_scale, St
   assert(n <= (int) grad_f.GetSize()); // FIXME
   grad_f.window.Set(grad_f);
   optimization->CalcObjectiveGradient(&grad_f);
+
+  if(objective->logscale)
+  {
+    double ov = EvalObjective(n, x, false);
+    for(int i = 0; i < n; i++)
+      grad_f[i] /= ov;
+    LOG_DBG2(optimizer) << "EGO: ov=" << ov;
+  }
 
   // check the scaling - harmless if not restarted autoscale
   restart_requested = false;

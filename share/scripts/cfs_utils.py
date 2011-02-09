@@ -17,6 +17,19 @@ def replace(xml, path, value):
   data.setContent(value)
   return    
 
+## removes the defined xml entity.
+# extend to attribute first by .hasProp('name2') == None stuff
+def remove(xml, path):
+  res = xml.xpathEval(path)
+  if  len(res) == 0:
+    raise RuntimeError(path + " not found")
+  if len(res) > 1:
+    str(res)
+    raise RuntimeError(path + " has " + str(len(res)) + " hits")
+  data = res[0]
+  # TODO the node/attribute = prop stuff
+  data.unlinkNode() 
+
 
 # returns an xpath value
 def xpath(xml, path):
