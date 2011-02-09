@@ -20,7 +20,7 @@ namespace CoupledField {
 
     //! The default constructor generates an empty vector, so size is set to
     //! 0 and subVec_ to NULL
-    SBM_Vector() : subVec_(NULL), size_(0) {};
+    SBM_Vector() : subVec_(NULL), size_(0) {}
 
     //! Constructor for empty vectors of specified length
 
@@ -55,7 +55,7 @@ namespace CoupledField {
     //! Obtain size of vector, i.e. number of sub-vector entries
     UInt GetSize() const {
       return size_;
-    };
+    }
 
     //! Resize the vector to new size 
     virtual void Resize( UInt newSize )
@@ -209,7 +209,7 @@ namespace CoupledField {
     //! one-based indexing convention of OLAS.
     SingleVector* GetPointer( UInt i ) {
       return subVec_[i];
-    };
+    }
 
     //! Obtain pointer to a sub-vector
 
@@ -217,7 +217,7 @@ namespace CoupledField {
     //! one-based indexing convention of OLAS.
     const SingleVector* GetPointer( UInt i ) const {
       return subVec_[i];
-    };
+    }
 
     //@}
 

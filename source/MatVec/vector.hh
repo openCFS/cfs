@@ -103,7 +103,7 @@ template<typename T> class ElemStoreSol;
     
     //! The default destructor must be deep, i.e. it must free all dynamically
     //! allocated memory.
-    ~Vector();
+    virtual ~Vector();
 
     //! Return the Entry type of the vector
 
