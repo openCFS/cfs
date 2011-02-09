@@ -35,6 +35,7 @@
 #include <iostream>
 #include <iomanip>
 #include <math.h>
+#include <stdexcept>
 
 #include "MatVec/promote.hh"
 
@@ -147,7 +148,7 @@ class Dim1 {
 private:
   void error(const char *msg) const {
     std::cerr << "Dim1 error: " << msg << std::endl;
-    throw std::exception("Dim1 error in Xpr1");
+    throw std::runtime_error("Dim1 error in Xpr1");
   }
 
 public:

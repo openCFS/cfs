@@ -24,7 +24,7 @@ namespace CoupledField
   class TimeStepping;
   class WriteResults;
   class EqnMap;
-  class ResultInfo;
+  struct ResultInfo;
   class SingleDriver;
   class IDBC_Handler;
   class BaseIDBC_Handler;

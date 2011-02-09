@@ -24,7 +24,7 @@ class BiLinFormContext;
 class Condition;
 class Assemble;
 class TransferFunction;
-class SurfElem;
+struct SurfElem;
 class DesignDependentRHS;
 class OptimizationMaterial;
 class DesignStructure;

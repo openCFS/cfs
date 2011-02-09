@@ -17,10 +17,10 @@ namespace CoupledField
 {
   template <class TYPE> class StdVector;
   class SinglePDE;
-  class Elem;
+  struct Elem;
   class BaseResult;
   class BaseMaterial;
-  class ResultInfo;
+  struct ResultInfo;
   class BaseOptimizer;
 
   /** This is the container of DesingElements which also holds the transferFunctions.

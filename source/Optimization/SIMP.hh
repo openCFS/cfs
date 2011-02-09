@@ -20,7 +20,7 @@ class BiLinFormContext;
 class Condition;
 class Assemble;
 class TransferFunction;
-class SurfElem;
+struct SurfElem;
 class MechMat;
 
 template <class TYPE> class StdVector;

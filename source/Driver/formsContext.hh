@@ -20,7 +20,7 @@ namespace CoupledField
   class SinglePDE;
   class EqnMap;
   class EntityIterator;
-  class ResultInfo;
+  struct ResultInfo;
 
 
 
