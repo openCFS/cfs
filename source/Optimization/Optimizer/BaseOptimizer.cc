@@ -44,7 +44,7 @@ BaseOptimizer::Scale::Scale(BaseOptimizer* base, PtrParamNode autoscale, double 
 
     // Cannot CalcAutoscale() has to be done in PostInit()
   }
-  else
+  if(target == 0.0) // there might have been an autoscale element with 0 target
   {
     this->scaling.value = manual_scale;
     this->scaling.value *= base_->optimization->objectives.DoMaximize() ? -1.0 : 1.0;
@@ -66,7 +66,6 @@ void BaseOptimizer::Scale::CalcAutoscale()
   if(target == 0.0)
   {
     autoscale_ = false;
-    scaling.value = 1.0;
     return;
   }
 
@@ -337,6 +336,7 @@ bool BaseOptimizer::EvalGradObjective(int n, const double* x, bool cfs_scale, St
   }
   
   // eventually perform the scaling
+  assert(!(cfs_scale && objective->scaling.value == 0.0));
   if(cfs_scale)
     for(int i = 0; i < n; i++)
       grad_f[i] *= objective->scaling.value;
