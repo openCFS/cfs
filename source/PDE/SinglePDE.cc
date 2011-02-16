@@ -2024,6 +2024,9 @@ namespace CoupledField {
         // if no composite is set, continue with next loop run
         if( composite == "" )
           continue;
+        
+        if( subdoms_.Find( actRegionId) < 0 )
+          continue;
 
         // print logging information
         std::ostringstream out;
