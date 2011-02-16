@@ -71,7 +71,8 @@ namespace CoupledField
     
     //! Create result for grid information (local directions etc., Jacobian
     //! determinant)
-    void CreateGridInformation( ResultHandler* ptRes );
+    void CreateGridInformation( ResultHandler* ptRes,
+                                std::map<std::string, CoordSystem*>& coordSysMap );
 
     //@}
 

@@ -602,7 +602,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         // inner / outer region
         Matrix<Double> inner;
         Matrix<Double> outer;
-
+        std::string coordSysId;
+        
         //damping factor
         Double dampPML;
 
@@ -611,9 +612,9 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
         std::string id = actRegionNode->Get("dampingId")->As<std::string>();
         PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml", "id", id);
-        ReadDataPML(dampingTypePML, inner, dampPML, pmlNode );
+        ReadDataPML(dampingTypePML, inner, dampPML, coordSysId, pmlNode );
 
-        GetPMLLayerData(inner, outer, actRegion);
+        GetPMLLayerData(inner, outer, actRegion, coordSysId );
 
         //====================================================================
         //	 stiffness integrator for PML
@@ -626,7 +627,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         BaseForm * bilinearStiffPML =
           new MechPMLInt(formsType, actSDMat, dampingTypePML, dampPML, tensorType);
 
-        bilinearStiffPML->SetPosPML(inner,outer);
+        bilinearStiffPML->SetPosPML(inner,outer, coordSysId);
 
         BiLinFormContext * stiffContextPML =
           new BiLinFormContext( bilinearStiffPML, STIFFNESS );
@@ -651,7 +652,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
           new PMLInt( formsType, density, dampingTypePML, dampPML, isaxi_ );
 
         bilinearMassPML->SetNrDofs( dim_ );
-        bilinearMassPML->SetPosPML(inner,outer);
+        bilinearMassPML->SetPosPML(inner,outer, coordSysId);
 
         BiLinFormContext * massContextPML =
           new BiLinFormContext( bilinearMassPML, MASS);
@@ -1765,8 +1766,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         resultLists_[vol].Push_back( actSol );
         volAboveDefSurfDir_[actList] = dirName;
         //! the result will be written to.
-        resHandler->RegisterResult( actSol, saveBegin, saveInc, saveEnd,
-                                    outputIds, "", true, true );
+        resHandler->RegisterResult( actSol, sequenceStep_, saveBegin, saveInc, 
+                                    saveEnd, outputIds, "", true, true );
       }
     }
   }

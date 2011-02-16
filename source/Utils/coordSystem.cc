@@ -59,7 +59,7 @@ namespace CoupledField{
 
       // if no node name was given, read in global x,y and z coordinate
       for (UInt i=0; i<vec.GetSize(); i++) {
-        pointNode->GetValue( coordNames[i], vec[i] );
+        vec[i] = pointNode->Get( coordNames[i])->MathParse<Double>();
       }
     }
       

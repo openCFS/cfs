@@ -63,6 +63,7 @@ namespace CoupledField {
     //! be written. Also an associated output destination has to be given, where
     //! the result will be written to.
     void RegisterResult( shared_ptr<BaseResult> sol,
+                         UInt sequenceStep,
                          UInt saveBegin, UInt saveInc,
                          UInt saveEnd, 
                          const StdVector<std::string> & outDestNames,
@@ -170,6 +171,9 @@ namespace CoupledField {
       //! Result type
       shared_ptr<BaseResult> result;
 
+      //! Multisequence step
+      UInt sequenceStep;
+      
       //! Step begin for saving
       UInt saveBegin;
       

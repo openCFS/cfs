@@ -60,27 +60,17 @@ namespace CoupledField {
     driverNode->Get("sequenceStep")->SetValue(sequenceStep);
     driverNode->Get(ParamNode::HEADER)->Get("unit")->SetValue("s");
     
-   
-    
     // for the evaluation of deltaT, we make use of math Parser to
     // allow variable definitions of time step size
-    std::string dtString;
-    myNode->GetValue( "deltaT", dtString );
-    MathParser & mp = *(domain->GetMathParser());
-    MathParser::HandleType handle = mp.GetNewHandle();
-    mp.SetExpr(handle,dtString);
-    firstdt_ = mp.Eval(handle);
+    firstdt_ = myNode->Get( "deltaT")->MathParse<Double>();
     
     // Get time stepping information from parameter object
-    std::string numStepString;
-    myNode->GetValue( "numSteps", numStepString);
-    mp.SetExpr(handle,numStepString);
-    numstep_ = UInt( mp.Eval(handle) );
+    numstep_ = myNode->Get( "numSteps")->MathParse<UInt>();
     
-    mp.ReleaseHandle(handle);
-
     // Get save increment for restart file (optional)
-    myNode->GetValue( "writeRestartInc", restartIncr_, ParamNode::PASS );
+    PtrParamNode restartNode = myNode->Get("writeRestartInc", ParamNode::PASS); 
+    if (restartNode)
+      restartIncr_ = restartNode->MathParse<UInt>();
   
     // remove HALTCFS File at the beginning
     if(fs::exists("./HALTCFS")) 
@@ -124,9 +114,7 @@ namespace CoupledField {
     }
   
     if(write_results){
-      resHandler->BeginMultiSequenceStep( sequenceStep_,
-                                          analysis_,
-                                          numstep_+restartStep_-startStep+1 );
+      resHandler->BeginMultiSequenceStep( sequenceStep_, analysis_, numstep_ );
       if(optimization != NULL){ // we have to save everytime to a new multisequencestep
         sequenceStep_++;
       }

@@ -327,7 +327,7 @@ namespace CoupledField
 
     // Determine rotation angles from attached coordinate system
     Matrix<Double> rotMatrix;
-    coosy_->GetGlobRotationMatrix( rotMatrix, coord );
+    coosy_->GetFullGlobRotationMatrix( rotMatrix, coord );
 
     // Calculate rotation. In this case this is always
     // non-persistent, as the orientation may change for each point in the

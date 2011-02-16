@@ -36,6 +36,7 @@ namespace CoupledField {
 
   void ResultHandler::
   RegisterResult( shared_ptr<BaseResult> sol,
+                  UInt sequenceStep,
                   UInt saveBegin, UInt saveInc,
                   UInt saveEnd, 
                   const StdVector<std::string> & outDestNames,
@@ -75,6 +76,7 @@ namespace CoupledField {
     actContext = 
       shared_ptr<ResultContext>( new ResultContext() );
     actContext->result = sol;
+    actContext->sequenceStep = sequenceStep;
     actContext->saveBegin = saveBegin;
     actContext->saveEnd = saveEnd;
     actContext->saveInc = saveInc;
@@ -359,7 +361,7 @@ namespace CoupledField {
 
     // fetch current postProcNode
     PtrParamNode postProcNode = 
-      param->GetByVal("sequenceStep", std::string("index"), sequenceStep_)
+      param->GetByVal("sequenceStep", std::string("index"), actContext.sequenceStep)
       ->Get( "postProcList")->GetByVal( "postProc", "id", postProcName );
     
     if( !postProcNode ) {
@@ -382,6 +384,7 @@ namespace CoupledField {
       shared_ptr<ResultContext> nextContext = 
         shared_ptr<ResultContext>( new ResultContext() );
       nextContext->result = postProcs[i]->GetOutputResult();
+      nextContext->sequenceStep = actContext.sequenceStep;
       nextContext->saveBegin = actContext.saveBegin;
       nextContext->saveEnd = actContext.saveEnd;
       nextContext->saveInc = actContext.saveInc;

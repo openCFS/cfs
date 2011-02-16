@@ -96,7 +96,7 @@ namespace CoupledField{
     Vector<Double> loc;
     Global2LocalCoord( loc, point );
 
-    // calculate directional sinus / cosinus
+    // calculate directional sine / cosine
     Double s = sin( loc[1] / 180 * PI );
     Double c = cos( loc[1] / 180 * PI );
 
@@ -104,7 +104,7 @@ namespace CoupledField{
     const Matrix<Double> & a = invRotationMat_;
 
     // perform explicit multiplication of a * r
-    // where r is the rotation matrix aroung the z-axis
+    // where r is the rotation matrix around the z-axis
     //     ( c  -s  0 )
     // r = ( s   c  0 )
     //     ( 0   0  1 )
@@ -121,7 +121,15 @@ namespace CoupledField{
     mat[2][1] = -s * a[2][0] + c * a[2][1];
     mat[2][2] = a[2][2];
   }
-
+  
+  void  CylCoordSystem::
+  GetFullGlobRotationMatrix( Matrix<Double> & mat,
+                             const Vector<Double>& point ) const {
+    // Here we can simply call the normal GetGlobRoationMatrix() method,
+    // as a cylindric coordinate system can be only defined in 3D
+    GetGlobRotationMatrix(mat, point);
+  }
+  
   void CylCoordSystem::
   Local2GlobalVector( Vector<Double> & globVec, 
                       const Vector<Double> & locVec, 
@@ -265,7 +273,7 @@ namespace CoupledField{
     if ( component == 0 ) {
       EXCEPTION( "CylSystem:GetVecComponent:\n"
                  << "The component with name '" << dof 
-                 << "' is not known in the global cylinder coordinate system '"
+                 << "' is not known in a local cylindric coordinate system '"
                  << name_ << "'!" );
     }
 
@@ -289,7 +297,7 @@ namespace CoupledField{
     default:
       EXCEPTION( "CylCoordSystem::GetDofName:\n"
                  << "The component number " << dof << " does not exist in a "
-                 << "global cartesian coordinate system!" );
+                 << "local cylindric coordinate system!" );
     }
 
     return ret;

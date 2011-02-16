@@ -404,7 +404,11 @@ namespace CoupledField
               args.Push_back( form->GetName() );
               args.Push_back( it1.GetIdString() );
               args.Push_back( it2.GetIdString() );
-              args.Push_back( elemMatrix.ToString(1) );
+              if( form->IsComplex() ) {
+                args.Push_back( elemMatrixC.ToString(1) );
+              } else {
+                args.Push_back( elemMatrix.ToString(1) );
+              }
               messenger->TriggerEvent( CFSMessenger::CFS_AssembleMat, args );
             }
           }

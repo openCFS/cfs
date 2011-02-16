@@ -239,7 +239,8 @@ namespace CoupledField
     }
 
     //! set min/max of x,y,z coordinates form where PML starts
-    virtual void SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer) {;};
+    virtual void SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer,
+                           const std::string& coordSysId ) {;};
       
 #ifndef INTEGLIB
     //! Get reference element and coordinates from element iterator

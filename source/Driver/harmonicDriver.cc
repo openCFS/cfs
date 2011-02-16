@@ -74,6 +74,13 @@ namespace CoupledField
     in->Get("end")->SetValue(stopFreq_);
     in->Get("numFreq")->SetValue(numFreq_);
 
+    // Initialize first multisequence step, as the method "CheckStoreResults" 
+    // relies on the result handler to know already about the current
+    // sequencestep. However, in case of optimization, the sequence step
+    // gets initialized in Optimization::SolveProblem()
+    if( !domain->GetOptimization()) {
+      handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, numFreq_ );
+    }
     InitializePDEs();
   }
 
@@ -95,8 +102,8 @@ namespace CoupledField
       assert(pn->GetName() == "freq");
       Frequency& f = freqs[fi];
       f.step = fi+1;
-      f.freq = pn->Get("value")->As<Double>();
-      f.weight = pn->Get("weight")->As<Double>();
+      f.freq = pn->Get("value")->MathParse<Double>();
+      f.weight = pn->Get("weight")->MathParse<Double>();
 
       // set bounds (we keep unsorted)
       startFreq_ = std::min(startFreq_, f.freq);
@@ -119,9 +126,9 @@ namespace CoupledField
       return false;
 
     // get start/stop/num frequencies
-    pn_->GetValue( "startFreq", startFreq_ );
-    pn_->GetValue( "stopFreq", stopFreq_ );
-    pn_->GetValue( "numFreq", numFreq_ );
+    startFreq_ = pn_->Get( "startFreq" )->MathParse<Double>();
+    stopFreq_ = pn_->Get( "stopFreq" )->MathParse<Double>();
+    numFreq_ = pn_->Get( "numFreq" )->MathParse<UInt>();
 
     // read sampling type (optional)
     std::string sampling = "linear";
@@ -211,7 +218,6 @@ namespace CoupledField
 
     // be 'silent' and don't do output only for optimization
     if(write_results) {
-      handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, numFreq_ );
       // info stuff
       ptPDE_->WriteGeneralPDEdefines();
     }

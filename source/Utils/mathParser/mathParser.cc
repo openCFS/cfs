@@ -326,6 +326,13 @@ namespace CoupledField {
     parser.DefineFun("squareBurst", SquarePulse, false );
     parser.DefineFun("gauss", Gauss, false );
     
+    // Register general functions
+    parser.DefineFun("mod", Mod, false );
+    parser.DefineFun("besselCylJ", BesselCylJ, false );
+    parser.DefineFun("besselCylY", BesselCylY, false );
+    parser.DefineFun("besselSphJ", BesselSphJ, false );
+    parser.DefineFun("besselSphY", BesselSphY, false );
+    
     // Register factory for dynamic variable registering
     //parser.SetVarFactory( AddVariable );
 
@@ -345,12 +352,12 @@ namespace CoupledField {
       // if default variables should be set, we define missing variables
       if( setDefaults ) {
         StdVector<std::string> defaults;
-        defaults = "t", "f", "x", "x", "y", "z";
+        defaults = "t", "f", "x", "y", "z";
         StdVector<std::string>::iterator it = defaults.Begin();
         for( ; it != defaults.End(); ++it ) {
           if ( globPool.find( *it) == globPool.end() )  {
             // create new entry in variable pool
-            actPool[*it] = 0.0;
+            actPool[*it] = 1.0;
             parser.DefineVar(  *it, &(actPool[*it] ) );
           }
         }

@@ -153,7 +153,7 @@ void linElastInt::ReorderBLikeMatrix(Matrix<Double>& in, Matrix<Double>& out, UI
 
 // returns B - matrix for BDB
 void linElastInt::calcBMat( Matrix<Double> &bMat, UInt ip,
-    Matrix<Double> &ptCoord ) {
+                            Matrix<Double> &ptCoord ) {
 
   // local shape functions derived after global coords
   // (format: numFncs x spaceDim)
@@ -164,9 +164,9 @@ void linElastInt::calcBMat( Matrix<Double> &bMat, UInt ip,
     ptelem->GetGlobDerivShFnc(xiDx, intPoint_, ptCoord, it1_.GetElem() );
   else
     ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord, it1_.GetElem() );
-  
+
   LOG_DBG3(forms) << "calcBMat: xiDx: " << xiDx.ToString() << std::endl;
-  
+
   ReorderBLikeMatrix(xiDx, bMat, ip, ptelem, ptCoord);
 
   LOG_DBG2(forms) << "calcBMat: bMat: " << bMat.ToString() << std::endl; 

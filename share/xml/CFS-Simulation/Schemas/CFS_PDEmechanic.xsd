@@ -86,7 +86,7 @@
                 <xsd:element name="rayleigh" type="DT_MechDampingRayl"/>
                 <xsd:element name="fractional"
                 type="DT_MechDampingFrac"/>
-                <xsd:element name="pml" type="DT_MechDampingPML"/>
+                <xsd:element name="pml" type="DT_DampingPML"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -276,51 +276,7 @@
     </xsd:complexContent>
   </xsd:complexType>
 
- 
-  <!-- ******************************************************************* -->
-  <!--   Definition of PML damping -->
-  <!-- ******************************************************************* -->
-
-  <!-- Definition of pml damping type -->
-  <xsd:complexType name="DT_MechDampingPML">
-    <xsd:complexContent>
-      <xsd:extension base="DT_DampingBasic">
-        <xsd:sequence>
-
-          <!-- Geometric definition of region -->
-          <xsd:element name="propRegion" minOccurs="0" maxOccurs="1">
-            <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="xMin" type="xsd:double" minOccurs="1" maxOccurs="1"/>
-                <xsd:element name="xMax" type="xsd:double" minOccurs="1" maxOccurs="1"/>
-                <xsd:element name="yMin" type="xsd:double" minOccurs="1" maxOccurs="1"/>
-                <xsd:element name="yMax" type="xsd:double" minOccurs="1" maxOccurs="1"/>
-                <xsd:element name="zMin" type="xsd:double" minOccurs="1" maxOccurs="1"/>
-                <xsd:element name="zMax" type="xsd:double" minOccurs="1" maxOccurs="1"/>
-              </xsd:sequence>
-            </xsd:complexType>
-          </xsd:element>
-
-          <!-- Type of PML -->
-          <xsd:element name="type" minOccurs="0" maxOccurs="1" default="inverseDist">
-            <xsd:simpleType>
-              <xsd:restriction base="xsd:token">
-                <xsd:enumeration value="constant"   />
-                <xsd:enumeration value="quadDist"     />
-                <xsd:enumeration value="inverseDist"     />
-              </xsd:restriction>
-            </xsd:simpleType>
-          </xsd:element>
-
-          <!-- Damping factor -->
-          <xsd:element name="dampFactor" type="xsd:double"
-            minOccurs="0" maxOccurs="1" />
-        </xsd:sequence>
-
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType>
- 
+  
   <!-- ******************************************************************* -->
   <!--   Definition of BK1 softening -->
   <!-- ******************************************************************* -->
