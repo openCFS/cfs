@@ -327,6 +327,20 @@ namespace CoupledField {
                                 actSDList, actSDList );
       assemble_->AddBiLinearForm( stiffContext );
       eqnMap_->AddResult( *results_[0], actSDList );
+     
+      // --- check for complex valued material parameter ---
+      if( complexMatData_[actRegion] == true ) {
+        Global::ComplexPart matType = Global::IMAG;
+        FlatShellElecInt * compElecIntC = new FlatShellElecInt( composite, false );
+        compElecIntC->SetMatDataType(matType);
+        BiLinFormContext * stiffContextC = 
+          new BiLinFormContext( compElecIntC, STIFFNESS);
+        stiffContextC->SetPtPdes( this, this );
+        stiffContextC->SetEntryType(matType);
+        stiffContextC->SetResults( results_[0], results_[0],
+                                  actSDList, actSDList );
+        assemble_->AddBiLinearForm( stiffContextC );
+      }
       
     }
 

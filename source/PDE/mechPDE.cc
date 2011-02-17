@@ -955,6 +955,20 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
       assemble_->AddBiLinearForm( actIntDescrStiff );
       eqnMap_->AddResult( *results_[0], actSDList );
+      
+      // check for complex valued material parameter
+      if( complexMatData_[actRegion] ) {
+        Global::ComplexPart matType = Global::IMAG;
+        FlatShellStiffInt * myIntC = new FlatShellStiffInt(&composite, false);
+        myIntC->SetMatDataType(matType);
+        BiLinFormContext * actIntDescrStiffC =
+            new BiLinFormContext( myIntC, STIFFNESS);
+        actIntDescrStiffC->SetPtPdes(this, this);
+        actIntDescrStiffC->SetResults( results_[0], results_[0],
+                                       actSDList, actSDList );
+        actIntDescrStiffC->SetEntryType(matType);
+        assemble_->AddBiLinearForm( actIntDescrStiffC );
+      }
 
       // ==============  add mass ===========================================
       FlatShellMassInt * bilinearMass = new FlatShellMassInt(&composite, false);
