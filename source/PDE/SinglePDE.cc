@@ -583,7 +583,7 @@ namespace CoupledField {
     // loads
     PtrParamNode base = infoNode_->Get(ParamNode::HEADER)->Get("loads");
 
-    for(unsigned int i = 0, in = loads_.GetSize(); i < in; i++)
+    for(unsigned int i = 0, nn = loads_.GetSize(); i < nn; i++)
     {
       LoadBc const & actBc = *loads_[i];
       EntityList const & actList = *actBc.entities;
@@ -597,7 +597,7 @@ namespace CoupledField {
     // Homogeneous Dirichlet BC
     base = infoNode_->Get(ParamNode::HEADER)->Get("homDirichletBC");
 
-    for(unsigned int i = 0, in = hdBcs_.GetSize(); i < in; i++)
+    for(unsigned int i = 0, nn = hdBcs_.GetSize(); i < nn; i++)
     {
       HomDirichletBc const & actBc = *hdBcs_[i];
       EntityList const & actList = *actBc.entities;
@@ -609,7 +609,7 @@ namespace CoupledField {
     // Inhomogeneous Dirichlet BC
     base = infoNode_->Get(ParamNode::HEADER)->Get("inhomDirichletBC");
 
-    for(unsigned int i = 0, in = idBcs_.GetSize(); i < in; i++)
+    for(unsigned int i = 0, nn = idBcs_.GetSize(); i < nn; i++)
     {
       InhomDirichletBc const & actBc = *idBcs_[i];
       EntityList const & actList = *actBc.entities;
@@ -623,7 +623,7 @@ namespace CoupledField {
     // Inhomogeneous Dirichlet BC read from file
     base = infoNode_->Get(ParamNode::HEADER)->Get("inhomDirichFileBC");
 
-    for(unsigned int i = 0, in = idFiBcs_.GetSize(); i < in; i++)
+    for(unsigned int i = 0, nn = idFiBcs_.GetSize(); i < nn; i++)
     {
       InhomDirichFileBc const & actBc = *idFiBcs_[i];
       EntityList const & actList = *actBc.entities;
@@ -636,7 +636,7 @@ namespace CoupledField {
     // Inhomogeneous Neumann BC
     base = infoNode_->Get(ParamNode::HEADER)->Get("inhomNeumannBC");
 
-    for(unsigned int i = 0, in = inBcs_.GetSize(); i < in; i++)
+    for(unsigned int i = 0, nn = inBcs_.GetSize(); i < nn; i++)
     {
       InhomNeumannBc const & actBc = *inBcs_[i];
       EntityList const & actList = *actBc.entities;
@@ -652,7 +652,7 @@ namespace CoupledField {
     // periodic boundary conditions blow this up.
     if(constraints_.GetSize() <= 5 || progOpts->DoListMapping())
     {
-      for(unsigned int i = 0, in = constraints_.GetSize(); i < in; i++)
+      for(unsigned int i = 0, nn = constraints_.GetSize(); i < nn; i++)
       {
         Constraint const & actBc = *constraints_[i];
         EntityList const & masterList = *actBc.masterEntities;
