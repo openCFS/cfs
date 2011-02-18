@@ -37,101 +37,6 @@ typedef std::size_t _T_int_;
 namespace CoupledField {
 
 
-
-
-  // ========================================================================
-  //
-  // ARITHMETIC OPERATIONS
-  //
-  // ========================================================================
-
-
-  // *************************************************************************
-  //   OPTYPE for DOUBLE/COMPLEX SCALARS
-  // *************************************************************************
-
-  //! Struct containing standard arithmetic operations
-
-  //! This struct is a container for standard arithmetic operations like e.g.
-  //! inversion or the dot product. This version is intended for scalar
-  //! variables of type Double or Complex.
-  template<typename T>
-  struct OpType{
-
-    //! Compute the inverse of the input argument.
-
-    //! This method computes the inverse of the input argument. It is intended
-    //! for variables of Double and Complex type, where the inverse of arg is
-    //! given as 1/arg.
-    inline static T invert(const T& arg) {
-      return static_cast<T>(1.0/arg);
-    }
-
-    //! Inner product for real- and complex-valued scalars
-    inline static T dotProduct( const T &a1, const T &a2 ) {
-      return a1 * Conj(a2);
-    }
-
-    //! Computation of "Euclidean Norm" of Double or Complex scalar
-    inline static Double NormL2( const T& a ) {
-      return Abs( a );
-    }
-
-    //! Compute \f$z\cdot\bar{z}\f$
-    inline static Double zConjz( const T &z ) {
-      return Abs2( z );
-    }
-
-    //! this function takes the transpose of the first argument A
-    //! and multiplies it by the second argument x. This is the same
-    //! as the standard product defined on the two types T_Mtype and
-    //! T_Vtype unless T_Mtype is an actual tiny matrix in which case
-    //! the transpose of the matrix is used. The result is stored in y.
-    inline static T multT( const T &A,
-                           const typename AssocType<T>::T_Vtype &x ) {
-      return A*x;
-    }
-
-    //! Method needed for exporting matrices to a file
-    inline static void ExportEntry( const T &val, Integer i, Integer j,
-				    FILE *fp ) {
-      PrintSingleEntry( val, fp );
-    }
-
-    //! Method needed for exporting vectors to a file
-    inline static void ExportEntry( const T &val, Integer i, FILE *fp ) {
-      PrintSingleEntry( val, fp );
-    }
-
-    //! this method returns the absolute maximum diagonal entry 
-    //! for tiny matrices or the absolute value of scalars
-    inline static Double MaxDiag(const T &v) {
-      return Abs(v);
-    }
-
-    //! This method multiplies the scalar with a complex factor.
-
-    //! This method multiplies the scalar with a complex factor. This will
-    //! only work for a complex-valued scalar and not for a real-valued one.
-    inline static void MultWithComplex( T &multiplicant,
-                                        const Complex factor ) {
-      MultScalarWithComplex( multiplicant, factor );
-    }
-
-    //! This method multiplies the scalar with a complex factor.
-
-    //! This method multiplies the scalar with a complex factor. This will
-    //! only work for a complex-valued scalar and not for a real-valued one.
-    inline static void DivByComplex( T &nominator,
-                                     const Complex denominator ) {
-      DivScalarByComplex( nominator, denominator );
-    }
-
-  };
-
-
-
-
   // ========================================================================
   //
   // AUXILLIARY FUNCTIONS
@@ -247,6 +152,99 @@ namespace CoupledField {
                                            const Complex denominator ) {
     nominator /= denominator;
   }
+
+
+  // ========================================================================
+  //
+  // ARITHMETIC OPERATIONS
+  //
+  // ========================================================================
+
+
+
+
+  // *************************************************************************
+  //   OPTYPE for DOUBLE/COMPLEX SCALARS
+  // *************************************************************************
+
+  //! Struct containing standard arithmetic operations
+
+  //! This struct is a container for standard arithmetic operations like e.g.
+  //! inversion or the dot product. This version is intended for scalar
+  //! variables of type Double or Complex.
+  template<typename T>
+  struct OpType{
+
+    //! Compute the inverse of the input argument.
+
+    //! This method computes the inverse of the input argument. It is intended
+    //! for variables of Double and Complex type, where the inverse of arg is
+    //! given as 1/arg.
+    inline static T invert(const T& arg) {
+      return static_cast<T>(1.0/arg);
+    }
+
+    //! Inner product for real- and complex-valued scalars
+    inline static T dotProduct( const T &a1, const T &a2 ) {
+      return a1 * Conj(a2);
+    }
+
+    //! Computation of "Euclidean Norm" of Double or Complex scalar
+    inline static Double NormL2( const T& a ) {
+      return Abs( a );
+    }
+
+    //! Compute \f$z\cdot\bar{z}\f$
+    inline static Double zConjz( const T &z ) {
+      return Abs2( z );
+    }
+
+    //! this function takes the transpose of the first argument A
+    //! and multiplies it by the second argument x. This is the same
+    //! as the standard product defined on the two types T_Mtype and
+    //! T_Vtype unless T_Mtype is an actual tiny matrix in which case
+    //! the transpose of the matrix is used. The result is stored in y.
+    inline static T multT( const T &A,
+                           const typename AssocType<T>::T_Vtype &x ) {
+      return A*x;
+    }
+
+    //! Method needed for exporting matrices to a file
+    inline static void ExportEntry( const T &val, Integer i, Integer j,
+				    FILE *fp ) {
+      PrintSingleEntry( val, fp );
+    }
+
+    //! Method needed for exporting vectors to a file
+    inline static void ExportEntry( const T &val, Integer i, FILE *fp ) {
+      PrintSingleEntry( val, fp );
+    }
+
+    //! this method returns the absolute maximum diagonal entry 
+    //! for tiny matrices or the absolute value of scalars
+    inline static Double MaxDiag(const T &v) {
+      return Abs(v);
+    }
+
+    //! This method multiplies the scalar with a complex factor.
+
+    //! This method multiplies the scalar with a complex factor. This will
+    //! only work for a complex-valued scalar and not for a real-valued one.
+    inline static void MultWithComplex( T &multiplicant,
+                                        const Complex factor ) {
+      MultScalarWithComplex( multiplicant, factor );
+    }
+
+    //! This method multiplies the scalar with a complex factor.
+
+    //! This method multiplies the scalar with a complex factor. This will
+    //! only work for a complex-valued scalar and not for a real-valued one.
+    inline static void DivByComplex( T &nominator,
+                                     const Complex denominator ) {
+      DivScalarByComplex( nominator, denominator );
+    }
+
+  };
 
 }
 
