@@ -533,6 +533,8 @@ share/scripts/identify_compiler.pl svneol=native#text/plain
 share/scripts/log.py -text
 share/scripts/log.tcl svneol=native#text/x-tcl
 share/scripts/macsysinfo.scpt -text
+share/scripts/nas-tool-gid-to-nas.py -text
+share/scripts/nas-tool-voidmesh.py -text
 share/scripts/optimization_tools.py -text
 share/scripts/printElemMatVec.py -text
 share/scripts/printElemMatVec.tcl svneol=native#text/x-tcl
