@@ -277,11 +277,18 @@ IF(CPLREADER_CFX)
 ENDIF(CPLREADER_CFX)
 
 #-----------------------------------------------------------------------------
-# Find VTK for OpenFOAM reader
+# Find VTK for OpenFOAM  and cgns reader
 #-----------------------------------------------------------------------------
-IF(CPLREADER_OPENFOAM)
+IF(CPLREADER_OPENFOAM OR CPLREADER_CGNS)
   INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindVTK.cmake")
-ENDIF(CPLREADER_OPENFOAM)
+ENDIF(CPLREADER_OPENFOAM OR CPLREADER_CGNS)
+
+#-----------------------------------------------------------------------------
+# Find CGNS for cgns reader
+#-----------------------------------------------------------------------------
+IF(CPLREADER_CGNS)
+  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindCGNS.cmake")
+ENDIF(CPLREADER_CGNS)
 
 #-----------------------------------------------------------------------------
 # Find ParaView postprocessor
