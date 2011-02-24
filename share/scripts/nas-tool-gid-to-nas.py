@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 
 import sys
 
@@ -6,8 +6,8 @@ import sys
 # FORCE: needs an index and four double values: index is for multiload!
 # SPC:   needs two values: a string defining type of bc (1: x, 2: y, 12: xy, 123: xyz, ...) and a value
 table = {'load':  ['FORCE', 1, 1.0, 0.0, -1.0, 0.0],\
-         'left':  ['SPC', '  12', 0.0],\
-         'right': ['SPC', '  2', 0.0]}
+         'lfixed': ['SPC', '  12', 0.0],\
+         'rfixed': ['SPC', '  2', 0.0]}
 
 
 
@@ -256,9 +256,8 @@ for line in open(infile, 'r'):
       names[name] = 1
       print " new named entity in grid-file: " + name
 
-    # check if all named entities in the grid-file have been assigned
+    # check if named entity in the grid-file has been assigned
     if not name in table.keys():
-      printWarning("name " + name + " in grid-file has not been assigned a bc/force!")
       continue
 
     if table[name][0] == 'FORCE':
@@ -266,8 +265,22 @@ for line in open(infile, 'r'):
     if table[name][0] == 'SPC':
       out.write('%8s%8s%8s%16s\n' % ('SPC'.ljust(8), '1'.rjust(8), str(num).rjust(8), table[name][1]))
 
-out.write('PSHELL         1       1     1.0  \n')
-out.write('MAT1    1       2.87E-1 0.35    0.0     0.785E-5  12.E-6                +M1     \n')
+# here end the for loop over the lines of the input file
+
+
+# check if all named entities in the grid-file have been assigned
+for name in names.keys():
+  if not name in table.keys():
+    printWarning("name \033[93m" + name + "\033[0m in grid-file has not been assigned a bc/force!")
+    continue
+
+if griddimension == 2:
+  out.write('PSHELL         1       1     1.0  \n')
+  out.write('PSHELL         2       1     1.0  \n')
+if griddimension == 3:
+  out.write('PSOLID         1       1          \n')
+  out.write('PSOLID         2       1          \n')
+out.write('MAT1    1       2.87E-6 0.35    0.0     0.785E-5  12.E-6                +M1     \n')
 out.write('+M1     100.    -100.   100.    \n')
 out.write('ENDDATA\n')
 

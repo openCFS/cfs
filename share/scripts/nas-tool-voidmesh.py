@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 
 import sys
 from optimization_tools import *
@@ -19,6 +19,10 @@ densfile = sys.argv[2]
 outfile = sys.argv[3]
 threshold = float(sys.argv[4])
 
+
+################################################
+## TODO
+################################################
 
 
 #### helper function
@@ -45,11 +49,11 @@ dens = read_density_as_vector(densfile)
 nums = read_density_as_vector(densfile, True)
 
 
-set1 = [] # will contain nums where dens < threshold
+set1 = [] # will contain nums where dens > threshold
 set2 = [] # will contain rest
 
 for i in range(len(dens)):
-  if(dens[i] < threshold):
+  if(dens[i] > threshold):
     set1.append(int(nums[i]))
   else:
     set2.append(int(nums[i]))
@@ -67,10 +71,8 @@ for line in open(nasfile, "r"):
   # we can simply copy everything up to BEGIN BULK
   if line.strip() == 'BEGIN BULK':
     # now insert the two set strings
-    out.write('$HMSET        1        2 "xs_3D"\n')
     out.write(s1)
     out.write('\n')
-    out.write('$HMSET        1        2 "xs_3D"\n')
     out.write(s2)
     out.write('\n')
     out.write('BEGIN BULK\n')
@@ -92,9 +94,9 @@ for line in open(nasfile, "r"):
     ls = line.split()
     newline = line 
 
-    # check if number is in set1 
-    # set1 contains nums where dens < threshold
-    if int(ls[1]) in set1:
+    # check if number is in set2 
+    # set2 contains nums where dens <= threshold
+    if int(ls[1]) in set2:
       newline = line[0:23]
       newline += "2"
       newline += line[24:len(line)]
