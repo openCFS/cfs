@@ -369,7 +369,13 @@ StdVector<std::pair<string, double> > ErsatzMaterial::GetOrthotropeProperties(co
   }
   else
   {
-    BaseMaterial* bm = GetForm(design->GetRegionId(), pde, pde, "linElastInt")->GetMaterial();
+    BaseMaterial* bm = NULL;
+    // this happens when doing shape optimization with homTracking!
+    // we then have no design region and need to skip GetForm
+    if(design->GetRegionId() != -1) 
+    {
+      bm = GetForm(design->GetRegionId(), pde, pde, "linElastInt")->GetMaterial();
+    }
     Objective vf(Function::VOLUME, 0.0, true); // physical!
     double vol = CalcVolume(&vf, NULL, false, true);
     StdVector<std::pair<string, double> > ortho = MechanicMaterial::CalcOrthotropeProperties(homogenizedTensor, bm, pde->GetSubTensorType(), vol);
