@@ -250,7 +250,10 @@ namespace CoupledField
      /** Might be nonsense if our constructor is no simp or ersatz material one! */
      int GetRegionId() const
      {
-       assert(regions.GetSize() == 1);
+       // in the case of homTracking with shape optimization we do not have a 
+       // design region, but GetRegionId is still called
+       // so we cannot assert regions.GetSize() == 1 as before
+       if(regions.GetSize() == 0) return -1;
        return regions[0].regionId;
      }
 
