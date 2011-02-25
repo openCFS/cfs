@@ -164,7 +164,7 @@ namespace CoupledField{
      char solname[33];
      GridLocation_t solLocation;
      //get grip of first file name
-     std::map<UInt, std::string>::iterator fIter = fileNames_.begin();
+     std::map<Double, std::string>::iterator fIter = fileNames_.begin();
      //advance iterator to current timestep
      for(UInt i =0 ; i <timeStepIdx ; i++){
        fIter++;
@@ -202,7 +202,8 @@ namespace CoupledField{
           Integer range_max[3] = {numVertices_,1,1};
           Double * curSol = new Double[numVertices_];
           cg_field_read(fn,1,1,1, fieldName, RealDouble , range_min, range_max, (void *)curSol );
-          solution[spaceIdx] = std::vector<Double>(&curSol[0],&curSol[numVertices_]);
+          solution[spaceIdx].resize(numVertices_,0);
+          solution[spaceIdx].assign(curSol,curSol +numVertices_);
         }
      }
      
@@ -313,7 +314,7 @@ namespace CoupledField{
     }
   }
 
-  void FileReader_CGNS::ReadCGNSDirectory(std::string dirname, std::map<UInt, std::string> & fileNames){
+  void FileReader_CGNS::ReadCGNSDirectory(std::string dirname, std::map<Double, std::string> & fileNames){
      Settings& settings = Settings::Instance();
      
      UInt firstStep = settings.GetInt("firststep");
@@ -343,10 +344,13 @@ namespace CoupledField{
             //ASSUME THE element before the last token to be the number
             std::vector<std::string> parts( tok.begin(), tok.end() ) ;
             try{
-              UInt number = boost::lexical_cast< UInt >( parts[parts.size()-2]  );
+              Double number = boost::lexical_cast< Double >( parts[parts.size()-2]  );
+              //Integer number =atoi(parts[parts.size()-2].c_str()  );
+	      std::cout << parts[parts.size()-2].c_str() << "\t" << number << std::endl;
               fileNames[number] = fn;
-            }catch( const boost::bad_lexical_cast & ){
-              Exception("Cannot cast to integer. Maybe your files have a different name convention than expected.");
+            }catch( const boost::bad_lexical_cast & e ){
+              std::cout << "Cannot cast to integer. Maybe your files have a different name convention than expected." << std::endl;
+              std::cout << e.what() << std::endl;
             }
           }else{
             std::cout << "Ignoring File " << fn << std::endl;
@@ -357,8 +361,13 @@ namespace CoupledField{
      for(UInt i = 1;i<=firstStep;i++){
        fileNames.erase(fileNames.begin());
      }
-     std::cout << "Found " << fileNames.size() << " files/steps which appear to be valid" << std::endl;
-     numSteps_ = fileNames.size();
+     if(fileNames.size() == 0){
+       std::cerr << "Found no files for conversion. going to exit..." << std::endl;
+       exit(1);
+     }else{
+       std::cout << "Found " << fileNames.size() << " files/steps which appear to be valid" << std::endl;
+       numSteps_ = fileNames.size(); 
+     }
   }
   
   Integer FileReader_CGNS::GetFileHandle(std::string fName){
@@ -470,7 +479,9 @@ namespace CoupledField{
        cg_coord_read(fileHandle, 1, 1, curCoordName, RealDouble , range_min, range_max, (void*)curCoord );
 
        //copy them into the datastructure
-       std::vector<Double> tmp(&curCoord[0],&curCoord[numVertices_]);
+       std::vector<Double> tmp;
+       tmp.resize(numVertices_,0);
+       tmp.assign(curCoord,curCoord+numVertices_);
        nodeCoords_[idx] = StdVector<Double>(tmp);
      }
      delete [] curCoord;

@@ -74,7 +74,7 @@ namespace CoupledField{
     protected:
       UInt numElems_;
       UInt numVertices_;
-      std::map<UInt, std::string>  fileNames_;
+      std::map<Double, std::string>  fileNames_;
       std::string fileDir_;
       bool gridInitialized_;
       //storing the coordinates
@@ -86,7 +86,7 @@ namespace CoupledField{
       std::map<Integer,std::set<UInt> > nodesPerRegionMap_;
 
     private:
-      void ReadCGNSDirectory(std::string dirname, std::map<UInt, std::string> & fileNames);
+      void ReadCGNSDirectory(std::string dirname, std::map<Double, std::string> & fileNames);
       Integer GetFileHandle(std::string fName);
       void CheckFileValidity(Integer fileHandle);
       UInt MapCoordinateIndex(char* coordName);
