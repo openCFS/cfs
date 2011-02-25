@@ -10,7 +10,7 @@ export LANG=en_US.UTF-8
 # Get name of CFS/bin directory
 CFS_BIN_DIR=`dirname $0`
 
-CFS_ROOT_DIR=$CFS_BIN_DIR/../../
+CFS_ROOT_DIR=$CFS_BIN_DIR/..
 
 # Check if we are in BINARY tree or in DIST tree.
 if [ ! -d $CFS_ROOT_DIR/source ]; then
