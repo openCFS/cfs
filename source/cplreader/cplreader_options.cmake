@@ -340,6 +340,15 @@ ADD_OPTION(pres
   "Specify column of pressure in FASTEST ASCII files."
   )
 
+ADD_OPTION(doIntAverageCentre
+  bool
+  false
+  "averages the integration over nodes at centre"
+  "If this parameter is set acouRhsLoad is calculated by using the velocity
+  vector at the centre of each element. May help with quadratic elements."
+  )
+
+
 CONFIGURE_FILE("ParamsInit.cc.in"
   "${CMAKE_CURRENT_BINARY_DIR}/ParamsInit.cc")
 

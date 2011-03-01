@@ -135,6 +135,24 @@ namespace CoupledField
     linearLoad_->CalcElemVec4QuadwithVel(coordMat,  NodalVal, elemvec, nodalLoadDensity, divLHTensor, ptElem_, density);
   }
 
+  void ElemIntegr::PerformIntegrationCentre(const Matrix<Double> & coordMat,
+                                      const Matrix<Double>& NodalVel,
+                                      Vector<Double>& resVec,
+                                      Vector<Double>& nodalLoadDensity,
+                                      Vector<Double>& divLHTensor,
+                                      Double density)
+  {
+#ifdef TRACE
+    (*trace) << " entering ElemIntegr::PerformIntegrationCentre" << std::endl;
+#endif
+
+    if(!ptElem_)
+      return;
+
+    linearLoad_->CalcElemVec4QuadwithVelCentre(coordMat, \
+        NodalVel, resVec, nodalLoadDensity, divLHTensor, ptElem_, density);
+  }
+
 
   void ElemIntegr::ComputeFromCombustionTij(const Matrix<Double> & coordMat,
                                             const Matrix<Double>& NodalVel,

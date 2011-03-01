@@ -71,6 +71,7 @@ namespace CoupledField
     std::map<std::string, std::vector<UInt> > regionNodes_;
 
     UInt dim_;
+    bool doIntAverageCentre_;
 
     std::map<std::string, std::vector<UInt> > nodeGroups_;
     std::map<std::string, std::vector<UInt> > elemGroups_;

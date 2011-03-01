@@ -51,6 +51,7 @@ namespace CoupledField
     ptFileReader_->Init();
 
     dim_ = settings.GetInt("dim");
+    doIntAverageCentre_ = settings.GetInt("doIntAverageCentre");
 
     OutputWriterVectorType::iterator it, end;
     it = outputWriters_.begin();
@@ -802,8 +803,14 @@ namespace CoupledField
       }
 
       try {
-        ptElemIntegr_[elemType]->PerformIntegration( coordMat, nodaldTijdxj, nodalVel,
-                                                     elemVec, nodalLoadDensity, divLHTensor, density);
+        if (doIntAverageCentre_)
+        {
+          ptElemIntegr_[elemType]->PerformIntegrationCentre( coordMat, nodalVel,
+                                                       elemVec, nodalLoadDensity, divLHTensor, density);
+        } else {
+          ptElemIntegr_[elemType]->PerformIntegration( coordMat, nodaldTijdxj, nodalVel,
+                                                       elemVec, nodalLoadDensity, divLHTensor, density);
+        }
       } catch (CoupledField::Exception &ex)
       {
         std::cerr << "WARN: An Exception occurred during source term "
