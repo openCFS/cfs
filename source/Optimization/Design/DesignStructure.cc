@@ -243,9 +243,9 @@ void DesignStructure::FindRegularNeighborhood(DesignElement* base, double radius
   // and for SHARP_SIGMUND also in the filtering itself! :(
   double val_rad = filter_.sensitivity_ == Filter::SHARP_PLAIN || filter_.sensitivity_ == Filter::SHARP_SIGMUND ? value : radius;
 
-  int x = ceil(radius / edges[0]);
-  int y = ceil(radius / edges[1]);
-  int z = dim < 3 ? 0 : ceil(radius / edges[2]);
+  int x = static_cast<int>(ceil(radius / edges[0]));
+  int y = static_cast<int>(ceil(radius / edges[1]));
+  int z = dim < 3 ? 0 : static_cast<int>(ceil(radius / edges[2]));
 
   for(int i = -x; i <= x; i++)
   {

@@ -470,7 +470,7 @@ TYPE ParamNode::MathParse() const {
   // Set expression and evaluate
   parser->SetExpr(handle, expr);
   TYPE ret = TYPE();
-  ret = parser->Eval(handle);
+  ret = static_cast<TYPE>(parser->Eval(handle));
   
   // release handle
   parser->ReleaseHandle(handle);

@@ -1404,7 +1404,7 @@ namespace CoupledField
 
     TYPE result(0);
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
-      result += Abs(data_[0][k] - other.data_[0][k]);
+      result += static_cast<TYPE>(Abs(data_[0][k] - other.data_[0][k]));
 
     return result;
   }
