@@ -3,6 +3,7 @@ import libxml2
 import math
 import os
 import string
+import numpy
 
 # replace a single xpath value -> must exsit once!
 # xml is a xpathContext: doc = libxml2.parseFile("params.xml") -> xml = doc.xpathNewContext()
@@ -181,6 +182,32 @@ def getDim(data):
   if data.ndim >= 3:
     z = data.shape[2]
   return x, y, z
+
+## helps to clean an array with repeated entries as it happens hen nodes and elements are defined in cfs with a too small inc value
+# @param data array which is a history file read by numpy.loadtxt()
+def cleanOversampledArray(data):
+  assert(len(data.shape) == 2)
+  assert(data.shape[0] > 1)  
+  
+  # find unique indices
+  unique = []
+  # the first element is unique
+  unique.append(0)
+  line = data[:,0] 
+  for i in range(1, data.shape[0]):
+    if line[i] <> line[unique[len(unique)-1]]:
+      unique.append(i)
+  
+  # copy unique data
+  columns = data.shape[1]
+  result = numpy.zeros((len(unique), columns))
+  for i in range(len(unique)):
+    for c in range(columns):
+      val = data[unique[i], c]
+      result[i][c] = val
+  
+  return result    
+
 
 ## finds a value in an ndarray
 # @param silent if True -1,-1,-1 is returned, otherwise an error

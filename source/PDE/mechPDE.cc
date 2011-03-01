@@ -85,26 +85,21 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     // ensure that subtype fits to problem geometry
     if ( subType_ == "3d" && probGeo == "3d" ) {
       stressDim_ = 6;
-      Info->PrintF("", "=== 3D PROBLEM\n");
     }
     else if ( subType_ == "axi" && probGeo == "axi" ) {
       isaxi_ = true;
       stressDim_ = 4;
-      Info->PrintF("", "=== AXISYSMMETRIC PROBLEM\n");
     }
     else if ( subType_ == "planeStrain" && probGeo == "plane" ) {
       stressDim_ = 3;
-      Info->PrintF("", "=== PLANE STRAIN PROBLEM\n");
     }
 
     else if ( subType_ == "planeStress" && probGeo == "plane" ) {
       stressDim_ = 3;
-      Info->PrintF("", "=== PLANE STRESS PROBLEM\n");
     }
 
     else if ( subType_ == "flatShell" ) {
       stressDim_ = 3;
-      Info->PrintF("", "=== FLAT SHELL PROBLEM\n");
     }
     else {
       EXCEPTION( "Subtype '" <<  subType_ << "' of PDE '"
@@ -2183,17 +2178,23 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       break;
 
     case VON_MISES_STRESS:
-      if(isComplex_)
-        CalcVonMises<Complex>(result, MECH_STRESS);
-      else
-        CalcVonMises<Double>(result, MECH_STRESS);
+      if(isComplex_) {
+        CalcStressAndStrain<Complex>(result, MECH_STRESS);
+        CalcVonMises<Complex>(result);
+      } else {
+        CalcStressAndStrain<Double>(result, MECH_STRESS);
+        CalcVonMises<Double>(result);
+      }
       break;
 
     case VON_MISES_STRAIN:
-      if(isComplex_)
-        CalcVonMises<Complex>(result, MECH_STRAIN);
-      else
-        CalcVonMises<Double>(result, MECH_STRAIN);
+      if(isComplex_) {
+        CalcStressAndStrain<Complex>(result, MECH_STRESS);
+        CalcVonMises<Complex>(result);
+      } else {
+        CalcStressAndStrain<Double>(result, MECH_STRESS);
+        CalcVonMises<Double>(result);
+      }
       break;
 
     case MECH_STRAIN:
@@ -2311,12 +2312,10 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
 
   template <class TYPE>
-  void MechPDE::CalcVonMises(shared_ptr<BaseResult> res, SolutionType ss)
+  void MechPDE::CalcVonMises(shared_ptr<BaseResult> res)
   {
-    assert(ss == MECH_STRESS || ss == MECH_STRAIN);
-
-    // calculate the stresses/strains
-    CalcStressAndStrain<TYPE>(res, ss);
+    // we assume the calculation of the stresses/strains to be already performed!
+    // CalcStressAndStrain<TYPE>(res, ss);
 
     // we don't need the entity iterator, only the stresses.
     // copy the stress result, our result is scalar
@@ -2330,11 +2329,11 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     // element stress matrix
     Vector<TYPE> stress_strain(stressDim_);
 
-
-    Matrix<double> m = GetVonMisesMatrix(dim_);
+    assert(stressDim_ == 6  || stressDim_ == 3); // don't know what to do with axi!
+    const Matrix<double>& m = GetVonMisesMatrix(stressDim_ == 6 ? 3 : 2);
     Vector<TYPE> tmp;
 
-    LOG_DBG(mechpde) << "CalcVonMisesStess: M=" << m.ToString();
+    LOG_DBG(mechpde) << "CalcVonMises: M=" << m.ToString();
 
     for(unsigned int e = 0, n = v_m_s.GetSize(); e < n; e++)
     {

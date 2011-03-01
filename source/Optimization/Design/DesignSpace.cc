@@ -170,7 +170,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, ParamNodeList &pn_de
 
             for(unsigned int e = 0; e < n; e++)
             {
-              DesignElement de(curr_design_pn, elems[e]);
+              DesignElement de(curr_design_pn, elems[e], data.GetSize());
               de.SetDesign(initial);
               
               data.Push_back(de);
@@ -269,6 +269,27 @@ bool DesignSpace::Contains(const RegionIdType reg) const
       return true;
 
   return false;
+}
+
+void DesignSpace::RegisterPseudoDesign(StdVector<DesignElement*>& elements)
+{
+  bool old = false;
+  for(unsigned int i = 0; i < pseudoDesigns_.GetSize(); i++)
+    if(elements[0]->elem->regionId == (*pseudoDesigns_[i])[0]->elem->regionId) // one region!
+      old = true;
+
+  if(!old)
+    pseudoDesigns_.Push_back(&elements);
+}
+
+unsigned int DesignSpace::CalcRegisteredPseudoDesigns() const
+{
+  unsigned int sum = 0;
+
+  for(unsigned int i = 0; i < pseudoDesigns_.GetSize(); i++)
+    sum += pseudoDesigns_[i]->GetSize();
+
+  return sum;
 }
 
 void DesignSpace::SetDesignMaterial(PtrParamNode dm){
@@ -806,21 +827,6 @@ int DesignSpace::Find(unsigned int elemNum, bool throw_exception)
   return idx;
 }
 
-int DesignSpace::Find(const DesignElement* de, bool throw_exception)
-{
-  int idx = Find(de->elem->elemNum, throw_exception);
-
-  for(unsigned int d = 0; idx > -1 && d < design.GetSize(); d++)
-    if(data[elements * d + idx].GetType() == de->GetType())
-      return idx;
-
-  // had wrong design type
-  if(throw_exception)
-    EXCEPTION("requested design element num has index " << idx << " but invalid design type " << de->GetType());
-
-  return -1;
-}
-
 int DesignSpace::Find(const Elem* elem, bool throw_exception)
 {
   if(FindRegion(elem->regionId) >= 0) return Find(elem->elemNum, throw_exception);
@@ -1015,9 +1021,9 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
 
   for ( it.Begin(); !it.IsEnd(); it++ )
   {
-    // for elements not in the design region we set to one
+    // for elements not in the design region we set to zero
     for(unsigned int i = 0; i < dofs; i++)
-      result_value[i] = 1.0;
+      result_value[i] = 0.0;
 
     if(FindRegion(it.GetElem()->regionId) >= 0)
     {
@@ -1028,11 +1034,34 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
       DesignElement& de = data[data_index];
       de.GetValue(descr, result_value, dofs);
 
-#ifdef CHECK_INDEX
-      if(de.elem->elemNum != it.GetElem()->elemNum)
-        EXCEPTION("mixed up indices:" << de.elem->elemNum << "!=" << it.GetElem()->elemNum
-            << " base_index=" << base_index << " data_index=" << data_index << " it.Pos()=" << it.GetPos());
-#endif
+      #ifdef CHECK_INDEX
+        if(de.elem->elemNum != it.GetElem()->elemNum)
+          EXCEPTION("mixed up indices:" << de.elem->elemNum << "!=" << it.GetElem()->elemNum
+              << " base_index=" << base_index << " data_index=" << data_index << " it.Pos()=" << it.GetPos());
+      #endif
+    }
+    else
+    {
+      // there might be the case that the function is not within the design space, e.g. stress
+      // is only implemented for OPT_RESULT_x
+      int ori = DesignElement::GetOptResultIndex(descr.solutionType);
+
+      for(unsigned int f = 0; ori != -1 && f < pseudoDesigns_.GetSize(); f++)
+      {
+        StdVector<DesignElement*>& data = *(pseudoDesigns_[f]);
+        // has the pseudo design the right special result?
+        if(it.GetElem()->regionId == data[0]->elem->regionId)
+        {
+          // search it slowly and add it up -> it will be a very special case anyway
+          for(unsigned int e = 0; e < data.GetSize(); e++)
+            if(data[e]->elem == it.GetElem())
+            {
+              // make sure the result description is unique and we don't overwrite
+              assert(result_value[0] == 0.0);
+              data[e]->GetValue(descr, result_value, dofs);
+            }
+        }
+      }
     }
     for(unsigned int i = 0; i < dofs; i++)
       result_data[it.GetPos() * dofs + i] = result_value[i];

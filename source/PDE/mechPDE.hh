@@ -135,10 +135,13 @@ namespace CoupledField
      * @param dim desired dimension. axis is ignored currently :( */
     const Matrix<double>& GetVonMisesMatrix(int dim);
 
-    /** Scalar version of the strains/stresses. Called from Optimization/ErsatzMaterial.
-     * @param ss wither MECH_STRESS or MECH_STRAIN */
+    /** Von Mises norm of the strains/stresses. Also called from PiezoCoupling for the coupled stress
+     * @param res CalStressAndStrain() resp. CalcStressStrain() to be already called! */
     template <class TYPE>
-    void CalcVonMises(shared_ptr<BaseResult> res, SolutionType ss);
+    void CalcVonMises(shared_ptr<BaseResult> res);
+
+    /** Dimension of stress/strain Voight notation vector  */
+    unsigned int GetStressStrainDim() const { return stressDim_; }
 
   protected:
 

@@ -1429,7 +1429,7 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
   StdVector<SingleVector*>& all_u_elem = forward.Get(excite)->elem[MECH];
 
   // the result vector is either per design element or the rhs for the adjoint problem
-  Vector<double> result(adjoint_rhs ? forward.Get(excite)->GetVector(Solution::RAW_VECTOR)->GetSize() : design->data.GetSize());
+  Vector<double> result(adjoint_rhs ? forward.Get(excite)->GetVector(Solution::RAW_VECTOR)->GetSize() : f->elements.GetSize());
   result.Init();
 
   Matrix<double> M = dynamic_cast<MechPDE*>(ToPDE(MECH))->GetVonMisesMatrix(dim);
@@ -1438,18 +1438,25 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
   Matrix<double> coords;
 
   assert(design->design.GetSize() == 1); // easy to extend
-  assert(design->regions.GetSize() == 1); // easy to extend
 
-  // the are special transfer functions for the stress (q) as relaxation and the fem simulation (p). See above!
-  TransferFunction* tf_p = design->GetTransferFunction(DesignElement::DENSITY, MECH);
-  TransferFunction* tf_q = design->GetTransferFunction(DesignElement::DENSITY, STRESS);
+  // are we within the design domain?
+  TransferFunction qp;
+  if(f->region != ALL_REGIONS && !design->Contains(f->region))
+  {
+    qp = TransferFunction(NO_APP, TransferFunction::FULL, 0.0, f->design);
+  }
+  else
+  {
+    // the are special transfer functions for the stress (q) as relaxation and the fem simulation (p). See above!
+    TransferFunction* tf_p = design->GetTransferFunction(DesignElement::DENSITY, MECH);
+    TransferFunction* tf_q = design->GetTransferFunction(DesignElement::DENSITY, STRESS);
 
-  if(tf_q->GetType() != TransferFunction::SIMP_TYPE || tf_p->GetType() != TransferFunction::SIMP_TYPE)
-    throw Exception("Stress constraints are currently only implemented for simp type transfer functions in 'mech' and 'stress'.");
-  TransferFunction qp(NO_APP, TransferFunction::SIMP_TYPE, tf_p->GetParam() - tf_q->GetParam(), tf_p->GetDesign());
-  LOG_DBG2(em) << "CVMSV: p=" << tf_p->GetParam() << " q=" << tf_q->GetParam() << " qp=" << qp.GetParam();
+    if(tf_q->GetType() != TransferFunction::SIMP_TYPE || tf_p->GetType() != TransferFunction::SIMP_TYPE)
+      throw Exception("Stress constraints are currently only implemented for simp type transfer functions in 'mech' and 'stress'.");
 
-  linElastInt* form = dynamic_cast<linElastInt*>(GetForm(design->GetRegionId(), pde, pde, "linElastInt"));
+    qp = TransferFunction(NO_APP, TransferFunction::SIMP_TYPE, tf_p->GetParam() - tf_q->GetParam(), tf_p->GetDesign());
+  }
+  LOG_DBG2(em) << "CVMSV: qp=" << qp.GetParam() << " adjont=" << adjoint_rhs << " grad_contrib=" << grad_contrib;;
 
   Vector<double> stress(dim == 2 ? 3 : 6); // elem stress
   Vector<double> strain;
@@ -1465,18 +1472,29 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
 
   // in the adjoint case we need alpha which is the gradient of the globalization function
   Vector<double> alpha;
-  if(adjoint_rhs) alpha = CalcVonMisesStressGlobalizationFactor(excite, f);
+  if(adjoint_rhs)
+    alpha = CalcVonMisesStressGlobalizationFactor(excite, f);
 
   // output of penalized von mises stresses? Only used in !adjoint_rhs and !grad_contrib
   int res_idx = design->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::PENALIZED_STRESS, DesignElement::NONE, DesignElement::PLAIN, excite.label);
 
-  for(unsigned int e = 0, en = design->data.GetSize(); e < en; e++)
+  BiLinFormContext* context = NULL;
+
+  // It might be that stress sensitive region is not within the design domain itself
+  StdVector<DesignElement*> data = f->elements;
+  for(unsigned int e = 0, en = data.GetSize(); e < en; e++)
   {
-    DesignElement* de = &design->data[e];
+    DesignElement* de = data[e];
+
+    // assure the form is always the right for a multi-region job
+    if(context == NULL || de->elem->regionId != context->GetFirstEntities()->GetRegion())
+       context = GetFormContext(de->elem->regionId, pde, pde, "linElastInt");
+    linElastInt* form = dynamic_cast<linElastInt*>(context->GetIntegrator()); // cache if the dynamic_cast is too slow
 
     grid->GetElemNodesCoord(coords, de->elem->connect, false); // geometric non-lin
 
-    Vector<double>& u_elem = dynamic_cast<Vector<double>& >(*(all_u_elem[e]));
+    // we need to be careful to use the right index!!
+    Vector<double>& u_elem = dynamic_cast<Vector<double>& >(*(all_u_elem[de->GetElementSolutionIndex()]));
 
     // apply our own physical densities!
     form->calcDMat(E, NULL, DesignElement::DENSITY, qp.Transform(de, DesignElement::SMART));
@@ -1566,7 +1584,8 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
       }
 
       LOG_DBG2(em) << "CVMSV de=" << de->ToString() << " gv= " << grad_contrib << " rho=" << de->GetDesign(DesignElement::SMART) << " sMs=" << result[e] << " deriv="
-                   << qp.Derivative(de, DesignElement::SMART) << " trans=" <<  qp.Transform(de, DesignElement::SMART) << " correct=" << correct << " -> " << (correct * result[e]);
+                   << (grad_contrib ? qp.Derivative(de, DesignElement::SMART) : -1.0) << " trans=" <<  qp.Transform(de, DesignElement::SMART) << " correct=" << correct << " -> " << (correct * result[e]);
+                   // << " stress=" << stress.ToString() << " strain=" << strain.ToString();
 
       result[e] *= correct;
     }
@@ -1584,23 +1603,27 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressGlobalizationFactor(Excitation&
   assert(local != NULL);
 
   const Vector<double> stress = CalcVonMisesStressVector(excite, f, false, false);
+  LOG_DBG2(em) << "CVMSGF ex=" << excite.index << " stress=" << stress.ToString();
+
   Vector<double> result(stress.GetSize());
 
   // this is a complicated way to calc element wise power*max(0,stress)^(power-1) but that way
   // we are open for further globalization functions and it is not that expensive
 
   const StdVector<Function::Local::Identifier>& vem = local->virtual_elem_map;
+  assert(vem.GetSize() == stress.GetSize());
 
   for(unsigned int i = 0; i < vem.GetSize(); i++)
   {
     const Function::Local::Identifier& id = vem[i];
     assert(id.neighbor.GetSize() == 0);
-    double gfv = id.EvalFunction(local, true, &stress);
-    int idx = design->Find(id.element);
-    result[idx] = gfv;
+    double gfv = id.EvalFunction(local, true, stress[i]);
+    //int idx = design->Find(id.element);
+    // unsigned int idx = id.element->GetIndex();
+    result[i] = gfv;
   }
 
-  LOG_DBG2(em) << "CVMSGF ex=" << excite.index << " stress=" << stress.ToString();
+
   LOG_DBG2(em) << "CVMSGF ex=" << excite.index << " alpha=" << result.ToString();
 
   return result;
@@ -2330,10 +2353,11 @@ double ErsatzMaterial::CalcGlobalFunction(Function* f, bool derivative, const Ve
     double res = 0.0;
     local->infeasible = 0;
 
+    assert(von_mises_stress == NULL || (von_mises_stress->GetSize() == vem.GetSize()));
     for(unsigned int i = 0; i < vem.GetSize(); i++)
     {
       Function::Local::Identifier& id = vem[i];
-      double fv = id.EvalFunction(local, false, von_mises_stress);
+      double fv = id.EvalFunction(local, false, von_mises_stress != NULL ? (*von_mises_stress)[i] : -1.0);
       res += fv;
       if(fv > 0) local->infeasible++;
       LOG_DBG2(em) << "CGF: !d c=" << f->type.ToString(f->GetType()) << " i=" << i << " de="
@@ -3163,20 +3187,22 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Applic
 
       // we save the element vectors in elem_vec. Might be empty the first call
       StdVector<SingleVector*>& elem_vec = elem[app];
-      int n = em_->design->GetNumberOfElements();
+
+      int n = em_->design->GetNumberOfElements(); // the standard design elements
+      int pn = em_->design->CalcRegisteredPseudoDesigns(); // optional (multiple) pseudo design elements
 
       // check for first call
       if(elem_vec.GetSize() == 0)
       {
-        elem_vec.Resize(n);
-        for(int ve = 0; ve < n; ve++)
+        elem_vec.Resize(n + pn);
+        for(int ve = 0; ve < (n + pn); ve++)
           elem_vec[ve] = new Vector<T>;
       }
 
       // create an element list to gain the iterator in the loop
       ElemList elemList(grid);
 
-      // store the results in our own structure
+      // store the results of the standard design elements in our own structure
       for(int e = 0; e < n; e++)
       {
         DesignElement* de = &em_->design->data[e];
@@ -3184,8 +3210,26 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Applic
         elemList.SetElement(de->elem);
         const EntityIterator& it = elemList.GetIterator();
 
+        assert((int) de->GetElementSolutionIndex() == e);
         pde->GetSolVecOfElement((Vector<T>&) *elem_vec[e], it, resinfo);
       }
+      // the pseudo design if we have some
+      for(unsigned int r = 0; r < em_->design->GetPseudoDesignRegions().GetSize(); r++)
+      {
+        StdVector<DesignElement*>& data = *(em_->design->GetPseudoDesignRegions()[r]);
+
+        for(unsigned int e = 0; e < data.GetSize(); e++)
+        {
+          DesignElement* de = data[e];
+
+          elemList.SetElement(de->elem);
+          const EntityIterator& it = elemList.GetIterator();
+
+          assert(de->GetElementSolutionIndex() >= em_->design->GetNumberOfElements());
+          pde->GetSolVecOfElement((Vector<T>&) *elem_vec[de->GetElementSolutionIndex()], it, resinfo);
+        }
+      }
+
       return NULL;
     }
     case SEL_VECTOR: // interpreted as RHS_VECTOR

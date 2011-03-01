@@ -206,26 +206,6 @@ protected:
 class DesignElement : public BaseDesignElement
 {     
 public:
-  /** The empty constructor is the StdVector and for ghost elements */
-  DesignElement();
-
-  /** This sets the DesignElement with the values from the XML file.
-   * Is slow as it does the same evaluation often but is only O(n)
-   * @param space to output 'penalizedDesign' the pointer is needed to find the transfer function*/
-  DesignElement(PtrParamNode pn, Elem* elem);
-
-  virtual ~DesignElement();
-
-   /** We might need thr transfer functions! */
-  static void SetDesignSpace(DesignSpace* space)
-  {
-    space_ = space;
-  }
-
-  static DesignSpace* GetDesignSpace()
-  {
-    return space_;
-  }
 
 
   /** This defines how to access variables (design, objective_gradient, ...),
@@ -235,6 +215,31 @@ public:
   /** The type of this design element, influences the Get*Bound() methods.
    * By definition the design elements are stored in the ordering of the type!! */
   typedef enum { UNITY = -5, NO_DERIVATIVE = -4, TENSOR_TRACE = -3, DEFAULT = -2, NO_TYPE = -1, DENSITY = 0, POLARIZATION = 1, ACOU_DENSITY = 2, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO, GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA} Type;
+
+  /** The empty constructor is the StdVector and for ghost elements */
+  DesignElement();
+
+  /** This sets the DesignElement with the values from the XML file.
+   * Is slow as it does the same evaluation often but is only O(n)
+   * @param space to output 'penalizedDesign' the pointer is needed to find the transfer function
+   * @param index location within the design space */
+  DesignElement(PtrParamNode pn, Elem* elem, unsigned int index);
+
+  /** Dummy elements for Funtion */
+  DesignElement(Elem* elem, Type type, unsigned int index, int pseudoElementIndex);
+
+  virtual ~DesignElement();
+
+   /** We might need the transfer functions! */
+  static void SetDesignSpace(DesignSpace* space)
+  {
+    space_ = space;
+  }
+
+  static DesignSpace* GetDesignSpace()
+  {
+    return space_;
+  }
 
   /** Default mapping from the PDE */
   static Type Default(const SinglePDE* pde);
@@ -297,9 +302,25 @@ public:
     /** helper for LOG output */
     static std::string ToString(const StdVector<DesignElement*>& vec);
 
-    /** to make the class polymorphic and we can dynamic_cast<> it */
-    /** Pointer to the element of the region, paramter for integration, ... */
+    /** to make the class polymorphi and we can dynamic_cast<> it */
+    /** Pointer to the element of the region, parameter for integration, ... */
     Elem*  elem;
+
+    /** The index of this element within the design space - 0 based */
+    unsigned int GetIndex() const { assert(index_ != std::numeric_limits<unsigned int>::max()); return index_; }
+
+    /** In case we are a pseudo design element which is not within the design domain but from the
+     *  non-design region of a function (e.g. stress) this index stores the index within the element storage.
+     *  It is -1 if we are a standard design element, otherwise it is >= the number of standard design elements.
+     *  This element is not stored within data but with the registered pseudoDesigns_ and might be non-unique */
+    int GetPseudoElementIndex() const { return pseudoElementIndex_; }
+
+    /** Gets the index within the element vector solutions store in the solutions space.
+     * Handles multiple design elements and pesudo elements */
+    unsigned int GetElementSolutionIndex() const;
+
+    /** extracts the OPT_RESULT_x or -1 if some other solution type */
+    static int GetOptResultIndex(SolutionType st);
 
     /** This stores special values during calculation for visualization via
      * result description in XML: See DesignSpace::GetSpecialResultIndex()
@@ -340,6 +361,12 @@ private:
   
   /** the barycenter of this element only set on request. */
   Point* location_;
+
+  /** @see GetIndex() */
+  unsigned int index_;
+
+  /** @see GetPseudoElementIndex() */
+  int pseudoElementIndex_;
 
   /** what is our design type */
   Type type_;

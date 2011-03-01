@@ -39,9 +39,8 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   // there must not  be a value when a homogenization tensor is given
   this->boundValue_ = pn->Has("value") ? pn->Get("value")->As<double>() : -1.0;
 
-  design = !pn->Has("design") ? DesignElement::DEFAULT :
-           DesignElement::type.Parse(pn->Get("design")->As<std::string>());
-
+  if(pn->Has("design")) // will sometime be in Function, now the default is set to DEFAULT
+    design = DesignElement::type.Parse(pn->Get("design")->As<std::string>());
 
   // special handling of scaling
   objective_scaling_ = pn->Get("scaling")->As<std::string>() == "objective";
@@ -58,8 +57,8 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
     ReadCoord(pn);
 
   penalty = pn->Get("penalty")->As<double>();
-  region = ALL_REGIONS;
 
+  // default is set in Function, may this moves later to Function, too
   if(pn->Has("region") && pn->Get("region")->As<std::string>() != "all")
     region = domain->GetGrid()->GetRegion().Parse(pn->Get("region")->As<std::string>());
 
@@ -96,6 +95,8 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
 
 void Condition::PostProc(DesignSpace* space, DesignStructure* structure)
 {
+  SetElements(space, region, design); // before Function::PostProc() because of virtual_elem_map
+
   // note, meanwhile we have info_ set! but not yet in the constructor
   Function::PostProc(space, structure);
 
@@ -559,6 +560,9 @@ void Condition::ToInfo(PtrParamNode in)
   else
     in->Get("delta_logging")->SetValue(delta_logging);
 
+  if(region != ALL_REGIONS)
+    in->Get("region")->SetValue(domain->GetGrid()->GetRegion().ToString(region));
+
   // TODO somehow scaling does not work ??
   // if(IsHomogenization() && !objective_scaling_ && !blown_up_) // warn only the first time!
   //  in->Get(ParamNode::WARNING)->SetValue("Doing homogenization without 'objective' scaling constraint '" + type.ToString(type_) + "'");
@@ -571,6 +575,7 @@ bool Condition::IsForRegion(RegionIdType regionId)
 {
   return(region == ALL_REGIONS || region == regionId);
 }
+
 
 LocalCondition::LocalCondition(PtrParamNode pn) : Condition(pn)
 {
@@ -604,7 +609,8 @@ StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
   for(int i = -1 ; i < (int) id.neighbor.GetSize(); i++)
   {
     DesignElement* de = id.GetElement(i);
-    int other_idx = local->space->Find(de); // needs to be fast!
+    // int other_idx = local->space->Find(de); // needs to be fast!
+    int other_idx = de->GetIndex();
     indices.push_back(other_idx);
   }
 
@@ -925,11 +931,9 @@ void ConditionContainer::VirtualView::Done()
     int idx = container_->space_->GetSpecialResultIndex(DesignElement::DEFAULT, vs);
     if(idx >= 0)
     {
-      StdVector<DesignElement>& des_data = container_->space_->data;
-
       // we add up the max value and not elements have a slope constraint, therefore reset
-      for(unsigned int e = 0; e < des_data.GetSize(); e++)
-        des_data[e].specialResult[idx] = 0.0; // initialize
+      for(unsigned int e = 0; e < lc->elements.GetSize(); e++)
+        lc->elements[e]->specialResult[idx] = 0.0; // initialize
 
       StdVector<Function::Local::Identifier>& vem = lc->GetLocal()->virtual_elem_map;
 
