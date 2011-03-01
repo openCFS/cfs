@@ -234,7 +234,7 @@ namespace CoupledField{
             /* copy the fluid velocity values */
           tmpSolStruct = &curType[FLUIDMECH_VELOCITY];
 
-          if(nboundary == 0 || nboundary !=0){
+          if(nboundary == 0){
             tmpSolStruct->isActive = true;
             if (tmpSolStruct->dofNames.empty()) {
               tmpSolStruct->unit = MapSolTypeToUnit(FLUIDMECH_VELOCITY);
@@ -344,13 +344,18 @@ namespace CoupledField{
             //ASSUME THE element before the last token to be the number
             std::vector<std::string> parts( tok.begin(), tok.end() ) ;
             try{
-              Double number = boost::lexical_cast< Double >( parts[parts.size()-2]  );
-              //Integer number =atoi(parts[parts.size()-2].c_str()  );
-	      std::cout << parts[parts.size()-2].c_str() << "\t" << number << std::endl;
+              std::string doub =  parts[parts.size()-3] + "." + parts[parts.size()-2];
+              Double number = boost::lexical_cast< Double >( doub  );
               fileNames[number] = fn;
-            }catch( const boost::bad_lexical_cast & e ){
-              std::cout << "Cannot cast to integer. Maybe your files have a different name convention than expected." << std::endl;
-              std::cout << e.what() << std::endl;
+            }catch( const boost::bad_lexical_cast & ){
+              std::cout << "Cannot cast to integer. Maybe your files have a different name convention than expected.";
+              //std::cerr << "Cannot cast to double. Trying with int." std::endl;
+              try{
+                Double number = boost::lexical_cast< UInt >( parts[parts.size()-2]  );
+                fileNames[number] = fn;
+              }catch( const boost::bad_lexical_cast & ){
+                std::cout<< "Cannot cast to integer. Maybe your files have a different name convention than expected.";
+              }
             }
           }else{
             std::cout << "Ignoring File " << fn << std::endl;
@@ -361,13 +366,13 @@ namespace CoupledField{
      for(UInt i = 1;i<=firstStep;i++){
        fileNames.erase(fileNames.begin());
      }
-     if(fileNames.size() == 0){
-       std::cerr << "Found no files for conversion. going to exit..." << std::endl;
-       exit(1);
-     }else{
-       std::cout << "Found " << fileNames.size() << " files/steps which appear to be valid" << std::endl;
-       numSteps_ = fileNames.size(); 
-     }
+     std::cout << "Found " << fileNames.size() << " files/steps which appear to be valid" << std::endl;
+     //std::map<Double, std::string>::iterator iter = fileNames.begin();
+     //for(UInt i = 1;i<=fileNames.size();i++){
+     //  std::cout << iter->first << " with name " << iter->second << std::endl;
+     //  iter++;
+     //}
+     numSteps_ = fileNames.size();
   }
   
   Integer FileReader_CGNS::GetFileHandle(std::string fName){
@@ -380,7 +385,9 @@ namespace CoupledField{
      if(cg_open(fName.c_str(), MODE_READ, &fn) != CG_OK)
 #endif
      {
-        Exception(cg_get_error());
+        std::cerr << "File open failed: " << fName << "... Going to exit" << std::endl; 
+        EXCEPTION(cg_get_error());
+        exit(1);
      }
     }else{
       std::cerr << "File does not exists: " << fName << "... Going to exit" << std::endl; 
