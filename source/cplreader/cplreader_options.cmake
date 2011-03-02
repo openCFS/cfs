@@ -348,6 +348,16 @@ ADD_OPTION(doIntAverageCentre
   vector at the centre of each element. May help with quadratic elements."
   )
 
+ADD_OPTION(doCalcMultiNodes
+  bool
+  true
+  "This flag needs to be set to remedy region interface artifacts."
+  "If multiple regions exist, nodes which are shared by both are stored multplie
+  times, once for each region. But their acouRhsLoad is only calculated in each
+  region seperatly and therefore get different values which need to be added.
+  This flag should be set on otherwise artifacts at the region interface occur."
+  )
+
 
 CONFIGURE_FILE("ParamsInit.cc.in"
   "${CMAKE_CURRENT_BINARY_DIR}/ParamsInit.cc")

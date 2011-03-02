@@ -144,7 +144,8 @@ namespace CoupledField
           {
             EXCEPTION("You are trying to calculate acoustic sources on multiple regions." << std::endl
                 << "Cplreader needs to find the common interface of these regions," << std::endl
-                << "but since the regions are so big (number of nodes) this will take to long!")
+                << "but since the regions are so big (number of nodes) this will take to long!" << std::endl
+                << "If you know what you are doing turn this option of with \"--doCalcMultiNodes 0\"")
           }
           /* nodes of first region */
           for (UInt i = 0; i < firstRegVec.size(); ++i)

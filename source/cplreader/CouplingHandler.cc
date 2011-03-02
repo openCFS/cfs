@@ -374,7 +374,7 @@ namespace CoupledField
     std::vector<FlowDataType> flowData(numRegions);
     bool readOK = true;
     // variable to gather nodes on multiple regions
-    bool doCalcMultiNodes = true;
+    bool doCalcMultiNodes = settings.GetInt("doCalcMultiNodes");
     std::map<UInt, std::map<std::string, UInt> > multiNodes;
 
     std::cout << "========================================"
