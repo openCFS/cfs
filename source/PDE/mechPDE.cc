@@ -2134,10 +2134,12 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     }
   }
 
-  void MechPDE::CalcResults( shared_ptr<BaseResult> result ) {
+  void MechPDE::CalcResults( shared_ptr<BaseResult> result )
+  {
+    SolutionType st = result->GetResultInfo()->resultType;
 
-    switch (result->GetResultInfo()->resultType ) {
-
+    switch(st)
+    {
     case MECH_DISPLACEMENT:
       if( isComplex_ ) {
         ExtractResult<Complex>( result, sol_ );
@@ -2170,38 +2172,35 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       break;
 
     case MECH_STRESS:
-      if( isComplex_ ) {
-        CalcStressAndStrain<Complex>(result, MECH_STRESS);
-      } else {
-        CalcStressAndStrain<Double>(result, MECH_STRESS);
-      }
-      break;
-
     case VON_MISES_STRESS:
-      if(isComplex_) {
+      if( isComplex_ )
+      {
         CalcStressAndStrain<Complex>(result, MECH_STRESS);
-        CalcVonMises<Complex>(result);
-      } else {
+        if(st == VON_MISES_STRESS)
+          CalcVonMises<Complex>(result);
+      }
+      else
+      {
         CalcStressAndStrain<Double>(result, MECH_STRESS);
-        CalcVonMises<Double>(result);
+        if(st == VON_MISES_STRESS)
+          CalcVonMises<Double>(result);
       }
       break;
 
-    case VON_MISES_STRAIN:
-      if(isComplex_) {
-        CalcStressAndStrain<Complex>(result, MECH_STRESS);
-        CalcVonMises<Complex>(result);
-      } else {
-        CalcStressAndStrain<Double>(result, MECH_STRESS);
-        CalcVonMises<Double>(result);
-      }
-      break;
 
     case MECH_STRAIN:
-      if( isComplex_ ) {
+    case VON_MISES_STRAIN:
+      if( isComplex_ )
+      {
         CalcStressAndStrain<Complex>(result, MECH_STRAIN);
-      } else {
+        if(st == VON_MISES_STRAIN)
+          CalcVonMises<Complex>(result);
+      }
+      else
+      {
         CalcStressAndStrain<Double>(result, MECH_STRAIN);
+        if(st == VON_MISES_STRAIN)
+          CalcVonMises<Double>(result);
       }
       break;
 

@@ -69,6 +69,8 @@ class Function
       HOMOGENIZATION_TRACKING,   /*!< match a given tensor by L2 norm  */
       POISSONS_RATIO,            /*!< Poisson's Ration (\nu) within homogenization */
       YOUNGS_MODULUS,            /*!< Young's Modulus (E) within homogenization */
+      YOUNGS_MODULUS_E1,         /*!< Young's Modulus (E1) within orthotrope homogenization */
+      YOUNGS_MODULUS_E2,         /*!< Young's Modulus (E2) within orthotrope homogenization */
       TYCHONOFF,                 /*!< int(|| design ||^2) is a regularization form material opt. */
       TEMPERATURE,               /*!< for optimization of poisson and heat conduction pde */
       GLOBAL_SLOPE,              /*!< different implementation from local slopes */
@@ -82,6 +84,7 @@ class Function
       REALVOLUME,
       ISOTROPY,                  /*!< blow up to several HOMOGENITATION_TENSOR constraints with different coords */
       ISO_ORTHOTROPY,            /*!< relaxed form of isotropy without fixing shear moduli */
+      ORTHOTROPY,                /*!< just some 0 constraints */
       SLOPE,                     /*!< Implementation of a grad rho constraint */
       MOLE,                      /*!< Feature size control from T. Poulsen */
       OSCILLATION,               /*!< Feature size control by Fabian W. :) */
