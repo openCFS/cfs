@@ -8,6 +8,7 @@
 
 namespace CoupledField
 {
+
 class Optimization;
 class ParamNode;
 class Timer;
@@ -24,7 +25,7 @@ public:
    * @param pn here we can have options - might be NULL! */
   SnOpt(Optimization* optimization, PtrParamNode pn);
   
-  ~SnOpt();
+  virtual ~SnOpt();
   
   /** translates the snopt call to a call of cfs-functions */
   int Callback(int* Status, const int n,
@@ -45,6 +46,11 @@ private:
    *  and resizes the data vectors according to the problem dimensions
    *  Also set snopt options to values defined in xml */
   inline void Init();
+  
+  /** define the file names where snopt writes the output and open the files
+   *  using the snopen_ function defined in SnOptInterface.hh - does not work! problem
+   *  comes from snopt which currently (version 7.2) does not respect the settings properly */
+  inline void setSnoptOutputFiles();
 
   /** Does as the name suggests: calls snopta_ to solve the optimization problem */ 
   void SolveProblem();
@@ -125,8 +131,8 @@ private:
   int nFname;
     
   /** snopt variables for output */
-  int iSumm;
-  int iPrint;
+  int iSumm; // choose 6 for output to stdout
+  int iPrint; // choose 6 for output to stdout
   int iSpecs;
   int DerOpt;
   
@@ -208,7 +214,7 @@ private:
   /** We do not know when the major iterations and define it as the last function evaluation
    * before a new gradient step is evaluated. Such we can do the CommitIteration() only "post mortem" :(
    * This is therefore the "static" helper to be used in Callback(). */
-  bool perform_commit_itteration_;
+  bool perform_commit_iteration_;
 
 
   /** Timer for SnOpt */ 

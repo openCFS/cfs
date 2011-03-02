@@ -975,13 +975,13 @@ void ParamNode::AdjustElementType()
     }
   }
   // Check if node is ELEMENT, has children and a value
-  // -> not possible in a XML tree
+  // -> not possible in an XML tree
   if (type_ == ELEMENT && children_.GetSize() && !value_.empty())
   {
     string value;
     ToString(value, 0);
     WARN("Node '" << name_ << "' has children AND a non-empty value '"
-        << value << "'. This is not possible in a xml tree!");
+        << value << "'. This is not possible in an xml tree!");
     assert(false); // find the stuff. Maybe attribute and element with the same name!
   }
 

@@ -360,6 +360,24 @@ for y = 1:sy;
 endfor
 fprintf(xml_file, '</set>\n\n');
 
+fprintf(xml_file, '<set id="cross">\n');
+'cross'
+for y = 1:sy;
+  for x = 1:sx;
+    # number of current element
+    num = (y - 1) * sx + x;
+
+    if((y > sy/2 - sy/10 && y < sy/2 + sy/10) || (x > sx/2 - sx/10 && x < sx/2 + sx/10) )
+      v = 1;
+    else 
+      v = dmin;
+		endif
+
+    fprintf(xml_file, '  <element nr="%d" type="density" design="%g"/>\n', num, v);
+  endfor
+endfor
+fprintf(xml_file, '</set>\n\n');
+
 fprintf(xml_file, '</cfsErsatzMaterial>\n');
 fclose(xml_file);
 

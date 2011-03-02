@@ -503,7 +503,6 @@ share/matlab/create_densities/from_gid_geo/readgidmesh.m -text
 share/matlab/create_densities/from_gid_geo/readmesh.m -text
 share/matlab/create_densities/from_gid_geo/writexml.m -text
 share/matlab/create_densities/from_gid_geo/writexml2d.m -text
-share/matlab/create_densities/orthox.m -text
 share/matlab/create_densities/rect2d.m -text
 share/matlab/exec.m -text
 share/matlab/mminfo.m svneol=native#text/plain

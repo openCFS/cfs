@@ -165,20 +165,6 @@ void Condition::AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& lis
   // E = E(1,1) (= E(2,2) = E(3,3))
   // nu = E(1,2) (= E(1,3) = E(2,3))
   // G = E(4,4) (= E(5,5) = E(6,6))
-  //
-  // the conditions for iso-orthotropy can be derived from the conditions for
-  // positive definit material matrices. using the leading principal minors
-  // (Hauptminoren) of the matrix, we can derive the following relations that
-  // must be fulfilled:
-  // 1. E > 0
-  // 2. E^2 - nu^2 > 0
-  // 3. E^3 + 2nu^3 - 3nu^2E > 0
-
-  // this is equivalent (to be rigorosly proofed!) to:
-  // 1. E > 0
-  // 2. E > nu
-  // 3. E > -2nu
-  //
   // this conditions are lower bound conditions!
 
   if(domain->GetGrid()->GetDim() == 2)
@@ -308,28 +294,6 @@ void Condition::AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& lis
       g->coords.Push_back(make_tuple(6,6,-2.0));
     }
   }
-  // common for 2D and 3D
-  if(org == ISO_ORTHOTROPY)
-  {
-    // E11 > 0
-    g = g->AppendSubCondition(list);
-    g->bound_ = LOWER_BOUND;
-    g->coords.Clear();
-    g->coords.Push_back(make_tuple(1,1,1.0));
-
-    // E11 > E12 = E11 - E12 > 0
-    g = g->AppendSubCondition(list);
-    g->coords.Clear();
-    g->coords.Push_back(make_tuple(1,1,1.0));
-    g->coords.Push_back(make_tuple(1,2,-1.0));
-
-    // E11 + E12 + E12 > 0
-    g = g->AppendSubCondition(list);
-    g->coords.Clear();
-    g->coords.Push_back(make_tuple(1,1,1.0));
-    g->coords.Push_back(make_tuple(1,2,2.0));
-  }
-
 }
 
 

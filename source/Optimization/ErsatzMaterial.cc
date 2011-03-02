@@ -40,7 +40,6 @@
 #include "MatVec/stdmatrix.hh"
 #include "Materials/mechanicMaterial.hh"
 
-using namespace CoupledField;
 using namespace std;
 
 DECLARE_LOG(conditions)
@@ -48,6 +47,9 @@ DEFINE_LOG(conditions, "conditions")
 
 DECLARE_LOG(em)
 DEFINE_LOG(em, "ersatzMaterial")
+
+
+namespace CoupledField {
 
 Enum<ErsatzMaterial::Method> ErsatzMaterial::method;
 
@@ -367,7 +369,13 @@ StdVector<std::pair<string, double> > ErsatzMaterial::GetOrthotropeProperties(co
   }
   else
   {
-    BaseMaterial* bm = GetForm(design->GetRegionId(), pde, pde, "linElastInt")->GetMaterial();
+    BaseMaterial* bm = NULL;
+    // this happens when doing shape optimization with homTracking!
+    // we then have no design region and need to skip GetForm
+    if(design->GetRegionId() != -1) 
+    {
+      bm = GetForm(design->GetRegionId(), pde, pde, "linElastInt")->GetMaterial();
+    }
     Objective vf(Function::VOLUME, 0.0, true); // physical!
     double vol = CalcVolume(&vf, NULL, false, true);
     StdVector<std::pair<string, double> > ortho = MechanicMaterial::CalcOrthotropeProperties(homogenizedTensor, bm, pde->GetSubTensorType(), vol);
@@ -3284,3 +3292,6 @@ template double ErsatzMaterial::CalcU1KU2<double>(TransferFunction* tf, StdVecto
 template double ErsatzMaterial::CalcU1KU2<std::complex<double> >(TransferFunction* tf, StdVector<SingleVector*>& u1,
     Application app, StdVector<SingleVector*>& u2,
     DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f,  int res_idx);
+
+
+} // end of namespace
