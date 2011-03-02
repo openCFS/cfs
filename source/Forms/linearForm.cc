@@ -1306,8 +1306,8 @@ DEFINE_LOG(linForm, "linForm")
     helpVec.Resize(dimelem);
 
     Double volume = 0.0;
-    divLHTensor.Resize(numNodes);
-    divLHTensorTmp.Resize(numNodes);
+    divLHTensor.Resize(dimelem);
+    divLHTensorTmp.Resize(dimelem);
     divLHTensor.Init(0.0);
     divLHTensorTmp.Init(0.0);
     
@@ -1389,9 +1389,9 @@ DEFINE_LOG(linForm, "linForm")
     helpVec.Resize(dimelem);
 
     Double volume = 0.0;
-    divLHTensorTmp.Resize(n);
+    divLHTensorTmp.Resize(dimelem);
     divLHTensorTmp.Init(0.0);
-    divLHTensor.Resize(n);
+    divLHTensor.Resize(dimelem);
     divLHTensor.Init(0.0);
     
     Vector<double> intWeights = ptelem->GetIntWeights();
