@@ -542,7 +542,7 @@ namespace CoupledField
     std::string resultName, unit;
     UInt definedOn, numDofs, entryType;
     std::vector<std::string> dofNames;
-    FlowDataType::const_iterator it, end;
+    FlowDataType::const_iterator it, end, it_tmp, end_tmp;
     H5::Group resultDescGroup;
     H5::Group msGroup;
     std::vector<std::string> resultRegions;
@@ -560,24 +560,6 @@ namespace CoupledField
 
     // Extract active regions
     UInt numRegions = (*flowData_).size();
-    for(UInt i=0; i<numRegions; i++)
-    {
-      it = (*flowData_)[i].begin();
-      end = (*flowData_)[i].end();
-
-      for( ; it != end; it++ ) {
-        if(it->second.isActive)
-          resultRegions.push_back(regionNames_[i]);
-        break;
-      }
-    }
-
-    // Maybe the user made some wrong specifications...
-    if(resultRegions.empty())
-    {
-      std::cerr << "No result description has been written!" << std::endl;
-      return;
-    }
 
     // Write result descriptions
     it = (*flowData_)[0].begin();
@@ -588,6 +570,20 @@ namespace CoupledField
         continue;
 
       resultName = it->second.resultName;
+
+      resultRegions.clear();
+      for(UInt iRegion = 0; iRegion < numRegions; ++iRegion)
+      {
+        it_tmp = (*flowData_)[iRegion].begin();
+        end_tmp = (*flowData_)[iRegion].end();
+
+        for( ; it_tmp != end_tmp; it_tmp++ ) {
+          if (resultName == it_tmp->second.resultName)
+          {
+            resultRegions.push_back(regionNames_[iRegion]);
+          }
+        }
+      }
       
       // if stepNums_[resultName] is empty,
       // then this result is no output field
