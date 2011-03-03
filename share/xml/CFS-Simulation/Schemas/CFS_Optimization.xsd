@@ -462,6 +462,7 @@
                             <xsd:enumeration value="factorization_frequency"/>
                             <!-- real options -->
                             <xsd:enumeration value="major_optimality_tolerance"/>
+                            <xsd:enumeration value="minor_optimality_tolerance"/>
                             <xsd:enumeration value="major_feasibility_tolerance"/>
                             <xsd:enumeration value="minor_feasibility_tolerance"/>
                             <xsd:enumeration value="linesearch_tolerance"/>
