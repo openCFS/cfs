@@ -173,6 +173,7 @@ public:
     /** Copies the solution for the pde in our own storage.
      * In the ELEMENT_VECTORS case make sure, that the solution is in the PDE!
      * For manual adjoint stuff you might have to do SaveSolution() first!
+     * In ELEMENT_VECTORS also the registered pseudo elements are considered.
      * @param st if we copy the vector as RAW_VECTOR or element wise
      * @param pde will me mech in SIMP and also elec in PiezoSIMP
      * @param app redundant to pde. NO_APP for non ELEMENT_VECTOR as long as OLAS makes no difference

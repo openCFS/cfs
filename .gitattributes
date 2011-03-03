@@ -522,6 +522,7 @@ share/scripts/common.sh svneol=native#text/plain
 share/scripts/cplreader -text
 share/scripts/create_density.py -text
 share/scripts/distro.sh svneol=native#text/plain
+share/scripts/extract_info_xml_results.py -text
 share/scripts/gid_screenshots.py -text
 share/scripts/h5tool -text
 share/scripts/hdf5_aux.sh.in -text

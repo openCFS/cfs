@@ -1505,6 +1505,8 @@ void FluidMechPDE::CalcResults( shared_ptr<BaseResult> result ) {
 template <class TYPE>
 void FluidMechPDE::CalcStresses( shared_ptr<BaseResult> res ) {
 
+  // TODO: Why the hell is this copy and paste from MechPDE??
+
   //get the correct bilinear form
   Vector<Double> intPoint;
 

@@ -34,6 +34,9 @@ using boost::lexical_cast;
 Function::Function(PtrParamNode pn)
 {
   this->harmonic_    = BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType());
+  this->design = DesignElement::DEFAULT; // overwritten eventually in Condition
+  this->region = ALL_REGIONS;  // overwritten eventually in Condition
+
 
   this->pn = pn;
   this->local = NULL;
@@ -227,10 +230,13 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case HOMOGENIZATION_TRACKING:
     case POISSONS_RATIO:
     case YOUNGS_MODULUS:
+    case YOUNGS_MODULUS_E1:
+    case YOUNGS_MODULUS_E2:
     case SLOPE:
     case GLOBAL_SLOPE:
     case ISOTROPY:
     case ISO_ORTHOTROPY:
+    case ORTHOTROPY:
     case MOLE:
     case GLOBAL_MOLE:
     case OSCILLATION:
@@ -340,8 +346,11 @@ bool Function::IsHomogenization() const
     case HOMOGENIZATION_TRACKING:
     case POISSONS_RATIO:
     case YOUNGS_MODULUS:
+    case YOUNGS_MODULUS_E1:
+    case YOUNGS_MODULUS_E2:
     case ISOTROPY:
     case ISO_ORTHOTROPY:
+    case ORTHOTROPY:
       return true;
 
     default:
@@ -379,6 +388,8 @@ bool Function::ForSensitivityFiltering() const
   case HOMOGENIZATION_TRACKING:
   case POISSONS_RATIO:
   case YOUNGS_MODULUS:
+  case YOUNGS_MODULUS_E1:
+  case YOUNGS_MODULUS_E2:
   case TEMPERATURE:
   case ABS_OUTPUT:
   case STRESS:
@@ -402,11 +413,67 @@ bool Function::ForSensitivityFiltering() const
 
   case ISOTROPY:
   case ISO_ORTHOTROPY:
+  case ORTHOTROPY:
   case MULTI_OBJECTIVE:
     EXCEPTION("Invalid query: " << type.ToString(type_));
   }
 
   EXCEPTION("can never reach! Stupid C++");
+}
+
+void Function::SetElements(DesignSpace* space, RegionIdType region, DesignElement::Type design)
+{
+  assert(elements.GetSize() == 0);
+  Grid* grid = domain->GetGrid();
+
+  if(space->design.GetSize() > 1 && design == DesignElement::DEFAULT)
+    throw Exception("define design for condition '" + type.ToString(type_) + "'");
+
+  // if ALL_REGIONS for condition use what we define as design space which
+  elements.Reserve(region == ALL_REGIONS ? space->elements : grid->GetNumElems(region));
+
+  if(region == ALL_REGIONS || space->Contains(region))
+  {
+    for(unsigned int i = 0; i < space->data.GetSize(); i++)
+    {
+      DesignElement* de = &(space->data[i]);
+      if((design == DesignElement::DEFAULT || design == de->GetType()) && (region == ALL_REGIONS || de->elem->regionId == region))
+        elements.Push_back(de);
+    }
+  }
+  else
+  {
+    // this is a special case where the constraint does not act on the design space
+    if(type_ != STRESS)
+    {
+      std::string msg = "region " + grid->GetRegion().ToString(region) + " of condition " + type.ToString(type_) + " not within design domain";
+      info_->Get(ParamNode::WARNING)->SetValue(msg);
+    }
+
+    StdVector<Elem*> elems;
+    grid->GetElems(elems, region);
+
+    // construct dummy elements
+    non_design_elements_.Reserve(elems.GetSize());
+
+    // see DesignSpace::GetPseudoElementIndex()
+    int pei_base = space->GetNumberOfElements() + space->CalcRegisteredPseudoDesigns();
+
+    for(unsigned int i = 0; i < elems.GetSize(); i++)
+    {
+      DesignElement del(elems[i], design, elements.GetSize(), pei_base + i);
+      non_design_elements_.Push_back(del); // copy constructor
+
+      DesignElement* de = &(non_design_elements_.Last());
+      assert(de->simp == NULL);
+      de->simp = new SIMPElement(de);
+
+      elements.Push_back(de);
+    }
+    space->RegisterPseudoDesign(elements);
+  }
+
+  assert(elements.GetSize() == elements.Capacity());
 }
 
 
@@ -440,6 +507,8 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure)
   default: // do nothing
     break;
   }
+
+  // don't define the elements here, it is specific for objective and conditions
 }
 
 Function::Local* Function::InitLocal(DesignSpace* space)
@@ -853,15 +922,13 @@ void Function::Local::SetupSingularElementMap()
 {
   // only this element!
   element_dimension_ = 1; // two boundary "stones" per dimension
-  virtual_elem_map.Reserve(element_dimension_ * space->GetNumberOfElements());
-
-  space->AssertOneDesignOnly();
+  virtual_elem_map.Reserve(element_dimension_ * func_->elements.GetSize());
 
   StdVector<DesignElement*> empty;
 
-  for(int e = 0, en = space->GetNumberOfElements(); e < en; e++)
+  for(int e = 0, en = func_->elements.GetSize(); e < en; e++)
   {
-    DesignElement* de = &(space->data[e]);
+    DesignElement* de = func_->elements[e];
     virtual_elem_map.Push_back(Identifier(de, empty));
   }
 }
@@ -987,7 +1054,7 @@ Function::Local::Identifier::Identifier(DesignElement* elem, StdVector<DesignEle
 }
 
 
-double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_glob, const Vector<double>* von_mises_stress) const
+double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_glob, double von_mises_stress) const
 {
   // function value
   double fv = 0.0;
@@ -996,7 +1063,8 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
   switch(f->type_)
   {
   case STRESS:
-    fv = CalcStress(local, von_mises_stress);
+    assert(von_mises_stress >= 0);
+    fv = von_mises_stress;
     break;
 
   case SLOPE:
@@ -1395,11 +1463,3 @@ double Function::Local::Identifier::CalcJumpGradient(int neigh_idx) const
   return 2.0 * std::sin(PI*slope) * std::cos(PI*slope) * PI * factor;
 }
 
-double Function::Local::Identifier::CalcStress(const Local* local, const Vector<double>* von_mises_stress) const
-{
-  // so trivial
-  assert(von_mises_stress != NULL);
-  int idx = local->space->Find(element);
-  LOG_DBG3(func) << "L:I:CS elem=" << element->ToString() << " idx=" << idx << " -> " << (*von_mises_stress)[idx];
-  return (*von_mises_stress)[idx];
-}
