@@ -246,12 +246,15 @@ void Optimization::SetEnums()
   Function::type.Add(Function::HOMOGENIZATION_TRACKING, "homTracking");
   Function::type.Add(Function::POISSONS_RATIO, "poissonsRatio");
   Function::type.Add(Function::YOUNGS_MODULUS, "youngsModulus");
+  Function::type.Add(Function::YOUNGS_MODULUS_E1, "youngsModulusE1");
+  Function::type.Add(Function::YOUNGS_MODULUS_E2, "youngsModulusE2");
   Function::type.Add(Function::TYCHONOFF, "tychonoff");
   Function::type.Add(Function::TEMPERATURE, "temperature");
   Function::type.Add(Function::GREYNESS, "greyness");
   Function::type.Add(Function::STRESS, "stress");
   Function::type.Add(Function::ISOTROPY, "isotropy");
   Function::type.Add(Function::ISO_ORTHOTROPY, "iso-orthotropy");
+  Function::type.Add(Function::ORTHOTROPY, "orthotropy");
   Function::type.Add(Function::SLOPE, "slope");
   Function::type.Add(Function::GLOBAL_SLOPE, "globalSlope");
   Function::type.Add(Function::MOLE, "mole");

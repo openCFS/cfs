@@ -204,6 +204,8 @@ void ErsatzMaterial::PostInit()
       case Objective::HOMOGENIZATION_TRACKING:
       case Objective::POISSONS_RATIO:
       case Objective::YOUNGS_MODULUS:
+      case Objective::YOUNGS_MODULUS_E1:
+      case Objective::YOUNGS_MODULUS_E2:
       case Objective::ELEC_ENERGY: // it simply does not work yet in the harmonics
         if(harmonic) throw Exception(objective + " is only for static state problems");
         break;
@@ -965,6 +967,8 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
 
     case Function::POISSONS_RATIO:
     case Function::YOUNGS_MODULUS:
+    case Function::YOUNGS_MODULUS_E1:
+    case Function::YOUNGS_MODULUS_E2:
          result = CalcPoissonsRatioAndYoungsModulus(f, derivative);
          break;
 
@@ -997,6 +1001,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
 
      case Function::ISOTROPY:
      case Function::ISO_ORTHOTROPY:
+     case Function::ORTHOTROPY:
      case Function::MULTI_OBJECTIVE:
        assert(false); // no valid function
     // no default, gcc warns
@@ -1896,12 +1901,17 @@ double ErsatzMaterial::CalcTracking(Excitation& excite, Objective* c, Condition*
 
 double ErsatzMaterial::CalcPoissonsRatioAndYoungsModulus(Function* f, bool derivative)
 {
-  assert(f->GetType() == Function::POISSONS_RATIO || f->GetType() == Function::YOUNGS_MODULUS);
+  Function::Type ft = f->GetType();
+  assert(ft == f->POISSONS_RATIO || ft == f->YOUNGS_MODULUS || ft == f->YOUNGS_MODULUS_E1 || ft == f->YOUNGS_MODULUS_E2);
 
   SubTensorType stt = pde->GetSubTensorType();
   assert(stt == PLANE_STRAIN || stt == PLANE_STRESS || stt == FULL);
   
   Matrix<double> hom_tensor = CalcHomogenizedTensor();
+
+  const double E11 = hom_tensor[1-1][1-1];
+  const double E12 = hom_tensor[1-1][2-1];
+  const double E22 = hom_tensor[2-1][2-1];
 
   double result = 0.0;
 
@@ -1922,42 +1932,69 @@ double ErsatzMaterial::CalcPoissonsRatioAndYoungsModulus(Function* f, bool deriv
     CalcHomogenizedTensorEntry(make_tuple(1,1,1.0), true, dE11);
     StdVector<double> dE12;
     CalcHomogenizedTensorEntry(make_tuple(1,2,1.0), true, dE12);
+    StdVector<double> dE22;
+    CalcHomogenizedTensorEntry(make_tuple(2,2,1.0), true, dE22);
 
-    const double E11 = hom_tensor[0][0];
-    const double E12 = hom_tensor[0][1];
     double grad(0.0);
     
     for(unsigned int e = 0, ne = design->GetNumberOfElements(); e < ne; e++)
     {      
-      if(f->GetType() == f->POISSONS_RATIO && (stt == FULL || stt == PLANE_STRAIN))
+      if(ft== f->POISSONS_RATIO && (stt == FULL || stt == PLANE_STRAIN))
       {
          grad = (dE12[e] * E11 - E12 * dE11[e]) / ((E11 + E12) * (E11 + E12));
       }
-      if(f->GetType() == f->POISSONS_RATIO && stt == PLANE_STRESS)
+      if(ft == f->POISSONS_RATIO && stt == PLANE_STRESS)
       {
         grad = (dE12[e] * E11 - E12 * dE11[e]) / (E11 * E11);
       }
-      if(f->GetType() == f->YOUNGS_MODULUS && (stt == FULL || stt == PLANE_STRAIN))
+      if(ft == f->YOUNGS_MODULUS && (stt == FULL || stt == PLANE_STRAIN))
       {
         grad  = (E11 * E11 + 2.0 * E11 * E12 + 3.0 * E12 * E12) * dE11[e];
         grad -= (4.0 * E11 * E12 + 2.0 * E12 * E12) * dE12[e];
         grad /= (E11 + E12) * (E11 + E12);
       }
-      if(f->GetType() == f->YOUNGS_MODULUS && stt == PLANE_STRESS)
+      if(ft == f->YOUNGS_MODULUS && stt == PLANE_STRESS)
       {
         grad  = (E11 * E11 + E12 * E12) * dE11[e];
         grad -= 2.0 * E11 * E12 * dE12[e];
         grad /=  E11 * E11;
+      }
+      if((ft == f->YOUNGS_MODULUS_E1 || ft == f->YOUNGS_MODULUS_E2) && stt == PLANE_STRESS)
+      {
+        double t1 = dE11[e] * E22 + E11 * dE22[e] - 2.0 * E12 * dE12[e];
+        double t2 = E11 * E22 - E12 * E12;
+
+        if(ft == f->YOUNGS_MODULUS_E1)
+          grad = (t1 * E22 - t2 * dE22[e]) / (E22 * E22);
+        else
+          grad = (t1 * E11 - t2 * dE11[e]) / (E11 * E11);
+      }
+      if((ft == f->YOUNGS_MODULUS_E1 || ft == f->YOUNGS_MODULUS_E2) && (stt == FULL || stt == PLANE_STRAIN))
+      {
+        throw Exception("youngsModulusE1/2 only implemented for plane stress");
       }
       design->data[e].AddGradient(f, grad);
     }
   }
   else
   {
-    if(f->GetType() == f->POISSONS_RATIO)
+    switch(ft)
+    {
+    case Function::POISSONS_RATIO:
       result = MechanicMaterial::CalcIsotropicPoissonsRatio(hom_tensor, stt);
-    else
+      break;
+    case Function::YOUNGS_MODULUS:
       result = MechanicMaterial::CalcIsotropicYoungsModulus(hom_tensor, stt);
+      break;
+    case Function::YOUNGS_MODULUS_E1:
+      result = (E11 * E22 - E12 * E12) / E22;
+      break;
+    case Function::YOUNGS_MODULUS_E2:
+      result = (E11 * E22 - E12 * E12) / E11;
+      break;
+    default:
+      assert(false);
+    }
   }
 
   return result;

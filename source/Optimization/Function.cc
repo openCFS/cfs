@@ -230,10 +230,13 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case HOMOGENIZATION_TRACKING:
     case POISSONS_RATIO:
     case YOUNGS_MODULUS:
+    case YOUNGS_MODULUS_E1:
+    case YOUNGS_MODULUS_E2:
     case SLOPE:
     case GLOBAL_SLOPE:
     case ISOTROPY:
     case ISO_ORTHOTROPY:
+    case ORTHOTROPY:
     case MOLE:
     case GLOBAL_MOLE:
     case OSCILLATION:
@@ -343,8 +346,11 @@ bool Function::IsHomogenization() const
     case HOMOGENIZATION_TRACKING:
     case POISSONS_RATIO:
     case YOUNGS_MODULUS:
+    case YOUNGS_MODULUS_E1:
+    case YOUNGS_MODULUS_E2:
     case ISOTROPY:
     case ISO_ORTHOTROPY:
+    case ORTHOTROPY:
       return true;
 
     default:
@@ -382,6 +388,8 @@ bool Function::ForSensitivityFiltering() const
   case HOMOGENIZATION_TRACKING:
   case POISSONS_RATIO:
   case YOUNGS_MODULUS:
+  case YOUNGS_MODULUS_E1:
+  case YOUNGS_MODULUS_E2:
   case TEMPERATURE:
   case ABS_OUTPUT:
   case STRESS:
@@ -405,6 +413,7 @@ bool Function::ForSensitivityFiltering() const
 
   case ISOTROPY:
   case ISO_ORTHOTROPY:
+  case ORTHOTROPY:
   case MULTI_OBJECTIVE:
     EXCEPTION("Invalid query: " << type.ToString(type_));
   }

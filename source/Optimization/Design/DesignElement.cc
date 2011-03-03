@@ -526,6 +526,8 @@ void DesignElement::SetEnums()
   detail.Add(HOMOGENIZATION_TRACKING, "homTracking");
   detail.Add(POISSONS_RATIO, "poissonsRatio");
   detail.Add(YOUNGS_MODULUS, "youngsModulus");
+  detail.Add(YOUNGS_MODULUS_E1, "youngsModulusE1");
+  detail.Add(YOUNGS_MODULUS_E2, "youngsModulusE2");
   detail.Add(TYCHONOFF, "tychonoff");
   detail.Add(GREYNESS, "greyness");
   detail.Add(GLOBAL_SLOPE, "globalSlope");

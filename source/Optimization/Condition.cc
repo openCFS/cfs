@@ -32,7 +32,7 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   observation_ = pn->Get("mode")->As<std::string>() == "observation";
 
   // the bound value is mandatory when we have a constraint
-  if(!observation_ && !pn->Has("bound") && type_ != ISOTROPY && type_ != ISO_ORTHOTROPY)
+  if(!observation_ && !pn->Has("bound") && type_ != ISOTROPY && type_ != ISO_ORTHOTROPY && type_ != ORTHOTROPY)
     throw Exception("bound type for constraint '" + type.ToString(type_) + "' mandatory");
   bound_ = pn->Has("bound") ? bound.Parse(pn->Get("bound")->As<std::string>()) : EQUAL;
   // the bound value is called value in the problem file!
@@ -75,6 +75,7 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
 
     case ISOTROPY:
     case ISO_ORTHOTROPY:
+    case ORTHOTROPY:
       if(pn->Has("value"))
         throw Exception("No value allowed for constraint '" + type.ToString(type_) + "'");
       break; // ok without value
@@ -135,7 +136,7 @@ void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list)
     AddHomogenizationTensorConstraints(pn, list, g);
 
   // isotropy is a special constraint which blows up special tensor entry constraints
-  if(g->type_ == ISOTROPY || g->type_ == ISO_ORTHOTROPY)
+  if(g->type_ == ISOTROPY || g->type_ == ISO_ORTHOTROPY || g->type_ == ORTHOTROPY)
     AddXtropyConstraints(pn, list, g);
 }
 
@@ -143,16 +144,16 @@ void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list)
 void Condition::AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g)
 {
   // isotropy is a special constraint which blows up special tensor entry constraints
-  assert(g->GetType() == ISOTROPY || g->GetType() == ISO_ORTHOTROPY);
+  assert(g->GetType() == ISOTROPY || g->GetType() == ISO_ORTHOTROPY || g->type_ == ORTHOTROPY);
 
   // we reset the type, therefore keep it
   Type org = g->type_;
 
   if(pn->Has("coord"))
-    throw Exception("don't use attribute 'coord' for constraint 'isotropy'/'iso-orthotropy'");
+    throw Exception("don't use attribute 'coord' for constraint 'isotropy'/'iso-orthotropy'/'orthotropy'");
 
   if(g->bound_ != EQUAL)
-    throw Exception("the 'isotropy'/'iso-orthotropy' constraint requires equality constraint type");
+    throw Exception("the 'isotropy'/'iso-orthotropy'/'orthotropy' constraint requires equality constraint type");
 
   // become an HOMOGENIZATION_TENSOR constraint!
   g->type_ = HOMOGENIZATION_TENSOR;
@@ -169,21 +170,29 @@ void Condition::AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& lis
 
   if(domain->GetGrid()->GetDim() == 2)
   {
-    // E11 - E22 = 0
     assert(g->coords.GetSize() == 0);
     g->boundValue_ = 0;
-    g->coords.Push_back(make_tuple(1,1,1.0));
-    g->coords.Push_back(make_tuple(2,2,-1.0));
+
+    if(org == ISOTROPY || org == ISO_ORTHOTROPY)
+    {
+      // E11 - E22 = 0
+      g->coords.Push_back(make_tuple(1,1,1.0)); // no AppendSubCondtion()/Clear() in first case
+      g->coords.Push_back(make_tuple(2,2,-1.0));
+
+      g = g->AppendSubCondition(list);
+      g->coords.Clear(); // do here, see below
+    }
 
     // E13 = 0
-    g = g->AppendSubCondition(list);
-    g->coords.Clear();
+    // AppendSubCondtion()/Clear() not in ISO_ORTHOTROPY case and done otherwise above.
+    // this is very ugly, but switching the order makes problems for SCPIP to solve trivial max E11 in the testsuite!!
     g->coords.Push_back(make_tuple(1,3,1.0));
 
     // E23 = 0
     g = g->AppendSubCondition(list);
     g->coords.Clear();
     g->coords.Push_back(make_tuple(2,3,1.0));
+
 
     if(org == ISOTROPY)
     {
@@ -194,49 +203,58 @@ void Condition::AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& lis
       g->coords.Push_back(make_tuple(1,2,-1.0));
       g->coords.Push_back(make_tuple(3,3,-2.0));
     } // else case is common for 2D and 3D
+
+
   }
   else
   {
-    // non-shear diagonal is constant
-    // E11 = E22 = E33 -> E11 - E22 = 0, E22 - E33 = 0
     assert(g->coords.GetSize() == 0);
+
     g->boundValue_ = 0;
-    g->coords.Push_back(make_tuple(1,1,1.0));
-    g->coords.Push_back(make_tuple(2,2,-1.0));
 
-    g = g->AppendSubCondition(list);
-    g->coords.Clear();
-    g->coords.Push_back(make_tuple(2,2,1.0));
-    g->coords.Push_back(make_tuple(3,3,-1.0));
+    if(org == ISOTROPY || org == ISO_ORTHOTROPY)
+    {
+      // non-shear diagonal is constant
+      // E11 = E22 = E33 -> E11 - E22 = 0, E22 - E33 = 0
+      g->coords.Push_back(make_tuple(1,1,1.0));
+      g->coords.Push_back(make_tuple(2,2,-1.0));
 
-    // upper non-shear triangle is constant
-    // E12 = E13 = E23 -> E12 - E13 = 0, E13 - E23 = 0
-    g = g->AppendSubCondition(list);
-    g->coords.Clear();
-    g->coords.Push_back(make_tuple(1,2,1.0));
-    g->coords.Push_back(make_tuple(1,3,-1.0));
+      g = g->AppendSubCondition(list);
+      g->coords.Clear();
+      g->coords.Push_back(make_tuple(2,2,1.0));
+      g->coords.Push_back(make_tuple(3,3,-1.0));
 
-    g = g->AppendSubCondition(list);
-    g->coords.Clear();
-    g->coords.Push_back(make_tuple(1,3,1.0));
-    g->coords.Push_back(make_tuple(2,3,-1.0));
+      // upper non-shear triangle is constant
+      // E12 = E13 = E23 -> E12 - E13 = 0, E13 - E23 = 0
+      g = g->AppendSubCondition(list);
+      g->coords.Clear();
+      g->coords.Push_back(make_tuple(1,2,1.0));
+      g->coords.Push_back(make_tuple(1,3,-1.0));
 
-    // shear diagonal is constant
-    // E44 = E55 = E66 -> E44 - E55 = 0, E55 - E66 = 0
-    g = g->AppendSubCondition(list);
-    g->coords.Clear();
-    g->coords.Push_back(make_tuple(4,4,1.0));
-    g->coords.Push_back(make_tuple(5,5,-1.0));
+      g = g->AppendSubCondition(list);
+      g->coords.Clear();
+      g->coords.Push_back(make_tuple(1,3,1.0));
+      g->coords.Push_back(make_tuple(2,3,-1.0));
 
-    g = g->AppendSubCondition(list);
-    g->coords.Clear();
-    g->coords.Push_back(make_tuple(5,5,1.0));
-    g->coords.Push_back(make_tuple(6,6,-1.0));
+      // shear diagonal is constant
+      // E44 = E55 = E66 -> E44 - E55 = 0, E55 - E66 = 0
+      g = g->AppendSubCondition(list);
+      g->coords.Clear();
+      g->coords.Push_back(make_tuple(4,4,1.0));
+      g->coords.Push_back(make_tuple(5,5,-1.0));
 
-    // the rest is zero
+      g = g->AppendSubCondition(list);
+      g->coords.Clear();
+      g->coords.Push_back(make_tuple(5,5,1.0));
+      g->coords.Push_back(make_tuple(6,6,-1.0));
+
+      g = g->AppendSubCondition(list);
+      g->coords.Clear(); // see 2D why we have to do this nonsense
+    }
+
+
+    // the zero entries
     // E14 = E15 = E16 = E24 = E25 = E26 = E34 = E35 = E36 = E45 = E46 = E56 = 0
-    g = g->AppendSubCondition(list);
-    g->coords.Clear();
     g->coords.Push_back(make_tuple(1,4,1.0));
 
     g = g->AppendSubCondition(list);
@@ -293,6 +311,7 @@ void Condition::AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& lis
       g->coords.Push_back(make_tuple(1,2,-1.0));
       g->coords.Push_back(make_tuple(6,6,-2.0));
     }
+
   }
 }
 
@@ -741,6 +760,7 @@ void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure
   // the specific excitations. This cannot be done in all.
   Condition::AddExcitationStressConstraints(active, me);
   Condition::AddExcitationStressConstraints(observe, me);
+
 
   Refresh(); // inform about the news if the slopes created a lot of virtual objectives!
 }
