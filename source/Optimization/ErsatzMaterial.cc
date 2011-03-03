@@ -1553,7 +1553,7 @@ void ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Function* f, b
       for(unsigned int si = 0; si < stress.GetSize(); si++)
         stress_transp[0][si] = Conj<T>(stress[si]); // nothing changes in real case
       rhs_transp = stress_transp * M_E_B;
-      rhs_transp *= -2.0;
+      rhs_transp *= harmonic ? -1.0 : -2.0;
 
       // there is a factor from the globalization function, which is the gradient of the glob function(func_val)
       rhs_transp *= alpha[e];
@@ -2839,9 +2839,16 @@ void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
       rhs[i] = complex<double>(0, 0.25) * excite.GetOmega() * rhs[i];
     break;
 
+  case Function::STRESS:
+  {
+    CalcVonMisesStressVector<complex<double> >(excite, f, true, false, &rhs); // gives us exactly what we want
+    break;
+  }
+
   default:
     assert(true); // e.g. for ELEC_ENERGY the rhs is set in PiezoSIMP::ConstructAdjointRHS()
   }
+
 
   assemble_->GetAlgSys()->InitRHS(rhs);
   assert(rhs.NormMax() != 0.0);
