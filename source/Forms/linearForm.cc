@@ -1314,7 +1314,7 @@ DEFINE_LOG(linForm, "linForm")
     Vector<Double> centreNode(dimelem, 0.0);
     Matrix<Double> derivCentre;
     Vector<Double> ansatzCentre;
-    const UInt dof = NodalVel.cols();
+    const UInt dof = NodalVel.GetNumCols();
 
     ptelem->GetGlobDerivShFnc(derivCentre, centreNode, ptCoord, elem, dof);
     ptelem->GetShFnc(ansatzCentre, centreNode, elem, dof);
