@@ -24,6 +24,7 @@
 #include "CoupledPDE/DirectCoupledPDE.hh"
 #include "Utils/StdVector.hh"
 #include "MatVec/vector.hh"
+#include "MatVec/opdefs.hh"
 #include "Utils/result.hh"
 #include "Utils/mathParser/mathParser.hh"
 #include "Driver/assemble.hh"
@@ -889,7 +890,12 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
          break;
 
     case Objective::STRESS: {
-           const Vector<double> data = CalcVonMisesStressVector(excite, f, false, false); // copy data for element von Mises stress
+           // copy data for element von Mises stress
+           Vector<double> data;
+           if(harmonic)
+             CalcVonMisesStressVector<complex<double> >(excite, f, false, false, &data);
+           else
+             CalcVonMisesStressVector<double>(excite, f, false, false, &data);
            result = CalcGlobalFunction(f, false, &data);
            break;
          }
@@ -1415,13 +1421,16 @@ void ErsatzMaterial::SetAdjointRhs(AdjointParameters* adjointParams){
   
 }
 
-Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Function* f, bool adjoint_rhs, bool grad_contrib)
+template<class T>
+void ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Function* f, bool adjoint_rhs, bool grad_contrib, SingleVector* out)
 {
-  // Kocvara and Stingl; 2007
+  // Based on Kocvara and Stingl; 2007 but in the harmomic notation which requires not much change by using scalar products
   // stress = rho^p E_0 B(ip) * u
-  // von Mises stress per element: sum_ip stress^T * M * stress
-  // rhs w.r.p to one element: 2* sum_ip strees^T * M * rho^p E_0 B(ip)
-  //            if i=j:      + 2 * stress^T * M * (rho^p)' E_0 B(ip) u
+  // von Mises stress per element: sum_ip < stress, M*stress>
+  // adjoint rhs w.r.p to one element static: - 2* (rho^p*E_0*B*u)^T * M * rho^p E_0 B
+  // adjoint rhs w.r.p to one element dynamic: -(rho^p*E_0*B*u^*)^T * M * rho^p E_0 B
+  // the grad_contrib is if i=j the appendix of the gradient (static) lambda^T K' u + 2 <rho^p E_0 B u,  M (rho^p)' B u>
+  //                                                        (dynamic) 2 Re(lambda^T S') u + 2 <rho^p E_0 B u, M rho^(p-1) B u>
 
   // we follow the qp-relaxation: Bruggi 2008, actually going back to Duysinx and Bendsoe 1998
   // The idea of the qp-relaxion is, that the stress is calculated based on the standard simp penalization (p).
@@ -1431,9 +1440,9 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
 
   LOG_DBG2(em) << "CVMSV: excite=" << excite.index << " adjont=" << adjoint_rhs << " grad_contrib=" << grad_contrib;
   assert((adjoint_rhs && !grad_contrib) || !adjoint_rhs);
-  // adjoint_rhs:   result is raw vector size with summed up 2 * stress^T * M * (rho^p * E_0 * B)
-  // !grad_contrib: result is design size with stress^T * M stress (element von Mises stress)
-  // grad_contrib:  result is design size with 2 * stress^T * M * ( (rho^p)' * E_0 * B * u)
+  // adjoint_rhs:   result is raw vector size with summed up ... see above
+  // !grad_contrib: result is design size with <stress, M stress> (element von Mises stress)
+  // grad_contrib:  result is design size with 2 <rho^p E_0 B u, M rho^(p-1) B u>
 
   // see comment in header for locality of stress!
 
@@ -1441,9 +1450,17 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
 
   StdVector<SingleVector*>& all_u_elem = forward.Get(excite)->elem[MECH];
 
-  // the result vector is either per design element or the rhs for the adjoint problem
-  Vector<double> result(adjoint_rhs ? forward.Get(excite)->GetVector(Solution::RAW_VECTOR)->GetSize() : f->elements.GetSize());
-  result.Init();
+  // allocate the results vectors
+  Vector<T> tt;
+  Vector<double> td;
+
+  Vector<T>& rhs_out = adjoint_rhs ? dynamic_cast<Vector<T>& >(*out) : tt;
+  Vector<double>& elem_out = adjoint_rhs ? td : dynamic_cast<Vector<double>& >(*out);
+
+  if(adjoint_rhs)
+    rhs_out.Resize(forward.Get(excite)->GetVector(Solution::RAW_VECTOR)->GetSize(), T());
+  else
+    elem_out.Resize(f->elements.GetSize(), 0.0);
 
   Matrix<double> M = dynamic_cast<MechPDE*>(ToPDE(MECH))->GetVonMisesMatrix(dim);
   Matrix<double> B;
@@ -1471,13 +1488,13 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
   }
   LOG_DBG2(em) << "CVMSV: qp=" << qp.GetParam() << " adjont=" << adjoint_rhs << " grad_contrib=" << grad_contrib;;
 
-  Vector<double> stress(dim == 2 ? 3 : 6); // elem stress
-  Vector<double> strain;
-  Vector<double> M_stress;
+  Vector<T> stress(dim == 2 ? 3 : 6); // elem stress
+  Vector<T> strain;
+  Vector<T> M_stress;
   Matrix<double> E_B;
   Matrix<double> M_E_B;
-  Matrix<double> stress_transp(1, stress.GetSize());
-  Matrix<double> rhs_transp;
+  Matrix<T> stress_transp(1, stress.GetSize());
+  Matrix<T> rhs_transp;
   Vector<double> intPoint;
   shared_ptr<EqnMap> eqnMap = ToPDE(MECH)->GetEqnMap();
 
@@ -1507,7 +1524,7 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
     grid->GetElemNodesCoord(coords, de->elem->connect, false); // geometric non-lin
 
     // we need to be careful to use the right index!!
-    Vector<double>& u_elem = dynamic_cast<Vector<double>& >(*(all_u_elem[de->GetElementSolutionIndex()]));
+    Vector<T>& u_elem = dynamic_cast<Vector<T>& >(*(all_u_elem[de->GetElementSolutionIndex()]));
 
     // apply our own physical densities!
     form->calcDMat(E, NULL, DesignElement::DENSITY, qp.Transform(de, DesignElement::SMART));
@@ -1528,20 +1545,18 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
 
     if(adjoint_rhs)
     {
-      // this is actually 2* von Mises stress with one missing u_elem: 2 * stress^T * M * rho^p * E_0 * B, note the rho^p is already in E
+      // this is actually 2* von Mises stress with one missing u_elem: see above, different for static and dynamic
       E_B = E * B;
       M_E_B = M * E_B;
 
       // we have to transpose the stress (3*1 or 6*1) manually :(
       for(unsigned int si = 0; si < stress.GetSize(); si++)
-        stress_transp[0][si] = stress[si];
-
+        stress_transp[0][si] = Conj<T>(stress[si]); // nothing changes in real case
       rhs_transp = stress_transp * M_E_B;
       rhs_transp *= -2.0;
 
       // there is a factor from the globalization function, which is the gradient of the glob function(func_val)
       rhs_transp *= alpha[e];
-
 
       assert(rhs_transp.GetNumCols() == u_elem.GetSize());
       assert(rhs_transp.GetNumRows() == 1);
@@ -1564,11 +1579,11 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
           // don't set the homogeneous dirichlet boundary conditions :)
           if(eqn_idx >= 0)
           {
-            result[eqn_idx] += rhs_transp[0][dim * n + (dof-1)];
+            rhs_out[eqn_idx] += rhs_transp[0][dim * n + (dof-1)];
 
             LOG_DBG3(em) << "CVMSV de=" << de->ToString() << " ar=" << adjoint_rhs  << " n=" << n << " node=" << node
                 << " dof=" << dof << " eqn_idx=" << eqn_idx << " idx=" << (dim * n + (dof-1)) << " val="
-                << rhs_transp[0][dim * n + (dof-1)] << " -> " << result[eqn_idx];
+                << rhs_transp[0][dim * n + (dof-1)] << " -> " << rhs_out[eqn_idx];
           }
         }
       }
@@ -1579,15 +1594,15 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
       // normal and "corrected" von Mises stress element results
       double correct = 1.0;
       M_stress = M * stress;
-      result[e] = stress.Inner(M_stress);
+      elem_out[e] = ((complex<double>) stress.Inner(M_stress)).real();
 
       if(!grad_contrib)
       {
         // output von mises stress? Note, that this is excitation specific!
         if(res_idx != -1)
         {
-          de->specialResult[res_idx] = result[e];
-          LOG_DBG3(em) << "CVMSV:sr de=" << de->ToString() << " res_idx=" << res_idx << " v=" << result[e];
+          de->specialResult[res_idx] = elem_out[e];
+          LOG_DBG3(em) << "CVMSV:sr de=" << de->ToString() << " res_idx=" << res_idx << " v=" << elem_out[e];
         }
       }
       else
@@ -1596,15 +1611,13 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Func
         correct = 2.0 * qp.Derivative(de, DesignElement::SMART) / qp.Transform(de, DesignElement::SMART);
       }
 
-      LOG_DBG2(em) << "CVMSV de=" << de->ToString() << " gv= " << grad_contrib << " rho=" << de->GetDesign(DesignElement::SMART) << " sMs=" << result[e] << " deriv="
-                   << (grad_contrib ? qp.Derivative(de, DesignElement::SMART) : -1.0) << " trans=" <<  qp.Transform(de, DesignElement::SMART) << " correct=" << correct << " -> " << (correct * result[e]);
+      LOG_DBG2(em) << "CVMSV de=" << de->ToString() << " gv= " << grad_contrib << " rho=" << de->GetDesign(DesignElement::SMART) << " sMs=" << elem_out[e] << " deriv="
+                   << (grad_contrib ? qp.Derivative(de, DesignElement::SMART) : -1.0) << " trans=" <<  qp.Transform(de, DesignElement::SMART) << " correct=" << correct << " -> " << (correct * elem_out[e]);
                    // << " stress=" << stress.ToString() << " strain=" << strain.ToString();
 
-      result[e] *= correct;
+      elem_out[e] *= correct;
     }
   }
-
-  return result;
 }
 
 
@@ -1615,7 +1628,11 @@ Vector<double> ErsatzMaterial::CalcVonMisesStressGlobalizationFactor(Excitation&
   const Function::Local* local = f->GetLocal();
   assert(local != NULL);
 
-  const Vector<double> stress = CalcVonMisesStressVector(excite, f, false, false);
+  Vector<double> stress;
+  if(harmonic)
+    CalcVonMisesStressVector<complex<double> >(excite, f, false, false, &stress);
+  else
+    CalcVonMisesStressVector<double>(excite, f, false, false, &stress);
   LOG_DBG2(em) << "CVMSGF ex=" << excite.index << " stress=" << stress.ToString();
 
   Vector<double> result(stress.GetSize());
@@ -2746,7 +2763,7 @@ void ErsatzMaterial::ConstructRealAdjointRHS(Excitation& excite, Function* f)
   }
   case Function::STRESS:
   {
-    rhs = CalcVonMisesStressVector(excite, f, true, false); // gives us exactly what we want
+    CalcVonMisesStressVector<double>(excite, f, true, false, &rhs); // gives us exactly what we want
     break;
   }
   default:
@@ -2817,7 +2834,7 @@ void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
   case Function::ENERGY_FLUX:
     // reuse the RHS vector space
     SetEnergyFluxVector(f, u, true, rhs);
-    // 0.25 * j* omega * (Q-Q^T)^T * u^* where 0.25 is 0.5 from standard ajoint formulation and 0.5 from objective
+    // 0.25 * j* omega * (Q-Q^T)^T * u^* where 0.25 is 0.5 from standard adjoint formulation and 0.5 from objective
     for(unsigned int i = 0, n = rhs.GetSize(); i < n; i++)
       rhs[i] = complex<double>(0, 0.25) * excite.GetOmega() * rhs[i];
     break;
@@ -3326,9 +3343,14 @@ template double ErsatzMaterial::CalcU1KU2<double>(TransferFunction* tf, StdVecto
     Application app, StdVector<SingleVector*>& u2,
     DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f, int res_idx);
 
-template double ErsatzMaterial::CalcU1KU2<std::complex<double> >(TransferFunction* tf, StdVector<SingleVector*>& u1,
+template double ErsatzMaterial::CalcU1KU2<complex<double> >(TransferFunction* tf, StdVector<SingleVector*>& u1,
     Application app, StdVector<SingleVector*>& u2,
     DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f,  int res_idx);
 
+template void ErsatzMaterial::CalcVonMisesStressVector<double>(Excitation& excite, Function* f, bool adjoint_rhs,
+    bool grad_contrib, SingleVector* out);
+
+template void ErsatzMaterial::CalcVonMisesStressVector<complex<double> >(Excitation& excite, Function* f, bool adjoint_rhs,
+    bool grad_contrib, SingleVector* out);
 
 } // end of namespace

@@ -265,7 +265,11 @@ void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferF
   // note that we cannot check for alpha.GetSize() == design->data.GetSize()!
 
   // 2 * stress^T * M * (rho^p)' * E_0 * B * u can be obtained with a special attributes
-  Vector<double> appendix = CalcVonMisesStressVector(excite, f, false, true);
+  Vector<double> appendix;
+  if(harmonic)
+    CalcVonMisesStressVector<complex<double> >(excite, f, false, true, &appendix);
+  else
+    CalcVonMisesStressVector<double>(excite, f, false, true, &appendix);
   assert(appendix.GetSize() == alpha.GetSize());
 
   DesignDependentRHS rhs;

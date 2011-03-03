@@ -194,6 +194,13 @@ namespace CoupledField {
   inline Complex Conj<Complex>( Complex a ) {
     return std::conj(a);
   }
+
+  //! Allo conjugate notation of a real
+  template<>
+  inline double Conj<double>( double a ) {
+    return a;
+  }
+
   
   template <typename T>
   inline void PrintSingleEntry( T val, FILE *fp ) {

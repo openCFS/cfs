@@ -460,8 +460,9 @@ public:
    * and element to zero, then the gradient is also zero but CalcU1KU2() knows nothing about this.
    * @param adjoint_rhs if this is set, the solution is the rhs for the adjoint equation
    * @param grad_contrib if this is false the result is the element wise von Mises stress, if true it is what is to be added after the lambda*K'*u grad
-   * @return a vector of element size or rhs size */
-  Vector<double> CalcVonMisesStressVector(Excitation& excite, Function* f, bool adjoint_rhs, bool grad_contrib);
+   * @param out is Vector<T> in adjoint_rhs case (nodal) or Vector<double> of stress elements size */
+  template<class T>
+  void CalcVonMisesStressVector(Excitation& excite, Function* f, bool adjoint_rhs, bool grad_contrib, SingleVector* out);
 
   /** Calculates the gradient of the globalization of the von mises value.
    * Needed for the construction of the adjoint RHS and for the von mises gradient */
