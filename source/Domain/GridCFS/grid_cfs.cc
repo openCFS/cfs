@@ -156,10 +156,9 @@ namespace CoupledField {
 
             // Ensure, that we have as many entries in the
             // vector as dimension
-            if( dim_ != selections.GetSize() ) {
-              EXCEPTION("There have been more coordinate components "
-                        << "than there are space dimensions" );
-            }
+            if( dim_ != selections.GetSize() )
+              EXCEPTION("The node parametrization for '" << name  << "' does not match the mesh dimensions");
+
             AddEntityByParam( name, isNode, coordSysId,
                               selections );
           }

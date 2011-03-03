@@ -567,6 +567,7 @@
       <xsd:enumeration value="mechStrain"/>
       <xsd:enumeration value="mechStress"/>
       <xsd:enumeration value="vonMisesStress"/>
+      <xsd:enumeration value="vonMisesStrain"/>
       <xsd:enumeration value="lumpedMechDisplacement"/>
       <xsd:enumeration value="mechPseudoDensity"/>
       <xsd:enumeration value="physicalPseudoDensity"/>

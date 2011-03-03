@@ -252,6 +252,9 @@ void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferF
   //
 	// the gradient is lambda^T * ( K' * u - f')  + alpha * 2 * stress^T * M * (rho^p)' * E_0 * B * u
   //
+  // that means, if the stress constraint region is not a design region, we don't add something. But take
+  // care, there might also be several stress constraints for a set of design regions.
+  //
   // we do NOT weight!
 
   for(unsigned int i = 0; i < design->data.GetSize(); i++)
@@ -259,7 +262,7 @@ void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferF
 
   // alpha is from the globalization which is in the form sum max(0, g_i-c)^p and alpha is p*max(0, g_i-c)^(p-1) where g_i is the vonMisesStress
   Vector<double> alpha = CalcVonMisesStressGlobalizationFactor(excite, f);
-  assert(alpha.GetSize() == design->data.GetSize());
+  // note that we cannot check for alpha.GetSize() == design->data.GetSize()!
 
   // 2 * stress^T * M * (rho^p)' * E_0 * B * u can be obtained with a special attributes
   Vector<double> appendix = CalcVonMisesStressVector(excite, f, false, true);
@@ -274,9 +277,33 @@ void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferF
   for(unsigned int i = 0; i < design->data.GetSize(); i++)
 	{
     DesignElement& de = design->data[i];
-		de.AddGradient(f, alpha[i] * appendix[i]);
-		LOG_DBG2(simp) << "CVMSG: f=" << f->ToString(this->me) << " de=" << de.elem->elemNum << " alpha=" << alpha[i] << "* app=" << appendix[i] << " ="
-		               << alpha[i] * appendix[i] << " -> " << de.GetPlainGradient(f);
+    // Three cases:
+    // a) stress is defined on whole design domain (one or more regions)
+    // b) stress region is defined on one of two or more design regions
+    // c) stress region is not in any of the design regions.
+
+    int idx = -1; // case c) an sometimes b) never a)
+
+    // case a)
+    if(f->region == ALL_REGIONS || design->regions.GetSize() == 1)
+    {
+      assert(de.elem->elemNum == f->elements[i]->elem->elemNum);
+      idx = i;
+    }
+    // case b)
+    if(idx != -1 && design->Contains(f->region))
+    {
+      // we are at a design element and have to find it within stress
+      // TODO make it faster
+      for(unsigned int e = 0; idx != -1 && e < f->elements.GetSize(); e++)
+        if(de.elem->elemNum == f->elements[e]->elem->elemNum)
+          idx = e;
+    }
+    // case c): idx is already -1
+    if(idx != -1)
+      de.AddGradient(f, alpha[idx] * appendix[idx]);
+    LOG_DBG2(simp) << "CVMSG: f=" << f->ToString(this->me) << " de=" << de.elem->elemNum << " idx=" << idx << " alpha="
+                   << (idx != -1 ? alpha[i] : -1.0)  << "* app=" << (idx != -1 ? appendix[i] : -1.0) << " -> " << de.GetPlainGradient(f);
 	}
 }
 

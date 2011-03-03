@@ -344,6 +344,7 @@
       <xsd:enumeration value="mechStrain"/>
       <xsd:enumeration value="mechStrainIrr"/>
       <xsd:enumeration value="mechStress"/>
+      <xsd:enumeration value="vonMisesStress"/>
       <xsd:enumeration value="elecPolarization"/> 
       <xsd:enumeration value="elecFluxDensity"/> 
     </xsd:restriction>

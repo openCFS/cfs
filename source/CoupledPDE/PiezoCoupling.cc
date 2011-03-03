@@ -30,6 +30,7 @@
 
 #include "PDE/SinglePDE.hh"
 #include "PDE/StdPDE.hh"
+#include "PDE/mechPDE.hh"
 #include "Driver/transientdriver.hh"
 #include "Domain/domain.hh" 
 
@@ -100,32 +101,32 @@ namespace CoupledField {
       break;
 
     case MECH_STRESS:
-      if ( isComplex_ ) {
-        CalcStressStrain<Complex>( result );
-      } else {
-        CalcStressStrain<Double>( result );
-
-      }
-      break;
-
     case MECH_STRAIN:
       if ( isComplex_ ) {
         CalcStressStrain<Complex>( result );
       } else {
         CalcStressStrain<Double>( result );
-
       }
       break;
+
+    case VON_MISES_STRESS:
+      if(isComplex_) {
+        CalcStressStrain<Complex>(result);
+        dynamic_cast<MechPDE*>(pde1_)->CalcVonMises<Complex>(result);
+      } else {
+        CalcStressStrain<Double>(result);
+        dynamic_cast<MechPDE*>(pde1_)->CalcVonMises<Double>(result);
+      }
+      break;
+
 
     case MECH_STRAIN_IRR:
       if ( isComplex_ ) {
         EXCEPTION("Ireversible Strain makes no sense in Harmonic analysis");
       } else {
         CalcStrainIrr( result );
-
       }
       break;
-      
 
     case ELEC_POLARIZATION:
       if ( isComplex_ ) {
@@ -150,11 +151,10 @@ namespace CoupledField {
   }
 
   template <class TYPE>
-  void PiezoCoupling::CalcStressStrain( shared_ptr<BaseResult> res ){
-
+  void PiezoCoupling::CalcStressStrain(shared_ptr<BaseResult> res)
+  {
     SolutionType resultType = res->GetResultInfo()->resultType;
 
-    UInt stressDim=0, elecDim=0;
     Vector<Double> intPoint;
     Vector<Double> LCoord;
     Vector<TYPE> TempE;
@@ -162,23 +162,10 @@ namespace CoupledField {
     Vector<TYPE> TempDField;
 
     MechStressStrain<TYPE> * mechStressOp = NULL;
-    if (subType_ == "planeStrain") {
-      stressDim = 3;
-      elecDim   = 2;
-    }
 
-    else if (subType_ == "axi") {
-      stressDim = 4;
-      elecDim   = 2;
-    }
-
-    else if (subType_ == "3d") {
-      stressDim = 6;
-      elecDim   = 3;
-    }
-
-    else
-      EXCEPTION("StressOp: Unknown subtype in mech PDE!" );
+    assert(GetPde1()->GetName() == "mechanic");
+    UInt stressDim = dynamic_cast<MechPDE*>(GetPde1())->GetStressStrainDim();
+    UInt elecDim   = stressDim == 6 ? 3 : 2;
 
     // Retrieve solution from nodeStoreSolution Class
     BaseNodeStoreSol * solPDE1 = pde1_->getPDESolution();
@@ -545,21 +532,7 @@ namespace CoupledField {
 
   void PiezoCoupling::CalcStrainIrr( shared_ptr<BaseResult> res ){
 
-    UInt strainDim=0;
-    if (subType_ == "planeStrain") {
-      strainDim = 3;
-    }
-
-    else if (subType_ == "axi") {
-      strainDim = 4;
-    }
-
-    else if (subType_ == "3d") {
-      strainDim = 6;
-    }
-
-    else
-      EXCEPTION("StressOp: Unknown subtype in mech PDE!" );
+    UInt strainDim = dynamic_cast<MechPDE*>(GetPde1())->GetStressStrainDim();
 
     // Retrieve solution from nodeStoreSolution Class
     BaseNodeStoreSol * solPDE2 = pde2_->getPDESolution();
@@ -670,20 +643,9 @@ namespace CoupledField {
   }
 
 
-  void PiezoCoupling::CalcElecPolarization( shared_ptr<BaseResult> res ){
-
-    UInt strainDim=0;
-    if (subType_ == "planeStrain") {
-      strainDim = 3;
-    }
- 
-    else if (subType_ == "axi") {
-      strainDim = 4;
-    }
- 
-    else if (subType_ == "3d") {
-      strainDim = 6;
-    }
+  void PiezoCoupling::CalcElecPolarization( shared_ptr<BaseResult> res )
+  {
+    UInt strainDim = dynamic_cast<MechPDE*>(GetPde1())->GetStressStrainDim();
 
     // get result object 
     Result<Double> &  actRes = 
@@ -731,7 +693,7 @@ namespace CoupledField {
 
     //    SolutionType resultType = res->GetResultInfo()->resultType;
 
-    UInt strainDim=0, elecDim=0;
+
     Vector<Double> intPoint;
     Vector<Double> LCoord;
     Vector<Double> TempE;
@@ -739,23 +701,9 @@ namespace CoupledField {
     Vector<Double> TempDField;
 
     MechStressStrain<Double> * mechStrainOp = NULL;
-    if (subType_ == "planeStrain") {
-      strainDim = 3;
-      elecDim   = 2;
-    }
 
-    else if (subType_ == "axi") {
-      strainDim = 4;
-      elecDim   = 2;
-    }
-
-    else if (subType_ == "3d") {
-      strainDim = 6;
-      elecDim   = 3;
-    }
-
-    else
-      EXCEPTION("StressOp: Unknown subtype in mech PDE!" );
+    UInt strainDim = dynamic_cast<MechPDE*>(GetPde1())->GetStressStrainDim();
+    UInt elecDim = strainDim == 6 ? 3 : 2;
 
     // Retrieve solution from nodeStoreSolution Class
     BaseNodeStoreSol * solPDE1 = pde1_->getPDESolution();
@@ -1581,11 +1529,21 @@ namespace CoupledField {
     stress->fctType = shared_ptr<ConstFct>(new ConstFct() );
     availResults_.insert( stress );
 
+    // === MECHANIC VON MISES STRESS (yield criterion, a scalar value)===
+    shared_ptr<ResultInfo> vonMises(new ResultInfo);
+    vonMises->resultType = VON_MISES_STRESS;
+    vonMises->dofNames = "";
+    vonMises->unit =  "";
+    vonMises->entryType = ResultInfo::SCALAR;
+    vonMises->definedOn = ResultInfo::ELEMENT;
+    vonMises->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert( vonMises );
+
     // === MECHANIC STRAIN ===
     shared_ptr<ResultInfo> strain(new ResultInfo);
     strain->resultType = MECH_STRAIN;
     strain->dofNames = stressDofNames;
-    strain->unit = "N/m^2";
+    strain->unit = "";
     strain->entryType = ResultInfo::TENSOR;
     strain->definedOn = ResultInfo::ELEMENT;
     strain->fctType = shared_ptr<ConstFct>(new ConstFct() );
@@ -1595,7 +1553,7 @@ namespace CoupledField {
     shared_ptr<ResultInfo> strainIrr(new ResultInfo);
     strainIrr->resultType = MECH_STRAIN_IRR;
     strainIrr->dofNames = stressDofNames;
-    strainIrr->unit = "N/m^2";
+    strainIrr->unit = "";
     strainIrr->entryType = ResultInfo::TENSOR;
     strainIrr->definedOn = ResultInfo::ELEMENT;
     strainIrr->fctType = shared_ptr<ConstFct>(new ConstFct() );

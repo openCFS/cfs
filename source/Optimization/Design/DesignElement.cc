@@ -133,11 +133,27 @@ DesignElement::DesignElement() : BaseDesignElement()
   Init();
 }
 
-DesignElement::DesignElement(PtrParamNode pn, Elem* elem) : BaseDesignElement()
+/** The default constructor for StdVector and ghost elements*/
+DesignElement::DesignElement(Elem* elem, Type type, unsigned int index, int pseudoElementIndex) : BaseDesignElement()
+{
+  Init();
+  this->elem = elem;
+  this->type_ = type;
+  this->index_ = index;
+  this->pseudoElementIndex_ = pseudoElementIndex;
+  this->upper_ = 1.0;
+  this->lower_ = 1.0;
+  this->specialResult.Resize(9, 0.0);
+
+}
+
+
+DesignElement::DesignElement(PtrParamNode pn, Elem* elem, unsigned int index) : BaseDesignElement()
 {
   Init();
   this->elem = elem;
   this->specialResult.Resize(9, 0.0);
+  this->index_ = index;
 
   // it is a little slow to perform this code for every DesignElement but the
   // implementations are rater fast and it should be not measurable in the end
@@ -151,7 +167,6 @@ DesignElement::DesignElement(PtrParamNode pn, Elem* elem) : BaseDesignElement()
   pn->GetValue("lower", lower_, ParamNode::INSERT);
 }
 
-
 DesignElement::~DesignElement()
 {
   delete simp; simp = NULL;
@@ -162,12 +177,14 @@ DesignElement::~DesignElement()
 void DesignElement::Init()
 {
   simp            = NULL;
-  vicinity       = NULL;
+  vicinity        = NULL;
   lse_            = NULL;
   tge             = NULL;
   location_       = NULL;
   elem            = NULL;
   type_           = NO_TYPE;
+  index_          = numeric_limits<unsigned int>::max();
+  pseudoElementIndex_ = -1;
 }
 
 
@@ -203,6 +220,43 @@ Point* DesignElement::GetLocation()
   return location_;
 }
 
+unsigned int DesignElement::GetElementSolutionIndex() const
+{
+  // easy case is pseudo design element
+  if(pseudoElementIndex_ != -1)
+    return pseudoElementIndex_;
+
+  // if we have one design it is easily index_ - we use the modulus
+  return index_ % space_->GetNumberOfElements();
+}
+
+int DesignElement::GetOptResultIndex(SolutionType st)
+{
+  switch(st)
+  {
+  case OPT_RESULT_1:
+    return 0;
+  case OPT_RESULT_2:
+    return 1;
+  case OPT_RESULT_3:
+    return 2;
+  case OPT_RESULT_4:
+    return 3;
+  case OPT_RESULT_5:
+    return 4;
+  case OPT_RESULT_6:
+    return 5;
+  case OPT_RESULT_7:
+    return 6;
+  case OPT_RESULT_8:
+    return 7;
+  case OPT_RESULT_9:
+    return 8;
+  default:
+    return -1;
+  }
+}
+
 void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsigned int dofs) const
 {
   // check for special result
@@ -217,38 +271,12 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
   {
     if(dofs != 1) throw Exception("special results is only defined for scalar values");
     // note, that on EACH_FORWARD/ADJOINT we need excitation based results
-    switch(rd.solutionType)
-    {
-    case OPT_RESULT_1:
-      out[0] = specialResult[0];
-      break;
-    case OPT_RESULT_2:
-      out[0] = specialResult[1];
-      break;
-    case OPT_RESULT_3:
-      out[0] = specialResult[2];
-      break;
-    case OPT_RESULT_4:
-      out[0] = specialResult[3];
-      break;
-    case OPT_RESULT_5:
-      out[0] = specialResult[4];
-      break;
-    case OPT_RESULT_6:
-      out[0] = specialResult[5];
-      break;
-    case OPT_RESULT_7:
-      out[0] = specialResult[6];
-      break;
-    case OPT_RESULT_8:
-      out[0] = specialResult[7];
-      break;
-    case OPT_RESULT_9:
-      out[0] = specialResult[8];
-      break;
+    int idx = GetOptResultIndex(rd.solutionType);
 
-    default: throw Exception("solution type not handled");
-    }
+    if(idx >= 0)
+      out[0] = specialResult[idx];
+    else
+     throw Exception("solution type not handled");
   }
   else
   {
@@ -498,6 +526,8 @@ void DesignElement::SetEnums()
   detail.Add(HOMOGENIZATION_TRACKING, "homTracking");
   detail.Add(POISSONS_RATIO, "poissonsRatio");
   detail.Add(YOUNGS_MODULUS, "youngsModulus");
+  detail.Add(YOUNGS_MODULUS_E1, "youngsModulusE1");
+  detail.Add(YOUNGS_MODULUS_E2, "youngsModulusE2");
   detail.Add(TYCHONOFF, "tychonoff");
   detail.Add(GREYNESS, "greyness");
   detail.Add(GLOBAL_SLOPE, "globalSlope");
@@ -872,9 +902,11 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
       if(de.elem->ptElem->GetDim() != candidate->ptElem->GetDim())
         continue;
       // same if the region does not match. E.g. if there is fixed region not subject to optimization, e.g. bruggi_two_bar
-      if((de.elem->regionId != candidate->regionId) && (space->regions.GetSize() == 1 || !space->Contains(candidate->regionId)))
+      if(!space->Contains(candidate->regionId))
         continue;
-      assert(space->regions.GetSize() == 1); // extend for multi-region
+      // if((de.elem->regionId != candidate->regionId) && (space->regions.GetSize() == 1 || !space->Contains(candidate->regionId)))
+      //  continue;
+      // assert(space->regions.GetSize() == 1); // extend for multi-region
 
       // the spacing allows to identify periodic elements
       int idx = FindRelativeNeighborLocation(de.elem->barycenter, candidate->barycenter, spacing);

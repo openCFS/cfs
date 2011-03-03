@@ -90,10 +90,9 @@ namespace CoupledField
         * This works only after ConditionContainer::PostProc() is called as otherwise the design is not known yet.
         * Is overwritten for the slope constraint which acutally has spare patterns. */
        virtual StdVector<unsigned int>& GetSparsityPattern();
-       
-       /** This is DEFAULT (= applies always) if not defined */
-       DesignElement::Type design;
 
+       /** creates an xml attribute name compatible string representation for coords */
+       static std::string ToString(const StdVector<tuple<int, int, double> >&);
 
        /** The scaling is evaluated for external optimizers, not in OC!
         * This is the manual set scaling value - in objective_scaling_ case this value is ignored! */
@@ -107,9 +106,6 @@ namespace CoupledField
        /** Shall delta constraints be printed? Is only true if a value is given! */
        bool delta_logging;
 
-       /** If condition supports constriction to one region */
-       RegionIdType region;
-       
        /** Used for caching 1.0 / complete_volume per region */
        double volume_fraction;
 
@@ -125,10 +121,8 @@ namespace CoupledField
         * Note, that the entries are 1-based!!!
         * the factor for ErsatzMaterial::CalcHomogenizedTensorEntry() */
        StdVector<tuple<int, int, double> > coords;
-       
-       /** creates an xml attribute name compatible string representation for coords */
-       static std::string ToString(const StdVector<tuple<int, int, double> >&);
 
+       
     protected:
       /** Reads the coord attribute and sets the coord pair if value is not 'all'
        * @return false if 'all' and the coord pair is not set */
@@ -191,6 +185,7 @@ namespace CoupledField
       /** if in list a stress constraint is found, it is enlarged by the excitations and each is associated
        * to an own excitation */
       static void AddExcitationStressConstraints(StdVector<Condition*>& list, MultipleExcitation* me);
+
    };
 
    /** This handles local constraints which exist only virtually - hence the optimizer sees them but

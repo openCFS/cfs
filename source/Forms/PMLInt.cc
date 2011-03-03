@@ -1095,10 +1095,8 @@ namespace CoupledField
     else if ( formsType_ == "PMLGradR_PhiSigma" ) { 
       CalcElementMatrixGradRV(ptCoord_, elemMat);
     }  
-    else{
-      std::cout << "Requested a Type which is not supported by PMLMixedTimeInt " << formsType_ << ".... exiting" << std::endl;
-      exit(-1);
-    }
+    else
+      EXCEPTION("Requested a Type which is not supported by PMLMixedTimeInt " << formsType_);
   }
     
     //! set min/max of x,y,z coordinates form where PML starts and ends
