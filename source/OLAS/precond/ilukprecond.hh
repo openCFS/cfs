@@ -261,6 +261,8 @@ namespace CoupledField {
     //! predicate class
     UInt maxLevel_;
 
+    //! Flag, if logging is performed
+    bool logging_;
   };
 
 }

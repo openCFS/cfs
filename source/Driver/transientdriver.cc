@@ -11,9 +11,11 @@
 
 
 #include <boost/filesystem.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "transientdriver.hh"
 #include "stdSolveStep.hh"
+#include "Utils/Timer.hh"
 
 #include "DataInOut/programOptions.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -27,6 +29,7 @@
 using std::cout;
 using std::endl;
 namespace fs = boost::filesystem;
+namespace pt = boost::posix_time;
 
 namespace CoupledField {
 
@@ -50,6 +53,8 @@ namespace CoupledField {
     firstdt_ = 0.0;
     restartIncr_ = 0;
     restartStep_ = 0;
+    
+    timer_ = new Timer();
 
     // get parameter node
     PtrParamNode myNode = 
@@ -82,6 +87,7 @@ namespace CoupledField {
   // ==============
   TransientDriver::~TransientDriver()
   {
+    delete timer_;
   }
 
   // ==================
@@ -138,9 +144,15 @@ namespace CoupledField {
 
 
     //---------------------------------------------------------------------------
-    // Outer loop over all timesteps
     
-    for (actTimeStep_ = adjointParams ? endStep : startStep; actTimeStep_ <= endStep && actTimeStep_ >= startStep; actTimeStep_ += direction) {
+    timer_->Start();
+    
+    // Outer loop over all timesteps
+    UInt count = 0;
+    for (actTimeStep_ = adjointParams ? endStep : startStep; 
+         actTimeStep_ <= endStep && actTimeStep_ >= startStep; 
+         actTimeStep_ += direction, count++) {
+      
       LOG_DBG(trans_driver) << "loop over timestep " << actTimeStep_;
       // check for a HALTCFS File
       // if there exist a file with name HALTCFS in the executing directory
@@ -239,6 +251,17 @@ namespace CoupledField {
       }    
 
       steptime+=dt*direction;
+      
+      // perform runtime estimation
+      Double totalTime = timer_->GetWallTime();
+      Double timePerStep = totalTime / (Double) count;
+      Double remainingTime = (endStep - actTimeStep_) * timePerStep;
+      pt::ptime now = pt::second_clock::local_time();
+      now += pt::seconds(remainingTime);
+      analysis_id_->Get("timePerStep")->SetValue( timePerStep );
+      PtrParamNode envNode = info->Get(ParamNode::HEADER)->Get("environment");
+      envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
+      envNode->Get("remainingTime")->SetValue(remainingTime);
     }
     if(optimization){
       cout << endl;

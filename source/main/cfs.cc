@@ -347,8 +347,12 @@ void CFS::SolveProblem()
 
  // Solves the driver or optimization problem
  domain->SolveProblem();
-
- cout << "++ Finished solving the problem" << endl;
+ 
+ using namespace boost::posix_time;
+ using namespace boost::gregorian;
+ cout << "\n++ Finished solving the problem at " 
+     << to_simple_string( second_clock::local_time() ) 
+     << endl;
 
 #ifdef USE_SCRIPTING
    // Call intialization procedure

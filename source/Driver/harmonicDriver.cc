@@ -7,10 +7,12 @@
 #include <string>
 
 #include <boost/lexical_cast.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "Driver/harmonicDriver.hh"
 #include "Driver/stdSolveStep.hh"
 #include "Driver/assemble.hh"
+#include "Utils/Timer.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/WriteInfo.hh"
@@ -23,6 +25,7 @@
 
 using std::cout;
 using std::endl;
+namespace pt = boost::posix_time;
 
 namespace CoupledField
 {
@@ -48,12 +51,15 @@ namespace CoupledField
     numFreq_ = 0;
     actFreqStep_ = 0;
     
+    timer_ = new Timer();
+    
     // register frequency variable at math parser
     domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", actFreq_ );
   }
 
   HarmonicDriver::~HarmonicDriver()
   {
+    delete timer_;
   }
 
 
@@ -242,6 +248,17 @@ namespace CoupledField
         ptPDE_->WriteResultsInFile( actFreqStep_, actFreq_ );
         handler_->FinishStep( );
       }
+      
+      // perform runtime estimation
+      Double totalTime = timer_->GetWallTime();
+      Double timePerStep = totalTime / (Double) actFreqStep_;
+      Double remainingTime = (numFreq_ - actFreqStep_) * timePerStep;
+      pt::ptime now = pt::second_clock::local_time();
+      now += pt::seconds(remainingTime);
+      analysis_id_->Get("timePerStep")->SetValue( timePerStep );
+      PtrParamNode envNode = info->Get(ParamNode::HEADER)->Get("environment");
+      envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
+      envNode->Get("remainingTime")->SetValue(remainingTime);
     }
 
     if(write_results) {

@@ -406,16 +406,20 @@ namespace CoupledField {
       return "kg m^-2 s^-2";
       break;
       
+    case ACOU_VELOCITY:
+      return "m/s";
+      break;
+      
     case ACOU_SURFINTENSITY:
       return "W/m^2";
       break;
 
-    case ACOU_VELOCITY:
-      return "m/s";
-      break;
-
     case ACOU_ENERGY:
       return "Ws";
+      break;
+    
+    case ACOU_ELEM_SPEED_OF_SOUND:
+      return "m/s";
       break;
 
     case ELEC_CHARGE:
@@ -497,6 +501,9 @@ namespace CoupledField {
     case MAG_RHS_LOAD:
       return "Am";
       break;
+
+    case MAG_ELEM_PERMEABILITY:
+      return "Vs/Am";
 
     case MAG_EDDY_POWER:
       return "W";
@@ -645,485 +652,6 @@ namespace CoupledField {
 
     default:
       EXCEPTION( "Found no conversion for supplied FreqSamplingType value!" );
-    }
-  }
-
-  template<>
-  void Enum2String<MaterialType>(const MaterialType &in, std::string &out) {
-    switch(in) {
-    case NO_MATERIAL:
-      out = "noMaterial";
-      break;
-    case MAG_PERMEABILITY:
-      out = "Magnetic_permeability";
-      break;
-    case MAG_PERMEABILITY_1:
-      out = "Magnetic_permeability_1";
-      break;
-    case MAG_PERMEABILITY_2:
-      out = "Magnetic_permeability_2";
-      break;
-    case MAG_PERMEABILITY_3:
-      out = "Magnetic_permeability_3";
-      break;
-    case MAG_RELUCTIVITY:
-      out = "Magnetic_reluctivity";
-      break;
-    case MAG_CONDUCTIVITY:
-      out = "Magnetic_Conductiuvity";
-      break;
-    case ELEC_PERMITTIVITY:
-      out = "Electric_Permittivity";
-      break;
-    case MECH_STIFFNESS_TENSOR:
-      out = "MechanicStiffnessTensor";
-      break;
-    case COEFF_STRAIN_IRREVERSIBLE:
-      out = "Coeff_Strain_Irreversible";
-      break;
-    case MECH_EMODULUS:
-      out = "Mechanic_Emodulus";
-      break;
-    case MECH_EMODULUS_X:
-      out = "Mechanic_Emodulus_X";
-      break;
-    case MECH_EMODULUS_Y:
-      out = "Mechanic_Emodulus_Y";
-      break;
-    case MECH_EMODULUS_Z:
-      out = "Mechanic_Emodulus_Z";
-      break;
-    case MECH_POISSON:
-      out = "Mechanic_PoissonRation";
-      break;
-    case MECH_POISSON_XY:
-      out = "Mechanic_PoissonRation_XY";
-      break;
-    case MECH_POISSON_YZ:
-      out = "Mechanic_PoissonRation_YZ";
-      break;
-    case MECH_POISSON_XZ:
-      out = "Mechanic_PoissonRation_XZ";
-      break;
-    case MECH_KMODULUS:
-      out = "Mechanic_Kmodulus";
-      break;
-    case MECH_GMODULUS:
-      out = "Mechanic_Gmodulus";
-      break;
-    case MECH_GMODULUS_YZ:
-      out = "Mechanic_Gmodulus_YZ";
-      break;
-    case MECH_GMODULUS_ZX:
-      out = "Mechanic_Gmodulus_ZX";
-      break;
-    case MECH_GMODULUS_XY:
-      out = "Mechanic_Gmodulus_XY";
-      break;
-    case MECH_LAME_MU:
-      out = "Mechanic_LameMu";
-      break;
-    case MECH_LAME_LAMBDA:
-      out = "Mechanic_LameLambda";
-      break;
-    case RAYLEIGH_ALPHA:
-      out = "Rayleigh_Alpha";
-      break;
-    case RAYLEIGH_BETA:
-      out = "Rayleigh_Beta";
-      break;
-    case RAYLEIGH_FREQUENCY:
-      out = "Rayleigh_Frequency";
-      break;
-    case RAYLEIGH_DELTA_FREQ:
-      out = "Rayleigh_DeltaFreq";
-      break;
-    case LOSS_TANGENS_DELTA:
-      out = "Loss_TangensDelta";
-      break;
-     case DENSITY:
-      out = "Density";
-      break;
-    case ACOU_BULK_MODULUS:
-      out = "AcousticBulkModulus";
-      break;
-    case ACOU_SOUND_SPEED:
-      out = "Acoustic_SoundSpeed";
-      break;
-    case BOVERA:
-      out = "BoverA";
-      break;
-    case ACOU_ALPHA:
-      out = "AcousticAlpha";
-      break;
-    case FRACTIONAL_ALG:
-      out = "FractionalAlg";
-      break;
-    case FRACTIONAL_MEMORY:
-      out = "FractionalMemory";
-      break;
-    case FRACTIONAL_INTERPOL:
-      out = "FractionalInterpol";
-      break;
-    case FRACTIONAL_EXPONENT:
-      out = "FractionalExponent";
-      break;
-    case HEAT_CONDUCTIVITY:
-      out = "HeatConductivity";
-      break;
-    case HEAT_CONDUCTIVITY_TENSOR:
-      out = "HeatConductivity_Tensor";
-      break;
-    case MAGNETOSTRICTION_TENSOR:
-      out = "Magnetostriction_Tensor";
-      break;
-    case HEAT_CAPACITY:
-      out = "HeatCapacity";
-      break;
-    case THERMAL_EXPANSION_TENSOR:
-      out = "thermalExpansion";
-      break;
-    case DYNAMIC_VISCOSITY:
-      out = "dynamicViscosity";
-      break;
-    case KINEMATIC_VISCOSITY:
-      out = "kinematicViscosity";
-      break;
-    case PIEZO_TENSOR:
-      out = "PiezoTensor";
-      break;
-    case SPON_POLARIZATION:
-      out = "sponPolarization";
-      break;
-    case SPON_STRAIN:
-      out = "sponStrain";
-      break;
-    case EFIELD0:
-      out = "Efield0";
-      break;
-    case STRESS0:
-      out = "Stress0";
-      break;
-    case DCOUPLE0:
-      out = "dCouple0";
-      break;
-    case RATE_CONSTANT:
-      out = "rateConstant";
-      break;
-    case VISCO_PLASTIC_INDEX:
-      out = "viscoPlasticIndex";
-      break;
-    case SATURATION_INDEX:
-      out = "saturationIndex";
-      break;
-    case  SCALE_FORCE_ELEC:
-      out = "scaleForceElec";
-      break;
-    case  SCALE_FORCE_MECH:
-      out = "scaleForceMech";
-      break;
-    case  SCALE_FORCE_COUPLE:
-      out = "scaleForceCouple";
-      break;
-    case VOLUME_FRAC_INIT:
-      out = "volumeFracInit";
-      break;
-    case MEAN_TEMPERATURE:
-      out = "meanTemperature";
-      break;
-
-    case X_SATURATION:
-      out = "Xsaturation";
-      break;
-    case Y_SATURATION:
-      out = "Ysaturation";
-      break;
-    case Y_REMANENCE:
-      out = "Yremanence";
-      break;
-    case PREISACH_WEIGHTS:
-      out = "preisachWeights";
-      break;
-    case A_JILES:
-      out = "aJiles";
-      break;
-    case ALPHA_JILES:
-      out = "alphaJiles";
-      break;
-    case K_JILES:
-      out = "kJiles";
-      break;
-    case C_JILES:
-      out = "cJiles";
-      break;
-    case P_DIRECTION:
-      out = "Pdirection";
-      break;
-    case HYST_MODEL:
-      out = "hystModel";
-      break;
-    case NONLIN_COEFFICIENT:
-      out = "nonLinCoefficient";
-      break;
-    case NONLIN_DEPENDENCY:
-      out = "nonLinDependency";
-      break;
-    case NONLIN_APPROXIMATION_TYPE:
-      out = "nonLinApproximationType";
-      break;
-    case NONLIN_DATA_NAME:
-      out = "nonLinDataName";
-      break;
-    case DATA_ACCURACY:
-      out = "dataAccuracy";
-      break;
-    case MAX_APPROX_VAL:
-      out = "maxApproxVal";
-      break;
-    case PYROCOEFFICIENT_TENSOR:
-      out = "Pyrocoefficient_Tensor";
-      break;
-    default:
-      EXCEPTION("No conversion found for your 'DataType'");
-    }
-  }
-
-  template<>
-  void String2Enum<MaterialType>( const std::string &in, MaterialType &out ) {
-    if ( in == "noMaterial" ) {
-      out = NO_MATERIAL;
-    }
-    else if ( in == "Magnetic_permability" ) {
-      out = MAG_PERMEABILITY;
-    }
-    else if ( in == "Magnetic_permability_1" ) {
-      out = MAG_PERMEABILITY_1;
-    }
-    else if ( in == "Magnetic_permability_2" ) {
-      out = MAG_PERMEABILITY_2;
-    }
-    else if ( in == "Magnetic_permability_3" ) {
-      out = MAG_PERMEABILITY_3;
-    }
-    else if ( in == "Magnetic_reluctivity" ) {
-      out = MAG_RELUCTIVITY;
-    }
-    else if ( in == "Magnetic_Conductiuvity" ) {
-      out = MAG_CONDUCTIVITY;
-    }
-    else if ( in == "Electric_Permittivity" ) {
-      out = ELEC_PERMITTIVITY;
-    }
-    else if ( in == "MechanicStiffnessTensor" ) {
-      out = MECH_STIFFNESS_TENSOR;
-    }
-    else if ( in == "Coeff_Strain_Irreversibel" ) {
-      out = COEFF_STRAIN_IRREVERSIBLE;
-    }
-    else if ( in == "Mechanic_Emodulus" ) {
-      out = MECH_EMODULUS;
-    }
-    else if ( in == "Mechanic_Emodulus_X" ) {
-      out = MECH_EMODULUS_X;
-    }
-    else if ( in == "Mechanic_Emodulus_Y" ) {
-      out = MECH_EMODULUS_Y;
-    }
-    else if ( in == "Mechanic_Emodulus_Z" ) {
-      out = MECH_EMODULUS_Z;
-    }
-    else if ( in == "Mechanic_PoissonRation" ) {
-      out = MECH_POISSON;
-    }
-    else if ( in == "Mechanic_PoissonRation_XY" ) {
-      out = MECH_POISSON_XY;
-    }
-    else if ( in == "Mechanic_PoissonRation_YZ" ) {
-      out = MECH_POISSON_YZ;
-    }
-    else if ( in == "Mechanic_PoissonRation_XZ" ) {
-      out = MECH_POISSON_XZ;
-    }
-    else if ( in == "Mechanic_Kmodulus" ) {
-      out = MECH_KMODULUS;
-    }
-    else if ( in == "Mechanic_Gmodulus" ) {
-      out = MECH_GMODULUS;
-    }
-    else if ( in == "Mechanic_Gmodulus_YZ" ) {
-      out = MECH_GMODULUS_YZ;
-    }
-    else if ( in == "Mechanic_Gmodulus_ZX" ) {
-      out = MECH_GMODULUS_ZX;
-    }
-    else if ( in == "Mechanic_Gmodulus_XY" ) {
-      out = MECH_GMODULUS_XY;
-    }
-    else if ( in == "Mechanic_LameMu" ) {
-      out = MECH_LAME_MU;
-    }
-    else if ( in == "Mechanic_LameLambda" ) {
-      out = MECH_LAME_LAMBDA;
-    }
-    else if ( in == "Rayleigh_Alpha" ) {
-      out = RAYLEIGH_ALPHA;
-    }
-    else if ( in == "Rayleigh_Beta" ) {
-      out = RAYLEIGH_BETA;
-    }
-    else if ( in == "Rayleigh_Frequency" ) {
-      out = RAYLEIGH_FREQUENCY;
-    }
-    else if ( in == "Rayleigh_DeltaFreq" ) {
-      out = RAYLEIGH_DELTA_FREQ;
-    }
-    else if ( in == "Loss_TangensDelta" ) {
-      out = LOSS_TANGENS_DELTA;
-    }
-    else if ( in == "Density" ) {
-      out = DENSITY;
-    }
-    else if ( in == "AcousticBulkModulus" ) {
-      out = ACOU_BULK_MODULUS;
-    }
-    else if ( in == "Acoustic_SoundSpeed" ) {
-      out = ACOU_SOUND_SPEED;
-    }
-    else if ( in == "BoverA" ) {
-      out = BOVERA;
-    }
-    else if ( in == "AcousticAlpha" ) {
-      out = ACOU_ALPHA;
-    }
-    else if ( in == "FractionalAlg" ) {
-      out = FRACTIONAL_ALG;
-    }
-    else if ( in == "FractionalMemory" ) {
-      out = FRACTIONAL_MEMORY;
-    }
-    else if ( in == "FractionalInterpol" ) {
-      out = FRACTIONAL_INTERPOL;
-    }
-    else if ( in == "FractionalExponent" ) {
-      out = FRACTIONAL_EXPONENT;
-    }
-    else if ( in == "HeatConductivity" ) {
-      out = HEAT_CONDUCTIVITY;
-    }
-    else if ( in == "HeatConductivity_Tensor" ) {
-      out = HEAT_CONDUCTIVITY_TENSOR;
-    }
-    else if ( in == "Magnetostriction_Tensor" ) {
-          out = MAGNETOSTRICTION_TENSOR;
-        }
-    else if ( in == "HeatCapacity" ) {
-      out = HEAT_CAPACITY;
-    }
-    else if ( in == "thermalExpansion_Tensor" ) {
-      out = THERMAL_EXPANSION_TENSOR;
-    }
-    else if ( in == "dynamicViscosity" ) {
-      out = DYNAMIC_VISCOSITY;
-    }
-    else if ( in == "kinematicViscosity" ) {
-      out = KINEMATIC_VISCOSITY;
-    }
-    else if ( in == "PiezoTensor" ) {
-      out = PIEZO_TENSOR;
-    }
-    else if ( in == "Xsaturation" ) {
-      out = X_SATURATION;
-    }
-    else if ( in == "Ysaturation" ) {
-      out = Y_SATURATION;
-    }
-    else if ( in == "Yremanence" ) {
-      out = Y_REMANENCE;
-    }
-    else if ( in == "sponPolarization" ) {
-      out = SPON_POLARIZATION;
-    }
-    else if ( in == "sponStrain" ) {
-      out = SPON_STRAIN;
-    }
-    else if ( in == "Efield0" ) {
-      out = EFIELD0;
-    }
-    else if ( in == "Stress0" ) {
-      out = STRESS0;
-    }
-    else if ( in == "dCouple0" ) {
-      out = DCOUPLE0;
-    }
-    else if ( in == "rateConstant" ) {
-      out = RATE_CONSTANT;
-    }
-    else if ( in == "viscoPlasticIndex" ) {
-      out = VISCO_PLASTIC_INDEX;
-    }
-    else if ( in == "saturationIndex" ) {
-      out = SATURATION_INDEX;
-    }
-    else if ( in == "scaleForceElec" ) {
-      out =  SCALE_FORCE_ELEC;
-    }
-    else if ( in == "scaleForceMech" ) {
-      out =  SCALE_FORCE_MECH;
-    }
-    else if ( in == "scaleForceCouple" ) {
-      out =  SCALE_FORCE_COUPLE;
-    }
-    else if ( in == "volumeFracInit" ) {
-      out = VOLUME_FRAC_INIT;
-    }
-    else if ( in == "meanTemperature" ) {
-      out =  MEAN_TEMPERATURE;
-    }
-
-    else if ( in == "preisachWeights" ) {
-      out = PREISACH_WEIGHTS;
-    }
-    else if ( in == "aJiles" ) {
-      out = A_JILES;
-    }
-    else if ( in == "alphaJiles" ) {
-      out = ALPHA_JILES;
-    }
-    else if ( in == "kJiles" ) {
-      out = K_JILES;
-    }
-    else if ( in == "cJiles" ) {
-      out = C_JILES;
-    }
-    else if ( in == "Pdirection" ) {
-      out = P_DIRECTION;
-    }
-    else if ( in == "hystModel" ) {
-      out = HYST_MODEL;
-    }
-    else if ( in == "nonLinCoefficient" ) {
-      out = NONLIN_COEFFICIENT;
-    }
-    else if ( in == "nonLinDependency" ) {
-      out = NONLIN_DEPENDENCY;
-    }
-    else if ( in == "nonLinApproximationType" ) {
-      out = NONLIN_APPROXIMATION_TYPE;
-    }
-    else if ( in == "nonLinDataName" ) {
-      out = NONLIN_DATA_NAME;
-    }
-    else if ( in == "dataAccuracy" ) {
-      out = DATA_ACCURACY;
-    }
-    else if ( in == "maxApproxVal" ) {
-      out = MAX_APPROX_VAL;
-    }
-    else if ( in == "Pyrocoefficient_Tensor" ) {
-      out = PYROCOEFFICIENT_TENSOR;
-    }
-    else {
-      EXCEPTION("No conversion from string to 'MaterialType' found");
     }
   }
 
@@ -1749,6 +1277,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOUSURF_RHSVAL, "acouSurfRHSval");
     SolutionTypeEnum.Add(ACOU_BUBBLE_RHS_VAL, "acouBubbleRhsVal");
     SolutionTypeEnum.Add(ACOU_POT_NRBC, "acouPotNRBC");
+    SolutionTypeEnum.Add(ACOU_ELEM_SPEED_OF_SOUND,"acouSpeedOfSound");
     SolutionTypeEnum.Add(NRBC_PHI, "nrbcPhi");
     SolutionTypeEnum.Add(ACOU_PRESSUREXYZ, "acouPressureXYZ");
     SolutionTypeEnum.Add(ACOU_POWERDENSITY, "acouPowerDensity");
@@ -1772,6 +1301,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_ENERGY, "magEnergy");
     SolutionTypeEnum.Add(MAG_EDDY_POWER, "magEddyPower");
     SolutionTypeEnum.Add(MAG_RHS_LOAD, "magRhsLoad");
+    SolutionTypeEnum.Add(MAG_ELEM_PERMEABILITY, "magElemPermeability");
     //heat conduction
     SolutionTypeEnum.Add(HEAT_TEMPERATURE, "heatTemperature");
     SolutionTypeEnum.Add(HEAT_RHS_LOAD, "heatRhsLoad");
@@ -1818,6 +1348,85 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ELEM_LOC_DIR, "localDirection");
     SolutionTypeEnum.Add(JACOBIAN, "jacobian");
   
+    // ==== Initialization of Material Constants ====
+    MaterialTypeEnum.Add( NO_MATERIAL, "noMaterial" );
+    MaterialTypeEnum.Add( MAG_PERMEABILITY, "Magnetic_permeability" );
+    MaterialTypeEnum.Add( MAG_PERMEABILITY_1, "Magnetic_permeability_1" ); 
+    MaterialTypeEnum.Add( MAG_PERMEABILITY_2, "Magnetic_permeability_2" ); 
+    MaterialTypeEnum.Add( MAG_PERMEABILITY_3, "Magnetic_permeability_3" );
+    MaterialTypeEnum.Add( MAG_RELUCTIVITY, "Magnetic_reluctivity" );
+    MaterialTypeEnum.Add( MAG_CONDUCTIVITY, "Magnetic_Conductiuvity" ); 
+    MaterialTypeEnum.Add( ELEC_PERMITTIVITY, "Electric_Permittivity" );
+    MaterialTypeEnum.Add( MECH_STIFFNESS_TENSOR, "MechanicStiffnessTensor" );
+    MaterialTypeEnum.Add( COEFF_STRAIN_IRREVERSIBLE, "Coeff_Strain_Irreversible" ); 
+    MaterialTypeEnum.Add( MECH_EMODULUS, "Mechanic_Emodulus" );
+    MaterialTypeEnum.Add( MECH_EMODULUS_X, "Mechanic_Emodulus_X" ); 
+    MaterialTypeEnum.Add( MECH_EMODULUS_Y, "Mechanic_Emodulus_Y" );
+    MaterialTypeEnum.Add( MECH_EMODULUS_Z, "Mechanic_Emodulus_Z" ); 
+    MaterialTypeEnum.Add( MECH_POISSON, "Mechanic_PoissonRation" ); 
+    MaterialTypeEnum.Add( MECH_POISSON_XY, "Mechanic_PoissonRation_XY" ); 
+    MaterialTypeEnum.Add( MECH_POISSON_YZ, "Mechanic_PoissonRation_YZ" ); 
+    MaterialTypeEnum.Add( MECH_POISSON_XZ, "Mechanic_PoissonRation_XZ" ); 
+    MaterialTypeEnum.Add( MECH_KMODULUS, "Mechanic_Kmodulus" ); 
+    MaterialTypeEnum.Add( MECH_GMODULUS, "Mechanic_Gmodulus" ); 
+    MaterialTypeEnum.Add( MECH_GMODULUS_YZ, "Mechanic_Gmodulus_YZ" ); 
+    MaterialTypeEnum.Add( MECH_GMODULUS_ZX, "Mechanic_Gmodulus_ZX" ); 
+    MaterialTypeEnum.Add( MECH_GMODULUS_XY, "Mechanic_Gmodulus_XY" );
+    MaterialTypeEnum.Add( MECH_LAME_MU, "Mechanic_LameMu" );
+    MaterialTypeEnum.Add( MECH_LAME_LAMBDA, "Mechanic_LameLambda" ); 
+    MaterialTypeEnum.Add( RAYLEIGH_ALPHA, "Rayleigh_Alpha" ); 
+    MaterialTypeEnum.Add( RAYLEIGH_BETA, "Rayleigh_Beta" ); 
+    MaterialTypeEnum.Add( RAYLEIGH_FREQUENCY, "Rayleigh_Frequency" ); 
+    MaterialTypeEnum.Add( LOSS_TANGENS_DELTA, "Loss_TangensDelta" ); 
+    MaterialTypeEnum.Add( DENSITY, "Density" );
+    MaterialTypeEnum.Add( ACOU_BULK_MODULUS, "AcousticBulkModulus" ); 
+    MaterialTypeEnum.Add( ACOU_SOUND_SPEED, "Acoustic_SoundSpeed" ); 
+    MaterialTypeEnum.Add( BOVERA, "BoverA" ); 
+    MaterialTypeEnum.Add( ACOU_ALPHA, "AcousticAlpha" ); 
+    MaterialTypeEnum.Add( FRACTIONAL_ALG, "FractionalAlg" ); 
+    MaterialTypeEnum.Add( FRACTIONAL_MEMORY, "FractionalMemory" ); 
+    MaterialTypeEnum.Add( FRACTIONAL_INTERPOL, "FractionalInterpol" );
+    MaterialTypeEnum.Add( FRACTIONAL_EXPONENT, "FractionalExponent" ); 
+    MaterialTypeEnum.Add( HEAT_CONDUCTIVITY, "HeatConductivity" ); 
+    MaterialTypeEnum.Add( HEAT_CONDUCTIVITY_TENSOR, "HeatConductivity_Tensor" );
+    MaterialTypeEnum.Add( MAGNETOSTRICTION_TENSOR, "Magnetostriction_Tensor" ); 
+    MaterialTypeEnum.Add( HEAT_CAPACITY, "HeatCapacity" ); 
+    MaterialTypeEnum.Add( THERMAL_EXPANSION_TENSOR, "thermalExpansion" ); 
+    MaterialTypeEnum.Add( DYNAMIC_VISCOSITY, "dynamicViscosity" ); 
+    MaterialTypeEnum.Add( KINEMATIC_VISCOSITY, "kinematicViscosity" );
+    MaterialTypeEnum.Add( PIEZO_TENSOR, "PiezoTensor" ); 
+    MaterialTypeEnum.Add( SPON_POLARIZATION, "sponPolarization" ); 
+    MaterialTypeEnum.Add( SPON_STRAIN, "sponStrain" ); 
+    MaterialTypeEnum.Add( EFIELD0, "Efield0" ); 
+    MaterialTypeEnum.Add( STRESS0, "Stress0" ); 
+    MaterialTypeEnum.Add( DCOUPLE0, "dCouple0" );
+    MaterialTypeEnum.Add( RATE_CONSTANT, "rateConstant" );
+    MaterialTypeEnum.Add( VISCO_PLASTIC_INDEX, "viscoPlasticIndex" ); 
+    MaterialTypeEnum.Add( SATURATION_INDEX, "saturationIndex" ); 
+    MaterialTypeEnum.Add( SCALE_FORCE_ELEC, "scaleForceElec" ); 
+    MaterialTypeEnum.Add( SCALE_FORCE_MECH, "scaleForceMech" );
+    MaterialTypeEnum.Add( SCALE_FORCE_COUPLE, "scaleForceCouple" ); 
+    MaterialTypeEnum.Add( VOLUME_FRAC_INIT,"volumeFracInit" ); 
+    MaterialTypeEnum.Add( MEAN_TEMPERATURE, "meanTemperature" ); 
+    MaterialTypeEnum.Add( X_SATURATION, "Xsaturation" ); 
+    MaterialTypeEnum.Add( Y_SATURATION, "Ysaturation" ); 
+    MaterialTypeEnum.Add( Y_REMANENCE, "Yremanence" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS, "preisachWeights" ); 
+    MaterialTypeEnum.Add( A_JILES, "aJiles" ); 
+    MaterialTypeEnum.Add( ALPHA_JILES, "alphaJiles" ); 
+    MaterialTypeEnum.Add( K_JILES, "kJiles" );
+    MaterialTypeEnum.Add( C_JILES, "cJiles" ); 
+    MaterialTypeEnum.Add( P_DIRECTION, "Pdirection" ); 
+    MaterialTypeEnum.Add( HYST_MODEL, "hystModel" ); 
+    MaterialTypeEnum.Add( NONLIN_COEFFICIENT, "nonLinCoefficient" ); 
+    MaterialTypeEnum.Add( NONLIN_DEPENDENCY, "nonLinDependency" );
+    MaterialTypeEnum.Add( NONLIN_APPROXIMATION_TYPE, "nonLinApproximationType" );
+    MaterialTypeEnum.Add( NONLIN_DATA_NAME, "nonLinDataName" ); 
+    MaterialTypeEnum.Add( DATA_ACCURACY, "dataAccuracy" ); 
+    MaterialTypeEnum.Add( MAX_APPROX_VAL, "maxApproxVal" ); 
+    MaterialTypeEnum.Add( PYROCOEFFICIENT_TENSOR, "Pyrocoefficient_Tensor" ); 
+
+    // ==== Initialization of Matrix Types ====
     feMatrixType.Add( NOTYPE, "no FE matrix" );
     feMatrixType.Add( SYSTEM, "system matrix" );
     feMatrixType.Add( STIFFNESS, "stiffness matrix");
@@ -1830,7 +1439,7 @@ namespace CoupledField {
   }
   
   Enum<SolutionType> SolutionTypeEnum;
-
+  Enum<MaterialType> MaterialTypeEnum;
   UInt MAX_NUM_FE_MATRICES;
   
   Enum<FEMatrixType> feMatrixType;
