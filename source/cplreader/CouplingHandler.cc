@@ -139,7 +139,33 @@ namespace CoupledField
     numRegionNodes_.resize(numRegions);
 
     // First read everything into internal buffers
-    ptFileReader_->ReadNodalCoords(nodalCoords_);
+    std::vector<Double> nodalCoordsTmp;
+    ptFileReader_->ReadNodalCoords(nodalCoordsTmp);
+    ptFileReader_->ReadTopology(topology_, elemTypes_);
+
+    // Determine the maximum number of element nodes
+    maxNumElemNodes = ptFileReader_->GetMaxNumElemNodes();
+    std::set<UInt> topoSet(topology_.begin(), topology_.end());
+    if(*topoSet.begin() == 0)
+      topoSet.erase(topoSet.begin());
+
+    // Throw away unused nodes
+    std::set<UInt>::iterator topoIt, topoEnd;
+    topoIt = topoSet.begin();
+    topoEnd = topoSet.end();
+    
+    std::map<UInt, UInt> pointMap;
+    nodalCoords_.resize(topoSet.size()*3);
+    for( UInt i=0; topoIt != topoEnd; topoIt++, i++ ) 
+    {
+      pointMap[*topoIt] = i+1;
+      
+      UInt idxNew=i*3;
+      UInt idxOld=(*topoIt-1)*3;
+      nodalCoords_[idxNew+0] = nodalCoordsTmp[idxOld+0];
+      nodalCoords_[idxNew+1] = nodalCoordsTmp[idxOld+1];
+      nodalCoords_[idxNew+2] = nodalCoordsTmp[idxOld+2];
+    }
     // scale the nodal coordinates
     const UInt sizeNodCoords = nodalCoords_.size();
     std::stringstream geomstr;
@@ -174,32 +200,6 @@ namespace CoupledField
       }
     }
     // <-- end scaling
-    ptFileReader_->ReadTopology(topology_, elemTypes_);
-
-    // Determine the maximum number of element nodes
-    maxNumElemNodes = ptFileReader_->GetMaxNumElemNodes();
-    std::set<UInt> topoSet(topology_.begin(), topology_.end());
-    if(*topoSet.begin() == 0)
-      topoSet.erase(topoSet.begin());
-
-    // Throw away unused nodes
-    std::set<UInt>::iterator topoIt, topoEnd;
-    topoIt = topoSet.begin();
-    topoEnd = topoSet.end();
-    
-    std::map<UInt, UInt> pointMap;
-    for( UInt i=0; topoIt != topoEnd; topoIt++, i++ ) 
-    {
-      pointMap[*topoIt] = i+1;
-      // std::cout << (*topoIt) << " -> " << (pointMap[*topoIt]) << std::endl;
-      
-      UInt idxNew=i*3;
-      UInt idxOld=(*topoIt-1)*3;
-      nodalCoords_[idxNew+0] = nodalCoords_[idxOld+0];
-      nodalCoords_[idxNew+1] = nodalCoords_[idxOld+1];
-      nodalCoords_[idxNew+2] = nodalCoords_[idxOld+2];
-    }
-    nodalCoords_.resize(topoSet.size()*3);
     
 
     for( UInt i=0, n=topology_.size(); i<n; i++ ) 
