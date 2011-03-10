@@ -235,14 +235,26 @@ void SnOpt::InfoXMLOutput()
   case 32:
     exitstring = "resource limit error - major iteration limit reached";
     break;
+  case 33:
+    exitstring = "resource limit error - the superbasics limit is too small";
+    break;
   case 41:
     exitstring = "terminated after numerical difficulties - current point cannot be improved";
     break;
+  case 42:
+    exitstring = "terminated after numerical difficulties - singular basis";
+    break;
+  case 43:
+    exitstring = "terminated after numerical difficulties - cannot satisfy the general constraints";
+    break;
+  case 44:
+    exitstring = "terminated after numerical difficulties - ill-conditioned null-space basis";
+    break;
   case 51:
-    exitstring = "incorrect objective derivatives";
+    exitstring = "error in the user-supplied functions - incorrect objective derivatives";
     break;
   case 52:
-    exitstring = "incorrect constraint derivatives";
+    exitstring = "error in the user-supplied functions - incorrect constraint derivatives";
     break;
   case 71:
     exitstring = "user requested termination - terminated during function evaluation";

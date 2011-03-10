@@ -1057,19 +1057,33 @@
     </xsd:sequence>
   </xsd:complexType>
   
-  
   <!-- This describes the transfer function as it is used in SIMP and in the
     ersartzMaterial element outside optimization 
     <transferFunction type="SIMP" application="elast" design="density" param="3.0"/> -->
   <xsd:complexType name="DT_TransferFunction" >
+    <xsd:sequence>
+      <xsd:element name="heaviside" minOccurs="0" maxOccurs="1">
+        <xsd:complexType >
+          <xsd:attribute name="penalty" type="xsd:float" default="1" use="optional"/>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+
     <xsd:attribute name="type" use="required">
-      <xsd:simpleType>  
+      <xsd:simpleType>
         <xsd:restriction base="xsd:token">
+          <!-- f(rho) = rho -->
           <xsd:enumeration value="identity"/>
+          <!-- f(rho) = rho^param -->
           <xsd:enumeration value="simp"/>
           <xsd:enumeration value="ramp"/>
+          <!-- f(rho) = param -->
           <xsd:enumeration value="fixed"/>
+          <!-- f(rho) = 1 -->
           <xsd:enumeration value="full"/>
+          <!-- f(rho) = 1 - exp(-param * rho^penalty). penalty is an attribute of the optional 'heaviside' element -->
+          <xsd:enumeration value="heaviside"/>
+
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
@@ -1300,7 +1314,7 @@
     <xsd:attribute name="neighbor_value" type="xsd:float" use="optional" default="0.0"/>
     
     <!-- globalSlope, globalOscillation, ... might be normalized by number of local constraints -->
-    <xsd:attribute name="normalize" type="xsd:boolean" default="true"/>
+    <xsd:attribute name="normalize" type="xsd:boolean" default="false"/>
     
     <!-- global functions are actually sum( max(0, g_i(x) - c)^p) where c is the parameter and p is a "norm" -->
     <xsd:attribute name="power" type="xsd:float" use="optional" default="2.0"/>

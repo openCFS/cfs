@@ -14,10 +14,10 @@ from distutils.command.build_scripts import first_line_re
 ## Read an arbitrary density file as NDArray
 # Uses the <mesh x="30" y="20" z="1"/> element in the header of the density file
 # if not the whole domain is design domain, the data is read as 1D array
-# @param elemnr if False the design is read, otherwise nr
+# @param attribute the scalar attribute: "design" (default), "physical", "nr"
 # @param x, y, z optional mesh size in case it is not given in the density file. Note, the smallest number is 1, not 0!!
-def read_density(filename, elemnr=False, x = None, y = None, z = None):
-  vals = read_density_as_vector(filename, elemnr)
+def read_density(filename, attribute="design", x = None, y = None, z = None):
+  vals = read_density_as_vector(filename, attribute)
 
   tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
   root = tree.getroot()
@@ -57,7 +57,7 @@ def read_density(filename, elemnr=False, x = None, y = None, z = None):
   if len(vals) < x*y*z:
     # we need to be 1D
     print "read density file '" + filename + "' with " + str(len(vals)) + " element smaller x=" + str(x) \
-         + " y=" + str(y) + " z=" + str(z) + " mesh as " + cond(elemnr, "elem nr", "design")
+         + " y=" + str(y) + " z=" + str(z) + " mesh as " + attribute
     x = len(vals)
     ret = numpy.zeros((x))
     for i in range(x):
@@ -69,8 +69,8 @@ def read_density(filename, elemnr=False, x = None, y = None, z = None):
   
 ## Reads a density.xml file as vector
 # @param filename from which the last 'set' is used
-# @param elemnr if False the design is read on true nr
-def read_density_as_vector(filename, elemnr=False):
+# @param attribute the scalar attribute: "design" (default), "physical", "nr"
+def read_density_as_vector(filename, attribute="design"):
   if not os.path.exists(filename):
     raise RuntimeError("file '" + filename + "' doesn't exist")
   
@@ -81,8 +81,7 @@ def read_density_as_vector(filename, elemnr=False):
   # print "reading set with id = " + sett.get("id")
   
   length = len(sett)
-  
-  attribute = cond(elemnr, "nr", "design")
+
   # print "check for attribute " + attribute
   counter = 0
   vals=[0]*length

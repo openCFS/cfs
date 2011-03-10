@@ -536,7 +536,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
   this->power_ = pn != NULL && pn->Has("power") ? pn->Get("power")->As<double>() : 2.0;
   this->phase_ = pn != NULL && pn->Has("phase") ? phase.Parse(pn->Get("phase")->As<std::string>()) : BOTH; // only oscillation
 
-  this->normalize_ = pn != NULL ? pn->Get("normalize")->As<bool>() : true;
+  this->normalize_ = pn != NULL ? pn->Get("normalize")->As<bool>() : false;
 
   switch(ftype)
   {

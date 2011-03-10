@@ -1470,23 +1470,12 @@ void ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Function* f, b
   assert(design->design.GetSize() == 1); // easy to extend
 
   // are we within the design domain?
-  TransferFunction qp;
+  TransferFunction stf;
   if(f->region != ALL_REGIONS && !design->Contains(f->region))
-  {
-    qp = TransferFunction(NO_APP, TransferFunction::FULL, 0.0, f->design);
-  }
+    stf = TransferFunction(NO_APP, TransferFunction::FULL, 0.0, f->design);
   else
-  {
-    // the are special transfer functions for the stress (q) as relaxation and the fem simulation (p). See above!
-    TransferFunction* tf_p = design->GetTransferFunction(DesignElement::DENSITY, MECH);
-    TransferFunction* tf_q = design->GetTransferFunction(DesignElement::DENSITY, STRESS);
-
-    if(tf_q->GetType() != TransferFunction::SIMP_TYPE || tf_p->GetType() != TransferFunction::SIMP_TYPE)
-      throw Exception("Stress constraints are currently only implemented for simp type transfer functions in 'mech' and 'stress'.");
-
-    qp = TransferFunction(NO_APP, TransferFunction::SIMP_TYPE, tf_p->GetParam() - tf_q->GetParam(), tf_p->GetDesign());
-  }
-  LOG_DBG2(em) << "CVMSV: qp=" << qp.GetParam() << " adjont=" << adjoint_rhs << " grad_contrib=" << grad_contrib;;
+    stf = *(design->GetTransferFunction(DesignElement::DENSITY, STRESS)); // for qp = rho^3/rho^2.8 use SIMP with 0.2
+  LOG_DBG2(em) << "CVMSV: qp=" << stf.GetParam() << " adjont=" << adjoint_rhs << " grad_contrib=" << grad_contrib;;
 
   Vector<T> stress(dim == 2 ? 3 : 6); // elem stress
   Vector<T> strain;
@@ -1527,7 +1516,7 @@ void ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Function* f, b
     Vector<T>& u_elem = dynamic_cast<Vector<T>& >(*(all_u_elem[de->GetElementSolutionIndex()]));
 
     // apply our own physical densities!
-    form->calcDMat(E, NULL, DesignElement::DENSITY, qp.Transform(de, DesignElement::SMART));
+    form->calcDMat(E, NULL, DesignElement::DENSITY, stf.Transform(de, DesignElement::SMART));
     //LOG_DBG2(em) << "CVMSV de=" << de->ToString() << " E=" << E.ToString();
 
     elemList.SetElement(de->elem);
@@ -1608,11 +1597,11 @@ void ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Function* f, b
       else
       {
         // additional factor for grad_contrib. We replace one rho^p by (rho^p)'
-        correct = 2.0 * qp.Derivative(de, DesignElement::SMART) / qp.Transform(de, DesignElement::SMART);
+        correct = 2.0 * stf.Derivative(de, DesignElement::SMART) / stf.Transform(de, DesignElement::SMART);
       }
 
       LOG_DBG2(em) << "CVMSV de=" << de->ToString() << " gv= " << grad_contrib << " rho=" << de->GetDesign(DesignElement::SMART) << " sMs=" << elem_out[e] << " deriv="
-                   << (grad_contrib ? qp.Derivative(de, DesignElement::SMART) : -1.0) << " trans=" <<  qp.Transform(de, DesignElement::SMART) << " correct=" << correct << " -> " << (correct * elem_out[e]);
+                   << (grad_contrib ? stf.Derivative(de, DesignElement::SMART) : -1.0) << " trans=" <<  stf.Transform(de, DesignElement::SMART) << " correct=" << correct << " -> " << (correct * elem_out[e]);
                    // << " stress=" << stress.ToString() << " strain=" << strain.ToString();
 
       elem_out[e] *= correct;
