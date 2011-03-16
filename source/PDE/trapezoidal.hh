@@ -19,7 +19,7 @@ namespace CoupledField
   public:
     //! constructor
     //! \param algebraicsystem pointer to algebraic system 
-    Trapezoidal(  BaseSystem * algebraicsystem );
+    Trapezoidal(  BaseSystem * algebraicsystem, PtrParamNode systemNode );
 
     //! destructor
     virtual ~Trapezoidal();
@@ -67,7 +67,7 @@ namespace CoupledField
   public:
     //! constructor
     //! \param algebraicsystem pointer to algebraic system 
-    TrapezoidalEffMass(  BaseSystem * algebraicsystem );
+    TrapezoidalEffMass(  BaseSystem * algebraicsystem, PtrParamNode systemNode );
 
     //! destructor
     virtual ~TrapezoidalEffMass();

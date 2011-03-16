@@ -384,9 +384,10 @@ void HeatCondPDE::DefineSolveStep() {
 
 void HeatCondPDE::InitTimeStepping() {
 
+  PtrParamNode systemNode = FindLinearSystem(pdename_);
   // Until now no effective mass formulation in the trapezoidal
   //  integration scheme is implemented!
-  TS_alg_ = new Trapezoidal( algsys_ );
+  TS_alg_ = new Trapezoidal( algsys_, systemNode );
 
 }
 

@@ -361,7 +361,8 @@ namespace CoupledField {
   // ======================================================
 
   void MagEdgePDE::InitTimeStepping() {
-    TS_alg_ = new Trapezoidal( algsys_ );
+    PtrParamNode systemNode = FindLinearSystem(pdename_);
+    TS_alg_ = new Trapezoidal( algsys_, systemNode );
   }
 
 

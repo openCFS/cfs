@@ -1240,7 +1240,7 @@ namespace CoupledField {
         TS_alg_ = new NewmarkFracDamp( algsys_,
                                        pdeId_, eqnMap_, ptgrid_, this,
                                        results_[0],
-                                       subdoms_, dampingList_ );
+                                       subdoms_, dampingList_, systemNode );
       else
         EXCEPTION( "This needs to be implemented!" );
     }

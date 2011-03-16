@@ -636,17 +636,23 @@
   <!-- ******************************************************************* -->
   <!--   Definition of data type for prestressing -->
   <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_MechPreStress">
-    <xsd:attribute name="region"  type="xsd:token"/>
-    <xsd:attribute name="type"    type="xsd:token"/>
-    <xsd:attribute name="stress1" type="xsd:token"/>
-    <xsd:attribute name="stress2" type="xsd:token"/>
-    <xsd:attribute name="stress3" type="xsd:token"/>
-    <xsd:attribute name="stress4" type="xsd:token"/>
-    <xsd:attribute name="stress5" type="xsd:token"/>
-    <xsd:attribute name="stress6" type="xsd:token"/>
-    <!--xsd:attribute name="phase" type="xsd:float" use="optional" default=""/-->
-  </xsd:complexType>
+   <xsd:complexType name="DT_MechPreStress">
+     <xsd:choice>
+       <xsd:element name="prescribedLHS">
+         <xsd:complexType>
+           <xsd:attribute name="value">
+             <xsd:simpleType>
+               <xsd:restriction base="DT_DoubleList">
+                 <xsd:maxLength value="6"/>
+               </xsd:restriction>
+             </xsd:simpleType>
+           </xsd:attribute>
+         </xsd:complexType>
+       </xsd:element>
+       <xsd:element name="computeLHS"/>
+     </xsd:choice>
+     <xsd:attribute name="region"  type="xsd:token"/>
+   </xsd:complexType>
 
 
    <!-- By 3, respectively 6 teststrains the homogenizied tensor can be computed.

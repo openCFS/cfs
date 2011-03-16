@@ -2922,7 +2922,9 @@ namespace CoupledField {
     }
 
     UInt numDofs = results_[0]->dofNames.GetSize();
-    if ( analysistype_ == STATIC || analysistype_ == TRANSIENT ) {
+    if ( analysistype_ == STATIC 
+        || analysistype_ == TRANSIENT
+        || analysistype_ == EIGENFREQUENCY ) {
 
       // convert solution to transient StoreSolution type
       Vector<Double> & solVec =
@@ -3060,62 +3062,101 @@ namespace CoupledField {
       }
     } else if ( analysistype_ == HARMONIC ) {
 
-      // check value-usage type
-      if( mementoAsDirichlet_ != true) {
-        
-        // nothing to do
-        //EXCEPTION( "For an harmonic simulation only the usage "
-        //           << "of a memento as Drichlet values makes sense!" );
-        return;
+//      // check value-usage type
+//      if( mementoAsDirichlet_ != true) {
+//        
+//        // nothing to do
+//        //EXCEPTION( "For an harmonic simulation only the usage "
+//        //           << "of a memento as Drichlet values makes sense!" );
+//        return;
+//      }
+      
+      if (!mementoAsDirichlet_) {
+        if ( memento_->analysisType_ == STATIC ) {
+          // convert solution to transient StoreSolution type
+          Vector<Complex> & solVec = 
+              (dynamic_cast<NodeStoreSol<Complex> &>(*sol_)).GetAlgSysVector();
+
+          // Iterate over all regions
+          for( UInt iRegion = 0; iRegion < subdoms_.GetSize(); iRegion++ ) {
+
+            // Check for related region in memento object
+            std::string name = ptgrid_->GetRegion().ToString( subdoms_[iRegion] );
+            if( memento_->solution_.find( name) != memento_->solution_.end() ) {
+
+              // get grip of vector and derivatives of memento
+              Vector<Double> const & sol = 
+                  dynamic_cast<const Vector<Double>& >(*(memento_->solution_[name]) );
+              // create entitylist
+           shared_ptr<NodeList> nodes (new NodeList(ptgrid_));
+           nodes->SetNodesOfRegion( subdoms_[iRegion] );
+
+           // iterate over all entries
+           EntityIterator it = nodes->GetIterator();
+           StdVector<Integer> eqns;
+           UInt pos = 0;
+              for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
+                eqnMap_->GetEqns( eqns, *results_[0], it );
+                for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
+                  if ( eqns[iDof] != 0
+                      && (unsigned int) (std::abs(eqns[iDof])-1) < solVec.GetSize() ) {
+                    solVec[eqns[iDof]-1] = Complex(sol[numDofs*pos+iDof],0);
+                  } // if
+                } // loop over dofs
+              } // loop over nodes
+            } // if region found
+          } // loop over regions
+        } // if static
       }
+      if( mementoAsDirichlet_ == true) {
+        // iterate over all regions of pde
+        for( UInt i = 0; i < subdoms_.GetSize(); i++ ) {
 
-          // iterate over all regions of pde
-      for( UInt i = 0; i < subdoms_.GetSize(); i++ ) {
+          std::string regionName = ptgrid_->GetRegion().ToString( subdoms_[i] );
 
-        std::string regionName = ptgrid_->GetRegion().ToString( subdoms_[i] );
+          // try to find related region in memento object
+          if( memento_->solution_.find( regionName ) !=
+              memento_->solution_.end() ) {
 
-        // try to find related region in memento object
-        if( memento_->solution_.find( regionName ) !=
-            memento_->solution_.end() ) {
+            Vector<Complex> const & regionSol =
+                dynamic_cast<Vector<Complex>&>(*memento_->solution_[regionName]);
 
-          Vector<Complex> const & regionSol =
-            dynamic_cast<Vector<Complex>&>(*memento_->solution_[regionName]);
+            // create entitylist
+            shared_ptr<NodeList> nodes (new NodeList(ptgrid_));
+            nodes->SetNodesOfRegion( subdoms_[i] );
 
-          // create entitylist
-          shared_ptr<NodeList> nodes (new NodeList(ptgrid_));
-          nodes->SetNodesOfRegion( subdoms_[i] );
+            // iterate over all entries
+            EntityIterator it = nodes->GetIterator();
+            UInt pos = 0;
+            for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
 
-          // iterate over all entries
-          EntityIterator it = nodes->GetIterator();
-          UInt pos = 0;
-          for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
+              for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
+                Complex val = regionSol[pos * numDofs + iDof];
 
-            for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
-              Complex val = regionSol[pos * numDofs + iDof];
+                // create idbc-condition and append to class container
+                shared_ptr<InhomDirichletBc> actBc ( new InhomDirichletBc );
+                shared_ptr<NodeList> actList (new NodeList(ptgrid_) );
+                StdVector<UInt> nodeList(1);
+                nodeList[0] = it.GetNode();
+                actList->SetNodes(nodeList);
 
-              // create idbc-condition and append to class container
-              shared_ptr<InhomDirichletBc> actBc ( new InhomDirichletBc );
-              shared_ptr<NodeList> actList (new NodeList(ptgrid_) );
-              StdVector<UInt> nodeList(1);
-              nodeList[0] = it.GetNode();
-              actList->SetNodes(nodeList);
+                actBc->entities = actList;
+                actBc->result = results_[0];
+                actBc->eqnMap = eqnMap_;
+                actBc->dof = iDof+1;
+                actBc->value = lexical_cast<std::string>(std::abs( val ) );
+                actBc->phase = lexical_cast<std::string>(std::atan2( val.imag(), 
+                                                                     val.real())
+                *180/PI );
 
-              actBc->entities = actList;
-              actBc->result = results_[0];
-              actBc->eqnMap = eqnMap_;
-              actBc->dof = iDof+1;
-              actBc->value = lexical_cast<std::string>(std::abs( val ) );
-              actBc->phase = lexical_cast<std::string>(std::atan2( val.imag(), val.real())
-                                    *180/PI );
-
-              // append idbc at end of list
-              idBcs_.Push_back( actBc );
+                // append idbc at end of list
+                idBcs_.Push_back( actBc );
+              }
             }
-          }
-        }
-      }
-    }
-
+          }  
+        } // loop over regions
+      }// memento as Dirichlet
+    } // HARMONIC Analysis
 
   }
 

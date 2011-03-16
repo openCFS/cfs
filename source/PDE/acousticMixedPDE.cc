@@ -658,11 +658,12 @@ namespace CoupledField
 
   void AcousticMixedPDE::InitTimeStepping()
   {
+    PtrParamNode systemNode = FindLinearSystem(pdename_);
     if ( effectiveMass_ == true ) {
-      TS_alg_ = new TrapezoidalEffMass( algsys_ );
+      TS_alg_ = new TrapezoidalEffMass( algsys_, systemNode );
     }
     else {
-      TS_alg_ = new Trapezoidal( algsys_ );
+      TS_alg_ = new Trapezoidal( algsys_, systemNode );
       TS_alg_->SetTrapezoidalGamma(0.505);
       //      TS_alg_ = new Bdf2( algsys_ );
     }

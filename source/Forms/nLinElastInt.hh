@@ -388,28 +388,52 @@ protected:
     friend class PreStressLinFormInt;
   
     //! Constructor
-    PreStressInt(BaseMaterial* matData, Vector<Double> aPreStressVal);
+    PreStressInt( BaseMaterial* matData );
   
     /// Destructor
     virtual ~PreStressInt();  
 
+    //! Compute element matrix associated to BDB form
+    //! needed in case of not constant prestress
+    void CalcElementMatrix( Matrix<Double>& elemMat,
+                            EntityIterator& ent1, 
+                            EntityIterator& ent2 );
+    
     //! computation of D-matrix (consists of stress values)
     void calcDMat(Matrix<Double> & dMat, UInt ip, Matrix<Double> & ptCoord);
   
     //!
     void calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord);
 
+    //! sets the prestresses (in case of given prestresses) 
+    void SetPreStress(Vector<Double>& piolaStressVec );
+    
     //!
     void convertStressVecToTensor( Matrix<Double> &stressTensor,
                                    Vector<Double> &piolaStress ) {
       EXCEPTION( "convertStressVecToTensor not implemented" );
     }
+    
+    //! sets the current displacement
+    void SetMechDisp( NodeStoreSol<Double>& sol ) {
+      sol_ = &sol;}
+
+    //! sets the current displacement (we just need the real part)
+    void SetMechDisp( NodeStoreSol<Complex>& sol ) {
+      complexSol_ = &sol; 
+      isSolComplex_ = true; }
+
 
   protected:
-    /// calculates pre-stresses (vector notation)
-    void CalcStressVec(Vector<Double>& piolaStressVec,
-                         UInt ip,
-                         Matrix<Double> & ptCoord);
+
+    /// calculates constant pre-stresses (vector notation)
+    void CalcConstPreStressVec( Vector<Double>& piolaStressVec, 
+                                Vector<Double>& piolaStressVal  );
+
+    //! calculates the actual prestressing for the current element
+    virtual void CalcActStressVec(Vector<Double>& StressVec, UInt ip, 
+                                  BaseFE *elem, Matrix<Double> & ptCoord,
+                                  Matrix<Double> & elemDisp );  
 
     /// returns the size of the full piola d-matrix
     virtual UInt getFullPiolaDMatSize(){
@@ -437,9 +461,21 @@ protected:
 
 
   private: 
-    /// 
-    Vector<Double> preStressVal_;
+    // true, if constant prestress
+    bool isPreStressConst_;
 
+    //! stores the constant prestressing tensor
+    Matrix<Double> preStressTensor_;
+
+    //! yes, if displacement used for computing the prestress is complex
+    bool isSolComplex_;
+
+    //! stores complex mechanical displacement
+    NodeStoreSol<Complex>* complexSol_;
+
+    //! check, if CalcElementMatrix is used for the first time
+    bool isVirgin_;
+    
   };
 
 
@@ -449,14 +485,14 @@ protected:
   public:
   
     //! Constructor
-    PreStressInt3D(BaseMaterial* matData, Vector<Double> aPreStressVal);
+    PreStressInt3D(BaseMaterial* matData );
   
     /// Destructor
     virtual ~PreStressInt3D();  
 
     //!
     void convertStressVecToTensor(Matrix<Double>& stressTensor,
-                                      Vector<Double>& piolaStress);
+                                  Vector<Double>& piolaStress);
 
   protected:
     /// returns the size of the full piola d-matrix
@@ -479,8 +515,7 @@ protected:
   {
   public:
     //! Constructor
-    PreStressIntPlaneStrain(BaseMaterial* matData,
-                               Vector<Double> aPreStressVal);
+    PreStressIntPlaneStrain(BaseMaterial* matData );
   
     /// Destructor
     virtual ~PreStressIntPlaneStrain();  
@@ -511,8 +546,7 @@ protected:
   public:
   
     //! Constructor
-    PreStressIntAxi(BaseMaterial* matData,
-                      Vector<Double> aPreStressVal);
+    PreStressIntAxi(BaseMaterial* matData );
   
     /// Destructor
     virtual ~PreStressIntAxi();  

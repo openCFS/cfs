@@ -125,6 +125,7 @@
       <xsd:enumeration value="aeroacoustics"/>
       <xsd:enumeration value="complex material parameters"/>
       <xsd:enumeration value="damping"/>
+      <xsd:enumeration value="prestress"/>
       <xsd:enumeration value="mixed fem"/>
       <xsd:enumeration value="pml"/>
       <xsd:enumeration value="spectral fem"/>
