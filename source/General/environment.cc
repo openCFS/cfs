@@ -1435,11 +1435,16 @@ namespace CoupledField {
     feMatrixType.Add( MASS, "mass matrix" );
     feMatrixType.Add( AUXILIARY, "auxiliary matrix" );
     
-    MAX_NUM_FE_MATRICES = feMatrixType.map.size() - 1;    
+    MAX_NUM_FE_MATRICES = feMatrixType.map.size() - 1;
+    
+    // ==== Initialization of NonLinMethodEnum ====
+    NonLinMethodTypeEnum.Add( FIXEDPOINT, "fixPoint" );
+    NonLinMethodTypeEnum.Add( NEWTON, "newton" );
   }
   
   Enum<SolutionType> SolutionTypeEnum;
   Enum<MaterialType> MaterialTypeEnum;
+  Enum<NonLinMethodType> NonLinMethodTypeEnum;
   UInt MAX_NUM_FE_MATRICES;
   
   Enum<FEMatrixType> feMatrixType;

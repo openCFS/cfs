@@ -16,6 +16,8 @@
 #include "DataInOut/Logging/cfslog.hh"
 #include "Utils/biotSavart.hh"
 #include "linMagStrictInt.hh"
+#include "Forms/curlCurlEdgeInt.hh"
+#include "Forms/nLincurlCurlEdgeInt.hh"
 
 namespace CoupledField {
 
@@ -445,7 +447,7 @@ DEFINE_LOG(linForm, "linForm")
       //define the nonlinear element matrix
       curlcurl2D = new nLinCurlCurlNode2DInt( ptMaterial, isaxi_, coordUpdate_ );
       //important to set method to FixPoint, since we compute the RHS!!
-      curlcurl2D->SetNonLinMethod("fixPoint");
+      curlcurl2D->SetNonLinMethod(FIXEDPOINT);
         
       //set the solution class to the operator
       curlcurl2D->SetSolution( * sol_ );
@@ -507,7 +509,7 @@ DEFINE_LOG(linForm, "linForm")
       //define the nonlinear element matrix
       curlcurl3D = new nLinCurlCurlNode3DInt( ptMaterial, coordUpdate_ );
       //important to set method to FixPoint, since we compute the RHS!!
-      curlcurl3D->SetNonLinMethod("fixPoint");
+      curlcurl3D->SetNonLinMethod(FIXEDPOINT);
         
       //set the solution class to the operator
       curlcurl3D->SetSolution( *sol_ );
@@ -526,6 +528,60 @@ DEFINE_LOG(linForm, "linForm")
     delete curlcurl3D;
   }
 
+  
+
+  nLinMagEdge_linFormInt::nLinMagEdge_linFormInt( BaseMaterial*matData,
+                                                  bool coordUpdate)
+    : LinearForm( matData )
+  {
+    name_ = "nLinMagEdge_linFormInt";
+    isSolDependent_ = true;
+
+    isaxi_       = false;
+    coordUpdate_ = coordUpdate;
+
+  }
+  
+  nLinMagEdge_linFormInt::~nLinMagEdge_linFormInt()
+  {
+  }
+
+  void nLinMagEdge_linFormInt::CalcElemVector( Vector<Double> & elemVec,
+                                               EntityIterator& ent )
+  {
+  
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+
+    // get pointer to nonlinear BH curve approximation
+    ApproxData* nlinFnc_ = ptMaterial->GetNonlinFncBH();
+
+    BaseForm * curlcurl3D;
+    if ( nlinFnc_ == NULL ) 
+      //define the linear element matrix
+      curlcurl3D = new CurlCurlEdgeInt( ptMaterial, coordUpdate_);
+    else {
+      //define the nonlinear element matrix
+      curlcurl3D = new nLinCurlCurlEdgeInt( ptMaterial, coordUpdate_ );
+      //important to set method to FixPoint, since we compute the RHS!!
+      curlcurl3D->SetNonLinMethod(FIXEDPOINT);
+        
+      //set the solution class to the operator
+      curlcurl3D->SetSolution( *sol_ );
+    }
+
+    // Get element solution
+    Vector<Double> magPot;
+    sol_->GetElemSolution( magPot, ent  );
+
+    Matrix<Double> elemmat;
+    curlcurl3D->CalcElementMatrix(elemmat, ent, ent);
+
+    elemVec = -(elemmat * magPot);
+
+    delete curlcurl3D;
+  }
 
   // ==================================================================
   // nLinMech

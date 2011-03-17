@@ -263,7 +263,8 @@ namespace CoupledField {
   enum orientation2D {xy, xz, yz};
 
   //! nonlinear method definition
-  enum NonLinMethod {FIXEDPOINT=1, NEWTON=2};
+  typedef enum {FIXEDPOINT=1, NEWTON=2} NonLinMethodType ; 
+  extern Enum<NonLinMethodType> NonLinMethodTypeEnum;
 
   //! output format for complex numbers
   typedef enum {REAL_IMAG, AMPLITUDE_PHASE} ComplexFormat;

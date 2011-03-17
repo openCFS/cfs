@@ -517,7 +517,9 @@ namespace CoupledField
     Double theta;
 
     if (t < xStart_ || t > xEnd_) {
-      return -1;
+      std::cerr << "x-Value is too small -> no convergence!\n";
+      //return -1;
+      return 0;
     }
 
     theta = xStart_;
@@ -804,7 +806,7 @@ namespace CoupledField
     Integer i;
     Double t,delta;
     
-    delta = ( yEnd_ - y_[0] ) / 100.;
+    delta = ( yEnd_ - y_[0] ) / 500.;
     t     = y_[0];
     
     std::ofstream out_orig;
@@ -844,7 +846,7 @@ namespace CoupledField
     std::ofstream out_nu;
     out_nu.open("nu_B.dat");
 
-    UInt numPoints = 100;
+    UInt numPoints = 500;
     Double maxB = yEnd_ * 1.5;
     Double dB = maxB / ( (Double)numPoints );
 

@@ -1063,6 +1063,8 @@ source/Forms/nLinPiezoMicro.cc -text
 source/Forms/nLinPiezoMicro.hh -text
 source/Forms/nLinPiezoMicroRHS.cc -text
 source/Forms/nLinPiezoMicroRHS.hh -text
+source/Forms/nLincurlCurlEdgeInt.cc svneol=native#text/x-c%2B%2Bsrc
+source/Forms/nLincurlCurlEdgeInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/nLincurlCurlNodeInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/nLincurlCurlNodeInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/nlinLaplaceInt.cc svneol=native#text/x-c%2B%2Bsrc

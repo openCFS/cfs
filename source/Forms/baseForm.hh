@@ -137,7 +137,7 @@ namespace CoupledField
     };
 
     //
-    virtual void SetNonLinMethod(std::string atype) {;};
+    virtual void SetNonLinMethod(NonLinMethodType atype) {;};
 
     //! set second multiplicative factor for matrix
     virtual void SetSecondFactor( const std::string& factor) {;};

@@ -187,6 +187,25 @@ namespace CoupledField
     Double startmatVal_;    //!< star value for reluctivity
     ApproxData *nlinFnc_;   //!< pointer to approximation object for BH curve
   };
+  
+  /// class for calculation of right-hand-side of nonlinear magnetics using edge elements
+  class nLinMagEdge_linFormInt : public LinearForm
+  {
+  public:
+
+    /// constructor
+    nLinMagEdge_linFormInt( BaseMaterial* matData, 
+                            bool coordUpdate = false );
+
+    /// destructor
+    virtual ~ nLinMagEdge_linFormInt();
+
+    /// Calculation of vector of right hand side 
+    void CalcElemVector( Vector<Double> & result,
+                         EntityIterator& ent );
+
+  protected:
+  };
 
 
   // =============================================================================
