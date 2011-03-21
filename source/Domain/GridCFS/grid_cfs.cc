@@ -1513,6 +1513,7 @@ namespace CoupledField {
     {
       orderedElems_[idx] = new Elem();
       orderedElems_[idx]->elemNum = idx+1;
+      orderedElems_[idx]->ptElem = NULL;
     }
 
     numElems_ = idx;
@@ -1528,6 +1529,17 @@ namespace CoupledField {
     Elem* el = orderedElems_[idx];
     UInt d = 2;
     UInt numNodes = Elem::GetNumElemNodes(type);
+    
+    // check, if element has already a reference element assigned
+    if( el->ptElem != NULL ) {
+      EXCEPTION("Element #" << ielem+1 
+                << " was already defined for region '"
+                << region_.ToString(el->regionId) << "'\n"
+                << "Now it shold be added to region '"
+                << region_.ToString(region) << "'.\n"
+                << "Most probably you wrote out the element twice."
+                 << " Please check your mesh!");
+    }
 
     numElemTypes_[type]++;
 
