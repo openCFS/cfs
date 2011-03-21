@@ -71,7 +71,7 @@ namespace CoupledField
     Vector<Double> CoordAtIP;
     Vector<Double> drAtIp;
 
-    Double reluctivity, derivReluctivity;
+    Double reluctivity, derivReluctivity = 0.0;
 
     // set matrix to desired size and set all elements to zero
     elemMat.Resize(numFncs); elemMat.Init();
