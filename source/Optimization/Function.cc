@@ -186,6 +186,9 @@ void Function::ToInfo(PtrParamNode info)
   // we check for valid ocurence of paramter in the constructor
   if(pn->Has("parameter"))
     info->Get("parameter")->SetValue(parameter_);
+
+  if(local != NULL)
+    local->ToInfo(info_);
 }
 
 std::string Function::ToString(MultipleExcitation* me) const
@@ -243,6 +246,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case GLOBAL_OSCILLATION:
     case JUMP:
     case GLOBAL_JUMP:
+    case DESIGN_TRACKING:
       assert(excite_index < 0);
       excite_ = me->excitations.GetSize() - 1; // once only at the last excitation
       break;
@@ -409,6 +413,7 @@ bool Function::ForSensitivityFiltering() const
   case GLOBAL_OSCILLATION:
   case JUMP:
   case GLOBAL_JUMP:
+  case DESIGN_TRACKING:
     return false;
 
   case ISOTROPY:
@@ -496,13 +501,13 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure)
     // neighbors. Is save to call several times
     VicinityElement::Init(space, structure);
     InitLocal(space);
-
     break;
 
   case PENALIZED_VOLUME:
     for(unsigned int i = 0; i < space->transfer.GetSize(); i++)
       if(space->transfer[i].IsPenalized())
         info_->Get(ParamNode::WARNING)->SetValue("transfer function '" + space->transfer[i].ToString() + " seems also to penalize");
+    break;
 
   default: // do nothing
     break;
@@ -653,9 +658,6 @@ Function::Local::Local(Function* func, DesignSpace* space)
 
   // needs to be set prior CalcSlopeConstraint() as the optimizers need the size
   values.Resize(virtual_elem_map.GetSize(), -1.0);
-
-  // Function::ToInfo() was already called, hence we hace the node
-  ToInfo(func->info_);
 }
 
 Function::Local::~Local()

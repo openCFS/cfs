@@ -267,7 +267,8 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       || rd.value == MAX_OSCILLATION
       || rd.value == MAX_MOLE
       || rd.value == MAX_JUMP
-      || rd.value == PENALIZED_STRESS)
+      || rd.value == PENALIZED_STRESS
+      || rd.value == DESIGN_TRACKING)
   {
     if(dofs != 1) throw Exception("special results is only defined for scalar values");
     // note, that on EACH_FORWARD/ADJOINT we need excitation based results
@@ -491,6 +492,7 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(MAX_MOLE, "maxMole");
   valueSpecifier.Add(MAX_JUMP, "maxJump");
   valueSpecifier.Add(PENALIZED_STRESS, "penalizedStress");
+  valueSpecifier.Add(DESIGN_TRACKING, "designTracking");
   valueSpecifier.Add(WEIGHT, "weight");
   valueSpecifier.Add(OBJECTIVE, "objective");
   valueSpecifier.Add(NUM_NEIGHBOURS, "neighbours");
@@ -826,6 +828,7 @@ VicinityElement::VicinityElement()
 {
   design.Resize(domain->GetGrid()->GetDim() == 2 ? 4 : 6);
   design.Init(NULL);
+  periodic = false;
 }
 
 
@@ -882,7 +885,10 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
     if(periodic)
     {
       if(structure->ExtendPeriodicNeighborhood(de.elem, common, enlarged_data))
+      {
         neighbors = enlarged_data; // in the non-periodic case there is no need to copy the element data
+        de.vicinity->periodic = true;
+      }
     }
 
     LOG_DBG(desel) << "VE:Init elem=" << de.elem->elemNum << " neighbors=" << neighbors.ToString();
@@ -1039,6 +1045,7 @@ string VicinityElement::ToString() const
     }
     if(i < max-1) ss << ",";
   }
+  ss << " periodic=" << periodic;
   ss << ")";
   return ss.str();
 }

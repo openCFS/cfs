@@ -19,7 +19,7 @@ namespace CoupledField
      * <li>RAMP: ... very slow :(</li>
      * <li>FIXED: tf(x) = param == 0 ? 1.0 : param, tf'(x)=0</li>
      * <li>FULL:  td(x) = 1, tf'(x)=0</li>
-     * <li>HEAVISIDE:  tf(x) = 1-exp(-param * x^hp) hp= heavisidePenalty</li>
+     * <li>HEAVISIDE:  tf(x) = (1-exp(-param * x))^hp  hp= heavisidePenalty</li>
      * </ul> */
     typedef enum { NO_TYPE = -1, SIMP_TYPE, IDENTITY, RAMP, FIXED, FULL, HEAVISIDE } Type;
 

@@ -286,6 +286,8 @@
                 <xsd:enumeration value="jump"/>
                 <xsd:enumeration value="globalJump"/>
                 <xsd:enumeration value="stress"/>
+                <!-- requires the attribute 'designTarget' to be set to a filename -->
+                <xsd:enumeration value="designTracking"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -333,7 +335,7 @@
           <xsd:attribute name="linear" use="optional" type="xsd:boolean"/>
           
           <!-- for a stress constraint we can define the excitation by its label. The enumaration
-               can be easy extended here as we do a string compare with the excitation label in the code -->
+            can be easy extended here as we do a string compare with the excitation label in the code -->
           <xsd:attribute name="excitation" use="optional" default="all">
             <xsd:simpleType>
               <xsd:restriction base="xsd:string">
@@ -350,6 +352,10 @@
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
+          
+          <!-- mandatory for design tracking, defines a pseudo density file. If no region is given the periodic boundary elements are used -->
+          <xsd:attribute name="designTarget" use="optional" type="xsd:token" />
+          
         </xsd:complexType>
         
         <xsd:unique name="opt_unique_constraint">
@@ -811,6 +817,8 @@
                         stresses, here they can be visualized. The element vonMisesStress
                         result gives the physical one -->
                       <xsd:enumeration value="penalizedStress"/>
+                      <!-- This is (rho - rho^*)^2 (rho is physical) withount the 1/N -->
+                      <xsd:enumeration value="designTracking"/>
                       <!-- has details! -->
                       <xsd:enumeration value="constraintGradient"/>
                       <xsd:enumeration value="weight"/>
@@ -1081,7 +1089,7 @@
           <xsd:enumeration value="fixed"/>
           <!-- f(rho) = 1 -->
           <xsd:enumeration value="full"/>
-          <!-- f(rho) = 1 - exp(-param * rho^penalty). penalty is an attribute of the optional 'heaviside' element -->
+          <!-- f(rho) = (1 - exp(-param * rho))^penalty. penalty is an attribute of the optional 'heaviside' element -->
           <xsd:enumeration value="heaviside"/>
 
         </xsd:restriction>

@@ -88,7 +88,8 @@ class Function
       SLOPE,                     /*!< Implementation of a grad rho constraint */
       MOLE,                      /*!< Feature size control from T. Poulsen */
       OSCILLATION,               /*!< Feature size control by Fabian W. :) */
-      JUMP                       /*!< Weak greyness control by Fabian W. :) */
+      JUMP,                      /*!< Weak greyness control by Fabian W. :) */
+      DESIGN_TRACKING            /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
     } Type;
 
     /** to convert string/enum for this type */

@@ -681,6 +681,11 @@ private:
    * case of the gap constraint: volume - penalized volume */
   void CalcRegularGapConstraint(Function* f, DesignElement::Type dt);
 
+  /** The design tracking matches a given pattern of physcial design by a certain extend (e.g. 90 %). T
+   * The designTarget attribute is mandatory. If the region attribute is not given the periodic border
+   * elements are used. If the region is given it might make sense to use the pattern definition in within the domain. */
+  double CalcDesignTracking(Condition* g, bool derivative);
+
   /** Homogenization objective/ constraint.
    * Is once evaluate only! */
   double CalcPoissonsRatioAndYoungsModulus(Function* f,  bool derivative);

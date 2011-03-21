@@ -915,6 +915,11 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
          result = CalcLocalConstraint(g, derivative);
          break;
 
+    case Function::DESIGN_TRACKING:
+         assert(c == NULL);
+         result = CalcDesignTracking(g, derivative);
+         break;
+
     case Function::HOMOGENIZATION_TENSOR:
           if(c != NULL && derivative && c->HasHomogenizationEntry())
           {
@@ -1209,6 +1214,43 @@ double ErsatzMaterial::CalcVolume(Objective* f, Condition* g, bool derivative, b
   default: assert(false);
   }
   return -1.0; // cannot happen due to assert
+}
+
+
+double ErsatzMaterial::CalcDesignTracking(Condition* g, bool derivative)
+{
+  assert(g->elements.GetSize() > 0 && g->elements.GetSize() == g->pattern.GetSize());
+
+  // g = 1/N * sum (rho - rho^*)^2 where rho is the physical rho
+  // g' = 2/N * (rho - rho^*) * rho'  and the derivative of the filter if any
+
+  int res_idx = design->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::DESIGN_TRACKING);
+
+  double result = 0.0;
+
+  TransferFunction* tf = design->GetTransferFunction(ToDesign(pde), ToApp(pde));
+
+
+  for(unsigned int i = 0, n = g->elements.GetSize(); i < n; i++)
+  {
+    DesignElement* de = g->elements[i];
+    double rho = tf->Transform(de, DesignElement::SMART); // physical design
+    double target = g->pattern[i];
+
+    if(derivative)
+    {
+      // for the non-element designs nothing is added and it stays 0
+      de->AddGradient(g, (2.0 / n) * (rho - target) * tf->Derivative(de, DesignElement::SMART));
+    }
+    else
+    {
+      double val = (rho - target) * (rho - target);
+      result += val;
+      if(res_idx > 0) de->specialResult[res_idx] = val;
+    }
+  }
+
+  return result / g->elements.GetSize();
 }
 
 void ErsatzMaterial::CalcRegularGapConstraint(Function* f, DesignElement::Type dt)

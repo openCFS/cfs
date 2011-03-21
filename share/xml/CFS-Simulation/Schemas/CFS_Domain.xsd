@@ -48,9 +48,12 @@
       </xsd:element>
     </xsd:sequence>
     <xsd:attribute name="name" type="xsd:token" use="required"/>
+    <!-- the material references to the material data file -->
     <xsd:attribute name="material" type="xsd:token" use="optional" default=""/>
     <xsd:attribute name="composite" type="xsd:token" use="optional" default=""/>
     <xsd:attribute name="coordSysId" type="xsd:token" use="optional" default=""/>
+    <!-- a xml file in density.xml format that specifies region elements by a threshold -->
+    <xsd:attribute name="pattern" type="xsd:token" use="optional"  />
   </xsd:complexType>
 
 

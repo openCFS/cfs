@@ -206,6 +206,10 @@ void Optimization::PostInitSecond()
 
     default: throw Exception("optimizer not implemented");
   }
+
+  // call this again after PostProc()
+  constraints.ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("constraints"));
+
   unsigned int n = design->GetNumberOfVariables();
   if (this->log.design) {
     for (unsigned int i = 0; i < n; ++i) {
@@ -263,6 +267,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::GLOBAL_OSCILLATION, "globalOscillation");
   Function::type.Add(Function::JUMP, "jump");
   Function::type.Add(Function::GLOBAL_JUMP, "globalJump");
+  Function::type.Add(Function::DESIGN_TRACKING, "designTracking");
 
   Function::Local::locality.SetName("Function::Local::Locality");
   Function::Local::locality.Add(Function::Local::DEFAULT, "default");

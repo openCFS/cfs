@@ -199,7 +199,9 @@ double TransferFunction::Transform(const DesignElement* de, DesignElement::Acces
     break;
     
   case HEAVISIDE:
-    result = 1.0 - std::exp(-1.0 * param_ * std::pow(value, heavisidePenalty_));
+    // some options and the derivatives
+    // plot (1-exp(-20*x)), 20*x*exp(-20*x), 4*(1-exp(-10*x))**3 * 10*x*exp(-10*x), (1-exp(-10*x))**4, 1-exp(-20*x**6), 20*x**6*6*x**5*exp(-20*x**6)
+    result = std::pow(1.0 - std::exp(-1.0 * param_ * value), heavisidePenalty_);
     break;
 
   default: throw Exception("type not implemented");
@@ -235,10 +237,11 @@ double TransferFunction::Derivative(const DesignElement* de, DesignElement::Acce
       
     case HEAVISIDE:
     {
-      double ex = param_ * std::pow(value, heavisidePenalty_);
-      double dex = heavisidePenalty_ * std::pow(value, heavisidePenalty_ - 1.0);
-      double old = std::exp(-1.0 * param_ * std::pow(value, heavisidePenalty_));
-      return ex * dex * old;
+      // f = (1-hs)^hp,
+      double p = heavisidePenalty_;
+      double hs = std::exp(-1.0 * param_ * value);
+
+      return p * std::pow(1.0 - hs, p - 1.0) * param_ * value * hs;
     }
 
     case FIXED:  

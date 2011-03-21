@@ -4,6 +4,7 @@
 #include "Optimization/Design/DesignStructure.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
+#include "DataInOut/ParamHandling/Xerces.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "General/exception.hh"
 #include "General/environment.hh"
@@ -97,6 +98,9 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
 void Condition::PostProc(DesignSpace* space, DesignStructure* structure)
 {
   SetElements(space, region, design); // before Function::PostProc() because of virtual_elem_map
+
+  if(type_ == DESIGN_TRACKING)
+    ReadDesignTrackingPattern(space);
 
   // note, meanwhile we have info_ set! but not yet in the constructor
   Function::PostProc(space, structure);
@@ -433,6 +437,60 @@ Condition* Condition::AppendSubCondition(StdVector<Condition*>& list, int pos_x,
   return sub;
 }
 
+void Condition::ReadDesignTrackingPattern(DesignSpace* space)
+{
+  assert(type_ == DESIGN_TRACKING);
+  assert(elements.GetSize() > 0); // SetElements() needs to be called prior this one
+
+  // if elements is not set by a region we overwrite elements and search for the elements with periodic
+  // boundary conditions (the outer frame)
+  if(region == ALL_REGIONS)
+  {
+    assert(elements[0]->vicinity != NULL); // it shall not be a ghost element
+    elements.Resize(0); // capacity is still there so we can push back
+    for(unsigned int i = 0; i < space->data.GetSize(); i++)
+    {
+      DesignElement& de = space->data[i];
+      if(de.vicinity->periodic)
+        elements.Push_back(&de);
+    }
+
+    if(elements.GetSize() == 0)
+      throw Exception("Constraint 'designTracking' requires attribute 'region' when there are no periodic boundary conditions");
+  }
+
+  // read the pattern file
+  if(!pn->Has("designTarget"))
+    throw Exception("Attribute 'designTarget' holding a density file name is mandatory of 'designTracking'");
+  std::string file = pn->Get("designTarget")->As<std::string>();
+  Xerces* xerces = new Xerces(file);
+  PtrParamNode xml = xerces->CreateParamNodeInstance();
+  delete xerces;
+
+  // check this file
+  if (xml->Count("set") == 0)
+    throw Exception("There are no design sets in the pattern file " + file);
+
+  // read the target in a huge temporary list such that it is cheap to compare against the design elements
+  unsigned int grid_size = domain->GetGrid()->GetNumElems();
+  StdVector<double> tmp;
+  tmp.Resize(grid_size + 1, 0.0);
+
+  ParamNodeList elems = xml->GetList("set").Last()->GetList("element");
+  if(elems.GetSize() > grid_size)
+    EXCEPTION("The 'designTarget' file '" << file << "' has " << elems.GetSize() << " elements and the mesh only " << grid_size)
+  if(!elems[0]->Has("physical"))
+    throw Exception("'designTracking' requires the attribute 'physical' in the 'designTarget' file " + file);
+
+  for(unsigned int i = 0; i < elems.GetSize(); i++)
+    tmp[elems[i]->Get("nr")->As<int>()] = elems[i]->Get("physical")->As<double>();
+
+  // copy from pattern what we actually need
+  pattern.Resize(elements.GetSize());
+  for(unsigned int i = 0, n = elements.GetSize(); i < n; i++)
+    pattern[i] = tmp[elements[i]->elem->elemNum];
+}
+
 void Condition::SetDenseSparsityPattern(DesignSpace* space)
 {
   unsigned int size = space->GetNumberOfVariables();
@@ -545,6 +603,9 @@ void Condition::ToInfo(PtrParamNode in)
 
   if(region != ALL_REGIONS)
     in->Get("region")->SetValue(domain->GetGrid()->GetRegion().ToString(region));
+
+  if(type_ == DESIGN_TRACKING)
+    in->Get("elements")->SetValue(elements.GetSize());
 
   // TODO somehow scaling does not work ??
   // if(IsHomogenization() && !objective_scaling_ && !blown_up_) // warn only the first time!

@@ -122,6 +122,9 @@ namespace CoupledField
         * the factor for ErsatzMaterial::CalcHomogenizedTensorEntry() */
        StdVector<tuple<int, int, double> > coords;
 
+       /** For design tracking, this are the elements we have to track. Function::elements is resized accordingly!
+        * The vector is empty when we do not do design tracking */
+       StdVector<double> pattern;
        
     protected:
       /** Reads the coord attribute and sets the coord pair if value is not 'all'
@@ -173,6 +176,10 @@ namespace CoupledField
       int virtual_base_index_;
 
     private:
+
+      /** Read the pattern for design tracking. pattern has in the end the same size as Function::elements.
+       * Needs to be called after SetElements() */
+      void ReadDesignTrackingPattern(DesignSpace* space);
 
       /** Helper for AddCondition().
        * Adds the conditions for isotropy or iso-orthotropy which is isotropy without fixing the
