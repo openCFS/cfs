@@ -540,6 +540,7 @@ namespace CoupledField
 
   void OutputWriter_HDF5::WriteResultDescriptions() {
     std::string resultName, unit;
+    std::vector<std::string> writtenResultDescription;
     UInt definedOn, numDofs, entryType;
     std::vector<std::string> dofNames;
     FlowDataType::const_iterator it, end, it_tmp, end_tmp;
@@ -562,62 +563,72 @@ namespace CoupledField
     UInt numRegions = (*flowData_).size();
 
     // Write result descriptions
-    it = (*flowData_)[0].begin();
-    end = (*flowData_)[0].end();
+    for ( UInt actReg = 0; actReg < numRegions; ++actReg )
+    {
+      it = (*flowData_)[actReg].begin();
+      end = (*flowData_)[actReg].end();
 
-    for( ; it != end; it++ ) {
-      if(!it->second.isActive)
-        continue;
+      for( ; it != end; it++ ) {
+        if(!it->second.isActive)
+          continue;
 
-      resultName = it->second.resultName;
+        resultName = it->second.resultName;
+        // check if result description has already been written
+        if (std::find(writtenResultDescription.begin(), writtenResultDescription.end(), resultName)
+            != writtenResultDescription.end())
+        {
+          continue;
+        }
+        writtenResultDescription.push_back(resultName);
 
-      resultRegions.clear();
-      for(UInt iRegion = 0; iRegion < numRegions; ++iRegion)
-      {
-        it_tmp = (*flowData_)[iRegion].begin();
-        end_tmp = (*flowData_)[iRegion].end();
+        resultRegions.clear();
+        for(UInt iRegion = 0; iRegion < numRegions; ++iRegion)
+        {
+          it_tmp = (*flowData_)[iRegion].begin();
+          end_tmp = (*flowData_)[iRegion].end();
 
-        for( ; it_tmp != end_tmp; it_tmp++ ) {
-          if (resultName == it_tmp->second.resultName)
-          {
-            resultRegions.push_back(regionNames_[iRegion]);
+          for( ; it_tmp != end_tmp; it_tmp++ ) {
+            if (resultName == it_tmp->second.resultName)
+            {
+              resultRegions.push_back(regionNames_[iRegion]);
+            }
           }
         }
+        
+        // if stepNums_[resultName] is empty,
+        // then this result is no output field
+        if (stepNums_[resultName].empty())
+          continue;
+        
+        definedOn = H5IO::MapUnknownType(it->second.definedOn);
+        dofNames = it->second.dofNames;
+        unit = it->second.unit;
+        numDofs = dofNames.size();
+        entryType = H5IO::MapEntryType(it->second.entryType);
+
+        try {
+          // === Second version: Separate datasets for each entry
+          H5::Group actGroup = resultDescGroup.createGroup(resultName);
+
+          H5IO::Write1DArray( actGroup, "DefinedOn", 1, &definedOn, dPropList_ );
+          H5IO::Write1DArray( actGroup, "EntityNames", resultRegions.size(),
+              &resultRegions[0], dPropList_ );
+          H5IO::Write1DArray( actGroup, "NumDOFs", 1, &numDofs, dPropList_ );
+          H5IO::Write1DArray( actGroup, "DOFNames", dofNames.size(),
+              &dofNames[0], dPropList_ );
+          H5IO::Write1DArray( actGroup, "EntryType", 1, &entryType, dPropList_ );
+          H5IO::Write1DArray( actGroup, "Unit", 1, &unit, dPropList_ );
+
+          H5IO::Write1DArray<Double>( actGroup, "StepValues",
+              stepValues_[resultName].size(), &stepValues_[resultName][0], dPropList_ );
+          H5IO::Write1DArray<UInt>( actGroup, "StepNumbers",
+              stepNums_[resultName].size(), &stepNums_[resultName][0], dPropList_ );
+
+          actGroup.close();
+
+        } H5_CATCH( "Could not write result description for result '"
+            << resultName << "'" );
       }
-      
-      // if stepNums_[resultName] is empty,
-      // then this result is no output field
-      if (stepNums_[resultName].empty())
-        continue;
-      
-      definedOn = H5IO::MapUnknownType(it->second.definedOn);
-      dofNames = it->second.dofNames;
-      unit = it->second.unit;
-      numDofs = dofNames.size();
-      entryType = H5IO::MapEntryType(it->second.entryType);
-
-      try {
-        // === Second version: Separate datasets for each entry
-        H5::Group actGroup = resultDescGroup.createGroup(resultName);
-
-        H5IO::Write1DArray( actGroup, "DefinedOn", 1, &definedOn, dPropList_ );
-        H5IO::Write1DArray( actGroup, "EntityNames", resultRegions.size(),
-            &resultRegions[0], dPropList_ );
-        H5IO::Write1DArray( actGroup, "NumDOFs", 1, &numDofs, dPropList_ );
-        H5IO::Write1DArray( actGroup, "DOFNames", dofNames.size(),
-            &dofNames[0], dPropList_ );
-        H5IO::Write1DArray( actGroup, "EntryType", 1, &entryType, dPropList_ );
-        H5IO::Write1DArray( actGroup, "Unit", 1, &unit, dPropList_ );
-
-        H5IO::Write1DArray<Double>( actGroup, "StepValues",
-            stepValues_[resultName].size(), &stepValues_[resultName][0], dPropList_ );
-        H5IO::Write1DArray<UInt>( actGroup, "StepNumbers",
-            stepNums_[resultName].size(), &stepNums_[resultName][0], dPropList_ );
-
-        actGroup.close();
-
-      } H5_CATCH( "Could not write result description for result '"
-          << resultName << "'" );
     }
 
     try {
