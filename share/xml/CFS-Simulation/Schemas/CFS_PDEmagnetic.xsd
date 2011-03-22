@@ -317,7 +317,7 @@
   <!-- Data type for basic coil -->
   <xsd:complexType name="DT_BasicCoil">
     <xsd:sequence>
-      <xsd:element name="windingCrossSection" type="DT_PosFloat"/>
+      <xsd:element name="windingCrossSection" type="xsd:token"/>
     </xsd:sequence>
     <xsd:attribute name="name" type="xsd:token" use="required"/>
   </xsd:complexType>
