@@ -61,7 +61,9 @@ namespace CoupledField
     const UInt nrEdges = ptelem->GetNumEdges();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
 
-    Double jacDet,reluctivity, derivReluctivity = 0.0;  
+    Double jacDet = 0.0;
+    Double reluctivity = 0.0;
+    Double derivReluctivity = 0.0;  
   
     // get pointer to nonlinear BH curve approximation
     ApproxData* nlinFnc = ptMaterial->GetNonlinFncBH();
