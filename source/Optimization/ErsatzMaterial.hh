@@ -361,7 +361,8 @@ public:
 
   /** This is a helper for CalcU1KU2 to determine the "K" which in most cases includes a
    * derivative. It also includes mechanical damping and mass matrix via AddMassToStiffness().
-   * The templated stuff is private, as C++ does not allow virtual templates. */
+   * Also bi-material is nicely considered.
+   * The template stuff is private, as C++ does not allow virtual templates. */
   virtual void SetElementK(DesignElement* de, const TransferFunction* tf, Application app,
       DenseMatrix* out, CalcMode calcMode, bool derivative = true) { throw Exception("not implemented"); }
 
@@ -578,6 +579,9 @@ protected:
 
   /** Is the current system test strain excitated? True for special test case and homogenization */
   bool IsStrainExcitedSystem() const;
+
+  /** Helper that gives the physical material tensor considers bi-material */
+  void GetPhysicalMaterial(BaseForm* form, const DesignElement* de, const TransferFunction* tf, bool derivative, Matrix<double>& out);
 
   /** The DesignStructure is required by SIMP for filters and by Condition for slope constraints
    * and checkerboard. They share this element. It can only be created by PostInit(), hence every

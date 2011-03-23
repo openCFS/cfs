@@ -1471,8 +1471,10 @@ void ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Function* f, b
   // von Mises stress per element: sum_ip < stress, M*stress>
   // adjoint rhs w.r.p to one element static: - 2* (rho^p*E_0*B*u)^T * M * rho^p E_0 B
   // adjoint rhs w.r.p to one element dynamic: -(rho^p*E_0*B*u^*)^T * M * rho^p E_0 B
-  // the grad_contrib is if i=j the appendix of the gradient (static) lambda^T K' u + 2 <rho^p E_0 B u,  M (rho^p)' B u>
-  //                                                        (dynamic) 2 Re(lambda^T S') u + 2 <rho^p E_0 B u, M rho^(p-1) B u>
+  // the grad_contrib is if i=j the appendix of the gradient (static) lambda^T K' u + 2 <rho^p E_0 B u,  M (rho^p)' E_0 B u>
+  //                                                        (dynamic) 2 Re(lambda^T S') u + 2 <rho^p E_0 B u, M rho^(p-1) E_0 B u>
+
+  // To allow for bi-material optimization we have to see rho^p*E_0 and (rho^p)'*E_0 in an abstract way
 
   // we follow the qp-relaxation: Bruggi 2008, actually going back to Duysinx and Bendsoe 1998
   // The idea of the qp-relaxion is, that the stress is calculated based on the standard simp penalization (p).
@@ -1506,7 +1508,8 @@ void ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Function* f, b
 
   Matrix<double> M = dynamic_cast<MechPDE*>(ToPDE(MECH))->GetVonMisesMatrix(dim);
   Matrix<double> B;
-  Matrix<double> E; // the material matrix with applied pseudo density
+  Matrix<double> E;  // the material matrix with applied pseudo density (also bi-material)
+  Matrix<double> dE; // the derivative of the material matrix (also bi-material) w.r.t. the design
   Matrix<double> coords;
 
   assert(design->design.GetSize() == 1); // easy to extend
@@ -1520,8 +1523,10 @@ void ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Function* f, b
   LOG_DBG2(em) << "CVMSV: qp=" << stf.GetParam() << " adjont=" << adjoint_rhs << " grad_contrib=" << grad_contrib;;
 
   Vector<T> stress(dim == 2 ? 3 : 6); // elem stress
+  Vector<T> dE_strain; // dE*strain
   Vector<T> strain;
   Vector<T> M_stress;
+  Vector<T> M_dE_strain; // M*dE*strain
   Matrix<double> E_B;
   Matrix<double> M_E_B;
   Matrix<T> stress_transp(1, stress.GetSize());
@@ -1546,6 +1551,9 @@ void ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Function* f, b
   for(unsigned int e = 0, en = data.GetSize(); e < en; e++)
   {
     DesignElement* de = data[e];
+    // check for bimaterial.
+    DesignSpace::DesignRegion* dr = design->GetRegion(de->elem->regionId, false); // tolerant for off-design stress constraints
+    BaseMaterial* bimat = dr != NULL && dr->HasBiMaterial() ? dr->GetBiMaterial(MECHANIC) : NULL;
 
     // assure the form is always the right for a multi-region job
     if(context == NULL || de->elem->regionId != context->GetFirstEntities()->GetRegion())
@@ -1558,7 +1566,7 @@ void ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Function* f, b
     Vector<T>& u_elem = dynamic_cast<Vector<T>& >(*(all_u_elem[de->GetElementSolutionIndex()]));
 
     // apply our own physical densities!
-    form->calcDMat(E, NULL, DesignElement::DENSITY, stf.Transform(de, DesignElement::SMART));
+    form->GetScaledMaterial(stf.Transform(de, DesignElement::SMART), false, bimat, E);
     //LOG_DBG2(em) << "CVMSV de=" << de->ToString() << " E=" << E.ToString();
 
     elemList.SetElement(de->elem);
@@ -1622,31 +1630,34 @@ void ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Function* f, b
     }
     else
     {
-      // normal and "corrected" von Mises stress element results
-      double correct = 1.0;
-      M_stress = M * stress;
-      elem_out[e] = ((complex<double>) stress.Inner(M_stress)).real();
-
-      if(!grad_contrib)
+      if(grad_contrib)
       {
+        // 2 <rho^p E_0 B u, M rho^(p-1) E_0 B u>
+        form->GetScaledMaterial(stf.Derivative(de, DesignElement::SMART), true, bimat, dE); // calculate our dE
+
+        dE_strain = dE * strain;
+        M_dE_strain = M * dE_strain;
+        T sp = 2.0 * stress.Inner(M_dE_strain);
+
+        elem_out[e] = ((complex<double>) sp).real();
+
+        LOG_DBG2(em) << "CVMSV gv de=" << de->ToString() << " rho=" << de->GetDesign(DesignElement::SMART) << " sMs=" << elem_out[e] << " deriv=" << stf.Derivative(de, DesignElement::SMART);
+      }
+      else
+      {
+        // normal von Mises stress element results < stress, M*stress>
+        M_stress = M * stress;
+
+        elem_out[e] = ((complex<double>) stress.Inner(M_stress)).real();
+
         // output von mises stress? Note, that this is excitation specific!
         if(res_idx != -1)
         {
           de->specialResult[res_idx] = elem_out[e];
           LOG_DBG3(em) << "CVMSV:sr de=" << de->ToString() << " res_idx=" << res_idx << " v=" << elem_out[e];
         }
+        LOG_DBG2(em) << "CVMSV de=" << de->ToString() << " rho=" << de->GetDesign(DesignElement::SMART) << " sMs=" << elem_out[e] << " trans=" <<  stf.Transform(de, DesignElement::SMART);
       }
-      else
-      {
-        // additional factor for grad_contrib. We replace one rho^p by (rho^p)'
-        correct = 2.0 * stf.Derivative(de, DesignElement::SMART) / stf.Transform(de, DesignElement::SMART);
-      }
-
-      LOG_DBG2(em) << "CVMSV de=" << de->ToString() << " gv= " << grad_contrib << " rho=" << de->GetDesign(DesignElement::SMART) << " sMs=" << elem_out[e] << " deriv="
-                   << (grad_contrib ? stf.Derivative(de, DesignElement::SMART) : -1.0) << " trans=" <<  stf.Transform(de, DesignElement::SMART) << " correct=" << correct << " -> " << (correct * elem_out[e]);
-                   // << " stress=" << stress.ToString() << " strain=" << strain.ToString();
-
-      elem_out[e] *= correct;
     }
   }
 }

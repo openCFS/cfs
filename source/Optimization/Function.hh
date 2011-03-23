@@ -444,7 +444,7 @@ class Function
     /** This are the elements the Function is defined on. Either references to the
      * elements within the design space to to dummy elements if the region is not within the design (stress)
      * @param region as long as only the Condition has this stuff it is an parameter*/
-    void SetElements(DesignSpace* space, RegionIdType region, DesignElement::Type design);
+    void SetElements(DesignSpace* space, RegionIdType region);
 
     /** The actual kind of cost function. */
     Type type_;

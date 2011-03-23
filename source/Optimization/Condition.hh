@@ -179,7 +179,7 @@ namespace CoupledField
 
       /** Read the pattern for design tracking. pattern has in the end the same size as Function::elements.
        * Needs to be called after SetElements() */
-      void ReadDesignTrackingPattern(DesignSpace* space);
+      void ReadDesignTrackingPattern(DesignSpace* space, DesignStructure* structure);
 
       /** Helper for AddCondition().
        * Adds the conditions for isotropy or iso-orthotropy which is isotropy without fixing the

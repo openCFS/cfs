@@ -97,10 +97,10 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
 
 void Condition::PostProc(DesignSpace* space, DesignStructure* structure)
 {
-  SetElements(space, region, design); // before Function::PostProc() because of virtual_elem_map
+  SetElements(space, region); // before Function::PostProc() because of virtual_elem_map
 
   if(type_ == DESIGN_TRACKING)
-    ReadDesignTrackingPattern(space);
+    ReadDesignTrackingPattern(space, structure);
 
   // note, meanwhile we have info_ set! but not yet in the constructor
   Function::PostProc(space, structure);
@@ -437,7 +437,7 @@ Condition* Condition::AppendSubCondition(StdVector<Condition*>& list, int pos_x,
   return sub;
 }
 
-void Condition::ReadDesignTrackingPattern(DesignSpace* space)
+void Condition::ReadDesignTrackingPattern(DesignSpace* space, DesignStructure* structure)
 {
   assert(type_ == DESIGN_TRACKING);
   assert(elements.GetSize() > 0); // SetElements() needs to be called prior this one
@@ -446,6 +446,9 @@ void Condition::ReadDesignTrackingPattern(DesignSpace* space)
   // boundary conditions (the outer frame)
   if(region == ALL_REGIONS)
   {
+    // ensure it is initialized
+    VicinityElement::Init(space, structure);
+
     assert(elements[0]->vicinity != NULL); // it shall not be a ghost element
     elements.Resize(0); // capacity is still there so we can push back
     for(unsigned int i = 0; i < space->data.GetSize(); i++)

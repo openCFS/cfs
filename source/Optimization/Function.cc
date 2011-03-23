@@ -426,23 +426,24 @@ bool Function::ForSensitivityFiltering() const
   EXCEPTION("can never reach! Stupid C++");
 }
 
-void Function::SetElements(DesignSpace* space, RegionIdType region, DesignElement::Type design)
+void Function::SetElements(DesignSpace* space, RegionIdType region)
 {
   assert(elements.GetSize() == 0);
   Grid* grid = domain->GetGrid();
 
-  if(space->design.GetSize() > 1 && design == DesignElement::DEFAULT)
-    throw Exception("define design for condition '" + type.ToString(type_) + "'");
+  // Bastian's multiple design test cases have situations where design is DEFAULT as it is not
+  // set in the objective
 
   // if ALL_REGIONS for condition use what we define as design space which
-  elements.Reserve(region == ALL_REGIONS ? space->elements : grid->GetNumElems(region));
+  elements.Reserve(region == ALL_REGIONS ? space->GetNumberOfVariables() : grid->GetNumElems(region));
 
   if(region == ALL_REGIONS || space->Contains(region))
   {
     for(unsigned int i = 0; i < space->data.GetSize(); i++)
     {
       DesignElement* de = &(space->data[i]);
-      if((design == DesignElement::DEFAULT || design == de->GetType()) && (region == ALL_REGIONS || de->elem->regionId == region))
+      if((design == DesignElement::DEFAULT || design == DesignElement::TENSOR_TRACE || design == de->GetType())
+          && (region == ALL_REGIONS || de->elem->regionId == region))
         elements.Push_back(de);
     }
   }

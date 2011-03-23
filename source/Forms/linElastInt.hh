@@ -68,6 +68,10 @@ namespace CoupledField {
     //! Query material type for \f$D\f$ tensor
     MaterialType getDMaterialType() { return MECH_STIFFNESS_TENSOR; }
 
+    /** This is a SIMP optimization helper */
+    void GetScaledMaterial(Double factor, bool derivative, BaseMaterial* bimat, Matrix<Double>& out);
+
+
     /** Calculates the Material data in the SIMP version!
      * Or in the ParamMat version 
      * Note, that most forms implement this method in the non-SIMP variant with no
@@ -80,7 +84,7 @@ namespace CoupledField {
      * if no ParamMat optimization is needed
      * @param direction if !=  DesignElement::NO_DERIVATIVE calculate derivative instead
      * @param force_factor if set no pseudo density factor is applied but the force_factor (for direction = DENSITY) */
-    void calcDMat( Matrix<Double> &dMat, const Elem* elem, const DesignElement::Type direction, double force_factor = 0.0);
+    void calcDMat(Matrix<Double> &dMat, const Elem* elem, const DesignElement::Type direction, double force_factor = 0.0);
 
     /** see calcDMat(Matrix<Double>, const Elem*, const DesignElement::Type, force_factor) */
     virtual void calcDMat( Matrix<Double> &dMat, const Elem* elem){
@@ -114,11 +118,11 @@ namespace CoupledField {
     };
     
     /** fetch the ErsatzMaterialTensor from the DesignSpace when using ParamMat optimization
-     * else just return the normal Material Tensor
      * @param t output variable, returns the Tensor
      * @elem current element
-     * @direction if given return derivative w.r.t. this designelement type */
-    void GetErsatzMaterialTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction);
+     * @direction if given return derivative w.r.t. this designelement type
+     * @return true if the ersatz material tensor has been set */
+    bool GetErsatzMaterialTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction);
     
   private:
 

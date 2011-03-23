@@ -195,41 +195,49 @@ void linElastInt::calcBMatOnly(Matrix<double> &bMat, Vector<double>& intPoint,
 }
 
 
+void linElastInt::GetScaledMaterial(Double factor, bool derivative, BaseMaterial* bimat, Matrix<Double>& out)
+{
+  ptMaterial->GetTensor(out, MECH_STIFFNESS_TENSOR, matDataType_, subTensorType_);
+
+  out *= factor;
+
+  if(bimat != NULL)
+  {
+    static Matrix<Double> tmp;
+    bimat->GetTensor(tmp, MECH_STIFFNESS_TENSOR, matDataType_, subTensorType_);
+
+    double bimat_factor = !derivative ? 1.0 - factor : -1.0 *  factor;
+
+    Add(out, bimat_factor, tmp);
+  }
+}
+
 void linElastInt::calcDMat(Matrix<Double> & dMat, const Elem* elem, const DesignElement::Type direction, double force_factor)
 {
-  GetErsatzMaterialTensor(dMat, elem, direction);
-  //ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,matDataType_,subTensorType_);
-
-  // this is for topology optimization only
-  assert(!(elem != NULL && force_factor != 0.0));
-  
-  Double density = 1.0;
-
-  if(elem != NULL)
-    density = GetErsatzMaterialFactor(elem);
-  if(force_factor != 0.0)
-    density = force_factor;
-
-  if(density != 1.0)
+  // Bastian's stuff. If not applicable we might consider doing SIMP
+  if(!GetErsatzMaterialTensor(dMat, elem, direction))
   {
-    dMat *= density;
+    // check if we do SIMP optimization
+    Double pseudo_density = elem != NULL ? GetErsatzMaterialFactor(elem) : 1.0;
+    // pseudo_density can be overwritten by force_factor
+    assert(!(elem != NULL && force_factor != 0.0));
+    if(force_factor != 0.0) pseudo_density = force_factor;
 
-    BaseMaterial* bm = elem != NULL ? domain->GetErsatzBiMaterial(elem,  MECHANIC) : NULL;
-
-    if(bm != NULL)
+    // do SIMP?
+    if(pseudo_density != 1.0)
     {
-      Matrix<Double> tmp;
-      bm->GetTensor(tmp, MECH_STIFFNESS_TENSOR, matDataType_, subTensorType_);
-      tmp *= (1.0 - density);
-      dMat +=  tmp;
-      LOG_DBG3(forms) << "linElastInt::calcDMat: e=" << elem->elemNum << " bimat=" << tmp.ToString();
-    }
-  }
-  
-  LOG_DBG3(forms) << GetName() << "::calcDMat(Matrix<Double>, "
-                  << (elem != NULL ? Integer(elem->elemNum) : -1)
-                  << ") -> density=" << density;
+      LOG_DBG3(forms) << GetName() << "::calcDMat(Matrix<Double>, " << (elem != NULL ? Integer(elem->elemNum) : -1)  << ") -> density=" << pseudo_density;
 
+      // is there any chance we do bimaterial stuff at all?
+      BaseMaterial* bm = elem != NULL && pseudo_density != 1.0 ? domain->GetErsatzBiMaterial(elem,  MECHANIC) : NULL;
+      // Get the material tensor, in the standard case simply the tensor
+      GetScaledMaterial(pseudo_density, false, bm, dMat);
+    }
+    else
+      ptMaterial->GetTensor(dMat, MECH_STIFFNESS_TENSOR, matDataType_, subTensorType_);
+  }
+
+  
   //check for softening model
   if ( subTensorType_ == AXI ) {
     if (softeningPart_ == "bendingBK1" ) {
@@ -884,13 +892,11 @@ linElastInt::~linElastInt()
 {
 }
 
-void linElastInt::GetErsatzMaterialTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction){
+bool linElastInt::GetErsatzMaterialTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction){
   // it is possible that a region is not subject to optimization. such a region is only identified in GetErsatzMaterialTensor
-  if(elem == NULL 
-      || !domain->HasErsatzMaterialTensor()
-      || !domain->GetErsatzMaterial()->GetErsatzMaterialTensor(t, subTensorType_, elem, direction)){
-    ptMaterial->GetTensor(t, MECH_STIFFNESS_TENSOR, matDataType_, subTensorType_);
-  }
+  return (elem != NULL
+      && domain->HasErsatzMaterialTensor()
+      && domain->GetErsatzMaterial()->GetErsatzMaterialTensor(t, subTensorType_, elem, direction));
 }
 
 } // end of namespace
