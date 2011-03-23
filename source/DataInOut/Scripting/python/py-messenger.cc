@@ -7,13 +7,80 @@
 #include "Utils/StdVector.hh"
 #include "General/environment.hh"
 #include "pythonrun.h"
+#include <boost/python.hpp>
+#include <boost/python/numeric.hpp>
+#include <boost/python/object.hpp>
+//#include <boost/python/return_by_value.hpp>
+//#include <boost/python/return_value_policy.hpp>
+
+using namespace CoupledField;
+using namespace boost::python;
+
+namespace CoupledField {  
 
 
-namespace CoupledField {
+// ==================================================================
+// Vector wrapping
+// ==================================================================
+
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ToString_overloads, ToString, 0, 1);
+
+// conversion function numpy-array => vector
+Vector<Double> array2vec (boost::python::numeric::array&  in)
+{
+  Vector<Double> ret;
+  object shape = in.attr("shape");
   
+  UInt size = len(in);
+  ret.Resize(size);
+  for( UInt i = 0; i < size; i++ ) {
+    ret[i] = extract<double>(in[i]);
+  }
+
+ return ret;
+}
+
+// conversion function vector => numpy-array
+boost::python::numeric::array vec2array (Vector<Double>&  in) {
+  // create empty array from list
+  numeric::array ret = numeric::array(0); 
+  ret.resize(in.GetSize());
+  
+  
+  // copy data (BAADD interface ... but its a first shot ;-)
+  for( UInt i = 0; i < in.GetSize(); i++ ) {
+    ret[i] = in[i];
+  }
+}
+
+
+BOOST_PYTHON_MODULE(vector){
+  
+  // === Wrapping of Vector ===
+  void    (Vector<double>::*fx1)( UInt) = &Vector<double>::Resize;
+  void    (Vector<double>::*fx2)(UInt, double)      = &Vector<double>::Resize;
+  double&    (Vector<double>::*fx3)(UInt)      = &Vector<double>::operator[];
+        
+
+ boost::python::numeric::array::set_module_and_type("numpy", "ndarray");
+  class_<Vector<double> >("vector")     
+  .def("resize",fx1)
+  .def("resize",fx2)
+  .def("__setitem__",&Vector<double>::SetEntry)
+  .def("__getitem__",fx3, return_value_policy<return_by_value>())
+  .def("__len__",&Vector<double>::GetSize)
+  .def("__str__", &Vector<double>::ToString, ToString_overloads());
+;
+ 
+  def("vec2array",&vec2array);
+  def("array2vec",&array2vec);
+  
+  
+  // === Wrapping of Matrix ===
+ }  
 
   // --- Declare static functions ---
-  StdVector<std::string> PY_CFSMessenger::curParams_;
+  StdVector<std::string> PY_CFSMessenger::curParams_; 
 
   // initialization of static structure
   static PyMethodDef CFSMethods[]  = {
@@ -33,6 +100,9 @@ namespace CoupledField {
     
     // Initialize interpreter
     Py_Initialize();
+    
+    // init "vector" module
+    initvector();
 
     // Get global module and related dictionary
     PyObject* main_module =
@@ -41,6 +111,7 @@ namespace CoupledField {
     
     // register cfs 'module' in python interpreter
     initcfs();
+   
 
     // register (dummy) event procedures
     RegisterEvents();

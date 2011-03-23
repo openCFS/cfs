@@ -19,7 +19,7 @@
  * ==========================================================================
  */
 
-#include "H1LagrangeVar.hh"
+#include "H1ElemsLagVar.hh"
 // header for logging
 #include "DataInOut/Logging/cfslog.hh"
 

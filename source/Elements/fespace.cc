@@ -129,7 +129,10 @@ namespace CoupledField {
                           BaseFE::EntityType entType){
     UInt elemNum = ptElem->elemNum;
     if(virtualNodes_.find(elemNum) ==virtualNodes_.end()){
-      EXCEPTION("FeSpace::GetNodesOfElement: Could not find requested element Number");
+
+      EXCEPTION("FeSpace::GetNodesOfElement: Could not find requested element #"
+          << ptElem->elemNum << " of region " 
+          <<      domain->GetGrid()->RegionIdToName(ptElem->regionId));
     }
     if(entType == BaseFE::ALL){
       nodes.Resize(virtualNodes_[elemNum][BaseFE::VERTEX].GetSize()+

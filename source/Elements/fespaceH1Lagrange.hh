@@ -28,8 +28,8 @@
 // =====================================================================================
 
 #include "Elements/fespaceH1.hh"
-#include "Elements/H1Elems.hh"
-#include "Elements/H1LagrangeVar.hh"
+#include "Elements/H1ElemsLagExpl.hh"
+#include "Elements/H1ElemsLagVar.hh"
 
 
 namespace CoupledField {

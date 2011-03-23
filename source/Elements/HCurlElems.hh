@@ -1,29 +1,35 @@
 // -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-#ifndef FILE_CFS_H1_ELEMENTS_HH
-#define FILE_CFS_H1_ELEMENTS_HH
+#ifndef FILE_CFS_HCURL_ELEMENTS_HH
+#define FILE_CFS_HCURL_ELEMENTS_HH
 
 #include "basefe.hh"
 
 namespace CoupledField {
 
-  //! Base class for H1-conforming reference elements
+  //! Base class for H(Curl)-conforming reference elements
   
-  //! The H1 element represents all elements with H1 conforming shape function
-  class FeH1 : public BaseFE {
+  //! The HCurl element represents all elements with H(Curl) 
+  //! conforming shape function
+  class FeHCurl : public BaseFE {
   public:
 
     //! Constructor
-    FeH1();
+    FeHCurl();
 
     //! Destructor
-    virtual ~FeH1();
+    virtual ~FeHCurl();
 
-    //! Evaluate Lagrange polynomial 
-    void EvaluateLagrangePolynomial( Vector<Double> & shape, Double coord );
-
-    //! Evaluate derivative of Lagrange polynomials 
-    void EvaluateDerivLagrangePolynomial( Vector<Double> & deriv, Double coord );
-
+    //! Get (vectorial) shape functions
+    
+    //! Calculate vectorial shape functions
+    virtual void GetShFnc( Matrix<Double>& S, const LocPoint& lp,
+                           const Elem* ptElem,  UInt comp = 1 )  = 0;
+    
+    //! Calculate Global Curl of shape functions
+    void GetCurlShFcn( Matrix<Double>& s, const LocPoint& lp, 
+                       const Elem* ptElem,  UInt comp = 1 );
+     
+    
     //! Return global derivative of shape functions
     void GetGlobDerivShFnc( Matrix<Double>& deriv, LocPointMapped& lp,
                             const Elem* elem, UInt comp = 1 );
@@ -49,27 +55,18 @@ namespace CoupledField {
     }
 
   protected:
-
-    //! Calculate the location of unknowns for a line up to given order
-    //! Righ now the calculation is done here but has to move into the 
-    //! Integration Scheme class!
-    //! This method gets reimplemented in the Spectral classes to ask the 
-    //! Integration scheme to provide the points
-    void CalcAllSupportingPoints(UInt maxOrder);
-
-    //! Calculate the location of unknowns for a given order
-    void CalcSupportingPoints(UInt order);
-
-    //! Calculates the Gauss Lobatto Points for a given order
-    //! Is to be moved into Integration Scheme Class
-    StdVector<Double> CalcGaussLobattoPoints(UInt order);
-
-    //! Stores the Locations of the Element DOFs for a line for every order
-    std::map<UInt,StdVector<Double> > supportingPoints_;
-
+    
+    //! Polynomial shape function
+    //IntLegendrePol poly_;
+    
   private:
   };
 
+  
+  // ========================================================================
+  //  H1 Fe Lagrangian Elements of lowest order (1st / 2nd)
+  // ========================================================================
+  
 } // namespace CoupledField
 
 #endif

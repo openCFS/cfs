@@ -1,6 +1,6 @@
 #include "elemShapeMap.hh"
 #include "Domain/grid.hh"
-#include "H1Elems.hh"
+#include "H1ElemsLagExpl.hh"
 
 namespace CoupledField {
 
@@ -26,41 +26,41 @@ namespace CoupledField {
   }
   
   void LocPointMapped::Set( const LocPoint& lp, shared_ptr<ElemShapeMap> esm ) {
-  
-  shapeMap = esm;
-  this->lp = lp;
-  
-  // Calculate Jacobian, its inverse as well as determinant for local point
-  esm->CalcJ( jac, lp);
-  
-  // The inversion can only be performed in case we have a quadratic Jacobian
-  // i.e. the dimension of the element is the dimension of the grid
-  if( jac.GetNumCols() == jac.GetNumRows() ) {
-    jac.Invert( jacInv);
-    jac.Determinant(jacDet);
-  } else if ( jac.GetNumRows() == 3) {
-    // 2D elements in 3D
-    Vector<Double> normal; 
-    normal.Resize(3);
-    normal[0]= jac[1][0]* jac[2][1]- jac[2][0]* jac[1][1];
-    normal[1]=jac[2][0]*jac[0][1]- jac[0][0]* jac[2][1];
-    normal[2]= jac[0][0]* jac[1][1]- jac[1][0]*jac[0][1];
-    jacDet = sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
 
-  } else if ( jac.GetNumRows() == 2) {
-    // 1D elements in 2D
-    //see kaltenbacher, p.23, eq.(2.122)
-    jacDet = sqrt(jac[0][0]*jac[0][0] + jac[1][0]*jac[1][0]);
-  }
+    shapeMap = esm;
+    this->lp = lp;
 
-  // Check, if geometry is axi-symmetric. In this case scale the 
-  // Jacobian determinant with 2*pi*r
-  Vector<Double> globPoint;
-  if( esm->IsAxi() ) {
-    esm->Local2Global( globPoint, lp);
-    jacDet *= 2 * PI * globPoint[0];
+    // Calculate Jacobian, its inverse as well as determinant for local point
+    esm->CalcJ( jac, lp);
+
+    // The inversion can only be performed in case we have a quadratic Jacobian
+    // i.e. the dimension of the element is the dimension of the grid
+    if( jac.GetNumCols() == jac.GetNumRows() ) {
+      jac.Invert( jacInv);
+      jac.Determinant(jacDet);
+    } else if ( jac.GetNumRows() == 3) {
+      // 2D elements in 3D
+      Vector<Double> normal; 
+      normal.Resize(3);
+      normal[0]= jac[1][0]* jac[2][1]- jac[2][0]* jac[1][1];
+      normal[1]=jac[2][0]*jac[0][1]- jac[0][0]* jac[2][1];
+      normal[2]= jac[0][0]* jac[1][1]- jac[1][0]*jac[0][1];
+      jacDet = sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
+
+    } else if ( jac.GetNumRows() == 2) {
+      // 1D elements in 2D
+      //see kaltenbacher, p.23, eq.(2.122)
+      jacDet = sqrt(jac[0][0]*jac[0][0] + jac[1][0]*jac[1][0]);
+    }
+
+    // Check, if geometry is axi-symmetric. In this case scale the 
+    // Jacobian determinant with 2*pi*r
+    Vector<Double> globPoint;
+    if( esm->IsAxi() ) {
+      esm->Local2Global( globPoint, lp);
+      jacDet *= 2 * PI * globPoint[0];
+    }
   }
-}
 
 
 

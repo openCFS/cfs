@@ -33,11 +33,14 @@ fespace.cc
 fespaceH1.cc
 fespaceH1Lagrange.cc
 fespaceH1Hi.cc
+fespaceHCurlHi.cc
 #elemshapes.cc
 elemShapeMap.cc
 H1Elems.cc
+H1ElemsLagExpl.cc
+H1ElemsLagVar.cc
 H1ElemsHi.cc
-H1LagrangeVar.cc
+HCurlElems.cc
 integrationScheme.cc
 )
 
