@@ -12,6 +12,7 @@ cmake_modules/FindCFSDEPS.cmake -text
 cmake_modules/FindCFXCust.cmake -text
 cmake_modules/FindCGAL.cmake -text
 cmake_modules/FindCGNS.cmake -text
+cmake_modules/FindCMake.cmake -text
 cmake_modules/FindCfs-hdf5.cmake -text
 cmake_modules/FindFortranLibs.cmake -text
 cmake_modules/FindGiDpost.cmake -text
@@ -759,6 +760,9 @@ source/DataInOut/SimInOut/hdf5/simOutputHDF5.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimInOut/internalMesh/CMakeLists.txt -text
 source/DataInOut/SimInOut/internalMesh/internalMesh.cc -text
 source/DataInOut/SimInOut/internalMesh/internalMesh.hh -text
+source/DataInOut/SimInOut/xdmf/CMakeLists.txt -text
+source/DataInOut/SimInOut/xdmf/simOutputXDMF.cc -text
+source/DataInOut/SimInOut/xdmf/simOutputXDMF.hh -text
 source/DataInOut/WriteInfo.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/WriteInfo.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/XMLMaterialHandler.cc svneol=native#text/x-c%2B%2Bsrc

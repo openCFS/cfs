@@ -86,6 +86,11 @@ INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindZlib.cmake")
 INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindBzip2.cmake")
 
 #-------------------------------------------------------------------------------
+# Search for CMake 2.8 if older CMake is used
+#-------------------------------------------------------------------------------
+INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindCMake.cmake")
+
+#-------------------------------------------------------------------------------
 # Search for HDF5 library
 #-------------------------------------------------------------------------------
 IF(USE_HDF5)

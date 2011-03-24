@@ -1,6 +1,6 @@
 #!/bin/sh
 # Detects which OS and if it is Linux then it will detect which Linux Distribution.
-
+# Based upon: http://linuxmafia.com/faq/Admin/release-files.html
 
 OS=`uname -s`
 REV=`uname -r`
@@ -99,7 +99,8 @@ elif [ "${OS}" = "Linux" ] ; then
                 PSEUDONAME=`head -3 $SUSEREL | tail -1 | sed 's/ = //'`
             else
                 DIST=`cat $SUSEREL | tr "\n" ' '| sed s/VERSION.*// | awk '{print $1}'`
-                REV=`cat $SUSEREL | tr "\n" ' ' | sed s/.*=\ // | awk '{print $1}'`
+                REV=`cat $SUSEREL | tr "\n" ' ' | awk '{print $2}'`
+                PSEUDONAME=$(cat /etc/issue | tr ' ' '\n' | grep '\".*' | sed 's/\"//g')
             fi
 	elif [ -f /etc/mandrake-release ] ; then
 		DIST='Mandrake'
@@ -164,6 +165,7 @@ elif [ "${OS}" = "Linux" ] ; then
 			    "karmic") PSEUDONAME="Karmic Koala";; # 9.10
                             "lucid") PSEUDONAME="Lucid Lynx";; # 10.04
                             "maverick") PSEUDONAME="Maverick Meerkat";; # 10.10
+                            "natty") PSEUDONAME="Natty Narwhal";; # 11.04
 	                 esac;;
 		    "knoppix")
 			DIST=Knoppix;
@@ -200,6 +202,7 @@ elif [ ${OS} = "Darwin" ]; then
 		"10.4") PSEUDONAME="Tiger";;
 		"10.5") PSEUDONAME="Leopard";;
                 "10.6") PSEUDONAME="Snow Leopard";;
+                "10.7") PSEUDONAME="Lion";;
 	    esac
 
             REV=$MAJOR_REV

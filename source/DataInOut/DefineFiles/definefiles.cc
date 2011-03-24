@@ -43,8 +43,12 @@
 #endif
 
 #ifdef USE_HDF5
+// HDF5 readers and writers
 #include "DataInOut/SimInOut/hdf5/simInputHDF5.hh"
 #include "DataInOut/SimInOut/hdf5/simOutputHDF5.hh"
+
+// XDMF writer
+#include "DataInOut/SimInOut/xdmf/simOutputXDMF.hh"
 #endif
 
 #ifdef USE_GIDPOST
@@ -283,26 +287,58 @@ void DefineInOutFiles::CreateSimOutputFiles(std::map<std::string, shared_ptr<
     WARN("There was no output writer specified at all");
   }
   ParamNodeList formatNodes = outNode->GetChildren();
-  
-  // iterate over all found files
-  std::string actFormat, actId;
+
+  // Check if only  one reader per format has been defined  and that the given
+  // ids are unique.
+  std::set<std::string> formatSet;
+  std::set<std::string> idSet;
+  std::string actFormat, actId, hdf5Id;
   for (UInt i = 0; i < formatNodes.GetSize(); i++)
   {
-
     // fetch format and id of output class
     PtrParamNode actNode = formatNodes[i];
     actFormat = actNode->GetName();
     actId = actNode->Get("id")->As<std::string>();
 
+    // ensure, that format is unique
+    if (formatSet.find(actFormat) != formatSet.end())
+    {
+      EXCEPTION( "Several output tags for format '" << actFormat
+                 << "' were found!\n"
+                 << "Please ensure, that the output tags for the "
+                 << "formats are unique!" );
+    } else 
+    {
+      formatSet.insert(actFormat);
+    }
+
+    if(actFormat == "hdf5")
+      hdf5Id = actId;
+
     // ensure, that id is unique
-    if (out.find(actId) != out.end())
+    if (idSet.find(actId) != idSet.end())
     {
       EXCEPTION( "Id '" << actId
           << "' for output format '"<< actFormat
           << "' was already found!\n"
           << "Please ensure, that the ids for the "
           << "output entries are unique!" );
+    } else 
+    {
+      idSet.insert(actId);
     }
+  }
+  
+  // The HDF5 writer needs to be known to the XDMF writer.
+  shared_ptr<SimOutput> hdf5Writer;
+  
+  // iterate over all found files
+  for (UInt i = 0; i < formatNodes.GetSize(); i++)
+  {
+    // fetch format and id of output class
+    PtrParamNode actNode = formatNodes[i];
+    actFormat = actNode->GetName();
+    actId = actNode->Get("id")->As<std::string>();
 
     if (actFormat == "unv")
     {
@@ -345,9 +381,43 @@ void DefineInOutFiles::CreateSimOutputFiles(std::map<std::string, shared_ptr<
     if (actFormat == "hdf5")
     {
 #ifdef USE_HDF5
-      out[actId] = shared_ptr<SimOutput> (new SimOutputHDF5(simName, actNode));
+      if(!hdf5Writer) 
+      {        
+        hdf5Writer.reset(new SimOutputHDF5(simName, actNode));
+        out[actId] = hdf5Writer;
+
+        std::cout << "Creating HDF5 writer '" << actId << "'..." << std::endl;
+      }
 #else
       EXCEPTION( "No support for HDF5 output file format." );
+#endif
+    }
+
+    if (actFormat == "xdmf")
+    {
+#ifdef USE_HDF5
+      if(!hdf5Writer) 
+      {        
+        hdf5Writer.reset(new SimOutputHDF5(simName, actNode));
+
+        if(hdf5Id == "")
+          hdf5Id = actId + "_hdf5";
+
+        out[hdf5Id] = hdf5Writer;
+
+        std::cout << "Creating HDF5/XDMF writer '" << hdf5Id << "'..." << std::endl;
+      }
+      
+      SimOutputXDMF* simOutXDMF = new SimOutputXDMF(simName, actNode);
+      if(simOutXDMF) 
+      {
+        out[actId] = shared_ptr<SimOutput> (simOutXDMF);
+        simOutXDMF->SetHDF5Writer(dynamic_cast<SimOutputHDF5*>( hdf5Writer.get() ), false);
+      }
+        
+#else
+      EXCEPTION( "No support for HDF5 output file format.\n"
+                 << "Therefore it does not make sense to write XDMF output." );
 #endif
     }
 

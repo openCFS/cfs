@@ -254,7 +254,7 @@ namespace CoupledField
       Double timePerStep = totalTime / (Double) actFreqStep_;
       Double remainingTime = (numFreq_ - actFreqStep_) * timePerStep;
       pt::ptime now = pt::second_clock::local_time();
-      now += pt::seconds(remainingTime);
+      now += pt::seconds(static_cast<long int>(remainingTime));
       analysis_id_->Get("timePerStep")->SetValue( timePerStep );
       PtrParamNode envNode = info->Get(ParamNode::HEADER)->Get("environment");
       envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
