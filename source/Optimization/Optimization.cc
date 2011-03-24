@@ -115,8 +115,7 @@ Optimization::Optimization()
   constraints.Read(list);
   PtrParamNode in = optInfoNode->Get(ParamNode::HEADER)->Get("constraints");
 
-  // call this again after PostProc()
-  constraints.ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("constraints"));
+  // constraints.ToInfo() is called in PostInitSecond()
 
   for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
   {
@@ -207,8 +206,7 @@ void Optimization::PostInitSecond()
     default: throw Exception("optimizer not implemented");
   }
 
-  // call this again after PostProc()
-  constraints.ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("constraints"));
+  constraints.ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("constraints"), GetMultipleExcitation());
 
   unsigned int n = design->GetNumberOfVariables();
   if (this->log.design) {

@@ -27,7 +27,7 @@ TransferFunction::TransferFunction()
   design_ = DesignElement::DEFAULT;
   application_ = Optimization::NO_APP;
   param_ = 0.0;
-  heavisidePenalty_ = 1.0;
+  beta_ = -1.0;
 }
 
 
@@ -40,7 +40,7 @@ TransferFunction::TransferFunction(Optimization::Application app, TransferFuncti
   this->application_ = app;
   this->design_ = design;
   this->param_ = param;
-  this->heavisidePenalty_ = 1.0;
+  this->beta_ = -1.0;
 }
 
 
@@ -60,12 +60,15 @@ TransferFunction::TransferFunction(PtrParamNode pn, DesignElement::Type default_
     this->design_ = default_design;
   }
   this->param_ = pn->Has("param") ? pn->Get("param")->As<double>() : 1.0;
-  this->heavisidePenalty_ = pn->Has("heaviside") ? pn->Get("heaviside/penalty")->As<double>() : 1.0;
+  this->beta_ = pn->Has("beta") ? pn->Get("beta")->As<double>() : -1.0;
   
   // validate param
   if(!pn->Has("param") && (type_ != IDENTITY && type_ != FULL))  
     throw Exception("transfer function '" + type.ToString(type_) + "' requires a parameter");
   
+  if((type_ == HEAVISIDE || type_ == TANH) && (!pn->Has("param") || !pn->Has("beta")))
+    throw Exception("transfer function '" + type.ToString(type_) + "' requires a 'param' and 'beta' to be set");
+
   // validate design/application
   if(design_ == DesignElement::POLARIZATION && application_ != Optimization::PIEZO_COUPLING)
     throw Exception("transfer functions for 'polarization' can only be '" 
@@ -106,8 +109,8 @@ void TransferFunction::ToInfo(PtrParamNode in) const
   in->Get("design")->SetValue(DesignElement::type.ToString(design_));
   if(type_ != IDENTITY && type_ != FULL)
     in->Get("param")->SetValue(param_);
-  if(type_ == HEAVISIDE)
-    in->Get("heavisidePenalty")->SetValue(heavisidePenalty_);
+  if(type_ == HEAVISIDE || type_ == TANH)
+    in->Get("beta")->SetValue(beta_);
   
 }
 
@@ -145,6 +148,7 @@ bool TransferFunction::IsPenalized() const
     return false;
 
   case HEAVISIDE:
+  case TANH:
     return true;
 
   case NO_TYPE:
@@ -201,7 +205,14 @@ double TransferFunction::Transform(const DesignElement* de, DesignElement::Acces
   case HEAVISIDE:
     // some options and the derivatives
     // plot (1-exp(-20*x)), 20*x*exp(-20*x), 4*(1-exp(-10*x))**3 * 10*x*exp(-10*x), (1-exp(-10*x))**4, 1-exp(-20*x**6), 20*x**6*6*x**5*exp(-20*x**6)
-    result = std::pow(1.0 - std::exp(-1.0 * param_ * value), heavisidePenalty_);
+    assert(beta_ >= 0.0);
+    result = std::pow(1.0 - std::exp(-1.0 * beta_ * value), param_);
+    break;
+
+  case TANH:
+    assert(beta_ >= 0.0);
+    // tf(x) =  1 - 1/(exp(2*beta*(x-param)) + 1)
+    result = 1.0 - 1.0/(std::exp(2.0 * beta_ * ( value - param_)) + 1.0);
     break;
 
   default: throw Exception("type not implemented");
@@ -238,10 +249,17 @@ double TransferFunction::Derivative(const DesignElement* de, DesignElement::Acce
     case HEAVISIDE:
     {
       // f = (1-hs)^hp,
-      double p = heavisidePenalty_;
-      double hs = std::exp(-1.0 * param_ * value);
+      assert(beta_ > 0.0);
+      double hs = std::exp(-1.0 * beta_ * value);
 
-      return p * std::pow(1.0 - hs, p - 1.0) * param_ * value * hs;
+      return param_ * std::pow(1.0 - hs, param_ - 1.0) * beta_ * hs;
+    }
+    case TANH:
+    {
+      // tf(x)  =  1 - 1/(exp(2*beta*(x-param)) + 1)
+      // tf'(x) =  (exp(2*beta*(x-param)+1)^-2 * 2 * beta * exp(2*beta*(x-param))
+      double e = std::exp(2.0 * beta_ * ( value - param_));
+      return 1.0/((e+1.0)*(e+1.0)) * 2.0 * beta_ * e;
     }
 
     case FIXED:  
@@ -262,4 +280,5 @@ void TransferFunction::SetEnums()
   type.Add(FIXED, "fixed");
   type.Add(FULL, "full");
   type.Add(HEAVISIDE, "heaviside");
+  type.Add(TANH, "tanh");
 }     

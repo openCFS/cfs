@@ -18,10 +18,11 @@ namespace CoupledField
      * <li>IDENTIT: tf(x) = x, tf'(x)=1</li>
      * <li>RAMP: ... very slow :(</li>
      * <li>FIXED: tf(x) = param == 0 ? 1.0 : param, tf'(x)=0</li>
-     * <li>FULL:  td(x) = 1, tf'(x)=0</li>
-     * <li>HEAVISIDE:  tf(x) = (1-exp(-param * x))^hp  hp= heavisidePenalty</li>
+     * <li>FULL:  tf(x) = 1, tf'(x)=0</li>
+     * <li>HEAVISIDE:  tf(x) = (1-exp(-beta * x))^param</li>
+     * <li>TANH:  tf(x) =  1 - 1/(exp(2*beta*(x-param)) + 1) scaled for x in [0:1] and y in [0:1]</li>
      * </ul> */
-    typedef enum { NO_TYPE = -1, SIMP_TYPE, IDENTITY, RAMP, FIXED, FULL, HEAVISIDE } Type;
+    typedef enum { NO_TYPE = -1, SIMP_TYPE, IDENTITY, RAMP, FIXED, FULL, HEAVISIDE, TANH } Type;
 
       /** dummy function for StdVector */
       TransferFunction();
@@ -57,8 +58,6 @@ namespace CoupledField
       
       double GetParam() const { return param_; }
 
-      double GetHeavisidePenalty() const { return heavisidePenalty_; }
-
       /** sets the disable stuff */
       void Enable(bool enable);
 
@@ -88,8 +87,8 @@ namespace CoupledField
       /** the exponent for SIMP, not used in IDENTIY */
       double param_;
 
-      /** the heaviside penalty. Default = 1 */
-      double heavisidePenalty_;
+      /** heaviside and tanh have also beta */
+      double beta_;
 
       static void SetEnums();
   };

@@ -582,7 +582,7 @@ std::string Condition::ToString(const StdVector<tuple<int, int, double> >& coord
 }
 
 
-void Condition::ToInfo(PtrParamNode in)
+void Condition::ToInfo(PtrParamNode in, MultipleExcitation* me)
 {
   Function::ToInfo(in);
 
@@ -609,6 +609,9 @@ void Condition::ToInfo(PtrParamNode in)
 
   if(type_ == DESIGN_TRACKING)
     in->Get("elements")->SetValue(elements.GetSize());
+
+  if(!DoEvaluateAlways())
+    in->Get("excitation")->SetValue(me->excitations[excite_].label);
 
   // TODO somehow scaling does not work ??
   // if(IsHomogenization() && !objective_scaling_ && !blown_up_) // warn only the first time!
@@ -829,10 +832,10 @@ void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure
   Refresh(); // inform about the news if the slopes created a lot of virtual objectives!
 }
 
-void ConditionContainer::ToInfo(PtrParamNode in)
+void ConditionContainer::ToInfo(PtrParamNode in, MultipleExcitation* me)
 {
   for(unsigned int i = 0; i < all.GetSize(); i++)
-    all[i]->ToInfo(in->Get("constraint", ParamNode::APPEND));
+    all[i]->ToInfo(in->Get("constraint", ParamNode::APPEND), me);
 }
 
 StdVector<Condition*> ConditionContainer::GetList(Condition::Type type, DesignElement::Type design, bool only_active)

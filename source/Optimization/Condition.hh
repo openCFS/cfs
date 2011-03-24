@@ -77,7 +77,7 @@ namespace CoupledField
        virtual std::string ToString(MultipleExcitation* me = NULL) const;
 
        /** log to info.xml. Overloads Function::ToInfo() */
-       void ToInfo(PtrParamNode in);
+       void ToInfo(PtrParamNode in, MultipleExcitation* me);
        
        /** Shall the scaling be linked to the objective scaling */
        bool DoObjectiveScaling() const { return objective_scaling_; }
@@ -352,7 +352,7 @@ namespace CoupledField
 
      /** Log the head information. The InfoNode is stored such that PostProc can do the info output
       * if already set. */
-     void ToInfo(PtrParamNode in);
+     void ToInfo(PtrParamNode in, MultipleExcitation* me);
 
      /** Searches in active constraints only!
       *  @param design NO_TYPE ignores this criteria. DEFAULT would be problematic for

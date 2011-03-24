@@ -1069,14 +1069,6 @@
     ersartzMaterial element outside optimization 
     <transferFunction type="SIMP" application="elast" design="density" param="3.0"/> -->
   <xsd:complexType name="DT_TransferFunction" >
-    <xsd:sequence>
-      <xsd:element name="heaviside" minOccurs="0" maxOccurs="1">
-        <xsd:complexType >
-          <xsd:attribute name="penalty" type="xsd:float" default="1" use="optional"/>
-        </xsd:complexType>
-      </xsd:element>
-    </xsd:sequence>
-
     <xsd:attribute name="type" use="required">
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
@@ -1089,9 +1081,10 @@
           <xsd:enumeration value="fixed"/>
           <!-- f(rho) = 1 -->
           <xsd:enumeration value="full"/>
-          <!-- f(rho) = (1 - exp(-param * rho))^penalty. penalty is an attribute of the optional 'heaviside' element -->
+          <!-- f(rho) = (1 - exp(-beta * rho))^param. For stress constraints -->
           <xsd:enumeration value="heaviside"/>
-
+          <!-- f(rho) =  1 - 1/(exp(2*beta*(x-param)) + 1); param defines the switching point (0.1...0.9). For stress constraints -->
+          <xsd:enumeration value="tanh"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
@@ -1115,6 +1108,9 @@
     <xsd:attribute name="design" use="optional" type="DT_Design"/>
     
     <xsd:attribute name="param" use="optional" type="xsd:float" />
+    
+    <!-- additional attribute for heaviside and tanh -->
+    <xsd:attribute name="beta" use="optional" type="xsd:float"/>
   </xsd:complexType> 
   
   <!-- This describes the design element which is a list of possible values -->  
