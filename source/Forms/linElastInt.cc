@@ -195,23 +195,6 @@ void linElastInt::calcBMatOnly(Matrix<double> &bMat, Vector<double>& intPoint,
 }
 
 
-void linElastInt::GetScaledMaterial(Double factor, bool derivative, BaseMaterial* bimat, Matrix<Double>& out)
-{
-  ptMaterial->GetTensor(out, MECH_STIFFNESS_TENSOR, matDataType_, subTensorType_);
-
-  out *= factor;
-
-  if(bimat != NULL)
-  {
-    static Matrix<Double> tmp;
-    bimat->GetTensor(tmp, MECH_STIFFNESS_TENSOR, matDataType_, subTensorType_);
-
-    double bimat_factor = !derivative ? 1.0 - factor : -1.0 *  factor;
-
-    Add(out, bimat_factor, tmp);
-  }
-}
-
 void linElastInt::calcDMat(Matrix<Double> & dMat, const Elem* elem, const DesignElement::Type direction, double force_factor)
 {
   // Bastian's stuff. If not applicable we might consider doing SIMP

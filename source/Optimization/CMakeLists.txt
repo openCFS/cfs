@@ -1,6 +1,6 @@
 SET(OPTIMIZATION_SRCS Function.cc Optimization.cc PiezoSIMP.cc ErsatzMaterial.cc SIMP.cc 
                       TransferFunction.cc Condition.cc Objective.cc Excitation.cc
-                      ShapeGrad.cc LevelSet.cc ParamMat.cc 
+                      ShapeGrad.cc LevelSet.cc ParamMat.cc StressConstraint.cc 
                       TopGrad.cc OptimizationMaterial.cc ShapeOpt.cc )
 
 ADD_DEFINITIONS(-DUSE_4_CFS)

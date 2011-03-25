@@ -302,6 +302,9 @@ namespace CoupledField {
   }
 
 
+
+
+
   void BDBInt::calcBMat(EntityIterator it, Matrix<Double>& bMat ) {
 
     // get midpoint

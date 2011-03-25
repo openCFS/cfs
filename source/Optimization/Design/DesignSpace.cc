@@ -1074,6 +1074,31 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
   }
 }
 
+BaseMaterial* DesignSpace::GetBiMaterial(RegionIdType reg, Optimization::Application app, bool throw_exception)
+{
+  DesignRegion* dr = GetRegion(reg, false); // tolerant for off-design stress constraints
+  if(dr == NULL || !dr->HasBiMaterial())
+  {
+    if(!throw_exception)
+      return NULL;
+    else
+      EXCEPTION("cannot find bimaterial for region" << reg << " and application " << app);
+  }
+
+  switch(app)
+  {
+  case Optimization::MECH:
+    return dr->GetBiMaterial(MECHANIC);
+  case Optimization::ELEC:
+    return dr->GetBiMaterial(ELECTROSTATIC);
+  case Optimization::PIEZO_COUPLING:
+    return dr->GetBiMaterial(PIEZO);
+  default:
+    assert(false); // implement what you need!
+    return NULL;
+  }
+}
+
 DesignSpace::DesignRegion* DesignSpace::GetRegion(RegionIdType id, bool throw_exception)
 {
   for(unsigned int i = 0, n = regions.GetSize(); i < n; i++)

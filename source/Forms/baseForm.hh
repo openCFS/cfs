@@ -97,6 +97,13 @@ namespace CoupledField
     //! Return true if element vector/matrix is complex
     bool IsComplex() { return isComplex_; }
 
+    /** This is a SIMP optimization helper. It works for ADB and BDB forms and returns the material tensor
+     * @param factor this scales the material tensor, it might be 1.0
+     * @param derivative only interesting in the bimat case
+     * @param bimat optional (otherwise NULL) bimaterial interpolation
+     * @param out result */
+    void GetScaledMaterial(Double factor, bool derivative, BaseMaterial* bimat, Matrix<Double>& out);
+
 #ifndef INTEGLIB
     //! Virtual function
     virtual void CalcElementMatrix( Matrix<Double>& stiffMat,
@@ -267,6 +274,9 @@ namespace CoupledField
      * @param elem the element
      * @return 1.0 if nothing is to be done or a factor */ 
     virtual Double GetErsatzMaterialFactor(const Elem* elem); 
+
+    /** Some derived classes have a natural tensor e.g. PIEZO_TENSOR, MECH_STIFFNESS_TENSOR. Extend if you need it */
+    virtual MaterialType getDMaterialType() { EXCEPTION("not implemented"); }
 
     /**
      * Get Timestepping for non linear solvers

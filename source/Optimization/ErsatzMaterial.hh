@@ -123,6 +123,9 @@ public:
   BiLinFormContext* GetFormContext(RegionIdType regionId, StdPDE* pde1,
       StdPDE* pde2, const std::string& integrator);
 
+  /** Get the standard integrators */
+  BaseForm* GetForm(const RegionIdType reg, Application app1, Application app2 = NO_APP);
+
   /** Helper which extracts the Form from assemble using the optimization region
    * @param regionId the corresponding region
    * @param pde1 the first pde (e.g. mech)
@@ -451,24 +454,6 @@ public:
   /** Calculate the energy flux through a surface region: 1/2*Re{j*u^T Q u^*} where
    * Q is the grad operator in z direction. Only for acoustic but easy to extend!*/
   double CalcEnergyFlux(Excitation& excite, Objective* f);
-
-  /** This is a multi-purpose service function for von Mises stress constraints (Kocvara and Stingl; 2007)
-   * The really complicated stuff is the combination with the local function stuff. The von Mises stress is no standard local stuff
-   * as it depends on the solution and has an adjoint based gradient. This is different from other (global) local functions like
-   * slope, mole, oscillation, ... which depend on the design variable only.
-   * Therefore the function values and gradients are calculated by ErsatzMaterial, SIMP, ... and Function::Local does the globalization
-   * so we can share the globalization strategies from there. One example is, that the the globalization might set a function value for
-   * and element to zero, then the gradient is also zero but CalcU1KU2() knows nothing about this.
-   * @param adjoint_rhs if this is set, the solution is the rhs for the adjoint equation
-   * @param grad_contrib if this is false the result is the element wise von Mises stress, if true it is what is to be added after the lambda*K'*u grad
-   * @param out is Vector<T> in adjoint_rhs case (nodal) or Vector<double> of stress elements size */
-  template<class T>
-  void CalcVonMisesStressVector(Excitation& excite, Function* f, bool adjoint_rhs, bool grad_contrib, SingleVector* out);
-
-  /** Calculates the gradient of the globalization of the von mises value.
-   * Needed for the construction of the adjoint RHS and for the von mises gradient */
-  Vector<double> CalcVonMisesStressGlobalizationFactor(Excitation& excite, Function* f);
-
 
   /** This is a helper with the common part for CalcEnergyFlux and the adjoint RHS.
    * Determines the global vector Q*u^* or (Q - Q^T)^T*u^* in the adjoint case.

@@ -68,10 +68,6 @@ namespace CoupledField {
     //! Query material type for \f$D\f$ tensor
     MaterialType getDMaterialType() { return MECH_STIFFNESS_TENSOR; }
 
-    /** This is a SIMP optimization helper */
-    void GetScaledMaterial(Double factor, bool derivative, BaseMaterial* bimat, Matrix<Double>& out);
-
-
     /** Calculates the Material data in the SIMP version!
      * Or in the ParamMat version 
      * Note, that most forms implement this method in the non-SIMP variant with no

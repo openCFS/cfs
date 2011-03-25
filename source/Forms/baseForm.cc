@@ -212,6 +212,25 @@ double BaseForm::MaterialDescriptor::GetErsatzMaterial(BaseForm* form, const Ele
     return ok ? factor : 1.0;
   }
   
+  void BaseForm::GetScaledMaterial(Double factor, bool derivative, BaseMaterial* bimat, Matrix<Double>& out)
+  {
+    // works clearly only for ADB and BDB integrators
+    ptMaterial->GetTensor(out, getDMaterialType(), matDataType_, subTensorType_);
+
+    out *= factor;
+
+    if(bimat != NULL)
+    {
+      static Matrix<Double> tmp;
+      bimat->GetTensor(tmp, getDMaterialType(), matDataType_, subTensorType_);
+
+      double bimat_factor = !derivative ? 1.0 - factor : -1.0 *  factor;
+
+      Add(out, bimat_factor, tmp);
+    }
+  }
+
+
 #ifndef INTEGLIB
   void BaseForm::ExtractElemInfo( EntityIterator& it ) {
     ptelem = it.GetElem()->ptElem;

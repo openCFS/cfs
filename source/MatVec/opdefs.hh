@@ -201,6 +201,15 @@ namespace CoupledField {
     return a;
   }
 
+  template <typename T>
+  inline double Real(T a) {  return ((std::complex<double>) a).real(); }
+
+  template <>
+  inline double Real<double>(double a) { return a; }
+
+  template <>
+  inline double Real<std::complex<double> >(std::complex<double> a) { return a.real(); }
+
   
   template <typename T>
   inline void PrintSingleEntry( T val, FILE *fp ) {
