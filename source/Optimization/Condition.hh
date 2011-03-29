@@ -32,7 +32,7 @@ namespace CoupledField
        virtual bool IsLocalCondition() const { return false; }
 
        /** Overwrites and calls Function::PostProc() */
-       void PostProc(DesignSpace* space, DesignStructure* structure);
+       void PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMaterial* em);
 
        /** Call this method to append a Condition. This calls the actual (private) constructor.
         * Index is set with position of the relevant list.
@@ -125,7 +125,7 @@ namespace CoupledField
        /** For design tracking, this are the elements we have to track. Function::elements is resized accordingly!
         * The vector is empty when we do not do design tracking */
        StdVector<double> pattern;
-       
+
     protected:
       /** Reads the coord attribute and sets the coord pair if value is not 'all'
        * @return false if 'all' and the coord pair is not set */
@@ -348,7 +348,7 @@ namespace CoupledField
      /** The slope constraints can only be initialized when the design exists.
       * Requires ToInfo() to be called prior such that we can do the info output to the stored info
       * @structure is from ErsatzMaterial */
-     void PostProc(DesignSpace* space, DesignStructure* structure, MultipleExcitation* me);
+     void PostProc(DesignSpace* space, DesignStructure* structure, MultipleExcitation* me, ErsatzMaterial* em);
 
      /** Log the head information. The InfoNode is stored such that PostProc can do the info output
       * if already set. */

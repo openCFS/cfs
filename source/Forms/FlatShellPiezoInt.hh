@@ -38,9 +38,6 @@ namespace CoupledField
 
   protected:
            
-    //!returns B - matrix for BtE
-    void calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord );
-    
     //!returns E - matrix for BE multiplication
     void calcEMat(Matrix<Double> & eMat );  
  

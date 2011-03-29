@@ -17,6 +17,7 @@ DEFINE_LOG(func, "opt_func")
 
 // instantiation of the static elements is in Optimization::SetEnums()
 Enum<Function::Type> Function::type;
+Enum<Function::StressType>  Function::stressType;
 Enum<Function::Local::Locality> Function::Local::locality;
 Enum<Function::Local::Phase> Function::Local::phase;
 
@@ -48,6 +49,8 @@ Function::Function(PtrParamNode pn)
 
   // -2 is unset, -1 is all, >= 0 the excitation index
   this->excite_ = -1;
+
+  this->stressType_ = MECH; // set in Condition
 
   this->physical_ = pn->Has("physical") ? pn->Get("physical")->As<bool>() : false;
 
@@ -483,7 +486,7 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
 }
 
 
-void Function::PostProc(DesignSpace* space, DesignStructure* structure)
+void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMaterial* em)
 {
   // pre-init step
   switch(type_)
@@ -497,7 +500,7 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure)
   case JUMP:
   case GLOBAL_JUMP:
   case STRESS:
-    assert(space->IsRegular()); // VicinityElements work only on a regular grid
+    // assert(space->IsRegular()); // VicinityElements work only on a regular grid
     // the design elements require the vicinity element to be set which holds the direct
     // neighbors. Is save to call several times
     VicinityElement::Init(space, structure);

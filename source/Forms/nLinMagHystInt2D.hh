@@ -30,9 +30,9 @@ namespace CoupledField {
                             EntityIterator& ent1, 
                             EntityIterator& ent2 );
 
-    //! returns B, just for postprocessing
-    virtual void calcBMat( Matrix<Double> &bMat, UInt ip,
-                           Matrix<Double> &ptCoord );
+    /** @see BaseForm::CalcBMat() */
+    virtual void CalcBMat( Matrix<Double> &bMat, UInt ip,
+                           const Matrix<Double> &ptCoord );
 
 
   protected:    

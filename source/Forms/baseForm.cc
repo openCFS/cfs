@@ -8,6 +8,7 @@
 #include "baseForm.hh"
 #include "Domain/domain.hh"
 #include "Domain/grid.hh"
+#include "Domain/entityList.hh"
 
 namespace CoupledField
 {
@@ -228,6 +229,44 @@ double BaseForm::MaterialDescriptor::GetErsatzMaterial(BaseForm* form, const Ele
 
       Add(out, bimat_factor, tmp);
     }
+  }
+
+  void BaseForm::CalcBMatOnly( Matrix<Double> &bMat, UInt ip, Elem* elem, bool geo_nonlin)
+  {
+    ptelem = elem->ptElem;
+
+    static Matrix<Double> coords; // not thread-save!
+    domain->GetGrid()->GetElemNodesCoord(coords, elem->connect, geo_nonlin);
+
+    CalcBMat(bMat, ip, coords); // not necessarily implemented by all forms?
+  }
+
+  void BaseForm::CalcBMatOnly(Matrix<Double> &bMat, UInt ip, BaseFE* elem, Matrix<Double> &ptCoord)
+  {
+    ptelem = elem;
+    CalcBMat(bMat, ip, ptCoord);
+  }
+
+  void BaseForm::CalcBMatOnly(Matrix<double> &bMat, Vector<double>& intPoint, Elem* elem,  bool geo_nonlin)
+  {
+    // not thread-save!
+    static ElemList elemList(domain->GetGrid());
+    static Matrix<Double> coords;
+
+    ptelem = elem->ptElem;
+
+    elemList.SetElement(elem);
+    EntityIterator it = elemList.GetIterator();
+    ExtractElemInfo(it);
+
+    domain->GetGrid()->GetElemNodesCoord(coords, elem->connect, geo_nonlin);
+
+    isSetIntPoint_ = true; // will be set to false in calcBMat
+    Vector<double> oldIntPoint = intPoint_; // remember old intPoint_
+    intPoint_ = intPoint;
+    // call the function
+    CalcBMat(bMat, 1, coords); // 1-based! :(
+    intPoint_ = oldIntPoint; // restore old intPoint_
   }
 
 

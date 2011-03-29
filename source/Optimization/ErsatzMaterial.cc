@@ -184,7 +184,7 @@ void ErsatzMaterial::PostInit()
     structure_ = new DesignStructure(this);
 
   // post init slope constraints when the design is there
-  constraints.PostProc(design, structure_, GetMultipleExcitation());
+  constraints.PostProc(design, structure_, GetMultipleExcitation(), this);
   // same for the objectives
   objectives.PostProc(design, structure_, GetMultipleExcitation());
 
@@ -404,32 +404,72 @@ string ErsatzMaterial::GetIterationFrequency()
 }
 
 
-BiLinFormContext* ErsatzMaterial::GetFormContext(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator)
+BiLinFormContext* ErsatzMaterial::GetFormContext(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception)
 {
-  return(assemble_->GetBiLinForm(regionId, pde1, pde2, integrator));
+  return(assemble_->GetBiLinForm(regionId, pde1, pde2, integrator, !throw_exception));
 }
 
-BaseForm* ErsatzMaterial::GetForm(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator)
+BaseForm* ErsatzMaterial::GetForm(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception)
 {
-  return(GetFormContext(regionId, pde1, pde2, integrator)->GetIntegrator());
+  BiLinFormContext* bc = GetFormContext(regionId, pde1, pde2, integrator, throw_exception);
+  return bc != NULL ? bc->GetIntegrator() : NULL;
 }
 
-BaseForm* ErsatzMaterial::GetForm(const RegionIdType reg, Application app1, Application app2)
+BaseForm* ErsatzMaterial::GetForm(const RegionIdType reg, Application app1, Application app2, bool throw_exception, bool global)
 {
+  Application a1, a2;
+  std::string integrator = "";
+
   if(app1 == MECH && (app2 == MECH || app2 == NO_APP))
-    return GetForm(reg, ToPDE(app1), ToPDE(app1), "linElastInt");
-
+  {
+    a1 = a2 = MECH;
+    integrator = "linElastInt";
+  }
   if(app1 == ELEC && (app2 == ELEC || app2 == NO_APP))
-    return GetForm(reg, ToPDE(app1), ToPDE(app1), "linGradBDBInt");
-
+  {
+    a1 = a2 = ELEC;
+    integrator = "linGradBDBInt";
+  }
   if((app1 == MECH && app2 == ELEC) || (app1 == ELEC && app2 == MECH) || (app1 == PIEZO_COUPLING && app2 == NO_APP))
-    return GetForm(reg, ToPDE(app1), ToPDE(app1), "linPiezoCoupling");
-
+  {
+    a1 = MECH;
+    a2 = ELEC;
+    integrator = "linPiezoCoupling";
+  }
   if(app1 == MASS && (app2 == MASS || app2 == NO_APP))
-    return GetForm(reg, ToPDE(app1), ToPDE(app1), "MassInt");
+  {
+    a1 = a2 = MASS;
+    integrator = "MassInt";
+  }
 
-  assert(false);
-  return NULL;
+  assert(integrator != "");
+
+
+  // global means that we do NOT use ToPDE, e.g. for piezoelectric stress constraints in elastic optimization
+  SinglePDE* pde1 = NULL;
+  SinglePDE* pde2 = NULL;
+
+  if(global)
+  {
+    assert((a1 == MECH || a1 == ELEC) && (a2 == MECH || a2 == ELEC)); // the other stuff is not implemented yet
+    pde1 = domain->GetSinglePDE(a1 == MECH ? "mechanic" : "electrostatic", throw_exception);
+    pde2 = domain->GetSinglePDE(a2 == MECH ? "mechanic" : "electrostatic", throw_exception);
+  }
+  else
+  {
+    pde1 = ToPDE(a1, throw_exception);
+    pde2 = ToPDE(a2, throw_exception);
+  }
+
+  if(pde1 == NULL || pde2 == NULL)
+  {
+    if(!throw_exception)
+      return NULL;
+    else
+      EXCEPTION("No PDE for application " << a1 << " resp. " << a2);
+  }
+
+  return GetForm(reg, pde1, pde2, integrator, throw_exception);
 }
 
 int ErsatzMaterial::GetSpecialResultIndex(Application app1, Application app2, CalcMode calcMode, Condition* constraint)

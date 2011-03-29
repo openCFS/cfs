@@ -840,8 +840,9 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
 
   Grid* grid = domain->GetGrid();
   
-  if(!space->IsRegular())
-    throw Exception("A regular design domain is required to use VicinityElements");
+  // we only hope the elements are aligned and rectangular, the size might vary
+  // if(!space->IsRegular())
+  //  throw Exception("A regular design domain is required to use VicinityElements");
 
   // eventually the barycenters are already calculated, we need them to identify the orientation
   // we will need the barycenters in FindNeibhborhood()

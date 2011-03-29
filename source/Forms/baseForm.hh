@@ -263,6 +263,17 @@ namespace CoupledField
     /** MassInt and LaplaceInt have optional constructors where the material descriptors can be set.*/
     const MaterialDescriptor& GetMaterialDescriptor() const { return md_; };
 
+    /** Convenience function if one requires the B mat for the given element.
+     * @param ip 1-based :(
+     * @param geo_nonlin shall the element coordinates obtained linear or nonlinear? */
+    void CalcBMatOnly(Matrix<Double> &bMat, UInt ip, Elem* elem, bool geo_nonlin = false);
+
+    /** @see other CalcBMatOnly() */
+    void CalcBMatOnly(Matrix<Double> &bMat, Vector<Double>& intPoint, Elem* elem, bool geo_nonlin = false);
+
+    /** @see other CalcBMatOnly(). This is just a variant in the parameters */
+    void CalcBMatOnly(Matrix<Double> &bMat, UInt ip, BaseFE* elem, Matrix<Double> &ptCoord);
+
   protected:
 
     /** Gets the factor for dMat to perform the ersatz material ansatz.
@@ -277,6 +288,13 @@ namespace CoupledField
 
     /** Some derived classes have a natural tensor e.g. PIEZO_TENSOR, MECH_STIFFNESS_TENSOR. Extend if you need it */
     virtual MaterialType getDMaterialType() { EXCEPTION("not implemented"); }
+
+
+    /** Computes the discretized differential operator at the given integration point.
+     * Possibly all forms overwrite this method. */
+    virtual void CalcBMat(Matrix<Double>& bMat, UInt ip, const Matrix<Double>& ptCoord) {
+      EXCEPTION("not implemented");
+    }
 
     /**
      * Get Timestepping for non linear solvers

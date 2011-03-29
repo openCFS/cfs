@@ -5,6 +5,7 @@
 #include "Domain/domain.hh"
 #include "Forms/baseForm.hh"
 #include "Forms/linElastInt.hh"
+#include "Driver/assemble.hh"
 #include "MatVec/opdefs.hh"
 
 using namespace std;
@@ -65,105 +66,128 @@ void StressConstraint<T>::CalcStresses(Mode mode, int res_idx, Vector<double>& o
 
   out.Resize(f->elements.GetSize(), 0.0);
 
-  all_u1_elem = &(forward->Get(*excite)->elem[Optimization::MECH]);
-  all_u2_elem = &(forward->Get(*excite)->elem[Optimization::MECH]); // for the adjoint rhs we need no app2 solution
-
   Vector<T> M_stress2; // temporary
 
   double factor = mode == STRESS ? 1.0 : 2.0;
 
-  // It might be that stress sensitive region is not within the design domain itself
-  for(unsigned int e = 0, en = f->elements.GetSize(); e < en; e++)
+
+  StdVector<pair<Optimization::Application, Optimization::Application> > apps = GetApplications();
+
+  for(unsigned int a = 0; a < apps.GetSize(); a++)
   {
-    DesignElement* de = f->elements[e];
+    pair<Optimization::Application, Optimization::Application>& app = apps[a];
 
-    Setup(de, Optimization::MECH, Optimization::MECH, mode);
+    all_u1_elem = &(forward->Get(*excite)->elem[app.first == Optimization::MECH ? Optimization::MECH : Optimization::ELEC]);
+    all_u2_elem = &(forward->Get(*excite)->elem[app.second == Optimization::MECH ? Optimization::MECH : Optimization::ELEC]); // for the adjoint rhs we need no app2 solution
 
-    // normal von Mises stress element results < stress, M*stress>
-    M_stress2 = M * stress2;
-
-    out[e] = Real(stress1.Inner(M_stress2)) * factor;
-
-    LOG_DBG2(sc) << "CS de=" << de->ToString() << " stress1" << stress1.ToString() << " M_stress2=" << M_stress2.ToString() << " -> " << stress1.Inner(M_stress2) << "(" << out[e] << ")";
-
-    // output von mises stress? Note, that this is excitation specific! Only for STRESS
-    if(res_idx != -1)
+    // It might be that stress sensitive region is not within the design domain itself
+    for(unsigned int e = 0, en = f->elements.GetSize(); e < en; e++)
     {
-      de->specialResult[res_idx] = out[e];
-      // LOG_DBG3(em) << "CS:sr de=" << de->ToString() << " res_idx=" << res_idx << " v=" << out[e];
+      DesignElement* de = f->elements[e];
+
+      Setup(de, app.first, app.second, mode);
+
+      // normal von Mises stress element results < stress, M*stress>
+      M_stress2 = M * stress2;
+
+      out[e] += Real(stress1.Inner(M_stress2)) * factor;
+
+      LOG_DBG2(sc) << "CS de=" << de->ToString() << " stress1" << stress1.ToString() << " M_stress2=" << M_stress2.ToString() << " -> " << stress1.Inner(M_stress2) << "(" << out[e] << ")";
+
+      // output von mises stress? Note, that this is excitation specific! Only for STRESS
+      if(res_idx != -1)
+      {
+        de->specialResult[res_idx] = out[e];
+        // LOG_DBG3(em) << "CS:sr de=" << de->ToString() << " res_idx=" << res_idx << " v=" << out[e];
+      }
+      LOG_DBG2(sc) << "CS de=" << de->ToString() << " rho=" << de->GetDesign(DesignElement::SMART) << " sMs=" << out[e] << " trans=" <<  tf.Transform(de, DesignElement::SMART);
     }
-    LOG_DBG2(sc) << "CS de=" << de->ToString() << " rho=" << de->GetDesign(DesignElement::SMART) << " sMs=" << out[e] << " trans=" <<  tf.Transform(de, DesignElement::SMART);
   }
 }
 
 template<typename T>
 void StressConstraint<T>::CalcAdjointRHS(Vector<T>& out)
 {
-  all_u1_elem = &(forward->Get(*excite)->elem[Optimization::MECH]);
-  all_u2_elem = NULL; // for the adjoint rhs we need no app2 solution
+  // elastic adjoint rhs w.r.p to one element static : - 2* (rho^p*E_0*B*u)^T * M * rho^p E_0 B
+  // elastic adjoint rhs w.r.p to one element dynamic: - 1* (rho^p*E_0*B*u^*)^T * M * rho^p E_0 B
+  // for the globalization it is multiplied by alpha
+  // In the piezoelectric case it is (dynamic)
+  // -1*alpha*(E1*B1*u1^*)^T*M*E2*B2 with app1=mech and app2=mech
+  // +1*alpha*(E1*B1*u1^*)^T*M*E2*B2 with app1=piezo and app2=mech
+  // -1*alpha*(E1*B1*u1^*)^T*M*E2*B2 with app1=piezo and app2=piezo
+  // +1*alpha*(E1*B1*u1^*)^T*M*E2*B2 with app1=mech and app2=piezo
+  // app2 determines the pde. The elastic case is simply MECH, MECH
+
 
   // evaluate in the piezo case 4 times. Better nice code!
   Vector<double> alpha;
   CalcGlobalizationFactor(alpha);
 
-  Matrix<double> E_B;
-  Matrix<double> M_E_B;
-
   Matrix<T> stress_transp(1, domain->GetGrid()->GetDim() == 2 ? 3 : 6);
   Matrix<T> rhs_transp;
-  shared_ptr<EqnMap> eqnMap = em->ToPDE(Optimization::MECH)->GetEqnMap();
 
   bool harmonic = em->IsHarmonic();
   unsigned int dim = domain->GetGrid()->GetDim();
 
   out.Resize(forward->Get(*excite)->GetVector(ErsatzMaterial::Solution::RAW_VECTOR)->GetSize(), T());
 
-  // It might be that stress sensitive region is not within the design domain itself
-  for(unsigned int e = 0, en = f->elements.GetSize(); e < en; e++)
+  StdVector<pair<Optimization::Application, Optimization::Application> > apps = GetApplications();
+
+  for(unsigned int a = 0; a < apps.GetSize(); a++)
   {
-    DesignElement* de = f->elements[e];
+    pair<Optimization::Application, Optimization::Application>& app = apps[a];
 
-    Setup(de, Optimization::MECH, Optimization::MECH, ADJOINT_RHS);
+    shared_ptr<EqnMap> eqnMap = em->ToPDE(app.second)->GetEqnMap(); // mech our coupling
 
-    assert(stress1.GetSize() == stress_transp.GetNumCols());
-    // we have to transpose the stress (3*1 or 6*1) manually and to the conjugate stuff
-    for(unsigned int si = 0; si < stress1.GetSize(); si++)
-      stress_transp[0][si] = Conj<T>(stress1[si]); // nothing changes in real case
-    // right side
-    E_B = E2 * B2;
-    M_E_B = M * E_B;
+    all_u1_elem = &(forward->Get(*excite)->elem[app.second == Optimization::MECH ? Optimization::MECH : Optimization::ELEC]);
+    all_u2_elem = all_u1_elem; // for the adjoint rhs we need no app2 solution
 
-    // final!
-    rhs_transp = stress_transp * M_E_B;
-    rhs_transp *= harmonic ? -1.0 : -2.0;
+    double factor = (app.first != app.second ? -1.0 : 1.0) * (harmonic ? -1.0 : -2.0); // see piezo adjoint rhs
 
-    // there is a factor from the globalization function, which is the gradient of the glob function(func_val)
-    rhs_transp *= alpha[e];
-
-    // sum it up to the global rhs vector
-    assert(de->elem->connect.GetSize() * dim == rhs_transp.GetNumCols());
-    for(unsigned int n = 0; n < de->elem->connect.GetSize(); n++)
+    // It might be that stress sensitive region is not within the design domain itself
+    for(unsigned int e = 0, en = f->elements.GetSize(); e < en; e++)
     {
-      unsigned int node =  de->elem->connect[n];
+      DesignElement* de = f->elements[e];
 
-      for(unsigned int dof = 1; dof <= dim; dof++)
+      Setup(de, app.first, app.second, ADJOINT_RHS);
+
+      assert(stress1.GetSize() == stress_transp.GetNumCols());
+      // we have to transpose the stress (3*1 or 6*1) manually and to the conjugate stuff
+      for(unsigned int si = 0; si < stress1.GetSize(); si++)
+        stress_transp[0][si] = Conj<T>(stress1[si]); // nothing changes in real case
+
+      // final!
+      rhs_transp = stress_transp * M_E2_B2;
+
+      // there is a factor from the globalization function, which is the gradient of the glob function(func_val)
+      rhs_transp *= factor * alpha[e];
+
+      // sum it up to the global rhs vector
+      assert(de->elem->connect.GetSize() * dim == rhs_transp.GetNumCols());
+      for(unsigned int n = 0; n < de->elem->connect.GetSize(); n++)
       {
-        // fuck 1-based in GetNodeEqn() !!
-        int eqn_nr = std::abs(eqnMap->GetNodeEqn(node,dof)); // map periodic bc to the master equation
-        assert(eqn_nr >= 0);
-        int eqn_idx = eqn_nr -1; // fuck 1-based!!
-        // don't set the homogeneous dirichlet boundary conditions :)
-        if(eqn_idx >= 0)
-        {
-          out[eqn_idx] += rhs_transp[0][dim * n + (dof-1)];
+        unsigned int node =  de->elem->connect[n];
 
-          LOG_DBG3(sc) << "CAR de=" << de->ToString() << " n=" << n << " node=" << node
-                       << " dof=" << dof << " eqn_idx=" << eqn_idx << " idx=" << (dim * n + (dof-1)) << " val="
-                       << rhs_transp[0][dim * n + (dof-1)] << " -> " << out[eqn_idx];
-        }
-      } // dof
-    } // node
-  } // elements
+        for(unsigned int dof = 1; dof <= dim; dof++)
+        {
+          // fuck 1-based in GetNodeEqn() !!
+          int eqn_nr = std::abs(eqnMap->GetNodeEqn(node,dof)); // map periodic bc to the master equation
+          assert(eqn_nr >= 0);
+          int eqn_idx = eqn_nr -1; // fuck 1-based!!
+          // don't set the homogeneous dirichlet boundary conditions :)
+          if(eqn_idx >= 0)
+          {
+            out[eqn_idx] += rhs_transp[0][dim * n + (dof-1)];
+
+            LOG_DBG3(sc) << "CAR de=" << de->ToString() << " alpha=" << alpha[e] << " factor=" << factor
+                << " n=" << n << " node=" << node
+                << " dof=" << dof << " eqn_idx=" << eqn_idx << " idx=" << (dim * n + (dof-1)) << " val="
+                << rhs_transp[0][dim * n + (dof-1)] << " -> " << out[eqn_idx];
+          }
+        } // dof
+      } // node
+    } // elements
+  } // apps
 }
 
 template<typename T>
@@ -192,23 +216,22 @@ void StressConstraint<T>::CalcGlobalizationFactor(Vector<double>& out)
     out[i] = gfv;
   }
 
-
   LOG_DBG2(sc) << "CGF ex=" << excite->index << " alpha=" << out.ToString();
 }
 
 template<typename T>
 void StressConstraint<T>::Setup(DesignElement* de, Optimization::Application app1, Optimization::Application app2, Mode mode)
 {
-  BaseForm* form1 = em->GetForm(de->elem->regionId, app1);
-  BaseForm* form2 = em->GetForm(de->elem->regionId, app2);
+  BaseForm* form1 = em->GetForm(de->elem->regionId, app1, Optimization::NO_APP, true, true); // global!
+  BaseForm* form2 = em->GetForm(de->elem->regionId, app2, Optimization::NO_APP, true, true); // global!
 
   BaseMaterial* bimat1 = space->GetBiMaterial(de->elem->regionId, app1, false);
   BaseMaterial* bimat2 = space->GetBiMaterial(de->elem->regionId, app2, false);
 
-  static Matrix<double> coords;
   static Vector<double> intPoint;
+  static Matrix<double> E2_B2; // adjoint case only
+  static Matrix<double> tmp;   // for transposing [e] to [e]^T
 
-  domain->GetGrid()->GetElemNodesCoord(coords, de->elem->connect, false); // no geometric non-lin
 
   // we need to be careful to use the right index!!
   Vector<T>& u1_elem = dynamic_cast<Vector<T>& >(*((*all_u1_elem)[de->GetElementSolutionIndex()]));
@@ -216,21 +239,29 @@ void StressConstraint<T>::Setup(DesignElement* de, Optimization::Application app
 
   // apply our own physical densities!
   form1->GetScaledMaterial(tf.Transform(de, DesignElement::SMART), false, bimat1, E1);
+  if(app1 == Optimization::PIEZO_COUPLING)
+  {
+    tmp = E1;
+    tmp.Transpose(E1);
+  }
+
+
   if(mode == GRAD_STRESS)
     form2->GetScaledMaterial(tf.Derivative(de, DesignElement::SMART), false, bimat2, E2);
   else
     form2->GetScaledMaterial(tf.Transform(de, DesignElement::SMART), false, bimat2, E2);
 
-  // B1 and B2
-  elemList.SetElement(de->elem);
-  EntityIterator it = elemList.GetIterator();
-  form1->ExtractElemInfo(it); // form2 ?? KILLME
-  de->elem->ptElem->GetCoordMidPoint(intPoint);
+  if(app2 == Optimization::PIEZO_COUPLING)
+  {
+    tmp = E2;
+    tmp.Transpose(E2);
+  }
 
-  form1->SetIntPoint(intPoint);
-  dynamic_cast<linElastInt*>(form1)->calcBMatOnly(B1, 1, de->elem->ptElem, coords); // KILLME
-  form2->SetIntPoint(intPoint);
-  dynamic_cast<linElastInt*>(form1)->calcBMatOnly(B2, 1, de->elem->ptElem, coords); // KILLME
+
+  // B1 and B2
+  de->elem->ptElem->GetCoordMidPoint(intPoint);
+  form1->CalcBMatOnly(B1, intPoint, de->elem);
+  form2->CalcBMatOnly(B2, intPoint, de->elem);
 
   // left side stress
   strain1 = B1 * u1_elem;
@@ -238,10 +269,62 @@ void StressConstraint<T>::Setup(DesignElement* de, Optimization::Application app
   LOG_DBG3(sc) << "SE de=" << de->ToString() << " strain1=" << strain1.ToString() << " stress1=" << stress1.ToString();
 
   // right side stress - ignored for adjoint but clean that way
-  strain2 = B2 * u2_elem;
-  stress2 = E2 * strain2; // E2 might be dE2
-  LOG_DBG3(sc) << "SE de=" << de->ToString() << " strain2=" << strain2.ToString() << " stress2=" << stress2.ToString();
+  if(mode == ADJOINT_RHS)
+  {
+    // right side
+    E2_B2 = E2 * B2;
+    M_E2_B2 = M * E2_B2;
+  }
+  else
+  {
+    strain2 = B2 * u2_elem;
+    stress2 = E2 * strain2; // E2 might be dE2
+    LOG_DBG3(sc) << "SE de=" << de->ToString() << " strain2=" << strain2.ToString() << " stress2=" << stress2.ToString();
+  }
 }
+
+template<typename T>
+StdVector<pair<Optimization::Application, Optimization::Application> >  StressConstraint<T>::GetApplications()
+{
+  StdVector<pair<Optimization::Application, Optimization::Application> > result;
+
+  if(f->GetStressType() == Function::MECH)
+   result.Push_back(std::make_pair(Optimization::MECH, Optimization::MECH));
+  else
+  {
+    // one of three piezo case - is the stress constraint defined on a piezo region ?!
+    RegionIdType reg = f->elements[0]->elem->regionId;
+    // global as we might have no PiezoSIMP (e.g. harvester)
+    BaseForm* form = em->GetForm(reg, Optimization::MECH, Optimization::ELEC, false, true);
+    if(form == NULL)
+      throw Exception("piezoelectric stress constraint not defined on a piezoelectric region");
+
+    switch(f->GetStressType())
+    {
+    case Function::ONLY_MECH_PIEZO: // special case only
+      result.Push_back(std::make_pair(Optimization::MECH, Optimization::MECH));
+      break;
+
+    case Function::ONLY_PIEZO_PIEZO: // special case only
+      result.Push_back(std::make_pair(Optimization::PIEZO_COUPLING, Optimization::PIEZO_COUPLING));
+      break;
+
+    case Function::PIEZO: // standard piezo case
+      result.Push_back(std::make_pair(Optimization::MECH, Optimization::MECH));
+      result.Push_back(std::make_pair(Optimization::PIEZO_COUPLING, Optimization::MECH));
+      result.Push_back(std::make_pair(Optimization::PIEZO_COUPLING, Optimization::PIEZO_COUPLING));
+      result.Push_back(std::make_pair(Optimization::MECH, Optimization::PIEZO_COUPLING));
+      break;
+
+    default:
+      assert(false);
+    }
+  }
+
+  return result;
+
+}
+
 
 // Explicit template instantiation
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION

@@ -47,9 +47,9 @@ namespace CoupledField
 
   protected:  
   
-    /// returns B 
-    virtual void calcBMat(Matrix<Double> & bMat, UInt ip, 
-                          Matrix<Double> & ptCoord);
+    /** @see BaseForm::CalcBMat() */
+    virtual void CalcBMat(Matrix<Double> & bMat, UInt ip,
+                          const Matrix<Double> & ptCoord);
 
     /// displacement of all nodes of actual element
     Matrix<TYPE> elemDisp_;

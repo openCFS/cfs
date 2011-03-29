@@ -279,7 +279,7 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
           ptelem->GetGlobDerivShFncAtIp(dPhi, ip, CornerCoords, jacdet, elem); // really is already dPhi * J~
           const unsigned int rowPhi(dPhi.GetNumRows());
 
-          form->calcBMatOnly(B, ip, ptelem, CornerCoords);
+          form->CalcBMatOnly(B, ip, ptelem, CornerCoords);
 
           const unsigned int colB(B.GetNumCols()); 
 

@@ -182,12 +182,12 @@ namespace CoupledField
   }
 
   // returns B for postprocessing
-  void nLinMagHystInt2D::calcBMat( Matrix<Double> &bMat, UInt ip,
-                                     Matrix<Double> &ptCoord ) {
+  void nLinMagHystInt2D::CalcBMat( Matrix<Double> &bMat, UInt ip,
+                                   const Matrix<Double> &ptCoord ) {
 
     ptBMat_->ExtractElemInfo( it1_ );
     ptBMat_->SetIntPoint( intPoint_ );
-    ptBMat_->calcBMat( bMat, ip, ptCoord );
+    ptBMat_->CalcBMat( bMat, ip, ptCoord );
     ptBMat_->UnsetIntPoint(); 
 
   }

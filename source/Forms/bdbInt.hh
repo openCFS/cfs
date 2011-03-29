@@ -41,7 +41,6 @@ namespace CoupledField {
                                    Double & beta, Double & omega );
 
 
-
     //! Get B-Matrix of element midpoint
     virtual void calcBMat(EntityIterator it, Matrix<Double> & bMat);
 
@@ -49,10 +48,6 @@ namespace CoupledField {
     virtual void calcDBMat( EntityIterator it,
                     Matrix<Double> & bMat );
 
-
-    //! returns B - matrix for BDB
-    virtual void calcBMat( Matrix<Double> &bMat, UInt ip,
-                           Matrix<Double> &ptCoord ) = 0;
 
     //! returns G - matrix for GDG (incompatible modes)
     virtual void calcGMat( Matrix<Double> &bMat, UInt ip,
@@ -102,6 +97,7 @@ namespace CoupledField {
                << "(Matrix<Complex> &dMat, Double &beta, Double &omega) "
                << "not correctly overwritten!" );
     };
+
 
     /** returns D - matrix for BDB, changes in every integration point
      * @see calcDMat(Matrix<Double>, EntityIterator*) */

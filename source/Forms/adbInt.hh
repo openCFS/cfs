@@ -97,10 +97,6 @@ namespace CoupledField {
       calcDMat(dMat);
     };
 
-    //!  Compute matrix \f$ B \f$ at given integration point.
-    virtual void calcBMat( Matrix<Double> &bMat, UInt ip,
-                           const Matrix<Double> &ptCoord ) = 0;
-
     //! Query number of degrees of freedom for first physical quantity.
 
     //! This method can be used to query the number of degrees of freedom at

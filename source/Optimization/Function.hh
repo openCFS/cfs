@@ -43,7 +43,7 @@ class Function
     static Function* Cast(Objective* c, Condition* g);
 
     /** PostProc called be the containers */
-    virtual void PostProc(DesignSpace* space, DesignStructure* structure);
+    virtual void PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMaterial* = NULL);
 
     /** Different function types - some only objective, some only constraint some both */
     typedef enum {
@@ -176,6 +176,13 @@ class Function
      * @param matrix where to store the data
      * @return true if the tensor was read */
     static bool ReadTensor(PtrParamNode pn, Matrix<double>& matrix);
+
+    /** @see StressConstraint::GetApplications */
+    typedef enum { MECH, PIEZO, ONLY_MECH_PIEZO, ONLY_PIEZO_PIEZO } StressType;
+
+    static Enum<StressType> stressType;
+
+    StressType GetStressType() { return stressType_; }
 
 
     /** A function can be be a local function when it is calculated by the local neighborhood state.
@@ -481,6 +488,8 @@ class Function
 
     /** Here we store our info node */
     PtrParamNode info_;
+
+    StressType stressType_;
 
   private:
     /** Here elements refers to if the region is not within the design space */

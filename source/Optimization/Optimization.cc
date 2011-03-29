@@ -283,10 +283,17 @@ void Optimization::SetEnums()
   Function::Local::phase.Add(Function::Local::VOID, "void");
   Function::Local::phase.Add(Function::Local::MATERIAL, "material");
 
+  Function::stressType.SetName("Function::StressType");
+  Function::stressType.Add(Function::MECH, "mech");
+  Function::stressType.Add(Function::PIEZO, "piezo");
+  Function::stressType.Add(Function::ONLY_MECH_PIEZO, "only_mech_piezo");
+  Function::stressType.Add(Function::ONLY_PIEZO_PIEZO, "only_piezo_piezo");
+
   Condition::bound.SetName("Condition::Bound");
   Condition::bound.Add(Condition::EQUAL, "equal");
   Condition::bound.Add(Condition::LOWER_BOUND, "lowerBound");
   Condition::bound.Add(Condition::UPPER_BOUND, "upperBound");
+
 
   ObjectiveContainer::StoppingRule::type.SetName("ObjectiveContainer::StoppingRule::Type");
   ObjectiveContainer::StoppingRule::type.Add(ObjectiveContainer::StoppingRule::DESIGN_CHANGE, "designChange");

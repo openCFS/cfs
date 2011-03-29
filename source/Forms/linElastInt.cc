@@ -73,7 +73,7 @@ void linElastInt::CalcElementMatrix( Matrix<Double>& elemMat,
   }
 }
 
-void linElastInt::ReorderBLikeMatrix(Matrix<Double>& in, Matrix<Double>& out, UInt ip, BaseFE* elem, Matrix<Double>& ptCoord){
+void linElastInt::ReorderBLikeMatrix(Matrix<Double>& in, Matrix<Double>& out, UInt ip, BaseFE* elem, const Matrix<Double>& ptCoord){
 
   const UInt numFncs  = elem->GetNumFncs( ansatzFct1_ );
   const UInt spaceDim = elem->GetDim();  
@@ -152,8 +152,8 @@ void linElastInt::ReorderBLikeMatrix(Matrix<Double>& in, Matrix<Double>& out, UI
 }
 
 // returns B - matrix for BDB
-void linElastInt::calcBMat( Matrix<Double> &bMat, UInt ip,
-    Matrix<Double> &ptCoord ) {
+void linElastInt::CalcBMat( Matrix<Double> &bMat, UInt ip,
+    const Matrix<Double> &ptCoord ) {
 
   // local shape functions derived after global coords
   // (format: numFncs x spaceDim)
@@ -172,26 +172,6 @@ void linElastInt::calcBMat( Matrix<Double> &bMat, UInt ip,
   LOG_DBG2(forms) << "calcBMat: bMat: " << bMat.ToString() << std::endl; 
 
   isSetIntPoint_ = false;
-}
-
-// returns B - matrix
-void linElastInt::calcBMatOnly( Matrix<Double> &bMat, UInt ip,
-    BaseFE* elem, Matrix<Double> &ptCoord ) {
-
-  ptelem = elem;
-  calcBMat(bMat, ip, ptCoord);
-}
-
-void linElastInt::calcBMatOnly(Matrix<double> &bMat, Vector<double>& intPoint,
-													     BaseFE* elem, Matrix<double> &ptCoord )
-{
-  isSetIntPoint_ = true; // will be set to false in calcBMat
-  Vector<double> oldIntPoint = intPoint_; // remember old intPoint_
-  intPoint_ = intPoint;
-  const unsigned int ip(0); // should not be used in our case...
-  // call the function
-  calcBMat(bMat, ip, ptCoord);
-  intPoint_ = oldIntPoint; // restore old intPoint_
 }
 
 
@@ -507,7 +487,7 @@ void linElastInt::CalcElementMatrixICM( Matrix<Double>& elemMat,
 
 
     // Setup the B matrix for current integration point
-    calcBMat( bMat, actIntPt, ptCoord_ );
+    CalcBMat( bMat, actIntPt, ptCoord_ );
     //      std::cout << "bMat:\n" << bMat << std::endl;
 
     //incompatible modes
@@ -688,8 +668,8 @@ void linElastInt::CalcElementMatrixShearBK1( Matrix<Double>& elemMat,
 
 
     // Setup the B matrix for negative z position
-    calcBMat( bMatN, actIntPt, ptCoord_ );
-    calcBMat( bMatP, actIntPt+intPtOffset, ptCoord_ );
+    CalcBMat( bMatN, actIntPt, ptCoord_ );
+    CalcBMat( bMatP, actIntPt+intPtOffset, ptCoord_ );
 
 
     // Compute Jacobian for integration point
@@ -771,14 +751,14 @@ void linElastInt::CalcElementMatrixShearBK1( Matrix<Double>& elemMat,
       //      if (  actIntPt < 5 ) {
       //	std::cout << "Do mult 4, z=0" << std::endl;
       // Setup the B matrix for z=0 position
-      calcBMat( bMatP, actIntPt, ptCoord_ );
+      CalcBMat( bMatP, actIntPt, ptCoord_ );
       jacDet = 2.0*ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_, ent1.GetElem() );
     }
     else {
       // Setup the B matrix for negative z position
-      calcBMat( bMatN, actIntPt, ptCoord_ );
+      CalcBMat( bMatN, actIntPt, ptCoord_ );
       // Setup the B matrix for positive z position
-      calcBMat( bMatP, actIntPt+intPtOffset, ptCoord_ );
+      CalcBMat( bMatP, actIntPt+intPtOffset, ptCoord_ );
 
       //take the sum!!
       bMatP += bMatN;

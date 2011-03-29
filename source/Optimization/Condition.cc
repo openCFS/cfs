@@ -59,6 +59,9 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
 
   penalty = pn->Get("penalty")->As<double>();
 
+  // validated in StressConstraint::GetApplications()
+  stressType_ = stressType.Parse(pn->Get("stress")->As<std::string>());
+
   // default is set in Function, may this moves later to Function, too
   if(pn->Has("region") && pn->Get("region")->As<std::string>() != "all")
     region = domain->GetGrid()->GetRegion().Parse(pn->Get("region")->As<std::string>());
@@ -95,12 +98,20 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
 
 }
 
-void Condition::PostProc(DesignSpace* space, DesignStructure* structure)
+void Condition::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMaterial* em)
 {
   SetElements(space, region); // before Function::PostProc() because of virtual_elem_map
 
   if(type_ == DESIGN_TRACKING)
     ReadDesignTrackingPattern(space, structure);
+
+  if(type_ == STRESS && stressType_ != MECH)
+  {
+    // it might be that we do piezo stresses on a pure elastic optimization problem.
+    // Then register the ELEC PDE such that it is stored for the stress calculation by StressConstraint()
+    // if we do PiezoSIMP this is simply redundant
+    em->pdes[Optimization::ELEC] = domain->GetSinglePDE("electrostatic");
+  }
 
   // note, meanwhile we have info_ set! but not yet in the constructor
   Function::PostProc(space, structure);
@@ -610,6 +621,9 @@ void Condition::ToInfo(PtrParamNode in, MultipleExcitation* me)
   if(type_ == DESIGN_TRACKING)
     in->Get("elements")->SetValue(elements.GetSize());
 
+  if(type_ == STRESS)
+    in->Get("stress")->SetValue(stressType.ToString(stressType_));
+
   if(!DoEvaluateAlways())
     in->Get("excitation")->SetValue(me->excitations[excite_].label);
 
@@ -794,7 +808,7 @@ void ConditionContainer::Refresh()
 
 
 
-void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure, MultipleExcitation* me)
+void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure, MultipleExcitation* me, ErsatzMaterial* em)
 {
   this->space_ = space;
 
@@ -819,7 +833,7 @@ void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure
 
   for(unsigned int i = 0; i < all.GetSize(); i++)
   {
-    all[i]->PostProc(space, structure);
+    all[i]->PostProc(space, structure, em);
     all[i]->SetExcitation(me);
   }
 

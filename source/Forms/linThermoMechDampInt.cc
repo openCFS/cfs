@@ -136,7 +136,7 @@ namespace CoupledField
 	
         //std::cerr << "*** Calculating B ****\n";
         // Setup the B matrix for current integration point
-        calcBMat( bMat, actIntPt, ptCoord_ );
+        CalcBMat( bMat, actIntPt, ptCoord_ );
         //std::cerr << "bMat = \n" << bMat << std::endl;
 	
         // Compute Jacobian for integration point
@@ -331,7 +331,7 @@ namespace CoupledField
   
   
   //  Compute matrix  B  at given integration point.
-  void LinThermoMechDampInt::calcBMat(Matrix<Double> &bMat, UInt ip,
+  void LinThermoMechDampInt::CalcBMat(Matrix<Double> &bMat, UInt ip,
                                       const Matrix<Double> &ptCoord) {
 
 	
