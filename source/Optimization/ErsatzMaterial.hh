@@ -122,9 +122,8 @@ public:
    * @param integrator there is no nice enum yet :( e.g. linElastInt, MechInt, ... */
   BiLinFormContext* GetFormContext(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception = true);
 
-  /** Get the standard integrators
-   * @param global if false the pde must be stored within ErsatzMaterial. for false the domain is queried directly */
-  BaseForm* GetForm(const RegionIdType reg, Application app1, Application app2 = NO_APP, bool throw_exception = true, bool global = false);
+  /** Get the standard integrators */
+  BaseForm* GetForm(const RegionIdType reg, Application app1, Application app2 = NO_APP, bool throw_exception = true);
 
   /** Helper which extracts the Form from assemble using the optimization region
    * @param regionId the corresponding region

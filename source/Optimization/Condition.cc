@@ -559,6 +559,10 @@ std::string Condition::ToString(MultipleExcitation* me) const
   if(type_ == STRESS && me != NULL && me->IsEnabled())
     os << "_" << me->excitations[excite_].label; // change to excite label
 
+  // We might have non-standard stresses
+  if(type_ == STRESS && stressType_ != MECH)
+    os << "_" << stressType.ToString(stressType_);
+
   return os.str();  
 }
 

@@ -127,7 +127,6 @@ void StressConstraint<T>::CalcAdjointRHS(Vector<T>& out)
   Matrix<T> rhs_transp;
 
   bool harmonic = em->IsHarmonic();
-  unsigned int dim = domain->GetGrid()->GetDim();
 
   out.Resize(forward->Get(*excite)->GetVector(ErsatzMaterial::Solution::RAW_VECTOR)->GetSize(), T());
 
@@ -137,13 +136,14 @@ void StressConstraint<T>::CalcAdjointRHS(Vector<T>& out)
   {
     pair<Optimization::Application, Optimization::Application>& app = apps[a];
 
-    shared_ptr<EqnMap> eqnMap = em->ToPDE(app.second)->GetEqnMap(); // mech our coupling
+    // the second app determines u or phi.
+    unsigned int dof = app.second ==  Optimization::MECH ? domain->GetGrid()->GetDim() : 1;
+    shared_ptr<EqnMap> eqnMap = em->ToPDE(app.second == Optimization::PIEZO_COUPLING ? Optimization::ELEC : Optimization::MECH)->GetEqnMap();
 
-    all_u1_elem = &(forward->Get(*excite)->elem[app.second == Optimization::MECH ? Optimization::MECH : Optimization::ELEC]);
+    all_u1_elem = &(forward->Get(*excite)->elem[app.first == Optimization::MECH ? Optimization::MECH : Optimization::ELEC]);
     all_u2_elem = all_u1_elem; // for the adjoint rhs we need no app2 solution
 
-    double factor = (app.first != app.second ? -1.0 : 1.0) * (harmonic ? -1.0 : -2.0); // see piezo adjoint rhs
-
+    double factor = harmonic ? -1.0 : -2.0;
     // It might be that stress sensitive region is not within the design domain itself
     for(unsigned int e = 0, en = f->elements.GetSize(); e < en; e++)
     {
@@ -163,26 +163,26 @@ void StressConstraint<T>::CalcAdjointRHS(Vector<T>& out)
       rhs_transp *= factor * alpha[e];
 
       // sum it up to the global rhs vector
-      assert(de->elem->connect.GetSize() * dim == rhs_transp.GetNumCols());
+      assert(de->elem->connect.GetSize() * dof == rhs_transp.GetNumCols());
       for(unsigned int n = 0; n < de->elem->connect.GetSize(); n++)
       {
         unsigned int node =  de->elem->connect[n];
 
-        for(unsigned int dof = 1; dof <= dim; dof++)
+        for(unsigned int d = 1; d <= dof; d++)
         {
           // fuck 1-based in GetNodeEqn() !!
-          int eqn_nr = std::abs(eqnMap->GetNodeEqn(node,dof)); // map periodic bc to the master equation
+          int eqn_nr = std::abs(eqnMap->GetNodeEqn(node,d)); // map periodic bc to the master equation
           assert(eqn_nr >= 0);
           int eqn_idx = eqn_nr -1; // fuck 1-based!!
           // don't set the homogeneous dirichlet boundary conditions :)
           if(eqn_idx >= 0)
           {
-            out[eqn_idx] += rhs_transp[0][dim * n + (dof-1)];
+            out[eqn_idx] += rhs_transp[0][dof * n + (d-1)];
 
             LOG_DBG3(sc) << "CAR de=" << de->ToString() << " alpha=" << alpha[e] << " factor=" << factor
                 << " n=" << n << " node=" << node
-                << " dof=" << dof << " eqn_idx=" << eqn_idx << " idx=" << (dim * n + (dof-1)) << " val="
-                << rhs_transp[0][dim * n + (dof-1)] << " -> " << out[eqn_idx];
+                << " d=" << d << " eqn_idx=" << eqn_idx << " idx=" << (dof * n + (d-1)) << " val="
+                << rhs_transp[0][dof * n + (d-1)] << " -> " << out[eqn_idx];
           }
         } // dof
       } // node
@@ -222,8 +222,8 @@ void StressConstraint<T>::CalcGlobalizationFactor(Vector<double>& out)
 template<typename T>
 void StressConstraint<T>::Setup(DesignElement* de, Optimization::Application app1, Optimization::Application app2, Mode mode)
 {
-  BaseForm* form1 = em->GetForm(de->elem->regionId, app1, Optimization::NO_APP, true, true); // global!
-  BaseForm* form2 = em->GetForm(de->elem->regionId, app2, Optimization::NO_APP, true, true); // global!
+  BaseForm* form1 = em->GetForm(de->elem->regionId, app1, Optimization::NO_APP, true);
+  BaseForm* form2 = em->GetForm(de->elem->regionId, app2, Optimization::NO_APP, true);
 
   BaseMaterial* bimat1 = space->GetBiMaterial(de->elem->regionId, app1, false);
   BaseMaterial* bimat2 = space->GetBiMaterial(de->elem->regionId, app2, false);
@@ -236,6 +236,8 @@ void StressConstraint<T>::Setup(DesignElement* de, Optimization::Application app
   // we need to be careful to use the right index!!
   Vector<T>& u1_elem = dynamic_cast<Vector<T>& >(*((*all_u1_elem)[de->GetElementSolutionIndex()]));
   Vector<T>& u2_elem = dynamic_cast<Vector<T>& >(*((*all_u2_elem)[de->GetElementSolutionIndex()]));
+
+  LOG_DBG3(sc) << "S: de=" << de->elem->elemNum << " a1=" << app1 << " a2=" << app2 << " m=" << mode << " u1=" << u1_elem.ToString() << " u2=" << u2_elem.ToString();
 
   // apply our own physical densities!
   form1->GetScaledMaterial(tf.Transform(de, DesignElement::SMART), false, bimat1, E1);
@@ -294,18 +296,14 @@ StdVector<pair<Optimization::Application, Optimization::Application> >  StressCo
   {
     // one of three piezo case - is the stress constraint defined on a piezo region ?!
     RegionIdType reg = f->elements[0]->elem->regionId;
-    // global as we might have no PiezoSIMP (e.g. harvester)
-    BaseForm* form = em->GetForm(reg, Optimization::MECH, Optimization::ELEC, false, true);
+
+    BaseForm* form = em->GetForm(reg, Optimization::MECH, Optimization::ELEC, false);
     if(form == NULL)
       throw Exception("piezoelectric stress constraint not defined on a piezoelectric region");
 
     switch(f->GetStressType())
     {
-    case Function::ONLY_MECH_PIEZO: // special case only
-      result.Push_back(std::make_pair(Optimization::MECH, Optimization::MECH));
-      break;
-
-    case Function::ONLY_PIEZO_PIEZO: // special case only
+    case Function::ONLY_COUPLING: // special case only
       result.Push_back(std::make_pair(Optimization::PIEZO_COUPLING, Optimization::PIEZO_COUPLING));
       break;
 

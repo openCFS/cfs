@@ -178,7 +178,7 @@ class Function
     static bool ReadTensor(PtrParamNode pn, Matrix<double>& matrix);
 
     /** @see StressConstraint::GetApplications */
-    typedef enum { MECH, PIEZO, ONLY_MECH_PIEZO, ONLY_PIEZO_PIEZO } StressType;
+    typedef enum { MECH, PIEZO, ONLY_COUPLING } StressType;
 
     static Enum<StressType> stressType;
 

@@ -200,7 +200,6 @@ void linElastInt::calcDMat(Matrix<Double> & dMat, const Elem* elem, const Design
       ptMaterial->GetTensor(dMat, MECH_STIFFNESS_TENSOR, matDataType_, subTensorType_);
   }
 
-  
   //check for softening model
   if ( subTensorType_ == AXI ) {
     if (softeningPart_ == "bendingBK1" ) {

@@ -415,7 +415,7 @@ BaseForm* ErsatzMaterial::GetForm(const RegionIdType regionId, StdPDE* pde1, Std
   return bc != NULL ? bc->GetIntegrator() : NULL;
 }
 
-BaseForm* ErsatzMaterial::GetForm(const RegionIdType reg, Application app1, Application app2, bool throw_exception, bool global)
+BaseForm* ErsatzMaterial::GetForm(const RegionIdType reg, Application app1, Application app2, bool throw_exception)
 {
   Application a1, a2;
   std::string integrator = "";
@@ -444,22 +444,8 @@ BaseForm* ErsatzMaterial::GetForm(const RegionIdType reg, Application app1, Appl
 
   assert(integrator != "");
 
-
-  // global means that we do NOT use ToPDE, e.g. for piezoelectric stress constraints in elastic optimization
-  SinglePDE* pde1 = NULL;
-  SinglePDE* pde2 = NULL;
-
-  if(global)
-  {
-    assert((a1 == MECH || a1 == ELEC) && (a2 == MECH || a2 == ELEC)); // the other stuff is not implemented yet
-    pde1 = domain->GetSinglePDE(a1 == MECH ? "mechanic" : "electrostatic", throw_exception);
-    pde2 = domain->GetSinglePDE(a2 == MECH ? "mechanic" : "electrostatic", throw_exception);
-  }
-  else
-  {
-    pde1 = ToPDE(a1, throw_exception);
-    pde2 = ToPDE(a2, throw_exception);
-  }
+  SinglePDE* pde1 = ToPDE(a1, throw_exception);
+  SinglePDE* pde2 = ToPDE(a2, throw_exception);
 
   if(pde1 == NULL || pde2 == NULL)
   {

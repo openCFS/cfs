@@ -356,14 +356,13 @@
           <!-- mandatory for design tracking, defines a pseudo density file. If no region is given the periodic boundary elements are used -->
           <xsd:attribute name="designTarget" use="optional" type="xsd:token" />
           
-          <!-- optional for stress constraints. mech is standard in elasticity, piezo for the standard piezo stress, only_* are special cases only -->
+          <!-- optional for stress constraints. mech is standard in elasticity, piezo for the standard piezo stress (mech + coupling), only_coupling is a special case -->
           <xsd:attribute name="stress" default="mech">
             <xsd:simpleType>
               <xsd:restriction base="xsd:string">
                 <xsd:enumeration value="mech"/>
                 <xsd:enumeration value="piezo"/>
-                <xsd:enumeration value="only_mech_piezo"/>
-                <xsd:enumeration value="only_piezo_piezo"/>
+                <xsd:enumeration value="only_coupling"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>

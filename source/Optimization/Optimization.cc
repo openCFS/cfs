@@ -286,8 +286,7 @@ void Optimization::SetEnums()
   Function::stressType.SetName("Function::StressType");
   Function::stressType.Add(Function::MECH, "mech");
   Function::stressType.Add(Function::PIEZO, "piezo");
-  Function::stressType.Add(Function::ONLY_MECH_PIEZO, "only_mech_piezo");
-  Function::stressType.Add(Function::ONLY_PIEZO_PIEZO, "only_piezo_piezo");
+  Function::stressType.Add(Function::ONLY_COUPLING, "only_coupling");
 
   Condition::bound.SetName("Condition::Bound");
   Condition::bound.Add(Condition::EQUAL, "equal");
