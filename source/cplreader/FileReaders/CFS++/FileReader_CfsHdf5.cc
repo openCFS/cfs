@@ -9,6 +9,7 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
+#include "DataInOut/SimInOut/hdf5/hdf5io.hh"
 namespace fs=boost::filesystem;
 
 #include "General/exception.hh"
@@ -207,7 +208,9 @@ void FileReader_CfsHdf5::ReadNodalValues(std::vector<FlowDataType>& nodalFlowDat
 
         fdPtr->isActive = activeParts[actRegion];
         fdPtr->definedOn = ResultInfo::NODE;
-        fdPtr->entryType = (ResultInfo::EntryType)(*iterInfo)->entryType;
+        /* this needs to be done since in the hdf5 file not the entryType is
+         * stored but its integer from MapEntryType() */
+        fdPtr->entryType = H5IO::MapEntryType((Integer)(*iterInfo)->entryType);
         fdPtr->dofNames = (*iterInfo)->dofNames;
         fdPtr->unit = (*iterInfo)->unit;
         fdPtr->resultName = (*iterInfo)->name;
