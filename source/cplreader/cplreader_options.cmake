@@ -340,6 +340,14 @@ ADD_OPTION(pres
   "Specify column of pressure in FASTEST ASCII files."
   )
 
+ADD_OPTION(reduce_elementOrder
+  bool
+  false
+  "disregard high order nodes"
+  "If this parameter is set, higher order noes of the elements will be
+  disregarded for the calclation. Only reasonable for quadratic elements."
+  )
+
 ADD_OPTION(doIntAverageCentre
   bool
   false
@@ -357,7 +365,6 @@ ADD_OPTION(doCalcMultiNodes
   region seperatly and therefore get different values which need to be added.
   This flag should be set on otherwise artifacts at the region interface occur."
   )
-
 
 CONFIGURE_FILE("ParamsInit.cc.in"
   "${CMAKE_CURRENT_BINARY_DIR}/ParamsInit.cc")

@@ -52,6 +52,7 @@ namespace CoupledField
 
     dim_ = settings.GetInt("dim");
     doIntAverageCentre_ = settings.GetInt("doIntAverageCentre");
+    reduce_elementOrder_ = settings.GetInt("reduce_elementOrder");
 
     OutputWriterVectorType::iterator it, end;
     it = outputWriters_.begin();
@@ -142,6 +143,10 @@ namespace CoupledField
     std::vector<Double> nodalCoordsTmp;
     ptFileReader_->ReadNodalCoords(nodalCoordsTmp);
     ptFileReader_->ReadTopology(topology_, elemTypes_);
+    if (reduce_elementOrder_)
+    {
+      ptFileReader_->CorrectNumbering(nodalCoordsTmp, topology_, elemTypes_);
+    }
 
     // Determine the maximum number of element nodes
     maxNumElemNodes = ptFileReader_->GetMaxNumElemNodes();
@@ -434,6 +439,10 @@ namespace CoupledField
         try
         {
           ptFileReader_->ReadNodalValues(flowData, activeParts_, counter);
+          if (reduce_elementOrder_)
+          {
+            ptFileReader_->ReduceOrderOfNodalValues(flowData, regionNodes_)
+          }
           // scale the nodal values
           // following physical fields will be checked for scaling factors
           const std::string physFieldScale_str[] = {"velscale","geomscale"};

@@ -72,6 +72,7 @@ namespace CoupledField
 
     UInt dim_;
     bool doIntAverageCentre_;
+    bool reduce_elementOrder_;
 
     std::map<std::string, std::vector<UInt> > nodeGroups_;
     std::map<std::string, std::vector<UInt> > elemGroups_;
