@@ -441,7 +441,7 @@ namespace CoupledField
           ptFileReader_->ReadNodalValues(flowData, activeParts_, counter);
           if (reduce_elementOrder_)
           {
-            ptFileReader_->ReduceOrderOfNodalValues(flowData, regionNodes_)
+            ptFileReader_->ReduceOrderOfNodalValues(flowData, regionNodes_);
           }
           // scale the nodal values
           // following physical fields will be checked for scaling factors
