@@ -28,8 +28,8 @@ class BaseFeFunction;
 
 //!  Base class for the Finite Element Space (FeSpace) 
 /*!
-  The Finite Element Space (FeSpace) representes the mathematic discrete 
-  function spacein which a unknown function is defined.
+  The Finite Element Space (FeSpace) represents the mathematical discrete 
+  function space in which a unknown function is defined.
   
   It has the following functionality:
   - Collect pointers to reference elements of related functional space
@@ -40,7 +40,7 @@ class BaseFeFunction;
   
     - Continuity of derivatives (H1, HCurl, HDiv, L2, Constants)
     - Order of shape functions
-      -* Lower Order: The approximation order is expliclty encoded in the 
+      -* Lower Order: The approximation order is explicitly encoded in the 
                       element itself (i.e. Lagrange Elements)
       -* Higher Order: The functions of the elements are composed of 1D 
                        polynomials (e.g. Legendre, Jacobi, Gegenbauer).
@@ -54,14 +54,20 @@ public:
 
   //! Enumeration type for element space
   //@{
-  typedef enum { CONST, H1_LO, H1_HI, HCURL_LO, HCURL_HI, HDIV_LO, HDIV_HI, L2_LO, L2_HI } SpaceType;
-  static Enum<SpaceType> spaceType;
+  typedef enum { UNDEF_SPACE, CONST, H1, HCURL, HDIV, L2 } SpaceType;
+  static Enum<SpaceType> SpaceTypeEnum;
   //@}
 
-  //! Enumeration type for boundary conditions 
+  //! Enumeration type for polynomial shape functions
+  //@{
+  typedef enum { UNDEF_POLY, LAGRANGE, LEGENDRE, JACOBI } PolyType;
+  static Enum<PolyType> PolyTypeEnum;
+  //@}
+  
+  //! Enumeration type for boundary conditions
   //@{
   typedef enum{NOBC, HDBC = -2, IDBC = -3, CS = -4} BcType;
-  static Enum<BcType> bcType;
+  static Enum<BcType> BcTypeEnum;
   //@}
 
   //! Flag for Grid determined mapping of element DOFs or polynomial based mapping 
@@ -72,16 +78,19 @@ public:
   typedef std::map< BaseFE::EntityType , StdVector<UInt> > ElemVirtualNodes;
 
   //! Constructor
-  FeSpace();
+  FeSpace(ParamNode * paramNode);
 
   //! Destructor
   ~FeSpace();
+  
+  //! Read parameters from ParamNode and initialize
+  virtual void Init() {};
 
   //! Return type of FeSpace
   SpaceType GetSpaceType() { return type_;}
   
   //! Generate instance of specific element space type
-  static shared_ptr<FeSpace> CreateInstance( SpaceType type );
+  static shared_ptr<FeSpace> CreateInstance( ParamNode* aNode  );
   
   // ========================================================================
   //  INITIALIZATION 
@@ -90,6 +99,9 @@ public:
   
     //! Set isotropic order of functions to be used
   void SetIsoOrder( UInt order );
+  
+  //! Return, if the space is hierarchical
+  bool IsHierarchical() { return isHierarchical_;};
   
   //@}
   
@@ -140,7 +152,7 @@ public:
   virtual void AddFeFunction( shared_ptr<BaseFeFunction> fct ) = 0;
 
   //! Precalculate integration points
-  virtual void PreCalcShapeFncs();
+  virtual void PreCalcShapeFncs() {};
 
   //! Get number of equaitons thich are not fixed by BCs this space has assinged
   virtual UInt GetNumFreeEquations(){
@@ -208,7 +220,9 @@ public:
   
 protected:
 
-
+  //! Parameter node
+  ParamNode * myParam_;
+  
   //! Type of element space
   SpaceType type_;
   
@@ -227,6 +241,9 @@ protected:
   //! element local.
   bool isContinuous_;
 
+  //! Flag indicating use of hierarchical polynomials
+  bool isHierarchical_;
+  
   //! Isotropic polynomial approximation order
   UInt isoOrder_;
   
@@ -283,35 +300,6 @@ protected:
   //! This Variable could be extended to store also the coordinates of all nodes
   //! created
   std::map< UInt, ElemVirtualNodes > virtualNodes_;
-  
-  // =====================================================
-  //  Edge section
-  // =====================================================
-  
-  // Map virtual edges
-  virtual void CreateVirtualEdges();
-  
-  //! Associate element number -> edge numbers
-  
-  //! The difference in comparison to the virtualNodes is, that edges
-  //! always get mapped to edges indstead of "virtual" nodes.
-  std::map< UInt, StdVector<UInt> > virtualEdges_;
-
-  //! Map global edge -> virtual edge
-  std::map<UInt, UInt> gridToVirtualEdges_;
-
-  // =====================================================
-  //  Face section
-  // =====================================================
-  
-  // Create virtual faces
-  virtual void CreateVirtualFaces();
-  
-  //! Associate element number <-> virtual face numbers
-  std::map< UInt, StdVector<UInt> > virtualFaces_;
-
-  //! Map global face -> virtual face
-  std::map<UInt, UInt> gridToVirtualFaces_;
 };
 
 

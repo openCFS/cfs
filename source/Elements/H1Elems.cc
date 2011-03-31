@@ -18,20 +18,20 @@ namespace CoupledField {
   }
   
   
-  void FeH1::EvaluateLagrangePolynomial( Vector<Double> & shape, Double coord ){
-    if(supportingPoints_.find(order_) == supportingPoints_.end() )
-     supportingPoints_[order_] = CalcGaussLobattoPoints(order_);
+  void FeH1::EvaluateLagrangePolynomial( Vector<Double> & shape, Double coord, UInt order ){
+    if(supportingPoints_.find(order) == supportingPoints_.end() )
+     supportingPoints_[order] = CalcGaussLobattoPoints(order);
 
-    StdVector<Double> curSupPoints = supportingPoints_[order_];
+    StdVector<Double> curSupPoints = supportingPoints_[order];
 
-    shape.Resize(order_+1);
+    shape.Resize(order+1);
     shape.Init();
     //get iutegration Pointes
     // From Zienkiewicz, The Finite Element Method. Vol 1, page 122.
-     for( UInt i=0; i<order_+1; i++)
+     for( UInt i=0; i<order+1; i++)
      {
       shape[i] = 1.0;
-      for( UInt p = 0;p< order_+1; p++)
+      for( UInt p = 0;p< order+1; p++)
       {
         if(p==i)
           continue;
@@ -41,32 +41,33 @@ namespace CoupledField {
     }
   }
 
-  void FeH1::EvaluateDerivLagrangePolynomial( Vector<Double> & deriv, Double coord ) {
-    if(supportingPoints_.find(order_) == supportingPoints_.end() )
-     supportingPoints_[order_] = CalcGaussLobattoPoints(order_);
+  void FeH1::EvaluateDerivLagrangePolynomial( Vector<Double> & deriv, Double coord,
+                                              UInt order) {
+    if(supportingPoints_.find(order) == supportingPoints_.end() )
+     supportingPoints_[order] = CalcGaussLobattoPoints(order);
 
-    StdVector<Double> curSupPoints = supportingPoints_[order_];
+    StdVector<Double> curSupPoints = supportingPoints_[order];
 
-    deriv.Resize(order_+1);
+    deriv.Resize(order+1);
     deriv.Init();
-    for ( UInt i = 0; i<order_+1  ; i++)
+    for ( UInt i = 0; i<order+1  ; i++)
     {
       Double sum = 1.0;
-      for ( UInt k=0;k<order_+1 ; k++ )
+      for ( UInt k=0;k<order+1 ; k++ )
       {
         if ( k != i )
         {
           sum=1.0;
-          for ( UInt l=0;l<order_+1 ; l++)
+          for ( UInt l=0;l<order+1 ; l++)
             if ( (l!=i) && (l != k))
               sum *= (coord - curSupPoints[l]);
           deriv[i] += sum;
         }
       }
     }
-    for( UInt i=0; i< order_+1; i++)
+    for( UInt i=0; i< order+1; i++)
     {
-      for( UInt p = 0;p< order_+1; p++)
+      for( UInt p = 0;p< order+1; p++)
       {
         if(p==i)
           continue;
@@ -77,15 +78,50 @@ namespace CoupledField {
 
   }
   
-  void FeH1::GetGlobDerivShFnc( Matrix<Double>& deriv, LocPointMapped& lp,
-                                const Elem* elem, UInt comp ){
+  void FeH1::GetShFnc( Vector<Double>& S, const LocPoint& lp,
+                 const Elem* ptElem,  UInt comp ){
     
+    //check if the shape function is already computed
+    if(lp.number>= shapeFncDerivsAtIp_.GetSize() || comp!=1){
+      CalcShFnc( S, lp.coord, ptElem, comp);
+    }else{
+      S = shapeFncsAtIp_[lp.number];
+    }
+  }
+  
+  void FeH1::GetGlobDerivShFnc( Matrix<Double>& deriv, const LocPointMapped& lpm,
+                                const Elem* elem, UInt comp ){
     // Get local derivative
     Matrix<Double> locDeriv;
-    GetDerivShFnc( locDeriv, lp.lp, elem, comp );
-    deriv = locDeriv * lp.jacInv;
     
+    //check if the shfunction is already computed
+    if(lpm.lp.number>= shapeFncDerivsAtIp_.GetSize()){
+      CalcLocDerivShFnc( locDeriv, lpm.lp.coord, elem, comp);
+    }else{
+      locDeriv = shapeFncDerivsAtIp_[lpm.lp.number];
+    }
+    deriv = locDeriv * lpm.jacInv;
+  }
+  
+  void FeH1::GetLocDerivShFnc( Matrix<Double>& deriv, const LocPoint& lp,
+                               const Elem* elem, UInt comp  ) {
+    if(lp.number>= shapeFncDerivsAtIp_.GetSize()){
+      CalcLocDerivShFnc( deriv, lp.coord, elem, comp);
+    }else{
+      deriv = shapeFncDerivsAtIp_[lp.number];
+    }
+  }
+
+  void FeH1::SetFunctionsAtIp(const StdVector<LocPoint>& iPoints){
     
+    // can only be performed for non-hierarchical elements
+    shapeFncsAtIp_.Resize(iPoints.GetSize());
+    shapeFncDerivsAtIp_.Resize(iPoints.GetSize());
+    for(UInt aPoint = 0; aPoint < iPoints.GetSize();aPoint++){
+      CalcShFnc( shapeFncsAtIp_[aPoint], iPoints[aPoint].coord, NULL, 1);
+      CalcLocDerivShFnc( shapeFncDerivsAtIp_[aPoint], iPoints[aPoint].coord,
+                         NULL, 1);
+    }
   }
   
   void FeH1::CalcAllSupportingPoints(UInt maxOrder){

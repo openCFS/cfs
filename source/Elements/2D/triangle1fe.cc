@@ -12,7 +12,7 @@
 namespace CoupledField
 {
 
-  Triangle1FE::Triangle1FE(IntegrationMethod method, int order) : TriangleFE()
+  Triangle1FE::Triangle1FE(IntegMethod method, int order) : TriangleFE()
   {
 
     Init(method, order);
@@ -22,7 +22,7 @@ namespace CoupledField
   {
   }
 
-  void Triangle1FE::Init(IntegrationMethod method, int order)
+  void Triangle1FE::Init(IntegMethod method, int order)
   {
     NumNodes_ = 3;
 

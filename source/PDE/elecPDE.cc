@@ -202,7 +202,9 @@ namespace CoupledField {
         linElecInt *  linElecForm = new linElecInt( actSDMat, tensorType,
                                                     upLagrangeForm );
         linElecForm->SetFactor( factor );
-        linElecForm->SetIntegration(ptgrid_->GetIntegrationScheme(), descriptions[actDescr].integScheme,descriptions[actDescr].integOrder);
+        linElecForm->SetIntegration(ptgrid_->GetIntegrationScheme(), 
+                                    descriptions[actDescr].integScheme,
+                                    descriptions[actDescr].integOrder);
         
         BiLinFormContext * stiffIntDescr = 
           new BiLinFormContext(linElecForm, STIFFNESS );
@@ -1041,9 +1043,6 @@ namespace CoupledField {
       
       EntityIterator elemIt = actSDList.GetIterator();
       
-//      linElecInt * bilinear_stiff = 
-//        new linElecInt(materials_[regionIt.GetRegion()],tensorType);
-
       // Loop over elements
       energy = 0;
       Vector<TYPE> elpot;
@@ -1493,12 +1492,12 @@ namespace CoupledField {
   }
   void ElecPDE::DefineDefaultFeFunctions(){
     //ok default case so we create grid based approximation H1 elements
-    //and ECONOMICAL integration
+    //and standard Gauss integration
     FunctionDescription fncDescription;
     fncDescription.regions = subdoms_;
-    fncDescription.integScheme = ECONOMICAL;
+    fncDescription.integScheme = IntScheme::GAUSS;
     fncDescription.integOrder = -1;
-    shared_ptr<FeSpace> mySpace( new FeSpaceH1Lagrange );
+    shared_ptr<FeSpace> mySpace( new FeSpaceH1Lagrange(NULL) );
 
     if(analysistype_ == HARMONIC){
       fncDescription.feFunction.reset( new FeFunction<Complex> );

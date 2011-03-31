@@ -43,16 +43,18 @@
                       <xsd:element name="id" type="xsd:token" default="default" minOccurs="1"/>
                       <xsd:element name="quantity" type="DT_ElecUnknownType" 
                       default="elecPotential"/>
-                      <xsd:element name="ansatzType" type="DT_AnsatzType" default="Grid" minOccurs="0"/>
+                      <xsd:element name="spaceType" type="DT_SpaceType" minOccurs="0"/>
+                      <xsd:element name="polyType" type="DT_PolyType" minOccurs="0"/>
                       <xsd:element name="order" minOccurs="0">
                         <xsd:complexType>
-                          <xsd:sequence>
+                          <xsd:choice>
                             <xsd:element name="uniform" type="xsd:int" minOccurs="0" maxOccurs="1" default="0"/>
+                            <xsd:element name="grid"  minOccurs="0" maxOccurs="1"/>
                             <!-- Here we would define anisotropic odering -->
-                          </xsd:sequence>
+                          </xsd:choice>
                         </xsd:complexType>
                       </xsd:element>
-                      <xsd:element name="integrationType" type="DT_IntegType" default="Gauss_standard" minOccurs="0"/>
+                      <xsd:element name="integrationType" type="DT_IntegType" default="Gauss" minOccurs="0"/>
                       <xsd:element name="integrationOrder" type="xsd:int" default="-1" minOccurs="0" maxOccurs="1"/>
                       <xsd:element name="entityLists" minOccurs="0">
                         <xsd:complexType>

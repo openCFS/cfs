@@ -16,7 +16,7 @@ namespace CoupledField
   DECLARE_LOG(line1fe)
   DEFINE_LOG(line1fe,"line1fe")
 
-  Line1FE::Line1FE(IntegrationMethod method, int order) : LineFE()
+  Line1FE::Line1FE(IntegMethod method, int order) : LineFE()
   {
 
     Init(method, order);
@@ -28,7 +28,7 @@ namespace CoupledField
     if(sShFcnAtIp_) delete[] sShFcnAtIp_;
   }
 
-  void Line1FE::Init(IntegrationMethod method, int order)
+  void Line1FE::Init(IntegMethod method, int order)
   {
     NumNodes_ = 2;
 

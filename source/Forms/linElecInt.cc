@@ -75,7 +75,7 @@ void linElecInt::ApplyBMat( Vector<Double>& retVec,
    // coords (format: nrNodes x spaceDim)
    Matrix<Double> xiDx;
    FeH1 *feH1 = (dynamic_cast<FeH1*>(ptFe));
-   feH1->GetGlobDerivShFnc( xiDx, lp, NULL, 1 );
+   feH1->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem(), 1 );
    retVec = Transpose(xiDx) * solVec;
 }
 void linElecInt::ApplyBMat( Vector<Complex>& retVec,  

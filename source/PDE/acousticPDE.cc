@@ -30,6 +30,7 @@
 //#include "Domain/ansatzFct.hh"
 #include "Driver/assemble.hh"
 #include "Domain/domain.hh"
+#include "Elements/H1Elems.hh"
 
 #ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh"
@@ -1701,7 +1702,7 @@ namespace CoupledField {
 
     // loop over all elements of subdomain
     for (it.Begin(); !it.IsEnd(); it++ ) {
-      BaseFE * ptElem; // = feSpace_->GetFe(it);
+      FeH1 * ptElem; // = feSpace_->GetFe(it);
       RegionIdType actRegion = it.GetElem()->regionId;
       materials_[actRegion]->GetScalar(density,DENSITY,Global::REAL);
 

@@ -207,7 +207,7 @@ namespace CoupledField {
         // boundary nodes to the specified value.
         // If it is the H1Hi, we set the EDGE /FACE / INNER nodes to zero,
         // as we assume a linear boundary condition.
-        if( feSpace_->GetSpaceType() == FeSpace::H1_HI )  {
+        if( feSpace_->IsHierarchical() ) {
          feSpace_->GetEqns(vEqns, it, dof, BaseFE::VERTEX ); 
         }
         feSpace_->GetEqns( eqns, it, dof  );
@@ -234,7 +234,7 @@ namespace CoupledField {
           // if we have the higher order H1 space, we just set
           // the dirichelt values for the vertex unknowns.
           // The edge/face/inner ones are assumed to be constant.
-          if( feSpace_->GetSpaceType() == FeSpace::H1_HI 
+          if( feSpace_->IsHierarchical()  
               && iEqn >= vEqns.GetSize() )  {
             algsys_->SetDirichlet(  fctId_, eqnNr, 0.0);
           } else {

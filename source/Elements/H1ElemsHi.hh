@@ -1,11 +1,14 @@
 // -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode c
 #ifndef FILE_CFS_H1_ELEMENTS_HI_HH
 #define FILE_CFS_H1_ELEMENTS_HI_HH
 
 #include "H1Elems.hh"
+#include <boost/array.hpp>
+
 
 namespace CoupledField {
-
   //! Base class for hierarchical H1-conforming finite elements of arbitrary order
   
   //! This is the base class for all H1 elements of arbitrary order using 
@@ -21,6 +24,9 @@ namespace CoupledField {
     //! Destructor
     virtual ~FeH1Hi();
 
+
+    //! Set isotropic polynomial order
+    void SetIsoOrder(UInt order);
     
     //! Calculate the shape functions / local derivatives for all integration points
     
@@ -55,28 +61,53 @@ namespace CoupledField {
 
     
   protected:
-
-    //@{
+    
+    //! Calculate number of unknowns
+    void CalcNumUnknowns();
+    
+    //! Flag if re-calculation of number of unknowns is needed
+    
+    //! After changing the order of the element, a re-calculation of 
+    //! the unumber of unknowns (actNumFncs_) is necessary.
+    bool updateUnknowns_;
+    
+    //! Number of shape functions per entity
+    std::map<EntityType,StdVector<UInt> > entityFncs_;
+    
+    // ========================================================================
+    // DEFINITION OF (ANISOTROPIC) ORDER
+    // ========================================================================
+    //@{ \name Definition of (anisotropic) polynomial order
+    
+    //! Polynomial order of edges (#edges x 1 local direction)
+    StdVector<UInt> orderEdge_;
+    
+    //! Polynomial order of faces (#faces x 2 local directions)
+    StdVector<boost::array<UInt,2> > orderFace_;
+    
+    //! Polynomial order of inner (1 x 3 local directions)
+    boost::array<UInt,3> orderInner_;
+    //@}
+    
+    
+    // ========================================================================
+    // DEPRECATED / OLD METHODS
+    // ========================================================================
+    //@{ \name Deprecated section
     //! Temporary helper functions until we use the final
     //! polynomial object 
-    
+
     //! New version: Calculate all Legendre polynomials up to order p
     //void EvalPolynom( UInt p, Vector<Double>& vals );
-    
+
     //! Evaluate polynom and its derivative using Honer's algorithm
     void EvalPolynom( Double& value, Double& deriv,
-                 const UInt order, const Double* coeff,
-                 const Double xVal );
+                      const UInt order, const Double* coeff,
+                      const Double xVal );
 
     //! Coefficients of 1D Legendre coefficients up to order 8
     static Double lCoeff_[9][10];
     //@}
-    
-    //! Polynomial order per entity
-    std::map<EntityType,StdVector<UInt> > entityOrder_;
-  
-    //! Number of shape functions per entity
-    std::map<EntityType,StdVector<UInt> > entityFncs_;
   };
 
  
@@ -92,18 +123,20 @@ namespace CoupledField {
     //! Destructor
     virtual ~FeH1HiLine();
     
-    //! Set isotropic polynomial order
-    void SetIsoOrder(UInt order);
-
   protected:
 
-    //! @see BaseFE::GetShFnc 
-    void GetShFnc( Vector<Double>& shape, const LocPoint& lp,
-                   const Elem* ptElem, UInt comp = 1 ); 
+    //! @see FeH1::CalcShFnc
+    void CalcShFnc( Vector<Double>& shape,
+                    const Vector<Double>& point,
+                    const Elem* ptElem,
+                    UInt comp = 1 );
 
-    //! @see BaseFE::GetDerivShFnc 
-    void GetDerivShFnc( Matrix<Double> & deriv, const LocPoint& lp,
-                        const Elem * elem,  UInt comp = 1);
+    //! @see FeH1::CalcLocDerivShFnc
+    void CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                            const Vector<Double>& point,
+                            const Elem* ptElem,
+                            UInt comp = 1 );
+
 
   };
 
@@ -119,45 +152,61 @@ namespace CoupledField {
     //! Destructor
     virtual ~FeH1HiQuad();
 
-    //! Set isotropic polynomial order
-    void SetIsoOrder(UInt order);
-    
-
-    //! @see BaseFE::GetShFnc 
-    void GetShFnc( Vector<Double>& shape, const LocPoint& lp,
-                   const Elem * elem, UInt comp = 1 ); 
-
-    //! @see BaseFE::GetDerivShFnc 
-    void GetDerivShFnc( Matrix<Double> & deriv, const LocPoint& lp,
-                        const Elem * elem,  UInt comp = 1);
   protected:
+
+    //! @see FeH1::CalcShFnc
+    void CalcShFnc( Vector<Double>& shape,
+                    const Vector<Double>& point,
+                    const Elem* ptElem,
+                    UInt comp = 1 );
+
+    //! @see FeH1::CalcLocDerivShFnc
+    void CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                            const Vector<Double>& point,
+                            const Elem* ptElem,
+                            UInt comp = 1 );
+
+    
+    //! Templatized version of calculation for shape function
+    template<typename T_SCAL, typename T_VEC>
+    void _CalcShFnc( const T_SCAL x, const T_SCAL y, 
+                     const Elem * elem,
+                     T_VEC& ret );
     };
 
   
   //! H1 conforming hierarchical higher order hexahedral element
-   class  FeH1HiHex : public FeH1Hi {
+  class  FeH1HiHex : public FeH1Hi {
 
-   public:
+  public:
 
-     //! Constructor
-     FeH1HiHex();
-     
-     //! Destructor
-     virtual ~FeH1HiHex();
-     
-     //! Set isotropic polynomial order
-     void SetIsoOrder(UInt order);
+    //! Constructor
+    FeH1HiHex();
 
-     protected:
-     //! @see BaseFE::GetShFnc 
-     void GetShFnc( Vector<Double>& shape, const LocPoint& lp,
-                    const Elem * elem, UInt comp = 1 ); 
+    //! Destructor
+    virtual ~FeH1HiHex();
 
-     //! @see BaseFE::GetDerivShFnc 
-     void GetDerivShFnc( Matrix<Double> & deriv, const LocPoint& lp,
-                         const Elem * elem,  UInt comp = 1);
+  protected:
 
-   };
+    //! @see FeH1::CalcShFnc
+    void CalcShFnc( Vector<Double>& shape,
+                    const Vector<Double>& point,
+                    const Elem* ptElem,
+                    UInt comp = 1 );
+
+    //! @see FeH1::CalcLocDerivShFnc
+    void CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                            const Vector<Double>& point,
+                            const Elem* ptElem,
+                            UInt comp = 1 );
+
+    //! Templatized version of calculation for shape function
+    template<typename T_SCAL, typename T_VEC>
+    void _CalcShFnc( const T_SCAL x, const T_SCAL y, const T_SCAL z,
+                     const Elem * elem,
+                     T_VEC& ret );
+
+  };
 
 } // namespace CoupledField
 

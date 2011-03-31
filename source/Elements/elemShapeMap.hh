@@ -136,14 +136,14 @@ namespace CoupledField {
     //! Constructor
     //! @param ptGrid input Pointer to Grid
     //! @param isUpdated input Use of updated Lagrangian formulation
-    ElemShapeMap( Grid* ptGrid, bool isUpdated = false );
+    ElemShapeMap( Grid* ptGrid );
 
     //! Destructor
     virtual ~ElemShapeMap();
 
     //! Set current element
     //! @param ptElem output Current element
-    virtual void SetElem( const Elem* ptElem );
+    virtual void SetElem( const Elem* ptElem,bool isUpdated = false  );
     
     //! Set current element
     //! @param ptElem output Current element
@@ -176,8 +176,8 @@ namespace CoupledField {
                                const Vector<Double>& globPoint ) = 0;
 
     //! Calculate global midpoint of element
-    //! @param locPoint input Element local point
-    virtual void GetGlodMidPoint( Vector<Double>& locPoint ) = 0;
+    //! @param midPoint output Global element midpoint
+    virtual void GetGlodMidPoint( Vector<Double>& midPoint ) = 0;
 
     //! Calculate volume of element
     virtual Double CalcVolume( ) = 0;
@@ -207,7 +207,7 @@ namespace CoupledField {
     virtual void CalcBarycenter( Vector<Double>& baryCenter )  = 0;
 
     //! Compute length of edge with maximal/minimal size
-    virtual void GetMaxMinEdgeLength( )  = 0;
+    virtual void GetMaxMinEdgeLength( Double& max, Double& min)  = 0;
 
     //! Compute the average side length for all dimenstions. Clearly works only 
     //! for quadrilaterals ans hexahedrons.
@@ -274,13 +274,13 @@ namespace CoupledField {
 
   public:
     //! Constructor
-    LagrangeElemShapeMap( Grid* ptGrid, bool isUpdated = false );
+    LagrangeElemShapeMap( Grid* ptGrid );
 
     //! Destructor
     ~LagrangeElemShapeMap();
 
     //! @see ElemShapeMap::SetElem
-    virtual void SetElem( const Elem* ptElem );
+    virtual void SetElem( const Elem* ptElem, bool isUpdated = false );
 
     // ---------------------------------------------------
     //   Coordinate Mapping
@@ -293,8 +293,9 @@ namespace CoupledField {
     //! @see ElemShapeMap::Global2Local
     void Global2Local( Vector<Double>& locPoint, 
                        const Vector<Double>& glob );
+    
     //! @see ElemShapeMap::GetGlobMidPoint
-    void GetGlodMidPoint( Vector<Double>& locPoint );
+    void GetGlodMidPoint( Vector<Double>& midPoint );
 
     //! @see ElemShapeMap::CalcVolume
     Double CalcVolume( );
@@ -315,7 +316,7 @@ namespace CoupledField {
     void CalcBarycenter( Vector<Double>& baryCenter );
 
     //! @see ElemShapeMap::GetMaxMinEdgeLength
-    void GetMaxMinEdgeLength( );
+    void GetMaxMinEdgeLength( Double& max, Double& min);
 
     //! @see ElemShapeMap::GetEdgeLength
     void GetEdgeLength( StdVector<Double>& edges_out);
@@ -342,6 +343,9 @@ namespace CoupledField {
 
     //! Nodal coordinates
     Matrix<Double> coords_;
+    
+    //! Shape of reference element
+    ElemShape shape_;
     
   };
 

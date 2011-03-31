@@ -15,6 +15,8 @@ namespace CoupledField
 
   // Forward declaration of classes
   class Coil;
+  class CurlCurlEdgeInt;
+  class nLinCurlCurlEdgeInt;
 
   //! Class for 3D magnetics using edge elements
   class MagEdgePDE : public SinglePDE
@@ -67,9 +69,13 @@ namespace CoupledField
 
     //! returns if PDE can compute the quantity
     bool HasOutput(SolutionType output);
+    
+    //! Define Default FeFunctions for this PDE according to the
+    //! needs of the particular PDE
+    virtual void DefineDefaultFeFunctions();
 
   protected:
-
+    
     // =======================================================================
     //  Initialization
     // =======================================================================
@@ -92,6 +98,10 @@ namespace CoupledField
     // =======================================================================
     //! computes the magnetic flux density
     template<class TYPE>
+    void CalcVecPotential( shared_ptr<BaseResult> result );
+    
+    //! computes the magnetic flux density
+    template<class TYPE>
     void CalcFluxDensity( shared_ptr<BaseResult> result );
 
     //! computes the eddy current denstiy
@@ -102,9 +112,12 @@ namespace CoupledField
     template<class TYPE>
     void CalcEnergy( shared_ptr<BaseResult> result );
     
-    //! computes the divergence of the magnetic potential
     template<class TYPE>
-    void CalcMagPotentialDiv( shared_ptr<BaseResult> result );
+    void CalcPermeability( shared_ptr<BaseResult> result );
+    
+//    //! computes the divergence of the magnetic potential
+//    template<class TYPE>
+//    void CalcMagPotentialDiv( shared_ptr<BaseResult> result );
     
     // ---- Magnetic Force variables ---
  
@@ -119,23 +132,32 @@ namespace CoupledField
     //   HELPER METHODS FOR CALCULATING AUXILIARY QUANTITIES 
     // =======================================================================
     
+    //! Calc Magnetic vector potential in integration point
+
+    //! Calculates the magnetic vector potential  at the given integration point
+    template<class TYPE>
+    void CalcVecPotentialAtIP( EntityIterator it,
+                               LocPoint lp,
+                               Vector<TYPE>& field );
+
+    
     //! Calc FluxDensity in integration point
 
     //! Calculates the flux density B = rot(A) at the given integration point.
     //! If ip is 0, the midpoint of the element is evaluated.
     template<class TYPE>
     void CalcFluxDensityAtIP( EntityIterator it,
-                              UInt ip,
+                              LocPoint lp,
                               Vector<TYPE>& field );
 
-    //! Calc EddyCurrent in integration point
-
-    //! Calculates the eddy current (density) at the given integration point.
-    //! If ip is 0, the midpoint of the element is evaluated.
-    template<class TYPE>
-    void CalcEddyCurrentAtIP( EntityIterator it,
-                              UInt ip,
-                              Vector<TYPE>& field );
+//    //! Calc EddyCurrent in integration point
+//
+//    //! Calculates the eddy current (density) at the given integration point.
+//    //! If ip is 0, the midpoint of the element is evaluated.
+//    template<class TYPE>
+//    void CalcEddyCurrentAtIP( EntityIterator it,
+//                              UInt ip,
+//                              Vector<TYPE>& field );
                               
     //! computation of Lorentz force
     void CalcNodeForceLorentz( Vector<Double> & force, 
@@ -143,6 +165,12 @@ namespace CoupledField
                                UInt actCoupling, 
                                UInt numCouplingNodes );
     
+    //! Linear curl-curl integrators for every domain
+    std::map<RegionIdType, CurlCurlEdgeInt*> linBilinForms_;
+    
+    //! Nonlinear curl-curl integrators for every domain
+    std::map<RegionIdType, nLinCurlCurlEdgeInt*> nlinBilinForms_;
+
 
     // =======================================================================
     //   COILS
@@ -187,7 +215,7 @@ namespace CoupledField
     // =======================================================================
     //   COILS
     // =======================================================================
-    std::string nonLinMethod_;
+    NonLinMethodType nonLinMethod_;
     
     
   private:

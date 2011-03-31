@@ -70,116 +70,121 @@ namespace CoupledField {
                                       EntityType fctEntityType,
                                       UInt entNumber);
 
-    ////! Return shape function
-    //void GetShFnc( Vector<Double> & S, const LocPoint& lp,
-    //               const Elem* ptElem,  UInt comp = 1 );
-
-    ////! Return local derivative of shape function
-    //void GetDerivShFnc( Matrix<Double> & deriv, 
-    //                    const LocPoint& lp,
-    //                    const Elem * elem, 
-    //                    UInt comp = 1 );
-
-    //! returns the number of functions for a single edge or face
-    UInt GetNumFncsPerEntType( EntityType fctEntityType, UInt dof = 1);
+    //! Returns the number of functions for a single edge or face
+    UInt GetNumFncsPerEntType( EntityType fctEntityType, UInt dof = 1 );
 
   protected:
 
-    //! Compute shape function at given position
+    //! @see FeH1::CalcShFnc
     virtual void CalcShFnc( Vector<Double>& shape,
-                            const Vector<Double>& point ) = 0;
+                            const Vector<Double>& point,
+                            const Elem* ptElem,
+                            UInt comp = 1 ) = 0;
 
-    //! Compute local derivative at of shape function at given position
-    virtual void CalcDerivShFnc( Matrix<Double> & deriv, 
-                                 const Vector<Double>& point ) = 0;
-
-    //! Valued of shape functions at integration points
-    StdVector<Vector<Double> > shapeAtIp_;
-
-    //! Value of local derivatives of shape functions at integration points
-    StdVector<Matrix<Double> > shapeDerivAtIp_;
-
+    //! @see FeH1::CalcLocDerivShFnc
+    virtual void CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                                    const Vector<Double>& point,
+                                    const Elem* ptElem,
+                                    UInt comp = 1 ) = 0;
+    
+    //! Polynomial order of the finite element
+    UInt order_;
   };
 
   //! Lagrangian line element of variable order
   class FeH1LagrangeLineVar : public FeH1LagrangeVar {
 
-    public:
+  public:
 
-      //! Constructor
-      FeH1LagrangeLineVar();
+    //! Constructor
+    FeH1LagrangeLineVar();
 
-      //! Destructor
-      virtual ~FeH1LagrangeLineVar();
+    //! Destructor
+    virtual ~FeH1LagrangeLineVar();
 
-      //! Set the isotropic order of the Element. This methods gets overwritten 
-      //! by the child classes to calculate the number of functions according to
-      //! the given order
-      //! \param order (input) The desired order of the element
-      virtual void SetIsoOrder(UInt order);
+    //! Set the isotropic order of the Element. This methods gets overwritten 
+    //! by the child classes to calculate the number of functions according to
+    //! the given order
+    //! \param order (input) The desired order of the element
+    virtual void SetIsoOrder(UInt order);
 
-    protected:
+  protected:
 
-      //! @see FeH1LagrangeExpl::CalcShapeFnc 
-      void CalcShFnc( Vector<Double>& shape,
-                      const Vector<Double>& point );
+    //! @see FeH1::CalcShFnc
+    void CalcShFnc( Vector<Double>& shape,
+                    const Vector<Double>& point,
+                    const Elem* ptElem,
+                    UInt comp = 1 );
 
-      //! @see FeH1LagrangeExpl::CalcDerivShFnc 
-      void CalcDerivShFnc( Matrix<Double> & deriv, 
-                           const Vector<Double>& point );
+    //! @see FeH1::CalcLocDerivShFnc
+    void CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                            const Vector<Double>& point,
+                            const Elem* ptElem,
+                            UInt comp = 1 );
   };
+  
   //! Lagrangian quadrilateral element of variable order 
   class FeH1LagrangeQuadVar : public FeH1LagrangeVar {
 
-    public:
+  public:
 
-      //! Constructor
-      FeH1LagrangeQuadVar();
+    //! Constructor
+    FeH1LagrangeQuadVar();
 
-      //! Destructor
-      virtual ~FeH1LagrangeQuadVar();
+    //! Destructor
+    virtual ~FeH1LagrangeQuadVar();
 
-      //! Set the isotropic order of the Element. This methods gets overwritten 
-      //! by the child classes to calculate the number of functions according to
-      //! the given order
-      //! \param order (input) The desired order of the element
-      virtual void SetIsoOrder(UInt order);
+    //! Set the isotropic order of the Element. This methods gets overwritten 
+    //! by the child classes to calculate the number of functions according to
+    //! the given order
+    //! \param order (input) The desired order of the element
+    virtual void SetIsoOrder(UInt order);
 
-    protected:
+  protected:
 
-      //! @see FeH1LagrangeExpl::CalcShapeFnc 
-      void CalcShFnc( Vector<Double>& shape,
-                      const Vector<Double>& point );
+    //! @see FeH1::CalcShFnc
+    void CalcShFnc( Vector<Double>& shape,
+                    const Vector<Double>& point,
+                    const Elem* ptElem,
+                    UInt comp = 1 );
 
-      //! @see FeH1LagrangeExpl::CalcDerivShFnc 
-      void CalcDerivShFnc( Matrix<Double> & deriv, 
-                           const Vector<Double>& point );
-   };
-   //! Lagrangian hexahedral element of varaiable order
+    //! @see FeH1::CalcLocDerivShFnc
+    void CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                            const Vector<Double>& point,
+                            const Elem* ptElem,
+                            UInt comp = 1 );
+  };
+  
+  //! Lagrangian hexahedral element of varaiable order
   class FeH1LagrangeHexVar : public FeH1LagrangeVar {
 
-    public:
+  public:
 
-      //! Constructor
-      FeH1LagrangeHexVar();
+    //! Constructor
+    FeH1LagrangeHexVar();
 
-      //! Destructor
-      virtual ~FeH1LagrangeHexVar();
+    //! Destructor
+    virtual ~FeH1LagrangeHexVar();
 
-      //! Set the isotropic order of the Element. This methods gets overwritten 
-      //! by the child classes to calculate the number of functions according to
-      //! the given order
-      //! \param order (input) The desired order of the element
-      virtual void SetIsoOrder(UInt order);
-    protected:
+    //! Set the isotropic order of the Element. This methods gets overwritten 
+    //! by the child classes to calculate the number of functions according to
+    //! the given order
+    //! \param order (input) The desired order of the element
+    virtual void SetIsoOrder(UInt order);
 
-      //! @see FeH1LagrangeExpl::CalcShapeFnc 
-      void CalcShFnc( Vector<Double>& shape,
-                      const Vector<Double>& point );
+  protected:
 
-      //! @see FeH1LagrangeExpl::CalcDerivShFnc 
-      void CalcDerivShFnc( Matrix<Double> & deriv, 
-                           const Vector<Double>& point );
+    //! @see FeH1::CalcShFnc
+    void CalcShFnc( Vector<Double>& shape,
+                    const Vector<Double>& point,
+                    const Elem* ptElem,
+                    UInt comp = 1 );
+
+    //! @see FeH1::CalcLocDerivShFnc
+    void CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                            const Vector<Double>& point,
+                            const Elem* ptElem,
+                            UInt comp = 1 );
   };  
 }
-#endif     // -----  not FILE_CFS_H1LAGRANGEVAR_HH  -----
+#endif  

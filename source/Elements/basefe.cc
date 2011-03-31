@@ -1,89 +1,26 @@
 // -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
-#include <iostream>
-#include <fstream>
-#include <string>
 #include <numeric>
 
-
-#include <string.h>
 #include "basefe.hh"
 #include "Domain/elem.hh"
-//#include "1D/line1fe.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include <Domain/elem.hh>
-#include <Utils/tools.hh>
-#include <MatVec/matrix.hh>
-#include <DataInOut/WriteInfo.hh>
+#include "MatVec/matrix.hh"
+
 
 namespace CoupledField
 {
 
-  BaseFE::BaseFE()
-  {
-
-    // initializing dynamic objects
-//    ShFncAtIp_             = NULL;
-//    ShFncDerivAtIp_        = NULL;
-//    ShFnc2ndDerivAtIp_     = NULL;
-//    ShFncICModesAtIp_      = NULL;
-//    ShFncICModesDerivAtIp_ = NULL;
-//  IntPoints_             = NULL;
-
-    // Create dummy ansatzFct object for lagrange functions
-//    shared_ptr<AnsatzFct> fct( new LagrangeFct() );
-//    actFct_ = fct;
+  BaseFE::BaseFE() {
     actNumFncs_ = 0;
-    order_ = 0;
-
-//    ICModes_     = false;
-//    CalcICModes_ = false;
-//    edgeIndices_ = NULL;
-//    faceIndices_ = NULL;
+    feType_ = Elem::ET_UNDEF;
   }
 
-  BaseFE::~BaseFE()
-  {
-      //
-      //    if( ShFncAtIp_ ) delete[] ShFncAtIp_;
-      //    if( ShFncDerivAtIp_ ) delete[] ShFncDerivAtIp_;
-      //    if( ShFnc2ndDerivAtIp_ ) delete[] ShFnc2ndDerivAtIp_;
-      //    if( IntPoints_ ) delete[] IntPoints_;
-      
-      //    if(edgeIndices_ != NULL) { delete[] edgeIndices_; edgeIndices_ = NULL; }
-      //    if(faceIndices_ != NULL) { delete[] faceIndices_; faceIndices_ = NULL; }
-      //    if(ShFncICModesAtIp_) { delete[]  ShFncICModesAtIp_ ; ShFncICModesAtIp_ = NULL; }
-      //    if(ShFncICModesDerivAtIp_) { delete[]  ShFncICModesDerivAtIp_ ; ShFncICModesDerivAtIp_ = NULL; }
-      
-          // delete our map. The content of normal integration rules are static array
-          // the cartesian rules are complete dynamic
-      //    std::map<const std::string, StdVector<Double*>*>::iterator iter;
-      //    for(iter = IntegrationPointsMap_.begin();
-      //        iter != IntegrationPointsMap_.end(); iter++)  {
-      //      StdVector<Double*>* data = iter->second;
-      //      if(data != NULL) {
-      //        if(iter->first.find("Cartesian", 0 ) != std::string::npos)  {
-      //          for(UInt i = 0; i < data->GetSize(); i++)  {
-      //            delete (*data)[i];
-      //          }
-      //        }
-      //
-      //        delete data;
-      //      }
-      //    }
+  BaseFE::~BaseFE() {
       
   }
 
-  void BaseFE::SetFunctionsAtIp(const StdVector<LocPoint>& iPoints){
-    shapeFncsAtIp_.Resize(iPoints.GetSize());
-    shapeFncDerivsAtIp_.Resize(iPoints.GetSize());
-    for(UInt aPoint = 0; aPoint < iPoints.GetSize();aPoint++){
-      CalcShFnc( shapeFncsAtIp_[aPoint], iPoints[aPoint].coord);
-      CalcDerivShFnc( shapeFncDerivsAtIp_[aPoint], iPoints[aPoint].coord);
-    }
-  }
+
   
   UInt BaseFE::GetNumFncs( EntityType entType,
                            UInt dof ) {
@@ -1144,7 +1081,7 @@ namespace CoupledField
 //  }
 
 
-//  void BaseFE::MakeKey(IntegrationMethod type, int order, std::string &out)
+//  void BaseFE::MakeKey(IntegMethod type, int order, std::string &out)
 //  {
 //    Enum2String(type, out);
 //    std::stringstream ss;
@@ -1193,7 +1130,7 @@ namespace CoupledField
 //
 //
 //  /** check CreateCartesian... for similar implementation! */
-//  void BaseFE::AddIntegrationPoints(IntegrationMethod type, int order,
+//  void BaseFE::AddIntegrationPoints(IntegMethod type, int order,
 //                                    int numberOfRows, Double* data)
 //  {
 //
@@ -1220,7 +1157,7 @@ namespace CoupledField
 //
 //  }
 //
-//  StdVector<Double*>* BaseFE::GetIntegrationPoints(IntegrationMethod type, int order, bool search_upwards,
+//  StdVector<Double*>* BaseFE::GetIntegrationPoints(IntegMethod type, int order, bool search_upwards,
 //                                                   bool search_downwards, bool fallback)
 //  {
 //    std::string key;
@@ -1270,7 +1207,7 @@ namespace CoupledField
 //    int alt_o = IntegOrder >= 2 ? 2 : 1;
 //
 //    // when no economical already use it - if economical doesn't work use classic
-//    IntegrationMethod alt_m = IntegOrder == ECONOMICAL ? CLASSICAL : ECONOMICAL;
+//    IntegMethod alt_m = IntegOrder == ECONOMICAL ? CLASSICAL : ECONOMICAL;
 //    StdVector<Double*>* data = GetIntegrationPoints(alt_m, alt_o, false, false, false);
 //
 //    // more tries
@@ -1302,7 +1239,7 @@ namespace CoupledField
 //    exit(-1);
 //  }
 //
-//  void BaseFE::CommonInit(IntegrationMethod method, int order)
+//  void BaseFE::CommonInit(IntegMethod method, int order)
 //  {
 //
 // #ifndef INTEGLIB
@@ -1453,7 +1390,7 @@ namespace CoupledField
 //  }
 
 //  /** Expicitly set and load the integration type  */
-//  void BaseFE::SetIntPoints(IntegrationMethod method, int order)
+//  void BaseFE::SetIntPoints(IntegMethod method, int order)
 //  {
 //    IntegMethod = method;
 //    IntegOrder  = order;

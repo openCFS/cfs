@@ -21,18 +21,13 @@ namespace CoupledField {
 
     //! Get (vectorial) shape functions
     
-    //! Calculate vectorial shape functions
-    virtual void GetShFnc( Matrix<Double>& S, const LocPoint& lp,
-                           const Elem* ptElem,  UInt comp = 1 )  = 0;
-    
-    //! Calculate Global Curl of shape functions
-    void GetCurlShFcn( Matrix<Double>& s, const LocPoint& lp, 
-                       const Elem* ptElem,  UInt comp = 1 );
-     
-    
-    //! Return global derivative of shape functions
-    void GetGlobDerivShFnc( Matrix<Double>& deriv, LocPointMapped& lp,
-                            const Elem* elem, UInt comp = 1 );
+    //! Return HCurl shape functions 
+    virtual void GetShFnc( Matrix<Double>& shape, LocPointMapped& lp,
+                           const Elem* elem, UInt comp = 1 );
+
+    //! Return global curl of shape functions
+    void GetCurlShFnc( Matrix<Double>& curl, LocPointMapped& lp,
+                       const Elem* elem, UInt comp = 1 );
 
     //! Set the isotropic order of the Element. This methods gets overwritten 
     //! by the child classes to calculate the number of functions according to
@@ -56,16 +51,17 @@ namespace CoupledField {
 
   protected:
     
-    //! Polynomial shape function
-    //IntLegendrePol poly_;
+    //! Calculate local basis functions (based on local gradient)
+    virtual void CalcLocShFnc( Matrix<Double>& curl, LocPointMapped& lp,
+                             const Elem* elem, UInt comp = 1 ) = 0;
+    
+    //! Calculate local curl of basis function
+    virtual void CalcLocCurlShFnc( Matrix<Double>& curl, LocPointMapped& lp,
+                                   const Elem* elem, UInt comp = 1 ) = 0;
+
     
   private:
   };
-
-  
-  // ========================================================================
-  //  H1 Fe Lagrangian Elements of lowest order (1st / 2nd)
-  // ========================================================================
   
 } // namespace CoupledField
 

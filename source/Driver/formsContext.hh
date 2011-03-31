@@ -225,13 +225,6 @@ namespace CoupledField
     //! Pointer to second entity list
     shared_ptr<EntityList> ent2_;
 
-    //OBSOLETE is replaced by FeSpace
-    ////! Pointer to first equation map
-    //shared_ptr<EqnMap> map1_;
-
-    ////! Pointer to second equation map
-    //shared_ptr<EqnMap> map2_;
-
     //! Pointer to first FeFunction
     shared_ptr<BaseFeFunction> feFct1_;
 

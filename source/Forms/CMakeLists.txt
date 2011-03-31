@@ -10,7 +10,7 @@ SET(FORMS_SRCS
 #  baseoperator.cc
   bdbInt.cc
 #  bdInt.cc
-#  curlCurlEdgeInt.cc
+  curlCurlEdgeInt.cc
 #  curlCurlNodeInt.cc
  # curlfieldop.cc
 #  elecchargeop.cc
@@ -22,7 +22,7 @@ SET(FORMS_SRCS
 #  FlatShellStiffInt.cc
 #  gradfieldop.cc
 #  laplaceInt.cc
-#  linearForm.cc
+  linearForm.cc
 #  linElastInt.cc
   linElecInt.cc
 #  linNeumannInt.cc
@@ -38,10 +38,11 @@ SET(FORMS_SRCS
 #  linHeatCondInt.cc
 #  linViscoElastInt.cc
 #  magforceop.cc
-#  massEdgeInt.cc
+ massEdgeInt.cc
 #  massInt.cc
 #  mechStressStrain.cc
 #  nLincurlCurlNodeInt.cc
+nLincurlCurlEdgeInt.cc
 #  nLinElastInt.cc
 #  nLinElecHystInt.cc
 #  nLinElecMaterial.cc

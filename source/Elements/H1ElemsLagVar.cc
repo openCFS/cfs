@@ -36,7 +36,8 @@ namespace CoupledField {
   //========================================================================
   
     FeH1LagrangeVar::FeH1LagrangeVar(){
-      // Precalculate the supporting Points up do order 5
+    order_ = 0;
+    // Precalculate the supporting Points up do order 5
       CalcAllSupportingPoints(5);
     }
 
@@ -78,14 +79,12 @@ namespace CoupledField {
                                                EntityType fctEntityType,
                                                UInt entNumber){
       if( fctEntityType == VERTEX ) {
-        fncPermutation.Resize(shape_.numNodes);
-        for ( UInt i = 0; i < shape_.numNodes; i++ ){
-          fncPermutation[i] = i;
-        }
+        fncPermutation.Resize(1);
+        fncPermutation.Init(0);
       }else if( fctEntityType == EDGE ) {
         fncPermutation.Resize(order_-1);
 
-        //TODO> safty check if the requested entNumber is valid
+        //TODO> safety check if the requested entNumber is valid
         Integer factor = ptElem->edges[entNumber]; 
         if(factor < 0 ){
           for ( UInt i = 0; i < order_-1 ; i++ ) {
@@ -174,7 +173,9 @@ namespace CoupledField {
     }
 
     void FeH1LagrangeLineVar::CalcShFnc( Vector<Double>& Shape,
-                                         const Vector<Double>& point ){
+                                         const Vector<Double>& point,
+                                         const Elem* ptElem,
+                                         UInt comp  ) {
       Shape.Resize( actNumFncs_ );
       Shape.Init();
       //now get the shape functions and the derivatives for the given coordinates
@@ -182,7 +183,7 @@ namespace CoupledField {
        supportingPoints_[actNumFncs_-1] = CalcGaussLobattoPoints(actNumFncs_-1);
 
       Vector<Double> lagPoly;
-      EvaluateLagrangePolynomial(lagPoly, point[0] );
+      EvaluateLagrangePolynomial(lagPoly, point[0],order_ );
 
       UInt counter = 0;
       Shape[counter++] = lagPoly[0];
@@ -194,8 +195,10 @@ namespace CoupledField {
       return;
     }
 
-    void FeH1LagrangeLineVar::CalcDerivShFnc( Matrix<Double> & deriv, 
-                                              const Vector<Double>& point ){
+    void FeH1LagrangeLineVar::CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                                                 const Vector<Double>& point,
+                                                 const Elem* ptElem,
+                                                 UInt comp ) {
       if(supportingPoints_.find(actNumFncs_-1) == supportingPoints_.end() )
        supportingPoints_[actNumFncs_-1] = CalcGaussLobattoPoints(actNumFncs_-1);
 
@@ -204,7 +207,7 @@ namespace CoupledField {
       deriv.Resize( actNumFncs_, shape_.dim );
 
       //now get the shape functions and the derivatives for the given coordinates
-      EvaluateDerivLagrangePolynomial( lagPoly,point[0] );
+      EvaluateDerivLagrangePolynomial( lagPoly,point[0],order_ );
 
       deriv[0][0] = lagPoly[0];
       deriv[1][0] = lagPoly[order_];
@@ -234,7 +237,9 @@ namespace CoupledField {
     }
 
     void FeH1LagrangeQuadVar::CalcShFnc( Vector<Double>& Shape,
-                                         const Vector<Double>& point ){
+                                         const Vector<Double>& point,
+                                         const Elem* ptElem,
+                                         UInt comp ) {
       Shape.Resize( actNumFncs_ * actNumFncs_ );
       Shape.Init();
       //now get the shape functions and the derivatives for the given coordinates
@@ -245,8 +250,8 @@ namespace CoupledField {
       shapeY.Resize(actNumFncs_);
       shapeX.Init();
       shapeY.Init();
-      EvaluateLagrangePolynomial(shapeX, point[0] );
-      EvaluateLagrangePolynomial( shapeY, point[1] );
+      EvaluateLagrangePolynomial(shapeX, point[0], order_ );
+      EvaluateLagrangePolynomial( shapeY, point[1], order_ );
 
       //fill vertices
       Shape[0]= shapeX[0]      * shapeY[0];
@@ -285,8 +290,10 @@ namespace CoupledField {
       return;
     }
 
-    void FeH1LagrangeQuadVar::CalcDerivShFnc( Matrix<Double> & deriv, 
-                                              const Vector<Double>& point ){
+    void FeH1LagrangeQuadVar::CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                                                 const Vector<Double>& point,
+                                                 const Elem* ptElem,
+                                                 UInt comp ) {
       Vector<Double> shapeX;
       Vector<Double> shapeY;
       Vector<Double> shapeDerivX;
@@ -294,10 +301,10 @@ namespace CoupledField {
 
       deriv.Resize( (order_+1) * (order_+1), shape_.dim );
       //now get the shape functions and the derivatives for the given coordinates
-      EvaluateLagrangePolynomial( shapeX, point[0] );
-      EvaluateLagrangePolynomial( shapeY, point[1] );
-      EvaluateDerivLagrangePolynomial( shapeDerivX, point[0] );
-      EvaluateDerivLagrangePolynomial( shapeDerivY, point[1] );
+      EvaluateLagrangePolynomial( shapeX, point[0], order_ );
+      EvaluateLagrangePolynomial( shapeY, point[1], order_ );
+      EvaluateDerivLagrangePolynomial( shapeDerivX, point[0], order_ );
+      EvaluateDerivLagrangePolynomial( shapeDerivY, point[1], order_ );
 
       deriv[0][0]= shapeDerivX[0]      * shapeY[0];
       deriv[0][1]= shapeX[0]           * shapeDerivY[0];
@@ -347,6 +354,8 @@ namespace CoupledField {
   //=========================================================================
   
     FeH1LagrangeHexVar::FeH1LagrangeHexVar(){
+      feType_ = Elem::ET_HEXA8;
+      shape_ = Elem::shapes[feType_];
     }
 
     FeH1LagrangeHexVar::~FeH1LagrangeHexVar(){
@@ -366,12 +375,18 @@ namespace CoupledField {
       }
       return numFncs;
     }
-    void FeH1LagrangeHexVar::CalcShFnc( Vector<Double>& shape,
-                                         const Vector<Double>& point ){
+    void FeH1LagrangeHexVar::CalcShFnc( Vector<Double>& Shape,
+                                        const Vector<Double>& point,
+                                        const Elem* ptElem,
+                                        UInt comp ) {
+      EXCEPTION("Not implemented")
     }
 
-    void FeH1LagrangeHexVar::CalcDerivShFnc( Matrix<Double> & deriv, 
-                                              const Vector<Double>& point ){
+    void FeH1LagrangeHexVar::CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                                                const Vector<Double>& point,
+                                                const Elem* ptElem,
+                                                UInt comp ) {
+      EXCEPTION("Not implemented")
     }
 
     void FeH1LagrangeHexVar::SetIsoOrder(UInt order){

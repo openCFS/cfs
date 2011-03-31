@@ -83,11 +83,10 @@ Enum<ElemShapeMap::ShapeMapType> ElemShapeMap::shapeMapType = \
         sizeof(elemShapeTuples) / sizeof(EnumTuple),
         elemShapeTuples);
    
-ElemShapeMap::ElemShapeMap( Grid* ptGrid, bool isUpdated ) {
+ElemShapeMap::ElemShapeMap( Grid* ptGrid ) {
   type_ = NO_TYPE;
   ptGrid_ = ptGrid;
   isAxi_ = ptGrid->IsAxi();
-  isUpdated_ = isUpdated;
   depth_ = 1.0;
 }
 
@@ -95,8 +94,9 @@ ElemShapeMap::~ElemShapeMap() {
   
 }
 
-void ElemShapeMap::SetElem( const Elem* ptElem ) {
+void ElemShapeMap::SetElem( const Elem* ptElem, bool isUpdated ) {
   ptElem_ = ptElem;
+  isUpdated_ = isUpdated;
 }
 
 
@@ -104,8 +104,8 @@ void ElemShapeMap::SetElem( const Elem* ptElem ) {
 //  Lagrangian Element Shape Map
 // ========================================================================
 
-LagrangeElemShapeMap::LagrangeElemShapeMap( Grid* ptGrid, bool isUpdated ) 
-: ElemShapeMap(ptGrid, isUpdated ) {
+LagrangeElemShapeMap::LagrangeElemShapeMap( Grid* ptGrid  ) 
+: ElemShapeMap(ptGrid ) {
   type_ = LAGRANGE; 
   
   
@@ -408,8 +408,8 @@ void LagrangeElemShapeMap::Global2Local( Vector<Double>& locPoint,
 }
 
    
-void LagrangeElemShapeMap::GetGlodMidPoint( Vector<Double>& locPoint ) {
-  EXCEPTION("Not implemented");
+void LagrangeElemShapeMap::GetGlodMidPoint( Vector<Double>& midPoint ) {
+  Local2Global(midPoint, shape_.midPointCoord);
 }
 
 Double LagrangeElemShapeMap::CalcVolume( ) {
@@ -479,8 +479,21 @@ void LagrangeElemShapeMap::CalcBarycenter( Vector<Double>& baryCenter ) {
   //    }
 }
 
-void LagrangeElemShapeMap::GetMaxMinEdgeLength( ) {
-  EXCEPTION("Not implemented");
+void LagrangeElemShapeMap::GetMaxMinEdgeLength(Double& max, Double& min ) {
+  max = 1e-100;
+  min = 1e+100;
+  Double length, dl;
+  for( UInt i = 0; i < shape_.numEdges; ++i  ) {
+    length = 0.0;
+    for( UInt iDim = 0; iDim < shape_.dim; ++iDim ) {
+      dl = coords_[iDim][shape_.edgeVertices[i][1]-1]
+          -coords_[iDim][shape_.edgeVertices[i][0]-1];
+     length += dl*dl;
+    }
+    length = sqrt(length);
+    max = max > length ? max : length;
+    min = min < length ? min : length;
+  }
 }
 
 void LagrangeElemShapeMap::GetEdgeLength( StdVector<Double>& edges_out) {
@@ -488,9 +501,9 @@ void LagrangeElemShapeMap::GetEdgeLength( StdVector<Double>& edges_out) {
 }
 
 void LagrangeElemShapeMap::CalcJ( Matrix<Double>& jac, 
-                                       const LocPoint& lp ) {
+                                  const LocPoint& lp ) {
   Matrix<Double> deriv;
-  ptFe_->GetDerivShFnc( deriv, lp, ptElem_ );
+  ptFe_->GetLocDerivShFnc( deriv, lp, ptElem_ );
   jac = coords_ * deriv;
   jac *= depth_; // explicitly include depth_ of setup
 }
@@ -499,7 +512,7 @@ Double LagrangeElemShapeMap::CalcJDet( Matrix<Double>& jac,
                                        const LocPoint& lp ) {
   Matrix<Double> deriv;
   
-  ptFe_->GetDerivShFnc( deriv, lp, ptElem_ );
+  ptFe_->GetLocDerivShFnc( deriv, lp, ptElem_ );
   jac = coords_ * deriv;
   jac *= depth_; // explicitly include depth_ of setup
   
@@ -526,15 +539,18 @@ Double LagrangeElemShapeMap::CalcJDet( Matrix<Double>& jac,
 }
    
    
-void LagrangeElemShapeMap::SetElem( const Elem* ptElem ) {
+void LagrangeElemShapeMap::SetElem( const Elem* ptElem, bool isUpdated ) {
   
   ptElem_ = ptElem;
+  isUpdated_ = isUpdated;
   
   // get coordinates from grid
   ptGrid_->GetElemNodesCoord( coords_,ptElem->connect, isUpdated_ );
 
   // set reference element
   ptFe_ = feMap_[ptElem->type];
+  shape_ = Elem::shapes[ptElem_->type];
+  
 }
 
 } // namespace CoupledField

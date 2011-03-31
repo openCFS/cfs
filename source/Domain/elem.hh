@@ -51,13 +51,14 @@ class ElemShape;
     typedef enum 
     {
       ST_UNDEF  = 0, 
-      ST_LINE   = 1,
-      ST_TRIA   = 2,
-      ST_QUAD   = 3,
-      ST_TET    = 4,
-      ST_HEXA   = 5,
-      ST_PYRA   = 6,
-      ST_WEDGE  = 7
+      ST_POINT  = 1,
+      ST_LINE   = 2,
+      ST_TRIA   = 3,
+      ST_QUAD   = 4,
+      ST_TET    = 5,
+      ST_HEXA   = 6,
+      ST_PYRA   = 7,
+      ST_WEDGE  = 8
     } ShapeType;
 
     //! Static Enum for conversion of ElemShapeType
@@ -141,6 +142,9 @@ class ElemShape;
     //! Obtain string representation
     std::string ToString() const;
     
+    //! Return for given FEtype the corresponding ShapeType 
+    static Elem::ShapeType GetShapeType( Elem::FEType type );
+    
     //@}
    
   public:
@@ -205,9 +209,6 @@ class ElemShape;
     // ========================================================================
     //  PUBLIC METHODS
     // ========================================================================
-
-    //! Return for given FEtype the corresponding ShapeType 
-    Elem::ShapeType GetShapeType( Elem::FEType type ) const;
 
     //! Initialize struct (only required once) 
     static void Initialize();

@@ -24,7 +24,11 @@ public:
   void CalcElementMatrix( Matrix<Double>& elemMat,
                           EntityIterator& ent1, 
                           EntityIterator& ent2 );
-  
+
+  /// Calculate curl derivative matrix
+  void CalcBMat( Matrix<Double>& bMat, 
+                 LocPointMapped& lp, BaseFE* ptFE );
+
   /// calculates the curl, if the global derivates are already given in shapeDeriv
   /*!
     \param curl (output) Matrix with curl of edge shape functions
@@ -36,9 +40,17 @@ public:
   */
   void CalcEdgeCurl(Matrix<Double>& curl, 
                     const StdVector< Matrix<Double> >& shapeDeriv);
+  //! Calcualte the curl of an element solution
+  void ApplyBMat( Vector<Double>& retVec,  
+                  LocPointMapped& lp, BaseFE* ptFE, 
+                  const Vector<Double>& solVec );
   
+  //! Calcualte the curl of an element solution
+    void ApplyBMat( Vector<Complex>& retVec,  
+                    LocPointMapped& lp, BaseFE* ptFE, 
+                    const Vector<Complex>& solVec );
 
-private:
+protected:
   UInt nrDofs_;
 
   //! multiplicative value for curl-curl operator 

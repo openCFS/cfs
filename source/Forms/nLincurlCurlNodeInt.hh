@@ -41,7 +41,7 @@ namespace CoupledField
     Double startmatVal_;       //!<  start value for reluctivity
     ApproxData *nlinFnc_;      //!< pointer to BH approximation object
     Vector<Double> magPot_;    //!< magnetic vector potential at nodes
-    NonLinMethod nonLinType_;  //!< type of nonlinear algorithm
+    NonLinMethodType nonLinType_;  //!< type of nonlinear algorithm
     bool isHysteresis_ ;       //!< magnetic hystersis is considered
   };
 
@@ -64,7 +64,7 @@ namespace CoupledField
                             EntityIterator& ent2 );
     
     //! sets type of nonlinear algorithm
-    virtual void SetNonLinMethod(std::string atype);
+    virtual void SetNonLinMethod(NonLinMethodType atype);
 
   protected: 
 
@@ -73,7 +73,7 @@ namespace CoupledField
     Double startmatVal_;       //!<  start value for reluctivity
     ApproxData *nlinFnc_;      //!< pointer to BH approximation object
     Vector<Double> magPot_;    //!< magnetic vector potential at nodes
-    NonLinMethod nonLinType_;  //!< type of nonlinear algorithm
+    NonLinMethodType nonLinType_;  //!< type of nonlinear algorithm
 
   };
 

@@ -114,6 +114,10 @@ namespace CoupledField
     template<class TYPE>
     void CalcEddyPower( shared_ptr<BaseResult> result );
 
+    //! Calculates the permeability as element result
+    template<class TYPE>
+    void CalcPermeability( shared_ptr<BaseResult> result );
+    
     //! Calculate the total flux/flux derivative
     template<class TYPE>
     void CalcFlux( shared_ptr<Coil>, 
@@ -226,7 +230,7 @@ namespace CoupledField
     // =======================================================================
     //   COILS
     // =======================================================================
-    std::string nonLinMethod_;
+    NonLinMethodType nonLinMethod_;
     
     
   private:

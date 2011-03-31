@@ -22,7 +22,7 @@ namespace CoupledField
     * Leave blank in any other case
     * @param method leave to default - usage only internally for product rule integratio points
     * @param order  same as for parameter method applies*/
-    Line1FE(IntegrationMethod method = UNDEFINED, int order=0);
+    Line1FE(IntegMethod method = UNDEFINED, int order=0);
 
     //! Destructor
     virtual ~Line1FE();
@@ -35,7 +35,7 @@ namespace CoupledField
   protected:
 
     //! Initialize line element
-    virtual void Init(IntegrationMethod method, int order);
+    virtual void Init(IntegMethod method, int order);
 
     //! Set local corner coordinates
     virtual void SetCornerCoords();

@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <boost/lexical_cast.hpp>
 
 #include "Domain/entityList.hh"
 #include "Forms/baseForm.hh"
@@ -18,6 +19,8 @@
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/ParamHandling/InfoNode.hh"
 #include "OLAS/algsys/basesystem.hh"
+#include "DataInOut/Scripting/cfsmessenger.hh"
+#include <boost/progress.hpp>
 
 namespace CoupledField
 {
@@ -52,6 +55,9 @@ namespace CoupledField
 
     // Obtain a new mathParser handler
     mHandle_ = domain->GetMathParser()->GetNewHandle();
+    
+    // Initialize scripting interface
+    RegisterFunctions();
   }
 
   Assemble::~Assemble() {
@@ -335,8 +341,15 @@ namespace CoupledField
         it1.Begin();
         it2.Begin();
 
+        std::cout << "  - Calculating '" << form->GetName() << "' on '" 
+            << actContext.GetFirstEntities()->GetName() 
+            << " (" << size << " elements)'\n";
+        boost::progress_display progress( size );
+        
         // iterate over all entities
         for ( UInt i=0; i<size; i++ ) {
+          
+          ++progress;
 
           // Calc element matrix
           if ( form->IsComplex() )
@@ -358,6 +371,25 @@ namespace CoupledField
           // Map equation numbers
           actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, pdeId1, pdeId2 );
 
+#ifdef USE_SCRIPTING
+          // Check, if current list is element list and if element matrix
+          // should be printed
+          if( actContext.GetFirstEntities()->GetType() == EntityList::ELEM_LIST ) {
+            if( printElemNums_.count( it1.GetElem()->elemNum ) ) {
+              StdVector<std::string> args;
+              args.Push_back( form->GetName() );
+              args.Push_back( it1.GetIdString() );
+              args.Push_back( it2.GetIdString() );
+              if( form->IsComplex() ) {
+                args.Push_back( elemMatrixC.ToString(1) );
+              } else {
+                args.Push_back( elemMatrix.ToString(1) );
+              }
+              messenger->TriggerEvent( CFSMessenger::CFS_AssembleMat, args );
+            }
+          }
+#endif
+          
 #ifdef CHECK_INDEX
           if (form->IsComplex()) {
             if ((eqnVec1.GetSize() != elemMatrixC.GetNumRows())
@@ -497,12 +529,21 @@ namespace CoupledField
       try {
 
         // get entity iterator
+        
         EntityIterator  entIt = actContext.GetEntities()->GetIterator();
+        UInt size = actContext.GetEntities()->GetSize();
+        
+        std::cout << "  - Calculating '" << form->GetName() << "' on '" 
+            << actContext.GetEntities()->GetName() 
+            << " (" << size << " elements)'\n";
+        
+        boost::progress_display progress( size );
 
         if ( analysisType_ == BasePDE::HARMONIC ) {
 
           Vector<Complex> elemVec;
           for ( entIt.Begin(); !entIt.IsEnd(); entIt++ ) {
+            ++progress;
 
             // Calculate complex valued element vector
             form->CalcElemVector( elemVec, entIt );
@@ -510,6 +551,20 @@ namespace CoupledField
             // Map equation numbers
             actContext.MapEqns( entIt, eqnVec, pdeId );
 
+#ifdef USE_SCRIPTING
+          // Check, if current list is element list and if element matrix
+          // should be printed
+          if( actContext.GetEntities()->GetType() == EntityList::ELEM_LIST ) {
+            if( printElemNums_.count( entIt.GetElem()->elemNum ) ) {
+              // Trigger event for scripting
+              StdVector<std::string> args;
+              args.Push_back( form->GetName() );
+              args.Push_back( entIt.GetIdString() );
+              args.Push_back( elemVec.ToString(' ') );
+              messenger->TriggerEvent( CFSMessenger::CFS_AssembleRhs, args );
+            }
+          }
+#endif
 
 
 #ifndef NDEBUG
@@ -534,13 +589,28 @@ namespace CoupledField
           Vector<Double> elemVec;
           // iterate over all entities
           for ( entIt.Begin(); !entIt.IsEnd(); entIt++ ) {
+            
+            ++progress;
 
             // Calculate real valued element vector
             form->CalcElemVector( elemVec, entIt );
 
             // Map equation numbers
             actContext.MapEqns( entIt, eqnVec, pdeId );
-            
+#ifdef USE_SCRIPTING
+          // Check, if current list is element list and if element matrix
+          // should be printed
+          if( actContext.GetEntities()->GetType() == EntityList::ELEM_LIST ) {
+            if( printElemNums_.count( entIt.GetElem()->elemNum ) ) {
+              // Trigger event for scripting
+              StdVector<std::string> args;
+              args.Push_back( form->GetName() );
+              args.Push_back( entIt.GetIdString() );
+              args.Push_back( elemVec.ToString() );
+              messenger->TriggerEvent( CFSMessenger::CFS_AssembleRhs, args );
+            }
+          }
+#endif
 #ifndef NDEBUG
             for (Integer i=0, size = elemVec.GetSize(); i<size; i++) {
               if( std::isnan(elemVec[i]) || std::isinf(elemVec[i]) )
@@ -1015,4 +1085,42 @@ namespace CoupledField
     algsys_->SetElementMatrix( mappedDest, harmMat, pdeId1, eqnVec1,
                                pdeId2, eqnVec2, context.IsSetCounterPart() );
   }
+
+  void Assemble::Wrap_AddPrintElemNum( ) {
+      SCRIPT_GET( StdVector<UInt>, elemNums );
+      printElemNums_.insert( elemNums.Begin(), elemNums.End() );
+      StdVector<UInt>::iterator it = elemNums.Begin();
+
+    }
+
+    void Assemble::Wrap_PrintAllElems() {
+      UInt numElems = domain->GetGrid()->GetNumElems();
+      for( UInt i = 0; i < numElems; i++ ) {
+        printElemNums_.insert( i+ 1);
+      }
+    } 
+
+    void Assemble::RegisterFunctions() {
+      typedef FctPointer<Assemble> FCPT;
+      StdVector<ArgList> a;
+      StdVector<FCPT*> pt;
+      StdVector<std::string> name;
+
+      // --- AddPrintElemNum ---
+      a.Push_back();
+      a.Last().RegisterParam("elemNums", ArgList::STDVEC_UINT );
+      pt.Push_back( new FCPT( this, &Assemble::Wrap_AddPrintElemNum) );
+      name.Push_back( "printElemMatVec" );
+      
+      // --- PrintAllElemNum ---
+      a.Push_back();
+      pt.Push_back( new FCPT( this, &Assemble::Wrap_PrintAllElems) );
+      name.Push_back( "printAllElemMatVec" );
+      
+
+      // Now register all functions with scripting
+      for (UInt i = 0; i < pt.GetSize(); i++ ) {
+        Script_RegisterFct(name[i], pt[i], a[i] );
+      }
+    }
 }

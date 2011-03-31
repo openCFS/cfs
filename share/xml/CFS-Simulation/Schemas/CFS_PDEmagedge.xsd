@@ -33,6 +33,62 @@
         <xsd:sequence>
 
           <!-- Regions the PDE lives on -->
+          <xsd:element name="feFunctionIdList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="FeFunction" minOccurs="1" maxOccurs="unbounded">
+                  <xsd:complexType>
+                    <xsd:sequence>
+                      <xsd:element name="id" type="xsd:token" default="default" minOccurs="1"/>
+                      <xsd:element name="quantity" type="DT_MagneticEdgeEdgeResult" 
+                        default="magPotential"/>
+                      <xsd:element name="spaceType" type="DT_SpaceType" minOccurs="0"/>
+                      <xsd:element name="polyType" type="DT_PolyType" minOccurs="0"/>
+                      <xsd:element name="order" minOccurs="0">
+                        <xsd:complexType>
+                          <xsd:choice>
+                            <xsd:element name="uniform" type="xsd:int" minOccurs="0" maxOccurs="1" default="0"/>
+                            <xsd:element name="grid"  minOccurs="0" maxOccurs="1"/>
+                            <!-- Here we would define anisotropic odering -->
+                          </xsd:choice>
+                        </xsd:complexType>
+                      </xsd:element>
+                      <xsd:element name="integrationType" type="DT_IntegType" default="Gauss" minOccurs="0"/>
+                      <xsd:element name="integrationOrder" type="xsd:int" default="-1" minOccurs="0" maxOccurs="1"/>
+                      <xsd:element name="entityLists" minOccurs="0">
+                        <xsd:complexType>
+                          <xsd:sequence>
+                            <xsd:element name="regionList" minOccurs="0" maxOccurs="1">
+                              <xsd:complexType>
+                                <xsd:sequence>
+                                  <xsd:element name="region" type="xsd:token" minOccurs="0" maxOccurs="unbounded"/>
+                                </xsd:sequence>
+                              </xsd:complexType>
+                            </xsd:element>
+                            <xsd:element name="surfRegionList" minOccurs="0" maxOccurs="1">
+                              <xsd:complexType>
+                                <xsd:sequence>
+                                  <xsd:element name="surfRegion" type="xsd:token" minOccurs="0" maxOccurs="unbounded"/>
+                                </xsd:sequence>
+                              </xsd:complexType>
+                            </xsd:element>
+                            <xsd:element name="nodeList" minOccurs="0" maxOccurs="1">
+                              <xsd:complexType>
+                                <xsd:sequence>
+                                  <xsd:element name="nodes" type="xsd:token" minOccurs="0" maxOccurs="unbounded"/>
+                                </xsd:sequence>
+                              </xsd:complexType>
+                            </xsd:element>
+                          </xsd:sequence>
+                        </xsd:complexType>
+                      </xsd:element>
+                    </xsd:sequence>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+          
           <xsd:element name="regionList" minOccurs="1" maxOccurs="1">
             <xsd:complexType>
               <xsd:sequence>
@@ -212,6 +268,13 @@
   <!--   Definition of syntax for specifying output quantities of CFS -->
   <!-- ******************************************************************* -->
 
+  <!-- Definition of edge result types of magnetic PDE -->
+  <xsd:simpleType name="DT_MagneticEdgeEdgeResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="magPotential"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
   <!-- Definition of nodal result types of magnetic PDE -->
   <xsd:simpleType name="DT_MagneticEdgeNodeResult">
     <xsd:restriction base="xsd:token">
@@ -224,6 +287,8 @@
       <xsd:enumeration value="magFluxDensity"/>
       <xsd:enumeration value="magPotentialDiv"/>
       <xsd:enumeration value="magEddyCurrent"/>
+      <xsd:enumeration value="magPotential"/>
+      <xsd:enumeration value="magElemPermeability"/> 
     </xsd:restriction>
   </xsd:simpleType>
 

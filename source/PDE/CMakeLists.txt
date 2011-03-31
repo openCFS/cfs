@@ -17,7 +17,7 @@ SET(PDE_SRCS
 #  eqnMap.cc
 #  fluidMechPDE.cc
 #  heatCondPDE.cc
-#  magEdgePDE.cc
+  magEdgePDE.cc
 #  magneticPDE.cc
 #  mechPDE.cc
 #  mixedEqnMap.cc

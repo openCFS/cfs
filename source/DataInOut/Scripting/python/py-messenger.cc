@@ -10,6 +10,7 @@
 #include <boost/python.hpp>
 #include <boost/python/numeric.hpp>
 #include <boost/python/object.hpp>
+#include <boost/algorithm/string.hpp>
 //#include <boost/python/return_by_value.hpp>
 //#include <boost/python/return_value_policy.hpp>
 
@@ -159,22 +160,26 @@ BOOST_PYTHON_MODULE(vector){
     // get name of event
     curEvent_ = eventNames_[event];
 
-    std::stringstream procName;
-    procName << eventNames_[event] << "(";
+    std::string procName;
+    procName += eventNames_[event] + "(";
     for ( UInt i=0; i<context.GetSize()-1; i++ ) {
-      procName << "\"" << context[i] << "\" ,";
+      std::string actContext = context[i];
+      boost::replace_all(actContext, "\n", "\\n");
+      procName += "\"" + actContext + "\",  ";
     }
     if( context.GetSize() > 0 ) {
-      procName << "\"" << context.Last() << "\"";
+      std::string actContext = context.Last();
+      boost::replace_all(actContext, "\n", "\\n");
+      procName += "\"" + actContext + "\"";
     }
-    procName << " )";
+    procName += " )";
 
     isEvaluating_ = true;
 
     // evaluate script
     PyObject* ret = NULL;
-    ret = PyRun_String( procName.str().c_str(), Py_eval_input,
-                        mainDict_, mainDict_ );
+    ret = PyRun_String( procName.c_str(), Py_eval_input,
+                            mainDict_, mainDict_ );
     isEvaluating_ = false;
     
     if( ret == NULL ) {
@@ -300,7 +305,10 @@ BOOST_PYTHON_MODULE(vector){
     // First of all, generate mapping from event enumerations
     // to string representation
     eventNames_[CFS_Init] = "CFS_Init";
+    eventNames_[CFS_PdeInit] = "CFS_PdeInit";
     eventNames_[CFS_ReadBCs] = "CFS_ReadBCs";
+    eventNames_[CFS_AssembleMat] = "CFS_AssembleMat";
+    eventNames_[CFS_AssembleRhs] = "CFS_AssembleRhs";
     eventNames_[CFS_SetBCs] = "CFS_SetBCs";
     eventNames_[CFS_CalcResults] = "CFS_CalcResults";
     eventNames_[CFS_Finish] = "CFS_Finish";

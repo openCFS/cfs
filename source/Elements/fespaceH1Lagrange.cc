@@ -22,12 +22,33 @@
 namespace CoupledField{
 
     //! Constructor
-    FeSpaceH1Lagrange::FeSpaceH1Lagrange(){
+    FeSpaceH1Lagrange::FeSpaceH1Lagrange(ParamNode* aNode) 
+    : FeSpaceH1(aNode) {
       mapType_ = GRID;
+      type_ = H1;
+      isHierarchical_ = false;
     }
 
     //! Destructor
     FeSpaceH1Lagrange::~FeSpaceH1Lagrange(){
+    }
+    
+    void FeSpaceH1Lagrange::Init() {
+      // read order of function space
+      // read, if map type should be isotropic
+      
+      ParamNode * orderNode = NULL;
+      orderNode = myParam_->Get("order");
+      if( orderNode ) {
+       if( orderNode->Has("grid") ) {
+         isoOrder_ = 0; // has no real meaning here
+         SetMapType( GRID );
+       }
+       if( orderNode->Has("uniform")) {
+         isoOrder_ = orderNode->Get("uniform")->AsUInt();
+         SetMapType(POLYNOMIAL);
+       }
+      }
     }
 
     void FeSpaceH1Lagrange::SetMapType( MappingType mapT){
@@ -138,7 +159,7 @@ namespace CoupledField{
       MapNodalEqns(2);
       
       // TEMPORARY: print information 
-      PrintEqnMap();
+      //PrintEqnMap();
       isFinalized_ = true;
     }
 

@@ -5,7 +5,7 @@
 #define FILE_CFS_FESPACE_HCURL_HI_HH
 
 #include "Elements/fespaceH1.hh"
-#include "Elements/H1ElemsHi.hh"
+
 
 namespace CoupledField {
 
@@ -16,10 +16,13 @@ class FeSpaceHCurlHi : public FeSpaceH1 {
 public:
 
   //! Constructor
-  FeSpaceHCurlHi();
+  FeSpaceHCurlHi(ParamNode* aNode);
 
   //! Destructor
   ~FeSpaceHCurlHi();
+  
+  //! Initialize class (read order etc.)
+  void Init();
 
   //! Return pointer to reference element
   virtual BaseFE* GetFe( const EntityIterator ent );

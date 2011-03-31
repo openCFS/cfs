@@ -20,7 +20,7 @@ namespace CoupledField
      * used only to construct higher order wedge elements
      * @param method leave blank as normal user! Then the default or XML stuff is loaded
      * @param oder see method */
-    Triangle1FE(IntegrationMethod method = UNDEFINED, int order=0);
+    Triangle1FE(IntegMethod method = UNDEFINED, int order=0);
   
     //! Destructor
     virtual ~Triangle1FE();
@@ -33,7 +33,7 @@ namespace CoupledField
   protected:
 
     //! Initialize Trianglerilateral element
-    virtual void Init(IntegrationMethod method, int order);
+    virtual void Init(IntegMethod method, int order);
 
     //! Set local corner coordinates
     virtual void SetCornerCoords();

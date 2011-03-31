@@ -717,7 +717,7 @@ namespace CoupledField
     // =======================================================================
     // Interation Scheme
     // =======================================================================
-    shared_ptr<IntegrationScheme> GetIntegrationScheme(){
+    shared_ptr<IntScheme> GetIntegrationScheme(){
       return integScheme_;
     }
 
@@ -772,10 +772,13 @@ namespace CoupledField
     //! Map from name to type of entity
     std::map<std::string, EntityList::DefineType> nameTypeMap_;
 
+    //! Shape mapping object
+    shared_ptr<ElemShapeMap> shapeMap_;
+    
     // =======================================================================
     // Interation Scheme
     // =======================================================================
-    shared_ptr<IntegrationScheme> integScheme_;
+    shared_ptr<IntScheme> integScheme_;
 
 
     // =======================================================================

@@ -56,18 +56,28 @@
     </xsd:complexContent>
   </xsd:complexType>
   
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic function space types -->
+  <!-- ******************************************************************** -->
+  <xsd:simpleType name="DT_SpaceType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="H1"/>
+      <xsd:enumeration value="HCurl"/>
+      <xsd:enumeration value="HDiv"/>
+      <xsd:enumeration value="L2"/>
+    </xsd:restriction>
+  </xsd:simpleType>
   
   <!-- ******************************************************************** -->
-  <!--   Definition of basic ansatz types -->
+  <!--   Definition of polynomial types -->
   <!-- ******************************************************************** -->
-  <xsd:simpleType name="DT_AnsatzType">
-      <xsd:restriction base="xsd:token">
-        <xsd:enumeration value="Grid"/>
-        <xsd:enumeration value="Spectral"/>
-        <xsd:enumeration value="Legendre"/>
-      </xsd:restriction> 
+  <xsd:simpleType name="DT_PolyType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="Lagrange"/>
+      <xsd:enumeration value="Legendre"/>
+    </xsd:restriction> 
   </xsd:simpleType>
-
+  
   <!-- ******************************************************************** -->
   <!--   Definition of standard type for damping -->
   <!-- ******************************************************************** -->

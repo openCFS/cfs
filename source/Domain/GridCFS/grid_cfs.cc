@@ -400,52 +400,52 @@ namespace CoupledField {
 
   UInt GridCFS::FindEntityMinDistance( bool isNode, Vector<Double>& coord ) {
 
-    EXCEPTION( "Implement me");
-//    UInt entityNum;
-//
-//    // iterate over all nodes/elements in the grid
-//    // vectors with node indices and distance
-//    std::vector<Double> entityDist;
-//    Vector<Double> actEntCoord, temp;
-//
-//    if( isNode ) {
-//      // === loop over nodes ===
-//      entityDist.resize( numNodes_ );
-//      for( UInt iNode = 0; iNode < numNodes_; iNode++ ) {
-//
-//        // calculate distance and store it in vector
-//        GetNodeCoordinate( actEntCoord, iNode+1, false );
-//        temp = (actEntCoord-coord);
-//        entityDist[iNode] = temp.NormL2();
-//      } // nodes
-//    } else {
-//
-//      // === loop over elements ===
-//      entityDist.resize(numElems_);
-//
-//      Vector<Double> locMidPoint;
-//      Matrix<Double> connectCoord;
-//
-//      // iterate over all elements
-//      for( UInt iElem = 0; iElem < numElems_; iElem++ ) {
-//
-//        // Check, if element has same dimension as grid
-//        // -> We want to find only volume elements
-//        if( orderedElems_[iElem]->ptElem->GetDim() == dim_ ) {
-//        GetGlobalElemMidPoint( iElem+1, actEntCoord );
-//        temp = (actEntCoord-coord );
-//        entityDist[iElem] = temp.NormL2();
-//        } else {
-//          entityDist[iElem] = 1e16;
-//        }
-//      } // elements
-//
-//    }
-//
-//    // find minimum entry in the vector
-//    std::vector<Double>::iterator it ;
-//    it = min_element(entityDist.begin(), entityDist.end());
-//    entityNum = std::distance(entityDist.begin(), it) + 1;
+    UInt entityNum;
+
+    // iterate over all nodes/elements in the grid
+    // vectors with node indices and distance
+    std::vector<Double> entityDist;
+    Vector<Double> actEntCoord, temp;
+
+    if( isNode ) {
+      // === loop over nodes ===
+      entityDist.resize( numNodes_ );
+      for( UInt iNode = 0; iNode < numNodes_; iNode++ ) {
+
+        // calculate distance and store it in vector
+        GetNodeCoordinate( actEntCoord, iNode+1, false );
+        temp = (actEntCoord-coord);
+        entityDist[iNode] = temp.NormL2();
+      } // nodes
+    } else {
+
+      // === loop over elements ===
+      entityDist.resize(numElems_);
+
+      Vector<Double> locMidPoint;
+      Matrix<Double> connectCoord;
+
+      // iterate over all elements
+      for( UInt iElem = 0; iElem < numElems_; iElem++ ) {
+
+        // Check, if element has same dimension as grid
+        // -> We want to find only volume elements
+        if( Elem::shapes[orderedElems_[iElem]->type].dim == dim_ ) {
+          shapeMap_->SetElem(orderedElems_[iElem]);
+          shapeMap_->GetGlodMidPoint(actEntCoord);
+          temp = (actEntCoord-coord );
+          entityDist[iElem] = temp.NormL2();
+        } else {
+          entityDist[iElem] = 1e16;
+        }
+      } // elements
+
+    }
+
+    // find minimum entry in the vector
+    std::vector<Double>::iterator it ;
+    it = min_element(entityDist.begin(), entityDist.end());
+    entityNum = std::distance(entityDist.begin(), it) + 1;
     //return entityNum;
     return 0;
 

@@ -19,7 +19,7 @@
     <xsd:complexContent>
       <xsd:restriction base="xsd:anyType">
         <xsd:attribute name="type" type="DT_IntegType" use="optional"
-          default="GaussOrder2"/>
+          default="Gauss"/>
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>

@@ -127,82 +127,6 @@ namespace CoupledField {
     }
   }
 
-  // IntegrationMethod
-  template<>
-  void String2Enum<IntegrationMethod>( const std::string &in, IntegrationMethod &out ) {
-    if ( in == "Gauss_standard" )
-      out = ECONOMICAL;
-
-    else if ( in == "Classic" )
-      out = CLASSICAL;
-
-    else if ( in == "Lobatto" )
-      out = LOBATTO;
-
-    else if ( in == "Chebyshev" )
-      out = CHEBYSHEV;
-
-    else if ( in == "Experimental" )
-      out = EXPERIMENTAL;
-
-    else if ( in == "Cartesian" )
-      out = CARTESIAN;
-
-    else if ( in == "Special" )
-      out = SPECIAL;
-
-    else if ( in == "Undefined" )
-      out = UNDEFINED;
-
-
-    else {
-      EXCEPTION( "'" << in << "' cannot be converted into item of "
-                 << "'IntegrationMethod'!" );
-    }
-  }
-
-  template<>
-  void Enum2String<IntegrationMethod>( const IntegrationMethod &in, std::string &out ) {
-    switch(in) {
-    case ECONOMICAL:
-      out = "Gauss_standard";
-      break;
-
-    case CLASSICAL:
-      out = "Classic";
-      break;
-
-    case LOBATTO:
-      out = "Lobatto";
-      break;
-
-    case CHEBYSHEV:
-      out = "Chebyshev";
-      break;
-
-    case EXPERIMENTAL:
-      out = "Experimental";
-      break;
-
-    case CARTESIAN:
-      out = "Cartesian";
-      break;
-
-    case SPECIAL:
-      out = "Special";
-      break;
-
-    case UNDEFINED:
-       out = "Undefined";
-       break;
-
-    default:
-      EXCEPTION( "No conversion found for your 'IntegrationMethod'" );
-    }
-  }
-
-
-
   // BubbleDynType
   template<>
   void String2Enum<BubbleDynType>( const std::string &in,
@@ -465,6 +389,9 @@ namespace CoupledField {
     case MAG_RHS_LOAD:
       return "Am";
       break;
+    
+    case MAG_ELEM_PERMEABILITY:
+      return "Vs/Am";
 
     case MAG_EDDY_POWER:
       return "W";
@@ -1919,6 +1846,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_ENERGY, "magEnergy");
     SolutionTypeEnum.Add(MAG_EDDY_POWER, "magEddyPower");
     SolutionTypeEnum.Add(MAG_RHS_LOAD, "magRhsLoad");
+    SolutionTypeEnum.Add(MAG_ELEM_PERMEABILITY, "magElemPermeability");
     //heat conduction
     SolutionTypeEnum.Add(HEAT_TEMPERATURE, "heatTemperature");
     SolutionTypeEnum.Add(HEAT_RHS_LOAD, "heatRhsLoad");
@@ -1949,18 +1877,13 @@ namespace CoupledField {
     SolutionTypeEnum.Add(OPT_RESULT_9, "optResult_9");
     // independent
     SolutionTypeEnum.Add(LAGRANGE_MULT, "LagrangeMultiplier");
-
-    //===========================================================
-    //Ansatz Types
-    //===========================================================
-    AnsatzTypeEnum.Add(GRID, "Grid");
-    AnsatzTypeEnum.Add(SPECTRAL, "Spectral");
-    AnsatzTypeEnum.Add(LEGENDRE, "Legendre");
+    
+    // ==== Initialization of NonLinMethodEnum ====
+    NonLinMethodTypeEnum.Add( FIXEDPOINT, "fixPoint" );
+    NonLinMethodTypeEnum.Add( NEWTON, "newton" );
   }
-  
+  Enum<NonLinMethodType> NonLinMethodTypeEnum;
   Enum<SolutionType> SolutionTypeEnum;
-
-  Enum<AnsatzType> AnsatzTypeEnum;
 
 }
 

@@ -2,6 +2,7 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 #include "Elements/fespaceH1Hi.hh"
+#include "Elements/H1ElemsHi.hh"
 
 /*
  The FeSpace always knows just vertex/nodal, edge, face
@@ -72,13 +73,34 @@
 namespace CoupledField{
 
   //! Constructor
-  FeSpaceH1Hi::FeSpaceH1Hi(){
+  FeSpaceH1Hi::FeSpaceH1Hi(ParamNode* aNode)
+  : FeSpaceH1(aNode) {
     mapType_ = POLYNOMIAL;
-    type_ = H1_HI;
+    type_ = H1;
+    isHierarchical_ = true;
   }
 
   //! Destructor
   FeSpaceH1Hi::~FeSpaceH1Hi(){
+  }
+  
+  //! Initialize class
+  void FeSpaceH1Hi::Init() {
+    // read order of function space
+    // read, if map type should be isotropic
+
+    ParamNode * orderNode = NULL;
+    orderNode = myParam_->Get("order");
+    if( orderNode ) {
+      if( orderNode->Has("grid") ) {
+        isoOrder_ = 0; // has no real meaning here
+        SetMapType( GRID );
+      }
+      if( orderNode->Has("uniform")) {
+        isoOrder_ = orderNode->Get("uniform")->AsUInt();
+        SetMapType(POLYNOMIAL);
+      }
+    }
   }
 
   void FeSpaceH1Hi::SetMapType( MappingType mapT){
@@ -148,20 +170,8 @@ namespace CoupledField{
         
     //Determine boundary Unknowns
     MapNodalBCs();
-//    MapEdgeBCs();
-//    MapFaceBCs();
-
-    // Mapping, phase 1
     MapNodalEqns(1);
-//    MapEdgeEqns(1);
-//    MapFaceEqns(1);
-//    MapInteriorEqns(1);
-
-    // Mapping, phase 2
     MapNodalEqns(2);
-//    MapEdgeEqns(2);
-//    MapFaceEqns(2);
-//    MapInteriorEqns(2);
 
     // Just for debugging purpose
     //PrintEqnMap();
@@ -200,37 +210,39 @@ namespace CoupledField{
 
   void FeSpaceH1Hi::AdjustEntityOrder() {
 
-    UInt numComp = feFunction_->GetResultInfo()->dofNames.GetSize();
-
-    // loop over all elements
-    std::map< UInt, StdVector<UInt> >::iterator it = virtualEdges_.begin();
-    for( ; it != virtualEdges_.end(); it++ ) {
-
-      UInt elemNum = it->first;
-
-      // loop over all edges
-      StdVector<UInt > & edges = it->second;
-      UInt numEdges = it->second.GetSize();
-      for( UInt iEdge = 0; iEdge < numEdges; ++iEdge ) {
-        UInt actEdge = edges[iEdge];
-
-        // check, if edge got already mapped
-        if( edgeOrder_.find(actEdge) == edgeOrder_.end() ) {
-          edgeOrder_[actEdge].Resize(numComp);
-          edgeOrder_[actEdge].Init(0);          
-        }
-
-        // Loop over all components
-        for( UInt iComp = 0; iComp < numComp; ++iComp ) {
-
-          // Check if the local order for the edge is larger than the 
-          // one already assigned
-          UInt locOrder = GetEntityOrder(elemNum, BaseFE::EDGE, iEdge, iComp+1 );
-          if(  locOrder > edgeOrder_[actEdge][iComp] ) {
-            edgeOrder_[actEdge][iComp] = locOrder;
-          } // if
-        } // loop over components
-      } // loop over edges
-    } // loop over elements
+    
+    // Has to be reimplemented
+//    UInt numComp = feFunction_->GetResultInfo()->dofNames.GetSize();
+//
+//    // loop over all elements
+//    std::map< UInt, StdVector<UInt> >::iterator it = virtualEdges_.begin();
+//    for( ; it != virtualEdges_.end(); it++ ) {
+//
+//      UInt elemNum = it->first;
+//
+//      // loop over all edges
+//      StdVector<UInt > & edges = it->second;
+//      UInt numEdges = it->second.GetSize();
+//      for( UInt iEdge = 0; iEdge < numEdges; ++iEdge ) {
+//        UInt actEdge = edges[iEdge];
+//
+//        // check, if edge got already mapped
+//        if( edgeOrder_.find(actEdge) == edgeOrder_.end() ) {
+//          edgeOrder_[actEdge].Resize(numComp);
+//          edgeOrder_[actEdge].Init(0);          
+//        }
+//
+//        // Loop over all components
+//        for( UInt iComp = 0; iComp < numComp; ++iComp ) {
+//
+//          // Check if the local order for the edge is larger than the 
+//          // one already assigned
+//          UInt locOrder = GetEntityOrder(elemNum, BaseFE::EDGE, iEdge, iComp+1 );
+//          if(  locOrder > edgeOrder_[actEdge][iComp] ) {
+//            edgeOrder_[actEdge][iComp] = locOrder;
+//          } // if
+//        } // loop over components
+//      } // loop over edges
+//    } // loop over elements
   }
 } // end of namespace

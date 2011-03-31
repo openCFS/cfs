@@ -185,6 +185,26 @@ namespace CoupledField
 //    Double startmatVal_;    //!< star value for reluctivity
 //    ApproxData *nlinFnc_;   //!< pointer to approximation object for BH curve
 //  };
+  
+  /// class for calculation of right-hand-side of nonlinear magnetics using edge elements
+  class nLinMagEdge_linFormInt : public LinearForm
+  {
+  public:
+
+    /// constructor
+    nLinMagEdge_linFormInt( BaseMaterial* matData, 
+                            bool coordUpdate = false );
+
+    /// destructor
+    virtual ~ nLinMagEdge_linFormInt();
+
+    /// Calculation of vector of right hand side 
+    void CalcElemVector( Vector<Double> & result,
+                         EntityIterator& ent );
+
+  protected:
+  };
+
 
 
   // =============================================================================
@@ -589,92 +609,92 @@ namespace CoupledField
 //  // rhs volume integrator
 //  // =========================================================================
 //  
-//  //! Linear integrator for volume load sources. This integrator
-//  //! can also work on different local coordinate systems
-//  class VolForceInt : public LinearForm {
-//    
-//  public:
-//    
-//    //! Constructor
-//    VolForceInt(UInt numDof, const std::string& phase, bool isaxi);
-//    
-//    //! Destructor
-//    virtual ~VolForceInt();
-//    
-//    //! Set the volume force vector
-//    //! \param volForce vector with volume force w.r.t. coordSys
-//    //! \param coordSys pointer to reference coordinate system
-//    void SetVolForceVector(StdVector<std::string> & volForce, 
-//                           const CoordSystem * coordSys,
-//                           bool isUnit, Double volume);
-//    
-//    //! Calculation of vector of right hand side 
-//    void CalcElemVector( Vector<Double> & result,
-//                         EntityIterator& ent );
-//
-//    //! Calculation of vector of right hand side 
-//    void CalcElemVector( Vector<Complex> & result,
-//                         EntityIterator& ent );
-//
-//  protected:
-//
-//    //! Helper function for calculating part element vector
-//    template<class TYPE>
-//    void CalcPartVector( Vector<TYPE>& elemVec, 
-//                         Vector<TYPE>& loadVec,
-//                         EntityIterator& ent );
-//    
-//    //! Number of degrees of freedom
-//    UInt numDofs_;
-//    
-//    //! Vector with volume force (local coordinate system)
-//    StdVector<std::string> locForce_;
-//
-//    //! Phase of force
-//    std::string phase_;
-//
-//    //! Reference coordinate system
-//    const CoordSystem * coordSys_;
-//
-//    //! Volume of region
-//    Double volume_;
-//
-//    //! Flag if force is unit value
-//    bool isUnitValue_;
-//    
-//  };
+  //! Linear integrator for volume load sources. This integrator
+  //! can also work on different local coordinate systems
+  class VolForceInt : public LinearForm {
+    
+  public:
+    
+    //! Constructor
+    VolForceInt(UInt numDof, const std::string& phase, bool isaxi);
+    
+    //! Destructor
+    virtual ~VolForceInt();
+    
+    //! Set the volume force vector
+    //! \param volForce vector with volume force w.r.t. coordSys
+    //! \param coordSys pointer to reference coordinate system
+    void SetVolForceVector(StdVector<std::string> & volForce, 
+                           const CoordSystem * coordSys,
+                           bool isUnit, Double volume);
+    
+    //! Calculation of vector of right hand side 
+    void CalcElemVector( Vector<Double> & result,
+                         EntityIterator& ent );
+
+    //! Calculation of vector of right hand side 
+    void CalcElemVector( Vector<Complex> & result,
+                         EntityIterator& ent );
+
+  protected:
+
+    //! Helper function for calculating part element vector
+    template<class TYPE>
+    void CalcPartVector( Vector<TYPE>& elemVec, 
+                         Vector<TYPE>& loadVec,
+                         EntityIterator& ent );
+    
+    //! Number of degrees of freedom
+    UInt numDofs_;
+    
+    //! Vector with volume force (local coordinate system)
+    StdVector<std::string> locForce_;
+
+    //! Phase of force
+    std::string phase_;
+
+    //! Reference coordinate system
+    const CoordSystem * coordSys_;
+
+    //! Volume of region
+    Double volume_;
+
+    //! Flag if force is unit value
+    bool isUnitValue_;
+    
+  };
   
   // =============================================================================
    // edge integration
    // =============================================================================
 
-//   /// class for calculation of right hand side of edge elements
-//    class LinearEdgeSrcInt : public VolForceInt {
-//
-//    public:
-//      ///
-//      LinearEdgeSrcInt( UInt numDof, const std::string& phase, bool isaxi);
-//
-//      ///
-//      virtual ~LinearEdgeSrcInt();
-//
-//      //! Calculation of vector of right hand side 
-//      void CalcElemVector( Vector<Double> & result,
-//                           EntityIterator& ent );
-//
-//      //! Calculation of vector of right hand side 
-//      void CalcElemVector( Vector<Complex> & result,
-//                           EntityIterator& ent );
-//
-//      /// Calculation of vector of right hand side 
-//      template<class TYPE>
-//      void CalcPartVector( Vector<TYPE>& elemVec, 
-//                           Vector<TYPE>& loadVec,
-//                           EntityIterator& ent );
-//
-//    private:
-//
-//    };
+   /// class for calculation of right hand side of edge elements
+    class LinearEdgeSrcInt : public VolForceInt {
+
+    public:
+      ///
+      LinearEdgeSrcInt( UInt numDof, const std::string& phase, bool isaxi);
+
+      ///
+      virtual ~LinearEdgeSrcInt();
+
+      //! Calculation of vector of right hand side 
+      void CalcElemVector( Vector<Double> & result,
+                           EntityIterator& ent );
+
+      //! Calculation of vector of right hand side 
+      void CalcElemVector( Vector<Complex> & result,
+                           EntityIterator& ent );
+
+      /// Calculation of vector of right hand side 
+      template<class TYPE>
+      void CalcPartVector( Vector<TYPE>& elemVec, 
+                           Vector<TYPE>& loadVec,
+                           EntityIterator& ent );
+
+    private:
+
+    };
 //    
 //    /** add mechanical strain as forces on RHS 
 //     *  needed for homogenization

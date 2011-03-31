@@ -558,8 +558,47 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
     }
     
       
-    Elem::ShapeType ElemShape::GetShapeType( Elem::FEType type ) const {
-     EXCEPTION("NOT IMPLEMENTED"); 
+    Elem::ShapeType Elem::GetShapeType( Elem::FEType type )  {
+      ShapeType ret;
+      switch(type) {
+        case ET_UNDEF:
+          ret = ST_UNDEF;
+          break;
+        case ET_POINT:
+          ret = ST_POINT;
+          break;
+        case ET_LINE2:
+        case ET_LINE3:
+          ret = ST_LINE;
+          break;
+        case ET_TRIA3:
+        case ET_TRIA6:
+          ret = ST_TRIA;
+          break;
+        case ET_QUAD4:
+        case ET_QUAD8:
+        case ET_QUAD9:
+          ret = ST_QUAD;
+          break;
+        case ET_TET4:
+        case ET_TET10:
+          ret = ST_TET;
+          break;
+        case ET_HEXA8:
+        case ET_HEXA20:
+        case ET_HEXA27:
+          ret = ST_HEXA;
+          break;
+        case ET_PYRA5:
+        case ET_PYRA13:
+          ret = ST_PYRA;
+          break;
+        case ET_WEDGE6:
+        case ET_WEDGE15:
+          ret = ST_WEDGE;
+          break;
+      }
+      return ret;
     }
     
     // ************************************************************************
@@ -570,6 +609,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
     // Definition of finite element type mappings
     static EnumTuple elemShapeTuples[] = {
        EnumTuple(Elem::ST_UNDEF,  "UNDEF"), 
+       EnumTuple(Elem::ST_POINT,   "POINT"),
        EnumTuple(Elem::ST_LINE,   "LINE"),
        EnumTuple(Elem::ST_TRIA,   "TRIA"),
        EnumTuple(Elem::ST_QUAD,   "QUAD"),

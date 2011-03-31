@@ -11,6 +11,7 @@
 #include "Utils/StdVector.hh"
 #include "General/exception.hh"
 #include "General/Enum.hh"
+#include "Elements/integrationScheme.hh"
 
 namespace CoupledField
 {
@@ -45,7 +46,7 @@ namespace CoupledField
       StdVector<std::string> entityNames;
 
       //! The integration scheme associated
-      IntegrationMethod integScheme;
+      IntScheme::IntegMethod integScheme;
 
       //! The integration scheme associated
       Integer integOrder;

@@ -99,7 +99,7 @@ namespace CoupledField
     };
 
     //
-    virtual void SetNonLinMethod(std::string atype) {;};
+    virtual void SetNonLinMethod(NonLinMethodType atype) {;};
 
     //! set second multiplicative factor for matrix
     virtual void SetSecondFactor( const std::string& factor) {;};
@@ -208,8 +208,8 @@ namespace CoupledField
     virtual void ExtractElemInfo( EntityIterator& it);
     
 #endif
-    virtual void SetIntegration(shared_ptr<IntegrationScheme> intScheme, IntegrationMethod integScheme,UInt order);
-
+    virtual void SetIntegration(shared_ptr<IntScheme> intScheme, 
+                                IntScheme::IntegMethod integScheme,UInt order);
   protected:
 
     /** Gets the factor for dMat to perform the ersatz material ansatz.
@@ -275,7 +275,7 @@ namespace CoupledField
     bool isSetIntPoint_;
 
     //! The Integration Scheme used for this bilinear form
-    shared_ptr<IntegrationScheme> intScheme_;
+    shared_ptr<IntScheme> intScheme_;
 
     Global::ComplexPart matDataType_;     //! default = realMaterialParamter, piezoMatType_ = imagMaterialParamter if we consider complex-valued material Paramter;
 

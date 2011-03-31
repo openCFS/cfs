@@ -21,16 +21,24 @@ namespace CoupledField {
   FeHCurl::~FeHCurl() {
   }
   
-  void FeHCurl::GetCurlShFcn( Matrix<Double>& s, const LocPoint& lp, 
-                              const Elem* ptElem,  UInt comp) {
-    Warning("Implement me");
+  void FeHCurl::GetShFnc( Matrix<Double>& shape, LocPointMapped& lpm,
+                          const Elem* elem, UInt comp ) {
+    
+    // Perform local->global gradient transformation
+    Matrix<Double> locShape;
+    this->CalcLocShFnc(locShape, lpm, elem, comp);
+    shape =  lpm.jacInv * locShape;
+  }
+  
+  void FeHCurl::GetCurlShFnc( Matrix<Double>& curl, LocPointMapped& lpm,
+                         const Elem* elem, UInt comp ) {
+    // Perform local->global curl transformation
+    Matrix<Double> locCurl;    
+    this->CalcLocCurlShFnc( locCurl, lpm, elem, comp );
+    curl = lpm.jac * locCurl;
+    curl *= ( 1.0 / std::abs(lpm.jacDet) );
   }
       
-  //! Return global derivative of shape functions
-  void FeHCurl::GetGlobDerivShFnc( Matrix<Double>& deriv, LocPointMapped& lp,
-                                   const Elem* elem, UInt comp ) {
-
-  }
 
   
   

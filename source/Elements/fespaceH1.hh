@@ -79,7 +79,7 @@ public:
   };
 
   //! Constructor
-  FeSpaceH1();
+  FeSpaceH1(ParamNode* aNode);
 
   //! Destructor
   ~FeSpaceH1();
@@ -115,7 +115,11 @@ public:
 
   //! Reorder the equation Map (just for compatibility)
   virtual void ReorderEqnMap( StdVector<UInt> newOrder );
+  
+  //! Precalculate integration points
+  virtual void PreCalcShapeFncs();
 
+    //! Dump information to screen
   virtual void PrintEqnMap();
   
 protected:
@@ -123,36 +127,11 @@ protected:
   //! Map Nodal BC Equation NUmbers
   virtual void MapNodalBCs();
   
-  //! Map Edge BC Equation NUmbers
-  virtual void MapEdgeBCs();
-
-  //! Map Face BC Equation NUmbers
-  virtual void MapFaceBCs();
-
-  //! Map Interior BC Equation NUmbers
-  virtual void MapInteriorBCs();
-
   //! Map Nodal Equation Numbers
   virtual void MapNodalEqns(UInt phase);
 
-  //! Map Edge Equation Numbers
-  virtual void MapEdgeEqns(UInt phase);
-
-  //! Map Face Equation Numbers
-  virtual void MapFaceEqns(UInt phase);
-
-  //! Map Inerior Equation Numbers
-  virtual void MapInteriorEqns(UInt phase);
-
   //! Nodal Equation Map
   SingleEqnMap nodeMap_;
-  
-  //! Edge Equation Map
-  MultiEqnMap edgeMap_;
-    
-  //! Face Equation Map
-  MultiEqnMap faceMap_;
-  
 };
 
 } // end of namespace

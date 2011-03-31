@@ -163,11 +163,8 @@ namespace CoupledField
   }
 
 
-  void nLinCurlCurlNode2DInt::SetNonLinMethod(std::string atype)
-  {
-    
-    if (atype == "fixPoint")
-      nonLinType_ = FIXEDPOINT;
+  void nLinCurlCurlNode2DInt::SetNonLinMethod(NonLinMethodType atype) {
+    nonLinType_ = atype;
   }
 
 
@@ -314,13 +311,9 @@ namespace CoupledField
   }
 
 
-  void nLinCurlCurlNode3DInt::SetNonLinMethod(std::string atype)
-  {
-    
-    if (atype == "fixPoint")
-      nonLinType_ = FIXEDPOINT;
-    
-  }
+  void nLinCurlCurlNode3DInt::SetNonLinMethod(NonLinMethodType atype) {
+      nonLinType_ = atype;
+    }
 
 
 

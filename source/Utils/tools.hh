@@ -284,8 +284,7 @@ namespace CoupledField {
 
   /// prints formatted header including name, version, date
   void PrintCFSHeader(std::ostream & out);
-
-
+  
 
 } // end of CoupledField
 

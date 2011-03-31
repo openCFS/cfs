@@ -39,10 +39,13 @@ class FeSpaceH1Lagrange : public FeSpaceH1 {
   public:
 
     //! Constructor
-    FeSpaceH1Lagrange();
+    FeSpaceH1Lagrange(ParamNode* aNode );
 
     //! Destructor
     ~FeSpaceH1Lagrange();
+    
+    //! Initialize class (read order etc.)
+    void Init();
 
     //! Return pointer to reference element
     virtual BaseFE* GetFe( const EntityIterator ent );

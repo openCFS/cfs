@@ -13,6 +13,9 @@
 #include "Domain/domain.hh"
 #include "DataInOut/resultHandler.hh"
 #include "Utils/SmoothSpline.hh"
+#include "Elements/HCurlElemsHi.hh"
+#include "Forms/curlCurlEdgeInt.hh"
+#include "Forms/nLincurlCurlEdgeInt.hh"
 
 namespace CoupledField {
 
@@ -36,158 +39,170 @@ namespace CoupledField {
     result = helpVec * amplitude;
   }
 
-//  // ================================================================
-//  // edge integration
-//  // ================================================================
-//
-//  LinearEdgeSrcInt::LinearEdgeSrcInt( UInt numDof, 
-//                                       const std::string& phase,
-//                                       bool isaxi) 
-//     :  VolForceInt( numDof, phase, isaxi )
-//   {
-//     name_ = "LinearEdgeSrcInt";
-//   
-//   }
-//
-//   LinearEdgeSrcInt::~LinearEdgeSrcInt()
-//   {
-//   }
-//
-//   void LinearEdgeSrcInt::CalcElemVector( Vector<Double> & elemVec,
-//                                          EntityIterator& ent ) {
-//
-//
-//     // Extract pointer to reference element and get coordinates
-//     ExtractElemInfo( ent );
-//
-//     // get global coordinate system and math parser
-//     MathParser * parser = domain->GetMathParser();
-//
-//     // First, map force to global coordinate system
-//     Vector<Double> globMidPoint, locMidPoint;
-//
-//     ptelem->GetCoordMidPoint(locMidPoint  );
-//     ptelem->Local2GlobalCoord(globMidPoint, locMidPoint, 
-//                               ptCoord_, ent.GetElem() );
-//
-//     // Update variables for mathParser
-//     parser->SetCoordinates( mHandle_, *coordSys_, globMidPoint );
-//
-//     // Now evaluate each entry 
-//     Vector<Double> locLoadVec( numDofs_ );
-//     for ( UInt i = 0; i < locForce_.GetSize(); i++ ) {
-//       parser->SetExpr( mHandle_, locForce_[i] );
-//       locLoadVec[i] = parser->Eval( mHandle_ );
-//     }
-//
-//     // If load is not unit load, divide by volume
-//     if ( isUnitValue_ == false ) {
-//       locLoadVec /= volume_;
-//     }
-//     
-//     // Map local load vector to global one
-//     Vector<Double> globVec;
-//     coordSys_->Local2GlobalVector(globVec, locLoadVec,  globMidPoint);
-//
-//     // Calculate vector
-//     CalcPartVector( elemVec, globVec, ent );
-//   }
-//
-//   void LinearEdgeSrcInt::CalcElemVector( Vector<Complex> & elemVec,
-//                                          EntityIterator& ent ) {
-//
-//
-//     // Extract pointer to reference element and get coordinates
-//     ExtractElemInfo( ent );
-//
-//     // get global coordinate system and math parser
-//     MathParser * parser = domain->GetMathParser();
-//
-//     // First, map force to global coordinate system
-//     Vector<Double> globMidPoint, locMidPoint;
-//
-//     ptelem->GetCoordMidPoint(locMidPoint);
-//     ptelem->Local2GlobalCoord( globMidPoint, locMidPoint, 
-//                                ptCoord_, ent.GetElem() );
-//
-//     // Update variables for mathParser
-//     parser->SetCoordinates( mHandle_, *coordSys_, globMidPoint );
-//
-//     // Now evaluate each entry 
-//     Vector<Complex> locLoadVec( numDofs_ );
-//     Double amplitude, phase;
-//
-//     // -- phase --
-//     parser->SetExpr( mHandle_, phase_ );
-//     phase = parser->Eval( mHandle_ );
-//
-//     for ( UInt i = 0; i < locForce_.GetSize(); i++ ) {
-//       parser->SetExpr( mHandle_, locForce_[i] );
-//       amplitude = parser->Eval( mHandle_ );
-//       locLoadVec[i] = Complex( amplitude * cos(phase/180*PI), 
-//                                amplitude * sin(phase/180*PI) );
-//     }
-//
-//     // If load is not unit load, divide by volume
-//     if ( isUnitValue_ == false ) {
-//       locLoadVec /= volume_;
-//     }
-//     
-//     // Map local load vector to global one
-//     Vector<Complex> globVec;
-//     coordSys_->Local2GlobalVector(globVec, locLoadVec,  globMidPoint);
-//
-//      // Calculate vector
-//     CalcPartVector( elemVec, globVec, ent );
-//   }
-//
-//
-//   template<class TYPE>
-//   void LinearEdgeSrcInt::CalcPartVector( Vector<TYPE>& elemVec, 
-//                                          Vector<TYPE>& loadVec,
-//                                          EntityIterator& ent )
-//   {
-//   
-//     // Extract pointer to reference element and get coordinates
-//     ExtractElemInfo( ent );
-//
-//     const UInt nrIntPts = ptelem->GetNumIntPoints();
-//     const UInt nrEdges  = ptelem->GetNumEdges();
-//     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
-//   
-//     Double jacDet;  
-//     
-//     // derivation of shape functions after global coordinates 
-//     Matrix<Double> shapeEdge;
-//     Vector<TYPE> partElemVec;
-//     partElemVec.Resize(nrEdges);
-//     partElemVec.Init();
-//   
-//   
-//     // set vector to desired size and set all elements to zero    
-//     elemVec.Resize(nrEdges); 
-//     elemVec.Init();
-//
-//     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {    
-//       ptelem->CalcEdgeShapeFncAtIp(shapeEdge, actIntPt, ptCoord_,
-//                                    ent.GetElem());
-//
-//       partElemVec = shapeEdge * loadVec;
+  // ================================================================
+  // edge integration
+  // ================================================================
+
+  LinearEdgeSrcInt::LinearEdgeSrcInt( UInt numDof, 
+                                       const std::string& phase,
+                                       bool isaxi) 
+     :  VolForceInt( numDof, phase, isaxi )
+   {
+     name_ = "LinearEdgeSrcInt";
+   
+   }
+
+   LinearEdgeSrcInt::~LinearEdgeSrcInt()
+   {
+   }
+
+   void LinearEdgeSrcInt::CalcElemVector( Vector<Double> & elemVec,
+                                          EntityIterator& ent ) {
+
+
+     // Extract pointer to reference element and get coordinates
+     ExtractElemInfo( ent );
+
+     // get global coordinate system and math parser
+     MathParser * parser = domain->GetMathParser();
+
+     // Get shape map from grid
+      Vector<Double> globMidPoint;
+      shared_ptr<ElemShapeMap> esm = 
+          domain->GetGrid()->GetElemShapeMap( ent.GetElem());
+     esm->GetGlodMidPoint(globMidPoint);
+
+
+     // Update variables for mathParser
+     parser->SetCoordinates( mHandle_, *coordSys_, globMidPoint );
+
+     // Now evaluate each entry 
+     Vector<Double> locLoadVec( numDofs_ );
+     for ( UInt i = 0; i < locForce_.GetSize(); i++ ) {
+       parser->SetExpr( mHandle_, locForce_[i] );
+       locLoadVec[i] = parser->Eval( mHandle_ );
+     }
+
+     // If load is not unit load, divide by volume
+     if ( isUnitValue_ == false ) {
+       locLoadVec /= volume_;
+     }
+     
+     // Map local load vector to global one
+     Vector<Double> globVec;
+     coordSys_->Local2GlobalVector(globVec, locLoadVec,  globMidPoint);
+
+     // Calculate vector
+     CalcPartVector( elemVec, globVec, ent );
+   }
+
+   void LinearEdgeSrcInt::CalcElemVector( Vector<Complex> & elemVec,
+                                          EntityIterator& ent ) {
+
+
+     // Extract pointer to reference element and get coordinates
+     ExtractElemInfo( ent );
+
+     // get global coordinate system and math parser
+     MathParser * parser = domain->GetMathParser();
+
+     // Get shape map from grid
+      Vector<Double> globMidPoint;
+      shared_ptr<ElemShapeMap> esm = 
+          domain->GetGrid()->GetElemShapeMap( ent.GetElem());
+     esm->GetGlodMidPoint(globMidPoint);
+
+     // Update variables for mathParser
+     parser->SetCoordinates( mHandle_, *coordSys_, globMidPoint );
+
+     // Now evaluate each entry 
+     Vector<Complex> locLoadVec( numDofs_ );
+     Double amplitude, phase;
+
+     // -- phase --
+     parser->SetExpr( mHandle_, phase_ );
+     phase = parser->Eval( mHandle_ );
+
+     for ( UInt i = 0; i < locForce_.GetSize(); i++ ) {
+       parser->SetExpr( mHandle_, locForce_[i] );
+       amplitude = parser->Eval( mHandle_ );
+       locLoadVec[i] = Complex( amplitude * cos(phase/180*PI), 
+                                amplitude * sin(phase/180*PI) );
+     }
+
+     // If load is not unit load, divide by volume
+     if ( isUnitValue_ == false ) {
+       locLoadVec /= volume_;
+     }
+     
+     // Map local load vector to global one
+     Vector<Complex> globVec;
+     coordSys_->Local2GlobalVector(globVec, locLoadVec,  globMidPoint);
+
+      // Calculate vector
+     CalcPartVector( elemVec, globVec, ent );
+   }
+
+
+   template<class TYPE>
+   void LinearEdgeSrcInt::CalcPartVector( Vector<TYPE>& elemVec, 
+                                          Vector<TYPE>& loadVec,
+                                          EntityIterator& ent )
+   {
+     
+     // Extract physical element
+     const Elem* ptElem = ent.GetElem();
+     
+     // Obtain FE element from feSpace
+     FeHCurlHi* ptFe = dynamic_cast<FeHCurlHi*>(ptFeSpace1_->GetFe( ent ));
+     //ptFe->SetOnlyLowestOrder(true);
+     UInt nrFncs = ptFe->BaseFE::GetNumFncs();
+         
+     // Get shape map from grid
+     shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap( ptElem );
+     
+     // Get integration points (shortcut: from basefe instead of 
+     // IntegrationScheme class)
+     StdVector<LocPoint> intPoints;
+     StdVector<Double> weights;
+     intScheme_->GetIntPoints( Elem::GetShapeType(ptElem->type), intPoints, weights );
+
+     // derivation of shape functions after global coordinates 
+     Matrix<Double> shapeEdge;
+     Vector<TYPE> partElemVec;
+     partElemVec.Resize(nrFncs);
+     partElemVec.Init();
+   
+     // set vector to desired size and set all elements to zero    
+     elemVec.Resize(nrFncs); 
+     elemVec.Init();
+
+     // Loop over all integration points
+     LocPointMapped lp;
+     for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
+
+       // Calculate for each integration point the LocPointMapped
+       lp.Set( intPoints[i], esm );
+       ptFe->GetShFnc(shapeEdge, lp, ptElem);
+//       std::cerr  << "shape functions are \n" << shapeEdge << std::endl;
+
+       partElemVec = Transpose(shapeEdge) * loadVec;
+       elemVec += partElemVec * (weights[i] * lp.jacDet);
 //       
-//       jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent.GetElem());
-//
-//       for(UInt i=0; i<partElemVec.GetSize(); i++)
-//         elemVec[i] += partElemVec[i] * intWeights[actIntPt-1] * jacDet; 
-//     }
+//       for(UInt j=0; j<partElemVec.GetSize(); j++) {
+//         elemVec[j] += partElemVec[j] * weights[i] * lp.jacDet;
+//       }
+     }
 //   
 ///*
 //     (*debug) << "CalcElemVector:  "  << std::endl
 //              << partElemVec << std::endl
 //              << "\n jacDet " << jacDet << std::endl;
 // */
-//   }
-//
-//
+     //ptFe->SetOnlyLowestOrder(false);
+   }
+
+
   // ====================================================================
   // volume source integration
   // ====================================================================
@@ -216,36 +231,37 @@ namespace CoupledField {
                                      EntityIterator& ent ) 
   {
 
-    // Extract pointer to reference element and get coordinates
-    ExtractElemInfo( ent );
-
-    ptelem->SetAnsatzFct( ansatzFct1_ );
-    const UInt nrIntPts = ptelem->GetNumIntPoints();
-    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
-    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
-    Vector<Double> shapeFnc;
-  
-    elemVec.Resize(numFncs);
-    elemVec.Init();
-  
-    Double factor;
-    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
-      {  
-        ptelem->GetShFncAtIp(shapeFnc,actIntPt, ent.GetElem() );
-        factor = 
-          ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent.GetElem()) * 
-          intWeights[actIntPt-1] * mParser_->Eval( mHandle_ );
-      
-        if (isaxi_)
-          {
-            Vector<Double> CoordAtIP;
-            CoordAtIP = ptCoord_ * shapeFnc;
-            factor *=  2 * PI * CoordAtIP[0];
-          }
-      
-        shapeFnc *= factor;
-        elemVec += shapeFnc;
-      }
+    EXCEPTION("Adjust implementation");
+//    // Extract pointer to reference element and get coordinates
+//    ExtractElemInfo( ent );
+//
+//    ptelem->SetAnsatzFct( ansatzFct1_ );
+//    const UInt nrIntPts = ptelem->GetNumIntPoints();
+//    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+//    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+//    Vector<Double> shapeFnc;
+//  
+//    elemVec.Resize(numFncs);
+//    elemVec.Init();
+//  
+//    Double factor;
+//    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
+//      {  
+//        ptelem->GetShFncAtIp(shapeFnc,actIntPt, ent.GetElem() );
+//        factor = 
+//          ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent.GetElem()) * 
+//          intWeights[actIntPt-1] * mParser_->Eval( mHandle_ );
+//      
+//        if (isaxi_)
+//          {
+//            Vector<Double> CoordAtIP;
+//            CoordAtIP = ptCoord_ * shapeFnc;
+//            factor *=  2 * PI * CoordAtIP[0];
+//          }
+//      
+//        shapeFnc *= factor;
+//        elemVec += shapeFnc;
+//      }
   }
 //
 //
@@ -516,6 +532,70 @@ namespace CoupledField {
 //    delete curlcurl3D;
 //  }
 //
+  
+  
+  nLinMagEdge_linFormInt::nLinMagEdge_linFormInt( BaseMaterial*matData,
+                                                  bool coordUpdate)
+  : LinearForm( matData )
+  {
+    name_ = "nLinMagEdge_linFormInt";
+    isSolDependent_ = true;
+
+    isaxi_       = false;
+    coordUpdate_ = coordUpdate;
+    Warning("nLinMagEdge_linFormInt::CalcElemVector: Check if creation of "
+                "integrator can be moved to the constructor");
+  }
+
+  nLinMagEdge_linFormInt::~nLinMagEdge_linFormInt()
+  {
+  }
+
+  void nLinMagEdge_linFormInt::CalcElemVector( Vector<Double> & elemVec,
+                                               EntityIterator& ent )
+  {
+
+     
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
+
+    // get pointer to nonlinear BH curve approximation
+    ApproxData* nlinFnc_ = ptMaterial->GetNonlinFncBH();
+
+    BaseForm * curlcurl3D;
+    if ( nlinFnc_ == NULL )  {
+      //define the linear element matrix
+      curlcurl3D = new CurlCurlEdgeInt( ptMaterial, coordUpdate_);
+      curlcurl3D->SetIntegration( intScheme_, intScheme_->GetMethod(),
+                                  intScheme_->GetOrder() );
+      curlcurl3D->SetFeSpace(ptFeSpace1_);
+      
+    } else {
+      //define the nonlinear element matrix
+      curlcurl3D = new nLinCurlCurlEdgeInt( ptMaterial, coordUpdate_ );
+      curlcurl3D->SetIntegration( intScheme_, intScheme_->GetMethod(),
+                                        intScheme_->GetOrder() );
+      curlcurl3D->SetFeSpace(ptFeSpace1_);
+      //important to set method to FixPoint, since we compute the RHS!!
+      curlcurl3D->SetNonLinMethod(FIXEDPOINT);
+
+      //set the solution class to the operator
+      curlcurl3D->SetSolution( *sol_ );
+    }
+
+    // Get element solution
+    Vector<Double> magPot;
+    sol_->GetElemSolution( magPot, ent  );
+
+    Matrix<Double> elemmat;
+    curlcurl3D->CalcElementMatrix(elemmat, ent, ent);
+
+    elemVec = -(elemmat * magPot);
+
+    delete curlcurl3D;
+  }
+
+  
 //
 //  // ==================================================================
 //  // nLinMech
@@ -2146,128 +2226,127 @@ namespace CoupledField {
 //  // =========================================================================
 //  
 //  
-//  VolForceInt::VolForceInt(UInt numDof, 
-//                                   const std::string& phase,
-//                                   bool isaxi) {
-//
-//
-//    name_ = "VolForceInt";
-//    isaxi_ = isaxi;
-//    numDofs_ = numDof;
-//    phase_ = phase;
-//
-//  }
-//    
-//  VolForceInt::~VolForceInt() {
-//
-//
-//  }
-//    
-//  void VolForceInt::SetVolForceVector(StdVector<std::string> & volForce, 
-//  																		const CoordSystem * coordSys,
-//  																		bool isUnit, Double volume ) {
-//
-//
-//    locForce_ = volForce;
-//    coordSys_ = coordSys;
-//    isUnitValue_ = isUnit;
-//    volume_ = volume;
-//    
-//  }
-//    
-//  void VolForceInt::CalcElemVector( Vector<Double> & elemVec,
-//  																	EntityIterator& ent ) {
-//
-//
-//    // Extract pointer to reference element and get coordinates
-//    ExtractElemInfo( ent );
-//
-//    // get global coordinate system and math parser
-//    MathParser * parser = domain->GetMathParser();
-//
-//    // First, map force to global coordinate system
-//    Vector<Double> globMidPoint, locMidPoint;
-//
-//    ptelem->GetCoordMidPoint(locMidPoint  );
-//    ptelem->Local2GlobalCoord(globMidPoint, locMidPoint, 
-//                              ptCoord_, ent.GetElem() );
-//
-//    // Update variables for mathParser
-//    parser->SetCoordinates( mHandle_, *coordSys_, globMidPoint );
-//
-//    // Now evaluate each entry 
-//    Vector<Double> locLoadVec( numDofs_ );
-//    for ( UInt i = 0; i < locForce_.GetSize(); i++ ) {
-//      parser->SetExpr( mHandle_, locForce_[i] );
-//      locLoadVec[i] = parser->Eval( mHandle_ );
-//    }
-//
-//    // If load is not unit load, divide by volume
-//    if ( isUnitValue_ == false ) {
-//      locLoadVec /= volume_;
-//    }
-//    
-//    // Map local load vector to global one
-//    Vector<Double> globVec;
-//    coordSys_->Local2GlobalVector(globVec, locLoadVec,  globMidPoint);
-//
-//    // Calculate vector
-//    CalcPartVector( elemVec, globVec, ent );
-//  }
-//
-//  void VolForceInt::CalcElemVector( Vector<Complex> & elemVec,
-//  																	EntityIterator& ent ) {
-//
-//
-//    // Extract pointer to reference element and get coordinates
-//    ExtractElemInfo( ent );
-//
-//    // get global coordinate system and math parser
-//    MathParser * parser = domain->GetMathParser();
-//
-//    // First, map force to global coordinate system
-//    Vector<Double> globMidPoint, locMidPoint;
-//
-//    ptelem->GetCoordMidPoint(locMidPoint);
-//    ptelem->Local2GlobalCoord( globMidPoint, locMidPoint, 
-//                               ptCoord_, ent.GetElem() );
-//
-//    // Update variables for mathParser
-//    parser->SetCoordinates( mHandle_, *coordSys_, globMidPoint );
-//
-//    // Now evaluate each entry 
-//    Vector<Complex> locLoadVec( numDofs_ );
-//    Double amplitude, phase;
-//
-//    // -- phase --
-//    parser->SetExpr( mHandle_, phase_ );
-//    phase = parser->Eval( mHandle_ );
-//
-//    for ( UInt i = 0; i < locForce_.GetSize(); i++ ) {
-//      parser->SetExpr( mHandle_, locForce_[i] );
-//      amplitude = parser->Eval( mHandle_ );
-//      locLoadVec[i] = Complex( amplitude * cos(phase/180*PI), 
-//                               amplitude * sin(phase/180*PI) );
-//    }
-//
-//    // If load is not unit load, divide by volume
-//    if ( isUnitValue_ == false ) {
-//      locLoadVec /= volume_;
-//    }
-//    
-//    // Map local load vector to global one
-//    Vector<Complex> globVec;
-//    coordSys_->Local2GlobalVector(globVec, locLoadVec,  globMidPoint);
-//
-//    // Calculate vector
-//    CalcPartVector( elemVec, globVec, ent );
-//  }
-//
-//  template<class TYPE>
-//  void VolForceInt::CalcPartVector( Vector<TYPE>& elemVec, 
-//  																	Vector<TYPE>& loadVec,
-//  																	EntityIterator& ent ) {
-//    
+  VolForceInt::VolForceInt(UInt numDof, 
+                                   const std::string& phase,
+                                   bool isaxi) {
+
+
+    name_ = "VolForceInt";
+    isaxi_ = isaxi;
+    numDofs_ = numDof;
+    phase_ = phase;
+
+  }
+    
+  VolForceInt::~VolForceInt() {
+
+
+  }
+    
+  void VolForceInt::SetVolForceVector(StdVector<std::string> & volForce, 
+  																		const CoordSystem * coordSys,
+  																		bool isUnit, Double volume ) {
+
+
+    locForce_ = volForce;
+    coordSys_ = coordSys;
+    isUnitValue_ = isUnit;
+    volume_ = volume;
+    
+  }
+    
+  void VolForceInt::CalcElemVector( Vector<Double> & elemVec,
+  																	EntityIterator& ent ) {
+
+
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
+
+    // get global coordinate system and math parser
+    MathParser * parser = domain->GetMathParser();
+
+    // Get shape map from grid
+    Vector<Double> globMidPoint;
+    shared_ptr<ElemShapeMap> esm = 
+        domain->GetGrid()->GetElemShapeMap( ent.GetElem());
+    esm->GetGlodMidPoint(globMidPoint);
+
+    // Update variables for mathParser
+    parser->SetCoordinates( mHandle_, *coordSys_, globMidPoint );
+
+    // Now evaluate each entry 
+    Vector<Double> locLoadVec( numDofs_ );
+    for ( UInt i = 0; i < locForce_.GetSize(); i++ ) {
+      parser->SetExpr( mHandle_, locForce_[i] );
+      locLoadVec[i] = parser->Eval( mHandle_ );
+    }
+
+    // If load is not unit load, divide by volume
+    if ( isUnitValue_ == false ) {
+      locLoadVec /= volume_;
+    }
+    
+    // Map local load vector to global one
+    Vector<Double> globVec;
+    coordSys_->Local2GlobalVector(globVec, locLoadVec,  globMidPoint);
+
+    // Calculate vector
+    CalcPartVector( elemVec, globVec, ent );
+  }
+
+  void VolForceInt::CalcElemVector( Vector<Complex> & elemVec,
+  																	EntityIterator& ent ) {
+
+
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
+
+    // get global coordinate system and math parser
+    MathParser * parser = domain->GetMathParser();
+
+    // Get shape map from grid
+    Vector<Double> globMidPoint;
+    shared_ptr<ElemShapeMap> esm = 
+        domain->GetGrid()->GetElemShapeMap( ent.GetElem());
+    esm->GetGlodMidPoint(globMidPoint);
+
+    // Update variables for mathParser
+    parser->SetCoordinates( mHandle_, *coordSys_, globMidPoint );
+
+    // Now evaluate each entry 
+    Vector<Complex> locLoadVec( numDofs_ );
+    Double amplitude, phase;
+
+    // -- phase --
+    parser->SetExpr( mHandle_, phase_ );
+    phase = parser->Eval( mHandle_ );
+
+    for ( UInt i = 0; i < locForce_.GetSize(); i++ ) {
+      parser->SetExpr( mHandle_, locForce_[i] );
+      amplitude = parser->Eval( mHandle_ );
+      locLoadVec[i] = Complex( amplitude * cos(phase/180*PI), 
+                               amplitude * sin(phase/180*PI) );
+    }
+
+    // If load is not unit load, divide by volume
+    if ( isUnitValue_ == false ) {
+      locLoadVec /= volume_;
+    }
+    
+    // Map local load vector to global one
+    Vector<Complex> globVec;
+    coordSys_->Local2GlobalVector(globVec, locLoadVec,  globMidPoint);
+
+    // Calculate vector
+    CalcPartVector( elemVec, globVec, ent );
+  }
+
+  
+  template<class TYPE>
+  void VolForceInt::CalcPartVector( Vector<TYPE>& elemVec, 
+  																	Vector<TYPE>& loadVec,
+  																	EntityIterator& ent ) {
+    EXCEPTION("Adjust implementation");
 //
 //    /// ----- part of interior function ---
 //    ptelem->SetAnsatzFct( ansatzFct1_ );
@@ -2299,7 +2378,7 @@ namespace CoupledField {
 //        }
 //      }
 //    }
-//  }
+  }
 //  
 //
 //

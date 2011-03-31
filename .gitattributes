@@ -695,6 +695,8 @@ source/Elements/H1ElemsLagVar.cc -text
 source/Elements/H1ElemsLagVar.hh -text
 source/Elements/HCurlElems.cc svneol=native#text/x-c%2B%2Bsrc
 source/Elements/HCurlElems.hh svneol=native#text/x-c%2B%2Bhdr
+source/Elements/HCurlElemsHi.cc svneol=native#text/x-c%2B%2Bsrc
+source/Elements/HCurlElemsHi.hh svneol=native#text/x-c%2B%2Bhdr
 source/Elements/HCurlHiElems.hh svneol=native#text/x-c%2B%2Bhdr
 source/Elements/basefe.cc svneol=native#text/x-c%2B%2Bsrc
 source/Elements/basefe.hh svneol=native#text/x-c%2B%2Bhdr
@@ -834,6 +836,8 @@ source/Forms/nLinPiezoHyst.cc -text
 source/Forms/nLinPiezoHyst.hh -text
 source/Forms/nLinPiezoHystRHS.cc -text
 source/Forms/nLinPiezoHystRHS.hh -text
+source/Forms/nLincurlCurlEdgeInt.cc svneol=native#text/x-c%2B%2Bsrc
+source/Forms/nLincurlCurlEdgeInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/nLincurlCurlNodeInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/nLincurlCurlNodeInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/nlinLaplaceInt.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1228,6 +1232,7 @@ source/Utils/SmoothSpline.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/StdVector.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/StdVector.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/StdVectorSerialize.hh svneol=native#text/x-c%2B%2Bhdr
+source/Utils/autodiff.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/baseelemstoresol.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/basenodestoresol.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/boost-serialization.hh svneol=native#text/x-c%2B%2Bhdr

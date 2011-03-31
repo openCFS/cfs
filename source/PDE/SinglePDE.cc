@@ -366,6 +366,7 @@ namespace CoupledField {
     StdVector<std::string> args;
     args.Push_back( pdename_ );
     messenger->TriggerEvent( CFSMessenger::CFS_ReadBCs, args );
+    args.Clear();
 #endif
 
     // =====================================================================
@@ -545,6 +546,14 @@ namespace CoupledField {
       DefineSolveStep();
     }
 
+    // Call event procedure for scripting
+#ifdef USE_SCRIPTING
+    // Trigger event for scripting
+    args.Clear();
+    args.Push_back( pdename_ );
+    messenger->TriggerEvent( CFSMessenger::CFS_PdeInit, args );
+#endif
+    
     // Finally set the initialization flag to true
     isInitialized_ = true;
     LOG_TRACE(pde) << pdename_ << ": Finished initializaton";
@@ -3267,9 +3276,11 @@ namespace CoupledField {
       for( UInt i = 0; i < feFunctionList.GetSize(); i++ ){
         FunctionDescription fncDescription; 
         if(feFunctionList[i]->Get("integrationType",false)){
-           String2Enum(feFunctionList[i]->Get("integrationType","Gauss_standard")->AsString(),fncDescription.integScheme);
+          std::cerr << "converting " << feFunctionList[i]->Get("integrationType")->AsString() << std::endl;
+          fncDescription.integScheme = 
+              IntScheme::IntegMethodEnum.Parse(feFunctionList[i]->Get("integrationType")->AsString());
         }else{
-          fncDescription.integScheme  = ECONOMICAL;
+          fncDescription.integScheme  = IntScheme::GAUSS;
         }
         if(feFunctionList[i]->Get("integrationOrder",false)){
           fncDescription.integOrder = feFunctionList[i]->Get("integrationOrder")->AsInt();
@@ -3282,43 +3293,49 @@ namespace CoupledField {
           fncDescription.feFunction.reset( new FeFunction<Double> );
         }
 
-        shared_ptr<FeSpace> mySpace;
+        // Create function space
+        
+        shared_ptr<FeSpace> mySpace = 
+            FeSpace::CreateInstance(feFunctionList[i]);
+        mySpace->Init();
+        //mySpace->SetMapType(FeSpace::GRID);
+        //mySpace->SetIsoOrder(1);
 
-        //std::string ansatzType = feFunctionList[i]->Get("ansatzType")->AsString();
-        AnsatzType ansatzType;
-        if(feFunctionList[i]->Get("ansatzType",false)){
-          ansatzType = AnsatzTypeEnum.Parse(feFunctionList[i]->Get("ansatzType")->AsString());
-        }else{
-          ansatzType = GRID;
-        }
-        if( ansatzType == GRID){
-          mySpace.reset(new FeSpaceH1Lagrange);
-          mySpace->SetMapType(FeSpace::GRID);
-        } else if(ansatzType == SPECTRAL){
-          mySpace.reset(new FeSpaceH1Lagrange);
-          mySpace->SetMapType(FeSpace::POLYNOMIAL);
-        } else if(ansatzType == LEGENDRE){
-          mySpace.reset(new FeSpaceH1Hi);
-          mySpace->SetMapType(FeSpace::POLYNOMIAL);
-        } else{
-          EXCEPTION("Got not supported ansatzType for PDE");
-        }
+//        //std::string ansatzType = feFunctionList[i]->Get("ansatzType")->AsString();
+//        AnsatzType ansatzType;
+//        if(feFunctionList[i]->Get("ansatzType",false)){
+//          ansatzType = AnsatzTypeEnum.Parse(feFunctionList[i]->Get("ansatzType")->AsString());
+//        }else{
+//          ansatzType = GRID;
+//        }
+//        if( ansatzType == GRID){
+//          mySpace.reset(new FeSpaceH1Lagrange);
+//          mySpace->SetMapType(FeSpace::GRID);
+//        } else if(ansatzType == SPECTRAL){
+//          mySpace.reset(new FeSpaceH1Lagrange);
+//          mySpace->SetMapType(FeSpace::POLYNOMIAL);
+//        } else if(ansatzType == LEGENDRE){
+//          mySpace.reset(new FeSpaceH1Hi);
+//          mySpace->SetMapType(FeSpace::POLYNOMIAL);
+//        } else{
+//          EXCEPTION("Got not supported ansatzType for PDE");
+//        }
         mySpace->AddFeFunction(fncDescription.feFunction);
         
         fncDescription.feFunction->SetFeSpace(mySpace);
-        //now to the order tag
-        if(feFunctionList[i]->Get("order",false) && feFunctionList[i]->Get("order")->Get("uniform",false)){
-          UInt order = feFunctionList[i]->Get("order")->Get("uniform")->AsUInt();
-          //TODO> prepare the anisotropic order
-          if(order != 0 && mySpace->GetMapType() == FeSpace::GRID){
-            Warning("you supplied an element order not equal to default but used the ansatz type GRID.\n \
-                     The Grid order will be used....");
-            order = 0;
-          }
-          mySpace->SetIsoOrder(order);
-        }else{
-          mySpace->SetIsoOrder(1);
-        }
+//        //now to the order tag
+//        if(feFunctionList[i]->Get("order",false) && feFunctionList[i]->Get("order")->Get("uniform",false)){
+//          UInt order = feFunctionList[i]->Get("order")->Get("uniform")->AsUInt();
+//          //TODO> prepare the anisotropic order
+//          if(order != 0 && mySpace->GetMapType() == FeSpace::GRID){
+//            Warning("you supplied an element order not equal to default but used the ansatz type GRID.\n \
+//                     The Grid order will be used....");
+//            order = 0;
+//          }
+//          mySpace->SetIsoOrder(order);
+//        }else{
+//          mySpace->SetIsoOrder(1);
+//        }
          
 
 

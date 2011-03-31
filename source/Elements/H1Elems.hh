@@ -1,4 +1,6 @@
 // -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode c
 #ifndef FILE_CFS_H1_ELEMENTS_HH
 #define FILE_CFS_H1_ELEMENTS_HH
 
@@ -19,35 +21,32 @@ namespace CoupledField {
     virtual ~FeH1();
 
     //! Evaluate Lagrange polynomial 
-    void EvaluateLagrangePolynomial( Vector<Double> & shape, Double coord );
+    void EvaluateLagrangePolynomial( Vector<Double> & shape, Double coord,
+                                     UInt order);
 
     //! Evaluate derivative of Lagrange polynomials 
-    void EvaluateDerivLagrangePolynomial( Vector<Double> & deriv, Double coord );
-
+    void EvaluateDerivLagrangePolynomial( Vector<Double> & deriv, Double coord,
+                                          UInt order);
+    
+    //! Get value of all shape fnc at local poiont lp
+    /*!
+    \param S (output) Vector of shape fnc values \f$ (N_{1},\cdots\,N_{NumNodes})^T \f$
+    \param ip (input) Integration point
+    */
+    virtual void GetShFnc( Vector<Double>& S, const LocPoint& lp,
+                           const Elem* ptElem,  UInt comp = 1 );
+    
     //! Return global derivative of shape functions
-    void GetGlobDerivShFnc( Matrix<Double>& deriv, LocPointMapped& lp,
+    void GetGlobDerivShFnc( Matrix<Double>& deriv, const LocPointMapped& lp,
                             const Elem* elem, UInt comp = 1 );
+    
+    //! Return global derivative of shape functions
+    void GetLocDerivShFnc( Matrix<Double>& deriv, const LocPoint& lp,
+                           const Elem* elem, UInt comp = 1 );
 
-    //! Set the isotropic order of the Element. This methods gets overwritten 
-    //! by the child classes to calculate the number of functions according to
-    //! the given order
-    //! \param order (input) The desired order of the element
-    virtual void SetIsoOrder(UInt order){
-      // after debugging phase, this EXCEPTION can become a warning
-      EXCEPTION("Trying to set the ISOTROPIC order of an element which does not support this opeeration.\
-                The element will remain unchanged!");
-    }
-
-    //! Set the Anisotropic order of the Element. This methods gets overwritten 
-    //! by the child classes to calculate the number of functions according to
-    //! the given order
-    //! \param order (input) vector of element orders for each space direction 
-    virtual void SetAnisoOrder(StdVector<UInt> order){
-      // after debugging phase, this EXCEPTION can become a warning
-      EXCEPTION("Trying to set the ANISOTROPIC order of an element which does not support this operation.\
-                The element will remain unchanged!");
-    }
-
+    //! @see BaseFE::SetFunctionsAtIp
+    void SetFunctionsAtIp(const StdVector<LocPoint>& iPoints);
+        
   protected:
 
     //! Calculate the location of unknowns for a line up to given order
@@ -63,9 +62,43 @@ namespace CoupledField {
     //! Calculates the Gauss Lobatto Points for a given order
     //! Is to be moved into Integration Scheme Class
     StdVector<Double> CalcGaussLobattoPoints(UInt order);
+    
+    //! Compute shape function at given position
+    virtual void CalcShFnc( Vector<Double>& shape,
+                            const Vector<Double>& point,
+                            const Elem* ptElem,
+                            UInt comp = 1 ) = 0;
 
+    //! Get local derivatives of all shape fnc at arbitrary local point
+    //! Local means here on the reference element
+    /*! 
+    \param S (output) Matrix with global derivatives of all shape functions
+    \f [ \left( \begin{array}{ccc} N_{1,dx} & N_{1,dy} & \cdots \\
+    N_{2,dx} & N_{2,dy} & \cdots \\
+    \cdots     & \cdots      & \cdots \end{array}\right) \f ]
+    \param LCoord (input) Local Coordinates of evalutaion point
+    \param CornerCoords (input) Coordinates of element corners
+    \f [ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
+    \cdots & \cdots & \cdots \end{array} \right) \f ]       
+    */
+    virtual void CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                                    const Vector<Double>& point,
+                                    const Elem* ptElem,
+                                    UInt comp = 1 ) = 0;
+    
+    // =======================================================================
+    //  PRE CALCULATION OF SHAPE FUNCTIONS AT INTEGRATION POINTS
+    // =======================================================================
+
+    //! Stores Shape Functions for each integration point definied
+    StdVector< Vector<Double> > shapeFncsAtIp_;
+
+    //! Stores shape function derivatives for each integration point
+    StdVector< Matrix<Double> > shapeFncDerivsAtIp_;
+    
     //! Stores the Locations of the Element DOFs for a line for every order
     std::map<UInt,StdVector<Double> > supportingPoints_;
+
 
   private:
   };

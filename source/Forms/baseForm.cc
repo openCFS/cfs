@@ -90,7 +90,8 @@ namespace CoupledField
 //     }
   }
 
-  void BaseForm::SetIntegration(shared_ptr<IntegrationScheme> intScheme, IntegrationMethod integScheme,UInt order){
+  void BaseForm::SetIntegration(shared_ptr<IntScheme> intScheme, 
+                                IntScheme::IntegMethod integScheme,UInt order){
     intScheme_ = intScheme;
     intScheme_->SetOrder(integScheme,order);
   }

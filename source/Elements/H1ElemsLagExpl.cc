@@ -11,7 +11,7 @@ namespace CoupledField {
   // ========================================================================
   
   FeH1LagrangeExpl::FeH1LagrangeExpl() {
-    
+   order_ = 0; 
   }
     
   FeH1LagrangeExpl::~FeH1LagrangeExpl() {
@@ -23,7 +23,7 @@ namespace CoupledField {
   void FeH1LagrangeExpl::GetNumFncs( StdVector<UInt>& numFcns,
                                      EntityType fctEntityType,
                                      UInt dof ) {
-    // Initialize explictily with number of nodes
+    // Initialize explicitly with number of nodes
     if( fctEntityType == VERTEX ) {
       numFcns.Resize( shape_.numNodes );
       numFcns.Init( 1 );
@@ -35,10 +35,8 @@ namespace CoupledField {
                                             EntityType fctEntityType,
                                             UInt entNumber){
     if( fctEntityType == VERTEX ) {
-      fncPermutation.Resize(shape_.numNodes);
-      for ( UInt i = 0; i < shape_.numNodes; i++ ){
-        fncPermutation[i] = i;
-      }
+      fncPermutation.Resize(1);
+      fncPermutation.Init(0);
     }else{
       fncPermutation.Resize(0);
     }
@@ -54,32 +52,6 @@ namespace CoupledField {
     return numFnc;
   }
 
-//  void FeH1LagrangeExpl::GetShFnc( Vector<Double> & shape, const LocPoint& lp,
-//                                   const Elem* ptElem,  UInt comp ) {
-//  
-//    // In the future, we re-use the shape functions calculated at
-//      // the integration points
-//    //  if( lp.number != 0 ) {
-//    //    //shape = shapeAtIp_[lp.number];
-//    //  } else { 
-//        CalcShFnc( shape, lp.coord);
-//    //  }
-//  }
-  
-//  void FeH1LagrangeExpl::GetDerivShFnc( Matrix<Double> & deriv, 
-//                                        const LocPoint& lp,
-//                                        const Elem * elem, 
-//                                        UInt comp  ) {
-//    
-//    // In the future, we re-use the shape functions calculated at
-//    // the integration points
-//  //  if( lp.number != 0 ) {
-//  //    //deriv = shapeDerivAtIp_[lp.number];
-//  //  } else { 
-//      CalcDerivShFnc( deriv, lp.coord);
-//  //  }
-//  }
-    
   
   // ========================================================================
   //  Lagrangian Elements of 1st order
@@ -98,15 +70,19 @@ namespace CoupledField {
   }
   
   void FeH1LagrangeLine1::CalcShFnc( Vector<Double>& shape,
-                                             const Vector<Double>& point ) {
+                                     const Vector<Double>& point,
+                                     const Elem* ptElem,
+                                     UInt comp ) {
      shape.Resize( 2 );
      shape[0] = 0.5 * ( 1.0 - point[0] );
      shape[1] = 0.5 * ( 1.0 + point[0] );
   }
   
-  void FeH1LagrangeLine1::CalcDerivShFnc( Matrix<Double> & deriv, 
-                                               const Vector<Double>& point ) {
-   
+  void FeH1LagrangeLine1::CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                                             const Vector<Double>& point,
+                                             const Elem* ptElem,
+                                             UInt comp ) {
+
       deriv.Resize(2, 1);
       deriv[0][0] = 0.5 * -1.0;
       deriv[1][0] = 0.5 *  1.0;
@@ -126,7 +102,9 @@ namespace CoupledField {
   }
   
   void FeH1LagrangeQuad1::CalcShFnc( Vector<Double>& shape,
-                                     const Vector<Double>& point ) {
+                                     const Vector<Double>& point,
+                                     const Elem* ptElem,
+                                     UInt comp ) {
      shape.Resize( 4 );
      shape[0] = 0.25 * ( 1.0 - point[0] ) * ( 1.0 - point[1] ); 
      shape[1] = 0.25 * ( 1.0 + point[0] ) * ( 1.0 - point[1] );
@@ -135,8 +113,10 @@ namespace CoupledField {
     
   }
   
-  void FeH1LagrangeQuad1::CalcDerivShFnc( Matrix<Double> & deriv, 
-                                               const Vector<Double>& point ) {
+  void FeH1LagrangeQuad1::CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                                             const Vector<Double>& point,
+                                             const Elem* ptElem,
+                                             UInt comp ) {
     StdVector<StdVector<Double> >& coords = shape_.nodeCoords;
     deriv.Resize( 4, 2 );
     for( UInt i = 0; i < 4; i++ ) {
@@ -151,6 +131,7 @@ namespace CoupledField {
     feType_ = Elem::ET_HEXA8;
     shape_ = Elem::shapes[feType_];
     actNumFncs_ = 8;
+    order_ = 1; 
   }
     
   FeH1LagrangeHex1::~FeH1LagrangeHex1() {
@@ -158,7 +139,9 @@ namespace CoupledField {
   }
   
   void FeH1LagrangeHex1::CalcShFnc( Vector<Double>& shape,
-                                    const Vector<Double>& point ) {
+                                    const Vector<Double>& point,
+                                    const Elem* ptElem,
+                                    UInt comp ) {
     shape.Resize( 8 );
     shape[0] = 0.25 * ( 1.0 - point[0] ) * ( 1.0 - point[1] ) * (1.0 - point[2]); 
     shape[1] = 0.25 * ( 1.0 + point[0] ) * ( 1.0 - point[1] ) * (1.0 - point[2]);
@@ -171,8 +154,10 @@ namespace CoupledField {
     
   }
   
-  void FeH1LagrangeHex1::CalcDerivShFnc( Matrix<Double> & deriv, 
-                                         const Vector<Double>& point ) {
+  void FeH1LagrangeHex1::CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                                            const Vector<Double>& point,
+                                            const Elem* ptElem,
+                                            UInt comp ) {
     deriv.Resize( 8, 3 );
     StdVector<StdVector<Double> >& coords = shape_.nodeCoords;
     for( UInt i = 0; i < 8; i++ ) {
@@ -201,22 +186,26 @@ namespace CoupledField {
     feType_ = Elem::ET_LINE3;;
     shape_ = Elem::shapes[feType_];
     actNumFncs_ = 3;
+    order_ = 2; 
   }
   FeH1LagrangeLine2::~FeH1LagrangeLine2() {
     
   }
   
   void FeH1LagrangeLine2::CalcShFnc( Vector<Double>& shape,
-                                     const Vector<Double>& point ) {
-    EXCEPTION("Implement me"); 
+                                     const Vector<Double>& point,
+                                     const Elem* ptElem,
+                                     UInt comp ) {
   //  shape.Resize( 2 );
   //   shape[0] = 0.5 * ( 1.0 - point[0] );
   //   shape[1] = 0.5 * ( 1.0 + point[0] );
   }
   
-  void FeH1LagrangeLine2::CalcDerivShFnc( Matrix<Double> & deriv, 
-                                          const Vector<Double>& point ) {
-    EXCEPTION("Implement me");
+  void FeH1LagrangeLine2::CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                                             const Vector<Double>& point,
+                                             const Elem* ptElem,
+                                             UInt comp ) {
+    Warning("Implement me");
   //    deriv.Resize(2, 1);
   //    deriv[0][0] = 0.5 * -1.0;
   //    deriv[1][0] = 0.5 *  1.0;
@@ -227,7 +216,8 @@ namespace CoupledField {
   FeH1LagrangeQuad2::FeH1LagrangeQuad2() {
     feType_ = Elem::ET_QUAD8;
     shape_ = Elem::shapes[feType_];
-    actNumFncs_ = 8;  
+    actNumFncs_ = 8;
+    order_ = 2;
   }
     
   FeH1LagrangeQuad2::~FeH1LagrangeQuad2() {
@@ -235,7 +225,9 @@ namespace CoupledField {
   }
   
   void FeH1LagrangeQuad2::CalcShFnc( Vector<Double>& shape,
-                                     const Vector<Double>& point ) {
+                                     const Vector<Double>& point,
+                                     const Elem* ptElem,
+                                     UInt comp ) {
     StdVector<StdVector<Double> >& coords = shape_.nodeCoords;
     shape.Resize( 8 );
     // From Zienkiewicz, The Finite Element Method. Vol 1, page 122.
@@ -256,8 +248,10 @@ namespace CoupledField {
     }
   }
   
-  void FeH1LagrangeQuad2::CalcDerivShFnc( Matrix<Double> & deriv, 
-                                          const Vector<Double>& point ) {
+  void FeH1LagrangeQuad2::CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                                             const Vector<Double>& point,
+                                             const Elem* ptElem,
+                                             UInt comp ) {
     StdVector<StdVector<Double> >& coords = shape_.nodeCoords;
     deriv.Resize( 8, 2 );
     
@@ -289,6 +283,7 @@ namespace CoupledField {
     feType_ = Elem::ET_HEXA20;
     shape_ = Elem::shapes[feType_];
     actNumFncs_ = 20;
+    order_ = 2;
   }
     
   FeH1LagrangeHex2::~FeH1LagrangeHex2() {
@@ -296,7 +291,9 @@ namespace CoupledField {
   }
   
   void FeH1LagrangeHex2::CalcShFnc( Vector<Double>& shape,
-                                    const Vector<Double>& point ) {
+                                    const Vector<Double>& point,
+                                    const Elem* ptElem,
+                                    UInt comp ) {
   EXCEPTION("Implement me");
     //  shape.Resize( 8 );
   //  shape[0] = 0.25 * ( 1.0 - point[0] ) * ( 1.0 - point[1] ) * (1.0 - point[2]); 
@@ -310,8 +307,10 @@ namespace CoupledField {
     
   }
   
-  void FeH1LagrangeHex2::CalcDerivShFnc( Matrix<Double> & deriv, 
-                                         const Vector<Double>& point ) {
+  void FeH1LagrangeHex2::CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                                            const Vector<Double>& point,
+                                            const Elem* ptElem,
+                                            UInt comp ) {
     EXCEPTION("Implement me");
     //  deriv.Resize( 8, 3 );
   //  StdVector<StdVector<Double> >& coords = shape_.nodeCoords;

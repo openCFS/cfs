@@ -35,7 +35,7 @@
 //#include "PDE/mechPDE.hh"
 //#include "PDE/smoothPDE.hh"
 //#include "PDE/magneticPDE.hh"
-//#include "PDE/magEdgePDE.hh"
+#include "PDE/magEdgePDE.hh"
 //#include "PDE/mpcciPDE.hh"
 //#include "PDE/heatCondPDE.hh"
 //#include "PDE/acouCombustion.hh"
@@ -507,8 +507,8 @@ namespace CoupledField {
 //      else if (actPdeName == "magnetic") 
 //          ptSinglePde_[i]=new MagPDE(defaultGrid, actPdeNode );
 //
-//      else if ( actPdeName == "magneticEdge")
-//        ptSinglePde_[i]=new MagEdgePDE(defaultGrid, actPdeNode );
+      else if ( actPdeName == "magneticEdge")
+        ptSinglePde_[i]=new MagEdgePDE(defaultGrid, actPdeNode );
 //      
 //      else if (actPdeName == "mpcci")
 //        ptSinglePde_[i]=new MpcciPDE(defaultGrid, actPdeNode );

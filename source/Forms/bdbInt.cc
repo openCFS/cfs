@@ -38,7 +38,7 @@ namespace CoupledField {
     // IntegrationScheme class)
     StdVector<LocPoint> intPoints;
     StdVector<Double> weights;
-    intScheme_->GetIntPoints( ptElem->type, intPoints, weights );
+    intScheme_->GetIntPoints( Elem::GetShapeType(ptElem->type), intPoints, weights );
     
     const UInt nrDofs   = getNrDofs();
     elemMat.Resize( nrFncs * nrDofs);
@@ -49,7 +49,6 @@ namespace CoupledField {
     for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
 
       // Calculate for each integration point the LocPointMapped
-      // ... implement me
       lp.Set( intPoints[i], esm );
 
       // Call the CalcBMat()-method

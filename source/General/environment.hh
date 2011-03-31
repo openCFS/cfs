@@ -138,19 +138,6 @@ namespace CoupledField {
 #endif
 
 
-
-
-
-  /** enumeration with integration types - to be renamed into IntegrationType
-   * ECONOMICAL are the "efficient" gaussian quadrature weights
-   *            (->Solin, Segeth, Dolezel, Higher-Order Finite Element Methods) -> see also Elements/BaseFE
-   * CLASSICAL either the "original" implementation before ECONOMICAL refactoring or fixed product rule (wedge)
-   * EXPERIMENTAL is only for developer/debugging use -> one does not need to modify "real" data
-   * CARTESIAN is only for developer/debugging -> x1 =0-9, x2 = 1x-9x, x3 = 1xx-9xx
-   * UNDEFINED only internal use!
-   * LOBATTO and CHEBYSHEV are special line intgration methods (->Solin, Segeth, Dolezel, Higher-Order Finite Element Methods)*/
-  enum IntegrationMethod {ECONOMICAL, CLASSICAL, LOBATTO, CHEBYSHEV, EXPERIMENTAL, CARTESIAN, SPECIAL, UNDEFINED};
-
   //! Damping type
   enum DampingType{NONE=0, RAYLEIGH=1, ABCDAMP=2, THERMOVISCOUS=3,
                    FRACTIONAL=4, FRACTIONAL_GL=5, FRACTIONAL_BLANK=6,
@@ -180,6 +167,7 @@ namespace CoupledField {
                ACOU_POTENTIAL_DERIV_1, ACOU_POTENTIAL_DERIV_2, ACOU_RHS_LOAD,ACOU_RHSVAL, ACOUSURF_RHSVAL,
                ACOU_BUBBLE_RHS_VAL, ACOU_SOUND_SPEEED, ACOU_SURFINTENSITY,
                MAG_POTENTIAL, MAG_FLUX_DENSITY, MAG_HFIELD, MAG_EDDY_CURRENT,
+               MAG_ELEM_PERMEABILITY,
                MAG_POTENTIAL_DIV,
                MAG_FORCE_VWP, MAG_FORCE_LORENTZ, MAG_ENERGY,
                MAG_EDDY_POWER, MAG_RHS_LOAD,
@@ -273,7 +261,8 @@ namespace CoupledField {
   enum orientation2D {xy, xz, yz};
 
   //! nonlinear method definition
-  enum NonLinMethod {FIXEDPOINT=1, NEWTON=2};
+  typedef enum {FIXEDPOINT=1, NEWTON=2} NonLinMethodType ; 
+  extern Enum<NonLinMethodType> NonLinMethodTypeEnum;
 
   //! output format for complex numbers
   typedef enum {REAL_IMAG, AMPLITUDE_PHASE} ComplexFormat;
@@ -394,16 +383,6 @@ namespace CoupledField {
   //! - AUXILIARY - e.g. for radiation optimization used in SurfaceNormalInt
   typedef enum {NOTYPE, SYSTEM = 1, STIFFNESS, DAMPING, CONVECTION, MASS, AUXILIARY}
   FEMatrixType;
-
-  //! This enum Describes all ansatzTypes (FeSpaces) Available 
-  //! i.e. the type of approximation
-  //! Available are:
-  //! - GRID 
-  //! - SPECTRAL
-  //! - LEGENDRE 
-  typedef enum {GRID, SPECTRAL, LEGENDRE} AnsatzType;
-
-  extern Enum<AnsatzType> AnsatzTypeEnum;
 
   //! Maximal number of different FE matrix types
 
@@ -598,7 +577,7 @@ namespace CoupledField {
   DEFINE_ENUM_CONVERSION(ComplexFormat)
   DEFINE_ENUM_CONVERSION(EQNType)
   DEFINE_ENUM_CONVERSION(MaterialClass)
-  DEFINE_ENUM_CONVERSION(IntegrationMethod)
+  DEFINE_ENUM_CONVERSION(IntegMethod)
   DEFINE_ENUM_CONVERSION(NonLinType)
   DEFINE_ENUM_CONVERSION(DampingType)
   DEFINE_ENUM_CONVERSION(SolverType)
