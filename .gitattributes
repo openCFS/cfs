@@ -697,7 +697,6 @@ source/Elements/HCurlElems.cc svneol=native#text/x-c%2B%2Bsrc
 source/Elements/HCurlElems.hh svneol=native#text/x-c%2B%2Bhdr
 source/Elements/HCurlElemsHi.cc svneol=native#text/x-c%2B%2Bsrc
 source/Elements/HCurlElemsHi.hh svneol=native#text/x-c%2B%2Bhdr
-source/Elements/HCurlHiElems.hh svneol=native#text/x-c%2B%2Bhdr
 source/Elements/basefe.cc svneol=native#text/x-c%2B%2Bsrc
 source/Elements/basefe.hh svneol=native#text/x-c%2B%2Bhdr
 source/Elements/elemShapeMap.cc svneol=native#text/x-c%2B%2Bsrc
