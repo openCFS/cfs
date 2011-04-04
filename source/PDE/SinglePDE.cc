@@ -1011,6 +1011,10 @@ namespace CoupledField {
         }
       }
     }
+    
+    // Trigger calculation of special results
+    CalcSpecialResults();
+    
 
 #ifdef USE_SCRIPTING
     StdVector<std::string> context;
@@ -3276,7 +3280,6 @@ namespace CoupledField {
       for( UInt i = 0; i < feFunctionList.GetSize(); i++ ){
         FunctionDescription fncDescription; 
         if(feFunctionList[i]->Get("integrationType",false)){
-          std::cerr << "converting " << feFunctionList[i]->Get("integrationType")->AsString() << std::endl;
           fncDescription.integScheme = 
               IntScheme::IntegMethodEnum.Parse(feFunctionList[i]->Get("integrationType")->AsString());
         }else{
@@ -3294,36 +3297,14 @@ namespace CoupledField {
         }
 
         // Create function space
-        
         shared_ptr<FeSpace> mySpace = 
             FeSpace::CreateInstance(feFunctionList[i]);
         mySpace->Init();
-        //mySpace->SetMapType(FeSpace::GRID);
-        //mySpace->SetIsoOrder(1);
-
-//        //std::string ansatzType = feFunctionList[i]->Get("ansatzType")->AsString();
-//        AnsatzType ansatzType;
-//        if(feFunctionList[i]->Get("ansatzType",false)){
-//          ansatzType = AnsatzTypeEnum.Parse(feFunctionList[i]->Get("ansatzType")->AsString());
-//        }else{
-//          ansatzType = GRID;
-//        }
-//        if( ansatzType == GRID){
-//          mySpace.reset(new FeSpaceH1Lagrange);
-//          mySpace->SetMapType(FeSpace::GRID);
-//        } else if(ansatzType == SPECTRAL){
-//          mySpace.reset(new FeSpaceH1Lagrange);
-//          mySpace->SetMapType(FeSpace::POLYNOMIAL);
-//        } else if(ansatzType == LEGENDRE){
-//          mySpace.reset(new FeSpaceH1Hi);
-//          mySpace->SetMapType(FeSpace::POLYNOMIAL);
-//        } else{
-//          EXCEPTION("Got not supported ansatzType for PDE");
-//        }
         mySpace->AddFeFunction(fncDescription.feFunction);
         
         fncDescription.feFunction->SetFeSpace(mySpace);
-//        //now to the order tag
+
+        //        //now to the order tag
 //        if(feFunctionList[i]->Get("order",false) && feFunctionList[i]->Get("order")->Get("uniform",false)){
 //          UInt order = feFunctionList[i]->Get("order")->Get("uniform")->AsUInt();
 //          //TODO> prepare the anisotropic order

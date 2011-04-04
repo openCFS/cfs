@@ -446,9 +446,7 @@ namespace CoupledField {
     std::vector<Double>::iterator it ;
     it = min_element(entityDist.begin(), entityDist.end());
     entityNum = std::distance(entityDist.begin(), it) + 1;
-    //return entityNum;
-    return 0;
-
+    return entityNum;
 
 }
 
@@ -1908,7 +1906,7 @@ namespace CoupledField {
   void GridCFS::CalcSurfNormal( Vector<Double> & n, 
                                 const Elem & surfElem,
                                 bool updated ) {
-   Warning( "Calculation of Surface normal has to be moved to element shape map");
+   //Warning( "Calculation of Surface normal has to be moved to element shape map");
    
    // Obtain shape map
    n.Resize(2);
@@ -1962,7 +1960,7 @@ namespace CoupledField {
                                        const Elem & volElem,
                                        bool updated )
   {
-    Warning( "Calculation of directional Surface normal has to be moved to element shape map");
+    //Warning( "Calculation of directional Surface normal has to be moved to element shape map");
     n.Resize(2);
     n.Init(1);
     //

@@ -50,7 +50,16 @@ public:
 
   //! returns the number of functions for a single edge or face
   UInt GetNumFncsPerEntType( EntityType fctEntityType, UInt dof = 1);
-
+  
+  //! =======================================================================
+  //! G E O M E T R I C   I N F O R M A T I O N
+  //! =======================================================================
+  //! Returns whether a given local coordinate is within this element
+  //! @param point input Local point
+  //! @param tolerance input Additioanl (relative) tolerance
+  //! \return flag if point is inside the element
+  virtual bool CoordIsInsideElem( const Vector<Double>& point,
+                                  Double tolerance ) = 0;
 
 protected:
 
@@ -99,6 +108,10 @@ protected:
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
+  
+  //! @see FeH1LagrangeExpl::CoordIsInsideElem
+  bool CoordIsInsideElem( const Vector<Double>& point,
+                          Double tolerance );
 };
 
 //! Lagrangian quadrilateral element of 1st order (ET_QUAD4)
@@ -125,6 +138,10 @@ protected:
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
+  
+  //! @see FeH1LagrangeExpl::CoordIsInsideElem
+    bool CoordIsInsideElem( const Vector<Double>& point,
+                            Double tolerance );
 };
 
 //! Lagrangian hexahedral element of 1st order (ET_HEX8)
@@ -151,6 +168,10 @@ protected:
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
+  
+  //! @see FeH1LagrangeExpl::CoordIsInsideElem
+  bool CoordIsInsideElem( const Vector<Double>& point,
+                          Double tolerance );
 
 };
 
@@ -181,6 +202,10 @@ protected:
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
+  
+  //! @see FeH1LagrangeExpl::CoordIsInsideElem
+  bool CoordIsInsideElem( const Vector<Double>& point,
+                          Double tolerance );
 
 };
 
@@ -208,6 +233,10 @@ protected:
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
+  
+  //! @see FeH1LagrangeExpl::CoordIsInsideElem
+  bool CoordIsInsideElem( const Vector<Double>& point,
+                          Double tolerance );
 
 };
 
@@ -235,6 +264,10 @@ protected:
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
+
+  //! @see FeH1LagrangeExpl::CoordIsInsideElem
+  bool CoordIsInsideElem( const Vector<Double>& point,
+                          Double tolerance );
 
 };
 

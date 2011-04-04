@@ -540,59 +540,57 @@ namespace CoupledField {
   {
     name_ = "nLinMagEdge_linFormInt";
     isSolDependent_ = true;
+    curlCurlInt_ = NULL;
+    firstTime_ = true;
 
     isaxi_       = false;
     coordUpdate_ = coordUpdate;
-    Warning("nLinMagEdge_linFormInt::CalcElemVector: Check if creation of "
-                "integrator can be moved to the constructor");
   }
 
   nLinMagEdge_linFormInt::~nLinMagEdge_linFormInt()
   {
+    delete curlCurlInt_;
   }
 
   void nLinMagEdge_linFormInt::CalcElemVector( Vector<Double> & elemVec,
                                                EntityIterator& ent )
   {
-
-     
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
 
     // get pointer to nonlinear BH curve approximation
     ApproxData* nlinFnc_ = ptMaterial->GetNonlinFncBH();
+    
+    // initialize the bilinear form for the first time
+    if( firstTime_ ) {
+      if ( nlinFnc_ == NULL )  {
+        curlCurlInt_ = new CurlCurlEdgeInt( ptMaterial, coordUpdate_);        
+        //define the linear element matrix
+        curlCurlInt_->SetIntegration( intScheme_, intScheme_->GetMethod(),
+                                      intScheme_->GetOrder() );
+        curlCurlInt_->SetFeSpace(ptFeSpace1_);
+      } else {
+        curlCurlInt_ = new nLinCurlCurlEdgeInt( ptMaterial, coordUpdate_);
+        //define the nonlinear element matrix
+        curlCurlInt_->SetIntegration( intScheme_, intScheme_->GetMethod(),
+                                          intScheme_->GetOrder() );
+        curlCurlInt_->SetFeSpace(ptFeSpace1_);
+        curlCurlInt_->SetNonLinMethod(FIXEDPOINT);
 
-    BaseForm * curlcurl3D;
-    if ( nlinFnc_ == NULL )  {
-      //define the linear element matrix
-      curlcurl3D = new CurlCurlEdgeInt( ptMaterial, coordUpdate_);
-      curlcurl3D->SetIntegration( intScheme_, intScheme_->GetMethod(),
-                                  intScheme_->GetOrder() );
-      curlcurl3D->SetFeSpace(ptFeSpace1_);
-      
-    } else {
-      //define the nonlinear element matrix
-      curlcurl3D = new nLinCurlCurlEdgeInt( ptMaterial, coordUpdate_ );
-      curlcurl3D->SetIntegration( intScheme_, intScheme_->GetMethod(),
-                                        intScheme_->GetOrder() );
-      curlcurl3D->SetFeSpace(ptFeSpace1_);
-      //important to set method to FixPoint, since we compute the RHS!!
-      curlcurl3D->SetNonLinMethod(FIXEDPOINT);
-
-      //set the solution class to the operator
-      curlcurl3D->SetSolution( *sol_ );
+        //set the solution class to the operator
+        curlCurlInt_->SetSolution( *sol_ );
+      }
+      firstTime_ = false;
     }
-
+    
     // Get element solution
     Vector<Double> magPot;
     sol_->GetElemSolution( magPot, ent  );
 
     Matrix<Double> elemmat;
-    curlcurl3D->CalcElementMatrix(elemmat, ent, ent);
+    curlCurlInt_->CalcElementMatrix(elemmat, ent, ent);
 
     elemVec = -(elemmat * magPot);
-
-    delete curlcurl3D;
   }
 
   

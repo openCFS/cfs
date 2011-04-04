@@ -55,6 +55,9 @@ namespace CoupledField
 
     //! do PostProcessing step
     void CalcResults( shared_ptr<BaseResult> result );
+    
+    //! Perform additional result calculation (just once per step)
+    void CalcSpecialResults(  );
 
     // ======================================================
     // COUPLING SECTION
@@ -146,7 +149,7 @@ namespace CoupledField
     //! Calculates the flux density B = rot(A) at the given integration point.
     //! If ip is 0, the midpoint of the element is evaluated.
     template<class TYPE>
-    void CalcFluxDensityAtIP( EntityIterator it,
+    void CalcFluxDensityAtIP( const Elem *ptElem,
                               LocPoint lp,
                               Vector<TYPE>& field );
 
@@ -216,6 +219,28 @@ namespace CoupledField
     //   COILS
     // =======================================================================
     NonLinMethodType nonLinMethod_;
+    
+    // =======================================================================
+    //   INTERPOLATION OF FLUX DENSITY
+    // =======================================================================
+    
+    //! Helper struct for interpolating flux density at some given points
+    struct FluxAtPoints {
+      
+      //! Filename where points get written to
+      std::string fileName;
+      
+      
+      //! single coordinates 
+      //! Vector with points
+      StdVector<LocPoint> points;
+      
+      //! Flux values for each point
+      StdVector<Vector<Double> > flux;
+    };
+    
+    //! List of points, where fluxdensity gets calculated
+    StdVector<FluxAtPoints> calcFlux_;
     
     
   private:

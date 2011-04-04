@@ -517,7 +517,6 @@ namespace CoupledField {
   void Enum2String<FreqSamplingType>( const FreqSamplingType &in,
                                       std::string &out ) {
 
-    std::cout << "is " << in << std::endl;
     switch( in ) {
 
     case NO_SAMPLING_TYPE:

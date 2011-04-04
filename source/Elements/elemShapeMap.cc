@@ -131,7 +131,7 @@ LagrangeElemShapeMap::LagrangeElemShapeMap( Grid* ptGrid  )
 LagrangeElemShapeMap::~LagrangeElemShapeMap() {
   
   // Remove pointers to all refrence elements
-  std::map<Elem::FEType, FeH1 *>::iterator it = feMap_.begin();
+  std::map<Elem::FEType, FeH1LagrangeExpl *>::iterator it = feMap_.begin();
   for( ; it != feMap_.end(); it++ ) {
     delete  it->second;
   }
@@ -151,260 +151,405 @@ void LagrangeElemShapeMap::Local2Global( Vector<Double>& globPoint,
 
    
 void LagrangeElemShapeMap::Global2Local( Vector<Double>& locPoint, 
-                                               const Vector<Double>& glob ) {
-  EXCEPTION("Not implemented");
-  // Following: Old code from BaseFE
-    // ===============================
-    //    Vector<Double> globalPoint; // global point coordinates
-    //    UInt globDim = globalCoords.GetNumRows(); // determine global dimension
-    //    UInt numPoints = globalCoords.GetNumCols(); // number of global points
-    //    UInt locDim = LCornerCoords_.GetNumRows(); // dimension of current element
-    //    //    UInt numCorners = LCornerCoords_.GetNumCols(); // number of element corners
-    //
-    //    Vector<Double> xi_start; // local start point for Newton-Raphson method
-    //    Vector<Double> xi_k; // local point at iteration k
-    //    Vector<Double> delta_xi; // local search direction
-    //    Vector<Double> f; // global (negative) search direction
-    //    Vector<Double> f_start; // start value for global search direction
-    //    Matrix<Double> J; // Jacobian at local point xi_k
-    //    Double f_min; // minimal distance between global corners and global point
-    //    Double distance; // global distance!
-    //    Double distance_l; // global distance at iteration l
-    //    Double distMeasure; // global distance or local distance
-    //                        // depending on sqrt(|jacDet|)
-    //    Double TOL = 0.0000001; // tolerance for global distance
-    //    Double jacDet; // denominator for Cramer's rule.
-    //    Double distNormalizer; // denominator for Cramer's rule.
-    //    Double coeff; // damping coefficient
-    //    bool divergence; // does the Newton-Raphson algorithm diverge?
-    //    bool converged; // have we found the local point?
-    //    UInt iter = 0;
-    //
-    //    // Initialize variables
-    //    globalPoint.Resize(globDim);
-    //    xi_start.Resize(3); xi_start.Init();
-    //    xi_k.Resize(3); xi_k.Init();
-    //    delta_xi.Resize(3); ; delta_xi.Init();
-    //    localCoords.Resize(locDim, numPoints);
-    //    J.Resize(3, 3); J.Init();
-    //
-    //    // Perform Newton-Raphson method on the list of global points
-    //    // to find local coordinates within this element.
-    //    for(UInt i = 0; i < numPoints; i++)
-    //    {
-    //      // Copy global point coordinates into a Vector for algebraic ops.
-    //      for(UInt j = 0; j < globDim; j++)
-    //      {
-    //        globalPoint[j] = globalCoords[j][i];
-    //      }
-    //
-    //      // Find good startpoint xi_k among local corner coordinates
-    //      f_min = 999e5; // really big value!
-    //      for(UInt k = 0; k < NumCorners_; k++)
-    //      {
-    //        for(UInt l = 0; l < locDim; l++)
-    //        {
-    //          xi_k[l] = LCornerCoords_[l][k];
-    //        }
-    //
-    //        Local2GlobalCoord(f, xi_k, coordMat, NULL);
-    //        f = f - globalPoint;
-    //        distance = f.NormL2();
-    //        if( distance < f_min )
-    //        {
-    //          f_min = distance;
-    //          xi_start = xi_k;
-    //          f_start = f;
-    //        }
-    //      }
-    //
-    //      /*
-    //      std::cout << "Beginning to find local coords..." << std::endl;
-    //      std::cout << "Global coords..." << globalPoint << std::endl;
-    //      */
-    //      xi_k = xi_start;
-    //      f = f_start;
-    //      distance = f_min;
-    //      divergence = false;
-    //      converged = false;
-    //
-    //      do
-    //      {
-    //        // Calculate Jacobian at iteration point xi_k
-    //        CalcJacobian(J, xi_k, coordMat, NULL );
-    //
-    //        /*
-    //        std::cout << std::endl << "++++++ xi_k (" << xi_k[0] << ", "
-    //                  << xi_k[1] << ", " << xi_k[2] << ") ++++++" << std::endl;
-    //        std::cout << "f (" << f[0] << ", " << f[1]
-    //                  << ", " << f[2] << ")" << std::endl;
-    //        std::cout << "distance " << distance << std::endl;
-    //        */
-    //
-    //        // locDim should never be 1 since line elements will
-    //        // be handled differently
-    //        if(locDim == 1)
-    //        {
-    //          EXCEPTION("Line elements should not use the Newton-Raphson method!");
-    //          return;
-    //        }
-    //
-    //        if(globDim == 2)
-    //        {
-    //          // Find new local search direction for 2D -> 2D mapping using
-    //          // Cramer's rule.
-    //          jacDet = + J[0][0]*J[1][1] - J[1][0]*J[0][1];
-    //
-    //          delta_xi[0] = - J[1][1]*f[0] + J[0][1]*f[1];
-    //
-    //          delta_xi[1] = - J[0][0]*f[1] + J[1][0]*f[0];
-    //
-    //          distNormalizer = sqrt(fabs(jacDet));
-    //        }
-    //        else
-    //        {
-    //          if(locDim == 2)
-    //          {
-    //            // Find new local search direction for 2D -> 3D mapping.
-    //            // Project 3D difference vector onto 2D basis given by
-    //            // the Jacobian to find the new 2D search direction.
-    //            //            Vector<Double> normal;
-    //
-    //            jacDet = + J[1][0] * J[2][1] - J[2][0] * J[1][1]
-    //                     - J[0][0] * J[2][1] + J[2][0] * J[0][1]
-    //                     + J[0][0] * J[1][1] - J[1][0] * J[0][1];
-    //            jacDet = -fabs(jacDet);
-    //            
-    //            delta_xi[0] = (f[0] * J[0][0] +
-    //                           f[1] * J[1][0] +
-    //                           f[2] * J[2][0]);
-    //
-    //            delta_xi[1] = (f[0] * J[0][1] +
-    //                           f[1] * J[1][1] +
-    //                           f[2] * J[2][1]);
-    //
-    //            distNormalizer = sqrt(fabs(jacDet));
-    //
-    //            /*
-    //            std::cout << "J1 (" << J[0][0] << ", "
-    //                      << J[1][0] << ", " << J[2][0] << ")" << std::endl;
-    //            std::cout << "J2 (" << J[0][1] << ", "
-    //                      << J[1][1] << ", " << J[2][1] << ")" << std::endl;
-    //            std::cout << "jacDet " << jacDet << std::endl;
-    //            */
-    //          }
-    //          else
-    //          {
-    //            // Find new local search direction for 3D -> 3D mapping using
-    //            // Cramer's rule.
-    //
-    //            jacDet = + J[0][0]*J[1][1]*J[2][2] - J[0][0]*J[2][1]*J[1][2]
-    //                    - J[1][0]*J[0][1]*J[2][2] + J[2][1]*J[1][0]*J[0][2]
-    //                    - J[1][1]*J[2][0]*J[0][2] + J[2][0]*J[0][1]*J[1][2];
-    //
-    //            delta_xi[0] += + J[0][1]*J[2][2]*f[1] - J[0][2]*J[2][1]*f[1]
-    //                           - J[1][1]*J[2][2]*f[0] + J[2][1]*J[1][2]*f[0]
-    //                           - J[0][1]*J[1][2]*f[2] + J[0][2]*J[1][1]*f[2];
-    //
-    //            delta_xi[1] += - J[0][0]*J[2][2]*f[1] + J[2][0]*J[0][2]*f[1]
-    //                           - J[1][2]*J[2][0]*f[0] + J[1][0]*J[2][2]*f[0]
-    //                           + J[0][0]*J[1][2]*f[2] - J[1][0]*J[0][2]*f[2];
-    //
-    //            delta_xi[2] = - J[2][1]*J[1][0]*f[0] + J[0][0]*J[2][1]*f[1]
-    //                          - J[0][0]*J[1][1]*f[2] + J[1][1]*J[2][0]*f[0]
-    //                          + J[1][0]*J[0][1]*f[2] - J[2][0]*J[0][1]*f[1];
-    //
-    //            distNormalizer = std::pow(fabs(jacDet), 0.3333333);
-    //          }
-    //        }
-    //
-    //        // Here is the new local search direction.
-    //        delta_xi[0] /= jacDet;
-    //        delta_xi[1] /= jacDet;
-    //        delta_xi[2] /= jacDet;
-    //
-    //        // If global element is smaller use local distance as a measure.
-    //        // If global element is bigger use global distance as a measure.
-    //        distMeasure = distNormalizer < 1 ? distance/distNormalizer : distance;
-    //        if(distMeasure < TOL)
-    //        {
-    //          converged = true;
-    //          break;
-    //        }
-    //
-    //        /*
-    //        std::cout << "delta_xi (" << delta_xi[0] << ", "
-    //                  << delta_xi[1] << ")" << std::endl;
-    //        */
-    //
-    //        // Perform damping iterations to find good damping coefficient
-    //        xi_start = xi_k;
-    //        coeff = 1;
-    //        for(UInt l = 0; l < 8; l++)
-    //        {
-    //          xi_k = xi_start + delta_xi * coeff;
-    //          Local2GlobalCoord(f, xi_k, coordMat, NULL);
-    //
-    //          f = f - globalPoint;
-    //          distance_l = f.NormL2();
-    //
-    //          //          std::cout << "coeff " << coeff << " distance_l "
-    //          //                    << distance_l << std::endl;
-    //
-    //          if(distance_l < distance)
-    //          {
-    //            distance = distance_l;
-    //
-    //            /*
-    //            std::cout << "coeff " << coeff << " distance "
-    //                      << distance << std::endl;
-    //            */
-    //
-    //            // If global element is smaller use local distance as a measure.
-    //            // If global element is bigger use global distance as a measure.
-    //            distMeasure = distNormalizer < 1 ? distance/distNormalizer : distance;
-    //            if(distMeasure < TOL)
-    //            {
-    //              converged = true;
-    //              break;
-    //            }
-    //
-    //            coeff /= 2;
-    //          }
-    //          else
-    //          {
-    //            divergence = true;
-    //            break;
-    //          }
-    //        }
-    //
-    //        if(divergence)
-    //          break;
-    //
-    //        if(converged)
-    //          break;
-    //
-    //        iter++;
-    //      }
-    //      while(iter < 10);
-    //
-    //      // Put local coordinate of point into matrix.
-    //      for(UInt l = 0; l < locDim; l++)
-    //      {
-    //        localCoords[l][i] = xi_k[l];
-    //      }
-    //
-    //      /*
-    //      std::cout << std::endl << "++++++ xi_k final (" << xi_k[0]
-    //                << ", " << xi_k[1] << ", " << xi_k[2] << ") ++++++"
-    //                << std::endl;
-    //      std::cout << "f (" << f[0] << ", " << f[1] << ", " << f[2] << ")" << std::endl;
-    //      //      std::cout << "distance " << distance << std::endl;
-    //      std::cout << "divergence " << divergence << std::endl;
-    //      std::cout << "distance " << distance << std::endl;
-    //      std::cout << "dist_measure " << distMeasure << std::endl;
-    //      */
-    //    }
+                                         const Vector<Double>& globalPoint ) {
+  // increate counter
+  UInt globDim = globalPoint.GetSize(); // determine global dimension
+  UInt locDim = shape_.dim; // dimension of current element
+
+  Vector<Double> xi_start; // local start point for Newton-Raphson method
+  Vector<Double> xi_k; // local point at iteration k
+  Vector<Double> xi_min; // local point with minimal global distance
+  Vector<Double> delta_xi; // local search direction
+  Vector<Double> f, f1, f2; // global (negative) search direction
+  Vector<Double> f_start; // start value for global search direction
+  Matrix<Double> J; // Jacobian at local point xi_k
+  Double f_min; // minimal distance between global corners and global point
+  Double distance; // global distance!
+  Double distance_l; // global distance at iteration l
+  Double distMeasure; // global distance or local distance
+  // depending on sqrt(|jacDet|)
+  //Double TOL = 0.0000001; // tolerance for global distance
+  Double TOL = 1e-5;
+  Double jacDet; // denominator for Cramer's rule.
+  Double distNormalizer; // denominator for Cramer's rule.
+  bool divergence; // does the Newton-Raphson algorithm diverge?
+  bool converged; // have we found the local point?
+  UInt iter = 0;
+  const Double golden_ratio = (3 - sqrt(5)) / 2;
+  Double minDist = 999999;
+
+
+  // Initialize variables
+  xi_start.Resize(3); xi_start.Init();
+  xi_k.Resize(3); xi_k.Init();
+  delta_xi.Resize(3);  delta_xi.Init();
+  J.Resize(3, 3); J.Init();
+
+  // Perform Newton-Raphson method on global point
+  // Find good startpoint xi_k among local node coordinates
+  f_min = 999e5; // really big value!
+  for(UInt k = 0; k < shape_.numNodes; k++)
+  {
+    for(UInt l = 0; l < locDim; l++) {
+      xi_k[l] = shape_.nodeCoords[k][l];
+    }
+
+    Local2Global(f, xi_k);
+    f = f - globalPoint;
+    distance = f.NormL2();
+    if( distance < f_min ) {
+      f_min = distance;
+      xi_start = xi_k;
+      f_start = f;
+      minDist = distance;
+    }
+  }
+  xi_k = xi_start;
+  f = f_start;
+  distance = f_min;
+  divergence = false;
+  converged = false;
+
+  do {
+    // Calculate Jacobian at iteration point xi_k
+    CalcJ(J, xi_k);
+
+    // locDim should never be 1 since line elements will
+    // be handled differently
+    if(locDim == 1)
+    {
+      EXCEPTION("Line elements should not use the Newton-Raphson method!");
+      return;
+    }
+
+    if(globDim == 2)
+    {
+      // Find new local search direction for 2D -> 2D mapping using
+      // Cramer's rule.
+
+      // Jacobian Matrix:
+      //
+      //  J = ( J_00  J_01 )
+      //      ( J_10  J_11 )
+
+      jacDet = + J[0][0]*J[1][1] - J[1][0]*J[0][1];
+
+      //  ( f_0  J_01 )
+      //  ( f_1  J_11 )
+      delta_xi[0] = - J[1][1]*f[0] + J[0][1]*f[1];
+
+      //  ( J_00  f_0 )
+      //  ( J_10  f_1 )
+      delta_xi[1] = - J[0][0]*f[1] + J[1][0]*f[0];
+
+      distNormalizer = sqrt(fabs(jacDet));
+    }
+    else
+    {
+      if(locDim == 2)
+      {
+        // Find new local search direction for 2D -> 3D mapping.
+        // Project 3D difference vector onto 2D basis given by
+        // the Jacobian to find the new 2D search direction.
+
+        // Jacobian Matrix:
+        //
+        //      ( J_00  J_01  1 )
+        //  J = ( J_10  J_11  1 )
+        //      ( J_20  J_21  1 )
+
+        jacDet = + J[1][0] * J[2][1] - J[2][0] * J[1][1]
+                 - J[0][0] * J[2][1] + J[2][0] * J[0][1]
+                 + J[0][0] * J[1][1] - J[1][0] * J[0][1];
+
+        // Calculate negative Jacobian determinants of the following matrices
+        // to find the local search direction which has to point in the opposite
+        // direction of the backprojected global error vector f.
+        //
+        //  ( f_0  J_01  1 )
+        //  ( f_1  J_11  1 )
+        //  ( f_2  J_21  1 )
+
+        delta_xi[0] = - f[0] * J[1][1] - f[1] * J[2][1] - f[2] * J[0][1]
+                      + f[2] * J[1][1] + f[1] * J[0][1] + f[0] * J[2][1];
+
+        //  ( J_00  f_0  1 )
+        //  ( J_10  f_1  1 )
+        //  ( J_20  f_2  1 )
+
+        delta_xi[1] = - f[0] * J[2][0] - f[1] * J[0][0] - f[2] * J[1][0]
+                      + f[2] * J[0][0] + f[1] * J[2][0] + f[0] * J[1][0];
+
+        distNormalizer = sqrt(fabs(jacDet));
+      }
+      else
+      {
+        // Find new local search direction for 3D -> 3D mapping using
+        // Cramer's rule.
+
+        //      ( J_00  J_01  J_02 )
+        //  J = ( J_10  J_11  J_12 )
+        //      ( J_20  J_21  J_22 )
+
+        jacDet = + J[0][0]*J[1][1]*J[2][2] - J[0][0]*J[2][1]*J[1][2]
+                 - J[1][0]*J[0][1]*J[2][2] + J[2][1]*J[1][0]*J[0][2]
+                                                                                                                   - J[1][1]*J[2][0]*J[0][2] + J[2][0]*J[0][1]*J[1][2];
+
+        //  ( f_0  J_01  J_02 )
+        //  ( f_1  J_11  J_12 )
+        //  ( f_2  J_21  J_22 )
+        delta_xi[0] = - J[1][1]*J[2][2]*f[0] + J[2][1]*J[1][2]*f[0]
+                      - J[2][1]*J[0][2]*f[1] + J[0][1]*J[2][2]*f[1]
+                                                                                                            - J[0][1]*J[1][2]*f[2] + J[1][1]*J[0][2]*f[2];
+
+        //  ( J_00  f_0  J_02 )
+        //  ( J_10  f_1  J_12 )
+        //  ( J_20  f_2  J_22 )
+        delta_xi[1] = - J[1][2]*J[2][0]*f[0] + J[1][0]*J[2][2]*f[0]
+                      - J[0][0]*J[2][2]*f[1] + J[2][0]*J[0][2]*f[1]
+                                                                                                            - J[1][0]*J[0][2]*f[2] + J[1][2]*J[0][0]*f[2];
+
+        //  ( J_00  J_01  f_0 )
+        //  ( J_10  J_11  f_1 )
+        //  ( J_20  J_21  f_2 )
+        delta_xi[2] = - J[1][0]*J[2][1]*f[0] + J[2][0]*J[1][1]*f[0]
+                                                                 - J[0][1]*J[2][0]*f[1] + J[2][1]*J[0][0]*f[1]
+                                                                                                            - J[0][0]*J[1][1]*f[2] + J[1][0]*J[0][1]*f[2];
+
+        distNormalizer = std::pow(fabs(jacDet), 1.0 / 3.0);
+      }
+    }
+
+    // Here is the new local search direction. We normalize it so we
+    // can be sure, that we have a local search vector of a length
+    // comparable to the local element diameter.
+    Double len;
+
+    delta_xi[0] /= jacDet;
+    delta_xi[1] /= jacDet;
+    delta_xi[2] /= jacDet;
+
+    len = delta_xi.NormL2();
+    delta_xi[0] /= len;
+    delta_xi[1] /= len;
+    delta_xi[2] /= len;
+
+    // If global element is smaller use local distance as a measure.
+    // If global element is bigger use global distance as a measure.
+    distMeasure = distNormalizer < 1 ? distance/distNormalizer : distance;
+    if(distMeasure < TOL)
+    {
+      converged = true;
+      break;
+    }
+
+    // Perform damping iterations to find good damping coefficient.
+    // That means we search for a factor along the local search direction
+    // which minimizes the global error vector. We do it by braketing the
+    // the interval for the factor until we encounter a case were the
+    // global error vectors face into opposite directions. This means
+    // that the point we search lies somewhere between the mapped
+    // interval limits.
+    xi_start = xi_k;
+    Double interval[2];
+    Double dist[2];
+    interval[1] = 1.0;
+    interval[0] = 0.0;
+    dist[0] = distance;
+
+    // Braket the location of the local point
+    UInt l = 0;
+
+    for(l=0; l<20; l++)
+    {
+      xi_k = xi_start + delta_xi * interval[1];
+      Local2Global(f2, xi_k);
+      f2 = f2 - globalPoint;
+      dist[1] = f2.NormL2();
+
+      distMeasure = distNormalizer < 1 ? dist[1]/distNormalizer : dist[1];
+      if(distMeasure < TOL)
+      {
+        converged = true;
+        break;
+      }
+
+      if(f.Inner(f2) < 0) 
+      {
+        break;
+      } else 
+      {
+        interval[0] = interval[1];
+        interval[1] *= 4.0;
+        dist[0] = dist[1];
+        f = f2;
+      }
+
+      if(dist[0] < minDist) {
+        minDist = dist[0];
+        xi_min = xi_start + delta_xi * interval[0];
+      }
+
+      if(dist[1] < minDist) {
+        minDist = dist[1];
+        xi_min = xi_start + delta_xi * interval[1];
+      }
+    }
+
+    if(converged)
+      break;
+
+    // Try to narrow down the extents of the interval by searching points
+    // ever closer from below and above the minumum in the current search
+    // direction.
+    for(l=0; l<20; l++)
+    {
+      Double x3 = interval[0] + (interval[1] - interval[0]) * golden_ratio;
+      Double x4 = interval[1] - (interval[1] - interval[0]) * golden_ratio;
+
+      distMeasure = distNormalizer < 1 ? dist[0]/distNormalizer : distance;
+      if(distMeasure < TOL)
+      {
+        converged = true;
+        break;
+      }
+
+      distMeasure = distNormalizer < 1 ? dist[1]/distNormalizer : distance;
+      if(distMeasure < TOL)
+      {
+        converged = true;
+        break;
+      }
+
+      xi_k = xi_start + delta_xi * x3;
+      Local2Global(f1, xi_k);
+
+      f1 = f1 - globalPoint;
+
+      xi_k = xi_start + delta_xi * x4;
+      Local2Global(f2, xi_k);
+
+      f2 = f2 - globalPoint;
+
+      // If both points lie on the same side of the searched point try to find
+      // points on opposite sides. Note that this check is not completely clean
+      // since a line in the local coordinate system might get mapped to an
+      // arbitrary curve in the global coordinate system and thus both vectors
+      // might point into slightly different directions. We assume however that
+      // we are close to a minimum and that the vectors point into nearly the
+      // same direction.
+      //
+      // Situation in global space:
+      //
+      //          error vector 1      error vector 2
+      //        o---------------> X <----------------o
+      // 
+      //   interval[0]        searched        interval[1]
+      //                       point
+
+      if(f1.Inner(f2) > 0) 
+      {
+        // Either x3 switched to the side of x4 in respect to the searched
+        // point or x4 switched to the side of x3.
+        UInt m;
+        const UInt n=16;
+
+        for(m = 0; m < n && f1.Inner(f2) > 0; m++)
+        {
+          x3 -= (interval[1] - interval[0]) * (golden_ratio/n);
+
+          xi_k = xi_start + delta_xi * x3;
+          Local2Global(f1, xi_k);
+
+          f1 = f1 - globalPoint;
+        }
+
+        if(m==n) 
+        {              
+          for(m = 0; m < n && f1.Inner(f2) > 0; m++)
+          {
+            x4 += (interval[1] - interval[0]) * (golden_ratio/n);
+
+            xi_k = xi_start + delta_xi * x4;
+            Local2Global(f2, xi_k);
+
+            f2 = f2 - globalPoint;
+          }
+        } else 
+        {
+          for(m = 0; m < n && f1.Inner(f2) < 0; m++)
+          {
+            x4 -= (interval[1] - interval[0]) * (golden_ratio/n);
+
+            xi_k = xi_start + delta_xi * x4;
+            Local2Global(f2, xi_k);
+
+            f2 = f2 - globalPoint;
+          }
+        }
+
+        if(x4 < x3)
+          x4 += (interval[1] - interval[0]) * (golden_ratio/n);
+      }
+
+
+      // Update interval and distance array with new values.
+      distance_l = f1.NormL2();
+
+      if(distance_l < dist[0]) 
+      {
+        interval[0] = x3;
+        dist[0] = distance_l;
+      }
+
+
+      distance_l = f2.NormL2();
+
+      if(distance_l < dist[1]) 
+      {
+        interval[1] = x4;
+        dist[1] = distance_l;
+      }
+
+      if(dist[0] < minDist) {
+        minDist = dist[0];
+        xi_min = xi_start + delta_xi * interval[0];
+      }
+
+      if(dist[1] < minDist) {
+        minDist = dist[1];
+        xi_min = xi_start + delta_xi * interval[1];
+      }
+    }
+
+    // If distances increase again, break
+    if(dist[0] > minDist && dist[1] > minDist)
+    {
+      xi_k = xi_min;
+      break;
+    }
+
+    if(dist[0] < dist[1])
+      xi_k = xi_start + delta_xi * interval[0];
+    else
+      xi_k = xi_start + delta_xi * interval[1];
+
+    distance = minDist;
+    xi_start = xi_k;
+    Local2Global(f, xi_k);
+    f = f - globalPoint;
+
+    if(converged)
+      break;
+
+    iter++;
+  }
+  while(iter < 6);
+
+  Vector<Double> globMapped, errVec;
+  Local2Global(globMapped, xi_k);
+  errVec = globMapped - globalPoint;
+  locPoint = xi_k;
 }
 
    
@@ -443,10 +588,9 @@ void LagrangeElemShapeMap::CalcNormal( Vector<Double>& normal,
 
 
 bool LagrangeElemShapeMap::
-CoordIsInsideElem( const StdVector<LocPoint>& lps,
-                     const Double tolerance,
-                     StdVector<bool>& coordsInside ) {
-  EXCEPTION("Not implemented");
+ CoordIsInsideElem( const Vector<Double>& point ) {
+  
+  return ptFe_->CoordIsInsideElem(point, 0.0);
 }
 
 void LagrangeElemShapeMap::CalcDiameter( Vector<Double>& diameter ) {

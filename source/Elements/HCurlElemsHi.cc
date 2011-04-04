@@ -31,9 +31,8 @@ FeHCurlHi::FeHCurlHi() {
   updateUnknowns_ = true;
   onlyLowestOrder_ = false;
   
-  // disable ba default use of gradient functions
+  // disable by default use of gradient functions
   useGrad_[EDGE]     = false;
-  Warning("hard-codes usage of edge-gradients");
   useGrad_[FACE]     = false;
   useGrad_[INTERIOR] = false;
 }

@@ -88,6 +88,14 @@ namespace CoupledField {
       deriv[1][0] = 0.5 *  1.0;
   }
   
+  
+  bool FeH1LagrangeLine1::CoordIsInsideElem( const Vector<Double>& point,
+                                             Double tolerance )  {
+   const Double & xi = point[0];
+   return (xi >= (-1.0 - tolerance) &&
+           xi <= (1.0 + tolerance));
+  }
+  
   // --- Quad 1st order ---
    
   FeH1LagrangeQuad1::FeH1LagrangeQuad1() {
@@ -126,6 +134,16 @@ namespace CoupledField {
   }
   
   
+  bool FeH1LagrangeQuad1::CoordIsInsideElem( const Vector<Double>& point,
+                                             Double tolerance )  {
+    const Double & xi = point[0];
+    const Double & eta = point[0];
+    return  ( xi >= (-1.0 - tolerance)) &&
+            (eta >= (-1.0 - tolerance)) &&
+            ( xi <= (1.0 + tolerance)) &&
+            (eta <= (1.0 + tolerance));  
+  }
+  
   // --- Hex 1st order ---
   FeH1LagrangeHex1::FeH1LagrangeHex1() {
     feType_ = Elem::ET_HEXA8;
@@ -143,14 +161,14 @@ namespace CoupledField {
                                     const Elem* ptElem,
                                     UInt comp ) {
     shape.Resize( 8 );
-    shape[0] = 0.25 * ( 1.0 - point[0] ) * ( 1.0 - point[1] ) * (1.0 - point[2]); 
-    shape[1] = 0.25 * ( 1.0 + point[0] ) * ( 1.0 - point[1] ) * (1.0 - point[2]);
-    shape[2] = 0.25 * ( 1.0 + point[0] ) * ( 1.0 + point[1] ) * (1.0 - point[2]);
-    shape[3] = 0.25 * ( 1.0 - point[0] ) * ( 1.0 + point[1] ) * (1.0 - point[2]);
-    shape[4] = 0.25 * ( 1.0 - point[0] ) * ( 1.0 - point[1] ) * (1.0 + point[2]); 
-    shape[5] = 0.25 * ( 1.0 + point[0] ) * ( 1.0 - point[1] ) * (1.0 + point[2]);
-    shape[6] = 0.25 * ( 1.0 + point[0] ) * ( 1.0 + point[1] ) * (1.0 + point[2]);
-    shape[7] = 0.25 * ( 1.0 - point[0] ) * ( 1.0 + point[1] ) * (1.0 + point[2]);
+    shape[0] = 0.125 * ( 1.0 - point[0] ) * ( 1.0 - point[1] ) * (1.0 - point[2]); 
+    shape[1] = 0.125 * ( 1.0 + point[0] ) * ( 1.0 - point[1] ) * (1.0 - point[2]);
+    shape[2] = 0.125 * ( 1.0 + point[0] ) * ( 1.0 + point[1] ) * (1.0 - point[2]);
+    shape[3] = 0.125 * ( 1.0 - point[0] ) * ( 1.0 + point[1] ) * (1.0 - point[2]);
+    shape[4] = 0.125 * ( 1.0 - point[0] ) * ( 1.0 - point[1] ) * (1.0 + point[2]); 
+    shape[5] = 0.125 * ( 1.0 + point[0] ) * ( 1.0 - point[1] ) * (1.0 + point[2]);
+    shape[6] = 0.125 * ( 1.0 + point[0] ) * ( 1.0 + point[1] ) * (1.0 + point[2]);
+    shape[7] = 0.125 * ( 1.0 - point[0] ) * ( 1.0 + point[1] ) * (1.0 + point[2]);
     
   }
   
@@ -176,6 +194,19 @@ namespace CoupledField {
     
   }
   
+  bool FeH1LagrangeHex1::CoordIsInsideElem( const Vector<Double>& point,
+                                            Double tolerance )  {
+    const Double & xi = point[0];
+    const Double & eta = point[1];
+    const Double & zeta = point[2];
+    return (  xi >= (-1.0 - tolerance)) &&
+           ( eta >= (-1.0 - tolerance)) &&
+           (zeta >= (-1.0 - tolerance)) &&
+           (  xi <= (1.0 + tolerance)) &&
+           ( eta <= (1.0 + tolerance)) &&
+           (zeta <= (1.0 + tolerance));  
+  }
+  
   // ========================================================================
   //  Lagrangian Elements of 2nd order
   // ========================================================================
@@ -196,6 +227,7 @@ namespace CoupledField {
                                      const Vector<Double>& point,
                                      const Elem* ptElem,
                                      UInt comp ) {
+    EXCEPTION("Implement me");
   //  shape.Resize( 2 );
   //   shape[0] = 0.5 * ( 1.0 - point[0] );
   //   shape[1] = 0.5 * ( 1.0 + point[0] );
@@ -209,6 +241,13 @@ namespace CoupledField {
   //    deriv.Resize(2, 1);
   //    deriv[0][0] = 0.5 * -1.0;
   //    deriv[1][0] = 0.5 *  1.0;
+  }
+  
+  bool FeH1LagrangeLine2::CoordIsInsideElem( const Vector<Double>& point,
+                                             Double tolerance )  {
+    const Double & xi = point[0];
+    return (xi >= (-1.0 - tolerance) &&
+            xi <= (1.0 + tolerance));
   }
   
   // --- Quad 2nd order ---
@@ -277,6 +316,16 @@ namespace CoupledField {
     }
   }
   
+  bool FeH1LagrangeQuad2::CoordIsInsideElem( const Vector<Double>& point,
+                                             Double tolerance )  {
+    const Double & xi = point[0];
+    const Double & eta = point[0];
+    return  ( xi >= (-1.0 - tolerance)) &&
+            (eta >= (-1.0 - tolerance)) &&
+            ( xi <= (1.0 + tolerance)) &
+            (eta <= (1.0 + tolerance));  
+    }
+  
   
   // --- Hex 2nd order ---
   FeH1LagrangeHex2::FeH1LagrangeHex2() {
@@ -329,5 +378,18 @@ namespace CoupledField {
   //  }
     
   }
+  
+  bool FeH1LagrangeHex2::CoordIsInsideElem( const Vector<Double>& point,
+                                            Double tolerance )  {
+    const Double & xi = point[0];
+    const Double & eta = point[1];
+    const Double & zeta = point[2];
+    return (  xi >= (-1.0 - tolerance)) &&
+           ( eta >= (-1.0 - tolerance)) &&
+           (zeta >= (-1.0 - tolerance)) &&
+           (  xi <= (1.0 + tolerance)) &&
+           ( eta <= (1.0 + tolerance)) &&
+           (zeta <= (1.0 + tolerance));  
+    }
 
 } // namespace CoupledField

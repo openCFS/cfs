@@ -359,6 +359,33 @@ namespace CoupledField {
         target[r][c] = factor * other[r][c];
   }
 
+  
+  int MemoryUsage(bool peak)
+   {
+     // if the file dows not exist we return 0
+     std::ifstream file("/proc/self/status", std::ifstream::in);
+
+     std::string data;
+     while(file)
+     {
+       file >> data;
+       if(data == (peak ? "VmPeak:" : "VmSize:"))
+       {
+         file >> data; // read next value
+         try
+         {
+           return lexical_cast<int>(data);
+         }
+         catch(bad_lexical_cast &)
+         {
+           return 0;
+         }
+       }
+     }
+
+     return 0;
+   }
+
 
 
 

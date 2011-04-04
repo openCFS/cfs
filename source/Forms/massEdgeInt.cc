@@ -14,10 +14,6 @@ namespace CoupledField
 void MassEdgeInt::CalcElementMatrix( Matrix<Double>& elemMat,
                                       EntityIterator& ent1, 
                                       EntityIterator& ent2 ) {
-  
-
-//  bool print = false;
-//  if( ent1.GetElem()->elemNum == 10 ) print = true;
   // Extract physical element
   const Elem* ptElem = ent1.GetElem();
   // Obtain FE element from feSpace
@@ -25,8 +21,6 @@ void MassEdgeInt::CalcElementMatrix( Matrix<Double>& elemMat,
   
   // Special: Only use lower order functions
   ptFe->SetOnlyLowestOrder(true);
-  
-  
   UInt nrFncs = ptFe->BaseFE::GetNumFncs();
 
   // Get shape map from grid
@@ -49,10 +43,7 @@ void MassEdgeInt::CalcElementMatrix( Matrix<Double>& elemMat,
     esm->GetMaxMinEdgeLength(maxEdgeLength_,minEdgeLength_);
     factor /= ( maxEdgeLength_ * maxEdgeLength_);
   }
-//  if (print )
-//    std::cerr << "factor of element #" << ent1.GetElem()->elemNum
-//    << " is " << factor << std::endl;
-  
+
   // Loop over all integration points
   LocPointMapped lp;
   Matrix<Double> shape;
@@ -62,64 +53,12 @@ void MassEdgeInt::CalcElementMatrix( Matrix<Double>& elemMat,
     lp.Set( intPoints[i], esm );
     
     ptFe->GetShFnc( shape, lp, lp.shapeMap->GetElem(), 0);
-//    if (print )
-//      std::cerr << "shape is \n" << shape << std::endl;
-    
-    partElemMat = Transpose(shape) * shape;
-    temp = lp.jacDet * weights[i] * factor;
-    elemMat += partElemMat * temp;
+    partElemMat =   Transpose(shape) * shape;
+    partElemMat *= lp.jacDet * weights[i] * factor;
+    elemMat += partElemMat;
   }
   ptFe->SetOnlyLowestOrder(false);
 }
-//void MassEdgeInt::CalcElementMatrix( Matrix<Double>& elemMat,
-//                                      EntityIterator& ent1, 
-//                                      EntityIterator& ent2 ) {
-//
-//   // Extract pointer to reference element and get coordinates
-//   ExtractElemInfo( ent1 );
-//
-//   const UInt nrIntPts = ptelem->GetNumIntPoints();
-//   const UInt nrEdges  = ptelem->GetNumEdges();
-//   const Vector<Double> & intWeights = ptelem->GetIntWeights();  
-//   Double jacDet;
-// 
-//   // derivation of shape functions after global coordinates 
-// 
-//   Matrix<Double> shapeEdge;
-//   Matrix<Double> shapeEdgeTransp;
-//   Matrix<Double> partElemMat;
-// 
-//   // set matrix to desired size and set all elements to zero
-//   elemMat.Resize(nrEdges);
-//   elemMat.Init();
-//   
-//   // if scaling should be performed (regularization in static case),
-//   // we divide the jacobian determinant by h^2
-//   Double factor = conductivity_;
-//   if( scaleByEdgeSize_ ) {
-//     ptelem->GetMaxMinEdgeLength(ptCoord_,maxEdgeLength_,minEdgeLength_);
-//     factor /= ( maxEdgeLength_ * maxEdgeLength_);
-//   }
-// 
-//   for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
-//     {
-//       jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, 
-//                                            ent1.GetElem() );
-//     
-//       ptelem->CalcEdgeShapeFncAtIp(shapeEdge, actIntPt, ptCoord_, 
-//                                    ent1.GetElem());
-//     
-//       shapeEdge.Transpose(shapeEdgeTransp);
-//       partElemMat = shapeEdge * shapeEdgeTransp;
-//       partElemMat *= intWeights[actIntPt-1] * factor * jacDet; 
-//       elemMat += partElemMat;
-//     }
-//
-//    /*
-//   (*debug) << "MassEdge Matrix:  "  << std::endl
-//            << elemMat << std::endl << std::endl;
-//    */
-// }
 
  MassEdgeInt::MassEdgeInt( Double acond, 
                            bool scaleByEdgeSize,

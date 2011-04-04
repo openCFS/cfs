@@ -88,7 +88,9 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
     # make extensive use of it, we switch it off. To filter out the warnings in our own
     # code a command line like the following might be used
     # fgrep 'warning: use of old-style cast' out.txt | grep CFS_SOURCE_DIR | sort -u > old-style-cast.txt
-    SET(CFS_CXX_FLAGS "-ftemplate-depth-55")
+    #
+    # -frounding-math: is needed for CGAL library
+    SET(CFS_CXX_FLAGS "-ftemplate-depth-55 -frounding-math")
     SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment")
     SET(CHECK_MEM_ALLOC 1)
     SET(CHECK_TYPE_CASTS 1)

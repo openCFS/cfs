@@ -370,6 +370,10 @@ int main( int argc, const char **argv ) {
   in->Get("wall")->SetValue(wTime);
   in->Get("CPU")->SetValue(cTime);
   in->SetComment("in seconds");
+  
+  in = info->Get(InfoNode::SUMMARY)->Get("memory");
+  in->Get("final")->SetValue(MemoryUsage(false));
+  in->Get("peak")->SetValue(MemoryUsage(true));
 
   // =========================================================================
   // CLEANUP PHASE

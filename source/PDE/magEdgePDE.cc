@@ -488,6 +488,47 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
     }
 
   }
+  
+  void MagEdgePDE::CalcSpecialResults() {
+    
+    // fetch fluxlist
+    for( UInt iList = 0; iList < calcFlux_.GetSize(); ++iList ) {
+
+      FluxAtPoints & actList = calcFlux_[iList];
+
+      // open file
+      std::ofstream  out(actList.fileName.c_str(),std::ios::out );
+
+      out << "# Flux density\n";
+      out << "# #elem \t x\t y \t z \t x(Vs/Am) \ty(Vs/Am( \t z(Vs/Am)\txi \teta \tzeta\n";
+
+      // Loop over all points 
+      Vector<Double> locCoord, flux;
+      for( UInt iPoint = 0; iPoint < actList.points.GetSize(); iPoint++) { 
+        const Elem * ptElem = NULL;
+        const Vector<Double> & globCoord =actList.points[iPoint].coord;
+        if( globCoord.GetSize() == 0) continue;
+        ptElem = ptgrid_->GetElemAtGlobalCoord( globCoord, locCoord );
+        if( !ptElem ) {
+          std::string warnStr = "Cold not find element at position " 
+              + actList.points[iPoint].coord.ToString(); 
+          Warning( warnStr.c_str());
+        } else {
+          LocPoint lp(locCoord);
+          CalcFluxDensityAtIP(ptElem, lp, flux);
+
+          // write to file
+          out << ptElem->elemNum << "\t";
+          out << globCoord[0] << "\t" << globCoord[1] << "\t" << globCoord[2] << "\t";
+          out << flux[0] << "\t" << flux[1] << "\t" << flux[2] << "\t"
+              << locCoord[0] << "\t" << locCoord[1] << "\t" << locCoord[2] << std::endl;
+        }
+
+      }
+      // close file
+      out.close();
+    }
+  }
 
 
 
@@ -507,7 +548,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
       LocPoint lp;
       const Elem * el = it.GetElem();
       lp.coord = Elem::shapes[el->type].midPointCoord;
-      CalcFluxDensityAtIP( it, lp, elemFlux );
+      CalcFluxDensityAtIP( el, lp, elemFlux );
       for( UInt iDof = 0; iDof < dim_; iDof++ ) {
         actVal[it.GetPos()*dim_ + iDof] = elemFlux[iDof];
       }
@@ -824,6 +865,63 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
 
   void MagEdgePDE::ReadSpecialResults() {
 
+    // check, if flux density should be written at special points
+
+    ParamNode * node = NULL; 
+    node = myParam_->Get("storeResults")->Get("interpolate");
+    if (!node) return;
+    StdVector<ParamNode*> partList = node->GetList("part");
+
+    // loop over all parts
+    for( UInt iPart = 0; iPart < partList.GetSize(); ++iPart ) {
+      ParamNode * actPartNode = partList[iPart];
+      StdVector<ParamNode*> listNodes = actPartNode->GetList("list");
+      calcFlux_.Push_back(FluxAtPoints());
+      FluxAtPoints & actFlux = calcFlux_.Last();
+      actFlux.fileName = actPartNode->Get("fileName")->AsString();
+
+      // loop over all components
+      StdVector<Double> start(3), stop(3), inc(3);
+      StdVector<UInt> numSamples(3);
+
+      UInt totalPoints = 1;
+      std::string comp;
+      UInt compIndex;
+      for( UInt iComp = 0; iComp < listNodes.GetSize(); iComp++ ) {
+        ParamNode * actCompNode = listNodes[iComp];
+        actCompNode->Get("comp", comp);
+        compIndex = domain->GetCoordSystem("default")->GetVecComponent(comp)-1;
+        actCompNode->Get("start", start[compIndex]);
+        actCompNode->Get("stop", stop[compIndex]);
+        actCompNode->Get("inc", inc[compIndex]);
+        numSamples[compIndex]  = 
+            UInt(floor( (stop[compIndex]-start[compIndex]) / inc[compIndex] ) )+1;
+        totalPoints *= numSamples[compIndex];
+      }
+      // create list
+
+      actFlux.points.Resize(totalPoints);
+      actFlux.flux.Resize(totalPoints);
+      UInt pos = 0;
+      for( UInt xSample = 0; xSample < numSamples[0]; xSample++ ) {
+        Double actX = start[0] + xSample * inc[0];
+        for( UInt ySample = 0; ySample < numSamples[1]; ySample++ ) {
+          Double actY = start[1] + ySample * inc[1];
+          for( UInt zSample = 0; zSample < numSamples[2]; zSample++ ) {
+            Double actZ = start[2] + zSample * inc[2];
+            Vector<Double> point(3);
+            point[0] = actX;
+            point[1] = actY;
+            point[2] = actZ;
+            LocPoint lp(point);
+            actFlux.points[pos++] = lp;
+          } // z
+        } // y
+      } // x
+        
+
+      
+    } // loop over parts
   }
 
 
@@ -832,14 +930,13 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
   // =======================================================================
 
   template<class TYPE>
-  void MagEdgePDE::CalcFluxDensityAtIP( EntityIterator it,
+  void MagEdgePDE::CalcFluxDensityAtIP( const Elem *el,
                                         LocPoint lp,
                                         Vector<TYPE>& field ) {
     Vector<TYPE> tempE, elemSol;
     NodeStoreSol<TYPE> & solhelp = dynamic_cast<NodeStoreSol<TYPE>&>(*sol_);
     field.Resize(dim_);
     LocPointMapped lpm;
-    const Elem * el = it.GetElem();
     
     shared_ptr<ElemShapeMap> esm = ptgrid_->GetElemShapeMap( el, true );
     shared_ptr<BaseFeFunction> fct = GetFeFunction(MAG_POTENTIAL,el->regionId); 
@@ -851,12 +948,14 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
     } else {
       li = linBilinForms_[el->regionId];
     }
-    BaseFE*  ptFe = fct->GetFeSpace()->GetFe( it );
-    lpm.Set(Elem::shapes[el->type].midPointCoord, esm );
-    solhelp.GetElemSolution( elemSol, it );
+    BaseFE*  ptFe = fct->GetFeSpace()->GetFe( el->elemNum );
+    lpm.Set(lp, esm );
+    ElemList elist(ptgrid_);
+    elist.SetElement(el);
+    solhelp.GetElemSolution( elemSol, elist.GetIterator() );
+     
     li->ApplyBMat( field, lpm, ptFe, elemSol);
   }
-
   
   template<class TYPE>
   void MagEdgePDE::CalcVecPotentialAtIP( EntityIterator it,
@@ -952,7 +1051,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
         // Calculate flux density in element midpoint
         LocPoint lp;
         lp.coord = Elem::shapes[actEl.type].midPointCoord;
-        CalcFluxDensityAtIP( it, lp, elemFlux );
+        CalcFluxDensityAtIP( it.GetElem(), lp, elemFlux );
         bAbs = elemFlux.NormL2();
         reluct = approx->EvaluateFuncNu(bAbs);
         elemPerm = 1.0 / reluct;

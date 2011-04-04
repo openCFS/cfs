@@ -264,6 +264,13 @@ namespace CoupledField {
   /// prints formatted header including name, version, date
   void PrintCFSHeader(std::ostream & out);
 
+  /** Determines the current memory consumption.
+  * This is done by calling ps and some post processing from a pipe.
+  * Runs clearly only on Unix and is rather expensive
+  * @param peak peak memory or current memory
+  * @return the memory in KBytes or 0 if there was a problem */
+  int MemoryUsage(bool peak);
+  
   /** Calculates the L2 norm of a array. This is for cases where we
    * don't use one of our vectors. E.g. with IPOPT */
   double NormL2(const double* data, unsigned int size);

@@ -88,18 +88,9 @@ namespace CoupledField
   void CurlCurlEdgeInt::CalcBMat( Matrix<Double>& bMat, 
                                   LocPointMapped& lp, BaseFE* ptFe ) {
     UInt numFncs = ptFe->GetNumFncs();
-    // Set correct size of matrix B and initialise with zeros
-//    bMat.Resize( 3, numFncs );
-//    bMat.Init();
-//
-//    // Get derivatives of local shape functions with respect to global
-//    // coords (format: nrNodes x spaceDim)
-//    Matrix<Double> xiDx;
     FeHCurl *fe = (dynamic_cast<FeHCurl*>(ptFe));
     
     fe->GetCurlShFnc(bMat, lp, lp.shapeMap->GetElem(), 1);
-    //bMat = Transpose (xiDx);
-    //
   }
   
   void CurlCurlEdgeInt::ApplyBMat( Vector<Double>& retVec,  

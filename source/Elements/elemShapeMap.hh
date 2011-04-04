@@ -8,6 +8,7 @@
 #include "MatVec/vector.hh"
 #include "MatVec/matrix.hh"
 #include "Domain/elem.hh"
+#include <climits>
 
 
 namespace CoupledField {
@@ -40,7 +41,7 @@ namespace CoupledField {
 
     //! Alias for point, which is not explicitly represented by 
     //! a integration point
-    enum {NOT_SET = -1};
+    enum {NOT_SET = INT_MAX};
 
     //! Number of corresponding integration point 
     Integer number;
@@ -189,12 +190,10 @@ namespace CoupledField {
                              const LocPoint& lp ) = 0;
 
     //! Returns whether a given local coordinate is within this element
-    //! @param lps input Vector containing element local points
+    //! @param point input Local point
     //! @param tolerance input Additioanl (relative) tolerance
-    //! @param coordsInside output Vector with flags
-    virtual bool CoordIsInsideElem( const StdVector<LocPoint>& lps,
-                                    const Double tolerance,
-                                    StdVector<bool>& coordsInside ) = 0;
+    //! \return flag if point is inside the element
+    virtual bool CoordIsInsideElem( const Vector<Double>& point ) = 0;
 
     //! Calculate the diameter vector of the element.
     //! Handles the element by itself and no axis-symmetric case.
@@ -305,9 +304,7 @@ namespace CoupledField {
                      const LocPoint& lp );
 
     //! @see ElemShapeMap::CoordIsInsideElem
-    bool CoordIsInsideElem( const StdVector<LocPoint>& lps,
-                            const Double tolerance,
-                            StdVector<bool>& coordsInside );
+    bool CoordIsInsideElem( const Vector<Double>& point );
 
     //! @see ElemShapeMap::CalcDiameter
     void CalcDiameter( Vector<Double>& diameter );
@@ -336,10 +333,10 @@ namespace CoupledField {
   protected:
 
     //! Pointer to H1 element of lower order
-    FeH1* ptFe_;
+    FeH1LagrangeExpl* ptFe_;
     
     //! Map with pointers to reference elements
-    std::map<Elem::FEType, FeH1 *> feMap_;
+    std::map<Elem::FEType, FeH1LagrangeExpl *> feMap_;
 
     //! Nodal coordinates
     Matrix<Double> coords_;

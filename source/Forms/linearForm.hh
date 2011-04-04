@@ -20,6 +20,8 @@ namespace CoupledField
 {
   // forward class declaration
   class CoordSystem;
+  class nLinCurlCurlEdgeInt;
+  class CurlCurlEdgeInt;
 
 
   /// base class class for calculation right hand side
@@ -203,6 +205,12 @@ namespace CoupledField
                          EntityIterator& ent );
 
   protected:
+    
+    //! Pointer to (nonlinear) curlCurl integrator
+    CurlCurlEdgeInt * curlCurlInt_;
+    
+    //! flag for first time
+    bool firstTime_;
   };
 
 

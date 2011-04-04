@@ -254,6 +254,9 @@ namespace CoupledField
 
     //! Trigger calculation of results
     virtual void CalcResults( shared_ptr<BaseResult> result ) {};
+    
+    //! Calculate special results, not handled by resulthandler
+    virtual void CalcSpecialResults( ) {};
 
     //! read damping information
     virtual void ReadDampingInformation( ){
