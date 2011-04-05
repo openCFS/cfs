@@ -1024,12 +1024,15 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
   // set the result as we need it
   result_data.Resize(result.GetEntityList()->GetSize() * dofs);
 
-
+  // the default value is 0.0 but 1 for densities
+  SolutionType st = result.GetResultInfo()->resultType;
+  double none = st == MECH_PSEUDO_DENSITY || st == PHYSICAL_PSEUDO_DENSITY || st == ELEC_PSEUDO_POLARIZATION ? 1.0 : 0.0; 
+  
   for ( it.Begin(); !it.IsEnd(); it++ )
   {
-    // for elements not in the design region we set to zero
+    // for elements not in the design region we set to to the default value
     for(unsigned int i = 0; i < dofs; i++)
-      result_value[i] = 0.0;
+      result_value[i] = none;
 
     if(FindRegion(it.GetElem()->regionId) >= 0)
     {
