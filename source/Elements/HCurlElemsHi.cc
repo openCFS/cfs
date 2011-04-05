@@ -9,7 +9,7 @@
 namespace CoupledField {
 
 #define USE_FACES 1
-#define USE_INNER 1
+#define USE_INNER 1 
 
 // declare class specific logging stream
 DECLARE_LOG(feHCurlHi)
@@ -436,8 +436,8 @@ void FeHCurlHiHex::CalcLocShFnc( Matrix<Double>& shape, LocPointMapped& lpm,
         shape[0][pos] =  xiVals[i].DVal(0) * etaVals[j].Val()   * zetaVals[k].Val();
         shape[1][pos] =  xiVals[i].Val()   * etaVals[j].DVal(1) * zetaVals[k].Val();
         shape[2][pos] = -xiVals[i].Val()   * etaVals[j].Val()   * zetaVals[k].DVal(2);
+        pos++;
       }
-      pos++;
     }
   }
 
@@ -519,7 +519,6 @@ void FeHCurlHiHex::CalcLocCurlShFnc( Matrix<Double>& curl, LocPointMapped& lpm,
   }
   
   if(onlyLowestOrder_) return;
-  
   // -------------------------
   // 2) Face shape functions
   // -------------------------
@@ -626,8 +625,8 @@ void FeHCurlHiHex::CalcLocCurlShFnc( Matrix<Double>& curl, LocPointMapped& lpm,
         for( UInt l = 0; l < 3; ++l ) {
           curl[l][pos] = tempCurl.DVal(l);
         }
+        pos++;
       }
-      pos++;
     }
   }
 
@@ -663,6 +662,10 @@ void FeHCurlHiHex::CalcLocCurlShFnc( Matrix<Double>& curl, LocPointMapped& lpm,
     }
   }
 #endif
+  
+//std::cerr << "local curl of matrix is\n" << curl << std::endl;
+//std::cerr << "size of matrix is 3 x " << curl.GetNumCols() << std::endl;
+//std::cerr << "\t-> last entry was " << pos-1 << std::endl;
 }
 
 }// end of namespace
