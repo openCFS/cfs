@@ -159,7 +159,7 @@ void FileReader_CfsHdf5::ReadTopology(std::vector<UInt>& connectivities, \
 
   elemTypes = elemTypes_;
   connectivities.resize(connectTmp.size() * maxNumElemNodes_);
-  std::fill(connectivities.begin(),connectivities.end(), 0.0);
+  std::fill(connectivities.begin(),connectivities.end(), 0);
 
   std::vector<std::vector<unsigned int> >::const_iterator iterConnect_lvl1 = connectTmp.begin();
   std::vector<unsigned int>::const_iterator iterConnect_lvl2, iterConnect_lvl2End;
