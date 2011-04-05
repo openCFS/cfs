@@ -66,7 +66,7 @@ namespace CoupledField {
     //! The SetParams() method of the CFSOLASParams class for doing this.
     //! \param sysName name of the linear system in the XML file (in the
     //!                case of a single PDE this coincides with pdename_)
-    void ReadOlasParams( std::string sysName );
+    virtual void ReadOlasParams( std::string sysName );
 
 
     // ======================================================
@@ -573,8 +573,6 @@ namespace CoupledField {
     bool fracDamping_; //!< true: fractional damping model
     UInt fracMemory_;     //!< number of old time steps to be saved (for fractional damping)
     
-
-
     //! type of interpolation (for fractional damping)
     InterpolType inType_;
     

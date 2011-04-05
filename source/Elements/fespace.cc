@@ -29,6 +29,8 @@ namespace CoupledField {
     numUnknowns_ = 0;
     numFreeEquations_ = 0;
     mapType_ = GRID;
+    solStrategy_ = STRAT_STANDARD;
+    solStep_ = 1;
 
     bcCounter_[NOBC] = 0;
     bcCounter_[HDBC] = 0;
@@ -258,7 +260,7 @@ namespace CoupledField {
         // Continue, if no nodal unknowns are present
         //if( nodalUnknowns == 0 ) continue;
 
-        //distinguish between Grid or polinomial based mapping
+        //distinguish between Grid or polynomial based mapping
         if( mapType_ == GRID ) {
           const StdVector<UInt> & elemNodes = actEl->connect;
           virtualNodes_[actEl->elemNum][BaseFE::VERTEX] = elemNodes;
@@ -293,6 +295,7 @@ namespace CoupledField {
                   vertexNodes[vertexNum][vertNode] = ++offset;
                   LOG_DBG3(feSpace) << "adding " << offset << " to node_";
                   nodes_.Push_back(offset);
+                  nodesType_[offset] = BaseFE::VERTEX;
 //                }
               }
             } // is continuous
@@ -334,6 +337,7 @@ namespace CoupledField {
               for ( UInt edgeNode = 0;edgeNode < numEdgeNodes ;edgeNode++ ) {
                 edgenodes[edgeNum][edgeNode] = ++offset;
                 nodes_.Push_back(offset);
+                nodesType_[offset] = BaseFE::EDGE;
               }
             }
 
@@ -363,6 +367,7 @@ namespace CoupledField {
               for ( UInt faceNode = 0;faceNode < numFaceNodes ;faceNode++ ) {
                 facenodes[faceNum][faceNode] = ++offset;
                 nodes_.Push_back(offset);
+                nodesType_[offset] = BaseFE::FACE;
               }
             }
             //fill the virtual Nodes in the correct ordering
@@ -386,6 +391,7 @@ namespace CoupledField {
             for ( UInt intNode = 0;intNode < numIntNodes ;intNode++ ) {
               interiornodes[actEl->elemNum][intNode] = ++offset;
               nodes_.Push_back(offset);
+              nodesType_[offset] = BaseFE::INTERIOR;
             }
           }
           //fill the virtual Nodes in the correct ordering

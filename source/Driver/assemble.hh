@@ -32,6 +32,9 @@ namespace CoupledField {
 
     //! Destructor
     ~Assemble();
+    
+    //! Explicitly set the algebraic system
+    void SetAlgSys(BaseSystem * algsys);
 
     // ======================================================
     //  REGISTRATION METHODS
@@ -45,6 +48,9 @@ namespace CoupledField {
 
     //! Add right hand side load definitions
     void AddLoads( LoadList& loads );
+    
+    //! Re-Set status of matrix re-assembly
+    void ResetMatrixReassembly();
 
     // ======================================================
     //  ASSEMBLING METHODS

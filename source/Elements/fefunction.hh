@@ -88,10 +88,10 @@ public:
   shared_ptr<Grid>  GetGrid();
 
   //! Set the algebraic System
-  void SetSystem( shared_ptr<BaseSystem> sys );
+  void SetSystem( BaseSystem* sys );
 
   //! Get the algebraic System
-  shared_ptr<BaseSystem> GetSystem();
+  BaseSystem * GetSystem();
 
   //@}
   
@@ -190,7 +190,7 @@ protected:
   MathParser::HandleType mHandle_;
 
   //! pointer to algebraic system
-  shared_ptr<BaseSystem> algsys_;      
+  BaseSystem* algsys_;      
 
 };
 

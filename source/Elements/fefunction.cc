@@ -10,6 +10,7 @@ namespace CoupledField {
 
   BaseFeFunction::BaseFeFunction(){
     mHandle_ = domain->GetMathParser()->GetNewHandle();
+    algsys_ = NULL;
 
   }
   
@@ -58,11 +59,11 @@ namespace CoupledField {
     return grid_;
   }
 
-  void BaseFeFunction::SetSystem( shared_ptr<BaseSystem> sys){
+  void BaseFeFunction::SetSystem( BaseSystem* sys){
     algsys_ = sys;
   }
 
-  shared_ptr<BaseSystem> BaseFeFunction::GetSystem(){
+  BaseSystem* BaseFeFunction::GetSystem(){
     return algsys_;
   }
 

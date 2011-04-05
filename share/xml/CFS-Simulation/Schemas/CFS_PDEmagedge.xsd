@@ -32,6 +32,16 @@
       <xsd:extension base="DT_PDEBasic">
         <xsd:sequence>
 
+          <!-- Solution strategy for PDE-->
+          <xsd:element name="solutionStrategy" minOccurs="0" maxOccurs="1">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="standard"/>
+                <xsd:enumeration value="twoLevel"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
+
           <!-- Regions the PDE lives on -->
           <xsd:element name="feFunctionIdList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>

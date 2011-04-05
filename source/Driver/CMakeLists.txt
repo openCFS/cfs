@@ -24,7 +24,8 @@ SET(DRIVER_SRCS
   singleDriver.cc
   solveStepAcoustic.cc
   solveStepElec.cc
-#  solveStepFluidMech.cc
+  solveStepMagEdge.cc
+  #  solveStepFluidMech.cc
 #  solveStepMagHyst.cc
 #  solveStepMech.cc
 #  solveStepMpCCI.cc

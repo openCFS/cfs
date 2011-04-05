@@ -98,10 +98,13 @@ public:
   //@{ \name Initialization
   
     //! Set isotropic order of functions to be used
-  void SetIsoOrder( UInt order );
+  virtual void SetIsoOrder( UInt order );
   
   //! Return, if the space is hierarchical
   bool IsHierarchical() { return isHierarchical_;};
+  
+  //! Set Solution strategy and solution step
+  virtual void SetStrategy( SolStrategyType strategy, UInt step ) {}; 
   
   //@}
   
@@ -232,7 +235,13 @@ protected:
   //! Storing the FeFunctions associated with this space
   shared_ptr<BaseFeFunction> feFunction_;
 
-  //!flag indicatng if the FeSpace is already initialized
+  //! Solution strategy to be used
+  SolStrategyType solStrategy_;
+  
+  //! Solution step (in case of multistep solution)
+  UInt solStep_;
+  
+  //! Flag indicating if the FeSpace is already initialized
   bool isFinalized_;
   
   //! Flag indicating use of discontinuous (L2) functions.
@@ -293,6 +302,9 @@ protected:
 
   //! Stores every assigned virtual node
   StdVector<UInt> nodes_;
+  
+  //! Map for every node the type geometric entitytype it belongs to (V/E/F/I)
+  std::map<UInt, BaseFE::EntityType> nodesType_;
 
   //! This is the virtual node Map for standard element it just contains
   //! the connectivity of the element, for higher order elements it contains also 

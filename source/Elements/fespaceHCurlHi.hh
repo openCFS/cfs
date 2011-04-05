@@ -5,7 +5,7 @@
 #define FILE_CFS_FESPACE_HCURL_HI_HH
 
 #include "Elements/fespaceH1.hh"
-
+#include <boost/array.hpp>
 
 namespace CoupledField {
 
@@ -23,6 +23,8 @@ public:
   
   //! Initialize class (read order etc.)
   void Init();
+  //! Set Solution strategy and solution step
+    void SetStrategy( SolStrategyType strategy, UInt step );
 
   //! Return pointer to reference element
   virtual BaseFE* GetFe( const EntityIterator ent );
@@ -46,18 +48,28 @@ public:
 
 protected:
 
+  //! Specialized version of the method of the base class
+  //! We number the lowest order dofs consecutively 
+  virtual void CreateVirtualNodes();
+  
   //! Adjust orders of edges / faces according to min/max rule
   void AdjustEntityOrder();
 
+  //! Virtual node numbers for lowest order edge functions
+  boost::array<UInt,2> nedelecNodeRange_;
+  
+  //! Virtual node numbers for higher order edge functions
+  boost::array<UInt,2> edgeHiNodeRange_;
+  
+  //! Virtual node numbers for higher order face functions
+  boost::array<UInt,2> faceNodeRange_;
+  
+  //! Virtual node numbers for higher order inner functions
+  boost::array<UInt,2> innerNodeRange_;
+  
+  
   //! Map containing the polynomial order for every edge
   std::map<UInt, StdVector<UInt> > edgeOrder_;
-
-  // For the polynomial degrees of faces / interior we have to think
-  //! Map containing the polynomial order for every face
-  //    std::map<UInt, UInt> faceOrder_;
-
-  //! Map containing the polynomial order for every element interior
-  //    std::map<UInt, UInt> faceOrder_;
 
 private:
 };

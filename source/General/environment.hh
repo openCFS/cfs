@@ -264,6 +264,13 @@ namespace CoupledField {
   typedef enum {FIXEDPOINT=1, NEWTON=2} NonLinMethodType ; 
   extern Enum<NonLinMethodType> NonLinMethodTypeEnum;
 
+  //! type definition for solution strategy
+  //! \enum NONE: No specific solution strategy given
+  //! \enum STANDARD: Use standard algorithm
+  //! \enum TWO_LEVEL: Use two-level solver
+  typedef enum { STRAT_NO, STRAT_STANDARD, STRAT_TWO_LEVEL} SolStrategyType;
+  extern Enum<SolStrategyType> SolStrategyEnum;
+  
   //! output format for complex numbers
   typedef enum {REAL_IMAG, AMPLITUDE_PHASE} ComplexFormat;
 

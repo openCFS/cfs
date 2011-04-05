@@ -44,15 +44,7 @@ namespace CoupledField
     CreateMatrixMap();
 
     // Initialize reassemble-map
-    // Note: in the beginning all matrices have to be "re-"assembled
-    // which means the destination matrices have to be cleared and
-    // initialized. After the first "AssmebleMatrices" call the
-    // correct values for reassembling are determined
-    matReassemble_[STIFFNESS] = true;
-    matReassemble_[DAMPING] = true;
-    matReassemble_[MASS] = true;
-    matReassemble_[AUXILIARY] = true;
-
+    ResetMatrixReassembly();
     // Obtain a new mathParser handler
     mHandle_ = domain->GetMathParser()->GetNewHandle();
     
@@ -77,6 +69,26 @@ namespace CoupledField
          linIt != linForms_.end(); linIt++ ) {
       delete *linIt;
     }
+  }
+  
+  void Assemble::SetAlgSys(BaseSystem * algsys)  {
+    algsys_ = algsys;
+  }
+  
+  void Assemble::ResetMatrixReassembly() {
+    // Initialize reassemble-map
+    // Note: in the beginning all matrices have to be "re-"assembled
+    // which means the destination matrices have to be cleared and
+    // initialized. After the first "AssmebleMatrices" call the
+    // correct values for reassembling are determined
+    matReassemble_[STIFFNESS] = true;
+    matReassemble_[DAMPING] = true;
+    matReassemble_[MASS] = true;
+    matReassemble_[AUXILIARY] = true;
+    
+    // reset also flag for "firstTime"
+    isFirstTime_ = true;
+    matrixUpdated_ = true;
   }
 
   BiLinFormContext* Assemble::GetBiLinForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2,  const std::string& integrator)

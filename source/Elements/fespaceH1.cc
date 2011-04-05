@@ -454,16 +454,22 @@ namespace CoupledField {
     std::map< Integer , StdVector<BcType> >::iterator nodeBcIt;
     
     std::cout << "EQUATION MAPPING" << std::endl << std::endl;
-    std::cout << "nodeNr \t|" <<  std::setw (8) <<"  Comp" << "|\t eqnNr \t|\t BC" << std::endl;
+    std::cout << "nodeNr \t|"  << " type  | " <<  std::setw (8)
+              <<"  Comp" << "|\t eqnNr \t|\t BC" << std::endl;
     std::cout << "-----------------------------------------------" << std::endl;
     while(nodeIt != nodeMap_.eqns.end()){
       nodeBcIt = nodeMap_.BcKeys.find(nodeIt->first);
       for(UInt iDof =0; iDof < nodeIt->second.GetSize(); iDof++){
-        // virtual node number (only once for all dofs)
-        if( iDof == 0)
+        // virtual node number (only once for all dofs) and type
+        if( iDof == 0) { 
           std::cout << nodeIt->first;
-        else
-          std::cout << "       ";
+          // type of node
+          std::cout << "\t|  " 
+              << BaseFE::entityType.ToString(nodesType_[nodeIt->first])[0];
+        } else {
+          std::cout << "       |\t";
+        }
+ 
         // component 
         std::cout << "\t|" << std::setw (8) << feFctResult->dofNames[iDof];
          // eqn number

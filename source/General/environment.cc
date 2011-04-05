@@ -1880,9 +1880,14 @@ namespace CoupledField {
     // ==== Initialization of NonLinMethodEnum ====
     NonLinMethodTypeEnum.Add( FIXEDPOINT, "fixPoint" );
     NonLinMethodTypeEnum.Add( NEWTON, "newton" );
+    
+    // ==== Initialization of SolStrategyEnum ====
+    SolStrategyEnum.Add(STRAT_NO,        "noStrategy");
+    SolStrategyEnum.Add(STRAT_STANDARD,  "standard");
+    SolStrategyEnum.Add(STRAT_TWO_LEVEL, "twoLevel");
   }
   Enum<NonLinMethodType> NonLinMethodTypeEnum;
   Enum<SolutionType> SolutionTypeEnum;
-
-}
+  Enum<SolStrategyType> SolStrategyEnum;
+    }
 

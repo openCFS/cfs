@@ -130,7 +130,7 @@ namespace CoupledField {
 #endif
   
     // only the first time the struct gets initialized
-    if ( length_ == 0 ) {
+    //if ( length_ == 0 ) {
       if ( solDofs_.size() != numSolutions_ ||
            solTypes_.size() != numSolutions_ ) {
         EXCEPTION( "Inconsistent definition of Storesolution class. "
@@ -161,14 +161,15 @@ namespace CoupledField {
       lengthVector_ = feSpace_->GetNumEquations();
       eqnDofs_ = 1;
 
+      data_.Clear();
       data_.Resize(lengthVector_);
       data_.Init(val);
-    }
+    //}
     // Assuming that the struct is already initialized
     // and it is only needed a change of the initial value
-    else{
-    	data_.Init(val);
-    }
+//    else{
+//    	data_.Init(val);
+//    }
     	
   }
 

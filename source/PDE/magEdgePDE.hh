@@ -7,8 +7,7 @@
 
 #include <map>
 #include "SinglePDE.hh" 
-#include "Forms/magforceop.hh"
-
+#include "Driver/solveStepMagEdge.hh"
 
 namespace CoupledField
 {
@@ -31,8 +30,11 @@ namespace CoupledField
     //! The default destructor is responsible for freeing the Coil objects
     //! the ReadCoils() method brought into being.
     ~MagEdgePDE();
-
-
+    
+    
+    //! Set solution step in case of mulitlevel solution
+    void SetSolutionStep(UInt step );
+       
     //! Initialize NonLinearities
     virtual void InitNonLin();
 
@@ -47,8 +49,7 @@ namespace CoupledField
 
     //! define the SoltionStep-Driver
     void DefineSolveStep();
-
-
+    
     // ======================================================
     // POSTPROCESSING SECTION
     // ======================================================
@@ -62,7 +63,6 @@ namespace CoupledField
     // ======================================================
     // COUPLING SECTION
     // ======================================================
-
 
     //! initalize PDE coupling
     void InitCoupling(PDECoupling * Coupling);
@@ -94,6 +94,10 @@ namespace CoupledField
 
     //! Init the time stepping
     void InitTimeStepping();
+    
+    //! Overwritten method, as we re-direct to the parameter section 
+    //! of the xml file for the twoLevel approach
+    void ReadOlasParams( std::string sysName );
 
 
     // =======================================================================
@@ -173,7 +177,6 @@ namespace CoupledField
     
     //! Nonlinear curl-curl integrators for every domain
     std::map<RegionIdType, nLinCurlCurlEdgeInt*> nlinBilinForms_;
-
 
     // =======================================================================
     //   COILS

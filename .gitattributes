@@ -620,6 +620,8 @@ source/Driver/solveStepElec.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/solveStepElec.hh svneol=native#text/x-c%2B%2Bhdr
 source/Driver/solveStepFluidMech.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/solveStepFluidMech.hh svneol=native#text/x-c%2B%2Bhdr
+source/Driver/solveStepMagEdge.cc svneol=native#text/x-c%2B%2Bsrc
+source/Driver/solveStepMagEdge.hh svneol=native#text/x-c%2B%2Bhdr
 source/Driver/solveStepMagHyst.cc -text
 source/Driver/solveStepMagHyst.hh -text
 source/Driver/solveStepMech.cc svneol=native#text/x-c%2B%2Bsrc

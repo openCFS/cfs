@@ -19,6 +19,8 @@ namespace CoupledField {
     
     myParam_ = paramNode;
     sequenceStep_ = 0;
+    solStrategy_ = STRAT_STANDARD;
+    solStep_ = 1;
   }
 
   // **************
@@ -59,5 +61,7 @@ namespace CoupledField {
     analysisType.Add(EIGENFREQUENCY, "eigenFrequency");
     analysisType.Add(MULTI_SEQUENCE, "multiSequence");
   } 
+
+
   
 }

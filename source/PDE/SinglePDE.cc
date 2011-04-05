@@ -2022,7 +2022,7 @@ namespace CoupledField {
     while(descrIt != functions_.end()){
       StdVector< FunctionDescription > descriptors = descrIt->second;
       for(UInt actFnc = 0 ; actFnc < descriptors.GetSize(); actFnc++){
-        descriptors[actFnc].feFunction->SetSystem(shared_ptr<BaseSystem>(algsys_));
+        descriptors[actFnc].feFunction->SetSystem(algsys_);
       }
       descrIt++;
     }
@@ -3300,6 +3300,8 @@ namespace CoupledField {
         shared_ptr<FeSpace> mySpace = 
             FeSpace::CreateInstance(feFunctionList[i]);
         mySpace->Init();
+        mySpace->SetStrategy(solStrategy_, solStep_);
+        
         mySpace->AddFeFunction(fncDescription.feFunction);
         
         fncDescription.feFunction->SetFeSpace(mySpace);
