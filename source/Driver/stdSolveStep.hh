@@ -6,7 +6,7 @@
 #define FILE_STDSOLVESTEP
 
 #include <map>
-
+#include <fstream>
 #include "assemble.hh"
 #include "baseSolveStep.hh"
 #include "MatVec/vector.hh"
@@ -240,6 +240,7 @@ namespace CoupledField
     //! Identification tag for second PDE (coupled case)
     FeFctIdType pdeId2_;
 
+    std::ofstream logFile_;
   };
 
 } // end of namespace

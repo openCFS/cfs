@@ -66,6 +66,9 @@ namespace CoupledField
 
      //! Solution strategy
      SolStrategyType strategy_;
+     
+     //! log file for time
+     std::ofstream timeFile_;
   };
 
 } // end of namespace

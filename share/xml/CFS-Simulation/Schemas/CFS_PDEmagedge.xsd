@@ -32,6 +32,9 @@
       <xsd:extension base="DT_PDEBasic">
         <xsd:sequence>
 
+          <xsd:element name="penaltyFactor" type="xsd:float" minOccurs="0"
+maxOccurs="1"/>
+          
           <!-- Solution strategy for PDE-->
           <xsd:element name="solutionStrategy" minOccurs="0" maxOccurs="1">
             <xsd:simpleType>

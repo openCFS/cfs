@@ -81,6 +81,8 @@ namespace CoupledField {
 
       dynamic_cast<NodeStoreSol<Double>* >(sol_)->GetAlgSysVector(oldSolVec);
 
+      // store also old RHS vector
+      Vector<Double> oldRhsLinVal = RhsLinVal_;
 
 
       // Re-Init the PDE -> Have a look at Fabians implementation, 
@@ -111,14 +113,24 @@ namespace CoupledField {
       NodeStoreSol<Double> & newSol = dynamic_cast<NodeStoreSol<Double>& >(*sol_); 
       Vector<Double> * newSolVec;
       newSol.GetAlgSysVectorPointer(newSolVec);
-      // copy initial values
+      
+      RhsLinVal_.Resize(newSolVec->GetSize());
+      // copy initial values and also rhs vector
       for( UInt i = 0; i < oldSolVec.GetSize(); i++ ) {
         (*newSolVec)[i] = oldSolVec[i];
+        RhsLinVal_[i] = oldRhsLinVal[i];
       }
       //std::cerr << "newSolVec is\n" << *newSolVec << std::endl;
 
       // Initialize OLAS with the correct solution
       algsys_->InitSol(*newSolVec);
+      // set also the correct RHS vector
+      //algsys_->InitRHS(RhsLinVal_);
+      // Careful: We also have to set up the RHS vector correctly, i.e. 
+      // the nonlinear terms have also te be present
+      //assemble_->AssembleNonLinRHS();
+      algsys_->InitRHS();
+      
 
       // Perform again the StepStaticLin
       // ATTENTION: Of course, we want now the better initial solution so 

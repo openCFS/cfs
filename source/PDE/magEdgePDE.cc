@@ -329,6 +329,16 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
     bool upLagrangeForm = true;
 
     
+    // initially, check for regularization factor
+    Double regularizationFactor = 1e-6;
+    ParamNode * penaltyNode = myParam_->Get("penaltyFactor",false);
+    if( penaltyNode )
+      regularizationFactor  = penaltyNode->AsDouble();
+    
+    std::cerr << "regularization factor is " << regularizationFactor <<
+std::endl;
+    
+    
     //==============================================================
     //begin new implementation
     //==============================================================
@@ -447,11 +457,11 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
         materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
 
         if ( conductivity < 1e-10 || analysistype_ == STATIC ) {
-          Double regularizationFactor, perm;
+          Double perm;
           // get tensor of permeability and determine max. value
           materials_[actRegion]->GetScalar( perm, MAG_PERMEABILITY, Global::REAL );
           scaleByEdgeSize = true;
-          regularizationFactor = 1e-6;
+          //regularizationFactor = 1e-6;
           conductivity =  regularizationFactor / perm;
         } 
 

@@ -172,8 +172,8 @@ namespace CoupledField {
           diagScale = 2.0 * counterFailed;
           counterFailed++;
           nPD = 1;
-          (*cla) << "\n Perform scaling of system matrix: " << counterFailed
-          << std::endl;
+//           (*cla) << "\n Perform scaling of system matrix: " << counterFailed
+//          << std::endl;
         }
 
         if (nPD ==1 )

@@ -209,7 +209,7 @@ namespace CoupledField{
     MapNodalEqns(2);
 
     // Just for debugging purpose
-    PrintEqnMap();
+    //PrintEqnMap();
 
     isFinalized_ = true;
   }

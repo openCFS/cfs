@@ -63,12 +63,14 @@ namespace CoupledField {
     if( nonLin_ || nonLinMaterial_ ) {
       ReadNonLinData();
     }
+    
+    logFile_.open("nonlin.txt");
   }
 
 
   //! Destructor
   StdSolveStep::~StdSolveStep() {
-
+logFile_.close();
   }
 
 
@@ -228,6 +230,9 @@ namespace CoupledField {
 
             // calculation of residual error =======================================
             residualL2Norm = PDE_.GetRhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )
+          } else {
+            algsys_->InitRHS(RhsLinVal_ );
+            assemble_->AssembleNonLinRHS();
           }
 
           // calculation of residual error =======================================
@@ -253,6 +258,12 @@ namespace CoupledField {
           if ( nonLinLogging_ == true ) {
             Info->WriteNonLinIter(pdename_, iterationCounter, residualErr,
                                   incrementalErr, etaLineSearch);
+            
+            // write norm to file
+           logFile_ <<  iterationCounter << "\t"
+                    << residualErr << "\t"
+                    << incrementalErr << "\t"
+                    << etaLineSearch << std::endl;
           }
 
           // boolean variable, holds condition if another iteration step is necessary
@@ -1049,6 +1060,11 @@ namespace CoupledField {
 
     actSol  = solIncrement * etaOpt;
     actSol += solOld;
+    
+    // Careful: in the end, we have to re-assemble the RHS with the correct
+    // value i.e. use the "optimal" solution
+
+
 
     return residualL2NormOpt;
   }
@@ -1246,6 +1262,9 @@ namespace CoupledField {
     *cla << " === Incremental sol L2Norm: " << solIncrL2Norm << std::endl;
     *cla << "     Actual solution L2Norm: " << actSolL2Norm << std::endl;
     *cla << "     Incremental error       " << incrementalErr << std::endl;
+
+  
+  
   }
 
 
