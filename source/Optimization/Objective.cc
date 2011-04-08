@@ -139,7 +139,7 @@ void ObjectiveContainer::PostProc(DesignSpace* space, DesignStructure* structure
 {
   for(unsigned int i = 0; i < data.GetSize(); i++)
   {
-    data[i]->SetElements(space, ALL_REGIONS, DesignElement::DENSITY); // before Function::PostProc() !
+    data[i]->SetElements(space, ALL_REGIONS); // before Function::PostProc() !
     data[i]->PostProc(space, structure);
     data[i]->SetExcitation(me);
   }

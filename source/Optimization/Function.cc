@@ -17,6 +17,7 @@ DEFINE_LOG(func, "opt_func")
 
 // instantiation of the static elements is in Optimization::SetEnums()
 Enum<Function::Type> Function::type;
+Enum<Function::StressType>  Function::stressType;
 Enum<Function::Local::Locality> Function::Local::locality;
 Enum<Function::Local::Phase> Function::Local::phase;
 
@@ -48,6 +49,8 @@ Function::Function(PtrParamNode pn)
 
   // -2 is unset, -1 is all, >= 0 the excitation index
   this->excite_ = -1;
+
+  this->stressType_ = MECH; // set in Condition
 
   this->physical_ = pn->Has("physical") ? pn->Get("physical")->As<bool>() : false;
 
@@ -186,6 +189,9 @@ void Function::ToInfo(PtrParamNode info)
   // we check for valid ocurence of paramter in the constructor
   if(pn->Has("parameter"))
     info->Get("parameter")->SetValue(parameter_);
+
+  if(local != NULL)
+    local->ToInfo(info_);
 }
 
 std::string Function::ToString(MultipleExcitation* me) const
@@ -243,6 +249,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case GLOBAL_OSCILLATION:
     case JUMP:
     case GLOBAL_JUMP:
+    case DESIGN_TRACKING:
       assert(excite_index < 0);
       excite_ = me->excitations.GetSize() - 1; // once only at the last excitation
       break;
@@ -409,6 +416,7 @@ bool Function::ForSensitivityFiltering() const
   case GLOBAL_OSCILLATION:
   case JUMP:
   case GLOBAL_JUMP:
+  case DESIGN_TRACKING:
     return false;
 
   case ISOTROPY:
@@ -421,23 +429,24 @@ bool Function::ForSensitivityFiltering() const
   EXCEPTION("can never reach! Stupid C++");
 }
 
-void Function::SetElements(DesignSpace* space, RegionIdType region, DesignElement::Type design)
+void Function::SetElements(DesignSpace* space, RegionIdType region)
 {
   assert(elements.GetSize() == 0);
   Grid* grid = domain->GetGrid();
 
-  if(space->design.GetSize() > 1 && design == DesignElement::DEFAULT)
-    throw Exception("define design for condition '" + type.ToString(type_) + "'");
+  // Bastian's multiple design test cases have situations where design is DEFAULT as it is not
+  // set in the objective
 
   // if ALL_REGIONS for condition use what we define as design space which
-  elements.Reserve(region == ALL_REGIONS ? space->elements : grid->GetNumElems(region));
+  elements.Reserve(region == ALL_REGIONS ? space->GetNumberOfVariables() : grid->GetNumElems(region));
 
   if(region == ALL_REGIONS || space->Contains(region))
   {
     for(unsigned int i = 0; i < space->data.GetSize(); i++)
     {
       DesignElement* de = &(space->data[i]);
-      if((design == DesignElement::DEFAULT || design == de->GetType()) && (region == ALL_REGIONS || de->elem->regionId == region))
+      if((design == DesignElement::DEFAULT || design == DesignElement::TENSOR_TRACE || design == de->GetType())
+          && (region == ALL_REGIONS || de->elem->regionId == region))
         elements.Push_back(de);
     }
   }
@@ -477,7 +486,7 @@ void Function::SetElements(DesignSpace* space, RegionIdType region, DesignElemen
 }
 
 
-void Function::PostProc(DesignSpace* space, DesignStructure* structure)
+void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMaterial* em)
 {
   // pre-init step
   switch(type_)
@@ -491,18 +500,18 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure)
   case JUMP:
   case GLOBAL_JUMP:
   case STRESS:
-    assert(space->IsRegular()); // VicinityElements work only on a regular grid
+    // assert(space->IsRegular()); // VicinityElements work only on a regular grid
     // the design elements require the vicinity element to be set which holds the direct
     // neighbors. Is save to call several times
     VicinityElement::Init(space, structure);
     InitLocal(space);
-
     break;
 
   case PENALIZED_VOLUME:
     for(unsigned int i = 0; i < space->transfer.GetSize(); i++)
       if(space->transfer[i].IsPenalized())
         info_->Get(ParamNode::WARNING)->SetValue("transfer function '" + space->transfer[i].ToString() + " seems also to penalize");
+    break;
 
   default: // do nothing
     break;
@@ -536,7 +545,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
   this->power_ = pn != NULL && pn->Has("power") ? pn->Get("power")->As<double>() : 2.0;
   this->phase_ = pn != NULL && pn->Has("phase") ? phase.Parse(pn->Get("phase")->As<std::string>()) : BOTH; // only oscillation
 
-  this->normalize_ = pn != NULL ? pn->Get("normalize")->As<bool>() : true;
+  this->normalize_ = pn != NULL ? pn->Get("normalize")->As<bool>() : false;
 
   switch(ftype)
   {
@@ -653,9 +662,6 @@ Function::Local::Local(Function* func, DesignSpace* space)
 
   // needs to be set prior CalcSlopeConstraint() as the optimizers need the size
   values.Resize(virtual_elem_map.GetSize(), -1.0);
-
-  // Function::ToInfo() was already called, hence we hace the node
-  ToInfo(func->info_);
 }
 
 Function::Local::~Local()

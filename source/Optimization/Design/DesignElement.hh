@@ -87,6 +87,9 @@ public:
    * Periodic BC could be treated as 'real' element. Please check and clear this comment!*/
   StdVector<DesignElement*> design;
 
+  /** Has the element neighbors by periodic boundary conditions? */
+  bool periodic;
+
 private:
 
   /** Compares the node coordinates of two elements and decides which orientation we have.
@@ -129,6 +132,7 @@ public:
     MAX_OSCILLATION, /* the max value per element */
     MAX_JUMP, /* weak greyness constraint formulation */
     PENALIZED_STRESS, /* stess with own transfer function */
+    DESIGN_TRACKING, /* (rho-rho^*)^2 but without 1/N */
     LEVEL_SET_GRAD_XP, LEVEL_SET_GRAD_XN, LEVEL_SET_GRAD_YP, LEVEL_SET_GRAD_YN, LEVEL_SET_GRAD_ZP, LEVEL_SET_GRAD_ZN } ValueSpecifier;
 
   BaseDesignElement();

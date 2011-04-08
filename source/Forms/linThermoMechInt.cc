@@ -265,7 +265,7 @@ namespace CoupledField
 	//----------------------------------------------------------------
     //  Compute matrix  B  at given integration point.
 	//----------------------------------------------------------------
-    void LinThermoMechInt::calcBMat(Matrix<Double> &bMat, UInt ip,
+    void LinThermoMechInt::CalcBMat(Matrix<Double> &bMat, UInt ip,
 		const Matrix<Double> &ptCoord) {
 
 	

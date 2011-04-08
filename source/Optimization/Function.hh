@@ -43,7 +43,7 @@ class Function
     static Function* Cast(Objective* c, Condition* g);
 
     /** PostProc called be the containers */
-    virtual void PostProc(DesignSpace* space, DesignStructure* structure);
+    virtual void PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMaterial* = NULL);
 
     /** Different function types - some only objective, some only constraint some both */
     typedef enum {
@@ -88,7 +88,8 @@ class Function
       SLOPE,                     /*!< Implementation of a grad rho constraint */
       MOLE,                      /*!< Feature size control from T. Poulsen */
       OSCILLATION,               /*!< Feature size control by Fabian W. :) */
-      JUMP                       /*!< Weak greyness control by Fabian W. :) */
+      JUMP,                      /*!< Weak greyness control by Fabian W. :) */
+      DESIGN_TRACKING            /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
     } Type;
 
     /** to convert string/enum for this type */
@@ -175,6 +176,13 @@ class Function
      * @param matrix where to store the data
      * @return true if the tensor was read */
     static bool ReadTensor(PtrParamNode pn, Matrix<double>& matrix);
+
+    /** @see StressConstraint::GetApplications */
+    typedef enum { MECH, PIEZO, ONLY_COUPLING } StressType;
+
+    static Enum<StressType> stressType;
+
+    StressType GetStressType() { return stressType_; }
 
 
     /** A function can be be a local function when it is calculated by the local neighborhood state.
@@ -443,7 +451,7 @@ class Function
     /** This are the elements the Function is defined on. Either references to the
      * elements within the design space to to dummy elements if the region is not within the design (stress)
      * @param region as long as only the Condition has this stuff it is an parameter*/
-    void SetElements(DesignSpace* space, RegionIdType region, DesignElement::Type design);
+    void SetElements(DesignSpace* space, RegionIdType region);
 
     /** The actual kind of cost function. */
     Type type_;
@@ -480,6 +488,8 @@ class Function
 
     /** Here we store our info node */
     PtrParamNode info_;
+
+    StressType stressType_;
 
   private:
     /** Here elements refers to if the region is not within the design space */

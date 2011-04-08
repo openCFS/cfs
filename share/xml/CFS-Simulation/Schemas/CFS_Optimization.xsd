@@ -286,6 +286,8 @@
                 <xsd:enumeration value="jump"/>
                 <xsd:enumeration value="globalJump"/>
                 <xsd:enumeration value="stress"/>
+                <!-- requires the attribute 'designTarget' to be set to a filename -->
+                <xsd:enumeration value="designTracking"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -333,7 +335,7 @@
           <xsd:attribute name="linear" use="optional" type="xsd:boolean"/>
           
           <!-- for a stress constraint we can define the excitation by its label. The enumaration
-               can be easy extended here as we do a string compare with the excitation label in the code -->
+            can be easy extended here as we do a string compare with the excitation label in the code -->
           <xsd:attribute name="excitation" use="optional" default="all">
             <xsd:simpleType>
               <xsd:restriction base="xsd:string">
@@ -350,6 +352,21 @@
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
+          
+          <!-- mandatory for design tracking, defines a pseudo density file. If no region is given the periodic boundary elements are used -->
+          <xsd:attribute name="designTarget" use="optional" type="xsd:token" />
+          
+          <!-- optional for stress constraints. mech is standard in elasticity, piezo for the standard piezo stress (mech + coupling), only_coupling is a special case -->
+          <xsd:attribute name="stress" default="mech">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:string">
+                <xsd:enumeration value="mech"/>
+                <xsd:enumeration value="piezo"/>
+                <xsd:enumeration value="only_coupling"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:attribute>
+          
         </xsd:complexType>
         
         <xsd:unique name="opt_unique_constraint">
@@ -811,6 +828,8 @@
                         stresses, here they can be visualized. The element vonMisesStress
                         result gives the physical one -->
                       <xsd:enumeration value="penalizedStress"/>
+                      <!-- This is (rho - rho^*)^2 (rho is physical) withount the 1/N -->
+                      <xsd:enumeration value="designTracking"/>
                       <!-- has details! -->
                       <xsd:enumeration value="constraintGradient"/>
                       <xsd:enumeration value="weight"/>
@@ -1057,19 +1076,26 @@
     </xsd:sequence>
   </xsd:complexType>
   
-  
   <!-- This describes the transfer function as it is used in SIMP and in the
     ersartzMaterial element outside optimization 
     <transferFunction type="SIMP" application="elast" design="density" param="3.0"/> -->
   <xsd:complexType name="DT_TransferFunction" >
     <xsd:attribute name="type" use="required">
-      <xsd:simpleType>  
+      <xsd:simpleType>
         <xsd:restriction base="xsd:token">
+          <!-- f(rho) = rho -->
           <xsd:enumeration value="identity"/>
+          <!-- f(rho) = rho^param -->
           <xsd:enumeration value="simp"/>
           <xsd:enumeration value="ramp"/>
+          <!-- f(rho) = param -->
           <xsd:enumeration value="fixed"/>
+          <!-- f(rho) = 1 -->
           <xsd:enumeration value="full"/>
+          <!-- f(rho) = (1 - exp(-beta * rho))^param. For stress constraints -->
+          <xsd:enumeration value="heaviside"/>
+          <!-- f(rho) =  1 - 1/(exp(2*beta*(x-param)) + 1); param defines the switching point (0.1...0.9). For stress constraints -->
+          <xsd:enumeration value="tanh"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
@@ -1093,6 +1119,9 @@
     <xsd:attribute name="design" use="optional" type="DT_Design"/>
     
     <xsd:attribute name="param" use="optional" type="xsd:float" />
+    
+    <!-- additional attribute for heaviside and tanh -->
+    <xsd:attribute name="beta" use="optional" type="xsd:float"/>
   </xsd:complexType> 
   
   <!-- This describes the design element which is a list of possible values -->  
@@ -1300,7 +1329,7 @@
     <xsd:attribute name="neighbor_value" type="xsd:float" use="optional" default="0.0"/>
     
     <!-- globalSlope, globalOscillation, ... might be normalized by number of local constraints -->
-    <xsd:attribute name="normalize" type="xsd:boolean" default="true"/>
+    <xsd:attribute name="normalize" type="xsd:boolean" default="false"/>
     
     <!-- global functions are actually sum( max(0, g_i(x) - c)^p) where c is the parameter and p is a "norm" -->
     <xsd:attribute name="power" type="xsd:float" use="optional" default="2.0"/>

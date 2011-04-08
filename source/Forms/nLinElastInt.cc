@@ -54,8 +54,8 @@ namespace CoupledField
   }
 
   // returns nonlinear B - matrix (first part) for BDB
-  void nLinElastInt::calcBMat(Matrix<Double> & bMat, UInt ip, 
-                              Matrix<Double> & ptCoord )
+  void nLinElastInt::CalcBMat(Matrix<Double> & bMat, UInt ip,
+                              const Matrix<Double> & ptCoord )
   {
 
     
@@ -71,7 +71,7 @@ namespace CoupledField
     
     
     Matrix<Double> linBMat;    
-    linElastInt::calcBMat( linBMat, ip, ptCoord);
+    linElastInt::CalcBMat( linBMat, ip, ptCoord);
 
 
     bMat.Resize( dimD, numFncs * nrDofs );
@@ -202,7 +202,7 @@ namespace CoupledField
     elemDisp_.ConvertToVec_AppendCols(displVec);
 
     Matrix<Double> linBMat;    
-    calcBMat( linBMat, ip, ptCoord);
+    CalcBMat( linBMat, ip, ptCoord);
 
     std::string nonLinDepend;
     ptMaterial->GetScalar(nonLinDepend, NONLIN_DEPENDENCY);
@@ -268,8 +268,8 @@ namespace CoupledField
     }
   }
 
-  void nLinMech3dInt_Material::calcBMat( Matrix<Double> &bMat, UInt ip,
-                                         Matrix<Double> &ptCoord ) {
+  void nLinMech3dInt_Material::CalcBMat( Matrix<Double> &bMat, UInt ip,
+                                         const Matrix<Double> &ptCoord ) {
 
 
     const UInt nrNodes  = ptelem->GetNumNodes();
@@ -456,7 +456,7 @@ namespace CoupledField
     setPiolaDimD(  getMaterialDMatSize() );
   
     // linear differential operator B_lin
-    linElastInt::calcBMat(bMat, ip, ptCoord);
+    linElastInt::CalcBMat(bMat, ip, ptCoord);
 
     setPiolaDimD( getFullPiolaDMatSize() );
   }
@@ -482,7 +482,7 @@ namespace CoupledField
 
   
     // linear differential operator B_lin
-    nLinElastInt::calcBMat(bMat, ip, ptCoord);
+    nLinElastInt::CalcBMat(bMat, ip, ptCoord);
     setPiolaDimD( getFullPiolaDMatSize() );
   }
 
@@ -543,7 +543,7 @@ namespace CoupledField
   // returns B - matrix for piola stresses
   // (see e.g. Bathe: "Finite Element Procedures" p. 556)
   void nLinMechInt_PiolaStress::
-  calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord)
+  CalcBMat(Matrix<Double> & bMat, UInt ip, const Matrix<Double> & ptCoord)
   {
 
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
@@ -693,7 +693,7 @@ namespace CoupledField
 
   // returns B - matrix for piola stresses
   // (see e.g. Bathe: "Finite Element Procedures" p. 556)
-  void PreStressInt::calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord)
+  void PreStressInt::CalcBMat(Matrix<Double> & bMat, UInt ip, const Matrix<Double> & ptCoord)
   {
 
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );

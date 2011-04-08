@@ -58,9 +58,9 @@ protected:
 
 
     
-    /// returns B - matrix for BDB
-    virtual void calcBMat(Matrix<Double> & bMat, UInt ip, 
-                          Matrix<Double> & ptCoord );
+    /** @see BaseForm::CalcBMat() */
+    virtual void CalcBMat(Matrix<Double> & bMat, UInt ip,
+                          const Matrix<Double> & ptCoord );
 
     /// displacement of all nodes of actual element
     Matrix<Double> elemDisp_;
@@ -123,9 +123,9 @@ protected:
     virtual void calcDMat(Matrix<Double> & dMat, UInt ip, 
                           Matrix<Double> & ptCoord);
 
-    /// returns B - matrix for BDB
-    virtual void calcBMat(Matrix<Double> & bMat, UInt ip, 
-                          Matrix<Double> & ptCoord );
+    /** @see BaseForm::CalcBMat() */
+    virtual void CalcBMat(Matrix<Double> & bMat, UInt ip,
+                          const Matrix<Double> & ptCoord );
 
     /// returns dimension of D matrix
     virtual UInt getDimD(){return 6;};
@@ -157,8 +157,8 @@ protected:
     /// returns D - matrix for BDB (size: 9x9, contains the 2. Piola-Kirchhoff-Stress tensor!!)
     virtual void calcDMat(Matrix<Double> & dMat, UInt ip, Matrix<Double> & ptCoord);
   
-    /// returns B - matrix for BDB
-    virtual void calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord);
+    /** @see BaseForm::CalcBMat() */
+    virtual void CalcBMat(Matrix<Double> & bMat, UInt ip, const Matrix<Double> & ptCoord);
 
     /// returns dimension of D matrix
     virtual UInt getDimD(){return piolaDimD_;};
@@ -396,8 +396,8 @@ protected:
     //! computation of D-matrix (consists of stress values)
     void calcDMat(Matrix<Double> & dMat, UInt ip, Matrix<Double> & ptCoord);
   
-    //!
-    void calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord);
+    /** @see BaseForm::CalcBMat() */
+    void CalcBMat(Matrix<Double> & bMat, UInt ip, const Matrix<Double> & ptCoord);
 
     //!
     void convertStressVecToTensor( Matrix<Double> &stressTensor,

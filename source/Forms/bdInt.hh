@@ -29,9 +29,9 @@ namespace CoupledField {
 
   protected:
 
-    //! returns B - matrix for BD
-    virtual void calcBMat( Matrix<Double> &bMat, Integer ip,
-			   Matrix<Double> &ptCoord );
+    /** @see BaseForm::CalcBMat() */
+    virtual void CalcBMat( Matrix<Double> &bMat, UInt ip, const Matrix<Double> &ptCoord );
+
     //! returns A - matrix for BD
     //! this matrix is needed for the fractional damping in mechanics
     virtual void calcAMat( Matrix<Double> &bMat);

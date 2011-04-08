@@ -1397,6 +1397,8 @@ source/Optimization/ShapeGrad.cc -text
 source/Optimization/ShapeGrad.hh -text
 source/Optimization/ShapeOpt.cc -text
 source/Optimization/ShapeOpt.hh -text
+source/Optimization/StressConstraint.cc -text
+source/Optimization/StressConstraint.hh -text
 source/Optimization/TopGrad.cc -text
 source/Optimization/TopGrad.hh -text
 source/Optimization/TransferFunction.cc -text

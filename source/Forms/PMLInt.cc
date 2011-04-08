@@ -400,7 +400,7 @@ namespace CoupledField
     for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
       
       // Setup the B matrix for current integration point
-      calcBMat( bMat, actIntPt, ptCoord_ );
+      CalcBMat( bMat, actIntPt, ptCoord_ );
       
       // compute PML factor 
       ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],

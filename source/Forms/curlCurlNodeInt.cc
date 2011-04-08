@@ -83,8 +83,8 @@ namespace CoupledField
   }
 
   
-  void CurlCurlNode2DInt::calcBMat( Matrix<Double> &bMat,
-                                    UInt ip, Matrix<Double> &ptCoord ) {
+  void CurlCurlNode2DInt::CalcBMat( Matrix<Double> &bMat, UInt ip, const Matrix<Double> &ptCoord )
+  {
     Matrix<Double> xiDx;
     if (isSetIntPoint_) {
       ptelem->GetGlobDerivShFnc(xiDx, intPoint_, ptCoord, 

@@ -370,15 +370,13 @@ double LevelSetElement::IntegrateIntersectionObject(IntersectionObject &o, linEl
 
   Matrix<double> B; // 2D: 3 * 8
   Matrix<double> C; // = [c] or E_ijkl or dMat in BDBInt or A in shape grad papers
-  Matrix<double> coord;
   Vector<double> b_u;
   Vector<double> c_b_u;
   
   for(unsigned int num = 0; num < 2; ++num)
   {
     // set B
-    domain->GetGrid()->GetElemNodesCoord(coord, de_->elem->connect);
-    bdb_form->calcBMatOnly(B, o.points[num], de_->elem->ptElem, coord);
+    bdb_form->CalcBMatOnly(B, o.points[num], de_->elem);
     // LOG_DBG3(ls) << "B = " << B.ToString();
 
     // set c(\rho) !!!

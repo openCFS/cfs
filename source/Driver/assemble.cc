@@ -85,8 +85,10 @@ namespace CoupledField
 
      // iterate over all descriptors
      StdVector<BiLinFormContext*>::iterator iter;
+     int counter = 0;
      for (iter = biLinForms_->Begin(); iter != biLinForms_->End(); iter++)
      {
+       counter++;
        // we are wrong if the region does not match
 //       if((*iter)->GetFirstEntities()->GetName() != region) continue;
        if((*iter)->GetFirstEntities()->GetRegion() != regionId) continue;
@@ -95,6 +97,7 @@ namespace CoupledField
        if((*iter)->GetFirstPde() != pde1) continue;
 //       if(pde2 != NULL && (*iter)->GetSecondPde()->GetName() != pde2->GetName()) continue;
        if((*iter)->GetSecondPde() != pde2) continue;
+       //std::cout << counter << ":" << (*iter)->GetIntegrator()->GetName() << " vs " << integrator << std::endl;
        if((*iter)->GetIntegrator()->GetName() != integrator) continue;
 
        // we come here because we had no contradiction - check for uniqueness
@@ -107,7 +110,7 @@ namespace CoupledField
      if(result == NULL && !silent)
      {
        std::string region = domain->GetGrid()->GetRegion().ToString(regionId);
-       EXCEPTION("BiLinFormContext '" << integrator << "' at region '" << region << "' not found");
+       EXCEPTION("BiLinFormContext '" << integrator << "' at region '" << region << "' not found within " << counter << " integrators");
      }
      return result;
   }

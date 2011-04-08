@@ -2407,7 +2407,7 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
     {    
-      bilinearStiff_->calcBMatOnly(linBMat, actIntPt, ptelem, ptCoord_);
+      bilinearStiff_->CalcBMatOnly(linBMat, actIntPt, ptelem, ptCoord_);
 
       linBMat.Transpose(transpB);
 
@@ -2501,7 +2501,7 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
         
     for(unsigned int aIP = 1, nr = ptelem->GetNumIntPoints(); aIP <= nr; ++aIP)
     {    
-      bilinearStiff_->calcBMatOnly(linBMat, aIP, ptelem, ptCoord_);
+      bilinearStiff_->CalcBMatOnly(linBMat, aIP, ptelem, ptCoord_);
       linBMat.MultT(stress, partElemVec);
 
       const double jacDet(ptelem->CalcJacobianDetAtIp(aIP, ptCoord_, ent.GetElem()));

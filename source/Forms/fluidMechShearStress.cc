@@ -50,7 +50,7 @@ namespace CoupledField
 
     // linear differential operator B_lin
     Matrix<Double> linBMat;    
-    calcBMat( linBMat, ip, ptCoord_);
+    CalcBMat( linBMat, ip, ptCoord_);
 
     Vector<TYPE> linVelocityStrain(linBMat.GetNumRows());
     linVelocityStrain.Init();
@@ -63,11 +63,11 @@ namespace CoupledField
 
   template <class TYPE>
   void FluidMechShearStress<TYPE>::
-  calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord)
+  CalcBMat(Matrix<Double> & bMat, UInt ip, const Matrix<Double> & ptCoord)
   {
 
     // linear differential operator B_lin
-    linElastInt::calcBMat(bMat, ip, ptCoord);
+    linElastInt::CalcBMat(bMat, ip, ptCoord);
   }
 
 

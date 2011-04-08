@@ -126,7 +126,7 @@ namespace CoupledField {
   // ============
   //   calcBMat
   // ============
-  void LinMagStrictInt::calcBMat( Matrix<Double> &bMat, UInt ip,
+  void LinMagStrictInt::CalcBMat( Matrix<Double> &bMat, UInt ip,
                                      const Matrix<Double> &ptCoord ) {
 
 
