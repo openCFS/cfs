@@ -763,7 +763,7 @@ std::string SCPIPBase::ToString(int ierr)
 
     case Infeasible:
               os << "The norm of the gradient of the Lagrangian is close to 0 and the "
-                 << "maximum of the artificial variables is >= 1. Together it is very likely,"
+                 << "maximum of the artificial variables is greater or equal 1. Together it is very likely,"
                  << "that the feasible region is empty!";
               break;
 

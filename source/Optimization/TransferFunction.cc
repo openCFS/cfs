@@ -27,6 +27,7 @@ TransferFunction::TransferFunction()
   design_ = DesignElement::DEFAULT;
   application_ = Optimization::NO_APP;
   param_ = 0.0;
+  beta_ = -1.0;
 }
 
 
@@ -39,6 +40,7 @@ TransferFunction::TransferFunction(Optimization::Application app, TransferFuncti
   this->application_ = app;
   this->design_ = design;
   this->param_ = param;
+  this->beta_ = -1.0;
 }
 
 
@@ -57,12 +59,16 @@ TransferFunction::TransferFunction(PtrParamNode pn, DesignElement::Type default_
       throw Exception("Set the 'design' attribute for 'transferFunction' when using multiple design variables.");
     this->design_ = default_design;
   }
-  this->param_ = pn->Has("param") ? pn->Get("param")->As<Double>() : 1.0;
+  this->param_ = pn->Has("param") ? pn->Get("param")->As<double>() : 1.0;
+  this->beta_ = pn->Has("beta") ? pn->Get("beta")->As<double>() : -1.0;
   
   // validate param
   if(!pn->Has("param") && (type_ != IDENTITY && type_ != FULL))  
     throw Exception("transfer function '" + type.ToString(type_) + "' requires a parameter");
   
+  if((type_ == HEAVISIDE || type_ == TANH) && (!pn->Has("param") || !pn->Has("beta")))
+    throw Exception("transfer function '" + type.ToString(type_) + "' requires a 'param' and 'beta' to be set");
+
   // validate design/application
   if(design_ == DesignElement::POLARIZATION && application_ != Optimization::PIEZO_COUPLING)
     throw Exception("transfer functions for 'polarization' can only be '" 
@@ -103,8 +109,28 @@ void TransferFunction::ToInfo(PtrParamNode in) const
   in->Get("design")->SetValue(DesignElement::type.ToString(design_));
   if(type_ != IDENTITY && type_ != FULL)
     in->Get("param")->SetValue(param_);
+  if(type_ == HEAVISIDE || type_ == TANH)
+    in->Get("beta")->SetValue(beta_);
   
 }
+
+void TransferFunction::Enable(bool enable)
+{
+  // try to handle to much toggling cases
+  if(enable)
+  {
+    type_ = orgType_;
+    assert(type_ != NO_TYPE);
+  }
+  else
+  {
+     // only disable if we are enabled
+     assert(type_ != NO_TYPE);
+    orgType_ = type_;
+    type_ = NO_TYPE;
+  }
+}
+
 
 bool TransferFunction::IsPenalized() const
 {
@@ -116,9 +142,20 @@ bool TransferFunction::IsPenalized() const
   case RAMP:
     return param_ != 0.0;
 
-  default:
+  case FIXED:
+  case FULL:
+  case IDENTITY:
     return false;
+
+  case HEAVISIDE:
+  case TANH:
+    return true;
+
+  case NO_TYPE:
+    EXCEPTION("wrong");
   }
+
+  return false; // stupid C++
 }
 
 std::string TransferFunction::ToString()
@@ -165,6 +202,19 @@ double TransferFunction::Transform(const DesignElement* de, DesignElement::Acces
     result = de->GetUpperBound();
     break;
     
+  case HEAVISIDE:
+    // some options and the derivatives
+    // plot (1-exp(-20*x)), 20*x*exp(-20*x), 4*(1-exp(-10*x))**3 * 10*x*exp(-10*x), (1-exp(-10*x))**4, 1-exp(-20*x**6), 20*x**6*6*x**5*exp(-20*x**6)
+    assert(beta_ >= 0.0);
+    result = std::pow(1.0 - std::exp(-1.0 * beta_ * value), param_);
+    break;
+
+  case TANH:
+    assert(beta_ >= 0.0);
+    // tf(x) =  1 - 1/(exp(2*beta*(x-param)) + 1)
+    result = 1.0 - 1.0/(std::exp(2.0 * beta_ * ( value - param_)) + 1.0);
+    break;
+
   default: throw Exception("type not implemented");
   }          
   
@@ -196,6 +246,22 @@ double TransferFunction::Derivative(const DesignElement* de, DesignElement::Acce
       return (1.0 + p) / (x*x*p2 - 2*x*(p2+p)+p2+2*p+1);
     } 
       
+    case HEAVISIDE:
+    {
+      // f = (1-hs)^hp,
+      assert(beta_ > 0.0);
+      double hs = std::exp(-1.0 * beta_ * value);
+
+      return param_ * std::pow(1.0 - hs, param_ - 1.0) * beta_ * hs;
+    }
+    case TANH:
+    {
+      // tf(x)  =  1 - 1/(exp(2*beta*(x-param)) + 1)
+      // tf'(x) =  (exp(2*beta*(x-param)+1)^-2 * 2 * beta * exp(2*beta*(x-param))
+      double e = std::exp(2.0 * beta_ * ( value - param_));
+      return 1.0/((e+1.0)*(e+1.0)) * 2.0 * beta_ * e;
+    }
+
     case FIXED:  
     case FULL:  
       return 0.0; // the derivative of a constant is 0 
@@ -213,4 +279,6 @@ void TransferFunction::SetEnums()
   type.Add(RAMP, "ramp");
   type.Add(FIXED, "fixed");
   type.Add(FULL, "full");
+  type.Add(HEAVISIDE, "heaviside");
+  type.Add(TANH, "tanh");
 }     

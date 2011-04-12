@@ -151,6 +151,9 @@ namespace CoupledField {
     //! Default Constructor
     BaseIterativeSolver() {
       scalFac_ = -1.0;
+      numCalls_ = 0;
+      accIters_ = 0;
+      accReduction_ = 0.0;
     }
 
     //! Default Destructor
@@ -214,6 +217,15 @@ namespace CoupledField {
     //! criterion. We store this, so that we can use it e.g. in the
     //! LogConvergence method.
     Double scalFac_;
+    
+    //! Number of times the solver was called
+    UInt numCalls_;
+    
+    //! Accumulated number of solver iterations
+    UInt accIters_;
+    
+    //! Accumulated residual error reduction
+    Double accReduction_;
   };
 
 

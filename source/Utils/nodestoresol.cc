@@ -51,7 +51,23 @@ namespace CoupledField {
   // ***************************
   template<class TYPE>
   NodeStoreSol<TYPE>::NodeStoreSol( const NodeStoreSol &x ) {
-    EXCEPTION( "Not implemented here" );
+    ptGrid_ = x.ptGrid_;
+    eqnMap_ = x.eqnMap_;
+    results_ = x.results_;
+    elems_ = x.elems_;
+    numNodes_ = x.numNodes_;
+    numSolutions_ = x.numSolutions_;
+    length_ = x.length_;
+    lengthVector_ = x.lengthVector_;
+    solTypes_ = x.solTypes_;
+    solOffset_ = x.solOffset_;
+    eqnOffset_ = x.eqnOffset_;
+    solDofs_ = x.solDofs_;
+    totalDofs_ = x.totalDofs_;
+    eqnDofs_ = x.eqnDofs_;
+    convertedData_ = x.convertedData_;
+
+    data_ = x.data_;
   }
 
 

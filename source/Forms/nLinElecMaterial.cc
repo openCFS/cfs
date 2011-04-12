@@ -61,8 +61,8 @@ namespace CoupledField {
   // ============
   //   calcBMat
   // ============
-  void nLinElec3dInt_Material::calcBMat( Matrix<Double> &bMat, UInt ip,
-			     Matrix<Double> &ptCoord ) {
+  void nLinElec3dInt_Material::CalcBMat( Matrix<Double> &bMat, UInt ip,
+			     const Matrix<Double> &ptCoord ) {
 
 
     // Obtain info on number of element's nodes

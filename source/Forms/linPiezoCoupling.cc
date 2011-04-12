@@ -126,7 +126,7 @@ namespace CoupledField {
   // ============
   //   calcBMat
   // ============
-  void linPiezoCoupling::calcBMat( Matrix<Double> &bMat, UInt ip,
+  void linPiezoCoupling::CalcBMat( Matrix<Double> &bMat, UInt ip,
 				   const Matrix<Double> &ptCoord ) {
 
 

@@ -35,7 +35,10 @@ namespace CoupledField {
   ILDLPrecond<T>::ILDLPrecond( const StdMatrix &stdMat, PtrParamNode solverNode,
                                PtrParamNode olasInfo ) {
 
-
+    // The ILDL preconditioner is currently not working
+    WARN("The ILDL-Preconditioner is not yet ported from 1 to 0 based"
+        "numbering, i.e. it will NOT work correctly!" );
+        
     // Set pointers to communication objects
     this->xml_ = solverNode;
     this->olasInfo_ = olasInfo;
@@ -49,7 +52,7 @@ namespace CoupledField {
     // Obtain and check variant information
     std::string subTypeStr = "NOPRECOND";
     this->xml_->GetValue("precond", subTypeStr, ParamNode::INSERT);
-
+    
     myVariant_ = BasePrecond::precondType.Parse(subTypeStr);
     if ( myVariant_ != BasePrecond::ILDL0 &&
          myVariant_ != BasePrecond::ILDLTP &&
@@ -64,6 +67,9 @@ namespace CoupledField {
                << tmp << "' is not a valid variant." );
     }
 
+    PtrParamNode pNode = this->xml_->Get(subTypeStr, ParamNode::INSERT);
+    pNode->GetValue("logging", logging_, ParamNode::INSERT ) ;
+    
     // Generate factorisation object
     GenerateFactoriser();
 
@@ -126,8 +132,7 @@ namespace CoupledField {
     }
 
     // Logging
-    bool logging = false;
-    if ( logging ) {
+    if ( logging_ ) {
       (*cla) << " -------------------------------------------------------"
       << "-----------------------\n"
       << " ILDLPRECOND::SETUP\n + Factorisation of a "
@@ -161,7 +166,7 @@ namespace CoupledField {
     }
     
     // finish log report
-    if ( logging ) {
+    if ( logging_ ) {
 
       (*cla) << "\n Change of fill-pattern:"
       << "\n + nnz in upper triangle of A: "
@@ -187,7 +192,6 @@ namespace CoupledField {
                               SingleVector &z ) const {
 
 
-    bool logging = false;
 
     // Test that a factorisation is available, if not issue an error
     if ( amFactorised_ == false ) {
@@ -200,7 +204,7 @@ namespace CoupledField {
     Vector<T>& myZ = dynamic_cast<Vector<T>&>(z);
 
     // Logging
-    if ( logging ) {
+    if ( logging_ ) {
       (*cla) << " -------------------------------------------------------"
       << "-----------------------\n"
       << " ILDLPRECOND::APPLY: Solving linear system with "
@@ -211,7 +215,7 @@ namespace CoupledField {
         &(dataD_[0]), myZ, myR, this->sysMatDim_ );
 
     // Logging
-    if ( logging ) {
+    if ( logging_ ) {
       (*cla) << " -------------------------------------------------------"
       << "-----------------------\n"
       << std::endl;

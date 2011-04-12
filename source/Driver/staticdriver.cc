@@ -41,6 +41,13 @@ namespace CoupledField {
 
   void StaticDriver::Init() {
 
+    // Initialize first multisequence step, as the method "CheckStoreResults" 
+    // relies on the result handler to know already about the current
+    // sequencestep. However, in case of optimization, the sequence step
+    // gets initialized in Optimization::SolveProblem()
+    if( !domain->GetOptimization()) {
+      handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, 1);
+    }
     InitializePDEs();
   }
 
@@ -91,7 +98,6 @@ namespace CoupledField {
     // we don't write every forward step. 
     if(write_results)
     {
-      handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, 1);      
       StoreResults(1,0.0);
       handler_->FinishMultiSequenceStep();
 

@@ -34,8 +34,8 @@ namespace CoupledField {
   // ============
   //   calcBMat
   // ============
-  void linHeatCondInt::calcBMat( Matrix<Double> &bMat, UInt ip,
-			     Matrix<Double> &ptCoord ) {
+  void linHeatCondInt::CalcBMat( Matrix<Double> &bMat, UInt ip,
+			     const Matrix<Double> &ptCoord ) {
 
     // Obtain info on number of elements' funtions
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );

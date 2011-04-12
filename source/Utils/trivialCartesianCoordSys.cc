@@ -132,9 +132,15 @@ namespace CoupledField{
   void  TrivialCartesianCoordSystem::
   GetGlobRotationMatrix( Matrix<Double> & rotMat,
                          const Vector<Double>& point ) const {
-    EXCEPTION( "Currently not implemented" );
+    rotMat =  invRotationMat_;
   }
-  
+
+  void  TrivialCartesianCoordSystem::
+  GetFullGlobRotationMatrix( Matrix<Double> & rotMat,
+                             const Vector<Double>& point ) const {
+    rotMat =  invRotationMatFull_;
+  }
+
   void TrivialCartesianCoordSystem::
   Local2GlobalVector( Vector<Double> & globVec, 
                       const Vector<Double> & locVec, 
@@ -212,6 +218,10 @@ namespace CoupledField{
     //    mapping from  local to global cartesian coordinate system
     Matrix<Double> tempInvers;
     rotationMat_.Invert(invRotationMat_);
+    
+    // "calculate" full inverse rotation matrix
+    invRotationMatFull_.Resize(3,3);
+    invRotationMatFull_.SetSubMatrix( invRotationMat_, 0, 0);
   }
 
 

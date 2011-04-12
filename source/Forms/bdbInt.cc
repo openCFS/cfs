@@ -35,8 +35,8 @@ namespace CoupledField {
     Matrix<Double> dbMat;
     Double aux, fac, *ptr1, *ptr2, *ptr3;
 
-    const UInt bRows(getDimD());
-    const UInt bCols(nrFncs * nrDofs);
+    UInt bRows(getDimD());
+    UInt bCols(nrFncs * nrDofs);
 
     elemMat.Resize(bCols);
     elemMat.Init();
@@ -95,7 +95,7 @@ namespace CoupledField {
 
 
         // Setup the B matrix for current integration point
-        calcBMat( bMat, actIntPt, ptCoord_ );
+        CalcBMat(bMat, actIntPt, ptCoord_ );
 
         // Compute Jacobian for integration point
         jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_, ent1.GetElem() );
@@ -149,7 +149,7 @@ namespace CoupledField {
         calcDMat(dMat, actIntPt, ptCoord_);
 
         // Setup the B matrix for current integration point
-        calcBMat( bMat, actIntPt, ptCoord_ );
+        CalcBMat( bMat, actIntPt, ptCoord_ );
 
         // Compute Jacobian for integration point
         jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_, ent1.GetElem() );
@@ -170,12 +170,15 @@ namespace CoupledField {
         }
         
         // Compute the matrix product D * B and store as intermediate matrix
+        dbMat.Resize( dMat.GetNumRows(), bMat.GetNumCols() );
         dMat.Mult( bMat, dbMat );
 
         // We now compute B^T * D * B and scale it by the determinant
         // of the Jacobian and the weight of the current integration
         // point. The result is added to the element matrix.
         fac = jacDet * intWeights[actIntPt-1];
+        bRows = bMat.GetNumRows();
+        bCols = bMat.GetNumCols();
         for ( UInt k = 0; k < bRows; ++k ) {
           ptr1 =  bMat[k];
           ptr2 = dbMat[k];
@@ -234,7 +237,7 @@ namespace CoupledField {
         calcDMaterialMatWithComplexDamping(dMat,beta,omega);
       }
 
-      calcBMat(bMat, actIntPt, ptCoord_);
+      CalcBMat(bMat, actIntPt, ptCoord_);
 
       //   hardcoded dB = dMat * bMat;
       dB.Resize(dMat.GetNumRows(), bMat.GetNumCols());
@@ -302,6 +305,9 @@ namespace CoupledField {
   }
 
 
+
+
+
   void BDBInt::calcBMat(EntityIterator it, Matrix<Double>& bMat ) {
 
     // get midpoint
@@ -311,7 +317,9 @@ namespace CoupledField {
 
     // Set integration point to midpont
     SetIntPoint( midPoint);
-    calcBMat( bMat, 1, ptCoord_ );
+    CalcBMat( bMat, 1, ptCoord_);
+
+    //virtual void calcBMat(Matrix<Double> &bMat, UInt ip, const Matrix<Double> &ptCoord) {
     UnsetIntPoint();
   }
 
@@ -325,7 +333,7 @@ namespace CoupledField {
     // Set integration point to midpont
     SetIntPoint( midPoint);
     Matrix<Double> temp1 , temp2;
-    calcBMat( temp1, 1, ptCoord_ );
+    CalcBMat( temp1, 1, ptCoord_ );
     calcDMat( temp2, 1, ptCoord_ );
     dbMat = temp1*temp2;
     UnsetIntPoint();

@@ -30,9 +30,7 @@ function [] = CopyTreeHDF5(srcfile, srcpath, destfile, destpath)
 
 % source file must exist
 if exist(srcfile, 'file') ~= 2
-  errstr = sprintf('File not found: %s', srcfile);
-  error(errstr);
-  return;
+  error('File not found: %s', srcfile);
 end
 
 % srcpath must not end in '/', but srcpath_ must
@@ -68,9 +66,7 @@ while ~strcmp(cur_group.Name, srcpath)
 end
 
 if ~strcmp(cur_group.Name, srcpath)
-  errstr = sprintf('source path not found: %s', srcpath);
-  error(errstr);
-  return;
+  error('source path not found: %s', srcpath);
 end
 
 % copy tree recursively

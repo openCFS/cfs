@@ -34,6 +34,7 @@ namespace CoupledField
       myParam->GetValue("beta", beta_, ParamNode::PASS);
       myParam->GetValue("gamma", gamma_, ParamNode::PASS);
       myParam->GetValue("nu", nu_, ParamNode::PASS);
+      myParam->GetValue("omitInitialSol", omitFirstPredictor_, ParamNode::PASS);
     }
 
     gamma_ = gamma_ + nu_;
@@ -134,12 +135,14 @@ namespace CoupledField
 
   void Newmark::Predictor(Vector<Double>& solold)
   {
-
-    solpred_ = solold + solDeriv_vec_[FIRST_DERIV] * dt_ \
-      + solDeriv_vec_[SECOND_DERIV] * sol_timeStepCoeff_[PREDICTOR_1];
-    solderiv1pred_ = solDeriv_vec_[FIRST_DERIV] 
-      + solDeriv_vec_[SECOND_DERIV] * sol_timeStepCoeff_[PREDICTOR_2];
- 
+    if( !omitFirstPredictor_) {
+      solpred_ = solold + solDeriv_vec_[FIRST_DERIV] * dt_ \
+               + solDeriv_vec_[SECOND_DERIV] * sol_timeStepCoeff_[PREDICTOR_1];
+      solderiv1pred_ = solDeriv_vec_[FIRST_DERIV] 
+                    + solDeriv_vec_[SECOND_DERIV] * sol_timeStepCoeff_[PREDICTOR_2];
+    } else {
+      omitFirstPredictor_ = false;
+    }
   }
 
   void Newmark::UpdateRHS()
@@ -254,6 +257,7 @@ namespace CoupledField
       myParam->GetValue("beta", beta_, ParamNode::PASS);
       myParam->GetValue("gamma", gamma_, ParamNode::PASS);
       myParam->GetValue("nu", nu_, ParamNode::PASS);
+      myParam->GetValue("omitInitialSol", omitFirstPredictor_, ParamNode::PASS);
     }
 
     gamma_ = gamma_ + nu_;
@@ -318,10 +322,14 @@ namespace CoupledField
   void NewmarkEffMass::Predictor(Vector<Double>& solold)
   {
 
-    solpred_ = sol_ + solDeriv_vec_[FIRST_DERIV] * dt_ \
-      + solDeriv_vec_[SECOND_DERIV]*sol_timeStepCoeff_[PREDICTOR_1];
-    solderiv1pred_ = solDeriv_vec_[FIRST_DERIV] \
-      + solDeriv_vec_[SECOND_DERIV]*sol_timeStepCoeff_[PREDICTOR_2];
+    if( !omitFirstPredictor_) {
+      solpred_ = sol_ + solDeriv_vec_[FIRST_DERIV] * dt_ \
+        + solDeriv_vec_[SECOND_DERIV]*sol_timeStepCoeff_[PREDICTOR_1];
+      solderiv1pred_ = solDeriv_vec_[FIRST_DERIV] \
+        + solDeriv_vec_[SECOND_DERIV]*sol_timeStepCoeff_[PREDICTOR_2];
+    } else {
+      omitFirstPredictor_ = false;
+    }
 
 
   }

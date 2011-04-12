@@ -110,9 +110,9 @@ namespace CoupledField
     template <class TYPE>
     void CalcMagneticFluxDensity( shared_ptr<BaseResult> vals );
        
-//    //! Computes the magnetic energy for each subdomain
-//    template <class TYPE>
-//    void CalcEnergy( shared_ptr<BaseResult> vals );
+    //! Computes the magnetic energy for each subdomain
+    template <class TYPE>
+    void CalcEnergy( shared_ptr<BaseResult> vals );
 
     
   private:

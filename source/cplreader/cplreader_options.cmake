@@ -86,7 +86,7 @@ ADD_OPTION(name
 ADD_OPTION(type
   string
   CFX
-  "Type of dataset (can be ANSYS | CFS++ | CFX | CFX_EXPORT | FASTEST | OPENFOAM)"
+  "Type of dataset (can be ANSYS | CFS++ | CFX | CFX_EXPORT | FASTEST | OPENFOAM | CGNS)"
   "Specify the type of dataset to be read: ANSYS see Sec. \\\\ref{sec:ansys},
    CFX see Sec. \\\\ref{sec:cfx}, CFX\\\\_EXPORT see Sec. \\\\ref{sec:cfx-export},
    FASTEST see Sec. \\\\ref{sec:fastest}, OPENFOAM see Sec. \\\\ref{sec:openfoam}."
@@ -157,7 +157,7 @@ ADD_OPTION(activeparts
 ADD_OPTION(outputfields
   string
   acouRhsLoad
-  "Which physical fields should be output ([acouRhsLoad | fluidMechDensity | fluidMechPressure | fluidMechVelocity | fluidMechTKE]). Values may be separated by SPACE or SEMICOLON or |"
+  "Which physical fields should be output ([acouDivLighthillTensor | acouRhsLoad | acouRhsLoadDensity | fluidMechDensity | fluidMechPressure | fluidMechVelocity | fluidMechTKE]). Values may be separated by SPACE or SEMICOLON or |"
   "Sometimes it may be necessary to do some post-processing on the fluid fields
    to get some understanding of the problem at hand. For this reason it is possible
    to write the most important fields (velocity, pressure, source terms, turbulence
@@ -338,6 +338,32 @@ ADD_OPTION(pres
   ""
   "Column of pressure in FASTEST result files (e.g. col5)."
   "Specify column of pressure in FASTEST ASCII files."
+  )
+
+ADD_OPTION(reduce_elementOrder
+  bool
+  false
+  "disregard high order nodes"
+  "If this parameter is set, higher order noes of the elements will be
+  disregarded for the calclation. Only reasonable for quadratic elements."
+  )
+
+ADD_OPTION(doIntAverageCentre
+  bool
+  false
+  "averages the integration over nodes at centre"
+  "If this parameter is set acouRhsLoad is calculated by using the velocity
+  vector at the centre of each element. May help with quadratic elements."
+  )
+
+ADD_OPTION(doCalcMultiNodes
+  bool
+  true
+  "This flag needs to be set to remedy region interface artifacts."
+  "If multiple regions exist, nodes which are shared by both are stored multplie
+  times, once for each region. But their acouRhsLoad is only calculated in each
+  region seperatly and therefore get different values which need to be added.
+  This flag should be set on otherwise artifacts at the region interface occur."
   )
 
 CONFIGURE_FILE("ParamsInit.cc.in"

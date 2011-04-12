@@ -13,7 +13,8 @@
 namespace CoupledField
 {
 
-  Trapezoidal::Trapezoidal( BaseSystem * algebraicsystem)
+  Trapezoidal::Trapezoidal( BaseSystem * algebraicsystem, 
+                            PtrParamNode systemNode )
     :TimeStepping( algebraicsystem )
   {
 
@@ -23,7 +24,10 @@ namespace CoupledField
     // average student user gets not disturbed by any warnings
     //check if integration parameters are defined in conf-file
     //Info->WARN( "Trapezoidal: Using defaults for gamma!" );
-
+    if ( systemNode->Has("timeSteppingParameters") ) {
+      PtrParamNode myParam = systemNode->Get("timeSteppingParameters");
+      myParam->GetValue("omitInitialSol", omitFirstPredictor_, ParamNode::PASS);
+    }
 
   }
 
@@ -66,8 +70,11 @@ namespace CoupledField
 
   void Trapezoidal::Predictor(Vector<Double>& solold)
   {
-
-    solpred_ = solold + solDeriv_vec_[FIRST_DERIV]*sol_timeStepCoeff_[PREDICTOR_1];
+    if( !omitFirstPredictor_) {
+      solpred_ = solold + solDeriv_vec_[FIRST_DERIV]*sol_timeStepCoeff_[PREDICTOR_1];
+    } else {
+      omitFirstPredictor_ = false;
+    }
   }
 
 
@@ -115,9 +122,14 @@ namespace CoupledField
   //---------------------------- Effective Mass ------------------
   //====================================================================
 
-  TrapezoidalEffMass::TrapezoidalEffMass( BaseSystem * algebraicsystem)
+  TrapezoidalEffMass::TrapezoidalEffMass( BaseSystem * algebraicsystem,
+                                          PtrParamNode systemNode)
     :TimeStepping( algebraicsystem )
   {
+    if ( systemNode->Has("timeSteppingParameters") ) {
+      PtrParamNode myParam = systemNode->Get("timeSteppingParameters");
+      myParam->GetValue("omitInitialSol", omitFirstPredictor_, ParamNode::PASS);
+    }
 
     gamma_ = 0.51;
 
@@ -157,7 +169,11 @@ namespace CoupledField
 
   void TrapezoidalEffMass::Predictor(Vector<Double>& solold)
   {
-    solpred_ = solold + solDeriv_vec_[FIRST_DERIV]*sol_timeStepCoeff_[PREDICTOR_1];
+    if( !omitFirstPredictor_) {
+      solpred_ = solold + solDeriv_vec_[FIRST_DERIV]*sol_timeStepCoeff_[PREDICTOR_1];
+    } else {
+      omitFirstPredictor_ = false;
+    }
   }
 
 

@@ -29,7 +29,8 @@ namespace CoupledField {
                                     StdPDE * aptStdPDE,
                                     shared_ptr<ResultInfo> aresult,
                                     StdVector<RegionIdType> asubdomainList,
-                                    std::map<RegionIdType,DampingType> adampingList) 
+                                    std::map<RegionIdType,DampingType> adampingList,
+                                    PtrParamNode systemNode) 
     :TimeStepping( algebraicsystem ){
 	
   
@@ -74,7 +75,12 @@ namespace CoupledField {
     Info->PrintF( pdename_, "NewmarkFracDamp: Using defaults for alpha, \
 beta and gamma!\n" );
 
- 
+    if ( systemNode->Has("timeSteppingParameters") ) {
+      PtrParamNode myParam = systemNode->Get("timeSteppingParameters");
+      myParam->GetValue("omitInitialSol", omitFirstPredictor_, ParamNode::PASS);
+    }
+
+
   }
 
   NewmarkFracDamp::~NewmarkFracDamp() {
@@ -144,10 +150,14 @@ beta and gamma!\n" );
         numTrueValues_++;
     }
 
-    solpred_ = solold + solDeriv_vec_[FIRST_DERIV] * dt_ \
-      + solDeriv_vec_[SECOND_DERIV] * sol_timeStepCoeff_[PREDICTOR_1];
-    solderiv1pred_ = solDeriv_vec_[FIRST_DERIV] \
-      + solDeriv_vec_[SECOND_DERIV] * sol_timeStepCoeff_[PREDICTOR_2];
+    if( !omitFirstPredictor_) {
+      solpred_ = solold + solDeriv_vec_[FIRST_DERIV] * dt_ \
+          + solDeriv_vec_[SECOND_DERIV] * sol_timeStepCoeff_[PREDICTOR_1];
+      solderiv1pred_ = solDeriv_vec_[FIRST_DERIV] \
+          + solDeriv_vec_[SECOND_DERIV] * sol_timeStepCoeff_[PREDICTOR_2];
+    } else {
+      omitFirstPredictor_ = false;
+    }
   }
 
 

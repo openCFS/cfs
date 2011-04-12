@@ -13,7 +13,7 @@ SET (PYTHON_POSSIBLE_LIB_PATHS
   /usr/local/lib
 )
 
-SET(PYTHON_NAMES "libpython2.6.so;libpython2.5.a;libpython2.5.so;libpython2.4.a;libpython2.4.so;libpython2.5.dylib")
+SET(PYTHON_NAMES "libpython2.7.so;libpython2.6.so;libpython2.5.a;libpython2.5.so;libpython2.4.a;libpython2.4.so;libpython2.5.dylib")
 
 IF(NOT CFS_DISTRO STREQUAL "UBUNTU")
   SET(PYTHON_NAMES "libpython2.6.a;${PYTHON_NAMES}")
@@ -39,6 +39,7 @@ MARK_AS_ADVANCED(PYTHON_LIBRARY)
 # Look for PYTHON header.
 #-------------------------------------------------------------------------------
 SET (PYTHON_POSSIBLE_INCLUDE_PATHS
+  /usr/include/python2.7
   /usr/include/python2.6
   /usr/include/python2.5
   /usr/include/python2.4

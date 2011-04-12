@@ -29,7 +29,7 @@ namespace CoupledField {
   // *********************************************************
 #define PRECOND_OBJ(matEntry,matStore,precondObjType)\
 if ((entryType==matEntry) && (storageType==matStore) ) {\
-retVal = new precondObjType( mat, solverNode, olasInfo );\
+retVal = new precondObjType( mat, solverXML, olasInfo );\
 (*cla) << " GenerateStdPrecondObject: Generated "\
        << MACRO2STRING(precondObjType)\
        << " preconditioner" << std::endl; }
@@ -56,19 +56,19 @@ retVal = new precondObjType( mat, solverNode, olasInfo );\
   //   Generation routine
   // **********************
   BaseStdPrecond* GenerateStdPrecondObject( const StdMatrix &mat,
-                                            PtrParamNode solverNode,
+                                            PtrParamNode systemNode,
                                             PtrParamNode olasInfo ) {
 
 
     BaseStdPrecond *retVal = NULL;
-
+    
     // Obtain matrix type information
     BaseMatrix::EntryType entryType = mat.GetEntryType();
     BaseMatrix::StorageType storageType = mat.GetStorageType();
     std::string precondStr = "";
 
     PtrParamNode solverXML;
-    solverXML = solverNode->Get("solver", ParamNode::INSERT );
+    solverXML = systemNode->Get("solver", ParamNode::INSERT );
 
     EnumMap::iterator it, end;
     it = BasePrecond::precondType.map.begin();

@@ -38,7 +38,7 @@ public:
                     const StdVector< Matrix<Double> >& shapeDeriv);
   
 
-private:
+protected:
   UInt nrDofs_;
 
   //! multiplicative value for curl-curl operator 

@@ -27,8 +27,8 @@ public:
   
 protected:    
   
-  //! returns B - matrix for BDB
-  virtual void calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord);
+  /** @see BaseForm::CalcBMat() */
+  virtual void CalcBMat(Matrix<Double> & bMat, UInt ip, const Matrix<Double> & ptCoord);
 
   //! calculate the data-matrix for 2D plain-strain
   virtual void calcDMat(Matrix<Double> & dMat, UInt ip, Matrix<Double> & ptCoord);

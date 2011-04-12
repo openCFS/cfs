@@ -207,7 +207,7 @@ namespace CoupledField
     for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
 
       // Setup the B matrix for current integration point
-      calcBMat( bMat, actIntPt, ptCoord_ );
+      CalcBMat( bMat, actIntPt, ptCoord_ );
 
       // Compute Jacobian for integration point
       jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_, ent1.GetElem() );
@@ -249,7 +249,7 @@ namespace CoupledField
   }
 
   // returns B - matrix for BDB
-  void SmoothNLInt::calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord)
+  void SmoothNLInt::CalcBMat(Matrix<Double> & bMat, UInt ip, const Matrix<Double> & ptCoord)
   {
     
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );

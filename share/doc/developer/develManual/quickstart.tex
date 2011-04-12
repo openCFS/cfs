@@ -29,7 +29,7 @@ sudo zypper install subversion gcc gcc-c++ gcc-fortran automake autoconf \
                     cmake perl-base graphviz texlive-latex texlive-tex4ht \
                     python-pygments doxygen tcl-devel python-devel git-svn \
                     java-1_6_0-openjdk-devel cmake-gui xorg-x11-libXt-devel \
-                    diffutils patch zip xorg-x11-libXp
+                    diffutils patch zip xorg-x11-libXp tk-devel Mesa-devel
 \end{verbatim}
 
 \noindent For openSUSE 11.3 also Gmsh is available:
@@ -58,11 +58,14 @@ sudo apt-get install subversion gcc g++ gfortran automake autoconf cmake \
                      perl-base graphviz texlive-latex-base tex4ht \
                      python-pygments doxygen tcl-dev python-dev git-svn \
                      cmake-curses-gui cmake-qt-gui gmsh openjdk-6-jdk \
-                     patch diffutils zip libxt-dev libxp6
+                     patch diffutils zip libxt-dev libxp6 tk-dev \
+                     libgl1-mesa-dev libglu1-mesa-dev libxmuu-dev
 \end{verbatim} 
 
 \begin{verbatim}
 ln -s /usr/include/python2.6 /usr/include/python
+ln -s /usr/lib/libXext.so.6.4.0 /usr/lib/libXext.so
+ln -s /usr/lib/libXmu.so.6.2.0 /usr/lib/libXmu.so
 \end{verbatim}
 
 \noindent Checking which package provides an already installed file:
@@ -77,7 +80,7 @@ dpkg -S /usr/bin/g++
 yum install subversion gcc gcc-c++ gcc-gfortran automake autoconf cmake \
             perl graphviz texlive-latex tetex-tex4ht \
             python-pygments doxygen tcl-devel python-devel git-svn \
-            cmake-gui java-1.6.0-openjdk-devel \
+            cmake-gui java-1.6.0-openjdk-devel tk-devel\
             patch diffutils zip libXt-devel libXp
 \end{verbatim} 
 
@@ -85,6 +88,49 @@ yum install subversion gcc gcc-c++ gcc-gfortran automake autoconf cmake \
 \begin{verbatim}
 rpm -q --whatprovides /usr/bin/g++
 \end{verbatim}
+
+\newpage
+\subsection{CentOS (5.5)}
+
+\noindent As root user enter the following:
+\begin{verbatim}
+cd /etc/yum.repos.d
+wget http://www.graphviz.org/graphviz-rhel.repo
+
+YC=/etc/yum.conf
+
+echo "[atrpms]" >> $YC
+echo "name=Redhat Enterprise Linux RHEL$releasever - $basearch - ATrpms" >> $YC
+echo "baseurl=http://dl.atrpms.net/el5-$basearch/atrpms/stable/" >> $YC
+echo "gpgkey=http://ATrpms.net/RPM-GPG-KEY.atrpms" >> $YC
+echo "gpgcheck=1" >> $YC
+
+echo "[epel]" >> $YC
+echo "name=EPEL RHEL$releasever - $basearch" >> $YC
+echo "baseurl=http://ftp.ucr.ac.cr/epel/5/$basearch" >> $YC
+
+ARCH=$(uname -m | sed 's/i[0-9]86/i386/')
+BASE=http://apt.sw.be/redhat/el5/en
+RPM=$ARCH/rpmforge/RPMS/rpmforge-release-0.3.6-1.el5.rf.$ARCH.rpm
+rpm -Uhv $BASE/$RPM
+
+yum makecache
+
+cd /opt
+wget http://www.svnkit.com/org.tmatesoft.svn_1.3.5.standalone.zip
+unzip org.tmatesoft.svn_1.3.5.standalone.zip
+
+yum install subversion gcc gcc-c++ gcc-gfortran automake autoconf cmake \
+            perl graphviz tetex-latex tetex-tex4ht \
+            python-pygments doxygen tcl-devel python-devel git-svn \
+            cmake-gui java-1.6.0-openjdk-devel tk-devel\
+            patch diffutils zip libXt-devel libXp mesa-libGLU-devel libXmu-devel
+            
+ln -s /usr/lib64/libXext.so.6.4.0 /usr/lib64/libXext.so
+
+echo "export JAVA_HOME=/usr" >> $HOME/.bashrc
+echo "export PATH=/opt/svnkit-1.3.5.7406:$PATH" >> $HOME/.bashrc
+\end{verbatim} 
 
 
 \subsection{Mac OS X (10.5)}
@@ -267,6 +313,29 @@ good   starting   point   for    the   ParaView   newbie   is   the   tutorial
 refer to Sec. \ref{sec:paraview}  for further details about the implementation
 of the CFS++ HDF5 plugin  and some advanced visualization techniques involving
 data from CFS++.
+
+CFS++  can  also  generate  Xdmf  \url{http://www.xdmf.org}  \cite{Clarke2002,
+  Clarke2007} output which  can be read using ParaView.  When using Xdmf data,
+also the  downloaded binaries from the  ParaView website may be  used since no
+extra plugins are required any more.  This configuration will lack some of the
+convenient  features  (e.g.  animation  of  harmonic results)  of  our  plugin
+however.
+
+\subsubsection{Installing SciPy/NumPy}
+In  order  to be  able  to calculate  analytical  solutions  on meshes  inside
+ParaView the SciPy and NumPy Python libs have to be present on the machine. An
+installation          howto          can          be         found          at
+\url{http://www.scipy.org/Installing_SciPy}.            The           pythonxy
+\url{http://www.pythonxy.com}   distribution   may   also  be   a   noteworthy
+alternative.
+
+\subsection{VisIt}
+VisIt    \url{https://wci.llnl.gov/codes/visit/}    is    another    VTK-based
+visualization tool with broad support for CFD data formats. E.g. it has native
+readers for  CGNS and  StarCCM+ files.  Like GMV it  is developed  at Lawrence
+Livermore National Laboratories.  The main  data gateway from CFS++ is through
+using Xdmf  files.  But  VisIt can also  read GMV  data files (at  least ASCII
+ones).
 
 \subsection{Others}  The  GMV\footnote{\url{http://www.generalmeshviewer.com}}
 postprocessor is  not publicly available any  more, but is  still installed at

@@ -327,6 +327,20 @@ namespace CoupledField {
                                 actSDList, actSDList );
       assemble_->AddBiLinearForm( stiffContext );
       eqnMap_->AddResult( *results_[0], actSDList );
+     
+      // --- check for complex valued material parameter ---
+      if( complexMatData_[actRegion] == true ) {
+        Global::ComplexPart matType = Global::IMAG;
+        FlatShellElecInt * compElecIntC = new FlatShellElecInt( composite, false );
+        compElecIntC->SetMatDataType(matType);
+        BiLinFormContext * stiffContextC = 
+          new BiLinFormContext( compElecIntC, STIFFNESS);
+        stiffContextC->SetPtPdes( this, this );
+        stiffContextC->SetEntryType(matType);
+        stiffContextC->SetResults( results_[0], results_[0],
+                                  actSDList, actSDList );
+        assemble_->AddBiLinearForm( stiffContextC );
+      }
       
     }
 
@@ -1200,18 +1214,22 @@ namespace CoupledField {
         res1->entryType = ResultInfo::SCALAR;
         res1->fctType = fct;
       } else {
-        // Determine number of laminas for setting number of dofs
-        ParamNodeList  laminas = param->Get("domain")
-          ->GetList("composite");
         
-        if (laminas.GetSize() == 0) {
-          res1->dofNames.Push_back("ep");
-        } else {
-          for( UInt i=0; i<laminas[0]->Count("lamina"); i++ ) {
-            std::string dofName = "ep";
-            dofName += lexical_cast<std::string>(i+1);
-            res1->dofNames.Push_back( dofName );
-          }
+        // check number of composite materials:
+        // Currently, we can handle just one electrostatic composite
+        // material, as we would have a different number of electric
+        // unknowns for different regions
+        if( compositeMaterials_.size() > 1 ) {
+          WARN("Currently the electrostatic flatShell PDE can only "
+              "handle ONE type of composite material!");
+        }
+          
+        Composite & actComp = compositeMaterials_.begin()->second;
+        UInt numLaminas = actComp.thickness.GetSize();
+        for( UInt i=0; i<numLaminas; i++ ) {
+          std::string dofName = "ep";
+          dofName += lexical_cast<std::string>(i+1);
+          res1->dofNames.Push_back( dofName );
         }
         shared_ptr<AnsatzFct> fct(new LagrangeFct);
         res1->unit = "V";

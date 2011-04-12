@@ -297,6 +297,9 @@ namespace CoupledField
      /** trivial find */
      DesignRegion* GetRegion(RegionIdType id, bool throw_exception = true);
 
+     /** Convenience function */
+     BaseMaterial* GetBiMaterial(RegionIdType reg, Optimization::Application app, bool throw_exception = true);
+
      StdVector<DesignRegion> regions;
 
      /** it is convenient to have such a vector for some functions. Taken from regions! */

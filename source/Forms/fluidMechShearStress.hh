@@ -40,8 +40,7 @@ namespace CoupledField
   protected:  
   
     /// returns B 
-    void calcBMat(Matrix<Double> & bMat, UInt ip, 
-                          Matrix<Double> & ptCoord);
+    void CalcBMat(Matrix<Double> & bMat, UInt ip, const Matrix<Double> & ptCoord);
 
     /// velocities of all nodes of actual element
     Matrix<TYPE> elemVelo_;

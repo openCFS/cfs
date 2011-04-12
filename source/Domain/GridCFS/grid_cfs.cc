@@ -22,6 +22,7 @@
 #include "Utils/mathParser/mathParser.hh"
 #include "Domain/domain.hh"
 #include "DataInOut/resultHandler.hh"
+#include "DataInOut/ParamHandling/Xerces.hh"
 
 namespace CoupledField {
 
@@ -97,10 +98,10 @@ namespace CoupledField {
 
             // ToDo: insert defintion for axisymmetric geometry
             coord.Init();
-            coordNode->GetValue( "x", coord[0] );
-            coordNode->GetValue( "y", coord[1] );
+            coord[0] = coordNode->Get( "x" )->MathParse<Double>();
+            coord[1] = coordNode->Get( "y" )->MathParse<Double>();
             if( dim_ == 3 )
-            coordNode->GetValue( "z", coord[2] );
+              coord[2] = coordNode->Get( "z" )->MathParse<Double>();
             StdVector<UInt> entityNum(1);
             entityNum[0] = FindEntityMinDistance( isNode, coord );
 
@@ -135,22 +136,22 @@ namespace CoupledField {
               PtrParamNode actNode = freeNodes[i];
               PointSelection actSel;
               actSel.isFree = true;
-              actNode->GetValue( "comp", actSel.comp );
-              actNode->GetValue( "start", actSel.start );
-              actNode->GetValue( "stop", actSel.stop );
-              actNode->GetValue( "inc", actSel.inc );
+              actSel.comp = actNode->Get( "comp" )->As<std::string>();
+              actSel.start = actNode->Get( "start" )->MathParse<Double>();
+              actSel.stop = actNode->Get( "stop" )->MathParse<Double>();
+              actSel.inc = actNode->Get( "inc" )->MathParse<Double>();
               selections.Push_back( actSel);
             }
 
             // get fixed component(s)
             ParamNodeList fixedNodes =
-              listNode->GetList("fixedCoord");
+                listNode->GetList("fixedCoord");
             for( UInt i = 0; i < fixedNodes.GetSize(); i++ ) {
               PtrParamNode actNode = fixedNodes[i];
               PointSelection actSel;
               actSel.isFree = false;
-              actNode->GetValue( "comp", actSel.comp );
-              actNode->GetValue( "value", actSel.value );
+              actSel.comp = actNode->Get( "comp" )->As<std::string>();
+              actSel.value = actNode->Get( "value" )->As<std::string>();
               selections.Push_back( actSel);
             }
 
@@ -558,6 +559,60 @@ namespace CoupledField {
     return ret;
   }
 
+  RegionIdType GridCFS::CheckPatternRegion(StdVector<bool>& replace)
+  {
+    // check the input for a pattern region
+    std::string name = "";
+    std::string file = "";
+
+    // be sensitive to the cfstool case
+    if(!param->Has("domain/regionList")) return NO_REGION_ID;
+
+    ParamNodeList list = param->Get("domain/regionList")->GetList("region");
+    for(UInt i = 0; i < list.GetSize(); i++)
+    {
+      if(list[i]->Has("pattern"))
+      {
+        if(name != "") EXCEPTION("Only a single region with pattern attribute allowed");
+        name = list[i]->Get("name")->As<std::string>();
+        file = list[i]->Get("pattern")->As<std::string>();
+      }
+    }
+
+    // quick exit
+    if(name == "") return NO_REGION_ID;
+
+    // read the pattern file
+    Xerces* xerces = new Xerces(file);
+    PtrParamNode xml = xerces->CreateParamNodeInstance();
+    delete xerces;
+
+    // check this file
+    if (xml->Count("set") == 0)
+      throw Exception("There are no design sets in the pattern file " + file);
+
+    ParamNodeList elems = xml->GetList("set").Last()->GetList("element");
+
+    if(elems.GetSize() != orderedElems_.GetSize())
+      EXCEPTION("There are " << elems.GetSize() << " elements in pattern file " << file << " but " << orderedElems_.GetSize() << " in the mesh.");
+
+    // blow up replace to the size of all elements
+    replace.Resize(orderedElems_.GetSize() + 1, false); // numbers are 1-based
+
+    for(UInt i = 0, n = elems.GetSize(); i < n; i++)
+    {
+      double val = elems[i]->Get("design")->As<double>();
+      if(val >= 1.0)
+      {
+        UInt nr = elems[i]->Get("nr")->As<UInt>();
+        replace[nr] = true;
+      }
+    }
+
+    // finally add the region
+    return AddRegion(name, false);
+  }
+
   void GridCFS::FinishInit()
   {
     volElemNodes_.Clear();
@@ -572,6 +627,10 @@ namespace CoupledField {
     UInt numElems = orderedElems_.GetSize();
     UInt numNodes = 0;
     UInt numVolRegions, numSurfRegions;
+
+    // the pattern regions are defined by density files in domain/regionList/region with pattern set
+    StdVector<bool> pattern;
+    RegionIdType pattern_reg = CheckPatternRegion(pattern); // assumed to be volume region only!
 
     std::map<RegionIdType, StdVector<Elem*> > volRegionElems, surfRegionElems;
     std::map<RegionIdType, std::set<UInt> > volRegionNodes, surfRegionNodes;
@@ -595,6 +654,10 @@ namespace CoupledField {
       maxNumElemNodes_ = maxNumElemNodes_ < numNodes ?
                          numNodes : maxNumElemNodes_;
 
+      // in pattern case replace element region
+      if(pattern_reg != NO_REGION_ID && pattern[el->elemNum])
+        el->regionId = pattern_reg;
+
       // Insert dimension of first element in region into regionDims map
       // If elements with different dimension are encountered issue an exception
       if(!regionDims[el->regionId]) 
@@ -610,7 +673,7 @@ namespace CoupledField {
         {
           EXCEPTION("Elements with different dimensions have been "
                     << "encountered in region '" << region_.ToString(el->regionId)
-                    << "'!\nThe error occured while examining element "
+                    << "'!\nThe error occurred while examining element "
                     << el->elemNum << ".\nPlease check your mesh file!");
         }    
       }
@@ -725,13 +788,18 @@ namespace CoupledField {
 
   }
   
-  void GridCFS::CreateGridInformation( ResultHandler* ptRes ) {
+  void GridCFS::
+  CreateGridInformation( ResultHandler* ptRes,
+                         std::map<std::string, CoordSystem*>& coordSysMap ) {
     
     // This method crates a "dummy" multisequence step, in
     // wchich some grid-information rsults are created:
     // - Local directions (xi,eta,zeta) of elements
     // - Jacobian determinant
     // - surface element normals
+    //
+    // In addition we create for every local coordinate system
+    // a results for the local directions.
     
     // Register results
     shared_ptr<BaseResult> sol;
@@ -792,12 +860,40 @@ namespace CoupledField {
     surfNormal->entryType = ResultInfo::VECTOR;
     surfNormal->dofNames = dirVec;
     surfNormal->unit = "";
+    
+    // === create results for all coordinate systems available ===
+    std::map<std::string, StdVector<shared_ptr<ResultInfo> > > coordDirs;
+    std::map<std::string, CoordSystem*>::const_iterator coordIt;
+    
+    // loop over all coordinate systems
+    for( coordIt = coordSysMap.begin(); 
+         coordIt != coordSysMap.end(); ++coordIt ) {
+       
+      std::string id = coordIt->first;
+      CoordSystem * actCosy = coordIt->second;
+      
+      // Create ResultInfo objects for every local direction
+      StdVector<shared_ptr<ResultInfo> > dirInfo(dim_);
+      for( UInt iDim = 0; iDim < dim_; ++iDim ) {
+        shared_ptr<ResultInfo> locDir( new ResultInfo );
+        locDir->resultType = ELEM_LOC_DIR;
+        locDir->resultName = "CooSy-"+id+"-"+actCosy->GetDofName(iDim+1);
+        locDir->definedOn = ResultInfo::ELEMENT;
+        locDir->entryType = ResultInfo::VECTOR;
+        locDir->dofNames = dirVec;
+        locDir->unit = "";
+        
+        dirInfo[iDim] = locDir;
+      }
+      coordDirs[id] = dirInfo;
+    }
 
     
     // loop over all volume regions
     StdVector<std::string> outDest;
     outDest.Push_back("");
     StdVector<shared_ptr<BaseResult> > resultList;
+    std::map<std::string, StdVector<shared_ptr<BaseResult> > > coordResultList;
     for ( UInt i = 0, numRegions = volRegionIds_.GetSize();
         i < numRegions; i++) {
       
@@ -809,19 +905,19 @@ namespace CoupledField {
       sol = shared_ptr<BaseResult> (new Result<Double>());
       sol->SetEntityList(ent);
       sol->SetResultInfo(jacRes);
-      ptRes->RegisterResult( sol, 0,1,1,outDest,"",true,false);
+      ptRes->RegisterResult( sol,0,0,1,1,outDest,"",true,false);
       resultList.Push_back(sol);
 
       sol = shared_ptr<BaseResult> (new Result<Double>());
       sol->SetEntityList(ent);
       sol->SetResultInfo(locDir1);
-      ptRes->RegisterResult( sol, 0,1,1,outDest,"",true,false);
+      ptRes->RegisterResult( sol,0, 0,1,1,outDest,"",true,false);
       resultList.Push_back(sol);
 
       sol = shared_ptr<BaseResult> (new Result<Double>());
       sol->SetEntityList(ent);
       sol->SetResultInfo(locDir2);
-      ptRes->RegisterResult( sol, 0,1,1,outDest,"",true,false);
+      ptRes->RegisterResult( sol,0, 0,1,1,outDest,"",true,false);
       resultList.Push_back(sol);
 
 
@@ -829,8 +925,26 @@ namespace CoupledField {
         sol = shared_ptr<BaseResult> (new Result<Double>());
         sol->SetEntityList(ent);
         sol->SetResultInfo(locDir3);
-        ptRes->RegisterResult( sol, 0,1,1,outDest,"",true,false);
+        ptRes->RegisterResult( sol,0, 0,1,1,outDest,"",true,false);
         resultList.Push_back(sol);
+      }
+      
+      // loop over all coordinate systems
+      std::map<std::string, StdVector<shared_ptr<ResultInfo> > >
+      ::iterator coordResIt;
+      for( coordResIt = coordDirs.begin(); 
+           coordResIt != coordDirs.end();
+           ++coordResIt )   {
+        
+      // loop over all local directions
+        StdVector<shared_ptr<ResultInfo> >& dirResults = coordResIt->second;
+        for( UInt iDir = 0; iDir < dirResults.GetSize(); ++iDir ) {
+          sol = shared_ptr<BaseResult> (new Result<Double>());
+          sol->SetEntityList(ent);
+          sol->SetResultInfo(dirResults[iDir]);
+          ptRes->RegisterResult( sol,0, 0,1,1,outDest,"",true,false);
+          coordResultList[coordResIt->first].Push_back(sol);
+        }
       }
     }
     
@@ -848,7 +962,7 @@ namespace CoupledField {
       sol = shared_ptr<BaseResult> (new Result<Double>());
       sol->SetEntityList(ent);
       sol->SetResultInfo(surfNormal);
-      ptRes->RegisterResult( sol, 0,1,1,outDest,"",true,false);
+      ptRes->RegisterResult( sol,0, 0,1,1,outDest,"",true,false);
       surfResultList.Push_back(sol);
     }
     
@@ -912,7 +1026,45 @@ namespace CoupledField {
         } // loop over elements
       }
       ptRes->UpdateResult(resultList[i]);
-    } // loop over surface results
+    } // loop over volume results
+    
+    // loop over all coordinate systems
+    for( coordIt = coordSysMap.begin(); coordIt != coordSysMap.end(); ++coordIt){
+
+      std::string id = coordIt->first;
+      CoordSystem * actCosy = coordIt->second;
+      // obtain result vector
+      StdVector<shared_ptr<BaseResult> >  & resList = coordResultList[id];
+
+      // loop over all results 
+      // (= components of the coordinate system x regions) 
+      for( UInt iPos = 0; iPos < resList.GetSize(); ++iPos ) {
+
+        // fetch result object
+        Result<Double> &  actSol = 
+            dynamic_cast<Result<Double>&>(*resList[iPos]);
+        EntityIterator it = actSol.GetEntityList()->GetIterator();
+        Vector<Double> & actVal = actSol.GetVector();
+        actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
+        
+        // determine coordinate component
+        UInt actComp = iPos % dim_;
+
+        // loop over all elements
+        Vector<Double> coordDir, locDir(dim_);
+        locDir.Init();
+        locDir[actComp] = 1.0;
+        for ( it.Begin(); !it.IsEnd(); it++ ) {
+
+          GetGlobalElemMidPoint( it.GetElem()->elemNum, midPoint);
+          actCosy->Local2GlobalVector(coordDir, locDir, midPoint);
+          for( UInt i = 0; i < dim_; ++i ) {
+            actVal[it.GetPos()*dim_ + i] = coordDir[i];
+          } // components of the local coordinate direction
+        } // loop over elements
+        ptRes->UpdateResult(resList[iPos]);
+      } // loop over components of coordinate system
+    } // loop over all coordinate systems
     
     Vector<Double> normal;
     // loop over all surface region results
@@ -1423,6 +1575,7 @@ namespace CoupledField {
     {
       orderedElems_[idx] = new Elem();
       orderedElems_[idx]->elemNum = idx+1;
+      orderedElems_[idx]->ptElem = NULL;
     }
 
     numElems_ = idx;
@@ -1438,6 +1591,17 @@ namespace CoupledField {
     Elem* el = orderedElems_[idx];
     UInt d = 2;
     UInt numNodes = Elem::GetNumElemNodes(type);
+    
+    // check, if element has already a reference element assigned
+    if( el->ptElem != NULL ) {
+      EXCEPTION("Element #" << ielem+1 
+                << " was already defined for region '"
+                << region_.ToString(el->regionId) << "'\n"
+                << "Now it shold be added to region '"
+                << region_.ToString(region) << "'.\n"
+                << "Most probably you wrote out the element twice."
+                 << " Please check your mesh!");
+    }
 
     numElemTypes_[type]++;
 

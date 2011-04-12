@@ -17,8 +17,8 @@ namespace CoupledField {
   // ============
   //   calcBMat
   // ============
-  void linGradBDBInt::calcBMat( Matrix<Double> &bMat, UInt ip,
-			     Matrix<Double> &ptCoord ) {
+  void linGradBDBInt::CalcBMat( Matrix<Double> &bMat, UInt ip,
+			     const Matrix<Double> &ptCoord ) {
 
 
     // Obtain info on number of elements' funtions

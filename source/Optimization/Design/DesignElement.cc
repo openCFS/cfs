@@ -267,7 +267,8 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       || rd.value == MAX_OSCILLATION
       || rd.value == MAX_MOLE
       || rd.value == MAX_JUMP
-      || rd.value == PENALIZED_STRESS)
+      || rd.value == PENALIZED_STRESS
+      || rd.value == DESIGN_TRACKING)
   {
     if(dofs != 1) throw Exception("special results is only defined for scalar values");
     // note, that on EACH_FORWARD/ADJOINT we need excitation based results
@@ -491,6 +492,7 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(MAX_MOLE, "maxMole");
   valueSpecifier.Add(MAX_JUMP, "maxJump");
   valueSpecifier.Add(PENALIZED_STRESS, "penalizedStress");
+  valueSpecifier.Add(DESIGN_TRACKING, "designTracking");
   valueSpecifier.Add(WEIGHT, "weight");
   valueSpecifier.Add(OBJECTIVE, "objective");
   valueSpecifier.Add(NUM_NEIGHBOURS, "neighbours");
@@ -654,8 +656,8 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
     numerator   += w * x;
     denominator += w;
 
-    LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
-                    << " w= " << w  << " p=" << x << " num=" << numerator << " den=" << denominator;
+    // LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
+    //                << " w= " << w  << " p=" << x << " num=" << numerator << " den=" << denominator;
   }
 
   double p_filt = numerator / denominator;
@@ -673,8 +675,8 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
     assert(p_filt >= 0.7 * this->de_->GetLowerBound()); // relax the assert a little, cause of heaviside correction
   }
 
-  LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " design=" << Filter::density.ToString(de_->simp->filter.density_)
-                  << ": plain=" << this->de_->GetPlainValue(DesignElement::DESIGN) << " -> "<< p_filt;
+  // LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " design=" << Filter::density.ToString(de_->simp->filter.density_)
+  //                << ": plain=" << this->de_->GetPlainValue(DesignElement::DESIGN) << " -> "<< p_filt;
 
   return p_filt;
 }
@@ -777,9 +779,9 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
     double summand = v * h * w / w_sum;
     sum += summand;
 
-    LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
-                  << " v= " << v  << " h=" << h << " w=" << w << " x_n=" << x_n << " w_sum=" << w_sum
-                  << " summand=" << summand << " sum=" << sum;
+    // LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
+    //              << " v= " << v  << " h=" << h << " w=" << w << " x_n=" << x_n << " w_sum=" << w_sum
+    //              << " summand=" << summand << " sum=" << sum;
   }
 
   return sum;
@@ -826,6 +828,7 @@ VicinityElement::VicinityElement()
 {
   design.Resize(domain->GetGrid()->GetDim() == 2 ? 4 : 6);
   design.Init(NULL);
+  periodic = false;
 }
 
 
@@ -837,8 +840,9 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
 
   Grid* grid = domain->GetGrid();
   
-  if(!space->IsRegular())
-    throw Exception("A regular design domain is required to use VicinityElements");
+  // we only hope the elements are aligned and rectangular, the size might vary
+  // if(!space->IsRegular())
+  //  throw Exception("A regular design domain is required to use VicinityElements");
 
   // eventually the barycenters are already calculated, we need them to identify the orientation
   // we will need the barycenters in FindNeibhborhood()
@@ -882,7 +886,10 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
     if(periodic)
     {
       if(structure->ExtendPeriodicNeighborhood(de.elem, common, enlarged_data))
+      {
         neighbors = enlarged_data; // in the non-periodic case there is no need to copy the element data
+        de.vicinity->periodic = true;
+      }
     }
 
     LOG_DBG(desel) << "VE:Init elem=" << de.elem->elemNum << " neighbors=" << neighbors.ToString();
@@ -1039,6 +1046,7 @@ string VicinityElement::ToString() const
     }
     if(i < max-1) ss << ",";
   }
+  ss << " periodic=" << periodic;
   ss << ")";
   return ss.str();
 }

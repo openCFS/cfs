@@ -16,6 +16,8 @@
 #include "DataInOut/Logging/cfslog.hh"
 #include "Utils/biotSavart.hh"
 #include "linMagStrictInt.hh"
+#include "Forms/curlCurlEdgeInt.hh"
+#include "Forms/nLincurlCurlEdgeInt.hh"
 
 namespace CoupledField {
 
@@ -445,7 +447,7 @@ DEFINE_LOG(linForm, "linForm")
       //define the nonlinear element matrix
       curlcurl2D = new nLinCurlCurlNode2DInt( ptMaterial, isaxi_, coordUpdate_ );
       //important to set method to FixPoint, since we compute the RHS!!
-      curlcurl2D->SetNonLinMethod("fixPoint");
+      curlcurl2D->SetNonLinMethod(FIXEDPOINT);
         
       //set the solution class to the operator
       curlcurl2D->SetSolution( * sol_ );
@@ -507,7 +509,7 @@ DEFINE_LOG(linForm, "linForm")
       //define the nonlinear element matrix
       curlcurl3D = new nLinCurlCurlNode3DInt( ptMaterial, coordUpdate_ );
       //important to set method to FixPoint, since we compute the RHS!!
-      curlcurl3D->SetNonLinMethod("fixPoint");
+      curlcurl3D->SetNonLinMethod(FIXEDPOINT);
         
       //set the solution class to the operator
       curlcurl3D->SetSolution( *sol_ );
@@ -526,6 +528,60 @@ DEFINE_LOG(linForm, "linForm")
     delete curlcurl3D;
   }
 
+  
+
+  nLinMagEdge_linFormInt::nLinMagEdge_linFormInt( BaseMaterial*matData,
+                                                  bool coordUpdate)
+    : LinearForm( matData )
+  {
+    name_ = "nLinMagEdge_linFormInt";
+    isSolDependent_ = true;
+
+    isaxi_       = false;
+    coordUpdate_ = coordUpdate;
+
+  }
+  
+  nLinMagEdge_linFormInt::~nLinMagEdge_linFormInt()
+  {
+  }
+
+  void nLinMagEdge_linFormInt::CalcElemVector( Vector<Double> & elemVec,
+                                               EntityIterator& ent )
+  {
+  
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+
+    // get pointer to nonlinear BH curve approximation
+    ApproxData* nlinFnc_ = ptMaterial->GetNonlinFncBH();
+
+    BaseForm * curlcurl3D;
+    if ( nlinFnc_ == NULL ) 
+      //define the linear element matrix
+      curlcurl3D = new CurlCurlEdgeInt( ptMaterial, coordUpdate_);
+    else {
+      //define the nonlinear element matrix
+      curlcurl3D = new nLinCurlCurlEdgeInt( ptMaterial, coordUpdate_ );
+      //important to set method to FixPoint, since we compute the RHS!!
+      curlcurl3D->SetNonLinMethod(FIXEDPOINT);
+        
+      //set the solution class to the operator
+      curlcurl3D->SetSolution( *sol_ );
+    }
+
+    // Get element solution
+    Vector<Double> magPot;
+    sol_->GetElemSolution( magPot, ent  );
+
+    Matrix<Double> elemmat;
+    curlcurl3D->CalcElementMatrix(elemmat, ent, ent);
+
+    elemVec = -(elemmat * magPot);
+
+    delete curlcurl3D;
+  }
 
   // ==================================================================
   // nLinMech
@@ -1264,6 +1320,89 @@ DEFINE_LOG(linForm, "linForm")
         elVel[dim][actNode] = FlowData[dim+1][connecth[actNode]-1]; 
   }
 
+  void LinearFlowNoiseInt::CalcElemVec4QuadwithVelCentre(const Matrix<Double>& ptCoord,
+                                                   const Matrix<Double> & NodalVel,
+                                                   Vector<Double> & Result,
+                                                   Vector<Double> & nodalLoadDensity,
+                                                   Vector<Double>& divLHTensor,
+                                                   const Elem* elem,
+                                                   Double density)
+  {
+#ifdef TRACE
+    (*trace) << "entering LinearFlowNoiseInt::CalcElemVec4QuadwithVelCentre" << std::endl;
+#endif
+
+    // This functions computes the element RHS vector by integrating 
+    // the gradient of the shape function times the divergence of the tensor T.
+    // But uses the cell centre velocity for all nodes.
+  
+    // Source term =  integral(grad[Sf].div[T])
+
+    const Integer numIntPoints = ptelem->GetNumIntPoints(); 
+    const Integer numNodes = ptelem->GetNumNodes();
+    const UInt dimelem = ptCoord.GetNumRows();
+
+    Matrix<Double> xiDx;      
+    Vector<Double> VelAtCentre;
+    Matrix<Double> VelDerivAtCentre;
+    Vector<Double> intWeights = ptelem->GetIntWeights();
+    Vector<Double> divLHTensorTmp;
+
+    Double jacDet;
+
+    Result.Resize(numNodes);
+    nodalLoadDensity.Resize(numNodes);
+    Result.Init(0.0);
+    nodalLoadDensity.Init(0.0);
+
+    Vector<Double> partResult;
+    partResult.Resize(numNodes);
+    
+    Vector<Double> helpVec;
+    helpVec.Resize(dimelem);
+
+    Double volume = 0.0;
+    divLHTensor.Resize(dimelem);
+    divLHTensorTmp.Resize(dimelem);
+    divLHTensor.Init(0.0);
+    divLHTensorTmp.Init(0.0);
+    
+    Vector<Double> centreNode(dimelem, 0.0);
+    Matrix<Double> derivCentre;
+    Vector<Double> ansatzCentre;
+    const UInt dof = NodalVel.GetNumCols();
+
+    ptelem->GetGlobDerivShFnc(derivCentre, centreNode, ptCoord, elem, dof);
+    ptelem->GetShFnc(ansatzCentre, centreNode, elem, dof);
+    VelDerivAtCentre = NodalVel * derivCentre;
+    VelAtCentre = NodalVel * ansatzCentre;
+
+    helpVec[0] = 2.0 * VelAtCentre[0] * VelDerivAtCentre[0][0] 
+                     + VelAtCentre[1] * VelDerivAtCentre[0][1]
+                     + VelAtCentre[0] * VelDerivAtCentre[1][1];
+    helpVec[1] = 2.0 * VelAtCentre[1] * VelDerivAtCentre[1][1] 
+                     + VelAtCentre[0] * VelDerivAtCentre[1][0] 
+                     + VelAtCentre[1] * VelDerivAtCentre[0][0]; 
+    helpVec *= density;
+    // Loop over all integration points 
+    for(Integer actInt=1; actInt <= numIntPoints; actInt++)
+    {
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, jacDet, elem);
+      
+      volume += jacDet * intWeights[actInt -1];
+      divLHTensorTmp = (helpVec * jacDet * intWeights[actInt -1]);
+
+      partResult  = xiDx * divLHTensorTmp;
+      Result     += partResult;
+
+      divLHTensor += divLHTensorTmp;
+    } // end integration loop
+
+    nodalLoadDensity = Result / volume;
+    divLHTensor /= volume;
+
+  } // end of method
+
   void LinearFlowNoiseInt::CalcElemVec4QuadwithVel(const Matrix<Double>& ptCoord,
                                                    const Matrix<Double> & NodalVel,
                                                    Vector<Double> & Result,
@@ -1276,8 +1415,6 @@ DEFINE_LOG(linForm, "linForm")
     (*trace) << "entering LinearFlowNoiseInt::CalcElemVector4Quad" << std::endl;
 #endif
 
-    //std::cout << "NodalVel:\n" << NodalVel << std::endl;
-
     // This functions computes the element RHS vector by integrating 
     // the gradient of the shape function times the divergence of the tensor T.
   
@@ -1288,22 +1425,18 @@ DEFINE_LOG(linForm, "linForm")
     Integer dimelem = ptCoord.GetNumRows();
 
     Matrix<Double> xiDx;      
-    Vector<Double>  Sf;
+    Vector<Double> Sf;
 
-    Vector<Double>  VelAtIP;
+    Vector<Double> VelAtIP;
     Matrix<Double> VelDerAtIP;
-    VelDerAtIP.Resize(dimelem);  
-    Vector<double> intWeights = ptelem->GetIntWeights();
+    Vector<Double> divLHTensorTmp;
 
     Double jacDet;
-    //    Double density=1.0;
 
     Result.Resize(n);
     nodalLoadDensity.Resize(n);
-    for (Integer i=0; i<n; i++) {
-      Result[i] = 0.0;
-      nodalLoadDensity[i] = 0.0;
-    }
+    Result.Init(0.0);
+    nodalLoadDensity.Init(0.0);
 
     Vector<Double> partResult;
     partResult.Resize(n);
@@ -1312,8 +1445,13 @@ DEFINE_LOG(linForm, "linForm")
     helpVec.Resize(dimelem);
 
     Double volume = 0.0;
+    divLHTensorTmp.Resize(dimelem);
+    divLHTensorTmp.Init(0.0);
+    divLHTensor.Resize(dimelem);
     divLHTensor.Init(0.0);
     
+    Vector<double> intWeights = ptelem->GetIntWeights();
+
     // Loop over all integration points 
     for(Integer actInt=1; actInt <= l; actInt++)
     {
@@ -1332,26 +1470,18 @@ DEFINE_LOG(linForm, "linForm")
       helpVec[0] = 2.0 * VelAtIP[0] * VelDerAtIP[0][0] 
                        + VelAtIP[1] * VelDerAtIP[0][1]
                        + VelAtIP[0] * VelDerAtIP[1][1];
-                       
-      if (dimelem == 3)
-      {
-        helpVec[0] +=    VelAtIP[2] * VelDerAtIP[0][2]
-                       + VelAtIP[0] * VelDerAtIP[2][2]; 
-      }
 
 
       helpVec[1] = 2.0 * VelAtIP[1] * VelDerAtIP[1][1] 
                        + VelAtIP[0] * VelDerAtIP[1][0] 
                        + VelAtIP[1] * VelDerAtIP[0][0]; 
-      if (dimelem == 3)
-      {
-        helpVec[1] +=    VelAtIP[1] * VelDerAtIP[2][2]
-                       + VelAtIP[2] * VelDerAtIP[1][2]; 
-      }
-
 
       if (dimelem == 3)
       {
+        helpVec[0] +=      VelAtIP[2] * VelDerAtIP[0][2]
+                         + VelAtIP[0] * VelDerAtIP[2][2]; 
+        helpVec[1] +=      VelAtIP[1] * VelDerAtIP[2][2]
+                         + VelAtIP[2] * VelDerAtIP[1][2]; 
         helpVec[2] = 2.0 * VelAtIP[2] * VelDerAtIP[2][2] 
                          + VelAtIP[0] * VelDerAtIP[2][0] 
                          + VelAtIP[2] * VelDerAtIP[0][0]
@@ -1360,22 +1490,21 @@ DEFINE_LOG(linForm, "linForm")
       }
 
       helpVec *= density;
-      divLHTensor += (helpVec * jacDet * intWeights[actInt-1]);
+      divLHTensorTmp = (helpVec * jacDet * intWeights[actInt -1]);
        
       // Multiplication with the derivatives of the shape functions
-      partResult  = xiDx * helpVec;
-      partResult *= jacDet * intWeights[actInt-1];
-      //std::cout<<"JacDet= "<<jacDet<<std::endl;
+      partResult  = xiDx * divLHTensorTmp;
       Result     += partResult;
-      nodalLoadDensity = Result;
       
+      divLHTensor += divLHTensorTmp;
       volume += jacDet * intWeights[actInt-1];
     }
 
-    nodalLoadDensity *= 1/volume;
-    divLHTensor *= 1/volume;
+    nodalLoadDensity = Result / volume;
+    divLHTensor /= volume;
 
   } // end of method
+
 
 //===================================================================================
 //=========================== Combustion Noise ======================================
@@ -2407,7 +2536,7 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
     {    
-      bilinearStiff_->calcBMatOnly(linBMat, actIntPt, ptelem, ptCoord_);
+      bilinearStiff_->CalcBMatOnly(linBMat, actIntPt, ptelem, ptCoord_);
 
       linBMat.Transpose(transpB);
 
@@ -2501,7 +2630,7 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
         
     for(unsigned int aIP = 1, nr = ptelem->GetNumIntPoints(); aIP <= nr; ++aIP)
     {    
-      bilinearStiff_->calcBMatOnly(linBMat, aIP, ptelem, ptCoord_);
+      bilinearStiff_->CalcBMatOnly(linBMat, aIP, ptelem, ptCoord_);
       linBMat.MultT(stress, partElemVec);
 
       const double jacDet(ptelem->CalcJacobianDetAtIp(aIP, ptCoord_, ent.GetElem()));

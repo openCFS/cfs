@@ -48,8 +48,8 @@ namespace CoupledField
                           Matrix<Double> & ptCoord);
     
     /// returns B - matrix for BDB
-    virtual void calcBMat(Matrix<Double> & bMat, UInt ip, 
-                          Matrix<Double> & ptCoord );
+    virtual void CalcBMat(Matrix<Double> & bMat, UInt ip,
+                          const Matrix<Double> & ptCoord );
     
     /// returns dimension of D matrix
     virtual UInt getDimD(){return dim_;};

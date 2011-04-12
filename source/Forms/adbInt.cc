@@ -64,7 +64,7 @@ namespace CoupledField {
       calcAMat( aMat, actIntPt, ptCoord_ );
 
       // Setup the B matrix for current integration point
-      calcBMat( bMat, actIntPt, ptCoord_ );
+      CalcBMat( bMat, actIntPt, ptCoord_ );
 
       // Compute Jacobian for integration point
       jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_, 

@@ -1,0 +1,5 @@
+SET(SIMOUTXDMF_SRCS
+  simOutputXDMF.cc
+)
+
+ADD_LIBRARY(simoutxdmf STATIC ${SIMOUTXDMF_SRCS})

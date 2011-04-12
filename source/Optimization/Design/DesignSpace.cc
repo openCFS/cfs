@@ -1024,12 +1024,15 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
   // set the result as we need it
   result_data.Resize(result.GetEntityList()->GetSize() * dofs);
 
-
+  // the default value is 0.0 but 1 for densities
+  SolutionType st = result.GetResultInfo()->resultType;
+  double none = st == MECH_PSEUDO_DENSITY || st == PHYSICAL_PSEUDO_DENSITY || st == ELEC_PSEUDO_POLARIZATION ? 1.0 : 0.0; 
+  
   for ( it.Begin(); !it.IsEnd(); it++ )
   {
-    // for elements not in the design region we set to zero
+    // for elements not in the design region we set to to the default value
     for(unsigned int i = 0; i < dofs; i++)
-      result_value[i] = 0.0;
+      result_value[i] = none;
 
     if(FindRegion(it.GetElem()->regionId) >= 0)
     {
@@ -1071,6 +1074,31 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
     }
     for(unsigned int i = 0; i < dofs; i++)
       result_data[it.GetPos() * dofs + i] = result_value[i];
+  }
+}
+
+BaseMaterial* DesignSpace::GetBiMaterial(RegionIdType reg, Optimization::Application app, bool throw_exception)
+{
+  DesignRegion* dr = GetRegion(reg, false); // tolerant for off-design stress constraints
+  if(dr == NULL || !dr->HasBiMaterial())
+  {
+    if(!throw_exception)
+      return NULL;
+    else
+      EXCEPTION("cannot find bimaterial for region" << reg << " and application " << app);
+  }
+
+  switch(app)
+  {
+  case Optimization::MECH:
+    return dr->GetBiMaterial(MECHANIC);
+  case Optimization::ELEC:
+    return dr->GetBiMaterial(ELECTROSTATIC);
+  case Optimization::PIEZO_COUPLING:
+    return dr->GetBiMaterial(PIEZO);
+  default:
+    assert(false); // implement what you need!
+    return NULL;
   }
 }
 

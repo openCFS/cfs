@@ -38,19 +38,22 @@
     <xsd:sequence>
       <xsd:element name="matRotation" minOccurs="0" maxOccurs="1">
         <xsd:complexType>
-          <xsd:attribute name="alpha" type="xsd:double" use="optional"
+          <xsd:attribute name="alpha" type="xsd:token" use="optional"
             default="0.0"/>
-          <xsd:attribute name="beta" type="xsd:double" use="optional"
+          <xsd:attribute name="beta" type="xsd:token" use="optional"
             default="0.0"/>
-          <xsd:attribute name="gamma" type="xsd:double" use="optional"
+          <xsd:attribute name="gamma" type="xsd:token" use="optional"
             default="0.0"/>
         </xsd:complexType>
       </xsd:element>
     </xsd:sequence>
     <xsd:attribute name="name" type="xsd:token" use="required"/>
+    <!-- the material references to the material data file -->
     <xsd:attribute name="material" type="xsd:token" use="optional" default=""/>
     <xsd:attribute name="composite" type="xsd:token" use="optional" default=""/>
     <xsd:attribute name="coordSysId" type="xsd:token" use="optional" default=""/>
+    <!-- a xml file in density.xml format that specifies region elements by a threshold -->
+    <xsd:attribute name="pattern" type="xsd:token" use="optional"  />
   </xsd:complexType>
 
 
@@ -164,10 +167,10 @@
       <!-- pair of coordinates -->
       <xsd:element name="coord">
         <xsd:complexType>
-          <xsd:attribute name="x" type="xsd:double" use="optional" default="0.0"/>
-          <xsd:attribute name="y" type="xsd:double" use="optional" default="0.0"/>
-          <xsd:attribute name="z" type="xsd:double" use="optional" default="0.0"/>
-          <xsd:attribute name="r" type="xsd:double" use="optional" default="0.0"/>
+          <xsd:attribute name="x" type="xsd:token" use="optional" default="0.0"/>
+          <xsd:attribute name="y" type="xsd:token" use="optional" default="0.0"/>
+          <xsd:attribute name="z" type="xsd:token" use="optional" default="0.0"/>
+          <xsd:attribute name="r" type="xsd:token" use="optional" default="0.0"/>
           <xsd:attribute name="coordSysId" type="xsd:token"
             use="optional"  default="default"/>
         </xsd:complexType>
@@ -179,9 +182,9 @@
             <xsd:element name="freeCoord" minOccurs="0" maxOccurs="2">
               <xsd:complexType>
                 <xsd:attribute name="comp" type="DT_CosyCompType" use="required"/>
-                <xsd:attribute name="start" type="xsd:double" use="required"/>
-                <xsd:attribute name="stop" type="xsd:double" use="required"/>
-                <xsd:attribute name="inc" type="xsd:double" use="required"/>
+                <xsd:attribute name="start" type="xsd:token" use="required"/>
+                <xsd:attribute name="stop" type="xsd:token" use="required"/>
+                <xsd:attribute name="inc" type="xsd:token" use="required"/>
               </xsd:complexType>
             </xsd:element>
             <xsd:sequence>

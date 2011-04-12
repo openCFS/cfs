@@ -15,8 +15,8 @@ namespace CoupledField {
   // ============
   //   calcBMat
   // ============
-  void nlinElecHystInt::calcBMat( Matrix<Double> &bMat, UInt ip,
-                                  Matrix<Double> &ptCoord ) {
+  void nlinElecHystInt::CalcBMat( Matrix<Double> &bMat, UInt ip,
+                                  const Matrix<Double> &ptCoord ) {
 
 
     // Obtain info on number of element's nodes

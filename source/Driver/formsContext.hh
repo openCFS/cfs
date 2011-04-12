@@ -270,6 +270,9 @@ namespace CoupledField
 
     //! returns pointer to first pde
     SinglePDE * GetPde () { return ptPde_; }
+    
+    //! Returns information about result info
+    shared_ptr<ResultInfo> GetResultInfo() { return result_; }
 
     std::string ToString() const;
 

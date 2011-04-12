@@ -27,7 +27,6 @@ namespace CoupledField {
                                  PtrParamNode solverNode,
                                  PtrParamNode olasInfo ) {
 
-
     // Set pointers to communication objects
     this->xml_ = solverNode;
     this->olasInfo_ = olasInfo;
@@ -37,6 +36,9 @@ namespace CoupledField {
 
     // No fill level known yet
     maxLevel_ = 0;
+    
+    // Deactivate logging by default
+    logging_ = false;
 
     // Problem dimension not known yet
     this->sysMatDim_ = 0;
@@ -90,13 +92,13 @@ namespace CoupledField {
   void ILUK_Precond<T>::Setup( CRS_Matrix<T> &sysMat ) {
 
 
-    bool logging = false;
 
     // Query parameter object for factorisation parameter
     maxLevel_ = 1;
     PtrParamNode pNode = this->xml_->Get("ILUK", ParamNode::INSERT );
     pNode->GetValue("level", maxLevel_, ParamNode::INSERT );
-
+    pNode->GetValue("logging", logging_, ParamNode::INSERT ) ;
+    
     // Obtain and check dimensions of matrix
     this->sysMatDim_ = sysMat.GetNumCols();
     if ( this->sysMatDim_ != sysMat.GetNumRows() ) {
@@ -106,7 +108,7 @@ namespace CoupledField {
     }
 
     // Report parameters to standard log stream
-    if ( logging == true ) {
+    if ( logging_ == true ) {
       (*cla) << " -----------------------------------------------\n"
 	     << " ILUK_Precond: Performing an ILU( " << maxLevel_
 	     << " ) factorisation\n of a "
@@ -134,14 +136,14 @@ namespace CoupledField {
       pNode->GetValue("saveFacFile", saveFacFile, ParamNode::INSERT);
 
       this->ExportILUFactorisation( saveFacFile.c_str() );
-      if ( logging == true ) {
+      if ( logging_ == true ) {
 	(*cla) << " Exported factor matrix to file '" << saveFacFile << "'"
 	       << std::endl;
       }
     }
 
     // Close log section
-    if ( logging == true ) {
+    if ( logging_ == true ) {
       (*cla) << " -----------------------------------------------"
 	     << std::endl;
     }

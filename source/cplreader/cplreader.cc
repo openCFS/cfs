@@ -45,6 +45,10 @@ namespace fs=boost::filesystem;
 #include "FileReaders/OPENFOAM/FileReader_OPENFOAM.hh"
 #endif
 
+#ifdef CPLREADER_CGNS
+#include "FileReaders/CGNS/FileReader_CGNS.hh"
+#endif
+
 #include "FileReaders/GENGRIDS/FileReader_GENGRIDS.hh"
 
 
@@ -165,6 +169,19 @@ namespace CoupledField
       EXCEPTION("Reading of OPENFOAM files not supported!");
 #endif
     }
+
+    if(type == "CGNS")
+    {
+#ifdef CPLREADER_CGNS
+      fileReader.reset(new FileReader_CGNS(settings.GetString("name"),
+                                           settings.GetInt("dim"),
+                                           settings.GetInt("numsteps")));
+      std::cerr << "test";
+#else
+      EXCEPTION("Reading of CGNS files not supported!");
+#endif
+    }
+
     if(type == "CFS++")
     {
       fileReader.reset(new FileReader_CfsHdf5(settings.GetString("name"),

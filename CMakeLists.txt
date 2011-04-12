@@ -36,14 +36,14 @@ PROJECT(CFS C CXX Fortran)
 # CFS version number.  Simply the last modification date
 #-----------------------------------------------------------------------------
 SET(CFS_VERSION_YEAR "11")
-SET(CFS_VERSION_MONTH "01")
+SET(CFS_VERSION_MONTH "02")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 #-----------------------------------------------------------------------------
 # Version Name. Every major release gets a label/name
 #-----------------------------------------------------------------------------
-SET(CFS_NAME "Prickly Porcupine")
+SET(CFS_NAME "Querulous Quokka")
 
 #-----------------------------------------------------------------------------
 # Set hostname of build host
@@ -551,6 +551,7 @@ ENDIF(USE_GMSH)
 
 IF(USE_HDF5)
   SUBDIRS(source/DataInOut/SimInOut/hdf5)
+  SUBDIRS(source/DataInOut/SimInOut/xdmf)
 ENDIF(USE_HDF5)
 
 IF(USE_GIDPOST)

@@ -440,12 +440,16 @@ namespace CoupledField
     // ======================================================
 
     // reads in the PML data
-    void ReadDataPML(std::string& typePML, Matrix<Double>& inner, 
-		     Double& dampPML, PtrParamNode actNode);
+    void ReadDataPML( std::string& typePML, Matrix<Double>& inner, 
+		                  Double& dampPML, 
+		                  std::string& coordSysId,
+		                  PtrParamNode actNode);
 
     //! computes the PML layer dimensions
-    void GetPMLLayerData(Matrix<Double>& inner, Matrix<Double>& outer,
-			 RegionIdType regionId );
+    void GetPMLLayerData( Matrix<Double>& inner, 
+                          Matrix<Double>& outer,
+			                    RegionIdType regionId,
+			                    std::string& coordSysId );
   
     // -----------------------------------------------------------------------
     // Storing information

@@ -284,9 +284,9 @@ namespace CoupledField {
           }
           continue;
         } else {
-          rotNode->GetValue( "alpha", rotVec[0] );
-          rotNode->GetValue( "beta", rotVec[1] );
-          rotNode->GetValue( "gamma", rotVec[2] );
+          rotVec[0] = rotNode->Get( "alpha" )->MathParse<Double>();
+          rotVec[1] = rotNode->Get( "beta" )->MathParse<Double>(); 
+          rotVec[2] = rotNode->Get( "gamma" )->MathParse<Double>();
           materials_[actRegionId]->
             RotateAllTensorsByRotationAngles( rotVec, true );
         }
@@ -322,6 +322,9 @@ namespace CoupledField {
         
         // if no composite is set, continue with next loop run
         if( composite == "" )
+          continue;
+        
+        if( subdoms_.Find( actRegionId) < 0 )
           continue;
 
         // print logging information
@@ -384,7 +387,7 @@ namespace CoupledField {
 
  StdVector<std::string> regionNames, nodeNames, writeResults, actOutDest;
     StdVector<std::string> postProcNames, outDestNames, neighborRegions;
-    UInt saveBegin, saveEnd, saveInc;
+    UInt saveBegin = 0, saveEnd = 0, saveInc = 0;
     std::string quantity, complexFormatString, listElemName, entityName;
     ComplexFormat complexFormat;
     shared_ptr<EntityList> actList;
@@ -489,9 +492,9 @@ namespace CoupledField {
         outDestNames.Init( allOutDestName );
 
         // fetch saveBegin, saveEnd and saveInc
-        allRegionsNode->GetValue("saveBegin", saveBegin );
-        allRegionsNode->GetValue("saveEnd", saveEnd );
-        allRegionsNode->GetValue("saveInc", saveInc );
+        saveBegin = allRegionsNode->Get("saveBegin")->MathParse<UInt>();
+        saveEnd = allRegionsNode->Get("saveEnd")->MathParse<UInt>();
+        saveInc = allRegionsNode->Get("saveInc")->MathParse<UInt>();
         
         // fetch writeResult flag
         std::string writeResult;
@@ -526,9 +529,9 @@ namespace CoupledField {
         // only enter, at least one region is present
         if( listNode->HasChildren() ) {
           // fetch saveBegin, saveEnd and saveInc
-          listNode->GetValue( "saveBegin", saveBegin );
-          listNode->GetValue( "saveEnd", saveEnd );
-          listNode->GetValue( "saveInc", saveInc );
+          saveBegin = listNode->Get("saveBegin")->MathParse<UInt>();
+          saveEnd = listNode->Get("saveEnd")->MathParse<UInt>();
+          saveInc = listNode->Get("saveInc")->MathParse<UInt>();
           
           // iterate over all regions 
           regionNames.Clear();
@@ -571,8 +574,8 @@ namespace CoupledField {
           bool writeResult = writeResults[iRegion] == "yes"  ? true : false ;
 
           // pass result to resulthandler
-          resHandler->RegisterResult( actSol, saveBegin, saveInc, saveEnd,
-                                      actOutDest, 
+          resHandler->RegisterResult( actSol, sequenceStep_,saveBegin, saveInc, 
+                                      saveEnd, actOutDest, 
                                       postProcNames[iRegion], writeResult,
                                       isHistory[(*it)->definedOn] );
           
@@ -632,10 +635,10 @@ namespace CoupledField {
       if( histNode && histNode->HasChildren() ) {
         
         // fetch saveBegin, saveEnd and saveInc
-        histNode->GetValue("saveBegin", saveBegin );
-        histNode->GetValue("saveEnd", saveEnd );
-        histNode->GetValue("saveInc", saveInc );
-        
+        saveBegin = histNode->Get("saveBegin")->MathParse<UInt>();
+        saveEnd = histNode->Get("saveEnd")->MathParse<UInt>();
+        saveInc = histNode->Get("saveInc")->MathParse<UInt>();
+
         // iterate over all regions
         histNames.Clear();
         postProcNames.Clear();
@@ -674,7 +677,8 @@ namespace CoupledField {
           SplitStringList( outDestNames[i], actOutDest, ',' );
           bool writeResult = (writeResults[i] == "yes"  ? true : false );
             
-          resHandler->RegisterResult( actSol, saveBegin, saveInc, saveEnd,
+          resHandler->RegisterResult( actSol, sequenceStep_, 
+                                      saveBegin, saveInc, saveEnd,
                                       actOutDest, 
                                       postProcNames[i], writeResult, true );
             

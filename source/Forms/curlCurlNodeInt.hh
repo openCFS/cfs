@@ -27,9 +27,8 @@ public:
                           EntityIterator& ent1, 
                           EntityIterator& ent2 );
 
-  // returns the B operator matrix
-  void calcBMat( Matrix<Double> &rotMat,
-                 UInt ip, Matrix<Double> &ptCoord );
+  // @see BaseForm::CalcBMat() */
+  void CalcBMat( Matrix<Double> &rotMat, UInt ip, const Matrix<Double> &ptCoord );
   
 protected: 
 private:

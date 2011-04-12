@@ -52,13 +52,11 @@ function [] =  FftHdf5Core(mode, infile, outfile, quantity, region, lowfreq, hig
 
 
 if (mode < 1) || (mode > 2)
-  errstr = sprintf('Unknown mode: %d', mode);
-  error(errstr);
+  error('Unknown mode: %d', mode);
 end
 
 if exist(infile, 'file') ~= 2
-  errstr = sprintf('File not found: %s', infile);
-  error(errstr);
+  error('File not found: %s', infile);
 end
 
 % construct cfg filename for h5tool
@@ -114,9 +112,7 @@ if exist(outfile, 'file') == 2
   [found2 resgroup2 restype2 msgroup2 datafile2] = FindPathHDF5(toplevelout, multistep, step, quantity, region);
 
   if found2 == 8
-    errorstr = sprintf('Quantity %s already present in file %s under path: %s.', quantity, datafile2.Filename, resgroup2.Name);
-    error(errorstr);
-    return
+    error('Quantity %s already present in file %s under path: %s.', quantity, datafile2.Filename, resgroup2.Name);
   end
 end
 
@@ -148,9 +144,9 @@ if lowfreq > 0
 end
 
 % display info on no. of steps
-disp(sprintf('No. of time steps:      %d', numsteps))
+fprintf('No. of time steps:      %d\n', numsteps)
 if mode == 1
-  disp(sprintf('No. of frequency steps: %d', numharmsteps))
+  fprintf('No. of frequency steps: %d\n', numharmsteps)
 end
 disp(' ')
 
@@ -177,7 +173,7 @@ numiter = ceil(size_in_mb / bufsize * 6); % scale by 6, because we need
 
 % Delete temp files from last run.
 [pathstr, name, ext, versn] = fileparts(outfile);
-if length(pathstr) == 0
+if isempty(pathstr)
   tempdir = './TEMP_FFT';
 else
   tempdir = sprintf('%s/TEMP_FFT', pathstr);
@@ -204,7 +200,7 @@ for iter=1:numiter
 
   for i=1:numsteps
   
-    disp(sprintf('Reading step %d of %d, chunk %d of %d', i, numsteps, iter, numiter))
+    fprintf('Reading step %d of %d, chunk %d of %d\n', i, numsteps, iter, numiter)
 
     [found resgroup restype msgroup datafile] = FindPathHDF5(toplevel, multistep, i, quantity, region);
     if found < 8
@@ -232,7 +228,7 @@ for iter=1:numiter
   end
 
   % perform FFT
-  disp(sprintf('\nPerforming FFT\n'))
+  fprintf('\nPerforming FFT\n')
   MAT = fft(mat);
   
   % mode 1: write out harmonic data
@@ -246,7 +242,7 @@ for iter=1:numiter
     outfile_iter = sprintf('%s/%s_%d.h5', tempdir, name, iter);
 
     if numiter > 1
-      disp(sprintf('Buffering result of chunk %d\n', iter))
+      fprintf('Buffering result of chunk %d\n', iter)
     end
 
     for i=1:numharmsteps
@@ -278,7 +274,7 @@ for iter=1:numiter
       MAT(firstharmstep+numharmsteps+1:size(MAT,1),:) = 0;
     end
 
-    disp(sprintf('Performing inverse FFT\n\n'))
+    fprintf('Performing inverse FFT\n\n')
 
     mat = real(ifft(MAT));
 
@@ -288,7 +284,7 @@ for iter=1:numiter
     outfile_iter = sprintf('%s/%s_%d.h5', tempdir, name, iter);
 
     if numiter > 1
-      disp(sprintf('Buffering result of chunk %d\n', iter))
+      fprintf('Buffering result of chunk %d\n', iter)
     end
 
     for i=1:numsteps
@@ -352,7 +348,7 @@ for i=1:numfiles
 
   clear ds
 
-  disp(sprintf('Writing step %d of %d', i, numharmsteps))
+  fprintf('Writing step %d of %d\n', i, numharmsteps)
 
   % write to final output file
   dataset = sprintf('%s/Real', outpath);
@@ -381,7 +377,7 @@ end
 
 clear ds_real ds_imag
 
-disp(sprintf('\nFinalizing output file\n'))
+fprintf('\nFinalizing output file\n')
 
 % set required attributes of results
 attr_details.AttachedTo = basepath;

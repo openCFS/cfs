@@ -38,47 +38,47 @@ namespace CoupledField
 
 
     for (Integer actIntPt=1; actIntPt<=nrIntPts; actIntPt++)
+    {
+      CalcBMat(bMat, actIntPt, ptCoord_);
+      bMat.Transpose(bTrans);
+
+      temp = bTrans * fracDerivStress;
+
+      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt,ptCoord_,
+          ent.GetElem());
+
+      if (jacDet < 0)
+        EXCEPTION("Negative Jacobian determinant!");
+
+      if (isaxi_)
       {
-	calcBMat(bMat, actIntPt, ptCoord_);	
-	bMat.Transpose(bTrans);
-	
-	temp = bTrans * fracDerivStress;
+        Vector<Double> ShpFncAtIp;
+        Vector<Double> CoordAtIP;
+        ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt, it1_.GetElem() );
 
-	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt,ptCoord_,
-                                             ent.GetElem());
-
-	if (jacDet < 0)
-	  EXCEPTION("Negative Jacobian determinant!");
-
-	if (isaxi_)
-	  {
-	    Vector<Double> ShpFncAtIp;
-	    Vector<Double> CoordAtIP;
-	    ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt, it1_.GetElem() );
-
-	    CoordAtIP = ptCoord_ * ShpFncAtIp;
-            jacDet *= 2 * PI * CoordAtIP[0];
-	  }	
-
-	resultStressVector +=  temp  * jacDet * intWeights[actIntPt-1];
+        CoordAtIP = ptCoord_ * ShpFncAtIp;
+        jacDet *= 2 * PI * CoordAtIP[0];
       }
+
+      resultStressVector +=  temp  * jacDet * intWeights[actIntPt-1];
+    }
   }
 
-  void BDInt::calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord_)
+  void BDInt::CalcBMat(Matrix<Double> & bMat, UInt ip, const Matrix<Double> & ptCoord_)
   {
 
     ptelem->SetAnsatzFct( ansatzFct1_ );
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     const UInt spaceDim = ptelem->GetDim();  
     const UInt nrDofs   = getNrDofs();  
-   
-    
+
+
     UInt actDim, actNode, j, k;
-    
-    
+
+
     bMat.Resize(getDim(), numFncs * nrDofs);
     bMat.Init();
-    
+
     // local shape functions derived after global coords (format: numFncs x spaceDim)
     Matrix<Double> xiDx;
 
@@ -89,62 +89,62 @@ namespace CoupledField
 
     for(actDim=0; actDim < spaceDim; actDim++)
       for(actNode=0; actNode < numFncs; actNode++)
-	bMat[actDim][actNode * spaceDim + actDim] = xiDx[actNode][actDim];
+        bMat[actDim][actNode * spaceDim + actDim] = xiDx[actNode][actDim];
 
     switch(spaceDim)
+    {
+    case 2:
+      j = 1;
+      k = 0;
+
+      for (actNode = 0; actNode < numFncs; actNode++)
       {
-      case 2:
-	j = 1;
-	k = 0;
-	
-	for (actNode = 0; actNode < numFncs; actNode++)
-	  {
-	    bMat[spaceDim][actNode * spaceDim + 1] = xiDx[actNode][0];
-	    bMat[spaceDim][actNode * spaceDim]     = xiDx[actNode][1];
-	  }
-
-	if (isaxi_)
-	  {
-	    Integer idxtheta = getDimD();
-	    Vector<Double> ShpFncAtIp;
-	    Vector<Double> CoordAtIP;
-
-	    if (isSetIntPoint_) 
-	      ptelem->GetShFnc(ShpFncAtIp,intPoint_, it1_.GetElem() );
-	    else
-	      ptelem->GetShFncAtIp(ShpFncAtIp, ip, it1_.GetElem() );
-
-	    CoordAtIP = ptCoord_ * ShpFncAtIp;
-
-	    for (actNode = 0; actNode < numFncs; actNode++)	     
-	      bMat[idxtheta-1][actNode * spaceDim] = ShpFncAtIp[actNode] / CoordAtIP[0];
-	  }
-
-	break;
-
-      case 3:
-	Integer actDim=spaceDim;
-	for (actNode = 0; actNode < numFncs; actNode++)
-	  {
-	    bMat[actDim][actNode * spaceDim + 1] = xiDx[actNode][2];
-	    bMat[actDim][actNode * spaceDim + 2] = xiDx[actNode][1];
-	  }
-
-	actDim++;
-	for (actNode = 0; actNode < numFncs; actNode++)
-	  {
-	    bMat[actDim][actNode * spaceDim]     = xiDx[actNode][2];
-	    bMat[actDim][actNode * spaceDim + 2] = xiDx[actNode][0];
-	  }
-
-	actDim++;
-	for (actNode = 0; actNode < numFncs; actNode++)
-	  {
-	    bMat[actDim][actNode * spaceDim]     = xiDx[actNode][1];
-	    bMat[actDim][actNode * spaceDim + 1] = xiDx[actNode][0];
-	  }
-	break;
+        bMat[spaceDim][actNode * spaceDim + 1] = xiDx[actNode][0];
+        bMat[spaceDim][actNode * spaceDim]     = xiDx[actNode][1];
       }
+
+      if (isaxi_)
+      {
+        Integer idxtheta = getDimD();
+        Vector<Double> ShpFncAtIp;
+        Vector<Double> CoordAtIP;
+
+        if (isSetIntPoint_)
+          ptelem->GetShFnc(ShpFncAtIp,intPoint_, it1_.GetElem() );
+        else
+          ptelem->GetShFncAtIp(ShpFncAtIp, ip, it1_.GetElem() );
+
+        CoordAtIP = ptCoord_ * ShpFncAtIp;
+
+        for (actNode = 0; actNode < numFncs; actNode++)
+          bMat[idxtheta-1][actNode * spaceDim] = ShpFncAtIp[actNode] / CoordAtIP[0];
+      }
+
+      break;
+
+    case 3:
+      Integer actDim=spaceDim;
+      for (actNode = 0; actNode < numFncs; actNode++)
+      {
+        bMat[actDim][actNode * spaceDim + 1] = xiDx[actNode][2];
+        bMat[actDim][actNode * spaceDim + 2] = xiDx[actNode][1];
+      }
+
+      actDim++;
+      for (actNode = 0; actNode < numFncs; actNode++)
+      {
+        bMat[actDim][actNode * spaceDim]     = xiDx[actNode][2];
+        bMat[actDim][actNode * spaceDim + 2] = xiDx[actNode][0];
+      }
+
+      actDim++;
+      for (actNode = 0; actNode < numFncs; actNode++)
+      {
+        bMat[actDim][actNode * spaceDim]     = xiDx[actNode][1];
+        bMat[actDim][actNode * spaceDim + 1] = xiDx[actNode][0];
+      }
+      break;
+    }
 
     isSetIntPoint_ = false;
   }

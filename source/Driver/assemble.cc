@@ -85,8 +85,10 @@ namespace CoupledField
 
      // iterate over all descriptors
      StdVector<BiLinFormContext*>::iterator iter;
+     int counter = 0;
      for (iter = biLinForms_->Begin(); iter != biLinForms_->End(); iter++)
      {
+       counter++;
        // we are wrong if the region does not match
 //       if((*iter)->GetFirstEntities()->GetName() != region) continue;
        if((*iter)->GetFirstEntities()->GetRegion() != regionId) continue;
@@ -95,6 +97,7 @@ namespace CoupledField
        if((*iter)->GetFirstPde() != pde1) continue;
 //       if(pde2 != NULL && (*iter)->GetSecondPde()->GetName() != pde2->GetName()) continue;
        if((*iter)->GetSecondPde() != pde2) continue;
+       //std::cout << counter << ":" << (*iter)->GetIntegrator()->GetName() << " vs " << integrator << std::endl;
        if((*iter)->GetIntegrator()->GetName() != integrator) continue;
 
        // we come here because we had no contradiction - check for uniqueness
@@ -107,7 +110,7 @@ namespace CoupledField
      if(result == NULL && !silent)
      {
        std::string region = domain->GetGrid()->GetRegion().ToString(regionId);
-       EXCEPTION("BiLinFormContext '" << integrator << "' at region '" << region << "' not found");
+       EXCEPTION("BiLinFormContext '" << integrator << "' at region '" << region << "' not found within " << counter << " integrators");
      }
      return result;
   }
@@ -404,7 +407,11 @@ namespace CoupledField
               args.Push_back( form->GetName() );
               args.Push_back( it1.GetIdString() );
               args.Push_back( it2.GetIdString() );
-              args.Push_back( elemMatrix.ToString(1) );
+              if( form->IsComplex() ) {
+                args.Push_back( elemMatrixC.ToString(1) );
+              } else {
+                args.Push_back( elemMatrix.ToString(1) );
+              }
               messenger->TriggerEvent( CFSMessenger::CFS_AssembleMat, args );
             }
           }
@@ -793,9 +800,59 @@ namespace CoupledField
       }
       form->Get("region")->SetValue(regionName);
 
-      // matrix type
+      // add information about row / column coordinate
+      PtrParamNode row = form->Get("row", ParamNode::APPEND);
+      PtrParamNode col = form->Get("column", ParamNode::APPEND);
+      
+     // associated PDEs
+      row->Get("pde")->SetValue(context.GetFirstPde()->GetName());
+      col->Get("pde")->SetValue(context.GetSecondPde()->GetName());
+
+      // associated result types
       std::string tmp;
+      tmp = SolutionTypeEnum.ToString(context.GetFirstResultInfo()->resultType);
+      row->Get("result")->SetValue(tmp);
+      tmp = SolutionTypeEnum.ToString(context.GetSecondResultInfo()->resultType);
+      col->Get("result")->SetValue(tmp);
+      
+      // matrix destination
+      PtrParamNode dest = form->Get("destination", ParamNode::APPEND);
+      
+      // original destination matrix
       Enum2String(context.GetDestMat(), tmp );
+      dest->Get("feMatrix")->SetValue(tmp);
+            
+      // mapped destination matrix
+      Enum2String(matrixMap_[context.GetDestMat()], tmp );
+      dest->Get("feMatrixMapped")->SetValue(tmp);
+      
+      // secondary destination matrix
+      Enum2String(context.GetSecDestMat(), tmp );
+      dest->Get("feSecondMatrix")->SetValue(tmp);
+      
+      // additional attributes
+      PtrParamNode attr = form->Get("attributes", ParamNode::APPEND);
+      
+      // entry Type (real / imag)
+      tmp = Global::complexPart.ToString(context.GetEntryType());
+      attr->Get("entryType")->SetValue( tmp );
+      
+      // flag setcounterpart
+      tmp = context.IsSetCounterPart() ? "yes" : "no";
+      attr->Get("counterPart")->SetValue( tmp );
+      
+      // issymmetric
+      tmp = context.GetIntegrator()->IsSymmetric() ? "yes" : "no";
+      attr->Get("symmetric")->SetValue( tmp );
+      
+      // isSolDependent
+      tmp = context.GetIntegrator()->IsSolDependent() ? "yes" : "no";
+      attr->Get("solutionDependent")->SetValue( tmp );
+      
+      // updated geometry
+      tmp = context.GetIntegrator()->IsCoordUpdate() ? "yes" : "no";
+      attr->Get("updatedGeo")->SetValue( tmp );
+      
     }
 
     list = in->Get("rhsLinearForms");
@@ -829,6 +886,19 @@ namespace CoupledField
       }
 
       form->Get("region")->SetValue(regionName);
+      
+
+      // add information about row / column coordinate
+      PtrParamNode row = form->Get("row", ParamNode::APPEND);
+
+      // associated PDEs
+      row->Get("pde")->SetValue(context.GetPde()->GetName());
+
+      // associated result types
+      std::string tmp;
+      tmp = SolutionTypeEnum.ToString(context.GetResultInfo()->resultType);
+      row->Get("result")->SetValue(tmp);
+
     }
   }
 

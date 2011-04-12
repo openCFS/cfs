@@ -54,8 +54,8 @@ namespace CoupledField
   }
 
   // returns nonlinear B - matrix (first part) for BDB
-  void nLinElastInt::calcBMat(Matrix<Double> & bMat, UInt ip, 
-                              Matrix<Double> & ptCoord )
+  void nLinElastInt::CalcBMat(Matrix<Double> & bMat, UInt ip,
+                              const Matrix<Double> & ptCoord )
   {
 
     
@@ -71,7 +71,7 @@ namespace CoupledField
     
     
     Matrix<Double> linBMat;    
-    linElastInt::calcBMat( linBMat, ip, ptCoord);
+    linElastInt::CalcBMat( linBMat, ip, ptCoord);
 
 
     bMat.Resize( dimD, numFncs * nrDofs );
@@ -202,7 +202,7 @@ namespace CoupledField
     elemDisp_.ConvertToVec_AppendCols(displVec);
 
     Matrix<Double> linBMat;    
-    calcBMat( linBMat, ip, ptCoord);
+    CalcBMat( linBMat, ip, ptCoord);
 
     std::string nonLinDepend;
     ptMaterial->GetScalar(nonLinDepend, NONLIN_DEPENDENCY);
@@ -268,8 +268,8 @@ namespace CoupledField
     }
   }
 
-  void nLinMech3dInt_Material::calcBMat( Matrix<Double> &bMat, UInt ip,
-                                         Matrix<Double> &ptCoord ) {
+  void nLinMech3dInt_Material::CalcBMat( Matrix<Double> &bMat, UInt ip,
+                                         const Matrix<Double> &ptCoord ) {
 
 
     const UInt nrNodes  = ptelem->GetNumNodes();
@@ -456,7 +456,7 @@ namespace CoupledField
     setPiolaDimD(  getMaterialDMatSize() );
   
     // linear differential operator B_lin
-    linElastInt::calcBMat(bMat, ip, ptCoord);
+    linElastInt::CalcBMat(bMat, ip, ptCoord);
 
     setPiolaDimD( getFullPiolaDMatSize() );
   }
@@ -482,7 +482,7 @@ namespace CoupledField
 
   
     // linear differential operator B_lin
-    nLinElastInt::calcBMat(bMat, ip, ptCoord);
+    nLinElastInt::CalcBMat(bMat, ip, ptCoord);
     setPiolaDimD( getFullPiolaDMatSize() );
   }
 
@@ -543,7 +543,7 @@ namespace CoupledField
   // returns B - matrix for piola stresses
   // (see e.g. Bathe: "Finite Element Procedures" p. 556)
   void nLinMechInt_PiolaStress::
-  calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord)
+  CalcBMat(Matrix<Double> & bMat, UInt ip, const Matrix<Double> & ptCoord)
   {
 
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
@@ -608,15 +608,21 @@ namespace CoupledField
   // =============================================================================
  
   // base class for regarding prestress
-  PreStressInt::PreStressInt(BaseMaterial* matData, Vector<Double> aPreStressVal) 
-    : nLinMechInt_PiolaStress(matData), preStressVal_(aPreStressVal)
-  {
+  PreStressInt::PreStressInt(BaseMaterial* matData )
+      : nLinMechInt_PiolaStress(matData) {
 
-    name_ = "PreStressInt";
-
-    updateDMatInEveryIP_ = 1;
-    setPiolaDimD( getFullPiolaDMatSize() );
-  }
+      name_ = "PreStressInt";
+      updateDMatInEveryIP_ = 1;
+      isPreStressConst_ = false;
+      isSolComplex_ = false;
+      isVirgin_ = true;
+      
+      // IMPORTANT: This integrator is not really solution
+      // dependend, as the integrator itself gets just initialized once
+      // with the displacement, i.e. it is not depending on the solution
+      // of a previous time / nonlinear step.
+      isSolDependent_ = false;
+    }
 
 
   PreStressInt::~PreStressInt()
@@ -625,120 +631,322 @@ namespace CoupledField
   }
 
 
-  // calculates the D-matrix needed for regarding pre-stresses
-  void PreStressInt::CalcStressVec(Vector<Double>& preStressVec, UInt ip, Matrix<Double> & ptCoord)
-  {
+  void PreStressInt::CalcElementMatrix( Matrix<Double>& elemMat,
+                                        EntityIterator& ent1, 
+                                        EntityIterator& ent2 ) {
 
-    // ???????????????????????????????????????????????
-    //    const UInt dimD = nLinMechInt_BNonLin::getDimD();
-    const UInt dimD = getDimD();
-    
-    Vector<Double> preStrainVec(dimD);
-    preStressVec.Resize(dimD);
-    preStressVec.Init(0);
+    if ( !isPreStressConst_ ) {
+      // get displacements of element
+      if ( isSolComplex_ ) {
+        if ( isVirgin_ ) {
+          // copy solution 
+          NodeStoreSol<Complex> * temp = new NodeStoreSol<Complex>(*complexSol_);
+          complexSol_ = temp;
+          isVirgin_ = false;
+        }
 
-    Matrix<Double> matData;
-    if (isaxi_) {
-      //axi
-      ptMaterial->GetTensor(matData,MECH_STIFFNESS_TENSOR,Global::REAL,AXI);
-      preStrainVec[0]= preStressVal_[0] / matData[0][0];
-      preStrainVec[1]= preStressVal_[1] / matData[1][1];
-    }
-    else if (getNrDofs() == 3) {
-      //3D
-      ptMaterial->GetTensor(matData,MECH_STIFFNESS_TENSOR,Global::REAL);
-      preStrainVec[0]= preStressVal_[0] / matData[0][0];
-      preStrainVec[1]= preStressVal_[1] / matData[1][1];
-      preStrainVec[2]= preStressVal_[2] / matData[2][2];
-    }
-    else {
-      //2D-plane strain
-      ptMaterial->GetTensor(matData,MECH_STIFFNESS_TENSOR,Global::REAL, PLANE_STRAIN);
-      preStrainVec[0]= preStressVal_[0] / matData[0][0];
-      preStrainVec[1]= preStressVal_[1] / matData[1][1];
-    }
-   
-    preStressVec = matData * preStrainVec;
-  }
-
-
-
-
-  // (see e.g. Bathe: "Finite Element Procedures" p. 556)
-  void PreStressInt::calcDMat(Matrix<Double> & dMat, UInt ip, Matrix<Double> & ptCoord)
-  {
-
-    const UInt dimD = getFullPiolaDMatSize();
-    const UInt nrDofs = getNrDofs();
-
-    Vector<Double> piolaStressVec;
-    Matrix<Double> stressTensor;
-    
-    CalcStressVec(piolaStressVec, ip, ptCoord );
-    convertStressVecToTensor(stressTensor, piolaStressVec);
-
-    dMat.Resize(dimD);
-    dMat.Init();
-    
-
-    if (isaxi_)
-      // the stressTensor has already the correct shape due to the 
-      // method "convertStressVecToTensor"
-      dMat = stressTensor;
-    else
-      for (UInt i=0; i<nrDofs; i++)
-        dMat.SetSubMatrix(stressTensor, i*nrDofs, i*nrDofs);    
-  }
-
-
-  // returns B - matrix for piola stresses
-  // (see e.g. Bathe: "Finite Element Procedures" p. 556)
-  void PreStressInt::calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord)
-  {
-
-    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
-    ptelem->SetAnsatzFct( ansatzFct1_ );
-    const UInt nrDofs   = getNrDofs();    
-
-    UInt dimD = getFullPiolaDMatSize();
-    bMat.Resize(dimD, numFncs * nrDofs);
-    bMat.Init();
-
-    
-    // local shape functions derived after global coords 
-    // (format: numFncs x nrDofs)
-    Matrix<Double> xiDx;
-    ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord, it1_.GetElem() );
-
-
-    for( UInt actNode=0; actNode < numFncs; actNode++ )
-      for( UInt globPos=0; globPos < nrDofs; globPos++ )
-        for( UInt actDof=0; actDof < nrDofs; actDof++ )
-          bMat[globPos*nrDofs + actDof][actNode * nrDofs + globPos] = xiDx[actNode][actDof];      
-
-
-    if (isaxi_)
-      {
-        const UInt spaceDim = ptelem->GetDim();
-        Vector<Double> shpFncAtIp;
-        Vector<Double> coordAtIP;
-        
-        ptelem->GetShFncAtIp(shpFncAtIp,ip, it1_.GetElem() );
-        coordAtIP = ptCoord * shpFncAtIp;
-        
-        for ( UInt actNode = 0; actNode < numFncs; actNode++)          
-          bMat[getDimD() -1][actNode * spaceDim] = shpFncAtIp[actNode] / coordAtIP[0];
+        Matrix<Complex> disp;
+        complexSol_->GetElemSolutionAsMatrix( disp, ent1  );
+        elemDisp_ = disp.GetPart( Global::REAL );
       }
+      else {
+        sol_->GetElemSolutionAsMatrix( elemDisp_, ent1  );
+      }
+    }
+
+    // call method of base class
+    BDBInt::CalcElementMatrix( elemMat, ent1, ent2 );
   }
+
+  
+  // (see e.g. Bathe: "Finite Element Procedures" p. 556)
+   void PreStressInt::calcDMat(Matrix<Double> & dMat, UInt ip, Matrix<Double> & ptCoord)
+   {
+
+     const UInt dimD = getFullPiolaDMatSize();
+     const UInt nrDofs = getNrDofs();
+
+     Vector<Double> StressVec;
+     Matrix<Double> stressTensor;
+     
+     if ( isPreStressConst_ ) {
+       dMat = preStressTensor_;
+     }
+     else {
+       CalcActStressVec( StressVec, ip, ptelem, ptCoord, elemDisp_ );
+       convertStressVecToTensor( stressTensor, StressVec );
+
+       dMat.Resize(dimD);
+       dMat.Init();
+     
+
+       if (isaxi_) {
+         // the stressTensor has already the correct shape due to the 
+         // method "convertStressVecToTensor"
+         dMat = stressTensor;
+       }
+       else {
+         for (UInt i=0; i<nrDofs; i++)
+           dMat.SetSubMatrix(stressTensor, i*nrDofs, i*nrDofs);    
+       }
+     }
+   }
+   
+   void PreStressInt::CalcActStressVec(Vector<Double>& StressVec, 
+                                       UInt ip, BaseFE *elem, 
+                                       Matrix<Double> & ptCoord, 
+                                       Matrix<Double>& elemDisp ) {
+
+     // store information
+     elemDisp_ = elemDisp;
+     ptelem = elem;
+
+     Matrix<Double> dMat;
+     UInt size = getFullPiolaDMatSize();
+     if ( size == 4 ) 
+       ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,Global::REAL, PLANE_STRAIN );
+     else if ( size == 5 ) 
+       ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,Global::REAL, AXI );
+     else  
+       ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,Global::REAL, FULL );
+
+     // convert displacement of all elem nodes into one vector: 
+     // (uNode1X, uNode1Y, uNode2X, uNode2Y, ...)
+     Vector<Double> displVec;
+     elemDisp_.ConvertToVec_AppendCols(displVec);
+
+
+     // linear differential operator B_lin
+     Matrix<Double> linBMat;    
+     //call the method from nLinMechInt_PiolaStress
+     calcLinBMat( linBMat, ip, ptelem, ptCoord);
+
+     Vector<Double> linStrain;
+     linStrain = (linBMat * displVec );
+
+     StressVec = dMat * linStrain;
+   }
+  
+   // returns B - matrix for piola stresses
+   // (see e.g. Bathe: "Finite Element Procedures" p. 556)
+   void PreStressInt::CalcBMat(Matrix<Double> & bMat, UInt ip, const Matrix<Double> & ptCoord)
+   {
+
+     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+     ptelem->SetAnsatzFct( ansatzFct1_ );
+     const UInt nrDofs   = getNrDofs();    
+
+     UInt dimD = getFullPiolaDMatSize();
+     bMat.Resize(dimD, numFncs * nrDofs);
+     bMat.Init();
+
+     
+     // local shape functions derived after global coords 
+     // (format: numFncs x nrDofs)
+     Matrix<Double> xiDx;
+     ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord, it1_.GetElem() );
+
+
+     for( UInt actNode=0; actNode < numFncs; actNode++ )
+       for( UInt globPos=0; globPos < nrDofs; globPos++ )
+         for( UInt actDof=0; actDof < nrDofs; actDof++ )
+           bMat[globPos*nrDofs + actDof][actNode * nrDofs + globPos] = xiDx[actNode][actDof];      
+
+
+     if (isaxi_) {
+       const UInt spaceDim = ptelem->GetDim();
+       Vector<Double> shpFncAtIp;
+       Vector<Double> coordAtIP;
+       
+       ptelem->GetShFncAtIp(shpFncAtIp,ip, it1_.GetElem() );
+       coordAtIP = ptCoord * shpFncAtIp;
+       
+       for ( UInt actNode = 0; actNode < numFncs; actNode++)          
+         bMat[getDimD() -1][actNode * spaceDim] = shpFncAtIp[actNode] / coordAtIP[0];
+     }
+   }
+
+
+   void PreStressInt::SetPreStress( Vector<Double>& piolaStressVal ) {
+
+     isPreStressConst_ = true;
+     
+     Vector<Double> piolaStressVec;
+     Matrix<Double> stressTensor;
+     CalcConstPreStressVec( piolaStressVec, piolaStressVal );
+   
+     convertStressVecToTensor( stressTensor, piolaStressVec);
+
+     const UInt dimD = getFullPiolaDMatSize();
+     const UInt nrDofs = getNrDofs();
+
+     preStressTensor_.Resize(dimD);
+     preStressTensor_.Init();
+     
+     if ( isaxi_ ) {
+       // the stressTensor has already the correct shape due to the 
+       // method "convertStressVecToTensor"
+       preStressTensor_ = stressTensor;
+     }
+     else {
+       for (UInt i=0; i<nrDofs; i++)
+         preStressTensor_.SetSubMatrix(stressTensor, i*nrDofs, i*nrDofs);    
+     }
+   }
+
+
+   // calculates the D-matrix needed for regarding pre-stresses
+   void PreStressInt::CalcConstPreStressVec( Vector<Double>& preStressVec,
+                                             Vector<Double>& preStressVal )
+   {
+
+     const UInt dimD = getDimD();
+     
+     Vector<Double> preStrainVec(dimD);
+     preStressVec.Resize(dimD);
+     preStressVec.Init(0);
+
+     Matrix<Double> matData;
+     if (isaxi_) {
+       //axi
+       ptMaterial->GetTensor(matData,MECH_STIFFNESS_TENSOR,Global::REAL,AXI);
+       preStrainVec[0]= preStressVal[0] / matData[0][0];
+       preStrainVec[1]= preStressVal[1] / matData[1][1];
+     }
+     else if (getNrDofs() == 3) {
+       //3D
+       ptMaterial->GetTensor(matData,MECH_STIFFNESS_TENSOR,Global::REAL);
+       preStrainVec[0]= preStressVal[0] / matData[0][0];
+       preStrainVec[1]= preStressVal[1] / matData[1][1];
+       preStrainVec[2]= preStressVal[2] / matData[2][2];
+     }
+     else {
+       //2D-plane strain
+       ptMaterial->GetTensor(matData,MECH_STIFFNESS_TENSOR,Global::REAL, PLANE_STRAIN);
+       preStrainVec[0]= preStressVal[0] / matData[0][0];
+       preStrainVec[1]= preStressVal[1] / matData[1][1];
+     }
+    
+     preStressVec = matData * preStrainVec;
+     //    std::cout << "stress:\n" << preStressVec << std::endl;
+   }
+  // OLD VERSION => DELETE
+  
+  
+//  // calculates the D-matrix needed for regarding pre-stresses
+//  void PreStressInt::CalcStressVec(Vector<Double>& preStressVec, UInt ip, Matrix<Double> & ptCoord)
+//  {
+//
+//    // ???????????????????????????????????????????????
+//    //    const UInt dimD = nLinMechInt_BNonLin::getDimD();
+//    const UInt dimD = getDimD();
+//    
+//    Vector<Double> preStrainVec(dimD);
+//    preStressVec.Resize(dimD);
+//    preStressVec.Init(0);
+//
+//    Matrix<Double> matData;
+//    if (isaxi_) {
+//      //axi
+//      ptMaterial->GetTensor(matData,MECH_STIFFNESS_TENSOR,Global::REAL,AXI);
+//      preStrainVec[0]= preStressVal_[0] / matData[0][0];
+//      preStrainVec[1]= preStressVal_[1] / matData[1][1];
+//    }
+//    else if (getNrDofs() == 3) {
+//      //3D
+//      ptMaterial->GetTensor(matData,MECH_STIFFNESS_TENSOR,Global::REAL);
+//      preStrainVec[0]= preStressVal_[0] / matData[0][0];
+//      preStrainVec[1]= preStressVal_[1] / matData[1][1];
+//      preStrainVec[2]= preStressVal_[2] / matData[2][2];
+//    }
+//    else {
+//      //2D-plane strain
+//      ptMaterial->GetTensor(matData,MECH_STIFFNESS_TENSOR,Global::REAL, PLANE_STRAIN);
+//      preStrainVec[0]= preStressVal_[0] / matData[0][0];
+//      preStrainVec[1]= preStressVal_[1] / matData[1][1];
+//    }
+//   
+//    preStressVec = matData * preStrainVec;
+//  }
+//
+//
+//
+//
+//  // (see e.g. Bathe: "Finite Element Procedures" p. 556)
+//  void PreStressInt::calcDMat(Matrix<Double> & dMat, UInt ip, Matrix<Double> & ptCoord)
+//  {
+//
+//    const UInt dimD = getFullPiolaDMatSize();
+//    const UInt nrDofs = getNrDofs();
+//
+//    Vector<Double> piolaStressVec;
+//    Matrix<Double> stressTensor;
+//    
+//    CalcStressVec(piolaStressVec, ip, ptCoord );
+//    convertStressVecToTensor(stressTensor, piolaStressVec);
+//
+//    dMat.Resize(dimD);
+//    dMat.Init();
+//    
+//
+//    if (isaxi_)
+//      // the stressTensor has already the correct shape due to the 
+//      // method "convertStressVecToTensor"
+//      dMat = stressTensor;
+//    else
+//      for (UInt i=0; i<nrDofs; i++)
+//        dMat.SetSubMatrix(stressTensor, i*nrDofs, i*nrDofs);    
+//  }
+//
+//
+//  // returns B - matrix for piola stresses
+//  // (see e.g. Bathe: "Finite Element Procedures" p. 556)
+//  void PreStressInt::calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord)
+//  {
+//
+//    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+//    ptelem->SetAnsatzFct( ansatzFct1_ );
+//    const UInt nrDofs   = getNrDofs();    
+//
+//    UInt dimD = getFullPiolaDMatSize();
+//    bMat.Resize(dimD, numFncs * nrDofs);
+//    bMat.Init();
+//
+//    
+//    // local shape functions derived after global coords 
+//    // (format: numFncs x nrDofs)
+//    Matrix<Double> xiDx;
+//    ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord, it1_.GetElem() );
+//
+//
+//    for( UInt actNode=0; actNode < numFncs; actNode++ )
+//      for( UInt globPos=0; globPos < nrDofs; globPos++ )
+//        for( UInt actDof=0; actDof < nrDofs; actDof++ )
+//          bMat[globPos*nrDofs + actDof][actNode * nrDofs + globPos] = xiDx[actNode][actDof];      
+//
+//
+//    if (isaxi_)
+//      {
+//        const UInt spaceDim = ptelem->GetDim();
+//        Vector<Double> shpFncAtIp;
+//        Vector<Double> coordAtIP;
+//        
+//        ptelem->GetShFncAtIp(shpFncAtIp,ip, it1_.GetElem() );
+//        coordAtIP = ptCoord * shpFncAtIp;
+//        
+//        for ( UInt actNode = 0; actNode < numFncs; actNode++)          
+//          bMat[getDimD() -1][actNode * spaceDim] = shpFncAtIp[actNode] / coordAtIP[0];
+//      }
+//  }
 
 
  
   // class for regarding 3d prestress
-  PreStressInt3D::PreStressInt3D(BaseMaterial* matData, Vector<Double> aPreStressVal)
-    : PreStressInt(matData, aPreStressVal)
+  PreStressInt3D::PreStressInt3D(BaseMaterial* matData)
+    : PreStressInt(matData)
   {
-
     name_ = "PreStressInt3D";
+    setPiolaDimD( getFullPiolaDMatSize() );
   }
 
 
@@ -768,12 +976,12 @@ namespace CoupledField
 
  
   // class for regarding 2d prestress in plane strain case
-  PreStressIntPlaneStrain::PreStressIntPlaneStrain(BaseMaterial* matData, 
-                                                   Vector<Double> aPreStressVal)
-    : PreStressInt(matData, aPreStressVal)
+  PreStressIntPlaneStrain::PreStressIntPlaneStrain(BaseMaterial* matData)
+    : PreStressInt(matData)
   {
 
     name_ = "PreStressIntPlaneStrain";
+    setPiolaDimD( getFullPiolaDMatSize() );
   }
 
 
@@ -804,13 +1012,14 @@ namespace CoupledField
 
   
   // class for regarding 2d axi prestress 
-  PreStressIntAxi::PreStressIntAxi(BaseMaterial* matData, 
-                                   Vector<Double> aPreStressVal)
-    : PreStressInt(matData, aPreStressVal)
+  PreStressIntAxi::PreStressIntAxi(BaseMaterial* matData )
+    : PreStressInt(matData )
   {
 
     name_ = "PreStressIntAxi";
     isaxi_ = true;
+    
+    setPiolaDimD( getFullPiolaDMatSize() );
   }
 
 

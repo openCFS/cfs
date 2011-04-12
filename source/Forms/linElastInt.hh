@@ -50,20 +50,8 @@ namespace CoupledField {
 				    EntityIterator& ent1, 
 				    EntityIterator& ent2 );
 
-    //! just for computation of B - matrix
-    void calcBMatOnly( Matrix<Double> &bMat, UInt ip,
-		       BaseFE* elem, Matrix<Double> &ptCoord );
-
     //! does the reordering that is done in calculation of the B matrix, this is needed by Shape Derivative
-    void ReorderBLikeMatrix( Matrix<Double>& in, Matrix<Double>& out, UInt ip, BaseFE* elem, Matrix<Double> &ptCoord );
-
-    /** Compute B-Mat at a given integration point (needed for shape gradients)
-     * @param bMat returns matrix, is resized (3x8 in 2D plain)
-     * @param intPoint where to calculate B for
-     * @param elem which element
-     * @param ptCoord corner coordinates of the element? */
-    void calcBMatOnly( Matrix<double> &bMat, Vector<double>& intPoint, 
-           BaseFE* elem, Matrix<double> &ptCoord );
+    void ReorderBLikeMatrix( Matrix<Double>& in, Matrix<Double>& out, UInt ip, BaseFE* elem, const Matrix<Double> &ptCoord );
 
     //! Query material type for \f$D\f$ tensor
     MaterialType getDMaterialType() { return MECH_STIFFNESS_TENSOR; }
@@ -80,7 +68,7 @@ namespace CoupledField {
      * if no ParamMat optimization is needed
      * @param direction if !=  DesignElement::NO_DERIVATIVE calculate derivative instead
      * @param force_factor if set no pseudo density factor is applied but the force_factor (for direction = DENSITY) */
-    void calcDMat( Matrix<Double> &dMat, const Elem* elem, const DesignElement::Type direction, double force_factor = 0.0);
+    void calcDMat(Matrix<Double> &dMat, const Elem* elem, const DesignElement::Type direction, double force_factor = 0.0);
 
     /** see calcDMat(Matrix<Double>, const Elem*, const DesignElement::Type, force_factor) */
     virtual void calcDMat( Matrix<Double> &dMat, const Elem* elem){
@@ -92,9 +80,8 @@ namespace CoupledField {
     /** see calcDMat(Matrix<Double>, const Elem*) */
     virtual void calcDMat( Matrix<Complex> &dMat, const Elem* elem);
 
-    //! returns B - matrix for BDB
-    virtual void calcBMat( Matrix<Double> &bMat, UInt ip,
-                           Matrix<Double> &ptCoord );
+    /** @see BaseForm::CalcBMat() */
+    void CalcBMat( Matrix<Double> &bMat, UInt ip, const Matrix<Double> &ptCoord );
 
     //! returns G - matrix for GDG (incompatible modes)
     virtual void calcGMat( Matrix<Double> &bMat, UInt ip,
@@ -114,11 +101,11 @@ namespace CoupledField {
     };
     
     /** fetch the ErsatzMaterialTensor from the DesignSpace when using ParamMat optimization
-     * else just return the normal Material Tensor
      * @param t output variable, returns the Tensor
      * @elem current element
-     * @direction if given return derivative w.r.t. this designelement type */
-    void GetErsatzMaterialTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction);
+     * @direction if given return derivative w.r.t. this designelement type
+     * @return true if the ersatz material tensor has been set */
+    bool GetErsatzMaterialTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction);
     
   private:
 

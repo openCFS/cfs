@@ -3,6 +3,7 @@
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignStructure.hh"
 #include "Optimization/OptimizationMaterial.hh"
+#include "Optimization/StressConstraint.hh"
 #include "Domain/domain.hh"
 #include "Domain/surfElem.hh"
 #include "General/exception.hh"
@@ -261,11 +262,22 @@ void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferF
     LOG_DBG2(simp) << "CVMSG: f=" << f->ToString(this->me) << " de=" << design->data[i].elem->elemNum << " org=" << design->data[i].GetPlainGradient(f);
 
   // alpha is from the globalization which is in the form sum max(0, g_i-c)^p and alpha is p*max(0, g_i-c)^(p-1) where g_i is the vonMisesStress
-  Vector<double> alpha = CalcVonMisesStressGlobalizationFactor(excite, f);
-  // note that we cannot check for alpha.GetSize() == design->data.GetSize()!
+  Vector<double> alpha;
+  // 2 * stress^T * M * (rho^p)' * E_0 * B * u
+  Vector<double> appendix;
 
-  // 2 * stress^T * M * (rho^p)' * E_0 * B * u can be obtained with a special attributes
-  Vector<double> appendix = CalcVonMisesStressVector(excite, f, false, true);
+  if(harmonic)
+  {
+    StressConstraint<complex<double> > sc(&excite, f, this, &forward);
+    sc.CalcGlobalizationFactor(alpha);
+    sc.CalcGradStresses(appendix);
+  }
+  else
+  {
+    StressConstraint<double> sc(&excite, f, this, &forward);
+    sc.CalcGlobalizationFactor(alpha);
+    sc.CalcGradStresses(appendix);
+  }
   assert(appendix.GetSize() == alpha.GetSize());
 
   DesignDependentRHS rhs;
