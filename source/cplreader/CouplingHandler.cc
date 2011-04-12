@@ -51,6 +51,8 @@ namespace CoupledField
     ptFileReader_->Init();
 
     dim_ = settings.GetInt("dim");
+    doIntAverageCentre_ = settings.GetInt("doIntAverageCentre");
+    reduce_elementOrder_ = settings.GetInt("reduce_elementOrder");
 
     OutputWriterVectorType::iterator it, end;
     it = outputWriters_.begin();
@@ -138,7 +140,37 @@ namespace CoupledField
     numRegionNodes_.resize(numRegions);
 
     // First read everything into internal buffers
-    ptFileReader_->ReadNodalCoords(nodalCoords_);
+    std::vector<Double> nodalCoordsTmp;
+    ptFileReader_->ReadNodalCoords(nodalCoordsTmp);
+    ptFileReader_->ReadTopology(topology_, elemTypes_);
+    if (reduce_elementOrder_)
+    {
+      ptFileReader_->CorrectNumbering(nodalCoordsTmp, topology_, elemTypes_);
+    }
+
+    // Determine the maximum number of element nodes
+    maxNumElemNodes = ptFileReader_->GetMaxNumElemNodes();
+    std::set<UInt> topoSet(topology_.begin(), topology_.end());
+    if(*topoSet.begin() == 0)
+      topoSet.erase(topoSet.begin());
+
+    // Throw away unused nodes
+    std::set<UInt>::iterator topoIt, topoEnd;
+    topoIt = topoSet.begin();
+    topoEnd = topoSet.end();
+    
+    std::map<UInt, UInt> pointMap;
+    nodalCoords_.resize(topoSet.size()*3);
+    for( UInt i=0; topoIt != topoEnd; topoIt++, i++ ) 
+    {
+      pointMap[*topoIt] = i+1;
+      
+      UInt idxNew=i*3;
+      UInt idxOld=(*topoIt-1)*3;
+      nodalCoords_[idxNew+0] = nodalCoordsTmp[idxOld+0];
+      nodalCoords_[idxNew+1] = nodalCoordsTmp[idxOld+1];
+      nodalCoords_[idxNew+2] = nodalCoordsTmp[idxOld+2];
+    }
     // scale the nodal coordinates
     const UInt sizeNodCoords = nodalCoords_.size();
     std::stringstream geomstr;
@@ -173,32 +205,6 @@ namespace CoupledField
       }
     }
     // <-- end scaling
-    ptFileReader_->ReadTopology(topology_, elemTypes_);
-
-    // Determine the maximum number of element nodes
-    maxNumElemNodes = ptFileReader_->GetMaxNumElemNodes();
-    std::set<UInt> topoSet(topology_.begin(), topology_.end());
-    if(*topoSet.begin() == 0)
-      topoSet.erase(topoSet.begin());
-
-    // Throw away unused nodes
-    std::set<UInt>::iterator topoIt, topoEnd;
-    topoIt = topoSet.begin();
-    topoEnd = topoSet.end();
-    
-    std::map<UInt, UInt> pointMap;
-    for( UInt i=0; topoIt != topoEnd; topoIt++, i++ ) 
-    {
-      pointMap[*topoIt] = i+1;
-      // std::cout << (*topoIt) << " -> " << (pointMap[*topoIt]) << std::endl;
-      
-      UInt idxNew=i*3;
-      UInt idxOld=(*topoIt-1)*3;
-      nodalCoords_[idxNew+0] = nodalCoords_[idxOld+0];
-      nodalCoords_[idxNew+1] = nodalCoords_[idxOld+1];
-      nodalCoords_[idxNew+2] = nodalCoords_[idxOld+2];
-    }
-    nodalCoords_.resize(topoSet.size()*3);
     
 
     for( UInt i=0, n=topology_.size(); i<n; i++ ) 
@@ -373,7 +379,7 @@ namespace CoupledField
     std::vector<FlowDataType> flowData(numRegions);
     bool readOK = true;
     // variable to gather nodes on multiple regions
-    bool doCalcMultiNodes = true;
+    bool doCalcMultiNodes = settings.GetInt("doCalcMultiNodes");
     std::map<UInt, std::map<std::string, UInt> > multiNodes;
 
     std::cout << "========================================"
@@ -433,6 +439,10 @@ namespace CoupledField
         try
         {
           ptFileReader_->ReadNodalValues(flowData, activeParts_, counter);
+          if (reduce_elementOrder_)
+          {
+            ptFileReader_->ReduceOrderOfNodalValues(flowData, regionNodes_);
+          }
           // scale the nodal values
           // following physical fields will be checked for scaling factors
           const std::string physFieldScale_str[] = {"velscale","geomscale"};
@@ -802,8 +812,14 @@ namespace CoupledField
       }
 
       try {
-        ptElemIntegr_[elemType]->PerformIntegration( coordMat, nodaldTijdxj, nodalVel,
-                                                     elemVec, nodalLoadDensity, divLHTensor, density);
+        if (doIntAverageCentre_)
+        {
+          ptElemIntegr_[elemType]->PerformIntegrationCentre( coordMat, nodalVel,
+                                                       elemVec, nodalLoadDensity, divLHTensor, density);
+        } else {
+          ptElemIntegr_[elemType]->PerformIntegration( coordMat, nodaldTijdxj, nodalVel,
+                                                       elemVec, nodalLoadDensity, divLHTensor, density);
+        }
       } catch (CoupledField::Exception &ex)
       {
         std::cerr << "WARN: An Exception occurred during source term "

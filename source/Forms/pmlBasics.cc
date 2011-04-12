@@ -6,28 +6,14 @@
 #include <fstream>
 
 #include "pmlBasics.hh"
+#include "Utils/coordSystem.hh"
+#include "Domain/domain.hh"
 
 namespace CoupledField
 {
 
   PMLBasics::PMLBasics( std::string dampingTypePML, Double damp, std::string type)
   {
-
-    //check for correct type
-//     if ( type == "laplaceInt" ) {
-//       formsType_ = type;
-//     }
-//     else if ( type == "massInt" ) {
-//       formsType_ = type;
-//     }
-//     else if ( type == "mixedPMLMassPPInt" || type == "mixedPMLMassVVInt") {
-//         formsType_ = type;
-//     }
-//     else {
-//       formsType_ = type;
-//       //EXCEPTION("PMLInt: type must be laplaceInt or massInt");
-//     }
-
     formsType_ = type;
 
     //check correct damping type
@@ -56,189 +42,74 @@ namespace CoupledField
 
 
   void PMLBasics::ComputeFactorPML(Vector<Complex>& factorsPML, Complex& pmlDet, 
-                                   Vector<Double> & pos, Double omega)
+                                   Vector<Double> & globPos, Double omega)
   {
 
-    UInt numVals = pos.GetSize();
-
+    UInt numVals = globPos.GetSize();
     Vector<Complex> factors(numVals);
     Double omegaInv = 1.0 / omega;
-    Double imagVal, factor;
+    Double imagVal;
 
-    if ( pos[0] < minX_ || pos[0] > maxX_ ) {
-      factor = ComputeDampingFactor(pos, X);
-      imagVal = factor * omegaInv;
-      factors[0] = Complex(1.0,-imagVal);
+    // new approach: perform addition of damping factors
+    Vector<Double> tempFactors(numVals), realFactors(numVals);
+    realFactors.Init();
 
-      if ( pos[1] < minY_ || pos[1] > maxY_ ) {
-	      factor = ComputeDampingFactor(pos, Y);
-	      imagVal = factor * omegaInv;
-	      factors[1] = Complex(1.0,-imagVal);
-
-	      //check for 3D
-	      if (numVals == 3) {
-	        if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
-	          //compute z-value
-	          factor = ComputeDampingFactor(pos, Z);
-	          imagVal = factor * omegaInv;
-	          factors[2] = Complex(1.0,-imagVal);
-	        } else {
-	          factors[2] = Complex(1.0,0);
-	        }
-	      }
-      } else {
-	      factors[1] = Complex(1.0,0);
-
-	      //check for 3D
-	      if (numVals == 3) {
-	        if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
-	          //compute z-value
-	          factor  = ComputeDampingFactor(pos, Z);
-	          imagVal = factor * omegaInv;
-	          factors[2] = Complex(1.0,-imagVal);
-	        }
-	        else {
-	          factors[2] = Complex(1.0,0);
-	        }
-	      }
-      }
-    } else {
-      factors[0] = Complex(1.0,0.0); 
-
-      if ( pos[1] < minY_ || pos[1] > maxY_ ) {
-	      //compute y-value
-	      factor  = ComputeDampingFactor(pos, Y);
-	      imagVal = factor * omegaInv;
-	      factors[1] = Complex(1.0,-imagVal);
-
-	      //check for 3D
-	      if (numVals == 3) {
-	        if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
-	          //compute z-value
-	          factor  = ComputeDampingFactor(pos, Z);
-	          imagVal = factor * omegaInv;
-	          factors[2] = Complex(1.0,-imagVal);
-	        }
-	        else {
-	          factors[2] = Complex(1.0,0);
-	        }
-	      }
-      } else {
-	      factors[1] = Complex(1.0,0); 
-
-	      //check for 3D
-	      if (numVals == 3) {
-	        if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
-	          factor  = ComputeDampingFactor(pos, Z);
-	          imagVal = factor * omegaInv;
-	          factors[2] = Complex(1,-imagVal);
-	        }
-	        else {
-	          factors[2] = Complex(1.0,0);
-	        }
-	      }
-      }
+    // get local coordinate representation
+    Vector<Double> locPos (globPos.GetSize());
+    coordSys_->Global2LocalCoord( locPos, globPos );
+    
+    // Calculate damping factors sigma_x, sigma_y, sigma_z,
+    // which are always related to the local coordinate system
+    for( UInt i = 0; i < numVals; ++i ) {
+      if ( locPos[i] < minLoc_[i] || locPos[i] > maxLoc_[i] ) {
+        ComputeDampingFactor(tempFactors, globPos, locPos, i);
+        realFactors += tempFactors;
+      }      
+    }
+    
+    // set entries for nu_x, nu_y, nu_z and calculate
+    // complex valued determinant
+    pmlDet = Complex(1.0,0);
+    for( UInt i = 0; i < numVals; ++i ) {
+      imagVal = std::abs(realFactors[i]) * omegaInv;
+      factors[i] = Complex(1.0, -imagVal);
+      pmlDet *= factors[i];
     }
 
-
-//      std::cout << "pos:\n" << pos << std::endl;
-//      std::cout << "factors:\n" << factors << std::endl;
-
+    // compute complex valued factors
     factorsPML.Resize(numVals);
-    factorsPML.Init();
-
-    if ( formsType_ == "laplaceInt" || formsType_ == "mixedPMLMassPPInt" || formsType_ == "mixedPMLMassVVInt") {
-      if (numVals == 3) {
-        factorsPML[0] = Complex(1.0,0) / factors[0];  
-        //y-part
-        factorsPML[1] = Complex(1.0,0) / factors[1];   
-        //z-part
-        factorsPML[2] = Complex(1.0,0) / factors[2];  
-
-        // determinant
-        pmlDet = factors[0]*factors[1]*factors[2];
-      }
-      
-      else {
-        factorsPML[0] = Complex(1.0,0) / factors[0];  
-        //y-part
-        factorsPML[1] = Complex(1.0,0) / factors[1]; 
-        //determinant
-        pmlDet = factors[0]*factors[1];
-      }
-    }
-    else {
-      //PML factor for mass integrator, we just need the determinant
-      if (numVals == 3) {
-	pmlDet = factors[0]*factors[1]*factors[2];
-      }     
-      else {
-	pmlDet = factors[0]*factors[1];
-      }
-
-    }
-
+    if ( formsType_ == "laplaceInt" || 
+         formsType_ == "mixedPMLMassPPInt" || 
+         formsType_ == "mixedPMLMassVVInt" ) {
+      for( UInt i = 0; i < numVals; ++i ) {
+        factorsPML[i] = Complex(1.0,0) / factors[i]; 
+      } // for
+    } // forms
   }
 
   //factors for almost PML
   void PMLBasics::ComputeFactorAPML(Vector<Complex>& factorsPML,  
-                                    Vector<Double> & pos, 
+                                    Vector<Double> & globPos, 
                                     Double omega)
   {
 
-    UInt numVals = pos.GetSize();
+    UInt numVals = globPos.GetSize();
 
-    Vector<Complex> factors(numVals);
-    Vector<Double> dampFactors(numVals);
-    dampFactors.Init(0.0);
+    // new approach: perform addition of damping factors
+    Vector<Double> tempFactors(numVals), realFactors(numVals);
+    realFactors.Init();
 
-    if ( pos[0] < minX_ || pos[0] > maxX_ ) {
-      dampFactors[0] = ComputeDampingFactor(pos, X);
+    // get local coordinate representation
+    Vector<Double> locPos (globPos.GetSize());
+    coordSys_->Global2LocalCoord( locPos, globPos );
 
-      if ( pos[1] < minY_ || pos[1] > maxY_ ) {
-	dampFactors[1] = ComputeDampingFactor(pos, Y);
-
-	//check for 3D
-	if (numVals == 3) {
-	  if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
-	    //compute z-value
-	    dampFactors[2] = ComputeDampingFactor(pos, Z);
-	  }
-	}
-      }
-      
-      else {
-	//check for 3D
-	if (numVals == 3) {
-	  if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
-	    //compute z-value
-	    dampFactors[2] = ComputeDampingFactor(pos, Z);
-	  }
-	}
-      }
-    }
-
-    else {
-      if ( pos[1] < minY_ || pos[1] > maxY_ ) {
-	//compute y-value
-	dampFactors[1] = ComputeDampingFactor(pos, Y);
-	//check for 3D
-	if (numVals == 3) {
-	  if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
-	    //compute z-value
-	    dampFactors[2] = ComputeDampingFactor(pos, Z);
-	  }
-	}
-      }
-
-      else {
-	//check for 3D
-	if (numVals == 3) {
-	  if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
-	    dampFactors[2] = ComputeDampingFactor(pos, Z);
-	  }
-	}
-      }
+    // Calculate damping factors sigma_x, sigma_y, sigma_z,
+    // which are always related to the local coordinate system
+    for( UInt i = 0; i < numVals; ++i ) {
+      if ( locPos[i] < minLoc_[i] || locPos[i] > maxLoc_[i] ) {
+        ComputeDampingFactor(tempFactors, globPos, locPos, i);
+        realFactors += tempFactors;
+      }      
     }
 
     factorsPML.Resize(numVals);
@@ -246,84 +117,55 @@ namespace CoupledField
 
     if ( formsType_ == "laplaceIntAPML") {
       //x-part
-      factorsPML[0] = Complex(dampFactors[1]+dampFactors[2],omega) 
-        / Complex( dampFactors[0], omega);
-//         + Complex(dampFactors[1]*dampFactors[2],0) 
-//         / Complex(-omega*omega, omega* dampFactors[0]); 
+      factorsPML[0] = Complex(realFactors[1]+realFactors[2],omega) 
+        / Complex( realFactors[0], omega);
+//         + Complex(realFactors[1]*realFactors[2],0) 
+//         / Complex(-omega*omega, omega* realFactors[0]); 
 
       //y-part
-      factorsPML[1] = Complex(dampFactors[0]+dampFactors[2],omega) 
-        / Complex( dampFactors[1], omega);
-//         +  Complex(dampFactors[0]*dampFactors[2],0) 
-//         / Complex(-omega*omega, omega* dampFactors[1]);
+      factorsPML[1] = Complex(realFactors[0]+realFactors[2],omega) 
+        / Complex( realFactors[1], omega);
+//         +  Complex(realFactors[0]*realFactors[2],0) 
+//         / Complex(-omega*omega, omega* realFactors[1]);
  
       //z-part
-      factorsPML[2] = Complex(dampFactors[0]+dampFactors[1],omega) 
-        / Complex( dampFactors[2], omega);
-//         + Complex(dampFactors[0]*dampFactors[1],0) 
-//         / Complex(-omega*omega, omega* dampFactors[2]); 
+      factorsPML[2] = Complex(realFactors[0]+realFactors[1],omega) 
+        / Complex( realFactors[2], omega);
+//         + Complex(realFactors[0]*realFactors[1],0) 
+//         / Complex(-omega*omega, omega* realFactors[2]); 
     }
     else {
       //PML factor for mass integrator
-      factorsPML[0] = Complex(1, (-1.0/omega)*(dampFactors[0]+dampFactors[1]+dampFactors[2]) )
-        + Complex( -1/(omega*omega)* (  dampFactors[0]*dampFactors[1] 
-                                        + dampFactors[0]*dampFactors[2]
-                                        + dampFactors[1]*dampFactors[2] ), 0 );
-      //      + Complex(0,1/(omega*omega*omega) * dampFactors[0]*dampFactors[1]*dampFactors[2]);
+      factorsPML[0] = Complex(1, (-1.0/omega)*(realFactors[0]+realFactors[1]+realFactors[2]) )
+        + Complex( -1/(omega*omega)* (  realFactors[0]*realFactors[1] 
+                                        + realFactors[0]*realFactors[2]
+                                        + realFactors[1]*realFactors[2] ), 0 );
+      //      + Complex(0,1/(omega*omega*omega) * realFactors[0]*realFactors[1]*realFactors[2]);
     }
   }
 
   void PMLBasics::ComputeTimeFactorPML(Vector<Double>& factorsPML, 
-                                       Vector<Double>& pos )
+                                       Vector<Double>& globPos )
   {
 
-    UInt numVals = pos.GetSize();
-
+    UInt numVals = globPos.GetSize();
+    
+    Vector<Double> tempFactors(numVals);
     factorsPML.Resize(numVals);
     factorsPML.Init();
 
-    if ( pos[0] < minX_ || pos[0] > maxX_ ) {
-      factorsPML[0] = ComputeDampingFactor(pos, X);
+    // get local coordinate representation
+    Vector<Double> locPos (globPos.GetSize());
+    coordSys_->Global2LocalCoord( locPos, globPos );
 
-      if ( pos[1] < minY_ || pos[1] > maxY_ ) {
-	      factorsPML[1] = ComputeDampingFactor(pos, Y);
 
-	      //check for 3D
-	      if (numVals == 3) {
-	        if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
-	          //compute z-value
-	          factorsPML[2] = ComputeDampingFactor(pos, Z);
-	        }
-	      }
-      } else {
-	      //check for 3D
-	      if (numVals == 3) {
-	        if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
-	          //compute z-value
-	          factorsPML[2]  = ComputeDampingFactor(pos, Z);
-	        }
-	      }
-      }
-    } else {
-      if ( pos[1] < minY_ || pos[1] > maxY_ ) {
-	      //compute y-value
-	      factorsPML[1]  = ComputeDampingFactor(pos, Y);
-
-	      //check for 3D
-	      if (numVals == 3) {
-	        if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
-	          //compute z-value
-	          factorsPML[2]  = ComputeDampingFactor(pos, Z);
-	        }
-	      }
-      } else {
-	      //check for 3D
-	      if (numVals == 3) {
-	        if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
-	          factorsPML[2]  = ComputeDampingFactor(pos, Z);
-	        }
-	      }
-      }
+    // Calculate damping factors sigma_x, sigma_y, sigma_z,
+    // which are always related to the local coordinate system
+    for( UInt i = 0; i < numVals; ++i ) {
+      if ( locPos[i] < minLoc_[i] || locPos[i] > maxLoc_[i] ) {
+        ComputeDampingFactor(tempFactors, globPos, locPos, i);
+        factorsPML += tempFactors;
+      }      
     }
   }
 
@@ -332,226 +174,163 @@ namespace CoupledField
                                        Vector<Double>& pos,
                                        Vector<Double> center)
   {
-
-    UInt numVals = pos.GetSize();
-
-    factorsPML.Resize(numVals);
-    factorsPML.Init();
-
-    if ( (pos[0] < minX_ || pos[0] > maxX_) || (center[0] < minX_ || center[0] > maxX_) ) {
-      factorsPML[0] = ComputeDampingFactor(pos, X);
-
-      if ( (pos[1] < minY_ || pos[1] > maxY_) || (center[1] < minY_ || center[1] > maxY_)) {
-	      factorsPML[1] = ComputeDampingFactor(pos, Y);
-
-	      //check for 3D
-	      if (numVals == 3) {
-	        if  ((pos[2] < minZ_ || pos[2] > maxZ_) || (center[2] < minZ_ || center[2] > maxZ_) ) {
-	          //compute z-value
-	          factorsPML[2] = ComputeDampingFactor(pos, Z);
-	        }
-	      }
-      }
-      
-      else {
-	      //check for 3D
-	      if (numVals == 3) {
-	        if  ((pos[2] < minZ_ || pos[2] > maxZ_) || (center[2] < minZ_ || center[2] > maxZ_) ) {
-	          //compute z-value
-	          factorsPML[2]  = ComputeDampingFactor(pos, Z);
-	        }
-	      }
-      }
-    } else {
-      if ( (pos[1] < minY_ || pos[1] > maxY_) || (center[1] < minY_ || center[1] > maxY_)) {
-	      //compute y-value
-	      factorsPML[1]  = ComputeDampingFactor(pos, Y);
-
-	      //check for 3D
-	      if (numVals == 3) {
-	        if  ((pos[2] < minZ_ || pos[2] > maxZ_) || (center[2] < minZ_ || center[2] > maxZ_) ) {
-	          //compute z-value
-	          factorsPML[2]  = ComputeDampingFactor(pos, Z);
-	        }
-	      }
-      } else {
-	      //check for 3D
-	      if (numVals == 3) {
-	        if  ((pos[2] < minZ_ || pos[2] > maxZ_) || (center[2] < minZ_ || center[2] > maxZ_) ) {
-	          factorsPML[2]  = ComputeDampingFactor(pos, Z);
-	        }
-	      }
-      }
-    }
+    EXCEPTION("This method is not adjusted yet to arbitrary local "
+              "coordinate systems. Please contact M. Kaltenbacher "
+              "or A. Hauck ");
+//
+//    UInt numVals = pos.GetSize();
+//
+//    factorsPML.Resize(numVals);
+//    factorsPML.Init();
+//
+//    if ( (pos[0] < minX_ || pos[0] > maxX_) || (center[0] < minX_ || center[0] > maxX_) ) {
+//      factorsPML[0] = ComputeDampingFactor(pos, X);
+//
+//      if ( (pos[1] < minY_ || pos[1] > maxY_) || (center[1] < minY_ || center[1] > maxY_)) {
+//	      factorsPML[1] = ComputeDampingFactor(pos, Y);
+//
+//	      //check for 3D
+//	      if (numVals == 3) {
+//	        if  ((pos[2] < minZ_ || pos[2] > maxZ_) || (center[2] < minZ_ || center[2] > maxZ_) ) {
+//	          //compute z-value
+//	          factorsPML[2] = ComputeDampingFactor(pos, Z);
+//	        }
+//	      }
+//      }
+//      
+//      else {
+//	      //check for 3D
+//	      if (numVals == 3) {
+//	        if  ((pos[2] < minZ_ || pos[2] > maxZ_) || (center[2] < minZ_ || center[2] > maxZ_) ) {
+//	          //compute z-value
+//	          factorsPML[2]  = ComputeDampingFactor(pos, Z);
+//	        }
+//	      }
+//      }
+//    } else {
+//      if ( (pos[1] < minY_ || pos[1] > maxY_) || (center[1] < minY_ || center[1] > maxY_)) {
+//	      //compute y-value
+//	      factorsPML[1]  = ComputeDampingFactor(pos, Y);
+//
+//	      //check for 3D
+//	      if (numVals == 3) {
+//	        if  ((pos[2] < minZ_ || pos[2] > maxZ_) || (center[2] < minZ_ || center[2] > maxZ_) ) {
+//	          //compute z-value
+//	          factorsPML[2]  = ComputeDampingFactor(pos, Z);
+//	        }
+//	      }
+//      } else {
+//	      //check for 3D
+//	      if (numVals == 3) {
+//	        if  ((pos[2] < minZ_ || pos[2] > maxZ_) || (center[2] < minZ_ || center[2] > maxZ_) ) {
+//	          factorsPML[2]  = ComputeDampingFactor(pos, Z);
+//	        }
+//	      }
+//      }
+//    }
     return;
   }
 
-  Double PMLBasics::ComputeDampingFactor(Vector<Double>& pos, Directions dir)
+  void PMLBasics::ComputeDampingFactor( Vector<Double>& factors, 
+                                        const Vector<Double>& globPos, 
+                                        const Vector<Double>& locPos,
+                                        UInt dir )
   {
 
     Double factor, maxPos, delta, diffCoord;
-    UInt idx;
-
+    
+    // vector with local direction
+    Vector<Double> locDir(locPos.GetSize());
+    locDir.Init();
+    locDir[dir] = 1.0;
+    
     factor = 1.0;
     if ( dampingTypePML_ == "constant" ) {
       factor = dampingFactor_;
     }
 
     else if ( dampingTypePML_ == "quadDist" ) {
-      if ( dir == X ) {
-	      //get correct layer thickness
-	      if ( pos[0] < minX_ ) {
-	        delta = layerThickness_[0][0];
-	        diffCoord = abs(pos[0] - minX_);
-	      }
-	      else {
-	        delta = layerThickness_[1][0];
-	        diffCoord = abs(pos[0] - maxX_);
-	      }
-      }
-      else if ( dir == Y ) {
-	      //get correct layer thickness
-	      if ( pos[1] < minY_ ) {
-	        delta = layerThickness_[0][1];
-	        diffCoord = abs(pos[1] - minY_);
-	      }
-	      else {
-	        delta = layerThickness_[1][1];
-	        diffCoord = abs(pos[1] - maxY_);
-	      }
+	      
+      //get correct layer thickness
+      if ( locPos[dir] < minLoc_[dir] ) {
+        delta = layerThickness_[0][dir];
+        diffCoord = abs(locPos[dir] - minLoc_[dir]);
       }
       else {
-	      //get correct layer thickness
-	      if ( pos[2] < minZ_ ) {
-	        delta = layerThickness_[0][2];
-	        diffCoord = abs(pos[2] - minZ_);
-	      }
-	      else {
-	        delta = layerThickness_[1][2];
-	        diffCoord = abs(pos[2] - maxZ_);
-	      }
+        delta = layerThickness_[1][dir];
+        diffCoord = abs(locPos[dir] - maxLoc_[dir]);
       }
-
       factor = dampingFactor_ * ( diffCoord*diffCoord )/ ( delta*delta );
+    } 
+    
+    else if ( dampingTypePML_ == "inverseDist" ) {
 
-    } else if ( dampingTypePML_ == "inverseDist" ) {
-
-      if ( dir == X ) {
-	      //get correct maximal PML y-coordinate
-	      if ( pos[0] < minX_ ) {
-	        maxPos = minX_ - layerThickness_[0][0];
-	      }
-	      else {
-	        maxPos = maxX_ + layerThickness_[1][0];
-	      }
-	      idx = 0;
-      } else if ( dir == Y ) {
-	      //get correct maximal PML y-coordinate
-	      if ( pos[1] < minY_ ) {
-	        maxPos = minY_ - layerThickness_[0][1];
-	      }
-	      else {
-	        maxPos = maxY_ + layerThickness_[1][1];
-	      }
-	      idx = 1;
-      } else {
-	      //get correct maximal PML z-coordinate
-	      if ( pos[2] < minZ_ ) {
-	        maxPos = minZ_ - layerThickness_[0][2];
-	      }
-	      else {
-	        maxPos = maxZ_ + layerThickness_[1][2];
-	      }
-	      idx = 2;
+      //get correct maximal PML local coordinate
+      if ( locPos[dir] < minLoc_[dir] ) {
+        maxPos = minLoc_[dir] - layerThickness_[0][dir];
+      }
+      else {
+        maxPos = maxLoc_[dir] + layerThickness_[1][dir];
       }
 
       //! This is just for Lobatto integration
-      Double  divisor = abs(maxPos - pos[idx]);
-      if ( abs (maxPos - pos[idx]) < 1e-12 ) {
+      Double  divisor = abs(maxPos - locPos[dir]);
+      if ( abs (maxPos - locPos[dir]) < 1e-12 ) {
         factor = 0;
       }else{
         factor = abs (dampingFactor_ / divisor );
-        //std::cout << "Factor: " << factor << std::endl;
-        //std::cout << " at Position " << pos[idx] << " in " << idx << " direction" << std::endl;
       }
-
-      //      std::cout << "maxPos =" << maxPos << std::endl;
-
     }
+    
     else if ( dampingTypePML_ == "smoothDamp" ) {
-      if ( dir == X ) {
-	//get correct layer thickness
-	if ( pos[0] < minX_ ) {
-	  delta = layerThickness_[0][0];
-	  diffCoord = abs(pos[0]) - minX_;
-	}
-	else {
-	  delta = layerThickness_[1][0];
-	  diffCoord = abs(pos[0]) - maxX_;
-	}
+      
+      //get correct layer thickness
+      if ( locPos[dir] < minLoc_[dir] ) {
+        delta = layerThickness_[0][dir];
+        diffCoord = abs(locPos[dir]) - minLoc_[dir];
+      } else {
+        delta = layerThickness_[1][dir];
+        diffCoord = abs(locPos[dir]) - maxLoc_[dir];
       }
-      else if ( dir == Y ) {
-	//get correct layer thickness
-	if ( pos[1] < minY_ ) {
-	  delta = layerThickness_[0][1];
-	  diffCoord = abs(pos[1]) - minY_;
-	}
-	else {
-	  delta = layerThickness_[1][1];
-	  diffCoord = abs(pos[1]) - maxY_;
-	}
-      }
-      else {
-	//get correct layer thickness
-	if ( pos[2] < minZ_ ) {
-	  delta = layerThickness_[0][2];
-	  diffCoord = abs(pos[2]) - minZ_;
-	}
-	else {
-	  delta = layerThickness_[1][2];
-	  diffCoord = abs(pos[2]) - maxZ_;
-	}
-      }
-
       factor = dampingFactor_ * 
         ( diffCoord/delta - std::sin(2*PI*diffCoord/delta) / ( 2*PI ) );
-      //std::cout << "Factor: " << factor << std::endl;
-
     }
-
-    return factor;
+    
+    // factors vector is just scalar factor in "local" direction
+    factors = locDir * factor;
   }
 
 
-  void PMLBasics::SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer)
+  void PMLBasics::SetPosPML( Matrix<Double> & inner, 
+                             Matrix<Double> & outer,
+                             const std::string& coordSysId)
   {
 
     // inner/outer:   xmin  ymin  zmin
     //                xmax  ymax  zmax
 
-    minX_ = inner[0][0];
-    maxX_ = inner[1][0];
-    minY_ = inner[0][1];
-    maxY_ = inner[1][1];
-
-    if (inner.GetNumCols() > 2 ) {
-      minZ_ = inner[0][2];
-      maxZ_ = inner[1][2];
+    // store maximum / minimum coordinates (in local coordinates)
+    // of pml layer (we assume axis-parallel boundaries)
+    UInt dim = outer.GetNumCols();
+    minLoc_.Resize(dim);
+    maxLoc_.Resize(dim);
+    for( UInt i = 0; i < dim; ++i ) {
+      minLoc_[i] = inner[0][i];
+      maxLoc_[i] = inner[1][i];
     }
 
-    //get layer thickness
+    // compute thickness of pml layer
     layerThickness_.Resize(2,inner.GetNumCols());
     for (UInt i=0; i<inner.GetNumCols(); i++) {
       layerThickness_[0][i] = abs(outer[0][i] - inner[0][i]);
       layerThickness_[1][i] = abs(outer[1][i] - inner[1][i]);
     }
 
-    //std::cout << "LayerThickness:\n" << layerThickness_ << std::endl;
+    // store local coordinate system
+    coordSysId_ = coordSysId;
+    coordSys_ = domain->GetCoordSystem(coordSysId_);
 
   }
-
-
-
 
 
 } // end namespace CoupledField

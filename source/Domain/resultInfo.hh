@@ -24,7 +24,7 @@ namespace CoupledField {
                   SURF_REGION, NODELIST, COIL, FREE } EntityUnknownType;
     
     //! Typedef describing the entryType of the result
-    typedef enum { UNKNOWN, SCALAR, VECTOR, TENSOR, STRING } EntryType;
+    typedef enum { UNKNOWN = 0, SCALAR = 1, VECTOR = 2, TENSOR = 3, STRING = 4 } EntryType;
     
 
     //! Friend declaration for operator==

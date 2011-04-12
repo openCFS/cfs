@@ -201,7 +201,7 @@ namespace CoupledField
       UInt node1 = edgeIndices_[actEdge][0] - 1;
       UInt node2 = edgeIndices_[actEdge][1] - 1;
 
-      factor = elem->edges[actEdge] < 0 ? -1.0 : 1.0;
+      factor = elem->edges[actEdge] < 0 ? 1.0 : -1.0;
       if ( actEdge < 3) 
         factor *= nodeShape[3];
       else 
@@ -219,7 +219,7 @@ namespace CoupledField
       UInt node1 = edgeIndices_[actEdge][0] - 1;
       //        UInt node2 = edgeIndices_[actEdge][1] - 1;
 
-      factor = elem->edges[actEdge] < 0 ? -1.0 : 1.0;
+      factor = elem->edges[actEdge] < 0 ? 1.0 : -1.0;
       for (UInt actDim=0; actDim<Dim_; actDim++)
         edgeShape[actEdge][actDim] = 
           nodeShape[node1] * xDxi[3][actDim] * factor;
@@ -261,7 +261,7 @@ namespace CoupledField
         idx = 4;
       }
 
-      Double factor = elem->edges[actEdge] < 0 ? -1.0 : 1.0;  
+      Double factor = elem->edges[actEdge] < 0 ? 1.0 : -1.0;  
 
       for (UInt dim1=0; dim1<Dim_; dim1++)
         for (UInt dim2=0; dim2<Dim_; dim2++) {
@@ -282,7 +282,7 @@ namespace CoupledField
       UInt node1 = edgeIndices_[actEdge][0] -1;
       //      UInt node2 = edgeIndices_[actEdge][1] -1;
 
-      Double factor = elem->edges[actEdge] < 0 ? -1.0 : 1.0;  
+      Double factor = elem->edges[actEdge] < 0 ? 1.0 : -1.0;  
 
       for (UInt dim1=0; dim1<Dim_; dim1++)
         for (UInt dim2=0; dim2<Dim_; dim2++) {

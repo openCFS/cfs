@@ -9,6 +9,9 @@
 #include "MatVec/matrix.hh"
 #include "MatVec/vector.hh"
 #include "Utils/Timer.hh"
+#include "Utils/mathParser/mathParser.hh"
+#include "Domain/domain.hh"
+
 
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
@@ -446,6 +449,34 @@ const TYPE& ParamNode::AsConst() const
     EXCEPTION("Cannot determine the data type of xml node '" << name_ << "'.");
 
   }
+}
+
+template<typename TYPE>
+TYPE ParamNode::MathParse() const {
+  
+  
+  // obtain handle
+  MathParser * parser = domain->GetMathParser();
+  MathParser::HandleType handle = parser->GetNewHandle(false);
+  std::string expr = "";
+  if( value_.empty()) return TYPE();\
+
+  if( value_.type() == typeid(std::string) ) {\
+    expr = boost::any_cast<std::string>(value_);\
+  } else {\
+    EXCEPTION("XML node '" << name_\
+              << "' can not be parsed, as it is no string type.");
+  }
+
+  // Set expression and evaluate
+  parser->SetExpr(handle, expr);
+  TYPE ret = TYPE();
+  ret = static_cast<TYPE>(parser->Eval(handle));
+  
+  // release handle
+  parser->ReleaseHandle(handle);
+  
+  return ret;
 }
 
 template<typename TYPE>
@@ -1053,6 +1084,14 @@ INSTANTIATE_METHOD_AS(Vector<Complex>*)
 INSTANTIATE_METHOD_AS(Matrix<Double>*)
 INSTANTIATE_METHOD_AS(Matrix<Complex>*)
 INSTANTIATE_METHOD_AS(Timer*)
+
+#define INSTANTIATE_METHOD_MATH_PARSE(TYPE)\
+  template\
+  TYPE ParamNode::MathParse<TYPE>() const;
+INSTANTIATE_METHOD_MATH_PARSE(Double)
+INSTANTIATE_METHOD_MATH_PARSE(UInt)
+INSTANTIATE_METHOD_MATH_PARSE(Integer)
+
 
 #define INSTANTIATE_METHOD_GETVALUE(TYPE)\
   template void ParamNode::GetValue<TYPE>\

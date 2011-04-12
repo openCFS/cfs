@@ -121,6 +121,27 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
+  
+  
+  <!-- ******************************************************************** -->
+  <!-- Definition of element for OLAS_ILU0 Preconditioner -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="ILU0" type="DT_PrecondILU0"
+  substitutionGroup="PrecondBasic"/>
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for OLAS_ILU0 Preconditioner -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_PrecondILU0">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PrecondBasic">
+        <xsd:sequence>
+          <xsd:element name="saveFacFile" type="xsd:token"  minOccurs="0"/>
+          <xsd:element name="logging"     type="DT_CFSBool" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
 
 
   <!-- ==================================================================== -->
@@ -183,15 +204,7 @@
                                                                 minOccurs="0"/>
           <xsd:element name="saveFacFile"     type="xsd:token"  minOccurs="0"/>
           <xsd:element name="savePatternOnly" type="DT_CFSBool" minOccurs="0"/>
-          <xsd:element name="logging"                           minOccurs="0">
-            <xsd:simpleType>
-              <xsd:restriction base="xsd:integer">
-                <xsd:enumeration value="0"/>
-                <xsd:enumeration value="1"/>
-                <xsd:enumeration value="2"/>
-              </xsd:restriction>
-            </xsd:simpleType>
-          </xsd:element>
+          <xsd:element name="logging"         type="DT_CFSBool" minOccurs="0"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>

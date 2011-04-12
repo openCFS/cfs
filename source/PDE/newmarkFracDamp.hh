@@ -36,7 +36,8 @@ namespace CoupledField {
                      StdPDE * aptStdPDE,
                      shared_ptr<ResultInfo> aresult,
                      StdVector<RegionIdType> asubdomainList,
-                     std::map<RegionIdType,DampingType> adampingList);
+                     std::map<RegionIdType,DampingType> adampingList,
+                     PtrParamNode systemNode);
   
     //! destructor
     virtual ~NewmarkFracDamp();

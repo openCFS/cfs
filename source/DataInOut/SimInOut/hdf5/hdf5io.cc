@@ -37,7 +37,7 @@ hsize_t H5IO::maxChunkSize_= 100;
                       H5T_STD_I32LE );
 
   DECL_HDF_ATOM_TYPE( Integer,
-		              H5T_NATIVE_INT32,
+		      H5T_NATIVE_INT32,
                       H5T_STD_I32LE );
 
   DECL_HDF_ATOM_TYPE( UInt,
@@ -469,13 +469,13 @@ hsize_t H5IO::maxChunkSize_= 100;
   DECL_STL_VECTOR_CONVERSION( Double );
   DECL_STL_VECTOR_CONVERSION( Float );
 
-#undef DECL_ST_VECTOR_CONVERSION
+#undef DECL_STL_VECTOR_CONVERSION
 
   template<typename TYPE>
   void H5IO::WriteAttribute( H5::H5Object& obj,
                              const std::string& name,
                              const TYPE& data,
-                             const H5::DSetCreatPropList &create_plist ) {
+                             const H5::PropList &create_plist ) {
 
     try {
 
@@ -1146,7 +1146,7 @@ hsize_t H5IO::maxChunkSize_= 100;
   void H5IO::WriteAttribute<TYPE>( H5::H5Object& obj,           \
                                    const std::string& name,     \
                                    const TYPE& data,            \
-                                   const H5::DSetCreatPropList  \
+                                   const H5::PropList           \
                                    &create_plist );             \
     template                                                    \
     void H5IO::Write1DArray<TYPE>(H5::CommonFG &loc,            \

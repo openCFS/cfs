@@ -260,6 +260,9 @@ namespace CoupledField {
     
     //! time step size
     Double dt_;     
+    
+    //! Flag for omitting time step initialization (i.e. first predictor step)
+    bool omitFirstPredictor_;
 
     //! matrix factors
     std::map<FEMatrixType,Double> matrix_factors_;

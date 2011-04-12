@@ -89,7 +89,35 @@ namespace CoupledField{
     Vector<Double> loc;
     Global2LocalCoord( loc, point );
 
-    // calculate directional sinus / cosinus
+    // calculate directional sine / cosine
+    Double s = sin( loc[1] / 180 * PI );
+    Double c = cos( loc[1] / 180 * PI );
+
+    mat.Resize(2,2);
+    mat.Init();
+    const Matrix<Double> & a = invRotationMat_;
+
+    // perform explicit multiplication of a * r
+    // where r is the rotation matrix around the z-axis
+    //     ( c  -s )
+    // r = ( s   c )
+
+    mat[0][0] =  c * a[0][0] + s * a[0][1];
+    mat[0][1] = -s * a[0][0] + c * a[0][1];
+
+    mat[1][0] =  c * a[1][0] + s * a[1][1];
+    mat[1][1] = -s * a[1][0] + c * a[1][1];
+
+  }
+  
+  void  PolarCoordSystem::
+  GetFullGlobRotationMatrix( Matrix<Double> & mat,
+                             const Vector<Double>& point ) const {
+
+    Vector<Double> loc;
+    Global2LocalCoord( loc, point );
+
+    // calculate directional sine / cosine
     Double s = sin( loc[1] / 180 * PI );
     Double c = cos( loc[1] / 180 * PI );
 
@@ -233,7 +261,7 @@ namespace CoupledField{
     if ( component == 0 ) {
       EXCEPTION( "PolarSystem:GetVecComponent:\n"
                  << "The component with name '" << dof 
-                 << "' is not known in the global cylinder coordinate system '"
+                 << "' is not known in a local polar coordinate system '"
                  << name_ << "'!" );
     }
 
@@ -253,8 +281,8 @@ namespace CoupledField{
       break;
     default:
       EXCEPTION( "PolarCoordSystem::GetDofName:\n"
-                 << "The component number " << dof << " does not exist in a "
-                 << "global cartesian coordinate system!" );
+                 << "The component number " << dof << " does not exist in local "
+                 << "polar coordinate system!" );
     }
 
     return ret;

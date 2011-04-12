@@ -1484,6 +1484,25 @@ namespace CoupledField {
                                 actSDList, actSDList );
       assemble_->AddBiLinearForm( stiffContext );
 
+      // check for complex valued material parameter
+      if( complexMatData_[actRegion] ) {
+        matType = Global::IMAG;
+        FlatShellPiezoInt * compPiezoIntC = new FlatShellPiezoInt( composite, false);
+        compPiezoIntC->SetMatDataType(matType);
+        BiLinFormContext * stiffContextC =
+            new BiLinFormContext( compPiezoIntC, STIFFNESS);
+
+        // We also need to set the transposed of the coupling
+        // matrix to the lower diagonal side
+        stiffContextC->SetCounterPart( true );
+
+        stiffContextC->SetPtPdes( pde1_, pde2_ );
+        stiffContextC->SetResults( results1_[0], results2_[0],
+                                  actSDList, actSDList );
+        stiffContextC->SetEntryType(matType);
+        assemble_->AddBiLinearForm( stiffContextC );
+
+      }
     }
 
   }

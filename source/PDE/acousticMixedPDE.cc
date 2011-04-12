@@ -160,16 +160,17 @@ namespace CoupledField
           // inner / outer region
           Matrix<Double> inner;
           Matrix<Double> outer;
+          std::string coordSysId;
           
           //damping factor
           Double dampPML;
           
           std::string id = actRegionNode->Get("dampingId")->As<std::string>();
           PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal   ("pml", "id", id);
-          ReadDataPML(dampingTypePML, inner, dampPML, pmlNode );
+          ReadDataPML(dampingTypePML, inner, dampPML, coordSysId, pmlNode );
           dampPML *= c0;
           
-          GetPMLLayerData(inner, outer, actRegion);
+          GetPMLLayerData(inner, outer, actRegion, coordSysId);
           if ( analysistype_ == HARMONIC ) {        
             //====================================================================
             //	 mass integrator for PML PP
@@ -181,7 +182,7 @@ namespace CoupledField
             BaseForm * bilinearStiff_pml_PP =
               new PMLMixedInt(formsType, 1.0/bulkModulus, dampingTypePML, dampPML, isaxi_);
             
-            bilinearStiff_pml_PP->SetPosPML(inner,outer);
+            bilinearStiff_pml_PP->SetPosPML(inner,outer,coordSysId);
             
             BiLinFormContext * stiffContextMPP =
               new BiLinFormContext( bilinearStiff_pml_PP, MASS );
@@ -202,7 +203,7 @@ namespace CoupledField
             BaseForm * bilinearStiff_pml_VV =
               new PMLMixedInt(formsType, density, dampingTypePML, dampPML, isaxi_);
             
-            bilinearStiff_pml_VV->SetPosPML(inner,outer);
+            bilinearStiff_pml_VV->SetPosPML(inner,outer,coordSysId);
             
             BiLinFormContext * stiffContextMVV =
               new BiLinFormContext( bilinearStiff_pml_VV , MASS );
@@ -261,7 +262,7 @@ namespace CoupledField
               BaseForm * PMLGradR_PhiSigma =
                  new PMLMixedTimeInt(formsType, -1.0 , dampingTypePML, dampPML, isaxi_);
 
-              PMLGradR_PhiSigma->SetPosPML(inner,outer);
+              PMLGradR_PhiSigma->SetPosPML(inner,outer, coordSysId);
 
               BiLinFormContext * PMLGradR_PhiSigmaContext =
                             new BiLinFormContext( PMLGradR_PhiSigma, STIFFNESS );
@@ -279,7 +280,7 @@ namespace CoupledField
               BaseForm * bilinearC_VV =
                  new PMLMixedTimeInt(formsType, 1.0 * density , dampingTypePML, dampPML, isaxi_);
 
-              bilinearC_VV->SetPosPML(inner,outer);
+              bilinearC_VV->SetPosPML(inner,outer, coordSysId);
 
               BiLinFormContext * bilinearC_VVContext =
                             new BiLinFormContext( bilinearC_VV, STIFFNESS );
@@ -297,7 +298,7 @@ namespace CoupledField
               BaseForm * bilinearC_phi =
                  new PMLMixedTimeInt(formsType, 1.0 , dampingTypePML, dampPML, isaxi_);
 
-              bilinearC_phi->SetPosPML(inner,outer);
+              bilinearC_phi->SetPosPML(inner,outer, coordSysId);
 
               BiLinFormContext * bilinearC_phiContext =
                             new BiLinFormContext( bilinearC_phi, STIFFNESS );
@@ -315,7 +316,7 @@ namespace CoupledField
               BaseForm * PMLMassPhi =
                    new PMLMixedTimeInt(formsType, 1.0 , dampingTypePML, dampPML, isaxi_);
 
-              PMLMassPhi->SetPosPML(inner,outer);
+              PMLMassPhi->SetPosPML(inner,outer,coordSysId);
 
               BiLinFormContext * PMLMassPhiContext =
                             new BiLinFormContext( PMLMassPhi, STIFFNESS );
@@ -657,11 +658,12 @@ namespace CoupledField
 
   void AcousticMixedPDE::InitTimeStepping()
   {
+    PtrParamNode systemNode = FindLinearSystem(pdename_);
     if ( effectiveMass_ == true ) {
-      TS_alg_ = new TrapezoidalEffMass( algsys_ );
+      TS_alg_ = new TrapezoidalEffMass( algsys_, systemNode );
     }
     else {
-      TS_alg_ = new Trapezoidal( algsys_ );
+      TS_alg_ = new Trapezoidal( algsys_, systemNode );
       TS_alg_->SetTrapezoidalGamma(0.505);
       //      TS_alg_ = new Bdf2( algsys_ );
     }

@@ -16,6 +16,7 @@ namespace CoupledField {
   {
     algsys_  = algebraicsystem;
     rhsSize_ = 0 ;
+    omitFirstPredictor_ = false;
   }
 
   const std::map<FEMatrixType,Double>  &

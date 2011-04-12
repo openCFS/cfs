@@ -230,6 +230,10 @@ namespace CoupledField
     * @throws an exception if the value is not set or not convertible */
     template<typename TYPE>
     const TYPE& AsConst() const;
+    
+    /** @return the value of the node, parsed as number by mathParser **/
+    template<typename TYPE>
+    TYPE MathParse() const;
 
     /** Directly access the value of the current node as a given type.
      *  In case the node does not exist the following action is taken:

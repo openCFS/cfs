@@ -122,6 +122,10 @@ namespace CoupledField
                    TYPE& flux, 
                    bool timeDeriv );
 
+    //! Calculates the permeability as element result
+    template<class TYPE>
+    void CalcPermeability( shared_ptr<BaseResult> result ); 
+    
     //! computation of force (virtual work principle)
     void CalcForceVWP( shared_ptr<BaseResult> result );
 
@@ -180,7 +184,6 @@ namespace CoupledField
                               UInt ip,
                               Vector<TYPE>& field );
     
-
     // =======================================================================
     //   COILS
     // =======================================================================
@@ -228,7 +231,7 @@ namespace CoupledField
     // =======================================================================
     //   COILS
     // =======================================================================
-    std::string nonLinMethod_;
+    NonLinMethodType nonLinMethod_;
     
     
   private:

@@ -17,7 +17,7 @@ namespace CoupledField {
                                              const UInt dim,
                                              const UInt numFiles,
                                              const UInt startIndex) :
-    FileReader(name, dim, numFiles, startIndex_)
+    FileReader(name, dim, numFiles, startIndex)
   {
     Settings& settings = Settings::Instance();
 
@@ -393,12 +393,10 @@ namespace CoupledField {
                                              const std::vector<bool>& activeParts,
                                              const UInt timeStepIdx)
   {
-    Settings& settings = Settings::Instance();
-
     // put filename together
     std::ostringstream sFilename;
     sFilename.str("");
-    sFilename << baseName_ << timeStepIdx << ".csv";
+    sFilename << baseName_ << (timeStepIdx+startIndex_) << ".csv";
 
     // try to open file
     inFile_.clear();
@@ -436,7 +434,7 @@ namespace CoupledField {
     FlowDataType &flowdata = nodalFlowdata[0];
 
     // set up flow data struct
-    if (timeStepIdx == static_cast<UInt>(settings.GetInt("firststep"))) {
+    if (timeStepIdx == 0) {
       for (itQuan = col2Quan_.begin(); itQuan != itEnd; ++itQuan) {
         FlowDataPartStruct *fdps = NULL;
 

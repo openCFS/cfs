@@ -615,7 +615,7 @@ namespace CoupledField {
  #ifdef USE_MKL
     CFSMKLVersion ver;
 
-    MKLGetVersion((MKLVersion*)&ver);
+    MKLGetVersion(reinterpret_cast<MKLVersion*>(&ver));
 
     out << "MKL_VERSION:           " << fg_blue
         << ver.MajorVersion << "."

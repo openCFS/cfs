@@ -46,15 +46,27 @@ namespace CoupledField {
     void Global2LocalCoord( Vector<Double> &loc,  
                             const Vector<Double> & glob ) const;
 
-    //! Return the global rotation matrix for a given point
+    //! Returns the global rotation matrix for a given point
 
     //! This method returns the rotation matrix defining defining a rotation,
     //! by which the global coordinate system has to be rotated, so that
-    //! it represents the current one in that point.
-    void 
+    //! so that it represents the current one in that point.
+    //! \param rotMatrix rotation matrix for global point
+    //! \param point point w.r.t. to global Cartesian coordinate system
+    virtual void 
     GetGlobRotationMatrix( Matrix<Double> & rotMatrix,
                            const Vector<Double>& point ) const;
 
+    //! Returns the full 3x3 global rotation matrix for a given point
+
+    //! This method returns the full 3x3 rotation matrix defining defining 
+    //! a rotation, by which the global coordinate system has to be rotated, 
+    //! it represents the current one in that point.
+    //! \param rotMatrix rotation matrix for global point
+    //! \param point point w.r.t. to global Cartesian coordinate system
+    virtual void 
+    GetFullGlobRotationMatrix( Matrix<Double> & rotMatrix,
+                               const Vector<Double>& point ) const;
 
     //@{
     //! Transform local vector into global one for a given global model point

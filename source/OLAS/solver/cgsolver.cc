@@ -215,6 +215,7 @@ namespace CoupledField {
     // ============================
     //   Generate solution report
     // ============================
+    Double reduction = resNorm / scalFac_;
     PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
     out->Get("numIter")->SetValue(niter);
     out->Get("finalNorm")->SetValue(resNorm);
@@ -224,7 +225,15 @@ namespace CoupledField {
     else {
       out->Get("solutionIsOkay")->SetValue(boost::any(false));
     }
-
+    
+    // Calculate average number of iterations and residual error reduction
+    numCalls_++;
+    accIters_ += niter;
+    accReduction_ += reduction;
+    
+    PtrParamNode stat = solverInfo_->Get(ParamNode::SUMMARY)->Get("statistics");
+    stat->Get("avgIterations")->SetValue(accIters_ / numCalls_);
+    stat->Get("avgResReduction")->SetValue( accReduction_ / numCalls_);
   }
 
 // Explicit template instantiation

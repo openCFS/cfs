@@ -187,6 +187,25 @@ namespace CoupledField
     Double startmatVal_;    //!< star value for reluctivity
     ApproxData *nlinFnc_;   //!< pointer to approximation object for BH curve
   };
+  
+  /// class for calculation of right-hand-side of nonlinear magnetics using edge elements
+  class nLinMagEdge_linFormInt : public LinearForm
+  {
+  public:
+
+    /// constructor
+    nLinMagEdge_linFormInt( BaseMaterial* matData, 
+                            bool coordUpdate = false );
+
+    /// destructor
+    virtual ~ nLinMagEdge_linFormInt();
+
+    /// Calculation of vector of right hand side 
+    void CalcElemVector( Vector<Double> & result,
+                         EntityIterator& ent );
+
+  protected:
+  };
 
 
   // =============================================================================
@@ -332,6 +351,13 @@ namespace CoupledField
     void CalcElemVec4Quad(const Matrix<Double>& ptCoord,
                           const  Matrix<Double> & NodaldTijdxj,
                           Vector<Double> & Result);
+
+    /// Calculation of vector of right hand side using nodal velocity values at
+    /// the centre of an element
+    void CalcElemVec4QuadwithVelCentre(const Matrix<Double>& ptCoord, const Matrix<Double> & NodalVel,
+                                 Vector<Double> & Result, Vector<Double> & nodalLoadDensity,
+                                 Vector<Double>& divLHTensor, const Elem* elem, Double density);
+
 
     /// Calculation of vector of right hand side using nodal velocity values
     void CalcElemVec4QuadwithVel(const Matrix<Double>& ptCoord, const Matrix<Double> & NodalVel,

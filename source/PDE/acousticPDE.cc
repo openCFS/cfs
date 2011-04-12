@@ -426,16 +426,16 @@ namespace CoupledField {
         // inner / outer region
         Matrix<Double> inner;
         Matrix<Double> outer;
-        
+        std::string coordSysId;
         //damping factor
         Double dampPML;
         
         std::string id = actRegionNode->Get("dampingId")->As<std::string>();
         PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml", "id", id);
-        ReadDataPML(dampingTypePML, inner, dampPML, pmlNode );
+        ReadDataPML(dampingTypePML, inner, dampPML, coordSysId, pmlNode );
         dampPML *= c0;
         
-        GetPMLLayerData(inner, outer, actRegion);
+        GetPMLLayerData(inner, outer, actRegion, coordSysId );
 
         // check for almost PML formulation
         std::string formsType;
@@ -464,7 +464,7 @@ namespace CoupledField {
           BaseForm * bilinearStiffReal =
             new PMLInt(formsType, density, dampingTypePML, dampPML, isaxi_);
           
-          bilinearStiffReal->SetPosPML(inner,outer);
+          bilinearStiffReal->SetPosPML(inner,outer, coordSysId);
           
           BiLinFormContext * stiffContextReal =
             new BiLinFormContext( bilinearStiffReal, STIFFNESS );
@@ -490,7 +490,7 @@ namespace CoupledField {
           BaseForm * bilinearMassReal =
             new PMLInt( formsType, massFactor, dampingTypePML, dampPML, isaxi_ );
           
-          bilinearMassReal->SetPosPML(inner,outer);
+          bilinearMassReal->SetPosPML(inner,outer, coordSysId);
           
           BiLinFormContext * massContextReal =
             new BiLinFormContext( bilinearMassReal, MASS);
@@ -515,7 +515,7 @@ namespace CoupledField {
           BaseForm * bilinearPressStiff =
             new PMLTimeInt(formsType, factorPDE, dampingTypePML, dampPML, isaxi_);
           
-          bilinearPressStiff->SetPosPML(inner,outer);
+          bilinearPressStiff->SetPosPML(inner,outer, coordSysId);
           
           BiLinFormContext * pressStiffContext =
             new BiLinFormContext( bilinearPressStiff, STIFFNESS );
@@ -532,7 +532,7 @@ namespace CoupledField {
           BaseForm * bilinearPressDamp =
             new PMLTimeInt(formsType, factorPDE, dampingTypePML, dampPML, isaxi_);
           
-          bilinearPressDamp->SetPosPML(inner,outer);
+          bilinearPressDamp->SetPosPML(inner,outer, coordSysId);
           
           BiLinFormContext * pressDampContext =
             new BiLinFormContext( bilinearPressDamp, DAMPING );
@@ -550,7 +550,7 @@ namespace CoupledField {
           BaseForm * bilinearPressGrad =
             new PMLTimeInt(formsType, factorPDE, dampingTypePML, dampPML, isaxi_);
           
-          bilinearPressGrad->SetPosPML(inner,outer);
+          bilinearPressGrad->SetPosPML(inner,outer, coordSysId);
           
           BiLinFormContext * pressGradContext =
             new BiLinFormContext( bilinearPressGrad, STIFFNESS );
@@ -581,7 +581,7 @@ namespace CoupledField {
           BaseForm * bilinearAuxDiv =
             new PMLTimeInt(formsType, factorPDE, dampingTypePML, dampPML, isaxi_);
           
-          bilinearAuxDiv->SetPosPML(inner,outer);
+          bilinearAuxDiv->SetPosPML(inner,outer, coordSysId);
           
           BiLinFormContext * auxDivContext =
             new BiLinFormContext( bilinearAuxDiv, STIFFNESS );
@@ -599,7 +599,7 @@ namespace CoupledField {
           BaseForm * bilinearAuxStiff =
             new PMLTimeInt(formsType, factorPDE, dampingTypePML, dampPML, isaxi_);
           
-          bilinearAuxStiff->SetPosPML(inner,outer);
+          bilinearAuxStiff->SetPosPML(inner,outer, coordSysId);
           
           BiLinFormContext * auxStiffContext =
             new BiLinFormContext( bilinearAuxStiff, STIFFNESS );
@@ -620,7 +620,7 @@ namespace CoupledField {
             BaseForm * bilinearAuxGrad =
               new PMLTimeInt(formsType, factorPDE, dampingTypePML, dampPML, isaxi_);
             
-            bilinearAuxGrad->SetPosPML(inner,outer);
+            bilinearAuxGrad->SetPosPML(inner,outer, coordSysId);
             
             BiLinFormContext * auxGradContext =
               new BiLinFormContext( bilinearAuxGrad, STIFFNESS );
@@ -639,7 +639,7 @@ namespace CoupledField {
             BaseForm * bilinearScalarAuxStiff =
               new PMLTimeInt(formsType, factorPDE, dampingTypePML, dampPML, isaxi_);
             
-            bilinearScalarAuxStiff->SetPosPML(inner,outer);
+            bilinearScalarAuxStiff->SetPosPML(inner,outer, coordSysId);
             
             BiLinFormContext * scalarAuxStiffContext =
               new BiLinFormContext( bilinearScalarAuxStiff, STIFFNESS );
@@ -1240,7 +1240,7 @@ namespace CoupledField {
         TS_alg_ = new NewmarkFracDamp( algsys_,
                                        pdeId_, eqnMap_, ptgrid_, this,
                                        results_[0],
-                                       subdoms_, dampingList_ );
+                                       subdoms_, dampingList_, systemNode );
       else
         EXCEPTION( "This needs to be implemented!" );
     }

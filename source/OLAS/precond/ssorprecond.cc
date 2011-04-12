@@ -16,6 +16,11 @@ namespace CoupledField {
   template <typename T>
   SSORPrecond<T>::SSORPrecond( const StdMatrix& mat, PtrParamNode solverNode,
 			       PtrParamNode olasInfo ) {
+    
+    // The SSOR preconditioner is currently not working
+    WARN("The SSOR-Preconditioner is not yet ported from 1 to 0 based"
+        "numbering, i.e. it will NOT work correctly!" );
+    
     this->xml_ = solverNode;
     this->olasInfo_ = olasInfo;
     size_     = mat.GetNumRows();

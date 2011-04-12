@@ -84,6 +84,58 @@
   </xsd:complexType>
 
 
+  <!-- ******************************************************************* -->
+  <!--   Definition of PML damping -->
+  <!-- ******************************************************************* -->
+  
+  <!-- Definition of pml damping type -->
+  <xsd:complexType name="DT_DampingPML">
+    <xsd:complexContent>
+      <xsd:extension base="DT_DampingBasic">
+        <xsd:sequence>
+          
+          <!-- Reference coordinate system, in which PML damping is defined -->
+          <xsd:element name="coordSysId" minOccurs="0" maxOccurs="1" type="xsd:token"/>          
+          
+          <!-- Geometric definition of region -->
+          <xsd:element name="propRegion" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="direction" minOccurs="1" maxOccurs="3">
+                  <xsd:complexType>
+                    <xsd:attribute name="comp" type="DT_CosyCompType" use="required"/>
+                    <xsd:attribute name="min" type="xsd:token" use="required"/>
+                    <xsd:attribute name="max" type="xsd:token" use="required"/>
+                    </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+          
+          <!-- Type of PML -->
+          <xsd:element name="type" minOccurs="0" maxOccurs="1" default="inverseDist">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="constant"   />
+                <xsd:enumeration value="quadDist"     />
+                <xsd:enumeration value="inverseDist"     />
+                <xsd:enumeration value="smoothDamp"     />
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
+          
+          <!-- Damping factor -->
+          <xsd:element name="dampFactor" type="xsd:token" minOccurs="0" maxOccurs="1" />
+          
+          <xsd:element name="aPML"  type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no"/>
+        </xsd:sequence>
+        
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+
   <!-- ******************************************************************** -->
   <!--   Definition of basic result data type -->
   <!-- ******************************************************************** -->
@@ -101,9 +153,9 @@
   
   <!-- Please but documentation here -->
   <xsd:complexType name="DT_ResultSavingType" abstract="true">
-    <xsd:attribute name="saveBegin" type="xsd:integer" default="0"/>
-    <xsd:attribute name="saveEnd" type="xsd:positiveInteger" default="2147483647"/>
-    <xsd:attribute name="saveInc" type="xsd:positiveInteger" default="1"/>
+    <xsd:attribute name="saveBegin" type="xsd:token" default="0"/>
+    <xsd:attribute name="saveEnd" type="xsd:token" default="2147483647"/>
+    <xsd:attribute name="saveInc" type="xsd:token" default="1"/>
   </xsd:complexType>
 
 

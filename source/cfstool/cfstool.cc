@@ -48,6 +48,8 @@ namespace fs = boost::filesystem;
 #ifdef USE_HDF5
 #include "DataInOut/SimInOut/hdf5/simInputHDF5.hh"
 #include "DataInOut/SimInOut/hdf5/simOutputHDF5.hh"
+
+#include "DataInOut/SimInOut/xdmf/simOutputXDMF.hh"
 #endif
 
 #ifdef USE_GIDPOST
@@ -189,6 +191,18 @@ namespace CFSTool {
       writer =  shared_ptr<SimOutput>( new SimOutputHDF5( baseName, h5Node ) );
 #else
       EXCEPTION( "No support for HDF5 output file format." );
+#endif
+    } else if(fileName.find( ".xmf") != std::string::npos) {
+#ifdef USE_HDF5
+      baseName = std::string(fileName, 0, fileName.find(".xmf"));
+      PtrParamNode h5Node (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
+      PtrParamNode eFiles (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
+      eFiles->SetName("externalFiles");
+      eFiles->SetValue( "false" );
+      h5Node->AddChildNode(eFiles);
+      writer =  shared_ptr<SimOutput>( new SimOutputXDMF( baseName, h5Node ) );
+#else
+      EXCEPTION( "No support for HDF5 output file format. Cannot write XDMF files." );
 #endif
     } else if(fileName.find( ".rst") != std::string::npos) {
 #ifdef USE_ANSYSRST

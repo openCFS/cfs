@@ -7,7 +7,12 @@
 
 #include "singleDriver.hh"
 
+#include <boost/date_time/posix_time/posix_time.hpp>
+
 namespace CoupledField {
+
+  //! forward class declarations
+  class Timer;
 
   //! driver for transient problems.it is derived from BaseDriver;
   class TransientDriver : virtual public SingleDriver {
@@ -68,6 +73,13 @@ namespace CoupledField {
 
     //! Time step to proceed from when performing restarted simulation
     UInt restartStep_;
+    
+    // =======================================================================
+    //  Timing estimation
+    // =======================================================================
+
+    //! Timer for estimating remaining runtime 
+    Timer * timer_;
 
   };
 

@@ -175,19 +175,20 @@ namespace CoupledField {
     strBuffer <<  fileName_ << "-" 
               << BasePDE::analysisType.ToString(currAnalysis_)
               << "-" << currMsStep_ << ".gmv";
-    if ( actStep_ < 10 ) strBuffer << "000";
-    else if ( actStep_ < 100 ) strBuffer << "00";
-    else if ( actStep_ < 1000 ) strBuffer << "0";
-    else if ( actStep_ > 10000 ) {
-      EXCEPTION("Number of gmv files exceeds 9999!");
+    if ( actStep_ < 10 ) strBuffer << "00000";
+    else if ( actStep_ < 100 ) strBuffer << "0000";
+    else if ( actStep_ < 1000 ) strBuffer << "000";
+    else if ( actStep_ < 10000 ) strBuffer << "00";
+    else if ( actStep_ < 100000 ) strBuffer << "0";
+    else if ( actStep_ >= 1000000 ) {
+      EXCEPTION("Number of gmv files exceeds one million!");
     }
-    
+
     strBuffer << actStep_;
     output = OpenFile( strBuffer.str() );
 
     // Print Grid
     WriteGrid( false );
-
 
     // -------------------------
     // Iterate over all results

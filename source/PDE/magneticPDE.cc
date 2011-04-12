@@ -215,10 +215,12 @@ DEFINE_LOG(magpde, "magpde")
     
     // Here we need in addition the nonLinMethod_ for the definition
     // of the integrators
+    nonLinMethod_ = FIXEDPOINT;
     PtrParamNode nonLinNode = myParam_->Get("nonLinear", ParamNode::PASS );
-    nonLinMethod_ = "fixPoint";
     if( nonLinNode ) {
-      nonLinNode->GetValue(  "method", nonLinMethod_, ParamNode::PASS );
+      std::string methodString;
+      nonLinNode->GetValue(  "method", methodString, ParamNode::PASS );
+      nonLinMethod_ = NonLinMethodTypeEnum.Parse(methodString);
     }
 
   }
@@ -623,7 +625,8 @@ DEFINE_LOG(magpde, "magpde")
 
   void MagPDE::InitTimeStepping() {
 
-    TS_alg_ = new Trapezoidal( algsys_ );
+    PtrParamNode systemNode = FindLinearSystem(pdename_);
+    TS_alg_ = new Trapezoidal( algsys_, systemNode );
   }
 
 
@@ -681,6 +684,14 @@ DEFINE_LOG(magpde, "magpde")
         CalcEddyCurrent<Complex>( res );
       } else {
         CalcEddyCurrent<Double>( res );
+      }
+      break;
+    
+    case MAG_ELEM_PERMEABILITY:
+      if( isComplex_ ) {
+        CalcPermeability<Complex>( res );
+      } else {
+        CalcPermeability<Double>( res );
       }
       break;
       
@@ -929,7 +940,7 @@ DEFINE_LOG(magpde, "magpde")
         
         // VERY IMPORTANT: Set nonlinear-method "fixpoint", as otherwise also
         // the Frechet part of the stiffness is calculated!
-        bilinear_stiff->SetNonLinMethod( "fixPoint" );
+        bilinear_stiff->SetNonLinMethod( FIXEDPOINT );
       } else {
         if (is3d_ ) {
           bilinear_stiff = new CurlCurlNode3DInt( materials_[regionIt.GetRegion()] );
@@ -1083,6 +1094,44 @@ DEFINE_LOG(magpde, "magpde")
     parser->ReleaseHandle(h1);
     parser->ReleaseHandle(h2);
     parser->ReleaseHandle(h3);
+  }
+  template<class TYPE>
+  void MagPDE::CalcPermeability( shared_ptr<BaseResult> result ) {
+    
+    TYPE elemPerm;
+    Vector<TYPE> elemFlux;
+    Double bAbs, reluct;
+   
+   // fetch result object and convert data
+   Result<TYPE> &  actSol = 
+     dynamic_cast<Result<TYPE>&>(*result);
+   Vector<TYPE> & actVal = actSol.GetVector();
+   actVal.Resize( actSol.GetEntityList()->GetSize());
+
+   // loop over elements
+   EntityIterator it = actSol.GetEntityList()->GetIterator();
+   for ( it.Begin(); !it.IsEnd(); it++ ) {
+     
+     // Determine regionId of element
+     const Elem & actEl = *(it.GetElem());
+     RegionIdType actRegion = actEl.regionId; 
+     
+     // Check, if region is nonlinear
+     if ( regionNonLinType_[actRegion] == PERMEABILITY ) {
+       
+       // Obtain nonlinear approximation functional
+       ApproxData * approx  = materials_[actRegion]->GetNonlinFncBH();
+       
+       // Calculate flux density in element midpoint
+       CalcFluxDensityAtIP( it, 0, elemFlux );
+       bAbs = elemFlux.NormL2();
+       reluct = approx->EvaluateFuncNu(bAbs);
+       elemPerm = 1.0 / reluct;
+     } else {
+       materials_[actRegion]->GetScalar( elemPerm, MAG_PERMEABILITY,Global::REAL); 
+     }
+     actVal[it.GetPos() ] = elemPerm;
+   }
   }
 
   template<class TYPE>
@@ -1374,6 +1423,16 @@ DEFINE_LOG(magpde, "magpde")
     eddy->entryType = ResultInfo::VECTOR;
     eddy->fctType = shared_ptr<ConstFct>(new ConstFct() );
     availResults_.insert( eddy ); 
+    
+    // === PERMEABILITY  ===
+    shared_ptr<ResultInfo> perm(new ResultInfo);
+    perm->resultType = MAG_ELEM_PERMEABILITY;
+    perm->dofNames = "";
+    perm->unit = "Vs/Am";
+    perm->definedOn = ResultInfo::ELEMENT;
+    perm->entryType = ResultInfo::SCALAR;
+    perm->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert( perm );
 
     // === EDDY CURRENT POWER ===
     shared_ptr<ResultInfo> eddyPower(new ResultInfo);

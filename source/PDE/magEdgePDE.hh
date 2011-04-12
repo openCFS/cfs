@@ -128,6 +128,10 @@ namespace CoupledField
                               UInt ip,
                               Vector<TYPE>& field );
 
+    //! Calculates the permeability as element result
+    template<class TYPE>
+    void CalcPermeability( shared_ptr<BaseResult> result );
+    
     //! Calc EddyCurrent in integration point
 
     //! Calculates the eddy current (density) at the given integration point.
@@ -187,7 +191,7 @@ namespace CoupledField
     // =======================================================================
     //   COILS
     // =======================================================================
-    std::string nonLinMethod_;
+    NonLinMethodType nonLinMethod_;
     
     
   private:

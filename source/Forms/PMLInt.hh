@@ -13,6 +13,9 @@ namespace CoupledField
 {
 
 
+  /// forward class declaration
+  class CoordSystem;
+
   /// Class for calculation  element stiffness/mass matrix for PML formulation
   
   class PMLInt : public BaseForm
@@ -32,7 +35,8 @@ namespace CoupledField
                             EntityIterator& ent2 );
     
     //! set min/max of x,y,z coordinates form where PML starts and ends
-    void SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer);
+    void SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer,
+                   const std::string& coordSysId );
     
     //! set number of dofs per node
     void SetNrDofs( UInt numDofs ) {
@@ -67,6 +71,8 @@ namespace CoupledField
     //! number of dofs per node
     UInt nrDofsPerNode_;
     
+    //! pointer to reference coordinate system
+    CoordSystem * coordSys_;
 };
 
 
@@ -90,7 +96,8 @@ namespace CoupledField
                             EntityIterator& ent2 );
     
     //! set min/max of x,y,z coordinates form where PML starts and ends
-    void SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer);
+    void SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer,
+                   const std::string& coordSysId );
     
     void SetActElemSol(Matrix<Double>& disp){};
     
@@ -98,11 +105,17 @@ namespace CoupledField
   private:
     
     //! Calculation of stiffmess matrix
-    void calcBMatPML( Matrix<Double>& bMat, Vector<Double>& CoordAtIP,
-                      Matrix<Complex> & bMatComplex, Complex& jacDetC);
+    void calcBMatPML( Matrix<Complex> & bMatComplex, Complex& jacDetC,
+                      UInt intPoint,
+                      Vector<Double>& CoordAtIP,
+                      Matrix<Double> &ptCoord );
+                      
     
     //! object containing standard PML methods
     PMLBasics *pmlFnc_;
+    
+    //! pointer to reference coordinate system
+    CoordSystem * coordSys_;
 };
 
 
@@ -127,7 +140,8 @@ namespace CoupledField
                             EntityIterator& ent2 );
 
     //! set min/max of x,y,z coordinates form where PML starts and ends
-    void SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer);
+    void SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer,
+                   const std::string& coordSysId);
     
     //! set actual solution
     void SetActElemSol(Matrix<Double>& disp){};
@@ -155,6 +169,9 @@ namespace CoupledField
   
   //! multiplicative factor for forms
   Double formsFactor_;
+  
+  //! pointer to reference coordinate system
+  CoordSystem * coordSys_;
 
 };
 
@@ -177,7 +194,8 @@ namespace CoupledField
                             EntityIterator& ent2 );
     
     //! set min/max of x,y,z coordinates form where PML starts and ends
-    void SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer);
+    void SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer,
+                   const std::string& coordSysId);
     
     //! set number of dofs per node
     void SetNrDofs( UInt numDofs ) {
@@ -205,6 +223,9 @@ namespace CoupledField
     //! number of dofs per node
     UInt nrDofsPerNode_;
     
+    //! pointer to reference coordinate system
+    CoordSystem * coordSys_;
+    
   };
 
   class PMLMixedTimeInt : public BaseForm
@@ -224,7 +245,8 @@ namespace CoupledField
                             EntityIterator& ent2 );
     
     //! set min/max of x,y,z coordinates form where PML starts and ends
-    void SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer);
+    void SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer,
+                   const std::string& coordSysId);
     
     //! set number of dofs per node
     void SetNrDofs( UInt numDofs ) {
@@ -264,6 +286,9 @@ namespace CoupledField
 
     //! The current entity 
     EntityIterator ent_;
+    
+    //! pointer to reference coordinate system
+    CoordSystem * coordSys_;
     
 };
 }
