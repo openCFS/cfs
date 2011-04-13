@@ -248,7 +248,7 @@ namespace CoupledField
        // design region, but GetRegionId is still called
        // so we cannot assert regions.GetSize() == 1 as before
        if(regions.GetSize() == 0) return -1;
-       return regions[0].regionId;
+       return regions[0][0].regionId;
      }
 
      /** returns the current design id */
@@ -270,16 +270,27 @@ namespace CoupledField
      /** Writes summary information about design variables and transfer functions into the node */
      void ToInfo(PtrParamNode in);
      
+     typedef enum { VARIABLE, CONSTANT_PER_REGION, CONSTANT_ON_ALL_REGIONS, FIXED } DesignConstant;
+     
+     static Enum<DesignConstant> designConstant;
+     
+     /** This holds information about a region, valid for one design.
+      * save parameters for scaling the design to [0..1] in the optimizer: 
+      * our design = scaling * optimizer_design + translation 
+      * given for every design, for every region */
      class DesignRegion
      {
      public:
        /** Default constructor as C++ has no defaults :( */
        DesignRegion();
 
+       DesignElement::Type design;
        RegionIdType regionId;
        unsigned int base;
        unsigned int elements;
-       bool constant;
+       DesignConstant constant;
+       double scale_design;
+       double translate_design;
 
        void SetBiMaterial(const std::string& material) { bimaterial_ = material; }
 
@@ -300,7 +311,8 @@ namespace CoupledField
      /** Convenience function */
      BaseMaterial* GetBiMaterial(RegionIdType reg, Optimization::Application app, bool throw_exception = true);
 
-     StdVector<DesignRegion> regions;
+     /** This now is a vector of design and region regions[design][region] */
+     StdVector<StdVector<DesignRegion> > regions;
 
      /** it is convenient to have such a vector for some functions. Taken from regions! */
      StdVector<RegionIdType>& GetRegionIds() { return regionIds_; }
@@ -322,13 +334,6 @@ namespace CoupledField
       * Necessary for the DesignElement constructor of pseudo elements (to be registerd later) such that the virtual element
       * index can be set for extended pde vector element solution storage. */
      unsigned int CalcRegisteredPseudoDesigns() const;
-
-
-     /** save parameters for scaling the design to [0..1] in the optimizer: 
-      * our design = scaling * optimizer_design + translation 
-      * given for every design, for every region */
-     StdVector<StdVector<double> > scale_design;
-     StdVector<StdVector<double> > translate_design;
 
      /** for SIMP type constructor we have a number of elements,
       * data size = num of design * num region elements */
