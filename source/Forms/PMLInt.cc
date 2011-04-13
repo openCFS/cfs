@@ -408,7 +408,7 @@ namespace CoupledField
     for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
       
       // Setup the B matrix for current integration point
-      //calcBMat( bMat, actIntPt, ptCoord_ );
+      //CalcBMat( bMat, actIntPt, ptCoord_ );
       
       // compute PML factor 
       ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
@@ -1131,10 +1131,8 @@ namespace CoupledField
     else if ( formsType_ == "PMLGradR_PhiSigma" ) { 
       CalcElementMatrixGradRV(ptCoord_, elemMat);
     }  
-    else{
-      std::cout << "Requested a Type which is not supported by PMLMixedTimeInt " << formsType_ << ".... exiting" << std::endl;
-      exit(-1);
-    }
+    else
+      EXCEPTION("Requested a Type which is not supported by PMLMixedTimeInt " << formsType_);
   }
     
     //! set min/max of x,y,z coordinates form where PML starts and ends

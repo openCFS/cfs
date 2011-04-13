@@ -504,6 +504,11 @@ namespace CoupledField
 
   private:
 
+    /** checks the domain in the xml file for a pattern region.
+     * @param replace resized to elements+1 by element number. True if the pattern region has an entry there. Untouched if no pattern region
+     * @return in case of an pattern region it is added to regionData and the id is returned, otherwise NO_REGION_ID */
+    RegionIdType CheckPatternRegion(StdVector<bool>& replace);
+
     /** Helper for FinishInit(). Determines if there are only regular elements.
      * Can be expensive!
      * @return true means that the region is regular */

@@ -4,6 +4,7 @@
 #include "Optimization/Design/DesignStructure.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
+#include "DataInOut/ParamHandling/Xerces.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "General/exception.hh"
 #include "General/environment.hh"
@@ -32,16 +33,15 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   observation_ = pn->Get("mode")->As<std::string>() == "observation";
 
   // the bound value is mandatory when we have a constraint
-  if(!observation_ && !pn->Has("bound") && type_ != ISOTROPY && type_ != ISO_ORTHOTROPY)
+  if(!observation_ && !pn->Has("bound") && type_ != ISOTROPY && type_ != ISO_ORTHOTROPY && type_ != ORTHOTROPY)
     throw Exception("bound type for constraint '" + type.ToString(type_) + "' mandatory");
   bound_ = pn->Has("bound") ? bound.Parse(pn->Get("bound")->As<std::string>()) : EQUAL;
   // the bound value is called value in the problem file!
   // there must not  be a value when a homogenization tensor is given
   this->boundValue_ = pn->Has("value") ? pn->Get("value")->As<double>() : -1.0;
 
-  design = !pn->Has("design") ? DesignElement::DEFAULT :
-           DesignElement::type.Parse(pn->Get("design")->As<std::string>());
-
+  if(pn->Has("design")) // will sometime be in Function, now the default is set to DEFAULT
+    design = DesignElement::type.Parse(pn->Get("design")->As<std::string>());
 
   // special handling of scaling
   objective_scaling_ = pn->Get("scaling")->As<std::string>() == "objective";
@@ -58,8 +58,11 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
     ReadCoord(pn);
 
   penalty = pn->Get("penalty")->As<double>();
-  region = ALL_REGIONS;
 
+  // validated in StressConstraint::GetApplications()
+  stressType_ = stressType.Parse(pn->Get("stress")->As<std::string>());
+
+  // default is set in Function, may this moves later to Function, too
   if(pn->Has("region") && pn->Get("region")->As<std::string>() != "all")
     region = domain->GetGrid()->GetRegion().Parse(pn->Get("region")->As<std::string>());
 
@@ -76,6 +79,7 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
 
     case ISOTROPY:
     case ISO_ORTHOTROPY:
+    case ORTHOTROPY:
       if(pn->Has("value"))
         throw Exception("No value allowed for constraint '" + type.ToString(type_) + "'");
       break; // ok without value
@@ -94,8 +98,21 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
 
 }
 
-void Condition::PostProc(DesignSpace* space, DesignStructure* structure)
+void Condition::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMaterial* em)
 {
+  SetElements(space, region); // before Function::PostProc() because of virtual_elem_map
+
+  if(type_ == DESIGN_TRACKING)
+    ReadDesignTrackingPattern(space, structure);
+
+  if(type_ == STRESS && stressType_ != MECH)
+  {
+    // it might be that we do piezo stresses on a pure elastic optimization problem.
+    // Then register the ELEC PDE such that it is stored for the stress calculation by StressConstraint()
+    // if we do PiezoSIMP this is simply redundant
+    em->pdes[Optimization::ELEC] = domain->GetSinglePDE("electrostatic");
+  }
+
   // note, meanwhile we have info_ set! but not yet in the constructor
   Function::PostProc(space, structure);
 
@@ -134,7 +151,7 @@ void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list)
     AddHomogenizationTensorConstraints(pn, list, g);
 
   // isotropy is a special constraint which blows up special tensor entry constraints
-  if(g->type_ == ISOTROPY || g->type_ == ISO_ORTHOTROPY)
+  if(g->type_ == ISOTROPY || g->type_ == ISO_ORTHOTROPY || g->type_ == ORTHOTROPY)
     AddXtropyConstraints(pn, list, g);
 }
 
@@ -142,16 +159,16 @@ void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list)
 void Condition::AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g)
 {
   // isotropy is a special constraint which blows up special tensor entry constraints
-  assert(g->GetType() == ISOTROPY || g->GetType() == ISO_ORTHOTROPY);
+  assert(g->GetType() == ISOTROPY || g->GetType() == ISO_ORTHOTROPY || g->type_ == ORTHOTROPY);
 
   // we reset the type, therefore keep it
   Type org = g->type_;
 
   if(pn->Has("coord"))
-    throw Exception("don't use attribute 'coord' for constraint 'isotropy'/'iso-orthotropy'");
+    throw Exception("don't use attribute 'coord' for constraint 'isotropy'/'iso-orthotropy'/'orthotropy'");
 
   if(g->bound_ != EQUAL)
-    throw Exception("the 'isotropy'/'iso-orthotropy' constraint requires equality constraint type");
+    throw Exception("the 'isotropy'/'iso-orthotropy'/'orthotropy' constraint requires equality constraint type");
 
   // become an HOMOGENIZATION_TENSOR constraint!
   g->type_ = HOMOGENIZATION_TENSOR;
@@ -164,39 +181,33 @@ void Condition::AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& lis
   // E = E(1,1) (= E(2,2) = E(3,3))
   // nu = E(1,2) (= E(1,3) = E(2,3))
   // G = E(4,4) (= E(5,5) = E(6,6))
-  //
-  // the conditions for iso-orthotropy can be derived from the conditions for
-  // positive definit material matrices. using the leading principal minors
-  // (Hauptminoren) of the matrix, we can derive the following relations that
-  // must be fulfilled:
-  // 1. E > 0
-  // 2. E^2 - nu^2 > 0
-  // 3. E^3 + 2nu^3 - 3nu^2E > 0
-
-  // this is equivalent (to be rigorosly proofed!) to:
-  // 1. E > 0
-  // 2. E > nu
-  // 3. E > -2nu
-  //
   // this conditions are lower bound conditions!
 
   if(domain->GetGrid()->GetDim() == 2)
   {
-    // E11 - E22 = 0
     assert(g->coords.GetSize() == 0);
     g->boundValue_ = 0;
-    g->coords.Push_back(make_tuple(1,1,1.0));
-    g->coords.Push_back(make_tuple(2,2,-1.0));
+
+    if(org == ISOTROPY || org == ISO_ORTHOTROPY)
+    {
+      // E11 - E22 = 0
+      g->coords.Push_back(make_tuple(1,1,1.0)); // no AppendSubCondtion()/Clear() in first case
+      g->coords.Push_back(make_tuple(2,2,-1.0));
+
+      g = g->AppendSubCondition(list);
+      g->coords.Clear(); // do here, see below
+    }
 
     // E13 = 0
-    g = g->AppendSubCondition(list);
-    g->coords.Clear();
+    // AppendSubCondtion()/Clear() not in ISO_ORTHOTROPY case and done otherwise above.
+    // this is very ugly, but switching the order makes problems for SCPIP to solve trivial max E11 in the testsuite!!
     g->coords.Push_back(make_tuple(1,3,1.0));
 
     // E23 = 0
     g = g->AppendSubCondition(list);
     g->coords.Clear();
     g->coords.Push_back(make_tuple(2,3,1.0));
+
 
     if(org == ISOTROPY)
     {
@@ -207,49 +218,58 @@ void Condition::AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& lis
       g->coords.Push_back(make_tuple(1,2,-1.0));
       g->coords.Push_back(make_tuple(3,3,-2.0));
     } // else case is common for 2D and 3D
+
+
   }
   else
   {
-    // non-shear diagonal is constant
-    // E11 = E22 = E33 -> E11 - E22 = 0, E22 - E33 = 0
     assert(g->coords.GetSize() == 0);
+
     g->boundValue_ = 0;
-    g->coords.Push_back(make_tuple(1,1,1.0));
-    g->coords.Push_back(make_tuple(2,2,-1.0));
 
-    g = g->AppendSubCondition(list);
-    g->coords.Clear();
-    g->coords.Push_back(make_tuple(2,2,1.0));
-    g->coords.Push_back(make_tuple(3,3,-1.0));
+    if(org == ISOTROPY || org == ISO_ORTHOTROPY)
+    {
+      // non-shear diagonal is constant
+      // E11 = E22 = E33 -> E11 - E22 = 0, E22 - E33 = 0
+      g->coords.Push_back(make_tuple(1,1,1.0));
+      g->coords.Push_back(make_tuple(2,2,-1.0));
 
-    // upper non-shear triangle is constant
-    // E12 = E13 = E23 -> E12 - E13 = 0, E13 - E23 = 0
-    g = g->AppendSubCondition(list);
-    g->coords.Clear();
-    g->coords.Push_back(make_tuple(1,2,1.0));
-    g->coords.Push_back(make_tuple(1,3,-1.0));
+      g = g->AppendSubCondition(list);
+      g->coords.Clear();
+      g->coords.Push_back(make_tuple(2,2,1.0));
+      g->coords.Push_back(make_tuple(3,3,-1.0));
 
-    g = g->AppendSubCondition(list);
-    g->coords.Clear();
-    g->coords.Push_back(make_tuple(1,3,1.0));
-    g->coords.Push_back(make_tuple(2,3,-1.0));
+      // upper non-shear triangle is constant
+      // E12 = E13 = E23 -> E12 - E13 = 0, E13 - E23 = 0
+      g = g->AppendSubCondition(list);
+      g->coords.Clear();
+      g->coords.Push_back(make_tuple(1,2,1.0));
+      g->coords.Push_back(make_tuple(1,3,-1.0));
 
-    // shear diagonal is constant
-    // E44 = E55 = E66 -> E44 - E55 = 0, E55 - E66 = 0
-    g = g->AppendSubCondition(list);
-    g->coords.Clear();
-    g->coords.Push_back(make_tuple(4,4,1.0));
-    g->coords.Push_back(make_tuple(5,5,-1.0));
+      g = g->AppendSubCondition(list);
+      g->coords.Clear();
+      g->coords.Push_back(make_tuple(1,3,1.0));
+      g->coords.Push_back(make_tuple(2,3,-1.0));
 
-    g = g->AppendSubCondition(list);
-    g->coords.Clear();
-    g->coords.Push_back(make_tuple(5,5,1.0));
-    g->coords.Push_back(make_tuple(6,6,-1.0));
+      // shear diagonal is constant
+      // E44 = E55 = E66 -> E44 - E55 = 0, E55 - E66 = 0
+      g = g->AppendSubCondition(list);
+      g->coords.Clear();
+      g->coords.Push_back(make_tuple(4,4,1.0));
+      g->coords.Push_back(make_tuple(5,5,-1.0));
 
-    // the rest is zero
+      g = g->AppendSubCondition(list);
+      g->coords.Clear();
+      g->coords.Push_back(make_tuple(5,5,1.0));
+      g->coords.Push_back(make_tuple(6,6,-1.0));
+
+      g = g->AppendSubCondition(list);
+      g->coords.Clear(); // see 2D why we have to do this nonsense
+    }
+
+
+    // the zero entries
     // E14 = E15 = E16 = E24 = E25 = E26 = E34 = E35 = E36 = E45 = E46 = E56 = 0
-    g = g->AppendSubCondition(list);
-    g->coords.Clear();
     g->coords.Push_back(make_tuple(1,4,1.0));
 
     g = g->AppendSubCondition(list);
@@ -306,29 +326,8 @@ void Condition::AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& lis
       g->coords.Push_back(make_tuple(1,2,-1.0));
       g->coords.Push_back(make_tuple(6,6,-2.0));
     }
+
   }
-  // common for 2D and 3D
-  if(org == ISO_ORTHOTROPY)
-  {
-    // E11 > 0
-    g = g->AppendSubCondition(list);
-    g->bound_ = LOWER_BOUND;
-    g->coords.Clear();
-    g->coords.Push_back(make_tuple(1,1,1.0));
-
-    // E11 > E12 = E11 - E12 > 0
-    g = g->AppendSubCondition(list);
-    g->coords.Clear();
-    g->coords.Push_back(make_tuple(1,1,1.0));
-    g->coords.Push_back(make_tuple(1,2,-1.0));
-
-    // E11 + E12 + E12 > 0
-    g = g->AppendSubCondition(list);
-    g->coords.Clear();
-    g->coords.Push_back(make_tuple(1,1,1.0));
-    g->coords.Push_back(make_tuple(1,2,2.0));
-  }
-
 }
 
 
@@ -449,6 +448,63 @@ Condition* Condition::AppendSubCondition(StdVector<Condition*>& list, int pos_x,
   return sub;
 }
 
+void Condition::ReadDesignTrackingPattern(DesignSpace* space, DesignStructure* structure)
+{
+  assert(type_ == DESIGN_TRACKING);
+  assert(elements.GetSize() > 0); // SetElements() needs to be called prior this one
+
+  // if elements is not set by a region we overwrite elements and search for the elements with periodic
+  // boundary conditions (the outer frame)
+  if(region == ALL_REGIONS)
+  {
+    // ensure it is initialized
+    VicinityElement::Init(space, structure);
+
+    assert(elements[0]->vicinity != NULL); // it shall not be a ghost element
+    elements.Resize(0); // capacity is still there so we can push back
+    for(unsigned int i = 0; i < space->data.GetSize(); i++)
+    {
+      DesignElement& de = space->data[i];
+      if(de.vicinity->periodic)
+        elements.Push_back(&de);
+    }
+
+    if(elements.GetSize() == 0)
+      throw Exception("Constraint 'designTracking' requires attribute 'region' when there are no periodic boundary conditions");
+  }
+
+  // read the pattern file
+  if(!pn->Has("designTarget"))
+    throw Exception("Attribute 'designTarget' holding a density file name is mandatory of 'designTracking'");
+  std::string file = pn->Get("designTarget")->As<std::string>();
+  Xerces* xerces = new Xerces(file);
+  PtrParamNode xml = xerces->CreateParamNodeInstance();
+  delete xerces;
+
+  // check this file
+  if (xml->Count("set") == 0)
+    throw Exception("There are no design sets in the pattern file " + file);
+
+  // read the target in a huge temporary list such that it is cheap to compare against the design elements
+  unsigned int grid_size = domain->GetGrid()->GetNumElems();
+  StdVector<double> tmp;
+  tmp.Resize(grid_size + 1, 0.0);
+
+  ParamNodeList elems = xml->GetList("set").Last()->GetList("element");
+  if(elems.GetSize() > grid_size)
+    EXCEPTION("The 'designTarget' file '" << file << "' has " << elems.GetSize() << " elements and the mesh only " << grid_size)
+  if(!elems[0]->Has("physical"))
+    throw Exception("'designTracking' requires the attribute 'physical' in the 'designTarget' file " + file);
+
+  for(unsigned int i = 0; i < elems.GetSize(); i++)
+    tmp[elems[i]->Get("nr")->As<int>()] = elems[i]->Get("physical")->As<double>();
+
+  // copy from pattern what we actually need
+  pattern.Resize(elements.GetSize());
+  for(unsigned int i = 0, n = elements.GetSize(); i < n; i++)
+    pattern[i] = tmp[elements[i]->elem->elemNum];
+}
+
 void Condition::SetDenseSparsityPattern(DesignSpace* space)
 {
   unsigned int size = space->GetNumberOfVariables();
@@ -503,6 +559,10 @@ std::string Condition::ToString(MultipleExcitation* me) const
   if(type_ == STRESS && me != NULL && me->IsEnabled())
     os << "_" << me->excitations[excite_].label; // change to excite label
 
+  // We might have non-standard stresses
+  if(type_ == STRESS && stressType_ != MECH)
+    os << "_" << stressType.ToString(stressType_);
+
   return os.str();  
 }
 
@@ -537,7 +597,7 @@ std::string Condition::ToString(const StdVector<tuple<int, int, double> >& coord
 }
 
 
-void Condition::ToInfo(PtrParamNode in)
+void Condition::ToInfo(PtrParamNode in, MultipleExcitation* me)
 {
   Function::ToInfo(in);
 
@@ -559,6 +619,18 @@ void Condition::ToInfo(PtrParamNode in)
   else
     in->Get("delta_logging")->SetValue(delta_logging);
 
+  if(region != ALL_REGIONS)
+    in->Get("region")->SetValue(domain->GetGrid()->GetRegion().ToString(region));
+
+  if(type_ == DESIGN_TRACKING)
+    in->Get("elements")->SetValue(elements.GetSize());
+
+  if(type_ == STRESS)
+    in->Get("stress")->SetValue(stressType.ToString(stressType_));
+
+  if(!DoEvaluateAlways())
+    in->Get("excitation")->SetValue(me->excitations[excite_].label);
+
   // TODO somehow scaling does not work ??
   // if(IsHomogenization() && !objective_scaling_ && !blown_up_) // warn only the first time!
   //  in->Get(ParamNode::WARNING)->SetValue("Doing homogenization without 'objective' scaling constraint '" + type.ToString(type_) + "'");
@@ -571,6 +643,7 @@ bool Condition::IsForRegion(RegionIdType regionId)
 {
   return(region == ALL_REGIONS || region == regionId);
 }
+
 
 LocalCondition::LocalCondition(PtrParamNode pn) : Condition(pn)
 {
@@ -604,7 +677,8 @@ StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
   for(int i = -1 ; i < (int) id.neighbor.GetSize(); i++)
   {
     DesignElement* de = id.GetElement(i);
-    int other_idx = local->space->Find(de); // needs to be fast!
+    // int other_idx = local->space->Find(de); // needs to be fast!
+    int other_idx = de->GetIndex();
     indices.push_back(other_idx);
   }
 
@@ -738,7 +812,7 @@ void ConditionContainer::Refresh()
 
 
 
-void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure, MultipleExcitation* me)
+void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure, MultipleExcitation* me, ErsatzMaterial* em)
 {
   this->space_ = space;
 
@@ -763,7 +837,7 @@ void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure
 
   for(unsigned int i = 0; i < all.GetSize(); i++)
   {
-    all[i]->PostProc(space, structure);
+    all[i]->PostProc(space, structure, em);
     all[i]->SetExcitation(me);
   }
 
@@ -772,13 +846,14 @@ void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure
   Condition::AddExcitationStressConstraints(active, me);
   Condition::AddExcitationStressConstraints(observe, me);
 
+
   Refresh(); // inform about the news if the slopes created a lot of virtual objectives!
 }
 
-void ConditionContainer::ToInfo(PtrParamNode in)
+void ConditionContainer::ToInfo(PtrParamNode in, MultipleExcitation* me)
 {
   for(unsigned int i = 0; i < all.GetSize(); i++)
-    all[i]->ToInfo(in->Get("constraint", ParamNode::APPEND));
+    all[i]->ToInfo(in->Get("constraint", ParamNode::APPEND), me);
 }
 
 StdVector<Condition*> ConditionContainer::GetList(Condition::Type type, DesignElement::Type design, bool only_active)
@@ -925,11 +1000,9 @@ void ConditionContainer::VirtualView::Done()
     int idx = container_->space_->GetSpecialResultIndex(DesignElement::DEFAULT, vs);
     if(idx >= 0)
     {
-      StdVector<DesignElement>& des_data = container_->space_->data;
-
       // we add up the max value and not elements have a slope constraint, therefore reset
-      for(unsigned int e = 0; e < des_data.GetSize(); e++)
-        des_data[e].specialResult[idx] = 0.0; // initialize
+      for(unsigned int e = 0; e < lc->elements.GetSize(); e++)
+        lc->elements[e]->specialResult[idx] = 0.0; // initialize
 
       StdVector<Function::Local::Identifier>& vem = lc->GetLocal()->virtual_elem_map;
 

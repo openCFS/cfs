@@ -136,6 +136,8 @@
       <xsd:enumeration value="SIMP"/>      
       <xsd:enumeration value="mathematical_limit_homogenization"/>
       <xsd:enumeration value="snopt"/>      
+      <xsd:enumeration value="shape_optimization"/>
+      <xsd:enumeration value="tensor_tracking"/>
       <!-- this are solver keywords -->
       <xsd:enumeration value="solver"/>
       <!-- nonmatching grids specific key words -->

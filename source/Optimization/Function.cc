@@ -17,6 +17,7 @@ DEFINE_LOG(func, "opt_func")
 
 // instantiation of the static elements is in Optimization::SetEnums()
 Enum<Function::Type> Function::type;
+Enum<Function::StressType>  Function::stressType;
 Enum<Function::Local::Locality> Function::Local::locality;
 Enum<Function::Local::Phase> Function::Local::phase;
 
@@ -34,6 +35,9 @@ using boost::lexical_cast;
 Function::Function(PtrParamNode pn)
 {
   this->harmonic_    = BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType());
+  this->design = DesignElement::DEFAULT; // overwritten eventually in Condition
+  this->region = ALL_REGIONS;  // overwritten eventually in Condition
+
 
   this->pn = pn;
   this->local = NULL;
@@ -45,6 +49,8 @@ Function::Function(PtrParamNode pn)
 
   // -2 is unset, -1 is all, >= 0 the excitation index
   this->excite_ = -1;
+
+  this->stressType_ = MECH; // set in Condition
 
   this->physical_ = pn->Has("physical") ? pn->Get("physical")->As<bool>() : false;
 
@@ -148,7 +154,7 @@ bool Function::ReadTensor(PtrParamNode pn, Matrix<double>& matrix)
     double poisson = tens->Get("real")->Get("poissonNumber")->As<double>();
 
     Matrix<double> tmp(6,6); // always 3D first
-    MechanicMaterial::CalcIsotropicStiffnessTensorFromEAndPoisson(matrix, emod, poisson);
+    MechanicMaterial::CalcIsotropicStiffnessTensorFromEAndPoisson(tmp, emod, poisson);
     MechanicMaterial::ComputeSubTensor(matrix, domain->GetSinglePDE("mechanic")->GetSubTensorType(), tmp);
 
     tensor_read = true;
@@ -183,6 +189,9 @@ void Function::ToInfo(PtrParamNode info)
   // we check for valid ocurence of paramter in the constructor
   if(pn->Has("parameter"))
     info->Get("parameter")->SetValue(parameter_);
+
+  if(local != NULL)
+    local->ToInfo(info_);
 }
 
 std::string Function::ToString(MultipleExcitation* me) const
@@ -227,16 +236,20 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case HOMOGENIZATION_TRACKING:
     case POISSONS_RATIO:
     case YOUNGS_MODULUS:
+    case YOUNGS_MODULUS_E1:
+    case YOUNGS_MODULUS_E2:
     case SLOPE:
     case GLOBAL_SLOPE:
     case ISOTROPY:
     case ISO_ORTHOTROPY:
+    case ORTHOTROPY:
     case MOLE:
     case GLOBAL_MOLE:
     case OSCILLATION:
     case GLOBAL_OSCILLATION:
     case JUMP:
     case GLOBAL_JUMP:
+    case DESIGN_TRACKING:
       assert(excite_index < 0);
       excite_ = me->excitations.GetSize() - 1; // once only at the last excitation
       break;
@@ -340,8 +353,11 @@ bool Function::IsHomogenization() const
     case HOMOGENIZATION_TRACKING:
     case POISSONS_RATIO:
     case YOUNGS_MODULUS:
+    case YOUNGS_MODULUS_E1:
+    case YOUNGS_MODULUS_E2:
     case ISOTROPY:
     case ISO_ORTHOTROPY:
+    case ORTHOTROPY:
       return true;
 
     default:
@@ -379,6 +395,8 @@ bool Function::ForSensitivityFiltering() const
   case HOMOGENIZATION_TRACKING:
   case POISSONS_RATIO:
   case YOUNGS_MODULUS:
+  case YOUNGS_MODULUS_E1:
+  case YOUNGS_MODULUS_E2:
   case TEMPERATURE:
   case ABS_OUTPUT:
   case STRESS:
@@ -398,10 +416,12 @@ bool Function::ForSensitivityFiltering() const
   case GLOBAL_OSCILLATION:
   case JUMP:
   case GLOBAL_JUMP:
+  case DESIGN_TRACKING:
     return false;
 
   case ISOTROPY:
   case ISO_ORTHOTROPY:
+  case ORTHOTROPY:
   case MULTI_OBJECTIVE:
     EXCEPTION("Invalid query: " << type.ToString(type_));
   }
@@ -409,8 +429,64 @@ bool Function::ForSensitivityFiltering() const
   EXCEPTION("can never reach! Stupid C++");
 }
 
+void Function::SetElements(DesignSpace* space, RegionIdType region)
+{
+  assert(elements.GetSize() == 0);
+  Grid* grid = domain->GetGrid();
 
-void Function::PostProc(DesignSpace* space, DesignStructure* structure)
+  // Bastian's multiple design test cases have situations where design is DEFAULT as it is not
+  // set in the objective
+
+  // if ALL_REGIONS for condition use what we define as design space which
+  elements.Reserve(region == ALL_REGIONS ? space->data.GetSize() : grid->GetNumElems(region));
+
+  if(region == ALL_REGIONS || space->Contains(region))
+  {
+    for(unsigned int i = 0; i < space->data.GetSize(); i++)
+    {
+      DesignElement* de = &(space->data[i]);
+      if((design == DesignElement::DEFAULT || design == DesignElement::TENSOR_TRACE || design == de->GetType())
+          && (region == ALL_REGIONS || de->elem->regionId == region))
+        elements.Push_back(de);
+    }
+  }
+  else
+  {
+    // this is a special case where the constraint does not act on the design space
+    if(type_ != STRESS)
+    {
+      std::string msg = "region " + grid->GetRegion().ToString(region) + " of condition " + type.ToString(type_) + " not within design domain";
+      info_->Get(ParamNode::WARNING)->SetValue(msg);
+    }
+
+    StdVector<Elem*> elems;
+    grid->GetElems(elems, region);
+
+    // construct dummy elements
+    non_design_elements_.Reserve(elems.GetSize());
+
+    // see DesignSpace::GetPseudoElementIndex()
+    int pei_base = space->GetNumberOfElements() + space->CalcRegisteredPseudoDesigns();
+
+    for(unsigned int i = 0; i < elems.GetSize(); i++)
+    {
+      DesignElement del(elems[i], design, elements.GetSize(), pei_base + i);
+      non_design_elements_.Push_back(del); // copy constructor
+
+      DesignElement* de = &(non_design_elements_.Last());
+      assert(de->simp == NULL);
+      de->simp = new SIMPElement(de);
+
+      elements.Push_back(de);
+    }
+    space->RegisterPseudoDesign(elements);
+  }
+
+  assert(elements.GetSize() == elements.Capacity());
+}
+
+
+void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMaterial* em)
 {
   // pre-init step
   switch(type_)
@@ -424,22 +500,24 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure)
   case JUMP:
   case GLOBAL_JUMP:
   case STRESS:
-    assert(space->IsRegular()); // VicinityElements work only on a regular grid
+    // assert(space->IsRegular()); // VicinityElements work only on a regular grid
     // the design elements require the vicinity element to be set which holds the direct
     // neighbors. Is save to call several times
     VicinityElement::Init(space, structure);
     InitLocal(space);
-
     break;
 
   case PENALIZED_VOLUME:
     for(unsigned int i = 0; i < space->transfer.GetSize(); i++)
       if(space->transfer[i].IsPenalized())
         info_->Get(ParamNode::WARNING)->SetValue("transfer function '" + space->transfer[i].ToString() + " seems also to penalize");
+    break;
 
   default: // do nothing
     break;
   }
+
+  // don't define the elements here, it is specific for objective and conditions
 }
 
 Function::Local* Function::InitLocal(DesignSpace* space)
@@ -467,7 +545,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
   this->power_ = pn != NULL && pn->Has("power") ? pn->Get("power")->As<double>() : 2.0;
   this->phase_ = pn != NULL && pn->Has("phase") ? phase.Parse(pn->Get("phase")->As<std::string>()) : BOTH; // only oscillation
 
-  this->normalize_ = pn != NULL ? pn->Get("normalize")->As<bool>() : true;
+  this->normalize_ = pn != NULL ? pn->Get("normalize")->As<bool>() : false;
 
   switch(ftype)
   {
@@ -584,9 +662,6 @@ Function::Local::Local(Function* func, DesignSpace* space)
 
   // needs to be set prior CalcSlopeConstraint() as the optimizers need the size
   values.Resize(virtual_elem_map.GetSize(), -1.0);
-
-  // Function::ToInfo() was already called, hence we hace the node
-  ToInfo(func->info_);
 }
 
 Function::Local::~Local()
@@ -853,15 +928,13 @@ void Function::Local::SetupSingularElementMap()
 {
   // only this element!
   element_dimension_ = 1; // two boundary "stones" per dimension
-  virtual_elem_map.Reserve(element_dimension_ * space->GetNumberOfElements());
-
-  space->AssertOneDesignOnly();
+  virtual_elem_map.Reserve(element_dimension_ * func_->elements.GetSize());
 
   StdVector<DesignElement*> empty;
 
-  for(int e = 0, en = space->GetNumberOfElements(); e < en; e++)
+  for(int e = 0, en = func_->elements.GetSize(); e < en; e++)
   {
-    DesignElement* de = &(space->data[e]);
+    DesignElement* de = func_->elements[e];
     virtual_elem_map.Push_back(Identifier(de, empty));
   }
 }
@@ -987,7 +1060,7 @@ Function::Local::Identifier::Identifier(DesignElement* elem, StdVector<DesignEle
 }
 
 
-double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_glob, const Vector<double>* von_mises_stress) const
+double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_glob, double von_mises_stress) const
 {
   // function value
   double fv = 0.0;
@@ -996,7 +1069,8 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
   switch(f->type_)
   {
   case STRESS:
-    fv = CalcStress(local, von_mises_stress);
+    assert(von_mises_stress >= 0);
+    fv = von_mises_stress;
     break;
 
   case SLOPE:
@@ -1395,11 +1469,3 @@ double Function::Local::Identifier::CalcJumpGradient(int neigh_idx) const
   return 2.0 * std::sin(PI*slope) * std::cos(PI*slope) * PI * factor;
 }
 
-double Function::Local::Identifier::CalcStress(const Local* local, const Vector<double>* von_mises_stress) const
-{
-  // so trivial
-  assert(von_mises_stress != NULL);
-  int idx = local->space->Find(element);
-  LOG_DBG3(func) << "L:I:CS elem=" << element->ToString() << " idx=" << idx << " -> " << (*von_mises_stress)[idx];
-  return (*von_mises_stress)[idx];
-}

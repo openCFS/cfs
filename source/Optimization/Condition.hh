@@ -32,7 +32,7 @@ namespace CoupledField
        virtual bool IsLocalCondition() const { return false; }
 
        /** Overwrites and calls Function::PostProc() */
-       void PostProc(DesignSpace* space, DesignStructure* structure);
+       void PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMaterial* em);
 
        /** Call this method to append a Condition. This calls the actual (private) constructor.
         * Index is set with position of the relevant list.
@@ -77,7 +77,7 @@ namespace CoupledField
        virtual std::string ToString(MultipleExcitation* me = NULL) const;
 
        /** log to info.xml. Overloads Function::ToInfo() */
-       void ToInfo(PtrParamNode in);
+       void ToInfo(PtrParamNode in, MultipleExcitation* me);
        
        /** Shall the scaling be linked to the objective scaling */
        bool DoObjectiveScaling() const { return objective_scaling_; }
@@ -90,10 +90,9 @@ namespace CoupledField
         * This works only after ConditionContainer::PostProc() is called as otherwise the design is not known yet.
         * Is overwritten for the slope constraint which acutally has spare patterns. */
        virtual StdVector<unsigned int>& GetSparsityPattern();
-       
-       /** This is DEFAULT (= applies always) if not defined */
-       DesignElement::Type design;
 
+       /** creates an xml attribute name compatible string representation for coords */
+       static std::string ToString(const StdVector<tuple<int, int, double> >&);
 
        /** The scaling is evaluated for external optimizers, not in OC!
         * This is the manual set scaling value - in objective_scaling_ case this value is ignored! */
@@ -107,9 +106,6 @@ namespace CoupledField
        /** Shall delta constraints be printed? Is only true if a value is given! */
        bool delta_logging;
 
-       /** If condition supports constriction to one region */
-       RegionIdType region;
-       
        /** Used for caching 1.0 / complete_volume per region */
        double volume_fraction;
 
@@ -125,9 +121,10 @@ namespace CoupledField
         * Note, that the entries are 1-based!!!
         * the factor for ErsatzMaterial::CalcHomogenizedTensorEntry() */
        StdVector<tuple<int, int, double> > coords;
-       
-       /** creates an xml attribute name compatible string representation for coords */
-       static std::string ToString(const StdVector<tuple<int, int, double> >&);
+
+       /** For design tracking, this are the elements we have to track. Function::elements is resized accordingly!
+        * The vector is empty when we do not do design tracking */
+       StdVector<double> pattern;
 
     protected:
       /** Reads the coord attribute and sets the coord pair if value is not 'all'
@@ -180,6 +177,10 @@ namespace CoupledField
 
     private:
 
+      /** Read the pattern for design tracking. pattern has in the end the same size as Function::elements.
+       * Needs to be called after SetElements() */
+      void ReadDesignTrackingPattern(DesignSpace* space, DesignStructure* structure);
+
       /** Helper for AddCondition().
        * Adds the conditions for isotropy or iso-orthotropy which is isotropy without fixing the
        * shear moduli */
@@ -191,6 +192,7 @@ namespace CoupledField
       /** if in list a stress constraint is found, it is enlarged by the excitations and each is associated
        * to an own excitation */
       static void AddExcitationStressConstraints(StdVector<Condition*>& list, MultipleExcitation* me);
+
    };
 
    /** This handles local constraints which exist only virtually - hence the optimizer sees them but
@@ -346,11 +348,11 @@ namespace CoupledField
      /** The slope constraints can only be initialized when the design exists.
       * Requires ToInfo() to be called prior such that we can do the info output to the stored info
       * @structure is from ErsatzMaterial */
-     void PostProc(DesignSpace* space, DesignStructure* structure, MultipleExcitation* me);
+     void PostProc(DesignSpace* space, DesignStructure* structure, MultipleExcitation* me, ErsatzMaterial* em);
 
      /** Log the head information. The InfoNode is stored such that PostProc can do the info output
       * if already set. */
-     void ToInfo(PtrParamNode in);
+     void ToInfo(PtrParamNode in, MultipleExcitation* me);
 
      /** Searches in active constraints only!
       *  @param design NO_TYPE ignores this criteria. DEFAULT would be problematic for

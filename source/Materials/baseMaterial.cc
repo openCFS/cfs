@@ -148,17 +148,14 @@ namespace CoupledField
 
 
   void  BaseMaterial::setMakesNoSense(Global::ComplexPart dataType, const std::string& msg ) const {
-
-    std::string msgAll, help;
-    help = Global::complexPart.ToString( dataType );
     EXCEPTION( "Set of " << msg << " makes no sense with datatype "
-               << help );
+               << Global::complexPart.ToString( dataType ) );
   }
 
 
   void BaseMaterial::subTensorNotAvailable(MaterialType matType, SubTensorType subTensor )
   {
-    std::string msg, help1, help2;
+    std::string help1, help2;
     help1 = MaterialTypeEnum.ToString( matType );
     Enum2String(subTensor, help2);
     EXCEPTION("Subtensor " << help2 <<" not available for material type " << help1);

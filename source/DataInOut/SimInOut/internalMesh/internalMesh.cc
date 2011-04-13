@@ -12,6 +12,8 @@
 namespace CoupledField
 {
 using std::string;
+using std::cout;
+using std::endl;
 
 InternalMesh::InternalMesh(std::string fileName, PtrParamNode inputNode) :
             SimInput(fileName, inputNode),
@@ -19,18 +21,18 @@ InternalMesh::InternalMesh(std::string fileName, PtrParamNode inputNode) :
             minimal_(Point(0.0, 0.0, 0.0)),
             maximal_(Point(1.0, 1.0, 0.0)), // maxz is set to 0.0 for 2D
             maxNumElems_(0),
-            maxNumNodes_(0)
+            maxNumNodes_(0),
+            info_(info->Get("header")->Get("domain")->Get("internal"))
 {
   // in base class
   capabilities_.insert(SimInput::MESH);
 
   // create temporary xerces file parser
-  Xerces* xerces = new Xerces(fileName_);
+  boost::shared_ptr<Xerces> xerces(new Xerces(fileName_));
   // parse the file and create corresponding paramnode
   xml_ = xerces->CreateParamNodeInstance();
-  // delete the xerces object, does not affect the paramnode!
-  delete xerces;
 
+  
   if(xml_->GetName() != string("cfsInternalMesh"))
     EXCEPTION("file " << fileName_ << " is not a cfsInternalMesh-file!");
 
@@ -53,7 +55,7 @@ InternalMesh::InternalMesh(std::string fileName, PtrParamNode inputNode) :
     maxNumNodes_ *= (nelems_[2]+1);
     assert(maxNumElems_ > 0);
 
-    maximal_[2] = 1.0; // set maximal z to 1.0
+    maximal_[2] = 1.0; // set default maximal z to 1.0
   }
   else
     nelems_[2] = 0;
@@ -65,14 +67,18 @@ InternalMesh::InternalMesh(std::string fileName, PtrParamNode inputNode) :
     regionNames_.Push_back("mech"); // default region name
 
   // FIXME put this in the log output
-  std::cout << "dim = " << dim_
-            << ", nx = " << nelems_[0]
-            << ", ny = " << nelems_[1]
-            << ", nz = " << nelems_[2]
-            << ", numElems = " << maxNumElems_
-            << ", numNodes = " << maxNumNodes_
-            << ", regionname = " << string(regionNames_[0])
-            << std::endl;
+  info_->Get("basic")->Get("nx")->SetValue(nelems_[0]);
+  info_->Get("basic")->Get("ny")->SetValue(nelems_[1]);
+  info_->Get("basic")->Get("nz")->SetValue(nelems_[2]);
+  
+  cout << "dim = " << dim_
+       << ", nx = " << nelems_[0]
+       << ", ny = " << nelems_[1]
+       << ", nz = " << nelems_[2]
+       << ", numElems = " << maxNumElems_
+       << ", numNodes = " << maxNumNodes_
+       << ", regionname = " << string(regionNames_[0])
+       << endl;
 
   elemDimReadIn_.Resize(dim_);
 }
@@ -106,6 +112,14 @@ void InternalMesh::InitModule()
 
   if(xml_->Has("boundary"))
     ParseBoundary(xml_->Get("boundary"));
+    
+  PtrParamNode dims_ = info_->Get("coordinate_dimensions");
+  dims_->Get("minimal")->Get("x")->SetValue(minimal_[0]);
+  dims_->Get("minimal")->Get("y")->SetValue(minimal_[1]);
+  dims_->Get("minimal")->Get("z")->SetValue(minimal_[2]);
+  dims_->Get("maximal")->Get("x")->SetValue(maximal_[0]);
+  dims_->Get("maximal")->Get("y")->SetValue(maximal_[1]);
+  dims_->Get("maximal")->Get("z")->SetValue(maximal_[2]);
 }
 
 void InternalMesh::ReadMesh(Grid *mi)
@@ -234,11 +248,14 @@ UInt InternalMesh::GetNumNamedNodes()
   {
   case 2:
     num = 2*(nelems_[0] + 1) + 2*(nelems_[1] + 1);
-
+    break;
   case 3:
     num =  2*(nelems_[0] + 1)*(nelems_[1] + 1);
     num += 2*(nelems_[0] + 1)*(nelems_[2] + 1);
     num += 2*(nelems_[1] + 1)*(nelems_[2] + 1);
+    break;
+  default:
+    assert(false);
   }
 
   return num;
@@ -624,19 +641,19 @@ void InternalMesh::ParseBoundary(PtrParamNode bdr)
   if(bdr->Has("nodes"))
   {
     tmp = bdr->Get("nodes")->GetChildren();
-    std::cout << "nodes.size = " << tmp.GetSize() << std::endl;
+    cout << "nodes.size = " << tmp.GetSize() << endl;
   }
 
   if(bdr->Has("edges"))
   {
     tmp = bdr->Get("edges")->GetChildren();
-    std::cout << "edges.size = " << tmp.GetSize() << std::endl;
+    cout << "edges.size = " << tmp.GetSize() << endl;
   }
 
   if(bdr->Has("surfaces")) // FIXME && dim_ == 2) // ignore surfaces in 2D
   {
     tmp = bdr->Get("surfaces")->GetChildren();
-    std::cout << "surfaces.size = " << tmp.GetSize() << std::endl;
+    cout << "surfaces.size = " << tmp.GetSize() << endl;
   }
 }
 }

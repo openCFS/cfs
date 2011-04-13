@@ -175,7 +175,7 @@ namespace CoupledField {
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {     
 
       // Setup the B matrix for current integration point
-      piezoBilinearForm_->calcBMat( bMat, actIntPt, ptCoord_ );
+      piezoBilinearForm_->CalcBMat( bMat, actIntPt, ptCoord_ );
 
       // Compute Jacobian for integration point
       jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_,ent.GetElem() );
@@ -314,7 +314,7 @@ namespace CoupledField {
       piezoBilinearForm_->calcAMat( aMat, actIntPt, ptCoord_ );
 
       // Setup the B matrix for current integration point
-      piezoBilinearForm_->calcBMat( bMat, actIntPt, ptCoord_ );
+      piezoBilinearForm_->CalcBMat( bMat, actIntPt, ptCoord_ );
 
       // Compute Jacobian for integration point
       jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_,ent.GetElem() );

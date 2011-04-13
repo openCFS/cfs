@@ -429,7 +429,7 @@ namespace CoupledField
 				    MaterialType matType, 
 				    Global::ComplexPart dataType,
 				    SubTensorType subTensor ) const {	
-
+    
 
     tensorMap::const_iterator pos;
     pos = tensorParams_.find( matType );
@@ -441,25 +441,25 @@ namespace CoupledField
     else {
       Matrix<Complex> matTensor;
       if ( subTensor == FULL ) {
-        matTensor = pos->second;
+	matTensor = pos->second;
       }
       else {
-        ComputeSubTensor(matTensor, matType, subTensor);
+	ComputeSubTensor(matTensor, matType, subTensor);
       }
 
       if ( dataType == Global::REAL || dataType == Global::IMAG) {
-        Matrix<Double> help;
-        help = matTensor.GetPart( dataType );
-        param.Resize( matTensor.GetNumRows(), matTensor.GetNumCols() );
+	Matrix<Double> help; 
+	help = matTensor.GetPart( dataType );
+	param.Resize( matTensor.GetNumRows(), matTensor.GetNumCols() );
         param.Init();
-        param.SetPart( dataType, help );
+	param.SetPart( dataType, help );
       }
       else if ( dataType == Global::COMPLEX ) {
-        param = matTensor;
+	param = matTensor;
       }
     }
   }
-
+  
   void MechanicMaterial::CalcIsotropicStiffnessTensorFromEAndPoisson(Matrix<Double>& out, Double emod, Double poi)
   {
     Complex EModul(emod);
@@ -783,8 +783,8 @@ namespace CoupledField
 
       // E1 = C(1,1) * (1-v12*v21)
       res[0] = tensor[1-1][1-1] * (1.0 - v[0] * v[1]);
-      // E2 = E1 * (v21/v12)
-      res[1] = res[0] * v[1] * v[0];
+      // E2 = C(2,2) * (1-v12*v21)
+      res[1] = tensor[2-1][2-1] * (1.0 - v[0] * v[1]);
       break;
     }
     default:
@@ -913,8 +913,8 @@ namespace CoupledField
     StdVector<double> E = CalcOrthotropeYoungsModulus(tensor, mat, stt, vol);
 
     res.Push_back(std::make_pair("E_1", E[0]));
-    if(stt == FULL || stt == PLANE_STRAIN)  {
-      res.Push_back(std::make_pair("E_2", E[1]));
+    res.Push_back(std::make_pair("E_2", E[1]));
+    if(stt == FULL) {
       res.Push_back(std::make_pair("E_3", E[2]));
     }
 

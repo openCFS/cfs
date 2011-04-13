@@ -30,8 +30,8 @@ class LinThermoElectricInt : public ADBInt
 		//!  Compute matrix \f$ D \f$ at given integration point.
 		void calcDMat(Matrix<Double> &dMat);
 		
-		//!  Compute matrix \f$ B \f$ at given integration point.
-		void calcBMat( Matrix<Double> &bMat, UInt ip,
+		/** @see BaseForm::CalcBMat() */
+		void CalcBMat( Matrix<Double> &bMat, UInt ip,
 							const Matrix<Double> &ptCoord );
 
 

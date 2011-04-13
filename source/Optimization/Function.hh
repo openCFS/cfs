@@ -43,7 +43,7 @@ class Function
     static Function* Cast(Objective* c, Condition* g);
 
     /** PostProc called be the containers */
-    virtual void PostProc(DesignSpace* space, DesignStructure* structure);
+    virtual void PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMaterial* = NULL);
 
     /** Different function types - some only objective, some only constraint some both */
     typedef enum {
@@ -69,6 +69,8 @@ class Function
       HOMOGENIZATION_TRACKING,   /*!< match a given tensor by L2 norm  */
       POISSONS_RATIO,            /*!< Poisson's Ration (\nu) within homogenization */
       YOUNGS_MODULUS,            /*!< Young's Modulus (E) within homogenization */
+      YOUNGS_MODULUS_E1,         /*!< Young's Modulus (E1) within orthotrope homogenization */
+      YOUNGS_MODULUS_E2,         /*!< Young's Modulus (E2) within orthotrope homogenization */
       TYCHONOFF,                 /*!< int(|| design ||^2) is a regularization form material opt. */
       TEMPERATURE,               /*!< for optimization of poisson and heat conduction pde */
       GLOBAL_SLOPE,              /*!< different implementation from local slopes */
@@ -82,10 +84,12 @@ class Function
       REALVOLUME,
       ISOTROPY,                  /*!< blow up to several HOMOGENITATION_TENSOR constraints with different coords */
       ISO_ORTHOTROPY,            /*!< relaxed form of isotropy without fixing shear moduli */
+      ORTHOTROPY,                /*!< just some 0 constraints */
       SLOPE,                     /*!< Implementation of a grad rho constraint */
       MOLE,                      /*!< Feature size control from T. Poulsen */
       OSCILLATION,               /*!< Feature size control by Fabian W. :) */
-      JUMP                       /*!< Weak greyness control by Fabian W. :) */
+      JUMP,                      /*!< Weak greyness control by Fabian W. :) */
+      DESIGN_TRACKING            /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
     } Type;
 
     /** to convert string/enum for this type */
@@ -172,6 +176,13 @@ class Function
      * @param matrix where to store the data
      * @return true if the tensor was read */
     static bool ReadTensor(PtrParamNode pn, Matrix<double>& matrix);
+
+    /** @see StressConstraint::GetApplications */
+    typedef enum { MECH, PIEZO, ONLY_COUPLING } StressType;
+
+    static Enum<StressType> stressType;
+
+    StressType GetStressType() { return stressType_; }
 
 
     /** A function can be be a local function when it is calculated by the local neighborhood state.
@@ -274,8 +285,8 @@ class Function
         /** Service function. Calculates the actual objective, based on function->type
          * @param grad_glob only active when globalized. Not the globalization but the grad of the globalization
          *                  is applied, but based on the function evaluation, not the function gradient!
-         * @param stress only used when the function is stress -> determined by ErsatzMaterial::CalcStress() */
-        double EvalFunction(const Local* local, bool grad_glob = false, const Vector<double>* stress = NULL) const;
+         * @param von_mises_stresss only used when the function is stress -> determined by ErsatzMaterial::CalcVonMisesStressGlobalizationFactor() */
+        double EvalFunction(const Local* local, bool grad_glob = false, double von_mises_stresss = -1.0) const;
 
         /** Service function. Calculates all gradients for this and the neighbors. Only for real local function!.
          * Note, that the von Mises Stress gradient is NOT calculated here but in SIMP::CalcVonMisesStressGradient()!
@@ -307,11 +318,7 @@ class Function
         double CalcJump() const;
         double CalcJumpGradient(int neigh_id) const;
 
-        /** Uses actually the data from
-         * @see ErsatzMaterial::CalcVonMisesVector()
-         * There is no local variant, only the global.
-         * There is no CalcStressGradient() but SIMP::CalcVonMisesStressGradient()  */
-        double CalcStress(const Local* local, const Vector<double>* stress) const;
+        /** CalcStress() and the gradient are actually done in EM/SIMP */
 
         DesignElement* element; // this represents DesignSpace::data[element_idx]
         StdVector<DesignElement*> neighbor;
@@ -419,6 +426,19 @@ class Function
     /** Here we store our ParamNode such we can more easily access it in ErsatzMaterial */
     PtrParamNode pn;
 
+    /** This is DEFAULT (= applies always) if not defined */
+    DesignElement::Type design;
+
+    /** If condition supports constriction to one region. Currently ALL_REGIONS for objectives */
+    RegionIdType region;
+
+    /** real or pseudo design elements defined by the region.
+     * if region is ALL_REGIONS this points to the standard design space.
+     * Otherwise it is a sub set pointing to the design space or if region is not within the design (stress constraint)
+     * it it is filled by DesignElements with dummy values.
+     * Created on request */
+    StdVector<DesignElement*> elements;
+
   protected:
 
     /** Is reentrant save. Initialize the local variable
@@ -427,6 +447,11 @@ class Function
     
     /** extract the "coord" element and parse it to coord */
     static void ParseCoord(PtrParamNode pn, tuple<int, int, double>& coord);
+
+    /** This are the elements the Function is defined on. Either references to the
+     * elements within the design space to to dummy elements if the region is not within the design (stress)
+     * @param region as long as only the Condition has this stuff it is an parameter*/
+    void SetElements(DesignSpace* space, RegionIdType region);
 
     /** The actual kind of cost function. */
     Type type_;
@@ -464,6 +489,11 @@ class Function
     /** Here we store our info node */
     PtrParamNode info_;
 
+    StressType stressType_;
+
+  private:
+    /** Here elements refers to if the region is not within the design space */
+    StdVector<DesignElement> non_design_elements_;
 };
 
 

@@ -115,8 +115,7 @@ Optimization::Optimization()
   constraints.Read(list);
   PtrParamNode in = optInfoNode->Get(ParamNode::HEADER)->Get("constraints");
 
-  // call this again after PostProc()
-  constraints.ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("constraints"));
+  // constraints.ToInfo() is called in PostInitSecond()
 
   for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
   {
@@ -206,6 +205,9 @@ void Optimization::PostInitSecond()
 
     default: throw Exception("optimizer not implemented");
   }
+
+  constraints.ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("constraints"), GetMultipleExcitation());
+
   unsigned int n = design->GetNumberOfVariables();
   if (this->log.design) {
     for (unsigned int i = 0; i < n; ++i) {
@@ -246,12 +248,15 @@ void Optimization::SetEnums()
   Function::type.Add(Function::HOMOGENIZATION_TRACKING, "homTracking");
   Function::type.Add(Function::POISSONS_RATIO, "poissonsRatio");
   Function::type.Add(Function::YOUNGS_MODULUS, "youngsModulus");
+  Function::type.Add(Function::YOUNGS_MODULUS_E1, "youngsModulusE1");
+  Function::type.Add(Function::YOUNGS_MODULUS_E2, "youngsModulusE2");
   Function::type.Add(Function::TYCHONOFF, "tychonoff");
   Function::type.Add(Function::TEMPERATURE, "temperature");
   Function::type.Add(Function::GREYNESS, "greyness");
   Function::type.Add(Function::STRESS, "stress");
   Function::type.Add(Function::ISOTROPY, "isotropy");
   Function::type.Add(Function::ISO_ORTHOTROPY, "iso-orthotropy");
+  Function::type.Add(Function::ORTHOTROPY, "orthotropy");
   Function::type.Add(Function::SLOPE, "slope");
   Function::type.Add(Function::GLOBAL_SLOPE, "globalSlope");
   Function::type.Add(Function::MOLE, "mole");
@@ -260,6 +265,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::GLOBAL_OSCILLATION, "globalOscillation");
   Function::type.Add(Function::JUMP, "jump");
   Function::type.Add(Function::GLOBAL_JUMP, "globalJump");
+  Function::type.Add(Function::DESIGN_TRACKING, "designTracking");
 
   Function::Local::locality.SetName("Function::Local::Locality");
   Function::Local::locality.Add(Function::Local::DEFAULT, "default");
@@ -277,10 +283,16 @@ void Optimization::SetEnums()
   Function::Local::phase.Add(Function::Local::VOID, "void");
   Function::Local::phase.Add(Function::Local::MATERIAL, "material");
 
+  Function::stressType.SetName("Function::StressType");
+  Function::stressType.Add(Function::MECH, "mech");
+  Function::stressType.Add(Function::PIEZO, "piezo");
+  Function::stressType.Add(Function::ONLY_COUPLING, "only_coupling");
+
   Condition::bound.SetName("Condition::Bound");
   Condition::bound.Add(Condition::EQUAL, "equal");
   Condition::bound.Add(Condition::LOWER_BOUND, "lowerBound");
   Condition::bound.Add(Condition::UPPER_BOUND, "upperBound");
+
 
   ObjectiveContainer::StoppingRule::type.SetName("ObjectiveContainer::StoppingRule::Type");
   ObjectiveContainer::StoppingRule::type.Add(ObjectiveContainer::StoppingRule::DESIGN_CHANGE, "designChange");

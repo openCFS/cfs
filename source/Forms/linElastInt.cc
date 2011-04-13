@@ -11,11 +11,11 @@
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
 
-using namespace CoupledField;
-
 DECLARE_LOG(forms)
 DEFINE_LOG(forms, "forms")
 
+
+namespace CoupledField {
 
 // =====================
 //   CalcElementMatrix
@@ -73,7 +73,7 @@ void linElastInt::CalcElementMatrix( Matrix<Double>& elemMat,
   }
 }
 
-void linElastInt::ReorderBLikeMatrix(Matrix<Double>& in, Matrix<Double>& out, UInt ip, BaseFE* elem, Matrix<Double>& ptCoord){
+void linElastInt::ReorderBLikeMatrix(Matrix<Double>& in, Matrix<Double>& out, UInt ip, BaseFE* elem, const Matrix<Double>& ptCoord){
 
   const UInt numFncs  = elem->GetNumFncs( ansatzFct1_ );
   const UInt spaceDim = elem->GetDim();  
@@ -152,8 +152,8 @@ void linElastInt::ReorderBLikeMatrix(Matrix<Double>& in, Matrix<Double>& out, UI
 }
 
 // returns B - matrix for BDB
-void linElastInt::calcBMat( Matrix<Double> &bMat, UInt ip,
-                            Matrix<Double> &ptCoord ) {
+void linElastInt::CalcBMat( Matrix<Double> &bMat, UInt ip,
+    const Matrix<Double> &ptCoord ) {
 
   // local shape functions derived after global coords
   // (format: numFncs x spaceDim)
@@ -164,9 +164,9 @@ void linElastInt::calcBMat( Matrix<Double> &bMat, UInt ip,
     ptelem->GetGlobDerivShFnc(xiDx, intPoint_, ptCoord, it1_.GetElem() );
   else
     ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord, it1_.GetElem() );
-
+  
   LOG_DBG3(forms) << "calcBMat: xiDx: " << xiDx.ToString() << std::endl;
-
+  
   ReorderBLikeMatrix(xiDx, bMat, ip, ptelem, ptCoord);
 
   LOG_DBG2(forms) << "calcBMat: bMat: " << bMat.ToString() << std::endl; 
@@ -174,61 +174,31 @@ void linElastInt::calcBMat( Matrix<Double> &bMat, UInt ip,
   isSetIntPoint_ = false;
 }
 
-// returns B - matrix
-void linElastInt::calcBMatOnly( Matrix<Double> &bMat, UInt ip,
-    BaseFE* elem, Matrix<Double> &ptCoord ) {
-
-  ptelem = elem;
-  calcBMat(bMat, ip, ptCoord);
-}
-
-void linElastInt::calcBMatOnly(Matrix<double> &bMat, Vector<double>& intPoint,
-													     BaseFE* elem, Matrix<double> &ptCoord )
-{
-  isSetIntPoint_ = true; // will be set to false in calcBMat
-  Vector<double> oldIntPoint = intPoint_; // remember old intPoint_
-  intPoint_ = intPoint;
-  const unsigned int ip(0); // should not be used in our case...
-  // call the function
-  calcBMat(bMat, ip, ptCoord);
-  intPoint_ = oldIntPoint; // restore old intPoint_
-}
-
 
 void linElastInt::calcDMat(Matrix<Double> & dMat, const Elem* elem, const DesignElement::Type direction, double force_factor)
 {
-  GetErsatzMaterialTensor(dMat, elem, direction);
-  //ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,matDataType_,subTensorType_);
-
-  // this is for topology optimization only
-  assert(!(elem != NULL && force_factor != 0.0));
-  
-  Double density = 1.0;
-
-  if(elem != NULL)
-    density = GetErsatzMaterialFactor(elem);
-  if(force_factor != 0.0)
-    density = force_factor;
-
-  if(density != 1.0)
+  // Bastian's stuff. If not applicable we might consider doing SIMP
+  if(!GetErsatzMaterialTensor(dMat, elem, direction))
   {
-    dMat *= density;
+    // check if we do SIMP optimization
+    Double pseudo_density = elem != NULL ? GetErsatzMaterialFactor(elem) : 1.0;
+    // pseudo_density can be overwritten by force_factor
+    assert(!(elem != NULL && force_factor != 0.0));
+    if(force_factor != 0.0) pseudo_density = force_factor;
 
-    BaseMaterial* bm = elem != NULL ? domain->GetErsatzBiMaterial(elem,  MECHANIC) : NULL;
-
-    if(bm != NULL)
+    // do SIMP?
+    if(pseudo_density != 1.0)
     {
-      Matrix<Double> tmp;
-      bm->GetTensor(tmp, MECH_STIFFNESS_TENSOR, matDataType_, subTensorType_);
-      tmp *= (1.0 - density);
-      dMat +=  tmp;
-      LOG_DBG3(forms) << "linElastInt::calcDMat: e=" << elem->elemNum << " bimat=" << tmp.ToString();
+      LOG_DBG3(forms) << GetName() << "::calcDMat(Matrix<Double>, " << (elem != NULL ? Integer(elem->elemNum) : -1)  << ") -> density=" << pseudo_density;
+
+      // is there any chance we do bimaterial stuff at all?
+      BaseMaterial* bm = elem != NULL && pseudo_density != 1.0 ? domain->GetErsatzBiMaterial(elem,  MECHANIC) : NULL;
+      // Get the material tensor, in the standard case simply the tensor
+      GetScaledMaterial(pseudo_density, false, bm, dMat);
     }
+    else
+      ptMaterial->GetTensor(dMat, MECH_STIFFNESS_TENSOR, matDataType_, subTensorType_);
   }
-  
-  LOG_DBG3(forms) << GetName() << "::calcDMat(Matrix<Double>, "
-                  << (elem != NULL ? Integer(elem->elemNum) : -1)
-                  << ") -> density=" << density;
 
   //check for softening model
   if ( subTensorType_ == AXI ) {
@@ -516,7 +486,7 @@ void linElastInt::CalcElementMatrixICM( Matrix<Double>& elemMat,
 
 
     // Setup the B matrix for current integration point
-    calcBMat( bMat, actIntPt, ptCoord_ );
+    CalcBMat( bMat, actIntPt, ptCoord_ );
     //      std::cout << "bMat:\n" << bMat << std::endl;
 
     //incompatible modes
@@ -697,8 +667,8 @@ void linElastInt::CalcElementMatrixShearBK1( Matrix<Double>& elemMat,
 
 
     // Setup the B matrix for negative z position
-    calcBMat( bMatN, actIntPt, ptCoord_ );
-    calcBMat( bMatP, actIntPt+intPtOffset, ptCoord_ );
+    CalcBMat( bMatN, actIntPt, ptCoord_ );
+    CalcBMat( bMatP, actIntPt+intPtOffset, ptCoord_ );
 
 
     // Compute Jacobian for integration point
@@ -780,14 +750,14 @@ void linElastInt::CalcElementMatrixShearBK1( Matrix<Double>& elemMat,
       //      if (  actIntPt < 5 ) {
       //	std::cout << "Do mult 4, z=0" << std::endl;
       // Setup the B matrix for z=0 position
-      calcBMat( bMatP, actIntPt, ptCoord_ );
+      CalcBMat( bMatP, actIntPt, ptCoord_ );
       jacDet = 2.0*ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_, ent1.GetElem() );
     }
     else {
       // Setup the B matrix for negative z position
-      calcBMat( bMatN, actIntPt, ptCoord_ );
+      CalcBMat( bMatN, actIntPt, ptCoord_ );
       // Setup the B matrix for positive z position
-      calcBMat( bMatP, actIntPt+intPtOffset, ptCoord_ );
+      CalcBMat( bMatP, actIntPt+intPtOffset, ptCoord_ );
 
       //take the sum!!
       bMatP += bMatN;
@@ -884,11 +854,11 @@ linElastInt::~linElastInt()
 {
 }
 
-void linElastInt::GetErsatzMaterialTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction){
+bool linElastInt::GetErsatzMaterialTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction){
   // it is possible that a region is not subject to optimization. such a region is only identified in GetErsatzMaterialTensor
-  if(elem == NULL 
-      || !domain->HasErsatzMaterialTensor()
-      || !domain->GetErsatzMaterial()->GetErsatzMaterialTensor(t, subTensorType_, elem, direction)){
-    ptMaterial->GetTensor(t, MECH_STIFFNESS_TENSOR, matDataType_, subTensorType_);
-  }
+  return (elem != NULL
+      && domain->HasErsatzMaterialTensor()
+      && domain->GetErsatzMaterial()->GetErsatzMaterialTensor(t, subTensorType_, elem, direction));
 }
+
+} // end of namespace

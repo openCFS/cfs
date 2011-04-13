@@ -10,6 +10,7 @@
 #include "Optimization/Design/DesignStructure.hh"
 #include "Optimization/Design/DensityFile.hh"
 #include "Optimization/OptimizationMaterial.hh"
+#include "Optimization/StressConstraint.hh"
 #include "Domain/domain.hh"
 #include "Domain/surfElem.hh"
 #include "General/exception.hh"
@@ -19,11 +20,13 @@
 #include "PDE/heatCondPDE.hh"
 #include "PDE/acousticPDE.hh"
 #include "Forms/baseForm.hh"
+#include "Forms/bdbInt.hh"
 #include "Forms/linSurfForm.hh"
 #include "Elements/basefe.hh"
 #include "CoupledPDE/DirectCoupledPDE.hh"
 #include "Utils/StdVector.hh"
 #include "MatVec/vector.hh"
+#include "MatVec/opdefs.hh"
 #include "Utils/result.hh"
 #include "Utils/mathParser/mathParser.hh"
 #include "Driver/assemble.hh"
@@ -40,7 +43,6 @@
 #include "MatVec/stdmatrix.hh"
 #include "Materials/mechanicMaterial.hh"
 
-using namespace CoupledField;
 using namespace std;
 
 DECLARE_LOG(conditions)
@@ -48,6 +50,9 @@ DEFINE_LOG(conditions, "conditions")
 
 DECLARE_LOG(em)
 DEFINE_LOG(em, "ersatzMaterial")
+
+
+namespace CoupledField {
 
 Enum<ErsatzMaterial::Method> ErsatzMaterial::method;
 
@@ -179,7 +184,7 @@ void ErsatzMaterial::PostInit()
     structure_ = new DesignStructure(this);
 
   // post init slope constraints when the design is there
-  constraints.PostProc(design, structure_, GetMultipleExcitation());
+  constraints.PostProc(design, structure_, GetMultipleExcitation(), this);
   // same for the objectives
   objectives.PostProc(design, structure_, GetMultipleExcitation());
 
@@ -202,6 +207,8 @@ void ErsatzMaterial::PostInit()
       case Objective::HOMOGENIZATION_TRACKING:
       case Objective::POISSONS_RATIO:
       case Objective::YOUNGS_MODULUS:
+      case Objective::YOUNGS_MODULUS_E1:
+      case Objective::YOUNGS_MODULUS_E2:
       case Objective::ELEC_ENERGY: // it simply does not work yet in the harmonics
         if(harmonic) throw Exception(objective + " is only for static state problems");
         break;
@@ -367,7 +374,13 @@ StdVector<std::pair<string, double> > ErsatzMaterial::GetOrthotropeProperties(co
   }
   else
   {
-    BaseMaterial* bm = GetForm(design->GetRegionId(), pde, pde, "linElastInt")->GetMaterial();
+    BaseMaterial* bm = NULL;
+    // this happens when doing shape optimization with homTracking!
+    // we then have no design region and need to skip GetForm
+    if(design->GetRegionId() != -1) 
+    {
+      bm = GetForm(design->GetRegionId(), pde, pde, "linElastInt")->GetMaterial();
+    }
     Objective vf(Function::VOLUME, 0.0, true); // physical!
     double vol = CalcVolume(&vf, NULL, false, true);
     StdVector<std::pair<string, double> > ortho = MechanicMaterial::CalcOrthotropeProperties(homogenizedTensor, bm, pde->GetSubTensorType(), vol);
@@ -391,14 +404,58 @@ string ErsatzMaterial::GetIterationFrequency()
 }
 
 
-BiLinFormContext* ErsatzMaterial::GetFormContext(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator)
+BiLinFormContext* ErsatzMaterial::GetFormContext(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception)
 {
-  return(assemble_->GetBiLinForm(regionId, pde1, pde2, integrator));
+  return(assemble_->GetBiLinForm(regionId, pde1, pde2, integrator, !throw_exception));
 }
 
-BaseForm* ErsatzMaterial::GetForm(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator)
+BaseForm* ErsatzMaterial::GetForm(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception)
 {
-  return(GetFormContext(regionId, pde1, pde2, integrator)->GetIntegrator());
+  BiLinFormContext* bc = GetFormContext(regionId, pde1, pde2, integrator, throw_exception);
+  return bc != NULL ? bc->GetIntegrator() : NULL;
+}
+
+BaseForm* ErsatzMaterial::GetForm(const RegionIdType reg, Application app1, Application app2, bool throw_exception)
+{
+  Application a1, a2;
+  std::string integrator = "";
+
+  if(app1 == MECH && (app2 == MECH || app2 == NO_APP))
+  {
+    a1 = a2 = MECH;
+    integrator = "linElastInt";
+  }
+  if(app1 == ELEC && (app2 == ELEC || app2 == NO_APP))
+  {
+    a1 = a2 = ELEC;
+    integrator = "linGradBDBInt";
+  }
+  if((app1 == MECH && app2 == ELEC) || (app1 == ELEC && app2 == MECH) || (app1 == PIEZO_COUPLING && app2 == NO_APP))
+  {
+    a1 = MECH;
+    a2 = ELEC;
+    integrator = "linPiezoCoupling";
+  }
+  if(app1 == MASS && (app2 == MASS || app2 == NO_APP))
+  {
+    a1 = a2 = MASS;
+    integrator = "MassInt";
+  }
+
+  assert(integrator != "");
+
+  SinglePDE* pde1 = ToPDE(a1, throw_exception);
+  SinglePDE* pde2 = ToPDE(a2, throw_exception);
+
+  if(pde1 == NULL || pde2 == NULL)
+  {
+    if(!throw_exception)
+      return NULL;
+    else
+      EXCEPTION("No PDE for application " << a1 << " resp. " << a2);
+  }
+
+  return GetForm(reg, pde1, pde2, integrator, throw_exception);
 }
 
 int ErsatzMaterial::GetSpecialResultIndex(Application app1, Application app2, CalcMode calcMode, Condition* constraint)
@@ -879,7 +936,18 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
          break;
 
     case Objective::STRESS: {
-           const Vector<double> data = CalcVonMisesStressVector(excite, f, false, false); // copy data for element von Mises stress
+           // copy data for element von Mises stress
+           Vector<double> data;
+           if(harmonic)
+           {
+             StressConstraint<complex<double> > sc(&excite, f, this, &forward);
+             sc.CalcStresses(data);
+           }
+           else
+           {
+             StressConstraint<double> sc(&excite, f, this, &forward);
+             sc.CalcStresses(data);
+           }
            result = CalcGlobalFunction(f, false, &data);
            break;
          }
@@ -897,6 +965,11 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
     case Function::JUMP:
          assert(c == NULL);
          result = CalcLocalConstraint(g, derivative);
+         break;
+
+    case Function::DESIGN_TRACKING:
+         assert(c == NULL);
+         result = CalcDesignTracking(g, derivative);
          break;
 
     case Function::HOMOGENIZATION_TENSOR:
@@ -957,6 +1030,8 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
 
     case Function::POISSONS_RATIO:
     case Function::YOUNGS_MODULUS:
+    case Function::YOUNGS_MODULUS_E1:
+    case Function::YOUNGS_MODULUS_E2:
          result = CalcPoissonsRatioAndYoungsModulus(f, derivative);
          break;
 
@@ -989,6 +1064,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
 
      case Function::ISOTROPY:
      case Function::ISO_ORTHOTROPY:
+     case Function::ORTHOTROPY:
      case Function::MULTI_OBJECTIVE:
        assert(false); // no valid function
     // no default, gcc warns
@@ -1190,6 +1266,43 @@ double ErsatzMaterial::CalcVolume(Objective* f, Condition* g, bool derivative, b
   default: assert(false);
   }
   return -1.0; // cannot happen due to assert
+}
+
+
+double ErsatzMaterial::CalcDesignTracking(Condition* g, bool derivative)
+{
+  assert(g->elements.GetSize() > 0 && g->elements.GetSize() == g->pattern.GetSize());
+
+  // g = 1/N * sum (rho - rho^*)^2 where rho is the physical rho
+  // g' = 2/N * (rho - rho^*) * rho'  and the derivative of the filter if any
+
+  int res_idx = design->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::DESIGN_TRACKING);
+
+  double result = 0.0;
+
+  TransferFunction* tf = design->GetTransferFunction(ToDesign(pde), ToApp(pde));
+
+
+  for(unsigned int i = 0, n = g->elements.GetSize(); i < n; i++)
+  {
+    DesignElement* de = g->elements[i];
+    double rho = tf->Transform(de, DesignElement::SMART); // physical design
+    double target = g->pattern[i];
+
+    if(derivative)
+    {
+      // for the non-element designs nothing is added and it stays 0
+      de->AddGradient(g, (2.0 / n) * (rho - target) * tf->Derivative(de, DesignElement::SMART));
+    }
+    else
+    {
+      double val = (rho - target) * (rho - target);
+      result += val;
+      if(res_idx > 0) de->specialResult[res_idx] = val;
+    }
+  }
+
+  return result / g->elements.GetSize();
 }
 
 void ErsatzMaterial::CalcRegularGapConstraint(Function* f, DesignElement::Type dt)
@@ -1396,214 +1509,10 @@ void ErsatzMaterial::SetAdjointRhs(AdjointParameters* adjointParams){
       }
       u = 0.0;
       upp = (u - ut) / (beta * dt * dt);
-      up = (upt + upp * gamma * dt);      
-    }
-  }
-  
-}
-
-Vector<double> ErsatzMaterial::CalcVonMisesStressVector(Excitation& excite, Function* f, bool adjoint_rhs, bool grad_contrib)
-{
-  // Kocvara and Stingl; 2007
-  // stress = rho^p E_0 B(ip) * u
-  // von Mises stress per element: sum_ip stress^T * M * stress
-  // rhs w.r.p to one element: 2* sum_ip strees^T * M * rho^p E_0 B(ip)
-  //            if i=j:      + 2 * stress^T * M * (rho^p)' E_0 B(ip) u
-
-  // we follow the qp-relaxation: Bruggi 2008, actually going back to Duysinx and Bendsoe 1998
-  // The idea of the qp-relaxion is, that the stress is calculated based on the standard simp penalization (p).
-  // To have vanishing constraints for vanishing stress we divide by rho^q (stress).
-  // In this implementation we make a new penalization and apply it to the stress, this is easier as we
-  // need no chain rule for the derivative. Clearly works only if the mech and stress transfer functions are simp.
-
-  LOG_DBG2(em) << "CVMSV: excite=" << excite.index << " adjont=" << adjoint_rhs << " grad_contrib=" << grad_contrib;
-  assert((adjoint_rhs && !grad_contrib) || !adjoint_rhs);
-  // adjoint_rhs:   result is raw vector size with summed up 2 * stress^T * M * (rho^p * E_0 * B)
-  // !grad_contrib: result is design size with stress^T * M stress (element von Mises stress)
-  // grad_contrib:  result is design size with 2 * stress^T * M * ( (rho^p)' * E_0 * B * u)
-
-  // see comment in header for locality of stress!
-
-  assert(design->design.GetSize() == 1);
-
-  StdVector<SingleVector*>& all_u_elem = forward.Get(excite)->elem[MECH];
-
-  // the result vector is either per design element or the rhs for the adjoint problem
-  Vector<double> result(adjoint_rhs ? forward.Get(excite)->GetVector(Solution::RAW_VECTOR)->GetSize() : design->data.GetSize());
-  result.Init();
-
-  Matrix<double> M = dynamic_cast<MechPDE*>(ToPDE(MECH))->GetVonMisesMatrix(dim);
-  Matrix<double> B;
-  Matrix<double> E; // the material matrix with applied pseudo density
-  Matrix<double> coords;
-
-  assert(design->design.GetSize() == 1); // easy to extend
-  assert(design->regions.GetSize() == 1); // easy to extend
-
-  // the are special transfer functions for the stress (q) as relaxation and the fem simulation (p). See above!
-  TransferFunction* tf_p = design->GetTransferFunction(DesignElement::DENSITY, MECH);
-  TransferFunction* tf_q = design->GetTransferFunction(DesignElement::DENSITY, STRESS);
-
-  if(tf_q->GetType() != TransferFunction::SIMP_TYPE || tf_p->GetType() != TransferFunction::SIMP_TYPE)
-    throw Exception("Stress constraints are currently only implemented for simp type transfer functions in 'mech' and 'stress'.");
-  TransferFunction qp(NO_APP, TransferFunction::SIMP_TYPE, tf_p->GetParam() - tf_q->GetParam(), tf_p->GetDesign());
-  LOG_DBG2(em) << "CVMSV: p=" << tf_p->GetParam() << " q=" << tf_q->GetParam() << " qp=" << qp.GetParam();
-
-  linElastInt* form = dynamic_cast<linElastInt*>(GetForm(design->GetRegionId(), pde, pde, "linElastInt"));
-
-  Vector<double> stress(dim == 2 ? 3 : 6); // elem stress
-  Vector<double> strain;
-  Vector<double> M_stress;
-  Matrix<double> E_B;
-  Matrix<double> M_E_B;
-  Matrix<double> stress_transp(1, stress.GetSize());
-  Matrix<double> rhs_transp;
-  Vector<double> intPoint;
-  shared_ptr<EqnMap> eqnMap = ToPDE(MECH)->GetEqnMap();
-
-  ElemList elemList(grid);
-
-  // in the adjoint case we need alpha which is the gradient of the globalization function
-  Vector<double> alpha;
-  if(adjoint_rhs) alpha = CalcVonMisesStressGlobalizationFactor(excite, f);
-
-  // output of penalized von mises stresses? Only used in !adjoint_rhs and !grad_contrib
-  int res_idx = design->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::PENALIZED_STRESS, DesignElement::NONE, DesignElement::PLAIN, excite.label);
-
-  for(unsigned int e = 0, en = design->data.GetSize(); e < en; e++)
-  {
-    DesignElement* de = &design->data[e];
-
-    grid->GetElemNodesCoord(coords, de->elem->connect, false); // geometric non-lin
-
-    Vector<double>& u_elem = dynamic_cast<Vector<double>& >(*(all_u_elem[e]));
-
-    // apply our own physical densities!
-    form->calcDMat(E, NULL, DesignElement::DENSITY, qp.Transform(de, DesignElement::SMART));
-    //LOG_DBG2(em) << "CVMSV de=" << de->ToString() << " E=" << E.ToString();
-
-    elemList.SetElement(de->elem);
-    EntityIterator it = elemList.GetIterator();
-    form->ExtractElemInfo(it);
-    de->elem->ptElem->GetCoordMidPoint(intPoint);
-    form->SetIntPoint(intPoint);
-
-    // same numerical results as with  for(int ip = 1, nip = de->elem->ptElem->GetNumIntPoints(); ip <= nip; ip++)
-    form->calcBMatOnly(B, 1, de->elem->ptElem, coords);
-
-    // calc stress
-    strain = B * u_elem; // strain
-    stress = E * strain; // pure stress
-
-    if(adjoint_rhs)
-    {
-      // this is actually 2* von Mises stress with one missing u_elem: 2 * stress^T * M * rho^p * E_0 * B, note the rho^p is already in E
-      E_B = E * B;
-      M_E_B = M * E_B;
-
-      // we have to transpose the stress (3*1 or 6*1) manually :(
-      for(unsigned int si = 0; si < stress.GetSize(); si++)
-        stress_transp[0][si] = stress[si];
-
-      rhs_transp = stress_transp * M_E_B;
-      rhs_transp *= -2.0;
-
-      // there is a factor from the globalization function, which is the gradient of the glob function(func_val)
-      rhs_transp *= alpha[e];
-
-
-      assert(rhs_transp.GetNumCols() == u_elem.GetSize());
-      assert(rhs_transp.GetNumRows() == 1);
-
-      LOG_DBG2(em) << "CVMSV de=" << de->ToString() << " ar=" << adjoint_rhs  << " alpha=" << alpha[e]
-                   << " rhs_transp=" << rhs_transp.ToString();
-
-      // sum it up to the global rhs vector
-      assert(de->elem->connect.GetSize() * dim == rhs_transp.GetNumCols());
-      for(unsigned int n = 0; n < de->elem->connect.GetSize(); n++)
-      {
-        unsigned int node =  de->elem->connect[n];
-
-        for(unsigned int dof = 1; dof <= dim; dof++)
-        {
-          // fuck 1-based in GetNodeEqn() !!
-          int eqn_nr = std::abs(eqnMap->GetNodeEqn(node,dof)); // map periodic bc to the master equation
-          assert(eqn_nr >= 0);
-          int eqn_idx = eqn_nr -1; // fuck 1-based!!
-          // don't set the homogeneous dirichlet boundary conditions :)
-          if(eqn_idx >= 0)
-          {
-            result[eqn_idx] += rhs_transp[0][dim * n + (dof-1)];
-
-            LOG_DBG3(em) << "CVMSV de=" << de->ToString() << " ar=" << adjoint_rhs  << " n=" << n << " node=" << node
-                << " dof=" << dof << " eqn_idx=" << eqn_idx << " idx=" << (dim * n + (dof-1)) << " val="
-                << rhs_transp[0][dim * n + (dof-1)] << " -> " << result[eqn_idx];
-          }
-        }
-      }
-
-    }
-    else
-    {
-      // normal and "corrected" von Mises stress element results
-      double correct = 1.0;
-      M_stress = M * stress;
-      result[e] = stress.Inner(M_stress);
-
-      if(!grad_contrib)
-      {
-        // output von mises stress? Note, that this is excitation specific!
-        if(res_idx != -1)
-        {
-          de->specialResult[res_idx] = result[e];
-          LOG_DBG3(em) << "CVMSV:sr de=" << de->ToString() << " res_idx=" << res_idx << " v=" << result[e];
-        }
-      }
-      else
-      {
-        // additional factor for grad_contrib. We replace one rho^p by (rho^p)'
-        correct = 2.0 * qp.Derivative(de, DesignElement::SMART) / qp.Transform(de, DesignElement::SMART);
-      }
-
-      LOG_DBG2(em) << "CVMSV de=" << de->ToString() << " gv= " << grad_contrib << " rho=" << de->GetDesign(DesignElement::SMART) << " sMs=" << result[e] << " deriv="
-                   << qp.Derivative(de, DesignElement::SMART) << " trans=" <<  qp.Transform(de, DesignElement::SMART) << " correct=" << correct << " -> " << (correct * result[e]);
-
-      result[e] *= correct;
+      up = (upt + upp * gamma * dt);
     }
   }
 
-  return result;
-}
-
-
-Vector<double> ErsatzMaterial::CalcVonMisesStressGlobalizationFactor(Excitation& excite, Function* f)
-{
-  assert(f->GetType() == Function::STRESS);
-
-  const Function::Local* local = f->GetLocal();
-  assert(local != NULL);
-
-  const Vector<double> stress = CalcVonMisesStressVector(excite, f, false, false);
-  Vector<double> result(stress.GetSize());
-
-  // this is a complicated way to calc element wise power*max(0,stress)^(power-1) but that way
-  // we are open for further globalization functions and it is not that expensive
-
-  const StdVector<Function::Local::Identifier>& vem = local->virtual_elem_map;
-
-  for(unsigned int i = 0; i < vem.GetSize(); i++)
-  {
-    const Function::Local::Identifier& id = vem[i];
-    assert(id.neighbor.GetSize() == 0);
-    double gfv = id.EvalFunction(local, true, &stress);
-    int idx = design->Find(id.element);
-    result[idx] = gfv;
-  }
-
-  LOG_DBG2(em) << "CVMSGF ex=" << excite.index << " stress=" << stress.ToString();
-  LOG_DBG2(em) << "CVMSGF ex=" << excite.index << " alpha=" << result.ToString();
-
-  return result;
 }
 
 
@@ -1865,12 +1774,17 @@ double ErsatzMaterial::CalcTracking(Excitation& excite, Objective* c, Condition*
 
 double ErsatzMaterial::CalcPoissonsRatioAndYoungsModulus(Function* f, bool derivative)
 {
-  assert(f->GetType() == Function::POISSONS_RATIO || f->GetType() == Function::YOUNGS_MODULUS);
+  Function::Type ft = f->GetType();
+  assert(ft == f->POISSONS_RATIO || ft == f->YOUNGS_MODULUS || ft == f->YOUNGS_MODULUS_E1 || ft == f->YOUNGS_MODULUS_E2);
 
   SubTensorType stt = pde->GetSubTensorType();
   assert(stt == PLANE_STRAIN || stt == PLANE_STRESS || stt == FULL);
   
   Matrix<double> hom_tensor = CalcHomogenizedTensor();
+
+  const double E11 = hom_tensor[1-1][1-1];
+  const double E12 = hom_tensor[1-1][2-1];
+  const double E22 = hom_tensor[2-1][2-1];
 
   double result = 0.0;
 
@@ -1891,42 +1805,69 @@ double ErsatzMaterial::CalcPoissonsRatioAndYoungsModulus(Function* f, bool deriv
     CalcHomogenizedTensorEntry(make_tuple(1,1,1.0), true, dE11);
     StdVector<double> dE12;
     CalcHomogenizedTensorEntry(make_tuple(1,2,1.0), true, dE12);
+    StdVector<double> dE22;
+    CalcHomogenizedTensorEntry(make_tuple(2,2,1.0), true, dE22);
 
-    const double E11 = hom_tensor[0][0];
-    const double E12 = hom_tensor[0][1];
     double grad(0.0);
     
     for(unsigned int e = 0, ne = design->GetNumberOfElements(); e < ne; e++)
     {      
-      if(f->GetType() == f->POISSONS_RATIO && (stt == FULL || stt == PLANE_STRAIN))
+      if(ft== f->POISSONS_RATIO && (stt == FULL || stt == PLANE_STRAIN))
       {
          grad = (dE12[e] * E11 - E12 * dE11[e]) / ((E11 + E12) * (E11 + E12));
       }
-      if(f->GetType() == f->POISSONS_RATIO && stt == PLANE_STRESS)
+      if(ft == f->POISSONS_RATIO && stt == PLANE_STRESS)
       {
         grad = (dE12[e] * E11 - E12 * dE11[e]) / (E11 * E11);
       }
-      if(f->GetType() == f->YOUNGS_MODULUS && (stt == FULL || stt == PLANE_STRAIN))
+      if(ft == f->YOUNGS_MODULUS && (stt == FULL || stt == PLANE_STRAIN))
       {
         grad  = (E11 * E11 + 2.0 * E11 * E12 + 3.0 * E12 * E12) * dE11[e];
         grad -= (4.0 * E11 * E12 + 2.0 * E12 * E12) * dE12[e];
         grad /= (E11 + E12) * (E11 + E12);
       }
-      if(f->GetType() == f->YOUNGS_MODULUS && stt == PLANE_STRESS)
+      if(ft == f->YOUNGS_MODULUS && stt == PLANE_STRESS)
       {
         grad  = (E11 * E11 + E12 * E12) * dE11[e];
         grad -= 2.0 * E11 * E12 * dE12[e];
         grad /=  E11 * E11;
+      }
+      if((ft == f->YOUNGS_MODULUS_E1 || ft == f->YOUNGS_MODULUS_E2) && stt == PLANE_STRESS)
+      {
+        double t1 = dE11[e] * E22 + E11 * dE22[e] - 2.0 * E12 * dE12[e];
+        double t2 = E11 * E22 - E12 * E12;
+
+        if(ft == f->YOUNGS_MODULUS_E1)
+          grad = (t1 * E22 - t2 * dE22[e]) / (E22 * E22);
+        else
+          grad = (t1 * E11 - t2 * dE11[e]) / (E11 * E11);
+      }
+      if((ft == f->YOUNGS_MODULUS_E1 || ft == f->YOUNGS_MODULUS_E2) && (stt == FULL || stt == PLANE_STRAIN))
+      {
+        throw Exception("youngsModulusE1/2 only implemented for plane stress");
       }
       design->data[e].AddGradient(f, grad);
     }
   }
   else
   {
-    if(f->GetType() == f->POISSONS_RATIO)
+    switch(ft)
+    {
+    case Function::POISSONS_RATIO:
       result = MechanicMaterial::CalcIsotropicPoissonsRatio(hom_tensor, stt);
-    else
+      break;
+    case Function::YOUNGS_MODULUS:
       result = MechanicMaterial::CalcIsotropicYoungsModulus(hom_tensor, stt);
+      break;
+    case Function::YOUNGS_MODULUS_E1:
+      result = (E11 * E22 - E12 * E12) / E22;
+      break;
+    case Function::YOUNGS_MODULUS_E2:
+      result = (E11 * E22 - E12 * E12) / E11;
+      break;
+    default:
+      assert(false);
+    }
   }
 
   return result;
@@ -2330,10 +2271,11 @@ double ErsatzMaterial::CalcGlobalFunction(Function* f, bool derivative, const Ve
     double res = 0.0;
     local->infeasible = 0;
 
+    assert(von_mises_stress == NULL || (von_mises_stress->GetSize() == vem.GetSize()));
     for(unsigned int i = 0; i < vem.GetSize(); i++)
     {
       Function::Local::Identifier& id = vem[i];
-      double fv = id.EvalFunction(local, false, von_mises_stress);
+      double fv = id.EvalFunction(local, false, von_mises_stress != NULL ? (*von_mises_stress)[i] : -1.0);
       res += fv;
       if(fv > 0) local->infeasible++;
       LOG_DBG2(em) << "CGF: !d c=" << f->type.ToString(f->GetType()) << " i=" << i << " de="
@@ -2677,7 +2619,8 @@ void ErsatzMaterial::ConstructRealAdjointRHS(Excitation& excite, Function* f)
   }
   case Function::STRESS:
   {
-    rhs = CalcVonMisesStressVector(excite, f, true, false); // gives us exactly what we want
+    StressConstraint<double> sc(&excite, f, this, &forward);
+    sc.CalcAdjointRHS(rhs);
     break;
   }
   default:
@@ -2748,14 +2691,22 @@ void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
   case Function::ENERGY_FLUX:
     // reuse the RHS vector space
     SetEnergyFluxVector(f, u, true, rhs);
-    // 0.25 * j* omega * (Q-Q^T)^T * u^* where 0.25 is 0.5 from standard ajoint formulation and 0.5 from objective
+    // 0.25 * j* omega * (Q-Q^T)^T * u^* where 0.25 is 0.5 from standard adjoint formulation and 0.5 from objective
     for(unsigned int i = 0, n = rhs.GetSize(); i < n; i++)
       rhs[i] = complex<double>(0, 0.25) * excite.GetOmega() * rhs[i];
     break;
 
+  case Function::STRESS:
+  {
+    StressConstraint<complex<double> > sc(&excite, f, this, &forward);
+    sc.CalcAdjointRHS(rhs);
+    break;
+  }
+
   default:
     assert(true); // e.g. for ELEC_ENERGY the rhs is set in PiezoSIMP::ConstructAdjointRHS()
   }
+
 
   assemble_->GetAlgSys()->InitRHS(rhs);
   assert(rhs.NormMax() != 0.0);
@@ -3163,20 +3114,22 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Applic
 
       // we save the element vectors in elem_vec. Might be empty the first call
       StdVector<SingleVector*>& elem_vec = elem[app];
-      int n = em_->design->GetNumberOfElements();
+
+      int n = em_->design->GetNumberOfElements(); // the standard design elements
+      int pn = em_->design->CalcRegisteredPseudoDesigns(); // optional (multiple) pseudo design elements
 
       // check for first call
       if(elem_vec.GetSize() == 0)
       {
-        elem_vec.Resize(n);
-        for(int ve = 0; ve < n; ve++)
+        elem_vec.Resize(n + pn);
+        for(int ve = 0; ve < (n + pn); ve++)
           elem_vec[ve] = new Vector<T>;
       }
 
       // create an element list to gain the iterator in the loop
       ElemList elemList(grid);
 
-      // store the results in our own structure
+      // store the results of the standard design elements in our own structure
       for(int e = 0; e < n; e++)
       {
         DesignElement* de = &em_->design->data[e];
@@ -3184,8 +3137,26 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Applic
         elemList.SetElement(de->elem);
         const EntityIterator& it = elemList.GetIterator();
 
+        assert((int) de->GetElementSolutionIndex() == e);
         pde->GetSolVecOfElement((Vector<T>&) *elem_vec[e], it, resinfo);
       }
+      // the pseudo design if we have some
+      for(unsigned int r = 0; r < em_->design->GetPseudoDesignRegions().GetSize(); r++)
+      {
+        StdVector<DesignElement*>& data = *(em_->design->GetPseudoDesignRegions()[r]);
+
+        for(unsigned int e = 0; e < data.GetSize(); e++)
+        {
+          DesignElement* de = data[e];
+
+          elemList.SetElement(de->elem);
+          const EntityIterator& it = elemList.GetIterator();
+
+          assert(de->GetElementSolutionIndex() >= em_->design->GetNumberOfElements());
+          pde->GetSolVecOfElement((Vector<T>&) *elem_vec[de->GetElementSolutionIndex()], it, resinfo);
+        }
+      }
+
       return NULL;
     }
     case SEL_VECTOR: // interpreted as RHS_VECTOR
@@ -3237,6 +3208,7 @@ template double ErsatzMaterial::CalcU1KU2<double>(TransferFunction* tf, StdVecto
     Application app, StdVector<SingleVector*>& u2,
     DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f, int res_idx);
 
-template double ErsatzMaterial::CalcU1KU2<std::complex<double> >(TransferFunction* tf, StdVector<SingleVector*>& u1,
+template double ErsatzMaterial::CalcU1KU2<complex<double> >(TransferFunction* tf, StdVector<SingleVector*>& u1,
     Application app, StdVector<SingleVector*>& u2,
     DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f,  int res_idx);
+} // end of namespace

@@ -1756,11 +1756,11 @@ DEFINE_LOG(magpde, "magpde")
           Vector<Double> intPoint;
           it.GetElem()->ptElem->GetCoordMidPoint(intPoint);
           curlOp->SetIntPoint(intPoint);
-          curlOp->calcBMat(bMat, 0, CornerCoords);
+          curlOp->CalcBMat(bMat, 0, CornerCoords);
           curlOp->UnsetIntPoint();     
         } else {
           // case2: real integration point
-          curlOp->calcBMat(bMat, ip, CornerCoords);
+          curlOp->CalcBMat(bMat, ip, CornerCoords);
         }      
       }
     
@@ -1862,7 +1862,7 @@ DEFINE_LOG(magpde, "magpde")
           Matrix<Double> ptCoord;
           ptgrid_->GetElemNodesCoord( ptCoord, it.GetElem()->connect, true );
           elecBiLin->ExtractElemInfo( it );
-          elecBiLin->calcBMat( bMat, ip, ptCoord );
+          elecBiLin->CalcBMat( bMat, ip, ptCoord );
         }
         jEddy += bMat*elecPotElem;
       }

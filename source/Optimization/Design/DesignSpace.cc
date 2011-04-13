@@ -17,6 +17,8 @@
 #include "PDE/SinglePDE.hh"
 #include "DataInOut/Logging/cfslog.hh"
 
+#include <boost/lexical_cast.hpp>
+
 using namespace CoupledField;
 
 using std::complex;
@@ -164,14 +166,18 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, ParamNodeList &pn_de
             }
 
             double initial = curr_design_pn->Get("initial")->As<double>();
-            LOG_DBG2(designSpace) << "add design " << dt << ":" << DesignElement::type.ToString(dt)  << " initial=" << initial;
+            LOG_DBG2(designSpace) << "add design " << dt << ":" << DesignElement::type.ToString(dt)  
+                                  << " initial=" << boost::lexical_cast<std::string>(initial);
                         
 
 
             for(unsigned int e = 0; e < n; e++)
             {
-              DesignElement de(curr_design_pn, elems[e]);
-              de.SetDesign(initial);
+              DesignElement de(curr_design_pn, elems[e], data.GetSize());
+              // simple extension: if the passed value is smaller
+              // than 0.0 (which makes no sense as the element contribution
+              // is always positive), we put a random number -> random initial design
+              de.SetDesign(initial < 0.0 ? ((rand()%100 + 10)/110.0) : initial);
               
               data.Push_back(de);
 
@@ -271,6 +277,27 @@ bool DesignSpace::Contains(const RegionIdType reg) const
   return false;
 }
 
+void DesignSpace::RegisterPseudoDesign(StdVector<DesignElement*>& elements)
+{
+  bool old = false;
+  for(unsigned int i = 0; i < pseudoDesigns_.GetSize(); i++)
+    if(elements[0]->elem->regionId == (*pseudoDesigns_[i])[0]->elem->regionId) // one region!
+      old = true;
+
+  if(!old)
+    pseudoDesigns_.Push_back(&elements);
+}
+
+unsigned int DesignSpace::CalcRegisteredPseudoDesigns() const
+{
+  unsigned int sum = 0;
+
+  for(unsigned int i = 0; i < pseudoDesigns_.GetSize(); i++)
+    sum += pseudoDesigns_[i]->GetSize();
+
+  return sum;
+}
+
 void DesignSpace::SetDesignMaterial(PtrParamNode dm){
   if(transfer.GetSize() > 0)
     throw Exception("designmaterial can not be given when using transferFunctions");
@@ -291,7 +318,8 @@ void DesignSpace::AppendOptimizationResults(SinglePDE* pde)
     if(!added)
     {
       std::ostringstream os;
-      os << "<optimization> defines '" << SolutionTypeEnum.ToString(rd.solutionType) << "' but no PDE references it in it's <storeResults>";
+      os << "'optimization defines' '" << SolutionTypeEnum.ToString(rd.solutionType) << "' but no PDE references it in it's 'storeResults'";
+
       WARN(os.str().c_str());
     }
   }
@@ -805,21 +833,6 @@ int DesignSpace::Find(unsigned int elemNum, bool throw_exception)
   return idx;
 }
 
-int DesignSpace::Find(const DesignElement* de, bool throw_exception)
-{
-  int idx = Find(de->elem->elemNum, throw_exception);
-
-  for(unsigned int d = 0; idx > -1 && d < design.GetSize(); d++)
-    if(data[elements * d + idx].GetType() == de->GetType())
-      return idx;
-
-  // had wrong design type
-  if(throw_exception)
-    EXCEPTION("requested design element num has index " << idx << " but invalid design type " << de->GetType());
-
-  return -1;
-}
-
 int DesignSpace::Find(const Elem* elem, bool throw_exception)
 {
   if(FindRegion(elem->regionId) >= 0) return Find(elem->elemNum, throw_exception);
@@ -1011,12 +1024,15 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
   // set the result as we need it
   result_data.Resize(result.GetEntityList()->GetSize() * dofs);
 
-
+  // the default value is 0.0 but 1 for densities
+  SolutionType st = result.GetResultInfo()->resultType;
+  double none = st == MECH_PSEUDO_DENSITY || st == PHYSICAL_PSEUDO_DENSITY || st == ELEC_PSEUDO_POLARIZATION ? 1.0 : 0.0; 
+  
   for ( it.Begin(); !it.IsEnd(); it++ )
   {
-    // for elements not in the design region we set to one
+    // for elements not in the design region we set to to the default value
     for(unsigned int i = 0; i < dofs; i++)
-      result_value[i] = 1.0;
+      result_value[i] = none;
 
     if(FindRegion(it.GetElem()->regionId) >= 0)
     {
@@ -1027,14 +1043,62 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
       DesignElement& de = data[data_index];
       de.GetValue(descr, result_value, dofs);
 
-#ifdef CHECK_INDEX
-      if(de.elem->elemNum != it.GetElem()->elemNum)
-        EXCEPTION("mixed up indices:" << de.elem->elemNum << "!=" << it.GetElem()->elemNum
-            << " base_index=" << base_index << " data_index=" << data_index << " it.Pos()=" << it.GetPos());
-#endif
+      #ifdef CHECK_INDEX
+        if(de.elem->elemNum != it.GetElem()->elemNum)
+          EXCEPTION("mixed up indices:" << de.elem->elemNum << "!=" << it.GetElem()->elemNum
+              << " base_index=" << base_index << " data_index=" << data_index << " it.Pos()=" << it.GetPos());
+      #endif
+    }
+    else
+    {
+      // there might be the case that the function is not within the design space, e.g. stress
+      // is only implemented for OPT_RESULT_x
+      int ori = DesignElement::GetOptResultIndex(descr.solutionType);
+
+      for(unsigned int f = 0; ori != -1 && f < pseudoDesigns_.GetSize(); f++)
+      {
+        StdVector<DesignElement*>& data = *(pseudoDesigns_[f]);
+        // has the pseudo design the right special result?
+        if(it.GetElem()->regionId == data[0]->elem->regionId)
+        {
+          // search it slowly and add it up -> it will be a very special case anyway
+          for(unsigned int e = 0; e < data.GetSize(); e++)
+            if(data[e]->elem == it.GetElem())
+            {
+              // make sure the result description is unique and we don't overwrite
+              assert(result_value[0] == 0.0);
+              data[e]->GetValue(descr, result_value, dofs);
+            }
+        }
+      }
     }
     for(unsigned int i = 0; i < dofs; i++)
       result_data[it.GetPos() * dofs + i] = result_value[i];
+  }
+}
+
+BaseMaterial* DesignSpace::GetBiMaterial(RegionIdType reg, Optimization::Application app, bool throw_exception)
+{
+  DesignRegion* dr = GetRegion(reg, false); // tolerant for off-design stress constraints
+  if(dr == NULL || !dr->HasBiMaterial())
+  {
+    if(!throw_exception)
+      return NULL;
+    else
+      EXCEPTION("cannot find bimaterial for region" << reg << " and application " << app);
+  }
+
+  switch(app)
+  {
+  case Optimization::MECH:
+    return dr->GetBiMaterial(MECHANIC);
+  case Optimization::ELEC:
+    return dr->GetBiMaterial(ELECTROSTATIC);
+  case Optimization::PIEZO_COUPLING:
+    return dr->GetBiMaterial(PIEZO);
+  default:
+    assert(false); // implement what you need!
+    return NULL;
   }
 }
 

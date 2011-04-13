@@ -140,7 +140,7 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
     {
       string msg = "the number of elements in the region you are trying to read the densities into is not equal to"\
                   " the number of elements in the density-file but matches the number of all elements!";
-      info->Get("ersatzMaterial")->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue(msg);
+      info->Get("ersatzMaterial")->Get(ParamNode::WARNING)->SetValue(msg);
     }
     else
       throw Exception("ErsatzMaterialFile '" + file + "' has " + boost::lexical_cast<string>(elems.GetSize())
@@ -159,11 +159,13 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
     double val = elems[e]->Get("design")->As<double>();
 
     // replace the value of the DesignElement
-    DesignElement* de = force_region ? &(ersatzMaterial->data[e]) : ersatzMaterial->Find(nr, dt, true);
+    // we call Find(..,..,false) for meshes with two regions (e. g. cube and void)
+    // where we want to ignore the "void"-region completely
+    DesignElement* de = force_region ? &(ersatzMaterial->data[e]) : ersatzMaterial->Find(nr, dt, false);
 
-    // note, that there was code which did em->Find(nr, dt, false) and then added
-    // if(de !=NULL && regionIds.Find(de->elem->regionId) >= 0) de->SetDesign(val);
-    de->SetDesign(val);
+    // this is also for the void-region! mainly for computing high resolution inv hom problems
+    if(de != NULL) // && regionIds.Find(de->elem->regionId) >= 0)
+      de->SetDesign(val);
   }
 
   return ersatzMaterial;

@@ -22,6 +22,7 @@
 #include "Utils/mathParser/mathParser.hh"
 #include "Domain/domain.hh"
 #include "DataInOut/resultHandler.hh"
+#include "DataInOut/ParamHandling/Xerces.hh"
 
 namespace CoupledField {
 
@@ -156,10 +157,9 @@ namespace CoupledField {
 
             // Ensure, that we have as many entries in the
             // vector as dimension
-            if( dim_ != selections.GetSize() ) {
-              EXCEPTION("There have been more coordinate components "
-                        << "than there are space dimensions" );
-            }
+            if( dim_ != selections.GetSize() )
+              EXCEPTION("The node parametrization for '" << name  << "' does not match the mesh dimensions");
+
             AddEntityByParam( name, isNode, coordSysId,
                               selections );
           }
@@ -559,6 +559,60 @@ namespace CoupledField {
     return ret;
   }
 
+  RegionIdType GridCFS::CheckPatternRegion(StdVector<bool>& replace)
+  {
+    // check the input for a pattern region
+    std::string name = "";
+    std::string file = "";
+
+    // be sensitive to the cfstool case
+    if(!param->Has("domain/regionList")) return NO_REGION_ID;
+
+    ParamNodeList list = param->Get("domain/regionList")->GetList("region");
+    for(UInt i = 0; i < list.GetSize(); i++)
+    {
+      if(list[i]->Has("pattern"))
+      {
+        if(name != "") EXCEPTION("Only a single region with pattern attribute allowed");
+        name = list[i]->Get("name")->As<std::string>();
+        file = list[i]->Get("pattern")->As<std::string>();
+      }
+    }
+
+    // quick exit
+    if(name == "") return NO_REGION_ID;
+
+    // read the pattern file
+    Xerces* xerces = new Xerces(file);
+    PtrParamNode xml = xerces->CreateParamNodeInstance();
+    delete xerces;
+
+    // check this file
+    if (xml->Count("set") == 0)
+      throw Exception("There are no design sets in the pattern file " + file);
+
+    ParamNodeList elems = xml->GetList("set").Last()->GetList("element");
+
+    if(elems.GetSize() != orderedElems_.GetSize())
+      EXCEPTION("There are " << elems.GetSize() << " elements in pattern file " << file << " but " << orderedElems_.GetSize() << " in the mesh.");
+
+    // blow up replace to the size of all elements
+    replace.Resize(orderedElems_.GetSize() + 1, false); // numbers are 1-based
+
+    for(UInt i = 0, n = elems.GetSize(); i < n; i++)
+    {
+      double val = elems[i]->Get("design")->As<double>();
+      if(val >= 1.0)
+      {
+        UInt nr = elems[i]->Get("nr")->As<UInt>();
+        replace[nr] = true;
+      }
+    }
+
+    // finally add the region
+    return AddRegion(name, false);
+  }
+
   void GridCFS::FinishInit()
   {
     volElemNodes_.Clear();
@@ -573,6 +627,10 @@ namespace CoupledField {
     UInt numElems = orderedElems_.GetSize();
     UInt numNodes = 0;
     UInt numVolRegions, numSurfRegions;
+
+    // the pattern regions are defined by density files in domain/regionList/region with pattern set
+    StdVector<bool> pattern;
+    RegionIdType pattern_reg = CheckPatternRegion(pattern); // assumed to be volume region only!
 
     std::map<RegionIdType, StdVector<Elem*> > volRegionElems, surfRegionElems;
     std::map<RegionIdType, std::set<UInt> > volRegionNodes, surfRegionNodes;
@@ -596,6 +654,10 @@ namespace CoupledField {
       maxNumElemNodes_ = maxNumElemNodes_ < numNodes ?
                          numNodes : maxNumElemNodes_;
 
+      // in pattern case replace element region
+      if(pattern_reg != NO_REGION_ID && pattern[el->elemNum])
+        el->regionId = pattern_reg;
+
       // Insert dimension of first element in region into regionDims map
       // If elements with different dimension are encountered issue an exception
       if(!regionDims[el->regionId]) 
@@ -611,7 +673,7 @@ namespace CoupledField {
         {
           EXCEPTION("Elements with different dimensions have been "
                     << "encountered in region '" << region_.ToString(el->regionId)
-                    << "'!\nThe error occured while examining element "
+                    << "'!\nThe error occurred while examining element "
                     << el->elemNum << ".\nPlease check your mesh file!");
         }    
       }

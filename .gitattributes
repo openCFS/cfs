@@ -508,7 +508,6 @@ share/matlab/create_densities/from_gid_geo/readgidmesh.m -text
 share/matlab/create_densities/from_gid_geo/readmesh.m -text
 share/matlab/create_densities/from_gid_geo/writexml.m -text
 share/matlab/create_densities/from_gid_geo/writexml2d.m -text
-share/matlab/create_densities/orthox.m -text
 share/matlab/create_densities/rect2d.m -text
 share/matlab/exec.m -text
 share/matlab/mminfo.m svneol=native#text/plain
@@ -528,6 +527,7 @@ share/scripts/common.sh svneol=native#text/plain
 share/scripts/cplreader -text
 share/scripts/create_density.py -text
 share/scripts/distro.sh svneol=native#text/plain
+share/scripts/extract_info_xml_results.py -text
 share/scripts/gid_screenshots.py -text
 share/scripts/h5tool -text
 share/scripts/hdf5_aux.sh.in -text
@@ -1407,6 +1407,8 @@ source/Optimization/ShapeGrad.cc -text
 source/Optimization/ShapeGrad.hh -text
 source/Optimization/ShapeOpt.cc -text
 source/Optimization/ShapeOpt.hh -text
+source/Optimization/StressConstraint.cc -text
+source/Optimization/StressConstraint.hh -text
 source/Optimization/TopGrad.cc -text
 source/Optimization/TopGrad.hh -text
 source/Optimization/TransferFunction.cc -text

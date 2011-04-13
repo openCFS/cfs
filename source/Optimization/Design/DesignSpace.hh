@@ -212,12 +212,6 @@ namespace CoupledField
       * Is very fast O(1) */
      int Find(unsigned int elemNum, bool throw_exception = true);
 
-
-     /** Finds the index of this design element within the data set.
-      * Is rather fast O(1) for few design types.
-      * @return -1 if nothing found and not throw_exception */
-     int Find(const DesignElement* de, bool throw_exception = true);
-
      /** When we have more design types this is a divisor of data.GetSieze() */
      unsigned int GetNumberOfElements() { return elements; }
 
@@ -250,7 +244,10 @@ namespace CoupledField
      /** Might be nonsense if our constructor is no simp or ersatz material one! */
      int GetRegionId() const
      {
-       assert(regions.GetSize() == 1);
+       // in the case of homTracking with shape optimization we do not have a 
+       // design region, but GetRegionId is still called
+       // so we cannot assert regions.GetSize() == 1 as before
+       if(regions.GetSize() == 0) return -1;
        return regions[0].regionId;
      }
 
@@ -300,6 +297,9 @@ namespace CoupledField
      /** trivial find */
      DesignRegion* GetRegion(RegionIdType id, bool throw_exception = true);
 
+     /** Convenience function */
+     BaseMaterial* GetBiMaterial(RegionIdType reg, Optimization::Application app, bool throw_exception = true);
+
      StdVector<DesignRegion> regions;
 
      /** it is convenient to have such a vector for some functions. Taken from regions! */
@@ -307,6 +307,22 @@ namespace CoupledField
 
      /** stupid find function */
      bool Contains(const RegionIdType reg) const;
+
+     /** This allows function which are defined on a non-design region to register their pseudo design elements
+      * such that their special results can be visualized.
+      * Double regions are rejected!
+      * @param elements must consist of a single regions */
+     void RegisterPseudoDesign(StdVector<DesignElement*>& elements);
+
+     /** ErsatzMaterial::Solution::Read() needs the pseudo design elements. */
+     StdVector<StdVector<DesignElement*>* >& GetPseudoDesignRegions() { return pseudoDesigns_; }
+
+     /** Calculates the sum of the registered elements. This are not unique elements if multiple functions register
+      * the same regions.
+      * Necessary for the DesignElement constructor of pseudo elements (to be registerd later) such that the virtual element
+      * index can be set for extended pde vector element solution storage. */
+     unsigned int CalcRegisteredPseudoDesigns() const;
+
 
      /** save parameters for scaling the design to [0..1] in the optimizer: 
       * our design = scaling * optimizer_design + translation 
@@ -383,6 +399,11 @@ namespace CoupledField
 
      /** just a cache from regions */
      StdVector<RegionIdType> regionIds_;
+
+     /** Functions which are defined not within the design space have their own pseudo DesignElements.
+      * They are stored here, such that we can report their special results via FillElementResults() */
+     StdVector<StdVector<DesignElement*>* > pseudoDesigns_;
+
   };
 
 

@@ -353,7 +353,10 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
     // check the element
     double distance = RelaxedDistance(base->elem, test_elem);
 
-    if(distance > radius)
+    // sort out elements which are too far or not in a design space, we denote them also as too fas
+    DesignElement* test_de = space->Find(test, base->GetType(), false); // silend
+
+    if(distance > radius || test_de == NULL)
     {
       too_far.Push_back(test);
     }
@@ -364,7 +367,7 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
       SIMPElement::NeighbourElement ne;
 
       // map from element number to design
-      ne.neighbour = space->Find(test, base->GetType());
+      ne.neighbour = test_de;
       assert(ne.neighbour->elem->elemNum == test);
 
       // linear or constant weighting. will be normalized in the calling method!

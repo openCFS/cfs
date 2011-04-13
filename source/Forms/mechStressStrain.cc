@@ -50,7 +50,7 @@ namespace CoupledField
     elemDisp_.ConvertToVec_AppendCols(displVec);
     // linear differential operator B_lin
     Matrix<Double> linBMat;
-    calcBMat( linBMat, ip, ptCoord_);
+    CalcBMat( linBMat, ip, ptCoord_);
 
     Vector<TYPE> linStrain(linBMat.GetNumRows());
     linStrain.Init();
@@ -80,7 +80,7 @@ namespace CoupledField
 
     // linear differential operator B_lin
     Matrix<Double> linBMat;
-    calcBMat( linBMat, ip, ptCoord_);
+    CalcBMat( linBMat, ip, ptCoord_);
 
     strainVec = linBMat * displVec;
 
@@ -91,10 +91,10 @@ namespace CoupledField
 
   template <class TYPE>
   void MechStressStrain<TYPE>::
-  calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord)
+  CalcBMat(Matrix<Double> & bMat, UInt ip, const Matrix<Double> & ptCoord)
   {
     // linear differential operator B_lin
-    linElastInt::calcBMat(bMat, ip, ptCoord);
+    linElastInt::CalcBMat(bMat, ip, ptCoord);
   }
 
 

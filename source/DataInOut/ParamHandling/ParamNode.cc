@@ -56,17 +56,18 @@ void ParamNode::SetValue(const boost::any& value)
 {
   this->value_ = value;
 
+  // check for a valid string if it is a string
+  assert(value_.type() != typeid(std::string) || (boost::any_cast<std::string&>(value_).find('<') == std::string::npos));
+  assert(value_.type() != typeid(std::string) || (boost::any_cast<std::string&>(value_).find('>') == std::string::npos));
+
+
   if(this->name_ == WARNING)
     std::cerr  << std::endl << fg_red << "WARNING: " << boost::any_cast<std::string>(value_)<< fg_reset << std::endl;
 }
-
 void ParamNode::SetValue(const char* value)
 {
-  std::string toSet(value);
-  this->value_ = toSet;
-
-  if(this->name_ == WARNING)
-    std::cerr  << std::endl << fg_red << "WARNING: " << value << fg_reset << std::endl;
+  std::string str(value);
+  SetValue(str);
 }
 
 void ParamNode::SetValue(const double value, const int precision)
@@ -1005,13 +1006,13 @@ void ParamNode::AdjustElementType()
     }
   }
   // Check if node is ELEMENT, has children and a value
-  // -> not possible in a XML tree
+  // -> not possible in an XML tree
   if (type_ == ELEMENT && children_.GetSize() && !value_.empty())
   {
     string value;
     ToString(value, 0);
     WARN("Node '" << name_ << "' has children AND a non-empty value '"
-        << value << "'. This is not possible in a xml tree!");
+        << value << "'. This is not possible in an xml tree!");
     assert(false); // find the stuff. Maybe attribute and element with the same name!
   }
 

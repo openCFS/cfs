@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # This collects some tool routines for optimization
 
 
@@ -7,7 +6,7 @@ import numpy
 import numpy.linalg
 import math
 import os
-#from lxml import etree
+from lxml import etree
 
 from cfs_utils import *
 from distutils.command.build_scripts import first_line_re
@@ -15,10 +14,10 @@ from distutils.command.build_scripts import first_line_re
 ## Read an arbitrary density file as NDArray
 # Uses the <mesh x="30" y="20" z="1"/> element in the header of the density file
 # if not the whole domain is design domain, the data is read as 1D array
-# @param elemnr if False the design is read, otherwise nr
+# @param attribute the scalar attribute: "design" (default), "physical", "nr"
 # @param x, y, z optional mesh size in case it is not given in the density file. Note, the smallest number is 1, not 0!!
-def read_density(filename, elemnr=False, x = None, y = None, z = None):
-  vals = read_density_as_vector(filename, elemnr)
+def read_density(filename, attribute="design", x = None, y = None, z = None):
+  vals = read_density_as_vector(filename, attribute)
 
   tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
   root = tree.getroot()
@@ -58,7 +57,7 @@ def read_density(filename, elemnr=False, x = None, y = None, z = None):
   if len(vals) < x*y*z:
     # we need to be 1D
     print "read density file '" + filename + "' with " + str(len(vals)) + " element smaller x=" + str(x) \
-         + " y=" + str(y) + " z=" + str(z) + " mesh as " + cond(elemnr, "elem nr", "design")
+         + " y=" + str(y) + " z=" + str(z) + " mesh as " + attribute
     x = len(vals)
     ret = numpy.zeros((x))
     for i in range(x):
@@ -70,8 +69,8 @@ def read_density(filename, elemnr=False, x = None, y = None, z = None):
   
 ## Reads a density.xml file as vector
 # @param filename from which the last 'set' is used
-# @param elemnr if False the design is read on true nr
-def read_density_as_vector(filename, elemnr=False):
+# @param attribute the scalar attribute: "design" (default), "physical", "nr"
+def read_density_as_vector(filename, attribute="design"):
   if not os.path.exists(filename):
     raise RuntimeError("file '" + filename + "' doesn't exist")
   
@@ -82,8 +81,7 @@ def read_density_as_vector(filename, elemnr=False):
   # print "reading set with id = " + sett.get("id")
   
   length = len(sett)
-  
-  attribute = cond(elemnr, "nr", "design")
+
   # print "check for attribute " + attribute
   counter = 0
   vals=[0]*length
@@ -375,7 +373,13 @@ def refine_density(infile, outfile):
   x, y, z = getDim(org)
   dim = org.ndim
   # we cannot handle 3D density files with z is one layer as these are identified as 2D :(
-  out = numpy.zeros((x*2, y*2, cond(z == 1, 1, z*2)))
+  out = numpy.zeros((x*2, y*2))
+
+  # In 3D we need to overwrite with 3D array or else setNDArrayEntry will not work properly
+  if(org.ndim == 3):
+    out = numpy.zeros((x*2, y*2, z*2))
+
+  # print "debug: x=" + str(x) + ", y=" + str(y) + ", z=" + str(z) + ", dim=" + str(dim)
 
   for i in range(x):
     for j in range(y):
