@@ -953,7 +953,7 @@ bool LevelSet::SetSignedDistanceNodeStates()
     }
   }
   
-#ifdef DEBUG
+#ifndef NDEBUG
   for(unsigned int n = 0; n < nodes_size; ++n)
   {
     if(nodes_[n].state == LevelSetNode::NONE)
