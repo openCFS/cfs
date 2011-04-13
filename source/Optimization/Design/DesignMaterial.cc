@@ -196,10 +196,13 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
   double E3 = params_[DesignElement::EMODUL];
   double nu = params_[DesignElement::POISSONISO];
   double nu13 = params_[DesignElement::POISSON];
-  double nu3 = nu13 * E3/E;
-  double n3 = nu3*nu3*E/E3;
-  double c = (1.0-nu-2.0*n3); // this is the interesting thing, this must not get 0, however this would imply a volume (trace of tensor) of infinity, so it is hopefully not occuring
+  double nu3;
+  double n3;
+  double c;
   if(type_ == TRANSVERSAL_ISOTROPIC){
+    nu3 = nu13 * E3/E;
+    n3 = nu3*nu3*E/E3;
+    c = (1.0-nu-2.0*n3); // this is the interesting thing, this must not get 0, however this would imply a volume (trace of tensor) of infinity, so it is hopefully not occuring
     if(c < 1e-8) {
       c = 1e-8;
     }

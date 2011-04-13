@@ -4,8 +4,12 @@
 #include "Domain/grid.hh"
 #include "DataInOut/programOptions.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
+#include "DataInOut/Logging/cfslog.hh"
 
-using namespace CoupledField;
+namespace CoupledField {
+
+DECLARE_LOG(ShDes)
+DEFINE_LOG(ShDes, "ShapeDesign")
 
 ShapeDesign::ShapeDesign(StdVector<RegionIdType>& regions, ParamNodeList& design, ParamNodeList& transfer, ParamNodeList& result, ErsatzMaterial::Method method)
   : DesignSpace(regions, design, transfer, result, method)
@@ -104,6 +108,7 @@ int ShapeDesign::ReadDesignFromExtern(const double* space_in){
       new_design = true;
     }
     shapeparams_[i].SetDesign(v);
+    LOG_DBG(ShDes) << "ReadDesignFromExtern: shapeparams_[i]=" << v;
   }
   if(new_design){
     UpdateCoordinates();
@@ -150,6 +155,7 @@ void ShapeDesign::UpdateCoordinates(){
 int ShapeDesign::WriteDesignToExtern(double* space_out, bool scale) const {
   for(unsigned int i=0; i < nshapeparams_; i++){
     space_out[i] = shapeparams_[i].GetDesign() / scaling;
+    LOG_DBG(ShDes) << "WriteDesignToExtern: out[" << i << "]=" << space_out[i];
   }
   if(alsomatopt_){
     DesignSpace::WriteDesignToExtern(space_out + nshapeparams_, scale);
@@ -187,6 +193,7 @@ void ShapeDesign::WriteShapeGradientToExtern(StdVector<double>& out, Condition* 
   for(unsigned int i=0; i < nshapeparams_; i++)
   {
     out[base + i] = shapeparams_[i].GetPlainGradient(NULL, g) * scaling;
+    LOG_DBG3(ShDes) << "WriteShapeGradientToExtern: out[" << base+i << "]=" << out[base+i];
   }
 }
 
@@ -201,6 +208,7 @@ void ShapeDesign::WriteBoundsToExtern(double* x_l, double* x_u) const {
   for(unsigned int i=0; i < nshapeparams_; i++){
     x_l[i] = shapeparams_[i].GetLowerBound() / scaling;
     x_u[i] = shapeparams_[i].GetUpperBound() / scaling;
+    LOG_DBG3(ShDes) << "WriteBoundsToExtern: l[" << i << "]=" << x_l[i] << " u[" << i << "]=" << x_u[i];
   }
   if(alsomatopt_){
     DesignSpace::WriteBoundsToExtern(x_l + nshapeparams_, x_u + nshapeparams_);
@@ -251,7 +259,9 @@ bool ShapeDesign::GetElemNodesCoordDerivative(Matrix<Double> & coordMat, const S
 void ShapeDesign::AddShapeDerivatives(Objective* f, Condition* g, StdVector<double>& d, double weight){
   assert(d.GetSize() == nshapeparams_);
   for(unsigned int i = 0; i < nshapeparams_; i++){
+    LOG_DBG3(ShDes) << "AddShapeDerivative[" << i << "]+=" << d[i] << "*" << weight << "=" << d[i]*weight;
     shapeparams_[i].AddGradient(f, g, d[i]*weight);
   }
 }
 
+}
