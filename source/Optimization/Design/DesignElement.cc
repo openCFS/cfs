@@ -846,8 +846,8 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
 
   // eventually the barycenters are already calculated, we need them to identify the orientation
   // we will need the barycenters in FindNeibhborhood()
-  for(unsigned int i = 0, s = space->regions.GetSize(); i < s; i++)
-    grid->SetElementBarycenters(space->regions[i].regionId, false); // no updated coordinates
+  for(unsigned int i = 0, s = space->regions[0].GetSize(); i < s; i++)
+    grid->SetElementBarycenters(space->regions[0][i].regionId, false); // no updated coordinates
 
   // let CFS find the neighborhood of *all* elements. With some luck this was done
   // anyway already and we get it for free

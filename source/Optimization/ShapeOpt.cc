@@ -9,8 +9,12 @@
 #include "Driver/assemble.hh"
 #include "Driver/transientdriver.hh"
 #include "Optimization/OptimizationMaterial.hh"
+#include "DataInOut/Logging/cfslog.hh"
 
-using namespace CoupledField;
+namespace CoupledField {
+
+DECLARE_LOG(ShOpt)
+DEFINE_LOG(ShOpt, "shapeOpt")
 
 ShapeOpt::ShapeOpt() : ParamMat() {
   shapedesign = dynamic_cast<ShapeDesign*>(design);
@@ -181,7 +185,7 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
     rcubevol = 1.0 / grid->CalcVolumeSpannedByNamedNodes();    
   }
   UInt timesteps(domain->GetDriver()->GetNumSteps());
-  double dt = 0.0, gamma = 0.0, beta = 0.0;
+  double dt = 1.0, gamma = 1.0, beta = 1.0;
   if(IsTransient()){
     dt = dynamic_cast<TransientDriver*>(domain->GetDriver())->GetDeltaT();
     gamma = pde->getTimeStepping()->GetNewmarkGamma();
@@ -217,6 +221,9 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
   Vector<double> u1diff;
   Vector<double> u2diff;
   
+  LOG_DBG2(ShOpt) << "np=" << np << ", ex_size=" << ex_size << ", timesteps=" << timesteps 
+      << ", dt=" << dt << ", gamma=" << gamma << ", beta=" << beta;
+  
   //caching (see CalcNewmarkDerivative for why)
   StdVector<StdVector<StdVector<SingleVector*>* > > forwards;
   StdVector<StdVector<StdVector<SingleVector*>* > > adjoints;
@@ -249,20 +256,24 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
         form->ExtractElemInfo(it); // this is needed before calcBMat
 
         form->calcDMat(D, elem, DesignElement::NO_DERIVATIVE);
+        LOG_DBG2(ShOpt) << "calcDMat returned D=" << D;
         double dampingAlpha = 0.0; double dampingBeta = 0.0;
         if(IsTransient()){
           M = &mech_mat_->MechMass(elem, false, DesignElement::NO_DERIVATIVE);
-          RegionIdType regionId = elem->regionId;
-          if(biLinForm->GetSecDestMat() != NOTYPE){
-            parser->SetExpr(mathParserHandle, biLinForm->GetSecMatFac());
-            dampingBeta = parser->Eval(mathParserHandle);
-          }
-          BiLinFormContext* linMassIntCtxt = GetFormContext(regionId, pde, pde, "MassInt");
-          if(linMassIntCtxt->GetSecDestMat() != NOTYPE){
-            parser->SetExpr(mathParserHandle, linMassIntCtxt->GetSecMatFac());
-            dampingAlpha = parser->Eval(mathParserHandle);
+          LOG_DBG(ShOpt) << "mass: M=" << M;
+          if(!design->GetErsatzMaterialDamping(dampingAlpha, dampingBeta, elem)){ // check whether damping is also design and if get it from there
+            if(biLinForm->GetSecDestMat() != NOTYPE){
+              parser->SetExpr(mathParserHandle, biLinForm->GetSecMatFac());
+              dampingBeta = parser->Eval(mathParserHandle);
+            }
+            BiLinFormContext* linMassIntCtxt = GetFormContext(elem->regionId, pde, pde, "MassInt");
+            if(linMassIntCtxt->GetSecDestMat() != NOTYPE){
+              parser->SetExpr(mathParserHandle, linMassIntCtxt->GetSecMatFac());
+              dampingAlpha = parser->Eval(mathParserHandle);
+            }
           }
         }
+        LOG_DBG2(ShOpt) << "damping: alpha=" << dampingAlpha << ", beta= " << dampingBeta;
         
         const unsigned int dimD(D.GetNumRows());
 
@@ -316,6 +327,7 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
                   dK[i][j] = A4[i][j]  + A4[j][i] - trA1 * BDB[i][j];
                 }
               }
+              LOG_DBG2(ShOpt) << "-tr(iJ dJ) B'DB + reorder(dPhi iJ dJ iJ)'DB + B'D reorder(dPhi iJ dJ iJ)";
               
               if(!homogenization){
                 for(unsigned int ex = 0; ex < ex_size; ++ex){
@@ -331,16 +343,20 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
                     dKu = dK * u_vec;
                     double dvK = p_vecd * dKu;
                     vK += dvK;
+                    LOG_DBG2(ShOpt) << "timestep=" << t << "vK += " << dvK << " -> " << vK;
                     if(IsTransient()){
                       dMu = (*M) * u_vec; // note that dM = M * trA1
                       double dvM = (p_vecd * dMu) * trA1;
                       vM += dvM;
+                      LOG_DBG2(ShOpt) << "timestep=" << t << "vM += " << dvM << " -> " << vM;
                       double dvC = (gamma / (beta * dt) ) * (dampingAlpha * dvM + dampingBeta * dvK);
                       vC += dvC;
+                      LOG_DBG2(ShOpt) << "timestep=" << t << "vC += " << dvC << " -> " << vC;
                       double u = 1.0; double upp = 1.0 / (beta*dt*dt); double up = upp * gamma * dt;
                       if(t == 0 && IsFirstTransientStepStatic()){
                         upp = 0.0; up = 0.0; vM = 0.0; vC = 0.0;
                       }
+                      LOG_DBG3(ShOpt) << "timestep=" << t << ", upp=" << upp << ", up=" << up << ", u=" << u << ", vM=" << vM << ", vC=" << vC;
                       for(unsigned int tp = t+1; tp < timesteps; ++tp){
                         Vector<double>& p_vec = dynamic_cast<Vector<double>& >(*(*adjoint_ex[tp])[e]);
                         double ut = u * (up * 0.5*upp*(1.0-2.0*beta)*dt ) *dt;
@@ -348,17 +364,21 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
                         double pdMu = p_vec * dMu;
                         double tvM = ut * pdMu;
                         vM -= tvM;
+                        LOG_DBG3(ShOpt) << "timestep1=" << t << ", timestep2=" << tp << ", vM -= " << tvM << " -> " << vM;
                         double pdKu = p_vec * dKu;
                         double tvC = (gamma * ut / (beta * dt) - upt ) * (dampingAlpha * pdMu + dampingBeta * pdKu);
                         vC -= tvC;
+                        LOG_DBG3(ShOpt) << "timestep1=" << t << ", timestep2=" << tp << ", vC -= " << tvC << " -> " << vC;
                         u = 0.0;
                         upp = (u - ut) / (beta * dt * dt);
                         up = (upt + upp * gamma * dt);
+                        LOG_DBG3(ShOpt) << "timestep1=" << t << ", timestep2=" << tp << ", upp=" << upp << ", up=" << up << ", u=" << u << ", vM=" << vM << ", vC=" << vC;
                       } // loop over timesteps
-                      vM /= beta * dt * dt;
                     } // if transient
-                    der[p] += intWeight * jacdet * me->excitations[ex].weight * (vK + vM + vC );
-                  } // loop over timesteps 
+                  } // loop over timesteps
+                  vM /= beta * dt * dt;
+                  der[p] += intWeight * jacdet * me->excitations[ex].weight * (vK + vM + vC );
+                  LOG_DBG2(ShOpt) << "der[" << p << "] += " << intWeight << "*" << jacdet << "*" << me->excitations[ex].weight << "*" << "(" << vK << "+" << vM << "+" << vC << ") = " << intWeight * jacdet * me->excitations[ex].weight * (vK + vM + vC) << " -> " << der[p];
                 } // loop over excitations
               }else{ // we calculate homogenization 
                 for(unsigned int ij = 0; ij < ex_size; ++ij){
@@ -654,3 +674,4 @@ void ShapeOpt::SubtractTestDisplacement(unsigned int idx, Matrix<double>& Corner
   }
 }
 
+} // namespace

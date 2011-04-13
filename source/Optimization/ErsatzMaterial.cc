@@ -90,13 +90,15 @@ ErsatzMaterial::ErsatzMaterial() :
 
   StdVector<RegionIdType> regions;
 
-  for(unsigned int i=0; i < region_list.GetSize(); i++){
-    // we are compatible with the region attribute and unbounded region elements
-    std::string reg = region_list[i]->Has("name") ? region_list[i]->Get("name")->As<std::string>() : region_list[i]->As<std::string>();
-    std::string bimat = region_list[i]->Has("bimaterial") ? region_list[i]->Get("bimaterial")->As<std::string>() : "";
-    if(!grid->GetRegion().IsValid(reg))
-      throw Exception("region given in ersatzMaterial is invalid");
-    regions.Push_back(grid->GetRegion().Parse(reg));
+  if(method_ != SHAPE_OPT){ // we want no regions here, if only shape is optimized, even if there would be any in xml
+    for(unsigned int i=0; i < region_list.GetSize(); i++){
+      // we are compatible with the region attribute and unbounded region elements
+      std::string reg = region_list[i]->Has("name") ? region_list[i]->Get("name")->As<std::string>() : region_list[i]->As<std::string>();
+      std::string bimat = region_list[i]->Has("bimaterial") ? region_list[i]->Get("bimaterial")->As<std::string>() : "";
+      if(!grid->GetRegion().IsValid(reg))
+        throw Exception("region given in ersatzMaterial is invalid");
+      regions.Push_back(grid->GetRegion().Parse(reg));
+    }
   }
 
   // set up the design space elements, note PiezoSIMP have only POLARIZATION
@@ -367,7 +369,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
 StdVector<std::pair<string, double> > ErsatzMaterial::GetOrthotropeProperties(const Matrix<double>& tensor)
 {
-  if(design->regions.GetSize() > 1)
+  if(design->regions.GetSize() == 0 || design->regions[0].GetSize() > 1)
   {
     StdVector<std::pair<string, double> > result;
     return result; // empty result
@@ -1108,17 +1110,21 @@ double ErsatzMaterial::IntegrateDesignVariable(Objective* f, Condition* g, bool 
       fraction = 1.0; // if no normalization needed, fraction is simply 1.0
     }
   }
+  
+  const unsigned int nd = design->regions.GetSize();
+  
   if( fraction == 0.0 ){
-    for(unsigned int d = 0; d < design->design.GetSize(); d++){
+    for(unsigned int d = 0; d < nd; d++){  // tensortrace breaks out after the first design
+      const unsigned int nr = design->regions[d].GetSize();
       if(allDesignsRelevant || design->design[d] == dtype){
-        const unsigned int base = d * design->elements;
-        for(unsigned int r = 0; r < design->regions.GetSize(); r++){
-          if(f != NULL || g->IsForRegion(design->regions[r].regionId)){
+        for(unsigned int r = 0; r < nr; r++){
+          DesignSpace::DesignRegion& cur_reg = design->regions[d][r];
+          if(f != NULL || g->IsForRegion(cur_reg.regionId)){
             if(design->IsRegular()){
-              fraction += design->regions[r].elements;
+              fraction += cur_reg.elements;
             }else{
-              const unsigned int u = base + design->regions[r].base + design->regions[r].elements;
-              for(unsigned int i = base + design->regions[r].base; i < u; i++){
+              const unsigned int u = cur_reg.base + cur_reg.elements;
+              for(unsigned int i = cur_reg.base; i < u; i++){
                 DesignElement* de = &design->data[i];
                 grid->GetElemNodesCoord(cornerCoords, de->elem->connect, true);
                 fraction += de->elem->ptElem->CalcVolume(cornerCoords, false);
@@ -1126,6 +1132,9 @@ double ErsatzMaterial::IntegrateDesignVariable(Objective* f, Condition* g, bool 
             }
           }
         }
+      }
+      if(calculateTensorTrace){
+        break;
       }
     }
     fraction = 1.0 / fraction;
@@ -1138,16 +1147,17 @@ double ErsatzMaterial::IntegrateDesignVariable(Objective* f, Condition* g, bool 
 
   double sum = 0.0;
 
-  for(unsigned int d = 0; d < design->design.GetSize(); d++){
-    if(allDesignsRelevant || design->design[d] == dtype){
-      const unsigned int base = d * design->elements;
-      for(unsigned int r = 0; r < design->regions.GetSize(); r++){
-        if(f != NULL || g->IsForRegion(design->regions[r].regionId)){
-          const double scaling = scale ? design->scale_design[d][r] : 1.0;
+  for(unsigned int d = 0; d < nd; d++){
+    if(allDesignsRelevant || design->design[d] == dtype){ // tensortrace breaks out after the first design
+      const unsigned int nr = design->regions[d].GetSize();
+      for(unsigned int r = 0; r < nr; r++){
+        DesignSpace::DesignRegion& cur_reg = design->regions[d][r];
+        if(f != NULL || g->IsForRegion(cur_reg.regionId)){
+          const double scaling = scale ? cur_reg.scale_design : 1.0;
           const double rscaling = 1.0 / scaling;
-          const double translation = scale ? design->translate_design[d][r] : 0.0;
-          const unsigned int u = base + design->regions[r].base + design->regions[r].elements;
-          for(unsigned int i = base + design->regions[r].base; i < u; i++)
+          const double translation = scale ? cur_reg.translate_design : 0.0;
+          const unsigned int u = cur_reg.base + cur_reg.elements;
+          for(unsigned int i = cur_reg.base; i < u; i++)
           {
             DesignElement* de = &design->data[i];
             // standard or derivative case?

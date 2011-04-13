@@ -7,7 +7,10 @@ using namespace CoupledField;
 ParamMat::ParamMat() : ErsatzMaterial()
 {
   // Note: this constructor is also called from constructor of ShapeOpt even when no ParamMat is used, in this case, nothing may be done
-  if(pn->Has("paramMat")){ 
+
+  method_ = method.Parse(pn->Get("method")->As<std::string>());
+  
+  if((method_ == PARAM_MAT || method_ == SHAPE_PARAM_MAT) && pn->Has("paramMat")){ 
     design->SetDesignMaterial(pn->Get("paramMat")->Get("designMaterial"));  
   }
   

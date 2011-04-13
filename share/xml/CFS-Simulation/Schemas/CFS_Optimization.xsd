@@ -785,6 +785,7 @@
                 <xsd:attribute name="upper" use="optional" type="xsd:float"/>
                 <xsd:attribute name="region" use="optional" type="xsd:token" default="all"/>
                 <xsd:attribute name="constant" use="optional" type="xsd:boolean" default="false"/>
+                <xsd:attribute name="fixed" use="optional" type="xsd:boolean" default="false"/>
                 <xsd:attribute name="scale" use="optional" type="xsd:boolean" default="false"/>
                 <xsd:attribute name="adapt_lower" use="optional" type="xsd:boolean" default="false"/>
                 <!-- bimaterial optimization is optional. The value needs to be found in the material.xml -->
