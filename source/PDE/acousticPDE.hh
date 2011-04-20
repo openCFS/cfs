@@ -57,12 +57,6 @@ namespace CoupledField {
                               Vector<Double>& elemCouplingSols,
                               UInt couplingdof );
 
-    //! calculate the vector of coupling surface nodes to the nrbcPDE  
-    void CalcNRBCCouplingRHS( StdVector<Elem*> * couplingElems, 
-                              StdVector<UInt> & couplingNodes,
-                              Vector<Double>& elemCouplingSols,
-                              UInt couplingdof );
-    
     //! calculate the heat source term for heatConduction PDE
     template <class TYPE>
     void CalcHeatCouplingRHS( Vector<Double> & energy, 
@@ -72,10 +66,6 @@ namespace CoupledField {
     //! 
     void SetMechanicCoupling() {
       isMechCoupled_ = true;
-    }
-    //! 
-    void SetNrbcCoupling() {
-      isNrbcCoupled_ = true;
     }
 
     //! returns formulation (pressure/scalar potential)
@@ -173,10 +163,6 @@ namespace CoupledField {
     bool isMechCoupled_; //!< indicator for mechanic coupling
     
     SolutionType formulation_; //!< variable in which PDE is formulated
-
-
-    //! indicator for mechanic coupling
-    bool isNrbcCoupled_;    
 
     //! surface elements with absorbing boundary conditions
     StdVector<shared_ptr<EntityList> > absBCs_; 

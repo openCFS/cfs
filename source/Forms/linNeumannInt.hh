@@ -17,7 +17,8 @@ namespace CoupledField
     
     //! Standard constructor
     LinNeumannInt( std::string amplitudeStr, std::string phaseStr,
-                   MaterialType materialParam, bool isaxi );
+                   SolutionType quantity, MaterialType materialParam,
+                   bool isaxi );
     
     //! Destructor
     ~LinNeumannInt();
@@ -44,6 +45,8 @@ namespace CoupledField
     //! phase string
     std::string phase_;
 
+    SolutionType quantity_;
+    
     MaterialType materialParam_;
 
     Elem * ptVolElem_;

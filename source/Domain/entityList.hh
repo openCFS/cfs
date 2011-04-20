@@ -342,6 +342,10 @@ namespace CoupledField {
     //! NUMBER_LIST: unknown number
     std::string GetIdString() const;
     
+    //! Returns the name of the list, i.e. region name, etc.
+    std::string GetName() const;
+    
+    
   protected:
     EntityList::ListType type_;
     const ElemList* elemList_;
@@ -352,6 +356,7 @@ namespace CoupledField {
     const NumberList* numberList_;
     UInt pos_;
     UInt size_;
+    std::string name_;
   };
 
 }
