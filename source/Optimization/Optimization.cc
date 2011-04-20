@@ -67,7 +67,7 @@ Optimization::Optimization()
   this->lastStoredResult_ = -1;
   this->design = NULL;
   this->baseOptimizer_ = NULL;
-  this->harmonic = BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType());
+  this->harmonic = BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType()); // no multi-sequence
   this->currentIteration = 0; // a 1 or 0 can make a lot of difference! 0 is initial design!
   this->writeCounter_ = 0;
   this->problemSolvedCounter = 0;

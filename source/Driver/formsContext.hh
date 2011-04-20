@@ -137,7 +137,7 @@ namespace CoupledField
     //! Returns information about second result info
     shared_ptr<ResultInfo> GetSecondResultInfo() { return result2_; }
 
-    //get the pointe rto damping layer object!
+    //get the pointer to damping layer object!
     DampLayer* getPtDamplayer() {
       return dampingLayer_;}
 

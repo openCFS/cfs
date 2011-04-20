@@ -701,7 +701,7 @@ namespace CoupledField {
       if( neededCap == SimOutput::MESH_RESULTS ) {
         EXCEPTION( "No output class was specified, which is capable of "
                    << "writing mesh results. Please specify one within the "
-                   << "<output> section!" );
+                   << "output section!" );
       }
 
       // If no writer with capability HISTORY_RESULT is found: 

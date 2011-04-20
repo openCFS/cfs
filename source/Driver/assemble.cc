@@ -413,27 +413,8 @@ namespace CoupledField
           }
 #endif
 
-#ifdef CHECK_INDEX
-          if (form->IsComplex()) {
-            if ((eqnVec1.GetSize() != elemMatrixC.GetNumRows())
-                || (eqnVec2.GetSize() != elemMatrixC.GetNumCols())) {
-              EXCEPTION("An element matrix returned by integrator '"
-                        << form->GetName() << "' has the wrong size.");
-            }
-          }
-          else {
-            if ((eqnVec1.GetSize() != elemMatrix.GetNumRows())
-                || (eqnVec2.GetSize() != elemMatrix.GetNumCols())) {
-              std::cerr << "elemMat (" << elemMatrix.GetNumRows() << " x "
-              << elemMatrix.GetNumCols() << "):\n";
-              std::cerr << elemMatrix << std::endl;
-              std::cerr << "eqnVec1: " << eqnVec1.Serialize() << std::endl;
-              std::cerr << "eqnVec2: " << eqnVec2.Serialize() << std::endl;
-              EXCEPTION("An element matrix returned by integrator '"
-                        << form->GetName() << "' has the wrong size.");
-            }
-          }
-#endif
+          assert((form->IsComplex() && eqnVec1.GetSize() == elemMatrixC.GetNumRows() && eqnVec2.GetSize() == elemMatrixC.GetNumCols()) || !form->IsComplex());
+          assert((!form->IsComplex() && eqnVec1.GetSize() == elemMatrix.GetNumRows() && eqnVec2.GetSize() == elemMatrix.GetNumCols()) || form->IsComplex());
 
           // Pass element matrix to algebraic system (primary matrix)
           if ( form->IsComplex() )
@@ -447,29 +428,33 @@ namespace CoupledField
               domain->GetErsatzMaterial()->GetErsatzMaterialDampingParameterForIntegrator(it1.GetElem(), form, secMatFacOpt)){
             elemMatrix *= secMatFacOpt; // only in non-complex case, complex is not known in ParamMat
             InsertMatrix(DAMPING, actContext, elemMatrix, eqnVec1, eqnVec2, pdeId1, pdeId2);
-          }else if (secDestMat != NOTYPE ) { // Check for secondary matrix type
-
+          }
+          else if (secDestMat != NOTYPE ) { // Check for secondary matrix type
             Double dampFactor = 1.0;
             if ( actContext.getPtDamplayer() != NULL ) {
               actContext.getPtDamplayer()->CalcDampFactor(dampFactor, it1);
               // std::cout << "   dampFactor: " <<  dampFactor << std::endl;
             }
 
+            // damping with "exotic" complex material
             if ( form->IsComplex() ) {
-              // Rayleigh damping
+              // complex damping
               elemMatrixC *= secMatFac * dampFactor;
 
               // Pass secondary matrix part to algebraic system
-              InsertMatrix( secDestMat, actContext, elemMatrixC, eqnVec1, eqnVec2,
-                  pdeId1, pdeId2);
+              InsertMatrix(secDestMat, actContext, elemMatrixC, eqnVec1, eqnVec2, pdeId1, pdeId2);
             }
+            // "standard" Rayleigh damping. Includes the standard SIMP optimization!
             else {
               // Rayleigh damping
               elemMatrix *= secMatFac * dampFactor;
 
               // Pass secondary matrix part to algebraic system
-              InsertMatrix( secDestMat, actContext, elemMatrix, eqnVec1, eqnVec2,
-                  pdeId1, pdeId2);
+              InsertMatrix(secDestMat, actContext, elemMatrix, eqnVec1, eqnVec2, pdeId1, pdeId2);
+            }
+            // optionally with do SIMP pamping (intermediate material has complex mass damping)
+            if(domain->GetErsatzMaterialPamping(it1.GetElem(), form, elemMatrix)) {
+              InsertMatrix(secDestMat, actContext, elemMatrix, eqnVec1, eqnVec2, pdeId1, pdeId2);
             }
 
           } // handle secDestMat != NOTYPE

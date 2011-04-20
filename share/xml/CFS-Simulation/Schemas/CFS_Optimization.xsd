@@ -794,6 +794,15 @@
             <!-- We have to define transfer functions 
               <transferFunction type="SIMP" application="elast" design="density" param="3.0"/> -->
             <xsd:element name="transferFunction" minOccurs="0" maxOccurs="8" type="DT_TransferFunction"/>
+            
+            <!-- Optional pamping which is an artifical damping for intermediate densites only -->
+            <xsd:element name="pamping" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <!-- E.g. 5 -->
+                <xsd:attribute name="value" type="xsd:float" use="required"/>
+              </xsd:complexType>
+            </xsd:element>
+            
             <xsd:element name="result" minOccurs="0" maxOccurs="9">
               <xsd:complexType>
                 <!-- mandatory to give the type. The type is one of a list of types -->

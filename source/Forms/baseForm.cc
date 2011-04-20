@@ -9,6 +9,11 @@
 #include "Domain/domain.hh"
 #include "Domain/grid.hh"
 #include "Domain/entityList.hh"
+#include "DataInOut/Logging/cfslog.hh"
+
+DECLARE_LOG(forms)
+DEFINE_LOG(forms, "forms")
+
 
 namespace CoupledField
 {
@@ -96,6 +101,9 @@ double BaseForm::MaterialDescriptor::GetErsatzMaterial(BaseForm* form, const Ele
     double density2 = GetScalar(bi_mat);
 
     density = top_opt * density + (1.0 - top_opt) *  density2;
+
+    LOG_DBG3(forms) << "GEM form=" << form->GetName() << " e=" << elem->elemNum << " dmv=" << default_mat_value << " bm=" << (bi_mat != NULL ? bi_mat->GetName() : "-")
+                    << " to=" << top_opt << " d2=" << density2 << "->" << density;
   }
   if(bi_mat == NULL && top_opt != 1.0)
   {
@@ -228,6 +236,8 @@ double BaseForm::MaterialDescriptor::GetErsatzMaterial(BaseForm* form, const Ele
       double bimat_factor = !derivative ? 1.0 - factor : -1.0 *  factor;
 
       Add(out, bimat_factor, tmp);
+
+      LOG_DBG3(forms) << "GSM f=" << factor << " der=" << derivative << " bm=" << bimat->GetName() << " bmf=" << bimat_factor;
     }
   }
 

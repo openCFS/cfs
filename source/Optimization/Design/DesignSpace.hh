@@ -29,15 +29,13 @@ namespace CoupledField
   {
     public:
      /** Constructor for SIMP type Optimization - there we lay on a region which contains also n# elements
-      * @param result the result description list  */
-     DesignSpace(StdVector<RegionIdType>& regions, ParamNodeList& design, ParamNodeList& transfer, ParamNodeList& result,
-         ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
+      * @param pn we search for design, transferFunction, result and pamping  */
+     DesignSpace(StdVector<RegionIdType>& regions, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
 
      virtual ~DesignSpace();
     
      /** creates the corresponding DesignSpace object depending on the method */
-     static DesignSpace* CreateInstance(StdVector<RegionIdType> regions, ParamNodeList& design, ParamNodeList& transfer, ParamNodeList& result,
-              ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
+     static DesignSpace* CreateInstance(StdVector<RegionIdType> regions, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
 
      /** PostInit as usual when not all can be stuffed into the constructor
       * @param objectives the number of objectives
@@ -67,8 +65,13 @@ namespace CoupledField
       * @return a good factor or an exception is thrown */
      double GetErsatzMaterialFactor(unsigned int design_index, Optimization::Application applic);
 
+     /** assigns the pamping matrix: pamping_ * rho * (1-rho) * M_0. (Sigmund; Morphology; 2007)
+      * The mesh is assumed irregular as we have not the ErsatzMaterial::OptimizatioMaterial.
+      * This method is only to be used via domain. ErsatzMaterial has its own implementation in AddMassToStiffness() */
+     bool GetErsatzMaterialPamping(const Elem* elem, Matrix<double>& elemMat);
+
      /** Convenience version
-      * @see  GetErsatzMaterialFactor(unsinged int, Optimization::Application) */
+      * @see  GetErsatzMaterialFactor(unsigned int, Optimization::Application) */
      double GetErsatzMaterialFactor(unsigned int design_index, const BaseForm* form)
      {
        return GetErsatzMaterialFactor(design_index, (Optimization::Application) applicationForm.Parse(form->GetName()));
@@ -224,6 +227,11 @@ namespace CoupledField
       * value is not unique (what should be the case) any suitable is returned.
       * We do not cache the result, and search all, so use with care. */
      DesignElement* FindElementWithLargesFilter();
+
+     /** Get Pamping value (e.g. Sigmund; Morpology; 2007)
+      * Extend to regions if necessary!
+      * @return 0 if not set. */
+     double GetPampingValue() const { return pamping_; }
 
      /** This is our real design data, a set of DesignElements.
       * Size is design.GetSize() * elements */
@@ -403,6 +411,9 @@ namespace CoupledField
      /** Functions which are defined not within the design space have their own pseudo DesignElements.
       * They are stored here, such that we can report their special results via FillElementResults() */
      StdVector<StdVector<DesignElement*>* > pseudoDesigns_;
+
+     /** the pamping parameter. Extend to region on request :) */
+     double pamping_;
 
   };
 

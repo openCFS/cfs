@@ -118,16 +118,14 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
     if(harmonic)
     {
       tf = design->GetTransferFunction(de->GetType(), MASS);
-      double m_factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
-      AddMassToStiffness(m_factor, de, dynamic_cast<Matrix<complex<double> >& >(out), false); // no bimaterial
+      AddMassToStiffness(tf, de, dynamic_cast<Matrix<complex<double> >& >(out), derivative, false); // no bimaterial
 
       // LOG_DBG3(simp) << "SetElementK: m_factor " << m_factor << " -> " << out.ToString();
 
       if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
       {
         // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
-        m_factor = !derivative ? 1.0 - m_factor : -1.0 *  m_factor;
-        AddMassToStiffness(m_factor, de, dynamic_cast<Matrix<complex<double> >& >(out), true); // bimaterial
+        AddMassToStiffness(tf, de, dynamic_cast<Matrix<complex<double> >& >(out), derivative, true); // bimaterial
 
         // LOG_DBG3(simp) << "SetElementK: m_bi_factor " << m_factor << " -> " << out.ToString();
       }
@@ -141,16 +139,27 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
 }
 
 
-void SIMP::AddMassToStiffness(double m_factor, DesignElement* de, Matrix<complex<double> >& K_in_S_out, bool bimaterial)
+void SIMP::AddMassToStiffness(const TransferFunction* mtf, DesignElement* de, Matrix<complex<double> >& K_in_S_out, bool derivative, bool bimaterial)
 {
   // The result matrix is
   // S = K + i*omega*C - omega^2*M
-  // with purly imaginary C = alpha_k*K+alpha*M
+  // with purely imaginary C = alpha_k*K+alpha*M
   // S = K + i*omega*alpha_k*K + i*omega*alpha_m*M - omega^2*M
   // with m_factor
   // S = K + i*omega*alpha_k*K + i*omega*alpha_m*m_factor*M - omega^2*m_factor*M
   // With S = K in the beginning this is
   // S += i*alpha_k*S + (i*alpha_m*m_factor-omega^2*m_factor)*M
+  //
+  // in case we have pamping (e.g. Sigmund; Morhology; 2007) there is to add
+  // j*omega*pamping*rho*(1-rho)*M and for the derivative case
+  // j*omega*pamping*rho'*M - j*2*omega*pamping*rho*rho'*M = j*omega*pamping*rho'(1-2*rho)
+
+  double mtv =  mtf->Transform(de, DesignElement::SMART);
+  double mdv =  mtf->Derivative(de, DesignElement::SMART);
+
+  double m_factor = derivative ? mdv : mtv;
+  if(bimaterial)  // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
+    m_factor = !derivative ? 1.0 - m_factor : -1.0 *  m_factor;
 
   // change name only
   Matrix<complex<double> >& S = K_in_S_out;
@@ -161,6 +170,7 @@ void SIMP::AddMassToStiffness(double m_factor, DesignElement* de, Matrix<complex
   double omega = 2.0 * M_PI * pde->GetSolveStep()->GetActFreq() ;  // todo: check with multiple excitation frequencies!
   double alpha_k = 0.0;
   double alpha_m  = 0.0;
+  double pamping_m = 0.0; // add on without omega
 
   // do we have damping (C = alpha*M+beta*K) -> this is pure imaginary!
   RegionIdType regionId = de->elem->regionId;
@@ -183,6 +193,13 @@ void SIMP::AddMassToStiffness(double m_factor, DesignElement* de, Matrix<complex
 
     domain->GetMathParser()->ReleaseHandle(handle);
     assert(omega > 0 && alpha_k > 0 && alpha_m > 0);
+
+    // pamping stuff without omega
+    double pamping = design->GetPampingValue(); // 0 if not applicable
+    if(!derivative)
+      pamping_m = pamping * mtv * (1.0 - mtv);
+    else // pamping*rho'(1-2*rho)
+      pamping_m = pamping * mdv * (1.0 - 2.0 * mtv);
   }
 
 	const unsigned int srows(S.GetNumRows());
@@ -193,12 +210,14 @@ void SIMP::AddMassToStiffness(double m_factor, DesignElement* de, Matrix<complex
       S[r][c] = complex<double>(S[r][c].real(), omega * alpha_k * S[r][c].real());
 
   // we the add the M part of C and the real mass part
-  complex<double> damp_mass = complex<double>(-1.0 *omega*omega*m_factor, omega*alpha_m*m_factor);
+  complex<double> damp_mass = complex<double>(-1.0 *omega*omega*m_factor, omega*(alpha_m*m_factor  + pamping_m));
   for(unsigned int r = 0; r < srows; r++)
     for(unsigned int c = 0; c < scols; c++)
       S[r][c] += damp_mass * M[r][c];
 
-  LOG_DBG2(simp) << "AddMassToStiffness: m_factor:" << m_factor << " alpha_k: " << alpha_k << " alpha_m: " << alpha_m
+
+  LOG_DBG2(simp) << "AddMassToStiffness: d=" << de->elem->elemNum << " der=" << derivative << " bm=" << bimaterial
+                 << " m_factor:" << m_factor << " alpha_k: " << alpha_k << " alpha_m: " << alpha_m << " pamping_m:" << pamping_m
                  << " omega: " << omega << " K_img: " << (omega * alpha_k) << " damp_mass: " << damp_mass << " M=" << M.ToString();
 }
 

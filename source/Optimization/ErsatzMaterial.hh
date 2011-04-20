@@ -120,7 +120,7 @@ public:
    * @param pde1 the first pde (e.g. mech)
    * @param pde2 this is either the same as pde1 or the coupling partner
    * @param integrator there is no nice enum yet :( e.g. linElastInt, MechInt, ... */
-  BiLinFormContext* GetFormContext(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception = true);
+  static BiLinFormContext* GetFormContext(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception = true);
 
   /** Get the standard integrators */
   BaseForm* GetForm(const RegionIdType reg, Application app1, Application app2 = NO_APP, bool throw_exception = true);
@@ -130,7 +130,7 @@ public:
    * @param pde1 the first pde (e.g. mech)
    * @param pde2 this is either the same as pde1 or the coupling partner
    * @param integrator there is no nice enum yet :( e.g. linElastInt, MechInt, ... */
-  BaseForm* GetForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception = true);
+  static BaseForm* GetForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception = true);
 
   /** Types of ersatz material optimization methods, the strings are read from the xml file */
   typedef enum
@@ -154,6 +154,8 @@ public:
   Matrix<double> homogenizedTensor;
 
   Assemble* GetAssemble() { return assemble_; }
+
+  OptimizationMaterial* GetMaterial() { return material; }
 
  protected:
 

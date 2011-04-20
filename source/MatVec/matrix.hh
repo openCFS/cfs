@@ -239,8 +239,8 @@ namespace CoupledField
      * If you have mixed types use the tools version of Add */
     void Add(const TYPE fac, const Matrix<TYPE> & mat);
     
-    /** Set this matrix with a multiple of another matric.
-     * This and a mixed varian is also a sandalone method in tools. 
+    /** Set this matrix with a multiple of another matrix.
+     * This and a mixed variant is also a stand alone method in tools.
      * Anybody knows how to do the mixed form (complex <- double * complex) here? 
      * this = factor * other_mat */
     void Assign(const Matrix<TYPE>& other_mat, TYPE factor);
