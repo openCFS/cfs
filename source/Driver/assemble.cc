@@ -377,6 +377,7 @@ namespace CoupledField
 
         // iterate over all entities
         for ( UInt i=0; i<size; i++ ) {
+          
 
           // Calc element matrix
           if ( form->IsComplex() )
@@ -652,7 +653,7 @@ namespace CoupledField
               StdVector<std::string> args;
               args.Push_back( form->GetName() );
               args.Push_back( entIt.GetIdString() );
-              args.Push_back( elemVec.ToString(' ') );
+              args.Push_back( elemVec.ToString() );
               messenger->TriggerEvent( CFSMessenger::CFS_AssembleRhs, args );
             }
           }
