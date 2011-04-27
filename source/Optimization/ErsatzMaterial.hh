@@ -41,12 +41,10 @@ template<class TYPE> class Matrix;
  * The implementation of gradients, ... is for the subclasses. */
 class ErsatzMaterial: public Optimization
 {
+public:
 
-protected:
   // forward declaration
   class Solutions;
-
-public:
 
   /** Up to now w/o parameters */
   ErsatzMaterial();
@@ -155,7 +153,6 @@ public:
 
   Assemble* GetAssemble() { return assemble_; }
 
- protected:
 
   /** This class holds the solution of the PDE. It is in a class such that it
    * helps to encapsulate real and complex solutions. Note that the Piezo
@@ -317,6 +314,7 @@ public:
     ErsatzMaterial* em_;
   };
 
+ protected:
 
   /** When "commit" is set, we write "forward"/"adjoint" or "both_cases" */
   virtual void StoreResults(double step_val);
