@@ -134,18 +134,11 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
 
 
   // check the the dimensions! the number of design variables comes from the regions and designs
-  if (ersatzMaterial->data.GetSize() != elems.GetSize())
+  if (ersatzMaterial->data.GetSize() != elsize)
   {
-    if(grid->GetNumElems() == elsize)
-    {
-      string msg = "the number of elements in the region you are trying to read the densities into is not equal to"\
-                  " the number of elements in the density-file but matches the number of all elements!";
-      info->Get("ersatzMaterial")->Get(ParamNode::WARNING)->SetValue(msg);
-    }
-    else
-      throw Exception("ErsatzMaterialFile '" + file + "' has " + boost::lexical_cast<string>(elems.GetSize())
-                       +" entries, the mesh has "+boost::lexical_cast<string>(ersatzMaterial->data.GetSize())
-                       +" design elements");
+    string msg = "the number of elements in the region you are trying to read the densities into is not equal to"\
+                 " the number of elements in the density-file but matches the number of all elements!";
+    info->Get("ersatzMaterial")->Get(ParamNode::WARNING)->SetValue(msg);
   }
 
   for (unsigned int e = 0; e < elsize; ++e)
