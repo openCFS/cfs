@@ -656,6 +656,9 @@ std::endl;
   
   void MagEdgePDE::CalcSpecialResults() {
     
+#ifndef USE_INTERPOLATION
+    EXCEPTION("Special Results can just be calculated with INTERPOLATION active");
+#else
     // fetch fluxlist
     for( UInt iList = 0; iList < calcFlux_.GetSize(); ++iList ) {
 
@@ -693,6 +696,7 @@ std::endl;
       // close file
       out.close();
     }
+#endif
   }
 
 
