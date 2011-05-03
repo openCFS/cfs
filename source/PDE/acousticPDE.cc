@@ -250,21 +250,34 @@ namespace CoupledField {
     //   If no other damping type is specified and we have absorbing
     //   boundary conditions, then use ABCDAMP
     // ***************************************************************
-    StdVector<std::string> auxVec;
-    absorbingBCs_ = false;
     PtrParamNode bcNode = myParam_->Get( "bcsAndLoads", ParamNode::PASS );
+    
     if( bcNode ) {
       ParamNodeList abcNodes = bcNode->GetList( "absorbingBCs" );
 
-      for( UInt i = 0; i < abcNodes.GetSize(); i++ ) {
+      for ( UInt i=0, n=abcNodes.GetSize(); i<n; ++i )
+      {
         std::string regionName = abcNodes[i]->Get("name")->As<std::string>();
         absBCs_.Push_back( ptgrid_
           ->GetEntityList( EntityList::SURF_ELEM_LIST,
                            regionName, EntityList::REGION ) );
-        absorbingBCs_ = true;
         Info->PrintF( pdename_,
                       "Apply Absorbing Boundary Conditions on surfaceRegion '%s'\n",
                       regionName.c_str() );
+      }
+      
+      ParamNodeList impedNodes = bcNode->GetList( "impedance" );
+      for ( UInt i=0, n=impedNodes.GetSize(); i<n; ++i )
+      {
+        shared_ptr<InhomDirichletBc> impedBC ( new InhomDirichletBc );
+        impedBC->entities = ptgrid_
+            ->GetEntityList( EntityList::SURF_ELEM_LIST,
+                             impedNodes[i]->Get("name")->As<std::string>(),
+                             EntityList::REGION );
+        impedBC->value = impedNodes[i]->Get("value")->As<std::string>();
+        impedBC->phase = impedNodes[i]->Get("phase", ParamNode::INSERT)
+            ->As<std::string>();
+        impedanceBCs_.Push_back( impedBC );
       }
     }
   }
@@ -1018,17 +1031,21 @@ namespace CoupledField {
     // **********************************************************************
     //   surface-integration: Absorbing boundaries
     // **********************************************************************
-    if ( absorbingBCs_ == true) { // && analysistype_ != HARMONIC ) {
-      for (UInt actSD = 0; actSD < absBCs_.GetSize(); actSD++) {
+    if ( absBCs_.GetSize() > 0 )
+    {
+      std::string factor;
+      // In the case of acou-mech coupling we have to multiply the
+      // abc-Integrator matrix with -1
+      if ( isMechCoupled_ == true && formulation_ !=  ACOU_PRESSURE ) {
+        factor = "-1.0";
+      }
+      
+      for (UInt actSD=0, numSD=absBCs_.GetSize(); actSD<numSD; ++actSD)
+      {
 
-        AbsorbingBCsInt * bilinear_damp = new AbsorbingBCsInt(isaxi_);
+        AbsorbingBCsInt * bilinear_damp =
+            new AbsorbingBCsInt( true, factor, "", isaxi_);
         bilinear_damp->SetFirstVoluInfo(pdename_, materials_ );
-
-        // In the case of acou-mech coupling we have to multiply the
-        // abc-Integrator matrix with -1
-        if ( isMechCoupled_ == true && formulation_ !=  ACOU_PRESSURE ) {
-          bilinear_damp->SetFactor("-1.0");
-        }
 
         BiLinFormContext * abcContext =
           new BiLinFormContext( bilinear_damp, DAMPING );
@@ -1042,6 +1059,39 @@ namespace CoupledField {
       }
     }
 
+    // =======================================================================
+    //  surface-integration: Impedance boundaries
+    // =======================================================================
+    for ( UInt i=0, n=impedanceBCs_.GetSize(); i<n; ++i )
+    {
+      std::string phase;
+      if ( analysistype_ == HARMONIC ) {
+        phase = impedanceBCs_[i]->phase;
+      }
+      else {
+        WARN( "You are using an acoustic impedance boundary condition in a\n"
+             << " transient analysis. In this case the impedance cannot depend\n"
+             << " on frequency and it cannot be complex (i.e. no phase change).\n"
+             << " Is this really what you want?");
+      }
+      
+      AbsorbingBCsInt *impedInt =
+          new AbsorbingBCsInt(false, impedanceBCs_[i]->value, phase, isaxi_);
+      impedInt->SetFirstVoluInfo( pdename_, materials_ );
+
+      BiLinFormContext *impedContext =
+          new BiLinFormContext( impedInt, DAMPING );
+      impedContext->SetPtPdes( this, this );
+      impedContext->SetResults( results_[0], results_[0],
+                                impedanceBCs_[i]->entities,
+                                impedanceBCs_[i]->entities );
+      
+      assemble_->AddBiLinearForm( impedContext );
+      
+      eqnMap_->AddResult( *results_[0], impedanceBCs_[i]->entities );
+    }
+    
+    
     // =======================================================================
     // Integrators for NonConforming Interfaces
     // =======================================================================
