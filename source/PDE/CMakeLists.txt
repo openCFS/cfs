@@ -45,7 +45,6 @@ SET(TARGET_LL
   paramh
   matvec
   utils
-  ${BOOST_SERIALIZATION_HDF5_LIB}
 )
 
 IF(USE_MPCCI)
