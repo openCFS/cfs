@@ -578,7 +578,7 @@ std::string Condition::ToString(const StdVector<tuple<int, int, double> >& coord
   {
     const tuple<int, int, double>& entry = coords[i];
     assert(std::floor(get<2>(entry)) - get<2>(entry) == 0.0);
-    int factor = get<2>(entry);
+    int factor = static_cast<int>(get<2>(entry));
     assert((i == 0 && factor == 1) || i != 0);
     if(std::abs(factor) != 1.0)
       os << factor;

@@ -34,7 +34,8 @@ namespace CoupledField {
                          Grid * aptgrid,
                          StdPDE * aptStdPDE, 
                          StdVector<RegionIdType> asubdomainList,
-                         std::map<RegionIdType,DampingType> adampingList);
+                         std::map<RegionIdType,DampingType> adampingList,
+                         PtrParamNode systemNode );
   
     //! deconstructor
     virtual ~NewmarkFracDampMech();

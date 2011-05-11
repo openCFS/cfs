@@ -58,6 +58,9 @@ namespace CoupledField {
     //! Status of factorisation
     bool amFactorised_;
     
+    //! Flag for logging
+    bool logging_;
+    
   };
 
 }

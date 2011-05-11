@@ -316,7 +316,7 @@ void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferF
     int idx = -1; // case c) an sometimes b) never a)
 
     // case a)
-    if(f->region == ALL_REGIONS || design->regions.GetSize() == 1)
+    if(f->region == ALL_REGIONS || design->regions[0].GetSize() == 1)
     {
       assert(de.elem->elemNum == f->elements[i]->elem->elemNum);
       idx = i;

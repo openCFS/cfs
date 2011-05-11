@@ -11,6 +11,7 @@ namespace CoupledField
 {
 
 class ParamNode;
+class Timer;
 
 //! driver for harmonic problems. it is derived from BaseDriver
 class HarmonicDriver : public virtual SingleDriver
@@ -119,6 +120,14 @@ protected:
 
   /** This is the pointer to our analysis description */
   PtrParamNode pn_;
+  
+  // =======================================================================
+  //  Timing estimation
+  // =======================================================================
+
+  //! Timer for estimating remaining runtime 
+  Timer * timer_;
+
 };
 
 }

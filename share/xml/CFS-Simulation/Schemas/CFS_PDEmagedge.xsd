@@ -224,6 +224,7 @@
       <xsd:enumeration value="magFluxDensity"/>
       <xsd:enumeration value="magPotentialDiv"/>
       <xsd:enumeration value="magEddyCurrent"/>
+      <xsd:enumeration value="magElemPermeability"/>
     </xsd:restriction>
   </xsd:simpleType>
 

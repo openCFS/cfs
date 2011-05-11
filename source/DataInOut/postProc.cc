@@ -477,9 +477,9 @@ namespace CoupledField {
     for( UInt outDof = 0 ; outDof < dofNames_.GetSize(); outDof++ ) {
       
       // obtain new handle
-      rHandles_[outDof] = mParser_->GetNewHandle();
+      rHandles_[outDof] = mParser_->GetNewHandle(true);
       if( input_->GetEntryType() == BaseMatrix::COMPLEX ) {
-        iHandles_[outDof] = mParser_->GetNewHandle();
+        iHandles_[outDof] = mParser_->GetNewHandle(true);
       }
       
       // register all input dofs 

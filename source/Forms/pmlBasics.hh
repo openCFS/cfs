@@ -10,6 +10,9 @@
 namespace CoupledField
 {
 
+  //! forward class declarations
+  class CoordSystem;
+
   //! class containing basic PML methods
   class PMLBasics
   {
@@ -40,10 +43,14 @@ namespace CoupledField
                               Vector<Double> center);
 
     //! calculates the damping factor
-    Double ComputeDampingFactor( Vector<Double>& pos, Directions dir );
+    void ComputeDampingFactor( Vector<Double>& factors, 
+                               const Vector<Double>& globPos,
+                               const Vector<Double>& locPos,
+                               UInt dir );
     
     //! set min/max of x,y,z coordinates form where PML starts and ends
-    void SetPosPML( Matrix<Double> & inner, Matrix<Double> & outer );
+    void SetPosPML( Matrix<Double> & inner, Matrix<Double> & outer,
+                    const std::string& coordSysId );
     
     //! returns the type of bilinear form
     std::string GetFormsType() {
@@ -61,11 +68,20 @@ namespace CoupledField
     //! damping factor 
     Double dampingFactor_;
     
-    //!layer thickness
+    //! layer thickness (given in local coordinates)
     Matrix<Double> layerThickness_;
     
-    //! coordinates for inner box at which PML starts
-    Double minX_, maxX_, minY_, maxY_, minZ_, maxZ_;
+    //! id of coordinate system
+    std::string coordSysId_;
+    
+    //! pointer to reference coordinate system
+    CoordSystem * coordSys_;
+    
+    //! minimum coordinates of PML box (in local coordinateS)
+    Vector<Double> minLoc_;
+    
+    //! maximum coordinates of PML box (in local coordinateS)
+    Vector<Double> maxLoc_; 
     
   };
 

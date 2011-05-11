@@ -42,8 +42,9 @@ namespace CoupledField {
     // get index of last element
     const UInt kend = xVals.GetSize() - 1;
 
-    // if coordinate is out of bounds, return boundary value (i.e.first or last) 
-    if ( xEntry > xVals[kend] ) {
+    // if coordinate is out of bounds or we have just one entry,
+    // return boundary value (i.e.first or last) 
+    if ( xEntry > xVals[kend] || kend == 0) {
       yValue = yVals[kend];
     }
     else if ( xEntry < xVals[0] ) {

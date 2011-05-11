@@ -104,6 +104,19 @@ namespace CoupledField
     //! get user data from file reader
     virtual void GetUserData(std::map<std::string, std::string>& userData) {};
 
+    //! Correct the numbering of the nodes. This is needed if nodes are tossed
+    //! away, e.g. with the reduce_elementOrder_ flag
+    virtual void CorrectNumbering(std::vector<Double>& nodalCoords,
+                                  std::vector<UInt>& connectivities, \
+                                  std::vector<UInt>& elemTypes) {
+      EXCEPTION("not implemented for this file type!");
+    };
+    virtual void ReduceOrderOfNodalValues(std::vector<FlowDataType>& nodalFlowData, \
+        const std::map<std::string, std::vector<UInt> >& regionNodes)
+    {
+      EXCEPTION("not implemented for this file type!");
+    };
+
     UInt GetMaxNumElemNodes() {
       return maxNumElemNodes_;
     }

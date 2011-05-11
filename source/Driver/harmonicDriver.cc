@@ -7,10 +7,12 @@
 #include <string>
 
 #include <boost/lexical_cast.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "Driver/harmonicDriver.hh"
 #include "Driver/stdSolveStep.hh"
 #include "Driver/assemble.hh"
+#include "Utils/Timer.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/WriteInfo.hh"
@@ -23,6 +25,7 @@
 
 using std::cout;
 using std::endl;
+namespace pt = boost::posix_time;
 
 namespace CoupledField
 {
@@ -48,12 +51,15 @@ namespace CoupledField
     numFreq_ = 0;
     actFreqStep_ = 0;
     
+    timer_ = new Timer();
+    
     // register frequency variable at math parser
     domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", actFreq_ );
   }
 
   HarmonicDriver::~HarmonicDriver()
   {
+    delete timer_;
   }
 
 
@@ -74,6 +80,13 @@ namespace CoupledField
     in->Get("end")->SetValue(stopFreq_);
     in->Get("numFreq")->SetValue(numFreq_);
 
+    // Initialize first multisequence step, as the method "CheckStoreResults" 
+    // relies on the result handler to know already about the current
+    // sequencestep. However, in case of optimization, the sequence step
+    // gets initialized in Optimization::SolveProblem()
+    if( !domain->GetOptimization()) {
+      handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, numFreq_ );
+    }
     InitializePDEs();
   }
 
@@ -95,8 +108,8 @@ namespace CoupledField
       assert(pn->GetName() == "freq");
       Frequency& f = freqs[fi];
       f.step = fi+1;
-      f.freq = pn->Get("value")->As<Double>();
-      f.weight = pn->Get("weight")->As<Double>();
+      f.freq = pn->Get("value")->MathParse<Double>();
+      f.weight = pn->Get("weight")->MathParse<Double>();
 
       // set bounds (we keep unsorted)
       startFreq_ = std::min(startFreq_, f.freq);
@@ -119,9 +132,9 @@ namespace CoupledField
       return false;
 
     // get start/stop/num frequencies
-    pn_->GetValue( "startFreq", startFreq_ );
-    pn_->GetValue( "stopFreq", stopFreq_ );
-    pn_->GetValue( "numFreq", numFreq_ );
+    startFreq_ = pn_->Get( "startFreq" )->MathParse<Double>();
+    stopFreq_ = pn_->Get( "stopFreq" )->MathParse<Double>();
+    numFreq_ = pn_->Get( "numFreq" )->MathParse<UInt>();
 
     // read sampling type (optional)
     std::string sampling = "linear";
@@ -211,7 +224,6 @@ namespace CoupledField
 
     // be 'silent' and don't do output only for optimization
     if(write_results) {
-      handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, numFreq_ );
       // info stuff
       ptPDE_->WriteGeneralPDEdefines();
     }
@@ -236,6 +248,17 @@ namespace CoupledField
         ptPDE_->WriteResultsInFile( actFreqStep_, actFreq_ );
         handler_->FinishStep( );
       }
+      
+      // perform runtime estimation
+      Double totalTime = timer_->GetWallTime();
+      Double timePerStep = totalTime / (Double) actFreqStep_;
+      Double remainingTime = (numFreq_ - actFreqStep_) * timePerStep;
+      pt::ptime now = pt::second_clock::local_time();
+      now += pt::seconds(static_cast<long int>(remainingTime));
+      analysis_id_->Get("timePerStep")->SetValue( timePerStep );
+      PtrParamNode envNode = info->Get(ParamNode::HEADER)->Get("environment");
+      envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
+      envNode->Get("remainingTime")->SetValue(remainingTime);
     }
 
     if(write_results) {

@@ -30,7 +30,8 @@ namespace CoupledField {
                        Grid * aptgrid,
                        StdPDE * aptStdPDE,
                        StdVector<RegionIdType> asubdomainList,
-                       std::map<RegionIdType,DampingType> adampingList) 
+                       std::map<RegionIdType,DampingType> adampingList,
+                       PtrParamNode systemNode ) 
     :TimeStepping( algebraicsystem){
     
     
@@ -156,11 +157,14 @@ namespace CoupledField {
     numTrueValues_ = 0;
     for ( UInt i=0; i < numValues_; i++ ) {
       if ( solMemoryVal_[i] == trueVAL )
-	numTrueValues_++;
+        numTrueValues_++;
     }
-
-    solpred_ = solold + solDeriv_vec_[FIRST_DERIV]*dt_ + solDeriv_vec_[SECOND_DERIV]*a0_;
-    solderiv1pred_ = solDeriv_vec_[FIRST_DERIV] + solDeriv_vec_[SECOND_DERIV]*a1_;
+    if( !omitFirstPredictor_) {
+      solpred_ = solold + solDeriv_vec_[FIRST_DERIV]*dt_ + solDeriv_vec_[SECOND_DERIV]*a0_;
+      solderiv1pred_ = solDeriv_vec_[FIRST_DERIV] + solDeriv_vec_[SECOND_DERIV]*a1_;
+    } else {
+      omitFirstPredictor_ = false;
+    }
   }
 
 

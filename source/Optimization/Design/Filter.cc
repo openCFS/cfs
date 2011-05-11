@@ -23,8 +23,8 @@ void Filter::SetBeta(double val, const DesignSpace* space)
   if(type_ != DENSITY || density_ != HEAVISIDE) return;
 
   // in case we do bimaterial optimization disable the correction by setting it to 0 which makes it transparent
-  assert(space->regions.GetSize() == 1);
-  if(space->regions[space->GetRegionId()].HasBiMaterial())
+  assert(space->regions.GetSize() == 1 && space->regions[0].GetSize() == 1);
+  if(space->regions[0][space->GetRegionId()].HasBiMaterial())
   {
     this->heaviside_corr = 0.0;
   }

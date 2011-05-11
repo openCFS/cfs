@@ -178,6 +178,9 @@ namespace CoupledField {
     //! This attribute stores the dimension of the problem, i.e. the order
     //! of the problem matrix
     UInt sysMatDim_;
+    
+    //! Flag, if logging is performed
+    bool logging_;
 
     //@{ \name Administration of matrix factors
     //! The matrix factor \f$U=L^T\f$ is stored in CRS storage format without

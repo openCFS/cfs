@@ -114,9 +114,9 @@
     <xsd:complexContent>
       <xsd:restriction base="xsd:anyType">
         <xsd:attribute name="node" type="xsd:token" use="optional" default="none"/>
-        <xsd:attribute name="x" type="xsd:float" use="optional" default="0.0"/>
-        <xsd:attribute name="y" type="xsd:float" use="optional" default="0.0"/>
-        <xsd:attribute name="z" type="xsd:float" use="optional" default="0.0"/>
+        <xsd:attribute name="x" type="xsd:token" use="optional" default="0.0"/>
+        <xsd:attribute name="y" type="xsd:token" use="optional" default="0.0"/>
+        <xsd:attribute name="z" type="xsd:token" use="optional" default="0.0"/>
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>
@@ -127,8 +127,8 @@
     <xsd:complexContent>
       <xsd:restriction base="xsd:anyType">
         <xsd:attribute name="node" type="xsd:token" use="optional" default="none"/>
-        <xsd:attribute name="x" type="xsd:float" use="optional" default="0.0"/>
-        <xsd:attribute name="y" type="xsd:float" use="optional" default="0.0"/>
+        <xsd:attribute name="x" type="xsd:token" use="optional" default="0.0"/>
+        <xsd:attribute name="y" type="xsd:token" use="optional" default="0.0"/>
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>

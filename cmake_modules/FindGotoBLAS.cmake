@@ -3,8 +3,8 @@ SET(GOTOBLAS_FOUND 0)
 #-------------------------------------------------------------------------------
 # Look for metis header.
 #-------------------------------------------------------------------------------
-BUILD_EXTLIB("GotoBLAS"
-  "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libgoto.a"
+BUILD_EXTLIB("GotoBLAS2"
+  "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libgoto2.a"
   "${CFS_DEPS_ROOT}/gotoblas/build_gotoblas.pl"
   "build_gotoblas.log")
 
@@ -12,11 +12,11 @@ BUILD_EXTLIB("GotoBLAS"
 # Determine paths of GOTOBLAS libraries.
 #-------------------------------------------------------------------------------
 SET(GOTOBLAS_SERIAL_LIB
-  ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libgoto.a;${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/liblapack.a
+  ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libgoto2.a;${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/liblapack.a
   CACHE FILEPATH "GotoBLAS serial library.")
 
 SET(GOTOBLAS_OPENMP_LIB
-  ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libgoto_p.a;${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/liblapack.a
+  ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libgoto2_p.a;${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/liblapack.a
   CACHE FILEPATH "GotoBLAS serial library.")
 
 MARK_AS_ADVANCED(GOTOBLAS_SERIAL_LIB)

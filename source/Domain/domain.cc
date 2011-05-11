@@ -89,6 +89,9 @@ Domain::Domain(
   multiSequenceDriver_ = NULL;
   optimization_ = NULL;
   ersatzMaterial = NULL;
+  
+  // register variables defined in "variableList" element
+  RegisterVariables();
 }
 
 void Domain::CreateGrid()
@@ -218,7 +221,7 @@ void Domain::CreateGrid()
     
     // print grid information to result file if requested
     if(param->Get("domain")->Get("printGridInfo")->As<bool>() ) {
-      gridMap_["default"]->CreateGridInformation(resultHandler_);
+      gridMap_["default"]->CreateGridInformation(resultHandler_, coordSys_);
     }
     
   }
@@ -227,9 +230,6 @@ void Domain::CreateGrid()
 
 void Domain::PostInit()
 {
-  
-  // Register user defined variables
-  RegisterVariables();
   
   // set up the driver first
   // SetDriver extracts the SingleDriver which is what CreateInstance returns

@@ -5,5 +5,6 @@
 #cmakedefine CPLREADER_CFX
 #cmakedefine CPLREADER_FASTEST
 #cmakedefine CPLREADER_OPENFOAM
+#cmakedefine CPLREADER_CGNS
 
 #endif

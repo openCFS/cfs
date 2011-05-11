@@ -40,6 +40,9 @@ namespace CoupledField {
     this->amFactorised_ = false;
     this->sysMatDim_    = 0;
     level_        = 0;
+
+    PtrParamNode pNode = this->xml_->Get("ILDLK", ParamNode::INSERT);
+    pNode->GetValue("logging", this->logging_, ParamNode::INSERT ) ;
   }
 
 
@@ -85,8 +88,7 @@ namespace CoupledField {
 
     // What fill level is allowed
     level_ = 1;
-    this->xml_->Get("ILDK",ParamNode::INSERT)->GetValue( "level", level_, ParamNode::INSERT);
-
+    this->xml_->Get("ILDLK",ParamNode::INSERT)->GetValue( "level", level_, ParamNode::INSERT);
     // Start pattern analysis combined with factorisation
     if ( this->amFactorised_ == false || newPattern == true ) {
       FactoriseAnalytic( sysMat, dataD, rptrU, cidxU, dataU );
@@ -116,14 +118,10 @@ namespace CoupledField {
     UInt lvlParent1, lvlParent2, auxLevel;
     T elim, aux;
 
-    // Shall we be verbose?
-    bool logging = false;
-
-
     // =================
     //  Report start-up
     // =================
-    if ( logging ) {
+    if ( this->logging_ ) {
       (*cla) << " + Using ILDL(k) variant with k = " << level_ << "\n\n"
 	     << " Phase: Combined ANALYSE + FACTORISE" << std::endl;
     }
@@ -250,7 +248,7 @@ namespace CoupledField {
     // Needed for writing progress report of factorisation
     UInt percentDone = 0;
     Double actDone = 0.0;
-    if ( logging == true ) {
+    if ( this->logging_ == true ) {
       (*cla) << '\n';
     }
     (*cla) << " Factorisation done:\n" << " 0%" << std::flush;
@@ -785,9 +783,6 @@ namespace CoupledField {
     Integer bw, bwLocal;
     UInt profile, profAux, profileMult;
 
-    // Shall we be verbose?
-    bool logging = false;
-
     // Get hold of column index array
     const UInt *cidxA = sysMat.GetColPointer();
 
@@ -802,7 +797,7 @@ namespace CoupledField {
 
     // We use a bottom up approach in order to determine for each matrix
     // column the smallest row index of a non-zero entry in that column.
-    for ( i = this->sysMatDim_; i > 0; i-- ) {
+    for ( i = this->sysMatDim_-1; i > 0; i-- ) {
 
       // For profile
       for ( k = rptrA[i]; k < rptrA[i+1]; k++ ) {
@@ -835,7 +830,7 @@ namespace CoupledField {
     Double profileFP = profile + (double) std::numeric_limits<unsigned int>::max() * profileMult;
 
     // Report
-    if ( logging ) {
+    if ( this->logging_ ) {
       (*cla) << " Pattern analysis\n"
              << " + Matrix has a bandwidth of bw = " << bw
              << "\n + Full factor (L + D) would contain " << profileFP
@@ -862,7 +857,7 @@ namespace CoupledField {
     memSize = memSize > profileFP ? profileFP : memSize;
 
     // Report
-    if ( logging ) {
+    if ( this->logging_ ) {
       (*cla) << " + Estimate of no. of entries in L: "
              << (UInt) memSize << std::endl;
     }

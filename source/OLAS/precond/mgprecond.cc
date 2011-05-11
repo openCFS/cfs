@@ -17,6 +17,9 @@ MGPrecond<T>::MGPrecond( OLAS_Params *params )
       report_( NULL ),
       AMG_( NULL )
 {
+  // The MG preconditioner is currently not working
+  WARN("The MG-Preconditioner is not yet ported from 1 to 0 based"
+      "numbering, i.e. it will NOT work correctly!" );
 }    
 
 /**********************************************************/

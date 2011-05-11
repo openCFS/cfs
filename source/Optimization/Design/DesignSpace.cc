@@ -37,12 +37,10 @@ DEFINE_LOG(ersatz, "ersatzMaterialFactor")
 DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, ErsatzMaterial::Method method)
 {
   LOG_TRACE(designSpace) << "DesignSpace for regions=" << reg_data;
-  regions.Resize(reg_data.GetSize());
-
+  all_regions_regular_ = domain->GetGrid()->IsRegionRegular(reg_data);
+  
   // for convenience
   regionIds_ = reg_data;
-
-  all_regions_regular_ = domain->GetGrid()->IsRegionRegular(regionIds_);
 
   design_id = 0;
   optimizer_ = NULL;
@@ -71,6 +69,15 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   // should we adapt the lower bound of the design variable to the penalty exponent of the transfer function? 
   bool adapt_lower(false);
 
+  // store the CFS element (number) to design element mapping.
+  // Used by Find() and the filter and vicinity neighbors
+  elemToDesign.Resize(domain->GetGrid()->GetNumElems() + 1, -1); // 1 based.
+
+  // if only shape opt is done, ignore the rest here, the DesignSpace is "empty"
+  if(method == ErsatzMaterial::SHAPE_OPT){
+    return;
+  }
+  
   // number of different designs
   ParamNodeList pn_design = pn->GetList("design");
   unsigned int nd = 0;
@@ -82,14 +89,9 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     }
   }
   
-  // store the CFS element (number) to design element mapping.
-  // Used by Find() and the filter and vicinity neighbors
-  elemToDesign.Resize(domain->GetGrid()->GetNumElems() + 1, -1); // 1 based.
-
   if(elements == 0 || nd == 0)
   { // this may happen in shape optimization
-    if(method != ErsatzMaterial::SHAPE_OPT && method != ErsatzMaterial::SHAPE_PARAM_MAT
-        && method !=ErsatzMaterial::SHAPE_GRAD)
+    if(method !=ErsatzMaterial::SHAPE_GRAD)
     {
       if(elements == 0) throw Exception("empty regions");
       if(nd == 0) throw Exception("no designs types given.");
@@ -99,18 +101,12 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   {
     // set our own structure with is element times design parameters
     data.Reserve(elements * nd);
+    
+    const unsigned int nr = reg_data.GetSize();
 
     // check whether all regions have all design variables and all design variables are given in all regions
     StdVector<bool> region_design;
-    region_design.Resize(nd * reg_data.GetSize(), true);
-
-    // scaling
-    scale_design.Resize(nd);
-    translate_design.Resize(nd);
-    for(unsigned int d = 0; d < nd; d++){
-      scale_design[d].Resize(reg_data.GetSize(), 1.0);
-      translate_design[d].Resize(reg_data.GetSize(), 0.0);
-    }
+    region_design.Resize(nd * nr, true);
 
     StdVector<std::string> regNames;
     domain->GetGrid()->GetRegionNames(regNames);
@@ -118,10 +114,16 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     // only temporary
     StdVector<Elem*> elems;
 
+    // set size of regions
+    regions.Resize(nd);
+
     // iterate over all designs, we have to always have the same order of designs not the order from the xml file
-    for(unsigned int dti = 0; dti < design.GetSize(); dti++)
+    for(unsigned int dti = 0; dti < nd; dti++)
     {
+      regions[dti].Resize(reg_data.GetSize());
+      
       DesignElement::Type dt = design[dti];
+      
       for(unsigned int d = 0; d < pn_design.GetSize(); d++)
       {
         PtrParamNode curr_design_pn = pn_design[d];
@@ -134,40 +136,44 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
         if(curr_design_pn->Has("adapt_lower"))
           adapt_lower = curr_design_pn->Get("adapt_lower")->As<bool>();
         
-        for(unsigned int r = 0; r < reg_data.GetSize(); r++)
+        for(unsigned int r = 0; r < nr; r++)
         {
           domain->GetGrid()->GetElems(elems, reg_data[r]);
           unsigned int n = elems.GetSize();
           std::string reg = regNames[reg_data[r]];
-
-          // do this only for the first design per region (?)
-          if(d == 0){
-            regions[r].regionId = reg_data[r];
-            regions[r].base = r == 0 ? 0 : regions[r-1].base + regions[r-1].elements;
-            regions[r].elements = n;
-            regions[r].constant = false;
-          }
-
-          if(design_reg == "all" || design_reg == reg)
-          {
-            int di = design.Find(dt);
-            if(!region_design[r*nd + di]){
+          
+          bool design_all = design_reg == "all";
+          if(design_all || design_reg == reg){
+            if(!region_design[r*nd + dti]){
               throw Exception("Design/Region combination given twice!");
             }
-            region_design[r*nd + di] = false;
+            region_design[r*nd + dti] = false;
+            
+            // this is now done for all designs per region, this is called for every design and every region here
+            regions[dti][r].design = dt;
+            regions[dti][r].regionId = reg_data[r];
+            regions[dti][r].base = r == 0 ? dti * elements : regions[dti][r-1].base + regions[dti][r-1].elements;
+            regions[dti][r].elements = n;
+
+            regions[dti][r].constant = VARIABLE;
             if(curr_design_pn->Has("constant") && curr_design_pn->Get("constant")->As<bool>()){
               // we have a constant densign-value on that region
-              regions[r].constant = true;
+              regions[dti][r].constant = design_all ? CONSTANT_ON_ALL_REGIONS : CONSTANT_PER_REGION;
+            }
+            if(curr_design_pn->Get("fixed")->As<bool>()){ // fixed overwrites all other settings
+              regions[dti][r].constant = FIXED;
             }
             
+            regions[dti][r].scale_design = 1.0;
+            regions[dti][r].translate_design = 0.0;
             if(design_bim != "")
-              regions[r].SetBiMaterial(design_bim);
+              regions[dti][r].SetBiMaterial(design_bim);
 
             if(curr_design_pn->Has("scale") && curr_design_pn->Get("scale")->As<bool>()){
               double upper = curr_design_pn->Get("upper")->As<double>();
               double lower = curr_design_pn->Get("lower")->As<double>();
-              scale_design[di][r] = (upper - lower);
-              translate_design[di][r] = lower;
+              regions[dti][r].scale_design = (upper - lower);
+              regions[dti][r].translate_design = lower;
             }
 
             double initial = curr_design_pn->Get("initial")->As<double>();
@@ -203,7 +209,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
       }
     }
 
-    for(unsigned int rd=0; rd < nd * reg_data.GetSize(); rd++){
+    for(unsigned int rd=0; rd < nd * nr; rd++){
       if(region_design[rd]){
         throw Exception("not all designs given for all regions");
       }
@@ -276,8 +282,8 @@ void DesignSpace::PostInit(int objectives, int constraints)
 
 bool DesignSpace::Contains(const RegionIdType reg) const
 {
-  for(unsigned int i = 0, n = regions.GetSize(); i < n; i++)
-    if(regions[i].regionId == reg)
+  for(unsigned int i = 0, n = regions[0].GetSize(); i < n; i++)
+    if(regions[0][i].regionId == reg)
       return true;
 
   return false;
@@ -623,33 +629,38 @@ TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, O
 int DesignSpace::ReadDesignFromExtern(const double* space)
 {
   bool new_design = false;
+  const unsigned int nd = design.GetSize();
   unsigned int s = 0;
-  for(unsigned int des = 0; des < design.GetSize(); des++){
-    const unsigned int base = des * elements;
-    for(unsigned int r = 0; r < regions.GetSize(); r++){
-      const double scaling = scale_design[des][r];
-      const double translation = translate_design[des][r];
-      const unsigned int u = base + regions[r].base + regions[r].elements;
-      if(regions[r].constant){
-        const double v = space[s] * scaling + translation;
-        for(unsigned int d = base + regions[r].base; d < u; d++){
+  for(unsigned int des = 0; des < nd; des++){
+    StdVector<DesignRegion>& cur_des = regions[des];
+    const unsigned int nr = regions[des].GetSize();
+    for(unsigned int r = 0; r < nr; r++){
+      DesignRegion& cur_reg = cur_des[r];
+      const double scaling = cur_reg.scale_design;
+      const double translation = cur_reg.translate_design;
+      const unsigned int u = cur_reg.base + cur_reg.elements;
+      if(cur_reg.constant == VARIABLE) {
+        for(unsigned int d = cur_reg.base; d < u; d++){
+          const double v = space[s] * scaling + translation;
           if(!new_design && data[d].GetDesign(DesignElement::PLAIN) != v) {
             new_design = true;
           }
-          LOG_DBG3(designSpace) << "ReadDesignFromExtern: setting design (constant region): data[" << d << "] = " << v;
-          data[d].SetDesign(v);
-        } // for d
-        s++; // only advance after having set all element of this region to the corresponding value
-      }else{
-        for(unsigned int d = base + regions[r].base; d < u; d++){
-          double v = space[s] * scaling + translation;
-          if(!new_design && data[d].GetDesign(DesignElement::PLAIN) != v) {
-            new_design = true;
-          }
-          LOG_DBG3(designSpace) << "ReadDesignFromExtern: setting design: data[" << d << "] = " << v;
+          LOG_DBG3(designSpace) << "ReadDesignFromExtern: setting design: data[" << d << "] = " << v << " = in[" << s << "]";
           data[d].SetDesign(v);
           s++; // advance in every step
         } // for d
+      }else if(cur_reg.constant == CONSTANT_PER_REGION || cur_reg.constant == CONSTANT_ON_ALL_REGIONS){ // in FIXED case, nothing is done
+        const double v = space[s] * scaling + translation;
+        for(unsigned int d = cur_reg.base; d < u; d++){
+          if(!new_design && data[d].GetDesign(DesignElement::PLAIN) != v) {
+            new_design = true;
+          }
+          LOG_DBG3(designSpace) << "ReadDesignFromExtern: setting design (constant region): data[" << d << "] = " << v << " = in[" << s << "]";
+          data[d].SetDesign(v);
+        } // for d
+        if(cur_reg.constant == CONSTANT_PER_REGION || (cur_reg.constant == CONSTANT_ON_ALL_REGIONS && (r == nr-1) ) ){
+          s++; // only advance after having set all element of this region (or even all regions) to the corresponding value
+        }
       } // if/else constant
     } // for r
   } // for des
@@ -666,51 +677,66 @@ int DesignSpace::ReadDesignFromExtern(const StdVector<double>& space)
 
 bool DesignSpace::CompareDesign(const double* space)
 {
+  const unsigned int nd = design.GetSize();
   unsigned int s = 0;
-  for(unsigned int des = 0; des < design.GetSize(); des++){
-    const unsigned int base = des * elements;
-    for(unsigned int r = 0; r < regions.GetSize(); r++){
-      const double scaling = scale_design[des][r];
-      const double translation = translate_design[des][r];
-      const unsigned int u = base + regions[r].base + regions[r].elements;
-      if(regions[r].constant){
-        const double v = space[s] * scaling + translation;
-        for(unsigned int d = base + regions[r].base; d < u; d++){
-          if(data[d].GetDesign(DesignElement::PLAIN) != v)
-            return false;
-        } // for d
-        s++; // only advance after having set all element of this region to the corresponding value
-      }else{
-        for(unsigned int d = base + regions[r].base; d < u; d++){
-          double v = space[s] * scaling + translation;
-          if(data[d].GetDesign(DesignElement::PLAIN) != v)
-            return false;
+  for(unsigned int des = 0; des < nd; des++){
+    StdVector<DesignRegion>& cur_des = regions[des];
+    const unsigned int nr = regions[des].GetSize();
+    for(unsigned int r = 0; r < nr; r++){
+      DesignRegion& cur_reg = cur_des[r];
+      const double scaling = cur_reg.scale_design;
+      const double translation = cur_reg.translate_design;
+      const unsigned int u = cur_reg.base + cur_reg.elements;
+      if(cur_reg.constant == VARIABLE) {
+        for(unsigned int d = cur_reg.base; d < u; d++){
+          const double v = space[s] * scaling + translation;
+          if(data[d].GetDesign(DesignElement::PLAIN) != v) {
+            return(false);
+          }
+          LOG_DBG3(designSpace) << "ReadDesignFromExtern: setting design: data[" << d << "] = " << v << " = in[" << s << "]";
+          data[d].SetDesign(v);
           s++; // advance in every step
         } // for d
+      }else if(cur_reg.constant == CONSTANT_PER_REGION || cur_reg.constant == CONSTANT_ON_ALL_REGIONS){ // in FIXED case, nothing is done
+        const double v = space[s] * scaling + translation;
+        for(unsigned int d = cur_reg.base; d < u; d++){
+          if(data[d].GetDesign(DesignElement::PLAIN) != v) {
+            return(false);
+          }
+          LOG_DBG3(designSpace) << "ReadDesignFromExtern: setting design (constant region): data[" << d << "] = " << v << " = in[" << s << "]";
+          data[d].SetDesign(v);
+        } // for d
+        if(cur_reg.constant == CONSTANT_PER_REGION || (cur_reg.constant == CONSTANT_ON_ALL_REGIONS && (r == nr-1) ) ){
+          s++; // only advance after having set all element of this region (or even all regions) to the corresponding value
+        }
       } // if/else constant
     } // for r
   } // for des
   assert(s == DesignSpace::GetNumberOfVariables());
-  return true;
+  return(true);
 }
 
 int DesignSpace::WriteDesignToExtern(double* space, bool scaling) const
 {
+  const unsigned int nd = design.GetSize();
   unsigned int d = 0;
-  for(unsigned int des = 0; des < design.GetSize(); des++){
-    const unsigned int base = des * elements;
-    for(unsigned int r = 0; r < regions.GetSize(); r++){
-      const double rscaling = scaling ? 1.0 / scale_design[des][r] : 1.0;
-      const double translation = scaling ? translate_design[des][r] : 0.0;
-      if(regions[r].constant){
-        LOG_DBG3(designSpace) << "WriteDesignToExtern: constant region " << r << " design[" << base + regions[r].base << "]=" << data[base + regions[r].base].GetDesign(DesignElement::PLAIN);
-        space[d++] = (data[base + regions[r].base].GetDesign(DesignElement::PLAIN) - translation) * rscaling;
-      }else{
-        const unsigned int u = base + regions[r].base + regions[r].elements;
-        for(unsigned int s = base + regions[r].base; s < u; s++){
-          LOG_DBG3(designSpace) << "WriteDesignToExtern: non-constant region " << r << " design[" << s << "]=" << data[s].GetDesign(DesignElement::PLAIN);
+  for(unsigned int des = 0; des < nd; des++){
+    const StdVector<DesignRegion>& cur_des = regions[des];
+    const unsigned int nr = cur_des.GetSize();
+    for(unsigned int r = 0; r < nr; r++){
+      const DesignRegion& cur_reg = cur_des[r];
+      const double rscaling = scaling ? 1.0 /cur_reg.scale_design : 1.0;
+      const double translation = scaling ? cur_reg.translate_design : 0.0;
+      if(cur_reg.constant == VARIABLE){
+        const unsigned int u = cur_reg.base + cur_reg.elements;
+        for(unsigned int s = cur_reg.base; s < u; s++){
+          LOG_DBG3(designSpace) << "WriteDesignToExtern: non-constant region " << r << ": out[" << d << "] = design[" << s << "]=" << data[s].GetDesign(DesignElement::PLAIN);
           space[d++] = (data[s].GetDesign(DesignElement::PLAIN) - translation) * rscaling;
         }
+      }else if(cur_reg.constant == CONSTANT_PER_REGION || cur_reg.constant == CONSTANT_ON_ALL_REGIONS) { // in FIXED case nothing is done
+        LOG_DBG3(designSpace) << "WriteDesignToExtern: constant " << (cur_reg.constant == CONSTANT_PER_REGION ? "region" : "design") << r << ": out[" << d << "] = design[" << cur_reg.base << "]=" << data[cur_reg.base].GetDesign(DesignElement::PLAIN);
+        space[d++] = (data[cur_reg.base].GetDesign(DesignElement::PLAIN) - translation) * rscaling;
+        if(cur_reg.constant == CONSTANT_ON_ALL_REGIONS) break; // the other regions are ignored
       } // if/else constant
     } // for r
   } // for des
@@ -725,21 +751,25 @@ int DesignSpace::WriteDesignToExtern(StdVector<double>& space_out, bool scaling)
 }
 
 void DesignSpace::WriteBoundsToExtern(double* x_l, double* x_u) const {
+  const unsigned int nd = design.GetSize();
+  const unsigned int nr = regions[0].GetSize();
   unsigned int d = 0;
-  for(unsigned int des = 0; des < design.GetSize(); des++){
-    const unsigned int base = des * elements;
-    for(unsigned int r = 0; r < regions.GetSize(); r++){
-      const double rscaling = 1.0 / scale_design[des][r];
-      const double translation = translate_design[des][r];
-      if(regions[r].constant){
-        x_l[d] = (data[base + regions[r].base].GetLowerBound() - translation) * rscaling;
-        x_u[d++] = (data[base + regions[r].base].GetUpperBound() - translation) * rscaling;
-      }else{
-        const unsigned int u = base + regions[r].base + regions[r].elements;
-        for(unsigned int s = base + regions[r].base; s < u; s++){
+  for(unsigned int des = 0; des < nd; des++){
+    const StdVector<DesignRegion>& cur_des = regions[des];
+    for(unsigned int r = 0; r < nr; r++){
+      const DesignRegion& cur_reg = cur_des[r];
+      const double rscaling = 1.0 / cur_reg.scale_design;
+      const double translation = cur_reg.translate_design;
+      if(cur_reg.constant == VARIABLE){
+        const unsigned int u = cur_reg.base + cur_reg.elements;
+        for(unsigned int s = cur_reg.base; s < u; s++){
           x_l[d] = (data[s].GetLowerBound() - translation) * rscaling;
           x_u[d++] = (data[s].GetUpperBound() - translation) * rscaling;
         }
+      }else if(cur_reg.constant == CONSTANT_PER_REGION || cur_reg.constant == CONSTANT_ON_ALL_REGIONS) { // in FIXED case nothing is done
+        x_l[d] = (data[cur_reg.base].GetLowerBound() - translation) * rscaling;
+        x_u[d++] = (data[cur_reg.base].GetUpperBound() - translation) * rscaling;
+        if(cur_reg.constant == CONSTANT_ON_ALL_REGIONS) break;
       }
     }
   }
@@ -751,11 +781,10 @@ void DesignSpace::WriteSparseGradientToExtern(StdVector<double>& out, DesignElem
   // Bastian did some complicated reordering stuff. For the only case of sparse Jacobians (slope constraints)
   // we'll have only the simple standard situtation .. if this changes you have at least a test case :) Fabian
   
-  assert(regions.GetSize() == 1);
-  assert(design.GetSize() == 1);
+  assert(regions.GetSize() == 1 && regions[0].GetSize() == 1); // only one region with one design
   assert(g != NULL); // only constraints can have sparse Jacobians 
 
-  const double scaling = use_scaling ? scale_design[0][0] : 1.0;
+  const double scaling = use_scaling ? regions[0][0].scale_design : 1.0;
   
   StdVector<unsigned int>& sparsity = g->GetSparsityPattern();
   
@@ -774,40 +803,51 @@ void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignEleme
   // must be set in the constructor! might be trivial volume fraction or from file!!
   assert(!(vs == DesignElement::COST_GRADIENT && g != NULL));
 
-  unsigned int n = out.window.GetStart(); // to grow up to the total number of design variables
+  unsigned int n0 = out.window.GetStart(); // to grow up to the total number of design variables
+  unsigned int n = n0;
 
-  for(unsigned int des = 0; des < design.GetSize(); des++)
+  const unsigned int nd = design.GetSize();
+
+  for(unsigned int des = 0; des < nd; des++)
   {
-    const unsigned int base = des * elements;
+    const StdVector<DesignRegion>& cur_des = regions[des];
 
-    for(unsigned int r = 0; r < regions.GetSize(); r++)
+    const unsigned int nr = regions[0].GetSize();
+    for(unsigned int r = 0; r < nr; r++)
     {
-      const double scaling = use_scaling ? scale_design[des][r] : 1.0;
-      const unsigned int region_elements = base + regions[r].base + regions[r].elements;
+      const DesignRegion& cur_reg = cur_des[r];
+      const double scaling = cur_reg.scale_design;
+      const unsigned int u = cur_reg.base + cur_reg.elements;
 
-      if(regions[r].constant)
+      if(cur_reg.constant == VARIABLE)
       {
-        out[n] = 0;
-        for(unsigned int s = base + regions[r].base; s < region_elements; s++)
+        for(unsigned int s = cur_reg.base; s < u; s++)
+        {
+          assert(out.InWindow(n));
+          LOG_DBG3(designSpace) << "WriteDenseGradientToExtern: non-constant region " << r << ": out[" << n << "] = design[" << s << "]=" << data[s].GetValue(vs, access, g);
+          out[n++] = data[s].GetValue(vs, access, g) * scaling;
+        }
+      }
+      else if(cur_reg.constant == CONSTANT_PER_REGION || cur_reg.constant == CONSTANT_ON_ALL_REGIONS) // in FIXED case nothing is done
+      {
+        if(cur_reg.constant == CONSTANT_PER_REGION || r == 0){
+          out[n] = 0;
+        }
+        for(unsigned int s = cur_reg.base; s < u; s++)
         {
           assert(out.InWindow(n));
           out[n] += data[s].GetValue(vs, access, g) * scaling;
-          LOG_DBG3(designSpace) << "WriteDenseGradientToExtern: constant region " << r << " design[" << s << "]=" << data[s].GetValue(vs, access, g);
+          LOG_DBG3(designSpace) << "WriteDenseGradientToExtern: constant region " << r << ": out[" << n << "] += design[" << s << "]=" << data[s].GetValue(vs, access, g);
         }
-        LOG_DBG3(designSpace) << "WriteDenseGradientToExtern: constant region " << r << " sum = " << out[n] / scaling;
-        n++;
-      }
-      else
-      {
-        for(unsigned int s = base + regions[r].base; s < region_elements; s++)
+        LOG_DBG3(designSpace) << "WriteDenseGradientToExtern: constant region " << r << ": sum = " << out[n] / scaling;
+        if(cur_reg.constant == CONSTANT_PER_REGION || (cur_reg.constant == CONSTANT_ON_ALL_REGIONS && (r == nr-1) ) )
         {
-          assert(out.InWindow(n));
-          LOG_DBG3(designSpace) << "WriteDenseGradientToExtern: non-constant region " << r << " design[" << s << "]=" << data[s].GetValue(vs, access, g);
-          out[n++] = data[s].GetValue(vs, access, g) * scaling;
+          n++;
         }
       }
     }
   }
+  assert(n - n0 == DesignSpace::GetNumberOfVariables());
 }
 
 void DesignSpace::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design)
@@ -924,7 +964,13 @@ void DesignSpace::ToInfo(PtrParamNode in)
 
   PtrParamNode rs = in->Get("regions");
   for(unsigned int i = 0; i < regions.GetSize(); i++)
-    regions[i].ToInfo(rs->Get("region", ParamNode::APPEND));
+  {
+    PtrParamNode r = rs->Get("region", ParamNode::APPEND);
+    // regions[i].ToInfo(r); TODO merge conflict
+    r->Get("name")->SetValue(domain->GetGrid()->GetRegion().ToString(regions[0][i].regionId));
+    r->Get("elements")->SetValue(regions[0][i].elements);
+  }
+
 }
 
 
@@ -958,17 +1004,38 @@ void DesignSpace::EnableTransferFunctions()
 
 unsigned int DesignSpace::GetNumberOfVariables() const 
 {
+  const unsigned int nd = design.GetSize();
+  const unsigned int nr = regions[0].GetSize();
   unsigned int n = 0;
-  for(unsigned int r = 0; r < regions.GetSize(); r++){
-    n += regions[r].constant ? 1 : regions[r].elements;
+  for(unsigned int des = 0; des < nd; des++){
+    for(unsigned int r = 0; r < nr; r++){
+      const DesignRegion& cur_reg = regions[des][r];
+      switch(cur_reg.constant){
+      case VARIABLE: 
+        n += cur_reg.elements;
+        break;
+      case CONSTANT_PER_REGION: 
+        n++;
+        break;
+      case CONSTANT_ON_ALL_REGIONS:
+        if(r == 0) n++;
+        break;
+      case FIXED:
+        break;
+      }
+    }
   }
-  return design.GetSize() * n;
+  return n;
 }
 
 int DesignSpace::FindRegion(RegionIdType regionId){
-  for(unsigned int r = 0; r < regions.GetSize(); r++){
-    if(regions[r].regionId == regionId){
-      return r;
+  if(regions.GetSize() > 0){
+    const StdVector<DesignRegion>& regs = regions[0];
+    const unsigned int nr = regs.GetSize();  
+    for(unsigned int r = 0; r < nr; r++){
+      if(regs[r].regionId == regionId){
+        return r;
+      }
     }
   }
   return -1;
@@ -1139,9 +1206,9 @@ BaseMaterial* DesignSpace::GetBiMaterial(RegionIdType reg, Optimization::Applica
 
 DesignSpace::DesignRegion* DesignSpace::GetRegion(RegionIdType id, bool throw_exception)
 {
-  for(unsigned int i = 0, n = regions.GetSize(); i < n; i++)
-    if(regions[i].regionId == id)
-      return &regions[i];
+  for(unsigned int i = 0, n = regions[0].GetSize(); i < n; i++)
+    if(regions[0][i].regionId == id)
+      return &regions[0][i];
   if(!throw_exception)
     return NULL;
   else

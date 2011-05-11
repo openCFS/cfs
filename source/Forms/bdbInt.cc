@@ -35,8 +35,8 @@ namespace CoupledField {
     Matrix<Double> dbMat;
     Double aux, fac, *ptr1, *ptr2, *ptr3;
 
-    const UInt bRows(getDimD());
-    const UInt bCols(nrFncs * nrDofs);
+    UInt bRows(getDimD());
+    UInt bCols(nrFncs * nrDofs);
 
     elemMat.Resize(bCols);
     elemMat.Init();
@@ -170,12 +170,15 @@ namespace CoupledField {
         }
         
         // Compute the matrix product D * B and store as intermediate matrix
+        dbMat.Resize( dMat.GetNumRows(), bMat.GetNumCols() );
         dMat.Mult( bMat, dbMat );
 
         // We now compute B^T * D * B and scale it by the determinant
         // of the Jacobian and the weight of the current integration
         // point. The result is added to the element matrix.
         fac = jacDet * intWeights[actIntPt-1];
+        bRows = bMat.GetNumRows();
+        bCols = bMat.GetNumCols();
         for ( UInt k = 0; k < bRows; ++k ) {
           ptr1 =  bMat[k];
           ptr2 = dbMat[k];

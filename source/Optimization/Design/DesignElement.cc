@@ -656,8 +656,8 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
     numerator   += w * x;
     denominator += w;
 
-    LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
-                    << " w= " << w  << " p=" << x << " num=" << numerator << " den=" << denominator;
+    // LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
+    //                << " w= " << w  << " p=" << x << " num=" << numerator << " den=" << denominator;
   }
 
   double p_filt = numerator / denominator;
@@ -675,8 +675,8 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
     assert(p_filt >= 0.7 * this->de_->GetLowerBound()); // relax the assert a little, cause of heaviside correction
   }
 
-  LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " design=" << Filter::density.ToString(de_->simp->filter.density_)
-                  << ": plain=" << this->de_->GetPlainValue(DesignElement::DESIGN) << " -> "<< p_filt;
+  // LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " design=" << Filter::density.ToString(de_->simp->filter.density_)
+  //                << ": plain=" << this->de_->GetPlainValue(DesignElement::DESIGN) << " -> "<< p_filt;
 
   return p_filt;
 }
@@ -779,9 +779,9 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
     double summand = v * h * w / w_sum;
     sum += summand;
 
-    LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
-                  << " v= " << v  << " h=" << h << " w=" << w << " x_n=" << x_n << " w_sum=" << w_sum
-                  << " summand=" << summand << " sum=" << sum;
+    // LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
+    //              << " v= " << v  << " h=" << h << " w=" << w << " x_n=" << x_n << " w_sum=" << w_sum
+    //              << " summand=" << summand << " sum=" << sum;
   }
 
   return sum;
@@ -846,8 +846,8 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
 
   // eventually the barycenters are already calculated, we need them to identify the orientation
   // we will need the barycenters in FindNeibhborhood()
-  for(unsigned int i = 0, s = space->regions.GetSize(); i < s; i++)
-    grid->SetElementBarycenters(space->regions[i].regionId, false); // no updated coordinates
+  for(unsigned int i = 0, s = space->regions[0].GetSize(); i < s; i++)
+    grid->SetElementBarycenters(space->regions[0][i].regionId, false); // no updated coordinates
 
   // let CFS find the neighborhood of *all* elements. With some luck this was done
   // anyway already and we get it for free

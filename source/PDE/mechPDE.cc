@@ -597,7 +597,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         // inner / outer region
         Matrix<Double> inner;
         Matrix<Double> outer;
-
+        std::string coordSysId;
+        
         //damping factor
         Double dampPML;
 
@@ -606,9 +607,9 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
         std::string id = actRegionNode->Get("dampingId")->As<std::string>();
         PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml", "id", id);
-        ReadDataPML(dampingTypePML, inner, dampPML, pmlNode );
+        ReadDataPML(dampingTypePML, inner, dampPML, coordSysId, pmlNode );
 
-        GetPMLLayerData(inner, outer, actRegion);
+        GetPMLLayerData(inner, outer, actRegion, coordSysId );
 
         //====================================================================
         //	 stiffness integrator for PML
@@ -621,7 +622,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         BaseForm * bilinearStiffPML =
           new MechPMLInt(formsType, actSDMat, dampingTypePML, dampPML, tensorType);
 
-        bilinearStiffPML->SetPosPML(inner,outer);
+        bilinearStiffPML->SetPosPML(inner,outer, coordSysId);
 
         BiLinFormContext * stiffContextPML =
           new BiLinFormContext( bilinearStiffPML, STIFFNESS );
@@ -646,7 +647,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
           new PMLInt( formsType, density, dampingTypePML, dampPML, isaxi_ );
 
         bilinearMassPML->SetNrDofs( dim_ );
-        bilinearMassPML->SetPosPML(inner,outer);
+        bilinearMassPML->SetPosPML(inner,outer, coordSysId);
 
         BiLinFormContext * massContextPML =
           new BiLinFormContext( bilinearMassPML, MASS);
@@ -709,38 +710,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
           }
         }
       } // end linear stiffness
-        //check for prestressing
-        //    if ( isPreStresss[
-
-        //for prestressing
-        //       for ( UInt preStr=0; preStr<preStressDomain_.GetSize(); preStr++ ) {
-        //         if ( actRegion == preStressDomain_[preStr]) {
-        //           Vector<Double> preStrVal(3);
-        //           preStrVal[0] = preStressValX_[preStr];
-        //           preStrVal[1] = preStressValY_[preStr];
-        //           preStrVal[2] = preStressValZ_[preStr];
-
-        //           BaseForm * bilinearPreStress;
-        //           if (subType_ == "planeStrain")
-        //             bilinearPreStress = new PreStressIntPlaneStrain(actSDMat, preStrVal);
-        //           else if (subType_ == "axi")
-        //             bilinearPreStress = new PreStressIntAxi(actSDMat, preStrVal);
-        //           else if (subType_ == "3d")
-        //             bilinearPreStress = new PreStressInt3D(actSDMat, preStrVal);
-        //           else
-        //             EXCEPTION("Unknown subtype in mech PDE! ");
-
-        //           BiLinFormContext * actIntDescrPre =
-        //             new BiLinFormContext(bilinearPreStress, STIFFNESS );
-        //           actIntDescrPre->SetPtPdes(this, this);
-        //           actIntDescrPre->SetResults( results_[0], results_[0],
-        //                                       actSDList, actSDList );
-
-        //           assemble_->AddBiLinearForm(actIntDescrPre);
-        //         }
-        //       }
-
-
       // ==============  add nonlinear stiffness ============================
       if ( (nonLin_ && regionNonLinType_[actRegion] == GEOMETRIC) &&  !isMicroPiezo ) {
 
@@ -896,6 +865,48 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         linRhs->SetResult( results_[0], actSDList );
         assemble_->AddLinearForm( linRhs );
       }
+      
+      //check for prestressing
+      if (  preStressList_[actRegion] == "RHS" ) {
+        EXCEPTION("RHS prestressing is not implemented ");
+      }
+      else if ( preStressList_[actRegion] == "prescribedLHS"
+          || preStressList_[actRegion] == "computeLHS" ) {
+        //
+        // given prestress state assembled to system matrix
+        //
+        Vector<Double> preStress = preStressVal_[actRegion];
+        BaseForm * bilinearPreStress;
+        if (subType_ == "planeStrain")
+          bilinearPreStress = new PreStressIntPlaneStrain( actSDMat );
+        else if (subType_ == "axi")
+          bilinearPreStress = new PreStressIntAxi( actSDMat );
+        else if (subType_ == "3d")
+          bilinearPreStress = new PreStressInt3D( actSDMat );
+        else 
+          EXCEPTION("Unknown subtype in mech PDE!");               
+
+        // check if prestress is given; if yes, then set it to the bilinear form        
+        if (  preStressList_[actRegion] == "prescribedLHS" ) {
+          dynamic_cast<PreStressInt*>(bilinearPreStress)->SetPreStress( preStress ); 
+        }
+        else if (  preStressList_[actRegion] == "computeLHS" ) {
+          if ( analysistype_ == HARMONIC )
+            dynamic_cast<PreStressInt*>(bilinearPreStress)->
+            SetMechDisp( dynamic_cast<NodeStoreSol<Complex>&>(*sol_ ));
+          else 
+            dynamic_cast<PreStressInt*>(bilinearPreStress)->
+            SetMechDisp( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+        }
+
+        BiLinFormContext * actIntDescrPre =
+            new BiLinFormContext(bilinearPreStress, STIFFNESS );
+        actIntDescrPre->SetPtPdes(this, this);
+        actIntDescrPre->SetResults( results_[0], results_[0],
+                                    actSDList, actSDList );
+
+        assemble_->AddBiLinearForm(actIntDescrPre);
+      }
 
       // Give entities and result to equation numbering class
       // and solution class
@@ -949,6 +960,20 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
       assemble_->AddBiLinearForm( actIntDescrStiff );
       eqnMap_->AddResult( *results_[0], actSDList );
+      
+      // check for complex valued material parameter
+      if( complexMatData_[actRegion] ) {
+        Global::ComplexPart matType = Global::IMAG;
+        FlatShellStiffInt * myIntC = new FlatShellStiffInt(&composite, false);
+        myIntC->SetMatDataType(matType);
+        BiLinFormContext * actIntDescrStiffC =
+            new BiLinFormContext( myIntC, STIFFNESS);
+        actIntDescrStiffC->SetPtPdes(this, this);
+        actIntDescrStiffC->SetResults( results_[0], results_[0],
+                                       actSDList, actSDList );
+        actIntDescrStiffC->SetEntryType(matType);
+        assemble_->AddBiLinearForm( actIntDescrStiffC );
+      }
 
       // ==============  add mass ===========================================
       FlatShellMassInt * bilinearMass = new FlatShellMassInt(&composite, false);
@@ -1689,7 +1714,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       if (effectiveMass_ == false)
         TS_alg_ = new NewmarkFracDampMech( algsys_, pdeId_,
                                            eqnMap_, ptgrid_, this,
-                                           subdoms_, dampingList_ );
+                                           subdoms_, dampingList_,
+                                           systemNode);
       else
         EXCEPTION( "This needs to be implemented!" );
     }
@@ -1760,8 +1786,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         resultLists_[vol].Push_back( actSol );
         volAboveDefSurfDir_[actList] = dirName;
         //! the result will be written to.
-        resHandler->RegisterResult( actSol, saveBegin, saveInc, saveEnd,
-                                    outputIds, "", true, true );
+        resHandler->RegisterResult( actSol, sequenceStep_, saveBegin, saveInc, 
+                                    saveEnd, outputIds, "", true, true );
       }
     }
   }
@@ -2486,6 +2512,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
   //   Query parameter object for information about prestressing
   // ********************************************************
   void MechPDE::ReadPreStressing() {
+    
     // Check, if any prestressing boundary condition is present
     PtrParamNode bcsNode = myParam_->Get("bcsAndLoads", ParamNode::PASS );
     if( !bcsNode) return;
@@ -2493,34 +2520,32 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     // Get prestressing parameter nodes
     ParamNodeList stressNodes = bcsNode->GetList("preStress");
 
+    std::string actRegionName, type;
     for (UInt k = 0; k < stressNodes.GetSize(); k++) {
 
-      // get current name,
-      std::string actRegionName, actType;
-
-      stressNodes[k]->GetValue( "type", actType );
-      if ( actType != "RHS" ) {
-        EXCEPTION("Prestressing of type '" << actType
-                  << "' is not supported at the moment.");
-      }
-
+      // obtain regions
       stressNodes[k]->GetValue( "region", actRegionName );
       RegionIdType actRegion = ptgrid_->GetRegion().Parse( actRegionName );
 
       // fetch data
-      std::string type;
-      Vector<Double> stress(6);
-      stressNodes[k]->GetValue( "type", type );
-      stressNodes[k]->GetValue( "stress1", stress[0] );
-      stressNodes[k]->GetValue( "stress2", stress[1] );
-      stressNodes[k]->GetValue( "stress3", stress[2] );
-      stressNodes[k]->GetValue( "stress4", stress[3] );
-      stressNodes[k]->GetValue( "stress5", stress[4] );
-      stressNodes[k]->GetValue( "stress6", stress[5] );
 
-      preStressList_[actRegion] = "RHS";
-      preStressVal_[actRegion] = stress;
+      if ( stressNodes[k]->Has( "prescribedLHS" ) ) {
+        preStressList_[actRegion] = "prescribedLHS";
 
+        Matrix<Double> preStressMat;
+        ParamTools::AsTensor<double>(stressNodes[k]->Get("prescribedLHS" )->Get("value"),
+            1,6, preStressMat );
+        // transform to vector
+        Vector<Double> preStressVec;
+        preStressVec.Resize( preStressMat.GetNumCols());
+        for( UInt i=0; i<preStressMat.GetNumCols(); i++)
+          preStressVec[i] = preStressMat[0][i];
+
+        preStressVal_[actRegion] = preStressVec;
+      }
+      else if ( stressNodes[k]->Has( "computeLHS" ) ) {
+        preStressList_[actRegion] = "computeLHS";
+      }
     }
   }
 

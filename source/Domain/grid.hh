@@ -32,6 +32,7 @@ namespace CoupledField
 
   //! forward class declaration
   class ResultHandler;
+  class CoordSystem;
 
 
   //! Class representing geometrical entities (elements, nodes, ...) of a
@@ -492,9 +493,9 @@ namespace CoupledField
     
     //! Create result for grid information (local directions etc., Jacobian
     //! determinant)
-    virtual void CreateGridInformation( ResultHandler* ptRes ) = 0;
-
-
+    virtual 
+    void CreateGridInformation( ResultHandler* ptRes,
+                                std::map<std::string, CoordSystem*>& coordSysMap ) = 0;
     //@}
 
     // =======================================================================

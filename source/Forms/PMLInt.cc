@@ -6,7 +6,8 @@
 #include <fstream>
 #include "Domain/domain.hh"
 #include "Forms/pmlBasics.hh"
-
+#include "Utils/coordSystem.hh"
+#include "Domain/domain.hh"
 #include "PMLInt.hh"
 
 namespace CoupledField
@@ -73,7 +74,7 @@ namespace CoupledField
     Double jacDet;  
 
     // derivation of shape functions after global coordinates 
-    Matrix<Double> xiDx, xiDxTransp;
+    Matrix<Double> xiDx, xiDxTransp, rotMat, xiDxTmp;
     Matrix<Complex> xiDxC, xiDxTranspC;
     Matrix<Complex> partElemMat;
     Vector<Double> ShpFncAtIp;
@@ -92,37 +93,41 @@ namespace CoupledField
     Double omega = 2 * PI * mParser_->Eval( mHandle_ );
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
-      {
-        jacDet = 0;
-        ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord, 
-                                      jacDet, it1_.GetElem() );
- 	// compute PML factor 
-        ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
-                                   ptCoord, it1_.GetElem() );
-	pmlFnc_->ComputeFactorPML( factorsPML, jacDetC, CoordAtIP, omega);        
+    {
+      jacDet = 0;
+      ptelem->GetGlobDerivShFncAtIp(xiDxTmp, actIntPt, ptCoord, 
+                                    jacDet, it1_.GetElem() );
+      
+      
+      // compute PML factor 
+      ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+                                 ptCoord, it1_.GetElem() );
+      
+      //  rotate global derivatives to match global coordinate
+      coordSys_->GetGlobRotationMatrix(rotMat, CoordAtIP);
+      xiDx = xiDxTmp * rotMat;
+      pmlFnc_->ComputeFactorPML( factorsPML, jacDetC, CoordAtIP, omega);
 
-	    //multiply the derivatives with the x-,y- and z-factors
-	    for (UInt i=0; i<xiDx.GetNumCols(); i++) {
-	      for (UInt j=0; j<xiDx.GetNumRows(); j++) {
-	        xiDxC[j][i] = xiDx[j][i] * factorsPML[i];
-	      }
-	    }
-
-        xiDxC.Transpose(xiDxTranspC);
-        partElemMat = xiDxC * xiDxTranspC;
-
-        if (isaxi_) {
-	  partElemMat *= 2 * PI * intWeights[actIntPt-1] * jacDet * 
-            formsFactor_ * CoordAtIP[0] * jacDetC;
-	}
-        else 
-          partElemMat *= intWeights[actIntPt-1] * jacDet * 
-            formsFactor_ * jacDetC;
-
-        elemMat += partElemMat;
+      //multiply the derivatives with the x-,y- and z-factors
+      for (UInt i=0; i<xiDx.GetNumCols(); i++) {
+        for (UInt j=0; j<xiDx.GetNumRows(); j++) {
+          xiDxC[j][i] = xiDx[j][i] * factorsPML[i];
+        }
       }
 
-    //        std::cout << "PML-ElemMatStiff:\n" << elemMat << std::endl;
+      xiDxC.Transpose(xiDxTranspC);
+      partElemMat = xiDxC * xiDxTranspC;
+
+      if (isaxi_) {
+        partElemMat *= 2 * PI * intWeights[actIntPt-1] * jacDet * 
+            formsFactor_ * CoordAtIP[0] * jacDetC;
+      }
+      else 
+        partElemMat *= intWeights[actIntPt-1] * jacDet * 
+        formsFactor_ * jacDetC;
+
+      elemMat += partElemMat;
+    }
   }
 
 
@@ -162,7 +167,6 @@ namespace CoupledField
       ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
                                  ptCoord, it1_.GetElem() );
 
-      //std::cout << "Mass CoordAtIP:\n" << CoordAtIP << std::endl;
       
       pmlFnc_->ComputeFactorPML( factorsPML, jacDetC, CoordAtIP, omega); 
 
@@ -196,10 +200,12 @@ namespace CoupledField
   }
 
 
-  void PMLInt::SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer)
+  void PMLInt::SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer,
+                         const std::string& coordSysId )
   {
 
-    pmlFnc_-> SetPosPML( inner, outer );
+    pmlFnc_->SetPosPML( inner, outer, coordSysId );
+    coordSys_ = domain->GetCoordSystem(coordSysId);
   }
 
 
@@ -216,7 +222,7 @@ namespace CoupledField
     Double jacDet;  
 
     // derivation of shape functions after global coordinates 
-    Matrix<Double> xiDx;
+    Matrix<Double> xiDx, rotMat, xiDxTmp;
     Matrix<Complex> xiDxC,xiDxTranspC;
     Matrix<Complex> partElemMat;
     Vector<Double> ShpFncAtIp;
@@ -236,35 +242,38 @@ namespace CoupledField
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
         jacDet = 0;
-        ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord, 
+        ptelem->GetGlobDerivShFncAtIp(xiDxTmp, actIntPt, ptCoord, 
                                       jacDet, it1_.GetElem() );
- 	// compute PML factor 
+        // compute PML factor 
         ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
                                    ptCoord, it1_.GetElem() );
-	pmlFnc_->ComputeFactorAPML( factorsPML, CoordAtIP, omega);        
+        
+        //  rotate global derivatives to match global coordinate
+        coordSys_->GetGlobRotationMatrix(rotMat, CoordAtIP);
+        xiDx = xiDxTmp * rotMat;
+        pmlFnc_->ComputeFactorAPML( factorsPML, CoordAtIP, omega);        
 
-	//multiply the derivatives with the x-,y- and z-factors
-	for (UInt i=0; i<xiDx.GetNumCols(); i++) {
-	  for (UInt j=0; j<xiDx.GetNumRows(); j++) {
-	    xiDxC[j][i] = xiDx[j][i] * factorsPML[i];
-	  }
-	}
+        //multiply the derivatives with the x-,y- and z-factors
+        for (UInt i=0; i<xiDx.GetNumCols(); i++) {
+          for (UInt j=0; j<xiDx.GetNumRows(); j++) {
+            xiDxC[j][i] = xiDx[j][i] * factorsPML[i];
+          }
+        }
 
         xiDxC.Transpose(xiDxTranspC);
         partElemMat = xiDx * xiDxTranspC;
 
         if (isaxi_) {
-	  partElemMat *= 2 * PI * intWeights[actIntPt-1] * jacDet * 
-            formsFactor_ * CoordAtIP[0];
-	}
+          partElemMat *= 2 * PI * intWeights[actIntPt-1] * jacDet * 
+              formsFactor_ * CoordAtIP[0];
+        }
         else 
           partElemMat *= intWeights[actIntPt-1] * jacDet * 
-            formsFactor_;
+          formsFactor_;
 
         elemMat += partElemMat;
       }
 
-    //std::cout << "PML-ElemMatStiff:\n" << elemMat << std::endl;
   }
 
 
@@ -378,7 +387,6 @@ namespace CoupledField
 
     double jacDet;
 
-    Matrix<Double> bMat; 
     Matrix<Double> dMat; 
     Matrix<Complex> bMatC, dbMatC, dMatC; 
     Vector<Double> CoordAtIP;
@@ -400,13 +408,13 @@ namespace CoupledField
     for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
       
       // Setup the B matrix for current integration point
-      CalcBMat( bMat, actIntPt, ptCoord_ );
+      //CalcBMat( bMat, actIntPt, ptCoord_ );
       
       // compute PML factor 
       ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
                                  ptCoord_, it1_.GetElem() );
  
-      calcBMatPML( bMat, CoordAtIP, bMatC, jacDetC );
+      calcBMatPML( bMatC, jacDetC, actIntPt, CoordAtIP, ptCoord_ );
 
       // Compute Jacobian for integration point
       jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_, ent1.GetElem() );
@@ -419,10 +427,6 @@ namespace CoupledField
       
       // Special things must be done in the axi-symmetric case
       if ( isaxi_ ) {
-        Vector<Double> ShpFncAtIp;
-        ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt, ent1.GetElem() );
-        
-        CoordAtIP = ptCoord_ * ShpFncAtIp;
         jacDet *= 2 * PI * CoordAtIP[0];
       }
       
@@ -434,7 +438,7 @@ namespace CoupledField
       // of the Jacobian and the weight of the current integration
       // point. The result is added to the element matrix.
       fac = jacDet * intWeights[actIntPt-1] * jacDetC;
-      for ( UInt k = 0; k < bMat.GetNumRows(); k++ ) {
+      for ( UInt k = 0; k < bMatC.GetNumRows(); k++ ) {
         ptr1 =  bMatC[k];
         ptr2 = dbMatC[k];
         for ( UInt i = 0; i < bMatC.GetNumCols(); i++ ) {
@@ -448,9 +452,28 @@ namespace CoupledField
   }
   
 
-  void MechPMLInt::calcBMatPML( Matrix<Double>& bMat, Vector<Double>& CoordAtIP, 
-                                Matrix<Complex>& bMatC, Complex& jacDetC)
+  void MechPMLInt::calcBMatPML( Matrix<Complex> & bMatC, Complex& jacDetC,
+                                UInt ip,
+                                Vector<Double>& CoordAtIP,
+                                Matrix<Double> &ptCoord)
   {
+
+    // local shape functions derived after global coords
+    // (format: numFncs x spaceDim)
+    Matrix<Double> xiDx, rotMat, xiDxTmp, bMat;
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+
+    if (isSetIntPoint_) 
+      ptelem->GetGlobDerivShFnc(xiDxTmp, intPoint_, ptCoord, it1_.GetElem() );
+    else
+      ptelem->GetGlobDerivShFncAtIp(xiDxTmp, ip, ptCoord, it1_.GetElem() );
+
+    //  rotate global derivatives to match global coordinate
+    coordSys_->GetGlobRotationMatrix(rotMat, CoordAtIP);
+    xiDx = xiDxTmp * rotMat;
+
+    ReorderBLikeMatrix(xiDx, bMat, ip, ptelem, ptCoord);
+    isSetIntPoint_ = false;
 
     bMatC.Resize( bMat.GetNumRows(),  bMat.GetNumCols() );
     bMatC.Init();
@@ -459,8 +482,7 @@ namespace CoupledField
     Vector<Complex> factorsPML;
 
     pmlFnc_->ComputeFactorPML( factorsPML, jacDetC, CoordAtIP, omega);
-    //    std::cout << "FactorsPML:\n" << factorsPML << std::endl;
-
+    
     UInt idx;
     const UInt spaceDim = ptelem->GetDim();  
     const UInt nrFncs = ptelem->GetNumFncs( ansatzFct1_ );
@@ -488,15 +510,16 @@ namespace CoupledField
         bMatC[5][idx+1] = bMat[5][idx+1] * factorsPML[0]; // d/dx
       }
     }
-//     std::cout << "Bop:\n" << bMat << std::endl;
-//     std::cout << "BopC:\n" << bMatC << std::endl;
   }
 
 
-  void MechPMLInt::SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer)
+  void MechPMLInt::SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer,
+                             const std::string& coordSysId )
   {
 
-    pmlFnc_-> SetPosPML( inner, outer );
+    pmlFnc_->SetPosPML( inner, outer, coordSysId );
+    coordSys_ = domain->GetCoordSystem(coordSysId);
+    
   }
 
 
@@ -632,7 +655,7 @@ namespace CoupledField
 
     Vector<Double> shapeFncAtIp, ShpFncAtIp;
     Vector<Double> CoordAtIP;
-    Matrix<Double> xiDx;
+    Matrix<Double> xiDx, rotMat, xiDxTmp;
     Matrix<Double> K_x, K_y, K_z;
     Double jacDet;
 
@@ -650,11 +673,16 @@ namespace CoupledField
 
     Vector<Double> factorsPML;
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
-      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet, it1_.GetElem());
+      ptelem->GetGlobDerivShFncAtIp(xiDxTmp, actIntPt, ptCoord_, jacDet, it1_.GetElem());
 
       // compute PML factor 
       ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
                                  ptCoord, it1_.GetElem() );
+      
+      //  rotate global derivatives to match global coordinate
+      coordSys_->GetGlobRotationMatrix(rotMat, CoordAtIP);
+      xiDx = xiDxTmp * rotMat;
+      
       pmlFnc_->ComputeTimeFactorPML( factorsPML, CoordAtIP );  
 
       if (isaxi_) {
@@ -798,7 +826,7 @@ namespace CoupledField
 
     Vector<Double> shapeFncAtIp, ShpFncAtIp;
     Vector<Double> CoordAtIP;
-    Matrix<Double> xiDx;
+    Matrix<Double> xiDx, rotMat, xiDxTmp;
     Matrix<Double> K_x, K_y, K_z;
     Double jacDet;
 
@@ -816,13 +844,17 @@ namespace CoupledField
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
       //get derivatives
-      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet, it1_.GetElem());
+      ptelem->GetGlobDerivShFncAtIp(xiDxTmp, actIntPt, ptCoord_, jacDet, it1_.GetElem());
 
       if (isaxi_) {
         ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
                                    ptCoord, it1_.GetElem() );
         jacDet *= 2 * PI * CoordAtIP[0];
       }
+      
+      //  rotate global derivatives to match global coordinate
+      coordSys_->GetGlobRotationMatrix(rotMat, CoordAtIP);
+      xiDx = xiDxTmp * rotMat;
 
       //Get the shape functions vector
       ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, it1_.GetElem() );
@@ -847,18 +879,20 @@ namespace CoupledField
       for (UInt j=0; j<numFncs; j++) {
         elemMat[i][j*dim] = K_x[i][j] ;
         elemMat[i][j*dim+1] = K_y[i][j];
-	if ( dim == 3 )
-	  elemMat[i][j*dim+2] = K_z[i][j];
+        if ( dim == 3 )
+          elemMat[i][j*dim+2] = K_z[i][j];
       }
     }
     //std::cout << "Type: " << formsType_ << "\n" << elemMat << std::endl;
 
   }
 
-  void PMLTimeInt::SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer)
+  void PMLTimeInt::SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer,
+                             const std::string& coordSysId)
   {
 
-    pmlFnc_-> SetPosPML( inner, outer );
+    pmlFnc_-> SetPosPML( inner, outer, coordSysId );
+    coordSys_ = domain->GetCoordSystem(coordSysId);
   }
 
   PMLMixedInt::PMLMixedInt(std::string type, Double factor, std::string dampingTypePML, Double damp, 
@@ -1050,10 +1084,12 @@ namespace CoupledField
     //std::cout << elemMat << std::endl << std::endl;
   }
 
-  void PMLMixedInt::SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer)
+  void PMLMixedInt::SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer,
+                              const std::string& coordSysId)
   {
 
-    pmlFnc_-> SetPosPML( inner, outer );
+    pmlFnc_-> SetPosPML( inner, outer, coordSysId );
+    coordSys_ = domain->GetCoordSystem(coordSysId);
   }
 
     //! Constructor
@@ -1100,10 +1136,12 @@ namespace CoupledField
   }
     
     //! set min/max of x,y,z coordinates form where PML starts and ends
-  void PMLMixedTimeInt::SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer)
+  void PMLMixedTimeInt::SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer,
+                                  const std::string& coordSysId)
   {
 
-      pmlFnc_-> SetPosPML( inner, outer );
+      pmlFnc_-> SetPosPML( inner, outer, coordSysId  );
+      coordSys_ = domain->GetCoordSystem(coordSysId);
   }
     
     //! Calculation of stiffmess matrix
@@ -1126,7 +1164,7 @@ namespace CoupledField
 
     Vector<Double> shapeFncAtIp;
     Vector<Double> CoordAtIP;
-    Matrix<Double> xiDx;
+    Matrix<Double> xiDx, xiDxTmp, rotMat;
     Matrix<Double> JacMat;
     Matrix<Double> partElemMat;
     Vector<Double> factorsPML;
@@ -1155,14 +1193,20 @@ namespace CoupledField
       // compute Element Center  
       ptelem->Local2GlobalCoord( CoordCenter, LocalCenter,
                                  ptCoord, it1_.GetElem() );
+      
       //pmlFnc_->ComputeTimeFactorPML( factorsPML, CoordAtIP,CoordCenter );  
       pmlFnc_->ComputeTimeFactorPML( factorsPML, CoordAtIP );  
 
       //get derivatives
       ptelem->SetAnsatzFct( ansatzFct1_ , false);
-      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet, ent_.GetElem());
+      ptelem->GetGlobDerivShFncAtIp(xiDxTmp, actIntPt, ptCoord_, jacDet, ent_.GetElem());
       ptelem->CalcJacobianAtIp(JacMat,actIntPt,ptCoord_,ent_.GetElem() );
 
+      //  rotate global derivatives to match global coordinate
+      coordSys_->GetGlobRotationMatrix(rotMat, CoordAtIP);
+      xiDx = xiDxTmp * rotMat;
+            
+      
       //Get the shape functions vector
       ptelem->SetAnsatzFct( ansatzFct2_ , false);
       ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, ent_.GetElem() );
@@ -1237,13 +1281,13 @@ namespace CoupledField
       partElemMat.DyadicMult(shapeFncAtIp);
 
       if (isaxi_) {
-	       ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
-			     ptCoord_, it1_.GetElem() );
-	       partElemMat *= 2 * PI * intWeights[actIntPt-1] * factor_
-	                      * jacDet * CoordAtIP[0];
+        ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+                                   ptCoord_, it1_.GetElem() );
+        partElemMat *= 2 * PI * intWeights[actIntPt-1] * factor_
+            * jacDet * CoordAtIP[0];
       }
       else {
-	       partElemMat *= intWeights[actIntPt-1]  * jacDet * factor_;
+        partElemMat *= intWeights[actIntPt-1]  * jacDet * factor_;
       }
       //now blow the matrix up
       for(UInt i=0; i < numFncs; i++){

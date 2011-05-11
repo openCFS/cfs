@@ -58,10 +58,10 @@ namespace CoupledField {
     
     //! Transform global into local coordinate
 
-    //! This method transforms a point given in global cartesian coordinates
+    //! This method transforms a point given in global Cartesian coordinates
     //! into a representation w.r.t to the local coordinate system.
     //! \param loc (out) point w.r.t. to local coordinate system
-    //! \param glob (in) point w.r.t. to global cartesian coordinate system
+    //! \param glob (in) point w.r.t. to global Cartesian coordinate system
     virtual void Global2LocalCoord( Vector<Double> &loc,  
                                     const Vector<Double> & glob ) const = 0;
 
@@ -70,11 +70,24 @@ namespace CoupledField {
 
     //! This method returns the rotation matrix defining defining a rotation,
     //! by which the global coordinate system has to be rotated, so that
-    //! it represents the current one in that point.
+    //! so that it represents the current one in that point.
+    //! \param rotMatrix rotation matrix for global point
+    //! \param point point w.r.t. to global Cartesian coordinate system
     virtual void 
     GetGlobRotationMatrix( Matrix<Double> & rotMatrix,
                            const Vector<Double>& point ) const = 0;
+    
+    //! Return the full 3x3 global rotation matrix for a given point
 
+    //! This method returns the full 3x3 rotation matrix defining defining 
+    //! a rotation, by which the global coordinate system has to be rotated, 
+    //! it represents the current one in that point.
+    //! \param rotMatrix rotation matrix for global point
+    //! \param point point w.r.t. to global Cartesian coordinate system
+    virtual void 
+    GetFullGlobRotationMatrix( Matrix<Double> & rotMatrix,
+                               const Vector<Double>& point ) const = 0;
+    
     //@{
     //! Transform local vector into global one for a given global model point
 
@@ -150,6 +163,9 @@ namespace CoupledField {
 
     //! Inverse of the rotation matrix (local -> global)
     Matrix<Double> invRotationMat_;
+    
+    //! Full 3x3 inverse of the rotation matrix (local -> global)
+    Matrix<Double> invRotationMatFull_;
     
     //! Rotation angles (kardan / Bryant angles) (local -> global)
     Vector<Double> invRotationAng_;

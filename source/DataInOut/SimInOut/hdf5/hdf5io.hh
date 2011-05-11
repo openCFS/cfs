@@ -41,8 +41,8 @@ namespace CoupledField {
     static void WriteAttribute( H5::H5Object& obj,
                                 const std::string& name,
                                 const TYPE& data,
-                                const H5::DSetCreatPropList &create_plist
-                                = H5::DSetCreatPropList::DEFAULT );
+                                const H5::PropList &create_plist
+                                = H5::PropList::DEFAULT );
 
     //! Commodity function for writing a 1D dataset
     template<typename TYPE>

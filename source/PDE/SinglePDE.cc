@@ -1,9 +1,6 @@
 // -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-#include <boost/serialization_hdf5/hdf5_oarchive.hpp>
-#include <boost/serialization_hdf5/hdf5_iarchive.hpp>
-
 #include "PDE/SinglePDE.hh"
 
 // for coordinate handling
@@ -701,7 +698,7 @@ namespace CoupledField {
 
     StdVector<std::string> regionNames, nodeNames, writeResults, actOutDest;
     StdVector<std::string> postProcNames, outDestNames, neighborRegions;
-    UInt saveBegin, saveEnd, saveInc;
+    UInt saveBegin = 0, saveEnd = 0, saveInc = 0;
     std::string quantity, complexFormatString, listElemName, entityName;
     ComplexFormat complexFormat;
     shared_ptr<EntityList> actList;
@@ -813,9 +810,9 @@ namespace CoupledField {
           outDestNames.Init( allOutDestName );
 
           // fetch saveBegin, saveEnd and saveInc
-          allRegionsNode->GetValue("saveBegin", saveBegin );
-          allRegionsNode->GetValue("saveEnd", saveEnd );
-          allRegionsNode->GetValue("saveInc", saveInc );
+          saveBegin = allRegionsNode->Get("saveBegin")->MathParse<UInt>();
+          saveEnd = allRegionsNode->Get("saveEnd")->MathParse<UInt>();
+          saveInc = allRegionsNode->Get("saveInc")->MathParse<UInt>();
 
           // fetch writeResult flag
           std::string writeResult;
@@ -851,9 +848,9 @@ namespace CoupledField {
           // only enter, at least one region is present
           if( listNode ) {
             // fetch saveBegin, saveEnd and saveInc
-            listNode->GetValue( "saveBegin", saveBegin );
-            listNode->GetValue( "saveEnd", saveEnd );
-            listNode->GetValue( "saveInc", saveInc );
+            saveBegin = listNode->Get("saveBegin")->MathParse<UInt>();
+            saveEnd = listNode->Get("saveEnd")->MathParse<UInt>();
+            saveInc = listNode->Get("saveInc")->MathParse<UInt>();
 
             // iterate over all regions
             regionNames.Clear();
@@ -895,7 +892,8 @@ namespace CoupledField {
             bool writeResult = writeResults[iRegion] == "yes"  ? true : false ;
 
             // pass result to resulthandler
-            resHandler->RegisterResult( actSol, saveBegin, saveInc, saveEnd,
+            resHandler->RegisterResult( actSol, sequenceStep_, 
+                                        saveBegin, saveInc, saveEnd,
                                         actOutDest,
                                         postProcNames[iRegion], writeResult,
                                         isHistory[candidate->definedOn] );
@@ -956,9 +954,9 @@ namespace CoupledField {
         if( histNode && histNode->HasChildren() ) {
 
           // fetch saveBegin, saveEnd and saveInc
-          histNode->GetValue("saveBegin", saveBegin );
-          histNode->GetValue("saveEnd", saveEnd );
-          histNode->GetValue("saveInc", saveInc );
+          saveBegin = histNode->Get("saveBegin")->MathParse<UInt>();
+          saveEnd = histNode->Get("saveEnd")->MathParse<UInt>();
+          saveInc = histNode->Get("saveInc")->MathParse<UInt>();
 
           // iterate over all regions
           histNames.Clear();
@@ -998,7 +996,8 @@ namespace CoupledField {
             SplitStringList( outDestNames[i], actOutDest, ',' );
             bool writeResult = (writeResults[i] == "yes"  ? true : false );
 
-            resHandler->RegisterResult( actSol, saveBegin, saveInc, saveEnd,
+            resHandler->RegisterResult( actSol, sequenceStep_, 
+                                        saveBegin, saveInc, saveEnd,
                                         actOutDest,
                                         postProcNames[i], writeResult, true );
 
@@ -1983,9 +1982,9 @@ namespace CoupledField {
           }
           continue;
         } else {
-          rotNode->GetValue( "alpha", rotVec[0] );
-          rotNode->GetValue( "beta", rotVec[1] );
-          rotNode->GetValue( "gamma", rotVec[2] );
+          rotVec[0] = rotNode->Get( "alpha" )->MathParse<Double>();
+          rotVec[1] = rotNode->Get( "beta" )->MathParse<Double>(); 
+          rotVec[2] = rotNode->Get( "gamma" )->MathParse<Double>();
 
           materials_[actRegionId]->
             RotateAllTensorsByRotationAngles( rotVec, true );
@@ -2021,6 +2020,9 @@ namespace CoupledField {
 
         // if no composite is set, continue with next loop run
         if( composite == "" )
+          continue;
+        
+        if( subdoms_.Find( actRegionId) < 0 )
           continue;
 
         // print logging information
@@ -2532,7 +2534,9 @@ namespace CoupledField {
         shared_ptr<ResultInfo> actResultInfo = actList[i]->GetResultInfo();
         if (TS_alg_->isDeriv(actResultInfo->resultType))
         {
-          continue; // do not get result if it is a derivative of another reult
+          // do not get result if it is a derivative of another result
+          // derivative will be written later
+          continue;
         }
         entList = actList[i]->GetEntityList();
 
@@ -2612,7 +2616,7 @@ namespace CoupledField {
     // start the real storring of the files
     restartOutFile->BeginMultiSequenceStep(1, analysistype_, lastTimeStep);
     UInt timeStepTypeAsInt = numTimeSteps;
-    for (UInt i = lastTimeStep - timeStepTypeAsInt; i <= lastTimeStep; ++i)
+    for (UInt i = lastTimeStep - timeStepTypeAsInt +1; i <= lastTimeStep; ++i)
     {
       timeTmp = solveStep_->GetActTime() -  (timeStepTypeAsInt -1) * dt;
       restartOutFile->BeginStep(lastTimeStep - timeStepTypeAsInt +1, timeTmp);
@@ -2665,7 +2669,7 @@ namespace CoupledField {
     {
       EXCEPTION("Restart can not handle multiple multistep!")
     }
-    const UInt lastTimeStep = numMultiSteps[lastMultiStep] -1;
+    const UInt lastTimeStep = numMultiSteps[lastMultiStep];
     startStep = lastTimeStep;
     std::map<TIMEStepType, Vector<Double> > TsMap = TS_alg_->GetTimeStepMap();
     // collect all necessary data
@@ -2685,7 +2689,9 @@ namespace CoupledField {
         shared_ptr<ResultInfo> actResultInfo = actList[i]->GetResultInfo();
         if (TS_alg_->isDeriv(actResultInfo->resultType))
         {
-          continue; // do not get result if it is a derivative of another reult
+          // do not get result if it is a derivative of another result
+          // derivative will be fetched later
+          continue;
         }
         input->GetStepValues( lastMultiStep, actResultInfo,
             resultSteps[actResultInfo], false);
@@ -2722,6 +2728,7 @@ namespace CoupledField {
             if (timeStepType == TIMESTEP_1)
             {
               sol_->SetAlgSysVector(tmpVec);
+              algsys_->InitSol(tmpVec);
             }
             TS_alg_->SetOld(tmpVec, timeStepType);
           }
@@ -2912,7 +2919,9 @@ namespace CoupledField {
     }
 
     UInt numDofs = results_[0]->dofNames.GetSize();
-    if ( analysistype_ == STATIC || analysistype_ == TRANSIENT ) {
+    if ( analysistype_ == STATIC 
+        || analysistype_ == TRANSIENT
+        || analysistype_ == EIGENFREQUENCY ) {
 
       // convert solution to transient StoreSolution type
       Vector<Double> & solVec =
@@ -3050,59 +3059,101 @@ namespace CoupledField {
       }
     } else if ( analysistype_ == HARMONIC ) {
 
-      // check value-usage type
-      if( mementoAsDirichlet_ != true) {
-        EXCEPTION( "For an harmonic simulation only the usage "
-                   << "of a memento as Drichlet values makes sense!" );
+//      // check value-usage type
+//      if( mementoAsDirichlet_ != true) {
+//        
+//        // nothing to do
+//        //EXCEPTION( "For an harmonic simulation only the usage "
+//        //           << "of a memento as Drichlet values makes sense!" );
+//        return;
+//      }
+      
+      if (!mementoAsDirichlet_) {
+        if ( memento_->analysisType_ == STATIC ) {
+          // convert solution to transient StoreSolution type
+          Vector<Complex> & solVec = 
+              (dynamic_cast<NodeStoreSol<Complex> &>(*sol_)).GetAlgSysVector();
+
+          // Iterate over all regions
+          for( UInt iRegion = 0; iRegion < subdoms_.GetSize(); iRegion++ ) {
+
+            // Check for related region in memento object
+            std::string name = ptgrid_->GetRegion().ToString( subdoms_[iRegion] );
+            if( memento_->solution_.find( name) != memento_->solution_.end() ) {
+
+              // get grip of vector and derivatives of memento
+              Vector<Double> const & sol = 
+                  dynamic_cast<const Vector<Double>& >(*(memento_->solution_[name]) );
+              // create entitylist
+           shared_ptr<NodeList> nodes (new NodeList(ptgrid_));
+           nodes->SetNodesOfRegion( subdoms_[iRegion] );
+
+           // iterate over all entries
+           EntityIterator it = nodes->GetIterator();
+           StdVector<Integer> eqns;
+           UInt pos = 0;
+              for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
+                eqnMap_->GetEqns( eqns, *results_[0], it );
+                for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
+                  if ( eqns[iDof] != 0
+                      && (unsigned int) (std::abs(eqns[iDof])-1) < solVec.GetSize() ) {
+                    solVec[eqns[iDof]-1] = Complex(sol[numDofs*pos+iDof],0);
+                  } // if
+                } // loop over dofs
+              } // loop over nodes
+            } // if region found
+          } // loop over regions
+        } // if static
       }
+      if( mementoAsDirichlet_ == true) {
+        // iterate over all regions of pde
+        for( UInt i = 0; i < subdoms_.GetSize(); i++ ) {
 
-          // iterate over all regions of pde
-      for( UInt i = 0; i < subdoms_.GetSize(); i++ ) {
+          std::string regionName = ptgrid_->GetRegion().ToString( subdoms_[i] );
 
-        std::string regionName = ptgrid_->GetRegion().ToString( subdoms_[i] );
+          // try to find related region in memento object
+          if( memento_->solution_.find( regionName ) !=
+              memento_->solution_.end() ) {
 
-        // try to find related region in memento object
-        if( memento_->solution_.find( regionName ) !=
-            memento_->solution_.end() ) {
+            Vector<Complex> const & regionSol =
+                dynamic_cast<Vector<Complex>&>(*memento_->solution_[regionName]);
 
-          Vector<Complex> const & regionSol =
-            dynamic_cast<Vector<Complex>&>(*memento_->solution_[regionName]);
+            // create entitylist
+            shared_ptr<NodeList> nodes (new NodeList(ptgrid_));
+            nodes->SetNodesOfRegion( subdoms_[i] );
 
-          // create entitylist
-          shared_ptr<NodeList> nodes (new NodeList(ptgrid_));
-          nodes->SetNodesOfRegion( subdoms_[i] );
+            // iterate over all entries
+            EntityIterator it = nodes->GetIterator();
+            UInt pos = 0;
+            for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
 
-          // iterate over all entries
-          EntityIterator it = nodes->GetIterator();
-          UInt pos = 0;
-          for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
+              for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
+                Complex val = regionSol[pos * numDofs + iDof];
 
-            for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
-              Complex val = regionSol[pos * numDofs + iDof];
+                // create idbc-condition and append to class container
+                shared_ptr<InhomDirichletBc> actBc ( new InhomDirichletBc );
+                shared_ptr<NodeList> actList (new NodeList(ptgrid_) );
+                StdVector<UInt> nodeList(1);
+                nodeList[0] = it.GetNode();
+                actList->SetNodes(nodeList);
 
-              // create idbc-condition and append to class container
-              shared_ptr<InhomDirichletBc> actBc ( new InhomDirichletBc );
-              shared_ptr<NodeList> actList (new NodeList(ptgrid_) );
-              StdVector<UInt> nodeList(1);
-              nodeList[0] = it.GetNode();
-              actList->SetNodes(nodeList);
+                actBc->entities = actList;
+                actBc->result = results_[0];
+                actBc->eqnMap = eqnMap_;
+                actBc->dof = iDof+1;
+                actBc->value = lexical_cast<std::string>(std::abs( val ) );
+                actBc->phase = lexical_cast<std::string>(std::atan2( val.imag(), 
+                                                                     val.real())
+                *180/PI );
 
-              actBc->entities = actList;
-              actBc->result = results_[0];
-              actBc->eqnMap = eqnMap_;
-              actBc->dof = iDof+1;
-              actBc->value = lexical_cast<std::string>(std::abs( val ) );
-              actBc->phase = lexical_cast<std::string>(std::atan2( val.imag(), val.real())
-                                    *180/PI );
-
-              // append idbc at end of list
-              idBcs_.Push_back( actBc );
+                // append idbc at end of list
+                idBcs_.Push_back( actBc );
+              }
             }
-          }
-        }
-      }
-    }
-
+          }  
+        } // loop over regions
+      }// memento as Dirichlet
+    } // HARMONIC Analysis
 
   }
 
@@ -3451,39 +3502,39 @@ namespace CoupledField {
   void SinglePDE::ReadDataPML(std::string& dampingTypePML,
                               Matrix<Double>& inner,
                               Double& dampPML,
+                              std::string& coordSysId,
                               PtrParamNode actNode ) {
 
 
     // Check, if pml node has a child "propRegion"
     PtrParamNode propRegionNode = actNode->Get( "propRegion", ParamNode::PASS );
 
+    // check, if propagation region is defined in a non-standard
+    // coordinate system
+    coordSysId = "default";
+    actNode->GetValue("coordSysId", coordSysId, ParamNode::PASS );
+    CoordSystem * actCosy = domain->GetCoordSystem(coordSysId);
+    
+    
     // If no propagation region is defined explicitly, we
     // let the method GetPMLLayerData() extract the geometric information
     // for the propagation region
     if( propRegionNode && propRegionNode->HasChildren() ) {
 
-      //resize data for ptopagation region
+      //resize data for propagation region
       inner.Resize(2,dim_);
       inner.Init();
-
-      //xMin
-      propRegionNode->GetValue( "xMin", inner[0][0] );
-
-      //xMax
-      propRegionNode->GetValue( "xMax", inner[1][0] );
-
-      //yMin
-      propRegionNode->GetValue( "yMin", inner[0][1] );
-
-      //yMax
-      propRegionNode->GetValue( "yMax", inner[1][1] );
-
-      if ( dim_ == 3 ) {
-        //zMin
-        propRegionNode->GetValue( "zMin", inner[0][2] );
-
-        //zMax
-        propRegionNode->GetValue( "zMax", inner[1][2] );
+      
+      ParamNodeList & dirNodes = propRegionNode->GetChildren();
+      
+      // loop over all coordinate components
+      std::string dirName;
+      UInt dirIndex = 0;
+      for( UInt iDir = 0; iDir < dirNodes.GetSize(); ++iDir ) {
+         dirNodes[iDir]->GetValue( "comp", dirName );
+         dirIndex = actCosy->GetVecComponent( dirName );
+         inner[0][dirIndex-1] = dirNodes[iDir]->Get("min")->MathParse<Double>();
+         inner[1][dirIndex-1] = dirNodes[iDir]->Get("max")->MathParse<Double>();
       }
     }
 
@@ -3491,7 +3542,8 @@ namespace CoupledField {
     actNode ->GetValue( "type", dampingTypePML );
 
     //get factor for damping function
-    actNode->GetValue( "dampFactor", dampPML );
+    if(actNode->Has("dampFactor") )
+      dampPML = actNode->Get( "dampFactor" )->MathParse<Double>();
 
   }
 
@@ -3501,14 +3553,12 @@ namespace CoupledField {
   // ***********************************************************************
   void SinglePDE::GetPMLLayerData(Matrix<Double>& inner,
                                   Matrix<Double>& outer,
-                                  RegionIdType actRegion )  {
+                                  RegionIdType actRegion,
+                                  std::string& coordSysId )  {
 
-
-    // outstream for info-File
-    std::ostringstream out;
-    out.clear();
-    out << "PML for region '" << ptgrid_->GetRegion().ToString(actRegion) << "':" << std::endl;
-
+    // fetch coordinate system object
+    CoordSystem * coordSys = domain->GetCoordSystem(coordSysId);
+    
     // only determine inner region, if not specified by hand using the
     // <propRegion> sub-element
     if ( inner.GetNumCols() != dim_ ) {
@@ -3544,7 +3594,7 @@ namespace CoupledField {
       // so we issue an exception;
       // we can not uniquely 
       if( !hasRealPropRegion ){
-        EXCEPTION("The acousitc PDE has only PML damped regions. \nThus the "
+        EXCEPTION("The " << pdename_ << "  has only PML damped regions. \nThus the "
             << "automatic calculation of damping parameters does not work!\n"
             << "Use the <propRegion> element instead do define the propagation "
             << "region explicitly!");
@@ -3559,48 +3609,29 @@ namespace CoupledField {
 
           Matrix<Double> ptCoord;
           ptgrid_->GetElemNodesCoord(ptCoord, connecth,  false );
+
+          Vector<Double> globCoord(dim_), locCoord(dim_);
+          // loop over nodes
           for (UInt i=0; i< ptCoord.GetNumCols(); i++) {
-            //minInnerX
-            if ( ptCoord[0][i] < inner[0][0] )
-                inner[0][0] = ptCoord[0][i];
 
-              //minInnerY
-              if ( ptCoord[1][i] < inner[0][1] )
-                inner[0][1] = ptCoord[1][i];
-
-              if ( dim_ > 2 ) {
-                //minInnerZ
-                if ( ptCoord[2][i] < inner[0][2] )
-                  inner[0][2] = ptCoord[2][i];
-              }
-
-              //maxInnerX
-              if ( ptCoord[0][i] > inner[1][0] )
-                inner[1][0] = ptCoord[0][i];
-
-              //maxInnerY
-              if ( ptCoord[1][i] > inner[1][1] )
-                inner[1][1] = ptCoord[1][i];
-
-              if ( dim_ > 2 ) {
-                //maxInnerZ
-                if ( ptCoord[2][i] > inner[1][2] )
-                  inner[1][2] = ptCoord[2][i];
-              }
+            // convert global coordinate to local coordinate
+            for( UInt iDim = 0; iDim < dim_ ; ++iDim )  {
+              globCoord[iDim] = ptCoord[iDim][i];
             }
-          }
-        }
-    }
-    out << "Acoustic propagation coordinates:\n"
-        << "   xmin = " << inner[0][0] << std::endl
-        << "   xmax = " << inner[1][0] << std::endl
-        << "   ymin = " << inner[0][1] << std::endl
-        << "   ymax = " << inner[1][1] << std::endl;
-    if ( dim_ == 3) {
-      out << "   zmin = " << inner[0][2] << std::endl
-          << "   zmax = " << inner[1][2] << std::endl;
-    }
+            coordSys->Global2LocalCoord(locCoord, globCoord);
 
+            // determine min / max of propagation region
+            for( UInt iDim = 0; iDim < dim_ ; ++iDim )  {
+              if ( locCoord[iDim] < inner[0][iDim] )
+                inner[0][iDim] = locCoord[iDim];
+              if ( locCoord[iDim] > inner[1][iDim] )
+                inner[1][iDim] = locCoord[iDim];
+
+            }
+          } // loop over nodes
+        } // loop over elements
+      } // loop over propagation regions
+    } // no propagation region specified 
 
     outer.Resize(inner.GetNumRows(),inner.GetNumCols());
     // set outer boundary values to max-value of acoustic propagation region
@@ -3618,55 +3649,41 @@ namespace CoupledField {
 
       Matrix<Double> ptCoord;
       ptgrid_->GetElemNodesCoord(ptCoord, connecth,  false );
+      Vector<Double> globCoord(dim_), locCoord(dim_);
       for (UInt i=0; i< ptCoord.GetNumCols(); i++) {
-        //minXPML
-        if ( ptCoord[0][i] < outer[0][0] )
-          outer[0][0] = ptCoord[0][i];
-
-        //minYPML
-        if ( ptCoord[1][i] < outer[0][1] )
-          outer[0][1] = ptCoord[1][i];
-
-        if (inner.GetNumCols() > 2 ) {
-          //minZPML
-          if ( ptCoord[2][i] < outer[0][2] )
-            outer[0][2] = ptCoord[2][i];
+        
+        // convert global coordinate to local coordinate
+        for( UInt iDim = 0; iDim < dim_ ; ++iDim )  {
+          globCoord[iDim] = ptCoord[iDim][i];
         }
-
-        //maxXPML
-        if ( ptCoord[0][i] > outer[1][0] )
-          outer[1][0] = ptCoord[0][i];
-
-        //maxYPML
-        if ( ptCoord[1][i] > outer[1][1] )
-          outer[1][1] = ptCoord[1][i];
-
-        if (inner.GetNumCols() > 2 ) {
-          //maxZPML
-          if ( ptCoord[2][i] > outer[1][2] )
-            outer[1][2] = ptCoord[2][i];
+        coordSys->Global2LocalCoord(locCoord, globCoord);
+        
+        // determine extension of PML region
+        for( UInt iDim = 0; iDim < dim_ ; ++iDim )  {
+          
+          if ( locCoord[iDim] < outer[0][iDim] )
+            outer[0][iDim] = locCoord[iDim];
+         
+          if ( locCoord[iDim] > outer[1][iDim] )
+            outer[1][iDim] = locCoord[iDim];
         }
       }
     }
-//     outer[0][0] = 0;
-//     outer[1][0] = 1.5;
-//     outer[0][1] = 0;
-//     outer[1][1] = 2;
-
-
-    out << "PML layer coordinates:\n"
-        << "   xmin = " << outer[0][0] << std::endl
-        << "   xmax = " << outer[1][0] << std::endl
-        << "   ymin = " << outer[0][1] << std::endl
-        << "   ymax = " << outer[1][1] << std::endl;
-    if ( dim_ == 3) {
-      out << "   zmin = " << outer[0][2] << std::endl
-          << "   zmax = " << outer[1][2] << std::endl;
+    
+    // Echo information about PML to info file
+    PtrParamNode base = infoNode_->Get(ParamNode::HEADER)
+            ->Get("damping")->Get("pml");
+    base->Get("coordSysId")->SetValue(coordSysId);
+    PtrParamNode prop = base->Get("propRegion");
+    PtrParamNode damp = base->Get("dampingRegion");
+    std::string comp;
+    for( UInt i = 0; i < dim_; ++i ) {
+      comp = coordSys->GetDofName(i+1);
+      prop->Get(comp)->Get("min")->SetValue(inner[0][i]);
+      prop->Get(comp)->Get("max")->SetValue(inner[1][i]);
+      damp->Get(comp)->Get("min")->SetValue(outer[0][i]);
+      damp->Get(comp)->Get("max")->SetValue(outer[1][i]);
     }
-
-    out << std::endl;
-    Info->PrintF( pdename_, out.str().c_str() );
-
   }
 
 

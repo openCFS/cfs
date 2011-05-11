@@ -105,7 +105,8 @@ namespace CoupledField {
     // *******************************************
     if ( coilType_ == MEASUREMENT2D ) {
 
-      coilNode->GetValue( "windingCrossSection", windingCrossSection_ );
+      windingCrossSection_ = 
+                coilNode->Get( "windingCrossSection")->MathParse<Double>();
       coilNode->GetValue( "saveFileL",  saveFileL_, ParamNode::PASS );
       coilNode->GetValue( "saveFileU", saveFileU_, ParamNode::PASS );
       coilNode->GetValue( "id", id_ );
@@ -116,7 +117,8 @@ namespace CoupledField {
     // *******************************************
     if ( coilType_ == MEASUREMENT3D ) {
       
-      coilNode->GetValue( "windingCrossSection", windingCrossSection_ );
+      windingCrossSection_ = 
+          coilNode->Get( "windingCrossSection")->MathParse<Double>();
       coilNode->GetValue( "saveFileL",  saveFileL_, ParamNode::PASS );
       coilNode->GetValue( "saveFileU", saveFileU_, ParamNode::PASS );
     }
@@ -126,7 +128,8 @@ namespace CoupledField {
     // ***************************************
     else if ( coilType_ == VOLTAGE2D ) {
 
-      coilNode->GetValue( "windingCrossSection", windingCrossSection_ );
+      windingCrossSection_ = 
+                coilNode->Get( "windingCrossSection")->MathParse<Double>();
       coilNode->GetValue( "value", value_ );
       coilNode->GetValue( "phase", phase_, ParamNode::PASS );
       coilNode->GetValue( "resistance", resistance_ );
@@ -138,7 +141,8 @@ namespace CoupledField {
     // ***************************************
     else if ( coilType_ == VOLTAGE3D ) {
 
-      coilNode->GetValue( "windingCrossSection", windingCrossSection_ );
+      windingCrossSection_ = 
+                coilNode->Get( "windingCrossSection")->MathParse<Double>();
       coilNode->GetValue( "value", value_ );
       coilNode->GetValue( "phase", phase_, ParamNode::PASS );
       coilNode->GetValue( "resistance", resistance_ );
@@ -150,7 +154,8 @@ namespace CoupledField {
     // ***************************************
     else if ( coilType_ == CURRENT2D ) {
 
-      coilNode->GetValue( "windingCrossSection", windingCrossSection_ );
+      windingCrossSection_ = 
+                coilNode->Get( "windingCrossSection")->MathParse<Double>();
       coilNode->GetValue( "value", value_ );
       coilNode->GetValue( "phase", phase_, ParamNode::PASS );
       coilNode->GetValue( "saveFileL",  saveFileL_, ParamNode::PASS );
@@ -163,7 +168,8 @@ namespace CoupledField {
     // ***************************************
     else if ( coilType_ == CURRENT3D ) {
 
-      coilNode->GetValue( "windingCrossSection", windingCrossSection_ );
+      windingCrossSection_ = 
+                coilNode->Get( "windingCrossSection")->MathParse<Double>();
       coilNode->GetValue( "value", value_ );
       coilNode->GetValue( "phase", phase_, ParamNode::PASS );
       coilNode->GetValue( "saveFileL",  saveFileL_, ParamNode::PASS );

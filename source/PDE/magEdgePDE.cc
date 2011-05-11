@@ -13,6 +13,7 @@
 #include "Utils/LinInterpolate.hh"
 #include "Forms/curlfieldop.hh"
 #include "Forms/curlCurlEdgeInt.hh"
+#include "Forms/nLincurlCurlEdgeInt.hh"
 #include "Forms/massEdgeInt.hh"
 #include "Forms/linearForm.hh"
 #include "trapezoidal.hh"
@@ -153,12 +154,13 @@ namespace CoupledField {
 
     // Here we need in addition the nonLinMethod_ for the definition
     // of the integrators
+    nonLinMethod_ = FIXEDPOINT;
     PtrParamNode nonLinNode = myParam_->Get("nonLinear", ParamNode::PASS );
-    nonLinMethod_ = "fixPoint";
     if( nonLinNode ) {
-      nonLinNode->GetValue(  "method", nonLinMethod_, ParamNode::PASS );
+      std::string methodString;
+      nonLinNode->GetValue(  "method", methodString, ParamNode::PASS );
+      nonLinMethod_ = NonLinMethodTypeEnum.Parse(methodString);
     }
-
   }
 
 
@@ -191,40 +193,40 @@ namespace CoupledField {
 
       if ( regionNonLinType_[actRegion] != NO_NONLINEARITY ) {
 
-        WARN( "Nonlinearity for 3D magnetic edge formulation not yet ported from NACS" );
-//        if ( regionNonLinType_[actRegion] == HYSTERESIS ) {
-//          EXCEPTION("Magnetics with nonlineaity in 3D not supported");
-//        }
-//
-//        nLinCurlCurlNode3DInt* curlcurlNL = 
-//          new nLinCurlCurlNode3DInt( actMat, upLagrangeForm );
-//
-//        curlcurlNL->SetNonLinMethod( nonLinMethod_ );      
-//        curlcurlNL->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
-//        
-//        BiLinFormContext * stiffContext = 
-//          new BiLinFormContext( curlcurlNL, STIFFNESS );
-//        stiffContext->SetPtPdes(this, this);   
-//        stiffContext->SetResults( results_[0], results_[0],
-//                                  actSDList, actSDList );     
-//        assemble_->AddBiLinearForm( stiffContext);
-//        
-//        //save bilinearForm
-//        pdeBilinearForms_[actRegion][curlcurlNL->GetName()] = curlcurlNL;
-//        
-//        if ( regionNonLinType_[actRegion] == PERMEABILITY ) {
-//          // nonlinear RHS linearform!!
-//          nLinMagNode3D_linFormInt* rhsSource 
-//            = new nLinMagNode3D_linFormInt( actMat, upLagrangeForm);
-//
-//          rhsSource->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
-//          LinearFormContext * rhsContext = 
-//            new LinearFormContext( rhsSource );
-//          rhsContext->SetPtPde( this );
-//          rhsContext->SetResult( results_[0], actSDList );
-//          assemble_->AddLinearForm( rhsContext );
-//        }
-      }
+//       
+        if ( regionNonLinType_[actRegion] == HYSTERESIS ) {
+          EXCEPTION("Magnetics with nonlineaity in 3D not supported");
+        }
+
+        nLinCurlCurlEdgeInt* curlcurlNL = 
+            new nLinCurlCurlEdgeInt( actMat, upLagrangeForm );
+
+        curlcurlNL->SetNonLinMethod( nonLinMethod_ );      
+        curlcurlNL->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+
+        BiLinFormContext * stiffContext = 
+            new BiLinFormContext( curlcurlNL, STIFFNESS );
+        stiffContext->SetPtPdes(this, this);   
+        stiffContext->SetResults( results_[0], results_[0],
+                                  actSDList, actSDList );     
+        assemble_->AddBiLinearForm( stiffContext);
+
+        //save bilinearForm
+        pdeBilinearForms_[actRegion][curlcurlNL->GetName()] = curlcurlNL;
+
+        if ( regionNonLinType_[actRegion] == PERMEABILITY ) {
+          // nonlinear RHS linearform!!
+          nLinMagEdge_linFormInt* rhsSource 
+          = new nLinMagEdge_linFormInt( actMat, upLagrangeForm);
+
+          rhsSource->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+          LinearFormContext * rhsContext = 
+              new LinearFormContext( rhsSource );
+          rhsContext->SetPtPde( this );
+          rhsContext->SetResult( results_[0], actSDList );
+          assemble_->AddLinearForm( rhsContext );
+        }
+      } // NON-LINEARITY
       else {
         CurlCurlEdgeInt* curlcurl =
           new CurlCurlEdgeInt( actMat, upLagrangeForm);
@@ -243,12 +245,12 @@ namespace CoupledField {
         if ( nonLin_ == true ) {
           // for nonlinear RHS linearform we need linear and nonlinear
           // subdomains
-          nLinMagNode3D_linFormInt* rhsSource =
-            new nLinMagNode3D_linFormInt( actMat, upLagrangeForm );
+          nLinMagEdge_linFormInt* rhsSource = 
+              new nLinMagEdge_linFormInt( actMat, upLagrangeForm );
 
           rhsSource->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
-          LinearFormContext * rhsContext =
-            new LinearFormContext( rhsSource );
+          LinearFormContext * rhsContext = 
+              new LinearFormContext( rhsSource );
           rhsContext->SetPtPde( this );
           rhsContext->SetResult( results_[0], actSDList );
           assemble_->AddLinearForm( rhsContext );
@@ -361,7 +363,8 @@ namespace CoupledField {
   // ======================================================
 
   void MagEdgePDE::InitTimeStepping() {
-    TS_alg_ = new Trapezoidal( algsys_ );
+    PtrParamNode systemNode = FindLinearSystem(pdename_);
+    TS_alg_ = new Trapezoidal( algsys_, systemNode );
   }
 
 
@@ -404,6 +407,14 @@ namespace CoupledField {
            CalcEddyCurrent<Double>( res );
          }
          break;
+         
+      case MAG_ELEM_PERMEABILITY:
+        if( isComplex_ ) {
+          CalcPermeability<Complex>( res );
+        } else {
+          CalcPermeability<Double>( res );
+        }
+        break;
          
       case MAG_ENERGY:
         if( isComplex_ ) {
@@ -648,15 +659,25 @@ namespace CoupledField {
     div->fctType = shared_ptr<ConstFct>(new ConstFct() );
     availResults_.insert( div );
     
+    // === PERMEABILITY  ===
+    shared_ptr<ResultInfo> perm(new ResultInfo);
+    perm->resultType = MAG_ELEM_PERMEABILITY;
+    perm->dofNames = "";
+    perm->unit = "Vs/Am";
+    perm->definedOn = ResultInfo::ELEMENT;
+    perm->entryType = ResultInfo::SCALAR;
+    perm->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert( perm );
+
     // === MAGNETIC ENERGY ===
-     shared_ptr<ResultInfo> energy(new ResultInfo);
-     energy->resultType = MAG_ENERGY;
-     energy->dofNames = "";
-     energy->unit = "Ws";
-     energy->definedOn = ResultInfo::REGION;
-     energy->entryType = ResultInfo::SCALAR;
-     energy->fctType = shared_ptr<ConstFct>(new ConstFct() );
-     availResults_.insert( energy );
+    shared_ptr<ResultInfo> energy(new ResultInfo);
+    energy->resultType = MAG_ENERGY;
+    energy->dofNames = "";
+    energy->unit = "Ws";
+    energy->definedOn = ResultInfo::REGION;
+    energy->entryType = ResultInfo::SCALAR;
+    energy->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert( energy );
   }
 
   void MagEdgePDE::ReadSpecialResults() {
@@ -682,8 +703,8 @@ namespace CoupledField {
     
     CurlCurlEdgeInt* curlOp = NULL;
     if ( regionNonLinType_[actRegionId] != NO_NONLINEARITY ) {
-//      std::string bilinearName = "nLinCurlCurlEdgeInt";
-//      curlOp = dynamic_cast<nLinCurlCurlEdgeInt*>(pdeBilinearForms_[actRegionId][bilinearName]);
+      std::string bilinearName = "nLinCurlCurlEdgeInt";
+      curlOp = dynamic_cast<nLinCurlCurlEdgeInt*>(pdeBilinearForms_[actRegionId][bilinearName]);
     }
     else {
       std::string bilinearName = "CurlCurlEdgeInt";
@@ -799,6 +820,45 @@ namespace CoupledField {
     }
   }
 
+  template<class TYPE>
+  void MagEdgePDE::CalcPermeability( shared_ptr<BaseResult> result ) {
+
+    TYPE elemPerm;
+    Vector<TYPE> elemFlux;
+    Double bAbs, reluct;
+
+    // fetch result object and convert data
+    Result<TYPE> &  actSol = 
+        dynamic_cast<Result<TYPE>&>(*result);
+    Vector<TYPE> & actVal = actSol.GetVector();
+    actVal.Resize( actSol.GetEntityList()->GetSize());
+
+    // loop over elements
+    EntityIterator it = actSol.GetEntityList()->GetIterator();
+    for ( it.Begin(); !it.IsEnd(); it++ ) {
+
+      // Determine regionId of element
+      const Elem & actEl = *(it.GetElem());
+      RegionIdType actRegion = actEl.regionId; 
+
+      // Check, if region is nonlinear
+      if ( regionNonLinType_[actRegion] == PERMEABILITY ) {
+
+        // Obtain nonlinear approximation functional
+        ApproxData * approx  = materials_[actRegion]->GetNonlinFncBH();
+
+        // Calculate flux density in element midpoint
+        CalcFluxDensityAtIP( it, 0, elemFlux );
+        bAbs = elemFlux.NormL2();
+        reluct = approx->EvaluateFuncNu(bAbs);
+        elemPerm = 1.0 / reluct;
+      } else {
+        materials_[actRegion]->GetScalar( elemPerm, MAG_PERMEABILITY,Global::REAL); 
+      }
+      actVal[it.GetPos() ] = elemPerm;
+    }
+  }
+  
   // ======================================================
   // COUPLING SECTION
   // ======================================================

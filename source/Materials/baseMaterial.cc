@@ -113,8 +113,7 @@ namespace CoupledField
 
   void  BaseMaterial::matTypeNotAllowed(MaterialType matType, const std::string& dim ) const {
 
-    std::string help;
-    Enum2String(matType, help);
+    std::string help = MaterialTypeEnum.ToString( matType );
     EXCEPTION( "Material type (" <<  dim <<  ") " << help << 
                " is not available for " << materialDatabaseName_ 
                << " Database" );
@@ -135,15 +134,14 @@ namespace CoupledField
 
     std::string help1, help2;
     help1 = Global::complexPart.ToString( dataType );
-    Enum2String( matType, help2 );
+    help2 = MaterialTypeEnum.ToString( matType );
     EXCEPTION( "Datatype " << help1 << " is not allowed for material type " 
                << help2 << " in material data base " << materialDatabaseName_ );
   }
 
   void BaseMaterial::matTypeNotInDataBase(MaterialType matType, const std::string& dim ) const {
 
-    std::string help;
-    Enum2String(matType, help);
+    std::string help = MaterialTypeEnum.ToString( matType );
     EXCEPTION( "Material type (" << dim << ") " << help 
                << " was not read form/defined in material file" );
   }
@@ -158,7 +156,7 @@ namespace CoupledField
   void BaseMaterial::subTensorNotAvailable(MaterialType matType, SubTensorType subTensor )
   {
     std::string help1, help2;
-    Enum2String(matType, help1);
+    help1 = MaterialTypeEnum.ToString( matType );
     Enum2String(subTensor, help2);
     EXCEPTION("Subtensor " << help2 <<" not available for material type " << help1);
   }
@@ -181,11 +179,11 @@ namespace CoupledField
       //check, if parameter is complex
       bool isComplex = false;
       if (  isComplexData.find( *iter ) != isComplexData.end() ) {
-	isComplex = true;
+        isComplex = true;
       }
 
       //get name of material type
-      Enum2String(*iter, matTypeName);
+      matTypeName = MaterialTypeEnum.ToString( *iter );
 
       //check for material data
       std::map<MaterialType, Matrix<Complex> >::const_iterator posTens;
@@ -200,37 +198,37 @@ namespace CoupledField
 
 
       if ( posTens != tensorData.end() ) {
-	// tensor data
-	Matrix<Complex> matTensor = posTens->second;
-	Matrix<Double>  tensor = matTensor.GetPart( Global::REAL );
+        // tensor data
+        Matrix<Complex> matTensor = posTens->second;
+        Matrix<Double>  tensor = matTensor.GetPart( Global::REAL );
 
-	out  << matTypeName << " (real part)" << ":\n\n" 
-	     << tensor << std::endl;
-      
-	if ( isComplex ) {
-	  tensor = matTensor.GetPart( Global::IMAG );
-	  out  << matTypeName << " (imag. part)" << ":\n\n" 
-	       << tensor << std::endl;
-	}
+        out  << matTypeName << " (real part)" << ":\n\n" 
+            << tensor << std::endl;
+
+        if ( isComplex ) {
+          tensor = matTensor.GetPart( Global::IMAG );
+          out  << matTypeName << " (imag. part)" << ":\n\n" 
+              << tensor << std::endl;
+        }
       }
       else if ( posScal != scalarData.end() ) {
-	// scalar data
-	Complex val = posScal->second;
-	out << matTypeName << " (real part) = " << val.real() << std::endl;
-	
-	if ( isComplex ) {
-	  out << matTypeName << " (imag. part)" << val.imag() << std::endl;
-	}
+        // scalar data
+        Complex val = posScal->second;
+        out << matTypeName << " (real part) = " << val.real() << std::endl;
+
+        if ( isComplex ) {
+          out << matTypeName << " (imag. part)" << val.imag() << std::endl;
+        }
       }
       else if ( posStr != stringData.end() ) {
-	// string data
-	std::string val = posStr->second;
-	out << matTypeName << ": " << val << std::endl;
+        // string data
+        std::string val = posStr->second;
+        out << matTypeName << ": " << val << std::endl;
       }
       else if ( posInt != integerData.end() ) {
-	// integer data
-	Integer val = posInt->second;
-	out << matTypeName << " = " << val << std::endl;
+        // integer data
+        Integer val = posInt->second;
+        out << matTypeName << " = " << val << std::endl;
       }
     }
 
@@ -324,7 +322,7 @@ namespace CoupledField
 
     // Determine rotation angles from attached coordinate system
     Matrix<Double> rotMatrix;
-    coosy_->GetGlobRotationMatrix( rotMatrix, coord );
+    coosy_->GetFullGlobRotationMatrix( rotMatrix, coord );
 
     // Calculate rotation. In this case this is always
     // non-persistent, as the orientation may change for each point in the

@@ -10,6 +10,7 @@
 #include "staticdriver.hh"
 #include "transientdriver.hh"
 #include "harmonicDriver.hh"
+#include "eigenFrequencyDriver.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "PDE/SinglePDE.hh"
@@ -79,6 +80,9 @@ namespace CoupledField {
       }
       else if (analysisPerStep_[iStep] == BasePDE::HARMONIC) {
         actDriver_ = new HarmonicDriver( iStep+1, true );
+      }
+      else if( analysisPerStep_[iStep] == BasePDE::EIGENFREQUENCY ) {
+        actDriver_ = new EigenFrequencyDriver( iStep+1, true );
       }
     
 
