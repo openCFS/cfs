@@ -192,7 +192,7 @@ void SIMP::AddMassToStiffness(const TransferFunction* mtf, DesignElement* de, Ma
     alpha_m = domain->GetMathParser()->Eval(handle);
 
     domain->GetMathParser()->ReleaseHandle(handle);
-    assert(omega > 0 && alpha_k > 0 && alpha_m > 0);
+    assert(omega > 0);
 
     // pamping stuff without omega
     double pamping = design->GetPampingValue(); // 0 if not applicable

@@ -372,11 +372,11 @@ ResultInfo* DesignSpace::GetResultInfo(ResultDescription& rd)
   // I hate it!!! :(
   ri->resultType = (SolutionType) rd.solutionType;
 
-  // in info.xml result output the " (" is replaced by "_("!
+  // no space and brackets to have no problems with info.xml and no problems with the paraview calculator
   ri->resultName = DesignElement::valueSpecifier.ToString(rd.value) + "_"
                    + (rd.detail != DesignElement::NONE ? (DesignElement::detail.ToString(rd.detail) + "_") : "")
-                   + DesignElement::type.ToString(rd.design) + " ("
-                   + DesignElement::access.ToString(rd.access) + ")"
+                   + DesignElement::type.ToString(rd.design) + "_"
+                   + DesignElement::access.ToString(rd.access)
                    + (rd.excitation != "" ? ("_ex_" + rd.excitation) : "");
 
   ri->unit = "";
@@ -519,11 +519,12 @@ bool DesignSpace::GetErsatzMaterialPamping(const Elem* elem, Matrix<double>& ele
   double tv = tf->Transform(de, DesignElement::SMART); // be consistent with SIMP::AddMassToStiffness()
   // now the original mass matrix
   const Matrix<double>& mass = mm.Mass(de->elem);
+  LOG_DBG3(designSpace) << "GEMP e=" << elem->elemNum << " mass=" << mass.ToString();
   elemMat.Resize(mass.GetNumRows(), mass.GetNumCols());
   elemMat.Assign(mass, tv * (1.0-tv) * GetPampingValue());
 
   LOG_DBG3(designSpace) << "GEMP e=" << elem->elemNum << "rv=" << tv << " p=" << GetPampingValue() << " -> " << (tv * (1.0-tv) * GetPampingValue());
-
+  LOG_DBG3(designSpace) << "GEMP e=" << elem->elemNum << " ->" << elemMat.ToString();
   return true;
 }
 

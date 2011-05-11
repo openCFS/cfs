@@ -16,6 +16,7 @@
 #include "Domain/grid.hh"
 #include "Driver/stdSolveStep.hh"
 #include "Driver/harmonicDriver.hh"
+#include "DataInOut/programOptions.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "OLAS/algsys/basesystem.hh"
@@ -23,6 +24,7 @@
 #include "DataInOut/Scripting/cfsmessenger.hh"
 #include "Optimization/Optimization.hh"
 #include "Optimization/Design/DesignSpace.hh"
+#include "Materials/mechanicMaterial.hh"
 
 namespace CoupledField
 {
@@ -389,11 +391,25 @@ namespace CoupledField
             elemMatrix*= (-1.0);
           }
 
-          LOG_DBG3(assemble) << "CalcElemMatrix " << i << " -> "
-                             << (form->IsComplex() ? elemMatrixC.ToString(0) : elemMatrix.ToString(0));
+          // info.xml logging in detailed logging case for the first element only
+          if(i == 0 && progOpts->DoDetailedInfo())
+          {
+            PtrParamNode in = info->Get("PDE")->Get(actContext.GetFirstPde()->GetName())->Get(ParamNode::PROCESS)->Get("matrices");
+            in = in->Get("tensor", ParamNode::APPEND);
+            in->Get("form")->SetValue(form->GetName());
+            in->Get("region")->SetValue(domain->GetGrid()->GetRegion().ToString(it1.GetElem()->regionId));
+            in->Get("element")->SetValue(it1.GetElem()->elemNum);
+            // it makes sense to add the analysis id here
+            if(form->IsComplex())
+              in->Get("matrix")->SetValue(elemMatrixC);
+            else
+            {
+              in->Get("matrix")->SetValue(elemMatrix);
+            }
+          }
 
-          LOG_DBG2(assemble) << "CalcElemMatrix " << i << " -> "
-                             << (form->IsComplex() ? elemMatrixC.ToString(1) : elemMatrix.ToString(1));
+          LOG_DBG3(assemble) << "CalcElemMatrix " << i << " -> " << (form->IsComplex() ? elemMatrixC.ToString(0) : elemMatrix.ToString(0));
+          LOG_DBG2(assemble) << "CalcElemMatrix " << i << " -> " << (form->IsComplex() ? elemMatrixC.ToString(1) : elemMatrix.ToString(1));
 
           // Map equation numbers
           actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, pdeId1, pdeId2 );
@@ -448,12 +464,13 @@ namespace CoupledField
             else {
               // Rayleigh damping
               elemMatrix *= secMatFac * dampFactor;
-
+              LOG_DBG3(assemble) << "AM: e1=" << it1.GetElem()->elemNum << " Rayleigh damping form=" << form->GetName() << " sMF=" << secMatFac << " df=" <<  dampFactor;
               // Pass secondary matrix part to algebraic system
               InsertMatrix(secDestMat, actContext, elemMatrix, eqnVec1, eqnVec2, pdeId1, pdeId2);
             }
             // optionally with do SIMP pamping (intermediate material has complex mass damping)
             if(domain->GetErsatzMaterialPamping(it1.GetElem(), form, elemMatrix)) {
+              LOG_DBG3(assemble) << "AM: e1=" << it1.GetElem()->elemNum << " pamping form=" << form->GetName() << " add=" << elemMatrix.ToString();
               InsertMatrix(secDestMat, actContext, elemMatrix, eqnVec1, eqnVec2, pdeId1, pdeId2);
             }
 
@@ -594,18 +611,8 @@ namespace CoupledField
 #endif
 
 
+            assert(!elemVec.ContainsNaN() && !elemVec.ContainsInf());
 
-#ifndef NDEBUG
-            Integer size = elemVec.GetSize();
-            Integer k=0;
-            for (Integer i=0; i<size; i++) {
-              if( std::isnan(elemVec[k].real()) || std::isinf(elemVec[k].real()) )
-                EXCEPTION("Trying to assemble nan/inf in AssembleRHSLinForms!");
-              if( std::isnan(elemVec[k].imag()) || std::isinf(elemVec[k].imag()) )
-                EXCEPTION("Trying to assemble nan/inf in AssembleRHSLinForms!");
-              k++;
-            }
-#endif
             algsys_-> SetElementRHS( elemVec,
                                      pdeId, eqnVec );
           }
@@ -639,12 +646,7 @@ namespace CoupledField
           }
 #endif
             
-#ifndef NDEBUG
-            for (Integer i=0, size = elemVec.GetSize(); i<size; i++) {
-              if( std::isnan(elemVec[i]) || std::isinf(elemVec[i]) )
-                EXCEPTION("Trying to assemble nan/inf in AssembleRHSLinForms!");
-            }
-#endif
+            assert(!elemVec.ContainsNaN() && !elemVec.ContainsInf());
 
             // Pass element vector to algebraic system
             algsys_-> SetElementRHS( elemVec,
@@ -716,24 +718,15 @@ namespace CoupledField
                 parser->SetExpr( mHandle_, actLoad.phase  );
                 phase = parser->Eval( mHandle_ );
 
-#ifndef NDEBUG
-                if( std::isnan(val) || std::isinf(val) ||
-                    std::isnan(phase) || std::isinf(phase))
-                  EXCEPTION("Trying to assemble nan/inf in AssembleRHSLoads!");
-#endif
+                assert(!std::isnan(val) && !std::isinf(val) && !std::isnan(phase) && !std::isinf(phase));
                 Complex complexValue( val * cos( phase / 180 * PI ),
                                       val * sin( phase / 180 * PI ) );
 
                 algsys_->SetNodeRHS(complexValue, eqnMap.GetPdeId(),
                                     eqns[iEqn] );
               } else {
-#ifndef NDEBUG
-                if( std::isnan(val) || std::isinf(val))
-                  EXCEPTION("Trying to assemble nan/inf in AssembleRHSLoads!");
-#endif
-
-                algsys_->SetNodeRHS(val, eqnMap.GetPdeId(),
-                                    eqns[iEqn] );
+                assert(!std::isnan(val) && !std::isinf(val));
+                algsys_->SetNodeRHS(val, eqnMap.GetPdeId(), eqns[iEqn] );
               } // analysis
             } // usedEqn
           } // for loop
@@ -1038,15 +1031,7 @@ namespace CoupledField
     if( mappedDest == NOTYPE )
       return;
 
-#ifndef NDEBUG
-    for(UInt i=0, m=elemMat.GetNumRows(); i<m; i++) {
-      for(UInt j=0, n=elemMat.GetNumCols(); j<n; j++) {
-        if( std::isnan(elemMat[i][j]) ||
-            std::isinf(elemMat[i][j]) )
-          EXCEPTION("Trying to assemble nan/inf in InsertMatrix!");
-      }
-    }
-#endif
+    assert(!elemMat.ContainsNaN() && !elemMat.ContainsInf());
 
     if( analysisType_ == BasePDE::TRANSIENT
         || analysisType_ == BasePDE::STATIC
@@ -1069,13 +1054,8 @@ namespace CoupledField
                                     context.IsSetCounterPart() );
     }
 
-#ifndef NDEBUG
     LOG_DBG3(assemble) << "InsertMatrix dest=" << dest << " mappedDest=" << mappedDest << " data=["
-                       << elemMat
-                       << "]\neqnVec1=" << eqnVec1.ToString() <<
-                       "\neqnVec2=" << eqnVec2.ToString() << std::endl;
-#endif
-
+                       << elemMat  << "]\neqnVec1=" << eqnVec1.ToString() <<  "\neqnVec2=" << eqnVec2.ToString() << std::endl;
    
   }
 
@@ -1092,17 +1072,7 @@ namespace CoupledField
     assert(mappedDest != NOTYPE);
     assert(analysisType_ == BasePDE::HARMONIC);
 
-#ifndef NDEBUG
-    for(UInt i=0, m=elemMat.GetNumRows(); i<m; i++) {
-      for(UInt j=0, n=elemMat.GetNumCols(); j<n; j++) {
-        if( std::isnan(elemMat[i][j].real()) ||
-            std::isinf(elemMat[i][j].real()) ||
-            std::isnan(elemMat[i][j].imag()) ||
-            std::isinf(elemMat[i][j].imag()))
-          EXCEPTION("Trying to assemble nan/inf in InsertMatrix!");
-      }
-    }
-#endif
+    assert(!elemMat.ContainsNaN() && !elemMat.ContainsInf());
 
     Double freq = context.GetFirstPde()->GetSolveStep()->GetActFreq();
     Double omega = freq * 2 * PI;

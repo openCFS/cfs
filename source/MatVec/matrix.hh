@@ -350,6 +350,12 @@ namespace CoupledField
     //@}
 
     
+    /** Check if the matrix contains NAN. To be used by asserts() */
+    bool ContainsNaN() const;
+
+    /** Check if the matrix contains +/- INF. To be used by asserts() */
+    bool ContainsInf() const;
+
 #ifdef EXPR_TEMPLATES
     // =======================================================================
     // INTERFACE TO EXPRESSION TEMPLATES
