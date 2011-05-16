@@ -12,7 +12,6 @@
 #include "General/exception.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/programOptions.hh"
-#include "DataInOut/WriteInfo.hh"
 #include "DataInOut/resultHandler.hh"
 #include "Driver/driver_header.hh"
 #include "Domain/domain.hh"

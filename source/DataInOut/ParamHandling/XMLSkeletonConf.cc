@@ -18,7 +18,6 @@
 #include "DataInOut/programOptions.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/SkeletonConf.hh"
-#include "DataInOut/WriteInfo.hh"
 
 #define WL( MSG ) \
 (*out_) << MSG << std::endl;
@@ -74,8 +73,7 @@ namespace CoupledField {
 
   void SkeletonConf::WriteConf ()
   {
-
-    Info->StartProgress("Writing skeleton file to disc", false);
+    std::cout << "++ Writing skeleton file to disc" << std::endl;
 
     WL("<?xml version=\"1.0\"?>");
     WL( "<cfsSimulation xmlns=\"http://www.cfs++.org\">");

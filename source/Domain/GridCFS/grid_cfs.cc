@@ -15,7 +15,6 @@
 #include "Elements/elements_header.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
-#include "DataInOut/WriteInfo.hh"
 #include "DataInOut/programOptions.hh"
 #include "General/exception.hh"
 #include "Utils/coordSystem.hh"

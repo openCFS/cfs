@@ -160,13 +160,6 @@ namespace CoupledField
     void SetPDEId( const PdeIdType pdeId )
     { pdeId1_ = pdeId;};
 
-    //! Write nonlin iteration norms to info-file
-    void WriteClaNlNorms(const UInt iterationCounter,
-                         const Double residualL2Norm,
-                         const Double extForcesL2Norm, const Double residualErr, 
-                         const Double solIncrL2Norm, const Double actSolL2Norm, 
-                         const Double incrementalErr);
-
     //! returns the hysteresis operator
     Hysteresis * GetHystOperator(UInt iSD) {
       return hyst_[iSD];

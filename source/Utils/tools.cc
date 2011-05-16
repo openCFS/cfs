@@ -14,7 +14,6 @@
 #include "Elements/elements_header.hh"
 #include "Domain/elem.hh"
 #include "Domain/grid.hh"
-#include "DataInOut/WriteInfo.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "General/exception.hh"
 

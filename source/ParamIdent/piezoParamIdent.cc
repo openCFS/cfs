@@ -51,7 +51,7 @@ void piezoParamIdent::Init() {
   directCoupling_ = true;
   writeResults_=false;
 
-  Info->StartProgress("Opening in and output files ... ");
+  std::cout << "++ Opening in and output files" << std::endl;
 
   std::string filenameMeasuredData="measuredData.dat";
   allMeasuredData_ = new std::ifstream(filenameMeasuredData.c_str(),
@@ -161,8 +161,6 @@ void piezoParamIdent::Init() {
 
   myParamMethod = myParam_->Get("fittingQuantity");
   whichNormCriteria_= myParamMethod->Get("type")->As<std::string>();
-
-  Info->FinishProgress();
 
   std::cout<< "++ Starting "<< whichMethod_ << " method ..."<< std::endl;
 

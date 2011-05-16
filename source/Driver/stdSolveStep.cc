@@ -1267,29 +1267,6 @@ namespace CoupledField {
 
   }
 
-
-  void StdSolveStep::WriteClaNlNorms(const UInt iterationCounter,
-                                     const Double residualL2Norm,
-                                     const Double extForcesL2Norm,
-                                     const Double residualErr,
-                                     const Double solIncrL2Norm,
-                                     const Double actSolL2Norm,
-                                     const Double incrementalErr)
-  {
-
-    *cla << std::endl << " ======================================================= "
-         << std::endl
-         << " NONLINEAR ITERATION " << iterationCounter << std::endl
-         << " ======================================================= " << std::endl;
-    *cla << " === Residual norm:          " << residualL2Norm << std::endl;
-    *cla << "     Norm of ext. forces:    " << extForcesL2Norm << std::endl;
-    *cla << "     Residual error          " << residualErr << std::endl;
-
-    *cla << " === Incremental sol L2Norm: " << solIncrL2Norm << std::endl;
-    *cla << "     Actual solution L2Norm: " << actSolL2Norm << std::endl;
-    *cla << "     Incremental error       " << incrementalErr << std::endl;
-  }
-
   void StdSolveStep::ReInit(){
     dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector()).Init();
     PDE_.getTimeStepping()->ReInit();

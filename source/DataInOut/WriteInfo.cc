@@ -61,8 +61,6 @@ namespace CoupledField {
   //   CreateFile
   // **************
   void WriteInfo::CreateFile() {
-
-
     // Check if a file is already open
     if ( cfsInfo != NULL ) {
       EXCEPTION("WriteInfo::CreateFile: cfsInfo already points to a "
@@ -84,8 +82,6 @@ namespace CoupledField {
   //   Print Material Data
   // *****************
   void WriteInfo::PrintMaterial( BaseMaterial* material ) {
-
-
     *cfsInfo << *material << endl;
   }
 
@@ -112,37 +108,6 @@ namespace CoupledField {
                  << pdeNameLong << "=== Incremental error       "
                  << incrementalErr << endl;
     
-        if (etaLineSearch)
-          *cfsInfo << pdeNameLong << "=== eta (line search)       "
-                   << etaLineSearch << endl;
-      }
-  }
-
-  void WriteInfo::WriteNonLinIter2(const std::string& pdeName,
-                                  const UInt iterationCounter,
-                                  const Double residualErr,
-                                  const Double incrementalErr,
-                                  const Double energyErr,
-                                  double etaLineSearch)
-  {
-
-    std::string pdeNameLong(pdeName);
-
-    pdeNameLong += "-PDE: ";
-
-    if (cfsInfo)
-      {
-        *cfsInfo << endl << pdeNameLong << "NONLINEAR ITERATION "
-                 << iterationCounter
-                 << " ==========================================\n"
-                 << pdeNameLong << "=== Residual error          "
-                 << residualErr
-                 << endl
-                 << pdeNameLong << "=== Incremental error       "
-                 << incrementalErr << endl
-                 << pdeNameLong << "=== Energy error       "
-                 << energyErr << endl;
-
         if (etaLineSearch)
           *cfsInfo << pdeNameLong << "=== eta (line search)       "
                    << etaLineSearch << endl;
@@ -320,24 +285,6 @@ namespace CoupledField {
     *cfsInfo << endl << endl;
   }
 
-  template <class TYPE>
-  void WriteInfo::WriteAcouPower(std::string pdename, 
-                                 StdVector<std::string> & subdoms,
-                                 Vector<TYPE>& power)
-  {
- 
-    if (cfsInfo) {
-      *cfsInfo << endl << " PostProcessing Result for PDE " << pdename
-               << ": " << " ==========" << endl;
-      *cfsInfo << "   Acoustic Power: \n";
-      for ( UInt i = 0; i < subdoms.GetSize(); i++ ) {
-        *cfsInfo << "    Subdomain: " <<  subdoms[i] << " : " <<  power[i] 
-                 << " W" << endl;
-      }
-    }
-  }
-
-
   void WriteInfo::PrintVec(Vector<Complex>& vec)
   {
     if (cfsInfo)
@@ -435,138 +382,6 @@ namespace CoupledField {
 
 #endif //INTEGLIB
 
-#if 0  
-  // prints warning to info-file
-  void WriteInfo::Warning( const std::string & Text,
-                           const char* const filename, const UInt numline ) {
-
-#ifdef INTEGLIB
-    std::cerr << "INTEGLIB WARNING: " << Text << endl;
-#else
-#ifdef USE_SCRIPTING
-    if ( messenger ) {
-      if ( messenger->IsEvaluating() ) {
-        messenger->WARN( Text.c_str(), filename, numline );
-      }
-    }
-#endif
-
-    if ( progressRunning_ == true ) {
-      cout << endl;
-    }
-
-    std::cerr << "\n "
-              << fg_yellow << "WARNING:" << fg_reset << "\n "
-              << Text << endl;
-
-    warningOccured_ = true;
-
-    if (filename) {
-      std::cerr <<" (" << filename <<" ";
-      if (numline) {
-        std::cerr << numline;
-      }
-      std::cerr << ")" << endl;
-    }
-    else {
-      std::cerr << endl;
-    }
-
-    if (cfsInfo) {
-      *cfsInfo << endl << endl << endl
-               << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-               << "!!!!!!!!!!!!!" << endl
-               << "                          WARNING " << endl
-               << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-               << "!!!!!!!!!!!!!" << endl
-               << "WARNING: " << Text;
-        
-      if (filename) {
-        *cfsInfo <<" (" << filename <<" ";
-        if (numline) 
-          *cfsInfo << numline;
-        *cfsInfo << ")";
-      }
-    
-      *cfsInfo << "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-               << "!!!!!!!!!!!!!!!" << endl
-               << endl;
-    }
-#endif // INTEGLIB
-  }
-
-
-  // *********
-  //   Error
-  // *********
-  void WriteInfo::Error( const std::string &Text, const char *const filename,
-                         const UInt numline ) {
-
-
-#ifdef INTEGLIB
-    std::cerr << "INTEGLIB ERROR: " << Text << endl;
-#else
-#ifdef USE_SCRIPTING
-    if ( messenger ) {
-      if ( messenger->IsEvaluating() ) {
-        messenger->Error( Text.c_str(), filename, numline );
-      }
-    }
-#endif
-    
-
-    // If a progress part is still there, then finish it with
-    // a failure
-    if ( progressRunning_ ) {
-      FinishProgress( false );
-    }
-
-    std::cerr << endl << " "
-              << fg_red << "ERROR:"
-              << fg_reset << "\n" << endl;
-
-    if ( Text != "" ) {
-      std::cerr << ' ' << Text;
-    }
-    else {
-      std::cerr << ' ' << "I've got the feeling that something is wrong!\n"
-                << " Can't say what, however :(\n\n"
-                << " (No error message was provided by the"
-                << " programmer)";
-    }
-    if ( filename ) {
-      std::cerr << "\n\n This error message was brought to you by\n "
-                << filename << ", line " << numline;
-    }
-
-    std::cerr << endl << endl;
-    
-    if (cfsInfo) {
-      *cfsInfo << endl << endl << endl
-               << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! "
-               << endl
-               << "                          ERROR " << endl
-               << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! "
-               << endl
-               << " ERROR: " << Text;
-
-      if (filename) {
-        *cfsInfo <<" (" << filename <<" ";
-        if (numline) 
-          *cfsInfo << numline;
-        *cfsInfo << ")";
-      }
-      *cfsInfo << endl;  
-    }
-#endif // INTEGLIB
-
-    // exit program
-    exit(-1);
-
-    //     char* a = NULL;
-    //     std::cerr << a[0] << a[1] << a[2] << a[3];
-  }
-#endif
 
 #ifndef INTEGLIB
 
@@ -669,67 +484,7 @@ namespace CoupledField {
     va_end(argList);
   }
 
-
-  // *****************
-  //   StartProgress
-  // *****************
-  void WriteInfo::StartProgress( const std::string &name, bool needAck ) {
-
-   
-    std::string modifiedName = name + " ";
-
-    needAck_ = needAck;
-
-    cout << "++ " << std::setw(PROGRESS_TEXT_WIDTH)
-              << std::setfill( '.' ) << std::left
-              << modifiedName << std::setfill( ' ' ) << ' '
-              << std::flush;
-
-    if ( needAck ) {
-      warningOccured_ = false;
-      progressRunning_ = true;
-    }
-    else {
-      cout << endl;
-    }
-  }
-
 #endif
 
-
-  // ******************
-  //   FinishProgress
-  // ******************
-  void WriteInfo::FinishProgress( const bool success ) {
-
-
-    bool okay = ( warningOccured_ == false ) && ( success == true );
-
-    if ( okay == true ) {
-      cout << std::setw(10) << fg_green << "OK" << fg_reset<< endl;
-    }
-    else if ( success == false ) {
-      cout << std::setw(10) << fg_red << "FAILED" << fg_reset << endl;
-    }
-    else {
-      cout << endl;
-    }
-
-    // re-set flags
-    warningOccured_  = false;
-    progressRunning_ = false;
-  }
-
-  // explicit template instantiation for GCC compiler
-#ifdef __GNUC__
-  template
-  void  WriteInfo::WriteAcouPower<Double>(std::string pdename, 
-                                          StdVector<std::string> & subdoms,
-                                          Vector<Double>& power);
-  template 
-  void  WriteInfo::WriteAcouPower<Complex>( std::string pdename, 
-                                            StdVector<std::string> & subdoms,
-                                            Vector<Complex>& power );
-#endif
 
 }

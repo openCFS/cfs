@@ -6,7 +6,6 @@
 
 #include "PDE/basePDE.hh"
 #include "Domain/domain.hh"
-#include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField{
@@ -42,8 +41,7 @@ namespace CoupledField{
       // Trigger reading of restart file
       ReadRestart();
 
-     
-      Info->StartProgress ("Starting to solve problem", false);
+      std::cout << "++ Starting to solve problem" << std::endl;
     }
   }
 

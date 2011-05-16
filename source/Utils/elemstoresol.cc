@@ -5,7 +5,6 @@
 #include "elemstoresol.hh"
 #include "Domain/elem.hh"
 #include "Domain/grid.hh"
-#include "DataInOut/WriteInfo.hh"
 
 namespace CoupledField{
 

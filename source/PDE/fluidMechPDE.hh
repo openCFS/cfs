@@ -211,14 +211,6 @@ namespace CoupledField
                                         UInt couplingdof );
 
 
-    /// Write nonlin iteration norms to the cla-file
-    void WriteClaNlNorms( const UInt iterationCounter,
-                          const Double residualL2Norm,
-                          const Double extForcesL2Norm, const Double residualErr,
-                          const Double solIncrL2Norm, const Double actSolL2Norm,
-                          const Double incrementalErr );
-
-
     //! read pressure loads
     void ReadPressureLoads();
 
