@@ -136,8 +136,8 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
   // check the the dimensions! the number of design variables comes from the regions and designs
   if (ersatzMaterial->data.GetSize() != elsize)
   {
-    string msg = "the number of elements in the region you are trying to read the densities into is not equal to"\
-                 " the number of elements in the density-file but matches the number of all elements!";
+    string msg = "the number of elements in the density file does not match the number of elements of the region!\n"\
+                 "         check the results carefully!";
     info->Get("ersatzMaterial")->Get(ParamNode::WARNING)->SetValue(msg);
   }
 
