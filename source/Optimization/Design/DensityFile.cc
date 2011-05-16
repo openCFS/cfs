@@ -117,16 +117,12 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
       }
     }
 
-    ParamNodeList des = xml->Get("header")->GetList("design");
-    ParamNodeList tfs = xml->Get("header")->GetList("transferFunction");
-    PtrParamNode  reg = xml->Get("header/regularization/filter", ParamNode::PASS);
-    ParamNodeList res(0); // empty
-
     // create the design space -> data has initial values!
-    ersatzMaterial = new DesignSpace(regionIds, des, tfs, res, ErsatzMaterial::SIMP_METHOD);
+    ersatzMaterial = new DesignSpace(regionIds, xml->Get("header"), ErsatzMaterial::SIMP_METHOD);
     ersatzMaterial->PostInit(0, 0); // no objectives, no constraints
     // is cheap - for density filtering
     DesignStructure filter(ersatzMaterial, ersatzMaterial->GetRegionIds());
+    PtrParamNode  reg = xml->Get("header/regularization/filter", ParamNode::PASS);
     if(reg) filter.SetFilters(reg, info->Get("ersatzMaterial"));
 
     ersatzMaterial->ToInfo(info->Get("ersatzMaterial")->Get(ParamNode::HEADER));

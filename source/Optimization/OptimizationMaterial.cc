@@ -21,10 +21,17 @@ DEFINE_LOG(om, "optimizationMaterial")
 Enum<OptimizationMaterial::System> OptimizationMaterial::system;
 
 
-OptimizationMaterial::OptimizationMaterial(ErsatzMaterial* em)
+OptimizationMaterial::OptimizationMaterial(ErsatzMaterial* em, DesignSpace* space)
 {
-  regionIds = em->GetDesign()->GetRegionIds();
-  opt = em;
+  assert((em == NULL && space != NULL) || (em != NULL && (space == NULL || space == em->GetDesign())));
+
+  this->opt = em;
+  this->space = space != NULL ? space : em->GetDesign();
+
+  regionIds = this->space->GetRegionIds();
+
+  harmonic_ =  BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType());
+  structured_ = em != NULL ? em->IsDomainStructured() : false; // we would have a problem with the L-Shape!
 }
 
 OptimizationMaterial::~OptimizationMaterial()
@@ -84,12 +91,12 @@ void OptimizationMaterial::GetElementEntity(BaseForm* form, Matrix<double>* mat_
   // This works only for isotropic material.
 
   // temporarily disables the transfer functions
-  opt->GetDesign()->DisableTransferFunctions();
+  space->DisableTransferFunctions();
 
   // We have to do this because CalcElementMatrix asks the density via domain and
   // multiplies it with it's matrix!
 
-  if(elem == NULL) elemList.SetElement(opt->GetDesign()->data[0].elem);
+  if(elem == NULL) elemList.SetElement(space->data[0].elem);
               else elemList.SetElement(elem);
 
   // form needs to be the right one for the region!
@@ -123,7 +130,7 @@ void OptimizationMaterial::GetElementEntity(BaseForm* form, Matrix<double>* mat_
   }
 
   // enable again our transfer functions
-  opt->GetDesign()->EnableTransferFunctions();
+  space->EnableTransferFunctions();
 
   if(bimaterial != NULL)
     form->SetMaterial(org_mat);
@@ -133,35 +140,45 @@ void OptimizationMaterial::GetElementEntity(BaseForm* form, Matrix<double>* mat_
 
 MechMat::MechMat(ErsatzMaterial* em) : OptimizationMaterial(em)
 {
+  Init();
+}
+
+MechMat::MechMat(DesignSpace* space) : OptimizationMaterial(NULL, space)
+{
+  Init();
+}
+
+void MechMat::Init()
+{
   system_ = MECH;
-  mech = dynamic_cast<MechPDE*>(opt->ToPDE(Optimization::MECH));
+  mech = dynamic_cast<MechPDE*>(opt != NULL ? opt->ToPDE(Optimization::MECH) : domain->GetSinglePDE("mechanic"));
   assert(mech != NULL);
 
   for(unsigned int r=0; r < regionIds.GetSize(); r++)
   {
     RegionIdType reg_id = regionIds[r];
-    DesignSpace::DesignRegion* dr = opt->GetDesign()->GetRegion(reg_id);
+    DesignSpace::DesignRegion* dr = space->GetRegion(reg_id);
 
-    GetElementMatrix(opt->GetForm(reg_id, mech, mech, "linElastInt"), mechStiffness_map[reg_id].first);
+    GetElementMatrix(ErsatzMaterial::GetForm(reg_id, mech, mech, "linElastInt"), mechStiffness_map[reg_id].first);
     LOG_DBG(om) << "OptMechMat: MechStiffness region=" << domain->GetGrid()->GetRegion().ToString(reg_id)
                 << std::endl << mechStiffness_map[reg_id].first.ToString(0,true);
 
     if(dr->HasBiMaterial())
     {
-      GetElementMatrix(opt->GetForm(reg_id, mech, mech, "linElastInt"), mechStiffness_map[reg_id].second, NULL, dr->GetBiMaterial(MECHANIC));
+      GetElementMatrix(ErsatzMaterial::GetForm(reg_id, mech, mech, "linElastInt"), mechStiffness_map[reg_id].second, NULL, dr->GetBiMaterial(MECHANIC));
       LOG_DBG(om) << "OptMechMat: MechStiffness region=" << domain->GetGrid()->GetRegion().ToString(reg_id) << " bimaterial"
                   << std::endl << mechStiffness_map[reg_id].second.ToString(0,true);
     }
 
-    if(opt->IsHarmonic())
+    if(harmonic_)
     {
-      GetElementMatrix(opt->GetForm(reg_id, mech, mech, "MassInt"), mechMass_map[reg_id].first);
+      GetElementMatrix(ErsatzMaterial::GetForm(reg_id, mech, mech, "MassInt"), mechMass_map[reg_id].first);
       LOG_DBG(om) << "OptMechMat MechMass region=" << domain->GetGrid()->GetRegion().ToString(reg_id)
                   << std::endl << mechMass_map[reg_id].first.ToString(0,true);
 
       if(dr->HasBiMaterial())
       {
-        GetElementMatrix(opt->GetForm(reg_id, mech, mech, "MassInt"), mechMass_map[reg_id].second, NULL, dr->GetBiMaterial(MECHANIC));
+        GetElementMatrix(ErsatzMaterial::GetForm(reg_id, mech, mech, "MassInt"), mechMass_map[reg_id].second, NULL, dr->GetBiMaterial(MECHANIC));
         LOG_DBG(om) << "OptMechMat MechMass region=" << domain->GetGrid()->GetRegion().ToString(reg_id) << " bimaterial"
                     << std::endl << mechMass_map[reg_id].second.ToString(0,true);
       }
@@ -172,14 +189,14 @@ MechMat::MechMat(ErsatzMaterial* em) : OptimizationMaterial(em)
 
 const Matrix<double>& MechMat::MechStiffness(const Elem* elem, bool bimaterial, DesignElement::Type direction)
 {
-  if(!opt->IsDomainStructured() || direction != DesignElement::NO_DERIVATIVE)
+  if(!structured_ || direction != DesignElement::NO_DERIVATIVE)
   {
     if(!bimaterial)
-      GetElementMatrix(opt->GetForm(elem->regionId, mech, mech, "linElastInt"), mechStiffness_map[elem->regionId].first, elem, NULL, direction);
+      GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, mech, mech, "linElastInt"), mechStiffness_map[elem->regionId].first, elem, NULL, direction);
     else
     {
-      BaseMaterial* bm = opt->GetDesign()->GetRegion(elem->regionId)->GetBiMaterial(MECHANIC);
-      GetElementMatrix(opt->GetForm(elem->regionId, mech, mech, "linElastInt"), mechStiffness_map[elem->regionId].second, elem, bm, direction);
+      BaseMaterial* bm = space->GetRegion(elem->regionId)->GetBiMaterial(MECHANIC);
+      GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, mech, mech, "linElastInt"), mechStiffness_map[elem->regionId].second, elem, bm, direction);
     }
   }
 
@@ -188,16 +205,16 @@ const Matrix<double>& MechMat::MechStiffness(const Elem* elem, bool bimaterial, 
 
 const Matrix<double>& MechMat::MechMass(const Elem* elem, bool bimaterial, DesignElement::Type direction)
 {
-  assert(opt->GetForm(elem->regionId, mech, mech, "MassInt")->GetMaterialDescriptor().Enabled());
+  assert(ErsatzMaterial::GetForm(elem->regionId, mech, mech, "MassInt")->GetMaterialDescriptor().Enabled());
 
-  if(!opt->IsDomainStructured() || direction != DesignElement::NO_DERIVATIVE)
+  if(!structured_ || direction != DesignElement::NO_DERIVATIVE)
   {
     if(!bimaterial)
-      GetElementMatrix(opt->GetForm(elem->regionId, mech, mech, "MassInt"), mechMass_map[elem->regionId].first, elem, NULL, direction);
+      GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, mech, mech, "MassInt"), mechMass_map[elem->regionId].first, elem, NULL, direction);
     else
     {
-      BaseMaterial* bm = opt->GetDesign()->GetRegion(elem->regionId)->GetBiMaterial(MECHANIC);
-      GetElementMatrix(opt->GetForm(elem->regionId, mech, mech, "MassInt"), mechMass_map[elem->regionId].second, elem, bm, direction);
+      BaseMaterial* bm = space->GetRegion(elem->regionId)->GetBiMaterial(MECHANIC);
+      GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, mech, mech, "MassInt"), mechMass_map[elem->regionId].second, elem, bm, direction);
     }
   }
 
@@ -208,8 +225,7 @@ const Vector<double>& MechMat::MechStrainRHS(const Elem* elem, MechPDE::TestStra
 {
   // in homogenization we always set/replace the actual AddStrainRHSInt which contains the current test strain,
   // therefore we do not cache!
-  SinglePDE* pde = opt->ToPDE(Optimization::MECH);
-  LinearForm* lf = pde->getPDE_assemble()->GetLinearForm(opt->GetDesign()->GetRegionId(), pde, "AddStrainRHSInt")->GetIntegrator();
+  LinearForm* lf = mech->getPDE_assemble()->GetLinearForm(space->GetRegionId(), mech, "AddStrainRHSInt")->GetIntegrator();
   // this is really inefficient -> but won't cost to much! the vector is created too often!
   if(testStrain != MechPDE::NOT_SET)
   {
@@ -228,26 +244,26 @@ const Vector<double>& MechMat::MechStrainRHS(const Elem* elem, MechPDE::TestStra
 AcouMat::AcouMat(ErsatzMaterial* em) : OptimizationMaterial(em)
 {
   system_ = ACOUSTIC;
-  acou = dynamic_cast<AcousticPDE*>(opt->ToPDE(Optimization::ACOUSTIC));
+  acou = dynamic_cast<AcousticPDE*>(opt != NULL ? opt->ToPDE(Optimization::ACOUSTIC) : domain->GetSinglePDE("acoustic"));
   assert(acou != NULL);
 
   for(unsigned int r=0; r < regionIds.GetSize(); r++)
   {
     RegionIdType reg_id = regionIds[r];
-    DesignSpace::DesignRegion* dr = opt->GetDesign()->GetRegion(reg_id);
+    DesignSpace::DesignRegion* dr = space->GetRegion(reg_id);
     BaseMaterial* bm = dr->HasBiMaterial() ? dr->GetBiMaterial(FLUID) : NULL;
 
-    GetElementMatrix(opt->GetForm(reg_id, acou, acou, "LaplaceInt"), acouStiffness_map[reg_id].first, NULL, NULL);
+    GetElementMatrix(ErsatzMaterial::GetForm(reg_id, acou, acou, "LaplaceInt"), acouStiffness_map[reg_id].first, NULL, NULL);
 
     if(dr->HasBiMaterial())
-      GetElementMatrix(opt->GetForm(reg_id, acou, acou, "LaplaceInt"), acouStiffness_map[reg_id].second, NULL, bm);
+      GetElementMatrix(ErsatzMaterial::GetForm(reg_id, acou, acou, "LaplaceInt"), acouStiffness_map[reg_id].second, NULL, bm);
 
-    if(opt->IsHarmonic())
+    if(harmonic_)
     {
-      GetElementMatrix(opt->GetForm(reg_id, acou, acou, "MassInt"), acouMass_map[reg_id].first, NULL, NULL);
+      GetElementMatrix(ErsatzMaterial::GetForm(reg_id, acou, acou, "MassInt"), acouMass_map[reg_id].first, NULL, NULL);
 
       if(dr->HasBiMaterial())
-        GetElementMatrix(opt->GetForm(reg_id, acou, acou, "MassInt"), acouMass_map[reg_id].second, NULL, bm);
+        GetElementMatrix(ErsatzMaterial::GetForm(reg_id, acou, acou, "MassInt"), acouMass_map[reg_id].second, NULL, bm);
     }
   }
 }
@@ -257,14 +273,14 @@ const Matrix<double>& AcouMat::AcouStiffness(const Elem* elem, bool bimaterial)
 {
   RegionIdType reg_id = elem->regionId;
 
-  if(!opt->IsDomainStructured())
+  if(!structured_)
   {
     if(!bimaterial)
-      GetElementMatrix(opt->GetForm(reg_id, acou, acou, "LaplaceInt"), acouStiffness_map[reg_id].first, elem, NULL);
+      GetElementMatrix(ErsatzMaterial::GetForm(reg_id, acou, acou, "LaplaceInt"), acouStiffness_map[reg_id].first, elem, NULL);
     else
     {
-      BaseMaterial* bm = opt->GetDesign()->GetRegion(reg_id)->GetBiMaterial(FLUID);
-      GetElementMatrix(opt->GetForm(reg_id, acou, acou, "LaplaceInt"), acouStiffness_map[reg_id].second, elem, bm);
+      BaseMaterial* bm = space->GetRegion(reg_id)->GetBiMaterial(FLUID);
+      GetElementMatrix(ErsatzMaterial::GetForm(reg_id, acou, acou, "LaplaceInt"), acouStiffness_map[reg_id].second, elem, bm);
     }
   }
 
@@ -275,16 +291,16 @@ const Matrix<double>& AcouMat::AcouMass(const Elem* elem, bool bimaterial)
 {
   RegionIdType reg_id = elem->regionId;
 
-  assert(opt->GetForm(reg_id, acou, acou, "MassInt")->GetMaterialDescriptor().Enabled());
+  assert(ErsatzMaterial::GetForm(reg_id, acou, acou, "MassInt")->GetMaterialDescriptor().Enabled());
 
-  if(!opt->IsDomainStructured())
+  if(!structured_)
   {
     if(!bimaterial)
-      GetElementMatrix(opt->GetForm(reg_id, acou, acou, "MassInt"), acouMass_map[reg_id].first, elem, NULL);
+      GetElementMatrix(ErsatzMaterial::GetForm(reg_id, acou, acou, "MassInt"), acouMass_map[reg_id].first, elem, NULL);
     else
     {
-      BaseMaterial* bm = opt->GetDesign()->GetRegion(reg_id)->GetBiMaterial(FLUID);
-      GetElementMatrix(opt->GetForm(reg_id, acou, acou, "MassInt"), acouMass_map[reg_id].second, elem, bm);
+      BaseMaterial* bm = space->GetRegion(reg_id)->GetBiMaterial(FLUID);
+      GetElementMatrix(ErsatzMaterial::GetForm(reg_id, acou, acou, "MassInt"), acouMass_map[reg_id].second, elem, bm);
     }
   }
 
@@ -297,21 +313,21 @@ PiezoelecMat::PiezoelecMat(ErsatzMaterial* em) :
   MechMat(em)
 {
   system_ = PIEZOCOUPLING;
-  elec = dynamic_cast<ElecPDE*>(opt->ToPDE(Optimization::ELEC));
+  elec = dynamic_cast<ElecPDE*>(opt != NULL ? opt->ToPDE(Optimization::ELEC) : domain->GetSinglePDE("electrostatic"));
   assert(elec != NULL);
 
   for(unsigned int r = 0; r < regionIds.GetSize(); r++)
   {
     // in the piezoelectric case K_pp is set to -K_pp. As we use the linGradBDBInt from a piezoelectric problem this is done!
-    GetElementMatrix(opt->GetForm(regionIds[r], elec, elec, "linGradBDBInt"), elecStiffness_map[regionIds[r]], NULL, NULL, DesignElement::NO_DERIVATIVE, -1.0); // see above
-    GetElementMatrix(opt->GetForm(regionIds[r], elec, elec, "linGradBDBInt"), elecStiffness_neg_map[regionIds[r]], NULL, NULL, DesignElement::NO_DERIVATIVE, 1.0); // see above
+    GetElementMatrix(ErsatzMaterial::GetForm(regionIds[r], elec, elec, "linGradBDBInt"), elecStiffness_map[regionIds[r]], NULL, NULL, DesignElement::NO_DERIVATIVE, -1.0); // see above
+    GetElementMatrix(ErsatzMaterial::GetForm(regionIds[r], elec, elec, "linGradBDBInt"), elecStiffness_neg_map[regionIds[r]], NULL, NULL, DesignElement::NO_DERIVATIVE, 1.0); // see above
 
     // wrong!!!
-    //GetElementMatrix(opt->GetForm(regionIds[r], elec, elec, "linGradBDBInt"), elecStiffness_map[regionIds[r]], NULL, DesignElement::NO_DERIVATIVE, 1.0); // see above
-    //GetElementMatrix(opt->GetForm(regionIds[r], elec, elec, "linGradBDBInt"), elecStiffness_neg_map[regionIds[r]], NULL, DesignElement::NO_DERIVATIVE, -1.0); // see above
+    //GetElementMatrix(ErsatzMaterial::GetForm(regionIds[r], elec, elec, "linGradBDBInt"), elecStiffness_map[regionIds[r]], NULL, DesignElement::NO_DERIVATIVE, 1.0); // see above
+    //GetElementMatrix(ErsatzMaterial::GetForm(regionIds[r], elec, elec, "linGradBDBInt"), elecStiffness_neg_map[regionIds[r]], NULL, DesignElement::NO_DERIVATIVE, -1.0); // see above
 
 
-    GetElementMatrix(opt->GetForm(regionIds[r], mech, elec, "linPiezoCoupling"), coupledStiffness_map[regionIds[r]]);
+    GetElementMatrix(ErsatzMaterial::GetForm(regionIds[r], mech, elec, "linPiezoCoupling"), coupledStiffness_map[regionIds[r]]);
     coupledStiffness_map[regionIds[r]].Transpose(coupledStiffnessTransposed_map[regionIds[r]]);
   }
 
@@ -352,16 +368,16 @@ const Matrix<double>& PiezoelecMat::ElecStiffness(Elem* elem, int factor)
 
   std::map<RegionIdType, Matrix<double> >& map = factor == 1 ? elecStiffness_map : elecStiffness_neg_map;
   // overwrite the element
-  if(!opt->IsDomainStructured())
-    GetElementMatrix(opt->GetForm(elem->regionId, elec, elec, "linGradBDBInt"), map[elem->regionId], NULL, NULL, DesignElement::NO_DERIVATIVE, (double) factor);
+  if(!structured_)
+    GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, elec, elec, "linGradBDBInt"), map[elem->regionId], NULL, NULL, DesignElement::NO_DERIVATIVE, (double) factor);
 
   return map[elem->regionId];
 }
 
 const Matrix<double>& PiezoelecMat::CoupledStiffness(Elem* elem)
 {
-  if(!opt->IsDomainStructured())
-    GetElementMatrix(opt->GetForm(elem->regionId, mech, elec, "linPiezoCoupling"), coupledStiffness_map[elem->regionId]);
+  if(!structured_)
+    GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, mech, elec, "linPiezoCoupling"), coupledStiffness_map[elem->regionId]);
 
   return coupledStiffness_map[elem->regionId];
 }
@@ -369,9 +385,9 @@ const Matrix<double>& PiezoelecMat::CoupledStiffness(Elem* elem)
 
 const Matrix<double>& PiezoelecMat::CoupledStiffnessTransposed(Elem* elem)
 {
-  if(!opt->IsDomainStructured())
+  if(!structured_)
   {
-    GetElementMatrix(opt->GetForm(elem->regionId, mech, elec, "linPiezoCoupling"), coupledStiffness_map[elem->regionId]);
+    GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, mech, elec, "linPiezoCoupling"), coupledStiffness_map[elem->regionId]);
     coupledStiffness_map[elem->regionId].Transpose(coupledStiffnessTransposed_map[elem->regionId]);
   }
 
@@ -382,6 +398,6 @@ HeatMat::HeatMat(ErsatzMaterial* em) :
   OptimizationMaterial(em)
 {
   system_ = HEAT;
-  heat = dynamic_cast<HeatCondPDE*>(opt->ToPDE(Optimization::HEAT));
+  heat = dynamic_cast<HeatCondPDE*>(opt != NULL ? opt->ToPDE(Optimization::HEAT) : domain->GetSinglePDE("heatConduction"));
   assert(heat != NULL);
 }

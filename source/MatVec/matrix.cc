@@ -1409,6 +1409,48 @@ namespace CoupledField
     return result;
   }
 
+  template<class TYPE>
+  bool Matrix<TYPE>::ContainsNaN() const
+  {
+    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
+      if(std::isnan(data_[0][k])) return true;
+
+    return false;
+  }
+
+  template<>
+  bool Matrix<Complex>::ContainsNaN() const
+  {
+    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
+    {
+      if(std::isnan(data_[0][k].real())) return true;
+      if(std::isnan(data_[0][k].imag())) return true;
+    }
+    return false;
+  }
+
+
+  template<class TYPE>
+  bool Matrix<TYPE>::ContainsInf() const
+  {
+    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
+      if(std::isinf(data_[0][k])) return true;
+
+    return false;
+  }
+
+  template<>
+  bool Matrix<Complex>::ContainsInf() const
+  {
+    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
+    {
+      if(std::isinf(data_[0][k].real())) return true;
+      if(std::isinf(data_[0][k].imag())) return true;
+    }
+    return false;
+  }
+
+
   // Alternate version of symmetry checker, that will report
   // asymmetries to standard output
 

@@ -101,17 +101,12 @@ ErsatzMaterial::ErsatzMaterial() :
     }
   }
 
-  // set up the design space elements, note PiezoSIMP have only POLARIZATION
-  // this includes the transfer functions!
-  ParamNodeList design_list = pn->GetList("design");
-  ParamNodeList transfer_list = pn->GetList("transferFunction");
-  ParamNodeList result = pn->GetList("result");
-  design = DesignSpace::CreateInstance(regions, design_list, transfer_list, result, method_);
+  design = DesignSpace::CreateInstance(regions, pn, method_);
   // make basic loggings
   design->ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("designSpace"));
 
   // the L-mesh of the stress constraint benchmark is meshed by gid with different positions of
-  // element nodes, such that one cannot use the same element materix, even if the grid is regular
+  // element nodes, such that one cannot use the same element matrix, even if the grid is regular
   // therefore the attribute enforce_unstructured
   assume_constant_element_matrices_ = design->IsRegular() && method_ != ErsatzMaterial::PARAM_MAT
                                       && !pn->Get("enforce_unstructured")->As<bool>();
@@ -120,10 +115,12 @@ ErsatzMaterial::ErsatzMaterial() :
 
   // optionally write the densities to an xml file
   if(pn->Has("export"))
-    densityFile = new DensityFile(design, pn->Get("export"),
-                                  design_list,
-                                  transfer_list,
-                                  pn->Get("SIMP/regularization", ParamNode::PASS));
+  {
+    ParamNodeList design_list = pn->GetList("design");
+    ParamNodeList transfer_list = pn->GetList("transferFunction");
+
+    densityFile = new DensityFile(design, pn->Get("export"), design_list, transfer_list, pn->Get("SIMP/regularization", ParamNode::PASS));
+  }
 
   // we assume always to have either a mechanic or heatcond pde.
   SetPDEs();
@@ -408,7 +405,8 @@ string ErsatzMaterial::GetIterationFrequency()
 
 BiLinFormContext* ErsatzMaterial::GetFormContext(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception)
 {
-  return(assemble_->GetBiLinForm(regionId, pde1, pde2, integrator, !throw_exception));
+  Assemble* ass = domain->GetBasePDE()->getPDE_assemble();
+  return(ass->GetBiLinForm(regionId, pde1, pde2, integrator, !throw_exception));
 }
 
 BaseForm* ErsatzMaterial::GetForm(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception)
