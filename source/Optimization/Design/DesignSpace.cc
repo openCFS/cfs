@@ -961,14 +961,11 @@ void DesignSpace::ToInfo(PtrParamNode in)
     data[i * elements].ToInfo(dv->Get("design", ParamNode::APPEND));
 
   in->Get("pamping")->SetValue(pamping_);
-
-  PtrParamNode rs = in->Get("regions");
-  for(unsigned int i = 0; i < regions.GetSize(); i++)
+  if(regions.GetSize() > 0)
   {
-    PtrParamNode r = rs->Get("region", ParamNode::APPEND);
-    // regions[i].ToInfo(r); TODO merge conflict
-    r->Get("name")->SetValue(domain->GetGrid()->GetRegion().ToString(regions[0][i].regionId));
-    r->Get("elements")->SetValue(regions[0][i].elements);
+    PtrParamNode rs = in->Get("regions");
+    for(unsigned int i = 0; i < regions[0].GetSize(); i++)
+      regions[0][i].ToInfo(rs->Get("region", ParamNode::APPEND));
   }
 
 }
