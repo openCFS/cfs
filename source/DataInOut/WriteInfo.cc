@@ -28,8 +28,6 @@
 #include "DataInOut/Scripting/cfsmessenger.hh"
 #endif
 
-#define PROGRESS_TEXT_WIDTH 62
-
 using std::cout;
 using std::endl;
 
@@ -37,11 +35,6 @@ namespace CoupledField {
 
 
   WriteInfo::WriteInfo () {
-
-    warningOccured_ = false;
-    progressRunning_ = false;
-    needAck_ = false;
-
     cfsInfo = NULL;
   }
 
@@ -148,59 +141,6 @@ namespace CoupledField {
   
   
 
-  // ***************
-  //   WriteResult
-  // ***************
-  /*
-  void WriteInfo::WriteResult(std::string pdename, std::string resulttype,
-                               StdVector<std::string> & subdoms,
-                               Vector<Double> & results,
-                               std::string unit,
-                               std::string analysis,
-                               Double analysisVal)
-  {
-
-    if (subdoms.GetSize() != results.GetSize())
-      EXCEPTION("Problem in WriteResults");
- 
-    if (cfsInfo) {
-      *cfsInfo << endl << " PostProcessing Result for PDE " << pdename
-               << ": " << resulttype << " ==========" << endl;
-
-      for ( UInt i = 0; i < subdoms.GetSize(); i++ ) {
-        *cfsInfo << "        === " << analysis << " " << analysisVal 
-                 << "; " << subdoms[i] << ": " 
-                 << results[i] 
-                 << " "  << unit << endl << endl;
-      }
-    }
-  }
-
-  void WriteInfo::WriteResult(std::string pdename, std::string resulttype,
-                               StdVector<std::string> & subdoms,
-                               Vector<Complex> & results,
-                               std::string unit,
-                               std::string analysis,
-                               Double analysisVal)
-  {
-
-    if (subdoms.GetSize() != results.GetSize())
-      EXCEPTION("Problem in WriteResults");
- 
-    if (cfsInfo) {
-      *cfsInfo << endl << " PostProcessing Result for PDE " << pdename
-               << ": " << resulttype << " ==========" << endl;
-
-      for ( UInt i = 0; i < subdoms.GetSize(); i++ ) {
-        *cfsInfo << "        === " << analysis << " " << analysisVal 
-                 << "; " << subdoms[i] << ": "
-                 << results[i] 
-                 << " "  << unit << endl << endl;
-      }
-    }
-  }
-  */
-
 
   void WriteInfo::PrintCoil( Coil &coil, BasePDE::AnalysisType &analysistype ) {
 
@@ -293,58 +233,6 @@ namespace CoupledField {
       *cfsInfo << vec << endl;
   }
   
-
-  void WriteInfo::WriteCombustionNoiseInfo(std::string filename, std::string cplRegion,
-                                           UInt sosIdx, UInt src1, UInt src2, UInt src3, 
-                                           UInt src4, UInt src5, UInt src6, UInt src7) {
-
-
-    *cfsInfo << "\nCombustion Noise Info:\n" 
-	     << " Name of file: " << filename  
-	     << "\n Coupling region: " << cplRegion <<  endl;
-
-    if ( sosIdx > 0 ) {      
-      *cfsInfo << " Use variable speed of sound: yes" << endl;
-    }
-    else {
-      *cfsInfo << " Use variable speed of sound: no" << endl;
-    }
-
-    *cfsInfo << "\n Use the following source terms" << endl;
-
-    if ( src1 > 0 ) {
-      *cfsInfo << "      Reynolds stress tensor " << endl;
-    }
-    if ( src2 > 0 ) {
-      *cfsInfo << "      Fluctuation of momentum flux " << endl;
-    }
-    if ( src3 > 0 ) {
-      *cfsInfo << "      Unsteady reaction rates " << endl;
-    }
-    if ( src4 > 0 ) {
-      *cfsInfo << "      2nd order derivative of density " << endl;
-    }
-    if ( src5 > 0 ) {
-      *cfsInfo << "      Heat release " << endl;
-    }    
-    if ( src6 > 0 ) {
-      *cfsInfo << "      Gas Const. 2nd time derivative " << endl;
-    }
-    if ( src7 > 0 ) {
-      *cfsInfo << "      Shear term " << endl;
-    }
-
-    *cfsInfo << endl;
-  }
-
-
-#endif //INTEGLIB
-
-
-#ifndef INTEGLIB
-
-
-
   void WriteInfo::PrintF( const std::string& pdeName,
                           const char * formatChar ... ) {
 
