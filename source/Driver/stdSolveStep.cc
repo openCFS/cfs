@@ -186,8 +186,7 @@ namespace CoupledField {
     // loop over load factor
     for ( UInt iload=0; iload<1; iload++ ) {
       loadFactor += 1.0;
-      Info->PrintF(pdename_, "\n");
-      Info->PrintF(pdename_, "LoadFactor: %g \n", loadFactor);
+      info->Get("PDE")->Get(pdename_)->Get("load_factor")->SetValue(loadFactor);
 
       // setup right hand side
       Double RhsLinL2Norm = SetLinRHS(loadFactor);
@@ -263,10 +262,8 @@ namespace CoupledField {
           }
 
           // output of norms and data
-          if ( nonLinLogging_ == true ) {
-            Info->WriteNonLinIter(pdename_, iterationCounter, residualErr,
-                                  incrementalErr, etaLineSearch);
-          }
+          if ( nonLinLogging_ == true )
+            WriteNonLinIterToInfoXML(pdename_, iterationCounter, residualErr, incrementalErr, etaLineSearch);
 
           // boolean variable, holds condition if another iteration step is necessary
           performOneMoreStep =
@@ -431,8 +428,7 @@ namespace CoupledField {
 
     for ( UInt iload=0; iload<1; iload++ ) {
       loadFactor += 1.0;
-      Info->PrintF(pdename_, "\n");
-      Info->PrintF(pdename_, "LoadFactor: %g \n", loadFactor);
+      info->Get("PDE")->Get(pdename_)->Get("load_factor")->SetValue(loadFactor);
 
       // setup right hand side
       Double RhsLinL2Norm = SetLinRHS(loadFactor);
@@ -515,10 +511,8 @@ namespace CoupledField {
         // --------------------------------------------------------------------
         // output of norms and data
         // --------------------------------------------------------------------
-        if ( nonLinLogging_ == true ) {
-          Info->WriteNonLinIter(pdename_, iterationCounter, residualErr,
-                                incrementalErr, etaLineSearch);
-        }
+        if ( nonLinLogging_ == true )
+          WriteNonLinIterToInfoXML(pdename_, iterationCounter, residualErr, incrementalErr, etaLineSearch);
 
         // boolean variable, holds condition if another iteration step
         // is necessary
@@ -644,10 +638,8 @@ namespace CoupledField {
       // --------------------------------------------------------------------
       // output of norms and data
       // --------------------------------------------------------------------
-      if ( nonLinLogging_ == true ) {
-        Info->WriteNonLinIter(pdename_, iterationCounter, residualErr,
-                              incrementalErr, etaLineSearch);
-      }
+      if ( nonLinLogging_ == true )
+        WriteNonLinIterToInfoXML(pdename_, iterationCounter, residualErr, incrementalErr, etaLineSearch);
 
       // boolean variable, holds condition if another iteration step
       // is necessary
@@ -695,8 +687,7 @@ namespace CoupledField {
 
     for ( UInt iload=0; iload<1; iload++ ) {
       loadFactor += 1.0;
-      Info->PrintF(pdename_, "\n");
-      Info->PrintF(pdename_, "LoadFactor: %g \n", loadFactor);
+      info->Get("PDE")->Get(pdename_)->Get("load_factor")->SetValue(loadFactor);
 
       // setup right hand side
       Double RhsLinL2Norm = SetLinRHS(loadFactor);
@@ -804,10 +795,8 @@ namespace CoupledField {
         // --------------------------------------------------------------------
         // output of norms and data
         // --------------------------------------------------------------------
-        if ( nonLinLogging_ == true ) {
-          Info->WriteNonLinIter(pdename_, iterationCounter, residualErr,
-                                incrementalErr, etaLineSearch);
-        }
+        if ( nonLinLogging_ == true )
+          WriteNonLinIterToInfoXML(pdename_, iterationCounter, residualErr, incrementalErr, etaLineSearch);
 
         // boolean variable, holds condition if another iteration step
         // is necessary
@@ -1270,6 +1259,17 @@ namespace CoupledField {
   void StdSolveStep::ReInit(){
     dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector()).Init();
     PDE_.getTimeStepping()->ReInit();
+  }
+  
+  void StdSolveStep::WriteNonLinIterToInfoXML(const std::string& pdeName, const UInt iterationCounter,
+          const Double residualErr, const Double incrementalErr, double etaLineSearch)
+  {
+    PtrParamNode iter = info->Get("PDE")->Get(pdeName)->Get("nonlinear_iteration", ParamNode::APPEND); 
+    iter->Get("nr")->SetValue(iterationCounter);
+    iter->Get("residualErr")->SetValue(residualErr);
+    iter->Get("incrementalErr")->SetValue(incrementalErr);
+    if(etaLineSearch)
+      iter->Get("eta_linesearch")->SetValue(etaLineSearch);
   }
 
 } // end of namespace

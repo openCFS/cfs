@@ -73,11 +73,6 @@ namespace CoupledField {
     
     /// prints all data of a coil (e.g. current, area, magnetization, ...)
     void PrintCoil( Coil &coil, BasePDE::AnalysisType &analysistype );
- 
-    /// prints the process of a nonlinear iteration
-    void WriteNonLinIter(const std::string& pdeName, const UInt iterationCounter,
-                         const Double residualErr, const Double incrementalErr,
-                         double etaLineSearch=0);
 
     /// prints the process of a mulitSequence Analysis
     void WriteMultiSequenceStep(const UInt sequenceStep, 

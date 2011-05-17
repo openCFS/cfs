@@ -152,10 +152,8 @@ namespace CoupledField {
     
       // output of norms and data
       nonLinLogging_ = true;
-      if ( nonLinLogging_ == true ) {
-        Info->WriteNonLinIter(pdename_, iterationCounter, residualNorm,
-                              incrementalErr);
-      }
+      if ( nonLinLogging_ == true )
+        WriteNonLinIterToInfoXML(pdename_, iterationCounter, residualNorm, incrementalErr);
 
       //    std::cout << "ResNorm=" << residualNorm << "  incrNorm=" 
       //        << incrementalErr << std::endl;
