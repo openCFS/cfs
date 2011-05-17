@@ -2,7 +2,6 @@
 #include <fstream>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/WriteInfo.hh"
 #include "Domain/domain.hh"
 
 #include "fluidMechInt.hh"
@@ -30,16 +29,17 @@ namespace CoupledField
     }
 
     if (movingMesh_)
-      Info->PrintF( "MESH-UPDATE" , "strategy = movingMesh=true\n\n");
+      info->Get(name_)->Get("movingMesh")->Get("strategy")->SetValue("movingMesh=true");
     else
-      Info->PrintF( "MESH-UPDATE" , "strategy = movingMesh=false\n\n");
+      info->Get(name_)->Get("movingMesh")->Get("strategy")->SetValue("movingMesh=false");
 
     stabParamEsti_="Gerstenberger";
 
     velNormMin_ = 0.001;
     velNormMax_ = 1.0;
 
-    Info->PrintF( "Velocity-Bounds", " VelNormMin = %e, VelNormMax = %e\n\n",velNormMin_, velNormMax_ );
+    info->Get(name_)->Get("movingMesh")->Get("velocityBounds")->Get("velNormMin")->SetValue(velNormMin_);
+    info->Get(name_)->Get("movingMesh")->Get("velocityBounds")->Get("velNormMax")->SetValue(velNormMax_);
 
     if (stabilType_=="gls")
     {
@@ -449,6 +449,7 @@ namespace CoupledField
     } else
       EXCEPTION( "So what: Wall, Codina, Franca or generalized Eigenvalue???");
 
+    // if this is still needed, convert to output to info.xml!
     //Info->PrintF( stabParamEsti_, "tau_mp = %e   tau_c = %e   h_k = %e   VelNorm = %e   \n", tau_mp, tau_c, h_k, VelNorm);
   }
 

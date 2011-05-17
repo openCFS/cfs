@@ -151,6 +151,7 @@ namespace CoupledField {
   // ***************
   //   WriteResult
   // ***************
+  /*
   void WriteInfo::WriteResult(std::string pdename, std::string resulttype,
                                StdVector<std::string> & subdoms,
                                Vector<Double> & results,
@@ -198,6 +199,7 @@ namespace CoupledField {
       }
     }
   }
+  */
 
 
   void WriteInfo::PrintCoil( Coil &coil, BasePDE::AnalysisType &analysistype ) {
@@ -285,12 +287,6 @@ namespace CoupledField {
     *cfsInfo << endl << endl;
   }
 
-  void WriteInfo::PrintVec(Vector<Complex>& vec)
-  {
-    if (cfsInfo)
-      *cfsInfo << vec << endl;
-  }
-
   void WriteInfo::PrintVec(Vector<Double>& vec)
   {
     if (cfsInfo)
@@ -341,44 +337,6 @@ namespace CoupledField {
     *cfsInfo << endl;
   }
 
-
-  void WriteInfo::PrintVec(StdVector<Integer>& vec)
-  {
-    if (cfsInfo)
-      *cfsInfo << vec << endl;
-  }
-  
-
-
-  void WriteInfo::PrintVec(const char * comment, StdVector<Integer>& vec)
-  {
-    if (cfsInfo)
-      *cfsInfo << comment << endl << vec << endl << endl;
-  }
-
-
-
-  void WriteInfo::PrintVec(const char * comment,
-                           StdVector<std::string>& vec)
-  {
-
-    if (cfsInfo)
-      {
-        *cfsInfo << comment << endl;
-        
-        for (UInt i=0; i< vec.GetSize(); i++)
-          *cfsInfo << vec[i] << endl;
-        
-        *cfsInfo << endl;
-      }
-  }
-
-  void WriteInfo::PrintMatrix(std::string &comment, const Matrix<Double> &mat)
-  {
-
-    if (cfsInfo)
-      *cfsInfo << comment << endl << mat << endl << endl;
-  }
 
 #endif //INTEGLIB
 

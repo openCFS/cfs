@@ -104,6 +104,7 @@ namespace CoupledField {
     void PrintSrcRhs( UInt node, UInt eqn, Double val);
 
     /// write Result values
+    /*
     void WriteResult(std::string pdename, std::string resulttype,
                      StdVector<std::string> & subdoms,
                      Vector<Double> & results, std::string unit, 
@@ -113,24 +114,10 @@ namespace CoupledField {
                      StdVector<std::string> & subdoms,
                      Vector<Complex> & results, std::string unit, 
                      std::string analysis, Double analysisVal);
-
-    /// just prints a vector
-    void PrintVec(Vector<Complex>& vec);
+    */
 
     /// just prints a vector
     void PrintVec(Vector<Double>& vec);
-
-    /// prints a standard vector
-    void PrintVec(StdVector<Integer>& vec);
-
-    /// prints a standard vector with a leading comment
-    void PrintVec(const char * comment, StdVector<Integer>& vec);
-
-    /// prints a standard vector of strings, each string in a new line
-    void PrintVec(const char * comment, StdVector<std::string>& vec);
-
-    /// prints a matrix with a leading commnet
-    void PrintMatrix(std::string & comment, const Matrix<Double> & mat);
 
     /// does a formatted print leaded by the PDE name, equal to std::printf(...)
     void PrintF(const std::string& pdeName, const char * formatStr ...);
