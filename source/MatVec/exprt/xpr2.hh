@@ -31,6 +31,7 @@
 #ifndef XPR2_H_
 #define XPR2_H_
 
+#include <stdexcept>
 #include "xpr1.hh"
 
 template <class P, class A, class F>
@@ -119,7 +120,7 @@ class Dim2 {
 private:
   void error(const char *msg) const {
     std::cerr << "Dim2 error: " << msg << std::endl;
-    throw std::exception("Dim3 error in Xpr2");
+    throw std::runtime_error("Dim3 error in Xpr2");
   }
 
 public:

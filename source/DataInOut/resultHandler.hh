@@ -7,6 +7,7 @@
 
 #include "Utils/result.hh"
 #include "Utils/nodestoresol.hh"
+#include "PDE/basePDE.hh"
 
 namespace CoupledField {
 

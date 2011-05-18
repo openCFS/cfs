@@ -13,7 +13,6 @@
 #include "Domain/grid.hh"
 #include "Domain/GridCFS/grid_cfs.hh"
 #include "DataInOut/simInput.hh"
-#include "DataInOut/WriteInfo.hh"
 #include "DataInOut/MaterialHandler.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
@@ -505,18 +504,16 @@ void Domain::InitPDEs(UInt sequenceStep)
   // those single PDEs which are directly coupled
   for (UInt i = 0; i < numDirectCoupledPde_; i++)
   {
-    Info->StartProgress("Initializing direct coupling");
+    std::cout << "++ Initializing direct coupling" << std::endl;
     ptDirectCoupledPde_[i]->Init(sequenceStep);
     ptDirectCoupledPde_[i]->DefineAlgSys();
-    Info->FinishProgress();
   }
 
   // Initialize coupledPDE
   if (ptIterCoupledPde_ != NULL)
   {
-    Info->StartProgress("Initializing iterative coupling");
+    std::cout << "++ Initializing iterative coupling" << std::endl;
     ptIterCoupledPde_->InitCoupling();
-    Info->FinishProgress();
   }
 
   // Initialize algebraic system of each SinglePDE
@@ -556,7 +553,7 @@ void Domain::CreateSinglePDEs(UInt sequenceStep)
 
     std::string actPdeName = pdeNodes[i]->GetName();
     PtrParamNode actPdeNode = pdeNodes[i];
-    Info->StartProgress("Creating PDE '" + actPdeName + "'");
+    std::cout << "++ Creating PDE '" + actPdeName + "'" << std::endl;
 
     if (actPdeName == "electrostatic")
       ptSinglePde_[i] = new ElecPDE(defaultGrid, actPdeNode);
@@ -610,8 +607,6 @@ void Domain::CreateSinglePDEs(UInt sequenceStep)
     // Initialize current PDE
     // -> This step has now moved to method InitPDEs
     //ptSinglePde_[i]->Init();
-
-    Info->FinishProgress();
   }
 
 } // end of InitPDE()
@@ -629,7 +624,7 @@ void Domain::CreateIterCoupledPDE(UInt sequenceStep)
     return;
   }
 
-  Info->StartProgress("Creating coupling");
+  std::cout << "++ Creating coupling" << std::endl;
 
   // ================================
   //   Check for iterative coupling
@@ -715,8 +710,6 @@ void Domain::CreateIterCoupledPDE(UInt sequenceStep)
       couplings_, iterNode);
 
   delete CouplingDef;
-
-  Info->FinishProgress();
 }
 
 // ***************************

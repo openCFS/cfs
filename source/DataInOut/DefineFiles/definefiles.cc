@@ -22,7 +22,6 @@
 #include <def_use_python.hh>
 
 #include "definefiles.hh"
-#include "DataInOut/WriteInfo.hh"
 
 #ifdef USE_MESH
 #include "DataInOut/SimInOut/AnsysFile/simInputMESH.hh"
@@ -386,7 +385,7 @@ void DefineInOutFiles::CreateSimOutputFiles(std::map<std::string, shared_ptr<
         hdf5Writer.reset(new SimOutputHDF5(simName, actNode));
         out[actId] = hdf5Writer;
 
-        std::cout << "Creating HDF5 writer '" << actId << "'..." << std::endl;
+        std::cout << "++ Creating HDF5 writer '" << actId << "'" << std::endl;
       }
 #else
       EXCEPTION( "No support for HDF5 output file format." );
@@ -405,7 +404,7 @@ void DefineInOutFiles::CreateSimOutputFiles(std::map<std::string, shared_ptr<
 
         out[hdf5Id] = hdf5Writer;
 
-        std::cout << "Creating HDF5/XDMF writer '" << hdf5Id << "'..." << std::endl;
+        std::cout << "++ Creating HDF5/XDMF writer '" << hdf5Id << "'" << std::endl;
       }
       
       SimOutputXDMF* simOutXDMF = new SimOutputXDMF(simName, actNode);

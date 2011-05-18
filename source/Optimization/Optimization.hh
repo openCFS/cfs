@@ -10,7 +10,7 @@
 
 namespace CoupledField
 {
-   class Elem;
+   struct Elem;
    class DesignSpace;
    class OptimalityCondition;
    class BaseOptimizer;

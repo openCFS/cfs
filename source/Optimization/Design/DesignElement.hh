@@ -10,7 +10,7 @@
 
 namespace CoupledField
 {
-class Elem;
+struct Elem;
 class ParamNode;
 class SinglePDE;
 class Condition;

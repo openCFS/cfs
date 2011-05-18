@@ -22,7 +22,8 @@
 DECLARE_LOG(cholmod)
 DEFINE_LOG(cholmod, "cholmod")
 
-using namespace CoupledField;
+namespace CoupledField
+{
 
 template<typename T>
 CholMod<T>::CholMod(PtrParamNode xml, PtrParamNode olasInfo, BaseMatrix::EntryType type)
@@ -296,3 +297,5 @@ void CholMod<T>::SetEnums()
 template class CholMod<Double> ;
 template class CholMod<Complex> ;
 #endif
+
+}

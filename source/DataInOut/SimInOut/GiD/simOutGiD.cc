@@ -8,7 +8,6 @@
 #include <boost/filesystem/exception.hpp>
 namespace fs = boost::filesystem;
 
-#include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/environment.hh"
 #include "Utils/StdVector.hh"

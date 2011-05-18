@@ -24,7 +24,7 @@ class BiLinFormContext;
 class Condition;
 class Assemble;
 class TransferFunction;
-class SurfElem;
+struct SurfElem;
 class DesignDependentRHS;
 class OptimizationMaterial;
 class DesignStructure;
@@ -41,12 +41,10 @@ template<class TYPE> class Matrix;
  * The implementation of gradients, ... is for the subclasses. */
 class ErsatzMaterial: public Optimization
 {
+public:
 
-protected:
   // forward declaration
   class Solutions;
-
-public:
 
   /** Up to now w/o parameters */
   ErsatzMaterial();
@@ -157,7 +155,6 @@ public:
 
   OptimizationMaterial* GetMaterial() { return material; }
 
- protected:
 
   /** This class holds the solution of the PDE. It is in a class such that it
    * helps to encapsulate real and complex solutions. Note that the Piezo
@@ -257,6 +254,7 @@ public:
     ErsatzMaterial* em_;
   };
 
+
   /** As the solutions come for multiple excitations in sets we store the list and the
    * averaged (when mutiple excitations are enabled). W/o is just some overhead with data size = 1 */
   class Solutions
@@ -319,6 +317,7 @@ public:
     ErsatzMaterial* em_;
   };
 
+ protected:
 
   /** When "commit" is set, we write "forward"/"adjoint" or "both_cases" */
   virtual void StoreResults(double step_val);

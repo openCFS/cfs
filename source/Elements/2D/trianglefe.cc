@@ -6,7 +6,6 @@
 #include <fstream>
 #include <string>
 
-#include "DataInOut/WriteInfo.hh"
 #include "General/environment.hh"
 #include "Elements/basefe.hh"
 #include "trianglefe.hh"

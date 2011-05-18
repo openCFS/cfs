@@ -14,8 +14,8 @@ namespace CoupledField {
   // Forward class declaration
   class EntityIterator;
   class Grid;
-  class SurfElem;
-  class Elem;
+  struct SurfElem;
+  struct Elem;
   class Coil;
 
 

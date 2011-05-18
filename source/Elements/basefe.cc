@@ -13,7 +13,6 @@
 #include <Domain/elem.hh>
 #include <Utils/tools.hh>
 #include <MatVec/matrix.hh>
-#include <DataInOut/WriteInfo.hh>
 
 namespace CoupledField
 {

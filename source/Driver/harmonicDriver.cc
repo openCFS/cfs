@@ -15,7 +15,6 @@
 #include "Utils/Timer.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/WriteInfo.hh"
 #include "DataInOut/resultHandler.hh"
 #include "DataInOut/programOptions.hh"
 

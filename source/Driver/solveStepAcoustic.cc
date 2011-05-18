@@ -138,10 +138,8 @@ namespace CoupledField {
         incrementalErr = solIncrL2Norm;
         
       // output of norms and data
-      if ( nonLinLogging_ == true ) {
-        Info->WriteNonLinIter(pdename_, iterationCounter, incrementalErr,
-                              incrementalErr);
-      }
+      if ( nonLinLogging_ == true )
+        WriteNonLinIterToInfoXML(pdename_, iterationCounter, incrementalErr, incrementalErr);
         
       // boolean variable, holds condition if another iteration step
       //  is necessary

@@ -24,7 +24,7 @@ namespace CoupledField
   class TimeStepping;
   class WriteResults;
   class EqnMap;
-  class ResultInfo;
+  struct ResultInfo;
   class SingleDriver;
   class IDBC_Handler;
   class BaseIDBC_Handler;
@@ -160,13 +160,6 @@ namespace CoupledField
     void SetPDEId( const PdeIdType pdeId )
     { pdeId1_ = pdeId;};
 
-    //! Write nonlin iteration norms to info-file
-    void WriteClaNlNorms(const UInt iterationCounter,
-                         const Double residualL2Norm,
-                         const Double extForcesL2Norm, const Double residualErr, 
-                         const Double solIncrL2Norm, const Double actSolL2Norm, 
-                         const Double incrementalErr);
-
     //! returns the hysteresis operator
     Hysteresis * GetHystOperator(UInt iSD) {
       return hyst_[iSD];
@@ -179,6 +172,9 @@ namespace CoupledField
 
     //! Read nonlinear data from pdenode 
     virtual void ReadNonLinData();
+    
+    virtual void WriteNonLinIterToInfoXML(const std::string& pdeName, const UInt iterationCounter,
+        const Double residualErr, const Double incrementalErr, double etaLineSearch=0.0);
 
     //------------- storage vectors for nonlinear analysis --------------
     //Vector<Double> RhsLinVal_; //!< external forces (for nonlin simulations)

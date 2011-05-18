@@ -24,7 +24,7 @@ namespace CoupledField
   class Grid;
   class BaseMaterial;
   class BaseNodeStoreSol;
-  class Composite;
+  struct Composite;
   class ParamNode;
 
   //! Base class for pairwise direct coupling of two pdes

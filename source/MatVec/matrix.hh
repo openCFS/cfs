@@ -366,24 +366,24 @@ namespace CoupledField
 
     //! Matrix assignment operator using expression templates
     inline Matrix<TYPE>& operator=( const Matrix<TYPE>& rhs ) { 
-      return assignFrom( rhs ); 
+      return this->assignFrom( rhs ); 
     }
     
     //! Scalar assignment operator using expression templates
     inline Matrix<TYPE>& operator=( TYPE rhs ) { 
-      return assignFrom( rhs ); 
+      return this->assignFrom( rhs ); 
     }
     
     //! Matrix-Expression assignment operator using expression templates
     template <class X> inline Matrix<TYPE>& 
     operator=( const Xpr2<TYPE,X>& rhs ) {
-      return assignFrom( rhs );
+      return this->assignFrom( rhs );
     }
     
     //! Abstract matrix assignment operator
     template <class M> inline Matrix<TYPE>& 
     operator=( const Dim2<TYPE,M>& rhs ) {
-      return assignFrom(rhs);
+      return this->assignFrom(rhs);
     }
     
     

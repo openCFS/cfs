@@ -54,7 +54,7 @@ namespace CoupledField {
     // of a PDE
     StdVector<shared_ptr<PDEMemento> > memento;
 
-    Info->StartProgress("Starting to solve problem",false);
+    std::cout << "++ Starting to solve problem" << std::endl;
 
     // get resultHandler
     ResultHandler * resHandler = domain->GetResultHandler();
