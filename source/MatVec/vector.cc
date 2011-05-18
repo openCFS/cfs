@@ -608,6 +608,48 @@ namespace CoupledField {
   }
 
 
+  template<class TYPE>
+  bool Vector<TYPE>::ContainsNaN() const
+  {
+    for(UInt k = 0, s = size_; k < s; ++k)
+      if(std::isnan(data_[k])) return true;
+
+    return false;
+  }
+
+  template<>
+  bool Vector<Complex>::ContainsNaN() const
+  {
+    for(UInt k = 0, s = size_; k < s; ++k)
+    {
+      if(std::isnan(data_[k].real())) return true;
+      if(std::isnan(data_[k].imag())) return true;
+    }
+    return false;
+  }
+
+
+  template<class TYPE>
+  bool Vector<TYPE>::ContainsInf() const
+  {
+    for(UInt k = 0, s = size_; k < s; ++k)
+      if(std::isinf(data_[k])) return true;
+
+    return false;
+  }
+
+  template<>
+  bool Vector<Complex>::ContainsInf() const
+  {
+    for(UInt k = 0, s = size_; k < s; ++k)
+    {
+      if(std::isinf(data_[k].real())) return true;
+      if(std::isinf(data_[k].imag())) return true;
+    }
+    return false;
+  }
+
+
   // ********************************
   //   Overload Assignment Operator
   // ********************************

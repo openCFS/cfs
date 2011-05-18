@@ -41,7 +41,7 @@ in the following manner
   <bcsAndLoads>
      <dirichletHom   name="nameBound1"/>
      <dirichletHom   name="nameBound2"/>
-     <dirichletInHom name="nameBound3" value="-1.0"/>
+     <dirichletInhom name="nameBound3" value="-1.0"/>
   </bcsAndLoads>
 \end{xmllisting}
 
@@ -50,7 +50,7 @@ giving the name of the boundary followed by the boundary value. If a
 time varying signal has to be applied, one has additionally to provide
 the name of the time file in the attribute {\xatv{signal.dat} }:
 \begin{xmllisting}
-  <dirichletInHom name="nameBound3" value="10 * sample1D('signal.dat',t,1)"/>
+  <dirichletInhom name="nameBound3" value="10 * sample1D('signal.dat',t,1)"/>
 \end{xmllisting}
 
 \noindent
@@ -64,7 +64,7 @@ work on. For the homogenous BC one has to use
 for the inhomogenous BC the command
 
 \begin{xmllisting}
-  <dirichletInHom   name="nameBound1"  dof="XXX"/>
+  <dirichletInhom   name="nameBound1"  dof="XXX"/>
 \end{xmllisting}
 
 \noindent
@@ -75,7 +75,7 @@ freedom, e.g. in the mechanical PDE
 <bcsAndLoads>
    <dirichletHom   name="leftBound"   dof="x"/>
    <dirichletHom   name="leftBound"   dof="y"/>
-   <dirichletInHom name="rightBound"  dof="y"  value="2.0"/>
+   <dirichletInhom name="rightBound"  dof="y"  value="2.0"/>
    <load           name="centerPoint" dof="x"  value="3.0"/>
 </bcsAndLoads>
 \end{xmllisting}

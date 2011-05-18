@@ -229,6 +229,9 @@ void SnOpt::InfoXMLOutput()
   case 13:
     exitstring = "the problem appears to be infeasible - nonlinear infeasibilities minimized";
     break;
+  case 21:
+    exitstring = "unbounded objective";
+    break;
   case 31:
     exitstring = "resource limit error - iteration limit reached";
     break;

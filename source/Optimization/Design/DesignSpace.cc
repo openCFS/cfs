@@ -6,6 +6,7 @@
 #include "Optimization/Optimizer/BaseOptimizer.hh"
 #include "Optimization/Optimizer/ShapeOptimizer.hh"
 #include "Optimization/LevelSet.hh"
+#include "Optimization/OptimizationMaterial.hh"
 #include "General/exception.hh"
 #include "General/Enum.hh"
 #include "Domain/domain.hh"
@@ -33,10 +34,9 @@ DEFINE_LOG(ersatz, "ersatzMaterialFactor")
 
 
 
-DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, ParamNodeList &pn_design, ParamNodeList &trans_in, ParamNodeList &result, ErsatzMaterial::Method method)
+DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, ErsatzMaterial::Method method)
 {
-  LOG_TRACE(designSpace) << "DesignSpace for regions=" << reg_data << " #designs=" << pn_design.GetSize()
-                         << " #transferFunctions=" << trans_in.GetSize() << " #results=" << result.GetSize();
+  LOG_TRACE(designSpace) << "DesignSpace for regions=" << reg_data;
   all_regions_regular_ = domain->GetGrid()->IsRegionRegular(reg_data);
   
   // for convenience
@@ -62,6 +62,10 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, ParamNodeList &pn_de
   // read the elements
   elements = domain->GetGrid()->GetNumElems(reg_data);
   
+  pamping_ = pn->Has("pamping") ? pn->Get("pamping/value")->As<double>() : 0.0;
+
+  ParamNodeList trans_in = pn->GetList("transferFunction");
+
   // should we adapt the lower bound of the design variable to the penalty exponent of the transfer function? 
   bool adapt_lower(false);
 
@@ -75,6 +79,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, ParamNodeList &pn_de
   }
   
   // number of different designs
+  ParamNodeList pn_design = pn->GetList("design");
   unsigned int nd = 0;
   for(unsigned int d = 0; d < pn_design.GetSize(); d++){
     DesignElement::Type dt = DesignElement::type.Parse(pn_design[d]->Get("name")->As<std::string>());
@@ -230,6 +235,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, ParamNodeList &pn_de
   } // no design elements given
 
   // set the result descriptions which identify the solution types
+  ParamNodeList result = pn->GetList("result");
   resultDescriptions.Reserve(result.GetSize());
   for(unsigned int i = 0; i < result.GetSize(); i++)
     resultDescriptions.Push_back(ResultDescription(result[i]));
@@ -255,13 +261,13 @@ DesignSpace::~DesignSpace(){
   }
 }
 
-DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, ParamNodeList &design, ParamNodeList& transfer, ParamNodeList& result, ErsatzMaterial::Method method){
+DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, PtrParamNode pn, ErsatzMaterial::Method method){
   switch(method){
   case ErsatzMaterial::SHAPE_OPT:
   case ErsatzMaterial::SHAPE_PARAM_MAT:
-    return new ShapeDesign(reg_data, design, transfer, result, method);
+    return new ShapeDesign(reg_data, pn, method);
   default:
-    return new DesignSpace(reg_data, design, transfer, result, method);
+    return new DesignSpace(reg_data, pn, method);
   }
 }
 
@@ -372,11 +378,11 @@ ResultInfo* DesignSpace::GetResultInfo(ResultDescription& rd)
   // I hate it!!! :(
   ri->resultType = (SolutionType) rd.solutionType;
 
-  // in info.xml result output the " (" is replaced by "_("!
+  // no space and brackets to have no problems with info.xml and no problems with the paraview calculator
   ri->resultName = DesignElement::valueSpecifier.ToString(rd.value) + "_"
                    + (rd.detail != DesignElement::NONE ? (DesignElement::detail.ToString(rd.detail) + "_") : "")
-                   + DesignElement::type.ToString(rd.design) + " ("
-                   + DesignElement::access.ToString(rd.access) + ")"
+                   + DesignElement::type.ToString(rd.design) + "_"
+                   + DesignElement::access.ToString(rd.access)
                    + (rd.excitation != "" ? ("_ex_" + rd.excitation) : "");
 
   ri->unit = "";
@@ -475,7 +481,7 @@ double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, Optimizat
   // it is two
   for(unsigned int index = design_index; index < data.GetSize(); index += elements)
   {
-    // note that this loop with loop normaly once or twice (piezo)
+    // note that this loop with loop normally once or twice (piezo)
     DesignElement* de = &data[index];
     // The design of the current element
     DesignElement::Type dt = de->GetType();
@@ -501,6 +507,33 @@ double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, Optimizat
 
   return result;
 }
+
+bool DesignSpace::GetErsatzMaterialPamping(const Elem* elem, Matrix<double>& elemMat)
+{
+  // see also implementation SIMP::AddMassToStiffness() for match!!!
+  static MechMat mm = MechMat(this); // Assumes irregular mesh :(
+
+  // pamping at all -> see Sigmund; Morphology; 2007
+  assert(GetPampingValue() >= 0);
+  // have design?
+  DesignElement* de = Find(elem->elemNum, DesignElement::DENSITY, false);
+  if(de == NULL)
+    return false;
+
+  // we use the physical design variable to match better
+  TransferFunction* tf = GetTransferFunction(de->GetType(), Optimization::MASS);
+  double tv = tf->Transform(de, DesignElement::SMART); // be consistent with SIMP::AddMassToStiffness()
+  // now the original mass matrix
+  const Matrix<double>& mass = mm.Mass(de->elem);
+  LOG_DBG3(designSpace) << "GEMP e=" << elem->elemNum << " mass=" << mass.ToString();
+  elemMat.Resize(mass.GetNumRows(), mass.GetNumCols());
+  elemMat.Assign(mass, tv * (1.0-tv) * GetPampingValue());
+
+  LOG_DBG3(designSpace) << "GEMP e=" << elem->elemNum << "rv=" << tv << " p=" << GetPampingValue() << " -> " << (tv * (1.0-tv) * GetPampingValue());
+  LOG_DBG3(designSpace) << "GEMP e=" << elem->elemNum << " ->" << elemMat.ToString();
+  return true;
+}
+
 
 bool DesignSpace::CollectMaterialParametersForElement(const Elem* elem){
   int base = Find(elem, false);
@@ -927,15 +960,14 @@ void DesignSpace::ToInfo(PtrParamNode in)
   for(unsigned int i = 0; i < design.GetSize(); i++)
     data[i * elements].ToInfo(dv->Get("design", ParamNode::APPEND));
 
-  if(regions.GetSize() > 0){
+  in->Get("pamping")->SetValue(pamping_);
+  if(regions.GetSize() > 0)
+  {
     PtrParamNode rs = in->Get("regions");
     for(unsigned int i = 0; i < regions[0].GetSize(); i++)
-    {
-      PtrParamNode r = rs->Get("region", ParamNode::APPEND);
-      r->Get("name")->SetValue(domain->GetGrid()->GetRegion().ToString(regions[0][i].regionId));
-      r->Get("elements")->SetValue(regions[0][i].elements);
-    }
+      regions[0][i].ToInfo(rs->Get("region", ParamNode::APPEND));
   }
+
 }
 
 

@@ -1023,18 +1023,32 @@ bool Domain::GetErsatzMaterial(const Elem* elem, const BaseForm* form, double& r
     return false;
 
   // we cannot check for the region here, if form is a linear form (e.g.
-  // pressure) but the design variable comes from elemens one dimension higher.
+  // pressure) but the design variable comes from elements one dimension higher.
   int idx = ersatzMaterial->Find(elem, false);
   if (idx == -1)
     return false;
 
-  // The desing space does the magic stuff.
+  // The design space does the magic stuff.
   // In the SIMP case we get density of element power param
   // all identified by the form and in piezo coupling case it
-  // might even be the product of the transfer funcitons of
+  // might even be the product of the transfer functions of
   // density and polarization
   result = ersatzMaterial->GetErsatzMaterialFactor(idx, form);
   return true;
+}
+
+
+bool Domain::GetErsatzMaterialPamping(const Elem* elem, const BaseForm* form, Matrix<double>& elemMat)
+{
+  if(ersatzMaterial == NULL) return false;
+
+  assert(!HasErsatzMaterialTensor()); // shall not be mixed with matrix optimization
+
+  // only for mass-damping! extend if you want to experiment
+  if(form->GetName() != "MassInt")
+    return false;
+
+  return ersatzMaterial->GetErsatzMaterialPamping(elem, elemMat);
 }
 
 BaseMaterial* Domain::GetErsatzBiMaterial(const Elem* elem, const MaterialClass mc)

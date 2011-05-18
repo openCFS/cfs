@@ -128,7 +128,7 @@ namespace CoupledField {
     do {
       iterationCounter++;
 
-#ifdef DEBUG
+#ifndef NDEBUG
       std::cout << std::endl
              << "====================================================== "
              << std::endl

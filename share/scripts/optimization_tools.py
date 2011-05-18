@@ -163,7 +163,6 @@ def apply_elmennr_mapping(org, map):
   assert(x*y*z == len(map))
 
   result = numpy.zeros((x, y, z))
-
   for k in range(z):
     for j in range(y):
       for i in range(x):    
@@ -176,7 +175,7 @@ def apply_elmennr_mapping(org, map):
              found = True
              break
          if not found:
-           raise RuntimeException("could not find elemnr=" + str(val) + " from x=" + str(val) + " y=" + str(y) + " z=" + str(z))
+           raise RuntimeError("could not find elemnr=" + str(val) + " from i=" + str(i) + " j=" + str(j) + " k=" + str(k))
             
   return result
   
@@ -684,7 +683,7 @@ def make2DWindow(divider, strength, lower):
 def extrude(data_2d):
   edge = data_2d.shape[0] 
   if edge <> data_2d.shape[1]:
-    raise RuntimeException("require quadratic input")
+    raise RuntimeError("require quadratic input")
   
   ret = numpy.zeros((edge, edge, edge))
   
