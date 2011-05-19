@@ -433,7 +433,7 @@ namespace CoupledField
                                bool isInverse, bool computeHystInverse ) {
 
     isHystInverse_      = isInverse;
-    computeHystInverse_ = computeHystInverse_;
+    computeHystInverse_ = computeHystInverse;
 
     std::string val = stringParams_[HYST_MODEL];
     if ( val != "preisach" ) {
