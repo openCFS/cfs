@@ -37,7 +37,7 @@ hsize_t H5IO::maxChunkSize_= 100;
                       H5T_STD_I32LE );
 
   DECL_HDF_ATOM_TYPE( Integer,
-		              H5T_NATIVE_INT32,
+		      H5T_NATIVE_INT32,
                       H5T_STD_I32LE );
 
   DECL_HDF_ATOM_TYPE( UInt,
@@ -469,13 +469,13 @@ hsize_t H5IO::maxChunkSize_= 100;
   DECL_STL_VECTOR_CONVERSION( Double );
   DECL_STL_VECTOR_CONVERSION( Float );
 
-#undef DECL_ST_VECTOR_CONVERSION
+#undef DECL_STL_VECTOR_CONVERSION
 
   template<typename TYPE>
   void H5IO::WriteAttribute( H5::H5Object& obj,
                              const std::string& name,
                              const TYPE& data,
-                             const H5::DSetCreatPropList &create_plist ) {
+                             const H5::PropList &create_plist ) {
 
     try {
 
@@ -493,8 +493,16 @@ hsize_t H5IO::maxChunkSize_= 100;
         EXCEPTION( "Could not convert data for attribute '"
                    << name << "' of type " << typeid(TYPE).name() );
       }
-      H5::Attribute attr = obj.createAttribute( name, stdType,
-                                                space, create_plist );
+			
+			// if an attribute already exists, we have to open it, instead of create
+			// so we can now call WriteAttribute multiple times
+      H5::Attribute attr;
+      try{
+        attr = obj.openAttribute( name );
+      }catch(H5:: Exception&){
+        attr = obj.createAttribute( name, stdType,
+            space, create_plist );
+      }
 
       // write attribute
       attr.write( nativeType, conv.GetOutBufferPtr() );
@@ -1138,7 +1146,7 @@ hsize_t H5IO::maxChunkSize_= 100;
   void H5IO::WriteAttribute<TYPE>( H5::H5Object& obj,           \
                                    const std::string& name,     \
                                    const TYPE& data,            \
-                                   const H5::DSetCreatPropList  \
+                                   const H5::PropList           \
                                    &create_plist );             \
     template                                                    \
     void H5IO::Write1DArray<TYPE>(H5::CommonFG &loc,            \
@@ -1372,9 +1380,9 @@ hsize_t H5IO::maxChunkSize_= 100;
      case ResultInfo::SURF_ELEM:
        definedOn = "Elements";
        break;
-     //case ResultInfo::PFEM:
-     //  definedOn = "Nodes";
-     //  break;
+//     case ResultInfo::PFEM:
+//       definedOn = "Nodes";
+//       break;
      case ResultInfo::REGION:
        definedOn = "Regions";
        break;
@@ -1416,9 +1424,9 @@ hsize_t H5IO::maxChunkSize_= 100;
     case 5:
       definedOn = ResultInfo::SURF_ELEM;
       break;
-    //case 6:
-    //  definedOn = ResultInfo::PFEM;
-    //  break;
+//    case 6:
+//      definedOn = ResultInfo::PFEM;
+//      break;
     case 7:
       definedOn = ResultInfo::REGION;
       break;
