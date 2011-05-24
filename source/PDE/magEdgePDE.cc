@@ -193,7 +193,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
         descrIt++;
       }
       
-      // Re-set store-solution and other vector ojects
+      // Re-set store-solution and other vector objects
       sol_->Init();
       solVec_->Resize(numPdeUnknowns_);
       solVec_->Init();
@@ -207,9 +207,9 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
     }
   }
   
-  // *********************************
-  //  Read special boundary conitions
-  // *********************************
+  // **********************************
+  //  Read special boundary conditions
+  // **********************************
 
   void MagEdgePDE::ReadSpecialBCs() {
 
