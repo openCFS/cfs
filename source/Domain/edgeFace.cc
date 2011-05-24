@@ -11,10 +11,10 @@ namespace CoupledField {
   // static variable initialization
   
   char Face::quadBits[4][4] = 
-    { { 0, 7, 0, 6,},
-      { 3, 0, 2, 0,},
-      { 0, 0, 0, 1,},
-      { 4, 0, 5, 0,} };
+    { { -1,  7, -1,  3,},
+      {  6, -1,  2, -1,},
+      { -1,  0, -1,  4,},
+      {  1, -1,  5, -1,} };
   
   char Face::triaBits[3][3] = 
     { { 0, 0, 0, },
@@ -48,12 +48,19 @@ namespace CoupledField {
 
   void Face::Normalize( std::bitset<3>& flags) {
     
+  
+//    
+//    std::cerr << "\n=====================================\n"
+//        << " Face Orientation\n"
+//        << "=====================================\n";
+//    std::cerr << "\tconnect:" << nodes.ToString() << std::endl;
+    
     StdVector<UInt> indices( nodes.GetSize() );
     UInt size = nodes.GetSize();
     
     // initialize indices array
     for( UInt i = 0; i < size; i++ ) {
-      indices[i] = i+1;
+      indices[i] = i;
     }
 
  
@@ -70,7 +77,7 @@ namespace CoupledField {
         j = j - 1;
       }
       nodes[j] = comp;
-      indices[j] = i+1;
+      indices[j] = i;
     }
     // -----------------------
 
@@ -78,12 +85,30 @@ namespace CoupledField {
     
     // fetch orientation flags
     if( size == 4 ) {
-
-      flags = std::bitset<3>( quadBits[indices[0]-1][indices[1]-1]);
-
-      //std::cerr << "flag for  [" << indices[0] << "][" 
-      //          << indices[1] << "] is " 
-      //          <<  (short)quadBits[indices[0]-1][indices[1]-1] << std::endl;
+      flags = std::bitset<3>( quadBits[indices[0]][indices[1]]);
+//      std::cerr << "\tsorted: " << nodes.ToString() << std::endl;
+//      std::cerr << "\tindices: " << indices.ToString() << std::endl;
+//     
+//      
+//      
+//      
+//      
+//      std::cerr << "\tflag: " << flags << " (" << flags.to_ulong() << ")" << std::endl;
+//      std::cerr << "\tflag: [0] = " << flags.test(0)
+//                           << "[1] = " << flags.test(1)
+//                           << "[2] = " << flags.test(2) << std::endl;
+      
+      // print debug information
+      std::string xiString, etaString;
+      if( flags.test(2) == true) {
+        xiString = flags.test(0) ? "I" :"-I";
+        etaString = flags.test(1) ? "II" :"-II";
+      }else {
+        xiString = flags.test(0) ? "II" :"-II";
+        etaString = flags.test(1) ? "I" :"-I";
+      }
+//      std::cerr << "xi =  " << xiString << std::endl;
+//      std::cerr << "eta =  " << etaString << std::endl;
 
       // switch 3rd and 4th node
       UInt val = nodes[3];
@@ -91,7 +116,7 @@ namespace CoupledField {
       nodes[3] = val;
       
     } else if( size == 3 ) {
-      flags = std::bitset<3>( triaBits[indices[0]-1][indices[1]-1]);
+      flags = std::bitset<3>( triaBits[indices[0]][indices[1]]);
     }
     // Check flags for orientation
 

@@ -9,7 +9,7 @@
 namespace CoupledField {
 
 #define USE_FACES 1
-#define USE_INNER 1 
+#define USE_INNER 1
 
 // declare class specific logging stream
 DECLARE_LOG(feHCurlHi)
@@ -350,26 +350,74 @@ void FeHCurlHiHex::CalcLocShFnc( Matrix<Double>& shape, LocPointMapped& lpm,
       for( UInt j = 0; j < 4; ++j)
         sum_lambda += lambda[shape_.faceVertices[i][j]-1];
       
-      AutoDiff<Double,3> xi  =  sigma[shape_.faceVertices[i][1]-1]
-                              - sigma[shape_.faceVertices[i][0]-1];
+#define NETGEN_VERSION
+#ifdef NETGEN_VERSION
+      int qmin = 0;
+      for (UInt p = 1; p < 4; p++)
+        if ( elem->connect[shape_.faceVertices[i][p]-1] <
+             elem->connect[shape_.faceVertices[i][qmin]-1] ) {
+          qmin = p;
+        }
+
+      int q1 = (qmin+3)%4; 
+      int q2 = (qmin+1)%4; 
+
+      if(elem->connect[shape_.faceVertices[i][q2]-1] <
+          elem->connect[shape_.faceVertices[i][q1]-1] )
+        std::swap(q1,q2);  // fmax > f1 > f2
+
+      // horiz = 1 if sigma_{fmax}-sigma_{f1} is horizontal coordinate 
+      // for anisotropic meshes (vertical(esp. z) is the longer one) 
+      double horiz=1.; 
+      if( (qmin & 2) == (q2 & 2)) 
+        horiz = -1.; 
+
+      int fmax = shape_.faceVertices[i][qmin]-1; 
+      int f1 = shape_.faceVertices[i][q1]-1; 
+      int f2 = shape_.faceVertices[i][q2]-1; 
+
+      AutoDiff<Double,3> xi = sigma[fmax]-sigma[f1]; 
+      AutoDiff<Double,3> eta = sigma[fmax]-sigma[f2];
+#endif
+//#define OWN_VERSION
+#ifdef OWN_VERSION
+      AutoDiff<Double,3> xi  =   sigma[shape_.faceVertices[i][1]-1]
+                               - sigma[shape_.faceVertices[i][0]-1];
       AutoDiff<Double,3> eta  =  sigma[shape_.faceVertices[i][3]-1]
                                - sigma[shape_.faceVertices[i][0]-1];
-      
-      
-      // test, if xi and eta get reversed
-      if( elem->faceFlags[i].test(0) == true) {
+      // Test for orientation:
+      // 1) Check, if local surface directions are rotated (90degree or 
+      //    270 degree) by testing the MSB bit of the faceFlags.
+      // 2) Sine we always mutltiply two functions for a surface function, we
+      //    just have to consider one sign, which is the product of the signs of
+      //    both surface directions. This sign is incorporated into the 
+      //    xi-variable.
+      if( elem->faceFlags[i].test(2) == false) {
         std::swap(order1, order2);
         std::swap(xi, eta);
       }
-      xi = (elem->faceFlags[i].test(1) == true) ? xi : -xi;
-      eta = (elem->faceFlags[i].test(2) == true) ? eta : -eta;
+      // Model a XOR B = ((a || b) && !(a && b) 
+//      if ( (elem->faceFlags[i].test(0) || (elem->faceFlags[i].test(1))) && 
+//          !(elem->faceFlags[i].test(0) && (elem->faceFlags[i].test(1))) ) {
+//        xi *= -1.0;
+//      }
+      if ( (elem->faceFlags[i].test(0)) && 
+          !(elem->faceFlags[i].test(0) && (elem->faceFlags[i].test(1))) ) {
+        xi *= -1.0;
+      }
+      if ( (elem->faceFlags[i].test(1)) && 
+          !(elem->faceFlags[i].test(0) && (elem->faceFlags[i].test(1))) ) {
+        eta *= -1.0;
+      }
 
+#endif
+      
       IntLegendrePoly(xiVals, order1+1, xi );
       IntLegendrePoly(etaVals, order2+1, eta );
       
       // a) gradient fields
       if( useGrad_[FACE])
-        Warning("Calculation of face gradient fields not yet impelented");
+        Warning("Calculation of face gradient fields not yet implemented");
       
       // b) curl of gradient fields
       for( UInt k = 0; k < order1; ++k ) {
@@ -394,6 +442,7 @@ void FeHCurlHiHex::CalcLocShFnc( Matrix<Double>& shape, LocPointMapped& lpm,
         }
         pos++;
       }
+      
       for( UInt k = 0; k < order1; ++k ) {
         for( UInt l = 0; l < 3; ++l) {
           shape[l][pos] = 0.5 * xi.DVal(l) * etaVals[k].Val() * sum_lambda.Val();
@@ -522,31 +571,116 @@ void FeHCurlHiHex::CalcLocCurlShFnc( Matrix<Double>& curl, LocPointMapped& lpm,
   // -------------------------
   // 2) Face shape functions
   // -------------------------
+
+  bool print = false;
+ //if ( elem->elemNum == 20 ) print = true;
+
   #ifdef USE_FACES
-  for( UInt i = 0; i < 6; ++i ) {
-    UInt order1 = orderFace_[i][0];
-    UInt order2 = orderFace_[i][1];
+  for( UInt f = 0; f < 6; ++f ) {
+    
+    if(print) {
+      std::cerr << "\n===========================\n"
+                 <<" Face #" << f << " of elem# " << elem->elemNum << std::endl
+                 << "===========================\n";
+    }
+    UInt order1 = orderFace_[f][0];
+    UInt order2 = orderFace_[f][1];
     if (order1 > 0 && order2 > 0 ) {
       // calculate face extension parameter which is the sum
       // of all lambdas of one face
       AutoDiff<Double,3> sum_lambda = 0.0;
       for( UInt j = 0; j < 4; ++j)
-        sum_lambda += lambda[shape_.faceVertices[i][j]-1];
-      AutoDiff<Double,3> xi  =  sigma[shape_.faceVertices[i][1]-1]
-                              - sigma[shape_.faceVertices[i][0]-1];
-      AutoDiff<Double,3> eta  =  sigma[shape_.faceVertices[i][3]-1]
-                               - sigma[shape_.faceVertices[i][0]-1];
+        sum_lambda += lambda[shape_.faceVertices[f][j]-1];
+      
 
-      // test, if xi and eta get reversed
-      if( elem->faceFlags[i].test(0) == true) {
+#ifdef OWN_VERSION
+      AutoDiff<Double,3> xi  =  sigma[shape_.faceVertices[f][1]-1]
+                              - sigma[shape_.faceVertices[f][0]-1];
+      AutoDiff<Double,3> eta  =  sigma[shape_.faceVertices[f][3]-1]
+                               - sigma[shape_.faceVertices[f][0]-1];
+
+//      // test, if xi and eta get reversed
+      if( print ) {
+        std::cerr << "nodes = "  
+            << elem->connect[shape_.faceVertices[f][0]-1] << ", "
+            << elem->connect[shape_.faceVertices[f][1]-1] << ", "
+            << elem->connect[shape_.faceVertices[f][2]-1] << ", "
+            << elem->connect[shape_.faceVertices[f][3]-1] << "\n";
+        std::cerr << "local coords: " << lpm.lp.coord.ToString() << std::endl;
+        std::cerr << "faceFlags are " << elem->faceFlags[f] << std::endl;; 
+        std::cerr << "I = " << xi << std::endl;
+        std::cerr << "II = " << eta << std::endl << std::endl;
+      }
+      
+      // Test for orientation:
+      // 1) Check, if local surface directions are rotated (90degree or 
+      //    270 degree) by testing the MSB bit of the faceFlags.
+      // 2) Sine we always mutltiply two functions for a surface function, we
+      //    just have to consider one sign, which is the product of the signs of
+      //    both surface directions. This sign is incorporated into the 
+      //    xi-variable.
+      if( elem->faceFlags[f].test(2) == false) {
         std::swap(order1, order2);
         std::swap(xi, eta);
       }
-      xi = (elem->faceFlags[i].test(1) == true) ? xi : -xi;
-      eta = (elem->faceFlags[i].test(2) == true) ? eta : -eta;
+      // Model a XOR B = ((a || b) && !(a && b) 
+//      if ( (elem->faceFlags[f].test(0) || (elem->faceFlags[f].test(1))) && 
+//          !(elem->faceFlags[f].test(0) && (elem->faceFlags[f].test(1))) ) {
+//        xi *= -1.0;
+//      }
+      if ( (elem->faceFlags[f].test(0) ) && 
+          !(elem->faceFlags[f].test(0) && (elem->faceFlags[f].test(1))) ) {
+        xi *= -1.0;
+      }
+      if ( (elem->faceFlags[f].test(1)) && 
+          !(elem->faceFlags[f].test(0) && (elem->faceFlags[f].test(1))) ) {
+        eta *= -1.0;
+      }
+      if(print )  {
+        std::cerr << "xi    is " << xi << std::endl;
+        std::cerr << "eta    is " << eta << std::endl;
+      }
+#endif
 
+#define NETGEN_VERSION
+#ifdef NETGEN_VERSION
+      int qmin = 0;
+      for (UInt p = 0; p < 4; p++)
+        if ( elem->connect[shape_.faceVertices[f][p]-1] <
+             elem->connect[shape_.faceVertices[f][qmin]-1] ) {
+          qmin = p;
+        }
+
+      int q1 = (qmin+3)%4; 
+      int q2 = (qmin+1)%4; 
+
+      if(elem->connect[shape_.faceVertices[f][q2]-1] <
+          elem->connect[shape_.faceVertices[f][q1]-1] )
+        std::swap(q1,q2);  // fmin < f1 < f2
+
+      // horiz = 1 if sigma_{fmax}-sigma_{f1} is horizontal coordinate 
+      // for anisotropic meshes (vertical(esp. z) is the longer one) 
+      double horiz=1.; 
+      if( (qmin & 2) == (q2 & 2)) 
+        horiz = -1.; 
+
+      int fmax = shape_.faceVertices[f][qmin]-1; 
+      int f1 = shape_.faceVertices[f][q1]-1; 
+      int f2 = shape_.faceVertices[f][q2]-1; 
+
+      //AutoDiff<Double,3> xi = sigma[fmax]-sigma[f1]; 
+      //AutoDiff<Double,3> eta = sigma[fmax]-sigma[f2];
+      AutoDiff<Double,3> xi = sigma[fmax]-sigma[f1];
+      AutoDiff<Double,3> eta = sigma[fmax]-sigma[f2];
+      if(print )  {
+        std::cerr << "xi_ng is " << xi << std::endl;
+        std::cerr << "eta_ng is " << eta << std::endl;
+      }
+#endif
+
+      
       IntLegendrePoly(xiVals, order1+1, xi );
-      IntLegendrePoly(etaVals, order2+1, eta );
+      IntLegendrePoly(etaVals, order2+1,eta );
 
       // a) gradient fields
       if( useGrad_[FACE])
@@ -555,18 +689,26 @@ void FeHCurlHiHex::CalcLocCurlShFnc( Matrix<Double>& curl, LocPointMapped& lpm,
       // b) curl of gradient fields
       StdVector<AutoDiff<Double, 3> > xiLambdaVals(xiVals.GetSize()), 
           etaLambdaVals(etaVals.GetSize());
+      
       for( UInt j = 0; j < order1; ++j ) {
-        xiLambdaVals[j] = sum_lambda * xiVals[j];
+        xiLambdaVals[j]= sum_lambda * xiVals[j];
       }
       for( UInt j = 0; j < order2; ++j ) {
         etaLambdaVals[j] = sum_lambda * etaVals[j];
       }
 
-      for( UInt k = 0; k < order1; ++k ) {
+//      if( print ) {
+//        std::cerr << "xiLambdaVals = " << xiLambdaVals << std::endl;
+//        std::cerr << "etaLambdaVals = " << etaLambdaVals << std::endl;
+//      }
+      
+
+      for( UInt i = 0; i < order1; ++i ) {
         for( UInt j = 0; j < order2; ++j ) {
-          AutoDiff<Double,3> temp = 2.0 * Cross(etaVals[j], xiLambdaVals[k]);
+          AutoDiff<Double,3> temp1 = Cross(etaLambdaVals[j], xiVals[i]);
+          AutoDiff<Double,3> temp2 = Cross(xiLambdaVals[i], etaVals[j]);
           for( UInt l = 0; l < 3; ++l) {  
-            curl[l][pos] = temp.DVal(l);
+            curl[l][pos] = temp1.DVal(l) - temp2.DVal(l);
           }
           pos++;
         }
@@ -574,14 +716,14 @@ void FeHCurlHiHex::CalcLocCurlShFnc( Matrix<Double>& curl, LocPointMapped& lpm,
 
       // c) remaining functions
       for( UInt i = 0; i < order1; ++i ) {
-        AutoDiff<Double,3> hd = 0.5 * Cross(xiLambdaVals[i],eta);
+        AutoDiff<Double,3> hd = 0.5  * Cross(xiLambdaVals[i],eta);
         for( UInt l = 0; l < 3; ++l) {
           curl[l][pos] = hd.DVal(l);
         }
         pos++;
       }
       for( UInt j = 0; j < order2; ++j ) {
-        AutoDiff<Double,3> hd = 0.5 * Cross(etaLambdaVals[j],xi);
+        AutoDiff<Double,3> hd = 0.5  * Cross(etaLambdaVals[j],xi);
         for( UInt l = 0; l < 3; ++l) {
           curl[l][pos] = hd.DVal(l);
         }
