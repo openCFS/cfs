@@ -573,9 +573,6 @@ namespace CoupledField
     // Add integrators for region loads
     VolForceInt * forceInt;
     std::map<RegionIdType, RegionLoad>::iterator loadIt = regionLoads_.begin();
-    if (regionLoads_.size() != 0 ) {
-      (*loadIt).second.Print(true, pdename_ );
-    }
     for( loadIt = regionLoads_.begin(); loadIt != regionLoads_.end(); loadIt++ ) {
       forceInt = (*loadIt).second.GetIntegrator();
 
@@ -588,7 +585,7 @@ namespace CoupledField
       forceContext->SetResult( results_[1], actSDList );
       assemble_->AddLinearForm( forceContext );
 
-      (*loadIt).second.Print(false, pdename_);
+      (*loadIt).second.ToInfo(infoNode_->Get("regionLoad"));
     }
   }
 

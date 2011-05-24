@@ -45,7 +45,7 @@ namespace CoupledField
 
 
   void AcousticMaterial::SetScalar( Double param, MaterialType matType, 
-				    Global::ComplexPart dataType ) {
+      Global::ComplexPart dataType ) {
 
 
     //check, if allowed
@@ -58,17 +58,17 @@ namespace CoupledField
 
       Complex val;
       if ( dataType == Global::REAL ) {
-	val = Complex ( param, 0.0 );
+        val = Complex ( param, 0.0 );
       }
       else if (dataType == Global::IMAG ) {
-	val = Complex ( 0.0, param );
-	isComplex_.insert( matType );
+        val = Complex ( 0.0, param );
+        isComplex_.insert( matType );
       }
       else {
-	std::string msg = "SetScalar-Double";
-	dataTypeNotAllowed4SetGet ( dataType, msg );
+        std::string msg = "SetScalar-Double";
+        dataTypeNotAllowed4SetGet ( dataType, msg );
       }
-      
+
       scalarParams_[matType] = val;
     }
 

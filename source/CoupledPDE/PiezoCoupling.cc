@@ -8,7 +8,6 @@
 #include "Driver/assemble.hh"
 #include "Materials/baseMaterial.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/WriteInfo.hh"
 
 // integrator (bi-)linear forms
 #include "Forms/mechStressStrain.hh"
@@ -903,9 +902,6 @@ namespace CoupledField {
     RegionIdType actRegionId;
     std::string actRegionName, actNonLinId;
 
-    if( regionNodes.GetSize() > 0 ) {
-      Info->PrintF( couplingName_, "Non-linearity in following region(s)\n" );
-    }
     for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
 
       // get data
@@ -929,9 +925,9 @@ namespace CoupledField {
       // Log to info file
       std::string nonLinString;
       Enum2String( nonLinIdType_[actNonLinId], nonLinString );
-      Info->PrintF( couplingName_, " %s: %s\n", actRegionName.c_str(),
-                    nonLinString.c_str() );
-
+      PtrParamNode in = infoNode_->Get("nonlinear")->Get("region", ParamNode::APPEND);
+      in->Get("region")->SetValue(actRegionName);
+      in->Get("nonlin")->SetValue(nonLinString);
     }
 
 

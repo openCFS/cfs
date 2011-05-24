@@ -1216,9 +1216,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
   void MechPDE::DefineRegionLoadIntegrators(std::map<RegionIdType, RegionLoad>& regionLoads, StdVector<LinearFormContext*>* linForms){
     VolForceInt * forceInt;
     std::map<RegionIdType, RegionLoad>::iterator loadIt = regionLoads.begin();
-    if (regionLoads.size() != 0 ) {
-      (*loadIt).second.Print(true, pdename_ );
-    }
     for( loadIt = regionLoads.begin(); loadIt != regionLoads.end(); loadIt++ ) {
       forceInt = (*loadIt).second.GetIntegrator();
 
@@ -1237,8 +1234,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
       //assemble_->AddRhsSrcIntegrator( forceInt, (*loadIt).first,
       //                                (*loadIt).second.dynamics, nonLin_ );
-      (*loadIt).second.Print(false, pdename_);
-
+      (*loadIt).second.ToInfo(infoNode_->Get("regionLoad"));
     }
     
   }

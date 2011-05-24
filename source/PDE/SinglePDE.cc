@@ -688,8 +688,6 @@ namespace CoupledField {
     for (it = availResults_.begin(); it != availResults_.end(); it++ ) {
        CheckStoreResult(*it);
     }
-    Info->PrintF( pdename_, "\n");
-
   }
 
 
@@ -1949,12 +1947,14 @@ namespace CoupledField {
         if( subdoms_.Find( actRegionId) < 0 )
           continue;
 
-        // print logging information
-        Info->PrintF( pdename_, "Material '%s' for region '%s' (ID = %d) "
-                      "follows\n", material.c_str(), region.c_str(),
-                      actRegionId );
         // Read data
         materials_[actRegionId] = matLoader->LoadMaterial(material, pdematerialclass_);
+
+        // log the just read material. LoadMaterial() so to say initializes the ToInfo()
+        PtrParamNode in = infoNode_->GetByVal("material", "name", material);
+        // additional regions are automatically appended
+        in->Get("regionList")->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(actRegionId));
+        materials_[actRegionId]->ToInfo(in);
 
         // Check for local coordinate system
         if( !refCoordSys.empty() ) {
@@ -2025,22 +2025,14 @@ namespace CoupledField {
         if( subdoms_.Find( actRegionId) < 0 )
           continue;
 
-        // print logging information
-        std::ostringstream out;
-        out << "Composite material '" << composite << "' for "
-            << "region '" << region << "' (ID = " << actRegionId
-            << ") follows:\n";
-        Info->PrintF( pdename_, out.str().c_str());
-        out.str("");
+        PtrParamNode in = infoNode_->GetByVal("composite", "region", domain->GetGrid()->GetRegion().ToString(actRegionId));
 
         // get composite node
         PtrParamNode compNode;
         try {
-          compNode = param->Get("domain")
-            ->GetByVal("composite", "name", composite );
+          compNode = param->Get("domain")->GetByVal("composite", "name", composite);
         } catch( Exception& ex ) {
-          RETHROW_EXCEPTION( ex, "No composite material defined with name '"
-                             << composite << "'" );
+          RETHROW_EXCEPTION(ex, "No composite material defined with name '" << composite << "'");
         }
 
         // get laminaNodes
@@ -2062,17 +2054,17 @@ namespace CoupledField {
           laminaNodes[j]->GetValue( "orientation", lamOrientation);
 
           // Print information
-          out << " --- Lamina " << j+1 << ": thickness = "
-              << lamThickness
-              << " m, orientation = " << lamOrientation << "---\n";
-          Info->PrintF( pdename_, out.str().c_str());
-          out.str("");
+          PtrParamNode lam = in->Get("lamina", ParamNode::APPEND);
+          lam->Get("thickness")->SetValue(lamThickness);
+          lam->Get("orientation")->SetValue(lamOrientation);
 
           myMat.thickness.Push_back( lamThickness );
           myMat.orientation.Push_back( lamOrientation );
-          myMat.materials.Push_back( matLoader->
-                                     LoadMaterial( lamMaterial,
-                                                   pdematerialclass_ ) );
+          myMat.materials.Push_back( matLoader->LoadMaterial( lamMaterial, pdematerialclass_));
+
+          PtrParamNode lm_ = lam->Get("material");
+          lm_->Get("name")->SetValue(lamMaterial);
+          myMat.materials.Last()->ToInfo(lm_);
 
         } // over single laminae
       } catch (Exception& ex ) {
@@ -3879,48 +3871,14 @@ namespace CoupledField {
 
    }
 
-   void SinglePDE::RegionLoad::Print( bool onlyHeader, std::string pdeName ) {
-     std::ostringstream out;
-
-     if (onlyHeader) {
-       Info->PrintF(pdeName, "The following regions have a region load:\n\n");
-       out.clear();
-       out << std::setw(15) << "name" << " | "
-           << std::setw(15) << "coordSysId" << " | "
-           << std::setw(11) << "volume" << " | "
-           << std::setw(6) << "type" << " | "
-           << std::setw(11) << "load" <<std::endl;
-       Info->PrintF(pdeName, out.str().c_str());
-       out.str("");
-       out << std::setw(90) << std::setfill('-') << ""
-           << std::setfill(' ') << std::endl;
-       Info->PrintF(pdeName, out.str().c_str());
-       out.str("");
-     } else {
-
-
-       // write logging information into info file
-       for (UInt k = 0; k < value.GetSize(); k++ ) {
-         out.str("");
-         if ( k == 0) {
-           out << std::setw(15) << name << " | "
-               << std::setw(15) << refCoord << " | "
-               << std::setw(11) << volume << " | "
-               << std::setw(6) << type << "|";
-         } else {
-           out << std::setw(15) << "" << " | "
-               << std::setw(15) << "" << " | "
-               << std::setw(15) << "" << " | "
-               << std::setw(11) << "" << " | "
-               << std::setw(6) << "" << " | ";
-
-         }
-
-         out << std::setw(11) << value[k] << std::endl;
-
-         Info->PrintF(pdeName,out.str().c_str());
-       }
-
+   void SinglePDE::RegionLoad::ToInfo(PtrParamNode in) const
+   {
+     for (UInt k = 0; k < value.GetSize(); k++ )
+     {
+       PtrParamNode in_ = in->GetByVal("region", "name", name);
+       in_->Get("coordSysId")->SetValue(refCoord);
+       in_->Get("volume")->SetValue(volume);
+       in_->Get("type")->SetValue(type);
      }
    }
 
