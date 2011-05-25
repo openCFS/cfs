@@ -142,7 +142,7 @@ namespace CoupledField
     // Miscellaneous
     // =====================================================
 
-    PtrParamNode infoNode_; // set only in Init()
+    PtrParamNode infoNode_; // from constructor()
 
     BaseNodeStoreSol * sol_;    //!< solution
 

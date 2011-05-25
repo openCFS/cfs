@@ -1037,10 +1037,11 @@ bool Domain::GetErsatzMaterial(const Elem* elem, const BaseForm* form, double& r
   return true;
 }
 
-
 bool Domain::GetErsatzMaterialPamping(const Elem* elem, const BaseForm* form, Matrix<double>& elemMat)
 {
   if(ersatzMaterial == NULL) return false;
+
+  if(ersatzMaterial->GetPampingValue() == 0.0) return false;
 
   assert(!HasErsatzMaterialTensor()); // shall not be mixed with matrix optimization
 

@@ -44,6 +44,7 @@ namespace CoupledField {
     isComplex_ = false;
     
     dim_ = domain->GetGrid()->GetDim();
+    infoNode_ = info->Get("PDE")->Get(couplingName_, ParamNode::APPEND);
   }
 
 
@@ -81,7 +82,6 @@ namespace CoupledField {
  
     isComplex_ = BasePDE::IsComplex(analysisType_);
 
-    infoNode_ = info->Get("PDE")->Get(couplingName_, ParamNode::APPEND);
     PtrParamNode in = infoNode_->Get(ParamNode::HEADER); 
     in->Get("sequenceStep")->SetValue(sequenceStep); 
     in->Get("pde1")->SetValue(pde1_->GetName()); 
