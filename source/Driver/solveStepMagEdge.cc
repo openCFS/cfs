@@ -11,6 +11,7 @@
 #include "assemble.hh"
 #include "Forms/linearForm.hh"
 #include "OLAS/algsys/basesystem.hh"
+#include "Utils/myclock.hh"
 
 namespace CoupledField {
 
@@ -44,13 +45,31 @@ namespace CoupledField {
 
     // Check, if we have a two-level solving strategy
     if( strategy_ == STRAT_STANDARD ) {
+      std::ofstream clockFile_;
+      clockFile_.open("time.txt");
+      MyClock clock;
+      clock.Start();
+           
       if (nonLin_) 
         StepStaticNonLin(analysis_id);
       else 
         StepStaticLin(analysis_id);
+      
 
+      Double wall, user;
+      clock.GetTime(wall, user);
+      clock.Reset();
+      clockFile_ << "1 " << wall << "\t" << user << std::endl;
+      clockFile_.close();
+      
     } else if( strategy_ == STRAT_TWO_LEVEL ){
 
+      // create hard cocded timer file
+      std::ofstream clockFile_;
+      clockFile_.open("time.txt");
+      MyClock clock;
+      clock.Start();
+      
       std::cerr << " *********************************\n";
       std::cerr << "        TWO LEVEL APPROACH \n";
       std::cerr << " *********************************\n";
@@ -62,6 +81,8 @@ namespace CoupledField {
       // - The order of the FeSpace has to be hard-coded to 1
 
 
+      
+      
       std::cerr << " *********************************\n";
       std::cerr << "       1) STARTING 1ST STEP\n";
       std::cerr << " *********************************\n";
@@ -71,7 +92,13 @@ namespace CoupledField {
         StepStaticNonLin(analysis_id);
       else 
         StepStaticLin(analysis_id);
-
+      
+      
+      Double wall, user;
+      clock.GetTime(wall, user);
+      clock.Reset();
+      clockFile_ << "1 " << wall << "\t" << user << std::endl;
+      
       std::cerr << " *********************************\n";
       std::cerr << "       2) STARTING 2ND STEP\n";
       std::cerr << " *********************************\n";
@@ -140,6 +167,11 @@ namespace CoupledField {
       else 
         StepStaticLin(analysis_id);
 
+      
+      clock.GetTime(wall, user);
+      clock.Reset();
+      clockFile_ << "2 " << wall << "\t" << user << std::endl;
+      clockFile_.close();
     } else {
       EXCEPTION("Solver strategy '" << SolStrategyEnum.ToString(strategy_)
                 << "' not yet implemented!");
