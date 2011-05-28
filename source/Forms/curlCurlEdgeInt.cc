@@ -19,6 +19,7 @@ namespace CoupledField
 
     isaxi_  = false;
     nrDofs_ = 1;
+    logging_ = true;
 
     isOrthotropic_ = false;
     if ( matData != NULL ) {

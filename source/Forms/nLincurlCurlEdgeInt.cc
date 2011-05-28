@@ -16,7 +16,6 @@ namespace CoupledField
     : CurlCurlEdgeInt( matData, coordUpdate )
   {
     name_ = "nLinCurlCurlEdgeInt";
-
     isSolDependent_ = true;
     nonLinType_ = NEWTON;
 
@@ -42,6 +41,10 @@ namespace CoupledField
       //matVal_ = 1.0 / matVal_;
       ptMaterial->GetScalar( matVal_, MAG_RELUCTIVITY,Global::REAL);
     }
+    
+    // Initialize file streams with elements to observe
+    fluxElems_ =  1043, 3152, 3656, 3396;
+
   }
 
 
@@ -84,6 +87,10 @@ namespace CoupledField
     Double aux1, fac, *ptr1, *ptr2;
     Matrix<Double> curl;
     LocPointMapped lp;
+    
+    Double elemFluxAvg = 0.0,  elemFluxMin = 1e50, elemFluxMax = 0.0;
+    Double elemPotAvg = 0.0, elemPotMin = 1e150, elemPotMax = 0.0;
+    Double elemNuAvg = 0.0, elemNuMin = 1e150, elemNuMax = 0.0;
     for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
       
       lp.Set( intPoints[i], esm );
@@ -92,6 +99,15 @@ namespace CoupledField
       //compute magnetic flux density
       elemFlux = curl * magPot_;
       Double Babs = elemFlux.NormL2();
+      
+      elemFluxAvg += Babs / (Double) intPoints.GetSize();
+      if (Babs < elemFluxMin) elemFluxMin = Babs;
+      if (Babs > elemFluxMax) elemFluxMax = Babs;
+      
+      Double aAbs = magPot_.NormL2(); 
+      elemPotAvg += aAbs / (Double) intPoints.GetSize();
+      if (aAbs < elemPotMin) elemPotMin = aAbs;
+      if (aAbs > elemPotMax) elemPotMax = aAbs;
 
       if ( Babs == 0 ) {
           reluctivity = matVal_;
@@ -114,6 +130,9 @@ namespace CoupledField
           }
         }
       }
+      elemNuAvg += reluctivity / (Double) intPoints.GetSize();
+      if (reluctivity < elemNuMin) elemNuMin = reluctivity;
+      if (reluctivity > elemNuMax) elemNuMax = reluctivity;
       
       if ( nonLinType_ == NEWTON ) {
         if ( Babs == 0.0 ) 
@@ -134,7 +153,25 @@ namespace CoupledField
               elemMat[i][j] += fac * help[i] * help[j];
         }
       }
-    }    
+    }
+
+    // write flux to file, if required
+    if( fluxElems_.Find( ptElem->elemNum) != -1 && 
+        logging_ == true ) {
+      std::string fileName = "elemFlux-" + lexical_cast<std::string>(ptElem->elemNum);
+      std::cerr << "fileName is " << fileName << std::endl;
+      std::ofstream out(fileName.c_str(), std::ios::out | std::ios::app );
+      out << elemFluxAvg << "\t"
+          << elemFluxMin << "\t"
+          << elemFluxMax << "\t"
+          << elemPotAvg << "\t"
+          << elemPotMin << "\t"
+          << elemPotMax << "\t"
+          << elemNuAvg << "\t"
+          << elemNuMin << "\t"
+          << elemNuMax << "\n";
+      out.close();
+    }
   }
 
   void  nLinCurlCurlEdgeInt::SetNonLinMethod(NonLinMethodType atype) {

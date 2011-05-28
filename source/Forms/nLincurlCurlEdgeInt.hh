@@ -5,6 +5,7 @@
 #ifndef FILE_NLINCURLCURLEDGE
 #define FILE_NLINCURLCURLEDGE
 
+#include <fstream>
 #include "curlCurlEdgeInt.hh"
 
 namespace CoupledField {
@@ -26,6 +27,9 @@ public:
   
   //! sets type of nonlinear algorithm
   virtual void SetNonLinMethod(NonLinMethodType atype);
+  
+  //! (De)Activate logging of average flux density
+  void SetLogging(bool doLogging ) { logging_ = doLogging;} 
 
 private:
   Vector<Double> magPot_;    //!< magnetic vector potential at nodes
@@ -35,7 +39,12 @@ private:
   Vector<Double> currReluctivityVec_;  
 
   //! contains the current derivatives oforthotropic reluctivities
-  Vector<Double> currDerivReluctivityVec_;  
+  Vector<Double> currDerivReluctivityVec_;
+  
+  // Temporary section
+  //! Contains element numbers for which we want to log average flux density
+  StdVector<UInt> fluxElems_;
+  
 };
 
 } // end of namespace

@@ -539,7 +539,7 @@ namespace CoupledField {
   : LinearForm( matData )
   {
     name_ = "nLinMagEdge_linFormInt";
-    isSolDependent_ = true;
+    isSolDependent_ = true; // IMPORTANT! 
     curlCurlInt_ = NULL;
     firstTime_ = true;
 
@@ -588,7 +588,13 @@ namespace CoupledField {
     sol_->GetElemSolution( magPot, ent  );
 
     Matrix<Double> elemmat;
+    
+    // Deactivate logging of element flux density, as
+    // this method here is called several times (e.g. during line-search)
+    // and we want to see the convergence just once for each nonlinear step
+    curlCurlInt_->SetLogging(false);
     curlCurlInt_->CalcElementMatrix(elemmat, ent, ent);
+    curlCurlInt_->SetLogging(false);
 
     elemVec = -(elemmat * magPot);
   }

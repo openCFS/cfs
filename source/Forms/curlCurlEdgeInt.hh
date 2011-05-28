@@ -49,6 +49,9 @@ public:
     void ApplyBMat( Vector<Complex>& retVec,  
                     LocPointMapped& lp, BaseFE* ptFE, 
                     const Vector<Complex>& solVec );
+    
+    //! (De)Activate logging of average flux density (only for non-linear case)
+    void SetLogging(bool doLogging ) { logging_ = doLogging;}
 
 protected:
   UInt nrDofs_;
@@ -61,6 +64,9 @@ protected:
 
   //! contains the orthotropic reluctivities
   Vector<Double> reluctivityVec_;
+
+  //! Flag, if logging should be activated
+  bool logging_;
 };
 
 }
