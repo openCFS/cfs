@@ -385,7 +385,6 @@ share/doc/developer/develManual/sources/hdf5_file_format.xml -text
 share/doc/developer/develManual/sources/icem_to_ansys.in.txt -text
 share/doc/developer/develManual/sources/kreuzinger.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/lmboot.sh -text
-share/doc/developer/develManual/sources/mac_devel_setup.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/macports_installed_pckgs.txt svneol=native#text/plain
 share/doc/developer/develManual/sources/mkmesh.mlib.txt -text
 share/doc/developer/develManual/sources/mkmesh.txt -text
@@ -404,6 +403,7 @@ share/doc/developer/develManual/sources/pv_tria_local_global_mapping.py -text
 share/doc/developer/develManual/sources/pv_trial_local_global_mapping.py -text
 share/doc/developer/develManual/sources/pv_xi_eta.py -text
 share/doc/developer/develManual/sources/pygmentize.sh -text
+share/doc/developer/develManual/sources/qs_bootstrap.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/qs_configure_build.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/qs_obtain_sources.sh -text
 share/doc/developer/develManual/todonotes.sty svneol=native#text/plain
@@ -518,6 +518,7 @@ share/scripts/CMakeLists.txt svneol=native#text/plain
 share/scripts/IdentifyCCompiler.c svneol=native#text/plain
 share/scripts/IdentifyCXXCompiler.cpp svneol=native#text/plain
 share/scripts/IdentifyFortranCompiler.F90 -text
+share/scripts/bootstrap_devel_machine.sh svneol=native#text/plain
 share/scripts/build_tee.pl -text
 share/scripts/cfs -text
 share/scripts/cfs-testsuite-extractor.py -text
@@ -539,7 +540,6 @@ share/scripts/hdf5_import_mesh.sh.in svneol=native#text/plain
 share/scripts/identify_compiler.pl svneol=native#text/plain
 share/scripts/log.py -text
 share/scripts/log.tcl svneol=native#text/x-tcl
-share/scripts/macsysinfo.scpt -text
 share/scripts/optimization_tools.py -text
 share/scripts/printElemMatVec.py -text
 share/scripts/printElemMatVec.tcl svneol=native#text/x-tcl

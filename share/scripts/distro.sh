@@ -187,9 +187,9 @@ elif [ "${OS}" = "Linux" ] ; then
 	OSSTR="${OS} ${DIST} ${REV} (${PSEUDONAME} ${KERNEL} ${MACH})"
 
 elif [ ${OS} = "Darwin" ]; then
-        BASEDIR=`dirname $0`
-        MACOSVER=`osascript $BASEDIR/macsysinfo.scpt | cut -d',' -f3 | cut -d':' -f2`
+        MACOSINFO=$(system_profiler SPSoftwareDataType | grep 'System Version')
 	if [ $? -eq 0 ]; then
+	    MACOSVER=$(echo $MACOSINFO | grep 'System Version' | cut -d':' -f2 | cut -d'X' -f2 | cut -d'(' -f1)
 	    OS="Mac OS X"
             DIST="MACOSX"
 	    FULL_REV=$MACOSVER

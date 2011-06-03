@@ -12,129 +12,83 @@ therefore also  describe how to obtain  the pre- and  postprocessors which are
 supported by CFS++.  In the last section we give hints  on what other chapters
 and sections are a good further reading for users with different interests.
 
-\section{List of external packages which need to be installed from distro}
+\section{Setting up a Machine for CFS++ Development}
 \label{sec:list_of_ext_packages}
 
 The list of  required packages depends on the  operating system and especially
-for  Linux based  OSes on  the distribution.   We give  here the  commands for
-installing the required packages from the command line.  The package lists are
-provided for some  of the OSes most  often in use by the  CFS++ developers. If
-you use a different distribution you should be able to figure out the required
-packages quite easily.
+for Linux based OSes on the distribution.  We provide a bootstrap shell script
+for installing the required packages  from the command line.  The script works
+for some of the  OSes most often in use by the CFS++  developers.
 
-\subsection{openSUSE (11.2)}
+The required files are embedded in this PDF as
+\begin{itemize}
+\item {\tt  distro.txt} \attachfile[icon=PushPin,description={Shell script for
+determining       OS      version       and       architecture      of       a
+machine.},mimetype=text/plain]{attachments/distro.txt}
 
-\begin{verbatim} 
-sudo zypper install subversion gcc gcc-c++ gcc-fortran automake autoconf \
-                    cmake perl-base graphviz texlive-latex texlive-tex4ht \
-                    python-pygments doxygen tcl-devel python-devel git-svn \
-                    java-1_6_0-openjdk-devel cmake-gui xorg-x11-libXt-devel \
-                    diffutils patch zip xorg-x11-libXp tk-devel Mesa-devel
-\end{verbatim}
+\item                    {\tt                   bootstrap\_devel\_machine.txt}
+\attachfile[icon=PushPin,description={Shell script for installing the packages
+required                               for                               CFS++
+development.},mimetype=text/plain]{attachments/bootstrap_devel_machine.txt}
+\end{itemize}%
+%
+Please extract the files  as described in Sec. \ref{sec:embedded_listings} and
+put them side by  side into the same directory. The two  shell scripts need to
+be renamed and then executed with super user priviledges. This can be achieved
+with the  following sequence of commands  executed in the  directory where the
+two scripts have been extracted to:
 
-\noindent For openSUSE 11.3 also Gmsh is available:
+\input{pygmentized/qs_bootstrap.tex}
+\attachfile[icon=PushPin,description={Shell script for bootstrapping a development machine.},mimetype=text/plain]{attachments/qs_bootstrap.txt}
 
-\begin{verbatim}
-REPO="http://download.opensuse.org/repositories/home:/tsokar/openSUSE_11.3"
-sudo zypper addrepo $REPO Gmsh
-sudo zypper install gmsh
-\end{verbatim}
+If  you use a  different distribution  you should  be able  to figure  out the
+required  packages  by  examining  {\tt  bootstrap\_devel\_machine.txt}  quite
+easily. If  you want  to implement support  for a  new OS follow  the examples
+given there and copy the script  back to the CFS++ source directory under {\tt
+share/scripts/bootstrap\_devel\_machine.sh}  before  committing  your  changes
+back to the repository. The same is true for {\tt  distro.txt}.
 
-\noindent If  some package  is not available  from the  standard repositories,
+\subsection{Linux}
+
+The  description given in  the section  above applies  to all  supported Linux
+distributions. These include:
+
+\begin{description}
+
+\item[openSUSE] All openSUSE versions from  the 11.x series should work out of
+the box.   If some  package is not  available from the  standard repositories,
 there   is  a   good  chance   to  find   it  at   openSUSE   software  search
 \url{http://software.opensuse.org/search},      openSUSE     build     service
-\url{https://build.opensuse.org}  or one  of the  other  package repositories
-like PackMan (\url{http://packman.links2linux.org}).
+\url{https://build.opensuse.org} or one of the other package repositories like
+PackMan (\url{http://packman.links2linux.org}).
 
 \noindent Checking which package provides an already installed file:
 \begin{verbatim}
 rpm -q --whatprovides /usr/bin/g++
 \end{verbatim}
 
-\subsection{Ubuntu (10.04)}
-
-\begin{verbatim}
-sudo apt-get install subversion gcc g++ gfortran automake autoconf cmake \
-                     perl-base graphviz texlive-latex-base tex4ht \
-                     python-pygments doxygen tcl-dev python-dev git-svn \
-                     cmake-curses-gui cmake-qt-gui gmsh openjdk-6-jdk \
-                     patch diffutils zip libxt-dev libxp6 tk-dev \
-                     libgl1-mesa-dev libglu1-mesa-dev libxmuu-dev
-\end{verbatim} 
-
-\begin{verbatim}
-ln -s /usr/include/python2.6 /usr/include/python
-ln -s /usr/lib/libXext.so.6.4.0 /usr/lib/libXext.so
-ln -s /usr/lib/libXmu.so.6.2.0 /usr/lib/libXmu.so
-\end{verbatim}
+\item[Ubuntu]  Ubuntu versions  from 10.04  LTS  are known  to work.   Earlier
+versions  may also  work. Since  Ubuntu is  derived from  Debian,  also recent
+Debian releases should work.
 
 \noindent Checking which package provides an already installed file:
 \begin{verbatim}
 dpkg -S /usr/bin/g++
 \end{verbatim}
 
-\subsection{Fedora (13)}
-
-\noindent As root user enter the following:
-\begin{verbatim}
-yum install subversion gcc gcc-c++ gcc-gfortran automake autoconf cmake \
-            perl graphviz texlive-latex tetex-tex4ht \
-            python-pygments doxygen tcl-devel python-devel git-svn \
-            cmake-gui java-1.6.0-openjdk-devel tk-devel\
-            patch diffutils zip libXt-devel libXp
-\end{verbatim} 
+\item[Fedora] Fedora support has been tested on release 13.
 
 \noindent Checking which package provides an already installed file:
 \begin{verbatim}
 rpm -q --whatprovides /usr/bin/g++
 \end{verbatim}
 
-\newpage
-\subsection{CentOS (5.5)}
+\item[CentOS] Support has been added for CentOS 5.5.
+\end{description}%
 
-\noindent As root user enter the following:
-\begin{verbatim}
-cd /etc/yum.repos.d
-wget http://www.graphviz.org/graphviz-rhel.repo
+\subsection{Mac OS X}
 
-YC=/etc/yum.conf
-
-echo "[atrpms]" >> $YC
-echo "name=Redhat Enterprise Linux RHEL$releasever - $basearch - ATrpms" >> $YC
-echo "baseurl=http://dl.atrpms.net/el5-$basearch/atrpms/stable/" >> $YC
-echo "gpgkey=http://ATrpms.net/RPM-GPG-KEY.atrpms" >> $YC
-echo "gpgcheck=1" >> $YC
-
-echo "[epel]" >> $YC
-echo "name=EPEL RHEL$releasever - $basearch" >> $YC
-echo "baseurl=http://ftp.ucr.ac.cr/epel/5/$basearch" >> $YC
-
-ARCH=$(uname -m | sed 's/i[0-9]86/i386/')
-BASE=http://apt.sw.be/redhat/el5/en
-RPM=$ARCH/rpmforge/RPMS/rpmforge-release-0.3.6-1.el5.rf.$ARCH.rpm
-rpm -Uhv $BASE/$RPM
-
-yum makecache
-
-cd /opt
-wget http://www.svnkit.com/org.tmatesoft.svn_1.3.5.standalone.zip
-unzip org.tmatesoft.svn_1.3.5.standalone.zip
-
-yum install subversion gcc gcc-c++ gcc-gfortran automake autoconf cmake \
-            perl graphviz tetex-latex tetex-tex4ht \
-            python-pygments doxygen tcl-devel python-devel git-svn \
-            cmake-gui java-1.6.0-openjdk-devel tk-devel\
-            patch diffutils zip libXt-devel libXp mesa-libGLU-devel libXmu-devel
-            
-ln -s /usr/lib64/libXext.so.6.4.0 /usr/lib64/libXext.so
-
-echo "export JAVA_HOME=/usr" >> $HOME/.bashrc
-echo "export PATH=/opt/svnkit-1.3.5.7406:$PATH" >> $HOME/.bashrc
-\end{verbatim} 
-
-
-\subsection{Mac OS X (10.5)}
-
+The following list includes a number of required packages on Mac OS X. 
 \begin{itemize}
 \item XCode - \url{http://developer.apple.com/technologies/tools/xcode.html}
 \item MacPorts - \url{http://www.macports.org}
@@ -148,11 +102,10 @@ visit \url{http://hpc.sourceforge.net/}.
 \item Building a cross compiler for Mac OS X on Linux: \url{http://devs.openttd.org/~truebrain/compile-farm/apple-darwin9.txt}
 \end{itemize} 
 
-Here  is a shell  script \attachfile[icon=PushPin,description={Shell  script for
-setting         up        a         Mac        OS         X        development
-machine.},mimetype=text/plain]{attachments/mac_devel_setup.txt} , which guides
-you through the setup process of a Mac OS X development machine. It was tested
-on Snow Leopard.
+The  steps described  in Sec.   \ref{sec:list_of_ext_packages} also  guide the
+user through  the setup  process of a  Mac OS  X development machine.   It was
+tested on Snow  Leopard (10.6) but should also work on  Leopard (10.5) and the
+upcoming Lion (10.7) release.
 
 \subsection{Windows (XP, Vista, 7)}
 

@@ -44,18 +44,21 @@ function build {
     cp @CMAKE_CURRENT_SOURCE_DIR@/../auxilliaries/Pics/cfs-logo.pdf @CMAKE_CURRENT_SOURCE_DIR@/develManual/pics
     cp @CMAKE_CURRENT_SOURCE_DIR@/../auxilliaries/Pics/lse_logo.pdf @CMAKE_CURRENT_SOURCE_DIR@/develManual/pics
 
+    cp @CMAKE_CURRENT_SOURCE_DIR@/../../scripts/distro.sh @CMAKE_CURRENT_SOURCE_DIR@/develManual/sources/distro.sh
+    cp @CMAKE_CURRENT_SOURCE_DIR@/../../scripts/bootstrap_devel_machine.sh @CMAKE_CURRENT_SOURCE_DIR@/develManual/sources/bootstrap_devel_machine.sh
+
     cd @CMAKE_CURRENT_SOURCE_DIR@/develManual
     DOCUMENT=develManual
 
     # Apply syntax coloring to files in sources directory
     sources/pygmentize.sh $PWD/sources $PWD
 
-    @PDFLATEX_COMPILER@ $DOCUMENT
-    @BIBTEX_COMPILER@ $DOCUMENT
-    @PDFLATEX_COMPILER@ $DOCUMENT
-    @PDFLATEX_COMPILER@ $DOCUMENT
-    @PDFLATEX_COMPILER@ $DOCUMENT
-    thumbpdf $DOCUMENT
+    @PDFLATEX_COMPILER@ $DOCUMENT && \
+    @BIBTEX_COMPILER@ $DOCUMENT && \
+    @PDFLATEX_COMPILER@ $DOCUMENT && \
+    @PDFLATEX_COMPILER@ $DOCUMENT && \
+    @PDFLATEX_COMPILER@ $DOCUMENT && \
+    thumbpdf $DOCUMENT && \
     @PDFLATEX_COMPILER@ $DOCUMENT
     RETCODE_DEVMAN=$?
 
