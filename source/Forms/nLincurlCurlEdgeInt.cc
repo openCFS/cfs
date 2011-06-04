@@ -183,8 +183,8 @@ namespace CoupledField
       }
     }
 
-#ifdef DEBUG 
-    (*debug) << "nLinCurCurlEdge Matrix:  "  << std::endl
+#ifndef NDEBUG 
+    (*OutInfo::debug) << "nLinCurCurlEdge Matrix:  "  << std::endl
              << elemMat << std::endl << std::endl;
 #endif
   
