@@ -37,8 +37,8 @@ function SetupOpenSuse {
         java-1_6_0-openjdk-devel cmake-gui xorg-x11-libXt-devel \
         diffutils patch zip xorg-x11-libXp tk-devel Mesa-devel || ExitFail
 
-    $MAJOR=$(echo $REV | cut -d'.' -f1)
-    $MINOR=$(echo $REV | cut -d'.' -f2)
+    MAJOR=$(echo $REV | cut -d'.' -f1)
+    MINOR=$(echo $REV | cut -d'.' -f2)
 
     if [ "$MAJOR" = "11" ] && [ $MINOR -ge 3 ]; then
 	REPO="http://download.opensuse.org/repositories/home:/tsokar/openSUSE_$REV"
