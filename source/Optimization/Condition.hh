@@ -88,7 +88,7 @@ namespace CoupledField
        /** Gives the sparsity pattern of the jacobian. It gives the sorted, 0-based indices which have
         * values. For the dens case this is 0, 1, ... m.
         * This works only after ConditionContainer::PostProc() is called as otherwise the design is not known yet.
-        * Is overwritten for the slope constraint which acutally has spare patterns. */
+        * Is overwritten for the slope constraint which actually has spare patterns. */
        virtual StdVector<unsigned int>& GetSparsityPattern();
 
        /** creates an xml attribute name compatible string representation for coords */

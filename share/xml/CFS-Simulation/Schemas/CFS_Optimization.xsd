@@ -502,6 +502,38 @@
               </xsd:complexType>
             </xsd:element>
 
+            <!-- KNITRO has anexcellent documentation! -->
+            <xsd:element name="knitro" minOccurs="0">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <!-- We can have many option childs. Each with three attributes -->
+                  <xsd:element name="option" minOccurs="0" maxOccurs="10">
+                    <xsd:complexType>
+                      <!-- the type attribute is from a restriction -->
+                      <xsd:attribute name="type" use="required">
+                        <xsd:simpleType>  
+                          <xsd:restriction base="xsd:token">
+                            <xsd:enumeration value="integer"/>
+                            <xsd:enumeration value="real"/>
+                          </xsd:restriction>
+                        </xsd:simpleType>
+                      </xsd:attribute>
+                      
+                      <xsd:attribute name="name" use="required" >                        
+                        <xsd:simpleType>
+                          <!-- add more names from the KNITRO documentation here as default, the token takes the rest -->
+                          <xsd:union memberTypes="scpip_option_values xsd:token"></xsd:union>
+                        </xsd:simpleType>
+                      </xsd:attribute>
+                      
+                      <!-- the value attribute is always string, nontheless the type -->
+                      <xsd:attribute name="value" use="required"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:sequence>
+                <xsd:attribute name="fromWarmstart" type="xsd:boolean" default="true"/>
+              </xsd:complexType>
+            </xsd:element>
             
 
             <!-- the parameters of the shape optimizer can be set
@@ -648,6 +680,7 @@
                 <xsd:enumeration value="ipopt"/>
                 <xsd:enumeration value="scpip"/>
                 <xsd:enumeration value="snopt"/>
+                <xsd:enumeration value="knitro"/>
                 <xsd:enumeration value="evaluateInitialDesign"/>
                 <xsd:enumeration value="shapeOpt"/>
                 <xsd:enumeration value="gradientCheck"/>
@@ -703,15 +736,23 @@
                                   <xsd:attribute name="type" use="optional" default="standard">
                                     <xsd:simpleType>
                                       <xsd:restriction base="xsd:token">
+                                        <!-- Standard linear density filter -->
                                         <xsd:enumeration value="standard"/>
+                                        <!-- Heaviside filter (Guest) with solid feature size. Continuation by beta -->
                                         <xsd:enumeration value="heaviside"/>
+                                        <!-- Modified Heaviside filter (Sigmund) with void feature size. Continuation by beta -->
                                         <xsd:enumeration value="mod_heaviside"/>
+                                        <!-- Black and white filter (Xu) w/o real feature size. Continuation by beta. Switch at eta -->
+                                        <xsd:enumeration value="tanh"/>
                                       </xsd:restriction>
                                     </xsd:simpleType>
                                   </xsd:attribute>
                                   
-                                  <!-- the heaviside filters require beta -->
+                                  <!-- Continuation for Heaviside filter and steepness of tanh -->
                                   <xsd:attribute name="beta" type="xsd:float" use="optional"/>
+                                  <!-- Switching position for tanh -->
+                                  <xsd:attribute name="eta" type="xsd:float" use="optional"/>
+                                  
                                 </xsd:complexType>
                               </xsd:element>
                             </xsd:sequence>
@@ -1273,6 +1314,20 @@
       <xsd:enumeration value="relaxed"/>
     </xsd:restriction>
   </xsd:simpleType>
+
+  <xsd:simpleType name="knitro_option_names">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="algorithm"/>
+      <xsd:enumeration value="feastol"/>
+      <xsd:enumeration value="feastol_abs"/>
+      <xsd:enumeration value="infeastol"/>
+      <xsd:enumeration value="outlev"/>
+      <xsd:enumeration value="outmode"/>
+      <xsd:enumeration value="scale"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
 
   <xsd:simpleType name="result_detail">
     <xsd:restriction base="xsd:token">

@@ -1,6 +1,7 @@
 #include <def_use_ipopt.hh>
 #include <def_use_scpip.hh>
 #include <def_use_snopt.hh>
+#include <def_use_knitro.hh>
 #include <map>
 
 #include "Optimization/Optimization.hh"
@@ -44,6 +45,9 @@
 #endif
 #ifdef USE_SNOPT
   #include "Optimization/Optimizer/SnOpt.hh"
+#endif
+#ifdef USE_KNITRO
+  #include "Optimization/Optimizer/KNITRO.hh"
 #endif
 
 using namespace CoupledField;
@@ -187,6 +191,14 @@ void Optimization::PostInitSecond()
          #endif
       break;
 
+    case KNITRO_SOLVER:
+         #ifdef USE_KNITRO
+           baseOptimizer_ = new KNITRO(this, opt);
+         #else
+           throw Exception("CFS++ was compiled w/o KNITRO");
+         #endif
+      break;
+
     case OPTIMALITY_CONDITION:
          baseOptimizer_ = new OptimalityCondition(this, opt);
          break;
@@ -308,6 +320,7 @@ void Optimization::SetEnums()
   optimizer.Add(IPOPT_SOLVER, "ipopt");
   optimizer.Add(SCPIP_SOLVER, "scpip");
   optimizer.Add(SNOPT_SOLVER, "snopt");
+  optimizer.Add(KNITRO_SOLVER, "knitro");
   optimizer.Add(SHAPE_SOLVER, "shapeOpt");
   optimizer.Add(EVALUATE_INITIAL_DESIGN, "evaluateInitialDesign");
   optimizer.Add(GRADIENT_CHECK, "gradientCheck");
@@ -394,22 +407,20 @@ bool Optimization::DoStopOptimization()
   unsigned int hs = objectives.GetHistorySize();
   if(hs <= stop.queue) return false;
 
-  for(unsigned int i = hs-1; i >= (hs - stop.queue); i--)
+  if(stop.GetType() == ObjectiveContainer::StoppingRule::REL_COST_CHANGE)
   {
-    switch(stop.GetType())
+    for(unsigned int i = hs-1; i >= (hs - stop.queue); i--)
     {
-      case ObjectiveContainer::StoppingRule::REL_COST_CHANGE:
-      {
-        double delta = objectives.GetHistoryValue(true, i) - objectives.GetHistoryValue(true, i-1);
-        double rel = abs(delta / objectives.GetHistoryValue(true, i));
-        if(rel > stop.value) return false;
-        break;
-      }
-      case ObjectiveContainer::StoppingRule::DESIGN_CHANGE:
-        if(objectives.design_change[i] > stop.value)
-          return false;
-        break;
+      double delta = objectives.GetHistoryValue(true, i) - objectives.GetHistoryValue(true, i-1);
+      double rel = abs(delta / objectives.GetHistoryValue(true, i));
+      if(rel > stop.value) return false;
     }
+  }
+  else // ObjectiveContainer::StoppingRule::DESIGN_CHANGE
+  {
+    for(unsigned int n = objectives.design_change.GetSize() - 1, i = n; i >= max((unsigned int) 0, n - stop.queue); i--)
+      if(objectives.design_change[i] > stop.value)
+        return false;
   }
 
   // the relative values for the whole queue are smaller than the requirement -> we are done! :)
@@ -727,7 +738,7 @@ PtrParamNode Optimization::CommitIteration(bool keep_iteration_number)
 
   // IPOPT does own logging -> otherwise show the user we are alive
   std::string f = GetIterationFrequency();
-  if(optimizer_ != IPOPT_SOLVER && optimizer_ != SNOPT_SOLVER)
+  if(optimizer_ != IPOPT_SOLVER && optimizer_ != SNOPT_SOLVER && optimizer_ != KNITRO_SOLVER)
   {
     cout << "iteration " << (currentIteration);
     if(f != "") cout << " f = " << f << "Hz";

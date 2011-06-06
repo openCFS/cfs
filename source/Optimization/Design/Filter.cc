@@ -13,6 +13,7 @@ Filter::Filter()
   density_       = STANDARD;
   beta_          = -1.0;
   heaviside_corr = -1.0;
+  eta            = -1.0;
 }
 
 

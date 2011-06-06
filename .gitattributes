@@ -22,6 +22,7 @@ cmake_modules/FindHDFView.cmake -text
 cmake_modules/FindILUPACK.cmake -text
 cmake_modules/FindIPOPT.cmake -text
 cmake_modules/FindIntelMKL.cmake -text
+cmake_modules/FindKNITRO.cmake -text
 cmake_modules/FindLAPACK.cmake -text
 cmake_modules/FindMetis.cmake -text
 cmake_modules/FindMpCCI.cmake -text
@@ -93,6 +94,7 @@ include/def_use_hdf5.hh.in -text
 include/def_use_ilupack.hh.in -text
 include/def_use_interpolation.hh.in -text
 include/def_use_ipopt.hh.in -text
+include/def_use_knitro.hh.in -text
 include/def_use_lapack.hh.in -text
 include/def_use_mesh.hh.in -text
 include/def_use_metis.hh.in -text
@@ -1381,6 +1383,8 @@ source/Optimization/Optimizer/GradientCheck.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/Optimizer/IPOPT.cc -text
 source/Optimization/Optimizer/IPOPT.hh -text
 source/Optimization/Optimizer/IPOPTHolder.hh svneol=native#text/x-c%2B%2Bhdr
+source/Optimization/Optimizer/KNITRO.cc -text
+source/Optimization/Optimizer/KNITRO.hh -text
 source/Optimization/Optimizer/OptimalityCondition.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/Optimizer/OptimalityCondition.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/Optimizer/SCPIP.cc svneol=native#text/x-c%2B%2Bsrc

@@ -37,7 +37,7 @@ public:
 
 private:
   /** Return the infinty value. According to snopt-manual this has to be at least 1e20 */
-  virtual double GetInfBound() 
+  virtual double GetInfBound() const
   {
     return 1e20;
   }

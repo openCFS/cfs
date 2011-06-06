@@ -81,7 +81,7 @@ namespace CoupledField
     void GetBounds(int n, double* x_l, double* x_u, int m, double* g_l, double* g_u);
     
     /** Return the infinty value (here for ipopt) */
-    virtual double GetInfBound() 
+    virtual double GetInfBound() const
     {
       return 1e19;
     }
