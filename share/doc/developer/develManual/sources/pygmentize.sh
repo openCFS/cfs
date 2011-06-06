@@ -59,7 +59,6 @@ Pygmentize gmsh_wing_points.cpp gmsh_wing_points.tex
 Pygmentize kreuzinger.sh kreuzinger.tex
 Pygmentize platform_defaults_mac.cmake platform_defaults_mac.tex
 Pygmentize macports_installed_pckgs.txt mac_ports_installed_pckgs.tex
-Pygmentize mac_devel_setup.sh mac_devel_setup.tex
 Pygmentize nacs_win.txt nacs_win.tex
 Pygmentize nacs_win_build_howto.txt nacs_win_build_howto.tex
 Pygmentize ansys_transitional_pyra.txt ansys_transitional_pyra.tex
