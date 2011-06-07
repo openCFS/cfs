@@ -38,8 +38,18 @@ function SetupOpenSuse {
     MINOR=$(echo $REV | cut -d'.' -f2)
 
     if [ "$MAJOR" = "11" ] && [ $MINOR -ge 3 ]; then
-	REPO="http://download.opensuse.org/repositories/home:/tsokar/openSUSE_$REV"
-	zypper addrepo $REPO Gmsh || ExitFail
+	REPO="http://download.opensuse.org/repositories/home:/tsokar/openSUSE_$REV \
+              http://download.opensuse.org/repositories/home:/scorot/openSUSE_$REV"
+        for repo in $REPO
+        do
+          zypper addrepo --check $repo Gmsh
+          if [[ $? -eq 0 ]]; then
+            break;
+          fi
+        done
+        if [[ $? -ne 0 ]]; then
+          ExitFail
+        fi
 	zypper install gmsh || ExitFail
     fi
 }
