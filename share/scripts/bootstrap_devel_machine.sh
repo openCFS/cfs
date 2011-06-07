@@ -1,6 +1,3 @@
-#/bin/sh
-
-. distro.sh -h
 
 ARCH=$(echo $ARCH | sed 'y/'$LOWER'/'$UPPER'/')
 DIST=$(echo $DIST | sed 'y/'$LOWER'/'$UPPER'/')

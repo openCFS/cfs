@@ -66,6 +66,4 @@ Pygmentize mpcci_reactivate_lse24_lic.txt mpcci_reactivate_lse24_lic.tex
 Pygmentize org.eclipse.ui.editors.prefs org.eclipse.ui.editors.prefs.tex
 Pygmentize org.eclipse.core.resources.prefs org.eclipse.core.resources.prefs.tex
 Pygmentize emacs_settings.sh emacs_settings.tex
-Pygmentize distro.sh distro.tex
-Pygmentize bootstrap_devel_machine.sh bootstrap_devel_machine.tex
 Pygmentize qs_bootstrap.sh qs_bootstrap.tex
