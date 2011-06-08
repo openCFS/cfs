@@ -80,6 +80,8 @@ type_=1001
 /EOF
 WELEMS
 /NOPR
+~tcl,'set elemname [string trim [ans_getvalue PARM,arg1,VALUE]]'
+~tcl,'if { [regexp {[0-9]} $elemname] != 0 } {ans_senderror 3 "WELEMS: Argument arg1($elemname) starts with a number."}
 *if,fuowel_,eq,0,then
   *cfopen,jname_,elements
   fuowel_=1
@@ -95,6 +97,8 @@ ewrite,jname_,elements,,1,long
 /EOF
 WREGELEM
 /NOPR
+~tcl,'set elemname [string trim [ans_getvalue PARM,arg1,VALUE]]'
+~tcl,'if { [regexp {[0-9]} $elemname] != 0 } {ans_senderror 3 "WREGELEM: Argument arg1($elemname) starts with a number."}
 *if,fuowel_,eq,0,then
   *cfopen,jname_,regelem
   fuowel_=1
@@ -115,6 +119,8 @@ nwrite,jname_,nodes
 /EOF
 WNODBC
 /NOPR
+~tcl,'set nodename [string trim [ans_getvalue PARM,arg1,VALUE]]'
+~tcl,'if { [regexp {[0-9]} $nodename] != 0 } {ans_senderror 3 "WNODBC: Argument arg1($nodename) starts with a number."}
 *if,fuownbc_,eq,0,then
   *cfopen,jname_,nodebc
   fuownbc_=1
@@ -130,6 +136,8 @@ nwrite,jname_,nodebc,,1
 /EOF
 WSAVNOD
 /NOPR
+~tcl,'set nodename [string trim [ans_getvalue PARM,arg1,VALUE]]'
+~tcl,'if { [regexp {[0-9]} $nodename] != 0 } {ans_senderror 3 "WSAVNOD: Argument arg1($nodename) starts with a number."}
 *if,fuowsn_,eq,0,then
   *cfopen,jname_,savenode
   fuowsn_=1
@@ -145,6 +153,8 @@ nwrite,jname_,savenode,,1
 /EOF
 WSAVELEM
 /NOPR
+~tcl,'set elemname [string trim [ans_getvalue PARM,arg1,VALUE]]'
+~tcl,'if { [regexp {[0-9]} $elemname] != 0 } {ans_senderror 3 "WSAVELEM: Argument arg1($elemname) starts with a number."}
 *if,fuowse_,eq,0,then
   *cfopen,jname_,saveelem
   fuowse_=1
@@ -171,26 +181,36 @@ MKMESH
 MKHDF5
 /NOPR
 *if,strsub(arg1,1,strleng(arg1)),eq,'degen',then
-  degensw_='--degen 1'
+  degensw_='1'
 *else
-  degensw_='--degen 0'
+  degensw_='0'
 *endif
 *if,strsub(arg2,1,strleng(arg2)),eq,'tolerant',then
-  strictsw_='--strict 0'
+  strictsw_='0'
 *else
-  strictsw_='--strict 1'
+  strictsw_='1'
 *endif
 *if,strsub(arg3,1,strleng(arg3)),eq,'nodeltemp',then
-  deltempsw_='--deltemp 0'
+  deltempsw_='0'
 *else
-  deltempsw_='--deltemp 1'
+  deltempsw_='1'
 *endif
 *if,strsub(arg3,1,strleng(arg3)),eq,'verbose',then
-  verbosesw_='--verbose 1'
+  verbosesw_='1'
 *else
-  verbosesw_='--verbose 0'
+  verbosesw_='0'
 *endif
-typesw_='--type ANSYS'
-/syp,cplreader_nightly_gcc,typesw_,'--name',jname_,degensw_,strictsw_,verbosesw_,deltempsw_,'--justmesh 1'
+typesw_='ANSYS'
+~tcl,'set cplreader_exe "cplreader_nightly_gcc"'
+~tcl,'set jname [string trim [ans_getvalue PARM,jname_,VALUE]]'
+~tcl,'set typesw [string trim [ans_getvalue PARM,typesw_,VALUE]]'
+~tcl,'set degensw [string trim [ans_getvalue PARM,degensw_,VALUE]]'
+~tcl,'set strictsw [string trim [ans_getvalue PARM,strictsw_,VALUE]]'
+~tcl,'set verbosesw [string trim [ans_getvalue PARM,verbosesw_,VALUE]]'
+~tcl,'set deltempsw [string trim [ans_getvalue PARM,deltempsw_,VALUE]]'
+~tcl,'set status [catch {exec $cplreader_exe --type $typesw --name $jname --degen $degensw --strict $strictsw --verbose $verbosesw --deltemp $deltempsw --segfault 0 --justmesh 1 2> ${jname}_cplreader.out} results]'
+!~tcl,'puts ###$status###'
+~tcl,'puts $results'
+~tcl,'if {$status != 0} {ans_senderror 3 "MKHDF5: Please check the contents of ${jname}_cplreader.out"; file delete ${jname}.h5; } else {file delete ${jname}_cplreader.out;}'
 /GOPR
 /EOF
