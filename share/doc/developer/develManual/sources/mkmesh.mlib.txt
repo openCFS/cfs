@@ -81,7 +81,7 @@ type_=1001
 WELEMS
 /NOPR
 ~tcl,'set elemname [string trim [ans_getvalue PARM,arg1,VALUE]]'
-~tcl,'if { [regexp {[0-9]} $elemname] != 0 } {ans_senderror 3 "WELEMS: Argument arg1($elemname) starts with a number."}
+~tcl,'if { [regexp {^[0-9]} $elemname] != 0 } {ans_senderror 3 "WELEMS: Argument arg1($elemname) starts with a number."}
 *if,fuowel_,eq,0,then
   *cfopen,jname_,elements
   fuowel_=1
@@ -98,7 +98,7 @@ ewrite,jname_,elements,,1,long
 WREGELEM
 /NOPR
 ~tcl,'set elemname [string trim [ans_getvalue PARM,arg1,VALUE]]'
-~tcl,'if { [regexp {[0-9]} $elemname] != 0 } {ans_senderror 3 "WREGELEM: Argument arg1($elemname) starts with a number."}
+~tcl,'if { [regexp {^[0-9]} $elemname] != 0 } {ans_senderror 3 "WREGELEM: Argument arg1($elemname) starts with a number."}
 *if,fuowel_,eq,0,then
   *cfopen,jname_,regelem
   fuowel_=1
@@ -120,7 +120,7 @@ nwrite,jname_,nodes
 WNODBC
 /NOPR
 ~tcl,'set nodename [string trim [ans_getvalue PARM,arg1,VALUE]]'
-~tcl,'if { [regexp {[0-9]} $nodename] != 0 } {ans_senderror 3 "WNODBC: Argument arg1($nodename) starts with a number."}
+~tcl,'if { [regexp {^[0-9]} $nodename] != 0 } {ans_senderror 3 "WNODBC: Argument arg1($nodename) starts with a number."}
 *if,fuownbc_,eq,0,then
   *cfopen,jname_,nodebc
   fuownbc_=1
@@ -137,7 +137,7 @@ nwrite,jname_,nodebc,,1
 WSAVNOD
 /NOPR
 ~tcl,'set nodename [string trim [ans_getvalue PARM,arg1,VALUE]]'
-~tcl,'if { [regexp {[0-9]} $nodename] != 0 } {ans_senderror 3 "WSAVNOD: Argument arg1($nodename) starts with a number."}
+~tcl,'if { [regexp {^[0-9]} $nodename] != 0 } {ans_senderror 3 "WSAVNOD: Argument arg1($nodename) starts with a number."}
 *if,fuowsn_,eq,0,then
   *cfopen,jname_,savenode
   fuowsn_=1
@@ -154,7 +154,7 @@ nwrite,jname_,savenode,,1
 WSAVELEM
 /NOPR
 ~tcl,'set elemname [string trim [ans_getvalue PARM,arg1,VALUE]]'
-~tcl,'if { [regexp {[0-9]} $elemname] != 0 } {ans_senderror 3 "WSAVELEM: Argument arg1($elemname) starts with a number."}
+~tcl,'if { [regexp {^[0-9]} $elemname] != 0 } {ans_senderror 3 "WSAVELEM: Argument arg1($elemname) starts with a number."}
 *if,fuowse_,eq,0,then
   *cfopen,jname_,saveelem
   fuowse_=1
