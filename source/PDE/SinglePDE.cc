@@ -186,6 +186,15 @@ namespace CoupledField {
       regionNodes[i]->GetValue("complexMaterial",  complexMat, ParamNode::PASS );
       
       RegionIdType actRegionId = ptgrid_->GetRegion().Parse(regionNodes[i]->Get("name")->As<std::string>());
+      
+      // Check, if region was already defined an issue a warning otherwise
+      if( std::find(subdoms_.Begin(), subdoms_.End(), actRegionId ) 
+          != subdoms_.End() )  {
+        WARN( "The region '" << regionNodes[i]->Get("name")->As<std::string>()
+              << "' was already defined for PDE '" << pdename_ 
+              << "'. Please remove duplicate entries." );
+      }
+          
       subdoms_.Push_back( actRegionId );
       complexMatData_[actRegionId] = complexMat;
     }

@@ -101,14 +101,21 @@ namespace CoupledField {
           RegionIdType regionId = ptGrid_->GetRegion().Parse( regionName );
 
           in->Get("region", ParamNode::APPEND)->Get("name")->SetValue(regionName);
-          
-          subdoms_.Push_back( regionId );
-          bool complexMat = false;
-          regionList[i]->GetValue("complexMaterial",  complexMat, ParamNode::PASS );
-          complexMatData_[regionId] = complexMat;
-          entityLists_.Push_back( ptGrid_->
-                                  GetEntityList( EntityList::ELEM_LIST, 
-                                                 regionName, EntityList::REGION ) );
+          // Check, if region was already defined an issue a warning otherwise
+          if( std::find(subdoms_.Begin(), subdoms_.End(), regionId ) 
+          != subdoms_.End() )  {
+            WARN( "The region '" << regionName
+                  << "' was already defined for coupling '" << couplingName_ 
+                  << "'. Please remove duplicate entries." );
+          } else {
+            subdoms_.Push_back( regionId );
+            bool complexMat = false;
+            regionList[i]->GetValue("complexMaterial",  complexMat, ParamNode::PASS );
+            complexMatData_[regionId] = complexMat;
+            entityLists_.Push_back( ptGrid_->
+                                    GetEntityList( EntityList::ELEM_LIST, 
+                                                   regionName, EntityList::REGION ) );
+          }
                                                           
         }
       }
