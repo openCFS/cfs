@@ -406,6 +406,11 @@ namespace CoupledField
         }    
         sectionName = line.substr(1, line.length()-2);
         boost::trim( sectionName );
+	if(sectionName == "-11111") {
+           EXCEPTION("Empty section header found in file '" << fileName \
+                     << "' on line " << std::distance(lines_.begin(), lineIt_) \
+                     << ".\nHave you forgotten single quotes while doing welems?");
+	}
         firstSection = false;
         
         //        std::cout << sectionName << std::endl;
