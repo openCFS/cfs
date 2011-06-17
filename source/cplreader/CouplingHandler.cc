@@ -889,10 +889,16 @@ namespace CoupledField
     UInt idxInput = 0;
     UInt idxOutput = 0;
 
-    if(numInputNodes == numNodes)
+    if ( numInputNodes == numNodes )
     {
       output = input;
       return;
+    }
+    else if ( numInputNodes < numNodes )
+    {
+      EXCEPTION( "Cannot shrink vector (length " << numInputNodes
+                 << "), because there are too much nodes ("
+                 << numNodes << ") in region " << partitionIdx );
     }
 
     it = regionNodeIndices_[partitionIdx].begin();

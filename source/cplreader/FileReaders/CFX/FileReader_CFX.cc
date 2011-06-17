@@ -38,7 +38,6 @@ namespace algo=boost::algorithm;
 
 namespace CoupledField
 {
-  const int FileReader_CFX::BIGMEM = 10000000;
   std::vector<int> FileReader_CFX::intvec;
   std::vector<double> FileReader_CFX::doublevec;
   std::vector<float> FileReader_CFX::floatvec;
@@ -50,7 +49,8 @@ namespace CoupledField
                                  const UInt dim,
                                  const UInt numFiles) :
     FileReader(name, dim, numFiles, 1),
-    determineFloatDS_(true)
+    determineFloatDS_(true),
+    numElems_(0)
   {
     Settings& settings = Settings::Instance();
 
@@ -69,16 +69,10 @@ namespace CoupledField
   {
     Settings& settings = Settings::Instance();
     
-    if(settings.GetDouble("timestep") < 0)
-      EXCEPTION("No proper time step has been specified! Use --timestep X.");
-
     std::stringstream sstr;
     sstr << baseName_ << name_ << ".res";
     std::string resFileName = sstr.str();
     std::cout << "resFileName: " << resFileName << std::endl;
-
-    intvec.resize(BIGMEM*3);
-    floatvec.resize(BIGMEM);
 
     if(fs::exists(resFileName))
     {
@@ -106,12 +100,12 @@ namespace CoupledField
       sprintf(where, "ZN1");
 
       when  = -1;
-      length= 6;
+      length= 3;
       nsize = 1;
       iopt   = __not_stop_if_failed__;
       ioptar = 0;
-      intvec.resize(BIGMEM*3);
-      floatvec.resize(BIGMEM);
+      intvec.resize(length*nsize);
+      floatvec.resize(length*nsize);
       int its;
 
       redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
@@ -130,22 +124,28 @@ namespace CoupledField
       when  = its;
 
       dattyp    = -3;
-      length    = 3;
-      nsize     = 100000;
+      length    = 1;
+      nsize     = its;
       iopt   = __stop_if_failed__;
       ioptar = 0;
       int ntrn, dummy;
-      charvec.resize(BIGMEM*3);
+      floatvec.resize(length*nsize);
+      intvec.resize(length*nsize);
+      charvec.resize(length*nsize*80);
 
       redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
               &iopt, &ioptar,
-              &floatvec[0],&intvec[0],carr,&dummy,&doublevec[0],&charvec[0],
+              &floatvec[0],&intvec[0],carr,&dummy,darr,&charvec[0],
               strlen(what), strlen(where), 0);
       CHECK_CFX_IO(nerr);
 
       ntrn = nsize;
 
-      //    printf("sarrt %s, ntrn %d\n", sarrt, ntrn);
+      if ( settings.GetDouble("timestep") <= 0 )
+      {
+        settings.SetDouble("timestep",
+            (floatvec[1]-floatvec[0])/(float)(intvec[1]-intvec[0]));
+      }
 
       numSteps_ = 0;
       transientFNs_.clear();
@@ -189,14 +189,14 @@ namespace CoupledField
       sprintf(what, "G/COMMANDS");
       sprintf(where, "EVERY");
 
-
       dattyp = __string_data_type__;
       when  = its;
-      length= BIGMEM;
+      length= 1000000;
       nsize = 1;
       iopt   = __stop_if_failed__;
       ioptar = 0;
-
+      charvec.resize(length*nsize);
+      
       redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
               &iopt, &ioptar,
               rarr,iarr,carr,larr,darr,&charvec[0],
@@ -258,12 +258,15 @@ namespace CoupledField
       }
     }
 
+    if(settings.GetDouble("timestep") <= 0)
+      EXCEPTION("Time step could not be determined. Please specify it using --timestep X.");
+
     CheckTransientFiles();
 
     if (settings.GetInt("numsteps"))
     {
       UInt tmp = (UInt) settings.GetInt("numsteps");
-      /* only take argument if tmo does not exceed the maximal number of timesteps possible */
+      /* only take argument if tmp does not exceed the maximal number of timesteps possible */
       if (tmp < numSteps_)
       {
         numSteps_ = tmp;
@@ -331,7 +334,7 @@ namespace CoupledField
     when  = 0;
 
     dattyp = __int_data_type__;
-    length = 3;
+    length = 1;
     nsize  = 1;
     iopt   = __stop_if_failed__;
     ioptar = 0;
@@ -342,8 +345,7 @@ namespace CoupledField
             what, where, &when,
             &nsize,
             &iopt, &ioptar,
-            rarr, &nvx, carr,
-            larr, darr, sarr,
+            rarr, &nvx, carr, larr, darr, sarr,
             strlen(what), strlen(where), 0);
     CHECK_CFX_IO(nerr);
 
@@ -384,6 +386,34 @@ namespace CoupledField
     numNodesPerRegion_.resize(numRegions_);
     numElemsPerRegion_.resize(numRegions_);
 
+    //
+    //---- Number of elements per set
+    //
+    sprintf(what, "G/NELES");
+    sprintf(where, "ZN1");
+    when  = 0;
+
+    dattyp = __int_data_type__;
+    length = 1;
+    nsize  = nes;
+    iopt   = __stop_if_failed__;
+    ioptar = 0;
+    intvec.resize(length*nsize);
+
+    redsht_( &dattyp, &length, &nerr,
+             what, where, &when, &nsize,
+             &iopt, &ioptar,
+             rarr, &intvec[0], carr, larr, darr, sarr,
+             strlen(what), strlen(where), 0);
+    CHECK_CFX_IO(nerr);
+
+    for ( UInt i=0; i<numRegions_; ++i )
+    {
+      numElemsPerRegion_[i] = intvec[i];
+      numElems_ += numElemsPerRegion_[i];
+      numNodesPerRegion_[i] = nvx;
+    }
+    
     //---- Element type per element set
     //---   elem type = 4: tet  , 4 nodes
     //---             = 5: wedge, 6 nodes
@@ -399,63 +429,47 @@ namespace CoupledField
     nsize  = nes;
     iopt   = __stop_if_failed__;
     ioptar = 0;
+    intvec.resize(length*nsize);
 
-    redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
-            &iopt, &ioptar,
-            rarr,&intvec[0],carr,larr,darr,sarr, strlen(what), strlen(where), 0);
+    redsht_( &dattyp, &length, &nerr,
+             what, where, &when, &nsize,
+             &iopt, &ioptar,
+             rarr, &intvec[0], carr, larr, darr, sarr,
+             strlen(what), strlen(where), 0);
     CHECK_CFX_IO(nerr);
 
     //
     //---- loop over all element sets
     //
-    std::vector<int> ielem;
-    for(int ies = 0; ies < nes; ies++)
-    {
-      ielem.push_back(intvec[ies]);
-    }
-
     for(int ies = 1; ies <= nes; ies++)
     {
       //
       //---- number of nodes per element
       //
-      if (ielem[ies-1] == 4) regionElemTypes_.push_back(Elem::TET4);
-      if (ielem[ies-1] == 5) regionElemTypes_.push_back(Elem::WEDGE6);
-      if (ielem[ies-1] == 6) regionElemTypes_.push_back(Elem::HEXA8);
-      if (ielem[ies-1] == 7) regionElemTypes_.push_back(Elem::PYRA5);
+      switch (intvec[ies-1])
+      {
+        case 4:
+          regionElemTypes_.push_back(Elem::TET4);
+          break;
+        case 5:
+          regionElemTypes_.push_back(Elem::WEDGE6);
+          break;
+        case 6:
+          regionElemTypes_.push_back(Elem::HEXA8);
+          break;
+        case 7:
+          regionElemTypes_.push_back(Elem::PYRA5);
+          break;
+      }
 
       UInt nENod = Elem::GetNumElemNodes(*regionElemTypes_.rbegin());
-      maxNumElemNodes_ = nENod > maxNumElemNodes_ ? nENod : maxNumElemNodes_;
-
-      //
-      //---- reading element numbers for each element set
-      //
-      sprintf(what,"G/KELPE");
-
-      //
-      //---- where = ZN1/ESn where n is integer from 1 to nes
-      //
-      sprintf(where, "ZN1/ES%d", ies);
-      when  = 0;
-
-      dattyp = __int_data_type__;
-      length = 1;
-      nsize  = BIGMEM;
-      iopt   = __stop_if_failed__;
-
-      readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
-                rarr,&intvec[0],carr,larr,darr,sarr,
-                strlen(what), strlen(where), 0);
-      CHECK_CFX_IO(nerr);
-
-
-      numElemsPerRegion_[ies-1] = nsize;
-      numNodesPerRegion_[ies-1] = nvx;
+      if ( nENod > maxNumElemNodes_ )
+        maxNumElemNodes_ = nENod;
 
       if(settings.GetInt("verbose"))
       {
         printf("ES: %d\nNumber of Elements: %d\nElem type: %d\n",
-               ies, nsize, ielem[ies-1]);
+               ies, nsize, intvec[ies-1]);
 
 
         std::cout << "Partition " << (ies)
@@ -468,6 +482,11 @@ namespace CoupledField
     whatfile = __io_close_primaryfile__;
     closefile_(&nerr, &whatfile);
     CHECK_CFX_IO(nerr);
+    
+    charvec.clear();
+    doublevec.clear();
+    floatvec.clear();
+    intvec.clear();
   }
 
   void FileReader_CFX::ReadNodalCoords(std::vector<Double> & NODECOORD)
@@ -482,7 +501,7 @@ namespace CoupledField
 
     if(settings.GetInt("verbose"))
     {
-      printf("Successfully openend %s\n", defFile.c_str());
+      printf("Successfully opened %s\n", defFile.c_str());
     }
 
     //-----------------------------------------------------------------------
@@ -497,7 +516,7 @@ namespace CoupledField
     length = 3;
     nsize  = numNodesPerRegion_[0];
     iopt = __stop_if_failed__;
-    doublevec.resize(numNodesPerRegion_[0]*3);
+    doublevec.resize(numNodesPerRegion_[0]*3, 0.0);
 
     readlong_(&dattyp, &nerr, what,where,&when,&nsize,&iopt,
               rarr,iarr,carr,larr,&doublevec[0],sarr,
@@ -514,14 +533,16 @@ namespace CoupledField
     whatfile = __io_close_primaryfile__;
     closefile_(&nerr, &whatfile);
     CHECK_CFX_IO(nerr);
+    
+    doublevec.clear();
   }
 
   void FileReader_CFX::ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
-                                        std::vector<UInt> & elemTypes)
+                                         std::vector<UInt> & elemTypes)
   {
     Settings& settings = Settings::Instance();
     UInt elem=0;
-    int numElems=0;
+    int numRegionElems=0;
     int numElemNodes;
     int elemType = Elem::UNDEF;
     std::vector<UInt> elConnect(maxNumElemNodes_);
@@ -531,56 +552,49 @@ namespace CoupledField
     openfile_(&nerr, fn, &whatfile, strlen(fn));
     CHECK_CFX_IO(nerr);
 
-    // Determine total number of elements
-    for(UInt actRegion=0; actRegion<numRegions_; actRegion++) {
-      numElems += numElemsPerRegion_[actRegion];
-    }
+    TOPOLOGYDATA.resize(numElems_ * maxNumElemNodes_);
 
-    TOPOLOGYDATA.resize(numElems * maxNumElemNodes_);
-
-    for(UInt actRegion=0; actRegion<numRegions_; actRegion++) {
+    for ( UInt actRegion=0; actRegion<numRegions_; ++actRegion )
+    {
       elemType = regionElemTypes_[actRegion];
-      numElems = numElemsPerRegion_[actRegion];
+      numRegionElems = numElemsPerRegion_[actRegion];
       numElemNodes = Elem::GetNumElemNodes((Elem::FEType)elemType);
 
       //---- reading connectivity for each element set
       //     outer loop:  i_element
       //     inner loop:  i_vx per element (1 ... nelvx)
-
       sprintf(what,"G/KVXPE");
 
       //
       //---- where = ZN1/ESn where n is integer from 1 to nes
       //
-
       sprintf(where, "ZN1/ES%d", actRegion+1);
       when  = 0;
-
       dattyp = __int_data_type__;
       length = numElemNodes;
-      nsize  = BIGMEM;
+      nsize  = numRegionElems;
       iopt   = __stop_if_failed__;
+      intvec.resize(length*nsize);
 
-
-      readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
-          rarr,&intvec[0],carr,larr,darr,sarr,
-          strlen(what), strlen(where), 0);
+      readlong_( &dattyp, &nerr, what, where, &when, &nsize, &iopt,
+                 rarr, &intvec[0], carr, larr, darr, sarr,
+                 strlen(what), strlen(where), 0 );
       CHECK_CFX_IO(nerr);
 
       std::cout  << "read connectivity from def file" << std::endl;
 
-      if(settings.GetInt("verbose"))
+      if ( settings.GetInt("verbose") )
       {
         printf("Length of Connectivity array: %d\n", nsize);
       }
 
       UInt baseIdx=0;
-      for(int i=0; i<numElems; i++, baseIdx += numElemNodes)
+      for ( int i=0; i<numRegionElems; ++i, baseIdx += numElemNodes )
       {
         elemTypes.push_back(elemType);
         std::fill(elConnect.begin(), elConnect.end(), 0);
 
-        if(elemType == Elem::HEXA8)
+        if ( elemType == Elem::HEXA8 )
         {
           elConnect[0] = intvec[baseIdx + 4];
           elConnect[1] = intvec[baseIdx + 6];
@@ -593,9 +607,9 @@ namespace CoupledField
         }
         else
         {
-          std::copy(&intvec[baseIdx],
-              &intvec[baseIdx+numElemNodes],
-              &elConnect[0]);
+          std::copy( &intvec[baseIdx],
+                     &intvec[baseIdx+numElemNodes],
+                     &elConnect[0] );
         }
 
         regionElems_[actRegion].push_back(elem+1);
@@ -611,6 +625,8 @@ namespace CoupledField
     whatfile = __io_close_primaryfile__;
     closefile_(&nerr, &whatfile);
     CHECK_CFX_IO(nerr);
+    
+    intvec.clear();
   }
 
   void FileReader_CFX::GetRegionElements(std::vector<UInt> & regionElements,
@@ -620,9 +636,10 @@ namespace CoupledField
   }
 
   //! get nodal values from the corresponding fluid datafile the new way
-  void FileReader_CFX::ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
-                                       const std::vector<bool>& activeParts,
-                                       const UInt timeStepIdx)
+  void FileReader_CFX::ReadNodalValues(
+      std::vector<FlowDataType>& nodalFlowData,
+      const std::vector<bool>& activeParts,
+      const UInt timeStepIdx )
   {
     Settings& settings = Settings::Instance();
     bool floatDS;
@@ -636,9 +653,7 @@ namespace CoupledField
     }
     
     // Open input file
-    snprintf(fn,
-             sizeof(fn),
-             "%s",
+    snprintf(fn, sizeof(fn), "%s",
              transientFNs_[timeStepIdx].c_str());
     whatfile = __io_open_primaryfile__;
 
@@ -650,7 +665,7 @@ namespace CoupledField
     openfile_(&nerr, fn, &whatfile, strlen(fn));
     CHECK_CFX_IO(nerr);
 
-    for(UInt actPart=0; actPart < numRegions_; actPart++)
+    for ( UInt actPart=0; actPart < numRegions_; ++actPart )
     {
       int nvx = numNodesPerRegion_[actPart];
       FlowDataType& fd = nodalFlowData[actPart];
@@ -675,13 +690,16 @@ namespace CoupledField
         sprintf(where, "ZN1/VX");
         when  = timeStepNumbers_[timeStepIdx];
 
-        if(floatDS)
+        if (floatDS)
           dattyp = __real_data_type__;
         else
           dattyp = __double_data_type__;
-
+        
         length = 3;
         nsize  = nvx;
+        doublevec.resize(length*nsize);
+        floatvec.resize(length*nsize);
+
         iopt   = __stop_if_failed__;
 
         if(floatDS)
@@ -690,7 +708,7 @@ namespace CoupledField
               strlen(what), strlen(where), 0);
         else
           readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
-              &floatvec[0],iarr,carr,larr,&doublevec[0],sarr,
+              rarr,iarr,carr,larr,&doublevec[0],sarr,
               strlen(what), strlen(where), 0);
 
         if(nerr)
@@ -772,6 +790,9 @@ namespace CoupledField
 
         length = 1;
         nsize  = nvx;
+        doublevec.resize(length*nsize);
+        floatvec.resize(length*nsize);
+
         iopt   = __stop_if_failed__;
 
         if(floatDS)
@@ -780,7 +801,7 @@ namespace CoupledField
               strlen(what), strlen(where), 0);
         else
           readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
-              &floatvec[0],iarr,carr,larr,&doublevec[0],sarr,
+              rarr,iarr,carr,larr,&doublevec[0],sarr,
               strlen(what), strlen(where), 0);
 
         if(nerr)
@@ -832,6 +853,9 @@ namespace CoupledField
 
         length = 1;
         nsize  = nvx;
+        doublevec.resize(length*nsize);
+        floatvec.resize(length*nsize);
+
         iopt   = __stop_if_failed__;
 
         if(floatDS)
@@ -840,7 +864,7 @@ namespace CoupledField
               strlen(what), strlen(where), 0);
         else
           readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
-              &floatvec[0],iarr,carr,larr,&doublevec[0],sarr,
+              rarr,iarr,carr,larr,&doublevec[0],sarr,
               strlen(what), strlen(where), 0);
 
         if(nerr)
@@ -892,6 +916,9 @@ namespace CoupledField
 
         length = 1;
         nsize  = nvx;
+        doublevec.resize(length*nsize);
+        floatvec.resize(length*nsize);
+
         iopt   = __stop_if_failed__;
 
         if(floatDS)
@@ -900,7 +927,7 @@ namespace CoupledField
               strlen(what), strlen(where), 0);
         else
           readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
-              &floatvec[0],iarr,carr,larr,&doublevec[0],sarr,
+              rarr,iarr,carr,larr,&doublevec[0],sarr,
               strlen(what), strlen(where), 0);
 
         if(nerr)

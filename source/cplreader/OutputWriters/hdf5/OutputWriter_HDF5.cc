@@ -374,7 +374,16 @@ namespace CoupledField
                   << " on region " << regionNames_[actRegion] << "... ";
         
         std::vector<Double> output;
-        cplHandler->ShrinkNodalVector(actRegion, numDOFs, fdps.data, output);
+        if ( fdps.definedOn == ResultInfo::NODE )
+        {
+          cplHandler->ShrinkNodalVector(actRegion, numDOFs, fdps.data, output);
+        }
+        else
+        {
+          // This is not a nodal vector, so there is no need to shrink it
+          // (applies to acouDivLighthillTensor, for instance)
+          output = fdps.data;
+        }
         
         WriteResults(currResultGroup, output, numDOFs, false);
         std::cout << "done." << std::endl;
