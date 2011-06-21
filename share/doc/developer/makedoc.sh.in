@@ -48,7 +48,7 @@ function build {
     # Auto generate bootstrap_devel_machine.txt from distro.sh and bootstrap_devel_machine.sh
     cat @CMAKE_CURRENT_SOURCE_DIR@/../../scripts/distro.sh | sed '/^Help\(\)/, /^fi/d' | sed '/^      while \:$/, /^      done$/d' > @CMAKE_CURRENT_SOURCE_DIR@/develManual/attachments/bootstrap_devel_machine.txt
     echo "echo \$OSSTR" >> @CMAKE_CURRENT_SOURCE_DIR@/develManual/attachments/bootstrap_devel_machine.txt
-    cat @CMAKE_CURRENT_SOURCE_DIR@/../../scripts/bootstrap_devel_machine.sh >> @CMAKE_CURRENT_SOURCE_DIR@/develManual/attachments/bootstrap_devel_machine.txt
+    cat @CMAKE_CURRENT_SOURCE_DIR@/../../scripts/bootstrap_devel_machine.sh | sed '/^\#\!\/bin\/sh/, /^\. /d' >> @CMAKE_CURRENT_SOURCE_DIR@/develManual/attachments/bootstrap_devel_machine.txt
 
     cd @CMAKE_CURRENT_SOURCE_DIR@/develManual
     DOCUMENT=develManual

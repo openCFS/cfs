@@ -1,10 +1,12 @@
+#!/bin/sh
+. `dirname $0`/distro.sh -h
 
-# This script is not usable on its own. It will get merged into one script
-# bootstrap_devel_machine.txt with distro.sh by share/doc/devel/makedoc.sh
-# before the actual build of the developer manual starts.
-# bootstrap_devel_machine.txt will then be embedded into to the resulting
-# PDF file. If you wish to make changes to the bootstrap process make your
-# changes to share/scripts/boostrap_devel_machine.sh and commit your
+# This script is not primarily meant to be used on its own. It will get merged
+# into    one   script    bootstrap_devel_machine.txt   with    distro.sh   by
+# share/doc/devel/makedoc.sh before  the actual build of  the developer manual
+# starts.   bootstrap_devel_machine.txt  will then  be  embedded  into to  the
+# resulting PDF  file. If you  wish to make  changes to the  bootstrap process
+# make your changes to share/scripts/boostrap_devel_machine.sh and commit your
 # changes back to the repository.
 
 ARCH=$(echo $ARCH | sed 'y/'$LOWER'/'$UPPER'/')
