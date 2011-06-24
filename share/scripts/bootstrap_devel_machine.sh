@@ -76,17 +76,21 @@ function SetupCentOS {
     cd /etc/yum.repos.d && \
     wget http://www.graphviz.org/graphviz-rhel.repo || ExitFail
 
-    YC=/etc/yum.conf
-
-    echo "[atrpms]" >> $YC && \
-    echo "name=Redhat Enterprise Linux RHEL$releasever - $basearch - ATrpms" >> $YC && \
-    echo "baseurl=http://dl.atrpms.net/el5-$basearch/atrpms/stable/" >> $YC && \
+    YC=atrpms.repo
+    echo "[atrpms]" > $YC && \
+    echo "name=Redhat Enterprise Linux RHEL\$releasever - \$basearch - ATrpms" >> $YC && \
+    echo "baseurl=http://dl.atrpms.net/el5-\$basearch/atrpms/stable/" >> $YC && \
     echo "gpgkey=http://ATrpms.net/RPM-GPG-KEY.atrpms" >> $YC && \
     echo "gpgcheck=1" >> $YC || ExitFail
+    wget http://ATrpms.net/RPM-GPG-KEY.atrpms || ExitFail
+    rpm --import http://ATrpms.net/RPM-GPG-KEY.atrpms || ExitFail
 
-    echo "[epel]" >> $YC && \
-    echo "name=EPEL RHEL$releasever - $basearch" >> $YC && \
-    echo "baseurl=http://ftp.ucr.ac.cr/epel/5/$basearch" >> $YC || ExitFail
+    YC=epel.repo
+    echo "[epel]" > $YC && \
+    echo "name=EPEL RHEL\$releasever - \$basearch" >> $YC && \
+    echo "baseurl=http://ftp.ucr.ac.cr/epel/5/\$basearch" >> $YC || ExitFail
+    wget http://ftp.ucr.ac.cr/epel/RPM-GPG-KEY-EPEL || ExitFail
+    rpm --import RPM-GPG-KEY-EPEL || ExitFail
 
     ARCH=$(uname -m | sed 's/i[0-9]86/i386/') || ExitFail
     BASE=http://apt.sw.be/redhat/el5/en
@@ -104,13 +108,18 @@ function SetupCentOS {
                 python-pygments doxygen tcl-devel python-devel git-svn \
                 cmake-gui java-1.6.0-openjdk-devel tk-devel\
                 patch diffutils zip libXt-devel libXp mesa-libGLU-devel libXmu-devel || ExitFail
-            
-    ln -s /usr/lib64/libXext.so.6.4.0 /usr/lib64/libXext.so || ExitFail
+           
+    if [ "$ARCH" = "X86_64" ]; then
+	LIB="lib64"
+    else
+	LIB="lib"
+    fi 
+    ln -s /usr/$LIB/libXext.so.6.4.0 /usr/$LIB/libXext.so || ExitFail
 
-    echo "export JAVA_HOME=/usr" >> $HOME/.bashrc || ExitFail
-    echo "export PATH=/opt/svnkit-1.3.5.7406:$PATH" >> $HOME/.bashrc || ExitFail
+    echo "Please add the following lines to your \$HOME/.bashrc and open a new shell for all environment settings to become active."
+    echo "export JAVA_HOME=/usr"
+    echo "export PATH=/opt/svnkit-1.3.5.7406:\$PATH"
 
-    echo "Please open a new shell for all environment settings to become active."
 }
 
 function SetupMacOS {
