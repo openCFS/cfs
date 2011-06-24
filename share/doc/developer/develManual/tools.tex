@@ -448,13 +448,6 @@ The mapping  from CFS++ result  types to ANSYS  results is done in  the method
 solType)}                    in                    the                    file
 {\tt source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceGeneral.cc}.
 
-\textcolor{red}{ATTENTION:  It has  been found,  that there  exists  a problem
-whenever the grid from CFS++ contains quadratic pyramid elements. This problem
-manifests itself  as a  segfault of  ANSYS Classic. The  same input  file does
-however not cause  a problem for the CFX post-processor.  This behavior can be
-reproduced by the test suite case {\tt TESTSUIT/cfstool/hdf5\_to\_rst}, where the {\tt
-.rst} file {\tt results\_rst/refelems\_ms1.rst} exhibits this behavior.}
-
 \textcolor{red}{ATTENTION AGAIN:  At the moment, the ANSYS  .rst writer within
 cfs/cfstool is  hardwired in the  startup scripts to  the version 11.0  of the
 ANSYS libbin.so.  If a different version of  the libbin.so has to  be used the

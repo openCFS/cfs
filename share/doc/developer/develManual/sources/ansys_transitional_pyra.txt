@@ -1,6 +1,10 @@
 /prep7  
 init   
 
+MP,EX,1,2E11     ! Young's modulus for material ref. no. 1 is 2E11
+MP,DENS,1,7800   ! Density for material ref. no. 1 is 7800
+MP,PRXY,1,0.3    ! Poisson ratio
+
 k,,0,0,0
 k,,1,0,0
 k,,1,1,0
@@ -23,21 +27,22 @@ v,5,6,7,8,9,10,11,12
 asel,s,,,1
 asel,a,,,6
 setelems,'quadr','quad'
+esize,,3
 amesh,all   
 asel,s,,,1
 esla
-welems,'bottom'
+cm,bottom,elem
 asel,s,,,6
 esla
-welems,'iface1'
+cm,iface1,elem
 
 vsel,s,,,1  
 setelems,'brick','quad'
 vmesh,all
 eslv
-welems,'bricks'
+cm,bricks,elem
 
-% cf. ANSYS Modeling and Meshing Guide -> Mesh Controls -> Creating Transitional Pyramid Elements
+! cf. ANSYS Modeling and Meshing Guide -> Mesh Controls -> Creating Transitional Pyramid Elements
 mopt,pyra,on
 mshape,1,3d 
 
@@ -45,29 +50,80 @@ asel,s,,,11
 setelems,'triangle','quad'
 amesh,all
 esla
-welems,'iface2'
+cm,iface2,elem
 
 vsel,s,,,2
 setelems,'brick','quad'
 vmesh,all   
 eslv
-welems,'tets_and_pyras'
+cm,tets_and_pyras,elem
 
-% cf. ANSYS Modeling and Meshing Guide -> Solid Modeling -> Extruding Volumes
+! cf. ANSYS Modeling and Meshing Guide -> Solid Modeling -> Extruding Volumes
 asel,s,,,11 
 setelems,'wedge','quad'
 esize,,3
 vext,all,,,0,0,1
 vsel,s,,,3
 eslv
-welems,'wedges'
+cm,wedges,elem
 
 asel,s,,,12
 setelems,'triangle','quad'
 amesh,all   
 esla
+cm,top,elem
+
+allsel
+numcmp,elem
+nummrg,elem
+allsel
+numcmp,node
+nummrg,node
+
+cmsel,s,bottom,elem
+welems,'bottom'
+
+cmsel,s,iface1,elem
+welems,'iface1'
+
+cmsel,s,bricks,elem
+welems,'bricks'
+
+cmsel,s,iface2,elem
+welems,'iface2'
+
+cmsel,s,tets_and_pyras,elem
+welems,'tets_and_pyras'
+
+cmsel,s,wedges,elem
+welems,'wedges'
+
+cmsel,s,top,elem
 welems,'top'
 
 allsel
 wnodes
-mkhdf5,,'tolerant'
+mkhdf5,,!'tolerant'
+
+et,40,Solid95   
+et,41,Plane82
+esel,s,type,,11 
+emodif,all,type,40  
+
+!esel,s,type,,5
+!esel,a,type,,7
+!emodif,all,type,41
+
+asel,all
+aclear,all
+esel,all
+eplo
+
+/SOL
+ANTYPE,0
+nsel,s,loc,z,-0.001,0.001
+D,all, ,0, , , ,UX,UY,UZ, , ,  
+nsel,s,loc,z,3-0.001,3+0.001
+D,all, ,0.1, , , ,UX, , , , ,
+/STATUS,SOLU
+SOLVE   
