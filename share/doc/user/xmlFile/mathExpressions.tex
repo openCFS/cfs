@@ -428,12 +428,37 @@ following way:
 The region name, quantity, and time/frequency step (if applicable) are
 determined automatically and not passed as arguments. Therefore it is required
 to use exactly the same mesh as the previous simulation, i.e.\
-interpolation onto a different mesh is not supported.
+interpolation onto a different mesh is not supported. 
 
-The \texttt{input} function is currently available only for
-\xel{dirichletInhom} and \xel{neumannInhom} boundary conditions, but may be
-supported for other BCs in the future.
+Because some of the information (mentioned above) is determined internally in
+\texttt{CFS++}, the \texttt{input} function is currently available only for
+some selected boundary conditions, but not all. Table~\ref{tab:input_func}
+shows supported boundary conditions.
 
+\begin{table}[h]
+  \caption{Boundary conditions supported by the \texttt{input} function}
+  \label{tab:input_func}
+  \centering
+  \begin{tabular}{llp{6cm}}
+    \toprule
+    \textbf{Boundary condition} & \textbf{Field} & \textbf{Quantity} \\
+    \midrule
+    \xel{dirichletInhom} & all fields & the primary unknown, e.g.\ 
+        \xatv{mechDisplacement} in mechanics, etc. \\\midrule
+    \xel{neumannInhom} & acoustic & \xatv{acouVelocity} \\
+    & (potential formulation) & \\\\
+    & acoustic & \xatv{acouAcceleration} \\
+    & (pressure formulation) & \textbf{Note:} You have to multiply
+        \xatv{acouAcceleration} by the density of the acoustic medium yourself
+        (e.g.\ \texttt{"1.204*input(...)"} for air), otherwise the boundary
+        condition will be incorrect! \\\\
+    & electrostatic & \xatv{elecCharge} \\\\
+    & heat conduction & \textbf{???} \\\midrule
+    \xel{pressure} & mechanic & \xatv{mechPressure}, i.e.\ surface normal
+        stress \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
 
 \section{Examples}

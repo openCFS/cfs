@@ -5,7 +5,7 @@
 #include "linPressureInt.hh"
 
 
-
+#include "DataInOut/ResultCache.hh"
 #include "DataInOut/Logging/cfslog.hh"
 
 DECLARE_LOG(forms)
@@ -38,19 +38,26 @@ namespace CoupledField {
   PressureLinForm::~PressureLinForm() {
   }
 
-  double PressureLinForm::GetPressureFactor(const SurfElem* elem){
+  Double PressureLinForm::GetPressureFactor(EntityIterator& ent){
     // register global coordinates of element midpoint
+    const SurfElem* elem = ent.GetSurfElem();
     Elem* ptVolElem = elem->ptVolElem1;
     RegisterSurfElemMidPoint( mHandle_, elem, ptVolElem );
     
+    // provide info to ResultCache, so we can use the input-function
+    // in math parser expressions
+    ResultCache::SetInfo( ResultCache::OUT_REAL, 1, ent.GetName(),
+                          MECH_PRESSURE );
+    ResultCache::SetIndex(elem->elemNum);
+    
     // evaluate value for current element
     mParser_->SetExpr( mHandle_, value_ );
-    double factor = mParser_->Eval( mHandle_ );
+    Double factor = mParser_->Eval( mHandle_ );
 
     // When we do SIMP of an Piezo we might have pressure and charge density
     // on surface elements. Then scale our element contribution by the corresponding
     // volume element which has the scaling factor.
-    double density = GetErsatzMaterialFactor(ptVolElem);
+    Double density = GetErsatzMaterialFactor(ptVolElem);
     return(factor * density);
   }
     
@@ -60,7 +67,7 @@ namespace CoupledField {
     // compute element vector
     PrepareElemVec( elemVec, ent );
 
-    double factor = GetPressureFactor(actElem_);
+    Double factor = GetPressureFactor(ent);
 
     LOG_DBG3(forms) << "PressureLinForm::CalcElemVector<double> elem=" 
                     << actElem_->elemNum << " (peseudo density * factor) =" << factor;
@@ -80,17 +87,23 @@ namespace CoupledField {
     Elem * ptVolElem = actElem_->ptVolElem1;
     RegisterSurfElemMidPoint( mHandle_, ent.GetSurfElem(), ptVolElem );
 
+    // provide info to ResultCache, so we can use the input-function
+    // in math parser expressions
+    ResultCache::SetInfo( ResultCache::OUT_REAL, 1, ent.GetName(),
+                          MECH_PRESSURE );
+    ResultCache::SetIndex(actElem_->elemNum);
 
     // evaluate value and phase for current element
+    ResultCache::SetOutputType(ResultCache::OUT_AMPL);
     mParser_->SetExpr( mHandle_, value_ );
     Double value = mParser_->Eval( mHandle_ );
 
+    ResultCache::SetOutputType(ResultCache::OUT_PHASE);
     mParser_->SetExpr( mHandle_, phase_ );
     Double phase = mParser_->Eval( mHandle_ );
 
 
-    // Note: Since phase is in (grad), we have to transform it into
-    //        rad-value
+    // Note: Since phase is in degrees, we have to transform it into radians
     Double realPart = value * cos( phase / 180 * PI );
     Double imagPart = value * sin( phase / 180 * PI );
 

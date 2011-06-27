@@ -230,6 +230,7 @@ void ResultCache::LoadStepValues(const std::string& readerId,
       domain->GetGrid("default")->GetNodesByName( entityNums, entityName_ );
       break;
     case ResultInfo::ELEMENT:
+    case ResultInfo::SURF_ELEM:
       domain->GetGrid("default")->GetElemNumsByName( entityNums, entityName_ );
       break;
     default:

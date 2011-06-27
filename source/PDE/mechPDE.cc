@@ -1917,6 +1917,16 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     stress->fctType = shared_ptr<ConstFct>(new ConstFct() );
     availResults_.insert( stress );
 
+    // === MECHANIC PRESSURE ===
+    shared_ptr<ResultInfo> pressure(new ResultInfo);
+    pressure->resultType = MECH_PRESSURE;
+    pressure->dofNames = "";
+    pressure->unit = "N/m^2";
+    pressure->entryType = ResultInfo::SCALAR;
+    pressure->definedOn = ResultInfo::SURF_ELEM;
+    pressure->fctType = shared_ptr<ConstFct>( new ConstFct() );
+    availResults_.insert( pressure );
+    
     // === MECHANIC VON MISES STRESS (yield criterion, a scalar value)===
     shared_ptr<ResultInfo> vonMises(new ResultInfo);
     vonMises->resultType = VON_MISES_STRESS;
