@@ -47,7 +47,7 @@ namespace CoupledField
   /** this cannot be done in the constructor as the error handler takes "this" */
   void Xerces::Parse()
   {
-     // Initialise the XML4C2 system
+    // Initialise the XML4C2 system
     try
     {
        XMLPlatformUtils::Initialize();
@@ -121,7 +121,7 @@ namespace CoupledField
     // some final checking, cannot imagine a problem here
     if(children->getLength() != 1)
         EXCEPTION("document root has " << children->getLength()
-                  << " childs, expceted 1");
+                  << " children, expected 1");
 
     if(children->item(0)->getNodeType() != DOMNode::ELEMENT_NODE)
         EXCEPTION("root node type is " <<  children->item(0)->getNodeType());
@@ -174,7 +174,10 @@ namespace CoupledField
     case DOMNode::TEXT_NODE:
     {
       // if we are a text node, we "are" the value of our parent.
-      std::string temp(XMLString::transcode(node->getNodeValue()));
+      char *nodevalue = XMLString::transcode(node->getNodeValue());
+      std::string temp(nodevalue);
+      XMLString::release(&nodevalue);
+      // std::string temp(XMLString::transcode(node->getNodeValue()));
       boost::trim(temp);
       parent->SetValue(temp);
       return; // nothing else to do, we don not create a new ParamNode
@@ -212,7 +215,10 @@ namespace CoupledField
       pn = parent;
     }
 
-    pn->SetName( XMLString::transcode( node->getNodeName() ) );
+    char *nodename = XMLString::transcode(node->getNodeName());
+    std::string temp(nodename);
+    XMLString::release(&nodename);
+    pn->SetName(temp);
 
     // The value of an attribute or simple element is set by the text node children
 
