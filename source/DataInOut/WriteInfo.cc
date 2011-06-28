@@ -61,7 +61,7 @@ namespace CoupledField {
     }
 
     std::string filename = progOpts->GetSimName() + ".info";
-    cfsInfo = new std::ofstream(filename.c_str());
+    cfsInfo = new std::ofstream("/dev/null");
 
     // Check if everything went fine
     if ( cfsInfo == NULL ) {

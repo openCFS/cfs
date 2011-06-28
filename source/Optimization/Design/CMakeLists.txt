@@ -1,5 +1,5 @@
 SET(DESIGN_SRCS DesignElement.cc DesignMaterial.cc DesignSpace.cc DesignStructure.cc
-                Filter.cc ShapeDesign.cc DensityFile.cc)
+                Filter.cc ShapeDesign.cc DensityFile.cc RapidReader.cc)
 
 ADD_LIBRARY(design STATIC ${DESIGN_SRCS})
 

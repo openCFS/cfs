@@ -258,7 +258,8 @@ void ErsatzMaterial::PostInit()
   // if loadErsatzMaterial is used with optimization specifying a starting point,
   // we have to load it here, before scaling is done.
   if(DensityFile::NeedLoadErsatzMaterial())
-    DensityFile::ReadErsatzMaterial(design);
+      DensityFile::ReadErsatzMaterialRapid(design);
+      //DensityFile::ReadErsatzMaterial(design);
 
   // plausibility check for homogenization
   if(homogenization_ && (!me->IsEnabled() || !me->DoHomogenization()))
