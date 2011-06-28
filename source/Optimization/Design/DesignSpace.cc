@@ -886,7 +886,8 @@ DesignElement* DesignSpace::Find(unsigned int elemNum, DesignElement::Type dt, b
     unsigned int pos = elements * d + idx;
     if(data[pos].GetType() == dt)
     {
-      if(data[pos].elem->elemNum != elemNum) throw Exception("index mixed up");
+      if(data[pos].elem->elemNum != elemNum) 
+        throw Exception("DesignSpace::Find: index mixed up, element numbers do not match");
       return &data[pos];
     }
   }

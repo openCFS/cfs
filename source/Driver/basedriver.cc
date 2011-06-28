@@ -80,7 +80,7 @@ std::string BaseDriver::ConcatAnalysisId(PtrParamNode analysis_id, const std::st
   assert(!(child_2_name != "" && child_id == -1));
   
   std::stringstream ss;
-  ss << analysis_id->Has("analysis_id") ? analysis_id->Get("analysis_id")->As<std::string>() : ""; 
+  ss << (analysis_id->Has("analysis_id") ? analysis_id->Get("analysis_id")->As<std::string>() : ""); 
 
   if(child_name != "")
   ss << ":" << child_name;
