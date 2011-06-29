@@ -183,7 +183,10 @@ DesignSpace* DensityFile::ReadErsatzMaterialRapid(DesignSpace* ersatzMaterial)
 
   // we read something like <loadErsatzMaterial region="piezo" file="piezo_density.xml" set="last"/>
   RapidReader rxmlreader(file);
-  PtrParamNode header = rxmlreader.CreateHeaderParamNode();
+  
+  // we currently do not need the header paramnode, only when there is no optimization
+  // only simulation. this is not implemented atm...
+  //PtrParamNode header = rxmlreader.CreateHeaderParamNode();
   
   // find the proper design set. This is either 'first', 'last' or the * in <set id="*"> ...
   string setid = cmd ? "last" : pn->Get("set")->As<string>();

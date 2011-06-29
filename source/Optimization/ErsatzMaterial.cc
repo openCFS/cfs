@@ -2849,7 +2849,13 @@ void ErsatzMaterial::Solutions::Init(Function* f)
   assert(em_ != NULL);
 
   StdVector<Unit*>& list = data_[f];
-  list.Resize(domain->GetDriver()->GetNumSteps());
+  
+  // we have to delete the old data before overwriting with new stuff!
+  for(unsigned int ts = 0, s = list.GetSize(); ts < s; ++ts)
+    delete list[ts];
+  
+  list.Clear();
+  list.Reserve(domain->GetDriver()->GetNumSteps());
 
   for(unsigned int ts = 0; ts < domain->GetDriver()->GetNumSteps(); ++ts)
     list[ts] = new Unit(em_);
@@ -2858,14 +2864,19 @@ void ErsatzMaterial::Solutions::Init(Function* f)
 
 ErsatzMaterial::Solutions::Unit::Unit(ErsatzMaterial* em)
 {
+  // we have to delete the old data before overwriting with new stuff!
+  for(unsigned int i = 0, s = data.GetSize(); i < s; ++i)
+      delete data[i];
+  
   data.Resize(em->me->excitations.GetSize());
-  for(unsigned int i=0; i < data.GetSize(); i++)
+  
+  for(unsigned int i = 0, s = data.GetSize(); i < s; ++i)
     data[i] = new Solution(em);
 }
 
 ErsatzMaterial::Solutions::Unit::~Unit()
 {
-  for(unsigned int i = 0; i < data.GetSize(); i++)
+  for(unsigned int i = 0, s = data.GetSize(); i < s; ++i)
   {
     delete data[i];
     data[i] = NULL;

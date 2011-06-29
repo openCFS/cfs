@@ -16,6 +16,7 @@
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
 #include <fstream>
+#include <string>
 
 using namespace std;
 using namespace boost;
@@ -38,15 +39,14 @@ PtrParamNode param;
 PtrParamNode info;
 
 ParamNode::ParamNode(ActionType defaultAction, NodeType type) :
-  precision_(5), name_(""), type_(type), defaultAction_(defaultAction),
-  lastresultidx_(-1), write_counter_(0), reject_counter_(0)
-{
-  write_timer_ = new Timer();
-}
+  precision_(5), name_("DD"), type_(type), defaultAction_(defaultAction),
+  lastresultidx_(-1), write_timer_(NULL), write_counter_(0), reject_counter_(0)
+{ }
 
 ParamNode::~ParamNode()
 {
   // explicit delete is not needed anymore
+  delete write_timer_;
 }
 /************************************************************************
  * S E T    M E T H O D S
@@ -893,6 +893,9 @@ void ParamNode::ToFile(const std::string& filename, bool force)
   }
   else
   {
+    if(write_timer_ == NULL)
+      write_timer_ = new Timer();
+    
     write_timer_->Start();
     
     // only really write the file if at least a certain amount of time has passed since last write
@@ -1048,9 +1051,8 @@ void ParamNode::AdjustElementType()
 //    return true;
 //  }
 
-std::string ParamNode::ToValidLabel(const string& in) const
+std::string ParamNode::ToValidLabel(std::string out) const
 {
-  string out = in;
   boost::trim(out);
 
   // remove spaces and don't make upper case yet! :(

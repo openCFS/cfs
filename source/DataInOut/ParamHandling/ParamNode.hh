@@ -365,7 +365,7 @@ namespace CoupledField
     * automatically an ParamNode::name_ value out of caption_
     * @param in might contain spaces, e.g. "Number of iterations"
     * @return for this example 'NumberOfIterations' */
-    std::string ToValidLabel(const std::string& in) const;
+    std::string ToValidLabel(std::string in) const;
 
     /** Determine recursively the suitable type for nodes. This method
      * iterates recursively over all nodes and determines for all nodes, which 
