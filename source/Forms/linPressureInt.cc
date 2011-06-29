@@ -89,12 +89,11 @@ namespace CoupledField {
 
     // provide info to ResultCache, so we can use the input-function
     // in math parser expressions
-    ResultCache::SetInfo( ResultCache::OUT_REAL, 1, ent.GetName(),
+    ResultCache::SetInfo( ResultCache::OUT_AMPL, 1, ent.GetName(),
                           MECH_PRESSURE );
     ResultCache::SetIndex(actElem_->elemNum);
 
     // evaluate value and phase for current element
-    ResultCache::SetOutputType(ResultCache::OUT_AMPL);
     mParser_->SetExpr( mHandle_, value_ );
     Double value = mParser_->Eval( mHandle_ );
 

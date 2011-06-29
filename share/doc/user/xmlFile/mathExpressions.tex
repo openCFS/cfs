@@ -443,19 +443,26 @@ shows supported boundary conditions.
     \toprule
     \textbf{Boundary condition} & \textbf{Field} & \textbf{Quantity} \\
     \midrule
-    \xel{dirichletInhom} & all fields & the primary unknown, e.g.\ 
+    \xel{dirichletInhom} & all fields      & the primary unknown, e.g.\ 
         \xatv{mechDisplacement} in mechanics, etc. \\\midrule
-    \xel{neumannInhom} & acoustic & \xatv{acouVelocity} \\
-    & (potential formulation) & \\\\
-    & acoustic & \xatv{acouAcceleration} \\
-    & (pressure formulation) & \textbf{Note:} You have to multiply
-        \xatv{acouAcceleration} by the density of the acoustic medium yourself
-        (e.g.\ \texttt{"1.204*input(...)"} for air), otherwise the boundary
-        condition will be incorrect! \\\\
-    & electrostatic & \xatv{elecCharge} \\\\
-    & heat conduction & \textbf{???} \\\midrule
-    \xel{pressure} & mechanic & \xatv{mechPressure}, i.e.\ surface normal
-        stress \\
+    \xel{neumannInhom}   & acoustic        & \xatv{acouVelocity} \\
+                         & (potential formulation) & \\\\
+                         & acoustic        & \xatv{acouAcceleration} \\
+                         & (pressure formulation) & \textbf{Note:} You have to
+        multiply \xatv{acouAcceleration} by the density of the acoustic medium
+        yourself (e.g.\ \texttt{"1.204*input(...)"} for air), otherwise the
+        boundary condition will be incorrect! \\\\
+                         & electrostatic   & \xatv{elecCharge} \\\\
+                         & heat conduction & \textbf{???} \\\midrule
+    \xel{pressure}       & mechanic        & \xatv{mechPressure}, i.e.\
+        surface normal stress \\
+    \midrule
+    \xel{load}           & acoustic        & \xatv{acouRhsLoad} \\
+                         & electrostatic   & \xatv{elecRhsLoad}, i.e.\ nodal
+                                             charge \\
+                         & heat conduction & \xatv{heatRhsLoad} \\
+                         & mechanic        & \xatv{mechRhsLoad}, i.e.\ nodal
+                                             force \\
     \bottomrule
   \end{tabular}
 \end{table}
