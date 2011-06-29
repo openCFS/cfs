@@ -2855,7 +2855,7 @@ void ErsatzMaterial::Solutions::Init(Function* f)
     delete list[ts];
   
   list.Clear();
-  list.Reserve(domain->GetDriver()->GetNumSteps());
+  list.Resize(domain->GetDriver()->GetNumSteps());
 
   for(unsigned int ts = 0; ts < domain->GetDriver()->GetNumSteps(); ++ts)
     list[ts] = new Unit(em_);
