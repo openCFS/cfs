@@ -27,13 +27,15 @@ RapidReader::RapidReader(const std::string& filename) :
   if(!fs::exists(filePath))
       EXCEPTION("xml file " << filename_ << " doesn't exist");
 
-  // Read file into vector<char>
+  // Read file into temporary vector<char>
   std::ifstream densfile(filename_.c_str());
   vector<char> buffer((std::istreambuf_iterator<char>(densfile)), std::istreambuf_iterator<char>( ));
+  // essential: do not forget to append terminating character!!
   buffer.push_back('\0');
+  // swap the temporary vector with the member variable
   buffer_.swap(buffer);
   
-  // parse the density file that is now in the vector<char>
+  // parse the density file that is now in buffer_
   doc_.parse<0>(&buffer_[0]);
 }
 

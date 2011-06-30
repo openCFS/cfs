@@ -247,7 +247,7 @@ namespace CoupledField
       : obj_(obj), function_(function) {}
 
     //! Destructor
-    ~FctPointer() {}
+    virtual ~FctPointer() {}
 
     //! Execute Command
     void Call() { (obj_->*function_)(); }

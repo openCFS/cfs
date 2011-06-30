@@ -2868,6 +2868,7 @@ ErsatzMaterial::Solutions::Unit::Unit(ErsatzMaterial* em)
   for(unsigned int i = 0, s = data.GetSize(); i < s; ++i)
       delete data[i];
   
+  data.Clear();
   data.Resize(em->me->excitations.GetSize());
   
   for(unsigned int i = 0, s = data.GetSize(); i < s; ++i)

@@ -38,8 +38,12 @@ class RapidReader
   private:
     /** the name of the xml-file */
     const std::string filename_;
-    /** the file contents */
+    
+    /** the file contents
+     * rapidxml requires the buffer to be present the whole time because
+     * it internally uses pointers */
     std::vector<char> buffer_;
+    
     /** the parsed document */
     rapidxml::xml_document<> doc_;
 };

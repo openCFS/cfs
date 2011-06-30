@@ -200,8 +200,7 @@ namespace CoupledField
       ParamNode::NodeType type = ParamNode::ELEMENT;
       if ( node->getNodeType() == DOMNode::ATTRIBUTE_NODE  ) 
         type = ParamNode::ATTRIBUTE;
-      PtrParamNode newNode = 
-          PtrParamNode(new ParamNode(ParamNode::EX, type));
+      PtrParamNode newNode(new ParamNode(ParamNode::EX, type));
       parent->AddChildNode( newNode );
       pn = newNode;
       //parent->GetChildren().Push_back(new ParamNode();

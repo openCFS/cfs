@@ -32,7 +32,7 @@ namespace CoupledField {
     Assemble( BaseSystem* algsys, BasePDE::AnalysisType analysis, UInt maxTimeDerivOrder );
 
     //! Destructor
-    ~Assemble();
+    virtual ~Assemble();
 
     // ======================================================
     //  REGISTRATION METHODS
