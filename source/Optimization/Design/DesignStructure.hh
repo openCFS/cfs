@@ -7,7 +7,6 @@
 namespace CoupledField
 {
 class ErsatzMaterial;
-class Timer;
 
 /** This class has two purposes: it sets the the filter for DesignElement (sensitivity filter)
  * and it provides the periodic b.c. for VinicityElement (slopes).

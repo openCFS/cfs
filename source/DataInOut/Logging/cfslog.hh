@@ -60,13 +60,12 @@ namespace CoupledField {
     
     //! Constructor 
     LogConfigurator();
+
+    virtual ~LogConfigurator() {}
     
     //! Add output destination for given stream
     void AddAppender();
     
-    //! Add modifier
-    void AddModifier();
-
     //! Set logging level
     void SetLogLevel();
     

@@ -229,7 +229,7 @@ namespace CoupledField {
     MathParser::HandleType mHandle_;
 
     /** The object is within a ParamNode and deleted there! */
-    Timer* timer_;
+    boost::shared_ptr<Timer> timer_;
   };
 }
 #endif

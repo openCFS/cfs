@@ -203,10 +203,9 @@ namespace CoupledField
       PtrParamNode newNode(new ParamNode(ParamNode::EX, type));
       parent->AddChildNode( newNode );
       pn = newNode;
-      //parent->GetChildren().Push_back(new ParamNode();
       // we work with the this just added element - here we avoid any
       // potential copy constructor issues
-      pn = parent->GetChildren().Last();
+      // pn = parent->GetChildren().Last();
     }
     else
     {

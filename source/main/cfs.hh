@@ -32,11 +32,6 @@ namespace CoupledField
     ~CFS();
   private:
 
-    /** This is the internal main run.
-     * To be split for more overview
-     * @exception in an error case exceptions are forwarded */
-    void Process();
-
     /** Write the skeleton file only */
     void WriteXMLSkeleton();
 
@@ -57,7 +52,7 @@ namespace CoupledField
     ResultHandler* resultHandler;
 
     /** Timer for the whole CFS runtime */
-    Timer* timer;
+    boost::shared_ptr<Timer> timer;
 
     /** this is our hostname. Empty if it cannot be determined */
     std::string hostname_;

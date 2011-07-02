@@ -40,13 +40,12 @@ PtrParamNode info;
 
 ParamNode::ParamNode(ActionType defaultAction, NodeType type) :
   precision_(5), name_("DD"), type_(type), defaultAction_(defaultAction),
-  lastresultidx_(-1), write_timer_(NULL), write_counter_(0), reject_counter_(0)
+  lastresultidx_(-1), write_timer_(), write_counter_(0), reject_counter_(0)
 { }
 
 ParamNode::~ParamNode()
 {
   // explicit delete is not needed anymore
-  delete write_timer_;
 }
 /************************************************************************
  * S E T    M E T H O D S
@@ -106,14 +105,14 @@ void ParamNode::SetComment(const std::string& comment)
   PtrParamNode newChild(new ParamNode(defaultAction_, COMMENT));
   newChild->SetName("comment");
   newChild->SetValue(comment);
-  newChild->parent_ = shared_from_this();
+  newChild->parent_ = this;
   newChild->defaultAction_ = defaultAction_;
   children_.Push_back(newChild);
 }
 
 void ParamNode::AddChildNode(PtrParamNode child)
 {
-  child->parent_ = shared_from_this();
+  child->parent_ = this;
   if (child->defaultAction_ == DEFAULT)
   {
     child->defaultAction_ = defaultAction_;
@@ -126,7 +125,7 @@ PtrParamNode ParamNode::SetNewChild(const std::string& name, unsigned int index)
 
   PtrParamNode node(new ParamNode());
   node->SetName(name);
-  node->parent_ = shared_from_this();
+  node->parent_ = this;
   node->defaultAction_ = defaultAction_;
   children_[index] = node;
   return node;
@@ -234,7 +233,7 @@ PtrParamNode ParamNode::Get(const string& name_raw, ActionType action)
       newChild->SetName(myName);
       // ATTENTION: Do NOT set an empty string as value to this node, as
       // std::string("").empty() != boost::any(st::string("")).empty()
-      newChild->parent_ = shared_from_this();
+      newChild->parent_ = this;
       newChild->defaultAction_ = defaultAction_;
       children_.Push_back(newChild);
       result = newChild;
@@ -754,9 +753,9 @@ void ParamNode::ToString(std::string& ret, int depth) const
   }
 
   // special conversion for timer
-  if (value_.type() == typeid(Timer*))
+  if (value_.type() == typeid(boost::shared_ptr<Timer>))
   {
-    Timer* timer = boost::any_cast<Timer*>(value_);
+    boost::shared_ptr<Timer> timer = boost::any_cast<boost::shared_ptr<Timer> >(value_);
     // Note, that we are a SELF_XML type
     ret = timer->ToXMLFormat(name_);
     return;
@@ -894,7 +893,7 @@ void ParamNode::ToFile(const std::string& filename, bool force)
   else
   {
     if(write_timer_ == NULL)
-      write_timer_ = new Timer();
+      write_timer_ = boost::shared_ptr<Timer>(new Timer());
     
     write_timer_->Start();
     
@@ -1112,7 +1111,7 @@ INSTANTIATE_METHOD_GETVALUE(Vector<Double>*)
 INSTANTIATE_METHOD_GETVALUE(Vector<Complex>*)
 INSTANTIATE_METHOD_GETVALUE(Matrix<Double>*)
 INSTANTIATE_METHOD_GETVALUE(Matrix<Complex>*)
-INSTANTIATE_METHOD_GETVALUE(Timer*)
+INSTANTIATE_METHOD_GETVALUE(boost::shared_ptr<Timer>)
 // B)Now just the integral types
 // -----------------------------
 #define INSTANTIATE_METHODS_INT(TYPE)\
