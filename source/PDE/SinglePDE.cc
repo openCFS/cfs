@@ -309,9 +309,11 @@ namespace CoupledField {
     //determine which kind of equationmap will be needed
     if(results_.GetSize() == 1){
       if(results_[0]->fctType->IsDiscontinuous()){
-        eqnMap_ = shared_ptr<DiscontinuousEqnMap>(new DiscontinuousEqnMap( ptgrid_, pdeId_, usePenalty_ ));
+        shared_ptr<DiscontinuousEqnMap> tempmap(new DiscontinuousEqnMap( ptgrid_, pdeId_, usePenalty_ ));
+        eqnMap_ = tempmap;
       }else{
-        eqnMap_ = shared_ptr<EqnMap>(new EqnMap( ptgrid_, pdeId_, usePenalty_ ));
+        shared_ptr<EqnMap> tempmap(new EqnMap( ptgrid_, pdeId_, usePenalty_ ));
+        eqnMap_ = tempmap;
       }
     }else if(results_.GetSize() >= 2){
       if(!results_[0]->fctType->IsDiscontinuous() && results_[1]->fctType->IsDiscontinuous()){
@@ -324,7 +326,8 @@ namespace CoupledField {
     }else{
       //this is the defulat case
       //more cases can be implemented as needed
-      eqnMap_ = shared_ptr<EqnMap>(new EqnMap( ptgrid_, pdeId_, usePenalty_ ));
+      shared_ptr<EqnMap> tempmap(new EqnMap( ptgrid_, pdeId_, usePenalty_ ));
+      eqnMap_ = tempmap;
     }
 
 
@@ -2648,8 +2651,7 @@ namespace CoupledField {
     eFiles->SetName("externalFiles");
     eFiles->SetValue( "false" );
     h5Node->AddChildNode(eFiles);
-    shared_ptr<SimInput> input;
-    input = shared_ptr<SimInput>(new SimInputHDF5(restartFileName, h5Node));
+    shared_ptr<SimInput> input(new SimInputHDF5(restartFileName, h5Node));
     // read in mesh of input
     input->InitModule();
     UInt dim = input->GetDim();
