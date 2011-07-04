@@ -125,6 +125,7 @@ private:
 
 public:
   explicit Dim2() {}
+  virtual ~Dim2() {}
   unsigned int size() const { return static_cast<const I*>(this)->size(); }
   unsigned int rows() const { return static_cast<const I*>(this)->rows(); }
   unsigned int cols() const { return static_cast<const I*>(this)->cols(); }

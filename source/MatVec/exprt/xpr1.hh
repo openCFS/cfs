@@ -153,6 +153,7 @@ private:
 
 public:
   explicit Dim1() {}
+  virtual ~Dim1() {}
   unsigned int size() const {
     return static_cast<const I*>(this)->size();
   }

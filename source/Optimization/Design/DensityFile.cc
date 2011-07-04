@@ -3,7 +3,6 @@
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/DesignStructure.hh"
 #include "Optimization/Design/DesignElement.hh"
-#include "Optimization/Design/RapidReader.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/programOptions.hh"
@@ -162,88 +161,6 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
 
 }
 
-
-DesignSpace* DensityFile::ReadErsatzMaterialRapid(DesignSpace* ersatzMaterial)
-{
-  // perhaps Optimization has already called the SetEnums
-  if (DesignElement::type.map.empty())
-    DesignElement::SetEnums();
-  if (Objective::type.map.empty())
-    Optimization::SetEnums();
-
-  // do we have a command line switch? we then use the filename and the last set
-  bool cmd = progOpts->GetErsatzMaterialStr() != "";
-  PtrParamNode pn; // some default auto pointer NULL stuff
-  if(!cmd) pn = param->Get("loadErsatzMaterial");
-
-  string file = cmd ? progOpts->GetErsatzMaterialStr() : pn->Get("file")->As<string>();
-
-  // to be appended by the set name
-  std::cout << "++ (rxml) Load ersatz material file: '" << file << "'";
-
-  // we read something like <loadErsatzMaterial region="piezo" file="piezo_density.xml" set="last"/>
-  RapidReader rxmlreader(file);
-  
-  // we currently do not need the header paramnode, only when there is no optimization
-  // only simulation. this is not implemented atm...
-  //PtrParamNode header = rxmlreader.CreateHeaderParamNode();
-  
-  // find the proper design set. This is either 'first', 'last' or the * in <set id="*"> ...
-  string setid = cmd ? "last" : pn->Get("set")->As<string>();
-  
-  rapidxml::xml_node<>* set = rxmlreader.FindSet(setid);
-  string realname(set->first_attribute()->value());
-  
-  // finish the output as we have now the set information
-  std::cout << "/'" << realname + "'" << std::endl;
-  
-  assert(ersatzMaterial != NULL);
-  
-  bool force_region = pn != NULL && pn->Has("force_region");
-  
-  rapidxml::xml_node<>* element = set->first_node();
-  unsigned int nr(0);
-  DesignElement::Type dt(DesignElement::NO_TYPE);
-  double val(0.0);
-  unsigned int e(0);
-  rapidxml::xml_attribute<> *attr;
-  while(element != NULL)
-  {
-    for(attr = element->first_attribute(); attr; attr = attr->next_attribute())
-    {
-      std::stringstream ss;
-      ss.precision(11);
-      if(strcmp("nr", attr->name()) == 0)
-      {
-        ss << attr->value();
-        ss >> nr;
-        continue;
-      }
-      if(strcmp("design", attr->name()) == 0)
-      {
-        ss << attr->value();
-        ss >> val;
-        continue;
-      }
-      if(strcmp("type", attr->name()) == 0)
-      {
-        std::string t(attr->value());
-        dt = (DesignElement::Type) DesignElement::type.Parse(t);
-      }
-    }
-
-
-    DesignElement* de = force_region ? &(ersatzMaterial->data[e]) : ersatzMaterial->Find(nr, dt, false);
-    // this is also for the void-region! mainly for computing high resolution inv hom problems
-    if(de != NULL) // && regionIds.Find(de->elem->regionId) >= 0)
-      de->SetDesign(val);
-    
-    element = element->next_sibling();
-    ++e;
-  }
-  
-  return ersatzMaterial;
-}
 
 
 
