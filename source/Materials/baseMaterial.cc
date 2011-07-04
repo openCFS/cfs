@@ -188,13 +188,11 @@ namespace CoupledField
       if(posTens != tensorParams_.end())
       {
         // get the tensor by default as complex
-        Matrix<Complex> tensor = posTens->second;
         if(isComplex)
-          in_->Get("tensor")->SetValue(new Matrix<Complex>(tensor));
+          in_->Get("tensor")->SetValue(posTens->second);
         else
         {
-          Matrix<Double> real = tensor.GetPart(Global::REAL);
-          in_->Get("tensor")->SetValue(new Matrix<Double>(real));
+          in_->Get("tensor")->SetValue(posTens->second.GetPart(Global::REAL));
         }
       }
 

@@ -355,7 +355,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     for(unsigned int i = 0; i < ortho.GetSize(); i++)
       orth->Get(ortho[i].first)->SetValue(ortho[i].second);
 
-    in->Get("tensor")->SetValue(new Matrix<double>(homogenizedTensor));
+    in->Get("tensor")->SetValue(homogenizedTensor);
   }
 
   if(densityFile != NULL)
