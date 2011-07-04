@@ -329,6 +329,8 @@ share/doc/developer/develManual/pics/elems_quad.png -text
 share/doc/developer/develManual/pics/elems_tet.png -text
 share/doc/developer/develManual/pics/elems_tria.png -text
 share/doc/developer/develManual/pics/elems_wedge.png -text
+share/doc/developer/develManual/pics/ensight_man.png -text
+share/doc/developer/develManual/pics/ensight_rst_mat_to_part.png -text
 share/doc/developer/develManual/pics/gid.png -text
 share/doc/developer/develManual/pics/gmsh.png -text
 share/doc/developer/develManual/pics/gmsh_cp_test.png -text svneol=unset#image/png
@@ -526,6 +528,7 @@ share/scripts/cfs_grid.py -text
 share/scripts/cfs_utils.py -text
 share/scripts/cfstool -text
 share/scripts/common.sh svneol=native#text/plain
+share/scripts/compile_mkl_test.sh.in -text
 share/scripts/cplreader -text
 share/scripts/create_density.py -text
 share/scripts/distro.sh svneol=native#text/plain
@@ -1656,11 +1659,16 @@ source/cplreader/FileReaders/GENGRIDS/ReferenceElementGenerator.cc svneol=native
 source/cplreader/FileReaders/GENGRIDS/ReferenceElementGenerator.hh svneol=native#text/plain
 source/cplreader/FileReaders/GENGRIDS/SphericalShellGenerator.cc svneol=native#text/plain
 source/cplreader/FileReaders/GENGRIDS/SphericalShellGenerator.hh svneol=native#text/plain
-source/cplreader/FileReaders/OPENFOAM/CMakeLists.txt svneol=native#text/plain
-source/cplreader/FileReaders/OPENFOAM/FileReader_OPENFOAM.cc svneol=native#text/plain
-source/cplreader/FileReaders/OPENFOAM/FileReader_OPENFOAM.hh svneol=native#text/plain
 source/cplreader/FileReaders/Stanford/filereader_Stanford.cc svneol=native#text/plain
 source/cplreader/FileReaders/Stanford/filereader_Stanford.hh svneol=native#text/plain
+source/cplreader/FileReaders/VTKBased/CMakeLists.txt -text
+source/cplreader/FileReaders/VTKBased/EnSight/CMakeLists.txt -text
+source/cplreader/FileReaders/VTKBased/EnSight/FileReader_EnSight.cc -text
+source/cplreader/FileReaders/VTKBased/EnSight/FileReader_EnSight.hh -text
+source/cplreader/FileReaders/VTKBased/EnSight/MergePointExample.cc -text
+source/cplreader/FileReaders/VTKBased/OPENFOAM/CMakeLists.txt svneol=native#text/plain
+source/cplreader/FileReaders/VTKBased/OPENFOAM/FileReader_OPENFOAM.cc svneol=native#text/plain
+source/cplreader/FileReaders/VTKBased/OPENFOAM/FileReader_OPENFOAM.hh svneol=native#text/plain
 source/cplreader/FlowDataTypes.hh svneol=native#text/plain
 source/cplreader/OutputWriter.cc svneol=native#text/plain
 source/cplreader/OutputWriter.hh svneol=native#text/plain

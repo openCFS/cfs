@@ -2,28 +2,29 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#ifndef FILE_FILEREADER_OPENFOAM_2007
-#define FILE_FILEREADER_OPENFOAM_2007
+#ifndef FILE_FILEREADER_ENSIGHT_2011
+#define FILE_FILEREADER_ENSIGHT_2011
 
 #include <def_cplreader.hh>
 #include "cplreader/FileReader.hh"
 
-class vtkOpenFOAMReader;
+class vtkGenericEnSightReader;
+class vtkUnstructuredGrid;
 
 namespace CoupledField
 {
 
-  class FileReader_OPENFOAM : public FileReader
+  class FileReader_EnSight : public FileReader
   {
   public:
 
     //! Constructor
-    FileReader_OPENFOAM(const std::string& name,
+    FileReader_EnSight(const std::string& name,
                         const UInt dim,
                         const UInt numFiles);
 
     //! Deconstructor
-    virtual ~FileReader_OPENFOAM();
+    virtual ~FileReader_EnSight();
 
     virtual void Init();
 
@@ -52,18 +53,17 @@ namespace CoupledField
   protected:
       Elem::FEType VTKCellTypeToFEType(UInt cellType);
 
-      /* calculates the mechDisplacement and writes them into newCoords
-       * \param origin A vector which has the original position of each node
-       * \param newCoords A vector which has the new position of each node and
-       * which will store the mechDisplacement after the method call */
-      void calcMechDisplacement(const std::vector<Double>& origin, \
-          std::vector<Double>& newCoords) const;
-
-      std::vector<Integer> dataColumns_;
       /* nodalCoords_ should store the original mesh, which may be needed if we have
        * a moving mesh*/
       std::vector<Double> nodalCoords_;
-      vtkOpenFOAMReader* reader_;
+
+      /* Actual time step values */
+      std::vector<Double> timeValues_;
+      vtkGenericEnSightReader* reader_;
+      std::vector< std::map<UInt, UInt> > nodeMap_;
+      std::vector< std::vector<UInt> > actualRegionNodes_;
+    vtkUnstructuredGrid* pts_;
+
       UInt numElems_;
   };
 

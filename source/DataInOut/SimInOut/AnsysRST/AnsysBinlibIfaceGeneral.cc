@@ -1,6 +1,7 @@
 #include <cstring>
 #include <iostream>
 #include <complex>
+#include <algorithm>
 
 #include <Domain/grid.hh>
 #include "DataInOut/WriteInfo.hh"
@@ -32,7 +33,8 @@ namespace CoupledField
   DEFINE_LOG(simOutputRST, "SimOutputRST")
 
   AnsysBinlibIfaceGeneral::AnsysBinlibIfaceGeneral(void (*delObj)(void*))
-    : AnsysBinlibIface(delObj)
+    : AnsysBinlibIface(delObj),
+      analysisType_(BasePDE::STATIC)
   {
   }
 
@@ -47,10 +49,11 @@ namespace CoupledField
                                                       const std::string& TestFN)
   {
     char buffer[1024];
-    int len;
+    int len = 0;
     
     len = TestFN.length();
-    sprintf(buffer, "%s", TestFN.c_str());
+    std::fill(buffer, buffer+sizeof(buffer),0);
+    snprintf(buffer, sizeof(buffer), "%s", TestFN.c_str());
     reswrtest_(buffer, &len, len);
     
     std::ifstream ifstr(TestFN.c_str(), std::ios::binary);
@@ -1386,6 +1389,32 @@ namespace CoupledField
       LOG_TRACE(simOutputRST) << "Mapped " << solName
                               << " to SP01";
       break;
+    case FLUIDMECH_VELOCITY:
+      internal2AnsysNodeDofMap_[FLUIDMECH_VELOCITY] = VX;
+      ansysNodeDof2Idx_[VX] = idx + 0;
+      ansysNodeDof2Idx_[VY] = idx + 1;
+      ansysNodeDof2Idx_[VZ] = idx + 2;
+      LOG_TRACE(simOutputRST) << "Mapped " << solName
+                              << " to VX VY VZ";
+      break;
+    case FLUIDMECH_PRESSURE:
+      internal2AnsysNodeDofMap_[FLUIDMECH_PRESSURE] = PRES;
+      ansysNodeDof2Idx_[PRES] = idx;
+      LOG_TRACE(simOutputRST) << "Mapped " << solName
+                              << " to PRES";
+      break;
+    case ACOU_RHS_LOAD:
+      internal2AnsysNodeDofMap_[ACOU_RHS_LOAD] = SP02;
+      ansysNodeDof2Idx_[SP02] = idx;
+      LOG_TRACE(simOutputRST) << "Mapped " << solName
+                              << " to SP02";
+      break;
+    case ACOU_RHS_LOAD_DENSITY:
+      internal2AnsysNodeDofMap_[ACOU_RHS_LOAD_DENSITY] = SP03;
+      ansysNodeDof2Idx_[SP03] = idx;
+      LOG_TRACE(simOutputRST) << "Mapped " << solName
+                              << " to SP03";
+      break;
     case MAG_POTENTIAL:
       internal2AnsysNodeDofMap_[MAG_POTENTIAL] = SP04;
       ansysNodeDof2Idx_[SP04] = idx;
@@ -1432,6 +1461,11 @@ namespace CoupledField
       internal2AnsysElemDofMap_[MAG_FLUX_DENSITY] = EDECR;
       LOG_TRACE(simOutputRST) << "Mapped " << solName
                               << " to creep strains (EDECR).";
+      break;
+    case ACOU_DIV_LH_TENSOR:
+      internal2AnsysElemDofMap_[ACOU_DIV_LH_TENSOR] = EDEPL;
+      LOG_TRACE(simOutputRST) << "Mapped " << solName
+                              << " to plastic strains (EDEPL).";
       break;
     default:
       LOG_TRACE(simOutputRST) << "Element result " << solName

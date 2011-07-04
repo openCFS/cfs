@@ -140,7 +140,7 @@ namespace CoupledField
     // ==========================
 
     H5IO::WriteAttribute( elemGroup, "NumElems", nElems );
-    std::vector< UInt > numElemsOfDim ( 3 );
+    std::vector< UInt > numElemsOfDim ( 4 );
     UInt numElemTypes = Elem::feType.map.size();
     std::map<Elem::FEType, UInt> numElemsOfType;
     std::vector<UInt>::const_iterator it, end;
@@ -151,7 +151,7 @@ namespace CoupledField
 
     for( ; it != end; it++ )
     {
-      numElemsOfDim[ Elem::GetElemDim((Elem::FEType)*it)-1 ]++;
+      numElemsOfDim[ Elem::GetElemDim((Elem::FEType)*it) ]++;
       quadrElems &= static_cast<UInt>(Elem::GetElemQuadratic((Elem::FEType)*it));
       numElemsOfType[(Elem::FEType)*it]++;
     }
@@ -161,9 +161,9 @@ namespace CoupledField
                           quadrElems );
 
     // number of elements per dimension
-    for(UInt i=0; i<3; i++) {
+    for(UInt i=0; i<4; i++) {
       std::stringstream attrName;
-      attrName << "Num" << (i+1) << "DElems";
+      attrName << "Num" << (i) << "DElems";
       H5IO::WriteAttribute( elemGroup, attrName.str(), numElemsOfDim[i] );
     }
 

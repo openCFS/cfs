@@ -103,10 +103,10 @@ function SetupCentOS {
     wget http://www.svnkit.com/org.tmatesoft.svn_1.3.5.standalone.zip && \
     unzip org.tmatesoft.svn_1.3.5.standalone.zip || ExitFail
 
-    yum install subversion gcc gcc-c++ gcc-gfortran automake autoconf cmake \
-                perl graphviz tetex-latex tetex-tex4ht \
+    yum --enablerepo=centosplus install fuse-sshfs subversion gcc gcc-c++ \
+                perl graphviz tetex-latex tetex-tex4ht automake autoconf \
+                cmake gcc-gfortran java-1.6.0-openjdk-devel tk-devel \
                 python-pygments doxygen tcl-devel python-devel git-svn \
-                cmake-gui java-1.6.0-openjdk-devel tk-devel\
                 patch diffutils zip libXt-devel libXp mesa-libGLU-devel libXmu-devel || ExitFail
            
     if [ "$ARCH" = "X86_64" ]; then

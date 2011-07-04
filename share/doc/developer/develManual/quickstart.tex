@@ -78,6 +78,11 @@ Debian releases should work.
 dpkg -S /usr/bin/g++
 \end{verbatim}
 
+Ubuntu is a little  special among other Linux distros since it  uses Dash as a
+shell instead of  Bash. Therefore some shell scripts written  for Bash may not
+work on  Ubuntu. Go  to \url{https://wiki.ubuntu.com/DashAsBinSh} for  tips on
+how to make your scripts POSIX compliant.
+
 \item[Fedora] Fedora support has been tested on release 13.
 
 \noindent Checking which package provides an already installed file:
