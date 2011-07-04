@@ -71,14 +71,6 @@ namespace CoupledField {
   }
 
 
- // *****************
-  //   Print Material Data
-  // *****************
-  void WriteInfo::PrintMaterial( BaseMaterial* material ) {
-    *cfsInfo << *material << endl;
-  }
-
-
   void WriteInfo::WriteMultiSequenceStep(const UInt sequenceStep, 
                                          const BasePDE::AnalysisType analysis)
   {

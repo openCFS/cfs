@@ -68,9 +68,6 @@ namespace CoupledField {
     //!       refuse to open the file another time.
     void CreateFile();
 
-    /// prints full data of a material
-    void PrintMaterial(BaseMaterial* material);
-    
     /// prints all data of a coil (e.g. current, area, magnetization, ...)
     void PrintCoil( Coil &coil, BasePDE::AnalysisType &analysistype );
 
