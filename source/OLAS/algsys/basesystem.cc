@@ -52,8 +52,8 @@ namespace CoupledField {
     numDirichletValues_ = 0;
 
     algSysType_     = NOALGSYSTYPE;
-    
-    systemInfo_ = info->Get("OLAS")->Get("system");
+    olasInfo = info->Get("OLAS");
+    systemInfo_ = olasInfo->Get("system");
 
 #ifdef MEMTRACE
     if ( memtrace == NULL ) {
