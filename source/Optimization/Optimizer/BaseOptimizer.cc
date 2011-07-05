@@ -177,10 +177,10 @@ BaseOptimizer::BaseOptimizer(Optimization* opt, PtrParamNode pn) :
   info_(info->Get("optimization")->Get("optimizer")),
   objective(NULL),
   restart_requested(false),
+  timer_(new Timer()),
   design_(DesignMemory(-1, 0.0)),
   optimizer_pn_(pn)
 {
-  this->timer_ =  new Timer();
   info_->Get(ParamNode::SUMMARY)->Get("timer")->SetValue(this->timer_ );
 }
 

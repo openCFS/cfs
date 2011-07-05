@@ -218,9 +218,9 @@ private:
 
 
   /** Timer for SnOpt */ 
-  Timer *timer_;
+  boost::shared_ptr<Timer> timer_;
   /** Timer for callback function */ 
-  Timer *timer_callback_;
+  boost::shared_ptr<Timer> timer_callback_;
 };
 
 } // end of namespace

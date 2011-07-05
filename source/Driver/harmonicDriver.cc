@@ -32,7 +32,7 @@ namespace CoupledField
   //   Constructor
   // ***************
   HarmonicDriver::HarmonicDriver( UInt sequenceStep, bool isPartOfSequence )
-    : SingleDriver( sequenceStep, isPartOfSequence )
+    : SingleDriver( sequenceStep, isPartOfSequence ), timer_(new Timer())
   {
     // Set correct analysistype
     analysis_ = BasePDE::HARMONIC;
@@ -50,16 +50,12 @@ namespace CoupledField
     numFreq_ = 0;
     actFreqStep_ = 0;
     
-    timer_ = new Timer();
-    
     // register frequency variable at math parser
     domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", actFreq_ );
   }
 
   HarmonicDriver::~HarmonicDriver()
-  {
-    delete timer_;
-  }
+  {  }
 
 
   void HarmonicDriver::Init()

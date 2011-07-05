@@ -161,6 +161,9 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
 
 }
 
+
+
+
 PtrParamNode DensityFile::Create(ParamNodeList& des, ParamNodeList& tfs, PtrParamNode regularize)
 {
    PtrParamNode in = PtrParamNode(new ParamNode(ParamNode::INSERT));

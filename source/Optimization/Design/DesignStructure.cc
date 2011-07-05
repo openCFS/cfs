@@ -152,7 +152,7 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
   }
 
   // the initialization was separated!
-  Timer* timer = new Timer(); 
+  boost::shared_ptr<Timer> timer(new Timer()); 
   in->Get("timer")->SetValue(timer);
   timer->Start();
 
@@ -227,7 +227,7 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
   in->Get("avg_neighbors")->SetValue(avg_neighbours / data.GetSize());
 
   timer->Stop();
-
+  
   std::cout << "Filter: avg radius: " << (avg_radius / data.GetSize())
             << " avg neighbourhood: " << (avg_neighbours / data.GetSize()) << std::endl;
 }

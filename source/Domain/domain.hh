@@ -181,11 +181,6 @@ namespace CoupledField
      /** E.g. the MechPDE needs it in CalcResuls() to write pseudo densities. 
       * @return  NULL but an exception if not set and not silent*/
      DesignSpace* GetErsatzMaterial(bool throw_exception = true); 
-      
-
-     /** Reads the 'loadErsatzMaterial' node. Check before that it exists.
-      * Is called from optimization if used concurrently. */ 
-     void ReadErsatzMaterial(PtrParamNode pn);
      
      /** Returns true, if optimization does provide a complete tensor */
      bool HasErsatzMaterialTensor();
