@@ -526,6 +526,7 @@ share/scripts/cfs_grid.py -text
 share/scripts/cfs_utils.py -text
 share/scripts/cfstool -text
 share/scripts/common.sh svneol=native#text/plain
+share/scripts/continuation.py -text
 share/scripts/cplreader -text
 share/scripts/create_density.py -text
 share/scripts/distro.sh svneol=native#text/plain

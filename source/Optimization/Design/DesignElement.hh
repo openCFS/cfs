@@ -500,8 +500,8 @@ double SIMPElement::CalcHeaviside(double input_value) const
     double corr = (1.0 - (1.0 - input_value) * f->heaviside_corr) * input_value;
     double result = 1.0 - std::exp(-1.0 * b * corr) + corr * std::exp(-1.0 * b);
 
-    //LOG_DBG3(desel) << "CH: de=" << de_->elem->elemNum << " f=" << f->density.ToString(f->density_)
-    //                << " hc=" << f->heaviside_corr << " corr=" << corr << " iv=" << input_value << " -> " << result;
+    // LOG_DBG3(desel) << "CH: de=" << de_->elem->elemNum << " f=" << f->density.ToString(f->density_)
+    //                 << " hc=" << f->heaviside_corr << " corr=" << corr << " iv=" << input_value << " -> " << result;
     return result;
   }
   else // if(f->density_ == Filter::MOD_HEAVISIDE)
@@ -515,8 +515,8 @@ double SIMPElement::CalcHeaviside(double input_value) const
 
     return (ub-lb) * (first + second) + lb;
 
-    //LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " b=" << b << " lb=" << lb << " (ub-lb)=" << (ub-lb)
-    //              << " c=" << constant << " +1st=" << first << " +2nd=" << second << " =" << (constant + first + second) << " -> " << p_filt;
+    // LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " b=" << b << " lb=" << lb << " (ub-lb)=" << (ub-lb)
+    //                << " c=" << constant << " +1st=" << first << " +2nd=" << second << " =" << (constant + first + second) << " -> " << p_filt;
   }
 }
 

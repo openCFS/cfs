@@ -459,27 +459,10 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
       info_->Get(ParamNode::WARNING)->SetValue(msg);
     }
 
-    StdVector<Elem*> elems;
-    grid->GetElems(elems, region);
+    assert(elements.GetSize() == 0);
 
-    // construct dummy elements
-    non_design_elements_.Reserve(elems.GetSize());
-
-    // see DesignSpace::GetPseudoElementIndex()
-    int pei_base = space->GetNumberOfElements() + space->CalcRegisteredPseudoDesigns();
-
-    for(unsigned int i = 0; i < elems.GetSize(); i++)
-    {
-      DesignElement del(elems[i], design, elements.GetSize(), pei_base + i);
-      non_design_elements_.Push_back(del); // copy constructor
-
-      DesignElement* de = &(non_design_elements_.Last());
-      assert(de->simp == NULL);
-      de->simp = new SIMPElement(de);
-
-      elements.Push_back(de);
-    }
-    space->RegisterPseudoDesign(elements);
+    // this creates the pseudo design elements and both indices are hopefully properly set!
+    space->RegisterPseudoDesignRegion(region, design, &elements);
   }
 
   assert(elements.GetSize() == elements.Capacity());

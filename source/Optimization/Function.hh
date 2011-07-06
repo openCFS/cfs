@@ -490,10 +490,6 @@ class Function
     PtrParamNode info_;
 
     StressType stressType_;
-
-  private:
-    /** Here elements refers to if the region is not within the design space */
-    StdVector<DesignElement> non_design_elements_;
 };
 
 

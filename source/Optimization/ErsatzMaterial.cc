@@ -3124,7 +3124,7 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Applic
       StdVector<SingleVector*>& elem_vec = elem[app];
 
       int n = em_->design->GetNumberOfElements(); // the standard design elements
-      int pn = em_->design->CalcRegisteredPseudoDesigns(); // optional (multiple) pseudo design elements
+      int pn = em_->design->CalcPseudoDesignElements(); // optional (multiple) pseudo design elements
 
       // check for first call
       if(elem_vec.GetSize() == 0)
@@ -3151,11 +3151,11 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Applic
       // the pseudo design if we have some
       for(unsigned int r = 0; r < em_->design->GetPseudoDesignRegions().GetSize(); r++)
       {
-        StdVector<DesignElement*>& data = *(em_->design->GetPseudoDesignRegions()[r]);
+        StdVector<DesignElement>& data = em_->design->GetPseudoDesignRegions()[r];
 
         for(unsigned int e = 0; e < data.GetSize(); e++)
         {
-          DesignElement* de = data[e];
+          DesignElement* de = &data[e];
 
           elemList.SetElement(de->elem);
           const EntityIterator& it = elemList.GetIterator();

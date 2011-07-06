@@ -690,13 +690,11 @@ const std::string ToString(const vector<LevelSetElement> &space)
 void LevelSet::SetupSpace()
 {
   // we need the vicinity in the design elements set (if not set yet)
-  // mark! assumes only one design variable!!
-  DesignElement& de = (*design_)[0];
 
   // Assume no periodic B.C. Otherwise organize DesignStructure from ErsatzMaterial or create
   // own instance!
-  if(de.vicinity == NULL) VicinityElement::Init(optimization->GetDesign(), NULL);
-  assert(de.vicinity != NULL);
+  VicinityElement::Init(optimization->GetDesign(), NULL);
+  assert((*design_)[0].vicinity != NULL);
   
   cout << "Levelset space... " << flush;
 

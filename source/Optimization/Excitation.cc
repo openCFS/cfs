@@ -74,7 +74,7 @@ Excitation* MultipleExcitation::GetExcitation(const std::string& label, bool qui
 void MultipleExcitation::PrepareMultipleExcitations(SinglePDE* pde, PtrParamNode optInfoNode, bool harmonic, bool eval_inital_design)
 {
   // by definition, we always have at least one excitation.
-  // This does not necessarily need to ba a load (but might be voltage, pressure, ...)
+  // This does not necessarily need to be a load (but might be voltage, pressure, ...)
   excitations.Resize(1);
   excitations[0].index = 0;
 
@@ -259,6 +259,7 @@ int MultipleExcitation::SetHomogenizationTestStrains()
   unsigned int dim = domain->GetGrid()->GetDim();
 
   int cases = dim == 2 ? 3 : 6;
+  assert(excitations.GetSize() == 1);
   excitations.Resize(cases);
 
   assert((int) MechPDE::X == 0);
@@ -306,6 +307,7 @@ int MultipleExcitation::SetPolarizationMatrixExcitations(PtrParamNode param)
   ParamTools::AsTensor<double>(pol->Get("couplingTensor/real"), dim1, dim, couplmatrix);
 
   const int cases(dim == 2 ? 5 : 9);
+  assert(excitations.GetSize() == 1);
   excitations.Resize(cases);
 
   // decompose the vector with the material parameters into the

@@ -652,14 +652,13 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
     const DesignElement* de = ne->neighbour;
 
     double w = ne->weight;
-    //double x = de->GetPlainValue(DesignElement::DESIGN); // cheap if not used
-     double x = de->GetPlainDesignValue();
+    double x = de->GetPlainDesignValue();
 
     numerator   += w * x;
     denominator += w;
 
-    // LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
-    //                << " w= " << w  << " p=" << x << " num=" << numerator << " den=" << denominator;
+    LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
+                    << " w= " << w  << " x=" << x << " num=" << numerator << " den=" << denominator;
   }
 
   double p_filt = numerator / denominator;
@@ -856,6 +855,10 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
   // we will need the barycenters in FindNeibhborhood()
   for(unsigned int i = 0, s = space->regions[0].GetSize(); i < s; i++)
     grid->SetElementBarycenters(space->regions[0][i].regionId, false); // no updated coordinates
+  // Handle also the off-design barycenters
+  if(space->DoNonDesignVicinity())
+    for(unsigned int i = 0; i < space->GetPseudoDesignRegions().GetSize(); i++)
+      grid->SetElementBarycenters(space->GetPseudoDesignRegions()[i][0].elem->regionId, false);
 
   // let CFS find the neighborhood of *all* elements. With some luck this was done
   // anyway already and we get it for free
@@ -881,26 +884,26 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
 
   // traverse over all elements
   // double cfs elements for multiple design variables are not handled special
-  for(unsigned int e = 0, n = space->data.GetSize(); e < n; e++)
+  for(unsigned int e = 0, n = space->GetTotalElements().GetSize(); e < n; e++)
   {
-    DesignElement& de = space->data[e];
-    de.vicinity = new VicinityElement();
+    DesignElement* de = space->GetTotalElements()[e];
+    de->vicinity = new VicinityElement();
     // here we store the neighbors in a sorted way
-    StdVector<DesignElement*>& ve_data = de.vicinity->design; // has proper size of NULLs
+    StdVector<DesignElement*>& ve_data = de->vicinity->design; // has proper size of NULLs
 
     // reference case
-    StdVector<std::pair<Elem*, int> >& neighbors = *(de.elem->neighborhood);
+    StdVector<std::pair<Elem*, int> >& neighbors = *(de->elem->neighborhood);
     // reuse the enlarged_data element for the periodic case only
     if(periodic)
     {
-      if(structure->ExtendPeriodicNeighborhood(de.elem, common, enlarged_data))
+      if(structure->ExtendPeriodicNeighborhood(de->elem, common, enlarged_data))
       {
         neighbors = enlarged_data; // in the non-periodic case there is no need to copy the element data
-        de.vicinity->periodic = true;
+        de->vicinity->periodic = true;
       }
     }
 
-    LOG_DBG(desel) << "VE:Init elem=" << de.elem->elemNum << " neighbors=" << neighbors.ToString();
+    LOG_DBG(desel) << "VE:Init elem=" << de->elem->elemNum << " neighbors=" << neighbors.ToString();
 
     for(unsigned int n = 0; n < neighbors.GetSize(); n++)
     {
@@ -909,24 +912,21 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
       // now we have to find the relative position of candidate
       Elem* candidate = neighbors[n].first;
 
-      LOG_DBG3(desel) << "VE:Init elem=" << de.elem->elemNum << " e.bc=" << de.elem->barycenter.ToString() << " e.dim="
-                    << de.elem->ptElem->GetDim() << " e.r=" << de.elem->regionId << " n=" << n << " o.el=" << candidate->elemNum
+      LOG_DBG3(desel) << "VE:Init elem=" << de->elem->elemNum << " e.bc=" << de->elem->barycenter.ToString() << " e.dim="
+                    << de->elem->ptElem->GetDim() << " e.r=" << de->elem->regionId << " n=" << n << " o.el=" << candidate->elemNum
                     << " o.bc=" << candidate->barycenter.ToString() << " o.dim=" << candidate->ptElem->GetDim() << " o.r=" << candidate->regionId;
 
       // if the neighbor is a surface element we don't want to play with it
-      if(de.elem->ptElem->GetDim() != candidate->ptElem->GetDim())
+      if(de->elem->ptElem->GetDim() != candidate->ptElem->GetDim())
         continue;
-      // same if the region does not match. E.g. if there is fixed region not subject to optimization, e.g. bruggi_two_bar
-      if(!space->Contains(candidate->regionId))
+      // we include pseudo design regions. This is for off-design optimization or non_design_vicinity=true in <ersatzMaterial>
+      if(!space->Contains(candidate->regionId, space->DoNonDesignVicinity()))
         continue;
-      // if((de.elem->regionId != candidate->regionId) && (space->regions.GetSize() == 1 || !space->Contains(candidate->regionId)))
-      //  continue;
-      // assert(space->regions.GetSize() == 1); // extend for multi-region
 
       // the spacing allows to identify periodic elements
-      int idx = FindRelativeNeighborLocation(de.elem->barycenter, candidate->barycenter, spacing);
-      ve_data[idx] = space->Find(candidate->elemNum, de.GetType(), false);
-      LOG_DBG2(desel) << "VE:Init elem=" << de.elem->elemNum << " idx=" << idx << " dat=" << ve_data[idx];
+      int idx = FindRelativeNeighborLocation(de->elem->barycenter, candidate->barycenter, spacing);
+      ve_data[idx] = space->Find(candidate->elemNum, de->GetType(), false, space->DoNonDesignVicinity());
+      LOG_DBG2(desel) << "VE:Init elem=" << de->elem->elemNum << " idx=" << idx << " val=" << ve_data[idx]->ToString() << " neigh=" << DesignElement::ToString(ve_data);
     }
   }
  }

@@ -814,6 +814,14 @@
               </xsd:complexType>
             </xsd:element>
             
+            <!-- Optional parameters for the design space -->
+            <xsd:element name="designSpace" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <!-- Activate when density filter and slopes shall see non-design regions. -->
+                <xsd:attribute name="non_design_vicinity" type="xsd:boolean" default="false" use="optional"/>
+              </xsd:complexType>
+            </xsd:element>
+            
             <!-- The desing variables have to be specified explicitely, 
               <design name="density" initial="0.5"/> -->
             <xsd:element name="design" minOccurs="0" maxOccurs="unbounded">
@@ -1065,10 +1073,11 @@
             </xsd:simpleType>
           </xsd:attribute>               
 
-          <!-- the L-mesh of the stress constraint benchmark is meshed by gid with different positions of
-               element nodes, such that one cannot use the same element materix, even if the grid is regular -->
+          <!-- In special cases gid does not mesh all elements with the same local node positions such
+               that there is no commom element matrix even for regular grids. -->
           <xsd:attribute name="enforce_unstructured" default="false" type="xsd:boolean" use="optional"/>                                     
-                                     
+
+                                   
         </xsd:complexType>
       </xsd:element>
       

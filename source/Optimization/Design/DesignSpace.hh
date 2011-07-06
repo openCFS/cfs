@@ -202,7 +202,7 @@ namespace CoupledField
      int FindDesign(DesignElement::Type dt, bool throw_exception = true);
 
      /** Service method to find a specific design element by element number and design type */
-     DesignElement* Find(unsigned int elemNum, DesignElement::Type dt, bool throw_exception = true);
+     DesignElement* Find(unsigned int elemNum, DesignElement::Type dt, bool throw_exception = true, bool include_pseudo_designs = false);
 
      /** Searches for the element idx.
       * @param elem checks region of elem or region of vol elemens if elem is a SurfElem
@@ -213,7 +213,7 @@ namespace CoupledField
 
      /** finds the index of the design element in design.data for the element.
       * Is very fast O(1) */
-     int Find(unsigned int elemNum, bool throw_exception = true);
+     int Find(unsigned int elemNum, bool throw_exception = true, bool include_pseudo_designs = false);
 
      /** When we have more design types this is a divisor of data.GetSieze() */
      unsigned int GetNumberOfElements() { return elements; }
@@ -233,8 +233,13 @@ namespace CoupledField
       * @return 0 if not set. */
      double GetPampingValue() const { return pamping_; }
 
+     /** Do we do non_design_vicinity for larger filter/slopes */
+     bool DoNonDesignVicinity() const { return non_design_vicinity_; }
+
      /** This is our real design data, a set of DesignElements.
-      * Size is design.GetSize() * elements */
+      * Size is design.GetSize() * elements
+      * @see pseudoDesigns_
+      * @see totalElements_*/
      StdVector<DesignElement> data;
 
      /** Our transfer functions */
@@ -325,23 +330,27 @@ namespace CoupledField
      /** it is convenient to have such a vector for some functions. Taken from regions! */
      StdVector<RegionIdType>& GetRegionIds() { return regionIds_; }
 
-     /** stupid find function */
-     bool Contains(const RegionIdType reg) const;
+     /** Check if a region is within the (pseudo) design domain
+      * @param include_pseudo also consider pseudoDesigns_. This might result in always true ?! */
+     bool Contains(const RegionIdType reg, bool include_pseduo = false) const;
 
-     /** This allows function which are defined on a non-design region to register their pseudo design elements
-      * such that their special results can be visualized.
-      * Double regions are rejected!
-      * @param elements must consist of a single regions */
-     void RegisterPseudoDesign(StdVector<DesignElement*>& elements);
+     /** Add a pseudo design region. Either for off-design optimization (stress) for off-design vicinity elements.
+      * If the region/ type exists nothing is added.
+      * @param write_out export the designs elements. either already existing or newly added
+      * @return if the region was added or existed already */
+     bool RegisterPseudoDesignRegion(RegionIdType region, DesignElement::Type dt, StdVector<DesignElement*>* write_out = NULL);
 
      /** ErsatzMaterial::Solution::Read() needs the pseudo design elements. */
-     StdVector<StdVector<DesignElement*>* >& GetPseudoDesignRegions() { return pseudoDesigns_; }
+     StdVector<StdVector<DesignElement> >& GetPseudoDesignRegions() { return pseudoDesigns_; }
 
-     /** Calculates the sum of the registered elements. This are not unique elements if multiple functions register
-      * the same regions.
-      * Necessary for the DesignElement constructor of pseudo elements (to be registerd later) such that the virtual element
+     /** Gives all used elements. This are DesignElement/FEM elements. For all designs.
+      * The read design and pseudo design elements if there are some */
+     StdVector<DesignElement*>& GetTotalElements() { return totalElements_; }
+
+     /** Calculates the sum of the registered elements.
+      * Necessary for the DesignElement constructor of pseudo elements (to be registered later) such that the virtual element
       * index can be set for extended pde vector element solution storage. */
-     unsigned int CalcRegisteredPseudoDesigns() const;
+     unsigned int CalcPseudoDesignElements() const;
 
      /** for SIMP type constructor we have a number of elements,
       * data size = num of design * num region elements */
@@ -394,10 +403,12 @@ namespace CoupledField
                                 DesignElement::Access access, Condition* g = NULL, bool scaling = true) const;
      
      /** We afford a large element number to design index mapping.
-      * sorted by the elemNum the design index stored.
-      * For multiple designs only for the first (index < elements) is stored.
+      * sorted by the elemNum the design index is stored.
+      * For real designs, only for the first design design (index < elements) the index is stored. @see Find()!!
+      * For pseudo designs the all designs for the same element have the same index within their sub pseudoDesign_ vector
+      * The boolean is design type (true is standard design, false is pseudo design.
       * -1 for element numbers with no associated design */
-     StdVector<int> elemToDesign;
+     StdVector<std::pair<int, bool> > elemToDesign;
 
      /** This transforms FormName (Integrator) to Application -> so the enum is actually Application 
       * but here int because of circular includes :( */
@@ -413,9 +424,22 @@ namespace CoupledField
      /** just a cache from regions */
      StdVector<RegionIdType> regionIds_;
 
-     /** Functions which are defined not within the design space have their own pseudo DesignElements.
-      * They are stored here, such that we can report their special results via FillElementResults() */
-     StdVector<StdVector<DesignElement*>* > pseudoDesigns_;
+     /** This are all non-design elements. Either for non-design optimization (stress constraints) or
+      * as vicinity design elements for non_design_vicinity="true" in <ersatzMaterial>. They are identified
+      * by the region-id and the design-type of the first element of each vector.
+      * They are stored here, such that we can report their special results via FillElementResults().
+      * The array is grouped by regions and design type! but completely unsorted. One has to check the regionId and design of an
+      * arbitrary element.
+      * @see RegisterPseudoDesignRegion() */
+     StdVector<StdVector<DesignElement> > pseudoDesigns_;
+
+     /** This is a sequential list of all elements. design and pseudo-design. Multiple designs, more elements :)
+      * Updated eventually by RegisterPseudoDesignRegion(). */
+     StdVector<DesignElement*> totalElements_;
+
+
+     /** Do we want to include the non-design vicinity? For Heaviside filters and slopes */
+     bool non_design_vicinity_;
 
      /** the pamping parameter. Extend to region on request :) */
      double pamping_;

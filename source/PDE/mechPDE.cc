@@ -2381,10 +2381,9 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
   {
     assert(ss == MECH_STRESS || ss == MECH_STRAIN);
 
-    Vector<Double> intPoint;
-    Vector<TYPE> elem;
-    elem.Resize(stressDim_); // same dimension for stress and strain
-    elem.Init(0);
+    Vector<TYPE> vec;
+    vec.Resize(stressDim_); // same dimension for stress and strain
+    vec.Init(0);
 
     Result<TYPE> &  actRes =
       dynamic_cast<Result<TYPE>&>(*res);
@@ -2401,25 +2400,45 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     MechStressStrain<TYPE> *stress_strain = new MechStressStrain<TYPE>(actSDMat,GetSubTensorType());
     stress_strain->SetAnsatzFct( results_[0]->fctType );
     // loop over elements
-    for ( it.Begin(); !it.IsEnd(); it++ ) {
-      it.GetElem()->ptElem->GetCoordMidPoint(intPoint);
+    for ( it.Begin(); !it.IsEnd(); it++ )
+    {
+      const UInt nrIntPts = it.GetElem()->ptElem->GetNumIntPoints();
+      const Vector<Double>& intWeights = it.GetElem()->ptElem->GetIntWeights();
+      assert(intWeights.GetSize() == nrIntPts); // 0-based
+      double area = it.GetElem()->ptElem->CalcVolume();
 
-      //set element solution
-      Matrix<TYPE> elSol;
-      sol_->GetElemSolutionAsMatrix(elSol, it);
-      stress_strain->SetActElemSol(elSol);
+      // reset target such that we can sum up
+      for(UInt iDof = 0; iDof < stressDim_; iDof++ )
+         actVal[it.GetPos()*stressDim_ + iDof] = 0.0;
 
-      //calculates the element stress/strain
-      stress_strain->SetIntPoint(intPoint);
-      if(ss == MECH_STRAIN)
-        stress_strain->CalcStrainVec(elem,1,it);
-      else
-        stress_strain->CalcStressVec(elem,1,it);
+      // loop over the integration points
+      for(UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++)
+      {
+        Vector<Double>* intPoints = it.GetElem()->ptElem->GetIntPoints();
+        // it.GetElem()->ptElem->GetCoordMidPoint(intPoint);
 
-      stress_strain->UnsetIntPoint();
-      for( UInt iDof = 0; iDof < stressDim_; iDof++ ) {
-        actVal[it.GetPos()*stressDim_ + iDof] = elem[iDof];
+        //set element solution
+        Matrix<TYPE> elSol;
+        sol_->GetElemSolutionAsMatrix(elSol, it);
+        stress_strain->SetActElemSol(elSol);
+
+        //calculates the element stress/strain
+        stress_strain->SetIntPoint(intPoints[actIntPt-1]); // fuck 1-based!!
+        if(ss == MECH_STRAIN)
+          stress_strain->CalcStrainVec(vec,actIntPt,it);
+        else
+          stress_strain->CalcStressVec(vec,actIntPt,it);
+
+        // LOG_DBG3(mechpde) << "CSAS: stress=" << (ss != MECH_STRAIN) << " el=" << it.GetElem()->elemNum << " ipn=" << actIntPt
+        //                  << " vec=" << vec.ToString() << " w=" << intWeights[actIntPt-1] << " a=" << area << " io=" << intPoints[actIntPt-1].ToString();
+
+        stress_strain->UnsetIntPoint();
+        for( UInt iDof = 0; iDof < stressDim_; iDof++ ) {
+          actVal[it.GetPos()*stressDim_ + iDof] += (intWeights[actIntPt-1] * vec[iDof]) / area; // fuck 1-based!
+        }
       }
+
+      LOG_DBG3(mechpde) << "CSAS: stress=" << (ss != MECH_STRAIN) << " el=" << it.GetElem()->elemNum << " -> " << StdVector<TYPE>::ToString(stressDim_, actVal.GetPointer() + it.GetPos()*stressDim_);
     }
 
     delete stress_strain;

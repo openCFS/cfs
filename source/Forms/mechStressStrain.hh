@@ -14,7 +14,7 @@
 namespace CoupledField
 {
   
-  //! class for calculation of mechanical stresses
+  //! class for calculation of mechanical stresses and strains
   template <class TYPE>
   class MechStressStrain : public linElastInt
   {
@@ -22,10 +22,10 @@ namespace CoupledField
 
     /// Constructor
     MechStressStrain(BaseMaterial* matData, SubTensorType type);
-  
+
     /// Destructor
     virtual ~MechStressStrain();  
-  
+
     /// calculates Piola-Kirchoff-stresses (vector notation)
     void CalcStressVec(Vector<TYPE>& stressVec, UInt ip, 
                        EntityIterator& ent);  
