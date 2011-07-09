@@ -335,8 +335,6 @@ namespace CoupledField
       }
     }
 
-    // Fetch math  parser object
-    MathParser * parser = domain->GetMathParser();
 
     // iterate over all descriptors
     StdVector<BiLinFormContext*>::iterator formsIt;
@@ -352,10 +350,8 @@ namespace CoupledField
       FEMatrixType destMat = actContext.GetDestMat();
       FEMatrixType secDestMat = actContext.GetSecDestMat();
 
-      // get secondary matrix factor string and set it
-      // at the math parser
-      parser->SetExpr( mHandle_, actContext.GetSecMatFac() );
-      Double secMatFac = parser->Eval(mHandle_ );
+      // get secondary matrix factor string 
+      Double secMatFac = actContext.EvalSecMatFac();
 
       // If assemble was already called and the current destination
       // matrix must not be reassembled -> continue with next iterator
@@ -870,9 +866,10 @@ namespace CoupledField
       Enum2String(matrixMap_[context.GetDestMat()], tmp );
       dest->Get("feMatrixMapped")->SetValue(tmp);
       
-      // secondary destination matrix
+      // secondary destination matrix and factor
       Enum2String(context.GetSecDestMat(), tmp );
       dest->Get("feSecondMatrix")->SetValue(tmp);
+      dest->Get("feSecondMatrixFac")->SetValue(context.GetSecMatFac());
       
       // additional attributes
       PtrParamNode attr = form->Get("attributes", ParamNode::APPEND);

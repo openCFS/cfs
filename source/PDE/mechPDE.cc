@@ -234,7 +234,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         Double dampFreq;
         
         if( actRayl.freq == 0.0 ) {
-        materials_[actRegionId]->GetScalar(dampFreq,RAYLEIGH_FREQUENCY,Global::REAL);
+          materials_[actRegionId]->GetScalar(dampFreq,RAYLEIGH_FREQUENCY,Global::REAL);
         } else { 
           dampFreq = actRayl.freq;
         }
