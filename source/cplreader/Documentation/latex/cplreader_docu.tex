@@ -1380,11 +1380,66 @@ file {\tt 20110207_Ensight_gold_binary_LES_Zylinder.geo}.
 
 \subsubsection{Logging} 
 
+The {\tt .case} gets saved to the /UserData/name.case dataset in the HDF5 file
+for later reference.
+
 \subsubsection{Examples}
 
 \begin{verbatim}
 cplreader --type FIELDVIEW --name fluid_aachen --verbose 1 --justmesh 1 \
           --outputfields all --numsteps 1
+\end{verbatim}
+
+\newpage
+\subsection{FLUENT}
+\label{sec:fluent}
+
+ANSYS Fluent  writes transient data  into {\tt .cas[.gz]} and  {\tt .dat[.gz]}
+files.  If  the mesh does  not change then  only one {\tt .cas[.gz]}  file and
+many  {\tt .dat[.gz]}  files will  be  written.  If  the mesh  changes a  {\tt
+.cas[.gz]} for every {\tt .dat[.gz]} file gets written.  Therefore, we support
+the following file layouts.
+
+
+\subsubsection{Required File Layout}
+
+\begin{verbatim}
+NACA0012-2D/
+|-- NACA0012-2D-23001.dat
+|-- NACA0012-2D-23002.dat
+|-- NACA0012-2D-23003.dat
+`-- NACA0012-2D.cas
+\end{verbatim}
+
+\begin{verbatim}
+FAN-3D/
+|-- FAN-3D-00006.cas
+|-- FAN-3D-00006.dat
+|-- FAN-3D-00007.cas
+|-- FAN-3D-00007.dat
+|-- FAN-3D-00008.cas
+`-- FAN-3D-00008.dat
+\end{verbatim}
+
+\subsubsection{Special Options}
+
+\subsubsection{Logging} 
+
+The mapping  from {\tt .cas[.gz]} to  {\tt .dat[.gz]} for  every timestep gets
+saved  to the  group  /UserData/CasToDatMapping  in the  HDF5  file for  later
+reference.
+
+\begin{verbatim}
+ts[0] (t=0s): NACA0012-2D.cas -> NACA0012-2D-23001.dat
+ts[1] (t=1s): NACA0012-2D.cas -> NACA0012-2D-23002.dat
+ts[2] (t=2s): NACA0012-2D.cas -> NACA0012-2D-23003.dat
+\end{verbatim}
+
+\subsubsection{Examples}
+
+\begin{verbatim}
+cplreader --type FLUENT --justmesh 0 --numsteps -1 --verbose 1 --calcsrc 1 
+          --outputfields all --dim 2 --timestep 1 --name NACA0012-2D
 \end{verbatim}
 
 \newpage

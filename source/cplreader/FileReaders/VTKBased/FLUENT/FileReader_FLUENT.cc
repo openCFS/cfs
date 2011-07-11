@@ -16,26 +16,31 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/exception.hpp>
+
+#include <boost/iostreams/filtering_streambuf.hpp>
+#include <boost/iostreams/copy.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+
+#include <boost/algorithm/string/predicate.hpp>
+namespace algo=boost::algorithm;
+
 namespace fs=boost::filesystem;
+namespace bios=boost::iostreams;
 
 #include "Domain/resultInfo.hh"
 
 #include "cplreader/Settings.hh"
-#include "FileReader_EnSight.hh"
+#include "FileReader_FLUENT.hh"
 
 
 // This is due to the fucking OLAS New operator!!!
 #undef New
 
-#include <vtkEnSight6Reader.h>
-#include <vtkEnSight6BinaryReader.h>
-#include <vtkEnSightGoldReader.h>
-#include <vtkEnSightGoldBinaryReader.h>
+#include <vtkFLUENTReader.h>
 
 #include <vtkDataArrayCollection.h>
 #include <vtkDataArrayCollectionIterator.h>
 #include <vtkInformation.h>
-#include <vtkCellData.h>
 
 #include <vtkCellArray.h>
 #include <vtkUnstructuredGrid.h>
@@ -57,82 +62,222 @@ namespace fs=boost::filesystem;
 namespace CoupledField
 {
 
-  FileReader_EnSight::FileReader_EnSight(const std::string& name,
+  FileReader_FLUENT::FileReader_FLUENT(const std::string& name,
                                            const UInt dim,
                                            const UInt numFiles) :
-    FileReader_VTKMultiBlock(name, dim, numFiles)
+    FileReader_VTKMultiBlock(name, dim, numFiles),
+    oneCasToManyDat_(false)
   {
   }
 
-  FileReader_EnSight::~FileReader_EnSight()
+  FileReader_FLUENT::~FileReader_FLUENT()
   {
+    std::string fn;
+    
+    if(!fs::exists(workDir_))
+       return;
+
+    fn = workDir_ + "/cplreader_fluent_current.cas";
+    if(fs::exists(fn))
+      fs::remove(fn);
+
+    fn = workDir_ + "/cplreader_fluent_current.dat";
+    if(fs::exists(fn))
+      fs::remove(fn);
   }
 
-  void FileReader_EnSight::CreateReader()
+  void FileReader_FLUENT::CreateReader()
   {
     Settings& settings = Settings::Instance();
-    std::stringstream caseFileName;
+    std::stringstream sstr;
 
-    /* TODO: check if file even exists, otherwise vtkEnSightGoldReader will hang */
-    caseFileName << settings.GetString("basedir") << "/"
-                    << name_.c_str() << "/" << name_.c_str() << ".case";
+    sstr << settings.GetString("basedir") << "/"
+         << name_.c_str();
 
-    // Create new EnSight reader
-    vtkGenericEnSightReader* reader = vtkEnSightReader::New();
-    reader->SetCaseFileName(caseFileName.str().c_str());
-    reader_ = reader;
-  }
-  
-  void FileReader_EnSight::EnableRegions() 
-  {
-  }
+    workDir_ = sstr.str();
 
-  void FileReader_EnSight::GetTimeValues() 
-  {
-    // Get the time sets from the reader.
-    std::set<Double> timeSteps;
-    std::set<Double>::const_iterator tsIt, tsEnd;
-    vtkGenericEnSightReader* reader = dynamic_cast<vtkGenericEnSightReader*>(reader_);
+    fs::path casDir( workDir_ );
+    fs::directory_iterator end_iter;
+    std::set<std::string> casFileNames;
+    std::set<std::string> datFileNames;
 
-    vtkDataArrayCollection* timeSets = reader->GetTimeSets();
+    std::set<std::string>::const_iterator it, end, casIt;
+    std::string fn;
 
-    // Iterate through the time sets.
-    vtkDataArrayCollectionIterator* daciter = vtkDataArrayCollectionIterator::New();
-    daciter->SetCollection(timeSets);
-    for(daciter->GoToFirstItem(); !daciter->IsDoneWithTraversal();
-        daciter->GoToNextItem())
+    // Get all .cas[.gz]  and .dat[.gz] file names. We  either accept one .cas
+    // and n .dat files or n .cas and n .dat files.
+    for ( fs::directory_iterator dir_itr( casDir );
+          dir_itr != end_iter;
+          ++dir_itr )
     {
-      // Each time set is stored in one message.
-      vtkDataArray* da = daciter->GetDataArray();
-      for(int i=0; i < da->GetNumberOfTuples(); ++i)
+      if ( fs::is_directory( *dir_itr ) )
+        continue;
+      
+      fn = dir_itr->leaf();
+
+      if(!algo::starts_with(fn, name_))
+        continue;
+
+      if(algo::ends_with(fn, ".cas") || algo::ends_with(fn, ".cas.gz"))
       {
-        timeSteps.insert(da->GetTuple1(i));
+        casFileNames.insert(fn);
+        std::cout << fn << std::endl;
+      }
+
+      if(algo::ends_with(fn, ".dat") || algo::ends_with(fn, ".dat.gz"))
+      {
+        datFileNames.insert(fn);
+        std::cout << fn << std::endl;
       }
     }
-    daciter->Delete();
 
-    for(tsIt = timeSteps.begin(), tsEnd = timeSteps.end(); tsIt != tsEnd; tsIt++) 
+    UInt numCasFiles = casFileNames.size();
+    UInt numDatFiles = datFileNames.size();
+
+    if(!numDatFiles) 
     {
-      timeValues_.push_back( *tsIt );      
-      std::cout << "ts: " << (*tsIt) << std::endl;
+      EXCEPTION("No .dat[.gz] file could be found");
+    }
+
+    if(numCasFiles != 1) 
+    {
+      if(!numCasFiles) 
+      {
+        EXCEPTION("No .cas[.gz] file could be found");
+      }
+      
+      if(numCasFiles != numDatFiles) 
+      {
+        EXCEPTION("The association of " << numCasFiles << 
+                  " .cas[.gz] files with " << numDatFiles <<
+                  " .dat[.gz] files is not one-to-one!");
+      }
+
+      it = datFileNames.begin();
+      end = datFileNames.end();
+      casIt = casFileNames.begin();
+      UInt timeidx = 0;
+      for(; it != end; it++, timeidx++, casIt++) 
+      {
+        tsCasFiles_[timeidx] = *casIt;
+        tsDatFiles_[timeidx]  = *it;
+      }      
+
+      oneCasToManyDat_ = false;
+    } else 
+    {
+      it = datFileNames.begin();
+      end = datFileNames.end();
+      UInt timeidx = 0;
+      for(; it != end; it++, timeidx++) 
+      {
+        tsCasFiles_[timeidx] = *casFileNames.begin();
+        tsDatFiles_[timeidx]  = *it;
+
+        std::cout << "ts[" << timeidx << "]: " << tsCasFiles_[timeidx] <<
+          " -> " << tsDatFiles_[timeidx] << std::endl;        
+      }
+
+      oneCasToManyDat_ = true;
+    }
+
+    GetTimeValues();
+    SetTimeValue(timeValues_[0]);
+  }
+  
+  void FileReader_FLUENT::EnableRegions() 
+  {
+  }
+
+  void FileReader_FLUENT::GetTimeValues() 
+  {
+    Settings& settings = Settings::Instance();
+    Double ts = settings.GetDouble("timestep");
+    UInt n=tsDatFiles_.size();
+    timeValues_.resize(n);
+    
+    for(UInt i=0; i<n; i++) 
+    {
+      timeValues_[i] = i*ts;
     }
   }
 
-  void FileReader_EnSight::SetTimeValue(Double val) 
+  void FileReader_FLUENT::SetTimeValue(Double val) 
   {
-    vtkGenericEnSightReader* reader = dynamic_cast<vtkGenericEnSightReader*>(reader_);
+    std::stringstream sstr;
+    UInt timeidx = 0;
+    std::vector<Double>::iterator it;
+    vtkFLUENTReader* reader = NULL;
+    std::string currCasFile;
+    std::string currDatFile;
+
+    it = std::find(timeValues_.begin(), timeValues_.end(), val);
+    timeidx = std::distance(timeValues_.begin(), it);
     
-    reader->SetTimeValue(val);
+    currCasFile = tsCasFiles_[timeidx];
+    currDatFile = tsDatFiles_[timeidx];
+
+    if(oneCasToManyDat_) 
+    {
+      if(timeidx == 0)
+        GUnzipFile(currCasFile, "cplreader_fluent_current.cas");
+    } else 
+    {
+      GUnzipFile(currCasFile, "cplreader_fluent_current.cas");
+    }
+    GUnzipFile(currDatFile, "cplreader_fluent_current.dat");
+
+    if(reader_)
+      reader_->Delete();
+
+    reader = vtkFLUENTReader::New();
+    reader_ = reader;
+
+    sstr << workDir_ << "/" << "cplreader_fluent_current.cas";
+
+    reader->SetFileName(sstr.str().c_str());
+    reader->Modified();
+    reader->Update();
   }
   
+  void FileReader_FLUENT::GUnzipFile(const std::string& fn,
+                                     const std::string& outFN)
+  {
+    std::stringstream sstr;
+    
+    sstr << workDir_ << "/" << fn;
+
+    std::ifstream file(sstr.str().c_str(),
+                       std::ios_base::in | std::ios_base::binary);
+    bios::filtering_streambuf<bios::input> in;
+    if( algo::ends_with(fn, ".gz") ) 
+    {
+      in.push(bios::gzip_decompressor());
+    }    
+    in.push(file);
+
+    sstr.clear(); sstr.str("");
+    sstr << workDir_ << "/" << outFN;
+
+    std::ofstream out(sstr.str().c_str(),
+                      std::ios_base::out |
+                      std::ios_base::binary |
+                      std::ios_base::trunc );
+
+    bios::copy(in, out);
+
+    out.close();
+    file.close();
+  }
+
   /* get nodal values from the corresponding fluid datafile the new way */
-  void FileReader_EnSight::ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
+  void FileReader_FLUENT::ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
                                             const std::vector<bool>& activeParts,
                                             const UInt timeStepIdx)
   {
 
     Settings& settings = Settings::Instance();
-    std::cout << "Entering FileReader_EnSight::ReadNodalValues..." << std::endl;
+    std::cout << "Entering FileReader_FLUENT::ReadNodalValues..." << std::endl;
 
     SetTimeValue(timeValues_[timeStepIdx]);
     reader_->Modified();
@@ -146,28 +291,17 @@ namespace CoupledField
 
     iter->GoToFirstItem();
 
-    UInt node = 0;
+    UInt nodeOffset = 0;
 
     for (UInt actRegion=0; actRegion < numRegions_; ++actRegion)
     {
       vtkDataSet* ds = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
-      vtkInformation* info = iter->GetCurrentMetaData();
-      std::cout << "##### Region: " << info->Get(vtkCompositeDataSet::NAME())<< std::endl; 
-      std::vector<vtkDataSet*> datasets;
-      
-      vtkPointData* pointData = ds->GetPointData();
-      UInt numArrays = pointData->GetNumberOfArrays();
-      if(numArrays) datasets.push_back(ds);
-      
-      vtkCellData* cellData = ds->GetCellData();
-      UInt numCellArrays = cellData->GetNumberOfArrays();
-      
-      if(numCellArrays) {
-        c2p->SetInput(ds);
-        c2p->Update();
+      std::cout << "##### Region: " << actRegion << std::endl; 
 
-        datasets.push_back( c2p->GetOutput() );
-      }
+      c2p->SetInput(ds);
+      c2p->Update();
+
+      vtkDataSet* ds_point = c2p->GetOutput();
 
       UInt numNodes = ds->GetNumberOfPoints();
       UInt numElems = ds->GetNumberOfCells();
@@ -195,10 +329,8 @@ namespace CoupledField
 
       FlowDataPartStruct* fdps = NULL;
 
-      for(UInt  dset=0; dset < datasets.size(); dset++) {
-         pointData = datasets[dset]->GetPointData();
-         numArrays = pointData->GetNumberOfArrays();
-
+      vtkPointData* pointData = ds_point->GetPointData();
+      UInt numArrays = pointData->GetNumberOfArrays();
       /* go through the solutions and store them in nodalFlowData */
       for (UInt array=0; array < numArrays; array++)
       {
@@ -212,21 +344,16 @@ namespace CoupledField
 
 
         //        std::cout << dsName << " " << numComps << " " << numTuples << std::endl;
-
+        // UInt numTuples = data->GetNumberOfTuples();
         /* fluidVel_array = pointData->GetScalars(&u_char); <-- does not work
          * because the data is stored inside the array-variable not inside the
          * scalar- or vector-variable of the vtk class. */
         /* Get access to the fluid velocity data */
         /* check if the first array is fluid velocity data */
-        if (dsName == "Velocity" &&
-            (requiredResults_[FLUIDMECH_VELOCITY] ||
-             requiredResults_[NO_SOLUTION_TYPE]) )
+        if ((((dsName == "X_VELOCITY") || (dsName == "Y_VELOCITY") || (dsName == "Z_VELOCITY")) &&
+             (requiredResults_[FLUIDMECH_VELOCITY] || requiredResults_[NO_SOLUTION_TYPE])))
         {
 
-//           if(fd.find(FLUIDMECH_VELOCITY) == fd.end()) {
-//              fdps = new FlowDataPartStruct;
-//              fd[FLUIDMECH_VELOCITY] = fdps;
-//           }
           /* copy the fluid velocity values */
           fdps = &fd[FLUIDMECH_VELOCITY];
           fdps->isActive = 1; // all partitions have results
@@ -248,7 +375,7 @@ namespace CoupledField
         }
 
         /* check if the array is fluid pressure data */
-        if (dsName == "DENS" &&
+        if (dsName == "PRESSURE" &&
             (requiredResults_[FLUIDMECH_PRESSURE] ||
              requiredResults_[NO_SOLUTION_TYPE]))
         {
@@ -265,10 +392,9 @@ namespace CoupledField
           }
         }
 
-        if ((dsName == "Velocity" &&
-             (requiredResults_[FLUIDMECH_VELOCITY] ||
-              requiredResults_[NO_SOLUTION_TYPE])) ||
-            (dsName == "DENS" &&
+        if ((((dsName == "X_VELOCITY") || (dsName == "Y_VELOCITY") || (dsName == "Z_VELOCITY")) &&
+            (requiredResults_[FLUIDMECH_VELOCITY] || requiredResults_[NO_SOLUTION_TYPE])) ||
+            (dsName == "PRESSURE" &&
              (requiredResults_[FLUIDMECH_PRESSURE] ||
               requiredResults_[NO_SOLUTION_TYPE])))
         {
@@ -277,27 +403,29 @@ namespace CoupledField
 
           std::cout << dsName << " " << numComps << " " << numTuples << " numNodes " << numNodes << std::endl;
 
+          UInt offset = 0;
+          if (dsName == "X_VELOCITY")
+            offset = 0;
+          if (dsName == "Y_VELOCITY")
+            offset = 1;
+          if (dsName == "Z_VELOCITY")
+            offset = 2;
+
           /* copy the fluid velocity values */
           for(UInt i=0; i<numTuples; i++)
           {
-            //            UInt node = actualRegionNodes_[actRegion][i];
-            //            UInt node = 0;
-            //            if( numTuples != numNodes )
-            //            {
-            //              node = actRegion == 0 ? 0 : actualRegionNodes_[actRegion-1].size();
-            //            }
             UInt in = actualRegionNodes_[actRegion][i];
             UInt out = actualRegionNodesToNewIdx_[actRegion][in];
-            
+
             //            std::cout << "in: " << in << " -> " << out << std::endl;
-            
+
 #define EXTRACT_DATA_ARRAY(TYPE) \
             { \
               vtkArrayIteratorTemplate<TYPE>* TYPEIt = NULL; \
               TYPEIt = static_cast< vtkArrayIteratorTemplate<TYPE>* >(dataIt); \
               for(UInt j=0; j<numComps; j++) { \
                 TYPE val = TYPEIt->GetValue(in*numComps+j); \
-                fdps->data[out*numDOFs+j] = val; \
+                fdps->data[out*numDOFs+offset] = val; \
               } \
             }   
             
@@ -312,16 +440,12 @@ namespace CoupledField
               break;
             }
           }
+
         }
         
         dataIt->Delete();
       }
-      }
-
-      if( numTuples != numNodes )
-      {
-        node += numTuples;
-      }
+      nodeOffset += numTuples;
 
       iter->GoToNextItem();
     }
@@ -331,11 +455,23 @@ namespace CoupledField
   }
 
   //! get user data from file reader
-  void FileReader_EnSight::GetUserData(std::map<std::string, std::string>& userData)
+  void FileReader_FLUENT::GetUserData(std::map<std::string, std::string>& userData)
   {
+    std::stringstream sstr;
+
+    for(UInt timeidx=0; timeidx<tsDatFiles_.size(); timeidx++) 
+    {
+      sstr << "ts[" << timeidx << "] (t=" << timeValues_[timeidx] << 
+        "s): " << tsCasFiles_[timeidx] <<
+        " -> " << tsDatFiles_[timeidx] << std::endl;        
+    }
+
+    userData["CasToDatMapping"] = sstr.str();
+
+    #if 0
     std::ifstream fin;
     std::stringstream sstr;
-    vtkGenericEnSightReader* reader = dynamic_cast<vtkGenericEnSightReader*>(reader_);
+    vtkFLUENTReader* reader = dynamic_cast<vtkFLUENTReader*>(reader_);
 
     sstr << reader->GetFilePath() << reader->GetCaseFileName();
       fin.open( sstr.str().c_str(), std::ios::binary );
@@ -356,6 +492,8 @@ namespace CoupledField
       sstr << reader->GetCaseFileName();
       userData[sstr.str()] = str;
       fin.close();
+
+      #endif
   }
 
 } // end of namespace

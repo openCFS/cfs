@@ -73,6 +73,7 @@ namespace CoupledField {
     revisionDLLMap["10.0"] = "libCFSAnsysBinlibIfaceRev100.so";
     revisionDLLMap["11.0"] = "libCFSAnsysBinlibIfaceRev110.so";
     revisionDLLMap["12.0"] = "libCFSAnsysBinlibIfaceRev120.so";
+    revisionDLLMap["13.0"] = "libCFSAnsysBinlibIfaceRev130.so";
     
     archMachIdMap["I386"] = "linia32";
     archMachIdMap["X86_64"] = "linop64";

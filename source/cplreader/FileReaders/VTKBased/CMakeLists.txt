@@ -1,14 +1,25 @@
-INCLUDE_DIRECTORIES(${VTK_ROOT_DIR}/include/vtk-5.8)
+INCLUDE_DIRECTORIES(${VTK_ROOT_DIR}/include/vtk-${VTK_VERSION})
 
 SET(TARGET_LL
-  ${VTK_ROOT_DIR}/lib/vtk-5.8/libvtkIO.a
-  ${VTK_ROOT_DIR}/lib/vtk-5.8/libvtkFiltering.a
-  ${VTK_ROOT_DIR}/lib/vtk-5.8/libvtkGraphics.a
-  ${VTK_ROOT_DIR}/lib/vtk-5.8/libvtkCommon.a
-  ${VTK_ROOT_DIR}/lib/vtk-5.8/libvtksys.a
-  ${VTK_ROOT_DIR}/lib/vtk-5.8/libvtkzlib.a
+  ${VTK_ROOT_DIR}/lib/vtk-${VTK_VERSION}/libvtkIO.a
+  ${VTK_ROOT_DIR}/lib/vtk-${VTK_VERSION}/libvtkFiltering.a
+  ${VTK_ROOT_DIR}/lib/vtk-${VTK_VERSION}/libvtkGraphics.a
+  ${VTK_ROOT_DIR}/lib/vtk-${VTK_VERSION}/libvtkCommon.a
+  ${VTK_ROOT_DIR}/lib/vtk-${VTK_VERSION}/libvtksys.a
+  ${VTK_ROOT_DIR}/lib/vtk-${VTK_VERSION}/libvtkzlib.a
   dl
 )
+
+SET(CPLREADER_VTKMB_SRCS
+  FileReader_VTKMultiBlock.cc
+  )
+
+SET_SOURCE_FILES_PROPERTIES(${CPLREADER_VTKMB_SRCS}
+  PROPERTIES COMPILE_FLAGS "-Wno-deprecated")
+
+ADD_LIBRARY(cplreader_vtkmb STATIC ${CPLREADER_VTKMB_SRCS})
+
+TARGET_LINK_LIBRARIES(cplreader_vtkmb ${TARGET_LL})
 
 IF(CPLREADER_OPENFOAM)
   SUBDIRS(OPENFOAM)
@@ -17,3 +28,7 @@ ENDIF(CPLREADER_OPENFOAM)
 IF(CPLREADER_ENSIGHT)
   SUBDIRS(EnSight)
 ENDIF(CPLREADER_ENSIGHT)
+
+IF(CPLREADER_FLUENT)
+  SUBDIRS(FLUENT)
+ENDIF(CPLREADER_FLUENT)

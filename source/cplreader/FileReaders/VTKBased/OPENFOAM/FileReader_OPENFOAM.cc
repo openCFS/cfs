@@ -55,10 +55,7 @@ namespace CoupledField
   FileReader_OPENFOAM::FileReader_OPENFOAM(const std::string& name,
                                            const UInt dim,
                                            const UInt numFiles) :
-    FileReader(name, dim, numFiles, 1),
-    reader_(NULL),
-    pts_(NULL),
-    numElems_(0)
+    FileReader_VTKMultiBlock(name, dim, numFiles)
   {
   }
 
@@ -66,382 +63,50 @@ namespace CoupledField
   {
   }
 
-  void FileReader_OPENFOAM::Init()
+  void FileReader_OPENFOAM::CreateReader()
   {
     Settings& settings = Settings::Instance();
-    std::cout << "Entering FileReader_OPENFOAM::Init" << std::endl;
-    std::stringstream sstr;
-    UInt numPoints;
-    UInt numElems;
-    UInt numResults;
     std::stringstream controlDictName;
 
     /* TODO: check if file even exists, otherwise vtkOpenFOAMReader will hang */
     controlDictName << settings.GetString("basedir") << "/"
                     << name_.c_str() << "/system/controlDict";
-    reader_ = vtkOpenFOAMReader::New();
-    if(settings.GetInt("verbose"))
-      reader_->DebugOn();
 
-    reader_->SetFileName(controlDictName.str().c_str());
+    vtkOpenFOAMReader* reader = vtkOpenFOAMReader::New();
+    reader->SetFileName(controlDictName.str().c_str());
+    reader_ = reader;
+  }
+  
+  void FileReader_OPENFOAM::EnableRegions() 
+  {
+    vtkOpenFOAMReader* reader = dynamic_cast<vtkOpenFOAMReader*>(reader_);
+    reader->EnableAllPatchArrays();
+  }
 
-    reader_->SetTimeValue(0);
-    reader_->Modified();
-    reader_->Update();
-
-    if (settings.GetInt("verbose"))
-    {
-        reader_->PrintSelf(std::cout, (vtkIndent)0);
-    }
-
+  void FileReader_OPENFOAM::GetTimeValues() 
+  {
     // Get the time sets from the reader.
     std::set<Double> timeSteps;
     std::set<Double>::const_iterator tsIt, tsEnd;
+    vtkOpenFOAMReader* reader = dynamic_cast<vtkOpenFOAMReader*>(reader_);
 
-    for (int bla = 0; bla<reader_->GetTimeValues()->GetSize(); bla++)
-        timeSteps.insert(reader_->GetTimeValues()->GetValue(bla));
+    for (int bla = 0; bla<reader->GetTimeValues()->GetSize(); bla++)
+        timeSteps.insert(reader->GetTimeValues()->GetValue(bla));
 
     for(tsIt = timeSteps.begin(), tsEnd = timeSteps.end(); tsIt != tsEnd; tsIt++) 
     {
       timeValues_.push_back( *tsIt );      
       std::cout << "ts: " << (*tsIt) << std::endl;
     }
-    
-    UInt numTSFromFile = 0;
-    if(timeSteps.size()) 
-    {
-      numTSFromFile = timeSteps.size();
-    } else 
-    {
-      numTSFromFile = 1;
-      timeValues_.push_back( 0 );
-    }
-
-    if (settings.GetInt("numsteps"))
-    {
-      numSteps_ = (UInt) settings.GetInt("numsteps");
-      /* don not exceed the maximal number of timesteps possible */
-      if (numSteps_ >= numTSFromFile)
-      {
-          numSteps_ = numTSFromFile;
-      }
-    } else {
-      numSteps_ = numTSFromFile;
-    }
-    
-    reader_->EnableAllPatchArrays();
-
-    reader_->SetTimeValue(timeValues_[0]);
-    reader_->Modified();
-    reader_->Update();
-
-    // TODO: numResults richtig setzen
-    numResults = reader_->GetNumberOfCellArrays();
-
-    vtkCompositeDataIterator* iter = reader_->GetOutput()->NewIterator();
-    iter->GoToFirstItem();
-    /* find out the number of partitions */
-    numRegions_ = 0;
-    while (! iter->IsDoneWithTraversal())
-    {
-      ++numRegions_;
-      iter->GoToNextItem();
-      std::cout << "region: " << numRegions_ << std::endl;      
-    }
-
-    if(settings.GetInt("verbose"))
-    {
-      std::cout << " Name: " << name_ << std::endl
-                << " Dim: " << dim_ << std::endl
-                << " numfiles: " << numSteps_ << std::endl
-                << " numPartitions: " << numRegions_ << std::endl
-                << " numResults: " << numResults << std::endl
-                << " timeStep: " << (timeValues_[1]-timeValues_[0]) << std::endl;
-    }
-
-    numNodesPerRegion_.resize(numRegions_);
-    numElemsPerRegion_.resize(numRegions_);
-
-    pts_ = vtkUnstructuredGrid::New();
-    pts_->Initialize();
-
-    UInt p_cnt = 0;
-    iter->GoToFirstItem();
-    vtkDataSet* ds;
-    vtkDataSet* ds1;
-    ds1 = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
-
-    UInt n=ds1->GetNumberOfPoints();
-    vtkPoints* ps = vtkPoints::New();
-    pts_->SetPoints(ps);
-    ps->SetNumberOfPoints(n);    
-
-    for(UInt i=0; i<n; i++) 
-    {
-      ps->InsertPoint(i, ds1->GetPoint(i));
-    }
-
-
-    std::cout << "Building vtkMergePoints locator..." << std::endl;
-    vtkMergePoints* merger = vtkMergePoints::New();
-    merger->SetDataSet(pts_);
-    //    merger->BuildLocator();
-    merger->InitPointInsertion(pts_->GetPoints(), pts_->GetBounds());
-    Double pt[3];
-    std::cout << "Finished building vtkMergePoints locator..." << std::endl;
-
-    nodeMap_.resize(numRegions_);
-    
-    while (! iter->IsDoneWithTraversal())
-    {
-      ds = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
-      numPoints = ds->GetNumberOfPoints();
-      numNodesPerRegion_[p_cnt] = numPoints;
-      /* cell values will be interpolated to element values */
-      numElems = ds->GetNumberOfCells();
-      numElemsPerRegion_[p_cnt] = numElems;
-      numElems_ += numElems;
-
-      /* Find out the maximum number of element nodes in region */
-      numPoints = ds->GetMaxCellSize();
-      maxNumElemNodes_ = numPoints > maxNumElemNodes_ ? numPoints : maxNumElemNodes_;
-      
-      if(settings.GetInt("verbose"))
-      {
-        std::cout << "Partition " << (p_cnt+1)
-                  << " nodes: " << numNodesPerRegion_[p_cnt]
-                  << " elems: " << numElemsPerRegion_[p_cnt]
-                  << std::endl;
-      }
-
-      // Map all points to nodes in the inner mesh (partitionIdx=0 -> ds1)
-      for (UInt j = 0, n= numNodesPerRegion_[p_cnt]; j < n; ++j)
-      {
-        ds->GetPoint(j, pt);
-          
-        vtkIdType ptId;
-        UInt unique;
-        unique = merger->InsertUniquePoint(pt, ptId);
-
-        //        std::cout << "unique: " << unique << ", ptId: " << ptId << std::endl;
-          
-        nodeMap_[p_cnt][j] = ptId+1;
-      }
-      
-
-      ++p_cnt;
-      iter->GoToNextItem();
-    }
-    iter->Delete();
-
-    if(settings.GetInt("verbose"))
-    {
-      /*std::cout << "Number of boundaries: "
-                << reader_->reader_->GetNumBoundaries() << std::endl;*/
-      std::cout << /*"Number of point zones: "*/ "Number of point arrays: "
-                << reader_->GetNumberOfPointArrays() /*reader_->GetNumPointZones()*/ << std::endl;
-      /*std::cout << "Number of face zones: "
-                << reader_->GetNumFaceZones() << std::endl;*/
-      std::cout << /*"Number of cell zones: "*/"Number of cell arrays: "
-                << reader_->GetNumberOfCellArrays()/*reader_->GetNumCellZones()*/ << std::endl;
-    }
-
-    std::cout << "Exiting FileReader_OPENFOAM::Init" << std::endl;
   }
 
-
-  void FileReader_OPENFOAM::ReadNodalCoords(std::vector<Double>& NODECOORD)
+  void FileReader_OPENFOAM::SetTimeValue(Double val) 
   {
-    std::cout << "Entering FileReader_OPENFOAM::ReadNodalCoords" << std::endl;
-    /* number of coordinates. One Tupel of 3D coordinate (x,y,z) */
-    const UInt numCoords = 3;
-
-    /* just read coords for internal mesh partitionIdx = 0 */
-    const UInt& numPoints = pts_->GetNumberOfPoints();
-    NODECOORD.resize(numCoords * numPoints);
-
-    /* get the tuples and write them into NODECOORD */
-    UInt tmp_ij = 0;
-    Double* point_coords;
-    for (UInt i = 0; i < numPoints; ++i)
-    {
-      point_coords = pts_->GetPoint(i);
-      /* tmp_ij = numCoords * i; */
-      for (UInt j = 0; j < numCoords; ++j)
-      {
-        NODECOORD[tmp_ij] = point_coords[j];
-        ++tmp_ij;
-      }
-    }
-  }
-
-  void FileReader_OPENFOAM::ReadTopology(std::vector<UInt>& TOPOLOGYDATA,
-                                         std::vector<UInt>& elemTypes)
-  {
-    std::cout << "Entering FileReader_OPENFOAM::ReadTopology" << std::endl;
-    UInt numPoints;
-    UInt numCells;
-    UInt elemIdx = 0;
-    UInt topoIdx = 0;
-    //    Double pt[3];
-
-    elemTypes.resize(numElems_);
-    TOPOLOGYDATA.resize(numElems_ * maxNumElemNodes_);
-
-    std::cout << "maxNumElemNodes_: " << maxNumElemNodes_ << std::endl;
+    vtkOpenFOAMReader* reader = dynamic_cast<vtkOpenFOAMReader*>(reader_);
     
-
-    /* disregard pointZones and faceZones */
-    vtkCompositeDataIterator* iter = reader_->GetOutput()->NewIterator();
-    iter->GoToFirstItem();
-    //    vtkDataSet* ds1 = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
-    //    std::cout << "Building Kd tree point locator..." << std::endl;
-    //    vtkKdTreePointLocator* locator = vtkKdTreePointLocator::New();
-    //    locator->SetDataSet(ds1);
-    //    locator->BuildLocator();
-    //    std::cout << "Finished building Kd tree point locator..." << std::endl;
-
-    actualRegionNodes_.resize(numRegions_);
-
-    /* goto to the desired partition */
-    for (UInt i = 0; i < numRegions_; ++i)
-    {
-      vtkUnstructuredGrid* ugrid = vtkUnstructuredGrid::SafeDownCast(iter->GetCurrentDataObject());
-      vtkCell* cell;
-      std::set<UInt> regionNodes;
-
-      if(ugrid)
-      {
-        vtkCellArray* cells = ugrid->GetCells();
-        vtkIdType cellId = 0;
-	vtkIdType npts;
-        vtkIdType *pts;
-        
-        cells->InitTraversal();
-        while(cells->GetNextCell(npts, pts)) 
-        {
-          regionNodes.insert(pts, pts+npts);
-          cell = ugrid->GetCell(cellId);
-          elemTypes[elemIdx] = VTKCellTypeToFEType(cell->GetCellType());
-
-          for (UInt k = 0; k < npts; ++k)
-            TOPOLOGYDATA[topoIdx + k] = nodeMap_[i][ pts[k] ];
-
-          elemIdx++;
-          topoIdx += maxNumElemNodes_;
-          cellId++;
-        }
-
-        std::cout << "#### Num nodes in region " << i << ": " << regionNodes.size() << std::endl;
-        std::copy(regionNodes.begin(), regionNodes.end(),
-                  std::back_inserter(actualRegionNodes_[i]));
-        
-      } else 
-      {
-        // We have structured or even uniform grids
-        vtkDataSet* ds = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
-        numCells = ds->GetNumberOfCells();
-        numPoints = ds->GetNumberOfPoints();
-        std::vector<UInt> elemNodeMapping(maxNumElemNodes_);
-        
-        for (UInt j = 0; j < numCells; ++j)
-        {
-          cell = ds->GetCell(j);
-          numPoints = cell->GetNumberOfPoints();
-          elemTypes[elemIdx] = VTKCellTypeToFEType(cell->GetCellType());
-
-          switch(elemTypes[elemIdx])
-          {
-          case Elem::WEDGE6:
-            elemNodeMapping[0] = 3;
-            elemNodeMapping[1] = 4;
-            elemNodeMapping[2] = 5;
-            elemNodeMapping[3] = 0;
-            elemNodeMapping[4] = 1;
-            elemNodeMapping[5] = 2;
-            break;
-          case Elem::HEXA8:
-            elemNodeMapping[0] = 4;
-            elemNodeMapping[1] = 5;
-            elemNodeMapping[2] = 6;
-            elemNodeMapping[3] = 7;
-            elemNodeMapping[4] = 0;
-            elemNodeMapping[5] = 1;
-            elemNodeMapping[6] = 2;
-            elemNodeMapping[7] = 3;
-            break;
-          default:
-            for (UInt k = 0; k < numPoints; ++k) 
-            {
-              elemNodeMapping[k] = k;
-            }
-            break;
-          }
-          
-          //          std::cout << "data object type " << ds->GetDataObjectType() << std::endl;
-          switch(ds->GetDataObjectType()) {
-          case VTK_UNIFORM_GRID:
-            //          case VTK_STRUCTURED_GRID:
-          case VTK_IMAGE_DATA:
-            if (numPoints == 4) {
-              elemTypes[elemIdx] = Elem::QUAD4;
-              elemNodeMapping[0] = 0;
-              elemNodeMapping[1] = 1;
-              elemNodeMapping[2] = 3;
-              elemNodeMapping[3] = 2;
-            } else {
-              elemTypes[elemIdx] = Elem::HEXA8;
-              elemNodeMapping[0] = 0;
-              elemNodeMapping[1] = 1;
-              elemNodeMapping[2] = 3;
-              elemNodeMapping[3] = 2;
-              elemNodeMapping[4] = 4;
-              elemNodeMapping[5] = 5;
-              elemNodeMapping[6] = 7;
-              elemNodeMapping[7] = 6;
-            }            
-            break;
-          }
-
-          UInt id;
-          
-          for (UInt k = 0; k < numPoints; ++k) 
-          {
-            id = nodeMap_[i][cell->GetPointId(elemNodeMapping[k])];
-            TOPOLOGYDATA[topoIdx + k] = id;
-            regionNodes.insert(id);
-          }
-
-          elemIdx++;
-          topoIdx += maxNumElemNodes_;
-        }
-
-        std::cout << "#### Num nodes in region " << i << ": " << regionNodes.size() << std::endl;
-        std::copy(regionNodes.begin(), regionNodes.end(),
-                  std::back_inserter(actualRegionNodes_[i]));
-
-      }
-      
-      iter->GoToNextItem();
-    }
-
-    iter->Delete();
+    reader->SetTimeValue(val);
   }
-
-  void FileReader_OPENFOAM::GetRegionElements(std::vector<UInt> & regionElements,
-                                   const UInt regionIdx)
-  {
-    UInt elemOffset = 0;
-
-    for(UInt i=0; i < regionIdx; i++)
-      elemOffset += numElemsPerRegion_[i];
-
-    regionElements.resize(numElemsPerRegion_[regionIdx]);
-
-    for(UInt i=0; i < numElemsPerRegion_[regionIdx]; i++)
-      regionElements[i] = elemOffset + i + 1;
-  }
-
+  
   /* get nodal values from the corresponding fluid datafile the new way */
   void FileReader_OPENFOAM::ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
                                             const std::vector<bool>& activeParts,
@@ -453,7 +118,7 @@ namespace CoupledField
     
     
     
-    reader_->SetTimeValue(timeValues_[timeStepIdx]);
+    SetTimeValue(timeValues_[timeStepIdx]);
     reader_->Modified();
     reader_->Update();
 
@@ -488,7 +153,7 @@ namespace CoupledField
       std::stringstream path_mechDispl;
       path_mechDispl << settings.GetString("basedir") << "/"
                      << settings.GetString("name") << "/"
-                     << reader_->GetTimeValues()->GetValue(timeStepIdx+1)
+                     << timeValues_[timeStepIdx]
                      << "/polyMesh";
       /* if a new mesh for this timestep exists, get it an store the
        * mechDisplacement */
@@ -644,98 +309,6 @@ namespace CoupledField
 
     iter->Delete();
     c2p->Delete();
-  }
-
-  Double FileReader_OPENFOAM::GetTimeStep(UInt stepNumber)
-  {
-    cout<<"---------------Entering GetTimeStep-------------"<<endl;
-    Settings& settings = Settings::Instance();
-    Double timestep = settings.GetDouble("timestep");
-    // check if timestep has been set as an argument
-    if (timestep != -1)
-    {
-      return timestep * stepNumber;
-    }
-
-    return timeValues_[stepNumber];
-  }
-
-  std::string FileReader_OPENFOAM::GetRegionName(const UInt partitionIdx)
-  {
-    //    cout << "---------------Entering GetRegionName-------------" << endl;
-    std::ostringstream sstr;
-    std::string partId;
-
-    vtkCompositeDataIterator* iter = reader_->GetOutput()->NewIterator();
-    iter->GoToFirstItem();
-    UInt i = 0;
-    while (i <= partitionIdx && !iter->IsDoneWithTraversal())
-    {
-      partId = iter->GetCurrentMetaData()->Get(vtkCompositeDataSet::NAME());
-      //      std::cout << "region: " << partId << std::endl;
-      iter->GoToNextItem(); i++;
-    }
-    
-    const boost::regex datExp("[,;/ ]");
-    const std::string name_format("_");
-
-    sstr << regex_replace(partId, datExp, name_format, boost::match_default | boost::format_sed);
-
-    return sstr.str();
-  }
-
-  Elem::FEType FileReader_OPENFOAM::VTKCellTypeToFEType(UInt cellType)
-  {
-    switch(cellType) 
-    {
-    case VTK_VERTEX:
-      return Elem::POINT;
-    case VTK_LINE:
-      return Elem::LINE2;
-    case VTK_TRIANGLE:
-      return Elem::TRIA3;
-    case VTK_QUAD:
-      return Elem::QUAD4;
-    case VTK_TETRA:
-      return Elem::TET4;
-    case VTK_HEXAHEDRON:
-      return Elem::HEXA8;
-    case VTK_WEDGE:
-      return Elem::WEDGE6;
-    case VTK_PYRAMID:
-      return Elem::PYRA5;
-
-    // Quadratic, isoparametric cells
-    case VTK_QUADRATIC_EDGE:
-      return Elem::LINE3;
-    case VTK_QUADRATIC_TRIANGLE:
-      return Elem::TRIA6;
-    case VTK_QUADRATIC_QUAD:
-      return Elem::QUAD8;
-    case VTK_QUADRATIC_TETRA:
-      return Elem::TET10;
-    case VTK_QUADRATIC_HEXAHEDRON:
-      return Elem::HEXA20;
-    case VTK_QUADRATIC_WEDGE:
-      return Elem::WEDGE15;
-    case VTK_QUADRATIC_PYRAMID:
-      return Elem::PYRA13;
-    case VTK_BIQUADRATIC_QUAD:
-      return Elem::QUAD9;
-    case VTK_TRIQUADRATIC_HEXAHEDRON:
-      return Elem::HEXA27;
-    case VTK_QUADRATIC_LINEAR_QUAD:
-      return Elem::QUAD4;
-    case VTK_QUADRATIC_LINEAR_WEDGE:
-      return Elem::WEDGE6;
-    case VTK_BIQUADRATIC_QUADRATIC_WEDGE:
-      return Elem::WEDGE15;
-    case VTK_BIQUADRATIC_QUADRATIC_HEXAHEDRON:
-      return Elem::HEXA20;
-
-    default:
-      return Elem::UNDEF;
-    }
   }
 
   //! get user data from file reader

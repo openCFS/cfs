@@ -139,10 +139,10 @@ namespace CoupledField
     //! dimension of grid
     UInt dim_;
 
-    //! Number of nodes per region
+    // Save number of  nodes and elems per region in first  time step to check
+    // whether the mesh changes with time, since we do not support that at the
+    // moment.
     std::vector<UInt> numNodesPerRegion_;
-
-    //! Number of elements per Region
     std::vector<UInt> numElemsPerRegion_;
 
 //    UInt numResults_;

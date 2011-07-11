@@ -1650,6 +1650,12 @@ source/cplreader/FileReaders/FASTEST/CMakeLists.txt svneol=native#text/plain
 source/cplreader/FileReaders/FASTEST/FASTEST-FileRenamer.pl.in -text
 source/cplreader/FileReaders/FASTEST/FileReader_FASTEST.cc svneol=native#text/plain
 source/cplreader/FileReaders/FASTEST/FileReader_FASTEST.hh svneol=native#text/plain
+source/cplreader/FileReaders/FieldView/CMakeLists.txt -text
+source/cplreader/FileReaders/FieldView/FileReader_fvuns.cc -text
+source/cplreader/FileReaders/FieldView/FileReader_fvuns.hh -text
+source/cplreader/FileReaders/FieldView/fv_reader_tags.h -text
+source/cplreader/FileReaders/FieldView/readfvuns.cpp -text
+source/cplreader/FileReaders/FieldView/readfvuns.h -text
 source/cplreader/FileReaders/GENGRIDS/CMakeLists.txt svneol=native#text/plain
 source/cplreader/FileReaders/GENGRIDS/FileReader_GENGRIDS.cc svneol=native#text/plain
 source/cplreader/FileReaders/GENGRIDS/FileReader_GENGRIDS.hh svneol=native#text/plain
@@ -1666,6 +1672,9 @@ source/cplreader/FileReaders/VTKBased/EnSight/CMakeLists.txt -text
 source/cplreader/FileReaders/VTKBased/EnSight/FileReader_EnSight.cc -text
 source/cplreader/FileReaders/VTKBased/EnSight/FileReader_EnSight.hh -text
 source/cplreader/FileReaders/VTKBased/EnSight/MergePointExample.cc -text
+source/cplreader/FileReaders/VTKBased/FLUENT/CMakeLists.txt -text
+source/cplreader/FileReaders/VTKBased/FLUENT/FileReader_FLUENT.cc -text
+source/cplreader/FileReaders/VTKBased/FLUENT/FileReader_FLUENT.hh -text
 source/cplreader/FileReaders/VTKBased/OPENFOAM/CMakeLists.txt svneol=native#text/plain
 source/cplreader/FileReaders/VTKBased/OPENFOAM/FileReader_OPENFOAM.cc svneol=native#text/plain
 source/cplreader/FileReaders/VTKBased/OPENFOAM/FileReader_OPENFOAM.hh svneol=native#text/plain
