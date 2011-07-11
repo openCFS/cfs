@@ -213,6 +213,11 @@ namespace CoupledField
 
     it = std::find(timeValues_.begin(), timeValues_.end(), val);
     timeidx = std::distance(timeValues_.begin(), it);
+
+    if(val < 0.0) 
+    {
+      timeidx = 0;
+    }
     
     currCasFile = tsCasFiles_[timeidx];
     currDatFile = tsDatFiles_[timeidx];

@@ -121,8 +121,13 @@ namespace CoupledField
   void FileReader_EnSight::SetTimeValue(Double val) 
   {
     vtkGenericEnSightReader* reader = dynamic_cast<vtkGenericEnSightReader*>(reader_);
-    
-    reader->SetTimeValue(val);
+    if(val < 0.0) 
+    {
+      reader->SetTimeValue(0.0);
+    } 
+    {
+      reader->SetTimeValue(val);
+    }    
   }
   
   /* get nodal values from the corresponding fluid datafile the new way */

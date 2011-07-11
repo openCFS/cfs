@@ -95,8 +95,14 @@ namespace CoupledField
 
     for(tsIt = timeSteps.begin(), tsEnd = timeSteps.end(); tsIt != tsEnd; tsIt++) 
     {
-      timeValues_.push_back( *tsIt );      
-      std::cout << "ts: " << (*tsIt) << std::endl;
+      // Do not add time value 0.0 to array of available time values since 
+      // it contains OpenFOAM's initial value fields.
+      if( (*tsIt) > 0.0 ) 
+      {
+        timeValues_.push_back( *tsIt );      
+        std::cout << "ts: " << (*tsIt) << std::endl;
+      }
+      
     }
   }
 
@@ -104,7 +110,13 @@ namespace CoupledField
   {
     vtkOpenFOAMReader* reader = dynamic_cast<vtkOpenFOAMReader*>(reader_);
     
-    reader->SetTimeValue(val);
+    if(val < 0.0) 
+    {
+      reader->SetTimeValue(0.0);
+    } else
+    {
+      reader->SetTimeValue(val);
+    }    
   }
   
   /* get nodal values from the corresponding fluid datafile the new way */

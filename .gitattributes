@@ -1675,6 +1675,8 @@ source/cplreader/FileReaders/VTKBased/EnSight/MergePointExample.cc -text
 source/cplreader/FileReaders/VTKBased/FLUENT/CMakeLists.txt -text
 source/cplreader/FileReaders/VTKBased/FLUENT/FileReader_FLUENT.cc -text
 source/cplreader/FileReaders/VTKBased/FLUENT/FileReader_FLUENT.hh -text
+source/cplreader/FileReaders/VTKBased/FileReader_VTKMultiBlock.cc -text
+source/cplreader/FileReaders/VTKBased/FileReader_VTKMultiBlock.hh -text
 source/cplreader/FileReaders/VTKBased/OPENFOAM/CMakeLists.txt svneol=native#text/plain
 source/cplreader/FileReaders/VTKBased/OPENFOAM/FileReader_OPENFOAM.cc svneol=native#text/plain
 source/cplreader/FileReaders/VTKBased/OPENFOAM/FileReader_OPENFOAM.hh svneol=native#text/plain
