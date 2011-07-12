@@ -340,7 +340,7 @@ ADD_OPTION(pres
   "Specify column of pressure in FASTEST ASCII files."
   )
 
-ADD_OPTION(reduce_elementOrder
+ADD_OPTION(reduceElementOrder
   bool
   false
   "disregard high order nodes"

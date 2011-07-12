@@ -100,7 +100,7 @@ namespace CoupledField
       if( (*tsIt) > 0.0 ) 
       {
         timeValues_.push_back( *tsIt );      
-        std::cout << "ts: " << (*tsIt) << std::endl;
+        //        std::cout << "ts: " << (*tsIt) << std::endl;
       }
       
     }
@@ -145,8 +145,8 @@ namespace CoupledField
     for (UInt actRegion=0; actRegion < 1; ++actRegion)
     {
       vtkDataSet* ds = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
-      vtkInformation* info = iter->GetCurrentMetaData();
-      std::cout << "##### Region: " << info->Get(vtkCompositeDataSet::NAME())<< std::endl; 
+      //      vtkInformation* info = iter->GetCurrentMetaData();
+      //      std::cout << "##### Region: " << info->Get(vtkCompositeDataSet::NAME())<< std::endl; 
 
       c2p->SetInput(ds);
       c2p->Update();

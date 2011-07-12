@@ -35,6 +35,10 @@ namespace CoupledField
     void EnableRegions();
     void GetTimeValues();
     void SetTimeValue(Double val);
+
+  private:
+    std::string vx_, vy_, vz_;
+    std::string pres_;
   };
 
 } // end of namespace

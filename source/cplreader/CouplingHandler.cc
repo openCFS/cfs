@@ -52,7 +52,7 @@ namespace CoupledField
 
     dim_ = settings.GetInt("dim");
     doIntAverageCentre_ = settings.GetInt("doIntAverageCentre");
-    reduce_elementOrder_ = settings.GetInt("reduce_elementOrder");
+    reduce_elementOrder_ = settings.GetInt("reduceElementOrder");
 
     OutputWriterVectorType::iterator it, end;
     it = outputWriters_.begin();
@@ -823,8 +823,7 @@ namespace CoupledField
       } catch (CoupledField::Exception &ex)
       {
         std::cerr << "WARN: An Exception occurred during source term "
-                  << "computation:\nElement " << i+1 << " of partition "
-                  << ptFileReader_->GetRegionName(regionIdx) << std::endl;
+                  << "computation:\nElement " << elemIdx+1 << std::endl;
 
         std::cerr << ex.what()<< std::endl;
 

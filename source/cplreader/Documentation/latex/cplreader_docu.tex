@@ -1310,12 +1310,12 @@ and                                                                        here
 \url{https://visualization.hpc.mil/wiki/EnSight%27s_Gold_Casefile_Format}.   In
 cplreader we make use of the EnSight file readers provided by VTK.
 
-There  exists a tool  called ens_checker  for checking  the validity  of given
+There  exists a tool  called ens\_checker  for checking  the validity  of given
 EnSight input files. It  is a part of EnSight but may  also be downloaded (for
 Linux) at \url{http://aero.ist.utl.pt/~rreis/ens_checker.[32|64]}. It has also
 been                                   put                                  on
 \url{https://lse17.e-technik.uni-erlangen.de:2001/files/precompiled/EnSight/}.
-A     Howto     for     using      ens_checker     can     be     found     at
+A     Howto     for     using      ens\_checker     can     be     found     at
 \url{http://www-vis.lbl.gov/NERSC/Software/ensight/doc/OnlineHelp/HT-Read-ens_checker.pdf}
 
 
@@ -1345,9 +1345,9 @@ zyl/
 \end{verbatim}
 
 In  this example  the VTK  Ensight  reader could  not directly  read the  {\tt
-20110207_Ensight_gold_binary_LES_Zylinder.encas}  case file due  problems with
-the file name of the {\tt .geo}  file. Therefore a copy of it ({\tt zyl.case})
-has been created which contains the following information:
+20110207\_Ensight\_gold\_binary\_LES\_Zylinder.encas}  case file  due problems
+with  the file  name of  the {\tt  .geo} file.  Therefore a  copy of  it ({\tt
+zyl.case}) has been created which contains the following information:
 
 \begin{verbatim}
 FORMAT
@@ -1373,10 +1373,21 @@ number of steps:            1
 time values:  1.41231e+00
 \end{verbatim}
 
-The file {\tt  zyl_ascii.geo} is indeed just a symbolic link  to the real mesh
-file {\tt 20110207_Ensight_gold_binary_LES_Zylinder.geo}.
+The file {\tt zyl\_ascii.geo} is indeed  just a symbolic link to the real mesh
+file {\tt 20110207\_Ensight\_gold\_binary\_LES\_Zylinder.geo}.
 
 \subsubsection{Special Options}
+
+\begin{description}
+  \item[{\tt   --v[x|y|z]}]  Specify   name   of  velocity   field  array   to
+cplreader. If the field  is a vector quantity set all three  flags to the same
+value. If the field is broken  up into scalar components specify the component
+names here.
+
+  \item[{\tt --pres}] Specify the name of the pressure scalar field using this
+flag.
+\end{description}
+
 
 \subsubsection{Logging} 
 

@@ -81,6 +81,59 @@ namespace CoupledField
     vtkGenericEnSightReader* reader = vtkEnSightReader::New();
     reader->SetCaseFileName(caseFileName.str().c_str());
     reader_ = reader;
+
+    // Set names for velocity and pressure.
+    vx_ = settings.GetString("vx");
+    vy_ = settings.GetString("vy");
+    vz_ = settings.GetString("vz");
+    pres_ = settings.GetString("pres");
+
+    // Either velocity  is a  single vector  or consists of  2 or  3 component
+    // fields.  In the first case the names  for vx, vz and vz are required to
+    // match. In the second case we require 2 or three names for the component
+    // fields.
+    if(vx_ == vy_) {
+      if(dim_ == 3 && vz_ != vx_) 
+      {
+        EXCEPTION("Array names for vx, vy and vz do not match for vector "
+                  << "valued velocity field and dimension is 3!" << std::endl
+                    << "vx: " << vx_ << std::endl
+                    << "vy: " << vy_ << std::endl
+                    << "vz: " << vz_ << std::endl);
+      }      
+    } else {
+      if(dim_ == 3)
+      {
+        if( vz_ == vx_ || vz_ == vy_ ) 
+        {
+          EXCEPTION("Array names for vx, vy and vz should not match for a "
+                    << "velocity field which consists of scalar components "
+                    << "and dimension is 3!" << std::endl
+                    << "vx: " << vx_ << std::endl
+                    << "vy: " << vy_ << std::endl
+                    << "vz: " << vz_ << std::endl);
+        }        
+      }      
+    }
+    
+    reader->ReadAllVariablesOff();
+    if(requiredResults_[FLUIDMECH_VELOCITY]) 
+    {
+      reader->SetPointArrayStatus(vx_.c_str(), 1);
+      reader->SetCellArrayStatus(vx_.c_str(), 1);
+      reader->SetPointArrayStatus(vy_.c_str(), 1);
+      reader->SetCellArrayStatus(vy_.c_str(), 1);
+      reader->SetPointArrayStatus(vz_.c_str(), 1);
+      reader->SetCellArrayStatus(vz_.c_str(), 1);
+
+      //      std::cout << "vx: " << vx_ << " vy: " << vy_ << " vz: " << vz_ << " pres: " << pres_ << std::endl;
+    } else 
+    {
+      vx_ = ""; vy_ = ""; vz_ = "";
+    }
+    
+    reader->SetPointArrayStatus(pres_.c_str(), 1);
+    reader->SetCellArrayStatus(pres_.c_str(), 1);
   }
   
   void FileReader_EnSight::EnableRegions() 
@@ -121,10 +174,11 @@ namespace CoupledField
   void FileReader_EnSight::SetTimeValue(Double val) 
   {
     vtkGenericEnSightReader* reader = dynamic_cast<vtkGenericEnSightReader*>(reader_);
+
     if(val < 0.0) 
     {
       reader->SetTimeValue(0.0);
-    } 
+    } else
     {
       reader->SetTimeValue(val);
     }    
@@ -156,8 +210,8 @@ namespace CoupledField
     for (UInt actRegion=0; actRegion < numRegions_; ++actRegion)
     {
       vtkDataSet* ds = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
-      vtkInformation* info = iter->GetCurrentMetaData();
-      std::cout << "##### Region: " << info->Get(vtkCompositeDataSet::NAME())<< std::endl; 
+      //      vtkInformation* info = iter->GetCurrentMetaData();
+      //      std::cout << "##### Region: " << info->Get(vtkCompositeDataSet::NAME())<< std::endl; 
       std::vector<vtkDataSet*> datasets;
       
       vtkPointData* pointData = ds->GetPointData();
@@ -215,23 +269,15 @@ namespace CoupledField
         std::string dsName = pointData->GetArrayName(array);
         UInt numComps = data->GetNumberOfComponents();
 
-
         //        std::cout << dsName << " " << numComps << " " << numTuples << std::endl;
 
-        /* fluidVel_array = pointData->GetScalars(&u_char); <-- does not work
-         * because the data is stored inside the array-variable not inside the
-         * scalar- or vector-variable of the vtk class. */
         /* Get access to the fluid velocity data */
         /* check if the first array is fluid velocity data */
-        if (dsName == "Velocity" &&
+        if ((dsName == vx_ || dsName == vy_ || dsName == vz_) &&
             (requiredResults_[FLUIDMECH_VELOCITY] ||
              requiredResults_[NO_SOLUTION_TYPE]) )
         {
 
-//           if(fd.find(FLUIDMECH_VELOCITY) == fd.end()) {
-//              fdps = new FlowDataPartStruct;
-//              fd[FLUIDMECH_VELOCITY] = fdps;
-//           }
           /* copy the fluid velocity values */
           fdps = &fd[FLUIDMECH_VELOCITY];
           fdps->isActive = 1; // all partitions have results
@@ -253,7 +299,7 @@ namespace CoupledField
         }
 
         /* check if the array is fluid pressure data */
-        if (dsName == "DENS" &&
+        if (dsName == pres_ &&
             (requiredResults_[FLUIDMECH_PRESSURE] ||
              requiredResults_[NO_SOLUTION_TYPE]))
         {
@@ -270,17 +316,28 @@ namespace CoupledField
           }
         }
 
-        if ((dsName == "Velocity" &&
+        if (((dsName == vx_ || dsName == vy_ || dsName == vz_) &&
              (requiredResults_[FLUIDMECH_VELOCITY] ||
               requiredResults_[NO_SOLUTION_TYPE])) ||
-            (dsName == "DENS" &&
+            (dsName == pres_ &&
              (requiredResults_[FLUIDMECH_PRESSURE] ||
               requiredResults_[NO_SOLUTION_TYPE])))
         {
           numDOFs = fdps->dofNames.size();
           fdps->data.resize(numDOFs * numTuples);
 
-          std::cout << dsName << " " << numComps << " " << numTuples << " numNodes " << numNodes << std::endl;
+          //          std::cout << dsName << " " << numComps << " " << numTuples << " numNodes " << numNodes << std::endl;
+
+          UInt offset = 0;
+          if(numComps == 1) 
+          {
+            if (dsName == vx_)
+              offset = 0;
+            if (dsName == vy_)
+              offset = 1;
+            if (dsName == vz_)
+              offset = 2;
+          }
 
           /* copy the fluid velocity values */
           for(UInt i=0; i<numTuples; i++)
@@ -302,7 +359,7 @@ namespace CoupledField
               TYPEIt = static_cast< vtkArrayIteratorTemplate<TYPE>* >(dataIt); \
               for(UInt j=0; j<numComps; j++) { \
                 TYPE val = TYPEIt->GetValue(in*numComps+j); \
-                fdps->data[out*numDOFs+j] = val; \
+                fdps->data[out*numDOFs+offset+j] = val; \
               } \
             }   
             

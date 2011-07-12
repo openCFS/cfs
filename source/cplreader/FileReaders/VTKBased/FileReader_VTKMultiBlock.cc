@@ -131,7 +131,7 @@ namespace CoupledField
     {
       ++numRegions_;
       iter->GoToNextItem();
-      std::cout << "region: " << numRegions_ << std::endl;      
+      //      std::cout << "region: " << numRegions_ << std::endl;      
     }
 
     if(settings.GetInt("verbose"))
@@ -187,13 +187,13 @@ namespace CoupledField
     }
     ps->Delete();
 
-    std::cout << "Building vtkMergePoints locator..." << std::endl;
+    //    std::cout << "Building vtkMergePoints locator..." << std::endl;
     vtkMergePoints* merger = vtkMergePoints::New();
     merger->SetDataSet(pts_);
     //    merger->BuildLocator();
     merger->InitPointInsertion(pts_->GetPoints(), bounds);
     Double pt[3];
-    std::cout << "Finished building vtkMergePoints locator..." << std::endl;
+    //    std::cout << "Finished building vtkMergePoints locator..." << std::endl;
 
     nodeMap_.resize(numRegions_);
     
@@ -299,7 +299,7 @@ namespace CoupledField
     elemTypes.resize(numElems_);
     TOPOLOGYDATA.resize(numElems_ * maxNumElemNodes_);
 
-    std::cout << "maxNumElemNodes_: " << maxNumElemNodes_ << std::endl;
+    //    std::cout << "maxNumElemNodes_: " << maxNumElemNodes_ << std::endl;
     
 
     /* disregard pointZones and faceZones */
@@ -330,6 +330,8 @@ namespace CoupledField
         vtkIdType cellId = 0;
 	vtkIdType npts;
         vtkIdType *pts;
+  
+        //        std::cout << "Unstructured grid!" << std::endl;
         
         cells->InitTraversal();
         while(cells->GetNextCell(npts, pts)) 
@@ -339,12 +341,14 @@ namespace CoupledField
           elemTypes[elemIdx] = VTKCellTypeToFEType(cell->GetCellType());
 
           elemNodeMapping = strucElemNodeMap;
+            //strucElemNodeMap;
             //unstrucElemNodeMapping_[ elemTypes[elemIdx] ];
 
           for (UInt k = 0; k < npts; ++k) 
           {
-            TOPOLOGYDATA[topoIdx + k] = nodeMap_[i][ pts[ elemNodeMapping[k]] ];
-            regionNodeMap[ nodeMap_[i][ pts[k] ] ] = pts[k];
+            UInt id = pts[ elemNodeMapping[k] ];
+            TOPOLOGYDATA[topoIdx + k] = nodeMap_[i][id];
+            regionNodeMap[ nodeMap_[i][id] ] = id;
           }
           
           elemIdx++;
@@ -402,7 +406,7 @@ namespace CoupledField
         }
       }
 
-      std::cout << "#### Num nodes in region " << i << ": " << regionNodes.size() << std::endl;
+      //      std::cout << "#### Num nodes in region " << i << ": " << regionNodes.size() << std::endl;
       std::copy(regionNodes.begin(), regionNodes.end(),
                 std::back_inserter(actualRegionNodes_[i]));
       

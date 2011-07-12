@@ -121,13 +121,13 @@ namespace CoupledField
       if(algo::ends_with(fn, ".cas") || algo::ends_with(fn, ".cas.gz"))
       {
         casFileNames.insert(fn);
-        std::cout << fn << std::endl;
+        // std::cout << fn << std::endl;
       }
 
       if(algo::ends_with(fn, ".dat") || algo::ends_with(fn, ".dat.gz"))
       {
         datFileNames.insert(fn);
-        std::cout << fn << std::endl;
+        // std::cout << fn << std::endl;
       }
     }
 
@@ -174,8 +174,8 @@ namespace CoupledField
         tsCasFiles_[timeidx] = *casFileNames.begin();
         tsDatFiles_[timeidx]  = *it;
 
-        std::cout << "ts[" << timeidx << "]: " << tsCasFiles_[timeidx] <<
-          " -> " << tsDatFiles_[timeidx] << std::endl;        
+        //        std::cout << "ts[" << timeidx << "]: " << tsCasFiles_[timeidx] <<
+        //          " -> " << tsDatFiles_[timeidx] << std::endl;        
       }
 
       oneCasToManyDat_ = true;
@@ -241,6 +241,20 @@ namespace CoupledField
     sstr << workDir_ << "/" << "cplreader_fluent_current.cas";
 
     reader->SetFileName(sstr.str().c_str());
+
+    // Activate only arrays which are needed.
+    reader->DisableAllCellArrays();
+    if(requiredResults_[FLUIDMECH_VELOCITY]) 
+    {
+      reader->SetCellArrayStatus("X_VELOCITY", 1);
+      reader->SetCellArrayStatus("Y_VELOCITY", 1);
+      reader->SetCellArrayStatus("Z_VELOCITY", 1);
+    }
+    if(requiredResults_[FLUIDMECH_PRESSURE]) 
+    {
+      reader->SetCellArrayStatus("PRESSURE", 1);
+    }    
+
     reader->Modified();
     reader->Update();
   }
@@ -301,7 +315,7 @@ namespace CoupledField
     for (UInt actRegion=0; actRegion < numRegions_; ++actRegion)
     {
       vtkDataSet* ds = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
-      std::cout << "##### Region: " << actRegion << std::endl; 
+      //      std::cout << "##### Region: " << actRegion << std::endl; 
 
       c2p->SetInput(ds);
       c2p->Update();
@@ -406,7 +420,7 @@ namespace CoupledField
           numDOFs = fdps->dofNames.size();
           fdps->data.resize(numDOFs * numTuples);
 
-          std::cout << dsName << " " << numComps << " " << numTuples << " numNodes " << numNodes << std::endl;
+          //          std::cout << dsName << " " << numComps << " " << numTuples << " numNodes " << numNodes << std::endl;
 
           UInt offset = 0;
           if (dsName == "X_VELOCITY")
