@@ -78,6 +78,7 @@ class Function
       GLOBAL_OSCILLATION,        /*!< see oscillation */
       GLOBAL_JUMP,
       STRESS,                    /*!< global stress constraint: Kocvara and Stingl; 2007. Has adjoint! */
+      STRESS_DENSITY,            /*!< global stress divided by volume */
 
       // This is constraint only!
       GREYNESS,                  /*!< inaccurate - best for observation only */

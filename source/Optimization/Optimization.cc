@@ -266,6 +266,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::TEMPERATURE, "temperature");
   Function::type.Add(Function::GREYNESS, "greyness");
   Function::type.Add(Function::STRESS, "stress");
+  Function::type.Add(Function::STRESS_DENSITY, "stressDensity");
   Function::type.Add(Function::ISOTROPY, "isotropy");
   Function::type.Add(Function::ISO_ORTHOTROPY, "iso-orthotropy");
   Function::type.Add(Function::ORTHOTROPY, "orthotropy");

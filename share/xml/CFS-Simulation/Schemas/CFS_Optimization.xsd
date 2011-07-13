@@ -286,6 +286,8 @@
                 <xsd:enumeration value="jump"/>
                 <xsd:enumeration value="globalJump"/>
                 <xsd:enumeration value="stress"/>
+                <!-- The stress density is divided by the element volume and corresponds to density=true in the stress results -->
+                <xsd:enumeration value="stressDensity"/>
                 <!-- requires the attribute 'designTarget' to be set to a filename -->
                 <xsd:enumeration value="designTracking"/>
               </xsd:restriction>
@@ -1233,6 +1235,8 @@
       <xsd:enumeration value="globalMole"/>
       <xsd:enumeration value="globalJump"/>
       <xsd:enumeration value="stress"/>
+      <!-- The stress density is divided by the element volume and corresponds to density=true in the stress results -->
+      <xsd:enumeration value="stressDensity"/>      
       <xsd:enumeration value="multiObjective"/>
     </xsd:restriction>
   </xsd:simpleType>

@@ -21,7 +21,7 @@ template<typename T>
 StressConstraint<T>::StressConstraint(Excitation* excite, Function* f, ErsatzMaterial* em, ErsatzMaterial::Solutions* forward) :
     elemList(domain->GetGrid())
 {
-  assert(f->GetType() == Function::STRESS);
+  assert(f->GetType() == Function::STRESS || f->GetType() == Function::STRESS_DENSITY);
 
   this->excite = excite;
   this->f = f;
@@ -29,6 +29,12 @@ StressConstraint<T>::StressConstraint(Excitation* excite, Function* f, ErsatzMat
   this->forward = forward;
 
   space = em->GetDesign();
+
+  this->form1 = NULL;
+  this->form2 = NULL;
+  this->u1_elem_ptr = NULL;
+  this->u2_elem_ptr = NULL;
+
 
   // global initializations
   M = dynamic_cast<MechPDE*>(em->ToPDE(Optimization::MECH))->GetVonMisesMatrix(domain->GetGrid()->GetDim());
@@ -68,8 +74,10 @@ void StressConstraint<T>::CalcStresses(Mode mode, int res_idx, Vector<double>& o
 
   Vector<T> M_stress2; // temporary
 
-  double factor = mode == STRESS ? 1.0 : 2.0;
+  double fm = mode == STRESS ? 1.0 : 2.0;
 
+  // for the Jacobi determinant we need the coordinates
+  Matrix<double> coords;
 
   StdVector<pair<Optimization::Application, Optimization::Application> > apps = GetApplications();
 
@@ -85,14 +93,33 @@ void StressConstraint<T>::CalcStresses(Mode mode, int res_idx, Vector<double>& o
     {
       DesignElement* de = f->elements[e];
 
-      Setup(de, app.first, app.second, mode);
+      // the element volume is actually only required if we no NOT want the stress density
+      domain->GetGrid()->GetElemNodesCoord(coords, de->elem->connect, false); // no updated coordinates
+      double elem_vol = de->elem->ptElem->CalcVolume(coords, false); // by default no axis symmetry!
 
-      // normal von Mises stress element results < stress, M*stress>
-      M_stress2 = M * stress2;
+      const Vector<double>& weights = de->elem->ptElem->GetIntWeights();
 
-      out[e] += Real(stress1.Inner(M_stress2)) * factor;
+      SetupElement(de, app.first, app.second, mode);
 
-      LOG_DBG2(sc) << "CS de=" << de->ToString() << " stress1" << stress1.ToString() << " M_stress2=" << M_stress2.ToString() << " -> " << stress1.Inner(M_stress2) << "(" << out[e] << ")";
+      // we integrate over the element by averages summation and then multiplying with the volume
+      for(unsigned int ip = 1, ipn = de->elem->ptElem->GetNumIntPoints(); ip <= ipn; ip++) // 1-based!! :(
+      {
+        SetupIntPoint(de->elem, ip, mode);
+
+        // normal von Mises stress element results < stress, M*stress>
+        M_stress2 = M * stress2;
+
+        T inner = stress1.Inner(M_stress2);
+
+        // do the (de)normalization stuff outside of the inner product
+        double jac_det = de->elem->ptElem->CalcJacobianDetAtIp(ip, coords, de->elem);
+        double factor = fm * weights[ip-1] * jac_det / (f->GetType() == Function::STRESS ? elem_vol : 1.0); // fuck 1-based!
+
+        out[e] += factor * Real(inner);
+
+        LOG_DBG2(sc) << "CS de=" << de->ToString() << " ip=" << ip << " inner=" << inner << " w=" << weights[ip-1] << " f=" << factor
+                     << " stress1=" << stress1.ToString() << " M_stress2=" << M_stress2.ToString() << " -> " << (factor * Real(inner));
+      }
 
       // output von mises stress? Note, that this is excitation specific! Only for STRESS
       if(res_idx != -1)
@@ -100,9 +127,11 @@ void StressConstraint<T>::CalcStresses(Mode mode, int res_idx, Vector<double>& o
         de->specialResult[res_idx] = out[e];
         // LOG_DBG3(em) << "CS:sr de=" << de->ToString() << " res_idx=" << res_idx << " v=" << out[e];
       }
-      LOG_DBG2(sc) << "CS de=" << de->ToString() << " rho=" << de->GetDesign(DesignElement::SMART) << " sMs=" << out[e] << " trans=" <<  tf.Transform(de, DesignElement::SMART);
+
+      LOG_DBG2(sc) << "CS de=" << de->ToString() << " rho=" << de->GetDesign(DesignElement::SMART) << " ev=" << elem_vol << " sMs=" << out[e] << " trans=" <<  tf.Transform(de, DesignElement::SMART);
     }
   }
+
 }
 
 template<typename T>
@@ -125,6 +154,7 @@ void StressConstraint<T>::CalcAdjointRHS(Vector<T>& out)
 
   Matrix<T> stress_transp(1, domain->GetGrid()->GetDim() == 2 ? 3 : 6);
   Matrix<T> rhs_transp;
+  Matrix<double> coords; // for the Jacobi determinant we need the coordinates
 
   bool harmonic = em->IsHarmonic();
 
@@ -143,49 +173,63 @@ void StressConstraint<T>::CalcAdjointRHS(Vector<T>& out)
     all_u1_elem = &(forward->Get(*excite)->elem[app.first == Optimization::MECH ? Optimization::MECH : Optimization::ELEC]);
     all_u2_elem = all_u1_elem; // for the adjoint rhs we need no app2 solution
 
-    double factor = harmonic ? -1.0 : -2.0;
     // It might be that stress sensitive region is not within the design domain itself
     for(unsigned int e = 0, en = f->elements.GetSize(); e < en; e++)
     {
       DesignElement* de = f->elements[e];
 
-      Setup(de, app.first, app.second, ADJOINT_RHS);
+      // the element volume is actually only required if we no NOT want the stress density
+      domain->GetGrid()->GetElemNodesCoord(coords, de->elem->connect, false); // no updated coordinates
+      double elem_vol = de->elem->ptElem->CalcVolume(coords, false); // by default no axis symmetry!
 
-      assert(stress1.GetSize() == stress_transp.GetNumCols());
-      // we have to transpose the stress (3*1 or 6*1) manually and to the conjugate stuff
-      for(unsigned int si = 0; si < stress1.GetSize(); si++)
-        stress_transp[0][si] = Conj<T>(stress1[si]); // nothing changes in real case
+      const Vector<double>& weights = de->elem->ptElem->GetIntWeights();
 
-      // final!
-      rhs_transp = stress_transp * M_E2_B2;
+      SetupElement(de, app.first, app.second, ADJOINT_RHS);
 
-      // there is a factor from the globalization function, which is the gradient of the glob function(func_val)
-      rhs_transp *= factor * alpha[e];
-
-      // sum it up to the global rhs vector
-      assert(de->elem->connect.GetSize() * dof == rhs_transp.GetNumCols());
-      for(unsigned int n = 0; n < de->elem->connect.GetSize(); n++)
+      for(unsigned int ip = 1, ipn = de->elem->ptElem->GetNumIntPoints(); ip <= ipn; ip++) // 1-based!! :(
       {
-        unsigned int node =  de->elem->connect[n];
+        SetupIntPoint(de->elem, ip, ADJOINT_RHS);
 
-        for(unsigned int d = 1; d <= dof; d++)
+        assert(stress1.GetSize() == stress_transp.GetNumCols());
+        // we have to transpose the stress (3*1 or 6*1) manually and do the conjugate stuff
+        for(unsigned int si = 0; si < stress1.GetSize(); si++)
+          stress_transp[0][si] = Conj<T>(stress1[si]); // nothing changes in real case
+
+        // finally :)
+        rhs_transp = stress_transp * M_E2_B2;
+
+        // include all the factors
+        double jac_det = de->elem->ptElem->CalcJacobianDetAtIp(ip, coords, de->elem);
+        double factor = (harmonic ? -1.0 : -2.0) * weights[ip-1] * jac_det  / (f->GetType() == Function::STRESS ? elem_vol : 1.0);
+
+        // there is a factor from the globalization function, which is the gradient of the glob function(func_val)
+        rhs_transp *= factor * alpha[e];
+
+        // sum it up to the global rhs vector
+        assert(de->elem->connect.GetSize() * dof == rhs_transp.GetNumCols());
+        for(unsigned int n = 0; n < de->elem->connect.GetSize(); n++)
         {
-          // fuck 1-based in GetNodeEqn() !!
-          int eqn_nr = std::abs(eqnMap->GetNodeEqn(node,d)); // map periodic bc to the master equation
-          assert(eqn_nr >= 0);
-          int eqn_idx = eqn_nr -1; // fuck 1-based!!
-          // don't set the homogeneous dirichlet boundary conditions :)
-          if(eqn_idx >= 0)
-          {
-            out[eqn_idx] += rhs_transp[0][dof * n + (d-1)];
+          unsigned int node =  de->elem->connect[n];
 
-            LOG_DBG3(sc) << "CAR de=" << de->ToString() << " alpha=" << alpha[e] << " factor=" << factor
-                << " n=" << n << " node=" << node
-                << " d=" << d << " eqn_idx=" << eqn_idx << " idx=" << (dof * n + (d-1)) << " val="
-                << rhs_transp[0][dof * n + (d-1)] << " -> " << out[eqn_idx];
-          }
-        } // dof
-      } // node
+          for(unsigned int d = 1; d <= dof; d++)
+          {
+            // fuck 1-based in GetNodeEqn() !!
+            int eqn_nr = std::abs(eqnMap->GetNodeEqn(node,d)); // map periodic bc to the master equation
+            assert(eqn_nr >= 0);
+            int eqn_idx = eqn_nr -1; // fuck 1-based!!
+            // don't set the homogeneous dirichlet boundary conditions :)
+            if(eqn_idx >= 0)
+            {
+              out[eqn_idx] += rhs_transp[0][dof * n + (d-1)];
+
+              LOG_DBG3(sc) << "CAR de=" << de->ToString() << " alpha=" << alpha[e] << " factor=" << factor
+                  << " n=" << n << " node=" << node
+                  << " d=" << d << " eqn_idx=" << eqn_idx << " idx=" << (dof * n + (d-1)) << " val="
+                  << rhs_transp[0][dof * n + (d-1)] << " -> " << out[eqn_idx];
+            }
+          } // dof
+        } // node
+      } // ip
     } // elements
   } // apps
 }
@@ -220,22 +264,24 @@ void StressConstraint<T>::CalcGlobalizationFactor(Vector<double>& out)
 }
 
 template<typename T>
-void StressConstraint<T>::Setup(DesignElement* de, Optimization::Application app1, Optimization::Application app2, Mode mode)
+void StressConstraint<T>::SetupElement(DesignElement* de, Optimization::Application app1, Optimization::Application app2, Mode mode)
 {
-  BaseForm* form1 = em->GetForm(de->elem->regionId, app1, Optimization::NO_APP, true);
-  BaseForm* form2 = em->GetForm(de->elem->regionId, app2, Optimization::NO_APP, true);
+  form1 = em->GetForm(de->elem->regionId, app1, Optimization::NO_APP, true);
+  form2 = em->GetForm(de->elem->regionId, app2, Optimization::NO_APP, true);
 
   BaseMaterial* bimat1 = space->GetBiMaterial(de->elem->regionId, app1, false);
   BaseMaterial* bimat2 = space->GetBiMaterial(de->elem->regionId, app2, false);
 
   static Vector<double> intPoint;
-  static Matrix<double> E2_B2; // adjoint case only
   static Matrix<double> tmp;   // for transposing [e] to [e]^T
 
 
   // we need to be careful to use the right index!!
-  Vector<T>& u1_elem = dynamic_cast<Vector<T>& >(*((*all_u1_elem)[de->GetElementSolutionIndex()]));
-  Vector<T>& u2_elem = dynamic_cast<Vector<T>& >(*((*all_u2_elem)[de->GetElementSolutionIndex()]));
+  u1_elem_ptr = dynamic_cast<Vector<T>* >((*all_u1_elem)[de->GetElementSolutionIndex()]);
+  u2_elem_ptr = dynamic_cast<Vector<T>* >((*all_u2_elem)[de->GetElementSolutionIndex()]);
+
+  Vector<T>& u1_elem = *u1_elem_ptr;
+  Vector<T>& u2_elem = *u2_elem_ptr;
 
   LOG_DBG3(sc) << "S: de=" << de->elem->elemNum << " a1=" << app1 << " a2=" << app2 << " m=" << mode << " u1=" << u1_elem.ToString() << " u2=" << u2_elem.ToString();
 
@@ -259,16 +305,25 @@ void StressConstraint<T>::Setup(DesignElement* de, Optimization::Application app
     tmp.Transpose(E2);
   }
 
+}
+template<typename T>
+void StressConstraint<T>::SetupIntPoint(Elem* elem, unsigned int ip, Mode mode)
+{
+  Vector<T>& u1_elem = *u1_elem_ptr;
+  Vector<T>& u2_elem = *u2_elem_ptr;
+
+  // we need the integration points for B
+  Vector<Double>* intPoints = elem->ptElem->GetIntPoints();
 
   // B1 and B2
-  de->elem->ptElem->GetCoordMidPoint(intPoint);
-  form1->CalcBMatOnly(B1, intPoint, de->elem);
-  form2->CalcBMatOnly(B2, intPoint, de->elem);
+  // elem->ptElem->GetCoordMidPoint(intPoint);
+  form1->CalcBMatOnly(B1, intPoints[ip-1], elem); // fucking 1-based
+  form2->CalcBMatOnly(B2, intPoints[ip-1], elem);
 
   // left side stress
   strain1 = B1 * u1_elem;
   stress1 = E1 * strain1;
-  LOG_DBG3(sc) << "SE de=" << de->ToString() << " strain1=" << strain1.ToString() << " stress1=" << stress1.ToString();
+  LOG_DBG3(sc) << "SE de=" << elem->elemNum << " ip=" << ip << " strain1=" << strain1.ToString() << " stress1=" << stress1.ToString();
 
   // right side stress - ignored for adjoint but clean that way
   if(mode == ADJOINT_RHS)
@@ -281,7 +336,7 @@ void StressConstraint<T>::Setup(DesignElement* de, Optimization::Application app
   {
     strain2 = B2 * u2_elem;
     stress2 = E2 * strain2; // E2 might be dE2
-    LOG_DBG3(sc) << "SE de=" << de->ToString() << " strain2=" << strain2.ToString() << " stress2=" << stress2.ToString();
+    LOG_DBG3(sc) << "SE de=" << elem->elemNum << " ip=" << ip << " strain2=" << strain2.ToString() << " stress2=" << stress2.ToString();
   }
 }
 
@@ -316,6 +371,7 @@ StdVector<pair<Optimization::Application, Optimization::Application> >  StressCo
 
     default:
       assert(false);
+      break;
     }
   }
 

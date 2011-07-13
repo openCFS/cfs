@@ -935,7 +935,8 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
          result = CalcGreyness(g, derivative);
          break;
 
-    case Objective::STRESS: {
+    case Objective::STRESS:
+    case Objective::STRESS_DENSITY: {
            // copy data for element von Mises stress
            Vector<double> data;
            if(harmonic)
@@ -2531,6 +2532,7 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
     case Function::ELEC_ENERGY:
     case Function::ENERGY_FLUX:
     case Function::STRESS:
+    case Function::STRESS_DENSITY:
     {
       // these objectives need their adjoint problems for the calculation of the objective value
       // they are directly solved after the StateProblem
@@ -2626,6 +2628,7 @@ void ErsatzMaterial::ConstructRealAdjointRHS(Excitation& excite, Function* f)
     break;
   }
   case Function::STRESS:
+  case Function::STRESS_DENSITY:
   {
     StressConstraint<double> sc(&excite, f, this, &forward);
     sc.CalcAdjointRHS(rhs);
@@ -2705,6 +2708,7 @@ void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
     break;
 
   case Function::STRESS:
+  case Function::STRESS_DENSITY:
   {
     StressConstraint<complex<double> > sc(&excite, f, this, &forward);
     sc.CalcAdjointRHS(rhs);

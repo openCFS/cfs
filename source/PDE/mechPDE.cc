@@ -2160,9 +2160,28 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     }
   }
 
+  bool MechPDE::WantDensity(SolutionType st) const
+  {
+    // we assume the elemResult to exist
+    PtrParamNode pn = myParam_->Get("storeResults");
+    pn = pn->GetByVal("elemResult", "type", SolutionTypeEnum.ToString(st), ParamNode::PASS);
+
+    if(pn == NULL)
+      return false;
+
+    return pn->Get("stress_strain_density")->As<bool>();
+  }
+
   void MechPDE::CalcResults( shared_ptr<BaseResult> result )
   {
     SolutionType st = result->GetResultInfo()->resultType;
+
+    // some engineers prefer a density value. Only for (von Mises) stress/strain
+    LOG_DBG3(mechpde) << "Density: MECH_STRESS " << WantDensity(MECH_STRESS);
+    LOG_DBG3(mechpde) << "Density: MECH_STRAIN " << WantDensity(MECH_STRAIN);
+    LOG_DBG3(mechpde) << "Density: VON_MISES_STRESS " << WantDensity(VON_MISES_STRESS);
+    LOG_DBG3(mechpde) << "Density: VON_MISES_STRAIN " << WantDensity(VON_MISES_STRAIN);
+
 
     switch(st)
     {
@@ -2197,37 +2216,15 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       }
       break;
 
+    // CalcStressAndStrain checks the type itself!
     case MECH_STRESS:
-    case VON_MISES_STRESS:
-      if( isComplex_ )
-      {
-        CalcStressAndStrain<Complex>(result, MECH_STRESS);
-        if(st == VON_MISES_STRESS)
-          CalcVonMises<Complex>(result);
-      }
-      else
-      {
-        CalcStressAndStrain<Double>(result, MECH_STRESS);
-        if(st == VON_MISES_STRESS)
-          CalcVonMises<Double>(result);
-      }
-      break;
-
-
     case MECH_STRAIN:
+    case VON_MISES_STRESS:
     case VON_MISES_STRAIN:
-      if( isComplex_ )
-      {
-        CalcStressAndStrain<Complex>(result, MECH_STRAIN);
-        if(st == VON_MISES_STRAIN)
-          CalcVonMises<Complex>(result);
-      }
+      if(isComplex_)
+        CalcStressAndStrain<Complex>(result, st, WantDensity(st));
       else
-      {
-        CalcStressAndStrain<Double>(result, MECH_STRAIN);
-        if(st == VON_MISES_STRAIN)
-          CalcVonMises<Double>(result);
-      }
+        CalcStressAndStrain<Double>(result, st, WantDensity(st));
       break;
 
     case MECH_ENERGY:
@@ -2293,6 +2290,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
     default:
       WARN( "Result type not computable by mechanic PDE" );
+      break;
     }
   }
 
@@ -2344,7 +2342,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
     // we don't need the entity iterator, only the stresses.
     // copy the stress result, our result is scalar
-    Result<TYPE> &  actRes = dynamic_cast<Result<TYPE>&>(*res);
+    Result<TYPE>&  actRes = dynamic_cast<Result<TYPE>&>(*res);
     Vector<TYPE>  stresses_strains = actRes.GetVector(); // copy!
     Vector<TYPE>& v_m_s = actRes.GetVector();
     v_m_s.Resize(actRes.GetEntityList()->GetSize()); // make scalar
@@ -2377,20 +2375,32 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
 
   template <class TYPE>
-  void MechPDE::CalcStressAndStrain(shared_ptr<BaseResult> res, SolutionType ss)
+  void MechPDE::CalcStressAndStrain(shared_ptr<BaseResult> res, SolutionType st, bool density)
   {
-    assert(ss == MECH_STRESS || ss == MECH_STRAIN);
+    assert(st == MECH_STRESS || st == MECH_STRAIN || st == VON_MISES_STRAIN || st == VON_MISES_STRESS);
+
+    bool do_von_mises = st == VON_MISES_STRAIN || st == VON_MISES_STRESS;
+
+    LOG_DBG3(mechpde) << "CSAS: st=" << SolutionTypeEnum.ToString(st) << " d=" << density << " vM=" << do_von_mises;
 
     Vector<TYPE> vec;
     vec.Resize(stressDim_); // same dimension for stress and strain
     vec.Init(0);
 
-    Result<TYPE> &  actRes =
-      dynamic_cast<Result<TYPE>&>(*res);
+    Result<TYPE> &  actRes = dynamic_cast<Result<TYPE>&>(*res);
     EntityIterator it = actRes.GetEntityList()->GetIterator();
 
     Vector<TYPE> & actVal = actRes.GetVector();
-    actVal.Resize( actRes.GetEntityList()->GetSize() * stressDim_ );
+    actVal.Resize( actRes.GetEntityList()->GetSize() * (do_von_mises ? 1 : stressDim_) );
+
+    // element solution
+    Matrix<TYPE> sol;
+
+    // for the density we need the coordinates
+    Matrix<double> coords;
+    // tmp and M for von Mises
+    Vector<TYPE> tmp;
+    const Matrix<double>& m = GetVonMisesMatrix(stressDim_ == 6 ? 3 : 2);
 
     // Fetch material: As we assume, that all elements belong to
     // one and the same region, we simply take the subdomain of the first
@@ -2402,43 +2412,75 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     // loop over elements
     for ( it.Begin(); !it.IsEnd(); it++ )
     {
+      // we integrate over the element by averages summation and then multiplying with the volume
       const UInt nrIntPts = it.GetElem()->ptElem->GetNumIntPoints();
       const Vector<Double>& intWeights = it.GetElem()->ptElem->GetIntWeights();
       assert(intWeights.GetSize() == nrIntPts); // 0-based
-      double area = it.GetElem()->ptElem->CalcVolume();
+
+      // the real element volume
+      domain->GetGrid()->GetElemNodesCoord(coords, it.GetElem()->connect, true); // updated coordinates
+      double elem_vol = it.GetElem()->ptElem->CalcVolume(coords, isaxi_);
 
       // reset target such that we can sum up
-      for(UInt iDof = 0; iDof < stressDim_; iDof++ )
-         actVal[it.GetPos()*stressDim_ + iDof] = 0.0;
+      if(!do_von_mises)
+        for(UInt iDof = 0; iDof < stressDim_; iDof++ )
+           actVal[it.GetPos()*stressDim_ + iDof] = 0.0;
+      // to sum up von Mises inner product
+      TYPE inner = 0.0;
+
+      Vector<Double>* intPoints = it.GetElem()->ptElem->GetIntPoints();
 
       // loop over the integration points
-      for(UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++)
+      for(UInt ip = 1; ip <= nrIntPts; ip++)
       {
-        Vector<Double>* intPoints = it.GetElem()->ptElem->GetIntPoints();
-        // it.GetElem()->ptElem->GetCoordMidPoint(intPoint);
-
         //set element solution
-        Matrix<TYPE> elSol;
-        sol_->GetElemSolutionAsMatrix(elSol, it);
-        stress_strain->SetActElemSol(elSol);
+        sol_->GetElemSolutionAsMatrix(sol, it);
+        stress_strain->SetActElemSol(sol);
 
         //calculates the element stress/strain
-        stress_strain->SetIntPoint(intPoints[actIntPt-1]); // fuck 1-based!!
-        if(ss == MECH_STRAIN)
-          stress_strain->CalcStrainVec(vec,actIntPt,it);
+        stress_strain->SetIntPoint(intPoints[ip-1]); // fuck 1-based!!
+        if(st == MECH_STRAIN || st == VON_MISES_STRAIN)
+          stress_strain->CalcStrainVec(vec,ip,it);
         else
-          stress_strain->CalcStressVec(vec,actIntPt,it);
+          stress_strain->CalcStressVec(vec,ip,it);
 
-        // LOG_DBG3(mechpde) << "CSAS: stress=" << (ss != MECH_STRAIN) << " el=" << it.GetElem()->elemNum << " ipn=" << actIntPt
-        //                  << " vec=" << vec.ToString() << " w=" << intWeights[actIntPt-1] << " a=" << area << " io=" << intPoints[actIntPt-1].ToString();
+        // we need the Jacobi determinant for a good averaging
+        double jac_det = it.GetElem()->ptElem->CalcJacobianDetAtIp(ip, coords, it.GetElem());
+
+        // we need to compensate for the summation and handle the density (which is not! normalizing by element volume).
+        double factor = intWeights[ip-1] * jac_det / (density ? 1.0 : elem_vol); // fuck 1-based!
 
         stress_strain->UnsetIntPoint();
-        for( UInt iDof = 0; iDof < stressDim_; iDof++ ) {
-          actVal[it.GetPos()*stressDim_ + iDof] += (intWeights[actIntPt-1] * vec[iDof]) / area; // fuck 1-based!
+
+        LOG_DBG3(mechpde) << "CSAS: el=" << it.GetElem()->elemNum << " ip=" << ip << " vec=" << vec.ToString() << " jac_det=" << jac_det
+                          << " w=" << intWeights[ip-1] << " ev=" << elem_vol << " d=" << density << " f=" << factor;
+
+        // this is the tensor case, we copy the summed up elements
+        if(!do_von_mises)
+        {
+          for( UInt iDof = 0; iDof < stressDim_; iDof++ )
+            actVal[it.GetPos()*stressDim_ + iDof] += vec[iDof] * factor;
+        }
+        // this is the von Mises case. We sum up the inner product
+        else
+        {
+          tmp = m * vec;
+          TYPE squared = vec.Inner(tmp);
+          inner += squared * factor; // factor needs to be outside the inner product!
+          LOG_DBG3(mechpde) << "CSAS: vm: squared=" << squared << " inner=" << inner;
         }
       }
 
-      LOG_DBG3(mechpde) << "CSAS: stress=" << (ss != MECH_STRAIN) << " el=" << it.GetElem()->elemNum << " -> " << StdVector<TYPE>::ToString(stressDim_, actVal.GetPointer() + it.GetPos()*stressDim_);
+      // after integrating we take the norm of the von Mises result
+      if(do_von_mises)
+        actVal[it.GetPos()] = std::sqrt(inner);
+
+      if(do_von_mises) {
+        LOG_DBG3(mechpde) << "CSAS: vM " << " el=" << it.GetElem()->elemNum << " -> " << actVal[it.GetPos()];
+      }
+      else {
+        LOG_DBG3(mechpde) << "CSAS: el=" << it.GetElem()->elemNum << " -> " << StdVector<TYPE>::ToString(stressDim_, actVal.GetPointer() + it.GetPos()*stressDim_);
+      }
     }
 
     delete stress_strain;

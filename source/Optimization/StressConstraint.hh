@@ -35,8 +35,14 @@ private:
   /** This are the three modes of operation */
   typedef enum { STRESS, GRAD_STRESS, ADJOINT_RHS } Mode;
 
+  /** Set up element data which is integration point independent (E1) */
   /** Set up the data for the general formula (E1 ... stress2). E2 is mode dependent, but not u1 */
-  void Setup(DesignElement* de, Optimization::Application app1, Optimization::Application app2, Mode mode);
+  void SetupElement(DesignElement* de, Optimization::Application app1, Optimization::Application app2, Mode mode);
+
+  /** Set up integration point dependent element data after SetupElement is called!
+   * calculates: stain1, B1, B2.
+   * depending on mode: M_E2_B2, strain2, stress2 */
+  void SetupIntPoint(Elem* elem, unsigned int ip, Mode mode);
 
   /** common for CalcStresses and CalcGradStresses() */
   void CalcStresses(Mode mode, int res_idx, Vector<double>& out);
@@ -68,6 +74,15 @@ private:
   /** Only calculated in the adjoint case */
   Matrix<double> M_E2_B2;
 
+  /** These are set up by SetupElement() to be used in SetupIp() */
+  BaseForm* form1;
+  BaseForm* form2;
+
+  // we need to be careful to use the right index!!
+  Vector<T>* u1_elem_ptr;
+  Vector<T>* u2_elem_ptr;
+
+  Matrix<double> E2_B2; // adjoint case only
 
   /** technical global stuff */
   TransferFunction tf; // either stress from xml file or implicitly FULL for off-design stresses */
