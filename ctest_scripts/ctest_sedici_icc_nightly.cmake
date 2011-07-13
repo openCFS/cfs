@@ -94,6 +94,7 @@ SET(CTEST_INITIAL_CACHE
    CPLREADER_CGNS:BOOL=ON
    CPLREADER_ENSIGHT:BOOL=ON
    CPLREADER_FIELDVIEW:BOOL=ON
+   CPLREADER_FLUENT:BOOL=ON
    USE_SCPIP:BOOL=ON")
 
 #-----------------------------------------------------------------------------
