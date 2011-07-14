@@ -60,7 +60,7 @@ namespace CoupledField
     void RemoveFile(const std::string& fileName,
                     const std::string& exception);
     
-    void WriteComponentsFile();
+    void WriteComponentsFile(bool printGridOnly);
     void WriteComponent(const std::string& compName,
                         const std::string& compType,
                         const StdVector<UInt>& entities);

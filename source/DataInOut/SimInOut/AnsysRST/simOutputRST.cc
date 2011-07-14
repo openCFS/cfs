@@ -190,6 +190,8 @@ namespace CoupledField {
 
 
     binlibIface_->Init(ptGrid, printGridOnly);
+
+    WriteComponentsFile(printGridOnly);
   }
 
 
@@ -248,7 +250,7 @@ namespace CoupledField {
   void SimOutputRST::FinishMultiSequenceStep( )
   {
     binlibIface_->FinishMultiSequenceStep();
-    WriteComponentsFile();
+    WriteComponentsFile(false);
   }
   
 
@@ -311,7 +313,7 @@ namespace CoupledField {
     }
   }
   
-  void SimOutputRST::WriteComponentsFile() 
+  void SimOutputRST::WriteComponentsFile(bool printGridOnly) 
   {
     // Finally, let's  write the  regions, named nodes  and named  elements as
     // components into an ANSYS components .cm file.
@@ -326,7 +328,11 @@ namespace CoupledField {
     sstr.clear();
     sstr.str("");
     sstr << dirName_ << sysPathSep_ << fileName_;
-    sstr << "_ms" << msStep_;
+    if(printGridOnly) {
+        sstr << "_grid";
+    } else {
+        sstr << "_ms" << msStep_;
+    }
     rstFileName = sstr.str() + ".rst";
     compFileName = sstr.str() + ".cm";
 
