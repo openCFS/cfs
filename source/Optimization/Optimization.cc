@@ -807,7 +807,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
       double max  = local->CalcMaxValue();
       double mean = local->CalcMeanValue();
       if(out)
-        *out << "\tmax_" << local->ToString() << max << "\tmean_" << local->ToString() << mean;
+        *out << "\t" << max << "\t" << mean;
       iteration->Get("max_" + g->ToString())->SetValue(max);
       iteration->Get("mean_" + g->ToString())->SetValue(mean);
     }

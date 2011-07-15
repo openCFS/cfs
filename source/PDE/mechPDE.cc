@@ -2393,8 +2393,14 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     Vector<TYPE> & actVal = actRes.GetVector();
     actVal.Resize( actRes.GetEntityList()->GetSize() * (do_von_mises ? 1 : stressDim_) );
 
+    // we need it only when we do midpoint in axis symmetrix case
+    Vector<double> intPoint;
+
     // element solution
     Matrix<TYPE> sol;
+
+    double jac_det = 0.0;
+    double factor = 0.0;
 
     // for the density we need the coordinates
     Matrix<double> coords;
@@ -2428,27 +2434,39 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       // to sum up von Mises inner product
       TYPE inner = 0.0;
 
-      Vector<Double>* intPoints = it.GetElem()->ptElem->GetIntPoints();
+      // I simply don't know how to do it in the axis symmetric case. Here we do the single mid point integration!
+      bool midpoint = isaxi_;
 
-      // loop over the integration points
-      for(UInt ip = 1; ip <= nrIntPts; ip++)
+      Vector<Double>* intPoints = it.GetElem()->ptElem->GetIntPoints();
+      // loop over the integration points.
+      for(UInt ip = 1; ip <= (midpoint ? 1 : nrIntPts); ip++)
       {
         //set element solution
         sol_->GetElemSolutionAsMatrix(sol, it);
         stress_strain->SetActElemSol(sol);
 
         //calculates the element stress/strain
-        stress_strain->SetIntPoint(intPoints[ip-1]); // fuck 1-based!!
+        if(midpoint) {
+          it.GetElem()->ptElem->GetCoordMidPoint(intPoint);
+          stress_strain->SetIntPoint(intPoint);
+        }
+        else
+          stress_strain->SetIntPoint(intPoints[ip-1]); // fuck 1-based!!
+
         if(st == MECH_STRAIN || st == VON_MISES_STRAIN)
           stress_strain->CalcStrainVec(vec,ip,it);
         else
           stress_strain->CalcStressVec(vec,ip,it);
 
-        // we need the Jacobi determinant for a good averaging
-        double jac_det = it.GetElem()->ptElem->CalcJacobianDetAtIp(ip, coords, it.GetElem());
+        if(midpoint)
+          factor = density ? elem_vol : 1.0 ;
+        else {
+          // we need the Jacobi determinant for a good averaging.
+          jac_det = midpoint ? 0.0 : it.GetElem()->ptElem->CalcJacobianDetAtIp(ip, coords, it.GetElem());
+          // we need to compensate for the summation and handle the density (which is not! normalizing by element volume).
+          factor = intWeights[ip-1] * jac_det / (density ? 1.0 : elem_vol); // fuck 1-based!
+        }
 
-        // we need to compensate for the summation and handle the density (which is not! normalizing by element volume).
-        double factor = intWeights[ip-1] * jac_det / (density ? 1.0 : elem_vol); // fuck 1-based!
 
         stress_strain->UnsetIntPoint();
 
