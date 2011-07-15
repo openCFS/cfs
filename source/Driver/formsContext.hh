@@ -20,7 +20,7 @@ namespace CoupledField
   class SinglePDE;
   class EqnMap;
   class EntityIterator;
-  class ResultInfo;
+  struct ResultInfo;
 
 
 
@@ -69,7 +69,8 @@ namespace CoupledField
     void SetSecDestMat( FEMatrixType aSecMat,
                         std::string aSecMatFac ) {
       secDestMat_ = aSecMat;
-      secMatFac_ = aSecMatFac; }
+      secMatFac_ = aSecMatFac;
+    }
 
     //! initialize object for damping layer
     void SetDampLayer(std::string& dampingTypeFnc,

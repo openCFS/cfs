@@ -55,14 +55,11 @@ namespace CoupledField {
 
     //! Default Constructor
     BaseSolver() {
-      setupTimer_ = NULL;
-      solveTimer_ = NULL;
       usingPenalty_ = false;
     }
 
     //! Default Destructor
-    virtual ~BaseSolver() {
-    }
+    virtual ~BaseSolver();
 
     /** Does constructor stuff only possible after child constructors are called */
     void PostInit();
@@ -88,8 +85,8 @@ namespace CoupledField {
     virtual SolverType GetSolverType() = 0;
 
     /** Gives the timer located within PtrParamNode */
-    Timer* GetSetupTimer() { return setupTimer_; }
-    Timer* GetSolveTimer() { return solveTimer_; }
+    boost::shared_ptr<Timer> GetSetupTimer() { return setupTimer_; }
+    boost::shared_ptr<Timer> GetSolveTimer() { return solveTimer_; }
 
     void SetUsingPenalty(bool usingPenalty) {
       usingPenalty_ = usingPenalty;
@@ -131,8 +128,8 @@ namespace CoupledField {
     PtrParamNode solverInfo_;
 
     /** This is a pointer to the setup timer. Located within PtrParamNode*/
-    Timer* setupTimer_;
-    Timer* solveTimer_;
+    boost::shared_ptr<Timer> setupTimer_;
+    boost::shared_ptr<Timer> solveTimer_;
 
     bool usingPenalty_;
   };

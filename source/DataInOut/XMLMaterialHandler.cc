@@ -233,8 +233,6 @@ namespace CoupledField {
       }
     }
 
-    // Print material information to .info-file
-    Info->PrintMaterial(material );
   }
 
 //**********************************************************************
@@ -521,9 +519,6 @@ namespace CoupledField {
           material->SetScalar(f->Get("interpolation")->As<std::string>(), FRACTIONAL_INTERPOL );
       }
     }
-
-    // Print information to info file
-    Info->PrintMaterial( material);
   }
 
 
@@ -590,9 +585,6 @@ namespace CoupledField {
       if(acou->Get("acousticNonlinear")->Has("bOverA"))
         material->SetScalar(acou->Get("acousticNonlinear")->Get("bOverA")->As<Double>(), BOVERA, Global::REAL );
     }  
-
-    // Print material information to info-file
-    Info->PrintMaterial( material );
   }
 
 //**********************************************************************
@@ -703,10 +695,6 @@ namespace CoupledField {
         }
       }
     }
-
-    // Print information to info file
-    Info->PrintMaterial( material );
-
   }
 
 //**********************************************************************
@@ -868,10 +856,6 @@ namespace CoupledField {
         }
       }
     }
-
-
-    // Print information to info file
-    Info->PrintMaterial( material ); 
   }
 
 //**********************************************************************
@@ -909,9 +893,6 @@ namespace CoupledField {
 
           }
       }
-    
-    // Print information to info file
-    Info->PrintMaterial( material );
   }
 
   //**********************************************************************
@@ -930,9 +911,6 @@ namespace CoupledField {
     // read kinematicViscosity 
     if(flow->Has("kinematicViscosity"))
       material->SetScalar(flow->Get("kinematicViscosity")->As<Double>(), KINEMATIC_VISCOSITY, Global::REAL);
-
-    // Print information to info file
-    Info->PrintMaterial( material );
   }
 
   //**********************************************************************
@@ -953,7 +931,6 @@ namespace CoupledField {
         material->SetTensor(tensor,PYROCOEFFICIENT_TENSOR,Global::REAL);
       }
     }
-    Info->PrintMaterial( material );
   }
 
   //**********************************************************************
@@ -974,7 +951,6 @@ namespace CoupledField {
         material->SetTensor(tensor,THERMAL_EXPANSION_TENSOR,Global::REAL);
       }
     }
-    Info->PrintMaterial( material );
   }
   
   //**********************************************************************

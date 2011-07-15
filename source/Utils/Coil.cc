@@ -206,8 +206,8 @@ namespace CoupledField {
       // Open file stream for storing inductivity
       if ( saveFileL_ != "none" ) {
 
-        std::string msg = " Inductivity is stored in: " + saveFileL_ + '\n';
-        Info->PrintF( "magneticPDE", "%s", msg.c_str() );
+        // TODO better use the magPDE infoNode_
+        info->Get("PDE/coil/inductivity/file")->SetValue(saveFileL_);
 
         fileL_ = new std::ofstream( saveFileL_.c_str() );
 
@@ -221,9 +221,8 @@ namespace CoupledField {
       // Open file stream for storing current/voltages
       if ( saveFileU_ != "none" ) {
 
-        std::string msg = " Currents/voltages are stored in: "
-          + saveFileU_ + '\n';
-        Info->PrintF( "magneticPDE", "%s", msg.c_str() );
+        // TODO better use the magPDE infoNode_
+        info->Get("PDE/coil/currents_voltages/file")->SetValue(saveFileU_);
 
         fileU_ = new std::ofstream( saveFileU_.c_str() );
 

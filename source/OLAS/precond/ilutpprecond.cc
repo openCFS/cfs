@@ -99,7 +99,7 @@ namespace CoupledField {
       	   << " ) factorisation" << std::endl;
 
     // Perform the factorisation
-    Factorise( sysMat );
+    this->Factorise( sysMat );
     amFactorised_ = true;
 
     // If the user wishes, we can export the LU factorisation to a file

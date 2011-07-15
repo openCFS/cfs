@@ -8,7 +8,6 @@
 #include <math.h>
 
 #include "freqfunc.hh"
-#include "WriteInfo.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField {

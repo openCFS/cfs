@@ -14,7 +14,7 @@ namespace CoupledField {
   // forward class declaration
   class EntityList;
   class EqnMap;
-  class ResultInfo;
+  struct ResultInfo;
   template <class TYPE> class StdVector;
 
   //! Definition of a homogeneous Dirichlet boundary condition

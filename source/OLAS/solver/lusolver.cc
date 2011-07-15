@@ -82,7 +82,7 @@ namespace CoupledField {
       this->memGrowthEstimate_ = 25;
 
       // Perform the factorisation
-      Factorise( crsMat );
+      this->Factorise( crsMat );
       amFactorised_ = true;
 
       // Logging

@@ -6,7 +6,6 @@
 
 #include "pdecoupling.hh"
 
-#include "DataInOut/WriteInfo.hh"
 #include "PDE/SinglePDE.hh"
 #include "Driver/iterSolveStep.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"

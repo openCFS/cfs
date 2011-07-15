@@ -52,6 +52,9 @@ namespace CoupledField {
     //! Trigger finalization of mataterial (calculation of rotated matrices)
     virtual void Finalize() {};
 
+    /** Print the material data which is actually read and stored in isSet */
+    void ToInfo(PtrParamNode in);
+
     //! set the name of the material set
     void SetName(const char* name) {
       matFileName_.assign( name ) ;
@@ -480,9 +483,8 @@ namespace CoupledField {
 
     //! object for piezo-micor-modeling
     PiezoMicroModelBK* piezoMicroModel_;
-  };
 
-  std::ostream& operator << ( std::ostream & , const  BaseMaterial &);
+  };
 
 } // end of namespace
 

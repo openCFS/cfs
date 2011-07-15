@@ -5,6 +5,8 @@
 #ifndef FILE_CFS_RESULTINFO_HH
 #define FILE_CFS_RESULTINFO_HH
 
+#include <string>
+
 #include "Utils/StdVector.hh"
 #include "General/environment.hh"
 

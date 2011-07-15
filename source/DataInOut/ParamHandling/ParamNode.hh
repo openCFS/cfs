@@ -137,7 +137,7 @@ namespace CoupledField
 
     /** Set a ParamNode to an expandable InfoNode. Works recursively
      * @param overwrite_name if the the name of the parent node should be used */
-    void SetValue(PtrParamNode node, bool overwrite_name = false);
+    void SetValue(PtrParamNode node, bool overwrite_name);
 
     /** Creates a sub-node with the content */
     void SetComment(const std::string& string);
@@ -365,7 +365,7 @@ namespace CoupledField
     * automatically an ParamNode::name_ value out of caption_
     * @param in might contain spaces, e.g. "Number of iterations"
     * @return for this example 'NumberOfIterations' */
-    std::string ToValidLabel(const std::string& in) const;
+    std::string ToValidLabel(std::string in) const;
 
     /** Determine recursively the suitable type for nodes. This method
      * iterates recursively over all nodes and determines for all nodes, which 
@@ -390,7 +390,7 @@ namespace CoupledField
     ParamNodeList children_;
     
     /** pointer to father node */
-    PtrParamNode parent_;
+    ParamNode *parent_;
     
     /** default action for non-existing nodes */
     ActionType defaultAction_;
@@ -403,7 +403,7 @@ namespace CoupledField
      *  if not enough time has passed, the file is not written
      *  this only affects ParamNode::ToFile()
      *  writing can be force via new parameter of ToFile */
-    Timer *write_timer_;
+    boost::shared_ptr<Timer> write_timer_;
     /** how often the file is actually written */
     unsigned int write_counter_;
     /** how often we rejected writing the info.xml-file */

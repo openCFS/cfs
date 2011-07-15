@@ -99,7 +99,7 @@ def read_density_as_vector(filename, attribute="design"):
 # @param setname_inp the name of the set or a list of setnames
 # @param elemnr if set, the element number is taken from this elemnr ndarray.
 #               The data can be obtained from read_density(...,elemnr=True)
-def write_density_file(filename, data_inp, setname_inp, elemnr=None):
+def write_density_file(filename, data_inp, setname_inp, param = 0, elemnr=None):
   # check if we deal with lists or not
   data_list = []
   setname_list = []
@@ -119,7 +119,10 @@ def write_density_file(filename, data_inp, setname_inp, elemnr=None):
   x, y, z = getDim(data)
   out.write('    <mesh x="' + str(x) + '" y="' + str(y) + '" z="' + str(z) + '"/>\n')  
   out.write('    <design initial="0.5" lower="1e-3" name="density" region="mech" upper="1"/>\n')
-  out.write('    <transferFunction application="mech" design="density" param="1" type="simp"/>\n')
+  if param > 0:
+    out.write('    <transferFunction application="mech" design="density" param="' + str(param) + '" type="simp"/>\n')
+  else:
+    out.write('    <transferFunction application="mech" design="density" param="1" type="simp"/>\n')
   out.write('  </header>\n')
 
  
@@ -139,7 +142,10 @@ def write_density_file(filename, data_inp, setname_inp, elemnr=None):
              nr = int(getNDArrayEntry(elemnr, i, j ,k))
            
            # print " i=" + str(i) + " j=" + str(j) + " k=" + str(k) + " idx=" + str(nr)
-           out.write('    <element nr="' + str(nr) + '" type="density" design="' + str(val) + '"/>\n')
+           if param > 0:
+            out.write('    <element nr="' + str(nr) + '" type="density" design="' + str(val) + '" physical="' + str(val**param) + '"/>\n')
+           else:
+            out.write('    <element nr="' + str(nr) + '" type="density" design="' + str(val) + '"/>\n')
            nr = nr + 1       
          
     out.write('  </set>\n')

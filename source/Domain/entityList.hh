@@ -14,8 +14,8 @@ namespace CoupledField {
   // Forward class declaration
   class EntityIterator;
   class Grid;
-  class SurfElem;
-  class Elem;
+  struct SurfElem;
+  struct Elem;
   class Coil;
 
 
@@ -148,6 +148,7 @@ namespace CoupledField {
 
     //! Constructor
     SurfElemList( Grid * grid);
+    virtual ~SurfElemList() {}
 
     //! Returns the name of the region contained in the entitylist
     std::string GetName() const;
@@ -183,6 +184,7 @@ namespace CoupledField {
 
     //! Constructor
     NodeList( Grid* grid);
+    virtual ~NodeList() {}
 
     //! Returns the name of the named nodes contained in the entitylist
     std::string GetName() const;
@@ -219,6 +221,7 @@ namespace CoupledField {
     
     //! Constructor
     RegionList( Grid* grid );
+    virtual ~RegionList() {}
     
     //! Returns the name of the region contained in the entitylist
     std::string GetName() const;
@@ -247,6 +250,7 @@ namespace CoupledField {
     
     //! Constructor
     CoilList( Grid* grid );
+    virtual ~CoilList() {}
     
     //! Set coil
     void AddCoil( shared_ptr<Coil> aCoil );
@@ -269,6 +273,7 @@ namespace CoupledField {
     
     //! Constructor
     NumberList( Grid* grid );
+    virtual ~NumberList() {}
     
     //! Returns the name of the free entities
     std::string GetName() const;

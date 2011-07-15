@@ -13,7 +13,8 @@ namespace CoupledField
 
   // Forward declaration of classes
   class Grid;
-  class Elem;
+  class BaseMaterial;
+  struct Elem;
   template<class TYPE> class Vector;
   template<class TYPE> class Matrix;
 

@@ -7,7 +7,6 @@
 #include "Driver/assemble.hh"
 #include "Materials/baseMaterial.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/WriteInfo.hh"
 
 // integrator (bi-)linear forms
 #include "Forms/linMagStrictInt.hh"

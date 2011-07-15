@@ -5,6 +5,7 @@
 #ifndef FILE_HARMONICDRIVER_2001
 #define FILE_HARMONICDRIVER_2001
 
+#include <boost/shared_ptr.hpp>
 #include "singleDriver.hh"
 
 namespace CoupledField
@@ -126,7 +127,7 @@ protected:
   // =======================================================================
 
   //! Timer for estimating remaining runtime 
-  Timer * timer_;
+  boost::shared_ptr<Timer> timer_;
 
 };
 

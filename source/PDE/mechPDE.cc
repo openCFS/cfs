@@ -245,13 +245,11 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
                                  dampFreq, actRayl.ratioDeltaF, 
                                  actRayl.adjustDamping, isComplex_ );
         regionRaylDamping_[actRegionId] = actRayl;
-      }
 
-      // Log to info file
-      std::string dampString;
-      Enum2String( dampingList_[actRegionId], dampString );
-      Info->PrintF( pdename_, " %s: %s\n", actRegionName.c_str(),
-                    dampString.c_str() );
+        PtrParamNode in = infoNode_->Get(ParamNode::HEADER)->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(actRegionId));
+        in->Get("alpha_M")->SetValue(actRayl.alpha);
+        in->Get("alpha_K")->SetValue(actRayl.beta);
+      }
     }
 
     // Check, if all entries are identical
@@ -1216,9 +1214,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
   void MechPDE::DefineRegionLoadIntegrators(std::map<RegionIdType, RegionLoad>& regionLoads, StdVector<LinearFormContext*>* linForms){
     VolForceInt * forceInt;
     std::map<RegionIdType, RegionLoad>::iterator loadIt = regionLoads.begin();
-    if (regionLoads.size() != 0 ) {
-      (*loadIt).second.Print(true, pdename_ );
-    }
     for( loadIt = regionLoads.begin(); loadIt != regionLoads.end(); loadIt++ ) {
       forceInt = (*loadIt).second.GetIntegrator();
 
@@ -1237,8 +1232,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
       //assemble_->AddRhsSrcIntegrator( forceInt, (*loadIt).first,
       //                                (*loadIt).second.dynamics, nonLin_ );
-      (*loadIt).second.Print(false, pdename_);
-
+      (*loadIt).second.ToInfo(infoNode_->Get("regionLoad"));
     }
     
   }

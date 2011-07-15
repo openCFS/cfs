@@ -3,7 +3,6 @@
 #include <string>
 
 #include "DataInOut/Logging/cfslog.hh"
-#include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "OLAS/algsys/basesystem.hh"
 #include "bdf2.hh"

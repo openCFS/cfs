@@ -22,7 +22,7 @@ namespace CoupledField {
   class BasePrecond;
   class BaseGraphManager;
   class BaseIDBC_Handler;
-  class BaseEntryManipulator;
+  struct BaseEntryManipulator;
   class BaseMatrix;
   class StdMatrix;
   class BaseVector;

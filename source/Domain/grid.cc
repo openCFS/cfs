@@ -240,7 +240,7 @@ namespace CoupledField
     shared_ptr<EntityList> ret;
 
     if( listType == EntityList::ELEM_LIST ) {
-      shared_ptr<ElemList> eList  = shared_ptr<ElemList>( new ElemList(this) );
+      shared_ptr<ElemList> eList ( new ElemList(this) );
       if( entityType == EntityList::REGION ) {
         RegionIdType regionId = GetRegion().Parse( name );
         eList->SetRegion( regionId);
@@ -250,8 +250,7 @@ namespace CoupledField
       ret = eList;
 
     } else if( listType == EntityList::SURF_ELEM_LIST ) {
-      shared_ptr<SurfElemList> surfList  =
-        shared_ptr<SurfElemList>( new SurfElemList(this) );
+      shared_ptr<SurfElemList> surfList ( new SurfElemList(this) );
       if( entityType == EntityList::REGION ) {
         RegionIdType regionId = GetRegion().Parse( name );
         surfList->SetRegion( regionId);
@@ -261,7 +260,7 @@ namespace CoupledField
       ret = surfList;
 
     } else if( listType == EntityList::NODE_LIST ) {
-      shared_ptr<NodeList> nodeList = shared_ptr<NodeList>( new NodeList(this) );
+      shared_ptr<NodeList> nodeList ( new NodeList(this) );
       // Check if name describes a nodeList
       if( entityType == EntityList::NAMED_NODES ) {
         StdVector<std::string> nodeNames;
@@ -278,8 +277,7 @@ namespace CoupledField
       }
       ret = nodeList;
     } else if( listType == EntityList::REGION_LIST ) {
-      shared_ptr<RegionList> regionList =
-        shared_ptr<RegionList>( new RegionList(this) );
+      shared_ptr<RegionList> regionList ( new RegionList(this) );
       if( entityType == EntityList::REGION ) {
         RegionIdType regionId = GetRegion().Parse( name );
         regionList->SetRegion( regionId );

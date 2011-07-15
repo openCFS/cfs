@@ -20,6 +20,9 @@
 #include "Domain/domain.hh"
 #include "baseMaterial.hh"
 
+using std::string;
+using std::map;
+using std::set;
 
 
 namespace CoupledField
@@ -66,7 +69,7 @@ namespace CoupledField
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
-      std::string dim = "scalar";
+      string dim = "scalar";
       matTypeNotAllowed( matType, dim );
     }
     else {
@@ -83,12 +86,12 @@ namespace CoupledField
     pos = integerParams_.find( matType );
 
     if ( pos == integerParams_.end() ) {
-      std::string dim = "scalar";
+      string dim = "scalar";
       matTypeNotInDataBase( matType, dim );
     }
     else {
       if ( dataType == Global::INTEGER ) {	
-        std::string msg = "GetScalar-Integer";
+        string msg = "GetScalar-Integer";
         dataTypeNotAllowed4SetGet( dataType, msg );
       }
       Integer val = pos->second;
@@ -111,9 +114,9 @@ namespace CoupledField
     return found;
   }
 
-  void  BaseMaterial::matTypeNotAllowed(MaterialType matType, const std::string& dim ) const {
+  void  BaseMaterial::matTypeNotAllowed(MaterialType matType, const string& dim ) const {
 
-    std::string help = MaterialTypeEnum.ToString( matType );
+    string help = MaterialTypeEnum.ToString( matType );
     EXCEPTION( "Material type (" <<  dim <<  ") " << help << 
                " is not available for " << materialDatabaseName_ 
                << " Database" );
@@ -121,9 +124,9 @@ namespace CoupledField
   
 
   void  BaseMaterial::dataTypeNotAllowed4SetGet(Global::ComplexPart dataType, 
-						 const std::string& msg ) const {
+						 const string& msg ) const {
 
-    std::string help;
+    string help;
     help = Global::complexPart.ToString( dataType );
     EXCEPTION( "Datatype " << help << " is not allowed in function " 
                << msg );
@@ -132,22 +135,22 @@ namespace CoupledField
 
   void BaseMaterial::dataTypeNotAllowed(Global::ComplexPart dataType, MaterialType matType ) const {
 
-    std::string help1, help2;
+    string help1, help2;
     help1 = Global::complexPart.ToString( dataType );
     help2 = MaterialTypeEnum.ToString( matType );
     EXCEPTION( "Datatype " << help1 << " is not allowed for material type " 
                << help2 << " in material data base " << materialDatabaseName_ );
   }
 
-  void BaseMaterial::matTypeNotInDataBase(MaterialType matType, const std::string& dim ) const {
+  void BaseMaterial::matTypeNotInDataBase(MaterialType matType, const string& dim ) const {
 
-    std::string help = MaterialTypeEnum.ToString( matType );
+    string help = MaterialTypeEnum.ToString( matType );
     EXCEPTION( "Material type (" << dim << ") " << help 
                << " was not read form/defined in material file" );
   }
 
 
-  void  BaseMaterial::setMakesNoSense(Global::ComplexPart dataType, const std::string& msg ) const {
+  void  BaseMaterial::setMakesNoSense(Global::ComplexPart dataType, const string& msg ) const {
     EXCEPTION( "Set of " << msg << " makes no sense with datatype "
                << Global::complexPart.ToString( dataType ) );
   }
@@ -155,85 +158,61 @@ namespace CoupledField
 
   void BaseMaterial::subTensorNotAvailable(MaterialType matType, SubTensorType subTensor )
   {
-    std::string help1, help2;
+    string help1, help2;
     help1 = MaterialTypeEnum.ToString( matType );
     Enum2String(subTensor, help2);
     EXCEPTION("Subtensor " << help2 <<" not available for material type " << help1);
   }
 
-  std::ostream & operator << ( std::ostream & out, const BaseMaterial& matData)
+
+  void BaseMaterial::ToInfo(PtrParamNode in)
   {
+    set<MaterialType>::iterator iter;
 
-    std::set<MaterialType>::iterator iter;
-    std::set<MaterialType> isSet = matData.GetIsSetInfo();
-    std::set<MaterialType> isComplexData = matData.GetIsComplexInfo();
-
-    std::map<MaterialType, Matrix<Complex> > tensorData  = matData.GetTensorParams();
-    std::map<MaterialType, Complex >         scalarData  = matData.GetScalarParams();
-    std::map<MaterialType, std::string >     stringData  = matData.GetStringParams();
-    std::map<MaterialType, Integer >         integerData = matData.GetIntegerParams();
-
-    std::string matTypeName;
-
-    for ( iter = isSet.begin(); iter != isSet.end(); iter++ ) {
+    // in isSet the actually read material parameters are stored
+    for(iter = isSet_.begin(); iter != isSet_.end(); iter++)
+    {
+      MaterialType mt = *iter;
       //check, if parameter is complex
-      bool isComplex = false;
-      if (  isComplexData.find( *iter ) != isComplexData.end() ) {
-        isComplex = true;
-      }
-
-      //get name of material type
-      matTypeName = MaterialTypeEnum.ToString( *iter );
+      bool isComplex = isComplex_.find(mt) != isComplex_.end();
 
       //check for material data
-      std::map<MaterialType, Matrix<Complex> >::const_iterator posTens;
-      posTens = tensorData.find( *iter );
-      std::map<MaterialType, Complex >::const_iterator posScal;
-      posScal = scalarData.find( *iter );
-      std::map<MaterialType, std::string >::const_iterator posStr;
-      posStr = stringData.find( *iter );
-      std::map<MaterialType, Integer >::const_iterator posInt;
-      posInt = integerData.find( *iter );
+      map<MaterialType, Matrix<Complex> >::const_iterator posTens = tensorParams_.find(mt);
+      map<MaterialType, Complex >::const_iterator         posScal = scalarParams_.find(mt);
+      map<MaterialType, string >::const_iterator          posStr  = stringParams_.find(mt);
+      map<MaterialType, Integer >::const_iterator         posInt  = integerParams_.find(mt);
 
+      PtrParamNode in_ = in->Get("property", ParamNode::APPEND);
+      in_->Get("name")->SetValue(MaterialTypeEnum.ToString(mt));
 
-
-      if ( posTens != tensorData.end() ) {
-        // tensor data
-        Matrix<Complex> matTensor = posTens->second;
-        Matrix<Double>  tensor = matTensor.GetPart( Global::REAL );
-
-        out  << matTypeName << " (real part)" << ":\n\n" 
-            << tensor << std::endl;
-
-        if ( isComplex ) {
-          tensor = matTensor.GetPart( Global::IMAG );
-          out  << matTypeName << " (imag. part)" << ":\n\n" 
-              << tensor << std::endl;
+      if(posTens != tensorParams_.end())
+      {
+        // get the tensor by default as complex
+        if(isComplex)
+          in_->Get("tensor")->SetValue(posTens->second);
+        else
+        {
+          in_->Get("tensor")->SetValue(posTens->second.GetPart(Global::REAL));
         }
       }
-      else if ( posScal != scalarData.end() ) {
-        // scalar data
-        Complex val = posScal->second;
-        out << matTypeName << " (real part) = " << val.real() << std::endl;
 
-        if ( isComplex ) {
-          out << matTypeName << " (imag. part)" << val.imag() << std::endl;
-        }
+      if(posScal != scalarParams_.end())
+      {
+        Complex val = posScal->second; // see tensor
+        if(isComplex)
+          in_->Get("value")->SetValue(val);
+        else
+          in_->Get("value")->SetValue(val.real());
       }
-      else if ( posStr != stringData.end() ) {
-        // string data
-        std::string val = posStr->second;
-        out << matTypeName << ": " << val << std::endl;
-      }
-      else if ( posInt != integerData.end() ) {
-        // integer data
-        Integer val = posInt->second;
-        out << matTypeName << " = " << val << std::endl;
-      }
+
+      if(posStr != stringParams_.end())
+        in_->Get("value")->SetValue(posStr->second);
+
+      if(posInt != integerParams_.end())
+        in_->Get("value")->SetValue(posInt->second);
     }
+  }
 
-    return out;
-  }  
 
   void BaseMaterial::RotateTensorByRotationAngles( const Vector<Double> &rotAngle,
                                                    MaterialType matType,
@@ -284,12 +263,12 @@ namespace CoupledField
     posOrig = this->tensorParamsOrig_.find( matType );
 
     if ( pos == tensorParams_.end() ) {
-      std::string dim = "tensor";
+      string dim = "tensor";
       matTypeNotInDataBase( matType, dim );
     }
     else {
       if ( posOrig == tensorParamsOrig_.end() ) {
-        std::string dim = "tensorOriginal";
+        string dim = "tensorOriginal";
         matTypeNotInDataBase( matType, dim );
       }
 
@@ -433,9 +412,9 @@ namespace CoupledField
                                bool isInverse, bool computeHystInverse ) {
 
     isHystInverse_      = isInverse;
-    computeHystInverse_ = computeHystInverse_;
+    computeHystInverse_ = computeHystInverse;
 
-    std::string val = stringParams_[HYST_MODEL];
+    string val = stringParams_[HYST_MODEL];
     if ( val != "preisach" ) {
       EXCEPTION( "Currently we just support Preisach Hysteresis Model" );
     }
@@ -474,7 +453,7 @@ namespace CoupledField
                                   UInt dim ) {
 
 
-    std::string val = stringParams_[HYST_MODEL];
+    string val = stringParams_[HYST_MODEL];
     if ( val != "preisach" ) {
       EXCEPTION( "Currently we just support Preisach Hysteresis Model" );
     }
@@ -537,7 +516,7 @@ namespace CoupledField
     return Yprevious_[idx];
   }
 
-  void BaseMaterial::ComputeRayleighDamping(std::string& alpha, std::string& beta,
+  void BaseMaterial::ComputeRayleighDamping(string& alpha, string& beta,
                                             Double dampFreq, Double ratioDeltaF,
                                             bool adjustDamping, bool isHarmonic ) {
 
@@ -583,14 +562,14 @@ namespace CoupledField
     if( adjustDamping && isHarmonic ) {
       
       // calculate modified alpha' = alpha / measuredFreq * f
-      alpha = lexical_cast<std::string> ( alphaOrig / measuredFreq) +
+      alpha = lexical_cast<string> ( alphaOrig / measuredFreq) +
               "* f";
       // calculate modified beta' = beta * measuredFreq / f
-      beta = lexical_cast<std::string> ( betaOrig * measuredFreq) +
+      beta = lexical_cast<string> ( betaOrig * measuredFreq) +
               "/ f";
     } else {
-      alpha = lexical_cast<std::string>(alphaOrig);
-      beta = lexical_cast<std::string>(betaOrig);
+      alpha = lexical_cast<string>(alphaOrig);
+      beta = lexical_cast<string>(betaOrig);
     }
   }
 

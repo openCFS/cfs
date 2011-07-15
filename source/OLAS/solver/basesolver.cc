@@ -188,13 +188,16 @@ namespace CoupledField {
     return threshold;
   }
   
+  BaseSolver::~BaseSolver()
+  { }
+  
   void BaseSolver::PostInit()
   {
     // not all solvers are switched to ParamNode yet
     PtrParamNode base = solverInfo_ != NULL ? solverInfo_ : info->Get("OLAS/legacySolver", ParamNode::APPEND);
-    setupTimer_ = new Timer();
+    setupTimer_ = boost::shared_ptr<Timer>(new Timer());
     base->Get(ParamNode::SUMMARY)->Get("setup/timer")->SetValue( setupTimer_ );
-    solveTimer_ = new Timer();
+    solveTimer_ = boost::shared_ptr<Timer>(new Timer());
     base->Get(ParamNode::SUMMARY)->Get("solve/timer")->SetValue( solveTimer_ );
   }
 

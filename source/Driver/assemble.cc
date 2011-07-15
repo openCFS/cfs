@@ -34,7 +34,7 @@ namespace CoupledField
 
   Assemble::Assemble( BaseSystem* algsys,
                       BasePDE::AnalysisType analysis,
-                      UInt maxTimeDerivOrder ) {
+                      UInt maxTimeDerivOrder ) : timer_(new Timer()) {
 
     // init general params
     algsys_ = algsys;
@@ -54,7 +54,6 @@ namespace CoupledField
     mHandle_ = domain->GetMathParser()->GetNewHandle();
 
     // the timer object is used in every AssembleMatrices() call
-    timer_ = new Timer();
     info->Get("analysis")->Get(ParamNode::SUMMARY)->Get("assemble/timer")->SetValue(timer_);
 
     // Initialize scripting interface

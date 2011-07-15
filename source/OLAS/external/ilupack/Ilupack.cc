@@ -22,7 +22,8 @@
 DECLARE_LOG(ilupack)
 DEFINE_LOG(ilupack, "ilupack")
 
-using namespace CoupledField;
+namespace CoupledField
+{
 
 
 template<typename T>
@@ -572,3 +573,5 @@ void Ilupack<T>::CalcFillIn(PtrParamNode out)
 template class Ilupack<Double> ;
 template class Ilupack<Complex> ;
 #endif
+
+}
