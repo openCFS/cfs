@@ -240,6 +240,7 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   switch(f->GetType())
   {
   case Function::STRESS:
+  case Function::STRESS_DENSITY:
   {
     CalcVonMisesStressGradient(excite, f, tf);
     break;

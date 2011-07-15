@@ -111,10 +111,12 @@ namespace CoupledField {
     case VON_MISES_STRESS:
       if(isComplex_) {
         CalcStressStrain<Complex>(result);
-        dynamic_cast<MechPDE*>(pde1_)->CalcVonMises<Complex>(result);
+        assert(false);
+//        dynamic_cast<MechPDE*>(pde1_)->CalcVonMises<Complex>(result);
       } else {
         CalcStressStrain<Double>(result);
-        dynamic_cast<MechPDE*>(pde1_)->CalcVonMises<Double>(result);
+        assert(false);
+ //       dynamic_cast<MechPDE*>(pde1_)->CalcVonMises<Double>(result);
       }
       break;
 

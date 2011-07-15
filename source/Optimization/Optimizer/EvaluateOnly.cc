@@ -29,11 +29,15 @@ void EvaluateOnly::SolveProblem()
   HarmonicDriver* hd = dynamic_cast<HarmonicDriver*>(domain->GetDriver());
   int end = optimization->IsHarmonic() && !optimization->GetMultipleExcitation()->IsEnabled() ? hd->freqs.GetSize() : 1;
 
-  // to store the gradient values, we need it to evaluate density filtering
+  // space to store the gradient values, we need it to evaluate density filtering.
   StdVector<double> grad(optimization->GetDesign()->GetNumberOfVariables());
   grad.Init(0.0);
   // scale the window to the whole data domain
   grad.window.Set(grad);
+
+  // our initial design
+  StdVector<double> x;
+  optimization->GetDesign()->WriteDesignToExtern(x);
 
   for(int i = 0; i < end; i++)
   {
@@ -60,7 +64,10 @@ void EvaluateOnly::SolveProblem()
       Condition* g = optimization->constraints.view->Get(c);
       optimization->CalcConstraint(g);
       if(!g->IsObservation()) // not for observation stuff
+      {
+        grad.window.Set(0, g->GetSparsityPattern().GetSize()); // necessary for a local condition assert
         optimization->CalcConstraintGradient(g, &grad);
+      }
     }
     optimization->constraints.view->Done(); // reset the slope constraints to global
 

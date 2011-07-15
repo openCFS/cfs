@@ -74,6 +74,8 @@ namespace CoupledField {
         }
       }
 
+      Vector<Double> globIntPoint;
+
       // Loop over all integration points
       for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
 
@@ -81,7 +83,6 @@ namespace CoupledField {
         if( ptMaterial->GetCoordSys() != NULL ) {
           // Get global coordinates
           Vector<Double> * intPoints = ptelem->GetIntPoints();
-          Vector<Double> globIntPoint;
 
           ptelem->Local2GlobalCoord(globIntPoint, intPoints[actIntPt-1],
                                     ptCoord_, ent1.GetElem() );

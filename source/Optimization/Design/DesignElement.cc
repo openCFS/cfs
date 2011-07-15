@@ -460,6 +460,7 @@ void DesignElement::SetEnums()
   Filter::density.Add(Filter::STANDARD, "standard");
   Filter::density.Add(Filter::HEAVISIDE, "heaviside");
   Filter::density.Add(Filter::MOD_HEAVISIDE, "mod_heaviside");
+  Filter::density.Add(Filter::TANH, "tanh");
 
   type.SetName("DesignElement::Type");
   type.Add(TENSOR_TRACE, "tensor_trace");
@@ -628,6 +629,7 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
 }
 
 
+inline
 double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Filter::Density fd) const
 {
   // We filter over this element and the neighbors.
@@ -650,26 +652,30 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
     const DesignElement* de = ne->neighbour;
 
     double w = ne->weight;
-    //double x = de->GetPlainValue(DesignElement::DESIGN); // cheap if not used
-     double x = de->GetPlainDesignValue();
+    double x = de->GetPlainDesignValue();
 
     numerator   += w * x;
     denominator += w;
 
-    // LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
-    //                << " w= " << w  << " p=" << x << " num=" << numerator << " den=" << denominator;
+    LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
+                    << " w= " << w  << " x=" << x << " num=" << numerator << " den=" << denominator;
   }
 
   double p_filt = numerator / denominator;
 
   LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " filtered_density=" << p_filt;
 
-  assert(fd == Filter::STANDARD || fd == Filter::HEAVISIDE || fd == Filter::MOD_HEAVISIDE);
+  assert(fd == Filter::STANDARD || fd == Filter::HEAVISIDE || fd == Filter::MOD_HEAVISIDE || fd == Filter::TANH);
 
   // do we need to post proc?
   if(fd != Filter::STANDARD)
   {
-    p_filt = CalcHeaviside(p_filt);
+    assert(fd == Filter::HEAVISIDE || fd == Filter::MOD_HEAVISIDE  || fd == Filter::TANH);
+
+    if(fd == Filter::TANH)
+      p_filt = CalcTanh(p_filt);
+    else
+      p_filt = CalcHeaviside(p_filt);
 
     assert(p_filt <= this->de_->GetUpperBound());
     assert(p_filt >= 0.7 * this->de_->GetLowerBound()); // relax the assert a little, cause of heaviside correction
@@ -681,41 +687,32 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
   return p_filt;
 }
 
-double SIMPElement::CalcHeaviside(double input_value) const
+
+inline
+double SIMPElement::CalcTanh(double input_value) const
 {
   Filter* f = &de_->simp->filter;
   assert(f->type_ == Filter::DENSITY);
-  assert(f->density_ == Filter::HEAVISIDE || f->density_ == Filter::MOD_HEAVISIDE);
+  assert(f->density_ == Filter::TANH);
 
   double b = f->GetBeta();
+  double e = f->eta;
+  // make sure we are within the bounds
+  double ub = this->de_->GetUpperBound();
+  double lb = this->de_->GetLowerBound();
+
   assert(b >= 0.0 && b < 2000);
+  assert(e >= lb && e <= ub);
 
-  if(f->density_ == Filter::HEAVISIDE)
-  {
-    // we apply the correction factor in a way that H(rho_min) = rho_min and H(1) = 1
-    double corr = (1.0 - (1.0 - input_value) * f->heaviside_corr) * input_value;
-    double result = 1.0 - std::exp(-1.0 * b * corr) + corr * std::exp(-1.0 * b);
+  // 1 - 1/(exp(2*beta*(x-param)) + 1)
+  double func = 1.0 - 1.0/(std::exp(2.0 * b * (input_value - e)) + 1.0);
+  double result = (ub-lb) * (func) + lb;
 
-    LOG_DBG3(desel) << "CH: de=" << de_->elem->elemNum << " f=" << f->density.ToString(f->density_)
-                  << " hc=" << f->heaviside_corr << " corr=" << corr << " iv=" << input_value << " -> " << result;
-    return result;
-  }
-  else // if(f->density_ == Filter::MOD_HEAVISIDE)
-  {
-    // make sure we are within the bounds
-    double ub = this->de_->GetUpperBound();
-    double lb = this->de_->GetLowerBound();
-
-    double first    = std::exp(-1.0 * b * (1.0 - input_value));
-    double second   = -1.0 * (1.0 - input_value) * std::exp(-1.0 * b);
-
-    return (ub-lb) * (first + second) + lb;
-
-    //LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " b=" << b << " lb=" << lb << " (ub-lb)=" << (ub-lb)
-    //              << " c=" << constant << " +1st=" << first << " +2nd=" << second << " =" << (constant + first + second) << " -> " << p_filt;
-  }
+  LOG_DBG3(desel) << "CT: de=" << ToString() << " iv=" << input_value << " func=" << func << " -> " << result;
+  return result;
 }
 
+inline
 double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp, Condition* g) const
 {
   // We filter over this element and the neighbors.
@@ -770,6 +767,16 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
         // general scaling
         h = de->GetUpperBound() - de->GetLowerBound();
         h *= b * exp(b*(x_n-1.0)) + exp(-1.0*b);
+      }
+      if(f.density_ == Filter::TANH)
+      {
+        // f(x)  =  1 - 1/(exp(2*beta*(x-param)) + 1)
+        // f'(x) =  (exp(2*beta*(x-param)+1)^-2 * 2 * beta * exp(2*beta*(x-param))
+        double eta = f.eta;
+        h = de->GetUpperBound() - de->GetLowerBound();
+
+        double e = std::exp(2.0 * b * ( x_n - eta));
+        h *= 1.0/((e+1.0)*(e+1.0)) * 2.0 * b * e;
       }
     }
 
@@ -848,6 +855,10 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
   // we will need the barycenters in FindNeibhborhood()
   for(unsigned int i = 0, s = space->regions[0].GetSize(); i < s; i++)
     grid->SetElementBarycenters(space->regions[0][i].regionId, false); // no updated coordinates
+  // Handle also the off-design barycenters
+  if(space->DoNonDesignVicinity())
+    for(unsigned int i = 0; i < space->GetPseudoDesignRegions().GetSize(); i++)
+      grid->SetElementBarycenters(space->GetPseudoDesignRegions()[i][0].elem->regionId, false);
 
   // let CFS find the neighborhood of *all* elements. With some luck this was done
   // anyway already and we get it for free
@@ -873,26 +884,26 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
 
   // traverse over all elements
   // double cfs elements for multiple design variables are not handled special
-  for(unsigned int e = 0, n = space->data.GetSize(); e < n; e++)
+  for(unsigned int e = 0, n = space->GetTotalElements().GetSize(); e < n; e++)
   {
-    DesignElement& de = space->data[e];
-    de.vicinity = new VicinityElement();
+    DesignElement* de = space->GetTotalElements()[e];
+    de->vicinity = new VicinityElement();
     // here we store the neighbors in a sorted way
-    StdVector<DesignElement*>& ve_data = de.vicinity->design; // has proper size of NULLs
+    StdVector<DesignElement*>& ve_data = de->vicinity->design; // has proper size of NULLs
 
     // reference case
-    StdVector<std::pair<Elem*, int> >& neighbors = *(de.elem->neighborhood);
+    StdVector<std::pair<Elem*, int> >& neighbors = *(de->elem->neighborhood);
     // reuse the enlarged_data element for the periodic case only
     if(periodic)
     {
-      if(structure->ExtendPeriodicNeighborhood(de.elem, common, enlarged_data))
+      if(structure->ExtendPeriodicNeighborhood(de->elem, common, enlarged_data))
       {
         neighbors = enlarged_data; // in the non-periodic case there is no need to copy the element data
-        de.vicinity->periodic = true;
+        de->vicinity->periodic = true;
       }
     }
 
-    LOG_DBG(desel) << "VE:Init elem=" << de.elem->elemNum << " neighbors=" << neighbors.ToString();
+    LOG_DBG(desel) << "VE:Init elem=" << de->elem->elemNum << " neighbors=" << neighbors.ToString();
 
     for(unsigned int n = 0; n < neighbors.GetSize(); n++)
     {
@@ -901,24 +912,21 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
       // now we have to find the relative position of candidate
       Elem* candidate = neighbors[n].first;
 
-      LOG_DBG3(desel) << "VE:Init elem=" << de.elem->elemNum << " e.bc=" << de.elem->barycenter.ToString() << " e.dim="
-                    << de.elem->ptElem->GetDim() << " e.r=" << de.elem->regionId << " n=" << n << " o.el=" << candidate->elemNum
+      LOG_DBG3(desel) << "VE:Init elem=" << de->elem->elemNum << " e.bc=" << de->elem->barycenter.ToString() << " e.dim="
+                    << de->elem->ptElem->GetDim() << " e.r=" << de->elem->regionId << " n=" << n << " o.el=" << candidate->elemNum
                     << " o.bc=" << candidate->barycenter.ToString() << " o.dim=" << candidate->ptElem->GetDim() << " o.r=" << candidate->regionId;
 
       // if the neighbor is a surface element we don't want to play with it
-      if(de.elem->ptElem->GetDim() != candidate->ptElem->GetDim())
+      if(de->elem->ptElem->GetDim() != candidate->ptElem->GetDim())
         continue;
-      // same if the region does not match. E.g. if there is fixed region not subject to optimization, e.g. bruggi_two_bar
-      if(!space->Contains(candidate->regionId))
+      // we include pseudo design regions. This is for off-design optimization or non_design_vicinity=true in <ersatzMaterial>
+      if(!space->Contains(candidate->regionId, space->DoNonDesignVicinity()))
         continue;
-      // if((de.elem->regionId != candidate->regionId) && (space->regions.GetSize() == 1 || !space->Contains(candidate->regionId)))
-      //  continue;
-      // assert(space->regions.GetSize() == 1); // extend for multi-region
 
       // the spacing allows to identify periodic elements
-      int idx = FindRelativeNeighborLocation(de.elem->barycenter, candidate->barycenter, spacing);
-      ve_data[idx] = space->Find(candidate->elemNum, de.GetType(), false);
-      LOG_DBG2(desel) << "VE:Init elem=" << de.elem->elemNum << " idx=" << idx << " dat=" << ve_data[idx];
+      int idx = FindRelativeNeighborLocation(de->elem->barycenter, candidate->barycenter, spacing);
+      ve_data[idx] = space->Find(candidate->elemNum, de->GetType(), false, space->DoNonDesignVicinity());
+      LOG_DBG2(desel) << "VE:Init elem=" << de->elem->elemNum << " idx=" << idx << " val=" << ve_data[idx]->ToString() << " neigh=" << DesignElement::ToString(ve_data);
     }
   }
  }

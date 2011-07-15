@@ -160,9 +160,10 @@ namespace CoupledField
     void CalcEnergy( shared_ptr<BaseResult> vals );
 
     /** common implementation for element stresses and strains as vectors
-     * @param ss either MECH_STRESS or MECH_STRAIN */
+     * @param ss either MECH_STRESS or MECH_STRAIN or VON_MISES_STRESS or VON_MISES_STRAIN
+     * @param density divide by element volume?*/
     template <class TYPE>
-    void CalcStressAndStrain(shared_ptr<BaseResult> vals, SolutionType ss);
+    void CalcStressAndStrain(shared_ptr<BaseResult> vals, SolutionType ss, bool density = false);
 
     //! compute volume above a deformed surface
     template <class TYPE>
@@ -291,6 +292,9 @@ namespace CoupledField
 
     //! define available result types
     void DefineAvailResults();
+
+    /** Is the stress_strain_density attribute set to true? */
+    bool WantDensity(SolutionType st) const;
 
     struct SurfStress {
 

@@ -84,6 +84,7 @@ Function::Function(PtrParamNode pn)
   case GLOBAL_OSCILLATION:
   case GLOBAL_MOLE:
   case STRESS:
+  case STRESS_DENSITY:
     if(!pn->Has("parameter"))
       throw Exception("function '" + type.ToString(type_) + "' requires the 'parameter' attribute");
     break;
@@ -270,6 +271,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
       break;
 
     case STRESS:
+    case STRESS_DENSITY:
       // there might be the optional excitation index set
       if(pn->Get("excitation")->As<std::string>() == "all")
       {
@@ -301,7 +303,7 @@ bool Function::DoEvaluateAlways() const
 
 bool Function::IsExcitationSensitive() const
 {
-  if(type_ == STRESS)
+  if(type_ == STRESS || type_ == STRESS_DENSITY)
     return true;
   else
     return false;
@@ -321,6 +323,7 @@ bool Function::IsAdjointBased() const
     case ELEC_ENERGY:
     case ENERGY_FLUX:
     case STRESS:
+    case STRESS_DENSITY:
     return true;
 
   default:
@@ -400,6 +403,7 @@ bool Function::ForSensitivityFiltering() const
   case TEMPERATURE:
   case ABS_OUTPUT:
   case STRESS:
+  case STRESS_DENSITY:
     return true;
 
   case VOLUME:
@@ -453,33 +457,16 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
   else
   {
     // this is a special case where the constraint does not act on the design space
-    if(type_ != STRESS)
+    if(type_ != STRESS && type_ != STRESS_DENSITY)
     {
       std::string msg = "region " + grid->GetRegion().ToString(region) + " of condition " + type.ToString(type_) + " not within design domain";
       info_->Get(ParamNode::WARNING)->SetValue(msg);
     }
 
-    StdVector<Elem*> elems;
-    grid->GetElems(elems, region);
+    assert(elements.GetSize() == 0);
 
-    // construct dummy elements
-    non_design_elements_.Reserve(elems.GetSize());
-
-    // see DesignSpace::GetPseudoElementIndex()
-    int pei_base = space->GetNumberOfElements() + space->CalcRegisteredPseudoDesigns();
-
-    for(unsigned int i = 0; i < elems.GetSize(); i++)
-    {
-      DesignElement del(elems[i], design, elements.GetSize(), pei_base + i);
-      non_design_elements_.Push_back(del); // copy constructor
-
-      DesignElement* de = &(non_design_elements_.Last());
-      assert(de->simp == NULL);
-      de->simp = new SIMPElement(de);
-
-      elements.Push_back(de);
-    }
-    space->RegisterPseudoDesign(elements);
+    // this creates the pseudo design elements and both indices are hopefully properly set!
+    space->RegisterPseudoDesignRegion(region, design, &elements);
   }
 
   assert(elements.GetSize() == elements.Capacity());
@@ -500,6 +487,7 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case JUMP:
   case GLOBAL_JUMP:
   case STRESS:
+  case STRESS_DENSITY:
     // assert(space->IsRegular()); // VicinityElements work only on a regular grid
     // the design elements require the vicinity element to be set which holds the direct
     // neighbors. Is save to call several times
@@ -554,6 +542,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
   case GLOBAL_OSCILLATION:
   case GLOBAL_SLOPE:
   case STRESS:
+  case STRESS_DENSITY:
     this->globalized_ = true;
     break;
 
@@ -625,6 +614,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
     break;
 
   case STRESS:
+  case STRESS_DENSITY:
     if(locality_ != ELEMENT && locality_ != DEFAULT)
       throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = ELEMENT;
@@ -1069,6 +1059,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
   switch(f->type_)
   {
   case STRESS:
+  case STRESS_DENSITY:
     assert(von_mises_stress >= 0);
     fv = von_mises_stress;
     break;
@@ -1108,6 +1099,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
   case GLOBAL_MOLE:
   case GLOBAL_JUMP:
   case STRESS:
+  case STRESS_DENSITY:
   {
     // we normalize all values by the number of "constraints". Note that it is
     // sufficient for the function value, the gradient is then also right
@@ -1183,6 +1175,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
       break;
 
     case STRESS:
+    case STRESS_DENSITY:
       assert(false); // in SIMP::CalcVonMisesStressGradient() only!
       break;
 

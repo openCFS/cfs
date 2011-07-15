@@ -44,7 +44,7 @@ public:
   private:
 
   /** Creates the pseudo density node and stores the header */
-  PtrParamNode Create(ParamNodeList& des, ParamNodeList& tfs, PtrParamNode regularize);
+  PtrParamNode Create(ParamNodeList& des, ParamNodeList& tfs, PtrParamNode regularize, bool non_desig_vicinity);
 
   /** shall we write the densities for all iterations or overwrite? */
   bool all_iterations_;

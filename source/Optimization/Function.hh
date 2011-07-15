@@ -78,6 +78,7 @@ class Function
       GLOBAL_OSCILLATION,        /*!< see oscillation */
       GLOBAL_JUMP,
       STRESS,                    /*!< global stress constraint: Kocvara and Stingl; 2007. Has adjoint! */
+      STRESS_DENSITY,            /*!< global stress divided by volume */
 
       // This is constraint only!
       GREYNESS,                  /*!< inaccurate - best for observation only */
@@ -490,10 +491,6 @@ class Function
     PtrParamNode info_;
 
     StressType stressType_;
-
-  private:
-    /** Here elements refers to if the region is not within the design space */
-    StdVector<DesignElement> non_design_elements_;
 };
 
 
