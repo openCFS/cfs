@@ -268,8 +268,7 @@ namespace CoupledField {
     PtrParamNode in = infoNode_->Get(ParamNode::HEADER);
     for(UInt i = 0; i < subdoms_.GetSize(); i++ )
     {
-      PtrParamNode in_ = in->Get("region", ParamNode::APPEND);
-      in_->Get("name")->SetValue(domain->GetGrid()->GetRegion().ToString(subdoms_[i]));
+      PtrParamNode in_ = in->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(subdoms_[i]));
 
       std::string fuck_e2s;
       Enum2String(GetDamping(subdoms_[i]), fuck_e2s);
