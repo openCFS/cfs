@@ -578,8 +578,9 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_ElemResult">
-                <xsd:attribute name="type" type="DT_MechElemResult"
-                  use="required"/>
+                <xsd:attribute name="type" type="DT_MechElemResult" use="required"/>
+                <!-- Only for (von Mises) stress and strain. Divides value by element volume. -->
+                <xsd:attribute name="stress_strain_density" type="xsd:boolean" use="optional" default="false"/>                
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>

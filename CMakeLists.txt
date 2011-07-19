@@ -36,7 +36,7 @@ PROJECT(CFS C CXX Fortran)
 # CFS version number.  Simply the last modification date
 #-----------------------------------------------------------------------------
 SET(CFS_VERSION_YEAR "11")
-SET(CFS_VERSION_MONTH "02")
+SET(CFS_VERSION_MONTH "06")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
@@ -173,6 +173,11 @@ OPTION(USE_IPOPT "Use the external IPOPT optimizer." ${USE_IPOPT_DEFAULT})
 # SnOpt optimizer library.
 #-----------------------------------------------------------------------------
 OPTION(USE_SNOPT "Use the external SnOpt optimizer." ${USE_SNOPT_DEFAULT})
+
+#-----------------------------------------------------------------------------
+# KNITRO is a commercial optimizer, requiring a license file/server
+#-----------------------------------------------------------------------------
+OPTION(USE_KNITRO "Use the external KNITRO optimizer." FALSE)
 
 #-----------------------------------------------------------------------------
 # Use interpolation toggles the inclusion of the CGAL library.

@@ -25,7 +25,7 @@ DensityFile::DensityFile(DesignSpace* designSpace,
 
   name_ = export_pn->Get("file")->As<string>();
   if(name_ == "[problem]") name_ = progOpts->GetSimName() + ".density.xml";
-  data = Create(des, tfs, regulize_pn);
+  data = Create(des, tfs, regulize_pn, designSpace->DoNonDesignVicinity());
   all_iterations_ = export_pn->Get("save")->As<string>() == "all";
   finally_only_   = export_pn->Get("write")->As<string>() == "finally";
 }
@@ -161,10 +161,7 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
 
 }
 
-
-
-
-PtrParamNode DensityFile::Create(ParamNodeList& des, ParamNodeList& tfs, PtrParamNode regularize)
+PtrParamNode DensityFile::Create(ParamNodeList& des, ParamNodeList& tfs, PtrParamNode regularize, bool non_desing_vicinity)
 {
    PtrParamNode in = PtrParamNode(new ParamNode(ParamNode::INSERT));
    in->SetName("cfsErsatzMaterial");
@@ -191,6 +188,8 @@ PtrParamNode DensityFile::Create(ParamNodeList& des, ParamNodeList& tfs, PtrPara
      mesh->Get("y")->SetValue(dim.data[1] / edges[1]);
      mesh->Get("z")->SetValue(domain->GetGrid()->GetDim() == 3 ? dim.data[2] / edges[2]: 1);
    }
+
+   in_->Get("designSpace/non_design_vicinity")->SetValue(non_desing_vicinity);
 
    for(unsigned int i = 0, s = des.GetSize(); i < s; ++i)
      in_->Get("dummy", ParamNode::APPEND)->SetValue(des[i], true); // name is overwritten

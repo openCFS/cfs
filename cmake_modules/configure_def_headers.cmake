@@ -54,6 +54,9 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_scpip.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_snopt.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_snopt.hh")
 
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_knitro.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_knitro.hh")
+
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_interpolation.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_interpolation.hh")
 

@@ -1144,6 +1144,17 @@ namespace CoupledField
   }
 
 
+  double BaseFE::CalcVolume() const
+  {
+    double sum = 0;
+
+    for(unsigned int i = 0; i < IntWeights_.GetSize(); i++)
+      sum += IntWeights_[i];
+
+    return sum;
+  }
+
+
   Double BaseFE::CalcVolume(const Matrix<Double> & CornerCoords,
                               const bool isaxi)
   {

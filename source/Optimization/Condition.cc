@@ -105,7 +105,7 @@ void Condition::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzM
   if(type_ == DESIGN_TRACKING)
     ReadDesignTrackingPattern(space, structure);
 
-  if(type_ == STRESS && stressType_ != MECH)
+  if((type_ == STRESS || type_ == STRESS_DENSITY) && stressType_ != MECH)
   {
     // it might be that we do piezo stresses on a pure elastic optimization problem.
     // Then register the ELEC PDE such that it is stored for the stress calculation by StressConstraint()
@@ -399,7 +399,7 @@ void Condition::AddExcitationStressConstraints(StdVector<Condition*>& list, Mult
   int blow_up = -1;
   for(unsigned int i = 0; i < list.GetSize(); i++)
   {
-    if(list[i]->GetType() == STRESS)
+    if(list[i]->GetType() == STRESS || list[i]->GetType() == STRESS_DENSITY)
     {
       if(list[i]->DoEvaluateAlways())
         blow_up = i;
@@ -556,11 +556,11 @@ std::string Condition::ToString(MultipleExcitation* me) const
     os << ToString(coords);
 
   // e.g. stresses are extended for every excitation
-  if(type_ == STRESS && me != NULL && me->IsEnabled())
+  if((type_ == STRESS || type_ == STRESS_DENSITY) && me != NULL && me->IsEnabled())
     os << "_" << me->excitations[excite_].label; // change to excite label
 
   // We might have non-standard stresses
-  if(type_ == STRESS && stressType_ != MECH)
+  if((type_ == STRESS || type_ == STRESS_DENSITY) && stressType_ != MECH)
     os << "_" << stressType.ToString(stressType_);
 
   return os.str();  
@@ -625,7 +625,7 @@ void Condition::ToInfo(PtrParamNode in, MultipleExcitation* me)
   if(type_ == DESIGN_TRACKING)
     in->Get("elements")->SetValue(elements.GetSize());
 
-  if(type_ == STRESS)
+  if(type_ == STRESS || type_ == STRESS_DENSITY)
     in->Get("stress")->SetValue(stressType.ToString(stressType_));
 
   if(!DoEvaluateAlways())

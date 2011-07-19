@@ -483,6 +483,7 @@ namespace CoupledField {
 
     //! object for piezo-micor-modeling
     PiezoMicroModelBK* piezoMicroModel_;
+
   };
 
 } // end of namespace

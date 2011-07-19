@@ -6,6 +6,10 @@
 #include <fstream>
 
 #include "mechStressStrain.hh"
+#include "DataInOut/Logging/cfslog.hh"
+
+DECLARE_LOG(ss)
+DEFINE_LOG(ss, "stress_strain")
 
 namespace CoupledField
 {
@@ -59,6 +63,10 @@ namespace CoupledField
     //Matrix<TYPE>(dMat).Mult(linStrain,stressVec);
     linStrain = linBMat * displVec;
     stressVec = dMat * linStrain;
+
+    // LOG_DBG3(ss) << "MSS::CalcStressVec e=" << ent.GetElem()->elemNum << " ip=" << ip << " dMat=" << dMat.ToString();
+    // LOG_DBG3(ss) << "MSS::CalcStressVec e=" << ent.GetElem()->elemNum << " ip=" << ip << " strain=" << linStrain.ToString() << " stress="
+    //             << stressVec.ToString() << " u=" << displVec.ToString() << " B=" << linBMat.ToString(); // << " coord=" << ptCoord_.ToString();
   }
 
   /// calculates green-lagrangian strains (linear part, vector notation)
