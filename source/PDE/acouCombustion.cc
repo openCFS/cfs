@@ -10,7 +10,6 @@
 #include <complex>
 
 #include "OLAS/algsys/basesystem.hh"
-#include "DataInOut/freqfunc.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Driver/stdSolveStep.hh"
 #include "Driver/singleDriver.hh"

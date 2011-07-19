@@ -352,8 +352,9 @@ namespace CoupledField {
       InhomNeumannBc const & actBc = *inBcs_[iBc];
 
       
-      LinearSurfForm *neumannBC = new LinNeumannInt(actBc.value, actBc.phase, 
-                                                     NO_MATERIAL, isaxi_);
+      LinearSurfForm *neumannBC =
+          new LinNeumannInt( actBc.value, actBc.phase,
+                             ELEC_CHARGE, NO_MATERIAL, isaxi_ );
       neumannBC->SetVoluInfo(materials_);
       LinearFormContext* neumannContext = new LinearFormContext(neumannBC);
       neumannContext->SetPtPde(this);

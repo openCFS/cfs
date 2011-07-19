@@ -16,6 +16,7 @@
 #include "PDE/StdPDE.hh"
 #include "Domain/domain.hh"
 #include "Utils/result.hh"
+#include "DataInOut/ResultCache.hh"
 
 #include "OLAS/algsys/basesystem.hh"
 
@@ -38,7 +39,7 @@ namespace CoupledField {
 
   void SolveStepPiezo::PreStepTrans()
   {
-
+    ResultCache::SetStepValue( actTime_ );
 
     // due to coupling-pdes, the RHS has to be initialized BEFORE 
     // the coupling forces are assembled to the RHS

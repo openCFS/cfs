@@ -171,13 +171,11 @@ namespace CoupledField
 
   void FileReader_ANSYS::OpenFile(std::string fn)
   {
-    std::string filename;
-
     inFile_.clear();
     inFile_.open(fn.c_str(), std::ios::binary);
 
     if (!inFile_) {
-      EXCEPTION("Can't open " << filename);
+      EXCEPTION("Can't open " << fn);
     }
 
     // Let's remember which files we opened, so that we can delete them in the end.

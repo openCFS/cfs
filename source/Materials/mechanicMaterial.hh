@@ -27,9 +27,6 @@ namespace CoupledField {
     //! Trigger finalization of mataterial (calculation of rotated matrices)
     void Finalize();
 
-   //! set a scalar string material parameter
-    void SetScalar(const std::string& param, MaterialType matType);
-
     //! set a scalar real material parameter
     void SetScalar( Double param, MaterialType matType, 
 		    Global::ComplexPart dataType );
@@ -52,10 +49,6 @@ namespace CoupledField {
     //! set a complex material tensor
     void SetTensor(const Matrix<Complex>& param, MaterialType matType,
 		    Global::ComplexPart dataType );
-
-    //! get a scalar string material parameter
-    void GetScalar( std::string& param, 
-                    MaterialType matType ) const;
 
      //! get a scalar integer material parameter
     void GetScalar( Integer& param, 

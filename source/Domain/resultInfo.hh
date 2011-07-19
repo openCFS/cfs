@@ -86,13 +86,13 @@ namespace CoupledField {
     //! Type of entries (scalar, vectorial, tensor)
     EntryType entryType;
 
-    //! Type of entity the unkowns are defined on
+    //! Type of entity the unknowns are defined on
     EntityUnknownType definedOn;
 
     //! Type of approximation used for the result
     shared_ptr<AnsatzFct> fctType;
 
-    /** Gives back a debug summery of the result info */
+    /** Gives back a debug summary of the result info */
     std::string ToString() const; 
  
     //! Conversion from EntityUnknownType to string

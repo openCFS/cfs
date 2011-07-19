@@ -10,6 +10,7 @@
 #include "PDE/StdPDE.hh"
 #include "CoupledPDE/itercoupledpde.hh"
 #include "CoupledPDE/pdecoupling.hh"
+#include "DataInOut/ResultCache.hh"
 
 namespace CoupledField
 {
@@ -115,6 +116,12 @@ namespace CoupledField
 
 
   //----------------------- TRANSIENT-----------------------------------------
+  void IterSolveStep::PreStepTrans()
+  {
+    ResultCache::SetStepValue( actTime_ );
+  }
+  
+  
   void IterSolveStep::SolveStepTrans(PtrParamNode analysis_id, AdjointParameters* adjointParams)
   {
 
@@ -233,6 +240,11 @@ namespace CoupledField
   } 
 
   //----------------------- HARMONIC---------------------------------------
+  void IterSolveStep::PreStepHarmonic()
+  {
+    ResultCache::SetStepValue( actFreq_ );
+  }
+  
   void IterSolveStep::SolveStepHarmonic(PtrParamNode analysis_id)
   {
     EXCEPTION("Harmonic iterative coupling is not yet implemented"); 

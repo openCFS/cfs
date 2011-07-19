@@ -126,10 +126,7 @@ namespace CoupledField {
     };
 
    //! set a scalar string material parameter
-    virtual void SetScalar(const std::string& param, MaterialType matType)
-    {
-      EXCEPTION("not implemented for " << materialDatabaseName_);
-    }
+    virtual void SetScalar(const std::string& param, MaterialType matType);
 
     //! set a scalar integer material parameter
     virtual void SetScalar(int param, MaterialType matType);
@@ -172,12 +169,7 @@ namespace CoupledField {
 
 
     //! get a string material parameter
-
-    virtual void GetScalar( std::string& param, MaterialType matType) const
-    {
-      EXCEPTION("not implemented for " << materialDatabaseName_);
-    }
-    
+    virtual void GetScalar( std::string& param, MaterialType matType) const;
     
     //! get a integer material parameter
     virtual void GetScalar( Integer& param, MaterialType matType) const

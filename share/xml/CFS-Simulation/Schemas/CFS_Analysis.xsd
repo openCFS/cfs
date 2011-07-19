@@ -127,15 +127,6 @@
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:element>
-          <xsd:element name="freqDataFile" minOccurs="0"  maxOccurs="unbounded">
-            <xsd:complexType>
-              <xsd:complexContent>
-                <xsd:restriction base="xsd:anyType">
-                  <xsd:attribute name="name" type="xsd:string" use="optional" default="none"/>
-                </xsd:restriction>
-              </xsd:complexContent>
-            </xsd:complexType>
-          </xsd:element>
           <xsd:element name="frequencyList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:sequence>

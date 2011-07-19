@@ -282,11 +282,11 @@ IF(CPLREADER_CFX)
 ENDIF(CPLREADER_CFX)
 
 #-----------------------------------------------------------------------------
-# Find VTK for OpenFOAM  and cgns reader
+# Find VTK for OpenFOAM, EnSight and FLUENT readers
 #-----------------------------------------------------------------------------
-IF(CPLREADER_OPENFOAM OR CPLREADER_CGNS)
+IF(CPLREADER_OPENFOAM OR CPLREADER_ENSIGHT OR CPLREADER_FLUENT)
   INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindVTK.cmake")
-ENDIF(CPLREADER_OPENFOAM OR CPLREADER_CGNS)
+ENDIF(CPLREADER_OPENFOAM OR CPLREADER_ENSIGHT OR CPLREADER_FLUENT)
 
 #-----------------------------------------------------------------------------
 # Find CGNS for cgns reader

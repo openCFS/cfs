@@ -25,6 +25,7 @@
 #include "Optimization/Optimization.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Materials/mechanicMaterial.hh"
+#include "DataInOut/ResultCache.hh"
 
 namespace CoupledField
 {
@@ -335,8 +336,6 @@ namespace CoupledField
       }
     }
 
-    // Fetch math  parser object
-    MathParser * parser = domain->GetMathParser();
 
     // iterate over all descriptors
     StdVector<BiLinFormContext*>::iterator formsIt;
@@ -352,10 +351,8 @@ namespace CoupledField
       FEMatrixType destMat = actContext.GetDestMat();
       FEMatrixType secDestMat = actContext.GetSecDestMat();
 
-      // get secondary matrix factor string and set it
-      // at the math parser
-      parser->SetExpr( mHandle_, actContext.GetSecMatFac() );
-      Double secMatFac = parser->Eval(mHandle_ );
+      // get secondary matrix factor string 
+      Double secMatFac = actContext.EvalSecMatFac();
 
       // If assemble was already called and the current destination
       // matrix must not be reassembled -> continue with next iterator
@@ -378,6 +375,7 @@ namespace CoupledField
 
         // iterate over all entities
         for ( UInt i=0; i<size; i++ ) {
+          
 
           // Calc element matrix
           if ( form->IsComplex() )
@@ -643,7 +641,7 @@ namespace CoupledField
               StdVector<std::string> args;
               args.Push_back( form->GetName() );
               args.Push_back( entIt.GetIdString() );
-              args.Push_back( elemVec.ToString(' ') );
+              args.Push_back( elemVec.ToString() );
               messenger->TriggerEvent( CFSMessenger::CFS_AssembleRhs, args );
             }
           }
@@ -670,14 +668,16 @@ namespace CoupledField
     Vector<Double> globCoord;
     Double phase = 0.0;
     Double val = 0.0;
-
+    Complex complexValue( 0.0, 0.0 );
+    
     // get global math parser and pointer to grid
     MathParser * parser = domain->GetMathParser();
     CoordSystem * coosy = domain->GetCoordSystem();
     Grid * ptGrid = domain->GetGrid();
 
     // iterate over all load node-lists
-    for( UInt iLoad=0; iLoad < loads_.GetSize(); iLoad++ ) {
+    for( UInt iLoad=0, numLoads=loads_.GetSize(); iLoad<numLoads; ++iLoad )
+    {
 
       // get current load and its equation map
       LoadBc & actLoad = *loads_[iLoad];
@@ -689,6 +689,36 @@ namespace CoupledField
       // surface elements
       std::set<Integer> usedEqns;
 
+      // Provide result info to ResultCache, so we can use the input function
+      // in math parser expressions
+      SolutionType solType = NO_SOLUTION_TYPE;
+      switch ( actLoad.result->resultType )
+      {
+        case MECH_DISPLACEMENT:
+          solType = MECH_RHS_LOAD;
+          break;
+        case ELEC_POTENTIAL:
+          solType = ELEC_RHS_LOAD;
+          break;
+        case ACOU_POTENTIAL:
+        case ACOU_PRESSURE:
+          solType = ACOU_RHS_LOAD;
+          break;
+        case MAG_POTENTIAL:
+        case MAG_SCALAR_POTENTIAL:
+          solType = MAG_RHS_LOAD;
+          break;
+        case HEAT_TEMPERATURE:
+          solType = HEAT_RHS_LOAD;
+          break;
+        default:
+          EXCEPTION("Cannot determine load corresponding to result '"
+              << SolutionTypeEnum.ToString(actLoad.result->resultType)
+              << "'");
+      }
+      ResultCache::SetInfo( ResultCache::OUT_REAL, actLoad.dof,
+                            actLoad.entities->GetName(), solType );
+      
       try {
         // Obtain iterator
         EntityIterator it = actLoad.entities->GetIterator();
@@ -704,16 +734,42 @@ namespace CoupledField
             parser->SetCoordinates( mHandle_, *coosy, globCoord );
           }
 
+          // Provide global node number to ResultCache, so we can use
+          // the input function in math parser expressions
+          ResultCache::SetIndex(it.GetNode());
+          
           // Evaluate load value
+          ResultCache::SetOutputType( (analysisType_ == BasePDE::HARMONIC ? 
+              ResultCache::OUT_AMPL : ResultCache::OUT_REAL) );
           parser->SetExpr( mHandle_, actLoad.value );
           val = parser->Eval(mHandle_ );
+
+#ifndef NDEBUG
+          if ( std::isnan(val) || std::isinf(val) )
+            EXCEPTION("Trying to assemble nan/inf in AssembleRHSLoads!");
+#endif
+
+          // for a harmonic simulation: evaluate phase
+          if ( analysisType_ == BasePDE::HARMONIC )
+          {
+            ResultCache::SetOutputType(ResultCache::OUT_PHASE);
+            parser->SetExpr( mHandle_, actLoad.phase  );
+            phase = parser->Eval( mHandle_ );
+
+#ifndef NDEBUG
+            if ( std::isnan(phase) || std::isinf(phase) )
+              EXCEPTION("Trying to assemble nan/inf in AssembleRHSLoads!");
+#endif
+            complexValue = Complex( val * cos( phase / 180 * PI ),
+                                    val * sin( phase / 180 * PI ) );
+          }
 
           // Obtain equation number(s)
           StdVector<Integer> eqns;
           eqnMap.GetEqns( eqns, *(actLoad.result), it, actLoad.dof );
 
-          for( UInt iEqn = 0; iEqn < eqns.GetSize(); iEqn++ ) {
-
+          for( UInt iEqn=0, numEqns=eqns.GetSize(); iEqn<numEqns; ++iEqn )
+          {
             // check, if RHS of current eqn was already set
             if( usedEqns.find( eqns[iEqn] ) == usedEqns.end() ) {
               usedEqns.insert( eqns[iEqn] );
@@ -803,9 +859,10 @@ namespace CoupledField
       Enum2String(matrixMap_[context.GetDestMat()], tmp );
       dest->Get("feMatrixMapped")->SetValue(tmp);
       
-      // secondary destination matrix
+      // secondary destination matrix and factor
       Enum2String(context.GetSecDestMat(), tmp );
       dest->Get("feSecondMatrix")->SetValue(tmp);
+      dest->Get("feSecondMatrixFac")->SetValue(context.GetSecMatFac());
       
       // additional attributes
       PtrParamNode attr = form->Get("attributes", ParamNode::APPEND);

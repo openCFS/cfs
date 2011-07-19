@@ -384,7 +384,7 @@ namespace CoupledField {
     // Get the map with the variables
     mu::Parser & actParser = GetParser( handle );
     std::string expr;
-    MATHPARSER_EXEC(actParser.GetExpr());
+    MATHPARSER_EXEC(expr = actParser.GetExpr());
     return expr;
   }
   

@@ -5,7 +5,7 @@
 #ifndef FILE_SCFE_GRID_CFS_2001
 #define FILE_SCFE_GRID_CFS_2001
 
-#include <Domain/grid.hh>
+#include "Domain/grid.hh"
 #include "Domain/edgeFace.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
@@ -254,8 +254,13 @@ namespace CoupledField
     void GetElemsByName( StdVector<Elem*> & elems,
                          const std::string & elemsName );
 
+    //! Returns the element numbers of a region or element list.
+    //! \param elemNums (out) vector with element numbers of given region
+    //! \param elemName (in) name identifying a region or element list
+    void GetElemNumsByName( StdVector<UInt> & elemNums,
+                               const std::string & elemName );
+    
     //! Get node numbers of given element
-  
     //! Returns the node numbers of a  given element.
     //! \param connect (out) contains global node numbers
     //! \param iElem (in) element number

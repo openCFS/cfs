@@ -35,7 +35,7 @@ public:
    *  \param inputId      ID of the InputReader
    *  \param sequenceStep number of the multisequence step
    */
-  static Double GetResult(const char* inputId, Double sequenceStep);
+  static Double GetResult(const char* inputId, Double sequenceStep, Double dof);
 
   //! Sets the desired output type used by GetResult.
   static void SetOutputType(OutputType outType);
@@ -59,13 +59,11 @@ public:
    *  \param dof          desired dof
    *  \param entity       desired entity (region)
    *  \param solType      desired solution type
-   *  \param stepValue    desired step value
    */
   static void SetInfo(OutputType outType,
                       UInt dof,
                       const std::string& entityName,
-                      SolutionType solType,
-                      Double stepValue);
+                      SolutionType solType);
 
   //! Sets the desired solution type used by GetResult.
   static void SetSolution(SolutionType solType);
@@ -129,6 +127,9 @@ private:
 
   //! cache memory for result of complex numbers
   static Vector<Complex> resCacheComplex_;
+  
+  //! mapping from global node numbers to index in dataset
+  static std::map<UInt, UInt> nodeNum2Index_;
 };
 
 } // namespace CoupledField

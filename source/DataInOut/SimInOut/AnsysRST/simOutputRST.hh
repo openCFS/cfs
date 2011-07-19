@@ -60,6 +60,12 @@ namespace CoupledField
     void RemoveFile(const std::string& fileName,
                     const std::string& exception);
     
+    void WriteComponentsFile(bool printGridOnly);
+    void WriteComponent(const std::string& compName,
+                        const std::string& compType,
+                        const StdVector<UInt>& entities);
+    std::ofstream compFile_;
+
     UInt msStep_;
     Double ansysBinlibRev_;
     Double compiledAnsysRev_;

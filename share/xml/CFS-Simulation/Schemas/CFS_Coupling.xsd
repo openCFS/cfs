@@ -188,36 +188,10 @@
               <xsd:enumeration value="mechForce"/>
               <xsd:enumeration value="acouRHSval"/>
               <xsd:enumeration value="acouSurfRHSval"/>
-              <xsd:enumeration value="nrbcPhi"/>
               <xsd:enumeration value="acouBubbleRhsVal"/>
               <xsd:enumeration value="bubbleRadius"/>
               <xsd:enumeration value="bubbleRadiusD1"/>
               <!--<xsd:enumeration value="smoothDisplacement"/>-->
-            </xsd:restriction>
-          </xsd:simpleType>
-        </xsd:attribute>
-        <xsd:attribute name="name" type="xsd:token" use="required"/>
-      </xsd:restriction>
-    </xsd:complexContent>
-  </xsd:complexType>
-
-  <!-- nrbc PDE -->
-  <xsd:complexType name="DT_CouplingNrbc">
-    <xsd:complexContent>
-      <xsd:restriction base="xsd:anyType">
-        <xsd:attribute name="type" use="required">
-          <xsd:simpleType>
-            <xsd:restriction base="xsd:token">
-              <!--<xsd:enumeration value="node"/>-->
-              <!--<xsd:enumeration value="region"/>-->
-              <xsd:enumeration value="interface"/>
-            </xsd:restriction>
-          </xsd:simpleType>
-        </xsd:attribute>
-        <xsd:attribute name="quantity" use="required">
-          <xsd:simpleType>
-            <xsd:restriction base="xsd:token">
-              <xsd:enumeration value="acouPotNRBC"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
@@ -336,8 +310,6 @@
             <xsd:restriction base="xsd:token">
               <xsd:enumeration value="mechForce"/>
               <xsd:enumeration value="acouForce"/>
-              <xsd:enumeration value="nrbcPhi"/>
-              <xsd:enumeration value="acouPotNRBC"/>
               <xsd:enumeration value="elecForceVWP"/>
               <xsd:enumeration value="acouPowerDensity"/>
               <xsd:enumeration value="elecForceVWP"/>
@@ -395,35 +367,6 @@
               <xsd:complexType>
                 <xsd:sequence>
                   <xsd:element name="coupling" minOccurs="0" type="DT_CouplingMech"
-                    maxOccurs="unbounded"/>
-                </xsd:sequence>
-              </xsd:complexType>
-            </xsd:element>
-          </xsd:sequence>
-          <xsd:attribute name="method" type="DT_IterCouplingMethod" use="required"/>
-        </xsd:extension>
-      </xsd:complexContent>
-    </xsd:complexType>
-  </xsd:element>
-
-  <!-- Acoustic-nrbc coupling -->
-  <xsd:element name="acouNrbc" substitutionGroup="PDEBasicIterCoupling">
-    <xsd:complexType>
-      <xsd:complexContent>
-        <xsd:extension base="DT_BasicIterCoupling">
-          <xsd:sequence>
-            <xsd:element name="acoustic">
-              <xsd:complexType>
-                <xsd:sequence>
-                  <xsd:element name="coupling" minOccurs="0" type="DT_CouplingAcou"
-                    maxOccurs="unbounded"/>
-                </xsd:sequence>
-              </xsd:complexType>
-            </xsd:element>
-            <xsd:element name="nrbc">
-              <xsd:complexType>
-                <xsd:sequence>
-                  <xsd:element name="coupling" minOccurs="0" type="DT_CouplingNrbc"
                     maxOccurs="unbounded"/>
                 </xsd:sequence>
               </xsd:complexType>

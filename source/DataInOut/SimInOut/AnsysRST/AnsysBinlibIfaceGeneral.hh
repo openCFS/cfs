@@ -168,7 +168,9 @@ namespace CoupledField
     // Structure which can hold local element type and header. 
     typedef struct{
       Integer elementtypid;
-      Integer ielc[IELCSZ];
+      // Allocate enough  memory so that  the ANSYS I/O routines  can properly
+      // write a 200 word block without reading crap from the memory.
+      Integer ielc[IELCSZ+50];
     } AnsysElementType;
 
   public:

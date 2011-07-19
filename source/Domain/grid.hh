@@ -453,9 +453,8 @@ namespace CoupledField
     //! \param nodeNames list of names of nodes
     virtual void GetListNodeNames( StdVector<std::string> & nodeNames) = 0;
 
-    virtual void GetElemNumsByName( StdVector<UInt> & elemsNums,
-                                    const std::string & elemsName )
-    { EXCEPTION( "Not implemented" ); }
+    virtual void GetElemNumsByName( StdVector<UInt> & elemNums,
+                                        const std::string & elemName ) = 0;
 
     //! Returns the number of nodes in the given nodelist
     virtual UInt GetNumNodes(const std::string & nodesName) const = 0;

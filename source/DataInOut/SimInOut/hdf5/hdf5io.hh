@@ -13,7 +13,6 @@
 #include "Domain/resultInfo.hh"
 #include "DataInOut/simOutput.hh"
 
-
 #include "H5Cpp.h"
 
 namespace CoupledField {
@@ -229,27 +228,11 @@ namespace CoupledField {
     struct HdfAtomTypeMap {
 
       //! Native HDF5 datatype of template parameter
-      static H5::DataType HdfNativeType;
+      static H5::PredType HdfNativeType;
 
       //! Standard HDF5 datatype of template parameter
-      static H5::DataType HdfStdType;
+      static H5::PredType HdfStdType;
     };
-
-    template<typename TYPE>
-    static H5::DataType InitHdfAtomNativeType(hid_t nativeType)
-    {
-      H5::DataType type;
-      type.setId(H5Tcopy(nativeType));
-      return type;
-    }
-
-    template<typename TYPE>
-    static H5::DataType InitHdfAtomStdType(hid_t stdType)
-    {
-        H5::DataType type;
-        type.setId(H5Tcopy(stdType));
-        return type;
-    }
 
     //! Base class for performing conversion
     class BaseHdfTypeConversion {
@@ -258,6 +241,8 @@ namespace CoupledField {
       //! Constructor
       BaseHdfTypeConversion() :
         isSet_(false),
+        nativeType_(NULL),
+        stdType_(NULL),
         size_( 0 ),
         numElems_( 0 )
       {}
@@ -271,10 +256,10 @@ namespace CoupledField {
       bool IsSet() { return isSet_; }
 
       //! Get platform dependent HDF5 datatype
-      H5::DataType GetNativeType() { return nativeType_; }
+      H5::DataType* GetNativeType() { return nativeType_; }
 
       //! Get platform independent HDF5 datatype
-      H5::DataType GetStdType() { return stdType_; }
+      H5::DataType* GetStdType() { return stdType_; }
 
       //! Get raw pointer to data to be written to hdf5 file
       virtual const void * GetOutBufferPtr() = 0;
@@ -298,10 +283,10 @@ namespace CoupledField {
       bool isSet_;
 
       //! Native HDF5 DataType
-      H5::DataType nativeType_;
+      H5::DataType *nativeType_;
 
       //! Standard HDF5 DataType
-      H5::DataType stdType_;
+      H5::DataType *stdType_;
 
       //! Size of the array
       UInt size_;

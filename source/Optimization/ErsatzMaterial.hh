@@ -43,6 +43,8 @@ class ErsatzMaterial: public Optimization
 {
 public:
 
+public:
+
   // forward declaration
   class Solutions;
 
@@ -154,7 +156,6 @@ public:
   Assemble* GetAssemble() { return assemble_; }
 
   OptimizationMaterial* GetMaterial() { return material; }
-
 
   /** This class holds the solution of the PDE. It is in a class such that it
    * helps to encapsulate real and complex solutions. Note that the Piezo
@@ -316,9 +317,9 @@ public:
 
     ErsatzMaterial* em_;
   };
-
- protected:
-
+  
+  protected:
+  
   /** When "commit" is set, we write "forward"/"adjoint" or "both_cases" */
   virtual void StoreResults(double step_val);
 

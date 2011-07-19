@@ -4,7 +4,10 @@
 #cmakedefine CPLREADER_ANSYS
 #cmakedefine CPLREADER_CFX
 #cmakedefine CPLREADER_FASTEST
+#cmakedefine CPLREADER_FIELDVIEW
 #cmakedefine CPLREADER_OPENFOAM
+#cmakedefine CPLREADER_ENSIGHT
+#cmakedefine CPLREADER_FLUENT
 #cmakedefine CPLREADER_CGNS
 
 #endif

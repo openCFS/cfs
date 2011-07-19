@@ -36,9 +36,8 @@ namespace CoupledField
     void StepStaticNonLinEpsDiff(PtrParamNode analysis_id);
 
     //----------------------- TRANSIENT---------------------------------------
-    //! routine for initilizations befor execution the SolveStep-method
-    void PreStepTrans( )
-    {PreStepStatic();};
+    //! routine for initializations before execution the SolveStep-method
+    void PreStepTrans( );
 
     //! base method for solving one transient step 
     void SolveStepTrans(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL)

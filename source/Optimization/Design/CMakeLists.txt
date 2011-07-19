@@ -4,6 +4,7 @@ SET(DESIGN_SRCS DesignElement.cc DesignMaterial.cc DesignSpace.cc DesignStructur
 ADD_LIBRARY(design STATIC ${DESIGN_SRCS})
 
 SET(TARGET_LL
+  datainout
   domain
   paramh
   ${TARGET_LL}

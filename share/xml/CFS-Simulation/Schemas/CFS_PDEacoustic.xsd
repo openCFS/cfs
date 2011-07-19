@@ -91,10 +91,6 @@
           <xsd:element name="valRHS" type="DT_CFSBool" minOccurs="0"
             maxOccurs="1" default="no"/>
 
-          <!--  Parameter to check if we are using nrbc -->
-          <xsd:element name="isCoupledNrbc" type="DT_CFSBool" minOccurs="0"
-            maxOccurs="1" default="no"/>
-
           <!--  Parameter to check if we are using acousrcs computed 
           from fluid pressure (optional) -->
           <xsd:element name="pressFormul" type="DT_CFSBool" minOccurs="0"
@@ -167,6 +163,7 @@
                 <xsd:element name="flowData"       type="DT_AcousticFlow"/>
                 <xsd:element name="rhsValues"      type="DT_AcousticRHS"
                   minOccurs="0" maxOccurs="1"/>
+                <xsd:element name="impedance"      type="DT_AcouImpedance"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -491,7 +488,12 @@
     </xsd:complexContent>
   </xsd:complexType>
 
-
+  <!-- Element type for specifying an acoustic impedance -->
+  <xsd:complexType name="DT_AcouImpedance">
+    <xsd:attribute name="name" type="xsd:token" use="required"/>
+    <xsd:attribute name="value" type="xsd:token" use="required"/>
+    <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
+  </xsd:complexType>
 
   <!-- ******************************************************************* -->
   <!--   Definition for Flow data                                          -->
