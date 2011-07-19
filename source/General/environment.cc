@@ -548,15 +548,13 @@ namespace CoupledField {
       break;
 
     case MECH_STRESS:
+    case MECH_PRESSURE:
+    case MECH_STRAIN_IRR:
       return "N/m^2";
       break;
 
     case MECH_STRAIN:
       return "";
-      break;
-
-    case MECH_STRAIN_IRR:
-      return "N/m^2";
       break;
 
     case SMOOTH_DISPLACEMENT:
@@ -1242,6 +1240,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_ENERGY, "mechEnergy");
     SolutionTypeEnum.Add(MECH_DEF_VOLUME, "volumeAboveDefSurf");
     SolutionTypeEnum.Add(MECH_RHS_LOAD, "mechRhsLoad");
+    SolutionTypeEnum.Add(MECH_PRESSURE, "mechPressure");
     SolutionTypeEnum.Add(MECH_PSEUDO_DENSITY, "mechPseudoDensity");
     SolutionTypeEnum.Add(PHYSICAL_PSEUDO_DENSITY, "physicalPseudoDensity");
     SolutionTypeEnum.Add(MECH_SHAPE, "mechShape");
@@ -1277,9 +1276,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_RHSVAL, "acouRHSval");
     SolutionTypeEnum.Add(ACOUSURF_RHSVAL, "acouSurfRHSval");
     SolutionTypeEnum.Add(ACOU_BUBBLE_RHS_VAL, "acouBubbleRhsVal");
-    SolutionTypeEnum.Add(ACOU_POT_NRBC, "acouPotNRBC");
     SolutionTypeEnum.Add(ACOU_ELEM_SPEED_OF_SOUND,"acouSpeedOfSound");
-    SolutionTypeEnum.Add(NRBC_PHI, "nrbcPhi");
     SolutionTypeEnum.Add(ACOU_PRESSUREXYZ, "acouPressureXYZ");
     SolutionTypeEnum.Add(ACOU_POWERDENSITY, "acouPowerDensity");
     SolutionTypeEnum.Add(ACOU_POWER, "acouPower");

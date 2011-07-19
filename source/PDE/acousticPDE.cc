@@ -56,7 +56,6 @@ namespace CoupledField {
 
       isAPML = false;
       isMechCoupled_ = false;
-      isNrbcCoupled_ = false;
       variableSpeedOfSoundCN_ = false;
 
       justInterpolate_ = false;
@@ -87,9 +86,6 @@ namespace CoupledField {
       // since we have no special subType as in mechanics, 
       // the subType 9is equal to the geometry type
       subType_ = probGeo;
-
-      //To check if acoustic is coupled with nrbc and set isNrbcCoupled
-      myParam_->GetValue( "isCoupledNrbc", isNrbcCoupled_, ParamNode::PASS );
 
     }
 
@@ -254,21 +250,34 @@ namespace CoupledField {
     //   If no other damping type is specified and we have absorbing
     //   boundary conditions, then use ABCDAMP
     // ***************************************************************
-    StdVector<std::string> auxVec;
-    absorbingBCs_ = false;
     PtrParamNode bcNode = myParam_->Get( "bcsAndLoads", ParamNode::PASS );
+    
     if( bcNode ) {
       ParamNodeList abcNodes = bcNode->GetList( "absorbingBCs" );
 
-      for( UInt i = 0; i < abcNodes.GetSize(); i++ ) {
+      for ( UInt i=0, n=abcNodes.GetSize(); i<n; ++i )
+      {
         std::string regionName = abcNodes[i]->Get("name")->As<std::string>();
         absBCs_.Push_back( ptgrid_
           ->GetEntityList( EntityList::SURF_ELEM_LIST,
                            regionName, EntityList::REGION ) );
-        absorbingBCs_ = true;
         Info->PrintF( pdename_,
                       "Apply Absorbing Boundary Conditions on surfaceRegion '%s'\n",
                       regionName.c_str() );
+      }
+      
+      ParamNodeList impedNodes = bcNode->GetList( "impedance" );
+      for ( UInt i=0, n=impedNodes.GetSize(); i<n; ++i )
+      {
+        shared_ptr<InhomDirichletBc> impedBC ( new InhomDirichletBc );
+        impedBC->entities = ptgrid_
+            ->GetEntityList( EntityList::SURF_ELEM_LIST,
+                             impedNodes[i]->Get("name")->As<std::string>(),
+                             EntityList::REGION );
+        impedBC->value = impedNodes[i]->Get("value")->As<std::string>();
+        impedBC->phase = impedNodes[i]->Get("phase", ParamNode::INSERT)
+            ->As<std::string>();
+        impedanceBCs_.Push_back( impedBC );
       }
     }
   }
@@ -1003,11 +1012,14 @@ namespace CoupledField {
       InhomNeumannBc const & actBc = *inBcs_[iBc];
 
       //BaseForm *neumannBC = new VolumeSrcInt( amplitude, isaxi_ );
-      LinearSurfForm *neumannBC = new LinNeumannInt( actBc.value, actBc.phase,
-                                                     DENSITY, isaxi_ );
+      LinearSurfForm *neumannBC =
+          new LinNeumannInt( actBc.value, actBc.phase,
+                             formulation_ == ACOU_PRESSURE ?
+                                 ACOU_ACCELERATION : ACOU_VELOCITY,
+                             DENSITY, isaxi_ );
       neumannBC->SetVoluInfo( materials_ );
       LinearFormContext * neumannContext =
-        new LinearFormContext( neumannBC );
+          new LinearFormContext( neumannBC );
       neumannContext->SetPtPde( this );
       neumannContext->SetResult( actBc.result, actBc.entities );
       assemble_->AddLinearForm( neumannContext );
@@ -1019,22 +1031,22 @@ namespace CoupledField {
     // **********************************************************************
     //   surface-integration: Absorbing boundaries
     // **********************************************************************
-    if ( absorbingBCs_ == true) { // && analysistype_ != HARMONIC ) {
-      for (UInt actSD = 0; actSD < absBCs_.GetSize(); actSD++) {
+    if ( absBCs_.GetSize() > 0 )
+    {
+      std::string factor;
+      // In the case of acou-mech coupling we have to multiply the
+      // abc-Integrator matrix with -1
+      if ( isMechCoupled_ == true && formulation_ !=  ACOU_PRESSURE ) {
+        factor = "-1.0";
+      }
+      
+      for (UInt actSD=0, numSD=absBCs_.GetSize(); actSD<numSD; ++actSD)
+      {
 
-        AbsorbingBCsInt * bilinear_damp = new AbsorbingBCsInt(isaxi_);
+        AbsorbingBCsInt * bilinear_damp =
+            new AbsorbingBCsInt( true, factor, "", isaxi_);
         bilinear_damp->SetFirstVoluInfo(pdename_, materials_ );
 
-        // In the case of acou-mech coupling we have to multiply the
-        // abc-Integrator matrix with -1
-        if ( isMechCoupled_ == true && formulation_ !=  ACOU_PRESSURE ) {
-          bilinear_damp->SetFactor("-1.0");
-        }
-        // In the case of acou-nrbc coupling we have to multiply the
-        // abc-Integrator matrix with C0 and multiply it by nrbcBeta0
-        if ( isNrbcCoupled_ == true ) {
-          bilinear_damp->SetFactor(lexical_cast<std::string>(sqrt( compressibility / density )));
-        }
         BiLinFormContext * abcContext =
           new BiLinFormContext( bilinear_damp, DAMPING );
         abcContext->SetPtPdes(this, this);
@@ -1047,6 +1059,39 @@ namespace CoupledField {
       }
     }
 
+    // =======================================================================
+    //  surface-integration: Impedance boundaries
+    // =======================================================================
+    for ( UInt i=0, n=impedanceBCs_.GetSize(); i<n; ++i )
+    {
+      std::string phase;
+      if ( analysistype_ == HARMONIC ) {
+        phase = impedanceBCs_[i]->phase;
+      }
+      else {
+        WARN( "You are using an acoustic impedance boundary condition in a\n"
+             << " transient analysis. In this case the impedance cannot depend\n"
+             << " on frequency and it cannot be complex (i.e. no phase change).\n"
+             << " Is this really what you want?");
+      }
+      
+      AbsorbingBCsInt *impedInt =
+          new AbsorbingBCsInt(false, impedanceBCs_[i]->value, phase, isaxi_);
+      impedInt->SetFirstVoluInfo( pdename_, materials_ );
+
+      BiLinFormContext *impedContext =
+          new BiLinFormContext( impedInt, DAMPING );
+      impedContext->SetPtPdes( this, this );
+      impedContext->SetResults( results_[0], results_[0],
+                                impedanceBCs_[i]->entities,
+                                impedanceBCs_[i]->entities );
+      
+      assemble_->AddBiLinearForm( impedContext );
+      
+      eqnMap_->AddResult( *results_[0], impedanceBCs_[i]->entities );
+    }
+    
+    
     // =======================================================================
     // Integrators for NonConforming Interfaces
     // =======================================================================
@@ -1284,15 +1329,6 @@ namespace CoupledField {
         isIncrFormulation_ = true;
       }
 
-      else if (ptCoupling_->GetOutputQuantity(i) == ACOU_POT_NRBC)    {
-        // Intialize the memory of the coupling values
-        ptCoupling_->CreateCouplingVector(i,isComplex_);
-
-        // now since we need a incremental formulation,
-        //  initialize some necessary vectors
-        isIncrFormulation_ = true;
-      }
-
       else if (ptCoupling_->GetOutputQuantity(i) == ACOU_PRESSURE ||
                ptCoupling_->GetOutputQuantity(i) == ACOU_PRESSURE_DERIV_1 ) {
         // Intialize the memory of the coupling values
@@ -1412,14 +1448,6 @@ namespace CoupledField {
           }
           regionCount++;
         }
-        else if (quantity == ACOU_POT_NRBC) {
-          ptCoupling_->GetOutputElements(i, couplingElems);
-          dof = ptCoupling_->GetOutputDof(i);
-
-          // Here this call gives the values to phi0 in nrbcPDE
-          CalcNRBCCouplingRHS(couplingElems, *couplingNodes,
-                              *values, dof);
-        }
         break;
 
       case ELEM:
@@ -1518,154 +1546,6 @@ namespace CoupledField {
     //     }
   }
 
-  void AcousticPDE::
-  CalcNRBCCouplingRHS( StdVector<Elem*> * couplingElems,
-                       StdVector<UInt> & couplingNodes,
-                       Vector<Double>& elemCouplingSols,
-                       UInt couplingdof ) {
-
-
-    EXCEPTION( "Not working at the moment" );
-
-    //     Double density = 0.0;
-    //     Double sign = 0.0;
-    //     Double coeff_Pmass, coeff_Qstiff;
-    //     UInt nrbcMatType=0; // 1=Rmat, 2=pmat, 3=Qmat
-    //     Integer matIndex = -1;
-    //     Elem * ptVolElem = NULL;
-    //     Matrix<Double> ptCoord, elemMat;
-    //     Vector<Double> sol, deriv2sol, Qmat_x_sol, Pmat_x_2derSol, normal;
-
-    //     elemCouplingSols.Init();
-
-    //     for (UInt actElem=0; actElem<couplingElems->GetSize(); actElem++) {
-
-    //       // Perform cast from volume element to surface element, since
-    //       // nrbc-acou coupling makes only sense on surface elements
-    //       SurfElem * actSurfCoupleElem =
-    //         dynamic_cast<SurfElem*> ((*couplingElems)[actElem]);
-
-    //       if (actSurfCoupleElem == NULL) {
-    //         EXCEPTION( "No elements found for coupling!" );
-    //       }
-
-    //       BaseFE * ptElem = actSurfCoupleElem->ptElem;
-    //       StdVector<UInt> & connecth = actSurfCoupleElem->connect;
-    //       GetElemCoords(connecth, ptCoord);
-
-    //       // Try to find according region for first neighbouring volume
-    //       // element of the surface element
-    //       matIndex = subdoms_.Find(actSurfCoupleElem->ptVolElem1->regionId);
-
-    //       // If first volume element does not belong to acoustic PDE, try the
-    //       // second one
-    //       if ( matIndex == -1 ) {
-    //         matIndex = subdoms_.Find(actSurfCoupleElem->ptVolElem2->regionId);
-    //         ptVolElem = actSurfCoupleElem->ptVolElem2;
-    //         //        sign = actSurfCoupleElem->normalSign;
-    //       } else {
-    //         ptVolElem = actSurfCoupleElem->ptVolElem1;
-    //         //        sign = -1.0 * actSurfCoupleElem->normalSign;
-    //       }
-
-    //       if ( matIndex == -1) {
-    //         EXCEPTION( "AcousticPDE::CalcNRBCCouplingRHS: The two volume "
-    //                  << "element neighbours of surface element Nr. "
-    //                  << actSurfCoupleElem->elemNum << " do not belong to my regions!" );
-    //       }
-
-    //       // Density set to 1 since for this mass integrator no fac is needed
-    //       density = 1.0;
-
-    //       // !!!!!!!!!!!!!!!USE PTELEM!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    //       // FIRST WE COMPUTE THE "Qmat_x_sol" RHS term
-    //       // Standard "mass" matrix shape so using default constructor
-    //       coeff_Qstiff=1.0;
-    //       nrbcMatType=3;
-    //       NrbcInt * bilinear_Qstiff  =
-    //         new NrbcInt(ptElem, coeff_Qstiff, nrbcMatType, isaxi_);
-
-    //       // Now we get the Q matrix with tangential derivatives
-    //       bilinear_Qstiff->CalcElementMatrix(ptCoord, elemMat);
-
-    //       //std::cout<<"%%%%%%----ACOUSTIC-PDE COUPLING OUTPUT----%%%%%"<<std::endl;
-    //       // std::cout<<"Qmatrix= "<<std::endl;
-    //       // std::cout<<elemMat<<std::endl;
-
-    //       delete  bilinear_Qstiff;
-    //       GetSolVecOfElement(sol, connecth);
-    //       //          for(UInt k=0; k<sol.GetSize(); k++)
-    //       //           if (abs(sol[k])<=5e-16)
-    //       //             sol[k]=0;
-
-    //       // std::cout<<"AcouSolution= "<<std::endl;
-    //       // std::cout<<sol<<std::endl;
-    //       Qmat_x_sol = elemMat * sol;
-
-    //       // std::cout<<"Qmat_x_sol= "<<std::endl;
-    //       // std::cout<<Qmat_x_sol<<std::endl;
-    //       //  Q_x_sol has to be added on RHS of nrbcPDE1 with negative sign
-
-    //       Qmat_x_sol *= - 1.0;
-    //       //END OF "Qmat_x_sol" Computation
-
-    //       //NOW WE COMPUTE "Pmat_x_Deriv2Sol" RHS term
-    //       coeff_Pmass=1.0;
-    //       nrbcMatType=2;
-    //       NrbcInt * bilinear_Pmass  =
-    //         new NrbcInt(ptElem, coeff_Pmass, nrbcMatType, isaxi_);
-
-    //       bilinear_Pmass->CalcElementMatrix(ptCoord, elemMat);
-
-    //       //std::cout<<"Pmatrix= "<<std::endl;
-    //       // std::cout<<elemMat<<std::endl;
-
-    //       delete  bilinear_Pmass;
-
-    //       GetDeriv2SolVecOfElement(deriv2sol, connecth);
-
-    //       // std::cout<<"Acou2ndDerivSolution= "<<std::endl;
-    //       // std::cout<<deriv2sol<<std::endl;
-
-    //       Pmat_x_2derSol = elemMat * deriv2sol;
-    //       // Computation of alpha factor (like in nrbcPDE)
-    //       Double c0, alphaNRBC, Cj, density, compressibility;
-    //       //actSD is 0 since there is only one acoustic domain
-    //       materials_.begin()->second->GetScalar( density, DENSITY, Global::REAL );
-    //       density=1;
-    //       materials_.begin()->second->GetScalar( compressibility, ACOU_BULK_MODULUS, Global::REAL );
-    //       c0 = sqrt(compressibility/density);
-    //       Cj = 1.0;
-    //       alphaNRBC = (1/(Cj*Cj) - 1/(c0*c0));
-    //       Pmat_x_2derSol *= alphaNRBC;
-
-    //       // std::cout<<"Pmat_x_2derSol= "<<std::endl;
-    //       // std::cout<<Pmat_x_2derSol<<std::endl;
-
-    //       // END OF "Pmat_x_2derSol" Computation
-
-    //       for (UInt actNode=0; actNode<ptCoord.GetNumRows(); actNode++) {
-    //         UInt nodePos = 0;
-    //         while(connecth[actNode] != couplingNodes[nodePos] &&
-    //               nodePos < couplingNodes.GetSize()) {
-    //           nodePos++;
-    //         }
-
-    //         elemCouplingSols[nodePos*couplingdof] =
-    //           (Qmat_x_sol[actNode] + Pmat_x_2derSol[actNode]);
-
-    //         // std::cout <<"elemCouplingSols["<<(nodePos*couplingdof)<<"]= "
-    //         //           <<elemCouplingSols[nodePos*couplingdof]<<std::endl;
-
-    //       }
-    //       // std::cout<<"elemCouplingSols = "<<elemCouplingSols<<std::endl;
-
-    //       //std::cout <<"%%%--END ACOUSTIC-PDE COUPLING OUTPUT INFO----%%%%"
-    //       //          <<std::endl;
-
-    //     }
-  }
-
 
   template <class TYPE>
   void AcousticPDE::
@@ -1724,9 +1604,6 @@ namespace CoupledField {
 
   bool AcousticPDE::HasOutput(SolutionType output) {
     if ((output == ACOU_FORCE) || (output == ACOU_POWERDENSITY)) {
-      return true;
-    }
-    if (output == ACOU_POT_NRBC) {
       return true;
     }
 

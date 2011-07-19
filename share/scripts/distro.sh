@@ -132,6 +132,7 @@ elif [ "${OS}" = "Linux" ] ; then
 		    "4.0") PSEUDONAME="etch";;
                     "5.0") PSEUDONAME="lenny";;
                     "6.0") PSEUDONAME="squeeze";;
+                    "7.0") PSEUDONAME="wheezy";;
                 esac
 #                PSEUDONAME="$PSEUDONAME `cat /etc/debian_version`"
 
@@ -155,17 +156,18 @@ elif [ "${OS}" = "Linux" ] ; then
 			    "warty") PSEUDONAME="Warty Warthog";; # 4.10
 			    "hoary") PSEUDONAME="Hoary Hedgehog";; # 5.04
 			    "breezy") PSEUDONAME="Breezy Badger";; # 5.10
-			    "dapper") PSEUDONAME="Dapper Drake";; # 6.06
+			    "dapper") PSEUDONAME="Dapper Drake";; # 6.06 LTS
 			    "edgy") PSEUDONAME="Edgy Eft";; # 6.10
 			    "feisty") PSEUDONAME="Feisty Fawn";; # 7.04
 			    "gutsy") PSEUDONAME="Gutsy Gibbon";; # 7.10
-			    "hardy") PSEUDONAME="Hardy Heron";; # 8.04
+			    "hardy") PSEUDONAME="Hardy Heron";; # 8.04 LTS
 			    "intrepid") PSEUDONAME="Intrepid Ibex";; # 8.10
 			    "jaunty") PSEUDONAME="Jaunty Jackalope";; # 9.04
 			    "karmic") PSEUDONAME="Karmic Koala";; # 9.10
-                            "lucid") PSEUDONAME="Lucid Lynx";; # 10.04
+                            "lucid") PSEUDONAME="Lucid Lynx";; # 10.04 LTS
                             "maverick") PSEUDONAME="Maverick Meerkat";; # 10.10
                             "natty") PSEUDONAME="Natty Narwhal";; # 11.04
+                            "oneiric") PSEUDONAME="Oneiric Ocelot";; # 11.10 
 	                 esac;;
 		    "knoppix")
 			DIST=Knoppix;
@@ -186,9 +188,9 @@ elif [ "${OS}" = "Linux" ] ; then
 	OSSTR="${OS} ${DIST} ${REV} (${PSEUDONAME} ${KERNEL} ${MACH})"
 
 elif [ ${OS} = "Darwin" ]; then
-        BASEDIR=`dirname $0`
-        MACOSVER=`osascript $BASEDIR/macsysinfo.scpt | cut -d',' -f3 | cut -d':' -f2`
+        MACOSINFO=$(system_profiler SPSoftwareDataType | grep 'System Version')
 	if [ $? -eq 0 ]; then
+	    MACOSVER=$(echo $MACOSINFO | grep 'System Version' | cut -d':' -f2 | cut -d'X' -f2 | cut -d'(' -f1)
 	    OS="Mac OS X"
             DIST="MACOSX"
 	    FULL_REV=$MACOSVER

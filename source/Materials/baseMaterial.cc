@@ -64,6 +64,21 @@ namespace CoupledField
   }
 
 
+  void BaseMaterial::SetScalar(const std::string& param, MaterialType matType) {
+        
+      //check, if allowed
+      if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
+        std::string dim = "scalar";
+        matTypeNotAllowed( matType, dim );
+      }
+      else {
+        isSet_.insert( matType );
+      }
+
+      stringParams_[matType] = param;
+      
+    }
+  
   void BaseMaterial::SetScalar(int param, MaterialType matType) {
 
 
@@ -77,6 +92,23 @@ namespace CoupledField
       integerParams_[matType] = param;
     }
   }
+  void BaseMaterial::GetScalar( std::string& param, MaterialType matType)  const {
+
+
+    stringMap::const_iterator pos;
+    pos = stringParams_.find( matType );
+    std::string value;
+
+    if ( pos == stringParams_.end() ) {
+      std::string dim = "scalar";
+      matTypeNotInDataBase( matType, dim );
+    }
+    else {
+      param=pos->second;
+    }
+  }    
+
+  
                  
   void BaseMaterial::GetScalar(Integer& param, MaterialType matType, Global::ComplexPart dataType ) const 
   {
@@ -103,10 +135,12 @@ namespace CoupledField
   bool BaseMaterial::IsSet( MaterialType matType ) const {
 
     bool found = false;
+    stringMap::const_iterator stringIt = stringParams_.find( matType );
     scalarMap::const_iterator scalarIt = scalarParams_.find( matType );
     tensorMap::const_iterator tensorIt = tensorParams_.find( matType );
 
-    if( scalarIt != scalarParams_.end() || 
+    if( stringIt != stringParams_.end() ||
+        scalarIt != scalarParams_.end() || 
         tensorIt != tensorParams_.end() ) {
       found = true;
     }
@@ -521,37 +555,42 @@ namespace CoupledField
                                             bool adjustDamping, bool isHarmonic ) {
 
     // First, calculate ALPHA and BETA for the current dampFreq
-    Double alphaOrig, betaOrig, measuredFreq;
+    Double measuredFreq;
+    std::string alphaOrig, betaOrig;
     GetScalar( measuredFreq, RAYLEIGH_FREQUENCY, Global::REAL ); 
     
     if ( IsSet( RAYLEIGH_ALPHA ) 
          && IsSet( RAYLEIGH_BETA ) 
          && IsSet(RAYLEIGH_FREQUENCY) ) {
-      GetScalar( alphaOrig, RAYLEIGH_ALPHA, Global::REAL ); 
-      GetScalar( betaOrig, RAYLEIGH_BETA, Global::REAL ); 
+      GetScalar( alphaOrig, RAYLEIGH_ALPHA ); 
+      GetScalar( betaOrig, RAYLEIGH_BETA); 
       GetScalar( measuredFreq, RAYLEIGH_FREQUENCY, Global::REAL ); 
 
       if( abs(measuredFreq-dampFreq) > 0.001*measuredFreq ){
-        alphaOrig*=(dampFreq/measuredFreq);
-        betaOrig*=(measuredFreq/dampFreq);
+        alphaOrig = "(" + alphaOrig + "*" + lexical_cast<std::string>(dampFreq/measuredFreq) + ")";
+        betaOrig= "(" + betaOrig + "*" + lexical_cast<std::string>(measuredFreq/dampFreq)+ ")";
 //        SetScalar( alpha, RAYLEIGH_ALPHA, Global::REAL ); 
 //        SetScalar( beta, RAYLEIGH_BETA, Global::REAL ); 
       }
     }
     else if ( IsSet(LOSS_TANGENS_DELTA) && IsSet(RAYLEIGH_FREQUENCY) ){
 
-      Double tanDelta, deltaFreq, omega1, omega2;
+      std::string tanDelta, deltaFreq, omega1, omega2;
 
-      GetScalar( tanDelta, LOSS_TANGENS_DELTA, Global::REAL ); 
-      deltaFreq=ratioDeltaF*measuredFreq;
+      GetScalar( tanDelta, LOSS_TANGENS_DELTA ); 
+      // make sure to enclose the expression by brackets!
+      tanDelta = "("+ tanDelta + ")";
+      deltaFreq= lexical_cast<std::string>(ratioDeltaF)+"*"+ lexical_cast<std::string>(measuredFreq);
 
-      omega1= (measuredFreq-deltaFreq)*2.0*PI;
-      omega2= (measuredFreq+deltaFreq)*2.0*PI;
+      omega1= "(("+lexical_cast<std::string>(measuredFreq)+"-"+deltaFreq+")*2.0*pi)";
+      omega2= "(("+lexical_cast<std::string>(measuredFreq)+"+"+deltaFreq+")*2.0*pi)";
 
       //Computation of alpha and beta according to Habil.Kaltenbacher p. 50 ff
       // alpha + beta*omega_i*omega_i = omega_i*tanDelta_i
-      betaOrig=tanDelta*((omega2-omega1)/(omega2*omega2-omega1*omega1));
-      alphaOrig=(omega1*tanDelta)-(betaOrig*omega1*omega1);
+      //betaOrig=tanDelta*((omega2-omega1)/(omega2*omega2-omega1*omega1));
+      betaOrig=tanDelta+"*((" + omega2 +"-" + omega1 +")/("+omega2+"*"+omega2+"-"+omega1+"*"+omega1+"))";
+      //alphaOrig=(omega1*tanDelta)-(betaOrig*omega1*omega1);
+      alphaOrig="("+omega1+"*"+tanDelta+")-("+betaOrig+"*"+omega1+"*"+omega1+")";
     }
     else
       EXCEPTION("Error in specification of Rayleigh damping!!!" );
@@ -562,14 +601,12 @@ namespace CoupledField
     if( adjustDamping && isHarmonic ) {
       
       // calculate modified alpha' = alpha / measuredFreq * f
-      alpha = lexical_cast<string> ( alphaOrig / measuredFreq) +
-              "* f";
+      alpha = "(" + alphaOrig + ")/" + lexical_cast<std::string>(measuredFreq)  + "* f";
       // calculate modified beta' = beta * measuredFreq / f
-      beta = lexical_cast<string> ( betaOrig * measuredFreq) +
-              "/ f";
+      beta =  "(" + betaOrig + ")*" + lexical_cast<std::string>(measuredFreq) + " / f";
     } else {
-      alpha = lexical_cast<string>(alphaOrig);
-      beta = lexical_cast<string>(betaOrig);
+      alpha = alphaOrig;
+      beta = betaOrig;
     }
   }
 

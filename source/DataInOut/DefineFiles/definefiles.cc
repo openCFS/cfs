@@ -299,17 +299,22 @@ void DefineInOutFiles::CreateSimOutputFiles(std::map<std::string, shared_ptr<
     actFormat = actNode->GetName();
     actId = actNode->Get("id")->As<std::string>();
 
-    // ensure, that format is unique
-    if (formatSet.find(actFormat) != formatSet.end())
-    {
-      EXCEPTION( "Several output tags for format '" << actFormat
-                 << "' were found!\n"
-                 << "Please ensure, that the output tags for the "
-                 << "formats are unique!" );
-    } else 
-    {
-      formatSet.insert(actFormat);
-    }
+    // Note: In general, we should ensure, that output writers exist only once
+    // (especially hdf5, gmv ,etc.). But for text-writers, it makes intentionally
+    // sense to have several ones (e.g. for collecting over frequency or over
+    // space). We should therefore restrict this check for format like 
+    // gmv and hdf5.
+//    // ensure, that format is unique
+//    if (formatSet.find(actFormat) != formatSet.end())
+//    {
+//      EXCEPTION( "Several output tags for format '" << actFormat
+//                 << "' were found!\n"
+//                 << "Please ensure, that the output tags for the "
+//                 << "formats are unique!" );
+//    } else 
+//    {
+//      formatSet.insert(actFormat);
+//    }
 
     if(actFormat == "hdf5")
       hdf5Id = actId;

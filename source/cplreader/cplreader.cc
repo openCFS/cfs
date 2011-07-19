@@ -21,11 +21,13 @@ namespace fs=boost::filesystem;
 #include <def_cplreader.hh>
 
 #include "General/exception.hh"
+#include "DataInOut/Logging/cfslog.hh"
+
 #include "ParamsInit.hh"
 #include "Settings.hh"
 #include "FileReader.hh"
 
-#include "FileReaders/CFS++/FileReader_CfsHdf5.cc"
+#include "FileReaders/CFS++/FileReader_CfsHdf5.hh"
 
 #ifdef CPLREADER_ANSYS
 #include "FileReaders/ANSYS/FileReader_MKHDF5.hh"
@@ -36,13 +38,25 @@ namespace fs=boost::filesystem;
 #include "FileReaders/FASTEST/FileReader_FASTEST.hh"
 #endif
 
+#ifdef CPLREADER_FIELDVIEW
+#include "FileReaders/FieldView/FileReader_fvuns.hh"
+#endif
+
 #ifdef CPLREADER_CFX
 #include "FileReaders/CFX/FileReader_CFX.hh"
 #include "FileReaders/CFXexport/FileReader_CFXexport.hh"
 #endif
 
 #ifdef CPLREADER_OPENFOAM
-#include "FileReaders/OPENFOAM/FileReader_OPENFOAM.hh"
+#include "FileReaders/VTKBased/OPENFOAM/FileReader_OPENFOAM.hh"
+#endif
+
+#ifdef CPLREADER_ENSIGHT
+#include "FileReaders/VTKBased/EnSight/FileReader_EnSight.hh"
+#endif
+
+#ifdef CPLREADER_FLUENT
+#include "FileReaders/VTKBased/FLUENT/FileReader_FLUENT.hh"
 #endif
 
 #ifdef CPLREADER_CGNS
@@ -119,6 +133,18 @@ namespace CoupledField
 #endif
     }
 
+    if(type == "FIELDVIEW")
+    {
+#ifdef CPLREADER_FIELDVIEW
+      fileReader.reset(new FileReader_fvuns(settings.GetString("name"),
+                                            settings.GetInt("dim"),
+                                            settings.GetInt("numsteps"),
+                                            settings.GetInt("firststep")));
+#else
+      EXCEPTION("Reading of FieldView files not supported!");
+#endif
+    }
+
     if(type == "GENGRIDS")
     {
       fileReader.reset(new FileReader_GENGRIDS(settings.GetString("name"),
@@ -167,6 +193,28 @@ namespace CoupledField
                                            settings.GetInt("numsteps")));
 #else
       EXCEPTION("Reading of OPENFOAM files not supported!");
+#endif
+    }
+
+    if(type == "ENSIGHT")
+    {
+#ifdef CPLREADER_ENSIGHT
+      fileReader.reset(new FileReader_EnSight(settings.GetString("name"),
+                                              settings.GetInt("dim"),
+                                              settings.GetInt("numsteps")));
+#else
+      EXCEPTION("Reading of EnSight files not supported!");
+#endif
+    }
+
+    if(type == "FLUENT")
+    {
+#ifdef CPLREADER_FLUENT
+      fileReader.reset(new FileReader_FLUENT(settings.GetString("name"),
+                                             settings.GetInt("dim"),
+                                             settings.GetInt("numsteps")));
+#else
+      EXCEPTION("Reading of FLUENT files not supported!");
 #endif
     }
 
@@ -274,6 +322,8 @@ int main(int argc, char *argv[])
     ret = 1;
   }
 
+  delete logConf;
+  
   return ret;
 }
 

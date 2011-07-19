@@ -7,7 +7,7 @@
 #include "Domain/domain.hh"
 #include "Domain/grid.hh"
 
-
+#include "DataInOut/ResultCache.hh"
 #include "DataInOut/Logging/cfslog.hh"
 
 DECLARE_LOG(forms)
@@ -18,6 +18,7 @@ namespace CoupledField
 
   LinNeumannInt::LinNeumannInt( std::string amplitudeStr,
                                 std::string phaseStr,
+                                SolutionType quantity,
                                 MaterialType materialParam,
                                 bool isaxi )
     : LinearSurfForm() {
@@ -28,6 +29,7 @@ namespace CoupledField
     // store value and phase string
     amplitude_ = amplitudeStr;
     phase_ = phaseStr;
+    quantity_ = quantity;
     materialParam_ = materialParam;
   }
 
@@ -112,68 +114,127 @@ namespace CoupledField
 
   void LinNeumannInt::CalcElemVector( Vector<Double> & elemVec,
                                       EntityIterator& ent) {
-
+    Double density, factor;
+    
     // compute element vector
     PrepareElemVector( elemVec, ent );
 
-    // register global coordinates of element midpoint
     Elem * ptVolElem = actElem_->ptVolElem1;
-    RegisterSurfElemMidPoint( mHandle_, ent.GetSurfElem(), ptVolElem );
+    //RegisterSurfElemMidPoint( mHandle_, ent.GetSurfElem(), ptVolElem );
 
-    // evaluate value for current element
+    // register global coordinates of nodes
+    const StdVector<UInt> & surfConnect = ent.GetSurfElem()->connect;
+    Matrix<Double> surfCoordMat;
+    domain->GetGrid()->GetElemNodesCoord( surfCoordMat, surfConnect, coordUpdate_ );
+    Vector<Double> nodeCoord;
+    nodeCoord.Resize(surfCoordMat.GetNumRows());
+
+    // fetch global coordinate system
+    CoordSystem * coosy = domain->GetCoordSystem();
+
+    // set info for ResultCache, which handles the input function
+    // (reads data from input files, i.e. hdf5, unv, etc.)
+    // in math parser expressions
+    ResultCache::SetInfo( ResultCache::OUT_REAL,
+                          0,
+                          ent.GetName(),
+                          quantity_ );
+
     mParser_->SetExpr( mHandle_, amplitude_ );
-    Double factor = mParser_->Eval( mHandle_ );
 
-    // When we do SIMP of an Piezo we might have pressure and charge density
-    // on surface elements. Then scale our element contribution by the corresponding
-    // volume element which has the scaling factor.
-    double density = GetErsatzMaterialFactor(ptVolElem);
-    factor *= density;
+    for ( UInt i=0, n=elemVec.GetSize(); i<n; ++i )
+    {
+      for ( UInt j=0, m=nodeCoord.GetSize(); j<m; ++j )
+      {
+        nodeCoord[j] = surfCoordMat[j][i];
+      }
+      mParser_->SetCoordinates( mHandle_, *coosy, nodeCoord );
 
-    // we assume the surface normal points out of domain,
-    //  but we want to take deflections into the domain positive
-    factor *= -1.0;
+      ResultCache::SetIndex(surfConnect[i]);
+      
+      // evaluate value for current element
+      factor = mParser_->Eval( mHandle_ );
 
+      // When we do SIMP of a Piezo we might have pressure and charge density
+      // on surface elements. Then scale our element contribution by the
+      // corresponding volume element which has the scaling factor.
+      density = GetErsatzMaterialFactor(ptVolElem);
+      factor *= density;
+
+      // we assume the surface normal points out of domain,
+      //  but we want to take deflections into the domain positive
+      factor *= -1.0;
+
+      // multiply element vector with factor
+      elemVec[i] = elemVec[i] * factor;
+    }
+    
     LOG_DBG3(forms) << "LinNeumannInt::CalcElemVector<double> elem="
                     << actElem_->elemNum << " pseudo density=" << density
                     << " factor=" << factor 
                     << " elem vec = " << elemVec.ToString();
-
-    // multiply element vector with factor
-    elemVec *= factor;
   }
 
   void LinNeumannInt::CalcElemVector( Vector<Complex> & elemVec,
                                       EntityIterator& ent) {
-
-    // compute element vector
+    Double value, phase, realPart, imagPart;
     Vector<Double> helpVec;
+    
+    // compute element vector
     PrepareElemVector( helpVec, ent );
+    elemVec.Resize(helpVec.GetSize());
 
-    // register global coordinates of element midpoint
-    Elem * ptVolElem = actElem_->ptVolElem1;
-    RegisterSurfElemMidPoint( mHandle_, ent.GetSurfElem(), ptVolElem );
+    //Elem * ptVolElem = actElem_->ptVolElem1;
+    //RegisterSurfElemMidPoint( mHandle_, ent.GetSurfElem(), ptVolElem );
 
+    // register global coordinates of nodes
+    const StdVector<UInt> & surfConnect = ent.GetSurfElem()->connect;
+    Matrix<Double> surfCoordMat;
+    domain->GetGrid()->GetElemNodesCoord( surfCoordMat, surfConnect, coordUpdate_ );
+    Vector<Double> nodeCoord;
+    nodeCoord.Resize(surfCoordMat.GetNumRows());
 
-    // evaluate value and phase for current element
-    mParser_->SetExpr( mHandle_, amplitude_ );
-    Double value = mParser_->Eval( mHandle_ );
-    // we assume the surface normal points out of domain,
-    //  but we want to take deflections into the domain positive
-    value *= - 1.0;
+    // fetch global coordinate system
+    CoordSystem * coosy = domain->GetCoordSystem();
 
-    mParser_->SetExpr( mHandle_, phase_ );
-    Double phase = mParser_->Eval( mHandle_ );
+    // set info for ResultCache, which handles the input function
+    // (reads data from input files, i.e. hdf5, unv, etc.)
+    // in math parser expressions
+    ResultCache::SetInfo( ResultCache::OUT_REAL,
+                          0,
+                          ent.GetName(),
+                          quantity_ );
 
+    for ( UInt i=0, n=helpVec.GetSize(); i<n; ++i )
+    {
+      for (UInt j=0, m=nodeCoord.GetSize(); j<m; ++j )
+      {
+        nodeCoord[j] = surfCoordMat[j][i];
+      }
+      mParser_->SetCoordinates( mHandle_, *coosy, nodeCoord );
+      
+      ResultCache::SetIndex(surfConnect[i]);
+      
+      // evaluate value and phase for current element
+      ResultCache::SetOutputType(ResultCache::OUT_AMPL);
+      mParser_->SetExpr( mHandle_, amplitude_ );
+      value = mParser_->Eval( mHandle_ );
+      // we assume the surface normal points out of domain,
+      //  but we want to take deflections into the domain positive
+      value *= - 1.0;
 
-    // Note: Since phase is in (grad), we have to transform it into
-    //        rad-value
-    Double realPart = value * cos( phase / 180 * PI );
-    Double imagPart = value * sin( phase / 180 * PI );
+      ResultCache::SetOutputType(ResultCache::OUT_PHASE);
+      mParser_->SetExpr( mHandle_, phase_ );
+      phase = mParser_->Eval( mHandle_ );
 
-    // multiply element vector with complex factor
-    Complex factor(realPart, imagPart);
-    elemVec = helpVec * factor;
+      // Note: Since phase is in degrees, we have to transform it into radians
+      realPart = value * cos( phase / 180 * PI );
+      imagPart = value * sin( phase / 180 * PI );
+
+      // multiply element vector with complex factor
+      Complex factor(realPart, imagPart);
+      elemVec[i] = helpVec[i] * factor;
+    }
   }
 
 

@@ -68,5 +68,8 @@ SUBDIRS(AnsysBinlibIfaceRev110)
 IF(CFS_ARCH STREQUAL "X86_64")
   # Dynamic library interface for ANSYS 12.0 libbin
   SUBDIRS(AnsysBinlibIfaceRev120)
+
+  # Dynamic library interface for ANSYS 13.0 libbin
+  SUBDIRS(AnsysBinlibIfaceRev130)
 ENDIF(CFS_ARCH STREQUAL "X86_64")
 

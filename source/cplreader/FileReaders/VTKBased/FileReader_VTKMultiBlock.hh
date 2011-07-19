@@ -2,28 +2,29 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#ifndef FILE_FILEREADER_OPENFOAM_2007
-#define FILE_FILEREADER_OPENFOAM_2007
+#ifndef FILE_FILEREADER_VTKMULTIBLOCK_2011
+#define FILE_FILEREADER_VTKMULTIBLOCK_2011
 
 #include <def_cplreader.hh>
 #include "cplreader/FileReader.hh"
 
-class vtkOpenFOAMReader;
+class vtkUnstructuredGrid;
+class vtkMultiBlockDataSetAlgorithm;
 
 namespace CoupledField
 {
 
-  class FileReader_OPENFOAM : public FileReader
+  class FileReader_VTKMultiBlock : public FileReader
   {
   public:
 
     //! Constructor
-    FileReader_OPENFOAM(const std::string& name,
+    FileReader_VTKMultiBlock(const std::string& name,
                         const UInt dim,
                         const UInt numFiles);
 
     //! Deconstructor
-    virtual ~FileReader_OPENFOAM();
+    virtual ~FileReader_VTKMultiBlock();
 
     virtual void Init();
 
@@ -38,33 +39,42 @@ namespace CoupledField
     /* get nodal values from the corresponding fluid datafile the new way */
     void ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
                          const std::vector<bool>& activeParts,
-                         const UInt timeStepIdx);
+                         const UInt timeStepIdx) = 0;
 
     virtual Double GetTimeStep(UInt stepNumber);
     virtual std::string GetRegionName(const UInt partitionIdx);
 
     //! get user data from file reader
-    virtual void GetUserData(std::map<std::string, std::string>& userData);
+    virtual void GetUserData(std::map<std::string, std::string>& userData) = 0;
 
     virtual void GetRegionElements(std::vector<UInt> & regionElements,
                                    const UInt regionIdx);
 
   protected:
-      Elem::FEType VTKCellTypeToFEType(UInt cellType);
+    virtual Elem::FEType VTKCellTypeToFEType(UInt cellType);
+    virtual void InitElemNodeMapping();
 
-      /* calculates the mechDisplacement and writes them into newCoords
-       * \param origin A vector which has the original position of each node
-       * \param newCoords A vector which has the new position of each node and
-       * which will store the mechDisplacement after the method call */
-      void calcMechDisplacement(const std::vector<Double>& origin, \
-          std::vector<Double>& newCoords) const;
+    virtual void CreateReader() = 0;
+    virtual void EnableRegions() = 0;
+    virtual void GetTimeValues() = 0;
+    virtual void SetTimeValue(Double val) = 0;
 
-      std::vector<Integer> dataColumns_;
-      /* nodalCoords_ should store the original mesh, which may be needed if we have
-       * a moving mesh*/
-      std::vector<Double> nodalCoords_;
-      vtkOpenFOAMReader* reader_;
-      UInt numElems_;
+    /* Actual time step values */
+    std::vector<Double> timeValues_;
+    std::vector< std::map<UInt, UInt> > nodeMap_;
+    std::vector< std::vector<UInt> > actualRegionNodes_;
+    std::vector< std::map< UInt, UInt > > actualRegionNodesToNewIdx_;
+
+    std::map< UInt, std::vector<UInt> > unstrucElemNodeMapping_;
+    std::map< UInt, std::vector<UInt> > uniformElemNodeMapping_;
+
+    // Pointer for storing the reader
+    vtkMultiBlockDataSetAlgorithm* reader_;
+
+    // VTK dataset for merging nodes in order to get global node numbering
+    vtkUnstructuredGrid* pts_;
+
+    UInt numElems_;
   };
 
 

@@ -43,7 +43,7 @@ namespace CoupledField
     //----------------------- TRANSIENT---------------------------------------
 
     //! routine for initilizations befor execution the SolveStep-method
-    virtual void PreStepTrans() {;};
+    virtual void PreStepTrans();
 
 
     //! base method for solving one transient step 
@@ -55,7 +55,7 @@ namespace CoupledField
     //----------------------- HARMONIC---------------------------------------
     
     //! routine for initilizations befor execution the SolveStep-method
-    virtual void PreStepHarmonic(  ) {;};
+    virtual void PreStepHarmonic();
 
 
     //!  base method for solving one harmonic step 

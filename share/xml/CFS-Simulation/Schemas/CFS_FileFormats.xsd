@@ -425,11 +425,11 @@
   <!--   Definition of data type for ANSYS RST output -->
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_OutputRST">
-    <xsd:attribute name="ansysRevision" default="10.0">
+    <xsd:attribute name="ansysRevision" default="11.0">
       <xsd:simpleType>
         <xsd:restriction base="xsd:float">
           <xsd:minInclusive value="10.0"/>
-          <xsd:maxInclusive value="12.0"/>
+          <xsd:maxInclusive value="13.0"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>

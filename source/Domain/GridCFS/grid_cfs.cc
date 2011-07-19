@@ -1927,6 +1927,76 @@ namespace CoupledField {
 
   }
 
+  void GridCFS::GetElemNumsByName( StdVector<UInt> & elemNums,
+                                       const std::string & elemName )
+  {
+    if ( nameTypeMap_.find(elemName) == nameTypeMap_.end() )
+    {
+      EXCEPTION( "There are no entities with name '" << elemName
+                 << "' in the grid");
+    }
+    
+    Integer idx = -1;
+    EntityList::DefineType defType = nameTypeMap_[elemName];
+
+    switch ( defType )
+    {
+      case EntityList::REGION:
+        
+        idx = volRegionIds_.Find( region_.Parse(elemName) );
+        if ( idx != -1 )
+        {
+          UInt numElems = volElems_[idx].GetSize();
+          elemNums.Resize( numElems );
+          for ( UInt i=0; i<numElems; ++i )
+          {
+            elemNums[i] = volElems_[idx][i]->elemNum;
+          }
+        }
+        else
+        {
+          idx = surfRegionIds_.Find( region_.Parse(elemName) );
+          if ( idx != -1 )
+          {
+            UInt numElems = surfElems_[idx].GetSize();
+            elemNums.Resize( numElems );
+            for ( UInt i=0; i<numElems; ++i )
+            {
+              elemNums[i] = surfElems_[idx][i]->elemNum;
+            }
+          }
+          else
+          {
+            EXCEPTION( "The region with name '" << elemName
+                       << "' was not found in the grid" );
+          }
+          
+        }
+        break;
+        
+      case EntityList::NAMED_ELEMS:
+        
+        idx = namedElemNames_.Find( elemName );
+        if ( idx != -1 )
+        {
+          elemNums.Resize( namedElems_[idx].GetSize() );
+          std::copy( namedElems_[idx].Begin(),
+                     namedElems_[idx].End(),
+                     elemNums.Begin() );
+        }
+        else
+        {
+          EXCEPTION( "There are no named elements called '" << elemName
+                     << "' in the grid" );
+        }
+        break;
+        
+      default:
+        EXCEPTION( "GetElemNumsByName cannot be called for named nodes" );
+        break;
+    }
+  }
+  
   void GridCFS::GetElemNodes( StdVector<UInt> & connect,
                               const UInt iElem ) {
 

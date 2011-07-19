@@ -186,6 +186,15 @@ namespace CoupledField {
       regionNodes[i]->GetValue("complexMaterial",  complexMat, ParamNode::PASS );
       
       RegionIdType actRegionId = ptgrid_->GetRegion().Parse(regionNodes[i]->Get("name")->As<std::string>());
+      
+      // Check, if region was already defined an issue a warning otherwise
+      if( std::find(subdoms_.Begin(), subdoms_.End(), actRegionId ) 
+          != subdoms_.End() )  {
+        WARN( "The region '" << regionNodes[i]->Get("name")->As<std::string>()
+              << "' was already defined for PDE '" << pdename_ 
+              << "'. Please remove duplicate entries." );
+      }
+          
       subdoms_.Push_back( actRegionId );
       complexMatData_[actRegionId] = complexMat;
     }
@@ -1116,15 +1125,9 @@ namespace CoupledField {
      // INHOMOGENEOUS DIRICHLET BC
      // ---------------------------
 
-     Double stepVal, phase = 0.0;
+     Double phase = 0.0;
 
-     // get step value according to type of analysis
-     if (analysistype_ == HARMONIC)
-       stepVal = solveStep_->GetActFreq();
-     else
-       stepVal = solveStep_->GetActTime();
-
-     for ( UInt i = 0; i < idBcs_.GetSize(); i++ ) {
+     for ( UInt i=0, n=idBcs_.GetSize(); i < n; ++i ) {
 
        // Get grip of actual idBC
        InhomDirichletBc const & actBc = *(idBcs_[i]);
@@ -1139,8 +1142,7 @@ namespace CoupledField {
        ResultCache::SetInfo(ResultCache::OUT_REAL,
                             dof,
                             actBc.entities->GetName(),
-                            actBc.result->resultType,
-                            stepVal);
+                            actBc.result->resultType);
 
        for ( it.Begin(); !it.IsEnd(); it++ ) {
 
@@ -1149,7 +1151,7 @@ namespace CoupledField {
            eqnMap_->GetEqns( eqns, *actBc.result, it, dof  );
 
            // loop over all equations for the dirichlet conditions
-           for( UInt iEqn = 0; iEqn < eqns.GetSize(); iEqn++){
+           for ( UInt iEqn=0, nEqns=eqns.GetSize(); iEqn < nEqns; ++iEqn ) {
              eqnNr = eqns[iEqn];
 
              // omit all equations, which are homogeneous dirichlet
@@ -1162,7 +1164,7 @@ namespace CoupledField {
                // Get node coordinate
                ptgrid_->GetNodeCoordinate( globCoord, it.GetNode() );
                parser->SetCoordinates( mHandle_, *coosy, globCoord );
-               ResultCache::SetIndex(it.GetPos());
+               ResultCache::SetIndex(it.GetNode());
              }
              else {
                // this case needs to be implemented ...
@@ -1224,14 +1226,7 @@ namespace CoupledField {
      // INHOMOGENEOUS DIRICHLET BC from File
      // ------------------------------------
 
-     stepVal = 0.0;
      phase = 0.0;
-
-     // get step value according to type of analysis
-     if (analysistype_ == HARMONIC)
-       stepVal = solveStep_->GetActFreq();
-     else
-       stepVal = solveStep_->GetActTime();
 
      for ( UInt i = 0; i < idFiBcs_.GetSize(); i++ )
      {
@@ -1247,8 +1242,7 @@ namespace CoupledField {
        ResultCache::SetInfo(ResultCache::OUT_REAL,
                             dof,
                             actBc.entities->GetName(),
-                            actBc.result->resultType,
-                            stepVal);
+                            actBc.result->resultType);
 
        UInt step; // time step
        shared_ptr<BaseResult > dirichletVals;

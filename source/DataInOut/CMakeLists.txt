@@ -17,7 +17,6 @@ ENDIF(CFS_BLAS_LAPACK STREQUAL "MKL")
 
 SET(DATAINOUT_SRCS 
   coloredConsole.cc
-  freqfunc.cc
   postProc.cc
   programOptions.cc
   ResultCache.cc

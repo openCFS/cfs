@@ -40,6 +40,9 @@ Vector<Double> ResultCache::resCacheDouble_;
 
 Vector<Complex> ResultCache::resCacheComplex_;
 
+std::map<UInt, UInt> ResultCache::nodeNum2Index_;
+
+
 void ResultCache::SetOutputType(OutputType outType) {
   outType_ = outType;
 }
@@ -52,54 +55,47 @@ void ResultCache::SetEntity(const std::string& entityName) {
   if (entityName != entityName_) {
     resultValid_ = false;
     stepsValid_ = false;
+    entityName_ = entityName;
   }
-  entityName_ = entityName;
 }
 
 void ResultCache::SetInfo(OutputType outType,
                           UInt dof,
                           const std::string& entityName,
-                          SolutionType solType,
-                          Double stepValue) {
+                          SolutionType solType) {
   outType_ = outType;
   dof_ = dof;
-  if (entityName != entityName_) {
-    resultValid_ = false;
-    stepsValid_ = false;
-  }
-  entityName_ = entityName;
-  if (solType != solType_) {
-    resultValid_ = false;
-    stepsValid_ = false;
-  }
-  solType_ = solType;
-  if (stepValue != curStepVal_)
-    resultValid_ = false;
-  curStepVal_ = stepValue;
+  SetEntity(entityName);
+  SetSolution(solType);
 }
 
 void ResultCache::SetSolution(SolutionType solType) {
   if (solType != solType_) {
     resultValid_ = false;
     stepsValid_ = false;
+    solType_ = solType;
   }
-  solType_ = solType;
 }
 
 void ResultCache::SetStepValue(Double stepValue) {
-  if (stepValue != curStepVal_)
+  if (stepValue != curStepVal_) {
     resultValid_ = false;
-  curStepVal_ = stepValue;
+    curStepVal_ = stepValue;
+  }
 }
 
-Double ResultCache::GetResult(const char* inputId, Double sequenceStep) {
+Double ResultCache::GetResult( const char* inputId, Double sequenceStep,
+                               Double dofUser ) {
+  UInt dof = 0, locIndex;
   ResultHandler* resHandler = domain->GetResultHandler();
   std::string readerId(inputId);
 
   // do we need to load a new result?
   if (!resultValid_ || (readerId != readerId_)
-      || (sequenceStep != sequenceStep_)) {
-    if (!stepsValid_) {
+      || (sequenceStep != sequenceStep_))
+  {
+    if (!stepsValid_)
+    {
       LoadStepValues(readerId, (UInt) sequenceStep);
       stepsValid_ = true;
       lastStepNum_ = 0;
@@ -141,10 +137,31 @@ Double ResultCache::GetResult(const char* inputId, Double sequenceStep) {
     resultValid_ = true;
   }
 
+  // Determine dof index
+  if ( dofUser <= 0.0 ) {
+    dof = dof_;
+  } else {
+    dof = (UInt) ceil(dofUser);
+  }
+  // check that dof makes sense
+  if ( dof <= 0 || dof > numDofs_ )
+  {
+    EXCEPTION( "Not a valid DoF index for result '"
+        << SolutionTypeEnum.ToString(solType_) << "': " << dof );
+  }
 
+  // calculate local index in dataset
+  std::map<UInt, UInt>::iterator it = nodeNum2Index_.find(index_);
+  if ( it == nodeNum2Index_.end() ) {
+    EXCEPTION("Not a valid index in result '"
+        << SolutionTypeEnum.ToString(solType_) << "': " << index_);
+  } else {
+    locIndex = it->second;    
+  }
+  
   if (entryType_ == BaseMatrix::COMPLEX) {
 #ifndef NDEBUG
-    if (index_*numDofs_ + dof_ - 1 >= resCacheComplex_.GetSize()) {
+    if (locIndex*numDofs_ + dof - 1 >= resCacheComplex_.GetSize()) {
       EXCEPTION("Index of '" << SolutionTypeEnum.ToString(solType_) << "' from input file (id="
           << readerId_ << ") out of bounds.");
     }
@@ -152,26 +169,26 @@ Double ResultCache::GetResult(const char* inputId, Double sequenceStep) {
 
     switch (outType_) {
     case OUT_REAL:
-      return resCacheComplex_[index_*numDofs_ + dof_ -1].real();
+      return resCacheComplex_[locIndex*numDofs_ + dof -1].real();
     case OUT_IMAG:
-      return resCacheComplex_[index_*numDofs_ + dof_ -1].imag();
+      return resCacheComplex_[locIndex*numDofs_ + dof -1].imag();
     case OUT_AMPL:
-      return std::abs(resCacheComplex_[index_*numDofs_ + dof_ -1]);
+      return std::abs(resCacheComplex_[locIndex*numDofs_ + dof -1]);
     case OUT_PHASE:
       // we need to convert radians to degrees, because this goes through
       // the math parser!!!
-      return std::arg(resCacheComplex_[index_*numDofs_ + dof_ -1])*180.0/PI;
+      return std::arg(resCacheComplex_[locIndex*numDofs_ + dof -1])*180.0/PI;
     }
   }
   else {
 #ifndef NDEBUG
-     if (index_*numDofs_ + dof_ - 1 >= resCacheDouble_.GetSize()) {
+     if (locIndex*numDofs_ + dof - 1 >= resCacheDouble_.GetSize()) {
       EXCEPTION("Index of '" << SolutionTypeEnum.ToString(solType_) << "' from input file (id="
           << readerId_ << ") out of bounds.");
     }
 #endif
 
-    return resCacheDouble_[index_*numDofs_ + dof_ - 1];
+    return resCacheDouble_[locIndex*numDofs_ + dof - 1];
   }
 
   return 0.0;
@@ -203,6 +220,32 @@ void ResultCache::LoadStepValues(const std::string& readerId,
 
   numDofs_ = resInfos[iRes]->dofNames.GetSize();
   inputReader->GetStepValues(sequenceStep, resInfos[iRes], stepValues_);
+
+  // rebuild map node number => index
+  StdVector<UInt> entityNums;
+  
+  switch ( resInfos[iRes]->definedOn )
+  {
+    case ResultInfo::NODE:
+      domain->GetGrid("default")->GetNodesByName( entityNums, entityName_ );
+      break;
+    case ResultInfo::ELEMENT:
+    case ResultInfo::SURF_ELEM:
+      domain->GetGrid("default")->GetElemNumsByName( entityNums, entityName_ );
+      break;
+    default:
+      std::string defName;
+      ResultInfo::Enum2String( resInfos[iRes]->definedOn, defName );
+      EXCEPTION("Result '" << SolutionTypeEnum.ToString(solType_)
+                << "' is defined on " << defName
+                << "s, which cannot be handled by the input function");
+  }
+  
+  nodeNum2Index_.clear();
+  for ( UInt i=0, n=entityNums.GetSize(); i<n; ++i )
+  {
+    nodeNum2Index_[entityNums[i]] = i;
+  }
 
 }
 

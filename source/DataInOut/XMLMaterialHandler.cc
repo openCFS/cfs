@@ -494,13 +494,13 @@ namespace CoupledField {
         PtrParamNode r = mech->Get("mechanicalDamping")->Get("rayleigh");
 
         if(r->Has("alpha"))
-         material->SetScalar(r->Get("alpha")->As<Double>(), RAYLEIGH_ALPHA, Global::REAL);
+         material->SetScalar(r->Get("alpha")->As<std::string>(), RAYLEIGH_ALPHA);
          
         if(r->Has("beta"))
-         material->SetScalar(r->Get("beta")->As<Double>(), RAYLEIGH_BETA, Global::REAL);
+         material->SetScalar(r->Get("beta")->As<std::string>(), RAYLEIGH_BETA);
 
         if(r->Has("lossTangensDelta"))
-         material->SetScalar(r->Get("lossTangensDelta")->As<Double>(), LOSS_TANGENS_DELTA, Global::REAL);
+         material->SetScalar(r->Get("lossTangensDelta")->As<std::string>(), LOSS_TANGENS_DELTA);
 
         if(r->Has("measuredFreq"))
          material->SetScalar(r->Get("measuredFreq")->As<Double>(), RAYLEIGH_FREQUENCY, Global::REAL);
@@ -546,13 +546,13 @@ namespace CoupledField {
         PtrParamNode r = ad->Get("rayleigh");
         
         if(r->Has("alpha"))
-          material->SetScalar(r->Get("alpha")->As<Double>(), RAYLEIGH_ALPHA, Global::REAL );
+          material->SetScalar(r->Get("alpha")->As<std::string>(), RAYLEIGH_ALPHA);
           
         if(r->Has("beta"))
-          material->SetScalar(r->Get("beta")->As<Double>(), RAYLEIGH_BETA, Global::REAL );
+          material->SetScalar(r->Get("beta")->As<std::string>(), RAYLEIGH_BETA);
 
         if(r->Has("lossTangensDelta"))
-          material->SetScalar(r->Get("lossTangensDelta")->As<Double>(), LOSS_TANGENS_DELTA, Global::REAL );
+          material->SetScalar(r->Get("lossTangensDelta")->As<std::string>(), LOSS_TANGENS_DELTA);
        
         if(r->Has("measuredFreq"))
           material->SetScalar(r->Get("measuredFreq")->As<Double>(), RAYLEIGH_FREQUENCY, Global::REAL );

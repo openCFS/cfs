@@ -248,8 +248,9 @@ void HeatCondPDE::DefineIntegrators()
       // get current Bc
       InhomNeumannBc const & actBc = *inBcs_[iBc];
 
-      LinearSurfForm *neumannBC = new LinNeumannInt( actBc.value,
-          actBc.phase, HEAT_CONDUCTIVITY, isaxi_ );
+      LinearSurfForm *neumannBC =
+          new LinNeumannInt( actBc.value, actBc.phase,
+                             NO_SOLUTION_TYPE, HEAT_CONDUCTIVITY, isaxi_ );
 
       neumannBC->SetVoluInfo( materials_ );
 

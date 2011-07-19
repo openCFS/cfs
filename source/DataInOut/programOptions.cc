@@ -367,14 +367,6 @@ namespace CoupledField {
     }
   }
 
-  string ProgramOptions::GetErsatzMaterialStr() const
-  {
-    if(varMap_.count("ersatz") != 0)
-      return varMap_["ersatz"].as<string>();
-    else
-      return "";
-  }
-
   string ProgramOptions::GetScriptFileStr() const
   {
     fs::path scriptPath = GetScriptFile();
@@ -382,6 +374,14 @@ namespace CoupledField {
     return scriptPath.native_file_string();
   }
 #endif
+
+  string ProgramOptions::GetErsatzMaterialStr() const
+  {
+    if(varMap_.count("ersatz") != 0)
+      return varMap_["ersatz"].as<string>();
+    else
+      return "";
+  }
 
   fs::path ProgramOptions::GetSchemaPath() const
   {

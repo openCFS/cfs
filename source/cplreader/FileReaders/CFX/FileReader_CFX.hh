@@ -89,6 +89,7 @@ namespace CoupledField
     std::vector< Elem::FEType > regionElemTypes_;
     std::ifstream inFile_;
     bool determineFloatDS_;
+    UInt numElems_;
 
     // Vector of element numbers per region
     std::map<UInt, std::vector<UInt> > regionElems_;
@@ -113,7 +114,6 @@ namespace CoupledField
     double darr[80];
     char sarr[80];
 
-    const static int BIGMEM;
     static std::vector<int> intvec;
     static std::vector<double> doublevec;
     static std::vector<float> floatvec;

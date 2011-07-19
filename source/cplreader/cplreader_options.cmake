@@ -86,7 +86,7 @@ ADD_OPTION(name
 ADD_OPTION(type
   string
   CFX
-  "Type of dataset (can be ANSYS | CFS++ | CFX | CFX_EXPORT | FASTEST | OPENFOAM | CGNS)"
+  "Type of dataset (can be ANSYS | CFS++ | CFX | CFX_EXPORT | FASTEST | OPENFOAM | CGNS | ENSIGHT | FIELDVIEW)"
   "Specify the type of dataset to be read: ANSYS see Sec. \\\\ref{sec:ansys},
    CFX see Sec. \\\\ref{sec:cfx}, CFX\\\\_EXPORT see Sec. \\\\ref{sec:cfx-export},
    FASTEST see Sec. \\\\ref{sec:fastest}, OPENFOAM see Sec. \\\\ref{sec:openfoam}."
@@ -340,7 +340,7 @@ ADD_OPTION(pres
   "Specify column of pressure in FASTEST ASCII files."
   )
 
-ADD_OPTION(reduce_elementOrder
+ADD_OPTION(reduceElementOrder
   bool
   false
   "disregard high order nodes"
