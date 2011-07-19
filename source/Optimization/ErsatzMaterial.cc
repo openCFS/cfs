@@ -1237,16 +1237,7 @@ double ErsatzMaterial::CalcVolume(Objective* f, Condition* g, bool derivative, b
   {
   case Function::VOLUME:
   {
-    double exp = 1.0;
-    if(func->IsPhysical())
-    {
-      TransferFunction* tf = design->GetTransferFunction(des, MECH);
-      if(tf->GetType() != TransferFunction::SIMP_TYPE)
-        throw Exception("physical volume as constraint function only possible with SIMP.");
-      // exp = tf->GetParam();
-      exp = 1.0;
-    }
-    return IntegrateDesignVariable(f, g, derivative, des, normalized, false, exp); // no scaling, exponent=1
+    return IntegrateDesignVariable(f, g, derivative, des, normalized, false, 1.0); // no scaling, exponent=1
   }
 
   case Function::PENALIZED_VOLUME:
