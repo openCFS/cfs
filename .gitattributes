@@ -22,6 +22,7 @@ cmake_modules/FindHDFView.cmake -text
 cmake_modules/FindILUPACK.cmake -text
 cmake_modules/FindIPOPT.cmake -text
 cmake_modules/FindIntelMKL.cmake -text
+cmake_modules/FindKNITRO.cmake -text
 cmake_modules/FindLAPACK.cmake -text
 cmake_modules/FindMetis.cmake -text
 cmake_modules/FindMpCCI.cmake -text
@@ -93,6 +94,7 @@ include/def_use_hdf5.hh.in -text
 include/def_use_ilupack.hh.in -text
 include/def_use_interpolation.hh.in -text
 include/def_use_ipopt.hh.in -text
+include/def_use_knitro.hh.in -text
 include/def_use_lapack.hh.in -text
 include/def_use_mesh.hh.in -text
 include/def_use_metis.hh.in -text
@@ -529,6 +531,7 @@ share/scripts/cfs_utils.py -text
 share/scripts/cfstool -text
 share/scripts/common.sh svneol=native#text/plain
 share/scripts/compile_mkl_test.sh.in -text
+share/scripts/continuation.py -text
 share/scripts/cplreader -text
 share/scripts/create_density.py -text
 share/scripts/distro.sh svneol=native#text/plain
@@ -543,6 +546,8 @@ share/scripts/hdf5_import_mesh.sh.in svneol=native#text/plain
 share/scripts/identify_compiler.pl svneol=native#text/plain
 share/scripts/log.py -text
 share/scripts/log.tcl svneol=native#text/x-tcl
+share/scripts/nas-tool-gid-to-nas.py -text
+share/scripts/nas-tool-voidmesh.py -text
 share/scripts/optimization_tools.py -text
 share/scripts/printElemMatVec.py -text
 share/scripts/printElemMatVec.tcl svneol=native#text/x-tcl
@@ -774,6 +779,7 @@ source/DataInOut/XMLMaterialHandler.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/XMLMaterialHandler.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/coloredConsole.cc svneol=native#text/plain
 source/DataInOut/coloredConsole.hh svneol=native#text/plain
+source/DataInOut/freqfunc.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/postProc.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/postProc.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/programOptions.cc svneol=native#text/plain
@@ -1384,6 +1390,8 @@ source/Optimization/Optimizer/GradientCheck.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/Optimizer/IPOPT.cc -text
 source/Optimization/Optimizer/IPOPT.hh -text
 source/Optimization/Optimizer/IPOPTHolder.hh svneol=native#text/x-c%2B%2Bhdr
+source/Optimization/Optimizer/KNITRO.cc -text
+source/Optimization/Optimizer/KNITRO.hh -text
 source/Optimization/Optimizer/OptimalityCondition.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/Optimizer/OptimalityCondition.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/Optimizer/SCPIP.cc svneol=native#text/x-c%2B%2Bsrc

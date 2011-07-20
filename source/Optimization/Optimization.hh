@@ -10,7 +10,7 @@
 
 namespace CoupledField
 {
-   class Elem;
+   struct Elem;
    class DesignSpace;
    class OptimalityCondition;
    class BaseOptimizer;
@@ -64,8 +64,8 @@ namespace CoupledField
          typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, HEAT, ACOUSTIC, LAPLACE, STRESS, NO_APP} Application;
 
          /** Not the optimization problem but the solver! */
-         typedef enum { OPTIMALITY_CONDITION, IPOPT_SOLVER, SCPIP_SOLVER, SNOPT_SOLVER, SHAPE_SOLVER, 
-												EVALUATE_INITIAL_DESIGN, GRADIENT_CHECK } Optimizer;
+         typedef enum { OPTIMALITY_CONDITION, IPOPT_SOLVER, SCPIP_SOLVER, SNOPT_SOLVER, KNITRO_SOLVER,
+                        SHAPE_SOLVER, EVALUATE_INITIAL_DESIGN, GRADIENT_CHECK } Optimizer;
 
          /** to convert string/enum for this type */
          static Enum<Optimizer> optimizer;

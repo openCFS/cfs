@@ -9,6 +9,7 @@ namespace CoupledField
 {
 
 class ErsatzMaterial;
+class DesignSpace;
 class ElecPDE;
 class MechPDE;
 class HeatCondPDE;
@@ -28,7 +29,6 @@ class OptimizationMaterial
 {
 public:
   
-  OptimizationMaterial(ErsatzMaterial* em);
   virtual ~OptimizationMaterial();
   
   /** Id of our material class */
@@ -53,6 +53,11 @@ public:
 
 protected:
 
+
+  /** @param em for the standard constructor to be used in ErsatzMaterial.
+   * @param space  This allows to gain the MassMatrix for pamping where we might have no ErsatzMaterial  */
+  OptimizationMaterial(ErsatzMaterial* em, DesignSpace* space = NULL);
+
   /** <p>Get the original element matrix (stiffness, mass, ...)
    * which is constant for all isotropic elements.
    * This method is not only for mechanical SIMP but is also used by PiezoSIMP,
@@ -74,10 +79,19 @@ protected:
 
   StdVector<RegionIdType> regionIds;
 
+  /** might be NULL when using other constructor */
   ErsatzMaterial* opt;
+
+  DesignSpace* space;
   
+  // short cuts
+  bool harmonic_;
+  bool structured_;
+
   // what we are;
   System system_;
+
+
 
 private:
 
@@ -93,6 +107,7 @@ class MechMat : public OptimizationMaterial
 public:
   
   MechMat(ErsatzMaterial* em);
+  MechMat(DesignSpace* space);
   
   /** Get the ElementStiffness Matrix for this element, this is the region constant version
    * @param elem the Element for which the Matrix should be returned
@@ -135,6 +150,11 @@ protected:
   Vector<double> mechStrainRHS;
 
   MechPDE* mech;
+
+private:
+
+  /** actual Constructor */
+  void Init();
 };
 
 

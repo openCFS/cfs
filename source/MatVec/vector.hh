@@ -103,7 +103,7 @@ template<typename T> class ElemStoreSol;
     
     //! The default destructor must be deep, i.e. it must free all dynamically
     //! allocated memory.
-    ~Vector();
+    virtual ~Vector();
 
     //! Return the Entry type of the vector
 
@@ -309,16 +309,16 @@ template<typename T> class ElemStoreSol;
     
     //! Vector assignment operator using expression templates
     template <class X> Vector<T>&  operator=( const Xpr1<T,X>& rhs ) {
-      return assignFrom(rhs);
+      return this->assignFrom(rhs);
     }
     //! Abstract vector assignment operator using expression templates
     template <class V> Vector<T>&  operator=( const Dim1<T,V>& rhs ) {
-      return assignFrom(rhs);
+      return this->assignFrom(rhs);
     }
 
     //! Vector assignment operator
     Vector<T>&  operator=( const Vector<T>& rhs ) { 
-      return assignFrom(rhs); 
+      return this->assignFrom(rhs); 
     }
     
     //! Returns the number of entries
@@ -504,6 +504,13 @@ template<typename T> class ElemStoreSol;
     const T* GetPointer() const{
       return data_;
     }
+
+
+    /** Check if the vector contains NAN. To be used by asserts() */
+    bool ContainsNaN() const;
+
+    /** Check if the vector contains +/- INF. To be used by asserts() */
+    bool ContainsInf() const;
 
     //@}
 

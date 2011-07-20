@@ -277,8 +277,7 @@ namespace CoupledField {
     PtrParamNode in = infoNode_->Get(ParamNode::HEADER);
     for(UInt i = 0; i < subdoms_.GetSize(); i++ )
     {
-      PtrParamNode in_ = in->Get("region", ParamNode::APPEND);
-      in_->Get("name")->SetValue(domain->GetGrid()->GetRegion().ToString(subdoms_[i]));
+      PtrParamNode in_ = in->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(subdoms_[i]));
 
       std::string fuck_e2s;
       Enum2String(GetDamping(subdoms_[i]), fuck_e2s);
@@ -318,9 +317,11 @@ namespace CoupledField {
     //determine which kind of equationmap will be needed
     if(results_.GetSize() == 1){
       if(results_[0]->fctType->IsDiscontinuous()){
-        eqnMap_ = shared_ptr<DiscontinuousEqnMap>(new DiscontinuousEqnMap( ptgrid_, pdeId_, usePenalty_ ));
+        shared_ptr<DiscontinuousEqnMap> tempmap(new DiscontinuousEqnMap( ptgrid_, pdeId_, usePenalty_ ));
+        eqnMap_ = tempmap;
       }else{
-        eqnMap_ = shared_ptr<EqnMap>(new EqnMap( ptgrid_, pdeId_, usePenalty_ ));
+        shared_ptr<EqnMap> tempmap(new EqnMap( ptgrid_, pdeId_, usePenalty_ ));
+        eqnMap_ = tempmap;
       }
     }else if(results_.GetSize() >= 2){
       if(!results_[0]->fctType->IsDiscontinuous() && results_[1]->fctType->IsDiscontinuous()){
@@ -333,7 +334,8 @@ namespace CoupledField {
     }else{
       //this is the defulat case
       //more cases can be implemented as needed
-      eqnMap_ = shared_ptr<EqnMap>(new EqnMap( ptgrid_, pdeId_, usePenalty_ ));
+      shared_ptr<EqnMap> tempmap(new EqnMap( ptgrid_, pdeId_, usePenalty_ ));
+      eqnMap_ = tempmap;
     }
 
 
@@ -589,7 +591,7 @@ namespace CoupledField {
     // loads
     PtrParamNode base = infoNode_->Get(ParamNode::HEADER)->Get("loads");
 
-    for(unsigned int i = 0, in = loads_.GetSize(); i < in; i++)
+    for(unsigned int i = 0, nn = loads_.GetSize(); i < nn; i++)
     {
       LoadBc const & actBc = *loads_[i];
       EntityList const & actList = *actBc.entities;
@@ -603,7 +605,7 @@ namespace CoupledField {
     // Homogeneous Dirichlet BC
     base = infoNode_->Get(ParamNode::HEADER)->Get("homDirichletBC");
 
-    for(unsigned int i = 0, in = hdBcs_.GetSize(); i < in; i++)
+    for(unsigned int i = 0, nn = hdBcs_.GetSize(); i < nn; i++)
     {
       HomDirichletBc const & actBc = *hdBcs_[i];
       EntityList const & actList = *actBc.entities;
@@ -615,7 +617,7 @@ namespace CoupledField {
     // Inhomogeneous Dirichlet BC
     base = infoNode_->Get(ParamNode::HEADER)->Get("inhomDirichletBC");
 
-    for(unsigned int i = 0, in = idBcs_.GetSize(); i < in; i++)
+    for(unsigned int i = 0, nn = idBcs_.GetSize(); i < nn; i++)
     {
       InhomDirichletBc const & actBc = *idBcs_[i];
       EntityList const & actList = *actBc.entities;
@@ -629,7 +631,7 @@ namespace CoupledField {
     // Inhomogeneous Dirichlet BC read from file
     base = infoNode_->Get(ParamNode::HEADER)->Get("inhomDirichFileBC");
 
-    for(unsigned int i = 0, in = idFiBcs_.GetSize(); i < in; i++)
+    for(unsigned int i = 0, nn = idFiBcs_.GetSize(); i < nn; i++)
     {
       InhomDirichFileBc const & actBc = *idFiBcs_[i];
       EntityList const & actList = *actBc.entities;
@@ -642,7 +644,7 @@ namespace CoupledField {
     // Inhomogeneous Neumann BC
     base = infoNode_->Get(ParamNode::HEADER)->Get("inhomNeumannBC");
 
-    for(unsigned int i = 0, in = inBcs_.GetSize(); i < in; i++)
+    for(unsigned int i = 0, nn = inBcs_.GetSize(); i < nn; i++)
     {
       InhomNeumannBc const & actBc = *inBcs_[i];
       EntityList const & actList = *actBc.entities;
@@ -658,7 +660,7 @@ namespace CoupledField {
     // periodic boundary conditions blow this up.
     if(constraints_.GetSize() <= 5 || progOpts->DoListMapping())
     {
-      for(unsigned int i = 0, in = constraints_.GetSize(); i < in; i++)
+      for(unsigned int i = 0, nn = constraints_.GetSize(); i < nn; i++)
       {
         Constraint const & actBc = *constraints_[i];
         EntityList const & masterList = *actBc.masterEntities;
@@ -697,8 +699,6 @@ namespace CoupledField {
     for (it = availResults_.begin(); it != availResults_.end(); it++ ) {
        CheckStoreResult(*it);
     }
-    Info->PrintF( pdename_, "\n");
-
   }
 
 
@@ -1943,12 +1943,14 @@ namespace CoupledField {
         if( subdoms_.Find( actRegionId) < 0 )
           continue;
 
-        // print logging information
-        Info->PrintF( pdename_, "Material '%s' for region '%s' (ID = %d) "
-                      "follows\n", material.c_str(), region.c_str(),
-                      actRegionId );
         // Read data
         materials_[actRegionId] = matLoader->LoadMaterial(material, pdematerialclass_);
+
+        // log the just read material. LoadMaterial() so to say initializes the ToInfo()
+        PtrParamNode in = infoNode_->GetByVal("material", "name", material);
+        // additional regions are automatically appended
+        in->Get("regionList")->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(actRegionId));
+        materials_[actRegionId]->ToInfo(in);
 
         // Check for local coordinate system
         if( !refCoordSys.empty() ) {
@@ -2019,22 +2021,14 @@ namespace CoupledField {
         if( subdoms_.Find( actRegionId) < 0 )
           continue;
 
-        // print logging information
-        std::ostringstream out;
-        out << "Composite material '" << composite << "' for "
-            << "region '" << region << "' (ID = " << actRegionId
-            << ") follows:\n";
-        Info->PrintF( pdename_, out.str().c_str());
-        out.str("");
+        PtrParamNode in = infoNode_->GetByVal("composite", "region", domain->GetGrid()->GetRegion().ToString(actRegionId));
 
         // get composite node
         PtrParamNode compNode;
         try {
-          compNode = param->Get("domain")
-            ->GetByVal("composite", "name", composite );
+          compNode = param->Get("domain")->GetByVal("composite", "name", composite);
         } catch( Exception& ex ) {
-          RETHROW_EXCEPTION( ex, "No composite material defined with name '"
-                             << composite << "'" );
+          RETHROW_EXCEPTION(ex, "No composite material defined with name '" << composite << "'");
         }
 
         // get laminaNodes
@@ -2056,17 +2050,17 @@ namespace CoupledField {
           laminaNodes[j]->GetValue( "orientation", lamOrientation);
 
           // Print information
-          out << " --- Lamina " << j+1 << ": thickness = "
-              << lamThickness
-              << " m, orientation = " << lamOrientation << "---\n";
-          Info->PrintF( pdename_, out.str().c_str());
-          out.str("");
+          PtrParamNode lam = in->Get("lamina", ParamNode::APPEND);
+          lam->Get("thickness")->SetValue(lamThickness);
+          lam->Get("orientation")->SetValue(lamOrientation);
 
           myMat.thickness.Push_back( lamThickness );
           myMat.orientation.Push_back( lamOrientation );
-          myMat.materials.Push_back( matLoader->
-                                     LoadMaterial( lamMaterial,
-                                                   pdematerialclass_ ) );
+          myMat.materials.Push_back( matLoader->LoadMaterial( lamMaterial, pdematerialclass_));
+
+          PtrParamNode lm_ = lam->Get("material");
+          lm_->Get("name")->SetValue(lamMaterial);
+          myMat.materials.Last()->ToInfo(lm_);
 
         } // over single laminae
       } catch (Exception& ex ) {
@@ -2642,8 +2636,7 @@ namespace CoupledField {
     eFiles->SetName("externalFiles");
     eFiles->SetValue( "false" );
     h5Node->AddChildNode(eFiles);
-    shared_ptr<SimInput> input;
-    input = shared_ptr<SimInput>(new SimInputHDF5(restartFileName, h5Node));
+    shared_ptr<SimInput> input(new SimInputHDF5(restartFileName, h5Node));
     // read in mesh of input
     input->InitModule();
     UInt dim = input->GetDim();
@@ -3873,48 +3866,14 @@ namespace CoupledField {
 
    }
 
-   void SinglePDE::RegionLoad::Print( bool onlyHeader, std::string pdeName ) {
-     std::ostringstream out;
-
-     if (onlyHeader) {
-       Info->PrintF(pdeName, "The following regions have a region load:\n\n");
-       out.clear();
-       out << std::setw(15) << "name" << " | "
-           << std::setw(15) << "coordSysId" << " | "
-           << std::setw(11) << "volume" << " | "
-           << std::setw(6) << "type" << " | "
-           << std::setw(11) << "load" <<std::endl;
-       Info->PrintF(pdeName, out.str().c_str());
-       out.str("");
-       out << std::setw(90) << std::setfill('-') << ""
-           << std::setfill(' ') << std::endl;
-       Info->PrintF(pdeName, out.str().c_str());
-       out.str("");
-     } else {
-
-
-       // write logging information into info file
-       for (UInt k = 0; k < value.GetSize(); k++ ) {
-         out.str("");
-         if ( k == 0) {
-           out << std::setw(15) << name << " | "
-               << std::setw(15) << refCoord << " | "
-               << std::setw(11) << volume << " | "
-               << std::setw(6) << type << "|";
-         } else {
-           out << std::setw(15) << "" << " | "
-               << std::setw(15) << "" << " | "
-               << std::setw(15) << "" << " | "
-               << std::setw(11) << "" << " | "
-               << std::setw(6) << "" << " | ";
-
-         }
-
-         out << std::setw(11) << value[k] << std::endl;
-
-         Info->PrintF(pdeName,out.str().c_str());
-       }
-
+   void SinglePDE::RegionLoad::ToInfo(PtrParamNode in) const
+   {
+     for (UInt k = 0; k < value.GetSize(); k++ )
+     {
+       PtrParamNode in_ = in->GetByVal("region", "name", name);
+       in_->Get("coordSysId")->SetValue(refCoord);
+       in_->Get("volume")->SetValue(volume);
+       in_->Get("type")->SetValue(type);
      }
    }
 

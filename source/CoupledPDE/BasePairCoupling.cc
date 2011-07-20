@@ -44,6 +44,7 @@ namespace CoupledField {
     isComplex_ = false;
     
     dim_ = domain->GetGrid()->GetDim();
+    infoNode_ = info->Get("PDE")->Get(couplingName_, ParamNode::APPEND);
   }
 
 
@@ -81,7 +82,6 @@ namespace CoupledField {
  
     isComplex_ = BasePDE::IsComplex(analysisType_);
 
-    infoNode_ = info->Get("PDE")->Get(couplingName_, ParamNode::APPEND);
     PtrParamNode in = infoNode_->Get(ParamNode::HEADER); 
     in->Get("sequenceStep")->SetValue(sequenceStep); 
     in->Get("pde1")->SetValue(pde1_->GetName()); 
@@ -217,7 +217,7 @@ namespace CoupledField {
   }
 
   void BasePairCoupling::ReadMaterialData() {
- 
+
     // get list of parameter nodes for region definitions
     ParamNodeList regionNodes;
 
@@ -238,7 +238,6 @@ namespace CoupledField {
 
     // iterate over all regions
     for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-
       try{ 
         // get data from node
         regionNodes[i]->GetValue( "name", region );
@@ -257,13 +256,15 @@ namespace CoupledField {
         if( subdoms_.Find( actRegionId) < 0 ) 
           continue;
         
-        // print logging information
-        Info->PrintF( couplingName_, "Material '%s' for region '%s' (ID = %d) "
-                      "follows\n", material.c_str(), region.c_str(),
-                      actRegionId );
         // Read data
-        materials_[actRegionId] = matLoader->
-          LoadMaterial( material, materialClass_ );
+        materials_[actRegionId] = matLoader->LoadMaterial( material, materialClass_ );
+
+        // log the just read material. LoadMaterial() so to say initializes the ToInfo()
+        PtrParamNode in = infoNode_->GetByVal("material", "name", material);
+        // additional regions are automatically appended
+        in->Get("regionList")->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(actRegionId));
+        materials_[actRegionId]->ToInfo(in);
+
         
         // Check for local coordinate system
         if( refCoordSys != "" ) {
@@ -335,21 +336,14 @@ namespace CoupledField {
           continue;
 
         // print logging information
-        std::ostringstream out;
-        out << "Composite material '" << composite << "' for "
-            << "region '" << region << "' (ID = " << actRegionId
-            << ") follows:\n";
-        Info->PrintF( couplingName_, out.str().c_str());
-        out.str("");
+        PtrParamNode in = infoNode_->Get(ParamNode::HEADER)->GetByVal("region", "name", region)->Get("composite");
 
         // get composite node
         PtrParamNode compNode;
         try {
-          compNode = param->Get("domain")
-            ->GetByVal("composite", "name", composite );
+          compNode = param->Get("domain")->GetByVal("composite", "name", composite );
         } catch( Exception& ex ) {
-          RETHROW_EXCEPTION( ex, "No composite material defined with name '"
-                             << composite << "'" );
+          RETHROW_EXCEPTION( ex, "No composite material defined with name '" << composite << "'" );
         }
 
         // get laminaNodes
@@ -370,18 +364,19 @@ namespace CoupledField {
           laminaNodes[j]->GetValue( "orientation", lamOrientation);
 
           // Print information
-          out << " --- Lamina " << j+1 << ": thickness = " 
-              << lamThickness
-              << " m, orientation = " << lamOrientation << "° ---\n";
-          Info->PrintF( couplingName_, out.str().c_str());
-          out.str("");
+          PtrParamNode lam = in->Get("lamina", ParamNode::APPEND);
+          lam->Get("nr")->SetValue(j+1);
+          lam->Get("thickness")->SetValue(lamThickness);
+          lam->Get("orientation")->SetValue(lamOrientation);
 
           myMat.thickness.Push_back( lamThickness );
           myMat.orientation.Push_back( lamOrientation );
-          myMat.materials.Push_back( matLoader->
-                                     LoadMaterial( lamMaterial,
-                                                   materialClass_ ) );
+          myMat.materials.Push_back(matLoader->LoadMaterial(lamMaterial, materialClass_ ));
           
+          PtrParamNode lm_ = lam->Get("material");
+          lm_->Get("name")->SetValue(lamMaterial);
+          myMat.materials.Last()->ToInfo(lm_);
+
         } // over single laminae
       } catch (Exception& ex ) {
         RETHROW_EXCEPTION( ex, "Could not create composite material '"
@@ -596,7 +591,6 @@ namespace CoupledField {
           }
 
         }
-        Info->PrintF( couplingName_, "\n");
       }
       
       
@@ -699,7 +693,6 @@ namespace CoupledField {
           }
             
         }
-        Info->PrintF( couplingName_, "\n");
       }
       } catch( Exception &ex ) {
         RETHROW_EXCEPTION(ex, "Could not determine storeResults for quantity '"
@@ -707,7 +700,6 @@ namespace CoupledField {
                           << couplingName_ << "'" );
       }
     }
-    Info->PrintF( couplingName_, "\n");
   }
 
   void BasePairCoupling::WriteResultsInFile( const UInt kstep,

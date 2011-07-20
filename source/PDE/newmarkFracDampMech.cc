@@ -320,7 +320,10 @@ namespace CoupledField {
           if(model== "3param")
             rhsAssemble  = rhsAssemble +  resultStressVector;
           else if (model=="KelvinVoigt")
+          {
+            assert(false);
             rhsAssemble  = rhsAssemble; // +  resultStressVector;
+          }
           else
             std::cerr << "unknown model for fractional damping" << std::endl;
           //(*debug) <<  "rhs vector of timestep " << actStep_ << std::endl;

@@ -26,6 +26,7 @@
 #include "DataInOut/coloredConsole.hh"
 #include <unistd.h>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include "DataInOut/Logging/cfslog.hh"
 
 #include <def_use_mesh.hh>
 
@@ -52,10 +53,8 @@ using namespace std;
 
 int main(int argc, const char **argv)
 {
-  CFS* cfs = new CFS(argc, argv);
-  int ret = cfs->Run();
-  
-  delete cfs; // so that we can delete
+  CFS cfs(argc, argv);
+  int ret = cfs.Run();
   return ret;
 }
 
@@ -80,7 +79,8 @@ void PrintWarning(CoupledField::Exception& ex ) {
 }
     
 
-CFS::CFS(int argc, const char **argv)
+CFS::CFS(int argc, const char **argv) :
+    timer(new Timer())
 {
 
   resultHandler = NULL;
@@ -127,7 +127,6 @@ CFS::CFS(int argc, const char **argv)
       //progOpts->GetSimName() + ".info.xml", "<?xml version=\"1.0\"?>");
   info->SetName("cfsInfo");
   info->Get("status")->SetValue("running"); // to be overwritten by "aborted" or "finished"
-  timer = new Timer();
   info->Get(ParamNode::SUMMARY)->Get("timer")->SetValue(timer);
   timer->Start(); // ignore that this is not the real beginning
 
@@ -227,6 +226,30 @@ CFS::~CFS()
 
   // Delete global string streams
   delete Info;
+  
+  // delete some global objects because valgrind complains otherwise
+  // does not really matter anyway...
+  param.reset();
+  info.reset();
+
+  delete logConf;
+
+  delete ptQ1;
+  delete ptQ2;
+  delete ptQ9;
+  delete ptTet1;
+  delete ptTet2;
+  delete ptL1;
+  delete ptL2;
+  delete ptTr1;
+  delete ptTr2;
+  delete ptHexa1;
+  delete ptHexa2;
+  delete ptHexa27;
+  delete ptPyra1;
+  delete ptPyra2;
+  delete ptWedge1;
+  delete ptWedge2;
 }
 
 int CFS::Run()
@@ -360,16 +383,6 @@ void CFS::SolveProblem()
    context.Push_back( progOpts->GetSimName() );
    messenger->TriggerEvent(CFSMessenger::CFS_Finish, context);
 #endif
-}
-
-void CFS::Process()
-{
-  ReadXMLFile();
-  SetupIO();
-
-  domain = new Domain( gridInputs, resultHandler, materialHandler );
-  // Create grid
-  domain->CreateGrid();
 }
 
 

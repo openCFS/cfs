@@ -8,6 +8,7 @@
 #include "singleDriver.hh"
 
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/shared_ptr.hpp>
 
 namespace CoupledField {
 
@@ -79,7 +80,7 @@ namespace CoupledField {
     // =======================================================================
 
     //! Timer for estimating remaining runtime 
-    Timer * timer_;
+    boost::shared_ptr<Timer> timer_;
 
   };
 

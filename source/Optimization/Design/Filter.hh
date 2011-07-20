@@ -31,8 +31,9 @@ public:
   /** Subtype of design filter
    * See Sigmund; Morphology based black and white filters for topology optimization; 2007
    * Standard: the plain filter
-   * modified heaviside, Sigmund (29), postproc stanard to 1 or max */
-  typedef enum { STANDARD, HEAVISIDE, MOD_HEAVISIDE } Density;
+   * modified heaviside, Sigmund (29), postproc stanard to 1 or max
+   * tanh: Variant of the Xu-Filter as in Wang,Lazarow,Sigmund; On projection methods, ...;2010 but simpler implementation!*/
+  typedef enum { STANDARD, HEAVISIDE, MOD_HEAVISIDE, TANH } Density;
 
   /** Handled in DesignElement.cc */
   static Enum<Type>        type;
@@ -56,8 +57,11 @@ public:
    * the correction value found by bisection on any new beta value */
   double    heaviside_corr;
 
+  /** switching parameter for tanh */
+  double eta;
+
 private:
-  /** this is the beta parameter for the (modified) heaviside design filter.
+  /** this is the beta parameter for the (modified) heaviside or tanh design filter.
    * Private such that we force setting heaviside_corr on setting beta */
    double     beta_;
 

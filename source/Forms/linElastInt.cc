@@ -12,8 +12,6 @@
 #include "Optimization/Design/DesignSpace.hh"
 
 DECLARE_LOG(forms)
-DEFINE_LOG(forms, "forms")
-
 
 namespace CoupledField {
 
@@ -165,11 +163,11 @@ void linElastInt::CalcBMat( Matrix<Double> &bMat, UInt ip,
   else
     ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord, it1_.GetElem() );
   
-  LOG_DBG3(forms) << "calcBMat: xiDx: " << xiDx.ToString() << std::endl;
+  // LOG_DBG3(forms) << "calcBMat: xiDx: " << xiDx.ToString() << std::endl;
   
   ReorderBLikeMatrix(xiDx, bMat, ip, ptelem, ptCoord);
 
-  LOG_DBG2(forms) << "calcBMat: bMat: " << bMat.ToString() << std::endl; 
+  // LOG_DBG2(forms) << "calcBMat: bMat: " << bMat.ToString() << std::endl;
 
   isSetIntPoint_ = false;
 }

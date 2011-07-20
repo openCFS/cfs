@@ -211,7 +211,7 @@ namespace CoupledField {
       << stdMat.GetNumCols() << " unknowns" << std::endl;
     }
 
-    SolveLDLSystem( &(cidxU_[0]), &(rptrU_[0]), &(dataU_[0]),
+    this->SolveLDLSystem( &(cidxU_[0]), &(rptrU_[0]), &(dataU_[0]),
         &(dataD_[0]), myZ, myR, this->sysMatDim_ );
 
     // Logging

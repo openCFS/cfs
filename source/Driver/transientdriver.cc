@@ -41,7 +41,8 @@ namespace CoupledField {
   // ===============
   TransientDriver::TransientDriver( UInt sequenceStep,
                                     bool isPartOfSequence) 
-    : SingleDriver( sequenceStep, isPartOfSequence ) {
+    : SingleDriver( sequenceStep, isPartOfSequence ), timer_(new Timer())
+    {
     
     LOG_TRACE(trans_driver) << "TransientDriver():  "
                             << " sequenceStep: " << sequenceStep
@@ -53,8 +54,6 @@ namespace CoupledField {
     firstdt_ = 0.0;
     restartIncr_ = 0;
     restartStep_ = 0;
-    
-    timer_ = new Timer();
 
     // get parameter node
     PtrParamNode myNode = 
@@ -86,9 +85,7 @@ namespace CoupledField {
   //   Destructor
   // ==============
   TransientDriver::~TransientDriver()
-  {
-    delete timer_;
-  }
+  { }
 
   // ==================
   //   Initialization

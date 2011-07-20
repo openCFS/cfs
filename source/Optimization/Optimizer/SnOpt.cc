@@ -229,6 +229,9 @@ void SnOpt::InfoXMLOutput()
   case 13:
     exitstring = "the problem appears to be infeasible - nonlinear infeasibilities minimized";
     break;
+  case 21:
+    exitstring = "unbounded objective";
+    break;
   case 31:
     exitstring = "resource limit error - iteration limit reached";
     break;
@@ -510,8 +513,6 @@ void SnOpt::SetSnOptOptions()
 {
   LOG_TRACE(snopt) << "SetSnOptOptions";
   
-  const int minItLimit(900000);
-  
   // must make sure these options are set
   bool setMinorItLimit(false);
   bool setItLimit(false);
@@ -540,16 +541,11 @@ void SnOpt::SetSnOptOptions()
         EXCEPTION("superbasics_limit is set automatically, do not specify in xml-file!");
       
       if(name == "minor_iterations_limit")
-      {
-        value = value < minItLimit ? minItLimit : value;
         setMinorItLimit = true;
-      }
+  
       
       if(name == "iterations_limit")
-      {
-        value = value < minItLimit ? minItLimit : value;
         setItLimit = true;
-      }
       
       SetIntegerValue(name, value);
     }
@@ -565,8 +561,8 @@ void SnOpt::SetSnOptOptions()
       SetStringValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<std::string>());
   }
   
-  if(!setMinorItLimit) SetIntegerValue("minor_iterations_limit", minItLimit);
-  if(!setItLimit) SetIntegerValue("iterations_limit", minItLimit);
+  if(!setMinorItLimit) SetIntegerValue("minor_iterations_limit", 5000);
+  if(!setItLimit) SetIntegerValue("iterations_limit", 1000000);
 }
 
 void SnOpt::initJacobians()
@@ -751,6 +747,10 @@ void SnOpt::SetNumericValue(const std::string& key, double value)
   if(key == "major_optimality_tolerance")
   {
     option = "Major optimality tolerance";
+  }
+  else if(key == "minor_optimality_tolerance")
+  {
+    option = "Minor optimality tolerance";
   }
   else if(key == "major_feasibility_tolerance")
   {

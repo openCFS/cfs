@@ -21,7 +21,7 @@ namespace CoupledField {
   class SingleVector;
   class SBM_Matrix;
   class SBM_Vector;
-  class BaseEntryManipulator;
+  struct BaseEntryManipulator;
   class BaseIDBC_Handler;
   class SBM_Matrix;
   class SingleVector;

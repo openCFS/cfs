@@ -214,7 +214,7 @@ namespace CoupledField {
 
     //! The default destructor is deep. It frees all memory dynamically
     //! allocated for attributes of this class.
-    ~CRS_Matrix() {
+    virtual ~CRS_Matrix() {
       delete []( data_ );
       delete []( rowPtr_ );
       delete []( colInd_ );

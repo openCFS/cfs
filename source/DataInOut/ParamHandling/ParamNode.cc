@@ -16,6 +16,7 @@
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
 #include <fstream>
+#include <string>
 
 using namespace std;
 using namespace boost;
@@ -38,11 +39,9 @@ PtrParamNode param;
 PtrParamNode info;
 
 ParamNode::ParamNode(ActionType defaultAction, NodeType type) :
-  precision_(5), name_(""), type_(type), defaultAction_(defaultAction),
-  lastresultidx_(-1), write_counter_(0), reject_counter_(0)
-{
-  write_timer_ = new Timer();
-}
+  precision_(5), name_("DD"), type_(type), defaultAction_(defaultAction),
+  lastresultidx_(-1), write_timer_(), write_counter_(0), reject_counter_(0)
+{ }
 
 ParamNode::~ParamNode()
 {
@@ -106,14 +105,14 @@ void ParamNode::SetComment(const std::string& comment)
   PtrParamNode newChild(new ParamNode(defaultAction_, COMMENT));
   newChild->SetName("comment");
   newChild->SetValue(comment);
-  newChild->parent_ = shared_from_this();
+  newChild->parent_ = this;
   newChild->defaultAction_ = defaultAction_;
   children_.Push_back(newChild);
 }
 
 void ParamNode::AddChildNode(PtrParamNode child)
 {
-  child->parent_ = shared_from_this();
+  child->parent_ = this;
   if (child->defaultAction_ == DEFAULT)
   {
     child->defaultAction_ = defaultAction_;
@@ -126,7 +125,7 @@ PtrParamNode ParamNode::SetNewChild(const std::string& name, unsigned int index)
 
   PtrParamNode node(new ParamNode());
   node->SetName(name);
-  node->parent_ = shared_from_this();
+  node->parent_ = this;
   node->defaultAction_ = defaultAction_;
   children_[index] = node;
   return node;
@@ -234,7 +233,7 @@ PtrParamNode ParamNode::Get(const string& name_raw, ActionType action)
       newChild->SetName(myName);
       // ATTENTION: Do NOT set an empty string as value to this node, as
       // std::string("").empty() != boost::any(st::string("")).empty()
-      newChild->parent_ = shared_from_this();
+      newChild->parent_ = this;
       newChild->defaultAction_ = defaultAction_;
       children_.Push_back(newChild);
       result = newChild;
@@ -754,9 +753,9 @@ void ParamNode::ToString(std::string& ret, int depth) const
   }
 
   // special conversion for timer
-  if (value_.type() == typeid(Timer*))
+  if (value_.type() == typeid(boost::shared_ptr<Timer>))
   {
-    Timer* timer = boost::any_cast<Timer*>(value_);
+    boost::shared_ptr<Timer> timer = boost::any_cast<boost::shared_ptr<Timer> >(value_);
     // Note, that we are a SELF_XML type
     ret = timer->ToXMLFormat(name_);
     return;
@@ -893,6 +892,9 @@ void ParamNode::ToFile(const std::string& filename, bool force)
   }
   else
   {
+    if(write_timer_ == NULL)
+      write_timer_ = boost::shared_ptr<Timer>(new Timer());
+    
     write_timer_->Start();
     
     // only really write the file if at least a certain amount of time has passed since last write
@@ -1029,7 +1031,7 @@ void ParamNode::AdjustElementType()
   // which do their own xml formatting by ToXMLFormat(), they are of type SELF_XML
   if(   value_.type() == typeid(Matrix<Double>*) || value_.type() == typeid(Matrix<Complex>*)
      || value_.type() == typeid(Matrix<Double>)  || value_.type() == typeid(Matrix<Complex>)
-     || value_.type() == typeid(Timer*))
+     || value_.type() == typeid(boost::shared_ptr<Timer>))
   {
     type_ = SELF_XML;
   }
@@ -1048,9 +1050,8 @@ void ParamNode::AdjustElementType()
 //    return true;
 //  }
 
-std::string ParamNode::ToValidLabel(const string& in) const
+std::string ParamNode::ToValidLabel(std::string out) const
 {
-  string out = in;
   boost::trim(out);
 
   // remove spaces and don't make upper case yet! :(
@@ -1083,7 +1084,7 @@ INSTANTIATE_METHOD_AS(Vector<Double>*)
 INSTANTIATE_METHOD_AS(Vector<Complex>*)
 INSTANTIATE_METHOD_AS(Matrix<Double>*)
 INSTANTIATE_METHOD_AS(Matrix<Complex>*)
-INSTANTIATE_METHOD_AS(Timer*)
+INSTANTIATE_METHOD_AS(boost::shared_ptr<Timer>)
 
 #define INSTANTIATE_METHOD_MATH_PARSE(TYPE)\
   template\
@@ -1110,7 +1111,7 @@ INSTANTIATE_METHOD_GETVALUE(Vector<Double>*)
 INSTANTIATE_METHOD_GETVALUE(Vector<Complex>*)
 INSTANTIATE_METHOD_GETVALUE(Matrix<Double>*)
 INSTANTIATE_METHOD_GETVALUE(Matrix<Complex>*)
-INSTANTIATE_METHOD_GETVALUE(Timer*)
+INSTANTIATE_METHOD_GETVALUE(boost::shared_ptr<Timer>)
 // B)Now just the integral types
 // -----------------------------
 #define INSTANTIATE_METHODS_INT(TYPE)\

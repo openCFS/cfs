@@ -65,7 +65,7 @@ void Objective::ToInfo(PtrParamNode info)
 {
   Function::ToInfo(info);
   if(tensor_.GetNumRows() > 1)
-    info->Get("tensor")->SetValue(new Matrix<double>(tensor_));
+    info->Get("tensor")->SetValue(tensor_);
 
 }
 

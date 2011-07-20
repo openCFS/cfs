@@ -41,9 +41,6 @@ namespace CoupledField {
 	UInt& iterCoupledCounter = PDE_.GetIterCoupledCounter();
     bool isIterCoupled    = PDE_.IsIterCoupled();
 
-    std::string pdeNameLong(pdename_);
-    pdeNameLong += "-PDE: ";
-
     Vector<Double> newSol;
     newSol.Resize( numEqns_ );
 
@@ -103,9 +100,9 @@ namespace CoupledField {
         performOneMoreStep=true;
 
       if ( nonLinLogging_ == true ) {
-        *(Info->GetInfoStreamPointer()) << std::endl << pdeNameLong << "NONLINEAR ITERATION "
+        *(Info->GetInfoStreamPointer()) << std::endl << pdename_ << "-PDE: NONLINEAR ITERATION "
                                         << iterationCounter << " of "
-                                        << pdeNameLong << " =============================== "
+                                        << pdename_ << "-PDE: =============================== "
                                         << " RhsL2Norm=" << RhsL2Norm
                                         << std::endl;
       }

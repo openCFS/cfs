@@ -338,8 +338,12 @@ namespace CoupledField
                                        const Elem* elem);
 
 
-    /** Calculation the volume (area, length) of an element */
+    /** Calculation the volume (area, length) of an element.
+     * CalcVolume() without parameters does it for the reverence element */
     Double CalcVolume(const Matrix<Double>& cornerCoords, const bool isaxi);
+
+    /** Calculates the volume of the reference element by summing up the integration weights */
+    Double CalcVolume() const;
 
     /** Calculate the diameter vector of the element.
      * Handles the element by itself and no axis-symmetric case.
@@ -442,7 +446,7 @@ namespace CoupledField
     virtual Elem::FEType feType() = 0;
 
     /// Return weightings of integration points
-    Vector<Double> GetIntWeights() const {return IntWeights_;};
+    const Vector<Double>& GetIntWeights() const {return IntWeights_;};
 
     // return number of childs in refinement
     virtual UInt GetNumChilds() const { return numChilds_;}

@@ -13,7 +13,6 @@
 #include <Domain/elem.hh>
 #include <Utils/tools.hh>
 #include <MatVec/matrix.hh>
-#include <DataInOut/WriteInfo.hh>
 
 namespace CoupledField
 {
@@ -1142,6 +1141,17 @@ namespace CoupledField
       ret +=")\n";
     }
     return ret;
+  }
+
+
+  double BaseFE::CalcVolume() const
+  {
+    double sum = 0;
+
+    for(unsigned int i = 0; i < IntWeights_.GetSize(); i++)
+      sum += IntWeights_[i];
+
+    return sum;
   }
 
 

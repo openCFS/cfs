@@ -37,7 +37,7 @@ namespace CoupledField
   class SimInput;
   class ResultHandler;
   class ParamNode;
-  class Elem;
+  struct Elem;
 
 
   //! This class defines the computational domain.
@@ -163,6 +163,12 @@ namespace CoupledField
      * @return NULL if no bi-material for this element/region/type or no optimization */
     BaseMaterial* GetErsatzBiMaterial(const Elem* elem, const MaterialClass mc);
 
+    /** In case we do pamping, the contribution to the damping matrix is set.
+     * Pamping is additional complex mass to the damping matrix for intermediate material.
+     * @param elemMat not touch if not applied, otherwise set (not added)
+     * @return if the matrix was set */
+    bool GetErsatzMaterialPamping(const Elem* elem, const BaseForm* form, Matrix<double>& elemMat);
+
     /** This is set by optimization which holds the data (in a derved form). It
      * is also reset here by the optimization destructor.
      * @param ersatzMaterial pointer to a data set. NULL to reset, such that ~Domain() doesn't delete it.
@@ -175,11 +181,6 @@ namespace CoupledField
      /** E.g. the MechPDE needs it in CalcResuls() to write pseudo densities. 
       * @return  NULL but an exception if not set and not silent*/
      DesignSpace* GetErsatzMaterial(bool throw_exception = true); 
-      
-
-     /** Reads the 'loadErsatzMaterial' node. Check before that it exists.
-      * Is called from optimization if used concurrently. */ 
-     void ReadErsatzMaterial(PtrParamNode pn);
      
      /** Returns true, if optimization does provide a complete tensor */
      bool HasErsatzMaterialTensor();

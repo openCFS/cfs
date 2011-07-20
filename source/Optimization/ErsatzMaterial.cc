@@ -101,17 +101,12 @@ ErsatzMaterial::ErsatzMaterial() :
     }
   }
 
-  // set up the design space elements, note PiezoSIMP have only POLARIZATION
-  // this includes the transfer functions!
-  ParamNodeList design_list = pn->GetList("design");
-  ParamNodeList transfer_list = pn->GetList("transferFunction");
-  ParamNodeList result = pn->GetList("result");
-  design = DesignSpace::CreateInstance(regions, design_list, transfer_list, result, method_);
+  design = DesignSpace::CreateInstance(regions, pn, method_);
   // make basic loggings
   design->ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("designSpace"));
 
   // the L-mesh of the stress constraint benchmark is meshed by gid with different positions of
-  // element nodes, such that one cannot use the same element materix, even if the grid is regular
+  // element nodes, such that one cannot use the same element matrix, even if the grid is regular
   // therefore the attribute enforce_unstructured
   assume_constant_element_matrices_ = design->IsRegular() && method_ != ErsatzMaterial::PARAM_MAT
                                       && !pn->Get("enforce_unstructured")->As<bool>();
@@ -120,10 +115,12 @@ ErsatzMaterial::ErsatzMaterial() :
 
   // optionally write the densities to an xml file
   if(pn->Has("export"))
-    densityFile = new DensityFile(design, pn->Get("export"),
-                                  design_list,
-                                  transfer_list,
-                                  pn->Get("SIMP/regularization", ParamNode::PASS));
+  {
+    ParamNodeList design_list = pn->GetList("design");
+    ParamNodeList transfer_list = pn->GetList("transferFunction");
+
+    densityFile = new DensityFile(design, pn->Get("export"), design_list, transfer_list, pn->Get("SIMP/regularization", ParamNode::PASS));
+  }
 
   // we assume always to have either a mechanic or heatcond pde.
   SetPDEs();
@@ -261,7 +258,7 @@ void ErsatzMaterial::PostInit()
   // if loadErsatzMaterial is used with optimization specifying a starting point,
   // we have to load it here, before scaling is done.
   if(DensityFile::NeedLoadErsatzMaterial())
-    DensityFile::ReadErsatzMaterial(design);
+      DensityFile::ReadErsatzMaterial(design);
 
   // plausibility check for homogenization
   if(homogenization_ && (!me->IsEnabled() || !me->DoHomogenization()))
@@ -358,7 +355,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     for(unsigned int i = 0; i < ortho.GetSize(); i++)
       orth->Get(ortho[i].first)->SetValue(ortho[i].second);
 
-    in->Get("tensor")->SetValue(new Matrix<double>(homogenizedTensor));
+    in->Get("tensor")->SetValue(homogenizedTensor);
   }
 
   if(densityFile != NULL)
@@ -408,7 +405,8 @@ string ErsatzMaterial::GetIterationFrequency()
 
 BiLinFormContext* ErsatzMaterial::GetFormContext(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception)
 {
-  return(assemble_->GetBiLinForm(regionId, pde1, pde2, integrator, !throw_exception));
+  Assemble* ass = domain->GetBasePDE()->getPDE_assemble();
+  return(ass->GetBiLinForm(regionId, pde1, pde2, integrator, !throw_exception));
 }
 
 BaseForm* ErsatzMaterial::GetForm(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception)
@@ -937,7 +935,8 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
          result = CalcGreyness(g, derivative);
          break;
 
-    case Objective::STRESS: {
+    case Objective::STRESS:
+    case Objective::STRESS_DENSITY: {
            // copy data for element von Mises stress
            Vector<double> data;
            if(harmonic)
@@ -1239,16 +1238,7 @@ double ErsatzMaterial::CalcVolume(Objective* f, Condition* g, bool derivative, b
   {
   case Function::VOLUME:
   {
-    double exp = 1.0;
-    if(func->IsPhysical())
-    {
-      TransferFunction* tf = design->GetTransferFunction(des, MECH);
-      if(tf->GetType() != TransferFunction::SIMP_TYPE)
-        throw Exception("physical volume as constraint function only possible with SIMP.");
-      // exp = tf->GetParam();
-      exp = 1.0;
-    }
-    return IntegrateDesignVariable(f, g, derivative, des, normalized, false, exp); // no scaling, exponent=1
+    return IntegrateDesignVariable(f, g, derivative, des, normalized, false, 1.0); // no scaling, exponent=1
   }
 
   case Function::PENALIZED_VOLUME:
@@ -2533,6 +2523,7 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
     case Function::ELEC_ENERGY:
     case Function::ENERGY_FLUX:
     case Function::STRESS:
+    case Function::STRESS_DENSITY:
     {
       // these objectives need their adjoint problems for the calculation of the objective value
       // they are directly solved after the StateProblem
@@ -2628,6 +2619,7 @@ void ErsatzMaterial::ConstructRealAdjointRHS(Excitation& excite, Function* f)
     break;
   }
   case Function::STRESS:
+  case Function::STRESS_DENSITY:
   {
     StressConstraint<double> sc(&excite, f, this, &forward);
     sc.CalcAdjointRHS(rhs);
@@ -2707,6 +2699,7 @@ void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
     break;
 
   case Function::STRESS:
+  case Function::STRESS_DENSITY:
   {
     StressConstraint<complex<double> > sc(&excite, f, this, &forward);
     sc.CalcAdjointRHS(rhs);
@@ -2850,6 +2843,12 @@ void ErsatzMaterial::Solutions::Init(Function* f)
   assert(em_ != NULL);
 
   StdVector<Unit*>& list = data_[f];
+  
+  // we have to delete the old data before overwriting with new stuff!
+  for(unsigned int ts = 0, s = list.GetSize(); ts < s; ++ts)
+    delete list[ts];
+  
+  list.Clear();
   list.Resize(domain->GetDriver()->GetNumSteps());
 
   for(unsigned int ts = 0; ts < domain->GetDriver()->GetNumSteps(); ++ts)
@@ -2859,14 +2858,20 @@ void ErsatzMaterial::Solutions::Init(Function* f)
 
 ErsatzMaterial::Solutions::Unit::Unit(ErsatzMaterial* em)
 {
+  // we have to delete the old data before overwriting with new stuff!
+  for(unsigned int i = 0, s = data.GetSize(); i < s; ++i)
+      delete data[i];
+  
+  data.Clear();
   data.Resize(em->me->excitations.GetSize());
-  for(unsigned int i=0; i < data.GetSize(); i++)
+  
+  for(unsigned int i = 0, s = data.GetSize(); i < s; ++i)
     data[i] = new Solution(em);
 }
 
 ErsatzMaterial::Solutions::Unit::~Unit()
 {
-  for(unsigned int i = 0; i < data.GetSize(); i++)
+  for(unsigned int i = 0, s = data.GetSize(); i < s; ++i)
   {
     delete data[i];
     data[i] = NULL;
@@ -3126,7 +3131,7 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Applic
       StdVector<SingleVector*>& elem_vec = elem[app];
 
       int n = em_->design->GetNumberOfElements(); // the standard design elements
-      int pn = em_->design->CalcRegisteredPseudoDesigns(); // optional (multiple) pseudo design elements
+      int pn = em_->design->CalcPseudoDesignElements(); // optional (multiple) pseudo design elements
 
       // check for first call
       if(elem_vec.GetSize() == 0)
@@ -3153,11 +3158,11 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Applic
       // the pseudo design if we have some
       for(unsigned int r = 0; r < em_->design->GetPseudoDesignRegions().GetSize(); r++)
       {
-        StdVector<DesignElement*>& data = *(em_->design->GetPseudoDesignRegions()[r]);
+        StdVector<DesignElement>& data = em_->design->GetPseudoDesignRegions()[r];
 
         for(unsigned int e = 0; e < data.GetSize(); e++)
         {
-          DesignElement* de = data[e];
+          DesignElement* de = &data[e];
 
           elemList.SetElement(de->elem);
           const EntityIterator& it = elemList.GetIterator();

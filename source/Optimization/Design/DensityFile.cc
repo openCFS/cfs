@@ -25,7 +25,7 @@ DensityFile::DensityFile(DesignSpace* designSpace,
 
   name_ = export_pn->Get("file")->As<string>();
   if(name_ == "[problem]") name_ = progOpts->GetSimName() + ".density.xml";
-  data = Create(des, tfs, regulize_pn);
+  data = Create(des, tfs, regulize_pn, designSpace->DoNonDesignVicinity());
   all_iterations_ = export_pn->Get("save")->As<string>() == "all";
   finally_only_   = export_pn->Get("write")->As<string>() == "finally";
 }
@@ -117,16 +117,12 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
       }
     }
 
-    ParamNodeList des = xml->Get("header")->GetList("design");
-    ParamNodeList tfs = xml->Get("header")->GetList("transferFunction");
-    PtrParamNode  reg = xml->Get("header/regularization/filter", ParamNode::PASS);
-    ParamNodeList res(0); // empty
-
     // create the design space -> data has initial values!
-    ersatzMaterial = new DesignSpace(regionIds, des, tfs, res, ErsatzMaterial::SIMP_METHOD);
+    ersatzMaterial = new DesignSpace(regionIds, xml->Get("header"), ErsatzMaterial::SIMP_METHOD);
     ersatzMaterial->PostInit(0, 0); // no objectives, no constraints
     // is cheap - for density filtering
     DesignStructure filter(ersatzMaterial, ersatzMaterial->GetRegionIds());
+    PtrParamNode  reg = xml->Get("header/regularization/filter", ParamNode::PASS);
     if(reg) filter.SetFilters(reg, info->Get("ersatzMaterial"));
 
     ersatzMaterial->ToInfo(info->Get("ersatzMaterial")->Get(ParamNode::HEADER));
@@ -134,18 +130,11 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
 
 
   // check the the dimensions! the number of design variables comes from the regions and designs
-  if (ersatzMaterial->data.GetSize() != elems.GetSize())
+  if (ersatzMaterial->data.GetSize() != elsize)
   {
-    if(grid->GetNumElems() == elsize)
-    {
-      string msg = "the number of elements in the region you are trying to read the densities into is not equal to"\
-                  " the number of elements in the density-file but matches the number of all elements!";
-      info->Get("ersatzMaterial")->Get(ParamNode::WARNING)->SetValue(msg);
-    }
-    else
-      throw Exception("ErsatzMaterialFile '" + file + "' has " + boost::lexical_cast<string>(elems.GetSize())
-                       +" entries, the mesh has "+boost::lexical_cast<string>(ersatzMaterial->data.GetSize())
-                       +" design elements");
+    string msg = "the number of elements in the density file does not match the number of elements of the region!\n"\
+                 "         check the results carefully!";
+    info->Get("ersatzMaterial")->Get(ParamNode::WARNING)->SetValue(msg);
   }
 
   for (unsigned int e = 0; e < elsize; ++e)
@@ -172,7 +161,7 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
 
 }
 
-PtrParamNode DensityFile::Create(ParamNodeList& des, ParamNodeList& tfs, PtrParamNode regularize)
+PtrParamNode DensityFile::Create(ParamNodeList& des, ParamNodeList& tfs, PtrParamNode regularize, bool non_desing_vicinity)
 {
    PtrParamNode in = PtrParamNode(new ParamNode(ParamNode::INSERT));
    in->SetName("cfsErsatzMaterial");
@@ -199,6 +188,8 @@ PtrParamNode DensityFile::Create(ParamNodeList& des, ParamNodeList& tfs, PtrPara
      mesh->Get("y")->SetValue(dim.data[1] / edges[1]);
      mesh->Get("z")->SetValue(domain->GetGrid()->GetDim() == 3 ? dim.data[2] / edges[2]: 1);
    }
+
+   in_->Get("designSpace/non_design_vicinity")->SetValue(non_desing_vicinity);
 
    for(unsigned int i = 0, s = des.GetSize(); i < s; ++i)
      in_->Get("dummy", ParamNode::APPEND)->SetValue(des[i], true); // name is overwritten

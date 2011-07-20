@@ -12,8 +12,7 @@ namespace CoupledField{
 
   public:
 
-    ShapeDesign(StdVector<RegionIdType>& regionIds, ParamNodeList& design, ParamNodeList& transfer, ParamNodeList& result,
-        ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
+    ShapeDesign(StdVector<RegionIdType>& regionIds, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
 
     virtual ~ShapeDesign();
 

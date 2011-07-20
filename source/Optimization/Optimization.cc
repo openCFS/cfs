@@ -1,6 +1,7 @@
 #include <def_use_ipopt.hh>
 #include <def_use_scpip.hh>
 #include <def_use_snopt.hh>
+#include <def_use_knitro.hh>
 #include <map>
 
 #include "Optimization/Optimization.hh"
@@ -45,6 +46,9 @@
 #ifdef USE_SNOPT
   #include "Optimization/Optimizer/SnOpt.hh"
 #endif
+#ifdef USE_KNITRO
+  #include "Optimization/Optimizer/KNITRO.hh"
+#endif
 
 using namespace CoupledField;
 using namespace std;
@@ -67,7 +71,7 @@ Optimization::Optimization()
   this->lastStoredResult_ = -1;
   this->design = NULL;
   this->baseOptimizer_ = NULL;
-  this->harmonic = BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType());
+  this->harmonic = BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType()); // no multi-sequence
   this->currentIteration = 0; // a 1 or 0 can make a lot of difference! 0 is initial design!
   this->writeCounter_ = 0;
   this->problemSolvedCounter = 0;
@@ -187,6 +191,14 @@ void Optimization::PostInitSecond()
          #endif
       break;
 
+    case KNITRO_SOLVER:
+         #ifdef USE_KNITRO
+           baseOptimizer_ = new KNITRO(this, opt);
+         #else
+           throw Exception("CFS++ was compiled w/o KNITRO");
+         #endif
+      break;
+
     case OPTIMALITY_CONDITION:
          baseOptimizer_ = new OptimalityCondition(this, opt);
          break;
@@ -254,6 +266,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::TEMPERATURE, "temperature");
   Function::type.Add(Function::GREYNESS, "greyness");
   Function::type.Add(Function::STRESS, "stress");
+  Function::type.Add(Function::STRESS_DENSITY, "stressDensity");
   Function::type.Add(Function::ISOTROPY, "isotropy");
   Function::type.Add(Function::ISO_ORTHOTROPY, "iso-orthotropy");
   Function::type.Add(Function::ORTHOTROPY, "orthotropy");
@@ -308,6 +321,7 @@ void Optimization::SetEnums()
   optimizer.Add(IPOPT_SOLVER, "ipopt");
   optimizer.Add(SCPIP_SOLVER, "scpip");
   optimizer.Add(SNOPT_SOLVER, "snopt");
+  optimizer.Add(KNITRO_SOLVER, "knitro");
   optimizer.Add(SHAPE_SOLVER, "shapeOpt");
   optimizer.Add(EVALUATE_INITIAL_DESIGN, "evaluateInitialDesign");
   optimizer.Add(GRADIENT_CHECK, "gradientCheck");
@@ -394,22 +408,20 @@ bool Optimization::DoStopOptimization()
   unsigned int hs = objectives.GetHistorySize();
   if(hs <= stop.queue) return false;
 
-  for(unsigned int i = hs-1; i >= (hs - stop.queue); i--)
+  if(stop.GetType() == ObjectiveContainer::StoppingRule::REL_COST_CHANGE)
   {
-    switch(stop.GetType())
+    for(unsigned int i = hs-1; i >= (hs - stop.queue); i--)
     {
-      case ObjectiveContainer::StoppingRule::REL_COST_CHANGE:
-      {
-        double delta = objectives.GetHistoryValue(true, i) - objectives.GetHistoryValue(true, i-1);
-        double rel = abs(delta / objectives.GetHistoryValue(true, i));
-        if(rel > stop.value) return false;
-        break;
-      }
-      case ObjectiveContainer::StoppingRule::DESIGN_CHANGE:
-        if(objectives.design_change[i] > stop.value)
-          return false;
-        break;
+      double delta = objectives.GetHistoryValue(true, i) - objectives.GetHistoryValue(true, i-1);
+      double rel = abs(delta / objectives.GetHistoryValue(true, i));
+      if(rel > stop.value) return false;
     }
+  }
+  else // ObjectiveContainer::StoppingRule::DESIGN_CHANGE
+  {
+    for(unsigned int n = objectives.design_change.GetSize() - 1, i = n; i >= max((unsigned int) 0, n - stop.queue); i--)
+      if(objectives.design_change[i] > stop.value)
+        return false;
   }
 
   // the relative values for the whole queue are smaller than the requirement -> we are done! :)
@@ -727,7 +739,7 @@ PtrParamNode Optimization::CommitIteration(bool keep_iteration_number)
 
   // IPOPT does own logging -> otherwise show the user we are alive
   std::string f = GetIterationFrequency();
-  if(optimizer_ != IPOPT_SOLVER && optimizer_ != SNOPT_SOLVER)
+  if(optimizer_ != IPOPT_SOLVER && optimizer_ != SNOPT_SOLVER && optimizer_ != KNITRO_SOLVER)
   {
     cout << "iteration " << (currentIteration);
     if(f != "") cout << " f = " << f << "Hz";
@@ -795,7 +807,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
       double max  = local->CalcMaxValue();
       double mean = local->CalcMeanValue();
       if(out)
-        *out << "\tmax_" << local->ToString() << max << "\tmean_" << local->ToString() << mean;
+        *out << "\t" << max << "\t" << mean;
       iteration->Get("max_" + g->ToString())->SetValue(max);
       iteration->Get("mean_" + g->ToString())->SetValue(mean);
     }

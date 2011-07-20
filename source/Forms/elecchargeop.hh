@@ -12,7 +12,7 @@
 namespace CoupledField {
 
   class Grid;
-  class Elem;
+  struct Elem;
   class SurfElemList;
   template<class TYPE> class ElemStoreSol;
   template<class TYPE> class Vector;

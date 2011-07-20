@@ -6,6 +6,7 @@
 #include "Optimization/Optimizer/BaseOptimizer.hh"
 #include "Optimization/Optimizer/ShapeOptimizer.hh"
 #include "Optimization/LevelSet.hh"
+#include "Optimization/OptimizationMaterial.hh"
 #include "General/exception.hh"
 #include "General/Enum.hh"
 #include "Domain/domain.hh"
@@ -33,10 +34,9 @@ DEFINE_LOG(ersatz, "ersatzMaterialFactor")
 
 
 
-DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, ParamNodeList &pn_design, ParamNodeList &trans_in, ParamNodeList &result, ErsatzMaterial::Method method)
+DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, ErsatzMaterial::Method method)
 {
-  LOG_TRACE(designSpace) << "DesignSpace for regions=" << reg_data << " #designs=" << pn_design.GetSize()
-                         << " #transferFunctions=" << trans_in.GetSize() << " #results=" << result.GetSize();
+  LOG_TRACE(designSpace) << "DesignSpace for regions=" << reg_data;
   all_regions_regular_ = domain->GetGrid()->IsRegionRegular(reg_data);
   
   // for convenience
@@ -62,12 +62,19 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, ParamNodeList &pn_de
   // read the elements
   elements = domain->GetGrid()->GetNumElems(reg_data);
   
+  pamping_ = pn->Has("pamping") ? pn->Get("pamping/value")->As<double>() : 0.0;
+
+  ParamNodeList trans_in = pn->GetList("transferFunction");
+
   // should we adapt the lower bound of the design variable to the penalty exponent of the transfer function? 
   bool adapt_lower(false);
 
+  // check for non-design-vicinity
+  non_design_vicinity_ = pn->Has("designSpace") ? pn->Get("designSpace/non_design_vicinity")->As<bool>() : false;
+
   // store the CFS element (number) to design element mapping.
   // Used by Find() and the filter and vicinity neighbors
-  elemToDesign.Resize(domain->GetGrid()->GetNumElems() + 1, -1); // 1 based.
+  elemToDesign.Resize(domain->GetGrid()->GetNumElems() + 1, std::make_pair(-1, true)); // 1 based.
 
   // if only shape opt is done, ignore the rest here, the DesignSpace is "empty"
   if(method == ErsatzMaterial::SHAPE_OPT){
@@ -75,6 +82,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, ParamNodeList &pn_de
   }
   
   // number of different designs
+  ParamNodeList pn_design = pn->GetList("design");
   unsigned int nd = 0;
   for(unsigned int d = 0; d < pn_design.GetSize(); d++){
     DesignElement::Type dt = DesignElement::type.Parse(pn_design[d]->Get("name")->As<std::string>());
@@ -96,6 +104,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, ParamNodeList &pn_de
   {
     // set our own structure with is element times design parameters
     data.Reserve(elements * nd);
+    totalElements_.Reserve(elements  * nd); // the quick access copy which also combines pseudo design elements
     
     const unsigned int nr = reg_data.GetSize();
 
@@ -186,6 +195,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, ParamNodeList &pn_de
               de.SetDesign(initial < 0.0 ? ((rand()%100 + 10)/110.0) : initial);
               
               data.Push_back(de);
+              totalElements_.Push_back(&data.Last());
 
               // append rucksack :)
               if(method == ErsatzMaterial::SIMP_METHOD)
@@ -197,7 +207,10 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, ParamNodeList &pn_de
               // store the element mapping only for the first design
               int idx = (int) data.GetSize() - 1;
               if(idx < (int) elements)
-                elemToDesign[de.elem->elemNum] = idx;
+              {
+                elemToDesign[de.elem->elemNum].first = idx;
+                elemToDesign[de.elem->elemNum].second = true; // real designs here!
+              }
             }
           }
         }
@@ -230,6 +243,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, ParamNodeList &pn_de
   } // no design elements given
 
   // set the result descriptions which identify the solution types
+  ParamNodeList result = pn->GetList("result");
   resultDescriptions.Reserve(result.GetSize());
   for(unsigned int i = 0; i < result.GetSize(); i++)
     resultDescriptions.Push_back(ResultDescription(result[i]));
@@ -246,6 +260,17 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, ParamNodeList &pn_de
       curr_de.SetLowerBound(std::pow(curr_de.GetLowerBound(), par));
     }
   }
+
+  // reserve for the worst case. non_design_vicinity and off-design optimization
+  pseudoDesigns_.Reserve(domain->GetGrid()->GetNumRegions() * design.GetSize());
+
+  if(non_design_vicinity_)
+  {
+    for(unsigned int d = 0; d < design.GetSize(); d++)
+      for(unsigned int r = 0; r < domain->GetGrid()->regionData.GetSize(); r++)
+        if(!Contains(domain->GetGrid()->regionData[r].id))
+          RegisterPseudoDesignRegion(domain->GetGrid()->regionData[r].id, design[d]);
+  }
 }
 
 DesignSpace::~DesignSpace(){
@@ -255,13 +280,13 @@ DesignSpace::~DesignSpace(){
   }
 }
 
-DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, ParamNodeList &design, ParamNodeList& transfer, ParamNodeList& result, ErsatzMaterial::Method method){
+DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, PtrParamNode pn, ErsatzMaterial::Method method){
   switch(method){
   case ErsatzMaterial::SHAPE_OPT:
   case ErsatzMaterial::SHAPE_PARAM_MAT:
-    return new ShapeDesign(reg_data, design, transfer, result, method);
+    return new ShapeDesign(reg_data, pn, method);
   default:
-    return new DesignSpace(reg_data, design, transfer, result, method);
+    return new DesignSpace(reg_data, pn, method);
   }
 }
 
@@ -270,36 +295,100 @@ void DesignSpace::PostInit(int objectives, int constraints)
   LOG_DBG(designSpace) << "# objectives = " << objectives << ", # constraints = " << constraints;
   DesignElement::SetDesignSpace(this);
 
-  for(unsigned int i = 0; i < data.GetSize(); i++)
-    data[i].PostInit(objectives, constraints);
+  for(unsigned int i = 0, n = totalElements_.GetSize(); i < n; i++)
+    totalElements_[i]->PostInit(objectives, constraints);
 }
 
-bool DesignSpace::Contains(const RegionIdType reg) const
+bool DesignSpace::Contains(const RegionIdType reg, bool include_pseduo) const
 {
   for(unsigned int i = 0, n = regions[0].GetSize(); i < n; i++)
     if(regions[0][i].regionId == reg)
       return true;
 
+  if(!include_pseduo)
+    return false;
+
+  for(unsigned int i = 0, n = pseudoDesigns_.GetSize(); i < n; i++)
+    if(pseudoDesigns_[i][0].elem->regionId == reg)
+      return true;
+
   return false;
 }
 
-void DesignSpace::RegisterPseudoDesign(StdVector<DesignElement*>& elements)
+bool DesignSpace::RegisterPseudoDesignRegion(RegionIdType region, DesignElement::Type dt, StdVector<DesignElement*>* write_out)
 {
-  bool old = false;
+  bool added = false;
+  // check if the stuff already exists
+  StdVector<DesignElement>* ptr = NULL;
   for(unsigned int i = 0; i < pseudoDesigns_.GetSize(); i++)
-    if(elements[0]->elem->regionId == (*pseudoDesigns_[i])[0]->elem->regionId) // one region!
-      old = true;
+    if(pseudoDesigns_[i][0].elem->regionId == region && pseudoDesigns_[i][0].GetType() == dt)
+      ptr = &(pseudoDesigns_[i]);
 
-  if(!old)
-    pseudoDesigns_.Push_back(&elements);
+  // add if the stuff does not exist
+  if(ptr == NULL)
+  {
+    StdVector<Elem*> elems;
+    domain->GetGrid()->GetElems(elems, region);
+
+    StdVector<DesignElement> tmp;
+    // the Push_back must not resize!!!!
+    assert(pseudoDesigns_.Capacity() >= pseudoDesigns_.GetSize() + 1);
+    pseudoDesigns_.Push_back(tmp);
+
+    StdVector<DesignElement>& vec = pseudoDesigns_.Last();
+
+    // construct pesudo design elements
+    vec.Reserve(elems.GetSize());
+
+    // see GetPseudoElementIndex()
+    int pei_base = GetNumberOfElements() + CalcPseudoDesignElements();
+
+    // also store in totalElements_
+    totalElements_.Reserve(totalElements_.GetSize() + elems.GetSize());
+
+    for(unsigned int i = 0; i < elems.GetSize(); i++)
+    {
+      DesignElement del(elems[i], dt, i, pei_base + i); // the index i is very critical, what happens here??
+      vec.Push_back(del); // copy constructor
+
+      DesignElement* de = &(vec.Last());
+      totalElements_.Push_back(de);
+
+      de->SetDesign(1.0); // fixed, should work, if not extend
+
+      assert(de->simp == NULL);
+      de->simp = new SIMPElement(de);
+
+      // store properly in elemToDesign
+      assert(!(elemToDesign[de->elem->elemNum].first != -1 && elemToDesign[de->elem->elemNum].second == false)); // don't overwrite real design
+      assert(!(elemToDesign[de->elem->elemNum].first != -1 && elemToDesign[de->elem->elemNum].first != (int) i));      // within pseudo designs als indices for the designs are the same
+      elemToDesign[de->elem->elemNum].first = i;
+      elemToDesign[de->elem->elemNum].second = false; // we have a pesudo design!
+    }
+
+    ptr = &(pseudoDesigns_.Last());
+    assert(ptr->GetSize() == vec.GetSize());
+    added = true;
+  }
+
+  // export new or old stuff?
+  if(write_out != NULL)
+  {
+    write_out->Resize(ptr->GetSize());
+
+    for(unsigned int i = 0, n = ptr->GetSize(); i < n; i++)
+      (*write_out)[i] = &((*ptr)[i]);
+  }
+
+  return added;
 }
 
-unsigned int DesignSpace::CalcRegisteredPseudoDesigns() const
+unsigned int DesignSpace::CalcPseudoDesignElements() const
 {
   unsigned int sum = 0;
 
   for(unsigned int i = 0; i < pseudoDesigns_.GetSize(); i++)
-    sum += pseudoDesigns_[i]->GetSize();
+    sum += pseudoDesigns_[i].GetSize();
 
   return sum;
 }
@@ -372,11 +461,11 @@ ResultInfo* DesignSpace::GetResultInfo(ResultDescription& rd)
   // I hate it!!! :(
   ri->resultType = (SolutionType) rd.solutionType;
 
-  // in info.xml result output the " (" is replaced by "_("!
+  // no space and brackets to have no problems with info.xml and no problems with the paraview calculator
   ri->resultName = DesignElement::valueSpecifier.ToString(rd.value) + "_"
                    + (rd.detail != DesignElement::NONE ? (DesignElement::detail.ToString(rd.detail) + "_") : "")
-                   + DesignElement::type.ToString(rd.design) + " ("
-                   + DesignElement::access.ToString(rd.access) + ")"
+                   + DesignElement::type.ToString(rd.design) + "_"
+                   + DesignElement::access.ToString(rd.access)
                    + (rd.excitation != "" ? ("_ex_" + rd.excitation) : "");
 
   ri->unit = "";
@@ -475,7 +564,7 @@ double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, Optimizat
   // it is two
   for(unsigned int index = design_index; index < data.GetSize(); index += elements)
   {
-    // note that this loop with loop normaly once or twice (piezo)
+    // note that this loop with loop normally once or twice (piezo)
     DesignElement* de = &data[index];
     // The design of the current element
     DesignElement::Type dt = de->GetType();
@@ -501,6 +590,33 @@ double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, Optimizat
 
   return result;
 }
+
+bool DesignSpace::GetErsatzMaterialPamping(const Elem* elem, Matrix<double>& elemMat)
+{
+  // see also implementation SIMP::AddMassToStiffness() for match!!!
+  static MechMat mm = MechMat(this); // Assumes irregular mesh :(
+
+  // pamping at all -> see Sigmund; Morphology; 2007
+  assert(GetPampingValue() >= 0);
+  // have design?
+  DesignElement* de = Find(elem->elemNum, DesignElement::DENSITY, false);
+  if(de == NULL)
+    return false;
+
+  // we use the physical design variable to match better
+  TransferFunction* tf = GetTransferFunction(de->GetType(), Optimization::MASS);
+  double tv = tf->Transform(de, DesignElement::SMART); // be consistent with SIMP::AddMassToStiffness()
+  // now the original mass matrix
+  const Matrix<double>& mass = mm.Mass(de->elem);
+  LOG_DBG3(designSpace) << "GEMP e=" << elem->elemNum << " mass=" << mass.ToString();
+  elemMat.Resize(mass.GetNumRows(), mass.GetNumCols());
+  elemMat.Assign(mass, tv * (1.0-tv) * GetPampingValue());
+
+  LOG_DBG3(designSpace) << "GEMP e=" << elem->elemNum << "rv=" << tv << " p=" << GetPampingValue() << " -> " << (tv * (1.0-tv) * GetPampingValue());
+  LOG_DBG3(designSpace) << "GEMP e=" << elem->elemNum << " ->" << elemMat.ToString();
+  return true;
+}
+
 
 bool DesignSpace::CollectMaterialParametersForElement(const Elem* elem){
   int base = Find(elem, false);
@@ -746,7 +862,7 @@ void DesignSpace::WriteBoundsToExtern(double* x_l, double* x_u) const {
 void DesignSpace::WriteSparseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Condition* g, bool use_scaling) const
 {
   // Bastian did some complicated reordering stuff. For the only case of sparse Jacobians (slope constraints)
-  // we'll have only the simple standard situtation .. if this changes you have at least a test case :) Fabian
+  // we'll have only the simple standard situation .. if this changes you have at least a test case :) Fabian
   
   assert(regions.GetSize() == 1 && regions[0].GetSize() == 1); // only one region with one design
   assert(g != NULL); // only constraints can have sparse Jacobians 
@@ -844,17 +960,32 @@ void DesignSpace::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type de
     }
   }
 }
-DesignElement* DesignSpace::Find(unsigned int elemNum, DesignElement::Type dt, bool throw_exception)
+DesignElement* DesignSpace::Find(unsigned int elemNum, DesignElement::Type dt, bool throw_exception, bool include_pseudo_designs)
 {
-  int idx = Find(elemNum, throw_exception);
+  int idx = Find(elemNum, throw_exception, include_pseudo_designs);
+
   if(idx == -1) return NULL; // an exception was already thrown if desired
-  for(unsigned int d = 0; d < design.GetSize(); d++)
+
+  // check for real design or pseudo design
+  if(elemToDesign[elemNum].second == true)
   {
-    unsigned int pos = elements * d + idx;
-    if(data[pos].GetType() == dt)
+    for(unsigned int d = 0, nd = design.GetSize(); d < nd; d++)
     {
-      if(data[pos].elem->elemNum != elemNum) throw Exception("index mixed up");
-      return &data[pos];
+      unsigned int pos = elements * d + idx;
+      if(data[pos].GetType() == dt)
+      {
+        if(data[pos].elem->elemNum != elemNum) throw Exception("index mixed up");
+        return &data[pos];
+      }
+    }
+  }
+  else
+  {
+    for(unsigned int i = 0, n = pseudoDesigns_.GetSize(); i < n; i++)
+    {
+       assert(pseudoDesigns_[i][idx].elem->elemNum == elemNum);
+       if(pseudoDesigns_[i][idx].GetType() == dt)
+         return &(pseudoDesigns_[i][idx]);
     }
   }
 
@@ -863,18 +994,24 @@ DesignElement* DesignSpace::Find(unsigned int elemNum, DesignElement::Type dt, b
 }
 
 
-int DesignSpace::Find(unsigned int elemNum, bool throw_exception)
+inline
+int DesignSpace::Find(unsigned int elemNum, bool throw_exception, bool include_pseudo_designs)
 {
-  int idx = elemToDesign[elemNum];
+  int idx = elemToDesign[elemNum].first;
+
+  // reset pseudo designs when we don't look for them explicitly
+  if(idx != -1 && !include_pseudo_designs && elemToDesign[elemNum].second == false)
+    idx = -1;
 
   if(idx == -1 && throw_exception)
-    EXCEPTION("could not find element " << elemNum << " in our design space");
+    EXCEPTION("could not find element " << elemNum << " in our (pseudo) design space");
 
   return idx;
 }
 
 int DesignSpace::Find(const Elem* elem, bool throw_exception)
 {
+  // no extensions for pseudo designs implemented, yet!
   if(FindRegion(elem->regionId) >= 0) return Find(elem->elemNum, throw_exception);
 
   // we might have surface element and it is pointing to a design element
@@ -927,15 +1064,14 @@ void DesignSpace::ToInfo(PtrParamNode in)
   for(unsigned int i = 0; i < design.GetSize(); i++)
     data[i * elements].ToInfo(dv->Get("design", ParamNode::APPEND));
 
-  if(regions.GetSize() > 0){
+  in->Get("pamping")->SetValue(pamping_);
+  if(regions.GetSize() > 0)
+  {
     PtrParamNode rs = in->Get("regions");
     for(unsigned int i = 0; i < regions[0].GetSize(); i++)
-    {
-      PtrParamNode r = rs->Get("region", ParamNode::APPEND);
-      r->Get("name")->SetValue(domain->GetGrid()->GetRegion().ToString(regions[0][i].regionId));
-      r->Get("elements")->SetValue(regions[0][i].elements);
-    }
+      regions[0][i].ToInfo(rs->Get("region", ParamNode::APPEND));
   }
+
 }
 
 
@@ -1104,7 +1240,7 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
     if(FindRegion(it.GetElem()->regionId) >= 0)
     {
       // note that the index is from the first design set!
-      unsigned int base_index = Find(it.GetElem()->elemNum);
+      unsigned int base_index = Find(it.GetElem()->elemNum, true, true); // exception and pseudo designs (?)
       // base=0 is first!
       unsigned int data_index = (base * elements) + base_index;
       DesignElement& de = data[data_index];
@@ -1124,17 +1260,17 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
 
       for(unsigned int f = 0; ori != -1 && f < pseudoDesigns_.GetSize(); f++)
       {
-        StdVector<DesignElement*>& data = *(pseudoDesigns_[f]);
+        StdVector<DesignElement>& data = pseudoDesigns_[f];
         // has the pseudo design the right special result?
-        if(it.GetElem()->regionId == data[0]->elem->regionId)
+        if(it.GetElem()->regionId == data[0].elem->regionId)
         {
           // search it slowly and add it up -> it will be a very special case anyway
           for(unsigned int e = 0; e < data.GetSize(); e++)
-            if(data[e]->elem == it.GetElem())
+            if(data[e].elem == it.GetElem())
             {
               // make sure the result description is unique and we don't overwrite
               assert(result_value[0] == 0.0);
-              data[e]->GetValue(descr, result_value, dofs);
+              data[e].GetValue(descr, result_value, dofs);
             }
         }
       }

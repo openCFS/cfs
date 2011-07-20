@@ -9,6 +9,7 @@
 #include "OLAS/solver/baseEigensolver.hh"
 #include "OLAS/precond/baseprecond.hh"
 #include "OLAS/graph/baseordering.hh"
+#include "PDE/basePDE.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 

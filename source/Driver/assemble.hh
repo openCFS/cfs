@@ -32,7 +32,7 @@ namespace CoupledField {
     Assemble( BaseSystem* algsys, BasePDE::AnalysisType analysis, UInt maxTimeDerivOrder );
 
     //! Destructor
-    ~Assemble();
+    virtual ~Assemble();
 
     // ======================================================
     //  REGISTRATION METHODS
@@ -229,7 +229,7 @@ namespace CoupledField {
     MathParser::HandleType mHandle_;
 
     /** The object is within a ParamNode and deleted there! */
-    Timer* timer_;
+    boost::shared_ptr<Timer> timer_;
   };
 }
 #endif

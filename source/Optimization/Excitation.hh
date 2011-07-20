@@ -33,7 +33,7 @@ public:
   Excitation();
 
   /** This method makes the current load active.
-   * For multiple frequencies it does nothing. The actual frequency is choosen by default. */
+   * For multiple frequencies it does nothing. The actual frequency is chosen by default. */
   void Apply();
 
   /** Find the fixed factor, does ignore weighting and does not apply it. */
@@ -127,11 +127,11 @@ public:
   /** Do we do multiple excitation at all? */
   bool IsEnabled() const { return multiple_excitation_; }
 
-  /** Handle multiple excitations (loads/frquencies). By defefinition the size is almost 1, even
+  /** Handle multiple excitations (loads/frquencies). By definition the size is almost 1, even
    * if there is no load (e.g. static piezo with inhomgeneous Dirichlet BC. */
   void PrepareMultipleExcitations(SinglePDE* pde, PtrParamNode optInfoNode, bool harmonic, bool eval_inital_design);
 
-  /** Dow we do adjust weigts */
+  /** Do we do adjust weights */
   bool DoAdjustWeights() const { return type_ == META_OBJECTIVE; }
 
   bool DoHomogenization() const { return type_ == HOMOGENIZATION_TEST_STRAINS; }

@@ -346,8 +346,7 @@ namespace CoupledField
       //! Constructor
       RegionLoad( UInt dim, bool isaxi );
 
-      //! Print region definition to info-file
-      void Print( bool onlyHeader, std::string pdeName );
+      void ToInfo(PtrParamNode in) const;
       
       //! Returns the RHS-integrator
       VolForceInt *  GetIntegrator();

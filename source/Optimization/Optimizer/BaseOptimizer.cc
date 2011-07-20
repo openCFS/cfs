@@ -177,10 +177,10 @@ BaseOptimizer::BaseOptimizer(Optimization* opt, PtrParamNode pn) :
   info_(info->Get("optimization")->Get("optimizer")),
   objective(NULL),
   restart_requested(false),
+  timer_(new Timer()),
   design_(DesignMemory(-1, 0.0)),
   optimizer_pn_(pn)
 {
-  this->timer_ =  new Timer();
   info_->Get(ParamNode::SUMMARY)->Get("timer")->SetValue(this->timer_ );
 }
 
@@ -209,6 +209,14 @@ std::string BaseOptimizer::LogFileHeader()
   if(GetCurrenActiveSetSize() >= 0)
     tmp += "\tactive_set";
 
+  // give the norm of the nonlinear gradients (ignore blown up)
+  for(unsigned int i = 0; i < optimization->constraints.all.GetSize(); i++)
+  {
+    Condition* g = optimization->constraints.all[i];
+    if(g->IsLinear()) continue;
+    tmp += "\tmax_" + Function::type.ToString(g->GetType()) + "_grad";
+  }
+
   return tmp;
 }
 
@@ -223,12 +231,29 @@ void BaseOptimizer::LogFileLine(std::ofstream* out, PtrParamNode iteration)
   {
     if(out) *out << "\t" << objective->scaling.value
                  << "\t" << objective->opt_scaling.value;
-    
+
     iteration->Get("scale")->SetValue(objective->scaling.value);
     iteration->Get("opt_scale")->SetValue(objective->opt_scaling.value);
     if(GetCurrenActiveSetSize() >= 0)
       iteration->Get("active_set")->SetValue(GetCurrenActiveSetSize());
   }
+
+  // give the norm of the nonlinear gradients (ignore blown up)
+  for(unsigned int i = 0; i < optimization->constraints.all.GetSize(); i++)
+  {
+    Condition* g = optimization->constraints.all[i];
+    if(g->IsLinear()) continue;
+
+    double mv = 0.0;
+    const StdVector<DesignElement>& data = optimization->GetDesign()->data;
+
+    for(int i = 0, n = data.GetSize(); i < n; i++)
+      mv = std::max(mv, abs(data[i].GetValue(DesignElement::CONSTRAINT_GRADIENT, DesignElement::SMART, g)));
+
+    iteration->Get("max_" + Function::type.ToString(g->GetType()) + "_grad")->SetValue(mv);
+    if(out) *out << "\t" << mv;
+  }
+
 }
 
 double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)

@@ -19,7 +19,7 @@
 namespace CoupledField{
 
   // Forward class declarations
-  class Elem;
+  struct Elem;
   class Grid;
   class SingleVector;
   class DenseMatrix;

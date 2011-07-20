@@ -31,6 +31,7 @@ DECLARE_LOG(simp)
 
 PiezoSIMP::PiezoSIMP()
 {
+  // ignores the SetPDE() framework :(
   elec = dynamic_cast<ElecPDE*>(domain->GetSinglePDE("electrostatic"));
   pdes[ELEC] = elec;
 

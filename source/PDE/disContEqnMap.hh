@@ -16,7 +16,7 @@ namespace CoupledField {
   //class NodeList;
   //class ElemList;
   //class EntityIterator;
-  //class ResultInfo;
+  //struct ResultInfo;
   //class ParamNode; 
 
   //! Class for mapping entities and continuous ansatz functions to equation numbers

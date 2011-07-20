@@ -37,7 +37,7 @@ public:
 
 private:
   /** Return the infinty value. According to snopt-manual this has to be at least 1e20 */
-  virtual double GetInfBound() 
+  virtual double GetInfBound() const
   {
     return 1e20;
   }
@@ -218,9 +218,9 @@ private:
 
 
   /** Timer for SnOpt */ 
-  Timer *timer_;
+  boost::shared_ptr<Timer> timer_;
   /** Timer for callback function */ 
-  Timer *timer_callback_;
+  boost::shared_ptr<Timer> timer_callback_;
 };
 
 } // end of namespace

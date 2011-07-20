@@ -10,7 +10,7 @@
 
 namespace CoupledField
 {
-class Elem;
+struct Elem;
 class ParamNode;
 class SinglePDE;
 class Condition;
@@ -402,6 +402,9 @@ public:
   /** Helper for GetDensityFilteredValue() */
   double CalcHeaviside(double input_value) const;
 
+  /** Calculates the tanh function. This is a variant of the Xu-Filter, see also Wang/Laraow/Sigmund;2010 */
+  double CalcTanh(double input_value) const;
+
   /** only for sensitivities for density filtering.
    * See Sigmund; Morpology-based black and white filters for topology optimization; 2007; (35) and (36) */
   double GetDensityFilteredGradient(DesignElement::ValueSpecifier sp, Condition* g) const;
@@ -481,6 +484,41 @@ public:
   std::string excitation;
 };
 
+inline
+double SIMPElement::CalcHeaviside(double input_value) const
+{
+  Filter* f = &de_->simp->filter;
+  assert(f->type_ == Filter::DENSITY);
+  assert(f->density_ == Filter::HEAVISIDE || f->density_ == Filter::MOD_HEAVISIDE);
+
+  double b = f->GetBeta();
+  assert(b >= 0.0 && b < 2000);
+
+  if(f->density_ == Filter::HEAVISIDE)
+  {
+    // we apply the correction factor in a way that H(rho_min) = rho_min and H(1) = 1
+    double corr = (1.0 - (1.0 - input_value) * f->heaviside_corr) * input_value;
+    double result = 1.0 - std::exp(-1.0 * b * corr) + corr * std::exp(-1.0 * b);
+
+    // LOG_DBG3(desel) << "CH: de=" << de_->elem->elemNum << " f=" << f->density.ToString(f->density_)
+    //                 << " hc=" << f->heaviside_corr << " corr=" << corr << " iv=" << input_value << " -> " << result;
+    return result;
+  }
+  else // if(f->density_ == Filter::MOD_HEAVISIDE)
+  {
+    // make sure we are within the bounds
+    double ub = this->de_->GetUpperBound();
+    double lb = this->de_->GetLowerBound();
+
+    double first    = std::exp(-1.0 * b * (1.0 - input_value));
+    double second   = -1.0 * (1.0 - input_value) * std::exp(-1.0 * b);
+
+    return (ub-lb) * (first + second) + lb;
+
+    // LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " b=" << b << " lb=" << lb << " (ub-lb)=" << (ub-lb)
+    //                << " c=" << constant << " +1st=" << first << " +2nd=" << second << " =" << (constant + first + second) << " -> " << p_filt;
+  }
+}
 
 } // end of namespace
 
