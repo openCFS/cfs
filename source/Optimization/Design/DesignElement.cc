@@ -657,13 +657,13 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
     numerator   += w * x;
     denominator += w;
 
-    LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
-                    << " w= " << w  << " x=" << x << " num=" << numerator << " den=" << denominator;
+    //LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
+                    //<< " w= " << w  << " x=" << x << " num=" << numerator << " den=" << denominator;
   }
 
   double p_filt = numerator / denominator;
 
-  LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " filtered_density=" << p_filt;
+  //LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " filtered_density=" << p_filt;
 
   assert(fd == Filter::STANDARD || fd == Filter::HEAVISIDE || fd == Filter::MOD_HEAVISIDE || fd == Filter::TANH);
 
@@ -727,9 +727,9 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
   // p is rho and P is rho filtered! d f/d p_e = sum_i(in N_e) d f/d P_i * d P_i/d p_e with d P_i/d p_e = w(x_e)/ sum_j(in N_i) w(x_j)
   // note, that the stored value is already v = d f/d P_i
 
-  LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum
-                << " sp=" << DesignElement::valueSpecifier.ToString(sp)
-                << " g=" << (g != NULL ? Condition::type.ToString(g->GetType()) : "null");
+  //LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum
+                //<< " sp=" << DesignElement::valueSpecifier.ToString(sp)
+                //<< " g=" << (g != NULL ? Condition::type.ToString(g->GetType()) : "null");
 
   double sum = 0.0;
 
