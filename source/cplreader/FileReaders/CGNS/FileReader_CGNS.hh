@@ -90,7 +90,7 @@ namespace CoupledField{
       Integer GetFileHandle(std::string fName);
       void CheckFileValidity(Integer fileHandle);
       UInt MapCoordinateIndex(char* coordName);
-      void ReadUnstructuredGrid(Integer fileHandle, Integer dim, Integer* size);
+      void ReadUnstructuredGrid(Integer fileHandle, Integer dim, cgsize_t* size);
       void PrintElementType(ElementType_t eType);
       void InitElemTypeMap();
       void ReadGrid();
