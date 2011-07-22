@@ -1889,6 +1889,7 @@ namespace CoupledField {
 
   void GridCFS::GetSurfElems( StdVector<SurfElem*> & elems,
                               const RegionIdType regionId ) {
+    elems.Clear();
 
     Integer index = surfRegionIds_.Find(regionId);
     if ( index != -1 ) {
