@@ -62,6 +62,25 @@
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_DomainSurface">
     <xsd:attribute name="name" type="xsd:token" use="required"/>
+    <xsd:attribute name="makeNamedNodes" type="DT_CFSBool" use="optional"
+      default="no">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Creates name nodes from a surface. The name of the nodes will have the
+          prefix "nodes_" and may then be used by boundary conditions or
+          coupling interface.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="excludeSurface" type="xsd:token" use="optional"
+      default="">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Exlude nodes which are in found in a second surface. This can be used
+          to exlude corner nodes of the line.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
   </xsd:complexType>
 
 
