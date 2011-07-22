@@ -40,6 +40,9 @@ namespace CoupledField
                                  const std::vector<bool>& activeParts,
                                  const UInt timeStepIdx);
 
+    //! return name of region
+    virtual std::string GetRegionName(const UInt regionIdx);
+
     //! get user data from file reader
     virtual void GetUserData(std::map<std::string, std::string>& userData);
 
@@ -75,6 +78,10 @@ namespace CoupledField
     void IOErrorToString(int ioerr, std::string& errStr);
 
     void CheckTransientFiles();
+    
+    UInt GetFaceOfElement( UInt elemType, UInt face,
+                             std::vector<UInt>::const_iterator &elemConnect,
+                             std::vector<UInt> &faceConnect );
 
   private:
 
@@ -94,7 +101,15 @@ namespace CoupledField
     // Vector of element numbers per region
     std::map<UInt, std::vector<UInt> > regionElems_;
 
+    // number of volume regions (numRegions_ includes surface regions)
+    UInt numVolRegions_;
+    
+    // names of regions
+    std::vector<std::string> regionNames_;
 
+    // CFX Release number for UserData in .h5 file
+    std::string userDataCFXRelease;
+    
     char fn[4096];
     int nerr;
     int whatfile;
