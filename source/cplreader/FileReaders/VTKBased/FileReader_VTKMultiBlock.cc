@@ -340,7 +340,7 @@ namespace CoupledField
           cell = ugrid->GetCell(cellId);
           elemTypes[elemIdx] = VTKCellTypeToFEType(cell->GetCellType());
 
-          elemNodeMapping = strucElemNodeMap;
+          elemNodeMapping = unstrucElemNodeMapping_[ elemTypes[elemIdx] ];
             //strucElemNodeMap;
             //unstrucElemNodeMapping_[ elemTypes[elemIdx] ];
 

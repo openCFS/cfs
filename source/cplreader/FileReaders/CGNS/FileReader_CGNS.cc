@@ -426,7 +426,7 @@ namespace CoupledField{
             }
           }
        }
-       //now erase the number of files according to startstepo parameter
+       //now erase the number of files according to startstep parameter
        for(UInt i = 1;i<=firstStep;i++){
          fileNames.erase(fileNames.begin());
        }
