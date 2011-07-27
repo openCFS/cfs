@@ -6,6 +6,7 @@
 #define FILE_FILEREADER_CFX_2006
 
 #include <map>
+#include <stack>
 
 #include <def_cplreader.hh>
 #include "cplreader/FileReader.hh"
@@ -59,7 +60,14 @@ namespace CoupledField
     
   protected:
 
-    void GetInfosFromCommand();
+    void GetInfosFromCommand(UInt numLines);
+    void ParseCCLLine(const std::string& line);
+
+    PtrParamNode rootNode;
+    PtrParamNode currNode;
+    PtrParamNode latestNode;
+    std::stack<PtrParamNode> parents;
+    bool multiLine;
 
     void ParseCommand(std::vector<char>& cmdstr,
                       int& pos,

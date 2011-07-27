@@ -17,6 +17,8 @@
 #include <boost/filesystem/exception.hpp>
 namespace fs=boost::filesystem;
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/tokenizer.hpp>
 namespace algo=boost::algorithm;
 
 // #include <pcrecpp.h>
@@ -200,6 +202,7 @@ namespace CoupledField
       iopt   = __stop_if_failed__;
       ioptar = 0;
       charvec.resize(length*nsize);
+      std::fill(charvec.begin(), charvec.end(), 0);
       
       redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
               &iopt, &ioptar,
@@ -216,7 +219,7 @@ namespace CoupledField
       //     get infos about definition file, time unit and timestep
       //-----------------------------------------------------------------------
 
-      GetInfosFromCommand();
+      GetInfosFromCommand(nsize);
     }
     else
     {
@@ -1238,11 +1241,48 @@ namespace CoupledField
     CHECK_CFX_IO(nerr);
   }
 
-  void FileReader_CFX::GetInfosFromCommand()
+  void FileReader_CFX::GetInfosFromCommand(UInt numLines)
   {
     std::string cmd, attrib;
     int pos=0;
     std::ostringstream sstr;
+
+    //    std::cout << charvec << std::endl;
+    
+    std::stringbuf *pbuf;
+    std::stringstream ss;
+    
+    pbuf=ss.rdbuf();
+    pbuf->sputn (&charvec[0], charvec.size());
+                 //numLines*80);
+    //    std::cout << pbuf->str();
+
+    rootNode.reset(new ParamNode(ParamNode::EX, ParamNode::ELEMENT ) );
+    rootNode->SetName("CFX_COMMANDS_DATASET");
+    rootNode->SetValue("Uninteresting");
+    currNode = rootNode;
+    parents.push(rootNode);
+    multiLine = false;
+    
+    // Split COMMANDS dataset into 80 character tokens
+    std::string str = pbuf->str();
+    int offsets[] = {80};
+    boost::offset_separator f(offsets, offsets+1,true,false);
+    boost::tokenizer<boost::offset_separator> tok(str,f);
+    UInt i = 0;
+    for(boost::tokenizer<boost::offset_separator>::iterator beg=tok.begin();
+        beg!=tok.end(), i < numLines;
+        ++beg, i++)
+    {
+      std::string trimmed = boost::algorithm::trim_copy(*beg);
+      ParseCCLLine(trimmed);
+      // std::cout << trimmed << "\n";
+      // std::cout << *beg << "\n";
+    }
+
+    // std::string ds;
+    // rootNode->ToXML(std::cout, 5);
+    // std::cout << ds << "\n";
 
     ParseCommand(charvec, pos, cmd, attrib, "", sstr);
     ParseCommand(charvec, pos, cmd, attrib, "", sstr);
@@ -1346,6 +1386,127 @@ namespace CoupledField
       }
     */
 #endif
+  }
+
+  void FileReader_CFX::ParseCCLLine(const std::string& line) 
+  {
+    typedef boost::char_separator<char> charsep;
+    typedef boost::tokenizer< charsep > chartok;
+    bool mlSwitch = multiLine;
+
+    // Check if the current line is a continuation of a previous line.
+    if((*line.rbegin()) == '\\') 
+    {
+      multiLine = true;
+
+      mlSwitch = (multiLine != mlSwitch);
+
+      if(!mlSwitch) 
+      {
+        std::stringstream sstr;
+        std::string val;
+        val = latestNode->As<std::string>();
+        
+        sstr << val << line;
+        latestNode->SetValue(sstr.str());
+
+        return;
+      }      
+    } else 
+    {
+      if(multiLine)
+      {
+        multiLine = false;
+
+        std::stringstream sstr;
+        std::string val;
+        val = latestNode->As<std::string>();
+        
+        // Replace continuation backslashes with nothing
+        const boost::regex datExp("\\\\");
+        const std::string name_format("");
+    
+        sstr << regex_replace(val, datExp, name_format,
+                              boost::match_default | boost::format_sed);
+
+        sstr << line;
+        latestNode->SetValue(sstr.str());
+        return;
+      }
+    }    
+
+    // Cut line into parts at = character. If we have more than one token on a
+    // line which  contains a =, then we  just add child nodes  to the current
+    // node and we do NOT introduce a new hierarchy level.
+
+    charsep sep("=");
+    chartok tok(line, sep);
+    
+    if(std::distance(tok.begin(), tok.end()) > 1) 
+    {
+      UInt i = 0;
+      std::vector<std::string> keyValue(2);
+      
+      for(chartok::iterator beg=tok.begin();
+          beg!=tok.end(), i < 2;
+          ++beg, i++)
+      {
+        keyValue[i] = boost::algorithm::trim_copy(*beg);
+      }
+
+      latestNode = 
+        PtrParamNode(new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
+      
+      latestNode->SetName(keyValue[0]);
+      latestNode->SetValue(keyValue[1]);
+
+      currNode->AddChildNode( latestNode );
+    } else 
+    {
+
+      // Otherwise cut line into parts at  : character in order to introduce a
+      // new hierarchy level
+
+      charsep sep2(":");
+      chartok tok2(line, sep2);
+      std::string elemName = *tok2.begin();
+
+      if(elemName != "END")
+      {
+
+        // If we have  encountered a new element name add a  new child node to
+        // the current node.
+
+        latestNode = PtrParamNode(new ParamNode(ParamNode::EX,
+                                                ParamNode::ELEMENT));
+        latestNode->SetName(elemName);
+        latestNode->SetValue(elemName);
+
+        currNode->AddChildNode( latestNode );
+        parents.push(currNode);
+        currNode = latestNode;
+
+        // If there exists a second token  add it as an attribute to the newly
+        // generated node.
+
+        if(std::distance(tok2.begin(), tok2.end()) > 1) 
+        {
+          chartok::iterator it = tok2.begin();
+          it++;
+
+          latestNode = 
+            PtrParamNode(new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
+          latestNode->SetName("name");
+          latestNode->SetValue(boost::algorithm::trim_copy(*it));
+          currNode->AddChildNode( latestNode );
+        }        
+      } else 
+      {
+        // Go one level up in the hierarchy.
+        currNode = parents.top();
+        parents.pop();
+      }
+    }
   }
 
   void FileReader_CFX::ParseCommand(std::vector<char>& cmdstr,
