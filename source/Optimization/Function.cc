@@ -39,8 +39,10 @@ Function::Function(PtrParamNode pn)
   this->region = ALL_REGIONS;  // overwritten eventually in Condition
 
 
+  this->preInfo_ = PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT ));
   this->pn = pn;
   this->local = NULL;
+  this->projectionDesign_ = NULL;
 
   this->type_ = type.Parse(pn->Get("type")->As<std::string>());
 
@@ -89,6 +91,14 @@ Function::Function(PtrParamNode pn)
       throw Exception("function '" + type.ToString(type_) + "' requires the 'parameter' attribute");
     break;
 
+  case PROJECTION:
+    if(!pn->Has("filter"))
+      throw Exception("function '" + type.ToString(type_) + "' requires the 'filter' element");
+    if(region != ALL_REGIONS)
+      throw Exception("function '" + type.ToString(type_) + "' cannot be region restricted");
+    break;
+
+
   default:
     break;
   }
@@ -103,6 +113,7 @@ Function::Function(PtrParamNode pn)
 Function::~Function()
 {
   if(local != NULL) { delete local; local = NULL; }
+  if(projectionDesign_ != NULL) { delete projectionDesign_; projectionDesign_ = NULL; }
 }
 
 Function* Function::Cast(Objective* c, Condition* g)
@@ -184,6 +195,10 @@ void Function::ParseCoord(PtrParamNode pn, tuple<int, int, double>& coord)
 void Function::ToInfo(PtrParamNode info)
 {
   info_ = info;
+
+  // there might be set something, i.g. in PostProc
+  info_->SetValue(preInfo_, false); // don't do tricks with name
+
   info->Get("type")->SetValue(type.ToString(type_));
   if(harmonic_)
     info->Get("omega_omega")->SetValue(omega_omega_);
@@ -251,6 +266,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case JUMP:
     case GLOBAL_JUMP:
     case DESIGN_TRACKING:
+    case PROJECTION:
       assert(excite_index < 0);
       excite_ = me->excitations.GetSize() - 1; // once only at the last excitation
       break;
@@ -372,8 +388,13 @@ bool Function::ForDensityFiltering() const
 {
   switch(type_)
   {
+  case PROJECTION:
+    // for the projection case we have a density filter manually on Function::projectionDesign only
+    return false;
+
   case MULTI_OBJECTIVE:
     EXCEPTION("Invalid query: " << type.ToString(type_));
+    break;
 
   default:
     return true; // actually true for almost all!
@@ -421,6 +442,7 @@ bool Function::ForSensitivityFiltering() const
   case JUMP:
   case GLOBAL_JUMP:
   case DESIGN_TRACKING:
+  case PROJECTION:
     return false;
 
   case ISOTROPY:
@@ -431,6 +453,12 @@ bool Function::ForSensitivityFiltering() const
   }
 
   EXCEPTION("can never reach! Stupid C++");
+}
+
+StdVector<DesignElement>& Function::GetProjectionDesignClone()
+{
+  assert(type_ == PROJECTION);
+  return projectionDesign_->data;
 }
 
 void Function::SetElements(DesignSpace* space, RegionIdType region)
@@ -498,8 +526,34 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case PENALIZED_VOLUME:
     for(unsigned int i = 0; i < space->transfer.GetSize(); i++)
       if(space->transfer[i].IsPenalized())
-        info_->Get(ParamNode::WARNING)->SetValue("transfer function '" + space->transfer[i].ToString() + " seems also to penalize");
+        preInfo_->Get(ParamNode::WARNING)->SetValue("transfer function '" + space->transfer[i].ToString() + " seems also to penalize");
     break;
+
+  case PROJECTION:
+  {
+    // We have to create a deep copy of the original design space. Also the neighborhood must not point to the original design.
+    projectionDesign_ = space->Clone(); // the original regions if all
+
+    DesignStructure ds(projectionDesign_, projectionDesign_->GetRegionIds());
+    VicinityElement::Init(projectionDesign_, &ds);
+
+    StdVector<DesignElement>& fake_data = GetProjectionDesignClone();
+
+    PtrParamNode  reg = pn->Get("filter");
+    ds.SetFilters(reg, preInfo_, &fake_data);
+
+    assert(space->data.GetSize() == space->GetTotalElements().GetSize());
+    assert(space->data.GetSize() == fake_data.GetSize());
+
+    for(unsigned int i = 0, n = fake_data.GetSize(); i < n; i++)
+    {
+      // projectionDesign_[i].simp = new SIMPElement(&projectionDesign_[i]);
+      // we need the gradient size for temporary storage in the gradient calculation
+      fake_data[i].PostInit(em->objectives.data.GetSize(), em->constraints.active.GetSize());
+    }
+    break;
+  }
+
 
   default: // do nothing
     break;

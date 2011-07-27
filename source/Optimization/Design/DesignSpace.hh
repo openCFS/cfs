@@ -34,8 +34,12 @@ namespace CoupledField
 
      virtual ~DesignSpace();
     
-     /** creates the corresponding DesignSpace object depending on the method */
+     /** Creates the corresponding DesignSpace object depending on the method */
      static DesignSpace* CreateInstance(StdVector<RegionIdType> regions, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
+
+     /** Create a clone for projection method
+      * @return you have to take care of the pointer! */
+     DesignSpace* Clone();
 
      /** PostInit as usual when not all can be stuffed into the constructor
       * @param objectives the number of objectives
@@ -125,7 +129,7 @@ namespace CoupledField
      TransferFunction* GetTransferFunction(DesignElement::Type design, Optimization::Application application, bool throw_exception = true);
 
      /** Try to determine the transfer function from the design element uniquely */
-     TransferFunction* GetTransferFunction(DesignElement* de);
+     TransferFunction* GetTransferFunction(const DesignElement* de);
 
      /**<p>check the optResult_1/2/3 from the optimization/simp/result elementes against
       * element results in the pde and conditionally add it as store results to the pde.</p>
@@ -443,6 +447,9 @@ namespace CoupledField
 
      /** the pamping parameter. Extend to region on request :) */
      double pamping_;
+
+     /** Here we save the constructing param nodes to allow to create a clone for the projection method */
+     PtrParamNode pn_;
 
   };
 

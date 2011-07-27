@@ -456,6 +456,9 @@ public:
    * Q is the grad operator in z direction. Only for acoustic but easy to extend!*/
   double CalcEnergyFlux(Excitation& excite, Objective* f);
 
+  /** Calcultates Michael Stingel's norm  sum_i || nu(rho_i) - H_eta_beta(rho_i) ||^2 <= eps */
+  double CalcProjection(Function* f, bool derivative);
+
   /** This is a helper with the common part for CalcEnergyFlux and the adjoint RHS.
    * Determines the global vector Q*u^* or (Q - Q^T)^T*u^* in the adjoint case.
    * @param f the cost function as we need the ParamNode

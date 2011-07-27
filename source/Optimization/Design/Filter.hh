@@ -9,7 +9,7 @@ namespace CoupledField
 class DesignSpace;
 
 /** This is an information container for the Filter which is stored in the DesignElemen!.
- * This does not include filter information used by DesignStructure to initialize the filter.
+ * It is used by DesignStructure to initialize the element filters.
  * Set in DesignStructure, stored in DesignElement */
 struct Filter
 {

@@ -268,7 +268,8 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       || rd.value == MAX_MOLE
       || rd.value == MAX_JUMP
       || rd.value == PENALIZED_STRESS
-      || rd.value == DESIGN_TRACKING)
+      || rd.value == DESIGN_TRACKING
+      || rd.value == PROJECTION)
   {
     if(dofs != 1) throw Exception("special results is only defined for scalar values");
     // note, that on EACH_FORWARD/ADJOINT we need excitation based results
@@ -496,6 +497,7 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(DESIGN_TRACKING, "designTracking");
   valueSpecifier.Add(WEIGHT, "weight");
   valueSpecifier.Add(OBJECTIVE, "objective");
+  valueSpecifier.Add(PROJECTION, "projection");
   valueSpecifier.Add(NUM_NEIGHBOURS, "neighbours");
   valueSpecifier.Add(LEVEL_SET_VALUE, "levelSetValue");
   valueSpecifier.Add(LEVEL_SET_STATE, "levelSetState");
@@ -536,6 +538,7 @@ void DesignElement::SetEnums()
   detail.Add(GLOBAL_SLOPE, "globalSlope");
   detail.Add(GLOBAL_CHECKERBOARD, "globalCheckerboard");
   detail.Add(STRESS, "stress");
+  detail.Add(PROJECTION_FILTER, "projectionFilter");
 
 }
 
@@ -646,6 +649,9 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
   double numerator = this->weight * this->de_->GetPlainValue(DesignElement::DESIGN);
   double denominator = this->weight;
 
+  LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de_->elem->elemNum
+                  << " w= " << this->weight << " x=" << this->de_->GetPlainValue(DesignElement::DESIGN) << " num=" << numerator << " den=" << denominator;
+
   for(int i = 0, ni = (int) neighborhood.GetSize(); i < ni; i++)
   {
     const NeighbourElement* ne = &neighborhood[i];
@@ -720,8 +726,9 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
   Filter& f = de_->simp->filter;
   assert(f.type_ == Filter::DENSITY);
   assert(sp == DesignElement::COST_GRADIENT || sp == DesignElement::CONSTRAINT_GRADIENT);
-  assert((sp == DesignElement::COST_GRADIENT && g == NULL) || (sp == DesignElement::CONSTRAINT_GRADIENT && g != NULL));
-  assert(g == NULL || g->ForDensityFiltering());
+  assert((g == NULL && sp == DesignElement::COST_GRADIENT) || (g != NULL && sp == DesignElement::CONSTRAINT_GRADIENT));
+  // projection has density filtering only in the fake filter problem but not in the original problem (which should not be density filtered anyway)
+  assert(g == NULL || (g->ForDensityFiltering() || g->GetType() == Function::PROJECTION));
 
   // Density filtering for gradient is (Sigmund; Morphology-based black and white filters for topology optimization; 2007; eqn (35). (36)
   // p is rho and P is rho filtered! d f/d p_e = sum_i(in N_e) d f/d P_i * d P_i/d p_e with d P_i/d p_e = w(x_e)/ sum_j(in N_i) w(x_j)
@@ -778,7 +785,7 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
         double e = std::exp(2.0 * b * ( x_n - eta));
         h *= 1.0/((e+1.0)*(e+1.0)) * 2.0 * b * e;
       }
-    }
+    } // end if(f.density_ != Filter::STANDARD)
 
     double w = i == -1 ? this->weight : ne->weight;
     double w_sum = de->simp->CalcWeightSum(true);
@@ -786,9 +793,9 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
     double summand = v * h * w / w_sum;
     sum += summand;
 
-    // LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
-    //              << " v= " << v  << " h=" << h << " w=" << w << " x_n=" << x_n << " w_sum=" << w_sum
-    //              << " summand=" << summand << " sum=" << sum;
+    LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
+                    << " v= " << v  << " h=" << h << " w=" << w << " x_n=" << x_n << " w_sum=" << w_sum
+                    << " summand=" << summand << " sum=" << sum;
   }
 
   return sum;

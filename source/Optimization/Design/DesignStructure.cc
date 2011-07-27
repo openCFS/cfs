@@ -77,10 +77,12 @@ void DesignStructure::Initialize()
   initialized_ = true;
 }
 
-void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
+void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info, StdVector<DesignElement>* data_ptr)
 {
   if(!initialized_)
     Initialize();
+
+  StdVector<DesignElement>& data = data_ptr != NULL ? *data_ptr : space->data;
 
   filter_space_ = filterSpace.Parse(pn->Get("neighborhood")->As<string>());
   contribution_ = pn->Get("contribution")->As<string>() == "linear" ? LINEAR : CONSTANT;
@@ -133,7 +135,7 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
     if(filter_.density_ != Filter::STANDARD)
     {
       in->Get("beta")->SetValue(filter_.GetBeta());
-      if(em->constraints.Has(Function::VOLUME) && em->constraints.Get(Function::VOLUME)->IsLinear())
+      if(em != NULL && em->constraints.Has(Function::VOLUME) && em->constraints.Get(Function::VOLUME)->IsLinear())
         in->Get(ParamNode::WARNING)->SetValue("'volume' constraint shall be non-linear due to non-linear filter");
       if(filter_.density_ == Filter::HEAVISIDE)
         in->Get("heaviside_correction")->SetValue(filter_.heaviside_corr);
@@ -165,7 +167,6 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
 
   double avg_radius = 0;
   double avg_neighbours = 0;
-  StdVector<DesignElement>& data = space->data;
 
   // find simp neighbors for all our elements
   double radius = -1.0; // for each element, set only once for regular.

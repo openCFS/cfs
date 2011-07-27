@@ -133,6 +133,7 @@ public:
     MAX_JUMP, /* weak greyness constraint formulation */
     PENALIZED_STRESS, /* stess with own transfer function */
     DESIGN_TRACKING, /* (rho-rho^*)^2 but without 1/N */
+    PROJECTION, /* local value from projection || nu(rho_i) - H_eta_beta(rho_i) ||^2 */
     LEVEL_SET_GRAD_XP, LEVEL_SET_GRAD_XN, LEVEL_SET_GRAD_YP, LEVEL_SET_GRAD_YN, LEVEL_SET_GRAD_ZP, LEVEL_SET_GRAD_ZN } ValueSpecifier;
 
   BaseDesignElement();
@@ -234,6 +235,8 @@ public:
   /** Dummy elements for Funtion */
   DesignElement(Elem* elem, Type type, unsigned int index, int pseudoElementIndex);
 
+
+
   virtual ~DesignElement();
 
    /** We might need the transfer functions! */
@@ -262,7 +265,9 @@ public:
       COMPLIANCE, VOLUME, PENALIZED_VOLUME, GAP, TRACKING, HOMOGENIZATION_TRACKING,
       POISSONS_RATIO, YOUNGS_MODULUS, YOUNGS_MODULUS_E1, YOUNGS_MODULUS_E2,
       TYCHONOFF, GREYNESS, REALVOLUME,
-      GLOBAL_SLOPE, GLOBAL_CHECKERBOARD, STRESS} Detail;
+      GLOBAL_SLOPE, GLOBAL_CHECKERBOARD, STRESS,
+      /*!< only for the projection function. This is the element wise fake filter part */
+      PROJECTION_FILTER } Detail;
 
     /** Gets the design element
      * @param access if plain the rho value if SMART and filtering is enabled the filtered value */
@@ -406,7 +411,8 @@ public:
   double CalcTanh(double input_value) const;
 
   /** only for sensitivities for density filtering.
-   * See Sigmund; Morpology-based black and white filters for topology optimization; 2007; (35) and (36) */
+   * See Sigmund; Morpology-based black and white filters for topology optimization; 2007; (35) and (36)
+   * @param sp COST_GRADIENT, CONSTRAINT_GRADIENT or DENSITY for PROJECTION only */
   double GetDensityFilteredGradient(DesignElement::ValueSpecifier sp, Condition* g) const;
 
   /** Sums up the weights of the neighbors and optionally the own element */

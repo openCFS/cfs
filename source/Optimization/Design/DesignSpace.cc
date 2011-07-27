@@ -39,6 +39,8 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   LOG_TRACE(designSpace) << "DesignSpace for regions=" << reg_data;
   all_regions_regular_ = domain->GetGrid()->IsRegionRegular(reg_data);
   
+  pn_ = pn;
+
   // for convenience
   regionIds_ = reg_data;
 
@@ -288,6 +290,12 @@ DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, PtrPa
   default:
     return new DesignSpace(reg_data, pn, method);
   }
+}
+
+
+DesignSpace* DesignSpace::Clone()
+{
+  return new DesignSpace(regionIds_, pn_, ErsatzMaterial::SIMP_METHOD);
 }
 
 void DesignSpace::PostInit(int objectives, int constraints)
@@ -664,7 +672,7 @@ bool DesignSpace::GetErsatzMaterialDampingParameterForIntegrator(const Elem* ele
   return(false);
 }
 
-TransferFunction* DesignSpace::GetTransferFunction(DesignElement* de)
+TransferFunction* DesignSpace::GetTransferFunction(const DesignElement* de)
 {
   TransferFunction* res = NULL;
 

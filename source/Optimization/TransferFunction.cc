@@ -69,6 +69,9 @@ TransferFunction::TransferFunction(PtrParamNode pn, DesignElement::Type default_
   if((type_ == HEAVISIDE || type_ == TANH) && (!pn->Has("param") || !pn->Has("beta")))
     throw Exception("transfer function '" + type.ToString(type_) + "' requires a 'param' and 'beta' to be set");
 
+  if(type_ == TANH && (param_ < 0.0 || param_ > 1.0 )) // ignore exotic design variables!
+    throw Exception("'param' for transfer function 'tanh' out of bound [0:1]");
+
   // validate design/application
   if(design_ == DesignElement::POLARIZATION && application_ != Optimization::PIEZO_COUPLING)
     throw Exception("transfer functions for 'polarization' can only be '" 

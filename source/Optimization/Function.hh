@@ -79,6 +79,7 @@ class Function
       GLOBAL_JUMP,
       STRESS,                    /*!< global stress constraint: Kocvara and Stingl; 2007. Has adjoint! */
       STRESS_DENSITY,            /*!< global stress divided by volume */
+      PROJECTION,                /*!< Michael's idea: sum_i || nu(rho_i) - H_eta_beta(rho_i) ||^2 <= eps */
 
       // This is constraint only!
       GREYNESS,                  /*!< inaccurate - best for observation only */
@@ -421,6 +422,9 @@ class Function
     /** Give the local information. Check for NULL */
     Local* GetLocal() { return local; }
 
+    /** Give the projection data */
+    StdVector<DesignElement>& GetProjectionDesignClone();
+
     /** We also store here the info ptr. When overload, call also this. */
     virtual void ToInfo(PtrParamNode info);
 
@@ -487,8 +491,14 @@ class Function
     /** Do we have local information? E.G. (global) slopes */
     Local* local;
 
-    /** Here we store our info node */
+    /** Do we have a filter element? Only for the projection function we store an alternative design set which we can filter */
+    DesignSpace* projectionDesign_;
+
+    /** Here we store our info node. Set only by ToInfo() *after* PostProc. Use preInfo_ instead. Is null when not set, yet. */
     PtrParamNode info_;
+
+    /** In case info_ is not set, yet. ToInfo applies this information. Is initialized in the constructor */
+    PtrParamNode preInfo_;
 
     StressType stressType_;
 };

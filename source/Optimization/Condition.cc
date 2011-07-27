@@ -114,7 +114,7 @@ void Condition::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzM
   }
 
   // note, meanwhile we have info_ set! but not yet in the constructor
-  Function::PostProc(space, structure);
+  Function::PostProc(space, structure, em);
 
 
   if(type_ == VOLUME && physical_ && !observation_)
