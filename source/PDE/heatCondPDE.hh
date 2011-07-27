@@ -111,6 +111,9 @@ namespace CoupledField {
     bool isMechCoupled_;
     
     //Double InitialTemp_;
+
+    //! vector containing regionIds of non-conforming interfaces
+    StdVector<RegionIdType> ncIFaces_;
     
   };
 
