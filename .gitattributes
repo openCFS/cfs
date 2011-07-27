@@ -349,6 +349,7 @@ share/doc/developer/develManual/pics/icem_export_ansys.png -text
 share/doc/developer/develManual/pics/icem_export_ansys_options.png -text
 share/doc/developer/develManual/pics/icem_export_ansys_opts.pdf -text svneol=unset#unset
 share/doc/developer/develManual/pics/icem_export_ansys_opts.svg -text
+share/doc/developer/develManual/pics/kcachegrind_acou_define_int_callgraph.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/machete.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/nacs_win.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/pdf_attach_acroread.png -text
@@ -374,6 +375,9 @@ share/doc/developer/develManual/pics/pv/vector_perforated_metal_pattern2.png -te
 share/doc/developer/develManual/pics/pv/vtk_vis_pipeline.pdf -text
 share/doc/developer/develManual/pics/pv/vtk_vis_pipeline.svg -text
 share/doc/developer/develManual/pics/software-process.png -text svneol=unset#image/png
+share/doc/developer/develManual/pics/totalview_acou_define_int.png -text svneol=unset#image/png
+share/doc/developer/develManual/pics/totalview_acou_define_int_callgraph.png -text svneol=unset#image/png
+share/doc/developer/develManual/pics/totalview_enable_replay_engine.png -text svneol=unset#image/png
 share/doc/developer/develManual/quickstart.tex -text
 share/doc/developer/develManual/sources/Pfeifenfussmodell_modificated_swept.in.txt -text
 share/doc/developer/develManual/sources/ansys_surf_vol_mesh.txt -text
