@@ -47,6 +47,5 @@ IF(CPLREADER_REBUILD_DOCU)
     COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/latex/sources/pygmentize.sh ${CFS_SOURCE_DIR}/source/cplreader/Documentation/latex/sources ${CFS_BINARY_DIR}/source/cplreader/Documentation/latex/sources
     COMMENT "Doing syntax highlighting for documents..."
   )
-  ADD_DEPENDENCIES(cplreader_docu cplreader_docu_pygmentize)
 
 ENDIF(CPLREADER_REBUILD_DOCU)

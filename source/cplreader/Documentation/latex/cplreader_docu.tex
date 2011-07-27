@@ -17,8 +17,7 @@
 \usepackage{color}
 \definecolor{darkblue}{rgb}{0,0,.5}
 \usepackage[colorlinks=true, breaklinks=true, linkcolor=darkblue, 
-            menucolor=darkblue, pagecolor=darkblue, urlcolor=darkblue,
-            urlcolor=darkblue, citecolor=darkblue]{hyperref}
+            menucolor=darkblue, urlcolor=darkblue, citecolor=darkblue]{hyperref}
 \usepackage{bm}
 \usepackage{amssymb}
 \usepackage{times}
@@ -1034,12 +1033,7 @@ All entities 'name' may also be symbolic links.
 
 \begin{description}
   \item[.def]  The  .def file  contains  the  mesh  with informations  on  its
-    partitioning.  Unfortunately  the   names  of  the  partitions/regions  as
-    specified in CFX and no surface regions can be read from the CFX .def file
-    at  the moment.  This would  be highly  desirable for  specifying standard
-    acoustic absorbing BCs or  for Mortar coupled simulations. A corresponding
-    ticket       has      already       been      submitted       to      Trac
-    (cf. \url{https://lse17.e-technik.uni-erlangen.de:2001/trac/ticket/165}).
+    partitioning.
 
   \item[.res] The .res file acts as a  result file as well as restart file for
     CFX runs.  It  is the only file needed to restart  a CFX computation. This
@@ -1105,7 +1099,6 @@ about which .trn file was mapped  to which timestep. This is useful if corrupt
 .trn  files have  been encountered  which got  replaced by  the  last previous
 non-corrupt .trn file.
 
-\newpage
 \subsubsection{Examples}
 
 Let us assume, that we have got a directory layout like the following:
@@ -1146,15 +1139,68 @@ This would  read all transient files  except 6.trn which would  be replaced by
 also saved in the .res file.  The transient files get searched by cplreader in
 this case.
 
-Please note that no surface elements will be read by the CFX reader. Ideas for
-reading those elements and  further reverse engineering techniques are however
-collected                                                                    at
-\url{https://lse17.e-technik.uni-erlangen.de:2001/trac/discussion/topic/11}.
-
 Please also refer to Sections \ref{sec:cgns} and \ref{sec:starccm} for further
 options for transferring CFD data from CFX to cplreader.
 
-\newpage
+\subsubsection{CFX File Format Internals}
+Since the file format used by CFX is closed source, most of its internal data
+stuctures had to be found by reverse engineering. This section summarizes,
+which dataset contains relevant information.
+
+CFX files are binary files, which can be read by \texttt{Fortran} functions
+provided by ANSYS. These functions take as the most important arguments the
+dataset name (``what'') and the location (``where''). While a dataset's name
+determines the meaning of the dataset's contents, the location determines the
+part of the simulation that the dataset's contents refers to. Global
+information is tagged with the location \texttt{EVERY}. The geometry is
+referred to by the location \texttt{ZN1} (``zone 1''). The blocks of the mesh
+are called \emph{element sets}, located by \texttt{ZN1/ESx} (\texttt{x} must
+be replaced by the number of the element set). Boundary cells are grouped in
+\emph{face sets}, located by \texttt{ZN1/FSx}. Table~\ref{tab:cfx_def}
+contains an (incomplete) overview of the datasets in a .def file.
+
+\begin{table}
+  \centering
+  \caption{Meaning of datasets in CFX .def files}
+  \label{tab:cfx_def}
+  \begin{tabular}{llll}
+    \textbf{What} & \textbf{Where} & \textbf{Description} & \textbf{Datatype} \\
+    \hline\hline
+    \texttt{G/CLBSF}    & \texttt{ZN1}     & Labels (names) of surfaces                    & \texttt{*char} \\ \hline
+    \texttt{G/CLBVL}    & \texttt{ZN1}     & Labels (names) of volumes                     & \texttt{*char} \\ \hline
+    \texttt{G/CNAMCFX}  & \texttt{EVERY}   & Name and path of .cfx file                    & \texttt{*char} \\ \hline
+    \texttt{G/COMMANDS} & \texttt{EVERY}   & Definition of simulation run                  & \texttt{*char} \\ \hline
+    \texttt{G/CRDVX}    & \texttt{ZN1/VX}  & Coordinates of vertices                       & \texttt{double[]} \\ \hline
+    \texttt{G/CRELNO}   & \texttt{EVERY}   & CFX release number                            & \texttt{*char} \\ \hline
+    \texttt{G/ILTPES}   & \texttt{ZN1}     & Element type of element set                   & \texttt{int} \\    
+                        &                  & 4: Tetrahedra & \\                                      
+                        &                  & 5: Prisms     & \\                                      
+                        &                  & 6: Hexahedra  & \\                                      
+                        &                  & 7: Pyramids   & \\ \hline                               
+    \texttt{G/KVXPE}    & \texttt{ZN1/ESx} & Vertices per element in element set x         & \texttt{int[]} \\ \hline
+    \texttt{G/KELPE}    & \texttt{ZN1/ESx} & Element indexes in element set x              & \texttt{int[]} \\ \hline
+    \texttt{G/KELPF}    & \texttt{ZN1/FSx} & Surface elements in face set x                & \texttt{int[]} \\
+                        &                  & Given by tuple (element number, face index)   & \\ \hline          
+    \texttt{G/NBCP}     & \texttt{EVERY}   & Number of boundary conditions                 & \texttt{int} \\ \hline
+    \texttt{G/NDIMS}    & \texttt{ZN1}     & Dimension                                     & \texttt{int} \\ \hline
+    \texttt{G/NEL}      & \texttt{ZN1}     & Number of elements                            & \texttt{int} \\ \hline
+    \texttt{G/NELES}    & \texttt{ZN1}     & Number of elements per set                    & \texttt{int[]} \\ \hline
+    \texttt{G/NES}      & \texttt{ZN1}     & Number of element sets (blocks)               & \texttt{int} \\ \hline
+    \texttt{G/NFC}      & \texttt{ZN1}     & Number of faces (surface elements)            & \texttt{int} \\ \hline
+    \texttt{G/NFCFS}    & \texttt{ZN1}     & Number of faces per face set (surface region) & \texttt{int[]} \\ \hline
+    \texttt{G/NFS}      & \texttt{EVERY}   & Number of face sets (surface regions)         & \texttt{int} \\
+            & \texttt{ZN1}                 & & \\ \hline
+%    \texttt{G/NSF}      & \texttt{EVERY}   & Number of surfaces (=face sets?)              & \texttt{int} \\
+%                        & ZN1              &                                               & \\ \hline          
+%    \texttt{G/NVL}      & \texttt{EVERY}   & Number of volumes (=element sets?)            & \texttt{int}\\
+%                        & ZN1              &                                               & \\ \hline          
+    \texttt{G/NVX}      & \texttt{ZN1}     & Number of vertices                            & \texttt{int} \\
+%    \texttt{G/NZIF}     & \texttt{EVERY}   & ?Number of zone interfaces?                   & \texttt{int} \\ \hline
+%    \texttt{G/NZN}      & \texttt{EVERY}   & ?Number of zones (=domains?)                  & \texttt{int}
+  \end{tabular}
+\end{table}
+
+\clearpage
 \subsection{CFX\_EXPORT}
 \label{sec:cfx-export}
 \subsubsection{Required File Layout}
@@ -1864,9 +1910,9 @@ to commit the changes to SVN.
 \newpage
 \section{Copyright}
  
-Copyright (c) 2008 Department of Sensor Technology,
+Copyright (c) 2008 -- 2011 Department of Sensor Technology,
 Friedrich-Alexander University Erlangen-Nuremberg,\\
-Copyright (c) 2008 Chair of Applied Mechatronics,
+Copyright (c) 2008 -- 2011 Chair of Applied Mechatronics,
 Alps-Adriatic University of Klagenfurt, Austria.\\
 Copyright (c) 2008 Simetris GmbH, Tennenlohe, Germany.\\\\
 All rights reserved.\\\\
