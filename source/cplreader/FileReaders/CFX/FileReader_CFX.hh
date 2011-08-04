@@ -112,6 +112,15 @@ namespace CoupledField
     // number of volume regions (numRegions_ includes surface regions)
     UInt numVolRegions_;
     
+    // number of face sets
+    UInt numFaceSets_;
+    
+    // number of elements per face set
+    std::vector<UInt> numElemsPerFaceSet_;
+    
+    // mapping face set => boundary patch
+    std::vector<Integer> mapFaceSet2Region_;
+    
     // names of regions
     std::vector<std::string> regionNames_;
 

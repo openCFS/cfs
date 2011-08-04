@@ -3,11 +3,12 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include <string>
+#include <cstring>
 #include <iostream>
 #include <map>
 #include <set>
 #include <fstream>
-#include <stdio.h>
+#include <cstdio>
 #include <iomanip>
 
 #include <boost/regex.hpp>
@@ -152,6 +153,8 @@ namespace CoupledField
       numSteps_ = 0;
       transientFNs_.clear();
       timeStepNumbers_.clear();
+      transientFNs_.reserve(ntrn);
+      timeStepNumbers_.reserve(ntrn);
 
       for(int i = 0; i< ntrn; i++)
       {
@@ -250,6 +253,10 @@ namespace CoupledField
 
       it = stepNumSet.begin();
       end = stepNumSet.end();
+      
+      transientFNs_.reserve(stepNumSet.size());
+      timeStepNumbers_.reserve(stepNumSet.size());
+
       for( ; it != end; it++ )
       {
         stepNum = *it;
@@ -391,12 +398,12 @@ namespace CoupledField
     numVolRegions_ = nes;
 
     //
-    //---- Number of surfaces
+    //---- Number of boundary patches
     //
-    sprintf(what, "G/NSF");
-    sprintf(where, "ZN1");
+    sprintf(what, "G/NBCP");
+    sprintf(where, "EVERY");
     when  = 0;
-    int nsf;
+    int nbcp;
 
     dattyp = __int_data_type__;
     length = 1;
@@ -406,17 +413,43 @@ namespace CoupledField
 
     redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
             &iopt, &ioptar,
-            rarr,&nsf,carr,larr,darr,sarr, strlen(what), strlen(where), 0);
+            rarr,&nbcp,carr,larr,darr,sarr, strlen(what), strlen(where), 0);
     CHECK_CFX_IO(nerr);
 
     if(settings.GetInt("verbose"))
     {
-      printf("Number of surface sets, NSF= %d\n", nsf);
+      printf("Number of boundary patches, NBCP = %d\n", nbcp);
     }
 
-    numRegions_ = numVolRegions_ + nsf;
-    numNodesPerRegion_.resize(numRegions_);
-    numElemsPerRegion_.resize(numRegions_);
+    numRegions_ = numVolRegions_ + nbcp;
+    numNodesPerRegion_.resize(numRegions_, nvx);
+    numElemsPerRegion_.resize(numRegions_, 0);
+
+    //
+    //---- Number of face sets
+    //
+    sprintf(what, "G/NFS");
+    sprintf(where, "ZN1");
+    when  = 0;
+    int nfs;
+
+    dattyp = __int_data_type__;
+    length = 1;
+    nsize  = 1;
+    iopt   = __stop_if_failed__;
+    ioptar = 0;
+
+    redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
+            &iopt, &ioptar,
+            rarr,&nfs,carr,larr,darr,sarr, strlen(what), strlen(where), 0);
+    CHECK_CFX_IO(nerr);
+
+    if(settings.GetInt("verbose"))
+    {
+      printf("Number of face sets, NFS = %d\n", nfs);
+    }
+    
+    numFaceSets_ = nfs;
 
     //
     //---- Number of elements per set
@@ -443,7 +476,93 @@ namespace CoupledField
     {
       numElemsPerRegion_[i] = intvec[i];
       numElems_ += numElemsPerRegion_[i];
-      numNodesPerRegion_[i] = nvx;
+    }
+    
+    //
+    //---- start index (in KSFBCP) of surfaces per boundary patch
+    //
+    sprintf(what, "G/IPSFBCP");
+    sprintf(where, "EVERY");
+    when  = 0;
+
+    dattyp = __int_data_type__;
+    length = 1;
+    nsize  = nbcp+1;
+    iopt   = __stop_if_failed__;
+    ioptar = 0;
+    intvec.resize(length*nsize);
+
+    redsht_( &dattyp, &length, &nerr,
+             what, where, &when, &nsize,
+             &iopt, &ioptar,
+             rarr, &intvec[0], carr, larr, darr, sarr,
+             strlen(what), strlen(where), 0);
+    CHECK_CFX_IO(nerr);
+    
+    std::vector<UInt> bcpStartFS;
+    bcpStartFS.resize(nsize, 0);
+    std::copy(intvec.begin(), intvec.end(), bcpStartFS.begin());
+    
+    //
+    //---- map surface => face set
+    //
+    // KSFFS is a permutation of the surface numbers to obtain face set numbers
+    sprintf(what, "G/KSFFS");
+    sprintf(where, "ZN1");
+    when  = 0;
+
+    dattyp = __int_data_type__;
+    length = 1;
+    nsize  = numFaceSets_;
+    iopt   = __stop_if_failed__;
+    ioptar = 0;
+    intvec.resize(length*nsize);
+
+    redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
+            &iopt, &ioptar,
+            rarr,&intvec[0],carr,larr,darr,sarr, strlen(what), strlen(where), 0);
+    CHECK_CFX_IO(nerr);
+
+		// Here we assume, that there are as many surfaces as face sets (NSF==NFS).
+		// If that is not the case, things will go wrong!
+    std::vector<UInt> mapSurface2FaceSet;
+    mapSurface2FaceSet.resize(numFaceSets_, 0);
+    
+    for ( UInt i=0; i<numFaceSets_; ++i )
+    {
+      mapSurface2FaceSet[intvec[i]-1] = i;
+    }
+    
+    //
+    //---- surfaces per boundary patch
+    //
+    // Unify those surfaces that form a boundary patch
+    sprintf(what, "G/KSFBCP");
+    sprintf(where, "EVERY");
+    when  = 0;
+
+    dattyp = __int_data_type__;
+    length = 1;
+    nsize  = numFaceSets_;
+    iopt   = __stop_if_failed__;
+    ioptar = 0;
+    intvec.resize(length*nsize);
+
+    redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
+            &iopt, &ioptar,
+            rarr,&intvec[0],carr,larr,darr,sarr, strlen(what), strlen(where), 0);
+    CHECK_CFX_IO(nerr);
+
+		// initialize vector with -1, which means that face set will not be used
+    mapFaceSet2Region_.resize(numFaceSets_, -1);
+    
+    for ( UInt iBCP=0; iBCP<(UInt)nbcp; ++iBCP )
+    {
+      UInt iFS = bcpStartFS[iBCP];
+      do {
+        if (intvec[iFS-1] > 0) // intvec[iFS-1]==0 means that surface is unused
+          mapFaceSet2Region_[ mapSurface2FaceSet[ intvec[iFS-1] -1 ] ] = iBCP+numVolRegions_;
+      } while ( ++iFS < bcpStartFS[iBCP+1] );
     }
     
     //
@@ -455,7 +574,7 @@ namespace CoupledField
 
     dattyp = __int_data_type__;
     length = 1;
-    nsize  = numRegions_ - numVolRegions_;
+    nsize  = numFaceSets_;
     iopt   = __stop_if_failed__;
     ioptar = 0;
     intvec.resize(length*nsize);
@@ -467,11 +586,14 @@ namespace CoupledField
              strlen(what), strlen(where), 0);
     CHECK_CFX_IO(nerr);
 
-    for ( UInt i=numVolRegions_; i<numRegions_; ++i )
+    numElemsPerFaceSet_.resize(numFaceSets_);
+    
+    for ( UInt i=0; i<numFaceSets_; ++i )
     {
-      numElemsPerRegion_[i] = intvec[i-numVolRegions_];
-      numElems_ += numElemsPerRegion_[i];
-      numNodesPerRegion_[i] = nvx;
+      numElemsPerFaceSet_[i] = intvec[i];
+      if ( mapFaceSet2Region_[i] < 0 ) continue;
+      numElemsPerRegion_[mapFaceSet2Region_[i]] += intvec[i];
+      numElems_ += intvec[i];
     }
     
     //---- Element type per element set
@@ -501,7 +623,9 @@ namespace CoupledField
     //
     //---- loop over all element sets
     //
-    for(int ies = 1; ies <= (int)numVolRegions_; ies++)
+    regionElemTypes_.resize(numVolRegions_);
+    
+    for (int ies = 1; ies <= (int)numVolRegions_; ++ies)
     {
       //
       //---- number of nodes per element
@@ -509,16 +633,19 @@ namespace CoupledField
       switch (intvec[ies-1])
       {
         case 4:
-          regionElemTypes_.push_back(Elem::TET4);
+          regionElemTypes_[ies-1] = Elem::TET4;
           break;
         case 5:
-          regionElemTypes_.push_back(Elem::WEDGE6);
+          regionElemTypes_[ies-1] = Elem::WEDGE6;
           break;
         case 6:
-          regionElemTypes_.push_back(Elem::HEXA8);
+          regionElemTypes_[ies-1] = Elem::HEXA8;
           break;
         case 7:
-          regionElemTypes_.push_back(Elem::PYRA5);
+          regionElemTypes_[ies-1] = Elem::PYRA5;
+          break;
+        default:
+          regionElemTypes_[ies-1] = Elem::UNDEF;
           break;
       }
 
@@ -560,8 +687,7 @@ namespace CoupledField
             strlen(what), strlen(where), 0);
     CHECK_CFX_IO(nerr);
 
-    regionNames_.clear();
-    std::ostringstream oss;
+    regionNames_.resize(numRegions_);
     
     for ( UInt iRegion=0; iRegion<numVolRegions_; ++iRegion )
     {
@@ -575,62 +701,74 @@ namespace CoupledField
           break;
       }
       
-      oss.str("");
-      oss << regionName;
-      regionNames_.push_back(oss.str());
+      sstr.str("");
+      sstr << regionName;
+      regionNames_[iRegion] = sstr.str();
       
       std::replace( regionNames_[iRegion].begin(),
                     regionNames_[iRegion].end(),
                     ' ', '_' );
     }
 
-    
     //
-    //---- read surface regions names
+    //---- read regions names
     //
-    UInt numSurfRegions = numRegions_ - numVolRegions_;
-    
-    sprintf(what, "G/CLBSF");
-    sprintf(where, "ZN1");
+    sprintf(what, "G/NAMEMAP");
+    sprintf(where, "EVERY");
 
     dattyp = __string_data_type__;
     when   = 0;
-    length = numSurfRegions;
-    nsize  = 80;
+    length = 4;
+    nsize  = numRegions_;
     iopt   = __stop_if_failed__;
     ioptar = 0;
-    charvec.resize(length*nsize);
+    charvec.resize(80*length*nsize);
     
     redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
             &iopt, &ioptar,
             rarr,iarr,carr,larr,darr,&charvec[0],
             strlen(what), strlen(where), 0);
     CHECK_CFX_IO(nerr);
-
     
-    for ( UInt iRegion=0, regionIdx=numVolRegions_;
-          iRegion<numSurfRegions;
-          ++iRegion, ++regionIdx )
-    {
-      char *regionName = &charvec[iRegion*80];
-      
-      for ( UInt n=79; n>0; --n )
-      {
-        if ( isblank(regionName[n]) )
-          regionName[n] = 0;
+    // get rid of trailing spaces
+    for ( UInt i=0; i<(UInt)nsize; ++i ) {
+      char *name = &charvec[i*80];
+      for ( UInt n=79; n>0; --n ) {
+        if ( isblank(name[n]) )
+          name[n] = 0;
         else
           break;
       }
-      
-      oss.str("");
-      oss << regionName;
-      regionNames_.push_back(oss.str());
-      
-      std::replace( regionNames_[regionIdx].begin(),
-                    regionNames_[regionIdx].end(),
-                    ' ', '_' );
     }
     
+    for ( UInt i=0; i<numRegions_; ++i)
+    {
+      char *regionName = &charvec[i*4*80];
+      char *cfxID = &charvec[(i*4+1)*80];
+      
+      // if cfxID begins in "BCP", we have a boundary patch
+      // (there are other entities in NAMEMAP as well)
+      if ( strncmp(cfxID, "BCP", 3) == 0 )
+      {
+        UInt bcpNum = 0;
+        
+        // overwrite "BCP" with blanks, so we can parse the trailing number
+        cfxID[0] = ' '; cfxID[1] = ' '; cfxID[2] = ' ';
+        sstr.clear();
+        sstr.str(cfxID);
+        sstr >> bcpNum;
+        
+        if ( sstr.fail() || bcpNum < 1 || bcpNum > (UInt)nbcp) {
+          EXCEPTION("Invalid boundary patch number: " << cfxID);
+        }
+        
+        // store name of boundary patch
+        sstr.clear();
+        sstr.str("");
+        sstr << regionName;
+        regionNames_[bcpNum-1+numVolRegions_] = sstr.str();
+      }
+    }
     
     //
     //---- read CFX Release No. for UserData
@@ -652,9 +790,9 @@ namespace CoupledField
             strlen(what), strlen(where), 0);
     CHECK_CFX_IO(nerr);
 
-    oss.str("");
-    oss << &charvec[0];
-    userDataCFXRelease = oss.str();
+    sstr.str("");
+    sstr << &charvec[0];
+    userDataCFXRelease = sstr.str();
 
     
     //
@@ -728,6 +866,8 @@ namespace CoupledField
     UInt numElemNodes;
     std::vector<UInt> elConnect(maxNumElemNodes_);
 
+    std::cout  << "Reading connectivity from .def file" << std::endl;
+
     // open .def file
     snprintf(fn, sizeof(fn),"%s", defFile.c_str());
     whatfile = __io_open_primaryfile__;
@@ -792,8 +932,6 @@ namespace CoupledField
                  strlen(what), strlen(where), 0 );
       CHECK_CFX_IO(nerr);
 
-      std::cout  << "Read connectivity from .def file" << std::endl;
-
       if ( settings.GetInt("verbose") )
       {
         printf("Length of Connectivity array: %d\n", nsize);
@@ -830,14 +968,23 @@ namespace CoupledField
 
     }
 
-    UInt numSurfRegions = numRegions_ - numVolRegions_;
-    
-    for ( UInt iRegion=0; iRegion<numSurfRegions; ++iRegion )
+		// Make sure that std::vector's automatic allocation (via push_back)
+		// does not waste memory and time.
+    for ( UInt i=numVolRegions_; i<numRegions_; ++i )
     {
-      numRegionElems = numElemsPerRegion_[iRegion+numVolRegions_];
+      regionElems_[i].reserve(numElemsPerRegion_[i]);
+    }
+    
+    for ( UInt iFS=0; iFS<numFaceSets_; ++iFS )
+    {
+      Integer iRegion = mapFaceSet2Region_[iFS];
+      if ( iRegion < 0 )
+        continue;
+      
+      numRegionElems = numElemsPerFaceSet_[iFS];
       
       sprintf(what,"G/KELPF");
-      sprintf(where, "ZN1/FS%d", iRegion+1);
+      sprintf(where, "ZN1/FS%d", iFS+1);
       when  = 0;
       
       dattyp = __int_data_type__;
@@ -864,8 +1011,7 @@ namespace CoupledField
         std::copy(elConnect.begin(), elConnect.end(),
                   TOPOLOGYDATA.begin() + elem*maxNumElemNodes_);
 
-        regionElems_[iRegion+numVolRegions_].push_back(++elem);
-
+        regionElems_[iRegion].push_back(++elem);
       }
     }
 
@@ -1954,6 +2100,7 @@ namespace CoupledField
     end = transientFNs_.end();
 
     timeStepNumbers_.clear();
+    timeStepNumbers_.reserve(transientFNs_.size());
     
     for( ; it != end; it++ ) 
     {
@@ -2016,6 +2163,7 @@ namespace CoupledField
             break;
           default:
             EXCEPTION("Invalid face index: " << face);
+            break;
         }
         return Elem::TRIA3;
         break;
@@ -2054,6 +2202,7 @@ namespace CoupledField
             break;
           default:
             EXCEPTION("Invalid face index: " << face);
+            break;
         }
         return Elem::TRIA3;
         break;
@@ -2096,6 +2245,7 @@ namespace CoupledField
             break;
           default:
             EXCEPTION("Invalid face index: " << face);
+            break;
         }
         return Elem::QUAD4;
         break;
@@ -2146,11 +2296,13 @@ namespace CoupledField
             break;
           default:
             EXCEPTION("Invalid face index: " << face);
+            break;
         }
         return Elem::QUAD4;
         break;
       default:
         EXCEPTION("Element type " << elemType << " not supported");
+        break;
     }
   }
 
