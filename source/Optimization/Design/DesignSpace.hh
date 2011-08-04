@@ -377,6 +377,12 @@ namespace CoupledField
      bool CollectMaterialParametersForElement(const Elem* elem);
      
    private:
+
+     /** Helper for the constructor.
+      * @param tf for tanh and heaviside and in the physcical case!! scaling and offset in tf is set!!
+      * @return 'lower' or what is defined by the physical lower (e.g. by physical_lower or adapt_lower)  */
+     double DetermineLowerBound(PtrParamNode pn, TransferFunction* tf);
+
      /** Extracts a nodal value */
      double GetNodalValue(unsigned int nodeNumber, DesignElement::ValueSpecifier vs);
 

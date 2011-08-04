@@ -265,6 +265,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case GLOBAL_OSCILLATION:
     case JUMP:
     case GLOBAL_JUMP:
+    case BUMP:
     case DESIGN_TRACKING:
     case PROJECTION:
       assert(excite_index < 0);
@@ -441,6 +442,7 @@ bool Function::ForSensitivityFiltering() const
   case GLOBAL_OSCILLATION:
   case JUMP:
   case GLOBAL_JUMP:
+  case BUMP:
   case DESIGN_TRACKING:
   case PROJECTION:
     return false;
@@ -514,6 +516,7 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case GLOBAL_OSCILLATION:
   case JUMP:
   case GLOBAL_JUMP:
+  case BUMP:
   case STRESS:
   case STRESS_DENSITY:
     // assert(space->IsRegular()); // VicinityElements work only on a regular grid
@@ -674,6 +677,12 @@ Function::Local::Local(Function* func, DesignSpace* space)
     locality_ = ELEMENT;
     break;
 
+  case BUMP:
+    if(locality_ != PREV_NEXT && locality_ != DEFAULT)
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
+    locality_ = PREV_NEXT;
+    break;
+
   default: // no locality
     assert(false);
     break;
@@ -733,8 +742,7 @@ void Function::Local::SetupVirtualElementMap(Phase ph)
 
   // traverse all elements and check for full neighborhood
   space->AssertOneDesignOnly(); // can be extended we use the design from the conditon
-  int elems = space->GetNumberOfElements();
-  for(int e = 0, ss = elems; e < ss; ++e)
+  for(int e = 0, ss = space->GetNumberOfElements(); e < ss; ++e)
   {
     DesignElement* de = &(space->data[e]);
     VicinityElement* ve = de->vicinity;
@@ -1138,8 +1146,12 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
     fv = CalcJump();
     break;
 
+  case BUMP:
+    fv = CalcBump();
+
   default:
     assert(false);
+    break;
   }
 
   LOG_DBG2(func) << "L:I:EF: f=" << f->type.ToString(f->type_)
@@ -1228,6 +1240,10 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
       gv = CalcJumpGradient(n);
       break;
 
+    case BUMP:
+      gv = CalcBumpGradient(n);
+      break;
+
     case STRESS:
     case STRESS_DENSITY:
       assert(false); // in SIMP::CalcVonMisesStressGradient() only!
@@ -1235,6 +1251,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
 
     default:
       assert(false);
+      break;
     }
 
     LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
@@ -1515,4 +1532,58 @@ double Function::Local::Identifier::CalcJumpGradient(int neigh_idx) const
 
   return 2.0 * std::sin(PI*slope) * std::cos(PI*slope) * PI * factor;
 }
+
+double Function::Local::Identifier::CalcBump() const
+{
+  assert(sign == NO_SIGN);
+  assert(neighbor.GetSize() == 2);
+
+  // (x_i-1 - x_i)(x_i - x_i+1)
+  // no own value!
+  double prev = neighbor[0]->GetDesign(DesignElement::SMART);
+  double mine = element->GetDesign(DesignElement::SMART);
+  double next = neighbor[1]->GetDesign(DesignElement::SMART);
+
+  double val = (prev - mine) * (mine - next);
+
+  LOG_DBG3(func) << "L:I:CB de=" << element->ToString()
+                 << " prev=" << neighbor[0]->ToString() << "/" << prev
+                 << " next=" << neighbor[1]->ToString() << "/" << next << " mine=" << mine
+                 << " -> " << (prev - mine) << " * " << (mine - next) << " = " << val;
+
+  return val;
+}
+
+
+double Function::Local::Identifier::CalcBumpGradient(int neigh_idx) const
+{
+  double prev = neighbor[0]->GetDesign(DesignElement::SMART);
+  double mine = element->GetDesign(DesignElement::SMART);
+  double next = neighbor[1]->GetDesign(DesignElement::SMART);
+
+
+  double res = 0.0;
+
+  switch(neigh_idx)
+  {
+  case 0:
+    res = mine - next;
+    break;
+
+  case -1:
+    res = prev - 2.0 * mine + next;
+    break;
+
+  case 1:
+    res = mine - prev;
+    break;
+
+  default:
+    assert(false);
+    break;
+  }
+
+  return res;
+}
+
 

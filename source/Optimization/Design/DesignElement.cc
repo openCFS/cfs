@@ -148,23 +148,16 @@ DesignElement::DesignElement(Elem* elem, Type type, unsigned int index, int pseu
 }
 
 
-DesignElement::DesignElement(PtrParamNode pn, Elem* elem, unsigned int index) : BaseDesignElement()
+DesignElement::DesignElement(Type dt, double lower, double upper, Elem* elem, unsigned int index) : BaseDesignElement()
 {
   Init();
   this->elem = elem;
   this->specialResult.Resize(9, 0.0);
   this->index_ = index;
 
-  // it is a little slow to perform this code for every DesignElement but the
-  // implementations are rater fast and it should be not measurable in the end
-  type_ = type.Parse(pn->Get("name")->As<std::string>());
-
-  upper_ = 1.0;
-  // eventually overwrite
-  pn->GetValue("upper", upper_, ParamNode::INSERT);
-
-  lower_ = type_ == POLARIZATION ? -1.0 : 0.001;
-  pn->GetValue("lower", lower_, ParamNode::INSERT);
+  type_ = dt;
+  upper_ = upper;
+  lower_ = lower;
 }
 
 DesignElement::~DesignElement()
@@ -410,11 +403,13 @@ bool DesignElement::HasPhysicalDesign() const
 }
 
 
-void DesignElement::ToInfo(PtrParamNode in) const
+void DesignElement::ToInfo(PtrParamNode in, TransferFunction* tf) const
 {
   in->Get("type")->SetValue(type.ToString(type_));
   in->Get("upperBound")->SetValue(upper_);
   in->Get("lowerBound")->SetValue(lower_);
+  if(tf != NULL)
+    in->Get("physicalLowerBound")->SetValue(tf->Transform(this, DesignElement::PLAIN, lower_));
 }
 
 std::string DesignElement::ToString(const DesignElement* de)
@@ -649,8 +644,8 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
   double numerator = this->weight * this->de_->GetPlainValue(DesignElement::DESIGN);
   double denominator = this->weight;
 
-  LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de_->elem->elemNum
-                  << " w= " << this->weight << " x=" << this->de_->GetPlainValue(DesignElement::DESIGN) << " num=" << numerator << " den=" << denominator;
+  // LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de_->elem->elemNum
+  //                << " w= " << this->weight << " x=" << this->de_->GetPlainValue(DesignElement::DESIGN) << " num=" << numerator << " den=" << denominator;
 
   for(int i = 0, ni = (int) neighborhood.GetSize(); i < ni; i++)
   {
@@ -663,8 +658,8 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
     numerator   += w * x;
     denominator += w;
 
-    LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
-                    << " w= " << w  << " x=" << x << " num=" << numerator << " den=" << denominator;
+    // LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
+    //                 << " w= " << w  << " x=" << x << " num=" << numerator << " den=" << denominator;
   }
 
   double p_filt = numerator / denominator;
@@ -793,9 +788,9 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
     double summand = v * h * w / w_sum;
     sum += summand;
 
-    LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
-                    << " v= " << v  << " h=" << h << " w=" << w << " x_n=" << x_n << " w_sum=" << w_sum
-                    << " summand=" << summand << " sum=" << sum;
+    // LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
+    //                << " v= " << v  << " h=" << h << " w=" << w << " x_n=" << x_n << " w_sum=" << w_sum
+    //                << " summand=" << summand << " sum=" << sum;
   }
 
   return sum;

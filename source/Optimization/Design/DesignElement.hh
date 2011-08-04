@@ -24,6 +24,7 @@ class LevelSetElement;
 class Function;
 class Objective;
 class Condition;
+class TransferFunction;
 
 /** This DesignElement package provides information about the direct neighbours for uniform cartesian
  * quadrilateral or hexahedral meshes. */
@@ -230,7 +231,7 @@ public:
    * Is slow as it does the same evaluation often but is only O(n)
    * @param space to output 'penalizedDesign' the pointer is needed to find the transfer function
    * @param index location within the design space */
-  DesignElement(PtrParamNode pn, Elem* elem, unsigned int index);
+  DesignElement(Type dt, double lower, double upper, Elem* elem, unsigned int index);
 
   /** Dummy elements for Funtion */
   DesignElement(Elem* elem, Type type, unsigned int index, int pseudoElementIndex);
@@ -303,8 +304,9 @@ public:
 
     Type GetType() const { return type_; }
     
-    /** Write key values as attributes */
-    void ToInfo(PtrParamNode in) const;
+    /** Write key values as attributes
+     * @param tf if given prints the physical lower bound */
+    void ToInfo(PtrParamNode in, TransferFunction* tf) const;
 
     std::string ToString() const { return ToString(this); }
 

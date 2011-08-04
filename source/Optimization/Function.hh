@@ -91,6 +91,7 @@ class Function
       MOLE,                      /*!< Feature size control from T. Poulsen */
       OSCILLATION,               /*!< Feature size control by Fabian W. :) */
       JUMP,                      /*!< Weak greyness control by Fabian W. :) */
+      BUMP,                      /*!< Prevent intermediate change of slope ('hobbala') by Fabian W. */
       DESIGN_TRACKING            /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
     } Type;
 
@@ -319,6 +320,10 @@ class Function
         /** weak formulation of a greyness control */
         double CalcJump() const;
         double CalcJumpGradient(int neigh_id) const;
+
+        /** no change of slope sign */
+        double CalcBump() const;
+        double CalcBumpGradient(int neigh_idx) const;
 
         /** CalcStress() and the gradient are actually done in EM/SIMP */
 

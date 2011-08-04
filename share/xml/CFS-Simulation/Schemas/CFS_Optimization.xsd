@@ -287,6 +287,8 @@
                 <xsd:enumeration value="globalMole"/>
                 <xsd:enumeration value="jump"/>
                 <xsd:enumeration value="globalJump"/>
+                <!-- local constraint (rho_i-1 - rho_i)(rho_i - rho_i+1) >= 0, 'hobbala' -->
+                <xsd:enumeration value="bump"/>
                 <xsd:enumeration value="stress"/>
                 <!-- The stress density is divided by the element volume and corresponds to density=true in the stress results -->
                 <xsd:enumeration value="stressDensity"/>
@@ -663,7 +665,7 @@
               </xsd:complexType>
             </xsd:element>
             
-            <!-- similar to evaluateInitialDesign - checks the gradients via finite differences -->
+            <!-- similar to evaluate - checks the gradients via finite differences -->
             <xsd:element name="gradientCheck" minOccurs="0">
               <xsd:complexType>
                 <xsd:attribute name="h" type="xsd:float" use="optional" default="1e-6" />
@@ -688,7 +690,8 @@
                 <xsd:enumeration value="scpip"/>
                 <xsd:enumeration value="snopt"/>
                 <xsd:enumeration value="knitro"/>
-                <xsd:enumeration value="evaluateInitialDesign"/>
+                <!-- this evaluates only the initial design -->
+                <xsd:enumeration value="evaluate"/>
                 <xsd:enumeration value="shapeOpt"/>
                 <xsd:enumeration value="gradientCheck"/>
               </xsd:restriction>
@@ -760,13 +763,17 @@
               <xsd:complexType>
                 <xsd:attribute name="name" use="required" type="DT_Design"/>
                 <xsd:attribute name="initial" use="required" type="xsd:float"/>
-                <!-- for the lower and upper limits we have to default as it depends on the name -->
+                <!-- The lower bound which is the physical lower bound when adapt_lower is set. Not to be set when pyhsical_lower is set -->
                 <xsd:attribute name="lower" use="optional" type="xsd:float"/>
-                <xsd:attribute name="upper" use="optional" type="xsd:float"/>
+                <!-- Insteead of lower one can set physical_lower, then lower is determined by the transfer function. Redundant to adapt_lower -->
+                <xsd:attribute name="physical_lower" use="optional" type="xsd:float"/>
+                <!-- The upper bound of the design variable -->
+                <xsd:attribute name="upper" use="optional" default="1.0" type="xsd:float"/>
                 <xsd:attribute name="region" use="optional" type="xsd:token" default="all"/>
                 <xsd:attribute name="constant" use="optional" type="xsd:boolean" default="false"/>
                 <xsd:attribute name="fixed" use="optional" type="xsd:boolean" default="false"/>
                 <xsd:attribute name="scale" use="optional" type="xsd:boolean" default="false"/>
+                <!-- If true we interpret lower as physical_lower value. Must not be concurrent with physical_lower -->
                 <xsd:attribute name="adapt_lower" use="optional" type="xsd:boolean" default="false"/>
                 <!-- bimaterial optimization is optional. The value needs to be found in the material.xml -->
                 <xsd:attribute name="bimaterial" use="optional" type="xsd:token"/>

@@ -36,14 +36,14 @@ PROJECT(CFS C CXX Fortran)
 # CFS version number.  Simply the last modification date
 #-----------------------------------------------------------------------------
 SET(CFS_VERSION_YEAR "11")
-SET(CFS_VERSION_MONTH "06")
+SET(CFS_VERSION_MONTH "08")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 #-----------------------------------------------------------------------------
 # Version Name. Every major release gets a label/name
 #-----------------------------------------------------------------------------
-SET(CFS_NAME "Querulous Quokka")
+SET(CFS_NAME "Heldendaemmerung")
 
 #-----------------------------------------------------------------------------
 # Set hostname of build host

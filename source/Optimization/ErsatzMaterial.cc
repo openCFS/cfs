@@ -964,6 +964,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
     case Function::MOLE:
     case Function::OSCILLATION:
     case Function::JUMP:
+    case Function::BUMP:
          assert(c == NULL);
          result = CalcLocalConstraint(g, derivative);
          break;
@@ -976,7 +977,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
     case Function::HOMOGENIZATION_TENSOR:
           if(c != NULL && derivative && c->HasHomogenizationEntry())
           {
-            // if there s no "coord" set it is only meant for evaluateInitialDesign for forward homogenization
+            // if there s no "coord" set it is only meant for evaluate for forward homogenization
             StdVector<double> tmp;
             CalcHomogenizedTensorEntry(c->coord, true, tmp);
             for(unsigned int e = 0, ne = design->GetNumberOfElements(); e < ne; e++)

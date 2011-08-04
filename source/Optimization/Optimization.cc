@@ -279,6 +279,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::GLOBAL_OSCILLATION, "globalOscillation");
   Function::type.Add(Function::JUMP, "jump");
   Function::type.Add(Function::GLOBAL_JUMP, "globalJump");
+  Function::type.Add(Function::BUMP, "bump");
   Function::type.Add(Function::DESIGN_TRACKING, "designTracking");
 
   Function::Local::locality.SetName("Function::Local::Locality");
@@ -324,7 +325,7 @@ void Optimization::SetEnums()
   optimizer.Add(SNOPT_SOLVER, "snopt");
   optimizer.Add(KNITRO_SOLVER, "knitro");
   optimizer.Add(SHAPE_SOLVER, "shapeOpt");
-  optimizer.Add(EVALUATE_INITIAL_DESIGN, "evaluateInitialDesign");
+  optimizer.Add(EVALUATE_INITIAL_DESIGN, "evaluate");
   optimizer.Add(GRADIENT_CHECK, "gradientCheck");
 
   ErsatzMaterial::method.SetName("ErsatzMaterial::Method");

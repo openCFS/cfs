@@ -48,6 +48,12 @@ void Filter::SetBeta(double val, const DesignSpace* space)
     double upper = 2.0;
     while(upper - lower > 1e-6) // so close that it doesn't matter in the end which value [lower:upper] is best
     {
+      // this is nonsense!! TODO
+      // why not like
+      // double mid = 0.5 * (ub + lb);
+      // double test = tf->Transform(NULL, DesignElement::PLAIN, mid);
+      // if(test < physical)
+
       double mid = 0.5 * (upper + lower);
       de.simp->filter.heaviside_corr = 0.5 * (upper + mid);
       double err_u = lb - de.simp->CalcHeaviside(lb);

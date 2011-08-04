@@ -66,11 +66,6 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   
   pamping_ = pn->Has("pamping") ? pn->Get("pamping/value")->As<double>() : 0.0;
 
-  ParamNodeList trans_in = pn->GetList("transferFunction");
-
-  // should we adapt the lower bound of the design variable to the penalty exponent of the transfer function? 
-  bool adapt_lower(false);
-
   // check for non-design-vicinity
   non_design_vicinity_ = pn->Has("designSpace") ? pn->Get("designSpace/non_design_vicinity")->As<bool>() : false;
 
@@ -86,13 +81,32 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   // number of different designs
   ParamNodeList pn_design = pn->GetList("design");
   unsigned int nd = 0;
-  for(unsigned int d = 0; d < pn_design.GetSize(); d++){
+  for(unsigned int d = 0; d < pn_design.GetSize(); d++)
+  {
     DesignElement::Type dt = DesignElement::type.Parse(pn_design[d]->Get("name")->As<std::string>());
-    if(design.Find(dt) < 0){
+    if(design.Find(dt) < 0)
+    {
       design.Push_back(dt);
       nd++;
     }
   }
+  
+  // now read the transfer functions
+  ParamNodeList trans_in = pn->GetList("transferFunction");
+  if(method != ErsatzMaterial::PARAM_MAT && method != ErsatzMaterial::SHAPE_PARAM_MAT)
+  {
+    if(trans_in.GetSize() == 0)
+      throw Exception("no transferFunctions given");
+
+    transfer.Reserve(trans_in.GetSize());
+    if(trans_in.GetSize() < nd)
+      throw Exception("less transferFunctions than design variable types is infeasible");
+
+    for(unsigned int i = 0; i < trans_in.GetSize(); i++)
+      transfer.Push_back(TransferFunction(trans_in[i], design.GetSize() == 1 ? design[0] : DesignElement::NO_TYPE));
+  }
+  
+  
   
   if(elements == 0 || nd == 0)
   { // this may happen in shape optimization
@@ -137,10 +151,6 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
 
         std::string design_reg = curr_design_pn->Get("region")->As<std::string>();
         std::string design_bim = curr_design_pn->Has("bimaterial") ? curr_design_pn->Get("bimaterial")->As<std::string>() : "";
-        // there is no default for adapt_lower in the load ersatz material case
-        adapt_lower = false;
-        if(curr_design_pn->Has("adapt_lower"))
-          adapt_lower = curr_design_pn->Get("adapt_lower")->As<bool>();
         
         for(unsigned int r = 0; r < nr; r++)
         {
@@ -149,10 +159,11 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
           std::string reg = regNames[reg_data[r]];
           
           bool design_all = design_reg == "all";
-          if(design_all || design_reg == reg){
-            if(!region_design[r*nd + dti]){
+          if(design_all || design_reg == reg)
+          {
+            if(!region_design[r*nd + dti])  
               throw Exception("Design/Region combination given twice!");
-            }
+
             region_design[r*nd + dti] = false;
             
             // this is now done for all designs per region, this is called for every design and every region here
@@ -162,35 +173,36 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
             regions[dti][r].elements = n;
 
             regions[dti][r].constant = VARIABLE;
-            if(curr_design_pn->Has("constant") && curr_design_pn->Get("constant")->As<bool>()){
-              // we have a constant densign-value on that region
-              regions[dti][r].constant = design_all ? CONSTANT_ON_ALL_REGIONS : CONSTANT_PER_REGION;
-            }
-            if(curr_design_pn->Get("fixed")->As<bool>()){ // fixed overwrites all other settings
-              regions[dti][r].constant = FIXED;
-            }
+
+            if(curr_design_pn->Has("constant") && curr_design_pn->Get("constant")->As<bool>())
+              regions[dti][r].constant = design_all ? CONSTANT_ON_ALL_REGIONS : CONSTANT_PER_REGION; // we have a constant densign-value on that region
+
+            if(curr_design_pn->Get("fixed")->As<bool>()) 
+              regions[dti][r].constant = FIXED; // fixed overwrites all other settings
             
             regions[dti][r].scale_design = 1.0;
             regions[dti][r].translate_design = 0.0;
             if(design_bim != "")
               regions[dti][r].SetBiMaterial(design_bim);
 
+            double upper = curr_design_pn->Get("upper")->As<double>();
+            // for tanh and heaviside scaling and offset is set in the physical case
+            TransferFunction* tf = GetTransferFunction(dt, Optimization::MECH); // assume mech - otherwise we normally don't penalize - change if you need it
+            double lower = DetermineLowerBound(curr_design_pn, tf);
+            
             if(curr_design_pn->Has("scale") && curr_design_pn->Get("scale")->As<bool>()){
-              double upper = curr_design_pn->Get("upper")->As<double>();
-              double lower = curr_design_pn->Get("lower")->As<double>();
               regions[dti][r].scale_design = (upper - lower);
               regions[dti][r].translate_design = lower;
             }
 
             double initial = curr_design_pn->Get("initial")->As<double>();
+
             LOG_DBG2(designSpace) << "add design " << dt << ":" << DesignElement::type.ToString(dt)  
                                   << " initial=" << boost::lexical_cast<std::string>(initial);
                         
-
-
             for(unsigned int e = 0; e < n; e++)
             {
-              DesignElement de(curr_design_pn, elems[e], data.GetSize());
+              DesignElement de(dt, lower, upper, elems[e], data.GetSize());
               // simple extension: if the passed value is smaller
               // than 0.0 (which makes no sense as the element contribution
               // is always positive), we put a random number -> random initial design
@@ -226,22 +238,6 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     }
 
     LOG_DBG(designSpace) << "data size: " << elements << "*" << pn_design.GetSize() << "=" << data.GetSize();
-
-
-    // now read the transfer functions
-    if(method != ErsatzMaterial::PARAM_MAT && method != ErsatzMaterial::SHAPE_PARAM_MAT)
-    {
-      if(trans_in.GetSize() == 0)
-        throw Exception("no transferFunctions given");
-
-      transfer.Reserve(trans_in.GetSize());
-      if(trans_in.GetSize() < nd)
-        throw Exception("less transferFunctions than design variable types is infeasible");
-
-      for(unsigned int i = 0; i < trans_in.GetSize(); i++)
-        transfer.Push_back(TransferFunction(trans_in[i], design.GetSize() == 1 ? design[0] : DesignElement::NO_TYPE));
-    }
-
   } // no design elements given
 
   // set the result descriptions which identify the solution types
@@ -250,19 +246,6 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   for(unsigned int i = 0; i < result.GetSize(); i++)
     resultDescriptions.Push_back(ResultDescription(result[i]));
   
-  if(adapt_lower)
-  {
-    // get the param from the transfer function
-    const double par(1.0/GetTransferFunction(DesignElement::DENSITY, Optimization::MECH)->GetParam());
-    
-    // adapt lower bound of density
-    for(unsigned int e = 0, n = data.GetSize(); e < n; ++e)
-    {
-      DesignElement &curr_de = data[e];
-      curr_de.SetLowerBound(std::pow(curr_de.GetLowerBound(), par));
-    }
-  }
-
   // reserve for the worst case. non_design_vicinity and off-design optimization
   pseudoDesigns_.Reserve(domain->GetGrid()->GetNumRegions() * design.GetSize());
 
@@ -281,6 +264,77 @@ DesignSpace::~DesignSpace(){
     designMaterial = NULL;
   }
 }
+
+
+double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
+{
+  bool pl = pn->Has("physical_lower");
+  bool al = pn->Has("adapt_lower") ? pn->Get("adapt_lower")->As<bool>() : false;
+  
+  // find the proper lower value. We have a design lower and a physical lower. The user can decide what to set
+  if(pn->Has("lower") && pl)
+    throw Exception("In 'design' the attributes 'lower' and 'physical_lower' must not be given concurrently");
+  if(al && pl)
+    throw Exception("In 'design' the attributes 'adapt_lower' and 'physical_lower' must not be given concurrently");
+
+  if(!pl && !al)
+  {
+    if(!pn->Has("lower"))
+      throw Exception("In 'design' give 'lower' or 'pyhical_lower'");
+
+    return pn->Get("lower")->As<double>();
+  }
+     
+  // we have to find the lower bound by the transfer function.
+  assert(tf != NULL);
+  
+  // it is not nice to have the equal physical_lower and adapt_lower concepts the same time  
+  double physical = pl ? pn->Get("physical_lower")->As<double>() : pn->Get("lower")->As<double>();
+  
+  switch(tf->GetType())
+  {
+  case TransferFunction::SIMP_TYPE:
+    return std::pow(physical, 1.0/tf->GetParam());
+
+  case TransferFunction::RAMP:
+    throw Exception("not implemented");
+
+  case TransferFunction::NO_TYPE:
+  case TransferFunction::FULL:
+  case TransferFunction::FIXED:
+    throw Exception("Invalid transfer function type for physical lower bound in design.");
+
+  case TransferFunction::IDENTITY:
+    return physical;
+
+  case TransferFunction::HEAVISIDE:
+  case TransferFunction::TANH:
+  {
+    // disable scaling
+    tf->SetScaling(1.0);
+    tf->SetOffset(0.0);
+
+    // we perform the scaling by a complex way: sc * func + of with sc=scaling and of=offset
+    // original func(1) = uv, func(lower) = lv
+    // sc * lv + of = physical
+    // sc * uv + of = 1
+    // lower is set to physical!
+
+    // example. For beta=5 and eta=0.5 tanh(>= 0) >= 0.0066. A negative design is not feasible!
+    // therefore we have to set scaling and lower=physical
+    double lv = tf->Transform(NULL, DesignElement::PLAIN, physical);
+    double uv = tf->Transform(NULL, DesignElement::PLAIN, 1.0); // we hope this is always true!!!
+    tf->SetScaling((1.0 - (physical - lv/uv)/(1-lv/uv))/uv);
+    tf->SetOffset((physical - lv/uv) / (1 - lv/uv));
+    return physical;
+  }
+  }
+
+  assert(false);
+  return -1;
+}
+
+
 
 DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, PtrParamNode pn, ErsatzMaterial::Method method){
   switch(method){
@@ -1070,7 +1124,10 @@ void DesignSpace::ToInfo(PtrParamNode in)
   dv->Get("modelVariables")->SetValue(data.GetSize());
   dv->Get("modelElements")->SetValue(GetNumberOfElements());
   for(unsigned int i = 0; i < design.GetSize(); i++)
-    data[i * elements].ToInfo(dv->Get("design", ParamNode::APPEND));
+  {
+    DesignElement& de = data[i * elements];
+    de.ToInfo(dv->Get("design", ParamNode::APPEND), GetTransferFunction(&de));
+  }
 
   in->Get("pamping")->SetValue(pamping_);
   if(regions.GetSize() > 0)

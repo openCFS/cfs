@@ -28,6 +28,8 @@ TransferFunction::TransferFunction()
   application_ = Optimization::NO_APP;
   param_ = 0.0;
   beta_ = -1.0;
+  scaling_ = 1.0;
+  offset_ = 0.0;
 }
 
 
@@ -41,6 +43,8 @@ TransferFunction::TransferFunction(Optimization::Application app, TransferFuncti
   this->design_ = design;
   this->param_ = param;
   this->beta_ = -1.0;
+  this->scaling_ = 1.0;
+  this->offset_ = 0.0;
 }
 
 
@@ -51,6 +55,8 @@ TransferFunction::TransferFunction(PtrParamNode pn, DesignElement::Type default_
   this->type_ = type.Parse(pn->Get("type")->As<std::string>());
   this->orgType_ = NO_TYPE;
   this->application_ = Optimization::application.Parse(pn->Get("application")->As<std::string>());
+  this->scaling_ = 1.0;
+  this->offset_ = 0.0;
   if(pn->Has("design"))
     this->design_ = DesignElement::type.Parse(pn->Get("design")->As<std::string>());
   else
@@ -114,6 +120,13 @@ void TransferFunction::ToInfo(PtrParamNode in) const
     in->Get("param")->SetValue(param_);
   if(type_ == HEAVISIDE || type_ == TANH)
     in->Get("beta")->SetValue(beta_);
+  if(scaling_ != 1.0 || offset_ != 0.0)
+  {
+    assert(type_ == HEAVISIDE || type_ == TANH);
+    in->Get("scaling")->SetValue(scaling_);
+    in->Get("offset")->SetValue(offset_);
+  }
+
   
 }
 
@@ -202,6 +215,7 @@ double TransferFunction::Transform(const DesignElement* de, DesignElement::Acces
     break;
     
   case FULL:
+    assert(de != NULL);
     result = de->GetUpperBound();
     break;
     
@@ -209,19 +223,22 @@ double TransferFunction::Transform(const DesignElement* de, DesignElement::Acces
     // some options and the derivatives
     // plot (1-exp(-20*x)), 20*x*exp(-20*x), 4*(1-exp(-10*x))**3 * 10*x*exp(-10*x), (1-exp(-10*x))**4, 1-exp(-20*x**6), 20*x**6*6*x**5*exp(-20*x**6)
     assert(beta_ >= 0.0);
-    result = std::pow(1.0 - std::exp(-1.0 * beta_ * value), param_);
+    // we optionally scale the stuff when we have physical design
+    result = scaling_ * (std::pow(1.0 - std::exp(-1.0 * beta_ * value), param_)) + offset_;
     break;
 
   case TANH:
     assert(beta_ >= 0.0);
     // tf(x) =  1 - 1/(exp(2*beta*(x-param)) + 1)
-    result = 1.0 - 1.0/(std::exp(2.0 * beta_ * ( value - param_)) + 1.0);
+    // we optionally scale the stuff when we have physical design
+    // tf(x) =  scaling * (1 - 1/(exp(2*beta*(x-param)) + 1)) + offset
+    result = scaling_ * (1.0 - 1.0/(std::exp(2.0 * beta_ * ( value - param_)) + 1.0)) + offset_;
     break;
 
   default: throw Exception("type not implemented");
   }          
   
-  LOG_DBG3(trans) << "Transform de=" << de->elem->elemNum << " value=" << value << " type=" << type.ToString(type_) << " param=" << param_ << " -> " << result;
+  LOG_DBG3(trans) << "Transform de=" << (de != NULL ? de->elem->elemNum : -1) << " value=" << value << " type=" << type.ToString(type_) << " param=" << param_ << " -> " << result;
   return result;
 }     
 
@@ -255,14 +272,14 @@ double TransferFunction::Derivative(const DesignElement* de, DesignElement::Acce
       assert(beta_ > 0.0);
       double hs = std::exp(-1.0 * beta_ * value);
 
-      return param_ * std::pow(1.0 - hs, param_ - 1.0) * beta_ * hs;
+      return scaling_ * (param_ * std::pow(1.0 - hs, param_ - 1.0) * beta_ * hs);
     }
     case TANH:
     {
       // tf(x)  =  1 - 1/(exp(2*beta*(x-param)) + 1)
       // tf'(x) =  (exp(2*beta*(x-param)+1)^-2 * 2 * beta * exp(2*beta*(x-param))
       double e = std::exp(2.0 * beta_ * ( value - param_));
-      return 1.0/((e+1.0)*(e+1.0)) * 2.0 * beta_ * e;
+      return scaling_ * (1.0/((e+1.0)*(e+1.0)) * 2.0 * beta_ * e);
     }
 
     case FIXED:  
