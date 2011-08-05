@@ -34,25 +34,12 @@ using boost::lexical_cast;
 
 Function::Function(PtrParamNode pn)
 {
-  this->harmonic_    = BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType());
-  this->design = DesignElement::DEFAULT; // overwritten eventually in Condition
-  this->region = ALL_REGIONS;  // overwritten eventually in Condition
-
+  Init();
 
   this->preInfo_ = PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT ));
   this->pn = pn;
-  this->local = NULL;
-  this->projectionDesign_ = NULL;
 
   this->type_ = type.Parse(pn->Get("type")->As<std::string>());
-
-  // function value to be evaluated
-  this->value_ = -1.0;
-
-  // -2 is unset, -1 is all, >= 0 the excitation index
-  this->excite_ = -1;
-
-  this->stressType_ = MECH; // set in Condition
 
   this->physical_ = pn->Has("physical") ? pn->Get("physical")->As<bool>() : false;
 
@@ -108,12 +95,33 @@ Function::Function(PtrParamNode pn)
 
 }
 
-
-
 Function::~Function()
 {
   if(local != NULL) { delete local; local = NULL; }
   if(projectionDesign_ != NULL) { delete projectionDesign_; projectionDesign_ = NULL; }
+}
+
+void Function::Init()
+{
+  this->harmonic_    = BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType());
+  this->design = DesignElement::DEFAULT; // overwritten eventually in Condition
+  this->region = ALL_REGIONS;  // overwritten eventually in Condition
+
+  this->local = NULL;
+  this->projectionDesign_ = NULL;
+
+    // function value to be evaluated
+  this->value_ = -1.0;
+
+  // -2 is unset, -1 is all, >= 0 the excitation index
+  this->excite_ = -1;
+
+  this->stressType_ = MECH; // set in Condition
+
+  this->omega_omega_ = false;
+  this->index_ = -1;
+
+
 }
 
 Function* Function::Cast(Objective* c, Condition* g)

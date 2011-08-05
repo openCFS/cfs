@@ -316,6 +316,10 @@ public:
     /** helper for LOG output */
     static std::string ToString(const StdVector<DesignElement*>& vec);
 
+    /** Calculates the volume of the element, used static helpers.
+     * caches the result, hence cheap to query again */
+    double CalcVolume();
+
     /** to make the class polymorphi and we can dynamic_cast<> it */
     /** Pointer to the element of the region, parameter for integration, ... */
     Elem*  elem;
@@ -384,6 +388,9 @@ private:
 
   /** what is our design type */
   Type type_;
+
+  /** the element volume calculated on request by CalcVolume() */
+  double elemVol_;
 
   /** up to now only needed to extract 'penalizedDesign'. Make it protected
    * if you need it. */

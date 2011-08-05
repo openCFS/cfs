@@ -178,6 +178,7 @@ void DesignElement::Init()
   type_           = NO_TYPE;
   index_          = numeric_limits<unsigned int>::max();
   pseudoElementIndex_ = -1;
+  elemVol_        = -1.0;
 }
 
 
@@ -211,6 +212,18 @@ Point* DesignElement::GetLocation()
 
   LOG_DBG3(desel) << "DesignElement::GetLocation() find " << location_->ToString() << " for " << ToString();
   return location_;
+}
+
+double DesignElement::CalcVolume()
+{
+  // precalculated?
+  if(elemVol_ >= 0)
+    return elemVol_;
+
+  static Matrix<Double> coords;
+  domain->GetGrid()->GetElemNodesCoord(coords, elem->connect, true);
+  elemVol_ = elem->ptElem->CalcVolume(coords, false);
+  return elemVol_;
 }
 
 unsigned int DesignElement::GetElementSolutionIndex() const

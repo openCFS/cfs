@@ -187,7 +187,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
 
             double upper = curr_design_pn->Get("upper")->As<double>();
             // for tanh and heaviside scaling and offset is set in the physical case
-            TransferFunction* tf = GetTransferFunction(dt, Optimization::MECH); // assume mech - otherwise we normally don't penalize - change if you need it
+            TransferFunction* tf = GetTransferFunction(dt, Optimization::MECH, false); // assume mech - otherwise we normally don't penalize - change if you need it
             double lower = DetermineLowerBound(curr_design_pn, tf);
             
             if(curr_design_pn->Has("scale") && curr_design_pn->Get("scale")->As<bool>()){
@@ -297,7 +297,7 @@ double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
     return std::pow(physical, 1.0/tf->GetParam());
 
   case TransferFunction::RAMP:
-    throw Exception("not implemented");
+    return (physical + tf->GetParam() * physical ) / (1 + tf->GetParam() * physical);
 
   case TransferFunction::NO_TYPE:
   case TransferFunction::FULL:
@@ -1126,7 +1126,8 @@ void DesignSpace::ToInfo(PtrParamNode in)
   for(unsigned int i = 0; i < design.GetSize(); i++)
   {
     DesignElement& de = data[i * elements];
-    de.ToInfo(dv->Get("design", ParamNode::APPEND), GetTransferFunction(&de));
+    // FIXME an arbitrary transfer function is nonsense!
+    de.ToInfo(dv->Get("design", ParamNode::APPEND), GetTransferFunction(de.GetType(), Optimization::MECH, false)); // silent!
   }
 
   in->Get("pamping")->SetValue(pamping_);

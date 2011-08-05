@@ -37,17 +37,11 @@ Objective::Objective(PtrParamNode pn, PtrParamNode pn_type, unsigned int idx)
 
 Objective::Objective(Type type, double parameter, bool physical)
 {
+  Init();
   this->type_ = type;
-  this->physical_ = physical;
   this->parameter_ = parameter;
-  this->harmonic_  = BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType());
-  this->local = NULL;
-  this->value_ = -1.0;
   this->excite_ = -2;
   this->physical_ = physical;
-  this->parameter_ = parameter;
-  this->omega_omega_ = false;
-  this->index_ = -1;
   this->penalty_ = 1.0;
 }
 

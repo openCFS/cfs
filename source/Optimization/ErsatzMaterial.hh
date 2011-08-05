@@ -399,6 +399,12 @@ public:
    * This is for output loads or general real/complex rhs. */
   virtual void ConstructAdjointRHS(Excitation& excite, Function* f);
 
+  /** A simple variant of IntegrateDesignVariable() which works also for non-simp transfer function.
+   * Handles also non-regular and physical
+   * @param normalized @see CalcVolume() */
+  double CalcTrivialVolume(Function* f, bool derivative, bool normalized);
+
+
   /** calculates the integral over a design variable (note that volume is a special case of this (with all standard values) @see CalcVolume
    * regularization is using this usually with normalized = true, scale = true, square = true, factor = "the regularization parameter"
    * @param dtype The design variable to integrate over, use TENSOR_TRACE for tensor trace or DEFAULT for single design
@@ -419,8 +425,7 @@ public:
    * @param grad_out if derivative is set and grad_out is not null it is set.
    * @param normalized if set use normalized "volume" i.e. sum(design * area) / sum(area) for each element, else only sum(design * area)
    * @return invalid in derivative case*/
-  virtual double CalcVolume(Objective* f, Condition* g, bool derivative,
-      bool normalized = true);
+  virtual double CalcVolume(Objective* f, Condition* g, bool derivative, bool normalized = true);
 
   /** Handles the Compliance constraint/objective. Has a objective, objective derivative,
    * constraint and constraint derivative mode

@@ -451,6 +451,9 @@ class Function
 
   protected:
 
+    /** common constructor stuff. To be called from special Objective constructor, too */
+    void Init();
+
     /** Is reentrant save. Initialize the local variable
      * @return either a new Local or the old one */
     Local* InitLocal(DesignSpace* space);
