@@ -70,6 +70,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     aitkenOmega_ = displFac_;
     aitkenOmegaPrevIter_ = displFac_;
     FSI_ = myParam_->Get("fsi")->As<bool>();
+    if (FSI_ && !useAitken_)
+      WARN("Using fsi without aitken is not recommended");
 
     // ****************************
     // DETERMINE GEOMETRY
