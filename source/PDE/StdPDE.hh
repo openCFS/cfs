@@ -524,7 +524,6 @@ namespace CoupledField {
     bool isIterCoupled_;        //!< PDE couples with others
     Vector<Double> matParam_;      //!< change to material parameter
     bool updateCouplingBCs_ ;  //!< flag if coupling BC were already set
-    UInt couplingBCsCounter_;  //!< counter for number of coupling BCs
     PDECoupling *ptCoupling_;     //!< pointer to coupling object
   
     //! nodes at which coupling terms are calculated

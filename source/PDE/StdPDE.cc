@@ -33,7 +33,6 @@ namespace CoupledField {
     isHysteresis_(false),
     isIterCoupled_(false),
     updateCouplingBCs_(false),
-    couplingBCsCounter_(0),
     ptCoupling_(NULL),
     iterCoupledCounter_(0),
     TS_alg_(NULL),

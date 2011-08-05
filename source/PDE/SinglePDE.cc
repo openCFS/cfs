@@ -2316,10 +2316,6 @@ namespace CoupledField {
     if (isIterCoupled_ == false)
       return;
 
-    // Reset counter for boundary conditions
-    couplingBCsCounter_ = 0;
-
-
     // Outer loop over all INPUT coupling terms
     for (UInt i=0; i<ptCoupling_->GetNumInputCouplings(); i++) {
 
@@ -2405,8 +2401,7 @@ namespace CoupledField {
         ptCoupling_->GetInputNodes(i, nodes);
 
         for ( UInt dof = 0; dof < ptCoupling_->GetInputDof(i); dof++ ) {
-          for ( UInt j = 0; j < nodes->GetSize();
-                j++,couplingBCsCounter_++ ) {
+          for ( UInt j = 0; j < nodes->GetSize(); j++) {
 
             eqnNr = eqnMap_->GetNodeEqn( (*nodes)[j], dof+1 );
 
