@@ -5,9 +5,9 @@ import sys
 # define a mapping from name in gid file to type of condition (boundary, force) in nastran file
 # FORCE: needs an index and four double values: index is for multiload!
 # SPC:   needs two values: a string defining type of bc (1: x, 2: y, 12: xy, 123: xyz, ...) and a value
-table = {'load':  ['FORCE', 1, 1.0, 0.0, -1.0, 0.0],\
-         'lfixed': ['SPC', '  12', 0.0],\
-         'rfixed': ['SPC', '  2', 0.0]}
+table = {'load':  ['FORCE', 1, 1.0, 0.0, 0.01, 0.0],\
+         'fixedl': ['SPC', '  12', 0.0],\
+         'fixedu': ['SPC', '  12', 0.0]}
 
 
 
@@ -204,14 +204,18 @@ for line in open(infile, 'r'):
       elemstmpline = line 
       continue
 
+    # at this point, tmpline must not be emtpy because it contains 
+    # the data from the previous line which is needed here!
     if elemstmpline == '':
       print "error! tmpline is empty!"
 
     tls = elemstmpline.split() # contains info about element (number, type, numofnodes, region)
     ls = line.split() # contains node numbers forming the element
 
+    # this check is mainly redundant because it should be correctly done by gid!
     if not (len(ls) == int(tls[2]) and len(tls) == 4):
       print "error parsing nodes! offending lines: " + elemstmpline + ' ' + line
+
 
     #############
     # 2D elements
