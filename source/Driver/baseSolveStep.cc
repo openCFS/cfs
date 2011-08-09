@@ -8,7 +8,6 @@
 
 #include "baseSolveStep.hh"
 #include "Domain/domain.hh"
-#include "Driver/basedriver.hh"
 
 namespace CoupledField {
 
@@ -17,17 +16,7 @@ namespace CoupledField {
     actStep_ = 0;
     actTime_ = 0.0;
     actFreq_ = 0.0;
-    driver   = domain->GetDriver();
   }
-
-  BaseSolveStep::BaseSolveStep(BaseDriver* bd)
-  {
-    actStep_ = 0;
-    actTime_ = 0.0;
-    actFreq_ = 0.0;
-    this->driver = bd;
-  }
-  
 
   
   //   Default Destructor

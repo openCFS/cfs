@@ -467,7 +467,7 @@ void ShapeOpt::CalcUdF(Solutions& adjoint, Objective* f, Condition* constraint, 
           grd->GetElemNodesCoord(CornerCoords, elem->connect, true);
 
           Vector<double>& uelem = dynamic_cast<Vector<double>& >(*(*u_vec)[e]);
-          double pres = form->GetPressureFactor(elem);
+          double pres = form->GetPressureFactor(it);
           grd->CalcSurfNormal(normal, *elem, true);
 
           elemVec.Resize(uelem.GetSize());

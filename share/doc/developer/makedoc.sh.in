@@ -40,9 +40,15 @@ function build {
     echo " Generating CFS++ developer's manual "
     echo "====================================="
 
+    # Copy university logos to manual directory
     cp @CMAKE_CURRENT_SOURCE_DIR@/../auxilliaries/Pics/ls_am_klu.pdf @CMAKE_CURRENT_SOURCE_DIR@/develManual/pics
     cp @CMAKE_CURRENT_SOURCE_DIR@/../auxilliaries/Pics/cfs-logo.pdf @CMAKE_CURRENT_SOURCE_DIR@/develManual/pics
     cp @CMAKE_CURRENT_SOURCE_DIR@/../auxilliaries/Pics/lse_logo.pdf @CMAKE_CURRENT_SOURCE_DIR@/develManual/pics
+
+    # Auto generate bootstrap_devel_machine.txt from distro.sh and bootstrap_devel_machine.sh
+    cat @CMAKE_CURRENT_SOURCE_DIR@/../../scripts/distro.sh | sed '/^Help\(\)/, /^fi/d' | sed '/^      while \:$/, /^      done$/d' > @CMAKE_CURRENT_SOURCE_DIR@/develManual/attachments/bootstrap_devel_machine.txt
+    echo "echo \$OSSTR" >> @CMAKE_CURRENT_SOURCE_DIR@/develManual/attachments/bootstrap_devel_machine.txt
+    cat @CMAKE_CURRENT_SOURCE_DIR@/../../scripts/bootstrap_devel_machine.sh | sed '/^\#\!\/bin\/sh/, /^\. /d' >> @CMAKE_CURRENT_SOURCE_DIR@/develManual/attachments/bootstrap_devel_machine.txt
 
     cd @CMAKE_CURRENT_SOURCE_DIR@/develManual
     DOCUMENT=develManual
@@ -50,12 +56,12 @@ function build {
     # Apply syntax coloring to files in sources directory
     sources/pygmentize.sh $PWD/sources $PWD
 
-    @PDFLATEX_COMPILER@ $DOCUMENT
-    @BIBTEX_COMPILER@ $DOCUMENT
-    @PDFLATEX_COMPILER@ $DOCUMENT
-    @PDFLATEX_COMPILER@ $DOCUMENT
-    @PDFLATEX_COMPILER@ $DOCUMENT
-    thumbpdf $DOCUMENT
+    @PDFLATEX_COMPILER@ $DOCUMENT && \
+    @BIBTEX_COMPILER@ $DOCUMENT && \
+    @PDFLATEX_COMPILER@ $DOCUMENT && \
+    @PDFLATEX_COMPILER@ $DOCUMENT && \
+    @PDFLATEX_COMPILER@ $DOCUMENT && \
+    thumbpdf $DOCUMENT && \
     @PDFLATEX_COMPILER@ $DOCUMENT
     RETCODE_DEVMAN=$?
 

@@ -13,6 +13,7 @@
 #include "Forms/gradfieldop.hh"
 #include "Utils/nodestoresol.hh"
 #include "PDE/StdPDE.hh"
+#include "DataInOut/ResultCache.hh"
 
 #include "OLAS/algsys/basesystem.hh"
 
@@ -42,6 +43,10 @@ namespace CoupledField {
 
   }
 
+  void SolveStepElec::PreStepTrans() {
+    ResultCache::SetStepValue(actTime_);
+    PreStepStatic();
+  }
 
 
   // time is used for a series of static calculations

@@ -77,10 +77,10 @@
     <xsd:sequence>
       <xsd:choice>
         <xsd:sequence>
-          <xsd:element name="alpha" type="DT_NonNegFloat"/>
-          <xsd:element name="beta" type="DT_NonNegFloat"/>
+          <xsd:element name="alpha" type="xsd:token"/>
+          <xsd:element name="beta" type="xsd:token"/>
         </xsd:sequence>
-        <xsd:element name="lossTangensDelta" type="DT_NonNegFloat"/>
+        <xsd:element name="lossTangensDelta" type="xsd:token"/>
       </xsd:choice>
       <xsd:element name="measuredFreq" type="DT_NonNegFloat"/>
     </xsd:sequence>

@@ -1146,7 +1146,13 @@ This would  read all transient files  except 6.trn which would  be replaced by
 also saved in the .res file.  The transient files get searched by cplreader in
 this case.
 
-Please note that no surface elements will be read by the CFX reader.
+Please note that no surface elements will be read by the CFX reader. Ideas for
+reading those elements and  further reverse engineering techniques are however
+collected                                                                    at
+\url{https://lse17.e-technik.uni-erlangen.de:2001/trac/discussion/topic/11}.
+
+Please also refer to Sections \ref{sec:cgns} and \ref{sec:starccm} for further
+options for transferring CFD data from CFX to cplreader.
 
 \newpage
 \subsection{CFX\_EXPORT}
@@ -1294,6 +1300,194 @@ Zörner or look  at the cplreader\_performance\_suite.  You may  have a look at
 CFD\_Data NFS share on qnap (Klagenfurt).
 
 \newpage
+\subsection{EnSight}
+\label{sec:ensight}
+
+The EnSight  File Format is  described in Chapter  11 of the EnSight  7 User's
+Manual
+\url{http://www-vis.lbl.gov/NERSC/Software/ensight/docs/OnlineHelp/UM-C11.pdf}
+and                                                                        here
+\url{https://visualization.hpc.mil/wiki/EnSight%27s_Gold_Casefile_Format}.   In
+cplreader we make use of the EnSight file readers provided by VTK.
+
+There  exists a tool  called ens\_checker  for checking  the validity  of given
+EnSight input files. It  is a part of EnSight but may  also be downloaded (for
+Linux) at \url{http://aero.ist.utl.pt/~rreis/ens_checker.[32|64]}. It has also
+been                                   put                                  on
+\url{https://lse17.e-technik.uni-erlangen.de:2001/files/precompiled/EnSight/}.
+A     Howto     for     using      ens\_checker     can     be     found     at
+\url{http://www-vis.lbl.gov/NERSC/Software/ensight/doc/OnlineHelp/HT-Read-ens_checker.pdf}
+
+
+
+\subsubsection{Required File Layout}
+\begin{verbatim}
+zyl/
+|-- 20110207_Ensight_gold_binary_LES_Zylinder.encas
+|-- 20110207_Ensight_gold_binary_LES_Zylinder.geo
+|-- 20110207_Ensight_gold_binary_LES_Zylinder141221.scl1
+|-- 20110207_Ensight_gold_binary_LES_Zylinder141221.scl2
+|-- 20110207_Ensight_gold_binary_LES_Zylinder141221.scl3
+|-- 20110207_Ensight_gold_binary_LES_Zylinder141221.scl4
+|-- 20110207_Ensight_gold_binary_LES_Zylinder141221.scl5
+|-- 20110207_Ensight_gold_binary_LES_Zylinder141221.vel
+|-- 20110207_Ensight_gold_binary_LES_Zylinder141222.scl1
+|-- 20110207_Ensight_gold_binary_LES_Zylinder141222.scl2
+|-- 20110207_Ensight_gold_binary_LES_Zylinder141222.scl3
+|-- 20110207_Ensight_gold_binary_LES_Zylinder141222.scl4
+|-- 20110207_Ensight_gold_binary_LES_Zylinder141222.scl5
+|-- 20110207_Ensight_gold_binary_LES_Zylinder141222.vel
+
+...
+
+|-- zyl.case
+`-- zyl_bin.geo -> 20110207_Ensight_gold_binary_LES_Zylinder.geo
+\end{verbatim}
+
+In  this example  the VTK  Ensight  reader could  not directly  read the  {\tt
+20110207\_Ensight\_gold\_binary\_LES\_Zylinder.encas}  case file  due problems
+with  the file  name of  the {\tt  .geo} file.  Therefore a  copy of  it ({\tt
+zyl.case}) has been created which contains the following information:
+
+\begin{verbatim}
+FORMAT
+type:  ensight gold
+GEOMETRY
+model:  2  zyl_ascii.geo
+VARIABLE
+scalar per node:  1  pressure                  20110207_Ensight_gold_ASCII_LES_Zylinder****.scl1
+scalar per node:  1  density                   20110207_Ensight_gold_ASCII_LES_Zylinder****.scl2
+scalar per node:  1  x_velocity                20110207_Ensight_gold_ASCII_LES_Zylinder****.scl3
+scalar per node:  1  y_velocity                20110207_Ensight_gold_ASCII_LES_Zylinder****.scl4
+scalar per node:  1  z_velocity                20110207_Ensight_gold_ASCII_LES_Zylinder****.scl5
+vector per node:  1  velocity                  20110207_Ensight_gold_ASCII_LES_Zylinder****.vel
+TIME
+time set: 1 Model
+number of steps: 10
+filename start number:      141231
+filename increment:         1
+time values:  1.41231e+00  1.41232e+00  1.41233e+00  1.41234e+00  1.41235e+00  1.41236e+00  1.41237e+00 
+ 1.41238e+00  1.41239e+00  1.41240e+00 
+time set:                   2 Model
+number of steps:            1
+time values:  1.41231e+00
+\end{verbatim}
+
+The file {\tt zyl\_ascii.geo} is indeed  just a symbolic link to the real mesh
+file {\tt 20110207\_Ensight\_gold\_binary\_LES\_Zylinder.geo}.
+
+\subsubsection{Special Options}
+
+\begin{description}
+  \item[{\tt   --v[x|y|z]}]  Specify   name   of  velocity   field  array   to
+cplreader. If the field  is a vector quantity set all three  flags to the same
+value. If the field is broken  up into scalar components specify the component
+names here.
+
+  \item[{\tt --pres}] Specify the name of the pressure scalar field using this
+flag.
+\end{description}
+
+
+\subsubsection{Logging} 
+
+The {\tt .case} gets saved to the /UserData/name.case dataset in the HDF5 file
+for later reference.
+
+\subsubsection{Examples}
+
+\begin{verbatim}
+cplreader --type FIELDVIEW --name fluid_aachen --verbose 1 --justmesh 1 \
+          --outputfields all --numsteps 1
+\end{verbatim}
+
+\newpage
+\subsection{FLUENT}
+\label{sec:fluent}
+
+ANSYS Fluent  writes transient data  into {\tt .cas[.gz]} and  {\tt .dat[.gz]}
+files.  If  the mesh does  not change then  only one {\tt .cas[.gz]}  file and
+many  {\tt .dat[.gz]}  files will  be  written.  If  the mesh  changes a  {\tt
+.cas[.gz]} for every {\tt .dat[.gz]} file gets written.  Therefore, we support
+the following file layouts.
+
+
+\subsubsection{Required File Layout}
+
+\begin{verbatim}
+NACA0012-2D/
+|-- NACA0012-2D-23001.dat
+|-- NACA0012-2D-23002.dat
+|-- NACA0012-2D-23003.dat
+`-- NACA0012-2D.cas
+\end{verbatim}
+
+\begin{verbatim}
+FAN-3D/
+|-- FAN-3D-00006.cas
+|-- FAN-3D-00006.dat
+|-- FAN-3D-00007.cas
+|-- FAN-3D-00007.dat
+|-- FAN-3D-00008.cas
+`-- FAN-3D-00008.dat
+\end{verbatim}
+
+\subsubsection{Special Options}
+
+\subsubsection{Logging} 
+
+The mapping  from {\tt .cas[.gz]} to  {\tt .dat[.gz]} for  every timestep gets
+saved  to the  group  /UserData/CasToDatMapping  in the  HDF5  file for  later
+reference.
+
+\begin{verbatim}
+ts[0] (t=0s): NACA0012-2D.cas -> NACA0012-2D-23001.dat
+ts[1] (t=1s): NACA0012-2D.cas -> NACA0012-2D-23002.dat
+ts[2] (t=2s): NACA0012-2D.cas -> NACA0012-2D-23003.dat
+\end{verbatim}
+
+\subsubsection{Examples}
+
+\begin{verbatim}
+cplreader --type FLUENT --justmesh 0 --numsteps -1 --verbose 1 --calcsrc 1 
+          --outputfields all --dim 2 --timestep 1 --name NACA0012-2D
+\end{verbatim}
+
+\newpage
+\subsection{FieldView}
+\label{sec:fieldview}
+
+The implementation  of the FieldView reader  is quite basic  and only properly
+supports reading version 3.0 unstructured files generated from STARCCM+ at the
+moment.   If the  format is  needed  in the  future some  improvements to  its
+robustness  have to  be made.  The  documentation of  the file  format is  not
+publicly  available but a  PDF is  available on  the CFS++  development server
+\url{https://lse17.e-technik.uni-erlangen.de:2001/files/nightly-builds/doc/fieldview_format.pdf}
+
+\subsubsection{Required File Layout}
+\begin{verbatim}
+fluid_aachen/
+|-- fluid_aachen.fv
+|-- fluid_aachen.fv.fvreg
+`-- fluid_aachen.fvuns -> fluid_aachen.fv
+\end{verbatim}
+
+This tree has been generated by using the CFX export utility:
+\begin{verbatim}
+cfx5export -fieldview -UNS 3.0 /media/fluid_aachen/fluid_aachen.res
+\end{verbatim}
+
+Files generated in this way, can however not be read into cplreader because of
+the mentioned robustness issues.
+
+\subsubsection{Special Options}
+
+\subsubsection{Logging} 
+
+\subsubsection{Examples}
+
+
+\newpage
 \subsection{STARCCM+}
 \label{sec:starccm}
 
@@ -1307,11 +1501,15 @@ A STARCCM+ reader developed by  Patrick Lorenz and Jens Grabinger is available
 at
 \url{https://lse17.e-technik.uni-erlangen.de:2001/svn/CFS++/branches/starccm}.
 It  does   however  not  read  .ccm   files  but  files  in   the  Field  View
-(\url{http://www.ilight.com}) postprocessing  format.  This decision  has been
-made due to the fact that .ccm files contain polyhedral cells, which cplreader
-cannot handle. The  FieldView files have to be  generated within STARCCM+. You
-may  also contact  Frank  Schäfer \url{mailto:frank.schaefer@de.cd-adapco.com}
-from CD-adapco Nuremberg for further details.
+(cf. Sec.  \ref{sec:fieldview} and \url{http://www.ilight.com}) postprocessing
+format.  This decision  has been made due to the fact  that .ccm files contain
+polyhedral cells, which  cplreader cannot handle. The FieldView  files have to
+be   generated  within   STARCCM+.  You   may  also   contact   Frank  Schäfer
+\url{mailto:frank.schaefer@de.cd-adapco.com}  from   CD-adapco  Nuremberg  for
+further details.
+
+The FieldView  data format is also  supported by the cfx5export  tool of ANSYS
+CFX.
 
 \subsubsection{Required File Layout}
 
@@ -1321,6 +1519,78 @@ from CD-adapco Nuremberg for further details.
 
 \subsubsection{Examples}
 
+
+\newpage
+\subsection{CGNS - CFD General Notation System}
+\label{sec:cgns}
+
+The CGNS file  format can be generated by almost all  commercial CFD codes. It
+has been found however, that few  codes have support for writing CGNS files on
+the fly. Most often the native result files have to be converted to CGNS in an
+intermediate step.  Another  finding is that many CFD  codes save the complete
+mesh in every  CGNS time step file, which renders  this format almost unusable
+for aeroacoustic  analysis. At least  for Fluent this situation  should change
+with release 14 and ANSYS CFX  presents the possibility to write all time step
+fields to a single CGNS file, while only saving the mesh once (or twice).
+
+The CGNS  reader is still under  active development. Ideas for  its future and
+other     things     to     keep      in     mind     are     collected     at
+\url{https://lse17.e-technik.uni-erlangen.de:2001/trac/discussion/topic/14}.
+
+The reader  has initially  been developed to  support data generated  by ANSYS
+Fluent.   Known   problems   and   future  perspectives   are   discussed   at
+\url{https://lse17.e-technik.uni-erlangen.de:2001/trac/discussion/topic/7}.
+
+
+\subsubsection{Required File Layout}
+
+\begin{verbatim}
+Ellipse4_sas_006
+|-- Ellipse4_sas_006_2011.cgns
+|-- Ellipse4_sas_006_2015.cgns
+`-- Ellipse4_sas_006_2019.cgns
+\end{verbatim}
+
+\subsubsection{Special Options}
+
+\subsubsection{Logging} 
+
+\subsubsection{Examples}
+
+Convert CFX transient results to CGNS:
+
+\begin{verbatim}
+cfx5export -cgns -timestep -1 Ellipse4_sas_006.res
+
+Reading CFX5 results from <Ellipse4_sas_006.res>.
+processing all domains.
+processing all timesteps.
+writing CGNS file to <Ellipse4_sas_006_2011.cgns>.
+  writing 3D element section <Assembly 3D> containing 2607000 elements ... done
+  writing 2D element section <AIR> containing 70800 faces ... done
+  writing 2D element section <BOTTOM> containing 24740 faces ... done
+  writing 2D element section <CYL> containing 11160 faces ... done
+  writing 2D element section <INL> containing 12000 faces ... done
+  writing 2D element section <OUT> containing 12000 faces ... done
+  writing boundary condition <AIR> containing 70800 faces...done
+  writing boundary condition <BOTTOM> containing 24740 faces...done
+  writing boundary condition <CYL> containing 11160 faces...done
+  writing boundary condition <INL> containing 12000 faces...done
+  writing boundary condition <OUT> containing 12000 faces...done
+writing CGNS file to <Ellipse4_sas_006_2015.cgns>.
+  writing 3D element section <Assembly 3D> containing 2607000 elements ... done
+
+...
+
+done.
+\end{verbatim}%
+%
+Afterwards move  the generated files into  a directory as  described above and
+start cplreader:
+
+\begin{verbatim}
+cplreader --type CGNS --name Ellipse4_sas_006 --outputfields all --timestep 1e-4
+\end{verbatim}
 
 \newpage
 \section{Other Readers and Mesh Generators}
@@ -1444,6 +1714,12 @@ file.
 \caption{Velocity field generated by cplreader. \label{fig:gengrids_fields}}
 \end{center}
 \end{figure}
+
+The version  of muParser which is  used in cplreader does  not support complex
+arithmetic.   This   means  that  transient  phenomena   modelled  by  complex
+expressions must be translated to the corresponding sine or cosine expressions
+by  hand.   For details  concerning  complex  arithmetic  support in  muParser
+cf. \url{https://lse17.e-technik.uni-erlangen.de:2001/trac/discussion/topic/10}.
 
 \newpage
 \section{Setting up the Interpolation Calculation in CFS++}

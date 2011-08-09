@@ -54,7 +54,7 @@ c     ResWrBegin (int,sc,out)    - 0, successful  other, error in file open
       integer     ResWrBegin, Nunit, Lunit, ncFname, Units,
      x            NumDOF, DOF(NumDOF), UserCode,
      x            MaxNode, NumNode, MaxElem, NumElem, MaxResultSet, i,
-     x            kan
+     x            kan, j
       character*8 JobName
       character*(*)  Fname
       character*80  Title(2)
@@ -76,11 +76,15 @@ c          ***** initialize binary file I/O system  *****
       intpdp = biniqr8(0,2)
       intplong = biniqr8(0,5)
 #if defined (FUJITSU_SYS)
+c Add 1024 to RECLENG to prevent invalid reads
       piIobufL = fMallocI(RECLENG*1_8)
 #else
       piIobufL = fMallocI(RECLENG)
 #endif
 
+      do  j = 1,RECLENG
+         iobuf(j) = 0
+      enddo
 
 c          *****  open result file  *****
       ResWrBegin = binset(NBLK,Nunit,2,1,RECLENG,1,Fname,ncFname,
@@ -629,15 +633,16 @@ c object/library: ResWr
 
       maxPerElem = 0
 #if defined (FUJITSU_SYS)
-      plIndexL = fMallocL(nElem*1_8)
-      piIndexToDataL  = fMallocI(nElem*1_8)
+      plIndexL = fMallocL((nElem+1024)*1_8)
+      piIndexToDataL  = fMallocI((nElem+1024)*1_8)
 #else
-      plIndexL = fMallocL(nElem)
-      piIndexToDataL  = fMallocI(nElem)
+c nElem+2 is to get rid of invalid reads from memory by binwrt8
+      plIndexL = fMallocL(nElem+1024)
+      piIndexToDataL  = fMallocI(nElem+1024)
 #endif
 
       nCount = 0
-      do  i = 1,nElem
+      do  i = 1,nElem+1024
          IndexToData(i)  = 0
          iIndexL(i) = 0
       enddo
@@ -1543,7 +1548,7 @@ c object/library: ResWr
       LONGINT   binBaseGet
 
       LONGINT  LongLocL
-      integer  i
+      integer  i,j
 
       LongLocL = binBaseGet(NBLK) + iLocL
       call largeIntPut (LongLocL,Header(23),Header(24))
@@ -1553,6 +1558,7 @@ c object/library: ResWr
       call binwrt8 (NBLK,LocHeaderL,40,Header(1),40,iobuf(1))
 
       i = NBLK
+
       call binclo (i,'KEEP',iobuf(1))
 
       call fFree (piEinternalL)
@@ -1588,6 +1594,16 @@ c object/library: ResWr
 #if defined(RS6000_SYS) || defined(RS64K_SYS)
       fMallocI = malloc(%val(iLeng*4))
 #else 
+c      integer X(*),i,j
+c      pointer (ptrX, X)
+      
+c      i = 65536
+c      ptrX = malloc(i*4)
+
+c      do  j = 1,65536
+c         X(j) = 0
+c      enddo
+      
       fMallocI = malloc(iLeng*4)
 #endif
 

@@ -57,12 +57,6 @@ namespace CoupledField {
                               Vector<Double>& elemCouplingSols,
                               UInt couplingdof );
 
-    //! calculate the vector of coupling surface nodes to the nrbcPDE  
-    void CalcNRBCCouplingRHS( StdVector<Elem*> * couplingElems, 
-                              StdVector<UInt> & couplingNodes,
-                              Vector<Double>& elemCouplingSols,
-                              UInt couplingdof );
-    
     //! calculate the heat source term for heatConduction PDE
     template <class TYPE>
     void CalcHeatCouplingRHS( Vector<Double> & energy, 
@@ -72,10 +66,6 @@ namespace CoupledField {
     //! 
     void SetMechanicCoupling() {
       isMechCoupled_ = true;
-    }
-    //! 
-    void SetNrbcCoupling() {
-      isNrbcCoupled_ = true;
     }
 
     //! returns formulation (pressure/scalar potential)
@@ -108,7 +98,7 @@ namespace CoupledField {
     //! Init the time stepping
     void InitTimeStepping();
 
-    //! Define availabe result types
+    //! Define available result types
     void DefineAvailResults();
 
     //! read in damping information, see SinglePDE.cc  and SinglePDE.hh
@@ -126,7 +116,7 @@ namespace CoupledField {
     //! define the SoltionStep-Driver
     void DefineSolveStep();
 
-    //     //! define the algbraic system
+    //     //! define the algebraic system
     //     void DefineAlgSys();
 
     // ========================
@@ -141,7 +131,7 @@ namespace CoupledField {
     template <class TYPE>
     void CalcAcouEnergy( shared_ptr<BaseResult> vals);
 
-    //! computes praticle velocity out of pressure    
+    //! computes particle velocity out of pressure    
     void  CalcVelFromPressure( shared_ptr<BaseResult> vals );
 
     //! calculate Force acting on specified surface elements
@@ -162,8 +152,9 @@ namespace CoupledField {
     template <class TYPE>
     void CalcAcouIntensity( shared_ptr<BaseResult> vals );
 
-    //! Do some jobs befor computation  starts
+    //! Do some jobs before computation  starts
     virtual void PreparePDE4Computation();
+
 
     // ========================
     // set solution information
@@ -174,19 +165,16 @@ namespace CoupledField {
     
     SolutionType formulation_; //!< variable in which PDE is formulated
 
-
-    //! indicator for mechanic coupling
-    bool isNrbcCoupled_;    
-
     //! surface elements with absorbing boundary conditions
     StdVector<shared_ptr<EntityList> > absBCs_; 
 
-    bool absorbingBCs_; //!< switch for absorbing BCs
-    
-    //! Stores Rayleigh damping definition for each rgion
+    //! Stores Rayleigh damping definition for each region
     std::map<RegionIdType, RaylDampingData> regionRaylDamping_;
 
     //bool fracDamping_; //!< switch indicating use of fractional damping
+    
+    IdBcList impedanceBCs_;
+    
     
     // ========================
     // time stepping

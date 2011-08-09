@@ -25,32 +25,32 @@ hsize_t H5IO::maxChunkSize_= 100;
   // ====================================
 #define DECL_HDF_ATOM_TYPE(TYPE, NATIVE_TYPE, STD_TYPE )                \
   template<>                                                            \
-  H5::DataType H5IO::HdfAtomTypeMap<TYPE>::HdfNativeType =              \
-    InitHdfAtomNativeType<TYPE>(NATIVE_TYPE);                           \
+  H5::PredType H5IO::HdfAtomTypeMap<TYPE>::HdfNativeType =              \
+    NATIVE_TYPE;                                                        \
   template<>                                                            \
-  H5::DataType H5IO::HdfAtomTypeMap<TYPE>::HdfStdType =                 \
-    InitHdfAtomStdType<TYPE>(STD_TYPE)
+  H5::PredType H5IO::HdfAtomTypeMap<TYPE>::HdfStdType =                 \
+    STD_TYPE
 
   // Define mapping
   DECL_HDF_ATOM_TYPE( bool,
-                      H5T_NATIVE_INT32,
-                      H5T_STD_I32LE );
+                      H5::PredType::NATIVE_INT32,
+                      H5::PredType::STD_I32LE );
 
   DECL_HDF_ATOM_TYPE( Integer,
-		      H5T_NATIVE_INT32,
-                      H5T_STD_I32LE );
+		      H5::PredType::NATIVE_INT32,
+                      H5::PredType::STD_I32LE );
 
   DECL_HDF_ATOM_TYPE( UInt,
-                      H5T_NATIVE_UINT32,
-                      H5T_STD_U32LE );
+		      H5::PredType::NATIVE_UINT32,
+                      H5::PredType::STD_U32LE );
 
   DECL_HDF_ATOM_TYPE( Double,
-                      H5T_NATIVE_DOUBLE,
-                      H5T_IEEE_F64LE );
+		      H5::PredType::NATIVE_DOUBLE,
+                      H5::PredType::IEEE_F64LE );
 
   DECL_HDF_ATOM_TYPE( Float,
-                      H5T_NATIVE_FLOAT,
-                      H5T_IEEE_F32LE );
+		      H5::PredType::NATIVE_FLOAT,
+                      H5::PredType::IEEE_F32LE );
 #undef DECL_HDF_ATOM_TYPE
 
   // ========================================
@@ -74,9 +74,9 @@ hsize_t H5IO::maxChunkSize_= 100;
     HdfTypeConversion()                                         \
       : buffer_( NULL ) {                                       \
       nativeType_ =                                             \
-        HdfAtomTypeMap<TYPE>::HdfNativeType;                    \
+        &HdfAtomTypeMap<TYPE>::HdfNativeType;                   \
       stdType_ =                                                \
-        HdfAtomTypeMap<TYPE>::HdfStdType;                       \
+        &HdfAtomTypeMap<TYPE>::HdfStdType;                      \
     }                                                           \
                                                                 \
     const void * GetOutBufferPtr() {                            \
@@ -152,8 +152,8 @@ hsize_t H5IO::maxChunkSize_= 100;
 
     HdfTypeConversion()
       : buffer_ ( NULL ) {
-      nativeType_ =  HdfAtomTypeMap<bool>::HdfNativeType;
-      stdType_ = HdfAtomTypeMap<bool>::HdfStdType;
+      nativeType_ =  &HdfAtomTypeMap<bool>::HdfNativeType;
+      stdType_ = &HdfAtomTypeMap<bool>::HdfStdType;
     }
 
     const void * GetOutBufferPtr() {
@@ -222,8 +222,8 @@ hsize_t H5IO::maxChunkSize_= 100;
   public:
     HdfTypeConversion()
       : buffer_( NULL ) {
-      nativeType_ = H5::StrType( H5::PredType::C_S1, H5T_VARIABLE);
-      stdType_ = H5::StrType( H5::PredType::C_S1, H5T_VARIABLE);
+      nativeType_ = new H5::StrType( H5::PredType::C_S1, H5T_VARIABLE);
+      stdType_ = new H5::StrType( H5::PredType::C_S1, H5T_VARIABLE);
     }
 
     const void * GetOutBufferPtr() {
@@ -275,6 +275,14 @@ hsize_t H5IO::maxChunkSize_= 100;
       numElems_ = 0;
       isSet_ = false;
     }
+
+    ~HdfTypeConversion() 
+    {
+      CleanUp();
+      delete stdType_;
+      delete nativeType_;
+    }
+    
   };
 
 
@@ -292,9 +300,8 @@ hsize_t H5IO::maxChunkSize_= 100;
     HdfTypeConversion()
       : buffer_( NULL ) {
       H5::StrType sType( H5::PredType::C_S1, H5T_VARIABLE);
-      H5::VarLenType vType( &sType );
-      nativeType_ = vType;
-      stdType_ = vType;
+      nativeType_ = new H5::VarLenType( &sType );
+      stdType_ = new H5::VarLenType( &sType );
     }
 
     const void * GetOutBufferPtr() {
@@ -368,6 +375,13 @@ hsize_t H5IO::maxChunkSize_= 100;
       isSet_ = false;
     }
 
+    ~HdfTypeConversion() 
+    {
+      CleanUp();
+      delete stdType_;
+      delete nativeType_;
+    }
+
   }; // end of class definition
 
 
@@ -386,9 +400,9 @@ hsize_t H5IO::maxChunkSize_= 100;
     HdfTypeConversion()                                                 \
       : buffer_( NULL ) {                                               \
       nativeType_ =                                                     \
-        H5::VarLenType ( &HdfAtomTypeMap<TYPE>::HdfNativeType );        \
+        new H5::VarLenType ( &HdfAtomTypeMap<TYPE>::HdfNativeType );    \
       stdType_ =                                                        \
-        H5::VarLenType ( &HdfAtomTypeMap<TYPE>::HdfStdType );           \
+        new H5::VarLenType ( &HdfAtomTypeMap<TYPE>::HdfStdType );       \
     }                                                                   \
                                                                         \
     const void * GetOutBufferPtr( ) {                                   \
@@ -459,6 +473,8 @@ hsize_t H5IO::maxChunkSize_= 100;
                                                                         \
     ~HdfTypeConversion() {                                              \
       CleanUp();                                                        \
+      delete nativeType_;                                               \
+      delete stdType_;                                                  \
     }                                                                   \
                                                                         \
   }
@@ -481,8 +497,8 @@ hsize_t H5IO::maxChunkSize_= 100;
 
       // create conversion helper object and get native / std hdf5 datatype
       HdfTypeConversion<TYPE> conv;
-      H5::DataType stdType = conv.GetStdType();
-      H5::DataType nativeType = conv.GetNativeType();
+      H5::DataType* stdType = conv.GetStdType();
+      H5::DataType* nativeType = conv.GetNativeType();
 
       // create memory data space
       H5::DataSpace space;
@@ -500,12 +516,12 @@ hsize_t H5IO::maxChunkSize_= 100;
       try{
         attr = obj.openAttribute( name );
       }catch(H5:: Exception&){
-        attr = obj.createAttribute( name, stdType,
+        attr = obj.createAttribute( name, *stdType,
             space, create_plist );
       }
 
       // write attribute
-      attr.write( nativeType, conv.GetOutBufferPtr() );
+      attr.write( *nativeType, conv.GetOutBufferPtr() );
 
       // reset conversion object
       conv.CleanUp();
@@ -539,8 +555,8 @@ hsize_t H5IO::maxChunkSize_= 100;
 
       // create conversion helper object and get native / std hdf5 datatype
       HdfTypeConversion<TYPE> conv;
-      H5::DataType stdType = conv.GetStdType();
-      H5::DataType nativeType = conv.GetNativeType();
+      H5::DataType* stdType = conv.GetStdType();
+      H5::DataType* nativeType = conv.GetNativeType();
 
       // create memory data space
       const hsize_t dims = size;
@@ -557,9 +573,9 @@ hsize_t H5IO::maxChunkSize_= 100;
       H5::DSetCreatPropList newList(create_plist);
       const hsize_t chunk = std::min( (UInt) size, (UInt) maxChunkSize_ );
       newList.setChunk( 1, &chunk);
-      H5::DataSet dataset = loc.createDataSet( name, stdType,
+      H5::DataSet dataset = loc.createDataSet( name, *stdType,
                                                space, newList );
-      dataset.write( conv.GetOutBufferPtr(), nativeType  );
+      dataset.write( conv.GetOutBufferPtr(), *nativeType  );
 
       // reset conversion object
       conv.CleanUp();
@@ -588,7 +604,7 @@ hsize_t H5IO::maxChunkSize_= 100;
 
       // create conversion helper object and get native / std hdf5 datatype
       HdfTypeConversion<TYPE> conv;
-      H5::DataType stdType = conv.GetStdType();
+      H5::DataType* stdType = conv.GetStdType();
 
       // create memory data space
       hsize_t dims[1] = {size};
@@ -600,7 +616,7 @@ hsize_t H5IO::maxChunkSize_= 100;
 
       hsize_t chunk = std::min( (UInt) size, (UInt) maxChunkSize_ );
       newList.setChunk( 1, &chunk);
-      H5::DataSet dataset = loc.createDataSet( name, stdType,
+      H5::DataSet dataset = loc.createDataSet( name, *stdType,
                                                space, newList );
 
       // reset conversion object
@@ -634,7 +650,7 @@ hsize_t H5IO::maxChunkSize_= 100;
 
       // create conversion helper object and get native / std hdf5 datatype
       HdfTypeConversion<TYPE> conv;
-      H5::DataType nativeType = conv.GetNativeType();
+      H5::DataType* nativeType = conv.GetNativeType();
 
       // create memory data space
       const hsize_t size = ( end - start ) + 1;
@@ -656,7 +672,7 @@ hsize_t H5IO::maxChunkSize_= 100;
       fileSpace.selectHyperslab(  H5S_SELECT_SET, Mysize, Offset );
 
       // write data
-      dataset.write( conv.GetOutBufferPtr(), nativeType, memSpace, fileSpace );
+      dataset.write( conv.GetOutBufferPtr(), *nativeType, memSpace, fileSpace );
 
       // reset conversion object
       conv.CleanUp();
@@ -694,8 +710,8 @@ hsize_t H5IO::maxChunkSize_= 100;
 
       // create conversion helper object and get native / std hdf5 datatype
       HdfTypeConversion<TYPE> conv;
-      H5::DataType stdType = conv.GetStdType();
-      H5::DataType nativeType = conv.GetNativeType();
+      H5::DataType* stdType = conv.GetStdType();
+      H5::DataType* nativeType = conv.GetNativeType();
 
       // create memory data space
       const hsize_t dims[] = {rowSize, colSize};
@@ -716,9 +732,9 @@ hsize_t H5IO::maxChunkSize_= 100;
                                  std::min( (UInt) colSize,
                                            (UInt) maxChunkSize_ ) };
       newList.setChunk( 2, chunk);
-      H5::DataSet dataset = loc.createDataSet( name, stdType,
+      H5::DataSet dataset = loc.createDataSet( name, *stdType,
                                                space, newList );
-      dataset.write( conv.GetOutBufferPtr(), nativeType  );
+      dataset.write( conv.GetOutBufferPtr(), *nativeType  );
 
       // reset conversion object
       conv.CleanUp();
@@ -745,7 +761,7 @@ hsize_t H5IO::maxChunkSize_= 100;
 
        // create conversion helper object and get native / std hdf5 datatype
        HdfTypeConversion<TYPE> conv;
-       H5::DataType stdType = conv.GetStdType();
+       H5::DataType* stdType = conv.GetStdType();
 
        // create memory data space
        const hsize_t dims[] = {rowSize, colSize};
@@ -760,7 +776,7 @@ hsize_t H5IO::maxChunkSize_= 100;
                                   std::min( (UInt) colSize,
                                             (UInt) maxChunkSize_) };
        newList.setChunk( 2, chunk);
-       H5::DataSet dataset = loc.createDataSet( name, stdType,
+       H5::DataSet dataset = loc.createDataSet( name, *stdType,
                                                 space, newList );
 
        // reset conversion object
@@ -794,7 +810,7 @@ hsize_t H5IO::maxChunkSize_= 100;
 
         // create conversion helper object and get native / std hdf5 datatype
         HdfTypeConversion<TYPE> conv;
-        H5::DataType nativeType = conv.GetNativeType();
+        H5::DataType* nativeType = conv.GetNativeType();
 
         // create memory data space
         const hsize_t size[2] = { (( rowEnd - rowBegin ) + 1),
@@ -818,7 +834,7 @@ hsize_t H5IO::maxChunkSize_= 100;
         fileSpace.selectHyperslab(  H5S_SELECT_SET, Mysize, Offset );
 
         // write data
-        dataset.write( conv.GetOutBufferPtr(), nativeType, memSpace, fileSpace );
+        dataset.write( conv.GetOutBufferPtr(), *nativeType, memSpace, fileSpace );
 
         // reset conversion object
         conv.CleanUp();
@@ -862,7 +878,7 @@ hsize_t H5IO::maxChunkSize_= 100;
 
         // create new compound for memory datatype
         memCompTypes[i] = H5::CompType( (size_t)conv[i]->GetRawSize() );
-        memCompTypes[i].insertMember( memName, 0, conv[i]->GetNativeType() );
+        memCompTypes[i].insertMember( memName, 0, *conv[i]->GetNativeType() );
       }
 
       // Create file compound data type
@@ -871,7 +887,7 @@ hsize_t H5IO::maxChunkSize_= 100;
       for( UInt i = 0; i < comp.GetSize(); i++ ) {
         fileCompType.insertMember( comp[i].first,
                                    actOffset,
-                                   conv[i]->GetStdType() );
+                                   *conv[i]->GetStdType() );
         actOffset += conv[i]->GetRawSize();
       }
 
@@ -930,14 +946,13 @@ hsize_t H5IO::maxChunkSize_= 100;
 
       // create conversion helper object and get native / std hdf5 datatype
       HdfTypeConversion<TYPE> conv;
-      H5::DataType stdType = conv.GetStdType();
-      H5::DataType nativeType = conv.GetNativeType();
+      H5::DataType* nativeType = conv.GetNativeType();
 
       // open attribute
       H5::Attribute attribute = obj.openAttribute( name );
 
       // read data in buffer of conversion object
-      attribute.read( nativeType, conv.GetInBufferPtr(1) );
+      attribute.read( *nativeType, conv.GetInBufferPtr(1) );
 
       // obtain data pointer from conversion object and
       // copy it to return buffer
@@ -1012,8 +1027,7 @@ hsize_t H5IO::maxChunkSize_= 100;
 
       // create conversion helper object and get native / std hdf5 datatype
       HdfTypeConversion<TYPE> conv;
-      H5::DataType stdType = conv.GetStdType();
-      H5::DataType nativeType = conv.GetNativeType();
+      H5::DataType* nativeType = conv.GetNativeType();
 
       // open dataset
       H5::DataSet dataset = loc.openDataSet( name );
@@ -1029,7 +1043,7 @@ hsize_t H5IO::maxChunkSize_= 100;
       // .. not sure if this can be implemented properly ...
 
       // read data in buffer of conversion object
-      dataset.read( conv.GetInBufferPtr(size), nativeType );
+      dataset.read( conv.GetInBufferPtr(size), *nativeType );
 
       // obtain data pointer from conversion object and
       // copy it to return buffer

@@ -395,10 +395,9 @@ cubic spline interpolation. Please note the type of quotes used!!!!
 %
 \subsection{\texttt{input}}
 %
-The \xel{input} element can be used to read in data on a whole region from
-hdf5 files (of a previous simulation run). It takes as arguments the input ID
-and the number of the multisequence step (which should be 1 in almost any
-case). It is used in the following way:
+The \texttt{input} function can be used to read in data on a whole region from
+HDF5 (or other) files of a previous simulation run. It is used in the
+following way:
 \begin{xmllisting}
 <fileFormats>
   <input>
@@ -409,28 +408,64 @@ case). It is used in the following way:
 ...
 <pdename>
   <bcsAndLoads>
-    <dirichletInhom name="region1" dof="x" value="input('inhom',1)"
-                    phase="input('inhom',1)"/>
-    <dirichletInhom name="region2" dof="y" value="input('inhom',1)"
-                    phase="input('inhom',1)"/>
+    <dirichletInhom name="region1" dof="x" value="input('inhom',1,1)"
+                    phase="input('inhom',1,1)"/>
+    <dirichletInhom name="region2" dof="y" value="input('inhom',1,2)"
+                    phase="input('inhom',1,0)"/>
   </bcsAndLoads>
 </pdename>
 \end{xmllisting}
-The region name, quantity, and time/frequency step (if applicable) are
-determined automatically and not passed as arguments. Therefore it is required
-to use exactly same mesh as the previous simulation, i.e.\
-interpolation onto a different mesh is not supported.
 %
 \begin{mathFunc}
-{input(fileid, sequencestep)}
-\param{fileid} & Id of the \xel{hdf5}-input reader.\\
-\param{sequencestep} & Multisequencestep to be used for reading in the values.
+{input(fileid, sequencestep, dof)}
+\param{fileid} & \xatv{id} of the input file (given under \xel{fileFormats}).\\
+\param{sequencestep} & number of the multisequence step (which should be 1 in
+  almost any case). \\
+\param{dof} & index of the degree of freedom (i.e.\ 1 for \xatv{x}, 2 for
+  \xatv{y}, etc.). This argument can be 0, if the degree of freedom should be
+  determined automatically (where supported).
 \end{mathFunc}
-%
-The \texttt{input} function is currently available only for inhomogeneous
-Dirichlet boundary conditions, but may be supported for other BCs in the
-future.
+The region name, quantity, and time/frequency step (if applicable) are
+determined automatically and not passed as arguments. Therefore it is required
+to use exactly the same mesh as the previous simulation, i.e.\
+interpolation onto a different mesh is not supported. 
 
+Because some of the information (mentioned above) is determined internally in
+\texttt{CFS++}, the \texttt{input} function is currently available only for
+some selected boundary conditions, but not all. Table~\ref{tab:input_func}
+shows supported boundary conditions.
+
+\begin{table}[h]
+  \caption{Boundary conditions supported by the \texttt{input} function}
+  \label{tab:input_func}
+  \centering
+  \begin{tabular}{llp{6cm}}
+    \toprule
+    \textbf{Boundary condition} & \textbf{Field} & \textbf{Quantity} \\
+    \midrule
+    \xel{dirichletInhom} & all fields      & the primary unknown, e.g.\ 
+        \xatv{mechDisplacement} in mechanics, etc. \\\midrule
+    \xel{neumannInhom}   & acoustic        & \xatv{acouVelocity} \\
+                         & (potential formulation) & \\\\
+                         & acoustic        & \xatv{acouAcceleration} \\
+                         & (pressure formulation) & \textbf{Note:} You have to
+        multiply \xatv{acouAcceleration} by the density of the acoustic medium
+        yourself (e.g.\ \texttt{"1.204*input(...)"} for air), otherwise the
+        boundary condition will be incorrect! \\\\
+                         & electrostatic   & \xatv{elecCharge} \\\\
+                         & heat conduction & \textbf{???} \\\midrule
+    \xel{pressure}       & mechanic        & \xatv{mechPressure}, i.e.\
+        surface normal stress \\
+    \midrule
+    \xel{load}           & acoustic        & \xatv{acouRhsLoad} \\
+                         & electrostatic   & \xatv{elecRhsLoad}, i.e.\ nodal
+                                             charge \\
+                         & heat conduction & \xatv{heatRhsLoad} \\
+                         & mechanic        & \xatv{mechRhsLoad}, i.e.\ nodal
+                                             force \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
 
 \section{Examples}

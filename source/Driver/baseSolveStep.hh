@@ -162,9 +162,6 @@ namespace CoupledField
 
     BaseSolveStep(BaseDriver* driver);
 
-    // used to aquire analysis_id if not provided. TODO: check if realy needed!
-    BaseDriver* driver;
-    
     //! Actual time / frequency step
     UInt actStep_;
 

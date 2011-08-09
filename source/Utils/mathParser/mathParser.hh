@@ -21,7 +21,7 @@ namespace CoupledField {
   //! Forward class declarations
   class CoordSystem;
   
-  //! Handless mathematical parser for different contexts
+  //! Handles mathematical parser for different contexts
   class MathParser{
 
   public:

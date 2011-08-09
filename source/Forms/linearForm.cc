@@ -2759,18 +2759,15 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
 
     ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrIntPts = ptelem->GetNumIntPoints();
-    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    const UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    const UInt dim = magStrictForm_->getNumDofsA();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     const Vector<Double> * intPoints = ptelem->GetIntPoints();
     Double jacDet;
     Matrix<Double> aMat, dMat, bMatTrans,aMatTrans;
-    Matrix<Double> baMat, elemMat;
+    Matrix<Double> adMat;
 
-    elemMat.Resize( numFncs * magStrictForm_->getNumDofsA(), 
-                    numFncs * magStrictForm_->getNumDofsB() ); 
-    elemMat.Init();
-
-    elemVec.Resize( numFncs * magStrictForm_->getNumDofsA());
+    elemVec.Resize( numFncs * dim);
     elemVec.Init(0);
 
     // compute the correct material tensor
@@ -2788,6 +2785,7 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
 
       ptelem->Local2GlobalCoord( lCoord, intPoints[actIntPt-1],ptCoord_, ent.GetElem() );
       
+      // Calculate Biot-Savart field H_s at integration point
       biotSavart_->CalcFieldAtPoint( hField, lCoord );
       ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt, ent.GetElem() );
 
@@ -2795,17 +2793,16 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
         EXCEPTION("axi-symmetric implementation missing");
       }
       jacDet *= intWeights[actIntPt-1];
-      baMat = aMat * dMat;
-      //aMat.Mult( dMat, abMat );
+      // compute intermediate matrix (B^T * D)
+      adMat = aMat * dMat;
 
-      // We now compute  B^T * D * H_{s} and scale it by the determinant
+      // We now compute  (B^T * D) * H_{s} and scale it by the determinant
       // of the Jacobian 
-      for ( UInt i = 0; i < baMat.GetNumRows(); i++ ) {
-        for ( UInt j = 0; j < baMat.GetNumCols(); j++ ) {
-          elemVec[i] +=  baMat[i][j]*hField[j]*ShpFncAtIp[j]*jacDet;
+      for ( UInt i = 0; i < adMat.GetNumRows(); i++ ) {
+        for ( UInt j = 0; j < adMat.GetNumCols(); j++ ) {
+          elemVec[i] +=  adMat[i][j]*hField[j]*jacDet;
         }
       }
-
     }
   }
 } // end of namespace

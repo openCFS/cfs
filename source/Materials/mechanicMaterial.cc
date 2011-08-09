@@ -73,22 +73,6 @@ namespace CoupledField
 
   }
 
-  void MechanicMaterial::SetScalar(const std::string& param, MaterialType matType) {
-
-
-      
-    //check, if allowed
-    if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
-      std::string dim = "scalar";
-      matTypeNotAllowed( matType, dim );
-    }
-    else {
-      isSet_.insert( matType );
-    }
-
-    stringParams_[matType] = param;
-    
-  }
   
 
   void MechanicMaterial::SetScalar(const std::string& param, MaterialType matType, 
@@ -282,15 +266,15 @@ namespace CoupledField
       }
     }
   }
+ 
+  void MechanicMaterial::GetScalar( Integer& param, MaterialType matType)  const {
 
-  void MechanicMaterial::GetScalar( std::string& param, MaterialType matType)  const {
 
-
-    stringMap::const_iterator pos;
-    pos = stringParams_.find( matType );
+    integerMap::const_iterator pos;
+    pos = integerParams_.find( matType );
     std::string value;
 
-    if ( pos == stringParams_.end() ) {
+    if ( pos == integerParams_.end() ) {
       std::string dim = "scalar";
       matTypeNotInDataBase( matType, dim );
     }
@@ -298,25 +282,7 @@ namespace CoupledField
       param=pos->second;
     }
   }    
- 
-   void MechanicMaterial::GetScalar( Integer& param, MaterialType matType)  const {
-    
-    
-     integerMap::const_iterator pos;
-     pos = integerParams_.find( matType );
-     std::string value;
-    
-     if ( pos == integerParams_.end() ) {
-       std::string dim = "scalar";
-       matTypeNotInDataBase( matType, dim );
-     }
-     else {
-       param=pos->second;
-     }
-   }    
   
-
-
   void MechanicMaterial::GetScalar( Double& param, MaterialType matType, 
 				    Global::ComplexPart dataType )  const {
 

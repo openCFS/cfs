@@ -94,7 +94,6 @@
           <xsd:enumeration value="mpcci"/>
           <xsd:enumeration value="piezo"/>
           <xsd:enumeration value="smooth"/>
-          <xsd:enumeration value="nrbc"/>
           <xsd:enumeration value="heatConduction"/>
           <xsd:enumeration value="fluidMech"/>
         </xsd:restriction>

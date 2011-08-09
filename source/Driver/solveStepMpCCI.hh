@@ -35,7 +35,7 @@ namespace CoupledField
 
     //----------------------- TRANSIENT---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
-    void PreStepTrans( ) {};
+    void PreStepTrans( );
     
     //! base method for solving one transient step 
     void SolveStepTrans( ) {};

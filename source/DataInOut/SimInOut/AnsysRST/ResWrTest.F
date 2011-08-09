@@ -30,6 +30,8 @@ c      data  Fname /'ResWr.rst'/
      x              3*'       '/
 
       JobName  = 'ResWTest'
+      KAN = 0
+      
 
       kerr = ResWrBegin (Nunit,Lunit,Fname,ncFName,Title(1),JobName,
      x                   Units,NUMDOF,DOF(1),UserCode,

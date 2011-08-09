@@ -281,7 +281,7 @@ Some hints on the methods
     reason is that other methods depend on this guarantee (Restart file writing).
     Basically do:
     \begin{equation}
-      x_n := x_n+1
+      x_n := x_{n+1}
     \end{equation}
     Do not do this earlier (e.g. Corrector) this may lead to conflicts with
     Iterative-Coupled problems.

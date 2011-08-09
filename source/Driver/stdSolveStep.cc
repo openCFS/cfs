@@ -13,6 +13,7 @@
 #include "Utils/nodestoresol.hh"
 #include "PDE/StdPDE.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ResultCache.hh"
 #include "Utils/result.hh"
 #include "Utils/biotSavart.hh" 
 #include "Driver/singleDriver.hh"
@@ -281,7 +282,7 @@ namespace CoupledField {
   // ======================================================
 
   void StdSolveStep::PreStepTrans() {
-
+    ResultCache::SetStepValue( actTime_ );
 
     // due to coupling-pdes, the RHS has to be initialized BEFORE
     // the coupling forces are assembled to the RHS
@@ -838,8 +839,7 @@ namespace CoupledField {
   // ======================================================w
 
   void StdSolveStep::PreStepHarmonic() {
-
-
+    ResultCache::SetStepValue( actFreq_ );
     algsys_->InitRHS();
   }
 

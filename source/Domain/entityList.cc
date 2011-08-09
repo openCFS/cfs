@@ -104,6 +104,7 @@ namespace CoupledField {
     it.elemList_ = this;
     it.pos_ = 0;
     it.size_ = list_.GetSize();
+    it.name_ = name_;
     return it;
   }
  
@@ -168,6 +169,7 @@ namespace CoupledField {
     it.surfElemList_ = this;
     it.pos_ = 0;
     it.size_ = list_.GetSize();
+    it.name_ = name_;
     return it;
   }
  
@@ -221,6 +223,7 @@ namespace CoupledField {
     it.nodeList_ = this;
     it.pos_ = 0;
     it.size_ = list_.GetSize();
+    it.name_ = name_;
     return it;
   }
 
@@ -263,6 +266,7 @@ namespace CoupledField {
     it.regionList_ = this;
     it.pos_ = 0;
     it.size_ = list_.GetSize();
+    it.name_ = "no_name";
     return it;
   }
 
@@ -357,5 +361,9 @@ namespace CoupledField {
      return id; 
   }
 
+  std::string EntityIterator::GetName() const
+  {
+    return name_;
+  }
 
 } // end of namespace

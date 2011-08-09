@@ -331,6 +331,8 @@ share/doc/developer/develManual/pics/elems_quad.png -text
 share/doc/developer/develManual/pics/elems_tet.png -text
 share/doc/developer/develManual/pics/elems_tria.png -text
 share/doc/developer/develManual/pics/elems_wedge.png -text
+share/doc/developer/develManual/pics/ensight_man.png -text
+share/doc/developer/develManual/pics/ensight_rst_mat_to_part.png -text
 share/doc/developer/develManual/pics/gid.png -text
 share/doc/developer/develManual/pics/gmsh.png -text
 share/doc/developer/develManual/pics/gmsh_cp_test.png -text svneol=unset#image/png
@@ -387,7 +389,6 @@ share/doc/developer/develManual/sources/hdf5_file_format.xml -text
 share/doc/developer/develManual/sources/icem_to_ansys.in.txt -text
 share/doc/developer/develManual/sources/kreuzinger.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/lmboot.sh -text
-share/doc/developer/develManual/sources/mac_devel_setup.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/macports_installed_pckgs.txt svneol=native#text/plain
 share/doc/developer/develManual/sources/mkmesh.mlib.txt -text
 share/doc/developer/develManual/sources/mkmesh.txt -text
@@ -406,6 +407,7 @@ share/doc/developer/develManual/sources/pv_tria_local_global_mapping.py -text
 share/doc/developer/develManual/sources/pv_trial_local_global_mapping.py -text
 share/doc/developer/develManual/sources/pv_xi_eta.py -text
 share/doc/developer/develManual/sources/pygmentize.sh -text
+share/doc/developer/develManual/sources/qs_bootstrap.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/qs_configure_build.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/qs_obtain_sources.sh -text
 share/doc/developer/develManual/todonotes.sty svneol=native#text/plain
@@ -520,12 +522,15 @@ share/scripts/CMakeLists.txt svneol=native#text/plain
 share/scripts/IdentifyCCompiler.c svneol=native#text/plain
 share/scripts/IdentifyCXXCompiler.cpp svneol=native#text/plain
 share/scripts/IdentifyFortranCompiler.F90 -text
+share/scripts/bootstrap_devel_machine.sh svneol=native#text/plain
+share/scripts/build_tee.pl -text
 share/scripts/cfs -text
 share/scripts/cfs-testsuite-extractor.py -text
 share/scripts/cfs_grid.py -text
 share/scripts/cfs_utils.py -text
 share/scripts/cfstool -text
 share/scripts/common.sh svneol=native#text/plain
+share/scripts/compile_mkl_test.sh.in -text
 share/scripts/continuation.py -text
 share/scripts/cplreader -text
 share/scripts/create_density.py -text
@@ -541,7 +546,6 @@ share/scripts/hdf5_import_mesh.sh.in svneol=native#text/plain
 share/scripts/identify_compiler.pl svneol=native#text/plain
 share/scripts/log.py -text
 share/scripts/log.tcl svneol=native#text/x-tcl
-share/scripts/macsysinfo.scpt -text
 share/scripts/nas-tool-gid-to-nas.py -text
 share/scripts/nas-tool-voidmesh.py -text
 share/scripts/optimization_tools.py -text
@@ -704,6 +708,7 @@ source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceGeneral.hh svneol=native#text
 source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceRev100/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceRev110/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceRev120/CMakeLists.txt svneol=native#text/plain
+source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceRev130/CMakeLists.txt -text
 source/DataInOut/SimInOut/AnsysRST/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/AnsysRST/ResWr.F -text svneol=unset#text/x-fortran
 source/DataInOut/SimInOut/AnsysRST/ResWrDemo.F -text svneol=unset#text/x-fortran
@@ -775,7 +780,6 @@ source/DataInOut/XMLMaterialHandler.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/coloredConsole.cc svneol=native#text/plain
 source/DataInOut/coloredConsole.hh svneol=native#text/plain
 source/DataInOut/freqfunc.cc svneol=native#text/x-c%2B%2Bsrc
-source/DataInOut/freqfunc.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/postProc.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/postProc.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/programOptions.cc svneol=native#text/plain
@@ -1655,6 +1659,12 @@ source/cplreader/FileReaders/FASTEST/CMakeLists.txt svneol=native#text/plain
 source/cplreader/FileReaders/FASTEST/FASTEST-FileRenamer.pl.in -text
 source/cplreader/FileReaders/FASTEST/FileReader_FASTEST.cc svneol=native#text/plain
 source/cplreader/FileReaders/FASTEST/FileReader_FASTEST.hh svneol=native#text/plain
+source/cplreader/FileReaders/FieldView/CMakeLists.txt -text
+source/cplreader/FileReaders/FieldView/FileReader_fvuns.cc -text
+source/cplreader/FileReaders/FieldView/FileReader_fvuns.hh -text
+source/cplreader/FileReaders/FieldView/fv_reader_tags.h -text
+source/cplreader/FileReaders/FieldView/readfvuns.cpp -text
+source/cplreader/FileReaders/FieldView/readfvuns.h -text
 source/cplreader/FileReaders/GENGRIDS/CMakeLists.txt svneol=native#text/plain
 source/cplreader/FileReaders/GENGRIDS/FileReader_GENGRIDS.cc svneol=native#text/plain
 source/cplreader/FileReaders/GENGRIDS/FileReader_GENGRIDS.hh svneol=native#text/plain
@@ -1664,11 +1674,21 @@ source/cplreader/FileReaders/GENGRIDS/ReferenceElementGenerator.cc svneol=native
 source/cplreader/FileReaders/GENGRIDS/ReferenceElementGenerator.hh svneol=native#text/plain
 source/cplreader/FileReaders/GENGRIDS/SphericalShellGenerator.cc svneol=native#text/plain
 source/cplreader/FileReaders/GENGRIDS/SphericalShellGenerator.hh svneol=native#text/plain
-source/cplreader/FileReaders/OPENFOAM/CMakeLists.txt svneol=native#text/plain
-source/cplreader/FileReaders/OPENFOAM/FileReader_OPENFOAM.cc svneol=native#text/plain
-source/cplreader/FileReaders/OPENFOAM/FileReader_OPENFOAM.hh svneol=native#text/plain
 source/cplreader/FileReaders/Stanford/filereader_Stanford.cc svneol=native#text/plain
 source/cplreader/FileReaders/Stanford/filereader_Stanford.hh svneol=native#text/plain
+source/cplreader/FileReaders/VTKBased/CMakeLists.txt -text
+source/cplreader/FileReaders/VTKBased/EnSight/CMakeLists.txt -text
+source/cplreader/FileReaders/VTKBased/EnSight/FileReader_EnSight.cc -text
+source/cplreader/FileReaders/VTKBased/EnSight/FileReader_EnSight.hh -text
+source/cplreader/FileReaders/VTKBased/EnSight/MergePointExample.cc -text
+source/cplreader/FileReaders/VTKBased/FLUENT/CMakeLists.txt -text
+source/cplreader/FileReaders/VTKBased/FLUENT/FileReader_FLUENT.cc -text
+source/cplreader/FileReaders/VTKBased/FLUENT/FileReader_FLUENT.hh -text
+source/cplreader/FileReaders/VTKBased/FileReader_VTKMultiBlock.cc -text
+source/cplreader/FileReaders/VTKBased/FileReader_VTKMultiBlock.hh -text
+source/cplreader/FileReaders/VTKBased/OPENFOAM/CMakeLists.txt svneol=native#text/plain
+source/cplreader/FileReaders/VTKBased/OPENFOAM/FileReader_OPENFOAM.cc svneol=native#text/plain
+source/cplreader/FileReaders/VTKBased/OPENFOAM/FileReader_OPENFOAM.hh svneol=native#text/plain
 source/cplreader/FlowDataTypes.hh svneol=native#text/plain
 source/cplreader/OutputWriter.cc svneol=native#text/plain
 source/cplreader/OutputWriter.hh svneol=native#text/plain

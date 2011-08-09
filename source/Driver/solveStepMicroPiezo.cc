@@ -21,6 +21,7 @@
 #include "CoupledPDE/DirectCoupledPDE.hh"
 #include "Utils/piezoMicroModel.hh"
 #include "Utils/piezoMicroModelBK.hh"
+#include "DataInOut/ResultCache.hh"
 
 namespace CoupledField {
 
@@ -41,7 +42,7 @@ namespace CoupledField {
 
   void SolveStepMicroPiezo:: PreStepTrans()
   {
-
+    ResultCache::SetStepValue( actTime_ );
 
     // due to coupling-pdes, the RHS has to be initialized BEFORE 
     // the coupling forces are assembled to the RHS

@@ -1031,7 +1031,7 @@ void ParamNode::AdjustElementType()
   // which do their own xml formatting by ToXMLFormat(), they are of type SELF_XML
   if(   value_.type() == typeid(Matrix<Double>*) || value_.type() == typeid(Matrix<Complex>*)
      || value_.type() == typeid(Matrix<Double>)  || value_.type() == typeid(Matrix<Complex>)
-     || value_.type() == typeid(Timer*))
+     || value_.type() == typeid(boost::shared_ptr<Timer>))
   {
     type_ = SELF_XML;
   }
@@ -1084,7 +1084,7 @@ INSTANTIATE_METHOD_AS(Vector<Double>*)
 INSTANTIATE_METHOD_AS(Vector<Complex>*)
 INSTANTIATE_METHOD_AS(Matrix<Double>*)
 INSTANTIATE_METHOD_AS(Matrix<Complex>*)
-INSTANTIATE_METHOD_AS(Timer*)
+INSTANTIATE_METHOD_AS(boost::shared_ptr<Timer>)
 
 #define INSTANTIATE_METHOD_MATH_PARSE(TYPE)\
   template\
