@@ -379,14 +379,12 @@ namespace CoupledField {
                                         const Vector<Double>& point,
                                         const Elem* ptElem,
                                         UInt comp ) {
-      EXCEPTION("Not implemented")
     }
 
     void FeH1LagrangeHexVar::CalcLocDerivShFnc( Matrix<Double> & deriv, 
                                                 const Vector<Double>& point,
                                                 const Elem* ptElem,
                                                 UInt comp ) {
-      EXCEPTION("Not implemented")
     }
 
     void FeH1LagrangeHexVar::SetIsoOrder(UInt order){
