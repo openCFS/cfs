@@ -86,7 +86,6 @@ Enum<ElemShapeMap::ShapeMapType> ElemShapeMap::shapeMapType = \
 ElemShapeMap::ElemShapeMap( Grid* ptGrid ) {
   type_ = NO_TYPE;
   ptGrid_ = ptGrid;
-  isAxi_ = ptGrid->IsAxi();
   depth_ = 1.0;
 }
 
@@ -97,6 +96,7 @@ ElemShapeMap::~ElemShapeMap() {
 void ElemShapeMap::SetElem( const Elem* ptElem, bool isUpdated ) {
   ptElem_ = ptElem;
   isUpdated_ = isUpdated;
+  isAxi_ = ptGrid_->IsAxi();
 }
 
 
