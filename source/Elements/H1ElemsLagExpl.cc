@@ -227,7 +227,7 @@ namespace CoupledField {
                                      const Vector<Double>& point,
                                      const Elem* ptElem,
                                      UInt comp ) {
-    EXCEPTION("Implement me");
+   Warning("Implement me");
   //  shape.Resize( 2 );
   //   shape[0] = 0.5 * ( 1.0 - point[0] );
   //   shape[1] = 0.5 * ( 1.0 + point[0] );
@@ -343,7 +343,7 @@ namespace CoupledField {
                                     const Vector<Double>& point,
                                     const Elem* ptElem,
                                     UInt comp ) {
-  EXCEPTION("Implement me");
+  Warning("Implement me");
     //  shape.Resize( 8 );
   //  shape[0] = 0.25 * ( 1.0 - point[0] ) * ( 1.0 - point[1] ) * (1.0 - point[2]); 
   //  shape[1] = 0.25 * ( 1.0 + point[0] ) * ( 1.0 - point[1] ) * (1.0 - point[2]);
@@ -360,7 +360,7 @@ namespace CoupledField {
                                             const Vector<Double>& point,
                                             const Elem* ptElem,
                                             UInt comp ) {
-    EXCEPTION("Implement me");
+    Warning("Implement me");
     //  deriv.Resize( 8, 3 );
   //  StdVector<StdVector<Double> >& coords = shape_.nodeCoords;
   //  for( UInt i = 0; i < 8; i++ ) {
