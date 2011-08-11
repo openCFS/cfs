@@ -2825,7 +2825,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
   {
     Vector<Double> aux1;
 
-    if (iterCoupledCounter_ == 1)
+    if (iterCoupledCounter_ == 0)
     {
       if (aitkenOmegaPrevIter_ < displFac_)
       {

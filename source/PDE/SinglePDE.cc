@@ -2741,6 +2741,11 @@ namespace CoupledField {
         }
       }
     }
+    if (isIterCoupled_)
+    {
+      CalcOutputCoupling();
+      CalcInputCoupling();
+    }
   }
 
   void SinglePDE::GetMemento( shared_ptr<PDEMemento>& memento) {
