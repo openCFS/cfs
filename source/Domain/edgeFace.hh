@@ -26,12 +26,13 @@ namespace CoupledField {
     //! Normalize face orientation to match global one and return flagset
     
     //! This method re-orientates a given face to match the global orientation
-    //! of the face. It eturns the three-entry bitset which contains the
+    //! of the face. It returns the three-entry bitset which contains the
     //! orientation flags as defined in 
     //! Solin,Segeth: Higher-Order Finite Elements, p.165
+    //! See also the faceFlags bitset of the class Elem.
     void Normalize( std::bitset<3>& flags); 
 
-    //! Global node numbers definig a face
+    //! Global node numbers defining a face
     StdVector<UInt> nodes;
 
   private:

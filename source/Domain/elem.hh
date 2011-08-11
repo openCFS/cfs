@@ -110,12 +110,115 @@ class ElemShape;
     StdVector<UInt> connect;
 
     //! Array with edge numbers
+    
+    //! This array contains the global edge numbers of the element 
+    //! (absolute value of the entry!), 
+    //! In addition, the sign of the edge is encoded in the sign.
+    //! In the case of higher order elements, we have to guarantee a globally
+    //! unique orientation of edges. By convention, we assume a positive
+    //! orientation of an edge, if the nodes have ascending order:
+    //! 
+    //!   +----+    +-> I = A->B   Global orientation: index(A) < index(B)
+    //!   A    B
+    //!
+    //! To get the correct mapping of the local xi-direction, we can use the
+    //! following peace of code:
+    //! \code
+    //! double xi = dirI;
+    //! xi *= edges[i] < 0 ? -1.0 : 1.0;
+    //! \code
+    //! 
     StdVector<Integer> edges;
 
     //! Array with face numbers
     StdVector<Integer> faces;
 
-    //! Bitset describing the orientation of the faces (3 for each)
+    //! Array with mapping of local(xi/eta) to global(I/II)  orientation
+
+    //! In the case of higher order elements, we have to guarantee a global
+    //! orientation of faces, described by the direction I and II. 
+    //! By convention, we assume that the global orientation of a face is defined 
+    //! by an ascending ordering of the nodal connectivity in such a way:
+    //!
+    //!  C +----+ C   ^ II    Global orientation:  index(A) < index(B) < index(C)
+    //!    |    |     |       
+    //!    |    |     +--> I         I-direction: A -> B
+    //!  A +----+ B                 II-direction: A -> C                    
+    //!         
+    //! Based on: 
+    //!   Solin, Segeth: "Higher-Order Finite-Element Methods", 2004, p. 164-170
+    //! 
+    //!
+    //! For quadrilateral faces, we thus have 8 possible orientations of the face,
+    //! i.e. 8 different possibilities how the local element directions (xi/eta)
+    //! relate to the global directions (I/II).  
+    //!
+    //! To describe them, we introduce for every face a 3-bit array, where the 
+    //! flags have the following meaning:
+    //!
+    //!  2   1   0     indices( 2 = most significant bit)
+    //! +-----------+
+    //! | 1 | 1 | 1 |  faceFlags(can be also set in integer representation, 
+    //! +-----------+            i.e. 111=7)
+    //!   |   |   |
+    //!   |   |   \-- true  (=1), if  xi = +dirI/dirII
+    //!   |   |       false (=0), if  xi = -dirI/dirII
+    //!   |   \------ true  (=1), if eta = +dirI/dirII
+    //!   |           false (=0), if eta = -dirI/dirII
+    //!   \---------- true  (=1), if local and global directions match in same  
+    //!                           order (|xi| = |I|,  |eta| = |II|)
+    //!               false (=0), if local and global directions match in reverse 
+    //!                           order (|xi| = |II|, |eta| = |I|)
+    //!
+    //! Here are two examples for the orientation (Note: numbers in the interior
+    //! denote the orientation of the reference elements, numbers on the outside 
+    //! denote the nodal connectivity):
+    //!
+    //! Case 1
+    //! ======
+    //!
+    //! connect:   1,2,3,4
+    //! faceFlags: [111] 
+    //!
+    //!   4+---------+3             
+    //!    |4  ^eta 3|     ^ I      xi  =   I
+    //!    |   |     |     |        eta =  II
+    //!    |   +->xi |     +-> II   
+    //!    |         |              faceFlags[2]=1/true // order: |xi|=|I|, |eta|=|II|
+    //!    |1       2|              faceFlags[1]=1/true // eta = eta
+    //!   1+---------+2             faceFlags[0]=1/true //  xi = xi
+    //!
+    //! Case 2
+    //! ======
+    //!
+    //! connect:   4,1,2,3
+    //! faceFlags: [0,1,0] 
+    //!
+    //!   3+---------+2
+    //!    |4  ^eta 3|     ^ I      xi  = -II
+    //!    |   |     |  II |        eta =   I
+    //!    |   +->xi |   <-+   
+    //!    |         |              faceFlags[2]=0/false // order: |xi|=|II|, |eta|=|I|
+    //!    |1       2|              faceFlags[1]=1/true  // xi = xi 
+    //!   4+---------+1             faceFlags[0]=0/false // eta = -eta
+    //!
+    //!
+    //! To get a correct mapping of directions, one can typically use the following
+    //! peace of code:
+    //! 
+    //! \code
+    //! double xi = dirI, eta = dirII;
+    //! 
+    //! // check, if xi and eta have to get interchanged
+    //! if( faceFlags[2]) 
+    //!     std::swap(xi, eta);
+    //! 
+    //! // check for sign
+    //! xi  = faceFlags[0] ? xi  : -xi;
+    //! eta = faceFlags[1] ? eta : -eta;
+    //! \endcode  
+    //! 
+    //! For a triangular face, the concept remains the same. 
     StdVector<std::bitset<3> > faceFlags;
 
 #ifdef ADAPTGRID

@@ -9,6 +9,11 @@
 
 namespace CoupledField {
 
+
+#define USE_EDGES 1
+#define USE_FACES 1
+#define USE_INNER 1
+
 // declare class specific logging stream
   DECLARE_LOG(feH1Hi)
   DEFINE_LOG(feH1Hi, "feH1Hi");
@@ -55,18 +60,22 @@ namespace CoupledField {
     // Edges
     StdVector<UInt>& edgeFncs = entityFncs_[EDGE];
     edgeFncs.Resize(shape_.numEdges);
+    edgeFncs.Init(0);
     UInt unknowns = 0;
+#ifdef USE_EDGES
     for( UInt i = 0; i < shape_.numEdges; ++i ) {
       unknowns = (orderEdge_[i]-1);
       edgeFncs[i] = unknowns;
       LOG_DBG(feH1Hi) <<   "edge " << i+1 << " has " << unknowns << "unknowns";
       actNumFncs_ += unknowns;
     }
+#endif
     
     // Faces
     StdVector<UInt>& faceFncs = entityFncs_[FACE];
     faceFncs.Resize(shape_.numFaces);
     faceFncs.Init(0);
+#ifdef USE_FACES
     if( shape_.dim > 1 ) {
 
       for( UInt i = 0; i < shape_.numFaces; ++i ) {
@@ -76,11 +85,13 @@ namespace CoupledField {
         actNumFncs_ += unknowns;
       }
     }
+#endif
 
     // Interior
     StdVector<UInt>& innerFncs = entityFncs_[INTERIOR];
     innerFncs.Resize(1);
     innerFncs.Init(0);
+#ifdef USE_INNER
     if( shape_.dim > 2 ) {
       unknowns = (orderInner_[0]-1) * (orderInner_[1]-1) 
                                       *(orderInner_[2]-1); 
@@ -88,6 +99,7 @@ namespace CoupledField {
       LOG_DBG(feH1Hi) << "interior has " << unknowns << "unknowns";
       actNumFncs_ += unknowns;
     }
+#endif
 
     LOG_DBG(feH1Hi) <<  "totalUnknowns: " << actNumFncs_  << std::endl;
     updateUnknowns_ = false;
@@ -203,7 +215,7 @@ namespace CoupledField {
 
   void FeH1HiLine::CalcLocDerivShFnc( Matrix<Double> & deriv, 
                                       const Vector<Double>& lp,
-                                  const Elem * elem,  UInt comp ) {
+                                      const Elem * elem,  UInt comp ) {
     if (updateUnknowns_) CalcNumUnknowns();
   }
   
@@ -266,7 +278,7 @@ namespace CoupledField {
     }
 
     pos = 4;
- 
+#ifdef USE_EDGES 
     // 2) Edge shape functions
     for( UInt i = 0; i < 4; ++ i ) {
       Double fac = elem->edges[i] < 0 ? -1.0 : 1.0;
@@ -289,7 +301,9 @@ namespace CoupledField {
         ret[pos++] = eta * vals[i];
       } 
     }    
+#endif
     
+#ifdef USE_FACES
     // 3) Inner shape functions
     UInt order1 = orderFace_[0][0];
     UInt order2 = orderFace_[0][1];
@@ -298,12 +312,12 @@ namespace CoupledField {
       T_SCAL xi = x;
       T_SCAL eta = y;
       // test, if xi and eta get reversed
-      if( elem->faceFlags[0].test(0) == true) {
+      if( elem->faceFlags[0][2] == false) {
         std::swap(order1, order2);
         std::swap(xi, eta);
       }
-      xi = (elem->faceFlags[0].test(1) == true) ? xi : -xi;
-      eta = (elem->faceFlags[0].test(2) == true) ? eta : -eta;
+      xi = elem->faceFlags[0][0] ? xi : -xi;
+      eta = elem->faceFlags[0][1] ? eta : -eta;
       
       T_VEC xiVals, etaVals;
       IntLegendrePoly<T_SCAL,T_VEC>( xiVals, order1, xi );
@@ -312,6 +326,7 @@ namespace CoupledField {
         for( UInt j = 0; j < order2-1; ++j)
           ret[pos++] = etaVals[k] * xiVals[j];
     }
+#endif
   }
     
   
@@ -615,12 +630,12 @@ namespace CoupledField {
                      - sigma[shape_.faceVertices[i][0]-1];
         
         // test, if xi and eta get reversed
-        if( elem->faceFlags[i].test(0) == true) {
+        if( elem->faceFlags[i][2]) {
           std::swap(order1, order2);
           std::swap(xi, eta);
         }
-        xi = (elem->faceFlags[i].test(1) == true) ? xi : -xi;
-        eta = (elem->faceFlags[i].test(2) == true) ? eta : -eta;
+        xi =  elem->faceFlags[i][0] ? xi : -xi;
+        eta = elem->faceFlags[i][2] ? eta : -eta;
 
         IntLegendrePoly<T_SCAL,T_VEC>( xiVals, order1, xi );
         IntLegendrePoly<T_SCAL,T_VEC>( etaVals, order2, eta );
