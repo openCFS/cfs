@@ -87,6 +87,7 @@ ElemShapeMap::ElemShapeMap( Grid* ptGrid ) {
   type_ = NO_TYPE;
   ptGrid_ = ptGrid;
   depth_ = 1.0;
+  isAxi_ = false;
 }
 
 ElemShapeMap::~ElemShapeMap() {
@@ -687,6 +688,7 @@ void LagrangeElemShapeMap::SetElem( const Elem* ptElem, bool isUpdated ) {
   
   ptElem_ = ptElem;
   isUpdated_ = isUpdated;
+  isAxi_ = ptGrid_->IsAxi();
   
   // get coordinates from grid
   ptGrid_->GetElemNodesCoord( coords_,ptElem->connect, isUpdated_ );
