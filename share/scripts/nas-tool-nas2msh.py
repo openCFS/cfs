@@ -7,12 +7,12 @@ import sys
 # 1: where the structure is
 # 2: void
 # 3: where the force is applied
-materials  = 'm        1      ISO    FIXED       1.000000000000E+00       3.453400000000E-01\n'
+materials  = 'm        1      ISO    FIXED       1.000000000000E+00       3.428700000000E-01\n'
 materials += 'm        2      ISO    FIXED       2.870000000000E-06       3.500000000000E-01\n'
 materials += 'm        3      ISO    FIXED       5.000000000000E+00       3.500000000000E-01\n'
 
 # elems where the force is applied
-forceelems = [720, 760, 800, 840, 880, 920]
+forceelems = [360,390,420,450,480,510,540,570]
 
 
 
@@ -148,8 +148,11 @@ out.write(materials)
 out.write('$\n')
 
 for i in set1:
-  out.write('grq        1%9d\n' % i)
+  if not i in forceelems:
+    out.write('grq        1%9d\n' % i)
 for i in set2:
+  out.write('grq        2%9d\n' % i)
+for i in forceelems:
   out.write('grq        2%9d\n' % i)
 
 out.write('$\n')
