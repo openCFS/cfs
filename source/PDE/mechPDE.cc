@@ -2825,7 +2825,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
   {
     Vector<Double> aux1;
 
-    if (iterCoupledCounter_ == 0)
+    if (deltaTildeDisplPrevIter_.GetSize() != displTilde.GetSize())
     {
       if (aitkenOmegaPrevIter_ < displFac_)
       {
