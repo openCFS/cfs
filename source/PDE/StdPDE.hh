@@ -324,6 +324,9 @@ namespace CoupledField {
     bool IsHysteresis() 
     { return isHysteresis_;};
 
+    bool IsTotaFormulation() 
+    { return totalFormulation_;};
+
     bool IsIterCoupled() 
     { return isIterCoupled_;};
 
@@ -473,6 +476,7 @@ namespace CoupledField {
     bool nonLin_;           //!< flag for nonlinear calculations
     bool nonLinMaterial_;           //!< flag for nonlinear material calculations
     bool isHysteresis_;     //!< flag for hysteresis
+    bool totalFormulation_;   //!< flag for total formulation in nonlinear calculations
 
     //! map for each region the type of nonlinearity
     std::map<RegionIdType, NonLinType> regionNonLinType_;

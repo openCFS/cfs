@@ -13,6 +13,7 @@
 
 #include "Forms/laplaceInt.hh"
 #include "Forms/linHeatCondInt.hh"
+#include "Forms/nLinHeatInt.hh"
 #include "Forms/massInt.hh"
 #include "Forms/linNeumannInt.hh"
 #include "Forms/linearForm.hh"
@@ -142,7 +143,100 @@ void HeatCondPDE::ReadSpecialBCs() {
           << myName << "'!" );
     }
   }
+
+    // read volume force definition
+    ReadRegionLoads();
+
 }
+
+
+  // ****************************
+  //  Initialize Nonlinearities
+  // ****************************
+  void HeatCondPDE::InitNonLin() {
+
+    nonLin_ = false;
+
+    // Check, if "nonLinList" is present
+    PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
+    if( nonLinListNode ) { 
+
+      // Get nonlinear types
+      ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
+      for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
+
+        std::string actTypeString = nonLinNodes[i]->GetName();
+        std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
+
+        NonLinType actType;
+        String2Enum( actTypeString, actType );
+
+        nonLinIdType_[actId] = actType;
+      }
+    }
+
+    // Run over all region and set entry in "regionNonLinId"
+    ParamNodeList regionNodes = 
+      myParam_->Get("regionList")->GetChildren();
+    
+    RegionIdType actRegionId;
+    std::string actRegionName, actNonLinId;
+    
+    if( regionNodes.GetSize() > 0 ) {
+      Info->PrintF( pdename_, "Non-linearity in following region(s)\n" );
+    }
+    for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
+      
+      // get data
+      regionNodes[i]->GetValue( "name", actRegionName );
+      regionNodes[i]->GetValue( "nonLinId", actNonLinId );
+      
+      if( actNonLinId == "" )
+        continue;
+      
+      actRegionId = ptgrid_->GetRegion().Parse( actRegionName );
+      
+      // Check nonLinId was already registerd
+      if( nonLinIdType_.find( actNonLinId) == nonLinIdType_.end() ) {
+        EXCEPTION( "NonLinearity with id '" << actNonLinId 
+                   << "' was not defined in 'nonLinList'" );
+      }
+      NonLinType actType = nonLinIdType_[actNonLinId];
+      regionNonLinId_[actRegionId] = actNonLinId;
+      regionNonLinType_[actRegionId] = actType;
+
+      // check type
+      if( actType == NLHEAT_CONDUCTIVITY || actType == NLHEAT_CAPACITY ) {
+        nonLin_ = true;
+      }
+
+      // Log to info file
+      std::string nonLinString;
+      Enum2String( nonLinIdType_[actNonLinId], nonLinString );
+      Info->PrintF( pdename_, " %s: %s\n", actRegionName.c_str(), 
+                    nonLinString.c_str() );
+      
+    }
+
+    // set nonlinearity flag only, if any region references
+    // a nonlinearity at all
+    if( regionNonLinId_.size() > 0 ) {
+      nonLin_ = true;
+      totalFormulation_ = true;
+    }
+    
+    // Here we need in addition the nonLinMethod_ for the definition
+    // of the integrators
+    nonLinMethod_ = FIXEDPOINT;
+    PtrParamNode nonLinNode = myParam_->Get("nonLinear", ParamNode::PASS );
+    if( nonLinNode ) {
+      std::string methodString;
+      nonLinNode->GetValue(  "method", methodString, ParamNode::PASS );
+      nonLinMethod_ = NonLinMethodTypeEnum.Parse(methodString);
+    }
+
+  }
+
 
 void HeatCondPDE::DefineIntegrators()
 {
@@ -180,31 +274,73 @@ void HeatCondPDE::DefineIntegrators()
     // stiffness integrator
     // ====================================================================
 
-    BaseForm *bilinearStiff = NULL;
-    if( actMat->IsSet(HEAT_CONDUCTIVITY) )
-    {
-      Double coeffstiff(0.0);
-      // stiffness integrator for isotropic material
-      actMat->GetScalar(coeffstiff,HEAT_CONDUCTIVITY,Global::REAL);
+    if ( regionNonLinType_[actSD] == NLHEAT_CONDUCTIVITY ) {
+      BaseForm *nlBilinearStiff = new nlinHeatStiffInt( actMat, tensorType, false );
 
-      bilinearStiff = new LaplaceInt(coeffstiff, isaxi_, true );
+      nlBilinearStiff->SetNonLinMethod( nonLinMethod_ );      
+      nlBilinearStiff->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
 
-      Info->PrintF( pdename_, "Assemble Laplace integrator with multiplicative factor %6.1f.\n", coeffstiff );
+      BiLinFormContext *stiffContext = new BiLinFormContext(nlBilinearStiff, STIFFNESS );
+      
+      stiffContext->SetPtPdes(this, this);
+      stiffContext->SetResults( results_[0], results_[0], actSDList, actSDList );
+      
+      // Finally add the standard integrators - stiffness
+      assemble_->AddBiLinearForm( stiffContext );
+
+//       // nonlinear RHS linearform!!
+//       LinearForm * rhsNL;
+//       rhsNL = new nLinHeat_linFormInt( actMat, isaxi_, false );
+//       rhsNL->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+
+//       LinearFormContext * rhsContext = new LinearFormContext( rhsNL );
+//       rhsContext->SetPtPde( this );
+//       rhsContext->SetResult( results_[0], actSDList );
+//       assemble_->AddLinearForm( rhsContext );
     }
-    
-    if( actMat->IsSet(HEAT_CONDUCTIVITY_TENSOR) )
-    {
-      bilinearStiff = new linHeatCondInt( actMat, tensorType, true );
+    else {
+      if( actMat->IsSet(HEAT_CONDUCTIVITY) ) {
+        BaseForm *bilinearStiff; 
+        Double coeffstiff(0.0);
+        // stiffness integrator for isotropic material
+        actMat->GetScalar(coeffstiff,HEAT_CONDUCTIVITY,Global::REAL);
+        bilinearStiff = new LaplaceInt(coeffstiff, isaxi_, true );
+        
+        Info->PrintF( pdename_, "Assemble Laplace integrator with multiplicative factor %6.1f.\n", coeffstiff );
+        BiLinFormContext * stiffContext = new BiLinFormContext(bilinearStiff, STIFFNESS );
+        
+        stiffContext->SetPtPdes(this, this);
+        stiffContext->SetResults( results_[0], results_[0], actSDList, actSDList );
+      
+        // Finally add the standard integrators - stiffness
+        assemble_->AddBiLinearForm( stiffContext );
+      }
+      else if( actMat->IsSet(HEAT_CONDUCTIVITY_TENSOR) ) {
+        BaseForm *bilinearStiff; 
+        bilinearStiff = new linHeatCondInt( actMat, tensorType, true );
+        BiLinFormContext * stiffContext = new BiLinFormContext(bilinearStiff, STIFFNESS );
+        
+        stiffContext->SetPtPdes(this, this);
+        stiffContext->SetResults( results_[0], results_[0], actSDList, actSDList );
+      
+        // Finally add the standard integrators - stiffness
+        assemble_->AddBiLinearForm( stiffContext );
+      }
+
+//       if ( nonLin_ == true ) {
+//           // we need nonlinear RHS linearform for both linear and nonlinear
+//           // subdomains; just in case of material nonlinearity!
+//         LinearForm * rhsNL;
+//         rhsNL = new nLinHeat_linFormInt( actMat, isaxi_, false );
+//         rhsNL->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+        
+//         LinearFormContext * rhsContext = new LinearFormContext( rhsNL );
+//         rhsContext->SetPtPde( this );
+//         rhsContext->SetResult( results_[0], actSDList );
+//         assemble_->AddLinearForm( rhsContext );
+//      }
+      
     }
-    assert(bilinearStiff != NULL);
-
-    BiLinFormContext * stiffContext = new BiLinFormContext(bilinearStiff, STIFFNESS );
-
-    stiffContext->SetPtPdes(this, this);
-    stiffContext->SetResults( results_[0], results_[0], actSDList, actSDList );
-
-    // Finally add the standard integrators - stiffness
-    assemble_->AddBiLinearForm( stiffContext );
 
 
     // ====================================================================
@@ -214,18 +350,34 @@ void HeatCondPDE::DefineIntegrators()
 
     if (isElectroCoupled_ == false && isMechCoupled_ == false ) {
 
-      BaseForm * bilinearMass = new MassInt(coeffmass, 1, isaxi_, true );
-      BiLinFormContext * massContext = new BiLinFormContext(bilinearMass, MASS );
+      if ( regionNonLinType_[actSD] == NLHEAT_CAPACITY ) {
+        BaseForm *nlBilinearMass = new nlinHeatMassInt( actMat, tensorType, false );
 
-      massContext->SetPtPdes(this, this);
-      massContext->SetResults(results_[0], results_[0], actSDList,
-          actSDList );
-
-      // Finally add the standard integrators - mass
-      assemble_->AddBiLinearForm(massContext );
-
-      Info->PrintF( pdename_,
-          "Assemble Mass integrator with multiplicative factor %6.1f.\n", coeffmass );
+        nlBilinearMass->SetNonLinMethod( nonLinMethod_ );      
+        nlBilinearMass->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+        
+        BiLinFormContext *massContext = new BiLinFormContext(nlBilinearMass, MASS );
+        
+        massContext->SetPtPdes(this, this);
+        massContext->SetResults( results_[0], results_[0], actSDList, actSDList );
+        
+        // Finally add the standard integrators - stiffness
+        assemble_->AddBiLinearForm( massContext );
+      }
+      else {
+        BaseForm * bilinearMass = new MassInt(coeffmass, 1, isaxi_, true );
+        BiLinFormContext * massContext = new BiLinFormContext(bilinearMass, MASS );
+        
+        massContext->SetPtPdes(this, this);
+        massContext->SetResults(results_[0], results_[0], actSDList,
+                                actSDList );
+        
+        // Finally add the standard integrators - mass
+        assemble_->AddBiLinearForm(massContext );
+        
+        Info->PrintF( pdename_,
+                      "Assemble Mass integrator with multiplicative factor %6.1f.\n", coeffmass );
+      }
     } else {
       // damping integrator
       BaseForm * bilinearDamp = new MassInt(coeffmass, 1, isaxi_, true );
@@ -408,6 +560,9 @@ void HeatCondPDE::DefineIntegrators()
   // RHS source values
   // ======================================================================
 
+  // Add integrators for region loads
+  DefineRegionLoadIntegrators(regionLoads_);
+
   // fetch paramnodes for RHS source
   ParamNodeList rhsValuesNodes =
     myParam_->Get("bcsAndLoads")->GetList("rhsValues");
@@ -457,6 +612,34 @@ void HeatCondPDE::DefineIntegrators()
   }
 
 }
+
+
+void HeatCondPDE::DefineRegionLoadIntegrators(std::map<RegionIdType, RegionLoad>& regionLoads, StdVector<LinearFormContext*>* linForms){
+    VolumeSrcInt * volSrcInt;
+
+    std::map<RegionIdType, RegionLoad>::iterator loadIt = regionLoads.begin();
+    for( loadIt = regionLoads.begin(); loadIt != regionLoads.end(); loadIt++ ) {
+      volSrcInt = (*loadIt).second.GetSrcScalarIntegrator();
+
+      // Create new element list
+      shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
+      actSDList->SetRegion( loadIt->first );
+      LinearFormContext * volSrcContext =
+        new LinearFormContext( volSrcInt );
+      volSrcContext->SetPtPde(this);
+      volSrcContext->SetResult( results_[0], actSDList );
+      if(linForms != NULL){
+        linForms->Push_back(volSrcContext);
+      }else{
+        assemble_->AddLinearForm( volSrcContext );
+      }
+
+      (*loadIt).second.ToInfo(infoNode_->Get("regionLoad"));
+
+    }
+    
+  }
+
 
 void HeatCondPDE::DefineSolveStep() {
 

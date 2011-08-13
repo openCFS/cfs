@@ -23,6 +23,54 @@ namespace CoupledField
 
   }
 
+  Double LinInterpolate::EvaluateFunc( Double xEntry ) {
+
+    Double yValue = 0.0;
+
+    // get index of last element
+    const UInt kend = x_.GetSize() - 1;
+
+    // if coordinate is out of bounds, return boundary value 
+    // (i.e.first or last) 
+    if ( xEntry > x_[kend] ) {
+      yValue = y_[kend];
+    }
+    else if ( xEntry < x_[0] ) {
+      yValue = y_[0];
+    }
+    else {
+      UInt klo,khi,k;
+      klo=0;
+      khi=kend;
+      // We will find the right place in the table by means of bisection.
+      //  klo and khi bracket the input value of xEntry
+      while (khi-klo > 1) {
+        k=(khi+klo) >> 1; // binary right shift
+        if (x_[k] > xEntry)
+          khi=k;
+        else
+          klo=k;
+      }
+
+      // size of x interval
+      Double dxVal = x_[khi] - x_[klo];
+
+      // The x-values must be distinct!
+      if (dxVal == 0.0) {
+        EXCEPTION("You cannot have two equal x values!" );
+      }
+
+      // relative distance of xEntry to x-Value bounds
+      Double a = ( x_[khi] - xEntry )/dxVal;
+      Double b = ( xEntry - x_[klo] )/dxVal;
+
+      //linear interpolation
+      yValue = a * y_[klo] + b * y_[khi];
+    }
+
+    return yValue;
+  }
+
 
   Double LinInterpolate::EvaluateFuncInv(double inVal)
   {

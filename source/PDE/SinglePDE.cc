@@ -1806,9 +1806,18 @@ namespace CoupledField {
         tempNames.Push_back( actNode->Get("name")->As<std::string>() );
         tempLoadVec.Push_back( actNode->Get("value")->As<std::string>() );
         tempPhase.Push_back( actNode->Get("phase")->As<std::string>() );
-        tempDofs.Push_back( actNode->Get("dof")->As<std::string>() );
-        tempRefCoord.Push_back( actNode->Get("coordSysId")->As<std::string>() );
-        tempType.Push_back( actNode->Get("type")->As<std::string>() );
+        if ( actNode->Has("dof") )
+          tempDofs.Push_back( actNode->Get("dof")->As<std::string>() );
+        else
+          tempDofs.Push_back( "" );
+        if ( actNode->Has("coordSysId") )
+          tempRefCoord.Push_back( actNode->Get("coordSysId")->As<std::string>() );
+        else
+          tempRefCoord.Push_back( "" );
+        if ( actNode->Has("type") )
+          tempType.Push_back( actNode->Get("type")->As<std::string>() );
+        else
+          tempType.Push_back( "");
       }
 
 #ifdef USE_SCRIPTING
@@ -1890,11 +1899,17 @@ namespace CoupledField {
       }
 
       // now create local load vector
-      for (UInt iDim=0; iDim < loadVec.GetSize(); iDim++) {
-        locDof = domain->GetCoordSystem(refCoord[iDim])->
-          GetVecComponent(dofs[iDim]);
+      UInt actDim =  loadVec.GetSize();
+      for (UInt iDim=0; iDim < actDim; iDim++) {
+        if ( actDim > 1 ) {
+          //vector case
+          locDof = domain->GetCoordSystem(refCoord[iDim])->
+            GetVecComponent(dofs[iDim]);
+          curLoad->type = type[iDim];
+        }
+        else
+          locDof = 1;
         curLoad->value[locDof-1] = loadVec[iDim];
-        curLoad->type = type[iDim];
       }
     }
   }
@@ -3862,8 +3877,14 @@ namespace CoupledField {
                                   isUnit, volume );
 
      return forceInt;
+   }
 
+   VolumeSrcInt * SinglePDE::RegionLoad::GetSrcScalarIntegrator() {
+     //simple volume source integrator
 
+     VolumeSrcInt *srcInt = new VolumeSrcInt( value[0], isAxi_ );
+
+     return srcInt;
    }
 
    void SinglePDE::RegionLoad::ToInfo(PtrParamNode in) const

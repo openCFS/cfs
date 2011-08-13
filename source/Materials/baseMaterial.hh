@@ -95,19 +95,24 @@ namespace CoupledField {
     { return integerParams_;};
 
     //! set file name containing the nonlinear data
-    void SetNonlinFileName( const char *filename) {
-      nonlinFileName_.assign( filename );
+    void SetNonlinFileName( const char *filename, MaterialType matType) {
+      nonlinFileName_[matType].assign( filename );
     }
 
     //! get nonlinear file name
-    std::string& GetNonlinFileName() {
-      return nonlinFileName_;
+    std::string GetNonlinFileName( MaterialType matType ) {
+      stringMap::const_iterator pos;
+      pos = nonlinFileName_.find( matType );
+      if ( pos == nonlinFileName_.end() ) 
+        return "";
+      else
+        return (pos->second);
     }
 
     //! set, which nonlinear curves are needed by forms
     void NeedApproxMatCurve( ApproxMaterialCurves type );
 
-    virtual ApproxData* GetNonlinFncBH() {
+    virtual ApproxData* GetNonlinFncBH( MaterialType matType ) {
       EXCEPTION("BaseMaterial: GetNlinFncBH() not implemented");
       return NULL;
     };
@@ -383,7 +388,7 @@ namespace CoupledField {
     std::string matFileName_;
 
     //! name of file containing the nonlinear data
-    std::string nonlinFileName_;
+    stringMap nonlinFileName_;
 
     //! set, which knows, which material parameters have been set
     std::set<ApproxMaterialCurves> needApproxMatCurves_;

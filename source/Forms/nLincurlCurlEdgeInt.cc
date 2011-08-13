@@ -66,7 +66,7 @@ namespace CoupledField
     Double derivReluctivity = 0.0;  
   
     // get pointer to nonlinear BH curve approximation
-    ApproxData* nlinFnc = ptMaterial->GetNonlinFncBH();
+    ApproxData* nlinFnc = ptMaterial->GetNonlinFncBH(MAG_PERMEABILITY);
 
  
     // get solution of current element

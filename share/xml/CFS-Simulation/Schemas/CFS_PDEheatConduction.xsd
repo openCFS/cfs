@@ -41,9 +41,20 @@
                 <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
                   <xsd:complexType>
                     <xsd:attribute name="name" type="xsd:token" use="required"/>
+                    <xsd:attribute name="nonLinId" type="xsd:token" use="optional" default=""/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- List defining nonlinear types -->
+          <xsd:element name="nonLinList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="heatCapacity" type="DT_HeatNonLin"/>
+                <xsd:element name="heatConductivity" type="DT_HeatNonLin"/>
+              </xsd:choice>
             </xsd:complexType>
           </xsd:element>
 
@@ -77,6 +88,7 @@
                 <xsd:element name="robin"         type="DT_HeatR"    />
                 <xsd:element name="load"           type="DT_HeatLoad" />
                 <xsd:element name="rhsValues"      type="DT_HeatRHS"  />
+                <xsd:element name="regionLoad"     type="DT_HeatRegionLoad"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -164,6 +176,15 @@
     </xsd:complexContent>
   </xsd:complexType>
 
+  <!-- Element type for region Loads -->
+  <!-- We derive it by extending the base type -->
+  <xsd:complexType name="DT_HeatRegionLoad">
+    <xsd:complexContent>
+      <xsd:extension base="DT_HeatLoad">
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
   <!-- Element type for specifying loads -->
   <!-- Identical to that of inhomogeneous Dirichlet case -->
   <xsd:complexType name="DT_HeatLoad">
@@ -172,6 +193,7 @@
     </xsd:complexContent>
   </xsd:complexType>
   
+
   <!-- Element type for specifying rhs source term -->
   <xsd:complexType name="DT_HeatRHS">
     <xsd:attribute name="region" type="xsd:token" use="required"/>
@@ -244,5 +266,16 @@
     </xsd:sequence>
   </xsd:complexType>
 
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of heat nonlinarity -->
+  <!-- ******************************************************************* -->
+
+  <!-- Definition of heat nonlinearity type -->
+  <xsd:complexType name="DT_HeatNonLin">
+    <xsd:complexContent>
+      <xsd:extension base="DT_NonLinBasic"> </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
 
 </xsd:schema>

@@ -118,7 +118,8 @@ namespace CoupledField {
   //! Type of nonlinearity for certain pdes
   typedef enum { NO_NONLINEARITY, WESTERVELT, KUZNETSOV, VARIABLE_SOS_CN1,
                  VARIABLE_SOS_CN2, VARIABLE_SOS_CN2Mean,
-                 MATERIAL, GEOMETRIC, HYSTERESIS, PIEZO_MICRO_HF, PERMEABILITY  } NonLinType;
+                 MATERIAL, GEOMETRIC, HYSTERESIS, PIEZO_MICRO_HF, PERMEABILITY,
+                 NLHEAT_CONDUCTIVITY, NLHEAT_CAPACITY} NonLinType;
 
 
    //! Describes all possible solution types in a CFS simulation
@@ -214,7 +215,7 @@ namespace CoupledField {
                 MAGNETOSTRICTIVE } MaterialClass;
 
 
-  typedef enum{ noCurve, magBH } ApproxMaterialCurves;
+  typedef enum{ noCurve, generic, magBH } ApproxMaterialCurves;
 
   //! type of measured curve to be approximated
   //! GENERAL   = any curve

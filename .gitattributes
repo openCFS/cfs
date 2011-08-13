@@ -1066,6 +1066,8 @@ source/Forms/nLinElecHystInt.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/Forms/nLinElecHystInt.hh -text svneol=unset#text/x-c%2B%2Bhdr
 source/Forms/nLinElecMaterial.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/nLinElecMaterial.hh svneol=native#text/x-c%2B%2Bhdr
+source/Forms/nLinHeatInt.cc -text
+source/Forms/nLinHeatInt.hh -text
 source/Forms/nLinMagHystInt2D.cc -text
 source/Forms/nLinMagHystInt2D.hh -text
 source/Forms/nLinMassInt.cc svneol=native#text/x-c%2B%2Bsrc
