@@ -1901,7 +1901,11 @@ namespace CoupledField {
       // now create local load vector
       UInt actDim =  loadVec.GetSize();
       for (UInt iDim=0; iDim < actDim; iDim++) {
-        if ( actDim > 1 ) {
+        
+        // check, if the primary result has more than one component,
+        // i.e. if we have vector-valued unknowns (mechanics) or
+        // scalar valued ones
+        if ( results_[0]->dofNames.GetSize() > 1 ) {
           //vector case
           locDof = domain->GetCoordSystem(refCoord[iDim])->
             GetVecComponent(dofs[iDim]);
