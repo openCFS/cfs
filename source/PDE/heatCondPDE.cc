@@ -255,8 +255,8 @@ void HeatCondPDE::DefineIntegrators()
     tensorType = AXI;
     isaxi_ = true;
   }
-  else
-    EXCEPTION("subtensortype not implemented");
+//  else
+//    EXCEPTION("subtensortype not implemented");
 
   // loop over all subdomains
   for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++) {
