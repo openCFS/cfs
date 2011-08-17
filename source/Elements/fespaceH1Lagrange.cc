@@ -24,9 +24,10 @@ namespace CoupledField{
     //! Constructor
     FeSpaceH1Lagrange::FeSpaceH1Lagrange(ParamNode* aNode) 
     : FeSpaceH1(aNode) {
-      mapType_ = GRID;
       type_ = H1;
       isHierarchical_ = false;
+      mapType_ = GRID;
+      polyType_ = LAGRANGE;
     }
 
     //! Destructor
@@ -36,8 +37,13 @@ namespace CoupledField{
     void FeSpaceH1Lagrange::Init() {
       // read order of function space
       // read, if map type should be isotropic
-      
-      ParamNode * orderNode = NULL;
+      //TODO: Specify default integration method
+      //       special case of spectral elements:
+      //       If we have Gauss-LOBATTO, we set it to the element order
+      //       (if the user did not specify something else).
+      //       If we do not have Gauss-Lobatto we set to Gauss and order to 2
+      //       (if the user did not specify something else).
+      /*ParamNode * orderNode = NULL;
       orderNode = myParam_->Get("order");
       if( orderNode ) {
        if( orderNode->Has("grid") ) {
@@ -48,43 +54,27 @@ namespace CoupledField{
          isoOrder_ = orderNode->Get("uniform")->AsUInt();
          SetMapType(POLYNOMIAL);
        }
-      }
+      }*/
+      CreateRefElems();
     }
 
-    void FeSpaceH1Lagrange::SetMapType( MappingType mapT){
-      mapType_ = mapT;
-      //build up the pointerMap
-      
-      // Note: at the moment this is not implemented in a 
-      // clean fashion. The equation mapping currently relies
-      // on the global node numbers of the element.
-      // Instead, it should use the GetNumFncs(AnsatzFct::NODE)
-      // method, which would deliver the correct number of
-      // unknowns for the calculation element instead of the 
-      // geometric element.
-
-      if( mapType_ == GRID ) {
-        refElems_[Elem::ET_LINE2]  = new FeH1LagrangeLine1();
-        refElems_[Elem::ET_QUAD4]  = new FeH1LagrangeQuad1();
-        refElems_[Elem::ET_HEXA8]  = new FeH1LagrangeHex1();
-        refElems_[Elem::ET_LINE3]  = new FeH1LagrangeLine2();
-        refElems_[Elem::ET_QUAD8]  = new FeH1LagrangeQuad2();
-        refElems_[Elem::ET_HEXA20] = new FeH1LagrangeHex2();
-      } else if (mapType_ == POLYNOMIAL) {
-        refElems_[Elem::ET_LINE2]  = new FeH1LagrangeLineVar();
-        refElems_[Elem::ET_QUAD4]  = new FeH1LagrangeQuadVar();
-        refElems_[Elem::ET_HEXA8]  = new FeH1LagrangeHexVar();
-        refElems_[Elem::ET_LINE3]  = new FeH1LagrangeLineVar();
-        refElems_[Elem::ET_QUAD8]  = new FeH1LagrangeQuadVar();
-        refElems_[Elem::ET_HEXA20] = new FeH1LagrangeHexVar();
-      }
-    }
- 
     BaseFE* FeSpaceH1Lagrange::GetFe( const EntityIterator ent ){
-      if(refElems_.find(ent.GetElem()->type) == refElems_.end()){
+
+      if(ent.GetType() != EntityList::ELEM_LIST){
+        EXCEPTION("This version of GetFe expects a element iterator")
+      }
+
+      RegionIdType eRegion = ent.GetElem()->regionId;
+
+      //Check if the region is there, otherwise fall back to default
+      if(refElems_.find(eRegion) == refElems_.end()){
+        eRegion = ALL_REGIONS;
+      }
+
+      if(refElems_[eRegion].find(ent.GetElem()->type) == refElems_[eRegion].end()){
         EXCEPTION("fespaceh1::getfe( const entityiterator): requested fetype which is noch supported by space");
       }
-      BaseFE * myFe = refElems_[ent.GetElem()->type];
+      BaseFE * myFe = refElems_[eRegion][ent.GetElem()->type];
 
       // No need to set the order here, as this is already done once and for all in the 
       // SetMapType() method. For higher order spaces with non-uniform polynomial order, this necessary.
@@ -94,15 +84,18 @@ namespace CoupledField{
     }
 
     BaseFE* FeSpaceH1Lagrange::GetFe( UInt elemNum ){
-      const Elem * ptElem = feFunction_->GetGrid()->GetElem(elemNum); 
-      if(refElems_.find(ptElem->type) == refElems_.end()){
+      const Elem * ptElem = feFunction_->GetGrid()->GetElem(elemNum);
+      RegionIdType eRegion = ptElem->regionId;
+
+      //Check if the region is there, otherwise fall back to default
+      if(refElems_.find(eRegion) == refElems_.end()){
+        eRegion = ALL_REGIONS;
+      }
+
+      if(refElems_[eRegion].find(ptElem->type) == refElems_[eRegion].end()){
         EXCEPTION("fespaceh1::getfe( const entityiterator): requested fetype which is noch supported by space");
       }
-      BaseFE * myFe = refElems_[ptElem->type];
-
-      // No need to set the order here, as this is already done once and for all in the 
-      // SetMapType() method. For higher order spaces with non-uniform polynomial order, this necessary.
-      // myFe->SetIsoOrder( isoOrder_);
+      BaseFE * myFe = refElems_[eRegion][ptElem->type];
 
       return myFe;
 
@@ -141,15 +134,6 @@ namespace CoupledField{
        * 4. Map equations only based on the virtualNodeArray
       */
 
-
-      if (mapType_ != GRID ) {
-        // for lagrangian elements only isoparametric element orders are supported
-        std::map<Elem::FEType,BaseFE*>::iterator i = refElems_.begin();
-        for( ; i != refElems_.end(); ++i ) {
-          i->second->SetIsoOrder(isoOrder_);
-        }
-      }
-      
       UInt numEqns_ = 0;
       UInt numFreeEquations_ = 0;
       CreateVirtualNodes();
@@ -160,8 +144,107 @@ namespace CoupledField{
       
       // TEMPORARY: print information 
       //PrintEqnMap();
+      CheckConsistency();
       isFinalized_ = true;
     }
 
+    void FeSpaceH1Lagrange::SetRegionElements(RegionIdType region, MappingType mType,Matrix<Integer> order){
+      //This method may not be called after the space is finalized!
+      if(isFinalized_){
+        Exception("FeSpace::SetRegionMapping is called after finalization");
+      }
+
+      if(mType == GRID){
+        refElems_[region][Elem::ET_LINE2]  = new FeH1LagrangeLine1();
+        refElems_[region][Elem::ET_QUAD4]  = new FeH1LagrangeQuad1();
+        refElems_[region][Elem::ET_HEXA8]  = new FeH1LagrangeHex1();
+        refElems_[region][Elem::ET_LINE3]  = new FeH1LagrangeLine2();
+        refElems_[region][Elem::ET_QUAD8]  = new FeH1LagrangeQuad2();
+        refElems_[region][Elem::ET_HEXA20] = new FeH1LagrangeHex2();
+      } else if (mType == POLYNOMIAL) {
+        refElems_[region][Elem::ET_LINE2]  = new FeH1LagrangeLineVar();
+        refElems_[region][Elem::ET_QUAD4]  = new FeH1LagrangeQuadVar();
+        refElems_[region][Elem::ET_HEXA8]  = new FeH1LagrangeHexVar();
+        refElems_[region][Elem::ET_LINE3]  = new FeH1LagrangeLineVar();
+        refElems_[region][Elem::ET_QUAD8]  = new FeH1LagrangeQuadVar();
+        refElems_[region][Elem::ET_HEXA20] = new FeH1LagrangeHexVar();
+
+        //now set the order
+        if(order.GetNumCols() != 1 || order.GetNumRows() != 1){
+          Exception("FeSpaceH1Lagrange::SetRegionMapping : The order matrix may have only one entry for lagrange elements");
+        }
+        std::map<Elem::FEType, BaseFE* >::iterator i = refElems_[region].begin();
+        for( ; i != refElems_[region].end(); ++i ) {
+          i->second->SetIsoOrder(order[0][0]+orderOffset_);
+        }
+        mapType_ = POLYNOMIAL;
+      }
+    }
+
+
+    void FeSpaceH1Lagrange::SetRegionIntegration(RegionIdType region, IntScheme::IntegMethod method, Matrix<Integer> order){
+      //TODO:Implementation of defaults (ALL_REGIONS) and XML
+      regionIntegration_[region].first = method;
+      regionIntegration_[region].second = order;
+    }
+
+    void FeSpaceH1Lagrange::CheckConsistency(){
+      //just set lobatto integration with element order for each spectral region
+      std::map<RegionIdType,bool>::iterator spIt = spectralRegions_.begin();
+
+      while(spIt != spectralRegions_.end()){
+        Matrix<Integer> order(1,1);
+        //every reference element has the same order
+        order[0][0] = refElems_[spIt->first][Elem::ET_LINE2]->GetIsoOrder();
+        SetRegionIntegration(spIt->first,IntScheme::LOBATTO,order);
+        spIt++;
+      }
 
     }
+
+
+    void FeSpaceH1Lagrange::ProcessPolyRegionNode(ParamNode* node, RegionIdType region){
+      Matrix<Integer> order(1,1);
+      order[0][0] = -1;
+      ParamNode * isoOrderNode = node->Get("isoOrder", false );
+      bool spectral = node->Get("spectral",false)->AsBool();
+      bool grid = node->Get("useGridOrder")->AsBool();
+
+      spectralRegions_[region] = spectral;
+      //determine mapping type
+      MappingType curMap = POLYNOMIAL;
+      if(!spectral && grid){
+        curMap = GRID;
+      }
+      if(isoOrderNode){
+        Integer isoOrder = isoOrderNode->AsInt();
+        order[0][0] = isoOrder;
+      }else{
+        if(spectral){
+          Warning("No order specified for spectral element region. setting it to 1");
+        }
+        order[0][0] = 1;
+      }
+      SetRegionElements(region,curMap,order);
+    }
+
+    void FeSpaceH1Lagrange::CreateDefaultElements(){
+      //but it could be, that the PDE requires a minimum order of elements..
+      Matrix<Integer> order(1,1);
+      if(orderOffset_>0){
+        order[0][0] = orderOffset_;
+        SetRegionElements(ALL_REGIONS,POLYNOMIAL,order);
+      }else{
+        //now we are pretty sure that we need a grid mapping
+        SetRegionElements(ALL_REGIONS,GRID,order);
+      }
+    }
+
+    //! sets the default integration scheme and order
+    void FeSpaceH1Lagrange::SetDefaultIntegration(){
+      regionIntegration_[ALL_REGIONS].first = IntScheme::GAUSS;
+      regionIntegration_[ALL_REGIONS].second = Matrix<Integer>(1,1);
+      regionIntegration_[ALL_REGIONS].second[0][0] = -1;
+    }
+
+ }//namespace

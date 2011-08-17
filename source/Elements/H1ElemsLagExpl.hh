@@ -43,7 +43,7 @@ public:
   \param fctEntityType (input) The Entity type, Node/Edge/Face
   \param entNumber (input) The local entity number 
   */
-  virtual void GetFncPermutation( StdVector<UInt>& fncPermutation,
+  virtual void GetNodalPermutation( StdVector<UInt>& fncPermutation,
                                   const Elem* ptElem,
                                   EntityType fctEntityType,
                                   UInt entNumber);

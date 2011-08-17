@@ -43,7 +43,7 @@ class BaseFeFunction;
       -* Lower Order: The approximation order is explicitly encoded in the 
                       element itself (i.e. Lagrange Elements)
       -* Higher Order: The functions of the elements are composed of 1D 
-                       polynomials (e.g. Legendre, Jacobi, Gegenbauer).
+                       polynomials (e.g. Legendre, Jacobi, Gegenbauer, Dubiner).
   
   The FeSpaceConst plays a special role: It can be used in conjunction with
   discrete unknowns, e.g. additional network equations.
@@ -74,7 +74,7 @@ public:
   typedef enum {GRID,POLYNOMIAL} MappingType; 
 
   //! Enum which stores the (Virtual) Nodes of an element according to
-  //! thier definition on vertices,edges,faces and interor
+  //! their definition on vertices,edges,faces and interior
   typedef std::map< BaseFE::EntityType , StdVector<UInt> > ElemVirtualNodes;
 
   //! Constructor
@@ -90,24 +90,35 @@ public:
   SpaceType GetSpaceType() { return type_;}
   
   //! Generate instance of specific element space type
-  static shared_ptr<FeSpace> CreateInstance( ParamNode* aNode  );
+  static shared_ptr<FeSpace> CreateInstance( ParamNode* aNode, SpaceType reqType  );
   
   // ========================================================================
   //  INITIALIZATION 
   // ========================================================================
   //@{ \name Initialization
-  
-    //! Set isotropic order of functions to be used
-  virtual void SetIsoOrder( UInt order );
-  
+
+  //! Sets an offset to element orders. Right now this is only needed for
+  //! Mixed TaylorHood approximation
+  void SetElementOrderOffset(UInt offset);
+
   //! Return, if the space is hierarchical
   bool IsHierarchical() { return isHierarchical_;};
   
   //! Set Solution strategy and solution step
   virtual void SetStrategy( SolStrategyType strategy, UInt step ) {}; 
-  
+
   //@}
   
+
+  // ========================================================================
+  // Multiple Region handling
+  // ========================================================================
+  //@{ \name Region Handling
+
+  //! Get the Integration method and its order for the current region
+  void GetIntegration(RegionIdType region, IntScheme::IntegMethod & method,Matrix<Integer> & order);
+
+  //@}
   // ========================================================================
   //  ELEMENT HANDLING
   // ========================================================================
@@ -171,13 +182,8 @@ public:
     return numEqns_;
   }
 
-  //! Sets the MapType of the equation numbering to GridBased or PolynomialBased Mapping
-  virtual void SetMapType(MappingType type){
-    mapType_ = type;
-  }
-
   //! Returns the MapType of the equation numbering
-  MappingType GetMapType(){
+  MappingType GetMapType(RegionIdType region){
     return mapType_;
   }
 
@@ -229,8 +235,22 @@ protected:
   //! Type of element space
   SpaceType type_;
   
-  //! Map for reference elmenets
-  std::map<Elem::FEType, BaseFE* > refElems_;
+  //! Stores if the space is in polynomial or grid mode
+  //! Therefore, we set this variable to POLYNOMIAL as soon as
+  //! some region needs e.g. higher order or edge elements
+  MappingType mapType_;
+
+  //! store the Polznomial of the space
+  //! not very clean. in the near future we should make the spaces
+  //! capable to store any kind of polynomial
+  PolyType polyType_;
+
+  //! Stores an offset to the element orders created
+  //! is ignored in case of grid mapping
+  UInt orderOffset_;
+
+  //! Map for reference elements by region
+  std::map< RegionIdType, std::map<Elem::FEType, BaseFE* > > refElems_;
 
   //! Storing the FeFunctions associated with this space
   shared_ptr<BaseFeFunction> feFunction_;
@@ -254,6 +274,7 @@ protected:
   bool isHierarchical_;
   
   //! Isotropic polynomial approximation order
+  //OBSOLETE and replaced by regionMappings_ map
   UInt isoOrder_;
   
   //! Number of equations administrated by this space
@@ -271,7 +292,43 @@ protected:
   std::map< BcType, UInt> bcCounter_;
 
   //! sotres if equation numbering is grid based or order based
-  MappingType mapType_;
+  //OBSOLETE and replaced by regionMappings_ map
+  //MappingType mapType_;
+
+  // =====================================================
+  // REGION SPECIFIC DATA
+  // =====================================================
+
+  //! Stores the Integration for each region
+  //! if the user does not specify anything we just fill a default
+  //! in the anisotrpopic case,the order matrix represents in each row, the component
+  //! of (vectorial) unknowns and in each column the order for each space direction
+  //! to distinguish cleanly one could define an isIsoOrderInt flag....
+  std::map<RegionIdType,std::pair<IntScheme::IntegMethod,Matrix<Integer> > > regionIntegration_;
+
+  //! Set the order and mapping type of a specific region
+  virtual void SetRegionElements(RegionIdType region, MappingType mType,Matrix<Integer> order)=0;
+
+  //! read in region mapping data and set defaults
+  virtual void CreateRefElems();
+
+  //! read in integration data and set defaults
+  virtual void SetRegionIntegration(RegionIdType region, IntScheme::IntegMethod method, Matrix<Integer> order)=0;
+
+
+  // ====================================================================
+  // INTERNAL INITIALIZATION
+  // ====================================================================
+  //! Here the spaces have the possibility to check if user definitions makes sense
+  //! e.g. if the chosen integration is correct or the element order is nice
+  //! here one could e.g. adjust the integration order according to the element order
+  virtual void CheckConsistency() = 0;
+
+  //! sets the default integration scheme and order
+  virtual void SetDefaultIntegration() = 0;
+
+  //! Create default finite elements to be used if nothing else is requested
+  virtual void CreateDefaultElements() = 0;
 
   // =====================================================
   //  Nodal section
@@ -282,6 +339,9 @@ protected:
    //! convenient
    virtual void CreateVirtualNodes();
 
+   virtual void CreatePolynomialNodes();
+
+   virtual void CreateGridNodes();
    //! Get all Node Numbers according to the mapping GRID based or
    //! POLYNOMIAL Based according to the Type requested
    virtual void GetNodesOfEntities( StdVector<UInt>& nodes,
@@ -312,6 +372,27 @@ protected:
   //! This Variable could be extended to store also the coordinates of all nodes
   //! created
   std::map< UInt, ElemVirtualNodes > virtualNodes_;
+
+  // =========================================================
+  // READ USER INPUT
+  // =========================================================
+
+  //! Read the contents of the given parameter node and call the SetRegionIntegration Function
+  virtual void ProcessIntegRegionNode(ParamNode * node, RegionIdType reg);
+
+  //! Read the IntegrationSchemeList from the xml and put the nodes in the map
+  //! according to their id's
+  virtual void ExtractIntegSchemeIds(std::map<std::string,ParamNode *> & integNodes);
+
+  //! Read the fePolynomialList from the xml and put the nodes in the map
+  //! according to their id's
+  //! This makes it easier later on to assign the correct elements
+  virtual void ExtractPolynomialIds(std::map<std::string,ParamNode *>& pnodes);
+
+  //! Here we pass a fePolynomial node such that the feSpace can extract the information
+  //! which is important for the specific space
+  virtual void ProcessPolyRegionNode(ParamNode* node, RegionIdType region) = 0;
+
 };
 
 

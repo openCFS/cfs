@@ -43,10 +43,27 @@ public:
   //! Map equations i.e. initialize object
   virtual void Finalize();
 
-  //! Set type of map
-  virtual void SetMapType(MappingType mapT);
-
 protected:
+
+  // ====================================================================
+  // INTERNAL INITIALIZATION
+  // ====================================================================
+  //! read in integration data and set defaults
+  virtual void SetRegionIntegration(RegionIdType region, IntScheme::IntegMethod method, Matrix<Integer> order);
+
+  //! Set the order and mapping type of a specific region
+  virtual void SetRegionElements(RegionIdType region, MappingType mType,Matrix<Integer> order);
+
+  //! Here the spaces have the possibility to check if user definitions makes sense
+  //! e.g. if the chosen integration is correct or the element order is nice
+  //! here one could e.g. adjust the integration oder according to the element order
+  virtual void CheckConsistency();
+
+  //! sets the default integration scheme and order
+  virtual void SetDefaultIntegration();
+
+  //! Create default finite elements to be used if nothing else is requested
+  virtual void CreateDefaultElements();
 
   //! Specialized version of the method of the base class
   //! We number the lowest order dofs consecutively 
@@ -70,6 +87,13 @@ protected:
   
   //! Map containing the polynomial order for every edge
   std::map<UInt, StdVector<UInt> > edgeOrder_;
+
+  // ====================================================================
+  // PROCESS USER INPUT
+  // ====================================================================
+  //! Here we pass a fePolynomial parameter node such that the feSpace can extract the information
+  //! which is important for the specific space
+  virtual void ProcessPolyRegionNode(ParamNode* node, RegionIdType region);
 
 private:
 };

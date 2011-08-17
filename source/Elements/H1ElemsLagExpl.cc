@@ -24,30 +24,53 @@ namespace CoupledField {
                                      EntityType fctEntityType,
                                      UInt dof ) {
     // Initialize explicitly with number of nodes
-    if( fctEntityType == VERTEX ) {
-      numFcns.Resize( shape_.numNodes );
+    if( fctEntityType == VERTEX  ) {
+      numFcns.Resize( shape_.numVertices );
       numFcns.Init( 1 );
+    }else if( fctEntityType == EDGE ) {
+      numFcns.Resize((order_-1)*shape_.numEdges);
+      numFcns.Init(1);
+    }else if( fctEntityType == ALL){
+      numFcns.Resize(shape_.numNodes);
+      numFcns.Init(1);
+    }else{
+      numFcns.Resize(0);
     }
   }
 
-  void FeH1LagrangeExpl::GetFncPermutation( StdVector<UInt>& fncPermutation,
-                                            const Elem* ptElem,
-                                            EntityType fctEntityType,
-                                            UInt entNumber){
+  void FeH1LagrangeExpl::GetNodalPermutation( StdVector<UInt>& fncPermutation,
+                                             const Elem* ptElem,
+                                             EntityType fctEntityType,
+                                             UInt entNumber){
     if( fctEntityType == VERTEX ) {
       fncPermutation.Resize(1);
       fncPermutation.Init(0);
+    }else if( fctEntityType == EDGE ) {
+      fncPermutation.Resize(order_-1);
+      for ( UInt i = 0; i < order_-1 ; i++ ) {
+        fncPermutation[i] = i;
+      }
+    }else if( fctEntityType == FACE && ptElem->faces.GetSize() > 0) {
+      fncPermutation.Resize((order_-1) * (order_-1));
+      for(Integer i = 0; i< order_-1 ; i++){
+        for(Integer j = 0; j< order_-1 ; j++){
+          fncPermutation[(i*(order_-1)) + j] = i*(order_-1) + j;
+        }
+      }
     }else{
       fncPermutation.Resize(0);
     }
-    return;
   }
+
+
   UInt FeH1LagrangeExpl::GetNumFncsPerEntType( EntityType fctEntityType,
                                      UInt dof){
     UInt numFnc = 0;
     // Initialize explictily with number of nodes
     if( fctEntityType == VERTEX ) {
-      numFnc = shape_.numNodes;
+      numFnc = shape_.numVertices;
+    }else if( fctEntityType == EDGE ) {
+      numFnc = shape_.numEdges*(order_-1);
     }
     return numFnc;
   }
@@ -227,7 +250,7 @@ namespace CoupledField {
                                      const Vector<Double>& point,
                                      const Elem* ptElem,
                                      UInt comp ) {
-   Warning("Implement me");
+    Warning("FeH1LagrangeLine2::CalcShFnc: Implement me");
   //  shape.Resize( 2 );
   //   shape[0] = 0.5 * ( 1.0 - point[0] );
   //   shape[1] = 0.5 * ( 1.0 + point[0] );
@@ -237,7 +260,7 @@ namespace CoupledField {
                                              const Vector<Double>& point,
                                              const Elem* ptElem,
                                              UInt comp ) {
-    Warning("Implement me");
+    Warning("FeH1LagrangeLine2::CalcLocDerivShFnc: Implement me");
   //    deriv.Resize(2, 1);
   //    deriv[0][0] = 0.5 * -1.0;
   //    deriv[1][0] = 0.5 *  1.0;
@@ -337,13 +360,14 @@ namespace CoupledField {
     
   FeH1LagrangeHex2::~FeH1LagrangeHex2() {
     
+
   }
   
   void FeH1LagrangeHex2::CalcShFnc( Vector<Double>& shape,
                                     const Vector<Double>& point,
                                     const Elem* ptElem,
                                     UInt comp ) {
-  Warning("Implement me");
+    Warning("FeH1LagrangeHex2::CalcShFnc: Implement me");
     //  shape.Resize( 8 );
   //  shape[0] = 0.25 * ( 1.0 - point[0] ) * ( 1.0 - point[1] ) * (1.0 - point[2]); 
   //  shape[1] = 0.25 * ( 1.0 + point[0] ) * ( 1.0 - point[1] ) * (1.0 - point[2]);
@@ -360,7 +384,7 @@ namespace CoupledField {
                                             const Vector<Double>& point,
                                             const Elem* ptElem,
                                             UInt comp ) {
-    Warning("Implement me");
+    Warning("FeH1LagrangeHex2::CalcLocDerivShFnc: Implement me");
     //  deriv.Resize( 8, 3 );
   //  StdVector<StdVector<Double> >& coords = shape_.nodeCoords;
   //  for( UInt i = 0; i < 8; i++ ) {

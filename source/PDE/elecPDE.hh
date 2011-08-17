@@ -101,10 +101,6 @@ namespace CoupledField
     //! is negative compared to the normal one
     void SetThermoCoupling();
 
-    //! Define Default FeFunctions for this PDE according to the
-    //! needs of the particular PDE
-    virtual void DefineDefaultFeFunctions();
-
   protected:
 
     //! SubType of electrostatic section
@@ -145,6 +141,9 @@ namespace CoupledField
 
     //! Electric impedances
     StdVector<Impedance> impedances_;
+
+    //! Create FeSpaces according to formulation
+    virtual std::map<SolutionType, shared_ptr<FeSpace> > CreateFeSpaces(std::string formulation);
 
   private:
 

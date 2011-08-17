@@ -73,6 +73,11 @@ namespace CoupledField {
     //! Returns the number of functions for a single edge or face
     UInt GetNumFncsPerEntType( EntityType fctEntityType, UInt dof = 1 );
 
+    //!obtain iso order of the current element
+    //!if there is no order is set, we return -1
+    virtual UInt GetIsoOrder(){
+      return order_;
+    }
   protected:
 
     //! @see FeH1::CalcShFnc

@@ -181,45 +181,43 @@ namespace CoupledField {
     //==============================================================
     //begin new implementation
     //==============================================================
-    StdVector<FunctionDescription> descriptions = functions_[ELEC_POTENTIAL];
-    for(UInt actDescr = 0; actDescr < descriptions.GetSize();actDescr++){
-      //now iterate over every region associated to the current space
-      StdVector<RegionIdType> curRegions = descriptions[actDescr].regions;
-      for(UInt iRegion = 0; iRegion < curRegions.GetSize() ; iRegion ++){
-        actRegion = curRegions[iRegion];
-        actSDMat = materials_[actRegion];
+    for(UInt iRegion = 0; iRegion < subdoms_.GetSize() ; iRegion ++){
+      actRegion = subdoms_[iRegion];
+      actSDMat = materials_[actRegion];
 
-        // Get current region node
-        std::string regionName = ptgrid_->RegionIdToName( actRegion );
+      // Get current region node
+      std::string regionName = ptgrid_->RegionIdToName( actRegion );
 
-        // create new entity list
-        shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
-        actSDList->SetRegion( actRegion );
+      // create new entity list
+      shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
+      actSDList->SetRegion( actRegion );
 
-        //Piezo Capability would be given here...
-        
-        // --- standard real-valued stiffness integrator ---
-        linElecInt *  linElecForm = new linElecInt( actSDMat, tensorType,
-                                                    upLagrangeForm );
-        linElecForm->SetFactor( factor );
-        linElecForm->SetIntegration(ptgrid_->GetIntegrationScheme(), 
-                                    descriptions[actDescr].integScheme,
-                                    descriptions[actDescr].integOrder);
-        
-        BiLinFormContext * stiffIntDescr = 
-          new BiLinFormContext(linElecForm, STIFFNESS );
-        
-        descriptions[actDescr].feFunction->AddEntityList( actSDList );
+      //Piezo Capability would be given here...
 
-        //stiffIntDescr->SetPtPdes(this, this);
-        stiffIntDescr->SetEntities( actSDList, actSDList );
-        stiffIntDescr->SetFeFunctions( descriptions[actDescr].feFunction, descriptions[actDescr].feFunction);
-        linElecForm->SetFeSpace( descriptions[actDescr].feFunction->GetFeSpace());
-        
-        assemble_->AddBiLinearForm( stiffIntDescr );
-        biLinForms_[actRegion] = linElecForm;
+      // --- standard real-valued stiffness integrator ---
+      linElecInt *  linElecForm = new linElecInt( actSDMat, tensorType,
+                                                  upLagrangeForm );
+      linElecForm->SetFactor( factor );
+      IntScheme::IntegMethod curMethod;
+      Matrix<Integer> order;
+      feFunctions_[ELEC_POTENTIAL]->GetFeSpace()->GetIntegration(actRegion,curMethod,order);
+      linElecForm->SetIntegration(ptgrid_->GetIntegrationScheme(),
+                                  curMethod,(UInt)order[0][0]);
 
-      }
+      BiLinFormContext * stiffIntDescr =
+        new BiLinFormContext(linElecForm, STIFFNESS );
+
+      feFunctions_[ELEC_POTENTIAL]->AddEntityList( actSDList );
+
+      //stiffIntDescr->SetPtPdes(this, this);
+      stiffIntDescr->SetEntities( actSDList, actSDList );
+      stiffIntDescr->SetFeFunctions( feFunctions_[ELEC_POTENTIAL],feFunctions_[ELEC_POTENTIAL]);
+      linElecForm->SetFeSpace( feFunctions_[ELEC_POTENTIAL]->GetFeSpace());
+
+      assemble_->AddBiLinearForm( stiffIntDescr );
+      biLinForms_[actRegion] = linElecForm;
+
+
     }
     // define integrators for electric impedances
     DefineImpedanceIntegrators();
@@ -734,7 +732,7 @@ namespace CoupledField {
     EntityIterator it = actSol.GetEntityList()->GetIterator();
     Vector<TYPE> & actVal = actSol.GetVector();
     actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
-    shared_ptr<BaseFeFunction> fct = GetFeFunction(actSol.GetResultInfo()->resultType, actSol.GetEntityList()->GetName());
+    shared_ptr<BaseFeFunction> fct = GetFeFunction(actSol.GetResultInfo()->resultType);
 
     
     // loop over elements
@@ -1265,10 +1263,9 @@ namespace CoupledField {
       res1->definedOn = ResultInfo::ELEMENT;
       res1->entryType = ResultInfo::SCALAR;
     }
-    for(UInt i=0;i<functions_[ELEC_POTENTIAL].GetSize(); i++){
-       functions_[ELEC_POTENTIAL][i].feFunction->SetResultInfo(res1);
-       functions_[ELEC_POTENTIAL][i].feFunction->SetPDE(shared_ptr<ElecPDE>(this));
-    }
+    feFunctions_[ELEC_POTENTIAL]->SetResultInfo(res1);
+    feFunctions_[ELEC_POTENTIAL]->SetPDE(shared_ptr<ElecPDE>(this));
+
     results_.Push_back( res1 );
     availResults_.insert( res1 );
     //}
@@ -1488,26 +1485,17 @@ namespace CoupledField {
       //lagr->fctType = results_[0]->fctType;
       lagr->definedOn = results_[0]->definedOn;
       results_.Push_back( lagr );
+
     } 
   }
-  void ElecPDE::DefineDefaultFeFunctions(){
-    //ok default case so we create grid based approximation H1 elements
-    //and standard Gauss integration
-    FunctionDescription fncDescription;
-    fncDescription.regions = subdoms_;
-    fncDescription.integScheme = IntScheme::GAUSS;
-    fncDescription.integOrder = -1;
-    shared_ptr<FeSpace> mySpace( new FeSpaceH1Lagrange(NULL) );
-
-    if(analysistype_ == HARMONIC){
-      fncDescription.feFunction.reset( new FeFunction<Complex> );
+  std::map<SolutionType, shared_ptr<FeSpace> > ElecPDE::CreateFeSpaces(std::string formulation){
+    std::map<SolutionType, shared_ptr<FeSpace> > crSpaces;
+    if(formulation == "default" || formulation == "H1"){
+      crSpaces[ELEC_POTENTIAL] = FeSpace::CreateInstance(myParam_,FeSpace::H1);
+      crSpaces[ELEC_POTENTIAL]->Init();
     }else{
-      fncDescription.feFunction.reset( new FeFunction<Double> );
+      EXCEPTION("The formulation " << formulation << "of electric PDE is not known!");
     }
-    mySpace->SetMapType(FeSpace::GRID);
-    mySpace->AddFeFunction(fncDescription.feFunction);
-    fncDescription.feFunction->SetFeSpace(mySpace);
-    fncDescription.regions = subdoms_;
-    functions_[ELEC_POTENTIAL].Push_back(fncDescription);
+    return crSpaces;
   }
 }

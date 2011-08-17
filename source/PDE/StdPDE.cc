@@ -151,7 +151,7 @@ namespace CoupledField {
       EntityIterator it = actBc.entities->GetIterator();
       
       for ( it.Begin(); !it.IsEnd(); it++ ) {
-        actFunction = GetFeFunction(actBc.result->resultType, actBc.entities->GetName());
+        actFunction = GetFeFunction(actBc.result->resultType);
         actFunction->GetFeSpace()->GetEqns( eqns, it, actBc.dof );
         for(UInt iEqn = 0 ; iEqn < eqns.GetSize();iEqn){
           if ( eqns[iEqn] != 0 ) {
@@ -268,7 +268,7 @@ namespace CoupledField {
 
 
     StdVector<Integer> eqns;
-    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType,it.GetRegion());
+    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType);
     aFct->GetFeSpace()->GetEqns( eqns, it );
 
 
@@ -295,7 +295,7 @@ namespace CoupledField {
 
 
     StdVector<Integer> eqns;
-    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType,it.GetRegion());
+    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType);
     aFct->GetFeSpace()->GetEqns( eqns, it );
 
 
@@ -321,7 +321,7 @@ namespace CoupledField {
                                        shared_ptr<ResultInfo> res) {
 
     StdVector<Integer> eqns;
-    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType,it.GetRegion());
+    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType);
     aFct->GetFeSpace()->GetEqns( eqns, it );
     sol.Resize( eqns.GetSize() );
     sol.Init( 0.0 ); 
@@ -348,7 +348,7 @@ namespace CoupledField {
 
 
     StdVector<Integer> eqns;
-    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType,it.GetRegion());
+    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType);
     aFct->GetFeSpace()->GetEqns( eqns, it );
     
     sol.Resize( eqns.GetSize() );
@@ -382,7 +382,7 @@ namespace CoupledField {
 
 
     StdVector<Integer> eqns;
-    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType,it.GetRegion());
+    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType);
     aFct->GetFeSpace()->GetEqns( eqns, it );
     
     sol.Resize( eqns.GetSize() );
@@ -408,7 +408,7 @@ namespace CoupledField {
 
 
     StdVector<Integer> eqns;
-    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType,it.GetRegion());
+    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType);
     aFct->GetFeSpace()->GetEqns( eqns, it );
     
     sol.Resize( eqns.GetSize() );
@@ -500,14 +500,13 @@ namespace CoupledField {
   //FeFunction Methods
   //============================================================================================
 
-  shared_ptr<BaseFeFunction> StdPDE::GetFeFunction( SolutionType solType, std::string name ) {
+  shared_ptr<BaseFeFunction> StdPDE::GetFeFunction( SolutionType solType ) {
     
     //TODO> We need to find a more failsafe way to store the entity names associated with a 
     //FeFunction
     shared_ptr<BaseFeFunction> feFct;
-    bool found = false;
     SolutionType mySolType;
-    if( functions_.find(solType) == functions_.end()){
+    if( feFunctions_.find(solType) == feFunctions_.end()){
       //ok so it could be that we are looking for a postProc Result
       if(postProcResults_.find(solType) != postProcResults_.end()){
         mySolType = postProcResults_[solType];
@@ -518,68 +517,14 @@ namespace CoupledField {
     }else{
       mySolType = solType;
     }
-    StdVector<FunctionDescription> descr = functions_[mySolType];
-    if(descr.GetSize() == 1){
-      feFct = descr[0].feFunction;
-      found = true;
+    if(feFunctions_.find(mySolType) != feFunctions_.end()){
+      feFct = feFunctions_[mySolType];
     }else{
-      for(UInt i = 0 ; i < descr.GetSize() ; i ++){
-        for(UInt actName = 0; actName <  descr[i].entityNames.GetSize(); actName++){
-          if(descr[i].entityNames[actName] == name){
-            feFct = descr[i].feFunction;
-            found = true;
-            break;
-          }
-        }
-      }
+      EXCEPTION("StdPDE::GetFeFunction: Could not find the corresponding FeFunction for the given entity name\n \
+                         Did you specify all Regions, Surfregions and NamedNodes in the xml?");
     }
-    if(!found)
-        EXCEPTION("StdPDE::GetFeFunction: Could not find the corresponding FeFunction for the given entity name\n \
-                   Did you specify all Regions, Surfregions and NamedNodes in the xml?");
-
     return feFct;
+
   }
 
-  shared_ptr<BaseFeFunction> StdPDE::GetFeFunction( SolutionType solType, RegionIdType regID ) {
-    
-    //TODO> We need to find a more failsafe way to store the entity names associated with a 
-    //FeFunction
-    shared_ptr<BaseFeFunction> feFct;
-    SolutionType mySolType;
-    bool found = false;
-    if( functions_.find(solType) == functions_.end()){
-      //ok so it could be that we are looking for a postProc Result
-      if(postProcResults_.find(solType) != postProcResults_.end()){
-        mySolType = postProcResults_[solType];
-      }else{
-          EXCEPTION( "A FeFunction descriptor with solutionType '" << SolutionTypeEnum.ToString(solType)
-                      << "' was not found for " << pdename_ );
-      }
-    }else{
-      mySolType = solType;
-    }
-    StdVector<FunctionDescription> descr = functions_[mySolType];
-    if(descr.GetSize() == 1){
-      feFct = descr[0].feFunction;
-      found = true;
-    }else{
-      for(UInt i = 0 ; i < descr.GetSize() ; i ++){
-        for(UInt actReg = 0; actReg <  descr[i].regions.GetSize(); actReg++){
-          if(descr[i].regions[actReg] == regID){
-            feFct = descr[i].feFunction;
-            found = true;
-            break;
-          }
-        }
-      }
-    }
-    if(!found)
-        EXCEPTION("StdPDE::GetFeFunction: Could not find the corresponding FeFunction for the given entity name\n \
-                   Did you specify all Regions, Surfregions and NamedNodes in the xml?");
-
-    return feFct;
-  }
-  StdVector<BasePDE::FunctionDescription> StdPDE::GetFunctionDescriptors(SolutionType type){
-    return functions_[type];
-  };
 } // end of namespace

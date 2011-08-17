@@ -418,7 +418,7 @@ namespace CoupledField {
 
 
         for ( it.Begin(); !it.IsEnd(); it++ ) {
-          singlePDEs_[j]->GetFeFunction(actBc.result->resultType, actBc.entities->GetName())->GetFeSpace()->GetEqns( eqns, it, actBc.dof );
+          singlePDEs_[j]->GetFeFunction(actBc.result->resultType)->GetFeSpace()->GetEqns( eqns, it, actBc.dof );
           for(UInt iEqn = 0 ; iEqn < eqns.GetSize();iEqn ++){
             if ( eqns[iEqn] != 0 ) {
               actRHS[eqns[iEqn]] = 0.0;

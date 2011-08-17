@@ -289,9 +289,8 @@ namespace CoupledField
     //! definition in the XML file
     virtual void DefineFeFunctions();
 
-    //! Define Default FeFunctions for this PDE according to the
-    //! needs of the particular PDE
-    virtual void DefineDefaultFeFunctions() = 0;
+    //! Create FeSpaces according to formulation
+    virtual std::map<SolutionType, shared_ptr<FeSpace> > CreateFeSpaces(std::string formulation) = 0;
 
     //@{
     //! Save load part of RHS to private variable
@@ -469,8 +468,9 @@ namespace CoupledField
 
     //! map for storing bilinear forms needed for postprocessing
     std::map< RegionIdType, std::map< std::string, BaseForm* > > pdeBilinearForms_;
+
+
     //@}
-    
   private:
   };
 

@@ -28,6 +28,8 @@ ADD_CUSTOM_TARGET(share_xml ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CFS_SOURCE_DIR}/share/xml/CFS-Simulation/Schemas/CFS_PostProc.xsd ${CFS_BINARY_DIR}/share/xml/CFS-Simulation/Schemas/CFS_PostProc.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CFS_SOURCE_DIR}/share/xml/CFS-Simulation/Schemas/CFS_Preconds.xsd ${CFS_BINARY_DIR}/share/xml/CFS-Simulation/Schemas/CFS_Preconds.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CFS_SOURCE_DIR}/share/xml/CFS-Simulation/Schemas/CFS_Solvers.xsd ${CFS_BINARY_DIR}/share/xml/CFS-Simulation/Schemas/CFS_Solvers.xsd
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CFS_SOURCE_DIR}/share/xml/CFS-Simulation/Schemas/CFS_FePolynomial.xsd ${CFS_BINARY_DIR}/share/xml/CFS-Simulation/Schemas/CFS_FePolynomial.xsd
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CFS_SOURCE_DIR}/share/xml/CFS-Simulation/Schemas/CFS_IntegrationScheme.xsd ${CFS_BINARY_DIR}/share/xml/CFS-Simulation/Schemas/CFS_IntegrationScheme.xsd
 
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CFS_SOURCE_DIR}/share/xml/CFS-Material/CFS_Material.xsd ${CFS_BINARY_DIR}/share/xml/CFS-Material/CFS_Material.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CFS_SOURCE_DIR}/share/xml/CFS-Material/Schemas/CFS_MATacoustic.xsd ${CFS_BINARY_DIR}/share/xml/CFS-Material/Schemas/CFS_MATacoustic.xsd
@@ -40,6 +42,8 @@ ADD_CUSTOM_TARGET(share_xml ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CFS_SOURCE_DIR}/share/xml/CFS-Material/Schemas/CFS_MATpyroelectric.xsd ${CFS_BINARY_DIR}/share/xml/CFS-Material/Schemas/CFS_MATpyroelectric.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CFS_SOURCE_DIR}/share/xml/CFS-Material/Schemas/CFS_MATthermoelastic.xsd ${CFS_BINARY_DIR}/share/xml/CFS-Material/Schemas/CFS_MATthermoelastic.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CFS_SOURCE_DIR}/share/xml/CFS-Material/Schemas/CFS_Misc.xsd ${CFS_BINARY_DIR}/share/xml/CFS-Material/Schemas/CFS_Misc.xsd
+
+  
 
   COMMENT "Updating contents of ${CFS_BINARY_DIR}/share/xml..."
 )

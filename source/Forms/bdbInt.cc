@@ -36,6 +36,14 @@ namespace CoupledField {
 
     // Get integration points (shortcut: from basefe instead of 
     // IntegrationScheme class)
+    //obtain current integration scheme and order from fe space
+    IntScheme::IntegMethod method;
+    Matrix<Integer> order(1,1);
+    order.Init();
+    //TODO again we have a little problem in case of surface integrators
+    // were we would need the volume region for the surface element....
+    ptFeSpace1_->GetIntegration(ent1.GetElem()->regionId,method,order);
+    intScheme_->SetOrder(method,(UInt)order[0][0]);
     StdVector<LocPoint> intPoints;
     StdVector<Double> weights;
     intScheme_->GetIntPoints( Elem::GetShapeType(ptElem->type), intPoints, weights );

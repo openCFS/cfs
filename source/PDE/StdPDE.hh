@@ -92,16 +92,7 @@ namespace CoupledField {
     // ======================================================
 
     //! Returns the feFunction which holds a result related to the specified solutionType
-    //! and a entityList of the specified name 
-    virtual shared_ptr<BaseFeFunction> GetFeFunction( SolutionType solType, std::string name);
-
-    //! Returns the feFunction which holds a result related to the specified solutionType
-    //! and a entityList of the specified name 
-    virtual shared_ptr<BaseFeFunction> GetFeFunction( SolutionType solType, RegionIdType regID);
-
-    //! Returns the feFunction which holds a result related to the specified solutionType
-    //! and a entityList of the specified name 
-    StdVector<FunctionDescription> GetFunctionDescriptors(SolutionType type);
+    virtual shared_ptr<BaseFeFunction> GetFeFunction( SolutionType solType);
 
     //! Return pointer to the SolveStep object
     BaseSolveStep * GetSolveStep();
@@ -603,11 +594,13 @@ namespace CoupledField {
     
     //@}
 
-    //! Map Storing FeFunctions for each unknown of Function Definitions
-    std::map<SolutionType, StdVector<FunctionDescription> > functions_;
+
 
     //! map which associates a Postprocessing result to its corresponding Primary Result
     std::map<SolutionType,SolutionType> postProcResults_;
+
+    //! Map Storing FeSpaces for each unknown of PDE
+    std::map<SolutionType, shared_ptr<BaseFeFunction> > feFunctions_;
 
   }; // class StdPDE
 

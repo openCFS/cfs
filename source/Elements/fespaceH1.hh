@@ -121,7 +121,8 @@ public:
 
     //! Dump information to screen
   virtual void PrintEqnMap();
-  
+
+
 protected:
 
   //! Map Nodal BC Equation NUmbers
@@ -130,8 +131,38 @@ protected:
   //! Map Nodal Equation Numbers
   virtual void MapNodalEqns(UInt phase);
 
+  // ====================================================================
+  // INTERNAL INITIALIZATION
+  // ====================================================================
+  //! read in integration data and set defaults
+  virtual void SetRegionIntegration(RegionIdType region, IntScheme::IntegMethod method, Matrix<Integer> order)=0;
+
+  //! Set the order and mapping type of a specific region
+  virtual void SetRegionElements(RegionIdType region, MappingType mType,Matrix<Integer> order)=0;
+
+  //! Here the spaces have the possibility to check if user definitions makes sense
+  //! e.g. if the chosen integration is correct or the element order is nice
+  //! here one could e.g. adjust the integration oder according to the element order
+  virtual void CheckConsistency() = 0;
+
+  //! sets the default integration scheme and order
+  virtual void SetDefaultIntegration() = 0;
+
+  //! Create default finite elements to be used if nothing else is requested
+  virtual void CreateDefaultElements() = 0;
+
+  // ====================================================================
+  // PROCESS USER INPUT
+  // ====================================================================
+  //! Here we pass a fePolynomial parameter node such that the feSpace can extract the information
+  //! which is important for the specific space
+  virtual void ProcessPolyRegionNode(ParamNode* node, RegionIdType region) = 0;
+
+
   //! Nodal Equation Map
   SingleEqnMap nodeMap_;
+
+
 };
 
 } // end of namespace

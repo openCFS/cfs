@@ -345,8 +345,10 @@ share/xml/CFS-Simulation/Schemas/CFS_Coupling.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_DirectCoupling.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_Domain.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_ErsatzMaterial.xsd -text
+share/xml/CFS-Simulation/Schemas/CFS_FePolynomial.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_FileFormats.xsd -text svneol=unset#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_IntegRules.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_IntegrationScheme.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_LinearSystem.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_MeshDeformations.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_Misc.xsd svneol=native#text/xml

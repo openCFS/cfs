@@ -2535,26 +2535,13 @@ namespace CoupledField {
     actNode->Get( "dampFactorMax", dampFactorMax );
   }
 
-  void AcousticPDE::DefineDefaultFeFunctions(){
-    //ok default case so we create grid based approximation H1 elements
-    //and ECONOMICAL integration
-    EXCEPTION("not implemented yet");
-    //FunctionDescription fncDescription;
-    //fncDescription.regions = subdoms_;
-    //fncDescription.integScheme = ECONOMICAL;
-    //fncDescription.integOrder = -1;
-    //shared_ptr<FeSpaceH1> mySpace( new FeSpaceH1Lagrange );
-
-    //if(analysistype_ == HARMONIC){
-    //  fncDescription.feFunction.reset( new FeFunction<Complex> );
-    //}else{
-    //  fncDescription.feFunction.reset( new FeFunction<Double> );
-    //}
-    //mySpace->SetMapType(FeSpace::GRID);
-    //mySpace->AddFeFunction(fncDescription.feFunction);
-    //fncDescription.feFunction->SetFeSpace(mySpace);
-    //fncDescription.feFunction->SetPDE(shared_ptr<ElecPDE>(this));
-    //fncDescription.regions = subdoms_;
-    //functions_[ELEC_POTENTIAL].Push_back(fncDescription);
+  std::map<SolutionType, shared_ptr<FeSpace> > AcousticPDE::CreateFeSpaces(std::string formulation){
+    std::map<SolutionType, shared_ptr<FeSpace> > crSpaces;
+    if(formulation == "default" || formulation == "H1"){
+      crSpaces[ACOU_POTENTIAL] = FeSpace::CreateInstance(myParam_,FeSpace::H1);
+      crSpaces[ACOU_POTENTIAL]->Init();
+    }else{
+      EXCEPTION("The formulation " << formulation << "of electric PDE is not known!");
+    }
   }
 } // end of namespace

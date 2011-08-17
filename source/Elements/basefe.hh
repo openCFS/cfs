@@ -109,6 +109,12 @@ namespace CoupledField
     //! \param order (input) The desired order of the element
     virtual void SetIsoOrder(UInt order){};
 
+    //!obtain iso order of the current element
+    //!if there is no order is set, we return -1
+    virtual UInt GetIsoOrder(){
+      return -1;
+    }
+
   protected:
 
     //! Actual number of ansatz functions

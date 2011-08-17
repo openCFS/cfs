@@ -27,6 +27,7 @@ namespace CoupledField {
     //! Typedef for all geometric entities
     typedef enum {NO_LIST, ELEM_LIST, SURF_ELEM_LIST, NC_ELEM_LIST, 
                   NODE_LIST, REGION_LIST, COIL_LIST, 
+
                   NUMBER_LIST} ListType;
 
     //! Typedef describing the type the list is defined by

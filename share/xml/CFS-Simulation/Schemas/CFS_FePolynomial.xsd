@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema targetNamespace="http://www.cfs++.org"
+	elementFormDefault="qualified"
+	xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+	xmlns="http://www.cfs++.org">
+	
+	<xsd:annotation>
+		<xsd:documentation xml:lang="en">
+			Description of available fePolynomials
+		</xsd:documentation>
+	</xsd:annotation>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of polynomial types -->
+  <!-- ******************************************************************** -->
+
+  <xsd:complexType name="DT_AnIsoType">
+  	<xsd:sequence>
+  		<xsd:element name="dof1" minOccurs="1" maxOccurs="1">
+  			<xsd:simpleType>
+  				<xsd:restriction base="xsd:string">
+  					<xsd:pattern
+  						value="\s*[0-9]+\s+[0-9]+\s+[0-9]+\s*">
+  					</xsd:pattern>
+  				</xsd:restriction>
+  			</xsd:simpleType>
+  		</xsd:element>
+  		<xsd:element name="dof2" minOccurs="1" maxOccurs="1">
+  			<xsd:simpleType>
+  				<xsd:restriction base="xsd:string">
+  					<xsd:pattern
+  						value="\s*[0-9]+\s+[0-9]+\s+[0-9]+\s*">
+  					</xsd:pattern>
+  				</xsd:restriction>
+  			</xsd:simpleType>
+  		</xsd:element>
+  		<xsd:element name="dof3" minOccurs="1" maxOccurs="1">
+  			<xsd:simpleType>
+  				<xsd:restriction base="xsd:string">
+  					<xsd:pattern
+  						value="\s*[0-9]+\s+[0-9]+\s+[0-9]+\s*">
+  					</xsd:pattern>
+  				</xsd:restriction>
+  			</xsd:simpleType>
+  		</xsd:element>
+  	</xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_FePolynomialBasic" abstract="true">
+    <xsd:attribute name="id" type="xsd:string" use="optional" default="default" />
+     <xsd:attribute name="useGridOrder" type="xsd:boolean" use="required"/>
+  </xsd:complexType>
+
+  <!-- Definition of input element group -->
+  <xsd:group name="PolynomialGroup">
+    <xsd:choice>
+      <xsd:element name="Lagrange" type="DT_FePolynomialLagrange"/>
+      <xsd:element name="Legendre" type="DT_FePolynomialLegendre"/>
+    </xsd:choice>
+  </xsd:group>
+
+  <xsd:complexType name="DT_PolyList">
+    <xsd:sequence>
+      <xsd:group ref="PolynomialGroup" minOccurs="1" maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+   <xsd:complexType name="DT_FePolynomialLagrange">
+    <xsd:complexContent>
+      <xsd:extension base="DT_FePolynomialBasic">
+        <xsd:sequence>
+          <xsd:element name="isoOrder" type="xsd:int"
+            maxOccurs="1" minOccurs="0" />
+        </xsd:sequence>    
+        <xsd:attribute name="spectral"     type="xsd:boolean" use="optional" default="false"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+  <xsd:complexType name="DT_FePolynomialLegendre">
+    <xsd:complexContent>
+      <xsd:extension base="DT_FePolynomialBasic">
+        <xsd:choice maxOccurs="1" minOccurs="0">
+            <xsd:element name="isoOrder" type="xsd:int"
+              maxOccurs="1" minOccurs="0" />
+            <xsd:element name="anIsoOrder"
+              type="DT_AnIsoType"/>
+          </xsd:choice>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- xsd:complexContent>
+        <xsd:annotation>
+        	<xsd:documentation xsd:lang="en">
+        	Specify a specific Type of Finite Element to use. 
+I.e. give the Polynomial Type and the (an)IsoOrder of the approximation.
+Give an attribute id to assign the Type to a region later in the PDE definition,
+give the id "default" to apply it to every region with nothing else specified.
+The second attribute "useHigherOrder" lets the user decide to apply higher order elements or not. 
+In case of no (default), the information from the Elements of the grid is taken other element values specified will be ignored.
+In case of yes, CFS will try to use the information from the polyType,isoOrder etc. child-elements
+          </xsd:documentation>
+        </xsd:annotation>
+        
+        <xsd:sequence>
+  		<xsd:element name="polyType" type="DT_PolyType" maxOccurs="1" minOccurs="0"></xsd:element>
+  		<xsd:element name="isoOrder" type="xsd:int" maxOccurs="1"
+  			minOccurs="0">
+  		</xsd:element>
+  		<xsd:element name="anIsoOrder" maxOccurs="1" minOccurs="0">
+  			<xsd:complexType>
+  				<xsd:sequence>
+  					<xsd:element name="xOrder" type="DT_AnIsoType"
+  						maxOccurs="1" minOccurs="0">
+  					</xsd:element>
+  					<xsd:element name="yOrder" type="DT_AnIsoType"
+  						maxOccurs="1" minOccurs="0">
+  					</xsd:element>
+  					<xsd:element name="zOrder" type="DT_AnIsoType"
+  						maxOccurs="1" minOccurs="0">
+  					</xsd:element>
+  				</xsd:sequence>
+  			</xsd:complexType>
+  		</xsd:element>
+  		</xsd:sequence>
+  	</xsd:complexContent>
+  	<xsd:attribute name="id" type="xsd:string" use="optional" default="default"></xsd:attribute>
+  	<xsd:attribute name="useHigherOrder" type="xsd:boolean" use="optional" default="yes"></xsd:attribute>
+  </xsd:complexType-->
+</xsd:schema>

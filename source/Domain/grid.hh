@@ -331,6 +331,8 @@ namespace CoupledField
     virtual void SetElemRegion(UInt ielem, RegionIdType region)
     { EXCEPTION( "Not implemented" ); }
 
+    virtual void GetElemRegion(UInt ielem, RegionIdType region)
+    { EXCEPTION( "Not implemented" ); }
 
     //! Get list of elements (surface / volumes)
 

@@ -216,6 +216,8 @@ namespace CoupledField
     virtual void SetElemRegion(UInt ielem, RegionIdType region);
 
 
+    virtual void GetElemRegion(UInt ielem, RegionIdType & region);
+
     //! Get list of elements (surface / volumes)
     
     //! Returns all elems for a given surface / volume region. If the desired 

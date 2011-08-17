@@ -72,7 +72,7 @@ IntScheme::IntScheme() {
 //  intPoints_[ECONOMICAL][2][Elem::ST_HEXA] = points;
 //  intWeights_[ECONOMICAL][2][Elem::ST_HEXA] = weights;
   
-  FillIntegPoints(20);
+  FillIntegPoints(5);
 }
 
 
@@ -223,7 +223,7 @@ IntScheme::~IntScheme() {
 }
 
 
-void IntScheme::SetOrder( std::string method, UInt order) {
+void IntScheme::SetOrder(std::string method, UInt order) {
   integMethod_ = IntegMethodEnum.Parse(method); 
   if(order == -1){
     order_ = 2;

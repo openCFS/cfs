@@ -83,9 +83,6 @@ namespace CoupledField {
       return formulation_;
     }
     
-    //! Define Default FeFunctions for this PDE according to the
-    //! needs of the particular PDE
-    virtual void DefineDefaultFeFunctions();
 
   protected:
 
@@ -114,6 +111,8 @@ namespace CoupledField {
     //! define the SoltionStep-Driver
     void DefineSolveStep();
 
+    //! Create FeSpaces according to formulation
+    virtual std::map<SolutionType, shared_ptr<FeSpace> > CreateFeSpaces(std::string formulation);
     //     //! define the algbraic system
     //     void DefineAlgSys();
 

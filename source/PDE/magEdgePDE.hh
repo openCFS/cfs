@@ -73,10 +73,6 @@ namespace CoupledField
     //! returns if PDE can compute the quantity
     bool HasOutput(SolutionType output);
     
-    //! Define Default FeFunctions for this PDE according to the
-    //! needs of the particular PDE
-    virtual void DefineDefaultFeFunctions();
-
   protected:
     
     // =======================================================================
@@ -245,6 +241,7 @@ namespace CoupledField
     //! List of points, where fluxdensity gets calculated
     StdVector<FluxAtPoints> calcFlux_;
     
+    std::map<SolutionType, shared_ptr<FeSpace> > CreateFeSpaces(std::string formulation);
     
   private:
   };

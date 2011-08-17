@@ -1391,6 +1391,23 @@ namespace CoupledField {
     orderedElems_[ielem-1]->regionId = region;
   }
 
+  void GridCFS::GetElemRegion(UInt ielem, RegionIdType & region)
+   {
+  #ifndef NDEBUG
+     if ( ielem > numElems_ ) {
+       EXCEPTION( "GridCFS: There are only " << numElems_
+                  << " elements in the grid! You requested element number "
+                  << ielem << ". Go check your mesh file!" );
+     }
+     if ( orderedElems_[ielem-1] == NULL ) {
+       EXCEPTION( "Element with Nr. " << ielem << " is not contained in mesh!" );
+
+     }
+  #endif
+
+     region = orderedElems_[ielem-1]->regionId;
+   }
+
 
 
   const Elem * GridCFS::GetElem( UInt elemNr ) {

@@ -85,6 +85,7 @@ namespace CoupledField{
     mapType_ = POLYNOMIAL;
     type_ = HCURL;
     isHierarchical_ = true;
+    polyType_ = LEGENDRE;
   }
 
   //! Destructor
@@ -95,18 +96,19 @@ namespace CoupledField{
     // read order of function space
     // read, if map type should be isotropic
 
-    ParamNode * orderNode = NULL;
+    /*ParamNode * orderNode = NULL;
     orderNode = myParam_->Get("order");
     if( orderNode ) {
-      if( orderNode->Has("grid") ) {
-        isoOrder_ = 0; // has no real meaning here
-        SetMapType( GRID );
-      }
-      if( orderNode->Has("uniform")) {
-        isoOrder_ = orderNode->Get("uniform")->AsUInt();
-        SetMapType(POLYNOMIAL);
-      }
-    }
+     if( orderNode->Has("grid") ) {
+       isoOrder_ = 0; // has no real meaning here
+       SetMapType( GRID );
+     }
+     if( orderNode->Has("uniform")) {
+       isoOrder_ = orderNode->Get("uniform")->AsUInt();
+       SetMapType(POLYNOMIAL);
+     }
+    }*/
+    CreateRefElems();
     
   }
   
@@ -120,8 +122,9 @@ namespace CoupledField{
     if(solStrategy_ == STRAT_TWO_LEVEL && solStep_ == 1 ) {
       
       // in the 1st step we use hard-codedo order 0
-      SetMapType(POLYNOMIAL);
-      isoOrder_ = 0;
+      //SetMapType(POLYNOMIAL);
+      //isoOrder_ = 0;
+      mapType_ = POLYNOMIAL;
     }
     
     if( solStrategy_ == STRAT_TWO_LEVEL && solStep_ == 2 ) {
@@ -145,17 +148,43 @@ namespace CoupledField{
   }
 
 
-  void FeSpaceHCurlHi::SetMapType( MappingType mapT){
+  void FeSpaceHCurlHi::SetRegionElements(RegionIdType region, MappingType mType,Matrix<Integer> order){
+    //This method may not be called after the space is finalized!
+    if(isFinalized_){
+      Exception("FeSpace::SetRegionMapping is called after finalization");
+    }
 
-    // check, that the correct map type is set:
-    // For hierarchical elements we always need the 
-    mapType_ = mapT;
-    
-    //refElems_[Elem::ET_LINE2]  = new FeH1HiLine();
-    refElems_[Elem::ET_QUAD4]  = new FeHCurlHiQuad();
-    refElems_[Elem::ET_HEXA8]  = new FeHCurlHiHex();
+    //ToDo: save the information...
+    // QUERY FOR USER PARAMS IS STILL TO COME
+    refElems_[region][Elem::ET_QUAD4]  = new FeHCurlHiQuad();
+    refElems_[region][Elem::ET_HEXA8]  = new FeHCurlHiHex();
+
+    //now set the order
+    if(order.GetNumCols() != 1 || order.GetNumRows() != 1){
+      Exception("FeSpaceHCurlHi::SetRegionElements : Only Iso-Order is supported right now");
+    }
+    std::map<Elem::FEType, BaseFE* >::iterator i = refElems_[region].begin();
+    for( ; i != refElems_[region].end(); ++i ) {
+      i->second->SetIsoOrder(order[0][0]+orderOffset_);
+    }
+
   }
 
+  void FeSpaceHCurlHi::SetRegionIntegration(RegionIdType region, IntScheme::IntegMethod method, Matrix<Integer> order){
+    //TODO:Implementation of defaults (ALL_REGIONS) and XML
+    regionIntegration_[region].first = method;
+    regionIntegration_[region].second = order;
+  }
+  void FeSpaceHCurlHi::CheckConsistency(){
+
+  }
+
+  //! sets the default integration scheme and order
+  void FeSpaceHCurlHi::SetDefaultIntegration(){
+    regionIntegration_[ALL_REGIONS].first = IntScheme::GAUSS;
+    regionIntegration_[ALL_REGIONS].second = Matrix<Integer>(1,1);
+    regionIntegration_[ALL_REGIONS].second[0][0] = -1;
+  }
 
   UInt FeSpaceHCurlHi::GetEntityOrder( UInt elemNum, BaseFE::EntityType type, 
                                       UInt entityNum, UInt comp ) {
@@ -164,8 +193,8 @@ namespace CoupledField{
     } else if( type == BaseFE::EDGE ) {
       // Currently we support just isotropic order
       //StdVector<UInt> & orders = edgeOrder_[elemNum];
-      
-      return isoOrder_;
+      EXCEPTION("THis needs to be implemented");
+      return 0;
     } else if( type == BaseFE::FACE ) {
       // IMPLEMENT ME
     }
@@ -179,7 +208,8 @@ namespace CoupledField{
       // Currently we support just isotropic order
       //StdVector<UInt> & orders = edgeOrder_[elemNum];
       //return *(std::max_element( orders.Begin(), orders.End() ));
-      return isoOrder_;
+      EXCEPTION("THis needs to be implemented");
+      return 0;
     } else if( type == BaseFE::FACE ) {
       // IMPLEMENT ME
     }
@@ -215,30 +245,45 @@ namespace CoupledField{
   }
 
   BaseFE* FeSpaceHCurlHi::GetFe( const EntityIterator ent ){
-    if(refElems_.find(ent.GetElem()->type) == refElems_.end()){
+    RegionIdType eRegion =  ent.GetElem()->regionId;
+
+    //Check if the region is there, otherwise fall back to default
+    if(refElems_.find(eRegion) == refElems_.end()){
+      eRegion = ALL_REGIONS;
+    }
+
+    if(refElems_[eRegion].find(ent.GetElem()->type) == refElems_[eRegion].end()){
       EXCEPTION("fespaceh1::getfe( const entityiterator): requested fetype which is noch supported by space");
     }
-    BaseFE * myFe = refElems_[ent.GetElem()->type];
 
+    BaseFE * myFe = refElems_[eRegion][ent.GetElem()->type];
 
     // ToDo: Currently hard coded to isotropic order. Here we should generalize the 
     // setting of entitiy orders.
-    myFe->SetIsoOrder( isoOrder_);
 
     return myFe;
   }
   
   BaseFE* FeSpaceHCurlHi::GetFe( UInt elemNum ){
     const Elem * ptElem = feFunction_->GetGrid()->GetElem(elemNum); 
-    if(refElems_.find(ptElem->type) == refElems_.end()){
-      EXCEPTION("fespaceh1::getfe( const entityiterator): requested fetype which is noch supported by space");
+    RegionIdType eRegion = ptElem->regionId;
+
+    //Check if the region is there, otherwise fall back to default
+    if(refElems_.find(eRegion) == refElems_.end()){
+      eRegion = ALL_REGIONS;
     }
-    BaseFE * myFe = refElems_[ptElem->type];
 
+    if(refElems_[eRegion].find(ptElem->type) == refElems_[eRegion].end()){
+      EXCEPTION("FeSpaceHCurlHi::getfe( const entityiterator): requested fetype which is noch supported by space");
+    }
+    BaseFE * myFe = refElems_[eRegion][ptElem->type];
 
+    //NOTE: THE ORDER IS ALREADY SET IN THIS CASE
+    //      BUT for more felexibility we should set it here
     // ToDo: Currently hard coded to isotropic order. Here we should generalize the 
     // setting of entitiy orders.
-    myFe->SetIsoOrder( isoOrder_);
+    //
+    //myFe->SetIsoOrder( (UInt)regionMappings_[eRegion].second[0][0]);
 
     return myFe;
   }
@@ -281,6 +326,7 @@ namespace CoupledField{
   }
   
   void FeSpaceHCurlHi::CreateVirtualNodes() {
+
     //follow the following algorithm
         
     // 1st loop over every element
@@ -308,7 +354,8 @@ namespace CoupledField{
     //get the highest possible node number
     //UInt offset = feFunction_->GetGrid()->GetNumNodes();
     UInt offset =0;
-
+    UInt curRegIsoOrder = 0;
+    MappingType curMap = GRID;
     // ------------------------------------------
     //  1st loop: lowest order Nedelec unknowns
     // ------------------------------------------
@@ -327,12 +374,18 @@ namespace CoupledField{
           break;
           EXCEPTION("FeSpaceHCurlHi::CreateVirtualNodes(): Calling the method with an unsupported EntityListType");
         }
+        //cast down to element list
+        ElemList* actElemList = dynamic_cast<ElemList*>(fctEntList[actList].get());
+        RegionIdType curReg = actElemList->GetRegion();
+
+        curMap = POLYNOMIAL;
+
         const Elem* actEl = entIt.GetElem();
         BaseFE* ptFe = GetFe( entIt ); 
         //distinguish between Grid or polynomial based mapping
-        if( mapType_ == GRID ) {
+        if( curMap == GRID ) {
           EXCEPTION("This makes no sense");
-        } else if (mapType_ == POLYNOMIAL) {
+        } else if (curMap == POLYNOMIAL) {
 
 
           //===========================================================
@@ -388,6 +441,8 @@ namespace CoupledField{
           << fctEntList[actList]->GetName() << "'";
       EntityIterator entIt = fctEntList[actList]->GetIterator();
 
+
+
       // loop over all elements
       for(entIt.Begin(); !entIt.IsEnd();entIt++){
 
@@ -399,10 +454,17 @@ namespace CoupledField{
         }
         const Elem* actEl = entIt.GetElem();
         BaseFE* ptFe = GetFe( entIt ); 
+
+        //cast down to element list
+        ElemList* actElemList = dynamic_cast<ElemList*>(fctEntList[actList].get());
+        RegionIdType curReg = actElemList->GetRegion();
+
+        curMap = POLYNOMIAL;
+
         //distinguish between Grid or polynomial based mapping
-        if( mapType_ == GRID ) {
+        if( curMap == GRID ) {
           EXCEPTION("This makes no sense");
-        } else if (mapType_ == POLYNOMIAL) {
+        } else if (curMap == POLYNOMIAL) {
 
 
           //===========================================================
@@ -460,10 +522,15 @@ namespace CoupledField{
         }
         const Elem* actEl = entIt.GetElem();
         BaseFE* ptFe = GetFe( entIt ); 
+        //cast down to element list
+        ElemList* actElemList = dynamic_cast<ElemList*>(fctEntList[actList].get());
+        RegionIdType curReg = actElemList->GetRegion();
+
+        curMap = POLYNOMIAL;
         //distinguish between Grid or polynomial based mapping
-        if( mapType_ == GRID ) {
+        if( curMap == GRID ) {
           EXCEPTION("This makes no sense");
-        } else if (mapType_ == POLYNOMIAL) {
+        } else if (curMap == POLYNOMIAL) {
 
           //===========================================================
           //Assign the Interior node numbers
@@ -491,19 +558,41 @@ namespace CoupledField{
       } // loop over elements
     } // loop over entitylists
 
-    //another little helper to create the nodes_ array
-    if( mapType_ == GRID ) {
-      nodes_.Resize(gridToVirtualNodes_.size());
-      UInt counter = 0;
-      for(std::map<UInt,UInt>::const_iterator it = gridToVirtualNodes_.begin(); it != gridToVirtualNodes_.end(); ++it) {
-        nodes_[counter++] = it->second;
-      }
-    }
     LOG_TRACE(feSpaceHCurlHi) << "finished creation of virtual nodes";
    
     // remember node range for lowest order edge functions
     faceNodeRange_[0] = nedelecNodeRange_[1]+1;
     faceNodeRange_[1] = offset-1;
     
+  }
+
+  void FeSpaceHCurlHi::ProcessPolyRegionNode(ParamNode* node, RegionIdType region){
+    Matrix<Integer> order(1,1);
+    order[0][0] = -1;
+    ParamNode * isoOrderNode = node->Get("isoOrder", false );
+    ParamNode * anIsoOrderNode = node->Get("anIsoOrder", false );
+
+    if(isoOrderNode){
+      Integer isoOrder = isoOrderNode->AsInt();
+      order[0][0] = isoOrder;
+    }else if(anIsoOrderNode){
+      //TO BE DONE
+      EXCEPTION("Anisotropic element orders are not supported");
+    }else{
+      Warning("Did not find a order node. setting it to 1");
+      order[0][0] = 1;
+    }
+    SetRegionElements(region,POLYNOMIAL,order);
+  }
+
+  void FeSpaceHCurlHi::CreateDefaultElements(){
+    //but it could be, that the PDE requires a minimum order of elements...
+    Matrix<Integer> order(1,1);
+    if(orderOffset_>0){
+      order[0][0] = orderOffset_;
+    }else{
+      order[0][0] = 1;
+    }
+    SetRegionElements(ALL_REGIONS,POLYNOMIAL,order);
   }
 } // end of namespace

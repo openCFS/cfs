@@ -175,23 +175,16 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
       numPdeEquations_ = 0;
       numPdeUnknowns_ = 0;
       numPdeInHomDirBc_ = 0;
-      std::map<SolutionType, StdVector<FunctionDescription> >::iterator descrIt= functions_.begin();
-      while(descrIt != functions_.end()){
-        StdVector< FunctionDescription > descriptors = descrIt->second;
-        for(UInt actFnc = 0 ; actFnc < descriptors.GetSize(); actFnc++){
-          //descriptors[actFnc].feFunction->SetGrid(shared_ptr<Grid>(ptgrid_));
-          shared_ptr<FeSpace> actSpace = descriptors[actFnc].feFunction->GetFeSpace();
-          
-          // IMPORTANT: Set 2nd step in two-Level scheme
-          actSpace->SetStrategy(STRAT_TWO_LEVEL, 2);
-          //actSpace->Finalize();
-          actSpace->PreCalcShapeFncs();
-          numPdeEquations_ += actSpace->GetNumEquations();
-          numPdeUnknowns_ += actSpace->GetNumFreeEquations();
-          numPdeInHomDirBc_ += actSpace->GetNumInhomDirichletBc();
-        }
-        descrIt++;
-      }
+      //so this implementation is just for the magnetic potential
+      shared_ptr<FeSpace> actSpace = feFunctions_[MAG_POTENTIAL]->GetFeSpace();
+
+      // IMPORTANT: Set 2nd step in two-Level scheme
+      actSpace->SetStrategy(STRAT_TWO_LEVEL, 2);
+      //actSpace->Finalize();
+      actSpace->PreCalcShapeFncs();
+      numPdeEquations_ += actSpace->GetNumEquations();
+      numPdeUnknowns_ += actSpace->GetNumFreeEquations();
+      numPdeInHomDirBc_ += actSpace->GetNumInhomDirichletBc();
       
       // Re-set store-solution and other vector objects
       sol_->Init();
@@ -335,192 +328,184 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
     if( penaltyNode )
       regularizationFactor  = penaltyNode->AsDouble();
     
-    std::cerr << "regularization factor is " << regularizationFactor <<
-std::endl;
+    std::cerr << "regularization factor is " << regularizationFactor << std::endl;
     
     
     //==============================================================
     //begin new implementation
     //==============================================================
-    StdVector<FunctionDescription> & descriptions = functions_[MAG_POTENTIAL];
-    for(UInt actDescr = 0; actDescr < descriptions.GetSize();actDescr++){
-      //now iterate over every region associated to the current space
-      StdVector<RegionIdType> curRegions = descriptions[actDescr].regions;
-      for(UInt iRegion = 0; iRegion < curRegions.GetSize() ; iRegion ++){
-        actRegion = curRegions[iRegion];
-        actMat    = materials_[actRegion];
-        std::string regionName = ptgrid_->RegionIdToName( actRegion );
-        
-        // get feSpace and feFunction
-        shared_ptr<BaseFeFunction> feFunc = descriptions[actDescr].feFunction;
-        shared_ptr<FeSpace> feSpace = descriptions[actDescr].feFunction->GetFeSpace();
-        
-        
+    for(UInt iRegion = 0; iRegion < subdoms_.GetSize() ; iRegion ++){
+      actRegion = subdoms_[iRegion];
+      actMat    = materials_[actRegion];
+      std::string regionName = ptgrid_->RegionIdToName( actRegion );
 
-        // create new entity list
-        shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
-        actSDList->SetRegion( actRegion );
+      shared_ptr<BaseFeFunction> feFunc = feFunctions_[MAG_POTENTIAL];
+      shared_ptr<FeSpace> feSpace = feFunc->GetFeSpace();
 
-        
-        // Switch, if region is linear / nonlinear
-        if ( regionNonLinType_[actRegion] != NO_NONLINEARITY ) {
-          // ***************************************
-          // NONLINEAR PART
-          // ***************************************
-          
-          if ( regionNonLinType_[actRegion] == HYSTERESIS ) {
-            EXCEPTION("Magnetics with nonlineaity in 3D not supported");
-          }
-          
-          // =================================
-          //  Nonlinear Stiffness Integrator
-          // =================================
-          nLinCurlCurlEdgeInt* curlcurlNL = 
-              new nLinCurlCurlEdgeInt( actMat, upLagrangeForm );
-          curlcurlNL->SetIntegration(ptgrid_->GetIntegrationScheme(), 
-                                     descriptions[actDescr].integScheme,
-                                     descriptions[actDescr].integOrder);
-          curlcurlNL->SetNonLinMethod( nonLinMethod_ );      
-          curlcurlNL->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
-          curlcurlNL->SetFeSpace( feSpace );
-          
-          BiLinFormContext * stiffContext = new BiLinFormContext( curlcurlNL, STIFFNESS );
-          stiffContext->SetEntities( actSDList, actSDList );
-          stiffContext->SetFeFunctions( feFunc, feFunc );
-          assemble_->AddBiLinearForm( stiffContext );
-          
-          // we have to save the bilinear form for later usage
-          nlinBilinForms_[actRegion] = curlcurlNL;
-          
-          // =================================
-          //  Nonlinear RHS-integrator
-          // =================================
-          nLinMagEdge_linFormInt* rhsSource 
-          = new nLinMagEdge_linFormInt( actMat, upLagrangeForm);
-          rhsSource->SetIntegration(ptgrid_->GetIntegrationScheme(), 
-                                    descriptions[actDescr].integScheme,
-                                    descriptions[actDescr].integOrder);
-          rhsSource->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
-          rhsSource->SetFeSpace( feSpace );
-          LinearFormContext * rhsContext = 
-              new LinearFormContext( rhsSource );
-          rhsContext->SetEntities( actSDList );
-          rhsContext->SetFeFunction( feFunc );
-          assemble_->AddLinearForm( rhsContext );
+      //obtain integration method and order of current subdomain
+      IntScheme::IntegMethod curMethod;
+      Matrix<Integer> order;
+      feSpace->GetIntegration(actRegion,curMethod,order);
 
-        } else {
+      // create new entity list
+      shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
+      actSDList->SetRegion( actRegion );
+      // Switch, if region is linear / nonlinear
+      if ( regionNonLinType_[actRegion] != NO_NONLINEARITY ) {
+       // ***************************************
+       // NONLINEAR PART
+       // ***************************************
 
-          // ***************************************
-          // LINEAR PART
-          // ***************************************
+       if ( regionNonLinType_[actRegion] == HYSTERESIS ) {
+         EXCEPTION("Magnetics with nonlinearity in 3D not supported");
+       }
 
-          // ===============================
-          //  Standard Stiffness Integrator
-          // ===============================
-          CurlCurlEdgeInt* curlcurl =
-              new CurlCurlEdgeInt( actMat, upLagrangeForm);
-          curlcurl->SetIntegration(ptgrid_->GetIntegrationScheme(), 
-                                   descriptions[actDescr].integScheme,
-                                   descriptions[actDescr].integOrder);
-          curlcurl->SetFeSpace( feSpace );
+       // =================================
+       //  Nonlinear Stiffness Integrator
+       // =================================
+       nLinCurlCurlEdgeInt* curlcurlNL =
+           new nLinCurlCurlEdgeInt( actMat, upLagrangeForm );
 
-          BiLinFormContext * stiffContext =
-              new BiLinFormContext(curlcurl, STIFFNESS );
-          stiffContext->SetEntities( actSDList, actSDList );
-          stiffContext->SetFeFunctions( feFunc, feFunc );
-          assemble_->AddBiLinearForm( stiffContext );
-          linBilinForms_[actRegion] = curlcurl;
-          
-          // === Additional RHS integrator in case of Non-linearity ===
-          if ( nonLin_ == true ) {
-            nLinMagEdge_linFormInt* rhsSource = 
-                new nLinMagEdge_linFormInt( actMat, upLagrangeForm );
-            rhsSource->SetIntegration(ptgrid_->GetIntegrationScheme(), 
-                                                descriptions[actDescr].integScheme,
-                                                descriptions[actDescr].integOrder);
-            rhsSource->SetFeSpace( feSpace );
-            rhsSource->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
 
-            LinearFormContext * rhsContext = 
-                new LinearFormContext( rhsSource );
-            rhsContext->SetEntities( actSDList );
-            rhsContext->SetFeFunction( feFunc );
-            assemble_->AddLinearForm( rhsContext );
-          }
-        } // END OF NOLIN / LIN PART
-        
-        // ============================
-        // Standard Mass Matrix
-        // ============================
-        Double conductivity = 0.0; // , maxPerm = 0.0; // TODO: Check if this is still needed
-        bool scaleByEdgeSize = false;
-        materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
+       curlcurlNL->SetIntegration(ptgrid_->GetIntegrationScheme(),
+                                  curMethod,order[0][0]);
+       curlcurlNL->SetNonLinMethod( nonLinMethod_ );
+       curlcurlNL->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+       curlcurlNL->SetFeSpace( feSpace );
 
-        if ( conductivity < 1e-10 || analysistype_ == STATIC ) {
-          Double perm;
-          // get tensor of permeability and determine max. value
-          materials_[actRegion]->GetScalar( perm, MAG_PERMEABILITY, Global::REAL );
-          scaleByEdgeSize = true;
-          //regularizationFactor = 1e-6;
-          conductivity =  regularizationFactor / perm;
-        } 
+       BiLinFormContext * stiffContext = new BiLinFormContext( curlcurlNL, STIFFNESS );
+       stiffContext->SetEntities( actSDList, actSDList );
+       stiffContext->SetFeFunctions( feFunc, feFunc );
+       assemble_->AddBiLinearForm( stiffContext );
 
-        MassEdgeInt *massInt = 
-            new MassEdgeInt(conductivity, scaleByEdgeSize, upLagrangeForm );
-        massInt->SetIntegration(ptgrid_->GetIntegrationScheme(), 
-                                descriptions[actDescr].integScheme,
-                                descriptions[actDescr].integOrder);
-        massInt->SetFeSpace( feSpace );
+       // we have to save the bilinear form for later usage
+       nlinBilinForms_[actRegion] = curlcurlNL;
 
-        BiLinFormContext * massContext;
-        if ( analysistype_ == STATIC) {
-          // we have to guarantee, that we add some mass to 
-          // the curl-curl-matrix!!
-          massContext =  new BiLinFormContext(massInt, STIFFNESS );
-        } else {
-          massContext = 
-              new BiLinFormContext(massInt, MASS );
+       // =================================
+       //  Nonlinear RHS-integrator
+       // =================================
+       nLinMagEdge_linFormInt* rhsSource
+       = new nLinMagEdge_linFormInt( actMat, upLagrangeForm);
+       rhsSource->SetIntegration(ptgrid_->GetIntegrationScheme(),
+                                 curMethod,order[0][0]);
+       rhsSource->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+       rhsSource->SetFeSpace( feSpace );
+       LinearFormContext * rhsContext =
+           new LinearFormContext( rhsSource );
+       rhsContext->SetEntities( actSDList );
+       rhsContext->SetFeFunction( feFunc );
+       assemble_->AddLinearForm( rhsContext );
+
+      } else {
+
+       // ***************************************
+       // LINEAR PART
+       // ***************************************
+
+       // ===============================
+       //  Standard Stiffness Integrator
+       // ===============================
+       CurlCurlEdgeInt* curlcurl =
+           new CurlCurlEdgeInt( actMat, upLagrangeForm);
+       curlcurl->SetIntegration(ptgrid_->GetIntegrationScheme(),
+                                curMethod,order[0][0]);
+       curlcurl->SetFeSpace( feSpace );
+
+       BiLinFormContext * stiffContext =
+           new BiLinFormContext(curlcurl, STIFFNESS );
+       stiffContext->SetEntities( actSDList, actSDList );
+       stiffContext->SetFeFunctions( feFunc, feFunc );
+       assemble_->AddBiLinearForm( stiffContext );
+       linBilinForms_[actRegion] = curlcurl;
+
+       // === Additional RHS integrator in case of Non-linearity ===
+       if ( nonLin_ == true ) {
+         nLinMagEdge_linFormInt* rhsSource =
+             new nLinMagEdge_linFormInt( actMat, upLagrangeForm );
+         rhsSource->SetIntegration(ptgrid_->GetIntegrationScheme(),
+                                   curMethod,order[0][0]);
+         rhsSource->SetFeSpace( feSpace );
+         rhsSource->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+
+         LinearFormContext * rhsContext =
+             new LinearFormContext( rhsSource );
+         rhsContext->SetEntities( actSDList );
+         rhsContext->SetFeFunction( feFunc );
+         assemble_->AddLinearForm( rhsContext );
+       }
+     } // END OF NOLIN / LIN PART
+
+      // ============================
+      // Standard Mass Matrix
+      // ============================
+      Double conductivity = 0.0; // , maxPerm = 0.0; // TODO: Check if this is still needed
+      bool scaleByEdgeSize = false;
+      materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
+
+      if ( conductivity < 1e-10 || analysistype_ == STATIC ) {
+        Double perm;
+        // get tensor of permeability and determine max. value
+        materials_[actRegion]->GetScalar( perm, MAG_PERMEABILITY, Global::REAL );
+        scaleByEdgeSize = true;
+        //regularizationFactor = 1e-6;
+        conductivity =  regularizationFactor / perm;
+      }
+
+      MassEdgeInt *massInt =
+          new MassEdgeInt(conductivity, scaleByEdgeSize, upLagrangeForm );
+      massInt->SetIntegration(ptgrid_->GetIntegrationScheme(),
+                              curMethod,order[0][0]);
+      massInt->SetFeSpace( feSpace );
+
+      BiLinFormContext * massContext;
+      if ( analysistype_ == STATIC) {
+        // we have to guarantee, that we add some mass to
+        // the curl-curl-matrix!!
+        massContext =  new BiLinFormContext(massInt, STIFFNESS );
+      } else {
+        massContext =
+            new BiLinFormContext(massInt, MASS );
+      }
+      massContext->SetEntities( actSDList, actSDList );
+      massContext->SetFeFunctions( feFunc, feFunc );
+      assemble_->AddBiLinearForm( massContext );
+
+      feFunc->AddEntityList( actSDList );
+      // ============================
+      // COIL INTEGRATORS
+      // ============================
+      // If this subdomain is a coil we have to do special things
+      for ( UInt coil = 0; coil < coilDef_.GetSize(); coil++ ) {
+        if ( actRegion == coilRegionId_[coil] ) {
+          std::string factor = coilDef_[coil]->value_ + "/" +
+              GenStr(coilDef_[coil]->windingCrossSection_);
+
+          VolForceInt *coilSource3d =
+              new LinearEdgeSrcInt ( 3, coilDef_[coil]->phase_,
+                                     isaxi_ );
+
+          StdVector<std::string> currDensity(3);
+          currDensity[0] = factor + "*" + GenStr(coilDef_[coil]->locFlowDir_[0]);
+          currDensity[1] = factor + "*" + GenStr(coilDef_[coil]->locFlowDir_[1]);
+          currDensity[2] = factor + "*" + GenStr(coilDef_[coil]->locFlowDir_[2]);
+          coilSource3d->SetVolForceVector( currDensity,
+                                           coilDef_[coil]->flowCoordSys_,
+                                           true, 1.0 );
+          LinearFormContext * coilContext =
+              new LinearFormContext( coilSource3d );
+          coilSource3d->SetFeSpace(feSpace );
+          coilSource3d->SetIntegration( ptgrid_->GetIntegrationScheme(),
+                                        curMethod,order[0][0] );
+          coilContext->SetEntities( actSDList );
+          coilContext->SetFeFunction( feFunc );
+          assemble_->AddLinearForm( coilContext );
         }
-        massContext->SetEntities( actSDList, actSDList );
-        massContext->SetFeFunctions( feFunc, feFunc );
-        assemble_->AddBiLinearForm( massContext );
+      }
 
-
-        feFunc->AddEntityList( actSDList );
-    
-    
-        // ============================
-        // COIL INTEGRATORS
-        // ============================
-        // If this subdomain is a coil we have to do special things
-        for ( UInt coil = 0; coil < coilDef_.GetSize(); coil++ ) {
-          if ( actRegion == coilRegionId_[coil] ) {
-            std::string factor = coilDef_[coil]->value_ + "/" +
-                GenStr(coilDef_[coil]->windingCrossSection_);
-
-            VolForceInt *coilSource3d =
-                new LinearEdgeSrcInt ( 3, coilDef_[coil]->phase_,
-                                       isaxi_ );
-
-            StdVector<std::string> currDensity(3);
-            currDensity[0] = factor + "*" + GenStr(coilDef_[coil]->locFlowDir_[0]);
-            currDensity[1] = factor + "*" + GenStr(coilDef_[coil]->locFlowDir_[1]);
-            currDensity[2] = factor + "*" + GenStr(coilDef_[coil]->locFlowDir_[2]);
-            coilSource3d->SetVolForceVector( currDensity,
-                                             coilDef_[coil]->flowCoordSys_,
-                                             true, 1.0 );
-            LinearFormContext * coilContext =
-                new LinearFormContext( coilSource3d );
-            coilSource3d->SetFeSpace(feSpace );
-            coilSource3d->SetIntegration( ptgrid_->GetIntegrationScheme(), 
-                                          descriptions[actDescr].integScheme,
-                                          descriptions[actDescr].integOrder );
-            coilContext->SetEntities( actSDList );
-            coilContext->SetFeFunction( feFunc );
-            assemble_->AddLinearForm( coilContext );
-          }
-        }
         
+    }
+
+
         // ============================
         // PERMANENT MAGNETS
         // ============================
@@ -552,9 +537,6 @@ std::endl;
 //        }
 //      }
 //    }
-      } // loop over regions
-    } // loop over descriptions
-
   }
 
   void MagEdgePDE::DefineSolveStep()
@@ -967,10 +949,8 @@ std::endl;
     results_.Push_back( res1 );
     availResults_.insert( res1 );
     
-    for(UInt i=0;i<functions_[MAG_POTENTIAL].GetSize(); i++){
-      functions_[MAG_POTENTIAL][i].feFunction->SetResultInfo(res1);
-      functions_[MAG_POTENTIAL][i].feFunction->SetPDE(shared_ptr<MagEdgePDE>(this));
-    }
+    feFunctions_[MAG_POTENTIAL]->SetResultInfo(res1);
+    feFunctions_[MAG_POTENTIAL]->SetPDE(shared_ptr<MagEdgePDE>(this));
     
     // === MAGNETIC FLUX DENSITY ===
     shared_ptr<ResultInfo> flux(new ResultInfo);
@@ -1108,7 +1088,7 @@ std::endl;
     LocPointMapped lpm;
     
     shared_ptr<ElemShapeMap> esm = ptgrid_->GetElemShapeMap( el, true );
-    shared_ptr<BaseFeFunction> fct = GetFeFunction(MAG_POTENTIAL,el->regionId); 
+    shared_ptr<BaseFeFunction> fct = GetFeFunction(MAG_POTENTIAL);
                           
     CurlCurlEdgeInt * li = NULL;
     
@@ -1137,7 +1117,7 @@ std::endl;
       const Elem * el = it.GetElem();
       CurlCurlEdgeInt * li = linBilinForms_[el->regionId];
       shared_ptr<ElemShapeMap> esm = ptgrid_->GetElemShapeMap( el, true );
-      shared_ptr<BaseFeFunction> fct = GetFeFunction(MAG_POTENTIAL,el->regionId); 
+      shared_ptr<BaseFeFunction> fct = GetFeFunction(MAG_POTENTIAL);
                                                      
       FeHCurl*  ptFe = dynamic_cast<FeHCurl*>(fct->GetFeSpace()->GetFe( it ));
       lpm.Set(Elem::shapes[el->type].midPointCoord, esm );
@@ -1475,25 +1455,16 @@ std::endl;
 //     }
   }
   
-  void MagEdgePDE::DefineDefaultFeFunctions(){
+  std::map<SolutionType, shared_ptr<FeSpace> > MagEdgePDE::CreateFeSpaces(std::string formulation){
     //ok default case so we create grid based approximation H1 elements
     //and standard Gauss integration
-    FunctionDescription fncDescription;
-    fncDescription.regions = subdoms_;
-    fncDescription.integScheme = IntScheme::GAUSS;
-    fncDescription.integOrder = -1;
-    shared_ptr<FeSpace> mySpace( new FeSpaceHCurlHi(NULL) );
-
-    if(analysistype_ == HARMONIC){
-      fncDescription.feFunction.reset( new FeFunction<Complex> );
+    std::map<SolutionType, shared_ptr<FeSpace> > crSpaces;
+    if(formulation == "default" || formulation == "H_CURL"){
+      crSpaces[MAG_POTENTIAL] = FeSpace::CreateInstance(myParam_,FeSpace::HCURL);
+      crSpaces[MAG_POTENTIAL]->Init();
     }else{
-      fncDescription.feFunction.reset( new FeFunction<Double> );
+      EXCEPTION("The formulation " << formulation << "of magnetig edge PDE is not known!");
     }
-    mySpace->SetMapType(FeSpace::GRID);
-    mySpace->AddFeFunction(fncDescription.feFunction);
-    fncDescription.feFunction->SetFeSpace(mySpace);
-    fncDescription.regions = subdoms_;
-    functions_[MAG_POTENTIAL].Push_back(fncDescription);
   }
 
   bool MagEdgePDE::HasOutput( SolutionType output ) {

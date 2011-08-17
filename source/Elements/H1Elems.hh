@@ -47,6 +47,8 @@ namespace CoupledField {
     //! @see BaseFE::SetFunctionsAtIp
     void SetFunctionsAtIp(const StdVector<LocPoint>& iPoints);
         
+
+
   protected:
 
     //! Calculate the location of unknowns for a line up to given order

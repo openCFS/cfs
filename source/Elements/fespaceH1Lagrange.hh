@@ -67,20 +67,44 @@ class FeSpaceH1Lagrange : public FeSpaceH1 {
     //! @see FeSpace:: GetMaxEntityOrder
     UInt GetMaxEntityOrder( UInt elemNum, BaseFE::EntityType type, 
                             UInt entityNum );
-    
+
     //! Map equations i.e. initialize object
     virtual void Finalize();
 
-    //! Set type of map
-    virtual void SetMapType(MappingType mapT);
-
   protected:
-      
+    // ====================================================================
+    // INTERNAL INITIALIZATION
+    // ====================================================================
+    //! read in integration data and set defaults
+    virtual void SetRegionIntegration(RegionIdType region, IntScheme::IntegMethod method, Matrix<Integer> order);
+
+    //! Set the order and mapping type of a specific region
+    virtual void SetRegionElements(RegionIdType region, MappingType mType,Matrix<Integer> order);
+
+    //! Here the spaces have the possibility to check if user definitions makes sense
+    //! e.g. if the chosen integration is correct or the element order is nice
+    //! here one could e.g. adjust the integration oder according to the element order
+    virtual void CheckConsistency();
+
+    //! sets the default integration scheme and order
+    virtual void SetDefaultIntegration();
+
+    //! Create default finite elements to be used if nothing else is requested
+    virtual void CreateDefaultElements();
+
+    // ====================================================================
+    // PROCESS USER INPUT
+    // ====================================================================
+    //! Here we pass a fePolynomial parameter node such that the feSpace can extract the information
+    //! which is important for the specific space
+    virtual void ProcessPolyRegionNode(ParamNode* node, RegionIdType region);
+
     //! This array stores all nodes, including the virtual ones, which are available in the feSpace
     //StdVector<UInt> nodes;
 
 
   private:
+    std::map<RegionIdType,bool> spectralRegions_;
 };
 }
 #endif //

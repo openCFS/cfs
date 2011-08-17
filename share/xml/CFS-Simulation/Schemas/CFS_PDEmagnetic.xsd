@@ -35,7 +35,13 @@
                 <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
                   <xsd:complexType>
                     <xsd:attribute name="name" type="xsd:token" use="required"/>
-                    <xsd:attribute name="nonLinId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default">
+                    </xsd:attribute>
+                    <xsd:attribute name="integId"
+                      type="xsd:string" use="optional" default="default">
+                    </xsd:attribute>
+                    <xsd:attribute name="nonLinId" type="xsd:token"
+                      use="optional" default="" />
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>

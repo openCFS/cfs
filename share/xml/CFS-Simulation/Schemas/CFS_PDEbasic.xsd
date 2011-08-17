@@ -19,7 +19,9 @@
 
   <!-- This is an abstract basic type so that it cannot appear in an -->
   <!-- instance document -->
-  <xsd:complexType name="DT_PDEBasic" abstract="true"/>
+  <xsd:complexType name="DT_PDEBasic" abstract="true">
+    <xsd:attribute name="feSpaceFormulation" type="DT_FeFormulationBasic" use="optional" default="default"/>
+  </xsd:complexType>
 
 
   <!-- ******************************************************************** -->
@@ -59,24 +61,17 @@
   <!-- ******************************************************************** -->
   <!--   Definition of basic function space types -->
   <!-- ******************************************************************** -->
-  <xsd:simpleType name="DT_SpaceType">
+  <xsd:simpleType name="DT_FeFormulationBasic">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="H1"/>
-      <xsd:enumeration value="HCurl"/>
-      <xsd:enumeration value="HDiv"/>
-      <xsd:enumeration value="L2"/>
+       <xsd:enumeration value="default"/>
+       <xsd:enumeration value="H1"/>
+       <xsd:enumeration value="HCurl"/>
+       <xsd:enumeration value="HDiv"/>
+       <xsd:enumeration value="L2"/>
     </xsd:restriction>
   </xsd:simpleType>
   
-  <!-- ******************************************************************** -->
-  <!--   Definition of polynomial types -->
-  <!-- ******************************************************************** -->
-  <xsd:simpleType name="DT_PolyType">
-    <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="Lagrange"/>
-      <xsd:enumeration value="Legendre"/>
-    </xsd:restriction> 
-  </xsd:simpleType>
+
   
   <!-- ******************************************************************** -->
   <!--   Definition of standard type for damping -->

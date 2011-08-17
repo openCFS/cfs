@@ -47,6 +47,8 @@ namespace CoupledField {
     void FeH1LagrangeVar::SetIntPoints( StdVector<LocPoint>& intPoints ){
     }
 
+    //THIS is a VERSION FOR TENSOR PRODUCT ELEMENTS
+    //FOR EVERY OTHER TYPE WE NEED A REIMPLEMENTATION
     void FeH1LagrangeVar::GetNumFncs( StdVector<UInt>& numFcns,
                      EntityType fctEntityType,
                      UInt dof){
@@ -56,12 +58,14 @@ namespace CoupledField {
       } else if ( fctEntityType == EDGE ) {
         numFcns.Resize( shape_.numEdges*(order_ - 1) );
         numFcns.Init( dof );
-      } else if ( fctEntityType == FACE ) {
+      } else if ( fctEntityType == FACE && shape_.numFaces > 0) {
         numFcns.Resize( shape_.numFaces* ( (order_ - 1)*(order_ - 1)) );
         numFcns.Init( dof );
-      } else if ( fctEntityType == INTERIOR ) {
+      } else if ( fctEntityType == INTERIOR && shape_.numFaces == 4 ) {
         numFcns.Resize(  (order_ - 1)*(order_ - 1)*(order_ - 1)  );
         numFcns.Init( dof );
+      } else if (fctEntityType == ALL ){
+        numFcns.Resize(actNumFncs_);
       } else {
         EXCEPTION( "Entitytype '" << fctEntityType << "' not known!");
       }
@@ -379,12 +383,258 @@ namespace CoupledField {
                                         const Vector<Double>& point,
                                         const Elem* ptElem,
                                         UInt comp ) {
+
+      Shape.Resize( actNumFncs_ );
+      Shape.Init();
+      //now get the shape functions and the derivatives for the given coordinates
+      Vector<Double> shapeX;
+      Vector<Double> shapeY;
+      Vector<Double> shapeZ;
+
+      EvaluateLagrangePolynomial( shapeX, point[0], order_ );
+      EvaluateLagrangePolynomial( shapeY, point[1], order_ );
+      EvaluateLagrangePolynomial( shapeZ, point[2], order_ );
+
+      UInt c = 0;
+      Shape[c++] = shapeX[0]     * shapeY[0]     * shapeZ[0];
+      Shape[c++] = shapeX[order_] * shapeY[0]     * shapeZ[0];
+      Shape[c++] = shapeX[order_] * shapeY[order_] * shapeZ[0];
+      Shape[c++] = shapeX[0]     * shapeY[order_] * shapeZ[0];
+      Shape[c++] = shapeX[0]     * shapeY[0]     * shapeZ[order_];
+      Shape[c++] = shapeX[order_] * shapeY[0]     * shapeZ[order_];
+      Shape[c++] = shapeX[order_] * shapeY[order_] * shapeZ[order_];
+      Shape[c++] = shapeX[0]     * shapeY[order_] * shapeZ[order_];
+
+
+         // --------------------
+         //  b) edge functions
+         // --------------------
+     #define FILL_EDGE( numEdge, shape, p1, p2)      \
+         {                                          \
+           for ( UInt i= 1; i<order_ ;i++ )    \
+             Shape[c++] = shape[i] * p1 * p2;    \
+         }
+
+       FILL_EDGE( 1, shapeX, shapeY[0],     shapeZ[0] );
+       FILL_EDGE( 2, shapeY, shapeX[order_], shapeZ[0] );
+       FILL_EDGE( 3, shapeX, shapeY[order_], shapeZ[0] );
+       FILL_EDGE( 4, shapeY, shapeX[0],     shapeZ[0] );
+       FILL_EDGE( 5, shapeZ, shapeX[0],     shapeY[0] );
+       FILL_EDGE( 6, shapeZ, shapeX[order_], shapeY[0] );
+       FILL_EDGE( 7, shapeZ, shapeX[order_], shapeY[order_] );
+       FILL_EDGE( 8, shapeZ, shapeX[0],     shapeY[order_] );
+       FILL_EDGE( 9, shapeX, shapeY[0],     shapeZ[order_] );
+       FILL_EDGE(10, shapeY, shapeX[order_], shapeZ[order_] );
+       FILL_EDGE(11, shapeX, shapeY[order_], shapeZ[order_] );
+       FILL_EDGE(12, shapeY, shapeX[0],     shapeZ[order_] );
+
+       // --------------------
+       //  c) face functions
+       // --------------------
+
+   #define FILL_FACE( numFace, shape1, shape2, fac)                   \
+         {                                                            \
+           for ( UInt i= 1;i< order_ ;i++ ){                           \
+             for ( UInt j = 1; j< order_ ;j++ ){                       \
+               Shape[c++] = shape1[j] * shape2[i] * fac;              \
+             }                                                        \
+           }                                                          \
+         }
+
+       FILL_FACE( 1, shapeX, shapeY, shapeZ[0] );
+       FILL_FACE( 2, shapeX, shapeZ, shapeY[0] );
+       FILL_FACE( 3, shapeY, shapeZ, shapeX[order_] );
+       FILL_FACE( 4, shapeX, shapeZ, shapeY[order_] );
+       FILL_FACE( 5, shapeY, shapeZ, shapeX[0] );
+       FILL_FACE( 6, shapeX, shapeY, shapeZ[order_] );
+
+
+       // ----------------------
+       //  d) bubble functions
+       // ----------------------
+       for( UInt i = 1; i < order_ ; i++ ) {
+         for( UInt j = 1; j < order_ ; j++ ) {
+           for( UInt k = 1; k < order_ ; k++ ) {
+             Shape[c++] = shapeX[k] * shapeY[j] * shapeZ[i];
+           }
+         }
+       }
     }
 
     void FeH1LagrangeHexVar::CalcLocDerivShFnc( Matrix<Double> & deriv, 
                                                 const Vector<Double>& point,
                                                 const Elem* ptElem,
                                                 UInt comp ) {
+      Vector<Double> shapeX;
+      Vector<Double> shapeY;
+      Vector<Double> shapeZ;
+      Vector<Double> shapeDerivX;
+      Vector<Double> shapeDerivY;
+      Vector<Double> shapeDerivZ;
+      deriv.Resize( actNumFncs_ , shape_.dim );
+      //now get the shape functions and the derivatives for the given coordinates
+      EvaluateLagrangePolynomial( shapeX, point[0], order_ );
+      EvaluateLagrangePolynomial( shapeY, point[1], order_ );
+      EvaluateLagrangePolynomial( shapeZ, point[2], order_ );
+      EvaluateDerivLagrangePolynomial( shapeDerivX, point[0], order_ );
+      EvaluateDerivLagrangePolynomial( shapeDerivY, point[1], order_ );
+      EvaluateDerivLagrangePolynomial( shapeDerivZ, point[2], order_ );
+      UInt c = 0;
+
+      deriv[c][0] = shapeDerivX[0]      *  shapeY[0]       * shapeZ[0];
+      deriv[c][1] = shapeX[0]      *  shapeDerivY[0]       * shapeZ[0];
+      deriv[c++][2] = shapeX[0]      *  shapeY[0]       * shapeDerivZ[0];
+
+      deriv[c][0] = shapeDerivX[order_]      *  shapeY[0]       * shapeZ[0];
+      deriv[c][1] = shapeX[order_]      *  shapeDerivY[0]       * shapeZ[0];
+      deriv[c++][2] = shapeX[order_]      *  shapeY[0]       * shapeDerivZ[0];
+
+      deriv[c][0] = shapeDerivX[order_]      *  shapeY[order_]       * shapeZ[0];
+      deriv[c][1] = shapeX[order_]      *  shapeDerivY[order_]       * shapeZ[0];
+      deriv[c++][2] = shapeX[order_]      *  shapeY[order_]       * shapeDerivZ[0];
+
+      deriv[c][0] = shapeDerivX[0]      *  shapeY[order_]       * shapeZ[0];
+      deriv[c][1] = shapeX[0]      *  shapeDerivY[order_]       * shapeZ[0];
+      deriv[c++][2] = shapeX[0]      *  shapeY[order_]       * shapeDerivZ[0];
+
+      deriv[c][0] = shapeDerivX[0]      *  shapeY[0]       * shapeZ[order_];
+      deriv[c][1] = shapeX[0]      *  shapeDerivY[0]       * shapeZ[order_];
+      deriv[c++][2] = shapeX[0]      *  shapeY[0]       * shapeDerivZ[order_];
+
+      deriv[c][0] = shapeDerivX[order_]      *  shapeY[0]       * shapeZ[order_];
+      deriv[c][1] = shapeX[order_]      *  shapeDerivY[0]       * shapeZ[order_];
+      deriv[c++][2] = shapeX[order_]      *  shapeY[0]       * shapeDerivZ[order_];
+
+      deriv[c][0] = shapeDerivX[order_]      *  shapeY[order_]       * shapeZ[order_];
+      deriv[c][1] = shapeX[order_]      *  shapeDerivY[order_]       * shapeZ[order_];
+      deriv[c++][2] = shapeX[order_]      *  shapeY[order_]       * shapeDerivZ[order_];
+
+      deriv[c][0] = shapeDerivX[0]      *  shapeY[order_]       * shapeZ[order_];
+      deriv[c][1] = shapeX[0]      *  shapeDerivY[order_]       * shapeZ[order_];
+      deriv[c++][2] = shapeX[0]      *  shapeY[order_]       * shapeDerivZ[order_];
+
+
+      // -------------------
+      //  b) edge functions
+      // -------------------
+  #define HEX_E_DERIV(numEdge,idx1,idx2,idx3,dim)                                 \
+        {                                                                            \
+          UInt start = 1;                                                              \
+          Integer inc = 1;                                                            \
+          UInt end = order_;                                                          \
+          switch(dim){                                                                \
+          case 1:                                                                      \
+            while( start != end)                                                      \
+            {                                                                          \
+              deriv[c][0]=   shapeDerivX[start] * shapeY[idx2] * shapeZ[idx3];          \
+              deriv[c][1]=   shapeX[start] * shapeDerivY[idx2] * shapeZ[idx3];          \
+              deriv[c++][2]= shapeX[start] * shapeY[idx2] * shapeDerivZ[idx3];        \
+              start += inc;                                                            \
+            }                                                                          \
+            break;                                                                    \
+          case 2:                                                                      \
+            while( start != end)                                                      \
+            {                                                                          \
+              deriv[c][0]=   shapeDerivX[idx1] * shapeY[start] * shapeZ[idx3];          \
+              deriv[c][1]=   shapeX[idx1] * shapeDerivY[start] * shapeZ[idx3];          \
+              deriv[c++][2]= shapeX[idx1] * shapeY[start] * shapeDerivZ[idx3];        \
+              start += inc;                                                            \
+            }                                                                          \
+            break;                                                                    \
+          case 3:                                                                      \
+            while( start != end)                                                      \
+            {                                                                          \
+              deriv[c][0]  = shapeDerivX[idx1] * shapeY[idx2] * shapeZ[start];          \
+              deriv[c][1]  = shapeX[idx1] * shapeDerivY[idx2] * shapeZ[start];          \
+              deriv[c++][2]= shapeX[idx1] * shapeY[idx2] * shapeDerivZ[start];        \
+              start += inc;                                                            \
+            }                                                                          \
+            break;                                                                    \
+          }                                                                            \
+        }
+
+
+      // EDGE #1
+      HEX_E_DERIV(1, 0, 0, 0, 1);
+      // EDGE #2
+      HEX_E_DERIV(2, order_, 0, 0, 2);
+       // EDGE #3
+      HEX_E_DERIV(3, 0, order_, 0, 1 );
+       // EDGE #4
+      HEX_E_DERIV(4, 0, 0, 0, 2);
+       // EDGE #5
+      HEX_E_DERIV(5, 0, 0, 0, 3);
+       // EDGE #6
+      HEX_E_DERIV(6, order_, 0, 0, 3);
+       // EDGE #7
+      HEX_E_DERIV(7, order_, order_, 0, 3);
+       // EDGE #8
+      HEX_E_DERIV(8, 0, order_, 0, 3);
+       // EDGE #9
+      HEX_E_DERIV(9, 0, 0, order_, 1);
+       // EDGE #10
+      HEX_E_DERIV(10, order_, 0, order_, 2);
+       // EDGE #11
+      HEX_E_DERIV(11, 0, order_, order_, 1);
+      // EDGE #12
+      HEX_E_DERIV(12, 0, 0, order_, 2);
+
+      // -------------------
+      //  c) face functions
+      // -------------------
+  #define HEX_F_DERIV( numFace, shape1, shape1Deriv, shape2, shape2Deriv,              \
+                          fac, facDeriv, dim)                                          \
+    {                                                                                  \
+      switch(dim){                                                                     \
+        case 3:                                                                        \
+          for ( UInt i= 1;i< order_ ;i++ ){                                             \
+            for ( UInt j = 1; j< order_ ;j++ ){                                         \
+              deriv[c][0]   = shape1Deriv[j] * shape2[i]      * fac;                  \
+              deriv[c][1]   = shape1[j]      * shape2Deriv[i] * fac;                  \
+              deriv[c++][2] = shape1[j]      * shape2[i]      * facDeriv;             \
+            }                                                                          \
+          }                                                                            \
+          break;                                                                       \
+        case 2:                                                                        \
+          for ( UInt i= 1;i< order_ ;i++ ){                                             \
+            for ( UInt j = 1; j< order_ ;j++ ){                                         \
+              deriv[c][0]   = shape1Deriv[j] * shape2[i]      * fac;                  \
+              deriv[c][1]   = shape1[j]      * shape2[i]      * facDeriv;             \
+              deriv[c++][2] = shape1[j]      * shape2Deriv[i] * fac;                  \
+            }                                                                          \
+          }                                                                            \
+          break;                                                                       \
+        case 1:                                                                        \
+          for ( UInt i= 1;i< order_ ;i++ ){                                             \
+            for ( UInt j = 1; j< order_ ;j++ ){                                         \
+              deriv[c][0]   = shape1[j]      * shape2[i]      * facDeriv;             \
+              deriv[c][1]   = shape1Deriv[j] * shape2[i]      * fac;                  \
+              deriv[c++][2] = shape1[j]      * shape2Deriv[i] * fac;                  \
+            }                                                                          \
+          }                                                                            \
+          break;                                                                       \
+      }                                                                                \
+    }                                                                                  \
+
+      HEX_F_DERIV( 1, shapeX, shapeDerivX, shapeY, shapeDerivY, shapeZ[0],      shapeDerivZ[0], 3 );
+      HEX_F_DERIV( 2, shapeX, shapeDerivX, shapeZ, shapeDerivZ, shapeY[0],      shapeDerivY[0], 2 );
+      HEX_F_DERIV( 3, shapeY, shapeDerivY, shapeZ, shapeDerivZ, shapeX[order_], shapeDerivX[order_], 1 );
+      HEX_F_DERIV( 4, shapeX, shapeDerivX, shapeZ, shapeDerivZ, shapeY[order_], shapeDerivY[order_], 2 );
+      HEX_F_DERIV( 5, shapeY, shapeDerivY, shapeZ, shapeDerivZ, shapeX[0],      shapeDerivX[0], 1 );
+      HEX_F_DERIV( 6, shapeX, shapeDerivX, shapeY, shapeDerivY, shapeZ[order_], shapeDerivZ[order_], 3 );
+
+      // ---------------------
+      //  d) bubble functions
+      // ---------------------
+      for(UInt k = 1; k< order_ ; k++) {
+        for(UInt j = 1; j< order_ ; j++) {
+          for(UInt i = 1; i< order_ ; i++) {
+            deriv[c][0]  = shapeDerivX[i] * shapeY[j]      * shapeZ[k];
+            deriv[c][1]  = shapeX[i]      * shapeDerivY[j] * shapeZ[k];
+            deriv[c++][2]= shapeX[i]      * shapeY[j]      * shapeDerivZ[k];
+          }
+        }
+      }
     }
 
     void FeH1LagrangeHexVar::SetIsoOrder(UInt order){
